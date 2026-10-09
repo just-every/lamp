@@ -1,0 +1,189 @@
+{
+  "schemaVersion": 1,
+  "findings": [
+    {
+      "rule": "secret.assignment",
+      "path": "scripts/base-onboarding/contract.test.mjs",
+      "blob": "169a0351abbfc681ae4dead2068fa291fa58f7a3",
+      "reason": "synthetic test value, never a credential",
+      "reviewer": "Independent fixture audit and current-source review",
+      "date": "2026-10-07"
+    },
+    {
+      "rule": "secret.assignment",
+      "path": "scripts/base-onboarding/failures.test.mjs",
+      "blob": "f37114f36e69213cc2f7c60a6f4c17bc9d3f5f67",
+      "reason": "synthetic test value, never a credential",
+      "reviewer": "Independent fixture audit and current-source review",
+      "date": "2026-10-07"
+    },
+    {
+      "rule": "secret.assignment",
+      "path": "scripts/base-onboarding/private.test.mjs",
+      "blob": "0f81d71fb55c96d5254f5c8cdc5cee14420f7af5",
+      "reason": "synthetic test value, never a credential",
+      "reviewer": "Independent fixture audit and current-source review",
+      "date": "2026-10-07"
+    },
+    {
+      "rule": "secret.assignment",
+      "path": "tests/delivery-wrapper.test.mjs",
+      "blob": "fc1d467f8cdb7f43f61f5ab29c37a15aa1fe32bf",
+      "reason": "synthetic test value, never a credential",
+      "reviewer": "Independent fixture audit and current-source review",
+      "date": "2026-10-07"
+    },
+    {
+      "rule": "secret.authorization",
+      "path": "tests/delivery-wrapper.test.mjs",
+      "blob": "fc1d467f8cdb7f43f61f5ab29c37a15aa1fe32bf",
+      "reason": "synthetic test value, never a credential",
+      "reviewer": "Independent fixture audit and current-source review",
+      "date": "2026-10-07"
+    },
+    {
+      "rule": "secret.assignment",
+      "path": "tests/e2e/app-api.test.mjs",
+      "blob": "e1a0e254e51030284581774fc25db1e66bc76eca",
+      "reason": "synthetic test value, never a credential",
+      "reviewer": "Independent fixture audit and current-source review",
+      "date": "2026-10-07"
+    },
+    {
+      "rule": "secret.assignment",
+      "path": "tests/e2e/delivery-contract.test.mjs",
+      "blob": "4933b1084882902daf4393e2eba8e16bbb702622",
+      "reason": "synthetic test value, never a credential",
+      "reviewer": "Independent fixture audit and current-source review",
+      "date": "2026-10-07"
+    },
+    {
+      "rule": "secret.assignment",
+      "path": "tests/e2e/deployment-artifact.test.mjs",
+      "blob": "6723d899fce81533b1cae781c07629384927306d",
+      "reason": "synthetic test value, never a credential",
+      "reviewer": "Independent fixture audit and current-source review",
+      "date": "2026-10-07"
+    },
+    {
+      "rule": "secret.assignment",
+      "path": "tests/e2e/deployment-secrets.test.mjs",
+      "blob": "f865e36f9260c57e386ed3e5878549c061e7d706",
+      "reason": "synthetic test value, never a credential",
+      "reviewer": "Independent fixture audit and current-source review",
+      "date": "2026-10-07"
+    },
+    {
+      "rule": "secret.assignment",
+      "path": "tests/e2e/publishing-browser.test.mjs",
+      "blob": "016ba0770b53ef9b0c0f680adce983fec6aca68d",
+      "reason": "synthetic test value, never a credential",
+      "reviewer": "Independent fixture audit and current-source review",
+      "date": "2026-10-07"
+    },
+    {
+      "rule": "secret.assignment",
+      "path": "tests/e2e/publishing-contract.test.mjs",
+      "blob": "36059192565a86ac767d6088044a5c1c0cb07803",
+      "reason": "synthetic test value, never a credential",
+      "reviewer": "Independent fixture audit and current-source review",
+      "date": "2026-10-07"
+    },
+    {
+      "rule": "secret.assignment",
+      "path": "tests/installer.test.mjs",
+      "blob": "04d0d4944f13811f90f2066cf45da4f000097575",
+      "reason": "synthetic test value, never a credential",
+      "reviewer": "Independent fixture audit and current-source review",
+      "date": "2026-10-07"
+    },
+    {
+      "rule": "hygiene.internal-reference",
+      "path": "tests/e2e/t073-intake-references.test.mjs",
+      "blob": "c2b74f4a1383e49d8a10015c7aff2165d01c7276",
+      "reason": "The retained internal-reference literals are synthetic monitor and scheduled-maintenance names constructed inside the intake integration test. They exercise independent incident and maintenance intake references and are not coordination records. All request inputs and assertions remain unchanged.",
+      "reviewer": "Lamp public fixture source review",
+      "date": "2026-10-07"
+    },
+    {
+      "rule": "hygiene.internal-reference",
+      "path": "tests/t073-u0/t073-incident-publishing.test.mjs",
+      "blob": "be6d8d171ec9e9197611cb87a7d9e226f1b46322",
+      "reason": "The retained internal-reference literal is a synthetic component display name inserted into the isolated incident-domain test database. It exercises incident publication and resolution; no coordination record is embedded. All fixtures and assertions remain unchanged.",
+      "reviewer": "Lamp public fixture source review",
+      "date": "2026-10-07"
+    },
+    {
+      "rule": "hygiene.internal-reference",
+      "path": "tests/t073-u2/resolve-composer.test.mjs",
+      "blob": "497c9b9fe9025eace8cab7737d5e146a53f3e814",
+      "reason": "The retained internal-reference literal is the synthetic component description sent by the isolated composer browser test. It is a functional request fixture, not a coordination record. All request inputs and assertions remain unchanged.",
+      "reviewer": "Lamp public fixture source review",
+      "date": "2026-10-07"
+    },
+    {
+      "rule": "hygiene.github-missing",
+      "path": ".edition/sources/df797e4db7ebc223632b3bcc2f6c6b735e114c0104578ca32e80f21840b3a4a8.json",
+      "blob": "8ecf8cbd086ad390658246cd9fc1f35225e057a3",
+      "reason": "Inspected decoded parent members: tests/local in AGENTS.consumer.md and AGENTS.md denotes local test folders; migrations/ext in AGENTS.consumer.md, AGENTS.md and OPERATIONS.md denotes local migration folders; dist/client in HANDOVER.md and README.md denotes generated client build output; application/x-www-form-urlencoded and multipart/form-data in CONTRACT.md are MIME media types. These exact slash references are harmless nonrepository code or prose, not GitHub repositories. Parent destination metadata retains the declared Lamp public destination.",
+      "reviewer": "Lamp projection identity and decoded-member review",
+      "date": "2026-10-07"
+    },
+    {
+      "rule": "secret.assignment",
+      "path": ".edition/sources/b5475188861f9fee763f461a105a4bb880def494632f26076c940f62b277bec2.json",
+      "blob": "2e3a1eb7a023f4d378e5acb2ce4464d06125399e",
+      "reason": "The matched derivation.originalKey is the SHA-256 of the authentic retained original archive origin metadata, independently recomputed from private custody and matched to plan.json and receipt.json. It is a comparison provenance identity, not a credential; the current archive key is separately recomputable.",
+      "reviewer": "Independent exact original-provenance and native-test review",
+      "date": "2026-10-09"
+    },
+    {
+      "rule": "secret.assignment",
+      "path": "scripts/public-projections/plan.json",
+      "blob": "cc8b89a53c84b9d702ba5e186197d79e253d2fa2",
+      "reason": "Matched originalKey fields identify authentic comparison originals. All four keys were independently recomputed as SHA-256 of serialized original origin metadata from private custody, with complete original bytes checked against the plan originalSha256 pins. These are provenance lookup identities, not credentials.",
+      "reviewer": "Independent exact original-provenance and native-test review",
+      "date": "2026-10-09"
+    },
+    {
+      "rule": "secret.assignment",
+      "path": "scripts/public-projections/receipt.json",
+      "blob": "28e990f18e6f644747382cb52e767c46b91d4ce7",
+      "reason": "Matched originalKey and key fields identify the authentic comparison originals and their retained public projections. Original keys independently recompute from private original origin metadata; projected keys independently recompute from retained projected origin metadata. Every plan, receipt and derivation link agrees. These are provenance lookup identities, not credentials.",
+      "reviewer": "Independent exact original-provenance and native-test review",
+      "date": "2026-10-09"
+    },
+    {
+      "rule": "secret.assignment",
+      "path": "tests/t073-u5/native-local-mail.test.mjs",
+      "blob": "db63f842536b3492911efd29df41002d257554b1",
+      "reason": "synthetic test value, never a credential",
+      "reviewer": "Independent exact original-provenance and native-test review",
+      "date": "2026-10-09"
+    },
+    {
+      "rule": "secret.assignment",
+      "path": "tests/t073-dev-ingress/native.test.mjs",
+      "blob": "c60a08734bf6c5361aee6f7b842b0de42ee1951a",
+      "reason": "synthetic test value, never a credential",
+      "reviewer": "Independent exact original-provenance and native-test review",
+      "date": "2026-10-09"
+    },
+    {
+      "rule": "secret.assignment",
+      "path": ".edition/sources/ef75547c0e5220ac18a8378335ec6d435d059a8fb032121381276c739498f7a1.json",
+      "blob": "3a4ea6871e2a0afbf3ddeb5400291869787bbcdb",
+      "reason": "The matched derivation.originalKey is the SHA-256 of the authentic retained original archive origin metadata, independently recomputed from private custody and matched to plan.json and receipt.json. It is a comparison provenance identity, not a credential; the current archive key is separately recomputable.",
+      "reviewer": "Independent exact original-provenance and native-test review",
+      "date": "2026-10-09"
+    },
+    {
+      "rule": "secret.assignment",
+      "path": ".edition/sources/df797e4db7ebc223632b3bcc2f6c6b735e114c0104578ca32e80f21840b3a4a8.json",
+      "blob": "8ecf8cbd086ad390658246cd9fc1f35225e057a3",
+      "reason": "The matched derivation.originalKey is the SHA-256 of the authentic retained original archive origin metadata, independently recomputed from private custody and matched to plan.json and receipt.json. It is a comparison provenance identity, not a credential; the current archive key is separately recomputable.",
+      "reviewer": "Independent exact original-provenance and native-test review",
+      "date": "2026-10-09"
+    }
+  ]
+}

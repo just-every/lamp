@@ -1,0 +1,25 @@
+{
+  "id": "lamp",
+  "name": "Lamp",
+  "sourceRepository": "https://github.com/just-every/lamp",
+  "artifactFile": "delivery-artifact/lamp-worker-artifact.json",
+  "artifactNamePrefix": "lamp-worker-",
+  "compiler": "management/integration",
+  "requiredPublicInputs": [
+    "LAMP_PAGE_NAME",
+    "LAMP_PAGE_TAGLINE",
+    "LAMP_PAGE_TIMEZONE",
+    "LAMP_ACCENT_COLOR",
+    "MAIL_FROM_ADDRESS",
+    "MAIL_DKIM_SELECTOR",
+    "SETUP_OPERATOR_EMAIL",
+    "MAIL_PROVIDER"
+  ],
+  "ownerSetup": "Initial operator identity is an approved setup migration. Configure mail to complete operator sign-in.",
+  "providerSetup": [
+    "Verified Resend or SendGrid sender and webhook configuration"
+  ],
+  "operationalGaps": [
+    "Source visibility and owner fork access must be verified before catalogue installation"
+  ]
+}

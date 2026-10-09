@@ -1,0 +1,25 @@
+.page-stack { display: grid; gap: 22px; }
+.page-title-row { display: flex; align-items: end; justify-content: space-between; gap: 20px; min-height: 72px; }
+.page-title-row > div > p:last-child { max-width: 650px; margin: 0; color: var(--muted); font-size: 16px; }
+.button { display: inline-flex; min-height: 44px; align-items: center; justify-content: center; gap: 8px; border: 1px solid transparent; border-radius: 6px; padding: 8px 14px; font-size: 14px; font-weight: 750; transition: background .15s ease, border-color .15s ease; }
+.button-primary { background: var(--accent); color: #fff; box-shadow: 0 7px 18px -13px #0e5032; }
+.button-primary:hover:not(:disabled) { background: var(--accent-deep); }
+.button-secondary { border-color: #cfd8df; background: #fff; color: var(--navy); }
+.button-secondary:hover:not(:disabled) { background: #f6f8f9; }
+button:disabled { cursor: not-allowed; opacity: .55; }
+.data-card { border: 1px solid var(--line); border-radius: 9px; background: var(--paper); box-shadow: 0 9px 30px -25px rgba(15,35,57,.3); padding: 23px; }
+.card-title-row, .card-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+.text-link { display: inline-flex; align-items: center; gap: 7px; color: #123d2c; font-weight: 750; }
+.text-link:hover, .quiet-link:hover { text-decoration: underline; }
+.app-state, .limit-note { border: 1px solid #d7e0e7; border-radius: 8px; background: #fff; padding: 17px; color: var(--muted); }
+.app-state-error .button { display: flex; margin-top: 12px; }
+.app-state-error { border-color: #edb08a; background: var(--warning-wash); color: #8c3d13; }
+.app-state-empty { margin-top: 13px; }
+.capability-note { display: flex; gap: 12px; border: 1px solid #f0d6c2; border-radius: 7px; background: #fff8f3; padding: 15px 17px; color: #79411f; }
+.capability-note svg { flex: 0 0 auto; color: var(--warning); }
+.capability-note strong { color: #683613; }
+.capability-note p { margin: 3px 0 0; font-size: 13px; }
+.count-label { color: var(--muted); font-size: 12px; }
+
+.limit-note { display: flex; gap: 10px; align-items: flex-start; }
+.limit-note svg { flex: 0 0 auto; margin-top: 3px; }

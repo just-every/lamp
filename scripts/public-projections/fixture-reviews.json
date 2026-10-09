@@ -1,0 +1,69 @@
+{
+  "schemaVersion": 1,
+  "purpose": "Exact transformed fixture-member audit; this document grants no scanner exception. Values are explicitly synthetic and need no archive-wide review waiver.",
+  "members": [
+    {
+      "archivePath": ".edition/sources/df797e4db7ebc223632b3bcc2f6c6b735e114c0104578ca32e80f21840b3a4a8.json",
+      "archiveBlob": "8ecf8cbd086ad390658246cd9fc1f35225e057a3",
+      "memberPath": "tests/e2e/app-api.test.mjs",
+      "memberSha256": "9cc088053cb9da5db39c9b1130e708ecd6a94715821b114d7ec8fc6ff87eb152",
+      "reason": "synthetic test value, never a credential"
+    },
+    {
+      "archivePath": ".edition/sources/df797e4db7ebc223632b3bcc2f6c6b735e114c0104578ca32e80f21840b3a4a8.json",
+      "archiveBlob": "8ecf8cbd086ad390658246cd9fc1f35225e057a3",
+      "memberPath": "tests/e2e/delivery-contract.test.mjs",
+      "memberSha256": "9de620ad31f5b06cfcb22caaf1f1d0fc3aca7cdd61db947e6a25f5ab7f4ac285",
+      "reason": "synthetic test value, never a credential"
+    },
+    {
+      "archivePath": ".edition/sources/df797e4db7ebc223632b3bcc2f6c6b735e114c0104578ca32e80f21840b3a4a8.json",
+      "archiveBlob": "8ecf8cbd086ad390658246cd9fc1f35225e057a3",
+      "memberPath": "tests/e2e/deployment-artifact.test.mjs",
+      "memberSha256": "929ec03433c67639d06eb48dc75fefee0ef8e4f20168362ad77c81ea5f303730",
+      "reason": "synthetic test value, never a credential"
+    },
+    {
+      "archivePath": ".edition/sources/df797e4db7ebc223632b3bcc2f6c6b735e114c0104578ca32e80f21840b3a4a8.json",
+      "archiveBlob": "8ecf8cbd086ad390658246cd9fc1f35225e057a3",
+      "memberPath": "tests/e2e/deployment-secrets.test.mjs",
+      "memberSha256": "83d525479cc098ae00d014523c803b6ce472a29e87f700748e7fc2679a140f75",
+      "reason": "synthetic test value, never a credential"
+    },
+    {
+      "archivePath": ".edition/sources/df797e4db7ebc223632b3bcc2f6c6b735e114c0104578ca32e80f21840b3a4a8.json",
+      "archiveBlob": "8ecf8cbd086ad390658246cd9fc1f35225e057a3",
+      "memberPath": "tests/e2e/publishing-browser.test.mjs",
+      "memberSha256": "94a24cf4833756cbaf8df43803dd3118999aa77c1fde8ee64cbdf7176be1f258",
+      "reason": "synthetic test value, never a credential"
+    },
+    {
+      "archivePath": ".edition/sources/df797e4db7ebc223632b3bcc2f6c6b735e114c0104578ca32e80f21840b3a4a8.json",
+      "archiveBlob": "8ecf8cbd086ad390658246cd9fc1f35225e057a3",
+      "memberPath": "tests/e2e/publishing-contract.test.mjs",
+      "memberSha256": "1d37a1c38df04b3198b38e5c2076846ff736089d3063004794010272452d5596",
+      "reason": "synthetic test value, never a credential"
+    },
+    {
+      "archivePath": ".edition/sources/ef75547c0e5220ac18a8378335ec6d435d059a8fb032121381276c739498f7a1.json",
+      "archiveBlob": "3a4ea6871e2a0afbf3ddeb5400291869787bbcdb",
+      "memberPath": "contract.test.mjs",
+      "memberSha256": "add5bf9c766e4a26d28099b1de900c949bf729a12302264d358ffe0747a9ed3c",
+      "reason": "synthetic test value, never a credential"
+    },
+    {
+      "archivePath": ".edition/sources/ef75547c0e5220ac18a8378335ec6d435d059a8fb032121381276c739498f7a1.json",
+      "archiveBlob": "3a4ea6871e2a0afbf3ddeb5400291869787bbcdb",
+      "memberPath": "failures.test.mjs",
+      "memberSha256": "e1238bdf911a9c8402d70edef5dcb5cb10173d0ef282846962141fc611bf595d",
+      "reason": "synthetic test value, never a credential"
+    },
+    {
+      "archivePath": ".edition/sources/ef75547c0e5220ac18a8378335ec6d435d059a8fb032121381276c739498f7a1.json",
+      "archiveBlob": "3a4ea6871e2a0afbf3ddeb5400291869787bbcdb",
+      "memberPath": "private.test.mjs",
+      "memberSha256": "742536605b6d3d6df715ae59f5fcb7cb07504ef2178061a5192d69ce721b8e37",
+      "reason": "synthetic test value, never a credential"
+    }
+  ]
+}

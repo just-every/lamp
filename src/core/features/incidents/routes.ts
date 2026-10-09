@@ -1,0 +1,123 @@
+import type { Context, Hono } from "hono";
+import { z } from "zod";
+
+import type { AppEnv } from "../../app/types";
+import { COMPONENT_STATES, INCIDENT_LIFECYCLES } from "../../shared/domain";
+import { ulidSchema } from "../../shared/ids";
+import { incidentDraftSchema } from "../../shared/schemas";
+import { InvalidIncidentUpdateError, type IncidentsService } from "./service";
+
+const incidentQuerySchema = z.object({ lifecycle: z.enum(INCIDENT_LIFECYCLES).optional() }).strict();
+const publishSchema = z.object({ channels: z.array(z.enum(["email", "webhook"])).max(2).transform((channels) => [...new Set(channels)]), publishedAt: z.iso.datetime().optional() }).strict();
+const scheduleSchema = z.object({ publishAt: z.iso.datetime(), channels: z.array(z.enum(["email", "webhook"])).max(2).transform((channels) => [...new Set(channels)]) }).strict();
+const deleteSchema = z.object({ reason: z.string().trim().min(1).max(1_000) }).strict();
+const createIncidentSchema = z.object({ title: z.string().trim().min(1).max(250), openedAt: z.iso.datetime().optional(), components: z.array(z.object({ componentId: ulidSchema, state: z.enum(COMPONENT_STATES), relationship: z.enum(["Primary", "Dependent"]).default("Primary") }).strict()).min(1).max(100) }).strict();
+const templateSchema = z.object({ name: z.string().trim().min(1).max(120), lifecycle: z.enum(INCIDENT_LIFECYCLES), affectedAudience: z.string().trim().min(1).max(250), customerImpact: z.string().trim().min(1).max(250), whatStillWorks: z.string().max(250), details: z.string().max(500), nextUpdateOffsetMinutes: z.number().int().min(1).max(10_080), components: z.array(z.object({ componentId: ulidSchema, state: z.enum(COMPONENT_STATES), relationship: z.enum(["Primary", "Dependent"]).default("Primary") }).strict()).min(1).max(100) }).strict();
+const correctionSchema = z.object({ updateId: ulidSchema }).strict();
+const internalNoteSchema = z.object({ body: z.string().trim().min(1).max(5_000) }).strict();
+
+function incidentIdFrom(context: Context<AppEnv>) {
+  return ulidSchema.safeParse(context.req.param("incidentId"));
+}
+
+export function registerIncidentRoutes(app: Hono<AppEnv>, service: IncidentsService) {
+  app.get("/api/app/incident-templates", async (context) => context.json({ templates: await service.listTemplates() }));
+  app.post("/api/app/incident-templates", async (context) => {
+    const input = templateSchema.safeParse(await context.req.json().catch(() => null));
+    if (!input.success) return context.json({ error: "A complete template and at least one component claim are required." }, 400);
+    try { return context.json({ template: await service.saveTemplate(input.data, context.get("operator").id) }, 201); }
+    catch (cause) { return context.json({ error: cause instanceof Error ? cause.message : "Template could not be saved." }, 409); }
+  });
+  app.post("/api/app/incidents", async (context) => {
+    const input = createIncidentSchema.safeParse(await context.req.json().catch(() => null));
+    if (!input.success) return context.json({ error: "An incident title and one or more component claims are required." }, 400);
+    try { return context.json({ incident: await service.create(input.data, context.get("operator").id) }, 201); }
+    catch (cause) { return context.json({ error: cause instanceof Error ? cause.message : "Incident could not be created." }, 409); }
+  });
+  app.get("/api/app/incidents", async (context) => {
+    const parsed = incidentQuerySchema.safeParse(context.req.query());
+    if (!parsed.success) return context.json({ error: "Invalid incident query.", issues: parsed.error.issues }, 400);
+    const incidents = await service.list();
+    return context.json({ incidents: parsed.data.lifecycle ? incidents.filter((incident) => incident.lifecycle === parsed.data.lifecycle) : incidents });
+  });
+
+  app.get("/api/app/incidents/:incidentId", async (context) => {
+    const incidentId = incidentIdFrom(context);
+    if (!incidentId.success) return context.json({ error: "Invalid incident identifier.", issues: incidentId.error.issues }, 400);
+    const incident = await service.get(incidentId.data);
+    return incident ? context.json({ incident }) : context.json({ error: "Incident not found." }, 404);
+  });
+
+  app.put("/api/app/incidents/:incidentId/draft", async (context) => {
+    const incidentId = incidentIdFrom(context);
+    if (!incidentId.success) return context.json({ error: "Invalid incident identifier.", issues: incidentId.error.issues }, 400);
+    const parsed = incidentDraftSchema.safeParse(await context.req.json().catch(() => null));
+    if (!parsed.success) return context.json({ error: "Invalid incident draft.", issues: parsed.error.issues }, 400);
+    const draft = await service.saveDraft(incidentId.data, parsed.data, context.get("operator").id);
+    return draft ? context.json({ draft }) : context.json({ error: "Incident not found." }, 404);
+  });
+
+  app.post("/api/app/incidents/:incidentId/draft/preview", async (context) => {
+    const incidentId = incidentIdFrom(context);
+    if (!incidentId.success) return context.json({ error: "Invalid incident identifier.", issues: incidentId.error.issues }, 400);
+    const parsed = incidentDraftSchema.safeParse(await context.req.json().catch(() => null));
+    if (!parsed.success) return context.json({ error: "Invalid incident draft.", issues: parsed.error.issues }, 400);
+    const preview = await service.preview(incidentId.data, parsed.data);
+    return preview ? context.json({ preview }) : context.json({ error: "Incident not found." }, 404);
+  });
+
+  app.post("/api/app/incidents/:incidentId/publish", async (context) => {
+    const incidentId = incidentIdFrom(context); const parsed = publishSchema.safeParse(await context.req.json().catch(() => null));
+    if (!incidentId.success || !parsed.success) return context.json({ error: "Invalid publication request." }, 400);
+    try {
+      const update = await service.publish(incidentId.data, context.get("operator").id, parsed.data);
+      if (update) context.executionCtx.waitUntil(service.finishPublication(update));
+      return update ? context.json({ update }) : context.json({ error: "A saved draft is required." }, 409);
+    } catch (cause) { return context.json({ error: cause instanceof Error ? cause.message : "The update could not be published." }, cause instanceof InvalidIncidentUpdateError ? 400 : 409); }
+  });
+
+  app.post("/api/app/incidents/:incidentId/draft/schedule", async (context) => {
+    const incidentId = incidentIdFrom(context); const parsed = scheduleSchema.safeParse(await context.req.json().catch(() => null));
+    if (!incidentId.success || !parsed.success) return context.json({ error: "Invalid scheduled publish request." }, 400);
+    try { const draft = await service.schedule(incidentId.data, context.get("operator").id, parsed.data.publishAt, parsed.data.channels); return draft ? context.json({ draft }, 202) : context.json({ error: "A saved draft is required." }, 409); }
+    catch (cause) { return context.json({ error: cause instanceof Error ? cause.message : "The update could not be scheduled." }, 409); }
+  });
+
+  app.post("/api/app/incidents/:incidentId/draft/review", async (context) => {
+    const incidentId = incidentIdFrom(context);
+    if (!incidentId.success) return context.json({ error: "Invalid incident identifier." }, 400);
+    return (await service.review(incidentId.data, context.get("operator").id)) ? context.json({ reviewed: true }) : context.json({ error: "A different operator must review a saved draft." }, 409);
+  });
+
+  app.post("/api/app/incidents/:incidentId/draft/correction", async (context) => {
+    const incidentId = incidentIdFrom(context); const input = correctionSchema.safeParse(await context.req.json().catch(() => null));
+    if (!incidentId.success || !input.success) return context.json({ error: "A published update from this incident is required." }, 400);
+    return (await service.markCorrection(incidentId.data, input.data.updateId)) ? context.json({ marked: true }) : context.json({ error: "Draft or published update not found." }, 409);
+  });
+
+  app.post("/api/app/incidents/:incidentId/internal-notes", async (context) => {
+    const incidentId = incidentIdFrom(context); const input = internalNoteSchema.safeParse(await context.req.json().catch(() => null));
+    if (!incidentId.success || !input.success) return context.json({ error: "An internal note is required." }, 400);
+    try { return (await service.addInternalNote(incidentId.data, input.data.body, context.get("operator").id)) ? context.json({ created: true }, 201) : context.json({ error: "Incident not found." }, 404); }
+    catch (cause) { return context.json({ error: cause instanceof Error ? cause.message : "Internal note could not be saved." }, 400); }
+  });
+
+  app.post("/api/app/incidents/:incidentId/templates/:templateId/apply", async (context) => {
+    const incidentId = incidentIdFrom(context); const templateId = ulidSchema.safeParse(context.req.param("templateId"));
+    if (!incidentId.success || !templateId.success) return context.json({ error: "Invalid incident or template identifier." }, 400);
+    try { const draft = await service.applyTemplate(incidentId.data, templateId.data, context.get("operator").id); return draft ? context.json({ draft }) : context.json({ error: "Incident or template not found." }, 404); }
+    catch (cause) { return context.json({ error: cause instanceof Error ? cause.message : "Template could not be applied." }, 409); }
+  });
+
+  app.delete("/api/app/incidents/:incidentId", async (context) => {
+    const incidentId = incidentIdFrom(context); const parsed = deleteSchema.safeParse(await context.req.json().catch(() => null));
+    if (!incidentId.success || !parsed.success) return context.json({ error: "A deletion reason is required." }, 400);
+    try {
+      const operatorId = context.get("operator").id;
+      const deletedAt = await service.delete(incidentId.data, parsed.data.reason, operatorId);
+      if (deletedAt) context.executionCtx.waitUntil(service.finishDeletion(incidentId.data, operatorId, deletedAt));
+      return deletedAt ? context.json({ deleted: true }) : context.json({ error: "Incident not found." }, 404);
+    }
+    catch (cause) { return context.json({ error: cause instanceof Error ? cause.message : "The incident could not be deleted." }, 409); }
+  });
+}

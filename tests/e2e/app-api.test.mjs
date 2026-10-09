@@ -1,0 +1,495 @@
+import assert from "node:assert/strict";
+import { execFileSync, spawn } from "node:child_process";
+import { createHmac } from "node:crypto";
+import { mkdtemp, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join, resolve } from "node:path";
+import { after, before, test } from "node:test";
+import { gzipSync } from "node:zlib";
+
+import { contract } from "../contract.mjs";
+import { insertRealOperatorSession } from "./real-session-helper.mjs";
+import { legacyApiFixtureSql } from "./fixtures/legacy-api-fixture.mjs";
+import { reservePort, waitForWorker } from "./worker-startup.mjs";
+
+let baseUrl = "";
+let unknownHostBaseUrl = "";
+let server;
+let serverOutput = "";
+let sessionId;
+let testStatePath;
+let testViteCachePath;
+let testPort;
+const sourceConfigPath = resolve("deploy/wrangler.template.toml");
+
+async function appFetch(path, init = {}) {
+  return fetch(`${baseUrl}${path}`, {
+    ...init,
+    headers: { Cookie: `lamp_session=${sessionId}`, "Content-Type": "application/json", ...init.headers },
+  });
+}
+
+before(async () => {
+  testPort = await reservePort({ label: "API test Worker" });
+  baseUrl = `http://127.0.0.1:${testPort}`;
+  unknownHostBaseUrl = `http://localhost:${testPort}`;
+  testStatePath = await mkdtemp(join(tmpdir(), "lamp-api-d1-"));
+  testViteCachePath = await mkdtemp(join(tmpdir(), "lamp-api-vite-"));
+  execFileSync("pnpm", ["run", "migrate:local"], { cwd: process.cwd(), stdio: "pipe", env: { ...process.env, LAMP_WORKERS_STATE_PATH: testStatePath } });
+  execFileSync("pnpm", ["exec", "wrangler", "d1", "execute", "DB", "--local", "--config", sourceConfigPath, "--persist-to", testStatePath, "--command", legacyApiFixtureSql()], { cwd: process.cwd(), stdio: "pipe" });
+  server = spawn("pnpm", ["exec", "vite", "--host", "0.0.0.0", "--port", String(testPort), "--strictPort"], {
+    cwd: process.cwd(),
+    stdio: "pipe",
+    env: { ...process.env, LAMP_DISABLE_INSPECTOR: "true", LAMP_WORKERS_STATE_PATH: testStatePath, LAMP_VITE_CACHE_DIR: testViteCachePath, LAMP_WRANGLER_CONFIG: sourceConfigPath },
+  });
+  server.stdout.on("data", (chunk) => { serverOutput += String(chunk); });
+  server.stderr.on("data", (chunk) => { serverOutput += String(chunk); });
+  await waitForWorker({ origin: baseUrl, child: server, output: () => serverOutput, label: "API test Worker" });
+  sessionId = await insertRealOperatorSession({ persistTo: testStatePath });
+});
+
+after(async () => {
+  server?.kill("SIGTERM");
+  await Promise.all([rm(testStatePath, { recursive: true, force: true }), rm(testViteCachePath, { recursive: true, force: true })]);
+});
+
+test("operator APIs reject requests without the session cookie", async () => {
+  const response = await fetch(`${baseUrl}/api/app/components`);
+  assert.equal(response.status, 401);
+});
+
+test("the Worker rejects configured-surface routes sent to an unknown host", async () => {
+  const paths = ["/", "/app", "/api/app/components", "/health", "/signin", "/app-assets/operator.js"];
+  for (const path of paths) {
+    const response = await fetch(`${unknownHostBaseUrl}${path}`, { redirect: "manual" });
+    assert.equal(response.status, 404, `${path} leaked through an unknown host`);
+    assert.equal(await response.text(), "Not found.");
+  }
+});
+
+test("operator document routes redirect without a valid session and serve assets with one", async () => {
+  const anonymous = await fetch(`${baseUrl}/app`, { redirect: "manual" });
+  assert.equal(anonymous.status, 302);
+  assert.equal(anonymous.headers.get("location"), `${baseUrl}/signin?returnTo=%2Fapp`);
+
+  const malformed = await fetch(`${baseUrl}/app/incidents`, { redirect: "manual", headers: { Cookie: "lamp_session=%" } });
+  assert.equal(malformed.status, 302);
+
+  const signIn = await fetch(`${baseUrl}/signin`);
+  assert.equal(signIn.status, 200);
+  const signInHtml = await signIn.text();
+  assert.match(signInHtml, /<h1 id="signin-title">Sign in with a magic link<\/h1>/);
+  assert.match(signInHtml, /src="\/@id\/virtual:tanstack-start-dev-client-entry"/);
+
+  const app = await appFetch("/app");
+  assert.equal(app.status, 200);
+  const appHtml = await app.text();
+  assert.match(appHtml, /Operator workspace/);
+  assert.match(appHtml, /Contract Operator/);
+  assert.match(appHtml, /src="\/@id\/virtual:tanstack-start-dev-client-entry"/);
+
+  const nested = await appFetch("/app/incidents/01J00000000000000000000020");
+  assert.equal(nested.status, 200);
+  const session = await appFetch("/api/app/session");
+  assert.equal((await session.json()).operator.email, "operator@example.test");
+});
+
+contract("PAGE-001", "the initial public snapshot is complete without script", async () => {
+  const response = await fetch(`${baseUrl}/`);
+  assert.equal(response.status, 200);
+  const html = await response.text();
+  assert.match(html, /Atlas Cloud Status/);
+  assert.match(html, /Partially unavailable/);
+  assert.match(html, /Elevated 5xx errors for some requests\./);
+  assert.match(html, /Subscribe to status updates/);
+  assert.match(html, /<form method="post" action="\/subscribe">/);
+  const uptimeMarks = [...html.matchAll(/class="uptime-mark /g)].length;
+  assert.ok(uptimeMarks >= 6 * 90 && uptimeMarks <= 6 * 91, "each visible component has the trailing 90-day daily record including at most one partial calendar boundary day");
+  assert.doesNotMatch(html, /src="https?:\/\//);
+  assert.deepEqual([...html.matchAll(/<(?:script|link)\b[^>]+(?:src|href)="([^"]+)"/g)].map((match) => match[1]), ["/assets/favicon.svg", "/assets/status-page.css", "/assets/status-page.js"]);
+});
+
+contract("PAGE-007", "public snapshot responses carry the contracted cache and isolation headers", async () => {
+  const response = await fetch(`${baseUrl}/`);
+  assert.equal(response.headers.get("cache-control"), "public, max-age=10, s-maxage=10, stale-while-revalidate=30, stale-if-error=3600");
+  assert.ok((response.headers.get("content-security-policy") ?? "").includes(`default-src ${baseUrl}; script-src ${baseUrl}; style-src ${baseUrl}`), "the snapshot CSP must scope default, script, and style sources to its local origin");
+  assert.equal(response.headers.get("x-content-type-options"), "nosniff");
+  assert.equal(response.headers.get("referrer-policy"), "strict-origin-when-cross-origin");
+});
+
+contract("PAGE-010", "the public feed, widget, history, and fixed-size status payload come from the snapshot", async () => {
+  const [feed, widget, status, history, incident, script] = await Promise.all([
+    fetch(`${baseUrl}/feed.atom`),
+    fetch(`${baseUrl}/widget.js`),
+    fetch(`${baseUrl}/api/public/status`),
+    fetch(`${baseUrl}/history`),
+    fetch(`${baseUrl}/incidents/INC-4821`),
+    fetch(`${baseUrl}/assets/status-page.js`),
+  ]);
+  for (const response of [feed, widget, status, history, incident, script]) assert.equal(response.status, 200);
+  const feedText = await feed.text();
+  assert.match(feedText, /<feed xmlns="http:\/\/www\.w3\.org\/2005\/Atom">/);
+  assert.match(feedText, /urn:lamp:legacy-api-feed-identity:event:update-01J00000000000000000000023/, "the snapshot feed carries the published update event");
+  const widgetText = await widget.text();
+  assert.ok(gzipSync(widgetText).byteLength <= 10 * 1024, "widget must be at most 10KB gzipped");
+  const payload = await status.text();
+  assert.ok(Buffer.byteLength(payload) < 2 * 1024, "status payload remains a fixed-size live-refresh object");
+  const liveStatus = JSON.parse(payload);
+  assert.deepEqual(Object.keys(liveStatus).sort(), ["generatedAt", "incident", "overall", "version"]);
+  assert.equal(typeof liveStatus.overall, "string");
+  assert.match(liveStatus.incident.message, /Customer impact:/);
+  assert.match(await history.text(), /No resolved incidents or completed maintenance/);
+  assert.match(await incident.text(), /About this incident/);
+  assert.match(await script.text(), /setInterval/);
+  assert.doesNotMatch(widgetText, /innerHTML/);
+  assert.match(widgetText, /textContent=d\.incident/);
+  const missing = await fetch(`${baseUrl}/incidents/INC-0000`);
+  assert.equal(missing.status, 404);
+  assert.match(missing.headers.get("content-security-policy") ?? "", /frame-ancestors 'none'/);
+});
+
+contract("SUB-001", "the no-script subscribe form rejects an unavailable mail capability honestly", async () => {
+  const invalid = await fetch(`${baseUrl}/subscribe`, { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: "email=not-an-email" });
+  assert.equal(invalid.status, 400);
+  const unavailable = await fetch(`${baseUrl}/subscribe`, { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: "email=reader%40example.com" });
+  assert.equal(unavailable.status, 503);
+  assert.match(await unavailable.text(), /No confirmation email was sent/);
+});
+
+contract("COMP-006", "standing claims derive a component's public state", async () => {
+  const claim = await appFetch("/api/app/components/01J00000000000000000000011/standing-claim", {
+    method: "PUT",
+    body: JSON.stringify({ state: "Major outage" }),
+  });
+  assert.equal(claim.status, 200);
+  assert.equal((await claim.json()).component.publicState, "Major outage");
+  assert.match(await (await fetch(`${baseUrl}/`)).text(), /<h1 id="overall-status" data-overall>Major outage<\/h1>/);
+
+  const clear = await appFetch("/api/app/components/01J00000000000000000000011/standing-claim", {
+    method: "PUT",
+    body: JSON.stringify({ state: null }),
+  });
+  assert.equal(clear.status, 200);
+  assert.equal((await clear.json()).component.publicState, "Partially unavailable");
+});
+
+contract("UPDATE-004", "draft save and preview share the incident renderer", async () => {
+  const draft = {
+    lifecycle: "Monitoring",
+    affectedAudience: "API customers in two regions.",
+    customerImpact: "Some requests can fail while recovery is verified.",
+    whatStillWorks: "Dashboards and exports remain available.",
+    details: "The mitigation is in place and engineers are monitoring it.",
+    nextUpdateAt: "2026-08-31T03:30:00.000Z",
+  };
+  const saved = await appFetch("/api/app/incidents/01J00000000000000000000020/draft", { method: "PUT", body: JSON.stringify(draft) });
+  assert.equal(saved.status, 200);
+  assert.equal((await saved.json()).draft.customerImpact, draft.customerImpact);
+
+  const preview = await appFetch("/api/app/incidents/01J00000000000000000000020/draft/preview", { method: "POST", body: JSON.stringify(draft) });
+  assert.equal(preview.status, 200);
+  const body = await preview.json();
+  assert.equal(body.preview.public.fields.find((field) => field.label === "Customer impact").value, draft.customerImpact);
+  assert.match(body.preview.email.plainText, new RegExp(draft.customerImpact));
+});
+
+contract("PAGE-012", "page settings retain a configurable footer credit without any external operation", async () => {
+  const initial = await appFetch("/api/app/page-settings");
+  assert.equal(initial.status, 200);
+  const settings = (await initial.json()).settings;
+  assert.equal(settings.footerCreditEnabled, true);
+  execFileSync("pnpm", ["exec", "wrangler", "d1", "execute", "DB", "--local", "--config", sourceConfigPath, "--persist-to", testStatePath, "--command", "UPDATE incidents SET title = '<img src=x onerror=alert(1)>' WHERE id = '01J00000000000000000000020'"], { cwd: process.cwd(), stdio: "pipe" });
+
+  const updated = await appFetch("/api/app/page-settings", {
+    method: "PUT",
+    body: JSON.stringify({
+      pageName: "Atlas Cloud Status — revised",
+      tagline: settings.tagline,
+      accentColor: settings.accentColor,
+      timezone: settings.timezone,
+      hostname: settings.hostname,
+      footerCreditEnabled: false,
+    }),
+  });
+  assert.equal(updated.status, 200);
+  assert.equal((await updated.json()).settings.footerCreditEnabled, false);
+  assert.match(await (await fetch(`${baseUrl}/`)).text(), /Atlas Cloud Status — revised/);
+  const widget = await (await fetch(`${baseUrl}/widget.js`)).text();
+  assert.match(widget, /\\u003cimg src=x onerror=alert\(1\)>/);
+  assert.doesNotMatch(widget, /innerHTML/);
+  assert.match(widget, /textContent/);
+  execFileSync("pnpm", ["exec", "wrangler", "d1", "execute", "DB", "--local", "--config", sourceConfigPath, "--persist-to", testStatePath, "--command", "UPDATE incidents SET title = 'Elevated API error rates' WHERE id = '01J00000000000000000000020'"], { cwd: process.cwd(), stdio: "pipe" });
+
+  const restored = await appFetch("/api/app/page-settings", {
+    method: "PUT",
+    body: JSON.stringify({
+      pageName: settings.pageName,
+      tagline: settings.tagline,
+      accentColor: settings.accentColor,
+      timezone: settings.timezone,
+      hostname: settings.hostname,
+      footerCreditEnabled: true,
+    }),
+  });
+  assert.equal(restored.status, 200);
+});
+
+test("operator API paths require canonical ULIDs and one incident has one atomic draft", async () => {
+  const badIncident = await appFetch("/api/app/incidents/not-an-id");
+  assert.equal(badIncident.status, 400);
+  const badComponent = await appFetch("/api/app/components/not-an-id/standing-claim", { method: "PUT", body: JSON.stringify({ state: "Operational" }) });
+  assert.equal(badComponent.status, 400);
+
+  const first = {
+    lifecycle: "Identified",
+    affectedAudience: "Customers using the API.",
+    customerImpact: "Requests may fail.",
+    whatStillWorks: "The dashboard remains available.",
+    details: "A mitigated condition is being verified.",
+    nextUpdateAt: "2026-08-31T04:00:00.000Z",
+  };
+  const firstSaved = await appFetch("/api/app/incidents/01J00000000000000000000020/draft", { method: "PUT", body: JSON.stringify(first) });
+  assert.equal(firstSaved.status, 200);
+  const firstDraft = (await firstSaved.json()).draft;
+  const secondSaved = await appFetch("/api/app/incidents/01J00000000000000000000020/draft", { method: "PUT", body: JSON.stringify({ ...first, details: "The mitigated condition is verified." }) });
+  assert.equal(secondSaved.status, 200);
+  const secondDraft = (await secondSaved.json()).draft;
+  assert.equal(secondDraft.id, firstDraft.id);
+  assert.equal(secondDraft.details, "The mitigated condition is verified.");
+});
+
+test("overview and list APIs expose only persisted local-development sample data", async () => {
+  const [overview, incidents, maintenance, subscribers, deliveries] = await Promise.all([
+    appFetch("/api/app/overview"),
+    appFetch("/api/app/incidents"),
+    appFetch("/api/app/maintenance"),
+    appFetch("/api/app/subscribers"),
+    appFetch("/api/app/deliveries?outcome=queued"),
+  ]);
+  for (const response of [overview, incidents, maintenance, subscribers, deliveries]) assert.equal(response.status, 200);
+  assert.equal((await overview.json()).overview.components.length, 7);
+  assert.equal((await incidents.json()).incidents[0].impact, "Partially unavailable");
+  assert.equal((await maintenance.json()).maintenance[0].state, "Scheduled");
+  assert.equal((await subscribers.json()).subscribers.length, 2);
+  assert.equal((await deliveries.json()).deliveries.every((delivery) => delivery.outcome === "queued"), true);
+});
+
+test("operator UI source retains only real delivery vocabulary and no fabricated channels", async () => {
+  const fs = await import("node:fs/promises");
+  const deliverySource = await fs.readFile("src/core/features/deliveries/ui/deliveries-page.tsx", "utf8");
+  const composerSource = await fs.readFile("src/core/features/incidents/ui/incident-detail-page.tsx", "utf8");
+  const responsiveSource = await fs.readFile("src/core/app/client/ui/responsive.css", "utf8");
+  const buttonSource = await fs.readFile("src/core/app/client/ui/button.tsx", "utf8");
+  const shadcnConfig = JSON.parse(await fs.readFile("components.json", "utf8"));
+  assert.match(deliverySource, /queued, delivered, bounced, complained, suppressed, or failed/);
+  assert.doesNotMatch(deliverySource, /Slack|SMS|in-app/i);
+  assert.match(composerSource, /The fixed recipient set is now queued for delivery/);
+  assert.match(composerSource, /hydratingDraft/);
+  assert.match(composerSource, /Delivery channels/);
+  assert.match(responsiveSource, /grid-template-columns: minmax\(0, 1fr\)/);
+  assert.match(responsiveSource, /\.operator-navigation \{[^}]*overflow-x: auto/);
+  assert.equal(shadcnConfig.style, "new-york");
+  assert.equal(shadcnConfig.tailwind.css, "src/core/app/client/styles.css");
+  assert.match(buttonSource, /buttonVariants = cva/);
+});
+
+contract("INTAKE-005", "operators can inspect rejected alert mappings without receiving payloads or credentials", async () => {
+  const signingSecret = "test-alert-signing-secret";
+  const created = await appFetch("/api/app/intake/sources", {
+    method: "POST",
+    body: JSON.stringify({
+      name: "API latency monitor",
+      credentialKind: "hmac-sha256",
+      signingSecret,
+      deduplicationPath: "$.alert.id",
+      titlePath: "$.alert.title",
+      statePath: "$.alert.state",
+      recoveredValue: "recovered",
+    }),
+  });
+  assert.equal(created.status, 201);
+  const source = (await created.json()).source;
+  assert.equal(source.signingSecret, undefined);
+  assert.equal(source.bearerTokenHash, undefined);
+
+  const rawBody = JSON.stringify({ alert: { title: "API latency" } });
+  const timestamp = new Date().toISOString();
+  const signature = createHmac("sha256", signingSecret).update(`${timestamp}.${rawBody}`).digest("base64url");
+  const rejected = await fetch(`${baseUrl}/api/intake/${source.id}`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-lamp-timestamp": timestamp,
+      "x-lamp-signature": signature,
+    },
+    body: rawBody,
+  });
+  assert.equal(rejected.status, 400);
+
+  const receipts = await appFetch("/api/app/intake/receipts?limit=1");
+  assert.equal(receipts.status, 200, await receipts.clone().text());
+  const receipt = (await receipts.json()).receipts[0];
+  assert.equal(receipt.sourceName, "API latency monitor");
+  assert.equal(receipt.state, "invalid");
+  assert.match(receipt.error, /deduplication path/i);
+  assert.equal("requestHash" in receipt, false);
+  assert.equal("payloadJson" in receipt, false);
+});
+
+test("an operator can update an alert source without exposing or replacing its existing credential", async () => {
+  const signingSecret = "editable-alert-source-secret";
+  const sourceInput = {
+    name: "Edge latency monitor",
+    credentialKind: "hmac-sha256",
+    signingSecret,
+    timestampHeader: "x-monitor-at",
+    signatureHeader: "x-monitor-sign",
+    deduplicationPath: "$.event.key",
+    titlePath: "$.event.summary",
+    statePath: "$.event.state",
+    recoveredValue: "recovered",
+  };
+  const created = await appFetch("/api/app/intake/sources", { method: "POST", body: JSON.stringify(sourceInput) });
+  assert.equal(created.status, 201, await created.clone().text());
+  const source = (await created.json()).source;
+  assert.equal(source.endpointPath, `/api/intake/${source.id}`);
+  assert.equal("signingSecret" in source, false);
+  assert.equal("bearerTokenHash" in source, false);
+
+  const updated = await appFetch(`/api/app/intake/sources/${source.id}`, {
+    method: "PUT",
+    body: JSON.stringify({
+      name: "Edge latency monitor — primary",
+      credentialKind: "hmac-sha256",
+      deduplicationPath: sourceInput.deduplicationPath,
+      titlePath: sourceInput.titlePath,
+      statePath: sourceInput.statePath,
+      recoveredValue: sourceInput.recoveredValue,
+    }),
+  });
+  assert.equal(updated.status, 200, await updated.clone().text());
+  const changed = (await updated.json()).source;
+  assert.equal(changed.name, "Edge latency monitor — primary");
+  assert.equal(changed.timestampHeader, "x-monitor-at");
+  assert.equal(changed.signatureHeader, "x-monitor-sign");
+  assert.equal("signingSecret" in changed, false);
+
+  const rawBody = JSON.stringify({ event: { key: "edge-latency-1", summary: "Edge latency is elevated", state: "firing" } });
+  const timestamp = new Date().toISOString();
+  const signature = createHmac("sha256", signingSecret).update(`${timestamp}.${rawBody}`).digest("base64url");
+  const accepted = await fetch(`${baseUrl}${changed.endpointPath}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "x-monitor-at": timestamp, "x-monitor-sign": signature },
+    body: rawBody,
+  });
+  assert.equal(accepted.status, 202, await accepted.clone().text());
+  const receiptId = (await accepted.json()).receiptId;
+  const receipts = await appFetch("/api/app/intake/receipts?limit=10");
+  assert.equal(receipts.status, 200);
+  const receipt = (await receipts.json()).receipts.find((candidate) => candidate.id === receiptId);
+  assert.deepEqual({ sourceName: receipt.sourceName, state: receipt.state, incidentId: receipt.incidentId }, {
+    sourceName: "Edge latency monitor — primary",
+    state: "firing",
+    incidentId: receipt.incidentId,
+  });
+  assert.equal("payloadJson" in receipt, false);
+  assert.equal("requestHash" in receipt, false);
+
+  const missingBearer = await appFetch(`/api/app/intake/sources/${source.id}`, {
+    method: "PUT",
+    body: JSON.stringify({
+      name: changed.name,
+      credentialKind: "bearer-token",
+      deduplicationPath: sourceInput.deduplicationPath,
+      titlePath: sourceInput.titlePath,
+      statePath: sourceInput.statePath,
+      recoveredValue: sourceInput.recoveredValue,
+    }),
+  });
+  assert.equal(missingBearer.status, 400);
+
+  const bearerToken = "replacement-source-bearer-token";
+  const bearerSource = await appFetch(`/api/app/intake/sources/${source.id}`, {
+    method: "PUT",
+    body: JSON.stringify({
+      name: changed.name,
+      credentialKind: "bearer-token",
+      bearerToken,
+      deduplicationPath: sourceInput.deduplicationPath,
+      titlePath: sourceInput.titlePath,
+      statePath: sourceInput.statePath,
+      recoveredValue: sourceInput.recoveredValue,
+    }),
+  });
+  assert.equal(bearerSource.status, 200, await bearerSource.clone().text());
+  const bearer = (await bearerSource.json()).source;
+  assert.equal(bearer.credentialKind, "bearer-token");
+  assert.equal("signingSecret" in bearer, false);
+  assert.equal("bearerTokenHash" in bearer, false);
+  const bearerAccepted = await fetch(`${baseUrl}${bearer.endpointPath}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${bearerToken}` },
+    body: JSON.stringify({ event: { key: "edge-latency-2", summary: "Bearer-authenticated alert", state: "firing" } }),
+  });
+  assert.equal(bearerAccepted.status, 202, await bearerAccepted.clone().text());
+
+  const unknown = await appFetch("/api/app/intake/sources/01J00000000000000000009999", {
+    method: "PUT",
+    body: JSON.stringify({ ...sourceInput, signingSecret: undefined }),
+  });
+  assert.equal(unknown.status, 404);
+});
+
+test("AI configuration status is honest while tone instructions persist through the settings API", async () => {
+  const initial = await appFetch("/api/app/page-settings");
+  assert.equal(initial.status, 200);
+  const original = (await initial.json()).settings;
+  const request = {
+    pageName: original.pageName,
+    tagline: original.tagline,
+    accentColor: original.accentColor,
+    timezone: original.timezone,
+    hostname: original.hostname,
+    footerCreditEnabled: original.footerCreditEnabled,
+    widgetAllowedOrigins: original.widgetAllowedOrigins,
+    mailFromAddress: original.mailFromAddress,
+    aiToneInstructions: "Use compact, factual sentences and name customer impact before technical detail.",
+  };
+  try {
+    const status = await appFetch("/api/app/ai/status");
+    assert.equal(status.status, 200);
+    assert.equal((await status.json()).configured, false);
+
+    const saved = await appFetch("/api/app/page-settings", { method: "PUT", body: JSON.stringify(request) });
+    assert.equal(saved.status, 200, await saved.clone().text());
+    assert.equal((await saved.json()).settings.aiToneInstructions, request.aiToneInstructions);
+
+    const reloaded = await appFetch("/api/app/page-settings");
+    assert.equal(reloaded.status, 200);
+    assert.equal((await reloaded.json()).settings.aiToneInstructions, request.aiToneInstructions);
+  } finally {
+    await appFetch("/api/app/page-settings", {
+      method: "PUT",
+      body: JSON.stringify({ ...request, aiToneInstructions: original.aiToneInstructions }),
+    });
+  }
+});
+
+contract("PAGE-006", "public reads survive a D1 failure and never invent an all-clear", async () => {
+  execFileSync("pnpm", ["exec", "wrangler", "d1", "execute", "DB", "--local", "--config", sourceConfigPath, "--persist-to", testStatePath, "--command", "DROP TABLE page_settings"], { cwd: process.cwd(), stdio: "pipe" });
+  const response = await fetch(`${baseUrl}/`);
+  assert.equal(response.status, 200);
+  const html = await response.text();
+  assert.match(html, /Partially unavailable/);
+  assert.doesNotMatch(html, /All systems operational/);
+
+  execFileSync("pnpm", ["exec", "wrangler", "r2", "object", "delete", "lamp-local-snapshots/snapshots/current.json", "--local", "--persist-to", testStatePath, "--force"], { cwd: process.cwd(), stdio: "pipe" });
+  const missing = await fetch(`${baseUrl}/`);
+  assert.equal(missing.status, 200, "a previously published snapshot survives loss of both D1 and the R2 selector");
+  assert.equal(missing.headers.get("x-lamp-snapshot-state"), "stale");
+  assert.equal(missing.headers.get("x-lamp-snapshot-generated-at"), response.headers.get("x-lamp-snapshot-generated-at"));
+  const retained = await missing.text();
+  assert.match(retained, /Last known state/);
+  assert.match(retained, /Partially unavailable/);
+  assert.doesNotMatch(retained, /All systems operational/);
+});

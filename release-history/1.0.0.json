@@ -1,0 +1,825 @@
+{
+  "version": "1.0.0",
+  "date": "2026-09-08",
+  "contractChanges": {
+    "PAGE-001": {
+      "change": "added",
+      "summary": "Contents: `GET /` on the status page host returns, in one response: the overall status; every visible component with its current state and note; every unresolved incident with its 5 most recent published updates, newest first, and a link to that incident's page carrying all of them; every maintenance that is in progress and every scheduled maintenance starting within 14 days; and each visible component's uptime figure and daily record for the reporting window.",
+      "migrationIds": [
+        "0003_public_contract.sql"
+      ]
+    },
+    "PAGE-002": {
+      "change": "added",
+      "summary": "Readable without script: The complete content of PAGE-001, and the subscribe form of SUB-001, are present and usable in the initial HTML response.",
+      "migrationIds": [
+        "0003_public_contract.sql"
+      ]
+    },
+    "PAGE-003": {
+      "change": "added",
+      "summary": "Weight: At the component limit in `seed.json → limits`, the public page's initial HTML response is at most 50KB gzipped, and the page issues at most 4 further requests — stylesheet, font, logo, script — all to its own origin.",
+      "migrationIds": [
+        "0003_public_contract.sql"
+      ]
+    },
+    "PAGE-004": {
+      "change": "added",
+      "summary": "Overall status: *Policy: `page.status-rollup.v1`; default: the overall status is the most severe current state among visible components, under the order in COMP-001.* It is shown as one labelled state at the top of the page.",
+      "migrationIds": [
+        "0003_public_contract.sql"
+      ]
+    },
+    "PAGE-005": {
+      "change": "added",
+      "summary": "Snapshot read path: Every change to the content in PAGE-001 writes a complete rendered snapshot of the public page, the Atom feed, and the widget payload to object storage.",
+      "migrationIds": [
+        "0003_public_contract.sql",
+        "0006_snapshot_build_ordering.sql"
+      ]
+    },
+    "PAGE-006": {
+      "change": "added",
+      "summary": "Serving through a failure: When the database, the queue, or object storage is unreachable, the three surfaces in PAGE-005 return 200 — from the current snapshot, or from the cached response under the `stale-if-error` directive of PAGE-007 when the origin itself cannot answer.",
+      "migrationIds": [
+        "0003_public_contract.sql",
+        "0006_snapshot_build_ordering.sql"
+      ]
+    },
+    "PAGE-007": {
+      "change": "added",
+      "summary": "Publish latency and caching: The three surfaces in PAGE-005 are served with `Cache-Control: public, max-age=10, s-maxage=10, stale-while-revalidate=30, stale-if-error=3600`.",
+      "migrationIds": [
+        "0003_public_contract.sql",
+        "0006_snapshot_build_ordering.sql"
+      ]
+    },
+    "PAGE-008": {
+      "change": "added",
+      "summary": "Public read paths are not rate limited: The public read paths marked `read` in `seed.json → deploy.publicPaths` never return 429.",
+      "migrationIds": [
+        "0003_public_contract.sql"
+      ]
+    },
+    "PAGE-009": {
+      "change": "added",
+      "summary": "Time display: Every timestamp on a public surface or in a notification is rendered in the page's configured timezone with its UTC offset, and every timestamp on the page carries the same instant as an ISO 8601 value in a machine-readable attribute.",
+      "migrationIds": [
+        "0003_public_contract.sql"
+      ]
+    },
+    "PAGE-010": {
+      "change": "added",
+      "summary": "Atom feed: `/feed.atom` validates as Atom 1.0 and contains one entry for every published incident update and for every maintenance notice — scheduled, rescheduled, started, completed, cancelled — from the last 12 months, ordered newest first.",
+      "migrationIds": [
+        "0004_publishing_contract.sql",
+        "0006_snapshot_build_ordering.sql",
+        "0007_feed_identity.sql"
+      ]
+    },
+    "PAGE-011": {
+      "change": "added",
+      "summary": "Embeddable widget: One script tag renders a banner showing the overall status and any unresolved incident, read from the PAGE-005 snapshot.",
+      "migrationIds": [
+        "0003_public_contract.sql",
+        "0006_snapshot_build_ordering.sql"
+      ]
+    },
+    "PAGE-012": {
+      "change": "added",
+      "summary": "Branding: Page name, logo, accent colour, timezone, hostname, and a footer-credit toggle are set in settings without a code change.",
+      "migrationIds": [
+        "0003_public_contract.sql"
+      ]
+    },
+    "PAGE-013": {
+      "change": "added",
+      "summary": "Enforced isolation: Every public page response carries a `Content-Security-Policy` whose `default-src`, `script-src`, `style-src`, `img-src`, `connect-src`, `form-action`, and `base-uri` name only the deployment's own origin, and `frame-ancestors 'none'`, together with `X-Content-Type-Options: nosniff` and `Referrer-Policy: strict-origin-when-cross-origin`.",
+      "migrationIds": [
+        "0003_public_contract.sql"
+      ]
+    },
+    "PAGE-014": {
+      "change": "added",
+      "summary": "Live refresh: When script is available the page re-reads `/api/public/status` at most every 30 seconds and updates the overall status and the newest update in place.",
+      "migrationIds": [
+        "0003_public_contract.sql",
+        "0006_snapshot_build_ordering.sql"
+      ]
+    },
+    "COMP-001": {
+      "change": "added",
+      "summary": "States and their order: A component's public state is exactly one of Operational, Degraded performance, Partially unavailable, Major outage, or Under maintenance.",
+      "migrationIds": [
+        "0003_public_contract.sql"
+      ]
+    },
+    "COMP-002": {
+      "change": "added",
+      "summary": "Grouping and order: A component belongs to at most one group.",
+      "migrationIds": [
+        "0003_public_contract.sql"
+      ]
+    },
+    "COMP-003": {
+      "change": "added",
+      "summary": "Append-only state history: Every change to a component's public state appends an entry recording the previous state, the new state, the instant of the change, and the operator or incident that caused it.",
+      "migrationIds": [
+        "0003_public_contract.sql"
+      ]
+    },
+    "COMP-004": {
+      "change": "added",
+      "summary": "State note: A component has a note of at most 250 characters, empty by default.",
+      "migrationIds": [
+        "0003_public_contract.sql"
+      ]
+    },
+    "COMP-005": {
+      "change": "added",
+      "summary": "Internal components: A component marked internal is absent from the public page, the Atom feed, the widget, and every uptime figure, and never contributes to the overall status.",
+      "migrationIds": [
+        "0003_public_contract.sql"
+      ]
+    },
+    "COMP-006": {
+      "change": "added",
+      "summary": "Component state is claimed, not set: Three things claim a state for a component: an unresolved incident, an in-progress maintenance, and an operator's standing claim set outside either.",
+      "migrationIds": [
+        "0003_public_contract.sql"
+      ]
+    },
+    "COMP-007": {
+      "change": "added",
+      "summary": "Deletion: Deleting a component removes it and its state history from the public page and from every uptime figure within 10 seconds.",
+      "migrationIds": [
+        "0003_public_contract.sql"
+      ]
+    },
+    "UPTIME-001": {
+      "change": "added",
+      "summary": "Definition: For each visible component the page shows the percentage of the reporting window during which the component was not in a downtime state, computed from COMP-003 state history at one-minute resolution and rounded down to two decimal places, so a window containing any downtime never shows 100.00%.",
+      "migrationIds": [
+        "0003_public_contract.sql"
+      ]
+    },
+    "UPTIME-002": {
+      "change": "added",
+      "summary": "Downtime weights: *Policy: `uptime.downtime-states.v1`; default: a minute in Major outage or Partially unavailable counts as one downtime minute, a minute in Degraded performance counts as half a downtime minute, and a minute in Under maintenance counts as none.* Degraded performance is not weighted at zero: most published incidents never get worse than it, and discarding them is what makes an uptime figure disagree with the incident history printed beneath it.",
+      "migrationIds": [
+        "0003_public_contract.sql"
+      ]
+    },
+    "UPTIME-003": {
+      "change": "added",
+      "summary": "Short history: A component whose earliest state history entry is later than the start of the reporting window shows uptime computed from that entry, and the page labels the figure with the number of whole days it covers.",
+      "migrationIds": [
+        "0003_public_contract.sql"
+      ]
+    },
+    "UPTIME-004": {
+      "change": "added",
+      "summary": "Corrections: An operator can correct a closed interval of a component's state history, stating the correct state for that interval and a reason.",
+      "migrationIds": [
+        "0003_public_contract.sql"
+      ]
+    },
+    "UPTIME-005": {
+      "change": "added",
+      "summary": "Stated method: Beside the uptime figures the page names each state's weight under UPTIME-002 and the length of the window under UPTIME-001, in text present in the initial HTML.",
+      "migrationIds": [
+        "0003_public_contract.sql"
+      ]
+    },
+    "UPTIME-006": {
+      "change": "added",
+      "summary": "Daily record: The page shows one mark per day of the reporting window for each visible component.",
+      "migrationIds": [
+        "0003_public_contract.sql"
+      ]
+    },
+    "INCIDENT-001": {
+      "change": "added",
+      "summary": "Lifecycle: An incident is in exactly one of Investigating, Identified, Monitoring, or Resolved."
+    },
+    "INCIDENT-002": {
+      "change": "added",
+      "summary": "Impact: An incident's impact is the most severe state it has claimed on any attached component at any time since it was opened, so a resolved incident keeps the impact it reached."
+    },
+    "INCIDENT-003": {
+      "change": "added",
+      "summary": "Reference: Every incident has a reference of the form `INC-` followed by digits and a permanent public URL containing it."
+    },
+    "INCIDENT-004": {
+      "change": "added",
+      "summary": "Published updates are immutable: A published update is never edited or deleted."
+    },
+    "INCIDENT-005": {
+      "change": "added",
+      "summary": "Reopening: An incident resolved in error is reopened by publishing an update that sets it to Investigating."
+    },
+    "INCIDENT-006": {
+      "change": "added",
+      "summary": "Overdue update: When the next-update time committed by an incident's latest published update passes with no newer update published, the incident is marked overdue in the operator app."
+    },
+    "INCIDENT-007": {
+      "change": "added",
+      "summary": "Deletion: Deleting an incident requires a reason and removes it from the public page, the history page, and the Atom feed within 10 seconds."
+    },
+    "INCIDENT-009": {
+      "change": "added",
+      "summary": "Retroactive incidents: An operator can open an incident whose updates carry publication times in the past."
+    },
+    "INCIDENT-008": {
+      "change": "added",
+      "summary": "Internal notes: An incident carries internal notes visible only to a signed-in operator."
+    },
+    "UPDATE-001": {
+      "change": "added",
+      "summary": "Template: Publishing an update requires at least one attached component, an affected-audience statement of at most 250 characters, a customer-impact statement of at most 250 characters, and a next-update time."
+    },
+    "UPDATE-002": {
+      "change": "added",
+      "summary": "One rendering: The public page, the Atom feed, the widget payload, and the notification email render an update from the same renderer."
+    },
+    "UPDATE-003": {
+      "change": "added",
+      "summary": "Sets the lifecycle: Every published update sets the incident's lifecycle state."
+    },
+    "UPDATE-004": {
+      "change": "added",
+      "summary": "Preview: Before publishing, the composer shows the update as the public page and as the notification email will render it, produced by the renderer named in UPDATE-002."
+    },
+    "UPDATE-005": {
+      "change": "added",
+      "summary": "Drafts: An unpublished update appears on no public surface.",
+      "migrationIds": [
+        "0002_one_incident_draft.sql"
+      ]
+    },
+    "UPDATE-006": {
+      "change": "added",
+      "summary": "Scheduled publish: An update given a future publish time publishes within 60 seconds of that time and appears on no public surface and in no notification before it.",
+      "migrationIds": [
+        "0004_publishing_contract.sql"
+      ]
+    },
+    "UPDATE-007": {
+      "change": "added",
+      "summary": "Review: *Policy: `update.review.v1`; default: no review is required.",
+      "migrationIds": [
+        "0004_publishing_contract.sql"
+      ]
+    },
+    "UPDATE-008": {
+      "change": "added",
+      "summary": "Publish is atomic: One transaction commits the update together with the recipient set it will notify on each channel selected under NOTIFY-007.",
+      "migrationIds": [
+        "0004_publishing_contract.sql",
+        "0005_delivery_contract.sql",
+        "0006_snapshot_build_ordering.sql"
+      ]
+    },
+    "UPDATE-009": {
+      "change": "added",
+      "summary": "Templates: An operator can save a template holding the update fields of UPDATE-001, the components it attaches with the state each claims, and the lifecycle state it sets."
+    },
+    "MAINT-001": {
+      "change": "added",
+      "summary": "Distinct from incidents: A scheduled maintenance has a start time, an end time, and attached components.",
+      "migrationIds": [
+        "0004_publishing_contract.sql"
+      ]
+    },
+    "MAINT-002": {
+      "change": "added",
+      "summary": "Automatic transitions: A scheduled maintenance moves from Scheduled to In progress within 60 seconds of its start time, and from In progress to Completed within 60 seconds of its end time, with no operator action.",
+      "migrationIds": [
+        "0004_publishing_contract.sql"
+      ]
+    },
+    "MAINT-003": {
+      "change": "added",
+      "summary": "Component states: A maintenance claims Under maintenance for every attached component while it is In progress, and claims nothing before it starts or after it completes.",
+      "migrationIds": [
+        "0004_publishing_contract.sql"
+      ]
+    },
+    "MAINT-004": {
+      "change": "added",
+      "summary": "Overrun: A maintenance still In progress 15 minutes after its end time is shown on the public page as running longer than planned, beside its original end time, until an operator completes it or extends the window.",
+      "migrationIds": [
+        "0004_publishing_contract.sql"
+      ]
+    },
+    "MAINT-005": {
+      "change": "added",
+      "summary": "Reminders: *Policy: `maintenance.reminders.v1`; default: subscribers are notified when the maintenance is scheduled, 24 hours before the start time, when it moves to In progress, and when it moves to Completed.*",
+      "migrationIds": [
+        "0004_publishing_contract.sql"
+      ]
+    },
+    "MAINT-006": {
+      "change": "added",
+      "summary": "Rescheduling and cancellation: Changing the window of a scheduled maintenance notifies every subscriber already notified about it.",
+      "migrationIds": [
+        "0004_publishing_contract.sql"
+      ]
+    },
+    "SUB-001": {
+      "change": "added",
+      "summary": "Subscribing: Submitting an email address on the public page creates a pending subscription and sends one confirmation email to that address within 60 seconds.",
+      "migrationIds": [
+        "0005_delivery_contract.sql"
+      ]
+    },
+    "SUB-002": {
+      "change": "added",
+      "summary": "Confirmation: *Policy: `subscriber.confirmation.v1`; default: a subscription becomes active only when the link in the confirmation email is followed.*",
+      "migrationIds": [
+        "0005_delivery_contract.sql"
+      ]
+    },
+    "SUB-003": {
+      "change": "added",
+      "summary": "Pending expiry: A pending subscription not confirmed within 72 hours is deleted, including the address it holds.",
+      "migrationIds": [
+        "0005_delivery_contract.sql"
+      ]
+    },
+    "SUB-004": {
+      "change": "added",
+      "summary": "Component selection: A subscriber selects which components they want updates about, and is notified about an incident or maintenance only when it claims a state for at least one component in that selection.",
+      "migrationIds": [
+        "0005_delivery_contract.sql"
+      ]
+    },
+    "SUB-005": {
+      "change": "added",
+      "summary": "Cookieless subscriber tokens: A subscriber is identified on public surfaces only by an opaque token of at least 128 bits of entropy that addresses one subscription, is carried in the URL of a link the deployment emailed to that subscriber, grants no other capability, and is revoked when the subscription is deactivated or deleted.",
+      "migrationIds": [
+        "0005_delivery_contract.sql"
+      ]
+    },
+    "SUB-006": {
+      "change": "added",
+      "summary": "One-click unsubscribe: Every notification email carries a `List-Unsubscribe` header with a `mailto:` and an `https:` value, a `List-Unsubscribe-Post: List-Unsubscribe=One-Click` header, and a visible unsubscribe link in the body.",
+      "migrationIds": [
+        "0005_delivery_contract.sql"
+      ]
+    },
+    "SUB-007": {
+      "change": "added",
+      "summary": "Managing a subscription: The token URL in every notification opens a page that shows the subscription's channel and component selection and lets the subscriber change the selection or unsubscribe, without a session.",
+      "migrationIds": [
+        "0005_delivery_contract.sql"
+      ]
+    },
+    "SUB-008": {
+      "change": "added",
+      "summary": "Unsubscribe integrity: After a subscription is deactivated, no notification is delivered to it.",
+      "migrationIds": [
+        "0005_delivery_contract.sql"
+      ]
+    },
+    "SUB-009": {
+      "change": "added",
+      "summary": "Webhook subscribers: An endpoint URL and a contact email address together subscribe as a webhook subscriber; the address exists so SUB-010 can say why the endpoint was deactivated.",
+      "migrationIds": [
+        "0005_delivery_contract.sql"
+      ]
+    },
+    "SUB-010": {
+      "change": "added",
+      "summary": "Failing destinations: An address that hard-bounces once, or whose provider reports a spam complaint, is deactivated with that reason recorded.",
+      "migrationIds": [
+        "0005_delivery_contract.sql",
+        "0008_provider_callback_recovery.sql"
+      ]
+    },
+    "SUB-011": {
+      "change": "added",
+      "summary": "Operator view: Operators see every subscriber with channel, state of pending, active, or deactivated, component selection, and the reason and time of any deactivation.",
+      "migrationIds": [
+        "0005_delivery_contract.sql"
+      ]
+    },
+    "SUB-012": {
+      "change": "added",
+      "summary": "No enumeration: Submitting an address that already has a subscription returns the same status and body as submitting a new address and creates no second subscription.",
+      "migrationIds": [
+        "0005_delivery_contract.sql"
+      ]
+    },
+    "NOTIFY-001": {
+      "change": "added",
+      "summary": "What notifies subscribers: *Policy: `notification.events.v1`; default: an incident notifies on its first published update, on every subsequent published update, and on the update that resolves it; a scheduled maintenance notifies per MAINT-005; a component state change made outside an incident or maintenance notifies no one.*",
+      "migrationIds": [
+        "0005_delivery_contract.sql"
+      ]
+    },
+    "NOTIFY-002": {
+      "change": "added",
+      "summary": "Delivery time: At the subscriber limit in `seed.json → limits`, every eligible email notification for a published update is accepted by the mail provider within 5 minutes of the publish request returning 200.",
+      "migrationIds": [
+        "0005_delivery_contract.sql"
+      ]
+    },
+    "NOTIFY-003": {
+      "change": "added",
+      "summary": "Retry: A notification that fails with a retryable error is retried 5 times with exponential backoff over 1 hour.",
+      "migrationIds": [
+        "0005_delivery_contract.sql"
+      ]
+    },
+    "NOTIFY-004": {
+      "change": "added",
+      "summary": "Delivery log, without tracking: Every notification records the subscriber, channel, update, queue time, outcome, and outcome time.",
+      "migrationIds": [
+        "0005_delivery_contract.sql",
+        "0008_provider_callback_recovery.sql"
+      ]
+    },
+    "NOTIFY-005": {
+      "change": "added",
+      "summary": "At most once: A subscriber receives at most one notification per published update per channel, whatever the number of times the publish is retried or the queue delivers the job.",
+      "migrationIds": [
+        "0005_delivery_contract.sql"
+      ]
+    },
+    "NOTIFY-006": {
+      "change": "added",
+      "summary": "Operator alerts: An operator email is sent, at most once per event, when an incident becomes overdue under INCIDENT-006, when a maintenance overruns under MAINT-004, when a scheduled update is held back for review under UPDATE-006, when an alert creates a draft incident under INTAKE-002, and when a notification is recorded as failed under NOTIFY-003.",
+      "migrationIds": [
+        "0005_delivery_contract.sql"
+      ]
+    },
+    "NOTIFY-007": {
+      "change": "added",
+      "summary": "Channels are per update: The operator selects, for each update, which subscriber channels receive it, and selecting none is allowed.",
+      "migrationIds": [
+        "0005_delivery_contract.sql"
+      ]
+    },
+    "NOTIFY-008": {
+      "change": "added",
+      "summary": "Who the deployment emails: The deployment sends email only to an operator, to an address with a pending subscription for its single confirmation email, and to an address with an active subscription.",
+      "migrationIds": [
+        "0005_delivery_contract.sql"
+      ]
+    },
+    "NOTIFY-010": {
+      "change": "added",
+      "summary": "Mail headers: Every notification email carries `List-Id`, `List-Archive`, and `List-Help` identifying the page, `Auto-Submitted: auto-generated` so it triggers no vacation reply, and, for every update after an incident's first, `In-Reply-To` and `References` naming the message that carried the first, so a mail client groups an incident's updates into one thread.",
+      "migrationIds": [
+        "0005_delivery_contract.sql"
+      ]
+    },
+    "NOTIFY-009": {
+      "change": "added",
+      "summary": "Delivery never blocks publication: A publish under UPDATE-008 returns 200 while the mail provider, the queue, or a subscriber endpoint is failing.",
+      "migrationIds": [
+        "0005_delivery_contract.sql"
+      ]
+    },
+    "INTAKE-001": {
+      "change": "added",
+      "summary": "Authenticated requests: Each source is configured with one of two credentials.",
+      "migrationIds": [
+        "0004_publishing_contract.sql"
+      ]
+    },
+    "INTAKE-002": {
+      "change": "added",
+      "summary": "Alerts never publish: *Policy: `alert.intake.v1`; default: an accepted alert creates or updates a draft incident within 30 seconds and changes no public surface.",
+      "migrationIds": [
+        "0004_publishing_contract.sql"
+      ]
+    },
+    "INTAKE-003": {
+      "change": "added",
+      "summary": "Deduplication: Alerts carrying the same deduplication key produce one incident for as long as that incident is unresolved: an alert whose key matches an unresolved incident is recorded against that incident and creates no second one.",
+      "migrationIds": [
+        "0004_publishing_contract.sql"
+      ]
+    },
+    "INTAKE-004": {
+      "change": "added",
+      "summary": "Recovery alerts: An alert marked as recovered for a deduplication key records the recovery time on the matching alert record and changes no public surface and no incident lifecycle state.",
+      "migrationIds": [
+        "0004_publishing_contract.sql"
+      ]
+    },
+    "INTAKE-005": {
+      "change": "added",
+      "summary": "Payload mapping: Each source configures, as JSON paths into its own payload, which field supplies the deduplication key, which supplies the title, and which distinguishes a firing alert from a recovered one.",
+      "migrationIds": [
+        "0004_publishing_contract.sql"
+      ]
+    },
+    "DRAFT-001": {
+      "change": "added",
+      "summary": "Suggested update: When an AI provider is configured, an operator can request a suggested update for an incident.",
+      "migrationIds": [
+        "0004_publishing_contract.sql"
+      ]
+    },
+    "DRAFT-002": {
+      "change": "added",
+      "summary": "Inputs: A suggestion is built from the incident's accepted alerts, its published updates, its attached components and their claimed states, and the tone instructions configured in settings.",
+      "migrationIds": [
+        "0004_publishing_contract.sql"
+      ]
+    },
+    "DRAFT-003": {
+      "change": "added",
+      "summary": "Absent or failing provider: AI calls go through `ai.provider.v1`.",
+      "migrationIds": [
+        "0004_publishing_contract.sql"
+      ]
+    },
+    "TEAM-001": {
+      "change": "added",
+      "summary": "Equal operators: Every operator can create, edit, publish, and resolve every incident and maintenance, change every component, and manage subscribers.",
+      "migrationIds": [
+        "0005_delivery_contract.sql"
+      ]
+    },
+    "TEAM-002": {
+      "change": "added",
+      "summary": "Management: Operators are invited and removed in settings.",
+      "migrationIds": [
+        "0005_delivery_contract.sql"
+      ]
+    },
+    "TEAM-003": {
+      "change": "added",
+      "summary": "Attribution: Every published update, component state change, maintenance change, history correction, and subscriber deletion records the operator who made it.",
+      "migrationIds": [
+        "0005_delivery_contract.sql"
+      ]
+    },
+    "HIST-001": {
+      "change": "added",
+      "summary": "Public history: The history page lists resolved incidents and completed maintenance grouped by month for the last 12 months, each with start time, end time, duration, the components it affected, and every update it published.",
+      "migrationIds": [
+        "0004_publishing_contract.sql"
+      ]
+    },
+    "HIST-002": {
+      "change": "added",
+      "summary": "Post-incident report: An operator can attach one post-incident report to a resolved incident, holding a summary, a timeline, a cause, and remediation.",
+      "migrationIds": [
+        "0004_publishing_contract.sql"
+      ]
+    },
+    "HIST-003": {
+      "change": "added",
+      "summary": "Report due: *Policy: `postmortem.due.v1`; default: an incident that claimed Partially unavailable or Major outage on any component and has no post-incident report 7 days after resolution is marked as owing one in the operator app.*",
+      "migrationIds": [
+        "0004_publishing_contract.sql"
+      ]
+    },
+    "HIST-004": {
+      "change": "added",
+      "summary": "Export contents: The export contains every incident, update, component with its full state history, maintenance, subscriber with channel and state, notification delivery record, post-incident report, setting, and audit entry as JSON, and every uploaded image as its original file.",
+      "migrationIds": [
+        "0004_publishing_contract.sql"
+      ]
+    }
+  },
+  "extensionPointChanges": [
+    {
+      "id": "page.status-rollup.v1",
+      "kind": "policy",
+      "change": "added",
+      "summary": "Initial Lamp 1.0 policy extension point."
+    },
+    {
+      "id": "uptime.downtime-states.v1",
+      "kind": "policy",
+      "change": "added",
+      "summary": "Initial Lamp 1.0 policy extension point."
+    },
+    {
+      "id": "update.review.v1",
+      "kind": "policy",
+      "change": "added",
+      "summary": "Initial Lamp 1.0 policy extension point."
+    },
+    {
+      "id": "maintenance.reminders.v1",
+      "kind": "policy",
+      "change": "added",
+      "summary": "Initial Lamp 1.0 policy extension point."
+    },
+    {
+      "id": "subscriber.confirmation.v1",
+      "kind": "policy",
+      "change": "added",
+      "summary": "Initial Lamp 1.0 policy extension point."
+    },
+    {
+      "id": "notification.events.v1",
+      "kind": "policy",
+      "change": "added",
+      "summary": "Initial Lamp 1.0 policy extension point."
+    },
+    {
+      "id": "alert.intake.v1",
+      "kind": "policy",
+      "change": "added",
+      "summary": "Initial Lamp 1.0 policy extension point."
+    },
+    {
+      "id": "postmortem.due.v1",
+      "kind": "policy",
+      "change": "added",
+      "summary": "Initial Lamp 1.0 policy extension point."
+    },
+    {
+      "id": "incident.opened.v1",
+      "kind": "event",
+      "change": "added",
+      "summary": "Initial Lamp 1.0 event extension point."
+    },
+    {
+      "id": "incident.update.published.v1",
+      "kind": "event",
+      "change": "added",
+      "summary": "Initial Lamp 1.0 event extension point."
+    },
+    {
+      "id": "incident.resolved.v1",
+      "kind": "event",
+      "change": "added",
+      "summary": "Initial Lamp 1.0 event extension point."
+    },
+    {
+      "id": "component.status.changed.v1",
+      "kind": "event",
+      "change": "added",
+      "summary": "Initial Lamp 1.0 event extension point."
+    },
+    {
+      "id": "maintenance.scheduled.v1",
+      "kind": "event",
+      "change": "added",
+      "summary": "Initial Lamp 1.0 event extension point."
+    },
+    {
+      "id": "maintenance.started.v1",
+      "kind": "event",
+      "change": "added",
+      "summary": "Initial Lamp 1.0 event extension point."
+    },
+    {
+      "id": "maintenance.completed.v1",
+      "kind": "event",
+      "change": "added",
+      "summary": "Initial Lamp 1.0 event extension point."
+    },
+    {
+      "id": "subscriber.confirmed.v1",
+      "kind": "event",
+      "change": "added",
+      "summary": "Initial Lamp 1.0 event extension point."
+    },
+    {
+      "id": "subscriber.deactivated.v1",
+      "kind": "event",
+      "change": "added",
+      "summary": "Initial Lamp 1.0 event extension point."
+    },
+    {
+      "id": "notification.failed.v1",
+      "kind": "event",
+      "change": "added",
+      "summary": "Initial Lamp 1.0 event extension point."
+    },
+    {
+      "id": "alert.accepted.v1",
+      "kind": "event",
+      "change": "added",
+      "summary": "Initial Lamp 1.0 event extension point."
+    },
+    {
+      "id": "snapshot.published.v1",
+      "kind": "event",
+      "change": "added",
+      "summary": "Initial Lamp 1.0 event extension point."
+    },
+    {
+      "id": "status-page.header.after.v1",
+      "kind": "slot",
+      "change": "added",
+      "summary": "Initial Lamp 1.0 slot extension point."
+    },
+    {
+      "id": "status-page.components.after.v1",
+      "kind": "slot",
+      "change": "added",
+      "summary": "Initial Lamp 1.0 slot extension point."
+    },
+    {
+      "id": "status-page.incident.after.v1",
+      "kind": "slot",
+      "change": "added",
+      "summary": "Initial Lamp 1.0 slot extension point."
+    },
+    {
+      "id": "status-page.footer.before.v1",
+      "kind": "slot",
+      "change": "added",
+      "summary": "Initial Lamp 1.0 slot extension point."
+    },
+    {
+      "id": "overview.dashboard.after.v1",
+      "kind": "slot",
+      "change": "added",
+      "summary": "Initial Lamp 1.0 slot extension point."
+    },
+    {
+      "id": "incident.sidebar.after.v1",
+      "kind": "slot",
+      "change": "added",
+      "summary": "Initial Lamp 1.0 slot extension point."
+    },
+    {
+      "id": "incident.composer.fields.after.v1",
+      "kind": "slot",
+      "change": "added",
+      "summary": "Initial Lamp 1.0 slot extension point."
+    },
+    {
+      "id": "component.row.actions.v1",
+      "kind": "slot",
+      "change": "added",
+      "summary": "Initial Lamp 1.0 slot extension point."
+    },
+    {
+      "id": "subscriber.detail.after.v1",
+      "kind": "slot",
+      "change": "added",
+      "summary": "Initial Lamp 1.0 slot extension point."
+    },
+    {
+      "id": "settings.sections.v1",
+      "kind": "slot",
+      "change": "added",
+      "summary": "Initial Lamp 1.0 slot extension point."
+    },
+    {
+      "id": "mail.sender.v1",
+      "kind": "adapter",
+      "change": "added",
+      "summary": "Initial Lamp 1.0 adapter extension point."
+    },
+    {
+      "id": "ai.provider.v1",
+      "kind": "adapter",
+      "change": "added",
+      "summary": "Initial Lamp 1.0 adapter extension point."
+    }
+  ],
+  "migrations": [
+    {
+      "id": "0001_initial_signalframe.sql",
+      "buyerSteps": "Apply with the release before starting the updated Worker."
+    },
+    {
+      "id": "0002_one_incident_draft.sql",
+      "buyerSteps": "Apply with the release before starting the updated Worker."
+    },
+    {
+      "id": "0003_public_contract.sql",
+      "buyerSteps": "Apply with the release before starting the updated Worker."
+    },
+    {
+      "id": "0004_publishing_contract.sql",
+      "buyerSteps": "Apply with the release before starting the updated Worker."
+    },
+    {
+      "id": "0005_delivery_contract.sql",
+      "buyerSteps": "Apply with the release before starting the updated Worker."
+    },
+    {
+      "id": "0006_snapshot_build_ordering.sql",
+      "buyerSteps": "Apply with the release before starting the updated Worker."
+    },
+    {
+      "id": "0007_feed_identity.sql",
+      "buyerSteps": "Apply with the release before starting the updated Worker."
+    },
+    {
+      "id": "0008_provider_callback_recovery.sql",
+      "buyerSteps": "Apply with the release before starting the updated Worker."
+    },
+    {
+      "id": "0009_historical_claim_ledger.sql",
+      "buyerSteps": "Apply migrations/core/0009_historical_claim_ledger.sql before deploying the Worker."
+    }
+  ],
+  "breaking": false,
+  "agentUpdateInstructions": "This is Lamp’s first release. Preserve the R2 public snapshot architecture and shared incident renderer, apply every listed core migration before starting the Worker, generate deployment configuration with pnpm setup, and run pnpm verify before adopting the release."
+}

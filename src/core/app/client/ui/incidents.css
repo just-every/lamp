@@ -1,0 +1,53 @@
+.incident-create-panel { display: grid; gap: 20px; }
+.incident-create-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; border-bottom: 1px solid var(--line); padding-bottom: 17px; }
+.incident-create-heading h2 { margin: 4px 0 7px; }
+.incident-create-heading p:not(.card-kicker) { max-width: 650px; margin: 0; color: var(--muted); font-size: 13px; }
+.incident-create-form { display: grid; gap: 18px; }
+.incident-title-field { max-width: 680px; }
+.incident-create-form .form-label > span { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.incident-create-form .form-label small { color: var(--muted); font-size: 11px; font-weight: 550; }
+.incident-component-claims { display: grid; gap: 9px; margin: 0; border: 0; border-top: 1px solid var(--line); padding: 18px 0 0; }
+.incident-component-claims legend { color: var(--navy); font-size: 13px; font-weight: 800; }
+.incident-component-claims > p { margin: -4px 0 4px; color: var(--muted); font-size: 12px; }
+.incident-claim-row { display: grid; grid-template-columns: minmax(170px, 1.25fr) minmax(150px, 1fr) minmax(120px, .75fr) auto; align-items: end; gap: 9px; }
+.incident-claim-row .form-label select { min-height: 39px; }
+.claim-remove-button { min-height: 39px; padding: 8px 10px; font-size: 12px; }
+.incident-create-actions { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 10px; border-top: 1px solid var(--line); padding-top: 17px; }
+.incident-create-empty { display: flex; align-items: center; justify-content: space-between; gap: 14px; border: 1px dashed #ccd6dd; border-radius: 7px; background: #fbfcfc; padding: 15px; }
+.incident-create-empty p { margin: 0; color: var(--muted); }
+.incident-operator-controls { display: grid; gap: 13px; margin-top: 23px; border-top: 1px solid var(--line); padding-top: 18px; }
+.incident-operator-heading h2 { margin: 4px 0 0; font-size: 14px; }
+.incident-note-form { display: grid; gap: 9px; }
+.incident-note-form textarea { min-height: 74px; resize: vertical; }
+.incident-note-form .button { justify-self: start; }
+.incident-note-list { display: grid; gap: 8px; }
+.incident-note-list article { border-left: 2px solid #b7c4ce; padding-left: 10px; }
+.incident-note-list p { margin: 0; color: var(--muted); font-size: 12px; white-space: pre-wrap; }
+.incident-note-list small { color: var(--muted); font-size: 11px; }
+.incident-operator-action, .incident-delete-action { display: grid; gap: 9px; border-top: 1px solid var(--line); padding-top: 13px; }
+.incident-operator-action strong, .incident-delete-action strong { color: var(--navy); font-size: 13px; }
+.incident-operator-action p, .incident-delete-action p { margin: 3px 0 0; color: var(--muted); font-size: 12px; line-height: 1.45; }
+.incident-operator-action > .button, .incident-delete-action > .button { justify-self: start; }
+.incident-correction-controls { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; }
+.incident-correction-controls select { min-width: 0; }
+.incident-delete-action { border-color: #efd6c5; }
+.incident-delete-form { display: grid; gap: 9px; }
+.incident-delete-form > div { display: flex; flex-wrap: wrap; gap: 8px; }
+.incident-action-message { margin: 0; color: var(--accent-deep); font-size: 12px; font-weight: 750; }
+.historical-publication-control { display: grid; flex-basis: 100%; width: 100%; min-width: 0; gap: 5px; border-top: 1px solid var(--line); padding-top: 11px; color: var(--navy); font-size: 12px; font-weight: 750; }
+.historical-publication-control > span { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 10px; }
+.historical-publication-control input { width: 100%; min-width: 0; max-width: 100%; box-sizing: border-box; }
+.historical-publication-control small { color: var(--muted); font-size: 11px; font-weight: 500; }
+
+@media (max-width: 760px) {
+  .incident-create-heading, .incident-create-empty { align-items: stretch; flex-direction: column; }
+  .incident-create-heading > .button, .incident-create-empty > .button { width: 100%; }
+  .incident-claim-row { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .incident-claim-row .claim-remove-button { grid-column: 1 / -1; }
+  .incident-create-actions { align-items: stretch; flex-direction: column-reverse; }
+  .incident-create-actions .button { width: 100%; }
+  .incident-correction-controls { grid-template-columns: minmax(0, 1fr); }
+  .incident-correction-controls .button, .incident-delete-form .button { width: 100%; }
+  .incident-delete-form > div { display: grid; grid-template-columns: minmax(0, 1fr); }
+  .historical-publication-control { width: 100%; }
+}

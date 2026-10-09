@@ -1,0 +1,62 @@
+{
+  "version": 1,
+  "edition": "just-every/lamp",
+  "commands": {
+    "setup": {
+      "argv": [
+        "pnpm",
+        "run",
+        "setup"
+      ],
+      "effects": "Provisions owner Cloudflare resources, checks sender DNS, applies migrations and initializes page/operator settings."
+    },
+    "deploy": {
+      "argv": [
+        "pnpm",
+        "run",
+        "deploy"
+      ],
+      "effects": "Runs verification and setup, uploads configured secrets and Worker, then checks health. Ordered migrations include the selected owner SQL after core; migration failure stops the update."
+    },
+    "verify": {
+      "argv": [
+        "pnpm",
+        "run",
+        "verify"
+      ],
+      "effects": "Runs local source, Workers, browser and generated-artifact checks; no hosted acceptance claim. Includes isolated owner-migration ordering, rerun and rollback checks."
+    }
+  },
+  "requiredEnvironment": [
+    "CLOUDFLARE_ACCOUNT_ID",
+    "CLOUDFLARE_API_TOKEN",
+    "LAMP_PAGE_HOST",
+    "LAMP_APP_HOST",
+    "LAMP_PAGE_NAME",
+    "LAMP_PAGE_TAGLINE",
+    "LAMP_PAGE_TIMEZONE",
+    "LAMP_ACCENT_COLOR",
+    "MAIL_FROM_ADDRESS",
+    "SETUP_OPERATOR_EMAIL",
+    "MAIL_PROVIDER_API_KEY",
+    "SUBSCRIBER_TOKEN_SECRET",
+    "WEBHOOK_SIGNING_SECRET",
+    "MAIL_DKIM_SELECTOR"
+  ],
+  "authentication": {
+    "deployment": "Owner-controlled Cloudflare API token and account ID.",
+    "operators": "Native emailed sign-in; no local bypass."
+  },
+  "configurationFiles": [
+    "seed.json",
+    "src/ext/config.ts",
+    "deploy/wrangler.template.toml"
+  ],
+  "health": {
+    "path": "/health",
+    "semantics": "App-host dependency health; local input checks never assert deployed health."
+  },
+  "acceptance": {
+    "document": "ACCEPTANCE.md"
+  }
+}

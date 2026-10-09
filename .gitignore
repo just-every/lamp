@@ -1,0 +1,17 @@
+node_modules/
+.DS_Store
+*.log
+.wrangler/
+**/.wrangler/
+.dev.vars*
+dist/
+
+# Generated at deploy time; infrastructure is never source (AGENTS.md).
+wrangler.toml
+wrangler.dry-run.toml
+.seed/deployment/
+
+delivery-artifact/
+
+# Private local browser setup drafts and local runtime bindings.
+.seed/installer/

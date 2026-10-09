@@ -1,0 +1,229 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://runeditrun.com/schema/RELEASE.schema.json",
+  "title": "RELEASE.json",
+  "description": "One tagged release of a seed: the versions it moves between, every guarantee whose meaning changed, the migrations and their buyer steps, and what the owner's agent needs to know. Written by the seed author at tag time; read by `rer update` and by the owner's agent. It records meaning, not merge instructions: the update candidate is a starting point and how it lands is the owner's call.",
+  "type": "object",
+  "required": [
+    "version",
+    "contractChanges",
+    "extensionPointChanges",
+    "migrations",
+    "breaking",
+    "agentUpdateInstructions"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "version": {
+      "$ref": "#/$defs/semver",
+      "description": "The version this release publishes. Matches the tag and `seed.json → version`."
+    },
+    "previousVersion": {
+      "$ref": "#/$defs/semver",
+      "description": "The version an installation updates from. Omitted on a seed's first release, where there is nothing to update from."
+    },
+    "date": {
+      "$ref": "#/$defs/date",
+      "description": "The release date."
+    },
+    "contractChanges": {
+      "type": "object",
+      "description": "Every clause whose meaning this release adds, changes, or removes, keyed by its `CONTRACT.md` or `BASELINE.md` ID — one uppercase area and a three-digit number (`CHAN-003`), with the `BASE-` prefix reserved for the baseline (`BASE-ACCESS-003`). Changing a clause's meaning without an entry here is a release error. IDs are never reused once published.",
+      "propertyNames": { "pattern": "^[A-Z][A-Z0-9]*(?:-[A-Z][A-Z0-9]*)*-[0-9]{3}$" },
+      "additionalProperties": { "$ref": "#/$defs/contractChange" }
+    },
+    "proseChanges": {
+      "type": "array",
+      "description": "Changes to the owner-facing documents that carry no clause ID — `AGENTS.md`, `README.md`, `LICENSE`. They are part of what the owner relies on, so a change in what they promise is recorded here under the same obligation as a clause change. Omit when no such document changed meaning, and on a first release, where the owner receives every document new and there is no earlier meaning to have changed.",
+      "items": { "$ref": "#/$defs/proseChange" }
+    },
+    "extensionPointChanges": {
+      "type": "array",
+      "description": "Contribution, policy, event, slot, and adapter IDs added, changed, or removed. Changing a published extension point's meaning needs a new versioned ID; minor releases add only.",
+      "items": { "$ref": "#/$defs/extensionPointChange" }
+    },
+    "migrations": {
+      "type": "array",
+      "description": "Core migrations this release introduces, in apply order, each with what the owner has to do about it.",
+      "items": { "$ref": "#/$defs/migration" }
+    },
+    "breaking": {
+      "type": "boolean",
+      "description": "True when adopting this release can break a conforming installation: a clause meaning narrowed or removed, an extension point removed, or a migration that needs owner action before the app runs."
+    },
+    "agentUpdateInstructions": {
+      "type": "string",
+      "minLength": 1,
+      "description": "What the owner's agent must preserve and check when landing this release. Statements of intent and invariants, not a merge procedure — the agent chooses how the change comes in."
+    }
+  },
+  "allOf": [
+    {
+      "description": "A prose change states what the owner could previously rely on, so it needs a published version to have changed from. A first release has none.",
+      "if": { "required": ["proseChanges"] },
+      "then": { "required": ["previousVersion"] }
+    }
+  ],
+  "$defs": {
+    "semver": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+(?:-[0-9A-Za-z.-]+)?$"
+    },
+    "date": {
+      "type": "string",
+      "format": "date",
+      "description": "ISO 8601 calendar date, YYYY-MM-DD."
+    },
+    "contractChange": {
+      "type": "object",
+      "required": ["change", "summary"],
+      "additionalProperties": false,
+      "properties": {
+        "change": {
+          "enum": ["added", "changed", "removed"],
+          "description": "`added` for a new clause, `changed` when a published clause means something different, `removed` when it stops being guaranteed."
+        },
+        "summary": {
+          "type": "string",
+          "minLength": 1,
+          "description": "One sentence: what the clause guarantees after this release, or what stopped being guaranteed."
+        },
+        "was": {
+          "type": "string",
+          "minLength": 1,
+          "description": "The meaning before this release, stated fully enough to be read without the old tag. Required when the clause changed or was removed."
+        },
+        "now": {
+          "type": "string",
+          "minLength": 1,
+          "description": "The meaning after this release. Required when the clause changed."
+        },
+        "supersedes": {
+          "type": "string",
+          "pattern": "^BASE-[A-Z][A-Z0-9]*-[0-9]{3}$",
+          "description": "The baseline clause this product clause supersedes, where the contract wins over the baseline."
+        },
+        "migrationIds": {
+          "type": "array",
+          "description": "Migration ids in this release that the clause depends on.",
+          "items": { "type": "string", "minLength": 1 }
+        }
+      },
+      "allOf": [
+        {
+          "if": { "required": ["change"], "properties": { "change": { "const": "changed" } } },
+          "then": { "required": ["change", "summary", "was", "now"] }
+        },
+        {
+          "if": { "required": ["change"], "properties": { "change": { "const": "removed" } } },
+          "then": { "required": ["change", "summary", "was"] }
+        }
+      ]
+    },
+    "proseChange": {
+      "type": "object",
+      "required": ["document", "change", "date", "summary"],
+      "additionalProperties": false,
+      "properties": {
+        "document": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Path as the owner sees it in the published seed, e.g. `AGENTS.md`, retained unchanged as authoritative edition instructions."
+        },
+        "section": {
+          "type": "string",
+          "minLength": 1,
+          "description": "The heading the change sits under, e.g. `Update`. Omit when the whole document is the change."
+        },
+        "change": {
+          "enum": ["added", "changed", "removed"],
+          "description": "`added` for a document the seed did not ship before, `changed` when a published document promises something different, `removed` when it stops being shipped."
+        },
+        "date": {
+          "$ref": "#/$defs/date",
+          "description": "When the position changed, which may predate this release."
+        },
+        "summary": {
+          "type": "string",
+          "minLength": 1,
+          "description": "One sentence: what the document now says that it did not say before."
+        },
+        "was": {
+          "type": "string",
+          "minLength": 1,
+          "description": "The meaning the owner could previously rely on, stated fully enough to be read without the old tag. Required when the document changed or was removed; absent on an addition, where there was nothing to rely on."
+        },
+        "now": {
+          "type": "string",
+          "minLength": 1,
+          "description": "The meaning that replaces it. Required when the document was added or changed."
+        },
+        "ownerAction": {
+          "type": "string",
+          "minLength": 1,
+          "description": "What the owner's agent may now do differently. Omit when nothing follows from the change."
+        }
+      },
+      "allOf": [
+        {
+          "if": { "required": ["change"], "properties": { "change": { "const": "added" } } },
+          "then": { "required": ["document", "change", "date", "summary", "now"] }
+        },
+        {
+          "if": { "required": ["change"], "properties": { "change": { "const": "changed" } } },
+          "then": { "required": ["document", "change", "date", "summary", "was", "now"] }
+        },
+        {
+          "if": { "required": ["change"], "properties": { "change": { "const": "removed" } } },
+          "then": { "required": ["document", "change", "date", "summary", "was"] }
+        }
+      ]
+    },
+    "extensionPointChange": {
+      "type": "object",
+      "required": ["id", "change", "summary"],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z0-9]+(?:[.-][a-z0-9]+)*\\.v[0-9]+$",
+          "description": "The stable versioned ID as listed in `seed.json → extensionPoints`, e.g. `case.assignment.v1`."
+        },
+        "kind": {
+          "enum": ["contribution", "policy", "event", "slot", "adapter"],
+          "description": "Which of the five extension concepts this ID belongs to."
+        },
+        "change": { "enum": ["added", "changed", "removed"] },
+        "summary": { "type": "string", "minLength": 1 },
+        "replacedBy": {
+          "type": "string",
+          "pattern": "^[a-z0-9]+(?:[.-][a-z0-9]+)*\\.v[0-9]+$",
+          "description": "The new versioned ID that carries the changed meaning."
+        }
+      },
+      "allOf": [
+        {
+          "if": { "required": ["change"], "properties": { "change": { "const": "removed" } } },
+          "then": { "required": ["id", "change", "summary"] }
+        }
+      ]
+    },
+    "migration": {
+      "type": "object",
+      "required": ["id", "buyerSteps"],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "The migration filename in `migrations/core/`."
+        },
+        "buyerSteps": {
+          "type": "string",
+          "minLength": 1,
+          "description": "What the owner has to do: when to apply it, what it touches, and anything it does not do. `None.` when applying it is all there is."
+        }
+      }
+    }
+  }
+}

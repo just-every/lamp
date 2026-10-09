@@ -1,0 +1,431 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://runeditrun.com/schema/SEED.schema.json",
+  "title": "seed.json",
+  "description": "One seed's manifest: what the product is, which family spine it builds and which incumbents it replaces, the capabilities it guarantees and the clauses that carry each one, everything that leaves the deployment, and the capacity and cost numbers the buyer may check. Written by the seed author; read by the catalogue, `rer`, the harness, and the owner's agent. It records what the seed is and what it promises, not how it is built.",
+  "type": "object",
+  "required": [
+    "id",
+    "name",
+    "version",
+    "maturity",
+    "category",
+    "spine",
+    "description",
+    "capabilities",
+    "nonGoals",
+    "externals",
+    "env",
+    "deploy",
+    "extensionPoints",
+    "limits",
+    "accessibility",
+    "operatingCost"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "$ref": "#/$defs/slug",
+      "description": "The seed's stable identifier, used in catalogue URLs, `rer` commands, and provisioned resource names. Lower case, hyphenated. It never changes once published, even when the checkout directory or repository is renamed."
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "description": "The product's name as the catalogue prints it, e.g. `Slate`. One common object per `catalogue/naming.md`; the category is not part of it."
+    },
+    "version": {
+      "$ref": "#/$defs/semver",
+      "description": "The version this manifest describes. Matches the tag and `RELEASE.json → version`."
+    },
+    "maturity": {
+      "type": "string",
+      "minLength": 1,
+      "description": "How far this seed is actually built, in the author's own words, e.g. `contract-draft` or `thin-real-worker-d1-ui-port`. A statement about the running system, never about what is planned."
+    },
+    "category": {
+      "enum": [
+        "sales",
+        "erp",
+        "records",
+        "hr",
+        "itsm",
+        "projects",
+        "reporting",
+        "knowledge",
+        "documents",
+        "finance",
+        "accounting",
+        "inventory",
+        "procurement",
+        "contracts",
+        "support",
+        "hiring",
+        "forms",
+        "billing",
+        "learning",
+        "services",
+        "construction",
+        "sheets",
+        "commerce",
+        "legal",
+        "property",
+        "fieldservice",
+        "warehouse",
+        "cdp",
+        "maintenance",
+        "analytics",
+        "automation",
+        "success",
+        "source",
+        "chat",
+        "website",
+        "writing",
+        "expenses",
+        "cad",
+        "monitoring",
+        "identity",
+        "secrets",
+        "signatures",
+        "payroll",
+        "design",
+        "whiteboard",
+        "pdf",
+        "slides",
+        "marketing",
+        "files",
+        "scheduling",
+        "media",
+        "brand",
+        "clinical",
+        "email",
+        "meetings",
+        "gateway",
+        "endpoint",
+        "forge",
+        "coding",
+        "assistant",
+        "feedback",
+        "status"
+      ],
+      "description": "The job this seed does, as one slug from the vocabulary in `catalogue/naming.md`, which is also the first half of the GitHub repository name (`knowledge-slate`). The list here is that vocabulary copied; a new family is added to `catalogue/naming.md` and to this enum in the same change. Listed in workbook-rank order so the two read side by side."
+    },
+    "spine": {
+      "$ref": "#/$defs/spine",
+      "description": "The family spine this seed builds. A family splits into two spines only where the primary record differs, so the spine, not the reference product, is what the seed is."
+    },
+    "replaces": {
+      "type": "array",
+      "minItems": 1,
+      "description": "The incumbents this seed replaces, in the order the catalogue prints them. An incumbent is named here only once its research report is finished and an importer receives its data, so this field is absent until the spine can satisfy one name. Order carries meaning: the first entry's conventions are the defaults the product ships with, and the others are reachable through the policies the spine declares.",
+      "items": { "$ref": "#/$defs/replaced" }
+    },
+    "description": {
+      "type": "string",
+      "minLength": 1,
+      "description": "What the product is, in one clause, as the catalogue card and the GitHub description print it. British spelling. The incumbents belong in `replaces`, not in this sentence."
+    },
+    "scope": {
+      "type": "string",
+      "minLength": 1,
+      "description": "What one deployment covers, where the answer is not obvious from the description, e.g. `One business, one shared workspace, equal invited operators`."
+    },
+    "capabilities": {
+      "type": "array",
+      "minItems": 1,
+      "description": "What the product does, in the order the catalogue and the owner's agent should read it, each capability naming the `CONTRACT.md` clauses that make it a guarantee. An array rather than a map: the order is the author's, and a capability carries an id that a card, a policy, or a later release can refer to.",
+      "items": { "$ref": "#/$defs/capability" }
+    },
+    "nonGoals": {
+      "type": "array",
+      "minItems": 1,
+      "description": "What this seed deliberately does not do, each as one sentence a buyer can match against their own need. A seed with no non-goals has not decided what it is.",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "externals": {
+      "type": "array",
+      "description": "Every service outside the deployment that the product talks to, why an owned primitive cannot do the job, and what data reaches it. Empty when nothing leaves.",
+      "items": { "$ref": "#/$defs/external" }
+    },
+    "env": {
+      "type": "array",
+      "description": "Every environment variable the product reads, whether it is a secret, and when it is required. The typed config module fails at startup naming anything missing from this list.",
+      "items": { "$ref": "#/$defs/envVar" }
+    },
+    "deploy": {
+      "$ref": "#/$defs/deploy",
+      "description": "The paths the harness and the buyer's proxy need to know: health, the operator app, and every path served without a session."
+    },
+    "customFields": {
+      "type": "array",
+      "description": "The entities on which the owner may enable custom fields. Buyer data beyond these lives in ext-owned sidecar tables keyed by core IDs. Omit when no entity takes them.",
+      "items": {
+        "type": "string",
+        "pattern": "^[a-z][A-Za-z0-9]*$",
+        "description": "The entity name as the code spells it, e.g. `brief`, `eventType`."
+      }
+    },
+    "extensionPoints": {
+      "$ref": "#/$defs/extensionPoints",
+      "description": "Every stable extension ID the product publishes, under the five extension concepts. An ID in code and not here is a validation failure; changing one's meaning needs a new version and a `RELEASE.json` entry."
+    },
+    "limits": {
+      "$ref": "#/$defs/measured",
+      "description": "Capacity and rate limits as data rather than clauses, with `status` saying whether they were measured or estimated. The rest of the object is per product — a load test produces different numbers for a scheduler and a support desk — so this schema constrains only the honesty of the claim."
+    },
+    "accessibility": {
+      "$ref": "#/$defs/accessibility",
+      "description": "The accessibility standard the product meets, and whether that is a verified result or a target."
+    },
+    "operatingCost": {
+      "$ref": "#/$defs/measured",
+      "description": "What one deployment costs to run, with `status` saying whether the figure was measured or estimated. The rest of the object is per product — plans, allowances, and provider charges differ — so this schema constrains only the honesty of the claim."
+    }
+  },
+  "$defs": {
+    "semver": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+(?:-[0-9A-Za-z.-]+)?$"
+    },
+    "slug": {
+      "type": "string",
+      "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+      "description": "Lower case, digits, single hyphens between parts."
+    },
+    "clauseId": {
+      "type": "string",
+      "pattern": "^[A-Z][A-Z0-9]*(?:-[A-Z][A-Z0-9]*)*-[0-9]{3}$",
+      "description": "A `CONTRACT.md` or `BASELINE.md` clause ID — one uppercase area and a three-digit number (`CHAN-003`), with the `BASE-` prefix reserved for the baseline."
+    },
+    "extensionId": {
+      "type": "string",
+      "pattern": "^[a-z0-9]+(?:[.-][a-z0-9]+)*\\.v[0-9]+$",
+      "description": "A stable versioned extension ID, e.g. `case.assignment.v1`."
+    },
+    "extensionIds": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/extensionId" }
+    },
+    "path": {
+      "type": "string",
+      "pattern": "^/[A-Za-z0-9._~/-]*$",
+      "description": "A URL path as served, from the root. A trailing slash means the prefix and everything under it, with one exception: the root path `/` is matched exactly and never as a prefix. Every pathname begins with `/`, so reading the root as a prefix would match the whole deployment and an allowlist containing it would guarantee nothing. A matcher therefore compares `/` for equality, like every entry without a trailing slash, and applies the prefix test only to the trailing-slash entries below the root."
+    },
+    "spine": {
+      "type": "object",
+      "required": ["id", "record"],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/slug",
+          "description": "The spine's identifier, e.g. `knowledge`, `ticket-desk`. It is the `id` of the spine's entry in `research/spines.json`, which is where a spine is defined and where a new one is added first. Two seeds share a spine only while one is being retired into the other."
+        },
+        "record": {
+          "type": "string",
+          "minLength": 1,
+          "description": "The spine's primary record, named as the family knows it, e.g. `a page in a tree in a container`. Two spines exist in one family exactly when this sentence differs."
+        }
+      }
+    },
+    "replaced": {
+      "type": "object",
+      "required": ["name", "edition"],
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "description": "The incumbent as its owner spells it: `Help Scout`, `HubSpot CRM`, `monday.com`. Nominative use to say what the seed replaces; no logos, no taglines, no untested compatibility claim."
+        },
+        "edition": {
+          "type": ["string", "null"],
+          "minLength": 1,
+          "description": "The edition that carries this incumbent's vocabulary, navigation, and policy defaults, as its slug. `null` while the seed replaces the incumbent from its default profile alone, which is where every spine starts: editions are a later layer, and the field is present so a manifest says which it is rather than leaving it unanswered."
+        }
+      }
+    },
+    "capability": {
+      "type": "object",
+      "required": ["id", "clauses"],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/slug",
+          "description": "The capability's identifier, e.g. `revision-history`. Stable: the card, the matrix, and later releases refer to it."
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1,
+          "description": "One sentence on what the buyer gets. Omit only where the id and its clauses already say it."
+        },
+        "clauses": {
+          "type": "array",
+          "minItems": 1,
+          "description": "The clause IDs that make this capability a guarantee. A capability with no clause is a claim, not a capability.",
+          "items": { "$ref": "#/$defs/clauseId" }
+        }
+      }
+    },
+    "external": {
+      "type": "object",
+      "required": ["id", "required", "why", "data", "adapters"],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/slug",
+          "description": "The service or class of service, e.g. `ai-provider`, `google-calendar`."
+        },
+        "required": {
+          "type": "boolean",
+          "description": "True when the product does not run without it."
+        },
+        "requiredWhen": {
+          "type": "string",
+          "minLength": 1,
+          "description": "The condition that makes an optional external required, e.g. `AI_ENABLED=true`."
+        },
+        "why": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Why no owned serverless primitive does this job. The test the manifest has to pass: a buyer reading this should not be able to name a Cloudflare primitive that would have served."
+        },
+        "data": {
+          "type": "array",
+          "minItems": 1,
+          "description": "What leaves the deployment for this service, item by item, at the grain a buyer can check against their own privacy position.",
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "adapters": {
+          "$ref": "#/$defs/extensionIds",
+          "description": "The adapter IDs through which the owner may replace this service. Empty when it cannot be replaced, as the deployment target itself cannot."
+        }
+      }
+    },
+    "envVar": {
+      "type": "object",
+      "required": ["name", "required", "secret", "why"],
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string",
+          "pattern": "^[A-Z][A-Z0-9_]*$",
+          "description": "The variable as the config module reads it, upper case with underscores."
+        },
+        "required": {
+          "type": "boolean",
+          "description": "True when startup fails without it."
+        },
+        "requiredWhen": {
+          "type": "string",
+          "minLength": 1,
+          "description": "The condition that makes an optional variable required, e.g. `AI_ENABLED=true`."
+        },
+        "secret": {
+          "type": "boolean",
+          "description": "True when the value is a credential: it belongs in the secret store, never in a file we own and never in the bundle."
+        },
+        "why": {
+          "type": "string",
+          "minLength": 1,
+          "description": "What the product does with it, in one clause."
+        },
+        "default": {
+          "type": "string",
+          "minLength": 1,
+          "description": "The value the product uses when the variable is absent. Present only where absence has a defined meaning, so that an intentional setting is distinguishable from a missing one."
+        }
+      }
+    },
+    "deploy": {
+      "type": "object",
+      "required": ["healthPath", "publicPaths"],
+      "additionalProperties": false,
+      "properties": {
+        "healthPath": {
+          "$ref": "#/$defs/path",
+          "description": "The unauthenticated health endpoint the harness polls."
+        },
+        "operatorPath": {
+          "$ref": "#/$defs/path",
+          "description": "Where the operator app is mounted, `/app` by convention. Omit only where the product has no operator app."
+        },
+        "apiPath": {
+          "$ref": "#/$defs/path",
+          "description": "Where the product's own API is mounted, where it has one under a single prefix."
+        },
+        "publicPaths": {
+          "type": "array",
+          "minItems": 1,
+          "description": "Every path served without a session, including the public landing at `/`, which is matched exactly and opens nothing beneath it. Anything not listed requires one; the harness checks this list against the running deployment.",
+          "items": { "$ref": "#/$defs/path" }
+        },
+        "notes": {
+          "type": "string",
+          "minLength": 1,
+          "description": "What the paths above mean together, where a reader could otherwise misread them."
+        }
+      }
+    },
+    "extensionPoints": {
+      "type": "object",
+      "required": ["contributions", "policies", "events", "slots", "adapters"],
+      "additionalProperties": false,
+      "properties": {
+        "contributions": {
+          "$ref": "#/$defs/extensionIds",
+          "description": "Where the owner may add a whole thing of their own: a route, a page, a settings section, a job."
+        },
+        "policies": {
+          "$ref": "#/$defs/extensionIds",
+          "description": "The decisions the owner may replace. About eight per seed; a spine's divergences between incumbents arrive here."
+        },
+        "events": {
+          "$ref": "#/$defs/extensionIds",
+          "description": "The facts the core publishes. Facts, never commands."
+        },
+        "slots": {
+          "$ref": "#/$defs/extensionIds",
+          "description": "The places in the interface the owner may render into. About ten per seed."
+        },
+        "adapters": {
+          "$ref": "#/$defs/extensionIds",
+          "description": "The interfaces behind which an external service sits, each one replaceable by the owner."
+        }
+      }
+    },
+    "accessibility": {
+      "type": "object",
+      "required": ["level", "status"],
+      "additionalProperties": false,
+      "properties": {
+        "level": {
+          "type": "string",
+          "minLength": 1,
+          "description": "The standard and conformance level, e.g. `WCAG 2.2 AA`."
+        },
+        "status": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Whether the level is verified and by what, or still a target. A target and a passed audit must not read the same."
+        },
+        "includes": {
+          "type": "array",
+          "minItems": 1,
+          "description": "The surfaces the level covers, where it does not cover everything the deployment serves.",
+          "items": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "measured": {
+      "type": "object",
+      "required": ["status"],
+      "additionalProperties": true,
+      "properties": {
+        "status": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Whether these figures were measured, and by what, or estimated and pending. An estimate and a measurement must not read the same."
+        }
+      }
+    }
+  }
+}

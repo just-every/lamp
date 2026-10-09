@@ -1,0 +1,31 @@
+:root {
+  color: #092b4b;
+  background: #f5f7f7;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  --navy: #092b4b;
+  --ink: #182d46;
+  --muted: #506580;
+  --line: #dfe7ed;
+  --paper: #ffffff;
+  --wash: #f5f7f7;
+  --accent: #087a46;
+  --accent-deep: #0d6539;
+  --accent-wash: #ecf8f1;
+  --warning: #a4460c;
+  --warning-wash: #fff4eb;
+}
+
+* { box-sizing: border-box; }
+body { min-width: 320px; min-height: 100vh; margin: 0; background: var(--wash); color: var(--ink); font-size: 15px; line-height: 1.5; }
+button, input, select, textarea { color: inherit; font: inherit; }
+button, select, input[type="checkbox"] { cursor: pointer; }
+a { color: inherit; text-decoration: none; }
+a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible, [tabindex]:focus-visible, summary:focus-visible { outline: 3px solid var(--accent-deep); outline-offset: 2px; }
+h1, h2, h3, p { margin-top: 0; }
+h1, h2, h3 { color: var(--navy); letter-spacing: -.025em; }
+h1 { margin-bottom: 6px; font-size: 34px; line-height: 1.12; }
+h2 { margin-bottom: 7px; font-size: 21px; line-height: 1.2; }
+h3 { margin-bottom: 5px; font-size: 15px; }
+.eyebrow, .card-kicker, .preview-type { margin: 0 0 5px; color: #506580; font-size: 12px; font-weight: 750; letter-spacing: .075em; text-transform: uppercase; }

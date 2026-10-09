@@ -1,0 +1,55 @@
+:root {
+  --ink: #102f60;
+  --navy: #123163;
+  --blue: #0d5db8;
+  --blue-dark: #083e84;
+  --wash: #f6f9fc;
+  --mist: #edf5fd;
+  --line: #d8e4ef;
+  --muted: #456185;
+  --accent: __LAMP_ACCENT_COLOR__;
+  --public-font: "Open Sans", Arial, sans-serif;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; background: var(--wash); }
+body { color: var(--ink); font: 400 14px/1.55 var(--public-font); }
+a { color: inherit; }
+a:focus-visible, button:focus-visible, input:focus-visible { outline: 3px solid #1766bf; outline-offset: 3px; }
+.page { width: min(100%, 1440px); min-height: 100vh; margin: auto; padding: 0 clamp(20px, 5vw, 72px) 28px; }
+.masthead { position: relative; min-height: 158px; padding: 27px 0 25px; overflow: hidden; }
+.masthead-copy { position: relative; z-index: 1; max-width: 70%; }
+.masthead-art { position: absolute; inset: 0; pointer-events: none; }
+.cartographic-hero-art { position: absolute; width: 390px; height: auto; right: -12px; top: -55px; }
+.page-kicker, .eyebrow, .section-kicker { display: flex; align-items: center; gap: 7px; margin: 0; color: var(--blue-dark); font-size: 11px; font-weight: 700; letter-spacing: .09em; text-transform: uppercase; }
+.page-kicker { width: fit-content; text-decoration: none; }
+.brand { display: block; width: fit-content; max-width: 100%; margin: 12px 0 0; color: var(--ink); font-size: clamp(26px, 2.6vw, 36px); font-weight: 700; line-height: 1.18; letter-spacing: -.025em; text-decoration: none; overflow-wrap: anywhere; }
+.brand-logo { width: 18px; height: 18px; flex: none; border-radius: 50%; background: #fff; object-fit: contain; }
+.masthead .tagline { margin: 7px 0 3px; color: var(--muted); font-size: 14px; }
+.masthead .host { margin: 0; color: var(--muted); font-size: 12px; overflow-wrap: anywhere; }
+.status-banner { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 16px; margin-bottom: 18px; }
+#status-live, .status-overview-details { min-width: 0; border: 1px solid var(--line); border-radius: 7px; padding: 24px; background: #fff; }
+#status-live { background: #edf5fd; }
+.status-summary { display: flex; align-items: center; gap: 20px; }
+.cool-a-icon { display: inline-flex; align-items: center; justify-content: center; line-height: 0; }
+.cool-a-icon svg { display: block; width: 100%; height: 100%; }
+.overall-status-icon { width: 62px; height: 62px; flex: none; color: #174c89; }
+.status-summary h1 { margin: 5px 0 0; font-size: clamp(24px, 2.2vw, 32px); line-height: 1.15; letter-spacing: -.025em; }
+.status-live-update { margin: 12px 0 0 82px; color: #294c79; font-size: 14px; overflow-wrap: anywhere; }
+.status-generated { margin: 8px 0 0 82px; color: var(--muted); font-size: 12px; }
+.status-overview-details { display: grid; align-content: center; padding-block: 10px; }
+.status-overview-service { display: flex; align-items: center; gap: 15px; padding: 14px 0; }
+.status-overview-service + .status-overview-service { border-top: 1px solid var(--line); }
+.overview-icon { width: 32px; height: 32px; flex: none; color: #1f5ba8; }
+.status-overview-service span:not(.cool-a-icon) { display: block; color: var(--muted); }
+.status-overview-service strong { display: block; font-weight: 700; }
+.status-overview-service p { margin: 4px 0 0; color: var(--muted); }
+.public-record-grid { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); grid-template-areas: "resources timeline" "components timeline" "extension timeline" "subscribe timeline"; align-items: start; gap: 16px; }
+.status-utilities { grid-area: resources; display: flex; flex-wrap: wrap; margin: 0; border: 1px solid var(--line); border-radius: 6px; background: #fff; }
+.status-utilities a { padding: 10px 14px; color: var(--blue-dark); font-size: 12px; font-weight: 700; text-decoration: none; }
+.status-utilities a + a { border-left: 1px solid var(--line); }
+.status-utilities a::after, .text-link::after { content: "→"; margin-left: 6px; }
+.status-utilities a:hover, .text-link:hover { text-decoration: underline; }
+.text-link { display: inline-flex; align-items: center; color: var(--blue-dark); font-size: 13px; font-weight: 700; text-decoration: none; }
+.empty-state { margin: 18px 0 0; padding: 20px; border: 1px solid var(--line); border-radius: 6px; background: var(--wash); color: var(--muted); }
+.component-extension { grid-area: extension; min-width: 0; }
+.component-extension:empty { display: none; }

@@ -1,0 +1,82 @@
+@media (max-width: 1180px) {
+  .overview-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .availability-card { grid-column: 1 / -1; }
+  .incident-workspace { grid-template-columns: minmax(220px, .8fr) minmax(390px, 1.35fr); grid-template-areas: "heading heading" "context composer" "preview preview"; }
+  .preview-panel { grid-column: 1 / -1; border-top: 1px solid var(--line); }
+  .preview-card { display: inline-block; width: calc(50% - 10px); vertical-align: top; }
+  .preview-card + .preview-card { margin-left: 16px; }
+  .schedule-window { grid-template-columns: minmax(0, 1fr); }
+}
+
+@media (max-width: 900px) {
+  .operator-shell { width: 100%; min-width: 0; grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); overflow-x: clip; }
+  .operator-rail, .operator-workspace, .operator-header, .operator-main { width: 100%; min-width: 0; max-width: 100%; }
+  .operator-rail { position: static; height: auto; border-right: 0; border-bottom: 1px solid var(--line); padding: 14px 18px; }
+  .app-brand { width: fit-content; }
+  .operator-navigation { display: flex; width: 100%; min-width: 0; overflow-x: auto; margin-top: 15px; padding-bottom: 2px; }
+  .operator-nav-link { flex: 0 0 auto; }
+  .operator-rail-footer { display: none; }
+  .operator-header { padding: 0 20px; }
+  .operator-main { padding: 23px 20px; }
+  .content-grid, .incident-workspace { grid-template-columns: 1fr; }
+  .incident-workspace { grid-template-areas: "heading" "composer" "preview" "context"; }
+  .settings-workspace { grid-template-columns: 1fr; }
+  .alert-source-grid { grid-template-columns: 1fr; }
+  aside.incident-context, .composer-panel { border-right: 0; border-bottom: 1px solid var(--line); }
+  .preview-panel { grid-column: auto; }
+  .preview-card { display: block; width: auto; }
+  .preview-card + .preview-card { margin-left: 0; }
+  .unavailable-grid { grid-template-columns: 1fr; }
+  .subscriber-webhook-card, .subscriber-webhook-form, .operators-invite-form { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 620px) {
+  .operator-header { height: 56px; }
+  .operator-identity small { display: none; }
+  .operator-main { padding: 19px 14px; }
+  .page-title-row { align-items: flex-start; flex-direction: column; }
+  .overview-grid, .settings-grid { grid-template-columns: 1fr; }
+  .alert-editor-form { grid-template-columns: 1fr; }
+  .availability-card { grid-column: auto; }
+  .page-title-row .button { width: 100%; }
+  .data-card { padding: 16px; }
+  .subscriber-table-card { padding: 0; }
+  .maintenance-row { flex-direction: column; }
+  .maintenance-row > div:last-child { justify-items: start; text-align: left; }
+  .maintenance-workspace { grid-template-columns: 1fr; }
+  .maintenance-schedule-card { position: static; }
+  .schedule-window { grid-template-columns: minmax(0, 1fr); }
+  .schedule-window .form-label, .schedule-window input { min-width: 0; max-width: 100%; }
+  .record-row { grid-template-columns: auto minmax(0, 1fr) auto; }
+  .record-row .state-pill { grid-column: 2; }
+  .record-row > svg { grid-row: 1; grid-column: 3; }
+  .incident-list-row { grid-template-columns: auto minmax(0, 1fr) auto; }
+  .incident-row-state { display: none; }
+  .list-controls { align-items: stretch; flex-direction: column; }
+  .list-controls .limit-note { margin-left: 0; }
+  .list-pagination { align-items: stretch; flex-direction: column; }
+  .list-pagination > div { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .claim-drawer { padding: 22px; }
+  .composer-panel, aside.incident-context, .preview-panel { padding: 19px; }
+  .composer-actions { flex-direction: column; }
+  .composer-actions .button { width: 100%; }
+  .date-row { grid-template-columns: minmax(0, 1fr); max-width: none; }
+  .publication-controls { flex-direction: column; }
+  .template-form { flex-direction: column; align-items: stretch; }
+  .template-form .form-label { flex-basis: auto; }
+  .incident-workspace-heading { padding: 19px; }
+  .incident-workspace-heading .context-facts { grid-template-columns: 1fr; }
+  .operator-header { padding-inline: 14px; gap: 10px; }
+  .operator-header > p { font-size: 12px; gap: 5px; }
+  .operator-account { gap: 8px; }
+  .operator-identity { font-size: 12px; }
+  .header-signout { padding-inline: 10px; font-size: 12px; }
+  input, select, textarea { font-size: 16px; }
+  .drawer-actions { flex-wrap: wrap; }
+  .signin-card { padding: 28px; }
+}
+
+@media (max-width: 620px) {
+  .operator-row { align-items: flex-start; flex-direction: column; }
+  .operator-actions { justify-content: flex-start; }
+}

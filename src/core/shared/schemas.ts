@@ -1,0 +1,67 @@
+import { z } from "zod";
+
+import { COMPONENT_STATES, INCIDENT_LIFECYCLES } from "./domain";
+
+const nonEmptyText = (maximum: number) => z.string().trim().min(1).max(maximum);
+const optionalText = (maximum: number) => z.string().trim().max(maximum);
+
+export const componentStandingClaimSchema = z.object({
+  state: z.enum(COMPONENT_STATES).nullable(),
+}).strict();
+
+const widgetOriginSchema = z.string().url().refine((value) => {
+  const origin = new URL(value);
+  return (origin.protocol === "https:" || origin.protocol === "http:") && origin.origin === value;
+}, "Widget origins must be http or https origins without a path.");
+
+export const pageSettingsSchema = z.object({
+  pageName: nonEmptyText(120),
+  tagline: nonEmptyText(280),
+  accentColor: z.string().regex(/^#[0-9A-Fa-f]{6}$/, "accentColor must be a six-digit hex colour"),
+  timezone: nonEmptyText(100),
+  hostname: nonEmptyText(253),
+  footerCreditEnabled: z.boolean(),
+  widgetAllowedOrigins: z.array(widgetOriginSchema).max(100).optional(),
+  mailFromAddress: z.email().optional(),
+  aiToneInstructions: optionalText(2_000).default(""),
+}).strict();
+
+export const componentSchema = z.object({
+  groupId: z.string().nullable(),
+  name: nonEmptyText(120),
+  description: optionalText(280),
+  internal: z.boolean(),
+  displayOrder: z.number().int().min(0),
+  note: optionalText(250),
+}).strict();
+
+export const componentGroupSchema = z.object({
+  name: nonEmptyText(120),
+  displayOrder: z.number().int().min(0),
+}).strict();
+
+export const componentHistoryCorrectionSchema = z.object({
+  state: z.enum(COMPONENT_STATES),
+  startsAt: z.iso.datetime(),
+  endsAt: z.iso.datetime(),
+  reason: nonEmptyText(500),
+}).strict().refine((value) => new Date(value.endsAt).getTime() > new Date(value.startsAt).getTime(), {
+  message: "The correction end must be after its start.",
+  path: ["endsAt"],
+});
+
+export const incidentDraftSchema = z.object({
+  lifecycle: z.enum(INCIDENT_LIFECYCLES),
+  affectedAudience: optionalText(250),
+  customerImpact: optionalText(250),
+  whatStillWorks: optionalText(250),
+  details: optionalText(500),
+  nextUpdateAt: z.iso.datetime().nullable().default(null),
+}).strict();
+
+export type ComponentStandingClaimInput = z.infer<typeof componentStandingClaimSchema>;
+export type PageSettingsInput = z.input<typeof pageSettingsSchema>;
+export type ComponentInput = z.infer<typeof componentSchema>;
+export type ComponentGroupInput = z.infer<typeof componentGroupSchema>;
+export type ComponentHistoryCorrectionInput = z.infer<typeof componentHistoryCorrectionSchema>;
+export type IncidentDraftInput = z.infer<typeof incidentDraftSchema>;

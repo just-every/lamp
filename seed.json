@@ -1,0 +1,527 @@
+{
+  "id": "lamp",
+  "name": "Lamp",
+  "version": "1.1.0",
+  "maturity": "ui-port-local-runtime",
+  "category": "status",
+  "spine": {
+    "id": "status",
+    "record": "incident on a component"
+  },
+  "description": "A status page and incident communication desk for one business.",
+  "capabilities": [
+    {
+      "id": "public-status-page",
+      "description": "One page showing overall status, component states, unresolved incidents, upcoming maintenance, and uptime, served from a pre-rendered snapshot.",
+      "clauses": [
+        "PAGE-001",
+        "PAGE-002",
+        "PAGE-003",
+        "PAGE-004",
+        "PAGE-005",
+        "PAGE-006",
+        "PAGE-007",
+        "PAGE-008",
+        "PAGE-009",
+        "PAGE-012",
+        "PAGE-013",
+        "PAGE-014"
+      ]
+    },
+    {
+      "id": "feed-and-widget",
+      "description": "The same snapshot published as an Atom feed and as a one-script-tag status banner for the buyer's own product.",
+      "clauses": [
+        "PAGE-010",
+        "PAGE-011"
+      ]
+    },
+    {
+      "id": "components",
+      "description": "Grouped, ordered services with a public state, a note, and an append-only state history.",
+      "clauses": [
+        "COMP-001",
+        "COMP-002",
+        "COMP-003",
+        "COMP-004",
+        "COMP-005",
+        "COMP-006",
+        "COMP-007"
+      ]
+    },
+    {
+      "id": "uptime",
+      "description": "Uptime computed from component state history over a 90-day window, with the counting rule stated on the page and corrections recomputed.",
+      "clauses": [
+        "UPTIME-001",
+        "UPTIME-002",
+        "UPTIME-003",
+        "UPTIME-004",
+        "UPTIME-005",
+        "UPTIME-006"
+      ]
+    },
+    {
+      "id": "incidents",
+      "description": "Investigating to Resolved lifecycle with an immutable public timeline, derived impact, and an overdue-update signal for operators.",
+      "clauses": [
+        "INCIDENT-001",
+        "INCIDENT-002",
+        "INCIDENT-003",
+        "INCIDENT-004",
+        "INCIDENT-005",
+        "INCIDENT-006",
+        "INCIDENT-007",
+        "INCIDENT-008",
+        "INCIDENT-009"
+      ]
+    },
+    {
+      "id": "update-composer",
+      "description": "A fixed template of who is affected, impact, what still works, and a next-update commitment for active incidents. Resolved updates carry no next-update promise. The shared public renderer supplies previews and publication is atomic.",
+      "clauses": [
+        "UPDATE-001",
+        "UPDATE-002",
+        "UPDATE-003",
+        "UPDATE-004",
+        "UPDATE-005",
+        "UPDATE-006",
+        "UPDATE-007",
+        "UPDATE-008",
+        "UPDATE-009"
+      ]
+    },
+    {
+      "id": "scheduled-maintenance",
+      "description": "Windows that start and complete themselves, set and restore component states, remind subscribers, and admit overrun on the page.",
+      "clauses": [
+        "MAINT-001",
+        "MAINT-002",
+        "MAINT-003",
+        "MAINT-004",
+        "MAINT-005",
+        "MAINT-006"
+      ]
+    },
+    {
+      "id": "subscribers",
+      "description": "Confirmed email and webhook subscriptions with per-component selection, cookieless tokens, one-click unsubscribe, and bounce handling.",
+      "clauses": [
+        "SUB-001",
+        "SUB-002",
+        "SUB-003",
+        "SUB-004",
+        "SUB-005",
+        "SUB-006",
+        "SUB-007",
+        "SUB-008",
+        "SUB-009",
+        "SUB-010",
+        "SUB-011",
+        "SUB-012"
+      ]
+    },
+    {
+      "id": "notifications",
+      "description": "Per-update channel selection, bounded retry, exactly-once delivery per subscriber per update, and a filterable delivery log.",
+      "clauses": [
+        "NOTIFY-001",
+        "NOTIFY-002",
+        "NOTIFY-003",
+        "NOTIFY-004",
+        "NOTIFY-005",
+        "NOTIFY-006",
+        "NOTIFY-007",
+        "NOTIFY-008",
+        "NOTIFY-009",
+        "NOTIFY-010"
+      ]
+    },
+    {
+      "id": "alert-intake",
+      "description": "Signed webhooks from monitoring tools that create deduplicated draft incidents and never touch a public surface on their own.",
+      "clauses": [
+        "INTAKE-001",
+        "INTAKE-002",
+        "INTAKE-003",
+        "INTAKE-004",
+        "INTAKE-005"
+      ]
+    },
+    {
+      "id": "drafting",
+      "description": "Optional AI suggestion that fills the composer from alerts and prior updates, never published without an operator.",
+      "clauses": [
+        "DRAFT-001",
+        "DRAFT-002",
+        "DRAFT-003"
+      ]
+    },
+    {
+      "id": "operators",
+      "description": "Equal operators with no roles, and attribution recorded on every action that reaches the public record.",
+      "clauses": [
+        "TEAM-001",
+        "TEAM-002",
+        "TEAM-003"
+      ]
+    },
+    {
+      "id": "history-and-reports",
+      "description": "Twelve months of public history, one post-incident report per incident, and a complete export.",
+      "clauses": [
+        "HIST-001",
+        "HIST-002",
+        "HIST-003",
+        "HIST-004"
+      ]
+    }
+  ],
+  "nonGoals": [
+    "Uptime monitoring, probing, or synthetic checks: Lamp reports state that operators or accepted alerts produce, and running probes would make it a monitoring product with a second, contradictory source of truth behind the public page.",
+    "On-call scheduling, paging, and escalation: the buyer's existing alerting tool already does this, and it is the system that feeds INTAKE-001.",
+    "More than one status page per deployment: one business gets one public record, so a second page is a second deployment.",
+    "Private or audience-scoped status pages: visitor authentication would be a whole second access surface for a product whose value is being readable by anyone, at any time, with nothing between them and it.",
+    "Roles and permissions: these are one business's equal operators, and UPDATE-007 covers the one gate buyers actually ask for.",
+    "SMS and voice notifications: per-message cost, carrier registration, and per-country consent rules that a self-hosted deployment cannot satisfy generically.",
+    "Multi-language status pages: every incident update would need a translation before publish, which is the opposite of publishing in two minutes.",
+    "A general-purpose operator API authenticated by API tokens: BASE-ACCESS-002 requires a session on every operator endpoint, and machine writes have one narrow door, INTAKE-001, with its own secret.",
+    "SSO and SCIM: magic-link sign-in per BASE-ACCESS-001 is enough for a handful of operators, and an identity provider is an adapter, not a feature.",
+    "Visitor analytics and email open tracking: BASE-PUBLIC-001 keeps the page free of cookies and visitor data, and NOTIFY-004 keeps tracking pixels out of notifications, because knowing who read an outage notice is worth less than being the one page a customer can open without being counted.",
+    "Native mobile apps: the public page is the mobile experience, and it has to work with script disabled."
+  ],
+  "externals": [
+    {
+      "id": "mail-sender",
+      "required": true,
+      "why": "Cloudflare Workers cannot deliver email to arbitrary recipients. Subscriber notification is the product's second surface, and SUB-006 and NOTIFY-008 require authenticated bulk sending with List-Unsubscribe support.",
+      "data": [
+        "Subscriber email address",
+        "The published update's fields",
+        "The subscription's unsubscribe and management tokens"
+      ],
+      "adapters": [
+        "mail.sender.v1"
+      ]
+    },
+    {
+      "id": "ai-provider",
+      "required": false,
+      "why": "DRAFT-001 only. Absent, the composer shows no suggestion control and no request is made (DRAFT-003). Internal notes are never sent (DRAFT-002).",
+      "data": [
+        "Incident title",
+        "Accepted alert payloads",
+        "Published updates",
+        "Component states"
+      ],
+      "adapters": [
+        "ai.provider.v1"
+      ]
+    },
+    {
+      "id": "subscriber-webhooks",
+      "required": false,
+      "why": "SUB-009. The destinations are chosen by the buyer's subscribers, so they cannot be enumerated as named hosts at publish time; this entry is declared as a class of destinations, not one named service, which satisfies BASE-DATA-004 without a supersession because the payload carries no personal data, every request is signed, and every delivery is in the log.",
+      "data": [
+        "The published update's fields",
+        "The delivery identifier",
+        "The update identifier"
+      ],
+      "adapters": []
+    },
+    {
+      "id": "run-edit-run-editor",
+      "required": false,
+      "why": "Optional owner-enabled editor frame; separate Run Edit Run authentication and installation authority are required. Disabled by default.",
+      "data": [
+        "Installation ID and edition origin",
+        "User-selected element structure",
+        "Explicitly reviewed text limited to 240 characters"
+      ],
+      "adapters": [
+        "rer.editor.v1"
+      ]
+    }
+  ],
+  "env": [
+    {
+      "name": "CLOUDFLARE_ACCOUNT_ID",
+      "required": true,
+      "secret": false,
+      "why": "pnpm setup uses this owner-controlled account to query and provision deterministic D1, R2, and Queue resources."
+    },
+    {
+      "name": "CLOUDFLARE_API_TOKEN",
+      "required": true,
+      "secret": true,
+      "why": "pnpm setup uses this owner-controlled token only for Cloudflare resource provisioning."
+    },
+    {
+      "name": "LAMP_PAGE_HOST",
+      "required": true,
+      "secret": false,
+      "why": "The hostname the public status page is served on (PAGE-012)."
+    },
+    {
+      "name": "LAMP_APP_HOST",
+      "required": true,
+      "secret": false,
+      "why": "The hostname the operator app and sign-in are served on. Separate from the page host so PAGE-008 can be applied to one and BASE-ACCESS-003 to the other."
+    },
+    {
+      "name": "LAMP_PAGE_NAME",
+      "required": true,
+      "secret": false,
+      "why": "Initial persisted public page name created by pnpm setup (PAGE-012)."
+    },
+    {
+      "name": "LAMP_PAGE_TAGLINE",
+      "required": true,
+      "secret": false,
+      "why": "Initial persisted public page tagline created by pnpm setup (PAGE-012)."
+    },
+    {
+      "name": "LAMP_PAGE_TIMEZONE",
+      "required": true,
+      "secret": false,
+      "why": "Initial persisted IANA timezone created by pnpm setup (PAGE-012)."
+    },
+    {
+      "name": "LAMP_ACCENT_COLOR",
+      "required": true,
+      "secret": false,
+      "why": "Initial persisted six-digit public accent colour created by pnpm setup (PAGE-012)."
+    },
+    {
+      "name": "MAIL_PROVIDER_API_KEY",
+      "required": true,
+      "secret": true,
+      "why": "mail.sender.v1."
+    },
+    {
+      "name": "MAIL_PROVIDER",
+      "required": false,
+      "secret": false,
+      "why": "Select resend (default) or sendgrid for mail.sender.v1."
+    },
+    {
+      "name": "SENDGRID_WEBHOOK_PUBLIC_KEY",
+      "required": false,
+      "secret": false,
+      "why": "Base64 ECDSA public key for signed SendGrid delivery receipts; SendGrid feedback rejects callbacks when omitted."
+    },
+    {
+      "name": "MAIL_FROM_ADDRESS",
+      "required": true,
+      "secret": false,
+      "why": "NOTIFY-008."
+    },
+    {
+      "name": "MAIL_DKIM_SELECTOR",
+      "required": true,
+      "secret": false,
+      "why": "NOTIFY-010 DNS preflight identifies the provider-published DKIM selector for MAIL_FROM_ADDRESS."
+    },
+    {
+      "name": "RESEND_WEBHOOK_SECRET",
+      "required": false,
+      "secret": true,
+      "why": "Optional Resend provider-feedback signature secret. When omitted, provider feedback endpoints reject callbacks as unconfigured."
+    },
+    {
+      "name": "SUBSCRIBER_TOKEN_SECRET",
+      "required": true,
+      "secret": true,
+      "why": "Signs the opaque subscriber tokens in SUB-005."
+    },
+    {
+      "name": "WEBHOOK_SIGNING_SECRET",
+      "required": true,
+      "secret": true,
+      "why": "Signs outbound subscriber webhooks (SUB-009)."
+    },
+    {
+      "name": "SETUP_OPERATOR_EMAIL",
+      "required": true,
+      "secret": false,
+      "why": "The operator created at setup (TEAM-002)."
+    },
+    {
+      "name": "AI_PROVIDER_URL",
+      "required": false,
+      "secret": false,
+      "why": "ai.provider.v1 OpenAI-compatible HTTPS endpoint. It is configured only with AI_PROVIDER_API_KEY and AI_PROVIDER_MODEL."
+    },
+    {
+      "name": "AI_PROVIDER_API_KEY",
+      "required": false,
+      "secret": true,
+      "why": "ai.provider.v1 credential. It is configured only with AI_PROVIDER_URL and AI_PROVIDER_MODEL."
+    },
+    {
+      "name": "AI_PROVIDER_MODEL",
+      "required": false,
+      "secret": false,
+      "why": "ai.provider.v1 model identifier. It is configured only with AI_PROVIDER_URL and AI_PROVIDER_API_KEY."
+    },
+    {
+      "name": "RER_MAIL_RELAY_SECRET",
+      "required": false,
+      "secret": true,
+      "why": "Optional per-product HMAC secret for an owner-operated signed mail-event relay; direct SendGrid signature verification remains available without a relay."
+    },
+    {
+      "name": "LAMP_BOOTSTRAP_SECRET",
+      "required": false,
+      "secret": true,
+      "why": "Required by independent broker deployment only. At least32 random characters authorizes one native owner initialization; no session is granted. Existing direct-owner setup remains available."
+    }
+  ],
+  "deploy": {
+    "healthPath": "/health",
+    "operatorPath": "/app",
+    "publicPaths": [
+      "/",
+      "/history",
+      "/incidents/",
+      "/feed.atom",
+      "/widget.js",
+      "/api/public/status",
+      "/assets/",
+      "/subscribe",
+      "/confirm-subscription/",
+      "/unsubscribe",
+      "/unsubscribe/",
+      "/manage/",
+      "/api/intake/",
+      "/health",
+      "/signin",
+      "/signin/",
+      "/app-assets/",
+      "/_serverFn/",
+      "/setup",
+      "/setup/status"
+    ],
+    "notes": "Two hostnames share this one deployment. LAMP_PAGE_HOST serves the public-page paths: /, /history, /incidents/, /feed.atom, /widget.js, /api/public/status, and /assets/ are read-only and served from the PAGE-005 snapshot, exempt from BASE-ACCESS-003 rate limiting per PAGE-008; /subscribe, /confirm-subscription/, /unsubscribe/, /manage/, and /api/intake/ are subscription or intake paths rate limited under BASE-ACCESS-003. LAMP_APP_HOST serves the operator app, mounted at /app behind a session, plus its public paths /health, /signin, /signin/, /app-assets/, and /_serverFn/. /_serverFn/ is TanStack Start's opaque generated transport, restricted to the app host and protected by Start's same-origin checks; every private handler independently validates the native operator session before returning data. It is not a PAGE-008 public read or rate-limit exemption. Two of the page host's write paths key their rate limit on the subscriber token rather than the caller's address: /unsubscribe, because one-click unsubscribe arrives from a mailbox provider's shared egress and a per-address limit would break it for every subscriber behind that address (SUB-006), and /manage/ for the same reason, since it is reached from the same emailed link."
+  },
+  "customFields": [
+    "component",
+    "incident",
+    "subscriber"
+  ],
+  "extensionPoints": {
+    "contributions": [],
+    "policies": [
+      "page.status-rollup.v1",
+      "uptime.downtime-states.v1",
+      "update.review.v1",
+      "maintenance.reminders.v1",
+      "subscriber.confirmation.v1",
+      "notification.events.v1",
+      "alert.intake.v1",
+      "postmortem.due.v1"
+    ],
+    "events": [
+      "incident.opened.v1",
+      "incident.update.published.v1",
+      "incident.resolved.v1",
+      "component.status.changed.v1",
+      "maintenance.scheduled.v1",
+      "maintenance.started.v1",
+      "maintenance.completed.v1",
+      "subscriber.confirmed.v1",
+      "subscriber.deactivated.v1",
+      "notification.failed.v1",
+      "alert.accepted.v1",
+      "snapshot.published.v1"
+    ],
+    "slots": [
+      "status-page.header.after.v1",
+      "status-page.components.after.v1",
+      "status-page.incident.after.v1",
+      "status-page.footer.before.v1",
+      "overview.dashboard.after.v1",
+      "incident.sidebar.after.v1",
+      "incident.composer.fields.after.v1",
+      "component.row.actions.v1",
+      "subscriber.detail.after.v1",
+      "settings.sections.v1"
+    ],
+    "adapters": [
+      "mail.sender.v1",
+      "ai.provider.v1"
+    ]
+  },
+  "limits": {
+    "status": "Mixed evidence: limits marked estimate:true are modeled or locally measured only and still require deployment- or account-specific validation; estimate:false values are enforced configuration limits. Each entry records its evidence.",
+    "subscribers": {
+      "value": 1000,
+      "estimate": true,
+      "why": "Local D1 engine benchmark: 1,000 active email subscribers were captured into frozen envelopes and dispatched with persisted provider attempts in 224,093ms through a test-only 100ms acknowledgement and Resend's documented default 10 request/second rate model (observed peak 5/s). This is not an account-specific provider acceptance guarantee: configured team quota, external latency, DKIM header coverage, tracking settings, domain authentication, and recipient delivery require deployment verification."
+    },
+    "components": {
+      "value": 200,
+      "estimate": true
+    },
+    "componentGroups": {
+      "value": 25,
+      "estimate": true
+    },
+    "openIncidents": {
+      "value": 25,
+      "estimate": true
+    },
+    "incidentUpdatesPerIncident": {
+      "value": 200,
+      "estimate": true
+    },
+    "publicPageRequestsPerSecond": {
+      "value": 5000,
+      "estimate": true,
+      "why": "Snapshot served from cache; PAGE-008 requires 200 for all of them."
+    },
+    "subscribeRequestsPerMinutePerAddress": {
+      "value": 5,
+      "estimate": false,
+      "why": "Rate limit on a BASE-ACCESS-003 write path; not a capacity number."
+    },
+    "intakeRequestsPerMinutePerSource": {
+      "value": 120,
+      "estimate": true
+    },
+    "uploadMaxBytes": {
+      "value": 2097152,
+      "estimate": false,
+      "why": "Page logo only (BASE-INPUT-003)."
+    },
+    "uploadTypes": {
+      "value": [
+        "image/png",
+        "image/jpeg",
+        "image/webp"
+      ],
+      "estimate": false,
+      "why": "No SVG: BASE-INPUT-002 would have to sanitise a scripting format for one logo, on the one surface that must never run anything unexpected."
+    },
+    "snapshotMaxBytesGzipped": {
+      "value": 51200,
+      "estimate": false,
+      "why": "PAGE-003."
+    }
+  },
+  "accessibility": {
+    "level": "WCAG 2.2 AA",
+    "status": "Automated Axe WCAG 2.2 AA checks run in pnpm verify against test-owned local public status, permanent incident/history and valid subscription-token pages, sign-in, every current authenticated operator route, and an allow-listed widget surface. They do not replace manual keyboard or assistive-technology review, which remains outstanding.",
+    "includes": [
+      "operator app",
+      "public status page",
+      "embeddable widget"
+    ]
+  },
+  "operatingCost": {
+    "status": "computed from published Cloudflare Workers Free/Paid pricing tiers and the stated usage assumptions, not measured against a running deployment",
+    "currency": "USD",
+    "perMonthEstimate": 0,
+    "basis": "The low-volume default is USD 0/month on Workers Free: 100,000 Worker requests/day, 10,000 Queues operations/day, D1's 5 million reads/day and 100,000 writes/day, the R2 free tier, Cron, and SQLite-backed Durable Objects including alarms. The declared 5,000 public requests/second capacity (or any other Free-plan cap) requires Workers Paid; USD 5/month is the Paid minimum, not a sustained-load estimate. Transactional mail and optional AI remain excluded."
+  }
+}

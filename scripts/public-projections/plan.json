@@ -1,0 +1,920 @@
+{
+  "schemaVersion": 1,
+  "purpose": "Deterministic public comparison projections; originals are private immutable inputs, never relabelled public source.",
+  "archives": [
+    {
+      "selector": "runeditrun/sendgrid-email",
+      "originalKey": "78045481bec6a9417d5e0a1737259dce105e9d00b1f16761a0c284e5d8a44c9f",
+      "originalSha256": "92dcff77d66207b845ad34ce137d2b0a387d93d3ee5ee7234ca9321790469ddb",
+      "repository": "https://example.test/source.git",
+      "members": {
+        "modules/sendgrid-email/tests/sender.test.ts": {
+          "originalSha256": "11c39efffe4af4dd4e733a27eef90f9097a9832271059169e79576fe131c06c2",
+          "edits": [
+            {
+              "start": 786,
+              "end": 805,
+              "originalSha256": "25d4b1bcb69cb114ae4cbbffaea1d8c5d2efdcf21a68112306865e9bb235febc",
+              "replacement": "c3VwcG9ydEBleGFtcGxlLnRlc3Q=",
+              "reason": "Replace fixture or display email domain with reserved example.test."
+            },
+            {
+              "start": 815,
+              "end": 833,
+              "originalSha256": "542d240129883c019e106e3b1b2d3f3cb3537c43c425364de8e951d5a3083345",
+              "replacement": "cGVyc29uQGV4YW1wbGUudGVzdA==",
+              "reason": "Replace fixture or display email domain with reserved example.test."
+            },
+            {
+              "start": 1143,
+              "end": 1160,
+              "originalSha256": "e67c8def62e708911573f2db1f98ecc083ef36f9dc1f2cbd3c17474f55c44ec7",
+              "replacement": "cmVwbHlAZXhhbXBsZS50ZXN0",
+              "reason": "Replace fixture or display email domain with reserved example.test."
+            },
+            {
+              "start": 1191,
+              "end": 1208,
+              "originalSha256": "f7faa8d2b759b8e4a6f0577503650137cf17a7f2e8408fc7f7bdb3c556dfdcf0",
+              "replacement": "Zmlyc3RAZXhhbXBsZS50ZXN0",
+              "reason": "Replace fixture or display email domain with reserved example.test."
+            },
+            {
+              "start": 1726,
+              "end": 1745,
+              "originalSha256": "25d4b1bcb69cb114ae4cbbffaea1d8c5d2efdcf21a68112306865e9bb235febc",
+              "replacement": "c3VwcG9ydEBleGFtcGxlLnRlc3Q=",
+              "reason": "Replace fixture or display email domain with reserved example.test."
+            },
+            {
+              "start": 1812,
+              "end": 1830,
+              "originalSha256": "542d240129883c019e106e3b1b2d3f3cb3537c43c425364de8e951d5a3083345",
+              "replacement": "cGVyc29uQGV4YW1wbGUudGVzdA==",
+              "reason": "Replace fixture or display email domain with reserved example.test."
+            },
+            {
+              "start": 1958,
+              "end": 1975,
+              "originalSha256": "e67c8def62e708911573f2db1f98ecc083ef36f9dc1f2cbd3c17474f55c44ec7",
+              "replacement": "cmVwbHlAZXhhbXBsZS50ZXN0",
+              "reason": "Replace fixture or display email domain with reserved example.test."
+            },
+            {
+              "start": 3608,
+              "end": 3621,
+              "originalSha256": "b0a077eefdc8a61295f5f9fa4eaa45371a20fe5e1301718dcaa2593240f72db3",
+              "replacement": "bkBleGFtcGxlLnRlc3Q=",
+              "reason": "Replace fixture or display email domain with reserved example.test."
+            },
+            {
+              "start": 3659,
+              "end": 3676,
+              "originalSha256": "5b71ed5f946240dc76f3b7c24bdcbbc3528284ec5f4519249fb702686f0df5b8",
+              "replacement": "b3RoZXJAZXhhbXBsZS50ZXN0",
+              "reason": "Replace fixture or display email domain with reserved example.test."
+            }
+          ]
+        }
+      }
+    },
+    {
+      "selector": "parent",
+      "originalKey": "93f30e2f5760322c3473ceb6f5cfff37782bb1cd456a8d1ac10b410824dbea1b",
+      "originalSha256": "e23647ab29fbe69848e84b6329fb967ed41f8f74fb8c1e21de8453fa6d96f5f8",
+      "repository": "https://github.com/just-every/lamp.git",
+      "members": {
+        "ACCEPTANCE.md": {
+          "originalSha256": "b653aad2af02364c7af75e2638f9e816a37ed143a059ecd9716e5a9de0065f54",
+          "edits": [
+            {
+              "start": 2412,
+              "end": 2473,
+              "originalSha256": "5b7731b6c68916baabd7725324d599babcf50974cb279e4c0f4f0e7118ef7172",
+              "replacement": "ZXZpZGVuY2UvcmV0YWluZWQtY29tcGFyaXNvbi9sYW1wLWNvbXBsZXRlLw==",
+              "reason": "Replace a private evidence location with a portable evidence label."
+            }
+          ]
+        },
+        "HANDOVER.md": {
+          "originalSha256": "da79a8e8ecb9ea3c9b521409fe9f6ed36efab501fc1b54909d9c0c1d4aa352d5",
+          "edits": [
+            {
+              "start": 5112,
+              "end": 5188,
+              "originalSha256": "c41be2818b76ad3f2a028978607c8ff793ad3de029085b46b9b6e441feb48124",
+              "replacement": "ZXZpZGVuY2UvcmV0YWluZWQtY29tcGFyaXNvbi9sYW1wLXNlbGVjdGVkLXNlY3Rpb24tc3R5bGVzLw==",
+              "reason": "Replace a private evidence location with a portable evidence label."
+            },
+            {
+              "start": 5218,
+              "end": 5298,
+              "originalSha256": "e66a60601557ea7428f545619d39b6288ac43c5305ba6f7a4de48b847f770dee",
+              "replacement": "ZXZpZGVuY2UvcmV0YWluZWQtY29tcGFyaXNvbi9sYW1wLXNlY3Rpb24tZGVzaWduLWFsdGVybmF0aXZlcy8=",
+              "reason": "Replace a private evidence location with a portable evidence label."
+            }
+          ]
+        },
+        "TESTING.md": {
+          "originalSha256": "7e94c741c74d780a4c6ac0704e58b5243827b8157b86675e0862e9cdd12d2360",
+          "edits": [
+            {
+              "start": 3942,
+              "end": 3997,
+              "originalSha256": "a3a0771def9ca719d005e1300a76c44237e229af6da9977c0d49f70ab6d23661",
+              "replacement": "ZXZpZGVuY2UvcmV0YWluZWQtY29tcGFyaXNvbi9zdGF0dXNwYWdlLXVpLXBvcnQv",
+              "reason": "Replace a private evidence location with a portable evidence label."
+            }
+          ]
+        },
+        "deploy/wrangler.template.toml": {
+          "originalSha256": "69b3a7830228f2b4e6ed72df96d03c156ca917076d71d490e87bb1bf74a778d4",
+          "edits": [
+            {
+              "start": 771,
+              "end": 793,
+              "originalSha256": "e00b24b4a4386bd7c480a69e6e420332b940f155dde71199a522ea22b4893dd2",
+              "replacement": "bGFtcEBleGFtcGxlLnRlc3Q=",
+              "reason": "Replace fixture or display email domain with reserved example.test."
+            }
+          ]
+        },
+        "src/core/app/client/ui/app-shell.tsx": {
+          "originalSha256": "03e0d6a08aac0988373506fb6b2bfad44cc0853af7dd9ac54ec6f0a6bdbd855d",
+          "edits": [
+            {
+              "start": 5482,
+              "end": 5497,
+              "originalSha256": "652740e1be1cdb970e9b471c980ac4dfbe1578616e92f5b46769a2d10d408c9a",
+              "replacement": "eW91QGV4YW1wbGUudGVzdA==",
+              "reason": "Replace fixture or display email domain with reserved example.test."
+            }
+          ]
+        },
+        "src/core/features/public-snapshot/cartographic-map.png": {
+          "originalSha256": "b2e084d4a120b35715bc8e23afd558a8a32601af1d7cf72860439c1127757e7c",
+          "edits": [
+            {
+              "start": 46,
+              "end": 126,
+              "originalSha256": "9d7e3847f78fa9f6a649188fdcb13224ee3d3cc7067c1889afce34ee629d8fa4",
+              "replacement": "",
+              "reason": "Remove ancillary image metadata; retain image data and rendering chunks byte-for-byte."
+            }
+          ]
+        },
+        "src/core/features/session/ui/operators-panel.tsx": {
+          "originalSha256": "8f3a3fd694005551811ba543a70f4de3cf0b0e1770c8341703d17401afc28ef8",
+          "edits": [
+            {
+              "start": 3439,
+              "end": 3459,
+              "originalSha256": "5da87e12d60dd043031d0cddabe2311aaeaa53da77260be215b51cdc194cce0e",
+              "replacement": "b3BlcmF0b3JAZXhhbXBsZS50ZXN0",
+              "reason": "Replace fixture or display email domain with reserved example.test."
+            }
+          ]
+        },
+        "src/core/features/subscribers/ui/subscribers-page.tsx": {
+          "originalSha256": "03cb52510d9dc70ad36e17467a4b322f0114be2e59a911424a69fe5dfeec7997",
+          "edits": [
+            {
+              "start": 3090,
+              "end": 3105,
+              "originalSha256": "af3c82544f648b38dc7d403473bb4b957cd04353afd9096fa871c1e469656c8c",
+              "replacement": "b3BzQGV4YW1wbGUudGVzdA==",
+              "reason": "Replace fixture or display email domain with reserved example.test."
+            }
+          ]
+        },
+        "tests/baseline/e2e-baseline/core-baseline.test.mjs": {
+          "originalSha256": "680d2dfecb45caf62ed75a75fe058d0c7f0dd467e376fee8387498470891680d",
+          "edits": [
+            {
+              "start": 2182,
+              "end": 2195,
+              "originalSha256": "ce0ec013c2d323a6a597e39806b0864431ffd08acec44d164396358187f02369",
+              "replacement": "ZXhhbXBsZS50ZXN0",
+              "reason": "Replace fixture or display email domain with reserved example.test."
+            },
+            {
+              "start": 5649,
+              "end": 5662,
+              "originalSha256": "ce0ec013c2d323a6a597e39806b0864431ffd08acec44d164396358187f02369",
+              "replacement": "ZXhhbXBsZS50ZXN0",
+              "reason": "Replace fixture or display email domain with reserved example.test."
+            },
+            {
+              "start": 14119,
+              "end": 14140,
+              "originalSha256": "01dff7b53959861f3d03e35bde959f4891e8576c03a8435e43d0430f0b25247b",
+              "replacement": "cGVuZGluZ0BleGFtcGxlLnRlc3Q=",
+              "reason": "Replace fixture or display email domain with reserved example.test."
+            },
+            {
+              "start": 14262,
+              "end": 14282,
+              "originalSha256": "5ffa5cbe6ad84d4b6cf3ef3bd277b3d2e401f2ef745669b25039f93c5b7941d2",
+              "replacement": "YWN0aXZlQGV4YW1wbGUudGVzdA==",
+              "reason": "Replace fixture or display email domain with reserved example.test."
+            },
+            {
+              "start": 15428,
+              "end": 15448,
+              "originalSha256": "5bf9f8061ea4321207847a5c6bf569f8819ebd45453b15b199be2971cdbb83db",
+              "replacement": "cGVyc29uQGV4YW1wbGUudGVzdA==",
+              "reason": "Replace fixture or display email domain with reserved example.test."
+            },
+            {
+              "start": 16310,
+              "end": 16339,
+              "originalSha256": "2ba9362e9d48b4c96cb86a7b0d8918428d72bcf826059d7a007e316d3bde9eb4",
+              "replacement": "ZXJhc2VkLm9wZXJhdG9yQGV4YW1wbGUudGVzdA==",
+              "reason": "Replace fixture or display email domain with reserved example.test."
+            },
+            {
+              "start": 30930,
+              "end": 30949,
+              "originalSha256": "d6a5eefad641bc4666f8bd0606c70125010aaa8efd2fc177b429d51955985fd9",
+              "replacement": "YXVkaXRAZXhhbXBsZS50ZXN0",
+              "reason": "Replace fixture or display email domain with reserved example.test."
+            }
+          ]
+        },
+        "tests/baseline/e2e-baseline/fixture.mjs": {
+          "originalSha256": "9a6a4e5af9c36d8493267e170af9517af8d3ce9a4c56fd8642e81b525c12c0b0",
+          "edits": [
+            {
+              "start": 1285,
+              "end": 1307,
+              "originalSha256": "e00b24b4a4386bd7c480a69e6e420332b940f155dde71199a522ea22b4893dd2",
+              "replacement": "bGFtcEBleGFtcGxlLnRlc3Q=",
+              "reason": "Replace fixture or display email domain with reserved example.test."
+            },
+            {
+              "start": 1337,
+              "end": 1359,
+              "originalSha256": "e00b24b4a4386bd7c480a69e6e420332b940f155dde71199a522ea22b4893dd2",
+              "replacement": "bGFtcEBleGFtcGxlLnRlc3Q=",
+              "reason": "Replace fixture or display email domain with reserved example.test."
+            },
+            {
+              "start": 3601,
+              "end": 3623,
+              "originalSha256": "e00b24b4a4386bd7c480a69e6e420332b940f155dde71199a522ea22b4893dd2",
+              "replacement": "bGFtcEBleGFtcGxlLnRlc3Q=",
+              "reason": "Replace fixture or display email domain with reserved example.test."
+            }
+          ]
+        },
+        "tests/e2e/app-api.test.mjs": {
+          "originalSha256": "b814669d2bf2ebb21a09f4a6320fab09c5df993e3aa716eccd0af75c6ae0e49f",
+          "edits": [
+            {
+              "start": 18212,
+              "end": 18240,
+              "originalSha256": "77fe0207f435d9c4b5b6314c21ac391715d08d11763332e809d9289914d9163e",
+              "replacement": "Zml4dHVyZS1zeW50aGV0aWMtNzdmZTAyMDdmNDM1",
+              "reason": "synthetic test value, never a credential"
+            },
+            {
+              "start": 21352,
+              "end": 21383,
+              "originalSha256": "59f9c3c2b21b7e1c9620ec269d05c3eee4a73897d91eb9fae0d69c08299da340",
+              "replacement": "Zml4dHVyZS1zeW50aGV0aWMtNTlmOWMzYzJiMjFi",
+              "reason": "synthetic test value, never a credential"
+            }
+          ]
+        },
+        "tests/e2e/delivery-contract.test.mjs": {
+          "originalSha256": "4a926a2193ea6eed81ae81659ac30a0a594cc109aab1678e024c41ef869c4771",
+          "edits": [
+            {
+              "start": 12772,
+              "end": 12792,
+              "originalSha256": "e5a21f771e60b7683df3d97b4b5d7f4c591f3392b0e6d28de65df57ba91eb612",
+              "replacement": "Zml4dHVyZS1zeW50aGV0aWMtZTVhMjFmNzcxZTYw",
+              "reason": "synthetic test value, never a credential"
+            },
+            {
+              "start": 16897,
+              "end": 16912,
+              "originalSha256": "1eafa18dc40e1592f1878c10d07aa43c8a9a2a6c2572a5f67c1c96237a04edc3",
+              "replacement": "Zml4dHVyZS1zeW50aGV0aWMtMWVhZmExOGRjNDBl",
+              "reason": "synthetic test value, never a credential"
+            },
+            {
+              "start": 17530,
+              "end": 17552,
+              "originalSha256": "dcb008f4214a4af3fcd55193687ef84321f4dd61bb3084301de51292ace45bfa",
+              "replacement": "Zml4dHVyZS1zeW50aGV0aWMtZGNiMDA4ZjQyMTRh",
+              "reason": "synthetic test value, never a credential"
+            },
+            {
+              "start": 19234,
+              "end": 19250,
+              "originalSha256": "1de7e736969ae943b2c67d21d382520ac8f2dc6306b8df76a6a8103e1fbe062b",
+              "replacement": "Zml4dHVyZS1zeW50aGV0aWMtMWRlN2U3MzY5Njlh",
+              "reason": "synthetic test value, never a credential"
+            },
+            {
+              "start": 23545,
+              "end": 23564,
+              "originalSha256": "390a6d3a803ce39ddfe8811987cf38873731bb64e5ac2d99253bb31b7ba61e12",
+              "replacement": "Zml4dHVyZS1zeW50aGV0aWMtMzkwYTZkM2E4MDNj",
+              "reason": "synthetic test value, never a credential"
+            },
+            {
+              "start": 24920,
+              "end": 24940,
+              "originalSha256": "039d50e05a3ee3f63a864cf4e14b253d6e4bb0623d44bd58d2d82e50712363f8",
+              "replacement": "Zml4dHVyZS1zeW50aGV0aWMtMDM5ZDUwZTA1YTNl",
+              "reason": "synthetic test value, never a credential"
+            },
+            {
+              "start": 26098,
+              "end": 26119,
+              "originalSha256": "ae844f0a923eba90830a7f00dc63f57f8e2b1b27c0f8913316b51844cf06174b",
+              "replacement": "Zml4dHVyZS1zeW50aGV0aWMtYWU4NDRmMGE5MjNl",
+              "reason": "synthetic test value, never a credential"
+            },
+            {
+              "start": 28111,
+              "end": 28132,
+              "originalSha256": "77905e9a76cf4b9f9af641622b2780a05939a242a65964c18d14942f2e03424e",
+              "replacement": "Zml4dHVyZS1zeW50aGV0aWMtNzc5MDVlOWE3NmNm",
+              "reason": "synthetic test value, never a credential"
+            },
+            {
+              "start": 29545,
+              "end": 29561,
+              "originalSha256": "8fc7d57d1879cfd5aa753ebb1886a25d77b104cf4c2ba69650f34e20133362bf",
+              "replacement": "Zml4dHVyZS1zeW50aGV0aWMtOGZjN2Q1N2QxODc5",
+              "reason": "synthetic test value, never a credential"
+            },
+            {
+              "start": 30252,
+              "end": 30265,
+              "originalSha256": "b94634280a4e5fda86dab0e79e6dbeb07be04c6b627ad008c206b005519b66ff",
+              "replacement": "Zml4dHVyZS1zeW50aGV0aWMtYjk0NjM0MjgwYTRl",
+              "reason": "synthetic test value, never a credential"
+            },
+            {
+              "start": 33458,
+              "end": 33488,
+              "originalSha256": "2366a20460e7f1903587fa97e93beddc91a2c3a8ecf71c38b666b37afff547d1",
+              "replacement": "c3RhdHVzQGV4YW1wbGUudGVzdA==",
+              "reason": "Replace fixture or display email domain with reserved example.test."
+            },
+            {
+              "start": 33515,
+              "end": 33529,
+              "originalSha256": "dfe347df55dc16eaa8cd4ba9d70400728cdccb45e21e23bf56da59a9d034b279",
+              "replacement": "Zml4dHVyZS1zeW50aGV0aWMtZGZlMzQ3ZGY1NWRj",
+              "reason": "synthetic test value, never a credential"
+            },
+            {
+              "start": 33672,
+              "end": 33702,
+              "originalSha256": "2366a20460e7f1903587fa97e93beddc91a2c3a8ecf71c38b666b37afff547d1",
+              "replacement": "c3RhdHVzQGV4YW1wbGUudGVzdA==",
+              "reason": "Replace fixture or display email domain with reserved example.test."
+            },
+            {
+              "start": 38865,
+              "end": 38881,
+              "originalSha256": "5ba2bc087b1f0c4ff32dedc88475f9d4cc59c0927e133b60ac78c5016359ad6c",
+              "replacement": "Zml4dHVyZS1zeW50aGV0aWMtNWJhMmJjMDg3YjFm",
+              "reason": "synthetic test value, never a credential"
+            },
+            {
+              "start": 40484,
+              "end": 40511,
+              "originalSha256": "8c478496384ad6a2eb98d433e961650c04048d25778a9be6dcc8c547cb892844",
+              "replacement": "Zml4dHVyZS1zeW50aGV0aWMtOGM0Nzg0OTYzODRh",
+              "reason": "synthetic test value, never a credential"
+            },
+            {
+              "start": 43379,
+              "end": 43398,
+              "originalSha256": "ed8db56678a4fff36f7dd571303e107dac1a7a0b0a0232cbe0a495fb4957520f",
+              "replacement": "Zml4dHVyZS1zeW50aGV0aWMtZWQ4ZGI1NjY3OGE0",
+              "reason": "synthetic test value, never a credential"
+            },
+            {
+              "start": 43424,
+              "end": 43446,
+              "originalSha256": "3d4b97092faca3b73c81f8fb5a487515c006d3866dbdeceff6230f0f68f47c8e",
+              "replacement": "Zml4dHVyZS1zeW50aGV0aWMtM2Q0Yjk3MDkyZmFj",
+              "reason": "synthetic test value, never a credential"
+            },
+            {
+              "start": 50110,
+              "end": 50132,
+              "originalSha256": "00414e4f9d150e77136082f7e1e01b834dd617d2dcdbc5977568390c78e87176",
+              "replacement": "Zml4dHVyZS1zeW50aGV0aWMtMDA0MTRlNGY5ZDE1",
+              "reason": "synthetic test value, never a credential"
+            },
+            {
+              "start": 51307,
+              "end": 51331,
+              "originalSha256": "637239dba4ad620f40f60df0370f068792be12c53847ba323d769145437a74b8",
+              "replacement": "Zml4dHVyZS1zeW50aGV0aWMtNjM3MjM5ZGJhNGFk",
+              "reason": "synthetic test value, never a credential"
+            },
+            {
+              "start": 53416,
+              "end": 53438,
+              "originalSha256": "00968cfc70666372eda355e05d5bd7ac317a69091270c6bcff2849a72b0df8a2",
+              "replacement": "Zml4dHVyZS1zeW50aGV0aWMtMDA5NjhjZmM3MDY2",
+              "reason": "synthetic test value, never a credential"
+            },
+            {
+              "start": 56138,
+              "end": 56158,
+              "originalSha256": "b6b148b834df4f87e5ec98cf035b7be06a1346665d050e0aacd128290a256a1e",
+              "replacement": "Zml4dHVyZS1zeW50aGV0aWMtYjZiMTQ4YjgzNGRm",
+              "reason": "synthetic test value, never a credential"
+            },
+            {
+              "start": 60760,
+              "end": 60783,
+              "originalSha256": "cd688ab13f406813416fedde3b8a4d2b8c5d04140d7804727d6226e38419aaf2",
+              "replacement": "Zml4dHVyZS1zeW50aGV0aWMtY2Q2ODhhYjEzZjQw",
+              "reason": "synthetic test value, never a credential"
+            },
+            {
+              "start": 61183,
+              "end": 61208,
+              "originalSha256": "ca3a1a5e883e20c6332935fffca018a7aa63f16e3529f8f0da0d34e50a88695e",
+              "replacement": "Zml4dHVyZS1zeW50aGV0aWMtY2EzYTFhNWU4ODNl",
+              "reason": "synthetic test value, never a credential"
+            },
+            {
+              "start": 62638,
+              "end": 62661,
+              "originalSha256": "cd688ab13f406813416fedde3b8a4d2b8c5d04140d7804727d6226e38419aaf2",
+              "replacement": "Zml4dHVyZS1zeW50aGV0aWMtY2Q2ODhhYjEzZjQw",
+              "reason": "synthetic test value, never a credential"
+            },
+            {
+              "start": 65054,
+              "end": 65072,
+              "originalSha256": "9f6d902b34925bf10e2a01b9a526994c65ca02ee35dab97f01ed0f28344ef930",
+              "replacement": "Zml4dHVyZS1zeW50aGV0aWMtOWY2ZDkwMmIzNDky",
+              "reason": "synthetic test value, never a credential"
+            },
+            {
+              "start": 69797,
+              "end": 69828,
+              "originalSha256": "e6a3223e16402829480352e64cb1943432f61c8aba3cbdcb23969876ea285766",
+              "replacement": "Zml4dHVyZS1zeW50aGV0aWMtZTZhMzIyM2UxNjQw",
+              "reason": "synthetic test value, never a credential"
+            },
+            {
+              "start": 72486,
+              "end": 72504,
+              "originalSha256": "57f255b6e20acf52c0d245aac4adeea142997de5ff838d9f7dd1bf528736015e",
+              "replacement": "Zml4dHVyZS1zeW50aGV0aWMtNTdmMjU1YjZlMjBh",
+              "reason": "synthetic test value, never a credential"
+            },
+            {
+              "start": 75867,
+              "end": 75895,
+              "originalSha256": "99a7a6d3cf0214fbbe8a40c02e5b86a5aec5446b5c7f7f9b4512930420fd94af",
+              "replacement": "Zml4dHVyZS1zeW50aGV0aWMtOTlhN2E2ZDNjZjAy",
+              "reason": "synthetic test value, never a credential"
+            },
+            {
+              "start": 81156,
+              "end": 81175,
+              "originalSha256": "8b0d2dfe35ff8f3d8f655ffd4f171402f3a8775f26bcd9db0399979b6990e26d",
+              "replacement": "Zml4dHVyZS1zeW50aGV0aWMtOGIwZDJkZmUzNWZm",
+              "reason": "synthetic test value, never a credential"
+            }
+          ]
+        },
+        "tests/e2e/deployment-artifact.test.mjs": {
+          "originalSha256": "4de367ca9804866d24bca1ecde8cd508f162d02030676a4197805f15c8d92657",
+          "edits": [
+            {
+              "start": 810,
+              "end": 842,
+              "originalSha256": "861009ec4d599fab1f40abc76e6f89880cff5833c79c548c99f9045f191cd90b",
+              "replacement": "Zml4dHVyZS1zeW50aGV0aWMtODYxMDA5ZWM0ZDU5OWY=",
+              "reason": "synthetic test value, never a credential"
+            },
+            {
+              "start": 873,
+              "end": 905,
+              "originalSha256": "653bb1245e828fcda4fa53fcd5a3def5bd7654e651f54b4132b73d74e64435c4",
+              "replacement": "Zml4dHVyZS1zeW50aGV0aWMtNjUzYmIxMjQ1ZTgyOGY=",
+              "reason": "synthetic test value, never a credential"
+            },
+            {
+              "start": 935,
+              "end": 967,
+              "originalSha256": "653bb1245e828fcda4fa53fcd5a3def5bd7654e651f54b4132b73d74e64435c4",
+              "replacement": "Zml4dHVyZS1zeW50aGV0aWMtNjUzYmIxMjQ1ZTgyOGY=",
+              "reason": "synthetic test value, never a credential"
+            }
+          ]
+        },
+        "tests/e2e/deployment-secrets.test.mjs": {
+          "originalSha256": "10ab2237d70ddb6a72c199b5aa379ef4c65bd63e131f4a7aa807dbd1a5542022",
+          "edits": [
+            {
+              "start": 1308,
+              "end": 1321,
+              "originalSha256": "00e5f22945051867bf5a38e0608fbdc18589986b8173831a4c66b93a451a1b9c",
+              "replacement": "Zml4dHVyZS1zeW50aGV0aWMtMDBlNWYyMjk0NTA1",
+              "reason": "synthetic test value, never a credential"
+            },
+            {
+              "start": 1348,
+              "end": 1362,
+              "originalSha256": "81e29287920a4b5361f551dc72d6b7e56c0c7636459982cce47f7d9fc622b3f6",
+              "replacement": "Zml4dHVyZS1zeW50aGV0aWMtODFlMjkyODc5MjBh",
+              "reason": "synthetic test value, never a credential"
+            },
+            {
+              "start": 1388,
+              "end": 1404,
+              "originalSha256": "ddaace959e9d9412e1cb39908225dbc82cf8674b5112716fcaab8c8df989867b",
+              "replacement": "Zml4dHVyZS1zeW50aGV0aWMtZGRhYWNlOTU5ZTlk",
+              "reason": "synthetic test value, never a credential"
+            }
+          ]
+        },
+        "tests/e2e/extensions-contract.test.mjs": {
+          "originalSha256": "822072ca6c0bb1a0f914374cfbf7f53712a4935a30e3b010a4f86d057fa713fb",
+          "edits": [
+            {
+              "start": 1194,
+              "end": 1222,
+              "originalSha256": "55b8b37747dcbd87ead7170fd244722598f93d63eb931c9b8b47363ed6508d9a",
+              "replacement": "bGFtcEBleGFtcGxlLnRlc3Q=",
+              "reason": "Replace fixture or display email domain with reserved example.test."
+            }
+          ]
+        },
+        "tests/e2e/fixtures/legacy-api-fixture.mjs": {
+          "originalSha256": "d0448370bbd8af11b11c60571528060f03f0ebf65f81ae774e3133d2db38ca0a",
+          "edits": [
+            {
+              "start": 814,
+              "end": 836,
+              "originalSha256": "e00b24b4a4386bd7c480a69e6e420332b940f155dde71199a522ea22b4893dd2",
+              "replacement": "bGFtcEBleGFtcGxlLnRlc3Q=",
+              "reason": "Replace fixture or display email domain with reserved example.test."
+            },
+            {
+              "start": 7110,
+              "end": 7137,
+              "originalSha256": "77c2c64341ee83fe3486d0f81d023247276c3b72894025a5e7aace35a7ac113f",
+              "replacement": "b3BzLXRlYW1AZXhhbXBsZS50ZXN0",
+              "reason": "Replace fixture or display email domain with reserved example.test."
+            },
+            {
+              "start": 7319,
+              "end": 7346,
+              "originalSha256": "62d02947c9e2b350969026a72c1cdaa9b949d0493020fee7ff90ac93563bb3ae",
+              "replacement": "d2ViaG9va3NAZXhhbXBsZS50ZXN0",
+              "reason": "Replace fixture or display email domain with reserved example.test."
+            }
+          ]
+        },
+        "tests/e2e/public-contract.test.mjs": {
+          "originalSha256": "4502f1dea4660f2b7585e91ab7911f0c980e0f33dfbabdd99620ab35f6ffa162",
+          "edits": [
+            {
+              "start": 3919,
+              "end": 3945,
+              "originalSha256": "9b0a3f2762f9551e8505b769b8ec4513009daa67b1b1fb880bf2656fcd0a485c",
+              "replacement": "bGFtcEBleGFtcGxlLnRlc3Q=",
+              "reason": "Replace fixture or display email domain with reserved example.test."
+            },
+            {
+              "start": 6596,
+              "end": 6618,
+              "originalSha256": "e00b24b4a4386bd7c480a69e6e420332b940f155dde71199a522ea22b4893dd2",
+              "replacement": "bGFtcEBleGFtcGxlLnRlc3Q=",
+              "reason": "Replace fixture or display email domain with reserved example.test."
+            }
+          ]
+        },
+        "tests/e2e/publishing-browser.test.mjs": {
+          "originalSha256": "7e4af839364898924012aa809022121bcac22406d4d8fb9eb999ba9dd666a859",
+          "edits": [
+            {
+              "start": 17609,
+              "end": 17636,
+              "originalSha256": "fcfe801f745d25baf60baa80185c4709b98d5ebd14aa119b59f101b73b9c6ace",
+              "replacement": "Zml4dHVyZS1zeW50aGV0aWMtZmNmZTgwMWY3NDVk",
+              "reason": "synthetic test value, never a credential"
+            },
+            {
+              "start": 20267,
+              "end": 20294,
+              "originalSha256": "fcfe801f745d25baf60baa80185c4709b98d5ebd14aa119b59f101b73b9c6ace",
+              "replacement": "Zml4dHVyZS1zeW50aGV0aWMtZmNmZTgwMWY3NDVk",
+              "reason": "synthetic test value, never a credential"
+            }
+          ]
+        },
+        "tests/e2e/publishing-contract.test.mjs": {
+          "originalSha256": "860c7bc6bf6f693c95a1ff3eccbec00f63ee45b47e22200213a874445e9d5802",
+          "edits": [
+            {
+              "start": 4277,
+              "end": 4299,
+              "originalSha256": "071d526543fef69606b3395c705bb9bc86d9036d7899ac83907a8708534bc123",
+              "replacement": "Zml4dHVyZS1zeW50aGV0aWMtMDcxZDUyNjU0M2Zl",
+              "reason": "synthetic test value, never a credential"
+            },
+            {
+              "start": 21430,
+              "end": 21452,
+              "originalSha256": "6fd732146167930d5d766651a26873a26b9c66ad627999655312634fd43c6646",
+              "replacement": "Zml4dHVyZS1zeW50aGV0aWMtNmZkNzMyMTQ2MTY3",
+              "reason": "synthetic test value, never a credential"
+            },
+            {
+              "start": 49752,
+              "end": 49767,
+              "originalSha256": "b4b28a9ec656e273df98633b58dba2785853bce179541c8456e4ed4c349f94ca",
+              "replacement": "Zml4dHVyZS1zeW50aGV0aWMtYjRiMjhhOWVjNjU2",
+              "reason": "synthetic test value, never a credential"
+            },
+            {
+              "start": 50504,
+              "end": 50519,
+              "originalSha256": "b4b28a9ec656e273df98633b58dba2785853bce179541c8456e4ed4c349f94ca",
+              "replacement": "Zml4dHVyZS1zeW50aGV0aWMtYjRiMjhhOWVjNjU2",
+              "reason": "synthetic test value, never a credential"
+            },
+            {
+              "start": 51727,
+              "end": 51749,
+              "originalSha256": "071d526543fef69606b3395c705bb9bc86d9036d7899ac83907a8708534bc123",
+              "replacement": "Zml4dHVyZS1zeW50aGV0aWMtMDcxZDUyNjU0M2Zl",
+              "reason": "synthetic test value, never a credential"
+            },
+            {
+              "start": 52426,
+              "end": 52448,
+              "originalSha256": "071d526543fef69606b3395c705bb9bc86d9036d7899ac83907a8708534bc123",
+              "replacement": "Zml4dHVyZS1zeW50aGV0aWMtMDcxZDUyNjU0M2Zl",
+              "reason": "synthetic test value, never a credential"
+            },
+            {
+              "start": 52644,
+              "end": 52666,
+              "originalSha256": "071d526543fef69606b3395c705bb9bc86d9036d7899ac83907a8708534bc123",
+              "replacement": "Zml4dHVyZS1zeW50aGV0aWMtMDcxZDUyNjU0M2Zl",
+              "reason": "synthetic test value, never a credential"
+            },
+            {
+              "start": 53163,
+              "end": 53185,
+              "originalSha256": "071d526543fef69606b3395c705bb9bc86d9036d7899ac83907a8708534bc123",
+              "replacement": "Zml4dHVyZS1zeW50aGV0aWMtMDcxZDUyNjU0M2Zl",
+              "reason": "synthetic test value, never a credential"
+            },
+            {
+              "start": 53406,
+              "end": 53428,
+              "originalSha256": "071d526543fef69606b3395c705bb9bc86d9036d7899ac83907a8708534bc123",
+              "replacement": "Zml4dHVyZS1zeW50aGV0aWMtMDcxZDUyNjU0M2Zl",
+              "reason": "synthetic test value, never a credential"
+            },
+            {
+              "start": 53992,
+              "end": 54014,
+              "originalSha256": "071d526543fef69606b3395c705bb9bc86d9036d7899ac83907a8708534bc123",
+              "replacement": "Zml4dHVyZS1zeW50aGV0aWMtMDcxZDUyNjU0M2Zl",
+              "reason": "synthetic test value, never a credential"
+            },
+            {
+              "start": 54233,
+              "end": 54255,
+              "originalSha256": "071d526543fef69606b3395c705bb9bc86d9036d7899ac83907a8708534bc123",
+              "replacement": "Zml4dHVyZS1zeW50aGV0aWMtMDcxZDUyNjU0M2Zl",
+              "reason": "synthetic test value, never a credential"
+            }
+          ]
+        },
+        "visual/01-public-status-active-desktop.png": {
+          "originalSha256": "e36fcdc4bc3a0e2822d13de6d548f54731d7a0b35e6eac31a42e8d5512a473fc",
+          "omit": true,
+          "reason": "Presentation-only screenshot. No product or mapped component comparison reads this member; whole-parent extraction records omission explicitly. Original remains in the private digest-pinned archive."
+        },
+        "visual/02-public-status-active-mobile.png": {
+          "originalSha256": "894f5192a8e63f1bbaeb9fb480b00ccdac6d67d11f5a7033dd435cf7dc08fbd0",
+          "omit": true,
+          "reason": "Presentation-only screenshot. No product or mapped component comparison reads this member; whole-parent extraction records omission explicitly. Original remains in the private digest-pinned archive."
+        },
+        "visual/03-signin-unconfigured.png": {
+          "originalSha256": "f097ad73103c9a9ea317ee4c2aeec405534c8f4bcf83f18fc8f381e1cadf94ed",
+          "omit": true,
+          "reason": "Presentation-only screenshot. No product or mapped component comparison reads this member; whole-parent extraction records omission explicitly. Original remains in the private digest-pinned archive."
+        },
+        "visual/04-overview-active.png": {
+          "originalSha256": "b29fd670ac673abbf148f35dafa1d73e0361235e41d4f96964c4628f6e0570b8",
+          "omit": true,
+          "reason": "Presentation-only screenshot. No product or mapped component comparison reads this member; whole-parent extraction records omission explicitly. Original remains in the private digest-pinned archive."
+        },
+        "visual/05-incident-composer-draft.png": {
+          "originalSha256": "dd1931926a6635331b3ff6ab53e48ab4cc04357a6b043f208154b30e4b14802f",
+          "omit": true,
+          "reason": "Presentation-only screenshot. No product or mapped component comparison reads this member; whole-parent extraction records omission explicitly. Original remains in the private digest-pinned archive."
+        },
+        "visual/06-components-standing-claim.png": {
+          "originalSha256": "338b6045e781161a0f4ea0b67f08d8283cad384e6f090f0cad0873bc68cbeb82",
+          "omit": true,
+          "reason": "Presentation-only screenshot. No product or mapped component comparison reads this member; whole-parent extraction records omission explicitly. Original remains in the private digest-pinned archive."
+        },
+        "visual/07-maintenance.png": {
+          "originalSha256": "fa194b3bd4ca757fd306eff96fcf787ab2c6898aca52fe63e4a5dc4b85c2e13a",
+          "omit": true,
+          "reason": "Presentation-only screenshot. No product or mapped component comparison reads this member; whole-parent extraction records omission explicitly. Original remains in the private digest-pinned archive."
+        },
+        "visual/08-subscribers.png": {
+          "originalSha256": "52a0d17aa211236f31b9d9fc51aec47829260c6538a9d23c39b7b1e04a9f7a17",
+          "omit": true,
+          "reason": "Presentation-only screenshot. No product or mapped component comparison reads this member; whole-parent extraction records omission explicitly. Original remains in the private digest-pinned archive."
+        },
+        "visual/09-deliveries.png": {
+          "originalSha256": "4edfd3557bfc984fcf29cd27a6680517b55a2445f37bc422e40f58259782e584",
+          "omit": true,
+          "reason": "Presentation-only screenshot. No product or mapped component comparison reads this member; whole-parent extraction records omission explicitly. Original remains in the private digest-pinned archive."
+        },
+        "visual/10-page-settings.png": {
+          "originalSha256": "ca92524146839aaa443de5dc6c0e8eefafefdeb9e3be8b11307b5722e483dc01",
+          "omit": true,
+          "reason": "Presentation-only screenshot. No product or mapped component comparison reads this member; whole-parent extraction records omission explicitly. Original remains in the private digest-pinned archive."
+        },
+        "visual/11-overview-mobile.png": {
+          "originalSha256": "ee7babf694d8c03d7a4aad54007c9e9f2e89f37e5fafde1749528621a81d2984",
+          "omit": true,
+          "reason": "Presentation-only screenshot. No product or mapped component comparison reads this member; whole-parent extraction records omission explicitly. Original remains in the private digest-pinned archive."
+        },
+        "visual/12-public-history-desktop.png": {
+          "originalSha256": "ddb6c122f78d0b73114fa9bda00b0f1ac8d86c43f8c797c31be02e444dbaad24",
+          "omit": true,
+          "reason": "Presentation-only screenshot. No product or mapped component comparison reads this member; whole-parent extraction records omission explicitly. Original remains in the private digest-pinned archive."
+        },
+        "visual/13-public-incident-desktop.png": {
+          "originalSha256": "13214cf9be191d606e37c9e9a34e2ea360100e7c9099bf951d2a17417ae4947c",
+          "omit": true,
+          "reason": "Presentation-only screenshot. No product or mapped component comparison reads this member; whole-parent extraction records omission explicitly. Original remains in the private digest-pinned archive."
+        },
+        "visual/14-operator-alerts.png": {
+          "originalSha256": "fa2a0934ce9317217725a779c7ddcdf22fdd23ea55ab3da9605682f4b4002601",
+          "omit": true,
+          "reason": "Presentation-only screenshot. No product or mapped component comparison reads this member; whole-parent extraction records omission explicitly. Original remains in the private digest-pinned archive."
+        },
+        "visual/README.md": {
+          "originalSha256": "04cdb5c8aa87fca04730f8d41b3d3217ee9e5e5e2b270465f465b2b227c39a3b",
+          "edits": [
+            {
+              "start": 2649,
+              "end": 2776,
+              "originalSha256": "77958a62db46d475e02ae6edf24f452543c23fd81cb1df126428455f831e8c53",
+              "replacement": "ZXZpZGVuY2UvcmV0YWluZWQtY29tcGFyaXNvbi9pbXByb3ZlLXJvb215LXYyLw==",
+              "reason": "Replace a private evidence location with a portable evidence label."
+            }
+          ]
+        }
+      }
+    },
+    {
+      "selector": "runeditrun/base-onboarding",
+      "originalKey": "99054db9ab23d6dcb1022deb06ab0505bde2af76b9a345b771da52f491665dcd",
+      "originalSha256": "f901d74a67fd8de755c0beb75035a31b15a40fea2837491a1963a3ca3e45ffcb",
+      "repository": "https://example.test/source.git",
+      "members": {
+        "contract.test.mjs": {
+          "originalSha256": "d54b8e8211c1d0017149e8dbeecdc57a02d1dbb841b78ca6d16656be14609da1",
+          "edits": [
+            {
+              "start": 2234,
+              "end": 2247,
+              "originalSha256": "eacb9ab8f6db03232e40f809d83464809bdfd41203c70051cc4b42e380732afa",
+              "replacement": "Zml4dHVyZS1zeW50aGV0aWMtZWFjYjlhYjhmNmRi",
+              "reason": "synthetic test value, never a credential"
+            },
+            {
+              "start": 2708,
+              "end": 2723,
+              "originalSha256": "1748c57f137692a66d528db35a73990ba37d6fdd4b3f82868b4f7151de045b72",
+              "replacement": "Zml4dHVyZS1zeW50aGV0aWMtMTc0OGM1N2YxMzc2",
+              "reason": "synthetic test value, never a credential"
+            },
+            {
+              "start": 3874,
+              "end": 3889,
+              "originalSha256": "1748c57f137692a66d528db35a73990ba37d6fdd4b3f82868b4f7151de045b72",
+              "replacement": "Zml4dHVyZS1zeW50aGV0aWMtMTc0OGM1N2YxMzc2",
+              "reason": "synthetic test value, never a credential"
+            },
+            {
+              "start": 4563,
+              "end": 4578,
+              "originalSha256": "1748c57f137692a66d528db35a73990ba37d6fdd4b3f82868b4f7151de045b72",
+              "replacement": "Zml4dHVyZS1zeW50aGV0aWMtMTc0OGM1N2YxMzc2",
+              "reason": "synthetic test value, never a credential"
+            },
+            {
+              "start": 5101,
+              "end": 5116,
+              "originalSha256": "1748c57f137692a66d528db35a73990ba37d6fdd4b3f82868b4f7151de045b72",
+              "replacement": "Zml4dHVyZS1zeW50aGV0aWMtMTc0OGM1N2YxMzc2",
+              "reason": "synthetic test value, never a credential"
+            },
+            {
+              "start": 5210,
+              "end": 5225,
+              "originalSha256": "1748c57f137692a66d528db35a73990ba37d6fdd4b3f82868b4f7151de045b72",
+              "replacement": "Zml4dHVyZS1zeW50aGV0aWMtMTc0OGM1N2YxMzc2",
+              "reason": "synthetic test value, never a credential"
+            },
+            {
+              "start": 5822,
+              "end": 5837,
+              "originalSha256": "1748c57f137692a66d528db35a73990ba37d6fdd4b3f82868b4f7151de045b72",
+              "replacement": "Zml4dHVyZS1zeW50aGV0aWMtMTc0OGM1N2YxMzc2",
+              "reason": "synthetic test value, never a credential"
+            },
+            {
+              "start": 6249,
+              "end": 6264,
+              "originalSha256": "1748c57f137692a66d528db35a73990ba37d6fdd4b3f82868b4f7151de045b72",
+              "replacement": "Zml4dHVyZS1zeW50aGV0aWMtMTc0OGM1N2YxMzc2",
+              "reason": "synthetic test value, never a credential"
+            },
+            {
+              "start": 7626,
+              "end": 7641,
+              "originalSha256": "1748c57f137692a66d528db35a73990ba37d6fdd4b3f82868b4f7151de045b72",
+              "replacement": "Zml4dHVyZS1zeW50aGV0aWMtMTc0OGM1N2YxMzc2",
+              "reason": "synthetic test value, never a credential"
+            },
+            {
+              "start": 8158,
+              "end": 8173,
+              "originalSha256": "1748c57f137692a66d528db35a73990ba37d6fdd4b3f82868b4f7151de045b72",
+              "replacement": "Zml4dHVyZS1zeW50aGV0aWMtMTc0OGM1N2YxMzc2",
+              "reason": "synthetic test value, never a credential"
+            },
+            {
+              "start": 8263,
+              "end": 8278,
+              "originalSha256": "1748c57f137692a66d528db35a73990ba37d6fdd4b3f82868b4f7151de045b72",
+              "replacement": "Zml4dHVyZS1zeW50aGV0aWMtMTc0OGM1N2YxMzc2",
+              "reason": "synthetic test value, never a credential"
+            }
+          ]
+        },
+        "failures.test.mjs": {
+          "originalSha256": "25111ce322da979e2725e36f41f507bfe924d427f139c360959a885819f6d814",
+          "edits": [
+            {
+              "start": 343,
+              "end": 371,
+              "originalSha256": "6be26f7c2e1a4be52449023be23becda7fd4676cc54aa9e91d9e6919578d6735",
+              "replacement": "Zml4dHVyZS1zeW50aGV0aWMtNmJlMjZmN2MyZTFh",
+              "reason": "synthetic test value, never a credential"
+            }
+          ]
+        },
+        "private.test.mjs": {
+          "originalSha256": "d5d9108f2c0286f053e533401108c7bb9dcc3293d9a3c4d35dd41a1804bee8d3",
+          "edits": [
+            {
+              "start": 1179,
+              "end": 1194,
+              "originalSha256": "06d11b54b8296152273332af5cf5591dc37badbfb705351b7de012b2d362bc3c",
+              "replacement": "Zml4dHVyZS1zeW50aGV0aWMtMDZkMTFiNTRiODI5",
+              "reason": "synthetic test value, never a credential"
+            },
+            {
+              "start": 5848,
+              "end": 5870,
+              "originalSha256": "7b267ce63ba88b7cd618439e47e76276377094d591bf0bf917bf1c3df9c4be48",
+              "replacement": "Zml4dHVyZS1zeW50aGV0aWMtN2IyNjdjZTYzYmE4",
+              "reason": "synthetic test value, never a credential"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "selector": "runeditrun/owner-migrations",
+      "originalKey": "db1deadd3daf5311a28ac6226879856e54d06d73fafeec37a277e44b86d7f022",
+      "originalSha256": "c37b99076acbbf9381de7b23cf7d077d9d2c192c0b05caebb7ff85a961aacf61",
+      "repository": "https://example.test/source.git",
+      "members": {}
+    }
+  ]
+}

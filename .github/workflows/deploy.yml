@@ -1,0 +1,16 @@
+name: Build Lamp independent release
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+  id-token: write
+jobs:
+  release:
+    uses: runeditrun/delivery/.github/workflows/trusted-build.yml@3bf5463466b68615ff3862a28acbe5cb9d1786ec
+    with:
+      installation_id: ${{ vars.RER_INSTALLATION_ID }}
+      broker_url: ${{ vars.RER_BROKER_URL }}
+      environment: production
+      build_profile: project
+      verification_profile: full
+      artifact_file: lamp-worker-artifact.json

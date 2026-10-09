@@ -1,0 +1,20 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {readFile} from 'node:fs/promises';
+import {specInputs} from '../scripts/delivery/spec-inputs.mjs';
+test('independent release declares real commands, pinned full workflow and separate native surfaces',async()=>{
+ const descriptor=JSON.parse(await readFile('rer-project.json','utf8'));
+ const workflow=await readFile('.github/workflows/deploy.yml','utf8');
+ assert.equal(descriptor.sourceRepository,'https://github.com/just-every/lamp');
+ assert.equal(descriptor.deployment.artifactFile,'lamp-worker-artifact.json');
+ assert.equal(descriptor.operations.verify,'pnpm run verify');
+ assert.match(workflow,/trusted-build\.yml@[a-f0-9]{40}/);
+ assert.match(workflow,/build_profile: project/);
+ assert.match(workflow,/verification_profile: full/);
+ assert.doesNotMatch(workflow,/secrets:|secrets\./);
+ assert.equal(specInputs.surfaces.app.hostnameVariable,'LAMP_APP_HOST');
+ assert.equal(specInputs.surfaces.page.hostnameVariable,'LAMP_PAGE_HOST');
+ assert.equal(specInputs.initialSetup.path,'/setup/status');
+ assert.deepEqual(specInputs.surfaces.page.readiness[0].pendingSetupStatuses,[503]);
+ assert.ok(specInputs.secretNames.includes('LAMP_BOOTSTRAP_SECRET'));
+});
