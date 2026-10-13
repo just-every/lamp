@@ -3512,7 +3512,7 @@
       "executable": false
     },
     "src/site/lamp/head.ts": {
-      "sha256": "b116a14bb0de6bf32bceff32ae4746c095428ca74b5ce14ba4012658c4bef01e",
+      "sha256": "406119d853e5fe500dc4a1ed98ca0f0eb3522d946ddcc1ed951eaf7c3b0abcfc",
       "executable": false
     },
     "src/site/lamp/header.css": {
@@ -3520,11 +3520,11 @@
       "executable": false
     },
     "src/site/lamp/intro.css": {
-      "sha256": "a71280265e10c8017e39f7a86a7612206a9be738e6ed0e251dde1d804bc47c99",
+      "sha256": "a13738dd61679a1c5d90aab42268a342c41ae318e37d9938acb751bad5446f9b",
       "executable": false
     },
     "src/site/lamp/Intro.tsx": {
-      "sha256": "cf9d5cba9635275c7781fda6de868e6598413e5bcf37fd52921b8524511cb280",
+      "sha256": "273db228f4ee4efe8676becac1c9ba0f982353ef37f29ba90927b59a0835f736",
       "executable": false
     },
     "src/site/lamp/IntroReady.tsx": {
@@ -4188,7 +4188,7 @@
       "executable": false
     },
     "tests/e2e/independent-release.test.mjs": {
-      "sha256": "ea751882c3d836e88b5d068d12d08e5c78529ecc5dc7e50a7c37a98c0c81555c",
+      "sha256": "5aba1156128046ac3512c12bbe7e82bb60f7778dcd00e095147d041f49540839",
       "executable": false
     },
     "tests/e2e/instatus-browser.test.mjs": {
@@ -4752,7 +4752,7 @@
       "executable": false
     },
     "tests/helpers/wrangler-config.mjs": {
-      "sha256": "f6e2ea87f10ba7aeb796f552600788468cd227ad8756d308919fafd0844d0668",
+      "sha256": "fe75f48ea76bec8dbd42173cc629d1980dd0ff5fb4c6003194ce17df18fd08bf",
       "executable": false
     },
     "tests/independent-descriptor.test.mjs": {
@@ -4772,7 +4772,7 @@
       "executable": false
     },
     "tests/lamp-site/browser.test.mjs": {
-      "sha256": "6e9f64ffbd81de0a7290c1fb6d0cf6edf922db9348206253aae39092d47a0a9a",
+      "sha256": "9ddf808fa29d6cba3476b90273e6c1c66f94ac39d9f9c98f77ac57bd24bf6491",
       "executable": false
     },
     "tests/local-mail/access.test.mjs": {
