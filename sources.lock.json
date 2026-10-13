@@ -343,6 +343,14 @@
     }
   ],
   "files": {
+    ".github/assets/banner-dark.webp": {
+      "sha256": "55ac9bea9428b7fe397e05c1ba1af600cd7f75ce5c46d792e6200a793e739bbc",
+      "executable": false
+    },
+    ".github/assets/banner-light.webp": {
+      "sha256": "5f0562461c619f642deb31a7dba10e26cf438f4ac2f390e43fc7f010b040e6b5",
+      "executable": false
+    },
     ".github/workflows/deploy.yml": {
       "sha256": "dbe6b242951f44c22364b17b57fb0787349ceea5c22cf3414f8cf3fc599db7dd",
       "executable": false
@@ -1540,7 +1548,7 @@
       "executable": false
     },
     "README.md": {
-      "sha256": "8f1604bf74f4a9778d09166dcbd0d4b7e6677628adb3fcbcc199a302ad844263",
+      "sha256": "dd974ccbfe296edf21e4cad8da788da5029cc1bcf5349658e87c637b7fd0dcab",
       "executable": false
     },
     "release-history/1.0.0.CONTRACT.md": {
@@ -3408,7 +3416,7 @@
       "executable": false
     },
     "src/site/lamp/head.ts": {
-      "sha256": "b116a14bb0de6bf32bceff32ae4746c095428ca74b5ce14ba4012658c4bef01e",
+      "sha256": "406119d853e5fe500dc4a1ed98ca0f0eb3522d946ddcc1ed951eaf7c3b0abcfc",
       "executable": false
     },
     "src/site/lamp/header.css": {
@@ -3416,11 +3424,11 @@
       "executable": false
     },
     "src/site/lamp/intro.css": {
-      "sha256": "a71280265e10c8017e39f7a86a7612206a9be738e6ed0e251dde1d804bc47c99",
+      "sha256": "a13738dd61679a1c5d90aab42268a342c41ae318e37d9938acb751bad5446f9b",
       "executable": false
     },
     "src/site/lamp/Intro.tsx": {
-      "sha256": "cf9d5cba9635275c7781fda6de868e6598413e5bcf37fd52921b8524511cb280",
+      "sha256": "273db228f4ee4efe8676becac1c9ba0f982353ef37f29ba90927b59a0835f736",
       "executable": false
     },
     "src/site/lamp/IntroReady.tsx": {
@@ -4652,7 +4660,7 @@
       "executable": false
     },
     "tests/lamp-site/browser.test.mjs": {
-      "sha256": "6e9f64ffbd81de0a7290c1fb6d0cf6edf922db9348206253aae39092d47a0a9a",
+      "sha256": "9ddf808fa29d6cba3476b90273e6c1c66f94ac39d9f9c98f77ac57bd24bf6491",
       "executable": false
     },
     "tests/local-mail/access.test.mjs": {
