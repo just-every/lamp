@@ -1,3 +1,4 @@
+import { createHostDispatch } from "../../src/core/app/host-dispatch";
 import { exerciseRebuild } from "./snapshot-rebuild";
 import { createHealthService } from "../../src/core/features/health/service";
 import { registerHealthRoutes } from "../../src/core/features/health/routes";
@@ -24,6 +25,7 @@ export default {
       if (input.archive) await env.SNAPSHOTS.put(`snapshots/${input.pointer.version}/retained.json`, JSON.stringify(input.archive));
       return new Response(null, { status: 204 });
     }
+    if (url.pathname !== "/health" && createHostDispatch({ LAMP_PAGE_HOST: "page.example", LAMP_APP_HOST: "app.example" }).surfaceFor(request) !== "page") return new Response("Not found", { status: 404 });
     // Fault injection lives exclusively in this test Worker. Fresh services on
     // every request ensure neither an isolate variable nor prior URL warms proof.
     const blobs = createR2BlobStore(env.SNAPSHOTS);

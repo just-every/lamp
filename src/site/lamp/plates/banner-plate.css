@@ -1,0 +1,4 @@
+/* The widget's banner: a 1px border, 10px corners, 14px text in pre-line, and the widget's dot drawn amber. */
+.lamp-home .lamp-banner { padding: 12px 14px; border: 1px solid var(--lamp-line-strong); border-radius: 10px; font-size: 14px; line-height: 1.5; }
+.lamp-home .lamp-banner__first { margin: 0 0 .55em; white-space: pre-wrap; }
+.lamp-home .lamp-banner__dot { display: inline-block; width: 9px; height: 9px; margin-right: 8px; border-radius: 50%; background: var(--lamp-amber); vertical-align: 1px; }

@@ -13,6 +13,13 @@ function required(env, name) {
   return value;
 }
 
+function authProviders(value) {
+  if (!value) return undefined;
+  try { if (!Array.isArray(JSON.parse(value))) throw new Error(); }
+  catch { throw new Error("AUTH_PROVIDERS must be a valid JSON array."); }
+  return value;
+}
+
 function hostname(value, name) {
   const normalized = value.trim().toLowerCase();
   if (!hostnamePattern.test(normalized)) throw new Error(`${name} must be a hostname without a protocol, port, or path.`);
@@ -83,7 +90,7 @@ export function parseArgs(argv) {
     const value = argv[index];
     if (value === "--") continue;
     if (!value.startsWith("--")) throw new Error(`Unknown argument ${value}.`);
-    if (value === "--dry-run" || value === "--remote" || value === "--local") flags.set(value.slice(2), true);
+    if (value === "--dry-run" || value === "--remote" || value === "--local" || value === "--force") flags.set(value.slice(2), true);
     else {
       const next = argv[index + 1];
       if (!next || next.startsWith("--")) throw new Error(`${value} requires a value.`);
@@ -98,6 +105,18 @@ export function deploymentConfig(env = process.env, environment = "production") 
   if (!environmentPattern.test(environment)) throw new Error("Deployment environment must contain lowercase letters, digits, and hyphens.");
   const pageHost = hostname(required(env, "LAMP_PAGE_HOST"), "LAMP_PAGE_HOST");
   const appHost = hostname(required(env, "LAMP_APP_HOST"), "LAMP_APP_HOST");
+  const hosting = optional(env.LAMP_HOSTING) ?? "custom-domain";
+  if (!["custom-domain", "workers-dev"].includes(hosting)) throw new Error("LAMP_HOSTING must be custom-domain or workers-dev.");
+  const resourcePrefix = optional(env.LAMP_RESOURCE_PREFIX);
+  if (resourcePrefix && !/^[a-z0-9](?:[a-z0-9-]{0,45}[a-z0-9])?$/.test(resourcePrefix)) throw new Error("LAMP_RESOURCE_PREFIX must be a lowercase resource name of at most 47 characters.");
+  if (hosting === "workers-dev") {
+    const names = resourceNames(environment, resourcePrefix);
+    const suffix = appHost.slice(names.worker.length + 1);
+    if (!/^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.workers\.dev$/.test(suffix)
+      || appHost !== `${names.worker}.${suffix}` || pageHost !== `${names.publicWorker}.${suffix}`) {
+      throw new Error("workers-dev hosts must match the generated Worker names under the same account workers.dev subdomain. See OPERATIONS.md.");
+    }
+  } else if (pageHost.endsWith(".workers.dev") || appHost.endsWith(".workers.dev")) throw new Error("Use LAMP_HOSTING=workers-dev for workers.dev hostnames.");
   if (pageHost === appHost) throw new Error("LAMP_PAGE_HOST and LAMP_APP_HOST must be distinct for a deployment.");
   const pageName = text(env.LAMP_PAGE_NAME, "LAMP_PAGE_NAME", 120);
   const pageTagline = text(env.LAMP_PAGE_TAGLINE, "LAMP_PAGE_TAGLINE", 280);
@@ -105,6 +124,7 @@ export function deploymentConfig(env = process.env, environment = "production") 
   const pageAccentColor = accentColor(env.LAMP_ACCENT_COLOR);
   const mailFromAddress = email(required(env, "MAIL_FROM_ADDRESS"), "MAIL_FROM_ADDRESS");
   const setupOperatorEmail = email(required(env, "SETUP_OPERATOR_EMAIL"), "SETUP_OPERATOR_EMAIL");
+  const setupOperatorDisplayName = env.OWNER_DISPLAY_NAME === undefined ? "Setup operator" : text(env.OWNER_DISPLAY_NAME, "OWNER_DISPLAY_NAME", 120);
   const mailProvider = optional(env.MAIL_PROVIDER) ?? "resend";
   if (!["resend", "sendgrid"].includes(mailProvider)) throw new Error("MAIL_PROVIDER must be resend or sendgrid.");
   const sendGridWebhookPublicKey = optional(env.SENDGRID_WEBHOOK_PUBLIC_KEY);
@@ -127,6 +147,9 @@ export function deploymentConfig(env = process.env, environment = "production") 
   if (Boolean(aiProviderUrl) !== Boolean(aiProviderApiKey) || Boolean(aiProviderUrl) !== Boolean(aiProviderModel)) throw new Error("AI_PROVIDER_URL, AI_PROVIDER_API_KEY, and AI_PROVIDER_MODEL must be configured together or all omitted.");
   return {
     environment,
+    hosting,
+    resourcePrefix,
+    accountId: optional(env.CLOUDFLARE_ACCOUNT_ID),
     pageHost,
     appHost,
     pageName,
@@ -135,6 +158,9 @@ export function deploymentConfig(env = process.env, environment = "production") 
     pageAccentColor,
     mailFromAddress,
     setupOperatorEmail,
+    sessionSecret: secret(required(env,"SESSION_SECRET"),"SESSION_SECRET"),
+    setupToken: secret(required(env,"SETUP_TOKEN"),"SETUP_TOKEN"),
+    setupOperatorDisplayName,
     mailProviderApiKey,
     mailProvider,
     sendGridWebhookPublicKey,
@@ -143,24 +169,24 @@ export function deploymentConfig(env = process.env, environment = "production") 
     mailDkimSelector,
     resendWebhookSecret,
     relaySecret: optionalSecret(optional(env.RER_MAIL_RELAY_SECRET), "RER_MAIL_RELAY_SECRET"),
+    identityProvider:env.IDENTITY_PROVIDER?new URL(httpsUrl(env.IDENTITY_PROVIDER,'IDENTITY_PROVIDER')).origin:undefined,
+    authProviders:authProviders(env.AUTH_PROVIDERS),
+    oidcTransactionSecret:optionalSecret(env.OIDC_TRANSACTION_SECRET,'OIDC_TRANSACTION_SECRET'),
     aiProviderUrl: aiProviderUrl ? httpsUrl(aiProviderUrl, "AI_PROVIDER_URL") : undefined,
     aiProviderApiKey,
     aiProviderModel: aiProviderModel ? text(aiProviderModel, "AI_PROVIDER_MODEL", 200) : undefined,
   };
 }
 
-export function resourceNames(environment) {
-  return {
-    worker: `lamp-${environment}`,
-    database: `lamp-${environment}-db`,
-    bucket: `lamp-${environment}-files`,
-    queue: `lamp-${environment}-jobs`,
-  };
+export function resourceNames(environment, resourcePrefix) {
+  const worker = resourcePrefix ?? `lamp-${environment}`;
+  return { worker, publicWorker: `${worker}-page`, database: `${worker}-db`, bucket: `${worker}-files`, queue: `${worker}-jobs` };
 }
 
 export function renderWranglerToml(config, resources) {
+  const hosting = config.hosting === "workers-dev" ? "workers_dev = true\n" : `workers_dev = false\nroutes = [\n  { pattern = ${tomlString(config.pageHost)}, custom_domain = true },\n  { pattern = ${tomlString(config.appHost)}, custom_domain = true }\n]\n`;
   const aiVars = config.aiProviderUrl ? `AI_PROVIDER_URL = ${tomlString(config.aiProviderUrl)}\nAI_PROVIDER_MODEL = ${tomlString(config.aiProviderModel)}\n` : "";
-  return `# Generated by pnpm setup. Do not edit: source values live outside the repository.\nname = ${tomlString(resources.worker)}\nmain = "src/server.ts"\ncompatibility_date = "2026-09-08"\ncompatibility_flags = ["nodejs_compat", "global_fetch_strictly_public"]\nroutes = [\n  { pattern = ${tomlString(config.pageHost)}, custom_domain = true },\n  { pattern = ${tomlString(config.appHost)}, custom_domain = true }\n]\n\n[triggers]\ncrons = ["* * * * *"]\n\n[assets]\nbinding = "ASSETS"\nrun_worker_first = true\n\n[vars]\nLAMP_PAGE_HOST = ${tomlString(config.pageHost)}\nLAMP_APP_HOST = ${tomlString(config.appHost)}\nMAIL_FROM_ADDRESS = ${tomlString(config.mailFromAddress)}\nMAIL_PROVIDER = ${tomlString(config.mailProvider)}\n${config.sendGridWebhookPublicKey ? `SENDGRID_WEBHOOK_PUBLIC_KEY = ${tomlString(config.sendGridWebhookPublicKey)}\n` : ""}${aiVars}\n[[d1_databases]]\nbinding = "DB"\ndatabase_name = ${tomlString(resources.database)}\ndatabase_id = ${tomlString(resources.databaseId)}\nmigrations_dir = "migrations/core"\n\n[[r2_buckets]]\nbinding = "SNAPSHOTS"\nbucket_name = ${tomlString(resources.bucket)}\n\n[[queues.producers]]\nbinding = "JOBS"\nqueue = ${tomlString(resources.queue)}\n\n[[queues.consumers]]\nqueue = ${tomlString(resources.queue)}\nmax_batch_size = 10\nmax_batch_timeout = 5\nmax_retries = 5\n\n[[durable_objects.bindings]]\nname = "SNAPSHOT_CACHE"\nclass_name = "SnapshotCache"\n\n[[migrations]]\ntag = "snapshot-cache-v1"\nnew_sqlite_classes = ["SnapshotCache"]\n`;
+  return `# Generated by pnpm setup. Do not edit: source values live outside the repository.\nname = ${tomlString(resources.worker)}\nmain = "src/server.ts"\ncompatibility_date = "2026-09-08"\ncompatibility_flags = ["nodejs_compat", "global_fetch_strictly_public"]\n${hosting}${config.accountId ? `account_id = ${tomlString(config.accountId)}\n` : ""}\n[triggers]\ncrons = ["* * * * *"]\n\n[assets]\nbinding = "ASSETS"\nrun_worker_first = true\n\n[version_metadata]\nbinding = "RER_VERSION"\n\n[vars]\nLAMP_PAGE_HOST = ${tomlString(config.pageHost)}\nLAMP_APP_HOST = ${tomlString(config.appHost)}\nSETUP_OPERATOR_EMAIL = ${tomlString(config.setupOperatorEmail)}\nAUTH_ORIGIN = ${tomlString(`https://${config.appHost}`)}\nMAIL_FROM_ADDRESS = ${tomlString(config.mailFromAddress)}\nMAIL_PROVIDER = ${tomlString(config.mailProvider)}\n${config.sendGridWebhookPublicKey ? `SENDGRID_WEBHOOK_PUBLIC_KEY = ${tomlString(config.sendGridWebhookPublicKey)}\n` : ""}${config.identityProvider ? `IDENTITY_PROVIDER = ${tomlString(config.identityProvider)}\n` : ""}${aiVars}\n[[d1_databases]]\nbinding = "DB"\ndatabase_name = ${tomlString(resources.database)}\ndatabase_id = ${tomlString(resources.databaseId)}\nmigrations_dir = "migrations/core"\n\n[[r2_buckets]]\nbinding = "SNAPSHOTS"\nbucket_name = ${tomlString(resources.bucket)}\n\n[[queues.producers]]\nbinding = "JOBS"\nqueue = ${tomlString(resources.queue)}\n\n[[queues.consumers]]\nqueue = ${tomlString(resources.queue)}\nmax_batch_size = 10\nmax_batch_timeout = 5\nmax_retries = 5\n\n[[durable_objects.bindings]]\nname = "SNAPSHOT_CACHE"\nclass_name = "SnapshotCache"\n\n[[migrations]]\ntag = "snapshot-cache-v1"\nnew_sqlite_classes = ["SnapshotCache"]\n`;
 }
 
 export function renderRemoteArchiveWranglerToml(input) {
@@ -209,16 +235,12 @@ export function createUlid(timestamp = Date.now()) {
   return `${time}${random}`;
 }
 
-export function setupOperatorStatement(config, now = new Date().toISOString()) {
-  const id = createUlid();
-  const displayName = "Setup operator";
-  return `INSERT INTO operators (id, email, display_name, is_setup_operator, created_at, updated_at) SELECT ${sqlLiteral(id)}, ${sqlLiteral(config.setupOperatorEmail)}, ${sqlLiteral(displayName)}, 1, ${sqlLiteral(now)}, ${sqlLiteral(now)} WHERE NOT EXISTS (SELECT 1 FROM operators WHERE is_setup_operator = 1);`;
-}
-
 function sqlLiteral(value) {
   return `'${value.replaceAll("'", "''")}'`;
 }
 
-export function setupPageSettingsStatement(config, now = new Date().toISOString()) {
-  return `INSERT INTO page_settings (id, page_name, tagline, accent_color, timezone, hostname, feed_id, footer_credit_enabled, widget_allowed_origins, mail_from_address, created_at, updated_at) SELECT 'default', ${sqlLiteral(config.pageName)}, ${sqlLiteral(config.pageTagline)}, ${sqlLiteral(config.pageAccentColor)}, ${sqlLiteral(config.pageTimezone)}, ${sqlLiteral(config.pageHost)}, lower(hex(randomblob(16))), 1, '[]', ${sqlLiteral(config.mailFromAddress)}, ${sqlLiteral(now)}, ${sqlLiteral(now)} WHERE NOT EXISTS (SELECT 1 FROM page_settings WHERE id = 'default');`;
+export function setupPageSettingsStatement(config, now = new Date().toISOString(), ownerJustCreated = false) {
+  const condition = ownerJustCreated ? "changes() = 1" : "NOT EXISTS (SELECT 1 FROM page_settings WHERE id = 'default')";
+  const conflict = ownerJustCreated ? " ON CONFLICT(id) DO UPDATE SET page_name=excluded.page_name,tagline=excluded.tagline,accent_color=excluded.accent_color,timezone=excluded.timezone,hostname=excluded.hostname,mail_from_address=excluded.mail_from_address,feed_id=CASE WHEN page_settings.feed_id = 'pending-feed-identity' OR page_settings.feed_id = '' THEN excluded.feed_id ELSE page_settings.feed_id END,updated_at=excluded.updated_at" : "";
+  return `INSERT INTO page_settings (id, page_name, tagline, accent_color, timezone, hostname, feed_id, footer_credit_enabled, widget_allowed_origins, mail_from_address, created_at, updated_at) SELECT 'default', ${sqlLiteral(config.pageName)}, ${sqlLiteral(config.pageTagline)}, ${sqlLiteral(config.pageAccentColor)}, ${sqlLiteral(config.pageTimezone)}, ${sqlLiteral(config.pageHost)}, lower(hex(randomblob(16))), 1, '[]', ${sqlLiteral(config.mailFromAddress)}, ${sqlLiteral(now)}, ${sqlLiteral(now)} WHERE ${condition}${conflict};`;
 }

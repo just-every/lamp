@@ -1,2 +1,3 @@
 export { createOpenAiCompatibleProvider } from "./openai-compatible";
-export type { AiProvider, AiSuggestion, AiSuggestionContext } from "./provider";
+export { SUGGESTED_FIELDS } from "./provider";
+export type { AiProvider, AiSuggestion, AiSuggestionContext, SuggestedField } from "./provider";

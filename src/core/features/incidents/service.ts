@@ -1,18 +1,26 @@
+import type { UpdateChannel } from "../../shared/domain";
 import { mostSevereState, type ComponentState, type IncidentLifecycle } from "../../shared/domain";
 import { createUlid, nowIso } from "../../shared/ids";
 import type { IncidentDraftInput } from "../../shared/schemas";
 import type { LampEventDispatcher } from "../../api/extensions";
 import type { ComponentClaimEventInput, ComponentsService, ComponentStateHistoryInput } from "../components";
 import { renderIncidentUpdate, type RenderedIncidentUpdate } from "./renderer";
-import { defaultUpdateReviewPolicy, type UpdateReviewPolicy } from "./policies";
+import { defaultUpdateDuePolicy, defaultUpdateReviewPolicy, type UpdateDuePolicy, type UpdateReviewPolicy } from "./policies";
+import { updateDueState } from "./reminders";
+import { DraftConflictError } from "./repository";
 import type { IncidentPublishRecord, IncidentRepository, IncidentTemplateComponentRecord, IncidentTemplateRecord, PublishingDraft, StoredIncident, StoredIncidentComponent, StoredIncidentDraft, StoredIncidentUpdate } from "./repository";
 
 export interface IncidentView extends StoredIncident {
   impact: ComponentState | null;
   components: StoredIncidentComponent[];
   updates: StoredIncidentUpdate[];
-  draft: StoredIncidentDraft | null;
+  draft: PublishingDraft | null;
   internalNotes: Array<{ id: string; body: string; createdAt: string; updatedAt: string; authorOperatorId: string }>;
+  /** The committed next-update time once it is within the update-due lead or has passed. */
+  updateDueAt: string | null;
+  /** Within the lead before the committed time (INCIDENT-010). */
+  updateDue: boolean;
+  /** The committed time has passed with no newer update (INCIDENT-006). */
   overdue: boolean;
 }
 
@@ -21,19 +29,19 @@ export class InvalidIncidentUpdateError extends Error {}
 export interface IncidentsService {
   list(): Promise<IncidentView[]>;
   get(incidentId: string): Promise<IncidentView | null>;
-  saveDraft(incidentId: string, input: IncidentDraftInput, operatorId: string): Promise<StoredIncidentDraft | null>;
+  saveDraft(incidentId: string, input: IncidentDraftInput, operatorId: string, expectedVersion: string, requestedId?: string): Promise<StoredIncidentDraft | null>;
   preview(incidentId: string, input: IncidentDraftInput): Promise<RenderedIncidentUpdate | null>;
   create(input: { title: string; openedAt?: string; components: Array<{ componentId: string; state: ComponentState; relationship: "Primary" | "Dependent" }> }, operatorId: string): Promise<IncidentView>;
-  publish(incidentId: string, operatorId: string, input: { channels: Array<"email" | "webhook">; publishedAt?: string }): Promise<StoredIncidentUpdate | null>;
-  schedule(incidentId: string, operatorId: string, publishAt: string, channels: Array<"email" | "webhook">): Promise<PublishingDraft | null>;
-  review(incidentId: string, operatorId: string): Promise<boolean>;
-  markCorrection(incidentId: string, updateId: string): Promise<boolean>;
+  publish(incidentId: string, operatorId: string, input: { channels: Array<UpdateChannel>; publishedAt?: string; expectedVersion: string }): Promise<StoredIncidentUpdate | null>;
+  schedule(incidentId: string, operatorId: string, publishAt: string, channels: Array<UpdateChannel>, expectedVersion: string): Promise<PublishingDraft | null>;
+  review(incidentId: string, operatorId: string, expectedVersion: string): Promise<boolean>;
+  markCorrection(incidentId: string, updateId: string, expectedVersion: string): Promise<boolean>;
   addInternalNote(incidentId: string, body: string, operatorId: string): Promise<boolean>;
   publishDue(now?: string): Promise<{ published: string[]; heldForReview: string[] }>;
   delete(incidentId: string, reason: string, operatorId: string): Promise<string | null>;
   listTemplates(): Promise<Array<IncidentTemplateRecord & { components: IncidentTemplateComponentRecord[] }>>;
   saveTemplate(input: IncidentTemplateInput, operatorId: string): Promise<IncidentTemplateRecord & { components: IncidentTemplateComponentRecord[] }>;
-  applyTemplate(incidentId: string, templateId: string, operatorId: string): Promise<StoredIncidentDraft | null>;
+  applyTemplate(incidentId: string, templateId: string, operatorId: string, expectedVersion: string): Promise<StoredIncidentDraft | null>;
   finishPublication(update: StoredIncidentUpdate): Promise<void>;
   finishDeletion(incidentId: string, operatorId: string, deletedAt: string): Promise<void>;
 }
@@ -50,11 +58,13 @@ export interface IncidentTemplateInput {
 }
 
 export interface IncidentPublicationStatements {
-  forIncidentUpdate(input: { updateId: string; incidentId: string; componentIds: string[]; channels: Array<"email" | "webhook">; queuedAt: string }): Promise<D1PreparedStatement[]>;
+  forIncidentUpdate(input: { updateId: string; incidentId: string; componentIds: string[]; channels: Array<UpdateChannel>; queuedAt: string }): Promise<D1PreparedStatement[]>;
 }
 
 export interface IncidentRuntimeHooks {
   events?: Pick<LampEventDispatcher, "incidentOpened" | "incidentUpdatePublished" | "incidentResolved">;
+  /** After a publication commits: send what it queued to Slack and Teams channels. */
+  afterPublished?: () => Promise<void>;
   formatPreviewTimestamp?: (timestamp: string) => Promise<string> | string;
 }
 
@@ -64,28 +74,16 @@ export interface ScheduledReviewAlertEvent {
   scheduledPublishAt: string;
 }
 
-export interface IncidentOverdueAlertEvent {
-  incidentId: string;
-  updateId: string;
-  nextUpdateAt: string;
-}
-
-function isOverdue(incident: StoredIncident, updates: StoredIncidentUpdate[]) {
-  if (incident.lifecycle === "Resolved") return false;
-  const latest = updates[0];
-  return Boolean(latest?.nextUpdateAt && new Date(latest.nextUpdateAt).getTime() < Date.now());
-}
-
-async function toIncidentView(repository: IncidentRepository, incident: StoredIncident): Promise<IncidentView> {
+async function toIncidentView(repository: IncidentRepository, incident: StoredIncident, leadMinutes: number): Promise<IncidentView> {
   const [components, updates, draft, internalNotes, peakImpact] = await Promise.all([
     repository.listComponents(incident.id),
     repository.listUpdates(incident.id),
-    repository.findLatestDraft(incident.id),
+    repository.findPublishingDraft(incident.id),
     repository.listInternalNotes(incident.id),
     repository.findPeakImpact(incident.id),
   ]);
   const impact = peakImpact ?? (components.length === 0 ? null : mostSevereState(components.map((component) => component.state)));
-  return { ...incident, impact, components, updates, draft, internalNotes, overdue: isOverdue(incident, updates) };
+  return { ...incident, impact, components, updates, draft, internalNotes, ...updateDueState({ lifecycle: incident.lifecycle, nextUpdateAt: updates[0]?.nextUpdateAt ?? null, leadMinutes, now: Date.now() }) };
 }
 
 function assertPublishableDraft(draft: PublishingDraft, components: StoredIncidentComponent[]) {
@@ -102,7 +100,7 @@ export function createIncidentsService(
   publicationStatements: IncidentPublicationStatements | null = null,
   reviewPolicy: UpdateReviewPolicy = defaultUpdateReviewPolicy,
   onScheduledReviewHeld: (event: ScheduledReviewAlertEvent) => Promise<void>,
-  onOverdue: (event: IncidentOverdueAlertEvent) => Promise<void>,
+  updateDuePolicy: UpdateDuePolicy = defaultUpdateDuePolicy,
   runtime: IncidentRuntimeHooks = {},
 ): IncidentsService {
   const finishPublication = async (update: StoredIncidentUpdate) => {
@@ -110,6 +108,7 @@ export function createIncidentsService(
     const cause = { type: "incident" as const, id: update.incidentId, operatorId: update.authorOperatorId };
     await Promise.all(components.flatMap((component) => component.componentId ? [componentsService.recomputePublicState(component.componentId, cause, update.isRetroactive ? undefined : update.publishedAt)] : []));
     await onPublicDataChanged();
+    await runtime.afterPublished?.();
   };
 
   const finishDeletion = async (incidentId: string, operatorId: string, deletedAt: string) => {
@@ -117,9 +116,10 @@ export function createIncidentsService(
     await Promise.all(components.flatMap((component) => component.componentId ? [componentsService.recomputePublicState(component.componentId, { type: "incident", id: incidentId, operatorId }, deletedAt)] : []));
     await onPublicDataChanged();
   };
-  const publish = async (incidentId: string, operatorId: string, input: { channels: Array<"email" | "webhook">; publishedAt?: string }, scheduled = false) => {
+  const publish = async (incidentId: string, operatorId: string, input: { channels: Array<UpdateChannel>; publishedAt?: string; expectedVersion: string }, scheduled = false) => {
     const [incident, draft, components] = await Promise.all([repository.findIncident(incidentId), repository.findPublishingDraft(incidentId), repository.listComponents(incidentId)]);
     if (!incident || !draft) return null;
+    if (input.expectedVersion.split(":")[0] !== draft.id) throw new DraftConflictError();
     assertPublishableDraft(draft, components);
     if (reviewPolicy.requiresReview({ authorOperatorId: draft.authorOperatorId, draft }) && !draft.reviewedAt) throw new Error("This update requires review by another operator.");
     if (!publicationStatements) throw new Error("Incident publication requires the notification transaction wiring.");
@@ -160,31 +160,28 @@ export function createIncidentsService(
   };
 
   return {
+    // Reading incidents never sends mail: reminders come from the scheduled trigger.
     async list() {
-      const result = await Promise.all((await repository.listIncidents()).map((incident) => toIncidentView(repository, incident)));
-      await Promise.all(result.flatMap((incident) => {
-        const latest = incident.updates[0];
-        return incident.overdue && latest?.nextUpdateAt ? [onOverdue({ incidentId: incident.id, updateId: latest.id, nextUpdateAt: latest.nextUpdateAt })] : [];
-      }));
-      return result;
+      return Promise.all((await repository.listIncidents()).map((incident) => toIncidentView(repository, incident, updateDuePolicy.leadMinutes())));
     },
     async get(incidentId) {
       const incident = await repository.findIncident(incidentId);
-      return incident ? toIncidentView(repository, incident) : null;
+      return incident ? toIncidentView(repository, incident, updateDuePolicy.leadMinutes()) : null;
     },
-    async saveDraft(incidentId, input, operatorId) {
+    async saveDraft(incidentId, input, operatorId, expectedVersion, requestedId) {
       const incident = await repository.findIncident(incidentId);
       if (!incident) return null;
       const timestamp = nowIso();
-      await repository.upsertDraft({
-        id: createUlid(),
+      const draft: StoredIncidentDraft = {
+        id: requestedId ?? createUlid(),
         incidentId,
         ...input,
         authorOperatorId: operatorId,
         createdAt: timestamp,
         updatedAt: timestamp,
-      });
-      return repository.findLatestDraft(incidentId);
+      };
+      await repository.upsertDraft(draft, expectedVersion);
+      return draft;
     },
     async preview(incidentId, input) {
       const incident = await repository.findIncident(incidentId);
@@ -204,17 +201,19 @@ export function createIncidentsService(
       return (await this.get(id))!;
     },
     publish,
-    async schedule(incidentId, operatorId, publishAt, channels) {
+    async schedule(incidentId, operatorId, publishAt, channels, expectedVersion) {
       const draft = await repository.findPublishingDraft(incidentId);
       if (!draft) return null;
+      if (expectedVersion.split(":")[0] !== draft.id) throw new DraftConflictError();
       if (draft.authorOperatorId !== operatorId) throw new Error("Only the draft author can schedule this update.");
       if (new Date(publishAt).getTime() <= Date.now()) throw new Error("Scheduled publish time must be in the future.");
       assertPublishableDraft(draft, await repository.listComponents(incidentId));
-      await repository.scheduleDraft(incidentId, publishAt, channels, nowIso());
-      return repository.findPublishingDraft(incidentId);
+      const replacementId = createUlid(); const updatedAt = nowIso();
+      if (!await repository.scheduleDraft(incidentId, publishAt, channels, updatedAt, draft.id, replacementId)) throw new DraftConflictError();
+      return { ...draft, id: replacementId, scheduledPublishAt: publishAt, scheduledChannels: channels, updatedAt };
     },
-    async review(incidentId, operatorId) { return repository.reviewDraft(incidentId, operatorId, nowIso()); },
-    async markCorrection(incidentId, updateId) { return repository.setDraftCorrection(incidentId, updateId, nowIso()); },
+    async review(incidentId, operatorId, expectedVersion) { return repository.reviewDraft(incidentId, operatorId, nowIso(), expectedVersion); },
+    async markCorrection(incidentId, updateId, expectedVersion) { return repository.setDraftCorrection(incidentId, updateId, nowIso(), expectedVersion); },
     async addInternalNote(incidentId, body, operatorId) {
       if (!(await repository.findIncident(incidentId))) return false;
       if (!body.trim() || body.length > 5_000) throw new Error("Internal note must contain at most 5,000 characters.");
@@ -232,13 +231,13 @@ export function createIncidentsService(
           continue;
         }
         try {
-          const update = await publish(draft.incidentId, draft.authorOperatorId, { channels: draft.scheduledChannels, publishedAt: draft.scheduledPublishAt ?? now }, true);
+          const update = await publish(draft.incidentId, draft.authorOperatorId, { channels: draft.scheduledChannels, publishedAt: draft.scheduledPublishAt ?? now, expectedVersion: `${draft.id}:scheduled` }, true);
           if (update) {
             await finishPublication(update);
             published.push(draft.incidentId);
           }
         }
-        catch { throw new Error(`Scheduled update for ${draft.incidentId} could not be published.`); }
+        catch (cause) { if (cause instanceof DraftConflictError) continue; throw new Error(`Scheduled update for ${draft.incidentId} could not be published.`); }
       }
       return { published, heldForReview };
     },
@@ -272,7 +271,7 @@ export function createIncidentsService(
       await repository.saveTemplate({ id, name: input.name.trim(), lifecycle: input.lifecycle, affectedAudience: input.affectedAudience.trim(), customerImpact: input.customerImpact.trim(), whatStillWorks: input.whatStillWorks.trim(), details: input.details.trim(), nextUpdateOffsetMinutes: input.nextUpdateOffsetMinutes, createdByOperatorId: operatorId, createdAt: timestamp, updatedAt: timestamp }, records.map(({ claim, component }) => ({ id: createUlid(), templateId: id, componentId: claim.componentId, componentName: component!.name, state: claim.state, relationship: claim.relationship, createdAt: timestamp, updatedAt: timestamp })));
       return (await repository.listTemplates()).find((template) => template.name === input.name.trim())!;
     },
-    async applyTemplate(incidentId, templateId, operatorId) {
+    async applyTemplate(incidentId, templateId, operatorId, expectedVersion) {
       const [incident, template] = await Promise.all([repository.findIncident(incidentId), repository.findTemplate(templateId)]);
       if (!incident || !template) return null;
       if (template.nextUpdateOffsetMinutes === null) throw new Error("Template has no next-update offset.");
@@ -281,8 +280,8 @@ export function createIncidentsService(
       const timestamp = nowIso(); const current = await repository.listComponents(incidentId);
       const newComponents = templateComponents.filter(({ claim }) => !current.some((attached) => attached.componentId === claim.componentId)).map(({ claim, component }) => ({ id: createUlid(), incidentId, componentId: claim.componentId!, componentName: component!.name, state: claim.state, relationship: claim.relationship, createdAt: timestamp, updatedAt: timestamp }));
       const draft: StoredIncidentDraft = { id: createUlid(), incidentId, lifecycle: template.lifecycle, affectedAudience: template.affectedAudience, customerImpact: template.customerImpact, whatStillWorks: template.whatStillWorks, details: template.details, nextUpdateAt: new Date(Date.now() + template.nextUpdateOffsetMinutes * 60_000).toISOString(), authorOperatorId: operatorId, createdAt: timestamp, updatedAt: timestamp };
-      await repository.applyTemplate(incidentId, draft, newComponents);
-      return repository.findLatestDraft(incidentId);
+      await repository.applyTemplate(incidentId, draft, newComponents, expectedVersion);
+      return draft;
     },
     finishPublication,
     finishDeletion,

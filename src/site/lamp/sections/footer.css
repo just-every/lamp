@@ -1,0 +1,23 @@
+/* The footer, a sign-off with a map, on one hairline at the page's gutter: the lockup of mark 18 and the name with the
+   page's one line under it; then the index of the page's sections, and Docs, GitHub and the licence as an outline
+   pill. Stacked under 1024px; from 1024px the sign-off on the left and the links on the right, in two rows. */
+.lamp-home .lamp-footer { max-width: 1536px; margin: 0 auto; padding: 0 var(--lamp-gutter); }
+.lamp-home .lamp-footer__bar { display: flex; flex-direction: column; gap: 28px; padding: 36px 0 44px; border-top: 1px solid var(--lamp-line); }
+/* The lockup in the logo sheet's proportions (mark.css): a 24px mark, the gap 9/40 of it, the name 38/40 of it. */
+.lamp-home .lamp-footer__brand { --lamp-mark-w: 24px; display: inline-flex; align-items: center; gap: calc(var(--lamp-mark-w) * 9 / 40);
+  font-size: calc(var(--lamp-mark-w) * 38 / 40); font-weight: 600; line-height: 1; letter-spacing: -.035em; }
+.lamp-home .lamp-footer__mark { display: block; flex: none; width: var(--lamp-mark-w); height: var(--lamp-mark-w); }
+.lamp-home .lamp-footer__tagline { max-width: 34ch; margin: 12px 0 0; color: var(--lamp-ink-3); font-size: 15px; line-height: 1.45; text-wrap: pretty; }
+.lamp-home .lamp-footer__links { display: flex; flex-direction: column; gap: 16px; }
+.lamp-home :is(.lamp-footer__index, .lamp-footer__nav) { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 24px; font-size: 15px; line-height: 1.4; }
+.lamp-home .lamp-footer__index { color: var(--lamp-ink-2); }
+.lamp-home .lamp-footer__nav { font-weight: 500; }
+.lamp-home :is(.lamp-footer__index, .lamp-footer__nav) a { padding-block: 4px; }
+.lamp-home .lamp-footer__nav .lamp-footer__licence { padding: 5px 12px; border: 1px solid var(--lamp-line-strong); border-radius: 999px; font-size: 13px; font-weight: 500; }
+.lamp-home .lamp-footer__nav .lamp-footer__licence:hover { border-color: var(--lamp-ink); color: var(--lamp-on-ink); background: var(--lamp-ink); }
+.lamp-home .lamp-footer__nav .lamp-footer__licence:focus-visible { border-radius: 999px; }
+@container lamp-page (min-width: 1024px) {
+  .lamp-home .lamp-footer__bar { flex-direction: row; justify-content: space-between; align-items: flex-start; gap: 48px; padding: 48px 0 56px; }
+  .lamp-home .lamp-footer__links { align-items: flex-end; }
+  .lamp-home :is(.lamp-footer__index, .lamp-footer__nav) { justify-content: flex-end; }
+}

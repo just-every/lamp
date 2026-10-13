@@ -1,0 +1,5 @@
+/* The lamp's two drawings in one box. The unlit one is dimmed to sit in the dusk; the lit one covers it exactly. Above the
+   cord grip (213/1560) they are masked out: the CSS cord (cord.css) is the only cord drawn there. */
+.lamp-home .lamp-sprite, .lamp-home .lamp-glow { position: absolute; inset: 0; mask-image: linear-gradient(transparent calc(213 / 1560 * 100%), #000 0); }
+.lamp-home .lamp-sprite img, .lamp-home .lamp-glow img { display: block; width: 100%; height: 100%; }
+.lamp-home .lamp-sprite--off img { filter: brightness(.58) saturate(.85); }

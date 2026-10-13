@@ -1,31 +1,64 @@
+/* The operator app is the room under the landing's lamp: the landing's paper, green-black ink, Inter, white plates
+   and ink pills (values from src/site/lamp/page.css). Amber is the lamp's light and falls only on what is live and
+   needs the operator now. Every operator stylesheet names these tokens; none carries a colour of its own. */
 :root {
-  color: #092b4b;
-  background: #f5f7f7;
-  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --paper: #f8f6f0;
+  --ink: #182d24;
+  --ink-2: #44544c;
+  --ink-3: #5f6d66;
+  --on-ink: #fbfaf5;
+  --pill: #182d24;
+  --pill-hover: #22392e;
+  --card: #ffffff;
+  --card-tint: #fbfaf7;
+  --stage: #eef0ea;
+  --chip: #f5f4ef;
+  --line: rgb(24 45 36 / .10);
+  --line-strong: rgb(24 45 36 / .16);
+  --amber: #eab54e;
+  --amber-wash: #fff7e2;
+  --amber-mark: #fde9ad;
+  --amber-ink: #8a5a06;
+  --band: #12201a;
+  --band-ink: #f6f4ee;
+  --band-ink-2: #b9c5bd;
+  --ok: #19865a;
+  --down: #b44432;
+  --degraded: #c98a12;
+  --maint: #4f6fa8;
+  --quiet: #8a958f;
+  /* The select chevron: a 1.5px line in ink-3 (a data URI cannot read a custom property). */
+  --select-chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%235f6d66' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  --lamp-light: 255 188 100;   /* the bulb's light on the dark band (landing resilience.css) */
+  --link-line: rgb(24 45 36 / .4);
+  --focus-ring: 0 0 0 3px rgb(24 45 36 / .12);
+  --pill-shadow: 0 6px 16px -6px rgb(24 45 36 / .35);
+  --backdrop: rgb(10 18 14 / .32);
+  --header-glass: rgb(248 246 240 / .84);
+  --shadow-card: 0 1px 2px rgb(24 45 36 / .05), 0 4px 12px -4px rgb(24 45 36 / .08), 0 20px 40px -20px rgb(24 45 36 / .18);
+  --shadow-raised: 0 1px 2px rgb(24 45 36 / .06), 0 12px 24px -8px rgb(24 45 36 / .14), 0 32px 64px -24px rgb(24 45 36 / .24);
+  --shadow-night: 0 30px 70px -24px rgb(0 0 0 / .6);
+  --sans: 'Lamp Inter', 'Lamp Inter Fallback', Arial, system-ui;
+  --mono: ui-monospace, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace;
+  color: var(--ink);
+  background: var(--paper);
+  font-family: var(--sans);
   font-synthesis: none;
   text-rendering: optimizeLegibility;
-  --navy: #092b4b;
-  --ink: #182d46;
-  --muted: #506580;
-  --line: #dfe7ed;
-  --paper: #ffffff;
-  --wash: #f5f7f7;
-  --accent: #087a46;
-  --accent-deep: #0d6539;
-  --accent-wash: #ecf8f1;
-  --warning: #a4460c;
-  --warning-wash: #fff4eb;
 }
 
 * { box-sizing: border-box; }
-body { min-width: 320px; min-height: 100vh; margin: 0; background: var(--wash); color: var(--ink); font-size: 15px; line-height: 1.5; }
+body { min-width: 320px; min-height: 100vh; margin: 0; background: var(--paper); color: var(--ink); font: 400 15px/1.5 var(--sans); -webkit-font-smoothing: antialiased; font-synthesis: none; }
 button, input, select, textarea { color: inherit; font: inherit; }
 button, select, input[type="checkbox"] { cursor: pointer; }
 a { color: inherit; text-decoration: none; }
-a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible, [tabindex]:focus-visible, summary:focus-visible { outline: 3px solid var(--accent-deep); outline-offset: 2px; }
+a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible, [tabindex]:focus-visible, summary:focus-visible { outline: 3px solid var(--ink); outline-offset: 2px; }
 h1, h2, h3, p { margin-top: 0; }
-h1, h2, h3 { color: var(--navy); letter-spacing: -.025em; }
-h1 { margin-bottom: 6px; font-size: 34px; line-height: 1.12; }
-h2 { margin-bottom: 7px; font-size: 21px; line-height: 1.2; }
-h3 { margin-bottom: 5px; font-size: 15px; }
-.eyebrow, .card-kicker, .preview-type { margin: 0 0 5px; color: #506580; font-size: 12px; font-weight: 750; letter-spacing: .075em; text-transform: uppercase; }
+h1, h2, h3 { color: var(--ink); font-weight: 600; }
+h1 { margin-bottom: 8px; font-size: 40px; line-height: 1.08; letter-spacing: -.022em; }
+h2 { margin-bottom: 8px; font-size: 20px; line-height: 1.25; letter-spacing: -.012em; }
+h3 { margin-bottom: 6px; font-size: 15px; line-height: 1.35; }
+/* Element rules the landing (.lamp-home, which shares this document stylesheet) must not inherit carry :where(…:not(.lamp-home *)). */
+:where(strong:not(.lamp-home *), b:not(.lamp-home *)) { font-weight: 600; }
+.eyebrow, .card-kicker, .preview-type { margin: 0 0 8px; color: var(--ink-3); font-size: 12px; font-weight: 600; line-height: 1.3; letter-spacing: .14em; text-transform: uppercase; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; }

@@ -1,0 +1,14 @@
+/* The lamp's pool: warm light falling on what lies under it, feathered to nothing (the falloff eases out over its
+   outer 30%) and dithered by the grain tile, as the hero's light is (light.css). The grain is a layer of its own, three
+   tiles deep in the faint outer ring, at full strength while the light is at least a level or two of an 8-bit screen
+   and gone where it is under half a level, so the ring shows no steps and the paper beyond takes no grain. Place
+   it with inset and size; it lies behind its section's content. Unscoped, with its own light and grain, so the
+   operator app's lamps cast the same pool. */
+.lamp-pool { --lamp-pool-warm: 255 241 214; --lamp-pool-grain: url('../art/grain.svg?no-inline');
+  position: absolute; z-index: -1; pointer-events: none;
+  background: radial-gradient(closest-side, rgb(var(--lamp-pool-warm) / .9), rgb(var(--lamp-pool-warm) / .45) 45%, rgb(var(--lamp-pool-warm) / .245) 70%,
+    rgb(var(--lamp-pool-warm) / .138) 77.5%, rgb(var(--lamp-pool-warm) / .061) 85%, rgb(var(--lamp-pool-warm) / .015) 92.5%, rgb(var(--lamp-pool-warm) / 0)); }
+.lamp-pool::before, .lamp-pool::after { content: ''; position: absolute; inset: 0; background: var(--lamp-pool-grain); }
+.lamp-pool::after { mask-image: radial-gradient(closest-side, #000 80%, transparent 92%); }
+.lamp-pool::before { background: var(--lamp-pool-grain), var(--lamp-pool-grain); background-position: 83px 47px, 29px 113px;
+  mask-image: radial-gradient(closest-side, transparent 40%, #000 62%, #000 80%, transparent 92%); }

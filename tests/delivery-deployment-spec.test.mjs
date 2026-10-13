@@ -4,7 +4,7 @@ import {mkdtemp,mkdir,writeFile,rm} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {createHash} from 'node:crypto';
-import {deploymentSpec} from '../scripts/delivery/deployment-spec.mjs';
+import {deploymentSpec} from '../scripts/delivery/base/spec.mjs';
 test('candidate SQL and source-added topology survive declaration with exact hashes',async()=>{
  const root=await mkdtemp(join(tmpdir(),'candidate-spec-'));
  try{
@@ -22,7 +22,7 @@ test('candidate SQL and source-added topology survive declaration with exact has
   assert.deepEqual(spec.schedules,['*/5 * * * *']);
   assert.ok(!JSON.stringify(spec).includes('ignored-owner-name'));
   await assert.rejects(deploymentSpec(root,{recovery:'Backup first'}),/Undeclared public/);
-  await writeFile(join(root,'dist/server/wrangler.json'),JSON.stringify({kv_namespaces:[{binding:'NEW_KV',id:'owner-id'}]}));
-  await assert.rejects(deploymentSpec(root,{recovery:'Backup first'}),/Unsupported deployment binding/);
+  await writeFile(join(root,'dist/server/wrangler.json'),JSON.stringify({compatibility_date:'2026-09-08',services:[{binding:'EXTERNAL',service:'undeclared-owner-service'}]}));
+  await assert.rejects(deploymentSpec(root,{recovery:'Backup first'}),/Unsupported/);
  }finally{await rm(root,{recursive:true,force:true})}
 });

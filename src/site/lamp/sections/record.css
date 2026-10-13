@@ -1,0 +1,21 @@
+/* Section 5, two halves: the text over the availability plate, and the incident record. Under 1024px they stack.
+   From 1024px the left half spans columns 1–6 and the incident record 7–12, both from the eyebrow's top. */
+.lamp-home .lamp-record-section { --lamp-top-space: max(64px, calc(120 * var(--u))); }
+.lamp-home .lamp-record-section__incident { margin-top: 24px; }
+@container lamp-page (min-width: 1024px) {
+  .lamp-home .lamp-record-section__half { grid-column: 1 / 7; }
+  .lamp-home .lamp-record-section__uptime { margin-top: calc(48 * var(--u)); }
+  .lamp-home .lamp-record-section__incident { grid-column: 7 / 13; margin-top: 0; }
+}
+/* The moment: E1's day marks fill left to right, then its figure shows; E2's updates appear oldest first, from the
+   bottom up, 80ms apart: updates stack, and are never rewritten. */
+.lamp-home .lamp-record-section__incident > .lamp-plate { --n: 1; }
+@media screen and (prefers-reduced-motion: no-preference) {
+  .lamp-home .lamp-record-section[data-reveal="wait"] .lamp-strip { clip-path: inset(0 100% 0 0); }
+  .lamp-home .lamp-record-section[data-reveal="wait"] :is(.lamp-uptime__figure, .lamp-update) { opacity: 0; }
+  .lamp-home .lamp-record-section[data-reveal="play"] .lamp-strip { animation: lamp-wipe .7s var(--lamp-ease) .4s backwards; }
+  .lamp-home .lamp-record-section[data-reveal="play"] .lamp-uptime__figure { animation: lamp-fade .3s var(--lamp-ease) .85s backwards; }
+  .lamp-home .lamp-record-section[data-reveal="play"] .lamp-update { --lamp-rise: 8px; animation: lamp-rise .4s var(--lamp-ease) .66s backwards; }
+  .lamp-home .lamp-record-section[data-reveal="play"] .lamp-update:nth-last-child(2) { animation-delay: .58s; }
+  .lamp-home .lamp-record-section[data-reveal="play"] .lamp-update:nth-last-child(1 of .lamp-update) { animation-delay: .5s; }
+}

@@ -1,0 +1,12 @@
+// Lamp serves two hostnames (the operator app and the public page), and on
+// workers.dev that is two Workers. Base deploy-kit deploys one Worker with one
+// origin, so `rer deploy` drives Lamp's own Cloudflare pipeline (DIVERGENCE.md).
+export function lampDeploy(lifecycle){
+ return async({root,options,store,signal,operationToken})=>{
+  const environment=options.environment??'production';
+  const args=['run','deploy:cloudflare','--','--environment',environment,...(options.dryRun?['--dry-run']:[])];
+  await store.run(options.dryRun?'Validating the Lamp deployment locally':'Deploying Lamp to Cloudflare','pnpm',args,{cwd:root,signal,env:{...process.env,RER_LOCAL_OPERATION:operationToken}});
+  if(options.dryRun){store.report('deploy: dry run complete; no deployment occurred and no provider request was made.');return {dryRun:true,deployed:false};}
+  return {deployed:true,environment};
+ };
+}

@@ -1,0 +1,6 @@
+/* Plate F1: a maintenance entry and its two notices; the newest is the amber "now" block. */
+.lamp-home .lamp-planned__notice { margin-top: 10px; padding: 10px 12px 12px; border-top: 1px solid var(--lamp-line); font-size: 13px; }
+.lamp-home .lamp-planned__notice.lamp-plate__current { border-top-color: transparent; }
+.lamp-home .lamp-planned__notice p { margin: 4px 0 0; }
+.lamp-home .lamp-planned__head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 2px 12px; }
+.lamp-home .lamp-planned__head .lamp-plate__eyebrow { color: var(--lamp-ink); }

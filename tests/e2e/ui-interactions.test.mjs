@@ -1,21 +1,24 @@
+import {appOrigin} from './helpers/hosts.mjs';
+import { assertVisibleTime } from "../helpers/public-meaning.mjs";
 import assert from "node:assert/strict";
 import { execFileSync, spawn } from "node:child_process";
-import { mkdtemp, rm } from "node:fs/promises";
+import { mkdir, mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { after, before, test } from "node:test";
 import { chromium } from "playwright";
 import { insertRealOperatorSession } from "./real-session-helper.mjs";
 import { reservePort, waitForWorker } from "./worker-startup.mjs";
+import { sessionCookieName } from "../helpers/session-cookie.mjs";
 
 let worker, browser, context, page, statePath, cachePath, origin;
 let output = "";
 before(async () => {
   const port = await reservePort({ label: "UI interaction Worker" });
-  origin = `http://127.0.0.1:${port}`;
+  origin = appOrigin(port);
   statePath = await mkdtemp(join(tmpdir(), "lamp-ui-interactions-d1-"));
   cachePath = await mkdtemp(join(tmpdir(), "lamp-ui-interactions-vite-"));
-  execFileSync("pnpm", ["exec", "wrangler", "d1", "migrations", "apply", "DB", "--local", "--config", "deploy/wrangler.template.toml", "--persist-to", statePath], { stdio: "pipe" });
+  execFileSync("pnpm", ["exec", "wrangler", "d1", "migrations", "apply", "DB", "--local", "--config", "wrangler.jsonc", "--persist-to", statePath], { stdio: "pipe" });
   const sessionId = await insertRealOperatorSession({ persistTo: statePath });
   worker = spawn("pnpm", ["exec", "vite", "--host", "127.0.0.1", "--port", String(port), "--strictPort"], {
     detached: true, stdio: "pipe", env: { ...process.env, LAMP_WORKERS_STATE_PATH: statePath, LAMP_VITE_CACHE_DIR: cachePath, LAMP_DISABLE_INSPECTOR: "true" },
@@ -24,8 +27,8 @@ before(async () => {
   worker.stderr.on("data", chunk => { output += chunk; });
   await waitForWorker({ origin, child: worker, output: () => output, label: "UI interaction Worker" });
   browser = await chromium.launch();
-  context = await browser.newContext({ viewport: { width: 390, height: 844 } });
-  await context.addCookies([{ name: "lamp_session", value: sessionId, url: origin }]);
+  context = await browser.newContext({ timezoneId: "Australia/Brisbane", viewport: { width: 390, height: 844 } });
+  await context.addCookies([{ name: sessionCookieName(origin), value: sessionId, url: origin }]);
   page = await context.newPage();
 });
 after(async () => {
@@ -70,3 +73,253 @@ for (const [route, label] of [["subscribers", "Subscriber records"], ["deliverie
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
   });
 }
+
+async function operatorApi(path, method = "GET", body) {
+  const response = await context.request.fetch(`${origin}${path}`, { method, headers:{Origin:origin}, ...(body ? { data: body } : {}) });
+  assert.ok(response.ok(), `${method} ${path}: ${response.status()}`);
+  return response.json();
+}
+
+const audienceField = target => target.locator("label", { hasText: "Who is affected" }).locator("textarea");
+const impactField = target => target.locator("label", { hasText: "What is the impact" }).locator("textarea");
+
+test("each publication opens a fresh unsaved draft, and stale tabs cannot replace its next update", async () => {
+  const { component } = await operatorApi("/api/app/components", "POST", { groupId: null, name: "Operator journey API", description: "", internal: false, displayOrder: 5, note: "" });
+  const { incident } = await operatorApi("/api/app/incidents", "POST", { title: "Operator journey", components: [{ componentId: component.id, state: "Major outage", relationship: "Primary" }] });
+  await page.goto(`${origin}/app/incidents/${incident.id}`);
+  await audienceField(page).fill("API customers"); await impactField(page).fill("Requests are failing");
+  await page.getByLabel("Next update date and time").fill("2027-10-10T15:00");
+  await page.locator(".autosave-status.is-saved").waitFor();
+  assert.equal((await operatorApi(`/api/app/incidents/${incident.id}`)).incident.draft.nextUpdateAt, "2027-10-10T22:00:00.000Z", "composer uses the page Los Angeles zone despite a Brisbane browser");
+  await page.locator(".time-warning[role=status]").waitFor();
+  const previewTime = page.locator(".preview-card").first().locator("dt", { hasText: "Next update by" }).locator("xpath=following-sibling::dd[1]");
+  await previewTime.waitFor();
+  assertVisibleTime(await previewTime.textContent(), "2027-10-10T22:00:00.000Z", "America/Los_Angeles");
+  await page.getByText("Update templates", { exact: true }).first().click();
+  await page.getByLabel("Template name", { exact: true }).fill("Operator journey template");
+  const templateResponse = page.waitForResponse(response => response.url().endsWith("/api/app/incident-templates") && response.request().method() === "POST");
+  await page.getByRole("button", { name: "Save template", exact: true }).click();
+  assert.equal((await templateResponse).status(), 201);
+  const { templates } = await operatorApi("/api/app/incident-templates");
+  const template = templates.find(item => item.name === "Operator journey template");
+  assert.ok(template);
+  const beforeOldClient = (await operatorApi(`/api/app/incidents/${incident.id}`)).incident;
+  for (const [suffix, method, body] of [
+    ["draft", "PUT", { lifecycle: "Investigating", affectedAudience: "Old client", customerImpact: "Old impact", whatStillWorks: "", details: "", nextUpdateAt: "2027-10-10T22:00:00.000Z" }],
+    ["publish", "POST", { channels: [] }],
+    ["draft/schedule", "POST", { channels: [], publishAt: "2027-10-10T21:00:00.000Z" }],
+    [`templates/${template.id}/apply`, "POST", {}],
+  ]) {
+    const rejected = await context.request.fetch(`${origin}/api/app/incidents/${incident.id}/${suffix}`, { method, headers:{Origin:origin}, data: body });
+    assert.equal(rejected.status(), 428, "Old clients without a version cannot change a draft");
+  }
+  assert.deepEqual((await operatorApi(`/api/app/incidents/${incident.id}`)).incident, beforeOldClient);
+
+  await page.getByLabel("Next update date and time").fill("2026-11-01T01:30");
+  await page.locator(".composer-panel").getByRole("alert").waitFor();
+  await page.getByText("Schedule or backdate", { exact: true }).click();
+  await page.getByLabel("Scheduled publication date and time").fill("2027-10-10T14:00");
+  assert.equal(await page.getByRole("button", { name: "Publish update", exact: true }).isEnabled(), false, "editing a valid schedule cannot clear an invalid commitment");
+  await page.getByRole("button", { name: "Use current time", exact: true }).click();
+  assert.equal(await page.getByRole("button", { name: "Publish update", exact: true }).isEnabled(), false);
+  await page.getByLabel("Next update date and time").fill("2027-10-10T15:00");
+  await page.locator(".autosave-status.is-saved").waitFor();
+  const stale = await context.newPage();
+  try {
+    await stale.goto(page.url()); await stale.locator(".autosave-status.is-saved").waitFor();
+    for (const width of [1440, 390]) {
+      await page.setViewportSize({ width, height: 844 });
+      const preview = page.getByRole("button", { name: "Preview", exact: true });
+      const publish = page.getByRole("button", { name: "Publish update", exact: true });
+      assert.equal(await preview.evaluate(node => Boolean(node.compareDocumentPosition([...document.querySelectorAll("button")].find(item => item.textContent === "Publish update")) & Node.DOCUMENT_POSITION_FOLLOWING)), true);
+      const a = await preview.boundingBox(), b = await publish.boundingBox();
+      assert.ok(a.y < b.y || (a.y === b.y && a.x < b.x));
+      await preview.click(); await page.locator(".preview-panel").waitFor();
+      const email = page.locator(".email-preview"); if (!await email.evaluate(node => node.open)) await email.locator("summary").click();
+      for (const card of await page.locator(".preview-card").all()) {
+        assert.equal(await card.evaluate(node => node.scrollWidth <= node.clientWidth), true);
+        assert.equal(await card.evaluate(node => Boolean(node.compareDocumentPosition([...document.querySelectorAll("button")].find(item => item.textContent === "Publish update")) & Node.DOCUMENT_POSITION_FOLLOWING)), true, "Preview content precedes Publish in reading order");
+        if (width === 390) { const c = await card.boundingBox(), publishBox = await publish.boundingBox(); assert.ok(c.y + c.height <= publishBox.y, "The complete preview comes before Publish on mobile"); }
+      }
+      assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+      if (process.env.LAMP_OPERATOR_SCREENSHOTS) {
+        await mkdir(process.env.LAMP_OPERATOR_SCREENSHOTS, { recursive: true });
+        await page.screenshot({ path: join(process.env.LAMP_OPERATOR_SCREENSHOTS, `operator-composer-${width}.png`), fullPage: true });
+      }
+      assert.ok(await page.getByLabel("Next update date and time").evaluate(node => Boolean(node.compareDocumentPosition([...document.querySelectorAll("button")].find(item => item.textContent === "Delete incident")) & Node.DOCUMENT_POSITION_FOLLOWING)));
+    }
+    const initialPlaceholder = await audienceField(page).getAttribute("placeholder");
+    const publicationResponse = page.waitForResponse(response => response.url().endsWith(`/incidents/${incident.id}/publish`) && response.request().method() === "POST");
+    await page.getByRole("button", { name: "Publish update", exact: true }).click();
+    assert.equal((await publicationResponse).ok(), true);
+    await page.locator(".composer-heading .publication-message.is-published").waitFor();
+    assert.equal(await audienceField(page).inputValue(), ""); assert.equal(await impactField(page).inputValue(), "");
+    assert.equal(await page.getByLabel("Lifecycle").inputValue(), "Identified");
+    assert.notEqual(await audienceField(page).getAttribute("placeholder"), initialPlaceholder);
+    assert.match(await page.locator(".timeline").innerText(), /Requests are failing/);
+    assert.equal(await page.getByRole("button", { name: "Publish update", exact: true }).isEnabled(), false);
+    await page.locator(".autosave-status").waitFor();
+    assert.equal(await page.locator(".autosave-status.is-saved").count(), 0);
+    assert.equal((await operatorApi(`/api/app/incidents/${incident.id}`)).incident.draft, null);
+    await audienceField(page).fill("Next update audience");
+    await page.locator(".autosave-status.is-saved").waitFor();
+    assert.equal(await page.getByRole("button", { name: "Publish update", exact: true }).isEnabled(), false, "An acknowledged but incomplete draft stays private");
+    await page.reload(); await page.locator(".autosave-status.is-saved").waitFor();
+    assert.equal(await audienceField(page).inputValue(), "Next update audience");
+    await stale.getByText("Update templates", { exact: true }).first().click();
+    await stale.getByLabel("Saved update template").selectOption({ label: "Operator journey template" });
+    const staleTemplate = stale.waitForResponse(response => response.url().includes(`/incidents/${incident.id}/templates/`) && response.url().endsWith("/apply"));
+    await stale.getByRole("button", { name: "Apply template", exact: true }).click();
+    assert.equal((await staleTemplate).status(), 409);
+    assert.equal((await operatorApi(`/api/app/incidents/${incident.id}`)).incident.draft.affectedAudience, "Next update audience");
+    const stalePublish = stale.waitForResponse(response => response.url().endsWith(`/incidents/${incident.id}/publish`) && response.request().method() === "POST");
+    await stale.getByRole("button", { name: "Publish update", exact: true }).click();
+    assert.equal((await stalePublish).status(), 409);
+    await stale.getByText("Schedule or backdate", { exact: true }).click();
+    await stale.getByLabel("Scheduled publication date and time").fill("2027-10-10T14:00");
+    const staleSchedule = stale.waitForResponse(response => response.url().endsWith(`/incidents/${incident.id}/draft/schedule`));
+    await stale.getByRole("button", { name: "Schedule update", exact: true }).click();
+    assert.equal((await staleSchedule).status(), 409);
+    await audienceField(stale).fill("Stale published wording"); await stale.locator(".autosave-status.is-error").waitFor();
+    assert.equal((await operatorApi(`/api/app/incidents/${incident.id}`)).incident.draft.affectedAudience, "Next update audience");
+    assert.equal(await stale.getByRole("button", { name: "Publish update", exact: true }).isEnabled(), false);
+    await stale.reload(); await stale.locator(".autosave-status.is-saved").waitFor();
+    await audienceField(page).fill("Acknowledged newer bytes"); await page.locator(".autosave-status.is-saved").waitFor();
+    await audienceField(stale).fill("Stale next draft"); await stale.locator(".autosave-status.is-error").waitFor();
+    assert.equal((await operatorApi(`/api/app/incidents/${incident.id}`)).incident.draft.affectedAudience, "Acknowledged newer bytes");
+  } finally { await stale.close(); }
+});
+
+test("every operator section and sign out is reachable at narrow widths", async () => {
+  for (const width of [1440, 390, 320]) {
+    await page.setViewportSize({ width, height: 844 }); await page.goto(`${origin}/app`);
+    const nav = page.getByRole("navigation", { name: "Workspace sections" });
+    const paths = await nav.locator("a").evaluateAll(nodes => nodes.map(node => node.pathname));
+    for (const path of paths) {
+      await page.locator(`.operator-navigation a[href="${path}"]`).click();
+      await page.waitForURL(`${origin}${path}`); await page.waitForFunction(() => !document.querySelector('.operator-main .app-state[role="status"]'));
+      assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true, `${path} at ${width}`);
+    }
+    await page.goto(`${origin}/app/incidents`);
+    await page.getByRole("button", { name: "Create incident", exact: true }).click();
+    const signout = page.getByRole("button", { name: "Sign out", exact: true });
+    await signout.scrollIntoViewIfNeeded(); const box = await signout.boundingBox();
+    assert.ok(box && box.x >= 0 && box.x + box.width <= width);
+    if (width !== 1440) {
+      await signout.click(); await page.waitForURL(`${origin}/signin`);
+      const sessionId = await insertRealOperatorSession({ persistTo: statePath });
+      await context.addCookies([{ name: sessionCookieName(origin), value: sessionId, url: origin }]);
+    }
+    await page.goto(`${origin}/app/components`);
+    for (const name of ["Set status", "Status history", "Edit component", "Add component", "Add group"]) {
+      await page.getByRole("button", { name, exact: true }).first().click();
+      const dialog = page.getByRole("dialog"); await dialog.waitFor();
+      if (name === "Set status") {
+        const select = dialog.getByLabel("Service status");
+        const values = await select.locator("option").evaluateAll(options => options.map(option => option.value));
+        for (const value of ["", "Operational", "Degraded performance", "Partially unavailable", "Major outage", "Under maintenance"]) assert.ok(values.includes(value));
+        await select.selectOption("Degraded performance");
+        assert.equal(await select.inputValue(), "Degraded performance");
+      }
+      if (name === "Status history") await dialog.getByRole("heading", { name: "Correct a closed interval" }).waitFor();
+      assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+      await page.keyboard.press("Escape");
+    }
+  }
+});
+
+test("ordering from an older tab preserves component visibility and names edited in another tab", async () => {
+  const existing = await operatorApi("/api/app/components");
+  const order = Math.max(0, ...existing.groups.map(group => group.displayOrder + 1));
+  const { group } = await operatorApi("/api/app/component-groups", "POST", { name: "Move group", displayOrder: order });
+  await operatorApi("/api/app/component-groups", "POST", { name: "Adjacent group", displayOrder: order + 1 });
+  const { component: first } = await operatorApi("/api/app/components", "POST", { groupId: group.id, name: "Move first", description: "", internal: false, displayOrder: 0, note: "" });
+  const { component: second } = await operatorApi("/api/app/components", "POST", { groupId: group.id, name: "Move second", description: "", internal: false, displayOrder: 0, note: "" });
+  await page.goto(`${origin}/app/components`);
+  await page.getByRole("button", { name: "Move Move first down", exact: true }).waitFor();
+  const editor = await context.newPage();
+  try {
+    await editor.goto(page.url());
+    await editor.locator(".component-row").filter({ hasText: "Move second" }).getByRole("button", { name: "Edit component", exact: true }).click();
+    await editor.getByLabel("Component name", { exact: true }).fill("Renamed private service");
+    await editor.getByLabel("Internal only", { exact: false }).check();
+    await editor.getByRole("button", { name: "Save component", exact: true }).click();
+    await editor.getByRole("dialog").waitFor({ state: "detached" });
+    const writes = [];
+    const record = request => { if (request.method() !== "GET" && new URL(request.url()).pathname.startsWith("/api/app/component")) writes.push(request); };
+    page.on("request", record);
+    await page.getByRole("button", { name: "Move Move first down", exact: true }).click();
+    await page.getByText("Renamed private service", { exact: true }).waitFor();
+    page.off("request", record);
+    assert.equal(writes.length, 1, "The entire move is one ordering mutation");
+    assert.ok(writes[0].url().endsWith(`/components/${first.id}/move`));
+    assert.equal(writes[0].postDataJSON().internal, undefined);
+    const moved = (await operatorApi("/api/app/components")).components.filter(item => item.groupId === group.id);
+    assert.deepEqual(moved.map(item => item.id), [second.id, first.id]);
+    assert.equal(moved[0].internal, true); assert.equal(moved[0].name, "Renamed private service");
+    const stale = await context.request.post(`${origin}/api/app/components/${first.id}/move`, { headers:{Origin:origin}, data: { direction: "down", groupId: group.id, expectedIds: [first.id, second.id] } });
+    assert.equal(stale.status(), 409);
+    assert.deepEqual((await operatorApi("/api/app/components")).components.filter(item => item.groupId === group.id), moved, "Rejected stale moves have no partial effects");
+    await editor.locator(".component-group-card").filter({ has: editor.getByRole("heading", { name: "Move group", exact: true }) }).getByRole("button", { name: "Edit group", exact: true }).click();
+    await editor.getByLabel("Group name", { exact: true }).fill("Renamed group");
+    await editor.getByRole("button", { name: "Save group", exact: true }).click();
+    await editor.getByRole("dialog").waitFor({ state: "detached" });
+    await page.getByRole("button", { name: "Move Move group down", exact: true }).click();
+    await page.getByRole("heading", { name: "Renamed group", exact: true }).waitFor();
+    const groups = (await operatorApi("/api/app/components")).groups;
+    assert.equal(groups.at(-1).id, group.id); assert.equal(groups.at(-1).name, "Renamed group");
+  } finally { await editor.close(); }
+});
+
+test("older component and group name drawers preserve a newer explicit move after reload", async () => {
+  const existing = await operatorApi("/api/app/components");
+  const order = Math.max(0, ...existing.groups.map(group => group.displayOrder + 1));
+  const { group } = await operatorApi("/api/app/component-groups", "POST", { name: "Open drawer group", displayOrder: order });
+  const { group: adjacent } = await operatorApi("/api/app/component-groups", "POST", { name: "Open drawer adjacent", displayOrder: order + 1 });
+  const { component: first } = await operatorApi("/api/app/components", "POST", { groupId: group.id, name: "Open drawer service", description: "Keep this description", internal: true, displayOrder: 4, note: "Keep this note" });
+  const { component: second } = await operatorApi("/api/app/components", "POST", { groupId: group.id, name: "Open drawer sibling", description: "", internal: false, displayOrder: 9, note: "" });
+  assert.equal(first.displayOrder, 4); assert.equal(second.displayOrder, 9);
+  await operatorApi(`/api/app/components/${first.id}/standing-claim`, "PUT", { state: "Degraded performance" });
+  const history = await operatorApi(`/api/app/components/${first.id}/history`);
+  const editor = await context.newPage();
+  try {
+    for (const kind of ["components", "groups"]) {
+      await page.goto(`${origin}/app/components`);
+      await editor.goto(`${origin}/app/components`);
+      const isComponent = kind === "components";
+      const id = isComponent ? first.id : group.id;
+      const name = isComponent ? first.name : group.name;
+      const renamed = `${name} renamed`;
+      const path = `/api/app/${isComponent ? "components" : "component-groups"}/${id}`;
+      const card = isComponent
+        ? editor.locator(".component-row").filter({ hasText: name })
+        : editor.locator(".component-group-card").filter({ has: editor.getByRole("heading", { name, exact: true }) });
+      await card.getByRole("button", { name: isComponent ? "Edit component" : "Edit group", exact: true }).click();
+      await editor.getByRole("dialog").waitFor();
+      const movedResponse = page.waitForResponse(response => new URL(response.url()).pathname === `${path}/move` && response.request().method() === "POST");
+      await page.getByRole("button", { name: `Move ${name} down`, exact: true }).click();
+      assert.equal((await movedResponse).status(), 200);
+      const moved = await operatorApi("/api/app/components");
+      assert.deepEqual(isComponent ? moved.components.filter(item => item.groupId === group.id).map(item => item.id) : moved.groups.slice(-2).map(item => item.id), isComponent ? [second.id, first.id] : [adjacent.id, group.id]);
+      await editor.getByLabel(isComponent ? "Component name" : "Group name", { exact: true }).fill(renamed);
+      const savedResponse = editor.waitForResponse(response => new URL(response.url()).pathname === path && response.request().method() === "PUT");
+      await editor.getByRole("button", { name: isComponent ? "Save component" : "Save group", exact: true }).click();
+      const saved = await savedResponse;
+      assert.equal(saved.ok(), true);
+      assert.equal(Object.hasOwn(saved.request().postDataJSON(), "displayOrder"), false, "A visible name edit has no hidden ordering mutation");
+      await editor.getByRole("dialog").waitFor({ state: "detached" });
+      await editor.reload();
+      await editor.getByText(renamed, { exact: true }).waitFor();
+      const reloaded = await operatorApi("/api/app/components");
+      for (const collection of ["components", "groups"]) {
+        const withoutTimestamps = rows => rows.map(({ updatedAt, ...row }) => row);
+        assert.deepEqual(withoutTimestamps(reloaded[collection]), withoutTimestamps(moved[collection].map(item => {
+          if (collection === kind && item.id === id) return { ...item, name: renamed };
+          if (!isComponent && collection === "components" && item.groupId === id) return { ...item, groupName: renamed };
+          return item;
+        })), "Saving an old drawer preserves every moved position and all other data");
+      }
+      assert.deepEqual(await operatorApi(`/api/app/components/${first.id}/history`), history, "Editing and moving never rewrite append-only state history");
+    }
+  } finally { await editor.close(); }
+});

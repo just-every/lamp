@@ -1,0 +1,168 @@
+import { requestHeaders } from "../helpers/request-headers.mjs";
+import assert from "node:assert/strict";
+import { execFileSync } from "node:child_process";
+import { createServer } from "node:http";
+import { after, before } from "node:test";
+import { randomBytes } from "node:crypto";
+import { writeFile } from "node:fs/promises";
+import { join } from "node:path";
+
+import { contract } from "../contract.mjs";
+import { localWranglerConfig } from "../helpers/wrangler-config.mjs";
+
+// Wrangler CLI work between requests can outlast an idle keep-alive socket; every request opens its own connection.
+const nativeFetch = globalThis.fetch;
+globalThis.fetch = (input, init) => { const request = new Request(input, init); request.headers.set("connection", "close"); return nativeFetch(request, { referrer: request.referrer, referrerPolicy: request.referrerPolicy }); };
+import { withDraftVersion } from "./draft-version-helper.mjs";
+import { envelopes, nativeRequest, openNativeRuntime, publicOrigin, origin, operator } from "../dev-ingress/runtime.mjs";
+
+// Synthetic channel addresses; a local receiver stands in for Slack and Teams.
+const SLACK_A = "https://hooks.slack.com/services/T0LAMPTEST/B0SLACKA/slackAsecret01";
+const SLACK_B = "https://hooks.slack.com/services/T0LAMPTEST/B0SLACKB/slackBsecret02";
+const TEAMS = "https://prod-00.westus.logic.azure.com:443/workflows/0lamptest/triggers/manual/paths/invoke?api-version=2016-06-01&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=teamsSecretSignature0003";
+let cookie;
+let runtime;
+let receiver;
+const received = [];
+
+async function api(path, init = {}) {
+  init = await withDraftVersion(path, init, (readPath) => nativeRequest(readPath, { cookie }));
+  const response = await nativeRequest(path, { cookie, ...init, headers: requestHeaders(init.body ? { "Content-Type": "application/json" } : {}, init.headers) });
+  const text = await response.text();
+  return { status: response.status, body: text ? JSON.parse(text) : null, text };
+}
+const post = (path, json) => api(path, { method: "POST", body: JSON.stringify(json) });
+const sql = (command) => JSON.parse(execFileSync("pnpm", ["exec", "wrangler", "d1", "execute", "DB", "--local", "--persist-to", runtime.state, "--config", "wrangler.jsonc", "--json", "--command", command], { env: runtime.env, encoding: "utf8" }))[0].results;
+async function component(name) { return (await post("/api/app/components", { groupId: null, name, description: "", internal: false, displayOrder: 0, note: "" })).body.component; }
+async function settle() { for (let round = 0; round < 40; round += 1) { await new Promise((resolve) => setTimeout(resolve, 250)); if (sql("SELECT count(*) AS n FROM channel_posts p LEFT JOIN integration_deliveries x ON x.id = p.id WHERE x.state IS NULL OR x.state IN ('queued','sending')")[0].n === 0) return; } }
+
+before(async () => {
+  receiver = createServer((request, response) => {
+    let body = "";
+    request.on("data", (chunk) => { body += chunk; });
+    request.on("end", () => {
+      received.push({ path: request.url, body });
+      // Slack answers "ok"; a Teams Workflows webhook answers 202.
+      if (request.url.startsWith("/services/")) response.writeHead(200, { "Content-Type": "text/plain" }).end("ok");
+      else response.writeHead(202).end();
+    });
+  });
+  await new Promise((resolve) => receiver.listen(0, "127.0.0.1", resolve));
+  runtime = await openNativeRuntime();
+  runtime.env.LAMP_DEV_CHANNEL_RECEIVER = `http://127.0.0.1:${receiver.address().port}`;
+  const configPath = join(runtime.directory, "wrangler.json");
+  await writeFile(configPath, localWranglerConfig(config => ({
+    ...config, vars: { ...config.vars, WEBHOOK_SIGNING_SECRET: randomBytes(32).toString("hex") },
+  })), { mode: 0o600 });
+  runtime.env.LAMP_WRANGLER_CONFIG = configPath;
+  await runtime.start();
+  await runtime.seedOperator();
+  await nativeRequest('/auth/magic-link',{method:'POST',json:{email:operator}});
+  const link=(await envelopes()).find(row=>row.message.to===operator).message.text.match(/http:\/\/[^\s]+/)[0];
+  const signed=await nativeRequest('/auth/confirm',{method:'POST',json:{token:new URL(link).searchParams.get('token')}});
+  assert.equal(signed.status,303);cookie=signed.headers.get('set-cookie').split(';')[0];
+  await fetch(`${publicOrigin}/`);
+});
+
+after(async () => {
+  await runtime?.close();
+  await new Promise((resolve) => receiver?.close(resolve));
+});
+
+contract("NOTIFY-011", "a Slack or Teams webhook URL is stored encrypted and never shown again", async () => {
+  const api_ = await component("Payments API");
+  const created = await post("/api/app/channels", { kind: "slack", name: "#payments", url: SLACK_A, componentIds: [api_.id] });
+  assert.equal(created.status, 201, created.text);
+  assert.equal(created.body.channel.host, "hooks.slack.com");
+  assert.equal((await post("/api/app/channels", { kind: "teams", name: "Status team", url: TEAMS, componentIds: [] })).status, 201);
+  assert.equal((await post("/api/app/channels", { kind: "slack", name: "#other", url: SLACK_B, componentIds: [(await component("Search")).id] })).status, 201);
+  assert.equal((await post("/api/app/channels", { kind: "slack", name: "#bad", url: "https://example.com/services/a/b/c", componentIds: [] })).status, 400);
+  const listed = await api("/api/app/channels");
+  for (const secret of ["slackAsecret", "slackBsecret", "teamsSecretSignature", "/services/T0LAMPTEST"]) {
+    assert.doesNotMatch(listed.text, new RegExp(secret));
+    assert.doesNotMatch(JSON.stringify(sql("SELECT * FROM channel_destinations")), new RegExp(secret), "only ciphertext is stored");
+    assert.doesNotMatch(runtime.output, new RegExp(secret), "never logged");
+  }
+});
+
+contract("NOTIFY-012", "publishing an update posts once to each channel subscribed to an affected component", async () => {
+  const [payments] = (await api("/api/app/components")).body.components.filter((row) => row.name === "Payments API");
+  const incident = await post("/api/app/incidents", { title: "Card payments failing", components: [{ componentId: payments.id, state: "Partially unavailable", relationship: "Primary" }] });
+  assert.equal(incident.status, 201, incident.text);
+  const id = incident.body.incident.id;
+  const draft = { lifecycle: "Investigating", affectedAudience: "Customers paying by card.", customerImpact: "Card payments fail at checkout.", whatStillWorks: "Bank transfers work.", details: "", nextUpdateAt: new Date(Date.now() + 3_600_000).toISOString() };
+  assert.equal((await api(`/api/app/incidents/${id}/draft`, { method: "PUT", body: JSON.stringify(draft) })).status, 200);
+  const published = await post(`/api/app/incidents/${id}/publish`, { channels: ["chat"] });
+  assert.equal(published.status, 200, published.text);
+  await settle();
+  // A second scheduled pass finds nothing new to send.
+  await fetch(`${publicOrigin.replace("localhost", "127.0.0.1")}/cdn-cgi/handler/scheduled`);
+  await settle();
+  const slack = received.filter((entry) => entry.path === new URL(SLACK_A).pathname);
+  const teams = received.filter((entry) => entry.path.startsWith("/workflows/0lamptest/"));
+  assert.equal(slack.length, 1);
+  assert.equal(teams.length, 1);
+  assert.equal(received.filter((entry) => entry.path === new URL(SLACK_B).pathname).length, 0, "a channel for another component receives nothing");
+  assert.match(JSON.parse(slack[0].body).text, /INC-\d+ Investigating: Card payments failing/);
+  assert.equal(JSON.parse(teams[0].body).attachments[0].contentType, "application/vnd.microsoft.card.adaptive");
+  assert.match(teams[0].path, /sig=teamsSecretSignature0003/, "Teams keeps its signed query");
+  assert.deepEqual(sql("SELECT state FROM integration_deliveries ORDER BY state").map((row) => row.state), ["accepted", "accepted"]);
+});
+
+const payloads = {
+  datadog: { down: { alert_id: "1234", alert_cycle_key: "cycle-1", alert_transition: "Triggered", alert_title: "[Triggered] Checkout latency", event_title: "Checkout latency" }, up: { alert_id: "1234", alert_cycle_key: "cycle-1", alert_transition: "Recovered", alert_title: "[Recovered] Checkout latency" } },
+  uptimerobot: { down: { monitorID: "778", monitorURL: "https://shop.example.com", monitorFriendlyName: "Shop", alertType: "1", alertTypeFriendlyName: "Down", alertDetails: "Connection timeout", alertDateTime: "1791700000" }, up: { monitorID: "778", monitorFriendlyName: "Shop", alertType: "2", alertTypeFriendlyName: "Up", alertDuration: "120" } },
+  betterstack: { down: { data: { id: "25", type: "incident", attributes: { name: "shop homepage", url: "https://shop.example.com/", cause: "Status 503", started_at: "2026-10-11T05:00:00.000Z", resolved_at: null, status: "Started" }, relationships: { monitor: { data: { id: "2", type: "monitor" } } } } }, up: { data: { id: "25", type: "incident", attributes: { name: "shop homepage", cause: "Status 503", resolved_at: "2026-10-11T05:05:00.000Z", status: "Resolved" } } } },
+  pingdom: { down: { check_id: 12345, check_name: "Shop HTTP", check_type: "HTTP", previous_state: "UP", current_state: "DOWN", state_changed_timestamp: 1791700000, description: "Timeout" }, up: { check_id: 12345, check_name: "Shop HTTP", check_type: "HTTP", previous_state: "DOWN", current_state: "UP", description: "OK" } },
+};
+const sources = {};
+
+contract("INTAKE-006", "each monitor preset turns its tool's alert into a draft on its component, and refuses other payloads and bad credentials", async () => {
+  for (const preset of Object.keys(payloads)) {
+    const target = await component(`Shop (${preset})`);
+    const created = await post("/api/app/intake/sources", { name: `${preset} preset`, preset, componentId: target.id, credentialKind: "bearer-token" });
+    assert.equal(created.status, 201, created.text);
+    const { id, token, endpointUrl } = created.body.source;
+    assert.match(token, /.{20,}/);
+    sources[preset] = { id, token, endpointUrl, component: target };
+    const listed = await api("/api/app/intake/sources");
+    assert.doesNotMatch(listed.text, new RegExp(token), "the token is shown once");
+    const send = (body, init = {}) => fetch(init.path ?? endpointUrl, { method: "POST", headers: { "Content-Type": "application/json", ...init.headers }, body: JSON.stringify(body) });
+    assert.equal((await send(payloads[preset].down)).status, 401, `${preset}: no credential`);
+    assert.equal((await send(payloads[preset].down, { headers: { Authorization: "Bearer wrong-token-wrong-token" } })).status, 401, `${preset}: wrong credential`);
+    const other = Object.keys(payloads).find((candidate) => candidate !== preset);
+    assert.equal((await send(payloads[other].down, { headers: { Authorization: `Bearer ${token}` } })).status, 400, `${preset}: another tool's payload`);
+    // Header for tools that send one, path segment for those that cannot.
+    const accepted = await send(payloads[preset].down, preset === "datadog" || preset === "uptimerobot" ? { headers: { Authorization: `Bearer ${token}` } } : { path: `${endpointUrl}/${token}` });
+    assert.equal(accepted.status, 202, `${preset}: documented alert`);
+    const incident = (await api(`/api/app/incidents/${(await accepted.json()).incidentId}`)).body.incident;
+    assert.equal(incident.updates.length, 0, "never published");
+    assert.deepEqual(incident.components.map((row) => row.componentId), [target.id]);
+    assert.equal(incident.components[0].publishedAt ?? null, null);
+  }
+  const receipts = (await api("/api/app/intake/receipts")).body.receipts;
+  assert.equal(receipts.filter((receipt) => receipt.state === "invalid").length, 4, "refused payloads are recorded against their source");
+  const page = await (await fetch(`${publicOrigin}/api/public/status`)).text();
+  assert.doesNotMatch(page, /Checkout latency|Shop \(/, "no public surface changes");
+});
+
+contract("INTAKE-007", "a preset's recovery resolves its unpublished draft and leaves a published incident to its operators", async () => {
+  for (const preset of Object.keys(payloads)) {
+    const { token, endpointUrl } = sources[preset];
+    const recovered = await fetch(`${endpointUrl}/${token}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payloads[preset].up) });
+    assert.equal(recovered.status, 202, preset);
+    const incident = (await api(`/api/app/incidents/${(await recovered.json()).incidentId}`)).body.incident;
+    assert.equal(incident.lifecycle, "Resolved", `${preset}: draft resolved`);
+    assert.equal(incident.updates.length, 0, `${preset}: still nothing public`);
+  }
+  // A published preset incident keeps its lifecycle; only the recovery is recorded.
+  const { token, endpointUrl, component: shop } = sources.pingdom;
+  const fired = await (await fetch(`${endpointUrl}/${token}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...payloads.pingdom.down, state_changed_timestamp: 1791700500 }) })).json();
+  const draft = { lifecycle: "Investigating", affectedAudience: "Shoppers.", customerImpact: "The shop is down.", whatStillWorks: "", details: "", nextUpdateAt: new Date(Date.now() + 3_600_000).toISOString() };
+  assert.equal((await api(`/api/app/incidents/${fired.incidentId}/draft`, { method: "PUT", body: JSON.stringify(draft) })).status, 200);
+  assert.equal((await post(`/api/app/incidents/${fired.incidentId}/publish`, { channels: [] })).status, 200);
+  const recovered = await (await fetch(`${endpointUrl}/${token}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...payloads.pingdom.up, state_changed_timestamp: 1791700600 }) })).json();
+  assert.equal(recovered.incidentId, fired.incidentId);
+  assert.equal((await api(`/api/app/incidents/${fired.incidentId}`)).body.incident.lifecycle, "Investigating");
+  assert.ok(shop.id);
+});

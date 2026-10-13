@@ -153,8 +153,3 @@ sanitized derivative, never the original immutable Git snapshot. The archive's
 it is not claimed to exist in the public repository. Missing projections fail
 closed without a fetch. Their member digest and full archive hash remain bound
 in `sources.lock.json` like other retained comparisons.
-
-See `scripts/public-projections/README.md` for exact derivation, presentation-only
-omissions, original custody and the private two-input comparison proof. Public
-`pnpm verify` exercises actual extraction and component comparisons entirely from
-retained public archives. Original source bytes are never required to run it.

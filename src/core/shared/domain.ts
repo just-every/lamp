@@ -34,3 +34,6 @@ export type DeliveryChannel = (typeof DELIVERY_CHANNELS)[number];
 export function mostSevereState(states: readonly ComponentState[]): ComponentState {
   return COMPONENT_STATE_SEVERITY.find((state) => states.includes(state)) ?? "Operational";
 }
+
+/** What an incident update can be sent to: subscriber channels, plus the page's Slack and Teams channels ("chat"). */
+export type UpdateChannel = DeliveryChannel | "chat";

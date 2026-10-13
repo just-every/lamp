@@ -11,13 +11,13 @@ const temporary = await mkdtemp(join(tmpdir(), `${product}-owner-migrations-`));
 const state = join(temporary, 'state');
 const env = { ...process.env, CI: 'true', LILY_PERSIST_PATH: state, LAMP_WORKERS_STATE_PATH: state };
 function run(command, args) { return execFileSync(command, args, { cwd: temporary, env, encoding: 'utf8', maxBuffer: 16 * 1024 * 1024, stdio: ['ignore', 'pipe', 'pipe'] }); }
-const config = product === 'lily' ? 'deploy/wrangler.toml' : 'deploy/wrangler.template.toml';
+const config = product === 'lily' ? 'deploy/wrangler.toml' : 'wrangler.jsonc';
 function query(sql) {
   const output = run('pnpm', ['exec', 'wrangler', 'd1', 'execute', 'DB', '--local', '--persist-to', state, '--config', config, '--command', sql, '--json']);
   return JSON.parse(output)[0].results;
 }
 try {
-  for (const entry of ['scripts', 'deploy', 'migrations', 'src', 'seed.json', 'package.json']) await cp(join(root, entry), join(temporary, entry), { recursive: true });
+  for (const entry of ['scripts', 'wrangler.jsonc', 'migrations', 'src', 'seed.json', 'package.json']) await cp(join(root, entry), join(temporary, entry), { recursive: true });
   await symlink(join(root, 'node_modules'), join(temporary, 'node_modules'), 'dir');
   await mkdir(join(temporary, 'migrations/ext'), { recursive: true });
   // Create files in reverse order; the second depends on the first and core schema.
@@ -34,7 +34,7 @@ try {
   assert.throws(() => run('node', ['scripts/migrate-local.mjs']));
   assert.equal(query('SELECT * FROM owner_notes').length, 2);
   assert.deepEqual(query(`SELECT * FROM ${ledger} ORDER BY id`), originalLedger);
-  assert.equal((await readdir(join(temporary, 'deploy'))).some(name => name.startsWith('.owner-migrations-')), false);
+  assert.equal((await readdir(temporary)).some(name => name.startsWith('.lamp-owner-migrations-') || name.startsWith('.owner-migrations-')), false);
   // An unapplied failed migration can be corrected; applied files stay unchanged.
   await writeFile(join(temporary, 'migrations/ext/0003_owner.sql'), "INSERT INTO owner_notes VALUES (3, 'recovered');");
   run('node', ['scripts/migrate-local.mjs']);

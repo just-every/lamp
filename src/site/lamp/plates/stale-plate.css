@@ -1,0 +1,5 @@
+/* Plate D: the stale banner across the top, full width and square, the first thing the light falls on; the status
+   band; and the response it came with. */
+.lamp-home .lamp-stale__banner { margin: 0; padding: 10px 16px; border-radius: 0; font: 600 13px/1.45 var(--lamp-sans); }
+.lamp-home .lamp-stale__response { margin: 16px 0 0; padding-top: 12px; border-top: 1px solid var(--lamp-line); font-size: 12px; }
+.lamp-home .lamp-stale__time { white-space: nowrap; }

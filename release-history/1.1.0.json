@@ -1,0 +1,119 @@
+{
+  "version": "1.1.0",
+  "contractChanges": {
+    "UPDATE-001": {
+      "change": "changed",
+      "summary": "Resolved updates require no next-update time and display no next-update promise; active updates retain their publication requirements.",
+      "was": "Every published update required a next-update time, including Resolved updates.",
+      "now": "Resolved updates carry no next-update promise on any surface, including legacy resolved records with a stored time. All active-update requirements and all field, length, component, preview, review and atomicity guarantees remain.",
+      "migrationIds": [
+        "0012_resolved_update_time.sql"
+      ]
+    },
+    "INCIDENT-003": {
+      "change": "changed",
+      "summary": "New manual and alert-intake incidents share a durable increasing short-reference sequence while preserving every legacy reference and URL.",
+      "was": "Incident references were digits following INC- and could never be reused.",
+      "now": "Both creation paths reserve INC-n values from one durable sequence independent of legacy timestamp-sized values. Reservations remain unique across concurrency, restart, deletion and failed creation; failures may leave gaps. Existing references and URLs remain unchanged.",
+      "migrationIds": [
+        "0013_reference_allocations.sql"
+      ]
+    },
+    "MAINT-001": {
+      "change": "changed",
+      "summary": "New maintenance references use an independent durable increasing short-reference sequence without changing existing references.",
+      "was": "Maintenance had SCH- references followed by digits and retained its separate time-window and component semantics.",
+      "now": "The SCH-n allocation sequence is durable and independent of incidents and legacy timestamp-sized values. Deletion, restart and failed creation never permit reuse; failures may leave gaps. All original maintenance window, component and presentation guarantees remain.",
+      "migrationIds": [
+        "0013_reference_allocations.sql"
+      ]
+    }
+  },
+  "extensionPointChanges": [],
+  "migrations": [
+    {
+      "id": "0010_mail_send_ledger.sql",
+      "buyerSteps": "Apply before starting the updated Worker. This additive ledger preserves at-most-once SendGrid submission across retries and restarts; retain it with exports."
+    },
+    {
+      "id": "0011_mail_provider_receipt.sql",
+      "buyerSteps": "Apply after0010 before starting this source revision. Retain existing SendGrid claim identities and fingerprints; provider_receipt records an actual nullable acceptance header separately from the existing local correlation identity. Export and restore the complete updated ledger."
+    },
+    {
+      "id": "0012_resolved_update_time.sql",
+      "buyerSteps": "Apply transactionally before starting the updated Worker. The next_update_at column becomes nullable without dropping the parent table; retain every old published value, correction, attachment and delivery relationship. New resolved updates omit the promise; renderers suppress legacy resolved promises."
+    },
+    {
+      "id": "0013_reference_allocations.sql",
+      "buyerSteps": "Apply after0012 before starting sequential-reference writers. Retain and export both reference_counters and reference_allocations. Existing references remain unchanged; new INC and SCH sequences start independently of timestamp-sized legacy values, skip reserved references and never reuse reservations after deletion or a failed product creation."
+    },
+    {
+      "id": "0014_local_capture_receipts.sql",
+      "buyerSteps": "Apply after0013. Existing delivery attempts retain their provider IDs, errors and outcomes; the new nullable local_capture_id records development capture only. Captured attempts are excluded from retry and provider reconciliation and must never be reported as provider acceptance or delivery."
+    }
+  ],
+  "breaking": false,
+  "agentUpdateInstructions": "The canonical source repository and edition identity are just-every/lamp. This 1.1.0 source candidate does not assert tag publication. Preserve comparison-parent and shared-component provenance at their recorded immutable revisions. Preserve the accepted public page, shared incident renderer, owner intent and customisations. Back up data and owner source; apply all listed core migrations in order and unchanged owner migrations before starting the updated Worker. Resolved updates carry no next-update promise; active updates retain every original publication requirement. Preserve existing references and URLs and retain the durable INC/SCH reservation ledger, including unused reservations. Local capture receipts are not provider acceptance or delivery; raw development envelopes and local token configuration are excluded from production builds and portable product archives. Resend remains the default; SendGrid requires explicit MAIL_PROVIDER=sendgrid and native signed-event verification or the optional authenticated relay. Preserve global_fetch_strictly_public for public Worker-hosted webhook destinations. HTTP202 remains accepted when a remote receipt is absent; this does not establish delivery. HTTP408, redirects, server failures and interruption remain uncertain and must not be automatically resent. Preserve existing SendGrid claim fingerprints and nullable actual provider receipts. Owner SQL continues after core using the unchanged lamp_ext_migrations ledger. Verify a restored copy, run full frozen-clone pnpm verify and native workflows on the exact candidate, and record the authorized source/tag and independent stage receipt separately. This candidate metadata does not assert tag publication, deployment or provider acceptance. Retain the portable authoring receipt with Git source and verify a subsequent clone using the receipt command.",
+  "previousVersion": "1.0.0",
+  "proseChanges": [
+    {
+      "document": "AGENTS.md",
+      "section": "Update",
+      "change": "changed",
+      "date": "2026-09-13",
+      "summary": "Updates use ordinary Git and the owner agent chooses the method while preserving recorded intent.",
+      "was": "The document directed owners to an unshipped rer update command.",
+      "now": "Use the owner agent and ordinary Git, inspect release changes and migrations, preserve all recorded intent, and verify the candidate before adopting it."
+    },
+    {
+      "document": "AGENTS.md",
+      "section": "Deploy",
+      "change": "changed",
+      "date": "2026-09-13",
+      "summary": "Owner commands explicitly run the package scripts rather than pnpm built-ins.",
+      "was": "Setup and deploy examples used pnpm setup and pnpm deploy, which resolve to pnpm built-ins.",
+      "now": "Use pnpm run setup and pnpm run deploy for the product provisioning and deployment scripts."
+    },
+    {
+      "document": "OPERATIONS.md",
+      "change": "added",
+      "date": "2026-09-13",
+      "summary": "Documents native provider setup, optional owner relay, received-message checks, restore failure recovery and buyer sidecar migrations.",
+      "now": "Documents native provider setup, optional owner relay, received-message checks, restore failure recovery and buyer sidecar migrations."
+    },
+    {
+      "document": "ACCEPTANCE.md",
+      "change": "added",
+      "date": "2026-09-13",
+      "summary": "Records useful product outcome, unchanged full contract and exact local versus hosted/provider acceptance obligations.",
+      "now": "Records useful product outcome, unchanged full contract and exact local versus hosted/provider acceptance obligations."
+    },
+    {
+      "document": "AGENTS.md",
+      "section": "Editing core and Verify",
+      "change": "changed",
+      "date": "2026-09-13",
+      "summary": "Owner-specific verification is explicit; no nonexistent automatic override framework is promised.",
+      "was": "The instructions claimed contract-overrides.json and tests/local were automatically interpreted and reported by pnpm verify.",
+      "now": "Record owner intent, run its specific tests explicitly alongside upstream verification, and report any intentional divergence without claiming an unchanged upstream pass."
+    },
+    {
+      "document": "README.md",
+      "section": "Source repository",
+      "change": "changed",
+      "date": "2026-10-06",
+      "summary": "Current source descriptors and public adoption documentation use the canonical just-every/lamp identity while preserving immutable comparison provenance.",
+      "was": "Current source descriptors and adoption documentation used earlier repository identities.",
+      "now": "Project and edition IDs use just-every/lamp; source repository URLs use https://github.com/just-every/lamp. Recorded comparison origins remain historical provenance."
+    },
+    {
+      "document": "README.md, AGENTS.md, HANDOVER.md, TESTING.md",
+      "section": "Local development and candidate validation",
+      "change": "changed",
+      "date": "2026-10-06",
+      "summary": "Documents the explicit local inbox mode, native authentication, migration adoption and outstanding candidate qualification.",
+      "was": "Local development documentation described only unavailable mail without provider configuration.",
+      "now": "The standard dev entrypoint selects isolated loopback capture; plain unconfigured Vite remains unavailable, production cannot select capture, and capture never proves provider acceptance. Historical installation observations are distinguished from this candidate."
+    }
+  ]
+}

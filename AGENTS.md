@@ -1,5 +1,22 @@
 # AGENTS.md
 
+## Run it locally
+
+Start Lamp this way, in this order, from the repository root:
+
+```sh
+rer install
+rer setup --owner-email you@example.com
+rer dev      # opens the local owner workspace
+rer verify
+rer reset --yes
+rer export --output exports/lamp.rer
+rer import --input exports/lamp.rer --yes
+rer deploy
+```
+
+`rer describe` lists every command, flag and local path. Node 22.20.0 and pnpm 10.12.4 are pinned.
+
 You are working on **Lamp**, an authoritative, self-hostable edition. First-party authors, owners and community publishers use this same repository workflow. Launch it, make it exactly what the owner needs, keep it working, keep it updatable. Never make the product worse to avoid touching core code.
 
 Read first:
@@ -13,7 +30,7 @@ The integration branch is `main`; open pull requests against it and rebase contr
 branches onto its merged changes. On a fresh Ubuntu/Debian Linux agent with root or
 passwordless sudo, put `/usr/local/bin` first on the calling shell PATH, then run
 `bash scripts/agent-bootstrap.sh && pnpm verify`. The bootstrap installs pinned
-Node 26.8.1 and pnpm 8.15.6, frozen dependencies, Chromium and system libraries,
+Node 22.20.0 and pnpm 10.12.4, frozen dependencies, Chromium and system libraries,
 and probes the locked workerd runtime. PR verification runs the full verifier
 and every existing browser suite in `.github/workflows/verify.yml`. Pushes to `main` automatically run the same credential-free Verify workflow
 to record the default-branch result. It retains verifier and browser logs, including the
@@ -25,27 +42,14 @@ Lamp is a status-page product for one business.
 
 ## Launch
 
-Locally:
+Locally: the commands at the top of this file. Local database, storage and queues start without accounts; the page starts empty, and mail is captured in the development outbox at `/__dev/outbox`.
 
-```
-pnpm install
-pnpm dev
-```
-
-Local database, storage and queues start without accounts. The page starts empty; no sample incidents or subscribers are created. `pnpm dev` explicitly selects a loopback-only development outbox at `/__dev/outbox`; follow its captured links through the normal sign-in and confirmation routes. Capture is not provider acceptance or delivery. Plain Vite without this mode and production previews require a configured sender. See `OPERATIONS.md` for provider inputs.
-
-To Cloudflare:
-
-```
-pnpm run setup      # uses the owner inputs in OPERATIONS.md; safe to re-run
-pnpm run deploy     # verifies, uploads secrets with the Worker, then checks health
-```
+To Cloudflare: `rer deploy` with the owner inputs in `OPERATIONS.md`. It verifies, creates or reuses resources, uploads secrets with the Worker, then checks health; `--dry-run` builds and validates locally with no provider request.
 
 From GitHub: `.github/workflows/deploy.yml` verifies and builds a credential-free
 Worker artifact. The independent delivery service validates retained bytes and
 source identity before using its separately held deployment authority. Application
-build jobs must never receive production environment secrets. The local owner
-`pnpm run deploy` command remains available for direct owner-operated deployment.
+build jobs must never receive production environment secrets.
 
 Live check: `GET <url>/health` returns 200. Public surfaces are at `deploy.publicPaths` in `seed.json`.
 
@@ -123,7 +127,7 @@ Resolve by answering: what did upstream intend, what does this installation inte
 
 ## Leave
 
-`pnpm run export` writes a portable archive of the database and storage; `pnpm run import` restores it into an empty deployment. The owner may run this version forever without the marketplace; the terms are in `LICENSE`.
+`rer export` and `import` move a local installation; `pnpm run export:cloudflare` and `pnpm run import:cloudflare` back up and restore a deployed one into an empty deployment. The owner may run this version forever without the marketplace; the terms are in `LICENSE`.
 
 ## Do not
 

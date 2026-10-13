@@ -1,0 +1,3 @@
+/* Plain text with each blank line drawn as a 0.55em gap. */
+.lamp-home .lamp-plain p { margin: 0; white-space: pre-wrap; }
+.lamp-home .lamp-plain p + p { margin-top: .55em; }

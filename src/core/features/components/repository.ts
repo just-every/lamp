@@ -14,6 +14,7 @@ import {
   maintenanceComponents,
 } from "../../shared/schema";
 import type { ComponentState } from "../../shared/domain";
+import type { ComponentGroupUpdateInput, ComponentUpdateInput } from "../../shared/schemas";
 
 export type StoredComponent = typeof components.$inferSelect;
 export type StateClaimCause = { type: "standing-claim" | "incident" | "maintenance" | "correction"; id: string | null; operatorId: string | null };
@@ -26,6 +27,7 @@ export type ComponentStateHistoryInput = { id: string; componentId: string; prev
 
 export interface ComponentRepository {
   listComponents(): Promise<Array<StoredComponent & { groupName: string | null }>>;
+  reorder(kind: "components" | "groups", expectedIds: string[], orderedIds: string[], groupId: string | null): Promise<void>;
   listGroups(): Promise<StoredComponentGroup[]>;
   findComponent(componentId: string): Promise<StoredComponent | null>;
   findStandingClaimState(componentId: string): Promise<ComponentState | null>;
@@ -44,10 +46,10 @@ export interface ComponentRepository {
   appendCorrectionAudit(input: { id: string; historyId: string; operatorId: string; reason: string; payloadJson: string; createdAt: string; updatedAt: string }): Promise<void>;
   replaceStandingClaim(input: { id: string; componentId: string; state: ComponentState | null; operatorId: string; createdAt: string; updatedAt: string; event: ComponentClaimEventInput }): Promise<void>;
   insertGroup(input: typeof componentGroups.$inferInsert): Promise<void>;
-  updateGroup(groupId: string, input: Pick<typeof componentGroups.$inferInsert, "name" | "displayOrder" | "updatedAt">): Promise<boolean>;
+  updateGroup(groupId: string, input: ComponentGroupUpdateInput & { updatedAt: string }): Promise<boolean>;
   deleteGroup(groupId: string): Promise<boolean>;
   insertComponent(input: typeof components.$inferInsert, initialState: { event: ComponentClaimEventInput; history: ComponentStateHistoryInput }): Promise<void>;
-  updateComponent(componentId: string, input: Pick<typeof components.$inferInsert, "groupId" | "name" | "description" | "internal" | "displayOrder" | "note" | "updatedAt">): Promise<boolean>;
+  updateComponent(componentId: string, input: ComponentUpdateInput & { updatedAt: string }): Promise<boolean>;
   deleteComponent(componentId: string): Promise<boolean>;
 }
 
@@ -71,11 +73,31 @@ export function createComponentRepository(binding: D1Database): ComponentReposit
         })
         .from(components)
         .leftJoin(componentGroups, eq(components.groupId, componentGroups.id))
-        .orderBy(componentGroups.displayOrder, components.displayOrder)
+        .orderBy(componentGroups.displayOrder, components.displayOrder, components.id)
         .all();
     },
+    async reorder(kind, expectedIds, orderedIds, groupId) {
+      const table = kind === "groups" ? "component_groups" : "components";
+      const scope = kind === "groups" ? "1 = 1" : "group_id IS ?";
+      const scopeBindings = kind === "groups" ? [] : [groupId];
+      // D1 batches are transactions. Compare the complete current membership and
+      // order inside that transaction, before touching ordering alone. A stale
+      // move cannot partially apply or move a concurrently regrouped component.
+      const guard = binding.prepare(`SELECT CASE WHEN
+        (SELECT json_group_array(id) FROM (SELECT id FROM ${table} WHERE ${scope} ORDER BY display_order, id)) = ?
+        THEN 1 ELSE json('Ordering changed; refresh and try again.') END`)
+        .bind(...scopeBindings, JSON.stringify(expectedIds));
+      const timestamp = new Date().toISOString();
+      const statements = [guard];
+      // Group positions are unique; first move all into a disjoint negative
+      // range, then assign the complete contiguous order in the same batch.
+      if (kind === "groups") statements.push(binding.prepare("UPDATE component_groups SET display_order = -display_order - 1"));
+      statements.push(...orderedIds.map((id, index) => binding.prepare(`UPDATE ${table} SET display_order = ?, updated_at = ? WHERE id = ?`).bind(index, timestamp, id)));
+      try { await binding.batch(statements); }
+      catch (cause) { if (cause instanceof Error && cause.message.includes("malformed JSON")) throw new Error("Ordering changed in another tab. Refresh and try again."); throw cause; }
+    },
     async listGroups() {
-      return database.select().from(componentGroups).orderBy(componentGroups.displayOrder).all();
+      return database.select().from(componentGroups).orderBy(componentGroups.displayOrder, componentGroups.id).all();
     },
     async findComponent(componentId) {
       const component = await database.select().from(components).where(eq(components.id, componentId)).get();
@@ -293,6 +315,11 @@ export function createComponentRepository(binding: D1Database): ComponentReposit
       await database.insert(componentGroups).values(input);
     },
     async updateGroup(groupId, input) {
+      // A name edit must not read and rewrite a position that can move meanwhile.
+      if (input.displayOrder === undefined) {
+        const result = await database.update(componentGroups).set({ name: input.name, updatedAt: input.updatedAt }).where(eq(componentGroups.id, groupId)).returning({ id: componentGroups.id });
+        return result.length > 0;
+      }
       const current = await database.select().from(componentGroups).where(eq(componentGroups.id, groupId)).get();
       if (!current) return false;
       const displaced = current.displayOrder === input.displayOrder
@@ -329,6 +356,8 @@ export function createComponentRepository(binding: D1Database): ComponentReposit
       ]);
     },
     async updateComponent(componentId, input) {
+      // Drizzle omits undefined fields: an edit without an explicit order leaves
+      // display_order untouched in the UPDATE itself, even across concurrent moves.
       const result = await database.update(components).set(input).where(eq(components.id, componentId)).returning({ id: components.id });
       return result.length > 0;
     },

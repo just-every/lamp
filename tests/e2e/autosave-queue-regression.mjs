@@ -25,14 +25,17 @@ export async function assertQueuedAutosaveDeadline({ page, api, openIncident, as
   };
   page.on("request", onRequest);
   page.on("response", onResponse);
+  let handled = false; // Installed until unrouteAll: a one-shot route can strand a paused request.
   await page.route(`**${endpoint}`, async route => {
+    if (handled) return route.continue();
+    handled = true;
     const response = await route.fetch();
     assert.equal(response.status(), 200);
     timings.earlierPersisted = Date.now();
     enteredFirst();
     await release;
     await route.fulfill({ response });
-  }, { times: 1 });
+  });
   try {
     await field.fill(earlier);
     await entered;

@@ -1,0 +1,95 @@
+import { useState, type FormEvent } from "react";
+
+import { appApi, useAppData } from "../../../app/client/ui/api";
+import { Button } from "../../../app/client/ui/button";
+import { EmptyState } from "../../../app/client/ui/lit-states";
+import { FormError } from "../../../app/client/ui/states";
+import type { MoveInReport } from "../planning";
+
+type SavedFile = { name: string; text: string };
+type Preview = { report: MoveInReport; jobId?: string; files?: SavedFile[] };
+type Job = { id: string; state: string; checkpoint: number; total: number };
+type Result = { job: Job; report: MoveInReport; invites: { sent: number; remaining: number }; undo?: { dispositions: Array<{ disposition: string; targetKind?: string; reason?: string }> } };
+
+const kindLabels: Record<string, string> = { group: "Component groups", component: "Components", incident: "Incidents", maintenance: "Maintenance", subscriber: "Subscribers" };
+
+function ReportTable({ report }: { report: MoveInReport }) {
+  return <>{report.unavailableAddresses?.length > 0 && <div role="status"><p>Some old public addresses are unavailable:</p><ul>{report.unavailableAddresses.map((reason) => <li key={reason}>{reason}</li>)}</ul></div>}<div className="table-scroll" tabIndex={0} role="region" aria-label="Move-in counts"><table><thead><tr><th scope="col">Records</th><th scope="col">Read</th><th scope="col">Imported</th><th scope="col">Changed</th><th scope="col">Skipped</th><th scope="col">Refused</th></tr></thead><tbody>{Object.entries(report.counts).map(([kind, count]) => <tr key={kind}><th scope="row">{kindLabels[kind] ?? kind}</th><td>{count.read}</td><td>{count.imported}</td><td>{count.changed}</td><td>{count.skipped}</td><td>{count.rejected}</td></tr>)}</tbody></table></div></>;
+}
+
+function ReportItems({ report }: { report: MoveInReport }) {
+  const notable = report.items.filter((item) => item.outcome !== "imported");
+  if (!notable.length) return <p>Every record carries over unchanged.</p>;
+  return <details><summary>{notable.length} record{notable.length === 1 ? "" : "s"} changed, skipped or refused</summary><ul className="move-in-items">{notable.map((item) => <li key={`${item.kind}:${item.sourceId}`}><strong>{item.name}</strong> ({item.outcome}): {item.reason}</li>)}</ul></details>;
+}
+
+/** Settings → Move in: a dry run first, then the import, then undo. */
+export function MoveInPage() {
+  const jobs = useAppData<{ jobs: Job[] }>("/api/app/statuspage-import/jobs");
+  const [pageId, setPageId] = useState("");
+  const [apiKey, setApiKey] = useState("");
+  const [files, setFiles] = useState<SavedFile[]>([]);
+  const [preview, setPreview] = useState<Preview | null>(null);
+  const [acknowledged, setAcknowledged] = useState(false);
+  const [result, setResult] = useState<Result | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function run<T>(work: () => Promise<T>, done: (value: T) => void) {
+    setBusy(true); setError(null);
+    try { done(await work()); jobs.refresh(); }
+    catch (cause) { setError(cause instanceof Error ? cause.message : "The move-in could not continue."); }
+    finally { setBusy(false); }
+  }
+
+  async function chooseFiles(list: FileList | null) {
+    setPreview(null); setResult(null);
+    setFiles(await Promise.all([...(list ?? [])].map(async (file) => ({ name: file.name, text: await file.text() }))));
+  }
+
+  function dryRun(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault(); setResult(null); setAcknowledged(false);
+    void run(() => appApi<Preview>("/api/app/statuspage-import/preview", { method: "POST", body: JSON.stringify(files.length ? { files } : { pageId, apiKey }) }), (next) => {
+      setPreview(next); setApiKey("");
+      if (next.files) setFiles(next.files);
+    });
+  }
+
+  function apply() {
+    if (!preview) return;
+    void run(() => appApi<Result>("/api/app/statuspage-import/apply", { method: "POST", body: JSON.stringify({ files, asOf: preview.report.asOf, fingerprint: preview.report.fingerprint, acknowledged: true }) }), setResult);
+  }
+
+  const act = (id: string, action: "resume" | "undo") => run(() => appApi<Result>(`/api/app/statuspage-import/jobs/${encodeURIComponent(id)}/${action}`, { method: "POST" }), setResult);
+  const saved = preview?.files ? URL.createObjectURL(new Blob([JSON.stringify(preview.files)], { type: "application/json" })) : null;
+
+  return <div className="page-stack move-in-page">
+    <section className="page-title-row"><div><p className="eyebrow">Settings</p><h1>Move in from Statuspage</h1><p>Bring your components, groups, incident history, scheduled maintenance and email subscribers. Nothing is written until you review a dry run, past incidents notify no one, and each subscriber gets one invitation to confirm.</p></div></section>
+    <section className="data-card"><form className="move-in-form" onSubmit={dryRun}>
+      <fieldset><legend>From your Statuspage account</legend><p>On Statuspage, open your avatar menu, then API info. The key is used once for this dry run and is not saved.</p>
+        <label className="form-label">Page ID<input value={pageId} autoComplete="off" onChange={(event) => setPageId(event.target.value.trim())} /></label>
+        <label className="form-label">API key<input type="password" value={apiKey} autoComplete="off" onChange={(event) => setApiKey(event.target.value.trim())} /></label></fieldset>
+      <fieldset><legend>Or from saved API responses</legend><p>Choose files named components.json, component-groups.json, incidents.json, incidents-scheduled.json and subscribers.json (later pages as incidents-2.json).</p>
+        <label className="form-label">Saved responses<input type="file" multiple accept="application/json,.json" onChange={(event) => void chooseFiles(event.target.files)} /></label>{files.length > 0 && <p>{files.length} file{files.length === 1 ? "" : "s"} selected.</p>}</fieldset>
+      <Button disabled={busy || (!files.length && (!pageId || !apiKey))}>{busy && !preview ? "Reading…" : "Run dry run"}</Button>
+    </form></section>
+    {error && <FormError>{error}</FormError>}
+    {preview && !result && <section className="data-card" aria-labelledby="move-in-dry-run"><h2 id="move-in-dry-run">{preview.report.state === "already imported" ? "Already imported" : "Dry run"}</h2>
+      {preview.report.state === "already imported" ? <p>This source was imported already; importing it again changes nothing.</p> : <p>Nothing has been written. This is what the import will do.</p>}
+      <ReportTable report={preview.report} /><ReportItems report={preview.report} />
+      {saved && <p><a href={saved} download="statuspage-saved-responses.json">Download these saved responses</a></p>}
+      {preview.report.state !== "already imported" && <><label className="checkbox-label"><input type="checkbox" checked={acknowledged} onChange={(event) => setAcknowledged(event.target.checked)} /> I reviewed what changes, is skipped or is refused.</label>
+        <Button type="button" disabled={busy || !acknowledged} onClick={apply}>{busy ? "Importing…" : "Import"}</Button></>}
+    </section>}
+    {result && <section className="data-card" aria-labelledby="move-in-result"><h2 id="move-in-result">{result.job.state === "completed" ? "Imported" : result.job.state === "undone" ? "Undone" : result.job.state === "undoing" ? "Undo in progress" : "Import in progress"}</h2>
+      <ReportTable report={result.report} />
+      {result.job.state === "completed" && <p>{result.invites.remaining ? `${result.invites.remaining} subscriber invitations still to send.` : "Every imported subscriber has been sent one invitation."}</p>}
+      {result.undo && <p>{result.undo.dispositions.filter((item) => item.disposition === "retained").length} record(s) changed since the import stayed.</p>}
+      {(result.job.state === "applying" || result.invites.remaining > 0) && <Button type="button" disabled={busy} onClick={() => act(result.job.id, "resume")}>Continue</Button>}
+      {result.job.state === "undoing" && <Button type="button" disabled={busy} onClick={() => act(result.job.id, "undo")}>Continue undo</Button>}
+    </section>}
+    <section className="data-card" aria-labelledby="move-in-history"><h2 id="move-in-history">Your imports</h2>
+      {jobs.data?.jobs.length ? <ul className="move-in-jobs">{jobs.data.jobs.map((job) => <li key={job.id}><span>{job.id.slice(0, 12)} · {job.state} · {job.checkpoint}/{job.total}</span>{job.state === "completed" && <Button type="button" variant="secondary" disabled={busy} onClick={() => act(job.id, "undo")}>Undo</Button>}{job.state === "applying" && <Button type="button" variant="secondary" disabled={busy} onClick={() => act(job.id, "resume")}>Continue</Button>}{job.state === "undoing" && <Button type="button" variant="secondary" disabled={busy} onClick={() => act(job.id, "undo")}>Continue undo</Button>}</li>)}</ul> : <EmptyState>No imports yet.</EmptyState>}
+    </section>
+  </div>;
+}

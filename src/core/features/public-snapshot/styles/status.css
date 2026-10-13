@@ -1,0 +1,18 @@
+/* The overall state: the first thing on the page, one white plate, tinted only when something is wrong. */
+.status-banner { margin: 0; }
+#status-live { min-width: 0; border: 1px solid var(--line); border-radius: 20px; background: var(--card); box-shadow: var(--shadow-card); padding: 32px 36px; }
+.status-summary { display: flex; align-items: center; gap: 20px; }
+.status-summary h1 { margin: 0; font-size: 34px; line-height: 1.12; letter-spacing: -.022em; }
+.status-summary .eyebrow { margin-bottom: 6px; }
+.overall-status-icon { display: grid; width: 56px; height: 56px; flex: none; place-items: center; border-radius: 50%; background: #e2f1e8; color: var(--ok); }
+.overall-status-icon svg { width: 30px; height: 30px; stroke-width: 2.25; }
+.status-live-update { margin: 24px 0 0; border-top: 1px solid var(--line); padding-top: 18px; color: var(--ink); font-size: 15px; overflow-wrap: anywhere; }
+.status-generated { margin: 6px 0 0; color: var(--ink-3); font-size: 13px; }
+
+.status-banner.degraded-performance #status-live { border-color: rgb(201 138 18 / .32); background: #fffaee; }
+.status-banner.degraded-performance .overall-status-icon { background: #fbedc9; color: var(--amber-ink); }
+.status-banner.partially-unavailable #status-live, .status-banner.major-outage #status-live { border-color: rgb(180 68 50 / .26); background: #fdf3f1; }
+.status-banner.partially-unavailable .overall-status-icon, .status-banner.major-outage .overall-status-icon { background: #f6dfd9; color: var(--down); }
+.status-banner.under-maintenance #status-live { border-color: rgb(79 111 168 / .26); background: #f3f6fb; }
+.status-banner.under-maintenance .overall-status-icon { background: #e1e8f4; color: var(--maint); }
+.status-banner.under-maintenance .overall-status-icon svg { stroke-width: 1.9; }

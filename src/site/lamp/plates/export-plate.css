@@ -1,0 +1,11 @@
+/* Plate H: the owner's own terminal, the page's one dark card: light mono text on the band's green-black, the prompts
+   and the output dimmer, no strip and no window chrome. Each command is set apart from the one before. */
+.lamp-home .lamp-export .lamp-plate__sheet { border: 0; color: var(--lamp-terminal-ink); background: var(--lamp-band);
+  box-shadow: 0 1px 2px rgb(24 45 36 / .08), 0 20px 40px -20px rgb(24 45 36 / .35); }
+.lamp-home .lamp-export .lamp-plate__body { padding: 22px 24px; }
+.lamp-home .lamp-export__lines { font-size: 13px; line-height: 1.6; }
+.lamp-home .lamp-export__lines p { margin: 0; white-space: pre-wrap; }
+.lamp-home .lamp-export__step + .lamp-export__step { margin-top: 14px; }
+.lamp-home .lamp-export__output { color: var(--lamp-terminal-dim); }
+.lamp-home .lamp-export__prompt { color: var(--lamp-terminal-dim); }
+.lamp-home .lamp-export__word { white-space: nowrap; }

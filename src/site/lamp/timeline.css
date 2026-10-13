@@ -1,0 +1,56 @@
+/* The intro's one timeline, 3.0s from the moment the lamp's drawings are ready, in transforms, opacity and the dusk's
+   mask (1% = 30ms). It is calm: one soft click, then warmth arriving; nothing strobes or flashes. All the hero's text is
+   on the page from the first frame, readable at every moment: only the room and the lamp change.
+   0–0.7s      the lamp settles on its cord, with one small overshoot, in a dim room: dusk, not night.
+   0.75s       it clicks on once: the bulb is at 55% by 0.84s and settles to full by 1.24s, with no dip back, and the
+               dusk opens round it by 0.94s.
+   0.94–2.75s  the light spreads from the bulb as a wide, warm, soft front (dusk.css) on a slow curve, about .8px/ms
+               through the middle and quicker only once it is out of sight, opening like a vignette that recedes to the
+               corners and leaves the lit page behind it.
+   2.75–3.0s   the last of the dusk, below the fold, fades invisibly. Everything rests lit; nothing loops.
+   The first keyboard focus anywhere (IntroReady's `data-shown`) lifts the dusk at once and for good (dusk.css), so
+   nothing replays when focus ends. Until the drawings are ready (IntroReady's `data-ready`) the room is dim, the lamp
+   hidden and the timeline held at its start, so a slow network never switches on a lamp that is not there. If the hold
+   runs out first (`data-late`), the room lights over .9s, easing in and out, and the lamp, which never clicks on before
+   it is drawn, appears already lit once its drawings arrive. If React renders the intro anew after the page has
+   loaded, IntroReady gives the new intro the same marks and a negative --lamp-intro-delay, so the timeline resumes
+   where it was. Every element's resting style is the lit end state, so without motion (reduced motion, or no script)
+   the page is simply lit. */
+.lamp-home .lamp-intro { --lamp-intro-time: 3s; --lamp-intro-play: running; --lamp-intro-delay: 0s; }
+@media (prefers-reduced-motion: no-preference) and (scripting: enabled) {
+  .lamp-home .lamp-intro:not([data-ready]) { --lamp-intro-play: paused; }
+  .lamp-home .lamp-intro:not([data-ready]) .lamp-rig { visibility: hidden; }
+  .lamp-home .lamp-intro[data-late] :is(.lamp-rig__swing, .lamp-sprite--on, .lamp-glow, .lamp-cone) { animation: none; }
+  .lamp-home .lamp-intro[data-late] .lamp-dusk { animation: lamp-late-dusk .9s var(--lamp-intro-delay) ease-in-out both; }
+  .lamp-home .lamp-intro[data-late][data-ready] .lamp-rig { animation: lamp-late-show .9s var(--lamp-intro-delay) ease-in-out both; }
+}
+.lamp-home .lamp-rig__swing { animation: lamp-lower var(--lamp-intro-time) var(--lamp-intro-delay) both var(--lamp-intro-play); }
+.lamp-home .lamp-sprite--on, .lamp-home .lamp-glow, .lamp-home .lamp-cone { animation: lamp-switch var(--lamp-intro-time) var(--lamp-intro-delay) both var(--lamp-intro-play); }
+.lamp-home .lamp-dusk { animation: lamp-dusk var(--lamp-intro-time) var(--lamp-intro-delay) both var(--lamp-intro-play); }
+@keyframes lamp-lower {
+  0% { transform: translateY(-5%); animation-timing-function: cubic-bezier(.2, .7, .3, 1); }
+  14.7% { transform: translateY(.5%); animation-timing-function: ease-in-out; }
+  23.3%, 100% { transform: translateY(0); }
+}
+/* One step, no dip: off, then 55% almost at once, then settling to full. */
+@keyframes lamp-switch {
+  0%, 25% { opacity: 0; animation-timing-function: linear; }
+  28% { opacity: .55; animation-timing-function: cubic-bezier(.2, .6, .3, 1); }
+  41.3%, 100% { opacity: 1; }
+}
+/* The front: the dusk opens round the bulb with the click, then the light spreads at a speed the eye can follow,
+   slowest where the page changes most (about .8px/ms through the middle) and quicker only once it is out of sight. */
+@keyframes lamp-dusk {
+  0%, 25% { opacity: 1; --lamp-reach: 0px; animation-timing-function: cubic-bezier(.2, .6, .3, 1); }
+  31.3% { --lamp-reach: var(--lamp-flick); animation-timing-function: cubic-bezier(.5, 0, .7, .64); }
+  48.3% { --lamp-reach: calc(var(--lamp-cover) * .25); animation-timing-function: linear; }
+  75% { --lamp-reach: calc(var(--lamp-cover) * .67); animation-timing-function: cubic-bezier(.5, .38, .6, 1); }
+  91.7% { opacity: 1; --lamp-reach: var(--lamp-cover); animation-timing-function: ease-in-out; }
+  94.3% { opacity: 0; }
+  100% { opacity: 0; --lamp-reach: calc(var(--lamp-cover) * 1.05); }
+}
+@keyframes lamp-late-dusk { from { opacity: 1; } }
+@keyframes lamp-late-show { from { opacity: 0; } }
+@media (prefers-reduced-motion: reduce), (scripting: none) {
+  .lamp-home .lamp-intro * { animation: none; }
+}

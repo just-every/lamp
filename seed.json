@@ -1,13 +1,27 @@
 {
   "id": "lamp",
   "name": "Lamp",
-  "version": "1.1.0",
+  "version": "1.3.0",
   "maturity": "ui-port-local-runtime",
   "category": "status",
   "spine": {
     "id": "status",
     "record": "incident on a component"
   },
+  "replaces": [
+    {
+      "name": "Atlassian Statuspage",
+      "edition": null
+    },
+    {
+      "name": "Instatus",
+      "edition": null
+    },
+    {
+      "name": "Better Stack",
+      "edition": null
+    }
+  ],
   "description": "A status page and incident communication desk for one business.",
   "capabilities": [
     {
@@ -73,7 +87,8 @@
         "INCIDENT-006",
         "INCIDENT-007",
         "INCIDENT-008",
-        "INCIDENT-009"
+        "INCIDENT-009",
+        "INCIDENT-010"
       ]
     },
     {
@@ -134,7 +149,9 @@
         "NOTIFY-007",
         "NOTIFY-008",
         "NOTIFY-009",
-        "NOTIFY-010"
+        "NOTIFY-010",
+        "NOTIFY-011",
+        "NOTIFY-012"
       ]
     },
     {
@@ -145,16 +162,19 @@
         "INTAKE-002",
         "INTAKE-003",
         "INTAKE-004",
-        "INTAKE-005"
+        "INTAKE-005",
+        "INTAKE-006",
+        "INTAKE-007"
       ]
     },
     {
       "id": "drafting",
-      "description": "Optional AI suggestion that fills the composer from alerts and prior updates, never published without an operator.",
+      "description": "An incident brief of what is known and not known, and an optional AI suggestion that fills the composer from it, never published without an operator.",
       "clauses": [
         "DRAFT-001",
         "DRAFT-002",
-        "DRAFT-003"
+        "DRAFT-003",
+        "DRAFT-004"
       ]
     },
     {
@@ -175,6 +195,26 @@
         "HIST-003",
         "HIST-004"
       ]
+    },
+    {
+      "id": "operator-readiness",
+      "description": "Saved setup checklist and owner-terminal issuance of native single-use sign-in links.",
+      "clauses": [
+        "SETUP-001",
+        "ACCESS-001",
+        "SETUP-002"
+      ]
+    },
+    {
+      "id": "move-in",
+      "description": "Owner move-in from a hosted status page: dry run, retroactive import with one subscriber invitation, idempotent re-run and undo through Base's import kit.",
+      "clauses": [
+        "MOVE-001",
+        "MOVE-002",
+        "MOVE-003",
+        "MOVE-004",
+        "MOVE-005"
+      ]
     }
   ],
   "nonGoals": [
@@ -186,7 +226,7 @@
     "SMS and voice notifications: per-message cost, carrier registration, and per-country consent rules that a self-hosted deployment cannot satisfy generically.",
     "Multi-language status pages: every incident update would need a translation before publish, which is the opposite of publishing in two minutes.",
     "A general-purpose operator API authenticated by API tokens: BASE-ACCESS-002 requires a session on every operator endpoint, and machine writes have one narrow door, INTAKE-001, with its own secret.",
-    "SSO and SCIM: magic-link sign-in per BASE-ACCESS-001 is enough for a handful of operators, and an identity provider is an adapter, not a feature.",
+    "SCIM and role synchronization: optional OpenID Connect through Auth, Google, Microsoft or Okta replaces the former SSO exclusion under ACCESS-001; provider sign-in stays off until the owner links and enables it, and magic links remain available.",
     "Visitor analytics and email open tracking: BASE-PUBLIC-001 keeps the page free of cookies and visitor data, and NOTIFY-004 keeps tracking pixels out of notifications, because knowing who read an outage notice is worth less than being the one page a customer can open without being counted.",
     "Native mobile apps: the public page is the mobile experience, and it has to work with script disabled."
   ],
@@ -230,6 +270,27 @@
       "adapters": []
     },
     {
+      "id": "team-chat-channels",
+      "required": false,
+      "why": "NOTIFY-011 and NOTIFY-012: Slack incoming webhooks (hooks.slack.com) and Microsoft Teams channel webhooks (*.logic.azure.com, *.environment.api.powerplatform.com, *.webhook.office.com) receive the published update's public fields. The owner adds each channel; its URL is the credential and is stored encrypted.",
+      "data": [
+        "The published update's public fields",
+        "The incident reference and title",
+        "A link to the incident's public page"
+      ],
+      "adapters": []
+    },
+    {
+      "id": "statuspage-api",
+      "required": false,
+      "why": "MOVE-001 only, at the owner's request: GET requests to https://api.statuspage.io with the owner's key read the page being left. The key is used for that dry run and never stored; saved API responses need no request.",
+      "data": [
+        "The owner's API key, in the Authorization header only",
+        "Page ID"
+      ],
+      "adapters": []
+    },
+    {
       "id": "run-edit-run-editor",
       "required": false,
       "why": "Optional owner-enabled editor frame; separate Run Edit Run authentication and installation authority are required. Disabled by default.",
@@ -241,6 +302,25 @@
       "adapters": [
         "rer.editor.v1"
       ]
+    },
+    {
+      "id": "identity-provider",
+      "required": false,
+      "why": "ACCESS-001. Optional owner-linked OpenID Connect through Auth, Google, Microsoft or Okta; disabled until explicitly enabled.",
+      "data": [
+        "Operator identity claims",
+        "OIDC authorization code and app client authentication"
+      ],
+      "adapters": []
+    },
+    {
+      "id": "external-heartbeat",
+      "required": false,
+      "why": "Owner-selected independent heartbeat service. Disabled until configured. Cron pings only after scheduled work and database/storage/queue self-check pass.",
+      "data": [
+        "Empty heartbeat ping: receipt time and source network address; no product payload."
+      ],
+      "adapters": []
     }
   ],
   "env": [
@@ -260,13 +340,13 @@
       "name": "LAMP_PAGE_HOST",
       "required": true,
       "secret": false,
-      "why": "The hostname the public status page is served on (PAGE-012)."
+      "why": "The hostname the public status page is served on at / (PAGE-012); the company points its own name, such as status.company.com, at it."
     },
     {
       "name": "LAMP_APP_HOST",
       "required": true,
       "secret": false,
-      "why": "The hostname the operator app and sign-in are served on. Separate from the page host so PAGE-008 can be applied to one and BASE-ACCESS-003 to the other."
+      "why": "The hostname the Lamp landing page (its /), the operator app and sign-in are served on. It must differ from the page host, so each host has its own home page and PAGE-008 can be applied to one and BASE-ACCESS-003 to the other."
     },
     {
       "name": "LAMP_PAGE_NAME",
@@ -371,10 +451,46 @@
       "why": "Optional per-product HMAC secret for an owner-operated signed mail-event relay; direct SendGrid signature verification remains available without a relay."
     },
     {
-      "name": "LAMP_BOOTSTRAP_SECRET",
+      "name": "SETUP_TOKEN",
       "required": false,
       "secret": true,
-      "why": "Required by independent broker deployment only. At least32 random characters authorizes one native owner initialization; no session is granted. Existing direct-owner setup remains available."
+      "why": "Random secret of at least 32 characters for the one-time Base owner claim. Retain for installer setup/deploy commands; the durable claim prevents reuse against an initialized store."
+    },
+    {
+      "name": "SESSION_SECRET",
+      "required": true,
+      "secret": true,
+      "why": "Stable random secret of at least 32 characters for Base operator session and link hashes. Installer generates and preserves it."
+    },
+    {
+      "name": "IDENTITY_PROVIDER",
+      "required": false,
+      "secret": false,
+      "why": "Optional Auth installation URL for the oidc-provider@1 dependency."
+    },
+    {
+      "name": "AUTH_PROVIDERS",
+      "required": false,
+      "secret": true,
+      "why": "Optional Base provider configuration JSON, including private client credentials and explicit subject associations."
+    },
+    {
+      "name": "OIDC_TRANSACTION_SECRET",
+      "required": false,
+      "secret": true,
+      "why": "Independent stable random secret for optional OpenID Connect transactions."
+    },
+    {
+      "name": "LAMP_HEARTBEAT_URL",
+      "required": false,
+      "secret": true,
+      "why": "Public HTTPS heartbeat capability URL chosen by the owner; empty disables pings."
+    },
+    {
+      "name": "LAMP_HEARTBEAT_INTERVAL_MINUTES",
+      "required": false,
+      "secret": false,
+      "why": "Heartbeat interval on the cron minute grid; defaults to five minutes."
     }
   ],
   "deploy": {
@@ -384,6 +500,8 @@
       "/",
       "/history",
       "/incidents/",
+      "/maintenance/",
+      "/history.atom",
       "/feed.atom",
       "/widget.js",
       "/api/public/status",
@@ -397,12 +515,15 @@
       "/health",
       "/signin",
       "/signin/",
+      "/lamp",
+      "/docs",
+      "/docs/",
       "/app-assets/",
       "/_serverFn/",
       "/setup",
       "/setup/status"
     ],
-    "notes": "Two hostnames share this one deployment. LAMP_PAGE_HOST serves the public-page paths: /, /history, /incidents/, /feed.atom, /widget.js, /api/public/status, and /assets/ are read-only and served from the PAGE-005 snapshot, exempt from BASE-ACCESS-003 rate limiting per PAGE-008; /subscribe, /confirm-subscription/, /unsubscribe/, /manage/, and /api/intake/ are subscription or intake paths rate limited under BASE-ACCESS-003. LAMP_APP_HOST serves the operator app, mounted at /app behind a session, plus its public paths /health, /signin, /signin/, /app-assets/, and /_serverFn/. /_serverFn/ is TanStack Start's opaque generated transport, restricted to the app host and protected by Start's same-origin checks; every private handler independently validates the native operator session before returning data. It is not a PAGE-008 public read or rate-limit exemption. Two of the page host's write paths key their rate limit on the subscriber token rather than the caller's address: /unsubscribe, because one-click unsubscribe arrives from a mailbox provider's shared egress and a per-address limit would break it for every subscriber behind that address (SUB-006), and /manage/ for the same reason, since it is reached from the same emailed link."
+    "notes": "Two distinct hostnames share this one deployment, and each has its own home page at /; equal hostnames fail at startup. LAMP_PAGE_HOST serves the public-page paths: /, /history, /incidents/, /maintenance/, /history.atom and imported source shortlink paths, /feed.atom, /widget.js, /api/public/status, and /assets/ are read-only and served from the PAGE-005 snapshot, exempt from BASE-ACCESS-003 rate limiting per PAGE-008; /subscribe, /confirm-subscription/, /unsubscribe/, /manage/, and /api/intake/ are subscription or intake paths rate limited under BASE-ACCESS-003. LAMP_APP_HOST serves the operator app, mounted at /app behind a session, plus its public paths: / (the Lamp landing page, a static document that needs no session), /docs and /docs/ (the product's own docs, drawn from the repository's Markdown at build time and public like the landing page; the page host has none), /health, /signin, /auth/, /.well-known/rer-*, /app-assets/, and /_serverFn/. /lamp, the landing page's former address, answers 301 to / on the app host for one release and is then removed. /_serverFn/ is TanStack Start's opaque generated transport, restricted to the app host and protected by Start's same-origin checks; every private handler independently validates the native operator session before returning data. The one exception is the docs page-body handler, which returns the same public text as /docs. It is not a PAGE-008 public read or rate-limit exemption. Two of the page host's write paths key their rate limit on the subscriber token rather than the caller's address: /unsubscribe, because one-click unsubscribe arrives from a mailbox provider's shared egress and a per-address limit would break it for every subscriber behind that address (SUB-006), and /manage/ for the same reason, since it is reached from the same emailed link."
   },
   "customFields": [
     "component",
@@ -415,6 +536,7 @@
       "page.status-rollup.v1",
       "uptime.downtime-states.v1",
       "update.review.v1",
+      "incident.update-due.v1",
       "maintenance.reminders.v1",
       "subscriber.confirmation.v1",
       "notification.events.v1",

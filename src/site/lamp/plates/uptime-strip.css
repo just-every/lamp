@@ -1,0 +1,6 @@
+/* The strip spans its row; its marks are a quiet grey-green when available and solid ink on a day with
+   downtime. */
+.lamp-home .lamp-strip { display: block; width: 100%; height: 14px; }
+.lamp-home .lamp-strip__mark--good { fill: var(--lamp-uptime); }
+.lamp-home .lamp-strip__mark--down { fill: var(--lamp-ink); }
+.lamp-home .lamp-strip__mark--no-data { fill: none; stroke: rgb(24 45 36 / .3); stroke-width: .6; }

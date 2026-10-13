@@ -1,0 +1,25 @@
+/* The lamp's light, under the drawings, as in C: a broad warm pool falling from under the shade over the headline,
+   1300 by 900 units of the 1536 design, its top 169 units below the canvas top; it is a child of the lamp's box, so it
+   moves with the lamp. Nothing glows beside the shade: the pool is clear down to the rim's line and whole only a little
+   below it. A white core under the bulb, a warm halo falling downward and a soft tail. The pool is dithered by a tile
+   of fine grain (art/grain.svg) that reaches as far as the halo and the tail do, at full strength until their light is
+   under half a level of an 8-bit screen, and is three tiles deep in the faint outer ring, so even the faintest falloff
+   shows no rings. The glow sprite haloes the
+   bulb itself. They rest lit. During the scroll handoff the whole light fades with the lamp leaving (--lamp-p over
+   0.4–1, eased), so no glow is left at the top without its lamp; the drawings' own switch-on keeps its opacity. */
+.lamp-home .lamp-light { --lamp-fade: clamp(0, (var(--lamp-p, 0) - .4) / .6, 1);
+  position: absolute; inset: 0; pointer-events: none; opacity: calc(1 - var(--lamp-fade) * (2 - var(--lamp-fade))); }
+.lamp-home .lamp-cone { position: absolute; top: 46.94%; left: -130.56%; width: 361.1%; height: 250%; pointer-events: none;
+  background:
+    radial-gradient(ellipse 16% 30% at 50% 22%, rgb(var(--lamp-glow-core) / .95), rgb(var(--lamp-glow-core) / .6) 50%, rgb(var(--lamp-glow-core) / 0)),
+    radial-gradient(ellipse 40% 44% at 50% 30%, rgb(var(--lamp-glow-warm) / .95), rgb(254 243 222 / .6) 50%, rgb(253 245 230 / 0)),
+    radial-gradient(ellipse 34% 60% at 50% 40%, rgb(252 244 228 / .55), rgb(252 244 228 / 0));
+  mask-image: linear-gradient(to bottom, transparent 7.5%, #000 20%); }
+/* The grain: one tile over the whole light, and two more, offset, over its faint outer ring (from 40% of the way out,
+   whole from 65%), where an 8-bit step is widest and needs the most noise to break up. */
+.lamp-home .lamp-cone::before, .lamp-home .lamp-cone::after { content: ''; position: absolute; inset: 0; background: var(--lamp-grain); }
+.lamp-home .lamp-cone::after {
+  mask-image: radial-gradient(ellipse 40% 44% at 50% 30%, #000 90%, transparent), radial-gradient(ellipse 34% 60% at 50% 40%, #000 90%, transparent); }
+.lamp-home .lamp-cone::before { background: var(--lamp-grain), var(--lamp-grain); background-position: 83px 47px, 29px 113px;
+  mask-image: radial-gradient(ellipse 40% 44% at 50% 30%, transparent 40%, #000 65%, #000 90%, transparent),
+    radial-gradient(ellipse 34% 60% at 50% 40%, transparent 40%, #000 65%, #000 90%, transparent); }

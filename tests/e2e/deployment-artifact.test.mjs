@@ -5,7 +5,7 @@ import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { test } from "node:test";
 
-import { deploymentConfig, renderWranglerToml, resourceNames, setupOperatorStatement, setupPageSettingsStatement } from "../../scripts/ops-config.mjs";
+import { deploymentConfig, renderWranglerToml, resourceNames,  setupPageSettingsStatement } from "../../scripts/ops-config.mjs";
 import { reservePort, waitForWorker } from "./worker-startup.mjs";
 
 const deploymentEnvironment = {
@@ -16,7 +16,7 @@ const deploymentEnvironment = {
   LAMP_PAGE_TIMEZONE: "Australia/Brisbane",
   LAMP_ACCENT_COLOR: "#163C60",
   MAIL_FROM_ADDRESS: "ops@example.test",
-  SETUP_OPERATOR_EMAIL: "operator@example.test",
+  SESSION_SECRET:'test-only-session-secret-'.repeat(3),SETUP_TOKEN:'test-only-setup-token-'.repeat(3),SETUP_OPERATOR_EMAIL: "operator@example.test",
   MAIL_PROVIDER_API_KEY: "01234567890123456789012345678901",
   SUBSCRIBER_TOKEN_SECRET: "abcdefghijklmnopqrstuvwxyz012345",
   WEBHOOK_SIGNING_SECRET: "abcdefghijklmnopqrstuvwxyz012345",
@@ -67,7 +67,7 @@ async function stop(child) {
 async function startBuiltWorker(artifactPath, statePath, localUpstream, readiness = (response) => response.status === 200, variables = []) {
   const port = await reservePort({ label: "built Worker" });
   const readinessPath = localUpstream === "app.lamp.test" ? "/health" : "/";
-  const server = spawn("pnpm", ["exec", "wrangler", "dev", "--local", "--config", artifactPath, "--persist-to", statePath, "--ip", "127.0.0.1", "--port", String(port), "--inspector-port", "0", "--local-upstream", localUpstream, "--log-level", "warn", ...variables.flatMap((value) => ["--var", value])], {
+  const server = spawn("pnpm", ["exec", "wrangler", "dev", "--local", "--config", artifactPath, "--persist-to", statePath, "--ip", "127.0.0.1", "--port", String(port), "--inspector-port", "0", "--local-upstream", localUpstream, "--upstream-protocol", "https", "--log-level", "warn", ...variables.flatMap((value) => ["--var", value])], {
     cwd: process.cwd(),
     env: { ...process.env, LAMP_DISABLE_INSPECTOR: "true", ...deploymentEnvironment },
     stdio: ["ignore", "pipe", "pipe"],
@@ -105,18 +105,25 @@ test("compiled generated Start Worker serves operator routes and prepares fresh 
   let server;
   try {
     await run("pnpm", ["exec", "wrangler", "d1", "migrations", "apply", "DB", "--local", "--config", artifactPath, "--persist-to", statePath]);
-    let runtime = await startBuiltWorker(artifactPath, statePath, "app.lamp.test");
+    // Deploy uploads the sign-in secrets with the Worker; the local artifact receives them as Worker variables.
+    let runtime = await startBuiltWorker(artifactPath, statePath, "app.lamp.test", undefined, ["SESSION_SECRET", "SETUP_TOKEN"].map((name) => `${name}:${deploymentEnvironment[name]}`));
     server = runtime.server;
     const signIn = await fetch(`http://127.0.0.1:${runtime.port}/signin`, { headers: { Host: "app.lamp.test" } });
     assert.equal(signIn.status, 200);
-    const html = await signIn.text();
-    const script = html.match(/src="(\/app-assets\/[^\"]+\.js)"/)?.[1];
-    assert.ok(script, "built sign-in entry must refer to the bundled Start client asset");
+    assert.match(await signIn.text(), /<form method="post" action="\/auth\/magic-link"/, "the built app host serves Base's email-link sign-in");
+    const lobby = await fetch(`http://127.0.0.1:${runtime.port}/`, { headers: { Host: "app.lamp.test" } });
+    assert.equal(lobby.status, 200, "the app host's home page is the Lobby");
+    assert.match(await lobby.text(), /href="\/setup">Finish setup/, "before the owner's claim the Lobby offers Finish setup");
+    const docs = await fetch(`http://127.0.0.1:${runtime.port}/docs`, { headers: { Host: "app.lamp.test" } });
+    assert.equal(docs.status, 200, "the app host serves the docs");
+    const script = (await docs.text()).match(/src="(\/app-assets\/[^\"]+\.js)"/)?.[1];
+    assert.ok(script, "a built Start document must refer to the bundled Start client asset");
     const asset = await fetch(`http://127.0.0.1:${runtime.port}${script}`, { headers: { Host: "app.lamp.test" } });
     assert.equal(asset.status, 200);
     assert.match(asset.headers.get("content-type") ?? "", /javascript/);
-    const publicPathOnAppHost = await fetch(`http://127.0.0.1:${runtime.port}/`, { headers: { Host: "app.lamp.test" } });
-    assert.equal(publicPathOnAppHost.status, 404);
+    const workspace = await fetch(`http://127.0.0.1:${runtime.port}/app`, { headers: { Host: "app.lamp.test" }, redirect: "manual" });
+    assert.equal(workspace.status, 302, "a signed-out operator document is sent to sign in");
+    assert.equal(new URL(workspace.headers.get("location")).pathname, "/signin");
     await stop(server);
 
     runtime = await startBuiltWorker(artifactPath, statePath, "status.lamp.test", (response) => response.status === 503 || response.status === 200);
@@ -136,18 +143,25 @@ test("compiled generated Start Worker serves operator routes and prepares fresh 
     // Use a separate D1/R2/DO state with the real installation setup statements.
     // No operator settings mutation or scheduled event creates its first snapshot.
     const managedStatePath = join(statePath, "managed");
-    const managedVariables = ["RER_INSTALLATION_ID:lamp-readiness-test", "LAMP_APP_HOST:status.lamp.test"];
+    const managedVariables = ["RER_INSTALLATION_ID:lamp-readiness-test"];
     await run("pnpm", ["exec", "wrangler", "d1", "migrations", "apply", "DB", "--local", "--config", artifactPath, "--persist-to", managedStatePath]);
     const setupConfig = deploymentConfig(deploymentEnvironment, "staging");
     const setupSql = join(statePath, "managed-setup.sql");
-    await writeFile(setupSql, `${setupOperatorStatement(setupConfig)}\n${setupPageSettingsStatement(setupConfig)}\n`);
+    await writeFile(setupSql, `${setupPageSettingsStatement(setupConfig)}\n`);
     await run("pnpm", ["exec", "wrangler", "d1", "execute", "DB", "--local", "--config", artifactPath, "--persist-to", managedStatePath, "--file", setupSql]);
+    // Each local runtime answers as one host, so the page host and the app host run in turn over one state.
     runtime = await startBuiltWorker(artifactPath, managedStatePath, "status.lamp.test", (response) => response.status === 503, managedVariables);
     server = runtime.server;
     const beforeHealth = await fetch(`http://127.0.0.1:${runtime.port}/`, { headers: { Host: "status.lamp.test" } });
     assert.equal(beforeHealth.status, 503, "managed public reads alone do not manufacture the first snapshot");
-    const health = await fetch(`http://127.0.0.1:${runtime.port}/health`, { headers: { Host: "status.lamp.test" }, signal: AbortSignal.timeout(30_000) });
+    await stop(server);
+    runtime = await startBuiltWorker(artifactPath, managedStatePath, "app.lamp.test", () => true, managedVariables);
+    server = runtime.server;
+    const health = await fetch(`http://127.0.0.1:${runtime.port}/health`, { headers: { Host: "app.lamp.test" }, signal: AbortSignal.timeout(30_000) });
     assert.equal(health.status, 200);
+    await stop(server);
+    runtime = await startBuiltWorker(artifactPath, managedStatePath, "status.lamp.test", () => true, managedVariables);
+    server = runtime.server;
     const readyPage = await fetch(`http://127.0.0.1:${runtime.port}/`, { headers: { Host: "status.lamp.test" }, signal: AbortSignal.timeout(30_000) });
     assert.equal(readyPage.status, 200, "managed health completes the first snapshot before returning");
     assert.match(await readyPage.text(), /Snapshot generated/);

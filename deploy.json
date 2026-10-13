@@ -1,0 +1,89 @@
+{
+  "version": 1,
+  "project": "just-every/lamp",
+  "compatibilityDate": "2026-09-08",
+  "compatibilityFlags": [
+    "nodejs_compat",
+    "global_fetch_strictly_public"
+  ],
+  "platforms": [
+    "workers",
+    "container"
+  ],
+  "container": {
+    "engine": "node",
+    "cacheContract": "lamp-retained-v1",
+    "hostVariables": [
+      "LAMP_PAGE_HOST",
+      "LAMP_APP_HOST"
+    ]
+  },
+  "d1": [
+    {
+      "binding": "DB"
+    }
+  ],
+  "r2": [
+    {
+      "binding": "SNAPSHOTS"
+    }
+  ],
+  "queues": [
+    {
+      "binding": "JOBS",
+      "consumer": {
+        "batch_size": 10,
+        "max_retries": 5
+      }
+    }
+  ],
+  "durableObjects": [
+    {
+      "binding": "SNAPSHOT_CACHE",
+      "className": "SnapshotCache",
+      "storage": "sqlite"
+    }
+  ],
+  "secrets": [
+    {
+      "binding": "SETUP_TOKEN",
+      "environment": "SETUP_TOKEN"
+    },
+    {
+      "binding": "SESSION_SECRET",
+      "environment": "SESSION_SECRET"
+    },
+    {
+      "binding": "MAIL_PROVIDER_API_KEY",
+      "environment": "MAIL_PROVIDER_API_KEY"
+    },
+    {
+      "binding": "SUBSCRIBER_TOKEN_SECRET",
+      "environment": "SUBSCRIBER_TOKEN_SECRET"
+    },
+    {
+      "binding": "WEBHOOK_SIGNING_SECRET",
+      "environment": "WEBHOOK_SIGNING_SECRET"
+    },
+    {
+      "binding": "AI_PROVIDER_API_KEY",
+      "environment": "AI_PROVIDER_API_KEY"
+    },
+    {
+      "binding": "RER_MAIL_RELAY_SECRET",
+      "environment": "RER_MAIL_RELAY_SECRET"
+    },
+    {
+      "binding": "AUTH_PROVIDERS",
+      "environment": "AUTH_PROVIDERS"
+    },
+    {
+      "binding": "OIDC_TRANSACTION_SECRET",
+      "environment": "OIDC_TRANSACTION_SECRET"
+    }
+  ],
+  "crons": [
+    "* * * * *"
+  ],
+  "originVar": "LAMP_LOCAL_ORIGIN"
+}

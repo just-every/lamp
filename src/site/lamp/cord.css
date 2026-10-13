@@ -1,0 +1,8 @@
+/* The one cord: from the cord grip's top (213/1560, registration.json → cordGrip) straight up past the top edge, the
+   same 41/1560 width and the sprite's own matte shading across it (sampled from its top rows, cord.cssGradient). The
+   drawings are masked above the grip (sprites.css), so no second, resampled cord meets this one: the only change in
+   width is at the grip, a real joint. */
+.lamp-home .lamp-cord { position: absolute; bottom: calc(100% - 213 / 1560 * 100%); left: calc(760 / 1560 * 100%);
+  width: calc(41 / 1560 * 100%); height: 110svh;
+  background: linear-gradient(90deg, #333831 1.2%, #464c46 11%, #242a23 20.7%, #181e17 30.5%, #141a13 40.2%, #101710 50%,
+    #121912 59.8%, #1c231d 69.5%, #424942 79.3%, #616660 89%, #3e433d 98.8%); }

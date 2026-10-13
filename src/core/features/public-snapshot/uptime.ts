@@ -1,11 +1,12 @@
 import type { PublicSnapshotSource } from "./repository";
 import type { PublicSnapshotPolicies } from "./policies";
-import { DAY, REPORTING_DAYS, addCalendarDays, dateLabel, dayKey, escapeHtml, localMidnight } from "./format";
+import { DAY, REPORTING_DAYS, addCalendarDays, dateLabel, dayKey, escapeHtml, localMidnight, timestamp } from "./format";
 
 const MINUTE = 60_000;
 
 export interface Uptime {
   percentage: string | null;
+  trackingSince: string | null;
   coverageDays: number;
   marks: Array<{ day: string; downtimeMinutes: number | null }>;
 }
@@ -26,10 +27,10 @@ export function computeUptime(source: PublicSnapshotSource, componentId: string,
   const days = reportingDays(windowStart, now, timezone);
   const marks = days.map(({ day }) => ({ day, downtimeMinutes: null as number | null }));
   const earliest = Math.min(...events.map((event) => new Date(event.changedAt).getTime()), ...corrections.map((correction) => new Date(correction.startsAt).getTime()));
-  if (!Number.isFinite(earliest)) return { percentage: null, coverageDays: 0, marks };
+  if (!Number.isFinite(earliest)) return { percentage: null, trackingSince: null, coverageDays: 0, marks };
   const coverageStart = Math.max(windowStart, earliest);
   const coverageMinutes = Math.max(0, (now - coverageStart) / MINUTE);
-  if (coverageMinutes <= 0) return { percentage: null, coverageDays: 0, marks };
+  if (coverageMinutes <= 0) return { percentage: null, trackingSince: earliest <= now ? new Date(earliest).toISOString() : null, coverageDays: 0, marks };
 
   const boundaries = new Set<number>([coverageStart, now]);
   for (const event of events) boundaries.add(new Date(event.changedAt).getTime());
@@ -55,20 +56,23 @@ export function computeUptime(source: PublicSnapshotSource, componentId: string,
     else if (marks[day]!.downtimeMinutes === null) marks[day]!.downtimeMinutes = 0;
   }
   const percentage = Math.floor((100 - (weightedDowntime / coverageMinutes) * 100) * 100) / 100;
-  return { percentage: `${Math.max(0, percentage).toFixed(2)}%`, coverageDays: Math.floor(coverageMinutes / (24 * 60)), marks };
+  return { percentage: `${Math.max(0, percentage).toFixed(2)}%`, trackingSince: new Date(earliest).toISOString(), coverageDays: Math.floor(coverageMinutes / (24 * 60)), marks };
 }
 
 export function uptimeMarkup(component: { name: string; uptime: Uptime }, timezone: string, generatedAt: string) {
-  const coverage = component.uptime.percentage === null
-    ? "No state history yet"
-    : component.uptime.coverageDays === 0
-      ? `${component.uptime.percentage} over less than one whole day`
+  const coverage = component.uptime.trackingSince && component.uptime.coverageDays === 0
+    ? null
+    : component.uptime.percentage === null
+      ? "No data"
       : component.uptime.coverageDays < REPORTING_DAYS
         ? `${component.uptime.percentage} over ${component.uptime.coverageDays} whole day${component.uptime.coverageDays === 1 ? "" : "s"}`
         : component.uptime.percentage;
+  const coverageMarkup = coverage === null && component.uptime.trackingSince
+    ? `Tracking since ${timestamp(component.uptime.trackingSince, timezone)}`
+    : escapeHtml(coverage ?? "No data");
   const marks = component.uptime.marks.map((mark) => {
     const label = mark.downtimeMinutes === null ? `${mark.day}: no data` : mark.downtimeMinutes > 0 ? `${mark.day}: ${mark.downtimeMinutes.toFixed(mark.downtimeMinutes % 1 === 0 ? 0 : 1)} weighted downtime minutes` : `${mark.day}: no downtime`;
     return `<span class="uptime-mark ${mark.downtimeMinutes === null ? "no-data" : mark.downtimeMinutes > 0 ? "downtime" : "good"}" role="listitem" aria-label="${escapeHtml(label)}" title="${escapeHtml(label)}"></span>`;
   }).join("");
-  return `<div class="uptime"><span class="uptime-number">${escapeHtml(coverage)}</span><div class="uptime-marks" role="list" aria-label="${REPORTING_DAYS}-day uptime record for ${escapeHtml(component.name)}">${marks}</div><span class="uptime-window">${REPORTING_DAYS}-day record ending ${escapeHtml(dateLabel(generatedAt, timezone))}</span></div>`;
+  return `<div class="uptime"><span class="uptime-number">${coverageMarkup}</span><div class="uptime-marks" role="list" aria-label="${REPORTING_DAYS}-day uptime record for ${escapeHtml(component.name)}">${marks}</div><span class="uptime-window">${REPORTING_DAYS}-day record ending ${escapeHtml(dateLabel(generatedAt, timezone))}</span></div>`;
 }

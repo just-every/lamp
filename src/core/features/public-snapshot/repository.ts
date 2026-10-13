@@ -1,3 +1,5 @@
+import { readImportedNamespaces, readImportedPublicRecords } from "../statuspage-import/alias-repository";
+import type { ImportedPublicRecord } from "../statuspage-import/public-addresses";
 import { and, asc, desc, eq, isNull, ne, or, sql } from "drizzle-orm";
 
 import { createDatabase } from "../../platform/db/client";
@@ -31,6 +33,8 @@ export interface SnapshotRepository {
 }
 
 export interface PublicSnapshotSource {
+  importedNamespaces?: string[];
+  importedPublicRecords?: ImportedPublicRecord[];
   settings: typeof pageSettings.$inferSelect;
   components: Array<{
     id: string;
@@ -62,7 +66,7 @@ export function createSnapshotRepository(binding: D1Database): SnapshotRepositor
       const settings = await database.select().from(pageSettings).where(eq(pageSettings.id, "default")).get();
       if (!settings) return null;
 
-      const [componentRows, standingClaims, incidentClaims, maintenanceClaims, history, corrections, incidentRows, attachedComponents, updates, maintenanceRows, attachedMaintenanceComponents, reports, maintenanceNotices] = await Promise.all([
+      const [componentRows, standingClaims, incidentClaims, maintenanceClaims, history, corrections, incidentRows, attachedComponents, updates, maintenanceRows, attachedMaintenanceComponents, reports, maintenanceNotices, importedPublicRecords, importedNamespaces] = await Promise.all([
         database
           .select({
             id: components.id,
@@ -113,9 +117,12 @@ export function createSnapshotRepository(binding: D1Database): SnapshotRepositor
           .then((rows) => rows.map((row) => row.maintenance_components)),
         binding.prepare(`SELECT incident_id AS incidentId, summary, timeline, cause, remediation, published_at AS publishedAt FROM incident_reports WHERE published_at IS NOT NULL ORDER BY published_at DESC`).all<{ incidentId: string; summary: string; timeline: string; cause: string; remediation: string; publishedAt: string }>().then((result) => result.results),
         binding.prepare(`SELECT id, maintenance_id AS maintenanceId, kind, body, published_at AS publishedAt FROM maintenance_notices ORDER BY published_at DESC`).all<{ id: string; maintenanceId: string; kind: string; body: string; publishedAt: string }>().then((result) => result.results),
+        readImportedPublicRecords(binding),
+        readImportedNamespaces(binding),
       ]);
 
       return {
+        importedPublicRecords, importedNamespaces,
         settings,
         components: componentRows,
         claims: [...standingClaims, ...incidentClaims, ...maintenanceClaims]

@@ -5,14 +5,6 @@
     "id": "runeditrun/edition-authoring",
     "version": "1.1.0"
   },
-  "parent": {
-    "repository": "https://github.com/just-every/lamp.git",
-    "projection": {
-      "schemaVersion": 1,
-      "originalSha256": "e23647ab29fbe69848e84b6329fb967ed41f8f74fb8c1e21de8453fa6d96f5f8",
-      "recipeSha256": "254d317133f0c6fa0f611280425f4520a72c75a4fb19e4552e43386f96fef3c5"
-    }
-  },
   "components": [
     {
       "id": "just-every/lamp",
@@ -50,21 +42,15 @@
         "kind": "local",
         "paths": [
           "scripts/deployment/owner-migrations.mjs",
-          "scripts/deployment/owner-migrations.test.mjs",
           "composition/modules/owner-migrations/README.md",
           "composition/modules/owner-migrations/LICENSE"
         ],
         "origin": {
-          "repository": "https://example.test/source.git",
-          "projection": {
-            "schemaVersion": 1,
-            "originalSha256": "c37b99076acbbf9381de7b23cf7d077d9d2c192c0b05caebb7ff85a961aacf61",
-            "recipeSha256": "254d317133f0c6fa0f611280425f4520a72c75a4fb19e4552e43386f96fef3c5"
-          },
+          "repository": "https://github.com/runeditrun/base.git",
+          "revision": "3d643dda1d203d36e3fa57e8e5ba14e414bba6f9",
           "path": ".",
           "paths": [
             "deployment/owner-migrations.mjs",
-            "deployment/owner-migrations.test.mjs",
             "deployment/OWNER-MIGRATIONS.md",
             "LICENSE"
           ]
@@ -73,10 +59,6 @@
           {
             "path": "scripts/deployment/owner-migrations.mjs",
             "originPath": "deployment/owner-migrations.mjs"
-          },
-          {
-            "path": "scripts/deployment/owner-migrations.test.mjs",
-            "originPath": "deployment/owner-migrations.test.mjs"
           },
           {
             "path": "composition/modules/owner-migrations/README.md",
@@ -95,34 +77,24 @@
       "source": {
         "kind": "local",
         "paths": [
-          "src/modules/sendgrid-email",
-          "tests/composition/sendgrid-email",
+          "modules/sendgrid-email",
           "composition/modules/sendgrid-email/README.md",
           "composition/modules/sendgrid-email/LICENSE"
         ],
         "origin": {
-          "repository": "https://example.test/source.git",
-          "projection": {
-            "schemaVersion": 1,
-            "originalSha256": "92dcff77d66207b845ad34ce137d2b0a387d93d3ee5ee7234ca9321790469ddb",
-            "recipeSha256": "254d317133f0c6fa0f611280425f4520a72c75a4fb19e4552e43386f96fef3c5"
-          },
+          "repository": "https://github.com/runeditrun/base.git",
+          "revision": "3d643dda1d203d36e3fa57e8e5ba14e414bba6f9",
           "path": ".",
           "paths": [
-            "modules/sendgrid-email/src",
-            "modules/sendgrid-email/tests",
+            "modules/sendgrid-email",
             "modules/sendgrid-email/README.md",
             "modules/sendgrid-email/LICENSE"
           ]
         },
         "mappings": [
           {
-            "path": "src/modules/sendgrid-email",
-            "originPath": "modules/sendgrid-email/src"
-          },
-          {
-            "path": "tests/composition/sendgrid-email",
-            "originPath": "modules/sendgrid-email/tests"
+            "path": "modules/sendgrid-email",
+            "originPath": "modules/sendgrid-email"
           },
           {
             "path": "composition/modules/sendgrid-email/README.md",
@@ -136,150 +108,211 @@
       }
     },
     {
-      "id": "runeditrun/base-onboarding",
+      "id": "runeditrun/mail",
       "role": "module",
       "source": {
         "kind": "local",
         "paths": [
-          "scripts/base-onboarding"
+          "modules/mail"
         ],
         "origin": {
-          "repository": "https://example.test/source.git",
-          "projection": {
-            "schemaVersion": 1,
-            "originalSha256": "f901d74a67fd8de755c0beb75035a31b15a40fea2837491a1963a3ca3e45ffcb",
-            "recipeSha256": "254d317133f0c6fa0f611280425f4520a72c75a4fb19e4552e43386f96fef3c5"
-          },
-          "path": "onboarding"
+          "repository": "https://github.com/runeditrun/base.git",
+          "revision": "3d643dda1d203d36e3fa57e8e5ba14e414bba6f9",
+          "path": ".",
+          "paths": [
+            "modules/mail"
+          ]
         },
         "mappings": [
           {
-            "path": "scripts/base-onboarding/README.md",
-            "originPath": "README.md"
+            "path": "modules/mail",
+            "originPath": "modules/mail"
+          }
+        ]
+      }
+    },
+    {
+      "id": "runeditrun/edition-authoring",
+      "role": "module",
+      "source": {
+        "kind": "local",
+        "paths": [
+          "scripts/edition-authoring"
+        ],
+        "origin": {
+          "repository": "https://github.com/runeditrun/base.git",
+          "revision": "3d643dda1d203d36e3fa57e8e5ba14e414bba6f9",
+          "path": ".",
+          "paths": [
+            "edition-authoring"
+          ]
+        },
+        "mappings": [
+          {
+            "path": "scripts/edition-authoring",
+            "originPath": "edition-authoring"
+          }
+        ]
+      }
+    },
+    {
+      "id": "runeditrun/operations",
+      "role": "module",
+      "source": {
+        "kind": "local",
+        "paths": [
+          "scripts/operations.mjs",
+          "scripts/project-operations.mjs"
+        ],
+        "origin": {
+          "repository": "https://github.com/runeditrun/base.git",
+          "revision": "3d643dda1d203d36e3fa57e8e5ba14e414bba6f9",
+          "path": ".",
+          "paths": [
+            "operations/operations.mjs",
+            "operations/project-operations.mjs"
+          ]
+        },
+        "mappings": [
+          {
+            "path": "scripts/operations.mjs",
+            "originPath": "operations/operations.mjs"
           },
           {
-            "path": "scripts/base-onboarding/activity.mjs",
-            "originPath": "activity.mjs"
+            "path": "scripts/project-operations.mjs",
+            "originPath": "operations/project-operations.mjs"
+          }
+        ]
+      }
+    },
+    {
+      "id": "runeditrun/delivery-producer",
+      "role": "module",
+      "source": {
+        "kind": "local",
+        "paths": [
+          "scripts/delivery/base/artifact.mjs",
+          "scripts/delivery/base/bindings.mjs",
+          "scripts/delivery/base/capabilities.mjs",
+          "scripts/delivery/base/cli.mjs",
+          "scripts/delivery/base/declarations.mjs",
+          "scripts/delivery/base/export.mjs",
+          "scripts/delivery/base/generators/integration.mjs",
+          "scripts/delivery/base/generators/managed.mjs",
+          "scripts/delivery/base/generators/project.mjs",
+          "scripts/delivery/base/generators/validation.mjs",
+          "scripts/delivery/base/migrations.mjs",
+          "scripts/delivery/base/package.mjs",
+          "scripts/delivery/base/paths.mjs",
+          "scripts/delivery/base/payloads.mjs",
+          "scripts/delivery/base/schema/SETUP.schema.json",
+          "scripts/delivery/base/schema/json-schema.mjs",
+          "scripts/delivery/base/schema/setup-validation.mjs",
+          "scripts/delivery/base/setup-manifest.mjs",
+          "scripts/delivery/base/spec.mjs"
+        ],
+        "origin": {
+          "repository": "https://github.com/runeditrun/base.git",
+          "revision": "3d643dda1d203d36e3fa57e8e5ba14e414bba6f9",
+          "path": ".",
+          "paths": [
+            "modules/delivery-producer/artifact.mjs",
+            "modules/delivery-producer/bindings.mjs",
+            "modules/delivery-producer/capabilities.mjs",
+            "modules/delivery-producer/cli.mjs",
+            "modules/delivery-producer/declarations.mjs",
+            "modules/delivery-producer/export.mjs",
+            "modules/delivery-producer/generators/integration.mjs",
+            "modules/delivery-producer/generators/managed.mjs",
+            "modules/delivery-producer/generators/project.mjs",
+            "modules/delivery-producer/generators/validation.mjs",
+            "modules/delivery-producer/migrations.mjs",
+            "modules/delivery-producer/package.mjs",
+            "modules/delivery-producer/paths.mjs",
+            "modules/delivery-producer/payloads.mjs",
+            "schema/SETUP.schema.json",
+            "schema/json-schema.mjs",
+            "schema/setup-validation.mjs",
+            "modules/delivery-producer/setup-manifest.mjs",
+            "modules/delivery-producer/spec.mjs"
+          ]
+        },
+        "mappings": [
+          {
+            "path": "scripts/delivery/base/artifact.mjs",
+            "originPath": "modules/delivery-producer/artifact.mjs"
           },
           {
-            "path": "scripts/base-onboarding/agent-handoff.mjs",
-            "originPath": "agent-handoff.mjs"
+            "path": "scripts/delivery/base/bindings.mjs",
+            "originPath": "modules/delivery-producer/bindings.mjs"
           },
           {
-            "path": "scripts/base-onboarding/app-processes.mjs",
-            "originPath": "app-processes.mjs"
+            "path": "scripts/delivery/base/capabilities.mjs",
+            "originPath": "modules/delivery-producer/capabilities.mjs"
           },
           {
-            "path": "scripts/base-onboarding/app-processes.test.mjs",
-            "originPath": "app-processes.test.mjs"
+            "path": "scripts/delivery/base/cli.mjs",
+            "originPath": "modules/delivery-producer/cli.mjs"
           },
           {
-            "path": "scripts/base-onboarding/contract.test.mjs",
-            "originPath": "contract.test.mjs"
+            "path": "scripts/delivery/base/declarations.mjs",
+            "originPath": "modules/delivery-producer/declarations.mjs"
           },
           {
-            "path": "scripts/base-onboarding/email.mjs",
-            "originPath": "email.mjs"
+            "path": "scripts/delivery/base/export.mjs",
+            "originPath": "modules/delivery-producer/export.mjs"
           },
           {
-            "path": "scripts/base-onboarding/failures.mjs",
-            "originPath": "failures.mjs"
+            "path": "scripts/delivery/base/generators/integration.mjs",
+            "originPath": "modules/delivery-producer/generators/integration.mjs"
           },
           {
-            "path": "scripts/base-onboarding/failures.test.mjs",
-            "originPath": "failures.test.mjs"
+            "path": "scripts/delivery/base/generators/managed.mjs",
+            "originPath": "modules/delivery-producer/generators/managed.mjs"
           },
           {
-            "path": "scripts/base-onboarding/fill.mjs",
-            "originPath": "fill.mjs"
+            "path": "scripts/delivery/base/generators/project.mjs",
+            "originPath": "modules/delivery-producer/generators/project.mjs"
           },
           {
-            "path": "scripts/base-onboarding/launcher.mjs",
-            "originPath": "launcher.mjs"
+            "path": "scripts/delivery/base/generators/validation.mjs",
+            "originPath": "modules/delivery-producer/generators/validation.mjs"
           },
           {
-            "path": "scripts/base-onboarding/metadata.mjs",
-            "originPath": "metadata.mjs"
+            "path": "scripts/delivery/base/migrations.mjs",
+            "originPath": "modules/delivery-producer/migrations.mjs"
           },
           {
-            "path": "scripts/base-onboarding/pending-request.test.mjs",
-            "originPath": "pending-request.test.mjs"
+            "path": "scripts/delivery/base/package.mjs",
+            "originPath": "modules/delivery-producer/package.mjs"
           },
           {
-            "path": "scripts/base-onboarding/prefill.mjs",
-            "originPath": "prefill.mjs"
+            "path": "scripts/delivery/base/paths.mjs",
+            "originPath": "modules/delivery-producer/paths.mjs"
           },
           {
-            "path": "scripts/base-onboarding/private-files.mjs",
-            "originPath": "private-files.mjs"
+            "path": "scripts/delivery/base/payloads.mjs",
+            "originPath": "modules/delivery-producer/payloads.mjs"
           },
           {
-            "path": "scripts/base-onboarding/private.mjs",
-            "originPath": "private.mjs"
+            "path": "scripts/delivery/base/schema/SETUP.schema.json",
+            "originPath": "schema/SETUP.schema.json"
           },
           {
-            "path": "scripts/base-onboarding/private.test.mjs",
-            "originPath": "private.test.mjs"
+            "path": "scripts/delivery/base/schema/json-schema.mjs",
+            "originPath": "schema/json-schema.mjs"
           },
           {
-            "path": "scripts/base-onboarding/providers.mjs",
-            "originPath": "providers.mjs"
+            "path": "scripts/delivery/base/schema/setup-validation.mjs",
+            "originPath": "schema/setup-validation.mjs"
           },
           {
-            "path": "scripts/base-onboarding/secrets.mjs",
-            "originPath": "secrets.mjs"
+            "path": "scripts/delivery/base/setup-manifest.mjs",
+            "originPath": "modules/delivery-producer/setup-manifest.mjs"
           },
           {
-            "path": "scripts/base-onboarding/server.mjs",
-            "originPath": "server.mjs"
-          },
-          {
-            "path": "scripts/base-onboarding/start-concurrency.test.mjs",
-            "originPath": "start-concurrency.test.mjs"
-          },
-          {
-            "path": "scripts/base-onboarding/state.mjs",
-            "originPath": "state.mjs"
-          },
-          {
-            "path": "scripts/base-onboarding/ui/activity.js",
-            "originPath": "ui/activity.js"
-          },
-          {
-            "path": "scripts/base-onboarding/ui/address-client.mjs",
-            "originPath": "ui/address-client.mjs"
-          },
-          {
-            "path": "scripts/base-onboarding/ui/app.js",
-            "originPath": "ui/app.js"
-          },
-          {
-            "path": "scripts/base-onboarding/ui/index.html",
-            "originPath": "ui/index.html"
-          },
-          {
-            "path": "scripts/base-onboarding/ui/model-core.mjs",
-            "originPath": "ui/model-core.mjs"
-          },
-          {
-            "path": "scripts/base-onboarding/ui/model-core.test.mjs",
-            "originPath": "ui/model-core.test.mjs"
-          },
-          {
-            "path": "scripts/base-onboarding/ui/model.mjs",
-            "originPath": "ui/model.mjs"
-          },
-          {
-            "path": "scripts/base-onboarding/ui/style.css",
-            "originPath": "ui/style.css"
-          },
-          {
-            "path": "scripts/base-onboarding/ui/workspace-art.js",
-            "originPath": "ui/workspace-art.js"
-          },
-          {
-            "path": "scripts/base-onboarding/wrangler-auth.mjs",
-            "originPath": "wrangler-auth.mjs"
+            "path": "scripts/delivery/base/spec.mjs",
+            "originPath": "modules/delivery-producer/spec.mjs"
           }
         ]
       }

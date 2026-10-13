@@ -3,7 +3,7 @@ import type { MailSender } from "../platform/mail";
 import type { ReactNode } from "react";
 import type { ComponentStatusChangedEvent } from "../features/components";
 import type { NotificationEventsPolicy } from "../features/deliveries";
-import type { UpdateReviewPolicy } from "../features/incidents";
+import type { UpdateDuePolicy, UpdateReviewPolicy } from "../features/incidents";
 import type { AlertIntakePolicy } from "../features/intake";
 import type { MaintenanceRemindersPolicy } from "../features/maintenance";
 import type { PostmortemDuePolicy } from "../features/reports";
@@ -16,6 +16,7 @@ export interface LampPolicies {
   "page.status-rollup.v1"?: PageStatusRollupPolicy;
   "uptime.downtime-states.v1"?: UptimeDowntimeWeightPolicy;
   "update.review.v1"?: UpdateReviewPolicy;
+  "incident.update-due.v1"?: UpdateDuePolicy;
   "maintenance.reminders.v1"?: MaintenanceRemindersPolicy;
   "subscriber.confirmation.v1"?: SubscriberConfirmationPolicy;
   "notification.events.v1"?: NotificationEventsPolicy;

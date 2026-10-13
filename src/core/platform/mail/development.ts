@@ -1,11 +1,11 @@
-import { canUseDevelopmentMail, isLoopbackHostname, type DevelopmentMailBindings } from '../../features/dev-outbox/access';
+import { admitsDevelopmentRequest, canUseDevelopmentMail, isLoopbackHostname, type DevelopmentMailBindings } from '../../features/dev-outbox/access';
 import { createDevOutboxRepository } from '../../features/dev-outbox/repository';
 import { MailUnavailableError, type MailMessage, type MailSender, type SentMail } from './sender';
 
 /** Native mail transport: a capture is durable local storage, never a receipt. */
 export function createDevelopmentMailSender(bindings: DevelopmentMailBindings, request?: Request): MailSender | null {
   if (!canUseDevelopmentMail(bindings, request)) return null;
-  const repository = createDevOutboxRepository(bindings.LAMP_DEV_OUTBOX!);
+  const repository = createDevOutboxRepository(bindings.LAMP_DEV_OUTBOX!, bindings.LAMP_BASE_MAIL);
   return {
     get configured() { return canUseDevelopmentMail(bindings, request); },
     async send(message: MailMessage): Promise<SentMail> {
@@ -17,10 +17,12 @@ export function createDevelopmentMailSender(bindings: DevelopmentMailBindings, r
 }
 
 /** Called before composing services in development. This creates no operator,
- * session or subscription; native authentication and confirmation are unchanged. */
+ * session or subscription; native authentication and confirmation are unchanged.
+ * Every admitted request gets the local token secret, including a confirmation
+ * link followed from the other surface; only sending stays same-site. */
 export async function prepareDevelopmentMailBindings<T extends DevelopmentMailBindings & { SUBSCRIBER_TOKEN_SECRET?: string }>(bindings: T, request?: Request): Promise<T> {
-  if (!canUseDevelopmentMail(bindings, request)) return bindings;
-  const repository = createDevOutboxRepository(bindings.LAMP_DEV_OUTBOX!);
+  if (!(request ? admitsDevelopmentRequest(bindings, request) : canUseDevelopmentMail(bindings))) return bindings;
+  const repository = createDevOutboxRepository(bindings.LAMP_DEV_OUTBOX!, bindings.LAMP_BASE_MAIL);
   if (request) {
     const url = new URL(request.url);
     // A separately configured app host cannot establish the public origin. Only
@@ -35,12 +37,12 @@ export async function prepareDevelopmentMailBindings<T extends DevelopmentMailBi
 /** No guessed HTTPS scheme, default port or most-recent-client origin. */
 export async function resolveDevelopmentMailOrigin(bindings: DevelopmentMailBindings): Promise<string | null> {
   if (!canUseDevelopmentMail(bindings)) return null;
-  const origin = await createDevOutboxRepository(bindings.LAMP_DEV_OUTBOX!).publicOrigin();
+  const origin = await createDevOutboxRepository(bindings.LAMP_DEV_OUTBOX!, bindings.LAMP_BASE_MAIL).publicOrigin();
   if (origin === null) return null;
   try {
     const url = new URL(origin);
     if (url.origin === origin && ['http:', 'https:'].includes(url.protocol) && !url.username && !url.password
       && isLoopbackHostname(url.hostname) && url.hostname.toLowerCase() === bindings.LAMP_PAGE_HOST.toLowerCase()) return origin;
   } catch { /* Invalid persisted configuration fails closed below. */ }
-  throw new Error('The persisted development mail origin does not match the configured local page host. Intentionally reset the local outbox configuration before using a different origin.');
+  throw new Error('The persisted development mail origin does not match the configured local page host. Intentionally reset the local outbox configuration before using a different origin. Stop pnpm dev and run: pnpm exec wrangler r2 object delete lamp-local-development-outbox/configuration/public-origin --local --persist-to .wrangler/state (or your LAMP_WORKERS_STATE_PATH).');
 }

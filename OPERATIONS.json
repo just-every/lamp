@@ -1,30 +1,170 @@
 {
-  "version": 1,
-  "edition": "just-every/lamp",
+  "version": 2,
   "commands": {
+    "install": {
+      "argv": [
+        "rer",
+        "install"
+      ],
+      "effects": "Frozen dependency installation with the pinned pnpm and lockfile.",
+      "inputs": [
+        "package.json",
+        "scripts/installer/local.mjs"
+      ]
+    },
     "setup": {
       "argv": [
-        "pnpm",
-        "run",
+        "rer",
         "setup"
       ],
-      "effects": "Provisions owner Cloudflare resources, checks sender DNS, applies migrations and initializes page/operator settings."
+      "effects": "Builds Lamp, migrates local data, saves private settings, claims the first owner through Base operator-auth and initializes product settings.",
+      "inputs": [
+        "package.json",
+        "scripts/installer/local.mjs"
+      ]
     },
-    "deploy": {
+    "dev": {
       "argv": [
-        "pnpm",
-        "run",
-        "deploy"
+        "rer",
+        "dev"
       ],
-      "effects": "Runs verification and setup, uploads configured secrets and Worker, then checks health. Ordered migrations include the selected owner SQL after core; migration failure stops the update."
+      "effects": "Serves Lamp locally with Base keyed owner dev identity and captured mail for native email-link testing.",
+      "inputs": [
+        "package.json",
+        "scripts/installer/local.mjs"
+      ]
+    },
+    "preview": {
+      "argv": [
+        "rer",
+        "preview"
+      ],
+      "effects": "Serves the fixed production build locally. The production build has no development outbox; sign in with rer dev.",
+      "inputs": [
+        "package.json",
+        "scripts/installer/local.mjs"
+      ]
+    },
+    "build": {
+      "argv": [
+        "rer",
+        "build"
+      ],
+      "effects": "Builds the production Worker and assets with private local settings set aside.",
+      "inputs": [
+        "package.json",
+        "scripts/installer/local.mjs"
+      ]
     },
     "verify": {
       "argv": [
-        "pnpm",
-        "run",
+        "rer",
         "verify"
       ],
-      "effects": "Runs local source, Workers, browser and generated-artifact checks; no hosted acceptance claim. Includes isolated owner-migration ordering, rerun and rollback checks."
+      "effects": "Runs Lamp's complete local verification: source, Workers, browser and generated-artifact checks; no hosted acceptance claim.",
+      "inputs": [
+        "package.json",
+        "scripts/installer/local.mjs"
+      ]
+    },
+    "reset": {
+      "argv": [
+        "rer",
+        "reset"
+      ],
+      "effects": "After confirmation removes local data, owner, outbox, generated private settings and installer state; keeps source, exports and deployment receipts.",
+      "inputs": [
+        "package.json",
+        "scripts/installer/local.mjs"
+      ]
+    },
+    "deploy": {
+      "argv": [
+        "rer",
+        "deploy"
+      ],
+      "effects": "Runs Lamp's Cloudflare pipeline: verification, resource setup, secret upload, Worker deploy and health check. --dry-run builds and validates locally with no provider request.",
+      "inputs": [
+        "package.json",
+        "scripts/installer/local.mjs"
+      ]
+    },
+    "export": {
+      "argv": [
+        "rer",
+        "export"
+      ],
+      "effects": "Writes the local D1 data and R2 snapshots to a new owner-only archive with an integrity receipt. export:cloudflare covers a deployed installation.",
+      "inputs": [
+        "package.json",
+        "scripts/installer/local.mjs"
+      ]
+    },
+    "import": {
+      "argv": [
+        "rer",
+        "import"
+      ],
+      "effects": "Restores a verified archive into an empty local installation after --yes. import:cloudflare covers a deployed installation.",
+      "inputs": [
+        "package.json",
+        "scripts/installer/local.mjs"
+      ]
+    },
+    "release": {
+      "argv": [
+        "rer",
+        "release"
+      ],
+      "effects": "Base release producer: receipts, validation and gates; never pushes or deploys.",
+      "inputs": [
+        "package.json",
+        "scripts/installer/local.mjs"
+      ]
+    },
+    "outbox": {
+      "argv": [
+        "rer",
+        "outbox"
+      ],
+      "effects": "Prints the running local app's development outbox URL; with --owner-email requests a fresh sign-in link.",
+      "inputs": [
+        "package.json",
+        "scripts/installer/local.mjs"
+      ]
+    },
+    "doctor": {
+      "argv": [
+        "rer",
+        "doctor"
+      ],
+      "effects": "Read-only tool, configuration and state diagnostics naming missing inputs.",
+      "inputs": [
+        "package.json",
+        "scripts/installer/local.mjs"
+      ]
+    },
+    "describe": {
+      "argv": [
+        "rer",
+        "describe"
+      ],
+      "effects": "Describes commands, flags, pins and local state without running project commands.",
+      "inputs": [
+        "package.json",
+        "scripts/installer/local.mjs"
+      ]
+    },
+    "check": {
+      "argv": [
+        "rer",
+        "check"
+      ],
+      "effects": "Read-only structural seed contract check.",
+      "inputs": [
+        "package.json",
+        "scripts/installer/local.mjs"
+      ]
     }
   },
   "requiredEnvironment": [
@@ -41,16 +181,18 @@
     "MAIL_PROVIDER_API_KEY",
     "SUBSCRIBER_TOKEN_SECRET",
     "WEBHOOK_SIGNING_SECRET",
-    "MAIL_DKIM_SELECTOR"
+    "MAIL_DKIM_SELECTOR",
+    "SETUP_TOKEN",
+    "SESSION_SECRET"
   ],
   "authentication": {
     "deployment": "Owner-controlled Cloudflare API token and account ID.",
-    "operators": "Native emailed sign-in; no local bypass."
+    "operators": "Base operator-auth native email links with a confirmation POST; optional owner-linked OpenID Connect; keyed local owner identity in development."
   },
   "configurationFiles": [
     "seed.json",
     "src/ext/config.ts",
-    "deploy/wrangler.template.toml"
+    "wrangler.jsonc"
   ],
   "health": {
     "path": "/health",
@@ -58,5 +200,61 @@
   },
   "acceptance": {
     "document": "ACCEPTANCE.md"
+  },
+  "project": "just-every/lamp",
+  "runtime": {
+    "requirements": [
+      {
+        "name": "node",
+        "version": "22.20.0"
+      },
+      {
+        "name": "pnpm",
+        "version": "10.12.4"
+      }
+    ]
+  },
+  "documentation": {
+    "document": "OPERATIONS.md"
+  },
+  "configuration": {
+    "module": "scripts/operations-config.mjs"
+  },
+  "loops": [
+    {
+      "id": "native-mail-dispatch",
+      "type": "worker",
+      "required": true,
+      "enabled": true
+    },
+    {
+      "id": "scheduled-status-updates",
+      "type": "worker",
+      "required": true,
+      "enabled": true
+    }
+  ],
+  "environmentSources": {
+    "CLOUDFLARE_ACCOUNT_ID": "Cloudflare account overview",
+    "CLOUDFLARE_API_TOKEN": "Cloudflare account API token settings",
+    "LAMP_PAGE_HOST": "Your Cloudflare managed public status hostname",
+    "LAMP_APP_HOST": "Your Cloudflare managed operator hostname",
+    "LAMP_PAGE_NAME": "Your business status page name",
+    "LAMP_PAGE_TAGLINE": "Your public status page description",
+    "LAMP_PAGE_TIMEZONE": "Your status page IANA time zone",
+    "LAMP_ACCENT_COLOR": "Your six digit hexadecimal brand colour",
+    "MAIL_FROM_ADDRESS": "Verified sender address in your chosen mail provider",
+    "SETUP_OPERATOR_EMAIL": "Your first operator email address",
+    "MAIL_PROVIDER_API_KEY": "Your selected mail provider API key settings",
+    "SUBSCRIBER_TOKEN_SECRET": "Generate a private random subscriber signing value",
+    "WEBHOOK_SIGNING_SECRET": "Generate a private random webhook signing value",
+    "MAIL_DKIM_SELECTOR": "Your mail provider domain DNS settings",
+    "SETUP_TOKEN": "Generate a private random one-time setup value",
+    "SESSION_SECRET": "Generate and preserve a private random session signing value"
+  },
+  "seedContract": {
+    "version": 1,
+    "profile": "first-party",
+    "adapter": "scripts/installer/local.mjs"
   }
 }

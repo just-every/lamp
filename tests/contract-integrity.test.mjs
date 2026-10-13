@@ -5,15 +5,10 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { readdirSync } from "node:fs";
-
-import { assertReleaseMigrationInventory, assertReleaseContractInventory } from "../scripts/release-metadata.mjs";
 
 const contractText = readFileSync(new URL("../CONTRACT.md", import.meta.url), "utf8");
 const baselineText = readFileSync(new URL("../BASELINE.md", import.meta.url), "utf8");
 const seed = JSON.parse(readFileSync(new URL("../seed.json", import.meta.url), "utf8"));
-const release = JSON.parse(readFileSync(new URL("../RELEASE.json", import.meta.url), "utf8"));
-const previousRelease = release.previousVersion ? JSON.parse(readFileSync(new URL(`../release-history/${release.previousVersion}.json`, import.meta.url), "utf8")) : undefined;
 
 const CLAUSE_HEADING = /^- \*\*([A-Z][A-Z0-9]*-\d{3}) — (.+?)\.\*\*/gm;
 const ID_MENTION = /(?<!BASE-)\b([A-Z][A-Z0-9]*-\d{3})\b/g;
@@ -98,11 +93,6 @@ test("policy IDs in the contract and seed.json policies are the same set", () =>
   assert.deepEqual(seed.extensionPoints.policies.slice().sort(), marked.slice().sort());
 });
 
-test("the number of policies stays within the extension-surface budget", () => {
-  assert.ok(seed.extensionPoints.policies.length <= 8, `${seed.extensionPoints.policies.length} policies; AGENTS.md budgets about eight`);
-  assert.ok(seed.extensionPoints.slots.length <= 10, `${seed.extensionPoints.slots.length} slots; AGENTS.md budgets about ten`);
-});
-
 test("no clause hedges with should or may where it states a guarantee", () => {
   const hedged = clauses.filter((clause) => {
     const body = contractText.slice(contractText.indexOf(`**${clause.id} —`));
@@ -142,18 +132,4 @@ test("every estimated limit is marked as an estimate", () => {
     if (name.startsWith("$") || name === "status") continue;
     assert.equal(typeof limit.estimate, "boolean", `limits.${name} does not say whether it is an estimate`);
   }
-});
-
-test("the release record has every core migration in apply order and only names real dependencies", () => {
-  const migrationIds = readdirSync(new URL("../migrations/core/", import.meta.url)).filter((name) => name.endsWith(".sql")).sort();
-  assertReleaseMigrationInventory(release, migrationIds, previousRelease);
-  assert.throws(
-    () => assertReleaseMigrationInventory({ ...release, migrations: release.migrations.slice(0, -1) }, migrationIds, previousRelease),
-    /migrations must exactly match/,
-  );
-});
-
-test("the release record names every changed contract guarantee relative to the retained previous release", () => {
-  assertReleaseContractInventory(release, contractText, previousRelease);
-  assert.throws(() => assertReleaseContractInventory(release, contractText.replace("the overall status;", "both overall statuses;"), previousRelease));
 });

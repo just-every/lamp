@@ -1,15 +1,15 @@
-import {installationReceipt} from './receipt.mjs';
-import {bootstrapOwner} from './bootstrap.mjs';
-import {startLocal} from './local.mjs';
+import {hostLamp} from './hosting.mjs';
+import {adapter} from './local.mjs';
+import {validateAnswers} from './validation.mjs';
+
+// The browser installer: Online hosting runs Lamp's Cloudflare pipeline; a
+// local trial is the same lifecycle as `rer setup`.
 export async function install(root,input,store,onApp,signal){
- const receipt=await installationReceipt(root,input);
- const target=input.target==='local'?await startLocal(root,input,store,onApp,signal):{origin:input.appOrigin,secret:input.bootstrapSecret};
- await store.step('Checking native owner setup and preserving existing ownership');
- await bootstrapOwner(target.origin,input,target.secret,signal);
- const health=await fetch(new URL('/health',target.origin),{signal,redirect:'error'});
- if(health.status!==200)throw Error('Lamp did not become healthy after owner setup.');
- store.state.appUrl=new URL('/signin',target.origin).href;
- await store.step('Lamp is ready for native email sign-in');
- await receipt.complete();
- await store.phase('complete');
+ await validateAnswers(input,store);
+ if(input.target==='remote'){
+  await hostLamp({root,input,store,signal});
+  await store.phase('complete');
+  return;
+ }
+ return adapter.install(root,input,store,onApp,signal);
 }

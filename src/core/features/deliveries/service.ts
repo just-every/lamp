@@ -81,7 +81,7 @@ function renderMaintenanceNotice(delivery: DispatchableDelivery) {
 
 export function createDeliveriesService(
   repository: DeliveryRepository,
-  options: { mail?: MailSender; fromAddress?: string | (() => Promise<string>); subscriberTokenSecret?: string; webhookSigningSecret?: string | string[]; events?: DeliveryEvents } = {},
+  options: { effectsPaused?: boolean; mail?: MailSender; fromAddress?: string | (() => Promise<string>); subscriberTokenSecret?: string; webhookSigningSecret?: string | string[]; events?: DeliveryEvents } = {},
 ): DeliveriesService {
   const tokens = options.subscriberTokenSecret ? new SubscriberTokenCodec(options.subscriberTokenSecret) : null;
   const events = options.events ?? defaultDeliveryEvents;
@@ -316,6 +316,7 @@ export function createDeliveriesService(
       return repository.listDeliveries({ channel: filter?.channel, outcome: filter?.outcome, incidentUpdateId: filter?.incidentUpdateId });
     },
     async dispatchDue(origin, limit = 100) {
+      if (options.effectsPaused) return;
       for (const job of await repository.listOutbox(limit, nowIso())) {
         try {
           if (job.kind === "operator-alert") {
@@ -336,6 +337,7 @@ export function createDeliveriesService(
       }
     },
     async dispatchEvent(eventId, origin) {
+      if (options.effectsPaused) return;
       let firstFailure: unknown = null;
       for (const deliveryId of await repository.listQueuedDeliveryIdsForEvent(eventId)) {
         try { await this.dispatchDelivery(deliveryId, origin); }
@@ -345,6 +347,7 @@ export function createDeliveriesService(
       await repository.completeOutboxForEvent(eventId, nowIso());
     },
     async dispatchDelivery(deliveryId, origin) {
+      if (options.effectsPaused) return;
       const claimAt = nowIso();
       const reclaimBefore = new Date(Date.now() - DELIVERY_CLAIM_MS).toISOString();
       const { claimed, delivery } = await repository.claimAndGetDelivery(deliveryId, claimAt, reclaimBefore);

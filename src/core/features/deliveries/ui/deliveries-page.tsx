@@ -5,11 +5,13 @@ import type { DeliveriesService } from "../service";
 import { useAppData } from "../../../app/client/ui/api";
 import { Icon } from "../../../app/client/ui/icon";
 import { ListPagination } from "../../../app/client/ui/pagination";
-import { EmptyState, ErrorState, LoadingState, formatOperatorTime } from "../../../app/client/ui/states";
+import { LoadingState, useOperatorTime } from "../../../app/client/ui/states";
+import { EmptyState, ErrorState } from "../../../app/client/ui/lit-states";
 
 type DeliveriesResponse = { deliveries: Awaited<ReturnType<DeliveriesService["list"]>>; limit: number; offset: number; hasMore: boolean };
 
 export function DeliveriesPage() {
+  const formatOperatorTime = useOperatorTime();
   const [channel, setChannel] = useState<DeliveryChannel | "">("");
   const [outcome, setOutcome] = useState<DeliveryOutcome | "">("");
   const [offset, setOffset] = useState(0);

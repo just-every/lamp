@@ -1,0 +1,5 @@
+/* T1: label left of value. */
+.lamp-home .lamp-report__fields { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 6px 14px; margin: 12px 0 0; font-size: 12.5px; line-height: 1.4; }
+.lamp-home .lamp-report__fields > div { display: contents; }
+.lamp-home .lamp-report__fields dt { color: var(--lamp-ink-3); }
+.lamp-home .lamp-report__fields dd { margin: 0; }

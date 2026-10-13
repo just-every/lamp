@@ -1,0 +1,5 @@
+/* T5: fields as label over a drawn input. */
+.lamp-home .lamp-settings__field { display: block; margin-top: 8px; }
+.lamp-home .lamp-settings__label { display: block; margin-bottom: 3px; font-size: 12px; font-weight: 500; }
+.lamp-home .lamp-settings__value { display: flex; align-items: center; min-height: 32px; padding: 5px 10px; border: 1px solid var(--lamp-line-strong); border-radius: 8px;
+  background: var(--lamp-card); font-size: 13px; }

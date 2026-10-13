@@ -1,0 +1,76 @@
+/* The intro stage, design C: on every screen one screen tall in small-viewport units (100svh), so a browser's chrome never
+   crops it, and taller only when its content needs it. The pendant's square canvas (--lamp-w) hangs from --lamp-top, its
+   grip 24px below a phone's header; its bulb's bottom (.7686 of the canvas) is --lamp-y, and the headline starts
+   --lamp-gap under it, then the subline, the two actions and the closing line. From 1024px every size is in
+   --hu, the 1536 design's pixel, held smaller on short wide screens: the shade is 328 units wide and the headline's
+   box starts 457 units down, as in C. The grip always hangs below the header.
+   The stack of lamp and hero is rarely as tall as the screen, so left at the top it would leave empty space under it: the
+   lamp hangs lower. --lamp-top is --lamp-hang, where the lamp hangs on a screen exactly as tall as the stack, plus
+   --lamp-sink, 34% of the spare height (100svh less the stack: --lamp-hang, the lamp down to its bulb, --lamp-gap and
+   --lamp-flow, the height of the text under the gap). The lamp's cord is drawn up to the top edge (cord.css), so it only
+   gets longer; the lamp stays on it. The sink is 0 on any screen no taller than its stack (a small phone, a landscape
+   phone), where the intro grows with its content and nothing overlaps; the rest of the spare height stays below the hero,
+   so the stack sits a little above the centre, where the eye puts it.
+   --lamp-flow is measured, not guessed. On a phone (under 600px) the headline always breaks in three lines of 1.08 times
+   its font size, the subline takes 51px (two lines), the actions 48px and the closing line two lines of 21px, three
+   up to 372px wide, with 16, 24 and 32px between the four: 3.24 font + 171px + the closing line. From 600px the headline
+   breaks in two lines of 1.1 times its font size, and the rest is 179.5px. */
+.lamp-home .lamp-intro {
+  --lamp-w: clamp(200px, 54cqw, 260px);
+  --lamp-hang: calc(var(--lamp-header-h) + 24px - var(--lamp-w) * .1365);
+  --lamp-gap: clamp(36px, 6svh, 56px);
+  --lamp-flow: calc(3.24 * clamp(34px, 9.4cqw, 44px) + 213px);
+  --lamp-sink: max(0px, (100svh - var(--lamp-hang) - var(--lamp-w) * .7686 - var(--lamp-gap) - var(--lamp-flow)) * .34);
+  --lamp-top: calc(var(--lamp-hang) + var(--lamp-sink));
+  --lamp-h: var(--lamp-w);
+  --lamp-y: calc(var(--lamp-top) + var(--lamp-w) * .7686);
+  position: relative;
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: calc(var(--lamp-y) + var(--lamp-gap)) 16px 0;
+  text-align: center;
+}
+.lamp-home :is(.lamp-intro__title, .lamp-intro__lede, .lamp-intro__alt, .lamp-intro__actions) { position: relative; z-index: 2; }
+.lamp-home .lamp-intro__title { max-width: 11em; margin: 0; color: var(--lamp-ink); font-size: clamp(34px, 9.4cqw, 44px); font-weight: 600;
+  line-height: 1.08; letter-spacing: -.015em; text-wrap: balance; }
+.lamp-home .lamp-intro__lede { max-width: 24em; margin: 16px 0 0; color: var(--lamp-ink-2); font-size: 17px; line-height: 1.5;
+  letter-spacing: -.012em; text-wrap: balance; }
+.lamp-home .lamp-intro__actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 24px; margin: 24px 0 0; }
+.lamp-home .lamp-pill--large { height: 48px; padding-inline: 24px; font-size: 16px; }
+.lamp-home .lamp-docs-link { font-size: 16px; line-height: 1.4; letter-spacing: -.01em; text-decoration: underline;
+  text-decoration-thickness: 1.5px; text-underline-offset: 6px; text-decoration-color: rgb(24 45 36 / .6); }
+.lamp-home .lamp-docs-link:hover { text-decoration-color: var(--lamp-ink); }
+/* What Lamp replaces, the hero's closing line: one quiet line under the ways in, 15px in the third ink. The three product names
+   are <strong> at the site's top weight, 600, in the second ink so they read as names without turning the line into a
+   fourth headline. A name never breaks across lines. */
+.lamp-home .lamp-intro__alt { max-width: 24em; margin: 32px 0 0; color: var(--lamp-ink-3); font-size: 15px; line-height: 1.4; letter-spacing: -.005em;
+  text-wrap: balance; }
+.lamp-home .lamp-intro__alt strong { color: var(--lamp-ink-2); font-weight: 600; white-space: nowrap; }
+/* Up to 372px the closing line takes a third line. */
+@container lamp-page (max-width: 372px) {
+  .lamp-home .lamp-intro { --lamp-flow: calc(3.24 * clamp(34px, 9.4cqw, 44px) + 234px); }
+}
+/* From 600px the headline breaks after the comma, one phrase to a line. */
+@container lamp-page (min-width: 600px) {
+  .lamp-home .lamp-intro { --lamp-w: clamp(240px, 34cqw, 330px); --lamp-hang: max(0px, 94px - var(--lamp-w) * .1365); --lamp-gap: clamp(48px, 8svh, 96px);
+    --lamp-flow: calc(2.2 * min(64px, (100cqw - 64px) / 11.6) + 179.5px); }
+  .lamp-home .lamp-intro__title { max-width: none; font-size: min(64px, (100cqw - 64px) / 11.6); line-height: 1.1; }
+  .lamp-home .lamp-intro__title span { display: block; }
+  .lamp-home .lamp-intro__lede { margin-top: 20px; font-size: 19px; }
+  .lamp-home .lamp-intro__alt { max-width: none; }
+  .lamp-home .lamp-intro__actions { gap: 28px; margin-top: 28px; }
+  .lamp-home .lamp-pill--large { height: 50px; padding-inline: 26px; }
+}
+@container lamp-page (min-width: 1024px) {
+  .lamp-home .lamp-intro { --lamp-w: calc(360 * var(--hu)); --lamp-hang: max(calc(81 * var(--hu)), var(--lamp-header-h) + 12px - var(--lamp-w) * .1365);
+    --lamp-gap: calc(99 * var(--hu)); --lamp-flow: calc(416 * var(--hu)); }
+  .lamp-home .lamp-intro__title { font-size: calc(82 * var(--hu)); line-height: calc(93 * var(--hu)); letter-spacing: -.012em; }
+  .lamp-home .lamp-intro__lede { max-width: none; margin-top: calc(31 * var(--hu)); font-size: max(17px, calc(27.4 * var(--hu))); line-height: 1.4; }
+  .lamp-home .lamp-intro__actions { gap: calc(51 * var(--hu)); margin-top: calc(41 * var(--hu)); }
+  .lamp-home .lamp-pill--large { height: max(48px, calc(65 * var(--hu))); padding-inline: max(24px, calc(37 * var(--hu))); font-size: max(16px, calc(21.2 * var(--hu))); }
+  .lamp-home .lamp-intro__alt { margin-top: calc(32 * var(--hu)); font-size: max(15px, calc(16 * var(--hu))); }
+  .lamp-home .lamp-docs-link { font-size: max(16px, calc(20 * var(--hu))); text-decoration-thickness: max(1.5px, calc(2 * var(--hu)));
+    text-underline-offset: max(6px, calc(11 * var(--hu))); }
+}

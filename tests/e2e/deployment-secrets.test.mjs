@@ -4,13 +4,13 @@ import { test } from 'node:test';
 import { withDeploymentSecrets } from '../../scripts/deployment-secrets.mjs';
 
 test('deployment secrets remain private and are removed after success or failure', async () => {
-  const config = { mailProviderApiKey: 'test-provider-secret', subscriberTokenSecret: 'test-token-secret', webhookSigningSecret: 'test-signing-secret' };
+  const config = { sessionSecret:'synthetic-session-secret',setupToken:'synthetic-setup-token',mailProviderApiKey: 'test-provider-secret', subscriberTokenSecret: 'test-token-secret', webhookSigningSecret: 'test-signing-secret' };
   for (const fail of [false, true]) {
     let path;
     const action = withDeploymentSecrets(config, async file => {
       path = file;
       assert.equal((await stat(file)).mode & 0o777, 0o600);
-      assert.deepEqual(JSON.parse(await readFile(file, 'utf8')), { MAIL_PROVIDER_API_KEY: config.mailProviderApiKey, SUBSCRIBER_TOKEN_SECRET: config.subscriberTokenSecret, WEBHOOK_SIGNING_SECRET: config.webhookSigningSecret, RER_MAIL_RELAY_SECRET: "", RESEND_WEBHOOK_SECRET: "", AI_PROVIDER_API_KEY: "" });
+      assert.deepEqual(JSON.parse(await readFile(file, 'utf8')), { SESSION_SECRET:config.sessionSecret,SETUP_TOKEN:config.setupToken,AUTH_PROVIDERS:"",OIDC_TRANSACTION_SECRET:"",MAIL_PROVIDER_API_KEY: config.mailProviderApiKey, SUBSCRIBER_TOKEN_SECRET: config.subscriberTokenSecret, WEBHOOK_SIGNING_SECRET: config.webhookSigningSecret, RER_MAIL_RELAY_SECRET: "", RESEND_WEBHOOK_SECRET: "", AI_PROVIDER_API_KEY: "" });
       if (fail) throw new Error('test failure');
     });
     if (fail) await assert.rejects(action, /test failure/); else await action;

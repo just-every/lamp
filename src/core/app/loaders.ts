@@ -1,6 +1,8 @@
 import { createServerFn } from "@tanstack/react-start";
 import { redirect } from "@tanstack/react-router";
 
+import { publicPageOrigin } from "./public-origin";
+
 export type OperatorSessionView = {
   operator: {
     id: string;
@@ -8,22 +10,8 @@ export type OperatorSessionView = {
     displayName: string;
   };
   publicPageOrigin: string;
+  timezone: string;
 };
-
-function publicPageOrigin(requestUrl: URL, pageHost: string) {
-  const origin = new URL(requestUrl);
-  origin.hostname = pageHost;
-  return origin.origin;
-}
-
-export const loadSignInConfig = createServerFn({ method: "GET" }).handler(async () => {
-  const [{ getRequestUrl }, { requestBindings }] = await Promise.all([
-    import("@tanstack/react-start/server"),
-    import("../platform/bindings.server"),
-  ]);
-  const bindings = requestBindings();
-  return { publicPageOrigin: publicPageOrigin(getRequestUrl(), bindings.LAMP_PAGE_HOST) };
-});
 
 // This wrapper is imported by route modules. The implementation imports only
 // inside the handler so client bundles receive the generated RPC stub instead
@@ -35,22 +23,22 @@ function redirectToSignIn(requestUrl: URL): never {
 }
 
 export const loadOperatorSession = createServerFn({ method: "GET" }).handler(async (): Promise<OperatorSessionView> => {
-  const [{ getRequest, getRequestHeader, getRequestUrl }, { requestBindings }, { readOperatorSessionId }, { createApp }, { prepareAppMailBindings }] = await Promise.all([
+  const [{ getRequest, getRequestUrl }, { requestBindings }, { createApp }, { prepareAppMailBindings }] = await Promise.all([
     import("@tanstack/react-start/server"),
     import("../platform/bindings.server"),
-    import("../features/session"),
     import("./server"),
     import("./mail"),
   ]);
   const bindings = requestBindings();
   const requestUrl = getRequestUrl();
-  const sessionId = readOperatorSessionId(getRequestHeader("cookie") ?? undefined);
-  if (!sessionId) redirectToSignIn(requestUrl);
 
   const request = getRequest();
   const runtime = createApp(await prepareAppMailBindings(bindings, request), request);
-  const operator = await runtime.services.session.getActiveOperator(sessionId);
-  if (!operator) redirectToSignIn(requestUrl);
+  const session = await runtime.services.auth().getSession(request);
+  if (!session) redirectToSignIn(requestUrl);
+  const operator = await runtime.services.operators.view(session.operator);
 
-  return { operator, publicPageOrigin: publicPageOrigin(requestUrl, bindings.LAMP_PAGE_HOST) };
+  const settings = await runtime.services.pageSettings.get();
+  if (!settings) throw new Error("Page settings are not configured.");
+  return { operator, publicPageOrigin: publicPageOrigin(requestUrl, bindings.LAMP_PAGE_HOST), timezone: settings.timezone };
 });

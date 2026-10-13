@@ -1,0 +1,170 @@
+[
+  {
+    "id": "m0000000001",
+    "page_id": "synthpage01",
+    "name": "Database upgrade",
+    "status": "completed",
+    "impact": "maintenance",
+    "impact_override": null,
+    "created_at": "2026-02-10T02:00:00.000Z",
+    "updated_at": "2026-02-10T02:00:00.000Z",
+    "monitoring_at": null,
+    "resolved_at": null,
+    "shortlink": "https://stspg.io/201",
+    "scheduled_for": "2026-02-10T02:00:00.000Z",
+    "scheduled_until": "2026-02-10T04:00:00.000Z",
+    "postmortem_body": null,
+    "components": [
+      {
+        "id": "c0000000001",
+        "name": "Service 1.1"
+      },
+      {
+        "id": "c0000000002",
+        "name": "Service 1.2"
+      }
+    ],
+    "incident_updates": [
+      {
+        "id": "m0000000001u1",
+        "incident_id": "m0000000001",
+        "status": "completed",
+        "body": "Database upgrade.",
+        "created_at": "2026-02-10T02:00:00.000Z",
+        "display_at": "2026-02-10T02:00:00.000Z",
+        "updated_at": "2026-02-10T02:00:00.000Z",
+        "deliver_notifications": true,
+        "custom_tweet": null,
+        "tweet_id": null,
+        "twitter_updated_at": null,
+        "wants_twitter_update": false,
+        "affected_components": []
+      }
+    ],
+    "metadata": {}
+  },
+  {
+    "id": "m0000000002",
+    "page_id": "synthpage01",
+    "name": "Network change",
+    "status": "scheduled",
+    "impact": "maintenance",
+    "impact_override": null,
+    "created_at": "2026-03-02T02:00:00.000Z",
+    "updated_at": "2026-03-02T02:00:00.000Z",
+    "monitoring_at": null,
+    "resolved_at": null,
+    "shortlink": "https://stspg.io/202",
+    "scheduled_for": "2026-03-02T02:00:00.000Z",
+    "scheduled_until": "2026-03-02T03:00:00.000Z",
+    "postmortem_body": null,
+    "components": [
+      {
+        "id": "c0000000005",
+        "name": "Service 2.1"
+      }
+    ],
+    "incident_updates": [
+      {
+        "id": "m0000000002u1",
+        "incident_id": "m0000000002",
+        "status": "scheduled",
+        "body": "Network change.",
+        "created_at": "2026-03-02T02:00:00.000Z",
+        "display_at": "2026-03-02T02:00:00.000Z",
+        "updated_at": "2026-03-02T02:00:00.000Z",
+        "deliver_notifications": true,
+        "custom_tweet": null,
+        "tweet_id": null,
+        "twitter_updated_at": null,
+        "wants_twitter_update": false,
+        "affected_components": []
+      }
+    ],
+    "metadata": {}
+  },
+  {
+    "id": "m0000000003",
+    "page_id": "synthpage01",
+    "name": "Storage migration",
+    "status": "in_progress",
+    "impact": "maintenance",
+    "impact_override": null,
+    "created_at": "2026-10-01T00:00:00.000Z",
+    "updated_at": "2026-10-01T00:00:00.000Z",
+    "monitoring_at": null,
+    "resolved_at": null,
+    "shortlink": "https://stspg.io/203",
+    "scheduled_for": "2026-10-01T00:00:00.000Z",
+    "scheduled_until": "2099-06-01T00:00:00.000Z",
+    "postmortem_body": null,
+    "components": [
+      {
+        "id": "c0000000009",
+        "name": "Service 3.1"
+      }
+    ],
+    "incident_updates": [
+      {
+        "id": "m0000000003u1",
+        "incident_id": "m0000000003",
+        "status": "in_progress",
+        "body": "Storage migration.",
+        "created_at": "2026-10-01T00:00:00.000Z",
+        "display_at": "2026-10-01T00:00:00.000Z",
+        "updated_at": "2026-10-01T00:00:00.000Z",
+        "deliver_notifications": true,
+        "custom_tweet": null,
+        "tweet_id": null,
+        "twitter_updated_at": null,
+        "wants_twitter_update": false,
+        "affected_components": []
+      }
+    ],
+    "metadata": {}
+  },
+  {
+    "id": "m0000000004",
+    "page_id": "synthpage01",
+    "name": "Planned failover test",
+    "status": "scheduled",
+    "impact": "maintenance",
+    "impact_override": null,
+    "created_at": "2099-06-02T00:00:00.000Z",
+    "updated_at": "2099-06-02T00:00:00.000Z",
+    "monitoring_at": null,
+    "resolved_at": null,
+    "shortlink": "https://stspg.io/204",
+    "scheduled_for": "2099-06-02T00:00:00.000Z",
+    "scheduled_until": "2099-06-02T02:00:00.000Z",
+    "postmortem_body": null,
+    "components": [
+      {
+        "id": "c0000000003",
+        "name": "Service 1.3"
+      },
+      {
+        "id": "c0000000004",
+        "name": "Service 1.4"
+      }
+    ],
+    "incident_updates": [
+      {
+        "id": "m0000000004u1",
+        "incident_id": "m0000000004",
+        "status": "scheduled",
+        "body": "Planned failover test.",
+        "created_at": "2099-06-02T00:00:00.000Z",
+        "display_at": "2099-06-02T00:00:00.000Z",
+        "updated_at": "2099-06-02T00:00:00.000Z",
+        "deliver_notifications": true,
+        "custom_tweet": null,
+        "tweet_id": null,
+        "twitter_updated_at": null,
+        "wants_twitter_update": false,
+        "affected_components": []
+      }
+    ],
+    "metadata": {}
+  }
+]

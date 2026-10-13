@@ -1,0 +1,25 @@
+/* Lamp's declared theme, from its landing page: paper, ink, the lamp mark and
+   Inter. Base's installer, and Lamp's own sign-in and first-run pages, read
+   these --rer-* tokens; the app serves this file and every file it names. */
+@font-face {
+  font-family: 'Lamp Inter';
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url("/app-assets/fonts/inter-latin.woff2") format('woff2');
+}
+:root {
+  --rer-font-body: 'Lamp Inter', Arial, sans-serif;
+  --rer-font-heading: 'Lamp Inter', Arial, sans-serif;
+  --rer-page: #f8f6f0;
+  --rer-surface: #ffffff;
+  --rer-text: #182d24;
+  --rer-muted: #4b5d54;
+  --rer-border: #6f7f77;
+  --rer-focus: #182d24;
+  --rer-accent: #182d24;
+  --rer-accent-text: #fbfaf5;
+  --rer-link: #14704b;
+  --rer-radius: 14px;
+  --rer-logo: url("/app-assets/brand/lamp-mark.svg");
+}

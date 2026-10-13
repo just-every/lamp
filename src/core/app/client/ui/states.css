@@ -1,0 +1,27 @@
+/* Loading, empty and error states. The lamp appears only where a person waits or something has gone dark. */
+.app-state { color: var(--ink-3); }
+.app-state-loading { border: 1px solid var(--line); border-radius: 12px; background: var(--card); padding: 24px; }
+.app-state-empty { position: relative; isolation: isolate; display: grid; justify-items: center; gap: 12px; padding: 32px; color: var(--ink-2); font-size: 16px; text-align: center; text-wrap: pretty; }
+.app-state-empty p { max-width: 42ch; margin: 0; }
+.empty-icon { display: grid; width: 40px; height: 40px; place-items: center; border-radius: 50%; background: var(--stage); color: var(--ink); }
+/* The small, softly lit lamp in the empty Active incidents card. */
+.empty-lamp { --lamp-static-w: 168px; --lamp-static-cord: 8px; margin: var(--lamp-static-cord) 0 calc(-.28 * var(--lamp-static-w)); opacity: .92; }
+.empty-pool { top: 0; left: 50%; width: min(100%, 520px); height: 100%; translate: -50% 0; opacity: .7; }
+
+/* An inline note inside a working form: small, white, a --down icon. */
+.form-note { display: flex; align-items: flex-start; gap: 10px; margin: 0; border: 1px solid var(--line); border-radius: 10px; background: var(--card); padding: 12px 14px; color: var(--ink-2); font-size: 14px; line-height: 1.5; }
+.form-note svg { width: 18px; height: 18px; flex: none; margin-top: 1px; color: var(--down); }
+.form-note-ok svg { color: var(--ok); }
+.form-note strong { display: block; color: var(--ink); }
+.form-note p { margin: 4px 0 0; }
+
+/* A page that could not load: the landing's dark band, the lit lamp hanging from its top edge, its light falling on a
+   white card with the API's message in the amber notice. */
+.app-state-error { position: relative; isolation: isolate; display: flex; min-height: calc(100vh - 152px); flex-direction: column; align-items: center; overflow: clip; border-radius: 24px; background: var(--band); box-shadow: var(--shadow-night); padding: 0 24px 64px; }
+.error-lamp { --lamp-static-w: 260px; --lamp-static-cord: 0px; margin-bottom: calc(-.2 * var(--lamp-static-w)); }
+.error-light { position: absolute; z-index: -1; top: calc(260px * .55); left: 50%; width: min(150%, 920px); height: 520px; translate: -50% 0; pointer-events: none;
+  background: radial-gradient(ellipse 42% 100% at 50% 0, rgb(var(--lamp-light) / .42), rgb(var(--lamp-light) / .16) 45%, rgb(var(--lamp-light) / .05) 72%, rgb(var(--lamp-light) / 0));
+  mask-image: linear-gradient(transparent, var(--ink) 22%); }
+.error-card { width: min(100%, 640px); overflow: hidden; border-radius: 12px; background: var(--card); box-shadow: var(--shadow-night); text-align: center; }
+.error-notice { margin: 0; background: var(--amber-wash); box-shadow: inset 3px 0 0 var(--amber); padding: 28px 32px; color: var(--ink); font-size: 20px; font-weight: 600; line-height: 1.35; letter-spacing: -.012em; text-wrap: balance; }
+.error-card .button { margin: 20px 0 24px; }

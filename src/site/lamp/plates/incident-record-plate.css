@@ -1,0 +1,7 @@
+/* Plate E2: the incident page's main column through its third update, as tall as that content at any width, then a
+   24px rail fading out under the last update, where the earlier updates continue on the real page. */
+.lamp-home .lamp-record .lamp-plate__body { padding-bottom: 0; }
+.lamp-home .lamp-record__heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-top: 12px; }
+.lamp-home .lamp-record__heading .lamp-plate__small { display: block; margin-top: 2px; }
+.lamp-home .lamp-record__meta { margin: 8px 0 0; font-size: 13px; line-height: 1.4; }
+.lamp-home .lamp-record__more { display: block; width: 1px; height: 24px; margin: 4px 0 0 12px; background: linear-gradient(var(--lamp-line-strong), transparent); }

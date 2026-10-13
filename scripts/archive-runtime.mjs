@@ -6,11 +6,11 @@ import { getPlatformProxy } from "wrangler";
 import { deploymentRecordPath, readDeploymentRecord, renderRemoteArchiveWranglerToml } from "./ops-config.mjs";
 
 function persistence(flags) {
-  return resolve(flags.get("persist-to") ?? "deploy/.wrangler/state");
+  return resolve(flags.get("persist-to") ?? ".wrangler/state");
 }
 
 function localConfig(flags) {
-  return flags.get("config") ?? "deploy/wrangler.template.toml";
+  return flags.get("config") ?? "wrangler.jsonc";
 }
 
 function archiveEnvironment(flags) {

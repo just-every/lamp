@@ -1,7 +1,8 @@
+import { z } from "zod";
 import type { Hono } from "hono";
 
 import type { AppEnv } from "../../app/types";
-import { componentGroupSchema, componentHistoryCorrectionSchema, componentSchema, componentStandingClaimSchema } from "../../shared/schemas";
+import { componentGroupSchema, componentHistoryCorrectionSchema, componentSchema, componentStandingClaimSchema, componentUpdateSchema, componentGroupUpdateSchema } from "../../shared/schemas";
 import { ulidSchema } from "../../shared/ids";
 import type { ComponentsService } from "./service";
 
@@ -10,6 +11,19 @@ export function registerComponentRoutes(app: Hono<AppEnv>, service: ComponentsSe
     const [components, groups] = await Promise.all([service.list(), service.listGroups()]);
     return context.json({ components, groups });
   });
+
+  const moveSchema = z.object({ direction: z.enum(["up", "down"]), expectedIds: z.array(ulidSchema).min(2).max(1000), groupId: ulidSchema.nullable().default(null) }).strict();
+  for (const [path, kind] of [["components", "components"], ["component-groups", "groups"]] as const) {
+    app.post(`/api/app/${path}/:id/move`, async (context) => {
+      const id = ulidSchema.safeParse(context.req.param("id"));
+      const input = moveSchema.safeParse(await context.req.json().catch(() => null));
+      if (!id.success || !input.success) return context.json({ error: "A current list and move direction are required." }, 400);
+      try {
+        await service.move(kind, id.data, input.data.direction, input.data.expectedIds, input.data.groupId);
+        return context.json({ moved: true });
+      } catch (cause) { return context.json({ error: cause instanceof Error ? cause.message : "The order could not be changed." }, 409); }
+    });
+  }
 
   app.get("/api/app/components/:componentId/history", async (context) => {
     const componentId = ulidSchema.safeParse(context.req.param("componentId"));
@@ -28,7 +42,7 @@ export function registerComponentRoutes(app: Hono<AppEnv>, service: ComponentsSe
   app.put("/api/app/components/:componentId", async (context) => {
     const componentId = ulidSchema.safeParse(context.req.param("componentId"));
     if (!componentId.success) return context.json({ error: "Invalid component identifier.", issues: componentId.error.issues }, 400);
-    const parsed = componentSchema.safeParse(await context.req.json().catch(() => null));
+    const parsed = componentUpdateSchema.safeParse(await context.req.json().catch(() => null));
     if (!parsed.success) return context.json({ error: "Invalid component.", issues: parsed.error.issues }, 400);
     const component = await service.update(componentId.data, parsed.data);
     return component ? context.json({ component }) : context.json({ error: "Component not found." }, 404);
@@ -49,7 +63,7 @@ export function registerComponentRoutes(app: Hono<AppEnv>, service: ComponentsSe
   app.put("/api/app/component-groups/:groupId", async (context) => {
     const groupId = ulidSchema.safeParse(context.req.param("groupId"));
     if (!groupId.success) return context.json({ error: "Invalid component group identifier.", issues: groupId.error.issues }, 400);
-    const parsed = componentGroupSchema.safeParse(await context.req.json().catch(() => null));
+    const parsed = componentGroupUpdateSchema.safeParse(await context.req.json().catch(() => null));
     if (!parsed.success) return context.json({ error: "Invalid component group.", issues: parsed.error.issues }, 400);
     return (await service.updateGroup(groupId.data, parsed.data)) ? context.body(null, 204) : context.json({ error: "Component group not found." }, 404);
   });

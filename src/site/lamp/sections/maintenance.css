@@ -1,0 +1,18 @@
+/* Section 6: the maintenance on the page and the reminder email, top-aligned side by side on one stage panel; under
+   1024px the text, then the panel with the two cards one above the other. From 1024px the panel spans columns 1–9
+   and the text sits in 10–12 beside it, held in view. */
+.lamp-home .lamp-maintenance__plates { display: flex; flex-direction: column; gap: 24px; }
+@container lamp-page (min-width: 1024px) {
+  .lamp-home .lamp-maintenance__plates { flex-direction: row; align-items: flex-start; grid-column: 1 / 10; grid-row: 1; gap: calc(24 * var(--u)); }
+  .lamp-home .lamp-maintenance__plates .lamp-planned { flex: 3 1 0; min-width: 0; }
+  .lamp-home .lamp-maintenance__plates .lamp-reminder { flex: 2 1 0; min-width: 0; }
+  .lamp-home .lamp-maintenance__text { grid-column: 10 / 13; grid-row: 1; }
+}
+/* The moment: F1 rises and its reminder washes in amber; F2 slides in from the right 150ms later. */
+@media screen and (prefers-reduced-motion: no-preference) {
+  .lamp-home .lamp-maintenance[data-reveal="wait"] .lamp-plate__current::before { opacity: 0; }
+  .lamp-home .lamp-maintenance[data-reveal="wait"] .lamp-plate__current::after { scale: 1 0; }
+  .lamp-home .lamp-maintenance[data-reveal="play"] .lamp-plate__current::before { animation: lamp-fade .5s var(--lamp-ease) .5s backwards; }
+  .lamp-home .lamp-maintenance[data-reveal="play"] .lamp-plate__current::after { transform-origin: top; animation: lamp-draw-down .5s var(--lamp-ease) .5s backwards; }
+  .lamp-home .lamp-maintenance[data-reveal="play"] .lamp-section__plates > .lamp-reminder { animation: lamp-from-right .6s var(--lamp-ease) .27s backwards; }
+}

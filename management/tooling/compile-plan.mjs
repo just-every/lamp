@@ -1,3 +1,5 @@
+import {unstable_readConfig} from 'wrangler';
+import {fileURLToPath} from 'node:url';
 import { createHash } from 'node:crypto';
 import { readFile, readdir } from 'node:fs/promises';
 import { resolve } from 'node:path';
@@ -38,22 +40,17 @@ export async function lampPlan({ installationId, environment, variables, root = 
   new Intl.DateTimeFormat('en', { timeZone: config.pageTimezone });
   if (config.pageHost === config.appHost) throw new Error('Lamp app and page host must differ');
   const provider = required(variables, 'MAIL_PROVIDER', /^(resend|sendgrid)$/);
-  const template = await readFile(new URL('deploy/wrangler.template.toml', root), 'utf8');
-  const date = template.match(/^compatibility_date\s*=\s*"([\d-]+)"/m)?.[1];
-  const flags = JSON.parse(template.match(/^compatibility_flags\s*=\s*(\[[^\n]+\])/m)?.[1] ?? 'null');
-  // Fail if topology changed; this compiler implements Lamp's actual declared graph.
-  for (const declaration of ['binding = "DB"', 'binding = "SNAPSHOTS"', 'binding = "JOBS"', 'name = "SNAPSHOT_CACHE"', 'class_name = "SnapshotCache"', 'new_sqlite_classes = ["SnapshotCache"]', 'crons = ["* * * * *"]', 'max_batch_size = 10', 'max_batch_timeout = 5', 'max_retries = 5', 'tag = "snapshot-cache-v1"']) {
-    if (!template.includes(declaration)) throw new Error(`Lamp topology changed: ${declaration}`);
-  }
-  if (!date || !Array.isArray(flags)) throw new Error('Missing compatibility settings');
+  const template = unstable_readConfig({config:fileURLToPath(new URL('wrangler.jsonc',root))});
+  const date=template.compatibility_date,flags=template.compatibility_flags;
+  if(!date||!Array.isArray(flags)||!template.d1_databases.some(row=>row.binding==='DB')||!template.r2_buckets.some(row=>row.binding==='SNAPSHOTS')||!template.queues.producers.some(row=>row.binding==='JOBS')||!template.durable_objects.bindings.some(row=>row.name==='SNAPSHOT_CACHE'&&row.class_name==='SnapshotCache'))throw new Error('Lamp topology changed');
   const prefix = `rer-${digest(installationId).slice(0, 16)}-${environment === 'production' ? 'prod' : 'preview'}-`;
   const sqlMigrations = [...await migrations(new URL('migrations/core/', root), 'core'), ...await migrations(new URL('migrations/ext/', root), 'ext')];
-  const { setupOperatorStatement, setupPageSettingsStatement } = await import(new URL('scripts/ops-config.mjs', root));
-  const sql = setupOperatorStatement(config) + '\n' + setupPageSettingsStatement(config);
-  sqlMigrations.push({ binding: 'DB', name: 'setup-initial-owner.sql', sha256: digest(sql), sql });
-  const publicVariables = { LAMP_PAGE_HOST: config.pageHost, LAMP_APP_HOST: config.appHost, MAIL_FROM_ADDRESS: config.mailFromAddress, MAIL_PROVIDER: provider };
+  const { setupPageSettingsStatement } = await import(new URL('scripts/ops-config.mjs', root));
+  const sql = setupPageSettingsStatement(config);
+  sqlMigrations.push({ binding: 'DB', name: 'setup-initial-page.sql', sha256: digest(sql), sql });
+  const publicVariables = { LAMP_PAGE_HOST: config.pageHost, LAMP_APP_HOST: config.appHost, AUTH_ORIGIN:`https://${config.appHost}`, SETUP_OPERATOR_EMAIL:config.setupOperatorEmail, MAIL_FROM_ADDRESS: config.mailFromAddress, MAIL_PROVIDER: provider };
   for (const key of ['MAIL_DKIM_SELECTOR', 'SENDGRID_WEBHOOK_PUBLIC_KEY', 'AI_PROVIDER_URL', 'AI_PROVIDER_MODEL']) if (variables[key]) publicVariables[key] = required(variables, key);
-  const secretNames = ['MAIL_PROVIDER_API_KEY', 'SUBSCRIBER_TOKEN_SECRET', 'WEBHOOK_SIGNING_SECRET'];
+  const secretNames = ['SETUP_TOKEN', 'SESSION_SECRET', 'MAIL_PROVIDER_API_KEY', 'SUBSCRIBER_TOKEN_SECRET', 'WEBHOOK_SIGNING_SECRET'];
   if (provider === 'resend') secretNames.push('RESEND_WEBHOOK_SECRET');
   if (variables.AI_PROVIDER_URL) secretNames.push('AI_PROVIDER_API_KEY');
   if (environment === 'preview' && (!Array.isArray(variables.controlledProviders) || !variables.controlledProviders.length)) throw new Error('Preview requires explicit controlledProviders');

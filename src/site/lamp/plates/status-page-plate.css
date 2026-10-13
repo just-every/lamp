@@ -1,0 +1,35 @@
+/* Plate A. From 900px of plate, the status band splits 58/42 over the components (1.4fr) and the public record (1fr),
+   as the product's .public-record-grid places them, with the current update's fields in two columns; the plate ends
+   with the current update, the two columns ending together. Below that the record column is too narrow, so the plate
+   is one column: the band's left half, the times, the current entry and Storefront. No fade crosses any text. */
+.lamp-home .lamp-status .lamp-plate__body { padding: 0; }
+.lamp-home .lamp-status__band { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; padding: 14px 14px 12px; }
+.lamp-home .lamp-status__overview { display: none; }
+.lamp-home .lamp-status__times { display: block; padding: 0 14px 12px; border-bottom: 1px solid var(--lamp-line); }
+.lamp-home .lamp-status__record { display: grid; grid-template-columns: minmax(0, 1fr); grid-template-areas: 'timeline' 'components'; }
+.lamp-home .lamp-status__components { grid-area: components; padding: 14px; }
+.lamp-home .lamp-status__timeline { grid-area: timeline; padding: 14px 14px 0; }
+.lamp-home .lamp-status__utilities { display: none; gap: 18px; margin: 0 0 14px; }
+.lamp-home .lamp-status__group + .lamp-status__group { display: none; }
+.lamp-home .lamp-status__group { margin-top: 12px; }
+.lamp-home .lamp-status__row { display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--lamp-line); font-size: 13px; }
+.lamp-home .lamp-status__name { font-weight: 500; }
+.lamp-home .lamp-status__state { display: inline-flex; align-items: center; gap: 6px; }
+.lamp-home .lamp-status__note { grid-column: 1 / -1; margin-top: 2px; }
+.lamp-home .lamp-status__service { display: grid; grid-template-columns: 14px minmax(0, 1fr); gap: 10px; align-items: start; }
+.lamp-home .lamp-status__service > div { display: flex; flex-direction: column; gap: 1px; font-size: 13px; }
+.lamp-home .lamp-status__service .lamp-glyph { margin-top: 2px; }
+.lamp-home .lamp-status .lamp-plate__strip-end { display: none; }
+@container lamp-plate (min-width: 900px) {
+  .lamp-home .lamp-status .lamp-plate__strip-end { display: inline; }
+  .lamp-home .lamp-status__band { grid-template-columns: 58fr 42fr; gap: 24px; padding: 20px 22px 18px; border-bottom: 1px solid var(--lamp-line); }
+  .lamp-home .lamp-status__overview { display: flex; flex-direction: column; gap: 12px; padding-top: 4px; }
+  .lamp-home .lamp-status__times { display: none; }
+  .lamp-home .lamp-status__record { grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); grid-template-areas: 'components timeline'; }
+  .lamp-home .lamp-status__components { padding: 16px 22px; border-right: 1px solid var(--lamp-line); }
+  .lamp-home .lamp-status__timeline { padding: 16px 22px 22px; }
+  .lamp-home .lamp-status__utilities { display: flex; }
+  .lamp-home .lamp-status__group + .lamp-status__group { display: block; }
+  .lamp-home .lamp-status__group { margin-top: 16px; }
+  .lamp-home .lamp-status__row { padding-block: 10px; }
+}

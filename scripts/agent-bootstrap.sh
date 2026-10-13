@@ -1,11 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Lamp's documented runtime and v6 dependency lock; Node 22 is used only for
-# Playwright 1.55 archive extraction (which hangs under Node 26).
-readonly NODE_VERSION=26.8.1
-readonly BROWSER_NODE_VERSION=22.20.0
-readonly PNPM_VERSION=8.15.6
+# Lamp's pinned runtime (the seed command contract's Node and pnpm).
+readonly NODE_VERSION=22.20.0
+readonly PNPM_VERSION=10.12.4
 readonly PLAYWRIGHT_VERSION=1.55.0
 readonly WORKERD_VERSION=1.20260907.1
 readonly BIN_DIR=/usr/local/bin
@@ -24,16 +22,13 @@ fi
 case $(uname -m) in
   x86_64)
     arch=x64
-    node_checksum=b2b76660fa4ded4e0b2a41ee3c0c651cd52ea8170ead91ebac1e147ac3d55643
-    browser_checksum=eeaccb0378b79406f2208e8b37a62479c70595e20be6b659125eb77dd1ab2a29 ;;
+    node_checksum=eeaccb0378b79406f2208e8b37a62479c70595e20be6b659125eb77dd1ab2a29 ;;
   aarch64|arm64)
     arch=arm64
-    node_checksum=d5f973ce975e4bd03e6c2038260f7e9201615aa8e1ee293c72f8dcc2a6d9fddb
-    browser_checksum=4181609e03dcb9880e7e5bf956061ecc0503c77a480c6631d868cb1f65a2c7dd ;;
+    node_checksum=4181609e03dcb9880e7e5bf956061ecc0503c77a480c6631d868cb1f65a2c7dd ;;
   *) fail 'supported Linux architectures are x86_64 and aarch64.' ;;
 esac
 readonly node_home="/opt/rer-agent-tools/node-v${NODE_VERSION}-linux-${arch}"
-readonly browser_node_home="/opt/rer-agent-tools/node-v${BROWSER_NODE_VERSION}-linux-${arch}"
 repo_root=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
 readonly repo_root
 cd "$repo_root"
@@ -55,7 +50,6 @@ install_node() {
   fi
 }
 install_node "$NODE_VERSION" "$node_checksum" "$node_home"
-install_node "$BROWSER_NODE_VERSION" "$browser_checksum" "$browser_node_home"
 "${root[@]}" mkdir -p "$BIN_DIR"
 for command_name in node npm npx; do
   "${root[@]}" ln -sfn "$node_home/bin/$command_name" "$BIN_DIR/$command_name"
@@ -73,9 +67,9 @@ hash -r
 if [[ -n ${GITHUB_PATH:-} ]]; then printf '%s\n' "$BIN_DIR" >> "$GITHUB_PATH"; fi
 
 # Retain the default shared pnpm and Playwright stores; frozen install runs the
-# real locked native installers, including workerd and esbuild, under pnpm 8.
+# real locked native installers allowed in package.json (workerd and esbuild).
 pnpm install --frozen-lockfile
-PLAYWRIGHT_SKIP_BROWSER_GC=1 "$browser_node_home/bin/node" node_modules/playwright/cli.js install --with-deps chromium
+PLAYWRIGHT_SKIP_BROWSER_GC=1 node node_modules/playwright/cli.js install --with-deps chromium
 node --input-type=module <<'NODE'
 import assert from 'node:assert/strict'
 import { execFileSync } from 'node:child_process'

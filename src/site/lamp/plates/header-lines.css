@@ -1,0 +1,9 @@
+/* HTTP header lines, 12px (11px on the narrowest phones, so the body's line ends clear of the card's padding), then
+   the body's first line under a hairline. */
+.lamp-home .lamp-headers { font-size: 12px; line-height: 1.5; }
+@container lamp-page (max-width: 339.98px) {
+  .lamp-home .lamp-headers { font-size: 11px; }
+}
+.lamp-home .lamp-headers p { margin: 0; }
+.lamp-home .lamp-headers p + p { margin-top: 6px; }
+.lamp-home .lamp-headers__body { padding-top: 6px; border-top: 1px solid var(--lamp-line); }

@@ -2,18 +2,10 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import {execFileSync} from 'node:child_process';
-import {hash, json, git, safe, digest, noLinks} from './files.mjs';
+import {hash, json, git, raw, safe, digest, noLinks} from './files.mjs';
 import {snapshotOrigin, verifyProjectionLock} from './projection-lock.mjs';
 
 const environment = {...process.env, GIT_NO_REPLACE_OBJECTS: '1'};
-function raw(root, ...args) {
-  try {
-    return execFileSync('git', ['-C', root, ...args], {env: environment, maxBuffer: 64 * 1024 * 1024, stdio: ['ignore', 'pipe', 'pipe']});
-  } catch (error) {
-    if (error.code === 'ENOBUFS') throw Error('Git source output exceeds the 64 MiB acquisition limit');
-    throw error;
-  }
-}
 function selected(name, ref) {
   const prefix = ref.path && ref.path !== '.' ? ref.path : '';
   if (prefix && name !== prefix && !name.startsWith(prefix + '/')) return false;
@@ -65,6 +57,7 @@ export function snapshot(root, ref, retain = false) {
     }
     return saved;
   }
+  // A projection has no fetchable revision; it exists only as a reviewed retained archive.
   if (ref.projection) throw Error('Missing retained public projection; regenerate from the pinned private original outside the public tree');
   const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'edition-source-'));
   try {

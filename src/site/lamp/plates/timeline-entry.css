@@ -1,0 +1,9 @@
+/* A timeline entry: rail and ring on the left, the time above the content. */
+.lamp-home .lamp-entry { position: relative; display: grid; grid-template-columns: 7px minmax(0, 1fr); column-gap: 14px; margin-top: 14px; }
+.lamp-home .lamp-entry__rail { position: relative; justify-self: center; width: 1px; background: var(--lamp-line-strong); }
+.lamp-home .lamp-entry__rail::before { content: ''; position: absolute; top: 3px; left: -3px; width: 7px; height: 7px; box-sizing: border-box;
+  border: 1.5px solid var(--lamp-ink); border-radius: 50%; background: #fff; }
+.lamp-home .lamp-entry__time { display: block; margin-bottom: 4px; font-size: 11px; line-height: 1.3; font-variant-numeric: tabular-nums; }
+.lamp-home .lamp-entry__heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+.lamp-home .lamp-entry__heading .lamp-plate__small { display: block; margin-top: 2px; }
+.lamp-home .lamp-entry__meta { margin: 6px 0 0; font-size: 13px; line-height: 1.4; }

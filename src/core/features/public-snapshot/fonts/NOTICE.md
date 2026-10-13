@@ -1,12 +1,14 @@
 # Locally embedded typeface
 
-The public snapshot embeds Open Sans in its existing same-origin stylesheet
-artifact. The source is licensed under the SIL Open Font License 1.1; its
-verbatim license is stored in `OpenSans-OFL.txt` beside the font asset.
+The public snapshot embeds Inter in its existing same-origin stylesheet
+artifact, so the page makes no font request of its own and none to a third
+party. Inter is licensed under the SIL Open Font License 1.1; its verbatim
+license is stored in `inter-OFL.txt` beside the font asset.
 
-- Open Sans variable, normal style: https://github.com/google/fonts/tree/main/ofl/opensans
+- Inter: https://github.com/rsms/inter
 
-`OpenSans[wdth,wght].woff2` is an unsubsetted WOFF2 conversion of the official
-Google Fonts variable source. Its source axes cover `wght` 300–800 and `wdth`
-75–100; the public page uses normal weight 400–700. Source and conversion
-provenance remain in the external release evidence directory.
+`inter-latin.woff2` is Inter variable (`wght` 100–900), Latin subset: a byte
+copy of `files/inter-latin-wght-normal.woff2` from
+`@fontsource-variable/inter` 5.2.8, the same file the Lamp landing and
+operator app serve (`src/site/lamp/fonts/`, provenance in
+`src/site/lamp/asset-provenance.json`). The public page uses weights 400–600.

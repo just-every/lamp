@@ -12,8 +12,8 @@ before(async () => {
   vite = await createServer({ configFile: false, appType: "custom", server: { middlewareMode: true } });
   ({ createDeliveryRepository, createDeliveriesService } = await vite.ssrLoadModule("/src/core/features/deliveries/index.ts"));
   statePath = await mkdtemp(join(tmpdir(), "lamp-dispatch-persistence-"));
-  execFileSync("pnpm", ["exec", "wrangler", "d1", "migrations", "apply", "DB", "--local", "--persist-to", statePath, "--config", "deploy/wrangler.template.toml"], { stdio: "pipe" });
-  platform = await getPlatformProxy({ configPath: "deploy/wrangler.template.toml", persist: { path: join(statePath, "v3") }, remoteBindings: false });
+  execFileSync("pnpm", ["exec", "wrangler", "d1", "migrations", "apply", "DB", "--local", "--persist-to", statePath, "--config", "wrangler.jsonc"], { stdio: "pipe" });
+  platform = await getPlatformProxy({ configPath: "wrangler.jsonc", persist: { path: join(statePath, "v3") }, remoteBindings: false });
   const db = platform.env.DB;
   const now = new Date().toISOString();
   await db.batch([

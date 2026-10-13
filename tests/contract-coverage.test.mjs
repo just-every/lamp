@@ -35,7 +35,7 @@ function taggedCalls(source) {
   return calls;
 }
 
-const verifiedFiles = [...new Set(verifiedTestFiles("verify"))];
+const verifiedFiles = [...new Set(verifiedTestFiles("verify:app"))];
 const behaviorFiles = verifiedFiles.filter((file) => file.startsWith("tests/e2e/"));
 const tagged = new Map();
 const invalid = [];

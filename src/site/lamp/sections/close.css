@@ -1,0 +1,31 @@
+/* The close mirrors the hero. A gutter-wide hairline is its ceiling, and the lit pendant hangs from it on its cord at
+   full strength. Its headline sits in a round pool of the lamp's light, then the sentence and both ways in: the pill
+   and the underlined Read the docs. Everything is centred; from 1024px the words span columns 2–11. The shade is 260
+   units wide (180px under 1024px), .9122 of its canvas. */
+.lamp-home .lamp-close { --lamp-top-space: 0px; --lamp-static-w: 197px; --lamp-static-cord: max(56px, calc(96 * var(--u)));
+  display: flex; flex-direction: column; align-items: center; margin-top: max(112px, calc(224 * var(--u))); padding-bottom: max(72px, calc(120 * var(--u)));
+  text-align: center; }
+.lamp-home .lamp-close::before { content: ''; position: absolute; top: 0; right: var(--lamp-gutter); left: var(--lamp-gutter); height: 1px; background: var(--lamp-line); }
+.lamp-home .lamp-close__lamp { margin-top: var(--lamp-static-cord); }
+.lamp-home .lamp-close__text { position: relative; display: flex; flex-direction: column; align-items: center; margin-top: calc(28px - var(--lamp-static-w) * .2314); }
+.lamp-home .lamp-close__pool { top: 50%; left: 50%; width: min(100%, 560px); aspect-ratio: 1.5; translate: -50% -50%; }
+.lamp-home .lamp-close__title { max-width: 14em; margin: 0; color: var(--lamp-ink); font-size: max(34px, calc(66 * var(--u))); font-weight: 600; line-height: 1.08;
+  letter-spacing: -.022em; text-wrap: balance; }
+.lamp-home .lamp-close__sentence { max-width: 60ch; margin-inline: auto; }
+.lamp-home .lamp-close__actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 24px; margin: 28px 0 0; }
+@container lamp-page (min-width: 1024px) {
+  .lamp-home .lamp-close { --lamp-static-w: calc(285 * var(--u)); display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); justify-items: center; }
+  .lamp-home .lamp-close__lamp { grid-column: 1 / -1; }
+  .lamp-home .lamp-close__text { grid-column: 2 / 12; justify-self: stretch; margin-top: calc(72 * var(--u) - var(--lamp-static-w) * .2314); }
+  .lamp-home .lamp-close__title { max-width: none; }
+  .lamp-home .lamp-close__pool { width: calc(920 * var(--u)); }
+  .lamp-home .lamp-close__actions { gap: calc(51 * var(--u)); margin-top: calc(40 * var(--u)); }
+}
+/* The moment: the lamp is already lit; its pool settles onto the headline and the ways in as they rise. */
+@media screen and (prefers-reduced-motion: no-preference) {
+  .lamp-home .lamp-close[data-reveal="wait"] .lamp-close__pool { opacity: .3; scale: .9; }
+  .lamp-home .lamp-close[data-reveal="wait"] :is(.lamp-close__title, .lamp-close__actions) { opacity: 0; }
+  .lamp-home .lamp-close[data-reveal="play"] .lamp-close__pool { animation: lamp-pool-settle .8s var(--lamp-ease) .1s backwards; }
+  .lamp-home .lamp-close[data-reveal="play"] :is(.lamp-close__title, .lamp-close__actions) { animation: lamp-rise .5s var(--lamp-ease) backwards; }
+  .lamp-home .lamp-close[data-reveal="play"] .lamp-close__actions { animation-delay: .2s; }
+}

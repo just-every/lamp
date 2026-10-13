@@ -1,25 +1,97 @@
-.page-stack { display: grid; gap: 22px; }
-.page-title-row { display: flex; align-items: end; justify-content: space-between; gap: 20px; min-height: 72px; }
-.page-title-row > div > p:last-child { max-width: 650px; margin: 0; color: var(--muted); font-size: 16px; }
-.button { display: inline-flex; min-height: 44px; align-items: center; justify-content: center; gap: 8px; border: 1px solid transparent; border-radius: 6px; padding: 8px 14px; font-size: 14px; font-weight: 750; transition: background .15s ease, border-color .15s ease; }
-.button-primary { background: var(--accent); color: #fff; box-shadow: 0 7px 18px -13px #0e5032; }
-.button-primary:hover:not(:disabled) { background: var(--accent-deep); }
-.button-secondary { border-color: #cfd8df; background: #fff; color: var(--navy); }
-.button-secondary:hover:not(:disabled) { background: #f6f8f9; }
-button:disabled { cursor: not-allowed; opacity: .55; }
-.data-card { border: 1px solid var(--line); border-radius: 9px; background: var(--paper); box-shadow: 0 9px 30px -25px rgba(15,35,57,.3); padding: 23px; }
-.card-title-row, .card-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
-.text-link { display: inline-flex; align-items: center; gap: 7px; color: #123d2c; font-weight: 750; }
-.text-link:hover, .quiet-link:hover { text-decoration: underline; }
-.app-state, .limit-note { border: 1px solid #d7e0e7; border-radius: 8px; background: #fff; padding: 17px; color: var(--muted); }
-.app-state-error .button { display: flex; margin-top: 12px; }
-.app-state-error { border-color: #edb08a; background: var(--warning-wash); color: #8c3d13; }
-.app-state-empty { margin-top: 13px; }
-.capability-note { display: flex; gap: 12px; border: 1px solid #f0d6c2; border-radius: 7px; background: #fff8f3; padding: 15px 17px; color: #79411f; }
-.capability-note svg { flex: 0 0 auto; color: var(--warning); }
-.capability-note strong { color: #683613; }
-.capability-note p { margin: 3px 0 0; font-size: 13px; }
-.count-label { color: var(--muted); font-size: 12px; }
+/* The shared pieces every screen is built from: the landing's pills, white plates with hairlines, state chips with a
+   dot, inputs, quiet notes and the amber "live" block. */
 
-.limit-note { display: flex; gap: 10px; align-items: flex-start; }
-.limit-note svg { flex: 0 0 auto; margin-top: 3px; }
+/* Buttons: the landing's .lamp-pill (primary) and its outlined twin (secondary). */
+.button { display: inline-flex; min-height: 44px; align-items: center; justify-content: center; gap: 8px; border: 1px solid transparent; border-radius: 999px; padding: 8px 20px; font-size: 15px; font-weight: 500; line-height: 1.2; white-space: nowrap; }
+.button-primary { background: var(--pill); color: var(--on-ink); }
+.button-primary:hover:not(:disabled) { background: var(--pill-hover); box-shadow: var(--pill-shadow); }
+.button-secondary { border-color: var(--line-strong); background: var(--card); color: var(--ink); }
+.button-secondary:hover:not(:disabled) { border-color: var(--ink-3); }
+.button:active:not(:disabled) { box-shadow: none; translate: 0 1px; }
+.danger-button, .button-secondary.danger-button { color: var(--down); }
+.table-action { min-height: 32px; padding: 6px 14px; font-size: 13px; }
+button:disabled { cursor: not-allowed; opacity: .45; }
+@media (prefers-reduced-motion: no-preference) {
+  .button { transition: background-color .18s, border-color .18s, box-shadow .18s, translate .12s; }
+}
+.icon-button { display: inline-grid; width: 40px; height: 40px; flex: none; place-items: center; border: 1px solid var(--line-strong); border-radius: 999px; background: var(--card); color: var(--ink); }
+.icon-button:hover { border-color: var(--ink-3); }
+
+/* Text links: ink, underlined at 40% ink, full on hover. */
+.text-link { display: inline-flex; align-items: center; gap: 8px; color: var(--ink); font-weight: 500; text-decoration: underline 1.5px; text-decoration-color: var(--link-line); text-underline-offset: 4px; }
+.text-link:hover { text-decoration-color: var(--ink); }
+
+/* Plates. */
+.data-card { min-width: 0; border: 1px solid var(--line); border-radius: 12px; background: var(--card); box-shadow: var(--shadow-card); padding: 24px; }
+.card-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+.card-heading h2 { margin-bottom: 0; }
+.card-kicker + h2 { margin-top: 0; }
+.card-support { margin: 12px 0; color: var(--ink-2); }
+.count-label { flex: none; color: var(--ink-3); font-size: 12px; font-variant-numeric: tabular-nums; }
+
+/* The amber "live" block: the landing's .lamp-plate__current. Only what is live and needs the operator now. */
+.live-block { background: var(--amber-wash); box-shadow: inset 3px 0 0 var(--amber); }
+
+/* State chips: a quiet pill with a coloured dot. */
+.state-pill { display: inline-flex; width: fit-content; align-items: center; gap: 6px; border: 1px solid var(--line-strong); border-radius: 999px; background: var(--chip); color: var(--ink); padding: 3px 10px; font-size: 12px; font-weight: 500; line-height: 1.4; white-space: nowrap; }
+.state-pill::before, .fact-dot::before { content: ''; width: 8px; height: 8px; flex: none; border-radius: 50%; background: var(--quiet); }
+.fact-dot { display: inline-flex; align-items: center; gap: 8px; }
+.state-operational::before, .state-resolved::before, .state-completed::before, .state-delivered::before, .state-active::before, .state-monitoring::before { background: var(--ok); }
+.state-major-outage::before, .state-partially-unavailable::before, .state-bounced::before, .state-complained::before, .state-failed::before { background: var(--down); }
+.state-degraded-performance::before, .state-investigating::before, .state-identified::before { background: var(--degraded); }
+.state-under-maintenance::before, .state-scheduled::before, .state-in-progress::before, .state-queued::before { background: var(--maint); }
+
+/* Fields: labels above, help below. */
+.form-label { display: grid; gap: 6px; color: var(--ink); font-size: 14px; font-weight: 500; }
+.form-label small, .field-hint, .field-note { color: var(--ink-3); font-size: 13px; font-weight: 400; line-height: 1.45; }
+:where(input:not([type="checkbox"], [type="radio"], [type="file"]):not(.lamp-home *), select:not(.lamp-home *), textarea:not(.lamp-home *)) { width: 100%; min-width: 0; min-height: 44px; border: 1px solid var(--line-strong); border-radius: 10px; background: var(--card); color: var(--ink); padding: 10px 12px; font-size: 15px; font-weight: 400; }
+:where(textarea:not(.lamp-home *)) { min-height: 88px; line-height: 1.5; resize: vertical; }
+:where(input:not(.lamp-home *), textarea:not(.lamp-home *))::placeholder { color: var(--ink-3); }
+:where(input:not([type="checkbox"], [type="radio"]):not(.lamp-home *), select:not(.lamp-home *), textarea:not(.lamp-home *)):focus { border-color: var(--ink); box-shadow: var(--focus-ring); }
+:where(select:not(.lamp-home *)) { appearance: none; padding-right: 36px; background-image: var(--select-chevron); background-position: right 12px center; background-repeat: no-repeat; background-size: 16px; }
+:where(input[type="file"]:not(.lamp-home *)) { width: 100%; min-width: 0; min-height: 44px; border: 1px solid var(--line-strong); border-radius: 10px; background: var(--card); color: var(--ink-2); padding: 5px 12px; font-size: 14px; }
+input[type="file"]::file-selector-button { min-height: 32px; margin-right: 12px; border: 1px solid var(--line-strong); border-radius: 999px; background: var(--card); color: var(--ink); padding: 0 14px; font: 500 13px/1 var(--sans); cursor: pointer; }
+input[type="file"]::file-selector-button:hover { background: var(--stage); }
+/* The landing's tick: 16px, 4px radius, filled ink with a white tick. */
+:where(input[type="checkbox"]:not(.lamp-home *)) { display: grid; width: 16px; height: 16px; flex: none; place-content: center; margin: 0; appearance: none; border: 1px solid var(--line-strong); border-radius: 4px; background: var(--card); }
+:where(input[type="checkbox"]:not(.lamp-home *))::before { content: ''; width: 10px; height: 10px; transform: scale(0); background: var(--on-ink); clip-path: polygon(14% 52%, 0 66%, 38% 100%, 100% 22%, 86% 8%, 38% 72%); }
+:where(input[type="checkbox"]:not(.lamp-home *)):checked { border-color: var(--ink); background: var(--ink); }
+:where(input[type="checkbox"]:not(.lamp-home *)):checked::before { transform: scale(1); }
+.checkbox-label { display: flex; align-items: center; gap: 10px; color: var(--ink); font-size: 14px; font-weight: 500; }
+.full-width { grid-column: 1 / -1; }
+.form-actions, .drawer-actions, .composer-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; margin-top: 20px; }
+.save-message { margin: 0; color: var(--ink-2); font-weight: 500; }
+
+/* Notes and warnings: a white plate, an amber line icon, ink-2 text. */
+.capability-note, .limit-note { display: flex; align-items: flex-start; gap: 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--card); padding: 16px 20px; color: var(--ink-2); font-size: 14px; line-height: 1.55; }
+.capability-note svg, .limit-note svg { width: 18px; height: 18px; flex: none; margin-top: 2px; color: var(--amber); }
+.capability-note strong { display: block; color: var(--ink); }
+.capability-note p { margin: 4px 0 0; }
+
+/* The side drawer: a paper sheet from the right. */
+.claim-drawer { width: min(100%, 480px); height: 100dvh; max-height: 100dvh; max-width: 100%; margin: 0 0 0 auto; border: 0; background: var(--paper); color: var(--ink); box-shadow: var(--shadow-raised); padding: 24px; overflow-y: auto; }
+.claim-drawer::backdrop { background: var(--backdrop); }
+.drawer-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; border-bottom: 1px solid var(--line); padding-bottom: 20px; }
+.drawer-heading h2 { margin: 0; }
+.claim-drawer > p { margin: 20px 0; color: var(--ink-2); }
+.claim-drawer .form-label { margin-top: 24px; }
+.drawer-explanation { display: flex; gap: 10px; margin: 16px 0; color: var(--ink-2); font-size: 13px; }
+.drawer-explanation svg { flex: 0 0 auto; color: var(--amber); }
+
+/* Plain stacked card content (headings, sentences and pills written without their own layout classes). */
+.data-card > :not(.card-kicker, .eyebrow) + h2 { margin-top: 28px; }
+.data-card > p:not(.card-kicker):not(.eyebrow) { color: var(--ink-2); }
+.data-card > .button { margin: 4px 0 12px; }
+
+/* First-run setup at /setup stands alone, outside the operator shell, under the sign-in page's lamp. */
+.first-run-page { width: min(100%, 640px); }
+.first-run-page .settings-form { display: grid; gap: 18px; }
+.first-run-page > p { color: var(--ink-2); }
+.keep-together { white-space: nowrap; }
+
+/* Updates due or overdue (INCIDENT-010): live work, so an amber block with one action. */
+.update-due-notice { display: grid; gap: 10px; }
+.update-due-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--amber-wash); box-shadow: inset 3px 0 0 var(--amber); padding: 14px 16px; }
+.update-due-row > span { display: grid; gap: 2px; min-width: 0; }
+.update-due-row strong { color: var(--amber-ink); font-weight: 600; }
+.update-due-row small { color: var(--ink-2); overflow-wrap: anywhere; }

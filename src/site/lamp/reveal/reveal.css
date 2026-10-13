@@ -1,0 +1,26 @@
+/* How each moment below the hero arrives (PageMotion.tsx). While a moment waits, each moving part holds its first frame;
+   when it plays, each part runs one short animation in the page's one easing, filling backwards only, so once it ends
+   the part is simply its final state again. Only opacity, transforms, clipping and background size move. No loop, no
+   counter, no bounce; every moment ends within 1.2s of being seen (the terminal within 1.8s). Here: the shared
+   keyframes and the default moment, the eyebrow, headline and sentence rising 12px 60ms apart, and the cards rising
+   16px from 120ms after, 90ms apart (--n). Each section's own moment is in its CSS. A focus inside a moment shows its
+   final state at once, and a moment that has played is over for good (PageMotion.tsx). Nothing applies under reduced motion, in print, or before the script runs. */
+@keyframes lamp-rise { from { opacity: 0; translate: 0 var(--lamp-rise, 12px); } }
+@keyframes lamp-fade { from { opacity: 0; } }
+@keyframes lamp-from-right { from { opacity: 0; translate: 16px 0; } }
+@keyframes lamp-settle { from { opacity: 0; scale: var(--lamp-settle, .6); } }
+@keyframes lamp-draw-down { from { scale: 1 0; } }
+@keyframes lamp-sweep { from { background-size: 0% 100%; } }
+@keyframes lamp-wipe { from { clip-path: inset(0 100% 0 0); } }
+@keyframes lamp-brighten { from { opacity: .3; } }
+@keyframes lamp-pool-settle { from { opacity: .3; scale: .9; } }
+@media screen and (prefers-reduced-motion: no-preference) {
+  .lamp-home [data-reveal="wait"] :is(.lamp-section__eyebrow, .lamp-section__title, .lamp-section__sentence),
+  .lamp-home [data-reveal="wait"] .lamp-section__plates > .lamp-plate { opacity: 0; }
+  .lamp-home [data-reveal="play"] :is(.lamp-section__eyebrow, .lamp-section__title, .lamp-section__sentence) {
+    animation: lamp-rise .5s var(--lamp-ease) backwards; }
+  .lamp-home [data-reveal="play"] .lamp-section__title { animation-delay: 60ms; }
+  .lamp-home [data-reveal="play"] .lamp-section__sentence { animation-delay: 120ms; }
+  .lamp-home [data-reveal="play"] .lamp-section__plates > .lamp-plate {
+    --lamp-rise: 16px; animation: lamp-rise .6s var(--lamp-ease) calc(120ms + var(--n, 0) * 90ms) backwards; }
+}

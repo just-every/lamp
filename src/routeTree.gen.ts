@@ -10,15 +10,19 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as AppRouteImport } from './routes/app'
-import { Route as SigninRouteImport } from './routes/signin'
+import { Route as DocsRouteImport } from './routes/docs'
+import { Route as SetupRouteImport } from './routes/setup'
 import { Route as AppIndexRouteImport } from './routes/app.index'
 import { Route as AppAlertsRouteImport } from './routes/app.alerts'
 import { Route as AppComponentsRouteImport } from './routes/app.components'
 import { Route as AppDeliveriesRouteImport } from './routes/app.deliveries'
 import { Route as AppIncidentsRouteImport } from './routes/app.incidents'
 import { Route as AppMaintenanceRouteImport } from './routes/app.maintenance'
+import { Route as AppMoveInRouteImport } from './routes/app.move-in'
 import { Route as AppSettingsRouteImport } from './routes/app.settings'
 import { Route as AppSubscribersRouteImport } from './routes/app.subscribers'
+import { Route as DocsIndexRouteImport } from './routes/docs.index'
+import { Route as DocsSlugRouteImport } from './routes/docs.$slug'
 import { Route as AppIncidentsIndexRouteImport } from './routes/app.incidents.index'
 import { Route as AppIncidentsIncidentIdRouteImport } from './routes/app.incidents.$incidentId'
 
@@ -27,9 +31,14 @@ const AppRoute = AppRouteImport.update({
   path: '/app',
   getParentRoute: () => rootRouteImport,
 } as any)
-const SigninRoute = SigninRouteImport.update({
-  id: '/signin',
-  path: '/signin',
+const DocsRoute = DocsRouteImport.update({
+  id: '/docs',
+  path: '/docs',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SetupRoute = SetupRouteImport.update({
+  id: '/setup',
+  path: '/setup',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AppIndexRoute = AppIndexRouteImport.update({
@@ -62,6 +71,11 @@ const AppMaintenanceRoute = AppMaintenanceRouteImport.update({
   path: '/maintenance',
   getParentRoute: () => AppRoute,
 } as any)
+const AppMoveInRoute = AppMoveInRouteImport.update({
+  id: '/move-in',
+  path: '/move-in',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppSettingsRoute = AppSettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
@@ -71,6 +85,16 @@ const AppSubscribersRoute = AppSubscribersRouteImport.update({
   id: '/subscribers',
   path: '/subscribers',
   getParentRoute: () => AppRoute,
+} as any)
+const DocsIndexRoute = DocsIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => DocsRoute,
+} as any)
+const DocsSlugRoute = DocsSlugRouteImport.update({
+  id: '/$slug',
+  path: '/$slug',
+  getParentRoute: () => DocsRoute,
 } as any)
 const AppIncidentsIndexRoute = AppIncidentsIndexRouteImport.update({
   id: '/',
@@ -85,42 +109,53 @@ const AppIncidentsIncidentIdRoute = AppIncidentsIncidentIdRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/app': typeof AppRouteWithChildren
-  '/signin': typeof SigninRoute
+  '/docs': typeof DocsRouteWithChildren
+  '/setup': typeof SetupRoute
   '/app/alerts': typeof AppAlertsRoute
   '/app/components': typeof AppComponentsRoute
   '/app/deliveries': typeof AppDeliveriesRoute
   '/app/incidents': typeof AppIncidentsRouteWithChildren
   '/app/maintenance': typeof AppMaintenanceRoute
+  '/app/move-in': typeof AppMoveInRoute
   '/app/settings': typeof AppSettingsRoute
   '/app/subscribers': typeof AppSubscribersRoute
+  '/docs/$slug': typeof DocsSlugRoute
   '/app/': typeof AppIndexRoute
+  '/docs/': typeof DocsIndexRoute
   '/app/incidents/$incidentId': typeof AppIncidentsIncidentIdRoute
   '/app/incidents/': typeof AppIncidentsIndexRoute
 }
 export interface FileRoutesByTo {
-  '/signin': typeof SigninRoute
+  '/setup': typeof SetupRoute
   '/app/alerts': typeof AppAlertsRoute
   '/app/components': typeof AppComponentsRoute
   '/app/deliveries': typeof AppDeliveriesRoute
   '/app/maintenance': typeof AppMaintenanceRoute
+  '/app/move-in': typeof AppMoveInRoute
   '/app/settings': typeof AppSettingsRoute
   '/app/subscribers': typeof AppSubscribersRoute
+  '/docs/$slug': typeof DocsSlugRoute
   '/app': typeof AppIndexRoute
+  '/docs': typeof DocsIndexRoute
   '/app/incidents/$incidentId': typeof AppIncidentsIncidentIdRoute
   '/app/incidents': typeof AppIncidentsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/app': typeof AppRouteWithChildren
-  '/signin': typeof SigninRoute
+  '/docs': typeof DocsRouteWithChildren
+  '/setup': typeof SetupRoute
   '/app/alerts': typeof AppAlertsRoute
   '/app/components': typeof AppComponentsRoute
   '/app/deliveries': typeof AppDeliveriesRoute
   '/app/incidents': typeof AppIncidentsRouteWithChildren
   '/app/maintenance': typeof AppMaintenanceRoute
+  '/app/move-in': typeof AppMoveInRoute
   '/app/settings': typeof AppSettingsRoute
   '/app/subscribers': typeof AppSubscribersRoute
+  '/docs/$slug': typeof DocsSlugRoute
   '/app/': typeof AppIndexRoute
+  '/docs/': typeof DocsIndexRoute
   '/app/incidents/$incidentId': typeof AppIncidentsIncidentIdRoute
   '/app/incidents/': typeof AppIncidentsIndexRoute
 }
@@ -128,48 +163,60 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/app'
-    | '/signin'
+    | '/docs'
+    | '/setup'
     | '/app/alerts'
     | '/app/components'
     | '/app/deliveries'
     | '/app/incidents'
     | '/app/maintenance'
+    | '/app/move-in'
     | '/app/settings'
     | '/app/subscribers'
+    | '/docs/$slug'
     | '/app/'
+    | '/docs/'
     | '/app/incidents/$incidentId'
     | '/app/incidents/'
   fileRoutesByTo: FileRoutesByTo
   to:
-    | '/signin'
+    | '/setup'
     | '/app/alerts'
     | '/app/components'
     | '/app/deliveries'
     | '/app/maintenance'
+    | '/app/move-in'
     | '/app/settings'
     | '/app/subscribers'
+    | '/docs/$slug'
     | '/app'
+    | '/docs'
     | '/app/incidents/$incidentId'
     | '/app/incidents'
   id:
     | '__root__'
     | '/app'
-    | '/signin'
+    | '/docs'
+    | '/setup'
     | '/app/alerts'
     | '/app/components'
     | '/app/deliveries'
     | '/app/incidents'
     | '/app/maintenance'
+    | '/app/move-in'
     | '/app/settings'
     | '/app/subscribers'
+    | '/docs/$slug'
     | '/app/'
+    | '/docs/'
     | '/app/incidents/$incidentId'
     | '/app/incidents/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   AppRoute: typeof AppRouteWithChildren
-  SigninRoute: typeof SigninRoute
+  DocsRoute: typeof DocsRouteWithChildren
+  SetupRoute: typeof SetupRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -181,11 +228,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/signin': {
-      id: '/signin'
-      path: '/signin'
-      fullPath: '/signin'
-      preLoaderRoute: typeof SigninRouteImport
+    '/docs': {
+      id: '/docs'
+      path: '/docs'
+      fullPath: '/docs'
+      preLoaderRoute: typeof DocsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/setup': {
+      id: '/setup'
+      path: '/setup'
+      fullPath: '/setup'
+      preLoaderRoute: typeof SetupRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/app/': {
@@ -230,6 +284,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppMaintenanceRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/move-in': {
+      id: '/app/move-in'
+      path: '/move-in'
+      fullPath: '/app/move-in'
+      preLoaderRoute: typeof AppMoveInRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/app/settings': {
       id: '/app/settings'
       path: '/settings'
@@ -243,6 +304,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/app/subscribers'
       preLoaderRoute: typeof AppSubscribersRouteImport
       parentRoute: typeof AppRoute
+    }
+    '/docs/': {
+      id: '/docs/'
+      path: '/'
+      fullPath: '/docs/'
+      preLoaderRoute: typeof DocsIndexRouteImport
+      parentRoute: typeof DocsRoute
+    }
+    '/docs/$slug': {
+      id: '/docs/$slug'
+      path: '/$slug'
+      fullPath: '/docs/$slug'
+      preLoaderRoute: typeof DocsSlugRouteImport
+      parentRoute: typeof DocsRoute
     }
     '/app/incidents/': {
       id: '/app/incidents/'
@@ -281,6 +356,7 @@ interface AppRouteChildren {
   AppDeliveriesRoute: typeof AppDeliveriesRoute
   AppIncidentsRoute: typeof AppIncidentsRouteWithChildren
   AppMaintenanceRoute: typeof AppMaintenanceRoute
+  AppMoveInRoute: typeof AppMoveInRoute
   AppSettingsRoute: typeof AppSettingsRoute
   AppSubscribersRoute: typeof AppSubscribersRoute
   AppIndexRoute: typeof AppIndexRoute
@@ -292,6 +368,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppDeliveriesRoute: AppDeliveriesRoute,
   AppIncidentsRoute: AppIncidentsRouteWithChildren,
   AppMaintenanceRoute: AppMaintenanceRoute,
+  AppMoveInRoute: AppMoveInRoute,
   AppSettingsRoute: AppSettingsRoute,
   AppSubscribersRoute: AppSubscribersRoute,
   AppIndexRoute: AppIndexRoute,
@@ -299,9 +376,22 @@ const AppRouteChildren: AppRouteChildren = {
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
 
+interface DocsRouteChildren {
+  DocsSlugRoute: typeof DocsSlugRoute
+  DocsIndexRoute: typeof DocsIndexRoute
+}
+
+const DocsRouteChildren: DocsRouteChildren = {
+  DocsSlugRoute: DocsSlugRoute,
+  DocsIndexRoute: DocsIndexRoute,
+}
+
+const DocsRouteWithChildren = DocsRoute._addFileChildren(DocsRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   AppRoute: AppRouteWithChildren,
-  SigninRoute: SigninRoute,
+  DocsRoute: DocsRouteWithChildren,
+  SetupRoute: SetupRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

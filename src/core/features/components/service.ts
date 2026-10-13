@@ -1,6 +1,6 @@
 import { mostSevereState, type ComponentState } from "../../shared/domain";
 import { createUlid, nowIso } from "../../shared/ids";
-import type { ComponentGroupInput, ComponentHistoryCorrectionInput, ComponentInput } from "../../shared/schemas";
+import type { ComponentGroupInput, ComponentHistoryCorrectionInput, ComponentInput, ComponentUpdateInput, ComponentGroupUpdateInput } from "../../shared/schemas";
 
 import type { ComponentClaimEventInput, ComponentHistoryCorrection, ComponentHistoryEntry, ComponentRepository, ComponentStateHistoryInput, StateClaimCause, StoredComponent, StoredComponentGroup } from "./repository";
 import { defaultComponentEvents, type ComponentEvents } from "./events";
@@ -17,15 +17,16 @@ export type ComponentHistoryView = {
 };
 
 export interface ComponentsService {
+  move(kind: "components" | "groups", id: string, direction: "up" | "down", expectedIds: string[], groupId: string | null): Promise<void>;
   list(): Promise<ComponentView[]>;
   listGroups(): Promise<StoredComponentGroup[]>;
   history(componentId: string): Promise<ComponentHistoryView | null>;
   get(componentId: string): Promise<ComponentView | null>;
   create(input: ComponentInput, operatorId: string): Promise<ComponentView>;
-  update(componentId: string, input: ComponentInput): Promise<ComponentView | null>;
+  update(componentId: string, input: ComponentUpdateInput): Promise<ComponentView | null>;
   remove(componentId: string): Promise<boolean>;
   createGroup(input: ComponentGroupInput): Promise<{ id: string; name: string; displayOrder: number }>;
-  updateGroup(groupId: string, input: ComponentGroupInput): Promise<boolean>;
+  updateGroup(groupId: string, input: ComponentGroupUpdateInput): Promise<boolean>;
   removeGroup(groupId: string): Promise<boolean>;
   setStandingClaim(componentId: string, state: ComponentState | null, operatorId: string): Promise<ComponentView | null>;
   correctHistory(componentId: string, input: ComponentHistoryCorrectionInput, operatorId: string): Promise<void>;
@@ -74,6 +75,14 @@ export function createComponentsService(
   };
 
   return {
+    async move(kind, id, direction, expectedIds, groupId) {
+      const index = expectedIds.indexOf(id), next = index + (direction === "up" ? -1 : 1);
+      if (index < 0 || next < 0 || next >= expectedIds.length || new Set(expectedIds).size !== expectedIds.length) throw new Error("Choose an adjacent position in the current list.");
+      const orderedIds = [...expectedIds];
+      [orderedIds[index], orderedIds[next]] = [orderedIds[next], orderedIds[index]];
+      await repository.reorder(kind, expectedIds, orderedIds, groupId);
+      await onPublicDataChanged();
+    },
     async list() {
       return Promise.all((await repository.listComponents()).map((component) => toView(repository, component)));
     },

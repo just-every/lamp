@@ -1,3 +1,5 @@
+import { requestHeaders } from "../helpers/request-headers.mjs";
+import { withDraftVersion } from "./draft-version-helper.mjs";
 import assert from "node:assert/strict";
 import { execFileSync, spawn } from "node:child_process";
 import { createHmac } from "node:crypto";
@@ -12,16 +14,21 @@ import { chromium } from "playwright";
 
 import { contract } from "../contract.mjs";
 import { insertRealOperatorSession } from "./real-session-helper.mjs";
+import { appOrigin, pageOrigin } from "./helpers/hosts.mjs";
 import { reservePort, waitForWorker } from "./worker-startup.mjs";
 import { saveAndConfirmDraft } from "./saved-draft-helper.mjs";
+import { isolatedWranglerConfig } from "../helpers/wrangler-config.mjs";
+import { sessionCookieName } from "../helpers/session-cookie.mjs";
 
-let baseUrl = "";
+let appUrl = "";
+let pageUrl = "";
 let testPort;
 let aiPort;
 let statePath;
 let viteCachePath;
+let fixtureConfig;
 let configPath;
-const defaultConfigPath = resolve("deploy/wrangler.template.toml");
+const defaultConfigPath = resolve("wrangler.jsonc");
 let server;
 let sessionId;
 let browser;
@@ -32,13 +39,8 @@ let failingAiServer;
 let autosaveIncidentId;
 let originalVisualSource;
 
-function browserConfig() {
-  return readFileSync("deploy/wrangler.template.toml", "utf8");
-}
-
-function configWithAiProvider() {
-  const template = browserConfig();
-  return template.replace("\n[[d1_databases]]", `\nAI_PROVIDER_URL = \"http://127.0.0.1:${aiPort}/v1\"\nAI_PROVIDER_API_KEY = \"browser-test-key\"\nAI_PROVIDER_MODEL = \"browser-test-model\"\n\n[[d1_databases]]`);
+function configWithAiProvider(config) {
+  return { ...config, vars: { ...config.vars, AI_PROVIDER_URL: `http://127.0.0.1:${aiPort}/v1`, AI_PROVIDER_API_KEY: "browser-test-key", AI_PROVIDER_MODEL: "browser-test-model" } };
 }
 
 async function startFailingAiProvider() {
@@ -78,7 +80,7 @@ async function startWorker(config = defaultConfigPath) {
   });
   server.stdout.on("data", (chunk) => { serverOutput += chunk; });
   server.stderr.on("data", (chunk) => { serverOutput += chunk; });
-  await waitForWorker({ origin: baseUrl, child: server, output: () => `${serverOutput}\nState: ${statePath}`, label: "Publishing browser Worker" });
+  await waitForWorker({ origin: appUrl, child: server, output: () => `${serverOutput}\nState: ${statePath}`, label: "Publishing browser Worker" });
 }
 
 async function stopWorker() {
@@ -93,7 +95,7 @@ async function stopWorker() {
 
 async function openAuthenticatedPage(viewport) {
   browserContext = await browser.newContext({ timezoneId: "Australia/Brisbane", ...(viewport ? { viewport } : {}) });
-  await browserContext.addCookies([{ name: "lamp_session", value: sessionId, url: baseUrl }]);
+  await browserContext.addCookies([{ name: sessionCookieName(appUrl), value: sessionId, url: appUrl }]);
   page = await browserContext.newPage();
 }
 
@@ -107,7 +109,8 @@ async function closeAuthenticatedPage() {
 }
 
 async function appFetch(path, init = {}) {
-  return fetch(`${baseUrl}${path}`, { ...init, headers: { Cookie: `lamp_session=${sessionId}`, "Content-Type": "application/json", ...init.headers } });
+  init = await withDraftVersion(path, init, appFetch);
+  return fetch(`${appUrl}${path}`, { ...init, headers: requestHeaders({ Cookie: `${sessionCookieName(appUrl)}=${sessionId}`, "Content-Type": "application/json" }, init.headers) });
 }
 
 async function createBrowserIncident() {
@@ -122,12 +125,14 @@ async function createBrowserIncident() {
 before(async () => {
   testPort = await reservePort({ label: "Publishing browser Worker" });
   aiPort = await reservePort({ label: "Publishing browser AI provider" });
-  baseUrl = `http://127.0.0.1:${testPort}`;
+  appUrl = appOrigin(testPort);
+  pageUrl = pageOrigin(testPort);
   statePath = await mkdtemp(join(tmpdir(), "lamp-publishing-browser-d1-"));
   viteCachePath = await mkdtemp(join(tmpdir(), "lamp-publishing-browser-vite-"));
-  configPath = resolve(`deploy/.publishing-browser-${process.pid}.toml`);
+  // The fixture config lives in its own directory so a checkout's `.dev.vars` (for example its AI provider) cannot override it.
+  fixtureConfig = isolatedWranglerConfig();
+  configPath = fixtureConfig.path;
   execFileSync("pnpm", ["exec", "wrangler", "d1", "migrations", "apply", "DB", "--local", "--config", defaultConfigPath, "--persist-to", statePath], { cwd: process.cwd(), stdio: "pipe" });
-  writeFileSync(configPath, browserConfig());
   if (process.env.RER_VISUAL_HEADING_PROBE === '1') {
     const source = resolve('src/editor/visual-edits.json');
     originalVisualSource = readFileSync(source);
@@ -156,12 +161,12 @@ after(async () => {
     }
   }
   await stopFailingAiProvider();
-  await Promise.all([rm(statePath, { recursive: true, force: true }), rm(viteCachePath, { recursive: true, force: true }), rm(configPath, { force: true })]);
+  await Promise.all([rm(statePath, { recursive: true, force: true }), rm(viteCachePath, { recursive: true, force: true }), fixtureConfig?.cleanup()]);
 });
 
 async function waitForPublicIncident(reference, expectedText) {
   for (let attempt = 0; attempt < 40; attempt += 1) {
-    const response = await fetch(`${baseUrl}/incidents/${reference}`);
+    const response = await fetch(`${pageUrl}/incidents/${reference}`);
     const html = await response.text();
     if (response.status === 200 && html.includes(expectedText)) return;
     await new Promise((resolve) => setTimeout(resolve, 100));
@@ -177,7 +182,7 @@ test("compiled visual edits survive actual operator navigation and reload", asyn
     const paths = [...new Set(['/app','/app/components','/app/subscribers',...snapshot.edits.map(edit => edit.path)])];
     for (const path of paths) {
       const sessionReady = page.waitForResponse(response => new URL(response.url()).pathname === '/api/app/session' && response.ok());
-      await page.goto(baseUrl + path, { waitUntil: 'networkidle' });
+      await page.goto(appUrl + path, { waitUntil: 'networkidle' });
       await sessionReady; // The shell requests its session from a post-hydration effect.
       await page.locator('.operator-navigation').waitFor();
       const expected = snapshot.edits.filter(edit => edit.target.navigation || edit.path === path);
@@ -204,7 +209,7 @@ test("compiled visual edits survive actual operator navigation and reload", asyn
       await page.locator(`.operator-navigation a[href="${next}"]`).click();
       await page.waitForURL(url => url.pathname === next);
       assert.equal(await page.evaluate(() => performance.timeOrigin),stamp,'navigation remains within the running app');
-      await page.locator(`.operator-navigation a[href="${path}"]`).count().then(async count => { if (count === 1) { await page.locator(`.operator-navigation a[href="${path}"]`).click(); await page.waitForURL(url => url.pathname === path); } else await page.goto(baseUrl + path, { waitUntil: 'networkidle' }); });
+      await page.locator(`.operator-navigation a[href="${path}"]`).count().then(async count => { if (count === 1) { await page.locator(`.operator-navigation a[href="${path}"]`).click(); await page.waitForURL(url => url.pathname === path); } else await page.goto(appUrl + path, { waitUntil: 'networkidle' }); });
       await check();
       await page.reload(); await page.locator('.operator-navigation').waitFor(); await check();
     }
@@ -215,7 +220,7 @@ test("compiled visual edits survive actual operator navigation and reload", asyn
 
 contract("INCIDENT-001", "an operator can start with an empty product, create a component and incident, preview, publish, resolve, and inspect the public record", async () => {
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto(`${baseUrl}/app/components`);
+  await page.goto(`${appUrl}/app/components`);
   await page.getByText("No components are configured. Add the first component before creating an incident.").waitFor();
   await page.getByRole("button", { name: "Add component" }).click();
   await page.getByRole("heading", { name: "Add component" }).waitFor();
@@ -226,11 +231,11 @@ contract("INCIDENT-001", "an operator can start with an empty product, create a 
   await page.getByText("Journey API", { exact: true }).waitFor();
 
   await page.setViewportSize({ width: 1440, height: 1000 });
-  await page.goto(`${baseUrl}/app/incidents`);
+  await page.goto(`${appUrl}/app/incidents`);
   await page.getByRole("heading", { name: "Record the situation before communicating it" }).waitFor();
   await page.getByLabel("Incident title").fill("Journey API request failures");
   await page.getByLabel("Affected component 1").selectOption({ label: "Journey API" });
-  await page.getByLabel("Claim state 1").selectOption("Major outage");
+  await page.getByLabel("Component status 1").selectOption("Major outage");
   await page.getByRole("button", { name: "Create incident draft" }).click();
   await page.getByRole("heading", { name: "Compose public update" }).waitFor();
 
@@ -250,12 +255,15 @@ contract("INCIDENT-001", "an operator can start with an empty product, create a 
   await page.getByText("Update published. The fixed recipient set is now queued for delivery.").waitFor();
   await waitForPublicIncident(reference, "Requests to Journey API are failing.");
 
+  assert.equal(await page.locator("label", { hasText: "Who is affected" }).locator("textarea").inputValue(), "", "publication starts a blank next-update draft");
   await page.getByLabel("Lifecycle").selectOption("Resolved");
+  await page.locator("label", { hasText: "Who is affected" }).locator("textarea").fill("Journey API customers.");
+  await page.locator("label", { hasText: "What is the impact" }).locator("textarea").fill("Journey API requests are restored.");
   await page.waitForTimeout(1_500);
   await page.getByText("Draft saved", { exact: true }).waitFor({ timeout: 2000 });
   await page.getByRole("button", { name: "Publish update" }).click();
   await waitForPublicIncident(reference, "Resolved");
-  await page.goto(`${baseUrl}/incidents/${reference}`);
+  await page.goto(`${pageUrl}/incidents/${reference}`);
   await page.getByText("Journey API request failures", { exact: true }).waitFor();
   assert.match(await page.locator("body").innerText(), /Resolved/);
 });
@@ -266,11 +274,11 @@ contract("INCIDENT-004", "operator controls create internal notes, retroactive r
   assert.equal(componentResponse.status, 201);
   const { component } = await componentResponse.json();
   const localInput = (offsetMs) => page.evaluate((offset) => {
-    const date = new Date(Date.now() + offset);
-    const pad = (value) => String(value).padStart(2, "0");
-    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+    const parts = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Los_Angeles", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).formatToParts(new Date(Date.now() + offset));
+    const part = (kind) => parts.find(entry => entry.type === kind).value;
+    return `${part("year")}-${part("month")}-${part("day")}T${part("hour")}:${part("minute")}`;
   }, offsetMs);
-  await page.goto(`${baseUrl}/app/incidents`);
+  await page.goto(`${appUrl}/app/incidents`);
   await page.getByRole("button", { name: "Create incident", exact: true }).click();
   await page.getByRole("heading", { name: "Record the situation before communicating it" }).waitFor();
   await page.getByLabel("Incident title").fill("Historical correction controls");
@@ -287,7 +295,7 @@ contract("INCIDENT-004", "operator controls create internal notes, retroactive r
   await page.getByText("Internal note saved.", { exact: true }).waitFor();
   const nextUpdateLocal = await localInput(60 * 60_000);
   await saveAndConfirmDraft({ page, appFetch, incidentId, t,
-    expected: { lifecycle: "Investigating", affectedAudience: "Historical API customers.", customerImpact: "An earlier condition delayed requests.", whatStillWorks: "", details: "", nextUpdateAt: await page.evaluate((value) => new Date(value).toISOString(), nextUpdateLocal) },
+    expected: { lifecycle: "Investigating", affectedAudience: "Historical API customers.", customerImpact: "An earlier condition delayed requests.", whatStillWorks: "", details: "", nextUpdateAt: new Date(`${nextUpdateLocal}:00-07:00`).toISOString() },
     edit: async () => {
       await page.locator("label", { hasText: "Who is affected" }).locator("textarea").fill("Historical API customers.");
       await page.locator("label", { hasText: "What is the impact" }).locator("textarea").fill("An earlier condition delayed requests.");
@@ -306,7 +314,7 @@ contract("INCIDENT-004", "operator controls create internal notes, retroactive r
   await page.reload();
   await page.getByRole("heading", { name: "Compose public update" }).waitFor();
   await saveAndConfirmDraft({ page, appFetch, incidentId, t,
-    expected: { lifecycle: "Investigating", affectedAudience: "Correction audience.", customerImpact: "", whatStillWorks: "", details: "", nextUpdateAt: null },
+    expected: { lifecycle: "Identified", affectedAudience: "Correction audience.", customerImpact: "", whatStillWorks: "", details: "", nextUpdateAt: null },
     edit: () => page.locator("label", { hasText: "Who is affected" }).locator("textarea").fill("Correction audience."),
   });
   await page.getByRole("button", { name: "Mark correction" }).click();
@@ -329,7 +337,7 @@ contract("INCIDENT-004", "operator controls create internal notes, retroactive r
 contract("UPDATE-005", "composer autosaves a changed draft in under two seconds and reloads the exact value", async () => {
   const incident = await createBrowserIncident();
   autosaveIncidentId = incident.id;
-  await page.goto(`${baseUrl}/app/incidents/${incident.id}`);
+  await page.goto(`${appUrl}/app/incidents/${incident.id}`);
   await page.getByRole("heading", { name: "Compose public update" }).waitFor();
   await page.locator("label", { hasText: "Who is affected" }).locator("textarea").fill("Browser contract customers.");
   await page.locator("label", { hasText: "What is the impact" }).locator("textarea").fill("Requests can fail during this condition.");
@@ -346,13 +354,13 @@ contract("UPDATE-005", "composer autosaves a changed draft in under two seconds 
   await page.getByLabel("Next update date and time").fill("2027-09-08T13:42");
   await page.getByText("Draft saved", { exact: true }).waitFor({ timeout: 2000 });
   const stored = await appFetch(`/api/app/incidents/${incident.id}`);
-  assert.equal((await stored.json()).incident.draft.nextUpdateAt, "2027-09-08T03:42:00.000Z", "editing a Brisbane local time must preserve its intended UTC instant");
+  assert.equal((await stored.json()).incident.draft.nextUpdateAt, "2027-09-08T20:42:00.000Z", "editing the page’s Los Angeles time preserves its UTC instant despite a Brisbane browser");
   assert.equal(await page.getByRole("button", { name: "Suggest update" }).count(), 0, "the absent provider must not expose an AI control");
 });
 
 contract("UPDATE-006", "the composer schedules publication separately from its next-update commitment", async () => {
   const incident = await createBrowserIncident();
-  await page.goto(`${baseUrl}/app/incidents/${incident.id}`);
+  await page.goto(`${appUrl}/app/incidents/${incident.id}`);
   await page.getByRole("heading", { name: "Compose public update" }).waitFor();
   await page.locator("label", { hasText: "Who is affected" }).locator("textarea").fill("Scheduled browser customers.");
   await page.locator("label", { hasText: "What is the impact" }).locator("textarea").fill("A scheduled update has a distinct publication time.");
@@ -366,7 +374,7 @@ contract("UPDATE-006", "the composer schedules publication separately from its n
 
 contract("DRAFT-002", "operators save and reload AI tone instructions while the UI honestly reports an unconfigured provider", async () => {
   const tone = "Lead with customer impact, use concise factual language, and name the next update commitment.";
-  await page.goto(`${baseUrl}/app/settings`);
+  await page.goto(`${appUrl}/app/settings`);
   await page.getByText("No provider configured", { exact: true }).waitFor();
   const toneField = page.getByLabel("Tone instructions");
   await toneField.fill(tone);
@@ -380,7 +388,7 @@ contract("DRAFT-002", "operators save and reload AI tone instructions while the 
 contract("INTAKE-005", "operators configure a real authenticated source and inspect accepted and rejected redacted receipts", async () => {
   const signingSecret = "browser-alert-source-secret";
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto(`${baseUrl}/app/alerts`);
+  await page.goto(`${appUrl}/app/alerts`);
   await page.getByRole("button", { name: "Add alert source" }).click();
   assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "the narrow source editor must not introduce horizontal page overflow");
   await page.getByLabel("Source name").fill("Browser alert source");
@@ -396,7 +404,7 @@ contract("INTAKE-005", "operators configure a real authenticated source and insp
   await page.getByRole("button", { name: "Save source" }).click();
   await page.getByText("Alert source updated. Existing secrets remain hidden.", { exact: true }).waitFor();
   const endpoint = await page.locator(".alert-source-card code").first().textContent();
-  assert.ok(endpoint?.startsWith(`${baseUrl}/api/intake/`), "the configured source must show its real intake endpoint");
+  assert.ok(endpoint?.startsWith(`${pageUrl}/api/intake/`), "the configured source must show its real intake endpoint");
 
   async function sendAlert(payload) {
     const body = JSON.stringify(payload);
@@ -425,10 +433,10 @@ contract("DRAFT-003", "a configured but failing AI provider leaves the ordinary 
   const viewport = await closeAuthenticatedPage();
   await stopWorker();
   await startFailingAiProvider();
-  writeFileSync(configPath, configWithAiProvider());
+  fixtureConfig.write(configWithAiProvider);
   await startWorker(configPath);
   await openAuthenticatedPage(viewport);
-  await page.goto(`${baseUrl}/app/incidents/${autosaveIncidentId}`);
+  await page.goto(`${appUrl}/app/incidents/${autosaveIncidentId}`);
   await page.getByRole("button", { name: "Suggest update" }).waitFor();
   await page.getByRole("button", { name: "Suggest update" }).click();
   const aiStatus = page.locator(".ai-suggestion [role=status]");
@@ -457,7 +465,7 @@ contract("UPDATE-002", "composer publication controls remain visible and operabl
   try {
     for (const width of [1280, 390]) {
       await page.setViewportSize({ width, height: 900 });
-      await page.goto(`${baseUrl}/app/incidents/${incident.id}`);
+      await page.goto(`${appUrl}/app/incidents/${incident.id}`);
       const controls = page.getByRole("region", { name: "Publication controls" });
       await controls.getByText("Schedule or backdate", { exact: true }).click();
       const timestamp = controls.getByLabel("Historical publication date and time");

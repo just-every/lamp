@@ -4,11 +4,21 @@ import crypto from 'node:crypto';
 import {execFileSync} from 'node:child_process';
 export const hash = value => crypto.createHash('sha256').update(value).digest('hex');
 export const json = value => JSON.stringify(value, null, 2) + '\n';
+const environment = {...process.env, GIT_NO_REPLACE_OBJECTS: '1'};
 export function git(root, ...args) {
-  return execFileSync('git', ['-C', root, ...args], {
-    env: {...process.env, GIT_NO_REPLACE_OBJECTS: '1'}, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'],
-  }).trim();
+  return execFileSync('git', ['-C', root, ...args], {env: environment, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe']}).trim();
 }
+// Raw Git output, for committed source bytes. The limit fails explicitly rather than truncating.
+function output(root, args, input) {
+  try {
+    return execFileSync('git', ['-C', root, ...args], {env: environment, input, maxBuffer: 64 * 1024 * 1024, stdio: [input === undefined ? 'ignore' : 'pipe', 'pipe', 'pipe']});
+  } catch (error) {
+    if (error.code === 'ENOBUFS') throw Error('Git source output exceeds the 64 MiB acquisition limit');
+    throw error;
+  }
+}
+export const raw = (root, ...args) => output(root, args);
+export const batch = (root, input, ...args) => output(root, args, input);
 export function safe(name) {
   if (typeof name !== 'string' || !name || name.includes('\\') || /[\x00-\x1f\x7f]/.test(name) || path.posix.isAbsolute(name) || name.split('/').some(p => !p || p === '.' || p === '..' || p === '.git')) {
     throw Error(`Unsafe path: ${name}`);
@@ -39,6 +49,12 @@ export function tracked(root, allowMissing = false) {
   return result;
 }
 export const digest = files => hash(json(files));
+// Base's test, fixture and browser-check sources, which portable copies leave out.
+// Composition pins its tooling alone, so composition/git-source.mjs keeps its own copy.
+export function testSource(path) {
+  return path.split('/').some(part => ['test', 'tests', 'fixtures'].includes(part)) ||
+    /(?:\.test\.[^/]+|(?:^|\/)test-manifest-support\.mjs$|(?:^|\/)(?:test-fixture|[^/]+-fixture)\.(?:mjs|cjs)$|(?:^|\/)(?:tests|test_[^/]+|[^/]*_tests)\.py|(?:^|\/)browser-(?:check|output)\.mjs)$/.test(path);
+}
 export function writeTree(root, files) {
   // Validate the complete destination set before writing any selected source.
   for (const name of Object.keys(files)) {

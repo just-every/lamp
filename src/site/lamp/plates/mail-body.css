@@ -1,0 +1,3 @@
+/* An email's subject, body and links. */
+.lamp-home .lamp-mail__subject { margin: 0 0 12px; }
+.lamp-home .lamp-mail__links { margin: 14px 0 0; font-size: 13px; }

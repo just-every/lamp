@@ -1,4 +1,4 @@
-node_modules/
+node_modules
 .DS_Store
 *.log
 .wrangler/
@@ -15,3 +15,6 @@ delivery-artifact/
 
 # Private local browser setup drafts and local runtime bindings.
 .seed/installer/
+
+# The checkout's dev key and local rer state.
+.rer/local/

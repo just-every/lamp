@@ -1,0 +1,265 @@
+{
+  "design": "owner-approved modern /lamp design C (approved 2026-10-09)",
+  "licence": "Made for Lamp from the owner-approved 12ui design C; distributed under the repository's licence.",
+  "fonts": {
+    "fonts/inter-latin.woff2": {
+      "sha256": "3100e775e8616cd2611beecfa23a4263d7037586789b43f035236a2e6fbd4c62",
+      "bytes": 48256,
+      "origin": "Inter variable (wght 100–900), Latin subset; byte copy of files/inter-latin-wght-normal.woff2 from @fontsource-variable/inter 5.2.8",
+      "licence": "SIL OFL 1.1",
+      "licenceFile": "fonts/inter-OFL.txt"
+    }
+  },
+  "intro": {
+    "made": "2026-10-09",
+    "generator": "Codex CLI 0.162.0 built-in image generation tool on the ChatGPT sign-in (exec model gpt-6-astra; the tool did not report an image model name).",
+    "composition": "scripts/compose.mjs: lamp-on = lit base; lamp-off = lit base outside the warm region and the dark edit inside it (graded, dilated 3px, feathered 2px); alpha always taken from the base, so registration is identical by construction. scripts/finish.mjs: crop x 168..1368 of the 1536x1024 output around the cord, Lanczos upscale x1.3, pad to 1560x1560. Native lamp size in the generated image was 1095x922 px; the masters (1423x1200 lamp) are that render upscaled, not extra detail. The lit inner shade of lamp-on was then graded toward design C's #fed587-#fedb8f (grade.py: each channel scaled by C's gold over the render's, weighted by saturation, only where lit and unlit differ; alpha untouched), and every delivery copy re-encoded as the art track encodes them (deliver.mjs: Lanczos, WebP q90 with full-quality alpha, AVIF q68 4:4:4). bulb-glow is a procedural radial glow on the same canvas.",
+    "references": [
+      "owner-approved design C (12ui-modern/approved-C.png)",
+      "C's lamp at 3x (refs/c-lamp-3x.png)"
+    ],
+    "prompts": {
+      "lamp-on (lit base, gen/on-b): a modern matte dark-green dome pendant as in design C, lit, on a transparent canvas": {
+        "file": "gen/on-b/prompt.txt",
+        "sha256": "ccd58b34ae476f91017ee9f341ad94ad44bf02a10d207858b9f3a27e67506c8b"
+      },
+      "lamp-off (edit of the lit base, gen/dark-b2): the same lamp switched off, only the bulb and the inside of the shade changed": {
+        "file": "gen/dark-b2/prompt.txt",
+        "sha256": "53b937fbd9e38a896f8343226007157b88ed9aecce8d6051d3d0a9010403f34c"
+      }
+    },
+    "registration": {
+      "canvas": {
+        "width": 1560,
+        "height": 1560
+      },
+      "cordX": 780.5,
+      "cordLeft": 760,
+      "cordWidth": 41,
+      "gripTopY": 213,
+      "rimTips": {
+        "left": {
+          "x": 69,
+          "y": 1020.5
+        },
+        "right": {
+          "x": 1492,
+          "y": 1020.5
+        }
+      },
+      "rimEllipse": {
+        "cx": 780.5,
+        "cy": 1023.9,
+        "rx": 711.5,
+        "ry": 98.5,
+        "backY": 925.4,
+        "frontY": 1122.4
+      },
+      "bulbCentre": {
+        "x": 778.7,
+        "y": 979.9
+      },
+      "bulbBottomY": 1199,
+      "fractions": {
+        "cordX": 0.5003,
+        "cordWidth": 0.0263,
+        "gripTopY": 0.1365,
+        "canopyTopY": 0.1808,
+        "domeTopY": 0.2282,
+        "rimTipY": 0.6542,
+        "rimLeftX": 0.0442,
+        "rimRightX": 0.9564,
+        "rimWidth": 0.9122,
+        "rimFrontY": 0.7195,
+        "rimBackY": 0.5932,
+        "bulbCentreX": 0.4992,
+        "bulbCentreY": 0.6281,
+        "bulbRadius": 0.1403,
+        "bulbBottomY": 0.7686
+      }
+    },
+    "files": {
+      "art/lamp-off-720.avif": {
+        "sha256": "dd4e192c8054a6788741467477273f80f8db4cd1f1bdf88d1c0639005eaa2901",
+        "bytes": 11517,
+        "origin": "the pendant lamp, unlit, 720px square",
+        "source": {
+          "file": "lamp-off.png",
+          "sha256": "972423bdea98cbde6639cca03864d06f573b59eede4e43f2791839a67b05b0e2"
+        }
+      },
+      "art/lamp-off-720.webp": {
+        "sha256": "17234750f43e8cb5f488bde05face9237edc53619cbabd60411db49bac258a27",
+        "bytes": 20662,
+        "origin": "the pendant lamp, unlit, 720px square",
+        "source": {
+          "file": "lamp-off.png",
+          "sha256": "972423bdea98cbde6639cca03864d06f573b59eede4e43f2791839a67b05b0e2"
+        }
+      },
+      "art/lamp-off-1200.avif": {
+        "sha256": "9dbf7d343d7b5f20c33feca75ef6ab142e1b6a3b1eef1f287dfa3506fa536172",
+        "bytes": 19083,
+        "origin": "the pendant lamp, unlit, 1200px square",
+        "source": {
+          "file": "lamp-off.png",
+          "sha256": "972423bdea98cbde6639cca03864d06f573b59eede4e43f2791839a67b05b0e2"
+        }
+      },
+      "art/lamp-off-1200.webp": {
+        "sha256": "60680270eddb127802b3a8f179ca272a41d9067d0c1e0132874cd299f806b6b6",
+        "bytes": 40950,
+        "origin": "the pendant lamp, unlit, 1200px square",
+        "source": {
+          "file": "lamp-off.png",
+          "sha256": "972423bdea98cbde6639cca03864d06f573b59eede4e43f2791839a67b05b0e2"
+        }
+      },
+      "art/lamp-on-720.avif": {
+        "sha256": "897d4280e3e21d5bb14bd58c0d5257a954b2777d8fef589d5b712c9b0bce71b4",
+        "bytes": 14325,
+        "origin": "the pendant lamp, lit, 720px square",
+        "source": {
+          "file": "lamp-on.png",
+          "sha256": "908d96f3ac24e0762195e402b049c4f28290c4e89592e6e7236f8d63839e2453"
+        }
+      },
+      "art/lamp-on-720.webp": {
+        "sha256": "1463afad3cfbf44e1a65fa820fe5466d6abd343a60a69c592df2957a43c32669",
+        "bytes": 23744,
+        "origin": "the pendant lamp, lit, 720px square",
+        "source": {
+          "file": "lamp-on.png",
+          "sha256": "908d96f3ac24e0762195e402b049c4f28290c4e89592e6e7236f8d63839e2453"
+        }
+      },
+      "art/lamp-on-1200.avif": {
+        "sha256": "eb0696145f71f4aa07c480bc0bdb5416600773fe67e378785c7a3c5a4552bb33",
+        "bytes": 23376,
+        "origin": "the pendant lamp, lit, 1200px square",
+        "source": {
+          "file": "lamp-on.png",
+          "sha256": "908d96f3ac24e0762195e402b049c4f28290c4e89592e6e7236f8d63839e2453"
+        }
+      },
+      "art/lamp-on-1200.webp": {
+        "sha256": "84b747744870cc459758c864615e0a117ca6bcef38ca67ae5b7fee56c03a7251",
+        "bytes": 46240,
+        "origin": "the pendant lamp, lit, 1200px square",
+        "source": {
+          "file": "lamp-on.png",
+          "sha256": "908d96f3ac24e0762195e402b049c4f28290c4e89592e6e7236f8d63839e2453"
+        }
+      },
+      "art/bulb-glow-720.avif": {
+        "sha256": "95346db5f2458e38fca89b9c3ed0995ac42e7ba5753ec17f2815a6fdb250917b",
+        "bytes": 12735,
+        "origin": "the bulb's soft warm glow (procedural, not image-model art), 720px square",
+        "source": {
+          "file": "bulb-glow.png",
+          "sha256": "7806200536d061cea610274074af27621a8beb8053ad3b5964c4074a8044a35c"
+        }
+      },
+      "art/bulb-glow-720.webp": {
+        "sha256": "7ec072e139236a5dfc6350e944569e0cdfae961476ee9255b9fecb187355b4e5",
+        "bytes": 45520,
+        "origin": "the bulb's soft warm glow (procedural, not image-model art), 720px square",
+        "source": {
+          "file": "bulb-glow.png",
+          "sha256": "7806200536d061cea610274074af27621a8beb8053ad3b5964c4074a8044a35c"
+        }
+      },
+      "art/bulb-glow-1200.avif": {
+        "sha256": "89cdcd979b9fe01b9c7d5e81f73e45085142f32137da563680fe5799f010ac88",
+        "bytes": 23207,
+        "origin": "the bulb's soft warm glow (procedural, not image-model art), 1200px square",
+        "source": {
+          "file": "bulb-glow.png",
+          "sha256": "7806200536d061cea610274074af27621a8beb8053ad3b5964c4074a8044a35c"
+        }
+      },
+      "art/bulb-glow-1200.webp": {
+        "sha256": "13e473b89cc511b70bb612d6b2b85f81deda28340fdb469798a6040af7a545d0",
+        "bytes": 97922,
+        "origin": "the bulb's soft warm glow (procedural, not image-model art), 1200px square",
+        "source": {
+          "file": "bulb-glow.png",
+          "sha256": "7806200536d061cea610274074af27621a8beb8053ad3b5964c4074a8044a35c"
+        }
+      }
+    }
+  },
+  "mark": {
+    "made": "2026-10-09",
+    "chosen": "The owner chose mark 18 of 23 numbered variations (modern/logo/all-marks-1.png, all-marks-2.png): \"Circle: dome above, light below\", replacing the header's dome-on-a-cord mark.",
+    "origin": "Hand-written SVG on a 64x64 viewBox: an ink half-disc dome above, a warm amber lower half-disc, and a pale bulb arc at the dome's rim (modern/logo/badge/badge-1.svg).",
+    "files": {
+      "art/lamp-badge.svg": {
+        "sha256": "347da46eca47991366b0e3778f46c9f588c91419a308011a624b46a8c5151d67",
+        "bytes": 293,
+        "origin": "the header and footer mark, mark 18",
+        "source": {
+          "file": "badge-1.svg",
+          "sha256": "347da46eca47991366b0e3778f46c9f588c91419a308011a624b46a8c5151d67"
+        }
+      }
+    }
+  },
+  "icons": {
+    "made": "2026-10-09",
+    "origin": "Made from mark 18 by scripts/lamp-site/mark.mjs: the SVG favicon combines badge-1.svg with badge-1-reverse.svg for dark browser chrome; the PNGs are badge-1.svg rendered in Playwright Chromium.",
+    "files": {
+      "art/lamp-badge-icon.svg": {
+        "sha256": "ebd49143e6f577de0fd4f1ddab4737b65e6be1f5e08190057e1ae196ba8ae9f8",
+        "bytes": 601,
+        "origin": "the SVG favicon: mark 18, its reverse under prefers-color-scheme: dark",
+        "source": {
+          "file": "badge-1.svg",
+          "sha256": "347da46eca47991366b0e3778f46c9f588c91419a308011a624b46a8c5151d67"
+        },
+        "reverse": {
+          "file": "badge-1-reverse.svg",
+          "sha256": "0823d9c739fbf0bcdda60095126b8943e195e6394d7cb7781522828538bcd1cb"
+        }
+      },
+      "art/lamp-badge-16.png": {
+        "sha256": "6bf80096989d8050fa3d88e81b45558ee0489e244266c6cad5204db7317ac8d1",
+        "bytes": 437,
+        "origin": "the PNG favicon, mark 18 at 16px on transparent",
+        "source": {
+          "file": "badge-1.svg",
+          "sha256": "347da46eca47991366b0e3778f46c9f588c91419a308011a624b46a8c5151d67"
+        }
+      },
+      "art/lamp-badge-32.png": {
+        "sha256": "0edfb4c00f63204e6217a09a9bc216f85ba08e0fcd3a1400b07c38a8730ce990",
+        "bytes": 839,
+        "origin": "the PNG favicon, mark 18 at 32px on transparent",
+        "source": {
+          "file": "badge-1.svg",
+          "sha256": "347da46eca47991366b0e3778f46c9f588c91419a308011a624b46a8c5151d67"
+        }
+      },
+      "art/lamp-badge-touch.png": {
+        "sha256": "637c41101c0a82ff180ccc6091cb65f00b41f5e55869d2eb80bc162760ca79ed",
+        "bytes": 3514,
+        "origin": "the touch icon, mark 18 at 140px on opaque #f8f6f0, 180px",
+        "source": {
+          "file": "badge-1.svg",
+          "sha256": "347da46eca47991366b0e3778f46c9f588c91419a308011a624b46a8c5151d67"
+        }
+      }
+    }
+  },
+  "light": {
+    "made": "2026-10-10",
+    "origin": "Hand-written SVG: a 160px tile of feTurbulence fractal noise turned into sparse light and dark specks, the light ones up to 18% opaque and the dark ones up to 0.6%, balanced so that over the lamp's warm light they neither lighten nor darken it on average. Laid over the hero's light, the section pools and the close's pool, and confined to them, it dithers their long faint falloff so it shows no rings (polish pass, 10 October 2026).",
+    "files": {
+      "art/grain.svg": {
+        "sha256": "22050675186e80a1459f131f3ee9051d6f1e46d845e45826eafae1dda695cebe",
+        "bytes": 628,
+        "origin": "the light's dither tile"
+      }
+    }
+  }
+}

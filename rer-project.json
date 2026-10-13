@@ -2,7 +2,7 @@
   "schema": 1,
   "projectId": "just-every/lamp",
   "name": "Lamp",
-  "sourceRepository": "https://github.com/just-every/lamp",
+  "sourceRepository": "https://github.com/just-every/run-lamp",
   "license": "MIT",
   "deployment": {
     "target": "cloudflare-workers",
@@ -14,5 +14,9 @@
     "verify": "pnpm run verify",
     "artifact": "node scripts/build-delivery-artifact.mjs",
     "recovery": "Follow OPERATIONS.md: pause writes and scheduled work, retain exact source and private secrets, export D1 and R2, restore into fresh empty resources, re-export and compare bytes, then verify native sessions and publication before routing traffic. SnapshotCache is derived from retained R2 generation; existing migration names and bytes must remain unchanged."
+  },
+  "setup": {
+    "path": "rer-setup.json",
+    "sha256": "2e50e2ab5a5c35e81b9af59d8265b74d6df2ce48ef7aa2b521553b080dd8c909"
   }
 }

@@ -1,10 +1,10 @@
 import {readFile,realpath} from 'node:fs/promises';
 import {join} from 'node:path';
 import {execFileSync} from 'node:child_process';
-import {privateDirectory,readPrivateFile,writePrivateFile} from '../base-onboarding/private-files.mjs';
+import {privateDirectory,readPrivateFile,writePrivateFile} from '@runeditrun/rer/private-files';
 export async function installationReceipt(root,input){
  const descriptor=JSON.parse(await readFile(join(root,'rer-project.json'),'utf8'));
- const identity={projectId:descriptor.projectId,sourceRepository:descriptor.sourceRepository,checkout:await realpath(root),target:input.target,ownerEmail:input.ownerEmail.toLowerCase(),mailProvider:input.mailProvider,mailFrom:input.mailFrom,...(input.target==='independent'?{appOrigin:input.appOrigin}:{})};
+ const identity={projectId:descriptor.projectId,sourceRepository:descriptor.sourceRepository,checkout:await realpath(root),target:input.target,ownerEmail:input.ownerEmail.toLowerCase(),mailProvider:input.mailProvider,mailFrom:input.mailFrom,...(input.target==='hosted'?{appOrigin:input.appOrigin,pageHost:input.pageHost,accountId:input.accountId,resourcePrefix:input.resourcePrefix,hosting:input.hosting}:{})};
  const directory=await privateDirectory(root,['.seed','installer']);
  const path=join(directory,input.target+'-receipt.json');
  let previous;

@@ -50,5 +50,7 @@ INSERT INTO subscriber_components (id,subscriber_id,component_id,created_at,upda
   ('01J00000000000000000000043','01J00000000000000000000041','01J00000000000000000000012','${createdAt}','${createdAt}');
 INSERT INTO notification_deliveries (id,subscriber_id,incident_update_id,maintenance_id,channel,outcome,queued_at,outcome_at,created_at,updated_at) VALUES
   ('01J00000000000000000000050','01J00000000000000000000040','01J00000000000000000000023',NULL,'email','queued','2026-09-08T01:26:00.000Z',NULL,'${createdAt}','${createdAt}'),
-  ('01J00000000000000000000051','01J00000000000000000000041','01J00000000000000000000023',NULL,'webhook','queued','2026-09-08T01:26:00.000Z',NULL,'${createdAt}','${createdAt}');`;
+  ('01J00000000000000000000051','01J00000000000000000000041','01J00000000000000000000023',NULL,'webhook','queued','2026-09-08T01:26:00.000Z',NULL,'${createdAt}','${createdAt}');
+INSERT OR IGNORE INTO setup_readiness (step,evidence_key,checked_at) VALUES ('first-run','complete','${createdAt}');
+`;
 }

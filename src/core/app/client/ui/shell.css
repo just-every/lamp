@@ -1,37 +1,35 @@
-.operator-shell { display: grid; min-height: 100vh; grid-template-columns: 240px minmax(0, 1fr); }
-.operator-rail { position: sticky; top: 0; display: flex; height: 100vh; flex-direction: column; border-right: 1px solid var(--line); background: #fff; padding: 26px 16px 22px; }
-.app-brand { display: inline-flex; align-items: center; gap: 9px; padding: 0 10px; color: var(--navy); font-size: 22px; font-weight: 800; letter-spacing: -.04em; }
-.brand-mark { color: var(--accent); font-size: 20px; transform: rotate(45deg); }
-.operator-navigation { display: grid; gap: 4px; margin-top: 35px; }
-.operator-nav-link { display: flex; min-height: 46px; align-items: center; gap: 12px; border-radius: 7px; color: #46566d; padding: 0 11px; font-weight: 600; transition: background .15s ease, color .15s ease; }
-.operator-nav-link:hover { background: #f4f8f5; color: var(--navy); }
-.operator-nav-link.is-active { background: var(--accent-wash); color: #0c5632; }
-.operator-rail-footer { margin-top: auto; border-top: 1px solid var(--line); padding: 18px 10px 0; color: var(--muted); font-size: 12px; }
-.operator-rail-footer p { margin: 10px 0 0; line-height: 1.55; }
-.operator-history-link, .quiet-link { display: inline-flex; align-items: center; gap: 7px; color: var(--navy); font-weight: 700; }
-.operator-workspace { min-width: 0; }
-.operator-header { display: flex; height: 68px; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--line); background: rgba(255,255,255,.92); padding: 0 34px; }
-.operator-header p { display: inline-flex; align-items: center; gap: 8px; margin: 0; color: #506178; font-weight: 650; }
-.header-live-dot { width: 8px; height: 8px; border-radius: 100%; background: var(--accent); }
-.operator-account { display: flex; align-items: center; gap: 14px; }
-.operator-identity { display: grid; justify-items: end; line-height: 1.2; color: var(--navy); font-size: 14px; font-weight: 700; }
-.operator-identity small { color: var(--muted); font-size: 12px; font-weight: 500; }
-.header-signout { min-height: 42px; padding: 8px 14px; font-size: 13px; }
-.operator-main { width: min(100%, 1440px); margin: 0 auto; padding: 32px; }
+.operator-shell { display: grid; min-height: 100vh; grid-template-columns: 248px minmax(0, 1fr); }
+.operator-rail { position: sticky; top: 0; display: flex; height: 100vh; flex-direction: column; background: var(--paper); padding: 24px 16px 22px; }
+/* The landing's lockup (mark.css): mark 18 beside "Lamp" in 600 at -0.035em. */
+.app-brand { display: inline-flex; align-items: center; gap: 6px; padding: 0 8px; color: var(--ink); font-size: 26px; font-weight: 600; line-height: 1; letter-spacing: -.035em; }
+.app-brand-mark { display: block; flex: none; width: 28px; height: 28px; }
+.operator-navigation { display: grid; gap: 4px; margin-top: 32px; }
+.operator-nav-link { display: flex; min-height: 44px; align-items: center; gap: 12px; border-radius: 10px; color: var(--ink-2); padding: 0 12px; font-size: 15px; font-weight: 500; transition: background-color .15s ease, color .15s ease; }
+.operator-nav-link svg { flex: none; }
+.operator-nav-link:hover { background: var(--stage); color: var(--ink); }
+.operator-nav-link.is-active { background: var(--stage); color: var(--ink); font-weight: 600; }
+.operator-rail-footer { margin-top: auto; border-top: 1px solid var(--line); padding: 18px 8px 0; color: var(--ink-3); font-size: 13px; }
+.operator-rail-footer p { margin: 8px 0 0; line-height: 1.5; }
+.operator-history-link, .quiet-link { display: inline-flex; align-items: center; gap: 8px; color: var(--ink); font-weight: 500; text-decoration: underline 1.5px; text-decoration-color: var(--link-line); text-underline-offset: 4px; }
+.operator-history-link:hover, .quiet-link:hover { text-decoration-color: var(--ink); }
+.operator-workspace { min-width: 0; border-left: 1px solid var(--line); }
+.operator-header { position: sticky; z-index: 10; top: 0; display: flex; height: 72px; align-items: center; justify-content: space-between; gap: 16px; border-bottom: 1px solid var(--line); background: var(--header-glass); backdrop-filter: blur(18px); padding: 0 40px; }
+.operator-header p { display: inline-flex; align-items: center; gap: 10px; margin: 0; color: var(--ink); font-size: 15px; font-weight: 500; }
+.header-live-dot { width: 8px; height: 8px; flex: none; border-radius: 100%; background: var(--ok); }
+.operator-account { display: flex; align-items: center; gap: 16px; }
+.operator-identity { display: grid; justify-items: end; line-height: 1.25; color: var(--ink); font-size: 14px; font-weight: 600; }
+.operator-identity small { color: var(--ink-3); font-size: 12px; font-weight: 400; }
+.header-signout { min-height: 40px; padding: 8px 18px; font-size: 14px; }
+.operator-main { width: min(100%, 1440px); margin: 0 auto; padding: 40px; }
 
-.signin-page, .bootstrap-state { display: grid; min-height: 100vh; place-items: center; background: radial-gradient(circle at 80% 10%, #dcefe4, transparent 28rem), #f6f8f7; padding: 24px; }
-.signin-card { width: min(100%, 520px); border: 1px solid var(--line); border-radius: 12px; background: #fff; box-shadow: 0 24px 70px -45px rgba(11,36,56,.5); padding: 42px; }
-.signin-card .app-brand { margin: 0 0 46px; padding: 0; }
-.signin-card h1 { font-size: 32px; }
-.signin-card > p:not(.eyebrow) { margin: 15px 0 25px; color: var(--muted); font-size: 16px; line-height: 1.6; }
-.signin-form { display: grid; gap: 10px; }
-.signin-label { color: var(--navy); font-size: 13px; font-weight: 750; }
-.signin-form input { width: 100%; border: 2px solid #cbd7e5; border-radius: 9px; background: #fff; padding: 13px 14px; color: var(--navy); font: inherit; font-size: 16px; }
-.signin-form input:focus { border-color: var(--accent); outline: 3px solid color-mix(in srgb, var(--accent) 18%, transparent); }
-.signin-form .button { min-height: 48px; gap: 10px; border-radius: 9px; font-size: 16px; }
-.signin-confirmation { display: flex; gap: 14px; margin-top: 22px; border: 1px solid #b8dfcd; border-radius: 9px; background: #f7fcfa; padding: 15px; color: #165b3b; }
-.signin-confirmation svg { flex: 0 0 auto; margin-top: 2px; }
-.signin-confirmation strong { display: block; color: var(--navy); }
-.signin-confirmation p { margin: 5px 0 0; color: #385d61; font-size: 14px; line-height: 1.5; }
-.signin-error { margin: 18px 0 0; border: 1px solid #efd6c5; border-radius: 8px; background: #fff8f3; padding: 11px; color: #79411f; font-size: 13px; font-weight: 650; }
-.signin-public-link { margin-top: 25px; }
+/* Sign-in: the lit pendant hangs on its cord from the top edge and its pool falls on the card. */
+.signin-page { position: relative; isolation: isolate; display: grid; min-height: 100vh; justify-items: center; align-content: start; overflow: clip; background: var(--paper); padding: 0 24px 48px; }
+.bootstrap-state { display: grid; min-height: 100vh; place-content: center; background: var(--paper); padding: 24px; text-align: center; }
+.bootstrap-state p { color: var(--ink-2); }
+.signin-lamp { --lamp-static-w: 240px; --lamp-static-cord: 40px; margin: var(--lamp-static-cord) 0 calc(64px - .28 * var(--lamp-static-w)); }
+.signin-pool { top: 140px; left: 50%; width: min(140%, 880px); aspect-ratio: 1.5; translate: -50% 0; }
+
+.page-stack { display: grid; gap: 20px; }
+.page-title-row { display: flex; align-items: end; justify-content: space-between; gap: 20px; min-height: 72px; margin-bottom: 4px; }
+.page-title-row > div > p:not(.eyebrow) { max-width: 62ch; margin: 0; color: var(--ink-2); font-size: 16px; line-height: 1.55; }
+.page-title-row .quiet-link { margin-top: 12px; }

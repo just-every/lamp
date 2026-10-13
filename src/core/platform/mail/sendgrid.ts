@@ -1,4 +1,4 @@
-import { sendSendGrid, serializeSendGridMessage, SendGridSendError } from '../../../modules/sendgrid-email/sender';
+import { sendSendGrid, serializeSendGridMessage, SendGridSendError } from '../../../../modules/mail/src/sendgrid-email/index.mjs';
 import { legacySendGridEnvelope } from './sendgrid-legacy-fingerprint';
 import { MailUnavailableError, type MailMessage, type MailSender, type SentMail } from './sender';
 import type { MailSendRepository } from './repository';

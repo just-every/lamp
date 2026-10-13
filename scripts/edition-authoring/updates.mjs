@@ -42,11 +42,39 @@ function identities(files) {
   return Object.fromEntries(Object.entries(files).map(([name, file]) => [name,
     {sha256: hash(Buffer.from(file.data, 'base64')), executable: file.executable}]));
 }
+// The most specific mapping owns a local file; one origin file may have several
+// local copies, and each copy is compared with that origin file on its own.
+function owner(mappings, name) {
+  let found = null;
+  for (const mapping of mappings) {
+    if (name !== mapping.path && !name.startsWith(mapping.path + '/')) continue;
+    if (found?.path === mapping.path && found.originPath !== mapping.originPath) throw Error(`Ambiguous comparison mappings for ${mapping.path}`);
+    if (!found || mapping.path.length > found.path.length) found = mapping;
+  }
+  return found;
+}
+function mappedChanges(mappings, before, editionFiles) {
+  const result = [];
+  for (const [name, file] of Object.entries(editionFiles)) {
+    const mapping = owner(mappings, name);
+    if (!mapping) continue;
+    const target = mapping.originPath + name.slice(mapping.path.length);
+    const after = identities({[name]: file})[name];
+    if (json(before[target]) !== json(after)) result.push({path: target, localPath: name, change: before[target] ? 'modified' : 'added', before: before[target] ?? null, after});
+  }
+  for (const mapping of mappings) for (const [target, identity] of Object.entries(before)) {
+    if (target !== mapping.originPath && !target.startsWith(mapping.originPath + '/')) continue;
+    const name = mapping.path + target.slice(mapping.originPath.length);
+    if (!(name in editionFiles) && owner(mappings, name) === mapping) result.push({path: target, localPath: name, change: 'removed', before: identity, after: null});
+  }
+  return result.sort((a, b) => a.path.localeCompare(b.path) || a.localPath.localeCompare(b.localPath));
+}
 export function compare(root, id, candidate, currentRoot = root) {
   const {component, ref, saved} = baseline(root, id);
   const repository = fs.realpathSync(candidate);
   if (fs.realpathSync(git(repository, 'rev-parse', '--show-toplevel')) !== repository) throw Error('Candidate must be a Git repository root');
   if (git(repository, 'status', '--porcelain', '--untracked-files=all')) throw Error('Candidate must be clean and committed');
+  // Incoming source is the candidate's own Git source; it never inherits a projection identity.
   const incoming = snapshot(root, {...ref, projection: undefined, repository, revision: git(repository, 'rev-parse', 'HEAD')});
   if (!component) {
     const normalize = parentIdentities(root, saved);
@@ -55,32 +83,23 @@ export function compare(root, id, candidate, currentRoot = root) {
       incoming: {origin: incoming.origin, digest: incoming.digest},
       upstreamChanges: diff(before, normalize(incoming.files)),
       localChanges: diff(before, current), currentFiles: current, mappings: null,
-      meaning: 'Whole-parent comparison reads independent incoming Git source and current tracked source. Only declared exact privacy identities and presentation image omissions are normalized; all other bytes, modes, additions and removals remain visible. This does not judge compatibility, owner intent, or adoption.',
+      meaning: 'Whole-parent comparison reads independent incoming Git source and current tracked source. Only exact planned projection identities and planned omissions are normalized; all other bytes, modes, additions and removals remain visible. This does not judge compatibility, owner intent, or adoption.',
     };
   }
   if (currentRoot !== root) throw Error('An independent current checkout is supported only for parent comparison');
   const selected = component.source;
   if (selected.workspace) throw Error('Promote or commit workspace source before comparing immutable selections');
   const editionFiles = tracked(root);
-  const local = Object.create(null);
   const mappings = selected.kind === 'git' ? [] : selected.mappings || [];
-  // Never guess correspondence for dispersed or deeply rewritten local source.
-  for (const mapping of mappings) for (const [name, file] of Object.entries(editionFiles)) {
-    if (name === mapping.path || name.startsWith(mapping.path + '/')) {
-      const target = mapping.originPath + name.slice(mapping.path.length);
-      if (target in local) throw Error('Overlapping comparison mappings');
-      local[target] = file;
-    }
-  }
   const owned = selected.kind === 'local' ? Object.fromEntries(Object.entries(editionFiles)
     .filter(([name]) => selected.paths.some(p => name === p || name.startsWith(p + '/')))) : saved.files;
   const before = identities(saved.files);
-  const mappedBefore = Object.fromEntries(Object.entries(before).filter(([name]) => mappings.some(m => name === m.originPath || name.startsWith(m.originPath + '/'))));
   return {component: id, baseline: {origin: saved.origin, digest: saved.digest},
     incoming: {origin: incoming.origin, digest: incoming.digest},
     upstreamChanges: diff(before, identities(incoming.files)),
-    localChanges: selected.kind === 'git' ? [] : mappings.length ? diff(mappedBefore, identities(local)) : null,
+    // Never guess correspondence for dispersed or deeply rewritten local source.
+    localChanges: selected.kind === 'git' ? [] : mappings.length ? mappedChanges(mappings, before, editionFiles) : null,
     currentFiles: identities(owned), mappings,
-    meaning: 'Current source may intentionally differ. Local comparison uses explicit mappings only. This does not judge compatibility, owner intent, or adoption.',
+    meaning: 'Current source may intentionally differ. Local comparison uses explicit mappings only; each local copy is compared with its own origin file. This does not judge compatibility, owner intent, or adoption.',
   };
 }

@@ -1,0 +1,28 @@
+/* Settings → Slack and Teams, Alerts → monitor presets, Settings → Move in. */
+.channel-form, .preset-form, .move-in-form { display: grid; gap: 16px; margin-top: 16px; }
+.channel-form fieldset { display: flex; flex-wrap: wrap; gap: 8px; border: 0; margin: 0; padding: 0; }
+.channel-form fieldset legend, .channel-form fieldset p { flex-basis: 100%; }
+.channel-form legend, .move-in-form legend { margin-bottom: 4px; padding: 0; color: var(--ink); font-size: 15px; font-weight: 600; }
+/* Bordered, padded choices keep each checkbox target well apart (WCAG 2.2 target size). */
+.channel-form fieldset .checkbox-label, .move-in-page .checkbox-label { min-height: 44px; border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px; }
+.move-in-page .checkbox-label { justify-self: start; margin: 16px 0 12px; }
+.channel-list, .channel-posts, .move-in-jobs { display: grid; margin: 12px 0; padding: 0; list-style: none; }
+.channel-list li, .channel-posts li, .move-in-jobs li { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; border-bottom: 1px solid var(--line); padding: 12px 0; color: var(--ink-2); font-size: 14px; overflow-wrap: anywhere; }
+.channel-list li:last-child, .channel-posts li:last-child, .move-in-jobs li:last-child { border-bottom: 0; }
+.move-in-jobs li { font-variant-numeric: tabular-nums; }
+.move-in-jobs .button { min-height: 32px; padding: 6px 14px; font-size: 13px; }
+.move-in-items { display: grid; gap: 8px; margin: 8px 0 0; padding-left: 18px; color: var(--ink-2); font-size: 14px; }
+.move-in-form fieldset { display: grid; gap: 12px; min-width: 0; border: 0; margin: 0; padding: 0; }
+.move-in-form fieldset > p { margin: 0; color: var(--ink-3); font-size: 13px; }
+.move-in-form > .button, .preset-form > .button, .channel-form > .button { justify-self: start; }
+.move-in-page .data-card > .table-scroll { margin: 16px 0; border: 1px solid var(--line); border-radius: 10px; }
+.move-in-page .data-card > .table-scroll table { min-width: 560px; }
+.move-in-page .data-card > .table-scroll tbody th { background: none; color: var(--ink); font-size: 14px; font-weight: 500; text-align: left; }
+.preset-created { display: grid; gap: 12px; margin-top: 16px; }
+/* Disclosure summaries are targets too: give them the WCAG 2.2 minimum height. */
+.channels-card summary, .move-in-page summary { display: flex; align-items: center; min-height: 44px; cursor: pointer; color: var(--ink); font-weight: 500; }
+.move-in-page details { margin: 12px 0; }
+
+/* Keep report columns inside their scroll region so import actions stay reachable. */
+.move-in-page { grid-template-columns: minmax(0, 1fr); }
+.move-in-page > .data-card { min-width: 0; }

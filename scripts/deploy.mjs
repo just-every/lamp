@@ -5,7 +5,12 @@ import { resolve } from "node:path";
 
 import { deploymentConfig, parseArgs, resourceNames, writeGeneratedWrangler } from "./ops-config.mjs";
 import { withDeploymentSecrets } from "./deployment-secrets.mjs";
+import { withPublicWorkerConfig } from "./native-public-worker.mjs";
+import { verifyRemoteEvidence, cleanSourceIdentity } from "./verification-evidence.mjs";
+import { readOperations } from "./operations.mjs";
+import { dryRunInputFailure } from "./deploy-preflight.mjs";
 import { readBuiltWorkerArtifact } from "./build-output.mjs";
+import { deployFingerprint, deploySource, identityVars, reportsIdentity } from "./deployment-identity.mjs";
 
 function run(command, args, options = {}) {
   const result = spawnSync(command, args, { stdio: "inherit", ...options });
@@ -13,9 +18,9 @@ function run(command, args, options = {}) {
 }
 
 async function buildGeneratedWorker(configPath, expected) {
-  run("pnpm", ["run", "build"], { env: { ...process.env, LAMP_WRANGLER_CONFIG: configPath } });
+  run("pnpm", ["run", "build:app"], { env: { ...process.env, LAMP_WRANGLER_CONFIG: configPath } });
   const built = await readBuiltWorkerArtifact();
-  const worker = resourceNames(expected.environment).worker;
+  const worker = resourceNames(expected.environment, expected.resourcePrefix).worker;
   if (built.config.name !== worker) throw new Error(`Vite emitted ${built.config.name ?? "an unnamed Worker"} instead of ${worker}.`);
   if (built.config.compatibility_date !== "2026-09-08" || !["nodejs_compat", "global_fetch_strictly_public"].every(flag => built.config.compatibility_flags?.includes(flag))) throw new Error("The compiled Worker configuration did not retain the required Start compatibility settings.");
   if (built.config.vars?.LAMP_PAGE_HOST !== expected.pageHost || built.config.vars?.LAMP_APP_HOST !== expected.appHost || built.config.vars?.MAIL_FROM_ADDRESS !== expected.mailFromAddress) throw new Error("The compiled Worker configuration did not retain the generated deployment bindings.");
@@ -25,31 +30,63 @@ async function buildGeneratedWorker(configPath, expected) {
 async function main() {
   const flags = parseArgs(process.argv.slice(2));
   const environment = flags.get("environment") ?? "production";
+  const { descriptor } = await readOperations(process.cwd());
+  const dryRunFailure = flags.get("dry-run") ? dryRunInputFailure(descriptor, process.env) : null;
+  if (dryRunFailure) {
+    console.error(dryRunFailure);
+    process.exitCode = 1;
+    return;
+  }
+  const missing = descriptor.requiredEnvironment.filter(name => !process.env[name]?.trim());
+  if (!flags.get("dry-run") && missing.length) {
+    // Names only: a value never reaches the terminal.
+    console.error(`Missing deployment inputs: ${missing.join(", ")}. Read OPERATIONS.md, set them, then run rer deploy again.`);
+    process.exitCode = 1;
+    return;
+  }
   const config = deploymentConfig(process.env, environment);
+  const names = resourceNames(config.environment, config.resourcePrefix);
   const restoreArgs = flags.get("restore-from") ? ["--restore-from", flags.get("restore-from")] : [];
   if (flags.get("dry-run")) {
-    run("pnpm", ["run", "setup", "--", "--dry-run", "--environment", config.environment, ...restoreArgs]);
+    run("pnpm", ["run", "setup:cloudflare", "--", "--dry-run", "--environment", config.environment, ...restoreArgs]);
     const dryRunConfig = resolve("wrangler.dry-run.toml");
-    await writeGeneratedWrangler(dryRunConfig, config, { ...resourceNames(config.environment), databaseId: "00000000-0000-0000-0000-000000000000" });
+    await writeGeneratedWrangler(dryRunConfig, config, { ...resourceNames(config.environment, config.resourcePrefix), databaseId: "00000000-0000-0000-0000-000000000000" });
     try {
       const builtConfig = await buildGeneratedWorker(dryRunConfig, config);
-      run("pnpm", ["exec", "wrangler", "deploy", "--dry-run", "--config", builtConfig]);
+      const identity = identityVars({ source: deploySource(), fingerprint: await deployFingerprint() });
+      run("pnpm", ["exec", "wrangler", "deploy", "--dry-run", "--config", builtConfig, ...identity]);
+      if (config.hosting === "workers-dev") await withPublicWorkerConfig(builtConfig, names, path => run("pnpm", ["exec", "wrangler", "deploy", "--dry-run", "--config", path, ...identity]));
     } finally {
       await rm(dryRunConfig, { force: true });
     }
     console.log("Dry run compiled the generated Start Worker configuration and dist/client assets. No Cloudflare resource or deployment was changed.");
     return;
   }
-  run("pnpm", ["run", "setup", "--", "--environment", config.environment, ...restoreArgs]);
-  run("pnpm", ["run", "verify"]);
+  const host = flags.get("verification-host");
+  const receipt = flags.get("verification-receipt");
+  if (Boolean(host) !== Boolean(receipt)) throw new Error("--verification-host and --verification-receipt must be supplied together.");
+  const verifiedSource = host ? verifyRemoteEvidence(host, receipt) : null;
+  if (!verifiedSource) run("pnpm", ["run", "verify:app"]);
+  run("pnpm", ["run", "setup:cloudflare", "--", "--environment", config.environment, ...restoreArgs]);
   if (!existsSync("wrangler.toml")) throw new Error("pnpm setup must generate wrangler.toml before deployment.");
   const builtConfig = await buildGeneratedWorker(resolve("wrangler.toml"), config);
-  await withDeploymentSecrets(config, async (file) => run("pnpm", ["exec", "wrangler", "deploy", "--config", builtConfig, "--secrets-file", file]));
+  if (verifiedSource && JSON.stringify(cleanSourceIdentity()) !== JSON.stringify(verifiedSource)) throw new Error("Source changed after remote verification was checked.");
+  const identity = { source: deploySource(), fingerprint: await deployFingerprint() };
+  await withDeploymentSecrets(config, async (file) => {
+    run("pnpm", ["exec", "wrangler", "deploy", "--config", builtConfig, "--secrets-file", file, ...identityVars(identity)]);
+    if (config.hosting === "workers-dev") await withPublicWorkerConfig(builtConfig, names, path => run("pnpm", ["exec", "wrangler", "deploy", "--config", path, "--secrets-file", file, ...identityVars(identity)]));
+  });
   const response = await fetch(`https://${config.appHost}/health`, { signal: AbortSignal.timeout(15_000), redirect: "error" });
   const health = await response.json().catch(() => null);
   if (response.status !== 200 || health?.status !== "ok") throw new Error(`Deployment smoke check failed for https://${config.appHost}/health.`);
+  if (!reportsIdentity(health, identity)) throw new Error(`https://${config.appHost}/health does not name this deployment (source ${identity.source}); another version may be serving.`);
   // Existing installations and restored archives prime the replica from R2;
   // legacy snapshots without a bundle are rebuilt by the minute scheduler.
+  // Identity is claimed through Base after its secret bindings are deployed.
+  // Existing stores reject bootstrap without changing their owner or settings.
+  const claimed = await fetch(`https://${config.appHost}/auth/bootstrap`, {method:'POST',redirect:'manual',headers:{Origin:`https://${config.appHost}`,'Content-Type':'application/json'},body:JSON.stringify({token:config.setupToken,displayName:config.setupOperatorDisplayName})});
+  await claimed.body?.cancel();
+  if (![303,409].includes(claimed.status)) throw new Error('Owner bootstrap failed after deployment. Inspect the auth configuration.');
   const deadline = Date.now() + 90_000;
   let retained = false;
   do {

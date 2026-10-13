@@ -1,7 +1,7 @@
 {
   "id": "lamp",
   "name": "Lamp",
-  "sourceRepository": "https://github.com/just-every/lamp",
+  "sourceRepository": "https://github.com/just-every/run-lamp",
   "artifactFile": "delivery-artifact/lamp-worker-artifact.json",
   "artifactNamePrefix": "lamp-worker-",
   "compiler": "management/integration",
@@ -15,7 +15,7 @@
     "SETUP_OPERATOR_EMAIL",
     "MAIL_PROVIDER"
   ],
-  "ownerSetup": "Initial operator identity is an approved setup migration. Configure mail to complete operator sign-in.",
+  "ownerSetup": "Claim the configured operator through Base /auth/bootstrap with SETUP_TOKEN. SESSION_SECRET must remain stable. Product setup migrations initialize only page settings.",
   "providerSetup": [
     "Verified Resend or SendGrid sender and webhook configuration"
   ],

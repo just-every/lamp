@@ -1,0 +1,47 @@
+[
+  {
+    "id": "g0000000001",
+    "page_id": "synthpage01",
+    "name": "Region 1",
+    "description": "Services in region 1.",
+    "components": [
+      "c0000000001",
+      "c0000000002",
+      "c0000000003",
+      "c0000000004"
+    ],
+    "position": 1,
+    "created_at": "2026-01-01T00:00:00.000Z",
+    "updated_at": "2026-01-02T00:00:00.000Z"
+  },
+  {
+    "id": "g0000000002",
+    "page_id": "synthpage01",
+    "name": "Region 2",
+    "description": "Services in region 2.",
+    "components": [
+      "c0000000005",
+      "c0000000006",
+      "c0000000007",
+      "c0000000008"
+    ],
+    "position": 2,
+    "created_at": "2026-01-01T00:00:00.000Z",
+    "updated_at": "2026-01-02T00:00:00.000Z"
+  },
+  {
+    "id": "g0000000003",
+    "page_id": "synthpage01",
+    "name": "Region 3",
+    "description": "Services in region 3.",
+    "components": [
+      "c0000000009",
+      "c0000000010",
+      "c0000000011",
+      "c0000000012"
+    ],
+    "position": 3,
+    "created_at": "2026-01-01T00:00:00.000Z",
+    "updated_at": "2026-01-02T00:00:00.000Z"
+  }
+]

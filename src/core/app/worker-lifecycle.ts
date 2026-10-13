@@ -1,4 +1,4 @@
-import { initialPageSettings } from "./config";
+import { pingExternalHeartbeat } from './external-heartbeat';
 import { createApp } from "./server";
 import { notificationOrigin, prepareAppMailBindings } from "./mail";
 import type { AppBindings } from "./types";
@@ -15,24 +15,32 @@ function isLampJob(value: unknown): value is LampJob {
 export async function ensureDevelopmentSnapshot(runtime: ReturnType<typeof createApp>) {
   if (!import.meta.env.DEV || localSnapshotBootstrapFinished) return;
   if (!(await runtime.services.publicSnapshots.hasCurrentSnapshot())) {
-    await runtime.services.pageSettings.ensureInitial(initialPageSettings);
+    if (!(await runtime.services.operators.listOperators()).length || !(await runtime.services.pageSettings.get())) return;
     await runtime.services.publicSnapshots.rebuild();
   }
   localSnapshotBootstrapFinished = true;
 }
 
-export async function runScheduled(bindings: AppBindings, executionContext: ExecutionContext) {
+export async function runScheduled(bindings: AppBindings, executionContext: ExecutionContext, scheduledAt = Date.now()) {
   const runtime = createApp(await prepareAppMailBindings(bindings, "background"), "background");
   executionContext.waitUntil((async () => {
-    const results = await Promise.allSettled([
+    // State changes and operator reminders first, at the trigger's own time,
+    // so the mail they queue goes out in this same run.
+    const changes = await Promise.allSettled([
       runtime.services.subscribers.expirePending(),
       runtime.services.incidents.publishDue(),
       runtime.services.maintenance.runDue(),
+      runtime.services.updateReminders.remindDue(new Date(scheduledAt).toISOString()),
+    ]);
+    const deliveries = await Promise.allSettled([
       notificationOrigin(bindings).then((origin) => runtime.services.deliveries.dispatchDue(origin)),
       runtime.services.publicSnapshots.retryPendingBuild(),
+      runtime.services.channels.dispatchPending(),
     ]);
+    const results = [...changes, ...deliveries];
     const failure = results.find((result): result is PromiseRejectedResult => result.status === "rejected");
     if (failure) throw failure.reason;
+    await pingExternalHeartbeat(bindings, runtime, scheduledAt);
   })());
 }
 
@@ -45,6 +53,10 @@ export async function runQueue(batch: MessageBatch<unknown>, bindings: AppBindin
     }
     if (message.body.type === "health-probe") {
       message.ack();
+      continue;
+    }
+    if (bindings.EFFECTS_PAUSED === "1") {
+      message.retry({ delaySeconds: 60 });
       continue;
     }
     try {

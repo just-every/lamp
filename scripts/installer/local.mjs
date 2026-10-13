@@ -1,47 +1,65 @@
-import {spawn} from 'node:child_process';
-import {createServer} from 'node:net';
-import {randomBytes} from 'node:crypto';
-import {readFile} from 'node:fs/promises';
-import {join,resolve} from 'node:path';
-import {setTimeout as delay} from 'node:timers/promises';
-import {privateDirectory,readPrivateFile,writePrivateFile} from '../base-onboarding/private-files.mjs';
-import {installationFailure} from '../base-onboarding/failures.mjs';
-import {execute,stop,commandFailure} from './process.mjs';
+import {access} from 'node:fs/promises';
+import {join} from 'node:path';
+import {fileURLToPath} from 'node:url';
+import {localInstaller} from '@runeditrun/rer/local-installer';
+import {commandAdapter as createCommandAdapter} from '@runeditrun/rer/adapter';
+import {localPortability} from '@runeditrun/rer/portability';
+import {nativeOwner} from './bootstrap.mjs';
+import {localSignIn} from './signin.mjs';
+import {lampDeploy} from './deploy.mjs';
+import {validateAnswers} from './validation.mjs';
+import * as model from './ui/seed.mjs';
 
-async function availablePort(){const listener=createServer();await new Promise((resolve,reject)=>{listener.once('error',reject);listener.listen(0,'127.0.0.1',resolve);});const port=listener.address().port;await new Promise(resolve=>listener.close(resolve));return port;}
-export async function startLocal(root,input,store,onApp,signal){
- if(process.version!=='v26.8.1')throw installationFailure('node_version',{version:'26.8.1'});
- const pnpm=(args,step)=>execute(root,'npm',['exec','--yes','--package=pnpm@8.15.6','--','pnpm',...args],signal,step);
- await store.step('Installing locked Lamp dependencies');await pnpm(['install','--frozen-lockfile'],'dependencies');
- await store.step('Building Lamp without provider credentials');await pnpm(['run','build'],'build');
- const directory=await privateDirectory(root,['.seed','installer','runtime']);
- let secrets;try{secrets=JSON.parse(await readPrivateFile(join(directory,'secrets.json')));}catch(error){if(error.code!=='ENOENT')throw error;secrets={LAMP_BOOTSTRAP_SECRET:randomBytes(32).toString('hex'),SUBSCRIBER_TOKEN_SECRET:randomBytes(32).toString('hex'),WEBHOOK_SIGNING_SECRET:randomBytes(32).toString('hex')};}
- secrets.MAIL_PROVIDER_API_KEY=input.mailApiKey;
- await writePrivateFile(join(directory,'secrets.json'),JSON.stringify(secrets));
- await writePrivateFile(join(directory,'.dev.vars'),Object.entries(secrets).map(([key,value])=>`${key}=${JSON.stringify(value)}`).join('\n')+'\n');
- const built=JSON.parse(await readFile(join(root,'dist/server/wrangler.json'),'utf8'));
- const server=join(root,'dist/server');
- const config={...built,name:'lamp-local-installer',main:resolve(server,built.main),vars:{LAMP_APP_HOST:'127.0.0.1',LAMP_PAGE_HOST:'127.0.0.1',MAIL_FROM_ADDRESS:input.mailFrom,MAIL_PROVIDER:input.mailProvider,RER_INSTALLATION_ID:'local-independent'},assets:{...built.assets,directory:resolve(server,built.assets.directory)},d1_databases:built.d1_databases.map(database=>({...database,migrations_dir:resolve(server,database.migrations_dir)}))};
- for(const key of ['configPath','userConfigPath','account_id','routes','env'])delete config[key];
- const configPath=join(directory,'wrangler.json');await writePrivateFile(configPath,JSON.stringify(config));
- const statePath=join(directory,'state');
- const migrationConfig=join(directory,'migrations.toml');
- const database=config.d1_databases[0];
- const bucket=config.r2_buckets[0];
- await writePrivateFile(migrationConfig,`name = \"lamp-local-installer\"\ncompatibility_date = \"2026-09-08\"\n[[d1_databases]]\nbinding = \"DB\"\ndatabase_name = ${JSON.stringify(database.database_name)}\ndatabase_id = ${JSON.stringify(database.database_id)}\nmigrations_dir = ${JSON.stringify(database.migrations_dir)}\n[[r2_buckets]]\nbinding = \"SNAPSHOTS\"\nbucket_name = ${JSON.stringify(bucket.bucket_name)}\n`);
- await store.step('Applying local migrations while preserving prior data');
- await execute(root,process.execPath,['node_modules/wrangler/bin/wrangler.js','d1','migrations','apply','DB','--local','--config',configPath,'--persist-to',statePath],signal,'setup');
- // Owner migrations retain their established ledger through the maintained command.
- await pnpm(['exec','node','scripts/installer/owner-migrations.mjs',migrationConfig,statePath],'setup');
- const port=await availablePort(),origin=`http://127.0.0.1:${port}`;
- const child=spawn(process.execPath,['node_modules/wrangler/bin/wrangler.js','dev','--local','--config',configPath,'--persist-to',statePath,'--ip','127.0.0.1','--port',String(port),'--inspector-port','0'],{cwd:root,stdio:'inherit',shell:false,detached:true});
- onApp(child);let spawnError;child.once('error',error=>{spawnError=error;});
- try{
-  for(let attempt=0;attempt<120;attempt++){
-   signal?.throwIfAborted();if(spawnError)throw commandFailure(spawnError,'node','start',signal);if(child.exitCode!==null)throw installationFailure('command_failed',{step:'start'});
-   try{const response=await fetch(origin+'/health',{signal:AbortSignal.timeout(1000)});if(response.status===200)return {origin,secret:secrets.LAMP_BOOTSTRAP_SECRET};}catch{}
-   await delay(250,undefined,{signal});
-  }
-  throw installationFailure('command_failed',{step:'start'});
- }catch(error){stop(child);throw error;}
+const exists=path=>access(path).then(()=>true,()=>false);
+
+// Local state from before the rer CLI lived under deploy/.
+// Never adopt, move or delete it silently: name the owner's choice instead.
+async function legacyState({root}){
+ for(const legacy of ['deploy/.wrangler','deploy/.dev.vars']){
+  if(await exists(join(root,legacy)))throw Error(`Earlier local Lamp data is at ${legacy}. Keep it by moving deploy/.wrangler to .wrangler and deploy/.dev.vars to .dev.vars, or remove ${legacy} to start fresh, then run setup again.`);
+ }
 }
+
+// Development captures mail in Lamp's outbox. Setup and preview execute the
+// production artifact and never request mail from a provider.
+const environment=(context,extra={})=>({...process.env,...context.env,...context.vars,LAMP_DEV_OUTBOX_MODE:'local',LAMP_DISABLE_INSPECTOR:'true',WRANGLER_SEND_METRICS:'false',X_LOCAL_EXPLORER:'false',RER_DEV_ORIGIN:context.origin,RER_DEV_KEY:context.devKey,RER_DEV_IDENTITY:context.devLogin?'off':'on',...extra});
+const listen=context=>String(context.runtimePort??(new URL(context.origin).port||80));
+// dev:app applies new migrations, serves Vite and opens the page host once so
+// notification links know the page origin.
+const vite=context=>['node',['scripts/dev.mjs','--port',listen(context)],{env:environment(context)}];
+const preview=context=>[process.execPath,[fileURLToPath(new URL(import.meta.resolve('@runeditrun/rer/production-runtime')))],{env:{...environment(context),RER_RUNTIME_PORT:listen(context),RER_RUNTIME_HOST:context.runtimePort?'127.0.0.1':new URL(context.origin).hostname.replace(/^\[|\]$/g,''),RER_ORIGIN_KEY:'LAMP_LOCAL_ORIGIN',CLOUDFLARE_INCLUDE_PROCESS_ENV:'false'}}];
+
+export const adapter=localInstaller({
+ node:'22.20.0',features:{...model.features,hosting:false},
+ guard:legacyState,prepare:async context=>{
+  await legacyState(context);
+  await validateAnswers(context.input,context.store);
+ },
+ // Transfers have no setup answers; preserve saved settings and check legacy state.
+ prepareData:legacyState,
+ secrets:{keepExisting:true,originKey:'LAMP_LOCAL_ORIGIN',values:context=>({LAMP_LOCAL_ORIGIN:context.origin,AUTH_ORIGIN:context.origin,AUTH_LOCAL:'true'})},
+ build:['pnpm',['run','build:app']],
+ migrate:['node',['scripts/migrate-local.mjs']],
+ start:preview,owner:nativeOwner,signIn:localSignIn,
+});
+
+// Base import-kit custody holds source copies and replay authority: resume and
+// undo of a move-in stay on the installation that ran it.
+const importCustody=['ik_batches','ik_d1_assertions','ik_d1_creation_plans','ik_d1_custody_revisions','ik_d1_custody_states','ik_d1_entries','ik_d1_erased_sources','ik_d1_erased_targets','ik_d1_history','ik_d1_indexed_jobs','ik_d1_native_staging','ik_d1_native_staging_index','ik_d1_native_staging_values','ik_d1_original_chunks','ik_d1_plan_chunks','ik_d1_plan_index','ik_d1_preparation_receipts','ik_d1_publication_fences','ik_d1_reversal_reports','ik_d1_staging','ik_d1_staging_chunks','ik_d1_staging_headers','ik_d1_staging_index','ik_d1_staging_originals','ik_d1_staging_pages','ik_d1_stream_origins','ik_d1_stream_pages','ik_d1_stream_revisions','ik_d1_streams','ik_jobs','ik_original_sets','ik_originals','ik_provenance','ik_sources','ik_stages','ik_targets'];
+
+// Durable Base identity and consumed-claim state must travel with Lamp's product
+// attribution. Base excludes oa_/oc_ by default; keep only durable authority,
+// never sessions, links, credentials or pending setup/dependency approvals.
+// Base still forces restored provider links to re-link and sign-in to remain off.
+const operatorContinuity=['oa_operators','oa_bootstrap','oa_external_identities','oa_invitation_cancellations','oa_domain_rules','oa_auth_settings','oa_auth_audit','oa_identity_providers','oa_logout_events','oc_owner_claims','oc_idp_grants'];
+
+const transfer=localPortability({database:'DB',buckets:{SNAPSHOTS:'SNAPSHOTS'},policy:{product:'just-every/lamp',buckets:{SNAPSHOTS:{}},replaceableTables:['public_snapshot_work','snapshot_build_control','reference_counters'],includeTables:operatorContinuity,excludeTables:['oa_sessions','oa_tokens','oa_step_up_challenges','oa_credentials','oa_dev_credentials',...importCustody],requiredConfiguration:['SETUP_TOKEN','SESSION_SECRET','SUBSCRIBER_TOKEN_SECRET','WEBHOOK_SIGNING_SECRET']},transient:['development outbox','move-in import custody (resume and undo stay on the original installation)','operator sessions and one-use sign-in links','queued job deliveries in flight','public snapshot cache (rebuilt from D1 and R2)']});
+
+export const commandAdapter=createCommandAdapter(adapter,{
+ product:model.product.name,dev:vite,preview,
+ devIdentity:{entry:'src/server.dev.ts',output:['dist'],emailLinkTest:'tests/e2e/auth-adoption-journey.test.mjs'},verify:['pnpm',['run','verify:app']],deploy:lampDeploy(adapter),deployDeclaration:'hosted-check.json',
+ portability:transfer,generatedOutputs:['src/routeTree.gen.ts'],
+ site:{entry:'src/site/pages.tsx',output:'dist/site',declaration:'deploy-site.json',config:'vite.site.config.ts'},
+ setup:{manifestFile:'rer-setup.json'},browserModule:'scripts/installer/ui/seed.mjs',
+ input:{names:{email:'SETUP_OPERATOR_EMAIL',name:'OWNER_DISPLAY_NAME'},defaults:async()=>({target:'local',OWNER_DISPLAY_NAME:'Owner',LAMP_PAGE_NAME:'Status',LAMP_PAGE_TAGLINE:'Current service status',LAMP_PAGE_TIMEZONE:'UTC'})},
+});

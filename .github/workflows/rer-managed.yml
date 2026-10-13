@@ -17,7 +17,7 @@ on:
         type: choice
         options: [preview, production]
       verification_profile:
-        description: Verification scope for this release
+        description: Verification scope declared by immutable project source
         required: true
         default: full
         type: choice
@@ -28,10 +28,11 @@ permissions:
   id-token: write
 jobs:
   release:
-    uses: runeditrun/delivery/.github/workflows/trusted-build.yml@3bf5463466b68615ff3862a28acbe5cb9d1786ec
+    uses: 'runeditrun/delivery/.github/workflows/trusted-build.yml@bf7a25abb44bec1457a7bc738ff63921d90fb52e'
     with:
       installation_id: ${{ inputs.installation_id }}
       broker_url: ${{ inputs.broker_url }}
       environment: ${{ inputs.environment }}
       verification_profile: ${{ inputs.verification_profile }}
-      artifact_file: lamp-worker-artifact.json
+      artifact_file: 'lamp-worker-artifact.json'
+      build_profile: 'edition'

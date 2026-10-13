@@ -1,0 +1,20 @@
+/* Section 1: the text centred over one wide plate, which stands in a pool of the lamp's light continuing the hero's:
+   the pool is centred on the plate's top third. It starts below the first screen, which the hero fills. From 1024px the text spans columns 3–10 and the plate 2–11. */
+.lamp-home .lamp-glance__plates { position: relative; }
+.lamp-home .lamp-glance__pool { inset: -180px -20% auto; height: 520px; }
+@container lamp-page (min-width: 1024px) {
+  .lamp-home .lamp-glance__text { grid-column: 3 / 11; text-align: center; }
+  .lamp-home .lamp-glance .lamp-section__sentence { max-width: 60ch; margin-inline: auto; }
+  .lamp-home .lamp-glance__plates { grid-column: 2 / 12; margin-top: calc(56 * var(--u)); }
+  .lamp-home .lamp-glance__pool { inset: calc(-260 * var(--u)) calc(-180 * var(--u)) auto; height: calc(760 * var(--u)); }
+}
+/* The moment: plate A rises into its pool, then the current update arrives: its amber wash fades in as its rule draws
+   top to bottom, and Checkout's red dot settles in. */
+@media screen and (prefers-reduced-motion: no-preference) {
+  .lamp-home .lamp-glance[data-reveal="wait"] .lamp-plate__current::before { opacity: 0; }
+  .lamp-home .lamp-glance[data-reveal="wait"] .lamp-plate__current::after { scale: 1 0; }
+  .lamp-home .lamp-glance[data-reveal="wait"] .lamp-plate__dot--down { opacity: 0; }
+  .lamp-home .lamp-glance[data-reveal="play"] .lamp-plate__current::before { animation: lamp-fade .5s var(--lamp-ease) .55s backwards; }
+  .lamp-home .lamp-glance[data-reveal="play"] .lamp-plate__current::after { transform-origin: top; animation: lamp-draw-down .5s var(--lamp-ease) .55s backwards; }
+  .lamp-home .lamp-glance[data-reveal="play"] .lamp-plate__dot--down { animation: lamp-settle .35s var(--lamp-ease) .6s backwards; }
+}

@@ -12,7 +12,7 @@ import { contract } from "../contract.mjs";
 import { applyOwnerMigrations } from "../../scripts/owner-migrations.mjs";
 import { renderRemoteArchiveWranglerToml } from "../../scripts/ops-config.mjs";
 
-const configPath = "deploy/wrangler.template.toml";
+const configPath = "wrangler.jsonc";
 const logo = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Y9Jm4kAAAAASUVORK5CYII=", "base64");
 
 function run(args) {
@@ -87,13 +87,13 @@ contract("HIST-004", "export restores every JSON entity, settings and audit entr
       await source.dispose();
     }
 
-    run(["run", "export", "--", "--out", archive, "--persist-to", sourceState]);
+    run(["run", "export:cloudflare", "--", "--out", archive, "--persist-to", sourceState]);
     const manifestPath = join(archive, "manifest.json");
     const originalManifest = await readFile(manifestPath, "utf8");
     const damagedManifest = JSON.parse(originalManifest);
     damagedManifest.migrations[0].sha256 = "0".repeat(64);
     await writeFile(manifestPath, JSON.stringify(damagedManifest));
-    assert.throws(() => run(["run", "import", "--", "--from", archive, "--persist-to", targetState]), /Command failed/);
+    assert.throws(() => run(["run", "import:cloudflare", "--", "--from", archive, "--persist-to", targetState]), /Command failed/);
     const untouched = await platformFor(targetState);
     try {
       const tables = await untouched.env.DB.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' AND name NOT LIKE '_cf_%'").all();
@@ -110,13 +110,13 @@ contract("HIST-004", "export restores every JSON entity, settings and audit entr
     await writeFile(join(archive, "entities.json"), incompatibleBytes);
     await writeFile(manifestPath, JSON.stringify(incompatibleManifest));
     const partialState = join(targetState, "partial-attempt");
-    assert.throws(() => run(["run", "import", "--", "--from", archive, "--persist-to", partialState]), /Command failed/, "a real SQL restore failure must stop without publishing");
+    assert.throws(() => run(["run", "import:cloudflare", "--", "--from", archive, "--persist-to", partialState]), /Command failed/, "a real SQL restore failure must stop without publishing");
     await writeFile(join(archive, "entities.json"), originalEntities);
     await writeFile(manifestPath, originalManifest);
-    assert.throws(() => run(["run", "import", "--", "--from", archive, "--persist-to", partialState]), /Command failed/, "a failed destination must not be silently overwritten on retry");
-    run(["run", "import", "--", "--from", archive, "--persist-to", targetState]);
-    assert.throws(() => run(["run", "import", "--", "--from", archive, "--persist-to", targetState]), /Command failed/, "rerunning import must never overwrite a populated destination");
-    run(["run", "export", "--", "--out", restoredArchive, "--persist-to", targetState]);
+    assert.throws(() => run(["run", "import:cloudflare", "--", "--from", archive, "--persist-to", partialState]), /Command failed/, "a failed destination must not be silently overwritten on retry");
+    run(["run", "import:cloudflare", "--", "--from", archive, "--persist-to", targetState]);
+    assert.throws(() => run(["run", "import:cloudflare", "--", "--from", archive, "--persist-to", targetState]), /Command failed/, "rerunning import must never overwrite a populated destination");
+    run(["run", "export:cloudflare", "--", "--out", restoredArchive, "--persist-to", targetState]);
 
     const entities = JSON.parse(await readFile(join(archive, "entities.json"), "utf8"));
     const target = await platformFor(targetState);
@@ -164,7 +164,7 @@ test("owner sidecar migrations apply once and survive export/import/export", asy
     await mkdir(join(sandbox, "migrations", "ext"), { recursive: true });
     await symlink(join(original, "migrations", "core"), join(sandbox, "migrations", "core"));
     await symlink(join(original, "node_modules"), join(sandbox, "node_modules"));
-    await writeFile(join(sandbox, "package.json"), JSON.stringify({ private: true, packageManager: "pnpm@8.15.6" }));
+    await writeFile(join(sandbox, "package.json"), JSON.stringify({ private: true, packageManager: "pnpm@10.12.4" }));
     await writeFile(join(sandbox, "migrations", "ext", "0001_owner_labels.sql"), await readFile(join(original, "tests/e2e/fixtures/owner-portability.sql")));
     execute(["exec", "wrangler", "d1", "migrations", "apply", "DB", "--local", "--persist-to", sourceState, "--config", config]);
     const migrationScript = `import { applyOwnerMigrations } from ${JSON.stringify(join(original, "scripts", "owner-migrations.mjs"))}; await applyOwnerMigrations(${JSON.stringify(config)}, ["--local", "--persist-to", ${JSON.stringify(sourceState)}]);`;

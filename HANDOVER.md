@@ -1,10 +1,10 @@
 # Lamp adoption and migration guide
 
 Lamp is a self-hosted status page and incident communication desk for one
-business. The canonical source repository is `just-every/lamp`. This 1.1.0 source
-candidate updates the retained 1.0.0 release record. Its metadata and local tests
-do not establish tag publication, deployment, DNS ownership or live provider
-acceptance. Apply `ACCEPTANCE.md` to the exact source and your own installation.
+business. The canonical source repository is `just-every/run-lamp`. This is Lamp
+1.3.0, an update from 1.2.0 (`RELEASE.json`, `CHANGELOG.md`). Its local tests do
+not establish deployment, DNS ownership or live provider acceptance; apply
+`ACCEPTANCE.md` to your own installation.
 
 ## Adopt the source
 
@@ -15,20 +15,20 @@ before applying the update to an active installation. Use `OPERATIONS.md` for
 owner-controlled setup, provider inputs, deployment and archive recovery.
 
 ```sh
-pnpm install --frozen-lockfile
+rer install
 pnpm exec playwright install chromium
-pnpm dev
-pnpm verify
-pnpm run setup
-pnpm run deploy -- --dry-run
-pnpm run export
-pnpm run import
+rer setup --owner-email you@example.com
+rer dev
+rer verify
+rer deploy --dry-run
+pnpm run export:cloudflare
+pnpm run import:cloudflare
 ```
 
-Node 26.8.1 and pnpm 8.15.6 are the pinned toolchain. Setup and real deployment
+Node 22.20.0 and pnpm 10.12.4 are the pinned toolchain. Real deployment
 require owner-controlled Cloudflare credentials, hostnames, sender configuration,
 and DNS. The dry-run compiles the generated configuration and artifact without
-contacting Cloudflare. `pnpm build` produces `dist/server/wrangler.json`; exercise
+contacting Cloudflare. `rer build` produces `dist/server/wrangler.json`; exercise
 that generated artifact as well as the development runtime.
 
 ## Migrations
@@ -64,13 +64,20 @@ its applied history too. See `migrations/README.md`.
 
 ## Native local authentication and mail
 
-`pnpm dev` explicitly selects the loopback-only inbox at `/__dev/outbox`. Follow
+`rer dev` selects the loopback-only inbox at `/__dev/outbox`. Follow
 captured links through normal token hashing, expiry, operator allow-list and
 subscription confirmation. Capture creates no session or confirmed subscription
 by itself. Raw development envelopes and local token configuration stay outside
 portable product archives and production builds. Durable capture metadata never
 means provider acceptance or delivery. Plain unconfigured Vite and production
 previews do not select this transport.
+
+Locally the two surfaces have their own loopback names on one port:
+`http://127.0.0.1:8787/` is the app host (landing page, `/signin`, `/setup`, `/app`)
+and `http://localhost:8787/` is the page host (the status page and its public
+paths). Dev requests the status page once at start, so development notification
+links have the page origin before anyone opens it. Local data from before the rer
+CLI lived under `deploy/`; setup names it and asks you to move or remove it.
 
 Resend remains the default adapter. Select SendGrid explicitly and configure
 native signed-event verification or the documented authenticated relay. A 202
@@ -81,14 +88,14 @@ remain uncertain and must not be automatically resent. Preserve
 
 ## Runtime shape
 
-- One Worker dispatches by `LAMP_PAGE_HOST` and `LAMP_APP_HOST`. The page host serves public artifacts and signed intake endpoints; the app host serves sign-in, protected operator routes, Start server-function transport, health, and application assets. Missing required bindings name the exact variable, and unknown or cross-surface hosts return 404.
-- Hono remains authoritative for public snapshot artifacts, feeds, widgets, health, native sign-in requests, and `/api/app`. TanStack Start server-renders `/signin` and authenticated `/app` documents and owns only the opaque `/_serverFn/` transport. It does not replace the R2 snapshot renderer or its shared incident/email rendering path.
+- One Worker dispatches by `LAMP_PAGE_HOST` and `LAMP_APP_HOST`, which must differ. Each host has its own home page: the page host's `/` is the public status page, and the app host's `/` is the Lamp landing page (its former address `/lamp` redirects there for one release). The page host serves public artifacts and signed intake endpoints; the app host serves the landing page, sign-in, protected operator routes, Start server-function transport, health, and application assets. Missing required bindings name the exact variable, equal hosts fail naming both, and unknown or cross-surface hosts return 404. OPERATIONS.md covers the hostnames and DNS.
+- Hono remains authoritative for public snapshot artifacts, feeds, widgets, health, native sign-in requests, and `/api/app`. TanStack Start server-renders the landing page, `/signin` and authenticated `/app` documents and owns only the opaque `/_serverFn/` transport. It does not replace the R2 snapshot renderer or its shared incident/email rendering path.
 - Public reads use versioned R2 snapshot artifacts and make no D1 read. Snapshot generation uses a durable retry record and conditional pointer advancement; a retained snapshot can be labelled stale after a failed rebuild.
 - The page, history, Atom feed, widget, status payload, favicon and Open Graph artwork, and permanent incident pages share the snapshot renderer. Initial HTML contains complete public incident fields and works without script; the live region refreshes only a bounded current summary.
-- The local public-status refinement renders real snapshot data in a pale full-width status band, open component rows with 90-day daily records, and a full-width vertical chronology. Current incidents, scheduled maintenance, and resolved incidents appear once in that chronology; the subscribe form sits below the timeline at every width. Public timestamps retain machine-readable instants for local display.
-- The initial public page loads four same-origin artifacts: stylesheet, script, favicon that composites the configured logo and status mark, and cartographic artwork. The stylesheet embeds the bundled Open Sans variable face (normal 400–700), with no third-party font request; CSP narrowly permits `font-src 'self' data:` for that face.
+- The public status page renders real snapshot data in Lamp's warm public style (DIVERGENCE.md, "Public status page restyle"): the overall status plate, grouped component plates with 90-day daily records, then one incidents-and-maintenance section in which current incidents and planned maintenance come first and recently resolved incidents follow. The subscribe form sits below it at every width. Public timestamps retain machine-readable instants for local display.
+- The initial public page loads three same-origin artifacts: stylesheet, script, and favicon that composites the configured logo and status mark. The stylesheet embeds the bundled Inter variable face (Latin subset, the same file the landing and operator app serve), with no third-party font request; CSP narrowly permits `font-src 'self' data:` for that face.
 - D1 stores product facts, audit records, and snapshot-build state. R2 stores public artifacts and uploaded originals. Queues carry health and delivery commands; Cron processes due publication, maintenance, delivery recovery, and snapshot retries.
-- Development initializes buyer-configured page settings and an empty snapshot only. Test fixtures own their D1 state, sessions, and product records.
+- Development applies migrations before listening. Fresh page-host reads return neutral 503 and create neither page settings nor an owner; app-host `/` remains the Lamp homepage. Complete first-owner setup on app `/signin`, then follow the captured one-use sign-in action. Test fixtures explicitly own their D1 settings, sessions, and product records.
 - `pnpm build` emits the Start client at `dist/client/` and the generated deployable Worker configuration at `dist/server/wrangler.json`. The generated config carries `nodejs_compat`, points to the client output, and is never edited or committed.
 - Outside the explicit development outbox mode, with no configured mail sender, sign-in and subscription confirmation are unavailable; the script-disabled subscription response reports an honest 503. With no AI provider, the composer hides suggestion controls, and a provider failure leaves publication paths intact.
 - Removing access and erasing an operator are distinct operations. Erasure revokes access, removes personal values from the operator, magic-link, and target audit records, and retains opaque audit action, actor, target ID, and time facts. The setup-operator guard remains service-side.
@@ -146,3 +153,61 @@ comparison and portable adjacent release receipts. Retain the receipt with the
 Git source and verify it in a subsequent clone. Comparison origins and shared
 components remain bound to their recorded immutable revisions. Authoring checks
 establish source integrity; every product and installation obligation remains.
+
+## Base components, delivery and the rer CLI
+
+Lamp's Base copies are byte-identical to Base `main` at
+`3d643dda1d203d36e3fa57e8e5ba14e414bba6f9` and recorded in `base-copies.json`:
+onboarding (`scripts/base-onboarding/`), the rer CLI (`scripts/base-cli/`), mail
+(`modules/mail/`), the delivery producer (`scripts/delivery/base/`), owner
+migrations, operations and edition authoring. `pnpm run source:copies` checks the
+bytes. Base's own tests stay in Base; Lamp carries the tests of its adoption.
+The move-in uses Base's import kit (`modules/import-kit`) and Slack and Teams
+channels use Base's integrations core and Slack notifier (`modules/integrations`),
+both recorded copies at the same pin.
+
+Delivery packages use the Base producer's schema 2 with raw payloads.
+`.github/workflows/rer-managed.yml` and `.github/workflows/deploy.yml` build with
+`runeditrun/delivery` `trusted-build.yml@bf7a25abb44bec1457a7bc738ff63921d90fb52e`,
+set in `rer-packaging.json` (and the exported producer's `scripts/delivery/base/packaging.json`)
+and regenerated by `node scripts/delivery/base/cli.mjs package`. RER-managed builds
+need the stage's `TRUSTED_DELIVERY_WORKFLOW_REF` to name the same revision (an owner
+setting). Owner-run `pnpm run deploy` does not depend on that trust.
+
+Local mail is stored by Base's D1 development outbox; `/__dev/outbox` keeps
+Lamp's own viewer so links cross the app and page hosts. Every command runs
+through `rer` (seed command contract 1); `DIVERGENCE.md` lists
+where Lamp differs: its own Cloudflare deploy pipeline (two hostnames, two
+Workers on workers.dev), its own first-owner and sign-in hooks, a preview
+without an outbox, and its own archive engine for deployed installations.
+
+Local state now lives in `.wrangler/state` and private settings in `.dev.vars`
+at the repository root, beside `wrangler.jsonc`. Data from before this release
+under `deploy/.wrangler` and `deploy/.dev.vars` is not moved for you: setup names
+it and stops, and you move it to the new place or remove it.
+
+## Setup readiness, first-run setup and terminal sign-in
+
+The Overview checklist (SETUP-001) reads settings, components, published
+updates and durable operator-check evidence. Migration `0015_setup_readiness.sql`
+adds the evidence table. The sender check reads the configured provider's domain
+verification; locally it records a development-outbox capture. Neither proves
+inbox delivery, and accepting an address is not DNS validation.
+
+First-run setup (SETUP-002) lives at `/setup`. Until the owner saves it, every
+operator page sends them there. Migration `0016_first_run_setup.sql` marks it
+complete for any installation that already has an operator, so existing owners
+are not interrupted.
+
+`pnpm signin-link --email <operator>` (or `--remote` with your own Wrangler
+credentials and the installation's `SESSION_SECRET` in the environment) issues one ordinary single-use, expiring sign-in link for an
+existing active operator, records "sign-in link created from the command line"
+and prints the link once to that terminal only (ACCESS-001).
+
+## What this release proves, and what it does not
+
+Proven for the source: `pnpm verify` (the complete local verifier: Workers,
+browser suites at 1440, 390 and 320 with Axe, the generated artifact, the rer
+journey from a clean copy) and CI on `main`. Not proven by the source: a hosted
+installation, DNS, live provider delivery or RER-managed delivery; apply
+`ACCEPTANCE.md` to your own installation.

@@ -1,0 +1,38 @@
+/* Section 2: three channels, back to front: the feed entry, the site banner, then the email in front. Each back card
+   ends 16px under the line after the shared words, cropped at that line with no fade, and the card in front overlaps
+   only that bottom padding (12px), so no line is ever cut. The three highlighted lines share one left edge: the
+   banner's own bordered box sits 12px in from its card, so its words start where the others' do. Each strip ends in
+   its channel as a chip. On a phone each card is its strip, its chip and the highlighted line alone. From 1024px the
+   cascade spans columns 1–7 and the text sits in 9–12 beside it. */
+.lamp-home .lamp-same__cluster { display: flex; flex-direction: column; }
+.lamp-home .lamp-same__plate { position: relative; }
+.lamp-home .lamp-same__plate + .lamp-same__plate { margin-top: -12px; }
+.lamp-home .lamp-same__plate--atom { z-index: 1; }
+.lamp-home .lamp-same__plate--banner { z-index: 2; }
+.lamp-home .lamp-same__plate--email { z-index: 3; }
+.lamp-home :is(.lamp-same__plate--banner, .lamp-same__plate--email) .lamp-plate__sheet { box-shadow: var(--lamp-shadow-raised); }
+.lamp-home :is(.lamp-same__plate--atom, .lamp-same__plate--banner) .lamp-plate__body { padding-bottom: 16px; }
+.lamp-home .lamp-same__plate--banner .lamp-plate__body { padding-inline: 12px; }
+.lamp-home .lamp-same__plate--banner .lamp-banner { padding-inline: 9px; }
+/* Back cards stop at the line after the shared words. */
+.lamp-home :is(.lamp-same__plate--atom, .lamp-same__plate--banner) .lamp-plain__same + p ~ p { display: none; }
+@container lamp-page (max-width: 599px) {
+  .lamp-home .lamp-same__plate + .lamp-same__plate { margin-top: 12px; }
+  .lamp-home .lamp-same__plate :is(.lamp-atom, .lamp-banner) > :not(.lamp-plain),
+  .lamp-home .lamp-same__plate .lamp-plate__body > :not(.lamp-plain, .lamp-banner, .lamp-atom),
+  .lamp-home .lamp-same__plate .lamp-plain > p:not(.lamp-plain__same) { display: none; }
+  .lamp-home .lamp-same__plate .lamp-plate__body { padding-bottom: 14px; }
+  .lamp-home .lamp-same__plate--banner .lamp-banner { padding-block: 9px; }
+}
+@container lamp-page (min-width: 1024px) {
+  .lamp-home .lamp-same__cluster { grid-column: 1 / 8; grid-row: 1; }
+  .lamp-home .lamp-same__text { grid-column: 9 / 13; grid-row: 1; }
+}
+/* The moment: the cards rise back to front, then one highlighter passes through every channel, the feed, the banner,
+   then the email, 150ms apart. */
+.lamp-home .lamp-same__plate--banner { --n: 1; }
+.lamp-home .lamp-same__plate--email { --n: 2; }
+@media screen and (prefers-reduced-motion: no-preference) {
+  .lamp-home .lamp-same[data-reveal="wait"] .lamp-plate__same { background-size: 0% 100%; }
+  .lamp-home .lamp-same[data-reveal="play"] .lamp-plate__same { animation: lamp-sweep .45s var(--lamp-ease) calc(450ms + var(--n) * 150ms) backwards; }
+}

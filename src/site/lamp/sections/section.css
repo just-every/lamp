@@ -1,0 +1,26 @@
+/* What every section below the hero shares: its rhythm, its column, its eyebrow, headline and one sentence in design
+   C's type, and the stage panel (the lamp's pool of light is
+   LampPool, shared with the operator app). Under 1024px a section is one column, at most 640px and
+   centred, with at least 16px each side, reading text first and its cards after. From 1024px every section sits on one
+   12-column grid inside the shared gutter: 1404 units of the 1536 design, columns of 95 units with 24-unit gaps, so
+   column n starts at (n - 1) × 119 units; every text column, card, panel and tile starts and ends on a column line.
+   The space above a section varies with the story: the default rhythm, tighter where a section continues the one
+   before, wider before the close. An index link lands the section's eyebrow 24px under the header. */
+.lamp-home .lamp-section { --lamp-rhythm: max(88px, calc(176 * var(--u))); --lamp-top-space: var(--lamp-rhythm);
+  position: relative; isolation: isolate; max-width: 1536px; margin: 0 auto; padding: var(--lamp-top-space) var(--lamp-gutter) 0;
+  scroll-margin-top: calc(var(--lamp-header-h) + 24px - var(--lamp-top-space)); }
+.lamp-home .lamp-section__eyebrow { margin: 0 0 max(12px, calc(16 * var(--u))); color: var(--lamp-ink-3); font-size: 13px; font-weight: 600;
+  line-height: 1.3; letter-spacing: .14em; text-transform: uppercase; }
+.lamp-home .lamp-section__title { margin: 0; color: var(--lamp-ink); font-size: max(32px, calc(52 * var(--u))); font-weight: 600; line-height: 1.08;
+  letter-spacing: -.022em; text-wrap: balance; }
+.lamp-home .lamp-section__sentence { max-width: 34ch; margin: max(12px, calc(18 * var(--u))) 0 0; color: var(--lamp-ink-2);
+  font-size: max(17px, calc(20 * var(--u))); line-height: 1.55; letter-spacing: -.005em; text-wrap: pretty; }
+.lamp-home .lamp-section__plates { margin-top: 32px; }
+/* The stage: a quiet panel a featured card stands on. No border and no shadow of its own; the cards keep theirs. */
+.lamp-home .lamp-stage { padding: max(24px, calc(48 * var(--u))); border-radius: max(20px, calc(28 * var(--u))); background: var(--lamp-stage); }
+@container lamp-page (min-width: 1024px) {
+  .lamp-home .lamp-section { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); column-gap: calc(24 * var(--u)); align-items: start; }
+  .lamp-home .lamp-section__plates { margin-top: 0; }
+  /* Text beside tall cards stays in view beside them. */
+  .lamp-home .lamp-section__text--side { position: sticky; top: calc(var(--lamp-header-h) + 48 * var(--u)); align-self: start; }
+}

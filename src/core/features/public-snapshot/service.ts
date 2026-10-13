@@ -14,7 +14,7 @@ const STALE_MARKER_KEY = "snapshots/stale.json";
 const STALE_BUILD_MS = 5 * 60_000;
 const RETRY_LEASE_MS = 2 * 60_000;
 const LOGO_CONTENT_TYPES = new Set(["image/png", "image/jpeg", "image/webp"]);
-export const PUBLIC_SNAPSHOT_RENDERER_VERSION = "lamp-public-snapshot-v2";
+export const PUBLIC_SNAPSHOT_RENDERER_VERSION = "lamp-public-snapshot-v6";
 
 interface SnapshotPointer {
   version: string;
@@ -40,7 +40,7 @@ function logoDataUrl(logo: { bytes: ArrayBuffer; contentType: string }) {
 }
 
 export interface PublicSnapshotService {
-  rebuild(): Promise<void>;
+  rebuild(force?: boolean): Promise<void>;
   hasCurrentSnapshot(): Promise<boolean>;
   readArtifact(key: string): Promise<{ bytes: ArrayBuffer; contentType: string; version: string; generatedAt: string; stale: boolean; retainedReady?: boolean } | null>;
   latestBuild(): ReturnType<SnapshotRepository["latestBuild"]>;
@@ -208,7 +208,7 @@ export function createPublicSnapshotService(
     }
   }
 
-  async function enqueueRebuild() {
+  async function enqueueRebuild(force = false) {
     let work: { requestedRevision: number; completedRevision: number };
     try {
       work = await repository.currentWork();
@@ -219,7 +219,7 @@ export function createPublicSnapshotService(
     // Database triggers record every public-source mutation. A first snapshot
     // without prior work still creates a durable request here.
     const pointer = await readPointer();
-    const revision = work.requestedRevision > work.completedRevision
+    const revision = force ? await repository.requestWork(nowIso()) : work.requestedRevision > work.completedRevision
       ? work.requestedRevision
       : !pointer || await staleRevisionNeedsRebuild(pointer) || rendererNeedsRebuild(pointer)
         ? await repository.requestWork(nowIso())

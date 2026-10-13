@@ -3,13 +3,13 @@
 This candidate prepares Lamp for independently owned local and RER installations.
 It does not deploy, publish a repository/tag, authorize customer mail or replace
 any existing company service. The application and included authoring/onboarding
-source are MIT; retain LICENSE and vendored notices. Open Sans is distributed
+source are MIT; retain LICENSE and vendored notices. Inter is distributed
 under its included font licence. Package dependencies retain their own licences;
 inspect the pinned lockfile and `pnpm licenses list` before distribution.
 
 ## Reproduce locally
 
-Use Node26.8.1 and pnpm8.15.6. `node scripts/install.mjs` opens local setup without
+Use Node 22.20.0 and pnpm 10.12.4. `node scripts/install.mjs` opens local setup without
 application dependencies; Start installs the locked dependencies, builds, migrates
 isolated native resources and starts the real Worker. Alternatively run:
 
@@ -20,8 +20,7 @@ node scripts/build-delivery-artifact.mjs
 ```
 
 Install the pinned Playwright Chromium assets and libxml2 XML tools first when
-running the full verifier. On Node26, install Chromium with Node22 as documented
-by `scripts/independent-build-setup.sh`, then run verification with Node26. Linux
+running the full verifier, as `scripts/independent-build-setup.sh` does. Linux
 CI project setup installs these prerequisites itself. Do not attach deployment
 credentials to any candidate build command.
 
@@ -62,7 +61,7 @@ Record owner customizations before integrating the candidate. Preserve every
 applied core/owner migration and existing resource identity. Restore a retained
 archive to fresh resources, compare every record and object byte/metadata, verify
 owner intent and native login/publication, then decide any traffic change.
-`pnpm run export`/`import` are the native D1/R2 recovery path; SnapshotCache is
+`pnpm run export:cloudflare`/`import:cloudflare` are the native D1/R2 recovery path; SnapshotCache is
 reconstructed from retained authoritative R2 bytes. Native recovery is separate
 from the broker's complete export capability. Do not claim automatic export of
 arbitrary DO/KV/Analytics state. No RER account or payment is needed for continued

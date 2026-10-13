@@ -1,6 +1,15 @@
 import assert from "node:assert/strict";
 import { isDeepStrictEqual } from "node:util";
 
+// A datetime-local control contains a wall-clock value, not an ISO instant.
+// Compare it with the saved instant expressed in the configured page zone.
+export function configuredDateTimeInput(iso, timezone) {
+  if (!iso) return "";
+  const parts = new Intl.DateTimeFormat("en-CA", { timeZone: timezone, year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).formatToParts(new Date(iso));
+  const part = kind => parts.find(entry => entry.type === kind).value;
+  return `${part("year")}-${part("month")}-${part("day")}T${part("hour")}:${part("minute")}`;
+}
+
 // A semantic journey must identify the current write before using its draft.
 // UPDATE-005 and autosave-integrity retain their separate strict 2,000 ms gates.
 export async function saveAndConfirmDraft({ page, appFetch, incidentId, expected, edit, t }) {
@@ -36,9 +45,11 @@ export async function saveAndConfirmDraft({ page, appFetch, incidentId, expected
     customerImpact: await page.locator("label", { hasText: "What is the impact" }).locator("textarea").inputValue(),
     whatStillWorks: await page.locator("label", { hasText: "What still works" }).locator("textarea").inputValue(),
     details: await page.locator("label", { hasText: "Additional details" }).locator("textarea").inputValue(),
-    nextUpdateAt: await page.getByLabel("Next update date and time").evaluate((input) => input.value ? new Date(input.value).toISOString() : null),
+    nextUpdateAt: await page.getByLabel("Next update date and time").count() ? await page.getByLabel("Next update date and time").inputValue() : "",
   };
-  assert.deepEqual(displayed, expected, "Saved must describe the current displayed draft");
-  assert.equal(await page.getByRole("button", { name: "Publish update", exact: true }).isEnabled(), true);
+  const { settings } = await (await appFetch("/api/app/page-settings")).json();
+  assert.deepEqual(displayed, { ...expected, nextUpdateAt: configuredDateTimeInput(expected.nextUpdateAt, settings.timezone) }, "Saved must describe the current displayed draft in the configured page zone");
+  const publishable = Boolean(expected.affectedAudience.trim() && expected.customerImpact.trim() && (expected.lifecycle === "Resolved" || expected.nextUpdateAt) && incident.components.some(component => component.componentId));
+  assert.equal(await page.getByRole("button", { name: "Publish update", exact: true }).isEnabled(), publishable, "Only a complete acknowledged draft may publish");
   t.diagnostic(JSON.stringify({ phase: "durable draft confirmed", incidentId, startedAt, acknowledgedAt, confirmedAt: Date.now(), expected }));
 }

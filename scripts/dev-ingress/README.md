@@ -1,6 +1,6 @@
 # Native development ingress
 
-Normal `pnpm dev` selects `LAMP_DEV_OUTBOX_MODE=local`. Plain `vite` keeps mail
+`node scripts/rer.mjs dev` (through `scripts/dev.mjs`) selects `LAMP_DEV_OUTBOX_MODE=local`. Plain `vite` keeps mail
 unconfigured unless explicitly given that mode, preserving ordinary unavailable
 sender behavior. The flag only selects local tooling; it cannot enable capture
 in preview or an emitted Worker.
@@ -19,8 +19,25 @@ supplied it. Lamp therefore checks provenance before normalizing it:
    Cloudflare then performs its normal request conversion.
 3. The actual Worker entry verifies and consumes that proof. Only then can it
    remove Cloudflare's matching `X-Forwarded-Host` and the private proof header.
-   The unchanged strict local-mail checks run on the resulting Request before
+   The strict local-mail checks run on the resulting Request before
    outbox access, mail preparation, host dispatch or Start rendering.
+
+SUB-005 requires `Referrer-Policy: no-referrer` on subscriber token documents;
+their native HTML forms can therefore submit `Origin: null`. Both gates admit
+that literal origin only for `POST` with exactly `Sec-Fetch-Site: same-origin`
+to `/manage/<token>` or `/unsubscribe/<token>`. The path must have one nonempty
+unreserved token segment, excluding dot segments, escaping and extra segments;
+ingress checks the original target before URL normalization. Other origins retain
+their existing checks. Missing or different fetch metadata cannot use this
+exception, including `none`, `same-site` and `cross-site`. No outbox, sign-in,
+setup, API, asset or emulator endpoint receives it.
+
+The original Origin and fetch metadata remain in the signed proof and verified
+Request. Browser-controlled Fetch Metadata identifies the browser initiator; it
+is not authentication against local programs. Subscriber scope, signature,
+expiry and revocation remain the native service's authority. RFC 8058 clients
+without Origin retain their existing route behavior. Token responses remain
+no-referrer, no-store and cookieless.
 
 The key exists only in a Node closure and an SSR-only virtual module. It is not
 a Vite define, environment variable, Worker binding, file, R2 object or config
@@ -49,12 +66,12 @@ responses, sessions and subscriber confirmation continue through the native app.
 Focused checks (with the repository's pinned dependencies and local toolchain):
 
 ```
-node --test tests/t073-dev-ingress/security.test.mjs
-node --test tests/t073-dev-ingress/native.test.mjs
-node --test tests/t073-dev-ingress/proof-boundary.test.mjs
-node --test tests/t073-dev-ingress/unconfigured.test.mjs
-node --test tests/t073-dev-ingress/production.test.mjs
-node --test tests/t073-u5/*.test.mjs tests/t073-u0/mail-composition.test.mjs
+node --test tests/dev-ingress/security.test.mjs
+node --test tests/dev-ingress/native.test.mjs
+node --test tests/dev-ingress/proof-boundary.test.mjs
+node --test tests/dev-ingress/unconfigured.test.mjs
+node --test tests/dev-ingress/production.test.mjs
+node --test tests/local-mail/*.test.mjs tests/reference-storage/mail-composition.test.mjs
 ```
 
 Native tests reserve ports 57300–57303 by default and create private temporary

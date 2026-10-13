@@ -1,0 +1,9 @@
+/* The page's one face, Inter, self-hosted from fonts/ (SIL OFL 1.1, its licence beside it). The root document
+   head links this file for every document (routes/__root.tsx), and the operator app names 'Lamp Inter' in its own
+   stack, so the landing and the app read in one face from one same-origin file, with no third-party request. The fallback is a local system face sized to
+   Inter's metrics (widths of the page's own copy and ascent and descent, measured in Chromium), so swapping in the
+   web font moves nothing. */
+@font-face { font-family: 'Lamp Inter'; font-style: normal; font-weight: 100 900; font-display: swap;
+  src: url('./fonts/inter-latin.woff2') format('woff2'); }
+@font-face { font-family: 'Lamp Inter Fallback'; src: local('Arial'), local('ArialMT'), local('Liberation Sans');
+  size-adjust: 106.03%; ascent-override: 91.5%; descent-override: 22.6%; line-gap-override: 0%; }

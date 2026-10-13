@@ -5,7 +5,7 @@ import { resolve } from "node:path";
 import { readArchive } from "./archive-validation.mjs";
 
 import { applyOwnerMigrations } from "./owner-migrations.mjs";
-import { deploymentConfig, deploymentRecordPath, parseArgs, resourceNames, setupOperatorStatement, setupPageSettingsStatement, writeDeploymentRecord, writeGeneratedWrangler } from "./ops-config.mjs";
+import { deploymentConfig, deploymentRecordPath, parseArgs, resourceNames, setupPageSettingsStatement, writeDeploymentRecord, writeGeneratedWrangler } from "./ops-config.mjs";
 
 function wrangler(args, options = {}) {
   const result = spawnSync("pnpm", ["exec", "wrangler", ...args], { encoding: "utf8", stdio: ["pipe", "pipe", "pipe"], ...options });
@@ -103,7 +103,7 @@ async function main() {
   if (flags.get("local")) throw new Error("pnpm setup provisions deployable Cloudflare resources; use pnpm dev for local development.");
   const environment = flags.get("environment") ?? "production";
   const config = deploymentConfig(process.env, environment);
-  const names = resourceNames(config.environment);
+  const names = resourceNames(config.environment, config.resourcePrefix);
   const restoreFrom = flags.get("restore-from");
   if (restoreFrom) await readArchive(resolve(restoreFrom));
   if (flags.get("dry-run")) {
@@ -113,6 +113,10 @@ async function main() {
 
   await assertMailDns(config);
   const api = cloudflareApi();
+  if (config.hosting === "workers-dev") {
+    const registered = await api.request("/workers/subdomain");
+    if (!registered?.subdomain || config.appHost !== `${names.worker}.${registered.subdomain}.workers.dev`) throw new Error("The configured workers.dev hostname does not match this Cloudflare account. Enable its Workers subdomain in Cloudflare, then update LAMP_APP_HOST and LAMP_PAGE_HOST.");
+  }
   const databaseId = await ensureD1(api, names);
   await ensureBucket(api, names);
   await ensureQueue(api, names);
@@ -125,10 +129,9 @@ async function main() {
   }
   wrangler(["d1", "migrations", "apply", "DB", "--remote", "--config", "wrangler.toml"]);
   await applyOwnerMigrations("wrangler.toml", ["--remote"]);
-  wrangler(["d1", "execute", "DB", "--remote", "--config", "wrangler.toml", "--command", setupOperatorStatement(config)]);
-  wrangler(["d1", "execute", "DB", "--remote", "--config", "wrangler.toml", "--command", setupPageSettingsStatement(config)]);
+  wrangler(["d1", "execute", "DB", "--remote", "--config", "wrangler.toml", "--command", `${setupPageSettingsStatement(config)}`]);
   if (!existsSync("wrangler.toml")) throw new Error("Setup did not generate wrangler.toml.");
-  console.log(`Provisioned ${names.worker}; migrations, setup operator, and initial page settings are initialized.`);
+  console.log(`Provisioned ${names.worker}; migrations and page settings are initialized. Claim the owner with SETUP_TOKEN after deployment.`);
 }
 
 main().catch((error) => { console.error(error instanceof Error ? error.message : error); process.exit(1); });

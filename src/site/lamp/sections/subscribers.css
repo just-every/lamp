@@ -1,0 +1,15 @@
+/* Section 4: the Manage subscription page centred on a stage panel; from 1024px the panel spans columns 1–7 and the
+   text sits in 9–12 beside it, held in view. */
+.lamp-home .lamp-subscribers__plates { display: flex; justify-content: center; }
+.lamp-home .lamp-subscribers__plates .lamp-manage { width: 100%; max-width: 560px; }
+@container lamp-page (min-width: 1024px) {
+  .lamp-home .lamp-subscribers__plates { grid-column: 1 / 8; grid-row: 1; padding-block: calc(64 * var(--u)); }
+  .lamp-home .lamp-subscribers__plates .lamp-manage { max-width: calc(560 * var(--u)); }
+  .lamp-home .lamp-subscribers__text { grid-column: 9 / 13; grid-row: 1; }
+}
+/* The moment: plate C rises and its two ticked boxes tick in, 100ms apart. */
+@media screen and (prefers-reduced-motion: no-preference) {
+  .lamp-home .lamp-subscribers[data-reveal="wait"] .lamp-tick--checked { opacity: 0; }
+  .lamp-home .lamp-subscribers[data-reveal="play"] .lamp-tick--checked { --lamp-settle: .9; animation: lamp-settle .3s var(--lamp-ease) .55s backwards; }
+  .lamp-home .lamp-subscribers[data-reveal="play"] .lamp-manage__choice:last-child .lamp-tick--checked { animation-delay: .65s; }
+}

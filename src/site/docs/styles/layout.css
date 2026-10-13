@@ -1,0 +1,103 @@
+/* Docs layout, on the landing page's paper and tokens (src/site/lamp/page.css): the section sidebar | the article | "On this
+   page", on the page's own gutter and 1536px measure, all three columns starting on one line under the header. The header
+   is the landing page's, as a plain row: there is no intro here, so no lamp to hand over and nothing to fix to the top.
+   The sidebar shows from 1024px, the contents column from 1280px; below 1024px a pill menu replaces the sidebar and one
+   column of at most 640px is centred, as the landing page's sections are. Breakpoints are the landing page's own
+   container queries. */
+.lamp-home.lamp-docs .lamp-header { position: relative; }
+/* The mark simply sits in its slot, beside the wordmark: nothing here hands it a lamp. */
+.lamp-home.lamp-docs .lamp-brand { --lamp-landed: 1; --lamp-aside: 1; }
+.lamp-home.lamp-docs .lamp-nav a[aria-current="page"] { text-decoration-color: var(--lamp-ink); }
+.lamp-home.lamp-docs .lamp-footer__nav a[aria-current="page"] { text-decoration-color: var(--lamp-ink); }
+
+.lamp-home .docs-shell { display: grid; grid-template-columns: minmax(0, 1fr); max-width: 1536px; margin: 0 auto;
+  padding: clamp(12px, 2.4cqw, 32px) var(--lamp-gutter) max(72px, calc(120 * var(--u))); }
+.lamp-home .docs-content { min-width: 0; }
+
+/* Section navigation, shared by the sidebar and the phone menu. */
+.lamp-home :is(.docs-sidebar, .docs-toc) { display: none; }
+.lamp-home .docs-sidebar-home { display: block; width: max-content; margin-bottom: 20px; padding-block: 4px; color: var(--lamp-ink-3); font-size: 15px; font-weight: 500; line-height: 1.3; }
+.lamp-home :is(.docs-sidebar-home:hover, .docs-sidebar-home[aria-current]) { color: var(--lamp-ink); }
+.lamp-home .docs-sidebar-home[aria-current] { font-weight: 600; }
+.lamp-home .docs-nav-group + .docs-nav-group { margin-top: 28px; }
+.lamp-home .docs-nav-section { margin: 0 0 8px; padding-left: 12px; color: var(--lamp-ink-3); font-size: 13px; font-weight: 600; line-height: 1.3; letter-spacing: .14em; text-transform: uppercase; }
+.lamp-home .docs-nav-group ul { display: grid; gap: 2px; margin: 0; padding: 0; list-style: none; }
+.lamp-home .docs-nav-group a { display: block; padding: 7px 12px; border-radius: 10px; color: var(--lamp-ink-2); font-size: 15px; line-height: 1.35; letter-spacing: -.005em; }
+.lamp-home .docs-nav-group a:hover { background: rgb(24 45 36 / .05); color: var(--lamp-ink); }
+.lamp-home .docs-nav-group a[aria-current="page"] { background: var(--lamp-card); color: var(--lamp-ink); font-weight: 600; box-shadow: 0 0 0 1px var(--lamp-line), 0 6px 16px -10px rgb(24 45 36 / .3); }
+.lamp-home .docs-nav-group a:focus-visible { border-radius: 10px; }
+
+/* On this page */
+.lamp-home .docs-toc-title { margin: 0 0 10px; color: var(--lamp-ink-3); font-size: 13px; font-weight: 600; line-height: 1.3; letter-spacing: .14em; text-transform: uppercase; }
+.lamp-home :is(.docs-toc, .docs-toc-compact) ul { display: grid; gap: 1px; margin: 0; padding: 0; list-style: none; }
+.lamp-home :is(.docs-toc, .docs-toc-compact) a { display: block; padding: 5px 0; color: var(--lamp-ink-3); font-size: 14.5px; line-height: 1.4; }
+.lamp-home :is(.docs-toc, .docs-toc-compact) a:hover { color: var(--lamp-ink); }
+.lamp-home :is(.docs-toc, .docs-toc-compact) ul ul { margin: 2px 0 6px; padding-left: 14px; border-left: 1.5px solid var(--lamp-line-strong); }
+
+/* The phone menu and the compact contents list: an outline pill that opens a card. */
+.lamp-home :is(.docs-menu, .docs-toc-compact) { margin-bottom: 28px; }
+.lamp-home :is(.docs-menu, .docs-toc-compact) summary { display: inline-flex; align-items: center; gap: 10px; max-width: 100%; min-height: 44px; padding: 0 18px; border: 1px solid var(--lamp-line-strong);
+  border-radius: 999px; background: var(--lamp-card); color: var(--lamp-ink); font-size: 15px; font-weight: 500; cursor: pointer; list-style: none; }
+.lamp-home :is(.docs-menu, .docs-toc-compact) summary::-webkit-details-marker { display: none; }
+.lamp-home :is(.docs-menu, .docs-toc-compact) summary:focus-visible { border-radius: 999px; }
+.lamp-home :is(.docs-menu, .docs-toc-compact) summary::after { content: ""; flex: none; width: 7px; height: 7px; margin: -3px 0 0 2px; border: solid currentColor; border-width: 0 1.6px 1.6px 0; transform: rotate(45deg); }
+.lamp-home :is(.docs-menu details[open], .docs-toc-compact[open]) > summary::after { margin-top: 4px; transform: rotate(225deg); }
+.lamp-home .docs-menu-current { min-width: 0; overflow: hidden; color: var(--lamp-ink-3); text-overflow: ellipsis; white-space: nowrap; }
+.lamp-home .docs-menu-current::before { content: "\00b7"; margin-right: 10px; }
+.lamp-home .docs-menu-list, .lamp-home .docs-toc-compact[open] > ul { margin-top: 12px; padding: 18px 20px; border: 1px solid var(--lamp-line); border-radius: 12px; background: var(--lamp-card); box-shadow: var(--lamp-shadow-card); }
+
+/* The page head, shared by the index and the articles: the landing page's section eyebrow, headline and sentence. */
+.lamp-home .docs-head { margin-bottom: 40px; }
+.lamp-home .docs-eyebrow { margin: 0 0 max(12px, calc(16 * var(--u))); color: var(--lamp-ink-3); font-size: 13px; font-weight: 600; line-height: 1.3; letter-spacing: .14em; text-transform: uppercase; }
+.lamp-home .docs-title { margin: 0; color: var(--lamp-ink); font-size: max(34px, calc(52 * var(--u))); font-weight: 600; line-height: 1.08; letter-spacing: -.022em; text-wrap: balance; overflow-wrap: anywhere; }
+.lamp-home .docs-lead { max-width: 36em; margin: max(14px, calc(18 * var(--u))) 0 0; color: var(--lamp-ink-2); font-size: max(17px, calc(20 * var(--u))); line-height: 1.55; letter-spacing: -.005em; text-wrap: pretty; }
+.lamp-home .docs-lead a { text-decoration: underline 1.5px rgb(24 45 36 / .35); text-underline-offset: 4px; }
+
+/* The docs home: each section's pages as even cards in reading order, two to a row from 680px. */
+.lamp-home .docs-content--index { max-width: 980px; }
+.lamp-home .docs-index-section { margin-top: clamp(36px, 4.4cqw, 56px); }
+.lamp-home .docs-index-section-title { margin: 0 0 14px; color: var(--lamp-ink-3); font-size: 13px; font-weight: 600; line-height: 1.3; letter-spacing: .14em; text-transform: uppercase; }
+.lamp-home .docs-index-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; margin: 0; padding: 0; list-style: none; }
+.lamp-home .docs-index-grid li { display: grid; }
+.lamp-home .docs-index-card { display: block; padding: 20px 24px 22px; border: 1px solid var(--lamp-line); border-radius: 12px; background: var(--lamp-card); box-shadow: var(--lamp-shadow-card); }
+.lamp-home .docs-index-card h3 { margin: 0; color: var(--lamp-ink); font-size: 18px; font-weight: 600; line-height: 1.3; letter-spacing: -.012em; }
+.lamp-home .docs-index-card p { margin: 6px 0 0; color: var(--lamp-ink-2); font-size: 15.5px; line-height: 1.55; text-wrap: pretty; }
+.lamp-home .docs-index-card:focus-visible { border-radius: 12px; }
+
+/* Previous and next */
+.lamp-home .docs-pager { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; max-width: 40em; margin-top: clamp(40px, 5cqw, 64px); }
+.lamp-home .docs-pager-card { display: grid; align-content: center; gap: 4px; min-height: 84px; padding: 16px 22px; border: 1px solid var(--lamp-line); border-radius: 12px; background: var(--lamp-card); box-shadow: var(--lamp-shadow-card); }
+.lamp-home .docs-pager-card--next { text-align: right; }
+.lamp-home .docs-pager-card:focus-visible { border-radius: 12px; }
+.lamp-home .docs-pager-label { color: var(--lamp-ink-3); font-size: 13px; font-weight: 500; }
+.lamp-home .docs-pager-title { color: var(--lamp-ink); font-size: 17.5px; font-weight: 600; line-height: 1.3; letter-spacing: -.012em; }
+
+@media (hover: hover) {
+  .lamp-home :is(.docs-index-card, .docs-pager-card) { transition: border-color .18s, box-shadow .18s; }
+  .lamp-home :is(.docs-index-card, .docs-pager-card):hover { border-color: var(--lamp-line-strong); box-shadow: var(--lamp-shadow-raised); }
+}
+
+@container lamp-page (min-width: 680px) {
+  .lamp-home .docs-index-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-auto-rows: 1fr; }
+  .lamp-home .docs-pager { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .lamp-home .docs-pager-card--next { grid-column: 2; }
+}
+@container lamp-page (min-width: 1024px) {
+  .lamp-home .docs-shell { grid-template-columns: 220px minmax(0, 1fr); column-gap: calc(64 * var(--u)); }
+  .lamp-home .docs-menu { display: none; }
+  /* The side columns scroll on their own; 8px of padding, taken back by the margin, keeps focus rings inside them. */
+  .lamp-home :is(.docs-sidebar, .docs-toc) { display: block; position: sticky; top: 24px; align-self: start; max-height: calc(100vh - 48px); overflow-y: auto; margin: -8px; padding: 8px 8px 24px; }
+}
+@container lamp-page (min-width: 1280px) {
+  /* The article column stops growing and the spare width goes either side of it, so the page's text stays near the middle
+     while the sidebar and contents keep to the header's edges. */
+  .lamp-home .docs-shell { grid-template-columns: 220px minmax(0, 740px) 200px; justify-content: space-between; }
+  .lamp-home .docs-shell:has(.docs-content--index) { grid-template-columns: 220px minmax(0, 1fr); justify-content: start; }
+  .lamp-home .docs-toc-compact { display: none; }
+}
+@container lamp-page (max-width: 1279px) {
+  .lamp-home .docs-toc { display: none; }
+}
+@container lamp-page (max-width: 679px) {
+  .lamp-home .docs-title { overflow-wrap: break-word; }
+}

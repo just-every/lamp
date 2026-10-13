@@ -1,0 +1,105 @@
+/* The business's public status page in Lamp's own quiet style: warm paper lit softly from above, green-black ink,
+   white plates with hairlines, quiet pills with a coloured state dot, Inter. The business keeps its name, logo and
+   accent; the accent marks the one action a visitor takes (subscribing) and nothing else. State colours stay
+   semantic. */
+:root {
+  --paper: #f8f6f0;
+  --glow-peach: 251 222 196;
+  --glow-sun: 253 234 196;
+  --ink: #182d24;
+  --ink-2: #44544c;
+  --ink-3: #5f6d66;
+  --on-ink: #fbfaf5;
+  --card: #ffffff;
+  --card-tint: #fbfaf7;
+  --stage: #eef0ea;
+  --chip: #f5f4ef;
+  --line: rgb(24 45 36 / .10);
+  --line-strong: rgb(24 45 36 / .16);
+  --amber: #eab54e;
+  --amber-wash: #fff7e2;
+  --amber-ink: #8a5a06;
+  --ok: #19865a;
+  --down: #b44432;
+  --degraded: #c98a12;
+  --maint: #4f6fa8;
+  --quiet: #8a958f;
+  --no-data: #e4e2da;
+  --ok-mark: #34a070;
+  --accent: __LAMP_ACCENT_COLOR__;
+  --accent-ink: __LAMP_ACCENT_INK__;
+  --shadow-card: 0 1px 2px rgb(24 45 36 / .04), 0 8px 24px -16px rgb(24 45 36 / .16);
+  --radius: 16px;
+  --public-font: "Inter", "Inter Fallback", Arial, system-ui, sans-serif;
+  color: var(--ink);
+  background: var(--paper);
+  font-synthesis: none;
+}
+* { box-sizing: border-box; }
+html { background: var(--paper); }
+body {
+  min-width: 320px;
+  margin: 0;
+  color: var(--ink);
+  font: 400 15px/1.55 var(--public-font);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  /* Morning light on the paper: a peach glow from the top right, a softer sun-warmth from the left, both fading
+     out well before the record below. */
+  background:
+    radial-gradient(70% 560px at 92% -120px, rgb(var(--glow-peach) / .62), rgb(var(--glow-peach) / 0) 72%),
+    radial-gradient(55% 520px at 0% 40px, rgb(var(--glow-sun) / .5), rgb(var(--glow-sun) / 0) 70%),
+    radial-gradient(60% 700px at 100% 1100px, rgb(var(--glow-peach) / .22), rgb(var(--glow-peach) / 0) 70%),
+    var(--paper);
+  background-repeat: no-repeat;
+}
+h1, h2, h3, h4 { color: var(--ink); font-weight: 600; }
+strong { font-weight: 600; }
+a { color: inherit; text-underline-offset: 3px; text-decoration-thickness: 1px; }
+:focus-visible { outline: 3px solid var(--ink); outline-offset: 2px; border-radius: 4px; }
+.page { width: min(100%, 1008px); min-height: 100vh; margin: 0 auto; padding: 0 24px 40px; }
+
+/* Masthead: the business, then the page's own few links. */
+.masthead { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 16px 32px; padding: 36px 0 32px; }
+.masthead-brand { min-width: 0; }
+.brand { display: inline-flex; align-items: center; gap: 12px; max-width: 100%; color: var(--ink); font-size: 21px; font-weight: 600; line-height: 1.25; letter-spacing: -.015em; text-decoration: none; overflow-wrap: anywhere; }
+.brand-logo { width: 36px; height: 36px; flex: none; border-radius: 10px; background: var(--card); box-shadow: 0 0 0 1px var(--line); object-fit: cover; }
+.tagline { margin: 6px 0 0 48px; color: var(--ink-2); font-size: 14px; overflow-wrap: anywhere; }
+.tagline:empty { display: none; }
+.status-utilities { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; margin-top: -2px; }
+.status-utilities a { display: inline-flex; align-items: center; min-height: 40px; border-radius: 999px; padding: 8px 14px; color: var(--ink-2); font-size: 14px; font-weight: 500; text-decoration: none; }
+.status-utilities a:hover, .status-utilities a[aria-current="page"] { background: rgb(24 45 36 / .06); color: var(--ink); }
+.status-utilities .subscribe-link { margin-left: 6px; background: var(--accent); color: var(--accent-ink); padding-inline: 18px; font-weight: 600; box-shadow: 0 6px 16px -8px rgb(24 45 36 / .45); }
+.status-utilities .subscribe-link:hover { background: var(--accent); color: var(--accent-ink); filter: brightness(.94); }
+
+/* Shared type and pieces. */
+.eyebrow { margin: 0 0 6px; color: var(--ink-3); font-size: 12px; font-weight: 600; line-height: 1.3; letter-spacing: .12em; text-transform: uppercase; }
+.section-heading { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 16px; margin-bottom: 16px; }
+.section-heading h2 { margin: 0; font-size: 20px; line-height: 1.3; letter-spacing: -.012em; }
+.section-heading p { margin: 0; color: var(--ink-3); font-size: 14px; }
+.text-link { display: inline-flex; align-items: center; gap: 6px; color: var(--ink); font-size: 14px; font-weight: 500; text-decoration: underline; text-decoration-color: rgb(24 45 36 / .35); }
+.text-link::after { content: "→"; text-decoration: none; }
+.text-link:hover { text-decoration-color: currentColor; }
+.empty-state { margin: 0; border: 1px dashed var(--line-strong); border-radius: var(--radius); background: rgb(255 255 255 / .55); padding: 28px; color: var(--ink-2); text-align: center; }
+
+/* State chips: a quiet pill with a coloured dot, as in the operator app. */
+.state-pill { display: inline-flex; flex: none; width: fit-content; align-items: center; gap: 7px; border: 1px solid var(--line-strong); border-radius: 999px; background: var(--chip); color: var(--ink); padding: 3px 11px 3px 9px; font-size: 13px; font-weight: 500; line-height: 1.4; white-space: nowrap; }
+.state-pill strong { font-weight: 500; }
+.state-pill::before { content: ""; width: 8px; height: 8px; flex: none; border-radius: 50%; background: var(--quiet); }
+.state-operational::before, .state-resolved::before, .state-completed::before, .state-monitoring::before { background: var(--ok); }
+.state-major-outage::before, .state-partially-unavailable::before { background: var(--down); }
+.state-degraded-performance::before, .state-investigating::before, .state-identified::before { background: var(--degraded); }
+.state-under-maintenance::before, .state-scheduled::before, .state-in-progress::before { background: var(--maint); }
+.state-cancelled::before { background: var(--quiet); }
+
+.component-extension { min-width: 0; }
+.component-extension:empty { display: none; }
+
+/* Page foot: where the page lives and which clock it keeps, then the optional credit. */
+.page-meta { display: flex; flex-wrap: wrap; gap: 4px 20px; margin: 64px 0 0; border-top: 1px solid var(--line); padding-top: 20px; color: var(--ink-3); font-size: 13px; }
+.page-meta .host { overflow-wrap: anywhere; }
+footer { margin-top: 6px; color: var(--ink-3); font-size: 13px; }
+footer:empty { display: none; }
+
+/* A retained snapshot served while the current state cannot be verified. */
+.snapshot-stale { margin: 0; background: var(--amber-wash); box-shadow: inset 0 -1px 0 rgb(138 90 6 / .18); padding: 12px 24px; color: var(--amber-ink); font-size: 14px; font-weight: 500; line-height: 1.45; text-align: center; overflow-wrap: anywhere; }

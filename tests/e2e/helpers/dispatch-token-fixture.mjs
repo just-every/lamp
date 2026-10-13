@@ -16,8 +16,8 @@ export async function tokenFixture() {
   let platform;
   const close = async () => { await platform?.dispose(); await vite.close(); await rm(statePath, { recursive: true, force: true }); };
   try {
-    execFileSync("pnpm", ["exec", "wrangler", "d1", "migrations", "apply", "DB", "--local", "--persist-to", statePath, "--config", "deploy/wrangler.template.toml"], { stdio: "pipe" });
-    platform = await getPlatformProxy({ configPath: "deploy/wrangler.template.toml", persist: { path: join(statePath, "v3") }, remoteBindings: false });
+    execFileSync("pnpm", ["exec", "wrangler", "d1", "migrations", "apply", "DB", "--local", "--persist-to", statePath, "--config", "wrangler.jsonc"], { stdio: "pipe" });
+    platform = await getPlatformProxy({ configPath: "wrangler.jsonc", persist: { path: join(statePath, "v3") }, remoteBindings: false });
     const db = platform.env.DB, now = new Date().toISOString();
     await db.batch([
       db.prepare("INSERT INTO operators (id,email,display_name,created_at,updated_at) VALUES ('token-operator','operator@example.test','Token test',?,?)").bind(now, now),

@@ -1,3 +1,4 @@
+import {secret} from '../auth-adoption/runtime.mjs';
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
 import { mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
@@ -10,15 +11,16 @@ import { chromium } from "playwright";
 import { legacyApiFixtureSql } from "./fixtures/legacy-api-fixture.mjs";
 import { insertRealOperatorSession } from "./real-session-helper.mjs";
 import { reservePort, waitForWorker } from "./worker-startup.mjs";
+import { localWranglerConfig } from "../helpers/wrangler-config.mjs";
+import { sessionCookieName } from "../helpers/session-cookie.mjs";
 
-const appHost = "app.lamp.test";
+const appHost = "127.0.0.1";
 const pageHost = "status.lamp.test";
 const artifactPath = resolve("dist/server/wrangler.json");
 
 let appOrigin = "";
 let port;
 let privateLoaderId;
-let signInConfigId;
 let sessionId;
 let statePath;
 let worker;
@@ -99,7 +101,7 @@ function request(path, host, init = {}, targetPort = port) {
 function appRequest(path, init = {}) {
   return request(path, appHost, {
     ...init,
-    headers: { Cookie: `lamp_session=${sessionId}`, ...(init.headers ?? {}) },
+    headers: { Origin:appOrigin, Cookie: `${sessionCookieName(appOrigin)}=${sessionId}`, ...(init.headers ?? {}) },
   });
 }
 
@@ -126,7 +128,7 @@ async function stopWorker(child) {
 
 async function startPageWorker() {
   pagePort = await reservePort({ label: "page-host Worker" });
-  pageWorker = spawn("pnpm", ["exec", "wrangler", "dev", "--local", "--config", artifactPath, "--persist-to", statePath, "--show-interactive-dev-session=false", "--ip", "127.0.0.1", "--port", String(pagePort), "--inspector-port", "0", "--local-upstream", pageHost, "--var", `LAMP_PAGE_HOST:${pageHost}`, "--var", `LAMP_APP_HOST:${appHost}`, "--log-level", "warn"], {
+  pageWorker = spawn("pnpm", ["exec", "wrangler", "dev", "--local", "--config", artifactPath, "--persist-to", statePath, "--show-interactive-dev-session=false", "--ip", "127.0.0.1", "--port", String(pagePort), "--inspector-port", "0", "--local-upstream", `${pageHost}:${pagePort}`, "--var", `LAMP_PAGE_HOST:${pageHost}`, "--var", `LAMP_APP_HOST:${appHost}`, "--var", `AUTH_ORIGIN:${appOrigin}`, "--var", "AUTH_LOCAL:true", "--var", `SESSION_SECRET:${secret}`, "--var", "SETUP_OPERATOR_EMAIL:operator@example.test", "--log-level", "warn"], {
     cwd: process.cwd(),
     env: { ...process.env, LAMP_DISABLE_INSPECTOR: "true" },
     stdio: ["ignore", "pipe", "pipe"],
@@ -174,7 +176,7 @@ async function browserNavigationProof() {
   try {
     const context = await browser.newContext();
     await context.addCookies([{
-      name: "lamp_session",
+      name: sessionCookieName(appOrigin),
       value: sessionId,
       url: appOrigin,
       httpOnly: true,
@@ -235,7 +237,7 @@ before(async () => {
   await run("pnpm", ["exec", "wrangler", "d1", "migrations", "apply", "DB", "--local", "--config", artifactPath, "--persist-to", statePath]);
   await run("pnpm", ["exec", "wrangler", "d1", "execute", "DB", "--local", "--config", artifactPath, "--persist-to", statePath, "--command", legacyApiFixtureSql()]);
   sessionId = await insertRealOperatorSession({ persistTo: statePath, configPath: artifactPath });
-  worker = spawn("pnpm", ["exec", "wrangler", "dev", "--local", "--config", artifactPath, "--persist-to", statePath, "--show-interactive-dev-session=false", "--ip", "127.0.0.1", "--port", String(port), "--inspector-port", "0", "--local-upstream", appHost, "--var", `LAMP_PAGE_HOST:${pageHost}`, "--var", `LAMP_APP_HOST:${appHost}`, "--log-level", "warn"], {
+  worker = spawn("pnpm", ["exec", "wrangler", "dev", "--local", "--config", artifactPath, "--persist-to", statePath, "--show-interactive-dev-session=false", "--ip", "127.0.0.1", "--port", String(port), "--inspector-port", "0", "--local-upstream", `${appHost}:${port}`, "--var", `LAMP_PAGE_HOST:${pageHost}`, "--var", `LAMP_APP_HOST:${appHost}`, "--var", `AUTH_ORIGIN:${appOrigin}`, "--var", "AUTH_LOCAL:true", "--var", `SESSION_SECRET:${secret}`, "--var", "SETUP_OPERATOR_EMAIL:operator@example.test", "--log-level", "warn"], {
     cwd: process.cwd(),
     env: { ...process.env, LAMP_DISABLE_INSPECTOR: "true" },
     stdio: ["ignore", "pipe", "pipe"],
@@ -250,7 +252,6 @@ before(async () => {
     probe: ({ signal }) => request("/health", appHost, { signal }),
   });
   privateLoaderId = await emittedServerFunctionId("loadOperatorSession");
-  signInConfigId = await emittedServerFunctionId("loadSignInConfig");
 });
 
 after(async () => {
@@ -258,27 +259,19 @@ after(async () => {
   await rm(statePath, { recursive: true, force: true });
 });
 
-// SSR controls must not accept user input before React can submit it.
-test("sign-in waits for hydration before accepting an email or submit", { timeout: 30_000 }, async () => {
-  const browser = await chromium.launch({ headless: true, args: [`--host-resolver-rules=MAP ${appHost} 127.0.0.1`] });
-  let releaseScripts;
-  const scriptsReady = new Promise(resolve => { releaseScripts = resolve; });
+// Shared sign-in is a native form and works before any application JavaScript.
+test("sign-in submits with JavaScript disabled", { timeout: 30_000 }, async () => {
+  const browser = await chromium.launch({headless:true});
   try {
-    const page = await browser.newPage();
-    await page.route(/\.js(?:\?|$)/, async route => { await scriptsReady; await route.continue(); });
-    await page.goto(`${appOrigin}/signin`, { waitUntil: "commit" });
-    const email = page.getByLabel("Email address");
-    await email.waitFor();
-    assert.equal(await email.isDisabled(), true);
-    assert.equal(await page.getByRole("button", { name: "Preparing sign-in…" }).isDisabled(), true);
-    releaseScripts();
-    await page.getByRole("button", { name: "Send magic link" }).waitFor();
-    assert.equal(await email.isEnabled(), true);
-    await email.fill("hydration-check@example.test");
-    const submitted = page.waitForRequest(request => new URL(request.url()).pathname === "/signin/request" && request.method() === "POST");
-    await page.getByRole("button", { name: "Send magic link" }).click();
-    assert.equal(new URLSearchParams((await submitted).postData()).get("email"), "hydration-check@example.test");
-  } finally { releaseScripts(); await browser.close(); }
+    const page=await browser.newPage({javaScriptEnabled:false});
+    await page.goto(`${appOrigin}/signin`);
+    const email=page.getByLabel('Email',{exact:true});
+    assert.equal(await email.isEnabled(),true);
+    await email.fill('native-form@example.test');
+    const submitted=page.waitForRequest(request=>new URL(request.url()).pathname==='/auth/magic-link'&&request.method()==='POST');
+    await page.getByRole('button',{name:'Email a sign-in link'}).click();
+    assert.equal(new URLSearchParams((await submitted).postData()).get('email'),'native-form@example.test');
+  } finally {await browser.close();}
 });
 
 test("the built single Worker preserves Hono/R2, Start auth, dispatch, 404s, and client navigation", { timeout: 120_000 }, async () => {
@@ -287,7 +280,7 @@ test("the built single Worker preserves Hono/R2, Start auth, dispatch, 404s, and
   assert.equal(signIn.status, 200);
   assert.match(signIn.headers.get("content-type") ?? "", /text\/html/);
   assert.match(signInHtml, /<html/i);
-  assert.match(signInHtml, /Sign in with a magic link/);
+  assert.match(signInHtml, /action="\/auth\/magic-link"/);
 
   const unauthenticatedDocument = await request("/app", appHost, { redirect: "manual", headers: { "Sec-Fetch-Mode": "navigate" } });
   assert.equal(unauthenticatedDocument.status, 302, "native session preflight must preserve Lamp's unauthenticated redirect");
@@ -300,10 +293,6 @@ test("the built single Worker preserves Hono/R2, Start auth, dispatch, 404s, and
   assert.match(authenticatedHtml, /Contract Operator/);
   assert.match(authenticatedHtml, /operator@example\.test/);
 
-  const nativeSignInConfig = await request("/signin/config", appHost, { headers: { Accept: "application/json" } });
-  assert.equal(nativeSignInConfig.status, 200);
-  assert.match(nativeSignInConfig.headers.get("content-type") ?? "", /application\/json/);
-  assert.equal((await nativeSignInConfig.json()).publicPageHost, pageHost, "Hono retains the native sign-in configuration endpoint");
   const nativeSession = await appRequest("/api/app/session", { headers: { Accept: "application/json" } });
   assert.equal(nativeSession.status, 200);
   assert.match(nativeSession.headers.get("content-type") ?? "", /application\/json/);
@@ -311,7 +300,7 @@ test("the built single Worker preserves Hono/R2, Start auth, dispatch, 404s, and
 
   const privateNoOrigin = await request(`/_serverFn/${privateLoaderId}`, appHost, { headers: { "x-tsr-serverfn": "true", Accept: "application/json" } });
   assert.equal(privateNoOrigin.status, 403, "the generated private transport requires a same-origin request");
-  const privateCrossOrigin = await request(`/_serverFn/${privateLoaderId}`, appHost, { headers: { "x-tsr-serverfn": "true", Accept: "application/json", Origin: "https://attacker.example", Cookie: `lamp_session=${sessionId}` } });
+  const privateCrossOrigin = await request(`/_serverFn/${privateLoaderId}`, appHost, { headers: { "x-tsr-serverfn": "true", Accept: "application/json", Origin: "https://attacker.example", Cookie: `${sessionCookieName(appOrigin)}=${sessionId}` } });
   assert.equal(privateCrossOrigin.status, 403, "a hostile Origin cannot invoke an authenticated Start server function");
   const privateNoSession = await request(`/_serverFn/${privateLoaderId}`, appHost, { headers: { "x-tsr-serverfn": "true", Accept: "application/json", Origin: appOrigin } });
   const privateNoSessionBody = await privateNoSession.text();
@@ -324,11 +313,6 @@ test("the built single Worker preserves Hono/R2, Start auth, dispatch, 404s, and
   assert.match(privateSessionBody, /Contract Operator/);
   assert.match(privateSessionBody, /operator@example\.test/);
 
-  const publicConfigNoOrigin = await request(`/_serverFn/${signInConfigId}`, appHost, { headers: { "x-tsr-serverfn": "true", Accept: "application/json" } });
-  assert.equal(publicConfigNoOrigin.status, 403, "the public sign-in configuration uses the same generated same-origin transport policy");
-  const publicConfig = await request(`/_serverFn/${signInConfigId}`, appHost, { headers: { "x-tsr-serverfn": "true", Accept: "application/json", Origin: appOrigin } });
-  assert.equal(publicConfig.status, 200);
-  assert.match(await publicConfig.text(), /status\.lamp\.test/);
   // This is Wrangler's local control endpoint, rather than a Lamp route: it
   // must target the listener itself so workerd invokes the exported event.
   const scheduled = await request("/cdn-cgi/local/scheduled?cron=*+*+*+*+*", "127.0.0.1");
@@ -341,14 +325,25 @@ test("the built single Worker preserves Hono/R2, Start auth, dispatch, 404s, and
     { path: "/api/app", host: appHost, hono: true },
     { path: "/api/app/not-a-real-route", host: appHost, hono: true },
   ]) {
-    const missing = await request(path, host, { headers: { "Sec-Fetch-Mode": "navigate", ...(hono || auth ? { Cookie: `lamp_session=${sessionId}` } : {}) } });
+    const missing = await request(path, host, { headers: { "Sec-Fetch-Mode": "navigate", ...(hono || auth ? { Cookie: `${sessionCookieName(appOrigin)}=${sessionId}` } : {}) } });
     assert.equal(missing.status, 404, `${path} must be a real HTTP 404`);
     if (hono) assert.doesNotMatch(missing.headers.get("content-type") ?? "", /text\/html/, `${path} must stay in Hono rather than becoming a Start document`);
   }
+  const lobby = await request("/", appHost, { headers: { "Sec-Fetch-Mode": "navigate" } });
+  assert.equal(lobby.status, 200, "the app host's home page is the Lobby");
+  assert.match(lobby.headers.get("content-type") ?? "", /text\/html/);
+  assert.match(await lobby.text(), /href="\/(?:setup|signin)"/, "the Lobby's one action is Finish setup or Sign in");
+  const formerLanding = await request("/lamp", appHost, { redirect: "manual" });
+  assert.equal(formerLanding.status, 301);
+  assert.equal(formerLanding.headers.get("location"), `${appOrigin}/`);
+  const docs = await request("/docs", appHost, { headers: { "Sec-Fetch-Mode": "navigate" } });
+  assert.equal(docs.status, 200, "the app host serves the docs without a session");
+  const docsPage = await request("/docs/moving-in", appHost, { headers: { "Sec-Fetch-Mode": "navigate" } });
+  assert.equal(docsPage.status, 200, "a docs page is rendered by the built Worker");
+  assert.match(await docsPage.text(), /class="docs-prose"/, "from the repository's Markdown compiled into the build");
+  assert.equal((await request("/docs/not-a-page", appHost, { headers: { "Sec-Fetch-Mode": "navigate" } })).status, 404, "an unlisted docs address is a real 404");
   const mailEventsOnAppHost = await request("/api/intake/mail-events", appHost, { method: "POST", body: "[]" });
   assert.equal(mailEventsOnAppHost.status, 404, "mail events belong only on the page host");
-  const unknownHost = await request("/", "unknown.lamp.test", { headers: { "Sec-Fetch-Mode": "navigate" } });
-  assert.equal(unknownHost.status, 404, "unsupported hosts remain outside both Hono and Start");
 
   const clientFiles = (await filesUnder(resolve("dist/client"))).filter((path) => /\.(?:js|mjs|cjs)$/.test(path));
   const clientBundle = (await Promise.all(clientFiles.map((path) => readFile(path, "utf8")))).join("\n");
@@ -362,6 +357,9 @@ test("the built single Worker preserves Hono/R2, Start auth, dispatch, 404s, and
   await startPageWorker();
   const transportOnPageHost = await pageRequest(`/_serverFn/${privateLoaderId}`, { headers: { "x-tsr-serverfn": "true", Accept: "application/json", Origin: appOrigin } });
   assert.equal(transportOnPageHost.status, 404, "the generated Start transport is app-host-only");
+  assert.equal((await pageRequest("/signin")).status, 404, "sign-in is app-host-only");
+  assert.equal((await pageRequest("/lamp")).status, 404, "the former landing address is app-host-only");
+  assert.equal((await pageRequest("/docs")).status, 404, "the docs are app-host-only: the page host's paths are the status snapshot's");
   const mailEventsOnPageHost = await pageRequest("/api/intake/mail-events", { method: "POST", body: "[]" });
   assert.equal(mailEventsOnPageHost.status, 503, "the unconfigured mail receiver must not be shadowed by generic alert intake");
   const missingPageAsset = await pageRequest("/assets/not-a-real-asset.svg", { headers: { "Sec-Fetch-Mode": "navigate" } });
@@ -380,13 +378,8 @@ test("vite dev serves Start's client entry and stylesheet through the app host",
   const devOrigin = `http://${appHost}:${devPort}`;
   const devStatePath = await mkdtemp(join(tmpdir(), "lamp-start-dev-state-"));
   const devViteCachePath = await mkdtemp(join(tmpdir(), "lamp-start-dev-cache-"));
-  const devConfigPath = join(await mkdtemp(join(tmpdir(), "lamp-start-dev-config-")), "wrangler.toml");
-  const template = await readFile("deploy/wrangler.template.toml", "utf8");
-  await writeFile(devConfigPath, template
-    .replace('main = "../src/server.ts"', `main = "${resolve("src/server.ts")}"`)
-    .replace('migrations_dir = "../migrations/core"', `migrations_dir = "${resolve("migrations/core")}"`)
-    .replace('LAMP_PAGE_HOST = "127.0.0.1"', `LAMP_PAGE_HOST = "${pageHost}"`)
-    .replace('LAMP_APP_HOST = "127.0.0.1"', `LAMP_APP_HOST = "${appHost}"`));
+  const devConfigPath = join(await mkdtemp(join(tmpdir(), "lamp-start-dev-config-")), "wrangler.json");
+  await writeFile(devConfigPath, localWranglerConfig(config => ({ ...config, vars: { ...config.vars, LAMP_PAGE_HOST: pageHost, LAMP_APP_HOST: appHost } })));
   let devServer;
   let devOutput = "";
   try {
@@ -395,7 +388,7 @@ test("vite dev serves Start's client entry and stylesheet through the app host",
     const devSessionId = await insertRealOperatorSession({ persistTo: devStatePath, configPath: devConfigPath });
     devServer = spawn("pnpm", ["exec", "vite", "--host", "127.0.0.1", "--port", String(devPort), "--strictPort"], {
       cwd: process.cwd(),
-      env: { ...process.env, LAMP_DISABLE_INSPECTOR: "true", LAMP_WORKERS_STATE_PATH: devStatePath, LAMP_VITE_CACHE_DIR: devViteCachePath, LAMP_WRANGLER_CONFIG: devConfigPath, __VITE_ADDITIONAL_SERVER_ALLOWED_HOSTS: appHost },
+      env: { ...process.env, AUTH_ORIGIN:devOrigin,AUTH_LOCAL:"true",SESSION_SECRET:secret,SETUP_OPERATOR_EMAIL:"operator@example.test", LAMP_DISABLE_INSPECTOR: "true", LAMP_WORKERS_STATE_PATH: devStatePath, LAMP_VITE_CACHE_DIR: devViteCachePath, LAMP_WRANGLER_CONFIG: devConfigPath, __VITE_ADDITIONAL_SERVER_ALLOWED_HOSTS: appHost },
       stdio: ["ignore", "pipe", "pipe"],
       detached: true,
     });
@@ -411,7 +404,7 @@ test("vite dev serves Start's client entry and stylesheet through the app host",
     const browser = await chromium.launch({ headless: true, args: [`--host-resolver-rules=MAP ${appHost} 127.0.0.1`] });
     try {
       const context = await browser.newContext({ viewport: { width: 1280, height: 800 } });
-      await context.addCookies([{ name: "lamp_session", value: devSessionId, url: devOrigin, httpOnly: true, sameSite: "Lax" }]);
+      await context.addCookies([{ name: sessionCookieName(devOrigin), value: devSessionId, url: devOrigin, httpOnly: true, sameSite: "Lax" }]);
       const page = await context.newPage();
       const documents = [];
       const failures = [];

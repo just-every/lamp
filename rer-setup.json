@@ -1,0 +1,216 @@
+{
+  "schema": 1,
+  "title": "Set up Lamp",
+  "groups": [
+    {
+      "id": "page",
+      "label": "Your status page"
+    },
+    {
+      "id": "owner",
+      "label": "First owner"
+    },
+    {
+      "id": "hosting-settings",
+      "label": "Online page settings",
+      "help": "For Online hosting, use Edit to complete these fields before Start. Local trials do not use them."
+    },
+    {
+      "id": "mail",
+      "label": "Online mail settings",
+      "help": "For Online hosting, use Edit to enter your verified sender, DKIM selector and provider key before Start. Local sign-in uses the development outbox."
+    }
+  ],
+  "fields": [
+    {
+      "name": "LAMP_PAGE_NAME",
+      "label": "Status page name",
+      "kind": "text",
+      "required": true,
+      "group": "page",
+      "help": "Enter 1–120 characters."
+    },
+    {
+      "name": "LAMP_PAGE_TAGLINE",
+      "label": "Page description",
+      "kind": "text",
+      "required": true,
+      "group": "page",
+      "help": "Enter 1–280 characters."
+    },
+    {
+      "name": "LAMP_PAGE_TIMEZONE",
+      "label": "Page timezone",
+      "kind": "timezone",
+      "required": true,
+      "group": "page",
+      "default": "UTC"
+    },
+    {
+      "name": "SETUP_OPERATOR_EMAIL",
+      "label": "Your operator email",
+      "kind": "email",
+      "required": true,
+      "group": "owner"
+    },
+    {
+      "name": "OWNER_DISPLAY_NAME",
+      "label": "Your name",
+      "kind": "text",
+      "required": true,
+      "group": "owner",
+      "help": "Enter 1–120 characters."
+    },
+    {
+      "name": "LAMP_HOSTING",
+      "label": "Online hosting mode",
+      "kind": "select",
+      "required": false,
+      "default": "custom-domain",
+      "group": "hosting-settings",
+      "options": [
+        {
+          "value": "custom-domain",
+          "label": "Cloudflare custom domains"
+        },
+        {
+          "value": "workers-dev",
+          "label": "Cloudflare workers.dev"
+        }
+      ]
+    },
+    {
+      "name": "LAMP_PAGE_HOST",
+      "label": "Public status page hostname",
+      "kind": "text",
+      "required": false,
+      "group": "hosting-settings",
+      "help": "Online only. Enter a hostname distinct from the operator address in Hosting & connections; both custom-domain zones must be active in your Cloudflare account."
+    },
+    {
+      "name": "LAMP_ACCENT_COLOR",
+      "label": "Page accent colour",
+      "kind": "colour",
+      "required": false,
+      "default": "#163c60",
+      "group": "hosting-settings"
+    },
+    {
+      "name": "MAIL_PROVIDER",
+      "label": "Online mail provider",
+      "kind": "select",
+      "required": false,
+      "default": "sendgrid",
+      "group": "mail",
+      "options": [
+        {
+          "value": "sendgrid",
+          "label": "SendGrid"
+        },
+        {
+          "value": "resend",
+          "label": "Resend"
+        }
+      ]
+    },
+    {
+      "name": "MAIL_FROM_ADDRESS",
+      "label": "Verified sender address",
+      "kind": "email",
+      "required": false,
+      "group": "mail"
+    },
+    {
+      "name": "MAIL_DKIM_SELECTOR",
+      "label": "Sender DKIM selector",
+      "kind": "text",
+      "required": false,
+      "group": "mail",
+      "help": "Online only. The sender domain must already publish SPF, DKIM and DMARC."
+    },
+    {
+      "name": "MAIL_PROVIDER_API_KEY",
+      "label": "Online mail provider API key",
+      "kind": "secret",
+      "input": "entered",
+      "required": false,
+      "ownerVisible": true,
+      "group": "mail",
+      "when": {
+        "field": "MAIL_PROVIDER",
+        "nonEmpty": true
+      },
+      "presentations": [
+        {
+          "when": {
+            "field": "MAIL_FROM_ADDRESS",
+            "nonEmpty": true
+          },
+          "help": "Online only. Enter the key for this provider and sender. It remains private and is sent only through the native deployment command."
+        }
+      ]
+    },
+    {
+      "name": "SETUP_TOKEN",
+      "label": "SETUP_TOKEN",
+      "kind": "secret",
+      "input": "managed",
+      "required": true,
+      "ownerVisible": false,
+      "generate": "hex"
+    },
+    {
+      "name": "SUBSCRIBER_TOKEN_SECRET",
+      "label": "SUBSCRIBER_TOKEN_SECRET",
+      "kind": "secret",
+      "input": "managed",
+      "required": true,
+      "ownerVisible": false,
+      "generate": "hex"
+    },
+    {
+      "name": "WEBHOOK_SIGNING_SECRET",
+      "label": "WEBHOOK_SIGNING_SECRET",
+      "kind": "secret",
+      "input": "managed",
+      "required": true,
+      "ownerVisible": false,
+      "generate": "hex"
+    },
+    {
+      "name": "SESSION_SECRET",
+      "label": "Session secret",
+      "kind": "secret",
+      "input": "managed",
+      "required": true,
+      "ownerVisible": false,
+      "generate": "hex"
+    },
+    {
+      "name": "IDENTITY_PROVIDER",
+      "label": "Identity provider",
+      "kind": "url",
+      "required": false,
+      "default": "",
+      "help": "Optional Auth install. Leave empty to use email links."
+    }
+  ],
+  "steps": [
+    {
+      "type": "extension",
+      "id": "lamp-native-owner"
+    }
+  ],
+  "dependencies": [
+    {
+      "interface": "oidc-provider@1",
+      "optional": true,
+      "cardinality": 1,
+      "address": "IDENTITY_PROVIDER",
+      "paths": [
+        "/auth/oidc/auth/callback",
+        "/auth/oidc/auth/logout"
+      ]
+    }
+  ]
+}

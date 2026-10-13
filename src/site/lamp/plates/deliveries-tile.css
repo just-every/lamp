@@ -1,0 +1,11 @@
+/* T5: the delivery log's heading and three rows. */
+.lamp-home .lamp-deliveries__heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.lamp-home .lamp-deliveries__lede { margin: 6px 0 10px; }
+.lamp-home .lamp-deliveries__table { width: 100%; border-collapse: collapse; font-size: 12px; line-height: 1.35; }
+.lamp-home .lamp-deliveries__table th { padding: 6px 8px 6px 0; border-bottom: 1px solid var(--lamp-line-strong); color: var(--lamp-ink-3); font-size: 11.5px; font-weight: 600; text-align: left; }
+.lamp-home .lamp-deliveries__table td { padding: 7px 8px 7px 0; border-bottom: 1px solid var(--lamp-line); white-space: nowrap; vertical-align: top; }
+.lamp-home .lamp-deliveries__table tr:last-child td { border-bottom: 0; }
+/* A narrow tile keeps the heading and the log. */
+@container lamp-plate (max-width: 340px) {
+  .lamp-home .lamp-deliveries__lede { display: none; }
+}

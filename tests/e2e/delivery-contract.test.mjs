@@ -1,6 +1,7 @@
+import {authFixture} from '../auth-adoption/runtime.mjs';
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { createHmac } from "node:crypto";
+import { createHash, createHmac, randomBytes } from "node:crypto";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -9,12 +10,12 @@ import { createServer } from "vite";
 import { getPlatformProxy } from "wrangler";
 
 import { contract } from "../contract.mjs";
+import { exerciseRevokedManagement } from "./subscriber-revocation-regression.mjs";
+import { exerciseSubscriberTransitions } from "./subscriber-transition-helper.mjs";
+import { exerciseSubscriberIsolation } from "./subscriber-isolation-helper.mjs";
 
 let vite;
-let createSessionService;
-let createSessionRepository;
 let createSubscribersService;
-let registerSessionRoutes;
 let registerSubscriberRoutes;
 let createSubscriberRepository;
 let createDeliveryRepository;
@@ -26,21 +27,18 @@ let statePath;
 
 before(async () => {
   vite = await createServer({ configFile: false, appType: "custom", server: { middlewareMode: true } });
-  ({ createSessionService } = await vite.ssrLoadModule("/src/core/features/session/service.ts"));
-  ({ createSessionRepository } = await vite.ssrLoadModule("/src/core/features/session/repository.ts"));
-  ({ registerSessionRoutes } = await vite.ssrLoadModule("/src/core/features/session/routes.ts"));
   ({ createSubscribersService } = await vite.ssrLoadModule("/src/core/features/subscribers/service.ts"));
   ({ registerSubscriberRoutes } = await vite.ssrLoadModule("/src/core/features/subscribers/routes.ts"));
   ({ createSubscriberRepository } = await vite.ssrLoadModule("/src/core/features/subscribers/repository.ts"));
   ({ createDeliveryRepository, createDeliveriesService, notificationPublicationStatements } = await vite.ssrLoadModule("/src/core/features/deliveries/index.ts"));
   ({ registerDeliveryRoutes } = await vite.ssrLoadModule("/src/core/features/deliveries/routes.ts"));
   statePath = await mkdtemp(join(tmpdir(), "lamp-delivery-d1-"));
-  execFileSync("pnpm", ["exec", "wrangler", "d1", "migrations", "apply", "DB", "--local", "--persist-to", statePath, "--config", "deploy/wrangler.template.toml"], { stdio: "pipe" });
+  execFileSync("pnpm", ["exec", "wrangler", "d1", "migrations", "apply", "DB", "--local", "--persist-to", statePath, "--config", "wrangler.jsonc"], { stdio: "pipe" });
   // `wrangler d1 migrations apply --persist-to` stores Miniflare state under
   // `v3`; getPlatformProxy hands its path straight to Miniflare. Point it at
   // that same versioned directory so this exercises the migrated D1 database,
   // never the repository's shared `.wrangler` state.
-  platform = await getPlatformProxy({ configPath: "deploy/wrangler.template.toml", persist: { path: join(statePath, "v3") }, remoteBindings: false });
+  platform = await getPlatformProxy({ configPath: "wrangler.jsonc", persist: { path: join(statePath, "v3") }, remoteBindings: false });
 });
 
 after(async () => { await platform?.dispose(); await vite?.close(); await rm(statePath, { recursive: true, force: true }); });
@@ -82,95 +80,33 @@ function signedResendHeaders(secret, id, rawBody) {
   return { "svix-id": id, "svix-timestamp": timestamp, "svix-signature": `v1,${signature}`, "content-type": "application/json" };
 }
 
-function sessionRepository() {
-  const operators = new Map([["01J00000000000000000000001", { id: "01J00000000000000000000001", email: "owner@example.test", displayName: "Owner", isSetupOperator: true }]]);
-  const links = new Map();
-  const sessions = new Map();
-  return {
-    async findActiveOperator(id, now) { const session = sessions.get(id); return session && session.expiresAt > now ? operators.get(session.operatorId) : null; },
-    async touchSession(id, expiresAt, updatedAt) { sessions.set(id, { ...sessions.get(id), expiresAt, updatedAt }); },
-    async findOperatorByEmail(email) { return [...operators.values()].find((operator) => operator.email === email) ?? null; },
-    async findOperator(id) { return operators.get(id) ?? null; },
-    async listOperators() { return [...operators.values()]; },
-    async insertOperator(operator) { if (![...operators.values()].some((value) => value.email === operator.email)) operators.set(operator.id, operator); },
-    async deleteOperator(id) { operators.delete(id); },
-    async insertSession(session) { sessions.set(session.id, session); },
-    async revokeSession(id) { sessions.delete(id); },
-    async insertMagicLink(link) { links.set(link.id, link); },
-    async findUsableMagicLink(tokenHash, now) { return [...links.values()].find((link) => link.tokenHash === tokenHash && !link.consumedAt && !link.revokedAt && link.expiresAt > now) ?? null; },
-    async consumeMagicLink(id, now) { const link = links.get(id); if (!link || link.consumedAt || link.revokedAt) return false; links.set(id, { ...link, consumedAt: now }); return true; },
-    async revokeMagicLink(id, now) { const link = links.get(id); links.set(id, { ...link, revokedAt: now }); },
-  };
-}
-
-function subscriberRepository() {
-  const subscribers = new Map();
-  const byDestination = new Map();
-  const tokens = new Map();
-  const selections = new Map();
-  const confirmation = new Map();
-  return {
-    async listSubscribers() { return [...subscribers.values()]; },
-    async listComponents(id) { return selections.get(id) ?? []; },
-    async listVisibleComponents() { return [{ id: "01J00000000000000000000011", name: "API" }]; },
-    async findSubscriber(id) { return subscribers.get(id) ?? null; },
-    async findSubscriberByDestination(destination) { return subscribers.get(byDestination.get(destination)) ?? null; },
-    async findSubscriberByToken(tokenHash, scope, now) { const record = [...tokens.values()].find((value) => value.tokenHash === tokenHash && value.scope === scope && !value.revokedAt && (!value.expiresAt || value.expiresAt > now)); const subscriber = record && subscribers.get(record.subscriberId); return record && subscriber ? { subscriber, token: record } : null; },
-    async findActiveToken(subscriberId, scope, now) { return [...tokens.values()].find((value) => value.subscriberId === subscriberId && value.scope === scope && !value.revokedAt && (!value.expiresAt || value.expiresAt > now)) ?? null; },
-    async insertSubscriberIfMissing(subscriber) { if (!byDestination.has(subscriber.destination)) { subscribers.set(subscriber.id, subscriber); byDestination.set(subscriber.destination, subscriber.id); } },
-    async insertComponentIfMissing(selection) { selections.set(selection.subscriberId, [...(selections.get(selection.subscriberId) ?? []), selection]); },
-    async createPendingSubscriber(subscriber) { const old = subscribers.get(byDestination.get(subscriber.destination)); const value = old ? { ...old, state: subscriber.state, updatedAt: subscriber.updatedAt, deactivationReason: null, deactivatedAt: null } : subscriber; subscribers.set(value.id, value); byDestination.set(value.destination, value.id); },
-    async activateSubscriber(id, now) { subscribers.set(id, { ...subscribers.get(id), state: "active", updatedAt: now }); },
-    async updateSelection(id, componentIds, now) { selections.set(id, componentIds.map((componentId, index) => ({ id: `01J0000000000000000000${index.toString().padStart(2, "0")}`, subscriberId: id, componentId, createdAt: now, updatedAt: now }))); },
-    async createToken(token) { tokens.set(token.id, token); },
-    async revokeTokens(id, now, scope) { for (const [key, token] of tokens) if (token.subscriberId === id && (!scope || token.scope === scope) && !token.revokedAt) tokens.set(key, { ...token, revokedAt: now }); },
-    async deactivateSubscriber(id, reason, now) { subscribers.set(id, { ...subscribers.get(id), state: "deactivated", deactivationReason: reason, deactivatedAt: now, updatedAt: now }); await this.revokeTokens(id, now); },
-    async anonymizeAndDeactivate(id, _operatorId, now) { const subscriber = subscribers.get(id); subscribers.set(id, { ...subscriber, destination: `deleted:${id}`, state: "deactivated", updatedAt: now }); await this.revokeTokens(id, now); },
-    async deleteExpiredPending() {},
-    async recordConfirmationSendIfAllowed(hash, cutoff, now) { const prior = confirmation.get(hash); if (prior && prior >= cutoff) return false; confirmation.set(hash, now); return true; },
-  };
-}
-
-contract("BASE-ACCESS-001", "an allow-listed magic link creates one session and cannot be replayed", async () => {
-  const mail = new CapturingMail();
-  const service = createSessionService(sessionRepository(), mail, "lamp@example.test");
-  await service.requestSignIn("owner@example.test", "https://app.example.test");
-  await service.requestSignIn("not-an-operator@example.test", "https://app.example.test");
-  assert.equal(mail.messages.length, 1);
-  const token = new URL(mail.messages[0].text.match(/https:\/\/[^\s]+/)?.[0]).pathname.split("/").at(-1);
-  const first = await service.consumeSignIn(token);
-  assert.ok(first?.sessionId);
-  assert.equal(await service.consumeSignIn(token), null);
+contract("BASE-ACCESS-001", "Base email links admit only existing active operators", async()=>{
+ const fixture=authFixture(platform.env.DB);
+ await platform.env.DB.prepare("INSERT INTO oa_operators(id,email,display_name,role,status,created_at) VALUES ('auth-contract','owner@example.test','Owner','owner','active',?)").bind(Date.now()).run();
+ const cookie=await fixture.signIn();
+ assert.equal((await fixture.handle(fixture.request('/auth/session',{cookie}))).status,200);
+ const count=fixture.messages.length;await fixture.auth.requestMagicLink(fixture.request('/auth/magic-link',{method:'POST'}),{email:'unknown@example.test'});assert.equal(fixture.messages.length,count);
 });
-
-contract("BASE-ACCESS-002", "the sign-in callback writes a mutable session cookie once and rejects replay", async () => {
-  const { Hono } = await import("hono");
-  const mail = new CapturingMail();
-  const service = createSessionService(sessionRepository(), mail, "lamp@example.test");
-  await service.requestSignIn("owner@example.test", "https://app.example.test");
-  const token = new URL(mail.messages[0].text.match(/https:\/\/[^\s]+/)?.[0]).pathname.split("/").at(-1);
-  const app = new Hono();
-  registerSessionRoutes(app, service, { publicPageHost: "status.example.test" });
-  const first = await app.request(`https://app.example.test/signin/complete/${token}`);
-  assert.equal(first.status, 302);
-  assert.match(first.headers.get("set-cookie") ?? "", /lamp_session=/);
-  assert.equal(first.headers.get("referrer-policy"), "no-referrer");
-  const replay = await app.request(`https://app.example.test/signin/complete/${token}`);
-  assert.equal(replay.status, 400);
+contract("BASE-ACCESS-002", "Base confirmation is preview-only on GET and single-use on POST", async()=>{
+ const fixture=authFixture(platform.env.DB);await fixture.auth.requestMagicLink(fixture.request('/auth/magic-link',{method:'POST'}),{email:'owner@example.test'});
+ const token=new URL(fixture.messages[0].text.match(/https?:\/\/[^\s]+/)[0]).searchParams.get('token');
+ const preview=await fixture.handle(fixture.request('/auth/confirm?token='+token));assert.equal(preview.status,200);assert.equal(preview.headers.has('set-cookie'),false);
+ const confirmed=await fixture.handle(fixture.request('/auth/confirm',{method:'POST',body:{token}}));assert.equal(confirmed.status,303);assert.equal(Boolean(confirmed.headers.get('set-cookie')),true);
+ assert.equal((await fixture.handle(fixture.request('/auth/confirm',{method:'POST',body:{token}}))).status,400);
 });
 
 contract("SUB-001", "concurrent subscriptions reserve one confirmation email per address each day", async () => {
   const mail = new CapturingMail();
-  const service = createSubscribersService(subscriberRepository(), { mail, fromAddress: "lamp@example.test", tokenSecret: "test-subscriber-secret" });
-  await Promise.all([service.requestEmailSubscription("reader@example.test", "https://status.example.test"), service.requestEmailSubscription("reader@example.test", "https://status.example.test")]);
+  const service = createSubscribersService(createSubscriberRepository(platform.env.DB), { mail, fromAddress: "lamp@example.test", tokenSecret: "test-subscriber-secret" });
+  await Promise.all([service.requestEmailSubscription("concurrent-reader@example.test", "https://status.example.test"), service.requestEmailSubscription("concurrent-reader@example.test", "https://status.example.test")]);
   assert.equal(mail.messages.length, 1);
   assert.match(mail.messages[0].text, /confirm-subscription/);
 });
 
 contract("SUB-005", "a confirmed subscriber's scoped public tokens revoke on one-click unsubscribe", async () => {
   const mail = new CapturingMail();
-  const service = createSubscribersService(subscriberRepository(), { mail, fromAddress: "lamp@example.test", tokenSecret: "test-subscriber-secret" });
-  await service.requestEmailSubscription("reader@example.test", "https://status.example.test");
+  const service = createSubscribersService(createSubscriberRepository(platform.env.DB), { mail, fromAddress: "lamp@example.test", tokenSecret: "test-subscriber-secret" });
+  await service.requestEmailSubscription("scoped-reader@example.test", "https://status.example.test");
   const confirmationToken = new URL(mail.messages[0].text.match(/https:\/\/[^\s]+/)?.[0]).pathname.split("/").at(-1);
   assert.equal(await service.confirm(confirmationToken), true);
   const unsubscribeToken = new URL(mail.messages[0].text.match(/https:\/\/[^\s]+\/unsubscribe\/[^\s]+/)?.[0]).pathname.split("/").at(-1);
@@ -183,7 +119,7 @@ contract("SUB-001", "the actual D1 gate gives concurrent subscriptions one pendi
   const service = createSubscribersService(createSubscriberRepository(platform.env.DB), { mail, fromAddress: "lamp@example.test", tokenSecret: "d1-subscriber-secret" });
   await Promise.all([service.requestEmailSubscription("d1-reader@example.test", "https://status.example.test"), service.requestEmailSubscription("d1-reader@example.test", "https://status.example.test")]);
   const subscriber = await platform.env.DB.prepare("SELECT state FROM subscribers WHERE destination = ?").bind("d1-reader@example.test").first();
-  const sends = await platform.env.DB.prepare("SELECT COUNT(*) AS count FROM subscriber_confirmation_attempts").first();
+  const sends = await platform.env.DB.prepare("SELECT COUNT(*) AS count FROM subscriber_confirmation_attempts WHERE email_hash = ?").bind(createHash("sha256").update("confirmation-address:d1-reader@example.test").digest("base64url")).first();
   assert.equal(subscriber.state, "pending");
   assert.equal(sends.count, 1);
   assert.equal(mail.messages.length, 1);
@@ -303,12 +239,44 @@ contract("SUB-007", "the token-addressed management page exposes a confirmed sub
   assert.equal(response.status, 200);
   assert.match(await response.text(), /Manage subscription/);
   assert.equal(response.headers.get("x-robots-tag"), "noindex");
+  const subscriber = await platform.env.DB.prepare("SELECT id FROM subscribers WHERE destination = ?").bind("manage-reader@example.test").first();
+  let unsubscribePath;
+  for (const mutation of [
+    "DELETE FROM subscriber_tokens WHERE subscriber_id = ? AND scope = 'unsubscribe'",
+    "UPDATE subscriber_tokens SET expires_at = '2000-01-01T00:00:00.000Z' WHERE subscriber_id = ? AND scope = 'unsubscribe' AND revoked_at IS NULL",
+    "UPDATE subscriber_tokens SET revoked_at = '2000-01-01T00:00:00.000Z' WHERE subscriber_id = ? AND scope = 'unsubscribe' AND revoked_at IS NULL",
+  ]) {
+    await platform.env.DB.prepare(mutation).bind(subscriber.id).run();
+    const recovered = await app.request(`https://status.example.test/manage/${manage}`);
+    assert.equal(recovered.status, 200, "current management authority repairs an unavailable unsubscribe link");
+    const action = (await recovered.text()).match(/action="(\/unsubscribe\/[^\"]+)"/);
+    assert.ok(Boolean(action), "management retains its native unsubscribe action");
+    assert.equal(action[1] === unsubscribePath, false, "replacement links do not reuse revoked or expired authority");
+    unsubscribePath = action[1];
+    const reused = await app.request(`https://status.example.test/manage/${manage}`);
+    assert.equal((await reused.text()).includes(`action="${unsubscribePath}"`), true, "current links are reused");
+  }
+  const unsubscribed = await app.request(`https://status.example.test${unsubscribePath}`, { method: "POST", body: new URLSearchParams({ "List-Unsubscribe": "One-Click" }) });
+  assert.equal(unsubscribed.status, 200);
+  assert.equal(await unsubscribed.text(), "");
+  assert.equal(unsubscribed.headers.get("location"), null);
+});
+
+contract("SUB-005", "in-flight subscriber permissions cannot change completed opt-out or a rejoined subscription", async () => {
+  const fixture = { db: platform.env.DB, createSubscriberRepository, createSubscribersService, registerSubscriberRoutes, createMail: () => new CapturingMail() };
+  await exerciseRevokedManagement(fixture);
+  await exerciseSubscriberTransitions(fixture);
+});
+
+contract("PAGE-013", "subscriber HTML outcomes enforce origin isolation and token privacy", async () => {
+  const { createPublicWriteRateLimiter } = await vite.ssrLoadModule("/src/core/platform/security/rate-limiter.ts");
+  await exerciseSubscriberIsolation({ db: platform.env.DB, createSubscriberRepository, createSubscribersService, registerSubscriberRoutes, createPublicWriteRateLimiter, createMail: () => new CapturingMail() });
 });
 
 contract("SUB-012", "a known active address gets the same neutral form response and a management-only email", async () => {
   const { Hono } = await import("hono");
   const mail = new CapturingMail();
-  const service = createSubscribersService(createSubscriberRepository(platform.env.DB), { mail, fromAddress: "lamp@example.test", tokenSecret: "d1-enumeration-secret" });
+  const service = createSubscribersService(createSubscriberRepository(platform.env.DB), { mail, fromAddress: "lamp@example.test", tokenSecret: randomBytes(32).toString("hex") });
   const app = new Hono(); registerSubscriberRoutes(app, service);
   const submit = (email) => app.request("https://status.example.test/subscribe", { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: new URLSearchParams({ email }) });
   const first = await submit("known-reader@example.test");
@@ -330,7 +298,7 @@ contract("SUB-008", "a delivery committed before a real D1 unsubscribe is durabl
     db.prepare("UPDATE subscribers SET state = 'deactivated' WHERE id = ?").bind("01J00000000000000000000041"),
   ]);
   const mail = new CapturingMail();
-  const deliveries = createDeliveriesService(createDeliveryRepository(db), { mail, fromAddress: "lamp@example.test", subscriberTokenSecret: "d1-suppression-secret" });
+  const deliveries = createDeliveriesService(createDeliveryRepository(db), { mail, fromAddress: "lamp@example.test", subscriberTokenSecret: randomBytes(32).toString("hex") });
   await deliveries.dispatchDelivery("01J00000000000000000000042", "https://status.example.test");
   assert.equal(mail.messages.length, 0);
   assert.equal((await db.prepare("SELECT outcome FROM notification_deliveries WHERE id = ?").bind("01J00000000000000000000042").first()).outcome, "suppressed");
@@ -344,7 +312,7 @@ contract("NOTIFY-002", "a queued D1 email notification is accepted by the config
     db.prepare("INSERT INTO notification_deliveries (id,subscriber_id,incident_update_id,channel,outcome,queued_at,created_at,updated_at,notification_event_id,notification_event_type) VALUES (?,?,?,?,?,?,?,?,?,?)").bind("01J00000000000000000000044", "01J00000000000000000000043", "01J00000000000000000000032", "email", "queued", now, now, now, "01J00000000000000000000032", "incident-update"),
   ]);
   const mail = new CapturingMail();
-  const deliveries = createDeliveriesService(createDeliveryRepository(db), { mail, fromAddress: "lamp@example.test", subscriberTokenSecret: "d1-notify-secret" });
+  const deliveries = createDeliveriesService(createDeliveryRepository(db), { mail, fromAddress: "lamp@example.test", subscriberTokenSecret: randomBytes(32).toString("hex") });
   await deliveries.dispatchDelivery("01J00000000000000000000044", "https://status.example.test");
   assert.equal(mail.messages.length, 1);
   assert.equal((await db.prepare("SELECT provider_message_id AS id FROM notification_delivery_attempts WHERE delivery_id = ?").bind("01J00000000000000000000044").first()).id, "mail-1");
@@ -402,42 +370,16 @@ contract("NOTIFY-010", "frozen notification envelopes carry one-click, list, and
   assert.equal(payload.headers["Auto-Submitted"], "auto-generated");
 });
 
-contract("TEAM-002", "operator access removal is separate from irreversible API erasure", async () => {
-  const { Hono } = await import("hono");
-  const { requireOperator } = await vite.ssrLoadModule("/src/core/features/session/routes.ts");
-  const db = platform.env.DB;
-  const now = "2026-09-08T05:00:00.000Z";
-  const setupOperatorId = "01J00000000000000000000046";
-  await db.prepare("INSERT INTO operators (id,email,display_name,is_setup_operator,created_at,updated_at) VALUES (?,?,?,?,?,?)").bind(setupOperatorId, "setup@example.test", "Setup", 1, now, now).run();
-  const mail = new CapturingMail();
-  const service = createSessionService(createSessionRepository(db), mail, "lamp@example.test");
-  await service.inviteOperator({ email: "invited@example.test", displayName: "Erased operator", invitedByOperatorId: setupOperatorId, origin: "https://app.example.test" });
-  const invitationToken = new URL(mail.messages[0].text.match(/https:\/\/[^\s]+/)?.[0]).pathname.split("/").at(-1);
-  const invited = await service.consumeSignIn(invitationToken);
-  assert.ok(invited);
-  assert.equal(await service.revokeOperatorAccess({ operatorId: invited.operator.id, requestedByOperatorId: setupOperatorId }), true);
-  assert.equal(await service.getActiveOperator(invited.sessionId), null);
-  assert.ok((await db.prepare("SELECT email FROM operators WHERE id = ?").bind(invited.operator.id).first()).email === "invited@example.test", "removing access does not erase personal data");
-  assert.ok((await service.listFormerOperators()).some((operator) => operator.id === invited.operator.id), "a former operator remains erasable even when their display name matches the erasure label");
-
-  await db.prepare("INSERT INTO audit_entries (id,entity_type,entity_id,action,operator_id,reason,payload_json,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?)").bind("01J0000000000000000000004A", "operator", invited.operator.id, "invited", setupOperatorId, "Invited invited@example.test", JSON.stringify({ email: "invited@example.test", displayName: "Invited" }), now, now).run();
-  await service.requestSignIn("setup@example.test", "https://app.example.test");
-  const setupToken = new URL(mail.messages.at(-1).text.match(/https:\/\/[^\s]+/)?.[0]).pathname.split("/").at(-1);
-  const setupSession = await service.consumeSignIn(setupToken);
-  assert.ok(setupSession);
-  const app = new Hono();
-  app.use("/api/app/*", requireOperator(service));
-  registerSessionRoutes(app, service, { publicPageHost: "status.example.test" });
-  const erased = await app.request(`https://app.example.test/api/app/operators/${invited.operator.id}`, { method: "DELETE", headers: { Cookie: `lamp_session=${setupSession.sessionId}` } });
-  assert.equal(erased.status, 204);
-  const operator = await db.prepare("SELECT email, display_name AS displayName, deactivated_at AS deactivatedAt FROM operators WHERE id = ?").bind(invited.operator.id).first();
-  assert.match(operator.email, /^deleted-[a-z0-9]+@operator\.invalid$/);
-  assert.equal(operator.displayName, "Erased operator");
-  assert.ok(operator.deactivatedAt);
-  assert.equal((await db.prepare("SELECT COUNT(*) AS count FROM operator_magic_links WHERE email = ? OR display_name = ?").bind("invited@example.test", "Erased operator").first()).count, 0);
-  const audit = await db.prepare("SELECT action, operator_id AS operatorId, reason, payload_json AS payloadJson, created_at AS createdAt FROM audit_entries WHERE entity_type = 'operator' AND entity_id = ? ORDER BY created_at").bind(invited.operator.id).all();
-  assert.ok(audit.results.every((entry) => entry.reason === null && entry.payloadJson === "{}"));
-  assert.ok(audit.results.some((entry) => entry.action === "deleted" && entry.operatorId === setupOperatorId && entry.createdAt));
+contract("TEAM-002", "Base operator revocation and Lamp erasure retain opaque audit attribution", async()=>{
+ const {Hono}=await import('hono');const {requireOperator,registerOperatorRoutes}=await vite.ssrLoadModule('/src/core/features/operators/routes.ts');
+ const db=platform.env.DB,fixture=authFixture(db,{owner:'setup@example.test'}),actor='01J00000000000000000000046',target='01J0000000000000000000004A';
+ await db.prepare("INSERT INTO oa_operators(id,email,display_name,role,status,created_at) VALUES (?,?,'Setup','owner','active',?),(?,?,'Erased operator','owner','active',?)").bind(actor,'setup@example.test',Date.now(),target,'invited@example.test',Date.now()).run();
+ const cookie=await fixture.signIn();const app=new Hono();app.use('*',async(c,next)=>{c.env={DB:db};await next();});app.use('/api/app/*',requireOperator(()=>fixture.auth));registerOperatorRoutes(app,()=>fixture.auth,'status.example.test');
+ assert.equal((await app.fetch(fixture.request('/api/app/operators/'+target+'/revoke-access',{method:'POST',cookie}))).status,204);
+ assert.equal((await db.prepare('SELECT email FROM operators WHERE id=?').bind(target).first()).email,'invited@example.test');
+ assert.equal((await app.fetch(fixture.request('/api/app/operators/'+target,{method:'DELETE',cookie}))).status,204);
+ const row=await db.prepare('SELECT email,display_name FROM operators WHERE id=?').bind(target).first();assert.equal(row.email,'deleted-'+target.toLowerCase()+'@operator.invalid');assert.equal(row.display_name,'Erased operator');
+ const audits=(await db.prepare('SELECT * FROM audit_entries WHERE entity_id=?').bind(target).all()).results;assert.equal(audits.some(a=>a.action==='deleted'&&a.operator_id===actor),true);assert.equal(audits.every(a=>a.payload_json==='{}'&&a.reason===null),true);
 });
 
 contract("TEAM-003", "operator subscriber deletion keeps attribution while erasing the destination", async () => {
@@ -646,7 +588,7 @@ contract("TEAM-003", "operator deletion removes frozen recipients and pending co
   await db.batch([
     db.prepare("INSERT INTO subscribers (id,channel,destination,contact_email,state,selection_mode,token_hash,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?)").bind("01J000000000000000000000D20", "email", "erased-reader@example.test", null, "active", "all", "erased-reader-token", now, now),
     db.prepare("INSERT INTO notification_deliveries (id,subscriber_id,incident_update_id,channel,outcome,queued_at,created_at,updated_at,notification_event_id,notification_event_type) VALUES (?,?,?,?,?,?,?,?,?,?)").bind("01J000000000000000000000D21", "01J000000000000000000000D20", "01J00000000000000000000045", "email", "queued", now, now, now, "erase-envelope-event", "incident-update"),
-    db.prepare("INSERT INTO notification_outbox (id,kind,aggregate_id,payload_json,available_at,attempts,locked_at,completed_at,failed_at,last_error,created_at,updated_at) VALUES (?,?,?,?,?,0,NULL,NULL,NULL,NULL,?,?)").bind("01J000000000000000000000D22", "operator-alert", "pending-contact-erasure", JSON.stringify({ from: "lamp@example.test", recipients: ["erased-reader@example.test"], title: "Webhook disabled", text: "A contact address needs attention." }), now, now, now),
+    db.prepare("INSERT INTO notification_outbox (id,kind,aggregate_id,payload_json,available_at,attempts,locked_at,completed_at,failed_at,last_error,created_at,updated_at) VALUES (?,?,?,?,?,0,NULL,NULL,NULL,NULL,?,?)").bind("01J000000000000000000000D22", "operator-alert", "webhook-deactivated/01J000000000000000000000D20", JSON.stringify({ from: "lamp@example.test", recipients: ["erased-reader@example.test"], title: "Webhook disabled", text: "A contact address needs attention." }), now, now, now),
   ]);
   const deliveries = createDeliveriesService(createDeliveryRepository(db), { mail: new CapturingMail(), fromAddress: "lamp@example.test", subscriberTokenSecret: "erasure-envelope-secret" });
   await deliveries.dispatchDelivery("01J000000000000000000000D21", "https://status.example.test");
@@ -738,20 +680,11 @@ contract("NOTIFY-009", "recipient capture commits without awaiting an unavailabl
   assert.ok((await db.prepare("SELECT id FROM notification_outbox WHERE aggregate_id = ?").bind(eventId).first()));
 });
 
-contract("TEAM-001", "a non-setup operator session reaches the same subscriber management route without a role check", async () => {
-  const { Hono } = await import("hono");
-  const { requireOperator } = await vite.ssrLoadModule("/src/core/features/session/routes.ts");
-  const db = platform.env.DB;
-  const mail = new CapturingMail();
-  const sessions = createSessionService(createSessionRepository(db), mail, "lamp@example.test");
-  await sessions.inviteOperator({ email: "equal-operator@example.test", displayName: "Equal operator", invitedByOperatorId: "01J00000000000000000000001", origin: "https://app.example.test" });
-  const token = new URL(mail.messages[0].text.match(/https:\/\/[^\s]+/)?.[0]).pathname.split("/").at(-1);
-  const session = await sessions.consumeSignIn(token);
-  const app = new Hono();
-  app.use("/api/app/*", requireOperator(sessions));
-  registerSubscriberRoutes(app, createSubscribersService(createSubscriberRepository(db), { tokenSecret: "equal-operator-subscriber-token" }));
-  const response = await app.request("https://app.example.test/api/app/subscribers?limit=5", { headers: { Cookie: `lamp_session=${session.sessionId}` } });
-  assert.equal(response.status, 200);
+contract("TEAM-001", "every active operator reaches the same subscriber management route", async()=>{
+ const {Hono}=await import('hono');const {requireOperator}=await vite.ssrLoadModule('/src/core/features/operators/routes.ts');const db=platform.env.DB,fixture=authFixture(db);
+ await db.prepare("INSERT INTO oa_operators(id,email,display_name,role,status,created_at) VALUES ('equal-operator','equal@example.test','Equal','owner','active',?)").bind(Date.now()).run();
+ const cookie=await fixture.signIn('equal@example.test');const app=new Hono();app.use('*',async(c,next)=>{c.env={DB:db};await next();});app.use('/api/app/*',requireOperator(()=>fixture.auth));registerSubscriberRoutes(app,createSubscribersService(createSubscriberRepository(db),{tokenSecret:'equal-operator-subscriber-token'}));
+ assert.equal((await app.fetch(fixture.request('/api/app/subscribers?limit=5',{cookie}))).status,200);
 });
 
 contract("NOTIFY-003", "one failing recipient cannot strand a healthy recipient, and a concurrent webhook dispatch posts once", async () => {

@@ -1,0 +1,5 @@
+/* T2: the alert source's heading and two facts, label over value. */
+.lamp-home .lamp-alerts__heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.lamp-home .lamp-alerts__facts { display: grid; gap: 8px; margin: 12px 0 0; }
+.lamp-home .lamp-alerts__facts dt { color: var(--lamp-ink-3); font-size: 12px; line-height: 1.35; }
+.lamp-home .lamp-alerts__facts dd { margin: 1px 0 0; font-size: 13px; line-height: 1.4; }

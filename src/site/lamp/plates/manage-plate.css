@@ -1,0 +1,8 @@
+/* Plate C: the Manage subscription page. */
+.lamp-home .lamp-manage .lamp-plate__body { padding: 20px 24px 24px; }
+.lamp-home .lamp-manage__title { margin: 14px 0 8px; }
+.lamp-home .lamp-manage__channel { margin: 0 0 16px; font-size: 14px; }
+.lamp-home .lamp-manage__set { margin-bottom: 20px; padding: 16px 16px 8px; border: 1px solid var(--lamp-line); border-radius: 10px; background: var(--lamp-card-tint); }
+.lamp-home .lamp-manage__legend { display: block; margin-bottom: 4px; font-weight: 600; }
+.lamp-home .lamp-manage__choice { display: flex; align-items: center; gap: 10px; min-height: 36px; font-size: 14px; }
+.lamp-home .lamp-manage__rule { margin: 20px 0; }

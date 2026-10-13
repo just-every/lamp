@@ -6,6 +6,7 @@ import {release, verifyReceipt} from './release.mjs';
 import {changes, extract, compare} from './updates.mjs';
 import {manifest, VERSION} from './manifest.mjs';
 import {snapshot, source, merge} from './sources.mjs';
+import {options, recordCopy, refreshCopies, verifyCopies} from './base-copies.mjs';
 import {hash, json, git, tracked, writeTree, fresh} from './files.mjs';
 
 const root = process.cwd();
@@ -105,7 +106,12 @@ try {
   else if (command === 'changes') result = changes(JSON.parse(fs.readFileSync(path.join(root, 'sources.lock.json'))), resolve(false, true));
   else if (command === 'extract' && argument && candidate) result = extract(root, argument, candidate);
   else if (command === 'compare' && argument && candidate) result = compare(root, argument, candidate, current);
-  else throw Error('Usage: cli.mjs inspect|lock|check|receipt <sidecar-json>|changes|extract <id|parent> <new-output>|compare <id|parent> <candidate-checkout> [current-parent-checkout]|materialize <new-output>|promote <id>|release <new-local-git-repository>');
+  else if (command === 'verify-base') {
+    result = verifyCopies(root, options(args.slice(1), 0));
+    if (!result.ok) process.exitCode = 1;
+  } else if (command === 'record-base') result = recordCopy(root, options(args.slice(1), 3));
+  else if (command === 'refresh-base') result = refreshCopies(root, options(args.slice(1), 1));
+  else throw Error('Usage: cli.mjs inspect|lock|check|receipt <sidecar-json>|changes|extract <id|parent> <new-output>|compare <id|parent> <candidate-checkout> [current-parent-checkout]|materialize <new-output>|promote <id>|release <new-local-git-repository>|verify-base [--record <file>] [--base <checkout>] [--offline]|record-base <path> <origin-path> <revision> [--record <file>] [--base <checkout>]|refresh-base <revision> [--record <file>] [--base <checkout>]');
   console.log(json(result));
 } catch (error) {
   console.error(error.message);

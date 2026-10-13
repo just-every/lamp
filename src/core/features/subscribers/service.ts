@@ -15,16 +15,17 @@ export interface SubscribersService {
   list(limit?: number, offset?: number): Promise<SubscriberView[]>;
   requestEmailSubscription(email: string, origin: string): Promise<void>;
   confirm(token: string): Promise<boolean>;
-  getManagedSubscription(token: string): Promise<{ subscriber: SubscriberView; components: Array<{ id: string; name: string }> } | null>;
+  getManagedSubscription(token: string): Promise<{ unsubscribeToken: string; subscriber: SubscriberView; components: Array<{ id: string; name: string }> } | null>;
   updateManagedSelection(token: string, componentIds: string[]): Promise<boolean>;
   unsubscribe(token: string): Promise<boolean>;
   createWebhookSubscription(input: { destination: string; contactEmail: string; componentIds: string[] }): Promise<SubscriberView>;
   deleteSubscriber(subscriberId: string, operatorId: string): Promise<boolean>;
   expirePending(): Promise<void>;
+  inviteImported(subscriberId: string, origin: string, pageName: string): Promise<boolean>;
 }
 
 export function renderSubscriberTokenPage(title: string, body: string) {
-  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${escapeHtml(title)}</title><style>body{margin:0;background:#f6f9fc;color:#102f60;font:16px/1.55 system-ui,sans-serif}*{box-sizing:border-box}main{width:min(42rem,calc(100% - 32px));margin:clamp(24px,8vh,80px) auto;padding:clamp(20px,5vw,36px);background:#fff;border:1px solid #d8e4ef;border-radius:8px}h1{margin:18px 0 12px;font-size:28px;line-height:1.2;letter-spacing:-.02em}p{color:#456185}a{color:#083e84;font-size:14px;font-weight:650}fieldset{margin:22px 0;padding:16px;border:1px solid #d8e4ef;border-radius:6px}legend{font-weight:700}label{display:flex;align-items:center;gap:10px;min-height:44px;padding:8px 0}input{width:18px;height:18px;flex:none;accent-color:#163c60}form+form{margin-top:24px;padding-top:24px;border-top:1px solid #d8e4ef}button{min-height:44px;padding:10px 18px;border:1px solid #163c60;border-radius:5px;background:#163c60;color:#fff;font:600 15px system-ui,sans-serif;cursor:pointer}form+form button{background:#fff;color:#8a341f;border-color:#d9b4a9}:focus-visible{outline:3px solid #1766bf;outline-offset:3px}</style></head><body><main><a href="/">← Public status page</a><h1>${escapeHtml(title)}</h1>${body}</main></body></html>`;
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light"><title>${escapeHtml(title)}</title><link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/status-page.css"></head><body><main class="page subscriber-page"><header class="masthead subscriber-masthead"><a class="brand" href="/"><img class="brand-logo" src="/assets/favicon.svg" alt=""><span>Status page</span></a></header><section class="subscriber-document" aria-labelledby="subscriber-title"><h1 id="subscriber-title">${escapeHtml(title)}</h1>${body}</section></main></body></html>`;
 }
 
 function normalizeEmail(email: string) {
@@ -169,29 +170,32 @@ export function createSubscribersService(
       const matched = await fromToken(token, "confirm");
       if (!matched || matched.subscriber.state !== "pending") return false;
       const timestamp = nowIso();
-      await repository.activateSubscriber(matched.subscriber.id, timestamp);
-      await repository.revokeTokens(matched.subscriber.id, timestamp, "confirm");
+      if (!await repository.confirmSubscriber({ subscriberId: matched.subscriber.id, tokenHash: matched.token.tokenHash }, timestamp)) return false;
       await emitAfterCommit(() => events.subscriberConfirmed({ subscriberId: matched.subscriber.id, channel: matched.subscriber.channel, occurredAt: timestamp }));
       return true;
     },
     async getManagedSubscription(token) {
       const matched = await fromToken(token, "manage");
-      if (!matched || matched.subscriber.state !== "active") return null;
-      return { subscriber: await view(matched.subscriber), components: await repository.listVisibleComponents() };
+      if (!tokens || !matched || matched.subscriber.state !== "active") return null;
+      const id = createUlid();
+      const candidate = await tokens.encode({ id, scope: "unsubscribe" });
+      const authorizedId = await repository.ensureManagedUnsubscribeToken(matched.subscriber.id, matched.token.tokenHash, { id, tokenHash: await tokens.hash(candidate) }, nowIso());
+      if (!authorizedId) return null;
+      const unsubscribeToken = authorizedId === id ? candidate : await tokens.encode({ id: authorizedId, scope: "unsubscribe" });
+      return { unsubscribeToken, subscriber: await view(matched.subscriber), components: await repository.listVisibleComponents() };
     },
     async updateManagedSelection(token, componentIds) {
       const matched = await fromToken(token, "manage");
       if (!matched || matched.subscriber.state !== "active") return false;
       const valid = new Set((await repository.listVisibleComponents()).map((component) => component.id));
       const unique = [...new Set(componentIds)].filter((componentId) => valid.has(componentId));
-      await repository.updateSelection(matched.subscriber.id, unique, nowIso());
-      return true;
+      return repository.updateManagedSelection({ subscriberId: matched.subscriber.id, tokenHash: matched.token.tokenHash }, unique, nowIso());
     },
     async unsubscribe(token) {
       const matched = await fromToken(token, "unsubscribe");
       if (!matched || matched.subscriber.state === "deactivated") return false;
       const timestamp = nowIso();
-      await repository.deactivateSubscriber(matched.subscriber.id, "unsubscribed", timestamp);
+      if (!await repository.unsubscribeSubscriber({ subscriberId: matched.subscriber.id, tokenHash: matched.token.tokenHash }, timestamp)) return false;
       await emitAfterCommit(() => events.subscriberDeactivated({ subscriberId: matched.subscriber.id, channel: matched.subscriber.channel, occurredAt: timestamp, reason: "unsubscribed" }));
       return true;
     },
@@ -217,14 +221,34 @@ export function createSubscribersService(
       await emitAfterCommit(() => events.subscriberDeactivated({ subscriberId, channel: subscriber.channel, occurredAt: timestamp, reason: "deleted by operator" }));
       return true;
     },
+    /** A subscriber moved from another status page: one confirmation, nothing
+     * about past incidents; without it the subscription expires as SUB-003 says. */
+    async inviteImported(subscriberId, origin, pageName) {
+      const { mail } = requiredMailAndTokens();
+      const subscriber = await repository.findSubscriber(subscriberId);
+      if (!subscriber || subscriber.state !== "pending" || subscriber.channel !== "email") return false;
+      const fromAddress = await configuredFromAddress();
+      const confirm = await issuedToken(subscriber.id, "confirm", new Date(Date.now() + PENDING_WINDOW_MS).toISOString());
+      const unsubscribe = await issuedToken(subscriber.id, "unsubscribe", null);
+      const confirmationUrl = new URL(`/confirm-subscription/${encodeURIComponent(confirm.token)}`, origin).toString();
+      const unsubscribeUrl = new URL(`/unsubscribe/${encodeURIComponent(unsubscribe.token)}`, origin).toString();
+      await mail.send({
+        from: fromAddress, to: subscriber.destination, subject: `Confirm your ${pageName} status subscription`,
+        text: `${pageName} has moved its status page. You subscribed to its updates there; confirm within 72 hours to keep receiving them: ${confirmationUrl}\n\nIf you do nothing, you will receive no further email from this page. Unsubscribe: ${unsubscribeUrl}`,
+        headers: { "Auto-Submitted": "auto-generated" }, idempotencyKey: `subscriber-import-invite/${subscriber.id}`,
+      });
+      return true;
+    },
     async expirePending() {
       await repository.deleteExpiredPending(new Date(Date.now() - PENDING_WINDOW_MS).toISOString());
     },
   };
 }
 
-export function renderSubscriberManagementPage(input: { token: string; subscriber: SubscriberView; components: Array<{ id: string; name: string }> }) {
+export function renderSubscriberManagementPage(input: { unsubscribeToken: string; subscriber: SubscriberView; components: Array<{ id: string; name: string }> }) {
   const selected = new Set(input.subscriber.componentSelections.map((selection) => selection.componentId));
   const checks = input.components.map((component) => `<label><input type="checkbox" name="componentId" value="${escapeHtml(component.id)}"${input.subscriber.selectionMode === "all" || selected.has(component.id) ? " checked" : ""}> ${escapeHtml(component.name)}</label>`).join("");
-  return renderSubscriberTokenPage("Manage subscription", `<p>Channel: ${escapeHtml(input.subscriber.channel)}</p><form method="post"><fieldset><legend>Components</legend><p>Clear every selection to follow all current and future visible components.</p>${checks}</fieldset><button type="submit">Save selection</button></form><form method="post" action="/unsubscribe/${encodeURIComponent(input.token)}"><input type="hidden" name="List-Unsubscribe" value="One-Click"><button type="submit">Unsubscribe</button></form>`);
+  // With no visible components there is nothing to choose between, so the selection form is left out.
+  const selection = checks ? `<form method="post"><fieldset><legend>Components</legend><p>Clear every selection to follow all current and future visible components.</p>${checks}</fieldset><button type="submit">Save selection</button></form>` : "";
+  return renderSubscriberTokenPage("Manage subscription", `<p>Channel: ${escapeHtml(input.subscriber.channel)}</p>${selection}<form method="post" action="/unsubscribe/${encodeURIComponent(input.unsubscribeToken)}"><input type="hidden" name="action" value="unsubscribe"><button type="submit">Unsubscribe</button></form>`);
 }

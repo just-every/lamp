@@ -1,0 +1,63 @@
+/* The article body, rendered from Markdown at build time, in the landing page's type: Inter at 17px on a 40em measure,
+   ink on paper, the dark band's terminal card for code, quiet ruled tables, and lists with a small ink-3 marker. */
+.lamp-home .docs-prose { color: var(--lamp-ink-2); font-size: 17px; line-height: 1.7; letter-spacing: -.003em; overflow-wrap: break-word; }
+.lamp-home .docs-prose > * { max-width: 40em; }
+.lamp-home .docs-prose :is(p, ul, ol, blockquote, .docs-code, .docs-table) { margin: 0 0 1.15em; }
+.lamp-home .docs-prose :is(ul, ol) { padding-left: 1.3em; }
+.lamp-home .docs-prose ul { list-style: none; }
+.lamp-home .docs-prose ul > li { position: relative; }
+.lamp-home .docs-prose ul > li::before { content: ""; position: absolute; left: -1.05em; top: .7em; width: 6px; height: 6px; border-radius: 50%; background: var(--lamp-ink-3); }
+.lamp-home .docs-prose ol { list-style: decimal; }
+.lamp-home .docs-prose ol > li::marker { color: var(--lamp-ink-3); font-weight: 600; font-variant-numeric: tabular-nums; }
+.lamp-home .docs-prose li + li { margin-top: .4em; }
+.lamp-home .docs-prose li > :is(ul, ol) { margin: .4em 0 0; }
+.lamp-home .docs-prose li > p { margin-bottom: .5em; }
+.lamp-home .docs-prose :is(h2, h3, h4, h5, h6) { margin: 0; color: var(--lamp-ink); font-weight: 600; text-wrap: balance; scroll-margin-top: 24px; }
+.lamp-home .docs-prose h2 { margin: 2.3em 0 .6em; font-size: 28px; line-height: 1.15; letter-spacing: -.022em; }
+.lamp-home .docs-prose h3 { margin: 1.8em 0 .5em; font-size: 21px; line-height: 1.3; letter-spacing: -.014em; }
+.lamp-home .docs-prose :is(h4, h5, h6) { margin: 1.6em 0 .4em; font-size: 18px; line-height: 1.4; letter-spacing: -.01em; }
+.lamp-home .docs-prose > :first-child { margin-top: 0; }
+.lamp-home .docs-prose :is(strong, b) { color: var(--lamp-ink); font-weight: 600; }
+.lamp-home .docs-prose hr { margin: 2.4em 0; border: 0; border-top: 1px solid var(--lamp-line-strong); }
+.lamp-home .docs-prose blockquote { padding: 4px 0 4px 18px; border-left: 3px solid var(--lamp-line-strong); color: var(--lamp-ink-3); }
+.lamp-home .docs-prose blockquote > :last-child { margin-bottom: 0; }
+
+/* Links: ink with a soft underline that darkens on hover; links off the site get a small arrow. */
+.lamp-home .docs-prose a, .lamp-home .docs-source a { color: var(--lamp-ink); font-weight: 500; text-decoration: underline; text-decoration-color: rgb(24 45 36 / .35); text-decoration-thickness: 1.5px; text-underline-offset: 4px; }
+.lamp-home :is(.docs-prose a, .docs-source a):hover { text-decoration-color: var(--lamp-ink); }
+.lamp-home .docs-prose a:is([href^="http:"], [href^="https:"])::after { content: "\2197" / ""; display: inline-block; margin-left: .15em; font-size: .8em; text-decoration: none; }
+@media (prefers-reduced-motion: no-preference) {
+  .lamp-home :is(.docs-prose a, .docs-source a) { transition: text-decoration-color .18s; }
+}
+
+/* Code: inline in a quiet chip; blocks in the terminal card of the dark band, wrapped rather than scrolled. */
+.lamp-home .docs-prose code, .lamp-home .docs-source code { padding: .12em .38em; border: 1px solid var(--lamp-line); border-radius: 6px; background: var(--lamp-chip); color: var(--lamp-ink);
+  font-family: var(--lamp-mono); font-size: .86em; overflow-wrap: anywhere; }
+/* Inline code is cut into unbreakable words at build time (build/inline-code.ts); a long phrase wraps only at its spaces. */
+.lamp-home .docs-prose :is(.docs-code-line, .docs-code-words > span) { white-space: nowrap; }
+.lamp-home .docs-code { overflow: hidden; border-radius: 12px; background: var(--lamp-band); box-shadow: var(--lamp-shadow-card); }
+.lamp-home .docs-code-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 42px; padding: 0 12px 0 20px; border-bottom: 1px solid rgb(255 255 255 / .08); }
+.lamp-home .docs-code-lang { color: var(--lamp-terminal-dim); font-size: 12.5px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; }
+.lamp-home .docs-copy { padding: 5px 12px; border: 1px solid rgb(255 255 255 / .18); border-radius: 999px; background: transparent; color: var(--lamp-terminal-ink); font: 500 13px/1.2 var(--lamp-sans); cursor: pointer; }
+.lamp-home .docs-copy:hover { background: rgb(255 255 255 / .08); }
+.lamp-home .docs-copy:focus-visible { outline: 2px solid var(--lamp-on-ink); outline-offset: 2px; border-radius: 999px; }
+.lamp-home .docs-copy[hidden] { display: none; }
+.lamp-home .docs-code pre { margin: 0; padding: 16px 20px 18px; color: var(--lamp-terminal-ink); font-family: var(--lamp-mono); font-size: 14.5px; line-height: 1.7; white-space: pre-wrap; overflow-wrap: anywhere; }
+.lamp-home .docs-prose .docs-code pre code { padding: 0; border: 0; border-radius: 0; background: none; color: inherit; font-size: inherit; }
+
+/* Tables: ruled, scrolling inside their region only when they cannot fit. */
+.lamp-home .docs-table { max-width: 100%; overflow-x: auto; }
+.lamp-home .docs-table table { width: 100%; border-collapse: collapse; font-size: 15.5px; line-height: 1.55; }
+.lamp-home .docs-table :is(th, td) { padding: 10px 16px 10px 0; text-align: left; vertical-align: top; }
+.lamp-home .docs-table th { color: var(--lamp-ink); font-weight: 600; border-bottom: 2px solid var(--lamp-ink); }
+.lamp-home .docs-table td { border-bottom: 1px solid var(--lamp-line-strong); }
+.lamp-home .docs-table:focus-visible { outline: 3px solid var(--lamp-ink); outline-offset: 4px; border-radius: 6px; }
+
+/* Where the page comes from, below it. */
+.lamp-home .docs-source { max-width: 40em; margin: 3em 0 0; padding-top: 16px; border-top: 1px solid var(--lamp-line); color: var(--lamp-ink-3); font-size: 14.5px; line-height: 1.55; }
+
+@container lamp-page (max-width: 599px) {
+  .lamp-home .docs-prose { font-size: 16.5px; }
+  .lamp-home .docs-prose h2 { font-size: 25px; }
+  .lamp-home .docs-code pre { padding: 14px 16px 16px; font-size: 13.5px; }
+}

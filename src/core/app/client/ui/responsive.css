@@ -1,82 +1,87 @@
 @media (max-width: 1180px) {
-  .overview-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .availability-card { grid-column: 1 / -1; }
-  .incident-workspace { grid-template-columns: minmax(220px, .8fr) minmax(390px, 1.35fr); grid-template-areas: "heading heading" "context composer" "preview preview"; }
-  .preview-panel { grid-column: 1 / -1; border-top: 1px solid var(--line); }
-  .preview-card { display: inline-block; width: calc(50% - 10px); vertical-align: top; }
-  .preview-card + .preview-card { margin-left: 16px; }
-  .schedule-window { grid-template-columns: minmax(0, 1fr); }
+  .incident-workspace { grid-template-columns: minmax(220px, .8fr) minmax(390px, 1.35fr); grid-template-areas: "heading heading" "context composer" "context preview" "context actions"; grid-template-rows: auto auto auto auto; }
+  /* Stacked, only the composer keeps the amber: the preview and the Resolve/Publish row after it stay white. */
+  .preview-panel { border-top: 1px solid var(--line); border-left: 0; }
+  .composer-submit { background: var(--card); box-shadow: none; border-top: 1px solid var(--line); padding: 20px 24px 24px; }
 }
 
+/* Under 900px the rail becomes a brand row over a scrolling row of tab pills, then the top bar. */
 @media (max-width: 900px) {
   .operator-shell { width: 100%; min-width: 0; grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); overflow-x: clip; }
   .operator-rail, .operator-workspace, .operator-header, .operator-main { width: 100%; min-width: 0; max-width: 100%; }
-  .operator-rail { position: static; height: auto; border-right: 0; border-bottom: 1px solid var(--line); padding: 14px 18px; }
-  .app-brand { width: fit-content; }
-  .operator-navigation { display: flex; width: 100%; min-width: 0; overflow-x: auto; margin-top: 15px; padding-bottom: 2px; }
-  .operator-nav-link { flex: 0 0 auto; }
-  .operator-rail-footer { display: none; }
-  .operator-header { padding: 0 20px; }
-  .operator-main { padding: 23px 20px; }
-  .content-grid, .incident-workspace { grid-template-columns: 1fr; }
-  .incident-workspace { grid-template-areas: "heading" "composer" "preview" "context"; }
-  .settings-workspace { grid-template-columns: 1fr; }
-  .alert-source-grid { grid-template-columns: 1fr; }
-  aside.incident-context, .composer-panel { border-right: 0; border-bottom: 1px solid var(--line); }
-  .preview-panel { grid-column: auto; }
-  .preview-card { display: block; width: auto; }
-  .preview-card + .preview-card { margin-left: 0; }
-  .unavailable-grid { grid-template-columns: 1fr; }
+  .operator-workspace { border-left: 0; }
+  .operator-rail { position: static; height: auto; border-bottom: 1px solid var(--line); padding: 16px 16px 12px; }
+  .app-brand { width: fit-content; padding: 0; }
+  .operator-navigation { position: relative; display: flex; width: calc(100% + 32px); min-width: 0; gap: 6px; margin: 14px -16px 0; overflow-x: auto; overscroll-behavior-inline: contain; scrollbar-width: none; padding: 2px 16px; }
+  .operator-navigation::-webkit-scrollbar { display: none; }
+  .operator-nav-link { flex: 0 0 auto; min-height: 40px; gap: 8px; border: 1px solid var(--line); border-radius: 999px; padding: 0 14px; font-size: 14px; }
+  .operator-nav-link.is-active { border-color: transparent; }
+  .operator-nav-link svg { width: 16px; height: 16px; }
+  .operator-rail-footer { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 12px; margin-top: 12px; padding: 12px 0 0; font-size: 12px; }
+  .operator-rail-footer p { margin: 0; }
+  .operator-header { position: static; height: 64px; padding: 0 16px; }
+  .operator-main { padding: 24px 16px; }
+  .incident-workspace { grid-template-columns: 1fr; grid-template-areas: "heading" "composer" "preview" "actions" "context"; }
+  aside.incident-context { border-right: 0; border-top: 1px solid var(--line); }
+  .settings-workspace, .alert-source-grid, .maintenance-workspace { grid-template-columns: 1fr; }
+  .maintenance-schedule-card { position: static; }
   .subscriber-webhook-card, .subscriber-webhook-form, .operators-invite-form { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 620px) {
-  .operator-header { height: 56px; }
+  h1 { font-size: 32px; }
+  .operator-header { height: auto; min-height: 56px; flex-wrap: wrap; gap: 10px; padding-block: 10px; }
+  .operator-header > p { font-size: 14px; gap: 8px; }
+  .operator-account { flex-wrap: wrap; max-width: 100%; gap: 10px; }
+  .operator-identity { min-width: 0; font-size: 13px; overflow-wrap: anywhere; }
   .operator-identity small { display: none; }
-  .operator-main { padding: 19px 14px; }
-  .page-title-row { align-items: flex-start; flex-direction: column; }
-  .overview-grid, .settings-grid { grid-template-columns: 1fr; }
-  .alert-editor-form { grid-template-columns: 1fr; }
-  .availability-card { grid-column: auto; }
+  .header-signout { min-height: 36px; padding: 6px 14px; font-size: 13px; }
+  .operator-main { padding: 20px 16px; }
+  .page-title-row { align-items: stretch; flex-direction: column; min-height: 0; }
   .page-title-row .button { width: 100%; }
+  .overview-grid, .settings-grid, .alert-editor-form, .row-window { grid-template-columns: minmax(0, 1fr); }
   .data-card { padding: 16px; }
-  .subscriber-table-card { padding: 0; }
-  .maintenance-row { flex-direction: column; }
-  .maintenance-row > div:last-child { justify-items: start; text-align: left; }
-  .maintenance-workspace { grid-template-columns: 1fr; }
-  .maintenance-schedule-card { position: static; }
-  .schedule-window { grid-template-columns: minmax(0, 1fr); }
-  .schedule-window .form-label, .schedule-window input { min-width: 0; max-width: 100%; }
-  .record-row { grid-template-columns: auto minmax(0, 1fr) auto; }
-  .record-row .state-pill { grid-column: 2; }
-  .record-row > svg { grid-row: 1; grid-column: 3; }
-  .incident-list-row { grid-template-columns: auto minmax(0, 1fr) auto; }
-  .incident-row-state { display: none; }
-  .list-controls { align-items: stretch; flex-direction: column; }
-  .list-controls .limit-note { margin-left: 0; }
-  .list-pagination { align-items: stretch; flex-direction: column; }
-  .list-pagination > div { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .claim-drawer { padding: 22px; }
-  .composer-panel, aside.incident-context, .preview-panel { padding: 19px; }
+  .subscriber-table-card, .component-group-card { padding: 0; }
+  .incident-create-panel { padding: 16px; }
+  .app-state-empty { padding: 24px 8px; }
+  .app-state-error { min-height: calc(100vh - 200px); border-radius: 16px; padding: 0 16px 40px; }
+  .error-lamp { --lamp-static-w: 200px; }
+  .error-light { top: calc(200px * .62); }
+  .error-notice { padding: 22px 20px; font-size: 18px; }
+  .signin-lamp { --lamp-static-w: 170px; --lamp-static-cord: 24px; margin-bottom: calc(40px - .28 * var(--lamp-static-w)); }
+  .signin-pool { top: 90px; }
+  /* Rows keep their state: the chip moves under the meta. */
+  .record-row { grid-template-columns: auto minmax(0, 1fr) auto; row-gap: 8px; padding-inline: 8px; }
+  .record-row .state-pill { grid-column: 2; grid-row: 2; }
+  .record-row > svg:last-child { grid-row: 1; grid-column: 3; }
+  .incident-list-row { grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "ref chevron" "content chevron" "state chevron"; row-gap: 6px; padding-inline: 8px; }
+  .incident-list-row .record-ref { grid-area: ref; }
+  .incident-row-content { grid-area: content; }
+  .incident-row-state { grid-area: state; display: flex; flex-wrap: wrap; align-items: center; justify-items: start; gap: 8px; }
+  .incident-list-row .row-chevron { grid-area: chevron; }
+  .compact-records > div { grid-template-columns: 56px minmax(0, 1fr); }
+  .incident-workspace-heading { padding: 20px 16px; }
+  .incident-workspace-heading .context-facts { grid-template-columns: 1fr; gap: 0; }
+  .incident-workspace-heading .context-facts div { flex-direction: row; justify-content: space-between; border-bottom: 1px solid var(--line); padding: 10px 0; }
+  .incident-workspace-heading .context-facts div + div { border-left: 0; padding-left: 0; }
+  .incident-workspace-heading .context-facts div:last-child { border-bottom: 0; }
+  .incident-workspace-heading .context-facts strong { text-align: right; }
+  .composer-panel, aside.incident-context, .preview-panel { padding: 20px 16px; }
+  .composer-submit { padding: 16px; }
   .composer-actions { flex-direction: column; }
   .composer-actions .button { width: 100%; }
-  .date-row { grid-template-columns: minmax(0, 1fr); max-width: none; }
+  .lifecycle-control { grid-template-columns: 1fr; gap: 6px; }
   .publication-controls { flex-direction: column; }
   .template-form { flex-direction: column; align-items: stretch; }
   .template-form .form-label { flex-basis: auto; }
-  .incident-workspace-heading { padding: 19px; }
-  .incident-workspace-heading .context-facts { grid-template-columns: 1fr; }
-  .operator-header { padding-inline: 14px; gap: 10px; }
-  .operator-header > p { font-size: 12px; gap: 5px; }
-  .operator-account { gap: 8px; }
-  .operator-identity { font-size: 12px; }
-  .header-signout { padding-inline: 10px; font-size: 12px; }
-  input, select, textarea { font-size: 16px; }
+  .composer-heading { flex-wrap: wrap; }
+  .list-controls { align-items: stretch; flex-direction: column; }
+  .list-pagination { align-items: stretch; flex-direction: column; }
+  .list-pagination > div { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .claim-drawer { padding: 20px 16px; }
   .drawer-actions { flex-wrap: wrap; }
-  .signin-card { padding: 28px; }
-}
-
-@media (max-width: 620px) {
+  .maintenance-row > div:last-child { justify-items: start; text-align: left; }
   .operator-row { align-items: flex-start; flex-direction: column; }
   .operator-actions { justify-content: flex-start; }
+  :where(input:not(.lamp-home *), select:not(.lamp-home *), textarea:not(.lamp-home *)) { font-size: 16px; }
 }

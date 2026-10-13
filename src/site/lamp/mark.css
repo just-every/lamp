@@ -1,0 +1,36 @@
+/* The header lockup: mark 18 (art/lamp-badge.svg, the owner's choice) beside the wordmark, in the proportions of the
+   logo sheet's 40px lockup (modern/logo/all-marks-2.png): the mark --lamp-mark-w square, the gap 9/40 of it, "Lamp"
+   at 38/40 of it in Inter 600 at -0.035em, the name's line centred on the mark. From 1024px the mark is 42 units, so the
+   wordmark keeps design C's 40 units; narrower it is 32px, and 30px under 600px. Its size and its slot's top are whole
+   pixels, centred on the header's first row, so the circle and the seam between dome and light are drawn where the SVG
+   puts them at every width.
+   The handoff: at the top of the page the mark waits wholly above the top edge and the wordmark stands in the slot's
+   place. While the big lamp passes up into the header (--lamp-p, measured on the lamp by PageMotion), the mark
+   drops into the slot over the whole handoff, eased, landing exactly as the bulb leaves. The wordmark steps aside once
+   the mark's foot shows below the top edge and has made room (0.05–0.4, eased in and out) before the falling mark
+   reaches the name's line, so the two never overlap. At every moment the lamp's bulb is still below
+   the header, or the mark shows, or both. Transforms only. */
+.lamp-home .lamp-brand {
+  --lamp-mark-w: 30px;
+  --lamp-mark-top: calc((var(--lamp-header-h) - var(--lamp-mark-w)) / 2);
+  --lamp-mark-gap: calc(var(--lamp-mark-w) * 9 / 40);
+  --lamp-brand-size: calc(var(--lamp-mark-w) * 38 / 40);
+  --lamp-drop: clamp(0, var(--lamp-p, 0), 1);
+  --lamp-landed: calc(var(--lamp-drop) * (2 - var(--lamp-drop)));
+  --lamp-step: clamp(0, (var(--lamp-p, 0) - .05) / .35, 1);
+  --lamp-aside: calc(var(--lamp-step) * var(--lamp-step) * (3 - 2 * var(--lamp-step)));
+}
+.lamp-home .lamp-brand__slot { position: relative; flex: none; width: var(--lamp-mark-w); height: var(--lamp-mark-w); }
+.lamp-home .lamp-brand__mark { position: absolute; inset: 0; display: block; width: 100%; height: 100%;
+  transform: translateY(calc((1 - var(--lamp-landed)) * -1 * (100% + var(--lamp-mark-top) + 4px))); }
+.lamp-home .lamp-brand__name { transform: translateX(calc((1 - var(--lamp-aside)) * -1 * (var(--lamp-mark-w) + var(--lamp-mark-gap)))); }
+@container lamp-page (min-width: 600px) {
+  .lamp-home .lamp-brand { --lamp-mark-w: 32px; --lamp-mark-top: round(calc((var(--lamp-header-h) - var(--lamp-mark-w)) / 2), 1px); }
+}
+@container lamp-page (min-width: 1024px) {
+  .lamp-home .lamp-brand { --lamp-mark-w: max(30px, round(calc(42 * var(--hu)), 1px)); }
+}
+/* Without motion, or without the script that tracks the scroll, the mark simply sits in its slot. */
+@media (prefers-reduced-motion: reduce), (scripting: none) {
+  .lamp-home .lamp-brand { --lamp-landed: 1; --lamp-aside: 1; }
+}

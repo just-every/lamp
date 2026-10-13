@@ -31,10 +31,10 @@ install and full `pnpm verify`, with no skipped or failed requirements, plus:
 
 ## Release evidence boundary
 
-Version 1.1.0 adds real SendGrid support, deployment and restore correctness, owner
-sidecar migrations, delivery acceptance details, and native AI adapter
-configuration. The original local 1.0.0 release is preserved. Local behavior suites
-and provider-shaped test fixtures do not constitute live acceptance.
+Version 1.2.0 adds first-run setup and the setup checklist, a composer that starts
+each update fresh, command-line sign-in links, public page polish and the rer
+command line. Its `pnpm verify` covers these locally, in real Workers and browsers;
+local suites and provider-shaped test fixtures do not constitute live acceptance.
 
 Record completion evidence outside the distributed source tree, bound to the exact
 candidate and adopting installation. Include deployment and verifier identities,

@@ -20,7 +20,7 @@ pnpm exec playwright install chromium
 
 The journey currently proves:
 
-- the first public request persists initial page settings and writes an empty public snapshot to local R2;
+- fresh page-host reads return neutral 503 without creating settings or an owner; explicit first-owner setup enables the real public snapshot while the app-host homepage remains available;
 - public HTML has no-script status, subscription form, component marks, expected public asset paths, cache headers, and isolation headers;
 - feed, widget, incident, history, status payload, and public CSS/JavaScript are snapshot artifacts; the widget is bounded and XSS-safe (`textContent`, never `innerHTML`);
 - invalid subscriptions return 400 and a valid form submission truthfully returns 503 while mail is unconfigured;
@@ -36,7 +36,7 @@ The journey currently proves:
 
 ## Built deployment artifact
 
-`tests/e2e/deployment-artifact.test.mjs` runs `pnpm deploy -- --dry-run` using typed non-secret test configuration, then starts the exact generated `dist/server/wrangler.json` Start Worker with fresh local D1/R2/Queue persistence. It proves the app host serves `/signin` and its bundled JavaScript, rejects the public root on the app host, the page host reports an honest no-snapshot `503` and rejects `/signin`, and an unknown host is rejected. It performs no Cloudflare API call or deployment.
+`tests/e2e/deployment-artifact.test.mjs` runs `pnpm deploy -- --dry-run` using typed non-secret test configuration, then starts the exact generated `dist/server/wrangler.json` Start Worker with fresh local D1/R2/Queue persistence. It proves the app host serves `/signin` and its bundled JavaScript and its own root is the landing page, the page host reports an honest no-snapshot `503` and rejects `/signin`, and an unknown host is rejected. It performs no Cloudflare API call or deployment.
 
 ## Browser verification
 

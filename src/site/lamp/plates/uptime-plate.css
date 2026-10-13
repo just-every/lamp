@@ -1,0 +1,17 @@
+/* Plate E1: one component's availability row; the strip with the figure beside it, the proof in Inter at 28px; the
+   window, legend and the stated method's first two sentences. */
+.lamp-home .lamp-uptime__group { margin-top: 14px; }
+.lamp-home .lamp-uptime__row { display: flex; flex-wrap: wrap; align-items: baseline; column-gap: 12px; margin: 6px 0 12px; font-size: 13px; }
+.lamp-home .lamp-uptime__name { font-weight: 500; }
+.lamp-home .lamp-uptime__state { display: inline-flex; align-items: center; gap: 6px; }
+.lamp-home .lamp-uptime__note { flex-basis: 100%; margin-top: 2px; }
+.lamp-home .lamp-uptime__measure { display: flex; align-items: center; gap: 16px; }
+.lamp-home .lamp-uptime__measure .lamp-strip { flex: 1; min-width: 0; }
+.lamp-home .lamp-uptime__figure { flex: none; font: 600 28px/1 var(--lamp-sans); letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+.lamp-home .lamp-uptime__window { display: block; margin-top: 8px; font-size: 11px; }
+.lamp-home .lamp-uptime__legend { display: flex; flex-wrap: wrap; gap: 4px 16px; margin: 12px 0 0; font-size: 11px; }
+.lamp-home .lamp-uptime__legend span { display: inline-flex; align-items: center; gap: 6px; }
+.lamp-home .lamp-uptime__swatch { display: inline-block; width: 9px; height: 9px; border-radius: 2px; background: var(--lamp-uptime); }
+.lamp-home .lamp-uptime__swatch--down { background: var(--lamp-ink); }
+.lamp-home .lamp-uptime__swatch--none { box-sizing: border-box; border: 1px solid rgb(24 45 36 / .3); background: none; }
+.lamp-home .lamp-uptime__method { margin: 10px 0 0; font-size: 11px; line-height: 1.5; }

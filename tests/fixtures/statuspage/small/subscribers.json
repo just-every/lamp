@@ -1,0 +1,38 @@
+[
+  {
+    "id": "s0000000001",
+    "skip_confirmation_notification": false,
+    "mode": "email",
+    "email": "subscriber1@example.test",
+    "endpoint": null,
+    "phone_number": null,
+    "phone_country": null,
+    "display_phone_number": null,
+    "obfuscated_channel_name": null,
+    "workspace_name": null,
+    "quarantined_at": null,
+    "purge_at": null,
+    "components": [],
+    "page_access_user_id": null,
+    "created_at": "2026-01-03T00:00:00.000Z"
+  },
+  {
+    "id": "s0000000002",
+    "skip_confirmation_notification": false,
+    "mode": "email",
+    "email": "subscriber2@example.test",
+    "endpoint": null,
+    "phone_number": null,
+    "phone_country": null,
+    "display_phone_number": null,
+    "obfuscated_channel_name": null,
+    "workspace_name": null,
+    "quarantined_at": null,
+    "purge_at": null,
+    "components": [
+      "c0000000001"
+    ],
+    "page_access_user_id": null,
+    "created_at": "2026-01-03T00:00:00.000Z"
+  }
+]

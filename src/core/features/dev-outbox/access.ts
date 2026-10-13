@@ -1,9 +1,12 @@
+import { isSameOriginSubscriberPost } from './subscriber-origin.mjs';
+
 /** The compiler removes development access from the emitted production Worker.
  * A runtime binding, request header or localhost URL cannot turn it back on. */
 export interface DevelopmentMailBindings {
   LAMP_APP_HOST: string;
   LAMP_PAGE_HOST: string;
   LAMP_DEV_OUTBOX?: R2Bucket;
+  LAMP_BASE_MAIL?: D1Database;
 }
 
 const localHosts = new Set(['localhost', '127.0.0.1', '[::1]']);
@@ -20,12 +23,22 @@ function localAuthority(authority: string): boolean {
   } catch { return false; }
 }
 
-export function canUseDevelopmentMail(bindings: DevelopmentMailBindings, request?: Request): boolean {
-  if (import.meta.env?.DEV !== true || !bindings.LAMP_DEV_OUTBOX) return false;
-  if (!isLoopbackHostname(bindings.LAMP_APP_HOST) || !isLoopbackHostname(bindings.LAMP_PAGE_HOST)) return false;
-  // Scheduled/queue work has no client authority. Its configuration must still
-  // belong to the real local development runtime and its separate local store.
-  if (!request) return true;
+/** Development serves the app host and the page host on one port. They are
+ * distinct sites, so following a link from one surface to the other arrives as
+ * a cross-site request. Only a top-level GET or HEAD document navigation, with
+ * no Origin and a Referer from the other configured surface on this same
+ * scheme and port, qualifies; a foreign page cannot produce that Referer. */
+function crossSurfaceNavigation(bindings: DevelopmentMailBindings, request: Request, url: URL): boolean {
+  if (!['GET', 'HEAD'].includes(request.method) || request.headers.has('origin')) return false;
+  if (request.headers.get('sec-fetch-mode') !== 'navigate' || request.headers.get('sec-fetch-dest') !== 'document') return false;
+  let referrer: URL;
+  try { referrer = new URL(request.headers.get('referer') ?? ''); } catch { return false; }
+  const surfaces = [bindings.LAMP_APP_HOST.toLowerCase(), bindings.LAMP_PAGE_HOST.toLowerCase()];
+  return referrer.protocol === url.protocol && referrer.port === url.port && surfaces.includes(referrer.hostname.toLowerCase())
+    && referrer.origin !== url.origin && !referrer.username && !referrer.password;
+}
+
+function localDevelopmentRequest(bindings: DevelopmentMailBindings, request: Request, admitCrossSurfaceNavigation: boolean): boolean {
   const url = new URL(request.url);
   if (!['http:', 'https:'].includes(url.protocol) || url.username || url.password || !localAuthority(url.host)) return false;
   if (![bindings.LAMP_APP_HOST.toLowerCase(), bindings.LAMP_PAGE_HOST.toLowerCase()].includes(url.hostname.toLowerCase())) return false;
@@ -34,8 +47,29 @@ export function canUseDevelopmentMail(bindings: DevelopmentMailBindings, request
   }
   const host = request.headers.get('host');
   if (host !== null && (!localAuthority(host) || new URL(`${url.protocol}//${host}`).host !== url.host)) return false;
-  if (request.headers.get('sec-fetch-site') === 'cross-site') return false;
+  if (request.headers.get('sec-fetch-site') === 'cross-site' && !(admitCrossSurfaceNavigation && crossSurfaceNavigation(bindings, request, url))) return false;
   const origin = request.headers.get('origin');
-  if (origin !== null && origin !== url.origin) return false;
+  if (origin !== null && origin !== url.origin
+    && !isSameOriginSubscriberPost(request.method, `${url.pathname}${url.search}`, origin, request.headers.get('sec-fetch-site'))) return false;
   return true;
+}
+
+function developmentConfigured(bindings: DevelopmentMailBindings): boolean {
+  return !!bindings.LAMP_DEV_OUTBOX && isLoopbackHostname(bindings.LAMP_APP_HOST) && isLoopbackHostname(bindings.LAMP_PAGE_HOST);
+}
+
+/** Mail capture and the outbox never act on a cross-site request. */
+export function canUseDevelopmentMail(bindings: DevelopmentMailBindings, request?: Request): boolean {
+  if (import.meta.env?.DEV !== true || !developmentConfigured(bindings)) return false;
+  // Scheduled/queue work has no client authority. Its configuration must still
+  // belong to the real local development runtime and its separate local store.
+  if (!request) return true;
+  return localDevelopmentRequest(bindings, request, false);
+}
+
+/** Admission for every request the development Worker serves: the same local
+ * checks, plus a navigation that follows a link between the two surfaces. */
+export function admitsDevelopmentRequest(bindings: DevelopmentMailBindings, request: Request): boolean {
+  if (import.meta.env?.DEV !== true || !developmentConfigured(bindings)) return false;
+  return localDevelopmentRequest(bindings, request, true);
 }

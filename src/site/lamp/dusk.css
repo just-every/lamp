@@ -1,0 +1,35 @@
+/* The dim room: before the lamp clicks on, the first screen is at dusk, not night. The dusk is the page's background,
+   not a layer over it: it sits at z-index -1 inside the page, above the page's own paper and below everything else, so
+   the header, the lamp and its cord, the headline, the subline, the two actions and the closing line are all drawn above
+   it, in their own colours, and are on the page from the first frame. What dusk changes is the ground they sit on: a
+   warm grey-khaki (--lamp-dusk), dim but readable, where the headline's ink holds more than 3:1 and the finer lines
+   about 3:1.
+   It reaches past the intro's foot by the handoff's scroll range (60% of the intro) and 30svh more, fading out over
+   those last 30svh, so a visitor who scrolls while the room is still dim never uncovers lit paper under it; sections
+   that paint a ground of their own cover it. The light lifts the dusk from the bulb's centre (.1405 of the canvas above
+   its bottom) outward: --lamp-reach is the radius of the light's front (timeline.css), centred on the bulb. The layer
+   and the lamp scroll together with the page. The front is no disc edge but a long warm ramp (--lamp-band, as wide as
+   the reach itself, up to 38vmax): the mask rises on a smoothstep over the whole band, and the dusk's colour warms
+   from amber at the lit side to the grey-khaki at the dim side, so the paper comes through as warmth rather than a
+   bright cream shape, and the lit area opens like a vignette receding to the corners. Inside the band's lit edge the
+   page is clear paper, exactly the lit page. At --lamp-cover the band has passed every corner of the screen, however
+   far the visitor has scrolled (--lamp-scroll, from PageMotion). The layer rests invisible, which is the lit
+   page, and the first keyboard focus anywhere on the page (IntroReady's `data-shown`) lifts it at once and for good. */
+@property --lamp-reach { syntax: '<length>'; inherits: false; initial-value: 0px; }
+.lamp-home .lamp-dusk {
+  --lamp-bulb: 50% calc(var(--lamp-y) - var(--lamp-h) * .1405);
+  --lamp-flick: calc(var(--lamp-w) * .5);
+  --lamp-band: min(var(--lamp-reach), 38vmax);
+  --lamp-cover: calc(hypot(50cqw, max(var(--lamp-y), 100svh + var(--lamp-scroll, 0px) - var(--lamp-y)) + 40px) + 38vmax);
+  position: absolute; z-index: -1; inset: 0 0 calc(-60% - 30svh); pointer-events: none; opacity: 0;
+  background: radial-gradient(circle at var(--lamp-bulb), rgb(var(--lamp-dusk-warm)) calc(var(--lamp-reach) - var(--lamp-band)),
+    rgb(var(--lamp-dusk)) var(--lamp-reach), rgb(var(--lamp-dusk-far)) calc(var(--lamp-reach) + 90svh));
+  mask-image: radial-gradient(circle at var(--lamp-bulb), transparent calc(var(--lamp-reach) - var(--lamp-band)),
+      rgb(0 0 0 / .04) calc(var(--lamp-reach) - var(--lamp-band) * .85), rgb(0 0 0 / .14) calc(var(--lamp-reach) - var(--lamp-band) * .7),
+      rgb(0 0 0 / .32) calc(var(--lamp-reach) - var(--lamp-band) * .55), rgb(0 0 0 / .55) calc(var(--lamp-reach) - var(--lamp-band) * .4),
+      rgb(0 0 0 / .77) calc(var(--lamp-reach) - var(--lamp-band) * .25), rgb(0 0 0 / .93) calc(var(--lamp-reach) - var(--lamp-band) * .1),
+      #000 var(--lamp-reach)),
+    linear-gradient(to bottom, #000 calc(100% - 30svh), transparent);
+  mask-composite: intersect;
+}
+.lamp-home .lamp-intro[data-shown] .lamp-dusk { opacity: 0 !important; }

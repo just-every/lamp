@@ -37,17 +37,30 @@ function validDate(value: string) {
   return date;
 }
 
-function dateFormatter(timezone: string) {
-  return new Intl.DateTimeFormat("en-US", { timeZone: timezone, year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit", hourCycle: "h23" });
+// "Oct 9, 2026, 13:12", built from the formatter's parts: engines join a date and a time with different words (V8
+// writes "Oct 9, 2026, 13:12", Safari's WebKit "Oct 9, 2026 at 13:12"), and the same instant must read the same
+// wherever it is formatted, or a page rendered on the server and hydrated in a browser no longer matches itself.
+function dateTimeText(date: Date, timezone: string) {
+  const parts = new Intl.DateTimeFormat("en-US", { timeZone: timezone, year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).formatToParts(date);
+  const part = (type: Intl.DateTimeFormatPartTypes) => parts.find((entry) => entry.type === type)?.value;
+  return `${part("month")} ${part("day")}, ${part("year")}, ${part("hour")}:${part("minute")}`;
 }
 
 export function formatTime(value: string, timezone: string) {
   const date = validDate(value);
   const zoneName = new Intl.DateTimeFormat("en-US", { timeZone: timezone, timeZoneName: "longOffset" }).formatToParts(date).find((part) => part.type === "timeZoneName")?.value;
-  if (zoneName === "GMT") return `${dateFormatter(timezone).format(date)} UTC+00:00`;
+  if (zoneName === "GMT") return `${dateTimeText(date, timezone)} UTC+00:00`;
   const offset = /^GMT([+-]\d{2}:\d{2})$/.exec(zoneName ?? "")?.[1];
   if (!offset) throw new Error("A public timezone offset is invalid.");
-  return `${dateFormatter(timezone).format(date)} UTC${offset}`;
+  return `${dateTimeText(date, timezone)} UTC${offset}`;
+}
+
+export function timezoneLabel(timezone: string) {
+  const label = new Intl.DateTimeFormat("en-US", { timeZone: timezone, timeZoneName: "longGeneric" })
+    .formatToParts(new Date(0))
+    .find((part) => part.type === "timeZoneName")?.value;
+  if (!label) throw new Error("A public timezone label is invalid.");
+  return `${label} (${timezone})`;
 }
 
 export function timestamp(value: string, timezone: string) {

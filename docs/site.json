@@ -1,0 +1,89 @@
+{
+  "sections": [
+    {
+      "title": "Start here",
+      "pages": [
+        {
+          "slug": "overview",
+          "title": "Overview",
+          "source": "README.md",
+          "sections": ["Run it on your computer", "Moving in"],
+          "summary": "What Lamp is, and how to run it on your own computer in a few commands."
+        },
+        {
+          "slug": "moving-in",
+          "title": "Move in from Statuspage",
+          "source": "docs/moving-in.md",
+          "summary": "Bring your components, incident history, maintenance and subscribers from a hosted status page, with a dry run first and undo after."
+        },
+        {
+          "slug": "first-run",
+          "title": "First run and sign-in",
+          "source": "README.md",
+          "sections": ["Setup readiness", "Sign in from your terminal"],
+          "summary": "Finish setup with the checklist, and sign in from your terminal when email will not reach you."
+        }
+      ]
+    },
+    {
+      "title": "Go live",
+      "pages": [
+        {
+          "slug": "deploy",
+          "title": "Deploy to Cloudflare",
+          "source": "README.md",
+          "sections": ["Owner-controlled operations", "Verify the source"],
+          "summary": "The inputs a real deployment needs, what the deploy command does for you, and how to verify the source first."
+        },
+        {
+          "slug": "deployment-reference",
+          "title": "Deployment reference",
+          "source": "OPERATIONS.md",
+          "sections": ["Owner inputs", "Deployment and checks", "Native workers.dev deployment", "Independent external heartbeat"],
+          "summary": "Every owner input in detail, the checks a deploy runs, hosting on workers.dev and an independent heartbeat."
+        },
+        {
+          "slug": "domains",
+          "title": "Hostnames and your own domain",
+          "source": "OPERATIONS.md",
+          "sections": ["Hostnames and DNS", "Your own domain"],
+          "summary": "Choose the status page's and the operator app's hostnames, and put your domain on Cloudflare."
+        }
+      ]
+    },
+    {
+      "title": "Keep it running",
+      "pages": [
+        {
+          "slug": "backups-and-recovery",
+          "title": "Backups and recovery",
+          "source": "OPERATIONS.md",
+          "sections": ["Provider uncertainty and recovery", "Portable backups and restore", "Dependency failure", "Retained public snapshots"],
+          "summary": "Export and restore every record, what Lamp does when a dependency fails, how uncertain mail is reconciled, and the retained public snapshots."
+        }
+      ]
+    },
+    {
+      "title": "Reference",
+      "pages": [
+        {
+          "slug": "changelog",
+          "title": "Changelog",
+          "source": "CHANGELOG.md",
+          "summary": "What changed in each release, and what to do when upgrading."
+        }
+      ]
+    }
+  ],
+  "githubOnly": [
+    { "source": "README.md", "section": "Local build", "reason": "Describes the build and the browser suites for maintainers." },
+    { "source": "README.md", "section": "Visual references", "reason": "Screenshots in visual/ document the surfaces for maintainers; the site publishes text only." },
+    { "source": "README.md", "section": "Customise and share improvements", "reason": "The authoring workflow for the owner's agent, covered by AGENTS.md." },
+    { "source": "README.md", "section": "Shared source refactor", "reason": "Source maintenance notes for the edition's maintainers." },
+    { "source": "OPERATIONS.md", "section": "Optional shared event relay", "reason": "For an owner-operated mail event relay shared between products." },
+    { "source": "OPERATIONS.md", "section": "Inspect without deployment", "reason": "Command descriptions and the preview wrapper for the delivery service." },
+    { "source": "OPERATIONS.md", "section": "Independent release and local browser setup", "reason": "Independent delivery and installer setup for maintainers and delivery services." },
+    { "source": "OPERATIONS.md", "section": "Remote verification evidence", "reason": "Exact-source verification receipts for maintainers." },
+    { "source": "OPERATIONS.md", "section": "Shared operator authentication", "reason": "Upgrade notes for the shared sign-in refresh, for maintainers." }
+  ]
+}

@@ -5,16 +5,37 @@ export interface OperatorIdentity {
 }
 
 export interface AppBindings {
-  LAMP_BOOTSTRAP_SECRET?: string;
+  /** Holds background delivery and channel sends in their durable outboxes during a move. */
+  EFFECTS_PAUSED?: string;
+  SETUP_TOKEN?: string;
+  SESSION_SECRET?: string;
+  SETUP_OPERATOR_EMAIL?: string;
+  AUTH_ORIGIN?: string;
+  AUTH_LOCAL?: string;
+  LAMP_LOCAL_ORIGIN?: string;
+  RER_DEV_ORIGIN?: string;
+  RER_DEV_KEY?: string;
+  RER_DEV_IDENTITY?: string;
+  IDENTITY_PROVIDER?: string;
+  OIDC_TRANSACTION_SECRET?: string;
+  AUTH_PROVIDERS?: string;
   RER_MANAGEMENT_ORIGIN?: string;
   RER_INSTALLATION_ID?: string;
+  /** Owner-selected external watch; absent means off. Treat capability URLs as secrets. */
+  LAMP_HEARTBEAT_URL?: string;
+  LAMP_HEARTBEAT_INTERVAL_MINUTES?: string;
   DB: D1Database;
   SNAPSHOTS: R2Bucket;
   /** Local Vite development only; never part of deployment or archive storage. */
   LAMP_DEV_OUTBOX?: R2Bucket;
+  LAMP_BASE_MAIL?: D1Database;
   SNAPSHOT_CACHE: DurableObjectNamespace;
   JOBS: Queue<import("../platform/jobs").LampJob>;
   ASSETS: Fetcher;
+  /** Set by a deploy that records its identity; /health reports them (Base deploymentHealth). */
+  RER_DEPLOY_SOURCE?: string;
+  RER_DEPLOY_FINGERPRINT?: string;
+  RER_VERSION?: { id: string };
   LAMP_PAGE_HOST: string;
   LAMP_APP_HOST: string;
   MAIL_FROM_ADDRESS: string;
@@ -28,10 +49,15 @@ export interface AppBindings {
   AI_PROVIDER_URL?: string;
   AI_PROVIDER_API_KEY?: string;
   AI_PROVIDER_MODEL?: string;
+  /** Local Vite development only: a loopback stand-in for api.statuspage.io. */
+  LAMP_DEV_STATUSPAGE_ORIGIN?: string;
+  /** Local Vite development only: a loopback receiver standing in for Slack and Teams. */
+  LAMP_DEV_CHANNEL_RECEIVER?: string;
 }
 
 export interface AppVariables {
-  operator: OperatorIdentity;
+  operator: import("../features/operators/repository").StoredOperator;
+  operatorSession: import("@runeditrun/rer/modules/operator-auth").Session;
 }
 
 export interface AppEnv {

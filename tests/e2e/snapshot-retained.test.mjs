@@ -96,5 +96,53 @@ test("PAGE-005 PAGE-006 PAGE-007 cold durable replica keeps complete generations
     assert.equal(new Set(failedPointer.attemptedVersions).size, 1);
     assert.equal((await fetch("/?storage=down&selectorRepair=1")).status, 200);
 
+    // MOVE-005: actual rendered alias artifacts and pages share one R2 generation.
+    // Every public request creates a fresh service whose repository throws on use.
+    const at = new Date().toISOString();
+    const source = {
+      settings: { pageName: "Imported public record", tagline: "Source history", accentColor: "#16794C", timezone: "UTC", hostname: "page.example", footerCreditEnabled: false, logoKey: null, logoContentType: null, widgetAllowedOrigins: "[]", feedId: "import-fixture" },
+      components: [{ id: "component", name: "API", groupName: null, groupOrder: null, displayOrder: 0 }], claims: [], history: [], corrections: [], reports: [],
+      incidents: [{ id: "incident", reference: "INC-1", title: "Original outage", lifecycle: "Resolved", openedAt: at, resolvedAt: at }],
+      incidentComponents: [{ incidentId: "incident", componentName: "API" }],
+      updates: [{ id: "update", incidentId: "incident", lifecycle: "Resolved", affectedAudience: "Customers", customerImpact: "Service restored", whatStillWorks: "API", details: "Recovered", nextUpdateAt: null, publishedAt: at }],
+      maintenance: [{ id: "maintenance", reference: "SCH-1", title: "Database upgrade", state: "Completed", startsAt: at, endsAt: at, completedAt: at }],
+      maintenanceComponents: [{ maintenanceId: "maintenance", componentName: "API" }], maintenanceNotices: [],
+      importedPublicRecords: [{ namespace: "statuspage", sourceId: "original-outage", targetKind: "incident", targetId: "incident", shortlink: "https://stspg.io/outage" }, { namespace: "statuspage", sourceId: "original-upgrade", targetKind: "maintenance", targetId: "maintenance", shortlink: "https://stspg.io/upgrade" }],
+    };
+    const imported = await rebuild({ generation: 20, source });
+    assert.equal(imported.failure, null);
+    for (const [path, destination, title] of [["/incidents/original-outage", "/incidents/INC-1", "Original outage"], ["/outage", "/incidents/INC-1", "Original outage"], ["/incidents/original-upgrade", "/maintenance/SCH-1", "Database upgrade"], ["/upgrade", "/maintenance/SCH-1", "Database upgrade"]]) {
+      const redirected = await fetch(path, { redirect: "manual" });
+      assert.equal(redirected.status, 301); assert.equal(redirected.headers.get("Location"), destination);
+      const record = await fetch(destination); assert.equal(record.status, 200); assert.match(await record.text(), new RegExp(title));
+      assert.equal(record.headers.get("X-Lamp-Snapshot-Generated-At"), redirected.headers.get("X-Lamp-Snapshot-Generated-At"));
+      assert.equal((await runtime.dispatchFetch(`https://app.example${path}`)).status, 404);
+    }
+    const oldFeed = await fetch("/history.atom"); assert.equal(oldFeed.status, 200);
+    assert.match(oldFeed.headers.get("Content-Type"), /application\/atom\+xml/);
+    assert.equal(await oldFeed.text(), await (await fetch("/feed.atom")).text());
+    for (const path of ["/api/v2/summary.json", "/history.rss", "/auth/login", "/app/settings"]) assert.equal((await fetch(path)).status, 404);
+    // The next snapshot has no removed record or its alias, even after cache warming.
+    const removed = structuredClone(source); removed.incidents = []; removed.updates = []; removed.incidentComponents = [];
+    assert.equal((await rebuild({ generation: 21, source: removed })).failure, null);
+    assert.equal((await fetch("/outage", { redirect: "manual" })).status, 404);
+    assert.equal((await fetch("/upgrade", { redirect: "manual" })).status, 301);
+    const legacy = structuredClone(source);
+    legacy.importedPublicRecords[0].shortlink = "https://stspg.io/auth/login";
+    legacy.importedPublicRecords[1].shortlink = "https://stspg.io/shared";
+    legacy.importedPublicRecords.push({ ...legacy.importedPublicRecords[0], shortlink: "https://stspg.io/shared" });
+    assert.equal((await rebuild({ generation: 22, source: legacy })).failure, null);
+    assert.equal((await fetch("/")).status, 200, "legacy unsafe aliases never withhold status");
+    assert.equal((await fetch("/incidents/original-outage", { redirect: "manual" })).status, 301, "safe source path still works");
+    assert.equal((await fetch("/shared", { redirect: "manual" })).status, 404, "neither side wins a legacy alias conflict");
+    assert.equal((await fetch("/auth/login", { redirect: "manual" })).status, 404);
+    const noHistory = structuredClone(source);
+    noHistory.incidents = []; noHistory.maintenance = []; noHistory.importedPublicRecords = []; noHistory.importedNamespaces = ["statuspage"];
+    assert.equal((await rebuild({ generation: 23, source: noHistory })).failure, null);
+    assert.equal((await fetch("/history.atom")).status, 200, "component-only import still serves source feed");
+    noHistory.importedNamespaces = [];
+    assert.equal((await rebuild({ generation: 24, source: noHistory })).failure, null);
+    assert.equal((await fetch("/history.atom")).status, 404, "complete undo removes source feed");
+
   } finally { await runtime.dispose(); await rm(directory, { recursive: true, force: true }); }
 });

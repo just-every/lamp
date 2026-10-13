@@ -1,0 +1,42 @@
+@media (max-width: 900px) {
+  .incident-document { grid-template-columns: minmax(0, 1fr); }
+  .incident-summary { position: static; }
+  .subscribe { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 640px) {
+  .page { padding: 0 16px 32px; }
+  .masthead { gap: 14px; padding: 24px 0 22px; }
+  .brand { font-size: 19px; }
+  .brand-logo { width: 32px; height: 32px; border-radius: 9px; }
+  .tagline { margin-left: 0; margin-top: 10px; }
+  .status-utilities { width: 100%; margin-left: -10px; }
+  .status-utilities a { padding-inline: 10px; }
+  .status-utilities .subscribe-link { margin-left: auto; padding-inline: 16px; }
+  #status-live { border-radius: 18px; padding: 22px 20px; }
+  .status-summary { gap: 14px; }
+  .overall-status-icon { width: 46px; height: 46px; }
+  .overall-status-icon svg { width: 26px; height: 26px; }
+  .status-summary h1 { font-size: 26px; }
+  .status-live-update { margin-top: 18px; padding-top: 14px; }
+  .component-health, .history-timeline, .subscribe { margin-top: 44px; }
+  .component-group { padding: 0 16px; }
+  .component-group > h3 { margin-inline: -16px; padding-inline: 16px; }
+  .component { padding: 16px 0; gap: 12px; }
+  .uptime-marks { gap: 1px; height: 28px; }
+  .uptime-mark { border-radius: 1px; }
+  .availability-method summary { margin-left: 0; }
+  .timeline-entry, .resolved-list .timeline-resolved { padding: 20px 18px; }
+  .updates { margin-left: 3px; padding-left: 18px; }
+  .update::before { left: -25px; }
+  .update dl, .report dl { grid-template-columns: minmax(0, 1fr); gap: 10px; }
+  .subscribe { padding: 24px 20px; }
+  .subscribe-row { flex-direction: column; }
+  .subscribe input { font-size: 16px; }
+  .subscribe button { width: 100%; }
+  .history-intro h1, .not-found h1 { font-size: 26px; }
+  .history-item, .incident-document-main > .incident, .about, .report, .incident-summary { padding: 20px 18px; }
+  .incident-document-main > .incident .record-title h1 { font-size: 23px; }
+  .not-found { padding: 28px 20px; }
+  .subscriber-document { padding: 26px 20px; }
+  .snapshot-stale { padding: 10px 16px; }
+}

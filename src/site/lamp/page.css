@@ -1,0 +1,89 @@
+/* The page shell: design C's tokens, type stacks and the shared pieces. The page is a flat warm off-white with no
+   texture. --u is one pixel of the approved 1536px design: wide layouts scale with the page from 1024px up and hold
+   the 1536px composition beyond. --lamp-gutter is the one side margin the header, sections and footer share.
+   --lamp-p is the scroll handoff's progress, 0 to 1, written by PageMotion; without it the page sits at the
+   top of the handoff. The page clips what overflows it on both axes, so the dim room's dusk, which reaches below the
+   intro (dusk.css), never lengthens the page. The page is its own stacking context (isolation), so the dusk, at
+   z-index -1, sits above the page's paper and under everything else on it. */
+body:has(.lamp-home) { background: #f8f6f0; }
+.lamp-home {
+  --lamp-paper: #f8f6f0;
+  --lamp-ink: #182d24;
+  --lamp-ink-2: #44544c;
+  --lamp-ink-3: #5f6d66;
+  --lamp-on-ink: #fbfaf5;
+  --lamp-pill: #182d24;
+  --lamp-pill-hover: #22392e;
+  --lamp-card: #ffffff;
+  --lamp-card-tint: #fbfaf7;
+  --lamp-stage: #eef0ea;
+  --lamp-chip: #f5f4ef;
+  --lamp-line: rgb(24 45 36 / .10);
+  --lamp-line-strong: rgb(24 45 36 / .16);
+  --lamp-amber: #eab54e;
+  --lamp-amber-wash: #fff7e2;
+  --lamp-amber-mark: #fde9ad;
+  --lamp-glow-core: 255 254 248;
+  --lamp-glow-warm: 255 241 214;
+  --lamp-dusk: 207 199 179;
+  --lamp-dusk-warm: 228 209 170;
+  --lamp-dusk-far: 195 187 167;
+  --lamp-band: #12201a;
+  --lamp-band-ink: #f6f4ee;
+  --lamp-band-ink-2: #b9c5bd;
+  --lamp-terminal-ink: #e7ede8;
+  --lamp-terminal-dim: #8ea397;
+  --lamp-ok: #19865a;
+  --lamp-down: #b44432;
+  --lamp-uptime: #c5d3cb;
+  --lamp-shadow-card: 0 1px 2px rgb(24 45 36 / .05), 0 4px 12px -4px rgb(24 45 36 / .08), 0 20px 40px -20px rgb(24 45 36 / .18);
+  --lamp-shadow-raised: 0 1px 2px rgb(24 45 36 / .06), 0 12px 24px -8px rgb(24 45 36 / .14), 0 32px 64px -24px rgb(24 45 36 / .24);
+  --lamp-shadow-night: 0 30px 70px -24px rgb(0 0 0 / .6);
+  --lamp-sans: 'Lamp Inter', 'Lamp Inter Fallback', Arial, system-ui;
+  --lamp-ease: cubic-bezier(.2, .7, .3, 1);
+  --lamp-grain: url('./art/grain.svg?no-inline');
+  --lamp-mono: ui-monospace, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace;
+  container: lamp-page / inline-size;
+  isolation: isolate;
+  min-height: 100vh;
+  overflow: clip;
+  color: var(--lamp-ink);
+  background: var(--lamp-paper);
+  font-family: var(--lamp-sans);
+  font-size: 16px;
+  line-height: 1.5;
+  font-synthesis: none;
+  font-kerning: normal;
+  -webkit-font-smoothing: antialiased;
+}
+.lamp-home :is(.lamp-header, main, .lamp-footer) { --u: calc(min(100cqw, 1536px) / 1536); --hu: calc(min(100cqw, 1536px, 160svh) / 1536);
+  --lamp-header-h: 64px; --lamp-gutter: 16px; }
+@container lamp-page (min-width: 600px) {
+  .lamp-home :is(.lamp-header, main, .lamp-footer) { --lamp-header-h: 82px; --lamp-gutter: max(16px, (100cqw - 640px) / 2); }
+}
+@container lamp-page (min-width: 1024px) {
+  .lamp-home :is(.lamp-header, main, .lamp-footer) { --lamp-header-h: max(80px, calc(110 * var(--u))); --lamp-gutter: calc(66 * var(--u)); }
+}
+.lamp-home a { color: inherit; text-decoration: none; }
+/* Ink focus rings hold 3:1 on the lit paper; a keyboard focus lifts the dim room's dusk at once (dusk.css). */
+.lamp-home :is(a, button, [tabindex]):focus-visible { outline: 3px solid var(--lamp-ink); outline-offset: 4px; border-radius: 4px; }
+/* A headline the footer index moves focus to is a place to read from, not a control: no ring around it. */
+.lamp-home [tabindex="-1"]:focus { outline: none; }
+/* Nav, footer and in-page links show a quiet underline on hover; the hero's and close's Read the docs deepens its own. */
+.lamp-home :is(.lamp-nav, .lamp-footer__index, .lamp-footer__nav) a:not(.lamp-footer__licence) { text-decoration: underline 1.5px; text-underline-offset: 5px;
+  text-decoration-color: transparent; }
+.lamp-home :is(.lamp-nav, .lamp-footer__index, .lamp-footer__nav) a:not(.lamp-footer__licence):hover { text-decoration-color: rgb(24 45 36 / .6); }
+.lamp-home .lamp-skip { position: absolute; z-index: 5; top: 12px; left: 12px; padding: 10px 16px; border-radius: 999px;
+  color: var(--lamp-on-ink); background: var(--lamp-pill); font-size: 15px; font-weight: 500; transform: translateY(-200%); }
+.lamp-home .lamp-skip:focus-visible { transform: none; }
+.lamp-home .lamp-pill { display: inline-flex; align-items: center; justify-content: center; border-radius: 999px;
+  color: var(--lamp-on-ink); background: var(--lamp-pill); font-weight: 500; line-height: 1; white-space: nowrap; }
+/* A pill darkens and lifts a soft shadow on hover, and presses down 1px. */
+.lamp-home .lamp-pill:hover { background: var(--lamp-pill-hover); box-shadow: 0 6px 16px -6px rgb(24 45 36 / .35); }
+.lamp-home .lamp-pill:active { box-shadow: none; translate: 0 1px; }
+@media (prefers-reduced-motion: no-preference) {
+  .lamp-home .lamp-pill { transition: background-color .18s, box-shadow .18s, translate .12s; }
+  .lamp-home :is(.lamp-nav, .lamp-footer__index, .lamp-footer__nav) a, .lamp-home .lamp-docs-link { transition: text-decoration-color .18s; }
+  .lamp-home .lamp-footer__licence { transition: background-color .18s, color .18s, border-color .18s; }
+}
+.lamp-home .lamp-pill:focus-visible { border-radius: 999px; }

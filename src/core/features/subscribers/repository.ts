@@ -1,15 +1,17 @@
 import { and, asc, eq, gt, isNull, lt } from "drizzle-orm";
 
 import { createDatabase } from "../../platform/db/client";
-import { components, subscriberComponents, subscribers } from "../../shared/schema";
+import { componentGroups, components, subscriberComponents, subscribers } from "../../shared/schema";
+import { publicComponentOrder } from "../../shared/component-order";
 import { subscriberTokens } from "../deliveries/schema";
 import { createUlid } from "../../shared/ids";
+import { createSubscriberTransitions, type SubscriberTransitions } from "./transitions.repository";
 
 export type StoredSubscriber = typeof subscribers.$inferSelect;
 export type StoredSubscriberComponent = typeof subscriberComponents.$inferSelect;
 export type StoredSubscriberToken = typeof subscriberTokens.$inferSelect;
 
-export interface SubscriberRepository {
+export interface SubscriberRepository extends SubscriberTransitions {
   listSubscribers(limit: number, offset?: number): Promise<StoredSubscriber[]>;
   listComponents(subscriberId: string): Promise<StoredSubscriberComponent[]>;
   listVisibleComponents(): Promise<Array<{ id: string; name: string }>>;
@@ -18,9 +20,9 @@ export interface SubscriberRepository {
   findSubscriberByToken(tokenHash: string, scope: "confirm" | "manage" | "unsubscribe", now: string): Promise<{ subscriber: StoredSubscriber; token: StoredSubscriberToken } | null>;
   findActiveToken(subscriberId: string, scope: "confirm" | "manage" | "unsubscribe", now: string): Promise<StoredSubscriberToken | null>;
   createPendingSubscriber(input: typeof subscribers.$inferInsert): Promise<void>;
-  activateSubscriber(subscriberId: string, now: string): Promise<void>;
   updateSelection(subscriberId: string, componentIds: string[], now: string): Promise<void>;
   createToken(input: typeof subscriberTokens.$inferInsert): Promise<void>;
+  ensureManagedUnsubscribeToken(subscriberId: string, manageTokenHash: string, candidate: { id: string; tokenHash: string }, now: string): Promise<string | null>;
   revokeTokens(subscriberId: string, now: string, scope?: "confirm" | "manage" | "unsubscribe"): Promise<void>;
   deactivateSubscriber(subscriberId: string, reason: string, now: string): Promise<void>;
   anonymizeAndDeactivate(subscriberId: string, operatorId: string, now: string): Promise<void>;
@@ -31,6 +33,7 @@ export interface SubscriberRepository {
 export function createSubscriberRepository(binding: D1Database): SubscriberRepository {
   const database = createDatabase(binding);
   return {
+    ...createSubscriberTransitions(binding),
     async listSubscribers(limit, offset = 0) {
       return database.select().from(subscribers).orderBy(asc(subscribers.createdAt)).limit(limit).offset(offset).all();
     },
@@ -38,7 +41,12 @@ export function createSubscriberRepository(binding: D1Database): SubscriberRepos
       return database.select().from(subscriberComponents).where(eq(subscriberComponents.subscriberId, subscriberId)).all();
     },
     async listVisibleComponents() {
-      return database.select({ id: components.id, name: components.name }).from(components).where(eq(components.internal, false)).orderBy(asc(components.displayOrder)).all();
+      const rows = await database.select({ id: components.id, name: components.name, groupName: componentGroups.name, groupOrder: componentGroups.displayOrder, displayOrder: components.displayOrder })
+        .from(components)
+        .leftJoin(componentGroups, eq(components.groupId, componentGroups.id))
+        .where(eq(components.internal, false))
+        .all();
+      return publicComponentOrder(rows).map(({ id, name }) => ({ id, name }));
     },
     async findSubscriber(subscriberId) {
       return (await database.select().from(subscribers).where(eq(subscribers.id, subscriberId)).get()) ?? null;
@@ -67,9 +75,6 @@ export function createSubscriberRepository(binding: D1Database): SubscriberRepos
         set: { state: input.state, selectionMode: input.selectionMode, deactivationReason: null, deactivatedAt: null, updatedAt: input.updatedAt },
       });
     },
-    async activateSubscriber(subscriberId, now) {
-      await database.update(subscribers).set({ state: "active", deactivationReason: null, deactivatedAt: null, updatedAt: now }).where(eq(subscribers.id, subscriberId));
-    },
     async updateSelection(subscriberId, componentIds, now) {
       const statements: D1PreparedStatement[] = [binding.prepare("DELETE FROM subscriber_components WHERE subscriber_id = ?").bind(subscriberId)];
       for (const componentId of componentIds) {
@@ -82,13 +87,43 @@ export function createSubscriberRepository(binding: D1Database): SubscriberRepos
     async createToken(input) {
       await database.insert(subscriberTokens).values(input);
     },
+    async ensureManagedUnsubscribeToken(subscriberId, manageTokenHash, candidate, now) {
+      // Both allocation and reuse require the originating manage permission in
+      // this transaction. Active state alone would authorize an old request
+      // after the same subscriber row has opted out and joined again.
+      const authorized = `EXISTS (
+        SELECT 1 FROM subscriber_tokens AS permission
+        JOIN subscribers ON subscribers.id = permission.subscriber_id
+        WHERE subscribers.id = ? AND subscribers.state = 'active'
+          AND permission.token_hash = ? AND permission.scope = 'manage'
+          AND permission.revoked_at IS NULL
+          AND (permission.expires_at IS NULL OR permission.expires_at > strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+      )`;
+      const results = await binding.batch<{ id: string }>([
+        binding.prepare(`UPDATE subscriber_tokens SET revoked_at = ?, updated_at = ?
+          WHERE subscriber_id = ? AND scope = 'unsubscribe' AND revoked_at IS NULL
+            AND expires_at <= strftime('%Y-%m-%dT%H:%M:%fZ', 'now') AND ${authorized}`)
+          .bind(now, now, subscriberId, subscriberId, manageTokenHash),
+        binding.prepare(`INSERT INTO subscriber_tokens (id, subscriber_id, scope, token_hash, expires_at, revoked_at, created_at, updated_at)
+          SELECT ?, ?, 'unsubscribe', ?, NULL, NULL, ?, ? WHERE ${authorized}
+            AND NOT EXISTS (SELECT 1 FROM subscriber_tokens WHERE subscriber_id = ? AND scope = 'unsubscribe' AND revoked_at IS NULL)`)
+          .bind(candidate.id, subscriberId, candidate.tokenHash, now, now, subscriberId, manageTokenHash, subscriberId),
+        binding.prepare(`SELECT id FROM subscriber_tokens
+          WHERE subscriber_id = ? AND scope = 'unsubscribe' AND revoked_at IS NULL
+            AND (expires_at IS NULL OR expires_at > strftime('%Y-%m-%dT%H:%M:%fZ', 'now')) AND ${authorized}`)
+          .bind(subscriberId, subscriberId, manageTokenHash),
+      ]);
+      return results[2].results[0]?.id ?? null;
+    },
     async revokeTokens(subscriberId, now, scope) {
       const clause = scope ? and(eq(subscriberTokens.subscriberId, subscriberId), eq(subscriberTokens.scope, scope), isNull(subscriberTokens.revokedAt)) : and(eq(subscriberTokens.subscriberId, subscriberId), isNull(subscriberTokens.revokedAt));
       await database.update(subscriberTokens).set({ revokedAt: now, updatedAt: now }).where(clause);
     },
     async deactivateSubscriber(subscriberId, reason, now) {
-      await database.update(subscribers).set({ state: "deactivated", deactivationReason: reason, deactivatedAt: now, updatedAt: now }).where(eq(subscribers.id, subscriberId));
-      await database.update(subscriberTokens).set({ revokedAt: now, updatedAt: now }).where(and(eq(subscriberTokens.subscriberId, subscriberId), isNull(subscriberTokens.revokedAt)));
+      await binding.batch([
+        binding.prepare("UPDATE subscribers SET state = 'deactivated', deactivation_reason = ?, deactivated_at = ?, updated_at = ? WHERE id = ?").bind(reason, now, now, subscriberId),
+        binding.prepare("UPDATE subscriber_tokens SET revoked_at = ?, updated_at = ? WHERE subscriber_id = ? AND revoked_at IS NULL").bind(now, now, subscriberId),
+      ]);
     },
     async anonymizeAndDeactivate(subscriberId, operatorId, now) {
       // Keep the opaque core identifier and the responsible operator, but no
@@ -100,23 +135,23 @@ export function createSubscriberRepository(binding: D1Database): SubscriberRepos
       const removeRecipients = personalValues.map((value) =>
         // A deleted webhook contact must not be replaced with a synthetic
         // email-like destination. Keep the operator-alert record, but remove
-        // this recipient before a later outbox attempt can address it.
+        // this recipient before a later outbox attempt can address it. Only
+        // the alert addressed to this subscriber's contact is touched: the
+        // same address may be an operator's, and their other alerts stay.
         binding.prepare(`UPDATE notification_outbox
           SET payload_json = json_set(payload_json, '$.recipients', json((SELECT json_group_array(value) FROM json_each(notification_outbox.payload_json, '$.recipients') WHERE value <> ?)))
-          WHERE kind = 'operator-alert' AND json_valid(payload_json)
+          WHERE kind = 'operator-alert' AND aggregate_id = ? AND json_valid(payload_json)
             AND EXISTS (SELECT 1 FROM json_each(notification_outbox.payload_json, '$.recipients') WHERE value = ?)`)
-          .bind(value, value),
+          .bind(value, `webhook-deactivated/${subscriberId}`, value),
       );
-      const redactions = personalValues.flatMap((value) => [
-        // A frozen envelope is retained for idempotency, but its recipient
-        // cannot outlive an operator-initiated subscriber deletion.
+      // A frozen envelope is retained for idempotency, but its recipient
+      // cannot outlive an operator-initiated subscriber deletion. Only this
+      // subscriber's own envelopes are rewritten; alert text never carries an
+      // address, and another person's address may contain this one.
+      const redactions = personalValues.map((value) =>
         binding.prepare("UPDATE notification_deliveries SET mail_payload_json = replace(mail_payload_json, ?, ?) WHERE subscriber_id = ? AND mail_payload_json IS NOT NULL")
           .bind(value, replacement, subscriberId),
-        // Contact alerts are an outbox payload and can wait after the webhook
-        // subscriber is deleted; redact both pending and retained audit jobs.
-        binding.prepare("UPDATE notification_outbox SET payload_json = replace(payload_json, ?, ?) WHERE kind = 'operator-alert' AND instr(payload_json, ?) > 0")
-          .bind(value, replacement, value),
-      ]);
+      );
       await binding.batch([
         ...removeRecipients,
         ...redactions,

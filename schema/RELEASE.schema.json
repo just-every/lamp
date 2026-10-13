@@ -14,6 +14,10 @@
   ],
   "additionalProperties": false,
   "properties": {
+    "publicReleaseNotes": {
+      "type": "string", "minLength": 1,
+      "description": "Public prose appended after the version in release commit and annotated tag messages; subject to publication inspection."
+    },
     "version": {
       "$ref": "#/$defs/semver",
       "description": "The version this release publishes. Matches the tag and `seed.json → version`."

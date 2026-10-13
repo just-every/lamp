@@ -1,0 +1,12 @@
+/* The big lamp's rig. The lamp's box is the sprites' square canvas, placed so the drawn cord (x 760–801 of 1560,
+   centre .5003) hangs at the page's centre from --lamp-top (intro.css). The lamp hangs in the intro like a real object
+   and scrolls at page speed: it passes up under the header's frosted backing as into a ceiling while the header mark
+   drops in (PageMotion, mark.css). The rig clips to the intro, so the cord and the light never widen the page.
+   The light runs past the intro's foot, so the rig's lowest 30svh fade it out on an eased curve, and the warm wash
+   meets the paper below with no edge; the lamp itself always hangs above that band. */
+.lamp-home .lamp-rig { position: absolute; z-index: 1; inset: 0; overflow: clip; pointer-events: none;
+  mask-image: linear-gradient(to bottom, #000 calc(100% - 30svh), rgb(0 0 0 / .84) calc(100% - 22.5svh),
+    rgb(0 0 0 / .5) calc(100% - 15svh), rgb(0 0 0 / .16) calc(100% - 7.5svh), transparent); }
+.lamp-home .lamp-rig__lamp { position: absolute; top: var(--lamp-top); left: calc(50% - var(--lamp-w) * .5003);
+  width: var(--lamp-w); height: var(--lamp-w); }
+.lamp-home .lamp-rig__swing { position: absolute; inset: 0; }

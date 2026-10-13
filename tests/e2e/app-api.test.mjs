@@ -1,6 +1,9 @@
+import { requestHeaders } from "../helpers/request-headers.mjs";
+import { withDraftVersion } from "./draft-version-helper.mjs";
 import assert from "node:assert/strict";
 import { execFileSync, spawn } from "node:child_process";
 import { createHmac } from "node:crypto";
+import { request as httpRequest } from "node:http";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
@@ -10,29 +13,48 @@ import { gzipSync } from "node:zlib";
 import { contract } from "../contract.mjs";
 import { insertRealOperatorSession } from "./real-session-helper.mjs";
 import { legacyApiFixtureSql } from "./fixtures/legacy-api-fixture.mjs";
+// Wrangler CLI work between requests can outlast an idle keep-alive socket; every request opens its own connection.
+import { fixtureFetch as fetch } from "../public-snapshots/fixture-fetch.mjs";
+import { appOrigin, pageOrigin } from "./helpers/hosts.mjs";
 import { reservePort, waitForWorker } from "./worker-startup.mjs";
+import { sessionCookieName } from "../helpers/session-cookie.mjs";
 
-let baseUrl = "";
-let unknownHostBaseUrl = "";
+let appUrl = "";
+let pageUrl = "";
 let server;
 let serverOutput = "";
 let sessionId;
 let testStatePath;
 let testViteCachePath;
 let testPort;
-const sourceConfigPath = resolve("deploy/wrangler.template.toml");
+const sourceConfigPath = resolve("wrangler.jsonc");
 
 async function appFetch(path, init = {}) {
-  return fetch(`${baseUrl}${path}`, {
+  init = await withDraftVersion(path, init, appFetch);
+  return fetch(`${appUrl}${path}`, {
     ...init,
-    headers: { Cookie: `lamp_session=${sessionId}`, "Content-Type": "application/json", ...init.headers },
+    headers: requestHeaders({ Cookie: `${sessionCookieName(appUrl)}=${sessionId}`, "Content-Type": "application/json" }, init.headers),
+  });
+}
+
+function requestWithHost(path, host) {
+  return new Promise((resolveResponse, reject) => {
+    const client = httpRequest({ host: "127.0.0.1", port: testPort, path, headers: { Host: host } }, (response) => {
+      let body = "";
+      response.setEncoding("utf8");
+      response.on("data", (chunk) => { body += chunk; });
+      response.once("end", () => resolveResponse({ status: response.statusCode, body }));
+      response.once("error", reject);
+    });
+    client.once("error", reject);
+    client.end();
   });
 }
 
 before(async () => {
   testPort = await reservePort({ label: "API test Worker" });
-  baseUrl = `http://127.0.0.1:${testPort}`;
-  unknownHostBaseUrl = `http://localhost:${testPort}`;
+  appUrl = appOrigin(testPort);
+  pageUrl = pageOrigin(testPort);
   testStatePath = await mkdtemp(join(tmpdir(), "lamp-api-d1-"));
   testViteCachePath = await mkdtemp(join(tmpdir(), "lamp-api-vite-"));
   execFileSync("pnpm", ["run", "migrate:local"], { cwd: process.cwd(), stdio: "pipe", env: { ...process.env, LAMP_WORKERS_STATE_PATH: testStatePath } });
@@ -40,46 +62,52 @@ before(async () => {
   server = spawn("pnpm", ["exec", "vite", "--host", "0.0.0.0", "--port", String(testPort), "--strictPort"], {
     cwd: process.cwd(),
     stdio: "pipe",
+    detached: true,
     env: { ...process.env, LAMP_DISABLE_INSPECTOR: "true", LAMP_WORKERS_STATE_PATH: testStatePath, LAMP_VITE_CACHE_DIR: testViteCachePath, LAMP_WRANGLER_CONFIG: sourceConfigPath },
   });
   server.stdout.on("data", (chunk) => { serverOutput += String(chunk); });
   server.stderr.on("data", (chunk) => { serverOutput += String(chunk); });
-  await waitForWorker({ origin: baseUrl, child: server, output: () => serverOutput, label: "API test Worker" });
+  await waitForWorker({ origin: appUrl, child: server, output: () => serverOutput, label: "API test Worker" });
   sessionId = await insertRealOperatorSession({ persistTo: testStatePath });
 });
 
 after(async () => {
-  server?.kill("SIGTERM");
+  // Stop the whole pnpm/Vite/workerd group; signalling pnpm alone can leave it running and the suite waiting.
+  if (server?.pid && server.exitCode === null) {
+    const stopped = new Promise((resolveStopped) => server.once("exit", resolveStopped));
+    try { process.kill(-server.pid, "SIGTERM"); } catch { /* Worker already exited. */ }
+    await stopped;
+  }
   await Promise.all([rm(testStatePath, { recursive: true, force: true }), rm(testViteCachePath, { recursive: true, force: true })]);
 });
 
 test("operator APIs reject requests without the session cookie", async () => {
-  const response = await fetch(`${baseUrl}/api/app/components`);
+  const response = await fetch(`${appUrl}/api/app/components`);
   assert.equal(response.status, 401);
 });
 
 test("the Worker rejects configured-surface routes sent to an unknown host", async () => {
   const paths = ["/", "/app", "/api/app/components", "/health", "/signin", "/app-assets/operator.js"];
   for (const path of paths) {
-    const response = await fetch(`${unknownHostBaseUrl}${path}`, { redirect: "manual" });
+    // [::1] is a loopback name, but neither the app host nor the page host. fetch() would replace the Host header.
+    const response = await requestWithHost(path, `[::1]:${testPort}`);
     assert.equal(response.status, 404, `${path} leaked through an unknown host`);
-    assert.equal(await response.text(), "Not found.");
+    assert.equal(response.body, "Not found.");
   }
 });
 
 test("operator document routes redirect without a valid session and serve assets with one", async () => {
-  const anonymous = await fetch(`${baseUrl}/app`, { redirect: "manual" });
+  const anonymous = await fetch(`${appUrl}/app`, { redirect: "manual" });
   assert.equal(anonymous.status, 302);
-  assert.equal(anonymous.headers.get("location"), `${baseUrl}/signin?returnTo=%2Fapp`);
+  assert.equal(anonymous.headers.get("location"), `${appUrl}/signin?returnTo=%2Fapp`);
 
-  const malformed = await fetch(`${baseUrl}/app/incidents`, { redirect: "manual", headers: { Cookie: "lamp_session=%" } });
+  const malformed = await fetch(`${appUrl}/app/incidents`, { redirect: "manual", headers: { Cookie: `${sessionCookieName(appUrl)}=%` } });
   assert.equal(malformed.status, 302);
 
-  const signIn = await fetch(`${baseUrl}/signin`);
+  const signIn = await fetch(`${appUrl}/signin`);
   assert.equal(signIn.status, 200);
   const signInHtml = await signIn.text();
-  assert.match(signInHtml, /<h1 id="signin-title">Sign in with a magic link<\/h1>/);
-  assert.match(signInHtml, /src="\/@id\/virtual:tanstack-start-dev-client-entry"/);
+  assert.match(signInHtml, /action="\/auth\/magic-link"/);
 
   const app = await appFetch("/app");
   assert.equal(app.status, 200);
@@ -95,7 +123,7 @@ test("operator document routes redirect without a valid session and serve assets
 });
 
 contract("PAGE-001", "the initial public snapshot is complete without script", async () => {
-  const response = await fetch(`${baseUrl}/`);
+  const response = await fetch(`${pageUrl}/`);
   assert.equal(response.status, 200);
   const html = await response.text();
   assert.match(html, /Atlas Cloud Status/);
@@ -110,21 +138,21 @@ contract("PAGE-001", "the initial public snapshot is complete without script", a
 });
 
 contract("PAGE-007", "public snapshot responses carry the contracted cache and isolation headers", async () => {
-  const response = await fetch(`${baseUrl}/`);
+  const response = await fetch(`${pageUrl}/`);
   assert.equal(response.headers.get("cache-control"), "public, max-age=10, s-maxage=10, stale-while-revalidate=30, stale-if-error=3600");
-  assert.ok((response.headers.get("content-security-policy") ?? "").includes(`default-src ${baseUrl}; script-src ${baseUrl}; style-src ${baseUrl}`), "the snapshot CSP must scope default, script, and style sources to its local origin");
+  assert.ok((response.headers.get("content-security-policy") ?? "").includes(`default-src ${pageUrl}; script-src ${pageUrl}; style-src ${pageUrl}`), "the snapshot CSP must scope default, script, and style sources to its local origin");
   assert.equal(response.headers.get("x-content-type-options"), "nosniff");
   assert.equal(response.headers.get("referrer-policy"), "strict-origin-when-cross-origin");
 });
 
 contract("PAGE-010", "the public feed, widget, history, and fixed-size status payload come from the snapshot", async () => {
   const [feed, widget, status, history, incident, script] = await Promise.all([
-    fetch(`${baseUrl}/feed.atom`),
-    fetch(`${baseUrl}/widget.js`),
-    fetch(`${baseUrl}/api/public/status`),
-    fetch(`${baseUrl}/history`),
-    fetch(`${baseUrl}/incidents/INC-4821`),
-    fetch(`${baseUrl}/assets/status-page.js`),
+    fetch(`${pageUrl}/feed.atom`),
+    fetch(`${pageUrl}/widget.js`),
+    fetch(`${pageUrl}/api/public/status`),
+    fetch(`${pageUrl}/history`),
+    fetch(`${pageUrl}/incidents/INC-4821`),
+    fetch(`${pageUrl}/assets/status-page.js`),
   ]);
   for (const response of [feed, widget, status, history, incident, script]) assert.equal(response.status, 200);
   const feedText = await feed.text();
@@ -138,20 +166,20 @@ contract("PAGE-010", "the public feed, widget, history, and fixed-size status pa
   assert.deepEqual(Object.keys(liveStatus).sort(), ["generatedAt", "incident", "overall", "version"]);
   assert.equal(typeof liveStatus.overall, "string");
   assert.match(liveStatus.incident.message, /Customer impact:/);
-  assert.match(await history.text(), /No resolved incidents or completed maintenance/);
+  assert.match(await history.text(), /No past incidents or maintenance in the last 12 months/);
   assert.match(await incident.text(), /About this incident/);
   assert.match(await script.text(), /setInterval/);
   assert.doesNotMatch(widgetText, /innerHTML/);
   assert.match(widgetText, /textContent=d\.incident/);
-  const missing = await fetch(`${baseUrl}/incidents/INC-0000`);
+  const missing = await fetch(`${pageUrl}/incidents/INC-0000`);
   assert.equal(missing.status, 404);
   assert.match(missing.headers.get("content-security-policy") ?? "", /frame-ancestors 'none'/);
 });
 
 contract("SUB-001", "the no-script subscribe form rejects an unavailable mail capability honestly", async () => {
-  const invalid = await fetch(`${baseUrl}/subscribe`, { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: "email=not-an-email" });
+  const invalid = await fetch(`${pageUrl}/subscribe`, { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: "email=not-an-email" });
   assert.equal(invalid.status, 400);
-  const unavailable = await fetch(`${baseUrl}/subscribe`, { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: "email=reader%40example.com" });
+  const unavailable = await fetch(`${pageUrl}/subscribe`, { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: "email=reader%40example.com" });
   assert.equal(unavailable.status, 503);
   assert.match(await unavailable.text(), /No confirmation email was sent/);
 });
@@ -163,7 +191,7 @@ contract("COMP-006", "standing claims derive a component's public state", async 
   });
   assert.equal(claim.status, 200);
   assert.equal((await claim.json()).component.publicState, "Major outage");
-  assert.match(await (await fetch(`${baseUrl}/`)).text(), /<h1 id="overall-status" data-overall>Major outage<\/h1>/);
+  assert.match(await (await fetch(`${pageUrl}/`)).text(), /<h1 id="overall-status" data-overall>Major outage<\/h1>/);
 
   const clear = await appFetch("/api/app/components/01J00000000000000000000011/standing-claim", {
     method: "PUT",
@@ -213,8 +241,8 @@ contract("PAGE-012", "page settings retain a configurable footer credit without 
   });
   assert.equal(updated.status, 200);
   assert.equal((await updated.json()).settings.footerCreditEnabled, false);
-  assert.match(await (await fetch(`${baseUrl}/`)).text(), /Atlas Cloud Status — revised/);
-  const widget = await (await fetch(`${baseUrl}/widget.js`)).text();
+  assert.match(await (await fetch(`${pageUrl}/`)).text(), /Atlas Cloud Status — revised/);
+  const widget = await (await fetch(`${pageUrl}/widget.js`)).text();
   assert.match(widget, /\\u003cimg src=x onerror=alert\(1\)>/);
   assert.doesNotMatch(widget, /innerHTML/);
   assert.match(widget, /textContent/);
@@ -254,8 +282,11 @@ test("operator API paths require canonical ULIDs and one incident has one atomic
   const secondSaved = await appFetch("/api/app/incidents/01J00000000000000000000020/draft", { method: "PUT", body: JSON.stringify({ ...first, details: "The mitigated condition is verified." }) });
   assert.equal(secondSaved.status, 200);
   const secondDraft = (await secondSaved.json()).draft;
-  assert.equal(secondDraft.id, firstDraft.id);
-  assert.equal(secondDraft.details, "The mitigated condition is verified.");
+  // Each save is a new draft version; the incident still holds exactly one draft, the latest.
+  assert.notEqual(secondDraft.id, firstDraft.id);
+  const stored = (await (await appFetch("/api/app/incidents/01J00000000000000000000020")).json()).incident.draft;
+  assert.equal(stored.id, secondDraft.id);
+  assert.equal(stored.details, "The mitigated condition is verified.");
 });
 
 test("overview and list APIs expose only persisted local-development sample data", async () => {
@@ -272,25 +303,6 @@ test("overview and list APIs expose only persisted local-development sample data
   assert.equal((await maintenance.json()).maintenance[0].state, "Scheduled");
   assert.equal((await subscribers.json()).subscribers.length, 2);
   assert.equal((await deliveries.json()).deliveries.every((delivery) => delivery.outcome === "queued"), true);
-});
-
-test("operator UI source retains only real delivery vocabulary and no fabricated channels", async () => {
-  const fs = await import("node:fs/promises");
-  const deliverySource = await fs.readFile("src/core/features/deliveries/ui/deliveries-page.tsx", "utf8");
-  const composerSource = await fs.readFile("src/core/features/incidents/ui/incident-detail-page.tsx", "utf8");
-  const responsiveSource = await fs.readFile("src/core/app/client/ui/responsive.css", "utf8");
-  const buttonSource = await fs.readFile("src/core/app/client/ui/button.tsx", "utf8");
-  const shadcnConfig = JSON.parse(await fs.readFile("components.json", "utf8"));
-  assert.match(deliverySource, /queued, delivered, bounced, complained, suppressed, or failed/);
-  assert.doesNotMatch(deliverySource, /Slack|SMS|in-app/i);
-  assert.match(composerSource, /The fixed recipient set is now queued for delivery/);
-  assert.match(composerSource, /hydratingDraft/);
-  assert.match(composerSource, /Delivery channels/);
-  assert.match(responsiveSource, /grid-template-columns: minmax\(0, 1fr\)/);
-  assert.match(responsiveSource, /\.operator-navigation \{[^}]*overflow-x: auto/);
-  assert.equal(shadcnConfig.style, "new-york");
-  assert.equal(shadcnConfig.tailwind.css, "src/core/app/client/styles.css");
-  assert.match(buttonSource, /buttonVariants = cva/);
 });
 
 contract("INTAKE-005", "operators can inspect rejected alert mappings without receiving payloads or credentials", async () => {
@@ -315,7 +327,7 @@ contract("INTAKE-005", "operators can inspect rejected alert mappings without re
   const rawBody = JSON.stringify({ alert: { title: "API latency" } });
   const timestamp = new Date().toISOString();
   const signature = createHmac("sha256", signingSecret).update(`${timestamp}.${rawBody}`).digest("base64url");
-  const rejected = await fetch(`${baseUrl}/api/intake/${source.id}`, {
+  const rejected = await fetch(`${pageUrl}/api/intake/${source.id}`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -377,7 +389,7 @@ test("an operator can update an alert source without exposing or replacing its e
   const rawBody = JSON.stringify({ event: { key: "edge-latency-1", summary: "Edge latency is elevated", state: "firing" } });
   const timestamp = new Date().toISOString();
   const signature = createHmac("sha256", signingSecret).update(`${timestamp}.${rawBody}`).digest("base64url");
-  const accepted = await fetch(`${baseUrl}${changed.endpointPath}`, {
+  const accepted = await fetch(`${pageUrl}${changed.endpointPath}`, {
     method: "POST",
     headers: { "Content-Type": "application/json", "x-monitor-at": timestamp, "x-monitor-sign": signature },
     body: rawBody,
@@ -426,7 +438,7 @@ test("an operator can update an alert source without exposing or replacing its e
   assert.equal(bearer.credentialKind, "bearer-token");
   assert.equal("signingSecret" in bearer, false);
   assert.equal("bearerTokenHash" in bearer, false);
-  const bearerAccepted = await fetch(`${baseUrl}${bearer.endpointPath}`, {
+  const bearerAccepted = await fetch(`${pageUrl}${bearer.endpointPath}`, {
     method: "POST",
     headers: { "Content-Type": "application/json", Authorization: `Bearer ${bearerToken}` },
     body: JSON.stringify({ event: { key: "edge-latency-2", summary: "Bearer-authenticated alert", state: "firing" } }),
@@ -477,14 +489,14 @@ test("AI configuration status is honest while tone instructions persist through 
 
 contract("PAGE-006", "public reads survive a D1 failure and never invent an all-clear", async () => {
   execFileSync("pnpm", ["exec", "wrangler", "d1", "execute", "DB", "--local", "--config", sourceConfigPath, "--persist-to", testStatePath, "--command", "DROP TABLE page_settings"], { cwd: process.cwd(), stdio: "pipe" });
-  const response = await fetch(`${baseUrl}/`);
+  const response = await fetch(`${pageUrl}/`);
   assert.equal(response.status, 200);
   const html = await response.text();
   assert.match(html, /Partially unavailable/);
   assert.doesNotMatch(html, /All systems operational/);
 
   execFileSync("pnpm", ["exec", "wrangler", "r2", "object", "delete", "lamp-local-snapshots/snapshots/current.json", "--local", "--persist-to", testStatePath, "--force"], { cwd: process.cwd(), stdio: "pipe" });
-  const missing = await fetch(`${baseUrl}/`);
+  const missing = await fetch(`${pageUrl}/`);
   assert.equal(missing.status, 200, "a previously published snapshot survives loss of both D1 and the R2 selector");
   assert.equal(missing.headers.get("x-lamp-snapshot-state"), "stale");
   assert.equal(missing.headers.get("x-lamp-snapshot-generated-at"), response.headers.get("x-lamp-snapshot-generated-at"));

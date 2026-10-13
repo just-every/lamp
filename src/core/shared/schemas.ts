@@ -40,6 +40,11 @@ export const componentGroupSchema = z.object({
   displayOrder: z.number().int().min(0),
 }).strict();
 
+// Ordinary edits omit ordering; only an explicit order changes it. Creation still
+// requires a selected starting position.
+export const componentUpdateSchema = componentSchema.partial({ displayOrder: true });
+export const componentGroupUpdateSchema = componentGroupSchema.partial({ displayOrder: true });
+
 export const componentHistoryCorrectionSchema = z.object({
   state: z.enum(COMPONENT_STATES),
   startsAt: z.iso.datetime(),
@@ -62,6 +67,8 @@ export const incidentDraftSchema = z.object({
 export type ComponentStandingClaimInput = z.infer<typeof componentStandingClaimSchema>;
 export type PageSettingsInput = z.input<typeof pageSettingsSchema>;
 export type ComponentInput = z.infer<typeof componentSchema>;
+export type ComponentUpdateInput = z.infer<typeof componentUpdateSchema>;
+export type ComponentGroupUpdateInput = z.infer<typeof componentGroupUpdateSchema>;
 export type ComponentGroupInput = z.infer<typeof componentGroupSchema>;
 export type ComponentHistoryCorrectionInput = z.infer<typeof componentHistoryCorrectionSchema>;
 export type IncidentDraftInput = z.infer<typeof incidentDraftSchema>;

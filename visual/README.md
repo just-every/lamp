@@ -4,11 +4,11 @@ The PNG files in this directory are local reference captures for the public stat
 
 They were curated from accepted local owner-preview browser captures with API-created records. The browser, source-review, frozen clean-clone, deployment, and provider evidence remain external records.
 
-The refined public snapshot uses a roomy cartographic masthead, a compact overall-status card and utility navigation, full-width per-component daily availability records, and a long chronological record beneath availability. Current incidents, scheduled maintenance, and resolved incidents appear once in the timeline; the subscription form sits beside it on desktop and stacks below it on narrower viewports. All visible incident and maintenance text comes from snapshot data; the public timeline uses the shared incident-field renderer used by notification surfaces.
+The public status page captures (`01`, `02`, `12`, `13`) were re-rendered on 12 October 2026 after the owner replaced the cartographic design (DIVERGENCE.md, "Public status page restyle"). They come from the real snapshot renderer and public routes with fixture snapshot data for a sample business, captured in Chromium; the other captures remain the earlier owner-preview captures.
 
-The public page is rendered into versioned R2 artifacts. Its stylesheet, script, favicon (which visibly composites the configured logo and current status mark), and cleaned cartographic artwork stay on the deployment origin. Open Sans is bundled into the stylesheet, so no third-party font request is made. The map remains outside the initial HTML, leaving the document budget for real data markup.
+The public page leads with the overall status on a white plate (tinted only when something is wrong), then grouped component plates with full-width daily availability records, then current incidents and planned maintenance, then recently resolved incidents and the subscription form. All visible incident and maintenance text comes from snapshot data; the public record uses the shared incident-field renderer used by notification surfaces.
 
-The selected B conversion from the external 12ui roomy-v2 evidence informed the page structure and spacing. Owner overrides retain Open Sans, the cleaned original map, the configured favicon/logo, and real uptime/timeline data. Generated chart raster, generic logo/status artwork, and sample content were reference-only and are not shipped.
+The public page is rendered into versioned R2 artifacts. Its stylesheet, script and favicon (which visibly composites the configured logo and current status mark) stay on the deployment origin. Inter is embedded in the stylesheet, so no font request leaves the page; the page background is warm paper lit by CSS gradients, with no image request. The business's name, logo and accent colour are its own; the accent marks only the subscribe action.
 
 | File | Captured route and viewport |
 | --- | --- |

@@ -1,10 +1,13 @@
 # Lamp operations
 
-Lamp uses distinct public page and operator application hosts. Its deployment
+Lamp uses distinct public page and operator application hosts. Each has its own
+home page: the page host's `/` is the company's public status page, and the app
+host's `/` is the Lamp landing page beside sign-in and the operator app. Its deployment
 commands provision a real D1 database, R2 bucket and Queue by environment name,
 apply migrations, initialize the first operator and page settings, build the
-Worker and publish the emitted artifact. Use `pnpm run setup` (the explicit `run`
-avoids pnpm's own shell-setup command).
+Worker and publish the emitted artifact. `rer deploy` runs all of these;
+`pnpm run setup:cloudflare` runs the provisioning alone. (`pnpm run setup` is the
+local first-owner setup.)
 
 ## Owner inputs
 
@@ -18,6 +21,10 @@ Account Worker access alone can upload the artifact but cannot attach its hosts.
 The two token secrets must each contain at least 32 characters. Keep their
 original values when restoring so existing subscriber tokens and webhook
 signatures remain valid. Store owner inputs outside committed source.
+
+Optionally set `OWNER_DISPLAY_NAME` to the first owner's name (1–120 characters).
+It is used only when setup creates the first operator; existing owners keep their
+name and access. Without it, the native command retains its `Setup operator` name.
 
 `MAIL_PROVIDER` selects `resend` (default, preserving existing deployments) or
 `sendgrid`. Both use `MAIL_PROVIDER_API_KEY`; map an existing provider-specific
@@ -40,13 +47,53 @@ list covers `List-Unsubscribe` and `List-Unsubscribe-Post` before claiming one-c
 mailbox-provider support. A provider setting or received message that fails these
 checks is a release blocker, not a reason to claim the behavior locally.
 
+## Hostnames and DNS
+
+One installation publishes one company's status page. `LAMP_PAGE_HOST` is the name
+the company's customers open, such as `status.company.com`; `LAMP_APP_HOST` is the
+operator name, such as `lamp.company.com`, whose `/` is the Lamp landing page. The
+two must differ: setup rejects equal values, and a Worker started with equal values
+fails every request with an error naming `LAMP_PAGE_HOST` and `LAMP_APP_HOST`.
+Hosting several companies means one installation per company, each with its own
+page host.
+
+The landing page's former address `/lamp` answers 301 to the app host's `/` for one
+release. The landing page is a public, indexable document on the operator name.
+
+## Your own domain
+
+Lamp attaches the public page and operator app as Cloudflare Worker custom domains.
+Each hostname must be in a domain whose DNS zone is active in the Cloudflare account
+used for setup. Cloudflare creates the required DNS records and TLS certificates
+when the custom domains are provisioned; do not point a CNAME at a guessed Worker
+address. See [Cloudflare's custom-domain documentation](https://developers.cloudflare.com/workers/configuration/routing/custom-domains/).
+
+1. Add the domain or domains that contain your chosen hostnames to the intended
+   Cloudflare account. If another provider currently hosts a domain's DNS, review and
+   import its existing records, change that registrar's authoritative nameservers to
+   the pair Cloudflare assigned, and wait for that zone to report as active. Keep each
+   registration at its current registrar if you prefer; DNS authority must be Cloudflare.
+2. Choose two distinct hostnames in one or more active zones in that Cloudflare
+   account, such as `status.example.com` for the public page and `ops.example.com` for
+   the app. Resolve any current service or DNS record using either exact hostname as
+   part of your planned migration before setup attaches the Worker. The deployment
+   token needs custom-domain access to both zones when they are separate.
+3. Set `LAMP_PAGE_HOST` and `LAMP_APP_HOST` to those hostnames in the private owner
+   inputs described above. Run `rer deploy`.
+4. After deployment, open `https://<LAMP_PAGE_HOST>/` and check
+   `https://<LAMP_APP_HOST>/health`. Verify the public page and operator sign-in on
+   their respective hostnames before routing customers to the new setup.
+
+DNS hosted by another provider is unsupported. The registrar can remain elsewhere,
+but it must delegate the domain to the active Cloudflare zone before setup.
+
 ## Deployment and checks
 
 ```sh
 pnpm install --frozen-lockfile
 pnpm exec playwright install chromium
-pnpm run deploy -- --dry-run --environment staging
-pnpm run deploy -- --environment production
+rer deploy --dry-run --environment staging
+rer deploy --environment production
 ```
 
 Dry run compiles and validates generated configuration without changing Cloudflare.
@@ -65,7 +112,7 @@ not carry resource authority, secrets, migration instructions or trustworthy sou
 identity. The independent delivery service validates the run and retained bytes,
 then applies the approved resource plan. Its authority must live outside the
 editable application build job. Artifact creation alone does not deploy Lamp.
-Direct owner deployment remains available with `pnpm run deploy`.
+Direct owner deployment remains available with `rer deploy`.
 
 ## Provider uncertainty and recovery
 
@@ -95,9 +142,9 @@ manifest; use a new empty output directory for the next attempt. Archive files
 are private because they include subscriber data, sessions and frozen mail.
 
 ```sh
-pnpm run export -- --remote --environment production --out /private/backups/lamp-first
-pnpm run export -- --persist-to /private/local-state --out /private/backups/lamp-local
-pnpm run import -- --from /private/backups/lamp-local --persist-to /private/empty-state
+pnpm run export:cloudflare -- --remote --environment production --out /private/backups/lamp-first
+pnpm run export:cloudflare -- --persist-to /private/local-state --out /private/backups/lamp-local
+pnpm run import:cloudflare -- --from /private/backups/lamp-local --persist-to /private/empty-state
 ```
 
 Keep the owner's exact source revision alongside the backup. Import checks the
@@ -132,10 +179,10 @@ A Cloudflare-wide outage needs separately operated hosting; this release does no
 provision an independent standby or make that deployment claim.
 
 For a remote restore, choose a new environment name and replacement host inputs,
-then run `pnpm run setup -- --environment recovery --restore-from /private/backups/lamp-first`.
+then run `pnpm run setup:cloudflare -- --environment recovery --restore-from /private/backups/lamp-first`.
 This provisions an empty target and imports before initialization; it never
 publishes a Worker. Inspect the restored archive and record equivalence before
-`pnpm run deploy -- --environment recovery`. Keep original host routing active
+`rer deploy --environment recovery`. Keep original host routing active
 until the replacement has passed its application and provider checks. Passing
 `--restore-from` directly to deploy performs the same restore before verification
 and publication, and refuses a destination that already contains data.
@@ -215,13 +262,18 @@ is candidate code, so its presence is not an independent authorization boundary.
 
 ## Independent release and local browser setup
 
-Start with `node scripts/install.mjs` before installing application dependencies.
+Install Node 22.20.0, pnpm 10.12.4 and Git on PATH, then run
+`node scripts/install.mjs` before installing application dependencies.
 The maintained Base loopback browser setup collects your actual owner, page,
 timezone and provider choices. Opening or filling it has no provisioning or mail
-effects. Start explicitly to install locked tools/dependencies and run the real
-local Worker, or to finish native setup at an already approved independent RER
-operator address. `--resume` preserves source, data and nonsecret answers; secrets
-remain private, and a different owner/target requires a separate checkout.
+effects. Choose **On this computer** to install locked dependencies and run the
+real local Worker. Choose **Online for your team** to use native setup and deploy
+in your Cloudflare account. Before Online Start, complete **Online page settings**
+and **Online mail settings** through Edit, and use an API token and custom
+operator address in **Hosting & connections**. Native setup preserves an existing
+owner. `--resume` preserves source, data and nonsecret answers; generated secrets
+remain private. Changing a recorded hosted account, destination, owner or sender
+requires a separate checkout.
 See `scripts/installer/README.md`. The CI descriptor's tooling setup is separate.
 
 `rer-project.json` is the independent source descriptor. Register it with the
@@ -242,19 +294,12 @@ only during explicit pending setup. Once initialized, status returns200 and
 public readiness must be200; inconsistent settings or dependency failures fail.
 The public host cannot reach setup, sessions, operator APIs or operator assets.
 
-Supply `LAMP_BOOTSTRAP_SECRET` (at least32 random characters),
+Supply independent `SETUP_TOKEN` and `SESSION_SECRET` (at least 32 random characters each),
 `MAIL_PROVIDER_API_KEY`, `SUBSCRIBER_TOKEN_SECRET` and `WEBHOOK_SIGNING_SECRET`
 through the broker's separate runtime secret channel. Configure a real
 `MAIL_FROM_ADDRESS`, the chosen mail provider, and signed receipt verification as
 above. The candidate receives none of these secrets while building. Native
-`POST /setup` takes a Bearer bootstrap secret and JSON fields `email`,
-`displayName`, `pageName`, `tagline`, `timezone`; optional `mailProvider` and
-`mailFromAddress` must match the deployed configuration. It atomically initializes
-only a database without any owner records, preserves existing settings, and
-never emits an operator session. Use the local browser installer for this action,
-then ordinary emailed sign-in. Repeated or racing setup is refused. After setup,
-remove the bootstrap runtime secret when no longer needed; existing owner rows
-keep setup closed even if an owner is deactivated or erased.
+`POST /auth/bootstrap` claims the configured `SETUP_OPERATOR_EMAIL` with JSON `token` (the `SETUP_TOKEN`) and `displayName`. Base issues the owner's session and refuses repeated or racing claims. The installer then applies product page settings. Keep the installer-managed `SETUP_TOKEN` for subsequent setup/deploy commands; the durable Base claim prevents reuse against an initialized store. Keep `SESSION_SECRET` stable. Subsequent sign-in uses Base email links and a confirmation POST.
 
 Core migration bytes and broker identities `core-<filename>` and owner migration
 identities `ext-<filename>` remain unchanged. Existing direct-owner D1 and owner
@@ -263,3 +308,88 @@ installation into a new independent installation without its separately accepted
 resource/data migration. Native archives include authoritative D1/R2 data; the
 SnapshotCache Durable Object is derived and is rebuilt from retained R2 bundles.
 This does not assert complete RER automatic Durable Object export/restore.
+
+## Native workers.dev deployment
+
+Custom domains remain the default. To use the account's existing Workers subdomain without custom DNS, set `LAMP_HOSTING=workers-dev`. Set `LAMP_RESOURCE_PREFIX` to an explicit lowercase resource namespace (letters, digits and hyphens, at most 47 characters). If omitted, it is `lamp-<environment>`; the environment defaults to `production`.
+
+The app host is exactly `<prefix>.<subdomain>.workers.dev` and the page host exactly `<prefix>-page.<subdomain>.workers.dev`, with your account's Workers subdomain as `<subdomain>`; any other names are refused. For a prefix `my-status` and the Workers subdomain `my-account`, set:
+
+```sh
+export LAMP_HOSTING=workers-dev
+export LAMP_RESOURCE_PREFIX=my-status
+export LAMP_APP_HOST=my-status.my-account.workers.dev
+export LAMP_PAGE_HOST=my-status-page.my-account.workers.dev
+rer deploy
+```
+
+Configure the remaining inputs from the README deployment table before running these commands. Find the account subdomain in Cloudflare Workers settings; setup verifies it against the authenticated account before creating resources. It never changes account-level subdomain settings. The app Worker is named exactly the prefix; the public Worker adds `-page`. D1 adds `-db`, R2 adds `-files`, and the queue adds `-jobs`. The generated config records the supplied account ID. Deployment records preserve actual resource names for archive and sign-in commands.
+
+Both Workers serve the same compiled source and retain the configured host checks: operator paths on the public hostname return 404, and operator APIs on the app hostname require a session. The app Worker owns the scheduled jobs, queue consumer and snapshot Durable Object. The public Worker uses that same object and storage without a second scheduler or consumer. The command deploys the app Worker first, then the public Worker. Keep the prefix reserved for this installation, and remove both Workers when retiring it.
+
+This mode is supported by native `rer deploy`. The independent delivery artifact contract describes one Worker; it does not package this two-Worker topology.
+
+## Remote verification evidence
+
+Deployment runs the real full verifier before provisioning by default. Owners who run verification on another trusted machine can create exact-source evidence there:
+
+```sh
+node scripts/verify-receipt.mjs --output /absolute/private/path/verification.json
+```
+
+Run that command in a clean checkout of the deployment commit, with the pinned dependencies and browser tooling installed. The output path must be outside the source checkout and must not already exist. The wrapper runs `pnpm run verify`, checks the commit, source tree and clean status before and after it, and writes a private success receipt only after the entire command passes. A failed verification writes no success receipt.
+
+Then, from a clean checkout of that exact commit:
+
+```sh
+pnpm run deploy -- --verification-host trusted-runner --verification-receipt /absolute/private/path/verification.json
+```
+
+Both options are required together. The SSH host is an owner-trusted verifier already present in SSH known hosts. Deployment fetches the evidence over authenticated, noninteractive SSH with strict host-key checking; local JSON files cannot substitute for it. It checks the successful full command, commit and tree before setup, then rechecks clean source after the build and before upload. A missing, failed, mismatched or unreadable receipt stops deployment. Keep the remote receipt until deployment is finished; remove it as part of your own verifier cleanup. This proves source verification only; the deployment health and retained-snapshot checks still run and installation acceptance remains separate.
+
+### Local capture and operational inspection
+
+The installer runs Lamp's native development application with Base's durable D1
+mail outbox. No real mail key is required for that local trial. Captured messages
+are available at `/__dev/outbox`; follow the native sign-in link there. Capture
+is neither provider acceptance nor delivery. Production never mounts this viewer.
+
+The separate local `LAMP_BASE_MAIL` database stores raw Base envelopes; the local
+R2 binding retains only capture claims and private configuration for new mail.
+Both are excluded from deployment resources and portable production archives.
+A failed or ambiguous capture remains failed without an automatic resend.
+Older R2 envelopes remain private and prevent recapture of their delivery keys.
+
+`node scripts/operations.mjs check` prints the required inputs and their sources,
+plus a plain next step. Version 2 of `OPERATIONS.json` describes the real native
+mail dispatch and scheduled-update loops. Lamp's chosen provider consumes
+`MAIL_PROVIDER_API_KEY`; this check never sends mail, queries provider credentials
+or establishes hosted health.
+
+## Independent external heartbeat
+
+Set `LAMP_HEARTBEAT_URL` to the public HTTPS ping URL of the owner's chosen external heartbeat service. It is off when omitted. Keep this capability URL secret. `LAMP_HEARTBEAT_INTERVAL_MINUTES` defaults to 5. Configure the service's expected interval and grace period to match; the service sends the alarm when pings stop. Choose the receiving mailbox and phone on infrastructure independent of this hosting provider.
+
+The minute cron sends an empty GET only on the heartbeat interval grid, after scheduled work completes and `/health` verifies D1, R2 and Queue. Failed dependencies and the hosting-move `EFFECTS_PAUSED=1` hold stop pings. No subscriber, incident, page, visitor or owner data travels. A successful ping establishes the service acknowledged that ping; it does not prove human receipt. This watch does not provide standby hosting.
+
+## Shared operator authentication
+
+Lamp adopts Base `aa9b4d4fc6cba60411ef8d24a81323113677c370`. Migration 0019 preserves non-erased operator IDs and active/inactive status, moves setup authority only with the setup operator (when that operator erased itself, no operator gains it and the editor stays closed), retains product attribution and subscriber credentials, and physically removes old sessions and pending links. Every active operator must sign in afresh. On a local in-place upgrade, `rer setup` adds the missing `SESSION_SECRET` and `SETUP_TOKEN` to the kept `.dev.vars` and changes no saved value. The setup operator may remove themselves only while another owner remains. Changing operator access requires a recent native email confirmation; Settings provides the confirmation action.
+
+The installer provisions `SETUP_TOKEN` and `SESSION_SECRET`. Base `/auth/bootstrap` claims the empty store; a changed setup token cannot reopen it. Retain the installer-managed setup token: current setup/deploy tooling requires it and repeats the claim, accepting Base’s already-initialized refusal. The durable claim prevents the token from reopening the store. Never rotate `SESSION_SECRET` inadvertently on a redeploy.
+
+`pnpm signin-link --email <operator>` reads `SESSION_SECRET` from private local settings or the command environment; remote recovery requires it in the environment. Capture its stdout privately. It uses Base's ordinary 20-minute confirmation link and records the existing product audit event; it creates no session until the confirmation POST.
+
+Optional Auth installs link through the declared `oidc-provider@1` dependency (`IDENTITY_PROVIDER`). Base settings at `/auth/settings/identity` control admission. A link alone does not enable sign-in on existing installations. Google, Microsoft and Okta may also be configured with Base `AUTH_PROVIDERS` JSON and an independent `OIDC_TRANSACTION_SECRET`; use Base's included identity/oidc documentation for issuer, key and explicit subject association requirements. SCIM and role synchronization remain unsupported. No live identity provider has been exercised by the local adoption checks.
+
+Apply migration 0020 after 0019 before starting the refreshed runtime. It adds
+setup-link session provenance and exact approval attempts. Pending provider-link
+approvals from the older runtime must be renewed. Native `rer export` archives
+now authenticate their manifest and ordered parts; version-1 native archives
+must be exported again with the new source before restore.
+
+A native export retains durable operator identities and consumed owner claims.
+After restore, sign in with a fresh email link. Old sessions, pending email links
+and provider-link approvals do not travel; provider links require fresh approval
+and sign-in is disabled until the owner enables it. Subscriber capabilities and
+product attribution retain their authority.

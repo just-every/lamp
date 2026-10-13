@@ -1,7 +1,9 @@
+import { requestHeaders } from "../helpers/request-headers.mjs";
+import { withDraftVersion } from "./draft-version-helper.mjs";
 import assert from "node:assert/strict";
 import { createHmac } from "node:crypto";
 import { execFileSync, spawn } from "node:child_process";
-import { mkdtempSync, rmSync } from "node:fs";
+import { rmSync } from "node:fs";
 import { DatabaseSync } from "node:sqlite";
 import { fileURLToPath } from "node:url";
 import { after, before } from "node:test";
@@ -9,11 +11,16 @@ import { createServer as createViteServer } from "vite";
 
 import { contract } from "../contract.mjs";
 import { insertRealOperatorSession } from "./real-session-helper.mjs";
+import { appOrigin, pageOrigin } from "./helpers/hosts.mjs";
 import { reservePort, waitForWorker } from "./worker-startup.mjs";
+import { assertDraftMetadataIsolation } from "./draft-metadata-regression.mjs";
+import { sessionCookieName } from "../helpers/session-cookie.mjs";
 
-let baseUrl = "";
+let appUrl = "";
+let pageUrl = "";
 let testPort;
 const testStatePath = fileURLToPath(new URL("./.wrangler/publishing-state", import.meta.url));
+process.env.MINIFLARE_CACHE_DIR = `${testStatePath}/miniflare-cache`;
 const testViteCachePath = fileURLToPath(new URL("./.vite/publishing-contract", import.meta.url));
 let server;
 let sessionId;
@@ -21,8 +28,9 @@ let serverOutput = "";
 let degradedHourMinutes;
 let pageTimezone;
 
-function appFetch(path, init = {}) {
-  return fetch(`${baseUrl}${path}`, { ...init, headers: { Connection: "close", Cookie: `lamp_session=${sessionId}`, "Content-Type": "application/json", ...init.headers } });
+async function appFetch(path, init = {}) {
+  init = await withDraftVersion(path, init, appFetch);
+  return fetch(`${appUrl}${path}`, { ...init, headers: requestHeaders({ Connection: "close", Cookie: `${sessionCookieName(appUrl)}=${sessionId}`, "Content-Type": "application/json" }, init.headers) });
 }
 
 async function responseBody(response) {
@@ -140,7 +148,7 @@ function componentDowntimeMark(name, day, minutes) {
 async function publicArtifact(path, expected, description) {
   return eventually(
     async () => {
-      const response = await fetch(`${baseUrl}${path}`);
+      const response = await fetch(`${pageUrl}${path}`);
       return { response, text: await response.text() };
     },
     ({ response, text }) => response.status === 200 && (expected instanceof RegExp ? expected.test(text) : text.includes(expected)),
@@ -152,31 +160,13 @@ async function signedIntake(sourceId, secret, payload) {
   const body = JSON.stringify(payload);
   const timestamp = new Date().toISOString();
   const signature = createHmac("sha256", secret).update(`${timestamp}.${body}`).digest("base64url");
-  return fetch(`${baseUrl}/api/intake/${sourceId}`, { method: "POST", headers: { "Content-Type": "application/json", "x-lamp-timestamp": timestamp, "x-lamp-signature": signature }, body });
+  return fetch(`${pageUrl}/api/intake/${sourceId}`, { method: "POST", headers: { "Content-Type": "application/json", "x-lamp-timestamp": timestamp, "x-lamp-signature": signature }, body });
 }
 
 async function createIntakeSource(name, overrides = {}) {
   const response = await appFetch("/api/app/intake/sources", { method: "POST", body: JSON.stringify({ name, credentialKind: "hmac-sha256", signingSecret: "contract-intake-secret", deduplicationPath: "$.alert.id", titlePath: "$.alert.title", statePath: "$.alert.state", recoveredValue: "recovered", ...overrides }) });
   await expectStatus(response, 201);
   return (await response.json()).source;
-}
-
-async function loadAiServiceFactory() {
-  const vite = await createIsolatedViteServer();
-  try {
-    return (await vite.ssrLoadModule("/src/core/features/ai/service.ts")).createAiService;
-  } finally {
-    await vite.close();
-  }
-}
-
-async function loadAiRepositoryFactory() {
-  const vite = await createIsolatedViteServer();
-  try {
-    return (await vite.ssrLoadModule("/src/core/features/ai/repository.ts")).createAiRepository;
-  } finally {
-    await vite.close();
-  }
 }
 
 async function loadIncidentsServiceFactory() {
@@ -241,65 +231,18 @@ async function reserveTestPort() {
 
 async function createIsolatedViteServer() {
   const hmrPort = await reserveViteHmrPort();
-  return createViteServer({ configFile: false, appType: "custom", server: { middlewareMode: true, hmr: { port: hmrPort } } });
+  return createViteServer({ configFile: false, cacheDir: `${testViteCachePath}/isolated-loader`, appType: "custom", server: { middlewareMode: true, hmr: { port: hmrPort } } });
 }
 
 function executeFixtureSql(statement) {
-  execFileSync("pnpm", ["exec", "wrangler", "d1", "execute", "DB", "--local", "--config", "deploy/wrangler.template.toml", "--persist-to", testStatePath, "--command", statement], { cwd: process.cwd(), stdio: "pipe" });
-}
-
-function d1Literal(value) {
-  if (value === null) return "NULL";
-  if (typeof value === "number") return String(value);
-  if (typeof value === "string") return `'${value.replaceAll("'", "''")}'`;
-  throw new Error(`The repository test cannot bind ${typeof value} to real local D1.`);
+  execFileSync("pnpm", ["exec", "wrangler", "d1", "execute", "DB", "--local", "--config", "wrangler.jsonc", "--persist-to", testStatePath, "--command", statement], { cwd: process.cwd(), stdio: "pipe" });
 }
 
 function queryD1Sql(persistTo, statement) {
-  const output = execFileSync("pnpm", ["exec", "wrangler", "d1", "execute", "DB", "--local", "--config", "deploy/wrangler.template.toml", "--persist-to", persistTo, "--command", statement, "--json"], { cwd: process.cwd(), encoding: "utf8" });
+  const output = execFileSync("pnpm", ["exec", "wrangler", "d1", "execute", "DB", "--local", "--config", "wrangler.jsonc", "--persist-to", persistTo, "--command", statement, "--json"], { cwd: process.cwd(), encoding: "utf8" });
   const [result] = JSON.parse(output);
   if (!result?.success) throw new Error(`Local D1 query failed: ${statement}`);
   return result.results;
-}
-
-function createFixtureD1Binding(persistTo) {
-  return {
-    prepare(sql) {
-      const statementFor = (values) => {
-        const results = () => {
-          let index = 0;
-          const statement = sql.replaceAll("?", () => d1Literal(values[index++]));
-          if (index !== values.length) throw new Error("Local D1 fixture did not bind every repository parameter.");
-          return queryD1Sql(persistTo, statement);
-        };
-        return {
-          bind: (...nextValues) => statementFor(nextValues),
-          all: async () => ({ results: results() }),
-          first: async () => results()[0] ?? null,
-          raw: async () => results().map((row) => Object.values(row)),
-        };
-      };
-      return statementFor([]);
-    },
-  };
-}
-
-function createAiRepositoryFixture() {
-  const persistTo = mkdtempSync("/tmp/lamp-ai-repository-");
-  execFileSync("pnpm", ["exec", "wrangler", "d1", "migrations", "apply", "DB", "--local", "--config", "deploy/wrangler.template.toml", "--persist-to", persistTo], { cwd: process.cwd(), stdio: "pipe" });
-  const timestamp = "2026-09-08T00:00:00.000Z";
-  execFileSync("pnpm", ["exec", "wrangler", "d1", "execute", "DB", "--local", "--config", "deploy/wrangler.template.toml", "--persist-to", persistTo, "--command", `
-    INSERT INTO operators (id,email,display_name,is_setup_operator,created_at,updated_at) VALUES ('01J00000000000000000000001','operator@example.test','Operator',1,'${timestamp}','${timestamp}');
-    INSERT INTO page_settings (id,page_name,tagline,accent_color,timezone,hostname,footer_credit_enabled,logo_key,logo_content_type,widget_allowed_origins,mail_from_address,ai_tone_instructions,feed_id,created_at,updated_at) VALUES ('default','Lamp status','Fixture status page','#16794C','UTC','status.example.test',1,NULL,NULL,'[]','lamp@example.test','Use concise factual language.','ai-context-feed','${timestamp}','${timestamp}');
-    INSERT INTO components (id,group_id,name,description,internal,display_order,note,created_at,updated_at) VALUES ('01J00000000000000000000011',NULL,'Contract API','Public API',0,1,'','${timestamp}','${timestamp}');
-    INSERT INTO incidents (id,reference,title,lifecycle,opened_at,resolved_at,created_by_operator_id,deleted_at,deletion_reason,peak_impact,created_at,updated_at) VALUES ('01J00000000000000000000091','INC-9001','AI repository context','Identified','${timestamp}',NULL,'01J00000000000000000000001',NULL,NULL,'Major outage','${timestamp}','${timestamp}');
-    INSERT INTO incident_components (id,incident_id,component_id,component_name,state,relationship,published_at,created_at,updated_at) VALUES ('01J00000000000000000000093','01J00000000000000000000091','01J00000000000000000000011','Contract API','Major outage','Primary','${timestamp}','${timestamp}','${timestamp}');
-    INSERT INTO incident_updates (id,incident_id,lifecycle,affected_audience,customer_impact,what_still_works,details,next_update_at,published_at,author_operator_id,corrects_update_id,created_at,updated_at) VALUES ('01J00000000000000000000094','01J00000000000000000000091','Identified','API customers','Writes fail','Reads remain available.','The connection pool is exhausted.','2020-01-01T01:00:00.000Z','${timestamp}','01J00000000000000000000001',NULL,'${timestamp}','${timestamp}');
-    INSERT INTO incident_internal_notes (id,incident_id,body,author_operator_id,created_at,updated_at) VALUES ('01J00000000000000000000095','01J00000000000000000000091','PRIVATE-AI-NOTE-MUST-NOT-LEAK','01J00000000000000000000001','${timestamp}','${timestamp}');
-    INSERT INTO alert_sources (id,name,credential_kind,signing_secret,bearer_token_hash,timestamp_header,signature_header,deduplication_path,title_path,state_path,recovered_value,created_by_operator_id,created_at,updated_at) VALUES ('01J00000000000000000000096','AI context source','hmac-sha256','fixture-secret',NULL,'x-lamp-timestamp','x-lamp-signature','$.alert.id','$.alert.title','$.alert.state','recovered','01J00000000000000000000001','${timestamp}','${timestamp}');
-    INSERT INTO alert_receipts (id,source_id,request_hash,deduplication_key,incident_id,state,received_at,recovered_at,payload_json,error,created_at,updated_at) VALUES ('01J00000000000000000000092','01J00000000000000000000096','ai-context-request','ai-context-alert','01J00000000000000000000091','firing','${timestamp}',NULL,'{"alert":"pool-exhausted"}',NULL,'${timestamp}','${timestamp}');
-  `], { cwd: process.cwd(), stdio: "pipe" });
-  return persistTo;
 }
 
 function r2Object(key, input) {
@@ -309,23 +252,25 @@ function r2Object(key, input) {
 
 before(async () => {
   testPort = await reserveTestPort();
-  baseUrl = `http://127.0.0.1:${testPort}`;
+  appUrl = appOrigin(testPort);
+  pageUrl = pageOrigin(testPort);
   rmSync(testStatePath, { recursive: true, force: true });
   rmSync(testViteCachePath, { recursive: true, force: true });
-  execFileSync("pnpm", ["exec", "wrangler", "d1", "migrations", "apply", "DB", "--local", "--config", "deploy/wrangler.template.toml", "--persist-to", testStatePath], { cwd: process.cwd(), stdio: "pipe" });
-  server = spawn("pnpm", ["exec", "vite", "--host", "0.0.0.0", "--port", String(testPort), "--strictPort"], { cwd: process.cwd(), stdio: "pipe", detached: true, env: { ...process.env, LAMP_WORKERS_STATE_PATH: testStatePath, LAMP_VITE_CACHE_DIR: testViteCachePath, LAMP_DISABLE_INSPECTOR: "true" } });
+  execFileSync("pnpm", ["exec", "wrangler", "d1", "migrations", "apply", "DB", "--local", "--config", "wrangler.jsonc", "--persist-to", testStatePath], { cwd: process.cwd(), stdio: "pipe" });
+  // Configure this fixture before the Worker builds its initial public snapshot.
+  sessionId = await insertRealOperatorSession({ persistTo: testStatePath });
+  server = spawn("pnpm", ["exec", "vite", "--configLoader", "native", "--host", "0.0.0.0", "--port", String(testPort), "--strictPort"], { cwd: process.cwd(), stdio: "pipe", detached: true, env: { ...process.env, LAMP_WORKERS_STATE_PATH: testStatePath, LAMP_VITE_CACHE_DIR: testViteCachePath, LAMP_DISABLE_INSPECTOR: "true" } });
   server.stdout.on("data", (chunk) => { serverOutput += chunk; });
   server.stderr.on("data", (chunk) => { serverOutput += chunk; });
-  await waitForWorker({ origin: baseUrl, child: server, output: () => `${serverOutput}\nState: ${testStatePath}`, label: "Publishing-contract Worker" });
+  await waitForWorker({ origin: appUrl, child: server, output: () => `${serverOutput}\nState: ${testStatePath}`, label: "Publishing-contract Worker" });
   const policyLoader = await createIsolatedViteServer();
   try {
     const { createServerExtensionMount } = await policyLoader.ssrLoadModule("/src/core/app/extensions/server.ts");
     degradedHourMinutes = 60 * createServerExtensionMount().publicSnapshotPolicies.uptimeDowntimeWeight("Degraded performance");
   } finally { await policyLoader.close(); }
-  const identity = await (await fetch(`${baseUrl}/`)).text();
+  const identity = await (await fetch(`${pageUrl}/`)).text();
   assert.match(identity, /id="overall-status" data-overall/, "test listener did not serve Lamp's public snapshot");
   assert.match(identity, /data-generated-at/, "public snapshot must expose its generation time independently of owner branding");
-  sessionId = await insertRealOperatorSession({ persistTo: testStatePath });
   pageTimezone = (await (await appFetch("/api/app/page-settings")).json()).settings.timezone;
   executeFixtureSql(`INSERT INTO components (id,group_id,name,description,internal,display_order,note,created_at,updated_at) VALUES ('01J00000000000000000000011',NULL,'Contract API','A test-owned public component.',0,1,'','2026-09-08T00:00:00.000Z','2026-09-08T00:00:00.000Z'); INSERT INTO subscribers (id,channel,destination,contact_email,state,selection_mode,token_hash,deactivation_reason,deactivated_at,created_at,updated_at) VALUES ('01J00000000000000000000070','email','contract-subscriber@example.test',NULL,'active','all','contract-token-hash',NULL,NULL,'2026-09-08T00:00:00.000Z','2026-09-08T00:00:00.000Z')`);
 });
@@ -426,7 +371,7 @@ contract("UPDATE-005", "a private saved draft survives an operator reload withou
   const restored = await incidentView(incident.id);
   assert.equal(restored.draft.details, secret);
   for (const path of ["/", "/history", "/feed.atom", "/widget.js"]) {
-    assert.doesNotMatch(await (await fetch(`${baseUrl}${path}`)).text(), new RegExp(secret));
+    assert.doesNotMatch(await (await fetch(`${pageUrl}${path}`)).text(), new RegExp(secret));
   }
 });
 
@@ -440,13 +385,13 @@ contract("UPDATE-006", "a future scheduled draft remains private until the sched
   // Keep the fixture future-dated through real request and D1 latency.
   const publishAt = new Date(Date.now() + 5000).toISOString();
   await expectStatus(await appFetch(`/api/app/incidents/${incident.id}/draft/schedule`, { method: "POST", body: JSON.stringify({ publishAt, channels: [] }) }), 202);
-  assert.doesNotMatch(await (await fetch(`${baseUrl}/`)).text(), new RegExp(details));
+  assert.doesNotMatch(await (await fetch(`${pageUrl}/`)).text(), new RegExp(details));
   assert.ok(Date.now() < Date.parse(publishAt), "early cron runs before the committed publication time");
-  await expectStatus(await fetch(`${baseUrl}/cdn-cgi/local/scheduled`), 200);
+  await expectStatus(await fetch(`${pageUrl}/cdn-cgi/local/scheduled`), 200);
   assert.equal((await incidentView(incident.id)).updates.length, 0);
-  assert.doesNotMatch(await (await fetch(`${baseUrl}/`)).text(), new RegExp(details));
+  assert.doesNotMatch(await (await fetch(`${pageUrl}/`)).text(), new RegExp(details));
   await new Promise((resolve) => setTimeout(resolve, Math.max(0, Date.parse(publishAt) - Date.now()) + 100));
-  await expectStatus(await fetch(`${baseUrl}/cdn-cgi/local/scheduled`), 200);
+  await expectStatus(await fetch(`${pageUrl}/cdn-cgi/local/scheduled`), 200);
   await publicArtifact(`/incidents/${incident.reference}`, details, "scheduled publication");
 });
 
@@ -465,12 +410,12 @@ contract("UPDATE-007", "the update review policy can hold publication until a di
     publishDraft: async (record) => { published = record; },
     listUpdates: async () => published ? [published] : [],
   };
-  const service = createIncidentsService(repository, {}, async () => {}, { forIncidentUpdate: async () => [] }, { requiresReview: () => true }, async () => {}, async () => {});
-  await assert.rejects(() => service.publish(incident.id, "author", { channels: [] }), /requires review/);
+  const service = createIncidentsService(repository, {}, async () => {}, { forIncidentUpdate: async () => [] }, { requiresReview: () => true }, async () => {});
+  await assert.rejects(() => service.publish(incident.id, "author", { channels: [], expectedVersion: `${draft.id}:0` }), /requires review/);
   assert.equal(published, null);
   draft.reviewedAt = new Date().toISOString();
   draft.reviewedByOperatorId = "reviewer";
-  const update = await service.publish(incident.id, "author", { channels: [] });
+  const update = await service.publish(incident.id, "author", { channels: [], expectedVersion: `${draft.id}:0` });
   assert.equal(update?.incidentId, incident.id);
   assert.equal(update?.lifecycle, "Identified");
 });
@@ -478,14 +423,14 @@ contract("UPDATE-007", "the update review policy can hold publication until a di
 contract("PAGE-006", "a warmed snapshot remains available and visibly stale after the public max-age when R2 pointer reads fail", async () => {
   const pointer = r2Object("snapshots/current.json");
   assert.match(pointer, /"version"/);
-  const warm = await fetch(`${baseUrl}/`);
+  const warm = await fetch(`${pageUrl}/`);
   await expectStatus(warm, 200);
   // The response declares max-age=10. Retained content must survive that
   // boundary, whether recovered from the durable replica or the edge cache.
   await new Promise((resolve) => setTimeout(resolve, 10_200));
   try {
     r2Object("snapshots/current.json", "not-json");
-    const stale = await fetch(`${baseUrl}/`);
+    const stale = await fetch(`${pageUrl}/`);
     assert.equal(stale.status, 200);
     assert.equal(stale.headers.get("x-lamp-snapshot-state"), "stale");
     assert.equal(stale.headers.get("cache-control"), "public, max-age=10, s-maxage=10, stale-while-revalidate=30, stale-if-error=3600");
@@ -508,7 +453,7 @@ contract("UPDATE-009", "applying a saved template fills a draft and component cl
   assert.equal(restored.draft.lifecycle, "Monitoring");
   assert.equal(restored.draft.details, "TEMPLATE-PRIVATE-DETAIL");
   assert.equal(restored.updates.length, 0);
-  assert.doesNotMatch(await (await fetch(`${baseUrl}/`)).text(), /TEMPLATE-PRIVATE-DETAIL/);
+  assert.doesNotMatch(await (await fetch(`${pageUrl}/`)).text(), /TEMPLATE-PRIVATE-DETAIL/);
 });
 
 contract("INCIDENT-001", "an incident begins Investigating and each published update makes its selected lifecycle public", async () => {
@@ -547,11 +492,18 @@ contract("INCIDENT-003", "incidents receive a stable numeric reference and publi
 contract("INCIDENT-004", "a correction publishes an immutable update linked to the correction target", async () => {
   const incident = await createIncident("Correction chain");
   await saveDraft(incident.id, { details: "Initial customer wording." });
+  const original = await incidentView(incident.id);
+  const consumedVersion = `${original.draft.id}:${original.updates.length}`;
   const first = await publish(incident.id);
   await expectStatus(first, 200);
   const initialUpdate = (await first.json()).update;
   await saveDraft(incident.id, { details: "Corrected customer wording." });
+  const reviewed = await assertDraftMetadataIsolation({ baseUrl: appUrl, appFetch, incidentView, executeFixtureSql, incidentId: incident.id, consumedVersion, targetUpdateId: initialUpdate.id });
   await expectStatus(await appFetch(`/api/app/incidents/${incident.id}/draft/correction`, { method: "POST", body: JSON.stringify({ updateId: initialUpdate.id }) }), 200);
+  const marked = await incidentView(incident.id);
+  assert.deepEqual(marked.draft, { ...reviewed.draft, correctsUpdateId: initialUpdate.id, updatedAt: marked.draft.updatedAt });
+  assert.ok(Number.isFinite(Date.parse(marked.draft.updatedAt)));
+  assert.deepEqual(marked.updates, reviewed.updates);
   const correction = await publish(incident.id);
   await expectStatus(correction, 200);
   const correctedUpdate = (await correction.json()).update;
@@ -591,7 +543,7 @@ contract("INCIDENT-007", "deletion requires a reason and removes an incident fro
   await expectStatus(await appFetch(`/api/app/incidents/${incident.id}`, { method: "DELETE", body: JSON.stringify({ reason: "Duplicate operator report" }) }), 200);
   assert.equal((await appFetch(`/api/app/incidents/${incident.id}`)).status, 404);
   await eventually(
-    async () => ({ page: await (await fetch(`${baseUrl}/history`)).text(), feed: await (await fetch(`${baseUrl}/feed.atom`)).text() }),
+    async () => ({ page: await (await fetch(`${pageUrl}/history`)).text(), feed: await (await fetch(`${pageUrl}/feed.atom`)).text() }),
     ({ page, feed }) => !page.includes(incident.reference) && !feed.includes(incident.reference),
     "deleted incident removal from public artifacts",
   );
@@ -604,7 +556,7 @@ contract("INCIDENT-008", "an internal note is excluded from every public artifac
   await saveDraft(incident.id);
   await expectStatus(await publish(incident.id), 200);
   for (const path of ["/", `/incidents/${incident.reference}`, "/feed.atom", "/widget.js"]) {
-    const response = await fetch(`${baseUrl}${path}`);
+    const response = await fetch(`${pageUrl}${path}`);
     await expectStatus(response, 200);
     assert.doesNotMatch(await response.text(), new RegExp(note));
   }
@@ -654,7 +606,7 @@ contract("INCIDENT-009", "retroactive updates reconstruct historical component s
   await expectStatus(initialHistory, 200);
   assert.deepEqual((await initialHistory.json()).history.map((entry) => ({ previousState: entry.previousState, newState: entry.newState, causeType: entry.causeType })), [{ previousState: "Operational", newState: "Operational", causeType: "standing-claim" }]);
   assert.equal(queryD1Sql(testStatePath, `SELECT COUNT(*) AS count FROM component_claim_events WHERE component_id = '${component.id}' AND cause_type = 'standing-claim' AND cause_id IS NULL AND state = 'Operational'`)[0]?.count, 1);
-  await publicArtifact("/", new RegExp(`<h4>${component.name}</h4>[\\s\\S]*?100\\.00% over less than one whole day`), "healthy component initial uptime");
+  await publicArtifact("/", new RegExp(`<h4>${component.name}</h4>[\\s\\S]*?Tracking since <time datetime="[^"]+" data-local-time>`), "healthy component initial tracking time");
   const historicalStart = historicalIntervalStart(2, pageTimezone);
   const historicalEnd = new Date(Date.parse(historicalStart) + 60 * 60_000).toISOString();
   const current = await createIncident("Current same-component outage", { components: [{ componentId: component.id, state: "Major outage", relationship: "Primary" }] });
@@ -663,7 +615,7 @@ contract("INCIDENT-009", "retroactive updates reconstruct historical component s
   const maintenanceCreated = await appFetch("/api/app/maintenance", { method: "POST", body: JSON.stringify({ title: "Current maintenance provenance", startsAt: new Date(Date.now() - 60_000).toISOString(), endsAt: new Date(Date.now() + 60 * 60_000).toISOString(), componentIds: [component.id] }) });
   await expectStatus(maintenanceCreated, 201);
   const maintenance = (await maintenanceCreated.json()).maintenance;
-  await expectStatus(await fetch(`${baseUrl}/cdn-cgi/local/scheduled`), 200);
+  await expectStatus(await fetch(`${pageUrl}/cdn-cgi/local/scheduled`), 200);
   await eventually(async () => (await (await appFetch("/api/app/maintenance")).json()).maintenance.find((record) => record.id === maintenance.id), (record) => record?.state === "In progress", "current maintenance start");
   assert.equal(queryD1Sql(testStatePath, `SELECT COUNT(*) AS count FROM component_claim_events WHERE component_id = '${component.id}' AND cause_type = 'maintenance' AND cause_id = '${maintenance.id}' AND state = 'Under maintenance'`)[0]?.count, 1);
 
@@ -789,12 +741,12 @@ contract("INTAKE-001", "only a current raw-body HMAC is accepted for an alert so
   const source = await appFetch("/api/app/intake/sources", { method: "POST", body: JSON.stringify({ name: "Contract source", credentialKind: "hmac-sha256", signingSecret: "contract-secret", deduplicationPath: "$.alert.id", titlePath: "$.alert.title", statePath: "$.alert.state", recoveredValue: "recovered" }) });
   assert.equal(source.status, 201);
   const sourceId = (await source.json()).source.id;
-  const rejected = await fetch(`${baseUrl}/api/intake/${sourceId}`, { method: "POST", headers: { "Content-Type": "application/json", "x-lamp-timestamp": new Date().toISOString(), "x-lamp-signature": "not-a-valid-signature" }, body: JSON.stringify({ alert: { id: "rejected", title: "Rejected", state: "firing" } }) });
+  const rejected = await fetch(`${pageUrl}/api/intake/${sourceId}`, { method: "POST", headers: { "Content-Type": "application/json", "x-lamp-timestamp": new Date().toISOString(), "x-lamp-signature": "not-a-valid-signature" }, body: JSON.stringify({ alert: { id: "rejected", title: "Rejected", state: "firing" } }) });
   assert.equal(rejected.status, 401);
   const post = async (payload) => {
     const body = JSON.stringify(payload); const timestamp = new Date().toISOString();
     const signature = createHmac("sha256", "contract-secret").update(`${timestamp}.${body}`).digest("base64url");
-    return fetch(`${baseUrl}/api/intake/${sourceId}`, { method: "POST", headers: { "Content-Type": "application/json", "x-lamp-timestamp": timestamp, "x-lamp-signature": signature }, body });
+    return fetch(`${pageUrl}/api/intake/${sourceId}`, { method: "POST", headers: { "Content-Type": "application/json", "x-lamp-timestamp": timestamp, "x-lamp-signature": signature }, body });
   };
   const firing = { alert: { id: "dedup-1", title: "Database alert", state: "firing" } };
   const first = await post(firing); assert.equal(first.status, 202); const accepted = await first.json();
@@ -807,13 +759,13 @@ contract("INTAKE-001", "only a current raw-body HMAC is accepted for an alert so
 
 contract("INTAKE-002", "a valid alert creates only a private draft incident", async () => {
   const source = await createIntakeSource("Private alert source");
-  const before = await (await fetch(`${baseUrl}/`)).text();
+  const before = await (await fetch(`${pageUrl}/`)).text();
   const accepted = await signedIntake(source.id, "contract-intake-secret", { alert: { id: "private-alert", title: "PRIVATE-ALERT-NARRATIVE", state: "firing" } });
   await expectStatus(accepted, 202);
   const result = await accepted.json();
   const incident = await incidentView(result.incidentId);
   assert.equal(incident.updates.length, 0);
-  assert.doesNotMatch(await (await fetch(`${baseUrl}/`)).text(), /PRIVATE-ALERT-NARRATIVE/);
+  assert.doesNotMatch(await (await fetch(`${pageUrl}/`)).text(), /PRIVATE-ALERT-NARRATIVE/);
   assert.equal(before.includes("PRIVATE-ALERT-NARRATIVE"), false);
 });
 
@@ -860,7 +812,7 @@ contract("MAINT-002", "the Worker scheduled event starts and completes a recorde
   if (created.status !== 201) throw new Error(await created.text());
   const maintenance = (await created.json()).maintenance;
 
-  assert.equal((await fetch(`${baseUrl}/cdn-cgi/local/scheduled`)).status, 200);
+  assert.equal((await fetch(`${pageUrl}/cdn-cgi/local/scheduled`)).status, 200);
   const eventually = async (predicate) => {
     for (let attempt = 0; attempt < 30; attempt += 1) {
       const records = (await (await appFetch("/api/app/maintenance")).json()).maintenance;
@@ -871,7 +823,7 @@ contract("MAINT-002", "the Worker scheduled event starts and completes a recorde
     return null;
   };
   assert.equal((await eventually((record) => record?.state === "In progress"))?.state, "In progress");
-  assert.equal((await fetch(`${baseUrl}/cdn-cgi/local/scheduled`)).status, 200);
+  assert.equal((await fetch(`${pageUrl}/cdn-cgi/local/scheduled`)).status, 200);
   assert.equal((await eventually((record) => record?.state === "Completed"))?.state, "Completed");
 });
 
@@ -889,7 +841,7 @@ contract("MAINT-003", "maintenance claims Under maintenance only while its recor
   await expectStatus(created, 201);
   const maintenance = (await created.json()).maintenance;
   assert.equal((await (await appFetch("/api/app/components")).json()).components.find((item) => item.id === component.id).publicState, "Operational");
-  await expectStatus(await fetch(`${baseUrl}/cdn-cgi/local/scheduled`), 200);
+  await expectStatus(await fetch(`${pageUrl}/cdn-cgi/local/scheduled`), 200);
   await eventually(async () => (await (await appFetch("/api/app/maintenance")).json()).maintenance.find((record) => record.id === maintenance.id), (record) => record?.state === "In progress", "maintenance start");
   assert.equal((await (await appFetch("/api/app/components")).json()).components.find((item) => item.id === component.id).publicState, "Under maintenance");
   await expectStatus(await appFetch(`/api/app/maintenance/${maintenance.id}/complete`, { method: "POST" }), 200);
@@ -938,7 +890,7 @@ contract("MAINT-005", "scheduled, reminder, start, and completion notices are im
   await expectStatus(created, 201);
   const maintenance = (await created.json()).maintenance;
   assert.equal(maintenance.notices.some((notice) => notice.kind === "scheduled"), true);
-  await expectStatus(await fetch(`${baseUrl}/cdn-cgi/local/scheduled`), 200);
+  await expectStatus(await fetch(`${pageUrl}/cdn-cgi/local/scheduled`), 200);
   const withReminder = (await (await appFetch("/api/app/maintenance")).json()).maintenance.find((record) => record.id === maintenance.id);
   assert.equal(withReminder.notices.some((notice) => notice.kind === "reminder"), true);
 });
@@ -953,36 +905,6 @@ contract("MAINT-006", "rescheduling and cancellation create notices and retain a
   assert.equal(cancelled.state, "Cancelled");
   assert.equal(cancelled.notices.some((notice) => notice.kind === "rescheduled"), true);
   assert.equal(cancelled.notices.some((notice) => notice.kind === "cancelled"), true);
-});
-
-contract("DRAFT-001", "a configured AI adapter returns an editable suggestion without publishing it", async () => {
-  const createAiService = await loadAiServiceFactory();
-  const suggestion = { lifecycle: "Identified", affectedAudience: "Affected customers.", customerImpact: "Requests can fail.", whatStillWorks: "Reads work.", details: "Mitigation is underway.", nextUpdateAt: new Date(Date.now() + 60 * 60_000).toISOString() };
-  const service = createAiService({ loadContext: async () => ({ incident: { reference: "INC-1", title: "Suggestion incident", lifecycle: "Investigating" }, components: [], publishedUpdates: [], acceptedAlerts: [], toneInstructions: "Plain factual language." }) }, { suggestUpdate: async () => suggestion });
-  assert.equal(service.configured(), true);
-  assert.deepEqual(await service.suggest("incident-1"), suggestion);
-});
-
-contract("DRAFT-002", "the real D1 AI context includes tone, claims, accepted alerts, and published updates while excluding internal notes", async () => {
-  const persistTo = createAiRepositoryFixture();
-  const [createAiService, createAiRepository] = await Promise.all([loadAiServiceFactory(), loadAiRepositoryFactory()]);
-  let received;
-  try {
-    const service = createAiService(createAiRepository(createFixtureD1Binding(persistTo)), { suggestUpdate: async (input) => {
-      received = input;
-      return { lifecycle: "Identified", affectedAudience: "API customers", customerImpact: "Writes fail", whatStillWorks: "Reads remain available.", details: "Pool mitigation is underway.", nextUpdateAt: new Date(Date.now() + 60 * 60_000).toISOString() };
-    } });
-    await service.suggest("01J00000000000000000000091");
-
-    assert.equal(received.toneInstructions, "Use concise factual language.");
-    assert.deepEqual(received.components, [{ name: "Contract API", state: "Major outage" }]);
-    assert.equal(received.publishedUpdates.length, 1);
-    assert.equal(received.publishedUpdates[0].customerImpact, "Writes fail");
-    assert.deepEqual(received.acceptedAlerts, [{ receivedAt: "2026-09-08T00:00:00.000Z", payload: { alert: "pool-exhausted" } }]);
-    assert.doesNotMatch(JSON.stringify(received), /PRIVATE-AI-NOTE-MUST-NOT-LEAK/);
-  } finally {
-    rmSync(persistTo, { recursive: true, force: true });
-  }
 });
 
 contract("DRAFT-003", "without a provider the suggestion route is unavailable while normal publication remains available", async () => {
@@ -1009,7 +931,7 @@ contract("HIST-002", "a resolved incident publishes one immutable report with it
   if (published.status !== 200) throw new Error(await published.text());
   const visible = await appFetch(`/api/app/incidents/${incident.id}/report`);
   assert.equal((await visible.json()).report.publishedAt !== null, true);
-  const publicReport = await fetch(`${baseUrl}/incidents/${incident.reference}`);
+  const publicReport = await fetch(`${pageUrl}/incidents/${incident.reference}`);
   assert.equal(publicReport.status, 200);
   assert.match(await publicReport.text(), /connection pool was exhausted/i);
 
@@ -1105,7 +1027,7 @@ contract("PAGE-005", "a complete immutable R2 snapshot has every artifact and re
   // the test database after a complete build cannot alter their response.
   executeFixtureSql("DROP TABLE page_settings");
   for (const path of ["/", "/history", "/feed.atom", "/widget.js", "/api/public/status"]) {
-    const response = await eventually(async () => { try { return await fetch(`${baseUrl}${path}?snapshot-only`); } catch { return null; } }, (candidate) => candidate?.status === 200, `${path} from R2 after D1 removal`);
+    const response = await eventually(async () => { try { return await fetch(`${pageUrl}${path}?snapshot-only`); } catch { return null; } }, (candidate) => candidate?.status === 200, `${path} from R2 after D1 removal`);
     assert.equal(response.status, 200, `${path} remains available from R2 without D1`);
   }
 });

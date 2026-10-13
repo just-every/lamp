@@ -3,6 +3,9 @@ import type { ReactNode } from "react";
 import { HeadContent, Outlet, Scripts, createRootRoute } from "@tanstack/react-router";
 
 import "../core/app/client/styles.css";
+// Lamp's own faces, linked once from the root document head so every document (landing, sign-in,
+// first-run setup and the operator app) reads the same declarations before first paint.
+import fontsCss from "../site/lamp/fonts.css?url";
 
 export const Route = createRootRoute({
   head: () => ({
@@ -12,6 +15,7 @@ export const Route = createRootRoute({
       { name: "description", content: "Lamp status communication." },
       { title: "Lamp" },
     ],
+    links: [{ rel: "stylesheet", href: fontsCss }],
   }),
   notFoundComponent: NotFound,
   component: Root,

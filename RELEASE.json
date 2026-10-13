@@ -1,119 +1,119 @@
 {
-  "version": "1.1.0",
+  "version": "1.3.0",
+  "previousVersion": "1.2.0",
+  "publicReleaseNotes": "Lamp 1.3.0: move in from a hosted status page with a dry run, retroactive history, one confirmation invitation per subscriber, and undo; Slack and Teams channels per component; Datadog, UptimeRobot, Better Stack and Pingdom alert presets.",
   "contractChanges": {
-    "UPDATE-001": {
-      "change": "changed",
-      "summary": "Resolved updates require no next-update time and display no next-update promise; active updates retain their publication requirements.",
-      "was": "Every published update required a next-update time, including Resolved updates.",
-      "now": "Resolved updates carry no next-update promise on any surface, including legacy resolved records with a stored time. All active-update requirements and all field, length, component, preview, review and atomicity guarantees remain.",
-      "migrationIds": [
-        "0012_resolved_update_time.sql"
-      ]
+    "NOTIFY-011": {
+      "change": "added",
+      "summary": "Slack and Teams channels can follow chosen components; their webhook URLs are stored encrypted and never shown again."
     },
-    "INCIDENT-003": {
-      "change": "changed",
-      "summary": "New manual and alert-intake incidents share a durable increasing short-reference sequence while preserving every legacy reference and URL.",
-      "was": "Incident references were digits following INC- and could never be reused.",
-      "now": "Both creation paths reserve INC-n values from one durable sequence independent of legacy timestamp-sized values. Reservations remain unique across concurrency, restart, deletion and failed creation; failures may leave gaps. Existing references and URLs remain unchanged.",
-      "migrationIds": [
-        "0013_reference_allocations.sql"
-      ]
+    "NOTIFY-012": {
+      "change": "added",
+      "summary": "Publishing an update with Slack and Teams selected posts once to each channel that follows an affected component."
     },
-    "MAINT-001": {
+    "INTAKE-006": {
+      "change": "added",
+      "summary": "Datadog, UptimeRobot, Better Stack and Pingdom presets turn each tool's own alert into a draft incident on one component and refuse anything else."
+    },
+    "INTAKE-007": {
+      "change": "added",
+      "summary": "A preset's recovery closes its never-published draft; a published incident keeps its lifecycle."
+    },
+    "MOVE-001": {
+      "change": "added",
+      "summary": "An owner can move in from a hosted status page by API key or saved API responses, after a dry run that writes nothing and names every outcome."
+    },
+    "MOVE-002": {
+      "change": "added",
+      "summary": "A move-in keeps original times, derives uptime history from them, notifies no one about history, and invites each email subscriber once to confirm."
+    },
+    "MOVE-003": {
+      "change": "added",
+      "summary": "Importing the same source again changes nothing and sends nothing."
+    },
+    "MOVE-004": {
+      "change": "added",
+      "summary": "Undo removes what a move-in created and nobody changed since, and keeps and names what was changed."
+    },
+    "MOVE-005": {
+      "change": "added",
+      "summary": "Imported record paths and supplied shortlinks redirect to surviving Lamp pages; source Atom paths serve the snapshot feed, and conditional undo removes aliases only for records it removes."
+    },
+    "ACCESS-001": {
       "change": "changed",
-      "summary": "New maintenance references use an independent durable increasing short-reference sequence without changing existing references.",
-      "was": "Maintenance had SCH- references followed by digits and retained its separate time-window and component semantics.",
-      "now": "The SCH-n allocation sequence is durable and independent of incidents and legacy timestamp-sized values. Deletion, restart and failed creation never permit reuse; failures may leave gaps. All original maintenance window, component and presentation guarantees remain.",
-      "migrationIds": [
-        "0013_reference_allocations.sql"
-      ]
+      "summary": "Replace the SSO exclusion with optional Base OpenID Connect through Auth, Google, Microsoft or Okta, off until owner linking and enablement. Email links remain; SCIM and role synchronization stay non-goals. Terminal recovery uses the same 20-minute Base email-link flow.",
+      "was": "Operators sign in by magic link; SSO and SCIM are excluded.",
+      "now": "Operators sign in by Base email links. Optional owner-linked OpenID Connect through Auth, Google, Microsoft or Okta starts disabled. SCIM and role synchronization remain non-goals."
+    },
+    "DRAFT-004": {
+      "change": "added",
+      "summary": "An incident page and an alert-raised draft show a brief of what is known and the questions still open, built with no model, and show exactly what a suggestion would send."
+    },
+    "DRAFT-002": {
+      "change": "changed",
+      "summary": "The provider now receives exactly the incident brief the operator reads, which leaves out internal components.",
+      "was": "A suggestion is built from the incident's accepted alerts, its published updates, its attached components and their claimed states, and the tone instructions configured in settings. Internal notes are not sent.",
+      "now": "The same inputs, limited to components customers can see, sent as the DRAFT-004 brief unchanged; internal notes and internal components are never sent."
+    },
+    "DRAFT-001": {
+      "change": "changed",
+      "summary": "Suggested text cites the brief items it rests on; only what the brief knows counts as a source (an open question does not), uncited text is flagged, a field the suggestion leaves empty keeps the operator's text, and the lifecycle and next-update time stay the operator's.",
+      "was": "A suggestion fills the composer's fields, including the lifecycle and next-update time, is editable, and is not published.",
+      "now": "A suggestion fills the text fields it has text for, with their sources among what the brief knows, proposes no lifecycle or next-update time, is editable, and changes nothing public."
+    },
+    "INCIDENT-010": {
+      "change": "added",
+      "summary": "Operators see an incident as due shortly before its committed next-update time, with one action to write it, and get one due-soon email; the public page never labels it."
+    },
+    "NOTIFY-006": {
+      "change": "changed",
+      "summary": "The due-soon and overdue operator emails come from the scheduled trigger, once each per committed time, whether or not anyone has the app open.",
+      "was": "An operator email is sent once when an incident becomes overdue, among other events; in practice it was queued when someone loaded the incident list.",
+      "now": "A due-soon and an overdue operator email are each sent once per committed time by the scheduled trigger."
     }
   },
   "extensionPointChanges": [],
   "migrations": [
     {
-      "id": "0010_mail_send_ledger.sql",
-      "buyerSteps": "Apply before starting the updated Worker. This additive ledger preserves at-most-once SendGrid submission across retries and restarts; retain it with exports."
+      "id": "0017_statuspage_import.sql",
+      "buyerSteps": "Back up data and owner source, then apply after 0016 before starting this revision. It adds Base's import-kit journal tables (ik_*) and two Lamp tables for move-in markers and invitations; no existing table or value changes. Local rer export leaves the ik_* custody tables out; a deployed export keeps them."
     },
     {
-      "id": "0011_mail_provider_receipt.sql",
-      "buyerSteps": "Apply after0010 before starting this source revision. Retain existing SendGrid claim identities and fingerprints; provider_receipt records an actual nullable acceptance header separately from the existing local correlation identity. Export and restore the complete updated ledger."
+      "id": "0018_channels_and_presets.sql",
+      "buyerSteps": "Back up data and owner source, then apply after 0017 before starting this revision. It adds Base's integration delivery tables, Lamp's Slack and Teams channel tables (webhook URLs stored only as ciphertext keyed from WEBHOOK_SIGNING_SECRET; keep the current secret listed while channels exist), and two nullable alert_sources columns for presets; existing sources keep working unchanged."
     },
     {
-      "id": "0012_resolved_update_time.sql",
-      "buyerSteps": "Apply transactionally before starting the updated Worker. The next_update_at column becomes nullable without dropping the parent table; retain every old published value, correction, attachment and delivery relationship. New resolved updates omit the promise; renderers suppress legacy resolved promises."
+      "id": "0019_operator_auth.sql",
+      "buyerSteps": "Back up the installation before upgrading. Base f4cf6f7af0f9ab92f33667ee3fd6156d2f7860a0 replaces legacy operator authentication. Active and inactive non-erased identities keep their IDs as owners; erased identities are omitted. Setup authority stays with the setup operator; if that operator erased itself, no operator gains it and the editor stays closed. Old sessions and pending links are destroyed: every active operator signs in afresh. Provision SESSION_SECRET and SETUP_TOKEN for a deployed installation; a local install's rer setup adds them to its kept settings. Product audit history, subscriber credentials and first-run completion are preserved."
     },
     {
-      "id": "0013_reference_allocations.sql",
-      "buyerSteps": "Apply after0012 before starting sequential-reference writers. Retain and export both reference_counters and reference_allocations. Existing references remain unchanged; new INC and SCH sequences start independently of timestamp-sized legacy values, skip reserved references and never reuse reservations after deletion or a failed product creation."
+      "id": "0020_dependency_approval.sql",
+      "buyerSteps": "Apply after 0019 before starting the refreshed Base runtime. Adds ephemeral setup-link authority and exact pending-approval attempts; old pending dependency approvals are cleared and must be renewed by their owner. Existing identities, settings, sessions, product history and subscriber credentials retain their values."
     },
     {
-      "id": "0014_local_capture_receipts.sql",
-      "buyerSteps": "Apply after0013. Existing delivery attempts retain their provider IDs, errors and outcomes; the new nullable local_capture_id records development capture only. Captured attempts are excluded from retry and provider reconciliation and must never be reported as provider acceptance or delivery."
+      "id": "0021_update_reminders.sql",
+      "buyerSteps": "Apply after 0020 before starting this revision. It adds incident_update_reminders, which records each due-soon and overdue operator email once per committed next-update time. Commitments that had already passed when it is applied are recorded as handled, so the upgrade sends no reminder for history; such incidents still show as overdue in the operator app."
     }
   ],
-  "breaking": false,
-  "agentUpdateInstructions": "The canonical source repository and edition identity are just-every/lamp. This 1.1.0 source candidate does not assert tag publication. Preserve comparison-parent and shared-component provenance at their recorded immutable revisions. Preserve the accepted public page, shared incident renderer, owner intent and customisations. Back up data and owner source; apply all listed core migrations in order and unchanged owner migrations before starting the updated Worker. Resolved updates carry no next-update promise; active updates retain every original publication requirement. Preserve existing references and URLs and retain the durable INC/SCH reservation ledger, including unused reservations. Local capture receipts are not provider acceptance or delivery; raw development envelopes and local token configuration are excluded from production builds and portable product archives. Resend remains the default; SendGrid requires explicit MAIL_PROVIDER=sendgrid and native signed-event verification or the optional authenticated relay. Preserve global_fetch_strictly_public for public Worker-hosted webhook destinations. HTTP202 remains accepted when a remote receipt is absent; this does not establish delivery. HTTP408, redirects, server failures and interruption remain uncertain and must not be automatically resent. Preserve existing SendGrid claim fingerprints and nullable actual provider receipts. Owner SQL continues after core using the unchanged lamp_ext_migrations ledger. Verify a restored copy, run full frozen-clone pnpm verify and native workflows on the exact candidate, and record the authorized source/tag and independent stage receipt separately. This candidate metadata does not assert tag publication, deployment or provider acceptance. Retain the portable authoring receipt with Git source and verify a subsequent clone using the receipt command.",
-  "previousVersion": "1.0.0",
+  "breaking": true,
+  "agentUpdateInstructions": "Back up data and the owner source revision first. Apply 0017_statuspage_import.sql and 0018_channels_and_presets.sql in order after 0016 before starting this release. Slack and Teams channel URLs are sealed with WEBHOOK_SIGNING_SECRET: when rotating it, list the new secret first and keep the old one until channels are re-added. RER-managed delivery builds with trusted-build bf7a25a, which the stage's TRUSTED_DELIVERY_WORKFLOW_REF must name. Run pnpm verify and your owner tests before adopting. Apply 0019_operator_auth.sql next, provision stable SESSION_SECRET and SETUP_TOKEN, and require fresh operator sign-in. Apply 0020_dependency_approval.sql next; renew any pending provider-link approval. Operator-auth and the shared adoption are pinned to aa9b4d4fc6cba60411ef8d24a81323113677c370. The incoming hosting adoption retains Base fdc861d5f589ce54b54f229cf43daed3248bbb82 for current-manifest commit files; base-copies.json records each file origin. Native rer archives now use integrity-bound version 2; re-export version-1 native archives with the new source before restoring. SCIM/role synchronization remain excluded; optional owner-linked OIDC replaces the SSO exclusion under ACCESS-001. Apply 0021_update_reminders.sql next; update-due and overdue operator emails then come from the scheduled trigger, not from loading the incident list.",
   "proseChanges": [
     {
-      "document": "AGENTS.md",
-      "section": "Update",
-      "change": "changed",
-      "date": "2026-09-13",
-      "summary": "Updates use ordinary Git and the owner agent chooses the method while preserving recorded intent.",
-      "was": "The document directed owners to an unshipped rer update command.",
-      "now": "Use the owner agent and ordinary Git, inspect release changes and migrations, preserve all recorded intent, and verify the candidate before adopting it."
-    },
-    {
-      "document": "AGENTS.md",
-      "section": "Deploy",
-      "change": "changed",
-      "date": "2026-09-13",
-      "summary": "Owner commands explicitly run the package scripts rather than pnpm built-ins.",
-      "was": "Setup and deploy examples used pnpm setup and pnpm deploy, which resolve to pnpm built-ins.",
-      "now": "Use pnpm run setup and pnpm run deploy for the product provisioning and deployment scripts."
-    },
-    {
-      "document": "OPERATIONS.md",
+      "document": "README.md",
+      "section": "Moving in",
       "change": "added",
-      "date": "2026-09-13",
-      "summary": "Documents native provider setup, optional owner relay, received-message checks, restore failure recovery and buyer sidecar migrations.",
-      "now": "Documents native provider setup, optional owner relay, received-message checks, restore failure recovery and buyer sidecar migrations."
-    },
-    {
-      "document": "ACCEPTANCE.md",
-      "change": "added",
-      "date": "2026-09-13",
-      "summary": "Records useful product outcome, unchanged full contract and exact local versus hosted/provider acceptance obligations.",
-      "now": "Records useful product outcome, unchanged full contract and exact local versus hosted/provider acceptance obligations."
-    },
-    {
-      "document": "AGENTS.md",
-      "section": "Editing core and Verify",
-      "change": "changed",
-      "date": "2026-09-13",
-      "summary": "Owner-specific verification is explicit; no nonexistent automatic override framework is promised.",
-      "was": "The instructions claimed contract-overrides.json and tests/local were automatically interpreted and reported by pnpm verify.",
-      "now": "Record owner intent, run its specific tests explicitly alongside upstream verification, and report any intentional divergence without claiming an unchanged upstream pass."
+      "date": "2026-10-11",
+      "summary": "README points owners coming from a hosted status page at the move-in and its guide, docs/moving-in.md.",
+      "now": "Coming from a hosted status page? Settings → Move in from Statuspage brings your components, incident history, maintenance and email subscribers, with a dry run first and undo after; see docs/moving-in.md."
     },
     {
       "document": "README.md",
-      "section": "Source repository",
+      "section": "Owner-controlled operations",
       "change": "changed",
-      "date": "2026-10-06",
-      "summary": "Current source descriptors and public adoption documentation use the canonical just-every/lamp identity while preserving immutable comparison provenance.",
-      "was": "Current source descriptors and adoption documentation used earlier repository identities.",
-      "now": "Project and edition IDs use just-every/lamp; source repository URLs use https://github.com/just-every/lamp. Recorded comparison origins remain historical provenance."
-    },
-    {
-      "document": "README.md, AGENTS.md, HANDOVER.md, TESTING.md",
-      "section": "Local development and candidate validation",
-      "change": "changed",
-      "date": "2026-10-06",
-      "summary": "Documents the explicit local inbox mode, native authentication, migration adoption and outstanding candidate qualification.",
-      "was": "Local development documentation described only unavailable mail without provider configuration.",
-      "now": "The standard dev entrypoint selects isolated loopback capture; plain unconfigured Vite remains unavailable, production cannot select capture, and capture never proves provider acceptance. Historical installation observations are distinguished from this candidate."
+      "date": "2026-10-11",
+      "summary": "WEBHOOK_SIGNING_SECRET also seals Slack and Teams channel addresses.",
+      "was": "SUBSCRIBER_TOKEN_SECRET and WEBHOOK_SIGNING_SECRET are privately generated random secrets of at least 32 characters.",
+      "now": "SUBSCRIBER_TOKEN_SECRET and WEBHOOK_SIGNING_SECRET are privately generated random secrets of at least 32 characters; WEBHOOK_SIGNING_SECRET also seals Slack and Teams channel addresses (list a new one first and keep the old while rotating)."
     }
   ]
 }

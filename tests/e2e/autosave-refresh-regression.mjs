@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { configuredDateTimeInput } from "./saved-draft-helper.mjs";
 
 // Delay only delivery of a real native GET, so a private-note refresh overlaps
 // the draft debounce without changing either response bytes or write behavior.
@@ -42,7 +43,10 @@ export async function assertAutosaveDuringRefresh({ page, api, openIncident, ass
     });
     observer.observe(document.body, { childList: true, subtree: true, characterData: true });
   });
+  let handled = false; // Installed until unrouteAll: a one-shot route can strand a paused request.
   await page.route(`**${endpoint}`, async route => {
+    if (handled) return route.continue();
+    handled = true;
     assert.equal(route.request().method(), "GET");
     const response = await route.fetch();
     assert.equal(response.status(), 200);
@@ -50,7 +54,7 @@ export async function assertAutosaveDuringRefresh({ page, api, openIncident, ass
     await released;
     timings.refreshDelivered = Date.now();
     await route.fulfill({ response });
-  }, { times: 1 });
+  });
   try {
     await page.getByLabel("Internal note").fill(note);
     await page.getByRole("button", { name: "Save internal note", exact: true }).click();
@@ -84,10 +88,11 @@ export async function assertAutosaveDuringRefresh({ page, api, openIncident, ass
       customerImpact: await page.locator("label", { hasText: "What is the impact" }).locator("textarea").inputValue(),
       whatStillWorks: await page.locator("label", { hasText: "What still works" }).locator("textarea").inputValue(),
       details: await page.locator("label", { hasText: "Additional details" }).locator("textarea").inputValue(),
-      nextUpdateAt: await page.getByLabel("Next update date and time").evaluate(input => new Date(input.value).toISOString()),
+      nextUpdateAt: await page.getByLabel("Next update date and time").inputValue(),
     };
     t.diagnostic(JSON.stringify({ ...timings, elapsedToSaved: timings.saved - timings.finalEdit, deadlinePassed: !deadlineError }));
-    assert.deepEqual(timings.reloadedDraft, timings.putBytes);
+    const { settings } = await api("/api/app/page-settings");
+    assert.deepEqual(timings.reloadedDraft, { ...timings.putBytes, nextUpdateAt: configuredDateTimeInput(timings.putBytes.nextUpdateAt, settings.timezone) }, "reload restores every draft field, displaying the saved instant in the page zone");
     assert.equal(timings.putStatus, 200);
     assert.ok(timings.refreshDelivered > timings.finalEdit && timings.refreshReceived < timings.putDispatched);
     assert.ok(timings.saved >= timings.putAcknowledged, "Saved must follow the native PUT acknowledgement");

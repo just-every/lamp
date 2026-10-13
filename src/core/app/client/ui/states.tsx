@@ -1,24 +1,24 @@
+import { formatTime } from "../../../features/public-snapshot/format";
+import { Icon } from "./icon";
+import { usePageTimezone } from "./timezone";
 import type { ReactNode } from "react";
 
+// Plain states with no art, safe for modules the server bundle also reaches (session/index.ts re-exports the
+// operators panel). The states that draw the lamp are in lit-states.tsx.
 export function LoadingState({ children = "Loading current records…" }: { children?: ReactNode }) {
-  return <div className="app-state" role="status">{children}</div>;
+  return <div className="app-state app-state-loading" role="status">{children}</div>;
 }
 
-export function ErrorState({ children, onRetry }: { children: ReactNode; onRetry?: () => void }) {
-  return <div className="app-state app-state-error" role="alert"><span>{children}</span>{onRetry && <button className="button button-secondary" type="button" onClick={onRetry}>Reload page</button>}</div>;
+// A failure inside a working page or form (a save that failed, an invalid value): a small inline note.
+export function FormError({ children }: { children: ReactNode }) {
+  return <div className="form-note" role="alert"><Icon name="warning" /><span>{children}</span></div>;
 }
 
-export function EmptyState({ children }: { children: ReactNode }) {
-  return <div className="app-state app-state-empty">{children}</div>;
+export function formatOperatorTime(iso: string | null, timezone: string) {
+  return iso ? formatTime(iso, timezone) : "Not recorded";
 }
 
-export function formatOperatorTime(iso: string | null, timezone?: string) {
-  if (!iso) return "Not recorded";
-  const instant = new Date(iso);
-  if (!Number.isFinite(instant.getTime())) throw new Error(`Lamp received an invalid persisted timestamp: ${iso}`);
-  return new Intl.DateTimeFormat(undefined, {
-    dateStyle: "medium",
-    timeStyle: "short",
-    ...(timezone ? { timeZone: timezone } : {}),
-  }).format(instant);
+export function useOperatorTime() {
+  const timezone = usePageTimezone();
+  return (iso: string | null) => formatOperatorTime(iso, timezone);
 }

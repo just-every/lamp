@@ -1,15 +1,17 @@
 import assert from "node:assert/strict";
 import { execFileSync, spawn } from "node:child_process";
-import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 
+import { appOrigin, pageOrigin } from "../../e2e/helpers/hosts.mjs";
 import { insertRealOperatorSession } from "../../e2e/real-session-helper.mjs";
 import { reservePort, waitForWorker } from "../../e2e/worker-startup.mjs";
 import { workerBaselineDriver } from "./driver.mjs";
+import { localWranglerConfig } from "../../helpers/wrangler-config.mjs";
+import { sessionCookieName } from "../../helpers/session-cookie.mjs";
 
 const root = process.cwd();
-const configTemplate = resolve("deploy/wrangler.template.toml");
 const secretSentinels = Object.freeze([
   "baseline-subscriber-secret-8a93fe",
 ]);
@@ -20,18 +22,14 @@ function fixtureHeaders(headers = {}) {
   return resolved;
 }
 
-async function createFixtureConfig(statePath, omittedBinding = null) {
-  const target = join(statePath, "baseline.wrangler.toml");
-  const template = await readFile(configTemplate, "utf8");
-  const withAbsolutePaths = template
-    .replace('main = "../src/server.ts"', `main = ${JSON.stringify(resolve("src/server.ts"))}`)
-    .replace('migrations_dir = "../migrations/core"', `migrations_dir = ${JSON.stringify(resolve("migrations/core"))}`);
-  let config = withAbsolutePaths.replace(
-    'MAIL_FROM_ADDRESS = "lamp@localhost.invalid"',
-    `MAIL_FROM_ADDRESS = "lamp@localhost.invalid"\nSUBSCRIBER_TOKEN_SECRET = ${JSON.stringify(secretSentinels[0])}`,
-  );
-  if (omittedBinding) config = config.replace(new RegExp(`^${omittedBinding} = .+\\n`, "m"), "");
-  await writeFile(target, config);
+async function createFixtureConfig(statePath, omittedBinding = null, bindings = {}) {
+  const target = join(statePath, "baseline.wrangler.json");
+  await writeFile(target, localWranglerConfig((config) => {
+    const vars = { ...config.vars, SUBSCRIBER_TOKEN_SECRET: secretSentinels[0] };
+    if (omittedBinding) delete vars[omittedBinding];
+    for (const [name, value] of Object.entries(bindings)) if (name in vars) vars[name] = value;
+    return { ...config, vars };
+  }));
   return target;
 }
 
@@ -48,9 +46,11 @@ function wrangler(statePath, args, options = {}) {
 export async function createBaselineFixture(options = {}) {
   const statePath = await mkdtemp(join(tmpdir(), "lamp-baseline-d1-"));
   const viteCachePath = await mkdtemp(join(tmpdir(), "lamp-baseline-vite-"));
-  const config = await createFixtureConfig(statePath, options.omitBinding ?? null);
+  const config = await createFixtureConfig(statePath, options.omitBinding ?? null, options.bindings);
+  const misconfigured = Boolean(options.omitBinding || options.bindings);
   const port = await reservePort({ label: "baseline Worker" });
-  const baseUrl = `http://127.0.0.1:${port}`;
+  const appUrl = appOrigin(port);
+  const pageUrl = pageOrigin(port);
   let server;
   let logs = "";
 
@@ -84,8 +84,8 @@ export async function createBaselineFixture(options = {}) {
       output: () => logs,
       label: "baseline Worker",
       probe: async ({ signal }) => {
-        const response = await fetch(`${baseUrl}/health`, { signal });
-        if (!options.omitBinding) return response;
+        const response = await fetch(`${appUrl}/health`, { signal });
+        if (!misconfigured) return response;
         return { status: 200, text: () => response.text() };
       },
     });
@@ -96,7 +96,8 @@ export async function createBaselineFixture(options = {}) {
     let sessionId = await restoreSession();
     const driver = workerBaselineDriver((request) => fetch(request));
     return {
-      baseUrl,
+      appUrl,
+      pageUrl,
       statePath,
       secrets: [...secretSentinels],
       logs: () => logs,
@@ -109,16 +110,21 @@ export async function createBaselineFixture(options = {}) {
       },
       async appFetch(path, init = {}) {
         sessionId = await restoreSession();
-        return driver.fetch(new Request(`${baseUrl}${path}`, {
+        return driver.fetch(new Request(`${appUrl}${path}`, {
           ...init,
           // The local scheduled/queue endpoint can retire its keep-alive
           // socket after returning. Each fixture request stays a real HTTP
           // call and fails normally, but never reuses that retired socket.
-          headers: fixtureHeaders({ Cookie: `lamp_session=${sessionId}`, "Content-Type": "application/json", ...(init.headers ?? {}) }),
+          headers: fixtureHeaders({ Origin:appUrl, Cookie: `${sessionCookieName(appUrl)}=${sessionId}`, "Content-Type": "application/json", ...(init.headers ?? {}) }),
         }));
       },
+      // An anonymous request to the public status page host.
       async fetch(path, init = {}) {
-        return driver.fetch(new Request(`${baseUrl}${path}`, { ...init, headers: fixtureHeaders(init.headers) }));
+        return driver.fetch(new Request(`${pageUrl}${path}`, { ...init, headers: fixtureHeaders(init.headers) }));
+      },
+      // An anonymous request to the operator app host.
+      async fetchApp(path, init = {}) {
+        return driver.fetch(new Request(`${appUrl}${path}`, { ...init, headers: fixtureHeaders({Origin:appUrl,...init.headers}) }));
       },
       assert,
       async dispose() {

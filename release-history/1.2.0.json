@@ -1,0 +1,59 @@
+{
+  "version": "1.2.0",
+  "previousVersion": "1.1.0",
+  "publicReleaseNotes": "Lamp 1.2.0: a setup checklist and first-run setup for new owners, a composer that starts each update fresh, plain operator words, one page time zone, preview before Publish on phones, sign-in links from the terminal, a polished public page and subscriber pages, and the rer command line for running Lamp on your computer.",
+  "contractChanges": {
+    "PAGE-002": {
+      "change": "changed",
+      "summary": "Times stay in the page's configured time zone, with its label, instead of switching to the visitor's zone.",
+      "was": "The complete content of PAGE-001, and the subscribe form of SUB-001, are present and usable in the initial HTML response. With JavaScript disabled, every status, update, and timestamp is rendered and readable and the subscribe form submits. Script only replaces timestamps with the visitor's local-timezone equivalent.",
+      "now": "The complete content of PAGE-001, and the subscribe form of SUB-001, are present and usable in the initial HTML response. With JavaScript disabled, every status, update, and timestamp is rendered and readable and the subscribe form submits. Script preserves the page’s configured time zone and its visible label; operator entry, timelines, previews and public timestamps use that same zone."
+    },
+    "PAGE-012": {
+      "change": "changed",
+      "summary": "The footer credit is the plain text \"Powered by Lamp\", still hidden by the owner's toggle.",
+      "was": "Page name, logo, accent colour, timezone, hostname, and a footer-credit toggle are set in settings without a code change. The footer credit is the plain static text `Powered by Lamp · runeditrun.com`, defaults on, and disabling it makes no network action. The logo is served from the deployment's own origin. The favicon composites a mark for the current overall status over the configured logo rather than replacing it, and the page carries Open Graph metadata whose title and image state the current overall status.",
+      "now": "Page name, logo, accent colour, timezone, hostname, and a footer-credit toggle are set in settings without a code change. The footer credit is the plain static text `Powered by Lamp`, defaults on, and disabling it makes no network action. The logo is served from the deployment's own origin. The favicon composites a mark for the current overall status over the configured logo rather than replacing it, and the page carries Open Graph metadata whose title and image state the current overall status."
+    },
+    "UPDATE-005": {
+      "change": "changed",
+      "summary": "Publishing an update opens an empty draft for the next one; draft writes need the acknowledged draft version.",
+      "was": "An unpublished update appears on no public surface. A draft is saved within 2 seconds of the last edit and is restored unchanged after a browser reload.",
+      "now": "An unpublished update appears on no public surface. A draft is saved within 2 seconds of the last edit and is restored unchanged after a browser reload. Publication consumes that draft and opens an empty draft for the next update, with lifecycle prompts. A stale tab cannot resurrect published wording or overwrite a newer acknowledged draft. Draft writes, template application, scheduling and publication require the acknowledged draft version. A fresh empty composer is not reported saved until a native write is acknowledged; Publish requires a complete acknowledged draft. Reconciliation after a lost acknowledgement identifies the attempted write and preserves later workflow changes."
+    },
+    "SETUP-001": {
+      "change": "added",
+      "summary": "Overview shows an eight-step setup checklist built from saved server state.",
+      "now": "Overview shows eight steps from saved server state: non-sample page name and branding, configured time zone, sender checked, first component, first published incident, public page opened through its protected check, reachable subscription form, and public address selected with custom-domain documentation. Open steps lead to their completion screen; all-complete collapses the checklist. Provider authentication checks and local outbox capture are labelled separately, and neither claims inbox delivery. Public GET paths remain database-free; protected operator actions retain the public-read checks. Choosing an address acknowledges that choice, not DNS validation, and the default deployment address is supported.",
+      "migrationIds": [
+        "0015_setup_readiness.sql"
+      ]
+    },
+    "SETUP-002": {
+      "change": "added",
+      "summary": "First-run setup at /setup until the owner confirms the page name, tagline, time zone and colour.",
+      "now": "A signed-in owner whose installation has no stored first-run completion is sent from every operator document to `/setup`, where they confirm the page name, tagline, time zone and accent colour. Saving stores completion durably; afterwards `/setup` opens the app and settings remain editable in Settings. A signed-out visitor to `/setup` is sent to sign-in and returned there. An installation that already had an operator before this clause is recorded as complete by its migration. A setup rerun never clears completion.",
+      "migrationIds": [
+        "0016_first_run_setup.sql"
+      ]
+    },
+    "ACCESS-001": {
+      "change": "added",
+      "summary": "An owner can issue one ordinary single-use sign-in link from the terminal.",
+      "now": "An owner with installation database access through Wrangler can issue a link for an existing active, non-erased operator. The command uses the native hashed, 20-minute, single-use magic-link flow, records “sign-in link created from the command line”, and prints its only copy of the raw link once on stdout. It creates no operator or session; sign-in consumption creates the session under BASE-ACCESS-001 and BASE-ACCESS-002. Unknown, deactivated and erased operators receive the same refusal."
+    }
+  },
+  "extensionPointChanges": [],
+  "migrations": [
+    {
+      "id": "0015_setup_readiness.sql",
+      "buyerSteps": "Back up data and owner source, apply after 0014 before starting this revision. The additive setup_readiness table preserves all existing tables and values and stores step, evidence_key and checked_at only. Existing installations complete checks from saved server state; public GET requests do not write readiness. Retain setup_readiness in export and restore. Provider domain checks require domain-read permission; local capture and provider authentication do not prove inbox delivery."
+    },
+    {
+      "id": "0016_first_run_setup.sql",
+      "buyerSteps": "Back up data and owner source, then apply after 0015 before starting this revision. It adds one setup_readiness row marking first-run setup complete when the installation already has an operator, so existing owners are not sent to /setup. A new installation completes first run at /setup after its first sign-in."
+    }
+  ],
+  "breaking": false,
+  "agentUpdateInstructions": "Back up data and the owner source revision first. Apply 0015_setup_readiness.sql and 0016_first_run_setup.sql in order after 0014 before starting this release; 0016 marks first-run setup complete for installations that already have an operator. Local development now runs through node scripts/rer.mjs on Node 22.20.0 and pnpm 10.12.4, with wrangler.jsonc, .wrangler/state and .dev.vars at the repository root; move any earlier local data from deploy/.wrangler and deploy/.dev.vars yourself, or start fresh. Deployments run pnpm run deploy (Lamp's Cloudflare pipeline). RER-managed delivery builds with trusted-build 6d77ec1, which the RER platform must trust before it accepts this release. Run pnpm verify and your owner tests before adopting."
+}

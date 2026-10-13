@@ -10,7 +10,7 @@ test('local receipt preserves owner, source, target and sender across resume and
  try{
   const git=args=>execFileSync('git',args,{cwd:root,stdio:'pipe'});
   git(['init']);git(['config','user.email','qualification@example.test']);git(['config','user.name','Qualification']);
-  await writeFile(join(root,'rer-project.json'),JSON.stringify({projectId:'just-every/lamp',sourceRepository:'https://github.com/just-every/lamp'}));git(['add','.']);git(['commit','-m','Initial source']);
+  await writeFile(join(root,'rer-project.json'),JSON.stringify({projectId:'just-every/lamp',sourceRepository:'https://github.com/just-every/run-lamp'}));git(['add','.']);git(['commit','-m','Initial source']);
   const input={target:'local',ownerEmail:'owner@example.test',mailProvider:'resend',mailFrom:'status@example.test'};
   await(await installationReceipt(root,input)).complete();
   const before=await readFile(join(root,'.seed/installer/local-receipt.json'),'utf8');

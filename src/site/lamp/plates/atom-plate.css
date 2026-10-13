@@ -1,0 +1,4 @@
+/* The Atom entry: XML lines, its content's text continuing at the margin as plain text does. */
+.lamp-home .lamp-atom p { margin: 0; }
+.lamp-home .lamp-atom > p:last-of-type { margin-bottom: .55em; }
+.lamp-home .lamp-atom__in { padding-left: 2ch; }

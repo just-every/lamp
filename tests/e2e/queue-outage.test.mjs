@@ -12,7 +12,7 @@ import { reservePort } from './worker-startup.mjs';
 
 contract('PAGE-006', 'an injected Queue transport outage leaves all real R2 snapshots readable while health reports the Queue failure and recovery', async () => {
   const state = await mkdtemp(join(tmpdir(), 'lamp-queue-outage-'));
-  const configPath = 'deploy/wrangler.template.toml';
+  const configPath = 'wrangler.jsonc';
   let platform, vite, snapshotCache;
   const previousCaches = globalThis.caches;
   try {

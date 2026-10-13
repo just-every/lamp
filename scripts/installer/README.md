@@ -1,32 +1,50 @@
-# Lamp local setup
+# Lamp installer adapter
 
-`node scripts/install.mjs` needs only Node26.8.1 to open the loopback browser
-journey; application dependencies install only after the owner's explicit Start.
-Use `--resume` to review saved nonsecret answers. The maintained browser layout
-and private session implementation are copied unchanged from Base
-`390328736c8dae82f87c86e5af4c17cca6bb9c00`, `onboarding/` (MIT).
-`scripts/base-onboarding/` is selected edition-local source; no Base checkout is
-needed. This adapter and its validation belong to Lamp.
+The root `rer-setup.json` is the single application setup model. The byte-exact
+Base onboarding runtime reads it in the browser and on the server. Base owns the
+shared local/remote target, Cloudflare connection, resource name and operator
+address. Lamp owns its branding, native setup, hosting and sign-in effects.
 
-Local mode installs the pinned pnpm and frozen dependencies, builds without
-installer secrets, migrates isolated `.seed/installer/runtime/state`, starts the
-real emitted Worker, and initializes the owner through native `/setup`. The
-local operator/public host may coincide; hosted installations must use distinct
-hosts. Mail credentials and generated token secrets are private mode0600 files
-inside mode0700 directories, excluded from Git. The installer terminal owns the
-Worker lifecycle. Closing it stops the local Worker; running setup again retains
-state and never replaces an owner. Keep the private runtime directory for local
-sessions, tokens, records and resume. Mail uses the actual selected provider;
-there is no test sender in application code.
+Install Node 22.20.0, pnpm 10.12.4 and Git on PATH, then run
+`node scripts/install.mjs`. The browser opens before application dependencies
+are installed. Start installs the locked dependencies through captured commands.
 
-Independent mode takes the operator address and bootstrap secret from the
-owner's approved independent RER deployment. It calls native setup only after
-Start, refuses redirects and checks health, then opens ordinary email sign-in.
-It does not provision Cloudflare or transmit provider credentials to a broker.
-Choose and configure the mail provider/sender in the approved deployment before
-this step; conflicting choices are refused. A setup response never grants a
-session. An already initialized application is opened for native sign-in without
-changing its owner, page, secrets or data.
+**On this computer** starts the actual development server and Base D1 outbox.
+It needs no provider key. Open the captured native sign-in message and follow
+its ordinary one-use, expiring sign-in link. Capture itself creates no session
+and means no provider email was sent.
 
-The trusted CI descriptor's `operations.setup` is a separate credential-free
-Ubuntu toolchain installation; it is not this interactive setup.
+**Online for your team** uses your own Cloudflare account. In Hosting &
+connections choose an API token, resource name and custom operator address.
+Before Start, use Edit on **Online page settings** and **Online mail settings**
+to complete the public hostname, hosting mode, verified sender, DKIM selector
+and provider API key. Missing or invalid inputs stop before dependency,
+provisioning or deployment commands and name what to correct. The native
+`deploy.mjs` command verifies, provisions through setup, applies migrations,
+builds, deploys and checks health. Existing owners and data are preserved.
+Hosting may create billable resources in the selected account.
+
+This replaces the earlier separate "finish independent deployment" browser
+choice. Existing independent deployments remain operable through Lamp's native
+owner deployment commands. Old installer receipts and data are not deleted.
+There is no entered bootstrap secret in the browser; native local bootstrap
+remains in use and hosted sign-in uses the normal deployed email flow.
+
+All subprocesses use Base's captured store, and generated secrets are registered
+before command output. Root manifest generation declarations feed Base's private
+settings writer for local and hosted secrets; reruns preserve existing values.
+Hosting receipts bind the selected account, hosts, resource namespace, owner and
+sender. Entered provider credentials remain private to the attempt.
+
+Native name and description limits are checked before installation work. The
+Base readiness model does not implement these native bounds. Lamp adopts Base
+14's readiness policy: the old fixed 120-second cutoff is replaced by elapsed
+progress and a configurable hard limit that defaults to fifteen minutes. The
+Lamp adapter delegates to Base's `store.waitForReady` with owner cancellation
+and uses that default; it exposes no separate timeout setting. The Lamp adoption
+notes are present in the copied Base README. See [BASE-ADOPTION.md](BASE-ADOPTION.md)
+for the source contract and remaining runtime evidence.
+
+Local state remains in the private installer runtime folder. Legacy R2 capture
+envelopes are retained and never silently resent; new captures use the Base local
+D1 binding. Local checks do not establish provider delivery or hosted acceptance.

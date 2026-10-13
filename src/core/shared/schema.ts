@@ -23,12 +23,6 @@ export const operators = sqliteTable("operators", {
   ...timestamps,
 });
 
-export const sessions = sqliteTable("sessions", {
-  id: text().primaryKey(),
-  operatorId: text("operator_id").notNull().references(() => operators.id),
-  expiresAt: text("expires_at").notNull(),
-  ...timestamps,
-}, (table) => [index("sessions_operator_id_idx").on(table.operatorId), index("sessions_expires_at_idx").on(table.expiresAt)]);
 
 export const pageSettings = sqliteTable("page_settings", {
   id: text().primaryKey(),

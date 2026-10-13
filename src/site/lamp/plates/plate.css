@@ -1,0 +1,58 @@
+/* The plate and the product's small parts drawn inside it. A plate is a piece of Lamp's real UI shown as a clean
+   product card: white, a 1px ink-10% border, 12px corners and a soft layered shadow, its type Inter. Each plate is its
+   own container, so its inner layout follows its own width. Nothing inside a plate is smaller than 11px, and nothing
+   in it can be clicked. */
+.lamp-home .lamp-plate { container: lamp-plate / inline-size; position: relative; margin: 0;
+  color: var(--lamp-ink); font: 400 14px/1.45 var(--lamp-sans); text-align: left; text-wrap: pretty; }
+.lamp-home .lamp-plate__sheet { display: flex; flex-direction: column; height: 100%; overflow: hidden;
+  border: 1px solid var(--lamp-line); border-radius: 12px; background: var(--lamp-card); box-shadow: var(--lamp-shadow-card); }
+.lamp-home .lamp-plate__strip { display: flex; flex: none; align-items: center; justify-content: space-between; gap: 12px; height: 36px; padding: 0 16px;
+  border-bottom: 1px solid var(--lamp-line); background: var(--lamp-card-tint); color: var(--lamp-ink-3); font: 500 12px/1 var(--lamp-sans); white-space: nowrap; }
+.lamp-home .lamp-plate__body { flex: 1 1 auto; min-height: 0; padding: 20px 22px 22px; }
+.lamp-home .lamp-plate__rule { height: 0; margin: 16px 0; border: 0; border-top: 1px solid var(--lamp-line); }
+
+.lamp-home .lamp-plate__eyebrow { display: block; color: var(--lamp-ink-3); font: 600 11px/1.3 var(--lamp-sans); letter-spacing: .06em; text-transform: uppercase; }
+.lamp-home .lamp-plate__title { display: block; margin: 2px 0 0; font: 600 17px/1.25 var(--lamp-sans); letter-spacing: -.012em; }
+.lamp-home .lamp-plate__title--page { font-size: 22px; }
+.lamp-home .lamp-plate__title--screen { font-size: 20px; }
+.lamp-home .lamp-plate__title--item { font-size: 15px; line-height: 1.3; }
+.lamp-home .lamp-plate__title--tile { font-size: 14.5px; line-height: 1.3; }
+.lamp-home .lamp-plate__small { font-size: 12px; line-height: 1.4; font-variant-numeric: tabular-nums; }
+.lamp-home .lamp-plate__muted { color: var(--lamp-ink-3); }
+.lamp-home .lamp-plate__mono { font: 400 12.5px/1.55 var(--lamp-mono); overflow-wrap: normal; word-break: normal; font-variant-numeric: tabular-nums; }
+.lamp-home .lamp-plate__link { pointer-events: none; font-size: 13px; text-decoration: underline; text-decoration-color: rgb(24 45 36 / .4); text-underline-offset: 2px; }
+.lamp-home .lamp-plate__pill { display: inline-block; flex: none; padding: 2px 9px; border: 1px solid var(--lamp-line-strong); border-radius: 999px;
+  background: var(--lamp-chip); font: 500 11.5px/1.35 var(--lamp-sans); white-space: nowrap; }
+.lamp-home .lamp-plate__button { pointer-events: none; display: inline-block; padding: 8px 14px; border: 1px solid var(--lamp-ink); border-radius: 8px;
+  color: #fff; background: var(--lamp-ink); font: 600 13px/1.2 var(--lamp-sans); }
+.lamp-home .lamp-plate__button--secondary { border-color: var(--lamp-line-strong); color: var(--lamp-ink); background: var(--lamp-card); }
+.lamp-home .lamp-plate__dot { display: inline-block; flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--lamp-ok); }
+.lamp-home .lamp-plate__dot--down { background: var(--lamp-down); }
+
+/* Amber is the lamp's light: inside plates, only the current update or notice and, in section 2, the same words. */
+/* The current block's wash and its 3px rule are layers of their own, so the wash can fade in and the rule draw down
+   (reveal moments in the section CSS). */
+.lamp-home .lamp-plate__current { position: relative; isolation: isolate; border-radius: 8px; }
+.lamp-home .lamp-plate__current::before, .lamp-home .lamp-plate__current::after { content: ''; position: absolute; z-index: -1; inset: 0;
+  border-radius: inherit; pointer-events: none; }
+.lamp-home .lamp-plate__current::before { background: var(--lamp-amber-wash); }
+.lamp-home .lamp-plate__current::after { box-shadow: inset 3px 0 0 var(--lamp-amber); }
+.lamp-home .lamp-plate__same { padding: 0 2px; border-radius: 3px; background: linear-gradient(var(--lamp-amber-mark), var(--lamp-amber-mark)) 0 0 / 100% 100% no-repeat;
+  -webkit-box-decoration-break: clone; box-decoration-break: clone; }
+
+/* Label and value pairs: two columns where the plate has room, label over value where it does not. */
+.lamp-home .lamp-plate__fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 16px; margin: 0; }
+.lamp-home .lamp-plate__fields dt { color: var(--lamp-ink-3); font-size: 12px; line-height: 1.35; }
+.lamp-home .lamp-plate__fields dd { margin: 1px 0 0; font-size: 13px; line-height: 1.4; }
+@container lamp-plate (max-width: 479px) {
+  .lamp-home .lamp-plate__body { padding: 14px 14px 16px; }
+  /* A narrow strip names the host alone; a role chip stays. */
+  .lamp-home .lamp-plate__strip-end:not(:has(.lamp-plate__pill)) { display: none; }
+  .lamp-home .lamp-plate__fields { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* Tables drawn in plates set their own type and colour, so the operator app's element rules for tables never reach
+   into the drawing. Times and figures are tabular. */
+.lamp-home .lamp-plate table { min-width: 0; text-align: left; font-variant-numeric: tabular-nums; }
+.lamp-home .lamp-plate th { background: none; text-transform: none; letter-spacing: normal; vertical-align: bottom; }
+.lamp-home .lamp-plate td { color: inherit; }

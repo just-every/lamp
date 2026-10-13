@@ -1,0 +1,4 @@
+/* The status band's left half, shared by the status page and its last known state. */
+.lamp-home .lamp-band { display: flex; flex-direction: column; gap: 4px; }
+.lamp-home .lamp-band .lamp-plate__title { margin-bottom: 4px; }
+.lamp-home .lamp-band__summary { font-size: 14px; line-height: 1.4; }

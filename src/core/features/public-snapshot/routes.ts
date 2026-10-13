@@ -1,13 +1,14 @@
+import { aliasArtifactKey, isImportAliasPath, isLampPermalink } from "../statuspage-import/public-addresses";
 import type { Context, Hono } from "hono";
 
 import type { AppEnv } from "../../app/types";
+import { applyPublicIsolationHeaders } from "./headers";
 import type { PublicSnapshotService } from "./service";
 
 const CACHE_CONTROL = "public, max-age=10, s-maxage=10, stale-while-revalidate=30, stale-if-error=3600";
 function applyPublicHeaders(headers: Headers, origin: string, cacheable = true) {
   if (cacheable) headers.set("Cache-Control", CACHE_CONTROL);
-  headers.set("Content-Security-Policy", `default-src ${origin}; script-src ${origin}; style-src ${origin}; font-src 'self' data:; img-src ${origin}; connect-src ${origin}; form-action ${origin}; base-uri ${origin}; frame-ancestors 'none'; object-src 'none'`);
-  headers.set("X-Content-Type-Options", "nosniff");
+  applyPublicIsolationHeaders(headers, origin);
   headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
 }
 
@@ -44,7 +45,7 @@ async function labelledStaleResponse(cached: Response, artifact: string) {
   headers.set("Warning", '110 - "Response is stale"');
   const contentType = headers.get("Content-Type") ?? "";
   if (contentType.includes("text/html")) {
-    const body = (await cached.clone().text()).replace(/<body([^>]*)>/i, `<body$1><aside role="status" aria-live="polite" style="margin:0;padding:10px 14px;background:#fff3e9;color:#6b3511;font:600 14px system-ui,sans-serif">Last known state — content generated at ${headers.get("X-Lamp-Snapshot-Generated-At") ?? "unknown"}; current state could not be verified.</aside>`);
+    const body = (await cached.clone().text()).replace(/<body([^>]*)>/i, `<body$1><aside role="status" aria-live="polite" class="snapshot-stale">Last known state — content generated at ${headers.get("X-Lamp-Snapshot-Generated-At") ?? "unknown"}; current state could not be verified.</aside>`);
     return new Response(body, { status: cached.status, headers });
   }
   if (contentType.includes("atom+xml")) {
@@ -71,7 +72,10 @@ export function registerPublicSnapshotRoutes(app: Hono<AppEnv>, service: PublicS
     try {
       const object = await service.readArtifact(artifact(context));
       if (object) {
-        const response = publicResponse(object.bytes, object.contentType, context.req.url, 200, true, download);
+        const redirect = object.contentType === "application/vnd.lamp.redirect+json" ? JSON.parse(new TextDecoder().decode(object.bytes)).target : null;
+        if (redirect !== null && (typeof redirect !== "string" || !isLampPermalink(redirect))) throw new Error("Invalid snapshot redirect.");
+        const response = publicResponse(redirect ? "" : object.bytes, redirect ? "text/plain; charset=utf-8" : object.contentType, context.req.url, redirect ? 301 : 200, true, download);
+        if (redirect) response.headers.set("Location", redirect);
         response.headers.set("X-Lamp-Snapshot-Generated-At", object.generatedAt);
         if (object.retainedReady) response.headers.set("X-Lamp-Snapshot-Retained", "true");
         await cacheResponse(cache, cacheRequest, response);
@@ -100,6 +104,12 @@ export function registerPublicSnapshotRoutes(app: Hono<AppEnv>, service: PublicS
     }
   };
 
+  app.get("*", async (context, next) => {
+    const path = new URL(context.req.url).pathname;
+    if (!isImportAliasPath(path)) return next();
+    return serve(() => aliasArtifactKey(path), false, "not-found.html")(context);
+  });
+  app.get("/maintenance/:reference", serve((context) => `maintenance/${encodeURIComponent(context.req.param("reference") ?? "")}.html`, false, "not-found.html"));
   app.get("/", serve(() => "page.html"));
   app.get("/history", serve(() => "history.html"));
   app.get("/incidents/:reference", serve((context) => `incidents/${encodeURIComponent(context.req.param("reference") ?? "")}.html`, false, "not-found.html"));
@@ -107,7 +117,6 @@ export function registerPublicSnapshotRoutes(app: Hono<AppEnv>, service: PublicS
   app.get("/widget.js", serve(() => "widget.js"));
   app.get("/assets/status-page.css", serve(() => "assets/status-page.css"));
   app.get("/assets/status-page.js", serve(() => "assets/status-page.js"));
-  app.get("/assets/cartographic-map.svg", serve(() => "assets/cartographic-map.svg"));
   app.get("/assets/logo", serve(() => "assets/logo", true));
   app.get("/assets/favicon.svg", serve(() => "assets/favicon.svg"));
   app.get("/assets/og.svg", serve(() => "assets/og.svg"));

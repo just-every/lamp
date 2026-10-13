@@ -1,0 +1,12 @@
+/* The lit pendant on its square canvas (--lamp-static-w), the glow under the lamp. As in the intro, one cord only:
+   the drawings are masked above the cord grip (213/1560) and the CSS cord runs from the grip straight up, at full
+   strength, through --lamp-static-cord to the edge it hangs from: the dark panel's top edge, or the close's ceiling.
+   The lamp's box starts that far below the edge. Unscoped: the operator app hangs the same lamp (sign-in, the empty
+   overview, the error band). */
+.lamp-static-lamp { position: relative; flex: none; width: var(--lamp-static-w); aspect-ratio: 1; }
+.lamp-static-lamp::before { content: ''; position: absolute; bottom: calc(100% - 213 / 1560 * 100%); left: calc(760 / 1560 * 100%);
+  width: calc(41 / 1560 * 100%); height: calc(var(--lamp-static-cord, 0px) + 213 / 1560 * 100%);
+  background: linear-gradient(90deg, #333831 1.2%, #464c46 11%, #242a23 20.7%, #181e17 30.5%, #141a13 40.2%, #101710 50%,
+    #121912 59.8%, #1c231d 69.5%, #424942 79.3%, #616660 89%, #3e433d 98.8%); }
+.lamp-static-lamp__layer { position: absolute; inset: 0; mask-image: linear-gradient(transparent calc(213 / 1560 * 100%), #000 0); }
+.lamp-static-lamp__layer img { display: block; width: 100%; height: 100%; }

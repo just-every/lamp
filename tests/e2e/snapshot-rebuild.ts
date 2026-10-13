@@ -9,7 +9,7 @@ export async function exerciseRebuild(env, input) {
   const attemptedVersions = [];
   let loads = 0, completed = false, pointerWrites = 0;
   const builds = [];
-  const source = {
+  const source = input.source ?? {
     settings: { id: "default", pageName: "Retained rebuild", tagline: "Verified fixture", accentColor: "#16794C", timezone: "UTC", hostname: "status.example.test", footerCreditEnabled: false, logoKey: null, logoContentType: null, widgetAllowedOrigins: "[]", mailFromAddress: "lamp@example.test", aiToneInstructions: "", feedId: "retained-fixture", createdAt: "2026-09-08T00:00:00.000Z", updatedAt: "2026-09-08T00:00:00.000Z" },
     components: [], claims: [], history: [], corrections: [], incidents: [], incidentComponents: [], updates: [], maintenance: [], maintenanceComponents: [], reports: [], maintenanceNotices: [],
   };

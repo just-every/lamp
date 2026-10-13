@@ -1,0 +1,6 @@
+/* An update block: a hairline above, its head, then its fields. The current one is the amber "now" block instead. */
+.lamp-home .lamp-update { margin-top: 10px; padding: 10px 12px 12px; border-top: 1px solid var(--lamp-line); }
+.lamp-home .lamp-update.lamp-plate__current { border-top-color: transparent; }
+.lamp-home .lamp-update__head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 2px 12px; margin-bottom: 6px; }
+.lamp-home .lamp-update__head .lamp-plate__eyebrow { color: var(--lamp-ink); }
+.lamp-home .lamp-update .lamp-plate__fields { row-gap: 6px; }

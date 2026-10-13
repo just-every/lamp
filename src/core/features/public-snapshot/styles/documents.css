@@ -1,0 +1,51 @@
+/* The other public documents: history, an incident's permanent page, a missing incident, and subscriber pages. */
+.breadcrumb { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; margin: 0 0 20px; color: var(--ink-3); font-size: 14px; }
+.breadcrumb a { color: var(--ink-2); }
+.breadcrumb span:last-child { overflow-wrap: anywhere; }
+
+.history { min-width: 0; }
+.history-intro h1, .not-found h1 { margin: 0; font-size: 32px; line-height: 1.15; letter-spacing: -.022em; }
+.history-intro p, .not-found > p { max-width: 62ch; margin: 10px 0 0; color: var(--ink-2); }
+.history > .empty-state { margin-top: 32px; }
+.history-month { margin-top: 40px; }
+.history-month > h2 { margin: 0 0 14px; color: var(--ink-2); font-size: 15px; line-height: 1.4; letter-spacing: 0; }
+.history-item { min-width: 0; margin-top: 12px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--card); box-shadow: var(--shadow-card); padding: 24px 28px; }
+.history-item .record-title h3 { font-size: 17px; }
+
+.not-found { border: 1px solid var(--line); border-radius: 20px; background: var(--card); box-shadow: var(--shadow-card); padding: 40px; }
+.not-found-links { display: flex; flex-wrap: wrap; gap: 8px 24px; margin-top: 24px; }
+
+.incident-document { display: grid; grid-template-columns: minmax(0, 1fr) 264px; align-items: start; gap: 20px; }
+.incident-document-main { display: grid; gap: 16px; min-width: 0; }
+.incident-document-main > .incident, .about, .report { border: 1px solid var(--line); border-radius: var(--radius); background: var(--card); box-shadow: var(--shadow-card); padding: 28px 32px; }
+.incident-document-main > .incident .record-title h1 { font-size: 28px; line-height: 1.2; letter-spacing: -.02em; }
+.about h2, .report h2 { margin: 0 0 8px; font-size: 17px; line-height: 1.35; }
+.about p { margin: 0; color: var(--ink-2); font-size: 14px; }
+.about .incident-resolution { margin-top: 8px; }
+.report dl { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px 28px; margin: 16px 0 0; }
+.report dt { color: var(--ink-3); font-size: 13px; font-weight: 500; }
+.report dd { margin: 4px 0 0; font-size: 14px; white-space: pre-line; overflow-wrap: anywhere; }
+.incident-summary { position: sticky; top: 24px; min-width: 0; border: 1px solid var(--line); border-radius: var(--radius); background: var(--card); box-shadow: var(--shadow-card); padding: 22px 24px; }
+.summary-state { margin: 0 0 14px; font-size: inherit; }
+.incident-summary dl { margin: 0 0 18px; }
+.incident-summary dl div { border-top: 1px solid var(--line); padding: 10px 0; }
+.incident-summary dt { color: var(--ink-3); font-size: 13px; }
+.incident-summary dd { margin: 2px 0 0; font-size: 14px; overflow-wrap: anywhere; }
+.incident-summary .text-link { margin: 0; }
+
+/* Subscriber pages, reached from an emailed link: one centred plate under the business's mark. */
+.subscriber-page { width: min(100%, 640px); }
+.subscriber-masthead { padding-bottom: 24px; }
+.subscriber-document { border: 1px solid var(--line); border-radius: 20px; background: var(--card); box-shadow: var(--shadow-card); padding: 36px 40px; }
+.subscriber-document h1 { margin: 0 0 10px; font-size: 26px; line-height: 1.2; letter-spacing: -.02em; }
+.subscriber-document p { margin: 0 0 12px; color: var(--ink-2); }
+.subscriber-document p:last-child { margin-bottom: 0; }
+.subscriber-document a { color: var(--ink); font-weight: 500; }
+.subscriber-document form { margin-top: 20px; }
+.subscriber-document fieldset { min-width: 0; margin: 0 0 20px; border: 1px solid var(--line); border-radius: 12px; padding: 14px 18px 8px; }
+.subscriber-document legend { padding: 0 6px; color: var(--ink); font-size: 14px; font-weight: 600; }
+.subscriber-document fieldset p { font-size: 14px; }
+.subscriber-document label { display: flex; align-items: center; gap: 12px; min-height: 44px; border-top: 1px solid var(--line); padding: 8px 0; overflow-wrap: anywhere; }
+.subscriber-document input[type="checkbox"] { width: 18px; height: 18px; flex: none; margin: 0; accent-color: var(--ink); }
+.subscriber-document form + form { margin-top: 28px; border-top: 1px solid var(--line); padding-top: 24px; }
+.subscriber-document form + form button { background: var(--card); border-color: rgb(180 68 50 / .35); color: #9c3626; box-shadow: none; }

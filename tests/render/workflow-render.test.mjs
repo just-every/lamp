@@ -28,6 +28,9 @@ function load(filename) {
     if (id === '@tanstack/react-router') return {Link: ({to, params, children, ...props}) => React.createElement('a', {...props, href: to}, children), useNavigate: () => noop};
     if (id.endsWith('/ui/api')) return {useAppData: route => ({data: responses[route] ?? null, loading: false, error: null, refresh: noop}), appApi: () => {throw Error('Render tests must not call an API');}};
     if (id.endsWith('/extensions')) return {ClientExtensionSlot: () => null};
+    // As Vite does: a stylesheet import has no exports, and a ?url asset import is its URL.
+    if (id.endsWith('.css')) return {};
+    if (/\?url\b/.test(id)) return {default: id};
     if (!id.startsWith('.')) return require(id);
     const base = path.resolve(path.dirname(filename), id);
     const found = [base, base+'.tsx', base+'.ts', base+'.mjs', path.join(base,'index.ts')].find(f => fs.existsSync(f) && fs.statSync(f).isFile());
@@ -36,6 +39,7 @@ function load(filename) {
   vm.runInThisContext(`(function(require,module,exports){${code}\n})`, {filename})(localRequire,module,module.exports);
   return module.exports;
 }
+const {PageTimezoneContext} = load("src/core/app/client/ui/timezone.tsx");
 const feature = name => `src/core/features/${name}`;
 const {OverviewPage} = load(feature('overview/ui/overview-page.tsx'));
 const {IncidentDetailPage} = load(feature('incidents/ui/incident-detail-page.tsx'));
@@ -43,8 +47,9 @@ const {IncidentOperatorControls} = load(feature('incidents/ui/incident-operator-
 const {MaintenancePage} = load(feature('maintenance/ui/maintenance-page.tsx'));
 function render(Component, data, state = {}, props = {}) {
   responses=data; stateSnapshot=state; stateIndex=0;
-  return renderToStaticMarkup(React.createElement(Component, props));
+  return renderToStaticMarkup(React.createElement(PageTimezoneContext.Provider, {value: "Australia/Brisbane"}, React.createElement(Component, props)));
 }
+const checklist = { complete: false, completed: 0, publicOrigin: 'https://status.example.test', steps: ['branding','timezone','sender','component','incident','public','subscribe','domain'].map(id => ({id, label:id, done:false, detail:'Complete this setup step', href:'/app/settings'})) };
 const incident = {id:'incident-render',reference:'INC-RENDER',title:'Checkout delayed',lifecycle:'Investigating',openedAt:'2026-10-02T01:00:00Z',components:[],updates:[],internalNotes:[],draft:null};
 const incidentData = {'/api/app/incidents/incident-render':{incident}, '/api/app/incident-templates':{templates:[]}};
 const preview = {public:{heading:'Checkout delayed',lifecycle:'Investigating',fields:[{label:'Impact',value:'Checkout is delayed'}]},email:{subject:'Checkout delayed',plainText:'Title\n\nStatus: Investigating\n\nCheckout is delayed'}};
@@ -54,19 +59,18 @@ function details(html, summary) {
   assert.ok(match, `Named disclosure: ${summary}`); return {attributes:match[1],body:match[2]};
 }
 
-test('overview renders each active incident once and retains overdue warning', () => {
-  const html=render(OverviewPage, {'/api/app/overview':{overview:{components:[{publicState:'Operational'}],activeIncidents:[{...incident,overdue:true,impact:'Degraded performance'}],maintenance:[]}}});
-  assert.equal(html.split('INC-RENDER').length-1,1);
-  assert.equal(html.split('Checkout delayed').length-1,1);
+test('overview lists each active incident once and offers one action for an overdue update', () => {
+  const html=render(OverviewPage, {'/api/app/overview':{overview:{checklist,components:[{publicState:'Operational'}],activeIncidents:[{...incident,overdue:true,updateDue:false,updateDueAt:'2026-09-08T01:00:00.000Z',impact:'Degraded performance'}],maintenance:[]}}});
+  const list=html.slice(html.indexOf('aria-label="Active incidents"'));
+  assert.equal(list.split('INC-RENDER').length-1,1);
+  assert.equal(list.split('Checkout delayed').length-1,1);
   assert.equal(html.split('<h2>Active incidents</h2>').length-1,1);
-  assert.match(html,/Next update overdue/); assert.match(html,/Components and history/);
-});
-test('first use retains a single direct component setup action', () => {
-  const html=render(OverviewPage, {'/api/app/overview':{overview:{components:[],activeIncidents:[],maintenance:[]}}});
-  assert.equal(html.split('Add component').length-1,1); assert.match(html,/href="\/app\/components"/);
+  const notice=html.slice(html.indexOf('aria-label="Updates due"'),html.indexOf('aria-label="Active incidents"'));
+  assert.match(notice,/INC-RENDER/); assert.equal(notice.split('href="/app/incidents/').length-1,1,'one action opens the incident composer');
+  assert.match(html,/Components and history/);
 });
 test('composer renders closed named email and timing disclosures with safeguards', () => {
-  const html=render(IncidentDetailPage,incidentData,{4:preview},{incidentId:incident.id});
+  const html=render(IncidentDetailPage,incidentData,{7:preview},{incidentId:incident.id});
   const email=details(html,'Email preview'), timing=details(html,'Schedule or backdate');
   assert.doesNotMatch(email.attributes,/\bopen\b/); assert.match(email.body,/Notification email/);
   assert.doesNotMatch(timing.attributes,/\bopen\b/); assert.match(timing.body,/Scheduled publication date and time/); assert.match(timing.body,/Historical publication date and time/);
@@ -76,7 +80,7 @@ test('composer renders closed named email and timing disclosures with safeguards
   assert.match(html,/A different operator can record the required review/);
 });
 test('active historical timing stays exposed and names its publication action', () => {
-  const html=render(IncidentDetailPage,incidentData,{4:preview,8:'2026-10-01T01:00:00Z'},{incidentId:incident.id});
+  const html=render(IncidentDetailPage,incidentData,{7:preview,11:'2026-10-01T01:00:00Z'},{incidentId:incident.id});
   assert.match(details(html,'Schedule or backdate').attributes,/\bopen=""/);
   assert.match(html,/Publish historical update/); assert.match(html,/Use current time/);
 });

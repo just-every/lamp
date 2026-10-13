@@ -1,0 +1,32 @@
+/* Components: each group one white plate; each row names the component, shows its state chip, then its daily record. */
+.component-health { min-width: 0; margin-top: 56px; }
+.availability-charts { display: grid; gap: 16px; min-width: 0; }
+.component-group { min-width: 0; border: 1px solid var(--line); border-radius: var(--radius); background: var(--card); box-shadow: var(--shadow-card); padding: 0 24px; }
+.component-group > h3 { margin: 0 -24px; border-bottom: 1px solid var(--line); border-radius: var(--radius) var(--radius) 0 0; background: var(--card-tint); padding: 12px 24px; color: var(--ink-2); font-size: 13px; line-height: 1.4; letter-spacing: .01em; }
+.component { display: grid; gap: 14px; min-width: 0; padding: 20px 0; }
+.component + .component { border-top: 1px solid var(--line); }
+.component-name { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 16px; min-width: 0; }
+.component-status { min-width: 0; }
+.component h4 { flex: 1 1 auto; min-width: 0; margin: 0; font-size: 16px; line-height: 1.35; letter-spacing: -.008em; overflow-wrap: anywhere; }
+.component-note { flex: 1 1 100%; margin: 0; color: var(--ink-2); font-size: 14px; overflow-wrap: anywhere; }
+
+.uptime { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px 16px; min-width: 0; }
+.uptime-marks { display: grid; grid-row: 1; grid-column: 1 / -1; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 2px; height: 28px; min-width: 0; }
+.uptime-mark { display: block; min-width: 0; border-radius: 2px; background: var(--ok-mark); }
+.uptime-mark.downtime { background: var(--down); }
+.uptime-mark.no-data { background: var(--no-data); }
+.uptime-window { grid-row: 2; grid-column: 1; margin: 0; color: var(--ink-3); font-size: 13px; }
+.uptime-number { grid-row: 2; grid-column: 2; color: var(--ink-2); font-size: 13px; font-weight: 500; text-align: right; font-variant-numeric: tabular-nums; }
+
+.availability-foot { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 10px 24px; margin-top: 14px; color: var(--ink-3); font-size: 13px; }
+.availability-legend { display: flex; flex-wrap: wrap; gap: 6px 18px; }
+.availability-legend span { display: inline-flex; align-items: center; gap: 7px; }
+.availability-legend i { width: 10px; height: 10px; border-radius: 2px; background: var(--ok-mark); }
+.availability-legend .legend-downtime { background: var(--down); }
+.availability-legend .legend-no-data { background: var(--no-data); }
+.availability-method { max-width: 100%; line-height: 1.6; }
+.availability-method summary { width: fit-content; margin-left: auto; color: var(--ink-2); font-weight: 500; cursor: pointer; }
+.availability-method summary:hover { color: var(--ink); }
+.availability-method[open] { flex-basis: 100%; }
+.availability-method[open] summary { margin-left: 0; }
+.availability-method p { max-width: 72ch; margin: 8px 0 0; }

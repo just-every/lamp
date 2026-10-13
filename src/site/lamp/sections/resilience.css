@@ -1,0 +1,48 @@
+/* Section 3, the page's one dark moment: an inset night panel (radius 32 units; 24px from 600 to 1023px; full bleed
+   on a phone) with the page still lit. The lit pendant hangs on its cord from the panel's top edge. Narrower than
+   1024px: the lamp, the text, then plate D, and only the bulb's own glow lights the night, since the text lies between
+   lamp and plate. From 1024px the panel spans columns 1–12 on the section's grid, the text sits in 2–5 and the lamp
+   and plate D in 7–11, and only there, with the plate straight under the bulb, the light falls on it: a warm cone
+   from the bulb to the plate's top edge, added to the night (screen), fading over 300 units and dithered by the grain.
+   Plate D carries a warm highlight along its top edge where the light lands. */
+.lamp-home .lamp-resilience__panel { --lamp-static-w: 175px; --lamp-static-cord: 40px; position: relative; isolation: isolate; overflow: clip;
+  display: flex; flex-direction: column; margin-inline: calc(var(--lamp-gutter) * -1); padding: 0 var(--lamp-gutter) 64px;
+  color: var(--lamp-band-ink); background: var(--lamp-band); }
+.lamp-home .lamp-resilience__stage { display: contents; }
+.lamp-home .lamp-resilience__lamp { order: 0; margin: var(--lamp-static-cord) auto 16px; }
+.lamp-home .lamp-resilience__text { order: 1; }
+.lamp-home .lamp-resilience__plates { order: 2; position: relative; }
+.lamp-home .lamp-resilience .lamp-section__eyebrow { color: var(--lamp-band-ink-2); }
+.lamp-home .lamp-resilience .lamp-section__title { color: var(--lamp-band-ink); }
+.lamp-home .lamp-resilience .lamp-section__sentence { color: var(--lamp-band-ink-2); }
+.lamp-home .lamp-resilience .lamp-plate__sheet { border-color: rgb(255 255 255 / .06);
+  box-shadow: inset 0 1px 0 rgb(255 236 200 / .45), var(--lamp-shadow-night); }
+.lamp-home .lamp-resilience a:focus-visible { outline-color: var(--lamp-band-ink); }
+@container lamp-page (min-width: 600px) {
+  .lamp-home .lamp-resilience__panel { margin-inline: 0; padding-inline: 48px; border-radius: 24px; }
+}
+@container lamp-page (min-width: 1024px) {
+  .lamp-home .lamp-resilience__panel { --lamp-static-w: calc(241 * var(--u)); --lamp-static-cord: calc(72 * var(--u));
+    display: grid; grid-column: 1 / -1; grid-template-columns: subgrid; align-items: center;
+    padding: 0 0 calc(120 * var(--u)); border-radius: calc(32 * var(--u)); }
+  .lamp-home .lamp-resilience__text { grid-column: 2 / 6; grid-row: 1; padding-top: calc(72 * var(--u)); }
+  .lamp-home .lamp-resilience__stage { position: relative; display: flex; flex-direction: column; align-items: center; align-self: start; grid-column: 7 / 12; grid-row: 1; }
+  .lamp-home .lamp-resilience__lamp { margin: var(--lamp-static-cord) 0 calc(80 * var(--u) - var(--lamp-static-w) * .2314); }
+  .lamp-home .lamp-resilience__plates { align-self: stretch; }
+  /* The cone: from the shade's rim down past the plate's top edge, widening from a point above the bulb and fading as
+     it falls. */
+  .lamp-home .lamp-resilience__stage::before { content: ''; position: absolute; z-index: -1; left: 50%; pointer-events: none;
+    top: calc(var(--lamp-static-cord) + var(--lamp-static-w) * .66); width: 150%; height: calc(420 * var(--u)); translate: -50% 0;
+    background: radial-gradient(ellipse 36% 100% at 50% 0, rgb(255 188 100 / .75), rgb(255 188 100 / .32) 40%, rgb(255 188 100 / .09) 70%, rgb(255 188 100 / 0));
+    mix-blend-mode: screen;
+    mask-image: conic-gradient(from 140deg at 50% -40%, transparent, #000 22deg, #000 58deg, transparent 80deg), linear-gradient(transparent, #000 12%);
+    mask-composite: intersect; }
+}
+/* The moment: the lamp is lit throughout, since the page never went dark; its light on plate D brightens and the stale
+   banner's amber wash fades up: the light lands. */
+@media screen and (prefers-reduced-motion: no-preference) {
+  .lamp-home .lamp-resilience[data-reveal="wait"] .lamp-resilience__stage::before { opacity: .3; }
+  .lamp-home .lamp-resilience[data-reveal="wait"] .lamp-stale__banner::before { opacity: 0; }
+  .lamp-home .lamp-resilience[data-reveal="play"] .lamp-resilience__stage::before { animation: lamp-brighten .8s var(--lamp-ease) .2s backwards; }
+  .lamp-home .lamp-resilience[data-reveal="play"] .lamp-stale__banner::before { animation: lamp-fade .5s var(--lamp-ease) .5s backwards; }
+}

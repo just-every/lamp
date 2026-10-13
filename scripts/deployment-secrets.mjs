@@ -11,6 +11,10 @@ export async function withDeploymentSecrets(config, action) {
       // explicitly disable removed integrations without touching owner secrets.
       RER_MAIL_RELAY_SECRET: config.relaySecret ?? "",
       MAIL_PROVIDER_API_KEY: config.mailProviderApiKey,
+      SESSION_SECRET: config.sessionSecret,
+      SETUP_TOKEN: config.setupToken,
+      AUTH_PROVIDERS:config.authProviders??"",
+      OIDC_TRANSACTION_SECRET:config.oidcTransactionSecret??"",
       SUBSCRIBER_TOKEN_SECRET: config.subscriberTokenSecret,
       WEBHOOK_SIGNING_SECRET: config.webhookSigningSecret,
       RESEND_WEBHOOK_SECRET: config.resendWebhookSecret ?? "",
