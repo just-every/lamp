@@ -33,6 +33,15 @@ jobs:
           const check = (condition, label) => {
             if (!condition) throw new ProbeFailure(label);
           };
+          const valueType = (value) => value === null ? 'null' : Array.isArray(value) ? 'array' : typeof value;
+          function describeEnvelope(body, label) {
+            const has = (field) => body !== null && typeof body === 'object' && Object.hasOwn(body, field);
+            const fieldShape = (field) => has(field) ? `present:${valueType(body[field])}` : 'absent';
+            const errors = has('errors') && Array.isArray(body.errors) ? body.errors : null;
+            const codes = errors ? errors.filter((entry) => Number.isSafeInteger(entry?.code)).slice(0, 8).map((entry) => entry.code) : [];
+            // Fixed field names, shapes and numeric codes only; never response values or messages.
+            console.log(`${label}: envelope body=${valueType(body)} success=${fieldShape('success')} errors=${fieldShape('errors')} errors_count=${errors ? errors.length : 'n/a'} error_codes=${JSON.stringify(codes)} result=${fieldShape('result')}`);
+          }
           async function get(path, label, expectedStatus = 200, optional = false) {
             let response;
             try {
@@ -60,10 +69,12 @@ jobs:
               if (optional) return;
               throw new ProbeFailure(`${label}: invalid API response`);
             }
+            describeEnvelope(body, label);
             if (optional && body?.success !== true) return;
             check(body?.success === true, `${label}: API success required`);
             if (!optional) {
-              check(Array.isArray(body.errors) && body.errors.length === 0, `${label}: API errors must be empty`);
+              // Base's provider accepts omitted/null errors; any reported error still fails.
+              check(body.errors == null || Array.isArray(body.errors) && body.errors.length === 0, `${label}: API errors must be absent, null, or an empty list`);
               check(Object.hasOwn(body, 'result'), `${label}: API result required`);
             }
             return body.result;
