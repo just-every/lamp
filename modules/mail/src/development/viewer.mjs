@@ -12,7 +12,7 @@ function localOrigin(origin) {
 }
 
 function routePath(path) {
-  return typeof path === 'string' && /^\/(?:[A-Za-z0-9_-]+\/?)+$/.test(path) && !path.includes('//');
+  return typeof path === 'string' && /^\/[A-Za-z0-9_-]+(?:\/[A-Za-z0-9_-]+)*\/?$/.test(path) && !path.includes('//');
 }
 
 // The seed's own served stylesheet, in the grammar operator-auth branding accepts.

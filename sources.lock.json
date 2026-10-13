@@ -380,7 +380,7 @@
       "executable": false
     },
     "base-copies.json": {
-      "sha256": "88c54cf67df5d3e86fb1c62058672e367cd40395db63247354c5482bc01ee9bd",
+      "sha256": "e02ffed8a1f783d5c4246bc9443237b74042197f215652d6aade32158e3e41b3",
       "executable": false
     },
     "BASELINE.md": {
@@ -428,7 +428,7 @@
       "executable": false
     },
     "DIVERGENCE.md": {
-      "sha256": "c9a0794a7fea207983b00a1ee551c451e5265ce7db53cb1907c993cc04aa7dd2",
+      "sha256": "ce81d01b401a4e541d72b6d2a530048e39604d9496cd3b194b5a6a885c4a2ea3",
       "executable": false
     },
     "docs/moving-in.md": {
@@ -1380,7 +1380,7 @@
       "executable": false
     },
     "modules/mail/src/development/viewer.mjs": {
-      "sha256": "94b3096e3b8eb0e74e1cb8fe8a6feeea3f07a2b1e74329c2e31ca6980c66c8bd",
+      "sha256": "0246c03a2bee8c8e48efb5786a704c014a7a49cf0845c1c0366ea70ba7ae853d",
       "executable": false
     },
     "modules/mail/src/doctor/common.mjs": {

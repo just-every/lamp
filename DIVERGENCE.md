@@ -977,6 +977,10 @@ completion no longer owns the current interface.
   `rel=noreferrer`; Lamp's app host and page host are distinct local sites, and the development
   gates admit a navigation between them only with the other surface's origin as the referrer.
   Base's viewer would therefore strand subscriber links opened from the app host's outbox.
+  The retained shared viewer's configured route must also reject malformed paths without
+  exponential backtracking, while preserving its accepted paths and access controls.
+  `modules/mail/src/development/viewer.mjs` is locally adapted; the remaining mail files retain
+  their verbatim Base copy records.
 
 - The setup checklist checks the public page and its subscribe form by fetching the page host's `/`
   from the Worker. Locally the page host is another loopback name on the same port, so workerd sends
