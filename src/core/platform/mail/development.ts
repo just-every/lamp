@@ -1,4 +1,4 @@
-import { admitsDevelopmentRequest, canUseDevelopmentMail, isLoopbackHostname, type DevelopmentMailBindings } from '../../features/dev-outbox/access';
+import { canPrepareDevelopmentMail, canUseDevelopmentMail, isLoopbackHostname, type DevelopmentMailBindings } from '../../features/dev-outbox/access';
 import { createDevOutboxRepository } from '../../features/dev-outbox/repository';
 import { MailUnavailableError, type MailMessage, type MailSender, type SentMail } from './sender';
 
@@ -18,10 +18,10 @@ export function createDevelopmentMailSender(bindings: DevelopmentMailBindings, r
 
 /** Called before composing services in development. This creates no operator,
  * session or subscription; native authentication and confirmation are unchanged.
- * Every admitted request gets the local token secret, including a confirmation
- * link followed from the other surface; only sending stays same-site. */
+ * Subscriber links followed from the other surface get the local token secret;
+ * public snapshot CORS reads cannot prepare mail, and sending stays same-site. */
 export async function prepareDevelopmentMailBindings<T extends DevelopmentMailBindings & { SUBSCRIBER_TOKEN_SECRET?: string }>(bindings: T, request?: Request): Promise<T> {
-  if (!(request ? admitsDevelopmentRequest(bindings, request) : canUseDevelopmentMail(bindings))) return bindings;
+  if (!(request ? canPrepareDevelopmentMail(bindings, request) : canUseDevelopmentMail(bindings))) return bindings;
   const repository = createDevOutboxRepository(bindings.LAMP_DEV_OUTBOX!, bindings.LAMP_BASE_MAIL);
   if (request) {
     const url = new URL(request.url);

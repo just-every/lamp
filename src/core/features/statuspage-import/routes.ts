@@ -42,9 +42,12 @@ export function registerStatuspageImportRoutes(app: Hono<AppEnv>, service: Statu
   app.post("/api/app/statuspage-import/jobs/:id/:action", async (context) => {
     const id = jobId.safeParse(context.req.param("id"));
     const action = context.req.param("action");
-    if (!id.success || (action !== "resume" && action !== "undo")) return context.json({ error: "Import not found." }, 404);
+    if (!id.success || (action !== "resume" && action !== "undo" && action !== "send-invitations")) return context.json({ error: "Import not found." }, 404);
     const who = context.get("operatorSession");
-    try { return context.json(action === "resume" ? await service.resume(id.data, who) : await service.undo(id.data, who)); }
+    try {
+      const command = await context.req.json().catch(() => null);
+      if (action === 'send-invitations' && !z.object({}).strict().safeParse(command).success) return context.json({ error: 'Send invitations with an empty command.' }, 400);
+      return context.json(action === "send-invitations" ? await service.sendInvitations(id.data, who) : action === "resume" ? await service.resume(id.data, who) : await service.undo(id.data, who)); }
     catch (cause) { return context.json({ error: refused(cause) }, 409); }
   });
 }

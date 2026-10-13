@@ -24,7 +24,11 @@ export async function lampRuntime(t, { local = false, ownerClaim = false } = {})
   // Mail and publication are the external effect boundaries. Routes, services,
   // identity authority and every import/erasure statement use real D1.
   let publications = 0;
-  modules.registerStatuspageImportRoutes(app, modules.createStatuspageImportService(db, { async inviteSubscriber() { throw new Error('No subscriber in this fixture'); }, async publicDataChanged() { publications++; } }));
+  const subscribers = modules.createSubscribersService(modules.createSubscriberRepository(db), {
+    mail: { configured: true, async send(message) { messages.push(message); return { providerMessageId: `captured-${messages.length}` }; } },
+    fromAddress: 'lamp@example.test', tokenSecret: secret,
+  });
+  modules.registerStatuspageImportRoutes(app, modules.createStatuspageImportService(db, { inviteSubscriber: (id, authority) => subscribers.inviteImported(id, 'https://page.example.test', 'Test page', authority), async publicDataChanged() { publications++; } }));
   const request = (path, options = {}) => {
     const req = base.request(path, options);
     req.headers.set('CF-Connecting-IP', '192.0.2.10');

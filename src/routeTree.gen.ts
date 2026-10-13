@@ -15,6 +15,7 @@ import { Route as SetupRouteImport } from './routes/setup'
 import { Route as AppIndexRouteImport } from './routes/app.index'
 import { Route as AppAlertsRouteImport } from './routes/app.alerts'
 import { Route as AppComponentsRouteImport } from './routes/app.components'
+import { Route as AppCutoverRouteImport } from './routes/app.cutover'
 import { Route as AppDeliveriesRouteImport } from './routes/app.deliveries'
 import { Route as AppIncidentsRouteImport } from './routes/app.incidents'
 import { Route as AppMaintenanceRouteImport } from './routes/app.maintenance'
@@ -54,6 +55,11 @@ const AppAlertsRoute = AppAlertsRouteImport.update({
 const AppComponentsRoute = AppComponentsRouteImport.update({
   id: '/components',
   path: '/components',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppCutoverRoute = AppCutoverRouteImport.update({
+  id: '/cutover',
+  path: '/cutover',
   getParentRoute: () => AppRoute,
 } as any)
 const AppDeliveriesRoute = AppDeliveriesRouteImport.update({
@@ -113,6 +119,7 @@ export interface FileRoutesByFullPath {
   '/setup': typeof SetupRoute
   '/app/alerts': typeof AppAlertsRoute
   '/app/components': typeof AppComponentsRoute
+  '/app/cutover': typeof AppCutoverRoute
   '/app/deliveries': typeof AppDeliveriesRoute
   '/app/incidents': typeof AppIncidentsRouteWithChildren
   '/app/maintenance': typeof AppMaintenanceRoute
@@ -129,6 +136,7 @@ export interface FileRoutesByTo {
   '/setup': typeof SetupRoute
   '/app/alerts': typeof AppAlertsRoute
   '/app/components': typeof AppComponentsRoute
+  '/app/cutover': typeof AppCutoverRoute
   '/app/deliveries': typeof AppDeliveriesRoute
   '/app/maintenance': typeof AppMaintenanceRoute
   '/app/move-in': typeof AppMoveInRoute
@@ -147,6 +155,7 @@ export interface FileRoutesById {
   '/setup': typeof SetupRoute
   '/app/alerts': typeof AppAlertsRoute
   '/app/components': typeof AppComponentsRoute
+  '/app/cutover': typeof AppCutoverRoute
   '/app/deliveries': typeof AppDeliveriesRoute
   '/app/incidents': typeof AppIncidentsRouteWithChildren
   '/app/maintenance': typeof AppMaintenanceRoute
@@ -167,6 +176,7 @@ export interface FileRouteTypes {
     | '/setup'
     | '/app/alerts'
     | '/app/components'
+    | '/app/cutover'
     | '/app/deliveries'
     | '/app/incidents'
     | '/app/maintenance'
@@ -183,6 +193,7 @@ export interface FileRouteTypes {
     | '/setup'
     | '/app/alerts'
     | '/app/components'
+    | '/app/cutover'
     | '/app/deliveries'
     | '/app/maintenance'
     | '/app/move-in'
@@ -200,6 +211,7 @@ export interface FileRouteTypes {
     | '/setup'
     | '/app/alerts'
     | '/app/components'
+    | '/app/cutover'
     | '/app/deliveries'
     | '/app/incidents'
     | '/app/maintenance'
@@ -261,6 +273,13 @@ declare module '@tanstack/react-router' {
       path: '/components'
       fullPath: '/app/components'
       preLoaderRoute: typeof AppComponentsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/cutover': {
+      id: '/app/cutover'
+      path: '/cutover'
+      fullPath: '/app/cutover'
+      preLoaderRoute: typeof AppCutoverRouteImport
       parentRoute: typeof AppRoute
     }
     '/app/deliveries': {
@@ -353,6 +372,7 @@ const AppIncidentsRouteWithChildren = AppIncidentsRoute._addFileChildren(
 interface AppRouteChildren {
   AppAlertsRoute: typeof AppAlertsRoute
   AppComponentsRoute: typeof AppComponentsRoute
+  AppCutoverRoute: typeof AppCutoverRoute
   AppDeliveriesRoute: typeof AppDeliveriesRoute
   AppIncidentsRoute: typeof AppIncidentsRouteWithChildren
   AppMaintenanceRoute: typeof AppMaintenanceRoute
@@ -365,6 +385,7 @@ interface AppRouteChildren {
 const AppRouteChildren: AppRouteChildren = {
   AppAlertsRoute: AppAlertsRoute,
   AppComponentsRoute: AppComponentsRoute,
+  AppCutoverRoute: AppCutoverRoute,
   AppDeliveriesRoute: AppDeliveriesRoute,
   AppIncidentsRoute: AppIncidentsRouteWithChildren,
   AppMaintenanceRoute: AppMaintenanceRoute,
@@ -396,12 +417,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { createStart } from '@tanstack/react-start'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-  }
-}

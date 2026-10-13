@@ -1,4 +1,5 @@
 import { isSameOriginSubscriberPost } from './subscriber-origin.mjs';
+import { isLocalPublicRead } from './public-read.mjs';
 
 /** The compiler removes development access from the emitted production Worker.
  * A runtime binding, request header or localhost URL cannot turn it back on. */
@@ -38,7 +39,7 @@ function crossSurfaceNavigation(bindings: DevelopmentMailBindings, request: Requ
     && referrer.origin !== url.origin && !referrer.username && !referrer.password;
 }
 
-function localDevelopmentRequest(bindings: DevelopmentMailBindings, request: Request, admitCrossSurfaceNavigation: boolean): boolean {
+function localDevelopmentRequest(bindings: DevelopmentMailBindings, request: Request, admitCrossSurfaceNavigation: boolean, admitPublicReads = false): boolean {
   const url = new URL(request.url);
   if (!['http:', 'https:'].includes(url.protocol) || url.username || url.password || !localAuthority(url.host)) return false;
   if (![bindings.LAMP_APP_HOST.toLowerCase(), bindings.LAMP_PAGE_HOST.toLowerCase()].includes(url.hostname.toLowerCase())) return false;
@@ -47,9 +48,13 @@ function localDevelopmentRequest(bindings: DevelopmentMailBindings, request: Req
   }
   const host = request.headers.get('host');
   if (host !== null && (!localAuthority(host) || new URL(`${url.protocol}//${host}`).host !== url.host)) return false;
-  if (request.headers.get('sec-fetch-site') === 'cross-site' && !(admitCrossSurfaceNavigation && crossSurfaceNavigation(bindings, request, url))) return false;
+  const publicRead = admitPublicReads
+    && isLocalPublicRead(request.method, `${url.pathname}${url.search}`, request.headers, url)
+    && url.hostname === bindings.LAMP_PAGE_HOST.toLowerCase()
+    && new URL(request.headers.get('origin')!).hostname === bindings.LAMP_APP_HOST.toLowerCase();
+  if (request.headers.get('sec-fetch-site') === 'cross-site' && !publicRead && !(admitCrossSurfaceNavigation && crossSurfaceNavigation(bindings, request, url))) return false;
   const origin = request.headers.get('origin');
-  if (origin !== null && origin !== url.origin
+  if (origin !== null && origin !== url.origin && !publicRead
     && !isSameOriginSubscriberPost(request.method, `${url.pathname}${url.search}`, origin, request.headers.get('sec-fetch-site'))) return false;
   return true;
 }
@@ -68,8 +73,16 @@ export function canUseDevelopmentMail(bindings: DevelopmentMailBindings, request
 }
 
 /** Admission for every request the development Worker serves: the same local
- * checks, plus a navigation that follows a link between the two surfaces. */
+ * checks, plus navigation between surfaces and credentialless owner reads of
+ * public aliases/permalinks. Neither exception enables development mail. */
 export function admitsDevelopmentRequest(bindings: DevelopmentMailBindings, request: Request): boolean {
+  if (import.meta.env?.DEV !== true || !developmentConfigured(bindings)) return false;
+  return localDevelopmentRequest(bindings, request, true, true);
+}
+
+/** Subscriber document navigation needs the local token secret, but a
+ * credentialless public snapshot read must not initialize private mail state. */
+export function canPrepareDevelopmentMail(bindings: DevelopmentMailBindings, request: Request): boolean {
   if (import.meta.env?.DEV !== true || !developmentConfigured(bindings)) return false;
   return localDevelopmentRequest(bindings, request, true);
 }

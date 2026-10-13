@@ -1,3 +1,4 @@
+import { readCutover } from "./cutover.repository";
 import { loadPlans } from "../../../../modules/import-kit/src/d1/plans";
 import { readImportedPublicRecords } from "./alias-repository";
 import { sourcePublicAddresses, inspectSourcePublicAddresses, resolvePublicAddresses } from "./public-addresses";
@@ -19,7 +20,7 @@ const INVITES_PER_REQUEST = 50;
 export type MoveInActor = Session;
 export interface MoveInResult { job: ImportJob; report: MoveInReport; invites: { sent: number; remaining: number }; undo?: Awaited<ReturnType<typeof readD1ImportUndoReport>> }
 export interface MoveInHooks {
-  inviteSubscriber(subscriberId: string): Promise<boolean>;
+  inviteSubscriber(subscriberId: string, assertAuthority: () => Promise<void>): Promise<boolean>;
   publicDataChanged(): Promise<void>;
 }
 
@@ -144,27 +145,29 @@ export function createStatuspageImportService(db: D1Database, hooks: MoveInHooks
     await assertAuthority(context);
     const subscriberIds = plan.entries.flatMap((entry) => entry.effects.filter((effect) => effect.targetKind === "subscriber").map((effect) => effect.targetId));
     if (subscriberIds.length) await db.batch(subscriberIds.map((id) => db.prepare(`INSERT OR IGNORE INTO statuspage_import_invites (subscriber_id, job_id, sent_at) SELECT ?, ?, NULL WHERE ${fence.sql}`).bind(id, jobId, ...fence.params ?? [])));
-    const due = (await db.prepare("SELECT i.subscriber_id AS id FROM statuspage_import_invites i JOIN subscribers s ON s.id=i.subscriber_id WHERE i.job_id=? AND i.sent_at IS NULL AND s.state='pending' ORDER BY i.subscriber_id LIMIT ?").bind(jobId, INVITES_PER_REQUEST).all<{ id: string }>()).results;
+    const due = (await db.prepare("SELECT i.subscriber_id AS id FROM statuspage_import_invites i JOIN subscribers s ON s.id=i.subscriber_id WHERE i.job_id=? AND i.sent_at IS NULL AND s.state='pending' AND s.channel='email' AND julianday(s.created_at) > julianday('now','-72 hours') ORDER BY i.subscriber_id LIMIT ?").bind(jobId, INVITES_PER_REQUEST).all<{ id: string }>()).results;
     let sent = 0;
     for (const { id } of due) {
       // Claim before sending: a retried request never sends a second invite.
       const claimed = await db.prepare(`UPDATE statuspage_import_invites SET sent_at=? WHERE subscriber_id=? AND sent_at IS NULL AND ${fence.sql}`).bind(nowIso(), id, ...fence.params ?? []).run();
       await assertAuthority(context);
       if (claimed.meta.changes !== 1) continue;
-      if (await hooks.inviteSubscriber(id)) sent += 1;
+      if (await hooks.inviteSubscriber(id, () => assertAuthority(context))) sent += 1;
     }
-    const remaining = await db.prepare("SELECT count(*) AS n FROM statuspage_import_invites i JOIN subscribers s ON s.id=i.subscriber_id WHERE i.job_id=? AND i.sent_at IS NULL AND s.state='pending'").bind(jobId).first<{ n: number }>();
+    const remaining = await db.prepare("SELECT count(*) AS n FROM statuspage_import_invites i JOIN subscribers s ON s.id=i.subscriber_id WHERE i.job_id=? AND i.sent_at IS NULL AND s.state='pending' AND s.channel='email' AND julianday(s.created_at) > julianday('now','-72 hours')").bind(jobId).first<{ n: number }>();
     await assertAuthority(context);
     return { sent, remaining: Number(remaining?.n ?? 0) };
   }
 
-  async function result(id: string, actor: MoveInActor, invite: boolean): Promise<MoveInResult> {
+  async function result(id: string, actor: MoveInActor): Promise<MoveInResult> {
     const context = importContext(db, actor);
     const job = await readD1ImportJob(id, context);
     const { plan } = await stored(id, context);
-    const invites = invite && job.state === "completed" ? await sendInvites(job.id, plan, context) : { sent: 0, remaining: 0 };
+    const cutover = await readCutover(db, job.id, plan);
+    const invites = { sent: 0, remaining: cutover.invitations.eligible };
     await assertAuthority(context);
     const report = reportFromPlan(plan, job.state);
+    report.cutover = cutover;
     const existingAddresses = resolvePublicAddresses((await readImportedPublicRecords(db)).map((record) => ({ ...record, target: `${record.targetKind}:${record.targetId}` })));
     report.unavailableAddresses = [...new Set([...report.unavailableAddresses, ...existingAddresses.unavailable])];
     await assertAuthority(context);
@@ -184,7 +187,10 @@ export function createStatuspageImportService(db: D1Database, hooks: MoveInHooks
       const read = await readSavedResponses(files);
       const context = importContext(db, actor);
       const existing = await existingPlan(artifactIdentity(read), context);
-      if (existing) return { report: reportFromPlan(existing.plan, "already imported"), jobId: existing.job.id, files: fetched ? files : undefined };
+      if (existing) {
+        const current = await result(existing.job.id, actor);
+        return { report: { ...current.report, state: "already imported" }, jobId: existing.job.id, files: fetched ? files : undefined };
+      }
       const asOf = nowIso();
       const plan = await planMoveIn(read, await snapshot(context), context, actor.operator.id, asOf);
       await sourceClear(plan);
@@ -195,14 +201,14 @@ export function createStatuspageImportService(db: D1Database, hooks: MoveInHooks
       const read = await readSavedResponses(input.files);
       const context = importContext(db, actor);
       const existing = await existingPlan(artifactIdentity(read), context);
-      if (existing) return result(existing.job.id, actor, true);
+      if (existing) return result(existing.job.id, actor);
       const plan = await planMoveIn(read, await snapshot(context), context, actor.operator.id, reviewedInstant(input.asOf));
       if (plan.fingerprint !== input.fingerprint) throw new Error("The source or this page changed since the dry run. Review a fresh dry run.");
       const job = await createD1ImportJob(plan, await applicationContext(context, plan));
       await applyD1ImportBatches(job.id, context);
       const applied = await readD1ImportJob(job.id, context);
       if (applied.state === "completed") await hooks.publicDataChanged();
-      return result(job.id, actor, true);
+      return result(job.id, actor);
     },
     async resume(id: string, actor: MoveInActor) {
       const context = importContext(db, actor);
@@ -211,7 +217,7 @@ export function createStatuspageImportService(db: D1Database, hooks: MoveInHooks
         await resumeD1Import(id, context);
         if ((await readD1ImportJob(id, context)).state === "completed") await hooks.publicDataChanged();
       }
-      return result(id, actor, true);
+      return result(id, actor);
     },
     /** Removes what the import created and nobody changed since; changed records stay and are named. */
     async undo(id: string, actor: MoveInActor) {
@@ -221,9 +227,17 @@ export function createStatuspageImportService(db: D1Database, hooks: MoveInHooks
       await db.prepare(`DELETE FROM statuspage_import_invites WHERE job_id=? AND subscriber_id NOT IN (SELECT id FROM subscribers) AND ${fence.sql}`).bind(id, ...fence.params ?? []).run();
       await assertAuthority(context);
       await hooks.publicDataChanged();
-      return result(id, actor, false);
+      return result(id, actor);
     },
-    read: (id: string, actor: MoveInActor) => result(id, actor, false),
+    async sendInvitations(id: string, actor: MoveInActor) {
+      const context = importContext(db, actor);
+      const job = await readD1ImportJob(id, context);
+      if (job.state !== "completed") throw new Error("Finish the import before sending invitations.");
+      const { plan } = await stored(id, context);
+      const invites = await sendInvites(id, plan, context);
+      return { ...await result(id, actor), invites };
+    },
+    read: (id: string, actor: MoveInActor) => result(id, actor),
     async list(actor: MoveInActor) {
       const context = importContext(db, actor);
       await assertAuthority(context);

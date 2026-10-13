@@ -1201,3 +1201,31 @@ on the app host instead of README.md on GitHub.
 `rer dev --login` and `rer outbox --owner-email` ask the running app for an ordinary sign-in message, so the link is the newest message in the development outbox that `RER_SIGN_IN` names. When the setup owner has left, the message goes to the oldest active owner. Setup and the browser installer keep the direct link they hand to the installer page.
 
 Subscriber deletion rewrites only that subscriber's own frozen envelopes and removes its exact address from operator-alert recipients. Alert text never carries an address, and another person's address can contain the erased one, so no alert text is rewritten.
+
+## Local Cutover public reads — 13 October 2026
+
+The owner must be able to check imported public links from the local Cutover
+page using the same credentialless browser GET and redirect-following flow as
+a hosted installation. Development admits those reads only from the configured
+owner host to safe imported aliases or native incident/maintenance permalinks
+on the configured public host, on the same scheme and port. The raw socket
+guard still rejects forwarded, duplicate and nonlocal requests; the Worker
+still verifies its private ingress proof and configured surfaces. This public
+read admission never enables mail capture, outbox, authentication, setup, API
+or emulator access. It changes no production authority or response policy.
+
+Imported public addresses cannot claim the reserved `/cdn-cgi` namespace,
+regardless of letter case. New imports refuse those addresses. Retained imports
+report them as unavailable while preserving a safe canonical source incident
+path; Cutover must not promise a link that the public ingress cannot serve.
+The raw ingress reserves that same case-insensitive path segment, preserving
+unrelated aliases such as `/cdn-cgi-legacy`. The three exact local scheduled
+trigger paths keep their existing exemptions; other emulator paths remain denied.
+
+## Returning from Cutover review — 13 October 2026
+
+Move-in keeps raw responses and API credentials only in the current page's
+memory. When browser Back mounts a fresh Move-in page after Cutover review,
+the saved-response picker starts empty too, so the owner can select the same
+files and run a fresh dry run before importing. A browser-restored file
+selection must never silently become the source of a new import.

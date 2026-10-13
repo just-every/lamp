@@ -1,15 +1,7 @@
 /** Source compatibility lives here; these are paths on the moved public host,
  * never authority to redirect or serve a source-owned hostname. */
-export const sourceFeedPaths: Record<string, readonly string[]> = { statuspage: ["/history.atom"] };
-const reserved = new Set(["app", "api", "auth", "signin", "setup", "health", "docs", "lamp", "history", "assets", "app-assets", "brand", "subscribe", "unsubscribe", "manage", "confirm-subscription", "maintenance", "node_modules", "src"]);
-export function isImportAliasPath(path: string): boolean {
-  if (Object.values(sourceFeedPaths).some((paths) => paths.includes(path))) return true;
-  if (!/^\/[A-Za-z0-9_-]+(?:\/[A-Za-z0-9_-]+)*\/?$/u.test(path)) return false;
-  const first = path.split("/")[1].toLowerCase();
-  if (first.startsWith("_") || first.startsWith("@") || reserved.has(first)) return false;
-  if (first === "incidents") return /^\/incidents\/[A-Za-z0-9_-]+$/u.test(path) && !/^\/incidents\/INC-/iu.test(path);
-  return true;
-}
+import { sourceFeedPaths, isImportAliasPath } from "./public-paths.mjs";
+export { sourceFeedPaths, isImportAliasPath, isLampPermalink } from "./public-paths.mjs";
 export function sourcePublicAddresses(sourceId: string, shortlink: unknown): Array<{ address: string; path: string }> {
   if (!/^[A-Za-z0-9_-]+$/u.test(sourceId)) throw new Error(`Source incident ${sourceId}: unsafe public address.`);
   const addresses = [{ address: `/incidents/${sourceId}`, path: `/incidents/${sourceId}` }];
@@ -28,7 +20,6 @@ export function sourcePublicAddresses(sourceId: string, shortlink: unknown): Arr
   return addresses.filter((item, index) => addresses.findIndex((other) => other.path === item.path) === index);
 }
 export const aliasArtifactKey = (path: string) => `aliases/${encodeURIComponent(path)}.json`;
-export const isLampPermalink = (path: string) => /^\/(?:incidents\/INC|maintenance\/SCH)-[1-9][0-9]*$/u.test(path);
 export interface ImportedPublicRecord { namespace: string; sourceId: string; targetKind: string; targetId: string; shortlink?: unknown }
 
 /** Inspect old passthrough data without losing a safe canonical incident path. */

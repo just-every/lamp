@@ -18,10 +18,9 @@ export interface SubscriberRepository extends SubscriberTransitions {
   findSubscriber(subscriberId: string): Promise<StoredSubscriber | null>;
   findSubscriberByDestination(destination: string): Promise<StoredSubscriber | null>;
   findSubscriberByToken(tokenHash: string, scope: "confirm" | "manage" | "unsubscribe", now: string): Promise<{ subscriber: StoredSubscriber; token: StoredSubscriberToken } | null>;
-  findActiveToken(subscriberId: string, scope: "confirm" | "manage" | "unsubscribe", now: string): Promise<StoredSubscriberToken | null>;
   createPendingSubscriber(input: typeof subscribers.$inferInsert): Promise<void>;
   updateSelection(subscriberId: string, componentIds: string[], now: string): Promise<void>;
-  createToken(input: typeof subscriberTokens.$inferInsert): Promise<void>;
+  ensureToken(subscriberId: string, scope: "confirm" | "manage" | "unsubscribe", candidate: { id: string; tokenHash: string; expiresAt: string | null }, now: string): Promise<string>;
   ensureManagedUnsubscribeToken(subscriberId: string, manageTokenHash: string, candidate: { id: string; tokenHash: string }, now: string): Promise<string | null>;
   revokeTokens(subscriberId: string, now: string, scope?: "confirm" | "manage" | "unsubscribe"): Promise<void>;
   deactivateSubscriber(subscriberId: string, reason: string, now: string): Promise<void>;
@@ -64,11 +63,6 @@ export function createSubscriberRepository(binding: D1Database): SubscriberRepos
         .innerJoin(subscribers, eq(subscriberTokens.subscriberId, subscribers.id))
         .where(and(eq(subscriberTokens.tokenHash, tokenHash), eq(subscriberTokens.scope, scope), isNull(subscriberTokens.revokedAt), isNull(subscriberTokens.expiresAt))).get()) ?? null;
     },
-    async findActiveToken(subscriberId, scope, now) {
-      const usable = await database.select().from(subscriberTokens).where(and(eq(subscriberTokens.subscriberId, subscriberId), eq(subscriberTokens.scope, scope), isNull(subscriberTokens.revokedAt), isNull(subscriberTokens.expiresAt))).get();
-      if (usable) return usable;
-      return (await database.select().from(subscriberTokens).where(and(eq(subscriberTokens.subscriberId, subscriberId), eq(subscriberTokens.scope, scope), isNull(subscriberTokens.revokedAt), gt(subscriberTokens.expiresAt, now))).get()) ?? null;
-    },
     async createPendingSubscriber(input) {
       await database.insert(subscribers).values(input).onConflictDoUpdate({
         target: subscribers.destination,
@@ -84,8 +78,30 @@ export function createSubscriberRepository(binding: D1Database): SubscriberRepos
       statements.push(binding.prepare("UPDATE subscribers SET selection_mode = ?, updated_at = ? WHERE id = ?").bind(componentIds.length ? "selected" : "all", now, subscriberId));
       await binding.batch(statements);
     },
-    async createToken(input) {
-      await database.insert(subscriberTokens).values(input);
+    async ensureToken(subscriberId, scope, candidate, now) {
+      // Allocate or reuse in one transaction. Reuse may shorten a deadline but
+      // never extend it: a public request racing an import invitation must not
+      // replace its original confirmation window with a fresh 72 hours.
+      const results = await binding.batch<{ id: string }>([
+        binding.prepare(`UPDATE subscriber_tokens SET revoked_at = ?, updated_at = ?
+          WHERE subscriber_id = ? AND scope = ? AND revoked_at IS NULL
+            AND expires_at <= strftime('%Y-%m-%dT%H:%M:%fZ', 'now')`)
+          .bind(now, now, subscriberId, scope),
+        binding.prepare(`UPDATE subscriber_tokens SET expires_at = ?, updated_at = ?
+          WHERE subscriber_id = ? AND scope = ? AND revoked_at IS NULL
+            AND ? IS NOT NULL AND (expires_at IS NULL OR expires_at > ?)`)
+          .bind(candidate.expiresAt, now, subscriberId, scope, candidate.expiresAt, candidate.expiresAt),
+        binding.prepare(`INSERT INTO subscriber_tokens (id, subscriber_id, scope, token_hash, expires_at, revoked_at, created_at, updated_at)
+          SELECT ?, ?, ?, ?, ?, NULL, ?, ? WHERE NOT EXISTS (
+            SELECT 1 FROM subscriber_tokens WHERE subscriber_id = ? AND scope = ? AND revoked_at IS NULL
+          )`)
+          .bind(candidate.id, subscriberId, scope, candidate.tokenHash, candidate.expiresAt, now, now, subscriberId, scope),
+        binding.prepare('SELECT id FROM subscriber_tokens WHERE subscriber_id = ? AND scope = ? AND revoked_at IS NULL')
+          .bind(subscriberId, scope),
+      ]);
+      const id = results[3].results[0]?.id;
+      if (!id) throw new Error("Subscriber token was not stored.");
+      return id;
     },
     async ensureManagedUnsubscribeToken(subscriberId, manageTokenHash, candidate, now) {
       // Both allocation and reuse require the originating manage permission in

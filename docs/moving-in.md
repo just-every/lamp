@@ -15,7 +15,15 @@ published API reference pass; no real account export has been supplied.
    changed, skipped or refused and gives each reason; you can download the responses
    it read and import those later instead of using the key again.
 4. Confirm and **Import**. Large pages import in batches: choose **Continue** until
-   the import and its invitations are done.
+   the import is done. This sends no mail.
+5. Open **Settings → Cutover** (`/app/cutover`) and read the first 25 old addresses,
+   reader gaps and eligible invitation count. The dry run also links to this preview;
+   its destinations are proposed until imported. Saved imports show surviving records.
+6. Choose **Send invitations** explicitly. Repeat for any remaining eligible batch.
+7. Point your hostname using [the custom-domain guide](../OPERATIONS.md#your-own-domain),
+   or keep the default deployment address; select that address in Cutover.
+8. Recheck each old link from your browser after switching. Keep the old page available
+   through the confirmation deadline, and update source-owned links and other readers.
 
 Saved responses are the unchanged JSON arrays the API returns, one file per page:
 `components.json`, `component-groups.json`, `incidents.json`,
@@ -30,12 +38,21 @@ Saved responses are the unchanged JSON arrays the API returns, one file per page
 | Components | Components with name, description and order; group containers become groups |
 | Incidents and their updates | Incidents at their original times, every update kept; component states and uptime history come from those times |
 | Scheduled maintenance | Maintenance windows; a window already over is imported as completed |
-| Email subscribers | Pending subscribers, each sent one invitation to confirm |
+| Email subscribers | Pending subscribers, eligible for one owner-triggered invitation |
 | Post-mortems, templates, SMS, Slack, Teams and webhook subscribers, "only show if degraded" | Not carried; each is named in the dry run |
 
 An imported page notifies nobody about its history: no incident or maintenance
-notice is sent or published. An invitation names your page and asks the subscriber
-to confirm within 72 hours; without that the subscription expires (SUB-003).
+notice is sent or published. Dry runs, apply, resume, job reads and browser checks
+send no email. Only **Send invitations** does. An invitation names your page and
+asks for confirmation by the original deadline: **72 hours from the import review
+time**, stored as the subscriber's creation time. Sending later leaves only the
+remaining time; it never changes the imported row or its undo journal. Expired
+subscriptions cannot be invited and their unconfirmed addresses are deleted by
+the expiry job (SUB-003). Cutover shows eligible, claimed and expired pending counts.
+
+Each invitation is claimed before the transport call. Repeated or concurrent sends
+cannot send it twice; an interrupted or uncertain claimed send is not automatically
+retried. A transport acceptance or local outbox capture does not prove inbox delivery.
 
 ## Again, and undo
 
@@ -57,7 +74,21 @@ are refused with the address named. No missing shortlink is guessed.
 A link such as `https://stspg.io/abc` belongs to the source provider. Lamp can serve
 `/abc` on your moved hostname, but cannot move or control `stspg.io`; keep that
 provider redirect active or update the consumer's link. Lamp does not provide a
-Statuspage JSON API or RSS feed: those old paths return 404.
+Statuspage JSON API under `/api/v2/`: readers receive 404 and must adapt to Lamp's
+native `/api/public/status` response. No Atlassian-shaped JSON compatibility API is
+added; adding one would need a new contract clause.
+
+Statuspage RSS at `/history.rss` returns 404: point readers to `/feed.atom` instead.
+Existing provider widgets are not served by Lamp; they keep calling the old provider
+or fail when it is removed. Replace them with `/widget.js` and configure permitted
+host origins in Settings.
+
+Cutover checks run from the owner's browser against the selected public origin,
+without cookies or credentials. They follow each redirect and verify a successful
+HTML response at the exact expected Lamp permalink. Network, CORS and unreachable
+host failures stay visible. Selecting an address acknowledges the choice; it does
+not validate DNS. Public snapshot responses permit credentialless cross-origin
+reads so the owner workspace can check the public host.
 
 Existing imports need **no database migration or re-import**. Their retained
 source IDs and original passthrough `shortlink` fields supply aliases on the next

@@ -1,4 +1,5 @@
-import { useState, type FormEvent } from "react";
+import { rememberCutover } from "./cutover-draft";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 
 import { appApi, useAppData } from "../../../app/client/ui/api";
 import { Button } from "../../../app/client/ui/button";
@@ -29,11 +30,18 @@ export function MoveInPage() {
   const [pageId, setPageId] = useState("");
   const [apiKey, setApiKey] = useState("");
   const [files, setFiles] = useState<SavedFile[]>([]);
+  const fileInput = useRef<HTMLInputElement>(null);
   const [preview, setPreview] = useState<Preview | null>(null);
   const [acknowledged, setAcknowledged] = useState(false);
   const [result, setResult] = useState<Result | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    // History can restore the native selection without our in-memory source.
+    // A fresh mount must let the owner select those same files again.
+    if (fileInput.current) fileInput.current.value = "";
+  }, []);
 
   async function run<T>(work: () => Promise<T>, done: (value: T) => void) {
     setBusy(true); setError(null);
@@ -50,7 +58,7 @@ export function MoveInPage() {
   function dryRun(event: FormEvent<HTMLFormElement>) {
     event.preventDefault(); setResult(null); setAcknowledged(false);
     void run(() => appApi<Preview>("/api/app/statuspage-import/preview", { method: "POST", body: JSON.stringify(files.length ? { files } : { pageId, apiKey }) }), (next) => {
-      setPreview(next); setApiKey("");
+      setPreview(next); rememberCutover(next.report.cutover); setApiKey("");
       if (next.files) setFiles(next.files);
     });
   }
@@ -64,32 +72,32 @@ export function MoveInPage() {
   const saved = preview?.files ? URL.createObjectURL(new Blob([JSON.stringify(preview.files)], { type: "application/json" })) : null;
 
   return <div className="page-stack move-in-page">
-    <section className="page-title-row"><div><p className="eyebrow">Settings</p><h1>Move in from Statuspage</h1><p>Bring your components, groups, incident history, scheduled maintenance and email subscribers. Nothing is written until you review a dry run, past incidents notify no one, and each subscriber gets one invitation to confirm.</p></div></section>
+    <section className="page-title-row"><div><p className="eyebrow">Settings</p><h1>Move in from Statuspage</h1><p>Bring your components, groups, incident history, scheduled maintenance and email subscribers. Nothing is written until you review a dry run, past incidents notify no one, and subscribers stay pending until you choose Send invitations in Cutover. Synthetic-only validation: no real account export has been supplied.</p></div></section>
     <section className="data-card"><form className="move-in-form" onSubmit={dryRun}>
       <fieldset><legend>From your Statuspage account</legend><p>On Statuspage, open your avatar menu, then API info. The key is used once for this dry run and is not saved.</p>
         <label className="form-label">Page ID<input value={pageId} autoComplete="off" onChange={(event) => setPageId(event.target.value.trim())} /></label>
         <label className="form-label">API key<input type="password" value={apiKey} autoComplete="off" onChange={(event) => setApiKey(event.target.value.trim())} /></label></fieldset>
       <fieldset><legend>Or from saved API responses</legend><p>Choose files named components.json, component-groups.json, incidents.json, incidents-scheduled.json and subscribers.json (later pages as incidents-2.json).</p>
-        <label className="form-label">Saved responses<input type="file" multiple accept="application/json,.json" onChange={(event) => void chooseFiles(event.target.files)} /></label>{files.length > 0 && <p>{files.length} file{files.length === 1 ? "" : "s"} selected.</p>}</fieldset>
+        <label className="form-label">Saved responses<input ref={fileInput} type="file" multiple accept="application/json,.json" onChange={(event) => void chooseFiles(event.target.files)} /></label>{files.length > 0 && <p>{files.length} file{files.length === 1 ? "" : "s"} selected.</p>}</fieldset>
       <Button disabled={busy || (!files.length && (!pageId || !apiKey))}>{busy && !preview ? "Reading…" : "Run dry run"}</Button>
     </form></section>
     {error && <FormError>{error}</FormError>}
     {preview && !result && <section className="data-card" aria-labelledby="move-in-dry-run"><h2 id="move-in-dry-run">{preview.report.state === "already imported" ? "Already imported" : "Dry run"}</h2>
       {preview.report.state === "already imported" ? <p>This source was imported already; importing it again changes nothing.</p> : <p>Nothing has been written. This is what the import will do.</p>}
-      <ReportTable report={preview.report} /><ReportItems report={preview.report} />
+      <p><a className="text-link" href={preview.jobId ? `/app/cutover?job=${encodeURIComponent(preview.jobId)}` : "/app/cutover"}>Read the Cutover preview</a></p><ReportTable report={preview.report} /><ReportItems report={preview.report} />
       {saved && <p><a href={saved} download="statuspage-saved-responses.json">Download these saved responses</a></p>}
       {preview.report.state !== "already imported" && <><label className="checkbox-label"><input type="checkbox" checked={acknowledged} onChange={(event) => setAcknowledged(event.target.checked)} /> I reviewed what changes, is skipped or is refused.</label>
         <Button type="button" disabled={busy || !acknowledged} onClick={apply}>{busy ? "Importing…" : "Import"}</Button></>}
     </section>}
     {result && <section className="data-card" aria-labelledby="move-in-result"><h2 id="move-in-result">{result.job.state === "completed" ? "Imported" : result.job.state === "undone" ? "Undone" : result.job.state === "undoing" ? "Undo in progress" : "Import in progress"}</h2>
-      <ReportTable report={result.report} />
-      {result.job.state === "completed" && <p>{result.invites.remaining ? `${result.invites.remaining} subscriber invitations still to send.` : "Every imported subscriber has been sent one invitation."}</p>}
+      <p><a className="text-link" href={`/app/cutover?job=${encodeURIComponent(result.job.id)}`}>Read Cutover and send invitations</a></p><ReportTable report={result.report} />
+      {result.job.state === "completed" && <p>{result.invites.remaining ? `${result.invites.remaining} subscriber invitations still to send.` : "No eligible invitations remain. Read Cutover for subscription and expiry details."}</p>}
       {result.undo && <p>{result.undo.dispositions.filter((item) => item.disposition === "retained").length} record(s) changed since the import stayed.</p>}
-      {(result.job.state === "applying" || result.invites.remaining > 0) && <Button type="button" disabled={busy} onClick={() => act(result.job.id, "resume")}>Continue</Button>}
+      {(result.job.state === "applying") && <Button type="button" disabled={busy} onClick={() => act(result.job.id, "resume")}>Continue</Button>}
       {result.job.state === "undoing" && <Button type="button" disabled={busy} onClick={() => act(result.job.id, "undo")}>Continue undo</Button>}
     </section>}
     <section className="data-card" aria-labelledby="move-in-history"><h2 id="move-in-history">Your imports</h2>
-      {jobs.data?.jobs.length ? <ul className="move-in-jobs">{jobs.data.jobs.map((job) => <li key={job.id}><span>{job.id.slice(0, 12)} · {job.state} · {job.checkpoint}/{job.total}</span>{job.state === "completed" && <Button type="button" variant="secondary" disabled={busy} onClick={() => act(job.id, "undo")}>Undo</Button>}{job.state === "applying" && <Button type="button" variant="secondary" disabled={busy} onClick={() => act(job.id, "resume")}>Continue</Button>}{job.state === "undoing" && <Button type="button" variant="secondary" disabled={busy} onClick={() => act(job.id, "undo")}>Continue undo</Button>}</li>)}</ul> : <EmptyState>No imports yet.</EmptyState>}
+      {jobs.data?.jobs.length ? <ul className="move-in-jobs">{jobs.data.jobs.map((job) => <li key={job.id}><a href={`/app/cutover?job=${encodeURIComponent(job.id)}`}>Cutover</a><span>{job.id.slice(0, 12)} · {job.state} · {job.checkpoint}/{job.total}</span>{job.state === "completed" && <Button type="button" variant="secondary" disabled={busy} onClick={() => act(job.id, "undo")}>Undo</Button>}{job.state === "applying" && <Button type="button" variant="secondary" disabled={busy} onClick={() => act(job.id, "resume")}>Continue</Button>}{job.state === "undoing" && <Button type="button" variant="secondary" disabled={busy} onClick={() => act(job.id, "undo")}>Continue undo</Button>}</li>)}</ul> : <EmptyState>No imports yet.</EmptyState>}
     </section>
   </div>;
 }

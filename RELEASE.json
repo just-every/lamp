@@ -25,7 +25,7 @@
     },
     "MOVE-002": {
       "change": "added",
-      "summary": "A move-in keeps original times, derives uptime history from them, notifies no one about history, and invites each email subscriber once to confirm."
+      "summary": "Imported history keeps original incident and component-state times, queues no history or maintenance notifications, and leaves email subscribers pending. Only the owner's explicit Send invitations action sends each eligible subscriber at most one email confirmation; its 72-hour expiry is fixed at review, and uncertain claimed sends are not retried automatically."
     },
     "MOVE-003": {
       "change": "added",
@@ -38,6 +38,10 @@
     "MOVE-005": {
       "change": "added",
       "summary": "Imported record paths and supplied shortlinks redirect to surviving Lamp pages; source Atom paths serve the snapshot feed, and conditional undo removes aliases only for records it removes."
+    },
+    "MOVE-006": {
+      "change": "added",
+      "summary": "Cutover preview reports old addresses, native destinations, unavailable paths, source-feed answers, unsupported consumers and invitation deadlines; credentialless open checks verify redirects, and the guide does not claim DNS or inbox delivery."
     },
     "ACCESS-001": {
       "change": "changed",

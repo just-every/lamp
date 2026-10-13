@@ -1,3 +1,4 @@
+import { cutoverFromPlan, type CutoverPreview } from "./cutover";
 import { resolvePublicAddresses, sourcePublicAddresses } from "./public-addresses";
 import { canonicalJson, planD1Import, sha256, type D1ImportContext, type ImportPlan, type SourceRecord, type TargetEffect } from "../../../../modules/import-kit/src/d1/index.ts";
 import type { Json } from "../../../../modules/import-kit/src/types.ts";
@@ -51,7 +52,7 @@ export async function planMoveIn(read: ReadSource, snapshot: Snapshot, context: 
 }
 
 export type Counts = Record<EntityKind, { read: number; imported: number; changed: number; skipped: number; rejected: number }>;
-export interface MoveInReport { state: string; asOf: string; fingerprint: string; counts: Counts; items: Accounting[]; unavailableAddresses: string[] }
+export interface MoveInReport { state: string; asOf: string; fingerprint: string; counts: Counts; items: Accounting[]; cutover: CutoverPreview; unavailableAddresses: string[] }
 
 /** The dry-run report, rebuilt from the reviewed plan so a saved job reports exactly what it applied. */
 export function reportFromPlan(plan: ImportPlan, state = "dry run"): MoveInReport {
@@ -61,5 +62,5 @@ export function reportFromPlan(plan: ImportPlan, state = "dry run"): MoveInRepor
   const metadata = plan.entries.find((entry) => entry.source.kind === "metadata")?.source.payload as { raw?: { asOf?: string } } | undefined;
   const candidates = plan.entries.filter((entry) => !entry.erased && ["incident", "maintenance"].includes(entry.source.kind)).flatMap((entry) => entry.effects.map((effect) => ({ namespace: entry.source.namespace, sourceId: entry.source.sourceId, targetId: effect.targetId, targetKind: effect.targetKind, target: `${effect.targetKind}:${effect.targetId}`, shortlink: (entry.source.payload as { raw?: { shortlink?: unknown } }).raw?.shortlink })));
   const { unavailable: unavailableAddresses } = resolvePublicAddresses(candidates);
-  return { unavailableAddresses, state, asOf: metadata?.raw?.asOf ?? "", fingerprint: plan.fingerprint, counts, items };
+  return { cutover: cutoverFromPlan(plan, metadata?.raw?.asOf ?? ""), unavailableAddresses, state, asOf: metadata?.raw?.asOf ?? "", fingerprint: plan.fingerprint, counts, items };
 }
