@@ -6,7 +6,7 @@ const kinds = Object.keys(entityTables) as EntityKind[];
 const tablesOf = (kind: string) => {
   const tables = entityTables[kind as EntityKind];
   if (!tables) throw new Error("Unsupported import native kind.");
-  return tables;
+  return kind === "component" ? { ...tables, component_standing_claims: "component_id" } : kind === "maintenance" ? { ...tables, import_maintenance_updates: "maintenance_id" } : tables;
 };
 const valueOf = (row: TargetRow) => row.value as unknown as NativeValue;
 
@@ -29,7 +29,12 @@ function exactRows(table: string, column: string, id: string, rows: Row[]): D1Sq
 async function readTables(db: D1Database, kind: string, id: string) {
   const tables: NativeValue["tables"] = {};
   for (const [table, column] of Object.entries(tablesOf(kind))) {
-    tables[table] = (await db.prepare(`SELECT * FROM ${table} WHERE ${column}=? ORDER BY rowid`).bind(id).all<Row>()).results;
+    // Archive restore changes rowids. New imported history has a stable order
+    // shared with its planned value, including updates at the same instant.
+    const order = table === "import_maintenance_updates" ? "published_at,id" : "rowid";
+    const rows = (await db.prepare(`SELECT * FROM ${table} WHERE ${column}=? ORDER BY ${order}`).bind(id).all<Row>()).results;
+    // Legacy journals have no history key: empty additions must not change their revision value.
+    if (!["import_maintenance_updates", "component_standing_claims"].includes(table) || rows.length) tables[table] = rows;
   }
   return tables;
 }
@@ -96,6 +101,9 @@ export const statuspageTargets: D1TargetAdapter = {
         for (const cited of rows) {
           // An imported citer reverses first; a native citer keeps this record.
           const related = effects.find((candidate) => ownsRow(candidate, table, cited.id));
+          // Owned child rows reverse with this effect; they cannot depend on
+          // their own reversal. Their query and equality guards still apply.
+          if (related === effect) continue;
           dependencies.push({ requiredEffectId: effect.provenance.id, ...(related ? { dependentEffectId: related.provenance.id } : {}), cause: { table, recordId: cited.id }, evidence: { reason: `Cited by ${table}.` } as never });
         }
       }

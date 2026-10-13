@@ -1,0 +1,610 @@
+{
+  "data": [
+    {
+      "id": "32001800",
+      "type": "status_page_subscriber",
+      "attributes": {
+        "status_page_id": 32001,
+        "email": "large-0@subscribers.example",
+        "status_page_resource_ids": [],
+        "confirmed_at": "2024-05-01T00:00:00Z",
+        "created_at": "2024-05-01T00:00:00Z"
+      }
+    },
+    {
+      "id": "32001801",
+      "type": "status_page_subscriber",
+      "attributes": {
+        "status_page_id": 32001,
+        "email": "large-1@subscribers.example",
+        "status_page_resource_ids": [
+          "32001101"
+        ],
+        "confirmed_at": "2024-05-01T00:00:00Z",
+        "created_at": "2024-05-01T00:00:00Z"
+      }
+    },
+    {
+      "id": "32001802",
+      "type": "status_page_subscriber",
+      "attributes": {
+        "status_page_id": 32001,
+        "email": "large-2@subscribers.example",
+        "status_page_resource_ids": [],
+        "confirmed_at": "2024-05-01T00:00:00Z",
+        "created_at": "2024-05-01T00:00:00Z"
+      }
+    },
+    {
+      "id": "32001803",
+      "type": "status_page_subscriber",
+      "attributes": {
+        "status_page_id": 32001,
+        "email": "large-3@subscribers.example",
+        "status_page_resource_ids": [
+          "32001103"
+        ],
+        "confirmed_at": "2024-05-01T00:00:00Z",
+        "created_at": "2024-05-01T00:00:00Z"
+      }
+    },
+    {
+      "id": "32001804",
+      "type": "status_page_subscriber",
+      "attributes": {
+        "status_page_id": 32001,
+        "email": "large-4@subscribers.example",
+        "status_page_resource_ids": [],
+        "confirmed_at": "2024-05-01T00:00:00Z",
+        "created_at": "2024-05-01T00:00:00Z"
+      }
+    },
+    {
+      "id": "32001805",
+      "type": "status_page_subscriber",
+      "attributes": {
+        "status_page_id": 32001,
+        "email": "large-5@subscribers.example",
+        "status_page_resource_ids": [
+          "32001105"
+        ],
+        "confirmed_at": "2024-05-01T00:00:00Z",
+        "created_at": "2024-05-01T00:00:00Z"
+      }
+    },
+    {
+      "id": "32001806",
+      "type": "status_page_subscriber",
+      "attributes": {
+        "status_page_id": 32001,
+        "email": "large-6@subscribers.example",
+        "status_page_resource_ids": [],
+        "confirmed_at": "2024-05-01T00:00:00Z",
+        "created_at": "2024-05-01T00:00:00Z"
+      }
+    },
+    {
+      "id": "32001807",
+      "type": "status_page_subscriber",
+      "attributes": {
+        "status_page_id": 32001,
+        "email": "large-7@subscribers.example",
+        "status_page_resource_ids": [
+          "32001107"
+        ],
+        "confirmed_at": "2024-05-01T00:00:00Z",
+        "created_at": "2024-05-01T00:00:00Z"
+      }
+    },
+    {
+      "id": "32001808",
+      "type": "status_page_subscriber",
+      "attributes": {
+        "status_page_id": 32001,
+        "email": "large-8@subscribers.example",
+        "status_page_resource_ids": [],
+        "confirmed_at": "2024-05-01T00:00:00Z",
+        "created_at": "2024-05-01T00:00:00Z"
+      }
+    },
+    {
+      "id": "32001809",
+      "type": "status_page_subscriber",
+      "attributes": {
+        "status_page_id": 32001,
+        "email": "large-9@subscribers.example",
+        "status_page_resource_ids": [
+          "32001109"
+        ],
+        "confirmed_at": "2024-05-01T00:00:00Z",
+        "created_at": "2024-05-01T00:00:00Z"
+      }
+    },
+    {
+      "id": "32001810",
+      "type": "status_page_subscriber",
+      "attributes": {
+        "status_page_id": 32001,
+        "email": "large-10@subscribers.example",
+        "status_page_resource_ids": [],
+        "confirmed_at": "2024-05-01T00:00:00Z",
+        "created_at": "2024-05-01T00:00:00Z"
+      }
+    },
+    {
+      "id": "32001811",
+      "type": "status_page_subscriber",
+      "attributes": {
+        "status_page_id": 32001,
+        "email": "large-11@subscribers.example",
+        "status_page_resource_ids": [
+          "32001111"
+        ],
+        "confirmed_at": "2024-05-01T00:00:00Z",
+        "created_at": "2024-05-01T00:00:00Z"
+      }
+    },
+    {
+      "id": "32001812",
+      "type": "status_page_subscriber",
+      "attributes": {
+        "status_page_id": 32001,
+        "email": "large-12@subscribers.example",
+        "status_page_resource_ids": [],
+        "confirmed_at": "2024-05-01T00:00:00Z",
+        "created_at": "2024-05-01T00:00:00Z"
+      }
+    },
+    {
+      "id": "32001813",
+      "type": "status_page_subscriber",
+      "attributes": {
+        "status_page_id": 32001,
+        "email": "large-13@subscribers.example",
+        "status_page_resource_ids": [
+          "32001101"
+        ],
+        "confirmed_at": "2024-05-01T00:00:00Z",
+        "created_at": "2024-05-01T00:00:00Z"
+      }
+    },
+    {
+      "id": "32001814",
+      "type": "status_page_subscriber",
+      "attributes": {
+        "status_page_id": 32001,
+        "email": "large-14@subscribers.example",
+        "status_page_resource_ids": [],
+        "confirmed_at": "2024-05-01T00:00:00Z",
+        "created_at": "2024-05-01T00:00:00Z"
+      }
+    },
+    {
+      "id": "32001815",
+      "type": "status_page_subscriber",
+      "attributes": {
+        "status_page_id": 32001,
+        "email": "large-15@subscribers.example",
+        "status_page_resource_ids": [
+          "32001103"
+        ],
+        "confirmed_at": "2024-05-01T00:00:00Z",
+        "created_at": "2024-05-01T00:00:00Z"
+      }
+    },
+    {
+      "id": "32001816",
+      "type": "status_page_subscriber",
+      "attributes": {
+        "status_page_id": 32001,
+        "email": "large-16@subscribers.example",
+        "status_page_resource_ids": [],
+        "confirmed_at": "2024-05-01T00:00:00Z",
+        "created_at": "2024-05-01T00:00:00Z"
+      }
+    },
+    {
+      "id": "32001817",
+      "type": "status_page_subscriber",
+      "attributes": {
+        "status_page_id": 32001,
+        "email": "large-17@subscribers.example",
+        "status_page_resource_ids": [
+          "32001105"
+        ],
+        "confirmed_at": "2024-05-01T00:00:00Z",
+        "created_at": "2024-05-01T00:00:00Z"
+      }
+    },
+    {
+      "id": "32001818",
+      "type": "status_page_subscriber",
+      "attributes": {
+        "status_page_id": 32001,
+        "email": "large-18@subscribers.example",
+        "status_page_resource_ids": [],
+        "confirmed_at": "2024-05-01T00:00:00Z",
+        "created_at": "2024-05-01T00:00:00Z"
+      }
+    },
+    {
+      "id": "32001819",
+      "type": "status_page_subscriber",
+      "attributes": {
+        "status_page_id": 32001,
+        "email": "large-19@subscribers.example",
+        "status_page_resource_ids": [
+          "32001107"
+        ],
+        "confirmed_at": "2024-05-01T00:00:00Z",
+        "created_at": "2024-05-01T00:00:00Z"
+      }
+    },
+    {
+      "id": "32001820",
+      "type": "status_page_subscriber",
+      "attributes": {
+        "status_page_id": 32001,
+        "email": "large-20@subscribers.example",
+        "status_page_resource_ids": [],
+        "confirmed_at": "2024-05-01T00:00:00Z",
+        "created_at": "2024-05-01T00:00:00Z"
+      }
+    },
+    {
+      "id": "32001821",
+      "type": "status_page_subscriber",
+      "attributes": {
+        "status_page_id": 32001,
+        "email": "large-21@subscribers.example",
+        "status_page_resource_ids": [
+          "32001109"
+        ],
+        "confirmed_at": "2024-05-01T00:00:00Z",
+        "created_at": "2024-05-01T00:00:00Z"
+      }
+    },
+    {
+      "id": "32001822",
+      "type": "status_page_subscriber",
+      "attributes": {
+        "status_page_id": 32001,
+        "email": "large-22@subscribers.example",
+        "status_page_resource_ids": [],
+        "confirmed_at": "2024-05-01T00:00:00Z",
+        "created_at": "2024-05-01T00:00:00Z"
+      }
+    },
+    {
+      "id": "32001823",
+      "type": "status_page_subscriber",
+      "attributes": {
+        "status_page_id": 32001,
+        "email": "large-23@subscribers.example",
+        "status_page_resource_ids": [
+          "32001111"
+        ],
+        "confirmed_at": "2024-05-01T00:00:00Z",
+        "created_at": "2024-05-01T00:00:00Z"
+      }
+    },
+    {
+      "id": "32001824",
+      "type": "status_page_subscriber",
+      "attributes": {
+        "status_page_id": 32001,
+        "email": "large-24@subscribers.example",
+        "status_page_resource_ids": [],
+        "confirmed_at": "2024-05-01T00:00:00Z",
+        "created_at": "2024-05-01T00:00:00Z"
+      }
+    },
+    {
+      "id": "32001825",
+      "type": "status_page_subscriber",
+      "attributes": {
+        "status_page_id": 32001,
+        "email": "large-25@subscribers.example",
+        "status_page_resource_ids": [
+          "32001101"
+        ],
+        "confirmed_at": "2024-05-01T00:00:00Z",
+        "created_at": "2024-05-01T00:00:00Z"
+      }
+    },
+    {
+      "id": "32001826",
+      "type": "status_page_subscriber",
+      "attributes": {
+        "status_page_id": 32001,
+        "email": "large-26@subscribers.example",
+        "status_page_resource_ids": [],
+        "confirmed_at": "2024-05-01T00:00:00Z",
+        "created_at": "2024-05-01T00:00:00Z"
+      }
+    },
+    {
+      "id": "32001827",
+      "type": "status_page_subscriber",
+      "attributes": {
+        "status_page_id": 32001,
+        "email": "large-27@subscribers.example",
+        "status_page_resource_ids": [
+          "32001103"
+        ],
+        "confirmed_at": "2024-05-01T00:00:00Z",
+        "created_at": "2024-05-01T00:00:00Z"
+      }
+    },
+    {
+      "id": "32001828",
+      "type": "status_page_subscriber",
+      "attributes": {
+        "status_page_id": 32001,
+        "email": "large-28@subscribers.example",
+        "status_page_resource_ids": [],
+        "confirmed_at": "2024-05-01T00:00:00Z",
+        "created_at": "2024-05-01T00:00:00Z"
+      }
+    },
+    {
+      "id": "32001829",
+      "type": "status_page_subscriber",
+      "attributes": {
+        "status_page_id": 32001,
+        "email": "large-29@subscribers.example",
+        "status_page_resource_ids": [
+          "32001105"
+        ],
+        "confirmed_at": "2024-05-01T00:00:00Z",
+        "created_at": "2024-05-01T00:00:00Z"
+      }
+    },
+    {
+      "id": "32001830",
+      "type": "status_page_subscriber",
+      "attributes": {
+        "status_page_id": 32001,
+        "email": "large-30@subscribers.example",
+        "status_page_resource_ids": [],
+        "confirmed_at": "2024-05-01T00:00:00Z",
+        "created_at": "2024-05-01T00:00:00Z"
+      }
+    },
+    {
+      "id": "32001831",
+      "type": "status_page_subscriber",
+      "attributes": {
+        "status_page_id": 32001,
+        "email": "large-31@subscribers.example",
+        "status_page_resource_ids": [
+          "32001107"
+        ],
+        "confirmed_at": "2024-05-01T00:00:00Z",
+        "created_at": "2024-05-01T00:00:00Z"
+      }
+    },
+    {
+      "id": "32001832",
+      "type": "status_page_subscriber",
+      "attributes": {
+        "status_page_id": 32001,
+        "email": "large-32@subscribers.example",
+        "status_page_resource_ids": [],
+        "confirmed_at": "2024-05-01T00:00:00Z",
+        "created_at": "2024-05-01T00:00:00Z"
+      }
+    },
+    {
+      "id": "32001833",
+      "type": "status_page_subscriber",
+      "attributes": {
+        "status_page_id": 32001,
+        "email": "large-33@subscribers.example",
+        "status_page_resource_ids": [
+          "32001109"
+        ],
+        "confirmed_at": "2024-05-01T00:00:00Z",
+        "created_at": "2024-05-01T00:00:00Z"
+      }
+    },
+    {
+      "id": "32001834",
+      "type": "status_page_subscriber",
+      "attributes": {
+        "status_page_id": 32001,
+        "email": "large-34@subscribers.example",
+        "status_page_resource_ids": [],
+        "confirmed_at": "2024-05-01T00:00:00Z",
+        "created_at": "2024-05-01T00:00:00Z"
+      }
+    },
+    {
+      "id": "32001835",
+      "type": "status_page_subscriber",
+      "attributes": {
+        "status_page_id": 32001,
+        "email": "large-35@subscribers.example",
+        "status_page_resource_ids": [
+          "32001111"
+        ],
+        "confirmed_at": "2024-05-01T00:00:00Z",
+        "created_at": "2024-05-01T00:00:00Z"
+      }
+    },
+    {
+      "id": "32001836",
+      "type": "status_page_subscriber",
+      "attributes": {
+        "status_page_id": 32001,
+        "email": "large-36@subscribers.example",
+        "status_page_resource_ids": [],
+        "confirmed_at": "2024-05-01T00:00:00Z",
+        "created_at": "2024-05-01T00:00:00Z"
+      }
+    },
+    {
+      "id": "32001837",
+      "type": "status_page_subscriber",
+      "attributes": {
+        "status_page_id": 32001,
+        "email": "large-37@subscribers.example",
+        "status_page_resource_ids": [
+          "32001101"
+        ],
+        "confirmed_at": "2024-05-01T00:00:00Z",
+        "created_at": "2024-05-01T00:00:00Z"
+      }
+    },
+    {
+      "id": "32001838",
+      "type": "status_page_subscriber",
+      "attributes": {
+        "status_page_id": 32001,
+        "email": "large-38@subscribers.example",
+        "status_page_resource_ids": [],
+        "confirmed_at": "2024-05-01T00:00:00Z",
+        "created_at": "2024-05-01T00:00:00Z"
+      }
+    },
+    {
+      "id": "32001839",
+      "type": "status_page_subscriber",
+      "attributes": {
+        "status_page_id": 32001,
+        "email": "large-39@subscribers.example",
+        "status_page_resource_ids": [
+          "32001103"
+        ],
+        "confirmed_at": "2024-05-01T00:00:00Z",
+        "created_at": "2024-05-01T00:00:00Z"
+      }
+    },
+    {
+      "id": "32001840",
+      "type": "status_page_subscriber",
+      "attributes": {
+        "status_page_id": 32001,
+        "email": "large-40@subscribers.example",
+        "status_page_resource_ids": [],
+        "confirmed_at": "2024-05-01T00:00:00Z",
+        "created_at": "2024-05-01T00:00:00Z"
+      }
+    },
+    {
+      "id": "32001841",
+      "type": "status_page_subscriber",
+      "attributes": {
+        "status_page_id": 32001,
+        "email": "large-41@subscribers.example",
+        "status_page_resource_ids": [
+          "32001105"
+        ],
+        "confirmed_at": "2024-05-01T00:00:00Z",
+        "created_at": "2024-05-01T00:00:00Z"
+      }
+    },
+    {
+      "id": "32001842",
+      "type": "status_page_subscriber",
+      "attributes": {
+        "status_page_id": 32001,
+        "email": "large-42@subscribers.example",
+        "status_page_resource_ids": [],
+        "confirmed_at": "2024-05-01T00:00:00Z",
+        "created_at": "2024-05-01T00:00:00Z"
+      }
+    },
+    {
+      "id": "32001843",
+      "type": "status_page_subscriber",
+      "attributes": {
+        "status_page_id": 32001,
+        "email": "large-43@subscribers.example",
+        "status_page_resource_ids": [
+          "32001107"
+        ],
+        "confirmed_at": "2024-05-01T00:00:00Z",
+        "created_at": "2024-05-01T00:00:00Z"
+      }
+    },
+    {
+      "id": "32001844",
+      "type": "status_page_subscriber",
+      "attributes": {
+        "status_page_id": 32001,
+        "email": "large-44@subscribers.example",
+        "status_page_resource_ids": [],
+        "confirmed_at": "2024-05-01T00:00:00Z",
+        "created_at": "2024-05-01T00:00:00Z"
+      }
+    },
+    {
+      "id": "32001845",
+      "type": "status_page_subscriber",
+      "attributes": {
+        "status_page_id": 32001,
+        "email": "large-45@subscribers.example",
+        "status_page_resource_ids": [
+          "32001109"
+        ],
+        "confirmed_at": "2024-05-01T00:00:00Z",
+        "created_at": "2024-05-01T00:00:00Z"
+      }
+    },
+    {
+      "id": "32001846",
+      "type": "status_page_subscriber",
+      "attributes": {
+        "status_page_id": 32001,
+        "email": "large-46@subscribers.example",
+        "status_page_resource_ids": [],
+        "confirmed_at": "2024-05-01T00:00:00Z",
+        "created_at": "2024-05-01T00:00:00Z"
+      }
+    },
+    {
+      "id": "32001847",
+      "type": "status_page_subscriber",
+      "attributes": {
+        "status_page_id": 32001,
+        "email": "large-47@subscribers.example",
+        "status_page_resource_ids": [
+          "32001111"
+        ],
+        "confirmed_at": "2024-05-01T00:00:00Z",
+        "created_at": "2024-05-01T00:00:00Z"
+      }
+    },
+    {
+      "id": "32001848",
+      "type": "status_page_subscriber",
+      "attributes": {
+        "status_page_id": 32001,
+        "email": "large-48@subscribers.example",
+        "status_page_resource_ids": [],
+        "confirmed_at": "2024-05-01T00:00:00Z",
+        "created_at": "2024-05-01T00:00:00Z"
+      }
+    },
+    {
+      "id": "32001849",
+      "type": "status_page_subscriber",
+      "attributes": {
+        "status_page_id": 32001,
+        "email": "large-49@subscribers.example",
+        "status_page_resource_ids": [
+          "32001101"
+        ],
+        "confirmed_at": "2024-05-01T00:00:00Z",
+        "created_at": "2024-05-01T00:00:00Z"
+      }
+    }
+  ],
+  "pagination": {
+    "first": "https://incidents.betterstack.com/api/v2/status-pages/32001/subscribers?page=1",
+    "last": "https://incidents.betterstack.com/api/v2/status-pages/32001/subscribers?page=4",
+    "prev": null,
+    "next": "https://incidents.betterstack.com/api/v2/status-pages/32001/subscribers?page=2"
+  }
+}

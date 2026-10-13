@@ -1,0 +1,27 @@
+{
+  "data": [
+    {
+      "id": "310015022",
+      "type": "status_update",
+      "attributes": {
+        "message": "small report 3 original update 3",
+        "published_at": "2025-01-03T11:00:00.000Z",
+        "status_report_id": 31001502,
+        "affected_resources": [
+          {
+            "status_page_resource_id": "31001102",
+            "status": "maintenance"
+          }
+        ],
+        "notify_subscribers": true,
+        "published_at_timezone": "UTC"
+      }
+    }
+  ],
+  "pagination": {
+    "first": "https://incidents.betterstack.com/api/v2/status-pages/31001/status-reports/31001502/status-updates?page=1",
+    "last": "https://incidents.betterstack.com/api/v2/status-pages/31001/status-reports/31001502/status-updates?page=2",
+    "prev": "https://incidents.betterstack.com/api/v2/status-pages/31001/status-reports/31001502/status-updates?page=1",
+    "next": null
+  }
+}

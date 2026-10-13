@@ -55,6 +55,7 @@ export interface PublicSnapshotSource {
   maintenance: Array<typeof maintenance.$inferSelect>;
   maintenanceComponents: Array<typeof maintenanceComponents.$inferSelect>;
   reports: Array<{ incidentId: string; summary: string; timeline: string; cause: string; remediation: string; publishedAt: string }>;
+  importedMaintenanceUpdates?: Array<{ id: string; maintenanceId: string; body: string; publishedAt: string }>;
   maintenanceNotices: Array<{ id: string; maintenanceId: string; kind: string; body: string; publishedAt: string }>;
 }
 
@@ -66,7 +67,7 @@ export function createSnapshotRepository(binding: D1Database): SnapshotRepositor
       const settings = await database.select().from(pageSettings).where(eq(pageSettings.id, "default")).get();
       if (!settings) return null;
 
-      const [componentRows, standingClaims, incidentClaims, maintenanceClaims, history, corrections, incidentRows, attachedComponents, updates, maintenanceRows, attachedMaintenanceComponents, reports, maintenanceNotices, importedPublicRecords, importedNamespaces] = await Promise.all([
+      const [componentRows, standingClaims, incidentClaims, maintenanceClaims, history, corrections, incidentRows, attachedComponents, updates, maintenanceRows, attachedMaintenanceComponents, reports, maintenanceNotices, importedPublicRecords, importedNamespaces, importedMaintenanceUpdates] = await Promise.all([
         database
           .select({
             id: components.id,
@@ -119,6 +120,7 @@ export function createSnapshotRepository(binding: D1Database): SnapshotRepositor
         binding.prepare(`SELECT id, maintenance_id AS maintenanceId, kind, body, published_at AS publishedAt FROM maintenance_notices ORDER BY published_at DESC`).all<{ id: string; maintenanceId: string; kind: string; body: string; publishedAt: string }>().then((result) => result.results),
         readImportedPublicRecords(binding),
         readImportedNamespaces(binding),
+        binding.prepare("SELECT id,maintenance_id AS maintenanceId,body,published_at AS publishedAt FROM import_maintenance_updates ORDER BY published_at DESC,id").all<{id: string; maintenanceId: string; body: string; publishedAt: string}>().then(result => result.results),
       ]);
 
       return {
@@ -135,7 +137,7 @@ export function createSnapshotRepository(binding: D1Database): SnapshotRepositor
         maintenance: maintenanceRows,
         maintenanceComponents: attachedMaintenanceComponents,
         reports,
-        maintenanceNotices,
+        maintenanceNotices, importedMaintenanceUpdates,
       };
     },
     async startBuild(input) {

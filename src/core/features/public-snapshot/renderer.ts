@@ -63,7 +63,7 @@ function toPublicModel(source: PublicSnapshotSource, generatedAt: string, polici
   const noticesByMaintenance = new Map<string, PublicMaintenance["notices"]>();
   for (const notice of source.maintenanceNotices) noticesByMaintenance.set(notice.maintenanceId, [...(noticesByMaintenance.get(notice.maintenanceId) ?? []), notice]);
   const maintenance: PublicMaintenance[] = source.maintenance
-    .map((item) => ({ ...item, components: attachedByMaintenance.get(item.id) ?? [], notices: noticesByMaintenance.get(item.id) ?? [] }))
+    .map((item) => ({ ...item, components: attachedByMaintenance.get(item.id) ?? [], notices: noticesByMaintenance.get(item.id) ?? [], importedUpdates: (source.importedMaintenanceUpdates ?? []).filter(update => update.maintenanceId === item.id) }))
     .filter((item) => item.components.length > 0);
   return { settings: source.settings, components, incidents, maintenance, generatedAt, policies, overall: policies.pageStatusRollup(components.map((component) => component.state)) };
 }
@@ -203,7 +203,7 @@ function renderHistory(model: ReturnType<typeof toPublicModel>, slots: LampServe
   const completed = model.maintenance.filter((item) => (item.state === "Completed" || item.state === "Cancelled") && new Date(item.endsAt).getTime() >= cutoff);
   const records = [
     ...resolved.map((incident) => ({ timestamp: incident.resolvedAt!, html: `<article class="history-item">${recordHead("Incident", incident.reference, `<a href="/incidents/${encodeURIComponent(incident.reference)}">${escapeHtml(incident.title)}</a>`, "h3", incident.lifecycle)}<p class="incident-meta">Resolved ${timestamp(incident.resolvedAt!, timezone)} · ${escapeHtml(durationText(incident.openedAt, incident.resolvedAt!))} · affected ${escapeHtml(incident.components.join(", "))}</p><div class="updates">${incident.updates.map((update) => updateMarkup(incident, update, timezone)).join("")}</div></article>` })),
-    ...completed.map((item) => ({ timestamp: item.completedAt ?? item.endsAt, html: `<article class="history-item">${recordHead("Maintenance", item.reference, `<a href="/maintenance/${encodeURIComponent(item.reference)}">${escapeHtml(item.title)}</a>`, "h3", item.state)}<p class="incident-meta">${timestamp(item.startsAt, timezone)} – ${timestamp(item.endsAt, timezone)} · ${escapeHtml(durationText(item.startsAt, item.endsAt))} · affected ${escapeHtml(item.components.join(", "))}</p><div class="updates">${item.notices.map((notice) => noticeMarkup(notice, timezone)).join("")}</div></article>` })),
+    ...completed.map((item) => ({ timestamp: item.completedAt ?? item.endsAt, html: `<article class="history-item">${recordHead("Maintenance", item.reference, `<a href="/maintenance/${encodeURIComponent(item.reference)}">${escapeHtml(item.title)}</a>`, "h3", item.state)}<p class="incident-meta">${timestamp(item.startsAt, timezone)} – ${timestamp(item.endsAt, timezone)} · ${escapeHtml(durationText(item.startsAt, item.endsAt))} · affected ${escapeHtml(item.components.join(", "))}</p><div class="updates">${[...item.notices, ...(item.importedUpdates ?? []).map(update => ({ ...update, kind: "Imported update" }))].sort((a, b) => b.publishedAt.localeCompare(a.publishedAt)).map((notice) => noticeMarkup(notice, timezone)).join("")}</div></article>` })),
   ].sort((left, right) => right.timestamp.localeCompare(left.timestamp));
   const monthFormatter = new Intl.DateTimeFormat("en-US", { timeZone: timezone, month: "long", year: "numeric" });
   const groups = new Map<string, string[]>();

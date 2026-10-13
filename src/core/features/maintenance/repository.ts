@@ -9,7 +9,10 @@ export type StoredMaintenance = typeof maintenance.$inferSelect;
 export type StoredMaintenanceComponent = typeof maintenanceComponents.$inferSelect;
 export interface MaintenanceNotice { id: string; maintenanceId: string; kind: "scheduled" | "rescheduled" | "reminder" | "started" | "completed" | "cancelled"; body: string; publishedAt: string; authorOperatorId: string | null; createdAt: string; updatedAt: string; }
 
+export interface ImportedMaintenanceUpdate { id: string; body: string; publishedAt: string; sourceStates: string }
+
 export interface MaintenanceRepository {
+  listImportedUpdates(maintenanceId: string): Promise<ImportedMaintenanceUpdate[]>;
   allocateMaintenanceReference(): Promise<AllocatedReference>;
   listMaintenance(): Promise<StoredMaintenance[]>;
   listComponents(maintenanceId: string): Promise<StoredMaintenanceComponent[]>;
@@ -102,6 +105,9 @@ export function createMaintenanceRepository(binding: D1Database): MaintenanceRep
         ...notificationStatements,
       ]);
       return true;
+    },
+    async listImportedUpdates(maintenanceId) {
+      return (await binding.prepare("SELECT id,body,published_at AS publishedAt,source_states AS sourceStates FROM import_maintenance_updates WHERE maintenance_id=? ORDER BY published_at DESC,id").bind(maintenanceId).all<ImportedMaintenanceUpdate>()).results;
     },
     async listNotices(maintenanceId) {
       const result = await binding.prepare(`SELECT id, maintenance_id AS maintenanceId, kind, body, published_at AS publishedAt, author_operator_id AS authorOperatorId, created_at AS createdAt, updated_at AS updatedAt FROM maintenance_notices WHERE maintenance_id = ? ORDER BY published_at DESC`).bind(maintenanceId).all<MaintenanceNotice>();

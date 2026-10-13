@@ -3,7 +3,7 @@ import { createOpaqueToken, hashOpaqueToken } from "../../platform/security/opaq
 import { createUlid, nowIso } from "../../shared/ids";
 import { defaultSubscriberEvents, type SubscriberEvents } from "./events";
 import { defaultSubscriberConfirmationPolicy, type SubscriberConfirmationPolicy } from "./policies";
-import type { StoredSubscriber, StoredSubscriberComponent, StoredSubscriberToken, SubscriberRepository } from "./repository";
+import type { StoredSubscriber, StoredSubscriberComponent, SubscriberRepository } from "./repository";
 import { SubscriberTokenCodec, type SubscriberTokenScope } from "./tokens";
 
 const CONFIRMATION_WINDOW_MS = 24 * 60 * 60 * 1000;
@@ -21,7 +21,7 @@ export interface SubscribersService {
   createWebhookSubscription(input: { destination: string; contactEmail: string; componentIds: string[] }): Promise<SubscriberView>;
   deleteSubscriber(subscriberId: string, operatorId: string): Promise<boolean>;
   expirePending(): Promise<void>;
-  inviteImported(subscriberId: string, origin: string, pageName: string): Promise<boolean>;
+  inviteImported(subscriberId: string, origin: string, pageName: string, assertAuthority?: () => Promise<void>): Promise<boolean>;
 }
 
 export function renderSubscriberTokenPage(title: string, body: string) {
@@ -77,17 +77,10 @@ export function createSubscribersService(
 
   async function issuedToken(subscriberId: string, scope: SubscriberTokenScope, expiresAt: string | null) {
     if (!tokens) throw new Error("SUBSCRIBER_TOKEN_SECRET is required for subscriber tokens.");
-    const codec = tokens;
-    const existing = await repository.findActiveToken(subscriberId, scope, nowIso());
-    if (existing) return { record: existing, token: await codec.encode({ id: existing.id, scope }) };
-    await repository.revokeTokens(subscriberId, nowIso(), scope);
-    const timestamp = nowIso();
-    const record: StoredSubscriberToken = {
-      id: createUlid(), subscriberId, scope, tokenHash: "", expiresAt, revokedAt: null, createdAt: timestamp, updatedAt: timestamp,
-    };
-    const token = await codec.encode({ id: record.id, scope });
-    await repository.createToken({ ...record, tokenHash: await codec.hash(token) });
-    return { record, token };
+    const id = createUlid();
+    const token = await tokens.encode({ id, scope });
+    const issuedId = await repository.ensureToken(subscriberId, scope, { id, tokenHash: await tokens.hash(token), expiresAt }, nowIso());
+    return { token: issuedId === id ? token : await tokens.encode({ id: issuedId, scope }) };
   }
 
   async function fromToken(token: string, scope: SubscriberTokenScope) {
@@ -223,18 +216,24 @@ export function createSubscribersService(
     },
     /** A subscriber moved from another status page: one confirmation, nothing
      * about past incidents; without it the subscription expires as SUB-003 says. */
-    async inviteImported(subscriberId, origin, pageName) {
+    async inviteImported(subscriberId, origin, pageName, assertAuthority) {
       const { mail } = requiredMailAndTokens();
       const subscriber = await repository.findSubscriber(subscriberId);
       if (!subscriber || subscriber.state !== "pending" || subscriber.channel !== "email") return false;
+      const deadline = new Date(Date.parse(subscriber.createdAt) + PENDING_WINDOW_MS).toISOString();
+      if (Date.parse(deadline) <= Date.now()) return false;
       const fromAddress = await configuredFromAddress();
-      const confirm = await issuedToken(subscriber.id, "confirm", new Date(Date.now() + PENDING_WINDOW_MS).toISOString());
+      // Token reuse atomically caps expiry at this deadline, including when a
+      // visitor requests a separate confirmation while the invitation is issued.
+      const confirm = await issuedToken(subscriber.id, "confirm", deadline);
       const unsubscribe = await issuedToken(subscriber.id, "unsubscribe", null);
       const confirmationUrl = new URL(`/confirm-subscription/${encodeURIComponent(confirm.token)}`, origin).toString();
       const unsubscribeUrl = new URL(`/unsubscribe/${encodeURIComponent(unsubscribe.token)}`, origin).toString();
+      await assertAuthority?.();
+      if (Date.parse(deadline) <= Date.now()) return false;
       await mail.send({
         from: fromAddress, to: subscriber.destination, subject: `Confirm your ${pageName} status subscription`,
-        text: `${pageName} has moved its status page. You subscribed to its updates there; confirm within 72 hours to keep receiving them: ${confirmationUrl}\n\nIf you do nothing, you will receive no further email from this page. Unsubscribe: ${unsubscribeUrl}`,
+        text: `${pageName} has moved its status page. You subscribed to its updates there; confirm before ${deadline} (the remaining part of the 72-hour window from import) to keep receiving them: ${confirmationUrl}\n\nIf you do nothing, you will receive no further email from this page. Unsubscribe: ${unsubscribeUrl}`,
         headers: { "Auto-Submitted": "auto-generated" }, idempotencyKey: `subscriber-import-invite/${subscriber.id}`,
       });
       return true;

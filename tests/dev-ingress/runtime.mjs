@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { spawn, execFileSync } from 'node:child_process';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { connect } from 'node:net';
-import { join, resolve } from 'node:path';
+import { basename, join, resolve } from 'node:path';
 import { appOrigin, pageOrigin } from '../e2e/helpers/hosts.mjs';
 import { reservePort, waitForWorker } from '../e2e/worker-startup.mjs';
 import { stopProcessGroup } from './shutdown.mjs';
@@ -19,7 +19,10 @@ export const subscriber = 'subscriber@ingress.example.test';
 export async function openNativeRuntime() {
   const directory = await mkdtemp(resolve('.lamp-native-ingress-'));
   const state = join(directory, 'state');
-  const env = { ...process.env, LAMP_WORKERS_STATE_PATH: state, LAMP_VITE_CACHE_DIR: join(directory, 'vite-cache'), RER_DEV_KEY: devKey };
+  // The app host serves development modules under /node_modules/. Each run
+  // owns only this unique cache, including when node_modules is a shared link.
+  const cache = resolve('node_modules/.vite', basename(directory));
+  const env = { ...process.env, LAMP_WORKERS_STATE_PATH: state, LAMP_VITE_CACHE_DIR: cache, RER_DEV_KEY: devKey };
   delete env.LAMP_DISABLE_INSPECTOR;
   let child;
   let output = '';
@@ -50,7 +53,7 @@ export async function openNativeRuntime() {
       await waitForWorker({ origin, child, output: () => output, timeoutMs: 180_000, probe: ({ signal }) => fetch(`${origin}/__dev/outbox?format=json`, { signal, headers: devKeyHeaders }) });
     },
     stop,
-    async close() { try { await stop(); } finally { await rm(directory, { recursive: true, force: true }); } },
+    async close() { try { await stop(); } finally { await rm(cache, { recursive: true, force: true }); await rm(directory, { recursive: true, force: true }); } },
   };
 }
 

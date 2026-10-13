@@ -1,0 +1,75 @@
+[
+  {
+    "id": "subscriber-1",
+    "email": "small-1@example.invalid",
+    "phone": null,
+    "webhook": null,
+    "webhookEmail": null,
+    "confirmed": true,
+    "approved": true,
+    "all": true,
+    "components": []
+  },
+  {
+    "id": "subscriber-2",
+    "email": "small-2@example.invalid",
+    "phone": null,
+    "webhook": null,
+    "webhookEmail": null,
+    "confirmed": false,
+    "approved": true,
+    "all": false,
+    "components": [
+      "c0000000001"
+    ]
+  },
+  {
+    "id": "subscriber-3",
+    "email": "small-3@example.invalid",
+    "phone": null,
+    "webhook": null,
+    "webhookEmail": null,
+    "confirmed": true,
+    "approved": false,
+    "all": true,
+    "components": []
+  },
+  {
+    "id": "subscriber-4",
+    "email": "small-4@example.invalid",
+    "phone": "+15555550100",
+    "webhook": null,
+    "webhookEmail": null,
+    "confirmed": true,
+    "approved": true,
+    "all": false,
+    "components": [
+      "c0000000001"
+    ]
+  },
+  {
+    "id": "subscriber-5",
+    "email": "small-5@example.invalid",
+    "phone": null,
+    "webhook": "https://example.invalid/hook",
+    "webhookEmail": null,
+    "confirmed": true,
+    "approved": true,
+    "all": true,
+    "components": []
+  },
+  {
+    "id": "subscriber-6",
+    "email": null,
+    "phone": null,
+    "webhook": null,
+    "webhookEmail": null,
+    "confirmed": true,
+    "approved": true,
+    "all": false,
+    "components": [
+      "c0000000001"
+    ],
+    "slack": "https://example.invalid/slack"
+  }
+]

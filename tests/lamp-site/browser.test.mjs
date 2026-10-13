@@ -306,7 +306,7 @@ test("the intro fills the first screen on every screen, and the lamp hangs lower
         const intro = document.querySelector(".lamp-intro").getBoundingClientRect();
         const lamp = document.querySelector(".lamp-rig__lamp").getBoundingClientRect();
         return { lampTop: lamp.top, bulbBottom: lamp.top + lamp.height * 0.7686, titleTop: document.querySelector(".lamp-intro__title").getBoundingClientRect().top, introHeight: intro.height, nextTop: document.querySelector(".lamp-intro").nextElementSibling.getBoundingClientRect().top,
-          heroBottom: document.querySelector(".lamp-intro__alt").getBoundingClientRect().bottom, overflowX: document.documentElement.scrollWidth - document.documentElement.clientWidth };
+          heroBottom: document.querySelector(".lamp-intro__actions").getBoundingClientRect().bottom, overflowX: document.documentElement.scrollWidth - document.documentElement.clientWidth };
       });
     } finally { await close(); }
   };

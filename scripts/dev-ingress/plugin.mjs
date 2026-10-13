@@ -3,6 +3,7 @@ import { fileURLToPath } from 'node:url';
 import { resolve } from 'node:path';
 import { isForwardingHeader, proofHeader, proofPayload } from './protocol.mjs';
 import { isSameOriginSubscriberPost } from '../../src/core/features/dev-outbox/subscriber-origin.mjs';
+import { isLocalPublicRead } from '../../src/core/features/dev-outbox/public-read.mjs';
 
 const virtualId = 'virtual:lamp-dev-ingress';
 const resolvedId = `\0${virtualId}`;
@@ -64,7 +65,7 @@ export function inspectIngress(request) {
   // configuration through the emulator's storage explorer.
   if (pathname.startsWith('/__vite_plugin_cloudflare_') || pathname.startsWith('/__debug')
     || pathname.startsWith('/__cf_local')
-    || (pathname.startsWith('/cdn-cgi') && !scheduledPaths.includes(pathname))) return null;
+    || (/^\/cdn-cgi(?:\/|$)/i.test(pathname) && !scheduledPaths.includes(pathname))) return null;
   // Behind `rer dev`, the CLI's loopback proxy listens on the public port and
   // forwards the browser's Host unchanged to this listener on an internal port.
   // `rer dev` itself fires the declared Cron Triggers at this listener's own
@@ -72,11 +73,12 @@ export function inspectIngress(request) {
   const port = Number(url.port || (protocol === 'https:' ? 443 : 80));
   const scheduledTrigger = scheduledPaths.includes(pathname) && port === request.socket.localPort && ['GET', 'HEAD'].includes(request.method);
   if (port !== publicPort(request.socket.localPort) && !scheduledTrigger) return null;
-  if (headers.has('origin') && headers.get('origin') !== url.origin
+  const publicRead = isLocalPublicRead(request.method, target, headers, url);
+  if (headers.has('origin') && headers.get('origin') !== url.origin && !publicRead
     && !isSameOriginSubscriberPost(request.method, target, headers.get('origin'), headers.get('sec-fetch-site'))) return null;
   const fetchSite = headers.get('sec-fetch-site');
   if (fetchSite !== undefined && !['none', 'same-origin', 'same-site'].includes(fetchSite)
-    && !(fetchSite === 'cross-site' && crossHostNavigation(request, headers, url))) return null;
+    && !(fetchSite === 'cross-site' && (publicRead || crossHostNavigation(request, headers, url)))) return null;
   return proofPayload(request.method, url.href, host, headers.get('origin') ?? null, headers.get('sec-fetch-site') ?? null);
 }
 

@@ -1,0 +1,202 @@
+{
+  "data": [
+    {
+      "id": "32001100",
+      "type": "status_page_resource",
+      "attributes": {
+        "public_name": "large service 1",
+        "explanation": "Synthetic service",
+        "position": 0,
+        "status_page_section_id": 3200110,
+        "resource_id": 900000,
+        "resource_type": "Monitor",
+        "status": "operational",
+        "widget_type": "history",
+        "availability": 0.99,
+        "status_history": []
+      }
+    },
+    {
+      "id": "32001101",
+      "type": "status_page_resource",
+      "attributes": {
+        "public_name": "large service 2",
+        "explanation": "Synthetic service",
+        "position": 1,
+        "status_page_section_id": 3200111,
+        "resource_id": 900001,
+        "resource_type": "Monitor",
+        "status": "operational",
+        "widget_type": "history",
+        "availability": 0.99,
+        "status_history": []
+      }
+    },
+    {
+      "id": "32001102",
+      "type": "status_page_resource",
+      "attributes": {
+        "public_name": "large service 3",
+        "explanation": "Synthetic service",
+        "position": 2,
+        "status_page_section_id": 3200112,
+        "resource_id": 900002,
+        "resource_type": "Monitor",
+        "status": "operational",
+        "widget_type": "history",
+        "availability": 0.99,
+        "status_history": []
+      }
+    },
+    {
+      "id": "32001103",
+      "type": "status_page_resource",
+      "attributes": {
+        "public_name": "large service 4",
+        "explanation": "Synthetic service",
+        "position": 3,
+        "status_page_section_id": 3200113,
+        "resource_id": 900003,
+        "resource_type": "Monitor",
+        "status": "operational",
+        "widget_type": "history",
+        "availability": 0.99,
+        "status_history": []
+      }
+    },
+    {
+      "id": "32001104",
+      "type": "status_page_resource",
+      "attributes": {
+        "public_name": "large service 5",
+        "explanation": "Synthetic service",
+        "position": 4,
+        "status_page_section_id": 3200110,
+        "resource_id": 900004,
+        "resource_type": "Monitor",
+        "status": "operational",
+        "widget_type": "history",
+        "availability": 0.99,
+        "status_history": []
+      }
+    },
+    {
+      "id": "32001105",
+      "type": "status_page_resource",
+      "attributes": {
+        "public_name": "large service 6",
+        "explanation": "Synthetic service",
+        "position": 5,
+        "status_page_section_id": 3200111,
+        "resource_id": 900005,
+        "resource_type": "Monitor",
+        "status": "operational",
+        "widget_type": "history",
+        "availability": 0.99,
+        "status_history": []
+      }
+    },
+    {
+      "id": "32001106",
+      "type": "status_page_resource",
+      "attributes": {
+        "public_name": "large service 7",
+        "explanation": "Synthetic service",
+        "position": 6,
+        "status_page_section_id": 3200112,
+        "resource_id": 900006,
+        "resource_type": "Monitor",
+        "status": "operational",
+        "widget_type": "history",
+        "availability": 0.99,
+        "status_history": []
+      }
+    },
+    {
+      "id": "32001107",
+      "type": "status_page_resource",
+      "attributes": {
+        "public_name": "large service 8",
+        "explanation": "Synthetic service",
+        "position": 7,
+        "status_page_section_id": 3200113,
+        "resource_id": 900007,
+        "resource_type": "Monitor",
+        "status": "operational",
+        "widget_type": "history",
+        "availability": 0.99,
+        "status_history": []
+      }
+    },
+    {
+      "id": "32001108",
+      "type": "status_page_resource",
+      "attributes": {
+        "public_name": "large service 9",
+        "explanation": "Synthetic service",
+        "position": 8,
+        "status_page_section_id": 3200110,
+        "resource_id": 900008,
+        "resource_type": "Monitor",
+        "status": "operational",
+        "widget_type": "history",
+        "availability": 0.99,
+        "status_history": []
+      }
+    },
+    {
+      "id": "32001109",
+      "type": "status_page_resource",
+      "attributes": {
+        "public_name": "large service 10",
+        "explanation": "Synthetic service",
+        "position": 9,
+        "status_page_section_id": 3200111,
+        "resource_id": 900009,
+        "resource_type": "Monitor",
+        "status": "operational",
+        "widget_type": "history",
+        "availability": 0.99,
+        "status_history": []
+      }
+    },
+    {
+      "id": "32001110",
+      "type": "status_page_resource",
+      "attributes": {
+        "public_name": "large service 11",
+        "explanation": "Synthetic service",
+        "position": 10,
+        "status_page_section_id": 3200112,
+        "resource_id": 900010,
+        "resource_type": "Monitor",
+        "status": "operational",
+        "widget_type": "history",
+        "availability": 0.99,
+        "status_history": []
+      }
+    },
+    {
+      "id": "32001111",
+      "type": "status_page_resource",
+      "attributes": {
+        "public_name": "large service 12",
+        "explanation": "Synthetic service",
+        "position": 11,
+        "status_page_section_id": 3200113,
+        "resource_id": 900011,
+        "resource_type": "Monitor",
+        "status": "operational",
+        "widget_type": "history",
+        "availability": 0.99,
+        "status_history": []
+      }
+    }
+  ],
+  "pagination": {
+    "first": "https://incidents.betterstack.com/api/v2/status-pages/32001/resources?page=1",
+    "last": "https://incidents.betterstack.com/api/v2/status-pages/32001/resources?page=1",
+    "prev": null,
+    "next": null
+  }
+}

@@ -9,6 +9,9 @@ const CACHE_CONTROL = "public, max-age=10, s-maxage=10, stale-while-revalidate=3
 function applyPublicHeaders(headers: Headers, origin: string, cacheable = true) {
   if (cacheable) headers.set("Cache-Control", CACHE_CONTROL);
   applyPublicIsolationHeaders(headers, origin);
+  // Public snapshot bytes contain no credentials or private data. Owner-browser
+  // cutover checks must read the real redirect and final response across hosts.
+  headers.set("Access-Control-Allow-Origin", "*");
   headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
 }
 

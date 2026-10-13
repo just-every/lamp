@@ -1,0 +1,36 @@
+[
+  {
+    "id": "maintenance-1",
+    "name": "Synthetic planned maintenance",
+    "status": "COMPLETED",
+    "start": "2023-06-01T10:00:00Z",
+    "duration": 60,
+    "autoEnd": true,
+    "updates": [
+      {
+        "id": "maintenance-update-0",
+        "message": "Maintenance is planned.",
+        "status": "NOTSTARTEDYET",
+        "started": "2023-05-31T10:00:00Z",
+        "createdAt": "2023-05-31T10:00:00Z",
+        "notify": true
+      },
+      {
+        "id": "maintenance-update-1",
+        "message": "Maintenance has started.",
+        "status": "INPROGRESS",
+        "started": "2023-06-01T10:00:00Z",
+        "createdAt": "2023-06-01T10:00:00Z",
+        "notify": true
+      },
+      {
+        "id": "maintenance-update-2",
+        "message": "Maintenance is complete.",
+        "status": "COMPLETED",
+        "started": "2023-06-01T11:00:00Z",
+        "createdAt": "2023-06-01T11:00:00Z",
+        "notify": true
+      }
+    ]
+  }
+]

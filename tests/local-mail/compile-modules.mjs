@@ -17,6 +17,9 @@ export async function compileMailModules(development) {
       await writeFile(file, compiled);
     }
     await copyFile('src/core/features/dev-outbox/subscriber-origin.mjs', join(output, 'features/dev-outbox/subscriber-origin.mjs'));
+    await copyFile('src/core/features/dev-outbox/public-read.mjs', join(output, 'features/dev-outbox/public-read.mjs'));
+    await mkdir(join(output, 'features/statuspage-import'), { recursive: true });
+    await copyFile('src/core/features/statuspage-import/public-paths.mjs', join(output, 'features/statuspage-import/public-paths.mjs'));
     return {
       access: await import(pathToFileURL(join(output, 'features/dev-outbox/access.mjs')).href),
       routes: await import(pathToFileURL(join(output, 'features/dev-outbox/routes.mjs')).href),

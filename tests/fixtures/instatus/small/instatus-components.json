@@ -1,0 +1,31 @@
+[
+  {
+    "id": "c0000000001",
+    "name": "API",
+    "description": "Synthetic service",
+    "status": "OPERATIONAL",
+    "order": 0,
+    "group": {
+      "id": "group-1",
+      "name": "Customer services",
+      "description": "Synthetic visual group",
+      "isParent": true,
+      "order": 0,
+      "createdAt": "2020-01-01T00:00:00Z",
+      "group": null,
+      "groupId": null
+    },
+    "groupId": "group-1",
+    "createdAt": "2020-01-01T00:00:00Z"
+  },
+  {
+    "id": "c0000000002",
+    "name": "Dashboard",
+    "description": "Synthetic service",
+    "status": "OPERATIONAL",
+    "order": 1,
+    "group": null,
+    "groupId": "group-1",
+    "createdAt": "2020-01-01T00:00:00Z"
+  }
+]
