@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "parent": null,
-  "edition": "just-every/run-lamp",
-  "manifest": "9a96c3a2186f1ca04636c7df6e02698242ae710cdad41111c9d16205b875aea5",
+  "edition": "just-every/lamp",
+  "manifest": "830fb2455b51768979b874a84931f343eefd8667ab2f7924afc676fa27a134e2",
   "toolchain": {
     "id": "runeditrun/edition-authoring",
     "version": "1.1.0",
@@ -10,7 +10,7 @@
   },
   "components": [
     {
-      "id": "just-every/run-lamp",
+      "id": "just-every/lamp",
       "source": {
         "kind": "local",
         "paths": [
@@ -460,7 +460,7 @@
       "executable": false
     },
     "deploy.json": {
-      "sha256": "e60a8e2a2085e7e3cb9873f84b6667b9fb9262e5707e8fa23b211435eb3061b4",
+      "sha256": "152a9ce56e83694b9d0b875d1b40644c78b883048bd96be89a8c85ec1e582eab",
       "executable": false
     },
     "DIVERGENCE.md": {
@@ -536,7 +536,7 @@
       "executable": false
     },
     "edition.json": {
-      "sha256": "9a96c3a2186f1ca04636c7df6e02698242ae710cdad41111c9d16205b875aea5",
+      "sha256": "830fb2455b51768979b874a84931f343eefd8667ab2f7924afc676fa27a134e2",
       "executable": false
     },
     "HANDOVER.md": {
@@ -1600,7 +1600,7 @@
       "executable": false
     },
     "OPERATIONS.json": {
-      "sha256": "b24e0d74aa197694a760cae5529459a03e5a47887307746ab4db327647326664",
+      "sha256": "bf6057f71bc14b14c1d0c713a04ede5d87958686e58887697806821df2e1df68",
       "executable": false
     },
     "OPERATIONS.md": {
@@ -1676,11 +1676,11 @@
       "executable": false
     },
     "rer-packaging.json": {
-      "sha256": "8ec0a59affdba5765a63bf59bef7e36757fb7c30ccc5581df7d611dd5cf28083",
+      "sha256": "5ff23a2757b44dfb190d3ff6cbd9f58606b4c11705f40f6e62563531c8729591",
       "executable": false
     },
     "rer-project.json": {
-      "sha256": "2a1bcf68645ff9b8150f454e501c9745d4a8beb662adbb326183882270012e2e",
+      "sha256": "db592b3481107ec3ec191e927d469b6e64e534d2b57ad087af03c792ba7ac0ab",
       "executable": false
     },
     "rer-setup.json": {
@@ -1804,7 +1804,7 @@
       "executable": false
     },
     "scripts/delivery/base/packaging.json": {
-      "sha256": "8ec0a59affdba5765a63bf59bef7e36757fb7c30ccc5581df7d611dd5cf28083",
+      "sha256": "5ff23a2757b44dfb190d3ff6cbd9f58606b4c11705f40f6e62563531c8729591",
       "executable": false
     },
     "scripts/delivery/base/paths.mjs": {
@@ -4784,7 +4784,7 @@
       "executable": false
     },
     "tests/operations-description.test.mjs": {
-      "sha256": "8effd10cef262280174b99afb97f395ec1e7e2195c9beeb37fcf9349dd689729",
+      "sha256": "8c46c8cf19994cc26c8e49ea1344feb1ac369e8e62d9bcb25861e012c030c68a",
       "executable": false
     },
     "tests/operator-readiness/checklist.test.mjs": {
@@ -4860,7 +4860,7 @@
       "executable": false
     },
     "tests/release-identity/repository-identity.test.mjs": {
-      "sha256": "f330fdb6661ca923d277a6324e96ebb14b165da762dcee5033dbc1cf7a4af96b",
+      "sha256": "bde6245103db8f7fcc5faff69c256d7bfdd551415bc9a804d9b4f778f80bce8b",
       "executable": false
     },
     "tests/release-identity/workflow-pin.test.mjs": {

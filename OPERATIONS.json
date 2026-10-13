@@ -201,7 +201,7 @@
   "acceptance": {
     "document": "ACCEPTANCE.md"
   },
-  "project": "just-every/run-lamp",
+  "project": "just-every/lamp",
   "runtime": {
     "requirements": [
       {

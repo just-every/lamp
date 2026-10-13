@@ -6,8 +6,8 @@ import { describeOperations, inspectOperations } from '../scripts/operations.mjs
 
 test('operations describe resolves actual commands without runtime dependencies', async () => {
   const result = await describeOperations(process.cwd());
-  const { repository } = JSON.parse(await readFile('package.json', 'utf8'));
-  assert.equal(result.project, new URL(repository.url.replace(/\.git$/, '')).pathname.slice(1));
+  const { project } = JSON.parse(await readFile('deploy.json', 'utf8'));
+  assert.equal(result.project, project);
   assert.deepEqual(result.commands.deploy.argv, ['rer', 'deploy']);
 });
 
