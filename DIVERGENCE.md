@@ -1233,3 +1233,13 @@ memory. When browser Back mounts a fresh Move-in page after Cutover review,
 the saved-response picker starts empty too, so the owner can select the same
 files and run a fresh dry run before importing. A browser-restored file
 selection must never silently become the source of a new import.
+
+## Generated route-tree source identity — 13 October 2026
+
+The tracked route tree retains TanStack Start's generated type-registration
+footer as well as the route declarations. Native Vite development and production
+builds produce both; omitting the footer from a published tree caused the
+pre-verifier journeys to change its tracked bytes and fail `source:check`.
+Publication records the complete generated output in the source lock, so running
+those journeys preserves the published source identity. The integrity gate and
+its coverage remain unchanged.
