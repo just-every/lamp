@@ -424,7 +424,7 @@
       "executable": false
     },
     "CHANGELOG.md": {
-      "sha256": "3c5e53b6f5585f3510746f3bb50c03dec97f4f6238c75f751cb02c3b29c36929",
+      "sha256": "8a524a266052ec6cb2b6f14843bfb4e95500ec24edcc597069f4cd2049ce1021",
       "executable": false
     },
     "CLAUDE.md": {
@@ -452,7 +452,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "81cab54a9ae3e3f3226c2895a6523d4bd80072995a0a3156577e6894f4930e9a",
+      "sha256": "965a6b05c8f4b9ffb1d58705f2e35e922128a58fe92b9dac3bb54e22b1bea43c",
       "executable": false
     },
     "deploy-site.json": {
@@ -1608,7 +1608,7 @@
       "executable": false
     },
     "package.json": {
-      "sha256": "16d20749accd2f8f923d2c203bca57d4c7d505eb2a75d53a2f66938c72983867",
+      "sha256": "03e88a2d687c0dbcc44cecbbfb6f550b63130d8e0fdaac088f76c93bfd174918",
       "executable": false
     },
     "pnpm-lock.yaml": {
@@ -1663,6 +1663,14 @@
       "sha256": "5f8ee4204ebb41d6a4c88d82ff83c1ed1e339c4517d3645fef30dcf8015a0503",
       "executable": false
     },
+    "release-history/1.3.0.CONTRACT.md": {
+      "sha256": "3315ad0272504a4bcb9d8b24c5cda014619ec4ded6d1df4b0546ffb2ae1d2eae",
+      "executable": false
+    },
+    "release-history/1.3.0.json": {
+      "sha256": "f8c771430ce4726d152fe6ea9c0d86da5688322fcabbcbd2427c61fddf1b76f1",
+      "executable": false
+    },
     "release-history/README.md": {
       "sha256": "fd13c03aa7a6da117aa4c7a71516a7682d6536853b96cb875631acc014cd164e",
       "executable": false
@@ -1672,7 +1680,7 @@
       "executable": false
     },
     "RELEASE.json": {
-      "sha256": "22fa08ead7fccb10b2dcd830a59bbce3258d5fbf6e45190a307bbdc6a9347d00",
+      "sha256": "176cfdda3478f94cf6a9289b2211c3495970a94f6d928e2b84feeab3bfa37058",
       "executable": false
     },
     "rer-packaging.json": {
@@ -2096,7 +2104,7 @@
       "executable": false
     },
     "seed.json": {
-      "sha256": "8ee94e35c1e453dd9be8dce48918cb40d562e330bd13ba0e11e51a3713a3cf95",
+      "sha256": "bdc7c0735e6ff7b0923c0b63afc65a5cf4e3795df6d8ff57de912fed5c826ced",
       "executable": false
     },
     "src/base/deployment-health.ts": {
@@ -3004,7 +3012,7 @@
       "executable": false
     },
     "src/core/platform/ai/openai-compatible.ts": {
-      "sha256": "78456b515bc478869af7218fdb90c4150e0222a54248d8e6679d66ebe06d1356",
+      "sha256": "c427c7de355040cea1aa56ccc6bf38c3504f90573182fbd04b11ba053bca0f89",
       "executable": false
     },
     "src/core/platform/ai/provider.ts": {
@@ -4180,7 +4188,7 @@
       "executable": false
     },
     "tests/e2e/incident-brief.test.mjs": {
-      "sha256": "fdb5d090720ff5e8dda6a165b892d5e1f2ad06f43dfa8fdbcf6f98905e40009a",
+      "sha256": "f6719dae0fbb66044b38277a224f408d661599cfdd00eb43a08d2eb1de3af483",
       "executable": false
     },
     "tests/e2e/independent-release.test.mjs": {
@@ -4865,6 +4873,30 @@
     },
     "tests/release-identity/workflow-pin.test.mjs": {
       "sha256": "0fb5351317c103ecc195a8b1f4f4b29b1c8df3beed322e8cbd7adf4a415de42d",
+      "executable": false
+    },
+    "tests/release/journeys.mjs": {
+      "sha256": "d30a9f18e37778883cd6ec637fde6bebcbc9e2f5714a0ac3be77d771df76e224",
+      "executable": false
+    },
+    "tests/release/populate.mjs": {
+      "sha256": "7d1d535e96bce7774ff45a8afdc4ceae3f078da2ee9b711be87d09466d75fd2d",
+      "executable": false
+    },
+    "tests/release/README.md": {
+      "sha256": "0da94cfe6b9f974894564794f4414deadbe00da8eef4c68b0e2c3f3f2e467cd4",
+      "executable": false
+    },
+    "tests/release/runtime.mjs": {
+      "sha256": "6f5b3646cd9f7d2e6b88c90754fdd610e957dd8c67d8f68b43c422ffcc0849ae",
+      "executable": false
+    },
+    "tests/release/upgrade.test.mjs": {
+      "sha256": "9561aa0f2173b56bcd758699b5a67ecc2ea31251cc7f1020d732e43dce03feb6",
+      "executable": false
+    },
+    "tests/release/verify.mjs": {
+      "sha256": "c4b7f645e8ab824a42c78cb27eeae0f6d7c4ef756f3c54d10d006813fcd6b119",
       "executable": false
     },
     "tests/render/public-clarity.test.mjs": {
