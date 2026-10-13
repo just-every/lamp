@@ -12,6 +12,7 @@ export interface CutoverPreview {
   invitations: { eligible: number; claimed: number; expired: number; deadline: string | null };
 }
 export function sourceReaderGaps(namespace: string) {
+  if (namespace === 'instatus') return ["Instatus RSS /history.rss is not served by Lamp; change readers to /feed.atom.", "Instatus public JSON /summary.json, /v3/summary.json and /v3/components.json are not served by Lamp. Update API readers to Lamp's native /api/public/status format."];
   return namespace === 'betterstack' ? ["Better Stack RSS /feed.rss and public JSON /index.json are not served by Lamp. Update readers to /feed.atom and the native /api/public/status format."] : ["Statuspage JSON API readers under /api/v2/ receive 404; Lamp does not implement that compatibility API. Update those readers to Lamp's native /api/public/status format.", "Statuspage RSS readers at /history.rss receive 404; change their subscription to /feed.atom."];
 }
 export const pendingDeadline = (createdAt: string) => new Date(Date.parse(createdAt) + 72 * 60 * 60 * 1000).toISOString();

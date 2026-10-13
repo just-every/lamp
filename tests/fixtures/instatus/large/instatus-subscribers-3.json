@@ -1,0 +1,62 @@
+[
+  {
+    "id": "subscriber-201",
+    "email": "large-201@example.invalid",
+    "phone": null,
+    "webhook": null,
+    "webhookEmail": null,
+    "confirmed": false,
+    "approved": true,
+    "all": true,
+    "components": []
+  },
+  {
+    "id": "subscriber-202",
+    "email": "large-202@example.invalid",
+    "phone": null,
+    "webhook": null,
+    "webhookEmail": null,
+    "confirmed": true,
+    "approved": false,
+    "all": false,
+    "components": [
+      "c0000000001"
+    ]
+  },
+  {
+    "id": "subscriber-203",
+    "email": "large-203@example.invalid",
+    "phone": "+15555550100",
+    "webhook": null,
+    "webhookEmail": null,
+    "confirmed": true,
+    "approved": true,
+    "all": true,
+    "components": []
+  },
+  {
+    "id": "subscriber-204",
+    "email": "large-204@example.invalid",
+    "phone": null,
+    "webhook": "https://example.invalid/hook",
+    "webhookEmail": null,
+    "confirmed": true,
+    "approved": true,
+    "all": false,
+    "components": [
+      "c0000000001"
+    ]
+  },
+  {
+    "id": "subscriber-205",
+    "email": null,
+    "phone": null,
+    "webhook": null,
+    "webhookEmail": null,
+    "confirmed": true,
+    "approved": true,
+    "all": true,
+    "components": [],
+    "slack": "https://example.invalid/slack"
+  }
+]

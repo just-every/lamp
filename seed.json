@@ -331,6 +331,16 @@
         "Empty heartbeat ping: receipt time and source network address; no product payload."
       ],
       "adapters": []
+    },
+    {
+      "id": "instatus-api",
+      "required": false,
+      "why": "MOVE-001 only, at the owner's request: fixed-origin GET requests to https://api.instatus.com read pages, selected-page components, incidents, maintenance lists/details, subscribers and audience groups. Redirects are refused. The Bearer API key is never stored; saved responses need no request.",
+      "data": [
+        "The owner's API key in the Authorization header only",
+        "Selected page ID and maintenance IDs"
+      ],
+      "adapters": []
     }
   ],
   "env": [

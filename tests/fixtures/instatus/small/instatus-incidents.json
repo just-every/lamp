@@ -1,0 +1,80 @@
+[
+  {
+    "id": "incident-1",
+    "name": "Synthetic historical interruption 1",
+    "status": "RESOLVED",
+    "started": "2021-01-01T00:00:00Z",
+    "resolved": "2021-01-01T00:30:00Z",
+    "components": [
+      {
+        "id": "c0000000001",
+        "status": "PARTIALOUTAGE"
+      }
+    ],
+    "updates": [
+      {
+        "id": "incident-1-update-0",
+        "message": "Some requests are delayed.",
+        "status": "INVESTIGATING",
+        "started": "2021-01-01T00:00:00Z",
+        "createdAt": "2021-01-01T00:01:00Z",
+        "notify": true
+      },
+      {
+        "id": "incident-1-update-1",
+        "message": "A repair is in place.",
+        "status": "MONITORING",
+        "started": "2021-01-01T00:15:00Z",
+        "createdAt": "2021-01-01T00:16:00Z",
+        "notify": true
+      },
+      {
+        "id": "incident-1-update-2",
+        "message": "All requests are operating normally.",
+        "status": "RESOLVED",
+        "started": "2021-01-01T00:30:00Z",
+        "createdAt": "2021-01-01T00:31:00Z",
+        "notify": true
+      }
+    ]
+  },
+  {
+    "id": "incident-2",
+    "name": "Synthetic historical interruption 2",
+    "status": "RESOLVED",
+    "started": "2021-01-31T00:00:00Z",
+    "resolved": "2021-01-31T00:30:00Z",
+    "components": [
+      {
+        "id": "c0000000001",
+        "status": "PARTIALOUTAGE"
+      }
+    ],
+    "updates": [
+      {
+        "id": "incident-2-update-0",
+        "message": "Some requests are delayed.",
+        "status": "INVESTIGATING",
+        "started": "2021-01-31T00:00:00Z",
+        "createdAt": "2021-01-31T00:01:00Z",
+        "notify": true
+      },
+      {
+        "id": "incident-2-update-1",
+        "message": "A repair is in place.",
+        "status": "MONITORING",
+        "started": "2021-01-31T00:15:00Z",
+        "createdAt": "2021-01-31T00:16:00Z",
+        "notify": true
+      },
+      {
+        "id": "incident-2-update-2",
+        "message": "All requests are operating normally.",
+        "status": "RESOLVED",
+        "started": "2021-01-31T00:30:00Z",
+        "createdAt": "2021-01-31T00:31:00Z",
+        "notify": true
+      }
+    ]
+  }
+]

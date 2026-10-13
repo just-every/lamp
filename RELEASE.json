@@ -21,7 +21,7 @@
     },
     "MOVE-001": {
       "change": "added",
-      "summary": "Move-in supports Statuspage or Better Stack by API key or saved responses; the dry run writes nothing, names every outcome, and must still match the source and Lamp page before apply."
+      "summary": "Move-in supports Statuspage, Better Stack or Instatus by API key or saved responses; the dry run writes nothing, names every outcome, and must still match the source and Lamp page before apply."
     },
     "MOVE-002": {
       "change": "added",

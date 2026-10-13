@@ -1,5 +1,5 @@
 /** Shared public snapshot path policy, also used before Vite handles a request. */
-export const sourceFeedPaths = { statuspage: ["/history.atom"], betterstack: ["/feed.atom"] };
+export const sourceFeedPaths = { statuspage: ["/history.atom"], betterstack: ["/feed.atom"], instatus: ["/history.atom"] };
 const reserved = new Set(["app", "api", "auth", "signin", "setup", "health", "docs", "lamp", "history", "assets", "app-assets", "brand", "subscribe", "unsubscribe", "manage", "confirm-subscription", "node_modules", "src", "cdn-cgi"]);
 export function isImportAliasPath(path) {
   // Lamp already serves this source-compatible address as its authoritative feed.

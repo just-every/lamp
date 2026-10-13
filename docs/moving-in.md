@@ -1,7 +1,7 @@
 # Move in from a hosted status page
 
 Lamp reads your page's components, component groups, incident history with every
-update, scheduled maintenance and email subscribers from Statuspage or Better Stack's API.
+update, scheduled maintenance and email subscribers from Statuspage, Better Stack or Instatus's API.
 **Synthetic-only validation:** fixture families are written from each provider's published API reference; no real account export has been supplied.
 
 ## Steps
@@ -156,3 +156,58 @@ revision checks, batching and conditional undo as Statuspage. Existing Statuspag
 journals are not rewritten; their original undo expectations stay unchanged. The
 additive maintenance-history migration is included in normal installation backup
 and restore, and a complete undo cascades its unchanged historical messages.
+
+## Instatus
+
+Choose **Instatus** first. Enter your page ID for either saved files or an API-key
+read. The key is used only for GET requests to `https://api.instatus.com`, never
+stored or forwarded through redirects. The reader selects that ID from
+`/v2/pages`, then reads components, incidents with embedded updates, maintenance
+lists and each maintenance's detail, subscribers, and audience groups. Limits
+refuse an incomplete collection; they never silently truncate it.
+
+For saved responses, request `per_page=100` and save every consecutive page until
+a short or empty page. Use these unchanged JSON filenames:
+
+- `instatus-pages.json`, `instatus-components.json`, `instatus-incidents.json`
+- `instatus-maintenances.json`, plus `instatus-maintenance-ID.json` for every detail
+- `instatus-subscribers.json`, `instatus-audience-groups.json`
+- Later list pages add `-2`, `-3`, and so on before `.json`.
+
+Empty resources still need their empty `[]` response. Maintenance detail is
+required because the list does not establish affected components. The current
+API help uses v2 component and maintenance lists while the official OpenAPI
+attaches their field schemas to v1 reads; deployed account parity has not been
+verified. Both fixture families remain **synthetic-only**, with no real owner
+export supplied.
+
+The saved pages response cannot establish public access or absence of audience
+rules. A separate checkbox asks you to confirm the page and supplied history are
+published and unrestricted. It is your acknowledgement, not provider evidence.
+Known private, allow-listed, audience-scoped or secure-link pages are refused;
+known unpublished records are not made public. Audience groups are access
+controls, not display groups. Visual parent components and their children retain
+their grouping; conflicts, cycles and missing group references are refused.
+
+Incident update chronology uses `started`, preserving the supplied creation
+metadata separately. A maintenance uses its explicit end or an end derived from
+documented duration minutes when completed or configured to end automatically.
+Missing or contradictory ends are refused. Every maintenance update is retained
+as history without creating lifecycle notices or replaying notifications.
+
+Only confirmed, approved, email-only subscribers become pending. Unconfirmed,
+unapproved, unsubscribed and unsupported phone/webhook/chat subscriptions are
+skipped with reasons. Component preferences must resolve and are never widened.
+Importing, continuing, undoing and opening Cutover send nothing. Invitations are
+sent only through the explicit **Send invitations** action in Cutover. Capability
+fields such as tokens, component automation addresses and webhook credentials
+are omitted from retained source records.
+
+Optional `instatus-summary.json` can preserve exact supplied public URLs from
+`activeIncidents`, `activeMaintenances` and `recentlyResolvedIncidents`, matched to
+management records by source ID. A summary is not a complete history export; old
+URLs missing from it remain unavailable, and Lamp does not guess a path. Supplied
+incident and maintenance paths redirect to surviving Lamp records. `/history.atom`
+serves Lamp's Atom feed. `/history.rss`, `/summary.json`, `/v3/summary.json` and
+`/v3/components.json` are unsupported: update readers to `/feed.atom` or the native
+`/api/public/status` format. Source-owned hosts remain outside Lamp's control.

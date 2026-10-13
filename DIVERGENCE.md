@@ -1202,6 +1202,10 @@ on the app host instead of README.md on GitHub.
 
 Subscriber deletion rewrites only that subscriber's own frozen envelopes and removes its exact address from operator-alert recipients. Alert text never carries an address, and another person's address can contain the erased one, so no alert text is rewritten.
 
+## Shared import feed addresses — 13 October 2026
+
+MOVE-005 applies when an owner imports from multiple providers: Instatus and Statuspage both use `/history.atom`. Their shared feed address must keep serving the current Lamp feed after owner publication and conditional undo. Render each feed address once across surviving imports so the complete retained snapshot remains valid; duplicate-artifact rejection and publication ordering stay unchanged.
+
 ## Local Cutover public reads — 13 October 2026
 
 The owner must be able to check imported public links from the local Cutover

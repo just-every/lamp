@@ -77,7 +77,7 @@
     "export:cloudflare": "node scripts/export.mjs",
     "import:cloudflare": "node scripts/import.mjs",
     "test:rer-journey": "node --test --test-concurrency=1 tests/e2e/auth-adoption-journey.test.mjs",
-    "test:move-in": "node --test --test-concurrency=1 tests/auth-adoption/cutover.test.mjs tests/e2e/statuspage-import.test.mjs tests/betterstack/reader.test.mjs tests/betterstack/flow.test.mjs tests/e2e/betterstack-browser.test.mjs",
+    "test:move-in": "node --test --test-concurrency=1 tests/auth-adoption/cutover.test.mjs tests/e2e/statuspage-import.test.mjs tests/betterstack/reader.test.mjs tests/betterstack/flow.test.mjs tests/e2e/betterstack-browser.test.mjs tests/instatus/reader.test.mjs tests/e2e/instatus-import.test.mjs tests/e2e/instatus-browser.test.mjs",
     "test:channels-and-presets": "node --test --test-concurrency=1 tests/e2e/channels-and-presets.test.mjs",
     "test:incident-brief": "node --test --test-concurrency=1 tests/e2e/incident-brief.test.mjs",
     "test:update-reminders": "node --test --test-concurrency=1 tests/e2e/update-reminders.test.mjs",

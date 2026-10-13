@@ -7,7 +7,7 @@ import type { StatuspageImportService } from "./service";
 import { importLimits } from "./source";
 
 const files = z.array(z.object({ name: z.string().max(80), text: z.string() }).strict()).max(importLimits.files);
-const sourceFields = { source: z.enum(["statuspage", "betterstack"]).optional(), publicAccessAcknowledged: z.boolean().optional() };
+const sourceFields = { source: z.enum(["statuspage", "betterstack", "instatus"]).optional(), publicAccessAcknowledged: z.boolean().optional() };
 const previewSchema = z.object({ ...sourceFields, files: files.optional(), pageId: z.string().max(40).optional(), apiKey: z.string().max(200).optional() }).strict();
 const applySchema = z.object({ ...sourceFields, pageId: z.string().max(64).optional(), files: files.min(1), asOf: z.string().datetime(), fingerprint: z.string().regex(/^[a-f0-9]{64}$/u), acknowledged: z.literal(true) }).strict();
 const jobId = z.string().min(1).max(100);

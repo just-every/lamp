@@ -47,7 +47,7 @@ const artifactIdentity = (plan: ImportPlan | { artifacts: Array<{ name: string; 
 export function createStatuspageImportService(db: D1Database, hooks: MoveInHooks, options: { apiOrigin?: string } = {}) {
   async function contextForJob(id: string, actor: MoveInActor) {
     const row = await db.prepare("SELECT namespace FROM ik_jobs WHERE id=? AND destination=? AND principal_id=?").bind(id, DESTINATION, actor.operator.id).first<{ namespace: string }>();
-    if (!row || !["statuspage", "betterstack"].includes(row.namespace)) throw new Error("Import not found.");
+    if (!row || !["statuspage", "betterstack", "instatus"].includes(row.namespace)) throw new Error("Import not found.");
     return importContext(db, actor, row.namespace);
   }
   async function assertAuthority(context: D1ImportContext) {
@@ -93,9 +93,9 @@ export function createStatuspageImportService(db: D1Database, hooks: MoveInHooks
   async function sourceClear(plan: ImportPlan) {
     // Exclude this operation so the import kit's post-write authority check
     // accepts its own new job, while serializing competing alias reservations.
-    const otherJobs = "SELECT count(*) AS n FROM ik_jobs WHERE destination='lamp' AND namespace IN ('statuspage','betterstack') AND NOT (principal_id=? AND fingerprint=?)";
+    const otherJobs = "SELECT count(*) AS n FROM ik_jobs WHERE destination='lamp' AND namespace IN ('statuspage','betterstack','instatus') AND NOT (principal_id=? AND fingerprint=?)";
     const observed = await db.prepare(otherJobs).bind(plan.principalId, plan.fingerprint).first<{n: number}>();
-    const pending = (await db.prepare("SELECT id,plan_json FROM ik_jobs WHERE destination='lamp' AND namespace IN ('statuspage','betterstack') AND state NOT IN ('undone','rolled_back')").all<{id: string; plan_json: string}>()).results;
+    const pending = (await db.prepare("SELECT id,plan_json FROM ik_jobs WHERE destination='lamp' AND namespace IN ('statuspage','betterstack','instatus') AND state NOT IN ('undone','rolled_back')").all<{id: string; plan_json: string}>()).results;
     const occupied = new Map<string, string>();
     for (const stored of (await loadPlans(pending, db as never)).values()) {
       for (const entry of stored.entries.filter((entry) => !entry.erased && entry.effects.length && ["incident", "maintenance"].includes(entry.source.kind))) {
@@ -116,7 +116,7 @@ export function createStatuspageImportService(db: D1Database, hooks: MoveInHooks
       }
     }
     const clear = {
-      sql: `(SELECT count(*) FROM ik_jobs WHERE destination='lamp' AND namespace IN ('statuspage','betterstack') AND NOT (principal_id=? AND fingerprint=?))=? AND NOT EXISTS (SELECT 1 FROM ik_d1_plan_index i JOIN ik_jobs j ON j.id=i.job_id WHERE j.destination=? AND j.namespace=? AND i.source_identity IN (SELECT value FROM json_each(?)) AND j.state NOT IN ('undone','rolled_back') AND NOT (j.principal_id=? AND j.fingerprint=?))`,
+      sql: `(SELECT count(*) FROM ik_jobs WHERE destination='lamp' AND namespace IN ('statuspage','betterstack','instatus') AND NOT (principal_id=? AND fingerprint=?))=? AND NOT EXISTS (SELECT 1 FROM ik_d1_plan_index i JOIN ik_jobs j ON j.id=i.job_id WHERE j.destination=? AND j.namespace=? AND i.source_identity IN (SELECT value FROM json_each(?)) AND j.state NOT IN ('undone','rolled_back') AND NOT (j.principal_id=? AND j.fingerprint=?))`,
       params: [plan.principalId, plan.fingerprint, observed?.n ?? 0, DESTINATION, plan.namespace, JSON.stringify(plan.entries.map((entry) => entry.identity)), plan.principalId, plan.fingerprint],
     };
     const result = await db.prepare(`SELECT ${clear.sql} AS clear`).bind(...clear.params).first<{ clear: number }>();
@@ -247,7 +247,7 @@ export function createStatuspageImportService(db: D1Database, hooks: MoveInHooks
     async list(actor: MoveInActor) {
       const context = importContext(db, actor);
       await assertAuthority(context);
-      const rows = (await db.prepare("SELECT id, namespace, state, checkpoint, total FROM ik_jobs WHERE principal_id=? AND destination=? AND namespace IN ('statuspage','betterstack') ORDER BY rowid DESC LIMIT 30").bind(actor.operator.id, DESTINATION).all()).results;
+      const rows = (await db.prepare("SELECT id, namespace, state, checkpoint, total FROM ik_jobs WHERE principal_id=? AND destination=? AND namespace IN ('statuspage','betterstack','instatus') ORDER BY rowid DESC LIMIT 30").bind(actor.operator.id, DESTINATION).all()).results;
       await assertAuthority(context);
       return rows;
     },
