@@ -428,11 +428,11 @@
       "executable": false
     },
     "docs/moving-in.md": {
-      "sha256": "e41b068277220214b1c6b8d3d5a96ac0dee7d68147caed8397cf462645e5f58f",
+      "sha256": "e6f7e97160e6bdf52c405c15a57f4824e5cc58908bf9a86d3e23e91e4e71c07b",
       "executable": false
     },
     "docs/site.json": {
-      "sha256": "c366556719340449cd1dd86a53baa643bc3e1643592271240f296d7a12949f1c",
+      "sha256": "8b0ea2084514f28da524e4efba8633f945236b7a8dcd10f2f6bb8855213de6c9",
       "executable": false
     },
     "edition.json": {
@@ -1536,7 +1536,7 @@
       "executable": false
     },
     "README.md": {
-      "sha256": "6ce480b2855aee613b0fb3fbe733d8c09630e8a6a63f140d709190d66428675e",
+      "sha256": "8f1604bf74f4a9778d09166dcbd0d4b7e6677628adb3fcbcc199a302ad844263",
       "executable": false
     },
     "release-history/1.0.0.CONTRACT.md": {
@@ -2004,7 +2004,7 @@
       "executable": false
     },
     "seed.json": {
-      "sha256": "fe504548701fb8a1ee8d77a3890b3f20ad03831edd156a61853237338952cd92",
+      "sha256": "575f4732a8598780f52f4a17bd99f2ddbe986ad65854056a96cd55187b9eb510",
       "executable": false
     },
     "src/base/deployment-health.ts": {
@@ -3404,7 +3404,7 @@
       "executable": false
     },
     "src/site/lamp/head.ts": {
-      "sha256": "406119d853e5fe500dc4a1ed98ca0f0eb3522d946ddcc1ed951eaf7c3b0abcfc",
+      "sha256": "b116a14bb0de6bf32bceff32ae4746c095428ca74b5ce14ba4012658c4bef01e",
       "executable": false
     },
     "src/site/lamp/header.css": {
@@ -3412,11 +3412,11 @@
       "executable": false
     },
     "src/site/lamp/intro.css": {
-      "sha256": "a13738dd61679a1c5d90aab42268a342c41ae318e37d9938acb751bad5446f9b",
+      "sha256": "a71280265e10c8017e39f7a86a7612206a9be738e6ed0e251dde1d804bc47c99",
       "executable": false
     },
     "src/site/lamp/Intro.tsx": {
-      "sha256": "273db228f4ee4efe8676becac1c9ba0f982353ef37f29ba90927b59a0835f736",
+      "sha256": "cf9d5cba9635275c7781fda6de868e6598413e5bcf37fd52921b8524511cb280",
       "executable": false
     },
     "src/site/lamp/IntroReady.tsx": {
@@ -4648,7 +4648,7 @@
       "executable": false
     },
     "tests/lamp-site/browser.test.mjs": {
-      "sha256": "9ddf808fa29d6cba3476b90273e6c1c66f94ac39d9f9c98f77ac57bd24bf6491",
+      "sha256": "6e9f64ffbd81de0a7290c1fb6d0cf6edf922db9348206253aae39092d47a0a9a",
       "executable": false
     },
     "tests/local-mail/access.test.mjs": {

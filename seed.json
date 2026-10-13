@@ -8,20 +8,6 @@
     "id": "status",
     "record": "incident on a component"
   },
-  "replaces": [
-    {
-      "name": "Atlassian Statuspage",
-      "edition": null
-    },
-    {
-      "name": "Instatus",
-      "edition": null
-    },
-    {
-      "name": "Better Stack",
-      "edition": null
-    }
-  ],
   "description": "A status page and incident communication desk for one business.",
   "capabilities": [
     {
