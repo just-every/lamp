@@ -36,7 +36,7 @@ function AddressCheck({ row, origin }: { row: CutoverPreview['rows'][number]; or
     } catch (cause) { if (request === generation.current) setState(`Could not verify: ${cause instanceof Error ? cause.message : 'request failed'}. Check the host, connection and browser access.`); }
     finally { if (request === generation.current) setBusy(false); }
   }
-  return <tr><th scope="row"><span>{row.address}</span>{row.address !== row.path && <small>Path on selected host: {row.path}. The source hostname stays with its provider.</small>}</th><td>{origin ? <a href={new URL(row.target, origin).href} target="_blank" rel="noreferrer">{row.target}</a> : row.target}</td><td><Button type="button" variant="secondary" disabled={!origin || busy} onClick={check}>Check opens</Button><p role="status">{state}</p></td></tr>;
+  return <tr><th scope="row"><span>{row.address}</span>{row.address !== row.path && <small>Path on selected host: {row.path}. On a moved hostname, old bookmarks keep this path; provider-owned shortlink hosts need their existing redirect kept or links updated.</small>}</th><td>{origin ? <a href={new URL(row.target, origin).href} target="_blank" rel="noreferrer">{row.target}</a> : row.target}</td><td><Button type="button" variant="secondary" disabled={!origin || busy} onClick={check}>Check opens</Button><p role="status">{state}</p></td></tr>;
 }
 
 export function CutoverPage() {
