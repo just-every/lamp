@@ -63,7 +63,7 @@ test('captured envelope HTML remains inert, links stay local and credentials sta
   const response = await dev.routes.handleDevOutboxRequest(new Request(`http://127.0.0.1:56800/__dev/outbox/${id}`), { ...bindings, LAMP_DEV_OUTBOX: fixtureStore, LAMP_BASE_MAIL: db });
   assert.equal(response.status, 200);
   const html = await response.text();
-  assert.doesNotMatch(html, /<script>|<img|href="https:\/\/evil/);
+  assert.doesNotMatch(html, /<(?:script|img)[\s/>]|href="https:\/\/evil/i);
   assert.match(html, /&lt;script&gt;/);
   assert.match(html, /href="http:\/\/127\.0\.0\.1:56800\/signin\/complete\/test-token"/);
   assert.equal(response.headers.get('referrer-policy'), 'no-referrer');
