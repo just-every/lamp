@@ -1,3 +1,4 @@
+import { publicFreshnessFlow } from "./helpers/public-freshness-flow.mjs";
 import { requestHeaders } from "../helpers/request-headers.mjs";
 import { assertResolvedDuration, assertVisibleTime } from "../helpers/public-meaning.mjs";
 import { withDraftVersion } from "./draft-version-helper.mjs";
@@ -170,6 +171,10 @@ after(async () => {
   }
   await rendererVite?.close();
   await Promise.all([rm(testStatePath, { recursive: true, force: true }), rm(testViteCachePath, { recursive: true, force: true })]);
+});
+
+test("PAGE-007 warmed browser and proxy follow publication generations and retain origin outages", async (t) => {
+  await publicFreshnessFlow({ appFetch, appUrl, pageUrl, diagnostic: text => t.diagnostic(text) });
 });
 
 contract("COMP-002", "operator component ordering and internal visibility rebuild the public snapshot", async () => {

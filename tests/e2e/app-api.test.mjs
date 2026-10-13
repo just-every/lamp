@@ -137,9 +137,13 @@ contract("PAGE-001", "the initial public snapshot is complete without script", a
   assert.deepEqual([...html.matchAll(/<(?:script|link)\b[^>]+(?:src|href)="([^"]+)"/g)].map((match) => match[1]), ["/assets/favicon.svg", "/assets/status-page.css", "/assets/status-page.js"]);
 });
 
-contract("PAGE-007", "public snapshot responses carry the contracted cache and isolation headers", async () => {
+contract("PAGE-007", "public snapshot validators reuse a verified generation with isolation headers", async () => {
   const response = await fetch(`${pageUrl}/`);
-  assert.equal(response.headers.get("cache-control"), "public, max-age=10, s-maxage=10, stale-while-revalidate=30, stale-if-error=3600");
+  const etag = response.headers.get("etag");
+  assert.ok(etag, "current generation provides a cache validator");
+  const unchanged = await fetch(`${pageUrl}/`, { headers: { "If-None-Match": etag } });
+  assert.equal(unchanged.status, 304);
+  assert.equal(await unchanged.text(), "");
   assert.ok((response.headers.get("content-security-policy") ?? "").includes(`default-src ${pageUrl}; script-src ${pageUrl}; style-src ${pageUrl}`), "the snapshot CSP must scope default, script, and style sources to its local origin");
   assert.equal(response.headers.get("x-content-type-options"), "nosniff");
   assert.equal(response.headers.get("referrer-policy"), "strict-origin-when-cross-origin");

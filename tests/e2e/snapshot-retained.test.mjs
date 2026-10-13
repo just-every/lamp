@@ -25,7 +25,7 @@ test("PAGE-005 PAGE-006 PAGE-007 cold durable replica keeps complete generations
     builder.onLoad({ filter: /.*/, namespace: "raw" }, async args => ({ contents: `export default ${JSON.stringify(await readFile(args.path, "utf8"))}`, loader: "js" }));
     builder.onLoad({ filter: /.*/, namespace: "inline" }, async args => ({ contents: `export default ${JSON.stringify("data:application/octet-stream;base64," + (await readFile(args.path)).toString("base64"))}`, loader: "js" }));
   } }] });
-  const options = { name: "lamp-retained-test", resourcePersistencePath: join(directory, "storage"), modules: true, script: await readFile(output, "utf8"), compatibilityDate: "2026-09-08", compatibilityFlags: ["nodejs_compat"], durableObjects: { SNAPSHOT_CACHE: { className: "SnapshotCache", useSQLite: true } }, r2Buckets: ["SNAPSHOTS"] };
+  const options = { bindings: { LAMP_APP_HOST: "app.example" }, name: "lamp-retained-test", resourcePersistencePath: join(directory, "storage"), modules: true, script: await readFile(output, "utf8"), compatibilityDate: "2026-09-08", compatibilityFlags: ["nodejs_compat"], durableObjects: { SNAPSHOT_CACHE: { className: "SnapshotCache", useSQLite: true } }, r2Buckets: ["SNAPSHOTS"] };
   let runtime = new Miniflare(convertV4MiniflareOptions(options));
   const fetch = (path, init) => runtime.dispatchFetch(`https://page.example${path}`, init);
   try {
@@ -65,8 +65,21 @@ test("PAGE-005 PAGE-006 PAGE-007 cold durable replica keeps complete generations
     assert.equal(current.status, 200); assert.equal(current.headers.get("X-Lamp-Snapshot-State"), null);
     assert.match(await current.text(), /Degraded v4/);
     await fetch("/test/source", { method: "POST", body: JSON.stringify({ pointer: { version: "v5", generation: 5, sourceRevision: 5, generatedAt }, artifacts: bundle(5).artifacts, archive: bundle(5) }) });
+    const cacheWriteFailure = await fetch("/feed.atom?cacheWrites=down");
+    assert.equal(cacheWriteFailure.status, 200);
+    assert.equal(cacheWriteFailure.headers.get("X-Lamp-Snapshot-State"), null);
+    assert.match(await cacheWriteFailure.text(), /Degraded v5/);
     const restored = await fetch("/?restored=1");
     assert.equal(restored.headers.get("X-Lamp-Snapshot-Retained"), "true", "restored R2 bundle primes the replica before acceptance");
+    // Both primary storage and the durable replica fail: the independently
+    // warmed edge fallback still returns labelled bytes, even conditionally.
+    const validator = restored.headers.get("etag");
+    const edgeOnly = await fetch("/?storage=down&replica=down", { headers: { "If-None-Match": validator } });
+    assert.equal(edgeOnly.status, 200);
+    assert.equal(edgeOnly.headers.get("X-Lamp-Snapshot-State"), "stale");
+    assert.equal(edgeOnly.headers.get("etag"), null);
+    assert.match(await edgeOnly.text(), /Last known state/);
+    assert.equal((await fetch("/unwarmed?storage=down&replica=down")).status, 503);
     await runtime.dispose(); runtime = new Miniflare(convertV4MiniflareOptions(options));
     assert.match(await (await fetch("/?storage=down&restored=2")).text(), /Degraded v5/);
     const rebuild = async (input) => (await fetch("/test/rebuild", { method: "POST", body: JSON.stringify(input) })).json();

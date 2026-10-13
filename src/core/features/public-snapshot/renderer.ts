@@ -92,9 +92,10 @@ function incidentSlotMarkup(slots: LampServerSlots, incident: PublicIncident, mo
 
 /** The page's own links: the current page offers history, the feed and subscribing; every other page leads back. */
 function pageNavigation(current: "root" | "history" | "other") {
+  const signIn = `<a data-lamp-signin href="/signin">Sign in</a>`;
   return current === "root"
-    ? `<nav class="status-utilities" aria-label="Status resources"><a href="/history">History</a><a href="/feed.atom">Atom feed</a><a class="subscribe-link" href="#subscribe">Subscribe</a></nav>`
-    : `<nav class="status-utilities" aria-label="Status page"><a href="/">Current status</a><a href="/history"${current === "history" ? ' aria-current="page"' : ""}>History</a></nav>`;
+    ? `<nav class="status-utilities" aria-label="Status resources"><a href="/history">History</a><a href="/feed.atom">Atom feed</a><a class="subscribe-link" href="#subscribe">Subscribe</a>${signIn}</nav>`
+    : `<nav class="status-utilities" aria-label="Status page"><a href="/">Current status</a><a href="/history"${current === "history" ? ' aria-current="page"' : ""}>History</a>${signIn}</nav>`;
 }
 
 function pageShell(title: string, body: string, model: ReturnType<typeof toPublicModel>, slots: LampServerSlots, current: "root" | "history" | "other") {

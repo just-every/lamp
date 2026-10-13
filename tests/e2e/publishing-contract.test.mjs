@@ -420,20 +420,18 @@ contract("UPDATE-007", "the update review policy can hold publication until a di
   assert.equal(update?.lifecycle, "Identified");
 });
 
-contract("PAGE-006", "a warmed snapshot remains available and visibly stale after the public max-age when R2 pointer reads fail", async () => {
+contract("PAGE-006", "a warmed snapshot remains available and visibly stale when R2 pointer reads fail", async () => {
   const pointer = r2Object("snapshots/current.json");
   assert.match(pointer, /"version"/);
   const warm = await fetch(`${pageUrl}/`);
   await expectStatus(warm, 200);
-  // The response declares max-age=10. Retained content must survive that
-  // boundary, whether recovered from the durable replica or the edge cache.
-  await new Promise((resolve) => setTimeout(resolve, 10_200));
+  const validator = warm.headers.get("etag");
   try {
     r2Object("snapshots/current.json", "not-json");
-    const stale = await fetch(`${pageUrl}/`);
+    const stale = await fetch(`${pageUrl}/`, { headers: validator ? { "If-None-Match": validator } : {} });
     assert.equal(stale.status, 200);
     assert.equal(stale.headers.get("x-lamp-snapshot-state"), "stale");
-    assert.equal(stale.headers.get("cache-control"), "public, max-age=10, s-maxage=10, stale-while-revalidate=30, stale-if-error=3600");
+    assert.equal(stale.headers.get("etag"), null, "an unverified generation never validates cached current-state bytes");
     const staleBody = await stale.text();
     assert.match(staleBody, /Last known state/);
     const generatedAt = stale.headers.get("x-lamp-snapshot-generated-at");
