@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "projectId": "just-every/run-lamp",
+  "projectId": "just-every/lamp",
   "name": "Lamp",
   "sourceRepository": "https://github.com/just-every/run-lamp",
   "license": "MIT",

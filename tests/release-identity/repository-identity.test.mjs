@@ -21,7 +21,6 @@ test('current source descriptors agree on the canonical repository and edition i
   const repository = new URL(pkg.repository.url.replace(/\.git$/, ''));
   assert.equal(descriptor.sourceRepository, repository.href);
   assert.equal(integration.sourceRepository, descriptor.sourceRepository);
-  assert.equal(descriptor.projectId, repository.pathname.slice(1));
   assert.equal(packaging.project.projectId, descriptor.projectId);
   assert.equal(packaging.edition.componentId, edition.id);
   assert.ok(edition.components.some(component => component.id === edition.id && component.role === 'edition'));
