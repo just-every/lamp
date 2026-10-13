@@ -1,3 +1,15 @@
+<p align="center">
+  <a href="https://justevery.com/#vol-lamp">
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcset=".github/assets/banner-dark.webp">
+      <source media="(prefers-color-scheme: light)" srcset=".github/assets/banner-light.webp">
+      <img src=".github/assets/banner-light.webp" width="100%" alt="Lamp: When something breaks, turn the light on.">
+    </picture>
+  </a>
+</p>
+
+<p align="center"><a href="https://justevery.com">Part of Just Every</a> · <a href="LICENSE">MIT licensed</a></p>
+
 # Lamp
 
 Lamp is a self-hosted status page and incident communication desk for one business, with a real Cloudflare Worker, D1, R2, Queue runtime, generated setup configuration, and a schema-validated release record. Source verification, deployment and provider acceptance are separate outcomes; each adopting installation must record its own acceptance evidence.
