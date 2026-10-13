@@ -5,6 +5,7 @@ import { contract } from '../contract.mjs';
 import { lampRuntime, preview, suspendedBody } from './lamp-runtime.mjs';
 import { secret } from './runtime.mjs';
 import { holdConfirmationWrite } from './cutover-race-helper.mjs';
+import { exerciseMailPreparation } from './cutover-mail-helper.mjs';
 
 const fixture = family => readdirSync(`tests/fixtures/statuspage/${family}`).map(name => ({ name, text: readFileSync(`tests/fixtures/statuspage/${family}/${name}`, 'utf8') }));
 const endpoint = id => `/api/app/statuspage-import/jobs/${id}`;
@@ -54,6 +55,7 @@ contract('MOVE-006', 'dry runs and saved cutover previews carry truthful destina
 });
 
 contract('MOVE-002', 'invitation preparation failures remain retryable while ambiguous transport failures stay claimed', async t => {
+  await exerciseMailPreparation(t, r => apply(r, fixture('small')));
   for (const failure of ['origin', 'configuration', 'tokens', 'authority', 'transport']) await t.test(failure, async t => {
     const r = await lampRuntime(t);
     const imported = await apply(r, fixture('small'));

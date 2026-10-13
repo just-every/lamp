@@ -1,4 +1,4 @@
-import type { MailMessage } from '../../platform/mail/sender';
+import { MailPreparationError, type MailMessage } from '../../platform/mail/sender';
 
 export interface CapturedEnvelope {
   id: string;
@@ -31,11 +31,21 @@ export function createDevOutboxRepository(bucket: R2Bucket, db?: D1Database) {
     async get(id:string){const row=await (await outbox()).get(id);return row?projectCapture(row):null;},
     async list(){return {envelopes:(await (await outbox()).list()).map(projectCapture),cursor:null};},
     async capture(message: MailMessage): Promise<CapturedEnvelope> {
-      const key='claims/'+await mailDigest(message.idempotencyKey);
-      const envelopeHash=await mailDigest(JSON.stringify({...message,headers:Object.fromEntries(Object.entries(message.headers).sort(([a],[b])=>a.localeCompare(b)))}));
-      if(await bucket.get('envelopes/'+await mailDigest(message.idempotencyKey)+'.json'))throw new Error('This message was captured by the prior local outbox; automatic recapture is disabled. Retain the existing local storage.');
+      let key, envelopeHash, storage, legacy;
+      try {
+        const identity = await mailDigest(message.idempotencyKey);
+        key = 'claims/' + identity;
+        envelopeHash = await mailDigest(JSON.stringify({...message,headers:Object.fromEntries(Object.entries(message.headers).sort(([a],[b])=>a.localeCompare(b)))}));
+        // Initialize local storage before reserving a capture identity.
+        storage = await outbox();
+        legacy = await bucket.get('envelopes/' + identity + '.json');
+      } catch (error) { throw new MailPreparationError(error); }
+      if(legacy)throw new Error('This message was captured by the prior local outbox; automatic recapture is disabled. Retain the existing local storage.');
       const claim={envelopeHash,state:'capturing',captureId:null as string|null};
-      if(!await bucket.put(key,JSON.stringify(claim),{onlyIf:{etagDoesNotMatch:'*'}})){
+      let claimed;
+      try { claimed = await bucket.put(key,JSON.stringify(claim),{onlyIf:{etagDoesNotMatch:'*'}}); }
+      catch (error) { throw new MailPreparationError(error); }
+      if(!claimed){
        let previous=await (await bucket.get(key))?.json<typeof claim>();
        for(let attempt=0;previous?.state==='capturing'&&attempt<40;attempt++){await new Promise(resolve=>setTimeout(resolve,50));previous=await (await bucket.get(key))?.json<typeof claim>();}
        if(!previous||previous.envelopeHash!==envelopeHash)throw Object.assign(new Error('Mail idempotency key was reused with a different envelope.'),{retryable:false});
@@ -44,10 +54,20 @@ export function createDevOutboxRepository(bucket: R2Bucket, db?: D1Database) {
        if(!row)throw new Error('The captured local message has expired; automatic recapture is disabled.');
        return {...projectCapture(row),envelopeHash};
       }
-      const storage=await outbox();
       // Base deliberately returns no receipt from put. Resolve the real row;
       // a durable native claim prevents this adapter creating duplicate rows.
-      await sendDevelopment({provider:'development',mode:'development'},{deliveryId:message.idempotencyKey,from:message.from,to:[message.to],subject:message.subject,text:message.text,...(message.html?{html:message.html}:{}),headers:message.headers},{outbox:storage});
+      let submitted = false;
+      try {
+        await sendDevelopment({provider:'development',mode:'development'},{deliveryId:message.idempotencyKey,from:message.from,to:[message.to],subject:message.subject,text:message.text,...(message.html?{html:message.html}:{}),headers:message.headers},{outbox:{
+          put(prepared) { submitted = true; return storage.put(prepared); },
+        }});
+      } catch (error) {
+        if (!submitted) {
+          try { await bucket.delete(key); }
+          finally { throw new MailPreparationError(error); }
+        }
+        throw error;
+      }
       const rows=(await storage.list()).filter(row=>row.message.deliveryId===message.idempotencyKey);
       if(rows.length!==1)throw new Error('Local capture identity is ambiguous; automatic recapture is disabled.');
       const row=rows[0];

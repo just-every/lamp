@@ -235,9 +235,8 @@ export function createSubscribersService(
         text: `${pageName} has moved its status page. You subscribed to its updates there; confirm before ${deadline} (the remaining part of the 72-hour window from import) to keep receiving them: ${confirmationUrl}\n\nIf you do nothing, you will receive no further email from this page. Unsubscribe: ${unsubscribeUrl}`,
         headers: { "Auto-Submitted": "auto-generated" }, idempotencyKey: `subscriber-import-invite/${subscriber.id}`,
       };
-      // Finish every fallible preparation step before consuming the durable
-      // invitation claim. Once handed to transport its outcome may be unknown,
-      // so a thrown send must keep the claim to prevent duplicate mail.
+      // Prepare subscriber authority before the claim. Adapter preparation may
+      // explicitly prove non-submission; arbitrary send errors stay claimed.
       if (!await claimSend()) return false;
       await mail.send(message);
       return true;

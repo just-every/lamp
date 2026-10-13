@@ -9,7 +9,7 @@ const adapter = load('tests/auth-adoption/adapter.ts');
 export const linkToken = message => new URL(message.text.match(/https?:\/\/[^\s]+/)[0]).searchParams.get('token');
 export async function lampRuntime(t, { local = false, ownerClaim = false, registerRoutes } = {}) {
   const dir = await mkdtemp(join(process.cwd(), '.lamp-auth-correctness-'));
-  const { runtime, db } = await database(dir);
+  const { runtime, db, baseMail, bucket } = await database(dir);
   t.after(async () => { await runtime.dispose(); await rm(dir, { recursive: true, force: true }); });
   const origin = local ? 'http://127.0.0.1:8912' : 'https://app.example.test';
   const base = authFixture(db, { origin });
@@ -78,7 +78,7 @@ export async function lampRuntime(t, { local = false, ownerClaim = false, regist
     const response = await base.handle(request('/auth/confirm', { method: 'POST', cookie: actorCookie, body: { token: linkToken(base.messages.at(-1)) } }));
     assert.equal(response.status, 303);
   }
-  return { db, app, bindings, auth, authHandle, base, request, call, cookie, owner, messages, invite, providerSession, stepUp, modules, get publications() { return publications; } };
+  return { db, baseMail, bucket, app, bindings, auth, authHandle, base, request, call, cookie, owner, messages, invite, providerSession, stepUp, modules, get publications() { return publications; } };
 }
 
 export const source = (name = 'imported', count = 1) => [{ name: 'components.json', text: JSON.stringify(Array.from({ length: count }, (_, i) => ({ id: `${name}-${i}`, name: `${name} ${i}`, position: i, status: 'operational', created_at: '2026-01-01T00:00:00Z' }))) }];
