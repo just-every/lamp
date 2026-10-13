@@ -1,0 +1,74 @@
+{
+  "data": [
+    {
+      "id": "31001100",
+      "type": "status_page_resource",
+      "attributes": {
+        "public_name": "small service 1",
+        "explanation": "Synthetic service",
+        "position": 0,
+        "status_page_section_id": 3100110,
+        "resource_id": 900000,
+        "resource_type": "Monitor",
+        "status": "operational",
+        "widget_type": "history",
+        "availability": 0.99,
+        "status_history": []
+      }
+    },
+    {
+      "id": "31001101",
+      "type": "status_page_resource",
+      "attributes": {
+        "public_name": "small service 2",
+        "explanation": "Synthetic service",
+        "position": 1,
+        "status_page_section_id": 3100111,
+        "resource_id": 900001,
+        "resource_type": "Monitor",
+        "status": "operational",
+        "widget_type": "history",
+        "availability": 0.99,
+        "status_history": []
+      }
+    },
+    {
+      "id": "31001102",
+      "type": "status_page_resource",
+      "attributes": {
+        "public_name": "small service 3",
+        "explanation": "Synthetic service",
+        "position": 2,
+        "status_page_section_id": 3100110,
+        "resource_id": 900002,
+        "resource_type": "Monitor",
+        "status": "operational",
+        "widget_type": "history",
+        "availability": 0.99,
+        "status_history": []
+      }
+    },
+    {
+      "id": "31001103",
+      "type": "status_page_resource",
+      "attributes": {
+        "public_name": "small service 4",
+        "explanation": "Synthetic service",
+        "position": 3,
+        "status_page_section_id": 3100111,
+        "resource_id": 900003,
+        "resource_type": "Monitor",
+        "status": "operational",
+        "widget_type": "history",
+        "availability": 0.99,
+        "status_history": []
+      }
+    }
+  ],
+  "pagination": {
+    "first": "https://incidents.betterstack.com/api/v2/status-pages/31001/resources?page=1",
+    "last": "https://incidents.betterstack.com/api/v2/status-pages/31001/resources?page=1",
+    "prev": null,
+    "next": null
+  }
+}

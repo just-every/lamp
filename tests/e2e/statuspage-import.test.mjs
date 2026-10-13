@@ -43,13 +43,13 @@ async function counts() {
   return { components: components.body.components.length, groups: components.body.groups.length, incidents: incidents.body.incidents.length, maintenance: maintenance.body.maintenance.length, subscribers: subscribers.body.subscribers.length };
 }
 const deliveries = async () => (await api("/api/app/deliveries?limit=100")).body.deliveries.length;
-/** Apply, then continue until every batch and invite is done, as the wizard does. */
+/** Apply, then continue until every import batch is done, as the wizard does. */
 async function importAll(files) {
   const preview = await api("/api/app/statuspage-import/preview", { files });
   assert.equal(preview.status, 200, JSON.stringify(preview.body));
   let result = await api("/api/app/statuspage-import/apply", { files, asOf: preview.body.report.asOf, fingerprint: preview.body.report.fingerprint, acknowledged: true });
   assert.equal(result.status, 200, JSON.stringify(result.body));
-  for (let round = 0; round < 80 && (result.body.job.state === "applying" || result.body.invites.remaining > 0); round += 1) {
+  for (let round = 0; round < 80 && (result.body.job.state === "applying"); round += 1) {
     result = await api(`/api/app/statuspage-import/jobs/${result.body.job.id}/resume`, {});
     assert.equal(result.status, 200, JSON.stringify(result.body));
   }
@@ -118,7 +118,7 @@ contract("MOVE-001", "a dry run reports every record and writes nothing; the API
   assert.deepEqual(await counts(), before);
 });
 
-contract("MOVE-002", "an import is retroactive: history keeps its times, nobody is notified of it, and each subscriber gets one invitation", async () => {
+contract("MOVE-002", "an import is retroactive: history keeps its times, nobody is notified of it, and subscribers are invited only by the owner", async () => {
   const before = await counts();
   const mailBefore = (await envelopes()).length;
   const { preview, result } = await importAll(fixtures("large"));
@@ -143,6 +143,14 @@ contract("MOVE-002", "an import is retroactive: history keeps its times, nobody 
   assert.ok(maintenance.every((window) => window.notices.length === 0), "no maintenance notice is published for imported windows");
 
   assert.equal(await deliveries(), 0, "no notification is queued for imported history");
+  assert.equal((await envelopes()).length, mailBefore, "import and resume send no mail");
+  await api(`/api/app/statuspage-import/jobs/${result.job.id}`);
+  await api('/api/app/statuspage-import/jobs');
+  assert.equal((await envelopes()).length, mailBefore, "preview reads send no mail");
+  const invited = await api(`/api/app/statuspage-import/jobs/${result.job.id}/send-invitations`, {});
+  assert.equal(invited.status, 200, JSON.stringify(invited.body));
+  assert.equal(invited.body.invites.remaining, 0);
+  await api(`/api/app/statuspage-import/jobs/${result.job.id}/send-invitations`, {});
   const mail = (await envelopes()).slice(0, (await envelopes()).length - mailBefore);
   assert.equal(mail.length, 6);
   assert.deepEqual(new Set(mail.map((envelope) => envelope.message.to)).size, 6);

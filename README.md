@@ -68,7 +68,7 @@ The visual references document the implemented product. Generated design explora
 
 ## Moving in
 
-Coming from a hosted status page? **Settings → Move in from Statuspage** brings your components, incident history, maintenance and email subscribers, with a dry run first and undo after; see [docs/moving-in.md](docs/moving-in.md).
+Use **Settings → Move in** to bring your components, incident history, maintenance and eligible email subscribers into Lamp. Review a dry run first, then see [the move-in guide](docs/moving-in.md) for source-specific steps and cutover checks.
 
 ## Owner-controlled operations
 

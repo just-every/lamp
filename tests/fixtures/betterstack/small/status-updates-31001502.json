@@ -1,0 +1,44 @@
+{
+  "data": [
+    {
+      "id": "310015020",
+      "type": "status_update",
+      "attributes": {
+        "message": "small report 3 original update 1",
+        "published_at": "2025-01-03T09:00:00.000Z",
+        "status_report_id": 31001502,
+        "affected_resources": [
+          {
+            "status_page_resource_id": "31001102",
+            "status": "maintenance"
+          }
+        ],
+        "notify_subscribers": true,
+        "published_at_timezone": "UTC"
+      }
+    },
+    {
+      "id": "310015021",
+      "type": "status_update",
+      "attributes": {
+        "message": "small report 3 original update 2",
+        "published_at": "2025-01-03T10:00:00.000Z",
+        "status_report_id": 31001502,
+        "affected_resources": [
+          {
+            "status_page_resource_id": "31001102",
+            "status": "maintenance"
+          }
+        ],
+        "notify_subscribers": true,
+        "published_at_timezone": "UTC"
+      }
+    }
+  ],
+  "pagination": {
+    "first": "https://incidents.betterstack.com/api/v2/status-pages/31001/status-reports/31001502/status-updates?page=1",
+    "last": "https://incidents.betterstack.com/api/v2/status-pages/31001/status-reports/31001502/status-updates?page=2",
+    "prev": null,
+    "next": "https://incidents.betterstack.com/api/v2/status-pages/31001/status-reports/31001502/status-updates?page=2"
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "data": [
+    {
+      "id": "3100110",
+      "type": "status_page_section",
+      "attributes": {
+        "name": "Synthetic group 1",
+        "position": 0,
+        "status_page_id": 31001
+      }
+    },
+    {
+      "id": "3100111",
+      "type": "status_page_section",
+      "attributes": {
+        "name": "Synthetic group 2",
+        "position": 1,
+        "status_page_id": 31001
+      }
+    }
+  ],
+  "pagination": {
+    "first": "https://incidents.betterstack.com/api/v2/status-pages/31001/sections?page=1",
+    "last": "https://incidents.betterstack.com/api/v2/status-pages/31001/sections?page=1",
+    "prev": null,
+    "next": null
+  }
+}

@@ -12,9 +12,9 @@
         },
         {
           "slug": "moving-in",
-          "title": "Move in from Statuspage",
+          "title": "Move in from another status page",
           "source": "docs/moving-in.md",
-          "summary": "Bring your components, incident history, maintenance and subscribers from a hosted status page, with a dry run first and undo after."
+          "summary": "Bring components, incident history, maintenance and eligible email subscribers into Lamp, with a reviewed dry run and public-link cutover checks."
         },
         {
           "slug": "first-run",

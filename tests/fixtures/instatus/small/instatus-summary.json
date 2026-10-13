@@ -1,0 +1,22 @@
+{
+  "page": {
+    "url": "https://synthetic-small.instatus.com"
+  },
+  "activeIncidents": [],
+  "recentlyResolvedIncidents": [
+    {
+      "id": "incident-1",
+      "url": "https://synthetic-small.instatus.com/incident/incident-1"
+    },
+    {
+      "id": "incident-2",
+      "url": "https://synthetic-small.instatus.com/incident/incident-2"
+    }
+  ],
+  "activeMaintenances": [
+    {
+      "id": "maintenance-1",
+      "url": "https://synthetic-small.instatus.com/maintenance/maintenance-1"
+    }
+  ]
+}
