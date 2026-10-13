@@ -4076,7 +4076,7 @@
       "executable": false
     },
     "tests/e2e/app-api.test.mjs": {
-      "sha256": "6d26e2c6d4f2653f6897600356fe407a6ec448a43c3cf6756277acb42658e983",
+      "sha256": "4a3f8b9896ad633348b4f5c9df8ad0a65665119d88a5df359410e31a68a664d6",
       "executable": false
     },
     "tests/e2e/auth-adoption-journey.test.mjs": {
@@ -4264,7 +4264,7 @@
       "executable": false
     },
     "tests/e2e/start-runtime.test.mjs": {
-      "sha256": "60691547d1d8298a49cddc3879fa8bc2060a78433ee847163f6537ac8db9b2de",
+      "sha256": "e8af6105493faa53717784b5de0fdf0edda63c7d593a28926b1a7d9105365676",
       "executable": false
     },
     "tests/e2e/statuspage-import.test.mjs": {

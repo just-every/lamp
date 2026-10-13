@@ -53,7 +53,9 @@ function requestWithHost(path, host) {
 
 before(async () => {
   testPort = await reservePort({ label: "API test Worker" });
-  appUrl = appOrigin(testPort);
+  // Native sign-in presentation needs mail configured. No auth email is submitted;
+  // subscriptions remain unavailable without a subscriber-token secret.
+  appUrl = appOrigin(testPort, { MAIL_PROVIDER_API_KEY: "test-only-signin-presentation-no-delivery" });
   pageUrl = pageOrigin(testPort);
   testStatePath = await mkdtemp(join(tmpdir(), "lamp-api-d1-"));
   testViteCachePath = await mkdtemp(join(tmpdir(), "lamp-api-vite-"));
