@@ -4168,7 +4168,7 @@
       "executable": false
     },
     "tests/e2e/helpers/hosts.mjs": {
-      "sha256": "957ea2c4c33ad573402ee87ba9a3191c785af9c9a15c4ce260c7ced27c7feae1",
+      "sha256": "84a12f0c3c00dc994f5f6d6573296debb0d2814991aedcefe9e8b6dfcbb020e8",
       "executable": false
     },
     "tests/e2e/helpers/public-freshness-flow.mjs": {
@@ -4208,7 +4208,7 @@
       "executable": false
     },
     "tests/e2e/public-contract.test.mjs": {
-      "sha256": "49bbdf0f58c5647fbf95dc4674604fd227a9fe1c0b6fffe8f9c0caafe7eed902",
+      "sha256": "1c915b70cca7bd56c797b0f29ec8472b57c0c009cfb8b482f03f5785cbc1216a",
       "executable": false
     },
     "tests/e2e/publishing-browser.test.mjs": {
@@ -4772,11 +4772,11 @@
       "executable": false
     },
     "tests/local-mail/access.test.mjs": {
-      "sha256": "9899203ebaddd07f502d795433e98c73bf02f5ab94a0c0022ab48678367fc9d1",
+      "sha256": "3ea9e8e41c86bc088e5e08b3a001203a5ac5c8dc7fd076aa8ce4319459a139b5",
       "executable": false
     },
     "tests/local-mail/compile-modules.mjs": {
-      "sha256": "c06e6d5e34d9c2790ecac639afdb74e271880b538a87082e59fd37ab0dd5f96b",
+      "sha256": "135c0f7c234320358c30e65f85f207c5304ecba626356e1e2a882ef2750a090d",
       "executable": false
     },
     "tests/local-mail/native-local-mail.test.mjs": {

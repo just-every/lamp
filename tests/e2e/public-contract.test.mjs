@@ -132,7 +132,9 @@ before(async () => {
   testStatePath = await mkdtemp(join(tmpdir(), "lamp-public-d1-"));
   testViteCachePath = await mkdtemp(join(tmpdir(), "lamp-public-vite-"));
   testPort = await reservePort({ label: "public contract Worker" });
-  appUrl = appOrigin(testPort);
+  // Native sign-in renders its email form only when mail is configured. This
+  // presentation-only fixture never submits it or publishes to recipients.
+  appUrl = appOrigin(testPort, { MAIL_PROVIDER_API_KEY: "test-only-signin-presentation-no-delivery" });
   pageUrl = pageOrigin(testPort);
   execFileSync("pnpm", ["run", "migrate:local"], { cwd: process.cwd(), stdio: "pipe", env: { ...process.env, LAMP_WORKERS_STATE_PATH: testStatePath } });
   sessionId = await insertRealOperatorSession({ persistTo: testStatePath, pageSettings: false });

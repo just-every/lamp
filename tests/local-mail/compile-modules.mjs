@@ -25,6 +25,7 @@ export async function compileMailModules(development) {
       routes: await import(pathToFileURL(join(output, 'features/dev-outbox/routes.mjs')).href),
       repository: await import(pathToFileURL(join(output, 'features/dev-outbox/repository.mjs')).href),
       mail: await import(pathToFileURL(join(output, 'platform/mail/development.mjs')).href),
+      sender: await import(pathToFileURL(join(output, 'platform/mail/sender.mjs')).href),
       close: () => rm(output, { recursive: true, force: true }),
     };
   } catch (error) { await rm(output, { recursive: true, force: true }); throw error; }
