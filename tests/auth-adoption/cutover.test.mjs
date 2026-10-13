@@ -53,6 +53,47 @@ contract('MOVE-006', 'dry runs and saved cutover previews carry truthful destina
   assert.equal(large.status, 400);
 });
 
+contract('MOVE-002', 'invitation preparation failures remain retryable while ambiguous transport failures stay claimed', async t => {
+  for (const failure of ['origin', 'configuration', 'tokens', 'authority', 'transport']) await t.test(failure, async t => {
+    const r = await lampRuntime(t);
+    const imported = await apply(r, fixture('small'));
+    let broken = true, cookie = r.cookie;
+    const mail = { configured: true, async send(message) {
+      r.messages.push(message);
+      if (broken && failure === 'transport') throw Error('Transport result unknown');
+    } };
+    const subscriberService = r.modules.createSubscribersService(r.modules.createSubscriberRepository(r.db), {
+      mail, tokenSecret: secret,
+      async fromAddress() {
+        if (broken && failure === 'configuration') return undefined;
+        if (broken && failure === 'authority') await r.db.prepare('UPDATE oa_sessions SET revoked_at=1').run();
+        return 'lamp@example.test';
+      },
+    });
+    if (failure === 'tokens') await r.db.prepare("CREATE TRIGGER refuse_token_preparation BEFORE INSERT ON subscriber_tokens BEGIN SELECT RAISE(ABORT, 'Token preparation unavailable'); END").run();
+    const app = new Hono();
+    app.use('/api/app/*', r.modules.requireOperator(() => r.auth));
+    r.modules.registerStatuspageImportRoutes(app, r.modules.createStatuspageImportService(r.db, {
+      async inviteSubscriber(id, claim) {
+        return subscriberService.inviteImported(id, broken && failure === 'origin' ? 'invalid-origin' : 'https://page.example.test', 'Test page', claim);
+      },
+      async publicDataChanged() {},
+    }));
+    const attempt = () => app.fetch(r.request(`${endpoint(imported.job.id)}/send-invitations`, {method:'POST', cookie, body:{}}), r.bindings);
+    assert.equal((await attempt()).status, 409);
+    const claims = (await r.db.prepare('SELECT count(*) n FROM statuspage_import_invites WHERE sent_at IS NOT NULL').first()).n;
+    assert.equal(claims, failure === 'transport' ? 1 : 0, `${failure} consumes only a transport handoff`);
+    assert.equal(r.messages.length, failure === 'transport' ? 1 : 0);
+    broken = false;
+    if (failure === 'tokens') await r.db.prepare('DROP TRIGGER refuse_token_preparation').run();
+    if (failure === 'authority') cookie = await r.base.signIn();
+    assert.ok((await Promise.all([attempt(), attempt()])).every(response => response.status === 200));
+    assert.equal((await attempt()).status, 200);
+    assert.equal(r.messages.length, 2, `${failure}: each address handed to transport once after repair`);
+    assert.equal(new Set(r.messages.map(message => message.to)).size, 2);
+  });
+});
+
 contract('MOVE-002', 'delayed invitations retain the original expiry and undo rows; expired pending subscribers are not sent mail', async t => {
   const r = await lampRuntime(t);
   const result = await apply(r, fixture('small'));
@@ -145,13 +186,28 @@ contract('MOVE-002', 'public subscriptions racing owner invitations cannot exten
   assert.deepEqual(expiries, rows.map(() => [{ expires_at: deadline }]));
   assert.deepEqual((await r.db.prepare('SELECT * FROM subscribers ORDER BY id').all()).results, before);
   // A separate, explicit opt-in after opting out still gets a fresh window,
-  // even though this subscriber's preserved native creation time is now old.
+  // independent of its old import window.
   const unsubscribe = invitations[0].text.match(/https?:\/\/\S+\/unsubscribe\/\S+/u)[0];
   assert.equal((await publicApp.request(unsubscribe, { method:'POST', body:new URLSearchParams({ 'List-Unsubscribe':'One-Click' }) })).status, 200);
   await r.db.prepare("UPDATE subscriber_confirmation_attempts SET last_sent_at='2000-01-01T00:00:00.000Z'").run();
   assert.equal((await subscribe(invitations[0].to)).status, 202);
   const fresh = r.messages.at(-1).text.match(/https?:\/\/\S+\/confirm-subscription\/\S+/u)[0];
-  assert.equal((await publicApp.request(fresh)).status, 200);
+  const renewed = await r.db.prepare('SELECT id,created_at FROM subscribers WHERE destination=?').bind(invitations[0].to).first();
+  await publicService.expirePending();
+  assert.equal((await publicApp.request(fresh)).status, 200, 'cleanup after the original deadline preserves the renewed confirmation');
   const rejoined = await r.db.prepare('SELECT state,created_at FROM subscribers WHERE destination=?').bind(invitations[0].to).first();
-  assert.deepEqual(rejoined, { state:'active', created_at:createdAt });
+  assert.deepEqual(rejoined, { state:'active', created_at:renewed.created_at });
+  assert.equal((await publicApp.request(unsubscribe, {method:'POST', body:new URLSearchParams({'List-Unsubscribe':'One-Click'})})).status, 404, 'previous unsubscribe authority stays revoked');
+  const currentUnsubscribe = r.messages.at(-1).text.match(/https?:\/\/\S+\/unsubscribe\/\S+/u)[0];
+  assert.equal((await publicApp.request(currentUnsubscribe, {method:'POST', body:new URLSearchParams({'List-Unsubscribe':'One-Click'})})).status, 200);
+  const beforeSuppressed = r.messages.length;
+  assert.equal((await subscribe(invitations[0].to)).status, 202);
+  assert.equal(r.messages.length, beforeSuppressed, 'rejoin preserves the address anti-bomb allowance');
+  await r.db.prepare("UPDATE subscriber_confirmation_attempts SET last_sent_at='2000-01-01T00:00:00.000Z'").run();
+  assert.equal((await subscribe(invitations[0].to)).status, 202);
+  const finalPending = await r.db.prepare('SELECT created_at FROM subscribers WHERE id=?').bind(renewed.id).first();
+  // The cleanup repository takes a 72-hour cutoff; advance that cutoff just
+  // beyond the renewed deadline without changing the process or D1 clock.
+  await r.modules.createSubscriberRepository(r.db).deleteExpiredPending(new Date(Date.parse(finalPending.created_at)+1).toISOString());
+  assert.equal(await r.db.prepare('SELECT id FROM subscribers WHERE id=?').bind(renewed.id).first(), null, 'cleanup after the renewed deadline removes the unconfirmed address');
 });

@@ -43,8 +43,10 @@ rer deploy
 ```
 
 The dry run validates and compiles locally without contacting Cloudflare. A
-deployment verifies the source, provisions or reuses resources, applies
-migrations and checks application health. Follow the [deployment guide](docs/install.md)
+deployment validates owner inputs, provisions or reuses resources, applies
+migrations, builds and uploads the Worker with secrets, and checks application health.
+Run `rer verify` separately for the full source and browser checks; deployment does
+not run the verifier. Follow the [deployment guide](docs/install.md)
 for owner inputs and the [domain steps](docs/domains.md) before routing visitors.
 
 Before `rer verify`, stop the active development server or production preview

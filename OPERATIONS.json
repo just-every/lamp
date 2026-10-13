@@ -83,7 +83,7 @@
         "rer",
         "deploy"
       ],
-      "effects": "Runs Lamp's Cloudflare pipeline: verification, resource setup, secret upload, Worker deploy and health check. --dry-run builds and validates locally with no provider request.",
+      "effects": "Runs Lamp's Cloudflare pipeline: input validation, resource setup and migrations, build, secret upload, Worker deploy and health check. Full verification runs separately with rer verify. --dry-run builds and validates locally with no provider request.",
       "inputs": [
         "package.json",
         "scripts/installer/local.mjs"

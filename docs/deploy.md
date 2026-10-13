@@ -11,8 +11,10 @@ rer deploy
 ```
 
 The dry run validates and compiles locally without contacting Cloudflare. A
-real deploy verifies the source, provisions or reuses resources, applies
-migrations, initializes ownership and checks application health. Afterward,
+real deploy validates owner inputs, provisions or reuses resources, applies
+migrations, builds and uploads the Worker with secrets, initializes ownership and
+checks application health. Run `rer verify` separately for the full source and
+browser checks. Afterward,
 check the public page and operator sign-in on their selected hosts. A successful
 health check does not prove inbox delivery; verify the installation's configured
 mail path separately.

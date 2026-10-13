@@ -52,7 +52,7 @@ export async function hostLamp({root,input,store,signal}) {
    accountId:config.accountId,resourcePrefix:config.resourcePrefix,hosting:config.hosting,
   });
   await store.run('Installing locked Lamp dependencies','pnpm',['install','--frozen-lockfile'],{cwd:root,signal});
-  // The native deploy command owns verification, setup/provisioning, migration,
+  // The native deploy command owns input validation, setup/provisioning, migration,
   // build, secret upload and both live health checks. No auth path is replaced.
   await store.run('Deploying Lamp to your Cloudflare account',process.execPath,['scripts/deploy.mjs'],{cwd:root,signal,env});
   await receipt.complete();

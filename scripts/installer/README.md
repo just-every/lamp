@@ -20,8 +20,9 @@ Before Start, use Edit on **Online page settings** and **Online mail settings**
 to complete the public hostname, hosting mode, verified sender, DKIM selector
 and provider API key. Missing or invalid inputs stop before dependency,
 provisioning or deployment commands and name what to correct. The native
-`deploy.mjs` command verifies, provisions through setup, applies migrations,
-builds, deploys and checks health. Existing owners and data are preserved.
+`deploy.mjs` command validates owner inputs, provisions through setup, applies
+migrations, builds, deploys and checks health. Full source and browser checks run
+separately through `rer verify`. Existing owners and data are preserved.
 Hosting may create billable resources in the selected account.
 
 This replaces the earlier separate "finish independent deployment" browser

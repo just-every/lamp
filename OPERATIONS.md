@@ -102,13 +102,14 @@ development server with `rer dev --stop` or production preview with
 
 ```sh
 pnpm install --frozen-lockfile
-pnpm exec playwright install chromium
 rer deploy --dry-run --environment staging
 rer deploy --environment production
 ```
 
 Dry run compiles and validates generated configuration without changing Cloudflare.
-Real deploy first runs setup and verification. Setup does not create a placeholder
+Real deploy validates owner inputs, runs resource setup and migrations, then builds.
+Run `rer verify` separately for the full source and browser checks; the GitHub Verify
+workflow retains that complete verification chain. Setup does not create a placeholder
 Worker or publish secrets separately. Deploy writes a private temporary secrets
 file, publishes the real Worker with it, removes that file even after failure,
 then checks the application host's health with a bounded request. It checks real
@@ -201,7 +202,7 @@ This provisions an empty target and imports before initialization; it never
 publishes a Worker. Inspect the restored archive and record equivalence before
 `rer deploy --environment recovery`. Keep original host routing active
 until the replacement has passed its application and provider checks. Passing
-`--restore-from` directly to deploy performs the same restore before verification
+`--restore-from` directly to deploy performs the same restore before building
 and publication, and refuses a destination that already contains data.
 
 ## Optional shared event relay
@@ -345,24 +346,6 @@ Configure the remaining inputs from the README deployment table before running t
 Both Workers serve the same compiled source and retain the configured host checks: operator paths on the public hostname return 404, and operator APIs on the app hostname require a session. The app Worker owns the scheduled jobs, queue consumer and snapshot Durable Object. The public Worker uses that same object and storage without a second scheduler or consumer. The command deploys the app Worker first, then the public Worker. Keep the prefix reserved for this installation, and remove both Workers when retiring it.
 
 This mode is supported by native `rer deploy`. The independent delivery artifact contract describes one Worker; it does not package this two-Worker topology.
-
-## Remote verification evidence
-
-Deployment runs the real full verifier before provisioning by default. Owners who run verification on another trusted machine can create exact-source evidence there:
-
-```sh
-node scripts/verify-receipt.mjs --output /absolute/private/path/verification.json
-```
-
-Run that command in a clean checkout of the deployment commit, with the pinned dependencies and browser tooling installed. The output path must be outside the source checkout and must not already exist. The wrapper runs `pnpm run verify`, checks the commit, source tree and clean status before and after it, and writes a private success receipt only after the entire command passes. A failed verification writes no success receipt.
-
-Then, from a clean checkout of that exact commit:
-
-```sh
-pnpm run deploy -- --verification-host trusted-runner --verification-receipt /absolute/private/path/verification.json
-```
-
-Both options are required together. The SSH host is an owner-trusted verifier already present in SSH known hosts. Deployment fetches the evidence over authenticated, noninteractive SSH with strict host-key checking; local JSON files cannot substitute for it. It checks the successful full command, commit and tree before setup, then rechecks clean source after the build and before upload. A missing, failed, mismatched or unreadable receipt stops deployment. Keep the remote receipt until deployment is finished; remove it as part of your own verifier cleanup. This proves source verification only; the deployment health and retained-snapshot checks still run and installation acceptance remains separate.
 
 ### Local capture and operational inspection
 

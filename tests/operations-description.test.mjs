@@ -68,7 +68,7 @@ test('deployment dry run still rejects invalid native configuration without prov
   assert.equal(result.stdout, '');
 });
 
-test('real deployment requires both Cloudflare authority inputs before verification', () => {
+test('real deployment requires both Cloudflare authority inputs before provisioning', () => {
   for (const authority of [{}, { CLOUDFLARE_ACCOUNT_ID: 'test-account' }, { CLOUDFLARE_API_TOKEN: 'test-token' }]) {
     const result = deploy([], { ...applicationEnvironment, ...authority });
     assert.equal(result.status, 1);
@@ -77,7 +77,7 @@ test('real deployment requires both Cloudflare authority inputs before verificat
     }
     assert.ok(!result.stderr.includes('test-account'));
     assert.ok(!result.stderr.includes('test-token'));
-    assert.ok(!result.stderr.includes('pnpm run verify failed'));
+    assert.doesNotMatch(result.stderr, /pnpm/);
     assert.equal(result.stdout, '');
   }
 });

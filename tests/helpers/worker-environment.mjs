@@ -6,6 +6,7 @@ export function fixtureProcessEnv(overrides = {}) {
   for (const key of [
     "RER_DEV_ORIGIN", "RER_DEV_KEY", "RER_DEV_IDENTITY",
     "AUTH_ORIGIN", "AUTH_LOCAL", "LAMP_LOCAL_ORIGIN", "LAMP_WRANGLER_CONFIG",
+    "LAMP_HOSTING", "LAMP_RESOURCE_PREFIX",
     "SESSION_SECRET", "SETUP_OPERATOR_EMAIL",
   ]) delete env[key];
   return {

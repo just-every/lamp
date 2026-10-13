@@ -10,8 +10,10 @@ rer deploy
 Before a command that builds or verifies the checkout, stop a running development
 server with `rer dev --stop` or a production preview with `rer preview --stop`.
 The dry run builds and validates locally without a Cloudflare request. A deploy
-verifies the source, provisions or reuses Cloudflare resources, applies
-migrations, initializes ownership and checks application health. These commands
+validates owner inputs, provisions or reuses Cloudflare resources, applies
+migrations, builds and uploads the Worker with secrets, initializes ownership and
+checks application health. Run `rer verify` separately for the full source and
+browser checks. These commands
 are for a Cloudflare installation; the separate [local guide](../RUN-LOCALLY.md)
 covers local launch and recovery.
 

@@ -34,10 +34,20 @@ const deploymentEnvironment = {
 };
 
 test("generated setup config uses the Start entry and leaves client assets to Vite", () => {
+  const ownerEnvironment = process.env;
+  let fixture;
+  try {
+    process.env = { ...ownerEnvironment, LAMP_HOSTING: "workers-dev", LAMP_RESOURCE_PREFIX: "owner-production" };
+    fixture = fixtureProcessEnv(deploymentEnvironment);
+  } finally {
+    process.env = ownerEnvironment;
+  }
+  const settings = deploymentConfig(fixture, "staging");
   const config = renderWranglerToml(
-    deploymentConfig(deploymentEnvironment, "staging"),
-    { ...resourceNames("staging"), databaseId: "00000000-0000-0000-0000-000000000000" },
+    settings,
+    { ...resourceNames(settings.environment, settings.resourcePrefix), databaseId: "00000000-0000-0000-0000-000000000000" },
   );
+  assert.match(config, /^name = "lamp-staging"$/m);
   assert.match(config, /^main = "src\/server\.ts"$/m);
   assert.match(config, /^compatibility_flags = \["nodejs_compat", "global_fetch_strictly_public"\]$/m);
   assert.match(config, /\[assets\]\nbinding = "ASSETS"\nrun_worker_first = true/);
