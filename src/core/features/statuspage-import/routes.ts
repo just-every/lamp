@@ -7,13 +7,14 @@ import type { StatuspageImportService } from "./service";
 import { importLimits } from "./source";
 
 const files = z.array(z.object({ name: z.string().max(80), text: z.string() }).strict()).max(importLimits.files);
-const previewSchema = z.object({ files: files.optional(), pageId: z.string().max(40).optional(), apiKey: z.string().max(200).optional() }).strict();
-const applySchema = z.object({ files: files.min(1), asOf: z.string().datetime(), fingerprint: z.string().regex(/^[a-f0-9]{64}$/u), acknowledged: z.literal(true) }).strict();
+const sourceFields = { source: z.enum(["statuspage", "betterstack"]).optional(), publicAccessAcknowledged: z.boolean().optional() };
+const previewSchema = z.object({ ...sourceFields, files: files.optional(), pageId: z.string().max(40).optional(), apiKey: z.string().max(200).optional() }).strict();
+const applySchema = z.object({ ...sourceFields, pageId: z.string().max(64).optional(), files: files.min(1), asOf: z.string().datetime(), fingerprint: z.string().regex(/^[a-f0-9]{64}$/u), acknowledged: z.literal(true) }).strict();
 const jobId = z.string().min(1).max(100);
 
 export function registerStatuspageImportRoutes(app: Hono<AppEnv>, service: StatuspageImportService) {
   const refused = (cause: unknown) => {
-    const message = cause instanceof Error ? cause.message : "";
+    const message = cause instanceof Error ? cause.message.replace(/[\r\n]+/gu, " ") : "";
     // Kit codes name an integrity guard, never source content or the API key.
     return /^[A-Z_]+$/u.test(message) || !message || message.length > 350 ? "The import was refused. Run the dry run again from the same source." : message;
   };
@@ -22,7 +23,7 @@ export function registerStatuspageImportRoutes(app: Hono<AppEnv>, service: Statu
 
   app.post("/api/app/statuspage-import/preview", async (context) => {
     const parsed = previewSchema.safeParse(await context.req.json().catch(() => null));
-    if (!parsed.success) return context.json({ error: "Choose saved Statuspage responses, or enter a page ID and API key." }, 400);
+    if (!parsed.success) return context.json({ error: "Choose saved source responses, or enter a page ID and API key." }, 400);
     try { return context.json(await service.preview(parsed.data, context.get("operatorSession"))); }
     catch (cause) { return context.json({ error: refused(cause) }, 400); }
   });

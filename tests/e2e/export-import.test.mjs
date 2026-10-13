@@ -11,6 +11,7 @@ import { getPlatformProxy } from "wrangler";
 import { contract } from "../contract.mjs";
 import { applyOwnerMigrations } from "../../scripts/owner-migrations.mjs";
 import { renderRemoteArchiveWranglerToml } from "../../scripts/ops-config.mjs";
+import { importHistoryForRestore, undoHistoryAfterRestore } from "../betterstack/portability.mjs";
 
 const configPath = "wrangler.jsonc";
 const logo = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Y9Jm4kAAAAASUVORK5CYII=", "base64");
@@ -59,6 +60,7 @@ contract("HIST-004", "export restores every JSON entity, settings and audit entr
   const targetState = await mkdtemp(join(tmpdir(), "lamp-export-target-"));
   const archive = await mkdtemp(join(tmpdir(), "lamp-export-archive-"));
   const restoredArchive = await mkdtemp(join(tmpdir(), "lamp-export-restored-"));
+  let importedHistory;
   try {
     run(["exec", "wrangler", "d1", "migrations", "apply", "DB", "--local", "--persist-to", sourceState, "--config", configPath]);
     await applyOwnerMigrations(configPath, ["--local", "--persist-to", sourceState]);
@@ -76,6 +78,7 @@ contract("HIST-004", "export restores every JSON entity, settings and audit entr
         source.env.DB.prepare("INSERT INTO incident_reports (id, incident_id, summary, timeline, cause, remediation, published_at, author_operator_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)").bind("report-export", "incident-export", "Summary", "Timeline", "Cause", "Remediation", "2026-09-08T01:00:00.000Z", "operator-export", "2026-09-08T01:00:00.000Z", "2026-09-08T01:00:00.000Z"),
         source.env.DB.prepare("INSERT INTO maintenance (id, reference, title, state, starts_at, ends_at, completed_at, created_by_operator_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)").bind("maintenance-export", "SCH-4242", "Database maintenance", "Completed", "2026-09-09T00:00:00.000Z", "2026-09-09T01:00:00.000Z", "2026-09-09T01:00:00.000Z", "operator-export", "2026-09-08T00:00:00.000Z", "2026-09-09T01:00:00.000Z"),
         source.env.DB.prepare("INSERT INTO maintenance_components (id, maintenance_id, component_id, component_name, state, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)").bind("maintenance-component-export", "maintenance-export", "component-export", "Public API", "Under maintenance", "2026-09-08T00:00:00.000Z", "2026-09-08T00:00:00.000Z"),
+        source.env.DB.prepare("INSERT INTO import_maintenance_updates (id,maintenance_id,body,published_at,source_states) VALUES (?,?,?,?,?)").bind("imported-maintenance-update", "maintenance-export", "Original provider maintenance message", "2026-09-09T00:15:00.000Z", "[]"),
         source.env.DB.prepare("INSERT INTO maintenance_notices (id, maintenance_id, kind, body, published_at, author_operator_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)").bind("notice-export", "maintenance-export", "completed", "Maintenance complete.", "2026-09-09T01:00:00.000Z", "operator-export", "2026-09-09T01:00:00.000Z", "2026-09-09T01:00:00.000Z"),
         source.env.DB.prepare("INSERT INTO subscribers (id, channel, destination, contact_email, state, selection_mode, token_hash, deactivation_reason, deactivated_at, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)").bind("subscriber-export", "email", "reader@example.test", "reader@example.test", "active", "selected", "token-hash-export", null, null, "2026-09-08T00:00:00.000Z", "2026-09-08T00:00:00.000Z"),
         source.env.DB.prepare("INSERT INTO subscriber_components (id, subscriber_id, component_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?)").bind("subscriber-component-export", "subscriber-export", "component-export", "2026-09-08T00:00:00.000Z", "2026-09-08T00:00:00.000Z"),
@@ -83,6 +86,7 @@ contract("HIST-004", "export restores every JSON entity, settings and audit entr
         source.env.DB.prepare("INSERT INTO audit_entries (id, entity_type, entity_id, action, operator_id, reason, payload_json, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)").bind("audit-export", "component-state-history", "history-export", "corrected", "operator-export", "Verified export", '{"before":"Operational","after":"Major outage"}', "2026-09-08T00:00:00.000Z", "2026-09-08T00:00:00.000Z"),
       ]);
       await source.env.SNAPSHOTS.put("branding/original.png", logo, { httpMetadata: { contentType: "image/png", contentDisposition: "attachment; filename=brand.png", cacheControl: "public, max-age=60" }, customMetadata: { owner: "portable-brand" } });
+      importedHistory=await importHistoryForRestore(source.env.DB);
     } finally {
       await source.dispose();
     }
@@ -138,6 +142,7 @@ contract("HIST-004", "export restores every JSON entity, settings and audit entr
       assert.equal(restoredLogo.httpMetadata.cacheControl, "public, max-age=60");
       assert.deepEqual(restoredLogo.customMetadata, { owner: "portable-brand" });
       assert.deepEqual(Buffer.from(await restoredLogo.arrayBuffer()), logo);
+      await undoHistoryAfterRestore(target.env.DB,importedHistory);
     } finally {
       await target.dispose();
     }

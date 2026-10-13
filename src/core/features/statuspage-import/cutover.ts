@@ -3,11 +3,16 @@ import type { NativeValue } from './rows';
 import { isLampPermalink, resolvePublicAddresses, sourceFeedPaths, type PublicAddressCandidate } from './public-addresses';
 
 export interface CutoverPreview {
+  source?: string;
+  readerGaps?: string[];
   rows: Array<{ address: string; path: string; target: string }>;
   total: number;
   unavailable: string[];
   feeds: string[];
   invitations: { eligible: number; claimed: number; expired: number; deadline: string | null };
+}
+export function sourceReaderGaps(namespace: string) {
+  return namespace === 'betterstack' ? ["Better Stack RSS /feed.rss and public JSON /index.json are not served by Lamp. Update readers to /feed.atom and the native /api/public/status format."] : ["Statuspage JSON API readers under /api/v2/ receive 404; Lamp does not implement that compatibility API. Update those readers to Lamp's native /api/public/status format.", "Statuspage RSS readers at /history.rss receive 404; change their subscription to /feed.atom."];
 }
 export const pendingDeadline = (createdAt: string) => new Date(Date.parse(createdAt) + 72 * 60 * 60 * 1000).toISOString();
 export function cutoverAddresses(records: PublicAddressCandidate[]) {
@@ -22,8 +27,8 @@ export function cutoverFromPlan(plan: ImportPlan, asOf: string): CutoverPreview 
     const native = tables[effect.targetKind === 'incident' ? 'incidents' : 'maintenance']?.[0];
     const target = `/${effect.targetKind === 'incident' ? 'incidents' : 'maintenance'}/${native?.reference}`;
     if (!isLampPermalink(target)) return [];
-    return [{ namespace: entry.source.namespace, sourceId: entry.source.sourceId, targetId: effect.targetId, targetKind: effect.targetKind, target, shortlink: (entry.source.payload as { raw?: { shortlink?: unknown } }).raw?.shortlink }];
+    return [{ namespace: entry.source.namespace, sourceId: entry.source.sourceId, targetId: effect.targetId, targetKind: effect.targetKind, target, publicAddresses: (entry.source.payload as { publicAddresses?: string[] }).publicAddresses, shortlink: (entry.source.payload as { raw?: { shortlink?: unknown } }).raw?.shortlink }];
   }));
   const eligible = plan.entries.filter(entry => !entry.erased).flatMap(entry => entry.effects).filter(effect => effect.targetKind === 'subscriber').length;
-  return { ...cutoverAddresses(records), feeds: [...new Set(plan.entries.flatMap(entry => sourceFeedPaths[entry.source.namespace] ?? []))], invitations: { eligible, claimed: 0, expired: 0, deadline: eligible && asOf ? pendingDeadline(asOf) : null } };
+  return { source: plan.namespace, readerGaps: sourceReaderGaps(plan.namespace), ...cutoverAddresses(records), feeds: [...new Set(plan.entries.flatMap(entry => sourceFeedPaths[entry.source.namespace] ?? []))], invitations: { eligible, claimed: 0, expired: 0, deadline: eligible && asOf ? pendingDeadline(asOf) : null } };
 }

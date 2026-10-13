@@ -1,0 +1,110 @@
+{
+  "data": [
+    {
+      "id": "31001500",
+      "type": "status_report",
+      "attributes": {
+        "title": "small incident 1",
+        "report_type": "manual",
+        "starts_at": "2025-01-01T09:00:00.000Z",
+        "ends_at": "2025-01-01T12:00:00.000Z",
+        "status_page_id": 31001,
+        "affected_resources": [
+          {
+            "status_page_resource_id": "31001100",
+            "status": "downtime"
+          }
+        ],
+        "aggregate_state": "operational"
+      },
+      "relationships": {
+        "status_updates": {
+          "data": [
+            {
+              "id": "310015000",
+              "type": "status_update"
+            },
+            {
+              "id": "310015001",
+              "type": "status_update"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "31001501",
+      "type": "status_report",
+      "attributes": {
+        "title": "small incident 2",
+        "report_type": "automatic",
+        "starts_at": "2025-01-02T09:00:00.000Z",
+        "ends_at": "2025-01-02T12:00:00.000Z",
+        "status_page_id": 31001,
+        "affected_resources": [
+          {
+            "status_page_resource_id": "31001101",
+            "status": "downtime"
+          }
+        ],
+        "aggregate_state": "operational"
+      },
+      "relationships": {
+        "status_updates": {
+          "data": [
+            {
+              "id": "310015010",
+              "type": "status_update"
+            },
+            {
+              "id": "310015011",
+              "type": "status_update"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "31001502",
+      "type": "status_report",
+      "attributes": {
+        "title": "small maintenance 3",
+        "report_type": "maintenance",
+        "starts_at": "2025-01-03T09:00:00.000Z",
+        "ends_at": "2025-01-03T12:00:00.000Z",
+        "status_page_id": 31001,
+        "affected_resources": [
+          {
+            "status_page_resource_id": "31001102",
+            "status": "maintenance"
+          }
+        ],
+        "aggregate_state": "maintenance"
+      },
+      "relationships": {
+        "status_updates": {
+          "data": [
+            {
+              "id": "310015020",
+              "type": "status_update"
+            },
+            {
+              "id": "310015021",
+              "type": "status_update"
+            },
+            {
+              "id": "310015022",
+              "type": "status_update"
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "pagination": {
+    "first": "https://incidents.betterstack.com/api/v2/status-pages/31001/status-reports?page=1",
+    "last": "https://incidents.betterstack.com/api/v2/status-pages/31001/status-reports?page=1",
+    "prev": null,
+    "next": null
+  }
+}

@@ -26,6 +26,7 @@ export interface PublicMaintenance {
   endsAt: string;
   completedAt: string | null;
   components: string[];
+  importedUpdates?: Array<{ id: string; body: string; publishedAt: string }>;
   notices: Array<{ id: string; kind: string; body: string; publishedAt: string }>;
 }
 
@@ -68,6 +69,6 @@ export function noticeMarkup(notice: PublicMaintenance["notices"][number], timez
 
 export function maintenanceMarkup(item: PublicMaintenance, timezone: string, generatedAt: string, permalink = false) {
   const overrun = item.state === "In progress" && new Date(item.endsAt).getTime() + 15 * MINUTE < new Date(generatedAt).getTime();
-  const notices = item.notices.map((notice) => noticeMarkup(notice, timezone)).join("");
+  const notices = [...item.notices, ...(item.importedUpdates ?? []).map(update => ({ ...update, kind: "Imported update" }))].sort((a, b) => b.publishedAt.localeCompare(a.publishedAt)).map((notice) => noticeMarkup(notice, timezone)).join("");
   return `<article class="maintenance">${recordHead(item.state === "Scheduled" ? "Planned maintenance" : "Maintenance", item.reference, permalink ? escapeHtml(item.title) : `<a href="/maintenance/${encodeURIComponent(item.reference)}">${escapeHtml(item.title)}</a>`, permalink ? "h1" : "h4", item.state)}<p class="maintenance-window">${timestamp(item.startsAt, timezone)} – ${timestamp(item.endsAt, timezone)}${overrun ? ` <span class="overrun">Running longer than planned</span>` : ""}</p><p class="incident-meta">Affects ${escapeHtml(item.components.join(", "))}</p>${notices ? `<div class="updates">${notices}</div>` : ""}</article>`;
 }

@@ -28,10 +28,10 @@ const CROCKFORD = "0123456789ABCDEFGHJKMNPQRSTVWXYZ";
 /** A canonical ULID whose time part is the source record's own time and whose
  * random part is derived from its source identity, so a re-plan names the
  * same native records. */
-export function stableId(key: string, at: string) {
+export function stableId(key: string, at: string, namespace = "statuspage") {
   let time = Math.max(0, Date.parse(at) || 0), prefix = "";
   for (let index = 0; index < 10; index += 1) { prefix = CROCKFORD[time % 32] + prefix; time = Math.floor(time / 32); }
-  const digest = sha256(`statuspage:${key}`);
+  const digest = sha256(`${namespace}:${key}`);
   let suffix = "";
   for (let index = 0; index < 16; index += 1) suffix += CROCKFORD[parseInt(digest.slice(index * 2, index * 2 + 2), 16) % 32];
   return prefix + suffix;
@@ -49,11 +49,12 @@ interface Claim { componentId: string; causeType: "standing-claim" | "incident" 
 /** Plans every native record of one move-in. Retroactive: published times are
  * the source's times, state history is derived from those claims, and nothing
  * here queues a notification. */
-export function mapSource(data: SourceData, snapshot: Snapshot, operatorId: string, asOf: string): Mapped[] {
+export function mapSource(data: SourceData, snapshot: Snapshot, operatorId: string, asOf: string, namespace = "statuspage"): Mapped[] {
+  const identify = (key: string, at: string) => stableId(key, at, namespace);
   const results: Mapped[] = [];
   const groupIds = new Map<string, string>();
   [...data.groups].sort((a, b) => a.position - b.position || a.id.localeCompare(b.id)).forEach((group, index) => {
-    const id = stableId(`group:${group.id}`, group.created_at);
+    const id = identify(`group:${group.id}`, group.created_at);
     groupIds.set(group.id, id);
     const name = clip(group.name, 120);
     results.push({ kind: "group", sourceId: group.id, value: { tables: { component_groups: [{ id, name, display_order: snapshot.maxGroupOrder + index + 1, created_at: asOf, updated_at: asOf }] } },
@@ -63,11 +64,11 @@ export function mapSource(data: SourceData, snapshot: Snapshot, operatorId: stri
   const components = new Map<string, { id: string; name: string; created: string }>();
   const componentAccounting = new Map<string, Accounting[]>();
   [...data.components].sort((a, b) => a.position - b.position || a.id.localeCompare(b.id)).forEach((component) => {
-    components.set(component.id, { id: stableId(`component:${component.id}`, component.created_at), name: clip(component.name, 120), created: iso(component.created_at) });
+    components.set(component.id, { id: identify(`component:${component.id}`, component.created_at), name: clip(component.name, 120), created: iso(component.created_at) });
     const notes: string[] = [];
     if (component.group_id && !groupIds.has(component.group_id)) notes.push("its group was not in the saved responses, so it is ungrouped");
     if (component.only_show_if_degraded) notes.push("Lamp always shows visible components, so 'only show if degraded' is dropped");
-    if (component.status && component.status !== "operational") notes.push(`its current '${component.status}' status is set by open incidents and maintenance here, not carried as a manual status`);
+    if (namespace === "statuspage" && component.status && component.status !== "operational") notes.push(`its current '${component.status}' status is set by open incidents and maintenance here, not carried as a manual status`);
     componentAccounting.set(component.id, [{ kind: "component", sourceId: component.id, name: component.name, outcome: notes.length ? "changed" : "imported", reason: notes.length ? `Imported; ${notes.join("; ")}.` : "Component, description and order carried over." }]);
   });
   const claims: Claim[] = [];
@@ -79,10 +80,10 @@ export function mapSource(data: SourceData, snapshot: Snapshot, operatorId: stri
   const nextIncident = references("INC"), nextMaintenance = references("SCH");
 
   for (const incident of [...data.incidents].sort((a, b) => a.created_at.localeCompare(b.created_at) || a.id.localeCompare(b.id))) {
-    results.push(mapIncident(incident, components, claims, operatorId, asOf, nextIncident));
+    results.push(mapIncident(incident, components, claims, operatorId, asOf, nextIncident, identify, namespace === "betterstack" ? incident.resolved_at : undefined));
   }
   for (const window of [...data.maintenance].sort((a, b) => (a.scheduled_for ?? a.created_at).localeCompare(b.scheduled_for ?? b.created_at) || a.id.localeCompare(b.id))) {
-    results.push(mapMaintenance(window, components, claims, operatorId, asOf, nextMaintenance));
+    results.push(mapMaintenance(window, components, claims, operatorId, asOf, nextMaintenance, identify, namespace !== "statuspage"));
   }
 
   // Components carry their whole derived history, so they are planned after
@@ -91,25 +92,28 @@ export function mapSource(data: SourceData, snapshot: Snapshot, operatorId: stri
   [...data.components].sort((a, b) => a.position - b.position || a.id.localeCompare(b.id)).forEach((component, index) => {
     const native = components.get(component.id)!;
     const own = claims.filter((claim) => claim.componentId === native.id).sort((a, b) => a.changedAt.localeCompare(b.changedAt));
+    if (namespace !== "statuspage" && component.status && component.status !== "operational") own.push({ componentId: native.id, causeType: "standing-claim", causeId: null, state: componentStates[component.status], changedAt: asOf });
     const created = [native.created, ...own.map((claim) => claim.changedAt)].sort()[0];
-    const history = deriveHistory(native.id, created, own, operatorId, asOf);
+    const history = deriveHistory(native.id, created, own, operatorId, asOf, identify);
     componentResults.push({ kind: "component", sourceId: component.id, accounting: componentAccounting.get(component.id)!, value: { tables: {
       components: [{ id: native.id, group_id: component.group_id ? groupIds.get(component.group_id) ?? null : null, name: native.name, description: clip(component.description ?? "", 280), internal: 0, display_order: snapshot.maxComponentOrder + index + 1, note: "", created_at: created, updated_at: asOf }],
+      ...(namespace !== "statuspage" && component.status && component.status !== "operational" ? { component_standing_claims: [{ id: identify(`standing:${component.id}`, asOf), component_id: native.id, state: componentStates[component.status], operator_id: operatorId, created_at: asOf, updated_at: asOf }] } : {}),
       component_claim_events: history.events,
       component_state_history: history.history,
     } } });
   });
 
-  const subscriberResults = data.subscribers.map((subscriber) => mapSubscriber(subscriber, components, snapshot, asOf));
+  const subscriberResults = data.subscribers.map((subscriber) => mapSubscriber(subscriber, components, snapshot, asOf, identify, namespace));
   const order: EntityKind[] = ["group", "component", "incident", "maintenance", "subscriber"];
   return [...results, ...componentResults, ...subscriberResults].sort((a, b) => order.indexOf(a.kind) - order.indexOf(b.kind));
 }
 
-function mapIncident(incident: SourceIncident, components: Map<string, { id: string; name: string }>, claims: Claim[], operatorId: string, asOf: string, reference: () => string): Mapped {
+function mapIncident(incident: SourceIncident, components: Map<string, { id: string; name: string }>, claims: Claim[], operatorId: string, asOf: string, reference: () => string, identify: typeof stableId, sourceEndedAt?: string | null): Mapped {
   const name = incident.name;
   const updates = [...incident.incident_updates].sort((a, b) => at(a).localeCompare(at(b)) || a.id.localeCompare(b.id));
   if (!updates.length) return { kind: "incident", sourceId: incident.id, accounting: [{ kind: "incident", sourceId: incident.id, name, outcome: "rejected", reason: "No published updates to carry." }] };
-  const id = stableId(`incident:${incident.id}`, incident.created_at);
+  const id = identify(`incident:${incident.id}`, incident.created_at);
+  const claimEndsAt = sourceEndedAt ? iso(sourceEndedAt) : null;
   const notes = new Set<string>();
   const current = new Map<string, ComponentState>();
   const peak: ComponentState[] = [];
@@ -126,7 +130,10 @@ function mapIncident(incident: SourceIncident, components: Map<string, { id: str
     const publishedAt = at(update);
     for (const [code, state] of current) {
       peak.push(state);
-      claims.push({ componentId: components.get(code)!.id, causeType: "incident", causeId: id, state: lifecycle === "Resolved" ? null : state, changedAt: publishedAt });
+      // Better Stack's report end and message publication are independent.
+      // Preserve its explicit affected states until the report ends, without
+      // inventing a resolution message or moving a source message's timestamp.
+      if (!claimEndsAt || publishedAt < claimEndsAt) claims.push({ componentId: components.get(code)!.id, causeType: "incident", causeId: id, state: !claimEndsAt && lifecycle === "Resolved" ? null : state, changedAt: publishedAt });
     }
     if (lifecycle === "Resolved") resolvedAt = publishedAt;
     const body = (update.body ?? "").trim() || name;
@@ -134,11 +141,12 @@ function mapIncident(incident: SourceIncident, components: Map<string, { id: str
     const details = body.length > 250 ? clip(body.slice(249), 500) : "";
     if (body.length > 749) notes.add("long update text was shortened to Lamp's update fields");
     const names = [...current.keys()].map((code) => components.get(code)!.name);
-    rows.push({ id: stableId(`incident-update:${update.id}`, publishedAt), incident_id: id, lifecycle, affected_audience: clip(names.length ? `Customers using ${names.join(", ")}` : "All customers", 250), customer_impact: impact, what_still_works: "", details, next_update_at: null, published_at: publishedAt, author_operator_id: operatorId, corrects_update_id: null, is_retroactive: 1, created_at: asOf, updated_at: asOf });
+    rows.push({ id: identify(`incident-update:${update.id}`, publishedAt), incident_id: id, lifecycle, affected_audience: clip(names.length ? `Customers using ${names.join(", ")}` : "All customers", 250), customer_impact: impact, what_still_works: "", details, next_update_at: null, published_at: publishedAt, author_operator_id: operatorId, corrects_update_id: null, is_retroactive: 1, created_at: asOf, updated_at: asOf });
   }
+  if (claimEndsAt) for (const code of current.keys()) claims.push({ componentId: components.get(code)!.id, causeType: "incident", causeId: id, state: null, changedAt: claimEndsAt });
   if (incident.postmortem_body) notes.add("the post-incident report is not carried");
   const firstPublished = at(updates[0]);
-  const attached = [...current.entries()].map(([code, state]) => ({ id: stableId(`incident-component:${incident.id}:${code}`, firstPublished), incident_id: id, component_id: components.get(code)!.id, component_name: components.get(code)!.name, state, relationship: "Primary", created_at: asOf, updated_at: asOf, published_at: firstPublished }));
+  const attached = [...current.entries()].map(([code, state]) => ({ id: identify(`incident-component:${incident.id}:${code}`, firstPublished), incident_id: id, component_id: components.get(code)!.id, component_name: components.get(code)!.name, state, relationship: "Primary", created_at: asOf, updated_at: asOf, published_at: firstPublished }));
   if (!attached.length) return { kind: "incident", sourceId: incident.id, accounting: [{ kind: "incident", sourceId: incident.id, name, outcome: "rejected", reason: "It names no component in the saved responses; Lamp incidents attach at least one." }] };
   const title = clip(name, 250);
   if (title !== name) notes.add("the title was shortened to 250 characters");
@@ -149,11 +157,11 @@ function mapIncident(incident: SourceIncident, components: Map<string, { id: str
   } }, accounting: [{ kind: "incident", sourceId: incident.id, name, outcome: notes.size ? "changed" : "imported", reason: `${updates.length} update${updates.length === 1 ? "" : "s"} at their original times, notifying no one${notes.size ? `; ${[...notes].join("; ")}` : ""}.` }] };
 }
 
-function mapMaintenance(window: SourceIncident, components: Map<string, { id: string; name: string }>, claims: Claim[], operatorId: string, asOf: string, reference: () => string): Mapped {
+function mapMaintenance(window: SourceIncident, components: Map<string, { id: string; name: string }>, claims: Claim[], operatorId: string, asOf: string, reference: () => string, identify: typeof stableId, preserveUpdates: boolean): Mapped {
   const name = window.name;
   const startsAt = window.scheduled_for ? iso(window.scheduled_for) : null, endsAt = window.scheduled_until ? iso(window.scheduled_until) : null;
   if (!startsAt || !endsAt || endsAt <= startsAt) return { kind: "maintenance", sourceId: window.id, accounting: [{ kind: "maintenance", sourceId: window.id, name, outcome: "rejected", reason: "It has no valid scheduled window." }] };
-  const id = stableId(`maintenance:${window.id}`, startsAt);
+  const id = identify(`maintenance:${window.id}`, startsAt);
   const attached = [...new Set([...(window.components ?? []).map((component) => component.id), ...window.incident_updates.flatMap((update) => (update.affected_components ?? []).map((affected) => affected.code))])].filter((code) => components.has(code));
   if (!attached.length) return { kind: "maintenance", sourceId: window.id, accounting: [{ kind: "maintenance", sourceId: window.id, name, outcome: "rejected", reason: "It names no component in the saved responses." }] };
   // A window already over is history, whatever its source status: importing it
@@ -168,11 +176,12 @@ function mapMaintenance(window: SourceIncident, components: Map<string, { id: st
   const sourceState = ({ scheduled: "Scheduled", in_progress: "In progress", verifying: "In progress", completed: "Completed" } as Record<string, string>)[window.status];
   return { kind: "maintenance", sourceId: window.id, value: { tables: {
     maintenance: [{ id, reference: reference(), title: clip(name, 250), state, starts_at: startsAt, ends_at: endsAt, completed_at: completedAt, created_by_operator_id: operatorId, created_at: asOf, updated_at: asOf }],
-    maintenance_components: attached.map((code) => ({ id: stableId(`maintenance-component:${window.id}:${code}`, startsAt), maintenance_id: id, component_id: components.get(code)!.id, component_name: components.get(code)!.name, state: "Under maintenance", created_at: asOf, updated_at: asOf })),
+    ...(preserveUpdates && window.incident_updates.length ? { import_maintenance_updates: window.incident_updates.map((update) => ({ id: identify(`maintenance-update:${update.id}`, at(update)), maintenance_id: id, body: update.body ?? "", published_at: at(update), source_states: JSON.stringify(update.affected_components ?? []) })).sort((a, b) => a.published_at.localeCompare(b.published_at) || a.id.localeCompare(b.id)) } : {}),
+    maintenance_components: attached.map((code) => ({ id: identify(`maintenance-component:${window.id}:${code}`, startsAt), maintenance_id: id, component_id: components.get(code)!.id, component_name: components.get(code)!.name, state: "Under maintenance", created_at: asOf, updated_at: asOf })),
   } }, accounting: [{ kind: "maintenance", sourceId: window.id, name, outcome: sourceState === state ? "imported" : "changed", reason: sourceState === state ? `${state} window carried over; no notice is sent for it.` : `Imported as ${state} because its window is ${state === "Completed" ? "over" : "under way"}; no notice is sent for it.` }] };
 }
 
-function mapSubscriber(subscriber: SourceSubscriber, components: Map<string, { id: string }>, snapshot: Snapshot, asOf: string): Mapped {
+function mapSubscriber(subscriber: SourceSubscriber, components: Map<string, { id: string }>, snapshot: Snapshot, asOf: string, identify: typeof stableId, namespace: string): Mapped {
   const skip = (reason: string): Mapped => ({ kind: "subscriber", sourceId: subscriber.id, accounting: [{ kind: "subscriber", sourceId: subscriber.id, name: subscriber.email ? "Email subscriber" : `${subscriber.mode} subscriber`, outcome: "skipped", reason }] });
   if (subscriber.mode !== "email") return skip(`Lamp carries email subscribers; ${subscriber.mode} subscribers subscribe again here.`);
   const email = subscriber.email?.trim().toLowerCase();
@@ -180,21 +189,22 @@ function mapSubscriber(subscriber: SourceSubscriber, components: Map<string, { i
   if (subscriber.quarantined_at) return skip("Quarantined at the source after delivery failures.");
   if (snapshot.destinations.has(email)) return skip("This address already has a subscription here.");
   snapshot.destinations.add(email);
-  const id = stableId(`subscriber:${subscriber.id}`, asOf);
-  const selected = (subscriber.components ?? []).filter((code) => components.has(code));
+  const id = identify(`subscriber:${subscriber.id}`, asOf);
+  if (subscriber.components?.some((code) => !components.has(code))) return skip("A selected component is missing; preferences cannot be broadened.");
+  const selected = subscriber.components ?? [];
   return { kind: "subscriber", sourceId: subscriber.id, value: { tables: {
-    subscribers: [{ id, channel: "email", destination: email, contact_email: null, state: "pending", selection_mode: selected.length ? "selected" : "all", token_hash: sha256(`statuspage-import-subscriber:${subscriber.id}:${email}`), deactivation_reason: null, deactivated_at: null, created_at: asOf, updated_at: asOf }],
-    subscriber_components: selected.map((code) => ({ id: stableId(`subscriber-component:${subscriber.id}:${code}`, asOf), subscriber_id: id, component_id: components.get(code)!.id, created_at: asOf, updated_at: asOf })),
+    subscribers: [{ id, channel: "email", destination: email, contact_email: null, state: "pending", selection_mode: selected.length ? "selected" : "all", token_hash: sha256(`${namespace}-import-subscriber:${subscriber.id}:${email}`), deactivation_reason: null, deactivated_at: null, created_at: asOf, updated_at: asOf }],
+    subscriber_components: selected.map((code) => ({ id: identify(`subscriber-component:${subscriber.id}:${code}`, asOf), subscriber_id: id, component_id: components.get(code)!.id, created_at: asOf, updated_at: asOf })),
   } }, accounting: [{ kind: "subscriber", sourceId: subscriber.id, name: "Email subscriber", outcome: "imported", reason: "Pending until they confirm one invitation; they are sent nothing about past incidents." }] };
 }
 
 /** The aggregate state timeline for one new component: an Operational
  * standing claim at creation, then each imported claim at its source time. */
-function deriveHistory(componentId: string, created: string, claims: Claim[], operatorId: string, asOf: string) {
+function deriveHistory(componentId: string, created: string, claims: Claim[], operatorId: string, asOf: string, identify: typeof stableId) {
   const standing: Claim = { componentId, causeType: "standing-claim", causeId: null, state: "Operational", changedAt: created };
   const all = [standing, ...claims];
-  const events: Row[] = all.map((claim, index) => ({ id: stableId(`claim:${componentId}:${index}`, claim.changedAt), component_id: componentId, cause_type: claim.causeType, cause_id: claim.causeId, state: claim.state, changed_at: claim.changedAt, created_at: asOf, updated_at: asOf }));
-  const history: Row[] = [{ id: stableId(`history:${componentId}:0`, created), component_id: componentId, previous_state: "Operational", new_state: "Operational", cause_type: "standing-claim", cause_id: null, operator_id: operatorId, supersedes_history_id: null, changed_at: created, created_at: asOf, updated_at: asOf }];
+  const events: Row[] = all.map((claim, index) => ({ id: identify(`claim:${componentId}:${index}`, claim.changedAt), component_id: componentId, cause_type: claim.causeType, cause_id: claim.causeId, state: claim.state, changed_at: claim.changedAt, created_at: asOf, updated_at: asOf }));
+  const history: Row[] = [{ id: identify(`history:${componentId}:0`, created), component_id: componentId, previous_state: "Operational", new_state: "Operational", cause_type: "standing-claim", cause_id: null, operator_id: operatorId, supersedes_history_id: null, changed_at: created, created_at: asOf, updated_at: asOf }];
   const active = new Map<string, ComponentState>();
   let previous: ComponentState = "Operational";
   const times = [...new Set(claims.map((claim) => claim.changedAt))].sort();
@@ -207,7 +217,7 @@ function deriveHistory(componentId: string, created: string, claims: Claim[], op
     const next = mostSevereState([...active.values()]);
     if (next !== previous) {
       const cause = now[now.length - 1];
-      history.push({ id: stableId(`history:${componentId}:${history.length}`, time), component_id: componentId, previous_state: previous, new_state: next, cause_type: cause.causeType, cause_id: cause.causeId, operator_id: operatorId, supersedes_history_id: null, changed_at: time, created_at: asOf, updated_at: asOf });
+      history.push({ id: identify(`history:${componentId}:${history.length}`, time), component_id: componentId, previous_state: previous, new_state: next, cause_type: cause.causeType, cause_id: cause.causeId, operator_id: operatorId, supersedes_history_id: null, changed_at: time, created_at: asOf, updated_at: asOf });
       previous = next;
     }
   }

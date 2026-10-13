@@ -291,6 +291,16 @@
       "adapters": []
     },
     {
+      "id": "betterstack-api",
+      "required": false,
+      "why": "MOVE-001 only, at the owner's request: GET requests to https://incidents.betterstack.com/api/v2 with a Bearer API token read the chosen status page, sections, resources, reports, updates and email subscribers. Redirects and off-scope pagination are refused. The token is never stored; saved responses need no request.",
+      "data": [
+        "The owner's API token in the Authorization header only",
+        "Status page ID and status report IDs"
+      ],
+      "adapters": []
+    },
+    {
       "id": "run-edit-run-editor",
       "required": false,
       "why": "Optional owner-enabled editor frame; separate Run Edit Run authentication and installation authority are required. Disabled by default.",

@@ -2,8 +2,9 @@
  * never authority to redirect or serve a source-owned hostname. */
 import { sourceFeedPaths, isImportAliasPath } from "./public-paths.mjs";
 export { sourceFeedPaths, isImportAliasPath, isLampPermalink } from "./public-paths.mjs";
-export function sourcePublicAddresses(sourceId: string, shortlink: unknown): Array<{ address: string; path: string }> {
+export function sourcePublicAddresses(sourceId: string, shortlink: unknown, namespace = "statuspage", supplied?: string[]): Array<{ address: string; path: string }> {
   if (!/^[A-Za-z0-9_-]+$/u.test(sourceId)) throw new Error(`Source incident ${sourceId}: unsafe public address.`);
+  if (namespace !== "statuspage") return (supplied ?? []).flatMap((address) => sourcePublicAddresses(sourceId, address).filter((item) => item.address === address));
   const addresses = [{ address: `/incidents/${sourceId}`, path: `/incidents/${sourceId}` }];
   if (shortlink !== undefined && shortlink !== null && shortlink !== "") {
     if (typeof shortlink !== "string") throw new Error(`Source incident ${sourceId}: invalid shortlink.`);
@@ -20,10 +21,14 @@ export function sourcePublicAddresses(sourceId: string, shortlink: unknown): Arr
   return addresses.filter((item, index) => addresses.findIndex((other) => other.path === item.path) === index);
 }
 export const aliasArtifactKey = (path: string) => `aliases/${encodeURIComponent(path)}.json`;
-export interface ImportedPublicRecord { namespace: string; sourceId: string; targetKind: string; targetId: string; shortlink?: unknown }
+export interface ImportedPublicRecord { namespace: string; sourceId: string; targetKind: string; targetId: string; shortlink?: unknown; publicAddresses?: string[] }
 
 /** Inspect old passthrough data without losing a safe canonical incident path. */
-export function inspectSourcePublicAddresses(sourceId: string, shortlink: unknown) {
+export function inspectSourcePublicAddresses(sourceId: string, shortlink: unknown, namespace = "statuspage", supplied?: string[]) {
+  if (namespace !== "statuspage") {
+    try { const addresses = sourcePublicAddresses(sourceId, undefined, namespace, supplied); return { addresses, unavailable: addresses.length ? [] : [`${namespace} report ${sourceId}: its saved REST response has no documented public address; no report path was invented.`] }; }
+    catch (cause) { return { addresses: [], unavailable: [cause instanceof Error ? cause.message : String(cause)] }; }
+  }
   let addresses: ReturnType<typeof sourcePublicAddresses> = [];
   const unavailable: string[] = [];
   try { addresses = sourcePublicAddresses(sourceId, undefined); }
@@ -42,7 +47,7 @@ export function resolvePublicAddresses(records: PublicAddressCandidate[]) {
   const conflicts = new Set<string>();
   const unavailable: string[] = [];
   for (const record of records) {
-    const inspected = inspectSourcePublicAddresses(record.sourceId, record.shortlink);
+    const inspected = inspectSourcePublicAddresses(record.sourceId, record.shortlink, record.namespace, record.publicAddresses);
     unavailable.push(...inspected.unavailable);
     const { addresses } = inspected;
     for (const item of addresses) {

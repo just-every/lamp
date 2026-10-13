@@ -7,7 +7,7 @@ import { authFixture, secret, setupToken } from './runtime.mjs';
 
 const adapter = load('tests/auth-adoption/adapter.ts');
 export const linkToken = message => new URL(message.text.match(/https?:\/\/[^\s]+/)[0]).searchParams.get('token');
-export async function lampRuntime(t, { local = false, ownerClaim = false } = {}) {
+export async function lampRuntime(t, { local = false, ownerClaim = false, registerRoutes } = {}) {
   const dir = await mkdtemp(join(process.cwd(), '.lamp-auth-correctness-'));
   const { runtime, db } = await database(dir);
   t.after(async () => { await runtime.dispose(); await rm(dir, { recursive: true, force: true }); });
@@ -29,6 +29,7 @@ export async function lampRuntime(t, { local = false, ownerClaim = false } = {})
     fromAddress: 'lamp@example.test', tokenSecret: secret,
   });
   modules.registerStatuspageImportRoutes(app, modules.createStatuspageImportService(db, { inviteSubscriber: (id, authority) => subscribers.inviteImported(id, 'https://page.example.test', 'Test page', authority), async publicDataChanged() { publications++; } }));
+  await registerRoutes?.({ app, db, modules });
   const request = (path, options = {}) => {
     const req = base.request(path, options);
     req.headers.set('CF-Connecting-IP', '192.0.2.10');

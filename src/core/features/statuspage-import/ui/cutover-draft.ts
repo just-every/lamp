@@ -5,3 +5,5 @@ export function rememberCutover(preview: CutoverPreview) { sessionStorage.setIte
 export function readCutoverDraft(): CutoverPreview | null {
   try { return JSON.parse(sessionStorage.getItem(key) ?? 'null'); } catch { return null; }
 }
+
+export function clearCutover() { sessionStorage.removeItem(key); }

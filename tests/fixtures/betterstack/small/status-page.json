@@ -1,0 +1,17 @@
+{
+  "data": {
+    "id": "31001",
+    "type": "status_page",
+    "attributes": {
+      "company_name": "Synthetic small Better Stack",
+      "created_at": "2024-01-01T00:00:00Z",
+      "subdomain": "synthetic-small",
+      "custom_domain": "small.status.example",
+      "published": true,
+      "password_enabled": false,
+      "ip_allowlist": [],
+      "hide_from_search_engines": false,
+      "synthetic_note": "Documentation-shaped test data only"
+    }
+  }
+}

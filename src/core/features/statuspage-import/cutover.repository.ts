@@ -1,6 +1,6 @@
 import type { ImportPlan } from '../../../../modules/import-kit/src/d1/index';
 import { readImportedPublicRecords, readImportedNamespaces } from './alias-repository';
-import { pendingDeadline, type CutoverPreview } from './cutover';
+import { pendingDeadline, sourceReaderGaps, type CutoverPreview } from './cutover';
 import { resolvePublicAddresses, sourceFeedPaths } from './public-addresses';
 
 /** Project surviving native targets, never promise a removed/edited-away destination. */
@@ -20,7 +20,10 @@ export async function readCutover(db: D1Database, jobId: string, plan: ImportPla
   const rows = [...all.aliases].filter(([, row]) => jobTargets.has(row.target)).map(([path, row]) => ({ path, address: row.address, target: row.target }));
   const current = Date.now();
   const deadlines = subscriptions.results.map(row => pendingDeadline(row.created_at));
-  return { rows: rows.slice(0, 25), total: rows.length, unavailable: all.unavailable, feeds: [...new Set(namespaces.flatMap(namespace => sourceFeedPaths[namespace] ?? []))], invitations: {
+  const selected = records.filter(record => jobPaths.has(record.targetId));
+  const gaps = resolvePublicAddresses(selected.map(record => ({ ...record, target: `${record.targetKind}:${record.targetId}` }))).unavailable;
+  const conflicts = all.unavailable.filter(reason => reason.includes("conflicts") && selected.some(record => reason.includes(record.sourceId)));
+  return { source: plan.namespace, readerGaps: sourceReaderGaps(plan.namespace), rows: rows.slice(0, 25), total: rows.length, unavailable: [...new Set([...gaps, ...conflicts])], feeds: namespaces.includes(plan.namespace) ? [...sourceFeedPaths[plan.namespace] ?? []] : [], invitations: {
     eligible: subscriptions.results.filter(row => !row.sent_at && Date.parse(pendingDeadline(row.created_at)) > current).length,
     claimed: subscriptions.results.filter(row => row.sent_at).length,
     expired: deadlines.filter(deadline => Date.parse(deadline) <= current).length,

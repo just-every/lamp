@@ -1,4 +1,4 @@
-import { rememberCutover } from "./cutover-draft";
+import { rememberCutover, clearCutover } from "./cutover-draft";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 
 import { appApi, useAppData } from "../../../app/client/ui/api";
@@ -9,7 +9,7 @@ import type { MoveInReport } from "../planning";
 
 type SavedFile = { name: string; text: string };
 type Preview = { report: MoveInReport; jobId?: string; files?: SavedFile[] };
-type Job = { id: string; state: string; checkpoint: number; total: number };
+type Job = { id: string; namespace?: string; state: string; checkpoint: number; total: number };
 type Result = { job: Job; report: MoveInReport; invites: { sent: number; remaining: number }; undo?: { dispositions: Array<{ disposition: string; targetKind?: string; reason?: string }> } };
 
 const kindLabels: Record<string, string> = { group: "Component groups", component: "Components", incident: "Incidents", maintenance: "Maintenance", subscriber: "Subscribers" };
@@ -27,6 +27,9 @@ function ReportItems({ report }: { report: MoveInReport }) {
 /** Settings → Move in: a dry run first, then the import, then undo. */
 export function MoveInPage() {
   const jobs = useAppData<{ jobs: Job[] }>("/api/app/statuspage-import/jobs");
+  const [source, setSource] = useState<"statuspage" | "betterstack">("statuspage");
+  const sourceLabel = source === "betterstack" ? "Better Stack" : "Statuspage";
+  const [publicAccessAcknowledged, setPublicAccessAcknowledged] = useState(false);
   const [pageId, setPageId] = useState("");
   const [apiKey, setApiKey] = useState("");
   const [files, setFiles] = useState<SavedFile[]>([]);
@@ -57,7 +60,7 @@ export function MoveInPage() {
 
   function dryRun(event: FormEvent<HTMLFormElement>) {
     event.preventDefault(); setResult(null); setAcknowledged(false);
-    void run(() => appApi<Preview>("/api/app/statuspage-import/preview", { method: "POST", body: JSON.stringify(files.length ? { files } : { pageId, apiKey }) }), (next) => {
+    void run(() => appApi<Preview>("/api/app/statuspage-import/preview", { method: "POST", body: JSON.stringify({ source, publicAccessAcknowledged, ...(files.length ? { files } : { pageId, apiKey }) }) }), (next) => {
       setPreview(next); rememberCutover(next.report.cutover); setApiKey("");
       if (next.files) setFiles(next.files);
     });
@@ -65,27 +68,29 @@ export function MoveInPage() {
 
   function apply() {
     if (!preview) return;
-    void run(() => appApi<Result>("/api/app/statuspage-import/apply", { method: "POST", body: JSON.stringify({ files, asOf: preview.report.asOf, fingerprint: preview.report.fingerprint, acknowledged: true }) }), setResult);
+    void run(() => appApi<Result>("/api/app/statuspage-import/apply", { method: "POST", body: JSON.stringify({ source, publicAccessAcknowledged, pageId, files, asOf: preview.report.asOf, fingerprint: preview.report.fingerprint, acknowledged: true }) }), setResult);
   }
 
   const act = (id: string, action: "resume" | "undo") => run(() => appApi<Result>(`/api/app/statuspage-import/jobs/${encodeURIComponent(id)}/${action}`, { method: "POST" }), setResult);
   const saved = preview?.files ? URL.createObjectURL(new Blob([JSON.stringify(preview.files)], { type: "application/json" })) : null;
 
   return <div className="page-stack move-in-page">
-    <section className="page-title-row"><div><p className="eyebrow">Settings</p><h1>Move in from Statuspage</h1><p>Bring your components, groups, incident history, scheduled maintenance and email subscribers. Nothing is written until you review a dry run, past incidents notify no one, and subscribers stay pending until you choose Send invitations in Cutover. Synthetic-only validation: no real account export has been supplied.</p></div></section>
+    <section className="page-title-row"><div><p className="eyebrow">Settings</p><h1>Move in from {sourceLabel}</h1><p>Bring your components, groups, incident history, scheduled maintenance and email subscribers. Nothing is written until you review a dry run, past incidents notify no one, and subscribers stay pending until you choose Send invitations in Cutover. Synthetic-only validation: no real account export has been supplied.</p></div></section>
     <section className="data-card"><form className="move-in-form" onSubmit={dryRun}>
-      <fieldset><legend>From your Statuspage account</legend><p>On Statuspage, open your avatar menu, then API info. The key is used once for this dry run and is not saved.</p>
-        <label className="form-label">Page ID<input value={pageId} autoComplete="off" onChange={(event) => setPageId(event.target.value.trim())} /></label>
-        <label className="form-label">API key<input type="password" value={apiKey} autoComplete="off" onChange={(event) => setApiKey(event.target.value.trim())} /></label></fieldset>
-      <fieldset><legend>Or from saved API responses</legend><p>Choose files named components.json, component-groups.json, incidents.json, incidents-scheduled.json and subscribers.json (later pages as incidents-2.json).</p>
-        <label className="form-label">Saved responses<input ref={fileInput} type="file" multiple accept="application/json,.json" onChange={(event) => void chooseFiles(event.target.files)} /></label>{files.length > 0 && <p>{files.length} file{files.length === 1 ? "" : "s"} selected.</p>}</fieldset>
-      <Button disabled={busy || (!files.length && (!pageId || !apiKey))}>{busy && !preview ? "Reading…" : "Run dry run"}</Button>
+      <label className="form-label">Source<select value={source} disabled={busy} onChange={event => { setSource(event.target.value as typeof source); setPreview(null); setResult(null); setFiles([]); setPageId(""); setApiKey(""); setAcknowledged(false); setPublicAccessAcknowledged(false); setError(null); clearCutover(); }}><option value="statuspage">Statuspage</option><option value="betterstack">Better Stack</option></select></label>
+      <fieldset><legend>From your {sourceLabel} account</legend><p>{source === "betterstack" ? "Use a Better Stack API token and the status page ID. Lamp reads the page, sections, resources, reports, every update page and email subscribers from incidents.betterstack.com with GET only." : "On Statuspage, open your avatar menu, then API info."} The key is used for this dry run and is not saved.</p>
+        <label className="form-label">{sourceLabel} page ID<input value={pageId} autoComplete="off" onChange={(event) => setPageId(event.target.value.trim())} /></label>
+        <label className="form-label">{source === "betterstack" ? "API token" : "API key"}<input type="password" value={apiKey} autoComplete="off" onChange={(event) => setApiKey(event.target.value.trim())} /></label></fieldset>
+      <fieldset><legend>Or from saved API responses</legend><p>{source === "betterstack" ? "Choose unchanged status-page.json, sections.json, resources.json, status-reports.json, subscribers.json and status-updates-REPORTID.json. Include later pages as subscribers-2.json or status-updates-REPORTID-2.json. Optional original webhook-ID.json payloads can supply exact report shortlinks; REST reports alone have no documented public address." : "Choose files named components.json, component-groups.json, incidents.json, incidents-scheduled.json and subscribers.json (later pages as incidents-2.json)."}</p>
+        <label className="form-label">Saved responses<input ref={fileInput} key={source} type="file" multiple accept="application/json,.json" onChange={(event) => void chooseFiles(event.target.files)} /></label>{files.length > 0 && <p>{files.length} file{files.length === 1 ? "" : "s"} selected.</p>}</fieldset>
+      {source === "betterstack" && <label className="checkbox-label"><input type="checkbox" checked={publicAccessAcknowledged} onChange={event => { setPublicAccessAcknowledged(event.target.checked); setPreview(null); }} /> This Better Stack page is public and unrestricted, including no visitor SSO. Private, password, IP or audience restrictions cannot be preserved. The API has no documented SSO flag.</label>}
+      <Button disabled={busy || (source === "betterstack" && !publicAccessAcknowledged) || (!files.length && (!pageId || !apiKey))}>{busy && !preview ? "Reading…" : "Run dry run"}</Button>
     </form></section>
     {error && <FormError>{error}</FormError>}
     {preview && !result && <section className="data-card" aria-labelledby="move-in-dry-run"><h2 id="move-in-dry-run">{preview.report.state === "already imported" ? "Already imported" : "Dry run"}</h2>
       {preview.report.state === "already imported" ? <p>This source was imported already; importing it again changes nothing.</p> : <p>Nothing has been written. This is what the import will do.</p>}
       <p><a className="text-link" href={preview.jobId ? `/app/cutover?job=${encodeURIComponent(preview.jobId)}` : "/app/cutover"}>Read the Cutover preview</a></p><ReportTable report={preview.report} /><ReportItems report={preview.report} />
-      {saved && <p><a href={saved} download="statuspage-saved-responses.json">Download these saved responses</a></p>}
+      {saved && <p><a href={saved} download={`${source}-saved-responses.json`}>Download these saved responses</a></p>}
       {preview.report.state !== "already imported" && <><label className="checkbox-label"><input type="checkbox" checked={acknowledged} onChange={(event) => setAcknowledged(event.target.checked)} /> I reviewed what changes, is skipped or is refused.</label>
         <Button type="button" disabled={busy || !acknowledged} onClick={apply}>{busy ? "Importing…" : "Import"}</Button></>}
     </section>}
@@ -97,7 +102,7 @@ export function MoveInPage() {
       {result.job.state === "undoing" && <Button type="button" disabled={busy} onClick={() => act(result.job.id, "undo")}>Continue undo</Button>}
     </section>}
     <section className="data-card" aria-labelledby="move-in-history"><h2 id="move-in-history">Your imports</h2>
-      {jobs.data?.jobs.length ? <ul className="move-in-jobs">{jobs.data.jobs.map((job) => <li key={job.id}><a href={`/app/cutover?job=${encodeURIComponent(job.id)}`}>Cutover</a><span>{job.id.slice(0, 12)} · {job.state} · {job.checkpoint}/{job.total}</span>{job.state === "completed" && <Button type="button" variant="secondary" disabled={busy} onClick={() => act(job.id, "undo")}>Undo</Button>}{job.state === "applying" && <Button type="button" variant="secondary" disabled={busy} onClick={() => act(job.id, "resume")}>Continue</Button>}{job.state === "undoing" && <Button type="button" variant="secondary" disabled={busy} onClick={() => act(job.id, "undo")}>Continue undo</Button>}</li>)}</ul> : <EmptyState>No imports yet.</EmptyState>}
+      {jobs.data?.jobs.length ? <ul className="move-in-jobs">{jobs.data.jobs.filter(job => (job.namespace ?? "statuspage") === source).map((job) => <li key={job.id}><a href={`/app/cutover?job=${encodeURIComponent(job.id)}`}>Cutover</a><span>{job.id.slice(0, 12)} · {job.state} · {job.checkpoint}/{job.total}</span>{job.state === "completed" && <Button type="button" variant="secondary" disabled={busy} onClick={() => act(job.id, "undo")}>Undo</Button>}{job.state === "applying" && <Button type="button" variant="secondary" disabled={busy} onClick={() => act(job.id, "resume")}>Continue</Button>}{job.state === "undoing" && <Button type="button" variant="secondary" disabled={busy} onClick={() => act(job.id, "undo")}>Continue undo</Button>}</li>)}</ul> : <EmptyState>No imports yet.</EmptyState>}
     </section>
   </div>;
 }

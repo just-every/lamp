@@ -39,7 +39,7 @@ export type SourceUpdate = z.infer<z.ZodObject<typeof shapes.update>>;
 export type SourceIncident = Omit<z.infer<z.ZodObject<typeof shapes.incident>>, "incident_updates"> & { incident_updates: SourceUpdate[] };
 export type SourceSubscriber = z.infer<z.ZodObject<typeof shapes.subscriber>>;
 export interface SourceData { groups: SourceGroup[]; components: SourceComponent[]; incidents: SourceIncident[]; maintenance: SourceIncident[]; subscribers: SourceSubscriber[] }
-export interface ReadSource { records: SourceRecord[]; artifacts: SourceArtifact[]; data: SourceData; origins: Map<string, SourceArtifact> }
+export interface ReadSource { namespace?: string; accounting?: import("./rows").Accounting[]; publicAddresses?: Record<string, string[]>; sourceInfo?: { label: string; pageId: string; publicUrl: string }; records: SourceRecord[]; artifacts: SourceArtifact[]; data: SourceData; origins: Map<string, SourceArtifact> }
 
 const fileName = /^(component-groups|components|incidents-scheduled|incidents|subscribers)(?:-(\d{1,3}))?\.json$/u;
 

@@ -1,0 +1,310 @@
+{
+  "data": [
+    {
+      "id": "32001530",
+      "type": "status_report",
+      "attributes": {
+        "title": "large incident 31",
+        "report_type": "manual",
+        "starts_at": "2025-01-03T09:00:00.000Z",
+        "ends_at": "2025-01-03T12:00:00.000Z",
+        "status_page_id": 32001,
+        "affected_resources": [
+          {
+            "status_page_resource_id": "32001106",
+            "status": "downtime"
+          }
+        ],
+        "aggregate_state": "operational"
+      },
+      "relationships": {
+        "status_updates": {
+          "data": [
+            {
+              "id": "320015300",
+              "type": "status_update"
+            },
+            {
+              "id": "320015301",
+              "type": "status_update"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "32001531",
+      "type": "status_report",
+      "attributes": {
+        "title": "large incident 32",
+        "report_type": "automatic",
+        "starts_at": "2025-01-04T09:00:00.000Z",
+        "ends_at": "2025-01-04T12:00:00.000Z",
+        "status_page_id": 32001,
+        "affected_resources": [
+          {
+            "status_page_resource_id": "32001107",
+            "status": "downtime"
+          }
+        ],
+        "aggregate_state": "operational"
+      },
+      "relationships": {
+        "status_updates": {
+          "data": [
+            {
+              "id": "320015310",
+              "type": "status_update"
+            },
+            {
+              "id": "320015311",
+              "type": "status_update"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "32001532",
+      "type": "status_report",
+      "attributes": {
+        "title": "large incident 33",
+        "report_type": "manual",
+        "starts_at": "2025-01-05T09:00:00.000Z",
+        "ends_at": "2025-01-05T12:00:00.000Z",
+        "status_page_id": 32001,
+        "affected_resources": [
+          {
+            "status_page_resource_id": "32001108",
+            "status": "downtime"
+          }
+        ],
+        "aggregate_state": "operational"
+      },
+      "relationships": {
+        "status_updates": {
+          "data": [
+            {
+              "id": "320015320",
+              "type": "status_update"
+            },
+            {
+              "id": "320015321",
+              "type": "status_update"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "32001533",
+      "type": "status_report",
+      "attributes": {
+        "title": "large incident 34",
+        "report_type": "automatic",
+        "starts_at": "2025-01-06T09:00:00.000Z",
+        "ends_at": "2025-01-06T12:00:00.000Z",
+        "status_page_id": 32001,
+        "affected_resources": [
+          {
+            "status_page_resource_id": "32001109",
+            "status": "downtime"
+          }
+        ],
+        "aggregate_state": "operational"
+      },
+      "relationships": {
+        "status_updates": {
+          "data": [
+            {
+              "id": "320015330",
+              "type": "status_update"
+            },
+            {
+              "id": "320015331",
+              "type": "status_update"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "32001534",
+      "type": "status_report",
+      "attributes": {
+        "title": "large incident 35",
+        "report_type": "manual",
+        "starts_at": "2025-01-07T09:00:00.000Z",
+        "ends_at": "2025-01-07T12:00:00.000Z",
+        "status_page_id": 32001,
+        "affected_resources": [
+          {
+            "status_page_resource_id": "32001110",
+            "status": "downtime"
+          }
+        ],
+        "aggregate_state": "operational"
+      },
+      "relationships": {
+        "status_updates": {
+          "data": [
+            {
+              "id": "320015340",
+              "type": "status_update"
+            },
+            {
+              "id": "320015341",
+              "type": "status_update"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "32001535",
+      "type": "status_report",
+      "attributes": {
+        "title": "large incident 36",
+        "report_type": "automatic",
+        "starts_at": "2025-01-08T09:00:00.000Z",
+        "ends_at": "2025-01-08T12:00:00.000Z",
+        "status_page_id": 32001,
+        "affected_resources": [
+          {
+            "status_page_resource_id": "32001111",
+            "status": "downtime"
+          }
+        ],
+        "aggregate_state": "operational"
+      },
+      "relationships": {
+        "status_updates": {
+          "data": [
+            {
+              "id": "320015350",
+              "type": "status_update"
+            },
+            {
+              "id": "320015351",
+              "type": "status_update"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "32001536",
+      "type": "status_report",
+      "attributes": {
+        "title": "large maintenance 37",
+        "report_type": "maintenance",
+        "starts_at": "2025-01-09T09:00:00.000Z",
+        "ends_at": "2025-01-09T12:00:00.000Z",
+        "status_page_id": 32001,
+        "affected_resources": [
+          {
+            "status_page_resource_id": "32001100",
+            "status": "maintenance"
+          }
+        ],
+        "aggregate_state": "maintenance"
+      },
+      "relationships": {
+        "status_updates": {
+          "data": [
+            {
+              "id": "320015360",
+              "type": "status_update"
+            },
+            {
+              "id": "320015361",
+              "type": "status_update"
+            },
+            {
+              "id": "320015362",
+              "type": "status_update"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "32001537",
+      "type": "status_report",
+      "attributes": {
+        "title": "large maintenance 38",
+        "report_type": "maintenance",
+        "starts_at": "2025-01-10T09:00:00.000Z",
+        "ends_at": "2025-01-10T12:00:00.000Z",
+        "status_page_id": 32001,
+        "affected_resources": [
+          {
+            "status_page_resource_id": "32001101",
+            "status": "maintenance"
+          }
+        ],
+        "aggregate_state": "maintenance"
+      },
+      "relationships": {
+        "status_updates": {
+          "data": [
+            {
+              "id": "320015370",
+              "type": "status_update"
+            },
+            {
+              "id": "320015371",
+              "type": "status_update"
+            },
+            {
+              "id": "320015372",
+              "type": "status_update"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "32001538",
+      "type": "status_report",
+      "attributes": {
+        "title": "large maintenance 39",
+        "report_type": "maintenance",
+        "starts_at": "2025-01-11T09:00:00.000Z",
+        "ends_at": "2025-01-11T12:00:00.000Z",
+        "status_page_id": 32001,
+        "affected_resources": [
+          {
+            "status_page_resource_id": "32001102",
+            "status": "maintenance"
+          }
+        ],
+        "aggregate_state": "maintenance"
+      },
+      "relationships": {
+        "status_updates": {
+          "data": [
+            {
+              "id": "320015380",
+              "type": "status_update"
+            },
+            {
+              "id": "320015381",
+              "type": "status_update"
+            },
+            {
+              "id": "320015382",
+              "type": "status_update"
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "pagination": {
+    "first": "https://incidents.betterstack.com/api/v2/status-pages/32001/status-reports?page=1",
+    "last": "https://incidents.betterstack.com/api/v2/status-pages/32001/status-reports?page=3",
+    "prev": "https://incidents.betterstack.com/api/v2/status-pages/32001/status-reports?page=2",
+    "next": null
+  }
+}

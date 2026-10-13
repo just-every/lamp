@@ -21,7 +21,7 @@
     },
     "MOVE-001": {
       "change": "added",
-      "summary": "An owner can move in from a hosted status page by API key or saved API responses, after a dry run that writes nothing and names every outcome."
+      "summary": "Move-in supports Statuspage or Better Stack by API key or saved responses; the dry run writes nothing, names every outcome, and must still match the source and Lamp page before apply."
     },
     "MOVE-002": {
       "change": "added",
@@ -97,10 +97,14 @@
     {
       "id": "0021_update_reminders.sql",
       "buyerSteps": "Apply after 0020 before starting this revision. It adds incident_update_reminders, which records each due-soon and overdue operator email once per committed next-update time. Commitments that had already passed when it is applied are recorded as handled, so the upgrade sends no reminder for history; such incidents still show as overdue in the operator app."
+    },
+    {
+      "id": "0022_import_maintenance_updates.sql",
+      "buyerSteps": "Back up data and owner source, then apply after 0021 before starting this revision. It adds an import_maintenance_updates history table, a timeline index and snapshot-refresh triggers; existing records remain unchanged. Imported Better Stack maintenance messages remain historical updates and never create native lifecycle notices or replay notifications."
     }
   ],
   "breaking": true,
-  "agentUpdateInstructions": "Back up data and the owner source revision first. Apply 0017_statuspage_import.sql and 0018_channels_and_presets.sql in order after 0016 before starting this release. Slack and Teams channel URLs are sealed with WEBHOOK_SIGNING_SECRET: when rotating it, list the new secret first and keep the old one until channels are re-added. RER-managed delivery builds with trusted-build bf7a25a, which the stage's TRUSTED_DELIVERY_WORKFLOW_REF must name. Run pnpm verify and your owner tests before adopting. Apply 0019_operator_auth.sql next, provision stable SESSION_SECRET and SETUP_TOKEN, and require fresh operator sign-in. Apply 0020_dependency_approval.sql next; renew any pending provider-link approval. Operator-auth and the shared adoption are pinned to aa9b4d4fc6cba60411ef8d24a81323113677c370. The incoming hosting adoption retains Base fdc861d5f589ce54b54f229cf43daed3248bbb82 for current-manifest commit files; base-copies.json records each file origin. Native rer archives now use integrity-bound version 2; re-export version-1 native archives with the new source before restoring. SCIM/role synchronization remain excluded; optional owner-linked OIDC replaces the SSO exclusion under ACCESS-001. Apply 0021_update_reminders.sql next; update-due and overdue operator emails then come from the scheduled trigger, not from loading the incident list.",
+  "agentUpdateInstructions": "Back up data and the owner source revision first. Apply 0017_statuspage_import.sql and 0018_channels_and_presets.sql in order after 0016 before starting this release. Slack and Teams channel URLs are sealed with WEBHOOK_SIGNING_SECRET: when rotating it, list the new secret first and keep the old one until channels are re-added. RER-managed delivery builds with trusted-build bf7a25a, which the stage's TRUSTED_DELIVERY_WORKFLOW_REF must name. Run pnpm verify and your owner tests before adopting. Apply 0019_operator_auth.sql next, provision stable SESSION_SECRET and SETUP_TOKEN, and require fresh operator sign-in. Apply 0020_dependency_approval.sql next; renew any pending provider-link approval. Operator-auth and the shared adoption are pinned to aa9b4d4fc6cba60411ef8d24a81323113677c370. The incoming hosting adoption retains Base fdc861d5f589ce54b54f229cf43daed3248bbb82 for current-manifest commit files; base-copies.json records each file origin. Native rer archives now use integrity-bound version 2; re-export version-1 native archives with the new source before restoring. SCIM/role synchronization remain excluded; optional owner-linked OIDC replaces the SSO exclusion under ACCESS-001. Apply 0021_update_reminders.sql next; update-due and overdue operator emails then come from the scheduled trigger, not from loading the incident list. Apply 0022_import_maintenance_updates.sql after 0021; it adds the Better Stack historical maintenance-update ledger and snapshot refresh, without creating lifecycle notices or replaying notifications.",
   "proseChanges": [
     {
       "document": "README.md",

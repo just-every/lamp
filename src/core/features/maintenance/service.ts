@@ -4,7 +4,7 @@ import type { ComponentsService } from "../components";
 import { defaultMaintenanceRemindersPolicy, type MaintenanceRemindersPolicy } from "./policies";
 import type { MaintenanceNotice, MaintenanceRepository, StoredMaintenance, StoredMaintenanceComponent } from "./repository";
 
-export type MaintenanceView = StoredMaintenance & { components: StoredMaintenanceComponent[]; notices: MaintenanceNotice[]; overrunning: boolean };
+export type MaintenanceView = StoredMaintenance & { components: StoredMaintenanceComponent[]; notices: MaintenanceNotice[]; importedUpdates: Awaited<ReturnType<MaintenanceRepository["listImportedUpdates"]>>; overrunning: boolean };
 
 export interface MaintenanceNotificationStatements {
   forMaintenanceNotice(input: { eventId: string; maintenanceId: string; componentIds: string[]; kind: MaintenanceNotice["kind"]; queuedAt: string; recipientScope: "eligible" | "previous"; previousEventIds: string[] }): Promise<D1PreparedStatement[]>;
@@ -44,7 +44,7 @@ export function createMaintenanceService(
   onOverrun: (event: MaintenanceOverrunAlertEvent) => Promise<void>,
   events?: MaintenanceRuntimeEvents,
 ): MaintenanceService {
-  const view = async (record: StoredMaintenance): Promise<MaintenanceView> => ({ ...record, components: await repository.listComponents(record.id), notices: await repository.listNotices(record.id), overrunning: record.state === "In progress" && new Date(record.endsAt).getTime() + 15 * 60 * 1000 < Date.now() });
+  const view = async (record: StoredMaintenance): Promise<MaintenanceView> => ({ ...record, components: await repository.listComponents(record.id), notices: await repository.listNotices(record.id), importedUpdates: await repository.listImportedUpdates(record.id), overrunning: record.state === "In progress" && new Date(record.endsAt).getTime() + 15 * 60 * 1000 < Date.now() });
   const prepareNotice = async (record: StoredMaintenance, components: StoredMaintenanceComponent[], kind: MaintenanceNotice["kind"], operatorId: string | null, recipientScope: "eligible" | "previous") => {
     if (!notificationStatements) throw new Error("Maintenance notification transaction wiring is required.");
     const timestamp = nowIso(); const notice: MaintenanceNotice = { id: createUlid(), maintenanceId: record.id, kind, body: `${record.reference}: ${record.title}`, publishedAt: timestamp, authorOperatorId: operatorId, createdAt: timestamp, updatedAt: timestamp };

@@ -1,14 +1,13 @@
 # Move in from a hosted status page
 
 Lamp reads your page's components, component groups, incident history with every
-update, scheduled maintenance and email subscribers from Statuspage's API.
-**Synthetic-only validation:** two fixture families written from Statuspage's
-published API reference pass; no real account export has been supplied.
+update, scheduled maintenance and email subscribers from Statuspage or Better Stack's API.
+**Synthetic-only validation:** fixture families are written from each provider's published API reference; no real account export has been supplied.
 
 ## Steps
 
-1. Sign in and open **Settings → Move in from Statuspage** (`/app/move-in`).
-2. Either enter your Statuspage **page ID** and **API key** (Statuspage: avatar menu →
+1. Sign in and open **Settings → Move in** (`/app/move-in`).
+2. Choose the source first. For Statuspage, either enter your Statuspage **page ID** and **API key** (Statuspage: avatar menu →
    API info), or choose saved API responses. The key is sent only in GET requests to
    `https://api.statuspage.io`, used for that one dry run and never stored.
 3. Read the **dry run**. Nothing is written yet. It counts every record as imported,
@@ -101,3 +100,59 @@ aliases for edited records that remain and removes aliases for records it remove
 
 The source feed remains after conditional undo while imported records survive; a
 complete undo removes it.
+
+
+## Better Stack
+
+Choose **Better Stack** in Move in. Use the status page ID and API token, or saved
+original JSON responses. The token path uses GET with Bearer authentication only
+at `https://incidents.betterstack.com/api/v2`; redirects and pagination outside the
+selected page/report are refused. The token is not saved. All section, resource,
+report, per-report update and subscriber pages must be complete. Files are bounded
+to 8 MiB total, 5,000 records, 200 files and 50 pages per list; exceeding a limit
+refuses the read rather than importing a truncated source.
+
+Save the original envelopes as `status-page.json`, `sections.json`, `resources.json`,
+`status-reports.json`, `subscribers.json`, and `status-updates-REPORTID.json`.
+Number later pages `subscribers-2.json` and `status-updates-REPORTID-2.json`.
+An unchanged `status-report-REPORTID.json` detail response can supply its complete
+`included` update relationship instead; duplicate included/list updates are carried once.
+The page must explicitly include `published`, `password_enabled` and `ip_allowlist`.
+Lamp refuses unpublished, password-protected, IP-restricted or declared audience
+pages and asks you to confirm the page is public and unrestricted. Better Stack's
+REST contract has no documented visitor SSO flag, so this acknowledgement does not
+claim that Lamp detected SSO. Missing documented visibility fields are refused.
+
+Sections become groups. Displayed resource outer IDs identify components; underlying
+monitor IDs do not. Known operational, degraded, downtime and maintenance states map
+to Lamp; paused `not_monitored` or unknown states are refused. Current non-operational
+resource states become standing claims at review time. Historical daily availability
+aggregates, monitor integrations and widgets remain source provenance, not invented
+incidents. Reports retain their original messages, publication times and affected
+resource states. Better Stack has no investigation lifecycle: Lamp projects
+Investigating for affected updates and Resolved for all-resolved updates or the final
+update of an ended report. This is an explicit projection, not a claimed source
+lifecycle. Maintenance windows need a valid end; all their historical messages appear
+on the owner record and public maintenance page, without creating native lifecycle
+notices, feed notices or notification jobs.
+
+Only email rows with a valid source confirmation time become pending subscriptions.
+Unconfirmed, null/missing confirmation, declared unsubscribed and unsupported channel
+rows are skipped with reasons. Missing preferences or unresolved selected resource
+IDs are never broadened to all components. An empty explicit selection means all.
+Lamp preserves existing subscriptions and suppressions. The source endpoint does not
+export a complete unsubscribe ledger. Invitations still require **Send invitations**.
+
+REST reports have no documented public address. Lamp reports these addresses as
+unavailable and never invents `/incident/<REST-id>`. An optional unchanged saved
+status-page webhook, named `webhook-ID.json`, can supply the documented
+`incident.shortlink` or `maintenance.shortlink`, correlated by its update
+`status_report_id`. The source hostname remains outside Lamp's control. Cutover
+lists these exact supplied paths, `/feed.atom`, and the unsupported `/feed.rss` and
+`/index.json` readers. Update the latter to Lamp's Atom and native status endpoint.
+
+Better Stack uses a separate source namespace with the same dry run, journal,
+revision checks, batching and conditional undo as Statuspage. Existing Statuspage
+journals are not rewritten; their original undo expectations stay unchanged. The
+additive maintenance-history migration is included in normal installation backup
+and restore, and a complete undo cascades its unchanged historical messages.

@@ -1,4 +1,4 @@
-import { aliasArtifactKey, isLampPermalink, sourceFeedPaths, resolvePublicAddresses } from "../statuspage-import/public-addresses";
+import { aliasArtifactKey, isImportAliasPath, isLampPermalink, sourceFeedPaths, resolvePublicAddresses } from "../statuspage-import/public-addresses";
 import type { PublicSnapshotSource } from "./repository";
 import type { SnapshotArtifact } from "./renderer";
 
@@ -16,6 +16,6 @@ export function renderImportAliases(source: PublicSnapshotSource, incidents: Arr
   const namespaces = new Set(source.importedNamespaces ?? candidates.map((record) => record.namespace));
   return [
     ...[...aliases].sort(([a], [b]) => a.localeCompare(b)).map(([path, { target }]) => ({ key: aliasArtifactKey(path), body: JSON.stringify({ target }), contentType: "application/vnd.lamp.redirect+json" })),
-    ...[...namespaces].flatMap((namespace) => (sourceFeedPaths[namespace] ?? []).map((path) => ({ key: aliasArtifactKey(path), body: feed, contentType: "application/atom+xml; charset=utf-8" }))),
+    ...[...namespaces].flatMap((namespace) => (sourceFeedPaths[namespace] ?? []).filter(isImportAliasPath).map((path) => ({ key: aliasArtifactKey(path), body: feed, contentType: "application/atom+xml; charset=utf-8" }))),
   ];
 }
