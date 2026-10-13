@@ -1508,7 +1508,7 @@
       "executable": false
     },
     "package.json": {
-      "sha256": "eb4d821b4b69a9c888158480c3b518cadc9fe4db4123db25dd56e3722e1a309d",
+      "sha256": "db80cfe999c74706f2b0a48cdd73072467061f02ea20435602ba6b317082f05b",
       "executable": false
     },
     "pnpm-lock.yaml": {
