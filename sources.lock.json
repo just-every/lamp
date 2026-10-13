@@ -4168,7 +4168,7 @@
       "executable": false
     },
     "tests/e2e/helpers/public-freshness-flow.mjs": {
-      "sha256": "da105d9da410e706b1766021854565e0fd9f8faa3af7ce65d32b908bba9545a9",
+      "sha256": "3a1e16ef14453bb62f5fd41527611a89bc7bc07c1c1ff56561b73738d880919c",
       "executable": false
     },
     "tests/e2e/helpers/snapshot-proxy.mjs": {
@@ -4792,7 +4792,7 @@
       "executable": false
     },
     "tests/public-snapshots/public-snapshots.test.mjs": {
-      "sha256": "a52b970936eb4f147eb9ddc68854f0ad1ea4e12b438708fa6608240dae8798df",
+      "sha256": "349cfa1dc7cd2d4042acad3074ee0806088e97400da867406e2d6127cac7ffb0",
       "executable": false
     },
     "tests/reference-storage/capture-receipts.test.mjs": {

@@ -102,5 +102,15 @@ export async function publicFreshnessFlow({ appFetch, appUrl, pageUrl, diagnosti
   } finally {
     await browser?.close();
     await proxy.close();
+    // The standing claim must not change later tests' initial status or component count.
+    await mutate(`/api/app/components/${component.id}`, "DELETE", undefined, 204);
+    const cleanupDeadline = performance.now() + 10000;
+    while (true) {
+      const response = await fetch(`${pageUrl}/`);
+      const html = await response.text();
+      if (response.status === 200 && !html.includes(`<h4>${component.name}</h4>`)) break;
+      assert.ok(performance.now() < cleanupDeadline, "freshness component removal published");
+      await delay(100);
+    }
   }
 }
