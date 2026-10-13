@@ -122,6 +122,9 @@
     "node": "22.20.0"
   },
   "pnpm": {
+    "overrides": {
+      "sharp": "0.35.5"
+    },
     "onlyBuiltDependencies": [
       "esbuild",
       "workerd"
