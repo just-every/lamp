@@ -1,3 +1,4 @@
+import { HydrationUnit } from '../../base/hydration/unit';
 import type { ReactNode } from 'react';
 import '../lamp/page.css';
 import { SiteHeader } from '../lamp/SiteHeader';
@@ -8,15 +9,16 @@ import './styles';
  * Every docs document: the landing page's own paper, header and footer (page.css holds the tokens, SiteHeader and
  * SiteFooter are the landing page's), with Docs marked as where the visitor is. There is no intro and no lamp handoff, so
  * the header is a plain row at the top that scrolls away with the page. The skip link goes past the sidebar to the page.
+ * Each outer section has its own recovery boundary without adding layout elements.
  * On the run site (`variant="site"`) the header's way in is Run Lamp.
  */
 export function DocsLayout({ children, variant }: { children: ReactNode; variant?: 'site' }) {
   return (
     <div className="lamp-home lamp-docs">
-      <a className="lamp-skip" href="#docs-content">Skip to content</a>
-      <SiteHeader current="docs" variant={variant} />
+      <HydrationUnit><a className="lamp-skip" href="#docs-content">Skip to content</a></HydrationUnit>
+      <HydrationUnit><SiteHeader current="docs" variant={variant} /></HydrationUnit>
       <main id="lamp-main" className="docs-shell">{children}</main>
-      <SiteFooter onDocs />
+      <HydrationUnit><SiteFooter onDocs /></HydrationUnit>
     </div>
   );
 }

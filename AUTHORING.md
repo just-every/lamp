@@ -23,12 +23,12 @@ not automatic synchronization or a requirement that every fork converge.
 ```json
 {
   "schemaVersion": 1,
-  "id": "just-every/lamp",
+  "id": "just-every/run-lamp",
   "toolchain": {"id": "runeditrun/edition-authoring", "version": "1.1.0"},
   "parent": null,
   "components": [
     {"id":"example/foundation","role":"foundation","source":{"kind":"local","paths":["src/base"],"origin":{"repository":"<FOUNDATION_REPOSITORY_URL>","revision":"FULL_40_HEX_COMMIT","path":"default-seed/src"}}},
-    {"id":"just-every/lamp","role":"edition","source":{"kind":"local","paths":["src/routes","package.json"]}},
+    {"id":"just-every/run-lamp","role":"edition","source":{"kind":"local","paths":["src/routes","package.json"]}},
     {"id":"acme/approvals","role":"module","source":{"kind":"git","repository":"<MODULE_REPOSITORY_URL>","revision":"FULL_40_HEX_COMMIT","path":"exports/approvals","destination":"src/modules/approvals"}}
   ]
 }

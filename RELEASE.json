@@ -3,6 +3,10 @@
   "previousVersion": "1.2.0",
   "publicReleaseNotes": "Lamp 1.3.0: move in from a hosted status page with a dry run, retroactive history, one confirmation invitation per subscriber, and undo; Slack and Teams channels per component; Datadog, UptimeRobot, Better Stack and Pingdom alert presets.",
   "contractChanges": {
+    "DOCS-001": {
+      "change": "added",
+      "summary": "Public owner task guides are built from repository Markdown and served on the app host without a session."
+    },
     "NOTIFY-011": {
       "change": "added",
       "summary": "Slack and Teams channels can follow chosen components; their webhook URLs are stored encrypted and never shown again."
@@ -74,6 +78,18 @@
       "summary": "The due-soon and overdue operator emails come from the scheduled trigger, once each per committed time, whether or not anyone has the app open.",
       "was": "An operator email is sent once when an incident becomes overdue, among other events; in practice it was queued when someone loaded the incident list.",
       "now": "A due-soon and an overdue operator email are each sent once per committed time by the scheduled trigger."
+    },
+    "PAGE-007": {
+      "change": "changed",
+      "summary": "Stable public addresses validate a generation ETag; immutable artifact bytes are cached by generation. Every published surface retains the ten-second bound and the one-hour origin-error fallback.",
+      "was": "Stable URLs allowed ten seconds of freshness and thirty seconds of stale-while-revalidate, with a required purge on publication.",
+      "now": "Healthy reads validate the current generation on reuse; generation-keyed artifact caching cannot select an earlier generation. Origin failures may reuse retained responses for one hour."
+    },
+    "PAGE-008": {
+      "change": "changed",
+      "summary": "Public read paths remain unlimited; describe the actual generation cache without claiming that validation traffic is independent of reader count.",
+      "was": "Origin load was described as a function of the cache window rather than reader count.",
+      "now": "Immutable artifact bytes are shared; healthy generation validations reach the Worker without database reads."
     }
   },
   "extensionPointChanges": [],
@@ -112,7 +128,7 @@
       "change": "added",
       "date": "2026-10-11",
       "summary": "README points owners coming from a hosted status page at the move-in and its guide, docs/moving-in.md.",
-      "now": "Coming from a hosted status page? Settings → Move in from Statuspage brings your components, incident history, maintenance and email subscribers, with a dry run first and undo after; see docs/moving-in.md."
+      "now": "Coming from a hosted status page? Settings \u2192 Move in from Statuspage brings your components, incident history, maintenance and email subscribers, with a dry run first and undo after; see docs/moving-in.md."
     },
     {
       "document": "README.md",

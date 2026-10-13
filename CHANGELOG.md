@@ -2,6 +2,11 @@
 
 ## 1.3.0
 
+- Public snapshots validate their generation on reuse, with immutable artifact caching and retained origin-error responses. Incident, component and maintenance changes keep the ten-second publication requirement across every public surface.
+- The installed status header includes Sign in to the operator host.
+- Local instructions stop the server and export before reset, then resume the restored owner. Run it locally and the owner task guides are included in installed docs hydration checks.
+- Active repository descriptors now name `just-every/run-lamp`; local archive product identity remains compatible with existing exports.
+
 - The operator app wears the landing's style: its paper, green-black ink, the
   self-hosted Inter face and mark 18; ink pills, white plates and dot chips.
   Amber marks only live work (an overdue incident, the open composer and new
@@ -9,15 +14,15 @@
   overview and a page that could not load. At 390 pixels the sections are one
   scrolling row of tabs, the current one kept in view. Labels, routes and
   behaviour are unchanged.
-- Settings → Move in from Statuspage: a dry run first, then components, groups, incident history at its original times, maintenance and email subscribers; nobody is notified about history, each subscriber gets one invitation to confirm, a second run changes nothing, and undo keeps what changed since. Guide: docs/moving-in.md.
+- Settings → Move in: a dry run first, then components, groups, incident history at its original times, maintenance and email subscribers; nobody is notified about history, each subscriber gets one invitation to confirm, a second run changes nothing, and undo keeps what changed since. Guide: docs/moving-in.md.
 - Settings → Slack and Teams: channels follow chosen components and receive each published update once when "Slack and Teams" is selected for it; webhook URLs are stored encrypted and never shown again.
 - Alerts → Connect a monitoring tool: Datadog, UptimeRobot, Better Stack and Pingdom presets read each tool's own alert, draft an incident on the mapped component, and close a never-published draft on recovery.
 - The browser installer wears Lamp's own look (paper, ink, the lamp mark and Inter) through Base's theme hook: public/rer-theme.css, also linked by sign-in and first-run setup.
 - Every Base copy is on Base 3d643dd; Lamp no longer carries Base's own tests.
 - RER-managed and independent delivery builds use trusted-build bf7a25a.
-- The landing page says what Lamp replaces, as the hero's closing line, under the two actions (the hero's proof row of three short facts is gone), with the three names in bold, and in its description: "100% free, open source alternative to Atlassian Statuspage, Instatus and Better Stack"; seed.json `replaces` names the same three.
+- Landing-page copy and structure were updated for the release.
 - Local development: rer dev's scheduled triggers reach the runtime, rer preview starts, and a development server without mail capture says how to start the outbox.
-- Docs at `/docs` on the app host, in the landing page's look, cut at build time from the repository's own Markdown (README, RUN-LOCALLY, OPERATIONS, the move-in guide and this changelog) as `docs/site.json` lists; the landing page's Docs links lead there.
+- Docs at `/docs` on the app host, in the landing page's look, cut at build time from the owner guides listed in `docs/site.json`.
 
 Upgrading: apply migrations 0017 and 0018 after 0016.
 
@@ -29,7 +34,7 @@ For a new operator:
 - Plain words in the operator app: Set status, Status history, move up and down.
 - Every time shows in the page's configured time zone, with its label; a next-update time more than 24 hours ahead warns.
 - At 390 pixels Preview comes before Publish, and the operator navigation wraps.
-- `pnpm signin-link --email <operator>` issues one ordinary single-use sign-in link from the terminal, printed once and audited.
+- An owner with installation database access can issue a one-use sign-in link from the terminal; see the technical operator-authentication reference in `OPERATIONS.md`.
 - Local work runs through `rer` (setup, dev, verify, reset, export, import, deploy) on Node 22.20.0 and pnpm 10.12.4, with mail captured in the development outbox.
 
 For visitors and subscribers:

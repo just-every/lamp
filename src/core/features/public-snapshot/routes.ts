@@ -79,7 +79,8 @@ function installedSignIn(response: Response, context: Context<AppEnv>) {
   return new HTMLRewriter().on("a[data-lamp-signin]", {
     element(element) {
       const target = new URL("/signin", context.req.url);
-      target.hostname = context.env.LAMP_APP_HOST;
+      // Match the host dispatcher's normalization of installation bindings.
+      target.hostname = context.env.LAMP_APP_HOST.trim().toLowerCase();
       element.setAttribute("href", target.href);
     },
   }).transform(response);

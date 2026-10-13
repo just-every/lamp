@@ -1,3 +1,4 @@
+import { HydrationUnit } from '../../base/hydration/unit';
 import { notFound } from '@tanstack/react-router';
 import { DocsLayout } from './DocsLayout';
 import { DocsMenu, DocsSidebar } from './DocsNav';
@@ -22,16 +23,18 @@ export function DocsArticle({ slug, body, variant }: { slug: string; body: DocsB
       <DocsSidebar current={slug} />
       <div id="docs-content" className="docs-content" tabIndex={-1}>
         <DocsMenu current={slug} label={page.title} />
-        <article className="docs-article" aria-labelledby="docs-title">
-          <header className="docs-head">
-            <p className="docs-eyebrow">{page.section}</p>
-            <h1 id="docs-title" className="docs-title">{page.title}</h1>
-            <p className="docs-lead">{page.summary}</p>
-          </header>
-          <DocsTocCompact toc={page.toc} />
-          <div className="docs-prose" ref={copyButtons} dangerouslySetInnerHTML={{ __html: page.html }} />
-          <p className="docs-source">This page is drawn from <code>{page.source}</code> in the repository. <a href={docsSourceUrl(page)}>Edit it on GitHub</a>.</p>
-        </article>
+        <HydrationUnit>
+          <article className="docs-article" aria-labelledby="docs-title">
+            <header className="docs-head">
+              <p className="docs-eyebrow">{page.section}</p>
+              <h1 id="docs-title" className="docs-title">{page.title}</h1>
+              <p className="docs-lead">{page.summary}</p>
+            </header>
+            <DocsTocCompact toc={page.toc} />
+            <div className="docs-prose" ref={copyButtons} dangerouslySetInnerHTML={{ __html: page.html }} />
+            <p className="docs-source">This page is drawn from <code>{page.source}</code> in the repository. <a href={docsSourceUrl(page)}>Edit it on GitHub</a>.</p>
+          </article>
+        </HydrationUnit>
         <DocsPager previous={previous} next={next} />
       </div>
       <DocsToc toc={page.toc} />

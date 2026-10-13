@@ -2,7 +2,7 @@
   "schema": 1,
   "project": {
     "schema": 1,
-    "projectId": "just-every/lamp",
+    "projectId": "just-every/run-lamp",
     "name": "Lamp",
     "sourceRepository": "https://github.com/just-every/run-lamp",
     "license": "MIT",
@@ -112,7 +112,7 @@
   },
   "edition": {
     "manifestFile": "edition.json",
-    "componentId": "just-every/lamp"
+    "componentId": "just-every/run-lamp"
   },
   "setup": {
     "manifestFile": "rer-setup.json"

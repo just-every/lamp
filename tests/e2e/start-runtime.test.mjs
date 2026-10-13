@@ -274,7 +274,7 @@ test("sign-in submits with JavaScript disabled", { timeout: 30_000 }, async () =
   } finally {await browser.close();}
 });
 
-test("the built single Worker preserves Hono/R2, Start auth, dispatch, 404s, and client navigation", { timeout: 120_000 }, async () => {
+test("DOCS-001 — the built single Worker preserves public docs, Hono/R2, Start auth, dispatch, 404s, and client navigation", { timeout: 120_000 }, async () => {
   const signIn = await request("/signin", appHost, { headers: { "Sec-Fetch-Mode": "navigate" } });
   const signInHtml = await signIn.text();
   assert.equal(signIn.status, 200);

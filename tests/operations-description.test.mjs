@@ -1,11 +1,13 @@
 import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
 import { spawnSync } from 'node:child_process';
 import test from 'node:test';
 import { describeOperations, inspectOperations } from '../scripts/operations.mjs';
 
 test('operations describe resolves actual commands without runtime dependencies', async () => {
   const result = await describeOperations(process.cwd());
-  assert.equal(result.project, 'just-every/lamp');
+  const { repository } = JSON.parse(await readFile('package.json', 'utf8'));
+  assert.equal(result.project, new URL(repository.url.replace(/\.git$/, '')).pathname.slice(1));
   assert.deepEqual(result.commands.deploy.argv, ['rer', 'deploy']);
 });
 

@@ -124,7 +124,18 @@ export default {
       const rejected = await operatorDocumentPreflight(request, runtime);
       if (rejected) return rejected;
     }
-    if (isStartRequest(surface, request, url.pathname)) return start.fetch(request);
+    if (isStartRequest(surface, request, url.pathname)) {
+      const response = await start.fetch(request);
+      // Proxies must preserve the HTML React hydrates, including docs addresses.
+      // Keep Start's existing cache policy and leave server-function data alone.
+      if (!response.headers.get("content-type")?.includes("text/html")) return response;
+      const headers = new Headers(response.headers);
+      const cacheControl = headers.get("Cache-Control");
+      if (!/(^|[\s,])no-transform($|[\s,])/i.test(cacheControl ?? "")) {
+        headers.set("Cache-Control", cacheControl ? `${cacheControl}, no-transform` : "no-transform");
+      }
+      return new Response(response.body, { status: response.status, statusText: response.statusText, headers });
+    }
     return new Response("Not found.", { status: 404 });
   },
   async scheduled(event: ScheduledController, bindings: AppBindings, executionContext: ExecutionContext) {

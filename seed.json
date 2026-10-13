@@ -29,6 +29,13 @@
       ]
     },
     {
+      "id": "owner-documentation",
+      "description": "Public task guides built from repository Markdown and served on the app host beside the landing page.",
+      "clauses": [
+        "DOCS-001"
+      ]
+    },
+    {
       "id": "feed-and-widget",
       "description": "The same snapshot published as an Atom feed and as a one-script-tag status banner for the buyer's own product.",
       "clauses": [

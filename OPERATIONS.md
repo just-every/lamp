@@ -9,6 +9,13 @@ Worker and publish the emitted artifact. `rer deploy` runs all of these;
 `pnpm run setup:cloudflare` runs the provisioning alone. (`pnpm run setup` is the
 local first-owner setup.)
 
+Owner task guides are published at `/docs` on the app host. Use
+[`RUN-LOCALLY.md`](RUN-LOCALLY.md) for local launch, export, reset and restore;
+it is the canonical local command sequence. This file remains the technical
+reference for deployment inputs and Cloudflare archive operations. The
+`export:cloudflare` and `import:cloudflare` scripts below are remote archive
+tools, not `rer` verbs; `rer export` and `rer import` operate on local state.
+
 ## Owner inputs
 
 Supply `CLOUDFLARE_ACCOUNT_ID` and `CLOUDFLARE_API_TOKEN` for the intended account.
@@ -89,6 +96,10 @@ but it must delegate the domain to the active Cloudflare zone before setup.
 
 ## Deployment and checks
 
+Before a command that builds or verifies the checkout, stop a running local
+development server with `rer dev --stop` or production preview with
+`rer preview --stop`; restart local work after the command completes.
+
 ```sh
 pnpm install --frozen-lockfile
 pnpm exec playwright install chromium
@@ -132,6 +143,12 @@ mailbox delivery. Retain the D1/R2 archive and the private deployment inputs for
 recovery. No remote restore or provider acceptance is implied by local verification.
 
 ## Portable backups and restore
+
+This procedure covers a deployed Cloudflare installation. For local data,
+follow [`RUN-LOCALLY.md`](RUN-LOCALLY.md#back-up-and-restore-local-data), stop
+the running dev or preview server before transferring or resetting, export
+before reset, import only into an empty destination, then run setup with the
+original or restored owner before restarting Lamp.
 
 Export includes every application and owner sidecar table, original R2 bytes,
 HTTP metadata and custom metadata. The database reads run in one D1 transaction.

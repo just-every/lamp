@@ -6,48 +6,97 @@
         {
           "slug": "overview",
           "title": "Overview",
-          "source": "README.md",
-          "sections": ["Run it on your computer", "Moving in"],
-          "summary": "What Lamp is, and how to run it on your own computer in a few commands."
+          "source": "docs/overview.md",
+          "summary": "What Lamp covers and links to the owner tasks."
         },
         {
-          "slug": "moving-in",
-          "title": "Move in from another status page",
-          "source": "docs/moving-in.md",
-          "summary": "Bring components, incident history, maintenance and eligible email subscribers into Lamp, with a reviewed dry run and public-link cutover checks."
+          "slug": "install",
+          "title": "Install Lamp",
+          "source": "docs/install.md",
+          "summary": "Prepare a local or Cloudflare installation and choose its two hosts."
         },
-        {
-          "slug": "first-run",
-          "title": "First run and sign-in",
-          "source": "README.md",
-          "sections": ["Setup readiness", "Sign in from your terminal"],
-          "summary": "Finish setup with the checklist, and sign in from your terminal when email will not reach you."
-        }
-      ]
-    },
-    {
-      "title": "Go live",
-      "pages": [
         {
           "slug": "deploy",
           "title": "Deploy to Cloudflare",
-          "source": "README.md",
-          "sections": ["Owner-controlled operations", "Verify the source"],
-          "summary": "The inputs a real deployment needs, what the deploy command does for you, and how to verify the source first."
+          "source": "docs/deploy.md",
+          "summary": "Configure private owner inputs and deploy Lamp to Cloudflare."
         },
         {
           "slug": "deployment-reference",
           "title": "Deployment reference",
-          "source": "OPERATIONS.md",
-          "sections": ["Owner inputs", "Deployment and checks", "Native workers.dev deployment", "Independent external heartbeat"],
-          "summary": "Every owner input in detail, the checks a deploy runs, hosting on workers.dev and an independent heartbeat."
+          "source": "docs/deployment-reference.md",
+          "summary": "Native deployment commands, required owner inputs and generated host names."
+        },
+        {
+          "slug": "run-locally",
+          "title": "Run it locally",
+          "source": "RUN-LOCALLY.md",
+          "summary": "Start Lamp on your computer and safely back up or restore local data."
+        },
+        {
+          "slug": "first-run",
+          "title": "First run and sign-in",
+          "source": "docs/first-run.md",
+          "summary": "Confirm first-run setup, complete Overview's checklist and sign in."
         },
         {
           "slug": "domains",
           "title": "Hostnames and your own domain",
-          "source": "OPERATIONS.md",
-          "sections": ["Hostnames and DNS", "Your own domain"],
-          "summary": "Choose the status page's and the operator app's hostnames, and put your domain on Cloudflare."
+          "source": "docs/domains.md",
+          "summary": "Choose distinct public and operator hosts and configure Cloudflare DNS."
+        }
+      ]
+    },
+    {
+      "title": "Operate Lamp",
+      "pages": [
+        {
+          "slug": "components-and-groups",
+          "title": "Components and groups",
+          "source": "docs/components-and-groups.md",
+          "summary": "Create, group, order and update the services on your page."
+        },
+        {
+          "slug": "incidents-and-updates",
+          "title": "Incidents and updates",
+          "source": "docs/incidents-and-updates.md",
+          "summary": "Compose, schedule and publish updates, review reports and track commitments."
+        },
+        {
+          "slug": "maintenance",
+          "title": "Scheduled maintenance",
+          "source": "docs/maintenance.md",
+          "summary": "Schedule maintenance windows and manage notices to subscribers."
+        },
+        {
+          "slug": "public-page",
+          "title": "Your public status page",
+          "source": "docs/public-page.md",
+          "summary": "Set page branding, widget access, feed and uptime display."
+        },
+        {
+          "slug": "subscribers-and-notifications",
+          "title": "Subscribers and notifications",
+          "source": "docs/subscribers-and-notifications.md",
+          "summary": "Manage email, webhook, Slack and Teams subscriptions and delivery."
+        },
+        {
+          "slug": "alerts-from-monitoring-tools",
+          "title": "Alerts from monitoring tools",
+          "source": "docs/alerts-from-monitoring-tools.md",
+          "summary": "Connect a monitor preset and review its draft incident."
+        },
+        {
+          "slug": "operators-and-sign-in",
+          "title": "Operators and sign-in",
+          "source": "docs/operators-and-sign-in.md",
+          "summary": "Invite operators, manage sign-in and configure optional single sign-on."
+        },
+        {
+          "slug": "moving-in",
+          "title": "Move in from Statuspage",
+          "source": "docs/moving-in.md",
+          "summary": "Preview a move, import supported records, send invitations and review cutover."
         }
       ]
     },
@@ -57,9 +106,14 @@
         {
           "slug": "backups-and-recovery",
           "title": "Backups and recovery",
-          "source": "OPERATIONS.md",
-          "sections": ["Provider uncertainty and recovery", "Portable backups and restore", "Dependency failure", "Retained public snapshots"],
-          "summary": "Export and restore every record, what Lamp does when a dependency fails, how uncertain mail is reconciled, and the retained public snapshots."
+          "source": "docs/backups-and-recovery.md",
+          "summary": "Use the local archive safely or follow the technical remote restore procedure."
+        },
+        {
+          "slug": "updating",
+          "title": "Update Lamp",
+          "source": "docs/updating.md",
+          "summary": "Back up data, preserve migration history and verify an updated installation."
         }
       ]
     },
@@ -70,20 +124,10 @@
           "slug": "changelog",
           "title": "Changelog",
           "source": "CHANGELOG.md",
-          "summary": "What changed in each release, and what to do when upgrading."
+          "summary": "Read what changed in Lamp releases and their upgrade notes."
         }
       ]
     }
   ],
-  "githubOnly": [
-    { "source": "README.md", "section": "Local build", "reason": "Describes the build and the browser suites for maintainers." },
-    { "source": "README.md", "section": "Visual references", "reason": "Screenshots in visual/ document the surfaces for maintainers; the site publishes text only." },
-    { "source": "README.md", "section": "Customise and share improvements", "reason": "The authoring workflow for the owner's agent, covered by AGENTS.md." },
-    { "source": "README.md", "section": "Shared source refactor", "reason": "Source maintenance notes for the edition's maintainers." },
-    { "source": "OPERATIONS.md", "section": "Optional shared event relay", "reason": "For an owner-operated mail event relay shared between products." },
-    { "source": "OPERATIONS.md", "section": "Inspect without deployment", "reason": "Command descriptions and the preview wrapper for the delivery service." },
-    { "source": "OPERATIONS.md", "section": "Independent release and local browser setup", "reason": "Independent delivery and installer setup for maintainers and delivery services." },
-    { "source": "OPERATIONS.md", "section": "Remote verification evidence", "reason": "Exact-source verification receipts for maintainers." },
-    { "source": "OPERATIONS.md", "section": "Shared operator authentication", "reason": "Upgrade notes for the shared sign-in refresh, for maintainers." }
-  ]
+  "githubOnly": []
 }
