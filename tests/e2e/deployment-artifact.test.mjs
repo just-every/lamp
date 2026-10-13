@@ -78,8 +78,12 @@ async function stop(child) {
 async function startBuiltWorker(artifactPath, statePath, localUpstream, readiness = (response) => response.status === 200, variables = []) {
   const port = await reservePort({ label: "built Worker" });
   const envArgs = isolatedWorkerEnvArgs(statePath);
+  // Deploy binds these separately from the compiled config. The isolated local
+  // artifact must receive the same required bindings from synthetic fixture data.
+  const secrets = ["SESSION_SECRET", "SETUP_TOKEN", "MAIL_PROVIDER_API_KEY", "SUBSCRIBER_TOKEN_SECRET", "WEBHOOK_SIGNING_SECRET"]
+    .map((name) => `${name}:${deploymentEnvironment[name]}`);
   const readinessPath = localUpstream === "app.lamp.test" ? "/health" : "/";
-  const server = spawn("pnpm", ["exec", "wrangler", "dev", "--local", "--config", artifactPath, ...envArgs, "--persist-to", statePath, "--ip", "127.0.0.1", "--port", String(port), "--inspector-port", "0", "--local-upstream", localUpstream, "--upstream-protocol", "https", "--log-level", "warn", ...variables.flatMap((value) => ["--var", value])], {
+  const server = spawn("pnpm", ["exec", "wrangler", "dev", "--local", "--config", artifactPath, ...envArgs, "--persist-to", statePath, "--ip", "127.0.0.1", "--port", String(port), "--inspector-port", "0", "--local-upstream", localUpstream, "--upstream-protocol", "https", "--log-level", "warn", ...[...secrets, ...variables].flatMap((value) => ["--var", value])], {
     cwd: process.cwd(),
     env: fixtureProcessEnv(deploymentEnvironment),
     stdio: ["ignore", "pipe", "pipe"],
@@ -117,8 +121,7 @@ test("compiled generated Start Worker serves operator routes and prepares fresh 
   let server;
   try {
     await run("pnpm", ["exec", "wrangler", "d1", "migrations", "apply", "DB", "--local", "--config", artifactPath, "--persist-to", statePath]);
-    // Deploy uploads the sign-in secrets with the Worker; the local artifact receives them as Worker variables.
-    let runtime = await startBuiltWorker(artifactPath, statePath, "app.lamp.test", undefined, ["SESSION_SECRET", "SETUP_TOKEN"].map((name) => `${name}:${deploymentEnvironment[name]}`));
+    let runtime = await startBuiltWorker(artifactPath, statePath, "app.lamp.test");
     server = runtime.server;
     const signIn = await fetch(`http://127.0.0.1:${runtime.port}/signin`, { headers: { Host: "app.lamp.test" } });
     assert.equal(signIn.status, 200);
