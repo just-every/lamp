@@ -143,9 +143,8 @@ before(async () => {
     cwd: process.cwd(),
     stdio: "pipe",
     detached: true,
-    // The Cloudflare Vite plugin resolves this path against its own root, so
-    // pass the exact config that the preceding Wrangler D1/R2 commands used.
-    env: { ...process.env, LAMP_DISABLE_INSPECTOR: "true", LAMP_WORKERS_STATE_PATH: testStatePath, LAMP_VITE_CACHE_DIR: testViteCachePath, LAMP_WRANGLER_CONFIG: resolve("wrangler.jsonc") },
+    // appOrigin supplies an isolated config with the same D1/R2 bindings.
+    env: { ...process.env, LAMP_DISABLE_INSPECTOR: "true", LAMP_WORKERS_STATE_PATH: testStatePath, LAMP_VITE_CACHE_DIR: testViteCachePath },
   });
   server.stdout.on("data", (chunk) => { workerOutput += String(chunk); });
   server.stderr.on("data", (chunk) => { workerOutput += String(chunk); });

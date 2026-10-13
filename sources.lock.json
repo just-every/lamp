@@ -4072,7 +4072,7 @@
       "executable": false
     },
     "tests/e2e/app-api.test.mjs": {
-      "sha256": "4d4a5bc11cc327fae36903f1143dedbf4ac2bc75525fab2c9ba388dddb6b28e7",
+      "sha256": "6d26e2c6d4f2653f6897600356fe407a6ec448a43c3cf6756277acb42658e983",
       "executable": false
     },
     "tests/e2e/auth-adoption-journey.test.mjs": {
@@ -4164,7 +4164,7 @@
       "executable": false
     },
     "tests/e2e/helpers/hosts.mjs": {
-      "sha256": "f01f16aa9f42026aba694c23b53fdd93a8d43fcc612a6915fa27f2c9928b9ce7",
+      "sha256": "957ea2c4c33ad573402ee87ba9a3191c785af9c9a15c4ce260c7ced27c7feae1",
       "executable": false
     },
     "tests/e2e/helpers/public-freshness-flow.mjs": {
@@ -4192,7 +4192,7 @@
       "executable": false
     },
     "tests/e2e/intake-references.test.mjs": {
-      "sha256": "a24188a2ca696dec081eab1d146c906af9eb22bad55cbfaad21b4e58fb73e1a1",
+      "sha256": "7b568c6ea4e48a39c29a8b619d697ce9b69774c826f8be5091717385c967fc11",
       "executable": false
     },
     "tests/e2e/maintenance-timezone.test.mjs": {
@@ -4204,7 +4204,7 @@
       "executable": false
     },
     "tests/e2e/public-contract.test.mjs": {
-      "sha256": "10079bcf29a8f4debf8e372db4f58f0e3af421774d486a00359255a46bc6f26b",
+      "sha256": "49bbdf0f58c5647fbf95dc4674604fd227a9fe1c0b6fffe8f9c0caafe7eed902",
       "executable": false
     },
     "tests/e2e/publishing-browser.test.mjs": {
@@ -4236,11 +4236,11 @@
       "executable": false
     },
     "tests/e2e/setup-readiness.test.mjs": {
-      "sha256": "0fb5818f5b2c7208720d6175e3892b0cb2d4523c69bc541a33c4bcbe8d069943",
+      "sha256": "8710b9175345190c0ec822eba8f2aa7e835462b34957965c59dea6ef806c0be7",
       "executable": false
     },
     "tests/e2e/signin-link.test.mjs": {
-      "sha256": "5a9c1ae320d1955031460d5d8498a40b684a55d58dbc18662c668e66ecc0cbe6",
+      "sha256": "f3bf05db990048524358082f29d64a8e414b9e66ca1ab2d3b763503a3e760756",
       "executable": false
     },
     "tests/e2e/snapshot-cache-runtime.mjs": {

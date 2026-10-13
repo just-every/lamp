@@ -12,7 +12,9 @@ test('ACCESS-001 terminal command issues an ordinary private 20-minute Base link
  const dir=await mkdtemp(join(process.cwd(),'.lamp-terminal-auth-'));let runtime;
  const config=join(dir,'wrangler.json'),state=join(dir,'state'),origin='http://127.0.0.1:39123';
  const env={...process.env,SESSION_SECRET:secret,WRANGLER_SEND_METRICS:'false',X_LOCAL_EXPLORER:'false'};
- const cli=(email)=>run(process.execPath,['scripts/signin-link.mjs','--email',email,'--origin',origin,'--config',config,'--persist-to',state],{env});
+ // The real command reads installation settings from cwd, independently of
+ // --config. Give it the fixture installation, never the checkout's owner key.
+ const cli=(email)=>run(process.execPath,[resolve('scripts/signin-link.mjs'),'--email',email,'--origin',origin,'--config',config,'--persist-to',state],{env,cwd:dir});
  try{
   await writeFile(config,JSON.stringify({name:'lamp-terminal-test',main:resolve('src/server.ts'),compatibility_date:'2026-09-08',d1_databases:[{binding:'DB',database_name:'test',database_id:'00000000-0000-0000-0000-000000000000',migrations_dir:resolve('migrations/core')}]}));
   await run('pnpm',['exec','wrangler','d1','migrations','apply','DB','--local','--config',config,'--persist-to',state],{env});

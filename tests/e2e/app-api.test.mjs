@@ -63,7 +63,7 @@ before(async () => {
     cwd: process.cwd(),
     stdio: "pipe",
     detached: true,
-    env: { ...process.env, LAMP_DISABLE_INSPECTOR: "true", LAMP_WORKERS_STATE_PATH: testStatePath, LAMP_VITE_CACHE_DIR: testViteCachePath, LAMP_WRANGLER_CONFIG: sourceConfigPath },
+    env: { ...process.env, LAMP_DISABLE_INSPECTOR: "true", LAMP_WORKERS_STATE_PATH: testStatePath, LAMP_VITE_CACHE_DIR: testViteCachePath },
   });
   server.stdout.on("data", (chunk) => { serverOutput += String(chunk); });
   server.stderr.on("data", (chunk) => { serverOutput += String(chunk); });
