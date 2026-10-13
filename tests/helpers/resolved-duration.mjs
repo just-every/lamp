@@ -19,8 +19,9 @@ function presentationRuns(html) {
   const blocks = /^(?:address|article|aside|blockquote|br|dd|details|div|dl|dt|fieldset|figcaption|figure|footer|form|h[1-6]|header|hr|li|main|nav|ol|p|pre|section|summary|table|tbody|td|tfoot|th|thead|tr|ul)$/i;
   const runs = [];
   let current = "";
-  const readable = html.replace(/<!--[^]*?-->|<(script|style|template|head)\b[^>]*>[^]*?<\/\1>/gi, "");
-  for (const [token] of readable.matchAll(/<(?:[^>"']|"[^"]*"|'[^']*')*>|[^<]+/g)) {
+  // Skip hidden source tokens without joining fragments into new markup.
+  for (const [token, hidden] of html.matchAll(/(<!--[^]*?-->|<(script|style|template|head)\b[^>]*>[^]*?<\/\2>)|<(?:[^>"']|"[^"]*"|'[^']*')*>|[^<]+/gi)) {
+    if (hidden) continue;
     const tag = token.match(/^<\/?\s*([a-z][\w-]*)/i)?.[1];
     if (tag && blocks.test(tag)) {
       if (current.trim()) runs.push(current);
