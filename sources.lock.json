@@ -4128,7 +4128,7 @@
       "executable": false
     },
     "tests/e2e/deployment-artifact.test.mjs": {
-      "sha256": "0772f63a1789388c373efb6e3dabd3cf6716b7c32ff5da9bf7ab7a48974d93a5",
+      "sha256": "0391202c903a9d5e0cc020fe2006b5575beda7ea6b3d2c1fbb7c5082fe8c1ada",
       "executable": false
     },
     "tests/e2e/deployment-secrets.test.mjs": {
@@ -4268,7 +4268,7 @@
       "executable": false
     },
     "tests/e2e/start-runtime.test.mjs": {
-      "sha256": "1995c9d7f8cf8c1536390d593817b20271173dfe79d70e091d25aa34186232d8",
+      "sha256": "60691547d1d8298a49cddc3879fa8bc2060a78433ee847163f6537ac8db9b2de",
       "executable": false
     },
     "tests/e2e/statuspage-import.test.mjs": {
@@ -4745,6 +4745,10 @@
     },
     "tests/helpers/visible-text.mjs": {
       "sha256": "e27ca109e0d1d46ba7486b622d517506a9660f50c90d103d9abb0a9805f65df9",
+      "executable": false
+    },
+    "tests/helpers/worker-environment.mjs": {
+      "sha256": "4d0c85264dcf468978dbb425660c258f744af37e6ffca53e92df1d26855a8904",
       "executable": false
     },
     "tests/helpers/wrangler-config.mjs": {

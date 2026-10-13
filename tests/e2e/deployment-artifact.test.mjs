@@ -7,6 +7,7 @@ import { test } from "node:test";
 
 import { deploymentConfig, renderWranglerToml, resourceNames,  setupPageSettingsStatement } from "../../scripts/ops-config.mjs";
 import { reservePort, waitForWorker } from "./worker-startup.mjs";
+import { fixtureProcessEnv, isolatedWorkerEnvArgs } from "../helpers/worker-environment.mjs";
 
 const deploymentEnvironment = {
   LAMP_PAGE_HOST: "status.lamp.test",
@@ -45,7 +46,7 @@ test("generated setup config uses the Start entry and leaves client assets to Vi
 
 function run(command, args, options = {}) {
   return new Promise((resolvePromise, reject) => {
-    const child = spawn(command, args, { cwd: process.cwd(), env: { ...process.env, LAMP_DISABLE_INSPECTOR: "true", ...deploymentEnvironment, ...options.env }, stdio: ["ignore", "pipe", "pipe"] });
+    const child = spawn(command, args, { cwd: process.cwd(), env: fixtureProcessEnv({ ...deploymentEnvironment, ...options.env }), stdio: ["ignore", "pipe", "pipe"] });
     let output = "";
     child.stdout.on("data", (chunk) => { output += chunk; });
     child.stderr.on("data", (chunk) => { output += chunk; });
@@ -66,10 +67,11 @@ async function stop(child) {
 
 async function startBuiltWorker(artifactPath, statePath, localUpstream, readiness = (response) => response.status === 200, variables = []) {
   const port = await reservePort({ label: "built Worker" });
+  const envArgs = isolatedWorkerEnvArgs(statePath);
   const readinessPath = localUpstream === "app.lamp.test" ? "/health" : "/";
-  const server = spawn("pnpm", ["exec", "wrangler", "dev", "--local", "--config", artifactPath, "--persist-to", statePath, "--ip", "127.0.0.1", "--port", String(port), "--inspector-port", "0", "--local-upstream", localUpstream, "--upstream-protocol", "https", "--log-level", "warn", ...variables.flatMap((value) => ["--var", value])], {
+  const server = spawn("pnpm", ["exec", "wrangler", "dev", "--local", "--config", artifactPath, ...envArgs, "--persist-to", statePath, "--ip", "127.0.0.1", "--port", String(port), "--inspector-port", "0", "--local-upstream", localUpstream, "--upstream-protocol", "https", "--log-level", "warn", ...variables.flatMap((value) => ["--var", value])], {
     cwd: process.cwd(),
-    env: { ...process.env, LAMP_DISABLE_INSPECTOR: "true", ...deploymentEnvironment },
+    env: fixtureProcessEnv(deploymentEnvironment),
     stdio: ["ignore", "pipe", "pipe"],
     detached: true,
   });
