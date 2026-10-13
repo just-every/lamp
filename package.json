@@ -1,6 +1,6 @@
 {
   "name": "lamp",
-  "version": "1.3.0",
+  "version": "1.4.0",
   "private": true,
   "type": "module",
   "packageManager": "pnpm@10.12.4",
@@ -58,6 +58,7 @@
     "preview": "rer preview",
     "build": "rer build",
     "verify": "rer verify",
+    "verify:release": "node tests/release/verify.mjs",
     "reset": "rer reset",
     "deploy": "rer deploy",
     "export": "rer export",

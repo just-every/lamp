@@ -1,0 +1,119 @@
+{
+  "version": "1.3.0",
+  "previousVersion": "1.2.0",
+  "publicReleaseNotes": "Lamp 1.3.0: move in from a hosted status page with a dry run, retroactive history, one confirmation invitation per subscriber, and undo; Slack and Teams channels per component; Datadog, UptimeRobot, Better Stack and Pingdom alert presets.",
+  "contractChanges": {
+    "NOTIFY-011": {
+      "change": "added",
+      "summary": "Slack and Teams channels can follow chosen components; their webhook URLs are stored encrypted and never shown again."
+    },
+    "NOTIFY-012": {
+      "change": "added",
+      "summary": "Publishing an update with Slack and Teams selected posts once to each channel that follows an affected component."
+    },
+    "INTAKE-006": {
+      "change": "added",
+      "summary": "Datadog, UptimeRobot, Better Stack and Pingdom presets turn each tool's own alert into a draft incident on one component and refuse anything else."
+    },
+    "INTAKE-007": {
+      "change": "added",
+      "summary": "A preset's recovery closes its never-published draft; a published incident keeps its lifecycle."
+    },
+    "MOVE-001": {
+      "change": "added",
+      "summary": "An owner can move in from a hosted status page by API key or saved API responses, after a dry run that writes nothing and names every outcome."
+    },
+    "MOVE-002": {
+      "change": "added",
+      "summary": "A move-in keeps original times, derives uptime history from them, notifies no one about history, and invites each email subscriber once to confirm."
+    },
+    "MOVE-003": {
+      "change": "added",
+      "summary": "Importing the same source again changes nothing and sends nothing."
+    },
+    "MOVE-004": {
+      "change": "added",
+      "summary": "Undo removes what a move-in created and nobody changed since, and keeps and names what was changed."
+    },
+    "MOVE-005": {
+      "change": "added",
+      "summary": "Imported record paths and supplied shortlinks redirect to surviving Lamp pages; source Atom paths serve the snapshot feed, and conditional undo removes aliases only for records it removes."
+    },
+    "ACCESS-001": {
+      "change": "changed",
+      "summary": "Replace the SSO exclusion with optional Base OpenID Connect through Auth, Google, Microsoft or Okta, off until owner linking and enablement. Email links remain; SCIM and role synchronization stay non-goals. Terminal recovery uses the same 20-minute Base email-link flow.",
+      "was": "Operators sign in by magic link; SSO and SCIM are excluded.",
+      "now": "Operators sign in by Base email links. Optional owner-linked OpenID Connect through Auth, Google, Microsoft or Okta starts disabled. SCIM and role synchronization remain non-goals."
+    },
+    "DRAFT-004": {
+      "change": "added",
+      "summary": "An incident page and an alert-raised draft show a brief of what is known and the questions still open, built with no model, and show exactly what a suggestion would send."
+    },
+    "DRAFT-002": {
+      "change": "changed",
+      "summary": "The provider now receives exactly the incident brief the operator reads, which leaves out internal components.",
+      "was": "A suggestion is built from the incident's accepted alerts, its published updates, its attached components and their claimed states, and the tone instructions configured in settings. Internal notes are not sent.",
+      "now": "The same inputs, limited to components customers can see, sent as the DRAFT-004 brief unchanged; internal notes and internal components are never sent."
+    },
+    "DRAFT-001": {
+      "change": "changed",
+      "summary": "Suggested text cites the brief items it rests on; only what the brief knows counts as a source (an open question does not), uncited text is flagged, a field the suggestion leaves empty keeps the operator's text, and the lifecycle and next-update time stay the operator's.",
+      "was": "A suggestion fills the composer's fields, including the lifecycle and next-update time, is editable, and is not published.",
+      "now": "A suggestion fills the text fields it has text for, with their sources among what the brief knows, proposes no lifecycle or next-update time, is editable, and changes nothing public."
+    },
+    "INCIDENT-010": {
+      "change": "added",
+      "summary": "Operators see an incident as due shortly before its committed next-update time, with one action to write it, and get one due-soon email; the public page never labels it."
+    },
+    "NOTIFY-006": {
+      "change": "changed",
+      "summary": "The due-soon and overdue operator emails come from the scheduled trigger, once each per committed time, whether or not anyone has the app open.",
+      "was": "An operator email is sent once when an incident becomes overdue, among other events; in practice it was queued when someone loaded the incident list.",
+      "now": "A due-soon and an overdue operator email are each sent once per committed time by the scheduled trigger."
+    }
+  },
+  "extensionPointChanges": [],
+  "migrations": [
+    {
+      "id": "0017_statuspage_import.sql",
+      "buyerSteps": "Back up data and owner source, then apply after 0016 before starting this revision. It adds Base's import-kit journal tables (ik_*) and two Lamp tables for move-in markers and invitations; no existing table or value changes. Local rer export leaves the ik_* custody tables out; a deployed export keeps them."
+    },
+    {
+      "id": "0018_channels_and_presets.sql",
+      "buyerSteps": "Back up data and owner source, then apply after 0017 before starting this revision. It adds Base's integration delivery tables, Lamp's Slack and Teams channel tables (webhook URLs stored only as ciphertext keyed from WEBHOOK_SIGNING_SECRET; keep the current secret listed while channels exist), and two nullable alert_sources columns for presets; existing sources keep working unchanged."
+    },
+    {
+      "id": "0019_operator_auth.sql",
+      "buyerSteps": "Back up the installation before upgrading. Base f4cf6f7af0f9ab92f33667ee3fd6156d2f7860a0 replaces legacy operator authentication. Active and inactive non-erased identities keep their IDs as owners; erased identities are omitted. Setup authority stays with the setup operator; if that operator erased itself, no operator gains it and the editor stays closed. Old sessions and pending links are destroyed: every active operator signs in afresh. Provision SESSION_SECRET and SETUP_TOKEN for a deployed installation; a local install's rer setup adds them to its kept settings. Product audit history, subscriber credentials and first-run completion are preserved."
+    },
+    {
+      "id": "0020_dependency_approval.sql",
+      "buyerSteps": "Apply after 0019 before starting the refreshed Base runtime. Adds ephemeral setup-link authority and exact pending-approval attempts; old pending dependency approvals are cleared and must be renewed by their owner. Existing identities, settings, sessions, product history and subscriber credentials retain their values."
+    },
+    {
+      "id": "0021_update_reminders.sql",
+      "buyerSteps": "Apply after 0020 before starting this revision. It adds incident_update_reminders, which records each due-soon and overdue operator email once per committed next-update time. Commitments that had already passed when it is applied are recorded as handled, so the upgrade sends no reminder for history; such incidents still show as overdue in the operator app."
+    }
+  ],
+  "breaking": true,
+  "agentUpdateInstructions": "Back up data and the owner source revision first. Apply 0017_statuspage_import.sql and 0018_channels_and_presets.sql in order after 0016 before starting this release. Slack and Teams channel URLs are sealed with WEBHOOK_SIGNING_SECRET: when rotating it, list the new secret first and keep the old one until channels are re-added. RER-managed delivery builds with trusted-build bf7a25a, which the stage's TRUSTED_DELIVERY_WORKFLOW_REF must name. Run pnpm verify and your owner tests before adopting. Apply 0019_operator_auth.sql next, provision stable SESSION_SECRET and SETUP_TOKEN, and require fresh operator sign-in. Apply 0020_dependency_approval.sql next; renew any pending provider-link approval. Operator-auth and the shared adoption are pinned to aa9b4d4fc6cba60411ef8d24a81323113677c370. The incoming hosting adoption retains Base fdc861d5f589ce54b54f229cf43daed3248bbb82 for current-manifest commit files; base-copies.json records each file origin. Native rer archives now use integrity-bound version 2; re-export version-1 native archives with the new source before restoring. SCIM/role synchronization remain excluded; optional owner-linked OIDC replaces the SSO exclusion under ACCESS-001. Apply 0021_update_reminders.sql next; update-due and overdue operator emails then come from the scheduled trigger, not from loading the incident list.",
+  "proseChanges": [
+    {
+      "document": "README.md",
+      "section": "Moving in",
+      "change": "added",
+      "date": "2026-10-11",
+      "summary": "README points owners coming from a hosted status page at the move-in and its guide, docs/moving-in.md.",
+      "now": "Coming from a hosted status page? Settings → Move in from Statuspage brings your components, incident history, maintenance and email subscribers, with a dry run first and undo after; see docs/moving-in.md."
+    },
+    {
+      "document": "README.md",
+      "section": "Owner-controlled operations",
+      "change": "changed",
+      "date": "2026-10-11",
+      "summary": "WEBHOOK_SIGNING_SECRET also seals Slack and Teams channel addresses.",
+      "was": "SUBSCRIBER_TOKEN_SECRET and WEBHOOK_SIGNING_SECRET are privately generated random secrets of at least 32 characters.",
+      "now": "SUBSCRIBER_TOKEN_SECRET and WEBHOOK_SIGNING_SECRET are privately generated random secrets of at least 32 characters; WEBHOOK_SIGNING_SECRET also seals Slack and Teams channel addresses (list a new one first and keep the old while rotating)."
+    }
+  ]
+}

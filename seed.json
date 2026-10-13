@@ -1,7 +1,7 @@
 {
   "id": "lamp",
   "name": "Lamp",
-  "version": "1.3.0",
+  "version": "1.4.0",
   "maturity": "ui-port-local-runtime",
   "category": "status",
   "spine": {
@@ -593,28 +593,32 @@
     "subscribers": {
       "value": 1000,
       "estimate": true,
-      "why": "Local D1 engine benchmark: 1,000 active email subscribers were captured into frozen envelopes and dispatched with persisted provider attempts in 224,093ms through a test-only 100ms acknowledgement and Resend's documented default 10 request/second rate model (observed peak 5/s). This is not an account-specific provider acceptance guarantee: configured team quota, external latency, DKIM header coverage, tracking settings, domain authentication, and recipient delivery require deployment verification."
+      "why": "A local authenticated publish and native scheduled trigger persisted 1,000 unique fake-provider acceptances. The fake network used a strict 10-acceptance/second quota and 100ms acknowledgement; peak acceptance was 9/second, p95 completion was 185.474 seconds, and the last acceptance arrived in 191.362 seconds, including 64.488 seconds waiting for the trigger. This remains an estimate: it does not qualify a live provider account, quota, latency, domain configuration, or recipient delivery."
     },
     "components": {
       "value": 200,
-      "estimate": true
+      "estimate": true,
+      "why": "Qualified in a populated local Worker fixture with 200 components and 25 groups. This is a representative record count; arbitrary component text and worst-case snapshot bytes remain unqualified."
     },
     "componentGroups": {
       "value": 25,
-      "estimate": true
+      "estimate": true,
+      "why": "Qualified alongside 200 components in a populated local Worker fixture. This is a representative group count, not a bound on arbitrary data size."
     },
     "openIncidents": {
       "value": 25,
-      "estimate": true
+      "estimate": true,
+      "why": "Qualified with 25 open incidents; all 25 titles appeared on the public page. This is representative content, not a worst-case history-size limit."
     },
     "incidentUpdatesPerIncident": {
       "value": 200,
-      "estimate": true
+      "estimate": true,
+      "why": "Qualified with 200 updates on an incident; the full public timeline showed all 200 update markers. This is representative history, not a bound on arbitrary update bytes."
     },
     "publicPageRequestsPerSecond": {
-      "value": 5000,
+      "value": 10,
       "estimate": true,
-      "why": "Snapshot served from cache; PAGE-008 requires 200 for all of them."
+      "why": "Local Miniflare Worker measurements used uncompressed responses and no CDN. Two fresh 30-second full-page runs and two mixed-route runs each completed 300/300 requests with HTTP 200, no transport errors, and approximately 10 successful reads/second. Full-page p95 latency was 880.289ms and 312.709ms; mixed-route p95 latency was 138.466ms and 112.200ms. The earlier 5,000-requests/second offer failed with widespread local transport errors on the populated Mac Worker; that does not establish a production CDN limit. Deployment and CDN capacity remain unvalidated, and no runtime rate limiter was added."
     },
     "subscribeRequestsPerMinutePerAddress": {
       "value": 5,
@@ -623,7 +627,8 @@
     },
     "intakeRequestsPerMinutePerSource": {
       "value": 120,
-      "estimate": true
+      "estimate": true,
+      "why": "A paced local run accepted 120 signed intake requests, each with HTTP 202, and durably recorded their draft incidents while the public status remained unchanged. This qualifies that fixture and path only; deployment throughput remains unvalidated."
     },
     "uploadMaxBytes": {
       "value": 2097152,
@@ -658,6 +663,6 @@
     "status": "computed from published Cloudflare Workers Free/Paid pricing tiers and the stated usage assumptions, not measured against a running deployment",
     "currency": "USD",
     "perMonthEstimate": 0,
-    "basis": "The low-volume default is USD 0/month on Workers Free: 100,000 Worker requests/day, 10,000 Queues operations/day, D1's 5 million reads/day and 100,000 writes/day, the R2 free tier, Cron, and SQLite-backed Durable Objects including alarms. The declared 5,000 public requests/second capacity (or any other Free-plan cap) requires Workers Paid; USD 5/month is the Paid minimum, not a sustained-load estimate. Transactional mail and optional AI remain excluded."
+    "basis": "The low-volume default is USD 0/month on Workers Free: 100,000 Worker requests/day, 10,000 Queues operations/day, D1's 5 million reads/day and 100,000 writes/day, the R2 free tier, Cron, and SQLite-backed Durable Objects including alarms. A local public-read measurement does not establish Workers Free or Paid deployment capacity; USD 5/month is the Paid minimum, not a sustained-load estimate. Transactional mail and optional AI remain excluded."
   }
 }
