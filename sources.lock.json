@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "parent": null,
   "edition": "just-every/run-lamp",
-  "manifest": "568c7bc03710cfbaa0f9ec09f07a976265509f9212e31675183792c60693e99e",
+  "manifest": "9a96c3a2186f1ca04636c7df6e02698242ae710cdad41111c9d16205b875aea5",
   "toolchain": {
     "id": "runeditrun/edition-authoring",
     "version": "1.1.0",
@@ -340,6 +340,34 @@
         "digest": "ae18b3bb6a6fcaf1c80be937595c0beb9e728dbaae0c45207ecd73428b39c903",
         "sha256": "e4e08d0722ef826498d5418c9b30dd8b83e802be2666908a50a3addfbc67bb4f"
       }
+    },
+    {
+      "id": "just-every/run-lamp-local-instructions",
+      "source": {
+        "kind": "local",
+        "paths": [
+          "RUN-LOCALLY.md"
+        ],
+        "origin": {
+          "repository": "https://github.com/runeditrun/base.git",
+          "revision": "8981bc2c4d9e61feca5787c83b4ed44056659dd9",
+          "path": ".",
+          "paths": [
+            "export/RUN-LOCALLY.md"
+          ]
+        },
+        "mappings": [
+          {
+            "path": "RUN-LOCALLY.md",
+            "originPath": "export/RUN-LOCALLY.md"
+          }
+        ]
+      },
+      "baseline": {
+        "key": "49b95cc4c83c9baad1450bedeadcfff2b2fa2e18921bf86295911271a4d8a390",
+        "digest": "8fd4ffb0733050fb0c121406e57acf44cf81197eb04d2808c56fee865837309e",
+        "sha256": "073dc851a5d203ea95101b3ca49af6c03bcc91924f8b7240f110d055d60703ba"
+      }
     }
   ],
   "files": {
@@ -380,7 +408,7 @@
       "executable": false
     },
     "base-copies.json": {
-      "sha256": "88c54cf67df5d3e86fb1c62058672e367cd40395db63247354c5482bc01ee9bd",
+      "sha256": "f974343afd91555973c82bd94b66b0b012f02f24c7e3232de53e594d1ae04403",
       "executable": false
     },
     "BASELINE.md": {
@@ -500,7 +528,7 @@
       "executable": false
     },
     "edition.json": {
-      "sha256": "568c7bc03710cfbaa0f9ec09f07a976265509f9212e31675183792c60693e99e",
+      "sha256": "9a96c3a2186f1ca04636c7df6e02698242ae710cdad41111c9d16205b875aea5",
       "executable": false
     },
     "HANDOVER.md": {
@@ -1692,7 +1720,7 @@
       "executable": false
     },
     "scripts/baseline/reporter-probes.mjs": {
-      "sha256": "44c64d577cd9a6ddd6a6c58e9dc01cc9718b2aac7717de64f0da091dbe86bbeb",
+      "sha256": "f8da616b44f73023e4dafa793798e6612f8b3271eec3aadf06100bb4133f092c",
       "executable": false
     },
     "scripts/baseline/run.mjs": {
@@ -2756,7 +2784,7 @@
       "executable": false
     },
     "src/core/features/public-snapshot/routes.ts": {
-      "sha256": "587a4183061ee48643e174cbff97f9528b03b738573bfb2c6fdcc73aff0c9536",
+      "sha256": "9b64baa4fea364c7e3274ff3d0f316fc6d53bb59f12abf2718cec818016afe3e",
       "executable": false
     },
     "src/core/features/public-snapshot/service.ts": {
@@ -4188,7 +4216,11 @@
       "executable": false
     },
     "tests/e2e/queue-outage.test.mjs": {
-      "sha256": "c3f8d051625e33aef6ed10158634e0e685adaabdda804cb1ccd4c9e533153332",
+      "sha256": "299adb0ddf1c6520bfc5c13f0688b4e026ac23a8c1df1bc6e95de9be967854ec",
+      "executable": false
+    },
+    "tests/e2e/queue-outage.worker.ts": {
+      "sha256": "21bf76e67fa151f4304147c186dae4cb1f1189f7058a33fe9372bd5b7b918683",
       "executable": false
     },
     "tests/e2e/real-session-helper.mjs": {
@@ -4220,7 +4252,7 @@
       "executable": false
     },
     "tests/e2e/snapshot-retained.test.mjs": {
-      "sha256": "8ced468408fd8642a29cb3f6d556cdcf00a18e6d36f5fb512e44d1328dc36002",
+      "sha256": "e33accd05c01737bf5936cae6aa5a19867afdbad8ea91c94a1b4809ba3c2d871",
       "executable": false
     },
     "tests/e2e/snapshot-retained.worker.ts": {

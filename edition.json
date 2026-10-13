@@ -316,6 +316,30 @@
           }
         ]
       }
+    },
+    {
+      "id": "just-every/run-lamp-local-instructions",
+      "role": "module",
+      "source": {
+        "kind": "local",
+        "paths": [
+          "RUN-LOCALLY.md"
+        ],
+        "origin": {
+          "repository": "https://github.com/runeditrun/base.git",
+          "revision": "8981bc2c4d9e61feca5787c83b4ed44056659dd9",
+          "path": ".",
+          "paths": [
+            "export/RUN-LOCALLY.md"
+          ]
+        },
+        "mappings": [
+          {
+            "path": "RUN-LOCALLY.md",
+            "originPath": "export/RUN-LOCALLY.md"
+          }
+        ]
+      }
     }
   ]
 }

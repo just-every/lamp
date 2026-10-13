@@ -10,12 +10,20 @@ const { Miniflare, convertV4MiniflareOptions } = wranglerRequire("miniflare");
 const { build } = wranglerRequire("esbuild");
 const generatedAt = "2026-09-13T00:00:00.000Z";
 function bundle(generation) {
+  // Stored generations from before Sign in was added still serve immediately.
+  const html = `<html><body><header><nav class="status-utilities"><a href="/history">History</a></nav></header>Degraded v${generation}</body></html>`;
   return { version: `v${generation}`, generation, generatedAt, artifacts: [
-    { key: "page.html", contentType: "text/html", body: `<html><body>Degraded v${generation}</body></html>` },
+    { key: "page.html", contentType: "text/html", body: html },
+    { key: "not-found.html", contentType: "text/html", body: html },
     { key: "feed.atom", contentType: "application/atom+xml", body: `<feed><title>Degraded v${generation}</title><updated>${generatedAt}</updated></feed>` },
     { key: "widget.js", contentType: "application/javascript", body: `/* Degraded v${generation} */` },
     { key: "status.json", contentType: "application/json", body: JSON.stringify({ overall: "degraded", generation, generatedAt }) },
   ] };
+}
+function assertInstalledSignIn(html, target = "https://app.example/signin") {
+  const actions = html.match(/<a\b[^>]*\bdata-lamp-signin\b[^>]*>/g) ?? [];
+  assert.equal(actions.length, 1, "the public header has exactly one installed sign-in action");
+  assert.equal(actions[0].match(/\bhref="([^"]*)"/)?.[1], target);
 }
 test("PAGE-005 PAGE-006 PAGE-007 cold durable replica keeps complete generations through R2 failure without D1 reads", async () => {
   const directory = await mkdtemp(join(tmpdir(), "lamp-retained-"));
@@ -25,7 +33,7 @@ test("PAGE-005 PAGE-006 PAGE-007 cold durable replica keeps complete generations
     builder.onLoad({ filter: /.*/, namespace: "raw" }, async args => ({ contents: `export default ${JSON.stringify(await readFile(args.path, "utf8"))}`, loader: "js" }));
     builder.onLoad({ filter: /.*/, namespace: "inline" }, async args => ({ contents: `export default ${JSON.stringify("data:application/octet-stream;base64," + (await readFile(args.path)).toString("base64"))}`, loader: "js" }));
   } }] });
-  const options = { bindings: { LAMP_APP_HOST: "app.example" }, name: "lamp-retained-test", resourcePersistencePath: join(directory, "storage"), modules: true, script: await readFile(output, "utf8"), compatibilityDate: "2026-09-08", compatibilityFlags: ["nodejs_compat"], durableObjects: { SNAPSHOT_CACHE: { className: "SnapshotCache", useSQLite: true } }, r2Buckets: ["SNAPSHOTS"] };
+  const options = { bindings: { LAMP_APP_HOST: "  APP.EXAMPLE  " }, name: "lamp-retained-test", resourcePersistencePath: join(directory, "storage"), modules: true, script: await readFile(output, "utf8"), compatibilityDate: "2026-09-08", compatibilityFlags: ["nodejs_compat"], durableObjects: { SNAPSHOT_CACHE: { className: "SnapshotCache", useSQLite: true } }, r2Buckets: ["SNAPSHOTS"] };
   let runtime = new Miniflare(convertV4MiniflareOptions(options));
   const fetch = (path, init) => runtime.dispatchFetch(`https://page.example${path}`, init);
   try {
@@ -47,7 +55,9 @@ test("PAGE-005 PAGE-006 PAGE-007 cold durable replica keeps complete generations
       assert.equal(response.status, 200);
       assert.equal(response.headers.get("X-Lamp-Snapshot-State"), "stale");
       assert.equal(response.headers.get("X-Lamp-Snapshot-Generated-At"), generatedAt);
-      assert.match(await response.text(), /Last known state|"snapshotState":"stale"/);
+      const body = await response.text();
+      assert.match(body, /Last known state|"snapshotState":"stale"/);
+      if (path === "/") assertInstalledSignIn(body);
     }
     assert.equal((await fetch("/?storage=malformed")).status, 200);
     assert.equal((await fetch("/health?storage=down")).status, 503);
@@ -71,6 +81,15 @@ test("PAGE-005 PAGE-006 PAGE-007 cold durable replica keeps complete generations
     assert.match(await cacheWriteFailure.text(), /Degraded v5/);
     const restored = await fetch("/?restored=1");
     assert.equal(restored.headers.get("X-Lamp-Snapshot-Retained"), "true", "restored R2 bundle primes the replica before acceptance");
+    assertInstalledSignIn(await restored.text());
+    const missing = await fetch("/incidents/missing");
+    assert.equal(missing.status, 404);
+    assertInstalledSignIn(await missing.text());
+    const conditional = await fetch("/", { headers: { "If-None-Match": restored.headers.get("etag") } });
+    assert.equal(conditional.status, 304, "unchanged installed HTML remains conditionally cacheable");
+    const local = await runtime.dispatchFetch("http://page.example:49157/", { headers: { "If-None-Match": restored.headers.get("etag") } });
+    assert.equal(local.status, 200, "a changed sign-in scheme and port invalidate the HTML validator");
+    assertInstalledSignIn(await local.text(), "http://app.example:49157/signin");
     // Both primary storage and the durable replica fail: the independently
     // warmed edge fallback still returns labelled bytes, even conditionally.
     const validator = restored.headers.get("etag");
@@ -78,7 +97,9 @@ test("PAGE-005 PAGE-006 PAGE-007 cold durable replica keeps complete generations
     assert.equal(edgeOnly.status, 200);
     assert.equal(edgeOnly.headers.get("X-Lamp-Snapshot-State"), "stale");
     assert.equal(edgeOnly.headers.get("etag"), null);
-    assert.match(await edgeOnly.text(), /Last known state/);
+    const edgeHtml = await edgeOnly.text();
+    assert.match(edgeHtml, /Last known state/);
+    assertInstalledSignIn(edgeHtml);
     assert.equal((await fetch("/unwarmed?storage=down&replica=down")).status, 503);
     await runtime.dispose(); runtime = new Miniflare(convertV4MiniflareOptions(options));
     assert.match(await (await fetch("/?storage=down&restored=2")).text(), /Degraded v5/);
@@ -127,7 +148,10 @@ test("PAGE-005 PAGE-006 PAGE-007 cold durable replica keeps complete generations
     for (const [path, destination, title] of [["/incidents/original-outage", "/incidents/INC-1", "Original outage"], ["/outage", "/incidents/INC-1", "Original outage"], ["/incidents/original-upgrade", "/maintenance/SCH-1", "Database upgrade"], ["/upgrade", "/maintenance/SCH-1", "Database upgrade"]]) {
       const redirected = await fetch(path, { redirect: "manual" });
       assert.equal(redirected.status, 301); assert.equal(redirected.headers.get("Location"), destination);
-      const record = await fetch(destination); assert.equal(record.status, 200); assert.match(await record.text(), new RegExp(title));
+      const record = await fetch(destination); assert.equal(record.status, 200);
+      const recordHtml = await record.text();
+      assert.match(recordHtml, new RegExp(title));
+      assertInstalledSignIn(recordHtml);
       assert.equal(record.headers.get("X-Lamp-Snapshot-Generated-At"), redirected.headers.get("X-Lamp-Snapshot-Generated-At"));
       assert.equal((await runtime.dispatchFetch(`https://app.example${path}`)).status, 404);
     }

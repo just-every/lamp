@@ -2,6 +2,7 @@ import { aliasArtifactKey, isImportAliasPath, isLampPermalink } from "../statusp
 import type { Context, Hono } from "hono";
 
 import type { AppEnv } from "../../app/types";
+import { escapeHtml } from "./format";
 import { applyPublicIsolationHeaders } from "./headers";
 import type { PublicSnapshotService } from "./service";
 
@@ -74,16 +75,36 @@ async function labelledStaleResponse(cached: Response, artifact: string) {
 
 // Resolve installation routing when serving immutable HTML so local URLs keep
 // their scheme/port and changing the configured app host needs no DB read.
+function installedSignInUrl(context: Context<AppEnv>) {
+  const target = new URL("/signin", context.req.url);
+  // Match the host dispatcher's normalization of installation bindings.
+  target.hostname = context.env.LAMP_APP_HOST.trim().toLowerCase();
+  return target.href;
+}
+
 function installedSignIn(response: Response, context: Context<AppEnv>) {
   if (!response.headers.get("Content-Type")?.includes("text/html")) return response;
-  return new HTMLRewriter().on("a[data-lamp-signin]", {
-    element(element) {
-      const target = new URL("/signin", context.req.url);
-      // Match the host dispatcher's normalization of installation bindings.
-      target.hostname = context.env.LAMP_APP_HOST.trim().toLowerCase();
-      element.setAttribute("href", target.href);
-    },
-  }).transform(response);
+  const target = installedSignInUrl(context);
+  let signInSeen = false;
+  return new HTMLRewriter()
+    .on("nav.status-utilities", {
+      element(element) {
+        // Archived generations predate the marker. Wait until the navigation
+        // ends so a link already present in newer or cached HTML is reused.
+        element.onEndTag((endTag) => {
+          if (signInSeen) return;
+          endTag.before(`<a data-lamp-signin href="${escapeHtml(target)}">Sign in</a>`, { html: true });
+          signInSeen = true;
+        });
+      },
+    })
+    .on("a[data-lamp-signin]", {
+      element(element) {
+        if (signInSeen) return void element.remove();
+        element.setAttribute("href", target);
+        signInSeen = true;
+      },
+    }).transform(response);
 }
 
 export function registerPublicSnapshotRoutes(app: Hono<AppEnv>, service: PublicSnapshotService) {
@@ -101,9 +122,13 @@ export function registerPublicSnapshotRoutes(app: Hono<AppEnv>, service: PublicS
         if (redirect) response.headers.set("Location", redirect);
         response.headers.set("X-Lamp-Snapshot-Generated-At", object.generatedAt);
         response.headers.set("X-Lamp-Snapshot-Version", object.version);
-        // A validator names the selected immutable generation, never the URL's
-        // last cached bytes. Public reads still reach only R2/retained storage.
-        const etag = `W/"${encodeURIComponent(object.version)}/${encodeURIComponent(artifact(context))}/${encodeURIComponent(context.env?.LAMP_APP_HOST ?? "")}"`;
+        // HTML also varies with its serving-time action and full installed URL.
+        // Version that transformation so an old validator cannot retain a
+        // header without Sign in after an upgrade of the same stored artifact.
+        const representation = object.contentType.includes("text/html")
+          ? `installed-signin-v1:${installedSignInUrl(context)}`
+          : context.env?.LAMP_APP_HOST ?? "";
+        const etag = `W/"${encodeURIComponent(object.version)}/${encodeURIComponent(artifact(context))}/${encodeURIComponent(representation)}"`;
         response.headers.set("ETag", etag);
         response = installedSignIn(response, context);
         if (object.retainedReady) response.headers.set("X-Lamp-Snapshot-Retained", "true");
