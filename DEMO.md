@@ -23,7 +23,7 @@ instance's disposable R2, including prior generations retained by Lamp.
 Lamp uses the published npm package `@runeditrun/rer@0.2.5`, which includes the
 demo CLI, host files, container ingress and egress isolation, build entry
 options and the production demo-binding refusal. No CLI package patch is needed.
-`modules/demo` is that revision's guard, with its HTTP helper import pointing at the installed package and Base's
+`modules/demo` retains the guard from Base revision `a6afad9f4d007bf1b97a75bd67880d1850683e5d`, with its HTTP helper import pointing at the installed package and Base's
 new CSP helper copied alongside it. The start and ended pages are unchanged.
 A narrow boundary compatibility change permits Lamp’s existing HTMLRewriter
 only for the workerd engine; the Node engine still refuses it. All other
