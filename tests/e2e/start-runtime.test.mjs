@@ -13,6 +13,7 @@ import { insertRealOperatorSession } from "./real-session-helper.mjs";
 import { reservePort, waitForWorker } from "./worker-startup.mjs";
 import { localWranglerConfig } from "../helpers/wrangler-config.mjs";
 import { sessionCookieName } from "../helpers/session-cookie.mjs";
+import { fixtureProcessEnv, isolatedWorkerEnvArgs } from "../helpers/worker-environment.mjs";
 
 const appHost = "127.0.0.1";
 const pageHost = "status.lamp.test";
@@ -23,6 +24,7 @@ let port;
 let privateLoaderId;
 let sessionId;
 let statePath;
+let envArgs;
 let worker;
 let workerOutput = "";
 let pagePort;
@@ -33,7 +35,7 @@ function run(command, args, options = {}) {
   return new Promise((resolveCommand, reject) => {
     const child = spawn(command, args, {
       cwd: process.cwd(),
-      env: { ...process.env, LAMP_DISABLE_INSPECTOR: "true", ...options.env },
+      env: fixtureProcessEnv(options.env),
       stdio: ["ignore", "pipe", "pipe"],
     });
     let output = "";
@@ -128,9 +130,9 @@ async function stopWorker(child) {
 
 async function startPageWorker() {
   pagePort = await reservePort({ label: "page-host Worker" });
-  pageWorker = spawn("pnpm", ["exec", "wrangler", "dev", "--local", "--config", artifactPath, "--persist-to", statePath, "--show-interactive-dev-session=false", "--ip", "127.0.0.1", "--port", String(pagePort), "--inspector-port", "0", "--local-upstream", `${pageHost}:${pagePort}`, "--var", `LAMP_PAGE_HOST:${pageHost}`, "--var", `LAMP_APP_HOST:${appHost}`, "--var", `AUTH_ORIGIN:${appOrigin}`, "--var", "AUTH_LOCAL:true", "--var", `SESSION_SECRET:${secret}`, "--var", "SETUP_OPERATOR_EMAIL:operator@example.test", "--log-level", "warn"], {
+  pageWorker = spawn("pnpm", ["exec", "wrangler", "dev", "--local", "--config", artifactPath, ...envArgs, "--persist-to", statePath, "--show-interactive-dev-session=false", "--ip", "127.0.0.1", "--port", String(pagePort), "--inspector-port", "0", "--local-upstream", `${pageHost}:${pagePort}`, "--var", `LAMP_PAGE_HOST:${pageHost}`, "--var", `LAMP_APP_HOST:${appHost}`, "--var", `AUTH_ORIGIN:${appOrigin}`, "--var", "AUTH_LOCAL:true", "--var", `SESSION_SECRET:${secret}`, "--var", "SETUP_OPERATOR_EMAIL:operator@example.test", "--log-level", "warn"], {
     cwd: process.cwd(),
-    env: { ...process.env, LAMP_DISABLE_INSPECTOR: "true" },
+    env: fixtureProcessEnv(),
     stdio: ["ignore", "pipe", "pipe"],
     detached: true,
   });
@@ -234,12 +236,16 @@ before(async () => {
   port = await reservePort({ label: "built Worker" });
   appOrigin = `http://${appHost}:${port}`;
   statePath = await mkdtemp(join(tmpdir(), "lamp-start-runtime-"));
+  envArgs = isolatedWorkerEnvArgs(statePath);
   await run("pnpm", ["exec", "wrangler", "d1", "migrations", "apply", "DB", "--local", "--config", artifactPath, "--persist-to", statePath]);
   await run("pnpm", ["exec", "wrangler", "d1", "execute", "DB", "--local", "--config", artifactPath, "--persist-to", statePath, "--command", legacyApiFixtureSql()]);
   sessionId = await insertRealOperatorSession({ persistTo: statePath, configPath: artifactPath });
-  worker = spawn("pnpm", ["exec", "wrangler", "dev", "--local", "--config", artifactPath, "--persist-to", statePath, "--show-interactive-dev-session=false", "--ip", "127.0.0.1", "--port", String(port), "--inspector-port", "0", "--local-upstream", `${appHost}:${port}`, "--var", `LAMP_PAGE_HOST:${pageHost}`, "--var", `LAMP_APP_HOST:${appHost}`, "--var", `AUTH_ORIGIN:${appOrigin}`, "--var", "AUTH_LOCAL:true", "--var", `SESSION_SECRET:${secret}`, "--var", "SETUP_OPERATOR_EMAIL:operator@example.test", "--log-level", "warn"], {
+  // Enable the native form; its submitted address is not a fixture operator,
+  // so native auth accepts the request without attempting mail delivery.
+  // The cron dispatch probe must also leave queued notification effects paused.
+  worker = spawn("pnpm", ["exec", "wrangler", "dev", "--local", "--config", artifactPath, ...envArgs, "--persist-to", statePath, "--show-interactive-dev-session=false", "--ip", "127.0.0.1", "--port", String(port), "--inspector-port", "0", "--local-upstream", `${appHost}:${port}`, "--var", `LAMP_PAGE_HOST:${pageHost}`, "--var", `LAMP_APP_HOST:${appHost}`, "--var", `AUTH_ORIGIN:${appOrigin}`, "--var", "AUTH_LOCAL:true", "--var", `SESSION_SECRET:${secret}`, "--var", "SETUP_OPERATOR_EMAIL:operator@example.test", "--var", "MAIL_PROVIDER_API_KEY:test-only-signin-presentation-no-delivery", "--var", "EFFECTS_PAUSED:1", "--log-level", "warn"], {
     cwd: process.cwd(),
-    env: { ...process.env, LAMP_DISABLE_INSPECTOR: "true" },
+    env: fixtureProcessEnv(),
     stdio: ["ignore", "pipe", "pipe"],
     detached: true,
   });
@@ -274,7 +280,7 @@ test("sign-in submits with JavaScript disabled", { timeout: 30_000 }, async () =
   } finally {await browser.close();}
 });
 
-test("the built single Worker preserves Hono/R2, Start auth, dispatch, 404s, and client navigation", { timeout: 120_000 }, async () => {
+test("DOCS-001 — the built single Worker preserves public docs, Hono/R2, Start auth, dispatch, 404s, and client navigation", { timeout: 120_000 }, async () => {
   const signIn = await request("/signin", appHost, { headers: { "Sec-Fetch-Mode": "navigate" } });
   const signInHtml = await signIn.text();
   assert.equal(signIn.status, 200);
@@ -388,7 +394,7 @@ test("vite dev serves Start's client entry and stylesheet through the app host",
     const devSessionId = await insertRealOperatorSession({ persistTo: devStatePath, configPath: devConfigPath });
     devServer = spawn("pnpm", ["exec", "vite", "--host", "127.0.0.1", "--port", String(devPort), "--strictPort"], {
       cwd: process.cwd(),
-      env: { ...process.env, AUTH_ORIGIN:devOrigin,AUTH_LOCAL:"true",SESSION_SECRET:secret,SETUP_OPERATOR_EMAIL:"operator@example.test", LAMP_DISABLE_INSPECTOR: "true", LAMP_WORKERS_STATE_PATH: devStatePath, LAMP_VITE_CACHE_DIR: devViteCachePath, LAMP_WRANGLER_CONFIG: devConfigPath, __VITE_ADDITIONAL_SERVER_ALLOWED_HOSTS: appHost },
+      env: fixtureProcessEnv({ AUTH_ORIGIN:devOrigin,AUTH_LOCAL:"true",SESSION_SECRET:secret,SETUP_OPERATOR_EMAIL:"operator@example.test", LAMP_WORKERS_STATE_PATH: devStatePath, LAMP_VITE_CACHE_DIR: devViteCachePath, LAMP_WRANGLER_CONFIG: devConfigPath, __VITE_ADDITIONAL_SERVER_ALLOWED_HOSTS: appHost }),
       stdio: ["ignore", "pipe", "pipe"],
       detached: true,
     });

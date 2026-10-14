@@ -8,7 +8,7 @@ import { tmpdir } from "node:os";
 import { chromium } from "playwright";
 
 import { legacyApiFixtureSql } from "../e2e/fixtures/legacy-api-fixture.mjs";
-import { pageOrigin } from "../e2e/helpers/hosts.mjs";
+import { appHost, pageOrigin } from "../e2e/helpers/hosts.mjs";
 import { reservePort, waitForWorker } from "../e2e/worker-startup.mjs";
 import { fixtureFetch as fetch } from "./fixture-fetch.mjs";
 
@@ -305,7 +305,15 @@ test("failed renderer upgrade keeps last known public bytes readable without D1"
   assert.match(staleBody, /Last known state/);
   assert.match(staleBody, /Atlas Cloud Status/);
   assert.equal(stalePage.headers.get("x-lamp-snapshot-generated-at"), priorPointer.generatedAt);
-  assert.equal(staleBody.replace(/<aside role="status"[^>]*>[\s\S]*?<\/aside>/, ""), priorPage.trim(), "the stale label wraps the exact last-known page artifact");
+  const signInTarget = new URL("/signin", origin);
+  signInTarget.hostname = appHost;
+  const signInLinks = [...staleBody.matchAll(/<a data-lamp-signin href="([^"]+)"/g)];
+  assert.equal(signInLinks.length, 1, "the retained page has exactly one Sign in action");
+  assert.equal(signInLinks[0][1], signInTarget.href, "the retained action targets the installed app host");
+  const lastKnownPage = staleBody.replace(/<aside role="status"[^>]*>[\s\S]*?<\/aside>/, "")
+    .replace(signInLinks[0][0], '<a data-lamp-signin href="/signin"');
+  assert.equal(lastKnownPage, priorPage, "the stale label wraps the exact last-known page artifact apart from the installed Sign in href");
+  assert.equal(r2Object(`snapshots/${priorPointer.version}/page.html`), priorPage, "stale serving leaves the R2 page artifact byte-identical");
 
   await stopWorker();
   await startWorker("public snapshot Worker after D1 loss");

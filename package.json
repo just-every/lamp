@@ -1,6 +1,6 @@
 {
   "name": "lamp",
-  "version": "1.3.0",
+  "version": "1.4.0",
   "private": true,
   "type": "module",
   "packageManager": "pnpm@10.12.4",
@@ -58,6 +58,7 @@
     "preview": "rer preview",
     "build": "rer build",
     "verify": "rer verify",
+    "verify:release": "node tests/release/verify.mjs",
     "reset": "rer reset",
     "deploy": "rer deploy",
     "export": "rer export",
@@ -100,15 +101,15 @@
     "@axe-core/playwright": "4.12.1",
     "@cloudflare/vite-plugin": "1.54.5",
     "@cloudflare/workers-types": "5.20260908.1",
-    "@playwright/test": "1.55.0",
-    "@runeditrun/rer": "0.2.0",
+    "@playwright/test": "1.55.1",
+    "@runeditrun/rer": "0.2.1",
     "@tailwindcss/vite": "^4.3.3",
     "@types/node": "22.19.17",
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.7",
     "@vitejs/plugin-react": "6.1.1",
     "marked": "18.0.14",
-    "playwright": "1.55.0",
+    "playwright": "1.55.1",
     "tailwindcss": "^4.3.3",
     "typescript": "5.9.3",
     "vite": "8.2.2",
@@ -125,6 +126,11 @@
     "onlyBuiltDependencies": [
       "esbuild",
       "workerd"
-    ]
+    ],
+    "overrides": {
+      "miniflare@5.20260907.0-alpha>sharp": "0.35.5",
+      "miniflare@5.20260907.0-alpha>undici": "7.29.1",
+      "source-map-js@<1.2.2": "1.2.2"
+    }
   }
 }

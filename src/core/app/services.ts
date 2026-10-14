@@ -122,7 +122,7 @@ export function createAppServices(bindings: AppBindings, blobs: BlobStore, execu
 
   // Imported subscribers each get one confirmation invite; past incidents notify no one.
   const statuspageImport = createStatuspageImportService(bindings.DB, {
-    inviteSubscriber: async (subscriberId, assertAuthority) => subscribers.inviteImported(subscriberId, await notificationOrigin(bindings), (await pageSettings.get())?.pageName ?? "This status page", assertAuthority),
+    inviteSubscriber: async (subscriberId, claimSend) => subscribers.inviteImported(subscriberId, await notificationOrigin(bindings), (await pageSettings.get())?.pageName ?? "This status page", claimSend),
     publicDataChanged: () => publicSnapshots.rebuild(true),
   }, { apiOrigin: import.meta.env?.DEV && bindings.LAMP_DEV_STATUSPAGE_ORIGIN?.startsWith("http://127.0.0.1:") ? bindings.LAMP_DEV_STATUSPAGE_ORIGIN : undefined });
 

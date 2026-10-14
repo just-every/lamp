@@ -1,16 +1,25 @@
 import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
 
 import { readBaselineCatalog } from "./catalog.mjs";
 import { baselineReport } from "./report.mjs";
 
 const catalog = await readBaselineCatalog();
+const contractLines = (await readFile("CONTRACT.md", "utf8")).split(/\r?\n/);
 const valid = "tests/baseline/e2e-baseline/core-baseline.test.mjs";
 
 {
   const report = baselineReport(catalog, [{ path: valid, exitCode: 0, results: [...catalog.keys()].filter((id) => id !== "BASE-PUBLIC-003").map((id) => ({ id, status: "passed" })) }, { path: "tests/e2e/accessibility.test.mjs", exitCode: 0, results: [{ id: "BASE-PUBLIC-003", status: "passed" }] }]);
   assert.equal(report.success, true);
   assert.equal(report.status["BASE-ACCESS-003"].state, "satisfied");
-  assert.deepEqual(report.status["BASE-ACCESS-003"].supersededBy, [{ contractId: "PAGE-008", scope: "those paths only", line: 20 }]);
+  const [supersession] = report.status["BASE-ACCESS-003"].supersededBy;
+  assert.equal(report.status["BASE-ACCESS-003"].supersededBy.length, 1);
+  assert.equal(supersession.contractId, "PAGE-008");
+  assert.equal(supersession.scope, "those paths only");
+  assert.ok(Number.isInteger(supersession.line) && supersession.line > 0 && supersession.line <= contractLines.length);
+  const referencedClause = contractLines[supersession.line - 1];
+  assert.match(referencedClause, /^- \*\*PAGE-008 — /);
+  assert.match(referencedClause, /\*\*Supersedes BASE-ACCESS-003\*\* for those paths only\./);
 }
 {
   const report = baselineReport(catalog, [{ path: "tests/e2e/public-contract.test.mjs", exitCode: 0, results: [{ id: "BASE-ACCESS-001", status: "passed" }] }]);

@@ -1,4 +1,4 @@
-import { and, asc, eq, gt, isNull, lt } from "drizzle-orm";
+import { and, asc, eq, gt, isNull, lt, sql } from "drizzle-orm";
 
 import { createDatabase } from "../../platform/db/client";
 import { componentGroups, components, subscriberComponents, subscribers } from "../../shared/schema";
@@ -66,7 +66,11 @@ export function createSubscriberRepository(binding: D1Database): SubscriberRepos
     async createPendingSubscriber(input) {
       await database.insert(subscribers).values(input).onConflictDoUpdate({
         target: subscribers.destination,
-        set: { state: input.state, selectionMode: input.selectionMode, deactivationReason: null, deactivatedAt: null, updatedAt: input.updatedAt },
+        set: { state: input.state, selectionMode: input.selectionMode, deactivationReason: null, deactivatedAt: null,
+          // A fresh opt-in starts a fresh pending lifetime. Ordinary repeated
+          // requests and import invitations retain their original deadline.
+          createdAt: sql`CASE WHEN ${subscribers.state} = 'deactivated' THEN ${input.createdAt} ELSE ${subscribers.createdAt} END`,
+          updatedAt: input.updatedAt },
       });
     },
     async updateSelection(subscriberId, componentIds, now) {

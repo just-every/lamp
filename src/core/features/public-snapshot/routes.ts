@@ -2,10 +2,16 @@ import { aliasArtifactKey, isImportAliasPath, isLampPermalink } from "../statusp
 import type { Context, Hono } from "hono";
 
 import type { AppEnv } from "../../app/types";
+import { escapeHtml } from "./format";
 import { applyPublicIsolationHeaders } from "./headers";
 import type { PublicSnapshotService } from "./service";
 
-const CACHE_CONTROL = "public, max-age=10, s-maxage=10, stale-while-revalidate=30, stale-if-error=3600";
+// Stable public URLs are selectors, not immutable artifacts. Revalidate the
+// generation on every reuse; downstream stale-while-revalidate can otherwise
+// hide a newly published pointer for longer than the publication guarantee.
+// Bytes remain cacheable using the generation validator below. Outage retention
+// is explicit in the DO/edge cache, where responses can be labelled stale.
+const CACHE_CONTROL = "public, max-age=0, stale-if-error=3600";
 function applyPublicHeaders(headers: Headers, origin: string, cacheable = true) {
   if (cacheable) headers.set("Cache-Control", CACHE_CONTROL);
   applyPublicIsolationHeaders(headers, origin);
@@ -32,7 +38,7 @@ async function cacheResponse(cache: Cache | null, request: Request, response: Re
     const headers = new Headers(response.headers);
     // Cache API does not honour stale-if-error. Retain the immutable artifact
     // independently for the promised outage window while keeping the public
-    // response's short cache policy unchanged.
+    // response's generation-revalidation policy unchanged.
     headers.set("Cache-Control", "public, max-age=3600");
     await cache.put(request, new Response(response.clone().body, { status: response.status, statusText: response.statusText, headers }));
   } catch {
@@ -45,6 +51,7 @@ async function labelledStaleResponse(cached: Response, artifact: string) {
   const headers = new Headers(cached.headers);
   headers.set("Cache-Control", CACHE_CONTROL);
   headers.set("X-Lamp-Snapshot-State", "stale");
+  headers.delete("ETag");
   headers.set("Warning", '110 - "Response is stale"');
   const contentType = headers.get("Content-Type") ?? "";
   if (contentType.includes("text/html")) {
@@ -66,6 +73,40 @@ async function labelledStaleResponse(cached: Response, artifact: string) {
   return new Response(cached.body, { status: cached.status, headers });
 }
 
+// Resolve installation routing when serving immutable HTML so local URLs keep
+// their scheme/port and changing the configured app host needs no DB read.
+function installedSignInUrl(context: Context<AppEnv>) {
+  const target = new URL("/signin", context.req.url);
+  // Match the host dispatcher's normalization of installation bindings.
+  target.hostname = context.env.LAMP_APP_HOST.trim().toLowerCase();
+  return target.href;
+}
+
+function installedSignIn(response: Response, context: Context<AppEnv>) {
+  if (!response.headers.get("Content-Type")?.includes("text/html")) return response;
+  const target = installedSignInUrl(context);
+  let signInSeen = false;
+  return new HTMLRewriter()
+    .on("nav.status-utilities", {
+      element(element) {
+        // Archived generations predate the marker. Wait until the navigation
+        // ends so a link already present in newer or cached HTML is reused.
+        element.onEndTag((endTag) => {
+          if (signInSeen) return;
+          endTag.before(`<a data-lamp-signin href="${escapeHtml(target)}">Sign in</a>`, { html: true });
+          signInSeen = true;
+        });
+      },
+    })
+    .on("a[data-lamp-signin]", {
+      element(element) {
+        if (signInSeen) return void element.remove();
+        element.setAttribute("href", target);
+        signInSeen = true;
+      },
+    }).transform(response);
+}
+
 export function registerPublicSnapshotRoutes(app: Hono<AppEnv>, service: PublicSnapshotService) {
   const serve = (artifact: (context: Context<AppEnv>) => string, download = false, missingArtifact?: string) => async (context: Context<AppEnv>) => {
     const cache = await caches.open("lamp-public-snapshot-fallback").catch(() => null);
@@ -77,17 +118,34 @@ export function registerPublicSnapshotRoutes(app: Hono<AppEnv>, service: PublicS
       if (object) {
         const redirect = object.contentType === "application/vnd.lamp.redirect+json" ? JSON.parse(new TextDecoder().decode(object.bytes)).target : null;
         if (redirect !== null && (typeof redirect !== "string" || !isLampPermalink(redirect))) throw new Error("Invalid snapshot redirect.");
-        const response = publicResponse(redirect ? "" : object.bytes, redirect ? "text/plain; charset=utf-8" : object.contentType, context.req.url, redirect ? 301 : 200, true, download);
+        let response = publicResponse(redirect ? "" : object.bytes, redirect ? "text/plain; charset=utf-8" : object.contentType, context.req.url, redirect ? 301 : 200, true, download);
         if (redirect) response.headers.set("Location", redirect);
         response.headers.set("X-Lamp-Snapshot-Generated-At", object.generatedAt);
+        response.headers.set("X-Lamp-Snapshot-Version", object.version);
+        // HTML also varies with its serving-time action and full installed URL.
+        // Version that transformation so an old validator cannot retain a
+        // header without Sign in after an upgrade of the same stored artifact.
+        const representation = object.contentType.includes("text/html")
+          ? `installed-signin-v1:${installedSignInUrl(context)}`
+          : context.env?.LAMP_APP_HOST ?? "";
+        const etag = `W/"${encodeURIComponent(object.version)}/${encodeURIComponent(artifact(context))}/${encodeURIComponent(representation)}"`;
+        response.headers.set("ETag", etag);
+        response = installedSignIn(response, context);
         if (object.retainedReady) response.headers.set("X-Lamp-Snapshot-Retained", "true");
         await cacheResponse(cache, cacheRequest, response);
-        return object.stale ? labelledStaleResponse(response, artifact(context)) : response;
+        if (object.stale) return labelledStaleResponse(response, artifact(context));
+        // Only a verified current generation can return 304. An outage must
+        // deliver the stale-labelled body even if the visitor has these bytes.
+        const validators = context.req.header("If-None-Match")?.split(",").map((value) => value.trim().replace(/^W\//, ""));
+        if (response.status === 200 && validators?.some((value) => value === "*" || value === etag.replace(/^W\//, ""))) {
+          return new Response(null, { status: 304, headers: response.headers });
+        }
+        return response;
       }
       if (missingArtifact) {
         const notFound = await service.readArtifact(missingArtifact);
         if (notFound) {
-          const response = publicResponse(notFound.bytes, notFound.contentType, context.req.url, 404);
+          const response = installedSignIn(publicResponse(notFound.bytes, notFound.contentType, context.req.url, 404), context);
           response.headers.set("X-Lamp-Snapshot-Generated-At", notFound.generatedAt);
           if (notFound.retainedReady) response.headers.set("X-Lamp-Snapshot-Retained", "true");
           return notFound.stale ? labelledStaleResponse(response, missingArtifact) : response;
@@ -101,7 +159,7 @@ export function registerPublicSnapshotRoutes(app: Hono<AppEnv>, service: PublicS
     } catch {
       const cached = await cache?.match(cacheRequest).catch(() => undefined);
       if (cached) {
-        return labelledStaleResponse(cached, artifact(context));
+        return labelledStaleResponse(installedSignIn(cached, context), artifact(context));
       }
       return unavailable(context.req.url);
     }

@@ -4,6 +4,7 @@ import { createUlid, nowIso } from "../../shared/ids";
 import type { BlobObject, BlobStore } from "../../platform/blobs/store";
 import type { LampServerSlots } from "../../api/extensions";
 
+import { readGenerationArtifact } from "./generation-cache";
 import { renderPublicSnapshot } from "./renderer";
 import type { SnapshotRepository } from "./repository";
 import { defaultPublicSnapshotPolicies, type PublicSnapshotPolicies } from "./policies";
@@ -14,7 +15,7 @@ const STALE_MARKER_KEY = "snapshots/stale.json";
 const STALE_BUILD_MS = 5 * 60_000;
 const RETRY_LEASE_MS = 2 * 60_000;
 const LOGO_CONTENT_TYPES = new Set(["image/png", "image/jpeg", "image/webp"]);
-export const PUBLIC_SNAPSHOT_RENDERER_VERSION = "lamp-public-snapshot-v7";
+export const PUBLIC_SNAPSHOT_RENDERER_VERSION = "lamp-public-snapshot-v8";
 
 interface SnapshotPointer {
   version: string;
@@ -247,7 +248,7 @@ export function createPublicSnapshotService(
           const bundle = await retained?.read();
           return bundle ? readRetainedArtifact(bundle, key) : null;
         }
-        const object = await blobs.getBytes(`snapshots/${pointer.version}/${key}`);
+        const object = await readGenerationArtifact(blobs, pointer.version, key);
         if (!object && ["page.html", "feed.atom", "widget.js", "status.json"].includes(key)) throw new Error("Published snapshot artifact is missing.");
         const marker = await staleMarker();
         let retainedReady = false;

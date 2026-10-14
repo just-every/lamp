@@ -585,17 +585,6 @@
       }
     },
     {
-      "path": "RUN-LOCALLY.md",
-      "originPath": "export/RUN-LOCALLY.md",
-      "revision": "8981bc2c4d9e61feca5787c83b4ed44056659dd9",
-      "files": {
-        "RUN-LOCALLY.md": "5eeb33783fc12fb09530716aa885e630f84123aa7f0fb79458fee4c5a2683e1d"
-      },
-      "modes": {
-        "RUN-LOCALLY.md": "100644"
-      }
-    },
-    {
       "path": "scripts/delivery/base/artifact.mjs",
       "originPath": "modules/delivery-producer/artifact.mjs",
       "revision": "aa9b4d4fc6cba60411ef8d24a81323113677c370",

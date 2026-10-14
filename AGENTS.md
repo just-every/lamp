@@ -2,20 +2,13 @@
 
 ## Run it locally
 
-Start Lamp this way, in this order, from the repository root:
-
-```sh
-rer install
-rer setup --owner-email you@example.com
-rer dev      # opens the local owner workspace
-rer verify
-rer reset --yes
-rer export --output exports/lamp.rer
-rer import --input exports/lamp.rer --yes
-rer deploy
-```
-
-`rer describe` lists every command, flag and local path. Node 22.20.0 and pnpm 10.12.4 are pinned.
+Use [RUN-LOCALLY.md](RUN-LOCALLY.md) for the canonical launch, backup and restore
+sequences. It stops a running `rer dev` or `rer preview` before data transfer or
+reset, exports before reset, imports only into an empty destination, and runs
+`rer setup` with the original owner after import. `rer describe` lists every
+command, flag and local path. Stop a running `rer dev` or `rer preview` before
+`rer build`, `rer verify` or another command that builds the checkout; resume
+with `rer dev` after it completes. Node 22.20.0 and pnpm 10.12.4 are pinned.
 
 You are working on **Lamp**, an authoritative, self-hostable edition. First-party authors, owners and community publishers use this same repository workflow. Launch it, make it exactly what the owner needs, keep it working, keep it updatable. Never make the product worse to avoid touching core code.
 
@@ -29,7 +22,7 @@ Read first:
 The integration branch is `main`; open pull requests against it and rebase contribution
 branches onto its merged changes. On a fresh Ubuntu/Debian Linux agent with root or
 passwordless sudo, put `/usr/local/bin` first on the calling shell PATH, then run
-`bash scripts/agent-bootstrap.sh && pnpm verify`. The bootstrap installs pinned
+`bash scripts/agent-bootstrap.sh && rer verify`. The bootstrap installs pinned
 Node 22.20.0 and pnpm 10.12.4, frozen dependencies, Chromium and system libraries,
 and probes the locked workerd runtime. PR verification runs the full verifier
 and every existing browser suite in `.github/workflows/verify.yml`. Pushes to `main` automatically run the same credential-free Verify workflow
@@ -42,9 +35,9 @@ Lamp is a status-page product for one business.
 
 ## Launch
 
-Locally: the commands at the top of this file. Local database, storage and queues start without accounts; the page starts empty, and mail is captured in the development outbox at `/__dev/outbox`.
+Locally: follow [RUN-LOCALLY.md](RUN-LOCALLY.md). Local database, storage and queues start without accounts; the page starts empty, and mail is captured in the development outbox at `/__dev/outbox`.
 
-To Cloudflare: `rer deploy` with the owner inputs in `OPERATIONS.md`. It verifies, creates or reuses resources, uploads secrets with the Worker, then checks health; `--dry-run` builds and validates locally with no provider request.
+To Cloudflare: `rer deploy` with the owner inputs in `OPERATIONS.md`. It validates owner inputs, creates or reuses resources, builds and uploads the Worker with secrets, then checks health; `--dry-run` builds and validates locally with no provider request.
 
 From GitHub: `.github/workflows/deploy.yml` verifies and builds a credential-free
 Worker artifact. The independent delivery service validates retained bytes and
@@ -113,21 +106,25 @@ recorded owner request is a regression to fix.
 
 ## Verify
 
+Stop a running development server or production preview before verification or
+build commands. Use `rer dev --stop` or `rer preview --stop` as appropriate;
+restart local work with `rer dev` after the command completes.
+
 ```
-pnpm verify
+rer verify
 ```
 
-Before saying anything is done. It runs the declared upstream behavior and baseline suites. It does not automatically discover `tests/local/`; the owner's agent runs those tests explicitly and checks every preserved requirement. For user-facing changes, also exercise the journey on `pnpm dev` or a preview.
+Before saying anything is done. It runs the declared upstream behavior and baseline suites. It does not automatically discover `tests/local/`; the owner's agent runs those tests explicitly and checks every preserved requirement. For user-facing changes, also exercise the journey on `rer dev` or `rer preview`.
 
 ## Update
 
 Use ordinary Git to bring an upstream release into the owner's fork. Read `RELEASE.json`, preserve all recorded intent and customisations, and let the owner's agent choose how the update lands. Work in an isolated candidate while the current installation stays available. Back up the data and the owner's source revision before migrations; exercise a restored copy and the owner's affected workflows. A clean merge or a passing upstream suite alone does not prove the owner's requirements survived.
 
-Resolve by answering: what did upstream intend, what does this installation intend, what satisfies both. Never take "ours" or "theirs" wholesale. Preserve every recorded owner requirement unless the owner changes it. Run `pnpm verify` and all applicable owner intent tests before adopting; explain any intentional upstream divergence against its recorded replacement requirement.
+Resolve by answering: what did upstream intend, what does this installation intend, what satisfies both. Never take "ours" or "theirs" wholesale. Preserve every recorded owner requirement unless the owner changes it. Run `rer verify` and all applicable owner intent tests before adopting; explain any intentional upstream divergence against its recorded replacement requirement.
 
 ## Leave
 
-`rer export` and `import` move a local installation; `pnpm run export:cloudflare` and `pnpm run import:cloudflare` back up and restore a deployed one into an empty deployment. The owner may run this version forever without the marketplace; the terms are in `LICENSE`.
+`rer export` and `rer import` move a local installation. For a deployed Cloudflare installation, use the technical archive and restore procedure in `OPERATIONS.md`; it documents the owner-side tooling and empty-target requirement. The owner may run this version without the marketplace; the terms are in `LICENSE`.
 
 ## Do not
 

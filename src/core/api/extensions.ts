@@ -1,5 +1,6 @@
 import type { AiProvider } from "../platform/ai";
 import type { MailSender } from "../platform/mail";
+export { MailPreparationError } from "../platform/mail/sender";
 import type { ReactNode } from "react";
 import type { ComponentStatusChangedEvent } from "../features/components";
 import type { NotificationEventsPolicy } from "../features/deliveries";

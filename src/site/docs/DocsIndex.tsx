@@ -1,3 +1,4 @@
+import { HydrationUnit } from '../../base/hydration/unit';
 import { DocsLayout } from './DocsLayout';
 import { DocsSidebar } from './DocsNav';
 import { docsLead, docsSections } from './pages';
@@ -12,25 +13,29 @@ export function DocsIndex({ variant }: { variant?: 'site' }) {
     <DocsLayout variant={variant}>
       <DocsSidebar />
       <div id="docs-content" className="docs-content docs-content--index" tabIndex={-1}>
-        <header className="docs-head">
-          <p className="docs-eyebrow">Lamp</p>
-          <h1 className="docs-title">Docs</h1>
-          <p className="docs-lead">{docsLead}</p>
-        </header>
+        <HydrationUnit>
+          <header className="docs-head">
+            <p className="docs-eyebrow">Lamp</p>
+            <h1 className="docs-title">Docs</h1>
+            <p className="docs-lead">{docsLead}</p>
+          </header>
+        </HydrationUnit>
         {docsSections.map((section, index) => (
-          <section className="docs-index-section" key={section.title} aria-labelledby={`docs-section-${index}`}>
-            <h2 className="docs-index-section-title" id={`docs-section-${index}`}>{section.title}</h2>
-            <ul className="docs-index-grid">
-              {section.pages.map(page => (
-                <li key={page.slug}>
-                  <a className="docs-index-card" href={`/docs/${page.slug}`}>
-                    <h3>{page.title}</h3>
-                    <p>{page.summary}</p>
-                  </a>
-                </li>
-              ))}
-            </ul>
-          </section>
+          <HydrationUnit key={section.title}>
+            <section className="docs-index-section" aria-labelledby={`docs-section-${index}`}>
+              <h2 className="docs-index-section-title" id={`docs-section-${index}`}>{section.title}</h2>
+              <ul className="docs-index-grid">
+                {section.pages.map(page => (
+                  <li key={page.slug}>
+                    <a className="docs-index-card" href={`/docs/${page.slug}`}>
+                      <h3>{page.title}</h3>
+                      <p>{page.summary}</p>
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          </HydrationUnit>
         ))}
       </div>
     </DocsLayout>

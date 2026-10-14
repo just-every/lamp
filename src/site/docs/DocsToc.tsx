@@ -1,3 +1,4 @@
+import { HydrationUnit } from '../../base/hydration/unit';
 import type { DocsTocEntry } from './types';
 
 type Group = DocsTocEntry & { children: DocsTocEntry[] };
@@ -29,10 +30,12 @@ function TocList({ toc }: { toc: DocsTocEntry[] }) {
 export function DocsToc({ toc }: { toc: DocsTocEntry[] }) {
   if (!groups(toc).length) return null;
   return (
-    <nav className="docs-toc" aria-labelledby="docs-toc-title">
-      <p className="docs-toc-title" id="docs-toc-title">On this page</p>
-      <TocList toc={toc} />
-    </nav>
+    <HydrationUnit>
+      <nav className="docs-toc" aria-labelledby="docs-toc-title">
+        <p className="docs-toc-title" id="docs-toc-title">On this page</p>
+        <TocList toc={toc} />
+      </nav>
+    </HydrationUnit>
   );
 }
 

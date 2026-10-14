@@ -1,4 +1,4 @@
-import {access} from 'node:fs/promises';
+import {access,readFile} from 'node:fs/promises';
 import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {localInstaller} from '@runeditrun/rer/local-installer';
@@ -53,10 +53,17 @@ const importCustody=['ik_batches','ik_d1_assertions','ik_d1_creation_plans','ik_
 // Base still forces restored provider links to re-link and sign-in to remain off.
 const operatorContinuity=['oa_operators','oa_bootstrap','oa_external_identities','oa_invitation_cancellations','oa_domain_rules','oa_auth_settings','oa_auth_audit','oa_identity_providers','oa_logout_events','oc_owner_claims','oc_idp_grants'];
 
+// This is the archive format's product identity, not the repository identifier.
+// Keep it stable so exports made before the repository rename still restore.
 const transfer=localPortability({database:'DB',buckets:{SNAPSHOTS:'SNAPSHOTS'},policy:{product:'just-every/lamp',buckets:{SNAPSHOTS:{}},replaceableTables:['public_snapshot_work','snapshot_build_control','reference_counters'],includeTables:operatorContinuity,excludeTables:['oa_sessions','oa_tokens','oa_step_up_challenges','oa_credentials','oa_dev_credentials',...importCustody],requiredConfiguration:['SETUP_TOKEN','SESSION_SECRET','SUBSCRIBER_TOKEN_SECRET','WEBHOOK_SIGNING_SECRET']},transient:['development outbox','move-in import custody (resume and undo stay on the original installation)','operator sessions and one-use sign-in links','queued job deliveries in flight','public snapshot cache (rebuilt from D1 and R2)']});
+
+// Declare installed documents explicitly: the Lobby at / does not link to all
+// docs. Read the publishing manifest so new pages enter hydration checks too.
+const docs=JSON.parse(await readFile(new URL('../../docs/site.json',import.meta.url),'utf8'));
 
 export const commandAdapter=createCommandAdapter(adapter,{
  product:model.product.name,dev:vite,preview,
+ publicPages:['/','/docs',...docs.sections.flatMap(section=>section.pages.map(page=>`/docs/${page.slug}`))],
  devIdentity:{entry:'src/server.dev.ts',output:['dist'],emailLinkTest:'tests/e2e/auth-adoption-journey.test.mjs'},verify:['pnpm',['run','verify:app']],deploy:lampDeploy(adapter),deployDeclaration:'hosted-check.json',
  portability:transfer,generatedOutputs:['src/routeTree.gen.ts'],
  site:{entry:'src/site/pages.tsx',output:'dist/site',declaration:'deploy-site.json',config:'vite.site.config.ts'},

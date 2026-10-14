@@ -195,7 +195,7 @@ test('SETUP-001 fresh, half complete and complete setup render correctly at 1440
     // Exercise the actual executable and Wrangler adapter, capturing its sole
     // stdout line in memory and consuming it without tracing or screenshots.
     diagnostics.phase = 'terminal-signin';
-    const command = await executeFile(process.execPath, ['scripts/signin-link.mjs','--email','operator@example.test','--origin',origin,'--persist-to',state], { encoding: 'utf8' });
+    const command = await executeFile(process.execPath, [resolve('scripts/signin-link.mjs'),'--email','operator@example.test','--origin',origin,'--config',process.env.LAMP_WRANGLER_CONFIG,'--persist-to',state], { encoding: 'utf8', cwd: directory });
     assert.equal(command.stderr.length, 0); assert.equal(command.stdout.trim().split('\n').length, 1);
     const link = command.stdout.trim(), confirmation = new URL(link);
     assert.equal(confirmation.origin === origin && confirmation.pathname === '/auth/confirm', true);

@@ -1,3 +1,4 @@
+import { publicFreshnessFlow } from "./helpers/public-freshness-flow.mjs";
 import { requestHeaders } from "../helpers/request-headers.mjs";
 import { assertResolvedDuration, assertVisibleTime } from "../helpers/public-meaning.mjs";
 import { withDraftVersion } from "./draft-version-helper.mjs";
@@ -131,7 +132,9 @@ before(async () => {
   testStatePath = await mkdtemp(join(tmpdir(), "lamp-public-d1-"));
   testViteCachePath = await mkdtemp(join(tmpdir(), "lamp-public-vite-"));
   testPort = await reservePort({ label: "public contract Worker" });
-  appUrl = appOrigin(testPort);
+  // Native sign-in renders its email form only when mail is configured. This
+  // presentation-only fixture never submits it or publishes to recipients.
+  appUrl = appOrigin(testPort, { MAIL_PROVIDER_API_KEY: "test-only-signin-presentation-no-delivery" });
   pageUrl = pageOrigin(testPort);
   execFileSync("pnpm", ["run", "migrate:local"], { cwd: process.cwd(), stdio: "pipe", env: { ...process.env, LAMP_WORKERS_STATE_PATH: testStatePath } });
   sessionId = await insertRealOperatorSession({ persistTo: testStatePath, pageSettings: false });
@@ -142,9 +145,8 @@ before(async () => {
     cwd: process.cwd(),
     stdio: "pipe",
     detached: true,
-    // The Cloudflare Vite plugin resolves this path against its own root, so
-    // pass the exact config that the preceding Wrangler D1/R2 commands used.
-    env: { ...process.env, LAMP_DISABLE_INSPECTOR: "true", LAMP_WORKERS_STATE_PATH: testStatePath, LAMP_VITE_CACHE_DIR: testViteCachePath, LAMP_WRANGLER_CONFIG: resolve("wrangler.jsonc") },
+    // appOrigin supplies an isolated config with the same D1/R2 bindings.
+    env: { ...process.env, LAMP_DISABLE_INSPECTOR: "true", LAMP_WORKERS_STATE_PATH: testStatePath, LAMP_VITE_CACHE_DIR: testViteCachePath },
   });
   server.stdout.on("data", (chunk) => { workerOutput += String(chunk); });
   server.stderr.on("data", (chunk) => { workerOutput += String(chunk); });
@@ -170,6 +172,10 @@ after(async () => {
   }
   await rendererVite?.close();
   await Promise.all([rm(testStatePath, { recursive: true, force: true }), rm(testViteCachePath, { recursive: true, force: true })]);
+});
+
+test("PAGE-007 warmed browser and proxy follow publication generations and retain origin outages", async (t) => {
+  await publicFreshnessFlow({ appFetch, appUrl, pageUrl, diagnostic: text => t.diagnostic(text) });
 });
 
 contract("COMP-002", "operator component ordering and internal visibility rebuild the public snapshot", async () => {

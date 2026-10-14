@@ -4,7 +4,7 @@ set -euo pipefail
 # Lamp's pinned runtime (the seed command contract's Node and pnpm).
 readonly NODE_VERSION=22.20.0
 readonly PNPM_VERSION=10.12.4
-readonly PLAYWRIGHT_VERSION=1.55.0
+readonly PLAYWRIGHT_VERSION=1.55.1
 readonly WORKERD_VERSION=1.20260907.1
 readonly BIN_DIR=/usr/local/bin
 
@@ -81,7 +81,7 @@ const runtime = require.resolve('workerd/package.json')
 assert.equal(require(runtime).version, '1.20260907.1')
 execFileSync(resolve(dirname(runtime), 'bin/workerd'), ['--version'], { stdio: 'inherit' })
 const browserRequire = createRequire(resolve('package.json'))
-assert.equal(browserRequire('playwright/package.json').version, '1.55.0')
+assert.equal(browserRequire('playwright/package.json').version, '1.55.1')
 const { chromium } = browserRequire('playwright')
 const browser = await chromium.launch({ headless: true })
 try {

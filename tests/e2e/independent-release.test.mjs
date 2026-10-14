@@ -3,12 +3,14 @@ import {setupPageSettingsStatement} from '../../scripts/ops-config.mjs';
 import test from 'node:test';
 import {unstable_splitSqlQuery} from 'wrangler';
 import assert from 'node:assert/strict';
+import {spawnSync} from 'node:child_process';
 import {createRequire} from 'node:module';
 import {mkdtemp,readFile,rm} from 'node:fs/promises';
-import {tmpdir} from 'node:os';
 import {join,relative,resolve} from 'node:path';
 import {payload} from '../artifact-payload.mjs';
 import {produceArtifact} from '../../scripts/build-delivery-artifact.mjs';
+import {isolatedWranglerConfig} from '../helpers/wrangler-config.mjs';
+import {fixtureProcessEnv} from '../helpers/worker-environment.mjs';
 const require=createRequire(import.meta.url);
 const wranglerRequire=createRequire(require.resolve('wrangler'));
 const {Miniflare,convertV4MiniflareOptions}=wranglerRequire('miniflare');
@@ -16,8 +18,18 @@ const {Miniflare,convertV4MiniflareOptions}=wranglerRequire('miniflare');
 // Provider responses exist only in this native-runtime test. No real mail is sent.
 test('independent emitted artifact owns secure empty setup, native sessions and publication',async()=>{
  const temporary=await mkdtemp(resolve('.lamp-independent-'));
+ const environment=fixtureProcessEnv();
+ const config=isolatedWranglerConfig(undefined,environment);
  let runtime;
  try {
+  // Installed builds include a private preview .dev.vars sidecar. Build the
+  // real source with a fixture-owned config so packaging remains fail-closed
+  // without reading or changing the installation's secrets or saved settings.
+  const build=spawnSync(process.execPath,['scripts/build.mjs'],{
+   env:{...environment,LAMP_WRANGLER_CONFIG:config.path,LAMP_VITE_CACHE_DIR:join(temporary,'vite-cache'),LAMP_WORKERS_STATE_PATH:join(temporary,'build-state')},
+   stdio:'inherit',
+  });
+  assert.equal(build.status,0,'isolated independent release build succeeds');
   const artifactPath=await produceArtifact({output:relative(process.cwd(),join(temporary,'package/artifact.json'))});
   const artifact=JSON.parse(await readFile(artifactPath,'utf8'));
   const raw=new Map(await Promise.all([...artifact.modules,...artifact.assets].map(async item=>[item.payload,await payload(artifactPath,item)])));
@@ -77,5 +89,5 @@ test('independent emitted artifact owns secure empty setup, native sessions and 
   assert.match(await (await publicRequest('/')).text(),/Owner API/);
   assert.equal((await request('/api/app/session/signout',{method:'POST',headers:{Cookie:cookie}})).status,204);
   assert.equal((await request('/api/app/session',{headers:{Cookie:cookie}})).status,401);
- }finally{await runtime?.dispose();await rm(temporary,{recursive:true,force:true});}
+ }finally{await runtime?.dispose();config.cleanup();await rm(temporary,{recursive:true,force:true});}
 });

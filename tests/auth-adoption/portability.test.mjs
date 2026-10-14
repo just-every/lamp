@@ -14,7 +14,7 @@ async function checkout(root, destination) {
   await mkdir(destination, { recursive: true });
   const { stdout } = await exec('git', ['ls-files', '-z'], { cwd: root });
   for (const path of stdout.split('\0').filter(path => path && !path.includes('/'))) await copyFile(join(root, path), join(destination, path));
-  for (const path of ['scripts', 'migrations', 'src', 'management']) await cp(join(root, path), join(destination, path), { recursive: true });
+  for (const path of ['scripts', 'migrations', 'src', 'management', 'docs']) await cp(join(root, path), join(destination, path), { recursive: true });
   await symlink(join(root, 'node_modules'), join(destination, 'node_modules'));
 }
 async function command(root, ...args) {

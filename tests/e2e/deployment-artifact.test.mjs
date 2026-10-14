@@ -7,6 +7,7 @@ import { test } from "node:test";
 
 import { deploymentConfig, renderWranglerToml, resourceNames,  setupPageSettingsStatement } from "../../scripts/ops-config.mjs";
 import { reservePort, waitForWorker } from "./worker-startup.mjs";
+import { fixtureProcessEnv, isolatedWorkerEnvArgs } from "../helpers/worker-environment.mjs";
 
 const deploymentEnvironment = {
   LAMP_PAGE_HOST: "status.lamp.test",
@@ -33,10 +34,20 @@ const deploymentEnvironment = {
 };
 
 test("generated setup config uses the Start entry and leaves client assets to Vite", () => {
+  const ownerEnvironment = process.env;
+  let fixture;
+  try {
+    process.env = { ...ownerEnvironment, LAMP_HOSTING: "workers-dev", LAMP_RESOURCE_PREFIX: "owner-production" };
+    fixture = fixtureProcessEnv(deploymentEnvironment);
+  } finally {
+    process.env = ownerEnvironment;
+  }
+  const settings = deploymentConfig(fixture, "staging");
   const config = renderWranglerToml(
-    deploymentConfig(deploymentEnvironment, "staging"),
-    { ...resourceNames("staging"), databaseId: "00000000-0000-0000-0000-000000000000" },
+    settings,
+    { ...resourceNames(settings.environment, settings.resourcePrefix), databaseId: "00000000-0000-0000-0000-000000000000" },
   );
+  assert.match(config, /^name = "lamp-staging"$/m);
   assert.match(config, /^main = "src\/server\.ts"$/m);
   assert.match(config, /^compatibility_flags = \["nodejs_compat", "global_fetch_strictly_public"\]$/m);
   assert.match(config, /\[assets\]\nbinding = "ASSETS"\nrun_worker_first = true/);
@@ -45,7 +56,7 @@ test("generated setup config uses the Start entry and leaves client assets to Vi
 
 function run(command, args, options = {}) {
   return new Promise((resolvePromise, reject) => {
-    const child = spawn(command, args, { cwd: process.cwd(), env: { ...process.env, LAMP_DISABLE_INSPECTOR: "true", ...deploymentEnvironment, ...options.env }, stdio: ["ignore", "pipe", "pipe"] });
+    const child = spawn(command, args, { cwd: process.cwd(), env: fixtureProcessEnv({ ...deploymentEnvironment, ...options.env }), stdio: ["ignore", "pipe", "pipe"] });
     let output = "";
     child.stdout.on("data", (chunk) => { output += chunk; });
     child.stderr.on("data", (chunk) => { output += chunk; });
@@ -66,10 +77,15 @@ async function stop(child) {
 
 async function startBuiltWorker(artifactPath, statePath, localUpstream, readiness = (response) => response.status === 200, variables = []) {
   const port = await reservePort({ label: "built Worker" });
+  const envArgs = isolatedWorkerEnvArgs(statePath);
+  // Deploy binds these separately from the compiled config. The isolated local
+  // artifact must receive the same required bindings from synthetic fixture data.
+  const secrets = ["SESSION_SECRET", "SETUP_TOKEN", "MAIL_PROVIDER_API_KEY", "SUBSCRIBER_TOKEN_SECRET", "WEBHOOK_SIGNING_SECRET"]
+    .map((name) => `${name}:${deploymentEnvironment[name]}`);
   const readinessPath = localUpstream === "app.lamp.test" ? "/health" : "/";
-  const server = spawn("pnpm", ["exec", "wrangler", "dev", "--local", "--config", artifactPath, "--persist-to", statePath, "--ip", "127.0.0.1", "--port", String(port), "--inspector-port", "0", "--local-upstream", localUpstream, "--upstream-protocol", "https", "--log-level", "warn", ...variables.flatMap((value) => ["--var", value])], {
+  const server = spawn("pnpm", ["exec", "wrangler", "dev", "--local", "--config", artifactPath, ...envArgs, "--persist-to", statePath, "--ip", "127.0.0.1", "--port", String(port), "--inspector-port", "0", "--local-upstream", localUpstream, "--upstream-protocol", "https", "--log-level", "warn", ...[...secrets, ...variables].flatMap((value) => ["--var", value])], {
     cwd: process.cwd(),
-    env: { ...process.env, LAMP_DISABLE_INSPECTOR: "true", ...deploymentEnvironment },
+    env: fixtureProcessEnv(deploymentEnvironment),
     stdio: ["ignore", "pipe", "pipe"],
     detached: true,
   });
@@ -105,8 +121,7 @@ test("compiled generated Start Worker serves operator routes and prepares fresh 
   let server;
   try {
     await run("pnpm", ["exec", "wrangler", "d1", "migrations", "apply", "DB", "--local", "--config", artifactPath, "--persist-to", statePath]);
-    // Deploy uploads the sign-in secrets with the Worker; the local artifact receives them as Worker variables.
-    let runtime = await startBuiltWorker(artifactPath, statePath, "app.lamp.test", undefined, ["SESSION_SECRET", "SETUP_TOKEN"].map((name) => `${name}:${deploymentEnvironment[name]}`));
+    let runtime = await startBuiltWorker(artifactPath, statePath, "app.lamp.test");
     server = runtime.server;
     const signIn = await fetch(`http://127.0.0.1:${runtime.port}/signin`, { headers: { Host: "app.lamp.test" } });
     assert.equal(signIn.status, 200);

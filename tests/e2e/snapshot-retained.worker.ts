@@ -35,10 +35,25 @@ export default {
       return Reflect.get(target, key);
     } });
     const repository = new Proxy({}, { get() { throw new Error("PUBLIC READ TOUCHED D1"); } });
-    const service = createPublicSnapshotService(repository, failing, undefined, undefined, undefined, cache);
+    const replica = url.searchParams.get("replica") === "down"
+      ? { ...cache, read: async () => { throw new Error("Replica unavailable"); } }
+      : cache;
+    const service = createPublicSnapshotService(repository, failing, undefined, undefined, undefined, replica);
     const app = new Hono();
     registerPublicSnapshotRoutes(app, service);
     registerHealthRoutes(app, createHealthService({ checkDatabase: async () => { throw new Error("D1 unavailable"); } }, {}));
-    return app.fetch(request, env);
+    if (url.searchParams.get("cacheWrites") !== "down") return app.fetch(request, env);
+    // Cache API is another network/storage edge. Failing its writes must not
+    // prevent serving a verified generation from R2.
+    const open = caches.open.bind(caches);
+    caches.open = async name => new Proxy(await open(name), {
+      get(target, key) {
+        if (key === "put") return async () => { throw new Error("Edge cache write unavailable"); };
+        const value = Reflect.get(target, key);
+        return typeof value === "function" ? value.bind(target) : value;
+      },
+    });
+    try { return await app.fetch(request, env); }
+    finally { caches.open = open; }
   },
 };

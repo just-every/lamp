@@ -1,6 +1,10 @@
 import assert from 'node:assert/strict';
 import { after, before, test } from 'node:test';
+import { mkdtemp, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { compileMailModules } from './compile-modules.mjs';
+import { openRuntime } from '../reference-storage/runtime.mjs';
 let dev, production;
 let storageReads = 0;
 const unopenedStore = new Proxy({}, { get() { storageReads++; throw new Error('Rejected request accessed local mail storage.'); } });
@@ -73,10 +77,29 @@ test('captured envelope HTML remains inert, links stay local and credentials sta
   assert.equal(await dev.routes.handleDevOutboxRequest(new Request('http://127.0.0.1:56800/other'), bindings), null);
 });
 
-test('failed capture storage fails the send without a successful substitute', async () => {
-  const failureStore = { async get(){return null;}, async put() { throw new Error('test-only storage outage'); } };
-  const sender = dev.mail.createDevelopmentMailSender({ ...bindings, LAMP_DEV_OUTBOX: failureStore }, new Request('http://127.0.0.1:56800/auth/magic-link'));
-  await assert.rejects(sender.send({ from: 'lamp@example.test', to: 'operator@example.test', subject: 'Sign in', text: 'Native link', headers: {}, idempotencyKey: 'outage-test' }), /storage outage/);
+test('failed capture storage fails the send without a successful substitute', async (t) => {
+  const directory = await mkdtemp(join(tmpdir(), 'lamp-mail-outage-'));
+  let runtime;
+  t.after(async () => {
+    try { await runtime?.dispose(); }
+    finally { await rm(directory, { recursive: true, force: true }); }
+  });
+  runtime = openRuntime(directory);
+  const db = await runtime.getD1Database('DB');
+  const outage = new Error('test-only storage outage');
+  let claimAttempts = 0;
+  const failureStore = {
+    async get() { return null; },
+    async put() { claimAttempts++; throw outage; },
+  };
+  const sender = dev.mail.createDevelopmentMailSender({ ...bindings, LAMP_DEV_OUTBOX: failureStore, LAMP_BASE_MAIL: db }, new Request('http://127.0.0.1:56800/auth/magic-link'));
+  await assert.rejects(sender.send({ from: 'lamp@example.test', to: 'operator@example.test', subject: 'Sign in', text: 'Native link', headers: {}, idempotencyKey: 'outage-test' }), error => {
+    assert.ok(error instanceof dev.sender.MailPreparationError);
+    assert.equal(error.cause, outage);
+    return true;
+  });
+  assert.equal(claimAttempts, 1);
+  assert.deepEqual((await dev.repository.createDevOutboxRepository(failureStore, db).list()).envelopes, []);
 });
 
 test('background origin comes only from a validated first request and cannot drift', async () => {

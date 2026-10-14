@@ -21,7 +21,7 @@ export interface SubscribersService {
   createWebhookSubscription(input: { destination: string; contactEmail: string; componentIds: string[] }): Promise<SubscriberView>;
   deleteSubscriber(subscriberId: string, operatorId: string): Promise<boolean>;
   expirePending(): Promise<void>;
-  inviteImported(subscriberId: string, origin: string, pageName: string, assertAuthority?: () => Promise<void>): Promise<boolean>;
+  inviteImported(subscriberId: string, origin: string, pageName: string, claimSend: () => Promise<boolean>): Promise<boolean>;
 }
 
 export function renderSubscriberTokenPage(title: string, body: string) {
@@ -115,7 +115,7 @@ export function createSubscribersService(
         // destination so both requests continue with that one subscription.
         subscriber = await repository.findSubscriberByDestination(email);
       } else if (subscriber.state === "deactivated") {
-        await repository.createPendingSubscriber({ ...subscriber, state: requiresConfirmation ? "pending" : "active", deactivationReason: null, deactivatedAt: null, updatedAt: timestamp });
+        await repository.createPendingSubscriber({ ...subscriber, state: requiresConfirmation ? "pending" : "active", deactivationReason: null, deactivatedAt: null, createdAt: timestamp, updatedAt: timestamp });
         subscriber = await repository.findSubscriber(subscriber.id);
       }
       if (!subscriber) throw new Error("Subscriber was not stored.");
@@ -150,7 +150,7 @@ export function createSubscribersService(
         await mail.send({ from: fromAddress, to: email, subject: "Lamp status subscription", text: `You are subscribed. Manage this subscription: ${manageUrl}`, headers: { "Auto-Submitted": "auto-generated" }, idempotencyKey: `subscriber-active/${subscriber.id}` });
         return;
       }
-      const confirm = await issuedToken(subscriber.id, "confirm", new Date(Date.now() + PENDING_WINDOW_MS).toISOString());
+      const confirm = await issuedToken(subscriber.id, "confirm", new Date(Date.parse(subscriber.createdAt) + PENDING_WINDOW_MS).toISOString());
       const confirmationUrl = new URL(`/confirm-subscription/${encodeURIComponent(confirm.token)}`, origin).toString();
       const unsubscribeUrl = new URL(`/unsubscribe/${encodeURIComponent(unsubscribe.token)}`, origin).toString();
       await mail.send({
@@ -216,7 +216,7 @@ export function createSubscribersService(
     },
     /** A subscriber moved from another status page: one confirmation, nothing
      * about past incidents; without it the subscription expires as SUB-003 says. */
-    async inviteImported(subscriberId, origin, pageName, assertAuthority) {
+    async inviteImported(subscriberId, origin, pageName, claimSend) {
       const { mail } = requiredMailAndTokens();
       const subscriber = await repository.findSubscriber(subscriberId);
       if (!subscriber || subscriber.state !== "pending" || subscriber.channel !== "email") return false;
@@ -229,13 +229,16 @@ export function createSubscribersService(
       const unsubscribe = await issuedToken(subscriber.id, "unsubscribe", null);
       const confirmationUrl = new URL(`/confirm-subscription/${encodeURIComponent(confirm.token)}`, origin).toString();
       const unsubscribeUrl = new URL(`/unsubscribe/${encodeURIComponent(unsubscribe.token)}`, origin).toString();
-      await assertAuthority?.();
       if (Date.parse(deadline) <= Date.now()) return false;
-      await mail.send({
+      const message = {
         from: fromAddress, to: subscriber.destination, subject: `Confirm your ${pageName} status subscription`,
         text: `${pageName} has moved its status page. You subscribed to its updates there; confirm before ${deadline} (the remaining part of the 72-hour window from import) to keep receiving them: ${confirmationUrl}\n\nIf you do nothing, you will receive no further email from this page. Unsubscribe: ${unsubscribeUrl}`,
         headers: { "Auto-Submitted": "auto-generated" }, idempotencyKey: `subscriber-import-invite/${subscriber.id}`,
-      });
+      };
+      // Prepare subscriber authority before the claim. Adapter preparation may
+      // explicitly prove non-submission; arbitrary send errors stay claimed.
+      if (!await claimSend()) return false;
+      await mail.send(message);
       return true;
     },
     async expirePending() {

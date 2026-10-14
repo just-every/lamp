@@ -4,6 +4,7 @@ import { readImportedPublicRecords } from "./alias-repository";
 import { sourcePublicAddresses, inspectSourcePublicAddresses, resolvePublicAddresses } from "./public-addresses";
 import type { Session } from '@runeditrun/rer/modules/operator-auth';
 import { sessionAuthority } from '../../platform/auth/authority';
+import { isMailPreparationError } from '../../platform/mail/sender';
 import { applyD1ImportBatches, canonicalJson, createD1ImportJob, readD1ImportJob, readD1ImportUndoReport, resumeD1Import, undoD1Import, type D1ImportContext, type ImportJob, type ImportPlan } from "../../../../modules/import-kit/src/d1/index.ts";
 import { stored } from "../../../../modules/import-kit/src/d1/jobs.ts";
 import { nowIso } from "../../shared/ids";
@@ -21,7 +22,7 @@ const INVITES_PER_REQUEST = 50;
 export type MoveInActor = Session;
 export interface MoveInResult { job: ImportJob; report: MoveInReport; invites: { sent: number; remaining: number }; undo?: Awaited<ReturnType<typeof readD1ImportUndoReport>> }
 export interface MoveInHooks {
-  inviteSubscriber(subscriberId: string, assertAuthority: () => Promise<void>): Promise<boolean>;
+  inviteSubscriber(subscriberId: string, claimSend: () => Promise<boolean>): Promise<boolean>;
   publicDataChanged(): Promise<void>;
 }
 
@@ -154,11 +155,27 @@ export function createStatuspageImportService(db: D1Database, hooks: MoveInHooks
     const due = (await db.prepare("SELECT i.subscriber_id AS id FROM statuspage_import_invites i JOIN subscribers s ON s.id=i.subscriber_id WHERE i.job_id=? AND i.sent_at IS NULL AND s.state='pending' AND s.channel='email' AND julianday(s.created_at) > julianday('now','-72 hours') ORDER BY i.subscriber_id LIMIT ?").bind(jobId, INVITES_PER_REQUEST).all<{ id: string }>()).results;
     let sent = 0;
     for (const { id } of due) {
-      // Claim before sending: a retried request never sends a second invite.
-      const claimed = await db.prepare(`UPDATE statuspage_import_invites SET sent_at=? WHERE subscriber_id=? AND sent_at IS NULL AND ${fence.sql}`).bind(nowIso(), id, ...fence.params ?? []).run();
-      await assertAuthority(context);
-      if (claimed.meta.changes !== 1) continue;
-      if (await hooks.inviteSubscriber(id, () => assertAuthority(context))) sent += 1;
+      let claimedAt: string | undefined;
+      try {
+        if (await hooks.inviteSubscriber(id, async () => {
+          // The final authority and eligibility check is atomic with the claim.
+          const timestamp = nowIso();
+          const claimed = await db.prepare(`UPDATE statuspage_import_invites SET sent_at=?
+            WHERE subscriber_id=? AND job_id=? AND sent_at IS NULL AND ${fence.sql}
+            AND EXISTS (SELECT 1 FROM subscribers s WHERE s.id=subscriber_id AND s.state='pending' AND s.channel='email' AND julianday(s.created_at) > julianday('now','-72 hours'))
+            AND EXISTS (SELECT 1 FROM ik_jobs WHERE id=? AND state='completed')`)
+            .bind(timestamp, id, jobId, ...fence.params ?? [], jobId).run();
+          if (claimed.meta.changes === 1) { claimedAt = timestamp; return true; }
+          await assertAuthority(context);
+          return false;
+        })) sent += 1;
+      } catch (error) {
+        // A transport rejection/timeout or arbitrary extension error is not
+        // evidence that nothing was sent. Release only this invocation's claim
+        // when the adapter explicitly proves it never reached transport.
+        if (claimedAt && isMailPreparationError(error)) await db.prepare('UPDATE statuspage_import_invites SET sent_at=NULL WHERE subscriber_id=? AND job_id=? AND sent_at=?').bind(id, jobId, claimedAt).run();
+        throw error;
+      }
     }
     const remaining = await db.prepare("SELECT count(*) AS n FROM statuspage_import_invites i JOIN subscribers s ON s.id=i.subscriber_id WHERE i.job_id=? AND i.sent_at IS NULL AND s.state='pending' AND s.channel='email' AND julianday(s.created_at) > julianday('now','-72 hours')").bind(jobId).first<{ n: number }>();
     await assertAuthority(context);

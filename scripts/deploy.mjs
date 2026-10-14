@@ -6,7 +6,6 @@ import { resolve } from "node:path";
 import { deploymentConfig, parseArgs, resourceNames, writeGeneratedWrangler } from "./ops-config.mjs";
 import { withDeploymentSecrets } from "./deployment-secrets.mjs";
 import { withPublicWorkerConfig } from "./native-public-worker.mjs";
-import { verifyRemoteEvidence, cleanSourceIdentity } from "./verification-evidence.mjs";
 import { readOperations } from "./operations.mjs";
 import { dryRunInputFailure } from "./deploy-preflight.mjs";
 import { readBuiltWorkerArtifact } from "./build-output.mjs";
@@ -62,15 +61,9 @@ async function main() {
     console.log("Dry run compiled the generated Start Worker configuration and dist/client assets. No Cloudflare resource or deployment was changed.");
     return;
   }
-  const host = flags.get("verification-host");
-  const receipt = flags.get("verification-receipt");
-  if (Boolean(host) !== Boolean(receipt)) throw new Error("--verification-host and --verification-receipt must be supplied together.");
-  const verifiedSource = host ? verifyRemoteEvidence(host, receipt) : null;
-  if (!verifiedSource) run("pnpm", ["run", "verify:app"]);
   run("pnpm", ["run", "setup:cloudflare", "--", "--environment", config.environment, ...restoreArgs]);
   if (!existsSync("wrangler.toml")) throw new Error("pnpm setup must generate wrangler.toml before deployment.");
   const builtConfig = await buildGeneratedWorker(resolve("wrangler.toml"), config);
-  if (verifiedSource && JSON.stringify(cleanSourceIdentity()) !== JSON.stringify(verifiedSource)) throw new Error("Source changed after remote verification was checked.");
   const identity = { source: deploySource(), fingerprint: await deployFingerprint() };
   await withDeploymentSecrets(config, async (file) => {
     run("pnpm", ["exec", "wrangler", "deploy", "--config", builtConfig, "--secrets-file", file, ...identityVars(identity)]);

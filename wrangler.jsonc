@@ -3,7 +3,7 @@
   "main": "src/server.ts",
   "compatibility_date": "2026-09-08",
   "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
-  // Scheduled publication and maintenance transitions have a sixty-second SLA.
+  // Cron runs every minute; scheduled publication and maintenance transitions are bounded at 240 seconds (CONTRACT UPDATE-006, MAINT-002).
   "triggers": { "crons": ["* * * * *"] },
   "assets": {
     "binding": "ASSETS",

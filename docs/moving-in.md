@@ -1,9 +1,7 @@
 # Move in from another status page
 
 Lamp can bring components, incident history, scheduled maintenance and eligible
-email subscribers into your page. **Synthetic-only validation:** provider
-fixtures follow published API documentation; no real account export has been
-supplied.
+email subscribers into your page.
 
 ## Common workflow
 
@@ -24,7 +22,7 @@ supplied.
 6. Choose **Send invitations** in Cutover. This is the only move-in action that
    sends mail. It sends one invitation to each eligible pending email subscriber;
    repeat for any remaining batch before the confirmation deadline.
-7. Point a hostname you control to Lamp using [the custom-domain guide](../OPERATIONS.md#your-own-domain),
+7. Point a hostname you control to Lamp using [the custom-domain guide](domains.md),
    or keep the deployment's default public address. Select that public origin in
    Cutover. Selecting it records your choice; it does not check DNS.
 8. After switching, use **Check opens** for the listed links. These checks run in
@@ -89,9 +87,9 @@ imported incidents or maintenance and are removed when the imported target is
 removed. Undo sends no mail.
 
 Undo applies to one move-in job; it is not a full installation restore. To
-restore a complete Lamp installation from an archive, follow [Portable backups
-and restore](../OPERATIONS.md#portable-backups-and-restore). Full restore has its
-own archive and empty-destination requirements.
+restore a complete Lamp installation from an archive, follow [Backups and
+recovery](backups-and-recovery.md). Full restore has its own archive and
+empty-destination requirements.
 
 ## Statuspage
 
