@@ -11,9 +11,9 @@
 <p align="center"><a href="https://run-lamp.com">run-lamp.com</a> · <a href="https://justevery.com">Part of Just Every</a> · <a href="LICENSE">MIT licensed</a></p>
 
 <p align="center">
-  <a href="https://justevery.com/#vol-lamp"><img src=".github/assets/media/preview.gif" width="800" alt="Lamp: an operator writes who is affected, the impact and what still works, publishes, and the public status page shows Major outage"></a>
+  <a href="https://justevery.com/#vol-lamp"><img src=".github/assets/media/preview.gif" width="800" alt="Lamp: an operator's words for who is affected, the impact and what still works fill the public page and email preview, the update is ready to publish, and the public status page shows Major outage"></a>
 </p>
-<p align="center"><a href="https://justevery.com/#vol-lamp"><b>Watch the full demo</b></a> · 45 seconds</p>
+<p align="center"><a href="https://justevery.com/#vol-lamp"><b>Watch the full demo</b></a> · 51 seconds</p>
 
 <p align="center">
   <img src=".github/assets/media/flow.webp" width="800" alt="The public status page's current status card: Major outage during the incident, then Operational once it is resolved">
