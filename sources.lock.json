@@ -476,7 +476,7 @@
       "executable": false
     },
     "DEMO.md": {
-      "sha256": "fe2dc61ec61ceebbd0a44113638182da006ee8a491c200e0b14b3867b5538afd",
+      "sha256": "78b4a515d91a92697a8b4af2c06697ea4a52901495aa0a40ff773dac19c3fc70",
       "executable": false
     },
     "deploy-demo.json": {
@@ -508,7 +508,7 @@
       "executable": false
     },
     "docs/deploy.md": {
-      "sha256": "14b782b0c2738f9c9ec8900314d0fddd2cad1b38ea4c70539e109265af26a774",
+      "sha256": "1eff9c09181b6dfa287d9dd2777e47ce764f93fccff8bfb03532387cd737cd2e",
       "executable": false
     },
     "docs/deployment-reference.md": {
@@ -572,7 +572,7 @@
       "executable": false
     },
     "hosted-check.json": {
-      "sha256": "93bdd353a3fcc87c1e65d05dc6ad3d32c844a67d8c9f6f33d63bf3682f8006df",
+      "sha256": "761b90390045f0379c74649a2b00e5aeff186e4cd16714c36e95e50ca8f9bc27",
       "executable": false
     },
     "LICENSE": {
@@ -1664,15 +1664,11 @@
       "executable": false
     },
     "package.json": {
-      "sha256": "460c6ca8c2fa1430f1af1b9f90d7c0fc5378de77ee190a36dceaea3c07e5ffbd",
-      "executable": false
-    },
-    "patches/@runeditrun__rer@0.2.2.patch": {
-      "sha256": "438a0fc9dada9243468218b48213ba7b978599fea4032cd79d2c5289c9b86712",
+      "sha256": "2ae8a0de9076a1a219bc33f6b8135f9b4370dbae7beccad7521502d5c2938c92",
       "executable": false
     },
     "pnpm-lock.yaml": {
-      "sha256": "be91a093323d4fdac650a0da8208a85245197b0814f44904c714e5a251142433",
+      "sha256": "c20b537f2c5d84354447dc9fed8759e6b054b5b126ebdfa01dd572f28f2adc10",
       "executable": false
     },
     "public/app-assets/brand/lamp-mark.svg": {
@@ -1756,7 +1752,7 @@
       "executable": false
     },
     "RUN-LOCALLY.md": {
-      "sha256": "2bb6d0bf66af8ed7276016a9a57db9ea13dc8435e485ca3fa421e6ce645f07c5",
+      "sha256": "c3b27939d206be0947f9fff0b1dd0cbaafa084133f6d1ececdd0c5bb953743bc",
       "executable": false
     },
     "schema/json-schema.mjs": {
@@ -1920,7 +1916,7 @@
       "executable": false
     },
     "scripts/deploy.mjs": {
-      "sha256": "18b70c92ab96f5da5d0dad01cc2abb3f218441f089b030b6fde4b34b0ec63f33",
+      "sha256": "c3ba8dcb1f644b297d2d045e1d8274774cd360c5c9dad278a887fd1f48c59dbd",
       "executable": false
     },
     "scripts/deployment-identity.mjs": {
@@ -2036,7 +2032,7 @@
       "executable": false
     },
     "scripts/installer/deploy.mjs": {
-      "sha256": "f1a758132e4d62637e9155913a792faeb778cc7af88c998c51fd47dd2abf1cb5",
+      "sha256": "b331b79788c443662858914163ac7d4674aae0fdcacd944f7305d4ae7bf43c3f",
       "executable": false
     },
     "scripts/installer/hosting.mjs": {
@@ -4172,7 +4168,7 @@
       "executable": false
     },
     "tests/e2e/auth-adoption-journey.test.mjs": {
-      "sha256": "194331d5da73cafa9f4319d5cfb4438203e0a0db1df04dad99b09e0060a6ed09",
+      "sha256": "d046610b2e82badcc77e8d584a373ba43a2658bbac5ddff89e8c3edee6d69e5f",
       "executable": false
     },
     "tests/e2e/autosave-integrity.test.mjs": {
