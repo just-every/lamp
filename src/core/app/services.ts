@@ -95,7 +95,7 @@ export function createAppServices(bindings: AppBindings, blobs: BlobStore, execu
     forIncidentReport: async (input) => notificationPublicationStatements(bindings.DB, { eventId: input.eventId, eventType: "incident-report", incidentReportId: input.eventId, componentIds: input.componentIds, channels: input.channels, queuedAt: input.queuedAt }),
   });
   const intake = createIntakeService(createIntakeRepository(bindings.DB), extensions.alertIntakePolicy, async (incidentId) => deliveries.queueOperatorAlert({ eventId: `intake-draft/${incidentId}`, title: "Lamp alert intake created an incident draft", text: `A configured alert source created draft incident ${incidentId}; review and publish it if customer communication is needed.` }), extensions.events);
-  const aiValues = [bindings.AI_PROVIDER_URL, bindings.AI_PROVIDER_API_KEY, bindings.AI_PROVIDER_MODEL];
+  const aiValues = bindings.RER_DEMO === '1' ? [undefined, undefined, undefined] : [bindings.AI_PROVIDER_URL, bindings.AI_PROVIDER_API_KEY, bindings.AI_PROVIDER_MODEL];
   const configuredAiValues = aiValues.filter((value) => Boolean(value)).length;
   if (configuredAiValues > 0 && configuredAiValues !== aiValues.length) {
     throw new Error("Lamp AI requires AI_PROVIDER_URL, AI_PROVIDER_API_KEY, and AI_PROVIDER_MODEL together.");
@@ -103,7 +103,7 @@ export function createAppServices(bindings: AppBindings, blobs: BlobStore, execu
   if (extensions.adapters["ai.provider.v1"] && configuredAiValues > 0) {
     throw new Error("Lamp cannot configure AI_PROVIDER_* values alongside the ai.provider.v1 extension adapter.");
   }
-  const aiProvider = extensions.adapters["ai.provider.v1"] ?? (configuredAiValues === aiValues.length
+  const aiProvider = bindings.RER_DEMO === '1' ? null : extensions.adapters["ai.provider.v1"] ?? (configuredAiValues === aiValues.length
     ? createOpenAiCompatibleProvider({ endpoint: bindings.AI_PROVIDER_URL!, apiKey: bindings.AI_PROVIDER_API_KEY!, model: bindings.AI_PROVIDER_MODEL! })
     : null);
   const briefs = createBriefService(createBriefRepository(bindings.DB));

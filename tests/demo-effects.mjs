@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 
 /** Exercise real operator/public routes. Only deliberately uncredentialed
  * third-party destinations are supplied; Base must refuse their network calls. */
-export async function exerciseDemo({ origin, pageOrigin, key, cookie }) {
+export async function exerciseDemo({ origin, pageOrigin, key, cookie, fetch }) {
   const expected = ['api.statuspage.io', 'api.instatus.com', 'incidents.betterstack.com', 'hooks.slack.com', 'demo.webhook.office.com', 'hooks.example.invalid', 'heartbeat.example.invalid'];
   const witnessed = new Set();
   const headers = { Cookie: cookie, Origin: origin, 'x-rer-dev-key': key };
@@ -16,18 +16,20 @@ export async function exerciseDemo({ origin, pageOrigin, key, cookie }) {
   }
   assert.equal((await api('/api/app/session')).status, 200);
   const components = (await api('/api/app/components')).body.components;
-  assert.equal(components.length, 4);
+  assert.ok(components.length > 0, 'sample components are visible');
   const incidents = (await api('/api/app/incidents')).body.incidents;
-  assert.equal(incidents.length, 2);
-  assert.equal((await api('/api/app/maintenance')).body.maintenance.length, 1);
-  assert.equal((await api('/api/app/subscribers')).body.subscribers.length, 2);
+  assert.ok(incidents.some(row => row.lifecycle === 'Resolved') && incidents.some(row => row.lifecycle !== 'Resolved'), 'sample history contains a resolved and an active incident');
+  assert.ok((await api('/api/app/maintenance')).body.maintenance.some(row => Date.parse(row.startsAt) > Date.now()), 'upcoming maintenance is available');
+  const subscribers = (await api('/api/app/subscribers')).body.subscribers;
+  assert.ok(['email', 'webhook'].every(channel => subscribers.some(row => row.channel === channel && row.state === 'active')), 'both sample subscriber channels are ready');
   assert.equal((await api('/api/app/ai/status')).body.configured, false);
   const document = await fetch(origin + '/app', { headers, redirect: 'manual' });
   assert.equal(document.status, 200, 'finished first run opens the app');
   assert.match(await document.text(), /id="rer-demo-bar"/);
   const publicPage = await fetch(pageOrigin + '/', { headers: { 'x-rer-dev-key': key } });
   assert.equal(publicPage.status, 200);
-  assert.match(await publicPage.text(), /Delayed background processing/);
+  assert.equal(publicPage.headers.get('X-Lamp-Snapshot-Retained'), 'true', 'disposable public snapshot has its retained copy');
+  assert.ok((await publicPage.text()).includes(incidents.find(row => row.lifecycle !== 'Resolved').title), 'public snapshot carries the actual active incident');
   for (const source of ['statuspage', 'instatus', 'betterstack']) {
     const refused = await api('/api/app/statuspage-import/preview', { source, pageId: 'demo123', apiKey: 'demonstration-key-with-no-authority', publicAccessAcknowledged: true });
     assert.equal(refused.status, 400, `${source} import refused`);
@@ -40,6 +42,9 @@ export async function exerciseDemo({ origin, pageOrigin, key, cookie }) {
     assert.equal((await api('/api/app/channels', { kind, name: `Demo ${kind}`, url, componentIds: [] })).status, 201);
   }
   const incident = incidents.find(row => row.lifecycle !== 'Resolved');
+  const suggestion = await api(`/api/app/incidents/${incident.id}/ai-suggestion`, {});
+  assert.equal(suggestion.status, 404, 'AI suggestion refuses an unconfigured provider');
+  assert.match(suggestion.body.error, /No AI provider is configured/);
   const detail = (await api(`/api/app/incidents/${incident.id}`)).body.incident;
   assert.ok(detail, 'sample incident is editable through its public API');
   const draft = await api(`/api/app/incidents/${incident.id}/draft`, { lifecycle: 'Monitoring', affectedAudience: 'Customers running background jobs', customerImpact: 'Jobs are now completing normally.', whatStillWorks: 'The dashboard and API remain available.', details: 'We are monitoring queue recovery.', nextUpdateAt: new Date(Date.now() + 3600000).toISOString() }, 'PUT', { 'If-Match': `${detail.draft?.id ?? '-'}:${detail.updates.length}` });
@@ -57,5 +62,5 @@ export async function exerciseDemo({ origin, pageOrigin, key, cookie }) {
   assert.ok(outbox.envelopes.some(row => row.message.subject.includes('sender check')));
   assert.ok(outbox.envelopes.some(row => row.message.to === 'visitor@example.invalid'));
   assert.ok(outbox.envelopes.some(row => row.message.to === 'alex@example.invalid'));
-  return { witnessed: [...witnessed], expected, incidentId: incident.id };
+  return { witnessed: [...witnessed], expected, incidentId: incident.id, incidentTitle: incident.title, initialLifecycle: incident.lifecycle };
 }

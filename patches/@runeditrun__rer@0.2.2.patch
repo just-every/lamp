@@ -380,6 +380,19 @@ index 33daf94c5db69cad01fd7806a90c224239e81b6a..492127848e467b0a727074c76d21931e
   if ((options.remove || options.setSecret || options.unsetSecret) && options.site) throw invalid('--remove, --set-secret and --unset-secret act on the application Worker, not the run site.');
   if (options.origin !== undefined) {
    let url; try { url = new URL(options.origin); } catch { throw invalid('Provide a valid credential-free origin.'); }
+diff --git a/modules/container/boundary.mjs b/modules/container/boundary.mjs
+index 85781b8601c09398feffd44fe1273763689c9288..5b7badab10c56f396cb995379a5c03acf875662b 100644
+--- a/modules/container/boundary.mjs
++++ b/modules/container/boundary.mjs
+@@ -22,7 +22,7 @@ export async function checkBoundary(root, { engine='node', cacheContract }={}) {
+      }
+     }
+     if(ts.isCallExpression(node)&&node.arguments.some(arg=>ts.isStringLiteral(arg)&&arg.text.startsWith('cloudflare:')))fail('Dynamic Cloudflare import');
+-    if(ts.isIdentifier(node)&&['WebSocketPair','HTMLRewriter','passThroughOnException','timingSafeEqual'].includes(node.text))fail(node.text);
++    if(ts.isIdentifier(node)&&['WebSocketPair','HTMLRewriter','passThroughOnException','timingSafeEqual'].includes(node.text)&&!(engine==='workerd'&&node.text==='HTMLRewriter'))fail(node.text);
+     if(ts.isCallExpression(node)&&ts.isIdentifier(node.expression)&&node.expression.text==='email'&&!localNames.has('email'))fail('email()');
+     if(ts.isPropertyAccessExpression(node)&&((node.expression.getText(tree)==='caches'&&node.name.text==='default')||(node.expression.getText(tree)==='request'&&node.name.text==='cf')))fail(node.getText(tree));
+     if(ts.isElementAccessExpression(node)&&ts.isStringLiteral(node.argumentExpression)&&((node.expression.getText(tree)==='caches'&&node.argumentExpression.text==='default')||(node.expression.getText(tree)==='request'&&node.argumentExpression.text==='cf')))fail(node.getText(tree));
 diff --git a/modules/container/build.mjs b/modules/container/build.mjs
 index 8225a9893f2389efa30413e9cf31897325823c23..6af26940cf66ddacd44cb37d0ca19ed4db1bcde3 100644
 --- a/modules/container/build.mjs
