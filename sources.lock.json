@@ -1668,11 +1668,11 @@
       "executable": false
     },
     "patches/@runeditrun__rer@0.2.2.patch": {
-      "sha256": "de6154ada12a799c276ce78a02b237eddfc7cd03e6f2e42894eed142d34e600b",
+      "sha256": "a9a43c14ecb8395cc70160ee734ae9adc7963de7161bbc2559e937ce9bf918a6",
       "executable": false
     },
     "pnpm-lock.yaml": {
-      "sha256": "0795b52f7a04643e41ab5da22009ea8b45a97f3a3b9df7457c17a996fd7753b4",
+      "sha256": "a74d9686c54e21f4062e46674dce1a1ec2f80fc20c10271d1abea1b42e49c0a4",
       "executable": false
     },
     "public/app-assets/brand/lamp-mark.svg": {

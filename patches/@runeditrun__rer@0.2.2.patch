@@ -58,13 +58,13 @@ index 34c8e39392b37be605f975fff3c1a67ea6ee407d..84cc757d6f627b713b0ab96271468d4c
   outbox: [['--port', '--host', '--owner-email', '--open'], 'Credential-free local outbox URL; optional ordinary sign-in request and explicit browser opening.'],
 diff --git a/cli/demo-host.mjs b/cli/demo-host.mjs
 new file mode 100644
-index 0000000000000000000000000000000000000000..f28db96a3e74c802438a1451e3d86de9cb31eb72
+index 0000000000000000000000000000000000000000..3ef2164cce5f2e0acf0578a3b3ba9310570a0f23
 --- /dev/null
 +++ b/cli/demo-host.mjs
-@@ -0,0 +1,47 @@
+@@ -0,0 +1,51 @@
 +import { cp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 +import { createRequire } from 'node:module';
-+import { join } from 'node:path';
++import { dirname, join, resolve } from 'node:path';
 +import { contained } from './project.mjs';
 +import { invalid, missing, refuse, RerError } from './errors.mjs';
 +import { imageFolder } from './container.mjs';
@@ -104,7 +104,11 @@ index 0000000000000000000000000000000000000000..f28db96a3e74c802438a1451e3d86de9
 + const secrets = join(folder, '.secrets.json');
 + await writeFile(secrets, JSON.stringify({ TURNSTILE_SECRET_KEY: process.env.TURNSTILE_SECRET_KEY.trim() }), { mode: 0o600 });
 + try {
-+  const wrangler = createRequire(join(project.root, 'package.json')).resolve('wrangler/bin/wrangler.js');
++  const manifest = createRequire(join(project.root, 'package.json')).resolve('wrangler/package.json');
++  const { bin } = JSON.parse(await readFile(manifest, 'utf8'));
++  const executable = typeof bin === 'string' ? bin : bin?.wrangler;
++  if (typeof executable !== 'string' || !executable.trim()) throw invalid('The installed Wrangler package does not declare its executable.');
++  const wrangler = resolve(dirname(manifest), executable);
 +  await store.run('Deploying the demo Worker and its container image', process.execPath, [wrangler, 'deploy', '--config', 'wrangler.json', '--secrets-file', '.secrets.json'], { cwd: folder, signal });
 + } finally { await rm(secrets, { force: true }); }
 + return { dryRun: false, deployed: true, origin: plan.origin, demo: summary };
