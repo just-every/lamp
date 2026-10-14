@@ -77,9 +77,13 @@ async function main() {
   // legacy snapshots without a bundle are rebuilt by the minute scheduler.
   // Identity is claimed through Base after its secret bindings are deployed.
   // Existing stores reject bootstrap without changing their owner or settings.
-  const claimed = await fetch(`https://${config.appHost}/auth/bootstrap`, {method:'POST',redirect:'manual',headers:{Origin:`https://${config.appHost}`,'Content-Type':'application/json'},body:JSON.stringify({token:config.setupToken,displayName:config.setupOperatorDisplayName})});
-  await claimed.body?.cancel();
-  if (![303,409].includes(claimed.status)) throw new Error('Owner bootstrap failed after deployment. Inspect the auth configuration.');
+  // The CLI hook claims in its own process so rer observes and links that
+  // exchange. Standalone deploy:cloudflare still completes its own bootstrap.
+  if (!flags.get("result-file")) {
+    const claimed = await fetch(`https://${config.appHost}/auth/bootstrap`, {method:'POST',redirect:'manual',headers:{Origin:`https://${config.appHost}`,'Content-Type':'application/json'},body:JSON.stringify({token:config.setupToken,displayName:config.setupOperatorDisplayName})});
+    await claimed.body?.cancel();
+    if (![303,409].includes(claimed.status)) throw new Error('Owner bootstrap failed after deployment. Inspect the auth configuration.');
+  }
   const deadline = Date.now() + 90_000;
   let retained = false;
   do {
@@ -88,7 +92,7 @@ async function main() {
     await new Promise((resolve) => setTimeout(resolve, 2_000));
   } while (Date.now() < deadline);
   if (!retained) throw new Error("Deployment is live but retained snapshot readiness is unverified; inspect snapshot build failures before accepting this deployment.");
-  if (flags.get("result-file")) await writeFile(resolve(flags.get("result-file")), JSON.stringify({ deployed: true, environment, origin: `https://${config.appHost}`, owner: claimed.status === 303 ? 'claimed' : 'kept' }) + '\n', { mode: 0o600, flag: 'wx' });
+  if (flags.get("result-file")) await writeFile(resolve(flags.get("result-file")), JSON.stringify({ deployed: true, environment, origin: `https://${config.appHost}` }) + '\n', { mode: 0o600, flag: 'wx' });
   console.log(`Deployment smoke check passed for ${config.appHost}.`);
 }
 
