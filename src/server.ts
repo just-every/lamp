@@ -1,4 +1,6 @@
 /// <reference path="../scripts/dev-ingress/virtual.d.ts" />
+import { withDemo } from '../modules/demo/index.mjs';
+import { seedDemo } from './demo';
 export { SnapshotCache } from "./core/platform/blobs/snapshot-cache";
 import { createSetupRepository } from "./core/features/setup/repository";
 import { devGate, devNotFound } from "@runeditrun/rer/modules/operator-auth";
@@ -66,7 +68,7 @@ async function operatorDocumentPreflight(request: Request, runtime: ReturnType<t
   return Response.redirect(signIn, 302);
 }
 
-export default {
+export default withDemo({
   async fetch(request: Request, bindings: AppBindings, executionContext: ExecutionContext): Promise<Response> {
     if (import.meta.env.DEV) {
       const { enabled, authenticate } = await import("virtual:lamp-dev-ingress");
@@ -85,7 +87,7 @@ export default {
       // holds sign-in links, so it answers only a request holding the dev key.
       const { pathname } = new URL(request.url);
       if ((pathname === DEV_OUTBOX_PATH || pathname.startsWith(`${DEV_OUTBOX_PATH}/`)) && !(gate && await gate.admits(request))) return devNotFound();
-      const outbox = await handleDevOutboxRequest(request, bindings);
+      const outbox = await handleDevOutboxRequest(request, bindings.RER_DEMO === '1' ? { ...bindings, LAMP_DEV_OUTBOX: bindings.SNAPSHOTS, LAMP_BASE_MAIL: bindings.DB } : bindings);
       if (outbox) return outbox;
     }
     const url = new URL(request.url);
@@ -144,4 +146,4 @@ export default {
   async queue(batch: MessageBatch<unknown>, bindings: AppBindings) {
     await runQueue(batch, bindings);
   },
-} satisfies ExportedHandler<AppBindings>;
+} satisfies ExportedHandler<AppBindings>, { seed: seedDemo });

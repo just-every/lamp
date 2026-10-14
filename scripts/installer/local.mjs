@@ -22,7 +22,7 @@ async function legacyState({root}){
 
 // Development captures mail in Lamp's outbox. Setup and preview execute the
 // production artifact and never request mail from a provider.
-const environment=(context,extra={})=>({...process.env,...context.env,...context.vars,LAMP_DEV_OUTBOX_MODE:'local',LAMP_DISABLE_INSPECTOR:'true',WRANGLER_SEND_METRICS:'false',X_LOCAL_EXPLORER:'false',RER_DEV_ORIGIN:context.origin,RER_DEV_KEY:context.devKey,RER_DEV_IDENTITY:context.devLogin?'off':'on',...extra});
+const environment=(context,extra={})=>({...process.env,...context.env,...context.vars,LAMP_DEV_OUTBOX_MODE:'local',LAMP_DISABLE_INSPECTOR:'true',WRANGLER_SEND_METRICS:'false',X_LOCAL_EXPLORER:'false',RER_DEV_ORIGIN:context.origin,RER_DEV_KEY:context.devKey,RER_DEV_IDENTITY:context.devLogin?'off':'on',...(context.demo ? {RER_DEMO:'1',RER_DEMO_EXPIRES:context.demo.ends,RER_STATE_DIR:context.demo.state} : {}),...extra});
 const listen=context=>String(context.runtimePort??(new URL(context.origin).port||80));
 // dev:app applies new migrations, serves Vite and opens the page host once so
 // notification links know the page origin.
@@ -39,7 +39,7 @@ export const adapter=localInstaller({
  prepareData:legacyState,
  secrets:{keepExisting:true,originKey:'LAMP_LOCAL_ORIGIN',values:context=>({LAMP_LOCAL_ORIGIN:context.origin,AUTH_ORIGIN:context.origin,AUTH_LOCAL:'true'})},
  build:['pnpm',['run','build:app']],
- migrate:['node',['scripts/migrate-local.mjs']],
+ migrate:context=>['node',['scripts/migrate-local.mjs'],{env:environment(context)}],
  start:preview,owner:nativeOwner,signIn:localSignIn,
 });
 
@@ -64,7 +64,7 @@ const docs=JSON.parse(await readFile(new URL('../../docs/site.json',import.meta.
 export const commandAdapter=createCommandAdapter(adapter,{
  product:model.product.name,dev:vite,preview,
  publicPages:['/','/docs',...docs.sections.flatMap(section=>section.pages.map(page=>`/docs/${page.slug}`))],
- devIdentity:{entry:'src/server.dev.ts',output:['dist'],emailLinkTest:'tests/e2e/auth-adoption-journey.test.mjs'},verify:['pnpm',['run','verify:app']],deploy:lampDeploy(adapter),deployDeclaration:'hosted-check.json',
+ devIdentity:{entry:'src/server.dev.ts',output:['dist'],emailLinkTest:'tests/e2e/auth-adoption-journey.test.mjs'},verify:['pnpm',['run','verify:app']],deploy:lampDeploy(adapter),deployDeclaration:process.argv.includes('--demo')?'deploy.json':'hosted-check.json',
  portability:transfer,generatedOutputs:['src/routeTree.gen.ts'],
  site:{entry:'src/site/pages.tsx',output:'dist/site',declaration:'deploy-site.json',config:'vite.site.config.ts'},
  setup:{manifestFile:'rer-setup.json'},browserModule:'scripts/installer/ui/seed.mjs',

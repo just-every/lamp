@@ -1,0 +1,801 @@
+diff --git a/cli/container.mjs b/cli/container.mjs
+index a9768eb327cb5b21addd170f8b951ff81bbb20a1..889c84287d63391b9ae1e0ad04b7f1cabd5d7695 100644
+--- a/cli/container.mjs
++++ b/cli/container.mjs
+@@ -18,6 +18,16 @@ async function run(command,args,options={}) {
+  try{await new Promise((resolve,reject)=>{child.once('error',reject);child.once('exit',code=>code===0?resolve():reject(new Error('Container command failed')));});}
+  finally{process.off('SIGTERM',abort);process.off('SIGINT',abort);if(child.exitCode===null&&child.signalCode===null)child.kill('SIGTERM');}
+ }
++/** The image's build folder (.rer/container/image unless `output`), built with the checkout's private local settings hidden. */
++export async function imageFolder(project,operation,config,{output,engine}={}) {
++ const {root}=project,{withoutLocalVariables}=await shared('local/build.mjs'),{buildEnvironment}=await shared('local/environment.mjs');
++ const declaration=await readFile(join(root,'seed.json'),'utf8').then(JSON.parse).catch(()=>({}));
++ const declared=Array.isArray(declaration.env)?declaration.env.map(item=>item.name):Object.keys(declaration.env??{});
++ await withoutLocalVariables(root,async()=>{
++  const builder=fileURLToPath(new URL('../modules/container/build.mjs',import.meta.url));
++  await run(process.execPath,[builder,root,JSON.stringify({output,engine})],{cwd:root,env:buildEnvironment([...declared,...(config.secrets??[]).flatMap(item=>[item.binding,item.environment])])});
++ },{nested:operation.token,settings:[...(project.adapter?.settings??[]),...(project.privateInputs??[])]});
++}
+ export async function containerCommand(project,options,out) {
+  if(options.stop)return runContainer(project,options,out);
+  const {localOperation}=await shared('local/operation.mjs'),{recoverInterrupted}=await shared('local/recovery.mjs');
+@@ -35,16 +45,7 @@ async function runContainer(project,options,out,operation) {
+   if(options.verb==='deploy'){if(!options.host)throw missing('Container deploy requires --host ssh://user@host.');sshTarget(options.host);await deployInputs({root,envFile:options.envFile,localOnlyKeys:project.adapter?.localOnlyKeys});}
+   const ingress={...(options.bindAddress?{address:options.bindAddress}:{}),...(options.httpPort?{httpPort:options.httpPort}:{}),...(options.httpsPort?{httpsPort:options.httpsPort}:{})};
+   ingressBindings({...config.container?.ingress,...ingress});
+-  if(!options.image){
+-   const {withoutLocalVariables}=await shared('local/build.mjs'),{buildEnvironment}=await shared('local/environment.mjs');
+-   const declaration=await readFile(join(root,'seed.json'),'utf8').then(JSON.parse).catch(()=>({}));
+-   const declared=Array.isArray(declaration.env)?declaration.env.map(item=>item.name):Object.keys(declaration.env??{});
+-   await withoutLocalVariables(root,async()=>{
+-    const builder=fileURLToPath(new URL('../modules/container/build.mjs',import.meta.url));
+-    await run(process.execPath,[builder,root],{cwd:root,env:buildEnvironment([...declared,...(config.secrets??[]).flatMap(item=>[item.binding,item.environment])])});
+-    await run('docker',['build','--tag',image,join(root,'.rer/container/image')],{cwd:root});
+-   },{nested:operation.token,settings:[...(project.adapter?.settings??[]),...(project.privateInputs??[])]});
+-  }
++  if(!options.image){await imageFolder(project,operation,config);await run('docker',['build','--tag',image,join(root,'.rer/container/image')],{cwd:root});}
+   if(options.verb==='build')return{platform:'container',image};
+   if(!options.host)throw missing('Container deploy requires --host ssh://user@host.');
+   return deploySSH({root,image:options.image??image,ingress,host:options.host,envFile:options.envFile,environment:options.environment,localOnlyKeys:project.adapter?.localOnlyKeys,dryRun:options.dryRun});
+diff --git a/cli/contract.mjs b/cli/contract.mjs
+index 34c8e39392b37be605f975fff3c1a67ea6ee407d..84cc757d6f627b713b0ab96271468d4c2c61a916 100644
+--- a/cli/contract.mjs
++++ b/cli/contract.mjs
+@@ -6,12 +6,12 @@ export const commonFlags = ['--help', '--cwd', '--non-interactive', '--json'];
+ const definitions = {
+  install: [[], 'Frozen dependency installation; no setup or global tool changes.'],
+  setup: [['--owner-email', '--owner-name', '--port', '--host', '--answers', '--door'], 'Build, migrate, prepare private settings and first owner; stop the temporary app. --door sets a fresh checkout up at its front-door origin http://NAME.localhost:PORT (after rer door enable).'],
+- dev: [['--port', '--host', '--idle-timeout', '--stop', '--detach', '--foreground', '--as', '--login', '--models', '--models-service', '--door', '--direct'], 'Development with assets, HMR and the declared scheduled triggers run locally on their schedule. --detach returns once ready; --foreground keeps this command serving. With devIdentity it opens signed in as the owner (--as PERSONA picks another start, --login uses the outbox sign-in instead); otherwise ordinary owner sign-in through the outbox. --door moves this checkout to its front-door origin http://NAME.localhost:PORT, keeping its data; --direct moves it back; --port and --host serve directly.'],
++ dev: [['--port', '--host', '--idle-timeout', '--stop', '--detach', '--foreground', '--as', '--login', '--models', '--models-service', '--door', '--direct', '--demo'], 'Development with assets, HMR and the declared scheduled triggers run locally on their schedule. --detach returns once ready; --foreground keeps this command serving. With devIdentity it opens signed in as the owner (--as PERSONA picks another start, --login uses the outbox sign-in instead); otherwise ordinary owner sign-in through the outbox. --door moves this checkout to its front-door origin http://NAME.localhost:PORT, keeping its data; --direct moves it back; --port and --host serve directly. --demo (or rer demo) serves a throwaway demo: fresh data in .rer/demo/START (deleted when it stops: --stop, Ctrl-C or its end, one hour by default or --idle-timeout), the saved owner signed in, the seed\'s demo data, a Demo bar, and nothing sent (RER_DEMO=1; the checkout\'s own data is never touched).'],
+  preview: [['--port', '--host', '--idle-timeout', '--stop', '--detach', '--foreground'], 'Production output; --detach returns once ready, --foreground keeps this command serving. Reuse intact build, refresh changed assets, preserve owner/state, idle timeout and explicit stop.'],
+  build: [['--site'], 'Production build with private local settings excluded and restored. --site instead writes the static run site (homepage, /run, docs) to its declared folder and prints that folder.'],
+  verify: [[], 'Run the complete internal verification target.'],
+  reset: [['--yes'], 'Confirmed removal of the declared local inventory only.'],
+- deploy: [['--environment', '--dry-run', '--site', '--host', '--env-file', '--image', '--bind-address', '--http-port', '--https-port', '--remove', '--yes', '--set-secret', '--unset-secret'], 'Owner-account deployment and health; dry run performs local validation/build only. Declared secrets come from the environment or --env-file (an owned 0600 KEY=VALUE file); a new Worker gets the local setup owner and fresh generated secrets when they are not given. After a healthy deploy rer claims the setup owner on the hosted app with the one-time setup token, then removes the token. --set-secret NAME (value from the environment or --env-file) and --unset-secret NAME change one secret of the deployed Worker without a build and record its new version. --remove --yes deletes what this environment\'s deploy record says rer created (Worker, D1, R2, KV, queues), reads back that each is gone, and touches nothing else. --site deploys the run site instead: an assets-only Worker on its custom domain with www redirected; with --dry-run it builds the site and prints the plan with no provider request.'],
++ deploy: [['--environment', '--dry-run', '--site', '--demo', '--host', '--env-file', '--image', '--bind-address', '--http-port', '--https-port', '--remove', '--yes', '--set-secret', '--unset-secret'], 'Owner-account deployment and health; dry run performs local validation/build only. Declared secrets come from the environment or --env-file (an owned 0600 KEY=VALUE file); a new Worker gets the local setup owner and fresh generated secrets when they are not given. After a healthy deploy rer claims the setup owner on the hosted app with the one-time setup token, then removes the token. --set-secret NAME (value from the environment or --env-file) and --unset-secret NAME change one secret of the deployed Worker without a build and record its new version. --remove --yes deletes what this environment\'s deploy record says rer created (Worker, D1, R2, KV, queues), reads back that each is gone, and touches nothing else. --site deploys the run site instead: an assets-only Worker on its custom domain with www redirected; with --dry-run it builds the site and prints the plan with no provider request. --demo deploys the hosted demo instead (deploy-demo.json): a front Worker on demo.<domain> giving each visitor their own signed-in, throwaway container of this seed that can send nothing; --dry-run writes it to .rer/demo-host with no provider request.'],
+  export: [['--target', '--output', '--origin', '--session-file'], 'Complete supported installation archive with integrity and exclusions.'],
+  import: [['--target', '--input', '--journal', '--origin', '--session-file', '--yes', '--legacy-v1', '--acknowledge-unverified-metadata', '--output'], 'Confirmed atomic restore into an empty destination; --journal LATER_ARCHIVE also fences rows that installation erased since. Backup-only local v1 recovery requires --legacy-v1 --acknowledge-unverified-metadata and a new --output v2 archive; --journal requires normal v2 import.'],
+  outbox: [['--port', '--host', '--owner-email', '--open'], 'Credential-free local outbox URL; optional ordinary sign-in request and explicit browser opening.'],
+diff --git a/cli/demo-host.mjs b/cli/demo-host.mjs
+new file mode 100644
+index 0000000000000000000000000000000000000000..f28db96a3e74c802438a1451e3d86de9cb31eb72
+--- /dev/null
++++ b/cli/demo-host.mjs
+@@ -0,0 +1,47 @@
++import { cp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
++import { createRequire } from 'node:module';
++import { join } from 'node:path';
++import { contained } from './project.mjs';
++import { invalid, missing, refuse, RerError } from './errors.mjs';
++import { imageFolder } from './container.mjs';
++import { DEMO_FILES, demoPlan } from '../modules/demo-host/plan.mjs';
++
++// `rer deploy --demo [--dry-run]`: the seed's hosted demo at demo.<domain>
++// (modules/demo-host), from deploy-demo.json. It writes .rer/demo-host/: the
++// front Worker, its wrangler.json and the container image folder (workerd
++// engine). --dry-run stops there, so `wrangler dev` can serve that folder with
++// Docker; a deploy runs `wrangler deploy` on it with the Turnstile secret.
++export async function demoHostCommand(project, options, store, signal, out, operation) {
++ const read = async path => { try { return JSON.parse(await readFile(await contained(project.root, path), 'utf8')); } catch (error) { if (error instanceof RerError) throw error; throw invalid(`Missing or malformed ${path}.`); } };
++ const app = await read(project.adapter.deploy?.declaration ?? 'deploy.json'), declaration = await read('deploy-demo.json');
++ if (!(app.platforms ?? ['workers']).includes('container')) throw refuse('A hosted demo runs the seed\'s container image: declare "container" in deploy.json platforms first.');
++ let plan;
++ try { plan = demoPlan({ project: app.project, environment: options.environment ?? 'production', compatibilityDate: app.compatibilityDate, originVar: app.originVar, declaration, turnstileSiteKey: process.env.TURNSTILE_SITE_KEY?.trim() }); }
++ catch (error) { throw invalid(`The demo deploy declaration is invalid (${error.message}). deploy-demo.json holds {"version": 1, "domain": "<run site apex>", "name": "<product name>"}, optionally "maxInstances" and plain "settings".`); }
++ const folder = join(project.root, '.rer', 'demo-host');
++ await rm(folder, { recursive: true, force: true });
++ await mkdir(folder, { recursive: true, mode: 0o700 });
++ await store.step('Building the demo container image (workerd engine)');
++ await imageFolder(project, operation, app, { output: join(folder, 'image'), engine: 'workerd' });
++ for (const file of DEMO_FILES) await cp(new URL(`../modules/demo-host/${file}`, import.meta.url), join(folder, file));
++ await writeFile(join(folder, 'wrangler.json'), JSON.stringify(plan.wrangler, null, 2) + '\n');
++ const summary = { worker: plan.worker, origin: plan.origin, hostname: plan.hostname, folder: '.rer/demo-host', maxInstances: plan.maxInstances, settings: plan.settings, instanceType: 'basic', startsPerIpPerMinute: 3, minutes: 60, idleMinutes: 15, enableInternet: false };
++ const human = [`Demo plan: Worker ${summary.worker} on ${summary.hostname} (custom domain; workers.dev off), written to ${summary.folder}`,
++  `  one container per visitor (basic, at most ${summary.maxInstances} at once, no internet, RER_DEMO=1), 3 starts per IP per minute behind Turnstile`,
++  `  each demo ends after 60 minutes or 15 idle minutes; its container is destroyed and its state deleted`];
++ if (options.dryRun) {
++  if (options.json) out.event('demo', summary); else for (const line of human) out.human(line);
++  store.report('deploy --demo: dry run complete; no deployment occurred and no provider request was made.');
++  return { dryRun: true, deployed: false, demo: summary };
++ }
++ const names = ['CLOUDFLARE_ACCOUNT_ID', 'CLOUDFLARE_API_TOKEN', 'TURNSTILE_SITE_KEY', 'TURNSTILE_SECRET_KEY'];
++ if (names.some(name => !process.env[name]?.trim())) throw missing(`${names.join(', ')} are required; see DEMO.md "Hosting the demo".`);
++ if (!options.json) for (const line of human) out.human(line);
++ const secrets = join(folder, '.secrets.json');
++ await writeFile(secrets, JSON.stringify({ TURNSTILE_SECRET_KEY: process.env.TURNSTILE_SECRET_KEY.trim() }), { mode: 0o600 });
++ try {
++  const wrangler = createRequire(join(project.root, 'package.json')).resolve('wrangler/bin/wrangler.js');
++  await store.run('Deploying the demo Worker and its container image', process.execPath, [wrangler, 'deploy', '--config', 'wrangler.json', '--secrets-file', '.secrets.json'], { cwd: folder, signal });
++ } finally { await rm(secrets, { force: true }); }
++ return { dryRun: false, deployed: true, origin: plan.origin, demo: summary };
++}
+diff --git a/cli/demo.mjs b/cli/demo.mjs
+new file mode 100644
+index 0000000000000000000000000000000000000000..1cd8b7775f967325351c95d63878733ad61ca429
+--- /dev/null
++++ b/cli/demo.mjs
+@@ -0,0 +1,47 @@
++import { readdir, readFile, rm } from 'node:fs/promises';
++import { join } from 'node:path';
++import { DatabaseSync } from 'node:sqlite';
++import { refuse } from './errors.mjs';
++import { shared } from './shared.mjs';
++
++// `rer demo` (dev --demo) state and its two adoption checks (export/DEMO.md).
++const adopt = 'See DEMO.md: a seed adopts demo mode with src/demo.ts, withDemo as the first import of its Worker entry, and three vite.config changes.';
++
++// Before anything starts: the seed's Vite persists where rer says, so the
++// checkout's own .wrangler/state is never opened by a demo, and hands the
++// Worker's cloudflare:sockets imports demo mode's guarded connect.
++export async function demoAdopted(root) {
++ let text = '';
++ for (const name of ['vite.config.ts', 'vite.config.mts', 'vite.config.js', 'vite.config.mjs']) {
++  try { text = await readFile(join(root, name), 'utf8'); break; } catch (error) { if (error.code !== 'ENOENT') throw error; }
++ }
++ if (!text.includes('RER_STATE_DIR')) throw refuse(`This seed's vite.config does not persist to RER_STATE_DIR, so a demo would run on this checkout's own data. ${adopt}`);
++ if (!text.includes('demoSockets(')) throw refuse(`This seed's vite.config does not list demoSockets(), so a demo's cloudflare:sockets connections could leave this computer. ${adopt}`);
++}
++
++// A demo's data lives in .rer/demo/START. Only one server runs per checkout, so
++// any other demo folder is a stopped demo's leftover (a hard kill) and goes now.
++// The end is local ISO time with its offset: the Demo bar shows its HH:MM as written.
++export async function demoState(root, seconds) {
++ const { privateDirectory } = await shared('private-files.mjs');
++ const started = new Date(), stamp = started.toISOString().replace(/[-:]|\.\d+/g, '');
++ const parent = await privateDirectory(root, ['.rer', 'demo']);
++ for (const entry of await readdir(parent)) await rm(join(parent, entry), { recursive: true, force: true });
++ const end = new Date(started.getTime() + seconds * 1000), offset = -end.getTimezoneOffset();
++ const local = new Date(end.getTime() + offset * 60000).toISOString().slice(0, 19);
++ const zone = `${offset < 0 ? '-' : '+'}${String(Math.trunc(Math.abs(offset) / 60)).padStart(2, '0')}:${String(Math.abs(offset) % 60).padStart(2, '0')}`;
++ return { state: await privateDirectory(root, ['.rer', 'demo', stamp]), ends: local + zone };
++}
++
++// After start: a request has passed withDemo, which creates rer_demo in the
++// demo's own database. Without it nothing is blocked, so the demo stops.
++export async function demoGuarded(url, state, signal) {
++ const { appFetch } = await shared('app-fetch.mjs');
++ await (await appFetch(url + '/health', { signal })).body?.cancel();
++ const directory = join(state, 'v3/d1/miniflare-D1DatabaseObject');
++ for (const file of (await readdir(directory).catch(() => [])).filter(name => name.endsWith('.sqlite') && name !== 'metadata.sqlite')) {
++  const db = new DatabaseSync(join(directory, file), { readOnly: true });
++  try { if (db.prepare("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'rer_demo'").get()) return; } finally { db.close(); }
++ }
++ throw refuse(`The app did not start in demo mode (no withDemo guard answered), so it could send. The demo was stopped and its data deleted. ${adopt}`);
++}
+diff --git a/cli/lifecycle.mjs b/cli/lifecycle.mjs
+index 64e58fad8a34bde81197d357bc0beaf5713a3413..b1ae173b787ed9d48a7a0578cccf1034a8f31570 100644
+--- a/cli/lifecycle.mjs
++++ b/cli/lifecycle.mjs
+@@ -69,6 +69,7 @@ export async function runCommand(project, options, out) {
+   const adapter = project.adapter;
+   // The run site: static pages built from edition identity, never the app build.
+   if (options.site) return await (await import('./site.mjs')).siteCommand(project, options, store, signal, out);
++  if (options.verb === 'deploy' && options.demo) return await (await import('./demo-host.mjs')).demoHostCommand(project, options, store, signal, out, operation);
+   if (options.verb === 'install') {
+    await store.run('Installing frozen dependencies', 'pnpm', ['install', '--frozen-lockfile'], { cwd: project.root, signal, env: { ...process.env, CI: 'true' } }); return {};
+   }
+diff --git a/cli/managed-server.mjs b/cli/managed-server.mjs
+index 997e076b52ea6be9b3aea7351a1fb3eb473d1e70..6b10e48cf47d7f7d150e41be4dfdac485031d565 100644
+--- a/cli/managed-server.mjs
++++ b/cli/managed-server.mjs
+@@ -1,6 +1,7 @@
+ import { prepareLiveModels } from './ai-local.mjs';
+ import {fileURLToPath} from 'node:url';
+ import {join} from 'node:path';
++import {rm} from 'node:fs/promises';
+ import { serverRegistry } from './server-registry.mjs';
+ import { activityClock } from './server-activity.mjs';
+ import { runtimeFrontDoor } from './runtime-front-door.mjs';
+@@ -13,6 +14,7 @@ import { tools } from './inspect.mjs';
+ import { invalid,missing,refuse,RerError,lifecycleError } from './errors.mjs';
+ import { processInfo } from '../modules/job-queue/processes.mjs';
+ import { declaredCrons,runScheduled } from './scheduled.mjs';
++import { demoAdopted,demoGuarded,demoState } from './demo.mjs';
+ import { readDevKey,requireDevKey,refuseManagedInstallation,resolvePersona,openUrl,DEV_KEY_HEADER } from './dev-identity.mjs';
+ import { announceDoorRoute,claimSavedName,moveCheckout,routeRunning,verifyDoorFor } from './door-mode.mjs';
+ 
+@@ -22,9 +24,10 @@ import { announceDoorRoute,claimSavedName,moveCheckout,routeRunning,verifyDoorFo
+ // serves no outbox (a seed's preview without one) is not pointed at it.
+ // A seed that declares a run site also gets RER_SITE: its static run site
+ // (homepage, /run, docs) served locally on its own port, after the ready lines.
+-export function ready(out,url,dev,json=false,outbox=true,siteUrl){
++// A demo adds RER_DEMO_ENDS_ON_STOP: its own data folder, deleted when it stops.
++export function ready(out,url,dev,json=false,outbox=true,siteUrl,demo){
+  const signInUrl=url+'/__dev/outbox',open=dev&&(dev.identity||outbox);
+- if(json){out.event('ready',{url,...(outbox?{signInUrl}:{}),...(dev?{signedInAs:dev.signedInAs??null,...(open?{openUrl:dev.openUrl}:{})}:{}),...(siteUrl?{siteUrl}:{})});return;}
++ if(json){out.event('ready',{url,...(outbox?{signInUrl}:{}),...(dev?{signedInAs:dev.signedInAs??null,...(open?{openUrl:dev.openUrl}:{})}:{}),...(siteUrl?{siteUrl}:{}),...(demo?{demo}:{})});return;}
+  out.human(`RER_READY ${url}`);
+  if(dev?.identity){if(dev.signedInAs)out.human(`RER_SIGNED_IN ${dev.signedInAs}`);else if(dev.ownerLeft)out.human('No active owner remains in this app, so rer dev cannot sign in as one. Use rer dev --login with another operator, or rer reset --yes and rer setup for a new owner.');out.human(`RER_OPEN ${dev.openUrl}`);out.human('Open that link on this computer. Its fragment holds this checkout\'s dev key, which the page keeps only as a cookie; never share the link.');}
+  else if(outbox){
+@@ -33,10 +36,13 @@ export function ready(out,url,dev,json=false,outbox=true,siteUrl){
+   out.human(`Open ${dev?'the last link on this computer (it carries the dev key; never share it)':'the outbox'}, choose the newest sign-in message and follow its link. No email was sent.`);
+  }
+  if(siteUrl)out.human(`RER_SITE ${siteUrl}`);
++ if(demo){out.human(`RER_DEMO_ENDS_ON_STOP ${demo.state}`);out.human(`This demo runs on its own data in that folder, which is deleted when it stops: rer demo --stop, Ctrl-C, or at its end (${demo.ends.slice(11,16)}). Nothing it does is sent; this checkout's own data is untouched.`);}
+ }
+ export async function managedServer(project,options,out,{clock={}}={}){
+  const registry=await serverRegistry(project.root),controller=new AbortController();
+- let store,operation,proxy,activity,app,termination,reason,cleanupPromise,finished,selected,cleaned,site;
++ // A demo registers as its own mode: `rer dev --stop` never stops it by accident.
++ const mode=options.demo?'demo':options.verb;
++ let store,operation,proxy,activity,app,termination,reason,cleanupPromise,finished,selected,cleaned,site,demo,demoEnd;
+  const scheduling=new AbortController();
+  let activityWrites=Promise.resolve(),pendingActivity,activityWriting=false,infrastructureFailure;
+  function recordActivity(fields){
+@@ -45,27 +51,27 @@ export async function managedServer(project,options,out,{clock={}}={}){
+  }
+  const stopped=new Promise(resolve=>{finished=resolve;});
+  const cleanupDone=new Promise(resolve=>{cleaned=resolve;});
+- const cleanup=()=>cleanupPromise??=(async()=>{scheduling.abort();activity?.close();await site?.close();await store?.closeCommands();await proxy?.close();await operation?.release();})();
++ const cleanup=()=>cleanupPromise??=(async()=>{scheduling.abort();clearTimeout(demoEnd);activity?.close();await site?.close();await store?.closeCommands();if(demo)await rm(demo.state,{recursive:true,force:true});await proxy?.close();await operation?.release();})();
+  const stop=async why=>{reason??=why;controller.abort();finished();await cleanupDone;return {};};
+  const handlers=new Map(['SIGINT','SIGTERM'].map(name=>[name,()=>{termination=name;void stop(name);} ]));
+  for(const [name,handler]of handlers)process.on(name,handler);
+  try{
+-  if(options.stop){await registry.stop(options.verb,options);return {};}
++  if(options.stop){await registry.stop(mode,options);return {};}
+   controller.signal.throwIfAborted();
+   if(options.door||options.direct)await moveCheckout(project,options,out,registry);
+   const devIdentity=project.adapter.devIdentity;
+   if(options.as!==undefined&&!(devIdentity&&options.verb==='dev'))throw invalid('--as needs a seed that declares devIdentity.');
+   let devKey=devIdentity?await readDevKey(project.root):null;
+-  let current=await registry.existing(options.verb,options);
++  let current=await registry.existing(mode,options);
+   if(!current){
+-   const reservation=await registry.reserve(options.verb,options);
++   const reservation=await registry.reserve(mode,options);
+    current=reservation.existing;
+   }
+   if(current){
+    // Resolve a competing reservation through the same explicit-option check.
+-   current=await registry.existing(options.verb,options);
++   current=await registry.existing(mode,options);
+    const running=await registry.waitReady(current,controller.signal);
+-   await registry.existing(options.verb,options);
++   await registry.existing(mode,options);
+    if(options.verb==='dev' && (running.models??'fake')!==(options.models??'fake'))throw refuse('Stop the running dev server before changing --models mode.');
+    if(options.modelsService)throw refuse('Stop the running dev server before saving live-dev credentials.');
+    if(options.verb==='dev'&&Boolean(running.login)!==Boolean(options.login))throw refuse(`The running dev server ${running.login?'uses':'does not use'} --login. Stop it with rer dev --stop to change sign-in mode.`);
+@@ -79,10 +85,10 @@ export async function managedServer(project,options,out,{clock={}}={}){
+    // A key is sent (or printed) for a door origin only once the door proves it is ours.
+    if(devIdentity)await verifyDoorFor(running.url);
+    const dev=devIdentity&&await devReady(running.url,devKey,options,controller.signal);
+-   await emitReady(out,options,project.root,running.url,dev,true,running.siteUrl);return {reused:true};
++   await emitReady(out,options,project.root,running.url,dev,true,running.siteUrl,running.demo);return {reused:true};
+   }
+   await registry.serve(async action=>{
+-   if(action==='status')return {...activity?.snapshot(),url:selected?.url,probe:proxy?.probe,siteUrl:site?.url};
++   if(action==='status')return {...activity?.snapshot(),url:selected?.url,probe:proxy?.probe,siteUrl:site?.url,demo};
+    if(action==='stop')return stop('explicit stop');
+    throw Error('Unknown management operation');
+   });
+@@ -99,10 +105,11 @@ export async function managedServer(project,options,out,{clock={}}={}){
+   if(!selected.vars[keys.email])throw missing('Private owner settings are missing. Run rer setup first.');
+   if(devIdentity&&!devKey)devKey=await requireDevKey(project.root);
+   if(devIdentity&&options.verb==='dev'&&!options.login)refuseManagedInstallation(selected.vars,process.env);
+-  if(project.adapter.localPrerequisites&&!await project.adapter.localPrerequisites({root:project.root,vars:selected.vars,email:selected.vars[keys.email]}))throw missing('Local migrations, owner or local authentication/mail settings are missing. Run rer setup first.');
++  if(project.adapter.localPrerequisites&&!await project.adapter.localPrerequisites({root:project.root,vars:selected.vars,email:selected.vars[keys.email],demo:Boolean(options.demo)}))throw missing('Local migrations, owner or local authentication/mail settings are missing. Run rer setup first.');
+   await registry.update({url:selected.url,host:selected.host,port:selected.port,login:Boolean(options.login),models:options.models??'fake'});
+   const {privateDirectory}=await shared('private-files.mjs');
+-  await privateDirectory(project.root,['.wrangler','state']);
++  if(options.demo){await demoAdopted(project.root);demo=await demoState(project.root,options.idleTimeout);}
++  else await privateDirectory(project.root,['.wrangler','state']);
+   const directory=await privateDirectory(project.root,['.seed','installer',...(process.env.RER_ONBOARDING_PROCESS_OWNER?[`commands-${process.pid}`]:[])]);
+   const {createCommands}=await shared('commands.mjs');const state={logs:[]};
+   store=await createCommands(directory,state,{terminal:text=>out.progress(text),onWaiting:options.json?details=>out.event('waiting',details):undefined,custodyToken:registry.custodyToken(),queue:{verb:options.verb,originalCI:process.env.CI==='true'}});
+@@ -110,11 +117,12 @@ export async function managedServer(project,options,out,{clock={}}={}){
+   store.setupManifest=seed?.manifest;if(devKey)store.addSecrets([devKey]);
+   await tools(project.root,store,controller.signal);
+   activity=activityClock({...clock,seconds:options.idleTimeout,onIdle:()=>void stop('idle timeout'),onChange:recordActivity});
++  if(demo)demoEnd=setTimeout(()=>void stop('demo ended'),Math.min(Date.parse(demo.ends)-Date.now(),2**31-1));
+   const crons=project.adapter.scheduled!==false?await declaredCrons(project.root,project.adapter).catch(error=>{throw refuse(`The declared scheduled triggers cannot run locally: ${error.message}`);}):[];
+   proxy=await runtimeFrontDoor({host:selected.host,port:selected.port,activity,door:selected.door,devKey:devKey??undefined,origin:selected.url});const internal=proxy.runtimePort;
+   if(selected.door)await announceDoorRoute(selected,proxy,registry);
+   const modelsLive = options.verb==='dev' ? await prepareLiveModels(project.root,options,store,controller.signal) : undefined;
+-  const adapterOptions={modelsLive,selectedOrigin:selected.url,operationToken:operation.token,privateSettings:project.adapter.settings,runtimePort:internal,devKey:devKey??undefined,devLogin:Boolean(options.login),scheduled:crons.length>0};
++  const adapterOptions={modelsLive,demo,selectedOrigin:selected.url,operationToken:operation.token,privateSettings:project.adapter.settings,runtimePort:internal,devKey:devKey??undefined,devLogin:Boolean(options.login),scheduled:crons.length>0};
+   const input={[keys.email]:selected.vars[keys.email]};
+   if(options.verb==='preview')await productionBuild(project,()=>store.run('Building fixed production output',process.execPath,[fileURLToPath(new URL('../bin/rer.mjs',import.meta.url)),'build','--cwd',project.root,'--json'],{cwd:project.root,phase:'build',signal:controller.signal,env:{...process.env,RER_LOCAL_OPERATION:operation.token},afterCommand:()=>recoverInterrupted(project.root,operation)}),text=>store.report(text));
+   await serverResources(project.root);
+@@ -127,6 +135,7 @@ export async function managedServer(project,options,out,{clock={}}={}){
+   },controller.signal,{...adapterOptions,verb:options.verb,dev:project.adapter.dev,preview:project.adapter.preview});
+   // A key is sent (or printed) for a door origin only once the door proves it is ours.
+   if(devKey)await verifyDoorFor(selected.url);
++  if(demo)await demoGuarded(selected.url,demo.state,controller.signal);
+   const dev=devIdentity&&await devReady(selected.url,devKey,options,controller.signal);
+   const outbox=await outboxServed(selected.url,devKey,controller.signal);
+   if(options.verb==='dev'&&project.adapter.site){
+@@ -140,7 +149,7 @@ export async function managedServer(project,options,out,{clock={}}={}){
+     if(options.json)out.event('warning',{code:error.code,message});else out.progress(`Warning: ${message}\n`);
+    }
+   }
+-  activity.ready();await emitReady(out,options,project.root,selected.url,dev,outbox,site?.url);
++  activity.ready();await emitReady(out,options,project.root,selected.url,dev,outbox,site?.url,demo);
+   if(crons.length){
+    out.progress(`Running ${crons.length===1?'the scheduled trigger':'the scheduled triggers'} locally: ${crons.join(' | ')}\n`);
+    void runScheduled({crons,url:`http://127.0.0.1:${internal}`,path:options.verb==='preview'?'/cdn-cgi/local/scheduled':undefined,signal:scheduling.signal,report:run=>reportScheduled(out,options,run)});
+@@ -150,7 +159,7 @@ export async function managedServer(project,options,out,{clock={}}={}){
+   if(infrastructureFailure)throw new RerError('server_bookkeeping_failed','Server bookkeeping failed; owned serving was stopped.',1);
+   if(result?.code)throw new RerError('app_exited','The application stopped unexpectedly.',result.code);
+   out.progress(`Server stopped: ${reason}.\n`);return {};
+- }catch(error){if(termination)throw new RerError('cancelled',`Stopped by ${termination} after owned children were stopped.`,termination==='SIGINT'?130:143);if(['idle timeout','explicit stop'].includes(reason))return {};throw await lifecycleError(error,store);}finally{await cleanup();cleaned();while(activityWriting)await activityWrites;await registry.close();for(const [name,handler]of handlers)process.off(name,handler);}
++ }catch(error){if(termination)throw new RerError('cancelled',`Stopped by ${termination} after owned children were stopped.`,termination==='SIGINT'?130:143);if(['idle timeout','explicit stop','demo ended'].includes(reason))return {};throw await lifecycleError(error,store);}finally{await cleanup();cleaned();while(activityWriting)await activityWrites;await registry.close();for(const [name,handler]of handlers)process.off(name,handler);}
+ }
+ function reportScheduled(out,options,run){
+  const error=options.verb==='preview'&&run.status===404 ? 'The preview target does not expose /cdn-cgi/local/scheduled. Forward the adapter context scheduled flag to previewTarget, or set RER_RUNTIME_TRIGGERS=1 in a custom target using the shared production runtime. For another runtime, expose that internal trigger endpoint or declare scheduled:false.' : run.error;
+@@ -167,12 +176,12 @@ async function outboxServed(url,devKey,signal){
+ // dev also keeps its RER_OPEN link in owner-only .rer/local/open-url (0600),
+ // which reset removes with the rest of .rer/local, for a person or agent that
+ // did not keep the terminal output.
+-async function emitReady(out,options,root,url,dev,outbox,siteUrl){
++async function emitReady(out,options,root,url,dev,outbox,siteUrl,demo){
+  if(options.verb==='dev'&&dev?.openUrl){
+   const {privateDirectory,writePrivateFile}=await shared('private-files.mjs');
+   await writePrivateFile(join(await privateDirectory(root,['.rer','local']),'open-url'),dev.openUrl+'\n');
+  }
+- ready(out,url,dev||undefined,options.json,outbox,siteUrl);
++ ready(out,url,dev||undefined,options.json,outbox,siteUrl,demo);
+ }
+ async function devReady(url,key,options,signal){
+  if(options.verb==='preview')return {openUrl:openUrl(url,key,{path:'/__dev/key',next:'/__dev/outbox'})};
+diff --git a/cli/parse.mjs b/cli/parse.mjs
+index 33daf94c5db69cad01fd7806a90c224239e81b6a..492127848e467b0a727074c76d21931e3b3cc741 100644
+--- a/cli/parse.mjs
++++ b/cli/parse.mjs
+@@ -2,7 +2,7 @@ import { resolve } from 'node:path';
+ import { commonFlags, serverDefaults, verbs } from './contract.mjs';
+ import { invalid, refuse } from './errors.mjs';
+ import { isLoopbackHost } from '../modules/operator-auth/loopback.mjs';
+-const booleans = new Set(['--help', '--json', '--non-interactive', '--yes', '--dry-run', '--open', '--stop', '--detach', '--foreground', '--no-queue', '--login', '--legacy-v1', '--acknowledge-unverified-metadata', '--door', '--direct', '--site', '--remove']);
++const booleans = new Set(['--help', '--json', '--non-interactive', '--yes', '--dry-run', '--open', '--stop', '--detach', '--foreground', '--no-queue', '--login', '--legacy-v1', '--acknowledge-unverified-metadata', '--door', '--direct', '--site', '--remove', '--demo']);
+ export const mailbox = value => typeof value === 'string' && value.length <= 254 && /^[a-zA-Z0-9.!+_%\-]+@[a-zA-Z0-9\-]+(?:\.[a-zA-Z0-9\-]+)+$/.test(value);
+ // A loopback host: the shared predicate (including `*.localhost` door names),
+ // plus `::1` as --host and a bracket-stripped hostname spell it.
+@@ -17,6 +17,8 @@ export function parse(argv, cwd = process.cwd(), { independent = false, deferTai
+  if (!verb || verb === '--help') return { help: true };
+  if (verb === 'release') return { verb, releaseArgs: args };
+  if (verb === 'archive') return { verb, archiveArgs: args };
++ // rer demo is rer dev --demo.
++ if (verb === 'demo' && !independent) return parse(['dev', '--demo', ...args], cwd, { independent, deferTail });
+  // Independent projects own verb names; only the common wrapper flags apply
+  // to unknown names. Profile resolution rejects undeclared commands later.
+  if (!/^[a-z][a-z0-9-]*$/.test(verb)) throw invalid('Unknown rer command. Run rer --help.');
+@@ -53,8 +55,10 @@ export function parse(argv, cwd = process.cwd(), { independent = false, deferTai
+  if(options.models!==undefined && !['fake','live'].includes(options.models))throw invalid('--models takes fake or live.');
+  if(options.modelsService!==undefined && options.models!=='live')throw invalid('--models-service requires --models live.');
+  if(options.as!==undefined && (options.login || !/^[a-z][a-z0-9-]{0,39}$/.test(options.as)))throw invalid(options.login?'--as and --login cannot be combined.':'--as takes a persona name such as owner, signed-out or admin.');
++ if(options.demo&&['--door','--direct','--as','--login','--models','--models-service'].some(flag=>options.supplied.has(flag)))throw invalid('A demo opens signed in as the owner on its own data: --demo takes only --port, --host, --idle-timeout, --stop, --detach and --foreground.');
+  if(['dev','preview'].includes(verb) && !options.stop){
+-  const value=options.idleTimeout??process.env.RER_SERVER_IDLE_SECONDS??String(serverDefaults.idleSeconds);
++  // A demo ends one hour after it starts unless --idle-timeout says otherwise.
++  const value=options.idleTimeout??(options.demo?'3600':process.env.RER_SERVER_IDLE_SECONDS??String(serverDefaults.idleSeconds));
+   if(!/^[1-9][0-9]*$/.test(value)||!Number.isSafeInteger(Number(value)))throw invalid('Idle timeout must be positive integer seconds.');
+   options.idleTimeout=Number(value);
+  }
+@@ -73,6 +77,7 @@ export function parse(argv, cwd = process.cwd(), { independent = false, deferTai
+  if (options.profile !== undefined && options.profile !== 'first-party') throw invalid('The supported explicit profile is first-party.');
+  if (options.environment !== undefined && !/^[a-z][a-z0-9-]{0,39}$/.test(options.environment)) throw invalid('Provide a valid deployment environment name.');
+  for (const key of ['setSecret', 'unsetSecret']) if (options[key] !== undefined && !/^[A-Z][A-Z0-9_]{0,63}$/.test(options[key])) throw invalid('Name a declared secret binding, such as SESSION_SECRET.');
++ if(verb==='deploy'&&options.demo&&(options.site||['platform','image','bindAddress','httpPort','httpsPort','envFile','host','remove','setSecret','unsetSecret'].some(key=>options[key]!==undefined)))throw invalid('--demo takes only --environment and --dry-run: the hosted demo is its own Worker on demo.<domain>.');
+  if ((options.remove || options.setSecret || options.unsetSecret) && options.site) throw invalid('--remove, --set-secret and --unset-secret act on the application Worker, not the run site.');
+  if (options.origin !== undefined) {
+   let url; try { url = new URL(options.origin); } catch { throw invalid('Provide a valid credential-free origin.'); }
+diff --git a/modules/container/build.mjs b/modules/container/build.mjs
+index 8225a9893f2389efa30413e9cf31897325823c23..6af26940cf66ddacd44cb37d0ca19ed4db1bcde3 100644
+--- a/modules/container/build.mjs
++++ b/modules/container/build.mjs
+@@ -62,4 +62,4 @@ async function buildImage(root, { output = join(root,'.rer/container/image'), en
+  await writeFile(join(output,'Dockerfile'),`FROM node:26.8.1-bookworm-slim\nRUN apt-get update && apt-get install -y --no-install-recommends util-linux ca-certificates && apt-get clean\nRUN mkdir -p /private /archive\nWORKDIR /runtime\nCOPY runtime/package.json ./package.json\nRUN npm install --omit=dev --no-audit --no-fund\nCOPY runtime/ /runtime/\nCOPY app/ /app/\nENV NODE_ENV=production PORT=8080 WRANGLER_SEND_METRICS=false\nEXPOSE 8080\nVOLUME /data\nENTRYPOINT ["sh", "/runtime/modules/container/entrypoint.sh"]\n`);
+  return { output,manifest };
+ }
+-if (process.argv[1] === import.meta.filename) { try { const result=await buildContainer(resolve(process.argv[2])); console.log(JSON.stringify({output:result.output,engine:result.manifest.engine})); } catch(cause) { console.error(cause.message); if(cause.failures)console.error(JSON.stringify(cause.failures));process.exitCode=1; } }
++if (process.argv[1] === import.meta.filename) { try { const {output,engine}=JSON.parse(process.argv[3]??'{}'),result=await buildContainer(resolve(process.argv[2]),{...(output?{output:resolve(output)}:{}),...(engine?{engine}:{})}); console.log(JSON.stringify({output:result.output,engine:result.manifest.engine})); } catch(cause) { console.error(cause.message); if(cause.failures)console.error(JSON.stringify(cause.failures));process.exitCode=1; } }
+diff --git a/modules/container/host.mjs b/modules/container/host.mjs
+index 8ffd8a47dcff2ff21fa0db9135efe1ee59bdb311..1b6c1dd8fc0db3392f28cd409ec23e05cd3e1169 100644
+--- a/modules/container/host.mjs
++++ b/modules/container/host.mjs
+@@ -18,7 +18,7 @@ export async function startHost({ root = '/app', data = '/data', settings = proc
+   server = createServer(async (req, res) => {
+    try {
+     lastRequest=Date.now();
+-    const request = await incoming(req, { trustedProxy:settings.TRUSTED_PROXY, maxRequestBytes:manifest.maxRequestBytes });
++    const request = await incoming(req, { trustedProxy:settings.TRUSTED_PROXY, origin:settings.RER_INGRESS_ORIGIN, maxRequestBytes:manifest.maxRequestBytes });
+     let response = await engine.fetch(request);
+     if (new URL(request.url).pathname === '/health' && response.ok) {
+      const body = await response.json(); const deadJobs = engine.dead();
+diff --git a/modules/container/ingress.mjs b/modules/container/ingress.mjs
+index 1156efe7185cbf2a03468ad0af94d942643168ff..57fdddffe24800d3296fb86a95dc36631940fbaf 100644
+--- a/modules/container/ingress.mjs
++++ b/modules/container/ingress.mjs
+@@ -1,12 +1,15 @@
+ import { Readable } from 'node:stream';
+ import { lookup } from 'node:dns/promises';
+ import { isIP } from 'node:net';
+-export async function incoming(req, { trustedProxy, maxRequestBytes = 25 * 1024 * 1024 } = {}) {
++// `origin` (RER_INGRESS_ORIGIN) fixes the public origin for a container whose only
++// peer is its own front, such as a hosted demo's Durable Object.
++export async function incoming(req, { trustedProxy, origin, maxRequestBytes = 25 * 1024 * 1024 } = {}) {
+  const headers = new Headers(); for (const [name, value] of Object.entries(req.headers)) if (value !== undefined) headers.set(name, Array.isArray(value) ? value.join(',') : value);
+  const peer = req.socket.remoteAddress?.replace('::ffff:', '') ?? '';
+  const trusted = trustedProxy && (isIP(trustedProxy) ? peer===trustedProxy : (await lookup(trustedProxy,{all:true})).some(item=>item.address.replace('::ffff:','')===peer));
+  let host = req.headers.host, proto = 'http', address = peer;
+  if (trusted) { host = req.headers['x-forwarded-host'] ?? host; proto = req.headers['x-forwarded-proto'] ?? proto; address = req.headers['x-forwarded-for']?.split(',').at(-1)?.trim() ?? peer; }
++ if (origin) { const fixed = new URL(origin); host = fixed.host; proto = fixed.protocol.slice(0, -1); }
+  for (const name of ['cf-connecting-ip','x-forwarded-host','x-forwarded-proto','x-forwarded-for','forwarded','x-rer-original-url']) headers.delete(name);
+  if (!['http', 'https'].includes(proto) || typeof host !== 'string' || !/^(?:[a-zA-Z0-9.-]+|\[[0-9a-fA-F:]+\])(?::[0-9]+)?$/.test(host)) throw new Error('Invalid ingress origin');
+  headers.set('cf-connecting-ip', address); headers.set('host', host);
+diff --git a/modules/container/worker-engine.mjs b/modules/container/worker-engine.mjs
+index 290ff1f0abd97de23b7cf66e3767b32270ed89e7..b5cefe3b76e5984480d104226c37914514e4c6ad 100644
+--- a/modules/container/worker-engine.mjs
++++ b/modules/container/worker-engine.mjs
+@@ -19,7 +19,9 @@ export async function workerEngine({ root, data, manifest, settings, edge }) {
+  };
+  const mf = new Miniflare(convertV4MiniflareOptions({ host:'127.0.0.1',port:0,cf:false,resourcePersistencePath:data,unsafeLocalExplorer:false,
+   workers:[{ name:'ingress',modules:true,script:`export default {fetch(request,env){const observed=request.headers.get('x-rer-original-url');if(!observed)return new Response(null,{status:400});const url=new URL(observed),headers=new Headers(request.headers);headers.delete('x-rer-original-url');headers.set('host',url.host);return env.APP.fetch(new Request(url,{method:request.method,headers,redirect:'manual',...(!['GET','HEAD'].includes(request.method)?{body:request.body}:{})}))}}`,serviceBindings:{ APP:'app' } }, app,
+-   { name:'egress',modules:true,script:'export default {fetch(request,env){return env.NETWORK.fetch(request)}}',serviceBindings:{ NETWORK:{ network:{ allow:['public'],tlsOptions:{ trustBrowserCas:true,trustedCertificates:[...rootCertificates] } } } } }],
++   // A demo (RER_DEMO=1) sends nothing: its egress worker refuses every request.
++   settings.RER_DEMO === '1' ? { name:'egress',modules:true,script:"export default {fetch(request){throw new TypeError('fetch failed: demo egress is denied ('+new URL(request.url).host+')')}}" }
++    : { name:'egress',modules:true,script:'export default {fetch(request,env){return env.NETWORK.fetch(request)}}',serviceBindings:{ NETWORK:{ network:{ allow:['public'],tlsOptions:{ trustBrowserCas:true,trustedCertificates:[...rootCertificates] } } } } }],
+  }));
+  await mf.ready; const databases = {}, objects = {};
+  for (const [binding, plan] of Object.entries(manifest.migrations)) { const db = await mf.getD1Database(binding, 'app'); databases[binding] = db; await migrate(db, plan); await ensurePortabilitySchema(db, manifest.portabilityMigrations); }
+diff --git a/modules/demo-host/capacity.mjs b/modules/demo-host/capacity.mjs
+new file mode 100644
+index 0000000000000000000000000000000000000000..5d6be299e09906031efa5df499e722a35a3043aa
+--- /dev/null
++++ b/modules/demo-host/capacity.mjs
+@@ -0,0 +1,19 @@
++import { DurableObject } from 'cloudflare:workers';
++
++// One per demo Worker (idFromName('capacity')): the running demos and their
++// ends. A start is admitted while fewer than max_instances demos are live; a
++// demo releases its place when it ends, and a place past its end is free anyway.
++export class DemoCapacity extends DurableObject {
++  async acquire(id, ends, max) {
++    const now = Date.now(), places = await this.ctx.storage.list();
++    const over = [...places].filter(([, until]) => until <= now).map(([key]) => key);
++    if (over.length) await this.ctx.storage.delete(over);
++    if (places.size - over.length >= max) return false;
++    await this.ctx.storage.put(id, ends);
++    return true;
++  }
++
++  async release(id) {
++    await this.ctx.storage.delete(id);
++  }
++}
+diff --git a/modules/demo-host/claim.mjs b/modules/demo-host/claim.mjs
+new file mode 100644
+index 0000000000000000000000000000000000000000..2460d23a58c0c14d3c3bf74531b19740aa3e1374
+--- /dev/null
++++ b/modules/demo-host/claim.mjs
+@@ -0,0 +1,21 @@
++// The signed owner claim (modules/owner-claim) a demo's front Worker makes for
++// its container: one ES256 key pair per container, its public JWK given to the
++// container at start, and one five-minute claim signed with the private key,
++// which is never stored.
++const base64url = bytes => btoa(String.fromCharCode(...new Uint8Array(bytes))).replaceAll('+', '-').replaceAll('/', '_').replace(/=+$/, '');
++const segment = value => base64url(new TextEncoder().encode(JSON.stringify(value)));
++
++export async function claimKeys() {
++  const pair = await crypto.subtle.generateKey({ name: 'ECDSA', namedCurve: 'P-256' }, true, ['sign', 'verify']);
++  const { kty, crv, x, y } = await crypto.subtle.exportKey('jwk', pair.publicKey);
++  const kid = crypto.randomUUID().replaceAll('-', '');
++  return { kid, privateKey: pair.privateKey, publicKeys: { [kid]: { kty, crv, x, y, kid, alg: 'ES256', use: 'sig' } } };
++}
++
++/** The compact JWS /auth/owner-claim verifies: issuer and audience are the demo's own origin. */
++export async function signClaim({ kid, privateKey }, { origin, installationId, email, now }) {
++  const iat = Math.floor(now / 1000);
++  const signed = `${segment({ alg: 'ES256', typ: 'rer-owner-claim+jwt', kid })}.${segment({ v: 1, iss: origin, aud: origin, installationId, email, jti: crypto.randomUUID(), iat, exp: iat + 300 })}`;
++  const signature = await crypto.subtle.sign({ name: 'ECDSA', hash: 'SHA-256' }, privateKey, new TextEncoder().encode(signed));
++  return `${signed}.${base64url(signature)}`;
++}
+diff --git a/modules/demo-host/container.mjs b/modules/demo-host/container.mjs
+new file mode 100644
+index 0000000000000000000000000000000000000000..c5a26d8543bdc078928c119018afc96c353944c3
+--- /dev/null
++++ b/modules/demo-host/container.mjs
+@@ -0,0 +1,74 @@
++import { DurableObject } from 'cloudflare:workers';
++import { claimKeys, signClaim } from './claim.mjs';
++import { endedPage, clearCookie } from './pages.mjs';
++
++// One visitor's demo: a Durable Object (newUniqueId) and its container, the
++// seed's image from `rer build --platform container` on the workerd engine.
++// The container starts with no internet and in demo mode, so withDemo and the
++// engine's egress worker refuse every send. The front signs the owner in
++// through the existing signed owner claim. The demo ends at its hour or after
++// 15 idle minutes: the alarm destroys the container and deletes everything.
++const PORT = 8080, IDLE = 15 * 60_000, OWNER = 'owner@demo.invalid';
++// The container's port speaks plain HTTP; the app takes its public origin from RER_INGRESS_ORIGIN.
++const inside = url => `http://container${url.pathname}${url.search}`;
++const random = () => [...crypto.getRandomValues(new Uint8Array(32))].map(byte => byte.toString(16).padStart(2, '0')).join('');
++
++export class DemoContainer extends DurableObject {
++  idle = IDLE;
++  get container() { return this.ctx.container; }
++  port() { return this.container.getTcpPort(PORT); }
++
++  /** Start the container, wait for /health, claim the owner; returns the claim's 303. */
++  async start({ origin, originVar, ends, endsLocal, settings }) {
++    const id = this.ctx.id.toString(), keys = await claimKeys(), now = Date.now();
++    await this.ctx.storage.put({ ends, seen: now });
++    await this.ctx.storage.setAlarm(Math.min(ends, now + this.idle));
++    this.container.start({ enableInternet: false, env: { ...settings, RER_DEMO: '1', [originVar]: origin, RER_INGRESS_ORIGIN: origin,
++      SESSION_SECRET: random(), SETUP_TOKEN: random(), OWNER_EMAIL: OWNER, RER_OWNER_CLAIM_ISSUER: origin, RER_OWNER_CLAIM_INSTALLATION_ID: id,
++      RER_OWNER_CLAIM_PUBLIC_KEYS: JSON.stringify(keys.publicKeys), RER_DEMO_EXPIRES: endsLocal } });
++    // A container that stops by itself ends the demo too.
++    this.container.monitor().then(() => this.end(), () => this.end());
++    await this.healthy();
++    const token = await signClaim(keys, { origin, installationId: id, email: OWNER, now: Date.now() });
++    const claimed = await this.port().fetch('http://container/auth/owner-claim', { method: 'POST', redirect: 'manual',
++      headers: { origin, 'content-type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams({ token }) });
++    await claimed.body?.cancel();
++    if (claimed.status !== 303) throw new Error(`owner claim answered ${claimed.status}`);
++    return { location: claimed.headers.get('location'), cookies: claimed.headers.getSetCookie() };
++  }
++
++  async healthy() {
++    for (const deadline = Date.now() + 120_000; ;) {
++      try {
++        const response = await this.port().fetch('http://container/health');
++        await response.body?.cancel();
++        if (response.ok) return;
++      } catch { /* The container is still starting. */ }
++      if (Date.now() > deadline) throw new Error('demo container never became healthy');
++      await new Promise(resolve => setTimeout(resolve, 250));
++    }
++  }
++
++  /** Every request carrying this demo's cookie: proxied while the demo lives, else the ended page. */
++  async fetch(request) {
++    const state = await this.ctx.storage.get(['ends', 'seen']), now = Date.now();
++    if (!(state.get('ends') > now)) return endedPage(this.env, { status: 410, headers: { 'set-cookie': clearCookie(this.env) } });
++    if (now - state.get('seen') > 60_000) await this.ctx.storage.put('seen', now);
++    return this.port().fetch(new Request(inside(new URL(request.url)), request));
++  }
++
++  async alarm() {
++    const state = await this.ctx.storage.get(['ends', 'seen']), now = Date.now();
++    if (!state.get('ends')) return;
++    if (now >= state.get('ends') || now - state.get('seen') >= this.idle) return this.end();
++    await this.ctx.storage.setAlarm(Math.min(state.get('ends'), state.get('seen') + this.idle));
++  }
++
++  /** Destroy the container and delete this demo's state and place; safe to repeat. */
++  async end() {
++    if (this.container.running) await this.container.destroy().catch(() => { /* Already stopping. */ });
++    await this.ctx.storage.deleteAlarm();
++    await this.ctx.storage.deleteAll();
++    await this.env.CAPACITY.get(this.env.CAPACITY.idFromName('capacity')).release(this.ctx.id.toString());
++  }
++}
+diff --git a/modules/demo-host/pages.mjs b/modules/demo-host/pages.mjs
+new file mode 100644
+index 0000000000000000000000000000000000000000..b555f2866db268850ec29e0e9b1f8e0246fc92f8
+--- /dev/null
++++ b/modules/demo-host/pages.mjs
+@@ -0,0 +1,56 @@
++// The demo host's two pages, from their 12ui designs: the start page (the
++// Turnstile managed widget submits the form by itself) and the ended page.
++// Both are one card in the family's quiet sign-in style.
++const escape = value => String(value).replace(/[&<>"']/g, character => `&#${character.charCodeAt(0)};`);
++
++const STYLE = `*{box-sizing:border-box}body{margin:0;background:#f2f5f7;color:#192333;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-serif;-webkit-font-smoothing:antialiased}
++main{width:666px;margin:clamp(32px,18vh,184px) auto 48px}.card{padding:40px 42px 44px;background:#fff;border:1px solid #d6dfe9;border-radius:18px;box-shadow:0 12px 45px rgba(42,65,86,.05)}
++.mark{width:35px;height:6px;border-radius:4px;background:#20574d;margin:0 0 20px}.brand{font-size:18px;line-height:22px;font-weight:600;color:#527875;margin:0 0 14px}
++h1{font-size:42px;line-height:50px;letter-spacing:-1.3px;margin:0 0 14px;font-weight:700}.intro{font-size:20px;line-height:28px;color:#41516a;margin:0}
++ul{padding:0;margin:23px 0 35px;list-style:none;color:#31415a;font-size:18px;line-height:33px}li{position:relative;padding-left:33px}li:before{content:'';position:absolute;left:7px;top:14px;width:7px;height:7px;background:#2b7864;border-radius:50%}
++.notice{margin:0 0 16px;padding:12px 16px;border-radius:8px;background:#fdf6ec;color:#6b3d0f;font-size:16px;line-height:22px}
++.cf-turnstile{min-height:65px}.button{display:block;width:100%;margin-top:28px;min-height:58px;border:1px solid #86a49f;border-radius:11px;background:linear-gradient(110deg,#225b51,#1e5148 60%,#20584d);color:#fff;font:inherit;font-size:20px;font-weight:700;line-height:26px;padding:15px;text-align:center;text-decoration:none;cursor:pointer}
++.button:disabled{opacity:.7;cursor:progress}.button:focus-visible,a:focus-visible{outline:3px solid #388c77;outline-offset:4px}
++.note{font-size:15px;line-height:21px;color:#50617e;text-align:center;margin:21px 0 0}.secondary{text-align:center;margin:22px 0 0;font-size:18px;line-height:24px;font-weight:600}.secondary a{color:#1b554e;text-underline-offset:3px}
++.back{text-align:center;margin:32px 0 0;font-size:15px;line-height:22px}.back a{color:#1b554e;text-underline-offset:3px}
++.ended main{width:min(560px,calc(100% - 32px));margin-top:clamp(32px,26vh,262px)}.ended .card{padding:28px 36px 42px}.ended .brand{font-size:16px;margin-bottom:26px}.ended h1{font-size:36px;line-height:44px;margin-bottom:22px}.ended .intro{margin-bottom:36px}.ended .button{margin-top:0;font-size:18px}
++@media(min-width:600px) and (max-width:1023px){main{width:calc(100% - 64px);max-width:666px;margin:100px auto 48px}.card{padding:36px}h1{font-size:38px;line-height:46px}.intro{font-size:18px;line-height:27px}}
++@media(max-width:599px){main,.ended main{width:calc(100% - 32px);margin:32px auto}.ended .card{padding:26px 22px}.ended h1{font-size:29px;line-height:36px}.ended .intro{font-size:17px;line-height:25px;margin-bottom:28px}.card{padding:26px 22px;border-radius:16px}.brand{font-size:16px}h1{font-size:34px;line-height:41px;letter-spacing:-.8px}.intro{font-size:17px;line-height:25px}ul{font-size:16px;line-height:25px;margin:22px 0 26px}li{padding-left:22px;margin-bottom:9px}li:before{left:2px;top:9px}.button{font-size:18px;margin-top:22px}.note{font-size:13px;line-height:20px}.back{margin-top:24px;font-size:14px}}`;
++
++// Starts the demo once Turnstile has passed: the widget put its token in the form.
++// After a refused start the page waits for the visitor's own click instead.
++const SCRIPT = `function rerDemoBusy(){document.querySelector('#start button').disabled=true;document.getElementById('status').textContent='Starting your demo…'}
++function rerDemoStart(){rerDemoBusy();document.getElementById('start').submit()}
++function rerDemoReady(){document.querySelector('#start button').disabled=false}
++addEventListener('DOMContentLoaded',()=>document.getElementById('start').addEventListener('submit',rerDemoBusy))`;
++
++function html(env, { page, title, body, status = 200, headers = {}, turnstile = false }) {
++  const nonce = crypto.randomUUID().replaceAll('-', ''), site = new URL(env.DEMO_SITE);
++  const policy = `default-src 'none'; style-src 'nonce-${nonce}'; img-src 'self'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'${turnstile ? `; script-src 'nonce-${nonce}' https://challenges.cloudflare.com; frame-src https://challenges.cloudflare.com; connect-src https://challenges.cloudflare.com` : ''}`;
++  return new Response(`<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>${escape(title)}</title><style nonce="${nonce}">${STYLE}</style>${turnstile ? `<script nonce="${nonce}">${SCRIPT}</script><script nonce="${nonce}" src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>` : ''}</head>
++<body class="${page}"><main><section class="card" aria-labelledby="title"><div class="mark" aria-hidden="true"></div><p class="brand">${escape(env.DEMO_NAME)}</p>${body}</section><nav class="back" aria-label="Return"><a href="${escape(site.origin)}/">Back to ${escape(site.host)}</a></nav></main></body></html>`,
++  { status, headers: { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store', 'content-security-policy': policy, 'referrer-policy': 'strict-origin', 'x-content-type-options': 'nosniff', ...headers } });
++}
++
++/** GET /: the visitor proves they are human and their demo starts. `notice` explains a refused start. */
++export function startPage(env, { status = 200, notice } = {}) {
++  const name = escape(env.DEMO_NAME);
++  return html(env, { page: 'start', title: `Try ${env.DEMO_NAME}`, status, turnstile: true, body: `<h1 id="title">Try ${name}</h1>
++<p class="intro">Your own copy of ${name}, signed in as its owner, with sample data.</p>
++<ul><li>Nothing is sent: mail stays in an outbox.</li><li>It ends after an hour, or 15 idle minutes.</li><li>Then it is deleted. Nobody else can see it.</li></ul>
++${notice ? `<p class="notice" role="alert">${escape(notice)}</p>` : ''}<form id="start" method="post" action="/__demo/start"><div class="cf-turnstile" data-sitekey="${escape(env.TURNSTILE_SITE_KEY)}" data-size="flexible" data-callback="${notice ? 'rerDemoReady' : 'rerDemoStart'}"></div>
++<button class="button" type="submit" disabled>Start the demo</button><p class="note" id="status" role="status">Starts by itself once the check passes. Takes about ten seconds.</p></form>` });
++}
++
++/** A demo whose hour or idle time is up: its container and data are gone. */
++export function endedPage(env, { status = 410, headers = {} } = {}) {
++  const name = escape(env.DEMO_NAME);
++  return html(env, { page: 'ended', title: 'This demo has ended', status, headers, body: `<h1 id="title">This demo has ended</h1>
++<p class="intro">Demos last an hour, or until 15 minutes pass with nothing happening. Its copy of ${name} and everything in it have been deleted.</p>
++<a class="button" href="/">Start a new demo</a><p class="secondary"><a href="${escape(new URL(env.DEMO_SITE).origin)}/run">Run ${name} yourself</a></p>` });
++}
++
++const cookie = (env, value, seconds) => `rer_demo=${value}; Domain=${new URL(env.DEMO_ORIGIN).hostname}; Path=/; Max-Age=${seconds}; HttpOnly; Secure; SameSite=Lax`;
++/** The visitor's demo: HttpOnly, Secure, SameSite=Lax, for demo.<domain> and its subdomains, one hour. */
++export const demoCookie = (env, id) => cookie(env, id, 3600);
++export const clearCookie = env => cookie(env, '', 0);
+diff --git a/modules/demo-host/plan.mjs b/modules/demo-host/plan.mjs
+new file mode 100644
+index 0000000000000000000000000000000000000000..27f6d06db1e8a37ff2ade629a007688cab346b7e
+--- /dev/null
++++ b/modules/demo-host/plan.mjs
+@@ -0,0 +1,52 @@
++import { createHash } from 'node:crypto';
++import { assert, resourceName } from '../deploy-kit/validation.mjs';
++import { ownerWorkerName } from '../deploy-kit/owner.mjs';
++import { siteDeclaration } from '../deploy-kit/site.mjs';
++
++/* A seed's hosted demo at demo.<domain>: the Worker `rer deploy --demo` builds
++ * from deploy-demo.json, as `rer deploy --site` builds the run site from
++ * deploy-site.json. It is this folder's front Worker plus a Container class
++ * running the seed's own image (`rer build --platform container`, workerd
++ * engine), deployed by `wrangler deploy` with the image beside it. */
++
++export const DEMO_FILES = ['worker.mjs', 'container.mjs', 'capacity.mjs', 'claim.mjs', 'pages.mjs'];
++const FRONT_SET = /^(?:RER_.*|SESSION_SECRET|SETUP_TOKEN|OWNER_EMAIL)$/;
++const SECRET = /SECRET|TOKEN|PASSWORD|_KEY$/;
++
++/**
++ * deploy-demo.json: `{ "version": 1, "domain": "run-lamp.com", "name": "Lamp" }`, plus optionally
++ * `maxInstances` (concurrent demos, default 10) and `settings`, the seed's plain demo settings
++ * (such as MAIL_PROVIDER: "development"). Settings never carry secrets or what the front sets.
++ */
++export function demoDeclaration(value, originVar) {
++  assert(value && typeof value === 'object' && !Array.isArray(value) && value.version === 1 && Object.keys(value).every(key => ['version', 'domain', 'name', 'maxInstances', 'settings'].includes(key)), 'invalid-demo-declaration');
++  siteDeclaration({ version: 1, domain: value.domain });
++  assert(typeof value.name === 'string' && value.name.trim() === value.name && value.name.length > 0 && value.name.length <= 60 && !/[\p{Cc}\p{Cf}]/u.test(value.name), 'invalid-demo-name');
++  const maxInstances = value.maxInstances ?? 10;
++  assert(Number.isSafeInteger(maxInstances) && maxInstances >= 1 && maxInstances <= 100, 'invalid-demo-max-instances');
++  const settings = value.settings ?? {};
++  assert(settings && typeof settings === 'object' && !Array.isArray(settings) && Object.entries(settings).every(([name, setting]) =>
++    /^[A-Z][A-Z0-9_]{0,63}$/.test(name) && !FRONT_SET.test(name) && !SECRET.test(name) && name !== originVar && typeof setting === 'string' && setting.length <= 1024), 'invalid-demo-settings');
++  return { domain: value.domain, name: value.name, maxInstances, settings };
++}
++
++/** The demo Worker's name and its Wrangler configuration; no provider request. */
++export function demoPlan({ project, environment, compatibilityDate, originVar, declaration, turnstileSiteKey }) {
++  assert(/^\d{4}-\d{2}-\d{2}$/.test(compatibilityDate ?? '') && /^[A-Z][A-Z0-9_]{0,63}$/.test(originVar ?? ''), 'invalid-plan');
++  const { domain, name, maxInstances, settings } = demoDeclaration(declaration, originVar);
++  const worker = `${ownerWorkerName(project, environment)}--demo`, hostname = `demo.${domain}`;
++  assert(resourceName(worker), 'owner-name-too-long');
++  // Rate limit namespaces are account-wide integers: one per demo Worker.
++  const namespace = String(1000 + parseInt(createHash('sha256').update(worker).digest('hex').slice(0, 8), 16) % 1_000_000_000);
++  const wrangler = {
++    name: worker, main: 'worker.mjs', compatibility_date: compatibilityDate, workers_dev: false, preview_urls: false,
++    routes: [{ pattern: hostname, custom_domain: true }],
++    vars: { DEMO_ORIGIN: `https://${hostname}`, DEMO_SITE: `https://${domain}`, DEMO_NAME: name, DEMO_ORIGIN_VAR: originVar, DEMO_MAX_INSTANCES: String(maxInstances), DEMO_SETTINGS: JSON.stringify(settings),
++      ...(turnstileSiteKey ? { TURNSTILE_SITE_KEY: turnstileSiteKey } : {}) },
++    durable_objects: { bindings: [{ name: 'DEMO', class_name: 'DemoContainer' }, { name: 'CAPACITY', class_name: 'DemoCapacity' }] },
++    migrations: [{ tag: 'v1', new_sqlite_classes: ['DemoContainer', 'DemoCapacity'] }],
++    containers: [{ class_name: 'DemoContainer', image: './image/Dockerfile', max_instances: maxInstances, instance_type: 'basic' }],
++    ratelimits: [{ name: 'STARTS', namespace_id: namespace, simple: { limit: 3, period: 60 } }],
++  };
++  return { worker, hostname, origin: `https://${hostname}`, maxInstances, settings: Object.keys(settings), wrangler };
++}
+diff --git a/modules/demo-host/worker.mjs b/modules/demo-host/worker.mjs
+new file mode 100644
+index 0000000000000000000000000000000000000000..3ccbf7c6be5755cf3aa93a5cc44ab0049cf29eda
+--- /dev/null
++++ b/modules/demo-host/worker.mjs
+@@ -0,0 +1,72 @@
++// A seed's hosted demo at demo.<domain>, generated by `rer deploy --demo`.
++// GET / shows the start page (a Turnstile managed widget that submits itself).
++// POST /__demo/start checks the visitor's IP rate limit, Turnstile and capacity,
++// then starts a container of their own, signs its owner in and sets the
++// rer_demo cookie. Every request with that cookie goes to the visitor's
++// container; nothing else on this host is reachable.
++import { startPage, demoCookie } from './pages.mjs';
++
++export { DemoContainer } from './container.mjs';
++export { DemoCapacity } from './capacity.mjs';
++
++const HOUR = 60 * 60_000;
++const home = () => new Response(null, { status: 303, headers: { location: '/' } });
++
++/** The visitor's demo from its cookie; ids are checked by idFromString, so a forged one is no demo. */
++function demoId(request, env) {
++  const value = (request.headers.get('cookie') ?? '').split(';').map(part => part.trim()).find(part => part.startsWith('rer_demo='))?.slice(9);
++  if (!value) return null;
++  try { return env.DEMO.idFromString(value); } catch { return null; }
++}
++
++// The demo's end in the visitor's time zone, as the Demo bar shows it (HH:MM).
++function localTime(time, timeZone = 'UTC') {
++  const parts = Object.fromEntries(new Intl.DateTimeFormat('en-US', { timeZone, hourCycle: 'h23', year: 'numeric', month: '2-digit', day: '2-digit',
++    hour: '2-digit', minute: '2-digit', second: '2-digit', timeZoneName: 'longOffset' }).formatToParts(time).map(part => [part.type, part.value]));
++  return `${parts.year}-${parts.month}-${parts.day}T${parts.hour}:${parts.minute}:${parts.second}${parts.timeZoneName === 'GMT' ? '+00:00' : parts.timeZoneName.slice(3)}`;
++}
++
++async function human(env, token, ip) {
++  if (typeof token !== 'string' || !token || token.length > 2048) return false;
++  const body = new URLSearchParams({ secret: env.TURNSTILE_SECRET_KEY, response: token });
++  if (ip) body.set('remoteip', ip);
++  const response = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', { method: 'POST', body });
++  const result = response.ok ? await response.json() : {};
++  if (result.success !== true) console.error('Turnstile refused a start:', response.status, JSON.stringify(result['error-codes'] ?? []));
++  return result.success === true;
++}
++
++async function start(request, env) {
++  if (request.headers.get('origin') !== env.DEMO_ORIGIN) return startPage(env, { status: 403, notice: 'Start the demo from this page.' });
++  const ip = request.headers.get('cf-connecting-ip') ?? '';
++  if (!(await env.STARTS.limit({ key: ip })).success) return startPage(env, { status: 429, notice: 'Too many demos started from your network. Try again in a minute.' });
++  const form = await request.formData();
++  if (!await human(env, form.get('cf-turnstile-response'), ip)) return startPage(env, { status: 403, notice: 'The check did not pass. Try again.' });
++  const id = env.DEMO.newUniqueId(), ends = Date.now() + HOUR;
++  if (!await env.CAPACITY.get(env.CAPACITY.idFromName('capacity')).acquire(id.toString(), ends, Number(env.DEMO_MAX_INSTANCES))) {
++    return startPage(env, { status: 503, notice: 'Every demo is in use right now. Try again in a few minutes.' });
++  }
++  const demo = env.DEMO.get(id);
++  try {
++    const signedIn = await demo.start({ origin: env.DEMO_ORIGIN, originVar: env.DEMO_ORIGIN_VAR, ends, endsLocal: localTime(ends, request.cf?.timezone), settings: JSON.parse(env.DEMO_SETTINGS) });
++    const headers = new Headers({ location: signedIn.location, 'cache-control': 'no-store' });
++    for (const cookie of [...signedIn.cookies, demoCookie(env, id.toString())]) headers.append('set-cookie', cookie);
++    return new Response(null, { status: 303, headers });
++  } catch (error) {
++    console.error('Demo start failed:', error.message);
++    await demo.end();
++    return startPage(env, { status: 502, notice: 'The demo did not start. Try again.' });
++  }
++}
++
++export default {
++  async fetch(request, env) {
++    const url = new URL(request.url);
++    if (url.pathname === '/__demo/start') return request.method === 'POST' ? start(request, env) : home();
++    const id = demoId(request, env);
++    if (id) return env.DEMO.get(id).fetch(request);
++    if (!['GET', 'HEAD'].includes(request.method)) return new Response('Start a demo first.', { status: 403 });
++    if (url.pathname !== '/') return home();
++    return startPage(env);
++  },
++};
+diff --git a/modules/deploy-kit/owner.mjs b/modules/deploy-kit/owner.mjs
+index a0641620705ae31d870000b121e74a8d166fd6ea..292113f8466a02ea431e5678b042deea5241d529 100644
+--- a/modules/deploy-kit/owner.mjs
++++ b/modules/deploy-kit/owner.mjs
+@@ -86,7 +86,7 @@ function entries(declaration, key) {
+ }
+ /* RER_DEV_KEY opens local dev identity; it and every key a seed adapter declares
+  * local-only never become a deployed binding, secret or secret source. */
+-export const LOCAL_ONLY_KEYS = Object.freeze(['RER_DEV_KEY', 'RER_MODELS_KEY', 'RER_MODELS_SERVICE', '.rer/local/models.json']);
++export const LOCAL_ONLY_KEYS = Object.freeze(['RER_DEV_KEY', 'RER_DEMO', 'RER_MODELS_KEY', 'RER_MODELS_SERVICE', '.rer/local/models.json']);
+ export function localOnlyBinding(declaration, localOnlyKeys = []) {
+   const refused = new Set([...LOCAL_ONLY_KEYS, ...localOnlyKeys]);
+   const names = [...Object.keys(declaration?.vars ?? {}), declaration?.originVar, ...(Array.isArray(declaration?.secrets) ? declaration.secrets.flatMap(item => [item?.binding, item?.environment]) : [])];
+diff --git a/onboarding/adapter.mjs b/onboarding/adapter.mjs
+index f90887e3b28aee78527ba10cd9320e650a10b4ce..2a8c91f86c0eb7c2261ba314ef862071684afafd 100644
+--- a/onboarding/adapter.mjs
++++ b/onboarding/adapter.mjs
+@@ -66,9 +66,10 @@ export function localInstaller(hooks = {}) {
+   if (['dev','preview'].includes(verb) && hooks.secrets?.originKey) context.vars[hooks.secrets.originKey] = context.origin;
+   store.addSecrets?.(Object.entries(context.vars).filter(([key]) => /secret|token|password/i.test(key)).map(([, value]) => value));
+   if (['installer', 'setup', 'build'].includes(verb) && hooks.build) await build(context, hooks);
+-  if (['installer', 'setup'].includes(verb) && hooks.migrate) await phase(context, hooks, 'migrate', hooks.migrate);
++  const demo = verb === 'dev' && Boolean(options.demo);
++  if ((['installer', 'setup'].includes(verb) || demo) && hooks.migrate) await phase(context, hooks, 'migrate', hooks.migrate);
+   if (['installer', 'setup', 'dev', 'preview'].includes(verb) && hooks.start) await start(context, verb === 'preview' ? {...hooks,start:options.preview} : verb === 'dev' && options.dev ? { ...hooks, start: options.dev } : hooks);
+-  if (['installer', 'setup'].includes(verb) && hooks.owner) {
++  if ((['installer', 'setup'].includes(verb) || demo) && hooks.owner) {
+    if (typeof hooks.owner === 'function' || Array.isArray(hooks.owner)) await phase(context, hooks, 'owner', hooks.owner);
+    else await owner(context, hooks.owner);
+   }

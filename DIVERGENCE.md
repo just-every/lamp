@@ -1243,3 +1243,15 @@ pre-verifier journeys to change its tracked bytes and fail `source:check`.
 Publication records the complete generated output in the source lock, so running
 those journeys preserves the published source identity. The integrity gate and
 its coverage remain unchanged.
+
+## Disposable demo adoption
+
+The owner requests a signed-in, editable sample installation under `rer demo`,
+with a visible Base Demo marker, fresh isolated storage on each start and no
+external sends. Sample subscribers and history are demo data; they confer no
+operator authority. Email uses durable local capture, API imports and channel
+deliveries retain their ordinary refusal/failure paths, and AI is unconfigured
+even when local installation settings contain provider credentials. This mode
+does not replace ordinary deployment or alter the static run-site homepage.
+The hosted secondary page hostname awaits Base's cookie-gated multi-host
+container ingress support, as documented in DEMO.md.

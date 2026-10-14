@@ -1,3 +1,4 @@
+import { demoSockets } from './modules/demo/vite.mjs';
 import {fileURLToPath} from 'node:url';
 import { cloudflare } from "@cloudflare/vite-plugin";
 import { tanstackStart } from "@tanstack/react-start/plugin/vite";
@@ -8,7 +9,7 @@ import { archiveOutputGuard } from "@runeditrun/rer/archive-output";
 import { developmentIngress } from "./scripts/dev-ingress/plugin.mjs";
 import { docsSite } from "./src/site/docs/build/plugin.ts";
 
-const persistStatePath = process.env.LAMP_WORKERS_STATE_PATH ?? ".wrangler/state";
+const persistStatePath = process.env.RER_STATE_DIR ?? process.env.LAMP_WORKERS_STATE_PATH ?? ".wrangler/state";
 const cacheDir = process.env.LAMP_VITE_CACHE_DIR ?? "node_modules/.vite";
 const wranglerConfigPath = process.env.LAMP_WRANGLER_CONFIG ?? "wrangler.jsonc";
 const inspectorPort = process.env.LAMP_DISABLE_INSPECTOR === "true" ? false : undefined;
@@ -30,6 +31,7 @@ export default defineConfig(({ command, isPreview }) => {
       },
     },
     plugins: [
+      demoSockets(),
       archiveOutputGuard(),
       // The public /docs pages, cut from docs/site.json and the repository's Markdown at build time (src/site/docs).
       docsSite(),
@@ -45,7 +47,7 @@ export default defineConfig(({ command, isPreview }) => {
           }
           // Loopback stand-ins for api.statuspage.io and for Slack and Teams, for local journeys only.
           const standIns = Object.fromEntries(["LAMP_DEV_STATUSPAGE_ORIGIN", "LAMP_DEV_CHANNEL_RECEIVER"].flatMap((name) => command === "serve" && !isPreview && process.env[name]?.startsWith("http://127.0.0.1:") ? [[name, process.env[name]]] : []));
-          const devAuth = command === 'serve' && !isPreview ? { main: fileURLToPath(new URL('./src/server.dev.ts',import.meta.url)), vars: { ...config.vars, AUTH_ORIGIN: process.env.RER_DEV_ORIGIN || process.env.AUTH_ORIGIN || process.env.LAMP_LOCAL_ORIGIN || config.vars?.AUTH_ORIGIN, AUTH_LOCAL: 'true', ...(process.env.SESSION_SECRET ? {SESSION_SECRET:process.env.SESSION_SECRET}:{}), ...(process.env.SETUP_OPERATOR_EMAIL ? {SETUP_OPERATOR_EMAIL:process.env.SETUP_OPERATOR_EMAIL}:{}), RER_DEV_ORIGIN: process.env.RER_DEV_ORIGIN, RER_DEV_KEY: process.env.RER_DEV_KEY, RER_DEV_IDENTITY: process.env.RER_DEV_IDENTITY } } : {};
+          const devAuth = command === 'serve' && !isPreview ? { main: fileURLToPath(new URL('./src/server.dev.ts',import.meta.url)), vars: { ...config.vars, ...(process.env.RER_DEMO ? { RER_DEMO: process.env.RER_DEMO, RER_DEMO_EXPIRES: process.env.RER_DEMO_EXPIRES, LAMP_HEARTBEAT_URL: 'https://heartbeat.example.invalid/lamp', LAMP_HEARTBEAT_INTERVAL_MINUTES: '1' } : {}), AUTH_ORIGIN: process.env.RER_DEV_ORIGIN || process.env.AUTH_ORIGIN || process.env.LAMP_LOCAL_ORIGIN || config.vars?.AUTH_ORIGIN, AUTH_LOCAL: 'true', ...(process.env.SESSION_SECRET ? {SESSION_SECRET:process.env.SESSION_SECRET}:{}), ...(process.env.SETUP_OPERATOR_EMAIL ? {SETUP_OPERATOR_EMAIL:process.env.SETUP_OPERATOR_EMAIL}:{}), RER_DEV_ORIGIN: process.env.RER_DEV_ORIGIN, RER_DEV_KEY: process.env.RER_DEV_KEY, RER_DEV_IDENTITY: process.env.RER_DEV_IDENTITY } } : {};
           const statuspage = Object.keys(standIns).length ? { vars: { ...config.vars, ...devAuth.vars, ...standIns } } : devAuth;
           return localOutbox
             ? { ...devAuth, ...statuspage, d1_databases: [...(config.d1_databases ?? []), { binding: "LAMP_BASE_MAIL", database_name: "lamp-local-base-mail", database_id: "lamp-local-base-mail" }], r2_buckets: [...(config.r2_buckets ?? []), { binding: "LAMP_DEV_OUTBOX", bucket_name: "lamp-local-development-outbox" }] }

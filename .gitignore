@@ -18,3 +18,7 @@ delivery-artifact/
 
 # The checkout's dev key and local rer state.
 .rer/local/
+
+# Disposable demo instances and generated hosted container artifacts.
+.rer/demo/
+.rer/demo-host/

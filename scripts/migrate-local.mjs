@@ -12,7 +12,7 @@ if (!process.argv.includes('--apply')) {
     process.exitCode = result.status ?? 1;
   } else console.log('Local database migrations are up to date.');
 } else {
-  const persistence = resolve(process.env.LAMP_WORKERS_STATE_PATH ?? '.wrangler/state');
+  const persistence = resolve(process.env.RER_STATE_DIR ?? process.env.LAMP_WORKERS_STATE_PATH ?? '.wrangler/state');
   const result = spawnSync('pnpm', ['exec', 'wrangler', 'd1', 'migrations', 'apply', 'DB', '--local', '--persist-to', persistence, '--config', 'wrangler.jsonc'], { stdio: 'inherit' });
   if (result.status !== 0) process.exitCode = result.status ?? 1;
   else await applyOwnerMigrations('wrangler.jsonc', ['--local', '--persist-to', persistence]);

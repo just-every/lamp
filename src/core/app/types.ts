@@ -7,6 +7,12 @@ export interface OperatorIdentity {
 export interface AppBindings {
   /** Holds background delivery and channel sends in their durable outboxes during a move. */
   EFFECTS_PAUSED?: string;
+  RER_DEMO?: string;
+  RER_DEMO_EXPIRES?: string;
+  OWNER_EMAIL?: string;
+  RER_OWNER_CLAIM_PUBLIC_KEYS?: string;
+  RER_OWNER_CLAIM_ISSUER?: string;
+  RER_OWNER_CLAIM_INSTALLATION_ID?: string;
   SETUP_TOKEN?: string;
   SESSION_SECRET?: string;
   SETUP_OPERATOR_EMAIL?: string;
