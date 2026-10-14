@@ -440,7 +440,7 @@
       "executable": false
     },
     "CHANGELOG.md": {
-      "sha256": "8a524a266052ec6cb2b6f14843bfb4e95500ec24edcc597069f4cd2049ce1021",
+      "sha256": "c3092d4e939f1699565af7985c273d19a06ea31545938d94082f2d142f7957ec",
       "executable": false
     },
     "CLAUDE.md": {
@@ -468,7 +468,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "965a6b05c8f4b9ffb1d58705f2e35e922128a58fe92b9dac3bb54e22b1bea43c",
+      "sha256": "e0d215518946a38ef3000708078f5009ff94e13f3e2bf9761d9a8c69092a6cb3",
       "executable": false
     },
     "deploy-site.json": {
@@ -1696,7 +1696,7 @@
       "executable": false
     },
     "RELEASE.json": {
-      "sha256": "176cfdda3478f94cf6a9289b2211c3495970a94f6d928e2b84feeab3bfa37058",
+      "sha256": "102dfcb872673893ea13268188c2c31aace0c618a9c496b17b8d8bcd32486543",
       "executable": false
     },
     "rer-packaging.json": {
@@ -2120,7 +2120,7 @@
       "executable": false
     },
     "seed.json": {
-      "sha256": "bdc7c0735e6ff7b0923c0b63afc65a5cf4e3795df6d8ff57de912fed5c826ced",
+      "sha256": "ffe5f207d1926354086b9f7e6d39ac0551b4257c17ce876fb2e48e4cacf148f8",
       "executable": false
     },
     "src/base/deployment-health.ts": {
@@ -5000,7 +5000,7 @@
       "executable": false
     },
     "wrangler.jsonc": {
-      "sha256": "9eb54a7d43374a587d467ddc2fe5589adb76c45e76ab7310d109c67f23713e5f",
+      "sha256": "83e1d427c23060c783f05a599ae4bf8b0ef1c7e94d9963d59d9c8cb95755c279",
       "executable": false
     }
   }

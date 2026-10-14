@@ -8,6 +8,20 @@
     "id": "status",
     "record": "incident on a component"
   },
+  "replaces": [
+    {
+      "name": "Atlassian Statuspage",
+      "edition": null
+    },
+    {
+      "name": "Instatus",
+      "edition": null
+    },
+    {
+      "name": "Better Stack",
+      "edition": null
+    }
+  ],
   "description": "A status page and incident communication desk for one business.",
   "capabilities": [
     {
@@ -618,7 +632,7 @@
     "publicPageRequestsPerSecond": {
       "value": 10,
       "estimate": true,
-      "why": "Local Miniflare Worker measurements used uncompressed responses and no CDN. Two fresh 30-second full-page runs and two mixed-route runs each completed 300/300 requests with HTTP 200, no transport errors, and approximately 10 successful reads/second. Full-page p95 latency was 880.289ms and 312.709ms; mixed-route p95 latency was 138.466ms and 112.200ms. The earlier 5,000-requests/second offer failed with widespread local transport errors on the populated Mac Worker; that does not establish a production CDN limit. Deployment and CDN capacity remain unvalidated, and no runtime rate limiter was added."
+      "why": "Local floor, not a hosted capacity. One Miniflare workerd process on a shared runner was driven in-process at an offered 10 requests/second with uncompressed responses and no CDN: two fresh 30-second full-page runs and two mixed-route runs each returned 300/300 HTTP 200 with no backlog (full-page p95 880.289ms and 312.709ms; mixed-route p95 138.466ms and 112.200ms). Full-page runs at 20/s fell behind on that runner; mixed routes held 20/s. A 5,000/s local attempt failed with loopback connection resets in the load client and does not bound the Worker. On Cloudflare every public read runs the Worker, which reads the R2 current pointer and serves edge-cached generation bytes; that hosted capacity is unmeasured, and no runtime rate limiter was added."
     },
     "subscribeRequestsPerMinutePerAddress": {
       "value": 5,
