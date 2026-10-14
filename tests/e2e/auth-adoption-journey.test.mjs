@@ -9,6 +9,7 @@ import AxeBuilder from '@axe-core/playwright';
 import {unstable_splitSqlQuery} from 'wrangler';
 import {reservePort} from './worker-startup.mjs';
 import {readDevKey,signInAs} from '@runeditrun/rer/internal/modules/operator-auth/dev/sign-in-as.mjs';
+import {createRedaction} from '@runeditrun/rer/redaction';
 
 const owner='owner@example.test';
 const evidence=process.env.LAMP_AUTH_JOURNEY_EVIDENCE;
@@ -104,7 +105,10 @@ test('SETUP-002 Base setup/dev, native email, invite, signout and prior-data upg
    const key=await readDevKey(root);
    for(const path of ['/__dev/outbox','/__dev/outbox?format=json','/__dev/outbox/any-envelope?format=json'])assert.equal((await fetch(origin+path)).status,404,'the outbox answers only a request holding the dev key: '+path);
    const entered=await signInAs({origin,key});const devContext=await journeyContext(browser,key);await devContext.addCookies(entered.cookies.map(c=>({...c,url:origin})));
-   const devPage=await devContext.newPage();await devPage.goto(origin+entered.location);assert.equal((await devPage.request.get(origin+'/api/app/session')).status(),200);
+   const devPage=await devContext.newPage();await devPage.goto(origin+entered.location);
+   const devSession=await devPage.request.get(origin+'/api/app/session');
+   if(devSession.status()!==200){const redaction=createRedaction();redaction.addSecrets([key,...(await readFile(join(root,'.dev.vars'),'utf8')).split('\n').map(line=>line.slice(line.indexOf('=')+1)).filter(Boolean)]);t.diagnostic(redaction.redact((await devSession.text())+'\n'+output));}
+   assert.equal(devSession.status(),200);
    if(!upgraded){await devPage.getByLabel('Page name').fill('Auth Journey');await devPage.getByRole('button',{name:'Save and open Lamp'}).click();await devPage.waitForURL('**/app');}
    await devContext.close();
    for(const width of [1440,390]){
