@@ -4108,7 +4108,7 @@
       "executable": false
     },
     "tests/demo/journey.test.mjs": {
-      "sha256": "6a0997cdecef35c08a25edd3f452ca03a3fe4e1a422b4286b8172a072b68c8ed",
+      "sha256": "f714dcf13739a2e2b94a7036684bf3bfe0ebce696a9ca414ed392364f0a3781c",
       "executable": false
     },
     "tests/demo/owner-claim.test.mjs": {
@@ -4168,7 +4168,7 @@
       "executable": false
     },
     "tests/e2e/auth-adoption-journey.test.mjs": {
-      "sha256": "d046610b2e82badcc77e8d584a373ba43a2658bbac5ddff89e8c3edee6d69e5f",
+      "sha256": "0f33c87bbe255bab3ff7948059230683beb522c969806520e05c072378e3aac0",
       "executable": false
     },
     "tests/e2e/autosave-integrity.test.mjs": {

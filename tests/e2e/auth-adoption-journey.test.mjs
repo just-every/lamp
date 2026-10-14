@@ -69,7 +69,9 @@ test('SETUP-002 Base setup/dev, native email, invite, signout and prior-data upg
  t.diagnostic('Execution host: '+hostname());
  const root=await mkdtemp(join(tmpdir(),'lamp-auth-journey-')),servers=await mkdtemp(join(tmpdir(),'lamp-auth-servers-'));
  const {RER_LOCAL_OPERATION,RER_ONBOARDING_PROCESS_OWNER,AUTH_ORIGIN,AUTH_LOCAL,SESSION_SECRET,SETUP_OPERATOR_EMAIL,...inherited}=process.env;
- const env={...inherited,RER_SERVER_JOURNEY:'1',RER_SERVERS_DIR:servers,CI:'true',X_LOCAL_EXPLORER:'false'};
+ // This copy links node_modules. Keep Vite's optimized graph with this
+ // checkout, rather than reusing another disposable journey's module paths.
+ const env={...inherited,LAMP_VITE_CACHE_DIR:join(root,'.vite-cache'),RER_SERVER_JOURNEY:'1',RER_SERVERS_DIR:servers,CI:'true',X_LOCAL_EXPLORER:'false'};
  let child,browser;let output='',verb='dev';
  const stop=async()=>{if(child&&child.exitCode===null){run(root,env,verb,'--stop');await new Promise(done=>child.exitCode!==null?done():child.once('exit',done));}child=undefined;};
  try{

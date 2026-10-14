@@ -19,7 +19,7 @@ async function digestTree(root) {
 test('disposable demo opens signed in, captures effects and leaves owner state intact', { timeout: 900000 }, async t => {
   const root = await mkdtemp(join(tmpdir(), 'lamp-demo-')), servers = await mkdtemp(join(tmpdir(), 'lamp-demo-servers-'));
   const { RER_LOCAL_OPERATION, RER_ONBOARDING_PROCESS_OWNER, ...inherited } = process.env;
-  const env = { ...inherited, RER_SERVER_JOURNEY: '1', RER_SERVERS_DIR: servers, CI: 'true', X_LOCAL_EXPLORER: 'false' };
+  const env = { ...inherited, LAMP_VITE_CACHE_DIR: join(root, '.vite-cache'), RER_SERVER_JOURNEY: '1', RER_SERVERS_DIR: servers, CI: 'true', X_LOCAL_EXPLORER: 'false' };
   const cli = (...args) => spawnSync(process.execPath, ['node_modules/@runeditrun/rer/bin/rer.mjs', ...args], { cwd: root, env, encoding: 'utf8', timeout: 600000 });
   let child, browser, firstResult;
   const stop = async () => { if (child?.exitCode === null) { const result = cli('demo', '--stop'); assert.equal(result.status, 0); await new Promise(done => child.exitCode !== null ? done() : child.once('exit', done)); } child = undefined; };
