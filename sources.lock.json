@@ -4108,7 +4108,7 @@
       "executable": false
     },
     "tests/demo/journey.test.mjs": {
-      "sha256": "f714dcf13739a2e2b94a7036684bf3bfe0ebce696a9ca414ed392364f0a3781c",
+      "sha256": "0e48caf92778bcfbad5904da4125d5c0752dd7c716798ceb8cdc884c32f56766",
       "executable": false
     },
     "tests/demo/owner-claim.test.mjs": {

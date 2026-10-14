@@ -7,6 +7,7 @@ import { join, resolve } from 'node:path';
 import { test } from 'node:test';
 import { chromium } from 'playwright';
 import { readDevKey } from '@runeditrun/rer/internal/modules/operator-auth/dev/sign-in-as.mjs';
+import { createRedaction } from '@runeditrun/rer/redaction';
 import { reservePort } from '../e2e/worker-startup.mjs';
 import { exerciseDemo } from '../demo-effects.mjs';
 
@@ -41,12 +42,16 @@ test('disposable demo opens signed in, captures effects and leaves owner state i
       const context = await browser.newContext();
       await context.route(url => url.pathname.startsWith('/@fs/'), route => route.continue({ headers: { ...route.request().headers(), 'x-rer-dev-key': key } }));
       const page = await context.newPage();
+      const browserErrors=[];
+      page.on('pageerror',error=>browserErrors.push(error.message));
+      page.on('response',response=>{if(response.status()>=400)browserErrors.push(response.status()+' '+new URL(response.url()).pathname);});
       await page.goto((await readFile(join(root, '.rer/local/open-url'), 'utf8')).trim());
       await page.waitForURL(url => url.pathname === '/app');
       await page.locator('#rer-demo-bar').waitFor();
       assert.equal(new URL(page.url()).pathname, '/app');
       await page.getByRole('link', { name: 'Components', exact: true }).first().click();
-      await page.getByText('Background jobs', { exact: true }).first().waitFor();
+      try{await page.getByText('Background jobs', { exact: true }).first().waitFor();}
+      catch(error){const redaction=createRedaction();redaction.addSecrets([key]);t.diagnostic(redaction.redact('Browser URL: '+page.url()+'\n'+browserErrors.join('\n')+'\n'+output));throw error;}
       if (process.env.LAMP_DEMO_EVIDENCE) { await mkdir(process.env.LAMP_DEMO_EVIDENCE, { recursive: true }); await page.screenshot({ path: join(process.env.LAMP_DEMO_EVIDENCE, first ? 'demo-components.png' : 'fresh-demo.png'), fullPage: true }); }
       const cookie = (await context.cookies(origin)).map(row => `${row.name}=${row.value}`).join('; ');
       const fetch = async (url, init = {}) => {
