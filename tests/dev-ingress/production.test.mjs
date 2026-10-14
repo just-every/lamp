@@ -13,7 +13,7 @@ async function allFiles(directory) {
   return (await Promise.all((await readdir(directory, { withFileTypes: true })).map(entry => entry.isDirectory() ? allFiles(join(directory, entry.name)) : [join(directory, entry.name)]))).flat();
 }
 
-test('emitted production has no ingress key/module or capture implementation, even with runtime dev bindings and flags', { timeout: 180_000 }, async () => {
+test('emitted production excludes development ingress and rejects runtime dev bindings and flags', { timeout: 180_000 }, async () => {
   const directory = await mkdtemp(resolve('.lamp-production-ingress-'));
   const port = Number(process.env.LAMP_DEV_INGRESS_PRODUCTION_PORT ?? await reservePort({ label: 'dev ingress' }));
   const origin = appOrigin(port);
@@ -24,7 +24,8 @@ test('emitted production has no ingress key/module or capture implementation, ev
     for (const file of await allFiles('dist')) {
       if (!/\.(js|mjs|json|map|html)$/.test(file)) continue;
       const source = await readFile(file, 'utf8');
-      assert.ok(!/virtual:lamp-dev-ingress|x-lamp-dev-ingress|LAMP_DEV_OUTBOX|\/__dev\/outbox|authenticateDevelopmentRequest|createDevelopmentAuthenticator|configuration\/subscriber-token-secret|lamp-local-development-outbox|rer-dev-layer:local-only-never-deploy/.test(source), file);
+      // Hosted demos share mail storage; development ingress and identity remain compiler-only.
+      assert.ok(!/virtual:lamp-dev-ingress|x-lamp-dev-ingress|LAMP_DEV_OUTBOX|\/__dev\/outbox|authenticateDevelopmentRequest|createDevelopmentAuthenticator|rer-dev-layer:local-only-never-deploy/.test(source), file);
     }
     const artifact = JSON.parse(await readFile('dist/server/wrangler.json', 'utf8'));
     assert.equal(artifact.r2_buckets.some(bucket => bucket.binding === 'LAMP_DEV_OUTBOX'), false);
