@@ -1,6 +1,6 @@
 # Run it locally
 
-Use the repository's installed `@runeditrun/rer` 0.2.5 command from the project root. Lamp runs on
+Use the repository's installed `@runeditrun/rer` 0.2.6 command from the project root. Lamp runs on
 your computer without a Cloudflare account or mail credentials; development mail
 is captured in the local outbox.
 
