@@ -395,6 +395,22 @@
       "sha256": "81654510e50ba42b3a0a5cb582dd7a29a35466473839eae6250479b592b81bd6",
       "executable": false
     },
+    ".github/scripts/demo-diagnostic-capture.mjs": {
+      "sha256": "6aaa26dce0fcd38c1fbfc2acb331d3e825123311a8049c0c753c9dd51cc1bbd7",
+      "executable": false
+    },
+    ".github/scripts/demo-diagnostic-provider.mjs": {
+      "sha256": "dc20077daa5c3654ab227c08acb16e991d09efe531471754384d30eba55525a5",
+      "executable": false
+    },
+    ".github/scripts/demo-diagnostic-sanitize.mjs": {
+      "sha256": "842ca915dbb1f3c7500a795947600d59a15d43aff1d49f1788603a737af0bc03",
+      "executable": false
+    },
+    ".github/scripts/demo-diagnostic.mjs": {
+      "sha256": "5ac6d6557e32015e78ae5c6262df1ea987a11e5753909cabadb654bdc4bb5404",
+      "executable": false
+    },
     ".github/workflows/deploy.yml": {
       "sha256": "dbe6b242951f44c22364b17b57fb0787349ceea5c22cf3414f8cf3fc599db7dd",
       "executable": false
@@ -404,7 +420,7 @@
       "executable": false
     },
     ".github/workflows/run-demo.yml": {
-      "sha256": "81f05efc97dc294bc023d574d3c63a9b3bb3b1d08df2513db7455076c5651788",
+      "sha256": "027bb24c9792c8a2b62ae879891cb29c9a7935aead448b790024f2aabff38149",
       "executable": false
     },
     ".github/workflows/run-site.yml": {

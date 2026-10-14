@@ -8,6 +8,10 @@ on:
         description: Separate test-only demo with published Turnstile test keys
         type: boolean
         default: false
+      diagnostic:
+        description: Temporarily capture existing test demo logs without redeploying (requires proof)
+        type: boolean
+        default: false
 permissions:
   contents: read
 concurrency:
@@ -20,6 +24,11 @@ jobs:
     timeout-minutes: 30
     environment: run-demo
     steps:
+      - name: Reject diagnostic without explicit test selection
+        if: inputs.diagnostic == true && inputs.proof != true
+        run: |
+          echo 'Diagnostic mode requires proof=true.' >&2
+          exit 1
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           persist-credentials: false
@@ -30,6 +39,7 @@ jobs:
         env:
           COREPACK_ENABLE_DOWNLOAD_PROMPT: '0'
       - name: Deploy isolated demo
+        if: inputs.diagnostic != true
         env:
           CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -59,6 +69,7 @@ jobs:
           fi
           pnpm exec rer deploy --demo --environment "$environment"
       - name: Public readback
+        if: inputs.diagnostic != true
         run: |
           domain=demo.$(node -p "require('./deploy-demo.json').domain")
           for i in $(seq 1 60); do
@@ -67,3 +78,29 @@ jobs:
           done
           test "$(curl -s -o /dev/null -w '%{http_code}' "https://$domain/")" = 200
           ! curl -s -D - -o /dev/null "https://$domain/" | grep -qi '^set-cookie:'
+      - name: Establish sanitized capture of existing test Worker
+        if: inputs.diagnostic == true && inputs.proof == true
+        timeout-minutes: 2
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          DEMO_PROOF: ${{ inputs.proof }}
+          DEMO_DIAGNOSTIC: ${{ inputs.diagnostic }}
+        run: node .github/scripts/demo-diagnostic.mjs start
+      # This step starts only after the scoped trace-v1 WebSocket opens.
+      # The operator may now make ONE untouched test-widget start in the browser.
+      - name: Capture ready — six minute operator browser window
+        if: inputs.diagnostic == true && inputs.proof == true
+        timeout-minutes: 8
+        run: node .github/scripts/demo-diagnostic.mjs wait
+      - name: Stop owned diagnostic capture
+        if: always() && inputs.diagnostic == true && inputs.proof == true
+        run: node .github/scripts/demo-diagnostic.mjs stop
+      - name: Retain sanitized diagnostic only
+        if: always() && inputs.diagnostic == true && inputs.proof == true
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: lamp-demo-diagnostic-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/lamp-demo-diagnostic/
+          if-no-files-found: error
+          retention-days: 7
