@@ -17,7 +17,9 @@ export function sanitize(kind, value) {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return unknown();
   if (kind === 'application') return [{category: 'application-identity',
     matches: value.id === target.applicationId && value.name === target.applicationName && value.account_id === target.account,
-    logsEnabled: typeof value.configuration?.observability?.logs?.enabled === 'boolean' ? value.configuration.observability.logs.enabled : null,
+    // This fixed application is Durable Object-managed: its application-wide
+    // logging setting is top-level, not deployment configuration.
+    logsEnabled: typeof value.observability?.logs?.enabled === 'boolean' ? value.observability.logs.enabled : null,
   }];
   if (kind === 'instance') {
     const states = ['provisioning', 'running', 'failed', 'stopping', 'stopped', 'unhealthy', 'inactive', 'unknown'];

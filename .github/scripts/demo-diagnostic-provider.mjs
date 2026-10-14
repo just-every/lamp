@@ -9,6 +9,7 @@ export const now = () => new Date().toISOString();
 // IDs are bearer cookies in this host: never log them, even hashed.
 export function provider(record) {
   async function request(path, operation, method = 'GET', signal) {
+    let providerRejected = false;
     try {
       const response = await fetch(base + path, {
         method, redirect: 'error', signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(10000)]) : AbortSignal.timeout(10000),
@@ -24,13 +25,16 @@ export function provider(record) {
       try { body = JSON.parse(text); } catch { body = null; }
       record({category: 'provider-response', operation, httpStatus: response.status, success: body?.success === true});
       if (!response.ok || body?.success !== true) {
+        providerRejected = response.status >= 400 && response.status < 500 && body?.success === false;
         for (const item of sanitize('api-error', body)) record({...item, operation});
         throw Error('provider-unavailable');
       }
       return body;
     } catch {
       record({category: 'capture-unavailable', operation});
-      throw Error('provider-unavailable');
+      // A transport failure, malformed response or server error cannot prove
+      // whether a mutation took effect. Keep only this fixed safe distinction.
+      throw Object.assign(Error('provider-unavailable'), {providerRejected});
     }
   }
   const ordinals = new Map();

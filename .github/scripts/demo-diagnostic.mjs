@@ -4,7 +4,7 @@ import {join} from 'node:path';
 import {tmpdir} from 'node:os';
 import {fileURLToPath} from 'node:url';
 import {target} from './demo-diagnostic-sanitize.mjs';
-import {capture} from './demo-diagnostic-capture.mjs';
+import {capture, cleanupCategory} from './demo-diagnostic-capture.mjs';
 
 const directory = join(process.env.RUNNER_TEMP || tmpdir(), 'lamp-demo-diagnostic');
 const control = `${directory}-control.json`;
@@ -27,8 +27,9 @@ async function main() {
   if (mode === 'stop') {
     if (!readReport()?.complete) stopOwnedCapture();
     for (let i = 0; i < 400 && existsSync(control); i++) await delay(100);
-    emit(existsSync(control) ? 'cleanup-incomplete' : 'cleanup-complete');
-    if (existsSync(control)) process.exitCode = 1;
+    const category = existsSync(control) ? 'cleanup-incomplete' : cleanupCategory(readReport());
+    emit(category);
+    if (category !== 'cleanup-complete') process.exitCode = 1;
     return;
   }
   if (mode === 'wait') {
@@ -36,8 +37,9 @@ async function main() {
     for (let i = 0; i < 460; i++) {
       const report = readReport();
       if (report?.complete && !existsSync(control)) {
-        emit(report.captureResult);
-        if (report.captureResult !== 'capture-window-complete' || !report.cleanup.tailDeleted || !report.cleanup.socketClosed) process.exitCode = 1;
+        const cleanup = cleanupCategory(report);
+        emit(cleanup === 'cleanup-complete' ? report.captureResult : cleanup);
+        if (report.captureResult !== 'capture-window-complete' || cleanup !== 'cleanup-complete') process.exitCode = 1;
         return;
       }
       await delay(1000);
@@ -46,11 +48,11 @@ async function main() {
   }
   if (!authorized()) { emit('diagnostic-authorization-rejected'); process.exitCode = 1; return; }
   if (mode === 'capture') {
-    await capture(directory);
+    const report = await capture(directory);
     rmSync(control, {force: true});
     // This process owns all fetch/WebSocket handles; exiting closes any handle
     // whose graceful close timed out. No raw files or child CLI process exists.
-    process.exit(0);
+    process.exit(report.captureResult === 'capture-window-complete' && cleanupCategory(report) === 'cleanup-complete' ? 0 : 1);
   }
   if (mode !== 'start') { emit('capture-unavailable'); process.exitCode = 1; return; }
   mkdirSync(directory, {mode: 0o700});

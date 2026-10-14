@@ -3,6 +3,16 @@ import {join} from 'node:path';
 import {sanitize, target} from './demo-diagnostic-sanitize.mjs';
 import {provider, now} from './demo-diagnostic-provider.mjs';
 
+export function cleanupCategory(report) {
+  if (report?.complete !== true) return 'cleanup-uncertain';
+  const cleanup = report.cleanup;
+  if (cleanup?.providerResult === 'uncertain' || cleanup?.tailCreationUncertain === true) return 'cleanup-uncertain';
+  if (cleanup?.socketClosed !== true) return 'cleanup-incomplete';
+  if (cleanup.providerResult === 'complete' && cleanup.tailDeleted === true) return 'cleanup-complete';
+  if (cleanup.providerResult === 'not-required' && cleanup.tailDeleted === false) return 'cleanup-complete';
+  return 'cleanup-incomplete';
+}
+
 export async function capture(directory) {
   const sha = value => /^[a-f0-9]{40}$/.test(value || '') ? value : null;
   const number = value => /^\d{1,15}$/.test(value || '') ? Number(value) : null;
@@ -16,7 +26,8 @@ export async function capture(directory) {
     attribution: 'time-window-only; concurrent-events-cannot-be-excluded; instance-ordinals-are-not-request-correlation',
     logSource: 'Worker-and-Durable-Object-only; Container-stdout-not-established',
     oneStartResult: 'root-browser-evidence-required', publicResponseStatus: null, publicResponseElapsedMs: null,
-    containerDestructionVerified: false, cleanup: {socketClosed: false, tailDeleted: false, rawFilesCreated: false},
+    containerDestructionVerified: false, tailCreationAttempted: false,
+    cleanup: {socketClosed: false, tailDeleted: false, providerResult: 'not-required', rawFilesCreated: false},
   };
   const save = () => {
     writeFileSync(`${reportPath}.next`, `${JSON.stringify(report, null, 2)}\n`, {mode: 0o600});
@@ -48,12 +59,19 @@ export async function capture(directory) {
     }
     report.cleanup.socketClosed = !socket || socket.readyState === WebSocket.CLOSED;
     if (tail) {
-      try { await api.deleteTail(tail.id); report.cleanup.tailDeleted = true; }
-      catch { /* Actual sanitized API result is already retained. */ }
+      try {
+        await api.deleteTail(tail.id);
+        report.cleanup.tailDeleted = true; report.cleanup.providerResult = 'complete';
+      } catch (error) {
+        report.cleanup.providerResult = error.providerRejected === true ? 'incomplete' : 'uncertain';
+      }
     }
-    report.cleanup.tailCreationUncertain = report.tailCreationAttempted === true && !tail;
+    report.cleanup.tailCreationUncertain = report.cleanup.providerResult === 'uncertain' && !tail;
     if (report.captureReadyAt && reason !== 'cancelled') {
-      try { report.after = await api.snapshot('after'); }
+      try {
+        report.after = await api.snapshot('after');
+        if (!report.after.complete) report.captureResult = 'capture-unavailable';
+      }
       catch { report.captureResult = 'capture-unavailable'; }
     }
     report.stageClassifications = ['health-timeout', 'owner-claim-rejected', 'container-start-error'].filter(category => report.counts[category]);
@@ -61,6 +79,7 @@ export async function capture(directory) {
     report.runtimeFailureEvidence = report.stageClassifications.length ? 'captured-see-classifications-and-attribution-limit' : 'none-captured';
     report.cleanup.processExitClosesRemainingHandles = true;
     report.complete = true; report.endedAt = now();
+    report.cleanup.category = cleanupCategory(report);
     try { save(); } finally { finishResolve(); }
   }
   for (const signal of ['SIGINT', 'SIGTERM', 'SIGHUP']) process.on(signal, () => void finish('cancelled'));
@@ -74,8 +93,14 @@ export async function capture(directory) {
     report.before = await api.snapshot('before');
     if (finishStarted) return;
     if (!report.before.complete) throw Error('baseline-incomplete');
-    report.tailCreationAttempted = true; save();
-    tail = await api.createTail();
+    report.tailCreationAttempted = true; report.cleanup.providerResult = 'uncertain'; save();
+    try {
+      tail = await api.createTail();
+      report.cleanup.providerResult = 'incomplete';
+    } catch (error) {
+      report.cleanup.providerResult = error.providerRejected === true ? 'not-required' : 'uncertain';
+      throw error;
+    }
     report.tailExpiresAt = tail.expiresAt;
     if (finishStarted) return;
     const url = new URL(tail.url);
@@ -105,4 +130,5 @@ export async function capture(directory) {
   })();
   startup.catch(() => void finish('capture-unavailable'));
   await finished;
+  return report;
 }

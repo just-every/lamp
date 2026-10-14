@@ -396,19 +396,19 @@
       "executable": false
     },
     ".github/scripts/demo-diagnostic-capture.mjs": {
-      "sha256": "6aaa26dce0fcd38c1fbfc2acb331d3e825123311a8049c0c753c9dd51cc1bbd7",
+      "sha256": "acc580374d8335f1a79081b41fa290529e052a924c998565e0880810b4465fe5",
       "executable": false
     },
     ".github/scripts/demo-diagnostic-provider.mjs": {
-      "sha256": "dc20077daa5c3654ab227c08acb16e991d09efe531471754384d30eba55525a5",
+      "sha256": "01f9a86fe537c3117082d385e8e8d37cdf3b700092648aca2fcdd9eb1c3d7984",
       "executable": false
     },
     ".github/scripts/demo-diagnostic-sanitize.mjs": {
-      "sha256": "842ca915dbb1f3c7500a795947600d59a15d43aff1d49f1788603a737af0bc03",
+      "sha256": "f39e8d3aa3470bd291058bffdbed9e9ae96223b797b0423ab9d2c65621f98c4d",
       "executable": false
     },
     ".github/scripts/demo-diagnostic.mjs": {
-      "sha256": "5ac6d6557e32015e78ae5c6262df1ea987a11e5753909cabadb654bdc4bb5404",
+      "sha256": "1a5209e0d1d04928fad7bb633d0d967a2be4c92e95ebbe027201d388bdce192e",
       "executable": false
     },
     ".github/workflows/deploy.yml": {
