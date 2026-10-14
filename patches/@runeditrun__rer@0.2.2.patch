@@ -652,10 +652,10 @@ index 0000000000000000000000000000000000000000..b555f2866db268850ec29e0e9b1f8e02
 +export const clearCookie = env => cookie(env, '', 0);
 diff --git a/modules/demo-host/plan.mjs b/modules/demo-host/plan.mjs
 new file mode 100644
-index 0000000000000000000000000000000000000000..27f6d06db1e8a37ff2ade629a007688cab346b7e
+index 0000000000000000000000000000000000000000..dc137034dac5ae1e12fcfb1fe3ec56a8fae0bb71
 --- /dev/null
 +++ b/modules/demo-host/plan.mjs
-@@ -0,0 +1,52 @@
+@@ -0,0 +1,58 @@
 +import { createHash } from 'node:crypto';
 +import { assert, resourceName } from '../deploy-kit/validation.mjs';
 +import { ownerWorkerName } from '../deploy-kit/owner.mjs';
@@ -688,6 +688,12 @@ index 0000000000000000000000000000000000000000..27f6d06db1e8a37ff2ade629a007688c
 +  return { domain: value.domain, name: value.name, maxInstances, settings };
 +}
 +
++// Container application names reject the Worker's consecutive dashes. Hash the
++// complete identity instead of normalizing dashes, which could merge names.
++export function demoContainerName(worker) {
++  return `demo-${createHash('sha256').update(worker).digest('hex').slice(0, 32)}`;
++}
++
 +/** The demo Worker's name and its Wrangler configuration; no provider request. */
 +export function demoPlan({ project, environment, compatibilityDate, originVar, declaration, turnstileSiteKey }) {
 +  assert(/^\d{4}-\d{2}-\d{2}$/.test(compatibilityDate ?? '') && /^[A-Z][A-Z0-9_]{0,63}$/.test(originVar ?? ''), 'invalid-plan');
@@ -703,7 +709,7 @@ index 0000000000000000000000000000000000000000..27f6d06db1e8a37ff2ade629a007688c
 +      ...(turnstileSiteKey ? { TURNSTILE_SITE_KEY: turnstileSiteKey } : {}) },
 +    durable_objects: { bindings: [{ name: 'DEMO', class_name: 'DemoContainer' }, { name: 'CAPACITY', class_name: 'DemoCapacity' }] },
 +    migrations: [{ tag: 'v1', new_sqlite_classes: ['DemoContainer', 'DemoCapacity'] }],
-+    containers: [{ class_name: 'DemoContainer', image: './image/Dockerfile', max_instances: maxInstances, instance_type: 'basic' }],
++    containers: [{ name: demoContainerName(worker), class_name: 'DemoContainer', image: './image/Dockerfile', max_instances: maxInstances, instance_type: 'basic' }],
 +    ratelimits: [{ name: 'STARTS', namespace_id: namespace, simple: { limit: 3, period: 60 } }],
 +  };
 +  return { worker, hostname, origin: `https://${hostname}`, maxInstances, settings: Object.keys(settings), wrangler };

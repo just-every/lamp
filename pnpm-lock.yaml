@@ -11,7 +11,7 @@ overrides:
 
 patchedDependencies:
   '@runeditrun/rer@0.2.2':
-    hash: a9a43c14ecb8395cc70160ee734ae9adc7963de7161bbc2559e937ce9bf918a6
+    hash: 438a0fc9dada9243468218b48213ba7b978599fea4032cd79d2c5289c9b86712
     path: patches/@runeditrun__rer@0.2.2.patch
 
 importers:
@@ -66,7 +66,7 @@ importers:
         version: 1.55.1
       '@runeditrun/rer':
         specifier: 0.2.2
-        version: 0.2.2(patch_hash=a9a43c14ecb8395cc70160ee734ae9adc7963de7161bbc2559e937ce9bf918a6)
+        version: 0.2.2(patch_hash=438a0fc9dada9243468218b48213ba7b978599fea4032cd79d2c5289c9b86712)
       '@tailwindcss/vite':
         specifier: ^4.3.3
         version: 4.3.3(vite@8.2.2(@types/node@22.19.17)(esbuild@0.28.1)(jiti@2.7.0))
@@ -2131,7 +2131,7 @@ snapshots:
 
   '@rolldown/pluginutils@1.0.1': {}
 
-  '@runeditrun/rer@0.2.2(patch_hash=a9a43c14ecb8395cc70160ee734ae9adc7963de7161bbc2559e937ce9bf918a6)': {}
+  '@runeditrun/rer@0.2.2(patch_hash=438a0fc9dada9243468218b48213ba7b978599fea4032cd79d2c5289c9b86712)': {}
 
   '@sindresorhus/is@7.2.0': {}
 
