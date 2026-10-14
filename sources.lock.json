@@ -4656,7 +4656,7 @@
       "executable": false
     },
     "tests/local-mail/access.test.mjs": {
-      "sha256": "9899203ebaddd07f502d795433e98c73bf02f5ab94a0c0022ab48678367fc9d1",
+      "sha256": "081a889c12c555060631849e038ea1a5b9f50948289c0cbae5d474e423668265",
       "executable": false
     },
     "tests/local-mail/compile-modules.mjs": {
