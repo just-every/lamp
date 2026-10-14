@@ -10,6 +10,10 @@ rer deploy --dry-run
 rer deploy
 ```
 
+Lamp uses the npm package `@runeditrun/rer` 0.2.5. Deploy runs Lamp's build,
+migration application and deployment health checks; the full verifier runs in
+CI and through `rer verify`, independently of deployment.
+
 The dry run validates and compiles locally without contacting Cloudflare. A
 real deploy validates owner inputs, provisions or reuses resources, applies
 migrations, builds and uploads the Worker with secrets, initializes ownership and

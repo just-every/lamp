@@ -21,8 +21,7 @@ instance's disposable R2, including prior generations retained by Lamp.
 ## Base adoption
 
 This uses the documented copy-and-patch route in Base's `export/DEMO.md` and
-`global/README.md`. npm `@runeditrun/rer@0.2.2` predates the demo CLI.
-`patches/@runeditrun__rer@0.2.2.patch` carries only the demo command/lifecycle,
+`global/README.md`. npm `@runeditrun/rer@0.2.5` includes the demo CLI.
 host files, container ingress and egress isolation, build entry options and
 the production demo-binding refusal from Base revision `a6afad9f4d007bf1b97a75bd67880d1850683e5d`.
 `modules/demo` is that revision's guard, with its HTTP helper import pointing at the installed package and Base's
