@@ -173,7 +173,9 @@ test('SETUP-002 Base setup/dev, native email, invite, signout and prior-data upg
    assert.equal((await outboxRows()).some(row=>row.message.to===owner&&!earlier.has(row.id)),true,'the owner\'s sign-in link is a new outbox message');
    await stop();
    verb='preview';output='';child=spawn(process.execPath,['node_modules/@runeditrun/rer/bin/rer.mjs','preview'],{cwd:root,env,stdio:['ignore','pipe','pipe']});child.stdout.on('data',b=>output+=b);child.stderr.on('data',b=>output+=b);
-   const previewDeadline=Date.now()+180000;while(!output.includes('RER_READY ')&&child.exitCode===null&&Date.now()<previewDeadline)await new Promise(done=>setTimeout(done,250));assert.equal(output.includes('RER_READY '),true,'preview reaches readiness');
+   const previewDeadline=Date.now()+180000;while(!output.includes('RER_READY ')&&child.exitCode===null&&Date.now()<previewDeadline)await new Promise(done=>setTimeout(done,250));
+   if(!output.includes('RER_READY ')){const redaction=createRedaction();redaction.addSecrets([key,...(await readFile(join(root,'.dev.vars'),'utf8')).split('\n').map(line=>line.slice(line.indexOf('=')+1)).filter(Boolean)]);t.diagnostic(redaction.redact(output));}
+   assert.equal(output.includes('RER_READY '),true,'preview reaches readiness');
    await denied(origin,join(root,'probe.rer'));assert.equal((await fetch(origin+'/auth/dev/enter',{redirect:'manual'})).status,404,'production preview omits dev identity');
    await stop();await rm(join(root,'exports/probe.rer'));await rm(join(root,'probe.rer'));
    t.diagnostic((upgraded?'Prior-data':'Fresh')+' journey passed at both widths.');

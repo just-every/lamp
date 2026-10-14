@@ -4168,7 +4168,7 @@
       "executable": false
     },
     "tests/e2e/auth-adoption-journey.test.mjs": {
-      "sha256": "ac9c3d78bedeed0d0041a0e18f4e446b5f41458cd9c8b8789822d4830544ce8a",
+      "sha256": "fb2b3e845334e14f9fd74ae1241401f73a063062304e6cd7c6d623faef2dfb42",
       "executable": false
     },
     "tests/e2e/autosave-integrity.test.mjs": {
