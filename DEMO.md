@@ -20,16 +20,14 @@ instance's disposable R2, including prior generations retained by Lamp.
 
 ## Base adoption
 
-This uses the documented copy-and-patch route in Base's `export/DEMO.md` and
-`global/README.md`. npm `@runeditrun/rer@0.2.5` includes the demo CLI.
-host files, container ingress and egress isolation, build entry options and
-the production demo-binding refusal from Base revision `a6afad9f4d007bf1b97a75bd67880d1850683e5d`.
+Lamp uses the published npm package `@runeditrun/rer@0.2.5`, which includes the
+demo CLI, host files, container ingress and egress isolation, build entry
+options and the production demo-binding refusal. No CLI package patch is needed.
 `modules/demo` is that revision's guard, with its HTTP helper import pointing at the installed package and Base's
 new CSP helper copied alongside it. The start and ended pages are unchanged.
 A narrow boundary compatibility change permits Lamp’s existing HTMLRewriter
 only for the workerd engine; the Node engine still refuses it. All other
-boundary restrictions remain active. Replace the patch with a published Base
-release once it includes these changes.
+boundary restrictions remain active.
 
 Ordinary deployment continues to use `hosted-check.json`; only `--demo`
 selects the existing container-capable `deploy.json` declaration.

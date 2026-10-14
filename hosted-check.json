@@ -1,5 +1,6 @@
 {
   "$comment": "rer verify serves the production build at one https origin (rer-hosted-check.invalid) the way rer deploy hosts it, with stand-ins for these secrets. Lamp answers built files and /health on its app host, so the check runs as that host; optional provider keys stay unset as on a fresh deploy. Lamp's own deploy reads OPERATIONS.md, not this file.",
+  "project": "just-every/lamp",
   "vars": {
     "LAMP_APP_HOST": "rer-hosted-check.invalid",
     "LAMP_PAGE_HOST": "status.rer-hosted-check.invalid",
