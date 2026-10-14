@@ -68,10 +68,11 @@ async function setupAndProbe(root,env,port,origin){
 test('SETUP-002 Base setup/dev, native email, invite, signout and prior-data upgrade work at 1440 and 390',{timeout:1200000},async t=>{
  t.diagnostic('Execution host: '+hostname());
  const root=await mkdtemp(join(tmpdir(),'lamp-auth-journey-')),servers=await mkdtemp(join(tmpdir(),'lamp-auth-servers-'));
+ const cache=await mkdtemp(join(resolve('node_modules'),'.lamp-auth-vite-'));
  const {RER_LOCAL_OPERATION,RER_ONBOARDING_PROCESS_OWNER,AUTH_ORIGIN,AUTH_LOCAL,SESSION_SECRET,SETUP_OPERATOR_EMAIL,...inherited}=process.env;
  // This copy links node_modules. Keep Vite's optimized graph with this
- // checkout, rather than reusing another disposable journey's module paths.
- const env={...inherited,LAMP_VITE_CACHE_DIR:join(root,'.vite-cache'),RER_SERVER_JOURNEY:'1',RER_SERVERS_DIR:servers,CI:'true',X_LOCAL_EXPLORER:'false'};
+ // checkout, under the already admitted node_modules asset namespace.
+ const env={...inherited,LAMP_VITE_CACHE_DIR:cache,RER_SERVER_JOURNEY:'1',RER_SERVERS_DIR:servers,CI:'true',X_LOCAL_EXPLORER:'false'};
  let child,browser;let output='',verb='dev';
  const stop=async()=>{if(child&&child.exitCode===null){run(root,env,verb,'--stop');await new Promise(done=>child.exitCode!==null?done():child.once('exit',done));}child=undefined;};
  try{
@@ -177,5 +178,5 @@ test('SETUP-002 Base setup/dev, native email, invite, signout and prior-data upg
    await stop();await rm(join(root,'exports/probe.rer'));await rm(join(root,'probe.rer'));
    t.diagnostic((upgraded?'Prior-data':'Fresh')+' journey passed at both widths.');
   }
- }finally{await browser?.close();await stop();await rm(root,{recursive:true,force:true});await rm(servers,{recursive:true,force:true});}
+ }finally{await browser?.close();await stop();await rm(root,{recursive:true,force:true});await rm(servers,{recursive:true,force:true});await rm(cache,{recursive:true,force:true});}
 });
