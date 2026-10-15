@@ -112,9 +112,9 @@ export default withDemo({
       return authResponse(request, bindings, runtime.services);
     }
     await ensureDevelopmentSnapshot(runtime);
-    // Managed readiness must publish pending initial state before traffic arrives;
-    // preview environments do not run cron. This does not run scheduled mail work.
-    if (url.pathname === "/health" && bindings.RER_INSTALLATION_ID) {
+    // Every hosted deployment must publish its initial state before traffic
+    // arrives, even before Cloudflare starts Cron. This runs no mail work.
+    if (url.pathname === "/health") {
       try {
         if (await createSetupRepository(bindings.DB).pageConfigured()) await runtime.services.publicSnapshots.retryPendingBuild();
       } catch {

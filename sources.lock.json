@@ -572,7 +572,7 @@
       "executable": false
     },
     "hosted-check.json": {
-      "sha256": "a2fbe56574a742dc8679e695624cc589c9499aa72bb2d84c61d793e6b4ada438",
+      "sha256": "e0da0831730860a036990c4176dff42c9032c3161cb2c1418f8ecbcdff4e25b7",
       "executable": false
     },
     "LICENSE": {
@@ -2960,7 +2960,7 @@
       "executable": false
     },
     "src/core/features/setup/repository.ts": {
-      "sha256": "70cb446fc2f8731bc1ce698b332e5b8fc507d2f5318134c0167b32d600383e21",
+      "sha256": "f6ce23ebbc7ee1566ffb5395e84ee72daec2b798b513fc94010b4a1fa8ced99f",
       "executable": false
     },
     "src/core/features/setup/routes.ts": {
@@ -3436,7 +3436,7 @@
       "executable": false
     },
     "src/server.ts": {
-      "sha256": "a57a5651afbd4805cae891ee1a82c908e04b6491ad398cd9477305698a25fbc4",
+      "sha256": "1b66393643040b98332c24cc93c2ee5cbab9fe37a3a195556c1a975ecc854519",
       "executable": false
     },
     "src/site/docs/body.ts": {
