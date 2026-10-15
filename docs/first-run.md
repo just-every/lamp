@@ -17,16 +17,15 @@ Overview tracks these steps from saved installation state:
 7. Check that the subscription form is reachable.
 8. Select the public address; custom-domain documentation is available from that step.
 
-Sender authentication and local outbox capture are separate checks. A successful
-local capture does not mean a message reached an inbox. Selecting a public
+A successful sender check does not mean a message reached an inbox. Local mail
+is silently suppressed. Selecting a public
 address records your choice; it does not validate DNS. Lamp also supports the
 default deployment address.
 
 ## Sign in
 
 Operators use email sign-in links. Locally, the development server opens a
-private owner entry address; email-sign-in messages are captured in the local
-outbox. For a deployed installation, request a link from the sign-in page and
+private one-click owner entry address. For a deployed installation, request a link from the sign-in page and
 open it from the same host.
 
 If an owner has database access but cannot use email, the technical

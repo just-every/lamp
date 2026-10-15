@@ -35,7 +35,7 @@ Lamp is a status-page product for one business.
 
 ## Launch
 
-Locally: follow [RUN-LOCALLY.md](RUN-LOCALLY.md). Local database, storage and queues start without accounts; the page starts empty, and mail is captured in the development outbox at `/__dev/outbox`.
+Locally: follow [RUN-LOCALLY.md](RUN-LOCALLY.md). Local database, storage and queues start without accounts; the page starts empty, and mail is silently suppressed. Sign in with the one-click owner entry.
 
 To Cloudflare: `rer deploy` with the owner inputs in `OPERATIONS.md`. It validates owner inputs, creates or reuses resources, builds and uploads the Worker with secrets, then checks health; `--dry-run` builds and validates locally with no provider request.
 

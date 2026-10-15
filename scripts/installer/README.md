@@ -9,10 +9,8 @@ Install Node 22.20.0, pnpm 10.12.4 and Git on PATH, then run
 `node scripts/install.mjs`. The browser opens before application dependencies
 are installed. Start installs the locked dependencies through captured commands.
 
-**On this computer** starts the actual development server and Base D1 outbox.
-It needs no provider key. Open the captured native sign-in message and follow
-its ordinary one-use, expiring sign-in link. Capture itself creates no session
-and means no provider email was sent.
+**On this computer** starts Lamp locally without a provider key. Sign-in is
+one click, and local mail is silently suppressed.
 
 **Online for your team** uses your own Cloudflare account. In Hosting &
 connections choose an API token, resource name and custom operator address.

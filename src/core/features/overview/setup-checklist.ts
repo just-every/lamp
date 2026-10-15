@@ -42,7 +42,7 @@ export function createSetupChecklistService(repository: OverviewRepository, sett
       const steps: SetupStep[] = [
         { id: 'branding', label: 'Page name and branding', done: branded, href: '/app/settings', detail: 'Save your page name, description, and accent colour.' },
         { id: 'timezone', label: 'Time zone', done: timezone, href: '/app/settings', detail: value?.timezone ? `Page time zone: ${value.timezone}` : 'Choose the time zone your readers will see.' },
-        { id: 'sender', label: options.sender.local ? 'Local outbox ready' : 'Sender verified', done: witnessed('sender', senderKey), href: '/app/settings#sender-check', detail: options.sender.local ? 'Run the mail check to capture a message in the local outbox.' : 'Check your sender’s domain authentication with the mail provider.' },
+        { id: 'sender', label: 'Sender verified', done: witnessed('sender', senderKey), href: '/app/settings#sender-check', detail: 'Check your sender’s domain authentication with the mail provider.' },
         { id: 'component', label: 'First component', done: hasComponent, href: '/app/components', detail: 'Add a service whose availability you report.' },
         { id: 'incident', label: 'First incident published', done: published, href: '/app/incidents', detail: 'Publish your first customer update when there is an incident to report.' },
         { id: 'public', label: 'Public page opened', done: witnessed('public', origin), href: '/api/app/overview/open-public', detail: 'Check and open the page your customers will read.' },

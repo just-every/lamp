@@ -46,6 +46,35 @@
       }
     },
     {
+      "path": "modules/demo",
+      "originPath": "modules/demo",
+      "revision": "5afc5530c67454482153dbfc097bbda8a1d27981",
+      "files": {
+        "modules/demo/README.md": "b00a8aa86d6a0df3c7ce904c3fa3bbb18b0b25a5fac722b4d7beafad183ae74f",
+        "modules/demo/effects.mjs": "2e523da1d9fcffc4b6e3e0e4901b6bd45e6f08adfb380b397e775acb0358c395",
+        "modules/demo/index.d.mts": "71caa39f5001ab8bd2891ae5bdb9bf1ab4910c121fb038d83ae549adaf8fcf10",
+        "modules/demo/index.mjs": "a90f58afaf7d7d54121f1e49746a51631c1b12c603e44edba81b1570eaa68d96",
+        "modules/demo/label.d.mts": "96a4692d568cfb6fd5593c9d7d4296bced338e0f54c2d17f80ae1da105287285",
+        "modules/demo/label.mjs": "05c208a184941cf4c8be04502e2918c0ce9372159978022f02fb35c219f74d4f",
+        "modules/demo/responses.mjs": "3194f1a6aaec1f84477c15cf22fd32b650e317a119cfca26f0529c7ec5cd0cc5",
+        "modules/demo/sockets.mjs": "af88b298b721b3b2a9fe2425b9a8b7c95d842f28b56b3c48cf4366226ec90389",
+        "modules/demo/vite.d.mts": "f43b152b4a993feaf96afdbc276922bfa20d64725ea0150a12ec6ec805a7c7b3",
+        "modules/demo/vite.mjs": "e38556e50c954814ee8e12278babd627d5cdd051a7ea2c242a61d6c5d84d12f8"
+      },
+      "modes": {
+        "modules/demo/README.md": "100644",
+        "modules/demo/effects.mjs": "100644",
+        "modules/demo/index.d.mts": "100644",
+        "modules/demo/index.mjs": "100644",
+        "modules/demo/label.d.mts": "100644",
+        "modules/demo/label.mjs": "100644",
+        "modules/demo/responses.mjs": "100644",
+        "modules/demo/sockets.mjs": "100644",
+        "modules/demo/vite.d.mts": "100644",
+        "modules/demo/vite.mjs": "100644"
+      }
+    },
+    {
       "path": "modules/import-kit/CONTRACT.md",
       "originPath": "modules/import-kit/CONTRACT.md",
       "revision": "aa9b4d4fc6cba60411ef8d24a81323113677c370",
@@ -567,6 +596,25 @@
         "modules/mail/src/sendgrid-email/index.d.mts": "100644",
         "modules/mail/src/sendgrid-email/index.mjs": "100644",
         "modules/mail/src/unsubscribe/index.mjs": "100644"
+      }
+    },
+    {
+      "path": "modules/operator-auth",
+      "originPath": "modules/operator-auth",
+      "revision": "5afc5530c67454482153dbfc097bbda8a1d27981",
+      "files": {
+        "modules/operator-auth/crypto.mjs": "c9a843518d9223ec91698060bacd5a44cd0c4361adaa6b09c05be69f11a828b8",
+        "modules/operator-auth/csp.mjs": "7cf7cca59410434708213945cb762f6a9fa302b5eaf7575b903ca3f171264d8d",
+        "modules/operator-auth/errors.mjs": "393de2f6a068fc32d0904e238e88d6fae90576b197cca463da8d7dfabef36f47",
+        "modules/operator-auth/http.mjs": "caf5ddf8b50070b1339afd6f19e3ef3c73677cc7726a355fbac5cda371f09b53",
+        "modules/operator-auth/loopback.mjs": "13b32a076bce23a3124be1745202c18eda553f298fad3d9f5cb93ac61aee3115"
+      },
+      "modes": {
+        "modules/operator-auth/crypto.mjs": "100644",
+        "modules/operator-auth/csp.mjs": "100644",
+        "modules/operator-auth/errors.mjs": "100644",
+        "modules/operator-auth/http.mjs": "100644",
+        "modules/operator-auth/loopback.mjs": "100644"
       }
     },
     {

@@ -1,4 +1,3 @@
-import {createHmac} from 'node:crypto';
 import {join} from 'node:path';
 import {runSignInLink} from '../signin-link.mjs';
 import {refusal} from '../signin-link/issue.mjs';
@@ -17,31 +16,11 @@ async function activeOwner(root){
  return row?.email;
 }
 
-// Lamp's outbox lists its envelopes as JSON; the link is a message there.
-async function outboxEnvelopes(context,email){
- const response=await fetch(new URL('/__dev/outbox?format=json',context.origin),{signal:context.signal,headers:context.devKey?{'x-rer-dev-key':context.devKey}:{}});
- if(!response.ok){await response.body?.cancel();throw Error(`The development outbox answered HTTP ${response.status}.`);}
- return (await response.json()).envelopes.filter(envelope=>envelope.message.to.toLowerCase()===email.toLowerCase()).map(envelope=>envelope.id);
-}
-
-// Ask the running app for an ordinary sign-in message, as the sign-in page does.
-// The local CLI proof keeps this from spending the owner's sign-in rate limit.
-async function requestOutboxSignIn(context,email){
- const before=new Set(await outboxEnvelopes(context,email));
- const secret=context.vars.SESSION_SECRET;
- const response=await fetch(new URL('/auth/magic-link',context.origin),{method:'POST',redirect:'manual',signal:context.signal,headers:{Origin:context.origin,'Content-Type':'application/json',...(secret?{'x-rer-local-cli':createHmac('sha256',secret).update('local-cli\0sign-in').digest('hex')}:{})},body:JSON.stringify({email,returnTo:'/app'})});
- await response.body?.cancel();
- if(response.status!==202)throw Error(`The sign-in request answered HTTP ${response.status}.`);
- for(let attempt=0;attempt<50;attempt++){
-  const id=(await outboxEnvelopes(context,email)).find(candidate=>!before.has(candidate));
-  if(id)return new URL(`/__dev/outbox/${encodeURIComponent(id)}`,context.origin).href;
-  await new Promise(resolve=>setTimeout(resolve,200));
- }
- throw Error('No sign-in message reached the development outbox.');
-}
-
 export async function localSignIn(context){
  const {origin,store,root}=context;
+ // Base completes the authenticated one-click entry after the app is ready.
+ // A demo must never inspect the ordinary installation's owner/state.
+ if(context.verb==='dev')return new URL('/app',origin).href;
  // Ordinary dev entry is handled by Base's declared devIdentity lifecycle.
  const configured=context.signInEmail??context.vars.SETUP_OPERATOR_EMAIL??context.input.SETUP_OPERATOR_EMAIL;
  let owner=await isActiveOperator(root,configured)?configured:null;
@@ -52,15 +31,6 @@ export async function localSignIn(context){
   throw context.fail('setup');
  }
  const step=owner===configured?'Your one-use sign-in link is ready':`The setup owner can no longer sign in; this one-use sign-in link is for ${owner}, an active owner`;
- // rer dev --login and rer outbox --owner-email point at the development
- // outbox, so the link must be a message there: ask the running app for it.
- if(context.verb==='dev'||context.verb==='outbox'){
-  let message;
-  try{message=await requestOutboxSignIn(context,owner);}
-  catch(error){if(context.signal?.aborted)throw error;store.report?.(error.message);throw context.fail('setup');}
-  await store.step(`${step}: it is the newest message in the development outbox`);
-  return message;
- }
  // Setup and the browser installer hand the link to the installer page.
  let link='',refused='';
  const result=await runSignInLink(['--email',owner,'--origin',origin,'--config',join(root,'wrangler.jsonc'),'--persist-to',join(root,'.wrangler/state')],{

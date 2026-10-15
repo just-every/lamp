@@ -22,7 +22,7 @@ export async function openNativeRuntime() {
   // The app host serves development modules under /node_modules/. Each run
   // owns only this unique cache, including when node_modules is a shared link.
   const cache = resolve('node_modules/.vite', basename(directory));
-  const env = { ...process.env, LAMP_WORKERS_STATE_PATH: state, LAMP_VITE_CACHE_DIR: cache, RER_DEV_KEY: devKey };
+  const env = { ...process.env, LAMP_WORKERS_STATE_PATH: state, LAMP_VITE_CACHE_DIR: cache, RER_DEV_KEY: devKey, RER_DEV_ORIGIN: origin, RER_DEV_IDENTITY: "on", AUTH_ORIGIN: origin, AUTH_LOCAL: "true", SETUP_OPERATOR_EMAIL: operator, SESSION_SECRET: "test-session-secret-".repeat(4) };
   delete env.LAMP_DISABLE_INSPECTOR;
   let child;
   let output = '';
@@ -31,7 +31,7 @@ export async function openNativeRuntime() {
     await stopProcessGroup(child);
     child = undefined;
     // The entire pnpm/Vite/workerd group owns this port. Do not leave a listener.
-    await assert.rejects(fetch(`${origin}/__dev/outbox`, { signal: AbortSignal.timeout(1000) }));
+    await assert.rejects(fetch(`${origin}/health`, { signal: AbortSignal.timeout(1000) }));
   }
   return {
     directory, state, env,
@@ -50,14 +50,14 @@ export async function openNativeRuntime() {
       child = spawn('pnpm', ['run', 'dev:app', '--port', String(port), '--strictPort'], { env, detached: true, stdio: ['ignore', 'pipe', 'pipe'] });
       child.stdout.on('data', data => { output += data; });
       child.stderr.on('data', data => { output += data; });
-      await waitForWorker({ origin, child, output: () => output, timeoutMs: 180_000, probe: ({ signal }) => fetch(`${origin}/__dev/outbox?format=json`, { signal, headers: devKeyHeaders }) });
+      await waitForWorker({ origin, child, output: () => output, timeoutMs: 180_000, probe: ({ signal }) => fetch(`${origin}/health?format=json`, { signal, headers: devKeyHeaders }) });
     },
     stop,
     async close() { try { await stop(); } finally { await rm(cache, { recursive: true, force: true }); await rm(directory, { recursive: true, force: true }); } },
   };
 }
 
-export async function rawRequest(headers = [], target = '/__dev/outbox?format=json') {
+export async function rawRequest(headers = [], target = '/health?format=json') {
   return new Promise((resolveResponse, reject) => {
     const socket = connect({ host: '127.0.0.1', port });
     let data = '';
@@ -67,12 +67,6 @@ export async function rawRequest(headers = [], target = '/__dev/outbox?format=js
     socket.on('end', () => resolveResponse({ status: Number(data.match(/^HTTP\/1\.1 (\d+)/)?.[1]), data }));
     socket.on('connect', () => socket.write(`GET ${target} HTTP/1.1\r\n${[...headers, `x-rer-dev-key: ${devKey}`].join('\r\n')}\r\nConnection: close\r\n\r\n`));
   });
-}
-
-export async function envelopes() {
-  const response = await fetch(`${origin}/__dev/outbox?format=json`, { headers: devKeyHeaders });
-  assert.equal(response.status, 200);
-  return (await response.json()).envelopes;
 }
 
 export async function nativeRequest(path, { cookie, json, host = origin, ...init } = {}) {

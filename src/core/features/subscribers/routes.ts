@@ -50,7 +50,7 @@ function parsedComponentIds(value: unknown) {
   });
 }
 
-export function registerSubscriberRoutes(app: Hono<AppEnv>, service: SubscribersService, options: { localMailCapture?: boolean; rateLimiter?: PublicWriteRateLimiter } = {}) {
+export function registerSubscriberRoutes(app: Hono<AppEnv>, service: SubscribersService, options: { rateLimiter?: PublicWriteRateLimiter } = {}) {
   app.post("/subscribe", async (context) => {
     const pageName = await service.getPageName();
     const result = (title: string, message: string, status: number) => publicFormResponse(context.req.raw, title, message, status, pageName);
@@ -62,9 +62,7 @@ export function registerSubscriberRoutes(app: Hono<AppEnv>, service: Subscribers
     try {
       await service.requestEmailSubscription(parsed.data.email, new URL(context.req.url).origin);
       // Preserve the same response for active, pending and suppressed requests.
-      return result("Check your email", import.meta.env.DEV && options.localMailCapture
-        ? "Check the local outbox at /__dev/outbox for any confirmation or management link for this subscription."
-        : "Check your email to confirm or manage this subscription.", 202);
+      return result("Check your email", "Check your email to confirm or manage this subscription.", 202);
     } catch (error) {
       if (error instanceof MailUnavailableError) return result("Subscriptions unavailable", "Subscriptions are not configured because this deployment has no mail sender. No confirmation email was sent.", 503);
       throw error;

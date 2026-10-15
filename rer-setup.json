@@ -18,7 +18,7 @@
     {
       "id": "mail",
       "label": "Online mail settings",
-      "help": "For Online hosting, use Edit to enter your verified sender, DKIM selector and provider key before Start. Local sign-in uses the development outbox."
+      "help": "For Online hosting, use Edit to enter your verified sender, DKIM selector and provider key before Start. Local sign-in is one click and requires no mail."
     }
   ],
   "fields": [

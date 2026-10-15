@@ -2,8 +2,8 @@ import { createHmac, randomBytes } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { resolve } from 'node:path';
 import { isForwardingHeader, proofHeader, proofPayload } from './protocol.mjs';
-import { isSameOriginSubscriberPost } from '../../src/core/features/dev-outbox/subscriber-origin.mjs';
-import { isLocalPublicRead } from '../../src/core/features/dev-outbox/public-read.mjs';
+import { isSameOriginSubscriberPost } from '../../src/core/platform/development/subscriber-origin.mjs';
+import { isLocalPublicRead } from '../../src/core/platform/development/public-read.mjs';
 
 const virtualId = 'virtual:lamp-dev-ingress';
 const resolvedId = `\0${virtualId}`;

@@ -17,7 +17,7 @@ async function digestTree(root) {
   await walk(root); return hash.digest('hex');
 }
 
-test('disposable demo opens signed in, captures effects and leaves owner state intact', { timeout: 900000 }, async t => {
+test('disposable demo opens signed in, mocks effects and leaves owner state intact', { timeout: 900000 }, async t => {
   const root = await mkdtemp(join(tmpdir(), 'lamp-demo-')), servers = await mkdtemp(join(tmpdir(), 'lamp-demo-servers-'));
   const cache = await mkdtemp(join(resolve('node_modules'), '.lamp-demo-vite-'));
   const { RER_LOCAL_OPERATION, RER_ONBOARDING_PROCESS_OWNER, ...inherited } = process.env;
@@ -38,6 +38,7 @@ test('disposable demo opens signed in, captures effects and leaves owner state i
       child = spawn(process.execPath, ['node_modules/@runeditrun/rer/bin/rer.mjs', 'demo'], { cwd: root, env, stdio: ['ignore', 'pipe', 'pipe'] });
       child.stdout.on('data', chunk => output += chunk); child.stderr.on('data', chunk => output += chunk);
       for (const deadline = Date.now() + 180000; !output.includes('RER_READY ') && child.exitCode === null && Date.now() < deadline;) await new Promise(done => setTimeout(done, 250));
+      if (!output.includes('RER_READY ')) { const redaction = createRedaction(); redaction.addSecrets((await readFile(join(root, '.dev.vars'), 'utf8')).split('\n').map(line => line.slice(line.indexOf('=') + 1)).filter(Boolean)); t.diagnostic(redaction.redact(output).replace(/(?:RER_OPEN|RER_DEV_KEY|RER_LOCAL_CLI).*$/gm, '[private entry]')); }
       assert.ok(output.includes('RER_READY '), 'rer demo reached readiness; private output is never printed');
       const key = await readDevKey(root);
       const context = await browser.newContext();
@@ -48,7 +49,7 @@ test('disposable demo opens signed in, captures effects and leaves owner state i
       page.on('response',response=>{if(response.status()>=400)browserErrors.push(response.status()+' '+new URL(response.url()).pathname);});
       await page.goto((await readFile(join(root, '.rer/local/open-url'), 'utf8')).trim());
       await page.waitForURL(url => url.pathname === '/app');
-      await page.locator('#rer-demo-bar').waitFor();
+      await page.locator('[data-rer-name]').waitFor();
       assert.equal(new URL(page.url()).pathname, '/app');
       await page.getByRole('link', { name: 'Components', exact: true }).first().click();
       try{await page.getByText('Background jobs', { exact: true }).first().waitFor();}
@@ -62,8 +63,8 @@ test('disposable demo opens signed in, captures effects and leaves owner state i
       };
       if (first) {
         firstResult = await exerciseDemo({ origin, pageOrigin, key, cookie, fetch });
-        t.diagnostic('Captured subscriber mail and sender check; blocked: ' + firstResult.witnessed.join(', '));
-        if (process.env.LAMP_DEMO_EVIDENCE) { await page.goto(origin + '/app'); await page.getByRole('region', { name: 'Active incidents', exact: true }).getByRole('link', { name: new RegExp(firstResult.incidentTitle) }).waitFor(); await page.locator('#rer-demo-bar button').click(); await page.screenshot({ path: join(process.env.LAMP_DEMO_EVIDENCE, 'demo-effects.png'), fullPage: true }); }
+        t.diagnostic('Real public subscription-form read and mocked email, webhook and chat sends completed.');
+        if (process.env.LAMP_DEMO_EVIDENCE) { await page.goto(origin + '/app'); await page.getByRole('region', { name: 'Active incidents', exact: true }).getByRole('link', { name: new RegExp(firstResult.incidentTitle) }).waitFor(); await page.screenshot({ path: join(process.env.LAMP_DEMO_EVIDENCE, 'demo-effects.png'), fullPage: true }); }
       }
       else {
         const rows = await (await fetch(origin + '/api/app/incidents', { headers: { Cookie: cookie, 'x-rer-dev-key': key } })).json();

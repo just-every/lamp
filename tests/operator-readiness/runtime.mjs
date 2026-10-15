@@ -13,7 +13,10 @@ export async function load(path) {
     // Preserve the real renderer assets imported through Vite's ?inline form.
     // esbuild retains the query suffix while selecting the file's loader.
     loader: { '.png': 'dataurl', '.woff2': 'dataurl' },
-    plugins: [{ name: 'raw-text', setup(build) {
+    plugins: [{ name: 'worker-environment', setup(build) {
+      build.onResolve({ filter: /^cloudflare:workers$/ }, () => ({ path: 'workers', namespace: 'test-worker-env' }));
+      build.onLoad({ filter: /.*/, namespace: 'test-worker-env' }, () => ({ contents: 'export const env = {};', loader: 'js' }));
+    } }, { name: 'raw-text', setup(build) {
       build.onResolve({ filter: /\?raw$/ }, args => ({ path: resolve(args.resolveDir, args.path.slice(0, -4)), namespace: 'raw-text' }));
       build.onLoad({ filter: /.*/, namespace: 'raw-text' }, async args => ({ contents: `export default ${JSON.stringify(await readFile(args.path, 'utf8'))}`, loader: 'js' }));
     } }],

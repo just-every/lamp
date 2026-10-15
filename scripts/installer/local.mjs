@@ -20,9 +20,9 @@ async function legacyState({root}){
  }
 }
 
-// Development captures mail in Lamp's outbox. Setup and preview execute the
+// Development silently suppresses mail. Setup and preview execute the
 // production artifact and never request mail from a provider.
-const environment=(context,extra={})=>({...process.env,...context.env,...context.vars,LAMP_DEV_OUTBOX_MODE:'local',LAMP_DISABLE_INSPECTOR:'true',WRANGLER_SEND_METRICS:'false',X_LOCAL_EXPLORER:'false',RER_DEV_ORIGIN:context.origin,RER_DEV_KEY:context.devKey,RER_DEV_IDENTITY:context.devLogin?'off':'on',...(context.demo ? {RER_DEMO:'1',RER_DEMO_EXPIRES:context.demo.ends,RER_STATE_DIR:context.demo.state} : {}),...extra});
+const environment=(context,extra={})=>({...process.env,...context.env,...context.vars,LAMP_DISABLE_INSPECTOR:'true',WRANGLER_SEND_METRICS:'false',X_LOCAL_EXPLORER:'false',RER_DEV_ORIGIN:context.origin,RER_DEV_KEY:context.devKey,RER_DEV_IDENTITY:context.devLogin?'off':'on',...(context.demo ? {RER_DEMO:'1',RER_DEMO_EXPIRES:context.demo.ends,RER_STATE_DIR:context.demo.state} : {}),...extra});
 const listen=context=>String(context.runtimePort??(new URL(context.origin).port||80));
 // dev:app applies new migrations, serves Vite and opens the page host once so
 // notification links know the page origin.
@@ -55,7 +55,7 @@ const operatorContinuity=['oa_operators','oa_bootstrap','oa_external_identities'
 
 // This is the archive format's product identity, not the repository identifier.
 // Keep it stable so exports made before the repository rename still restore.
-const transfer=localPortability({database:'DB',buckets:{SNAPSHOTS:'SNAPSHOTS'},policy:{product:'just-every/lamp',buckets:{SNAPSHOTS:{}},replaceableTables:['public_snapshot_work','snapshot_build_control','reference_counters'],includeTables:operatorContinuity,excludeTables:['oa_sessions','oa_tokens','oa_step_up_challenges','oa_credentials','oa_dev_credentials',...importCustody],requiredConfiguration:['SETUP_TOKEN','SESSION_SECRET','SUBSCRIBER_TOKEN_SECRET','WEBHOOK_SIGNING_SECRET']},transient:['development outbox','move-in import custody (resume and undo stay on the original installation)','operator sessions and one-use sign-in links','queued job deliveries in flight','public snapshot cache (rebuilt from D1 and R2)']});
+const transfer=localPortability({database:'DB',buckets:{SNAPSHOTS:'SNAPSHOTS'},policy:{product:'just-every/lamp',buckets:{SNAPSHOTS:{}},replaceableTables:['public_snapshot_work','snapshot_build_control','reference_counters'],includeTables:operatorContinuity,excludeTables:['oa_sessions','oa_tokens','oa_step_up_challenges','oa_credentials','oa_dev_credentials',...importCustody],requiredConfiguration:['SETUP_TOKEN','SESSION_SECRET','SUBSCRIBER_TOKEN_SECRET','WEBHOOK_SIGNING_SECRET']},transient:['move-in import custody (resume and undo stay on the original installation)','operator sessions and one-use sign-in links','queued job deliveries in flight','public snapshot cache (rebuilt from D1 and R2)']});
 
 // Declare installed documents explicitly: the Lobby at / does not link to all
 // docs. Read the publishing manifest so new pages enter hydration checks too.

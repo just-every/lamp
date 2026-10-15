@@ -396,18 +396,11 @@ Both Workers serve the same compiled source and retain the configured host check
 
 This mode is supported by native `rer deploy`. The independent delivery artifact contract describes one Worker; it does not package this two-Worker topology.
 
-### Local capture and operational inspection
+### Local operational inspection
 
-The installer runs Lamp's native development application with Base's durable D1
-mail outbox. No real mail key is required for that local trial. Captured messages
-are available at `/__dev/outbox`; follow the native sign-in link there. Capture
-is neither provider acceptance nor delivery. Production never mounts this viewer.
-
-The separate local `LAMP_BASE_MAIL` database stores raw Base envelopes; the local
-R2 binding retains only capture claims and private configuration for new mail.
-Both are excluded from deployment resources and portable production archives.
-A failed or ambiguous capture remains failed without an automatic resend.
-Older R2 envelopes remain private and prevent recapture of their delivery keys.
+Local dev signs the owner in with one click and silently suppresses mail.
+Demos mock sends to people and third parties while public reads run for real.
+Neither mode retains mail or serves a captured-mail viewer.
 
 `node scripts/operations.mjs check` prints the required inputs and their sources,
 plus a plain next step. Version 2 of `OPERATIONS.json` describes the real native

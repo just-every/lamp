@@ -1,4 +1,4 @@
-import { isLoopbackHostname } from '../../features/dev-outbox/access';
+import { isLoopbackHostname } from '../development/access';
 import { AuthError, type AuthConfig } from '@runeditrun/rer/modules/operator-auth';
 import type { AppBindings } from '../../app/types';
 

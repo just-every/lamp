@@ -14,7 +14,7 @@ import { chromium } from "playwright";
 import { insertRealOperatorSession } from "./real-session-helper.mjs";
 import { appOrigin, pageOrigin } from "./helpers/hosts.mjs";
 import { reservePort, waitForWorker } from "./worker-startup.mjs";
-import { auditNativeSubscriberJourney, auditUnavailableSubscriptionForms } from "./subscriber-journey-helper.mjs";
+import { auditUnavailableSubscriptionForms } from "./subscriber-journey-helper.mjs";
 import { devKey } from "../helpers/dev-key.mjs";
 import { accessibilityFailure, analyzeScriptFreePage, newScriptFreePage, observeAuditPage } from "./subscriber-audit-helper.mjs";
 import { baseline } from "../baseline/e2e-baseline/case.mjs";
@@ -394,23 +394,4 @@ baseline("BASE-PUBLIC-003", "public and subscriber pages stay styled, script-fre
       await routeContext.close();
     }
   }
-});
-
-
-baseline("BASE-PUBLIC-003", "native subscriber POST results and complete cookieless form journey stay accessible without JavaScript", async () => {
-  // Each viewport is an independent subscriber fixture; keep the real limiter
-  // enabled within each journey without carrying the previous viewport's writes.
-  const resetSubscriptionRateWindow = () => executeLocalSql("DELETE FROM request_rate_windows WHERE rate_key LIKE 'subscribe:%'");
-  await auditUnavailableSubscriptionForms(browser, pageUrl, resetSubscriptionRateWindow);
-  // Restart the same native Worker with its explicit local-mail transport.
-  // This captures real confirmation/management messages in R2.
-  if (worker?.pid && worker.exitCode === null) {
-    const stopped = new Promise(resolve => worker.once("exit", resolve));
-    process.kill(-worker.pid, "SIGTERM");
-    await stopped;
-  }
-  await startWorker(true);
-  const component = await appFetch("/api/app/components", { method: "POST", body: JSON.stringify({ groupId: null, name: "Subscriber selection service", description: "", internal: false, displayOrder: 2, note: "" }) });
-  assert.equal(component.status, 201);
-  await auditNativeSubscriberJourney(browser, pageUrl, resetSubscriptionRateWindow);
 });

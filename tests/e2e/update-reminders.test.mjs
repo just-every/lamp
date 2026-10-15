@@ -1,10 +1,14 @@
+import { execFileSync } from 'node:child_process';
+import { origin } from '../dev-ingress/runtime.mjs';
+import { devKey } from '../helpers/dev-key.mjs';
+import { signInAs } from '@runeditrun/rer/internal/modules/operator-auth/dev/sign-in-as.mjs';
 import { requestHeaders } from "../helpers/request-headers.mjs";
 import assert from "node:assert/strict";
 import { after, before } from "node:test";
 
 import { contract } from "../contract.mjs";
 import { withDraftVersion } from "./draft-version-helper.mjs";
-import { envelopes, nativeRequest, openNativeRuntime, publicOrigin, operator } from "../dev-ingress/runtime.mjs";
+import { nativeRequest, openNativeRuntime, publicOrigin, operator } from "../dev-ingress/runtime.mjs";
 
 // Every request opens its own connection; Wrangler CLI work can outlast an idle keep-alive socket.
 const nativeFetch = globalThis.fetch;
@@ -26,7 +30,11 @@ async function trigger(time) {
   const response = await fetch(`${publicOrigin.replace("localhost", "127.0.0.1")}/cdn-cgi/handler/scheduled?cron=${encodeURIComponent("* * * * *")}&time=${time}`);
   assert.equal(response.status, 200, await response.text());
 }
-// Operator reminder emails for one incident reference, by kind, from the development outbox.
+// Observe scheduled notification jobs; local mail is silently suppressed.
+async function envelopes() {
+  const output = execFileSync('pnpm', ['exec','wrangler','d1','execute','DB','--local','--config','wrangler.jsonc','--persist-to',runtime.state,'--json','--command',"SELECT payload_json FROM notification_outbox WHERE kind='operator-alert' AND completed_at IS NOT NULL"], {env:runtime.env,encoding:'utf8',stdio:['ignore','pipe','pipe']});
+  return JSON.parse(output)[0].results.flatMap(row => {const value=JSON.parse(row.payload_json);return value.recipients.map(to=>({message:{to,subject:value.title,text:value.text}}));});
+}
 async function reminders(reference) {
   const rows = (await envelopes()).filter((row) => row.message.to === operator && row.message.subject.includes(reference));
   return { dueSoon: rows.filter((row) => /update due at/i.test(row.message.subject)).length, overdue: rows.filter((row) => /overdue/i.test(row.message.subject)).length };
@@ -49,11 +57,7 @@ before(async () => {
   runtime = await openNativeRuntime();
   await runtime.start();
   await runtime.seedOperator();
-  await nativeRequest("/auth/magic-link", { method: "POST", json: { email: operator } });
-  const link = (await envelopes()).find((row) => row.message.to === operator).message.text.match(/http:\/\/[^\s]+/)[0];
-  const signed = await nativeRequest("/auth/confirm", { method: "POST", json: { token: new URL(link).searchParams.get("token") } });
-  assert.equal(signed.status, 303);
-  cookie = signed.headers.get("set-cookie").split(";")[0];
+  cookie = (await signInAs({origin,key:devKey})).header;
   await fetch(`${publicOrigin}/`);
 });
 

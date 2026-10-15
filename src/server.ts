@@ -2,10 +2,8 @@
 import { withDemo } from '../modules/demo/index.mjs';
 import { seedDemo } from './demo';
 export { SnapshotCache } from "./core/platform/blobs/snapshot-cache";
-import { lampConfig } from "./ext/config";
-import { createPageSettingsRepository } from "./core/features/page-settings/repository";
 import { createSetupRepository } from "./core/features/setup/repository";
-import { devGate, devNotFound } from "@runeditrun/rer/modules/operator-auth";
+import { devGate } from "@runeditrun/rer/modules/operator-auth";
 import { authConfig, authOrigin } from "./core/platform/auth/config";
 import { authResponse } from "./core/platform/auth/http";
 import start from "@tanstack/react-start/server-entry";
@@ -14,7 +12,7 @@ import { installedHomeResponse } from "./installed-home";
 import { createHostDispatch, isDevelopmentAppPath, type LampSurface } from "./core/app/host-dispatch";
 import { createApp } from "./core/app/server";
 import { prepareAppMailBindings } from "./core/app/mail";
-import { admitsDevelopmentRequest, DEV_OUTBOX_PATH, handleDevOutboxRequest } from "./core/features/dev-outbox";
+import { admitsDevelopmentRequest } from "./core/platform/development/access";
 import type { AppBindings } from "./core/app/types";
 import { ensureDevelopmentSnapshot, runQueue, runScheduled } from "./core/app/worker-lifecycle";
 
@@ -85,12 +83,7 @@ export default withDemo({
       const gate = devGate({key:bindings.RER_DEV_KEY,origin:config.origin,local:config.local!});
       const exchange = await gate?.exchange(request);
       if (exchange) return exchange;
-      // A tunnel or local proxy makes remote requests look local: the outbox
-      // holds sign-in links, so it answers only a request holding the dev key.
-      const { pathname } = new URL(request.url);
-      if ((pathname === DEV_OUTBOX_PATH || pathname.startsWith(`${DEV_OUTBOX_PATH}/`)) && !(gate && await gate.admits(request))) return devNotFound();
-      const outbox = await handleDevOutboxRequest(request, bindings.RER_DEMO === '1' ? { ...bindings, LAMP_DEV_OUTBOX: bindings.SNAPSHOTS, LAMP_BASE_MAIL: bindings.DB } : bindings, async () => (await createPageSettingsRepository(bindings.DB).getIfMigrated())?.pageName ?? lampConfig.pageName);
-      if (outbox) return outbox;
+
     }
     const url = new URL(request.url);
     const surface = createHostDispatch(bindings).surfaceFor(request, { allowDevelopmentAssets: import.meta.env.DEV });

@@ -1,15 +1,8 @@
 import assert from 'node:assert/strict';
 
-/** Exercise real operator/public routes. Only deliberately uncredentialed
- * third-party destinations are supplied; Base must refuse their network calls. */
+/** Exercise real operator/public routes and successful demo effects. */
 export async function exerciseDemo({ origin, pageOrigin, key, cookie, fetch }) {
-  const expected = ['api.statuspage.io', 'api.instatus.com', 'incidents.betterstack.com', 'hooks.slack.com', 'demo.webhook.office.com', 'hooks.example.invalid', 'heartbeat.example.invalid'];
-  const witnessed = new Set();
   const headers = { Cookie: cookie, Origin: origin, 'x-rer-dev-key': key };
-  async function observe() {
-    const html = await (await fetch(origin + '/app', { headers })).text();
-    for (const host of expected) if (html.includes(host)) witnessed.add(host);
-  }
   async function api(path, data, method = data ? 'POST' : 'GET', extra = {}) {
     const response = await fetch(origin + path, { method, headers: { ...headers, ...(data ? { 'Content-Type': 'application/json' } : {}), ...extra }, body: data ? JSON.stringify(data) : undefined });
     return { status: response.status, body: await response.json() };
@@ -25,16 +18,12 @@ export async function exerciseDemo({ origin, pageOrigin, key, cookie, fetch }) {
   assert.equal((await api('/api/app/ai/status')).body.configured, false);
   const document = await fetch(origin + '/app', { headers, redirect: 'manual' });
   assert.equal(document.status, 200, 'finished first run opens the app');
-  assert.match(await document.text(), /id="rer-demo-bar"/);
+  assert.match(await document.text(), /data-rer-name/);
   const publicPage = await fetch(pageOrigin + '/', { headers: { 'x-rer-dev-key': key } });
   assert.equal(publicPage.status, 200);
   assert.equal(publicPage.headers.get('X-Lamp-Snapshot-Retained'), 'true', 'disposable public snapshot has its retained copy');
   assert.ok((await publicPage.text()).includes(incidents.find(row => row.lifecycle !== 'Resolved').title), 'public snapshot carries the actual active incident');
-  for (const source of ['statuspage', 'instatus', 'betterstack']) {
-    const refused = await api('/api/app/statuspage-import/preview', { source, pageId: 'demo123', apiKey: 'demonstration-key-with-no-authority', publicAccessAcknowledged: true });
-    assert.equal(refused.status, 400, `${source} import refused`);
-    await observe();
-  }
+  assert.equal((await api('/api/app/overview/check-subscribe', {})).status, 200, 'real public subscription-form check completes');
   assert.equal((await api('/api/app/overview/check-sender', {})).status, 200);
   const subscription = await fetch(pageOrigin + '/subscribe', { method: 'POST', headers: { Origin: pageOrigin, 'x-rer-dev-key': key }, body: new URLSearchParams({ email: 'visitor@example.invalid' }) });
   assert.equal(subscription.status, 202);
@@ -50,17 +39,13 @@ export async function exerciseDemo({ origin, pageOrigin, key, cookie, fetch }) {
   const draft = await api(`/api/app/incidents/${incident.id}/draft`, { lifecycle: 'Monitoring', affectedAudience: 'Customers running background jobs', customerImpact: 'Jobs are now completing normally.', whatStillWorks: 'The dashboard and API remain available.', details: 'We are monitoring queue recovery.', nextUpdateAt: new Date(Date.now() + 3600000).toISOString() }, 'PUT', { 'If-Match': `${detail.draft?.id ?? '-'}:${detail.updates.length}` });
   assert.equal(draft.status, 200);
   assert.equal((await api(`/api/app/incidents/${incident.id}/publish`, { channels: ['email', 'webhook', 'chat'] }, 'POST', { 'If-Match': `${draft.body.draft.id}:${detail.updates.length}` })).status, 200);
-  // The scheduled trigger dispatches mail/webhooks and attempts the configured
-  // external heartbeat. A failed outbound effect must remain visibly failed.
-  for (const deadline = Date.now() + 95000; Date.now() < deadline;) {
-    await observe();
-    if (witnessed.size === expected.length) break;
-    await new Promise(resolve => setTimeout(resolve, 1000));
+  let deliveries;
+  for (const deadline = Date.now() + 30000; ; ) {
+    deliveries = (await api('/api/app/deliveries')).body.deliveries;
+    if (deliveries.some(row => row.channel === 'webhook' && row.outcome === 'delivered') && deliveries.some(row => row.channel === 'email' && row.providerAcceptedAt) || Date.now() >= deadline) break;
+    await new Promise(resolve => setTimeout(resolve, 250));
   }
-  assert.deepEqual(expected.filter(host => !witnessed.has(host)), [], 'each real outbound effect was recorded as blocked');
-  const outbox = await (await fetch(origin + '/__dev/outbox?format=json', { headers })).json();
-  assert.ok(outbox.envelopes.some(row => row.message.subject.includes('sender check')));
-  assert.ok(outbox.envelopes.some(row => row.message.to === 'visitor@example.invalid'));
-  assert.ok(outbox.envelopes.some(row => row.message.to === 'alex@example.invalid'));
-  return { witnessed: [...witnessed], expected, incidentId: incident.id, incidentTitle: incident.title, initialLifecycle: incident.lifecycle };
+  assert.ok(deliveries.some(row => row.channel === 'webhook' && row.outcome === 'delivered'), 'mocked webhook completes successfully: ' + JSON.stringify(deliveries.map(row => ({ channel: row.channel, outcome: row.outcome, error: row.latestError }))));
+  assert.ok(deliveries.some(row => row.channel === 'email' && row.providerAcceptedAt), 'mocked email has provider-shaped success');
+  return { incidentId: incident.id, incidentTitle: incident.title, initialLifecycle: incident.lifecycle };
 }

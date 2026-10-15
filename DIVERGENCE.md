@@ -1279,3 +1279,14 @@ recovers pending work. Composer chat defaults follow saved channel configuration
 setup actions use direct verbs, Settings describes loopback addresses as local,
 and a resolved incident names its retained severity as peak impact. These repair
 the existing workflows without changing the owner-final homepage or Run page.
+
+## Demo and local dev mail — owner redirect, 15 October 2026 09:55Z
+
+Supersedes the captured-mail development behavior and old demo marker described
+above: dev and demo have no injected bar or mail viewer. Product labels read
+Lamp Dev or Lamp Demo, and sign-in is one click. Local mail is suppressed
+silently. Demo public reads/checks run for real; email, webhooks and chat sends
+return provider-shaped success without reaching people or third parties. This
+replaces SETUP-001's local capture wording for dev/demo only; production sender
+authentication, receipts and sign-in remain real. Sample data and the static
+homepage remain unchanged.

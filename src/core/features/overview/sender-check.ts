@@ -14,13 +14,12 @@ export async function senderEvidenceKey(from: string, options: SenderCheckOption
 }
 
 /** Read provider authentication status, never infer verification from a saved
- * address. Local mode exercises the actual capture transport instead. */
+ * address. Local mode completes the send without retaining mail. */
 export async function checkSender(from: string, operatorEmail: string, options: SenderCheckOptions): Promise<string> {
   if (!options.mail.configured) throw new Error('Configure your mail sender before checking it.');
   if (options.local) {
-    const result = await options.mail.send({ from, to: operatorEmail, subject: 'Lamp local sender check', text: 'The local development outbox is ready. No email provider was contacted.', headers: { 'Auto-Submitted': 'auto-generated' }, idempotencyKey: `setup-sender/${createUlid()}` });
-    if (result.disposition !== 'captured') throw new Error('The local outbox did not confirm a capture.');
-    return 'Local outbox ready. A check message was captured; no email was delivered.';
+    await options.mail.send({ from, to: operatorEmail, subject: 'Lamp sender check', text: 'Lamp sender check.', headers: { 'Auto-Submitted': 'auto-generated' }, idempotencyKey: `setup-sender/${createUlid()}` });
+    return 'Sender check complete.';
   }
   if (!options.apiKey || !['sendgrid', 'resend'].includes(options.provider)) throw new Error('This sender needs a supported provider credential for the verification check.');
   const domain = from.split('@')[1]?.toLowerCase();

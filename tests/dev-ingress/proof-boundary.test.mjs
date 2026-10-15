@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { execFileSync } from 'node:child_process';
 import { mkdtemp, mkdir, rm, writeFile } from 'node:fs/promises';
 import { join, relative, resolve } from 'node:path';
 import { test } from 'node:test';
@@ -34,7 +35,7 @@ test('the native socket boundary rejects a real consumed proof, tampering and cr
           // Read only inside the real Node server, after its ingress boundary.
           // No test route, response, file or log ever receives this material.
           const observe = (request, _response, next) => {
-            if (!proof && request.url === '/__dev/outbox') proof = request.headers[proofHeader];
+            if (!proof && request.url === '/health') proof = request.headers[proofHeader];
             next();
           };
           const ingress = vite.middlewares.stack.findIndex(layer => layer.handle.name === 'ingress');
@@ -52,14 +53,15 @@ test('the native socket boundary rejects a real consumed proof, tampering and cr
     process.env.LAMP_VITE_CACHE_DIR = join(directory, 'vite-cache');
     process.env.LAMP_DEV_OUTBOX_MODE = 'local';
     process.env.RER_DEV_KEY = devKey;
+    execFileSync('pnpm', ['run', 'migrate:local'], { stdio: 'pipe' });
     await start();
-    assert.equal((await fetch(`${origin}/__dev/outbox`, { headers: devKeyHeaders })).status, 200);
+    assert.equal((await fetch(`${origin}/health`, { headers: devKeyHeaders })).status, 200);
     assert.ok(typeof proof === 'string' && /^\d{13}\.[a-f0-9]{32}\.[a-f0-9]{64}$/.test(proof), 'observed an actual native ingress proof privately');
     for (const [path, method, value] of [
-      ['/__dev/outbox', 'GET', proof],
-      ['/__dev/outbox', 'GET', `${proof.slice(0, -1)}${proof.endsWith('0') ? '1' : '0'}`],
+      ['/health', 'GET', proof],
+      ['/health', 'GET', `${proof.slice(0, -1)}${proof.endsWith('0') ? '1' : '0'}`],
       ['/auth/magic-link', 'POST', proof],
-      ['/__dev/outbox?format=json', 'GET', proof],
+      ['/health?format=json', 'GET', proof],
     ]) {
       assert.equal((await fetch(`${origin}${path}`, { method, headers: { ...devKeyHeaders, [proofHeader]: value } })).status, 404, 'native ingress rejects replay or tampering');
     }
@@ -72,15 +74,15 @@ test('the native socket boundary rejects a real consumed proof, tampering and cr
       assert.ok(!(await response.text()).includes('test-only private persistence fixture'));
     }
     await close();
-    await assert.rejects(fetch(`${origin}/__dev/outbox`));
+    await assert.rejects(fetch(`${origin}/health`));
     await start();
-    assert.equal((await fetch(`${origin}/__dev/outbox`, { headers: devKeyHeaders })).status, 200);
-    assert.equal((await fetch(`${origin}/__dev/outbox`, { headers: { ...devKeyHeaders, [proofHeader]: proof } })).status, 404, 'proof from another Vite instance stays untrusted');
+    assert.equal((await fetch(`${origin}/health`, { headers: devKeyHeaders })).status, 200);
+    assert.equal((await fetch(`${origin}/health`, { headers: { ...devKeyHeaders, [proofHeader]: proof } })).status, 404, 'proof from another Vite instance stays untrusted');
   } finally {
     await close();
     proof = undefined;
     for (const [key, value] of previous) if (value === undefined) delete process.env[key]; else process.env[key] = value;
     await rm(directory, { recursive: true, force: true });
-    await assert.rejects(fetch(`${origin}/__dev/outbox`, { signal: AbortSignal.timeout(1000) }));
+    await assert.rejects(fetch(`${origin}/health`, { signal: AbortSignal.timeout(1000) }));
   }
 });

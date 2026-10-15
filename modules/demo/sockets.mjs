@@ -1,5 +1,5 @@
 // `rer demo` resolves the Worker's `cloudflare:sockets` imports here (vite.mjs):
-// connect answers loopback hosts only, and a refusal is recorded like fetch's.
+// Public probes work; direct mail transports are denied as a second defense.
 import { guardConnect } from './index.mjs';
 
 // Vite would resolve a static import of it back to this file; a computed

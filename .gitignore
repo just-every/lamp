@@ -22,3 +22,4 @@ delivery-artifact/
 # Disposable demo instances and generated hosted container artifacts.
 .rer/demo/
 .rer/demo-host/
+.rer/demo/

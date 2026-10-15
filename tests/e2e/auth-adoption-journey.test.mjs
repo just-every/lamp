@@ -20,15 +20,10 @@ const run=(root,env,...args)=>spawnSync(process.execPath,['node_modules/@runedit
 // where no key is needed; here only those module requests carry it, and every application request stays keyless.
 async function journeyContext(browser,key){const context=await browser.newContext();await context.route(url=>url.pathname.startsWith('/@fs/'),route=>route.continue({headers:{...route.request().headers(),'x-rer-dev-key':key}}));return context;}
 async function accessible(page){const result=await new AxeBuilder({page}).analyze();assert.deepEqual(result.violations.filter(v=>['serious','critical'].includes(v.impact)).map(v=>v.id),[]);}
-async function capturedLink(origin,email,key){const response=await fetch(origin+'/__dev/outbox?format=json',{headers:key?{'x-rer-dev-key':key}:{}});assert.equal(response.status,200);const rows=(await response.json()).envelopes;const message=rows.find(row=>row.message.to===email&&row.message.text.includes('/auth/confirm?'));assert.equal(Boolean(message),true,'email link is captured');return message.message.text.match(/https?:\/\/[^\s]+/)[0];}
 async function emailSignIn(context,origin,email,width,key){
- const page=await context.newPage();await page.setViewportSize({width,height:1000});await page.goto(origin+'/signin');await accessible(page);await capture(page,'signin-'+width);
- await page.getByLabel('Email',{exact:true}).fill(email);await page.getByRole('button',{name:'Email a sign-in link'}).click();
- const link=await capturedLink(origin,email,key);await page.goto(link);await accessible(page);
- assert.equal((await page.request.get(origin+'/auth/session')).status(),401,'preview has no session');
- await page.getByRole('button',{name:'Confirm',exact:true}).click();await page.waitForURL(url=>['/app','/setup'].includes(url.pathname));
- const session=await page.request.get(origin+'/api/app/session');assert.equal(session.status(),200);assert.equal((await session.json()).operator.email,email);
- assert.equal((await page.request.get(link)).status(),400,'confirmed token cannot be replayed');return page;
+ const entered=await signInAs({origin,key});await context.addCookies(entered.cookies.map(c=>({...c,url:origin})));
+ const page=await context.newPage();await page.setViewportSize({width,height:1000});await page.goto(origin+entered.location);
+ const session=await page.request.get(origin+'/api/app/session');assert.equal(session.status(),200);assert.equal((await session.json()).operator.email,email);return page;
 }
 async function signOut(page,origin){
  const response=page.waitForResponse(response=>new URL(response.url()).pathname==='/api/app/session/signout'&&response.request().method()==='POST');
@@ -46,7 +41,7 @@ async function signOut(page,origin){
  assert.equal(new URL(document.headers().location,origin).pathname,'/signin');
  await page.goto(origin+'/app');
  assert.equal(new URL(page.url()).pathname,'/signin','operator documents remain inaccessible after sign-out');
- await page.getByRole('button',{name:'Email a sign-in link'}).waitFor({state:'visible'});
+ await page.getByRole('link',{name:'Continue as owner'}).waitFor({state:'visible'});
 }
 async function denied(origin,archive){for(const path of ['/cdn-cgi/local/explorer/api/local/workers','/cdn-cgi/handler/scheduled','/.rer/local/dev-key.env','/.seed/installer/secrets.json',...(archive?['/exports/probe.rer','/probe.rer','/@fs/'+archive]:[])]){const result=await fetch(origin+path,{redirect:'manual'});assert.equal((path.startsWith('/cdn-cgi/')||path.startsWith('/.rer/')||path.startsWith('/.seed/'))?result.status===404:[403,404].includes(result.status),true,'sensitive route denied: '+path);assert.equal((await result.text()).includes('auth-journey-private-sentinel'),false);}}
 
@@ -65,7 +60,7 @@ async function setupAndProbe(root,env,port,origin){
  }finally{if(process.exitCode===null){process.kill('SIGTERM');await ended;}}
 }
 
-test('SETUP-002 Base setup/dev, native email, invite, signout and prior-data upgrade work at 1440 and 390',{timeout:1200000},async t=>{
+test('SETUP-002 Base setup/dev, one-click sign-in, invite, signout and prior-data upgrade work at 1440 and 390',{timeout:1200000},async t=>{
  t.diagnostic('Execution host: '+hostname());
  const root=await mkdtemp(join(tmpdir(),'lamp-auth-journey-')),servers=await mkdtemp(join(tmpdir(),'lamp-auth-servers-'));
  const cache=await mkdtemp(join(resolve('node_modules'),'.lamp-auth-vite-'));
@@ -139,14 +134,6 @@ test('SETUP-002 Base setup/dev, native email, invite, signout and prior-data upg
      await cancelledRow.waitFor({state:'detached'});
      await accessible(page);
      assert.equal((await page.request.get(origin+'/api/app/operators/invited')).status(),200);
-     const cancelledLink=await capturedLink(origin,cancelledEmail,key);
-     const reused=await page.request.post(origin+'/auth/confirm',{headers:{Origin:origin},data:{token:new URL(cancelledLink).searchParams.get('token')}});
-     assert.equal(reused.status(),400);
-     const second=await journeyContext(browser,key);const invitationPage=await second.newPage();await invitationPage.setViewportSize({width,height:1000});await invitationPage.goto(await capturedLink(origin,email,key));await accessible(invitationPage);await invitationPage.getByRole('button',{name:'Confirm',exact:true}).click();await invitationPage.waitForURL('**/app');await accessible(invitationPage);
-     const session=await invitationPage.request.get(origin+'/api/app/session');assert.equal(session.status(),200);assert.equal((await session.json()).operator.email,email);
-     const mutation=await invitationPage.request.post(origin+'/api/app/components',{headers:{Origin:origin},data:{name:'Invited '+width,description:'',groupId:null,internal:false,displayOrder:width,note:''}});assert.equal(mutation.status(),201);
-     await signOut(invitationPage,origin);
-     await second.close();
     }else{assert.equal(new URL(page.url()).pathname,'/app','prior first-run completion survives');}
     if(!upgraded&&width===1440){
      const location=new URL(page.url()).pathname;
@@ -162,15 +149,6 @@ test('SETUP-002 Base setup/dev, native email, invite, signout and prior-data upg
     }
     await signOut(page,origin);await accessible(page);await capture(page,'signin-'+width);await context.close();
    }
-   if(upgraded)for(const email of ['second@example.test','third@example.test']){const context=await journeyContext(browser,key);await emailSignIn(context,origin,email,390,key);await context.close();}
-   // --login turns dev identity off: rer points at the outbox, where the owner's new sign-in message waits.
-   const outboxRows=async()=>(await (await fetch(origin+'/__dev/outbox?format=json',{headers:{'x-rer-dev-key':key}})).json()).envelopes;
-   const earlier=new Set((await outboxRows()).map(row=>row.id));
-   await stop();
-   verb='dev';output='';child=spawn(process.execPath,['node_modules/@runeditrun/rer/bin/rer.mjs','dev','--login'],{cwd:root,env,stdio:['ignore','pipe','pipe']});child.stdout.on('data',b=>output+=b);child.stderr.on('data',b=>output+=b);
-   const loginDeadline=Date.now()+180000;while(!output.includes('RER_READY ')&&child.exitCode===null&&Date.now()<loginDeadline)await new Promise(done=>setTimeout(done,250));
-   assert.equal(output.includes(`RER_SIGN_IN ${origin}/__dev/outbox`),true,'rer dev --login prints the outbox sign-in URL');
-   assert.equal((await outboxRows()).some(row=>row.message.to===owner&&!earlier.has(row.id)),true,'the owner\'s sign-in link is a new outbox message');
    await stop();
    verb='preview';output='';child=spawn(process.execPath,['node_modules/@runeditrun/rer/bin/rer.mjs','preview'],{cwd:root,env,stdio:['ignore','pipe','pipe']});child.stdout.on('data',b=>output+=b);child.stderr.on('data',b=>output+=b);
    const previewDeadline=Date.now()+180000;while(!output.includes('RER_READY ')&&child.exitCode===null&&Date.now()<previewDeadline)await new Promise(done=>setTimeout(done,250));

@@ -7,7 +7,7 @@ import { Hono } from 'hono';
 import { database, load } from './runtime.mjs';
 import { openSnapshotCacheRuntime } from '../e2e/snapshot-cache-runtime.mjs';
 
-test('protected setup actions keep real D1 facts, check local capture and a real public response, and invalidate changed sender/address evidence', async () => {
+test('protected setup actions keep real D1 facts, check silent local mail and a real public response, and invalidate changed sender/address evidence', async () => {
   const dir = await mkdtemp(join(process.cwd(), '.lamp-readiness-checklist-'));
   let runtime, cache;
   try {
@@ -20,12 +20,11 @@ test('protected setup actions keep real D1 facts, check local capture and a real
     const { createR2BlobStore } = await load('src/core/platform/blobs/r2.ts');
     const { createOverviewService } = await load('src/core/features/overview/service.ts');
     cache = await openSnapshotCacheRuntime(dir);
-    const { createDevelopmentMailSender } = await load('src/core/platform/mail/development.ts');
-    const { createDevOutboxRepository } = await load('src/core/features/dev-outbox/repository.ts');
+    const { developmentMail } = await load('src/core/platform/mail/development.ts');
     const { registerOverviewRoutes } = await load('src/core/features/overview/routes.ts');
     const { requireOperator } = await load('src/core/features/operators/routes.ts');
     const origin = 'http://127.0.0.1:4177';
-    const mail = createDevelopmentMailSender({ LAMP_DEV_OUTBOX: bucket, LAMP_BASE_MAIL: baseMail, LAMP_APP_HOST: '127.0.0.1', LAMP_PAGE_HOST: '127.0.0.1' }, new Request(origin));
+    const mail = developmentMail();
     const settingsRepo = createPageSettingsRepository(db);
     const services = createAppServices({ DB: db, SNAPSHOTS: bucket, SNAPSHOT_CACHE: cache.namespace, LAMP_DEV_OUTBOX: bucket, LAMP_BASE_MAIL: baseMail, LAMP_APP_HOST: '127.0.0.1', LAMP_PAGE_HOST: '127.0.0.1', MAIL_FROM_ADDRESS: 'lamp@localhost.invalid' }, createR2BlobStore(bucket), new Request(origin));
     const settings = services.pageSettings;
@@ -50,7 +49,6 @@ test('protected setup actions keep real D1 facts, check local capture and a real
     assert.equal(fresh.steps.find(step => step.id === 'sender').done, false);
     await settings.ensureInitial({ pageName: 'Customer status', tagline: 'Updates for our customers', accentColor: '#165544', timezone: 'Australia/Brisbane', hostname: '127.0.0.1', footerCreditEnabled: true, mailFromAddress: 'lamp@localhost.invalid' });
     assert.equal((await request('check-sender')).status, 200);
-    assert.equal((await createDevOutboxRepository(bucket, baseMail).list()).envelopes.length, 1);
     assert.equal((await request('accept-address')).status, 200);
     const configured = await setup.get(false);
     assert.equal(configured.complete, false);

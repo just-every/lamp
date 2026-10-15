@@ -27,7 +27,7 @@ import { createServerExtensionMount } from "./extensions/server";
 
 export function createAppServices(bindings: AppBindings, blobs: BlobStore, execution?: MailExecution) {
   const extensions = createServerExtensionMount();
-  const { sender: mail, capturesLocally } = createAppMailTransport(bindings, extensions.adapters["mail.sender.v1"], execution);
+  const { sender: mail, local } = createAppMailTransport(bindings, extensions.adapters["mail.sender.v1"], execution);
   const publicSnapshots = createPublicSnapshotService(createSnapshotRepository(bindings.DB), blobs, extensions.publicSnapshotPolicies, extensions.publicSnapshotEvents, extensions.slots, createRetainedSnapshotCache(bindings));
   const pageSettings = createPageSettingsService(createPageSettingsRepository(bindings.DB), publicSnapshots.rebuild, blobs, bindings.MAIL_FROM_ADDRESS);
   const configuredFromAddress = async () => (await pageSettings.get())?.mailFromAddress ?? bindings.MAIL_FROM_ADDRESS;
@@ -132,7 +132,7 @@ export function createAppServices(bindings: AppBindings, blobs: BlobStore, execu
       origin.hostname = bindings.LAMP_PAGE_HOST;
       return origin.origin;
     },
-    sender: { local: capturesLocally, provider: bindings.MAIL_PROVIDER ?? "resend", apiKey: bindings.MAIL_PROVIDER_API_KEY, mail },
+    sender: { local: local, provider: bindings.MAIL_PROVIDER ?? "resend", apiKey: bindings.MAIL_PROVIDER_API_KEY, mail },
   }));
 
   // Imported subscribers each get one confirmation invite; past incidents notify no one.
@@ -141,7 +141,7 @@ export function createAppServices(bindings: AppBindings, blobs: BlobStore, execu
     publicDataChanged: () => publicSnapshots.rebuild(true),
   }, { apiOrigin: import.meta.env?.DEV && bindings.LAMP_DEV_STATUSPAGE_ORIGIN?.startsWith("http://127.0.0.1:") ? bindings.LAMP_DEV_STATUSPAGE_ORIGIN : undefined });
 
-  return { capturesMailLocally: capturesLocally, auth, operators, pageSettings, components, incidents, maintenance, subscribers, deliveries, reports, intake, briefs, ai, overview, updateReminders, publicSnapshots, statuspageImport, channels };
+  return { auth, operators, pageSettings, components, incidents, maintenance, subscribers, deliveries, reports, intake, briefs, ai, overview, updateReminders, publicSnapshots, statuspageImport, channels };
 }
 
 export type AppServices = ReturnType<typeof createAppServices>;

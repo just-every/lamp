@@ -17,7 +17,7 @@ export function ReadinessSettings() {
     finally { setBusy(false); }
   }
   return <section className="data-card">
-    <h2 id="sender-check">Check your sender</h2><p>Save your From email first. The check reads your provider’s domain authentication. In local development it captures a test message in the outbox.</p>
+    <h2 id="sender-check">Check your sender</h2><p>Save your From email first. The check reads your provider’s domain authentication.</p>
     <Button type="button" disabled={busy} onClick={() => run('check-sender')}>Check mail sender</Button>
     <h2 id="public-address">Your public address</h2>{readiness.error && <p role="alert">{readiness.error}</p>}<p style={{ overflowWrap: 'anywhere' }}>{publicOrigin}</p>{publicOrigin && <p>{localAddress ? 'This address is available only on this computer. Deploy Lamp to give your customers a public address.' : 'Your deployment address is a valid choice. A custom domain is optional; only Cloudflare-managed DNS is supported.'}</p>}
     <p><a className="text-link" style={{ minHeight: 24 }} href="https://github.com/just-every/run-lamp/blob/main/README.md#your-own-domain" target="_blank" rel="noreferrer">Read the custom domain guide</a></p>

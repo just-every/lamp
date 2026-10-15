@@ -5,14 +5,12 @@ import { lampRuntime } from './lamp-runtime.mjs';
 import { secret } from './runtime.mjs';
 
 const adapters = load('src/core/platform/mail/index.ts');
-const captures = load('src/core/features/dev-outbox/repository.ts');
 
 // Real routes, native authority, sender preparation and D1/R2. Only the remote
 // provider boundary is faked; no actual provider/account request is allowed.
 export async function exerciseMailPreparation(t, apply) {
-  const { SendGridMailSender, ResendMailSender, createDevelopmentMailSender, createMailSendRepository, MailPreparationError } = await adapters;
-  const { createDevOutboxRepository } = await captures;
-  for (const failure of ['sendgrid-ledger', 'sendgrid-envelope', 'sendgrid-key', 'sendgrid-ambiguous', 'resend-request', 'resend-ambiguous', 'development-storage', 'development-envelope', 'extension-prepare', 'extension-ambiguous']) await t.test(failure, async t => {
+  const { SendGridMailSender, ResendMailSender, createMailSendRepository, MailPreparationError } = await adapters;
+  for (const failure of ['sendgrid-ledger', 'sendgrid-envelope', 'sendgrid-key', 'sendgrid-ambiguous', 'resend-request', 'resend-ambiguous', 'extension-prepare', 'extension-ambiguous']) await t.test(failure, async t => {
     const r = await lampRuntime(t);
     const imported = await apply(r);
     const rows = (await r.db.prepare('SELECT * FROM subscribers ORDER BY id').all()).results;
@@ -39,10 +37,7 @@ export async function exerciseMailPreparation(t, apply) {
         const resend = new ResendMailSender({apiKey, fromAddress});
         const mail = failure.startsWith('sendgrid')
           ? new SendGridMailSender({apiKey, fromAddress}, createMailSendRepository(r.db))
-          : failure.startsWith('development') ? createDevelopmentMailSender({
-            LAMP_APP_HOST: 'localhost', LAMP_PAGE_HOST: '127.0.0.1', LAMP_DEV_OUTBOX: r.bucket,
-            LAMP_BASE_MAIL: broken && failure === 'development-storage' ? undefined : r.baseMail,
-          }) : failure.startsWith('extension') ? {configured: true, async send(message) {
+          : failure.startsWith('extension') ? {configured: true, async send(message) {
             if (broken && failure === 'extension-prepare') throw new MailPreparationError(Error('Extension preparation failed'));
             const result = await resend.send(message);
             if (broken) throw Object.assign(Error('Extension acceptance unknown'), {name: 'MailPreparationError', retryable: true});
@@ -59,15 +54,12 @@ export async function exerciseMailPreparation(t, apply) {
     const ambiguous = failure.endsWith('-ambiguous');
     assert.equal((await r.db.prepare('SELECT count(*) n FROM statuspage_import_invites WHERE sent_at IS NOT NULL').first()).n, ambiguous ? 1 : 0);
     assert.equal(remote.length, ambiguous ? 1 : 0, 'preparation failure never reaches the provider');
-    if (failure.startsWith('development')) assert.equal((await createDevOutboxRepository(r.bucket, r.baseMail).list()).envelopes.length, 0);
     broken = false;
     if (failure === 'sendgrid-ledger') await r.db.prepare('DROP TRIGGER refuse_ledger_preparation').run();
     assert.ok((await Promise.all([attempt(), attempt()])).every(response => response.status === 200));
     assert.equal((await attempt()).status, 200);
     assert.equal((await r.db.prepare('SELECT count(*) n FROM statuspage_import_invites WHERE sent_at IS NOT NULL').first()).n, 2);
-    const messages = failure.startsWith('development')
-      ? (await createDevOutboxRepository(r.bucket, r.baseMail).list()).envelopes.map(row => row.message)
-      : remote;
+    const messages = remote;
     assert.equal(messages.length, 2, 'both addresses get one handoff after repair, including concurrent and repeated actions');
     assert.equal(new Set(messages.map(message => JSON.stringify(message.to ?? message.personalizations[0].to))).size, 2);
     assert.deepEqual((await r.db.prepare('SELECT * FROM subscribers ORDER BY id').all()).results, rows);

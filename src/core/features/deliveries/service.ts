@@ -215,12 +215,9 @@ export function createDeliveriesService(
     if (Date.now() - new Date(envelope.frozenAt).getTime() >= RESEND_IDEMPOTENCY_WINDOW_MS) throw permanentDeliveryError("The mail provider idempotency window expired before delivery could be confirmed.");
     const { frozenAt: _frozenAt, ...messageInput } = envelope;
     const message = await options.mail.send(messageInput);
-    if ("disposition" in message && message.disposition === "captured") {
-      if (!("captureId" in message) || typeof message.captureId !== "string" || !message.captureId) throw permanentDeliveryError("The local mail capture returned no capture receipt.");
+    if (message.disposition === 'suppressed') {
       const timestamp = nowIso();
-      const attempt = (await repository.getAttemptCount(delivery.id)) + 1;
-      const captureAttempt = { id: createUlid(), deliveryId: delivery.id, attemptNumber: attempt, attemptedAt: timestamp, providerMessageId: null, error: null, localCaptureId: message.captureId, createdAt: timestamp };
-      await repository.recordAttempt(captureAttempt);
+      await repository.markOutcome(delivery.id, 'suppressed', timestamp, timestamp);
       return;
     }
     if (!message.providerMessageId) throw permanentDeliveryError("The mail sender returned no provider receipt.");

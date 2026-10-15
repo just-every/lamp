@@ -1,4 +1,4 @@
-import { isImportAliasPath, isLampPermalink } from '../statuspage-import/public-paths.mjs';
+import { isImportAliasPath, isLampPermalink } from '../../features/statuspage-import/public-paths.mjs';
 
 const loopbackAuthority = /^(?:localhost|127\.0\.0\.1|\[::1\])(?::[0-9]{1,5})?$/;
 

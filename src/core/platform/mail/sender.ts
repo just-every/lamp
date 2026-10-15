@@ -15,9 +15,8 @@ export type SentMail = {
   providerMessageId: string;
   disposition?: "accepted";
 } | {
-  /** No provider was contacted. This identifies a durable local envelope only. */
-  disposition: "captured";
-  captureId: string;
+  /** Local development deliberately sends and retains nothing. */
+  disposition: "suppressed";
 };
 
 export interface MailSender {

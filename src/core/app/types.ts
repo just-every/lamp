@@ -32,9 +32,6 @@ export interface AppBindings {
   LAMP_HEARTBEAT_INTERVAL_MINUTES?: string;
   DB: D1Database;
   SNAPSHOTS: R2Bucket;
-  /** Local Vite development only; never part of deployment or archive storage. */
-  LAMP_DEV_OUTBOX?: R2Bucket;
-  LAMP_BASE_MAIL?: D1Database;
   SNAPSHOT_CACHE: DurableObjectNamespace;
   JOBS: Queue<import("../platform/jobs").LampJob>;
   ASSETS: Fetcher;

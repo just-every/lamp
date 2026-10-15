@@ -3,11 +3,9 @@ import { isLocalPublicRead } from './public-read.mjs';
 
 /** The compiler removes development access from the emitted production Worker.
  * A runtime binding, request header or localhost URL cannot turn it back on. */
-export interface DevelopmentMailBindings {
+export interface DevelopmentBindings {
   LAMP_APP_HOST: string;
   LAMP_PAGE_HOST: string;
-  LAMP_DEV_OUTBOX?: R2Bucket;
-  LAMP_BASE_MAIL?: D1Database;
 }
 
 const localHosts = new Set(['localhost', '127.0.0.1', '[::1]']);
@@ -29,7 +27,7 @@ function localAuthority(authority: string): boolean {
  * a cross-site request. Only a top-level GET or HEAD document navigation, with
  * no Origin and a Referer from the other configured surface on this same
  * scheme and port, qualifies; a foreign page cannot produce that Referer. */
-function crossSurfaceNavigation(bindings: DevelopmentMailBindings, request: Request, url: URL): boolean {
+function crossSurfaceNavigation(bindings: DevelopmentBindings, request: Request, url: URL): boolean {
   if (!['GET', 'HEAD'].includes(request.method) || request.headers.has('origin')) return false;
   if (request.headers.get('sec-fetch-mode') !== 'navigate' || request.headers.get('sec-fetch-dest') !== 'document') return false;
   let referrer: URL;
@@ -39,7 +37,7 @@ function crossSurfaceNavigation(bindings: DevelopmentMailBindings, request: Requ
     && referrer.origin !== url.origin && !referrer.username && !referrer.password;
 }
 
-function localDevelopmentRequest(bindings: DevelopmentMailBindings, request: Request, admitCrossSurfaceNavigation: boolean, admitPublicReads = false): boolean {
+function localDevelopmentRequest(bindings: DevelopmentBindings, request: Request, admitCrossSurfaceNavigation: boolean, admitPublicReads = false): boolean {
   const url = new URL(request.url);
   if (!['http:', 'https:'].includes(url.protocol) || url.username || url.password || !localAuthority(url.host)) return false;
   if (![bindings.LAMP_APP_HOST.toLowerCase(), bindings.LAMP_PAGE_HOST.toLowerCase()].includes(url.hostname.toLowerCase())) return false;
@@ -59,30 +57,14 @@ function localDevelopmentRequest(bindings: DevelopmentMailBindings, request: Req
   return true;
 }
 
-function developmentConfigured(bindings: DevelopmentMailBindings): boolean {
-  return !!bindings.LAMP_DEV_OUTBOX && isLoopbackHostname(bindings.LAMP_APP_HOST) && isLoopbackHostname(bindings.LAMP_PAGE_HOST);
-}
-
-/** Mail capture and the outbox never act on a cross-site request. */
-export function canUseDevelopmentMail(bindings: DevelopmentMailBindings, request?: Request): boolean {
-  if (import.meta.env?.DEV !== true || !developmentConfigured(bindings)) return false;
-  // Scheduled/queue work has no client authority. Its configuration must still
-  // belong to the real local development runtime and its separate local store.
-  if (!request) return true;
-  return localDevelopmentRequest(bindings, request, false);
+function developmentConfigured(bindings: DevelopmentBindings): boolean {
+  return isLoopbackHostname(bindings.LAMP_APP_HOST) && isLoopbackHostname(bindings.LAMP_PAGE_HOST);
 }
 
 /** Admission for every request the development Worker serves: the same local
  * checks, plus navigation between surfaces and credentialless owner reads of
- * public aliases/permalinks. Neither exception enables development mail. */
-export function admitsDevelopmentRequest(bindings: DevelopmentMailBindings, request: Request): boolean {
+ * public aliases/permalinks. Both retain the local request boundary. */
+export function admitsDevelopmentRequest(bindings: DevelopmentBindings, request: Request): boolean {
   if (import.meta.env?.DEV !== true || !developmentConfigured(bindings)) return false;
   return localDevelopmentRequest(bindings, request, true, true);
-}
-
-/** Subscriber document navigation needs the local token secret, but a
- * credentialless public snapshot read must not initialize private mail state. */
-export function canPrepareDevelopmentMail(bindings: DevelopmentMailBindings, request: Request): boolean {
-  if (import.meta.env?.DEV !== true || !developmentConfigured(bindings)) return false;
-  return localDevelopmentRequest(bindings, request, true);
 }

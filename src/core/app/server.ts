@@ -52,7 +52,7 @@ export function createApp(bindings: AppBindings, execution?: MailExecution) {
   registerBriefRoutes(app, services.briefs);
   registerAiRoutes(app, services.ai);
   registerMaintenanceRoutes(app, services.maintenance);
-  registerSubscriberRoutes(app, services.subscribers, { localMailCapture: services.capturesMailLocally, rateLimiter: publicWriteLimiter });
+  registerSubscriberRoutes(app, services.subscribers, { rateLimiter: publicWriteLimiter });
   registerPageSettingsRoutes(app, services.pageSettings);
   registerStatuspageImportRoutes(app, services.statuspageImport);
   registerChannelRoutes(app, services.channels);
