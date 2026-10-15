@@ -4405,7 +4405,7 @@
       "executable": false
     },
     "tests/e2e/statuspage-import.test.mjs": {
-      "sha256": "efa8dc627c62955f6de75c6e65db1dfc2ff9062eb556f71940604779e28de4e2",
+      "sha256": "542f7c241941b0dc152f8cadb389cc20dd10fbf871ffdcde60ed46b02ddd9f50",
       "executable": false
     },
     "tests/e2e/subscriber-audit-helper.mjs": {

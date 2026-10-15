@@ -154,7 +154,9 @@ contract("MOVE-002", "an import is retroactive: history keeps its times, nobody 
   const mail = (await envelopes()).slice(0, (await envelopes()).length - mailBefore);
   assert.equal(mail.length, 6);
   assert.deepEqual(new Set(mail.map((envelope) => envelope.message.to)).size, 6);
-  assert.ok(mail.every((envelope) => /Confirm your .* status subscription/u.test(envelope.message.subject) && !/Incident \d/u.test(envelope.message.text)));
+  const pageName = (await api("/api/app/page-settings")).body.settings.pageName;
+  assert.ok(mail.every((envelope) => envelope.message.subject.includes(pageName)), "invitations identify the configured business");
+  assert.ok(mail.every((envelope) => /https?:\/\/\S+\/confirm-subscription\/\S+/u.test(envelope.message.text) && !/Incident \d/u.test(envelope.message.text)), "only confirmation invitations are sent, never imported history");
   const subscribers = (await api("/api/app/subscribers?limit=100")).body.subscribers;
   assert.ok(subscribers.every((subscriber) => subscriber.state === "pending"));
   // The invitation is an ordinary confirmation: following it activates that subscriber.
