@@ -241,7 +241,7 @@ contract("COMP-006", "standing claims derive a component's public state", async 
   assert.equal((await appFetch(path, { method: "DELETE", body: JSON.stringify({ reason: "Attachment probe complete" }) })).status, 200);
   assert.equal((await attach(claimInput)).status, 409);
   await appFetch(`/api/app/components/${component.id}/standing-claim`, { method: "PUT", body: JSON.stringify({ state: null }) });
-
+  assert.equal((await appFetch(`/api/app/components/${component.id}`, { method: "DELETE" })).status, 204);
 });
 
 contract("UPDATE-004", "draft save and preview share the incident renderer", async () => {
