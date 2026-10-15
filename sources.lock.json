@@ -2196,7 +2196,7 @@
       "executable": false
     },
     "scripts/installer/local.mjs": {
-      "sha256": "0340c8a7e23e5eba5d160458a8b145c8ed290a6ae2f2e8dfb69ff2280cde36d7",
+      "sha256": "07172cfe23f7d46d9e4193b49ef6cdb239bb1111dbec071e7fd2009180d43249",
       "executable": false
     },
     "scripts/installer/README.md": {
