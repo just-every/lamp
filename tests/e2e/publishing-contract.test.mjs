@@ -856,31 +856,96 @@ contract("MAINT-003", "a stale maintenance transition cannot reuse an earlier no
   const createMaintenanceRepository = await loadMaintenanceRepositoryFactory();
   const database = new DatabaseSync(":memory:");
   database.exec(`
-    CREATE TABLE maintenance (id TEXT PRIMARY KEY, state TEXT NOT NULL, completed_at TEXT, updated_at TEXT NOT NULL);
+    CREATE TABLE maintenance (id TEXT PRIMARY KEY, state TEXT NOT NULL, starts_at TEXT NOT NULL, ends_at TEXT NOT NULL, completed_at TEXT, updated_at TEXT NOT NULL);
     CREATE TABLE maintenance_notices (id TEXT PRIMARY KEY, maintenance_id TEXT NOT NULL, kind TEXT NOT NULL, body TEXT NOT NULL, published_at TEXT NOT NULL, author_operator_id TEXT, created_at TEXT NOT NULL, updated_at TEXT NOT NULL);
     CREATE TABLE audit_entries (id TEXT PRIMARY KEY, entity_type TEXT NOT NULL, entity_id TEXT NOT NULL, action TEXT NOT NULL, operator_id TEXT, reason TEXT, payload_json TEXT NOT NULL, created_at TEXT NOT NULL, updated_at TEXT NOT NULL);
-    INSERT INTO maintenance (id, state, completed_at, updated_at) VALUES ('maintenance-guard', 'Scheduled', NULL, '2026-09-08T00:00:00.000Z');
+    INSERT INTO maintenance (id, state, starts_at, ends_at, completed_at, updated_at) VALUES ('maintenance-guard', 'Scheduled', '2026-09-08T00:00:00.000Z', '2026-09-08T00:30:00.000Z', NULL, '2026-09-08T00:00:00.000Z');
   `);
   const repository = createMaintenanceRepository(createTransactionalD1Fixture(database));
   const notice = { id: "notice-guard", maintenanceId: "maintenance-guard", kind: "started", body: "Started.", publishedAt: "2026-09-08T00:00:01.000Z", authorOperatorId: null, createdAt: "2026-09-08T00:00:01.000Z", updatedAt: "2026-09-08T00:00:01.000Z" };
-  assert.equal(await repository.transitionWithNotice("maintenance-guard", "Scheduled", "In progress", null, notice.publishedAt, notice, []), true);
-  assert.equal(await repository.transitionWithNotice("maintenance-guard", "Scheduled", "In progress", null, notice.publishedAt, notice, []), false, "the same notice cannot be authorized by its earlier guard");
+  const dueWindow = { startsAt: "2026-09-08T00:00:00.000Z", endsAt: "2026-09-08T00:30:00.000Z" };
+  assert.equal(await repository.transitionWithNotice("maintenance-guard", "Scheduled", "In progress", null, notice.publishedAt, notice, [], dueWindow), true);
+  assert.equal(await repository.transitionWithNotice("maintenance-guard", "Scheduled", "In progress", null, notice.publishedAt, notice, [], dueWindow), false, "the same notice cannot be authorized by its earlier guard");
   const losingNotice = { ...notice, id: "notice-losing", createdAt: "2026-09-08T00:00:02.000Z", updatedAt: "2026-09-08T00:00:02.000Z" };
-  assert.equal(await repository.transitionWithNotice("maintenance-guard", "Scheduled", "In progress", null, losingNotice.publishedAt, losingNotice, []), false, "a concurrent loser with a fresh notice cannot write a source event");
+  assert.equal(await repository.transitionWithNotice("maintenance-guard", "Scheduled", "In progress", null, losingNotice.publishedAt, losingNotice, [], dueWindow), false, "a concurrent loser with a fresh notice cannot write a source event");
+  database.prepare("UPDATE maintenance SET ends_at = ? WHERE id = ?").run("2026-09-08T01:00:00.000Z", "maintenance-guard");
+  const staleCompletion = { ...notice, id: "notice-stale-completion", kind: "completed", publishedAt: "2026-09-08T00:00:03.000Z", createdAt: "2026-09-08T00:00:03.000Z", updatedAt: "2026-09-08T00:00:03.000Z" };
+  assert.equal(await repository.transitionWithNotice("maintenance-guard", "In progress", "Completed", staleCompletion.publishedAt, staleCompletion.publishedAt, staleCompletion, [], dueWindow), false, "a due transition cannot complete a window extended after it was read");
   assert.equal(database.prepare("SELECT COUNT(*) AS count FROM maintenance_notices").get().count, 1);
   assert.equal(database.prepare("SELECT COUNT(*) AS count FROM audit_entries").get().count, 1);
   database.close();
 });
 
-contract("MAINT-004", "an overrunning maintenance is flagged to operators and can be manually completed", async () => {
+contract("MAINT-004", "an overrun is public after its recorded end, and operators can extend or complete it", async () => {
   const created = await appFetch("/api/app/maintenance", { method: "POST", body: JSON.stringify({ title: "Manual overrun completion", startsAt: new Date(Date.now() + 2 * 60 * 60_000).toISOString(), endsAt: new Date(Date.now() + 3 * 60 * 60_000).toISOString(), componentIds: ["01J00000000000000000000011"] }) });
   await expectStatus(created, 201);
   const maintenance = (await created.json()).maintenance;
-  executeFixtureSql(`UPDATE maintenance SET state = 'In progress', ends_at = '${new Date(Date.now() - 16 * 60_000).toISOString()}' WHERE id = '${maintenance.id}'`);
+  executeFixtureSql(`UPDATE maintenance SET state = 'In progress', starts_at = '${new Date(Date.now() - 60 * 60_000).toISOString()}', ends_at = '${new Date(Date.now() - 16 * 60_000).toISOString()}' WHERE id = '${maintenance.id}'`);
   const overrunning = (await (await appFetch("/api/app/maintenance")).json()).maintenance.find((record) => record.id === maintenance.id);
   assert.equal(overrunning.overrunning, true);
   await expectStatus(await appFetch(`/api/app/maintenance/${maintenance.id}/complete`, { method: "POST" }), 200);
   assert.equal((await (await appFetch("/api/app/maintenance")).json()).maintenance.find((record) => record.id === maintenance.id).state, "Completed");
+
+  const originalStart = new Date(Date.now() - 60 * 60_000).toISOString();
+  const nearThresholdEnd = new Date(Date.now() - 14 * 60_000 - 40_000).toISOString();
+  const extensionResponse = await appFetch("/api/app/maintenance", { method: "POST", body: JSON.stringify({ title: "Manual overrun extension", startsAt: originalStart, endsAt: nearThresholdEnd, componentIds: ["01J00000000000000000000011"] }) });
+  await expectStatus(extensionResponse, 201);
+  const extension = (await extensionResponse.json()).maintenance;
+  const thresholdAt = Date.parse(nearThresholdEnd) + 15 * 60_000;
+  await expectStatus(await fetch(`${pageUrl}/cdn-cgi/local/scheduled?cron=*+*+*+*+*`), 200);
+  const started = (await (await appFetch("/api/app/maintenance")).json()).maintenance.find((record) => record.id === extension.id);
+  assert.equal(started.state, "In progress");
+  assert.equal(started.startsAt, extension.startsAt);
+  assert.equal(started.endsAt, nearThresholdEnd);
+  const beforeOverrun = await publicArtifact("/", `data-maintenance-state="In progress" data-maintenance-ends-at="${nearThresholdEnd}"`, "the started maintenance snapshot before the 15-minute overrun boundary");
+  const generatedAt = Date.parse(beforeOverrun.response.headers.get("x-lamp-snapshot-generated-at"));
+  assert.ok(generatedAt < thresholdAt, "the public artifact was generated before its overrun boundary");
+  assert.doesNotMatch(beforeOverrun.text, /Running longer than planned/);
+  const priorValidator = beforeOverrun.response.headers.get("etag");
+  await new Promise((resolve) => setTimeout(resolve, Math.max(0, thresholdAt - Date.now()) + 100));
+
+  const agedPageResponse = await fetch(`${pageUrl}/`, { headers: priorValidator ? { "If-None-Match": priorValidator } : {} });
+  assert.equal(agedPageResponse.status, 200, "the changed serving-time representation must not reuse the earlier validator");
+  assert.notEqual(agedPageResponse.headers.get("etag"), priorValidator);
+  const agedPage = await agedPageResponse.text();
+  assert.match(agedPage, /Running longer than planned/);
+  assert.ok(agedPage.includes(`data-maintenance-ends-at="${nearThresholdEnd}"`), "the public page keeps the recorded end beside the overrun message");
+  const agedPermalink = await (await fetch(`${pageUrl}/maintenance/${extension.reference}`)).text();
+  assert.match(agedPermalink, /Running longer than planned/);
+  assert.ok(agedPermalink.includes(`data-maintenance-ends-at="${nearThresholdEnd}"`), "the permanent page keeps the recorded end beside the overrun message");
+  assert.equal((await (await appFetch("/api/app/maintenance")).json()).maintenance.find((record) => record.id === extension.id).overrunning, true);
+
+  const laterEnd = new Date(Date.now() + 60 * 60_000).toISOString();
+  await expectStatus(await appFetch(`/api/app/maintenance/${extension.id}/window`, { method: "PUT", body: JSON.stringify({ startsAt: originalStart, endsAt: "not-a-date" }) }), 400);
+  await expectStatus(await appFetch(`/api/app/maintenance/${extension.id}/window`, { method: "PUT", body: JSON.stringify({ startsAt: new Date(Date.parse(originalStart) + 60_000).toISOString(), endsAt: laterEnd }) }), 409);
+  await expectStatus(await appFetch(`/api/app/maintenance/${extension.id}/window`, { method: "PUT", body: JSON.stringify({ startsAt: originalStart, endsAt: new Date(Date.parse(nearThresholdEnd) - 60_000).toISOString() }) }), 409);
+  const extendedResponse = await appFetch(`/api/app/maintenance/${extension.id}/window`, { method: "PUT", body: JSON.stringify({ startsAt: originalStart, endsAt: laterEnd }) });
+  await expectStatus(extendedResponse, 200);
+  const extended = (await extendedResponse.json()).maintenance;
+  assert.equal(extended.startsAt, originalStart);
+  assert.equal(extended.endsAt, laterEnd);
+  assert.equal(extended.overrunning, false);
+  const extensionNotice = extended.notices.find((notice) => notice.kind === "rescheduled");
+  assert.ok(extensionNotice, "extending the window publishes a rescheduled notice");
+  const extensionAudit = queryD1Sql(testStatePath, `SELECT operator_id AS operatorId, created_at AS createdAt FROM audit_entries WHERE entity_type = 'maintenance' AND entity_id = '${extension.id}' AND action = 'notice-published' AND operator_id = '${maintenance.createdByOperatorId}'`);
+  assert.equal(extensionAudit.length, 1);
+  assert.equal(extensionAudit[0].operatorId, maintenance.createdByOperatorId);
+  assert.equal(extensionAudit[0].createdAt, extensionNotice.createdAt);
+  const updatedPage = await publicArtifact("/", `data-maintenance-ends-at="${laterEnd}"`, "the extended maintenance snapshot");
+  assert.doesNotMatch(updatedPage.text, /Running longer than planned/);
+  const updatedPermalink = await publicArtifact(`/maintenance/${extension.reference}`, `data-maintenance-ends-at="${laterEnd}"`, "the extended maintenance permalink");
+  assert.doesNotMatch(updatedPermalink.text, /Running longer than planned/);
+
+  await expectStatus(await appFetch(`/api/app/maintenance/${extension.id}/complete`, { method: "POST" }), 200);
+  const completedPermalink = await publicArtifact(`/maintenance/${extension.reference}`, "Completed", "the completed maintenance permalink");
+  assert.doesNotMatch(completedPermalink.text, /Running longer than planned/);
+  await expectStatus(await appFetch(`/api/app/maintenance/${extension.id}/window`, { method: "PUT", body: JSON.stringify({ startsAt: originalStart, endsAt: new Date(Date.now() + 2 * 60 * 60_000).toISOString() }) }), 409);
+
+  const cancelledResponse = await appFetch("/api/app/maintenance", { method: "POST", body: JSON.stringify({ title: "Cancelled maintenance window", startsAt: new Date(Date.now() + 6 * 60 * 60_000).toISOString(), endsAt: new Date(Date.now() + 7 * 60 * 60_000).toISOString(), componentIds: ["01J00000000000000000000011"] }) });
+  await expectStatus(cancelledResponse, 201);
+  const cancelled = (await cancelledResponse.json()).maintenance;
+  await expectStatus(await appFetch(`/api/app/maintenance/${cancelled.id}/cancel`, { method: "POST" }), 200);
+  await expectStatus(await appFetch(`/api/app/maintenance/${cancelled.id}/window`, { method: "PUT", body: JSON.stringify({ startsAt: cancelled.startsAt, endsAt: new Date(Date.parse(cancelled.endsAt) + 60_000).toISOString() }) }), 409);
 });
 
 contract("MAINT-005", "scheduled, reminder, start, and completion notices are immutable maintenance events", async () => {
