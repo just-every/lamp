@@ -8,3 +8,5 @@ export const docsUrl = '/docs';
 export const licenceUrl = `${sourceUrl}/blob/main/LICENSE`;
 // The landing page's way in, on the run site (run-lamp.com) where it lives: the Run page's two commands.
 export const runAction = { label: 'Run Lamp', href: '/run' };
+// The hosted demo: a signed-in Lamp with sample data for each visitor, on its own host.
+export const demoAction = { label: 'Try the demo', href: 'https://demo.run-lamp.com/' };

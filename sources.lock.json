@@ -3604,7 +3604,7 @@
       "executable": false
     },
     "src/site/lamp/Intro.tsx": {
-      "sha256": "273db228f4ee4efe8676becac1c9ba0f982353ef37f29ba90927b59a0835f736",
+      "sha256": "47b2a333fdb676215387bbab1137660076124ad8dd3790fef1a8378cd7afc5c1",
       "executable": false
     },
     "src/site/lamp/IntroReady.tsx": {
@@ -3844,7 +3844,7 @@
       "executable": false
     },
     "src/site/lamp/repository.ts": {
-      "sha256": "f0778b6252e924e3341a40b81da172aab954b3ca96462244cb62e469aad5c53c",
+      "sha256": "9672c9e26ebafb6542f77c1795ba29d45e0202c6d9dd1df1875e5978f590c0bd",
       "executable": false
     },
     "src/site/lamp/reveal/reveal.css": {
