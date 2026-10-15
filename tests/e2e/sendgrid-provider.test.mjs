@@ -193,7 +193,11 @@ test('full application routes signed mail events before generic alert source int
         await sender().send(input);
       } else {
         let correlation;
-        await assert.rejects(sender().send(input), error => { correlation = error.providerMessageId; return error.retryable === false; });
+        await assert.rejects(sender().send(input), error => {
+          correlation = payloads.at(-1).custom_args.lamp_message_id;
+          return error.retryable === false && (status === 400 || status === 401
+            ? error.providerMessageId === undefined : error.providerMessageId === correlation);
+        });
         await assert.rejects(sender().send(input), error => error.retryable === false && error.providerMessageId === correlation);
         const record = await repository(platform.env.DB).get(correlation);
         assert.equal(record.state, status === 400 || status === 401 ? 'rejected' : 'uncertain');

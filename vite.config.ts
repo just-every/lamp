@@ -51,7 +51,7 @@ export default defineConfig(({ command, isPreview }) => {
             AUTH_LOCAL: 'true', ...localVar('SESSION_SECRET'), ...localVar('SETUP_OPERATOR_EMAIL'),
             ...localVar('RER_DEV_ORIGIN'), ...localVar('RER_DEV_KEY'), ...localVar('RER_DEV_IDENTITY'),
           } } : {};
-          const statuspage = Object.keys(standIns).length ? { vars: { ...config.vars, ...devAuth.vars, ...standIns } } : devAuth;
+          const statuspage = Object.keys(standIns).length ? { ...devAuth, vars: { ...config.vars, ...devAuth.vars, ...standIns } } : devAuth;
           return statuspage;
         },
         inspectorPort: local ? false : inspectorPort,

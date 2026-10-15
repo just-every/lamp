@@ -9,7 +9,9 @@ import { join } from "node:path";
 import { contract } from "../contract.mjs";
 import { localWranglerConfig } from "../helpers/wrangler-config.mjs";
 import { withDraftVersion } from "./draft-version-helper.mjs";
-import { envelopes, nativeRequest, openNativeRuntime, publicOrigin, operator } from "../dev-ingress/runtime.mjs";
+import { nativeRequest, openNativeRuntime, publicOrigin, origin, operator } from "../dev-ingress/runtime.mjs";
+import { devKey } from '../helpers/dev-key.mjs';
+import { signInAs } from '@runeditrun/rer/internal/modules/operator-auth/dev/sign-in-as.mjs';
 
 // Every request opens its own connection; Wrangler CLI work can outlast an idle keep-alive socket.
 const nativeFetch = globalThis.fetch;
@@ -68,11 +70,7 @@ before(async () => {
   runtime.env.LAMP_WRANGLER_CONFIG = configPath;
   await runtime.start();
   await runtime.seedOperator();
-  await nativeRequest("/auth/magic-link", { method: "POST", json: { email: operator } });
-  const link = (await envelopes()).find((row) => row.message.to === operator).message.text.match(/http:\/\/[^\s]+/)[0];
-  const signed = await nativeRequest("/auth/confirm", { method: "POST", json: { token: new URL(link).searchParams.get("token") } });
-  assert.equal(signed.status, 303);
-  cookie = signed.headers.get("set-cookie").split(";")[0];
+  cookie = (await signInAs({ origin, key: devKey })).header;
   await fetch(`${publicOrigin}/`);
 });
 

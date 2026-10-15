@@ -14,7 +14,9 @@ import { localWranglerConfig } from "../helpers/wrangler-config.mjs";
 const nativeFetch = globalThis.fetch;
 globalThis.fetch = (input, init) => { const request = new Request(input, init); request.headers.set("connection", "close"); return nativeFetch(request, { referrer: request.referrer, referrerPolicy: request.referrerPolicy }); };
 import { withDraftVersion } from "./draft-version-helper.mjs";
-import { envelopes, nativeRequest, openNativeRuntime, publicOrigin, origin, operator } from "../dev-ingress/runtime.mjs";
+import { nativeRequest, openNativeRuntime, publicOrigin, origin, operator } from "../dev-ingress/runtime.mjs";
+import { devKey } from '../helpers/dev-key.mjs';
+import { signInAs } from '@runeditrun/rer/internal/modules/operator-auth/dev/sign-in-as.mjs';
 
 // Synthetic channel addresses; a local receiver stands in for Slack and Teams.
 const SLACK_A = "https://hooks.slack.com/services/T0LAMPTEST/B0SLACKA/slackAsecret01";
@@ -57,10 +59,7 @@ before(async () => {
   runtime.env.LAMP_WRANGLER_CONFIG = configPath;
   await runtime.start();
   await runtime.seedOperator();
-  await nativeRequest('/auth/magic-link',{method:'POST',json:{email:operator}});
-  const link=(await envelopes()).find(row=>row.message.to===operator).message.text.match(/http:\/\/[^\s]+/)[0];
-  const signed=await nativeRequest('/auth/confirm',{method:'POST',json:{token:new URL(link).searchParams.get('token')}});
-  assert.equal(signed.status,303);cookie=signed.headers.get('set-cookie').split(';')[0];
+  cookie = (await signInAs({ origin, key: devKey })).header;
   await fetch(`${publicOrigin}/`);
 });
 

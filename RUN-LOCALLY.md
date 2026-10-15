@@ -17,7 +17,8 @@ line when the app is ready. Open that entry
 address to work as the owner. Sign-in is one click and needs no email.
 
 Local mail is not sent or retained. In ordinary development,
-`GET /__dev/outbox` on the local app host returns HTTP 200 with a plain-text
+after opening the local owner entry address, `GET /__dev/outbox` on the local
+app host returns HTTP 200 with a plain-text
 suppression notice. It is a compatibility address, with no inbox or captured
 messages. Test emailed sign-in and subscriber delivery on a hosted installation
 with its real mail provider and mailbox.

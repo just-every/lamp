@@ -4,8 +4,10 @@ import { readdir, mkdir } from 'node:fs/promises';
 import { resolve, join } from 'node:path';
 import { chromium } from 'playwright';
 import AxeBuilder from '@axe-core/playwright';
-import { openNativeRuntime, origin, operator, envelopes } from '../dev-ingress/runtime.mjs';
+import { openNativeRuntime, origin } from '../dev-ingress/runtime.mjs';
 import { devKey } from '../helpers/dev-key.mjs';
+import { signInAs } from '@runeditrun/rer/internal/modules/operator-auth/dev/sign-in-as.mjs';
+import { notificationActivity, assertNoNewNotifications } from '../helpers/import-notifications.mjs';
 
 test('MOVE-001 Instatus source-first review and Cutover keep provider labels, invalidate switched-source previews and fit desktop/mobile', { timeout: 600000 }, async () => {
   const runtime = await openNativeRuntime(); let browser;
@@ -13,24 +15,10 @@ test('MOVE-001 Instatus source-first review and Cutover keep provider labels, in
     await runtime.start(); await runtime.seedOperator(); browser = await chromium.launch();
     const context = await browser.newContext();
     await context.route(url => url.pathname.startsWith('/@fs/'), route => route.continue({ headers: { ...route.request().headers(), 'x-rer-dev-key': devKey } }));
-    const page = await context.newPage(); await page.goto(`${origin}/signin`);
-    const priorMail = new Set((await envelopes()).map(row => row.id));
-    await page.getByLabel('Email', { exact: true }).fill(operator);
-    const requested = page.waitForResponse(response => response.url() === origin + '/auth/magic-link' && response.request().method() === 'POST');
-    await page.getByRole('button', { name: 'Email a sign-in link' }).click();
-    const sent = await requested;
-    // The maintained sign-in page submits a native form, not the JSON API.
-    assert.equal(sent.request().isNavigationRequest(), true);
-    assert.match(sent.request().headers()['content-type'], /^application\/x-www-form-urlencoded(?:;|$)/);
-    assert.equal(sent.status(), 303);
-    assert.equal(sent.headers().location, '/signin?notice=sent');
-    await page.waitForURL(origin + '/signin?notice=sent');
-    await page.getByRole('status').waitFor();
-    const signInMail = (await envelopes()).find(row => !priorMail.has(row.id) && row.message.to === operator && row.message.text.includes('/auth/confirm?'));
-    assert.ok(signInMail, 'the form submission captures a new sign-in email');
-    const link = signInMail.message.text.match(/https?:\/\/[^\s]+/)[0];
-    await page.goto(link); await page.getByRole('button', { name: 'Confirm', exact: true }).click(); await page.waitForURL('**/app');
-    const before = (await envelopes()).length;
+    const entered = await signInAs({ origin, key: devKey });
+    await context.addCookies(entered.cookies.map(cookie => ({ ...cookie, url: origin })));
+    const page = await context.newPage(); await page.goto(origin + entered.location); await page.waitForURL('**/app');
+    const before = await notificationActivity(runtime);
     const evidence = resolve(process.env.LAMP_INSTATUS_EVIDENCE ?? 'visual/instatus'); await mkdir(evidence, { recursive: true });
     const openMoveIn = async () => {
       const hydrated = page.waitForResponse(response => response.url() === origin + '/api/app/statuspage-import/jobs' && response.request().method() === 'GET' && response.status() === 200);
@@ -69,7 +57,7 @@ test('MOVE-001 Instatus source-first review and Cutover keep provider labels, in
       await page.getByRole('combobox', { name: 'Source', exact: true }).selectOption('betterstack');
       assert.equal(await page.getByRole('heading', { name: 'Dry run', exact: true }).count(), 0);
       assert.equal(await page.getByRole('button', { name: 'Import', exact: true }).count(), 0);
-      assert.equal((await envelopes()).length, before);
+      await assertNoNewNotifications(runtime, before);
     }
     await context.close();
   } finally { await browser?.close(); await runtime.close(); }

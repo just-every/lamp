@@ -127,6 +127,10 @@
     {
       "id": "0022_import_maintenance_updates.sql",
       "buyerSteps": "Back up data and owner source, then apply after 0021 before starting this revision. It adds the imported-maintenance update history table, timeline index and snapshot-refresh triggers; existing records remain unchanged. Imported Better Stack maintenance messages remain historical updates and create no native lifecycle notices or notification replay."
+    },
+    {
+      "id": "0023_owner_signin.sql",
+      "buyerSteps": "Apply after 0022 before starting this revision. It adds Base's one-use owner sign-in grant table for rer signin; existing operator identities, sessions and migration history are unchanged. Grants are installation-local and do not travel in exports."
     }
   ],
   "breaking": true,

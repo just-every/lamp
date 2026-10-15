@@ -2,7 +2,10 @@ import assert from 'node:assert/strict';
 import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { before, after, test } from 'node:test';
-import { envelopes, nativeRequest, openNativeRuntime, publicOrigin, operator } from '../dev-ingress/runtime.mjs';
+import { nativeRequest, openNativeRuntime, publicOrigin, origin } from '../dev-ingress/runtime.mjs';
+import { devKey } from '../helpers/dev-key.mjs';
+import { signInAs } from '@runeditrun/rer/internal/modules/operator-auth/dev/sign-in-as.mjs';
+import { notificationActivity, assertNoNewNotifications } from '../helpers/import-notifications.mjs';
 const fixtures = family => readdirSync(join('tests/fixtures/instatus', family)).map(name => ({ name, text: readFileSync(join('tests/fixtures/instatus', family, name), 'utf8') }));
 const source = { source: 'instatus', pageId: 'synthpage01', publicAccessAcknowledged: true };
 let runtime, cookie;
@@ -38,16 +41,13 @@ async function undo(job) {
 }
 before(async () => {
   runtime = await openNativeRuntime(); await runtime.start(); await runtime.seedOperator();
-  await nativeRequest('/auth/magic-link', { method: 'POST', json: { email: operator } });
-  const link = (await envelopes()).find(row => row.message.to === operator).message.text.match(/http:\/\/[^\s]+/)[0];
-  const response = await nativeRequest('/auth/confirm', { method: 'POST', json: { token: new URL(link).searchParams.get('token') } });
-  assert.equal(response.status, 303); cookie = response.headers.get('set-cookie').split(';')[0];
+  cookie = (await signInAs({ origin, key: devKey })).header;
   await fetch(`${publicOrigin}/`);
 });
 after(async () => { await runtime?.close(); });
 
 test('MOVE-001/002/003/004/005 Instatus owner route reviews, fences, imports silently, preserves history and conditionally undoes', async () => {
-  const initial = await counts(), mailBefore = (await envelopes()).length;
+  const initial = await counts(), mailBefore = await notificationActivity(runtime);
   const small = fixtures('small'), large = fixtures('large');
   const guest = await nativeRequest(`${route}/preview`, { method: 'POST', json: { ...source, files: small } });
   assert.equal(guest.status, 401);
@@ -63,7 +63,7 @@ test('MOVE-001/002/003/004/005 Instatus owner route reviews, fences, imports sil
     const want = expected(files), report = preview.body.report;
     for (const [kind, plural] of [['component', 'components'], ['group', 'groups'], ['incident', 'incidents'], ['maintenance', 'maintenance'], ['subscriber', 'subscribers']]) assert.equal(report.counts[kind].imported + report.counts[kind].changed, want[plural]);
     assert.equal(report.counts.subscriber.skipped, want.skipped);
-    assert.deepEqual(await counts(), initial); assert.equal((await envelopes()).length, mailBefore);
+    assert.deepEqual(await counts(), initial); await assertNoNewNotifications(runtime, mailBefore);
   }
   const preview = (await api(`${route}/preview`, { ...source, files: small })).body;
   const changedSource = small.map(file => file.name === 'instatus-components.json' ? { ...file, text: file.text.replace('Synthetic service', 'Changed source service') } : file);
@@ -75,14 +75,14 @@ test('MOVE-001/002/003/004/005 Instatus owner route reviews, fences, imports sil
   const beforeSmall = await counts();
   const smallImport = await apply(small), smallWant = expected(small);
   assert.deepEqual(await counts(), Object.fromEntries(Object.entries(beforeSmall).map(([key, value]) => [key, value + smallWant[key]])));
-  assert.equal((await envelopes()).length, mailBefore);
+  await assertNoNewNotifications(runtime, mailBefore);
   await undo(smallImport.result.job.id);
   assert.deepEqual(await counts(), beforeSmall);
-  assert.equal((await envelopes()).length, mailBefore);
+  await assertNoNewNotifications(runtime, mailBefore);
   const beforeImport = await counts();
   const imported = await apply(large), want = expected(large);
   assert.deepEqual(await counts(), Object.fromEntries(Object.entries(beforeImport).map(([key, value]) => [key, value + want[key]])));
-  assert.equal((await envelopes()).length, mailBefore, 'preview/apply/resume do not send invitations');
+  await assertNoNewNotifications(runtime, mailBefore, 'preview/apply/resume do not send invitations');
   assert.equal((await get('/api/app/deliveries?limit=100')).body.deliveries.length, 0);
   const incidents = (await get('/api/app/incidents')).body.incidents;
   const raw = JSON.parse(large.find(file => file.name === 'instatus-incidents.json').text);
@@ -102,13 +102,13 @@ test('MOVE-001/002/003/004/005 Instatus owner route reviews, fences, imports sil
   assert.equal(await (await fetch(`${publicOrigin}/history.atom`)).text(), await (await fetch(`${publicOrigin}/feed.atom`)).text());
   const cutover = await get(`${route}/jobs/${imported.result.job.id}`);
   assert.ok(cutover.body.report.cutover.readerGaps.some(message => message.includes('/history.rss')));
-  assert.equal((await envelopes()).length, mailBefore, 'Cutover read sends nothing');
+  await assertNoNewNotifications(runtime, mailBefore, 'Cutover read sends nothing');
   const beforeRepeated = await counts();
   const repeated = await apply(large);
   assert.deepEqual(await counts(), beforeRepeated);
   assert.equal(repeated.preview.report.state, 'already imported');
   assert.deepEqual(repeated.result.report.counts, imported.result.report.counts);
-  assert.equal((await envelopes()).length, mailBefore);
+  await assertNoNewNotifications(runtime, mailBefore);
   // The same provider-local IDs and creation dates still name different native
   // components; email destinations stay unique across source namespaces.
   const otherComponents = JSON.parse(readFileSync('tests/fixtures/statuspage/small/components.json', 'utf8')).map(row => ({ ...row, created_at: '2020-01-01T00:00:00Z', name: `Statuspage ${row.name}` }));
@@ -149,5 +149,5 @@ test('MOVE-001/002/003/004/005 Instatus owner route reviews, fences, imports sil
   assert.equal((await fetch(`${publicOrigin}${new URL(summary.recentlyResolvedIncidents[0].url).pathname}`, { redirect: 'manual' })).status, 301);
   assert.equal((await fetch(`${publicOrigin}${new URL(summary.recentlyResolvedIncidents[1].url).pathname}`, { redirect: 'manual' })).status, 404);
   assert.equal(await (await fetch(`${publicOrigin}/history.atom`)).text(), await (await fetch(`${publicOrigin}/feed.atom`)).text(), 'surviving imports keep the shared feed address after conditional undo');
-  assert.equal((await envelopes()).length, mailBefore);
+  await assertNoNewNotifications(runtime, mailBefore);
 });
