@@ -202,7 +202,7 @@ are not interrupted.
 For hosted owner entry, use
 `rer signin --environment production --env-file "$HOME/.config/lamp/production.env"`
 from the deploying checkout with its original Cloudflare account. The pinned
-`@runeditrun/rer` 0.2.20 prints one single-use, 15-minute owner link without mail
+`@runeditrun/rer` 0.2.22 prints one single-use, 15-minute owner link without mail
 when using the default `lamp-<environment>` prefix. Retain the deploying checkout
 and its records; the
 [operations reference](OPERATIONS.md#shared-operator-authentication) covers the

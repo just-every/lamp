@@ -148,6 +148,22 @@ are never rewritten or reconstructed. The changed plan binds the choice, and
 artifact metadata and peer provenance locations lose potentially personal names.
 See the D1 erasure documentation for lineage requirements and supported scope.
 
+### Person erasure retires custody
+
+Retained jobs are never removed as an erasure shortcut, with one exception:
+`retireD1ImportCustody` deletes the whole custody of a job or stream whose
+header (namespace, operation key, original name, stage header) equals an exact
+identifier of the person being erased, because renaming it would break the source
+identities undo and resume depend on. The person's own records elsewhere become
+tombstones and every other job keeps undo and resume. A retired job or stream
+keeps only a plain retirement row naming the append-only erasure journal entry,
+answers `IMPORT_JOB_RETIRED` or `IMPORT_STREAM_RETIRED`, and keeps the native rows
+it wrote. Matching is exact; nothing is matched as a substring. The journal holds
+counts, receipt id and time, never an erased value; it and the retirements are
+append-only (no update, delete or insert over an existing key). A batch that
+rewrites or retires custody carries the product's restore checkpoint, so an
+archive older than the erasure is refused whole under the later journal.
+
 Credential-key validation permits a JSON boolean under the exact key `secret`,
 a common noncredential visibility flag. Every nonboolean value under that key,
 other credential keys and credential-bearing URLs remain forbidden, including in

@@ -59,7 +59,7 @@ You can also export the input names in the calling shell. The
 [input reference](docs/deployment-reference.md) distinguishes required owner
 values from secrets that `rer` generates on a first deploy.
 
-Use `rer` from the project root; the checkout pins `@runeditrun/rer` 0.2.21. Before a
+Use `rer` from the project root; the checkout pins `@runeditrun/rer` 0.2.22. Before a
 command that builds or verifies the checkout,
 stop a running development server with `rer dev --stop` or a production preview
 with `rer preview --stop`.

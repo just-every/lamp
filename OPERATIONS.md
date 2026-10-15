@@ -435,7 +435,7 @@ The minute cron sends an empty GET only on the heartbeat interval grid, after sc
 
 ## Shared operator authentication
 
-The checkout pins `@runeditrun/rer` 0.2.21. For hosted owner entry without email,
+The checkout pins `@runeditrun/rer` 0.2.22. For hosted owner entry without email,
 run this from the deploying checkout using the original account and environment:
 
 ```sh
@@ -449,7 +449,7 @@ does not save it, and sends no mail. Open it privately within 15 minutes. The
 grant is single-use and its use is audited. Retain the deploying checkout and its
 deployment records. An older installation needs additive migration
 `0023_owner_signin.sql` applied by redeployment before this command can issue a
-grant. `rer signin` 0.2.21 targets the default `lamp-<environment>` prefix; for a
+grant. `rer signin` 0.2.22 targets the default `lamp-<environment>` prefix; for a
 custom `LAMP_RESOURCE_PREFIX`, use the compatibility command below with that
 installation's generated configuration.
 Hosted mail remains mandatory for normal email sign-in and subscriber messages.

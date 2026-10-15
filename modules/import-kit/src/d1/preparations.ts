@@ -16,6 +16,7 @@ import { discardStage, publishedStage } from './staging-lifecycle.ts';
 import { stagePublication, publishedStagePredicates } from './staging-publication.ts';
 import { publishedStream } from './published-stream.ts';
 import { publicationReturnQueries } from './staging-control.ts';
+import { exactRows } from './sets.ts';
 
 export { readD1ImportPreparation } from './preparation-state.ts';
 export type { ImportPreparation } from './preparation-state.ts';
@@ -65,12 +66,17 @@ export async function publishD1ImportPreparation(id:string,input:D1ImportContext
   const {stage,revision}=state;
   try {
   const header=await preparationHeaderRead(state),pages=await preparationPages(state);
-  await verifyPreparationFingerprint(state,header,pages);
+  // A preparation made in steps was verified step by step from this exact
+  // custody; its control row records the revision that verification covers.
+  const steps=await context.storage.database.prepare('SELECT * FROM ik_d1_preparation_steps WHERE id=?').bind(id).first<any>();
+  const verified=steps?.phase==='prepared'&&steps.verified_revision===revision&&steps.fingerprint===stage.fingerprint&&steps.destination===stage.destination&&steps.principal_id===stage.principal_id&&steps.operation_key===stage.operation_key;
+  if(!verified)await verifyPreparationFingerprint(state,header,pages);
   await preparationRead(state,sql('SELECT 1 AS verified'));
   // Receipt/schema triggers make deletion part of the same revision fences as
   // every other private value. Existing final publication owns exact cleanup.
   await stagingAtomic(context,[guard(bindingPredicate(stage)),guard(stageClear(stage)),
-    ...stagePublication(stage,revision)],publicationReturnQueries(context,stage),[sql('DELETE FROM ik_d1_publication_fences WHERE stream_id=?',id)],[...publishedStagePredicates(stage,pages),sql('NOT EXISTS(SELECT 1 FROM ik_d1_preparation_receipts WHERE stage_id=?) AND NOT EXISTS(SELECT 1 FROM ik_d1_staging_headers WHERE stage_id=?)',id,id)]);
+    ...steps?[...exactRows('ik_d1_preparation_steps',Object.keys(steps),[steps]),sql('DELETE FROM ik_d1_preparation_steps WHERE id=?',id)]:[],
+    ...stagePublication(stage,revision),...steps?[sql('INSERT INTO ik_d1_stream_sources(stream_id,destination,source_digest) VALUES(?,?,?)',id,stage.destination,steps.source_digest)]:[]],publicationReturnQueries(context,stage),[sql('DELETE FROM ik_d1_publication_fences WHERE stream_id=?',id)],[...publishedStagePredicates(stage,pages),sql('NOT EXISTS(SELECT 1 FROM ik_d1_preparation_receipts WHERE stage_id=?) AND NOT EXISTS(SELECT 1 FROM ik_d1_staging_headers WHERE stage_id=?)',id,id)]);
   return await publishedStream(context,id,stage.operation_key,stage.fingerprint);
   } catch(error) {
     await discardStage(stage,context);

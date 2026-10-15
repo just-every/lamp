@@ -1,7 +1,7 @@
-import { lstat, mkdir, mkdtemp, readdir, rename, rm, writeFile } from 'node:fs/promises';
+import { lstat, mkdir, mkdtemp, readFile, readdir, rename, rm, writeFile } from 'node:fs/promises';
 import { join, basename } from 'node:path';
 import { deploymentSpec } from './spec.mjs';
-import { candidateRoot, checkedPath, collectFiles, comparePaths, moduleName, outputLocation, relativePath } from './paths.mjs';
+import { assetsIgnore, candidateRoot, checkedPath, collectFiles, comparePaths, moduleName, outputLocation, relativePath } from './paths.mjs';
 import { MAX_ARTIFACT_MANIFEST_BYTES, MODULE_TYPES, moduleType, validatePayloadBounds, writePayloads } from './payloads.mjs';
 
 const excludedModule = name => /(?:^|\/)wrangler\.json$/i.test(name) || /\.map$/i.test(name);
@@ -17,7 +17,8 @@ export async function produceArtifact({ root = process.cwd(), output = 'delivery
   const destination = await outputLocation(root, output);
   if ([workerDirectory, assetsDirectory].some(input => overlaps(input, destination.relativeDirectory))) throw new Error('Artifact output must be separate from build inputs');
   const modules = (await collectFiles(root, workerDirectory)).filter(file => !excludedModule(file.name)).map(file => ({ ...file, name: moduleName(file.name), type: moduleType(file.name) }));
-  const assets = await collectFiles(root, assetsDirectory);
+  const ignored = assetsIgnore(await readFile(join(root, assetsDirectory, '.assetsignore'), 'utf8').catch(error => { if (error.code === 'ENOENT') return ''; throw error; }));
+  const assets = (await collectFiles(root, assetsDirectory)).filter(file => !ignored(file.name));
   for (const entry of additionalModules) {
     if (!entry || typeof entry !== 'object' || Array.isArray(entry) || Object.keys(entry).some(key => !['name', 'type', 'path'].includes(key)) || typeof entry.name !== 'string' || typeof entry.path !== 'string' || !MODULE_TYPES.has(entry.type)) throw new Error('Invalid additional module: declare name, type and path');
     moduleName(entry.name);

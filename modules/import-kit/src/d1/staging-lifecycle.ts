@@ -1,4 +1,4 @@
-import type { D1ImportContext } from './types.ts';
+import type { D1ImportContext, D1Sql } from './types.ts';
 import { authorize, sql } from './database.ts';
 import { exactRows } from './sets.ts';
 import { requestContext } from './budget.ts';
@@ -30,8 +30,20 @@ export async function discardStage(stage: StageBinding, context: D1ImportContext
 export async function cancelD1ImportStaging(operationKey: string, input: D1ImportContext): Promise<void> {
   const context = requestContext(input); requireText(operationKey, 'operationKey');
   await authorize(context, 'create');
+  // A preparation made in steps: its control row and every generation under its
+  // internal keys, recorded or left unrecorded by an interrupted step.
+  const steps = await context.storage.database.prepare('SELECT * FROM ik_d1_preparation_steps WHERE destination=? AND namespace=? AND principal_id=? AND operation_key=?').bind(context.destination, context.namespace, context.authorization.principalId, operationKey).first<any>();
+  if (steps) await stagingAtomic(context, [...exactRows('ik_d1_preparation_steps', Object.keys(steps), [steps]),
+    stepGenerations('DELETE FROM ik_d1_staging', steps), sql('DELETE FROM ik_d1_preparation_steps WHERE id=?', steps.id)]);
   const stage = await context.storage.database.prepare('SELECT * FROM ik_d1_staging WHERE destination=? AND namespace=? AND principal_id=? AND operation_key=?').bind(context.destination, context.namespace, context.authorization.principalId, operationKey).first();
   if (!stage) return;
   if (context.reviewedFingerprint !== undefined && context.reviewedFingerprint !== stage.fingerprint) throw new Error('REVIEW_FINGERPRINT_MISMATCH');
   await stagingAtomic(context, [...exactRows('ik_d1_staging', Object.keys(stage), [stage]), sql('DELETE FROM ik_d1_staging WHERE id=? AND generation=?', stage.id, stage.generation)]);
+}
+
+/** Every generation a preparation's steps staged: each has the internal key
+ * `<preparation id>:<step>` under the preparation's destination and principal. */
+export function stepGenerations(statement: string, steps: { id: string; destination: string; principal_id: string }): D1Sql {
+  const prefix = `${steps.id}:`;
+  return sql(`${statement} WHERE destination=? AND principal_id=? AND substr(operation_key,1,?)=?`, steps.destination, steps.principal_id, prefix.length, prefix);
 }

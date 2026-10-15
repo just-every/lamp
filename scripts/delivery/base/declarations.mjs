@@ -13,11 +13,17 @@ export function validateDeclarations(spec) {
   if (spec.surfaces !== undefined) {
     keys(spec.surfaces, ['app','page','websitePreview'], 'surfaces');
     if (!spec.surfaces.app) throw Error('Surfaces require an app');
-    for (const surface of Object.values(spec.surfaces)) {
+    const origins = new Map();
+    for (const [name, surface] of Object.entries(spec.surfaces)) {
       keys(surface, ['path','hostnameVariable','originVariable','readiness'], 'surface');
       string(surface.path, 'surface path', pathPattern);
       if (surface.hostnameVariable !== undefined && surface.originVariable !== undefined) throw Error('Surface must choose one address variable');
       for (const field of ['hostnameVariable','originVariable']) if (surface[field] !== undefined) string(surface[field], field, bindingPattern);
+      if (surface.originVariable !== undefined) {
+        const previous = origins.get(surface.originVariable);
+        if (previous !== undefined) throw Error(`Duplicate originVariable ${surface.originVariable} on surfaces.${previous} and surfaces.${name}`);
+        origins.set(surface.originVariable, name);
+      }
       if (surface.readiness !== undefined) {
         const probes = array(surface.readiness, 'surface readiness');
         if (!probes.length || probes.length > 32) throw Error('Invalid readiness probe count');

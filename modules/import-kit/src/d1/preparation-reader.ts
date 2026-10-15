@@ -9,6 +9,7 @@ import { layoutHash } from './stream-state.ts';
 import { preparationRead, type PreparationState } from './preparation-state.ts';
 import type { ImportPlan } from '../types.ts';
 import type { UnverifiedStreamPages } from './stream-plan.ts';
+import type { D1PlanCodec } from './types.ts';
 
 async function* chunks(state:PreparationState,headers=false):AsyncGenerator<any>{
   let page=-1,ordinal=-1;
@@ -58,18 +59,24 @@ export async function* readPreparationPlans(state:PreparationState,pages:any[]):
       if(next.done||next.value.page_ordinal!==page.ordinal||next.value.ordinal!==ordinal)throw new Error('IMPORT_STAGE_CONTENT_CHANGED');
       parts.push(next.value.body);bytes+=next.value.body_size;
     }
-    const body=parts.join('');parts.length=0;
-    if(bytes!==page.body_size||sha256(body)!==page.body_hash)throw new Error('IMPORT_STAGE_CONTENT_CHANGED');
-    const manifest=JSON.parse(page.plan_json);
-    if(canonicalHash(manifest)!==sha256(page.plan_json)||canonicalHash(manifest)!==canonicalHash({d1Plan:1,chunks:page.chunks,size:bytes,sha256:page.body_hash}))throw new Error('IMPORT_STAGE_CONTENT_CHANGED');
-    const envelope=JSON.parse(body);
-    const plan=([2,3].includes(envelope?.d1Plan)?expandCompressedEnvelope(body,envelope,state.context.storage.targets.planCodec):envelope) as ImportPlan;
-    if(![2,3].includes(envelope?.d1Plan)&&(page.inline_plan!==1||canonicalHash(plan)!==page.body_hash||planFingerprint(plan)!==plan.fingerprint))throw new Error('STORED_PLAN_CHANGED');
-    if(plan.fingerprint!==page.fingerprint||plan.entries.length!==page.total)throw new Error('IMPORT_STREAM_PAGE_CHANGED');
-    yield {page,plan};
+    yield {page,plan:storedPagePlan(page,parts,bytes,state.context.storage.targets.planCodec)};
   }
   if(pageNumber!==pages.length||!(await stored.next()).done)throw new Error('IMPORT_STAGE_CONTENT_CHANGED');
   } finally { await stored.return?.(undefined); }
+}
+
+/** One staged page's plan from its chunk bodies, checked against the page's
+ * manifest, size, digest, plan fingerprint and record count. */
+export function storedPagePlan(page:any,parts:string[],bytes:number,codec?:D1PlanCodec):ImportPlan{
+  const body=parts.join('');parts.length=0;
+  if(bytes!==page.body_size||sha256(body)!==page.body_hash)throw new Error('IMPORT_STAGE_CONTENT_CHANGED');
+  const manifest=JSON.parse(page.plan_json);
+  if(canonicalHash(manifest)!==sha256(page.plan_json)||canonicalHash(manifest)!==canonicalHash({d1Plan:1,chunks:page.chunks,size:bytes,sha256:page.body_hash}))throw new Error('IMPORT_STAGE_CONTENT_CHANGED');
+  const envelope=JSON.parse(body);
+  const plan=([2,3].includes(envelope?.d1Plan)?expandCompressedEnvelope(body,envelope,codec):envelope) as ImportPlan;
+  if(![2,3].includes(envelope?.d1Plan)&&(page.inline_plan!==1||canonicalHash(plan)!==page.body_hash||planFingerprint(plan)!==plan.fingerprint))throw new Error('STORED_PLAN_CHANGED');
+  if(plan.fingerprint!==page.fingerprint||plan.entries.length!==page.total)throw new Error('IMPORT_STREAM_PAGE_CHANGED');
+  return plan;
 }
 
 export async function* preparationIndex(state:PreparationState):AsyncGenerator<any>{

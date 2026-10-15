@@ -9,7 +9,7 @@ import {loadSetupManifest} from './setup-manifest.mjs';
 export async function exportProducer({root = process.cwd(), config, output = 'scripts/delivery/base'} = {}) {
   const {setup} = packagingConfig(config);
   root = await candidateRoot(root);
-  await loadSetupManifest(root, setup);
+  await loadSetupManifest(root, setup, config.artifact.specInputs?.mail);
   const destination = await outputLocation(root, `${output}/packaging.json`);
   const source = fileURLToPath(new URL('.', import.meta.url));
   const files = (await readdir(source)).filter(name => name.endsWith('.mjs')).sort();

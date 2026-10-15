@@ -6,6 +6,7 @@ import {keys, string} from './bindings.mjs';
 import {generateProjectDescriptor} from './generators/project.mjs';
 import {generateManagedWorkflow} from './generators/managed.mjs';
 import {loadSetupManifest, setupSelection} from './setup-manifest.mjs';
+import {validateDeclarations} from './declarations.mjs';
 
 export function packagingConfig(config) {
   keys(config, ['schema','project','managed','artifact','edition','setup'], 'packaging configuration');
@@ -13,6 +14,7 @@ export function packagingConfig(config) {
   const project = generateProjectDescriptor(config.project);
   if (project.deployment.target !== 'cloudflare-workers') throw Error('Packaging requires the cloudflare-workers target');
   keys(config.artifact, ['specInputs','workerDirectory','assetsDirectory','mainModule','additionalModules'], 'artifact policy');
+  validateDeclarations(config.artifact.specInputs ?? {});
   if (config.managed.artifactFile !== project.deployment.artifactFile) throw Error('Workflow and project artifact filenames must agree');
   const workflow = generateManagedWorkflow(config.managed);
   if ((config.managed.buildProfile ?? 'project') === 'project' && (config.managed.verificationProfiles ?? ['full','visual']).includes('visual')) throw Error('The trusted project workflow requires full verification');
@@ -37,7 +39,7 @@ export async function producePackage({root = process.cwd(), config, output = 're
   root = await candidateRoot(root);
   const {project, workflow, setup} = packagingConfig(config);
   await checkEdition(root, config.edition);
-  const selectedSetup = await loadSetupManifest(root, setup);
+  const selectedSetup = await loadSetupManifest(root, setup, config.artifact.specInputs?.mail);
   const descriptor = selectedSetup
     ? {...project, setup: {path: selectedSetup.path, sha256: selectedSetup.sha256}}
     : project;
@@ -65,6 +67,6 @@ export async function produceSeedArtifact({root = process.cwd(), config, output}
   root = await candidateRoot(root);
   const {project, setup} = packagingConfig(config);
   await checkEdition(root, config.edition);
-  await loadSetupManifest(root, setup);
+  await loadSetupManifest(root, setup, config.artifact.specInputs?.mail);
   return produceArtifact({...config.artifact, root, output:output ?? `delivery-artifact/${project.deployment.artifactFile}`});
 }

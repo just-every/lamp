@@ -123,8 +123,9 @@ units, attributes, spans and a header, and nothing visible changes.
    `base-copies.json` or `sources.lock.json`).
 2. Add `src/client.tsx` from Base's `default-seed` (seed-owned; pass a reporter only
    if the seed has an error tracker).
-3. Refresh `scripts/base-cli/` to the same Base commit; that brings the check into
-   `rer verify`.
+3. Bring the shared check forward with the rest of the command implementation:
+   refresh `scripts/base-cli/` to the same Base commit in vendored mode, or
+   update the exact `@runeditrun/rer` pin in package mode.
 4. Root route: the guard script and `introCss` early in `<head>`; wrap root chrome
    in units. Do not add `shellComponent`, `wrapInSuspense` or `pendingComponent`.
 5. Wrap each section of every public page in `HydrationUnit` (one per section).
@@ -140,10 +141,10 @@ units, attributes, spans and a header, and nothing visible changes.
 9. Declare `publicPages` in `commandAdapter` if discovery from `/` (and the
    same-origin redirects it follows from `/`) does not reach the seed's public
    pages, or reaches pages it should not. A check that loads no page fails.
-10. Prove it: `node scripts/rer.mjs verify` passes with the check; the standalone
-    check against `rer dev` shows one hydration warning per induced mismatch; and
-    screenshots of each owner-reviewed public page at 1440 and 390 wide, animations
-    settled, are pixel-identical before and after.
+10. Prove it: `rer verify` passes with the check; `rer dev` shows one hydration
+    warning per induced mismatch; and screenshots of each owner-reviewed public
+    page at 1440 and 390 wide, animations settled, are pixel-identical before
+    and after.
 
 A seed with its own intro resume logic may keep it if the check passes; it still
 adds the attribute and the guard so the done flag covers late rebuilds. A plain-HTML page

@@ -9,7 +9,7 @@ export interface SenderCheckOptions {
   mail: MailSender;
   fetcher?: typeof fetch;
 }
-export async function senderEvidenceKey(from: string, options: SenderCheckOptions) {
+export async function senderEvidenceKey(from: string, options: Pick<SenderCheckOptions, 'local' | 'provider' | 'apiKey'>) {
   return hashOpaqueToken(JSON.stringify([from, options.local ? 'local' : options.provider, options.local ? '' : options.apiKey ?? '']));
 }
 

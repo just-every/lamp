@@ -77,7 +77,7 @@ without `--env-file`. Do not commit inputs or paste secret values into logs.
 
 ## Validate and deploy
 
-Use `rer` from the project root; the checkout pins `@runeditrun/rer` 0.2.21. Before a
+Use `rer` from the project root; the checkout pins `@runeditrun/rer` 0.2.22. Before a
 command that builds or verifies the checkout, stop a running development server
 with `rer dev --stop` or a production preview with `rer preview --stop`.
 

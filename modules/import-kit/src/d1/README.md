@@ -6,9 +6,18 @@ readers can explicitly import `src/readers/index.ts`. The synchronous Node API a
 unchanged. D1 uses the same reviewed plans, source identities, retained originals,
 provenance and inert-effect policy through an asynchronous native SQL port.
 
+Copy the shared [D1 transport](../../../d1-transport/index.mjs) and its
+[types](../../../d1-transport/index.d.mts), preserving their sibling location
+beside the import-kit directory.
+The D1 entry uses this shared transport automatically. It accounts for actual
+UTF-8 bytes and workerd's whole-call two-byte strings, escapes sparse wide text
+for SQLite to decode, and keeps each mutation in its original transaction.
+Retained plans are read in bounded pages, including their reserved return-query
+budget. Calls that still exceed the provider transport ceiling fail explicitly.
+
 Apply `d1Schema`, `d1ErasureSchema`, `d1StreamOriginSchema`,
 `d1LegacyStreamReceiptUpgrade`, `d1StagingSchema`,
-`d1NativeStagingSchema`, `d1CustodyStateSchema` and `d1PreparationSchema` in product-owned numbered migrations, or call
+`d1NativeStagingSchema`, `d1CustodyStateSchema`, `d1PreparationSchema`, `d1ReversalFenceSchema` and `d1RetirementSchema` in product-owned numbered migrations, or call
 `initializeD1ImportStorage(database)` during setup. The schema includes the common
 kit tables and D1 ownership/assertion tables. Do not mix the synchronous engine
 and D1 engine for the same jobs: each engine owns its checkpoint protocol.
@@ -30,6 +39,13 @@ a cached boolean or constant SQL permission defeats this contract. The engine
 evaluates the expression at both ends of every atomic mutation batch. A false
 predicate raises `IMPORT_ATOMIC_GUARD` and rolls back every native and kit write.
 Read operations also require current authority. Jobs remain bound to their actor.
+The plan and its fingerprint carry that `principalId`, so a job can never be rebound
+to another one, and an archive carries the jobs but not the operators who created
+them: after an export, reset, import and setup the owner is a new operator row. A
+product that wants restored jobs to stay usable passes a principal that survives a
+restore, such as the operator's role (`'role:' + role`), and lets `predicate` check
+that the acting operator is still active in that role. A product that passes the
+operator's row id keeps its jobs bound to that operator for good.
 
 `readD1ImportJob`, `readD1ImportOriginals`, `readD1PersistedImport` and
 `readD1ImportUndoReport` execute SELECT-only SQL, including their initial authority
@@ -164,6 +180,23 @@ inside the batch produces `IMPORT_ATOMIC_GUARD`; an edit visible at preflight
 produces `NATIVE_EDIT_CONFLICT`. Both preserve the edit. Resume dispatches to the
 persisted reversal mode. Completed reversal is idempotent. Originals and all
 provenance, including reversed before images, remain durable.
+
+Strict reversal without a transport policy (`maxBatchBytes` omitted) verifies the
+complete inventory, originals and plan in the intent transaction or in the first
+batch it runs, then records in `ik_d1_reversal_fences` the job's
+`ik_d1_custody_states` revision after that batch's own writes. While the job's
+revision, fence and binding still equal that row, later batches and later requests
+read only their own provenance rows, native targets and predecessors, and fence
+the revision instead, so a batch costs the same in a large import as in a small
+one. Any change to the job's custody, plan, originals, decisions, claims, history,
+journal or indexed tombstones advances the revision, and the next request verifies
+the complete inventory again before it writes. Jobs that reuse another job's
+entries, jobs without a current erasure index, preserved-conflict undo and bounded
+transport keep the complete per-batch verification. A fenced batch releases only
+its own sources' claims; the final batch releases the job's remaining claims,
+including sources with zero effects. Install the additive `d1ReversalFenceSchema`
+(the fence table and indexes on provenance by job and by source, history by
+source and claims by job) in a new numbered migration after `d1CustodyStateSchema`.
 
 `readD1ImportJob`, `readD1ImportOriginals`, and `readD1PersistedImport` expose status,
 digest-checked original bytes and native/provenance readback. Custody is also
@@ -354,14 +387,169 @@ exempt. A stale or corrupted private plan can never use a missing index row to
 resurrect a tombstoned source.
 
 
+## Erasing a person from import custody
+
+`eraseD1ImportTarget` removes a person's records but leaves any header the
+product filled from that person: a job or stream namespace, an operation key,
+an original's name, a private stage's header. `retireD1ImportCustody(person,
+nativeStatements, context, checkpoint)` erases the person from all of import
+custody and writes one erasure journal row, in a single D1 batch with the
+supplied native statements, the restore checkpoint and current `erase`
+authority at both ends.
+
+```ts
+const native = await erasure.nativeStatements('person', { id });   // modules/erasure
+const checkpoint = (await portability.redactionStatements()).map(toD1Sql);
+const entry = await retireD1ImportCustody(
+  { target: { kind: 'person', id }, values: [person.email] }, native.statements, context, checkpoint);
+await erasure.deleteBlobs(native.operationId);
+```
+
+Matching uses exact identifiers only, never substrings. `target` names the
+native entity the person's records were imported into; those records become
+zero-effect tombstones in every job exactly as `eraseD1ImportTarget` makes them,
+so other people's records in the same job still resume and undo. `values` are
+exact strings, typically the person's email: every job, stream, stream origin,
+revision anchor, private stage and original whose header cell equals one of
+them is found. Such a job cannot be renamed without changing the source
+identities that undo and resume rely on, so its whole custody is retired: plans,
+originals, provenance, history, reversal reports, entries, sources, stages,
+indexes and the job row are deleted, and `ik_d1_retirements` keeps a plain row
+(job or stream id, destination, receipt id, time). Retirement closes over every
+stream the job belongs to, jobs whose entries reuse its sources and preserved
+history in both directions, and the commit refuses if that closure changed after
+it was read. Native rows a retired job already wrote stay; it can no longer be
+resumed or undone, and `readD1ImportJob`, `resumeD1Import` and `undoD1Import`
+throw `IMPORT_JOB_RETIRED` (streams: `IMPORT_STREAM_RETIRED`) carrying the
+`receiptId`. A retired stream's revision anchor keeps its counters and layout
+fields and drops its namespace and operation key, so its id can never be reused.
+The batch then proves that no header cell in the destination still equals a
+named value. Originals holding the person are withdrawn under
+`context.originalErasurePolicy`, which defaults to `withdraw-affected-artifacts`
+here. Pass `related` as for `eraseD1ImportTarget` to sever other records that
+mention the person; a name is not an identifier, so do not pass one as a value.
+
+Rewriting a job into tombstones keeps its row keys, so per-row restore
+tombstones cannot fence it, and an archive made before the erasure may hold the
+person only in import custody (still pending, or only in a header). `checkpoint`
+is the product's restore checkpoint for rewritten rows: portability's
+`redactionStatements()`, as `D1Sql`. The batch carries it whenever it has a
+`target` or retires anything, so `rer import --journal LATER_ARCHIVE` refuses any
+older archive whole; it is required then (`IMPORT_RETIREMENT_CHECKPOINT_REQUIRED`).
+A batch without it (nothing matched, so nothing is fenced) must also carry no
+`nativeStatements`: `IMPORT_RETIREMENT_NATIVE_REQUIRES_CHECKPOINT` refuses before any
+write, because SQL the kit cannot fence could rewrite a row it does not count, such as
+another import's job. With the checkpoint, and nothing else to do, it must leave every
+row of the retired scope unchanged, or it aborts.
+
+The journal (`ik_d1_erasure_journal`) and `ik_d1_retirements` are append-only:
+database triggers refuse updates, deletes and any insert over an existing key,
+so `INSERT OR REPLACE` cannot rewrite a row. Each row holds the receipt id, destination, time, the number
+of records erased, jobs and streams retired, and per store the number of rows
+the erasure deleted or overwrote (`stores`). Counts come from row images taken
+and compared inside the same transaction in `ik_d1_erasure_tally`, which is
+empty again before the batch commits; bookkeeping counters, tombstones and the
+journal itself are not counted. It holds no erased value. Read it with
+`readD1ErasureJournal(context)`; the function returns the row it wrote.
+
+Apply `d1RetirementSchema` as a new numbered migration after the other kit
+schemas (existing applied migrations stay unchanged); `initializeD1ImportStorage`
+applies it too. It adds the three tables and replaces the stream revision update
+trigger with one that also admits the retirement transition. A store that
+already applied an earlier `d1RetirementSchema` applies `d1RetirementAppendOnly`
+(the two insert triggers) as its next numbered migration. Keep the journal and
+retirements in archives. Restoring an archive made before the erasure brings
+nothing back: the native rows are fenced by the erasure module's
+`nativeStatements`, and import custody by the checkpoint. Without an operation
+key this remains a single transaction. A bounded call supplies an operation key
+as described below; omitting it with `maxBatchBytes` raises
+`IMPORT_RETIREMENT_OPERATION_KEY_REQUIRED`.
+
+`person.related.fields` can stand without a `target` (a person who appears only
+inside other people's records), and `{ resumable: true }` spreads a redaction
+across requests in bounded steps; see the kit README, "Erasing fields in
+retained shared records".
+
+
+### Resuming bounded retirement and erasure
+
+Apply `d1ErasureProgressSchema` as a new numbered migration after the existing
+kit schemas. `initializeD1ImportStorage` includes it. Keep completed progress
+in archives alongside the erasure journal and retirement rows.
+
+`retireD1ImportCustodyStep` (also `retireD1ImportCustody` with an `operationKey`
+option) prepares oversized legacy custody over multiple requests. Reuse the
+product's durable operation key, person, native SQL and checkpoint each time:
+
+```ts
+const result = await retireD1ImportCustodyStep(person, native, context, checkpoint, {
+  operationKey: operation.id,
+  maxStatements: 800,
+});
+return Response.json(result, { status: result.phase === 'pending' ? 202 : 200 });
+```
+
+Each invocation executes at most `maxStatements` SQL statements, including reads
+(default and maximum 1000). Mutation batches fit the smaller of
+`context.maxBatchBytes` and 2 MiB; omission chooses 2 MiB. Admission uses the shared
+D1 transport's UTF-8, JSON escaping and whole-call string-width accounting. It
+admits a useful future step and the indivisible publication, without charging
+all future staging batches to this request. `admissionOnly: true` compiles using
+real reads and writes nothing. Its pending descriptor does not create a job.
+
+`phase: 'pending'` reports the operation id and verified index/value counts. A
+later invocation recompiles the custody generation and obtains its offset from
+`ik_d1_erasure_progress`. Each insertion verifies exact rows after triggers and
+advances that journal in the same transaction. A failed transaction leaves the
+previous offset; a lost acknowledgement resumes from the committed offset.
+Changed custody starts a newly guarded generation. An offset disagreeing with
+the stage binding, revision or physical counts is refused. Request options do
+not accept numeric offsets. Progress stores digests and counts, never selected
+values; private normalized values remain under native staging privacy guards.
+
+Only final publication changes native rows, rewrites plans, retires the header
+closure, advances the restore checkpoint and writes the receipt. It also removes
+the private stage. Reusing a completed operation returns the same receipt without
+applying its writes again. `nativeResults` is present on the publishing response
+and empty on a completed retry. Different request bindings under the same key
+raise `IMPORT_ERASURE_OPERATION_CHANGED`. Keep identities distinct for distinct
+erasures. Provider errors preserve progress because a batch may have committed.
+`cancelD1ErasureStaging` removes private staging under current erase authority;
+a later invocation can begin preparation again.
+
+`eraseD1ImportTargetStep(kind, id, native, context, options)` provides the same
+journaled continuation for target-only erasure. Use retirement when headers and
+restore checkpoints also apply. Existing one-invocation erasure remains usable.
+
+For additional product custody rewrites, such as removing legacy mapper
+`source.options`, use `stageD1ImportErasure(context, options, binding, build)`.
+`build(id, boundedContext)` returns `D1ErasureStageSpec`: deterministic,
+authenticated fragments, native snapshot guards, target publication declarations
+and final predicates. Always use its supplied context for database work. The
+binding identifies immutable product erasure intent. Optional `publication`
+statements surround the compiled writes; its `tail` runs after retained values
+are consumed and the stage is discarded, in the same transaction. This supports
+product journals, restore fences and work-item completion. `survivingJobs`
+excludes jobs deleted by that tail from final custody seals. Exact replay,
+privacy membership and native publication checks still apply.
+
+`NativeStageRows` accepts an opaque `VerifiedNativeStageOffset` from
+`verifyNativeStageOffset`. Supply the journal's counts and authentic journal
+guards. Verification binds it to the context, generation, baseline, table and
+canonical columns. Replay starts at the beginning and skips only that verified
+prefix. Its optional checkpoint callback runs atomically with each insertion;
+a forged object or truncated replay is refused.
+
 ## Normalized paged imports
 
 `planD1ImportStream(source, mapping, context)` supports normalized sources with
 unique record identities, unavailable original bytes, no attachments and no
 unscoped source diagnostics. Other sources continue to use `planD1Import`.
 Input records may be an array-compatible lazy view. Mapping runs once per record;
-normalization uses the shared planner, then partitions at 100 records and about
-512 KiB of normalized source/effect content. Partitioning counts shared literals
+normalization uses the shared planner, then partitions at 100 records, 100
+native units (one per effect, at least one per record) and about 512 KiB of
+normalized source/effect content. Undo cost grows with a child's units, so many
+tiny effects split into more children. Partitioning counts shared literals
 once, including short statements and small dictionaries, so repeated immutable
 metadata does not multiply a dictionary across pages. An individual native entity remains
 atomic. Distinct source identities with equal values remain distinct records.
@@ -645,6 +833,52 @@ context)`. A sealed private generation cannot be overwritten by a stale retry.
 Cancellation, erasure and verified publication cascade private headers and
 receipts. An authority failure can leave private custody for an authorized
 owner to inspect or cancel; it cannot confer publication permission.
+
+### Preparation across requests
+
+A large normalized file costs more CPU than one Worker request allows when it
+is reviewed, prepared and verified in one go (a 100,000-row Typeform export
+took about 55 s of hosted CPU to review and 62 s to prepare; Workers Paid allows
+30 s). `prepareD1ImportSteps(source, mapping, context)` does the same work in
+bounded steps instead. Call it with the same source, mapping and
+`operationKey`, once per request, until its result is `reviewable`:
+
+- `preparing`: each step maps, normalizes and stages 5,000 records as a private,
+  sealed generation under the usual privacy admission (registered identities
+  before payload, erasure tombstones checked at every write).
+- `verifying`: each step reads 125 staged pages, makes cold verification's checks
+  (page projection, privacy index, index and policy hashes, counts) and writes
+  them into the complete canonical fingerprint with a SHA-256 whose state is
+  kept in D1 (`ik_d1_preparation_steps`), fenced by every generation's
+  revision. A changed, missing or reordered page fails the step or changes the
+  fingerprint; nothing the caller sends can supply hash state. The last step
+  copies the generations into one sealed preparation in SQL.
+- `reviewable`: carries `fingerprint`, `counts` and `diagnostics`, the review.
+  The fingerprint equals the one `planD1ImportStream` computes for the same
+  source. Show it, and after the owner acknowledges call
+  `publishD1ImportPreparation(id, { ...context, reviewedFingerprint })`, which
+  publishes atomically without reading the pages again while the preparation is
+  still at the revision the steps verified (any change sends it through full
+  cold verification). Then apply with `resumeD1ImportStream` as before.
+
+Unlike `planD1ImportStream`, this review is computed from private custody, so
+the steps write before the owner acknowledges; that custody is private,
+owner-scoped and removed by `cancelD1ImportStaging(operationKey, context)`,
+destination field erasure, or header retirement of its operation key. A step
+generation erased or changed between steps ends the preparation with
+`IMPORT_PREPARATION_INTERRUPTED`: cancel and prepare again. A step whose request
+ended after it staged its slice but before recording it is staged again by the
+next call, and cancellation or retirement removes every generation the steps
+staged, recorded or not. A different upload under the same operation key is
+refused (`OPERATION_KEY_CONFLICT`), before and after publication: the published
+stream keeps the steps' source digest (`ik_d1_stream_sources`), so only the same
+upload returns `published`, and a key an import published in one request is
+refused here. Measured on default-seed's people
+adapter: 100,000 rows in 40 requests, none above 2 s of Node CPU against
+15 s for the one-request review (see the kit test
+`tests/d1/preparation-steps.test.ts`, run at full size in `verify:scale`).
+Apply `d1PreparationStepsSchema` as a new numbered migration after
+`d1PreparationSchema`; `initializeD1ImportStorage` applies it.
 
 Apply the additive `d1PreparationSchema` after `d1CustodyStateSchema`.
 `initializeD1ImportStorage` applies that order and preserves existing jobs.

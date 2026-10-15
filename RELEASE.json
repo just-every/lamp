@@ -131,8 +131,12 @@
     {
       "id": "0023_owner_signin.sql",
       "buyerSteps": "Apply after 0022 before starting this revision. It adds Base's one-use owner sign-in grant table for rer signin; existing operator identities, sessions and migration history are unchanged. Grants are installation-local and do not travel in exports."
+    },
+    {
+      "id": "0024_import_kit_custody_upgrade.sql",
+      "buyerSteps": "Apply after 0023 before starting this revision. It adds Base import-kit's additive custody tables and triggers (reversal fences, preparation steps, person-erasure retirements and journal, erasure progress) that the refreshed import kit uses; existing import history, custody and migration history are unchanged."
     }
   ],
   "breaking": true,
-  "agentUpdateInstructions": "Back up data and the owner source revision first. Apply 0022_import_maintenance_updates.sql after 0021_update_reminders.sql before starting this revision; it adds the imported maintenance-update ledger and snapshot refresh triggers, leaving existing records unchanged and keeping Better Stack maintenance messages historical without lifecycle notices or notification replay. Invitation expiry is fixed at import review, and sending requires the owner's explicit action; only eligible confirmed, approved email subscribers can be invited, and uncertain claimed sends are not automatically retried. Run rer verify separately before adopting; rer deploy validates and deploys but does not run the full source and browser verifier. Keep hosted readiness and provider delivery as separate installation evidence, and preserve the canonical project, deployment and package identities and existing archive identity."
+  "agentUpdateInstructions": "Back up data and the owner source revision first. Apply 0022_import_maintenance_updates.sql after 0021_update_reminders.sql before starting this revision; it adds the imported maintenance-update ledger and snapshot refresh triggers, leaving existing records unchanged and keeping Better Stack maintenance messages historical without lifecycle notices or notification replay. Apply 0023_owner_signin.sql and then 0024_import_kit_custody_upgrade.sql; 0024 only adds Base import-kit custody tables and triggers. Invitation expiry is fixed at import review, and sending requires the owner's explicit action; only eligible confirmed, approved email subscribers can be invited, and uncertain claimed sends are not automatically retried. Run rer verify separately before adopting; rer deploy validates and deploys but does not run the full source and browser verifier. Keep hosted readiness and provider delivery as separate installation evidence, and preserve the canonical project, deployment and package identities and existing archive identity."
 }

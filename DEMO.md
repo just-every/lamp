@@ -12,16 +12,25 @@ A new demo starts fresh. The nav and document title read **Lamp Demo**; local de
 
 Public reads and checks use the real network. Demo email, subscriber webhooks,
 and Slack/Teams posts return success without contacting recipients. Lamp wraps
-its mail adapter (including an extension adapter) with Base's `demoEffect`;
-HTTP effects use Base's global fetch guard. Mail in local dev is silently
-suppressed. AI remains unconfigured. Public snapshots stay in the instance's
-disposable R2, including prior generations retained by Lamp.
+its own subscriber mail adapter (including an extension adapter) with Base's
+`demoEffect`; Base's operator-auth mail (invitations and sign-in links) completes
+as mocked success inside Base; HTTP effects use Base's global fetch guard. Mail in
+local dev is silently suppressed. Incident AI suggestions are offered in a demo:
+the provider call is wrapped in `demoEffect`, so a visitor gets a suggestion built
+from the incident brief, citing the brief's own facts, without any model call.
+Public snapshots stay in the instance's disposable R2, including prior generations
+retained by Lamp. The demo seed records the setup checks a configured workspace
+has passed (sender, public page, subscribe form, public address), so the home
+checklist reads complete.
 
 ## Base adoption
 
-Lamp pins the published npm package `@runeditrun/rer@0.2.20`.
-`modules/demo` and its shared HTTP/CSP dependencies are verbatim Base copies
-from `rer-v0.2.20`, recorded in `base-copies.json`. Vite passes the demo
+Lamp pins the published npm package `@runeditrun/rer@0.2.22`.
+Every vendored Base copy (`modules/demo`, the operator-auth HTTP/CSP files,
+`modules/mail`, import-kit, d1-transport, integrations, delivery producer and
+authoring tools) is a verbatim copy from tag `rer-v0.2.22` (commit `1ce15dd`),
+recorded together in `base-copies.json`; the owner claim comes from the package.
+Import-kit's additive custody schemas are migration `0024`. Vite passes the demo
 switches, isolates persistence through `RER_STATE_DIR`, and loads `demoSockets()`
 first. Base provides one-click owner sign-in and the Demo/Dev label.
 
@@ -42,9 +51,6 @@ The input `remove` runs `rer deploy --demo --remove --yes` for the selected
 host instead of deploying it. The optional `RER_DEMO_OPERATOR_TOKEN`
 environment secret lets the host operator read a failed start's probe record.
 
-Base currently routes only the app apex and fixes container ingress to that
-origin. Consequently `page.demo.run-lamp.com` is not yet a working hosted
-status surface. Its configured hostname is retained; no header override or
-public bypass is installed. Base needs an allowlisted secondary-host route
-that preserves the visitor cookie gate and authenticates the container ingress
-host. Hosted page acceptance remains pending that repair.
+rer 0.2.22 routes the declared secondary host `page.demo.run-lamp.com`
+(`container.hostVariables` in `deploy.json`) to the same visitor's container;
+an anonymous request to it returns to the start page.

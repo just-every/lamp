@@ -5,8 +5,8 @@ import { canonicalJson } from '../provenance/identity.ts';
 import { sql } from './database.ts';
 import { originalStorage, originalVersions } from './original-storage.ts';
 import { insertJsonRows } from './sets.ts';
-import { changed, deleteRows, updateRows } from './expected-state.ts';
-import { retainedSql } from './retained-values.ts';
+import { changed, deleteRows } from './expected-state.ts';
+import { recordWrites } from './erasure-writes.ts';
 import { withdrawnLocation } from './erased-artifacts.ts';
 
 /** Original bytes are only deleted, never rewritten. Unaffected custody remains
@@ -24,11 +24,13 @@ export function erasedCustody(plan: ImportPlan, next: ImportPlan, id: string, sn
   }
   // Peers can share an artifact whose name contains the erased person's data.
   // Preserve attribution and before-images, changing only that location metadata.
-  for (const table of ['ik_provenance', 'ik_d1_history']) for (const row of snapshot.rows(table, 'job_id', [id])) {
-    const record = JSON.parse(row.record_json), location = withdrawnLocation(plan, next, record.location, record.artifactHash);
-    if (location === record.location) continue;
-    const body = canonicalJson({ ...record, location });
-    writes.push(changed(retainedSql([`UPDATE ${table} SET record_json=`, ' WHERE id=', ''], [body, row.id], [0]), updateRows(table, item => item.id === row.id, item => ({ ...item, record_json: body }))));
+  for (const table of ['ik_provenance', 'ik_d1_history']) {
+    const rows: { id: string; body: string }[] = [];
+    for (const row of snapshot.rows(table, 'job_id', [id])) {
+      const record = JSON.parse(row.record_json), location = withdrawnLocation(plan, next, record.location, record.artifactHash);
+      if (location !== record.location) rows.push({ id: row.id, body: canonicalJson({ ...record, location }) });
+    }
+    writes.push(...recordWrites(table, rows));
   }
   return writes;
 }

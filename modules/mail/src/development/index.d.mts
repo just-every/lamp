@@ -27,11 +27,12 @@ export interface DevelopmentD1Database {
   prepare(sql: string): DevelopmentD1Statement;
   batch(statements: DevelopmentD1Statement[]): Promise<Array<{ success: boolean; results: unknown[] }>>;
 }
+/** Storage failure: the message is valid, so a queue consumer retries instead of dropping it. Invalid input throws `MailValidationError`, which is permanent. */
+export class DevelopmentOutboxError extends Error {
+  readonly name: 'DevelopmentOutboxError';
+  readonly code: 'development_outbox_failed';
+  readonly retryable: true;
+}
 export function createD1DevelopmentOutbox(options: { db: DevelopmentD1Database; maxMessages?: number; maxAgeMs?: number; clock?: () => number }): DevelopmentOutbox;
-export function createDevelopmentOutboxHandler(options: {
-  local: boolean; origin: string; outbox: Pick<DevelopmentOutbox, 'list' | 'get'>; path?: string;
-  /** The seed's served theme stylesheet, a root-relative `.css` path such as '/rer-theme.css'; other values throw. */
-  theme?: string;
-}): (request: Request) => Promise<Response | null>;
 export function sendDevelopment(config: { provider: 'development'; mode: 'development' }, message: DevelopmentMessage,
-  dependencies: { outbox: Pick<DevelopmentOutbox, 'put'>; clock?: () => number }): Promise<{ provider: 'development'; status: 'development'; providerMessageId: null }>;
+  dependencies?: { clock?: () => number }): Promise<{ provider: 'development'; status: 'development'; providerMessageId: null }>;

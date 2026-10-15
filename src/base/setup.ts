@@ -1,3 +1,4 @@
+import { rejectedResponse } from './rejected-response'
 // Small structural boundary: adopters supply their real native session service.
 // This file is copied unchanged to src/base by both maintained exporters.
 import { fontHead } from './font-head'
@@ -22,16 +23,16 @@ export async function firstRunResponse(request: Request, bindings: SetupBindings
   const url = new URL(request.url), path = url.pathname
   if (path !== '/setup' && path !== '/app' && !path.startsWith('/app/')) return null
   // Admit the configured origin and Host before returning any owner document.
-  if (url.origin !== bindings.AUTH_ORIGIN || (request.headers.has('host') && request.headers.get('host')?.toLowerCase() !== url.host.toLowerCase())) return failure('invalid_host', 403)
+  if (url.origin !== bindings.AUTH_ORIGIN || (request.headers.has('host') && request.headers.get('host')?.toLowerCase() !== url.host.toLowerCase())) return rejectedResponse(request, failure('invalid_host', 403))
   try {
     const session = await auth.getSession(request)
-    if (path !== '/setup') return session && await needsFirstRun(bindings, session) ? redirect('/setup') : null
-    if (!['GET', 'HEAD', 'POST'].includes(request.method)) return new Response(null, { status: 405, headers: { ...securityHeaders(), allow: 'GET, HEAD, POST' } })
+    if (path !== '/setup') return session && await needsFirstRun(bindings, session) ? rejectedResponse(request, redirect('/setup')) : null
+    if (!['GET', 'HEAD', 'POST'].includes(request.method)) return rejectedResponse(request, new Response(null, { status: 405, headers: { ...securityHeaders(), allow: 'GET, HEAD, POST' } }))
     if (request.method === 'POST') {
-      if (request.headers.get('origin') !== bindings.AUTH_ORIGIN || request.headers.get('sec-fetch-site') === 'cross-site') return failure('invalid_origin', 403)
-      if (!session) return failure('authentication_required', 401)
-      if (session.operator.role !== 'owner') return failure('owner_required', 403)
-      if (!request.headers.get('content-type')?.startsWith('application/x-www-form-urlencoded')) return failure('invalid_form', 400)
+      if (request.headers.get('origin') !== bindings.AUTH_ORIGIN || request.headers.get('sec-fetch-site') === 'cross-site') return rejectedResponse(request, failure('invalid_origin', 403))
+      if (!session) return rejectedResponse(request, failure('authentication_required', 401))
+      if (session.operator.role !== 'owner') return rejectedResponse(request, failure('owner_required', 403))
+      if (!request.headers.get('content-type')?.startsWith('application/x-www-form-urlencoded')) return rejectedResponse(request, failure('invalid_form', 400))
       const form = await request.formData()
       if (form.get('confirm') !== 'yes') return failure('confirmation_required', 400)
       await bindings.DB.prepare('INSERT INTO oa_first_run (singleton, completed_by, completed_at) VALUES (1, ?, ?) ON CONFLICT(singleton) DO NOTHING').bind(session.operator.id, Date.now()).run()
@@ -45,6 +46,6 @@ export async function firstRunResponse(request: Request, bindings: SetupBindings
     // no-referrer would serialize that navigation's Origin header as null.
     return new Response(request.method === 'HEAD' ? null : body, { headers: { ...securityHeaders(), 'content-security-policy': securityHeaders()['content-security-policy'] + '; ' + frame.policy, 'referrer-policy': 'strict-origin', 'content-type': 'text/html; charset=utf-8' } })
   } catch {
-    return failure('setup_unavailable', 503)
+    return rejectedResponse(request, failure('setup_unavailable', 503))
   }
 }

@@ -1,5 +1,5 @@
 import { retainedSql } from './retained-values.ts';
-import { changed, putRow, updateRows, deleteRows } from './expected-state.ts';
+import { changed, updateRows } from './expected-state.ts';
 import { cancelNativeJobStaging } from './native-staging-lifecycle.ts';
 import { nativeStagingScope, readStagedTarget, expectedStagedTarget } from './native-staging-context.ts';
 import { targetGuards } from './target-guards.ts';
@@ -14,11 +14,17 @@ import { noSuccessors, restorePredecessor } from './history.ts';
 import { readOriginals } from './originals.ts';
 import { reversalState } from './undo-state.ts';
 import { preserveReverse } from './preserved-reverse.ts';
+import { fencedReversal, recordReversalFence, reversalProgress } from './reversal-fence.ts';
 
 export async function reverseD1Import(id: string, action: 'undo' | 'rollback', context: D1ImportContext): Promise<ImportJob> {
   context = requestContext(context);
   const { batchSize, maxBatches } = limits(context), state = action === 'undo' ? 'undoing' : 'rolling_back', final = action === 'undo' ? 'undone' : 'rolled_back';
   await authorize(context, action);
+  // Unbounded strict reversal fences each later batch on the custody revision
+  // its last verified batch recorded, instead of re-reading the whole job.
+  const unbounded = context.maxBatchBytes === undefined;
+  const fenced = unbounded ? await fencedReversal(id, action, context, maxBatches) : undefined;
+  if (fenced) return fenced;
   // Persist reversal intent before reading targets: a conflicting native edit may
   // block this invocation, but a later request must never resume forward apply.
   let current = await stored(id, context, action);
@@ -36,7 +42,9 @@ export async function reverseD1Import(id: string, action: 'undo' | 'rollback', c
   if (current.job.state !== state) {
     const intentScope=nativeStagingScope(current.job,current.plan);
     intentScope.postGuards.push(guard(sql('EXISTS(SELECT 1 FROM ik_jobs WHERE id=? AND state=? AND fence=?)',id,state,current.job.fence+1)));
-    await atomic(context, action, [...boundary(current.job, current.plan, action), await noSuccessors(id, context), ...custodyGuards(current.plan, id), ...await inventoryGuards(current.job, current.plan, context), changed(sql('UPDATE ik_jobs SET state=?,fence=fence+1 WHERE id=?', state, id),updateRows('ik_jobs',row=>row.id===id,row=>({...row,state,fence:current.job.fence+1})))], storedReads(current.job), intentScope);
+    await atomic(context, action, [...boundary(current.job, current.plan, action), await noSuccessors(id, context), ...custodyGuards(current.plan, id), ...await inventoryGuards(current.job, current.plan, context), changed(sql('UPDATE ik_jobs SET state=?,fence=fence+1 WHERE id=?', state, id),updateRows('ik_jobs',row=>row.id===id,row=>({...row,state,fence:current.job.fence+1}))), ...unbounded ? recordReversalFence(id, action, current.job.erasedRecords!, true) : []], storedReads(current.job), intentScope);
+    const next = unbounded ? await fencedReversal(id, action, context, maxBatches) : undefined;
+    if (next) return next;
     current = await stored(id, context, action);
   }
   let published: ImportJob | undefined;
@@ -60,7 +68,7 @@ export async function reverseD1Import(id: string, action: 'undo' | 'rollback', c
         await restorePredecessor(p, context, candidate, restoration);
         candidate.push(guard(retainedSql(['EXISTS(SELECT 1 FROM ik_provenance WHERE id=', ' AND record_json=', ' AND reversed=0)'], [raw.id, raw.record_json], [1])), ...targetGuards(targets,row, context.destination, p.targetKind, p.targetId), ...(p.before ? targets.write(p.before) : targets.remove(context.destination, p.targetKind, p.targetId)), ...post, changed(retainedSql(['UPDATE ik_provenance SET reversed=1,record_json=', ' WHERE id=', ''], [canonicalJson({ ...p, reversed: true }), raw.id], [0]),updateRows('ik_provenance',row=>row.id===raw.id,row=>({...row,reversed:1,record_json:canonicalJson({...p,reversed:true})}))), ...restoration);
         nextScope.postGuards.push(...post);
-        const fits = fitsBatch(context, action, [...candidate, ...progress(job, action, remainingRow!.n === processed + 1)],nextScope);
+        const fits = fitsBatch(context, action, [...candidate, ...reversalProgress(job, action, remainingRow!.n === processed + 1)],nextScope);
         if (!fits && processed) break;
         statements.splice(0, statements.length, ...candidate);
         expectedStagedTarget(nextScope,p.targetKind,p.targetId,!!p.before);
@@ -68,9 +76,13 @@ export async function reverseD1Import(id: string, action: 'undo' | 'rollback', c
         if (!fits) break;
       }
       const done = remainingRow!.n === processed;
-      statements.push(...progress(job, action, done));
+      statements.push(...reversalProgress(job, action, done), ...unbounded ? recordReversalFence(id, action, job.erasedRecords!, true) : []);
       scope.postGuards.push(guard(sql('EXISTS(SELECT 1 FROM ik_jobs WHERE id=? AND state=? AND fence=? AND error IS NULL)',id,done?final:state,job.fence+1)));
       await atomic(context, action, statements, storedReads(job), scope);
+      if (unbounded && !done) {
+        const next = await fencedReversal(id, action, context, maxBatches - count - 1, { ...job, state, fence: job.fence + 1, error: null });
+        if (next) return next;
+      }
       current = await stored(id, context, action); published = current.job;
       if (done || remaining(context) < 200) return published;
     }
@@ -84,9 +96,3 @@ export async function reverseD1Import(id: string, action: 'undo' | 'rollback', c
 }
 export const undoD1Import = (id: string, context: D1ImportContext) => reverseD1Import(id, 'undo', context);
 export const rollbackD1Import = (id: string, context: D1ImportContext) => reverseD1Import(id, 'rollback', context);
-
-function progress(job: ImportJob, action: 'undo' | 'rollback', done: boolean): D1Sql[] {
-  const state = action === 'undo' ? done ? 'undone' : 'undoing' : done ? 'rolled_back' : 'rolling_back';
-  // Sources with zero effects release too; reused sources belong to their owner.
-  return [changed(sql('DELETE FROM ik_sources WHERE job_id=? AND NOT EXISTS(SELECT 1 FROM ik_provenance WHERE ik_provenance.source_identity=ik_sources.identity AND reversed=0) AND NOT EXISTS(SELECT 1 FROM ik_d1_history WHERE ik_d1_history.source_identity=ik_sources.identity)', job.id),deleteRows('ik_sources',(row,expected)=>row.job_id===job.id&&![...expected.rows('ik_provenance').values()].some(p=>p.source_identity===row.identity&&!p.reversed)&&![...expected.rows('ik_d1_history').values()].some(p=>p.source_identity===row.identity))), changed(sql('INSERT INTO ik_batches(job_id,action,position,end_position,fence) VALUES(?,?,?,?,?)', job.id, action, job.fence, job.fence + 1, job.fence + 1),putRow('ik_batches',{job_id:job.id,action,position:job.fence,end_position:job.fence+1,fence:job.fence+1})), changed(sql('UPDATE ik_jobs SET state=?,fence=fence+1,error=NULL WHERE id=?', state, job.id),updateRows('ik_jobs',row=>row.id===job.id,row=>({...row,state,fence:job.fence+1,error:null})))];
-}

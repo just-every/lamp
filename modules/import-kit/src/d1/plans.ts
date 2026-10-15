@@ -13,6 +13,13 @@ import { jsonChunks, PACKED_JSON_BYTES, SNAPSHOT_BYTES } from './sets.ts';
 
 export interface StoredPlan { revision?: number; body: string; chunks: { job_id: string; ordinal: number; body: string }[] }
 const snapshots = new WeakMap<ImportPlan, StoredPlan>();
+// Legacy chunks may approach D1's 2 MB value ceiling. Three rows remain below
+// the RPC ceiling even with JSON escaping and whole-result two-byte strings.
+const PLAN_READ_ROWS = 3;
+export function planChunkReads(body: string): number {
+  const envelope = JSON.parse(body);
+  return envelope?.d1Plan === 1 ? Math.ceil((envelope.chunks + 1) / PLAN_READ_ROWS) : 0;
+}
 export function encodePlan(plan: ImportPlan, id: string): StoredPlan {
   const chunks: StoredPlan['chunks'] = [], hash = createHash('sha256'); let size = 0;
   for (const body of canonicalChunks(plan, SNAPSHOT_BYTES)) { chunks.push({ job_id: id, ordinal: chunks.length, body }); size += Buffer.byteLength(body); hash.update(body); }
@@ -28,11 +35,17 @@ export async function loadPlans(rows: any[], db: D1Database, codec?: D1PlanCodec
   const result = new Map<string, ImportPlan>();
   const marked = rows.filter(r => JSON.parse(r.plan_json)?.d1Plan === 1);
   const chunks: any[] = [];
-  // These are small job IDs; the query's output is separate bounded rows.
+  // D1 serializes the entire result as one RPC string, not separate row values.
+  // Read one job at a time; the final hash/cardinality check rejects torn reads.
   if (marked.length) {
-    const ids = marked.map(r => r.id);
-    for (let i = 0; i < ids.length; i += 100) {
-      const found = await db.prepare(`SELECT * FROM ik_d1_plan_chunks WHERE job_id IN (SELECT value FROM json_each(?))${fence?` AND (${fence.sql})`:''} ORDER BY job_id,ordinal`).bind(JSON.stringify(ids.slice(i,i+100)),...fence?.params??[]).all(); chunks.push(...found.results);
+    for (const row of marked) {
+      const envelope = JSON.parse(row.plan_json);
+      if (!Number.isSafeInteger(envelope.chunks) || envelope.chunks < 1) throw new Error('STORED_PLAN_CHANGED');
+      for (let offset = 0; offset <= envelope.chunks; offset += PLAN_READ_ROWS) {
+        const found = await db.prepare(`SELECT * FROM ik_d1_plan_chunks WHERE job_id IN (SELECT value FROM json_each(?))${fence?` AND (${fence.sql})`:''} ORDER BY job_id,ordinal LIMIT ${PLAN_READ_ROWS} OFFSET ${offset}`).bind(JSON.stringify([row.id]),...fence?.params??[]).all();
+        chunks.push(...found.results);
+        if (found.results.length < PLAN_READ_ROWS) break;
+      }
     }
   }
   for (const row of rows) {

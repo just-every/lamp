@@ -40,7 +40,7 @@ test('host-configured signed owner claim creates a native Lamp session and refus
     const ordinary = createApp(providerBindings).app;
     assert.equal((await (await ordinary.fetch(authorized('/api/app/ai/status'), providerBindings)).json()).configured, true);
     const demoBindings = { ...providerBindings, RER_DEMO: '1' }, demo = createApp(demoBindings).app;
-    assert.equal((await (await demo.fetch(authorized('/api/app/ai/status'), demoBindings)).json()).configured, false, 'demo disables an explicitly configured AI provider');
+    assert.equal((await (await demo.fetch(authorized('/api/app/ai/status'), demoBindings)).json()).configured, true, 'demo offers suggestions through its demo effect');
 
     const { seedDemoRecords } = await load('src/core/features/demo/repository.ts');
     const seed = { ownerEmail: email, now: new Date(), pageHost: env.LAMP_PAGE_HOST, from: env.MAIL_FROM_ADDRESS };

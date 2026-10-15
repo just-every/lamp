@@ -16,11 +16,17 @@ export function dictionaryWeight(value: unknown, dictionary = true, shared = new
   };
   return weight(value);
 }
+/** Native units per stream child. Reversal and preserved-undo classification
+ * cost grows with a child's units, so many tiny effects split into more
+ * children instead of one child whose undo request outgrows the budget. */
+export const STREAM_CHILD_UNITS = 100;
+/** One unit per effect; an entry without effects still holds a decision. */
+export const entryUnits = (entry: ImportPlan['entries'][number]): number => Math.max(1, entry.effects.length);
 /** Preserve already normalized effects; partitioning never reruns the mapper.
  * Large individual native entities stay atomic, while ordinary pages are byte
- * bounded as well as record bounded. */
-export function* partitionPlan(plan: ImportPlan, dictionary = true, byteLimit = 512 * 1024): Generator<ImportPlan> {
-  let start=0,size=0;
+ * bounded as well as unit bounded. */
+export function* partitionPlan(plan: ImportPlan, dictionary = true, byteLimit = 512 * 1024, unitLimit = STREAM_CHILD_UNITS): Generator<ImportPlan> {
+  let start=0,size=0,units=0;
   let shared = new Set<string>();
   // Dictionary-backed custody retains each literal once regardless of its
   // length. Counting expanded repetitions splits the dictionary over many
@@ -37,8 +43,8 @@ export function* partitionPlan(plan: ImportPlan, dictionary = true, byteLimit = 
   for(let index=0;index<plan.entries.length;index++){
     const entry=plan.entries[index];
     let bytes=dictionaryWeight(entry,dictionary,shared)+dictionaryWeight(entry.source,dictionary,shared);
-    if(index>start&&size+bytes>byteLimit){yield part(index);start=index;size=0;shared=new Set();bytes=dictionaryWeight(entry,dictionary,shared)+dictionaryWeight(entry.source,dictionary,shared);}
-    size+=bytes;
+    if(index>start&&(size+bytes>byteLimit||units+entryUnits(entry)>unitLimit)){yield part(index);start=index;size=0;units=0;shared=new Set();bytes=dictionaryWeight(entry,dictionary,shared)+dictionaryWeight(entry.source,dictionary,shared);}
+    size+=bytes;units+=entryUnits(entry);
   }
   yield part(plan.entries.length);
 }

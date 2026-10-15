@@ -15,7 +15,7 @@ export async function exerciseDemo({ origin, pageOrigin, key, cookie, fetch }) {
   assert.ok((await api('/api/app/maintenance')).body.maintenance.some(row => Date.parse(row.startsAt) > Date.now()), 'upcoming maintenance is available');
   const subscribers = (await api('/api/app/subscribers')).body.subscribers;
   assert.ok(['email', 'webhook'].every(channel => subscribers.some(row => row.channel === channel && row.state === 'active')), 'both sample subscriber channels are ready');
-  assert.equal((await api('/api/app/ai/status')).body.configured, false);
+  assert.equal((await api('/api/app/ai/status')).body.configured, true);
   const document = await fetch(origin + '/app', { headers, redirect: 'manual' });
   assert.equal(document.status, 200, 'finished first run opens the app');
   assert.match(await document.text(), /data-rer-name/);
@@ -32,8 +32,9 @@ export async function exerciseDemo({ origin, pageOrigin, key, cookie, fetch }) {
   }
   const incident = incidents.find(row => row.lifecycle !== 'Resolved');
   const suggestion = await api(`/api/app/incidents/${incident.id}/ai-suggestion`, {});
-  assert.equal(suggestion.status, 404, 'AI suggestion refuses an unconfigured provider');
-  assert.match(suggestion.body.error, /No AI provider is configured/);
+  // The configured provider is an unreachable .invalid host: success means the demo effect answered.
+  assert.equal(suggestion.status, 200, 'AI suggestion completes as a demo effect');
+  assert.ok(suggestion.body.suggestion.customerImpact.text && suggestion.body.suggestion.customerImpact.sources.length, 'suggestion cites the brief');
   const detail = (await api(`/api/app/incidents/${incident.id}`)).body.incident;
   assert.ok(detail, 'sample incident is editable through its public API');
   const draft = await api(`/api/app/incidents/${incident.id}/draft`, { lifecycle: 'Monitoring', affectedAudience: 'Customers running background jobs', customerImpact: 'Jobs are now completing normally.', whatStillWorks: 'The dashboard and API remain available.', details: 'We are monitoring queue recovery.', nextUpdateAt: new Date(Date.now() + 3600000).toISOString() }, 'PUT', { 'If-Match': `${detail.draft?.id ?? '-'}:${detail.updates.length}` });

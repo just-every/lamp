@@ -7,3 +7,12 @@ export class MailValidationError extends Error {
   }
 }
 export function fail(code) { throw new MailValidationError(code); }
+/** The development outbox could not store the message. The message is fine: send it again. */
+export class DevelopmentOutboxError extends Error {
+  constructor() {
+    super('Development outbox storage failed; the same message may succeed when sent again.');
+    this.name = 'DevelopmentOutboxError';
+    this.code = 'development_outbox_failed';
+    this.retryable = true;
+  }
+}

@@ -3,7 +3,7 @@ import { needsStreamOrigin } from './stream-origin.ts';
 import { nativeStagingScope } from './native-staging-context.ts';
 import { streamBoundary } from './stream-boundary.ts';
 import { requestContext } from './budget.ts';
-import { loadPlans, planBody, planGuards } from './plans.ts';
+import { loadPlans, planBody, planGuards, planChunkReads } from './plans.ts';
 import { randomUUID } from 'node:crypto';
 import type { ImportJob, ImportPlan, ImportMapping, SourceBundle, ImportAction } from '../types.ts';
 import { buildImportPlan, planFingerprint } from '../plan/index.ts';
@@ -13,20 +13,21 @@ import { atomic, readAtomic, authorize, guard, sql } from './database.ts';
 import { custodyGuards, inventoryGuards } from './integrity.ts';
 import { guardErasedSources } from './erasure-claims.ts';
 import { readOriginals } from './originals.ts';
+import { retiredError } from './retirement.ts';
 import { attachReversal, loadReversalState, reversalGuards, reversalState } from './undo-state.ts';
 
 export function decode(row: any): ImportJob {
   return { id: row.id, fingerprint: row.fingerprint, destination: row.destination, namespace: row.namespace, mappingVersion: row.mapping_version, principalId: row.principal_id, state: row.state, checkpoint: row.checkpoint, total: row.total, fence: row.fence, error: row.error };
 }
-// One job row and, when chunked, one query for all of that job's plan chunks.
-export const STORED_READS = 2;
-export const storedReads = (job: ImportJob) => STORED_READS + Number(reversalState(job).policy === 'preserve-conflicts') + jobLayoutReads(job);
+const planReads = new WeakMap<ImportJob, number>();
+export const storedReads = (job: ImportJob) => 1 + (planReads.get(job) ?? 0) + Number(reversalState(job).policy === 'preserve-conflicts') + jobLayoutReads(job);
 export async function stored(id: string, context: D1ImportContext, action: ImportAction = 'read'): Promise<{ job: ImportJob; plan: ImportPlan }> {
   const bounded = context.maxBatchBytes !== undefined;
   const query = `SELECT j.*${bounded?',r.revision AS custody_revision':''},${needsStreamOrigin('j.id')} AS stream_origin_required,(SELECT stream_id FROM ik_d1_stream_origins WHERE job_id=j.id) AS origin_stream_id,(SELECT stream_id FROM ik_d1_stream_pages WHERE job_id=j.id) AS page_stream_id FROM ik_jobs j${bounded?' LEFT JOIN ik_d1_custody_revisions r ON r.job_id=j.id':''} WHERE j.id=?`;
   const row = await context.storage.database.prepare(query).bind(id).first();
-  if (!row) throw new Error('IMPORT_JOB_NOT_FOUND');
+  if (!row) throw await retiredError(context.storage.database, id, 'job') ?? new Error('IMPORT_JOB_NOT_FOUND');
   const job = decode(row), plan = (await loadPlans([row], context.storage.database, context.storage.targets.planCodec)).get(id)!;
+  planReads.set(job, planChunkReads(row.plan_json));
   if (job.destination !== context.destination || job.namespace !== context.namespace || job.mappingVersion !== context.mappingVersion || job.principalId !== context.authorization.principalId) throw new Error('JOB_BINDING_MISMATCH');
   if (context.reviewedFingerprint !== undefined && context.reviewedFingerprint !== job.fingerprint) throw new Error('REVIEW_FINGERPRINT_MISMATCH');
   if (planFingerprint(plan) !== job.fingerprint || plan.fingerprint !== job.fingerprint || plan.destination !== job.destination || plan.namespace !== job.namespace || plan.mappingVersion !== job.mappingVersion || plan.principalId !== job.principalId || plan.entries.length !== job.total) throw new Error('STORED_PLAN_CHANGED');
@@ -71,7 +72,8 @@ export async function createD1ImportJob(plan: ImportPlan, context: D1ImportConte
   revalidate();
   const id = randomUUID();
   const creation = creationStatements(plan, context, id, operationKey);
-  const returnReads = 1 + Number(creation.some(s => s.sql.startsWith('INSERT INTO ik_d1_plan_chunks'))) + Number(context.reversalPolicy === 'preserve-conflicts');
+  const body = creation.find(s => s.sql.startsWith('INSERT INTO ik_jobs('))!.params![7];
+  const returnReads = 1 + planChunkReads(body) + Number(context.reversalPolicy === 'preserve-conflicts');
   await atomic(context, 'create', creation, returnReads);
   return (await stored(id, context, 'create')).job;
 }

@@ -9,7 +9,7 @@ import { planFingerprint } from '../plan/index.ts';
 import { assertPlanSize } from '../plan/size.ts';
 import { assertPlanCredentials } from '../provenance/credentials.ts';
 import { preparedAtomic, guard, sql } from './database.ts';
-import { retainPlan } from './plans.ts';
+import { retainPlan, planChunkReads } from './plans.ts';
 import { custodyGuards } from './original-storage.ts';
 import { retainOriginals } from './originals.ts';
 import { checkSql, D1RequestLimitError, valueBytes } from './budget.ts';
@@ -68,7 +68,9 @@ export function preflightD1ImportJob(plan: ImportPlan, context: D1CreatePrefligh
   const reads = [sql('SELECT * FROM ik_jobs WHERE destination=? AND principal_id=? AND operation_key=?', context.destination, context.authorization.principalId, operationKey),
     sql('SELECT * FROM ik_jobs WHERE id=?', '00000000-0000-0000-0000-000000000000'),
     sql('SELECT * FROM ik_d1_plan_chunks WHERE job_id IN (SELECT value FROM json_each(?)) ORDER BY job_id,ordinal', JSON.stringify(['00000000-0000-0000-0000-000000000000']))];
-  if (!creation.some(s => s.sql.startsWith('INSERT INTO ik_d1_plan_chunks'))) reads.pop();
+  const chunkRead = reads.pop()!;
+  const body = creation.find(s => s.sql.startsWith('INSERT INTO ik_jobs('))!.params![7];
+  for (let n = 0; n < planChunkReads(body); n++) reads.push(chunkRead);
   if (policy(context) === 'preserve-conflicts') reads.push(sql('SELECT r.*,p.reversed AS native_reversed FROM ik_d1_reversal_reports r LEFT JOIN ik_provenance p ON p.id=r.effect_id AND p.job_id=r.job_id WHERE r.job_id=? ORDER BY r.position', '00000000-0000-0000-0000-000000000000'));
   const erasedReads = erasedSourcePredicates(plan).map(p => ({ sql: `SELECT ${p.sql} AS clear`, params: p.params }));
   const all = [...initial, ...erasedReads, ...statements, ...reads];

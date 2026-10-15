@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto';
 import { Buffer } from 'node:buffer';
 import { jsonStringParts } from './identity.ts';
+import { ResumableSha256, type Sha256State } from './resumable-sha256.ts';
 
 const encoder = new TextEncoder();
 let availableBuffer: Uint8Array | undefined;
@@ -51,8 +52,21 @@ export function createCanonicalStreamHash() {
   };
 }
 
-function canonicalWriter(cache: StringCache) {
-  const hash = createHash('sha256');
+/** The same canonical stream hash whose state can be saved between requests:
+ * `checkpoint()` returns it, and `resume` continues from a saved one. Callers
+ * keep the saved state server-side; it fences nothing by itself. */
+export function createResumableCanonicalHash(resume?: Sha256State) {
+  const cache = stringCache(), hash = resume ? ResumableSha256.from(resume) : new ResumableSha256(), writer = canonicalWriter(cache, hash);
+  return {
+    value(value: unknown) { writer.value(value); },
+    token(value: '[' | ']' | '{' | '}' | ':' | ',') { writer.token(value); },
+    checkpoint(): Sha256State { writer.flush(); return hash.state(); },
+    digest() { return writer.digest(); },
+    clear() { writer.release(); for (const bytes of cache.strings.values()) bytes.fill(0); cache.strings.clear(); cache.retainedBytes = 0; },
+  };
+}
+
+function canonicalWriter(cache: StringCache, hash: { update(bytes: Uint8Array): unknown; digest(encoding: 'hex'): string } = createHash('sha256')) {
   // Hashing many small records must not allocate a new 64 KiB backing store
   // for each record. A nested getter acquires its own buffer; returned scratch
   // is wiped even when validation fails and retains no source bytes.
@@ -109,6 +123,7 @@ function canonicalWriter(cache: StringCache) {
   return {
     value: visit,
     token(value: string) { if (!/^[\[\]{}:,]$/.test(value)) throw new Error('INVALID_CANONICAL_TOKEN'); byte(value.charCodeAt(0)); },
+    flush,
     digest() { flush(); return hash.digest('hex'); },
     release() { buffer.fill(0); availableBuffer ??= buffer; },
   };

@@ -31,8 +31,9 @@ export async function noSuccessors(id: string, context: D1ImportContext): Promis
   return guard(sql('NOT EXISTS(SELECT 1 FROM ik_d1_history WHERE job_id=?)', id));
 }
 
-export async function restorePredecessor(p: D1ProvenanceRow, context: D1ImportContext, before: D1Sql[], after: D1Sql[]): Promise<void> {
-  const prior = await context.storage.database.prepare('SELECT * FROM ik_d1_history WHERE successor_id=?').bind(p.id).first();
+/** `prior` may come from one read for a whole batch; undefined reads it here. */
+export async function restorePredecessor(p: D1ProvenanceRow, context: D1ImportContext, before: D1Sql[], after: D1Sql[], prior?: any): Promise<void> {
+  if (prior === undefined) prior = await context.storage.database.prepare('SELECT * FROM ik_d1_history WHERE successor_id=?').bind(p.id).first();
   if (!prior) {
     if (p.predecessorId !== undefined) throw new Error('IMPORT_HISTORY_MISMATCH');
     before.push(guard(sql('NOT EXISTS(SELECT 1 FROM ik_d1_history WHERE successor_id=?)', p.id)));
