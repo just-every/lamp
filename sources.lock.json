@@ -4360,7 +4360,7 @@
       "executable": false
     },
     "tests/e2e/setup-readiness.test.mjs": {
-      "sha256": "8710b9175345190c0ec822eba8f2aa7e835462b34957965c59dea6ef806c0be7",
+      "sha256": "c6c78ed5f0922be60b08bdc5352988a7d7c62711cbda0ef0822a64018873fb2c",
       "executable": false
     },
     "tests/e2e/signin-link.test.mjs": {

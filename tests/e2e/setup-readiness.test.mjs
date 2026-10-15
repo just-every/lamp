@@ -11,6 +11,7 @@ import { reservePort, waitForWorker } from './worker-startup.mjs';
 import { appOrigin, pageOrigin } from './helpers/hosts.mjs';
 import { accessibilityFailure, observeAuditPage } from './subscriber-audit-helper.mjs';
 import { sessionCookieName } from '../helpers/session-cookie.mjs';
+import { devKey } from '../helpers/dev-key.mjs';
 const executeFile = promisify(execFile);
 
 test('SETUP-001 fresh, half complete and complete setup render correctly at 1440 and 390 through real operator and public routes', { timeout: 180_000 }, async () => {
@@ -32,7 +33,7 @@ test('SETUP-001 fresh, half complete and complete setup render correctly at 1440
     // A retained neutral setup row is a real fresh-install fixture, not a
     // checklist override. All subsequent evidence comes from native actions.
     execFileSync('pnpm', ['exec','wrangler','d1','execute','DB','--local','--config','wrangler.jsonc','--persist-to',state,'--command', "INSERT INTO page_settings (id,page_name,tagline,accent_color,timezone,hostname,feed_id,footer_credit_enabled,widget_allowed_origins,mail_from_address,created_at,updated_at) VALUES ('default','Your status page','Service availability','#16794C','UTC','127.0.0.1','readiness-fixture',1,'[]','lamp@localhost.invalid','2026-10-01T00:00:00.000Z','2026-10-01T00:00:00.000Z');"], { stdio: 'pipe' });
-    worker = spawn('pnpm', ['exec','vite','--host','127.0.0.1','--port',String(port),'--strictPort'], { detached: true, stdio: 'pipe', env: { ...process.env, LAMP_DEV_OUTBOX_MODE: 'local', LAMP_WORKERS_STATE_PATH: state, LAMP_VITE_CACHE_DIR: cache, LAMP_DISABLE_INSPECTOR: 'true' } });
+    worker = spawn('pnpm', ['exec','vite','--host','127.0.0.1','--port',String(port),'--strictPort'], { detached: true, stdio: 'pipe', env: { ...process.env, RER_DEV_KEY: devKey, RER_DEV_ORIGIN: origin, LAMP_WORKERS_STATE_PATH: state, LAMP_VITE_CACHE_DIR: cache, LAMP_DISABLE_INSPECTOR: 'true' } });
     worker.stdout.on('data', chunk => { output += chunk; }); worker.stderr.on('data', chunk => { output += chunk; });
     await waitForWorker({ origin, child: worker, output: () => 'Setup checklist Worker output withheld because it may contain private links.', label: 'Setup checklist Worker' });
     const api = async (path, method = 'GET', body, headers = {}) => {
