@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Mark synthetic credentials and documentation placeholders so hosted source admission accepts the fixtures.
+
 ## 1.5.0
 
 - Attaching or detaching a component on a live incident asks for confirmation before changing the public page. Attaching queues the latest published update for eligible subscribers who follow that component and have not already been notified about the incident; the confirmation shows the current count. Detaching sends no email. Internal components are excluded from the attach picker.

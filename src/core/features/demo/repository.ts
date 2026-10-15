@@ -39,8 +39,8 @@ export async function seedDemoRecords(binding: D1Database, input: { ownerEmail: 
   await db.insert(maintenance).values({ id: id('201'), reference: 'SCH-1', title: 'File delivery infrastructure upgrade', state: 'Scheduled', startsAt: time(1440), endsAt: time(1500), createdByOperatorId: owner.id, ...stamp }).onConflictDoNothing();
   await db.insert(maintenanceComponents).values({ id: id('211'), maintenanceId: id('201'), componentId: id('14'), componentName: 'File delivery', ...stamp }).onConflictDoNothing();
   await db.insert(subscribers).values([
-    { id: id('301'), channel: 'email', destination: 'alex@example.invalid', state: 'active', tokenHash: 'demo-email-unusable-token-hash', ...stamp },
-    { id: id('302'), channel: 'webhook', destination: 'https://hooks.example.invalid/lamp', contactEmail: 'ops@example.invalid', state: 'active', tokenHash: 'demo-webhook-unusable-token-hash', ...stamp },
+    { id: id('301'), channel: 'email', destination: 'alex@example.invalid', state: 'active', tokenHash: 'synthetic-demo-email-unusable-token-hash', ...stamp },
+    { id: id('302'), channel: 'webhook', destination: 'https://hooks.example.invalid/lamp', contactEmail: 'ops@example.invalid', state: 'active', tokenHash: 'synthetic-demo-webhook-unusable-token-hash', ...stamp },
   ]).onConflictDoNothing();
   await binding.batch([
     binding.prepare("INSERT INTO maintenance_notices(id,maintenance_id,kind,body,published_at,author_operator_id,created_at,updated_at) VALUES(?,?,'scheduled',?,?,?,?,?) ON CONFLICT(id) DO NOTHING").bind(id('221'), id('201'), 'File downloads may pause briefly while we upgrade storage. Existing files are retained.', at, owner.id, at, at),

@@ -19,8 +19,8 @@ const deploymentEnvironment = {
   MAIL_FROM_ADDRESS: "ops@example.test",
   SESSION_SECRET:'test-only-session-secret-'.repeat(3),SETUP_TOKEN:'test-only-setup-token-'.repeat(3),SETUP_OPERATOR_EMAIL: "operator@example.test",
   MAIL_PROVIDER_API_KEY: "01234567890123456789012345678901",
-  SUBSCRIBER_TOKEN_SECRET: "abcdefghijklmnopqrstuvwxyz012345",
-  WEBHOOK_SIGNING_SECRET: "abcdefghijklmnopqrstuvwxyz012345",
+  SUBSCRIBER_TOKEN_SECRET: "synthetic-abcdefghijklmnopqrstuvwxyz012345",
+  WEBHOOK_SIGNING_SECRET: "synthetic-abcdefghijklmnopqrstuvwxyz012345",
   MAIL_DKIM_SELECTOR: "resend",
   // A real owner may invoke verify with integrations configured in their shell.
   // This local artifact fixture must declare its entire integration surface.

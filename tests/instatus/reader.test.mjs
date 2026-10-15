@@ -82,7 +82,7 @@ test("Saved Instatus import preserves history and refuses unsafe or ambiguous so
   await (async () => {
   let source = await files('small');
   source = edit(source, 'instatus-incidents.json', rows => rows.map((row, index) => index ? row : { ...row, shouldPublish: false }));
-  source = edit(source, 'instatus-subscribers.json', rows => rows.map((row, index) => index ? row : { ...row, all: false, components: ['missing'], unsubscribeToken: 'capability-must-not-survive' }));
+  source = edit(source, 'instatus-subscribers.json', rows => rows.map((row, index) => index ? row : { ...row, all: false, components: ['missing'], unsubscribeToken: 'synthetic-capability-must-not-survive' }));
   source = edit(source, 'instatus-components.json', rows => rows.map(row => ({ ...row, uniqueEmail: 'capability@automation.instatus.invalid' })));
   const read = await reader(source, options);
   assert.equal(read.data.incidents.some(row => row.id === 'incident-1'), false);

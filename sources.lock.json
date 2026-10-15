@@ -448,7 +448,7 @@
       "executable": false
     },
     "CHANGELOG.md": {
-      "sha256": "cb722f1218134def8499ef0ea55dd6447de205543f964e22eb065af93e8eecc8",
+      "sha256": "5f397df2a0e587add6eaaadbb4bc8d4f515b7daf9ca5089ffea5b6f6bc3516db",
       "executable": false
     },
     "CLAUDE.md": {
@@ -512,7 +512,7 @@
       "executable": false
     },
     "docs/deploy.md": {
-      "sha256": "dded9abe319f257b4bf3b353ba1f8e9c76b09351c5f04c72d19c72600a7cc063",
+      "sha256": "3ed998a9da2fb677c798212d631baaf10156d7d8696bf775797110c83a86bcc9",
       "executable": false
     },
     "docs/deployment-reference.md": {
@@ -2736,7 +2736,7 @@
       "executable": false
     },
     "src/core/features/demo/repository.ts": {
-      "sha256": "92dc07fabb98bf3760047e393cf2b6d2ce504569999efadf89a5ba6827f71980",
+      "sha256": "2e210b314000eb97b9d2c5da38475bfb20212bbe07f6491487efdb46814084e7",
       "executable": false
     },
     "src/core/features/health/repository.ts": {
@@ -4356,11 +4356,11 @@
       "executable": false
     },
     "tests/e2e/accessibility.test.mjs": {
-      "sha256": "3705499eda6418b533d790996bbd65465482361ee51e0be90dd9adc54d7220d9",
+      "sha256": "f07b195d3e23cfb2a1f4b056909c33cd2cfe499de44e20cdfa7451fc796ae90b",
       "executable": false
     },
     "tests/e2e/app-api.test.mjs": {
-      "sha256": "94b88ff072fd772bb6f8e65681cd139bbe56575fcb88941e6501544a092b0967",
+      "sha256": "92772dc29ce3d7d466e18e95ba0da63200f6f11979654cc04166638547f9b85e",
       "executable": false
     },
     "tests/e2e/auth-adoption-journey.test.mjs": {
@@ -4400,11 +4400,11 @@
       "executable": false
     },
     "tests/e2e/delivery-contract.test.mjs": {
-      "sha256": "2a5cb16970b5862914d2a1f6cad0e8a7ed492c042b603e5230c4c79e02bb0dcc",
+      "sha256": "2a39b3b81f1c60cb8ea629fc308e16d5c6967dc2753d3f216b3e0a2103bb6d4d",
       "executable": false
     },
     "tests/e2e/deployment-artifact.test.mjs": {
-      "sha256": "30a4e30b2568d77b63529168455f36324190c1b2e8b80e13b5d39ee34a0e283a",
+      "sha256": "deb006b2ef7ac79b5d02e7ea9d2493d1403be519b674c1519bdabc5704d59346",
       "executable": false
     },
     "tests/e2e/deployment-secrets.test.mjs": {
@@ -4416,7 +4416,7 @@
       "executable": false
     },
     "tests/e2e/dispatch-token-batch.test.mjs": {
-      "sha256": "14144af1faf3a1fb3455b253fa30c2d570ffdf8a509bb4d9de4dec114229c1ea",
+      "sha256": "1a34a210a22aa7299d4488f32c9ee7a88ea7a84d87af74394214194e89078843",
       "executable": false
     },
     "tests/e2e/draft-metadata-regression.mjs": {
@@ -4496,7 +4496,7 @@
       "executable": false
     },
     "tests/e2e/publishing-contract.test.mjs": {
-      "sha256": "dcce3568828ea0de45e4ae3642fb7a6440942530d695851ab985bc0d9cf4645f",
+      "sha256": "49d32be60b57afc7db4859babf5ae69b118f37b91c0a2c3bb7adb07c65267e09",
       "executable": false
     },
     "tests/e2e/queue-outage.test.mjs": {
@@ -4560,11 +4560,11 @@
       "executable": false
     },
     "tests/e2e/subscriber-isolation-helper.mjs": {
-      "sha256": "758fa4af240736c774c93486fe1b937a966203c7b13edbcadd9d541e663f392c",
+      "sha256": "b3cb4c1ac9f01057b5fae2f1a70a766dfd2fcdb3113cf945942e6e9c93ced047",
       "executable": false
     },
     "tests/e2e/subscriber-revocation-regression.mjs": {
-      "sha256": "1b3ba4557ecdd384cdef7fdf627880e3b51598171c8f015d7abd7ad365d17271",
+      "sha256": "83d83c5dacd8ed04f929f00c284c3bfd6dda6d968a8fd291be8e0a933a32eca1",
       "executable": false
     },
     "tests/e2e/subscriber-transition-helper.mjs": {
@@ -5036,7 +5036,7 @@
       "executable": false
     },
     "tests/instatus/reader.test.mjs": {
-      "sha256": "7c8f713db00a418a8bc6c0a5f32c3b0ce58db44c15e6671d305034793a5483c1",
+      "sha256": "c38b2182dcc59ee1998e0c8c38a17313646b51d8da2a0eae571c5915065840d4",
       "executable": false
     },
     "tests/lamp-site/browser.test.mjs": {
@@ -5048,7 +5048,7 @@
       "executable": false
     },
     "tests/operator-readiness/checklist.test.mjs": {
-      "sha256": "c5d6ddf8796320861c3975442be79dba9562a2e0ecb48fad691566c05db39a09",
+      "sha256": "bc0c81f8e328ef8aae05225b69fcb8b57171ce61f2de1920140ab53afc038adc",
       "executable": false
     },
     "tests/operator-readiness/runtime.mjs": {

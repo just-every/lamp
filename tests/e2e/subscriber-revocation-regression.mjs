@@ -64,7 +64,7 @@ export async function exerciseRevokedManagement({ db, createSubscriberRepository
   for (const renewedState of ["none", "pending", "active"]) {
     for (const availableLink of [true, false]) {
       const mail = createMail();
-      const options = { mail, fromAddress: "lamp@example.test", tokenSecret: "fixture-revocation-secret" };
+      const options = { mail, fromAddress: "lamp@example.test", tokenSecret: "synthetic-fixture-revocation-secret" };
       const appFor = binding => {
         const app = new Hono();
         registerSubscriberRoutes(app, createSubscribersService(createSubscriberRepository(binding), options));

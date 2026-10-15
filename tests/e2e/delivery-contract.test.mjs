@@ -166,7 +166,7 @@ test("SUB-001 SUB-005 UPDATE-008 SUB-002 SUB-003 — Concurrent subscriptions, s
   const service = createSubscribersService(createSubscriberRepository(platform.env.DB), {
     mail,
     fromAddress: "lamp@example.test",
-    tokenSecret: "d1-confirmation-secret",
+    tokenSecret: "synthetic-d1-confirmation-secret",
     events: {
       async subscriberConfirmed(event) {
         assert.equal((await platform.env.DB.prepare("SELECT state FROM subscribers WHERE id = ?").bind(event.subscriberId).first()).state, "active", "the extension sees the committed subscriber state");
@@ -601,7 +601,7 @@ test("SUB-009 SUB-010 SUB-011 — Signed webhook delivery, provider receipts and
   t.diagnostic("SUB-009 — an actual D1 webhook subscription signs its complete event, rejects SSRF, and treats redirects as failures");
   await (async () => {
   const db = platform.env.DB;
-  const subscribers = createSubscribersService(createSubscriberRepository(db), { tokenSecret: "webhook-subscription-secret" });
+  const subscribers = createSubscribersService(createSubscriberRepository(db), { tokenSecret: "synthetic-webhook-subscription-secret" });
   await assert.rejects(subscribers.createWebhookSubscription({ destination: "https://127.0.0.1/private", contactEmail: "webhook-contact@example.test", componentIds: [] }), /public HTTPS/);
   const subscriber = await subscribers.createWebhookSubscription({ destination: "https://receiver.example.test/lamp", contactEmail: "webhook-contact@example.test", componentIds: [] });
   const now = "2026-09-08T07:00:00.000Z";
@@ -633,7 +633,7 @@ test("SUB-009 SUB-010 SUB-011 — Signed webhook delivery, provider receipts and
   const now = "2026-09-08T07:10:00.000Z";
   await db.prepare("DELETE FROM notification_outbox").run();
   const mail = new CapturingMail();
-  const deliveries = createDeliveriesService(createDeliveryRepository(db), { mail, fromAddress: "lamp@example.test", subscriberTokenSecret: "bounce-token-secret", webhookSigningSecret: "webhook-failure-secret" });
+  const deliveries = createDeliveriesService(createDeliveryRepository(db), { mail, fromAddress: "lamp@example.test", subscriberTokenSecret: "bounce-token-secret", webhookSigningSecret: "synthetic-webhook-failure-secret" });
   await db.batch([
     db.prepare("INSERT INTO subscribers (id,channel,destination,contact_email,state,selection_mode,token_hash,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?)").bind("01J00000000000000000000091", "email", "hard-bounce@example.test", null, "active", "all", "hard-bounce-token", now, now),
     db.prepare("INSERT INTO notification_deliveries (id,subscriber_id,incident_update_id,channel,outcome,queued_at,created_at,updated_at,notification_event_id,notification_event_type) VALUES (?,?,?,?,?,?,?,?,?,?)").bind("01J00000000000000000000092", "01J00000000000000000000091", "01J00000000000000000000045", "email", "queued", now, now, now, "hard-bounce-event", "incident-update"),
@@ -725,7 +725,7 @@ test("SUB-009 SUB-010 SUB-011 — Signed webhook delivery, provider receipts and
 
   const complaintMail = new CapturingMail();
   complaintMail.send = async (message) => { complaintMail.messages.push(message); return { providerMessageId: `complaint-mail-${complaintMail.messages.length}` }; };
-  const complaintDeliveries = createDeliveriesService(createDeliveryRepository(db), { mail: complaintMail, fromAddress: "lamp@example.test", subscriberTokenSecret: "complaint-token-secret" });
+  const complaintDeliveries = createDeliveriesService(createDeliveryRepository(db), { mail: complaintMail, fromAddress: "lamp@example.test", subscriberTokenSecret: "synthetic-complaint-token-secret" });
   await db.batch([
     db.prepare("INSERT INTO subscribers (id,channel,destination,contact_email,state,selection_mode,token_hash,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?)").bind("01J000000000000000000000D02", "email", "complaint@example.test", null, "active", "all", "complaint-token", now, now),
     db.prepare("INSERT INTO notification_deliveries (id,subscriber_id,incident_update_id,channel,outcome,queued_at,created_at,updated_at,notification_event_id,notification_event_type) VALUES (?,?,?,?,?,?,?,?,?,?)").bind("01J000000000000000000000D03", "01J000000000000000000000D02", "01J00000000000000000000045", "email", "queued", now, now, now, "complaint-event", "incident-update"),
@@ -895,7 +895,7 @@ test("TEAM-003 NOTIFY-001 NOTIFY-003 NOTIFY-006 NOTIFY-009 TEAM-001 — Erased r
   await (async()=>{
  const {Hono}=await import('hono');const {requireOperator}=await vite.ssrLoadModule('/src/core/features/operators/routes.ts');const db=platform.env.DB,fixture=authFixture(db);
  await db.prepare("INSERT INTO oa_operators(id,email,display_name,role,status,created_at) VALUES ('equal-operator','equal@example.test','Equal','owner','active',?)").bind(Date.now()).run();
- const cookie=await fixture.signIn('equal@example.test');const app=new Hono();app.use('*',async(c,next)=>{c.env={DB:db};await next();});app.use('/api/app/*',requireOperator(()=>fixture.auth));registerSubscriberRoutes(app,createSubscribersService(createSubscriberRepository(db),{tokenSecret:'equal-operator-subscriber-token'}));
+ const cookie=await fixture.signIn('equal@example.test');const app=new Hono();app.use('*',async(c,next)=>{c.env={DB:db};await next();});app.use('/api/app/*',requireOperator(()=>fixture.auth));registerSubscriberRoutes(app,createSubscribersService(createSubscriberRepository(db),{tokenSecret:'synthetic-equal-operator-subscriber-token'}));
  assert.equal((await app.fetch(fixture.request('/api/app/subscribers?limit=5',{cookie}))).status,200);
 })(t);
   t.diagnostic("NOTIFY-003 — one failing recipient cannot strand a healthy recipient, and a concurrent webhook dispatch posts once");
@@ -971,7 +971,7 @@ test("NOTIFY-004 SUB-011 NOTIFY-002 — Delivery queues and complete subscriber/
   }
   await db.batch(statements);
   const app = new Hono();
-  registerSubscriberRoutes(app, createSubscribersService(createSubscriberRepository(db), { tokenSecret: "pagination-subscriber-secret" }));
+  registerSubscriberRoutes(app, createSubscribersService(createSubscriberRepository(db), { tokenSecret: "synthetic-pagination-subscriber-secret" }));
   const first = await app.request(`https://app.example.test/api/app/subscribers?limit=100&offset=${existing.count}`);
   const firstBody = await first.json();
   assert.equal(first.status, 200);
@@ -1051,7 +1051,7 @@ test("NOTIFY-004 SUB-011 NOTIFY-002 — Delivery queues and complete subscriber/
   const captured = await db.prepare("SELECT COUNT(*) AS count FROM notification_deliveries WHERE notification_event_id = ?").bind(eventId).first();
   assert.equal(captured.count, subscriberLimit);
   const mail = new DefaultResendRateModelMail();
-  const deliveries = createDeliveriesService(createDeliveryRepository(db), { mail, fromAddress: "lamp@example.test", subscriberTokenSecret: "fanout-limit-secret" });
+  const deliveries = createDeliveriesService(createDeliveryRepository(db), { mail, fromAddress: "lamp@example.test", subscriberTokenSecret: "synthetic-fanout-limit-secret" });
   await deliveries.dispatchEvent(eventId, "https://status.example.test");
   const elapsedMs = performance.now() - startedAt;
   const accepted = await db.prepare("SELECT COUNT(*) AS count FROM notification_delivery_attempts attempt JOIN notification_deliveries delivery ON delivery.id = attempt.delivery_id WHERE delivery.notification_event_id = ? AND attempt.provider_message_id IS NOT NULL").bind(eventId).first();

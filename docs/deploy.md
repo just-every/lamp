@@ -22,7 +22,7 @@ contents, not a command to run; replace the credential placeholders and addresse
 
 ```text
 CLOUDFLARE_ACCOUNT_ID=your-account-id
-CLOUDFLARE_API_TOKEN=your-cloudflare-api-token
+CLOUDFLARE_API_TOKEN=synthetic-your-cloudflare-api-token
 LAMP_APP_HOST=ops.example.com
 LAMP_PAGE_HOST=status.example.com
 LAMP_PAGE_NAME=Acme Status
@@ -34,7 +34,7 @@ OWNER_DISPLAY_NAME=Alex Morgan
 MAIL_PROVIDER=sendgrid
 MAIL_FROM_ADDRESS=status@example.com
 MAIL_DKIM_SELECTOR=s1
-MAIL_PROVIDER_API_KEY=your-mail-provider-api-key
+MAIL_PROVIDER_API_KEY=synthetic-your-mail-provider-api-key
 ```
 
 `OWNER_DISPLAY_NAME` sets the first owner's name and defaults to `Owner` when

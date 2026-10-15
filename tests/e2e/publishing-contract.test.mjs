@@ -377,7 +377,7 @@ test("UPDATE-005 UPDATE-006 UPDATE-007 — Private drafts, scheduled publication
   t.diagnostic("UPDATE-005 — a private saved draft survives an operator reload without appearing in the public snapshot");
   await (async () => {
   const incident = await createIncident("Private draft persistence");
-  const secret = "UNPUBLISHED-DRAFT-TEXT";
+  const secret = "synthetic-UNPUBLISHED-DRAFT-TEXT";
   await saveDraft(incident.id, { details: secret });
   const restored = await incidentView(incident.id);
   assert.equal(restored.draft.details, secret);

@@ -44,7 +44,7 @@ test('protected setup actions keep real D1 facts, refuse local sender completion
     const app = new Hono(); app.use('*',async(c,next)=>{c.env={DB:db};await next();}); app.use('/api/app/*',requireOperator(()=>fixture.auth));
     registerOverviewRoutes(app, createOverviewService(services.components, services.incidents, services.maintenance, setup));
     registerDeliveryRoutes(app, services.deliveries, { localMail: true, mailProvider: 'sendgrid', sendGridWebhookPublicKey: 'test-configured-receipt-key' });
-    const subscribers = createSubscribersService(createSubscriberRepository(db), { mail, fromAddress: 'lamp@localhost.invalid', tokenSecret: 'test-local-subscription-secret' });
+    const subscribers = createSubscribersService(createSubscriberRepository(db), { mail, fromAddress: 'lamp@localhost.invalid', tokenSecret: 'synthetic-test-local-subscription-secret' });
     registerSubscriberRoutes(app, subscribers, { localMail: true });
     const request = (action, signedIn = true) => app.request(`${origin}/api/app/overview/${action}`, { method: 'POST', headers: { ...(signedIn ? { Cookie: cookie } : {}), Host:new URL(origin).host,Origin:origin,'Content-Type': 'application/json' }, body: '{}' });
     const operatorGet = path => app.request(`${origin}${path}`, { headers: { Cookie: cookie, Host: new URL(origin).host } });

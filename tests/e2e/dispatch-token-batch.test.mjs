@@ -6,7 +6,7 @@ let fixture;
 before(async () => { fixture = await tokenFixture(); });
 after(async () => { await fixture?.close(); });
 const origin = "https://status.example.test";
-const candidates = prefix => ({ manage: { id: `${prefix}-manage`, tokenHash: `${prefix}-manage-hash` }, unsubscribe: { id: `${prefix}-unsubscribe`, tokenHash: `${prefix}-unsubscribe-hash` } });
+const candidates = prefix => ({ manage: { id: `${prefix}-manage`, tokenHash: `synthetic-${prefix}-manage-hash` }, unsubscribe: { id: `${prefix}-unsubscribe`, tokenHash: `synthetic-${prefix}-unsubscribe-hash` } });
 const rows = async id => (await fixture.db.prepare("SELECT id, scope, token_hash AS hash, revoked_at AS revoked FROM subscriber_tokens WHERE subscriber_id = ? ORDER BY scope, id").bind(id).all()).results;
 
 test("Atomic subscriber token allocation, isolation, rollback and revocation", async t => {
@@ -48,7 +48,7 @@ test("Atomic subscriber token allocation, isolation, rollback and revocation", a
   await seed("token-constraint"); await seed("token-constraint-owner");
   const repository = createDeliveryRepository(db), input = candidates("constraint");
   await repository.ensureNotificationTokens("token-constraint-owner", candidates("constraint-owner"), now);
-  input.unsubscribe.tokenHash = "constraint-owner-unsubscribe-hash";
+  input.unsubscribe.tokenHash = "synthetic-constraint-owner-unsubscribe-hash";
   await assert.rejects(repository.ensureNotificationTokens("token-constraint", input, now), /UNIQUE constraint failed/);
   assert.deepEqual(await rows("token-constraint"), []);
   assert.equal((await rows("token-constraint-owner")).length, 2);

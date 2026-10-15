@@ -21,7 +21,7 @@ import { sessionCookieName } from "../helpers/session-cookie.mjs";
 
 const WCAG_22_AA_TAGS = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"];
 const wranglerConfig = resolve("wrangler.jsonc");
-const subscriberTokenSecret = "accessibility-test-subscriber-token-secret";
+const subscriberTokenSecret = "synthetic-accessibility-test-subscriber-token-secret";
 
 let appUrl = "";
 let pageUrl = "";
@@ -222,7 +222,7 @@ before(async () => {
     subscriberToken("01J00000000000000000000089", "confirm"),
   ];
   manageToken = manage.token;
-  unsubscribeToken = unsubscribe.token;
+  ({ token: unsubscribeToken } = unsubscribe);
   const timestamp = new Date().toISOString();
   const confirmationRows = confirmTokens.map((confirm, index) => `('01J0000000000000000000008${index + 4}','email','accessibility-confirm-${index}@example.test',NULL,'pending','all','accessibility-confirm-legacy-${index}',NULL,NULL,'${timestamp}','${timestamp}')`).join(",");
   const confirmationTokenRows = confirmTokens.map((confirm, index) => `('${confirm.id}','01J0000000000000000000008${index + 4}','confirm','${confirm.hash}','2035-01-01T00:00:00.000Z',NULL,'${timestamp}','${timestamp}')`).join(",");

@@ -508,7 +508,7 @@ test("INTAKE-005 — Private alert configuration and honest AI readiness", async
   });
   assert.equal(missingBearer.status, 400);
 
-  const bearerToken = "replacement-source-bearer-token";
+  const bearerToken = "synthetic-replacement-source-bearer-token";
   const bearerSource = await appFetch(`/api/app/intake/sources/${source.id}`, {
     method: "PUT",
     body: JSON.stringify({
