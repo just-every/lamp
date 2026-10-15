@@ -1,5 +1,5 @@
 diff --git a/cli/production-auth.mjs b/cli/production-auth.mjs
-index d69844ce183d994c2f1c03852ba4b856a548b365..3612e1f1856ed4c4464180ab4459ef1d6aec5d4d 100644
+index d69844ce183d994c2f1c03852ba4b856a548b365..60988465a173cc8b0d630ae14367f16a1c36df22 100644
 --- a/cli/production-auth.mjs
 +++ b/cli/production-auth.mjs
 @@ -34,5 +34,12 @@ export async function requireProductionAuth({ root, declaration, env, setupManif
@@ -14,5 +14,5 @@ index d69844ce183d994c2f1c03852ba4b856a548b365..3612e1f1856ed4c4464180ab4459ef1d
 +  ...required.filter(key => !bindings[key]?.trim()),
 +  ...(provider === 'rer' && !mailSelected ? ['MAIL_RELAY_URL'] : []),
 + ].map(binding => declaration.secrets?.find(item => item.binding === binding)?.environment ?? binding);
-+ throw refuse(`Production sign-in is not configured. Missing or invalid deployment inputs: ${[...new Set(missing)].join(', ')}. Use this checkout's deployment guide and the required-inputs list from rer describe. Nothing was built or uploaded.`);
++ throw refuse(`Production sign-in is not configured. Missing or invalid deployment inputs: ${[...new Set(missing)].join(', ')}. Use this checkout's deployment guide and its declared required-inputs list. Nothing was built or uploaded.`);
  }
