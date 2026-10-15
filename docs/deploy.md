@@ -10,7 +10,7 @@ rer deploy --dry-run
 rer deploy
 ```
 
-Lamp uses the npm package `@runeditrun/rer` 0.2.6. Deploy runs Lamp's build,
+Lamp uses the npm package `@runeditrun/rer` 0.2.8. Deploy runs Lamp's build,
 migration application and deployment health checks; the full verifier runs in
 CI and through `rer verify`, independently of deployment.
 
