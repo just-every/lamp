@@ -22,6 +22,20 @@
     {
       "binding": "WEBHOOK_SIGNING_SECRET",
       "environment": "WEBHOOK_SIGNING_SECRET"
+    },
+    {
+      "binding": "MAIL_PROVIDER",
+      "environment": "MAIL_PROVIDER",
+      "verifyStandIn": "sendgrid"
+    },
+    {
+      "binding": "MAIL_FROM",
+      "environment": "MAIL_FROM_ADDRESS",
+      "verifyStandIn": "proof@rer-hosted-check.invalid"
+    },
+    {
+      "binding": "MAIL_API_KEY",
+      "environment": "MAIL_PROVIDER_API_KEY"
     }
   ]
 }
