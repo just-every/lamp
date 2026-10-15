@@ -96,7 +96,7 @@ export interface IncidentRepository {
   listTemplates(): Promise<Array<IncidentTemplateRecord & { components: IncidentTemplateComponentRecord[] }>>;
   saveTemplate(input: IncidentTemplateRecord, components: IncidentTemplateComponentRecord[]): Promise<void>;
   findTemplate(templateId: string): Promise<(IncidentTemplateRecord & { components: IncidentTemplateComponentRecord[] }) | null>;
-  applyTemplate(incidentId: string, draft: StoredIncidentDraft, components: Array<typeof incidentComponents.$inferInsert>, expectedVersion: string, recipientStatements: D1PreparedStatement[]): Promise<void>;
+  applyTemplate(incidentId: string, draft: StoredIncidentDraft, components: Array<typeof incidentComponents.$inferInsert>, expectedVersion: string): Promise<void>;
 }
 
 export class DraftConflictError extends Error {
@@ -274,16 +274,22 @@ export function createIncidentRepository(binding: D1Database): IncidentRepositor
       const components = (await binding.prepare(`SELECT id, template_id AS templateId, component_id AS componentId, component_name AS componentName, state, relationship, created_at AS createdAt, updated_at AS updatedAt FROM incident_template_components WHERE template_id = ? ORDER BY created_at`).bind(template.id).all<IncidentTemplateComponentRecord>()).results;
       return { ...template, components };
     },
-    async applyTemplate(incidentId, draft, components, expectedVersion, recipientStatements) {
+    async applyTemplate(incidentId, draft, components, expectedVersion) {
       const [expectedId, expectedCount] = expectedVersion.split(":");
       const idExpression = "(SELECT ? WHERE COALESCE((SELECT id FROM incident_drafts WHERE incident_id = ?), '-') = ? AND (SELECT count(*) FROM incident_updates WHERE incident_id = ?) = ?)";
       const idBindings = [draft.id, incidentId, expectedId, incidentId, Number(expectedCount)];
       if (draft.incidentId !== incidentId) throw new Error("Template draft does not belong to this incident.");
       await writeDraftBatch(binding, [
-        ...(components.length ? [activeIncidentGuard(binding, incidentId)] : []),
+        binding.prepare(`SELECT CASE WHEN EXISTS (SELECT 1 FROM incidents WHERE id = ? AND deleted_at IS NULL) THEN 1 ELSE json('Incident is missing or deleted') END`).bind(incidentId),
         binding.prepare(`INSERT INTO incident_drafts (id,incident_id,lifecycle,affected_audience,customer_impact,what_still_works,details,next_update_at,author_operator_id,created_at,updated_at) VALUES (${idExpression},?,?,?,?,?,?,?,?,?,?) ON CONFLICT(incident_id) DO UPDATE SET id=excluded.id,lifecycle=excluded.lifecycle,affected_audience=excluded.affected_audience,customer_impact=excluded.customer_impact,what_still_works=excluded.what_still_works,details=excluded.details,next_update_at=excluded.next_update_at,author_operator_id=excluded.author_operator_id,updated_at=excluded.updated_at,scheduled_publish_at=NULL,scheduled_channels_json=NULL,reviewed_by_operator_id=NULL,reviewed_at=NULL,corrects_update_id=NULL`).bind(...idBindings, draft.incidentId, draft.lifecycle, draft.affectedAudience, draft.customerImpact, draft.whatStillWorks, draft.details, draft.nextUpdateAt, draft.authorOperatorId, draft.createdAt, draft.updatedAt),
-        ...components.flatMap((component) => attachClaimStatements(binding, component as AttachedIncidentComponent)),
-        ...recipientStatements,
+        // Applying a template edits a private draft, even after an earlier
+        // publication. publishDraft promotes these claims with its next update.
+        ...components.flatMap((component) => [
+          binding.prepare(`SELECT CASE WHEN EXISTS (SELECT 1 FROM components WHERE id = ?) AND NOT EXISTS (SELECT 1 FROM incident_components WHERE incident_id = ? AND component_id = ?) THEN 1 ELSE json('Component is missing or already attached') END`).bind(component.componentId, incidentId, component.componentId),
+          binding.prepare(`INSERT INTO incident_components (id,incident_id,component_id,component_name,state,relationship,published_at,created_at,updated_at)
+            SELECT ?,?,id,name,?,?,NULL,?,? FROM components WHERE id = ?`)
+            .bind(component.id, incidentId, component.state, component.relationship, component.createdAt, component.updatedAt, component.componentId),
+        ]),
       ]);
     },
   };

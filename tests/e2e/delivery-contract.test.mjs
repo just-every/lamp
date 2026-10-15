@@ -235,7 +235,8 @@ contract("SUB-004", "actual D1 recipient selection follows visible components an
     await db.prepare("INSERT INTO subscribers (id,channel,destination,state,selection_mode,token_hash,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?)").bind(id,channel,channel === "email" ? `catchup-${label}@example.test` : "https://hooks.example.test/catchup",state,mode,createUlid(),now,now).run();
     await db.prepare("INSERT INTO subscriber_components (id,subscriber_id,component_id,created_at,updated_at) VALUES (?,?,?,?,?)").bind(createUlid(),id,follows,now,now).run();
   }
-  const incidents = createIncidentsService(createIncidentRepository(db), components, async () => {}, {
+  let publicChanges = 0;
+  const incidents = createIncidentsService(createIncidentRepository(db), components, async () => { publicChanges++; }, {
     forIncidentUpdate: async (input) => notificationPublicationStatements(db, { eventId: input.updateId, eventType: "incident-update", incidentUpdateId: input.updateId, componentIds: input.componentIds, channels: input.channels, queuedAt: input.queuedAt }),
     forAttachedComponents: async (input) => incidentCatchupStatements(db,input),
   }, { requiresReview: () => false }, async () => {});
@@ -243,8 +244,8 @@ contract("SUB-004", "actual D1 recipient selection follows visible components an
   registerIncidentRoutes(app,incidents);
   const pending = [];
   const call = (path, method = "GET", body, headers = {}) => app.request(`https://app.example.test/api/app${path}`, { method, headers: { "Content-Type": "application/json", ...headers }, ...(body ? { body: JSON.stringify(body) } : {}) }, undefined, { waitUntil: (job) => pending.push(job) });
-  const create = async (componentId) => {
-    const response = await call("/incidents", "POST", { title: "Attachment catch-up", components: [{ componentId, state: "Major outage", relationship: "Primary" }] });
+  const create = async (componentId, state = "Major outage") => {
+    const response = await call("/incidents", "POST", { title: "Attachment catch-up", components: [{ componentId, state, relationship: "Primary" }] });
     assert.equal(response.status,201); return (await response.json()).incident;
   };
   const publish = async (incidentId, impact, channels = ["email"], historical = false) => {
@@ -298,13 +299,37 @@ contract("SUB-004", "actual D1 recipient selection follows visible components an
   await publish(silent.id,"Page-only publication",[]);
   assert.equal((await attach(silent.id,audience)).status,201);
   assert.deepEqual(await deliveriesFor(silent.id),[],"catch-up honors an update with no subscriber channels selected");
-  const templated = await create(origin);
+  const templated = await create(origin,"Degraded performance");
   const templateUpdate = await publish(templated.id,"Latest template incident update");
-  const templateResponse = await call("/incident-templates","POST",{ name: "Catch-up attachment template", lifecycle: "Monitoring", affectedAudience: "Customers", customerImpact: "Template draft stays private", whatStillWorks: "", details: "", nextUpdateOffsetMinutes: 60, components: [{ componentId: audience, state: "Degraded performance", relationship: "Dependent" }] });
+  const templateResponse = await call("/incident-templates","POST",{ name: "Private attachment template", lifecycle: "Monitoring", affectedAudience: "Customers", customerImpact: "Template draft stays private", whatStillWorks: "", details: "", nextUpdateOffsetMinutes: 60, components: [{ componentId: audience, state: "Major outage", relationship: "Dependent" }] });
   assert.equal(templateResponse.status,201); const template = (await templateResponse.json()).template;
+  const templatePublicState = async () => ({
+    deliveries: await deliveriesFor(templated.id),
+    incident: await db.prepare("SELECT * FROM incidents WHERE id = ?").bind(templated.id).first(),
+    claims: (await db.prepare("SELECT * FROM component_claim_events WHERE cause_id = ? ORDER BY id").bind(templated.id).all()).results,
+    history: (await db.prepare("SELECT * FROM component_state_history WHERE cause_id = ? ORDER BY id").bind(templated.id).all()).results,
+    work: await db.prepare("SELECT * FROM public_snapshot_work").first(),
+    audienceState: (await components.get(audience)).publicState,
+    publicChanges,
+  });
+  const beforeTemplate = await templatePublicState();
   const apply = await call(`/incidents/${templated.id}/templates/${template.id}/apply`,"POST",{}, { "If-Match": "-:1" });
-  assert.equal(apply.status,200);
-  assert.deepEqual((await deliveriesFor(templated.id)).filter((row) => row.subscriberId === readers.new).map((row) => row.updateId),[templateUpdate.id],"template attachments share atomic catch-up semantics");
+  assert.equal(apply.status,200); const templateDraft = (await apply.json()).draft;
+  assert.equal((await db.prepare("SELECT published_at FROM incident_components WHERE incident_id = ? AND component_id = ?").bind(templated.id,audience).first()).published_at,null);
+  assert.deepEqual(await templatePublicState(),beforeTemplate,"applying a template changes no public claim, history, peak, notification or snapshot work");
+  assert.deepEqual((await deliveriesFor(templated.id)).filter((row) => row.subscriberId === readers.new),[],"a private template attachment sends no catch-up");
+  const templatePublication = await call(`/incidents/${templated.id}/publish`,"POST",{ channels: ["email"] },{ "If-Match": `${templateDraft.id}:1` });
+  assert.equal(templatePublication.status,200); await Promise.all(pending.splice(0));
+  const publishedTemplate = (await templatePublication.json()).update;
+  assert.equal(publishedTemplate.id,templateDraft.id,"normal publication publishes the template-filled draft");
+  assert.equal((await db.prepare("SELECT published_at FROM incident_components WHERE incident_id = ? AND component_id = ?").bind(templated.id,audience).first()).published_at,publishedTemplate.publishedAt);
+  assert.equal((await components.get(audience)).publicState,"Major outage");
+  assert.equal((await db.prepare("SELECT peak_impact FROM incidents WHERE id = ?").bind(templated.id).first()).peak_impact,"Major outage");
+  assert.equal((await db.prepare("SELECT state FROM component_claim_events WHERE cause_id = ? AND component_id = ?").bind(templated.id,audience).first()).state,"Major outage");
+  rows = await deliveriesFor(templated.id);
+  assert.deepEqual(rows.filter((row) => row.subscriberId === readers.new).map((row) => row.updateId),[publishedTemplate.id],"the newly eligible reader receives the template publication, never the older update");
+  assert.deepEqual(rows.filter((row) => row.subscriberId === readers.previous).map((row) => row.updateId).sort(),[templateUpdate.id,publishedTemplate.id].sort(),"existing recipients continue receiving normal updates");
+  for (const label of ["pending","inactive","internal","webhook"]) assert.equal(rows.some((row) => row.subscriberId === readers[label]),false,label);
   const unpublished = await create(origin);
   assert.equal((await attach(unpublished.id,audience)).status,201);
   assert.deepEqual(await deliveriesFor(unpublished.id),[]);

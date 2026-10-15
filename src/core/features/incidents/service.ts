@@ -298,13 +298,8 @@ export function createIncidentsService(
       if (templateComponents.some(({ component }) => !component)) throw new Error("A template component no longer exists.");
       const timestamp = nowIso(); const current = await repository.listComponents(incidentId);
       const newComponents = templateComponents.filter(({ claim }) => !current.some((attached) => attached.componentId === claim.componentId)).map(({ claim, component }) => ({ id: createUlid(), incidentId, componentId: claim.componentId!, componentName: component!.name, state: claim.state, relationship: claim.relationship, createdAt: timestamp, updatedAt: timestamp }));
-      if (newComponents.length && incident.lifecycle === "Resolved") throw new Error("Only an unresolved incident can change its affected components.");
       const draft: StoredIncidentDraft = { id: createUlid(), incidentId, lifecycle: template.lifecycle, affectedAudience: template.affectedAudience, customerImpact: template.customerImpact, whatStillWorks: template.whatStillWorks, details: template.details, nextUpdateAt: new Date(Date.now() + template.nextUpdateOffsetMinutes * 60_000).toISOString(), authorOperatorId: operatorId, createdAt: timestamp, updatedAt: timestamp };
-      if (!publicationStatements) throw new Error("Incident notification capture is unavailable.");
-      const recipients = await publicationStatements.forAttachedComponents({ incidentId, attachmentIds: newComponents.map((component) => component.id), queuedAt: timestamp });
-      await repository.applyTemplate(incidentId, draft, newComponents, expectedVersion, recipients);
-      await Promise.all(newComponents.map((component) => componentsService.recomputePublicState(component.componentId, { type: "incident", id: incidentId, operatorId })));
-      await onPublicDataChanged();
+      await repository.applyTemplate(incidentId, draft, newComponents, expectedVersion);
       return draft;
     },
     finishPublication,

@@ -3,7 +3,7 @@ import { COMPONENT_STATE_SEVERITY } from "../../shared/domain";
 
 export type AttachedIncidentComponent = Omit<StoredIncidentComponent, "publishedAt">;
 
-// These statements execute inside the caller's atomic attachment/template batch.
+// These statements execute inside the caller's atomic explicit-attachment batch.
 export function attachClaimStatements(binding: D1Database, claim: AttachedIncidentComponent): D1PreparedStatement[] {
   return [
     binding.prepare(`SELECT CASE WHEN EXISTS (SELECT 1 FROM components WHERE id = ?) AND NOT EXISTS (SELECT 1 FROM incident_components WHERE incident_id = ? AND component_id = ?) THEN 1 ELSE json('Component is missing or already attached') END`).bind(claim.componentId,claim.incidentId,claim.componentId),
