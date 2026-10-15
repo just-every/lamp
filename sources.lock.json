@@ -513,7 +513,7 @@
       "executable": false
     },
     "deploy-demo.json": {
-      "sha256": "cda27a6a5ef78b7ceb9cf92d379d3bdef2f33f9728cc5f27af5492094ef087b9",
+      "sha256": "39b521985adf6252416c0aee99eddb1bd0c56998fe06daad65ebaf228d7e1310",
       "executable": false
     },
     "deploy-site.json": {
