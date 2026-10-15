@@ -28,8 +28,9 @@ Operators use email sign-in links. Locally, the development server opens a
 private one-click owner entry address. For a deployed installation, request a link from the sign-in page and
 open it from the same host.
 
-If an owner has database access but cannot use email, the technical
-[operator-authentication reference](../OPERATIONS.md#shared-operator-authentication)
-covers issuing a one-use sign-in link from the terminal. Optional OpenID Connect
+The hosted owner can also use `rer signin` from the deploying checkout with the
+original Cloudflare credentials and environment. It prints a single-use link
+without sending email; follow [terminal entry](operators-and-sign-in.md#terminal-entry-for-the-hosted-owner).
+Optional OpenID Connect
 through Auth, Google, Microsoft or Okta can be linked and enabled by an owner;
 email links remain available. SCIM and role synchronization are not supported.

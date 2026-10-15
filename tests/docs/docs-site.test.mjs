@@ -26,7 +26,9 @@ function repository({ pages, githubOnly = [], files }) {
 const page = (slug, source, extra = {}) => ({ slug, title: slug, summary: `About ${slug}.`, source, ...extra });
 const hrefs = (html) => [...html.matchAll(/<a href="([^"]*)"/g)].map(([, href]) => href);
 
-test("the repository's own docs build whole: every page has content and every link and anchor resolves", () => {
+test("Repository documentation builds complete pages with resolvable links", async t => {
+  t.diagnostic("the repository's own docs build whole: every page has content and every link and anchor resolves");
+  await (() => {
   const site = buildDocs(process.cwd());
   const pages = site.sections.flatMap((section) => section.pages);
   assert.ok(pages.length > 3, "the docs publish several pages");
@@ -36,9 +38,9 @@ test("the repository's own docs build whole: every page has content and every li
   }
   assert.ok(Object.values(site.bodies).some((body) => hrefs(body.html).some((href) => href.startsWith("/docs/"))), "pages link to each other");
   assert.ok(Object.values(site.bodies).some((body) => hrefs(body.html).some((href) => href.startsWith(`${site.repository.url}/blob/`))), "files that are not published link to GitHub");
-});
-
-test("a link to a published file or section goes to its page, any other repository file to GitHub, and the headings keep GitHub's ids", () => {
+})(t);
+  t.diagnostic("a link to a published file or section goes to its page, any other repository file to GitHub, and the headings keep GitHub's ids");
+  await (() => {
   const root = repository({
     pages: [page("start", "README.md", { sections: ["Install"] }), page("run", "README.md", { sections: ["Run"] }), page("guide", "docs/guide.md")],
     githubOnly: [{ source: "README.md", section: "Internals", reason: "maintainers" }],
@@ -55,9 +57,14 @@ test("a link to a published file or section goes to its page, any other reposito
   assert.deepEqual(hrefs(site.bodies.guide.html), ["/docs/start", "/docs/run#run"]);
   assert.ok(site.bodies.guide.html.includes('id="more-info-1"'), "a repeated heading gets GitHub's -1");
   assert.ok(!site.bodies.start.html.includes("Internals"), "a section named in githubOnly is not published");
+})(t);
 });
 
-test("a section nobody placed, a missing file or anchor, an image and a build machine's path each fail the build, all listed together", () => {
+
+
+test("Unsafe or unaccounted documentation content fails publication", async t => {
+  t.diagnostic("a section nobody placed, a missing file or anchor, an image and a build machine's path each fail the build, all listed together");
+  await (() => {
   const root = repository({
     pages: [page("start", "README.md", { sections: ["Install"] })],
     files: { "README.md": "", "docs/a.md": "# A\n\n## Real\n" },
@@ -70,9 +77,9 @@ test("a section nobody placed, a missing file or anchor, an image and a build ma
     }
     return true;
   });
-});
-
-test("raw HTML in Markdown is shown as text and never passed through; a file published whole cannot also hide sections", () => {
+})(t);
+  t.diagnostic("raw HTML in Markdown is shown as text and never passed through; a file published whole cannot also hide sections");
+  await (() => {
   const root = repository({
     pages: [page("only", "README.md")],
     files: { "README.md": "# Shop\n\n<img src=x onerror=alert(1)>\n\n<div>raw</div>\n\n## Part\n\nText.\n" },
@@ -86,4 +93,5 @@ test("raw HTML in Markdown is shown as text and never passed through; a file pub
     files: { "README.md": "# Shop\n\n## Part\n\nText.\n" },
   });
   assert.throws(() => buildDocs(hidden), /published whole, so githubOnly cannot name its sections/);
+})(t);
 });

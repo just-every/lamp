@@ -83,12 +83,14 @@ after(async () => {
   await Promise.all([rm(testStatePath, { recursive: true, force: true }), rm(testViteCachePath, { recursive: true, force: true })]);
 });
 
-test("operator APIs reject requests without the session cookie", async () => {
+test("Host and session admission through real operator routes", async t => {
+  t.diagnostic("operator APIs reject requests without the session cookie");
+  await (async () => {
   const response = await fetch(`${appUrl}/api/app/components`);
   assert.equal(response.status, 401);
-});
-
-test("the Worker rejects configured-surface routes sent to an unknown host", async () => {
+})(t);
+  t.diagnostic("the Worker rejects configured-surface routes sent to an unknown host");
+  await (async () => {
   const paths = ["/", "/app", "/api/app/components", "/health", "/signin", "/app-assets/operator.js"];
   for (const path of paths) {
     // [::1] is a loopback name, but neither the app host nor the page host. fetch() would replace the Host header.
@@ -96,9 +98,9 @@ test("the Worker rejects configured-surface routes sent to an unknown host", asy
     assert.equal(response.status, 404, `${path} leaked through an unknown host`);
     assert.equal(response.body, "Not found.");
   }
-});
-
-test("operator document routes redirect without a valid session and serve assets with one", async () => {
+})(t);
+  t.diagnostic("operator document routes redirect without a valid session and serve assets with one");
+  await (async () => {
   const anonymous = await fetch(`${appUrl}/app`, { redirect: "manual" });
   assert.equal(anonymous.status, 302);
   assert.equal(anonymous.headers.get("location"), `${appUrl}/signin?returnTo=%2Fapp`);
@@ -122,9 +124,16 @@ test("operator document routes redirect without a valid session and serve assets
   assert.equal(nested.status, 200);
   const session = await appFetch("/api/app/session");
   assert.equal((await session.json()).operator.email, "operator@example.test");
+})(t);
 });
 
-contract("PAGE-001", "the initial public snapshot is complete without script", async () => {
+
+
+
+
+test("PAGE-001 PAGE-007 PAGE-010 SUB-001 — Complete public snapshots, validators and script-free subscription", async t => {
+  t.diagnostic("PAGE-001 — the initial public snapshot is complete without script");
+  await (async () => {
   const response = await fetch(`${pageUrl}/`);
   assert.equal(response.status, 200);
   const html = await response.text();
@@ -137,9 +146,9 @@ contract("PAGE-001", "the initial public snapshot is complete without script", a
   assert.ok(uptimeMarks >= 6 * 90 && uptimeMarks <= 6 * 91, "each visible component has the trailing 90-day daily record including at most one partial calendar boundary day");
   assert.doesNotMatch(html, /src="https?:\/\//);
   assert.deepEqual([...html.matchAll(/<(?:script|link)\b[^>]+(?:src|href)="([^"]+)"/g)].map((match) => match[1]), ["/assets/favicon.svg", "/assets/status-page.css", "/assets/status-page.js"]);
-});
-
-contract("PAGE-007", "public snapshot validators reuse a verified generation with isolation headers", async () => {
+})(t);
+  t.diagnostic("PAGE-007 — public snapshot validators reuse a verified generation with isolation headers");
+  await (async () => {
   const response = await fetch(`${pageUrl}/`);
   const etag = response.headers.get("etag");
   assert.ok(etag, "current generation provides a cache validator");
@@ -149,9 +158,9 @@ contract("PAGE-007", "public snapshot validators reuse a verified generation wit
   assert.ok((response.headers.get("content-security-policy") ?? "").includes(`default-src ${pageUrl}; script-src ${pageUrl}; style-src ${pageUrl}`), "the snapshot CSP must scope default, script, and style sources to its local origin");
   assert.equal(response.headers.get("x-content-type-options"), "nosniff");
   assert.equal(response.headers.get("referrer-policy"), "strict-origin-when-cross-origin");
-});
-
-contract("PAGE-010", "the public feed, widget, history, and fixed-size status payload come from the snapshot", async () => {
+})(t);
+  t.diagnostic("PAGE-010 — the public feed, widget, history, and fixed-size status payload come from the snapshot");
+  await (async () => {
   const [feed, widget, status, history, incident, script] = await Promise.all([
     fetch(`${pageUrl}/feed.atom`),
     fetch(`${pageUrl}/widget.js`),
@@ -180,17 +189,26 @@ contract("PAGE-010", "the public feed, widget, history, and fixed-size status pa
   const missing = await fetch(`${pageUrl}/incidents/INC-0000`);
   assert.equal(missing.status, 404);
   assert.match(missing.headers.get("content-security-policy") ?? "", /frame-ancestors 'none'/);
-});
-
-contract("SUB-001", "the no-script subscribe form rejects an unavailable mail capability honestly", async () => {
+})(t);
+  t.diagnostic("SUB-001 — the no-script subscribe form rejects an unavailable mail capability honestly");
+  await (async () => {
   const invalid = await fetch(`${pageUrl}/subscribe`, { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: "email=not-an-email" });
   assert.equal(invalid.status, 400);
   const unavailable = await fetch(`${pageUrl}/subscribe`, { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: "email=reader%40example.com" });
   assert.equal(unavailable.status, 503);
   assert.match(await unavailable.text(), /No confirmation email was sent/);
+})(t);
 });
 
-contract("COMP-006", "standing claims derive a component's public state", async () => {
+
+
+
+
+
+
+test("COMP-006 UPDATE-004 PAGE-012 — Component claims, saved drafts, settings and operator records", async t => {
+  t.diagnostic("COMP-006 — standing claims derive a component's public state");
+  await (async () => {
   const claim = await appFetch("/api/app/components/01J00000000000000000000011/standing-claim", {
     method: "PUT",
     body: JSON.stringify({ state: "Major outage" }),
@@ -242,9 +260,9 @@ contract("COMP-006", "standing claims derive a component's public state", async 
   assert.equal((await attach(claimInput)).status, 409);
   await appFetch(`/api/app/components/${component.id}/standing-claim`, { method: "PUT", body: JSON.stringify({ state: null }) });
   assert.equal((await appFetch(`/api/app/components/${component.id}`, { method: "DELETE" })).status, 204);
-});
-
-contract("UPDATE-004", "draft save and preview share the incident renderer", async () => {
+})(t);
+  t.diagnostic("UPDATE-004 — draft save and preview share the incident renderer");
+  await (async () => {
   const draft = {
     lifecycle: "Monitoring",
     affectedAudience: "API customers in two regions.",
@@ -262,9 +280,9 @@ contract("UPDATE-004", "draft save and preview share the incident renderer", asy
   const body = await preview.json();
   assert.equal(body.preview.public.fields.find((field) => field.label === "Customer impact").value, draft.customerImpact);
   assert.match(body.preview.email.plainText, new RegExp(draft.customerImpact));
-});
-
-contract("PAGE-012", "page settings retain a configurable footer credit without any external operation", async () => {
+})(t);
+  t.diagnostic("PAGE-012 — page settings retain a configurable footer credit without any external operation");
+  await (async () => {
   const initial = await appFetch("/api/app/page-settings");
   assert.equal(initial.status, 200);
   const settings = (await initial.json()).settings;
@@ -303,9 +321,9 @@ contract("PAGE-012", "page settings retain a configurable footer credit without 
     }),
   });
   assert.equal(restored.status, 200);
-});
-
-test("operator API paths require canonical ULIDs and one incident has one atomic draft", async () => {
+})(t);
+  t.diagnostic("operator API paths require canonical ULIDs and one incident has one atomic draft");
+  await (async () => {
   const badIncident = await appFetch("/api/app/incidents/not-an-id");
   assert.equal(badIncident.status, 400);
   const badComponent = await appFetch("/api/app/components/not-an-id/standing-claim", { method: "PUT", body: JSON.stringify({ state: "Operational" }) });
@@ -330,9 +348,9 @@ test("operator API paths require canonical ULIDs and one incident has one atomic
   const stored = (await (await appFetch("/api/app/incidents/01J00000000000000000000020")).json()).incident.draft;
   assert.equal(stored.id, secondDraft.id);
   assert.equal(stored.details, "The mitigated condition is verified.");
-});
-
-test("overview and list APIs expose only persisted local-development sample data", async () => {
+})(t);
+  t.diagnostic("overview and list APIs expose only persisted local-development sample data");
+  await (async () => {
   const [overview, incidents, maintenance, subscribers, deliveries] = await Promise.all([
     appFetch("/api/app/overview"),
     appFetch("/api/app/incidents"),
@@ -346,9 +364,20 @@ test("overview and list APIs expose only persisted local-development sample data
   assert.equal((await maintenance.json()).maintenance[0].state, "Scheduled");
   assert.equal((await subscribers.json()).subscribers.length, 2);
   assert.equal((await deliveries.json()).deliveries.every((delivery) => delivery.outcome === "queued"), true);
+})(t);
 });
 
-contract("INTAKE-005", "operators can inspect rejected alert mappings without receiving payloads or credentials", async () => {
+
+
+
+
+
+
+
+
+test("INTAKE-005 — Private alert configuration and honest AI readiness", async t => {
+  t.diagnostic("INTAKE-005 — operators can inspect rejected alert mappings without receiving payloads or credentials");
+  await (async () => {
   const signingSecret = "test-alert-signing-secret";
   const created = await appFetch("/api/app/intake/sources", {
     method: "POST",
@@ -389,9 +418,9 @@ contract("INTAKE-005", "operators can inspect rejected alert mappings without re
   assert.match(receipt.error, /deduplication path/i);
   assert.equal("requestHash" in receipt, false);
   assert.equal("payloadJson" in receipt, false);
-});
-
-test("an operator can update an alert source without exposing or replacing its existing credential", async () => {
+})(t);
+  t.diagnostic("an operator can update an alert source without exposing or replacing its existing credential");
+  await (async () => {
   const signingSecret = "editable-alert-source-secret";
   const sourceInput = {
     name: "Edge latency monitor",
@@ -493,9 +522,9 @@ test("an operator can update an alert source without exposing or replacing its e
     body: JSON.stringify({ ...sourceInput, signingSecret: undefined }),
   });
   assert.equal(unknown.status, 404);
-});
-
-test("AI configuration status is honest while tone instructions persist through the settings API", async () => {
+})(t);
+  t.diagnostic("AI configuration status is honest while tone instructions persist through the settings API");
+  await (async () => {
   const initial = await appFetch("/api/app/page-settings");
   assert.equal(initial.status, 200);
   const original = (await initial.json()).settings;
@@ -528,7 +557,12 @@ test("AI configuration status is honest while tone instructions persist through 
       body: JSON.stringify({ ...request, aiToneInstructions: original.aiToneInstructions }),
     });
   }
+})(t);
 });
+
+
+
+
 
 contract("PAGE-006", "public reads survive a D1 failure and never invent an all-clear", async () => {
   execFileSync("pnpm", ["exec", "wrangler", "d1", "execute", "DB", "--local", "--config", sourceConfigPath, "--persist-to", testStatePath, "--command", "DROP TABLE page_settings"], { cwd: process.cwd(), stdio: "pipe" });

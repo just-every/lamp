@@ -1290,3 +1290,24 @@ return provider-shaped success without reaching people or third parties. This
 replaces SETUP-001's local capture wording for dev/demo only; production sender
 authentication, receipts and sign-in remain real. Sample data and the static
 homepage remain unchanged.
+
+## Native hosted owner entry and removal — 15 October 2026
+
+Native deployment retains Lamp's existing Worker, D1, bucket and queue names.
+It records each provider creation identity and the exact uploaded Worker version
+in Base's private ownership format. Existing resources without that creation
+history are refused, never silently adopted. `rer signin` can therefore issue
+Base's one-use owner grant on a default-prefix native deployment; migration 0023
+adds its table without changing released migrations. Custom prefixes retain the
+documented installation-secret sign-in command because rer 0.2.20 derives the
+Worker name from the project and environment.
+
+The documented native removal command releases the separate public Worker
+first, then uses Base's ownership-checked removal for the app, schedules,
+consumers, object bytes and recorded data resources. Removal reads back absence
+before deleting its local records. Older installations without creation history
+retain the explicit manual retirement procedure.
+
+Ordinary development keeps `/__dev/outbox` as a 200 diagnostic explaining silent
+mail suppression. It stores and displays no mail, adds no injected viewer or bar,
+and is unavailable in demo and production.

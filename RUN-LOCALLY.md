@@ -1,7 +1,7 @@
 # Run it locally
 
-Use `rer` from the project root. The checkout pins its own `@runeditrun/rer`
-version; `rer describe` reports the commands and tooling in use. Lamp runs on
+Use `rer` from the project root. The checkout pins `@runeditrun/rer` 0.2.20;
+`rer describe` reports the commands and tooling in use. Lamp runs on
 your computer without a Cloudflare account or mail credentials; development mail
 is silently suppressed.
 
@@ -15,6 +15,12 @@ On first launch, `rer dev` installs locked dependencies and prepares a local
 owner automatically. It prints the local operator entry address and a `RER_READY`
 line when the app is ready. Open that entry
 address to work as the owner. Sign-in is one click and needs no email.
+
+Local mail is not sent or retained. In ordinary development,
+`GET /__dev/outbox` on the local app host returns HTTP 200 with a plain-text
+suppression notice. It is a compatibility address, with no inbox or captured
+messages. Test emailed sign-in and subscriber delivery on a hosted installation
+with its real mail provider and mailbox.
 
 The operator app uses `127.0.0.1`; the public status page uses `localhost` on the
 same port. `rer dev --stop` stops development and `rer preview --stop` stops the

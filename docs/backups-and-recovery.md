@@ -18,7 +18,9 @@ verification or export does not prove a deployed restore or provider acceptance.
 ## Retire a hosted installation
 
 Back up and retain the private deployment inputs before deleting resources.
-Use the [removal command](deploy.md#remove-an-installation) with the original
-checkout, account and environment. It deletes only resources in a `rer`
-ownership record. Lamp's native archive record is separate; if there is no
-ownership record, follow the [native removal limits and procedure](deployment-reference.md#removal-and-deployment-records).
+Use Lamp's [native removal command](deploy.md#remove-an-installation) with the
+original checkout, account and environment. It removes both Workers in
+`workers-dev` mode and the resources its creation records prove it owns. The
+generic `rer deploy --remove --yes` alone leaves the separate public Worker.
+Lamp's native archive record is separate; older installations without creation
+records need the [manual removal limits and procedure](deployment-reference.md#removal-and-deployment-records).

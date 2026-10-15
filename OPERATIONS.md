@@ -153,17 +153,20 @@ Back up data before retiring an installation. From its deploying checkout, use
 the original account and environment:
 
 ```sh
-rer deploy --environment production --env-file "$HOME/.config/lamp/production.env" --remove --yes
+node scripts/remove-deployment.mjs --environment production --env-file "$HOME/.config/lamp/production.env" --yes
 ```
 
-This removes only resources recorded as created by `rer` for that environment,
-including their data, and reads back their absence. No record means nothing is
-removed and the current command exits nonzero. Lamp's native
-`.seed/deployment/<environment>.json` is an archive/resource reference, not the
-`rer` ownership record. The current native hook does not create that ownership
-record; use the [native removal procedure and limits](docs/deployment-reference.md#removal-and-deployment-records)
-for installations it cannot remove. Do not treat a missing record as proof that
-Cloudflare has no resources.
+This removes the public Worker first in `workers-dev` mode, then the app Worker
+and resources proven created for that environment, including their data, and
+reads back their absence. Custom-domain mode has one Worker. The generic
+`rer deploy --remove --yes` alone does not remove Lamp's separate public Worker.
+Native deployments retain app creation ownership at
+`.rer/deploy/<environment>.json` and public Worker ownership at
+`.rer/deploy/<environment>.page.json`. Lamp's
+`.seed/deployment/<environment>.json` remains an archive/resource reference; it
+does not prove creation ownership. Older installations without ownership records
+need the [manual procedure and limits](docs/deployment-reference.md#removal-and-deployment-records).
+Do not treat a missing record as proof that Cloudflare has no resources.
 
 ## Provider uncertainty and recovery
 
@@ -402,6 +405,12 @@ Local dev signs the owner in with one click and silently suppresses mail.
 Demos mock sends to people and third parties while public reads run for real.
 Neither mode retains mail or serves a captured-mail viewer.
 
+In ordinary development, `GET /__dev/outbox` returns HTTP 200 with a plain-text
+notice that local mail is suppressed and no messages are retained. It provides
+the compatibility path, not a mail viewer. The notice is excluded from demos
+and production. Exercise emailed sign-in and subscriber messages through a
+hosted installation's actual provider and recipient mailbox.
+
 `node scripts/operations.mjs check` prints the required inputs and their sources,
 plus a plain next step. Version 2 of `OPERATIONS.json` describes the real native
 mail dispatch and scheduled-update loops. Lamp's chosen provider consumes
@@ -416,11 +425,39 @@ The minute cron sends an empty GET only on the heartbeat interval grid, after sc
 
 ## Shared operator authentication
 
+The checkout pins `@runeditrun/rer` 0.2.20. For hosted owner entry without email,
+run this from the deploying checkout using the original account and environment:
+
+```sh
+rer signin --environment production --env-file "$HOME/.config/lamp/production.env"
+```
+
+The private `0600` input file or calling shell supplies `CLOUDFLARE_ACCOUNT_ID`
+and `CLOUDFLARE_API_TOKEN`. The command uses the deployment's recorded owner and
+database; it accepts neither `--email` nor `--remote`. It prints the link once,
+does not save it, and sends no mail. Open it privately within 15 minutes. The
+grant is single-use and its use is audited. Retain the deploying checkout and its
+deployment records. An older installation needs additive migration
+`0023_owner_signin.sql` applied by redeployment before this command can issue a
+grant. `rer signin` 0.2.20 targets the default `lamp-<environment>` prefix; for a
+custom `LAMP_RESOURCE_PREFIX`, use the compatibility command below with that
+installation's generated configuration.
+Hosted mail remains mandatory for normal email sign-in and subscriber messages.
+
 Lamp adopts Base `aa9b4d4fc6cba60411ef8d24a81323113677c370`. Migration 0019 preserves non-erased operator IDs and active/inactive status, moves setup authority only with the setup operator (when that operator erased itself, no operator gains it and the editor stays closed), retains product attribution and subscriber credentials, and physically removes old sessions and pending links. Every active operator must sign in afresh. On a local in-place upgrade, `rer setup` adds the missing `SESSION_SECRET` and `SETUP_TOKEN` to the kept `.dev.vars` and changes no saved value. The setup operator may remove themselves only while another owner remains. Changing operator access requires a recent native email confirmation; Settings provides the confirmation action.
 
 The installer provisions `SETUP_TOKEN` and `SESSION_SECRET`. Base `/auth/bootstrap` claims the empty store; a changed setup token cannot reopen it. Retain the installer-managed setup token: current setup/deploy tooling requires it and repeats the claim, accepting Base’s already-initialized refusal. The durable claim prevents the token from reopening the store. Never rotate `SESSION_SECRET` inadvertently on a redeploy.
 
-`pnpm signin-link --email <operator>` reads `SESSION_SECRET` from private local settings or the command environment; remote recovery requires it in the environment. Capture its stdout privately. It uses Base's ordinary 20-minute confirmation link and records the existing product audit event; it creates no session until the confirmation POST.
+The compatibility command `pnpm signin-link --email <operator>` issues an ordinary
+email-flow confirmation link for an existing active operator. It reads
+`SESSION_SECRET` from private local settings or the command environment. For a
+deployed installation, add `--remote --config wrangler.toml` and export the
+original `SESSION_SECRET` and Wrangler credentials; use the generated
+configuration for the intended installation. An explicit `--origin` must be the
+exact HTTPS operator origin. Capture stdout privately. This command uses Base's
+20-minute confirmation flow and records the existing product audit event; it
+creates no session until the confirmation POST. Prefer `rer signin` for hosted
+owner entry.
 
 Optional Auth installs link through the declared `oidc-provider@1` dependency (`IDENTITY_PROVIDER`). Base settings at `/auth/settings/identity` control admission. A link alone does not enable sign-in on existing installations. Google, Microsoft and Okta may also be configured with Base `AUTH_PROVIDERS` JSON and an independent `OIDC_TRANSACTION_SECRET`; use Base's included identity/oidc documentation for issuer, key and explicit subject association requirements. SCIM and role synchronization remain unsupported. No live identity provider has been exercised by the local adoption checks.
 

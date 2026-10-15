@@ -41,8 +41,10 @@ after(async () => {
   await Promise.all([statePath, cachePath].filter(Boolean).map(path => rm(path, { recursive: true, force: true })));
 });
 
-for (const [triggerName, fieldName] of [["Add component", "Component name"], ["Add group", "Group name"]]) {
-  test(`${triggerName} contains keyboard focus and restores its trigger`, async () => {
+test("Component and group dialogs retain keyboard focus and record tables remain keyboard scrollable", async t => {
+  for (const [triggerName, fieldName] of [["Add component", "Component name"], ["Add group", "Group name"]]) {
+  t.diagnostic(`${triggerName} contains keyboard focus and restores its trigger`);
+    await (async () => {
     await page.goto(`${origin}/app/components`);
     const trigger = page.getByRole("button", { name: triggerName, exact: true }).first();
     await trigger.click();
@@ -59,11 +61,14 @@ for (const [triggerName, fieldName] of [["Add component", "Component name"], ["A
     await page.keyboard.press("Escape");
     await dialog.waitFor({ state: "detached" });
     assert.equal(await trigger.evaluate(node => node === document.activeElement), true, "Escape restores the opening control");
-  });
+  })(t);
 }
+});
 
-for (const [route, label] of [["subscribers", "Subscriber records"], ["deliveries", "Delivery records"], ["alerts", "Alert receipt records"]]) {
-  test(`${label} can be scrolled with the keyboard on narrow screens`, async () => {
+test("Component and group dialogs retain keyboard focus and record tables remain keyboard scrollable (tables)", async t => {
+  for (const [route, label] of [["subscribers", "Subscriber records"], ["deliveries", "Delivery records"], ["alerts", "Alert receipt records"]]) {
+  t.diagnostic(`${label} can be scrolled with the keyboard on narrow screens`);
+    await (async () => {
     await page.goto(`${origin}/app/${route}`);
     const region = page.getByRole("region", { name: label, exact: true });
     await region.focus();
@@ -71,8 +76,9 @@ for (const [route, label] of [["subscribers", "Subscriber records"], ["deliverie
     await page.keyboard.press("ArrowRight");
     await page.waitForFunction(label => [...document.querySelectorAll('[role="region"]')].some(node => node.getAttribute("aria-label") === label && node.scrollLeft > 0), label);
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
-  });
+  })(t);
 }
+});
 
 async function operatorApi(path, method = "GET", body) {
   const response = await context.request.fetch(`${origin}${path}`, { method, headers:{Origin:origin}, ...(body ? { data: body } : {}) });
@@ -83,7 +89,9 @@ async function operatorApi(path, method = "GET", body) {
 const audienceField = target => target.locator("label", { hasText: "Who is affected" }).locator("textarea");
 const impactField = target => target.locator("label", { hasText: "What is the impact" }).locator("textarea");
 
-test("each publication opens a fresh unsaved draft, and stale tabs cannot replace its next update", async () => {
+test("Fresh publication drafts and narrow operator navigation preserve deliberate sign-out", async t => {
+  t.diagnostic("each publication opens a fresh unsaved draft, and stale tabs cannot replace its next update");
+  await (async () => {
   const { component } = await operatorApi("/api/app/components", "POST", { groupId: null, name: "Operator journey API", description: "", internal: false, displayOrder: 5, note: "" });
   const { incident } = await operatorApi("/api/app/incidents", "POST", { title: "Operator journey", components: [{ componentId: component.id, state: "Major outage", relationship: "Primary" }] });
   await page.goto(`${origin}/app/incidents/${incident.id}`);
@@ -188,9 +196,9 @@ test("each publication opens a fresh unsaved draft, and stale tabs cannot replac
     await audienceField(stale).fill("Stale next draft"); await stale.locator(".autosave-status.is-error").waitFor();
     assert.equal((await operatorApi(`/api/app/incidents/${incident.id}`)).incident.draft.affectedAudience, "Acknowledged newer bytes");
   } finally { await stale.close(); }
-});
-
-test("every operator section and sign out is reachable at narrow widths", async () => {
+})(t);
+  t.diagnostic("every operator section and sign out is reachable at narrow widths");
+  await (async () => {
   for (const width of [1440, 390, 320]) {
     await page.setViewportSize({ width, height: 844 }); await page.goto(`${origin}/app`);
     const nav = page.getByRole("navigation", { name: "Workspace sections" });
@@ -226,9 +234,14 @@ test("every operator section and sign out is reachable at narrow widths", async 
       await page.keyboard.press("Escape");
     }
   }
+})(t);
 });
 
-test("ordering from an older tab preserves component visibility and names edited in another tab", async () => {
+
+
+test("Concurrent component edits preserve newer ordering, visibility and names", async t => {
+  t.diagnostic("ordering from an older tab preserves component visibility and names edited in another tab");
+  await (async () => {
   const existing = await operatorApi("/api/app/components");
   const order = Math.max(0, ...existing.groups.map(group => group.displayOrder + 1));
   const { group } = await operatorApi("/api/app/component-groups", "POST", { name: "Move group", displayOrder: order });
@@ -269,9 +282,9 @@ test("ordering from an older tab preserves component visibility and names edited
     const groups = (await operatorApi("/api/app/components")).groups;
     assert.equal(groups.at(-1).id, group.id); assert.equal(groups.at(-1).name, "Renamed group");
   } finally { await editor.close(); }
-});
-
-test("older component and group name drawers preserve a newer explicit move after reload", async () => {
+})(t);
+  t.diagnostic("older component and group name drawers preserve a newer explicit move after reload");
+  await (async () => {
   const existing = await operatorApi("/api/app/components");
   const order = Math.max(0, ...existing.groups.map(group => group.displayOrder + 1));
   const { group } = await operatorApi("/api/app/component-groups", "POST", { name: "Open drawer group", displayOrder: order });
@@ -322,4 +335,5 @@ test("older component and group name drawers preserve a newer explicit move afte
       assert.deepEqual(await operatorApi(`/api/app/components/${first.id}/history`), history, "Editing and moving never rewrite append-only state history");
     }
   } finally { await editor.close(); }
+})(t);
 });

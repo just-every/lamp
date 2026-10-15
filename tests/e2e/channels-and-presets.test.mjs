@@ -1,3 +1,4 @@
+import { test } from 'node:test';
 import { requestHeaders } from "../helpers/request-headers.mjs";
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
@@ -7,7 +8,6 @@ import { randomBytes } from "node:crypto";
 import { writeFile } from "node:fs/promises";
 import { join } from "node:path";
 
-import { contract } from "../contract.mjs";
 import { localWranglerConfig } from "../helpers/wrangler-config.mjs";
 
 // Wrangler CLI work between requests can outlast an idle keep-alive socket; every request opens its own connection.
@@ -69,7 +69,9 @@ after(async () => {
   await new Promise((resolve) => receiver?.close(resolve));
 });
 
-contract("NOTIFY-011", "a Slack or Teams webhook URL is stored encrypted and never shown again", async () => {
+test("NOTIFY-011 NOTIFY-012 — Private channel configuration delivers the selected publication once", async t => {
+  t.diagnostic("NOTIFY-011 — a Slack or Teams webhook URL is stored encrypted and never shown again");
+  await (async () => {
   const api_ = await component("Payments API");
   const created = await post("/api/app/channels", { kind: "slack", name: "#payments", url: SLACK_A, componentIds: [api_.id] });
   assert.equal(created.status, 201, created.text);
@@ -83,9 +85,9 @@ contract("NOTIFY-011", "a Slack or Teams webhook URL is stored encrypted and nev
     assert.doesNotMatch(JSON.stringify(sql("SELECT * FROM channel_destinations")), new RegExp(secret), "only ciphertext is stored");
     assert.doesNotMatch(runtime.output, new RegExp(secret), "never logged");
   }
-});
-
-contract("NOTIFY-012", "publishing an update posts once to each channel subscribed to an affected component", async () => {
+})(t);
+  t.diagnostic("NOTIFY-012 — publishing an update posts once to each channel subscribed to an affected component");
+  await (async () => {
   const [payments] = (await api("/api/app/components")).body.components.filter((row) => row.name === "Payments API");
   const incident = await post("/api/app/incidents", { title: "Card payments failing", components: [{ componentId: payments.id, state: "Partially unavailable", relationship: "Primary" }] });
   assert.equal(incident.status, 201, incident.text);
@@ -107,7 +109,10 @@ contract("NOTIFY-012", "publishing an update posts once to each channel subscrib
   assert.equal(JSON.parse(teams[0].body).attachments[0].contentType, "application/vnd.microsoft.card.adaptive");
   assert.match(teams[0].path, /sig=teamsSecretSignature0003/, "Teams keeps its signed query");
   assert.deepEqual(sql("SELECT state FROM integration_deliveries ORDER BY state").map((row) => row.state), ["accepted", "accepted"]);
+})(t);
 });
+
+
 
 const payloads = {
   datadog: { down: { alert_id: "1234", alert_cycle_key: "cycle-1", alert_transition: "Triggered", alert_title: "[Triggered] Checkout latency", event_title: "Checkout latency" }, up: { alert_id: "1234", alert_cycle_key: "cycle-1", alert_transition: "Recovered", alert_title: "[Recovered] Checkout latency" } },
@@ -117,7 +122,9 @@ const payloads = {
 };
 const sources = {};
 
-contract("INTAKE-006", "each monitor preset turns its tool's alert into a draft on its component, and refuses other payloads and bad credentials", async () => {
+test("INTAKE-006 INTAKE-007 — Authenticated monitor presets keep recovery within unpublished drafts", async t => {
+  t.diagnostic("INTAKE-006 — each monitor preset turns its tool's alert into a draft on its component, and refuses other payloads and bad credentials");
+  await (async () => {
   for (const preset of Object.keys(payloads)) {
     const target = await component(`Shop (${preset})`);
     const created = await post("/api/app/intake/sources", { name: `${preset} preset`, preset, componentId: target.id, credentialKind: "bearer-token" });
@@ -144,9 +151,9 @@ contract("INTAKE-006", "each monitor preset turns its tool's alert into a draft 
   assert.equal(receipts.filter((receipt) => receipt.state === "invalid").length, 4, "refused payloads are recorded against their source");
   const page = await (await fetch(`${publicOrigin}/api/public/status`)).text();
   assert.doesNotMatch(page, /Checkout latency|Shop \(/, "no public surface changes");
-});
-
-contract("INTAKE-007", "a preset's recovery resolves its unpublished draft and leaves a published incident to its operators", async () => {
+})(t);
+  t.diagnostic("INTAKE-007 — a preset's recovery resolves its unpublished draft and leaves a published incident to its operators");
+  await (async () => {
   for (const preset of Object.keys(payloads)) {
     const { token, endpointUrl } = sources[preset];
     const recovered = await fetch(`${endpointUrl}/${token}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payloads[preset].up) });
@@ -165,4 +172,5 @@ contract("INTAKE-007", "a preset's recovery resolves its unpublished draft and l
   assert.equal(recovered.incidentId, fired.incidentId);
   assert.equal((await api(`/api/app/incidents/${fired.incidentId}`)).body.incident.lifecycle, "Investigating");
   assert.ok(shop.id);
+})(t);
 });

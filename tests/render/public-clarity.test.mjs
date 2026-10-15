@@ -58,15 +58,17 @@ function divMarkup(html, className) {
   assert.fail(`rendered ${className} div is complete`);
 }
 
-test('public status has one scoped history destination and direct subscription/feed paths',()=>{
+test("Initial status navigation, grouped components and disclosed availability method", async t => {
+  t.diagnostic("public status has one scoped history destination and direct subscription/feed paths");
+  await (()=>{
   const html=artifact('page.html');
   assert.match(html,/<title>Atlas Cloud Status<\/title>/);
   assert.equal(count(html,/href="\/history"/g),1);
   assert.match(html,/href="#subscribe"/); assert.match(html,/href="\/feed.atom"/);
   assert.match(html,/INC-ACTIVE/);
-});
-
-test('each component has one uptime card and ungrouped components have no invented heading',()=>{
+})(t);
+  t.diagnostic("each component has one uptime card and ungrouped components have no invented heading");
+  await (()=>{
   const html=artifact('page.html');
   assert.equal(count(html,/<article class="component">/g),1);
   const group=divMarkup(html, "component-group");
@@ -80,47 +82,61 @@ test('each component has one uptime card and ungrouped components have no invent
     const uptime = divMarkup(component[1], "uptime");
     assert.ok(uptime.includes(`<time datetime="${trackingInstant}" data-local-time>`), "the component uptime region contains its tracking instant");
   }
-});
-
-test('availability method details use a native disclosure while remaining in initial HTML',()=>{
+})(t);
+  t.diagnostic("availability method details use a native disclosure while remaining in initial HTML");
+  await (()=>{
   const html=artifact('page.html');
   const match=html.match(/<details class="availability-method"><summary>([^<]+)<\/summary><p>([\s\S]*?)<\/p><\/details>/);
   assert.ok(match,'the method is inside a native details disclosure');
   assert.ok(match[1].trim());
   assert.ok(match[2].trim());
   assert.match(html,/<aside class="availability-legend" aria-label="[^"\s][^"]*">[\s\S]*?<\/aside>/);
+})(t);
 });
 
-test('resolved permalink shows its resolved instant and duration once',()=>{
+
+
+
+
+test("Resolved history, permalink duration and configurable footer", async t => {
+  t.diagnostic("resolved permalink shows its resolved instant and duration once");
+  await (()=>{
   const html=artifact('incidents/INC-RESOLVED.html');
   assert.equal(count(html,/datetime="2026-10-02T08:00:00\.000Z"/g),1);
   assert.match(html,/<time datetime="2026-10-02T08:00:00\.000Z" data-local-time>/);
   assertResolvedDuration(html, "2026-10-02T04:00:00.000Z", "2026-10-02T08:00:00.000Z");
   const title = html.match(/<title>([^<]+)<\/title>/)?.[1] ?? "";
   assert.ok(title.includes("INC-RESOLVED") && title.includes("Atlas Cloud Status"));
-});
-
-test('footer credit setting controls its content',()=>{
+})(t);
+  t.diagnostic("footer credit setting controls its content");
+  await (()=>{
   const html=artifact('page.html');
   assert.match(html,/<footer>\S[\s\S]*?<\/footer>/);
   assert.doesNotMatch(html,/runeditrun\.com/);
   assert.match(hiddenFooterPage, /<footer>\s*<\/footer>/);
-});
-
-test('history contains resolved incidents and a current-status destination',()=>{
+})(t);
+  t.diagnostic("history contains resolved incidents and a current-status destination");
+  await (()=>{
   const html=artifact('history.html');
   assert.match(html,/INC-RESOLVED/); assert.doesNotMatch(html,/INC-ACTIVE/); assert.match(html,/href="\/"/);
+})(t);
 });
 
+
+
+
+
 // Owner requirement (DIVERGENCE.md, "Public pages show no empty sections"): nothing to show means no section.
-test('a page with nothing to show omits empty sections and keeps one neutral line only where the page is empty',()=>{
+test("Empty status pages and configured-zone initial timestamps", async t => {
+  t.diagnostic("a page with nothing to show omits empty sections and keeps one neutral line only where the page is empty");
+  await (()=>{
   const {page,history}=emptyPages;
   assert.doesNotMatch(page,/Components<\/h2>|Incidents and maintenance|Happening now|Recently resolved|empty-state|published yet/);
   assert.match(page,/id="overall-status"/); assert.match(page,/id="subscribe"/);
   assert.match(history,/No past incidents or maintenance in the last 12 months\./); assert.doesNotMatch(history,/published|yet/);
-});
-
-test('initial time labels and timestamps stay in the configured zone',async()=>{
+})(t);
+  t.diagnostic("initial time labels and timestamps stay in the configured zone");
+  await (async()=>{
   const html=artifact('page.html');
   assert.match(html,/data-timezone-label data-timezone="America\/Los_Angeles">[^<]+/);
   const generated = html.match(/<time datetime="2026-10-02T09:24:00\.000Z"[^>]*>([^<]+)<\/time>/);
@@ -129,7 +145,10 @@ test('initial time labels and timestamps stay in the configured zone',async()=>{
   assert.match(html,/<form method="post" action="\/subscribe">[\s\S]*?<input[^>]*name="email"[^>]*type="email"/);
   assert.match(html, /class="uptime-mark no-data" role="listitem"/);
 
+})(t);
 });
+
+
 
 if(process.env.LAMP_RENDER_OUTPUT){
   for(const a of rendered.artifacts){const filename=path.join(process.env.LAMP_RENDER_OUTPUT,a.key);await fs.mkdir(path.dirname(filename),{recursive:true});await fs.writeFile(filename,a.body);}

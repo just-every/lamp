@@ -72,7 +72,7 @@ without `--env-file`. Do not commit inputs or paste secret values into logs.
 
 ## Validate and deploy
 
-Use `rer` from the project root; the checkout pins its CLI version. Before a
+Use `rer` from the project root; the checkout pins `@runeditrun/rer` 0.2.20. Before a
 command that builds or verifies the checkout, stop a running development server
 with `rer dev --stop` or a production preview with `rer preview --stop`.
 
@@ -98,6 +98,22 @@ Afterward, check the public page and operator email sign-in on their selected
 hosts. Verify a received subscription or incident email and signed provider
 receipts separately; a healthy Worker does not prove inbox delivery.
 
+To enter the hosted owner account from the deploying checkout without waiting
+for email, run:
+
+```sh
+rer signin --environment production --env-file "$LAMP_DEPLOY_ENV"
+```
+
+Open the printed link privately before it expires. It works once for the recorded
+owner, within 15 minutes; its use is audited. Use the same Cloudflare account and
+environment as deployment. This command uses the default `lamp-<environment>`
+resource prefix. For a custom prefix, use the compatibility command in the
+[technical sign-in reference](../OPERATIONS.md#shared-operator-authentication).
+See [terminal entry](operators-and-sign-in.md#terminal-entry-for-the-hosted-owner)
+for details. Hosted mail remains required for operator email sign-in and subscriber
+messages.
+
 For a custom domain, follow [Hostnames and your own domain](domains.md). For
 archives and recovery, see the [operations reference](../OPERATIONS.md).
 
@@ -108,13 +124,18 @@ From the checkout that deployed it, use the same account, environment and privat
 inputs:
 
 ```sh
-rer deploy --environment production --env-file "$LAMP_DEPLOY_ENV" --remove --yes
+node scripts/remove-deployment.mjs --environment production --env-file "$LAMP_DEPLOY_ENV" --yes
 ```
 
-Removal deletes only resources proven owned by that environment's `rer`
-deployment record, including their data, and checks that they are gone. It does
-not discover every resource by name. If there is no record, it deletes nothing
-and currently exits nonzero; that message after a failed preflight does not mean
-removal deleted or damaged resources. A missing record alone does not establish
-that the Cloudflare account is empty. See the [removal limits](deployment-reference.md#removal-and-deployment-records)
-for Lamp's native deployment records and manual retirement.
+This is Lamp's one-pass native removal command. In `workers-dev` mode it removes
+the public Worker first, then the app Worker and the resources its creation
+record proves belong to this environment, including their data. It checks that
+the removed resources are gone. In custom-domain mode it removes the single app
+Worker and its recorded resources. `rer deploy --remove --yes` alone does not
+remove the separate public Worker in Lamp's native `workers-dev` topology.
+
+Removal does not infer ownership from matching names. If an older installation
+has no creation records, the command refuses; inspect and retire its confirmed
+resources using the [removal limits](deployment-reference.md#removal-and-deployment-records).
+A missing record after a failed preflight does not prove that the Cloudflare
+account is empty.

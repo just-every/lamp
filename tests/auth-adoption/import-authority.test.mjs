@@ -4,7 +4,9 @@ import { authFixture } from './runtime.mjs';
 import { lampRuntime, preview, source, suspendedBody } from './lamp-runtime.mjs';
 import { sessionCookieName } from '../helpers/session-cookie.mjs';
 
-test('an import admitted before provider unlink, pin drift or generation changes commits no source records', async t => {
+test("Import mutations remain bound to current session and provider authority", async t => {
+  t.diagnostic("an import admitted before provider unlink, pin drift or generation changes commits no source records");
+  await (async t => {
   for (const change of [
     "UPDATE oa_identity_providers SET status='unlinked'",
     "UPDATE oa_identity_providers SET issuer='https://replacement.example.test'",
@@ -28,9 +30,9 @@ test('an import admitted before provider unlink, pin drift or generation changes
     assert.equal((await r.db.prepare('SELECT count(*) n FROM ik_jobs').first()).n, 0);
     assert.equal(r.publications, 0);
   }
-});
-
-test('a provider import resumes, reads and undoes through current authority; revoked access preserves the durable job', async t => {
+})(t);
+  t.diagnostic("a provider import resumes, reads and undoes through current authority; revoked access preserves the durable job");
+  await (async t => {
   const r = await lampRuntime(t);
   let cookie = await r.providerSession(r.owner.id);
   const body = await preview(r, cookie, source('multi-batch', 32));
@@ -79,9 +81,9 @@ test('a provider import resumes, reads and undoes through current authority; rev
   } while (result.job.state === 'undoing');
   assert.equal(result.job.state, 'undone');
   assert.equal((await r.db.prepare('SELECT count(*) n FROM components').first()).n, 0);
-});
-
-test('native and password revocation stop waiting imports; review and dev sessions retain their request gates', async t => {
+})(t);
+  t.diagnostic("native and password revocation stop waiting imports; review and dev sessions retain their request gates");
+  await (async t => {
   const r = await lampRuntime(t);
   for (const kind of ['native', 'password']) {
     const cookie = kind === 'native' ? r.cookie : (await r.base.auth.admitVerifiedPassword(r.request('/auth/password', { method: 'POST' }), r.owner.id)).cookie.split(';')[0];
@@ -117,4 +119,5 @@ test('native and password revocation stop waiting imports; review and dev sessio
   apply.headers.set('x-rer-dev-key', local.bindings.RER_DEV_KEY);
   assert.equal((await worker.fetch(apply, local.bindings)).status, 200);
   assert.equal((await local.db.prepare('SELECT count(*) n FROM components').first()).n, 1);
+})(t);
 });

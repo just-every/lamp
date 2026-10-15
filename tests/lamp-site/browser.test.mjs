@@ -262,7 +262,9 @@ test("the app host's home page is the Lobby, Finish setup until the owner confir
   assert.equal(formerAddress.headers.get("location"), `${BASE}/`);
 });
 
-test("the intro starts dim with the hero readable and the lamp clicks on once, leaving the page lit", async () => {
+test("Lamp introduction remains readable, correctly scaled and resilient to slow drawings", async t => {
+  t.diagnostic("the intro starts dim with the hero readable and the lamp clicks on once, leaving the page lit");
+  await (async () => {
   for (const [width, height] of [[1440, 900], [390, 844]]) {
     const dark = await openPage({ width, height, motion: "no-preference", holdAt: 0 });
     let night;
@@ -296,9 +298,9 @@ test("the intro starts dim with the hero readable and the lamp clicks on once, l
       await close();
     }
   }
-});
-
-test("the intro fills the first screen on every screen, and the lamp hangs lower on a longer cord when the screen is taller than its stack", async () => {
+})(t);
+  t.diagnostic("the intro fills the first screen on every screen, and the lamp hangs lower on a longer cord when the screen is taller than its stack");
+  await (async () => {
   const measure = async (width, height) => {
     const { page, close } = await openPage({ width, height, motion: "reduce" });
     try {
@@ -324,9 +326,9 @@ test("the intro fills the first screen on every screen, and the lamp hangs lower
     assert.ok(short.bulbBottom <= short.titleTop, `the lamp does not overlap the headline at ${width}x${height}: ${JSON.stringify(short)}`);
     assert.equal(short.overflowX, 0, `nothing spills sideways at ${width}x${height}`);
   }
-});
-
-test("when the lamp's drawings are slow the click-on holds at its start, then the page goes lit without them, and the lamp appears only once drawn, already lit", async () => {
+})(t);
+  t.diagnostic("when the lamp's drawings are slow the click-on holds at its start, then the page goes lit without them, and the lamp appears only once drawn, already lit");
+  await (async () => {
   for (const [width, height] of [[1440, 900], [390, 844]]) {
     const { context, page, errors } = await newContext({ viewport: { width, height }, reducedMotion: "no-preference" });
     try {
@@ -354,9 +356,16 @@ test("when the lamp's drawings are slow the click-on holds at its start, then th
       await context.close();
     }
   }
+})(t);
 });
 
-test("under reduced motion the page is simply lit: nothing animates and the mark already sits in its slot", async () => {
+
+
+
+
+test("Motion-free and script-free entry and reversible lamp handoff", async t => {
+  t.diagnostic("under reduced motion the page is simply lit: nothing animates and the mark already sits in its slot");
+  await (async () => {
   for (const [width, height] of [[1440, 900], [390, 844]]) {
     const { page, close } = await openPage({ width, height, motion: "reduce" });
     try {
@@ -373,9 +382,9 @@ test("under reduced motion the page is simply lit: nothing animates and the mark
       await close();
     }
   }
-});
-
-test("without JavaScript the page is simply lit, the mark in its slot and nothing running", async () => {
+})(t);
+  t.diagnostic("without JavaScript the page is simply lit, the mark in its slot and nothing running");
+  await (async () => {
   const { page, close } = await openPage({ width: 1440, height: 900, motion: "no-preference", javaScriptEnabled: false });
   try {
     await page.waitForFunction(() => [...document.images].every((image) => image.loading === "lazy" || image.complete));
@@ -387,9 +396,9 @@ test("without JavaScript the page is simply lit, the mark in its slot and nothin
   } finally {
     await close();
   }
-});
-
-test("the scroll handoff lifts the big lamp away and lands the header mark in its slot, continuously and reversibly", async () => {
+})(t);
+  t.diagnostic("the scroll handoff lifts the big lamp away and lands the header mark in its slot, continuously and reversibly");
+  await (async () => {
   for (const [width, height] of [[1440, 900], [390, 844]]) {
     const { page, close } = await openPage({ width, height, motion: "no-preference", holdAt: 3000 });
     try {
@@ -427,9 +436,16 @@ test("the scroll handoff lifts the big lamp away and lands the header mark in it
       await close();
     }
   }
+})(t);
 });
 
-test("every section renders below the hero, in order, under one h1: the product cards, then a close that offers a way in, then the footer", async () => {
+
+
+
+
+test("Complete responsive landing content stays on its own origin", async t => {
+  t.diagnostic("every section renders below the hero, in order, under one h1: the product cards, then a close that offers a way in, then the footer");
+  await (async () => {
   const { page, close } = await openPage({ width: 1440, height: 900, motion: "no-preference" });
   try {
     // With motion on, each section plays its moment as it is scrolled into view; once every moment has played,
@@ -475,9 +491,9 @@ test("every section renders below the hero, in order, under one h1: the product 
   } finally {
     await close();
   }
-});
-
-test("nothing overflows sideways at a narrow phone and a wide desktop width", async () => {
+})(t);
+  t.diagnostic("nothing overflows sideways at a narrow phone and a wide desktop width");
+  await (async () => {
   for (const [width, height] of [[320, 568], [1920, 1080]]) {
     const { page, close } = await openPage({ width, height });
     try {
@@ -495,9 +511,9 @@ test("nothing overflows sideways at a narrow phone and a wide desktop width", as
       await close();
     }
   }
-});
-
-test("every request the page makes stays on its own origin", async () => {
+})(t);
+  t.diagnostic("every request the page makes stays on its own origin");
+  await (async () => {
   for (const [width, height] of [[1440, 900], [390, 844]]) {
     const requests = [];
     const { page, close } = await openPage({ width, height, motion: "no-preference", setup: (p) => p.on("request", (request) => requests.push(request.url())) });
@@ -510,9 +526,16 @@ test("every request the page makes stays on its own origin", async () => {
       await close();
     }
   }
+})(t);
 });
 
-test("the keyboard reaches the skip link first and then every link, each with a visible focus ring, and focus lifts the dusk", async () => {
+
+
+
+
+test("Landing keyboard navigation and WCAG AA accessibility", async t => {
+  t.diagnostic("the keyboard reaches the skip link first and then every link, each with a visible focus ring, and focus lifts the dusk");
+  await (async () => {
   for (const holdAt of [0, 3000]) {
     const { page, close } = await openPage({ width: 1440, height: 900, motion: "no-preference", holdAt });
     try {
@@ -543,9 +566,9 @@ test("the keyboard reaches the skip link first and then every link, each with a 
       await close();
     }
   }
-});
-
-test("automated WCAG AA checks find nothing on the lit page, at the top and at every section", async () => {
+})(t);
+  t.diagnostic("automated WCAG AA checks find nothing on the lit page, at the top and at every section");
+  await (async () => {
   for (const [width, height] of [[1440, 900], [390, 844]]) {
     const { page, close } = await openPage({ width, height });
     try {
@@ -561,7 +584,10 @@ test("automated WCAG AA checks find nothing on the lit page, at the top and at e
       await close();
     }
   }
+})(t);
 });
+
+
 
 // The docs at /docs: the landing page's own pages for the repository's docs, drawn from its Markdown at build time. The
 // run site serves them as built; an installed instance serves the same pages on its app host.
@@ -579,7 +605,9 @@ async function openDocs(path, { width = 1440, height = 900, javaScriptEnabled = 
   return { page, close: async () => { await context.close(); assert.deepEqual(errors(), [], "no console or page errors"); } };
 }
 
-test("the landing page's Docs links lead to the site's own docs, which read the repository's docs under the same header, link to each other and answer 404 off the list", async () => {
+test("Repository docs remain complete, responsive, private and accessible", async t => {
+  t.diagnostic("the landing page's Docs links lead to the site's own docs, which read the repository's docs under the same header, link to each other and answer 404 off the list");
+  await (async () => {
   const landing = await openPage({ width: 1440, height: 900 });
   try {
     const docsLinks = await landing.page.$$eval("a", (links) => links.filter((link) => /^(Docs|Read the docs)$/.test(link.textContent.trim())).map((link) => new URL(link.href).origin + new URL(link.href).pathname));
@@ -631,9 +659,9 @@ test("the landing page's Docs links lead to the site's own docs, which read the 
   }
   assert.equal((await fetch(`${BASE}/docs`)).status, 200, "an installed instance serves the docs on its app host");
   assert.equal((await fetch(`${PAGE}/docs`)).status, 404, "the status page's host has no docs: its paths are the snapshot's");
-});
-
-test("every docs page fits the screen, stays on its own origin, works without JavaScript and passes the WCAG AA checks", async () => {
+})(t);
+  t.diagnostic("every docs page fits the screen, stays on its own origin, works without JavaScript and passes the WCAG AA checks");
+  await (async () => {
   const paths = ["/docs", ...(await docsPaths())];
   for (const [width, height] of [[1440, 900], [390, 844]]) {
     for (const path of paths) {
@@ -673,4 +701,5 @@ test("every docs page fits the screen, stays on its own origin, works without Ja
   } finally {
     await plain.close();
   }
+})(t);
 });

@@ -14,13 +14,32 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  verify:
+  plan:
     runs-on: ubuntu-latest
-    timeout-minutes: 90
+    outputs:
+      shards: ${{ steps.plan.outputs.shards }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - id: plan
+        name: Read the shared local and CI verification plan
+        run: node --input-type=module -e 'import { shardNames } from "./scripts/verification/plan.mjs"; console.log("shards=" + JSON.stringify(shardNames));' >> "$GITHUB_OUTPUT"
+
+  shards:
+    needs: plan
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: ${{ fromJSON(needs.plan.outputs.shards) }}
     env:
-      # Keep bootstrap-installed binaries first in every shell step.
+      # Bootstrap-installed pinned binaries must win in every shell step.
       PATH: /usr/local/bin:/usr/bin:/bin
       PLAYWRIGHT_SKIP_BROWSER_GC: '1'
+      LAMP_VERIFICATION_DIRECTORY: ${{ runner.temp }}/lamp-verification/ci-shards
+      LAMP_BASELINE_REPORT: ${{ runner.temp }}/lamp-verification/baseline-report.json
     defaults:
       run:
         shell: bash
@@ -35,66 +54,73 @@ jobs:
             ~/.local/share/pnpm/store
             ~/.cache/ms-playwright
           key: lamp-linux-${{ runner.arch }}-${{ hashFiles('scripts/agent-bootstrap.sh', 'pnpm-lock.yaml', 'package.json') }}
-      # Base's rer CLI starts a local server only with 15 GiB free on the checkout
-      # and temporary volumes (tests/e2e/rer-journey.test.mjs); hosted runners
-      # start with less.
-      - name: Free runner disk
+      # Base requires 15 GiB free before starting native local servers.
+      - name: Reserve disk for native runtime journeys
         run: |
           sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
           df -h / "$RUNNER_TEMP"
       - name: Prepare verification logs
         run: mkdir -p "$RUNNER_TEMP/lamp-verification"
-      - name: Bootstrap and verify
-        run: |
-          { bash scripts/agent-bootstrap.sh && pnpm verify; } 2>&1 | tee "$RUNNER_TEMP/lamp-verification/verify.log"
-      # Run browser suites even when an earlier verifier gate fails, so the
-      # first PR run records their actual results for the owning lane.
-      - name: Publishing browser
-        if: ${{ !cancelled() }}
-        run: pnpm run test:publishing-browser 2>&1 | tee "$RUNNER_TEMP/lamp-verification/publishing-browser.log"
-      - name: UI interactions
-        if: ${{ !cancelled() }}
-        run: pnpm run test:ui-interactions 2>&1 | tee "$RUNNER_TEMP/lamp-verification/ui-interactions.log"
-      - name: Maintenance timezone
-        if: ${{ !cancelled() }}
-        run: pnpm run test:maintenance-timezone 2>&1 | tee "$RUNNER_TEMP/lamp-verification/maintenance-timezone.log"
-      - name: Autosave integrity
-        if: ${{ !cancelled() }}
-        run: pnpm run test:autosave-integrity 2>&1 | tee "$RUNNER_TEMP/lamp-verification/autosave-integrity.log"
-      - name: Public contract browser
-        if: ${{ !cancelled() }}
-        run: pnpm run test:public 2>&1 | tee "$RUNNER_TEMP/lamp-verification/public.log"
-      - name: Accessibility browser
-        if: ${{ !cancelled() }}
-        run: pnpm run test:accessibility 2>&1 | tee "$RUNNER_TEMP/lamp-verification/accessibility.log"
-      - name: Baseline browser
-        if: ${{ !cancelled() }}
-        run: pnpm run test:baseline 2>&1 | tee "$RUNNER_TEMP/lamp-verification/baseline.log"
-      - name: Built Start runtime browser
-        if: ${{ !cancelled() }}
-        run: pnpm run test:start-runtime 2>&1 | tee "$RUNNER_TEMP/lamp-verification/start-runtime.log"
-      # Record the documented visual verifier, including its early source gates.
-      # Also run its local browser probes independently after a real build.
-      - name: Visual edit verifier
-        if: ${{ !cancelled() }}
-        run: pnpm verify:visual 2>&1 | tee "$RUNNER_TEMP/lamp-verification/visual-verifier.log"
-      - name: Build for visual edit browser probes
-        id: visual-build
-        if: ${{ !cancelled() }}
-        run: pnpm run build 2>&1 | tee "$RUNNER_TEMP/lamp-verification/visual-build.log"
-      - name: Compiled visual edit browser
-        if: ${{ !cancelled() && steps.visual-build.outcome == 'success' }}
-        run: node --test --test-name-pattern='compiled visual edits' tests/e2e/publishing-browser.test.mjs 2>&1 | tee "$RUNNER_TEMP/lamp-verification/visual-browser.log"
-      - name: Compiled visual edit heading probe
-        if: ${{ !cancelled() && steps.visual-build.outcome == 'success' }}
+      - name: Install pinned tools, dependencies and browser
+        run: bash scripts/agent-bootstrap.sh 2>&1 | tee "$RUNNER_TEMP/lamp-verification/bootstrap.log"
+      - name: Verify this product shard
         env:
-          RER_VISUAL_HEADING_PROBE: '1'
-        run: node --test --test-name-pattern='compiled visual edits' tests/e2e/publishing-browser.test.mjs 2>&1 | tee "$RUNNER_TEMP/lamp-verification/visual-heading-probe.log"
-      - name: Retain actual verification results
-        if: ${{ !cancelled() }}
+          LAMP_VERIFY_SHARD: ${{ matrix.shard }}
+        run: |
+          # rer verify adds Base's hosted-output and hydration checks after the
+          # runtime shard has built and exercised the actual production Worker.
+          if [ "$LAMP_VERIFY_SHARD" = runtime ]; then
+            pnpm verify 2>&1 | tee "$RUNNER_TEMP/lamp-verification/shard.log"
+          else
+            pnpm run verify:app 2>&1 | tee "$RUNNER_TEMP/lamp-verification/shard.log"
+          fi
+      - name: Retain commit-bound shard completion
+        if: ${{ always() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: lamp-shard-${{ matrix.shard }}
+          path: ${{ runner.temp }}/lamp-verification/ci-shards/${{ matrix.shard }}.json
+          if-no-files-found: error
+          retention-days: 7
+      - name: Retain actual verification logs and browser evidence
+        if: ${{ always() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: lamp-evidence-${{ matrix.shard }}
+          path: |
+            ${{ runner.temp }}/lamp-verification/
+            test-results/
+          if-no-files-found: error
+          retention-days: 7
+
+  # Preserve the stable required-check name while requiring every planned shard.
+  verify:
+    needs: shards
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    env:
+      LAMP_VERIFICATION_DIRECTORY: ${{ runner.temp }}/lamp-verification/ci-shards
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          pattern: lamp-shard-*
+          path: ${{ runner.temp }}/lamp-verification/ci-shards
+          merge-multiple: true
+      - name: Require every planned command to succeed on this commit
+        if: ${{ always() }}
+        env:
+          SHARDS_RESULT: ${{ needs.shards.result }}
+        run: |
+          node scripts/verification/aggregate.mjs
+          test "$SHARDS_RESULT" = success
+      - name: Retain combined verification verdict
+        if: ${{ always() }}
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: lamp-verification-${{ github.run_id }}-${{ github.run_attempt }}
-          path: ${{ runner.temp }}/lamp-verification/
+          path: ${{ runner.temp }}/lamp-verification/ci-summary.json
           if-no-files-found: error
           retention-days: 7

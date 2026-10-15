@@ -59,7 +59,7 @@ You can also export the input names in the calling shell. The
 [input reference](docs/deployment-reference.md) distinguishes required owner
 values from secrets that `rer` generates on a first deploy.
 
-Use `rer` from the project root; the checkout pins its CLI version. Before a
+Use `rer` from the project root; the checkout pins `@runeditrun/rer` 0.2.20. Before a
 command that builds or verifies the checkout,
 stop a running development server with `rer dev --stop` or a production preview
 with `rer preview --stop`.
@@ -78,6 +78,12 @@ for sender preparation and the [domain steps](docs/domains.md) before routing
 visitors. For `workers.dev`, follow the
 [hostname lookup and examples](docs/deployment-reference.md#find-your-workersdev-hostnames);
 both host inputs remain required. Use the same environment on later deploys.
+For terminal entry to the hosted owner account, use
+`rer signin --environment production --env-file "$HOME/.config/lamp/production.env"`
+from the deploying checkout with the default `lamp-<environment>` resource prefix.
+It prints a private, single-use link without sending email; see
+[terminal sign-in](docs/operators-and-sign-in.md#terminal-entry-for-the-hosted-owner)
+for custom prefixes and other prerequisites.
 To retire an installation, see the [removal command and record limits](docs/deploy.md#remove-an-installation).
 
 Before `rer verify`, stop the active development server or production preview

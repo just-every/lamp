@@ -63,6 +63,12 @@ receipts; see `ACCEPTANCE.md`.
 
 ## Development and publication regressions
 
-`test:reference-storage` proves nullable-time upgrades and durable reference allocation on real prior D1 data, including concurrency, rollback, restart, and capture-receipt exclusion from provider retry. `test:local-mail` covers token-bearing local envelopes and strict access predicates. `test:public-snapshots`, `test:intake-references`, and `test:resolve-composer` exercise the native Worker and browser behavior; passing source checks alone does not qualify them. `test:release-identity` checks the current repository descriptors and retained edition provenance. All are part of `verify`.
+`test:reference-storage` proves nullable-time upgrades and durable reference allocation on real prior D1 data, including concurrency, rollback, restart, and capture-receipt exclusion from provider retry. `test:public-snapshots`, `test:intake-references`, and `test:resolve-composer` exercise the native Worker and browser behavior; passing source checks alone does not qualify them. `test:release-identity` checks the current repository descriptors and retained edition provenance. All are part of `verify`.
 
-The ordinary API and accessibility suites run plain Vite with no configured mail sender and retain their unavailable-mail assertions. New outbox journeys explicitly select `LAMP_DEV_OUTBOX_MODE=local` or use `pnpm dev`; they must pass through the real Vite ingress and native authentication, and must separately reject spoofed and non-loopback requests. Production output must exclude the development route, envelope store, binding and transport selection. No provider receipt may be inferred from local capture.
+Ordinary `rer dev` signs the owner in through its private one-click entry and
+suppresses local mail without retaining messages. Check that
+`GET /__dev/outbox` returns 200 with the suppression notice, and that the notice
+is unavailable in production and demos. It is not a captured-mail journey.
+Emailed sign-in, subscriber confirmation and received-message evidence require a
+hosted installation and its actual mail provider; local success does not prove
+provider acceptance or inbox delivery.

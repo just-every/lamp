@@ -44,6 +44,8 @@ and uses that default; it exposes no separate timeout setting. The Lamp adoption
 notes are present in the copied Base README. See [BASE-ADOPTION.md](BASE-ADOPTION.md)
 for the source contract and remaining runtime evidence.
 
-Local state remains in the private installer runtime folder. Legacy R2 capture
-envelopes are retained and never silently resent; new captures use the Base local
-D1 binding. Local checks do not establish provider delivery or hosted acceptance.
+Local state remains in the private installer runtime folder. Legacy capture
+metadata is never treated as provider delivery or silently resent. Local mail is
+suppressed without retaining new messages. In ordinary `rer dev`,
+`GET /__dev/outbox` returns 200 with a plain-text suppression notice, not a viewer.
+Local checks do not establish provider delivery or hosted acceptance.

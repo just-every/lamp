@@ -14,7 +14,9 @@ import {hostLamp} from '../scripts/installer/hosting.mjs';
 import {nativeSecrets} from '../scripts/installer/secrets.mjs';
 import {deploymentConfig} from '../scripts/ops-config.mjs';
 import * as browser from '../scripts/installer/ui/seed.mjs';
-test('local-first Lamp browser setup saves only nonsecret fields and requires deliberate start',async()=>{
+test("Deliberate local installation and invalid-input refusal", async t => {
+  t.diagnostic("local-first Lamp browser setup saves only nonsecret fields and requires deliberate start");
+  await (async()=>{
  const root=await mkdtemp(join(tmpdir(),'lamp-installer-'));
  let server;
  try {
@@ -43,8 +45,9 @@ test('local-first Lamp browser setup saves only nonsecret fields and requires de
   assert.equal(server.state.draft.LAMP_PAGE_NAME,'Owner lamp');
   assert.equal(server.state.phase,'ready');
  }finally{await server?.close();await rm(root,{recursive:true,force:true});}
-});
-test('one manifest makes local sign-in key-free and offers one shared hosting target',async()=>{
+})(t);
+  t.diagnostic("one manifest makes local sign-in key-free and offers one shared hosting target");
+  await (async()=>{
  const manifest=JSON.parse(await readFile('rer-setup.json','utf8'));
  const model=createInstallerModel(manifest,browser);
  const common={SESSION_SECRET:'test-only-session-secret-'.repeat(3),SETUP_TOKEN:'test-only-setup-token-'.repeat(3),SETUP_OPERATOR_EMAIL:'owner@example.test',OWNER_DISPLAY_NAME:'Owner',LAMP_PAGE_NAME:'Owner page',LAMP_PAGE_TAGLINE:'Status',LAMP_PAGE_TIMEZONE:'UTC'};
@@ -52,9 +55,9 @@ test('one manifest makes local sign-in key-free and offers one shared hosting ta
  assert.equal(model.setupModel({...common,target:'remote'}).ready,false);
  assert.equal(model.setupModel({...common,target:'remote',accountId:'a'.repeat(32),prefix:'lamp-page',appOrigin:'https://app.example.test',apiToken:'synthetic-owner-credential'}).ready,true);
  assert.equal(model.fields.INSTALL_TARGET,undefined);
-});
-
-test('native-invalid setup stops with value-free guidance before any installation effect',async()=>{
+})(t);
+  t.diagnostic("native-invalid setup stops with value-free guidance before any installation effect");
+  await (async()=>{
  const common={target:'local',SESSION_SECRET:'test-only-session-secret-'.repeat(3),SETUP_TOKEN:'test-only-setup-token-'.repeat(3),SETUP_OPERATOR_EMAIL:'owner@example.test',OWNER_DISPLAY_NAME:'Owner',LAMP_PAGE_NAME:'Owner page',LAMP_PAGE_TAGLINE:'Status',LAMP_PAGE_TIMEZONE:'UTC'};
  for(const [changes,field] of [
   [{OWNER_DISPLAY_NAME:'x'.repeat(121)},'OWNER_DISPLAY_NAME'],
@@ -70,9 +73,15 @@ test('native-invalid setup stops with value-free guidance before any installatio
   assert.ok(steps.at(-1).includes(field));
   assert.doesNotMatch(steps.join('\n'),/xxx|app\.example\.test/);
  }
+})(t);
 });
 
-test('hosting credentials invalidate when their Cloudflare account or mail identity changes',async()=>{
+
+
+
+test("Hosting credentials remain bound to the chosen owner and destination", async t => {
+  t.diagnostic("hosting credentials invalidate when their Cloudflare account or mail identity changes");
+  await (async()=>{
  const manifest=JSON.parse(await readFile('rer-setup.json','utf8'));
  const model=createInstallerModel(manifest,browser);
  const draft={target:'remote',accountId:'a'.repeat(32),MAIL_PROVIDER:'sendgrid',MAIL_FROM_ADDRESS:'owner@example.test'};
@@ -84,9 +93,9 @@ test('hosting credentials invalidate when their Cloudflare account or mail ident
   assert.equal(vault.readiness(destination)[key],false);
   assert.equal(vault.merge(destination,destination)[key],undefined);
  }
-});
-
-test('native hosting carries owner credentials through captured commands and binds the destination',async()=>{
+})(t);
+  t.diagnostic("native hosting carries owner credentials through captured commands and binds the destination");
+  await (async()=>{
  const root=await mkdtemp(join(tmpdir(),'lamp-hosting-'));
  try{
   const git=args=>execFileSync('git',args,{cwd:root,stdio:'pipe'});
@@ -146,9 +155,14 @@ test('native hosting carries owner credentials through captured commands and bin
    assert.equal(events.at(-1).kind,'cleanup');
   }
  }finally{await rm(root,{recursive:true,force:true});}
+})(t);
 });
 
-test('online setup names missing inputs and rejects insecure destinations before commands or private writes',async()=>{
+
+
+test("Secure online setup preserves existing managed credentials", async t => {
+  t.diagnostic("online setup names missing inputs and rejects insecure destinations before commands or private writes");
+  await (async()=>{
  const input={target:'remote',accountId:'a'.repeat(32),apiToken:'synthetic-token',prefix:'owner-lamp',appOrigin:'https://operator.example.test',LAMP_PAGE_HOST:'status.example.test',LAMP_HOSTING:'custom-domain',LAMP_ACCENT_COLOR:'#123456',MAIL_PROVIDER:'sendgrid',MAIL_FROM_ADDRESS:'status@example.test',MAIL_DKIM_SELECTOR:'s1',MAIL_PROVIDER_API_KEY:'synthetic-in-memory-only-provider-credential'};
  for(const [changed,expected] of [[{MAIL_DKIM_SELECTOR:''},'MAIL_DKIM_SELECTOR'],[{appOrigin:'http://operator.example.test'},'exact HTTPS'],[{appOrigin:'https://operator.example.test/path'},'exact HTTPS']]){
   const steps=[];
@@ -156,9 +170,9 @@ test('online setup names missing inputs and rejects insecure destinations before
   assert.ok(steps.at(-1).includes(expected));
   assert.doesNotMatch(steps.join('\n'),/synthetic|operator\.example/);
  }
-});
-
-test('canonical managed-secret generation preserves existing local credentials and origin',async()=>{
+})(t);
+  t.diagnostic("canonical managed-secret generation preserves existing local credentials and origin");
+  await (async()=>{
  const root=await mkdtemp(join(tmpdir(),'lamp-local-secrets-'));
  try{
   const directory=join(root,'.seed/installer/runtime');await mkdir(directory,{recursive:true});
@@ -172,4 +186,5 @@ test('canonical managed-secret generation preserves existing local credentials a
   assert.ok(await readFile(join(directory,'secrets.json'),'utf8')===before);
   assert.ok(registered.includes(fixture));
  }finally{await rm(root,{recursive:true,force:true});}
+})(t);
 });

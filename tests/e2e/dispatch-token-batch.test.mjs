@@ -9,7 +9,9 @@ const origin = "https://status.example.test";
 const candidates = prefix => ({ manage: { id: `${prefix}-manage`, tokenHash: `${prefix}-manage-hash` }, unsubscribe: { id: `${prefix}-unsubscribe`, tokenHash: `${prefix}-unsubscribe-hash` } });
 const rows = async id => (await fixture.db.prepare("SELECT id, scope, token_hash AS hash, revoked_at AS revoked FROM subscriber_tokens WHERE subscriber_id = ? ORDER BY scope, id").bind(id).all()).results;
 
-test("native token batch returns the same committed scope winners to concurrent deliveries and isolates subscribers", async () => {
+test("Atomic subscriber token allocation, isolation, rollback and revocation", async t => {
+  t.diagnostic("native token batch returns the same committed scope winners to concurrent deliveries and isolates subscribers");
+  await (async () => {
   const { seed, db, now, createDeliveryRepository } = fixture;
   await seed("token-winner"); await seed("token-other");
   const repository = createDeliveryRepository(db);
@@ -23,9 +25,9 @@ test("native token batch returns the same committed scope winners to concurrent 
   assert.notDeepEqual(other, values[0]);
   assert.equal((await rows("token-winner")).length, 2);
   assert.equal((await rows("token-other")).length, 2);
-});
-
-test("native token batch rolls back both allocations when the authoritative read fails", async () => {
+})(t);
+  t.diagnostic("native token batch rolls back both allocations when the authoritative read fails");
+  await (async () => {
   const { seed, db, now, createDeliveryRepository } = fixture;
   await seed("token-read-fault");
   const failing = {
@@ -39,9 +41,9 @@ test("native token batch rolls back both allocations when the authoritative read
   assert.deepEqual(await rows("token-read-fault"), []);
   const winner = await createDeliveryRepository(db).ensureNotificationTokens("token-read-fault", candidates("read-recovered"), now);
   assert.deepEqual(winner, { manage: "read-recovered-manage", unsubscribe: "read-recovered-unsubscribe" });
-});
-
-test("native token batch rolls back the first scope when the second violates a real uniqueness constraint", async () => {
+})(t);
+  t.diagnostic("native token batch rolls back the first scope when the second violates a real uniqueness constraint");
+  await (async () => {
   const { seed, db, now, createDeliveryRepository } = fixture;
   await seed("token-constraint"); await seed("token-constraint-owner");
   const repository = createDeliveryRepository(db), input = candidates("constraint");
@@ -50,9 +52,9 @@ test("native token batch rolls back the first scope when the second violates a r
   await assert.rejects(repository.ensureNotificationTokens("token-constraint", input, now), /UNIQUE constraint failed/);
   assert.deepEqual(await rows("token-constraint"), []);
   assert.equal((await rows("token-constraint-owner")).length, 2);
-});
-
-test("native token batch retains an existing scope and never reuses a revoked token", async () => {
+})(t);
+  t.diagnostic("native token batch retains an existing scope and never reuses a revoked token");
+  await (async () => {
   const { seed, db, now, createDeliveryRepository, createSubscriberRepository } = fixture;
   await seed("token-revoked");
   const repository = createDeliveryRepository(db), subscribers = createSubscriberRepository(db);
@@ -67,9 +69,18 @@ test("native token batch retains an existing scope and never reuses a revoked to
   assert.ok((await rows("token-revoked")).every(row => row.revoked));
   assert.equal((await rows("token-revoked")).length, 3);
   assert.equal(await repository.ensureNotificationTokens("absent-subscriber", candidates("absent"), now), null);
+})(t);
 });
 
-test("deactivation and deletion during sender configuration suppress dispatch without recreating links or personal envelopes", async () => {
+
+
+
+
+
+
+test("Dispatch respects revoked recipients and retries only committed scoped tokens", async t => {
+  t.diagnostic("deactivation and deletion during sender configuration suppress dispatch without recreating links or personal envelopes");
+  await (async () => {
   const { seed, db, now, createDeliveryRepository, createDeliveriesService, createSubscriberRepository } = fixture;
   const subscribers = createSubscriberRepository(db);
   for (const action of ["deactivate", "delete"]) {
@@ -90,9 +101,9 @@ test("deactivation and deletion during sender configuration suppress dispatch wi
     assert.deepEqual(await db.prepare("SELECT outcome, mail_payload_json AS envelope, dispatch_locked_at AS locked FROM notification_deliveries WHERE id = ?").bind(id).first(), { outcome: "suppressed", envelope: null, locked: null });
     assert.equal((await db.prepare("SELECT COUNT(*) AS n FROM notification_delivery_attempts WHERE delivery_id = ?").bind(id).first()).n, 0);
   }
-});
-
-test("token transaction failure records a durable error and releases the claim before a fresh service retry", async () => {
+})(t);
+  t.diagnostic("token transaction failure records a durable error and releases the claim before a fresh service retry");
+  await (async () => {
   const { seed, db, createDeliveryRepository, createDeliveriesService } = fixture;
   const id = "token-service-fault"; await seed(id);
   const repository = createDeliveryRepository(db);
@@ -108,9 +119,9 @@ test("token transaction failure records a durable error and releases the claim b
   await restarted.dispatchDelivery(id, origin); await restarted.dispatchDelivery(id, origin);
   assert.equal(messages.length, 1);
   assert.deepEqual((await db.prepare("SELECT attempt_number AS number, provider_message_id AS provider FROM notification_delivery_attempts WHERE delivery_id = ? ORDER BY attempt_number").bind(id).all()).results, [{ number: 1, provider: null }, { number: 2, provider: "token-retry-receipt" }]);
-});
-
-test("concurrent real dispatch uses committed links whose signatures and database scopes address only their subscriber", async () => {
+})(t);
+  t.diagnostic("concurrent real dispatch uses committed links whose signatures and database scopes address only their subscriber");
+  await (async () => {
   const { seed, db, now, createDeliveryRepository, createDeliveriesService, createSubscriberRepository, SubscriberTokenCodec } = fixture;
   const id = "token-concurrent-mail"; await seed(id); await seed(`${id}-second`, id);
   const messages = [], secret = "test-only-shared-token-secret";
@@ -128,7 +139,12 @@ test("concurrent real dispatch uses committed links whose signatures and databas
     await subscribers.revokeTokens(id, now, scope);
     assert.equal(await subscribers.findSubscriberByToken(hash, scope, now), null);
   }
+})(t);
 });
+
+
+
+
 
 test("a retry retains the entire frozen mail after tokens, sender, destination and rendered content change", async () => {
   const { seed, db, now, createDeliveryRepository, createDeliveriesService, createSubscriberRepository } = fixture;

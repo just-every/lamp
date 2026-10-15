@@ -83,7 +83,13 @@ export default withDemo({
       const gate = devGate({key:bindings.RER_DEV_KEY,origin:config.origin,local:config.local!});
       const exchange = await gate?.exchange(request);
       if (exchange) return exchange;
-
+      // Keep the documented local diagnostic address usable before migrations.
+      // Ordinary dev suppresses mail; this is an explanation, not a mail viewer.
+      if (bindings.RER_DEMO !== '1' && bindings.RER_DEV_KEY && admitsDevelopmentRequest(bindings, request)
+        && new URL(request.url).pathname === '/__dev/outbox' && ['GET', 'HEAD'].includes(request.method)) {
+        return new Response(request.method === 'HEAD' ? null : 'Local mail is suppressed. No messages are sent or stored. Use a hosted installation and its Deliveries page to check real mail.\n',
+          { headers: { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff' } });
+      }
     }
     const url = new URL(request.url);
     const surface = createHostDispatch(bindings).surfaceFor(request, { allowDevelopmentAssets: import.meta.env.DEV });

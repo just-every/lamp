@@ -6,14 +6,16 @@ import { spawnSync } from 'node:child_process';
 import test from 'node:test';
 import { describeOperations, inspectOperations } from '../scripts/operations.mjs';
 
-test('operations describe resolves actual commands without runtime dependencies', async () => {
+test("Operations discoverability and value-free missing-input diagnostics", async t => {
+  t.diagnostic("operations describe resolves actual commands without runtime dependencies");
+  await (async () => {
   const result = await describeOperations(process.cwd());
   const { project } = JSON.parse(await readFile('deploy.json', 'utf8'));
   assert.equal(result.project, project);
   assert.deepEqual(result.commands.deploy.argv, ['rer', 'deploy']);
-});
-
-test('operations check reports absent inputs and suppresses invalid values', async () => {
+})(t);
+  t.diagnostic("operations check reports absent inputs and suppresses invalid values");
+  await (async () => {
   const missing = await inspectOperations(process.cwd(), {});
   assert.equal(missing.ok, false);
   assert.ok(missing.missingEnvironment.includes('CLOUDFLARE_API_TOKEN'));
@@ -21,7 +23,10 @@ test('operations check reports absent inputs and suppresses invalid values', asy
   assert.equal(invalid.configuration, 'invalid');
   assert.ok(!JSON.stringify(invalid).includes('secret-invalid-host/path'));
   assert.equal(invalid.scope, 'local-inputs-only');
+})(t);
 });
+
+
 
 // Synthetic application configuration only; these commands must stop before
 // invoking setup, verification, a build, or any provider operation.
@@ -43,7 +48,9 @@ function deploy(args, env) {
   });
 }
 
-test('deployment dry run reports missing native inputs and their sources without values', async () => {
+test("Dry-run and deployment refuse missing authority or invalid native configuration", async t => {
+  t.diagnostic("deployment dry run reports missing native inputs and their sources without values");
+  await (async () => {
   const descriptor = await describeOperations(process.cwd());
   const result = deploy(['--dry-run'], {
     ...applicationEnvironment, LAMP_PAGE_NAME: ' \t ', MAIL_PROVIDER_API_KEY: '',
@@ -59,18 +66,18 @@ test('deployment dry run reports missing native inputs and their sources without
   assert.ok(!result.stderr.includes('private-invalid-value'));
   assert.ok(!result.stderr.includes(applicationEnvironment.SUBSCRIBER_TOKEN_SECRET));
   assert.equal(result.stdout, '');
-});
-
-test('deployment dry run still rejects invalid native configuration without provider credentials', () => {
+})(t);
+  t.diagnostic("deployment dry run still rejects invalid native configuration without provider credentials");
+  await (() => {
   const result = deploy(['--dry-run'], { ...applicationEnvironment, LAMP_PAGE_HOST: 'private-invalid-value/path' });
   assert.equal(result.status, 1);
   assert.match(result.stderr, /LAMP_PAGE_HOST/);
   assert.ok(!result.stderr.includes('CLOUDFLARE_API_TOKEN'));
   assert.ok(!result.stderr.includes('private-invalid-value'));
   assert.equal(result.stdout, '');
-});
-
-test('real deployment requires both Cloudflare authority inputs before provisioning', () => {
+})(t);
+  t.diagnostic("real deployment requires both Cloudflare authority inputs before provisioning");
+  await (() => {
   for (const authority of [{}, { CLOUDFLARE_ACCOUNT_ID: 'test-account' }, { CLOUDFLARE_API_TOKEN: 'test-token' }]) {
     const result = deploy([], { ...applicationEnvironment, ...authority });
     assert.equal(result.status, 1);
@@ -82,7 +89,12 @@ test('real deployment requires both Cloudflare authority inputs before provision
     assert.doesNotMatch(result.stderr, /pnpm/);
     assert.equal(result.stdout, '');
   }
+})(t);
 });
+
+
+
+
 
 // Exercise the real provisioning command, replacing only its DNS network edge.
 // A passing sender reaches the authority check; absent authority prevents any

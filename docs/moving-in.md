@@ -60,8 +60,12 @@ Eligible email rows stay pending until they confirm. Unconfirmed or unsubscribed
 source rows are skipped where the source provides those states; the reader
 differences are described below. Lamp permits at most one invitation per
 imported subscriber and claims it before the mail transport call. A claimed or
-uncertain send is not automatically retried. A transport acceptance or local
-outbox capture does not prove inbox delivery.
+uncertain send is not automatically retried. A transport acceptance does not
+prove inbox delivery. Local development silently suppresses mail and retains no
+invitations to open; use a hosted installation and a real mailbox to exercise
+subscriber confirmation. Do not use local **Send invitations** to prepare
+subscriptions you intend to invite after moving that data to hosting: its durable
+claims still prevent those invitations from being sent again.
 
 The confirmation deadline is **72 hours from the import review time**, even if
 you have not sent the invitation yet. Sending later leaves only the time

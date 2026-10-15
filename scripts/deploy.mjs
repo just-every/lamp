@@ -10,6 +10,7 @@ import { readOperations } from "./operations.mjs";
 import { dryRunInputFailure } from "./deploy-preflight.mjs";
 import { readBuiltWorkerArtifact } from "./build-output.mjs";
 import { deployFingerprint, deploySource, identityVars, reportsIdentity } from "./deployment-identity.mjs";
+import { deploymentOwnership } from './deployment-ownership.mjs';
 
 function run(command, args, options = {}) {
   const result = spawnSync(command, args, { stdio: "inherit", ...options });
@@ -65,9 +66,10 @@ async function main() {
   if (!existsSync("wrangler.toml")) throw new Error("pnpm setup must generate wrangler.toml before deployment.");
   const builtConfig = await buildGeneratedWorker(resolve("wrangler.toml"), config);
   const identity = { source: deploySource(), fingerprint: await deployFingerprint() };
+  const ownership = deploymentOwnership(config);
   await withDeploymentSecrets(config, async (file) => {
-    run("pnpm", ["exec", "wrangler", "deploy", "--config", builtConfig, "--secrets-file", file, ...identityVars(identity)]);
-    if (config.hosting === "workers-dev") await withPublicWorkerConfig(builtConfig, names, path => run("pnpm", ["exec", "wrangler", "deploy", "--config", path, "--secrets-file", file, ...identityVars(identity)]));
+    await ownership.upload(false, identity, () => run("pnpm", ["exec", "wrangler", "deploy", "--config", builtConfig, "--secrets-file", file, ...identityVars(identity)]));
+    if (config.hosting === "workers-dev") await withPublicWorkerConfig(builtConfig, names, path => ownership.upload(true, identity, () => run("pnpm", ["exec", "wrangler", "deploy", "--config", path, "--secrets-file", file, ...identityVars(identity)])));
   });
   const response = await fetch(`https://${config.appHost}/health`, { signal: AbortSignal.timeout(15_000), redirect: "error" });
   const health = await response.json().catch(() => null);

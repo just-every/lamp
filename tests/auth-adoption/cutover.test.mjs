@@ -1,7 +1,7 @@
+import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, readdirSync } from 'node:fs';
 import { Hono } from 'hono';
-import { contract } from '../contract.mjs';
 import { lampRuntime, preview, suspendedBody } from './lamp-runtime.mjs';
 import { secret } from './runtime.mjs';
 import { holdConfirmationWrite } from './cutover-race-helper.mjs';
@@ -23,7 +23,9 @@ async function apply(r, files, cookie = r.cookie) {
 }
 const send = (r, id, cookie = r.cookie) => r.call(`${endpoint(id)}/send-invitations`, { method: 'POST', cookie, body: {} });
 
-contract('MOVE-006', 'dry runs and saved cutover previews carry truthful destinations and mail waits for the owner across batches and repeats', async t => {
+test("MOVE-006 MOVE-002 — Owner-approved cutover invitations and preparation failure recovery", async t => {
+  t.diagnostic("MOVE-006 — dry runs and saved cutover previews carry truthful destinations and mail waits for the owner across batches and repeats");
+  await (async t => {
   const r = await lampRuntime(t);
   const files = fixture('small');
   files.find(file => file.name === 'subscribers.json').text = JSON.stringify(Array.from({length: 57}, (_, i) => ({ id: `subscriber-${i}`, email: `person-${i}@example.test`, mode: 'email', created_at: '2026-01-01T00:00:00Z' })));
@@ -52,9 +54,9 @@ contract('MOVE-006', 'dry runs and saved cutover previews carry truthful destina
   const large = await r.call('/api/app/statuspage-import/preview', { method:'POST', cookie:r.cookie, body:{files:fixture('large')} });
   // Source overlaps this import, so duplicate source identities must still be refused.
   assert.equal(large.status, 400);
-});
-
-contract('MOVE-002', 'invitation preparation failures remain retryable while ambiguous transport failures stay claimed', async t => {
+})(t);
+  t.diagnostic("MOVE-002 — invitation preparation failures remain retryable while ambiguous transport failures stay claimed");
+  await (async t => {
   await exerciseMailPreparation(t, r => apply(r, fixture('small')));
   for (const failure of ['origin', 'configuration', 'tokens', 'authority', 'transport']) await t.test(failure, async t => {
     const r = await lampRuntime(t);
@@ -94,9 +96,14 @@ contract('MOVE-002', 'invitation preparation failures remain retryable while amb
     assert.equal(r.messages.length, 2, `${failure}: each address handed to transport once after repair`);
     assert.equal(new Set(r.messages.map(message => message.to)).size, 2);
   });
+})(t);
 });
 
-contract('MOVE-002', 'delayed invitations retain the original expiry and undo rows; expired pending subscribers are not sent mail', async t => {
+
+
+test("MOVE-002 MOVE-006 — Imported invitation expiry, revoked authority and public subscription races", async t => {
+  t.diagnostic("MOVE-002 — delayed invitations retain the original expiry and undo rows; expired pending subscribers are not sent mail");
+  await (async t => {
   const r = await lampRuntime(t);
   const result = await apply(r, fixture('small'));
   const rows = (await r.db.prepare("SELECT id,created_at,updated_at FROM subscribers ORDER BY id").all()).results;
@@ -118,9 +125,9 @@ contract('MOVE-002', 'delayed invitations retain the original expiry and undo ro
   assert.equal(token.expires_at, deadline);
   assert.deepEqual((await r.db.prepare('SELECT * FROM subscribers ORDER BY id').all()).results, before);
   assert.deepEqual((await r.db.prepare('SELECT * FROM ik_provenance ORDER BY ordinal').all()).results, journal);
-});
-
-contract('MOVE-006', 'owner revocation before an invitation action sends nothing; saved large previews cap rows without losing the count', async t => {
+})(t);
+  t.diagnostic("MOVE-006 — owner revocation before an invitation action sends nothing; saved large previews cap rows without losing the count");
+  await (async t => {
   const r = await lampRuntime(t);
   const cookie = await r.providerSession(r.owner.id);
   const result = await apply(r, fixture('small'), cookie);
@@ -135,9 +142,9 @@ contract('MOVE-006', 'owner revocation before an invitation action sends nothing
   const cutover = (await report.json()).report.cutover;
   assert.ok(cutover.rows.length <= 25); assert.ok(cutover.total > cutover.rows.length);
   assert.ok(cutover.rows.every(row => row.address && row.path && row.target));
-});
-
-contract('MOVE-002', 'public subscriptions racing owner invitations cannot extend either imported confirmation deadline', async t => {
+})(t);
+  t.diagnostic("MOVE-002 — public subscriptions racing owner invitations cannot extend either imported confirmation deadline");
+  await (async t => {
   const r = await lampRuntime(t);
   const result = await apply(r, fixture('small'));
   const rows = (await r.db.prepare('SELECT * FROM subscribers ORDER BY id').all()).results;
@@ -212,4 +219,5 @@ contract('MOVE-002', 'public subscriptions racing owner invitations cannot exten
   // beyond the renewed deadline without changing the process or D1 clock.
   await r.modules.createSubscriberRepository(r.db).deleteExpiredPending(new Date(Date.parse(finalPending.created_at)+1).toISOString());
   assert.equal(await r.db.prepare('SELECT id FROM subscribers WHERE id=?').bind(renewed.id).first(), null, 'cleanup after the renewed deadline removes the unconfirmed address');
+})(t);
 });

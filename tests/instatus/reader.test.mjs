@@ -21,7 +21,9 @@ before(async () => {
 });
 after(async () => { if (scratch) await rm(scratch, { recursive: true, force: true }); });
 
-test('saved Instatus collections preserve full history, visual groups and explicit email consent', async () => {
+test("Saved Instatus import preserves history and refuses unsafe or ambiguous source authority", async t => {
+  t.diagnostic("saved Instatus collections preserve full history, visual groups and explicit email consent");
+  await (async () => {
   for (const family of ['small', 'large']) {
     const source = await files(family), read = await reader(source, options);
     const raw = name => JSON.parse(source.find(file => file.name === `instatus-${name}.json`).text);
@@ -41,9 +43,9 @@ test('saved Instatus collections preserve full history, visual groups and explic
     const link = raw('summary').recentlyResolvedIncidents[0];
     assert.deepEqual(read.publicAddresses[`incident:${link.id}`], [link.url]);
   }
-});
-
-test('unsafe source access, incomplete pages and wrong shapes produce one-line refusals', async () => {
+})(t);
+  t.diagnostic("unsafe source access, incomplete pages and wrong shapes produce one-line refusals");
+  await (async () => {
   const source = await files('small');
   const bad = [
     [source, { pageId: options.pageId }],
@@ -75,9 +77,9 @@ test('unsafe source access, incomplete pages and wrong shapes produce one-line r
     bad.push([conflicting, options]);
   }
   for (const [input, opts] of bad) await assert.rejects(reader(input, opts), error => error.message.length > 10 && !error.message.includes('\n'));
-});
-
-test('publication, consent and unresolved preferences refuse without widening or retaining capabilities', async () => {
+})(t);
+  t.diagnostic("publication, consent and unresolved preferences refuse without widening or retaining capabilities");
+  await (async () => {
   let source = await files('small');
   source = edit(source, 'instatus-incidents.json', rows => rows.map((row, index) => index ? row : { ...row, shouldPublish: false }));
   source = edit(source, 'instatus-subscribers.json', rows => rows.map((row, index) => index ? row : { ...row, all: false, components: ['missing'], unsubscribeToken: 'capability-must-not-survive' }));
@@ -112,7 +114,12 @@ test('publication, consent and unresolved preferences refuse without widening or
   assert.equal(checked.data.maintenance.length, 1);
   const retained = checked.records.find(row => row.kind === 'maintenance').payload;
   for (const response of [retained.list, retained.detail]) assert.deepEqual(response.updates[0].providerMetadata, { note: 'unknown fields retained' });
+})(t);
 });
+
+
+
+
 
 test('API key path requests fixed-origin GETs with complete pagination and refuses redirects or reflection', async () => {
   const source = await files('large'), calls = [], key = 'synthetic-instatus-key-0001';

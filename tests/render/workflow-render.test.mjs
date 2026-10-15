@@ -59,7 +59,9 @@ function details(html, summary) {
   assert.ok(match, `Named disclosure: ${summary}`); return {attributes:match[1],body:match[2]};
 }
 
-test('overview lists each active incident once and offers one action for an overdue update', () => {
+test("Operator incident overview and composer preserve timing and review controls", async t => {
+  t.diagnostic("overview lists each active incident once and offers one action for an overdue update");
+  await (() => {
   const html=render(OverviewPage, {'/api/app/overview':{overview:{checklist,components:[{publicState:'Operational'}],activeIncidents:[{...incident,overdue:true,updateDue:false,updateDueAt:'2026-09-08T01:00:00.000Z',impact:'Degraded performance'}],maintenance:[]}}});
   const list=html.slice(html.indexOf('aria-label="Active incidents"'));
   assert.equal(list.split('INC-RENDER').length-1,1);
@@ -68,8 +70,9 @@ test('overview lists each active incident once and offers one action for an over
   const notice=html.slice(html.indexOf('aria-label="Updates due"'),html.indexOf('aria-label="Active incidents"'));
   assert.match(notice,/INC-RENDER/); assert.equal(notice.split('href="/app/incidents/').length-1,1,'one action opens the incident composer');
   assert.match(html,/Components and history/);
-});
-test('composer renders closed named email and timing disclosures with safeguards', () => {
+})(t);
+  t.diagnostic("composer renders closed named email and timing disclosures with safeguards");
+  await (() => {
   const html=render(IncidentDetailPage,incidentData,{7:preview},{incidentId:incident.id});
   const email=details(html,'Email preview'), timing=details(html,'Schedule or backdate');
   assert.doesNotMatch(email.attributes,/\bopen\b/); assert.match(email.body,/Notification email/);
@@ -78,13 +81,19 @@ test('composer renders closed named email and timing disclosures with safeguards
   assert.match(html,/A communication commitment, not an estimate of service restoration/);
   assert.match(html,/Saving draft/); assert.match(html,/<button[^>]*disabled=""[^>]*>Publish update<\/button>/);
   assert.match(html,/A different operator can record the required review/);
-});
-test('active historical timing stays exposed and names its publication action', () => {
+})(t);
+  t.diagnostic("active historical timing stays exposed and names its publication action");
+  await (() => {
   const html=render(IncidentDetailPage,incidentData,{7:preview,11:'2026-10-01T01:00:00Z'},{incidentId:incident.id});
   assert.match(details(html,'Schedule or backdate').attributes,/\bopen=""/);
   assert.match(html,/Publish historical update/); assert.match(html,/Use current time/);
+})(t);
 });
-test('maintenance date fields are contained in a closed Change dates disclosure', () => {
+
+
+test("Maintenance editing and destructive confirmation remain deliberate", async t => {
+  t.diagnostic("maintenance date fields are contained in a closed Change dates disclosure");
+  await (() => {
   const item={id:'maintenance-render',reference:'MNT-RENDER',title:'Database work',state:'Scheduled',startsAt:'2027-01-02T01:00:30Z',endsAt:'2027-01-02T02:00:30Z',components:[],overrunning:false};
   const html=render(MaintenancePage,{'/api/app/maintenance':{maintenance:[item]},'/api/app/components':{components:[]}});
   const dates=details(html,'Change dates');
@@ -92,9 +101,11 @@ test('maintenance date fields are contained in a closed Change dates disclosure'
   const outside=html.replace(dates.body,''); assert.doesNotMatch(outside,/MNT-RENDER (start|end)/);
   assert.match(dates.body,/Cancel changes/); assert.match(dates.body,/Reschedule/); assert.match(outside,/Cancel maintenance/);
   assert.match(html,/Choose an end time after the start time/);
-});
-test('destructive confirmation retains recorded reason and audit/history warning', () => {
+})(t);
+  t.diagnostic("destructive confirmation retains recorded reason and audit/history warning");
+  await (() => {
   const html=render(IncidentOperatorControls,{}, {2:true}, {incident,onChanged:noop,onDeleted:noop});
   assert.match(html,/Deletion removes it from public history while retaining the operator audit record/);
   assert.match(html,/aria-label="Deletion reason"/); assert.match(html,/Confirm deletion/); assert.match(html,/>Cancel<\/button>/);
+})(t);
 });

@@ -86,8 +86,10 @@ async function assertPrivateUnsaved() {
   assert.equal(await page.locator(".autosave-status.is-saved").count(), 0);
 }
 
-for (const mode of ["delayed response", "delayed request", "reverted edit after lost response"]) {
-  test(`serialized autosave preserves latest displayed bytes with ${mode}`, async () => {
+test("Serialized autosave preserves the latest displayed bytes across delayed and lost responses", async t => {
+  for (const mode of ["delayed response", "delayed request", "reverted edit after lost response"]) {
+  t.diagnostic(`serialized autosave preserves latest displayed bytes with ${mode}`);
+    await (async () => {
     const incident = await openIncident();
     const field = page.locator(".impact-field textarea").first();
     const entered = deferred(), release = deferred(), secondEntered = deferred(), releaseSecond = deferred();
@@ -158,10 +160,13 @@ for (const mode of ["delayed response", "delayed request", "reverted edit after 
       release.resolve(); releaseSecond.resolve();
       await page.unrouteAll({ behavior: "wait" });
     }
-  });
+  })(t);
 }
+});
 
-test("a failed current save stays unsaved; reverting repairs uncertain server state", async () => {
+test("Autosave failure, revert, template and manual retry retain the actual displayed draft", async t => {
+  t.diagnostic("a failed current save stays unsaved; reverting repairs uncertain server state");
+  await (async () => {
   const incident = await openIncident();
   const field = page.locator(".impact-field textarea").first();
   const endpoint = `**/api/app/incidents/${incident.id}/draft`;
@@ -185,9 +190,9 @@ test("a failed current save stays unsaved; reverting repairs uncertain server st
     await page.locator(".autosave-status.is-saved").waitFor();
     assert.equal((await api(`/api/app/incidents/${incident.id}`)).incident.draft.affectedAudience, initial.affectedAudience);
   } finally { await page.unrouteAll({ behavior: "wait" }); }
-});
-
-test("reverting before debounce restores saved status without a redundant write", async () => {
+})(t);
+  t.diagnostic("reverting before debounce restores saved status without a redundant write");
+  await (async () => {
   const incident = await openIncident();
   const field = page.locator(".impact-field textarea").first();
   const requests = [];
@@ -201,9 +206,9 @@ test("reverting before debounce restores saved status without a redundant write"
   await page.waitForTimeout(1500);
   page.off("request", record);
   assert.equal(requests.length, 0);
-});
-
-test("an applied native template becomes the displayed and saved draft", async () => {
+})(t);
+  t.diagnostic("an applied native template becomes the displayed and saved draft");
+  await (async () => {
   const incident = await openIncident();
   const field = page.locator(".impact-field textarea").first();
   await page.locator("summary", { hasText: "Update templates" }).click();
@@ -218,9 +223,9 @@ test("an applied native template becomes the displayed and saved draft", async (
   await page.locator(".autosave-status.is-saved").waitFor();
   assert.equal(await field.inputValue(), initial.affectedAudience);
   assert.equal((await api(`/api/app/incidents/${incident.id}`)).incident.draft.affectedAudience, initial.affectedAudience);
-});
-
-test("manual retry saves the retained draft after a transient transport failure", async () => {
+})(t);
+  t.diagnostic("manual retry saves the retained draft after a transient transport failure");
+  await (async () => {
   const incident = await openIncident();
   const field = page.locator(".impact-field textarea").first();
   let requests = 0;
@@ -246,15 +251,27 @@ test("manual retry saves the retained draft after a transient transport failure"
     assert.equal(await page.getByRole("button", { name: "Publish update", exact: true }).isEnabled(), true);
     assert.equal(await page.getByRole("button", { name: "Schedule update", exact: true, includeHidden: true }).isEnabled(), true);
   } finally { await page.unrouteAll({ behavior: "wait" }); }
+})(t);
 });
 
-test("a private-note refresh preserves the original two-second autosave deadline", async t => {
+
+
+
+
+
+
+test("Private-note refresh and queued saves preserve the latest edit deadline", async t => {
+  t.diagnostic("a private-note refresh preserves the original two-second autosave deadline");
+  await (async t => {
   await assertAutosaveDuringRefresh({ page, api, openIncident, assertPrivateUnsaved, initial }, t);
+})(t);
+  t.diagnostic("queued autosave preserves the latest edit deadline");
+  await (async t => {
+  await assertQueuedAutosaveDeadline({ page, api, openIncident, assertPrivateUnsaved, initial }, t);
+})(t);
 });
 
-test("queued autosave preserves the latest edit deadline", async t => {
-  await assertQueuedAutosaveDeadline({ page, api, openIncident, assertPrivateUnsaved, initial }, t);
-});
+
 
 
 test("a lost acknowledgement never authorizes overwriting another tab's scheduled draft", async () => {

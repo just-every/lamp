@@ -1,7 +1,7 @@
 # Deployment reference
 
-Use `rer deploy` from the project root. The checkout selects its pinned
-`@runeditrun/rer`; use `rer describe` and `rer deploy --help` for the installed
+Use `rer deploy` from the project root. The checkout pins
+`@runeditrun/rer` 0.2.20; use `rer describe` and `rer deploy --help` for the installed
 command reference. The [deployment guide](deploy.md) gives a complete private
 `0600` input file, validation, deploy and removal commands. `--env-file` values
 override the calling shell's exported values.
@@ -95,18 +95,31 @@ a distinct prefix. The app Worker is `<prefix>`, the public Worker is
 
 ## Removal and deployment records
 
-Run the [removal command](deploy.md#remove-an-installation) from the deploying
-checkout with the original account and environment. `--remove --yes` deletes
-only what its `rer` ownership record proves that environment created; it never
-infers ownership from a matching resource name. Reused or unrecorded resources
-need separate inspection. There is no removal dry run.
+Run Lamp's [native removal command](deploy.md#remove-an-installation) from the
+deploying checkout with the original account, environment and private input file:
+
+```sh
+node scripts/remove-deployment.mjs --environment production --env-file "$HOME/.config/lamp/production.env" --yes
+```
+
+In `workers-dev` mode, this removes the public Worker first, then the app Worker
+and its owned data resources, reading back their absence. Custom-domain mode has
+one Worker. Removal uses separate creation records for the two Workers; it never
+infers ownership from matching names. Reused or unrecorded resources need separate
+inspection. There is no removal dry run. The generic `rer deploy --remove --yes`
+handles the app's recorded topology and does not retire Lamp's separate public
+Worker.
 
 Lamp's native provisioning records live at `.seed/deployment/<environment>.json`.
-They identify resources for archives and recovery but are not `rer` ownership
-records. The current native hook does not create the ownership record needed by
-`rer deploy --remove`. If the command reports no record, it removes nothing and
-exits nonzero. This can happen after a preflight failure or with a native Lamp
-deployment; it does not prove that no resources exist.
+They identify resources for archives and recovery but are not creation-ownership
+records. New native deployments retain the app's ownership record under
+`.rer/deploy/<environment>.json` and a separate public Worker record when using
+`workers-dev` at `.rer/deploy/<environment>.page.json`. Keep these private records
+with the deploying checkout. Older
+installations without creation records are refused by automated removal; resource
+names or the archive record alone cannot prove what Lamp created. A missing
+record can also follow a preflight failure and does not prove that no resources
+exist.
 
 For a native installation without a `rer` ownership record, back up first,
 inspect its `.seed/deployment/<environment>.json` and the Cloudflare dashboard,

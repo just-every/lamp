@@ -44,13 +44,15 @@ async function api(path, method = "GET", body) {
   return response.json();
 }
 
-for (const scenario of [
+test("Native maintenance editing preserves instants across configured zones and daylight saving", async t => {
+  for (const scenario of [
   { zone: "Australia/Brisbane", start: "2027-07-15T12:33:35.597Z", end: "2027-07-15T14:33:42.123Z", localStart: "2027-07-15T22:33", localEnd: "2027-07-16T00:33", edit: "2027-07-15T23:00", expected: "2027-07-15T13:00:00.000Z" },
   { zone: "America/New_York", start: "2027-07-15T12:33:35.597Z", end: "2027-07-15T14:33:42.123Z", localStart: "2027-07-15T08:33", localEnd: "2027-07-15T10:33", edit: "2027-07-15T09:00", expected: "2027-07-15T13:00:00.000Z" },
   // The second occurrence of 01:33 must survive an untouched reschedule.
   { zone: "America/New_York", start: "2027-11-07T06:33:35.597Z", end: "2027-11-07T08:33:42.123Z", localStart: "2027-11-07T01:33", localEnd: "2027-11-07T03:33", edit: "2027-11-07T02:00", expected: "2027-11-07T07:00:00.000Z" },
 ]) {
-  test(`native maintenance preserves and edits configured-zone instants despite a different browser zone in ${scenario.zone} at ${scenario.start}`, async () => {
+  t.diagnostic(`native maintenance preserves and edits configured-zone instants despite a different browser zone in ${scenario.zone} at ${scenario.start}`);
+    await (async () => {
     context = await browser.newContext({ timezoneId: "America/Los_Angeles" });
     await context.addCookies([{ name: sessionCookieName(origin), value: sessionId, url: origin }]);
     page = await context.newPage();
@@ -91,8 +93,9 @@ for (const scenario of [
       await saveAndCheck(scenario.expected, expectedEnd);
       await saveAndCheck(scenario.expected, expectedEnd);
     } finally { await context.close(); }
-  });
+  })(t);
 }
+});
 
 test("maintenance creation, correction and historical incident entry all use the configured page zone", async () => {
   context = await browser.newContext({ timezoneId: "America/Los_Angeles" });

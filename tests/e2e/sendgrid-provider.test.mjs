@@ -24,35 +24,9 @@ after(async () => { await platform?.dispose(); await vite?.close(); if (state) a
 const message = id => ({ idempotencyKey: id, from: 'status@example.test', to: 'reader@example.test', subject: 'Status', text: 'Real notification', html: '<p>Real notification</p>', headers: { 'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click', 'Auto-Submitted': 'auto-generated' } });
 function sender() { return new Sender({ apiKey: 'test-only-key', fromAddress: 'status@example.test' }, repository(platform.env.DB)); }
 
-test('SendGrid persists acceptance across adapter restarts and disables all tracking', async t => {
-  let calls = 0, payload;
-  t.mock.method(globalThis, 'fetch', async (_, init) => { calls++; payload = JSON.parse(init.body); return new Response(null, { status: 202 }); });
-  const first = await sender().send(message('accepted'));
-  assert.deepEqual(await sender().send(message('accepted')), first);
-  assert.equal(calls, 1);
-  assert.equal(payload.custom_args.lamp_message_id, first.providerMessageId);
-  assert.equal(payload.tracking_settings.open_tracking.enable, false);
-  assert.equal(payload.tracking_settings.click_tracking.enable, false);
-  assert.equal(payload.tracking_settings.subscription_tracking.enable, false);
-  assert.equal(payload.tracking_settings.ganalytics.enable, false);
-  assert.equal(payload.custom_args.rer_delivery_id, first.providerMessageId);
-  assert.equal((await repository(platform.env.DB).get(first.providerMessageId)).provider_receipt, null);
-  assert.equal(payload.headers['List-Unsubscribe-Post'], 'List-Unsubscribe=One-Click');
-  await assert.rejects(sender().send({ ...message('accepted'), text: 'Changed' }), /different envelope/);
-});
 
-test('ambiguous failure never resends; explicit 429 rejection can retry', async t => {
-  let calls = 0;
-  t.mock.method(globalThis, 'fetch', async () => { calls++; throw new Error('test network failure'); });
-  let correlation;
-  await assert.rejects(sender().send(message('uncertain')), e => { correlation = e.providerMessageId; return e.retryable === false; });
-  await assert.rejects(sender().send(message('uncertain')), e => e.retryable === false && e.providerMessageId === correlation);
-  assert.equal(calls, 1);
-  globalThis.fetch.mock.mockImplementation(async () => { calls++; return new Response(null, { status: calls === 2 ? 429 : 202 }); });
-  await assert.rejects(sender().send(message('rate-limit')), e => e.retryable === true);
-  await sender().send(message('rate-limit'));
-  assert.equal(calls, 3);
-});
+
+
 
 test('crash-before-response send claim becomes visible uncertainty without resending', async t => {
   const store = repository(platform.env.DB);
@@ -154,40 +128,11 @@ test('full application routes signed mail events before generic alert source int
   assert.equal((await platform.env.DB.prepare("SELECT count(*) AS count FROM mail_provider_webhook_events WHERE provider_event_id = 'sendgrid/application-owned'").first()).count, 1);
 });
 
- test('provider redirect is rejected without following bearer credentials', async t => {
-  const request = t.mock.method(globalThis, 'fetch', async (_, init) => {
-    assert.equal(init.redirect, 'manual');
-    return new Response(null, { status: 307, headers: { Location: 'https://unrelated.example.test/' } });
-  });
-  await assert.rejects(sender().send(message('redirect')), /307/);
-  assert.equal(request.mock.callCount(), 1);
-  await assert.rejects(sender().send(message('redirect')), /automatic resend is disabled/);
-  assert.equal(request.mock.callCount(), 1);
-});
 
- test('provider acceptance retains the remote receipt separately from stable local event correlation', async t => {
-  t.mock.method(globalThis, 'fetch', async () => new Response(null, { status: 202, headers: { 'x-message-id': 'remote-http-receipt' } }));
-  const result = await sender().send(message('remote-receipt'));
-  assert.notEqual(result.providerMessageId, 'remote-http-receipt');
-  const record = await repository(platform.env.DB).get(result.providerMessageId);
-  assert.equal(record.state, 'accepted');
-  assert.equal(record.provider_receipt, 'remote-http-receipt');
-  assert.deepEqual(await sender().send(message('remote-receipt')), result);
-  assert.equal(globalThis.fetch.mock.callCount(), 1);
-});
 
- test('408, 5xx and redirects retain uncertainty across restart, while definite 4xx stays rejected', async t => {
-  for (const status of [408, 500, 502, 301, 302, 303, 307, 308, 400, 401]) {
-    const request = t.mock.method(globalThis, 'fetch', async () => new Response(null, { status }));
-    const input = message(`status-${status}`);
-    await assert.rejects(sender().send(input), error => error.retryable === false);
-    await assert.rejects(sender().send(input), /automatic resend is disabled/);
-    assert.equal(request.mock.callCount(), 1);
-    const id = 'sendgrid-' + (await import('node:crypto')).createHash('sha256').update(input.idempotencyKey).digest('hex');
-    assert.equal((await repository(platform.env.DB).get(id)).state, status === 400 || status === 401 ? 'rejected' : 'uncertain');
-    request.mock.restore();
-  }
-});
+
+
+
 
  test('pre-consolidation accepted and uncertain envelopes survive serializer adoption', async t => {
   const { createHash } = await import('node:crypto');
@@ -210,10 +155,13 @@ test('full application routes signed mail events before generic alert source int
  test('native HTTP transport and durable ledger preserve every submission outcome', async t => {
   const nativeFetch = globalThis.fetch;
   let status = 202, receipt = true, interrupted = false, calls = 0, destinationCalls = 0;
+  const payloads = [];
   const canary = createHttpServer((request, response) => { destinationCalls++; request.resume(); response.writeHead(202).end(); });
   canary.listen(0, '127.0.0.1'); await once(canary, 'listening');
-  const provider = createHttpServer((request, response) => {
-    calls++; request.resume();
+  const provider = createHttpServer(async (request, response) => {
+    const chunks = []; for await (const chunk of request) chunks.push(chunk);
+    payloads.push(JSON.parse(Buffer.concat(chunks).toString()));
+    calls++;
     if (interrupted) { request.socket.destroy(); return; }
     response.writeHead(status, { ...(receipt ? { 'x-message-id': 'native-receipt' } : {}), location: `http://127.0.0.1:${canary.address().port}/leak` }).end();
   });
@@ -223,20 +171,32 @@ test('full application routes signed mail events before generic alert source int
     return nativeFetch(`http://127.0.0.1:${provider.address().port}/send`, init);
   });
   try {
-    for (const scenario of [{ status: 202, receipt: true }, { status: 202, receipt: false }, ...[408, 429, 500, 307].map(status => ({ status })), { status: 202, interrupted: true }]) {
+    for (const scenario of [{ status: 202, receipt: true }, { status: 202, receipt: false }, ...[408, 429, 500, 502, 301, 302, 303, 307, 308, 400, 401].map(status => ({ status })), { status: 202, interrupted: true }]) {
       ({ status, receipt = false, interrupted = false } = scenario);
       const input = message(`native-${status}-${receipt}-${interrupted}`), before = calls;
       if (status === 202 && !interrupted) {
         const accepted = await sender().send(input);
-        assert.equal((await repository(platform.env.DB).get(accepted.providerMessageId)).provider_receipt, receipt ? 'native-receipt' : null);
+        const record = await repository(platform.env.DB).get(accepted.providerMessageId);
+        assert.equal(record.state, 'accepted');
+        assert.equal(record.provider_receipt, receipt ? 'native-receipt' : null);
+        assert.notEqual(accepted.providerMessageId, 'native-receipt');
+        const payload = payloads.at(-1);
+        assert.equal(payload.custom_args.lamp_message_id, accepted.providerMessageId);
+        assert.equal(payload.custom_args.rer_delivery_id, accepted.providerMessageId);
+        for (const tracking of ['open_tracking', 'click_tracking', 'subscription_tracking', 'ganalytics']) assert.equal(payload.tracking_settings[tracking].enable, false);
+        assert.equal(payload.headers['List-Unsubscribe-Post'], 'List-Unsubscribe=One-Click');
+        await assert.rejects(sender().send({ ...input, text: 'Changed' }), /different envelope/);
         assert.deepEqual(await sender().send(input), accepted);
       } else if (status === 429) {
         await assert.rejects(sender().send(input), error => error.retryable === true);
         status = 202;
         await sender().send(input);
       } else {
-        await assert.rejects(sender().send(input), error => error.retryable === false);
-        await assert.rejects(sender().send(input), /automatic resend is disabled/);
+        let correlation;
+        await assert.rejects(sender().send(input), error => { correlation = error.providerMessageId; return error.retryable === false; });
+        await assert.rejects(sender().send(input), error => error.retryable === false && error.providerMessageId === correlation);
+        const record = await repository(platform.env.DB).get(correlation);
+        assert.equal(record.state, status === 400 || status === 401 ? 'rejected' : 'uncertain');
       }
       assert.equal(calls - before, scenario.status === 429 ? 2 : 1);
     }
