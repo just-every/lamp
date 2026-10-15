@@ -62,7 +62,7 @@ export async function checkSender(from: string, operatorEmail: string, options: 
   const signal = AbortSignal.timeout(8000);
   async function read(url: string) {
     if (Date.now() >= deadline || signal.aborted || (options.provider !== 'sendgrid' && ++pages > 100)) throw new Error('Provider domain listing did not complete.');
-    const response = await fetcher(url, { headers: { Authorization: `Bearer ${options.apiKey}` }, redirect: 'error', signal });
+    const response = await fetcher(url, { headers: { Authorization: `Bearer ${options.apiKey}` }, redirect: 'manual', signal });
     if (!response.ok) throw new Error('The mail check could not read provider domain authentication. Give the configured key read access to domains and check again.');
     return response.json() as Promise<unknown>;
   }
