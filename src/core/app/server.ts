@@ -3,7 +3,7 @@ import { authResponse } from "../platform/auth/http";
 import { Hono } from "hono";
 
 import type { AppBindings, AppEnv } from "./types";
-import type { MailExecution } from "./mail";
+import { isLocalMailExecution, type MailExecution } from "./mail";
 import { createAppServices } from "./services";
 import { createSnapshotBlobStore } from "../platform/blobs/r2";
 import { createDependencyProber } from "../platform/health";
@@ -35,6 +35,9 @@ export function createApp(bindings: AppBindings, execution?: MailExecution) {
   const healthService = createHealthService(createHealthRepository(bindings.DB), createDependencyProber(bindings.SNAPSHOTS, createQueueDispatcher(bindings.JOBS)));
   const services = createAppServices(bindings, createSnapshotBlobStore(bindings), execution);
   const publicWriteLimiter = createPublicWriteRateLimiter(bindings.DB);
+  // Local development says its mail is suppressed; a demo completes sends as
+  // mocked success, so its pages read as a configured installation's.
+  const localMail = isLocalMailExecution(bindings) && bindings.RER_DEMO !== '1';
 
   for (const path of ["/auth/*", "/signin", "/.well-known/rer-*"]) app.all(path, context => authResponse(context.req.raw, bindings, services));
   registerHealthRoutes(app, healthService, bindings);
@@ -42,17 +45,17 @@ export function createApp(bindings: AppBindings, execution?: MailExecution) {
   registerPublicSnapshotRoutes(app, services.publicSnapshots);
   app.use("/api/app/*", requireOperator(services.auth));
   // Register the reserved mail-events endpoint before /api/intake/:sourceId.
-  registerDeliveryRoutes(app, services.deliveries, { resendWebhookSecret: bindings.RESEND_WEBHOOK_SECRET, relaySecret: bindings.RER_MAIL_RELAY_SECRET, sendGridWebhookPublicKey: bindings.SENDGRID_WEBHOOK_PUBLIC_KEY, mailProvider: bindings.MAIL_PROVIDER });
+  registerDeliveryRoutes(app, services.deliveries, { resendWebhookSecret: bindings.RESEND_WEBHOOK_SECRET, relaySecret: bindings.RER_MAIL_RELAY_SECRET, sendGridWebhookPublicKey: bindings.SENDGRID_WEBHOOK_PUBLIC_KEY, mailProvider: bindings.MAIL_PROVIDER, localMail });
   registerIntakeRoutes(app, services.intake, { publicPageHost: bindings.LAMP_PAGE_HOST, rateLimiter: publicWriteLimiter });
   registerOperatorRoutes(app, services.auth, bindings.LAMP_PAGE_HOST);
   registerOverviewRoutes(app, services.overview);
   registerComponentRoutes(app, services.components);
-  registerIncidentRoutes(app, services.incidents);
+  registerIncidentRoutes(app, services.incidents, { hasChatChannels: async () => (await services.channels.list()).length > 0 });
   registerReportRoutes(app, services.reports);
   registerBriefRoutes(app, services.briefs);
   registerAiRoutes(app, services.ai);
   registerMaintenanceRoutes(app, services.maintenance);
-  registerSubscriberRoutes(app, services.subscribers, { localMailCapture: services.capturesMailLocally, rateLimiter: publicWriteLimiter });
+  registerSubscriberRoutes(app, services.subscribers, { rateLimiter: publicWriteLimiter, localMail });
   registerPageSettingsRoutes(app, services.pageSettings);
   registerStatuspageImportRoutes(app, services.statuspageImport);
   registerChannelRoutes(app, services.channels);

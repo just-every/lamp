@@ -14,8 +14,6 @@ import { chromium } from "playwright";
 import { insertRealOperatorSession } from "./real-session-helper.mjs";
 import { appOrigin, pageOrigin } from "./helpers/hosts.mjs";
 import { reservePort, waitForWorker } from "./worker-startup.mjs";
-import { auditNativeSubscriberJourney, auditUnavailableSubscriptionForms } from "./subscriber-journey-helper.mjs";
-import { devKey } from "../helpers/dev-key.mjs";
 import { accessibilityFailure, analyzeScriptFreePage, newScriptFreePage, observeAuditPage } from "./subscriber-audit-helper.mjs";
 import { baseline } from "../baseline/e2e-baseline/case.mjs";
 import { isolatedWranglerConfig } from "../helpers/wrangler-config.mjs";
@@ -23,7 +21,7 @@ import { sessionCookieName } from "../helpers/session-cookie.mjs";
 
 const WCAG_22_AA_TAGS = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"];
 const wranglerConfig = resolve("wrangler.jsonc");
-const subscriberTokenSecret = "accessibility-test-subscriber-token-secret";
+const subscriberTokenSecret = "synthetic-accessibility-test-subscriber-token-secret";
 
 let appUrl = "";
 let pageUrl = "";
@@ -130,19 +128,17 @@ async function assertWcag22Aa(page, surface, selector) {
   assert.equal(results.violations.length, 0, `${surface} violates automated WCAG 2.2 AA checks: ${violationsText(results.violations)}`);
 }
 
-async function startWorker(localMailCapture) {
+async function startWorker() {
   worker = spawn("pnpm", ["exec", "vite", "--host", "127.0.0.1", "--port", new URL(appUrl).port, "--strictPort"], {
     cwd: process.cwd(),
     detached: true,
     stdio: "pipe",
     env: {
       ...process.env,
-      LAMP_DEV_OUTBOX_MODE: localMailCapture ? "local" : "",
       LAMP_DISABLE_INSPECTOR: "true",
       LAMP_WORKERS_STATE_PATH: statePath,
       LAMP_VITE_CACHE_DIR: viteCachePath,
       LAMP_WRANGLER_CONFIG: configPath,
-      RER_DEV_KEY: devKey,
     },
   });
   worker.stdout.resume();
@@ -165,7 +161,7 @@ before(async () => {
     cwd: process.cwd(),
     stdio: "pipe",
   });
-  await startWorker(false);
+  await startWorker();
 
   const neutralPublicPage = await fetch(`${pageUrl}/`);
   assert.equal(neutralPublicPage.status, 503, "an unconfigured public page stays unavailable until owner setup is complete");
@@ -226,7 +222,7 @@ before(async () => {
     subscriberToken("01J00000000000000000000089", "confirm"),
   ];
   manageToken = manage.token;
-  unsubscribeToken = unsubscribe.token;
+  ({ token: unsubscribeToken } = unsubscribe);
   const timestamp = new Date().toISOString();
   const confirmationRows = confirmTokens.map((confirm, index) => `('01J0000000000000000000008${index + 4}','email','accessibility-confirm-${index}@example.test',NULL,'pending','all','accessibility-confirm-legacy-${index}',NULL,NULL,'${timestamp}','${timestamp}')`).join(",");
   const confirmationTokenRows = confirmTokens.map((confirm, index) => `('${confirm.id}','01J0000000000000000000008${index + 4}','confirm','${confirm.hash}','2035-01-01T00:00:00.000Z',NULL,'${timestamp}','${timestamp}')`).join(",");
@@ -394,23 +390,4 @@ baseline("BASE-PUBLIC-003", "public and subscriber pages stay styled, script-fre
       await routeContext.close();
     }
   }
-});
-
-
-baseline("BASE-PUBLIC-003", "native subscriber POST results and complete cookieless form journey stay accessible without JavaScript", async () => {
-  // Each viewport is an independent subscriber fixture; keep the real limiter
-  // enabled within each journey without carrying the previous viewport's writes.
-  const resetSubscriptionRateWindow = () => executeLocalSql("DELETE FROM request_rate_windows WHERE rate_key LIKE 'subscribe:%'");
-  await auditUnavailableSubscriptionForms(browser, pageUrl, resetSubscriptionRateWindow);
-  // Restart the same native Worker with its explicit local-mail transport.
-  // This captures real confirmation/management messages in R2.
-  if (worker?.pid && worker.exitCode === null) {
-    const stopped = new Promise(resolve => worker.once("exit", resolve));
-    process.kill(-worker.pid, "SIGTERM");
-    await stopped;
-  }
-  await startWorker(true);
-  const component = await appFetch("/api/app/components", { method: "POST", body: JSON.stringify({ groupId: null, name: "Subscriber selection service", description: "", internal: false, displayOrder: 2, note: "" }) });
-  assert.equal(component.status, 201);
-  await auditNativeSubscriberJourney(browser, pageUrl, resetSubscriptionRateWindow);
 });

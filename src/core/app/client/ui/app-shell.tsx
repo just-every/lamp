@@ -29,7 +29,7 @@ const navigation: NavigationItem[] = [
 ];
 
 function Brand() {
-  return <Link className="app-brand" to="/app" aria-label="Lamp overview"><img className="app-brand-mark" src={badge} alt="" width="28" height="28" />Lamp</Link>;
+  return <Link className="app-brand" to="/app" aria-label="Lamp overview"><img className="app-brand-mark" src={badge} alt="" width="28" height="28" /><span data-rer-name>Lamp</span></Link>;
 }
 
 export function OperatorShell({ initialSession }: { initialSession: { operator: StoredOperator; publicPageOrigin: string; timezone: string } }) {

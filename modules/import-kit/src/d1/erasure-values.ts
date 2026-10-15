@@ -12,6 +12,8 @@ import { stagingChunks } from './staging-transport.ts';
 import { NATIVE_STAGE_ROWS_BYTES,nativeRowStatements } from './native-staging-rows.ts';
 import { stagingStatements } from './staging-statements.ts';
 import { batchBytes } from './transport.ts';
+import { rpcSize, rpcSizeBytes, wireSql, type RpcSize } from '../../../d1-transport/index.mjs';
+import type { NativeStageCheckpoint } from './native-staging-rows.ts';
 
 export const erasureIndexColumns=['ordinal','source_identity','target_identity'];
 export const erasureValueColumns=['value_ordinal','ordinal','body','body_hash','body_size','value_chunks'];
@@ -54,15 +56,27 @@ export function prepareErasureFragment(fragment:ErasureFragment,id:string,start:
 /** Retains numeric batch descriptors, never the values from prior fragments. */
 export class ErasureRowsAdmission {
   private parts:string[]=[];private bytes=2;private written=0;
-  private batches:{count:number;written:number;wireBytes:number}[]=[];
-  append(row:unknown[]){const text=JSON.stringify(row),bytes=Buffer.byteLength(text)+1;if(bytes+2>NATIVE_STAGE_ROWS_BYTES)throw new Error('IMPORT_D1_TRANSPORT_LIMIT');if(this.parts.length&&this.bytes+bytes>NATIVE_STAGE_ROWS_BYTES)this.flush();this.parts.push(text);this.bytes+=bytes;}
-  private flush(){if(!this.parts.length)return;const body='['+this.parts.join(',')+']';this.batches.push({count:this.parts.length,written:this.written,wireBytes:Buffer.byteLength(JSON.stringify(body))-2});this.written+=this.parts.length;this.parts=[];this.bytes=2;}
+  private batches:{count:number;written:number;raw:RpcSize;encoded:RpcSize}[]=[];
+  private limit:number;
+  constructor(limit=NATIVE_STAGE_ROWS_BYTES){this.limit=limit;}
+  append(row:unknown[]){const text=JSON.stringify(row),bytes=Buffer.byteLength(text)+1;if(bytes+2>this.limit)throw new Error('IMPORT_D1_TRANSPORT_LIMIT');if(this.parts.length&&this.bytes+bytes>this.limit)this.flush();this.parts.push(text);this.bytes+=bytes;}
+  private flush(){
+    if(!this.parts.length)return;
+    const body='['+this.parts.join(',')+']',statement={sql:'SELECT value FROM json_each(?)',params:[body]},empty=rpcSize([{...statement,params:['']}]);
+    const delta=(size:RpcSize)=>({utf8:size.utf8-empty.utf8,units:size.units-empty.units,hasWide:size.hasWide});
+    this.batches.push({count:this.parts.length,written:this.written,raw:delta(rpcSize([statement])),encoded:delta(rpcSize([wireSql(statement)]))});
+    this.written+=this.parts.length;this.parts=[];this.bytes=2;
+  }
   get count(){return this.written+this.parts.length;}
-  cost(context:D1ImportContext,stage:NativeStageBinding,baseline:D1Sql[],table:'index'|'values',revision:number){
+  cost(context:D1ImportContext,stage:NativeStageBinding,baseline:D1Sql[],table:'index'|'values',revision:number,checkpoint?:NativeStageCheckpoint){
     this.flush();let queries=0;
     for(const batch of this.batches){
-      const members=stagingStatements(context,'erase',nativeRowStatements(stage,baseline,table,table==='index'?erasureIndexColumns:erasureValueColumns,'',batch.count,batch.written,revision));
-      if(batchBytes(members)+batch.wireBytes>Math.min(context.maxBatchBytes!,2*1024*1024))throw new Error('IMPORT_D1_TRANSPORT_LIMIT');
+      const members=stagingStatements(context,'erase',nativeRowStatements(stage,baseline,table,table==='index'?erasureIndexColumns:erasureValueColumns,'',batch.count,batch.written,revision,checkpoint));
+      const withBodies=(size:RpcSize,body:RpcSize)=>rpcSizeBytes({utf8:size.utf8+2*body.utf8,units:size.units+2*body.units,hasWide:size.hasWide||body.hasWide});
+      // Both insert and in-transaction equality carry this body. Keep only
+      // their numeric footprints; choose the same whole-call encoding as D1.
+      const bytes=Math.min(withBodies(rpcSize(members),batch.raw),withBodies(rpcSize(members.map(wireSql)),batch.encoded));
+      if(bytes>Math.min(context.maxBatchBytes??2*1024*1024,2*1024*1024))throw new Error('IMPORT_D1_TRANSPORT_LIMIT');
       queries+=members.length;revision+=batch.count;
     }
     return queries;

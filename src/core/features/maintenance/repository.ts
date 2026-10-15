@@ -19,7 +19,8 @@ export interface MaintenanceRepository {
   find(maintenanceId: string): Promise<StoredMaintenance | null>;
   create(input: typeof maintenance.$inferInsert, components: Array<typeof maintenanceComponents.$inferInsert>, notice: MaintenanceNotice, notificationStatements: D1PreparedStatement[]): Promise<void>;
   updateWindowWithNotice(maintenanceId: string, startsAt: string, endsAt: string, updatedAt: string, notice: MaintenanceNotice, notificationStatements: D1PreparedStatement[]): Promise<boolean>;
-  transitionWithNotice(maintenanceId: string, from: "Scheduled" | "In progress", to: "In progress" | "Completed", completedAt: string | null, updatedAt: string, notice: MaintenanceNotice, notificationStatements: D1PreparedStatement[]): Promise<boolean>;
+  extendInProgressWithNotice(maintenanceId: string, startsAt: string, previousEndsAt: string, endsAt: string, updatedAt: string, notice: MaintenanceNotice, notificationStatements: D1PreparedStatement[]): Promise<boolean>;
+  transitionWithNotice(maintenanceId: string, from: "Scheduled" | "In progress", to: "In progress" | "Completed", completedAt: string | null, updatedAt: string, notice: MaintenanceNotice, notificationStatements: D1PreparedStatement[], expectedWindow?: Pick<StoredMaintenance, "startsAt" | "endsAt">): Promise<boolean>;
   cancelWithNotice(maintenanceId: string, updatedAt: string, notice: MaintenanceNotice, notificationStatements: D1PreparedStatement[]): Promise<boolean>;
   listDue(now: string): Promise<StoredMaintenance[]>;
   listReminderDue(now: string): Promise<StoredMaintenance[]>;
@@ -77,9 +78,18 @@ export function createMaintenanceRepository(binding: D1Database): MaintenanceRep
         notificationStatements,
       );
     },
-    async transitionWithNotice(maintenanceId, from, to, completedAt, updatedAt, notice, notificationStatements) {
+    async extendInProgressWithNotice(maintenanceId, startsAt, previousEndsAt, endsAt, updatedAt, notice, notificationStatements) {
       return writeMutationWithNotice(
-        binding.prepare(`UPDATE maintenance SET state = ?, completed_at = ?, updated_at = ? WHERE id = ? AND state = ?`).bind(to, completedAt, updatedAt, maintenanceId, from),
+        binding.prepare(`UPDATE maintenance SET ends_at = ?, updated_at = ? WHERE id = ? AND state = 'In progress' AND starts_at = ? AND ends_at = ? AND julianday(ends_at) < julianday(?)`).bind(endsAt, updatedAt, maintenanceId, startsAt, previousEndsAt, endsAt),
+        notice,
+        notificationStatements,
+      );
+    },
+    async transitionWithNotice(maintenanceId, from, to, completedAt, updatedAt, notice, notificationStatements, expectedWindow) {
+      const windowGuard = expectedWindow ? " AND starts_at = ? AND ends_at = ?" : "";
+      const values = [to, completedAt, updatedAt, maintenanceId, from, ...(expectedWindow ? [expectedWindow.startsAt, expectedWindow.endsAt] : [])];
+      return writeMutationWithNotice(
+        binding.prepare(`UPDATE maintenance SET state = ?, completed_at = ?, updated_at = ? WHERE id = ? AND state = ?${windowGuard}`).bind(...values),
         notice,
         notificationStatements,
       );

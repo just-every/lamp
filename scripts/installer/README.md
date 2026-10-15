@@ -9,10 +9,8 @@ Install Node 22.20.0, pnpm 10.12.4 and Git on PATH, then run
 `node scripts/install.mjs`. The browser opens before application dependencies
 are installed. Start installs the locked dependencies through captured commands.
 
-**On this computer** starts the actual development server and Base D1 outbox.
-It needs no provider key. Open the captured native sign-in message and follow
-its ordinary one-use, expiring sign-in link. Capture itself creates no session
-and means no provider email was sent.
+**On this computer** starts Lamp locally without a provider key. Sign-in is
+one click, and local mail is silently suppressed.
 
 **Online for your team** uses your own Cloudflare account. In Hosting &
 connections choose an API token, resource name and custom operator address.
@@ -20,8 +18,9 @@ Before Start, use Edit on **Online page settings** and **Online mail settings**
 to complete the public hostname, hosting mode, verified sender, DKIM selector
 and provider API key. Missing or invalid inputs stop before dependency,
 provisioning or deployment commands and name what to correct. The native
-`deploy.mjs` command verifies, provisions through setup, applies migrations,
-builds, deploys and checks health. Existing owners and data are preserved.
+`deploy.mjs` command validates owner inputs, provisions through setup, applies
+migrations, builds, deploys and checks health. Full source and browser checks run
+separately through `rer verify`. Existing owners and data are preserved.
 Hosting may create billable resources in the selected account.
 
 This replaces the earlier separate "finish independent deployment" browser
@@ -45,6 +44,8 @@ and uses that default; it exposes no separate timeout setting. The Lamp adoption
 notes are present in the copied Base README. See [BASE-ADOPTION.md](BASE-ADOPTION.md)
 for the source contract and remaining runtime evidence.
 
-Local state remains in the private installer runtime folder. Legacy R2 capture
-envelopes are retained and never silently resent; new captures use the Base local
-D1 binding. Local checks do not establish provider delivery or hosted acceptance.
+Local state remains in the private installer runtime folder. Legacy capture
+metadata is never treated as provider delivery or silently resent. Local mail is
+suppressed without retaining new messages. In ordinary `rer dev`,
+`GET /__dev/outbox` returns 200 with a plain-text suppression notice, not a viewer.
+Local checks do not establish provider delivery or hosted acceptance.

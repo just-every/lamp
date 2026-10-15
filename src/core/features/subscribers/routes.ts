@@ -28,16 +28,16 @@ function tokenResponse(request: Request, body: string, status = 200) {
   return response;
 }
 
-function publicFormResponse(request: Request, title: string, message: string, status: number) {
+function publicFormResponse(request: Request, title: string, message: string, status: number, pageName: string) {
   if (request.headers.get("Accept")?.includes("text/html")) {
-    return tokenResponse(request, renderSubscriberTokenPage(title, `<p>${message}</p><p><a href="/#subscribe">Return to subscriptions</a></p>`), status);
+    return tokenResponse(request, renderSubscriberTokenPage(title, `<p>${message}</p><p><a href="/#subscribe">Return to subscriptions</a></p>`, pageName), status);
   }
   return new Response(message, { status, headers: { "Content-Type": "text/plain; charset=utf-8" } });
 }
 
-async function allowedTokenRequest(context: { req: { raw: Request } }, limiter: PublicWriteRateLimiter | undefined, scope: string, token: string) {
+async function allowedTokenRequest(context: { req: { raw: Request } }, limiter: PublicWriteRateLimiter | undefined, scope: string, token: string, pageName: string) {
   if (!limiter || await limiter.allow({ scope, subject: token, limit: 30 })) return null;
-  const response = publicFormResponse(context.req.raw, "Too many requests", "Too many requests for this subscription link. Try again in a minute.", 429);
+  const response = publicFormResponse(context.req.raw, "Too many requests", "Too many requests for this subscription link. Try again in a minute.", 429, pageName);
   tokenHeaders(response.headers);
   return response;
 }
@@ -50,9 +50,10 @@ function parsedComponentIds(value: unknown) {
   });
 }
 
-export function registerSubscriberRoutes(app: Hono<AppEnv>, service: SubscribersService, options: { localMailCapture?: boolean; rateLimiter?: PublicWriteRateLimiter } = {}) {
+export function registerSubscriberRoutes(app: Hono<AppEnv>, service: SubscribersService, options: { rateLimiter?: PublicWriteRateLimiter; localMail?: boolean } = {}) {
   app.post("/subscribe", async (context) => {
-    const result = (title: string, message: string, status: number) => publicFormResponse(context.req.raw, title, message, status);
+    const pageName = await service.getPageName();
+    const result = (title: string, message: string, status: number) => publicFormResponse(context.req.raw, title, message, status, pageName);
     if (context.req.header("Sec-Fetch-Site") === "cross-site") return result("Subscription unavailable", "Cross-site subscription requests are not accepted.", 403);
     if (options.rateLimiter && !(await options.rateLimiter.allow({ scope: "subscribe", subject: requestNetworkSubject(context.req.raw), limit: 5 }))) return result("Too many requests", "Too many subscription requests. Try again in a minute.", 429);
     const body = await context.req.parseBody();
@@ -61,40 +62,44 @@ export function registerSubscriberRoutes(app: Hono<AppEnv>, service: Subscribers
     try {
       await service.requestEmailSubscription(parsed.data.email, new URL(context.req.url).origin);
       // Preserve the same response for active, pending and suppressed requests.
-      return result("Check your email", import.meta.env.DEV && options.localMailCapture
-        ? "Check the local outbox at /__dev/outbox for any confirmation or management link for this subscription."
-        : "Check your email to confirm or manage this subscription.", 202);
+      if (options.localMail) return result("Local email is suppressed", "No email is sent locally. Confirming or managing a subscription by email requires a hosted installation.", 202);
+      return result("Check your email", "Check your email to confirm or manage this subscription.", 202);
     } catch (error) {
       if (error instanceof MailUnavailableError) return result("Subscriptions unavailable", "Subscriptions are not configured because this deployment has no mail sender. No confirmation email was sent.", 503);
       throw error;
     }
   });
   app.get("/confirm-subscription/:token", async (context) => {
-    const limited = await allowedTokenRequest(context, options.rateLimiter, "subscription-confirm", context.req.param("token") ?? "");
+    const pageName = await service.getPageName();
+    const limited = await allowedTokenRequest(context, options.rateLimiter, "subscription-confirm", context.req.param("token") ?? "", pageName);
     if (limited) return limited;
     const confirmed = await service.confirm(context.req.param("token") ?? "");
-    return tokenResponse(context.req.raw, confirmed ? renderSubscriberTokenPage("Subscription confirmed", "<p>Your status subscription is confirmed.</p>") : renderSubscriberTokenPage("Subscription unavailable", "<p>This confirmation link is invalid or has expired.</p>"), confirmed ? 200 : 404);
+    return tokenResponse(context.req.raw, confirmed ? renderSubscriberTokenPage("Subscription confirmed", "<p>Your status subscription is confirmed.</p>", pageName) : renderSubscriberTokenPage("Subscription unavailable", "<p>This confirmation link is invalid or has expired.</p>", pageName), confirmed ? 200 : 404);
   });
   app.get("/manage/:token", async (context) => {
+    const pageName = await service.getPageName();
     const token = context.req.param("token") ?? "";
-    const limited = await allowedTokenRequest(context, options.rateLimiter, "subscription-manage", token);
+    const limited = await allowedTokenRequest(context, options.rateLimiter, "subscription-manage", token, pageName);
     if (limited) return limited;
     const managed = await service.getManagedSubscription(token);
-    return managed ? tokenResponse(context.req.raw, renderSubscriberManagementPage(managed)) : tokenResponse(context.req.raw, renderSubscriberTokenPage("Subscription unavailable", "<p>This subscription link is invalid or no longer active.</p>"), 404);
+    return managed ? tokenResponse(context.req.raw, renderSubscriberManagementPage(managed, pageName)) : tokenResponse(context.req.raw, renderSubscriberTokenPage("Subscription unavailable", "<p>This subscription link is invalid or no longer active.</p>", pageName), 404);
   });
   app.post("/manage/:token", async (context) => {
+    const pageName = await service.getPageName();
     const token = context.req.param("token") ?? "";
-    const limited = await allowedTokenRequest(context, options.rateLimiter, "subscription-manage", token);
+    const limited = await allowedTokenRequest(context, options.rateLimiter, "subscription-manage", token, pageName);
     if (limited) return limited;
     const updated = await service.updateManagedSelection(token, parsedComponentIds((await context.req.parseBody()).componentId));
-    return updated ? tokenResponse(context.req.raw, renderSubscriberTokenPage("Subscription updated", "<p>Your selection has been updated.</p>")) : tokenResponse(context.req.raw, renderSubscriberTokenPage("Subscription unavailable", "<p>This subscription link is invalid or no longer active.</p>"), 404);
+    return updated ? tokenResponse(context.req.raw, renderSubscriberTokenPage("Subscription updated", "<p>Your selection has been updated.</p>", pageName)) : tokenResponse(context.req.raw, renderSubscriberTokenPage("Subscription unavailable", "<p>This subscription link is invalid or no longer active.</p>", pageName), 404);
   });
   app.get("/unsubscribe/:token", async (context) => {
-    const limited = await allowedTokenRequest(context, options.rateLimiter, "subscription-unsubscribe", context.req.param("token") ?? "");
-    return limited ?? tokenResponse(context.req.raw, renderSubscriberTokenPage("Unsubscribe", "<form method=\"post\"><input type=\"hidden\" name=\"action\" value=\"unsubscribe\"><button type=\"submit\">Unsubscribe</button></form>"));
+    const pageName = await service.getPageName();
+    const limited = await allowedTokenRequest(context, options.rateLimiter, "subscription-unsubscribe", context.req.param("token") ?? "", pageName);
+    return limited ?? tokenResponse(context.req.raw, renderSubscriberTokenPage("Unsubscribe", "<form method=\"post\"><input type=\"hidden\" name=\"action\" value=\"unsubscribe\"><button type=\"submit\">Unsubscribe</button></form>", pageName));
   });
   app.post("/unsubscribe/:token", async (context) => {
-    const limited = await allowedTokenRequest(context, options.rateLimiter, "subscription-unsubscribe", context.req.param("token") ?? "");
+    const pageName = await service.getPageName();
+    const limited = await allowedTokenRequest(context, options.rateLimiter, "subscription-unsubscribe", context.req.param("token") ?? "", pageName);
     if (limited) return limited;
     const form = await context.req.parseBody();
     const oneClick = form["List-Unsubscribe"] === "One-Click";
@@ -102,8 +107,8 @@ export function registerSubscriberRoutes(app: Hono<AppEnv>, service: Subscribers
     const unsubscribed = accepted && await service.unsubscribe(context.req.param("token") ?? "");
     if (!oneClick && context.req.header("Accept")?.includes("text/html")) {
       return tokenResponse(context.req.raw, renderSubscriberTokenPage(unsubscribed ? "Unsubscribed" : "Subscription unavailable", unsubscribed
-        ? "<p>You will no longer receive status updates.</p><p><a href=\"/\">Return to status</a></p>"
-        : "<p>This subscription link is invalid or no longer active.</p>"), unsubscribed ? 200 : 404);
+        ? "<p>You will no longer receive status updates.</p>"
+        : "<p>This subscription link is invalid or no longer active.</p>", pageName), unsubscribed ? 200 : 404);
     }
     const response = new Response(unsubscribed ? "" : "Subscription link is invalid or no longer active.", { status: unsubscribed ? 200 : 404 });
     tokenHeaders(response.headers);

@@ -19,5 +19,6 @@ Worker custom domains and TLS certificates. After deployment, open the public
 page and check `/health` on the app host.
 
 For `workers.dev` hostnames, see the [deployment
-reference](deployment-reference.md). The public page and operator hostnames
-must follow that deployment's generated naming pattern.
+reference's hostname lookup and examples](deployment-reference.md#find-your-workersdev-hostnames).
+Both hostname inputs are still required and must match the Worker names under
+the registered account subdomain. You do not need custom DNS for this mode.

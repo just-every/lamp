@@ -1,5 +1,5 @@
 <p align="center">
-  <a href="https://justevery.com/#vol-lamp">
+  <a href="https://run-lamp.com">
     <picture>
       <source media="(prefers-color-scheme: dark)" srcset=".github/assets/banner-dark.webp">
       <source media="(prefers-color-scheme: light)" srcset=".github/assets/banner-light.webp">
@@ -8,7 +8,26 @@
   </a>
 </p>
 
-<p align="center"><a href="https://justevery.com">Part of Just Every</a> · <a href="LICENSE">MIT licensed</a></p>
+<p align="center"><a href="https://run-lamp.com">run-lamp.com</a> · <a href="https://justevery.com">Part of Just Every</a> · <a href="LICENSE">MIT licensed</a></p>
+
+<p align="center">
+  <a href="https://justevery.com/#vol-lamp"><img src=".github/assets/media/preview.gif" width="800" alt="Lamp: an operator's words for who is affected, the impact and what still works fill the public page and email preview, the update is ready to publish, and the public status page shows Major outage"></a>
+</p>
+<p align="center"><a href="https://justevery.com/#vol-lamp"><b>Watch the full demo</b></a> · 51 seconds</p>
+
+<p align="center">
+  <img src=".github/assets/media/flow.webp" width="800" alt="The public status page's current status card: Major outage during the incident, then Operational once it is resolved">
+</p>
+
+<p align="center">
+  <img src=".github/assets/media/screen-1.webp" width="800" alt="Lamp's incident composer: the brief of what is and is not known, numbered fields for who is affected, impact and what still works, and a live public-page preview"><br>
+  <sub>Write the update from a brief of what you know, with the public page previewed as you type.</sub>
+</p>
+
+<p align="center">
+  <img src=".github/assets/media/screen-2.webp" width="800" alt="Northwind's public status page showing Major outage, the Checkout is down incident with who is affected and what still works, and component uptime"><br>
+  <sub>Customers see who is affected, what still works and when the next update is due.</sub>
+</p>
 
 # Lamp
 
@@ -32,20 +51,40 @@ The app host serves Lamp's public documentation at `/docs`. Start with the
 
 ## Deploy and verify
 
-Configure private deployment inputs outside the repository, then use the
-installed commands. Before a command that builds or verifies the checkout,
+Hosted Lamp needs a Resend or SendGrid account, an authenticated sender and its
+API key. There is no hosted mode without mail. Save the required inputs in a
+private file outside the checkout, owned by you with mode `0600`; follow the
+[complete input-file example](docs/deploy.md#save-private-deployment-inputs).
+You can also export the input names in the calling shell. The
+[input reference](docs/deployment-reference.md) distinguishes required owner
+values from secrets that `rer` generates on a first deploy.
+
+Use `rer` from the project root; the checkout pins `@runeditrun/rer` 0.2.22. Before a
+command that builds or verifies the checkout,
 stop a running development server with `rer dev --stop` or a production preview
 with `rer preview --stop`.
 
 ```sh
-rer deploy --dry-run
-rer deploy
+rer deploy --dry-run --environment production --env-file "$HOME/.config/lamp/production.env"
+rer deploy --environment production --env-file "$HOME/.config/lamp/production.env"
 ```
 
 The dry run validates and compiles locally without contacting Cloudflare. A
-deployment verifies the source, provisions or reuses resources, applies
-migrations and checks application health. Follow the [deployment guide](docs/install.md)
-for owner inputs and the [domain steps](docs/domains.md) before routing visitors.
+deployment validates owner inputs, provisions or reuses resources, applies
+migrations, builds and uploads the Worker with secrets, and checks application health.
+Run `rer verify` separately for the full source and browser checks; deployment does
+not run the verifier. Follow the [deployment guide](docs/install.md)
+for sender preparation and the [domain steps](docs/domains.md) before routing
+visitors. For `workers.dev`, follow the
+[hostname lookup and examples](docs/deployment-reference.md#find-your-workersdev-hostnames);
+both host inputs remain required. Use the same environment on later deploys.
+For terminal entry to the hosted owner account, use
+`rer signin --environment production --env-file "$HOME/.config/lamp/production.env"`
+from the deploying checkout with the default `lamp-<environment>` resource prefix.
+It prints a private, single-use link without sending email; see
+[terminal sign-in](docs/operators-and-sign-in.md#terminal-entry-for-the-hosted-owner)
+for custom prefixes and other prerequisites.
+To retire an installation, see the [removal command and record limits](docs/deploy.md#remove-an-installation).
 
 Before `rer verify`, stop the active development server or production preview
 with the corresponding command above. A passing source verifier does not

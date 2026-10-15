@@ -21,7 +21,7 @@ export async function exerciseSubscriberIsolation({ db, createSubscriberReposito
   // Exercise the policy against more than a hard-coded production hostname.
   const origin = "https://subscriber-pages.example.test:8443";
   const mail = createMail();
-  const options = { mail, fromAddress: "lamp@example.test", tokenSecret: "fixture-isolation-secret" };
+  const options = { mail, fromAddress: "lamp@example.test", tokenSecret: "synthetic-fixture-isolation-secret" };
   const makeApp = (serviceOptions, limited = false) => {
     const app = new Hono();
     registerSubscriberRoutes(app, createSubscribersService(createSubscriberRepository(db), serviceOptions), limited ? { rateLimiter: createPublicWriteRateLimiter(db) } : {});

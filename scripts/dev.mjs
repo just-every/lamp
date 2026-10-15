@@ -26,7 +26,7 @@ try {
   const migrated = spawnSync(process.execPath, ['scripts/migrate-local.mjs', ...(verbose ? ['--verbose'] : [])], { stdio: 'inherit' });
   if (migrated.status !== 0) throw new Error('Local migration failed; development server was not started.');
   const child = spawn('pnpm', ['exec', 'vite', '--host', '127.0.0.1', '--port', port, '--strictPort', ...forwarded], {
-    stdio: 'inherit', env: { ...process.env, LAMP_DEV_OUTBOX_MODE: 'local' },
+    stdio: 'inherit', env: { ...process.env },
   });
   for (const signal of ['SIGINT', 'SIGTERM']) process.on(signal, () => child.kill(signal));
   child.on('error', error => { console.error(error.message); process.exitCode = 1; });

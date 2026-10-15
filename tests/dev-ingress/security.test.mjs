@@ -7,11 +7,11 @@ import { pathToFileURL } from 'node:url';
 import { test } from 'node:test';
 import { developmentIngress, inspectIngress } from '../../scripts/dev-ingress/plugin.mjs';
 import { proofHeader, proofPayload } from '../../scripts/dev-ingress/protocol.mjs';
-import { compileMailModules } from '../local-mail/compile-modules.mjs';
+import { compileAccess } from './compile-access.mjs';
 
 const origin = 'http://127.0.0.1:57300';
 function incoming(extra = [], overrides = {}) {
-  return { method: 'GET', url: '/__dev/outbox?format=json', rawHeaders: ['Host', '127.0.0.1:57300', ...extra], socket: { remoteAddress: '127.0.0.1', localAddress: '127.0.0.1', localPort: 57300 }, ...overrides };
+  return { method: 'GET', url: '/health?format=json', rawHeaders: ['Host', '127.0.0.1:57300', ...extra], socket: { remoteAddress: '127.0.0.1', localAddress: '127.0.0.1', localPort: 57300 }, ...overrides };
 }
 
 test('raw ingress admits the Worker\'s own CF-Worker subrequest only as a plain GET or HEAD', () => {
@@ -41,7 +41,7 @@ test('raw ingress rejects forwarding, duplicate authority, internal metadata and
   }
   for (const value of ['null', 'https://evil.example', 'http://localhost:57300']) assert.equal(inspectIngress(incoming(['Origin', value])), null);
   assert.equal(inspectIngress(incoming(['Sec-Fetch-Site', 'cross-site'])), null);
-  for (const target of [`${origin}/__dev/outbox`, '//evil.example/__dev/outbox', '/\\evil.example', '/#fragment']) assert.equal(inspectIngress(incoming([], { url: target })), null);
+  for (const target of [`${origin}/health`, '//evil.example/health', '/\\evil.example', '/#fragment']) assert.equal(inspectIngress(incoming([], { url: target })), null);
   for (const target of ['/__debug', '/__vite_plugin_cloudflare_init__', '/__vite_plugin_cloudflare_get_export_types__', '/cdn-cgi/local/explorer/api/r2/buckets', '/cdn-cgi/explorer', '/__cf_local/']) assert.equal(inspectIngress(incoming([], { url: target })), null);
   for (const remoteAddress of ['192.0.2.1', '127.0.0.2', undefined]) assert.equal(inspectIngress(incoming([], { socket: { remoteAddress, localAddress: '127.0.0.1', localPort: 57300 } })), null);
 });
@@ -56,7 +56,7 @@ test('Worker proof is private, single-use, instance-specific, and binds method, 
     const authenticate = createDevelopmentAuthenticator(key);
     const signed = (issued = Date.now(), input = {}) => {
       const method = input.method ?? 'GET';
-      const url = input.url ?? `${origin}/__dev/outbox`;
+      const url = input.url ?? `${origin}/health`;
       const requestOrigin = input.origin ?? origin;
       const stamp = `${issued}.${randomBytes(16).toString('hex')}`;
       const payload = proofPayload(method, url, '127.0.0.1:57300', requestOrigin, 'same-origin', stamp);
@@ -76,14 +76,14 @@ test('Worker proof is private, single-use, instance-specific, and binds method, 
       request.headers.set(field, value);
       assert.equal(await authenticate(request), null, field);
     }
-    for (const options of [{ method: 'POST' }, { url: `${origin}/auth/magic-link` }, { url: 'http://localhost:57300/__dev/outbox' }, { url: `${origin}/__dev/outbox?other=1` }]) {
+    for (const options of [{ method: 'POST' }, { url: `${origin}/auth/magic-link` }, { url: 'http://localhost:57300/health' }, { url: `${origin}/health?other=1` }]) {
       const request = signed();
       assert.equal(await authenticate(new Request(options.url ?? request.url, { method: options.method ?? request.method, headers: request.headers })), null);
     }
     assert.equal(await createDevelopmentAuthenticator(randomBytes(32).toString('hex'))(signed()), null, 'another instance cannot verify proof');
     assert.equal(await authenticate(signed(Date.now() - 360_000)), null, 'expired proof');
     assert.equal(await authenticate(signed(Date.now() + 360_000)), null, 'future proof');
-    assert.equal(await authenticate(new Request(`${origin}/__dev/outbox`, { headers: { 'x-forwarded-host': '127.0.0.1:57300' } })), null, 'matching forwarding is insufficient');
+    assert.equal(await authenticate(new Request(`${origin}/health`, { headers: { 'x-forwarded-host': '127.0.0.1:57300' } })), null, 'matching forwarding is insufficient');
     for (const path of ['/manage/test-token', '/unsubscribe/test-token']) {
       const subscriber = () => signed(Date.now(), { method: 'POST', url: `${origin}${path}`, origin: 'null' });
       const request = subscriber();
@@ -97,7 +97,7 @@ test('Worker proof is private, single-use, instance-specific, and binds method, 
         if (value === null) altered.headers.delete(field); else altered.headers.set(field, value);
         assert.equal(await authenticate(altered), null, 'subscriber metadata tampering fails');
       }
-      for (const change of [{ method: 'GET' }, { url: `${origin}/__dev/outbox` }, { url: `${origin}${path}?changed=1` }]) {
+      for (const change of [{ method: 'GET' }, { url: `${origin}/health` }, { url: `${origin}${path}?changed=1` }]) {
         const altered = subscriber();
         assert.equal(await authenticate(new Request(change.url ?? altered.url, { method: change.method ?? altered.method, headers: altered.headers })), null, 'subscriber target or method tampering fails');
       }
@@ -110,8 +110,8 @@ test('Worker proof is private, single-use, instance-specific, and binds method, 
 });
 
 test('no-referrer subscriber POSTs pass both development gates only with exact same-origin browser metadata', async () => {
-  const modules = await compileMailModules(true);
-  const bindings = { LAMP_PAGE_HOST: '127.0.0.1', LAMP_APP_HOST: '127.0.0.1', LAMP_DEV_OUTBOX: {} };
+  const modules = await compileAccess(true);
+  const bindings = { LAMP_PAGE_HOST: '127.0.0.1', LAMP_APP_HOST: '127.0.0.1',  };
   const metadata = ['Origin', 'null', 'Sec-Fetch-Site', 'same-origin'];
   function check(target, method, headers, allowed) {
     const fields = new Headers(Array.from({ length: headers.length / 2 }, (_, index) => headers.slice(index * 2, index * 2 + 2)));
@@ -121,7 +121,7 @@ test('no-referrer subscriber POSTs pass both development gates only with exact s
       assert.deepEqual(JSON.parse(payload).slice(0, 5), [method, new URL(target, origin).href, '127.0.0.1:57300', fields.get('origin'), fields.get('sec-fetch-site')]);
     }
     const request = new Request(new URL(target, origin), { method, headers: fields });
-    assert.equal(modules.access.canUseDevelopmentMail(bindings, request), allowed, 'Worker gate decision');
+    assert.equal(modules.access.admitsDevelopmentRequest(bindings, request), allowed, 'Worker gate decision');
   }
   try {
     for (const path of ['/manage/v1.manage.test-id.test_signature', '/unsubscribe/v1.unsubscribe.test-id.test_signature']) {
@@ -141,23 +141,13 @@ test('no-referrer subscriber POSTs pass both development gates only with exact s
       assert.equal(inspectIngress(incoming([...metadata, 'Origin', 'null'], { method: 'POST', url: path })), null);
       assert.equal(inspectIngress(incoming([...metadata, 'Sec-Fetch-Site', 'same-origin'], { method: 'POST', url: path })), null);
     }
-    for (const path of ['/manage', '/manage/', '/manage/a/', '/manage/a/b', '/manage/a%2fb', '/manage/a%5cb', '/manage/%00', '/manage/%0a', '/manage/%252f', '/manage/a;b', '/Manage/a', '/management/a', '/unsubscribe', '/unsubscribe/', '/unsubscribe/a/b', '/unsubscribe/a%2Fb', '/__dev/outbox', '/__dev/outbox/detail', '/auth/magic-link', '/setup', '/api/app/subscribers', '/subscribe', '/confirm-subscription/a', '/assets/status-page.css', '/__debug', '/cdn-cgi/local/explorer']) {
+    for (const path of ['/manage', '/manage/', '/manage/a/', '/manage/a/b', '/manage/a%2fb', '/manage/a%5cb', '/manage/%00', '/manage/%0a', '/manage/%252f', '/manage/a;b', '/Manage/a', '/management/a', '/unsubscribe', '/unsubscribe/', '/unsubscribe/a/b', '/unsubscribe/a%2Fb', '/health', '/health/detail', '/auth/magic-link', '/setup', '/api/app/subscribers', '/subscribe', '/confirm-subscription/a', '/assets/status-page.css', '/__debug', '/cdn-cgi/local/explorer']) {
       check(path, 'POST', metadata, false);
     }
     // WHATWG URL parsing removes dot segments. Inspect the original socket
     // target before that normalization can turn a lookalike into an exception.
     for (const path of ['/manage/.', '/manage/..', '/manage/../manage/a', '/other/../manage/a', '/manage/%2e%2e/manage/a', '/%6danage/a', '/manage/a\\b', '/manage/a\u0000', '/manage/a#fragment']) {
       assert.equal(inspectIngress(incoming(metadata, { method: 'POST', url: path })), null, 'noncanonical raw target');
-    }
-  } finally { await modules.close(); }
-});
-
-test('unconsumed internal proof cannot select local capture in direct Worker composition', async () => {
-  const modules = await compileMailModules(true);
-  try {
-    const bindings = { LAMP_PAGE_HOST: '127.0.0.1', LAMP_APP_HOST: '127.0.0.1', LAMP_DEV_OUTBOX: {} };
-    for (const name of [proofHeader, `${proofHeader}-other`]) {
-      assert.equal(modules.mail.createDevelopmentMailSender(bindings, new Request(`${origin}/auth/magic-link`, { headers: { [name]: 'client-supplied' } })), null);
     }
   } finally { await modules.close(); }
 });

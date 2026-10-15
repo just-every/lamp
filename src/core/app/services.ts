@@ -2,7 +2,7 @@ import { createRetainedSnapshotCache } from "../platform/blobs/retained";
 import type { AppBindings } from "./types";
 import type { BlobStore } from "../platform/blobs/store";
 import { createComponentRepository, createComponentsService } from "../features/components";
-import { createDeliveriesService, createDeliveryRepository, notificationPublicationStatements } from "../features/deliveries";
+import { createDeliveriesService, createDeliveryRepository, notificationPublicationStatements, incidentCatchupStatements } from "../features/deliveries";
 import { createIncidentRepository, createIncidentsService, createUpdateReminders } from "../features/incidents";
 import { authOrigin } from "../platform/auth/config";
 import { createIntakeRepository, createIntakeService } from "../features/intake";
@@ -23,14 +23,20 @@ import { createStatuspageImportService } from "../features/statuspage-import";
 import { createChannelsService } from "../features/channels";
 import { createAppMailTransport, type MailExecution } from "./mail";
 import { createOpenAiCompatibleProvider } from "../platform/ai";
+import { createDemoAiProvider } from "../platform/ai/demo";
 import { createServerExtensionMount } from "./extensions/server";
 
 export function createAppServices(bindings: AppBindings, blobs: BlobStore, execution?: MailExecution) {
   const extensions = createServerExtensionMount();
-  const { sender: mail, capturesLocally } = createAppMailTransport(bindings, extensions.adapters["mail.sender.v1"], execution);
+  const { sender: mail, local } = createAppMailTransport(bindings, extensions.adapters["mail.sender.v1"], execution);
   const publicSnapshots = createPublicSnapshotService(createSnapshotRepository(bindings.DB), blobs, extensions.publicSnapshotPolicies, extensions.publicSnapshotEvents, extensions.slots, createRetainedSnapshotCache(bindings));
   const pageSettings = createPageSettingsService(createPageSettingsRepository(bindings.DB), publicSnapshots.rebuild, blobs, bindings.MAIL_FROM_ADDRESS);
   const configuredFromAddress = async () => (await pageSettings.get())?.mailFromAddress ?? bindings.MAIL_FROM_ADDRESS;
+  const configuredPageName = async () => {
+    const settings = await pageSettings.get();
+    if (!settings) throw new Error("Page settings are not configured.");
+    return settings.pageName;
+  };
   const formatPreviewTimestamp = async (timestamp: string) => {
     const settings = await pageSettings.get();
     if (!settings) throw new Error("Lamp cannot render an update preview before page settings are configured.");
@@ -43,6 +49,7 @@ export function createAppServices(bindings: AppBindings, blobs: BlobStore, execu
   const deliveries = createDeliveriesService(createDeliveryRepository(bindings.DB), {
     effectsPaused: bindings.EFFECTS_PAUSED === "1",
     mail,
+    pageName: configuredPageName,
     fromAddress: configuredFromAddress,
     subscriberTokenSecret: bindings.SUBSCRIBER_TOKEN_SECRET,
     webhookSigningSecret: bindings.WEBHOOK_SIGNING_SECRET?.split(",").map((secret) => secret.trim()).filter(Boolean),
@@ -60,6 +67,7 @@ export function createAppServices(bindings: AppBindings, blobs: BlobStore, execu
     publicOrigin: () => notificationOrigin(bindings),
   });
   const incidents = createIncidentsService(createIncidentRepository(bindings.DB), components, publicSnapshots.rebuild, {
+    forAttachedComponents: async (input) => incidentCatchupStatements(bindings.DB, input),
     forIncidentUpdate: async (input) => [
       ...notificationPublicationStatements(bindings.DB, { eventId: input.updateId, eventType: "incident-update", incidentUpdateId: input.updateId, componentIds: input.componentIds, channels: input.channels.filter((channel): channel is "email" | "webhook" => channel !== "chat" && allowedIncidentChannels.has(channel)), queuedAt: input.queuedAt }),
       ...(input.channels.includes("chat") ? channels.postStatements({ updateId: input.updateId, componentIds: input.componentIds, queuedAt: input.queuedAt }) : []),
@@ -67,7 +75,14 @@ export function createAppServices(bindings: AppBindings, blobs: BlobStore, execu
   }, extensions.updateReviewPolicy,
   async ({ incidentId, draftId, scheduledPublishAt }) => deliveries.queueOperatorAlert({ eventId: `scheduled-review/${draftId}/${scheduledPublishAt}`, title: "Lamp held a scheduled incident update for review", text: `Scheduled update for incident ${incidentId} requires review by another operator before it can publish.` }),
   extensions.updateDuePolicy,
-  { events: extensions.events, formatPreviewTimestamp, afterPublished: async () => { await channels.dispatchPending(); } });
+  { events: extensions.events, formatPreviewTimestamp, formatPreviewSubject: async (subject) => `${await configuredPageName()}: ${subject}`, afterPublished: async (update) => {
+    const results = await Promise.allSettled([
+      notificationOrigin(bindings).then(origin => deliveries.dispatchEvent(update.id, origin)),
+      channels.dispatchPending(),
+    ]);
+    const failure = results.find((result): result is PromiseRejectedResult => result.status === "rejected");
+    if (failure) throw failure.reason;
+  } });
   // INCIDENT-010 and NOTIFY-006: one operator email per committed time and kind, sent by the scheduled trigger.
   const updateReminders = createUpdateReminders(bindings.DB, extensions.updateDuePolicy, async ({ kind, incidentId, reference, title, updateId, nextUpdateAt }) => {
     const committed = await formatPreviewTimestamp(nextUpdateAt);
@@ -83,6 +98,7 @@ export function createAppServices(bindings: AppBindings, blobs: BlobStore, execu
   extensions.events);
   const subscribers = createSubscribersService(createSubscriberRepository(bindings.DB), {
     mail,
+    pageName: configuredPageName,
     fromAddress: configuredFromAddress,
     tokenSecret: bindings.SUBSCRIBER_TOKEN_SECRET,
     confirmationPolicy: extensions.subscriberConfirmationPolicy,
@@ -103,9 +119,11 @@ export function createAppServices(bindings: AppBindings, blobs: BlobStore, execu
   if (extensions.adapters["ai.provider.v1"] && configuredAiValues > 0) {
     throw new Error("Lamp cannot configure AI_PROVIDER_* values alongside the ai.provider.v1 extension adapter.");
   }
-  const aiProvider = extensions.adapters["ai.provider.v1"] ?? (configuredAiValues === aiValues.length
+  const configuredAi = extensions.adapters["ai.provider.v1"] ?? (configuredAiValues === aiValues.length
     ? createOpenAiCompatibleProvider({ endpoint: bindings.AI_PROVIDER_URL!, apiKey: bindings.AI_PROVIDER_API_KEY!, model: bindings.AI_PROVIDER_MODEL! })
     : null);
+  // A demo visitor sees suggestions without the provider being called (Base demoEffect).
+  const aiProvider = bindings.RER_DEMO === '1' ? createDemoAiProvider(configuredAi) : configuredAi;
   const briefs = createBriefService(createBriefRepository(bindings.DB));
   const ai = createAiService(briefs, aiProvider);
   const overview = createOverviewService(components, incidents, maintenance, createSetupChecklistService(createOverviewRepository(bindings.DB), pageSettings, {
@@ -117,16 +135,17 @@ export function createAppServices(bindings: AppBindings, blobs: BlobStore, execu
       origin.hostname = bindings.LAMP_PAGE_HOST;
       return origin.origin;
     },
-    sender: { local: capturesLocally, provider: bindings.MAIL_PROVIDER ?? "resend", apiKey: bindings.MAIL_PROVIDER_API_KEY, mail },
+    // A demo's mail transport is local, but its sender reads as a configured one's.
+    sender: { local: local && bindings.RER_DEMO !== '1', demo: bindings.RER_DEMO === '1', provider: bindings.MAIL_PROVIDER ?? "resend", apiKey: bindings.MAIL_PROVIDER_API_KEY, mail },
   }));
 
   // Imported subscribers each get one confirmation invite; past incidents notify no one.
   const statuspageImport = createStatuspageImportService(bindings.DB, {
-    inviteSubscriber: async (subscriberId, assertAuthority) => subscribers.inviteImported(subscriberId, await notificationOrigin(bindings), (await pageSettings.get())?.pageName ?? "This status page", assertAuthority),
+    inviteSubscriber: async (subscriberId, claimSend) => subscribers.inviteImported(subscriberId, await notificationOrigin(bindings), (await pageSettings.get())?.pageName ?? "This status page", claimSend),
     publicDataChanged: () => publicSnapshots.rebuild(true),
   }, { apiOrigin: import.meta.env?.DEV && bindings.LAMP_DEV_STATUSPAGE_ORIGIN?.startsWith("http://127.0.0.1:") ? bindings.LAMP_DEV_STATUSPAGE_ORIGIN : undefined });
 
-  return { capturesMailLocally: capturesLocally, auth, operators, pageSettings, components, incidents, maintenance, subscribers, deliveries, reports, intake, briefs, ai, overview, updateReminders, publicSnapshots, statuspageImport, channels };
+  return { auth, operators, pageSettings, components, incidents, maintenance, subscribers, deliveries, reports, intake, briefs, ai, overview, updateReminders, publicSnapshots, statuspageImport, channels };
 }
 
 export type AppServices = ReturnType<typeof createAppServices>;

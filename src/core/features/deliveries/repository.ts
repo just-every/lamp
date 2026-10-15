@@ -312,7 +312,7 @@ export function createDeliveryRepository(binding: D1Database): DeliveryRepositor
         binding.prepare(`SELECT ic.component_id AS id, ic.component_name AS name,
           COALESCE((SELECT h.previous_state FROM component_state_history h WHERE h.component_id = ic.component_id AND h.cause_type = 'incident' AND h.cause_id = ? ORDER BY h.changed_at DESC, h.id DESC LIMIT 1), ic.state) AS previousState,
           COALESCE((SELECT h.new_state FROM component_state_history h WHERE h.component_id = ic.component_id AND h.cause_type = 'incident' AND h.cause_id = ? ORDER BY h.changed_at DESC, h.id DESC LIMIT 1), ic.state) AS newState
-          FROM incident_components ic WHERE ic.incident_id = ?`).bind(incidentId, incidentId, incidentId).all<IncidentWebhookPayload["components"][number]>(),
+          FROM incident_components ic LEFT JOIN components c ON c.id = ic.component_id WHERE ic.incident_id = ? AND ic.published_at IS NOT NULL AND (ic.component_id IS NULL OR c.internal = 0)`).bind(incidentId, incidentId, incidentId).all<IncidentWebhookPayload["components"][number]>(),
       ]);
       return { incident, updates: updates.results, components: components.results };
     },

@@ -35,9 +35,9 @@ Lamp is a status-page product for one business.
 
 ## Launch
 
-Locally: follow [RUN-LOCALLY.md](RUN-LOCALLY.md). Local database, storage and queues start without accounts; the page starts empty, and mail is captured in the development outbox at `/__dev/outbox`.
+Locally: follow [RUN-LOCALLY.md](RUN-LOCALLY.md). Local database, storage and queues start without accounts; the page starts empty, and mail is silently suppressed. Sign in with the one-click owner entry. In ordinary development, `GET /__dev/outbox` returns 200 with a plain-text suppression notice, not a mail viewer; no messages are retained.
 
-To Cloudflare: `rer deploy` with the owner inputs in `OPERATIONS.md`. It verifies, creates or reuses resources, uploads secrets with the Worker, then checks health; `--dry-run` builds and validates locally with no provider request.
+To Cloudflare: `rer deploy` with the owner inputs in `OPERATIONS.md`. It validates owner inputs, creates or reuses resources, builds and uploads the Worker with secrets, then checks health; `--dry-run` builds and validates locally with no provider request.
 
 From GitHub: `.github/workflows/deploy.yml` verifies and builds a credential-free
 Worker artifact. The independent delivery service validates retained bytes and

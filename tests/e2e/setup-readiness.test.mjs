@@ -11,9 +11,10 @@ import { reservePort, waitForWorker } from './worker-startup.mjs';
 import { appOrigin, pageOrigin } from './helpers/hosts.mjs';
 import { accessibilityFailure, observeAuditPage } from './subscriber-audit-helper.mjs';
 import { sessionCookieName } from '../helpers/session-cookie.mjs';
+import { devKey } from '../helpers/dev-key.mjs';
 const executeFile = promisify(execFile);
 
-test('SETUP-001 fresh, half complete and complete setup render correctly at 1440 and 390 through real operator and public routes', { timeout: 180_000 }, async () => {
+test('SETUP-001 local setup renders correctly at 1440 and 390 and leaves hosted sender verification outstanding', { timeout: 180_000 }, async () => {
   const directory = await mkdtemp(join(process.cwd(), '.lamp-readiness-browser-'));
   const state = join(directory, 'state');
   let cache, worker, browser, page, origin, publicOrigin, output = '';
@@ -32,7 +33,7 @@ test('SETUP-001 fresh, half complete and complete setup render correctly at 1440
     // A retained neutral setup row is a real fresh-install fixture, not a
     // checklist override. All subsequent evidence comes from native actions.
     execFileSync('pnpm', ['exec','wrangler','d1','execute','DB','--local','--config','wrangler.jsonc','--persist-to',state,'--command', "INSERT INTO page_settings (id,page_name,tagline,accent_color,timezone,hostname,feed_id,footer_credit_enabled,widget_allowed_origins,mail_from_address,created_at,updated_at) VALUES ('default','Your status page','Service availability','#16794C','UTC','127.0.0.1','readiness-fixture',1,'[]','lamp@localhost.invalid','2026-10-01T00:00:00.000Z','2026-10-01T00:00:00.000Z');"], { stdio: 'pipe' });
-    worker = spawn('pnpm', ['exec','vite','--host','127.0.0.1','--port',String(port),'--strictPort'], { detached: true, stdio: 'pipe', env: { ...process.env, LAMP_DEV_OUTBOX_MODE: 'local', LAMP_WORKERS_STATE_PATH: state, LAMP_VITE_CACHE_DIR: cache, LAMP_DISABLE_INSPECTOR: 'true' } });
+    worker = spawn('pnpm', ['exec','vite','--host','127.0.0.1','--port',String(port),'--strictPort'], { detached: true, stdio: 'pipe', env: { ...process.env, RER_DEV_KEY: devKey, RER_DEV_ORIGIN: origin, LAMP_WORKERS_STATE_PATH: state, LAMP_VITE_CACHE_DIR: cache, LAMP_DISABLE_INSPECTOR: 'true' } });
     worker.stdout.on('data', chunk => { output += chunk; }); worker.stderr.on('data', chunk => { output += chunk; });
     await waitForWorker({ origin, child: worker, output: () => 'Setup checklist Worker output withheld because it may contain private links.', label: 'Setup checklist Worker' });
     const api = async (path, method = 'GET', body, headers = {}) => {
@@ -74,13 +75,13 @@ test('SETUP-001 fresh, half complete and complete setup render correctly at 1440
     });
     const evidencePath = process.env.LAMP_READINESS_EVIDENCE_DIR;
     if (evidencePath) await mkdir(resolve(evidencePath), { recursive: true });
-    async function inspect(name, facts, complete = false) {
+    async function inspect(name, facts) {
       diagnostics.phase = name;
       const checklist = (await api('/api/app/overview')).overview.checklist;
       diagnostics.expectedPublicOrigin = checklist.publicOrigin === publicOrigin;
       diagnostics.publicOriginHostMatches = new URL(checklist.publicOrigin).hostname === new URL(publicOrigin).hostname;
       diagnostics.publicOriginPortMatches = new URL(checklist.publicOrigin).port === new URL(origin).port;
-      assert.equal(checklist.complete, complete);
+      assert.equal(checklist.complete, false);
       for (const [id, done] of Object.entries(facts)) {
         assert.equal(checklist.steps.find(step => step.id === id)?.done, done, `${name}: ${id}`);
       }
@@ -92,34 +93,19 @@ test('SETUP-001 fresh, half complete and complete setup render correctly at 1440
         for (const [id, done] of Object.entries(facts)) {
           assert.equal(await page.locator(`[data-setup-step="${id}"]`).getAttribute('data-complete'), String(done));
         }
-        assert.equal(await page.locator('details[aria-label="Setup checklist"]').count(), checklist.complete ? 1 : 0);
+        assert.equal(await page.locator('details[aria-label="Setup checklist"]').count(), 0);
         assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
         const result = await new AxeBuilder({ page }).withTags(['wcag2a','wcag2aa','wcag21aa','wcag22aa']).analyze();
         assert.deepEqual(result.violations.filter(v => ['serious','critical'].includes(v.impact)).map(v => v.id), []);
         if (evidencePath) await page.screenshot({ path: join(resolve(evidencePath), `${name}-${width}.png`), fullPage: true });
-        if (checklist.complete) {
-          const disclosure = page.locator('details[aria-label="Setup checklist"]');
-          assert.equal(await disclosure.evaluate(node => node.open), false);
-          await disclosure.locator('summary').focus();
-          await page.keyboard.press('Enter');
-          assert.equal(await disclosure.evaluate(node => node.open), true);
-          assert.equal(await disclosure.locator('[data-setup-step="component"] a').isVisible(), true);
-          for (const step of checklist.steps) {
-            assert.equal(await disclosure.locator(`[data-setup-step="${step.id}"]`).locator('a, button').isVisible(), true, `${name}: ${step.id} action is visible at ${width}px`);
-          }
-          assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
-          await page.keyboard.press('Enter');
-          assert.equal(await disclosure.evaluate(node => node.open), false);
-        } else {
-          for (const step of checklist.steps) {
-            assert.equal(await card.locator(`[data-setup-step="${step.id}"]`).locator('a, button').isVisible(), true, `${name}: ${step.id} action is visible at ${width}px`);
-          }
-          for (const [step, control] of [['sender', 'Check mail sender'], ['domain', 'Use this public address']]) {
-            await page.locator(`[data-setup-step="${step}"] a`).click();
-            await page.getByRole('button', { name: control, exact: true }).waitFor();
-            await page.getByRole('link', { name: 'Return to setup checklist', exact: true }).click();
-            await page.locator('[data-setup-step="sender"]').waitFor();
-          }
+        for (const step of checklist.steps) {
+          assert.equal(await card.locator(`[data-setup-step="${step.id}"]`).locator('a, button').isVisible(), true, `${name}: ${step.id} action is visible at ${width}px`);
+        }
+        for (const [step, control] of [['sender', 'Check mail sender'], ['domain', 'Use this public address']]) {
+          await page.locator(`[data-setup-step="${step}"] a`).click();
+          await page.getByRole('button', { name: control, exact: true }).waitFor();
+          await page.getByRole('link', { name: 'Return to setup checklist', exact: true }).click();
+          await page.locator('[data-setup-step="sender"]').waitFor();
         }
       }
     }
@@ -162,7 +148,8 @@ test('SETUP-001 fresh, half complete and complete setup render correctly at 1440
     const checkedSender = page.waitForResponse(response => new URL(response.url()).pathname === '/api/app/overview/check-sender' && response.request().method() === 'POST');
     await page.getByRole('button', { name: 'Check mail sender', exact: true }).click();
     assert.equal((await checkedSender).status(), 200);
-    assert.equal((await api('/api/app/overview')).overview.checklist.steps.find(step => step.id === 'sender').done, true);
+    assert.equal((await api('/api/app/overview')).overview.checklist.steps.find(step => step.id === 'sender').done, false);
+    assert.equal((await api('/api/app/deliveries')).mail.local, true);
     diagnostics.phase = 'subscribe';
     await page.goto(`${origin}/app`);
     await page.getByRole('button', { name: 'Check subscribe form', exact: true }).click();
@@ -185,13 +172,12 @@ test('SETUP-001 fresh, half complete and complete setup render correctly at 1440
     const popup = await popupPromise;
     await popup.waitForURL(`${publicOrigin}/`); await popup.waitForLoadState(); await popup.close();
     await page.bringToFront();
-    // Public-open is the last action: no reload, later setup check or navigation
-    // may hide a stale Overview. Saved evidence must finish this live checklist.
-    await page.locator('details[aria-label="Setup checklist"]').waitFor();
+    // Opening the real public page updates Overview without a reload. Local
+    // mail cannot finish the sender step, so the checklist stays expanded.
     await page.locator('[data-setup-step="public"][data-complete="true"]').waitFor({ state: 'attached' });
-    assert.equal(await page.locator('details[aria-label="Setup checklist"]').evaluate(node => node.open), false);
-    assert.equal((await api('/api/app/overview')).overview.checklist.complete, true);
-    await inspect('complete', { incident: true, public: true, subscribe: true }, true);
+    assert.equal(await page.locator('details[aria-label="Setup checklist"]').count(), 0);
+    assert.equal((await api('/api/app/overview')).overview.checklist.complete, false);
+    await inspect('local-ready', { incident: true, public: true, subscribe: true, sender: false });
     // Exercise the actual executable and Wrangler adapter, capturing its sole
     // stdout line in memory and consuming it without tracing or screenshots.
     diagnostics.phase = 'terminal-signin';

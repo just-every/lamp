@@ -6,7 +6,9 @@ const { readBetterStack, fetchBetterStack, mapSource } = await load('tests/bette
 export const fixture = family => readdirSync(`tests/fixtures/betterstack/${family}`).map(name => ({name,text:readFileSync(`tests/fixtures/betterstack/${family}/${name}`,'utf8')}));
 const edit = (files,name,change) => { const file=files.find(file=>file.name===name);const raw=JSON.parse(file.text);change(raw);file.text=JSON.stringify(raw);return files; };
 
-test('saved Better Stack pages retain complete raw history and refuse unknown access, state, scope and incomplete continuations',async()=>{
+test("Better Stack source history remains complete and fixed-origin requests fail closed", async t => {
+  t.diagnostic("saved Better Stack pages retain complete raw history and refuse unknown access, state, scope and incomplete continuations");
+  await (async()=>{
   const read=await readBetterStack(fixture('large'),{publicAccessAcknowledged:true});
   assert.deepEqual([read.data.groups.length,read.data.components.length,read.data.incidents.length,read.data.maintenance.length,read.data.subscribers.length],[4,12,36,3,159]);
   assert.equal([...read.data.incidents,...read.data.maintenance].reduce((n,row)=>n+row.incident_updates.length,0),81);
@@ -56,9 +58,9 @@ test('saved Better Stack pages retain complete raw history and refuse unknown ac
   assert.ok(skipped.accounting.some(row=>row.reason.includes('broadened')));
   await assert.rejects(()=>check([{name:'status-page.json',text:'{oops'}]),/invalid Better Stack JSON/);
   await assert.rejects(()=>check([{name:'status-page.json',text:'x'.repeat(8*1024*1024+1)}]),/8 MiB/);
-});
-
-test('API token reader follows every fixed-origin GET continuation, refuses redirects and bounds responses without truncation',async()=>{
+})(t);
+  t.diagnostic("API token reader follows every fixed-origin GET continuation, refuses redirects and bounds responses without truncation");
+  await (async()=>{
   const files=fixture('large').filter(file=>!file.name.startsWith('webhook-'));
   const calls=[];
   const fetcher=async(input,init)=>{
@@ -94,4 +96,5 @@ test('API token reader follows every fixed-origin GET continuation, refuses redi
   }}),/pagination limit/);
   for(const next of ['https://evil.example/sections?page=2','https://incidents.betterstack.com/api/v2/status-pages/999/sections?page=2','https://incidents.betterstack.com/api/v2/status-pages/32001/status-reports/foreign/status-updates?page=2']) await assert.rejects(()=>fetchBetterStack({pageId:'32001',apiKey:'synthetic-token-only',fetcher:async input=>new Response(new URL(input).pathname.endsWith('/32001')?pageText:JSON.stringify({data:[],pagination:{next}}))}),/fixed API origin/);
 
+})(t);
 });

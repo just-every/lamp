@@ -1,4 +1,4 @@
-import { MailUnavailableError, type MailMessage, type MailSender, type SentMail } from "./sender";
+import { MailPreparationError, MailUnavailableError, type MailMessage, type MailSender, type SentMail } from "./sender";
 
 interface ResendResponse {
   id?: string;
@@ -20,19 +20,26 @@ export class ResendMailSender implements MailSender {
   async send(message: MailMessage): Promise<SentMail> {
     if (!this.configuration.apiKey || !this.configuration.fromAddress) throw new MailUnavailableError();
 
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 20_000);
+    let timeout: ReturnType<typeof setTimeout> | undefined;
+    let submitted = false;
     let response: Response;
     let result: ResendResponse;
     try {
-      response = await fetch("https://api.resend.com/emails", {
+      const controller = new AbortController();
+      const request = new Request("https://api.resend.com/emails", {
         method: "POST", signal: controller.signal,
         headers: { Authorization: `Bearer ${this.configuration.apiKey}`, "Content-Type": "application/json", "User-Agent": "lamp-mail-sender/1.0", "Idempotency-Key": message.idempotencyKey },
         body: JSON.stringify({ from: message.from, to: [message.to], subject: message.subject, text: message.text, ...(message.html ? { html: message.html } : {}), headers: message.headers }),
       });
+      timeout = setTimeout(() => controller.abort(), 20_000);
+      submitted = true;
+      response = await fetch(request);
       // Keep the same deadline while consuming the body. A response whose
       // headers arrive but whose JSON never does is still a provider timeout.
       result = await response.json().catch(() => ({})) as ResendResponse;
+    } catch (error) {
+      if (!submitted) throw new MailPreparationError(error);
+      throw error;
     } finally { clearTimeout(timeout); }
     if (!response.ok || !result.id) {
       const error = new Error(result.message ?? result.name ?? `Resend rejected mail with ${response.status}.`);

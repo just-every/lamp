@@ -9,7 +9,6 @@ import { after, before, test } from "node:test";
 import { createServer } from "vite";
 import { getPlatformProxy } from "wrangler";
 
-import { contract } from "../contract.mjs";
 import { exerciseRevokedManagement } from "./subscriber-revocation-regression.mjs";
 import { exerciseSubscriberTransitions } from "./subscriber-transition-helper.mjs";
 import { exerciseSubscriberIsolation } from "./subscriber-isolation-helper.mjs";
@@ -80,30 +79,37 @@ function signedResendHeaders(secret, id, rawBody) {
   return { "svix-id": id, "svix-timestamp": timestamp, "svix-signature": `v1,${signature}`, "content-type": "application/json" };
 }
 
-contract("BASE-ACCESS-001", "Base email links admit only existing active operators", async()=>{
+test("BASE-ACCESS-001 BASE-ACCESS-002 — Existing-owner sign-in and one-use confirmation", async t => {
+  t.diagnostic("BASE-ACCESS-001 — Base email links admit only existing active operators");
+  await (async()=>{
  const fixture=authFixture(platform.env.DB);
  await platform.env.DB.prepare("INSERT INTO oa_operators(id,email,display_name,role,status,created_at) VALUES ('auth-contract','owner@example.test','Owner','owner','active',?)").bind(Date.now()).run();
  const cookie=await fixture.signIn();
  assert.equal((await fixture.handle(fixture.request('/auth/session',{cookie}))).status,200);
  const count=fixture.messages.length;await fixture.auth.requestMagicLink(fixture.request('/auth/magic-link',{method:'POST'}),{email:'unknown@example.test'});assert.equal(fixture.messages.length,count);
-});
-contract("BASE-ACCESS-002", "Base confirmation is preview-only on GET and single-use on POST", async()=>{
+})(t);
+  t.diagnostic("BASE-ACCESS-002 — Base confirmation is preview-only on GET and single-use on POST");
+  await (async()=>{
  const fixture=authFixture(platform.env.DB);await fixture.auth.requestMagicLink(fixture.request('/auth/magic-link',{method:'POST'}),{email:'owner@example.test'});
  const token=new URL(fixture.messages[0].text.match(/https?:\/\/[^\s]+/)[0]).searchParams.get('token');
  const preview=await fixture.handle(fixture.request('/auth/confirm?token='+token));assert.equal(preview.status,200);assert.equal(preview.headers.has('set-cookie'),false);
  const confirmed=await fixture.handle(fixture.request('/auth/confirm',{method:'POST',body:{token}}));assert.equal(confirmed.status,303);assert.equal(Boolean(confirmed.headers.get('set-cookie')),true);
  assert.equal((await fixture.handle(fixture.request('/auth/confirm',{method:'POST',body:{token}}))).status,400);
+})(t);
 });
 
-contract("SUB-001", "concurrent subscriptions reserve one confirmation email per address each day", async () => {
+
+test("SUB-001 SUB-005 UPDATE-008 SUB-002 SUB-003 — Concurrent subscriptions, scoped tokens, recipient capture and expiry", async t => {
+  t.diagnostic("SUB-001 — concurrent subscriptions reserve one confirmation email per address each day");
+  await (async () => {
   const mail = new CapturingMail();
   const service = createSubscribersService(createSubscriberRepository(platform.env.DB), { mail, fromAddress: "lamp@example.test", tokenSecret: "test-subscriber-secret" });
   await Promise.all([service.requestEmailSubscription("concurrent-reader@example.test", "https://status.example.test"), service.requestEmailSubscription("concurrent-reader@example.test", "https://status.example.test")]);
   assert.equal(mail.messages.length, 1);
   assert.match(mail.messages[0].text, /confirm-subscription/);
-});
-
-contract("SUB-005", "a confirmed subscriber's scoped public tokens revoke on one-click unsubscribe", async () => {
+})(t);
+  t.diagnostic("SUB-005 — a confirmed subscriber's scoped public tokens revoke on one-click unsubscribe");
+  await (async () => {
   const mail = new CapturingMail();
   const service = createSubscribersService(createSubscriberRepository(platform.env.DB), { mail, fromAddress: "lamp@example.test", tokenSecret: "test-subscriber-secret" });
   await service.requestEmailSubscription("scoped-reader@example.test", "https://status.example.test");
@@ -112,9 +118,9 @@ contract("SUB-005", "a confirmed subscriber's scoped public tokens revoke on one
   const unsubscribeToken = new URL(mail.messages[0].text.match(/https:\/\/[^\s]+\/unsubscribe\/[^\s]+/)?.[0]).pathname.split("/").at(-1);
   assert.equal(await service.unsubscribe(unsubscribeToken), true);
   assert.equal(await service.getManagedSubscription(unsubscribeToken), null);
-});
-
-contract("SUB-001", "the actual D1 gate gives concurrent subscriptions one pending row and one email", async () => {
+})(t);
+  t.diagnostic("SUB-001 — the actual D1 gate gives concurrent subscriptions one pending row and one email");
+  await (async () => {
   const mail = new CapturingMail();
   const service = createSubscribersService(createSubscriberRepository(platform.env.DB), { mail, fromAddress: "lamp@example.test", tokenSecret: "d1-subscriber-secret" });
   await Promise.all([service.requestEmailSubscription("d1-reader@example.test", "https://status.example.test"), service.requestEmailSubscription("d1-reader@example.test", "https://status.example.test")]);
@@ -123,9 +129,9 @@ contract("SUB-001", "the actual D1 gate gives concurrent subscriptions one pendi
   assert.equal(subscriber.state, "pending");
   assert.equal(sends.count, 1);
   assert.equal(mail.messages.length, 1);
-});
-
-contract("UPDATE-008", "actual D1 recipient capture is idempotent and an unsubscribe after commit suppresses dispatch", async () => {
+})(t);
+  t.diagnostic("UPDATE-008 — actual D1 recipient capture is idempotent and an unsubscribe after commit suppresses dispatch");
+  await (async () => {
   const db = platform.env.DB;
   const now = "2026-09-08T00:00:00.000Z";
   const ids = { operator: "01J00000000000000000000001", group: "01J00000000000000000000002", component: "01J00000000000000000000003", incident: "01J00000000000000000000004", update: "01J00000000000000000000005", all: "01J00000000000000000000006", selected: "01J00000000000000000000007" };
@@ -152,15 +158,15 @@ contract("UPDATE-008", "actual D1 recipient capture is idempotent and an unsubsc
   await deliveries.dispatchDelivery(delivery.id, "https://status.example.test");
   assert.equal(mail.messages.length, 0);
   assert.equal((await db.prepare("SELECT outcome FROM notification_deliveries WHERE id = ?").bind(delivery.id).first()).outcome, "suppressed");
-});
-
-contract("SUB-002", "the actual D1 subscriber remains pending until its signed confirmation token is consumed", async () => {
+})(t);
+  t.diagnostic("SUB-002 — the actual D1 subscriber remains pending until its signed confirmation token is consumed");
+  await (async () => {
   const mail = new CapturingMail();
   const observed = [];
   const service = createSubscribersService(createSubscriberRepository(platform.env.DB), {
     mail,
     fromAddress: "lamp@example.test",
-    tokenSecret: "d1-confirmation-secret",
+    tokenSecret: "synthetic-d1-confirmation-secret",
     events: {
       async subscriberConfirmed(event) {
         assert.equal((await platform.env.DB.prepare("SELECT state FROM subscribers WHERE id = ?").bind(event.subscriberId).first()).state, "active", "the extension sees the committed subscriber state");
@@ -176,9 +182,9 @@ contract("SUB-002", "the actual D1 subscriber remains pending until its signed c
   assert.equal((await platform.env.DB.prepare("SELECT state FROM subscribers WHERE destination = ?").bind("confirm-reader@example.test").first()).state, "active");
   assert.equal(observed.length, 1);
   assert.equal(observed[0].channel, "email");
-});
-
-contract("SUB-003", "actual D1 expiry deletes an unconfirmed address and its subscriber row after 72 hours", async () => {
+})(t);
+  t.diagnostic("SUB-003 — actual D1 expiry deletes an unconfirmed address and its subscriber row after 72 hours");
+  await (async () => {
   const db = platform.env.DB;
   const old = "2026-09-01T00:00:00.000Z";
   await db.prepare("INSERT INTO subscribers (id,channel,destination,contact_email,state,selection_mode,token_hash,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?)")
@@ -186,9 +192,22 @@ contract("SUB-003", "actual D1 expiry deletes an unconfirmed address and its sub
   const service = createSubscribersService(createSubscriberRepository(db), { mail: new CapturingMail(), fromAddress: "lamp@example.test", tokenSecret: "d1-expiry-secret" });
   await service.expirePending();
   assert.equal(await db.prepare("SELECT id FROM subscribers WHERE id = ?").bind("01J00000000000000000000031").first(), null);
+})(t);
 });
 
-contract("SUB-004", "actual D1 recipient selection follows visible components and matching selected components only", async () => {
+
+
+
+
+
+
+
+
+
+
+test("SUB-004 SUB-006 SUB-007 SUB-005 PAGE-013 SUB-012 SUB-008 — Scoped subscriber preferences, private management and opt-out", async t => {
+  t.diagnostic("SUB-004 — actual D1 recipient selection follows visible components and matching selected components only");
+  await (async () => {
   const db = platform.env.DB;
   const now = "2026-09-08T00:00:00.000Z";
   const ids = { component: "01J00000000000000000000003", internalComponent: "01J00000000000000000000037", update: "01J00000000000000000000032", internalUpdate: "01J00000000000000000000038", all: "01J00000000000000000000033", selected: "01J00000000000000000000034", other: "01J00000000000000000000035" };
@@ -207,9 +226,152 @@ contract("SUB-004", "actual D1 recipient selection follows visible components an
   await db.batch(notificationPublicationStatements(db, { eventId: ids.internalUpdate, eventType: "incident-update", incidentUpdateId: ids.internalUpdate, componentIds: [ids.internalComponent], channels: ["email"], queuedAt: now }));
   const internalRecipients = await db.prepare("SELECT subscriber_id AS id FROM notification_deliveries WHERE notification_event_id = ?").bind(ids.internalUpdate).all();
   assert.deepEqual(internalRecipients.results, [], "an all-components subscription follows public components only, and a selected component that became internal is not delivered");
-});
 
-contract("SUB-006", "the actual one-click endpoint deactivates by token without a cookie or redirect", async () => {
+  // Exercise the operator route and production D1 capture, including reattachment
+  // after a later update was published while the subscriber was out of scope.
+  const { Hono } = await import("hono");
+  const { createIncidentsService, createIncidentRepository, registerIncidentRoutes } = await vite.ssrLoadModule("/src/core/features/incidents/index.ts");
+  const { createComponentsService, createComponentRepository } = await vite.ssrLoadModule("/src/core/features/components/index.ts");
+  const { incidentCatchupStatements } = await vite.ssrLoadModule("/src/core/features/deliveries/index.ts");
+  const { createUlid } = await vite.ssrLoadModule("/src/core/shared/ids.ts");
+  const operatorId = "01J00000000000000000000001";
+  const components = createComponentsService(createComponentRepository(db), async () => {});
+  const fixtureComponents = [];
+  for (const name of ["Attachment origin", "Attachment audience", "Attachment internal"]) {
+    const id = createUlid();
+    await db.prepare("INSERT INTO components (id,name,description,internal,display_order,note,created_at,updated_at) VALUES (?,?,'',?,100,'',?,?)").bind(id,name,name.endsWith("internal") ? 1 : 0,now,now).run();
+    fixtureComponents.push(id);
+  }
+  const [origin, audience, internal] = fixtureComponents;
+  const readers = {};
+  for (const [label, state, channel, mode, follows] of [
+    ["new", "active", "email", "selected", audience], ["previous", "active", "email", "selected", origin],
+    ["earlier", "active", "email", "selected", origin],
+    ["pending", "pending", "email", "selected", audience], ["inactive", "deactivated", "email", "selected", audience],
+    ["internal", "active", "email", "selected", internal], ["webhook", "active", "webhook", "selected", audience],
+  ]) {
+    const id = createUlid(); readers[label] = id;
+    await db.prepare("INSERT INTO subscribers (id,channel,destination,state,selection_mode,token_hash,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?)").bind(id,channel,channel === "email" ? `catchup-${label}@example.test` : "https://hooks.example.test/catchup",state,mode,createUlid(),now,now).run();
+    await db.prepare("INSERT INTO subscriber_components (id,subscriber_id,component_id,created_at,updated_at) VALUES (?,?,?,?,?)").bind(createUlid(),id,follows,now,now).run();
+  }
+  let publicChanges = 0;
+  const incidents = createIncidentsService(createIncidentRepository(db), components, async () => { publicChanges++; }, {
+    forIncidentUpdate: async (input) => notificationPublicationStatements(db, { eventId: input.updateId, eventType: "incident-update", incidentUpdateId: input.updateId, componentIds: input.componentIds, channels: input.channels, queuedAt: input.queuedAt }),
+    forAttachedComponents: async (input) => incidentCatchupStatements(db,input),
+  }, { requiresReview: () => false }, async () => {});
+  const app = new Hono(); app.use("*", async (context,next) => { context.set("operator", { id: operatorId }); await next(); });
+  registerIncidentRoutes(app,incidents);
+  const pending = [];
+  const call = (path, method = "GET", body, headers = {}) => app.request(`https://app.example.test/api/app${path}`, { method, headers: { "Content-Type": "application/json", ...headers }, ...(body ? { body: JSON.stringify(body) } : {}) }, undefined, { waitUntil: (job) => pending.push(job) });
+  const create = async (componentId, state = "Major outage") => {
+    const response = await call("/incidents", "POST", { title: "Attachment catch-up", components: [{ componentId, state, relationship: "Primary" }] });
+    assert.equal(response.status,201); return (await response.json()).incident;
+  };
+  const publish = async (incidentId, impact, channels = ["email"], historical = false) => {
+    const before = (await (await call(`/incidents/${incidentId}`)).json()).incident;
+    const saved = await call(`/incidents/${incidentId}/draft`, "PUT", { lifecycle: "Monitoring", affectedAudience: "Customers", customerImpact: impact, whatStillWorks: "", details: "", nextUpdateAt: new Date(Date.now()+3600000).toISOString() }, { "If-Match": `${before.draft?.id ?? "-"}:${before.updates.length}` });
+    assert.equal(saved.status,200); const draft = (await saved.json()).draft;
+    const response = await call(`/incidents/${incidentId}/publish`, "POST", { channels, ...(historical ? { publishedAt: "2026-09-01T00:00:00.000Z" } : {}) }, { "If-Match": `${draft.id}:${before.updates.length}` });
+    assert.equal(response.status,200); await Promise.all(pending.splice(0)); return (await response.json()).update;
+  };
+  const previewAttachment = async (incidentId,componentId) => {
+    const response = await call(`/incidents/${incidentId}/components/preview`, "POST", { action: "attach", componentId, state: "Partially unavailable", relationship: "Dependent" });
+    assert.equal(response.status,200); return (await response.json()).preview;
+  };
+  const attach = (incidentId,componentId) => call(`/incidents/${incidentId}/components`, "POST", { componentId, state: "Partially unavailable", relationship: "Dependent" });
+  const deliveriesFor = async (incidentId) => (await db.prepare("SELECT d.subscriber_id AS subscriberId,d.incident_update_id AS updateId FROM notification_deliveries d JOIN incident_updates u ON u.id=d.incident_update_id WHERE u.incident_id=?").bind(incidentId).all()).results;
+  const incident = await create(origin);
+  const first = await publish(incident.id,"First published impact");
+  const mail = new CapturingMail();
+  const deliveryService = createDeliveriesService(createDeliveryRepository(db), { mail, fromAddress: "lamp@example.test", subscriberTokenSecret: "catchup-test-secret" });
+  await deliveryService.dispatchEvent(first.id,"https://status.example.test");
+  assert.equal(mail.messages.filter((message) => message.to === "catchup-earlier@example.test").length,1,"the older update was actually sent before the subscriber changes selection");
+  await db.prepare("UPDATE subscriber_components SET component_id = ? WHERE subscriber_id = ?").bind(audience,readers.earlier).run();
+  const latest = await publish(incident.id,"Latest published impact");
+  assert.deepEqual((await deliveriesFor(incident.id)).filter((row) => row.subscriberId === readers.earlier).map((row) => row.updateId),[first.id],"the audience-only reader has an older receipt and no receipt for the latest update");
+  const lateAll = createUlid();
+  await db.prepare("INSERT INTO subscribers (id,channel,destination,state,selection_mode,token_hash,created_at,updated_at) VALUES (?,'email','catchup-late-all@example.test','active','all',?,?,?)").bind(lateAll,createUlid(),now,now).run();
+  await deliveryService.dispatchEvent(latest.id,"https://status.example.test");
+  const beforePreview = await deliveriesFor(incident.id);
+  const preview = await previewAttachment(incident.id,audience);
+  assert.equal(preview.emailRecipients,2,"only the newly eligible selected and all-components subscribers count, excluding older receipts and non-active subscribers");
+  assert.equal(preview.webhookRecipients,0,"latest update did not select webhooks");
+  assert.deepEqual(await deliveriesFor(incident.id),beforePreview,"preview commits no notifications");
+  assert.equal((await (await call(`/incidents/${incident.id}`)).json()).incident.components.some((claim) => claim.componentId === audience),false,"preview attaches nothing");
+  const attached = await Promise.all([attach(incident.id,audience),attach(incident.id,audience)]);
+  assert.deepEqual(attached.map((response) => response.status).sort(),[201,409]);
+  let rows = await deliveriesFor(incident.id);
+  assert.equal(rows.length-beforePreview.length,preview.emailRecipients+preview.webhookRecipients,"preview matches the atomic catch-up recipient set");
+  assert.deepEqual(rows.filter((row) => row.subscriberId === lateAll).map((row) => row.updateId),[latest.id],"a newly active all-components subscriber catches up on attachment");
+  assert.deepEqual(rows.filter((row) => row.subscriberId === readers.new).map((row) => row.updateId),[latest.id]);
+  for (const label of ["pending","inactive","internal","webhook"]) assert.equal(rows.some((row) => row.subscriberId === readers[label]),false,label);
+  assert.equal(rows.filter((row) => row.subscriberId === readers.previous).length,2,"already notified subscribers receive no catch-up");
+  assert.deepEqual(rows.filter((row) => row.subscriberId === readers.earlier).map((row) => row.updateId),[first.id],"an eligible subscriber with only an older notification receives no catch-up");
+  await deliveryService.dispatchDue("https://status.example.test");
+  const caughtUp = mail.messages.filter((message) => message.to === "catchup-new@example.test");
+  assert.equal(caughtUp.length,1); assert.match(caughtUp[0].text,/Latest published impact/); assert.doesNotMatch(caughtUp[0].text,/First published impact/);
+  assert.equal(mail.messages.filter((message) => message.to === "catchup-earlier@example.test").length,1,"attachment sends no second envelope to a subscriber who received an older update");
+  assert.equal((await call(`/incidents/${incident.id}/components/${audience}`,"DELETE")).status,200);
+  await publish(incident.id,"Published while detached");
+  assert.equal((await attach(incident.id,audience)).status,201);
+  rows = await deliveriesFor(incident.id);
+  assert.equal(rows.filter((row) => row.subscriberId === readers.new).length,1,"reattachment never resends, including a newer update missed while detached");
+  const subsequent = await publish(incident.id,"Subsequent update");
+  assert.equal((await deliveriesFor(incident.id)).some((row) => row.subscriberId === readers.new && row.updateId === subsequent.id),true);
+  assert.equal((await deliveriesFor(incident.id)).some((row) => row.subscriberId === readers.earlier && row.updateId === subsequent.id),true,"the older-receipt subscriber receives subsequent updates normally");
+  for (const [componentId,historical] of [[internal,false],[origin,true]]) {
+    const hidden = await create(componentId);
+    await publish(hidden.id,"Private or historical record",["email"],historical);
+    assert.equal((await previewAttachment(hidden.id,audience)).emailRecipients,0,"private or historical updates have no preview recipients");
+    assert.equal((await attach(hidden.id,audience)).status,201);
+    assert.equal((await deliveriesFor(hidden.id)).some((row) => row.subscriberId === readers.new),false,"internal-only and historical updates must never be disclosed by attachment");
+  }
+  const silent = await create(origin);
+  await publish(silent.id,"Page-only publication",[]);
+  assert.equal((await previewAttachment(silent.id,audience)).emailRecipients,0,"page-only updates have no preview recipients");
+  assert.equal((await attach(silent.id,audience)).status,201);
+  assert.deepEqual(await deliveriesFor(silent.id),[],"catch-up honors an update with no subscriber channels selected");
+  const templated = await create(origin,"Degraded performance");
+  const templateUpdate = await publish(templated.id,"Latest template incident update");
+  const templateResponse = await call("/incident-templates","POST",{ name: "Private attachment template", lifecycle: "Monitoring", affectedAudience: "Customers", customerImpact: "Template draft stays private", whatStillWorks: "", details: "", nextUpdateOffsetMinutes: 60, components: [{ componentId: audience, state: "Major outage", relationship: "Dependent" }] });
+  assert.equal(templateResponse.status,201); const template = (await templateResponse.json()).template;
+  const templatePublicState = async () => ({
+    deliveries: await deliveriesFor(templated.id),
+    incident: await db.prepare("SELECT * FROM incidents WHERE id = ?").bind(templated.id).first(),
+    claims: (await db.prepare("SELECT * FROM component_claim_events WHERE cause_id = ? ORDER BY id").bind(templated.id).all()).results,
+    history: (await db.prepare("SELECT * FROM component_state_history WHERE cause_id = ? ORDER BY id").bind(templated.id).all()).results,
+    work: await db.prepare("SELECT * FROM public_snapshot_work").first(),
+    audienceState: (await components.get(audience)).publicState,
+    publicChanges,
+  });
+  const beforeTemplate = await templatePublicState();
+  const apply = await call(`/incidents/${templated.id}/templates/${template.id}/apply`,"POST",{}, { "If-Match": "-:1" });
+  assert.equal(apply.status,200); const templateDraft = (await apply.json()).draft;
+  assert.equal((await db.prepare("SELECT published_at FROM incident_components WHERE incident_id = ? AND component_id = ?").bind(templated.id,audience).first()).published_at,null);
+  assert.deepEqual(await templatePublicState(),beforeTemplate,"applying a template changes no public claim, history, peak, notification or snapshot work");
+  assert.deepEqual((await deliveriesFor(templated.id)).filter((row) => row.subscriberId === readers.new),[],"a private template attachment sends no catch-up");
+  const templatePublication = await call(`/incidents/${templated.id}/publish`,"POST",{ channels: ["email"] },{ "If-Match": `${templateDraft.id}:1` });
+  assert.equal(templatePublication.status,200); await Promise.all(pending.splice(0));
+  const publishedTemplate = (await templatePublication.json()).update;
+  assert.equal(publishedTemplate.id,templateDraft.id,"normal publication publishes the template-filled draft");
+  assert.equal((await db.prepare("SELECT published_at FROM incident_components WHERE incident_id = ? AND component_id = ?").bind(templated.id,audience).first()).published_at,publishedTemplate.publishedAt);
+  assert.equal((await components.get(audience)).publicState,"Major outage");
+  assert.equal((await db.prepare("SELECT peak_impact FROM incidents WHERE id = ?").bind(templated.id).first()).peak_impact,"Major outage");
+  assert.equal((await db.prepare("SELECT state FROM component_claim_events WHERE cause_id = ? AND component_id = ?").bind(templated.id,audience).first()).state,"Major outage");
+  rows = await deliveriesFor(templated.id);
+  assert.deepEqual(rows.filter((row) => row.subscriberId === readers.new).map((row) => row.updateId),[publishedTemplate.id],"the newly eligible reader receives the template publication, never the older update");
+  assert.deepEqual(rows.filter((row) => row.subscriberId === readers.previous).map((row) => row.updateId).sort(),[templateUpdate.id,publishedTemplate.id].sort(),"existing recipients continue receiving normal updates");
+  for (const label of ["pending","inactive","internal","webhook"]) assert.equal(rows.some((row) => row.subscriberId === readers[label]),false,label);
+  const unpublished = await create(origin);
+  const draftPreview = await previewAttachment(unpublished.id,audience);
+  assert.equal(draftPreview.published,false);
+  assert.equal(draftPreview.emailRecipients,0);
+  assert.equal((await attach(unpublished.id,audience)).status,201);
+  assert.deepEqual(await deliveriesFor(unpublished.id),[]);
+
+})(t);
+  t.diagnostic("SUB-006 — the actual one-click endpoint deactivates by token without a cookie or redirect");
+  await (async () => {
   const { Hono } = await import("hono");
   const mail = new CapturingMail();
   const service = createSubscribersService(createSubscriberRepository(platform.env.DB), { mail, fromAddress: "lamp@example.test", tokenSecret: "d1-one-click-secret" });
@@ -223,9 +385,9 @@ contract("SUB-006", "the actual one-click endpoint deactivates by token without 
   assert.equal(response.headers.get("set-cookie"), null);
   assert.equal(response.headers.get("referrer-policy"), "no-referrer");
   assert.equal((await platform.env.DB.prepare("SELECT state FROM subscribers WHERE destination = ?").bind("one-click@example.test").first()).state, "deactivated");
-});
-
-contract("SUB-007", "the token-addressed management page exposes a confirmed subscription without a session", async () => {
+})(t);
+  t.diagnostic("SUB-007 — the token-addressed management page exposes a confirmed subscription without a session");
+  await (async () => {
   const { Hono } = await import("hono");
   const mail = new CapturingMail();
   const service = createSubscribersService(createSubscriberRepository(platform.env.DB), { mail, fromAddress: "lamp@example.test", tokenSecret: "d1-management-secret" });
@@ -260,20 +422,20 @@ contract("SUB-007", "the token-addressed management page exposes a confirmed sub
   assert.equal(unsubscribed.status, 200);
   assert.equal(await unsubscribed.text(), "");
   assert.equal(unsubscribed.headers.get("location"), null);
-});
-
-contract("SUB-005", "in-flight subscriber permissions cannot change completed opt-out or a rejoined subscription", async () => {
+})(t);
+  t.diagnostic("SUB-005 — in-flight subscriber permissions cannot change completed opt-out or a rejoined subscription");
+  await (async () => {
   const fixture = { db: platform.env.DB, createSubscriberRepository, createSubscribersService, registerSubscriberRoutes, createMail: () => new CapturingMail() };
   await exerciseRevokedManagement(fixture);
   await exerciseSubscriberTransitions(fixture);
-});
-
-contract("PAGE-013", "subscriber HTML outcomes enforce origin isolation and token privacy", async () => {
+})(t);
+  t.diagnostic("PAGE-013 — subscriber HTML outcomes enforce origin isolation and token privacy");
+  await (async () => {
   const { createPublicWriteRateLimiter } = await vite.ssrLoadModule("/src/core/platform/security/rate-limiter.ts");
   await exerciseSubscriberIsolation({ db: platform.env.DB, createSubscriberRepository, createSubscribersService, registerSubscriberRoutes, createPublicWriteRateLimiter, createMail: () => new CapturingMail() });
-});
-
-contract("SUB-012", "a known active address gets the same neutral form response and a management-only email", async () => {
+})(t);
+  t.diagnostic("SUB-012 — a known active address gets the same neutral form response and a management-only email");
+  await (async () => {
   const { Hono } = await import("hono");
   const mail = new CapturingMail();
   const service = createSubscribersService(createSubscriberRepository(platform.env.DB), { mail, fromAddress: "lamp@example.test", tokenSecret: randomBytes(32).toString("hex") });
@@ -287,9 +449,9 @@ contract("SUB-012", "a known active address gets the same neutral form response 
   assert.equal(await first.text(), await repeat.text());
   assert.match(mail.messages.at(-1).text, /Manage this subscription/);
   assert.doesNotMatch(mail.messages.at(-1).text, /confirm-subscription/);
-});
-
-contract("SUB-008", "a delivery committed before a real D1 unsubscribe is durably recorded as suppressed", async () => {
+})(t);
+  t.diagnostic("SUB-008 — a delivery committed before a real D1 unsubscribe is durably recorded as suppressed");
+  await (async () => {
   const db = platform.env.DB;
   const now = "2026-09-08T02:00:00.000Z";
   await db.batch([
@@ -302,9 +464,24 @@ contract("SUB-008", "a delivery committed before a real D1 unsubscribe is durabl
   await deliveries.dispatchDelivery("01J00000000000000000000042", "https://status.example.test");
   assert.equal(mail.messages.length, 0);
   assert.equal((await db.prepare("SELECT outcome FROM notification_deliveries WHERE id = ?").bind("01J00000000000000000000042").first()).outcome, "suppressed");
+})(t);
 });
 
-contract("NOTIFY-002", "a queued D1 email notification is accepted by the configured mail adapter and persists its provider attempt", async () => {
+
+
+
+
+
+
+
+
+
+
+
+
+test("NOTIFY-002 NOTIFY-004 NOTIFY-005 NOTIFY-007 NOTIFY-008 NOTIFY-010 — Durable email capture, delivery records and frozen headers", async t => {
+  t.diagnostic("NOTIFY-002 — a queued D1 email notification is accepted by the configured mail adapter and persists its provider attempt");
+  await (async () => {
   const db = platform.env.DB;
   const now = "2026-09-08T03:00:00.000Z";
   await db.batch([
@@ -316,9 +493,9 @@ contract("NOTIFY-002", "a queued D1 email notification is accepted by the config
   await deliveries.dispatchDelivery("01J00000000000000000000044", "https://status.example.test");
   assert.equal(mail.messages.length, 1);
   assert.equal((await db.prepare("SELECT provider_message_id AS id FROM notification_delivery_attempts WHERE delivery_id = ?").bind("01J00000000000000000000044").first()).id, "mail-1");
-});
-
-contract("NOTIFY-004", "the actual delivery log exposes only contract outcomes and exports filterable CSV", async () => {
+})(t);
+  t.diagnostic("NOTIFY-004 — the actual delivery log exposes only contract outcomes and exports filterable CSV");
+  await (async () => {
   const { Hono } = await import("hono");
   const db = platform.env.DB;
   const deliveries = createDeliveriesService(createDeliveryRepository(db), { mail: new CapturingMail(), fromAddress: "lamp@example.test", subscriberTokenSecret: "d1-log-secret" });
@@ -328,9 +505,9 @@ contract("NOTIFY-004", "the actual delivery log exposes only contract outcomes a
   assert.equal(response.status, 200);
   assert.match(response.headers.get("content-type") ?? "", /text\/csv/);
   assert.match(await response.text(), /destination,channel,outcome/);
-});
-
-contract("NOTIFY-005", "repeating D1 recipient capture records one recipient and one dispatcher command per event", async () => {
+})(t);
+  t.diagnostic("NOTIFY-005 — repeating D1 recipient capture records one recipient and one dispatcher command per event");
+  await (async () => {
   const db = platform.env.DB;
   const now = "2026-09-08T04:00:00.000Z";
   const eventId = "01J00000000000000000000045";
@@ -340,14 +517,14 @@ contract("NOTIFY-005", "repeating D1 recipient capture records one recipient and
   const own = await db.prepare("SELECT COUNT(*) AS count FROM notification_deliveries WHERE notification_event_id = ? AND subscriber_id = ?").bind(eventId, "01J00000000000000000000043").first();
   const jobs = await db.prepare("SELECT COUNT(*) AS count FROM notification_outbox WHERE aggregate_id = ?").bind(eventId).first();
   assert.equal(own.count, 1); assert.equal(jobs.count, 1);
-});
-
-contract("NOTIFY-007", "the selected channel is persisted with the immutable D1 recipient set", async () => {
+})(t);
+  t.diagnostic("NOTIFY-007 — the selected channel is persisted with the immutable D1 recipient set");
+  await (async () => {
   const row = await platform.env.DB.prepare("SELECT channel FROM notification_channel_selections WHERE incident_update_id = ?").bind("01J00000000000000000000045").first();
   assert.equal(row.channel, "email");
-});
-
-contract("NOTIFY-008", "dispatch resolves the configured From address and never uses a recipient as sender", async () => {
+})(t);
+  t.diagnostic("NOTIFY-008 — dispatch resolves the configured From address and never uses a recipient as sender");
+  await (async () => {
   const db = platform.env.DB;
   const now = "2026-09-08T04:30:00.000Z";
   await db.batch([
@@ -359,18 +536,31 @@ contract("NOTIFY-008", "dispatch resolves the configured From address and never 
   await deliveries.dispatchDelivery("01J00000000000000000000049", "https://status.example.test");
   assert.equal(mail.messages[0].from, "status@configured.example.test");
   assert.equal(mail.messages[0].to, "configured-from-reader@example.test");
-});
-
-contract("NOTIFY-010", "frozen notification envelopes carry one-click, list, and incident threading headers", async () => {
+})(t);
+  t.diagnostic("NOTIFY-010 — frozen notification envelopes carry one-click, list, and incident threading headers");
+  await (async () => {
   const db = platform.env.DB;
   const payload = JSON.parse((await db.prepare("SELECT mail_payload_json AS payload FROM notification_deliveries WHERE id = ?").bind("01J00000000000000000000044").first()).payload);
   assert.equal(payload.headers["List-Unsubscribe-Post"], "List-Unsubscribe=One-Click");
   assert.match(payload.headers["List-Unsubscribe"], /mailto:.*https:/);
   assert.ok(payload.headers["List-Id"] && payload.headers["List-Archive"] && payload.headers["List-Help"]);
   assert.equal(payload.headers["Auto-Submitted"], "auto-generated");
+})(t);
 });
 
-contract("TEAM-002", "Base operator revocation and Lamp erasure retain opaque audit attribution", async()=>{
+
+
+
+
+
+
+
+
+
+
+test("TEAM-002 TEAM-003 BASE-ACCESS-003 — Owner erasure, subscriber erasure and independent public write windows", async t => {
+  t.diagnostic("TEAM-002 — Base operator revocation and Lamp erasure retain opaque audit attribution");
+  await (async()=>{
  const {Hono}=await import('hono');const {requireOperator,registerOperatorRoutes}=await vite.ssrLoadModule('/src/core/features/operators/routes.ts');
  const db=platform.env.DB,fixture=authFixture(db,{owner:'setup@example.test'}),actor='01J00000000000000000000046',target='01J0000000000000000000004A';
  await db.prepare("INSERT INTO oa_operators(id,email,display_name,role,status,created_at) VALUES (?,?,'Setup','owner','active',?),(?,?,'Erased operator','owner','active',?)").bind(actor,'setup@example.test',Date.now(),target,'invited@example.test',Date.now()).run();
@@ -380,9 +570,9 @@ contract("TEAM-002", "Base operator revocation and Lamp erasure retain opaque au
  assert.equal((await app.fetch(fixture.request('/api/app/operators/'+target,{method:'DELETE',cookie}))).status,204);
  const row=await db.prepare('SELECT email,display_name FROM operators WHERE id=?').bind(target).first();assert.equal(row.email,'deleted-'+target.toLowerCase()+'@operator.invalid');assert.equal(row.display_name,'Erased operator');
  const audits=(await db.prepare('SELECT * FROM audit_entries WHERE entity_id=?').bind(target).all()).results;assert.equal(audits.some(a=>a.action==='deleted'&&a.operator_id===actor),true);assert.equal(audits.every(a=>a.payload_json==='{}'&&a.reason===null),true);
-});
-
-contract("TEAM-003", "operator subscriber deletion keeps attribution while erasing the destination", async () => {
+})(t);
+  t.diagnostic("TEAM-003 — operator subscriber deletion keeps attribution while erasing the destination");
+  await (async () => {
   const db = platform.env.DB;
   const now = "2026-09-08T06:00:00.000Z";
   await db.prepare("INSERT INTO subscribers (id,channel,destination,contact_email,state,selection_mode,token_hash,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?)").bind("01J00000000000000000000047", "email", "delete-reader@example.test", null, "active", "all", "delete-token", now, now).run();
@@ -390,9 +580,9 @@ contract("TEAM-003", "operator subscriber deletion keeps attribution while erasi
   assert.equal(await service.deleteSubscriber("01J00000000000000000000047", "01J00000000000000000000046"), true);
   assert.match((await db.prepare("SELECT destination FROM subscribers WHERE id = ?").bind("01J00000000000000000000047").first()).destination, /^deleted:/);
   assert.equal((await db.prepare("SELECT operator_id AS operatorId FROM audit_entries WHERE entity_id = ? AND action = 'deleted'").bind("01J00000000000000000000047").first()).operatorId, "01J00000000000000000000046");
-});
-
-contract("BASE-ACCESS-003", "D1 fixed windows reject the next public write without limiting an unrelated token path", async () => {
+})(t);
+  t.diagnostic("BASE-ACCESS-003 — D1 fixed windows reject the next public write without limiting an unrelated token path");
+  await (async () => {
   const { createPublicWriteRateLimiter } = await vite.ssrLoadModule("/src/core/platform/security/rate-limiter.ts");
   const limiter = createPublicWriteRateLimiter(platform.env.DB);
   const now = new Date("2026-09-08T10:00:00.000Z");
@@ -400,11 +590,18 @@ contract("BASE-ACCESS-003", "D1 fixed windows reject the next public write witho
   assert.equal(attempts.filter(Boolean).length, 5);
   assert.equal(await limiter.allow({ scope: "subscription-manage", subject: "opaque-other-token", limit: 30, now }), true);
   assert.equal(await limiter.allow({ scope: "subscribe", subject: "198.51.100.17", limit: 5, now: new Date("2026-09-08T10:01:00.000Z") }), true);
+})(t);
 });
 
-contract("SUB-009", "an actual D1 webhook subscription signs its complete event, rejects SSRF, and treats redirects as failures", async () => {
+
+
+
+
+test("SUB-009 SUB-010 SUB-011 — Signed webhook delivery, provider receipts and bounce suppression", async t => {
+  t.diagnostic("SUB-009 — an actual D1 webhook subscription signs its complete event, rejects SSRF, and treats redirects as failures");
+  await (async () => {
   const db = platform.env.DB;
-  const subscribers = createSubscribersService(createSubscriberRepository(db), { tokenSecret: "webhook-subscription-secret" });
+  const subscribers = createSubscribersService(createSubscriberRepository(db), { tokenSecret: "synthetic-webhook-subscription-secret" });
   await assert.rejects(subscribers.createWebhookSubscription({ destination: "https://127.0.0.1/private", contactEmail: "webhook-contact@example.test", componentIds: [] }), /public HTTPS/);
   const subscriber = await subscribers.createWebhookSubscription({ destination: "https://receiver.example.test/lamp", contactEmail: "webhook-contact@example.test", componentIds: [] });
   const now = "2026-09-08T07:00:00.000Z";
@@ -429,14 +626,14 @@ contract("SUB-009", "an actual D1 webhook subscription signs its complete event,
     globalThis.fetch = async () => new Response(null, { status: 302 });
     await assert.rejects(deliveries.dispatchDelivery(row.id, "https://status.example.test"), /returned 302/);
   } finally { globalThis.fetch = realFetch; }
-});
-
-contract("SUB-010", "actual provider outcomes and repeated webhook failures deactivate the destination and notify its contact", async () => {
+})(t);
+  t.diagnostic("SUB-010 — actual provider outcomes and repeated webhook failures deactivate the destination and notify its contact");
+  await (async () => {
   const db = platform.env.DB;
   const now = "2026-09-08T07:10:00.000Z";
   await db.prepare("DELETE FROM notification_outbox").run();
   const mail = new CapturingMail();
-  const deliveries = createDeliveriesService(createDeliveryRepository(db), { mail, fromAddress: "lamp@example.test", subscriberTokenSecret: "bounce-token-secret", webhookSigningSecret: "webhook-failure-secret" });
+  const deliveries = createDeliveriesService(createDeliveryRepository(db), { mail, fromAddress: "lamp@example.test", subscriberTokenSecret: "bounce-token-secret", webhookSigningSecret: "synthetic-webhook-failure-secret" });
   await db.batch([
     db.prepare("INSERT INTO subscribers (id,channel,destination,contact_email,state,selection_mode,token_hash,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?)").bind("01J00000000000000000000091", "email", "hard-bounce@example.test", null, "active", "all", "hard-bounce-token", now, now),
     db.prepare("INSERT INTO notification_deliveries (id,subscriber_id,incident_update_id,channel,outcome,queued_at,created_at,updated_at,notification_event_id,notification_event_type) VALUES (?,?,?,?,?,?,?,?,?,?)").bind("01J00000000000000000000092", "01J00000000000000000000091", "01J00000000000000000000045", "email", "queued", now, now, now, "hard-bounce-event", "incident-update"),
@@ -465,9 +662,9 @@ contract("SUB-010", "actual provider outcomes and repeated webhook failures deac
   assert.deepEqual(failedWebhook, { state: "deactivated", reason: "ten consecutive webhook delivery failures" });
   await deliveries.dispatchDue("https://status.example.test");
   assert.ok(mail.messages.some((message) => message.to === "failing-contact@example.test"));
-});
-
-contract("SUB-010", "a signed Resend Permanent bounce is a hard bounce and malformed signed JSON is rejected", async () => {
+})(t);
+  t.diagnostic("SUB-010 — a signed Resend Permanent bounce is a hard bounce and malformed signed JSON is rejected");
+  await (async () => {
   const { Hono } = await import("hono");
   const db = platform.env.DB;
   const now = "2026-09-08T08:15:00.000Z";
@@ -492,9 +689,9 @@ contract("SUB-010", "a signed Resend Permanent bounce is a hard bounce and malfo
   const malformedResponse = await app.request("https://app.example.test/api/intake/mail-events", { method: "POST", headers: signedResendHeaders(secret, "msg_resend_malformed", malformed), body: malformed });
   assert.equal(malformedResponse.status, 400);
   assert.equal(await malformedResponse.text(), "Malformed mail provider event.");
-});
-
-contract("SUB-011", "operator subscriber data includes channel, selection, deactivation reason, and deletion anonymises its destination", async () => {
+})(t);
+  t.diagnostic("SUB-011 — operator subscriber data includes channel, selection, deactivation reason, and deletion anonymises its destination");
+  await (async () => {
   const db = platform.env.DB;
   const service = createSubscribersService(createSubscriberRepository(db), { tokenSecret: "subscriber-view-secret" });
   const entries = await service.list(100);
@@ -506,9 +703,9 @@ contract("SUB-011", "operator subscriber data includes channel, selection, deact
   assert.ok(bounced.deactivatedAt);
   assert.equal(await service.deleteSubscriber("01J00000000000000000000093", "01J00000000000000000000046"), true);
   assert.match((await db.prepare("SELECT destination FROM subscribers WHERE id = ?").bind("01J00000000000000000000093").first()).destination, /^deleted:/);
-});
-
-contract("SUB-010", "five consecutive soft bounces and one provider complaint each suppress later delivery", async () => {
+})(t);
+  t.diagnostic("SUB-010 — five consecutive soft bounces and one provider complaint each suppress later delivery");
+  await (async () => {
   const db = platform.env.DB;
   const now = "2026-09-08T08:15:00.000Z";
   const softMail = new CapturingMail();
@@ -528,7 +725,7 @@ contract("SUB-010", "five consecutive soft bounces and one provider complaint ea
 
   const complaintMail = new CapturingMail();
   complaintMail.send = async (message) => { complaintMail.messages.push(message); return { providerMessageId: `complaint-mail-${complaintMail.messages.length}` }; };
-  const complaintDeliveries = createDeliveriesService(createDeliveryRepository(db), { mail: complaintMail, fromAddress: "lamp@example.test", subscriberTokenSecret: "complaint-token-secret" });
+  const complaintDeliveries = createDeliveriesService(createDeliveryRepository(db), { mail: complaintMail, fromAddress: "lamp@example.test", subscriberTokenSecret: "synthetic-complaint-token-secret" });
   await db.batch([
     db.prepare("INSERT INTO subscribers (id,channel,destination,contact_email,state,selection_mode,token_hash,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?)").bind("01J000000000000000000000D02", "email", "complaint@example.test", null, "active", "all", "complaint-token", now, now),
     db.prepare("INSERT INTO notification_deliveries (id,subscriber_id,incident_update_id,channel,outcome,queued_at,created_at,updated_at,notification_event_id,notification_event_type) VALUES (?,?,?,?,?,?,?,?,?,?)").bind("01J000000000000000000000D03", "01J000000000000000000000D02", "01J00000000000000000000045", "email", "queued", now, now, now, "complaint-event", "incident-update"),
@@ -538,9 +735,9 @@ contract("SUB-010", "five consecutive soft bounces and one provider complaint ea
   assert.deepEqual(await db.prepare("SELECT state,deactivation_reason AS reason FROM subscribers WHERE id = ?").bind("01J000000000000000000000D02").first(), { state: "deactivated", reason: "spam complaint" });
   await complaintDeliveries.dispatchDelivery("01J000000000000000000000D03", "https://status.example.test");
   assert.equal(complaintMail.messages.length, 1);
-});
-
-contract("SUB-010", "a provider callback that beats the provider attempt is durably applied, and later delivered callbacks cannot erase a bounce", async () => {
+})(t);
+  t.diagnostic("SUB-010 — a provider callback that beats the provider attempt is durably applied, and later delivered callbacks cannot erase a bounce");
+  await (async () => {
   const db = platform.env.DB;
   const now = "2026-09-08T08:20:00.000Z";
   await db.batch([
@@ -563,9 +760,9 @@ contract("SUB-010", "a provider callback that beats the provider attempt is dura
   await deliveries.handleProviderEvent({ id: "late-delivered-callback", providerMessageId: "callback-race-message", type: "delivered" });
   assert.deepEqual(await db.prepare("SELECT outcome FROM notification_deliveries WHERE id = ?").bind("provider-race-delivery").first(), { outcome: "bounced" });
   assert.deepEqual(await db.prepare("SELECT state,deactivation_reason AS reason FROM subscribers WHERE id = ?").bind("provider-race-subscriber").first(), { state: "deactivated", reason: "hard bounce" });
-});
-
-contract("SUB-010", "a replayed fifth soft bounce finishes deactivation after an interrupted outcome commit", async () => {
+})(t);
+  t.diagnostic("SUB-010 — a replayed fifth soft bounce finishes deactivation after an interrupted outcome commit");
+  await (async () => {
   const db = platform.env.DB;
   const now = "2026-09-08T08:23:00.000Z";
   const subscriberId = "soft-bounce-replay-subscriber";
@@ -579,9 +776,24 @@ contract("SUB-010", "a replayed fifth soft bounce finishes deactivation after an
   const deliveries = createDeliveriesService(createDeliveryRepository(db), { fromAddress: "lamp@example.test" });
   await deliveries.handleProviderEvent({ id: "soft-bounce-replay-event", providerMessageId: "soft-bounce-replay-message", type: "bounced", hardBounce: false });
   assert.deepEqual(await db.prepare("SELECT state,deactivation_reason AS reason FROM subscribers WHERE id = ?").bind(subscriberId).first(), { state: "deactivated", reason: "five consecutive soft bounces" });
+})(t);
 });
 
-contract("TEAM-003", "operator deletion removes frozen recipients and pending contact-alert recipients from D1 and CSV", async () => {
+
+
+
+
+
+
+
+
+
+
+
+
+test("TEAM-003 NOTIFY-001 NOTIFY-003 NOTIFY-006 NOTIFY-009 TEAM-001 — Erased recipient privacy, operator alerts and independent delivery retries", async t => {
+  t.diagnostic("TEAM-003 — operator deletion removes frozen recipients and pending contact-alert recipients from D1 and CSV");
+  await (async () => {
   const { Hono } = await import("hono");
   const db = platform.env.DB;
   const now = "2026-09-08T08:25:00.000Z";
@@ -610,16 +822,16 @@ contract("TEAM-003", "operator deletion removes frozen recipients and pending co
   const afterDeletion = createDeliveriesService(createDeliveryRepository(db), { mail: afterDeletionMail, fromAddress: "lamp@example.test", subscriberTokenSecret: "erasure-envelope-secret" });
   await afterDeletion.dispatchDue("https://status.example.test");
   assert.equal(afterDeletionMail.messages.length, 0, "a deleted contact is removed rather than sent a synthetic address");
-});
-
-contract("NOTIFY-001", "the concrete notification.events.v1 default captures only explicit incident update channel selections", async () => {
+})(t);
+  t.diagnostic("NOTIFY-001 — the concrete notification.events.v1 default captures only explicit incident update channel selections");
+  await (async () => {
   const { defaultNotificationEventsPolicy } = await vite.ssrLoadModule("/src/core/features/deliveries/policies.ts");
   assert.equal(defaultNotificationEventsPolicy.id, "notification.events.v1");
   assert.deepEqual(defaultNotificationEventsPolicy.channelsForIncidentUpdate(), ["email", "webhook"]);
   assert.deepEqual(notificationPublicationStatements(platform.env.DB, { eventId: "no-recipient-event", eventType: "incident-update", incidentUpdateId: "01J00000000000000000000045", componentIds: ["01J00000000000000000000003"], channels: [], queuedAt: "2026-09-08T08:30:00.000Z" }), []);
-});
-
-contract("NOTIFY-003", "a retryable D1 delivery gets five retries then a durable failed outcome and alert job", async () => {
+})(t);
+  t.diagnostic("NOTIFY-003 — a retryable D1 delivery gets five retries then a durable failed outcome and alert job");
+  await (async () => {
   const db = platform.env.DB;
   await db.prepare("DELETE FROM notification_outbox").run();
   const now = "2026-09-08T08:40:00.000Z";
@@ -652,9 +864,9 @@ contract("NOTIFY-003", "a retryable D1 delivery gets five retries then a durable
   assert.deepEqual(failedEvents.map((event) => ({ deliveryId: event.deliveryId, notificationEventId: event.notificationEventId })), [{ deliveryId: "01J00000000000000000000095", notificationEventId: "retry-failure-event" }]);
   await deliveries.dispatchDue("https://status.example.test");
   assert.ok(messages.length >= 1);
-});
-
-contract("NOTIFY-006", "operator alerts are frozen, uniquely queued per event, and sent once to the active operator snapshot", async () => {
+})(t);
+  t.diagnostic("NOTIFY-006 — operator alerts are frozen, uniquely queued per event, and sent once to the active operator snapshot");
+  await (async () => {
   const db = platform.env.DB;
   await db.prepare("DELETE FROM notification_outbox").run();
   const mail = new CapturingMail();
@@ -668,9 +880,9 @@ contract("NOTIFY-006", "operator alerts are frozen, uniquely queued per event, a
   await deliveries.dispatchDue("https://status.example.test");
   assert.equal(mail.messages.length, operators.count);
   assert.equal((await db.prepare("SELECT completed_at AS completedAt FROM notification_outbox WHERE kind = 'operator-alert'").first()).completedAt !== null, true);
-});
-
-contract("NOTIFY-009", "recipient capture commits without awaiting an unavailable provider", async () => {
+})(t);
+  t.diagnostic("NOTIFY-009 — recipient capture commits without awaiting an unavailable provider");
+  await (async () => {
   const db = platform.env.DB;
   const now = "2026-09-08T09:00:00.000Z";
   const eventId = "01J00000000000000000000096";
@@ -678,16 +890,16 @@ contract("NOTIFY-009", "recipient capture commits without awaiting an unavailabl
   await db.batch(notificationPublicationStatements(db, { eventId, eventType: "incident-update", incidentUpdateId: eventId, componentIds: ["01J00000000000000000000003"], channels: ["email"], queuedAt: now }));
   assert.ok((await db.prepare("SELECT id FROM notification_deliveries WHERE notification_event_id = ?").bind(eventId).first()));
   assert.ok((await db.prepare("SELECT id FROM notification_outbox WHERE aggregate_id = ?").bind(eventId).first()));
-});
-
-contract("TEAM-001", "every active operator reaches the same subscriber management route", async()=>{
+})(t);
+  t.diagnostic("TEAM-001 — every active operator reaches the same subscriber management route");
+  await (async()=>{
  const {Hono}=await import('hono');const {requireOperator}=await vite.ssrLoadModule('/src/core/features/operators/routes.ts');const db=platform.env.DB,fixture=authFixture(db);
  await db.prepare("INSERT INTO oa_operators(id,email,display_name,role,status,created_at) VALUES ('equal-operator','equal@example.test','Equal','owner','active',?)").bind(Date.now()).run();
- const cookie=await fixture.signIn('equal@example.test');const app=new Hono();app.use('*',async(c,next)=>{c.env={DB:db};await next();});app.use('/api/app/*',requireOperator(()=>fixture.auth));registerSubscriberRoutes(app,createSubscribersService(createSubscriberRepository(db),{tokenSecret:'equal-operator-subscriber-token'}));
+ const cookie=await fixture.signIn('equal@example.test');const app=new Hono();app.use('*',async(c,next)=>{c.env={DB:db};await next();});app.use('/api/app/*',requireOperator(()=>fixture.auth));registerSubscriberRoutes(app,createSubscribersService(createSubscriberRepository(db),{tokenSecret:'synthetic-equal-operator-subscriber-token'}));
  assert.equal((await app.fetch(fixture.request('/api/app/subscribers?limit=5',{cookie}))).status,200);
-});
-
-contract("NOTIFY-003", "one failing recipient cannot strand a healthy recipient, and a concurrent webhook dispatch posts once", async () => {
+})(t);
+  t.diagnostic("NOTIFY-003 — one failing recipient cannot strand a healthy recipient, and a concurrent webhook dispatch posts once");
+  await (async () => {
   const db = platform.env.DB;
   const now = "2026-09-08T09:10:00.000Z";
   await db.batch([
@@ -712,9 +924,24 @@ contract("NOTIFY-003", "one failing recipient cannot strand a healthy recipient,
     await Promise.all([deliveries.dispatchDelivery("01J000000000000000000000B01", "https://status.example.test"), deliveries.dispatchDelivery("01J000000000000000000000B01", "https://status.example.test")]);
     assert.equal(requests.filter((url) => url.includes("healthy.example.test")).length, 2); // one mixed delivery + one concurrent delivery
   } finally { globalThis.fetch = realFetch; }
+})(t);
 });
 
-contract("NOTIFY-004", "SQL filters delivery and outbox rows before applying their limits, so failed history cannot starve due work", async () => {
+
+
+
+
+
+
+
+
+
+
+
+
+test("NOTIFY-004 SUB-011 NOTIFY-002 — Delivery queues and complete subscriber/history pagination at capacity", async t => {
+  t.diagnostic("NOTIFY-004 — SQL filters delivery and outbox rows before applying their limits, so failed history cannot starve due work");
+  await (async () => {
   const db = platform.env.DB;
   await db.prepare("DELETE FROM notification_outbox").run();
   const now = "2026-09-08T09:20:00.000Z";
@@ -730,9 +957,9 @@ contract("NOTIFY-004", "SQL filters delivery and outbox rows before applying the
   const delivered = await deliveries.list({ outcome: "delivered", limit: 1 });
   assert.equal(delivered.length, 1);
   assert.equal(delivered[0].outcome, "delivered");
-});
-
-contract("SUB-011", "operator pagination makes every subscriber reachable beyond the first hundred records", async () => {
+})(t);
+  t.diagnostic("SUB-011 — operator pagination makes every subscriber reachable beyond the first hundred records");
+  await (async () => {
   const { Hono } = await import("hono");
   const db = platform.env.DB;
   const existing = await db.prepare("SELECT COUNT(*) AS count FROM subscribers").first();
@@ -744,7 +971,7 @@ contract("SUB-011", "operator pagination makes every subscriber reachable beyond
   }
   await db.batch(statements);
   const app = new Hono();
-  registerSubscriberRoutes(app, createSubscribersService(createSubscriberRepository(db), { tokenSecret: "pagination-subscriber-secret" }));
+  registerSubscriberRoutes(app, createSubscribersService(createSubscriberRepository(db), { tokenSecret: "synthetic-pagination-subscriber-secret" }));
   const first = await app.request(`https://app.example.test/api/app/subscribers?limit=100&offset=${existing.count}`);
   const firstBody = await first.json();
   assert.equal(first.status, 200);
@@ -757,9 +984,9 @@ contract("SUB-011", "operator pagination makes every subscriber reachable beyond
   assert.equal(secondBody.subscribers.length, 1);
   assert.equal(secondBody.subscribers[0].destination, "pagination-subscriber-100@example.test");
   assert.equal(secondBody.hasMore, false);
-});
-
-contract("NOTIFY-004", "operator pagination and CSV keep delivery history reachable beyond the first hundred records", async () => {
+})(t);
+  t.diagnostic("NOTIFY-004 — operator pagination and CSV keep delivery history reachable beyond the first hundred records");
+  await (async () => {
   const { Hono } = await import("hono");
   const db = platform.env.DB;
   const existing = await db.prepare("SELECT COUNT(*) AS count FROM notification_deliveries").first();
@@ -791,9 +1018,9 @@ contract("NOTIFY-004", "operator pagination and CSV keep delivery history reacha
   assert.equal(secondBody.hasMore, false);
   const csv = await (await app.request("https://app.example.test/api/app/deliveries.csv?channel=email&outcome=queued")).text();
   assert.equal((csv.match(/pagination-delivery-\d{3}@example\.test/g) ?? []).length, 101);
-});
-
-contract("NOTIFY-002", "the local D1 engine dispatches a 1,000-recipient set within the documented default Resend rate model", async () => {
+})(t);
+  t.diagnostic("NOTIFY-002 — the local D1 engine dispatches a 1,000-recipient set within the documented default Resend rate model");
+  await (async () => {
   const db = platform.env.DB;
   const subscriberLimit = 1_000;
   const now = "2099-01-02T00:00:00.000Z";
@@ -824,7 +1051,7 @@ contract("NOTIFY-002", "the local D1 engine dispatches a 1,000-recipient set wit
   const captured = await db.prepare("SELECT COUNT(*) AS count FROM notification_deliveries WHERE notification_event_id = ?").bind(eventId).first();
   assert.equal(captured.count, subscriberLimit);
   const mail = new DefaultResendRateModelMail();
-  const deliveries = createDeliveriesService(createDeliveryRepository(db), { mail, fromAddress: "lamp@example.test", subscriberTokenSecret: "fanout-limit-secret" });
+  const deliveries = createDeliveriesService(createDeliveryRepository(db), { mail, fromAddress: "lamp@example.test", subscriberTokenSecret: "synthetic-fanout-limit-secret" });
   await deliveries.dispatchEvent(eventId, "https://status.example.test");
   const elapsedMs = performance.now() - startedAt;
   const accepted = await db.prepare("SELECT COUNT(*) AS count FROM notification_delivery_attempts attempt JOIN notification_deliveries delivery ON delivery.id = attempt.delivery_id WHERE delivery.notification_event_id = ? AND attempt.provider_message_id IS NOT NULL").bind(eventId).first();
@@ -833,4 +1060,5 @@ contract("NOTIFY-002", "the local D1 engine dispatches a 1,000-recipient set wit
   assert.ok(mail.peakPerSecond <= 10, `dispatcher exceeded the 10 request/second Resend default model: ${mail.peakPerSecond}`);
   assert.ok(elapsedMs < 5 * 60_000, `local fan-out took ${Math.round(elapsedMs)}ms, beyond the five-minute contract window`);
   console.log(`LOCAL_FANOUT subscribers=${subscriberLimit} transport_ack_ms=100 resend_default_rate_model_rps=10 peak_rps=${mail.peakPerSecond} elapsed_ms=${Math.round(elapsedMs)} provider=test-only-rate-model`);
+})(t);
 });

@@ -2,7 +2,7 @@
   "schema": 1,
   "project": {
     "schema": 1,
-    "projectId": "just-every/run-lamp",
+    "projectId": "just-every/lamp",
     "name": "Lamp",
     "sourceRepository": "https://github.com/just-every/run-lamp",
     "license": "MIT",
@@ -13,18 +13,17 @@
     "operations": {
       "setup": "bash scripts/independent-build-setup.sh",
       "build": "pnpm run build",
-      "verify": "pnpm run verify",
+      "verify": "pnpm run validate:release && pnpm run check -- --profile first-party && pnpm run source:check && pnpm run source:copies",
       "artifact": "node scripts/build-delivery-artifact.mjs",
       "recovery": "Follow OPERATIONS.md: pause writes and scheduled work, retain exact source and private secrets, export D1 and R2, restore into fresh empty resources, re-export and compare bytes, then verify native sessions and publication before routing traffic. SnapshotCache is derived from retained R2 generation; existing migration names and bytes must remain unchanged."
     }
   },
   "managed": {
-    "workflowRef": "runeditrun/delivery/.github/workflows/trusted-build.yml@bf7a25abb44bec1457a7bc738ff63921d90fb52e",
+    "workflowRef": "runeditrun/delivery/.github/workflows/trusted-build.yml@86c8b37399c901bffd9a240dbd1148a65ec83b34",
     "artifactFile": "lamp-worker-artifact.json",
-    "buildProfile": "edition",
+    "buildProfile": "project",
     "verificationProfiles": [
-      "full",
-      "visual"
+      "full"
     ]
   },
   "artifact": {
@@ -112,7 +111,7 @@
   },
   "edition": {
     "manifestFile": "edition.json",
-    "componentId": "just-every/run-lamp"
+    "componentId": "just-every/lamp"
   },
   "setup": {
     "manifestFile": "rer-setup.json"

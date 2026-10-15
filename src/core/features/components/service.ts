@@ -49,29 +49,21 @@ export function createComponentsService(
   events: ComponentEvents = defaultComponentEvents,
 ): ComponentsService {
   const recomputePublicState = async (componentId: string, cause: StateClaimCause, changedAt?: string) => {
-    const [previous, claims] = await Promise.all([repository.findLastState(componentId), repository.listClaims(componentId)]);
-    const next = mostSevereState(claims);
-    if (previous !== next) {
-      const timestamp = nowIso();
-      await repository.appendStateHistory({
-        id: createUlid(),
-        componentId,
-        previousState: previous ?? "Operational",
-        newState: next,
-        cause,
-        changedAt: changedAt ?? timestamp,
-        createdAt: timestamp,
-        updatedAt: timestamp,
-      });
+    const timestamp = nowIso();
+    const transition = await repository.appendCurrentStateHistory({
+      id: createUlid(), componentId, cause,
+      changedAt: changedAt ?? timestamp, createdAt: timestamp, updatedAt: timestamp,
+    });
+    if (transition) {
       await events.componentStatusChanged({
         componentId,
-        previousState: previous ?? "Operational",
-        state: next,
+        previousState: transition.previousState,
+        state: transition.newState,
         changedAt: changedAt ?? timestamp,
         cause: cause.type,
       });
     }
-    return next;
+    return transition?.newState ?? mostSevereState(await repository.listClaims(componentId));
   };
 
   return {

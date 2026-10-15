@@ -13,7 +13,7 @@ import {
   maintenance,
   maintenanceComponents,
 } from "../../shared/schema";
-import type { ComponentState } from "../../shared/domain";
+import { COMPONENT_STATE_SEVERITY, type ComponentState } from "../../shared/domain";
 import type { ComponentGroupUpdateInput, ComponentUpdateInput } from "../../shared/schemas";
 
 export type StoredComponent = typeof components.$inferSelect;
@@ -37,8 +37,8 @@ export interface ComponentRepository {
   listHistoryBetween(componentId: string, startsAt: string, endsAt: string): Promise<ComponentHistoryEntry[]>;
   findStateBefore(componentId: string, instant: string): Promise<ComponentState | null>;
   hasUnprovenClaimHistorySince(componentId: string, instant: string): Promise<boolean>;
-  findLastState(componentId: string): Promise<ComponentState | null>;
   appendStateHistory(input: ComponentStateHistoryInput): Promise<void>;
+  appendCurrentStateHistory(input: Omit<ComponentStateHistoryInput, "previousState" | "newState">): Promise<{ previousState: ComponentState; newState: ComponentState } | null>;
   findStateAt(componentId: string, instant: string): Promise<ComponentState | null>;
   listHistory(componentId: string): Promise<ComponentHistoryEntry[]>;
   listCorrections(componentId: string): Promise<ComponentHistoryCorrection[]>;
@@ -229,15 +229,6 @@ export function createComponentRepository(binding: D1Database): ComponentReposit
       `).bind(componentId, instant, instant).first<{ hasUnprovenHistory: number }>();
       return result?.hasUnprovenHistory === 1;
     },
-    async findLastState(componentId) {
-      const state = await database
-        .select({ state: componentStateHistory.newState })
-        .from(componentStateHistory)
-        .where(eq(componentStateHistory.componentId, componentId))
-        .orderBy(desc(componentStateHistory.changedAt), desc(componentStateHistory.createdAt), desc(componentStateHistory.id))
-        .get();
-      return state?.state ?? null;
-    },
     async appendStateHistory(input) {
       await database.insert(componentStateHistory).values({
         id: input.id,
@@ -251,6 +242,28 @@ export function createComponentRepository(binding: D1Database): ComponentReposit
         createdAt: input.createdAt,
         updatedAt: input.updatedAt,
       });
+    },
+    async appendCurrentStateHistory(input) {
+      // Read every live claim and the latest aggregate in the same statement
+      // that appends history. A delayed recomputation must not persist an
+      // aggregate derived before a competing attach, release or transition.
+      return binding.prepare(`WITH claims(state) AS (
+        SELECT state FROM component_standing_claims WHERE component_id = ?
+        UNION ALL SELECT attached.state FROM incident_components attached JOIN incidents incident ON incident.id = attached.incident_id
+          WHERE attached.component_id = ? AND attached.published_at IS NOT NULL AND incident.deleted_at IS NULL AND incident.lifecycle <> 'Resolved'
+        UNION ALL SELECT attached.state FROM maintenance_components attached JOIN maintenance window ON window.id = attached.maintenance_id
+          WHERE attached.component_id = ? AND window.state = 'In progress'
+      ), current AS (
+        SELECT value AS state FROM json_each(?) WHERE value = 'Operational' OR value IN (SELECT state FROM claims) ORDER BY key LIMIT 1
+      ), previous AS (
+        SELECT new_state AS state FROM component_state_history WHERE component_id = ? ORDER BY changed_at DESC,created_at DESC,id DESC LIMIT 1
+      ) INSERT INTO component_state_history (id,component_id,previous_state,new_state,cause_type,cause_id,operator_id,changed_at,created_at,updated_at)
+        SELECT ?,?,COALESCE((SELECT state FROM previous),'Operational'),current.state,?,?,?,?,?,? FROM current
+        WHERE (SELECT state FROM previous) IS NOT current.state AND EXISTS (SELECT 1 FROM components WHERE id = ?)
+        RETURNING previous_state AS previousState,new_state AS newState`)
+        .bind(input.componentId,input.componentId,input.componentId,JSON.stringify(COMPONENT_STATE_SEVERITY),input.componentId,
+          input.id,input.componentId,input.cause.type,input.cause.id,input.cause.operatorId,input.changedAt,input.createdAt,input.updatedAt,input.componentId)
+        .first<{ previousState: ComponentState; newState: ComponentState }>();
     },
     async findStateAt(componentId, instant) {
       const state = await database

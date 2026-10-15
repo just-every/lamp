@@ -1,10 +1,11 @@
+import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, readdirSync } from 'node:fs';
 import { Hono } from 'hono';
-import { contract } from '../contract.mjs';
 import { lampRuntime, preview, suspendedBody } from './lamp-runtime.mjs';
 import { secret } from './runtime.mjs';
 import { holdConfirmationWrite } from './cutover-race-helper.mjs';
+import { exerciseMailPreparation } from './cutover-mail-helper.mjs';
 
 const fixture = family => readdirSync(`tests/fixtures/statuspage/${family}`).map(name => ({ name, text: readFileSync(`tests/fixtures/statuspage/${family}/${name}`, 'utf8') }));
 const endpoint = id => `/api/app/statuspage-import/jobs/${id}`;
@@ -22,7 +23,9 @@ async function apply(r, files, cookie = r.cookie) {
 }
 const send = (r, id, cookie = r.cookie) => r.call(`${endpoint(id)}/send-invitations`, { method: 'POST', cookie, body: {} });
 
-contract('MOVE-006', 'dry runs and saved cutover previews carry truthful destinations and mail waits for the owner across batches and repeats', async t => {
+test("MOVE-006 MOVE-002 — Owner-approved cutover invitations and preparation failure recovery", async t => {
+  t.diagnostic("MOVE-006 — dry runs and saved cutover previews carry truthful destinations and mail waits for the owner across batches and repeats");
+  await (async t => {
   const r = await lampRuntime(t);
   const files = fixture('small');
   files.find(file => file.name === 'subscribers.json').text = JSON.stringify(Array.from({length: 57}, (_, i) => ({ id: `subscriber-${i}`, email: `person-${i}@example.test`, mode: 'email', created_at: '2026-01-01T00:00:00Z' })));
@@ -51,9 +54,56 @@ contract('MOVE-006', 'dry runs and saved cutover previews carry truthful destina
   const large = await r.call('/api/app/statuspage-import/preview', { method:'POST', cookie:r.cookie, body:{files:fixture('large')} });
   // Source overlaps this import, so duplicate source identities must still be refused.
   assert.equal(large.status, 400);
+})(t);
+  t.diagnostic("MOVE-002 — invitation preparation failures remain retryable while ambiguous transport failures stay claimed");
+  await (async t => {
+  await exerciseMailPreparation(t, r => apply(r, fixture('small')));
+  for (const failure of ['origin', 'configuration', 'tokens', 'authority', 'transport']) await t.test(failure, async t => {
+    const r = await lampRuntime(t);
+    const imported = await apply(r, fixture('small'));
+    let broken = true, cookie = r.cookie;
+    const mail = { configured: true, async send(message) {
+      r.messages.push(message);
+      if (broken && failure === 'transport') throw Error('Transport result unknown');
+    } };
+    const subscriberService = r.modules.createSubscribersService(r.modules.createSubscriberRepository(r.db), {
+      mail, tokenSecret: secret,
+      async fromAddress() {
+        if (broken && failure === 'configuration') return undefined;
+        if (broken && failure === 'authority') await r.db.prepare('UPDATE oa_sessions SET revoked_at=1').run();
+        return 'lamp@example.test';
+      },
+    });
+    if (failure === 'tokens') await r.db.prepare("CREATE TRIGGER refuse_token_preparation BEFORE INSERT ON subscriber_tokens BEGIN SELECT RAISE(ABORT, 'Token preparation unavailable'); END").run();
+    const app = new Hono();
+    app.use('/api/app/*', r.modules.requireOperator(() => r.auth));
+    r.modules.registerStatuspageImportRoutes(app, r.modules.createStatuspageImportService(r.db, {
+      async inviteSubscriber(id, claim) {
+        return subscriberService.inviteImported(id, broken && failure === 'origin' ? 'invalid-origin' : 'https://page.example.test', 'Test page', claim);
+      },
+      async publicDataChanged() {},
+    }));
+    const attempt = () => app.fetch(r.request(`${endpoint(imported.job.id)}/send-invitations`, {method:'POST', cookie, body:{}}), r.bindings);
+    assert.equal((await attempt()).status, 409);
+    const claims = (await r.db.prepare('SELECT count(*) n FROM statuspage_import_invites WHERE sent_at IS NOT NULL').first()).n;
+    assert.equal(claims, failure === 'transport' ? 1 : 0, `${failure} consumes only a transport handoff`);
+    assert.equal(r.messages.length, failure === 'transport' ? 1 : 0);
+    broken = false;
+    if (failure === 'tokens') await r.db.prepare('DROP TRIGGER refuse_token_preparation').run();
+    if (failure === 'authority') cookie = await r.base.signIn();
+    assert.ok((await Promise.all([attempt(), attempt()])).every(response => response.status === 200));
+    assert.equal((await attempt()).status, 200);
+    assert.equal(r.messages.length, 2, `${failure}: each address handed to transport once after repair`);
+    assert.equal(new Set(r.messages.map(message => message.to)).size, 2);
+  });
+})(t);
 });
 
-contract('MOVE-002', 'delayed invitations retain the original expiry and undo rows; expired pending subscribers are not sent mail', async t => {
+
+
+test("MOVE-002 MOVE-006 — Imported invitation expiry, revoked authority and public subscription races", async t => {
+  t.diagnostic("MOVE-002 — delayed invitations retain the original expiry and undo rows; expired pending subscribers are not sent mail");
+  await (async t => {
   const r = await lampRuntime(t);
   const result = await apply(r, fixture('small'));
   const rows = (await r.db.prepare("SELECT id,created_at,updated_at FROM subscribers ORDER BY id").all()).results;
@@ -75,9 +125,9 @@ contract('MOVE-002', 'delayed invitations retain the original expiry and undo ro
   assert.equal(token.expires_at, deadline);
   assert.deepEqual((await r.db.prepare('SELECT * FROM subscribers ORDER BY id').all()).results, before);
   assert.deepEqual((await r.db.prepare('SELECT * FROM ik_provenance ORDER BY ordinal').all()).results, journal);
-});
-
-contract('MOVE-006', 'owner revocation before an invitation action sends nothing; saved large previews cap rows without losing the count', async t => {
+})(t);
+  t.diagnostic("MOVE-006 — owner revocation before an invitation action sends nothing; saved large previews cap rows without losing the count");
+  await (async t => {
   const r = await lampRuntime(t);
   const cookie = await r.providerSession(r.owner.id);
   const result = await apply(r, fixture('small'), cookie);
@@ -92,9 +142,9 @@ contract('MOVE-006', 'owner revocation before an invitation action sends nothing
   const cutover = (await report.json()).report.cutover;
   assert.ok(cutover.rows.length <= 25); assert.ok(cutover.total > cutover.rows.length);
   assert.ok(cutover.rows.every(row => row.address && row.path && row.target));
-});
-
-contract('MOVE-002', 'public subscriptions racing owner invitations cannot extend either imported confirmation deadline', async t => {
+})(t);
+  t.diagnostic("MOVE-002 — public subscriptions racing owner invitations cannot extend either imported confirmation deadline");
+  await (async t => {
   const r = await lampRuntime(t);
   const result = await apply(r, fixture('small'));
   const rows = (await r.db.prepare('SELECT * FROM subscribers ORDER BY id').all()).results;
@@ -145,13 +195,29 @@ contract('MOVE-002', 'public subscriptions racing owner invitations cannot exten
   assert.deepEqual(expiries, rows.map(() => [{ expires_at: deadline }]));
   assert.deepEqual((await r.db.prepare('SELECT * FROM subscribers ORDER BY id').all()).results, before);
   // A separate, explicit opt-in after opting out still gets a fresh window,
-  // even though this subscriber's preserved native creation time is now old.
+  // independent of its old import window.
   const unsubscribe = invitations[0].text.match(/https?:\/\/\S+\/unsubscribe\/\S+/u)[0];
   assert.equal((await publicApp.request(unsubscribe, { method:'POST', body:new URLSearchParams({ 'List-Unsubscribe':'One-Click' }) })).status, 200);
   await r.db.prepare("UPDATE subscriber_confirmation_attempts SET last_sent_at='2000-01-01T00:00:00.000Z'").run();
   assert.equal((await subscribe(invitations[0].to)).status, 202);
   const fresh = r.messages.at(-1).text.match(/https?:\/\/\S+\/confirm-subscription\/\S+/u)[0];
-  assert.equal((await publicApp.request(fresh)).status, 200);
+  const renewed = await r.db.prepare('SELECT id,created_at FROM subscribers WHERE destination=?').bind(invitations[0].to).first();
+  await publicService.expirePending();
+  assert.equal((await publicApp.request(fresh)).status, 200, 'cleanup after the original deadline preserves the renewed confirmation');
   const rejoined = await r.db.prepare('SELECT state,created_at FROM subscribers WHERE destination=?').bind(invitations[0].to).first();
-  assert.deepEqual(rejoined, { state:'active', created_at:createdAt });
+  assert.deepEqual(rejoined, { state:'active', created_at:renewed.created_at });
+  assert.equal((await publicApp.request(unsubscribe, {method:'POST', body:new URLSearchParams({'List-Unsubscribe':'One-Click'})})).status, 404, 'previous unsubscribe authority stays revoked');
+  const currentUnsubscribe = r.messages.at(-1).text.match(/https?:\/\/\S+\/unsubscribe\/\S+/u)[0];
+  assert.equal((await publicApp.request(currentUnsubscribe, {method:'POST', body:new URLSearchParams({'List-Unsubscribe':'One-Click'})})).status, 200);
+  const beforeSuppressed = r.messages.length;
+  assert.equal((await subscribe(invitations[0].to)).status, 202);
+  assert.equal(r.messages.length, beforeSuppressed, 'rejoin preserves the address anti-bomb allowance');
+  await r.db.prepare("UPDATE subscriber_confirmation_attempts SET last_sent_at='2000-01-01T00:00:00.000Z'").run();
+  assert.equal((await subscribe(invitations[0].to)).status, 202);
+  const finalPending = await r.db.prepare('SELECT created_at FROM subscribers WHERE id=?').bind(renewed.id).first();
+  // The cleanup repository takes a 72-hour cutoff; advance that cutoff just
+  // beyond the renewed deadline without changing the process or D1 clock.
+  await r.modules.createSubscriberRepository(r.db).deleteExpiredPending(new Date(Date.parse(finalPending.created_at)+1).toISOString());
+  assert.equal(await r.db.prepare('SELECT id FROM subscribers WHERE id=?').bind(renewed.id).first(), null, 'cleanup after the renewed deadline removes the unconfirmed address');
+})(t);
 });

@@ -198,6 +198,24 @@
             "entered",
             "managed"
           ]
+        },
+        "localDefault": {
+          "type": [
+            "string",
+            "object"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "generate": {
+              "enum": [
+                "hex",
+                "base64"
+              ]
+            },
+            "from": {
+              "const": "origin"
+            }
+          }
         }
       },
       "allOf": [

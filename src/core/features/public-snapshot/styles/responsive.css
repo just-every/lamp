@@ -22,6 +22,9 @@
   .component-group { padding: 0 16px; }
   .component-group > h3 { margin-inline: -16px; padding-inline: 16px; }
   .component { padding: 16px 0; gap: 12px; }
+  .uptime { grid-template-columns: minmax(0, 1fr); gap: 6px; }
+  .uptime-window { grid-row: 3; grid-column: 1; }
+  .uptime-number { grid-row: 2; grid-column: 1; text-align: left; }
   .uptime-marks { gap: 1px; height: 28px; }
   .uptime-mark { border-radius: 1px; }
   .availability-method summary { margin-left: 0; }

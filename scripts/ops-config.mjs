@@ -1,6 +1,7 @@
 import { randomBytes, createPublicKey } from "node:crypto";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, isAbsolute, resolve } from "node:path";
+import { validateOwnerClaim } from './owner-claim-config.mjs';
 
 const hostnamePattern = /^(?=.{1,253}$)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)*[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/;
 const environmentPattern = /^[a-z0-9](?:[a-z0-9-]{0,30}[a-z0-9])?$/;
@@ -124,7 +125,8 @@ export function deploymentConfig(env = process.env, environment = "production") 
   const pageAccentColor = accentColor(env.LAMP_ACCENT_COLOR);
   const mailFromAddress = email(required(env, "MAIL_FROM_ADDRESS"), "MAIL_FROM_ADDRESS");
   const setupOperatorEmail = email(required(env, "SETUP_OPERATOR_EMAIL"), "SETUP_OPERATOR_EMAIL");
-  const setupOperatorDisplayName = env.OWNER_DISPLAY_NAME === undefined ? "Setup operator" : text(env.OWNER_DISPLAY_NAME, "OWNER_DISPLAY_NAME", 120);
+  validateOwnerClaim(env, `https://${appHost}`, setupOperatorEmail);
+  const setupOperatorDisplayName = env.OWNER_DISPLAY_NAME === undefined ? "Owner" : text(env.OWNER_DISPLAY_NAME, "OWNER_DISPLAY_NAME", 120);
   const mailProvider = optional(env.MAIL_PROVIDER) ?? "resend";
   if (!["resend", "sendgrid"].includes(mailProvider)) throw new Error("MAIL_PROVIDER must be resend or sendgrid.");
   const sendGridWebhookPublicKey = optional(env.SENDGRID_WEBHOOK_PUBLIC_KEY);

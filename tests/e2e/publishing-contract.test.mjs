@@ -1,3 +1,4 @@
+import { test } from 'node:test';
 import { requestHeaders } from "../helpers/request-headers.mjs";
 import { withDraftVersion } from "./draft-version-helper.mjs";
 import assert from "node:assert/strict";
@@ -9,7 +10,6 @@ import { fileURLToPath } from "node:url";
 import { after, before } from "node:test";
 import { createServer as createViteServer } from "vite";
 
-import { contract } from "../contract.mjs";
 import { insertRealOperatorSession } from "./real-session-helper.mjs";
 import { appOrigin, pageOrigin } from "./helpers/hosts.mjs";
 import { reservePort, waitForWorker } from "./worker-startup.mjs";
@@ -292,7 +292,9 @@ const validDraft = {
   lifecycle: "Identified", affectedAudience: "API customers.", customerImpact: "Some requests can fail.", whatStillWorks: "The dashboard remains available.", details: "Engineers are mitigating the condition.", nextUpdateAt: "2026-09-08T04:00:00.000Z",
 };
 
-contract("UPDATE-001", "invalid required publication fields return 400 and leave the draft unpublished", async () => {
+test("UPDATE-001 UPDATE-008 UPDATE-002 UPDATE-003 — Validated publication, shared rendering and resolution", async t => {
+  t.diagnostic("UPDATE-001 — invalid required publication fields return 400 and leave the draft unpublished");
+  await (async () => {
   const created = await appFetch("/api/app/incidents", { method: "POST", body: JSON.stringify({ title: "Publication transaction test", components: [{ componentId: "01J00000000000000000000011", state: "Major outage", relationship: "Primary" }] }) });
   assert.equal(created.status, 201);
   const incident = (await created.json()).incident;
@@ -312,9 +314,9 @@ contract("UPDATE-001", "invalid required publication fields return 400 and leave
   const replay = await appFetch(`/api/app/incidents/${incident.id}/publish`, { method: "POST", body: JSON.stringify({ channels: ["email"] }) });
   assert.equal(replay.status, 409);
   assert.equal((await (await appFetch(`/api/app/incidents/${incident.id}`)).json()).incident.updates.length, 1);
-});
-
-contract("UPDATE-008", "a repeated publish cannot create a second immutable update or recipient record", async () => {
+})(t);
+  t.diagnostic("UPDATE-008 — a repeated publish cannot create a second immutable update or recipient record");
+  await (async () => {
   const incident = await createIncident("Recipient snapshot retry");
   await saveDraft(incident.id);
   const first = await publish(incident.id, { channels: ["email"] });
@@ -325,9 +327,9 @@ contract("UPDATE-008", "a repeated publish cannot create a second immutable upda
   const deliveries = (await (await appFetch(`/api/app/deliveries?incidentUpdateId=${update.id}`)).json()).deliveries;
   assert.equal(deliveries.length, 1);
   assert.equal((await incidentView(incident.id)).updates.length, 1);
-});
-
-contract("UPDATE-002", "preview, public page, Atom feed, and widget retain every populated update field", async () => {
+})(t);
+  t.diagnostic("UPDATE-002 — preview, public page, Atom feed, and widget retain every populated update field");
+  await (async () => {
   const incident = await createIncident("Shared update renderer");
   const draft = draftFor({ affectedAudience: "Regional API customers.", customerImpact: "Regional writes can be delayed.", whatStillWorks: "Reads remain available.", details: "A connection limit is being raised." });
   const preview = await appFetch(`/api/app/incidents/${incident.id}/draft/preview`, { method: "POST", body: JSON.stringify(draft) });
@@ -350,9 +352,9 @@ contract("UPDATE-002", "preview, public page, Atom feed, and widget retain every
     assert.match(body, /connection limit is being raised/i);
   }
   assert.ok(performance.now() - publicationStarted < 10_000, "all public surfaces must reflect publication within PAGE-007's ten-second window");
-});
-
-contract("UPDATE-003", "a resolved publication records the end time and returns the component to its derived public state", async () => {
+})(t);
+  t.diagnostic("UPDATE-003 — a resolved publication records the end time and returns the component to its derived public state");
+  await (async () => {
   const component = await createIsolatedComponent("Resolution component rollup");
   const incident = await createIncident("Resolution component rollup", { components: [{ componentId: component.id, state: "Major outage", relationship: "Primary" }] });
   await saveDraft(incident.id, { lifecycle: "Resolved" });
@@ -362,20 +364,29 @@ contract("UPDATE-003", "a resolved publication records the end time and returns 
   assert.equal(typeof resolved.resolvedAt, "string");
   const components = (await (await appFetch("/api/app/components")).json()).components;
   assert.equal(components.find((item) => item.id === component.id).publicState, "Operational");
+})(t);
 });
 
-contract("UPDATE-005", "a private saved draft survives an operator reload without appearing in the public snapshot", async () => {
+
+
+
+
+
+
+test("UPDATE-005 UPDATE-006 UPDATE-007 — Private drafts, scheduled publication and independent review", async t => {
+  t.diagnostic("UPDATE-005 — a private saved draft survives an operator reload without appearing in the public snapshot");
+  await (async () => {
   const incident = await createIncident("Private draft persistence");
-  const secret = "UNPUBLISHED-DRAFT-TEXT";
+  const secret = "synthetic-UNPUBLISHED-DRAFT-TEXT";
   await saveDraft(incident.id, { details: secret });
   const restored = await incidentView(incident.id);
   assert.equal(restored.draft.details, secret);
   for (const path of ["/", "/history", "/feed.atom", "/widget.js"]) {
     assert.doesNotMatch(await (await fetch(`${pageUrl}${path}`)).text(), new RegExp(secret));
   }
-});
-
-contract("UPDATE-006", "a future scheduled draft remains private until the scheduled Worker run publishes it", async () => {
+})(t);
+  t.diagnostic("UPDATE-006 — a future scheduled draft remains private until the scheduled Worker run publishes it");
+  await (async () => {
   const incident = await createIncident("Scheduled update privacy");
   const details = "SCHEDULED-UPDATE-PUBLIC-AFTER-RUN";
   await saveDraft(incident.id, { details });
@@ -393,9 +404,9 @@ contract("UPDATE-006", "a future scheduled draft remains private until the sched
   await new Promise((resolve) => setTimeout(resolve, Math.max(0, Date.parse(publishAt) - Date.now()) + 100));
   await expectStatus(await fetch(`${pageUrl}/cdn-cgi/local/scheduled`), 200);
   await publicArtifact(`/incidents/${incident.reference}`, details, "scheduled publication");
-});
-
-contract("UPDATE-007", "the update review policy can hold publication until a different operator has reviewed the draft", async () => {
+})(t);
+  t.diagnostic("UPDATE-007 — the update review policy can hold publication until a different operator has reviewed the draft");
+  await (async () => {
   const createIncidentsService = await loadIncidentsServiceFactory();
   const incident = { id: "incident-1", reference: "INC-1", title: "Review policy incident", lifecycle: "Investigating", openedAt: new Date().toISOString(), resolvedAt: null, createdByOperatorId: "author", deletedAt: null, deletionReason: null, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() };
   const draft = { id: "draft-1", incidentId: incident.id, lifecycle: "Identified", affectedAudience: "API customers.", customerImpact: "Requests can fail.", whatStillWorks: "Reads work.", details: "Mitigation is underway.", nextUpdateAt: new Date(Date.now() + 60 * 60_000).toISOString(), authorOperatorId: "author", createdAt: incident.createdAt, updatedAt: incident.updatedAt, scheduledPublishAt: null, scheduledChannels: [], reviewedByOperatorId: null, reviewedAt: null, correctsUpdateId: null };
@@ -418,9 +429,16 @@ contract("UPDATE-007", "the update review policy can hold publication until a di
   const update = await service.publish(incident.id, "author", { channels: [], expectedVersion: `${draft.id}:0` });
   assert.equal(update?.incidentId, incident.id);
   assert.equal(update?.lifecycle, "Identified");
+})(t);
 });
 
-contract("PAGE-006", "a warmed snapshot remains available and visibly stale when R2 pointer reads fail", async () => {
+
+
+
+
+test("PAGE-006 UPDATE-009 — Snapshot outage and private template application", async t => {
+  t.diagnostic("PAGE-006 — a warmed snapshot remains available and visibly stale when R2 pointer reads fail");
+  await (async () => {
   const pointer = r2Object("snapshots/current.json");
   assert.match(pointer, /"version"/);
   const warm = await fetch(`${pageUrl}/`);
@@ -440,9 +458,9 @@ contract("PAGE-006", "a warmed snapshot remains available and visibly stale when
   } finally {
     r2Object("snapshots/current.json", pointer);
   }
-});
-
-contract("UPDATE-009", "applying a saved template fills a draft and component claims without publishing", async () => {
+})(t);
+  t.diagnostic("UPDATE-009 — applying a saved template fills a draft and component claims without publishing");
+  await (async () => {
   const template = await appFetch("/api/app/incident-templates", { method: "POST", body: JSON.stringify({ name: "Template contract", lifecycle: "Monitoring", affectedAudience: "Template audience.", customerImpact: "Template impact.", whatStillWorks: "Template works.", details: "TEMPLATE-PRIVATE-DETAIL", nextUpdateOffsetMinutes: 60, components: [{ componentId: "01J00000000000000000000011", state: "Partially unavailable", relationship: "Primary" }] }) });
   await expectStatus(template, 201);
   const incident = await createIncident("Template application");
@@ -452,9 +470,14 @@ contract("UPDATE-009", "applying a saved template fills a draft and component cl
   assert.equal(restored.draft.details, "TEMPLATE-PRIVATE-DETAIL");
   assert.equal(restored.updates.length, 0);
   assert.doesNotMatch(await (await fetch(`${pageUrl}/`)).text(), /TEMPLATE-PRIVATE-DETAIL/);
+})(t);
 });
 
-contract("INCIDENT-001", "an incident begins Investigating and each published update makes its selected lifecycle public", async () => {
+
+
+test("INCIDENT-001 INCIDENT-002 INCIDENT-003 INCIDENT-004 INCIDENT-005 INCIDENT-006 INCIDENT-007 INCIDENT-008 INCIDENT-009 — Incident lifecycle, immutable correction, reasoned deletion and historical replay", async t => {
+  t.diagnostic("INCIDENT-001 — an incident begins Investigating and each published update makes its selected lifecycle public");
+  await (async () => {
   const incident = await createIncident("Lifecycle publication");
   assert.equal(incident.lifecycle, "Investigating");
   await saveDraft(incident.id, { lifecycle: "Identified", customerImpact: "A bounded customer impact." });
@@ -466,18 +489,18 @@ contract("INCIDENT-001", "an incident begins Investigating and each published up
   const resolved = await incidentView(incident.id);
   assert.equal(resolved.lifecycle, "Resolved");
   assert.equal(typeof resolved.resolvedAt, "string");
-});
-
-contract("INCIDENT-002", "the incident impact retains the most severe component state it ever claimed", async () => {
+})(t);
+  t.diagnostic("INCIDENT-002 — the incident impact retains the most severe component state it ever claimed");
+  await (async () => {
   const incident = await createIncident("Peak impact retention");
   await saveDraft(incident.id, { lifecycle: "Resolved" });
   await expectStatus(await publish(incident.id), 200);
   const resolved = await incidentView(incident.id);
   assert.equal(resolved.impact, "Major outage");
   assert.equal(resolved.components[0].state, "Major outage");
-});
-
-contract("INCIDENT-003", "incidents receive a stable numeric reference and public URL", async () => {
+})(t);
+  t.diagnostic("INCIDENT-003 — incidents receive a stable numeric reference and public URL");
+  await (async () => {
   const first = await createIncident("Stable incident reference");
   const second = await createIncident("Different incident reference");
   assert.match(first.reference, /^INC-\d+$/);
@@ -485,9 +508,9 @@ contract("INCIDENT-003", "incidents receive a stable numeric reference and publi
   await saveDraft(first.id);
   await expectStatus(await publish(first.id), 200);
   await publicArtifact(`/incidents/${first.reference}`, first.reference, "incident public URL");
-});
-
-contract("INCIDENT-004", "a correction publishes an immutable update linked to the correction target", async () => {
+})(t);
+  t.diagnostic("INCIDENT-004 — a correction publishes an immutable update linked to the correction target");
+  await (async () => {
   const incident = await createIncident("Correction chain");
   await saveDraft(incident.id, { details: "Initial customer wording." });
   const original = await incidentView(incident.id);
@@ -509,9 +532,9 @@ contract("INCIDENT-004", "a correction publishes an immutable update linked to t
   const updates = await incidentView(incident.id);
   assert.equal(updates.updates.length, 2);
   assert.equal(updates.updates.find((update) => update.id === initialUpdate.id).details, "Initial customer wording.");
-});
-
-contract("INCIDENT-005", "a later published update can reopen a resolved incident while retaining both immutable updates", async () => {
+})(t);
+  t.diagnostic("INCIDENT-005 — a later published update can reopen a resolved incident while retaining both immutable updates");
+  await (async () => {
   const incident = await createIncident("Resolution lifecycle update");
   await saveDraft(incident.id, { lifecycle: "Resolved" });
   await expectStatus(await publish(incident.id), 200);
@@ -522,18 +545,18 @@ contract("INCIDENT-005", "a later published update can reopen a resolved inciden
   assert.equal(view.updates.length, 2);
   assert.equal(view.updates.some((update) => update.lifecycle === "Investigating"), true);
   assert.equal(view.updates.some((update) => update.lifecycle === "Resolved"), true);
-});
-
-contract("INCIDENT-006", "an overdue next-update commitment is visible to operators and never appears as public incident copy", async () => {
+})(t);
+  t.diagnostic("INCIDENT-006 — an overdue next-update commitment is visible to operators and never appears as public incident copy");
+  await (async () => {
   const incident = await createIncident("Expired commitment");
   await saveDraft(incident.id, { nextUpdateAt: new Date(Date.now() - 60_000).toISOString() });
   await expectStatus(await publish(incident.id), 200);
   assert.equal((await incidentView(incident.id)).overdue, true);
   const publicPage = await publicArtifact(`/incidents/${incident.reference}`, incident.reference, "overdue incident public page");
   assert.doesNotMatch(publicPage.text, /\boverdue\b/i);
-});
-
-contract("INCIDENT-007", "deletion requires a reason and removes an incident from public history and the Atom feed", async () => {
+})(t);
+  t.diagnostic("INCIDENT-007 — deletion requires a reason and removes an incident from public history and the Atom feed");
+  await (async () => {
   const incident = await createIncident("Audited deletion");
   await saveDraft(incident.id, { lifecycle: "Resolved" });
   await expectStatus(await publish(incident.id), 200);
@@ -545,9 +568,9 @@ contract("INCIDENT-007", "deletion requires a reason and removes an incident fro
     ({ page, feed }) => !page.includes(incident.reference) && !feed.includes(incident.reference),
     "deleted incident removal from public artifacts",
   );
-});
-
-contract("INCIDENT-008", "an internal note is excluded from every public artifact", async () => {
+})(t);
+  t.diagnostic("INCIDENT-008 — an internal note is excluded from every public artifact");
+  await (async () => {
   const incident = await createIncident("Internal note isolation");
   const note = "PRIVATE-INCIDENT-NOTE-DO-NOT-RENDER";
   await expectStatus(await appFetch(`/api/app/incidents/${incident.id}/internal-notes`, { method: "POST", body: JSON.stringify({ body: note }) }), 201);
@@ -558,9 +581,9 @@ contract("INCIDENT-008", "an internal note is excluded from every public artifac
     await expectStatus(response, 200);
     assert.doesNotMatch(await response.text(), new RegExp(note));
   }
-});
-
-contract("INCIDENT-007", "deleting an incident releases its source claim before a later retroactive replay", async () => {
+})(t);
+  t.diagnostic("INCIDENT-007 — deleting an incident releases its source claim before a later retroactive replay");
+  await (async () => {
   const component = await createIsolatedComponent("Deleted incident claim release component");
   const deleted = await createIncident("Deleted incident source claim", { components: [{ componentId: component.id, state: "Major outage", relationship: "Primary" }] });
   await saveDraft(deleted.id, { lifecycle: "Investigating" });
@@ -596,9 +619,9 @@ contract("INCIDENT-007", "deleting an incident releases its source claim before 
   const dateParts = new Intl.DateTimeFormat("en-CA", { timeZone: pageTimezone, year: "numeric", month: "2-digit", day: "2-digit" }).formatToParts(new Date(retroactiveStart));
   const part = (kind) => dateParts.find((entry) => entry.type === kind)?.value;
   await publicArtifact("/", `${part("year")}-${part("month")}-${part("day")}: ${degradedHourMinutes} weighted downtime minutes`, "retroactive uptime after deleted claim release");
-});
-
-contract("INCIDENT-009", "retroactive updates reconstruct historical component state without disturbing a current same-component claim", async () => {
+})(t);
+  t.diagnostic("INCIDENT-009 — retroactive updates reconstruct historical component state without disturbing a current same-component claim");
+  await (async () => {
   const component = await createIsolatedComponent("Retroactive overlap component");
   const initialHistory = await appFetch(`/api/app/components/${component.id}/history`);
   await expectStatus(initialHistory, 200);
@@ -733,9 +756,30 @@ contract("INCIDENT-009", "retroactive updates reconstruct historical component s
   assert.equal(rejected.status, 409);
   assert.match((await rejected.json()).error, /claim provenance/);
   assert.equal((await incidentView(opaqueIncident.id)).updates.length, 0);
+})(t);
 });
 
-contract("INTAKE-001", "only a current raw-body HMAC is accepted for an alert source", async () => {
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+test("INTAKE-001 INTAKE-002 INTAKE-003 INTAKE-004 INTAKE-005 — Authenticated monitor intake remains private and deduplicated", async t => {
+  t.diagnostic("INTAKE-001 — only a current raw-body HMAC is accepted for an alert source");
+  await (async () => {
   const source = await appFetch("/api/app/intake/sources", { method: "POST", body: JSON.stringify({ name: "Contract source", credentialKind: "hmac-sha256", signingSecret: "contract-secret", deduplicationPath: "$.alert.id", titlePath: "$.alert.title", statePath: "$.alert.state", recoveredValue: "recovered" }) });
   assert.equal(source.status, 201);
   const sourceId = (await source.json()).source.id;
@@ -753,9 +797,9 @@ contract("INTAKE-001", "only a current raw-body HMAC is accepted for an alert so
   const incident = (await (await appFetch(`/api/app/incidents/${accepted.incidentId}`)).json()).incident;
   assert.equal(incident.lifecycle, "Investigating");
   assert.equal(incident.updates.length, 0);
-});
-
-contract("INTAKE-002", "a valid alert creates only a private draft incident", async () => {
+})(t);
+  t.diagnostic("INTAKE-002 — a valid alert creates only a private draft incident");
+  await (async () => {
   const source = await createIntakeSource("Private alert source");
   const before = await (await fetch(`${pageUrl}/`)).text();
   const accepted = await signedIntake(source.id, "contract-intake-secret", { alert: { id: "private-alert", title: "PRIVATE-ALERT-NARRATIVE", state: "firing" } });
@@ -765,9 +809,9 @@ contract("INTAKE-002", "a valid alert creates only a private draft incident", as
   assert.equal(incident.updates.length, 0);
   assert.doesNotMatch(await (await fetch(`${pageUrl}/`)).text(), /PRIVATE-ALERT-NARRATIVE/);
   assert.equal(before.includes("PRIVATE-ALERT-NARRATIVE"), false);
-});
-
-contract("INTAKE-003", "different alert deliveries with one unresolved key attach to exactly one draft incident", async () => {
+})(t);
+  t.diagnostic("INTAKE-003 — different alert deliveries with one unresolved key attach to exactly one draft incident");
+  await (async () => {
   const source = await createIntakeSource("Deduplication source");
   const first = await signedIntake(source.id, "contract-intake-secret", { alert: { id: "same-key", title: "First title", state: "firing" } });
   await expectStatus(first, 202);
@@ -777,9 +821,9 @@ contract("INTAKE-003", "different alert deliveries with one unresolved key attac
   const secondBody = await second.json();
   assert.equal(secondBody.incidentId, firstBody.incidentId);
   assert.equal(secondBody.replayed, false);
-});
-
-contract("INTAKE-004", "a recovery records receipt state without resolving or publishing its draft incident", async () => {
+})(t);
+  t.diagnostic("INTAKE-004 — a recovery records receipt state without resolving or publishing its draft incident");
+  await (async () => {
   const source = await createIntakeSource("Recovery source");
   const firing = await signedIntake(source.id, "contract-intake-secret", { alert: { id: "recover-key", title: "Recovery alert", state: "firing" } });
   await expectStatus(firing, 202);
@@ -789,9 +833,9 @@ contract("INTAKE-004", "a recovery records receipt state without resolving or pu
   const incident = await incidentView(incidentId);
   assert.equal(incident.lifecycle, "Investigating");
   assert.equal(incident.updates.length, 0);
-});
-
-contract("INTAKE-005", "a payload missing the configured deduplication value is recorded as an invalid alert", async () => {
+})(t);
+  t.diagnostic("INTAKE-005 — a payload missing the configured deduplication value is recorded as an invalid alert");
+  await (async () => {
   const source = await createIntakeSource("Invalid mapping source", { deduplicationPath: "$.alert.requiredKey" });
   const response = await signedIntake(source.id, "contract-intake-secret", { alert: { title: "No key", state: "firing" } });
   await expectStatus(response, 400);
@@ -800,9 +844,20 @@ contract("INTAKE-005", "a payload missing the configured deduplication value is 
   const replay = await signedIntake(source.id, "contract-intake-secret", { alert: { title: "No key", state: "firing" } });
   await expectStatus(replay, 400);
   assert.equal((await replay.json()).replayed, true);
+})(t);
 });
 
-contract("MAINT-002", "the Worker scheduled event starts and completes a recorded maintenance without an operator mutation", async () => {
+
+
+
+
+
+
+
+
+test("MAINT-002 MAINT-001 MAINT-003 MAINT-004 MAINT-005 MAINT-006 — Scheduled maintenance transitions, notices, extension and cancellation", async t => {
+  t.diagnostic("MAINT-002 — the Worker scheduled event starts and completes a recorded maintenance without an operator mutation");
+  await (async () => {
   const componentId = "01J00000000000000000000011";
   const end = new Date(Date.now() - 1_000).toISOString();
   const start = new Date(Date.now() - 2_000).toISOString();
@@ -823,17 +878,17 @@ contract("MAINT-002", "the Worker scheduled event starts and completes a recorde
   assert.equal((await eventually((record) => record?.state === "In progress"))?.state, "In progress");
   assert.equal((await fetch(`${pageUrl}/cdn-cgi/local/scheduled`)).status, 200);
   assert.equal((await eventually((record) => record?.state === "Completed"))?.state, "Completed");
-});
-
-contract("MAINT-001", "scheduled maintenance has its own SCH reference and operator list", async () => {
+})(t);
+  t.diagnostic("MAINT-001 — scheduled maintenance has its own SCH reference and operator list");
+  await (async () => {
   const created = await appFetch("/api/app/maintenance", { method: "POST", body: JSON.stringify({ title: "Distinct maintenance", startsAt: new Date(Date.now() + 2 * 60 * 60_000).toISOString(), endsAt: new Date(Date.now() + 3 * 60 * 60_000).toISOString(), componentIds: ["01J00000000000000000000011"] }) });
   await expectStatus(created, 201);
   const maintenance = (await created.json()).maintenance;
   assert.match(maintenance.reference, /^SCH-\d+$/);
   assert.equal((await (await appFetch("/api/app/maintenance")).json()).maintenance.some((record) => record.id === maintenance.id), true);
-});
-
-contract("MAINT-003", "maintenance claims Under maintenance only while its recorded window is in progress", async () => {
+})(t);
+  t.diagnostic("MAINT-003 — maintenance claims Under maintenance only while its recorded window is in progress");
+  await (async () => {
   const component = await createIsolatedComponent("Maintenance component claim");
   const created = await appFetch("/api/app/maintenance", { method: "POST", body: JSON.stringify({ title: "Maintenance component claim", startsAt: new Date(Date.now() - 60_000).toISOString(), endsAt: new Date(Date.now() + 60 * 60_000).toISOString(), componentIds: [component.id] }) });
   await expectStatus(created, 201);
@@ -850,40 +905,105 @@ contract("MAINT-003", "maintenance claims Under maintenance only while its recor
   await expectStatus(secondCompletion, 409);
   assert.equal(queryD1Sql(testStatePath, `SELECT COUNT(*) AS count FROM component_claim_events WHERE component_id = '${component.id}' AND cause_type = 'maintenance' AND cause_id = '${maintenance.id}' AND state IS NULL`)[0]?.count, 1);
   assert.equal(queryD1Sql(testStatePath, `SELECT COUNT(*) AS count FROM maintenance_notices WHERE maintenance_id = '${maintenance.id}' AND kind = 'completed'`)[0]?.count, 1);
-});
-
-contract("MAINT-003", "a stale maintenance transition cannot reuse an earlier notice guard", async () => {
+})(t);
+  t.diagnostic("MAINT-003 — a stale maintenance transition cannot reuse an earlier notice guard");
+  await (async () => {
   const createMaintenanceRepository = await loadMaintenanceRepositoryFactory();
   const database = new DatabaseSync(":memory:");
   database.exec(`
-    CREATE TABLE maintenance (id TEXT PRIMARY KEY, state TEXT NOT NULL, completed_at TEXT, updated_at TEXT NOT NULL);
+    CREATE TABLE maintenance (id TEXT PRIMARY KEY, state TEXT NOT NULL, starts_at TEXT NOT NULL, ends_at TEXT NOT NULL, completed_at TEXT, updated_at TEXT NOT NULL);
     CREATE TABLE maintenance_notices (id TEXT PRIMARY KEY, maintenance_id TEXT NOT NULL, kind TEXT NOT NULL, body TEXT NOT NULL, published_at TEXT NOT NULL, author_operator_id TEXT, created_at TEXT NOT NULL, updated_at TEXT NOT NULL);
     CREATE TABLE audit_entries (id TEXT PRIMARY KEY, entity_type TEXT NOT NULL, entity_id TEXT NOT NULL, action TEXT NOT NULL, operator_id TEXT, reason TEXT, payload_json TEXT NOT NULL, created_at TEXT NOT NULL, updated_at TEXT NOT NULL);
-    INSERT INTO maintenance (id, state, completed_at, updated_at) VALUES ('maintenance-guard', 'Scheduled', NULL, '2026-09-08T00:00:00.000Z');
+    INSERT INTO maintenance (id, state, starts_at, ends_at, completed_at, updated_at) VALUES ('maintenance-guard', 'Scheduled', '2026-09-08T00:00:00.000Z', '2026-09-08T00:30:00.000Z', NULL, '2026-09-08T00:00:00.000Z');
   `);
   const repository = createMaintenanceRepository(createTransactionalD1Fixture(database));
   const notice = { id: "notice-guard", maintenanceId: "maintenance-guard", kind: "started", body: "Started.", publishedAt: "2026-09-08T00:00:01.000Z", authorOperatorId: null, createdAt: "2026-09-08T00:00:01.000Z", updatedAt: "2026-09-08T00:00:01.000Z" };
-  assert.equal(await repository.transitionWithNotice("maintenance-guard", "Scheduled", "In progress", null, notice.publishedAt, notice, []), true);
-  assert.equal(await repository.transitionWithNotice("maintenance-guard", "Scheduled", "In progress", null, notice.publishedAt, notice, []), false, "the same notice cannot be authorized by its earlier guard");
+  const dueWindow = { startsAt: "2026-09-08T00:00:00.000Z", endsAt: "2026-09-08T00:30:00.000Z" };
+  assert.equal(await repository.transitionWithNotice("maintenance-guard", "Scheduled", "In progress", null, notice.publishedAt, notice, [], dueWindow), true);
+  assert.equal(await repository.transitionWithNotice("maintenance-guard", "Scheduled", "In progress", null, notice.publishedAt, notice, [], dueWindow), false, "the same notice cannot be authorized by its earlier guard");
   const losingNotice = { ...notice, id: "notice-losing", createdAt: "2026-09-08T00:00:02.000Z", updatedAt: "2026-09-08T00:00:02.000Z" };
-  assert.equal(await repository.transitionWithNotice("maintenance-guard", "Scheduled", "In progress", null, losingNotice.publishedAt, losingNotice, []), false, "a concurrent loser with a fresh notice cannot write a source event");
+  assert.equal(await repository.transitionWithNotice("maintenance-guard", "Scheduled", "In progress", null, losingNotice.publishedAt, losingNotice, [], dueWindow), false, "a concurrent loser with a fresh notice cannot write a source event");
+  database.prepare("UPDATE maintenance SET ends_at = ? WHERE id = ?").run("2026-09-08T01:00:00.000Z", "maintenance-guard");
+  const staleCompletion = { ...notice, id: "notice-stale-completion", kind: "completed", publishedAt: "2026-09-08T00:00:03.000Z", createdAt: "2026-09-08T00:00:03.000Z", updatedAt: "2026-09-08T00:00:03.000Z" };
+  assert.equal(await repository.transitionWithNotice("maintenance-guard", "In progress", "Completed", staleCompletion.publishedAt, staleCompletion.publishedAt, staleCompletion, [], dueWindow), false, "a due transition cannot complete a window extended after it was read");
   assert.equal(database.prepare("SELECT COUNT(*) AS count FROM maintenance_notices").get().count, 1);
   assert.equal(database.prepare("SELECT COUNT(*) AS count FROM audit_entries").get().count, 1);
   database.close();
-});
-
-contract("MAINT-004", "an overrunning maintenance is flagged to operators and can be manually completed", async () => {
+})(t);
+  t.diagnostic("MAINT-004 — an overrun is public after its recorded end, and operators can extend or complete it");
+  await (async () => {
   const created = await appFetch("/api/app/maintenance", { method: "POST", body: JSON.stringify({ title: "Manual overrun completion", startsAt: new Date(Date.now() + 2 * 60 * 60_000).toISOString(), endsAt: new Date(Date.now() + 3 * 60 * 60_000).toISOString(), componentIds: ["01J00000000000000000000011"] }) });
   await expectStatus(created, 201);
   const maintenance = (await created.json()).maintenance;
-  executeFixtureSql(`UPDATE maintenance SET state = 'In progress', ends_at = '${new Date(Date.now() - 16 * 60_000).toISOString()}' WHERE id = '${maintenance.id}'`);
+  executeFixtureSql(`UPDATE maintenance SET state = 'In progress', starts_at = '${new Date(Date.now() - 60 * 60_000).toISOString()}', ends_at = '${new Date(Date.now() - 16 * 60_000).toISOString()}' WHERE id = '${maintenance.id}'`);
   const overrunning = (await (await appFetch("/api/app/maintenance")).json()).maintenance.find((record) => record.id === maintenance.id);
   assert.equal(overrunning.overrunning, true);
   await expectStatus(await appFetch(`/api/app/maintenance/${maintenance.id}/complete`, { method: "POST" }), 200);
   assert.equal((await (await appFetch("/api/app/maintenance")).json()).maintenance.find((record) => record.id === maintenance.id).state, "Completed");
-});
 
-contract("MAINT-005", "scheduled, reminder, start, and completion notices are immutable maintenance events", async () => {
+  const originalStart = new Date(Date.now() - 60 * 60_000).toISOString();
+  const nearThresholdEnd = new Date(Date.now() - 14 * 60_000 - 40_000).toISOString();
+  const extensionResponse = await appFetch("/api/app/maintenance", { method: "POST", body: JSON.stringify({ title: "Manual overrun extension", startsAt: originalStart, endsAt: nearThresholdEnd, componentIds: ["01J00000000000000000000011"] }) });
+  await expectStatus(extensionResponse, 201);
+  const extension = (await extensionResponse.json()).maintenance;
+  const thresholdAt = Date.parse(nearThresholdEnd) + 15 * 60_000;
+  await expectStatus(await fetch(`${pageUrl}/cdn-cgi/local/scheduled?cron=*+*+*+*+*`), 200);
+  const started = (await (await appFetch("/api/app/maintenance")).json()).maintenance.find((record) => record.id === extension.id);
+  assert.equal(started.state, "In progress");
+  assert.equal(started.startsAt, extension.startsAt);
+  assert.equal(started.endsAt, nearThresholdEnd);
+  const beforeOverrun = await publicArtifact("/", `data-maintenance-state="In progress" data-maintenance-ends-at="${nearThresholdEnd}"`, "the started maintenance snapshot before the 15-minute overrun boundary");
+  const generatedAt = Date.parse(beforeOverrun.response.headers.get("x-lamp-snapshot-generated-at"));
+  assert.ok(generatedAt < thresholdAt, "the public artifact was generated before its overrun boundary");
+  assert.doesNotMatch(beforeOverrun.text, /Running longer than planned/);
+  const priorValidator = beforeOverrun.response.headers.get("etag");
+  await new Promise((resolve) => setTimeout(resolve, Math.max(0, thresholdAt - Date.now()) + 100));
+
+  const agedPageResponse = await fetch(`${pageUrl}/`, { headers: priorValidator ? { "If-None-Match": priorValidator } : {} });
+  assert.equal(agedPageResponse.status, 200, "the changed serving-time representation must not reuse the earlier validator");
+  assert.notEqual(agedPageResponse.headers.get("etag"), priorValidator);
+  const agedPage = await agedPageResponse.text();
+  assert.match(agedPage, /Running longer than planned/);
+  assert.ok(agedPage.includes(`data-maintenance-ends-at="${nearThresholdEnd}"`), "the public page keeps the recorded end beside the overrun message");
+  const agedPermalink = await (await fetch(`${pageUrl}/maintenance/${extension.reference}`)).text();
+  assert.match(agedPermalink, /Running longer than planned/);
+  assert.ok(agedPermalink.includes(`data-maintenance-ends-at="${nearThresholdEnd}"`), "the permanent page keeps the recorded end beside the overrun message");
+  assert.equal((await (await appFetch("/api/app/maintenance")).json()).maintenance.find((record) => record.id === extension.id).overrunning, true);
+
+  const laterEnd = new Date(Date.now() + 60 * 60_000).toISOString();
+  await expectStatus(await appFetch(`/api/app/maintenance/${extension.id}/window`, { method: "PUT", body: JSON.stringify({ startsAt: originalStart, endsAt: "not-a-date" }) }), 400);
+  await expectStatus(await appFetch(`/api/app/maintenance/${extension.id}/window`, { method: "PUT", body: JSON.stringify({ startsAt: new Date(Date.parse(originalStart) + 60_000).toISOString(), endsAt: laterEnd }) }), 409);
+  await expectStatus(await appFetch(`/api/app/maintenance/${extension.id}/window`, { method: "PUT", body: JSON.stringify({ startsAt: originalStart, endsAt: new Date(Date.parse(nearThresholdEnd) - 60_000).toISOString() }) }), 409);
+  const extendedResponse = await appFetch(`/api/app/maintenance/${extension.id}/window`, { method: "PUT", body: JSON.stringify({ startsAt: originalStart, endsAt: laterEnd }) });
+  await expectStatus(extendedResponse, 200);
+  const extended = (await extendedResponse.json()).maintenance;
+  assert.equal(extended.startsAt, originalStart);
+  assert.equal(extended.endsAt, laterEnd);
+  assert.equal(extended.overrunning, false);
+  const extensionNotice = extended.notices.find((notice) => notice.kind === "rescheduled");
+  assert.ok(extensionNotice, "extending the window publishes a rescheduled notice");
+  const extensionAudit = queryD1Sql(testStatePath, `SELECT operator_id AS operatorId, created_at AS createdAt FROM audit_entries WHERE entity_type = 'maintenance' AND entity_id = '${extension.id}' AND action = 'notice-published' AND operator_id = '${maintenance.createdByOperatorId}'`);
+  assert.equal(extensionAudit.length, 1);
+  assert.equal(extensionAudit[0].operatorId, maintenance.createdByOperatorId);
+  assert.equal(extensionAudit[0].createdAt, extensionNotice.createdAt);
+  const updatedPage = await publicArtifact("/", `data-maintenance-ends-at="${laterEnd}"`, "the extended maintenance snapshot");
+  assert.doesNotMatch(updatedPage.text, /Running longer than planned/);
+  const updatedPermalink = await publicArtifact(`/maintenance/${extension.reference}`, `data-maintenance-ends-at="${laterEnd}"`, "the extended maintenance permalink");
+  assert.doesNotMatch(updatedPermalink.text, /Running longer than planned/);
+
+  await expectStatus(await appFetch(`/api/app/maintenance/${extension.id}/complete`, { method: "POST" }), 200);
+  const completedPermalink = await publicArtifact(`/maintenance/${extension.reference}`, "Completed", "the completed maintenance permalink");
+  assert.doesNotMatch(completedPermalink.text, /Running longer than planned/);
+  await expectStatus(await appFetch(`/api/app/maintenance/${extension.id}/window`, { method: "PUT", body: JSON.stringify({ startsAt: originalStart, endsAt: new Date(Date.now() + 2 * 60 * 60_000).toISOString() }) }), 409);
+
+  const cancelledResponse = await appFetch("/api/app/maintenance", { method: "POST", body: JSON.stringify({ title: "Cancelled maintenance window", startsAt: new Date(Date.now() + 6 * 60 * 60_000).toISOString(), endsAt: new Date(Date.now() + 7 * 60 * 60_000).toISOString(), componentIds: ["01J00000000000000000000011"] }) });
+  await expectStatus(cancelledResponse, 201);
+  const cancelled = (await cancelledResponse.json()).maintenance;
+  await expectStatus(await appFetch(`/api/app/maintenance/${cancelled.id}/cancel`, { method: "POST" }), 200);
+  await expectStatus(await appFetch(`/api/app/maintenance/${cancelled.id}/window`, { method: "PUT", body: JSON.stringify({ startsAt: cancelled.startsAt, endsAt: new Date(Date.parse(cancelled.endsAt) + 60_000).toISOString() }) }), 409);
+})(t);
+  t.diagnostic("MAINT-005 — scheduled, reminder, start, and completion notices are immutable maintenance events");
+  await (async () => {
   const created = await appFetch("/api/app/maintenance", { method: "POST", body: JSON.stringify({ title: "Reminder lifecycle", startsAt: new Date(Date.now() + 23 * 60 * 60_000).toISOString(), endsAt: new Date(Date.now() + 24 * 60 * 60_000).toISOString(), componentIds: ["01J00000000000000000000011"] }) });
   await expectStatus(created, 201);
   const maintenance = (await created.json()).maintenance;
@@ -891,9 +1011,9 @@ contract("MAINT-005", "scheduled, reminder, start, and completion notices are im
   await expectStatus(await fetch(`${pageUrl}/cdn-cgi/local/scheduled`), 200);
   const withReminder = (await (await appFetch("/api/app/maintenance")).json()).maintenance.find((record) => record.id === maintenance.id);
   assert.equal(withReminder.notices.some((notice) => notice.kind === "reminder"), true);
-});
-
-contract("MAINT-006", "rescheduling and cancellation create notices and retain a cancelled maintenance record", async () => {
+})(t);
+  t.diagnostic("MAINT-006 — rescheduling and cancellation create notices and retain a cancelled maintenance record");
+  await (async () => {
   const created = await appFetch("/api/app/maintenance", { method: "POST", body: JSON.stringify({ title: "Reschedule and cancel", startsAt: new Date(Date.now() + 3 * 60 * 60_000).toISOString(), endsAt: new Date(Date.now() + 4 * 60 * 60_000).toISOString(), componentIds: ["01J00000000000000000000011"] }) });
   await expectStatus(created, 201);
   const maintenance = (await created.json()).maintenance;
@@ -903,9 +1023,24 @@ contract("MAINT-006", "rescheduling and cancellation create notices and retain a
   assert.equal(cancelled.state, "Cancelled");
   assert.equal(cancelled.notices.some((notice) => notice.kind === "rescheduled"), true);
   assert.equal(cancelled.notices.some((notice) => notice.kind === "cancelled"), true);
+})(t);
 });
 
-contract("DRAFT-003", "without a provider the suggestion route is unavailable while normal publication remains available", async () => {
+
+
+
+
+
+
+
+
+
+
+
+
+test("DRAFT-003 HIST-002 HIST-003 — Unavailable AI and post-incident reporting", async t => {
+  t.diagnostic("DRAFT-003 — without a provider the suggestion route is unavailable while normal publication remains available");
+  await (async () => {
   const status = await appFetch("/api/app/ai/status");
   await expectStatus(status, 200);
   assert.equal((await status.json()).configured, false);
@@ -913,9 +1048,9 @@ contract("DRAFT-003", "without a provider the suggestion route is unavailable wh
   assert.equal((await appFetch(`/api/app/incidents/${incident.id}/ai-suggestion`, { method: "POST" })).status, 404);
   await saveDraft(incident.id);
   await expectStatus(await publish(incident.id), 200);
-});
-
-contract("HIST-002", "a resolved incident publishes one immutable report with its selected recipient channel", async () => {
+})(t);
+  t.diagnostic("HIST-002 — a resolved incident publishes one immutable report with its selected recipient channel");
+  await (async () => {
   const componentId = "01J00000000000000000000011";
   const created = await appFetch("/api/app/incidents", { method: "POST", body: JSON.stringify({ title: "Report contract incident", components: [{ componentId, state: "Major outage", relationship: "Primary" }] }) });
   assert.equal(created.status, 201);
@@ -942,9 +1077,9 @@ contract("HIST-002", "a resolved incident publishes one immutable report with it
   const owing = await appFetch("/api/app/reports/owing");
   assert.equal((await owing.json()).incidentIds.includes(incident.id), false);
   assert.equal((await (await appFetch("/api/app/reports/owing")).json()).incidentIds.includes(owingIncident.id), true);
-});
-
-contract("HIST-003", "a major incident remains report-due after seven days even if its current component claim is later lowered", async () => {
+})(t);
+  t.diagnostic("HIST-003 — a major incident remains report-due after seven days even if its current component claim is later lowered");
+  await (async () => {
   const componentId = (await createIsolatedComponent("Historical major report component")).id;
   const incident = await createIncident("Historical major report due", { openedAt: new Date(Date.now() - 9 * 24 * 60 * 60_000).toISOString(), components: [{ componentId, state: "Major outage", relationship: "Primary" }] });
   const publishedAt = new Date(Date.now() - 8 * 24 * 60 * 60_000).toISOString();
@@ -954,9 +1089,16 @@ contract("HIST-003", "a major incident remains report-due after seven days even 
   const owing = await appFetch("/api/app/reports/owing");
   await expectStatus(owing, 200);
   assert.equal((await owing.json()).incidentIds.includes(incident.id), true);
+})(t);
 });
 
-contract("PAGE-005", "a failed snapshot build labels the last artifact stale and a later cron reconciles both source and bookkeeping failures", async () => {
+
+
+
+
+test("PAGE-005 — Snapshot recovery retains complete immutable generations", async t => {
+  t.diagnostic("PAGE-005 — a failed snapshot build labels the last artifact stale and a later cron reconciles both source and bookkeeping failures");
+  await (async () => {
   const createPublicSnapshotService = await loadPublicSnapshotServiceFactory();
   const encoder = new TextEncoder();
   const decoder = new TextDecoder();
@@ -1014,9 +1156,9 @@ contract("PAGE-005", "a failed snapshot build labels the last artifact stale and
   assert.equal(await snapshots.retryPendingBuild(), true);
   assert.equal(work.completedRevision, work.requestedRevision);
   assert.equal((await snapshots.readArtifact("page.html"))?.stale, false);
-});
-
-contract("PAGE-005", "a complete immutable R2 snapshot has every artifact and remains public without D1", async () => {
+})(t);
+  t.diagnostic("PAGE-005 — a complete immutable R2 snapshot has every artifact and remains public without D1");
+  await (async () => {
   const before = JSON.parse(r2Object("snapshots/current.json"));
   for (const key of ["page.html", "history.html", "feed.atom", "widget.js", "status.json", "assets/status-page.css", "assets/status-page.js", "assets/favicon.svg", "assets/og.svg"]) {
     assert.notEqual(r2Object(`snapshots/${before.version}/${key}`), "", `snapshot artifact ${key} is present before a rebuild failure`);
@@ -1028,4 +1170,5 @@ contract("PAGE-005", "a complete immutable R2 snapshot has every artifact and re
     const response = await eventually(async () => { try { return await fetch(`${pageUrl}${path}?snapshot-only`); } catch { return null; } }, (candidate) => candidate?.status === 200, `${path} from R2 after D1 removal`);
     assert.equal(response.status, 200, `${path} remains available from R2 without D1`);
   }
+})(t);
 });

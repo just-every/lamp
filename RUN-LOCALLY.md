@@ -1,27 +1,42 @@
 # Run it locally
 
-Use the repository's installed `rer` command from the project root. Lamp runs on
+Use `rer` from the project root. The checkout pins `@runeditrun/rer` 0.2.22;
+`rer describe` reports the commands and tooling in use. Lamp runs on
 your computer without a Cloudflare account or mail credentials; development mail
-is captured in the local outbox.
+is silently suppressed.
 
 ## Start Lamp
 
 ```sh
-rer install
-rer setup
 rer dev
 ```
 
-`rer setup` asks for the first owner's email. `rer dev` prints the local operator
-entry address and a `RER_READY` line when the app is ready. Open that entry
-address to work as the owner. For email sign-in journeys, open `/signin` and
-check the development outbox shown by `rer outbox`; local mail is not delivered
-to an inbox.
+On first launch, `rer dev` installs locked dependencies and prepares a local
+owner automatically. When ready, it prints `RER_READY` with the app address and
+`RER_OPEN` with your private one-click owner entry link. Open the `RER_OPEN`
+link to work as the owner; no email is needed. Keep that link private.
 
-The operator app uses `127.0.0.1`; the public status page uses `localhost` on the
-same port. `rer dev --stop` stops development and `rer preview --stop` stops the
-fixed production preview. If a port is already occupied, choose another with
-`--port P`.
+Local mail is not sent or retained. In ordinary development,
+after opening the local owner entry address, `GET /__dev/outbox` on the local
+app host returns HTTP 200 with a plain-text
+suppression notice. It is a compatibility address, with no inbox or captured
+messages. Test emailed sign-in and subscriber delivery on a hosted installation
+with its real mail provider and mailbox.
+
+The local addresses serve three different purposes:
+
+- `RER_READY` names the operator app on `127.0.0.1`. Use `RER_OPEN` to sign in.
+- For the business's public status page, use `localhost` with the same app port.
+  For example, if `RER_READY` is `http://127.0.0.1:8899`, open
+  `http://localhost:8899/` for the public page.
+- `RER_SITE` names a separate preview of Lamp's static run site: the product
+  homepage and Run page. It uses the first free port above the app's port.
+  It does not show the business's live public status page. Use the exact
+  `RER_SITE` address printed by `rer dev`.
+
+`rer dev --stop` stops development, including its run-site preview.
+`rer preview --stop` stops the fixed production app preview. If a port is
+already occupied, choose another with `--port P`.
 
 ## Back up and restore local data
 

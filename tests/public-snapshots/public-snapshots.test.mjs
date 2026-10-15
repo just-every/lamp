@@ -206,7 +206,9 @@ after(async () => {
   ]);
 });
 
-test("renderer identity rebuilds old and malformed pointers once, while the current identity remains stable", async () => {
+test("Snapshot renderer upgrades preserve public history and last-known state", async t => {
+  t.diagnostic("renderer identity rebuilds old and malformed pointers once, while the current identity remains stable");
+  await (async () => {
   const current = pointer();
   assert.equal(current.rendererVersion, rendererVersion);
   const workBefore = querySql("SELECT requested_revision, completed_revision FROM public_snapshot_work WHERE id = 'default'")[0];
@@ -236,9 +238,9 @@ test("renderer identity rebuilds old and malformed pointers once, while the curr
     return value.rendererVersion === rendererVersion && value.generation > malformedBefore.generation ? value : null;
   });
   assert.ok(repaired.generation > malformedBefore.generation);
-});
-
-test("resolved legacy promises stay hidden on every public surface and missing permalinks are branded HTML 404s", async () => {
+})(t);
+  t.diagnostic("resolved legacy promises stay hidden on every public surface and missing permalinks are branded HTML 404s");
+  await (async () => {
   const paths = ["/", "/history", "/incidents/INC-4821", "/feed.atom", "/widget.js"];
   const responses = new Map();
   for (const path of paths) {
@@ -282,9 +284,9 @@ test("resolved legacy promises stay hidden on every public surface and missing p
   } finally {
     await browser.close();
   }
-});
-
-test("failed renderer upgrade keeps last known public bytes readable without D1", async () => {
+})(t);
+  t.diagnostic("failed renderer upgrade keeps last known public bytes readable without D1");
+  await (async () => {
   const priorPointer = pointer();
   const priorPage = r2Object(`snapshots/${priorPointer.version}/page.html`);
   r2Object("snapshots/current.json", JSON.stringify({ ...priorPointer, rendererVersion: "lamp-public-snapshot-v1" }));
@@ -325,4 +327,5 @@ test("failed renderer upgrade keeps last known public bytes readable without D1"
     assert.equal(response.status, 200, `${path} is served from the published snapshot after D1 settings are unavailable`);
     await response.body?.cancel();
   }
+})(t);
 });

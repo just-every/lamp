@@ -21,32 +21,61 @@ tools, not `rer` verbs; `rer export` and `rer import` operate on local state.
 Supply `CLOUDFLARE_ACCOUNT_ID` and `CLOUDFLARE_API_TOKEN` for the intended account.
 The token needs Worker deployment, D1, R2, Queues and custom-hostname access,
 including Zone Workers Routes read/write permission for both hosts’ zones.
-Account Worker access alone can upload the artifact but cannot attach its hosts. Configure `LAMP_PAGE_HOST`, `LAMP_APP_HOST`,
-`LAMP_PAGE_NAME`, `LAMP_PAGE_TAGLINE`, `LAMP_PAGE_TIMEZONE`, `LAMP_ACCENT_COLOR`,
-`SETUP_OPERATOR_EMAIL`, `MAIL_FROM_ADDRESS`, `MAIL_DKIM_SELECTOR`,
-`MAIL_PROVIDER_API_KEY`, `SUBSCRIBER_TOKEN_SECRET` and `WEBHOOK_SIGNING_SECRET`.
-The two token secrets must each contain at least 32 characters. Keep their
-original values when restoring so existing subscriber tokens and webhook
-signatures remain valid. Store owner inputs outside committed source.
+Account Worker access alone can upload the artifact but cannot attach its hosts.
+For workers.dev hosting, custom-domain zone permissions are not needed; the token
+must be able to read the account's Workers subdomain.
+
+Hosted Lamp requires a mail provider and authenticated sender, including when
+using terminal recovery links. Supply the Cloudflare credentials, both hostnames,
+page branding, first operator email, `MAIL_FROM_ADDRESS`, `MAIL_DKIM_SELECTOR` and
+`MAIL_PROVIDER_API_KEY`. The complete [input reference](docs/deployment-reference.md#inputs-you-supply-and-values-rer-generates)
+distinguishes owner-supplied values from generated runtime secrets and uses the
+same names as the CLI. The required-input source of truth is
+`requiredEnvironment` in [OPERATIONS.json](OPERATIONS.json).
+
+Store inputs in an owned `0600` file outside the repository and pass it to every
+`rer deploy` invocation with `--env-file`, or export the same names in the calling
+shell. The [deployment guide](docs/deploy.md#save-private-deployment-inputs) gives
+file creation, contents and secret-generation commands. File values override the
+environment; this is a plain `KEY=VALUE` file, not a shell script.
+
+`rer deploy` generates `SETUP_TOKEN`, `SESSION_SECRET`, `SUBSCRIBER_TOKEN_SECRET`
+and `WEBHOOK_SIGNING_SECRET` when absent. These are required runtime bindings,
+not mandatory manual inputs for a first deploy. The native pipeline uploads the
+values for that run: for repeatable redeploys and recovery, supply and keep your
+original secrets in the private file. Each must contain at least 32 characters.
+Keep the original session, subscriber and webhook secrets on restore. Direct
+`setup:cloudflare` and `deploy:cloudflare` scripts require those values exported;
+they do not generate them or read `--env-file` themselves.
 
 Optionally set `OWNER_DISPLAY_NAME` to the first owner's name (1–120 characters).
 It is used only when setup creates the first operator; existing owners keep their
-name and access. Without it, the native command retains its `Setup operator` name.
+name and access. Without it, the native command uses `Owner`.
 
 `MAIL_PROVIDER` selects `resend` (default, preserving existing deployments) or
 `sendgrid`. Both use `MAIL_PROVIDER_API_KEY`; map an existing provider-specific
 credential into that environment variable without writing it into source.
 Likewise map the verified sender address into `MAIL_FROM_ADDRESS`. The sender
-domain must publish SPF, DMARC and a DKIM key at the chosen selector. Setup checks
-those records before provisioning. It does not prove DKIM's header coverage or
-recipient delivery: verify those against a received message.
+domain must publish a DMARC policy at `_dmarc.<From-domain>` and a reachable
+DKIM key at `<selector>._domainkey.<From-domain>`; provider CNAMEs are supported.
+SPF may be published on the provider's return-path domain instead of the From
+domain. DMARC alignment through DKIM is sufficient; configure the provider to
+sign with an aligned domain. Setup checks DKIM and DMARC before provisioning.
+It does not prove message alignment, DKIM's header coverage or recipient
+delivery: verify those against a received message.
 
 For SendGrid set `SENDGRID_WEBHOOK_PUBLIC_KEY` to its base64 P-256 public key and
 configure the signed Event Webhook URL as
 `https://<LAMP_PAGE_HOST>/api/intake/mail-events`, with delivered, bounce, dropped
 and spamreport events enabled. For Resend, set `RESEND_WEBHOOK_SECRET` and use the
-same URL. Without the selected provider's verification key this endpoint rejects
-callbacks; API acceptance alone does not mark recipient delivery.
+same URL. Without the selected provider's verification key or the optional signed
+SendGrid relay, this endpoint rejects callbacks. The delivery log then shows
+**Accepted by SendGrid** (or **Accepted by Resend**) as the final email status
+available, with its acceptance time. CSV retains the queued transport outcome
+and provider-accepted timestamp. API acceptance alone does not mark recipient
+delivery. With the key
+and webhook configured, signed receipts can report delivered, bounced or
+complained; a delivered report does not prove that a person read the email.
 
 SendGrid requests explicitly disable click, open, subscription and analytics
 tracking. Verify the received message has no added tracking and that DKIM's `h=`
@@ -101,14 +130,15 @@ development server with `rer dev --stop` or production preview with
 `rer preview --stop`; restart local work after the command completes.
 
 ```sh
-pnpm install --frozen-lockfile
-pnpm exec playwright install chromium
-rer deploy --dry-run --environment staging
-rer deploy --environment production
+rer install
+rer deploy --dry-run --environment production --env-file "$HOME/.config/lamp/production.env"
+rer deploy --environment production --env-file "$HOME/.config/lamp/production.env"
 ```
 
 Dry run compiles and validates generated configuration without changing Cloudflare.
-Real deploy first runs setup and verification. Setup does not create a placeholder
+Real deploy validates owner inputs, runs resource setup and migrations, then builds.
+Run `rer verify` separately for the full source and browser checks; the GitHub Verify
+workflow retains that complete verification chain. Setup does not create a placeholder
 Worker or publish secrets separately. Deploy writes a private temporary secrets
 file, publishes the real Worker with it, removes that file even after failure,
 then checks the application host's health with a bounded request. It checks real
@@ -125,6 +155,27 @@ then applies the approved resource plan. Its authority must live outside the
 editable application build job. Artifact creation alone does not deploy Lamp.
 Direct owner deployment remains available with `rer deploy`.
 
+### Remove a deployment
+
+Back up data before retiring an installation. From its deploying checkout, use
+the original account and environment:
+
+```sh
+node scripts/remove-deployment.mjs --environment production --env-file "$HOME/.config/lamp/production.env" --yes
+```
+
+This removes the public Worker first in `workers-dev` mode, then the app Worker
+and resources proven created for that environment, including their data, and
+reads back their absence. Custom-domain mode has one Worker. The generic
+`rer deploy --remove --yes` alone does not remove Lamp's separate public Worker.
+Native deployments retain app creation ownership at
+`.rer/deploy/<environment>.json` and public Worker ownership at
+`.rer/deploy/<environment>.page.json`. Lamp's
+`.seed/deployment/<environment>.json` remains an archive/resource reference; it
+does not prove creation ownership. Older installations without ownership records
+need the [manual procedure and limits](docs/deployment-reference.md#removal-and-deployment-records).
+Do not treat a missing record as proof that Cloudflare has no resources.
+
 ## Provider uncertainty and recovery
 
 SendGrid does not deduplicate a Mail Send request using Lamp's key. Lamp therefore
@@ -139,8 +190,10 @@ The ledger contains opaque hashes/IDs and state, not message bodies or credentia
 
 Resend keeps its existing frozen-envelope idempotency behavior. In either provider,
 queued means pending or accepted without a delivery receipt; it does not mean
-mailbox delivery. Retain the D1/R2 archive and the private deployment inputs for
-recovery. No remote restore or provider acceptance is implied by local verification.
+mailbox delivery. If no receipt verification key is configured, a successful
+send retains queued in storage and shows provider acceptance as its final
+status in Deliveries. The optional signed SendGrid relay also enables receipts.
+Retain the D1/R2 archive and the private deployment inputs for recovery. No remote restore or provider acceptance is implied by local verification.
 
 ## Portable backups and restore
 
@@ -201,7 +254,7 @@ This provisions an empty target and imports before initialization; it never
 publishes a Worker. Inspect the restored archive and record equivalence before
 `rer deploy --environment recovery`. Keep original host routing active
 until the replacement has passed its application and provider checks. Passing
-`--restore-from` directly to deploy performs the same restore before verification
+`--restore-from` directly to deploy performs the same restore before building
 and publication, and refuses a destination that already contains data.
 
 ## Optional shared event relay
@@ -330,52 +383,43 @@ This does not assert complete RER automatic Durable Object export/restore.
 
 Custom domains remain the default. To use the account's existing Workers subdomain without custom DNS, set `LAMP_HOSTING=workers-dev`. Set `LAMP_RESOURCE_PREFIX` to an explicit lowercase resource namespace (letters, digits and hyphens, at most 47 characters). If omitted, it is `lamp-<environment>`; the environment defaults to `production`.
 
-The app host is exactly `<prefix>.<subdomain>.workers.dev` and the page host exactly `<prefix>-page.<subdomain>.workers.dev`, with your account's Workers subdomain as `<subdomain>`; any other names are refused. For a prefix `my-status` and the Workers subdomain `my-account`, set:
+Both `LAMP_APP_HOST` and `LAMP_PAGE_HOST` remain required in this mode. Find the
+registered account subdomain in Cloudflare's Workers & Pages settings or use the
+[read-only API lookup](docs/deployment-reference.md#find-your-workersdev-hostnames).
+It is not the account name or ID. Lamp validates the configured names against the
+authenticated account without changing its subdomain.
+
+The app host is exactly `<prefix>.<subdomain>.workers.dev` and the page host
+exactly `<prefix>-page.<subdomain>.workers.dev`; any other names are refused.
+For a prefix `my-status` and the Workers subdomain `my-account`, export these
+values with the other owner inputs, or put them in the private input file:
 
 ```sh
 export LAMP_HOSTING=workers-dev
 export LAMP_RESOURCE_PREFIX=my-status
 export LAMP_APP_HOST=my-status.my-account.workers.dev
 export LAMP_PAGE_HOST=my-status-page.my-account.workers.dev
-rer deploy
 ```
 
-Configure the remaining inputs from the README deployment table before running these commands. Find the account subdomain in Cloudflare Workers settings; setup verifies it against the authenticated account before creating resources. It never changes account-level subdomain settings. The app Worker is named exactly the prefix; the public Worker adds `-page`. D1 adds `-db`, R2 adds `-files`, and the queue adds `-jobs`. The generated config records the supplied account ID. Deployment records preserve actual resource names for archive and sign-in commands.
+Then follow [the deploy commands](docs/deploy.md#validate-and-deploy) with the same
+environment and inputs. If using `--env-file`, update the hostname values in that
+file too; they override these exports. The app Worker is named exactly the prefix; the public Worker adds `-page`. D1 adds `-db`, R2 adds `-files`, and the queue adds `-jobs`. The generated config records the supplied account ID. Deployment records preserve actual resource names for archive and sign-in commands.
 
 Both Workers serve the same compiled source and retain the configured host checks: operator paths on the public hostname return 404, and operator APIs on the app hostname require a session. The app Worker owns the scheduled jobs, queue consumer and snapshot Durable Object. The public Worker uses that same object and storage without a second scheduler or consumer. The command deploys the app Worker first, then the public Worker. Keep the prefix reserved for this installation, and remove both Workers when retiring it.
 
 This mode is supported by native `rer deploy`. The independent delivery artifact contract describes one Worker; it does not package this two-Worker topology.
 
-## Remote verification evidence
+### Local operational inspection
 
-Deployment runs the real full verifier before provisioning by default. Owners who run verification on another trusted machine can create exact-source evidence there:
+Local dev signs the owner in with one click and silently suppresses mail.
+Demos mock sends to people and third parties while public reads run for real.
+Neither mode retains mail or serves a captured-mail viewer.
 
-```sh
-node scripts/verify-receipt.mjs --output /absolute/private/path/verification.json
-```
-
-Run that command in a clean checkout of the deployment commit, with the pinned dependencies and browser tooling installed. The output path must be outside the source checkout and must not already exist. The wrapper runs `pnpm run verify`, checks the commit, source tree and clean status before and after it, and writes a private success receipt only after the entire command passes. A failed verification writes no success receipt.
-
-Then, from a clean checkout of that exact commit:
-
-```sh
-pnpm run deploy -- --verification-host trusted-runner --verification-receipt /absolute/private/path/verification.json
-```
-
-Both options are required together. The SSH host is an owner-trusted verifier already present in SSH known hosts. Deployment fetches the evidence over authenticated, noninteractive SSH with strict host-key checking; local JSON files cannot substitute for it. It checks the successful full command, commit and tree before setup, then rechecks clean source after the build and before upload. A missing, failed, mismatched or unreadable receipt stops deployment. Keep the remote receipt until deployment is finished; remove it as part of your own verifier cleanup. This proves source verification only; the deployment health and retained-snapshot checks still run and installation acceptance remains separate.
-
-### Local capture and operational inspection
-
-The installer runs Lamp's native development application with Base's durable D1
-mail outbox. No real mail key is required for that local trial. Captured messages
-are available at `/__dev/outbox`; follow the native sign-in link there. Capture
-is neither provider acceptance nor delivery. Production never mounts this viewer.
-
-The separate local `LAMP_BASE_MAIL` database stores raw Base envelopes; the local
-R2 binding retains only capture claims and private configuration for new mail.
-Both are excluded from deployment resources and portable production archives.
-A failed or ambiguous capture remains failed without an automatic resend.
-Older R2 envelopes remain private and prevent recapture of their delivery keys.
+In ordinary development, `GET /__dev/outbox` returns HTTP 200 with a plain-text
+notice that local mail is suppressed and no messages are retained. It provides
+the compatibility path, not a mail viewer. The notice is excluded from demos
+and production. Exercise emailed sign-in and subscriber messages through a
+hosted installation's actual provider and recipient mailbox.
 
 `node scripts/operations.mjs check` prints the required inputs and their sources,
 plus a plain next step. Version 2 of `OPERATIONS.json` describes the real native
@@ -391,11 +435,39 @@ The minute cron sends an empty GET only on the heartbeat interval grid, after sc
 
 ## Shared operator authentication
 
+The checkout pins `@runeditrun/rer` 0.2.22. For hosted owner entry without email,
+run this from the deploying checkout using the original account and environment:
+
+```sh
+rer signin --environment production --env-file "$HOME/.config/lamp/production.env"
+```
+
+The private `0600` input file or calling shell supplies `CLOUDFLARE_ACCOUNT_ID`
+and `CLOUDFLARE_API_TOKEN`. The command uses the deployment's recorded owner and
+database; it accepts neither `--email` nor `--remote`. It prints the link once,
+does not save it, and sends no mail. Open it privately within 15 minutes. The
+grant is single-use and its use is audited. Retain the deploying checkout and its
+deployment records. An older installation needs additive migration
+`0023_owner_signin.sql` applied by redeployment before this command can issue a
+grant. `rer signin` 0.2.22 targets the default `lamp-<environment>` prefix; for a
+custom `LAMP_RESOURCE_PREFIX`, use the compatibility command below with that
+installation's generated configuration.
+Hosted mail remains mandatory for normal email sign-in and subscriber messages.
+
 Lamp adopts Base `aa9b4d4fc6cba60411ef8d24a81323113677c370`. Migration 0019 preserves non-erased operator IDs and active/inactive status, moves setup authority only with the setup operator (when that operator erased itself, no operator gains it and the editor stays closed), retains product attribution and subscriber credentials, and physically removes old sessions and pending links. Every active operator must sign in afresh. On a local in-place upgrade, `rer setup` adds the missing `SESSION_SECRET` and `SETUP_TOKEN` to the kept `.dev.vars` and changes no saved value. The setup operator may remove themselves only while another owner remains. Changing operator access requires a recent native email confirmation; Settings provides the confirmation action.
 
 The installer provisions `SETUP_TOKEN` and `SESSION_SECRET`. Base `/auth/bootstrap` claims the empty store; a changed setup token cannot reopen it. Retain the installer-managed setup token: current setup/deploy tooling requires it and repeats the claim, accepting Base’s already-initialized refusal. The durable claim prevents the token from reopening the store. Never rotate `SESSION_SECRET` inadvertently on a redeploy.
 
-`pnpm signin-link --email <operator>` reads `SESSION_SECRET` from private local settings or the command environment; remote recovery requires it in the environment. Capture its stdout privately. It uses Base's ordinary 20-minute confirmation link and records the existing product audit event; it creates no session until the confirmation POST.
+The compatibility command `pnpm signin-link --email <operator>` issues an ordinary
+email-flow confirmation link for an existing active operator. It reads
+`SESSION_SECRET` from private local settings or the command environment. For a
+deployed installation, add `--remote --config wrangler.toml` and export the
+original `SESSION_SECRET` and Wrangler credentials; use the generated
+configuration for the intended installation. An explicit `--origin` must be the
+exact HTTPS operator origin. Capture stdout privately. This command uses Base's
+20-minute confirmation flow and records the existing product audit event; it
+creates no session until the confirmation POST. Prefer `rer signin` for hosted
+owner entry.
 
 Optional Auth installs link through the declared `oidc-provider@1` dependency (`IDENTITY_PROVIDER`). Base settings at `/auth/settings/identity` control admission. A link alone does not enable sign-in on existing installations. Google, Microsoft and Okta may also be configured with Base `AUTH_PROVIDERS` JSON and an independent `OIDC_TRANSACTION_SECRET`; use Base's included identity/oidc documentation for issuer, key and explicit subject association requirements. SCIM and role synchronization remain unsupported. No live identity provider has been exercised by the local adoption checks.
 

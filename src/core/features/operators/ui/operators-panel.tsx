@@ -94,7 +94,7 @@ export function OperatorsPanel() {
 
 function OperatorRow({ operator, saving, onRevoke, onErase }: { operator: StoredOperator | StoredFormerOperator; saving: boolean; onRevoke?: () => void; onErase: () => void }) {
   return <div className="operator-row">
-    <span><strong>{operator.displayName}</strong><small>{operator.email}{operator.isSetupOperator ? " · setup operator" : ""}</small></span>
+    <span><strong>{operator.displayName}</strong><small>{operator.email}{operator.isSetupOperator ? " · owner" : ""}</small></span>
     <div className="operator-actions">
       {onRevoke && <Button type="button" variant="secondary" className="table-action" disabled={saving} onClick={onRevoke}>Remove access</Button>}
       <Button type="button" variant="secondary" className="table-action erase-operator-action" disabled={saving} onClick={onErase}>Erase personal data</Button>

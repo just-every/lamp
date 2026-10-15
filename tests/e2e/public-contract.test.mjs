@@ -12,7 +12,6 @@ import { gzipSync } from "node:zlib";
 import { chromium } from "playwright";
 import { createServer as createViteServer } from "vite";
 
-import { contract } from "../contract.mjs";
 import { insertRealOperatorSession } from "./real-session-helper.mjs";
 // Wrangler CLI work between requests can outlast an idle keep-alive socket; every request opens its own connection.
 import { fixtureFetch as fetch } from "../public-snapshots/fixture-fetch.mjs";
@@ -132,7 +131,9 @@ before(async () => {
   testStatePath = await mkdtemp(join(tmpdir(), "lamp-public-d1-"));
   testViteCachePath = await mkdtemp(join(tmpdir(), "lamp-public-vite-"));
   testPort = await reservePort({ label: "public contract Worker" });
-  appUrl = appOrigin(testPort);
+  // Native sign-in renders its email form only when mail is configured. This
+  // presentation-only fixture never submits it or publishes to recipients.
+  appUrl = appOrigin(testPort, { MAIL_PROVIDER_API_KEY: "test-only-signin-presentation-no-delivery" });
   pageUrl = pageOrigin(testPort);
   execFileSync("pnpm", ["run", "migrate:local"], { cwd: process.cwd(), stdio: "pipe", env: { ...process.env, LAMP_WORKERS_STATE_PATH: testStatePath } });
   sessionId = await insertRealOperatorSession({ persistTo: testStatePath, pageSettings: false });
@@ -172,11 +173,13 @@ after(async () => {
   await Promise.all([rm(testStatePath, { recursive: true, force: true }), rm(testViteCachePath, { recursive: true, force: true })]);
 });
 
-test("PAGE-007 warmed browser and proxy follow publication generations and retain origin outages", async (t) => {
+test("PAGE-007 COMP-002 PAGE-002 — Public generation refresh, ordering and script-free status", async t => {
+  t.diagnostic("PAGE-007 warmed browser and proxy follow publication generations and retain origin outages");
+  await (async (t) => {
   await publicFreshnessFlow({ appFetch, appUrl, pageUrl, diagnostic: text => t.diagnostic(text) });
-});
-
-contract("COMP-002", "operator component ordering and internal visibility rebuild the public snapshot", async () => {
+})(t);
+  t.diagnostic("COMP-002 — operator component ordering and internal visibility rebuild the public snapshot");
+  await (async () => {
   const groupResponse = await appFetch("/api/app/component-groups", { method: "POST", body: JSON.stringify({ name: "First ordered group", displayOrder: 0 }) });
   assert.equal(groupResponse.status, 201);
   const group = (await groupResponse.json()).group;
@@ -201,9 +204,9 @@ contract("COMP-002", "operator component ordering and internal visibility rebuil
   assert.equal((await appFetch(`/api/app/components/${(await first.json()).component.id}`, { method: "DELETE" })).status, 204);
   assert.equal((await appFetch(`/api/app/components/${(await second.json()).component.id}`, { method: "DELETE" })).status, 204);
   assert.equal((await appFetch(`/api/app/component-groups/${group.id}`, { method: "DELETE" })).status, 204);
-});
-
-test("component group order swaps an occupied persisted position without a constraint failure", async () => {
+})(t);
+  t.diagnostic("component group order swaps an occupied persisted position without a constraint failure");
+  await (async () => {
   const coreServices = "01J00000000000000000000002";
   const moved = await appFetch(`/api/app/component-groups/${coreServices}`, { method: "PUT", body: JSON.stringify({ name: "Core services", displayOrder: 2 }) });
   assert.equal(moved.status, 204);
@@ -214,9 +217,9 @@ test("component group order swaps an occupied persisted position without a const
   assert.equal(restored.status, 204);
   const afterRestore = await (await appFetch("/api/app/components")).json();
   assert.deepEqual(afterRestore.groups.slice(0, 2).map((group) => [group.name, group.displayOrder]), [["Core services", 1], ["Capacity test services", 2]]);
-});
-
-contract("PAGE-002", "the initial HTML contains status content, timestamps, and a working plain form", async () => {
+})(t);
+  t.diagnostic("PAGE-002 — the initial HTML contains status content, timestamps, and a working plain form");
+  await (async () => {
   const response = await fetch(`${pageUrl}/`);
   assert.equal(response.status, 200);
   const html = await response.text();
@@ -225,9 +228,9 @@ contract("PAGE-002", "the initial HTML contains status content, timestamps, and 
   assert.match(html, /<time datetime="[^"]+" data-local-time>/);
   assert.match(html, /<form method="post" action="\/subscribe">/);
   assert.match(html, /<input id="email" name="email" type="email"/);
-});
-
-test("public root keeps current incident and planned maintenance facts in the timeline without duplicate summary cards", () => {
+})(t);
+  t.diagnostic("public root keeps current incident and planned maintenance facts in the timeline without duplicate summary cards");
+  await (() => {
   const source = rendererSource([{ componentId: "renderer-policy-component", state: "Degraded performance" }]);
   source.incidents = [{ id: "timeline-incident", reference: "INC-710", title: "Timeline incident", lifecycle: "Investigating", openedAt: "2026-09-08T00:00:00.000Z", resolvedAt: null }];
   source.incidentComponents = [{ id: "timeline-incident-component", incidentId: "timeline-incident", componentId: "renderer-policy-component", componentName: "Web application", state: "Degraded performance", relationship: "Primary", publishedAt: "2026-09-08T00:00:00.000Z" }];
@@ -258,16 +261,27 @@ test("public root keeps current incident and planned maintenance facts in the ti
   assert.match(page, /class="status-utilities"/, "the retained history, subscription, and Atom controls have a compact utility nav");
   assert.match(page, /class="history-timeline"/, "the chronology remains on the public root");
   for (const fact of ["Current incident", "Timeline incident", "INC-710", "Timeline readers", "Requests are delayed.", "The dashboard remains available.", "The team is investigating.", "2026-09-08T01:00:00.000Z", "Planned maintenance", "Timeline maintenance", "SCH-710", "Timeline maintenance is scheduled."]) assert.match(page, new RegExp(fact), `${fact} remains in the timeline`);
+})(t);
 });
 
-contract("COMP-001", "the public component state order is complete and deterministic", async () => {
+
+
+
+
+
+
+
+
+test("COMP-001 COMP-004 COMP-005 COMP-007 PAGE-004 — Component states, private components, bounded notes and deletion", async t => {
+  t.diagnostic("COMP-001 — the public component state order is complete and deterministic");
+  await (async () => {
   const { COMPONENT_STATES, mostSevereState } = await rendererVite.ssrLoadModule("/src/core/shared/domain.ts");
   assert.deepEqual(COMPONENT_STATES, ["Operational", "Degraded performance", "Partially unavailable", "Major outage", "Under maintenance"]);
   assert.equal(mostSevereState(["Operational", "Under maintenance", "Degraded performance"]), "Degraded performance");
   assert.equal(mostSevereState(["Partially unavailable", "Major outage"]), "Major outage");
-});
-
-contract("COMP-004", "an exact 250-character state note is public and a longer note is rejected", async () => {
+})(t);
+  t.diagnostic("COMP-004 — an exact 250-character state note is public and a longer note is rejected");
+  await (async () => {
   const note = "N".repeat(250);
   const created = await appFetch("/api/app/components", { method: "POST", body: JSON.stringify({ groupId: "01J00000000000000000000002", name: "Note limit probe", description: "", internal: false, displayOrder: 90, note }) });
   assert.equal(created.status, 201);
@@ -276,18 +290,18 @@ contract("COMP-004", "an exact 250-character state note is public and a longer n
   const tooLong = await appFetch(`/api/app/components/${component.id}`, { method: "PUT", body: JSON.stringify({ groupId: "01J00000000000000000000002", name: "Note limit probe", description: "", internal: false, displayOrder: 90, note: `${note}X` }) });
   assert.equal(tooLong.status, 400);
   assert.equal((await appFetch(`/api/app/components/${component.id}`, { method: "DELETE" })).status, 204);
-});
-
-contract("COMP-005", "an internal component leaks through none of the public snapshot artifacts", async () => {
+})(t);
+  t.diagnostic("COMP-005 — an internal component leaks through none of the public snapshot artifacts");
+  await (async () => {
   const created = await appFetch("/api/app/components", { method: "POST", body: JSON.stringify({ groupId: "01J00000000000000000000002", name: "Private artifact probe", description: "", internal: true, displayOrder: 91, note: "not public" }) });
   assert.equal(created.status, 201);
   const component = (await created.json()).component;
   const [page, feed, widget] = await Promise.all([fetch(`${pageUrl}/`), fetch(`${pageUrl}/feed.atom`), fetch(`${pageUrl}/widget.js`)]);
   for (const artifact of await Promise.all([page.text(), feed.text(), widget.text()])) assert.doesNotMatch(artifact, /Private artifact probe|not public/);
   assert.equal((await appFetch(`/api/app/components/${component.id}`, { method: "DELETE" })).status, 204);
-});
-
-contract("COMP-007", "deleting a component removes its uptime but preserves its name in published history", async () => {
+})(t);
+  t.diagnostic("COMP-007 — deleting a component removes its uptime but preserves its name in published history");
+  await (async () => {
   const created = await appFetch("/api/app/components", { method: "POST", body: JSON.stringify({ groupId: "01J00000000000000000000002", name: "Deletion retention probe", description: "", internal: false, displayOrder: 92, note: "" }) });
   assert.equal(created.status, 201);
   const component = (await created.json()).component;
@@ -297,9 +311,9 @@ contract("COMP-007", "deleting a component removes its uptime but preserves its 
   assert.match(history, /Deletion retention probe/);
   assert.equal(queryLocalSql(`SELECT component_id AS componentId FROM incident_components WHERE id = 'component-delete-link'`)[0]?.componentId, null);
   assert.deepEqual(queryLocalSql(`SELECT id FROM component_state_history WHERE component_id = '${component.id}'`), []);
-});
-
-contract("PAGE-004", "the overall rollup policy cannot redefine an individual component state", async () => {
+})(t);
+  t.diagnostic("PAGE-004 — the overall rollup policy cannot redefine an individual component state");
+  await (async () => {
   const policies = {
     pageStatusRollup: () => "Operational",
     uptimeDowntimeWeight: (state) => state === "Major outage" ? 1 : state === "Degraded performance" ? 0.5 : 0,
@@ -308,9 +322,20 @@ contract("PAGE-004", "the overall rollup policy cannot redefine an individual co
   const page = rendered.artifacts.find((artifact) => artifact.key === "page.html")?.body ?? "";
   assert.match(page, /<h1 id="overall-status" data-overall>Operational<\/h1>/, "the configured rollup applies only to the overall label");
   assert.match(page, /<h4>Web application<\/h4>[\s\S]*?<strong>Major outage<\/strong>/, "the component remains derived by COMP-006 severity");
+})(t);
 });
 
-contract("UPTIME-005", "the stated uptime method is rendered from the selected downtime policy", async () => {
+
+
+
+
+
+
+
+
+test("UPTIME-005 UPTIME-004 COMP-003 UPTIME-001 UPTIME-002 UPTIME-003 — Audited uptime corrections, history, weighting and coverage", async t => {
+  t.diagnostic("UPTIME-005 — the stated uptime method is rendered from the selected downtime policy");
+  await (async () => {
   const rendered = renderPublicSnapshot(rendererSource(), "2026-09-08T01:00:00.000Z", {
     pageStatusRollup: (states) => states[0] ?? "Operational",
     uptimeDowntimeWeight: (state) => state === "Under maintenance" ? 0.25 : 0,
@@ -319,9 +344,9 @@ contract("UPTIME-005", "the stated uptime method is rendered from the selected d
   assert.match(page, /Major outage counts as 0 downtime minutes/);
   assert.match(page, /Under maintenance counts as 0\.25 downtime minutes/);
   assert.doesNotMatch(page, /counts as half/, "default copy must not contradict a buyer policy override");
-});
-
-contract("UPTIME-004", "a reasoned closed correction is append-only, audited, and rebuilds the figure", async () => {
+})(t);
+  t.diagnostic("UPTIME-004 — a reasoned closed correction is append-only, audited, and rebuilds the figure");
+  await (async () => {
   const end = new Date(Date.now() - 60 * 60 * 1000);
   const start = new Date(end.getTime() - 2 * 60 * 60 * 1000);
   const corrected = await appFetch("/api/app/components/01J00000000000000000000010/history-corrections", { method: "POST", body: JSON.stringify({
@@ -348,9 +373,9 @@ contract("UPTIME-004", "a reasoned closed correction is append-only, audited, an
   const coverageMinutes = (new Date(generatedAt).getTime() - coverageStart) / 60_000;
   const expected = (Math.floor((100 - ((end.getTime() - start.getTime()) / 60_000) / coverageMinutes * 100) * 100) / 100).toFixed(2);
   assert.match(page, new RegExp(`<span class="uptime-number">${expected}%`), "the rebuilt public page shows the weighted correction in its numeric uptime");
-});
-
-contract("UPTIME-004", "the trailing window includes its first partial day, weights downtime, handles DST, and labels short coverage", () => {
+})(t);
+  t.diagnostic("UPTIME-004 — the trailing window includes its first partial day, weights downtime, handles DST, and labels short coverage");
+  await (() => {
   const policies = { uptimeDowntimeWeight: (state) => state === "Major outage" ? 1 : state === "Degraded performance" ? 0.5 : 0 };
   const componentId = "uptime-window-component";
   const now = Date.parse("2026-11-02T20:00:00.000Z");
@@ -382,15 +407,15 @@ contract("UPTIME-004", "the trailing window includes its first partial day, weig
   const firstPartial = { history: [{ componentId, causeType: "standing-claim", changedAt: new Date(windowStart).toISOString(), createdAt: new Date(windowStart).toISOString(), newState: "Major outage" }, { componentId, causeType: "standing-claim", changedAt: new Date(windowStart + 60 * 60_000).toISOString(), createdAt: new Date(windowStart + 60 * 60_000).toISOString(), newState: "Operational" }], corrections: [] };
   const firstDay = computeUptime(firstPartial, componentId, now, "UTC", policies);
   assert.equal(firstDay.percentage, "99.95%", "the first hour of the exact trailing window is not discarded");
-});
-
-contract("COMP-003", "a state correction retains the original history fact and appends attributable state history", () => {
+})(t);
+  t.diagnostic("COMP-003 — a state correction retains the original history fact and appends attributable state history");
+  await (() => {
   const history = queryLocalSql("SELECT previous_state AS previousState, new_state AS newState, cause_type AS causeType, operator_id AS operatorId FROM component_state_history WHERE component_id = '01J00000000000000000000010' ORDER BY created_at");
   assert.ok(history.some((entry) => entry.previousState === "Operational" && entry.newState === "Operational" && entry.causeType === "standing-claim"));
   assert.ok(history.some((entry) => entry.newState === "Major outage" && entry.causeType === "correction" && entry.operatorId === "01J00000000000000000000001"));
-});
-
-contract("UPTIME-001", "a one-minute outage in the exact ninety-day window rounds down below 100 percent", () => {
+})(t);
+  t.diagnostic("UPTIME-001 — a one-minute outage in the exact ninety-day window rounds down below 100 percent");
+  await (() => {
   const now = Date.parse("2026-09-08T12:00:00.000Z");
   const componentId = "uptime-definition";
   const source = { history: [
@@ -398,9 +423,9 @@ contract("UPTIME-001", "a one-minute outage in the exact ninety-day window round
     { componentId, causeType: "standing-claim", changedAt: new Date(now - 60_000).toISOString(), createdAt: "2026-01-01T00:00:00.000Z", newState: "Major outage" },
   ], corrections: [] };
   assert.equal(computeUptime(source, componentId, now, "UTC", { uptimeDowntimeWeight: (state) => state === "Major outage" ? 1 : 0 }).percentage, "99.99%");
-});
-
-contract("UPTIME-002", "the configured state weights charge partial degradation and exclude maintenance", () => {
+})(t);
+  t.diagnostic("UPTIME-002 — the configured state weights charge partial degradation and exclude maintenance");
+  await (() => {
   const now = Date.parse("2026-09-08T12:00:00.000Z");
   const componentId = "uptime-weights";
   const start = now - 90 * 86_400_000;
@@ -409,17 +434,32 @@ contract("UPTIME-002", "the configured state weights charge partial degradation 
   const maintenance = computeUptime({ history: [{ componentId, causeType: "standing-claim", changedAt: new Date(start).toISOString(), createdAt: new Date(start).toISOString(), newState: "Operational" }, { componentId, causeType: "standing-claim", changedAt: new Date(now - 60 * 60_000).toISOString(), createdAt: new Date(now).toISOString(), newState: "Under maintenance" }], corrections: [] }, componentId, now, "UTC", policy);
   assert.equal(degraded.percentage, "99.99%");
   assert.equal(maintenance.percentage, "100.00%");
-});
-
-contract("UPTIME-003", "short history reports whole covered days rather than inventing a ninety-day record", () => {
+})(t);
+  t.diagnostic("UPTIME-003 — short history reports whole covered days rather than inventing a ninety-day record");
+  await (() => {
   const now = Date.parse("2026-09-08T12:00:00.000Z");
   const componentId = "uptime-short";
   const uptime = computeUptime({ history: [{ componentId, causeType: "standing-claim", changedAt: new Date(now - 49 * 60 * 60_000).toISOString(), createdAt: new Date(now).toISOString(), newState: "Operational" }], corrections: [] }, componentId, now, "UTC", { uptimeDowntimeWeight: () => 0 });
   assert.equal(uptime.coverageDays, 2);
   assert.match(uptimeMarkup({ name: "Short history", uptime }, "UTC", new Date(now).toISOString()), /over 2 whole days/);
+})(t);
 });
 
-contract("PAGE-012", "the footer credit setting controls its content", async () => {
+
+
+
+
+
+
+
+
+
+
+
+
+test("PAGE-012 UPTIME-006 SUB-003 — Branding, daily coverage and pending subscription expiry", async t => {
+  t.diagnostic("PAGE-012 — the footer credit setting controls its content");
+  await (async () => {
   await updateSettings({ footerCreditEnabled: true });
   const enabled = await (await fetch(`${pageUrl}/`)).text();
   assert.match(enabled, /<footer>\S[\s\S]*?<\/footer>/);
@@ -428,9 +468,9 @@ contract("PAGE-012", "the footer credit setting controls its content", async () 
   const disabled = await (await fetch(`${pageUrl}/`)).text();
   assert.match(disabled, /<footer>\s*<\/footer>/);
   await updateSettings({ footerCreditEnabled: true });
-});
-
-contract("UPTIME-006", "daily marks distinguish no data from a day with zero or weighted downtime", () => {
+})(t);
+  t.diagnostic("UPTIME-006 — daily marks distinguish no data from a day with zero or weighted downtime");
+  await (() => {
   const now = Date.parse("2026-09-08T12:00:00.000Z");
   const componentId = "uptime-marks";
   const historyStart = now - 2 * 86_400_000;
@@ -443,9 +483,9 @@ contract("UPTIME-006", "daily marks distinguish no data from a day with zero or 
   assert.ok(uptime.marks.some((mark) => mark.downtimeMinutes === 0));
   assert.ok(uptime.marks.some((mark) => mark.downtimeMinutes === 60));
   assert.match(uptimeMarkup({ name: "Daily record", uptime }, "UTC", new Date(now).toISOString()), /no data/);
-});
-
-contract("SUB-003", "the Worker scheduled runtime expires a 72-hour pending subscriber without a further subscription", async () => {
+})(t);
+  t.diagnostic("SUB-003 — the Worker scheduled runtime expires a 72-hour pending subscriber without a further subscription");
+  await (async () => {
   executeLocalSql(`INSERT INTO subscribers (id,channel,destination,contact_email,state,selection_mode,token_hash,created_at,updated_at) VALUES ('scheduled-expired-subscriber','email','scheduled-expired@example.test',NULL,'pending','all','scheduled-expired-token','2026-08-01T00:00:00.000Z','2026-08-01T00:00:00.000Z')`);
   let scheduled;
   for (let attempt = 0; attempt < 3; attempt += 1) {
@@ -461,9 +501,16 @@ contract("SUB-003", "the Worker scheduled runtime expires a 72-hour pending subs
   assert.equal(scheduled?.status, 200);
   for (let attempt = 0; attempt < 20 && queryLocalSql("SELECT id FROM subscribers WHERE id = 'scheduled-expired-subscriber'").length; attempt += 1) await new Promise((resolve) => setTimeout(resolve, 100));
   assert.deepEqual(queryLocalSql("SELECT id FROM subscribers WHERE id = 'scheduled-expired-subscriber'"), []);
+})(t);
 });
 
-contract("PAGE-012", "a real logo upload, favicon, Open Graph image, and allow-listed widget are snapshot artifacts", async () => {
+
+
+
+
+test("PAGE-012 PAGE-011 — Uploaded branding artwork and allow-listed widget", async t => {
+  t.diagnostic("PAGE-012 — a real logo upload, favicon, Open Graph image, and allow-listed widget are snapshot artifacts");
+  await (async () => {
   await uploadTestLogo();
   await updateSettings({ widgetAllowedOrigins: [pageUrl] });
   const [page, logo, favicon, og, widget] = await Promise.all([
@@ -481,18 +528,18 @@ contract("PAGE-012", "a real logo upload, favicon, Open Graph image, and allow-l
   assert.doesNotMatch(ogSvg, /\/assets\/logo/, "Open Graph artwork is a self-contained asset");
   assert.match(await widget.text(), /a\.indexOf\(window\.location\.origin\)/);
   assert.doesNotMatch(await (await fetch(`${pageUrl}/`)).text(), /href="https:\/\/runeditrun\.com"/);
-});
-
-contract("PAGE-012", "Chromium renders both the configured logo and the status marker in favicon and Open Graph artwork", async () => {
+})(t);
+  t.diagnostic("PAGE-012 — Chromium renders both the configured logo and the status marker in favicon and Open Graph artwork");
+  await (async () => {
   const [[faviconLogo, faviconStatus], [ogLogo, ogStatus]] = await Promise.all([
     svgPixels("/assets/favicon.svg", 128, 128, [{ x: 12, y: 110 }, { x: 101, y: 27 }]),
     svgPixels("/assets/og.svg", 1200, 630, [{ x: 100, y: 100 }, { x: 1090, y: 110 }]),
   ]);
   for (const pixel of [faviconLogo, ogLogo]) assert.ok(pixel[0] > 180 && pixel[1] < 140 && pixel[2] < 140, `expected configured red logo pixel, got ${pixel}`);
   for (const pixel of [faviconStatus, ogStatus]) assert.ok(pixel[1] > pixel[0] && pixel[1] > pixel[2], `expected operational green status marker, got ${pixel}`);
-});
-
-contract("PAGE-011", "the widget is compact, same-origin, and fails closed for unlisted embedding origins", async () => {
+})(t);
+  t.diagnostic("PAGE-011 — the widget is compact, same-origin, and fails closed for unlisted embedding origins");
+  await (async () => {
   const widget = await (await fetch(`${pageUrl}/widget.js`)).text();
   assert.ok(gzipSync(Buffer.from(widget)).byteLength <= 10 * 1024);
   assert.doesNotMatch(widget, /fetch\(|XMLHttpRequest|importScripts|\.src\s*=/, "the snapshot widget contains no remote dependency");
@@ -515,9 +562,16 @@ contract("PAGE-011", "the widget is compact, same-origin, and fails closed for u
   } finally {
     await browser.close();
   }
+})(t);
 });
 
-contract("PAGE-013", "every public snapshot response carries the restrictive same-origin security headers", async () => {
+
+
+
+
+test("PAGE-013 PAGE-014 PAGE-008 PAGE-009 PAGE-003 — Public isolation, live timezone refresh and initial asset budget", async t => {
+  t.diagnostic("PAGE-013 — every public snapshot response carries the restrictive same-origin security headers");
+  await (async () => {
   const origin = new URL(pageUrl).origin;
   for (const path of ["/", "/history", "/feed.atom", "/widget.js", "/api/public/status", "/assets/status-page.css", "/assets/logo", "/assets/favicon.svg", "/assets/og.svg"]) {
     const response = await fetch(`${pageUrl}${path}`);
@@ -526,9 +580,9 @@ contract("PAGE-013", "every public snapshot response carries the restrictive sam
     assert.equal(response.headers.get("x-content-type-options"), "nosniff");
     assert.equal(response.headers.get("referrer-policy"), "strict-origin-when-cross-origin");
   }
-});
-
-contract("PAGE-014", "browser polling updates status in place without changing the configured timezone", async () => {
+})(t);
+  t.diagnostic("PAGE-014 — browser polling updates status in place without changing the configured timezone");
+  await (async () => {
   const browser = await chromium.launch({ headless: true });
   try {
     const context = await browser.newContext({ timezoneId: "America/New_York" });
@@ -559,15 +613,15 @@ contract("PAGE-014", "browser polling updates status in place without changing t
   } finally {
     await browser.close();
   }
-});
-
-contract("PAGE-008", "repeated public snapshot reads are never rate limited", async () => {
+})(t);
+  t.diagnostic("PAGE-008 — repeated public snapshot reads are never rate limited");
+  await (async () => {
   const responses = await Promise.all(Array.from({ length: 128 }, () => fetch(`${pageUrl}/api/public/status`)));
   assert.ok(responses.every((response) => response.status === 200));
   assert.ok(responses.every((response) => response.status !== 429));
-});
-
-contract("PAGE-009", "every public timestamp keeps the configured timezone with browser JavaScript enabled", async () => {
+})(t);
+  t.diagnostic("PAGE-009 — every public timestamp keeps the configured timezone with browser JavaScript enabled");
+  await (async () => {
   await updateSettings({ timezone: "America/Los_Angeles" });
   const created = await appFetch("/api/app/incidents", { method: "POST", body: JSON.stringify({ title: "Timestamp metadata probe", components: [{ componentId: "01J00000000000000000000010", state: "Degraded performance", relationship: "Primary" }] }) });
   assert.equal(created.status, 201);
@@ -604,9 +658,9 @@ contract("PAGE-009", "every public timestamp keeps the configured timezone with 
   } finally {
     await browser.close();
   }
-});
-
-contract("PAGE-003", "the complete component-limit snapshot remains within the gzip budget", async () => {
+})(t);
+  t.diagnostic("PAGE-003 — the complete component-limit snapshot remains within the gzip budget");
+  await (async () => {
   executeLocalSql(`WITH RECURSIVE n(value) AS (SELECT 1 UNION ALL SELECT value + 1 FROM n WHERE value < 194) INSERT INTO components (id, group_id, name, description, internal, display_order, note, created_at, updated_at) SELECT 'bulk-' || value, '01J00000000000000000000003', 'Bulk component ' || printf('%03d', value), substr('Maximum valid description for capacity measurement. ' || printf('%03d', value) || ' ..................................................................................................................................................................................................................................................', 1, 280), 0, 1000 + value, substr('Maximum valid public state note for component ' || printf('%03d', value) || ' ..................................................................................................................................................................................................................................................', 1, 250), '2026-06-10T00:00:00.000Z', '2026-06-10T00:00:00.000Z' FROM n; WITH RECURSIVE n(component) AS (SELECT 1 UNION ALL SELECT component + 1 FROM n WHERE component < 194), d(day) AS (SELECT 0 UNION ALL SELECT day + 1 FROM d WHERE day < 89) INSERT INTO component_state_history (id,component_id,previous_state,new_state,cause_type,cause_id,operator_id,changed_at,created_at,updated_at) SELECT 'bulk-history-' || component || '-' || day, 'bulk-' || component, 'Operational', 'Operational', 'standing-claim', NULL, '01J00000000000000000000001', strftime('%Y-%m-%dT%H:%M:%fZ','now','-' || (90 - day) || ' days'), '2026-06-10T00:00:00.000Z', '2026-06-10T00:00:00.000Z' FROM n CROSS JOIN d`);
   await updateSettings({ tagline: "Status record at the component capacity limit." });
   const response = await fetch(`${pageUrl}/`);
@@ -617,10 +671,9 @@ contract("PAGE-003", "the complete component-limit snapshot remains within the g
   assert.match(html, /Maximum valid public state note for component 001/, "the capacity fixture includes a visible 250-character note");
   const marksPerComponent = [...html.matchAll(/class="uptime-mark /g)].length / 200;
   assert.ok(marksPerComponent >= 90 && marksPerComponent <= 91, "daily marks cover the exact trailing 90-day interval, including its partial boundary day");
-});
-
-
-contract("PAGE-003", "Chromium renders the public page in its bundled face within the four-request initial asset budget", async () => {
+})(t);
+  t.diagnostic("PAGE-003 — Chromium renders the public page in its bundled face within the four-request initial asset budget");
+  await (async () => {
   await uploadTestLogo();
   const settings = await currentSettings();
   await updateSettings({ tagline: settings.tagline });
@@ -650,9 +703,23 @@ contract("PAGE-003", "Chromium renders the public page in its bundled face withi
   } finally {
     await browser.close();
   }
+})(t);
 });
 
-contract("HIST-001", "published incident and maintenance notice history stays grouped and Atom-complete for twelve months", async () => {
+
+
+
+
+
+
+
+
+
+
+
+test("HIST-001 PAGE-010 PAGE-006 — Stable feed history and corrupt-pointer recovery", async t => {
+  t.diagnostic("HIST-001 — published incident and maintenance notice history stays grouped and Atom-complete for twelve months");
+  await (async () => {
   executeLocalSql(`INSERT INTO incidents (id, reference, title, lifecycle, opened_at, resolved_at, created_by_operator_id, created_at, updated_at) VALUES ('01J00000000000000000000900','INC-9000','Resolved history incident','Resolved','2026-09-01T00:00:00.000Z','2026-09-01T01:00:00.000Z','01J00000000000000000000001','2026-09-01T00:00:00.000Z','2026-09-01T01:00:00.000Z'); INSERT INTO incident_components (id,incident_id,component_id,component_name,state,relationship,published_at,created_at,updated_at) VALUES ('01J00000000000000000000901','01J00000000000000000000900','01J00000000000000000000010','Web application','Major outage','Primary','2026-09-01T01:00:00.000Z','2026-09-01T00:00:00.000Z','2026-09-01T00:00:00.000Z'); INSERT INTO incident_updates (id,incident_id,lifecycle,affected_audience,customer_impact,what_still_works,details,next_update_at,published_at,author_operator_id,created_at,updated_at) VALUES ('01J00000000000000000000902','01J00000000000000000000900','Resolved','All readers','The service recovered.','','','2026-09-01T01:00:00.000Z','2026-09-01T01:00:00.000Z','01J00000000000000000000001','2026-09-01T01:00:00.000Z','2026-09-01T01:00:00.000Z'); INSERT INTO maintenance (id,reference,title,state,starts_at,ends_at,completed_at,created_by_operator_id,created_at,updated_at) VALUES ('01J00000000000000000000910','SCH-9000','Completed history maintenance','Completed','2026-09-02T00:00:00.000Z','2026-09-02T01:00:00.000Z','2026-09-02T01:00:00.000Z','01J00000000000000000000001','2026-09-02T00:00:00.000Z','2026-09-02T01:00:00.000Z'); INSERT INTO maintenance_components (id,maintenance_id,component_id,component_name,state,created_at,updated_at) VALUES ('01J00000000000000000000911','01J00000000000000000000910','01J00000000000000000000010','Web application','Under maintenance','2026-09-02T00:00:00.000Z','2026-09-02T00:00:00.000Z'); INSERT INTO maintenance_notices (id,maintenance_id,kind,body,published_at,author_operator_id,created_at,updated_at) VALUES ('01J00000000000000000000912','01J00000000000000000000910','completed','Maintenance completed.','2026-09-02T01:00:00.000Z','01J00000000000000000000001','2026-09-02T01:00:00.000Z','2026-09-02T01:00:00.000Z')`);
   executeLocalSql(`INSERT INTO components (id,group_id,name,description,internal,display_order,note,created_at,updated_at) VALUES ('history-internal','01J00000000000000000000002','Private history component','',1,99,'','2026-09-01T00:00:00.000Z','2026-09-01T00:00:00.000Z'); INSERT INTO incident_components (id,incident_id,component_id,component_name,state,relationship,published_at,created_at,updated_at) VALUES ('history-internal-link','01J00000000000000000000900','history-internal','Private history component','Major outage','Dependent','2026-09-01T01:00:00.000Z','2026-09-01T00:00:00.000Z','2026-09-01T00:00:00.000Z'),('history-deleted-link','01J00000000000000000000900',NULL,'Retired payment rail','Major outage','Dependent','2026-09-01T01:00:00.000Z','2026-09-01T00:00:00.000Z','2026-09-01T00:00:00.000Z'); INSERT INTO maintenance_notices (id,maintenance_id,kind,body,published_at,author_operator_id,created_at,updated_at) VALUES ('history-notice-scheduled','01J00000000000000000000910','scheduled','Maintenance scheduled.','2026-09-02T02:00:00.000Z','01J00000000000000000000001','2026-09-02T02:00:00.000Z','2026-09-02T02:00:00.000Z'),('history-notice-rescheduled','01J00000000000000000000910','rescheduled','Maintenance rescheduled.','2026-09-02T03:00:00.000Z','01J00000000000000000000001','2026-09-02T03:00:00.000Z','2026-09-02T03:00:00.000Z'),('history-notice-reminder','01J00000000000000000000910','reminder','Maintenance reminder.','2026-09-02T04:00:00.000Z','01J00000000000000000000001','2026-09-02T04:00:00.000Z','2026-09-02T04:00:00.000Z'),('history-notice-started','01J00000000000000000000910','started','Maintenance started.' || char(1) || 'safe text','2026-09-02T05:00:00.000Z','01J00000000000000000000001','2026-09-02T05:00:00.000Z','2026-09-02T05:00:00.000Z'),('history-notice-cancelled','01J00000000000000000000910','cancelled','Maintenance cancelled.','2026-09-02T07:00:00.000Z','01J00000000000000000000001','2026-09-02T07:00:00.000Z','2026-09-02T07:00:00.000Z'); INSERT INTO incidents (id,reference,title,lifecycle,opened_at,resolved_at,created_by_operator_id,created_at,updated_at) VALUES ('history-outside-window','INC-9001','Outside twelve-month history','Resolved','2025-08-01T00:00:00.000Z','2025-08-01T01:00:00.000Z','01J00000000000000000000001','2025-08-01T00:00:00.000Z','2025-08-01T01:00:00.000Z'); INSERT INTO incident_components (id,incident_id,component_id,component_name,state,relationship,published_at,created_at,updated_at) VALUES ('history-outside-link','history-outside-window','01J00000000000000000000010','Web application','Major outage','Primary','2025-08-01T01:00:00.000Z','2025-08-01T00:00:00.000Z','2025-08-01T00:00:00.000Z'); INSERT INTO incident_updates (id,incident_id,lifecycle,affected_audience,customer_impact,what_still_works,details,next_update_at,published_at,author_operator_id,created_at,updated_at) VALUES ('history-outside-update','history-outside-window','Resolved','All readers','Old update.','','','2025-08-01T01:00:00.000Z','2025-08-01T01:00:00.000Z','01J00000000000000000000001','2025-08-01T01:00:00.000Z','2025-08-01T01:00:00.000Z')`);
   await updateSettings({ pageName: "Atlas Cloud History" });
@@ -677,9 +744,9 @@ contract("HIST-001", "published incident and maintenance notice history stays gr
   execFileSync("xmllint", ["--noout", "-"], { input: atomText });
   assert.match(atomText, /<author><name>Atlas Cloud History<\/name><\/author>/);
   assert.match(atomText, /<feed xmlns="http:\/\/www\.w3\.org\/2005\/Atom">/);
-});
-
-contract("PAGE-010", "an Atom feed keeps its deployment identity and event IDs when the editable hostname changes", async () => {
+})(t);
+  t.diagnostic("PAGE-010 — an Atom feed keeps its deployment identity and event IDs when the editable hostname changes");
+  await (async () => {
   const before = await (await fetch(`${pageUrl}/feed.atom`)).text();
   await updateSettings({ hostname: "status-renamed.atlascloud.example" });
   const after = await (await fetch(`${pageUrl}/feed.atom`)).text();
@@ -691,9 +758,9 @@ contract("PAGE-010", "an Atom feed keeps its deployment identity and event IDs w
   assert.equal(changedFeedId, feedId);
   assert.equal(changedEntryId, entryId);
   assert.match(after, /<link href="https:\/\/status-renamed\.atlascloud\.example\/feed\.atom" rel="self"\/>/);
-});
-
-contract("PAGE-006", "a corrupt R2 pointer serves the retained last-known snapshot with an explicit stale label", async () => {
+})(t);
+  t.diagnostic("PAGE-006 — a corrupt R2 pointer serves the retained last-known snapshot with an explicit stale label");
+  await (async () => {
   const pointer = r2Object("snapshots/current.json");
   assert.match(pointer, /"version"/);
   await (await fetch(`${pageUrl}/`)).text();
@@ -711,4 +778,5 @@ contract("PAGE-006", "a corrupt R2 pointer serves the retained last-known snapsh
   } finally {
     r2Object("snapshots/current.json", pointer);
   }
+})(t);
 });

@@ -45,7 +45,7 @@ before(async () => {
   viteCachePath = await mkdtemp(join(tmpdir(), "lamp-site-vite-"));
   // Wrangler and Vite load `.dev.vars` from the directory of the config they are given, and it overrides the config's vars. The fixture's
   // config therefore lives in a directory of its own, so a checkout's local secrets and origin (written by `rer setup`) cannot steer this Worker.
-  fixtureConfig = isolatedWranglerConfig();
+  fixtureConfig = isolatedWranglerConfig((config) => ({ ...config, vars: { ...config.vars, MAIL_PROVIDER_API_KEY: "test-only-signin-presentation-no-delivery" } }));
   wranglerConfig = fixtureConfig.path;
   execFileSync("pnpm", ["exec", "wrangler", "d1", "migrations", "apply", "DB", "--local", "--config", wranglerConfig, "--persist-to", statePath], { cwd: process.cwd(), stdio: "pipe" });
   worker = spawn("pnpm", ["exec", "vite", "--host", "127.0.0.1", "--port", String(port), "--strictPort"], {
@@ -219,14 +219,38 @@ const lobby = async () => {
   assert.equal(response.status, 200);
   assert.match(response.headers.get("content-type") ?? "", /^text\/html/);
   const html = await response.text();
-  return { html, action: html.match(/<a class="btn" href="([^"]+)">([^<]+)/)?.slice(1) };
+  return { html };
 };
 const setupState = async () => (await (await fetch(`${BASE}/setup/state`)).json()).state;
 
-test("the app host's home page is the Lobby, Finish setup until the owner confirms first-run setup and Sign in after; the page host's is the status page; /lamp redirects home", async () => {
+async function followLobbyAction(path, email = "") {
+  const context = await browser.newContext({ javaScriptEnabled: false });
+  try {
+    const page = await context.newPage();
+    await page.goto(`${BASE}/`);
+    const action = page.locator(".door-card a.btn");
+    assert.equal(await action.count(), 1, "the Lobby offers one primary action");
+    const target = new URL(await action.getAttribute("href"), page.url());
+    assert.equal(target.origin, BASE, "the primary action stays on the app origin");
+    assert.equal(target.pathname, path);
+    assert.deepEqual([...target.searchParams], email ? [["login_hint", email]] : [], "only the local claimed owner's sign-in carries an email hint");
+    assert.ok(!(await page.locator("body").innerText()).includes("operator@example.test"), "the Lobby does not display the owner's email");
+    await action.click();
+    await page.waitForURL((url) => url.origin === BASE && url.pathname === "/signin");
+    const input = page.locator('input[name="email"][type="email"]');
+    assert.ok(await input.isVisible(), "the primary action reaches the native sign-in form without JavaScript");
+    assert.equal(await input.inputValue(), email, "the local owner can continue with their email already filled in");
+    if (email) assert.equal(await page.locator('input[name="token"]').count(), 0, "a claimed owner does not need the spent bootstrap token");
+    assert.ok(!(await context.cookies()).some((cookie) => cookie.name === sessionCookieName(BASE)), "following a hint does not authenticate the visitor");
+  } finally {
+    await context.close();
+  }
+}
+
+test("the app Lobby leads to setup before owner claim and prefilled sign-in after bootstrap, independently of first-run confirmation; the page host serves status; /lamp redirects home", async () => {
   assert.equal(await setupState(), "unclaimed");
   const waiting = await lobby();
-  assert.deepEqual(waiting.action, ["/setup", "Finish setup"], "before the claim the Lobby's one action is Finish setup");
+  await followLobbyAction("/setup");
   assert.doesNotMatch(waiting.html, /lamp-home|lamp-intro/, "the landing page lives on the run site, not the installed instance");
   for (const file of [...waiting.html.matchAll(/(?:href|src)="(\/[^"]+)"/g)].map(([, path]) => path).filter((path) => path !== "/setup")) {
     assert.equal((await fetch(`${BASE}${file}`)).status, 200, `the Lobby's ${file} is served`);
@@ -237,15 +261,18 @@ test("the app host's home page is the Lobby, Finish setup until the owner confir
   assert.equal(counts.owners, 0, "homepage and public reads create no owner");
   assert.equal(counts.settings, 0, "homepage and public reads create no page settings");
 
-  // The owner confirms first-run setup as /setup does: the page saved, then first run completed.
+  // Bootstrap claims the owner before the page's separate first-run confirmation.
   const session = await insertRealOperatorSession({ persistTo: statePath, configPath: wranglerConfig, pageSettings: false });
   d1("INSERT INTO page_settings(id,page_name,tagline,accent_color,timezone,hostname,footer_credit_enabled,mail_from_address,feed_id,created_at,updated_at) VALUES ('default','Atlas Cloud Status','Current availability and incident communications for Atlas Cloud.','#16794C','America/Los_Angeles','status.atlascloud.example',1,'lamp@localhost.invalid','test-feed-identity-00000000000001','2026-08-31','2026-08-31')");
-  assert.equal(await setupState(), "unclaimed", "an owner and a saved page are not yet a claim");
+  assert.equal(await setupState(), "unclaimed", "page setup remains incomplete after owner bootstrap");
+  await followLobbyAction("/signin", "operator@example.test");
+  assert.doesNotMatch((await lobby()).html, /setup token/, "bootstrap already retired the one-time setup token");
+  assert.equal(await setupState(), "unclaimed", "following owner entry does not confirm the page's first-run settings");
   const confirmed = await fetch(`${BASE}/api/app/overview/first-run`, { method: "POST", body: "{}", headers: requestHeaders({ Cookie: `${sessionCookieName(BASE)}=${session}`, "Content-Type": "application/json", Origin: BASE }) });
   assert.equal(confirmed.status, 200, await confirmed.clone().text());
   assert.equal(await setupState(), "claimed");
   const claimed = await lobby();
-  assert.deepEqual(claimed.action, ["/signin", "Sign in"], "once claimed the Lobby's one action is Sign in");
+  await followLobbyAction("/signin", "operator@example.test");
   assert.match(claimed.html, /Atlas Cloud Status/, "the Lobby names the page the owner configured");
 
   const statusPage = await fetch(`${PAGE}/`);
@@ -253,6 +280,9 @@ test("the app host's home page is the Lobby, Finish setup until the owner confir
   assert.match(statusPage.headers.get("content-type") ?? "", /^text\/html/);
   assert.ok(statusPage.headers.get("content-security-policy"), "the status page keeps its CSP");
   const statusHtml = await statusPage.text();
+  for (const privateValue of ["operator@example.test", encodeURIComponent("operator@example.test"), "login_hint"]) {
+    assert.ok(!statusHtml.includes(privateValue), "the public status page never exposes the owner's email or local sign-in hint");
+  }
   const statusContent = statusHtml.match(/<main\b[^>]*>([\s\S]*?)<\/main>/i)?.[1] ?? "";
   assert.ok(visibleText(statusContent).includes("Atlas Cloud Status"), "the configured public page renders the seeded page identity in its body");
   assert.doesNotMatch(statusHtml, /lamp-home|lamp-intro|class="door"/, "the status page carries neither the landing page nor the Lobby");
@@ -262,7 +292,9 @@ test("the app host's home page is the Lobby, Finish setup until the owner confir
   assert.equal(formerAddress.headers.get("location"), `${BASE}/`);
 });
 
-test("the intro starts dim with the hero readable and the lamp clicks on once, leaving the page lit", async () => {
+test("Lamp introduction remains readable, correctly scaled and resilient to slow drawings", async t => {
+  t.diagnostic("the intro starts dim with the hero readable and the lamp clicks on once, leaving the page lit");
+  await (async () => {
   for (const [width, height] of [[1440, 900], [390, 844]]) {
     const dark = await openPage({ width, height, motion: "no-preference", holdAt: 0 });
     let night;
@@ -296,9 +328,9 @@ test("the intro starts dim with the hero readable and the lamp clicks on once, l
       await close();
     }
   }
-});
-
-test("the intro fills the first screen on every screen, and the lamp hangs lower on a longer cord when the screen is taller than its stack", async () => {
+})(t);
+  t.diagnostic("the intro fills the first screen on every screen, and the lamp hangs lower on a longer cord when the screen is taller than its stack");
+  await (async () => {
   const measure = async (width, height) => {
     const { page, close } = await openPage({ width, height, motion: "reduce" });
     try {
@@ -324,9 +356,9 @@ test("the intro fills the first screen on every screen, and the lamp hangs lower
     assert.ok(short.bulbBottom <= short.titleTop, `the lamp does not overlap the headline at ${width}x${height}: ${JSON.stringify(short)}`);
     assert.equal(short.overflowX, 0, `nothing spills sideways at ${width}x${height}`);
   }
-});
-
-test("when the lamp's drawings are slow the click-on holds at its start, then the page goes lit without them, and the lamp appears only once drawn, already lit", async () => {
+})(t);
+  t.diagnostic("when the lamp's drawings are slow the click-on holds at its start, then the page goes lit without them, and the lamp appears only once drawn, already lit");
+  await (async () => {
   for (const [width, height] of [[1440, 900], [390, 844]]) {
     const { context, page, errors } = await newContext({ viewport: { width, height }, reducedMotion: "no-preference" });
     try {
@@ -354,9 +386,16 @@ test("when the lamp's drawings are slow the click-on holds at its start, then th
       await context.close();
     }
   }
+})(t);
 });
 
-test("under reduced motion the page is simply lit: nothing animates and the mark already sits in its slot", async () => {
+
+
+
+
+test("Motion-free and script-free entry and reversible lamp handoff", async t => {
+  t.diagnostic("under reduced motion the page is simply lit: nothing animates and the mark already sits in its slot");
+  await (async () => {
   for (const [width, height] of [[1440, 900], [390, 844]]) {
     const { page, close } = await openPage({ width, height, motion: "reduce" });
     try {
@@ -373,9 +412,9 @@ test("under reduced motion the page is simply lit: nothing animates and the mark
       await close();
     }
   }
-});
-
-test("without JavaScript the page is simply lit, the mark in its slot and nothing running", async () => {
+})(t);
+  t.diagnostic("without JavaScript the page is simply lit, the mark in its slot and nothing running");
+  await (async () => {
   const { page, close } = await openPage({ width: 1440, height: 900, motion: "no-preference", javaScriptEnabled: false });
   try {
     await page.waitForFunction(() => [...document.images].every((image) => image.loading === "lazy" || image.complete));
@@ -387,9 +426,9 @@ test("without JavaScript the page is simply lit, the mark in its slot and nothin
   } finally {
     await close();
   }
-});
-
-test("the scroll handoff lifts the big lamp away and lands the header mark in its slot, continuously and reversibly", async () => {
+})(t);
+  t.diagnostic("the scroll handoff lifts the big lamp away and lands the header mark in its slot, continuously and reversibly");
+  await (async () => {
   for (const [width, height] of [[1440, 900], [390, 844]]) {
     const { page, close } = await openPage({ width, height, motion: "no-preference", holdAt: 3000 });
     try {
@@ -427,9 +466,16 @@ test("the scroll handoff lifts the big lamp away and lands the header mark in it
       await close();
     }
   }
+})(t);
 });
 
-test("every section renders below the hero, in order, under one h1: the product cards, then a close that offers a way in, then the footer", async () => {
+
+
+
+
+test("Complete responsive landing content stays on its own origin", async t => {
+  t.diagnostic("every section renders below the hero, in order, under one h1: the product cards, then a close that offers a way in, then the footer");
+  await (async () => {
   const { page, close } = await openPage({ width: 1440, height: 900, motion: "no-preference" });
   try {
     // With motion on, each section plays its moment as it is scrolled into view; once every moment has played,
@@ -475,9 +521,9 @@ test("every section renders below the hero, in order, under one h1: the product 
   } finally {
     await close();
   }
-});
-
-test("nothing overflows sideways at a narrow phone and a wide desktop width", async () => {
+})(t);
+  t.diagnostic("nothing overflows sideways at a narrow phone and a wide desktop width");
+  await (async () => {
   for (const [width, height] of [[320, 568], [1920, 1080]]) {
     const { page, close } = await openPage({ width, height });
     try {
@@ -495,9 +541,9 @@ test("nothing overflows sideways at a narrow phone and a wide desktop width", as
       await close();
     }
   }
-});
-
-test("every request the page makes stays on its own origin", async () => {
+})(t);
+  t.diagnostic("every request the page makes stays on its own origin");
+  await (async () => {
   for (const [width, height] of [[1440, 900], [390, 844]]) {
     const requests = [];
     const { page, close } = await openPage({ width, height, motion: "no-preference", setup: (p) => p.on("request", (request) => requests.push(request.url())) });
@@ -510,9 +556,16 @@ test("every request the page makes stays on its own origin", async () => {
       await close();
     }
   }
+})(t);
 });
 
-test("the keyboard reaches the skip link first and then every link, each with a visible focus ring, and focus lifts the dusk", async () => {
+
+
+
+
+test("Landing keyboard navigation and WCAG AA accessibility", async t => {
+  t.diagnostic("the keyboard reaches the skip link first and then every link, each with a visible focus ring, and focus lifts the dusk");
+  await (async () => {
   for (const holdAt of [0, 3000]) {
     const { page, close } = await openPage({ width: 1440, height: 900, motion: "no-preference", holdAt });
     try {
@@ -543,9 +596,9 @@ test("the keyboard reaches the skip link first and then every link, each with a 
       await close();
     }
   }
-});
-
-test("automated WCAG AA checks find nothing on the lit page, at the top and at every section", async () => {
+})(t);
+  t.diagnostic("automated WCAG AA checks find nothing on the lit page, at the top and at every section");
+  await (async () => {
   for (const [width, height] of [[1440, 900], [390, 844]]) {
     const { page, close } = await openPage({ width, height });
     try {
@@ -561,7 +614,10 @@ test("automated WCAG AA checks find nothing on the lit page, at the top and at e
       await close();
     }
   }
+})(t);
 });
+
+
 
 // The docs at /docs: the landing page's own pages for the repository's docs, drawn from its Markdown at build time. The
 // run site serves them as built; an installed instance serves the same pages on its app host.
@@ -579,7 +635,9 @@ async function openDocs(path, { width = 1440, height = 900, javaScriptEnabled = 
   return { page, close: async () => { await context.close(); assert.deepEqual(errors(), [], "no console or page errors"); } };
 }
 
-test("the landing page's Docs links lead to the site's own docs, which read the repository's docs under the same header, link to each other and answer 404 off the list", async () => {
+test("Repository docs remain complete, responsive, private and accessible", async t => {
+  t.diagnostic("the landing page's Docs links lead to the site's own docs, which read the repository's docs under the same header, link to each other and answer 404 off the list");
+  await (async () => {
   const landing = await openPage({ width: 1440, height: 900 });
   try {
     const docsLinks = await landing.page.$$eval("a", (links) => links.filter((link) => /^(Docs|Read the docs)$/.test(link.textContent.trim())).map((link) => new URL(link.href).origin + new URL(link.href).pathname));
@@ -631,9 +689,9 @@ test("the landing page's Docs links lead to the site's own docs, which read the 
   }
   assert.equal((await fetch(`${BASE}/docs`)).status, 200, "an installed instance serves the docs on its app host");
   assert.equal((await fetch(`${PAGE}/docs`)).status, 404, "the status page's host has no docs: its paths are the snapshot's");
-});
-
-test("every docs page fits the screen, stays on its own origin, works without JavaScript and passes the WCAG AA checks", async () => {
+})(t);
+  t.diagnostic("every docs page fits the screen, stays on its own origin, works without JavaScript and passes the WCAG AA checks");
+  await (async () => {
   const paths = ["/docs", ...(await docsPaths())];
   for (const [width, height] of [[1440, 900], [390, 844]]) {
     for (const path of paths) {
@@ -673,4 +731,5 @@ test("every docs page fits the screen, stays on its own origin, works without Ja
   } finally {
     await plain.close();
   }
+})(t);
 });

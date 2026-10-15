@@ -1,16 +1,16 @@
 import { spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";
-import { rm } from "node:fs/promises";
+import { rm, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 
 import { deploymentConfig, parseArgs, resourceNames, writeGeneratedWrangler } from "./ops-config.mjs";
 import { withDeploymentSecrets } from "./deployment-secrets.mjs";
 import { withPublicWorkerConfig } from "./native-public-worker.mjs";
-import { verifyRemoteEvidence, cleanSourceIdentity } from "./verification-evidence.mjs";
 import { readOperations } from "./operations.mjs";
 import { dryRunInputFailure } from "./deploy-preflight.mjs";
 import { readBuiltWorkerArtifact } from "./build-output.mjs";
 import { deployFingerprint, deploySource, identityVars, reportsIdentity } from "./deployment-identity.mjs";
+import { deploymentOwnership } from './deployment-ownership.mjs';
 
 function run(command, args, options = {}) {
   const result = spawnSync(command, args, { stdio: "inherit", ...options });
@@ -62,19 +62,14 @@ async function main() {
     console.log("Dry run compiled the generated Start Worker configuration and dist/client assets. No Cloudflare resource or deployment was changed.");
     return;
   }
-  const host = flags.get("verification-host");
-  const receipt = flags.get("verification-receipt");
-  if (Boolean(host) !== Boolean(receipt)) throw new Error("--verification-host and --verification-receipt must be supplied together.");
-  const verifiedSource = host ? verifyRemoteEvidence(host, receipt) : null;
-  if (!verifiedSource) run("pnpm", ["run", "verify:app"]);
   run("pnpm", ["run", "setup:cloudflare", "--", "--environment", config.environment, ...restoreArgs]);
   if (!existsSync("wrangler.toml")) throw new Error("pnpm setup must generate wrangler.toml before deployment.");
   const builtConfig = await buildGeneratedWorker(resolve("wrangler.toml"), config);
-  if (verifiedSource && JSON.stringify(cleanSourceIdentity()) !== JSON.stringify(verifiedSource)) throw new Error("Source changed after remote verification was checked.");
   const identity = { source: deploySource(), fingerprint: await deployFingerprint() };
+  const ownership = deploymentOwnership(config);
   await withDeploymentSecrets(config, async (file) => {
-    run("pnpm", ["exec", "wrangler", "deploy", "--config", builtConfig, "--secrets-file", file, ...identityVars(identity)]);
-    if (config.hosting === "workers-dev") await withPublicWorkerConfig(builtConfig, names, path => run("pnpm", ["exec", "wrangler", "deploy", "--config", path, "--secrets-file", file, ...identityVars(identity)]));
+    await ownership.upload(false, identity, () => run("pnpm", ["exec", "wrangler", "deploy", "--config", builtConfig, "--secrets-file", file, ...identityVars(identity)]));
+    if (config.hosting === "workers-dev") await withPublicWorkerConfig(builtConfig, names, path => ownership.upload(true, identity, () => run("pnpm", ["exec", "wrangler", "deploy", "--config", path, "--secrets-file", file, ...identityVars(identity)])));
   });
   const response = await fetch(`https://${config.appHost}/health`, { signal: AbortSignal.timeout(15_000), redirect: "error" });
   const health = await response.json().catch(() => null);
@@ -84,9 +79,13 @@ async function main() {
   // legacy snapshots without a bundle are rebuilt by the minute scheduler.
   // Identity is claimed through Base after its secret bindings are deployed.
   // Existing stores reject bootstrap without changing their owner or settings.
-  const claimed = await fetch(`https://${config.appHost}/auth/bootstrap`, {method:'POST',redirect:'manual',headers:{Origin:`https://${config.appHost}`,'Content-Type':'application/json'},body:JSON.stringify({token:config.setupToken,displayName:config.setupOperatorDisplayName})});
-  await claimed.body?.cancel();
-  if (![303,409].includes(claimed.status)) throw new Error('Owner bootstrap failed after deployment. Inspect the auth configuration.');
+  // The CLI hook claims in its own process so rer observes and links that
+  // exchange. Standalone deploy:cloudflare still completes its own bootstrap.
+  if (!flags.get("result-file")) {
+    const claimed = await fetch(`https://${config.appHost}/auth/bootstrap`, {method:'POST',redirect:'manual',headers:{Origin:`https://${config.appHost}`,'Content-Type':'application/json'},body:JSON.stringify({token:config.setupToken,displayName:config.setupOperatorDisplayName})});
+    await claimed.body?.cancel();
+    if (![303,409].includes(claimed.status)) throw new Error('Owner bootstrap failed after deployment. Inspect the auth configuration.');
+  }
   const deadline = Date.now() + 90_000;
   let retained = false;
   do {
@@ -95,6 +94,7 @@ async function main() {
     await new Promise((resolve) => setTimeout(resolve, 2_000));
   } while (Date.now() < deadline);
   if (!retained) throw new Error("Deployment is live but retained snapshot readiness is unverified; inspect snapshot build failures before accepting this deployment.");
+  if (flags.get("result-file")) await writeFile(resolve(flags.get("result-file")), JSON.stringify({ deployed: true, environment, origin: `https://${config.appHost}` }) + '\n', { mode: 0o600, flag: 'wx' });
   console.log(`Deployment smoke check passed for ${config.appHost}.`);
 }
 

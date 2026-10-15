@@ -1,7 +1,10 @@
 import {access,readFile} from 'node:fs/promises';
 import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
+import {parseEnv} from 'node:util';
 import {localInstaller} from '@runeditrun/rer/local-installer';
+import {readSettings} from '@runeditrun/rer/adapter-settings';
+import {writePrivateFile} from '@runeditrun/rer/internal/onboarding/private-files.mjs';
 import {commandAdapter as createCommandAdapter} from '@runeditrun/rer/adapter';
 import {localPortability} from '@runeditrun/rer/portability';
 import {nativeOwner} from './bootstrap.mjs';
@@ -20,9 +23,9 @@ async function legacyState({root}){
  }
 }
 
-// Development captures mail in Lamp's outbox. Setup and preview execute the
+// Development silently suppresses mail. Setup and preview execute the
 // production artifact and never request mail from a provider.
-const environment=(context,extra={})=>({...process.env,...context.env,...context.vars,LAMP_DEV_OUTBOX_MODE:'local',LAMP_DISABLE_INSPECTOR:'true',WRANGLER_SEND_METRICS:'false',X_LOCAL_EXPLORER:'false',RER_DEV_ORIGIN:context.origin,RER_DEV_KEY:context.devKey,RER_DEV_IDENTITY:context.devLogin?'off':'on',...extra});
+const environment=(context,extra={})=>({...process.env,...context.env,...context.vars,LAMP_DISABLE_INSPECTOR:'true',WRANGLER_SEND_METRICS:'false',X_LOCAL_EXPLORER:'false',RER_DEV_ORIGIN:context.origin,RER_DEV_KEY:context.devKey,RER_DEV_IDENTITY:context.devLogin?'off':'on',...(context.demo ? {RER_DEMO:'1',RER_DEMO_EXPIRES:context.demo.ends,RER_STATE_DIR:context.demo.state} : {}),...extra});
 const listen=context=>String(context.runtimePort??(new URL(context.origin).port||80));
 // dev:app applies new migrations, serves Vite and opens the page host once so
 // notification links know the page origin.
@@ -34,18 +37,28 @@ export const adapter=localInstaller({
  guard:legacyState,prepare:async context=>{
   await legacyState(context);
   await validateAnswers(context.input,context.store);
+  // Earlier installs saved a second origin that Base does not move with --port.
+  // Keep one saved authority; auth derives its local origin from that binding.
+  const saved=await readSettings(context.root,{file:'.dev.vars'});
+  if(Object.hasOwn(saved.values,'AUTH_ORIGIN')){
+   const text=saved.text.replace(/^[\t ]*(?:export[\t ]+)?AUTH_ORIGIN[\t ]*=[^\r\n]*(?:\r?\n|$)/gm,'');
+   const cleaned=parseEnv(text);
+   if(Object.hasOwn(cleaned,'AUTH_ORIGIN')||Object.entries(saved.values).some(([key,value])=>key!=='AUTH_ORIGIN'&&cleaned[key]!==value))
+    throw Error('Could not remove the legacy AUTH_ORIGIN assignment without changing other settings. Remove that assignment from .dev.vars, then run setup again.');
+   await writePrivateFile(saved.path,text);
+  }
  },
  // Transfers have no setup answers; preserve saved settings and check legacy state.
  prepareData:legacyState,
- secrets:{keepExisting:true,originKey:'LAMP_LOCAL_ORIGIN',values:context=>({LAMP_LOCAL_ORIGIN:context.origin,AUTH_ORIGIN:context.origin,AUTH_LOCAL:'true'})},
+ secrets:{keepExisting:true,originKey:'LAMP_LOCAL_ORIGIN',values:context=>({LAMP_LOCAL_ORIGIN:context.origin,AUTH_LOCAL:'true'})},
  build:['pnpm',['run','build:app']],
- migrate:['node',['scripts/migrate-local.mjs']],
+ migrate:context=>['node',['scripts/migrate-local.mjs'],{env:environment(context)}],
  start:preview,owner:nativeOwner,signIn:localSignIn,
 });
 
 // Base import-kit custody holds source copies and replay authority: resume and
 // undo of a move-in stay on the installation that ran it.
-const importCustody=['ik_batches','ik_d1_assertions','ik_d1_creation_plans','ik_d1_custody_revisions','ik_d1_custody_states','ik_d1_entries','ik_d1_erased_sources','ik_d1_erased_targets','ik_d1_history','ik_d1_indexed_jobs','ik_d1_native_staging','ik_d1_native_staging_index','ik_d1_native_staging_values','ik_d1_original_chunks','ik_d1_plan_chunks','ik_d1_plan_index','ik_d1_preparation_receipts','ik_d1_publication_fences','ik_d1_reversal_reports','ik_d1_staging','ik_d1_staging_chunks','ik_d1_staging_headers','ik_d1_staging_index','ik_d1_staging_originals','ik_d1_staging_pages','ik_d1_stream_origins','ik_d1_stream_pages','ik_d1_stream_revisions','ik_d1_streams','ik_jobs','ik_original_sets','ik_originals','ik_provenance','ik_sources','ik_stages','ik_targets'];
+const importCustody=['ik_batches','ik_d1_assertions','ik_d1_creation_plans','ik_d1_custody_revisions','ik_d1_custody_states','ik_d1_entries','ik_d1_erased_sources','ik_d1_erased_targets','ik_d1_erasure_journal','ik_d1_erasure_progress','ik_d1_erasure_tally','ik_d1_history','ik_d1_indexed_jobs','ik_d1_native_staging','ik_d1_native_staging_index','ik_d1_native_staging_values','ik_d1_original_chunks','ik_d1_plan_chunks','ik_d1_plan_index','ik_d1_preparation_receipts','ik_d1_preparation_steps','ik_d1_publication_fences','ik_d1_retirements','ik_d1_reversal_fences','ik_d1_reversal_reports','ik_d1_staging','ik_d1_staging_chunks','ik_d1_staging_headers','ik_d1_staging_index','ik_d1_staging_originals','ik_d1_staging_pages','ik_d1_stream_origins','ik_d1_stream_pages','ik_d1_stream_revisions','ik_d1_stream_sources','ik_d1_streams','ik_jobs','ik_original_sets','ik_originals','ik_provenance','ik_sources','ik_stages','ik_targets'];
 
 // Durable Base identity and consumed-claim state must travel with Lamp's product
 // attribution. Base excludes oa_/oc_ by default; keep only durable authority,
@@ -55,7 +68,7 @@ const operatorContinuity=['oa_operators','oa_bootstrap','oa_external_identities'
 
 // This is the archive format's product identity, not the repository identifier.
 // Keep it stable so exports made before the repository rename still restore.
-const transfer=localPortability({database:'DB',buckets:{SNAPSHOTS:'SNAPSHOTS'},policy:{product:'just-every/lamp',buckets:{SNAPSHOTS:{}},replaceableTables:['public_snapshot_work','snapshot_build_control','reference_counters'],includeTables:operatorContinuity,excludeTables:['oa_sessions','oa_tokens','oa_step_up_challenges','oa_credentials','oa_dev_credentials',...importCustody],requiredConfiguration:['SETUP_TOKEN','SESSION_SECRET','SUBSCRIBER_TOKEN_SECRET','WEBHOOK_SIGNING_SECRET']},transient:['development outbox','move-in import custody (resume and undo stay on the original installation)','operator sessions and one-use sign-in links','queued job deliveries in flight','public snapshot cache (rebuilt from D1 and R2)']});
+const transfer=localPortability({database:'DB',buckets:{SNAPSHOTS:'SNAPSHOTS'},policy:{product:'just-every/lamp',buckets:{SNAPSHOTS:{}},replaceableTables:['public_snapshot_work','snapshot_build_control','reference_counters'],includeTables:operatorContinuity,excludeTables:['oa_sessions','oa_tokens','oa_step_up_challenges','oa_credentials','oa_dev_credentials',...importCustody],requiredConfiguration:['SETUP_TOKEN','SESSION_SECRET','SUBSCRIBER_TOKEN_SECRET','WEBHOOK_SIGNING_SECRET']},transient:['move-in import custody (resume and undo stay on the original installation)','operator sessions and one-use sign-in links','queued job deliveries in flight','public snapshot cache (rebuilt from D1 and R2)']});
 
 // Declare installed documents explicitly: the Lobby at / does not link to all
 // docs. Read the publishing manifest so new pages enter hydration checks too.
@@ -64,7 +77,7 @@ const docs=JSON.parse(await readFile(new URL('../../docs/site.json',import.meta.
 export const commandAdapter=createCommandAdapter(adapter,{
  product:model.product.name,dev:vite,preview,
  publicPages:['/','/docs',...docs.sections.flatMap(section=>section.pages.map(page=>`/docs/${page.slug}`))],
- devIdentity:{entry:'src/server.dev.ts',output:['dist'],emailLinkTest:'tests/e2e/auth-adoption-journey.test.mjs'},verify:['pnpm',['run','verify:app']],deploy:lampDeploy(adapter),deployDeclaration:'hosted-check.json',
+ devIdentity:{entry:'src/server.dev.ts',output:['dist'],emailLinkTest:'tests/e2e/auth-adoption-journey.test.mjs'},verify:['pnpm',['run','verify:app']],deploy:lampDeploy(adapter),deployDeclaration:process.argv.includes('--demo')?'deploy.json':'hosted-check.json',
  portability:transfer,generatedOutputs:['src/routeTree.gen.ts'],
  site:{entry:'src/site/pages.tsx',output:'dist/site',declaration:'deploy-site.json',config:'vite.site.config.ts'},
  setup:{manifestFile:'rer-setup.json'},browserModule:'scripts/installer/ui/seed.mjs',

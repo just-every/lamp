@@ -39,7 +39,7 @@
         "rer",
         "preview"
       ],
-      "effects": "Serves the fixed production build locally. The production build has no development outbox; sign in with rer dev.",
+      "effects": "Serves the fixed production build locally. Sign in locally with rer dev.",
       "inputs": [
         "package.json",
         "scripts/installer/local.mjs"
@@ -72,7 +72,7 @@
         "rer",
         "reset"
       ],
-      "effects": "After confirmation removes local data, owner, outbox, generated private settings and installer state; keeps source, exports and deployment receipts.",
+      "effects": "After confirmation removes local data, owner, generated private settings and installer state; keeps source, exports and deployment receipts.",
       "inputs": [
         "package.json",
         "scripts/installer/local.mjs"
@@ -83,7 +83,7 @@
         "rer",
         "deploy"
       ],
-      "effects": "Runs Lamp's Cloudflare pipeline: verification, resource setup, secret upload, Worker deploy and health check. --dry-run builds and validates locally with no provider request.",
+      "effects": "Runs Lamp's Cloudflare pipeline: input validation, resource setup and migrations, build, secret upload, Worker deploy and health check. Full verification runs separately with rer verify. --dry-run builds and validates locally with no provider request.",
       "inputs": [
         "package.json",
         "scripts/installer/local.mjs"
@@ -117,17 +117,6 @@
         "release"
       ],
       "effects": "Base release producer: receipts, validation and gates; never pushes or deploys.",
-      "inputs": [
-        "package.json",
-        "scripts/installer/local.mjs"
-      ]
-    },
-    "outbox": {
-      "argv": [
-        "rer",
-        "outbox"
-      ],
-      "effects": "Prints the running local app's development outbox URL; with --owner-email requests a fresh sign-in link.",
       "inputs": [
         "package.json",
         "scripts/installer/local.mjs"
@@ -201,7 +190,7 @@
   "acceptance": {
     "document": "ACCEPTANCE.md"
   },
-  "project": "just-every/run-lamp",
+  "project": "just-every/lamp",
   "runtime": {
     "requirements": [
       {

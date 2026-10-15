@@ -168,6 +168,8 @@ export function setupManifestSemanticErrors(data) {
       }
     }
 
+    if (Object.hasOwn(field, 'localDefault')) validateLocalDefault(field, `${path}.localDefault`);
+
     if (field.when !== undefined && field.when && typeof field.when === 'object') {
       validateCondition(field.when, `${path}.when`, index, true);
     }
@@ -225,6 +227,26 @@ export function setupManifestSemanticErrors(data) {
           fail(`${path}.tokenField`, 'legacy setup-token must reference a required generated owner-visible secret');
         }
       }
+    }
+  }
+
+  // A value only the zero-setup local launch fills in: a literal for a public
+  // field, a generated value for an entered secret, or the chosen local origin.
+  function validateLocalDefault(field, path) {
+    const value = field.localDefault;
+    if (typeof value === 'string') {
+      if (field.kind === 'secret') fail(path, 'a secret takes a generated local default, never a literal');
+      else if (!value) fail(path, 'a literal local default must not be empty');
+      else { try { validateSetupValue(field, value); } catch (error) { fail(path, error.message); } }
+      return;
+    }
+    if (!value || typeof value !== 'object' || Array.isArray(value)) return;
+    if (Object.hasOwn(value, 'generate') === Object.hasOwn(value, 'from')) {
+      fail(path, 'local default must declare exactly one of generate or from');
+    } else if (Object.hasOwn(value, 'generate')) {
+      if (field.kind !== 'secret' || field.input !== 'entered') fail(path, 'a generated local default requires an entered secret');
+    } else if (!['url', 'text'].includes(field.kind)) {
+      fail(path, 'the local origin default requires a url or text field');
     }
   }
 

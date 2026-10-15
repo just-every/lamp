@@ -26,7 +26,24 @@ export interface IncidentView extends StoredIncident {
 
 export class InvalidIncidentUpdateError extends Error {}
 
+export type IncidentComponentChange =
+  | { action: "attach"; componentId: string; state: ComponentState; relationship: "Primary" | "Dependent" }
+  | { action: "detach"; componentId: string };
+
+export interface IncidentComponentChangePreview {
+  published: boolean;
+  componentName: string;
+  internal: boolean;
+  previousState: ComponentState;
+  nextState: ComponentState;
+  emailRecipients: number;
+  webhookRecipients: number;
+}
+
 export interface IncidentsService {
+  previewComponentChange(incidentId: string, change: IncidentComponentChange): Promise<IncidentComponentChangePreview>;
+  attachComponent(incidentId: string, claim: { componentId: string; state: ComponentState; relationship: "Primary" | "Dependent" }, operatorId: string): Promise<void>;
+  detachComponent(incidentId: string, componentId: string, operatorId: string): Promise<void>;
   list(): Promise<IncidentView[]>;
   get(incidentId: string): Promise<IncidentView | null>;
   saveDraft(incidentId: string, input: IncidentDraftInput, operatorId: string, expectedVersion: string, requestedId?: string): Promise<StoredIncidentDraft | null>;
@@ -58,13 +75,15 @@ export interface IncidentTemplateInput {
 }
 
 export interface IncidentPublicationStatements {
+  forAttachedComponents(input: { incidentId: string; attachmentIds: string[]; queuedAt: string }): Promise<D1PreparedStatement[]>;
   forIncidentUpdate(input: { updateId: string; incidentId: string; componentIds: string[]; channels: Array<UpdateChannel>; queuedAt: string }): Promise<D1PreparedStatement[]>;
 }
 
 export interface IncidentRuntimeHooks {
   events?: Pick<LampEventDispatcher, "incidentOpened" | "incidentUpdatePublished" | "incidentResolved">;
-  /** After a publication commits: send what it queued to Slack and Teams channels. */
-  afterPublished?: () => Promise<void>;
+  /** After publication: dispatch its durable subscriber and channel notifications. */
+  afterPublished?: (update: StoredIncidentUpdate) => Promise<void>;
+  formatPreviewSubject?: (subject: string) => Promise<string> | string;
   formatPreviewTimestamp?: (timestamp: string) => Promise<string> | string;
 }
 
@@ -108,7 +127,7 @@ export function createIncidentsService(
     const cause = { type: "incident" as const, id: update.incidentId, operatorId: update.authorOperatorId };
     await Promise.all(components.flatMap((component) => component.componentId ? [componentsService.recomputePublicState(component.componentId, cause, update.isRetroactive ? undefined : update.publishedAt)] : []));
     await onPublicDataChanged();
-    await runtime.afterPublished?.();
+    await runtime.afterPublished?.(update);
   };
 
   const finishDeletion = async (incidentId: string, operatorId: string, deletedAt: string) => {
@@ -148,7 +167,7 @@ export function createIncidentsService(
     const historyEntries: ComponentStateHistoryInput[] = isRetroactive
       ? (await Promise.all(claimEvents.map((claimEvent) => componentsService.prepareHistoricalStateTransitions({ componentId: claimEvent.componentId, cause: { type: "incident", id: incidentId, operatorId }, claimEvent })))).flat()
       : [];
-    const record: IncidentPublishRecord = { id: draft.id, incidentId, lifecycle: draft.lifecycle, affectedAudience: draft.affectedAudience, customerImpact: draft.customerImpact, whatStillWorks: draft.whatStillWorks, details: draft.details, nextUpdateAt: draft.lifecycle === "Resolved" ? null : draft.nextUpdateAt, publishedAt, isRetroactive, authorOperatorId: operatorId, correctsUpdateId: draft.correctsUpdateId, peakImpact, createdAt: timestamp, updatedAt: timestamp, claimEvents, historyEntries };
+    const record: IncidentPublishRecord = { id: draft.id, incidentId, lifecycle: draft.lifecycle, affectedAudience: draft.affectedAudience, customerImpact: draft.customerImpact, whatStillWorks: draft.whatStillWorks, details: draft.details, nextUpdateAt: draft.lifecycle === "Resolved" ? null : draft.nextUpdateAt, publishedAt, isRetroactive, authorOperatorId: operatorId, correctsUpdateId: draft.correctsUpdateId, peakImpact, createdAt: timestamp, updatedAt: timestamp, components, claimEvents, historyEntries };
     const channels = isRetroactive || hasRetroactiveUpdate ? [] : input.channels;
     const recipientStatements = await publicationStatements.forIncidentUpdate({ updateId: record.id, incidentId, componentIds: components.flatMap((component) => component.componentId ? [component.componentId] : []), channels, queuedAt: publishedAt });
     await repository.publishDraft(record, recipientStatements);
@@ -160,6 +179,42 @@ export function createIncidentsService(
   };
 
   return {
+    async previewComponentChange(incidentId, change) {
+      const [incident, component, attached, updates] = await Promise.all([
+        repository.findIncident(incidentId), componentsService.get(change.componentId),
+        repository.listComponents(incidentId), repository.listUpdates(incidentId),
+      ]);
+      if (!incident || incident.lifecycle === "Resolved") throw new Error("Only an unresolved incident can change its affected components.");
+      if (!component) throw new Error("Component not found.");
+      const exists = attached.some((claim) => claim.componentId === component.id);
+      if (change.action === "attach" ? exists : !exists) throw new Error(change.action === "attach" ? "Component is already attached." : "Component is not attached.");
+      const published = updates.length > 0;
+      const preview = await repository.previewComponentChange(incidentId, component.id);
+      return {
+        published, componentName: component.name, internal: component.internal,
+        previousState: component.publicState,
+        nextState: !published ? component.publicState : change.action === "attach"
+          ? mostSevereState([component.publicState, change.state]) : mostSevereState(preview.remainingStates),
+        emailRecipients: change.action === "attach" && published ? preview.emailRecipients : 0,
+        webhookRecipients: change.action === "attach" && published ? preview.webhookRecipients : 0,
+      };
+    },
+    async attachComponent(incidentId, claim, operatorId) {
+      const [incident, component] = await Promise.all([repository.findIncident(incidentId), componentsService.get(claim.componentId)]);
+      if (!incident || incident.lifecycle === "Resolved") throw new Error("Only an unresolved incident can change its affected components.");
+      if (!component) throw new Error("Component not found.");
+      const timestamp = nowIso();
+      const attached = { id: createUlid(), incidentId, componentId: component.id, componentName: component.name, state: claim.state, relationship: claim.relationship, createdAt: timestamp, updatedAt: timestamp };
+      if (!publicationStatements) throw new Error("Incident notification capture is unavailable.");
+      await repository.attachComponent(attached, await publicationStatements.forAttachedComponents({ incidentId, attachmentIds: [attached.id], queuedAt: timestamp }));
+      await componentsService.recomputePublicState(component.id, { type: "incident", id: incidentId, operatorId });
+      await onPublicDataChanged();
+    },
+    async detachComponent(incidentId, componentId, operatorId) {
+      await repository.detachComponent(incidentId, componentId, nowIso(), createUlid());
+      await componentsService.recomputePublicState(componentId, { type: "incident", id: incidentId, operatorId });
+      await onPublicDataChanged();
+    },
     // Reading incidents never sends mail: reminders come from the scheduled trigger.
     async list() {
       return Promise.all((await repository.listIncidents()).map((incident) => toIncidentView(repository, incident, updateDuePolicy.leadMinutes())));
@@ -187,7 +242,9 @@ export function createIncidentsService(
       const incident = await repository.findIncident(incidentId);
       if (!incident) return null;
       const nextUpdateDisplay = input.nextUpdateAt ? await runtime.formatPreviewTimestamp?.(input.nextUpdateAt) : null;
-      return renderIncidentUpdate({ incidentReference: incident.reference, incidentTitle: incident.title, ...input, nextUpdateDisplay });
+      const rendered = renderIncidentUpdate({ incidentReference: incident.reference, incidentTitle: incident.title, ...input, nextUpdateDisplay });
+      if (runtime.formatPreviewSubject) rendered.email.subject = await runtime.formatPreviewSubject(rendered.email.subject);
+      return rendered;
     },
     async create(input, operatorId) {
       if (!input.title.trim() || input.title.length > 250) throw new Error("Incident title is required and must be at most 250 characters.");

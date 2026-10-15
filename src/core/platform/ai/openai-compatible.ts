@@ -10,7 +10,8 @@ export function createOpenAiCompatibleProvider(input: { endpoint: string; apiKey
   return {
     async suggestUpdate(context: AiSuggestionContext): Promise<AiSuggestion> {
       const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(new Error("AI provider exceeded its 20 second deadline.")), 20_000);
+      // Reserve 2s for Worker and composer handling within DRAFT-003's 20s visible-error bound.
+      const timeout = setTimeout(() => controller.abort(new Error("AI provider exceeded its 18 second transport deadline.")), 18_000);
       try {
         const response = await fetcher(input.endpoint, { method: "POST", signal: controller.signal, headers: { "Content-Type": "application/json", Authorization: `Bearer ${input.apiKey}` }, body: JSON.stringify({ model: input.model, response_format: { type: "json_object" }, messages: [{ role: "system", content: SUGGESTION_INSTRUCTIONS }, { role: "user", content: JSON.stringify(context) }] }) });
         if (!response.ok) throw new Error(`AI provider returned ${response.status}.`);
@@ -22,7 +23,7 @@ export function createOpenAiCompatibleProvider(input: { endpoint: string; apiKey
         if (!parsed.success) throw new Error("AI provider returned an invalid suggested update.");
         return parsed.data;
       } catch (cause) {
-        if (controller.signal.aborted) throw new Error("AI provider did not answer within 20 seconds.");
+        if (controller.signal.aborted) throw new Error("AI provider did not answer before the request deadline.");
         throw cause;
       } finally { clearTimeout(timeout); }
     },

@@ -45,6 +45,16 @@ export async function checkedPath(root, value, kind = 'file') {
 }
 
 /** Traverse names only; privacy and symlink checks happen before reading bytes. */
+// Wrangler's .assetsignore in an assets folder: gitignore-style lines naming
+// files that are never assets. The file itself is never one either.
+export function assetsIgnore(text = '') {
+  const rules = String(text).split(/\r?\n/).map(line => line.trim()).filter(line => line && !line.startsWith('#')).map(line => {
+    const negate = line.startsWith('!'), body = negate ? line.slice(1) : line, directory = body.endsWith('/'), pattern = body.replace(/\/+$/, '');
+    const glob = pattern.replace(/^\//, '').split('/').map(part => part === '**' ? '.*' : part.replace(/[.+^${}()|[\]\\]/g, '\\$&').replaceAll('*', '[^/]*').replaceAll('?', '[^/]')).join('/');
+    return { negate, test: new RegExp(`^${pattern.includes('/') ? '' : '(?:.*/)?'}${glob}${directory ? '/.*' : '(?:/.*)?'}$`) };
+  });
+  return path => path === '.assetsignore' || rules.reduce((ignored, rule) => rule.test.test(path) ? !rule.negate : ignored, false);
+}
 export async function collectFiles(root, directory) {
   await checkedPath(root, directory, 'directory');
   const files = [];

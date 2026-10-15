@@ -1,7 +1,9 @@
 /// <reference path="../scripts/dev-ingress/virtual.d.ts" />
+import { withDemo } from '../modules/demo/index.mjs';
+import { seedDemo } from './demo';
 export { SnapshotCache } from "./core/platform/blobs/snapshot-cache";
 import { createSetupRepository } from "./core/features/setup/repository";
-import { devGate, devNotFound } from "@runeditrun/rer/modules/operator-auth";
+import { devGate } from "@runeditrun/rer/modules/operator-auth";
 import { authConfig, authOrigin } from "./core/platform/auth/config";
 import { authResponse } from "./core/platform/auth/http";
 import start from "@tanstack/react-start/server-entry";
@@ -10,7 +12,7 @@ import { installedHomeResponse } from "./installed-home";
 import { createHostDispatch, isDevelopmentAppPath, type LampSurface } from "./core/app/host-dispatch";
 import { createApp } from "./core/app/server";
 import { prepareAppMailBindings } from "./core/app/mail";
-import { admitsDevelopmentRequest, DEV_OUTBOX_PATH, handleDevOutboxRequest } from "./core/features/dev-outbox";
+import { admitsDevelopmentRequest } from "./core/platform/development/access";
 import type { AppBindings } from "./core/app/types";
 import { ensureDevelopmentSnapshot, runQueue, runScheduled } from "./core/app/worker-lifecycle";
 
@@ -66,7 +68,7 @@ async function operatorDocumentPreflight(request: Request, runtime: ReturnType<t
   return Response.redirect(signIn, 302);
 }
 
-export default {
+export default withDemo({
   async fetch(request: Request, bindings: AppBindings, executionContext: ExecutionContext): Promise<Response> {
     if (import.meta.env.DEV) {
       const { enabled, authenticate } = await import("virtual:lamp-dev-ingress");
@@ -81,12 +83,13 @@ export default {
       const gate = devGate({key:bindings.RER_DEV_KEY,origin:config.origin,local:config.local!});
       const exchange = await gate?.exchange(request);
       if (exchange) return exchange;
-      // A tunnel or local proxy makes remote requests look local: the outbox
-      // holds sign-in links, so it answers only a request holding the dev key.
-      const { pathname } = new URL(request.url);
-      if ((pathname === DEV_OUTBOX_PATH || pathname.startsWith(`${DEV_OUTBOX_PATH}/`)) && !(gate && await gate.admits(request))) return devNotFound();
-      const outbox = await handleDevOutboxRequest(request, bindings);
-      if (outbox) return outbox;
+      // Keep the documented local diagnostic address usable before migrations.
+      // Ordinary dev suppresses mail; this is an explanation, not a mail viewer.
+      if (bindings.RER_DEMO !== '1' && await gate?.admits(request) && admitsDevelopmentRequest(bindings, request)
+        && new URL(request.url).pathname === '/__dev/outbox' && ['GET', 'HEAD'].includes(request.method)) {
+        return new Response(request.method === 'HEAD' ? null : 'Local mail is suppressed. No messages are sent or stored. Use a hosted installation and its Deliveries page to check real mail.\n',
+          { headers: { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff' } });
+      }
     }
     const url = new URL(request.url);
     const surface = createHostDispatch(bindings).surfaceFor(request, { allowDevelopmentAssets: import.meta.env.DEV });
@@ -109,11 +112,12 @@ export default {
       return authResponse(request, bindings, runtime.services);
     }
     await ensureDevelopmentSnapshot(runtime);
-    // Managed readiness must publish pending initial state before traffic arrives;
-    // preview environments do not run cron. This does not run scheduled mail work.
-    if (url.pathname === "/health" && bindings.RER_INSTALLATION_ID) {
+    // Every hosted deployment must publish its initial state before traffic
+    // arrives, even before Cloudflare starts Cron. This runs no mail work.
+    if (url.pathname === "/health") {
       try {
-        if (await createSetupRepository(bindings.DB).pageConfigured()) await runtime.services.publicSnapshots.retryPendingBuild();
+        if (!await runtime.services.publicSnapshots.hasCurrentSnapshot()
+          && await createSetupRepository(bindings.DB).pageConfigured()) await runtime.services.publicSnapshots.retryPendingBuild();
       } catch {
         return Response.json({ status: "unavailable", reason: "Public snapshot readiness failed." }, { status: 503 });
       }
@@ -144,4 +148,4 @@ export default {
   async queue(batch: MessageBatch<unknown>, bindings: AppBindings) {
     await runQueue(batch, bindings);
   },
-} satisfies ExportedHandler<AppBindings>;
+} satisfies ExportedHandler<AppBindings>, { seed: seedDemo });

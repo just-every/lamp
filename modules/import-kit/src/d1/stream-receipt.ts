@@ -1,3 +1,4 @@
+import { retiredError } from './retirement.ts';
 import type { ImportAction } from '../types.ts';
 import type { D1ImportContext } from './types.ts';
 import { authority, guard, prepare, sql } from './database.ts';
@@ -36,6 +37,7 @@ export async function readStreamReceipt(context: D1ImportContext, id: string, ac
   if (!receipt.authorityIndexes.every(valid)) throw new Error('IMPORT_ATOMIC_GUARD');
   const parents = batchRows(result[receipt.offset]), pages = batchRows(result[receipt.offset + 1]), jobs = batchRows(result[receipt.offset + 2]);
   if (parents.length > 1 || parents[0] && parents[0].id !== id) throw new Error('IMPORT_STREAM_LAYOUT_CHANGED');
+  if (!parents.length) { const retired = await retiredError(context.storage.database, id, 'stream'); if (retired) throw retired; }
   const row = parents[0], job = streamJob(row, pages, jobs, context);
   if (creation && (row.operation_key !== creation.operation || row.fingerprint !== creation.fingerprint)) throw new Error('OPERATION_KEY_CONFLICT');
   if (!receipt.layoutIndexes.every(valid)) throw new Error('IMPORT_STREAM_LAYOUT_CHANGED');

@@ -57,7 +57,9 @@ async function eventuallySql(statement, predicate, label) {
   throw new Error(`Timed out waiting for ${label}.`);
 }
 
-baseline("BASE-ACCESS-001", "magic-link sign-in stores no password field", async () => {
+baseline(["BASE-ACCESS-001","BASE-ACCESS-002"], "Owner sign-in and sign-out enforce native session authority", async t => {
+  t.diagnostic("magic-link sign-in stores no password field");
+  await (async () => {
   const invalid = await fixture.fetchApp("/auth/magic-link", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({email:"not-an-email"}) });
   assert.equal(invalid.status, 400);
   const unavailable = await fixture.fetchApp("/auth/magic-link", { method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({email:"operator@example.test"}) });
@@ -68,9 +70,9 @@ baseline("BASE-ACCESS-001", "magic-link sign-in stores no password field", async
     const columns = fixture.sql(`PRAGMA table_info(${table.name})`, true).map((row) => String(row.name).toLowerCase());
     assert.ok(columns.every((name) => !name.includes("password") && !name.includes("passphrase")), `${table.name} has no password storage`);
   }
-});
-
-baseline("BASE-ACCESS-002", "sign-out revokes a real D1 session and operator APIs return 401", async () => {
+})(t);
+  t.diagnostic("sign-out revokes a real D1 session and operator APIs return 401");
+  await (async () => {
   const sessionId = await fixture.session();
   const unauthenticated = await fixture.fetchApp("/api/app/components");
   assert.equal(unauthenticated.status, 401);
@@ -82,9 +84,14 @@ baseline("BASE-ACCESS-002", "sign-out revokes a real D1 session and operator API
   fixture.sql("UPDATE oa_sessions SET expires_at = 0 WHERE operator_id = '01J00000000000000000000001'");
   const expired = await fixture.driver.fetch(new Request(`${fixture.appUrl}/api/app/components`, { headers: { Cookie: `${sessionCookieName(fixture.appUrl)}=${expiredSession}` } }));
   assert.equal(expired.status, 401);
+})(t);
 });
 
-baseline("BASE-ACCESS-003", "public read supersession leaves public writes rate-limited", async () => {
+
+
+baseline(["BASE-ACCESS-003","BASE-ACCESS-004"], "Public write limits and operator ownership cannot be forged", async t => {
+  t.diagnostic("public read supersession leaves public writes rate-limited");
+  await (async () => {
   const manifest = JSON.parse(await readFile("seed.json", "utf8"));
   assert.ok(manifest.deploy.publicPaths.includes("/"));
   const reads = await Promise.all(Array.from({ length: 8 }, () => fixture.fetch("/")));
@@ -95,18 +102,23 @@ baseline("BASE-ACCESS-003", "public read supersession leaves public writes rate-
   assert.equal(writes[5].status, 429, "the sixth unauthenticated public write is rate-limited even while mail is intentionally unavailable");
   assert.equal((await fixture.fetch("/not-a-public-path")).status, 404);
   assert.equal((await fixture.fetchApp("/api/app/components")).status, 401);
-});
-
-baseline("BASE-ACCESS-004", "server ignores client supplied actor and ownership claims", async () => {
+})(t);
+  t.diagnostic("server ignores client supplied actor and ownership claims");
+  await (async () => {
   const before = fixture.sql("SELECT COUNT(*) AS count FROM components", true)[0].count;
   const unauthenticated = await fixture.fetchApp("/api/app/components", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...componentInput(), operatorId: "attacker" }) });
   assert.equal(unauthenticated.status, 401);
   const spoofed = await fixture.appFetch("/api/app/components", { method: "POST", body: JSON.stringify({ ...componentInput(), operatorId: "attacker" }) });
   assert.equal(spoofed.status, 400, "strict boundary schema rejects a client actor field rather than trusting it");
   assert.equal(fixture.sql("SELECT COUNT(*) AS count FROM components", true)[0].count, before);
+})(t);
 });
 
-baseline("BASE-INPUT-001", "invalid request bodies and path identifiers stop at the boundary", async () => {
+
+
+baseline(["BASE-INPUT-001","BASE-INPUT-002","BASE-INPUT-003"], "Request validation, escaped public content and authorised typed uploads", async t => {
+  t.diagnostic("invalid request bodies and path identifiers stop at the boundary");
+  await (async () => {
   const before = fixture.sql("SELECT COUNT(*) AS count FROM components", true)[0].count;
   const invalidBody = await fixture.appFetch("/api/app/components", { method: "POST", body: JSON.stringify({ name: "missing required fields" }) });
   assert.equal(invalidBody.status, 400);
@@ -114,18 +126,18 @@ baseline("BASE-INPUT-001", "invalid request bodies and path identifiers stop at 
   const invalidPath = await fixture.appFetch("/api/app/components/not-an-ulid/history");
   assert.equal(invalidPath.status, 400);
   assert.equal(fixture.sql("SELECT COUNT(*) AS count FROM components", true)[0].count, before);
-});
-
-baseline("BASE-INPUT-002", "public snapshot renders user text as escaped text", async () => {
+})(t);
+  t.diagnostic("public snapshot renders user text as escaped text");
+  await (async () => {
   const created = await fixture.appFetch("/api/app/components", { method: "POST", body: JSON.stringify(componentInput({ name: "Escaping probe", note: "<script>window.baselineLeak=1</script><form action=https://evil.test><input></form><img src=https://evil.test/pixel>" })) });
   assert.equal(created.status, 201);
   const page = await fixture.fetch("/");
   const html = await page.text();
   assert.match(html, /&lt;script&gt;window\.baselineLeak=1&lt;\/script&gt;/);
   assert.doesNotMatch(html, /<script>window\.baselineLeak=1<\/script>|<form action=https:\/\/evil\.test>|<img src=https:\/\/evil\.test\/pixel>/);
-});
-
-baseline("BASE-INPUT-003", "authorised PNG upload is private in R2 and public derivative is typed for download", async () => {
+})(t);
+  t.diagnostic("authorised PNG upload is private in R2 and public derivative is typed for download");
+  await (async () => {
   const invalid = new FormData();
   invalid.set("logo", new Blob(["not an image"], { type: "text/plain" }), "not-image.txt");
   const rejected = await fixture.driver.fetch(new Request(`${fixture.appUrl}/api/app/page-settings/logo`, { method: "POST", body: invalid, headers: { Origin: fixture.appUrl, Cookie: `${sessionCookieName(fixture.appUrl)}=${await fixture.session()}` } }));
@@ -143,9 +155,16 @@ baseline("BASE-INPUT-003", "authorised PNG upload is private in R2 and public de
   assert.equal(publicLogo.headers.get("content-type"), "image/png");
   assert.deepEqual(Buffer.from(await publicLogo.arrayBuffer()), png, "the R2-backed snapshot derivative retains the uploaded bytes");
   assert.match(publicLogo.headers.get("content-disposition") ?? "", /^attachment(?:;|$)/i, "public binary download has an explicit download disposition");
+})(t);
 });
 
-baseline("BASE-SECRET-001", "configured signing secrets do not leak through public, operator, error, or Worker output", async () => {
+
+
+
+
+baseline(["BASE-SECRET-001","BASE-SECRET-002"], "Secrets remain private and missing required bindings fail closed", async t => {
+  t.diagnostic("configured signing secrets do not leak through public, operator, error, or Worker output");
+  await (async () => {
   const page = await fixture.fetch("/");
   const settings = await fixture.appFetch("/api/app/page-settings");
   const subscribers = await fixture.appFetch("/api/app/subscribers");
@@ -176,9 +195,9 @@ baseline("BASE-SECRET-001", "configured signing secrets do not leak through publ
   const outputs = [await page.text(), await settings.text(), await subscribers.text(), await management.text(), await invalidBoundary.text(), ...clientBodies, fixture.logs()].join("\n");
   assert.equal(page.headers.get("set-cookie"), null);
   for (const secret of fixture.secrets) assert.doesNotMatch(outputs, new RegExp(secret), `secret sentinel leaked: ${secret}`);
-});
-
-baseline("BASE-SECRET-002", "a real Worker fails closed and names a missing host binding", async () => {
+})(t);
+  t.diagnostic("a real Worker fails closed and names a missing host binding");
+  await (async () => {
   const missingHost = await createBaselineFixture({ omitBinding: "LAMP_PAGE_HOST" });
   try {
     const response = await missingHost.fetch("/");
@@ -196,7 +215,10 @@ baseline("BASE-SECRET-002", "a real Worker fails closed and names a missing host
   } finally {
     await sharedHost.dispose();
   }
+})(t);
 });
+
+
 
 baseline("BASE-DATA-001", "real D1 and R2 export-import-export preserves the archive", async () => {
   const target = await mkdtemp(join(tmpdir(), "lamp-baseline-import-"));
@@ -215,16 +237,18 @@ baseline("BASE-DATA-001", "real D1 and R2 export-import-export preserves the arc
   }
 });
 
-baseline("BASE-DATA-002", "only the pending-subscription exception is expired automatically", async () => {
+baseline(["BASE-DATA-002","BASE-DATA-003","BASE-DATA-004"], "Retention and erasure preserve attribution without undeclared data transfer", async t => {
+  t.diagnostic("only the pending-subscription exception is expired automatically");
+  await (async () => {
   fixture.sql("INSERT INTO subscribers (id,channel,destination,contact_email,state,selection_mode,token_hash,created_at,updated_at) VALUES ('baseline-old-pending','email','pending@baseline.test',NULL,'pending','all','pending-token','2026-01-01T00:00:00.000Z','2026-01-01T00:00:00.000Z'),('baseline-active','email','active@baseline.test',NULL,'active','all','active-token','2026-01-01T00:00:00.000Z','2026-01-01T00:00:00.000Z')");
   const scheduled = await fixture.fetch("/cdn-cgi/local/scheduled");
   assert.equal(scheduled.status, 200);
   for (let attempt = 0; attempt < 25 && fixture.sql("SELECT id FROM subscribers WHERE id = 'baseline-old-pending'", true).length; attempt += 1) await new Promise((resolveWait) => setTimeout(resolveWait, 100));
   assert.equal(fixture.sql("SELECT id FROM subscribers WHERE id = 'baseline-old-pending'", true).length, 0, "SUB-003's 72-hour pending exception ran");
   assert.equal(fixture.sql("SELECT state FROM subscribers WHERE id = 'baseline-active'", true)[0].state, "active", "ordinary retained user data was not automatically deleted");
-});
-
-baseline("BASE-DATA-003", "operator erasure removes subscriber and operator personal data while retaining audit attribution", async () => {
+})(t);
+  t.diagnostic("operator erasure removes subscriber and operator personal data while retaining audit attribution");
+  await (async () => {
   const subscriberId = "01J00000000000000000000070";
   fixture.sql(`INSERT INTO subscribers (id,channel,destination,contact_email,state,selection_mode,token_hash,created_at,updated_at) VALUES ('${subscriberId}','webhook','https://receiver.example.test/hook','person@baseline.test','active','all','delete-token','2026-09-08T00:00:00.000Z','2026-09-08T00:00:00.000Z')`);
   const erased = await fixture.appFetch(`/api/app/subscribers/${subscriberId}`, { method: "DELETE" });
@@ -260,25 +284,32 @@ baseline("BASE-DATA-003", "operator erasure removes subscriber and operator pers
   assert.equal(operatorAudit.action, "deleted");
   assert.match(operatorAudit.createdAt, /^\d{4}-\d{2}-\d{2}T/);
   assert.doesNotMatch(JSON.stringify(operatorAudits), new RegExp(`${operatorEmail}|${operatorName}`), "historic invitation and deletion audit records retain no erased personal data");
-});
-
-baseline("BASE-DATA-004", "public response carries no undeclared outbound user-data request", async () => {
+})(t);
+  t.diagnostic("public response carries no undeclared outbound user-data request");
+  await (async () => {
   const manifest = JSON.parse(await readFile("seed.json", "utf8"));
   assert.ok(Array.isArray(manifest.externals));
   const html = await (await fixture.fetch("/")).text();
   assert.doesNotMatch(html, /<(?:script|img|link|iframe)[^>]+https?:\/\//i);
   const widget = await (await fixture.fetch("/widget.js")).text();
   assert.doesNotMatch(widget, /fetch\(|XMLHttpRequest|importScripts|\.src\s*=/);
+})(t);
 });
 
-baseline("BASE-DATA-005", "public artifacts contain no marketplace, author, telemetry, or licence request", async () => {
+
+
+
+
+baseline(["BASE-DATA-005","BASE-PUBLIC-001","BASE-PUBLIC-002"], "Public artifacts remain private, same-origin and restricted to allowed widget hosts", async t => {
+  t.diagnostic("public artifacts contain no marketplace, author, telemetry, or licence request");
+  await (async () => {
   const [page, widget] = await Promise.all([fixture.fetch("/"), fixture.fetch("/widget.js")]);
   const bytes = `${await page.text()}\n${await widget.text()}`;
   assert.doesNotMatch(bytes, /telemetry|phone-home|licen[cs]e check|marketplace/i);
   assert.doesNotMatch(bytes, /https?:\/\/[^"'\s]*runeditrun\.com/i, "a static credit is not a network request to the author");
-});
-
-baseline("BASE-PUBLIC-001", "public surface is cookieless and same-origin before interaction", async () => {
+})(t);
+  t.diagnostic("public surface is cookieless and same-origin before interaction");
+  await (async () => {
   const response = await fixture.fetch("/");
   await response.text();
   assert.equal(response.headers.get("set-cookie"), null);
@@ -296,9 +327,9 @@ baseline("BASE-PUBLIC-001", "public surface is cookieless and same-origin before
   const tokenResponse = await fixture.fetch("/manage/not-a-real-token");
   assert.equal(tokenResponse.headers.get("referrer-policy"), "no-referrer", "SUB-005's token-addressed exception retains referrer protection");
   assert.equal(tokenResponse.headers.get("set-cookie"), null);
-});
-
-baseline("BASE-PUBLIC-002", "widget snapshot encodes only configured embedding origins", async () => {
+})(t);
+  t.diagnostic("widget snapshot encodes only configured embedding origins");
+  await (async () => {
   const { settings } = await (await fixture.appFetch("/api/app/page-settings")).json();
   const update = await fixture.appFetch("/api/app/page-settings", { method: "PUT", body: JSON.stringify({ pageName: settings.pageName, tagline: settings.tagline, accentColor: settings.accentColor, timezone: settings.timezone, hostname: settings.hostname, footerCreditEnabled: settings.footerCreditEnabled, mailFromAddress: settings.mailFromAddress, aiToneInstructions: settings.aiToneInstructions, widgetAllowedOrigins: [fixture.pageUrl] }) });
   assert.equal(update.status, 200);
@@ -306,9 +337,16 @@ baseline("BASE-PUBLIC-002", "widget snapshot encodes only configured embedding o
   assert.match(widget, new RegExp(JSON.stringify([fixture.pageUrl]).replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
   assert.doesNotMatch(widget, /evil\.example/);
   assert.match(widget, /a\.indexOf\(window\.location\.origin\)<0\)return/);
+})(t);
 });
 
-baseline("BASE-OPS-001", "real Worker health probes D1, R2, and Queue within one second", async () => {
+
+
+
+
+baseline(["BASE-OPS-001","BASE-OPS-002"], "Health dependency probes and prior-data upgrades use the real runtime", async t => {
+  t.diagnostic("real Worker health probes D1, R2, and Queue within one second");
+  await (async () => {
   const started = performance.now();
   const response = await fixture.fetchApp("/health");
   const elapsed = performance.now() - started;
@@ -318,9 +356,9 @@ baseline("BASE-OPS-001", "real Worker health probes D1, R2, and Queue within one
   assert.equal(body.ok, true);
   assert.deepEqual(Object.keys(body.deployment).sort(), ["fingerprint", "sourceSha", "versionId"], "health names the deployment that answered");
   assert.ok(elapsed < 1000, `health took ${elapsed.toFixed(1)}ms`);
-});
-
-baseline("BASE-OPS-002", "previous migration inventory advances on a real local D1", async () => {
+})(t);
+  t.diagnostic("previous migration inventory advances on a real local D1");
+  await (async () => {
   const sandbox = await mkdtemp(join(tmpdir(), "lamp-baseline-migration-"));
   try {
     const prior = join(sandbox, "prior-migrations");
@@ -343,9 +381,14 @@ baseline("BASE-OPS-002", "previous migration inventory advances on a real local 
     assert.deepEqual(preserved[0].results, [{ name: "Owner API", description: "Owner custom description", note: "Keep this note" }]);
     assert.deepEqual(preserved[1].results, [{ email: "owner@example.test", display_name: "Preserved owner" }]);
   } finally { await rm(sandbox, { recursive: true, force: true }); }
+})(t);
 });
 
-baseline("BASE-OPS-003", "duplicate delivery event rows remain a single durable idempotency fact", async () => {
+
+
+baseline(["BASE-OPS-003","BASE-OPS-004","BASE-OPS-005"], "Durable delivery idempotency, visible failures and attributable erasure", async t => {
+  t.diagnostic("duplicate delivery event rows remain a single durable idempotency fact");
+  await (async () => {
   const eventId = "baseline-idempotent-event";
   seedDeliveryEvent({ suffix: "idempotent", reference: "91001", eventId, deliveryId: "baseline-idempotent-delivery", subscriberId: "baseline-idempotent-subscriber" });
   fixture.sql(`INSERT OR IGNORE INTO notification_deliveries (id,subscriber_id,incident_update_id,maintenance_id,channel,outcome,queued_at,outcome_at,created_at,updated_at,notification_event_id,notification_event_type) SELECT 'baseline-idempotent-duplicate',subscriber_id,incident_update_id,maintenance_id,channel,outcome,queued_at,outcome_at,created_at,updated_at,notification_event_id,notification_event_type FROM notification_deliveries WHERE id = 'baseline-idempotent-delivery'; INSERT INTO notification_outbox (id,kind,aggregate_id,payload_json,available_at,attempts,locked_at,completed_at,failed_at,last_error,created_at,updated_at) VALUES ('baseline-idempotent-outbox','delivery-dispatch','${eventId}','{"eventId":"${eventId}"}','2026-01-01T00:00:00.000Z',0,NULL,NULL,NULL,NULL,'2026-01-01T00:00:00.000Z','2026-01-01T00:00:00.000Z')`);
@@ -355,9 +398,9 @@ baseline("BASE-OPS-003", "duplicate delivery event rows remain a single durable 
   assert.equal((await fixture.fetch("/cdn-cgi/local/scheduled")).status, 200);
   await new Promise((resolveWait) => setTimeout(resolveWait, 150));
   assert.equal(fixture.sql("SELECT COUNT(*) AS count FROM notification_delivery_attempts WHERE delivery_id = 'baseline-idempotent-delivery'", true)[0].count, 1, "duplicate scheduled delivery sees one durable attempt while retry is not due");
-});
-
-baseline("BASE-OPS-004", "a failed delivery remains visible to the operator API", async () => {
+})(t);
+  t.diagnostic("a failed delivery remains visible to the operator API");
+  await (async () => {
   const eventId = "baseline-failed-event";
   seedDeliveryEvent({ suffix: "failed", reference: "91002", eventId, deliveryId: "baseline-failed-delivery", subscriberId: "baseline-failed-subscriber" });
   fixture.sql(`INSERT INTO notification_delivery_attempts (id,delivery_id,attempt_number,attempted_at,provider_message_id,error,created_at) VALUES ('baseline-failure-attempt-1','baseline-failed-delivery',1,'2026-09-08T00:00:01.000Z',NULL,'prior retry','2026-09-08T00:00:01.000Z'),('baseline-failure-attempt-2','baseline-failed-delivery',2,'2026-09-08T00:00:02.000Z',NULL,'prior retry','2026-09-08T00:00:02.000Z'),('baseline-failure-attempt-3','baseline-failed-delivery',3,'2026-09-08T00:00:03.000Z',NULL,'prior retry','2026-09-08T00:00:03.000Z'),('baseline-failure-attempt-4','baseline-failed-delivery',4,'2026-09-08T00:00:04.000Z',NULL,'prior retry','2026-09-08T00:00:04.000Z'),('baseline-failure-attempt-5','baseline-failed-delivery',5,'2026-09-08T00:00:05.000Z',NULL,'prior retry','2026-09-08T00:00:05.000Z'); INSERT INTO notification_outbox (id,kind,aggregate_id,payload_json,available_at,attempts,locked_at,completed_at,failed_at,last_error,created_at,updated_at) VALUES ('baseline-failed-outbox','delivery-dispatch','${eventId}','{"eventId":"${eventId}"}','2026-01-01T00:00:00.000Z',0,NULL,NULL,NULL,NULL,'2026-01-01T00:00:00.000Z','2026-01-01T00:00:00.000Z')`);
@@ -367,13 +410,14 @@ baseline("BASE-OPS-004", "a failed delivery remains visible to the operator API"
   assert.equal(visible.status, 200);
   const body = await visible.json();
   assert.ok(body.deliveries.some((delivery) => delivery.id === "baseline-failed-delivery" && delivery.outcome === "failed"));
-});
-
-baseline("BASE-OPS-005", "destructive action retains actor and time in audit after PII erasure", async () => {
+})(t);
+  t.diagnostic("destructive action retains actor and time in audit after PII erasure");
+  await (async () => {
   const subscriberId = "01J00000000000000000000071";
   fixture.sql(`INSERT INTO subscribers (id,channel,destination,contact_email,state,selection_mode,token_hash,created_at,updated_at) VALUES ('${subscriberId}','email','audit@baseline.test',NULL,'active','all','audit-token','2026-09-08T00:00:00.000Z','2026-09-08T00:00:00.000Z')`);
   assert.equal((await fixture.appFetch(`/api/app/subscribers/${subscriberId}`, { method: "DELETE" })).status, 204);
   const audit = fixture.sql(`SELECT operator_id AS operatorId,created_at AS createdAt FROM audit_entries WHERE entity_id = '${subscriberId}' AND action = 'deleted'`, true)[0];
   assert.equal(audit.operatorId, "01J00000000000000000000001");
   assert.match(audit.createdAt, /^\d{4}-\d{2}-\d{2}T/);
+})(t);
 });

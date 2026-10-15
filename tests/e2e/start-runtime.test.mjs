@@ -240,7 +240,10 @@ before(async () => {
   await run("pnpm", ["exec", "wrangler", "d1", "migrations", "apply", "DB", "--local", "--config", artifactPath, "--persist-to", statePath]);
   await run("pnpm", ["exec", "wrangler", "d1", "execute", "DB", "--local", "--config", artifactPath, "--persist-to", statePath, "--command", legacyApiFixtureSql()]);
   sessionId = await insertRealOperatorSession({ persistTo: statePath, configPath: artifactPath });
-  worker = spawn("pnpm", ["exec", "wrangler", "dev", "--local", "--config", artifactPath, ...envArgs, "--persist-to", statePath, "--show-interactive-dev-session=false", "--ip", "127.0.0.1", "--port", String(port), "--inspector-port", "0", "--local-upstream", `${appHost}:${port}`, "--var", `LAMP_PAGE_HOST:${pageHost}`, "--var", `LAMP_APP_HOST:${appHost}`, "--var", `AUTH_ORIGIN:${appOrigin}`, "--var", "AUTH_LOCAL:true", "--var", `SESSION_SECRET:${secret}`, "--var", "SETUP_OPERATOR_EMAIL:operator@example.test", "--log-level", "warn"], {
+  // Enable the native form; its submitted address is not a fixture operator,
+  // so native auth accepts the request without attempting mail delivery.
+  // The cron dispatch probe must also leave queued notification effects paused.
+  worker = spawn("pnpm", ["exec", "wrangler", "dev", "--local", "--config", artifactPath, ...envArgs, "--persist-to", statePath, "--show-interactive-dev-session=false", "--ip", "127.0.0.1", "--port", String(port), "--inspector-port", "0", "--local-upstream", `${appHost}:${port}`, "--var", `LAMP_PAGE_HOST:${pageHost}`, "--var", `LAMP_APP_HOST:${appHost}`, "--var", `AUTH_ORIGIN:${appOrigin}`, "--var", "AUTH_LOCAL:true", "--var", `SESSION_SECRET:${secret}`, "--var", "SETUP_OPERATOR_EMAIL:operator@example.test", "--var", "MAIL_PROVIDER_API_KEY:test-only-signin-presentation-no-delivery", "--var", "EFFECTS_PAUSED:1", "--log-level", "warn"], {
     cwd: process.cwd(),
     env: fixtureProcessEnv(),
     stdio: ["ignore", "pipe", "pipe"],
@@ -335,7 +338,18 @@ test("DOCS-001 — the built single Worker preserves public docs, Hono/R2, Start
   const lobby = await request("/", appHost, { headers: { "Sec-Fetch-Mode": "navigate" } });
   assert.equal(lobby.status, 200, "the app host's home page is the Lobby");
   assert.match(lobby.headers.get("content-type") ?? "", /text\/html/);
-  assert.match(await lobby.text(), /href="\/(?:setup|signin)"/, "the Lobby's one action is Finish setup or Sign in");
+  const lobbyHtml = await lobby.text();
+  const actions = [...lobbyHtml.matchAll(/<a class="btn" href="([^"]+)"/g)];
+  assert.equal(actions.length, 1, "the Lobby offers one primary owner entry");
+  const entry = new URL(actions[0][1], appOrigin);
+  assert.equal(entry.origin, appOrigin, "owner entry stays on the app host");
+  assert.equal(entry.pathname, "/signin", "the claimed owner can sign in");
+  assert.equal(entry.searchParams.get("login_hint"), "operator@example.test", "local owner entry hints the claimed identity");
+  const hintedSignIn = await request(entry.pathname + entry.search, appHost, { headers: { "Sec-Fetch-Mode": "navigate" } });
+  assert.equal(hintedSignIn.status, 200);
+  const emailInput = (await hintedSignIn.text()).match(/<input\b[^>]*\bname="email"[^>]*>/)?.[0];
+  assert.ok(emailInput, "the owner entry reaches the email sign-in form");
+  assert.equal(emailInput.match(/\bvalue="([^"]*)"/)?.[1], entry.searchParams.get("login_hint"), "the local owner address is prefilled without submitting the form");
   const formerLanding = await request("/lamp", appHost, { redirect: "manual" });
   assert.equal(formerLanding.status, 301);
   assert.equal(formerLanding.headers.get("location"), `${appOrigin}/`);

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { inspectIngress } from '../../scripts/dev-ingress/plugin.mjs';
-import { compileMailModules } from '../local-mail/compile-modules.mjs';
+import { compileAccess } from './compile-access.mjs';
 
 const owner = 'http://127.0.0.1:57300';
 const page = 'http://localhost:57300';
@@ -18,11 +18,11 @@ function request(path, options = {}) {
 }
 
 test('Cutover owner GETs admit safe aliases and native destinations, without enabling local mail', async () => {
-  const dev = await compileMailModules(true);
-  const production = await compileMailModules(false);
+  const dev = await compileAccess(true);
+  const production = await compileAccess(false);
   let storageReads = 0;
   const storage = new Proxy({}, { get() { storageReads++; throw new Error('Cross-site request reached private storage'); } });
-  const bindings = { LAMP_APP_HOST: '127.0.0.1', LAMP_PAGE_HOST: 'localhost', LAMP_DEV_OUTBOX: storage };
+  const bindings = { LAMP_APP_HOST: '127.0.0.1', LAMP_PAGE_HOST: 'localhost' };
   try {
     for (const path of ['/old-service/outage', '/unfamiliar-provider-link/', '/incidents/source_opaque-id', '/incidents/INC-7', '/maintenance/SCH-9', '/history.atom']) {
       const read = request(path);
@@ -31,13 +31,9 @@ test('Cutover owner GETs admit safe aliases and native destinations, without ena
       assert.deepEqual(JSON.parse(proof).slice(0, 5), ['GET', read.url, 'localhost:57300', owner, 'cross-site']);
       assert.equal(dev.access.admitsDevelopmentRequest(bindings, read), true, path);
       assert.equal(production.access.admitsDevelopmentRequest(bindings, read), false);
-      assert.equal(dev.access.canUseDevelopmentMail(bindings, read), false);
-      assert.equal(dev.mail.createDevelopmentMailSender(bindings, read), null);
-      await dev.mail.prepareDevelopmentMailBindings(bindings, read);
       for (const changed of [
         { LAMP_APP_HOST: '[::1]' }, { LAMP_PAGE_HOST: '[::1]' },
         { LAMP_APP_HOST: 'localhost', LAMP_PAGE_HOST: '127.0.0.1' },
-        { LAMP_DEV_OUTBOX: undefined },
       ]) assert.equal(dev.access.admitsDevelopmentRequest({ ...bindings, ...changed }, read), false, 'configured surfaces and dev storage remain required');
     }
     assert.equal(storageReads, 0, 'public admission cannot initialize or inspect private mail storage');
@@ -45,14 +41,13 @@ test('Cutover owner GETs admit safe aliases and native destinations, without ena
       referer: `${owner}/app`, 'sec-fetch-site': 'cross-site', 'sec-fetch-mode': 'navigate', 'sec-fetch-dest': 'document',
     } });
     assert.equal(dev.access.admitsDevelopmentRequest(bindings, navigation), true);
-    assert.equal(dev.access.canPrepareDevelopmentMail(bindings, navigation), true, 'existing subscriber navigation still prepares token verification');
-    assert.equal(dev.access.canUseDevelopmentMail(bindings, navigation), false);
+
   } finally { await dev.close(); await production.close(); }
 });
 
 test('Cutover exception rejects private routes, credentials, other initiators and malformed raw targets', async () => {
-  const dev = await compileMailModules(true);
-  const bindings = { LAMP_APP_HOST: '127.0.0.1', LAMP_PAGE_HOST: 'localhost', LAMP_DEV_OUTBOX: {} };
+  const dev = await compileAccess(true);
+  const bindings = { LAMP_APP_HOST: '127.0.0.1', LAMP_PAGE_HOST: 'localhost' };
   const rejected = [
     ['/CDN-CGI/local/explorer', {}],
     ...['/', '/app', '/app/settings', '/api/app/session', '/api/public/status', '/api/intake/source', '/auth/dev/enter', '/signin', '/setup', '/setup/state', '/health', '/docs', '/__dev/outbox', '/__dev/key', '/subscribe', '/manage/token', '/unsubscribe/token', '/confirm-subscription/token', '/assets/status-page.js', '/app-assets/script.js', '/src/server.ts', '/node_modules/vite/client', '/@id/virtual:lamp-dev-ingress', '/__vite_plugin_cloudflare_init__', '/cdn-cgi/handler/scheduled', '/__debug', '/__cf_local', '/scripts/dev-ingress/worker?import', '/old-link?raw', '/incidents/INC-0', '/maintenance/SCH-0'].map(path => [path, {}]),

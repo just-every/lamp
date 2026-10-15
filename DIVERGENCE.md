@@ -1243,3 +1243,108 @@ pre-verifier journeys to change its tracked bytes and fail `source:check`.
 Publication records the complete generated output in the source lock, so running
 those journeys preserves the published source identity. The integrity gate and
 its coverage remain unchanged.
+
+## Disposable demo adoption
+
+The owner requests a signed-in, editable sample installation under `rer demo`,
+with a visible Base Demo marker, fresh isolated storage on each start and no
+external sends. Sample subscribers and history are demo data; they confer no
+operator authority. Email uses durable local capture, API imports and channel
+deliveries retain their ordinary refusal/failure paths, and AI is unconfigured
+even when local installation settings contain provider credentials. This mode
+does not replace ordinary deployment or alter the static run-site homepage.
+The hosted secondary page hostname awaits Base's cookie-gated multi-host
+container ingress support, as documented in DEMO.md.
+
+
+## Stranger journey repairs — 15 October 2026
+
+NOTIFY-010's former requirement for SPF at the visible From domain refused a
+SendGrid-authenticated sender whose return-path subdomain owns SPF. Setup and
+deploy now require the configured From-domain DKIM selector to resolve to a
+nonempty public key and require a DMARC policy; aligned DKIM is sufficient
+without From-domain SPF. This replaces that specific DNS preflight requirement,
+while preserving the notification header requirements and provider authentication.
+
+Customer confirmation, management and unsubscribe documents and customer mail
+identify the configured business, with a return link to its status page. Local
+outbox navigation identifies the same page. Phone uptime captions use the full
+component width, keeping the reporting window and tracking coverage readable.
+
+A committed incident publication starts subscriber dispatch in its existing
+background completion, alongside chat dispatch. The immutable recipient set,
+durable outbox, retries, claims, frozen envelopes and provider idempotency remain
+authoritative; provider failures do not block the publish response. Cron still
+recovers pending work. Composer chat defaults follow saved channel configuration,
+setup actions use direct verbs, Settings describes loopback addresses as local,
+and a resolved incident names its retained severity as peak impact. These repair
+the existing workflows without changing the owner-final homepage or Run page.
+
+## Demo and local dev mail — owner redirect, 15 October 2026 09:55Z
+
+Supersedes the captured-mail development behavior and old demo marker described
+above: dev and demo have no injected bar or mail viewer. Product labels read
+Lamp Dev or Lamp Demo, and sign-in is one click. Local mail is suppressed
+silently. Demo public reads/checks run for real; email, webhooks and chat sends
+return provider-shaped success without reaching people or third parties. This
+replaces SETUP-001's local capture wording for dev/demo only; production sender
+authentication, receipts and sign-in remain real. Sample data and the static
+homepage remain unchanged.
+
+## Native hosted owner entry and removal — 15 October 2026
+
+Native deployment retains Lamp's existing Worker, D1, bucket and queue names.
+It records each provider creation identity and the exact uploaded Worker version
+in Base's private ownership format. Existing resources without that creation
+history are refused, never silently adopted. `rer signin` can therefore issue
+Base's one-use owner grant on a default-prefix native deployment; migration 0023
+adds its table without changing released migrations. Custom prefixes retain the
+documented installation-secret sign-in command because rer 0.2.20 derives the
+Worker name from the project and environment.
+
+The documented native removal command releases the separate public Worker
+first, then uses Base's ownership-checked removal for the app, schedules,
+consumers, object bytes and recorded data resources. Removal reads back absence
+before deleting its local records. Older installations without creation history
+retain the explicit manual retirement procedure.
+
+Ordinary development keeps `/__dev/outbox` as a 200 diagnostic explaining silent
+mail suppression. It stores and displays no mail, adds no injected viewer or bar,
+and is unavailable in demo and production.
+
+## Release readiness
+
+An owner claimed during deployment can sign in immediately, before confirming
+the page's separate first-run settings. A spent bootstrap token is never an
+operator-entry requirement. Accepted email is shown as accepted by the selected
+provider when signed receipts are not configured; only signed provider events
+establish delivery or bounce. Subscriber erasure requires confirmation, and an
+erased destination offers no further removal action.
+
+The checkout pins rer 0.2.22. Its Base refresh removed Lamp's former 0.2.21
+production-auth dependency patch. Lamp's native deployment preflight continues
+to name its documented owner inputs; runtime bindings remain mapped to those
+inputs.
+
+## Release 1.5.0 repairs — 16 October 2026
+
+The former rer 0.2.21 dependency patch at
+`patches/@runeditrun__rer@0.2.21.patch` changed Base's
+`cli/production-auth.mjs` to name missing inputs using the deployment
+declaration's environment names. The rer 0.2.22 adoption
+removed the patch as part of its Base refresh; no local rer patch remains. No
+authentication authority changed. The Managed mail
+relay adoption remains a separate change.
+
+Owners must use a monitored From mailbox and process mailto unsubscribe requests
+in Subscribers. HTTPS one-click unsubscribe remains automatic. Live incident
+component changes require confirmation before changing the public page or
+queueing catch-up email. Local pages report mail suppression without claiming
+sender verification or provider acceptance. Health requests recover initial
+publication only while no current or retained snapshot exists; subsequent
+snapshot recovery remains the scheduler's responsibility.
+
+The standalone browser installer uses Base's shared install → setup → dev
+journey. Its one-click owner entry must lead to the actual development runtime;
+a production preview cannot serve the dev-key exchange it advertises. Setup
+still uses the production artifact for migration and owner bootstrap.

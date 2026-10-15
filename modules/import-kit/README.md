@@ -259,3 +259,120 @@ and omitted-policy jobs remain strict. The adapter supplies exact native
 ownership/dependency snapshots; retained edits keep their original attribution.
 See [D1 evolution 0001 and adoption instructions](./src/d1/README.md#adopting-preserved-conflict-undo-evolution-0001)
 before updating a deployed D1 schema or adapter.
+
+### Erasing fields in retained shared records
+
+Use `retireD1ImportCustody` from `src/d1/index.ts` to erase a person and journal
+the change atomically with native erasure and portability's redaction checkpoint.
+Its `person.related.fields` accepts `D1FieldRedaction[]`:
+
+```ts
+await retireD1ImportCustody({
+  target: { kind: 'person', id: personId },
+  values: [email],
+  related: {
+    fields: [{ path: ['reactions', '*', 'users', '*'], value: sourceUserId }],
+  },
+}, nativeStatements, context, checkpoint);
+```
+
+Paths start at a source payload or effect/native value, and also apply to
+retained reversal before-images. String segments name object properties, numeric
+segments select array indexes, and `*` visits array items. Only an exact string
+leaf equal to `value` is removed: an array item is omitted or an object property
+is deleted. For example `{ count: 2, users: ['A', 'B'] }` becomes
+`{ count: 2, users: ['B'] }`; the aggregate count and peer record remain. Supply
+both paths when the source and mapped values use different nesting. The default
+seed demonstrates `['details', 'reactions', '*', 'users', '*']`, resolving
+references from the native person ID and their optional `details.sourceUserId`.
+
+Each distinct path must match at least one exact leaf; an unmatched path refuses
+with `IMPORT_REDACTION_PATH_UNMATCHED` before native, custody, journal or checkpoint
+writes. Multiple values for the same path share its count, so an absent alternate
+identifier is allowed when another value matches. A different matching path cannot
+hide a typo. Successful results include `fieldMatches: [{ path, matches }]`, never
+selected values. Counts cover each logical retained source payload, effect value,
+native value and stored reversal before-image; repeated custody copies count
+separately. `readD1ImportFieldMatches(fields, context)` provides read-only discovery
+for optional references as `{ fieldMatches, snapshot }`. Carry `snapshot` in
+`related.snapshot` and omit fields whose paths have no matches. The snapshot
+fences the discovery against custody/native changes before publication and
+cancels incomplete private preparations even when fields are empty. Erasure
+rechecks every supplied selector; a snapshot never permits a zero-match path.
+
+The kit rebinds payload/effect hashes, source claims, entry decisions, active and
+historical provenance, before-images and plan/reversal fingerprints. Peer source
+identities, applied revisions, counts and sequential checkpoints stay intact.
+Resume uses sanitized pending effects; undo restores sanitized before-images.
+Other native edits still produce the existing undo conflict. The adapter's
+`list` must enumerate its complete imported native set and supply exact full-set
+guards (`matchesMany` or `matchesCount` with individual snapshot predicates).
+The kit writes sanitized native values through that adapter in the same batch.
+An adapter with `redaction(db, destination, fields)` instead reads, fences and
+rewrites only the rows holding a selected value, proving with holding-set
+predicates that no other row holds one before or after, so the cost follows the
+affected rows rather than the destination (default-seed's
+`person-redaction.server.ts` packs them into a few statements: 3,000 affected
+people take 191 statements in one request).
+Caller statements must not separately change those retained peer targets; such
+changes fail their snapshot guards. The product handles personal data outside
+the adapter's set and outside the selected fields.
+
+Affected originals are withdrawn whole under `originalErasurePolicy` (the
+journal API defaults to `withdraw-affected-artifacts`), never rewritten as an
+apparently original archive. Use `related.original` for additional byte artifacts
+the product recognizes. Field erasure cancels private preparations in that
+destination because incomplete staged data cannot be safely field-rewritten.
+Public peer jobs remain usable; cancelled preparations must be reviewed again
+from sanitized input. Preserve the journal and portability checkpoint in exports:
+a pre-erasure archive is refused when the current or supplied later journal
+fences it. This does not authorize importing new unsanitized source exports;
+the product must filter erased identities when accepting new input.
+
+A selector with `optional: true` is an alternate identifier the person may not
+have: a path whose selectors are all optional may match nothing. Pass optional
+references this way rather than omitting fields after discovery; with a
+`redaction` adapter the discovery snapshot depends on the selectors.
+
+**Fields without a target.** A person who never became a native record (a
+cancelled invitee on another person's booking) is erased from custody with
+`retireD1ImportCustody({ values, related: { fields } }, [], context, checkpoint)`:
+their values leave every source payload, effect, before-image and native row,
+originals holding them are withdrawn, and the shared record keeps its effects,
+resume and undo. `related.source` and `related.original` still need a `target`.
+
+**Across requests.** Each job holding a value costs a few statements to rewrite,
+so one request covers about 150 such jobs (a 100,000-row stream has 1,000). Pass
+`{ resumable: true }` as the fifth argument: when more than 25 jobs remain
+unchecked, or the rest does not fit one request, the call commits one bounded
+step (some jobs' custody and the native rows they own, with the checkpoint and
+a journal row) and returns `{ phase: 'redacting', continuation, jobsRedacted,
+jobsPending }`. Call again in a new request with `{ resumable: true,
+continuation }` until `phase` is `'complete'`; the native statements run only in
+that final batch, which fences every job checked earlier by its custody revision
+and proves no other row holds a value. A job that changed since it was checked
+is checked again.
+
+Steps follow the request's own statement budget. A step takes as many jobs as
+fit (at least one, at most 25); a job that does not fit alone is redacted in
+pages of its entries, each a consistent job (its plan, provenance, history and
+native rows rewritten for those entries), and a job changed between its pages
+starts again. A step that would not fit writes nothing and is sized from what
+it would have cost: it is tried again in the same request while there is room,
+otherwise the call returns `redacting` with no rows written (`jobsRedacted: 0`)
+and the next request takes the smaller step. Only a single entry larger than a
+request, or a final batch larger than one (an adapter without `redaction` reads
+and fences every native row there), still refuses with `D1RequestLimitError`.
+The continuation holds job ids, revisions, match counts, step sizes and a salted
+digest of the selectors, never a selected value; keep it server-side
+(default-seed queues it with the operator id). `related.snapshot` cannot span
+steps (`IMPORT_REDACTION_SNAPSHOT_UNBOUNDED_ONLY`).
+
+This additive API uses the existing D1 erasure/retirement schemas; no new
+migration is needed for an installation already using them. Like related-record
+erasure, field selection scans destination custody and is available only without
+`maxBatchBytes`; admission/budget failures leave the atomic batch unpublished.
+`eraseD1ImportTarget` also accepts `related.fields`, but seeds need the journal
+API and restore checkpoint for their complete person-erasure flow. Existing
+`related.source` still tombstones whole records; do not select a peer record with
+it when that peer must remain resumable and reversible.

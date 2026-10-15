@@ -19,12 +19,22 @@ export async function verifyLampMailDns(address:string,selector:string,request:t
   if(alias)return txt(alias.data.replace(/\.$/,''),seen);
   throw Error(`No TXT records at ${name}`);
  }
- await Promise.all([
-  {name:domain,label:'SPF',valid:(text:string)=>text.includes('v=spf1')},
-  {name:`_dmarc.${domain}`,label:'DMARC',valid:(text:string)=>text.includes('v=dmarc1')},
-  {name:`${selector}._domainkey.${domain}`,label:'DKIM',valid:(text:string)=>text.includes('v=dkim1')||text.includes('p=')},
- ].map(async({name,label,valid})=>{
-  try{if(!valid((await txt(name)).join(' ').toLowerCase()))throw Error(`Required ${label} value missing`);}
-  catch(cause){throw Error(`Sender DNS setup needs attention: ${label} at ${name}: ${cause instanceof Error?cause.message:String(cause)}`);}
- }));
+ const tags=(record:string)=>new Map(record.split(';').filter(part=>part.includes('=')).map(part=>{const index=part.indexOf('=');return [part.slice(0,index).trim().toLowerCase(),part.slice(index+1).trim()];}));
+ const dkimHost=`${selector}._domainkey.${domain}`,dmarcHost=`_dmarc.${domain}`;
+ const checks=[
+  {name:dkimHost,label:'DKIM',help:`Add or repair the DKIM record at ${dkimHost}: publish your provider's Domain Authentication CNAME target, or its DKIM TXT record with a non-empty p= public key. Set MAIL_DKIM_SELECTOR to that record's selector.`,valid:(records:string[])=>{
+   const keys=records.map(tags).filter(record=>record.has('p'));
+   return keys.length===1&&(!keys[0].has('v')||keys[0].get('v')!.toUpperCase()==='DKIM1')&&/^[A-Za-z0-9+/]+={0,2}$/.test(keys[0].get('p')!.replace(/\s/g,''));
+  }},
+  {name:dmarcHost,label:'DMARC',help:`Add or repair the TXT record at ${dmarcHost} with v=DMARC1; p=none (or your chosen quarantine/reject policy).`,valid:(records:string[])=>{
+   const policies=records.filter(record=>/^v=DMARC1\s*(;|$)/i.test(record.trim())).map(tags);
+   return policies.length===1&&['none','quarantine','reject'].includes(policies[0].get('p')?.toLowerCase()??'');
+  }},
+ ];
+ // SendGrid authenticates the return-path subdomain with SPF. Aligned DKIM
+ // satisfies DMARC without requiring SPF at the visible From domain.
+ for(const {name,label,help,valid} of checks){
+  try{if(!valid(await txt(name)))throw Error(`No usable ${label} record`);}
+  catch(cause){throw Error(`Sender DNS setup needs attention: ${label} at ${name}: ${cause instanceof Error?cause.message:String(cause)}. ${help}`);}
+ }
 }

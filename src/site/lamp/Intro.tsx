@@ -3,7 +3,7 @@ import { Dusk } from './Dusk';
 import { IntroReady } from './IntroReady';
 import { LampRig } from './LampRig';
 import { lampAlternativeLead, lampReplaces } from './head';
-import { docsUrl, runAction } from './repository';
+import { demoAction, docsUrl, runAction } from './repository';
 import './intro.css';
 import './timeline.css';
 
@@ -18,7 +18,7 @@ export function Intro() {
     <IntroReady />
     <h1 id="lamp-title" className="lamp-intro__title"><span>When something breaks,</span> <span>turn the light on.</span></h1>
     <p className="lamp-intro__lede">The status page that never leaves your customers in the dark.</p>
-    <p className="lamp-intro__actions"><a className="lamp-pill lamp-pill--large" href={runAction.href}>{runAction.label}</a><a className="lamp-docs-link" href={docsUrl}>Read the docs</a></p>
+    <p className="lamp-intro__actions"><a className="lamp-pill lamp-pill--large" href={runAction.href}>{runAction.label}</a><a className="lamp-docs-link" href={demoAction.href}>{demoAction.label}</a><a className="lamp-docs-link" href={docsUrl}>Read the docs</a></p>
     <p className="lamp-intro__alt">{lampAlternativeLead} {lampReplaces.map((name, i) => <Fragment key={name}>{i === 0 ? '' : i === lampReplaces.length - 1 ? ' and ' : ', '}<strong>{name.replaceAll(' ', '\u00a0')}</strong></Fragment>)}</p>
   </section>;
 }

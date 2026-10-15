@@ -10,7 +10,10 @@ import { contract } from "../contract.mjs";
 // Wrangler CLI work between requests can outlast an idle keep-alive socket; every request opens its own connection.
 const nativeFetch = globalThis.fetch;
 globalThis.fetch = (input, init) => { const request = new Request(input, init); request.headers.set("connection", "close"); return nativeFetch(request, { referrer: request.referrer, referrerPolicy: request.referrerPolicy }); };
-import { envelopes, nativeRequest, openNativeRuntime, publicOrigin, origin, operator } from "../dev-ingress/runtime.mjs";
+import { nativeRequest, openNativeRuntime, publicOrigin, origin, operator } from "../dev-ingress/runtime.mjs";
+import { devKey } from '../helpers/dev-key.mjs';
+import { signInAs } from '@runeditrun/rer/internal/modules/operator-auth/dev/sign-in-as.mjs';
+import { notificationActivity, assertNoNewNotifications, sendImportedInvitations } from '../helpers/import-notifications.mjs';
 
 // Synthetic saved responses shaped like Statuspage's public API (no real account).
 const fixtures = (family) => readdirSync(join("tests/fixtures/statuspage", family)).map((name) => ({ name, text: readFileSync(join("tests/fixtures/statuspage", family, name), "utf8") }));
@@ -73,11 +76,7 @@ before(async () => {
   runtime.env.LAMP_DEV_STATUSPAGE_ORIGIN = `http://127.0.0.1:${statuspage.address().port}`;
   await runtime.start();
   await runtime.seedOperator();
-  await nativeRequest('/auth/magic-link',{method:'POST',json:{email:operator}});
-  const link=(await envelopes()).find(row=>row.message.to===operator).message.text.match(/http:\/\/[^\s]+/)[0];
-  const signed=await nativeRequest('/auth/confirm',{method:'POST',json:{token:new URL(link).searchParams.get('token')}});
-  assert.equal(signed.status,303);cookie=signed.headers.get('set-cookie').split(';')[0];
-  // Development mail records the page origin from a real page request.
+  cookie = (await signInAs({ origin, key: devKey })).header;
   await fetch(`${publicOrigin}/`);
 });
 
@@ -118,9 +117,9 @@ contract("MOVE-001", "a dry run reports every record and writes nothing; the API
   assert.deepEqual(await counts(), before);
 });
 
-contract("MOVE-002", "an import is retroactive: history keeps its times, nobody is notified of it, and subscribers are invited only by the owner", async () => {
+contract("MOVE-002", "an import is retroactive: history keeps its times, nobody is notified of it, and subscribers are invited only by the owner", async t => {
   const before = await counts();
-  const mailBefore = (await envelopes()).length;
+  const mailBefore = await notificationActivity(runtime);
   const { preview, result } = await importAll(fixtures("large"));
   const expected = { group: [3, 0, 0], component: [12, 1, 0], incident: [84, 6, 2], maintenance: [3, 1, 0], subscriber: [6, 0, 0] };
   for (const [kind, [imported, changed, rejected]] of Object.entries(expected)) {
@@ -143,18 +142,18 @@ contract("MOVE-002", "an import is retroactive: history keeps its times, nobody 
   assert.ok(maintenance.every((window) => window.notices.length === 0), "no maintenance notice is published for imported windows");
 
   assert.equal(await deliveries(), 0, "no notification is queued for imported history");
-  assert.equal((await envelopes()).length, mailBefore, "import and resume send no mail");
+  await assertNoNewNotifications(runtime, mailBefore, "import and resume send no mail");
   await api(`/api/app/statuspage-import/jobs/${result.job.id}`);
   await api('/api/app/statuspage-import/jobs');
-  assert.equal((await envelopes()).length, mailBefore, "preview reads send no mail");
-  const invited = await api(`/api/app/statuspage-import/jobs/${result.job.id}/send-invitations`, {});
+  await assertNoNewNotifications(runtime, mailBefore, "preview reads send no mail");
+  const { invited, messages: mail } = await sendImportedInvitations(t, runtime, { origin, publicOrigin, operator, jobId: result.job.id });
   assert.equal(invited.status, 200, JSON.stringify(invited.body));
   assert.equal(invited.body.invites.remaining, 0);
-  await api(`/api/app/statuspage-import/jobs/${result.job.id}/send-invitations`, {});
-  const mail = (await envelopes()).slice(0, (await envelopes()).length - mailBefore);
   assert.equal(mail.length, 6);
   assert.deepEqual(new Set(mail.map((envelope) => envelope.message.to)).size, 6);
-  assert.ok(mail.every((envelope) => /Confirm your .* status subscription/u.test(envelope.message.subject) && !/Incident \d/u.test(envelope.message.text)));
+  const pageName = (await api("/api/app/page-settings")).body.settings.pageName;
+  assert.ok(mail.every((envelope) => envelope.message.subject.includes(pageName)), "invitations identify the configured business");
+  assert.ok(mail.every((envelope) => /https?:\/\/\S+\/confirm-subscription\/\S+/u.test(envelope.message.text) && !/Incident \d/u.test(envelope.message.text)), "only confirmation invitations are sent, never imported history");
   const subscribers = (await api("/api/app/subscribers?limit=100")).body.subscribers;
   assert.ok(subscribers.every((subscriber) => subscriber.state === "pending"));
   // The invitation is an ordinary confirmation: following it activates that subscriber.
@@ -190,14 +189,14 @@ contract("MOVE-005", "imported incident and maintenance bookmarks reach permanen
 
 contract("MOVE-003", "a second run of the same source changes nothing and sends nothing", async () => {
   const before = await counts();
-  const mailBefore = (await envelopes()).length;
+  const mailBefore = await notificationActivity(runtime);
   const files = fixtures("large");
   const preview = await api("/api/app/statuspage-import/preview", { files });
   assert.equal(preview.body.report.state, "already imported");
   const again = await api("/api/app/statuspage-import/apply", { files, asOf: preview.body.report.asOf, fingerprint: preview.body.report.fingerprint, acknowledged: true });
   assert.equal(again.status, 200);
   assert.deepEqual(await counts(), before);
-  assert.equal((await envelopes()).length, mailBefore);
+  await assertNoNewNotifications(runtime, mailBefore);
   assert.equal(await deliveries(), 0);
   const reread = await aliasesFor(sourceRows("large").filter((row) => aliasBefore[`/incidents/${row.id}`]));
   assert.deepEqual(reread, aliasBefore, "second apply leaves every alias unchanged");
@@ -219,7 +218,7 @@ contract("MOVE-004", "undo removes what the import created and keeps what an ope
   editedMaintenance = (await api("/api/app/maintenance")).body.maintenance.find((row) => row.state === "Scheduled");
   const cancelled = await api(`/api/app/maintenance/${editedMaintenance.id}/cancel`, {});
   assert.equal(cancelled.status, 200, JSON.stringify(cancelled.body));
-  const mailBefore = (await envelopes()).length;
+  const mailBefore = await notificationActivity(runtime);
   let undone = await api(`/api/app/statuspage-import/jobs/${job.id}/undo`, {});
   for (let round = 0; round < 80 && undone.body.job?.state === "undoing"; round += 1) undone = await api(`/api/app/statuspage-import/jobs/${job.id}/undo`, {});
   assert.equal(undone.status, 200, JSON.stringify(undone.body));
@@ -247,7 +246,7 @@ contract("MOVE-004", "undo removes what the import created and keeps what an ope
   const keptComponentIds = new Set([...selected, ...editedIncident.components.map((row) => row.componentId), ...editedMaintenance.components.map((row) => row.componentId)]);
   assert.ok(remaining.every((row) => row.name === "Service 2.1 (renamed here)" || keptComponentIds.has(row.id)));
   assert.equal(after.groups, new Set(remaining.map((row) => row.groupId)).size);
-  assert.equal((await envelopes()).length, mailBefore, "undo sends nothing");
+  await assertNoNewNotifications(runtime, mailBefore, "undo sends nothing");
 
   // The small family then lands with its own counts beside what stayed.
   const independentSmall = fixtures("small").map((file) => ({ ...file, text: file.text.replaceAll("i000000000", "small00000").replaceAll("c000000000", "smallcomp0").replaceAll("https://stspg.io/", "https://stspg.io/small-") }));

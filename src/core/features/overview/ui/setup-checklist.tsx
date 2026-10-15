@@ -35,7 +35,8 @@ export function SetupChecklist({ checklist, refresh }: { checklist: Checklist; r
   function action(step: SetupStep) {
     if (step.id === 'public') return <form action={step.href} method="post" target="_blank" onSubmit={openPublic}><Button type="submit" variant="secondary" disabled={checking}>Open public page</Button></form>;
     if (step.id === 'subscribe') return <Button type="button" variant="secondary" onClick={checkSubscribe} disabled={checking}>{checking ? 'Checking…' : 'Check subscribe form'}</Button>;
-    return <a className="text-link" href={step.href}>{step.done ? 'Review' : 'Set up'} {step.label.toLowerCase()}</a>;
+    const label = ({ branding: 'Edit page branding', timezone: 'Choose time zone', sender: 'Check mail sender', component: 'Manage components', incident: 'Manage incidents', domain: 'Choose public address' } as Record<string, string>)[step.id];
+    return <a className="text-link" href={step.href}>{label}</a>;
   }
   const content = <><p>{checklist.completed} of {checklist.steps.length} complete. Each step reflects your saved settings or a server check.</p><ol style={{ listStyle: 'none', margin: 0, padding: 0 }}>
     {checklist.steps.map(step => <li key={step.id} style={{ padding: '14px 0', borderBottom: '1px solid var(--border, #ddd)' }} data-setup-step={step.id} data-complete={step.done}>

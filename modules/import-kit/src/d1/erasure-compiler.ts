@@ -9,18 +9,19 @@ import {jobColumns} from './sets.ts';
 import {batchBytes} from './transport.ts';
 import {canonicalJson} from '../provenance/identity.ts';
 import {remaining} from './budget.ts';
+import {nativeStageRowsBytes} from './native-staging-rows.ts';
 
 type Parts={before:D1Sql[];writes:D1Sql[];post:D1Sql[]};
 const parts=():Parts=>({before:[],writes:[],post:[]});
 const headers=(fragment:ErasureFragment)=>fragment.jobs.map(row=>Object.fromEntries([...jobColumns.filter(c=>c!=='plan_json'),'state_revision'].map(column=>[column,row[column]])));
 export class ErasureCompiler {
   readonly compiled=parts();direct:Parts|undefined=parts();
-  readonly indexes=new ErasureRowsAdmission();readonly payload=new ErasureRowsAdmission();
+  readonly indexes:ErasureRowsAdmission;readonly payload:ErasureRowsAdmission;
   readonly jobs=new Map<string,any>();readonly fingerprints:string[]=[];
   readonly erasedFinal:D1Sql[]=[];
   values=0;erased=0;readQueries=0;unsafeOriginals=false;
   readonly context:D1ImportContext;readonly id:string;readonly fragments:()=>AsyncGenerator<ErasureFragment>;
-  constructor(context:D1ImportContext,id:string,fragments:()=>AsyncGenerator<ErasureFragment>){this.context=context;this.id=id;this.fragments=fragments;}
+  constructor(context:D1ImportContext,id:string,fragments:()=>AsyncGenerator<ErasureFragment>){this.context=context;this.id=id;this.fragments=fragments;this.indexes=new ErasureRowsAdmission(nativeStageRowsBytes(context));this.payload=new ErasureRowsAdmission(nativeStageRowsBytes(context));}
   async inspect(){
     const before=remaining(this.context),iterator=this.fragments();
     while(true){

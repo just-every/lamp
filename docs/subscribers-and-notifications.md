@@ -5,6 +5,17 @@ link and become active only after confirming. A pending address expires after
 72 hours. Subscribers can manage their component selection or unsubscribe from
 their emailed link.
 
+## Process email unsubscribe requests
+
+Use a From address whose mailbox you monitor. Some mail clients send their
+unsubscribe request to that address using the notification's `mailto:` option.
+Lamp does not read incoming mail. When a request arrives, open **Subscribers**,
+find its destination, choose **Remove**, and confirm the removal. Process these
+requests promptly; the address stays subscribed until you remove it.
+
+The HTTPS one-click List-Unsubscribe option works automatically and needs no
+operator action. Every email also includes a visible unsubscribe link.
+
 ## Choose what each subscriber follows
 
 Subscribers can follow selected components. A subscription that has never been
@@ -30,3 +41,14 @@ matching channels.
 
 Use the delivery log to review queued, delivered, bounced, complained,
 suppressed or failed notifications and filter by channel, outcome or update.
+
+For email, queued can mean the provider has already accepted the message. The
+provider-accepted timestamp records that API response; it does not prove recipient
+delivery. Without signed receipts configured, **Accepted by SendGrid** (or **Accepted by
+Resend**) is the final email status shown for a successful send. The persisted
+transport outcome remains queued; CSV includes the provider-accepted timestamp.
+SendGrid receipts use `SENDGRID_WEBHOOK_PUBLIC_KEY` or the optional signed relay;
+Resend uses `RESEND_WEBHOOK_SECRET`. Configure the selected provider's verification key
+and signed webhook in [Owner inputs](../OPERATIONS.md#owner-inputs) to receive
+delivered, bounced or complained updates. Delivered records the provider's
+delivery report, never an open or proof that a person read the message.

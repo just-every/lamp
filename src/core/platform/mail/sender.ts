@@ -15,19 +15,34 @@ export type SentMail = {
   providerMessageId: string;
   disposition?: "accepted";
 } | {
-  /** No provider was contacted. This identifies a durable local envelope only. */
-  disposition: "captured";
-  captureId: string;
+  /** Local development deliberately sends and retains nothing. */
+  disposition: "suppressed";
 };
 
 export interface MailSender {
   readonly configured: boolean;
+  /** Throw MailPreparationError only if no transport/capture was attempted.
+   * All other failures, including uncertain prior submissions, retain claims. */
   send(message: MailMessage): Promise<SentMail>;
 }
 
-export class MailUnavailableError extends Error {
+// The shared brand also works when an extension bundles its own API import.
+const preparationFailure = Symbol.for('lamp.mail.preparation-failure');
+export class MailPreparationError extends Error {
+  readonly [preparationFailure] = true;
+  constructor(cause: unknown) {
+    super('Mail preparation failed before submission.', { cause });
+    this.name = 'MailPreparationError';
+  }
+}
+export function isMailPreparationError(error: unknown): error is MailPreparationError {
+  return error instanceof Error && (error as MailPreparationError)[preparationFailure] === true;
+}
+
+export class MailUnavailableError extends MailPreparationError {
   constructor() {
-    super("mail.sender.v1 requires MAIL_PROVIDER_API_KEY and MAIL_FROM_ADDRESS.");
+    super(undefined);
+    this.message = "mail.sender.v1 requires MAIL_PROVIDER_API_KEY and MAIL_FROM_ADDRESS.";
     this.name = "MailUnavailableError";
   }
 }

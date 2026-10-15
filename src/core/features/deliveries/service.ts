@@ -1,3 +1,5 @@
+import { formatTime } from "../public-snapshot/format";
+import { lampConfig } from "../../../ext/config";
 import type { DeliveryChannel, DeliveryOutcome } from "../../shared/domain";
 import { createUlid, nowIso } from "../../shared/ids";
 import { renderIncidentUpdate } from "../incidents/renderer";
@@ -55,12 +57,7 @@ function parseFrozenMailPayload(value: string): FrozenMailPayload {
 }
 
 function displayNotificationTime(value: string, timezone: string | null) {
-  const options: Intl.DateTimeFormatOptions = { timeZone: timezone ?? "UTC", year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit", timeZoneName: "longOffset" };
-  try {
-    return new Intl.DateTimeFormat("en-GB", options).format(new Date(value));
-  } catch {
-    return new Intl.DateTimeFormat("en-GB", { ...options, timeZone: "UTC" }).format(new Date(value));
-  }
+  return formatTime(value, timezone ?? "UTC");
 }
 
 function renderMaintenanceNotice(delivery: DispatchableDelivery) {
@@ -81,7 +78,7 @@ function renderMaintenanceNotice(delivery: DispatchableDelivery) {
 
 export function createDeliveriesService(
   repository: DeliveryRepository,
-  options: { effectsPaused?: boolean; mail?: MailSender; fromAddress?: string | (() => Promise<string>); subscriberTokenSecret?: string; webhookSigningSecret?: string | string[]; events?: DeliveryEvents } = {},
+  options: { pageName?: () => Promise<string>; effectsPaused?: boolean; mail?: MailSender; fromAddress?: string | (() => Promise<string>); subscriberTokenSecret?: string; webhookSigningSecret?: string | string[]; events?: DeliveryEvents } = {},
 ): DeliveriesService {
   const tokens = options.subscriberTokenSecret ? new SubscriberTokenCodec(options.subscriberTokenSecret) : null;
   const events = options.events ?? defaultDeliveryEvents;
@@ -195,10 +192,12 @@ export function createDeliveriesService(
           : renderMaintenanceNotice(delivery);
       if (!rendered) throw permanentDeliveryError("This notification event has no supported rendered content.");
       const host = new URL(origin).host;
+      const pageName = options.pageName ? await options.pageName() : lampConfig.pageName;
+      const statusUrl = new URL("/", origin).href;
       const candidate: FrozenMailPayload = {
-        frozenAt: nowIso(), from: fromAddress, to: delivery.destination, subject: rendered.email.subject,
-        text: `${rendered.email.plainText}\n\nManage this subscription: ${manageUrl}\nUnsubscribe: ${unsubscribeUrl}`,
-        html: `<main><h1>${htmlText(rendered.email.subject)}</h1><pre>${htmlText(rendered.email.plainText)}</pre><p><a href="${htmlText(manageUrl)}">Manage subscription</a> · <a href="${htmlText(unsubscribeUrl)}">Unsubscribe</a></p></main>`,
+        frozenAt: nowIso(), from: fromAddress, to: delivery.destination, subject: `${pageName}: ${rendered.email.subject}`,
+        text: `${pageName}\n\n${rendered.email.plainText}\n\nManage this subscription: ${manageUrl}\nUnsubscribe: ${unsubscribeUrl}\nReturn to status: ${statusUrl}`,
+        html: `<main><p><a href="${htmlText(statusUrl)}">${htmlText(pageName)}</a></p><h1>${htmlText(rendered.email.subject)}</h1><pre>${htmlText(rendered.email.plainText)}</pre><p><a href="${htmlText(manageUrl)}">Manage subscription</a> · <a href="${htmlText(unsubscribeUrl)}">Unsubscribe</a></p></main>`,
         headers: {
           "List-Unsubscribe": `<mailto:${fromAddress}?subject=unsubscribe>, <${unsubscribeUrl}>`, "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
           "List-Id": `<${host}>`, "List-Archive": `${origin}/history`, "List-Help": manageUrl, "Auto-Submitted": "auto-generated",
@@ -212,12 +211,9 @@ export function createDeliveriesService(
     if (Date.now() - new Date(envelope.frozenAt).getTime() >= RESEND_IDEMPOTENCY_WINDOW_MS) throw permanentDeliveryError("The mail provider idempotency window expired before delivery could be confirmed.");
     const { frozenAt: _frozenAt, ...messageInput } = envelope;
     const message = await options.mail.send(messageInput);
-    if ("disposition" in message && message.disposition === "captured") {
-      if (!("captureId" in message) || typeof message.captureId !== "string" || !message.captureId) throw permanentDeliveryError("The local mail capture returned no capture receipt.");
+    if (message.disposition === 'suppressed') {
       const timestamp = nowIso();
-      const attempt = (await repository.getAttemptCount(delivery.id)) + 1;
-      const captureAttempt = { id: createUlid(), deliveryId: delivery.id, attemptNumber: attempt, attemptedAt: timestamp, providerMessageId: null, error: null, localCaptureId: message.captureId, createdAt: timestamp };
-      await repository.recordAttempt(captureAttempt);
+      await repository.markOutcome(delivery.id, 'suppressed', timestamp, timestamp);
       return;
     }
     if (!message.providerMessageId) throw permanentDeliveryError("The mail sender returned no provider receipt.");

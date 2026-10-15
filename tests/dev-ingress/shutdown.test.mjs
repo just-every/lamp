@@ -10,8 +10,10 @@ function liveMembers(group) {
     .filter(([, pgid, state]) => Number(pgid) === group && !state.startsWith('Z'));
 }
 
-for (const exitsFirst of [false, true]) {
-  test(`teardown stops actual descendants when the launcher ${exitsFirst ? 'already exited' : 'is running'}`, { timeout: 30_000 }, async () => {
+test("Teardown stops descendants whether the launcher exits first or remains running", { timeout: 60_000 }, async t => {
+  for (const exitsFirst of [false, true]) {
+  t.diagnostic(`teardown stops actual descendants when the launcher ${exitsFirst ? 'already exited' : 'is running'}`);
+    await (async () => {
     const script = `
       const { spawn } = require('node:child_process');
       const descendant = spawn(process.execPath, ['-e', 'setInterval(() => {}, 1000)'], { stdio: 'ignore' });
@@ -31,5 +33,6 @@ for (const exitsFirst of [false, true]) {
     } finally {
       await stopProcessGroup(child);
     }
-  });
+  })(t);
 }
+});

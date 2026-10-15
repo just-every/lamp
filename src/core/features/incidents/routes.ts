@@ -11,6 +11,11 @@ const incidentQuerySchema = z.object({ lifecycle: z.enum(INCIDENT_LIFECYCLES).op
 const publishSchema = z.object({ channels: z.array(z.enum(["email", "webhook", "chat"])).max(3).transform((channels) => [...new Set(channels)]), publishedAt: z.iso.datetime().optional() }).strict();
 const scheduleSchema = z.object({ publishAt: z.iso.datetime(), channels: z.array(z.enum(["email", "webhook", "chat"])).max(3).transform((channels) => [...new Set(channels)]) }).strict();
 const deleteSchema = z.object({ reason: z.string().trim().min(1).max(1_000) }).strict();
+const attachedComponentSchema = z.object({ componentId: ulidSchema, state: z.enum(COMPONENT_STATES), relationship: z.enum(["Primary", "Dependent"]).default("Primary") }).strict();
+const componentChangeSchema = z.discriminatedUnion("action", [
+  attachedComponentSchema.extend({ action: z.literal("attach") }).strict(),
+  z.object({ action: z.literal("detach"), componentId: ulidSchema }).strict(),
+]);
 const createIncidentSchema = z.object({ title: z.string().trim().min(1).max(250), openedAt: z.iso.datetime().optional(), components: z.array(z.object({ componentId: ulidSchema, state: z.enum(COMPONENT_STATES), relationship: z.enum(["Primary", "Dependent"]).default("Primary") }).strict()).min(1).max(100) }).strict();
 const templateSchema = z.object({ name: z.string().trim().min(1).max(120), lifecycle: z.enum(INCIDENT_LIFECYCLES), affectedAudience: z.string().trim().min(1).max(250), customerImpact: z.string().trim().min(1).max(250), whatStillWorks: z.string().max(250), details: z.string().max(500), nextUpdateOffsetMinutes: z.number().int().min(1).max(10_080), components: z.array(z.object({ componentId: ulidSchema, state: z.enum(COMPONENT_STATES), relationship: z.enum(["Primary", "Dependent"]).default("Primary") }).strict()).min(1).max(100) }).strict();
 const correctionSchema = z.object({ updateId: ulidSchema }).strict();
@@ -20,7 +25,7 @@ function incidentIdFrom(context: Context<AppEnv>) {
   return ulidSchema.safeParse(context.req.param("incidentId"));
 }
 
-export function registerIncidentRoutes(app: Hono<AppEnv>, service: IncidentsService) {
+export function registerIncidentRoutes(app: Hono<AppEnv>, service: IncidentsService, options: { hasChatChannels?: () => Promise<boolean> } = {}) {
   app.get("/api/app/incident-templates", async (context) => context.json({ templates: await service.listTemplates() }));
   app.post("/api/app/incident-templates", async (context) => {
     const input = templateSchema.safeParse(await context.req.json().catch(() => null));
@@ -45,7 +50,27 @@ export function registerIncidentRoutes(app: Hono<AppEnv>, service: IncidentsServ
     const incidentId = incidentIdFrom(context);
     if (!incidentId.success) return context.json({ error: "Invalid incident identifier.", issues: incidentId.error.issues }, 400);
     const incident = await service.get(incidentId.data);
-    return incident ? context.json({ incident }) : context.json({ error: "Incident not found." }, 404);
+    return incident ? context.json({ incident, hasChatChannels: options.hasChatChannels ? await options.hasChatChannels() : false }) : context.json({ error: "Incident not found." }, 404);
+  });
+
+  app.post("/api/app/incidents/:incidentId/components/preview", async (context) => {
+    const incidentId = incidentIdFrom(context); const input = componentChangeSchema.safeParse(await context.req.json().catch(() => null));
+    if (!incidentId.success || !input.success) return context.json({ error: "A valid component change is required." }, 400);
+    try { return context.json({ preview: await service.previewComponentChange(incidentId.data, input.data) }); }
+    catch (cause) { return context.json({ error: cause instanceof Error ? cause.message : "Component change could not be previewed." }, 409); }
+  });
+
+  app.post("/api/app/incidents/:incidentId/components", async (context) => {
+    const incidentId = incidentIdFrom(context); const input = attachedComponentSchema.safeParse(await context.req.json().catch(() => null));
+    if (!incidentId.success || !input.success) return context.json({ error: "A valid component, claim state and relationship are required." }, 400);
+    try { await service.attachComponent(incidentId.data, input.data, context.get("operator").id); return context.json({ attached: true }, 201); }
+    catch (cause) { return context.json({ error: cause instanceof Error ? cause.message : "Component could not be attached." }, 409); }
+  });
+  app.delete("/api/app/incidents/:incidentId/components/:componentId", async (context) => {
+    const incidentId = incidentIdFrom(context); const componentId = ulidSchema.safeParse(context.req.param("componentId"));
+    if (!incidentId.success || !componentId.success) return context.json({ error: "Invalid incident or component identifier." }, 400);
+    try { await service.detachComponent(incidentId.data, componentId.data, context.get("operator").id); return context.json({ detached: true }); }
+    catch (cause) { return context.json({ error: cause instanceof Error ? cause.message : "Component could not be detached." }, 409); }
   });
 
   // Mutating a draft always refers to the exact acknowledged version. Old

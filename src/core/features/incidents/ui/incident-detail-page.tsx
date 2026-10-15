@@ -12,13 +12,14 @@ import { LoadingState, useOperatorTime, FormError } from "../../../app/client/ui
 import { EmptyState, ErrorState } from "../../../app/client/ui/lit-states";
 import { usePageTimezone, toPageDateTime, fromPageDateTime } from "../../../app/client/ui/timezone";
 import { FieldNumber, PreviewCard, AiSuggestionButton, TemplateControls, ReportEditor } from "./incident-composer-tools";
+import { IncidentComponents } from "./incident-components";
 import { IncidentOperatorControls } from "./incident-operator-controls";
 import { IncidentBriefPanel } from "../../brief/ui/incident-brief";
 import { SuggestionSources, type AppliedSuggestion, type SuggestedFieldName } from "./suggestion-sources";
 import type { CheckedSuggestion } from "../../ai/service";
 import { useIncidentVisit } from "./use-incident-visit";
 
-type IncidentResponse = { incident: Awaited<ReturnType<IncidentsService["get"]>> };
+type IncidentResponse = { incident: Awaited<ReturnType<IncidentsService["get"]>>; hasChatChannels: boolean };
 type PreviewResponse = { preview: RenderedIncidentUpdate };
 
 const blankDraft: IncidentDraftInput = {
@@ -83,7 +84,7 @@ function IncidentVisit({ incidentId }: { incidentId: string }) {
   const [saveError, setSaveError] = useState<string | null>(null);
   const [preview, setPreview] = useState<RenderedIncidentUpdate | null>(null);
   const [previewError, setPreviewError] = useState<string | null>(null);
-  const [channels, setChannels] = useState<Array<"email" | "webhook" | "chat">>(["email", "chat"]);
+  const [channels, setChannels] = useState<Array<"email" | "webhook" | "chat">>(["email"]);
   const [scheduledPublishAt, setScheduledPublishAt] = useState<string | null>(null);
   const [historicalPublishedAt, setHistoricalPublishedAt] = useState<string | null>(null);
   const [publishState, setPublishState] = useState<"idle" | "publishing" | "scheduled" | "published" | "error">("idle");
@@ -114,6 +115,7 @@ function IncidentVisit({ incidentId }: { incidentId: string }) {
     if (!data?.incident || !loadedIncidentId || hydratedIncident.current === loadedIncidentId) return;
     const initial = draftFromIncident(data.incident);
     hydratedIncident.current = data.incident.id;
+    if (data.hasChatChannels) setChannels(["email", "chat"]);
     version.current = `${data.incident.draft?.id ?? "-"}:${data.incident.updates.length}`;
     hydratingDraft.current = true;
     pendingDraft.current = null;
@@ -292,7 +294,7 @@ function IncidentVisit({ incidentId }: { incidentId: string }) {
     <header className="incident-workspace-heading incident-context">
       <Link className="back-link" to="/app/incidents">← Back to incidents</Link>
       <p className="eyebrow">{incident.reference}</p><h1>{incident.title}</h1>
-      <div className="context-facts"><div><span>Lifecycle</span><strong className={`fact-dot ${stateClass(incident.lifecycle)}`}>{incident.lifecycle}</strong></div><div><span>Opened</span><strong>{formatOperatorTime(incident.openedAt)}</strong></div><div><span>Impact</span><strong className={`fact-dot ${stateClass(incident.impact ?? "")}`}>{incident.impact ?? "No component impact"}</strong></div></div>
+      <div className="context-facts"><div><span>Lifecycle</span><strong className={`fact-dot ${stateClass(incident.lifecycle)}`}>{incident.lifecycle}</strong></div><div><span>Opened</span><strong>{formatOperatorTime(incident.openedAt)}</strong></div><div><span>{incident.lifecycle === "Resolved" ? "Peak impact" : "Impact"}</span><strong className={`fact-dot ${stateClass(incident.impact ?? "")}`}>{incident.impact ?? "No component impact"}</strong></div></div>
     </header>
 
 
@@ -344,7 +346,7 @@ function IncidentVisit({ incidentId }: { incidentId: string }) {
         <Button type="button" disabled={publishState === "publishing" || !draftSaved || !publishable || hasTimeError} onClick={publish}>{publishState === "publishing" ? "Publishing…" : historicalPublishedAt ? "Publish historical update" : "Publish update"}</Button>
     </section>
     <aside className="incident-context">
-      <section className="context-section"><h2>Affected components</h2>{incident.components.length ? incident.components.map((component) => <div className="component-fact" key={component.id}><strong>{component.componentName}</strong><span>{component.relationship} · {component.state}</span></div>) : <p>No components are attached. This incident cannot be published.</p>}</section>
+      <IncidentComponents key={incident.id} incident={incident} onChanged={refresh} captureVisit={captureVisit} />
       <section className="context-section"><h2>Published timeline</h2>{incident.updates.length ? <ol className="timeline">{incident.updates.map((update) => <li key={update.id}><strong>{update.lifecycle}</strong><span>{formatOperatorTime(update.publishedAt)}</span><p>{update.customerImpact}</p></li>)}</ol> : <p>No public updates are recorded.</p>}</section>
       {incident.lifecycle === "Resolved" ? <ReportEditor incidentId={incident.id} /> : null}
       <IncidentOperatorControls incident={incident} captureVisit={captureVisit} captureUpdate={captureUpdate} getDraftVersion={() => version.current} onChanged={refresh} onDeleted={() => void navigate({ to: "/app/incidents" })} />

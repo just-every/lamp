@@ -14,7 +14,9 @@ async function assertErased(r, id) {
   assert.ok(audit.every(row => row.reason === null && row.payload_json === '{}'));
 }
 
-test('pending invitations appear in Settings routes and erasure cancels every invitation without granting authority', async t => {
+test("Invitation cancellation and complete identity erasure preserve subscriber authority", async t => {
+  t.diagnostic("pending invitations appear in Settings routes and erasure cancels every invitation without granting authority");
+  await (async t => {
   const r = await lampRuntime(t);
   const pending = await r.invite('pending@example.test');
   const reissued = await r.invite('pending@example.test');
@@ -30,9 +32,9 @@ test('pending invitations appear in Settings routes and erasure cancels every in
   assert.equal((await r.authHandle(r.request('/auth/invite', { method: 'POST', cookie: r.cookie, body: { email: `deleted-${pending.id.toLowerCase()}@operator.invalid`, displayName: 'Restore', role: 'owner' } }))).status, 403);
   const replacement = await r.invite('pending@example.test', true);
   assert.notEqual(replacement.id, pending.id, 'a new explicit invitation creates a new identity');
-});
-
-test('erasure redacts provider identity and revokes actual links, credentials and sessions while preserving subscriber tokens', async t => {
+})(t);
+  t.diagnostic("erasure redacts provider identity and revokes actual links, credentials and sessions while preserving subscriber tokens");
+  await (async t => {
   const r = await lampRuntime(t);
   const target = await r.invite('erasure@example.test', true);
   const providerCookie = await r.providerSession(target.id);
@@ -50,9 +52,14 @@ test('erasure redacts provider identity and revokes actual links, credentials an
   assert.equal((await r.base.handle(r.request('/auth/confirm', { method: 'POST', body: { token: outstanding } }))).status, 400);
   for (const cookie of [target.cookie, providerCookie]) assert.equal((await r.call('/api/app/session', { cookie })).status, 401);
   assert.deepEqual((await r.db.prepare('SELECT * FROM subscriber_tokens').all()).results, subscriberTokens);
+})(t);
 });
 
-test('native and stepped-up provider owners can erase themselves atomically while the remaining owner stays recoverable', async t => {
+
+
+test("Concurrent owner erasure preserves a recoverable active identity", async t => {
+  t.diagnostic("native and stepped-up provider owners can erase themselves atomically while the remaining owner stays recoverable");
+  await (async t => {
   for (const kind of ['native', 'oidc']) {
     const r = await lampRuntime(t, { ownerClaim: true });
     const other = await r.invite('recovery@example.test', true);
@@ -74,9 +81,9 @@ test('native and stepped-up provider owners can erase themselves atomically whil
     assert.equal((await r.call('/api/app/session', { cookie: other.cookie })).status, 200);
     assert.equal((await r.call(`/api/app/operators/${other.id}`, { method: 'DELETE', cookie: other.cookie })).status, 409);
   }
-});
-
-test('accepting or reactivating concurrently with erasure never leaves an authorized identity erased', async t => {
+})(t);
+  t.diagnostic("accepting or reactivating concurrently with erasure never leaves an authorized identity erased");
+  await (async t => {
   const r = await lampRuntime(t);
   const target = await r.invite('racing@example.test');
   const [erasure, acceptance] = await Promise.all([
@@ -97,4 +104,5 @@ test('accepting or reactivating concurrently with erasure never leaves an author
   assert.ok([204, 409].includes(results[0].status));
   row = await r.db.prepare('SELECT email,status FROM oa_operators WHERE id=?').bind(active.id).first();
   if (row.status === 'active') assert.equal(row.email, 'reactivated@example.test');
+})(t);
 });

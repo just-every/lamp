@@ -39,7 +39,9 @@ function envelope(id, subject = "Original") {
   return JSON.stringify({ frozenAt: new Date().toISOString(), from: "lamp@example.test", to: `${id}@example.test`, subject, text: "Frozen content", html: "<p>Frozen content</p>", headers: { "List-Unsubscribe": "<https://status.example.test/unsubscribe/test-only>", "List-Unsubscribe-Post": "List-Unsubscribe=One-Click" }, idempotencyKey: `notification/${id}` });
 }
 
-test("native D1 concurrent freezes and later retries return the entire first committed envelope", async () => {
+test("Frozen email persistence survives contention and failed reads", async t => {
+  t.diagnostic("native D1 concurrent freezes and later retries return the entire first committed envelope");
+  await (async () => {
   const id = "freeze-first-winner";
   const db = await seedDelivery(id);
   const repository = createDeliveryRepository(db);
@@ -50,9 +52,9 @@ test("native D1 concurrent freezes and later retries return the entire first com
   assert.deepEqual(winners, [stored.payload, stored.payload]);
   assert.equal(await repository.freezeMailPayload(id, envelope(id, "Retry")), stored.payload);
   await assert.rejects(repository.freezeMailPayload("absent-delivery", candidates[0]), /Delivery envelope could not be frozen\./);
-});
-
-test("native D1 rejects and rolls back a freeze when its authoritative read fails", async () => {
+})(t);
+  t.diagnostic("native D1 rejects and rolls back a freeze when its authoritative read fails");
+  await (async () => {
   const id = "freeze-read-failure";
   const db = await seedDelivery(id);
   // Fault injection changes only the read statement; the real D1 batch executes
@@ -68,9 +70,14 @@ test("native D1 rejects and rolls back a freeze when its authoritative read fail
   assert.equal((await db.prepare("SELECT mail_payload_json AS payload FROM notification_deliveries WHERE id = ?").bind(id).first()).payload, null);
   const candidate = envelope(id, "After recovery");
   assert.equal(await createDeliveryRepository(db).freezeMailPayload(id, candidate), candidate);
+})(t);
 });
 
-test("provider acceptance with an empty callback ledger skips mapping and later callbacks still apply", async () => {
+
+
+test("Provider receipts reconcile before and after durable callback mapping", async t => {
+  t.diagnostic("provider acceptance with an empty callback ledger skips mapping and later callbacks still apply");
+  await (async () => {
   const id = "empty-callback-ledger";
   const db = await seedDelivery(id);
   const repository = createDeliveryRepository(db);
@@ -94,9 +101,9 @@ test("provider acceptance with an empty callback ledger skips mapping and later 
   order.length = 0;
   await service.handleProviderEvent(callback);
   assert.deepEqual(order, ["listPendingProviderEvents"]);
-});
-
-test("an early callback stays unclaimed without a persisted mapping and resumes after the attempt", async () => {
+})(t);
+  t.diagnostic("an early callback stays unclaimed without a persisted mapping and resumes after the attempt");
+  await (async () => {
   const id = "early-callback-ledger";
   const db = await seedDelivery(id);
   const repository = createDeliveryRepository(db);
@@ -114,9 +121,14 @@ test("an early callback stays unclaimed without a persisted mapping and resumes 
   assert.equal(applied.delivery, id);
   assert.equal((await repository.getDelivery(id)).subscriberState, "deactivated");
   assert.equal((await db.prepare("SELECT outcome FROM notification_deliveries WHERE id = ?").bind(id).first()).outcome, "bounced");
+})(t);
 });
 
-test("a native claim batch exposes the post-claim row only to its winner and preserves lease expiry", async () => {
+
+
+test("Only committed lease winners may dispatch", async t => {
+  t.diagnostic("a native claim batch exposes the post-claim row only to its winner and preserves lease expiry");
+  await (async () => {
   const id = "claim-batch-winner";
   const db = await seedDelivery(id);
   const repository = createDeliveryRepository(db);
@@ -137,9 +149,9 @@ test("a native claim batch exposes the post-claim row only to its winner and pre
   await service.dispatchDelivery(id, "https://status.example.test");
   assert.equal(sends, 0);
   assert.deepEqual(await db.prepare("SELECT outcome, dispatch_locked_at AS locked FROM notification_deliveries WHERE id = ?").bind(id).first(), { outcome: "suppressed", locked: null });
-});
-
-test("a failed authoritative claim read rolls back the durable lease", async () => {
+})(t);
+  t.diagnostic("a failed authoritative claim read rolls back the durable lease");
+  await (async () => {
   const id = "claim-read-failure";
   const db = await seedDelivery(id);
   const failingBinding = { prepare: sql => db.prepare(sql), batch: statements => db.batch([statements[0], db.prepare("SELECT * FROM test_only_missing_claim_table")]) };
@@ -148,7 +160,10 @@ test("a failed authoritative claim read rolls back the durable lease", async () 
   const claim = await createDeliveryRepository(db).claimAndGetDelivery(id, new Date().toISOString(), "2000-01-01T00:00:00Z");
   assert.equal(claim.claimed, true);
   assert.equal(claim.delivery.id, id);
+})(t);
 });
+
+
 
 test("accepted receipt batch rollback preserves provider idempotency and callback replay across restart", async t => {
   const id = "accepted-batch-rollback";

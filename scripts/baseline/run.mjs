@@ -19,11 +19,10 @@ async function baselineFiles() {
 
 function parseTap(output) {
   const results = [];
-  const line = /^(not )?ok \d+ - \[baseline:([^\]]+)\]/gm;
-  let match;
-  while ((match = line.exec(output)) !== null) {
-    const tail = output.slice(match.index, output.indexOf("\n", match.index));
-    results.push({ id: match[2], status: match[1] ? "failed" : /# (?:SKIP|TODO)\b/i.test(tail) ? "skipped" : "passed" });
+  const line = /^(not )?ok \d+ - (\[baseline:[^\n]+)/gm;
+  for (const match of output.matchAll(line)) {
+    const status = match[1] ? "failed" : /# (?:SKIP|TODO)\b/i.test(match[2]) ? "skipped" : "passed";
+    for (const id of match[2].matchAll(/\[baseline:([^\]]+)\]/g)) results.push({ id: id[1], status });
   }
   return results;
 }

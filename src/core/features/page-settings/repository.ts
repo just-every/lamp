@@ -14,12 +14,10 @@ export interface PageSettingsRepository {
 
 export function createPageSettingsRepository(binding: D1Database): PageSettingsRepository {
   const database = createDatabase(binding);
+  const get = async () => (await database.select().from(pageSettings).where(eq(pageSettings.id, "default")).get()) ?? null;
 
   return {
-    async get() {
-      const settings = await database.select().from(pageSettings).where(eq(pageSettings.id, "default")).get();
-      return settings ?? null;
-    },
+    get,
     async insertIfMissing(settings) {
       await database.insert(pageSettings).values(settings).onConflictDoNothing();
     },
