@@ -2,7 +2,7 @@ import { createRetainedSnapshotCache } from "../platform/blobs/retained";
 import type { AppBindings } from "./types";
 import type { BlobStore } from "../platform/blobs/store";
 import { createComponentRepository, createComponentsService } from "../features/components";
-import { createDeliveriesService, createDeliveryRepository, notificationPublicationStatements } from "../features/deliveries";
+import { createDeliveriesService, createDeliveryRepository, notificationPublicationStatements, incidentCatchupStatements } from "../features/deliveries";
 import { createIncidentRepository, createIncidentsService, createUpdateReminders } from "../features/incidents";
 import { authOrigin } from "../platform/auth/config";
 import { createIntakeRepository, createIntakeService } from "../features/intake";
@@ -60,6 +60,7 @@ export function createAppServices(bindings: AppBindings, blobs: BlobStore, execu
     publicOrigin: () => notificationOrigin(bindings),
   });
   const incidents = createIncidentsService(createIncidentRepository(bindings.DB), components, publicSnapshots.rebuild, {
+    forAttachedComponents: async (input) => incidentCatchupStatements(bindings.DB, input),
     forIncidentUpdate: async (input) => [
       ...notificationPublicationStatements(bindings.DB, { eventId: input.updateId, eventType: "incident-update", incidentUpdateId: input.updateId, componentIds: input.componentIds, channels: input.channels.filter((channel): channel is "email" | "webhook" => channel !== "chat" && allowedIncidentChannels.has(channel)), queuedAt: input.queuedAt }),
       ...(input.channels.includes("chat") ? channels.postStatements({ updateId: input.updateId, componentIds: input.componentIds, queuedAt: input.queuedAt }) : []),

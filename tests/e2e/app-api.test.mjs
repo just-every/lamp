@@ -205,6 +205,43 @@ contract("COMP-006", "standing claims derive a component's public state", async 
   });
   assert.equal(clear.status, 200);
   assert.equal((await clear.json()).component.publicState, "Partially unavailable");
+
+  const componentResponse = await appFetch("/api/app/components", { method: "POST", body: JSON.stringify({ groupId: null, name: "Incident attachment probe", description: "", internal: false, displayOrder: 90, note: "" }) });
+  assert.equal(componentResponse.status, 201);
+  const component = (await componentResponse.json()).component;
+  const create = await appFetch("/api/app/incidents", { method: "POST", body: JSON.stringify({ title: "Editable affected components", components: [{ componentId: "01J00000000000000000000011", state: "Degraded performance", relationship: "Primary" }] }) });
+  assert.equal(create.status, 201);
+  const incident = (await create.json()).incident;
+  const path = `/api/app/incidents/${incident.id}`;
+  const attach = (body) => appFetch(`${path}/components`, { method: "POST", body: JSON.stringify(body) });
+  const claimInput = { componentId: component.id, state: "Major outage", relationship: "Dependent" };
+  assert.equal((await attach({ componentId: component.id })).status, 400);
+  assert.equal((await attach({ ...claimInput, state: "invalid" })).status, 400);
+  assert.equal((await attach({ ...claimInput, componentId: "01J00000000000000000009999" })).status, 409);
+  assert.equal((await attach(claimInput)).status, 201);
+  assert.equal((await (await appFetch("/api/app/components")).json()).components.find((item) => item.id === component.id).publicState, "Operational", "unpublished claims stay private");
+  assert.equal((await attach(claimInput)).status, 409);
+  const before = (await (await appFetch(path)).json()).incident;
+  assert.deepEqual(before.draft, incident.draft, "component changes preserve saved draft/version");
+  assert.equal(before.components.find((claim) => claim.componentId === component.id).relationship, "Dependent");
+  const draft = { lifecycle: "Monitoring", affectedAudience: "Attachment readers", customerImpact: "Attachment impact", whatStillWorks: "", details: "", nextUpdateAt: new Date(Date.now() + 3600000).toISOString() };
+  assert.equal((await appFetch(`${path}/draft`, { method: "PUT", body: JSON.stringify(draft) })).status, 200);
+  assert.equal((await appFetch(`${path}/publish`, { method: "POST", body: JSON.stringify({ channels: [] }) })).status, 200);
+  await appFetch(`/api/app/components/${component.id}/standing-claim`, { method: "PUT", body: JSON.stringify({ state: "Degraded performance" }) });
+  assert.equal((await appFetch(`${path}/components/${component.id}`, { method: "DELETE" })).status, 200);
+  assert.equal((await (await appFetch("/api/app/components")).json()).components.find((item) => item.id === component.id).publicState, "Degraded performance", "detach reveals remaining claims");
+  assert.equal((await appFetch(`${path}/components/${component.id}`, { method: "DELETE" })).status, 409);
+  const concurrent = await Promise.all([attach(claimInput), attach(claimInput)]);
+  assert.deepEqual(concurrent.map((response) => response.status).sort(), [201,409]);
+  assert.equal((await (await appFetch("/api/app/components")).json()).components.find((item) => item.id === component.id).publicState, "Major outage");
+  await appFetch(`${path}/draft`, { method: "PUT", body: JSON.stringify({ ...draft, lifecycle: "Resolved", nextUpdateAt: null }) });
+  assert.equal((await appFetch(`${path}/publish`, { method: "POST", body: JSON.stringify({ channels: [] }) })).status, 200);
+  assert.equal((await appFetch(`${path}/components/${component.id}`, { method: "DELETE" })).status, 409);
+  assert.equal((await attach(claimInput)).status, 409);
+  assert.equal((await appFetch(path, { method: "DELETE", body: JSON.stringify({ reason: "Attachment probe complete" }) })).status, 200);
+  assert.equal((await attach(claimInput)).status, 409);
+  await appFetch(`/api/app/components/${component.id}/standing-claim`, { method: "PUT", body: JSON.stringify({ state: null }) });
+
 });
 
 contract("UPDATE-004", "draft save and preview share the incident renderer", async () => {

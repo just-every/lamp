@@ -8,3 +8,5 @@ export type { DeliveriesService } from "./service";
 export type { NotificationPublicationInput, NotificationEventType } from "./publication";
 export type { NotificationEventsPolicy } from "./policies";
 export type { DeliveryEvents, DeliverySubscriberDeactivatedEvent, NotificationFailedEvent } from "./events";
+
+export { incidentCatchupStatements } from "./incident-catchup";

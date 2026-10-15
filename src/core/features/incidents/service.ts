@@ -27,6 +27,8 @@ export interface IncidentView extends StoredIncident {
 export class InvalidIncidentUpdateError extends Error {}
 
 export interface IncidentsService {
+  attachComponent(incidentId: string, claim: { componentId: string; state: ComponentState; relationship: "Primary" | "Dependent" }, operatorId: string): Promise<void>;
+  detachComponent(incidentId: string, componentId: string, operatorId: string): Promise<void>;
   list(): Promise<IncidentView[]>;
   get(incidentId: string): Promise<IncidentView | null>;
   saveDraft(incidentId: string, input: IncidentDraftInput, operatorId: string, expectedVersion: string, requestedId?: string): Promise<StoredIncidentDraft | null>;
@@ -58,6 +60,7 @@ export interface IncidentTemplateInput {
 }
 
 export interface IncidentPublicationStatements {
+  forAttachedComponents(input: { incidentId: string; attachmentIds: string[]; queuedAt: string }): Promise<D1PreparedStatement[]>;
   forIncidentUpdate(input: { updateId: string; incidentId: string; componentIds: string[]; channels: Array<UpdateChannel>; queuedAt: string }): Promise<D1PreparedStatement[]>;
 }
 
@@ -148,7 +151,7 @@ export function createIncidentsService(
     const historyEntries: ComponentStateHistoryInput[] = isRetroactive
       ? (await Promise.all(claimEvents.map((claimEvent) => componentsService.prepareHistoricalStateTransitions({ componentId: claimEvent.componentId, cause: { type: "incident", id: incidentId, operatorId }, claimEvent })))).flat()
       : [];
-    const record: IncidentPublishRecord = { id: draft.id, incidentId, lifecycle: draft.lifecycle, affectedAudience: draft.affectedAudience, customerImpact: draft.customerImpact, whatStillWorks: draft.whatStillWorks, details: draft.details, nextUpdateAt: draft.lifecycle === "Resolved" ? null : draft.nextUpdateAt, publishedAt, isRetroactive, authorOperatorId: operatorId, correctsUpdateId: draft.correctsUpdateId, peakImpact, createdAt: timestamp, updatedAt: timestamp, claimEvents, historyEntries };
+    const record: IncidentPublishRecord = { id: draft.id, incidentId, lifecycle: draft.lifecycle, affectedAudience: draft.affectedAudience, customerImpact: draft.customerImpact, whatStillWorks: draft.whatStillWorks, details: draft.details, nextUpdateAt: draft.lifecycle === "Resolved" ? null : draft.nextUpdateAt, publishedAt, isRetroactive, authorOperatorId: operatorId, correctsUpdateId: draft.correctsUpdateId, peakImpact, createdAt: timestamp, updatedAt: timestamp, components, claimEvents, historyEntries };
     const channels = isRetroactive || hasRetroactiveUpdate ? [] : input.channels;
     const recipientStatements = await publicationStatements.forIncidentUpdate({ updateId: record.id, incidentId, componentIds: components.flatMap((component) => component.componentId ? [component.componentId] : []), channels, queuedAt: publishedAt });
     await repository.publishDraft(record, recipientStatements);
@@ -160,6 +163,22 @@ export function createIncidentsService(
   };
 
   return {
+    async attachComponent(incidentId, claim, operatorId) {
+      const [incident, component] = await Promise.all([repository.findIncident(incidentId), componentsService.get(claim.componentId)]);
+      if (!incident || incident.lifecycle === "Resolved") throw new Error("Only an unresolved incident can change its affected components.");
+      if (!component) throw new Error("Component not found.");
+      const timestamp = nowIso();
+      const attached = { id: createUlid(), incidentId, componentId: component.id, componentName: component.name, state: claim.state, relationship: claim.relationship, createdAt: timestamp, updatedAt: timestamp };
+      if (!publicationStatements) throw new Error("Incident notification capture is unavailable.");
+      await repository.attachComponent(attached, await publicationStatements.forAttachedComponents({ incidentId, attachmentIds: [attached.id], queuedAt: timestamp }));
+      await componentsService.recomputePublicState(component.id, { type: "incident", id: incidentId, operatorId });
+      await onPublicDataChanged();
+    },
+    async detachComponent(incidentId, componentId, operatorId) {
+      await repository.detachComponent(incidentId, componentId, nowIso(), createUlid());
+      await componentsService.recomputePublicState(componentId, { type: "incident", id: incidentId, operatorId });
+      await onPublicDataChanged();
+    },
     // Reading incidents never sends mail: reminders come from the scheduled trigger.
     async list() {
       return Promise.all((await repository.listIncidents()).map((incident) => toIncidentView(repository, incident, updateDuePolicy.leadMinutes())));
@@ -279,8 +298,13 @@ export function createIncidentsService(
       if (templateComponents.some(({ component }) => !component)) throw new Error("A template component no longer exists.");
       const timestamp = nowIso(); const current = await repository.listComponents(incidentId);
       const newComponents = templateComponents.filter(({ claim }) => !current.some((attached) => attached.componentId === claim.componentId)).map(({ claim, component }) => ({ id: createUlid(), incidentId, componentId: claim.componentId!, componentName: component!.name, state: claim.state, relationship: claim.relationship, createdAt: timestamp, updatedAt: timestamp }));
+      if (newComponents.length && incident.lifecycle === "Resolved") throw new Error("Only an unresolved incident can change its affected components.");
       const draft: StoredIncidentDraft = { id: createUlid(), incidentId, lifecycle: template.lifecycle, affectedAudience: template.affectedAudience, customerImpact: template.customerImpact, whatStillWorks: template.whatStillWorks, details: template.details, nextUpdateAt: new Date(Date.now() + template.nextUpdateOffsetMinutes * 60_000).toISOString(), authorOperatorId: operatorId, createdAt: timestamp, updatedAt: timestamp };
-      await repository.applyTemplate(incidentId, draft, newComponents, expectedVersion);
+      if (!publicationStatements) throw new Error("Incident notification capture is unavailable.");
+      const recipients = await publicationStatements.forAttachedComponents({ incidentId, attachmentIds: newComponents.map((component) => component.id), queuedAt: timestamp });
+      await repository.applyTemplate(incidentId, draft, newComponents, expectedVersion, recipients);
+      await Promise.all(newComponents.map((component) => componentsService.recomputePublicState(component.componentId, { type: "incident", id: incidentId, operatorId })));
+      await onPublicDataChanged();
       return draft;
     },
     finishPublication,

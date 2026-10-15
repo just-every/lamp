@@ -207,6 +207,108 @@ contract("SUB-004", "actual D1 recipient selection follows visible components an
   await db.batch(notificationPublicationStatements(db, { eventId: ids.internalUpdate, eventType: "incident-update", incidentUpdateId: ids.internalUpdate, componentIds: [ids.internalComponent], channels: ["email"], queuedAt: now }));
   const internalRecipients = await db.prepare("SELECT subscriber_id AS id FROM notification_deliveries WHERE notification_event_id = ?").bind(ids.internalUpdate).all();
   assert.deepEqual(internalRecipients.results, [], "an all-components subscription follows public components only, and a selected component that became internal is not delivered");
+
+  // Exercise the operator route and production D1 capture, including reattachment
+  // after a later update was published while the subscriber was out of scope.
+  const { Hono } = await import("hono");
+  const { createIncidentsService, createIncidentRepository, registerIncidentRoutes } = await vite.ssrLoadModule("/src/core/features/incidents/index.ts");
+  const { createComponentsService, createComponentRepository } = await vite.ssrLoadModule("/src/core/features/components/index.ts");
+  const { incidentCatchupStatements } = await vite.ssrLoadModule("/src/core/features/deliveries/index.ts");
+  const { createUlid } = await vite.ssrLoadModule("/src/core/shared/ids.ts");
+  const operatorId = "01J00000000000000000000001";
+  const components = createComponentsService(createComponentRepository(db), async () => {});
+  const fixtureComponents = [];
+  for (const name of ["Attachment origin", "Attachment audience", "Attachment internal"]) {
+    const id = createUlid();
+    await db.prepare("INSERT INTO components (id,name,description,internal,display_order,note,created_at,updated_at) VALUES (?,?,'',?,100,'',?,?)").bind(id,name,name.endsWith("internal") ? 1 : 0,now,now).run();
+    fixtureComponents.push(id);
+  }
+  const [origin, audience, internal] = fixtureComponents;
+  const readers = {};
+  for (const [label, state, channel, mode, follows] of [
+    ["new", "active", "email", "selected", audience], ["previous", "active", "email", "selected", origin],
+    ["earlier", "active", "email", "selected", origin],
+    ["pending", "pending", "email", "selected", audience], ["inactive", "deactivated", "email", "selected", audience],
+    ["internal", "active", "email", "selected", internal], ["webhook", "active", "webhook", "selected", audience],
+  ]) {
+    const id = createUlid(); readers[label] = id;
+    await db.prepare("INSERT INTO subscribers (id,channel,destination,state,selection_mode,token_hash,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?)").bind(id,channel,channel === "email" ? `catchup-${label}@example.test` : "https://hooks.example.test/catchup",state,mode,createUlid(),now,now).run();
+    await db.prepare("INSERT INTO subscriber_components (id,subscriber_id,component_id,created_at,updated_at) VALUES (?,?,?,?,?)").bind(createUlid(),id,follows,now,now).run();
+  }
+  const incidents = createIncidentsService(createIncidentRepository(db), components, async () => {}, {
+    forIncidentUpdate: async (input) => notificationPublicationStatements(db, { eventId: input.updateId, eventType: "incident-update", incidentUpdateId: input.updateId, componentIds: input.componentIds, channels: input.channels, queuedAt: input.queuedAt }),
+    forAttachedComponents: async (input) => incidentCatchupStatements(db,input),
+  }, { requiresReview: () => false }, async () => {});
+  const app = new Hono(); app.use("*", async (context,next) => { context.set("operator", { id: operatorId }); await next(); });
+  registerIncidentRoutes(app,incidents);
+  const pending = [];
+  const call = (path, method = "GET", body, headers = {}) => app.request(`https://app.example.test/api/app${path}`, { method, headers: { "Content-Type": "application/json", ...headers }, ...(body ? { body: JSON.stringify(body) } : {}) }, undefined, { waitUntil: (job) => pending.push(job) });
+  const create = async (componentId) => {
+    const response = await call("/incidents", "POST", { title: "Attachment catch-up", components: [{ componentId, state: "Major outage", relationship: "Primary" }] });
+    assert.equal(response.status,201); return (await response.json()).incident;
+  };
+  const publish = async (incidentId, impact, channels = ["email"], historical = false) => {
+    const before = (await (await call(`/incidents/${incidentId}`)).json()).incident;
+    const saved = await call(`/incidents/${incidentId}/draft`, "PUT", { lifecycle: "Monitoring", affectedAudience: "Customers", customerImpact: impact, whatStillWorks: "", details: "", nextUpdateAt: new Date(Date.now()+3600000).toISOString() }, { "If-Match": `${before.draft?.id ?? "-"}:${before.updates.length}` });
+    assert.equal(saved.status,200); const draft = (await saved.json()).draft;
+    const response = await call(`/incidents/${incidentId}/publish`, "POST", { channels, ...(historical ? { publishedAt: "2026-09-01T00:00:00.000Z" } : {}) }, { "If-Match": `${draft.id}:${before.updates.length}` });
+    assert.equal(response.status,200); await Promise.all(pending.splice(0)); return (await response.json()).update;
+  };
+  const attach = (incidentId,componentId) => call(`/incidents/${incidentId}/components`, "POST", { componentId, state: "Partially unavailable", relationship: "Dependent" });
+  const deliveriesFor = async (incidentId) => (await db.prepare("SELECT d.subscriber_id AS subscriberId,d.incident_update_id AS updateId FROM notification_deliveries d JOIN incident_updates u ON u.id=d.incident_update_id WHERE u.incident_id=?").bind(incidentId).all()).results;
+  const incident = await create(origin);
+  const first = await publish(incident.id,"First published impact");
+  const mail = new CapturingMail();
+  const deliveryService = createDeliveriesService(createDeliveryRepository(db), { mail, fromAddress: "lamp@example.test", subscriberTokenSecret: "catchup-test-secret" });
+  await deliveryService.dispatchEvent(first.id,"https://status.example.test");
+  assert.equal(mail.messages.filter((message) => message.to === "catchup-earlier@example.test").length,1,"the older update was actually sent before the subscriber changes selection");
+  await db.prepare("UPDATE subscriber_components SET component_id = ? WHERE subscriber_id = ?").bind(audience,readers.earlier).run();
+  const latest = await publish(incident.id,"Latest published impact");
+  assert.deepEqual((await deliveriesFor(incident.id)).filter((row) => row.subscriberId === readers.earlier).map((row) => row.updateId),[first.id],"the audience-only reader has an older receipt and no receipt for the latest update");
+  const lateAll = createUlid();
+  await db.prepare("INSERT INTO subscribers (id,channel,destination,state,selection_mode,token_hash,created_at,updated_at) VALUES (?,'email','catchup-late-all@example.test','active','all',?,?,?)").bind(lateAll,createUlid(),now,now).run();
+  await deliveryService.dispatchEvent(latest.id,"https://status.example.test");
+  const attached = await Promise.all([attach(incident.id,audience),attach(incident.id,audience)]);
+  assert.deepEqual(attached.map((response) => response.status).sort(),[201,409]);
+  let rows = await deliveriesFor(incident.id);
+  assert.deepEqual(rows.filter((row) => row.subscriberId === lateAll).map((row) => row.updateId),[latest.id],"a newly active all-components subscriber catches up on attachment");
+  assert.deepEqual(rows.filter((row) => row.subscriberId === readers.new).map((row) => row.updateId),[latest.id]);
+  for (const label of ["pending","inactive","internal","webhook"]) assert.equal(rows.some((row) => row.subscriberId === readers[label]),false,label);
+  assert.equal(rows.filter((row) => row.subscriberId === readers.previous).length,2,"already notified subscribers receive no catch-up");
+  assert.deepEqual(rows.filter((row) => row.subscriberId === readers.earlier).map((row) => row.updateId),[first.id],"an eligible subscriber with only an older notification receives no catch-up");
+  await deliveryService.dispatchDue("https://status.example.test");
+  const caughtUp = mail.messages.filter((message) => message.to === "catchup-new@example.test");
+  assert.equal(caughtUp.length,1); assert.match(caughtUp[0].text,/Latest published impact/); assert.doesNotMatch(caughtUp[0].text,/First published impact/);
+  assert.equal(mail.messages.filter((message) => message.to === "catchup-earlier@example.test").length,1,"attachment sends no second envelope to a subscriber who received an older update");
+  assert.equal((await call(`/incidents/${incident.id}/components/${audience}`,"DELETE")).status,200);
+  await publish(incident.id,"Published while detached");
+  assert.equal((await attach(incident.id,audience)).status,201);
+  rows = await deliveriesFor(incident.id);
+  assert.equal(rows.filter((row) => row.subscriberId === readers.new).length,1,"reattachment never resends, including a newer update missed while detached");
+  const subsequent = await publish(incident.id,"Subsequent update");
+  assert.equal((await deliveriesFor(incident.id)).some((row) => row.subscriberId === readers.new && row.updateId === subsequent.id),true);
+  assert.equal((await deliveriesFor(incident.id)).some((row) => row.subscriberId === readers.earlier && row.updateId === subsequent.id),true,"the older-receipt subscriber receives subsequent updates normally");
+  for (const [componentId,historical] of [[internal,false],[origin,true]]) {
+    const hidden = await create(componentId);
+    await publish(hidden.id,"Private or historical record",["email"],historical);
+    assert.equal((await attach(hidden.id,audience)).status,201);
+    assert.equal((await deliveriesFor(hidden.id)).some((row) => row.subscriberId === readers.new),false,"internal-only and historical updates must never be disclosed by attachment");
+  }
+  const silent = await create(origin);
+  await publish(silent.id,"Page-only publication",[]);
+  assert.equal((await attach(silent.id,audience)).status,201);
+  assert.deepEqual(await deliveriesFor(silent.id),[],"catch-up honors an update with no subscriber channels selected");
+  const templated = await create(origin);
+  const templateUpdate = await publish(templated.id,"Latest template incident update");
+  const templateResponse = await call("/incident-templates","POST",{ name: "Catch-up attachment template", lifecycle: "Monitoring", affectedAudience: "Customers", customerImpact: "Template draft stays private", whatStillWorks: "", details: "", nextUpdateOffsetMinutes: 60, components: [{ componentId: audience, state: "Degraded performance", relationship: "Dependent" }] });
+  assert.equal(templateResponse.status,201); const template = (await templateResponse.json()).template;
+  const apply = await call(`/incidents/${templated.id}/templates/${template.id}/apply`,"POST",{}, { "If-Match": "-:1" });
+  assert.equal(apply.status,200);
+  assert.deepEqual((await deliveriesFor(templated.id)).filter((row) => row.subscriberId === readers.new).map((row) => row.updateId),[templateUpdate.id],"template attachments share atomic catch-up semantics");
+  const unpublished = await create(origin);
+  assert.equal((await attach(unpublished.id,audience)).status,201);
+  assert.deepEqual(await deliveriesFor(unpublished.id),[]);
+
 });
 
 contract("SUB-006", "the actual one-click endpoint deactivates by token without a cookie or redirect", async () => {
