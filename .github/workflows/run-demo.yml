@@ -1,17 +1,19 @@
 name: Run demo
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
     inputs:
-      proof:
-        description: Separate test-only demo with published Turnstile test keys
+      test_only:
+        description: 'Deploy a separate demo-test environment with Turnstile test keys'
+        type: boolean
+        default: false
+      remove:
+        description: 'Remove the selected demo host instead of deploying it'
         type: boolean
         default: false
 permissions:
   contents: read
 concurrency:
-  group: run-demo
+  group: run-demo-${{ inputs.test_only && 'test' || 'production' }}
   cancel-in-progress: false
 jobs:
   deploy:
@@ -20,50 +22,29 @@ jobs:
     timeout-minutes: 30
     environment: run-demo
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           persist-credentials: false
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version-file: .node-version
       - run: corepack enable && pnpm install --frozen-lockfile
         env:
           COREPACK_ENABLE_DOWNLOAD_PROMPT: '0'
-      - name: Deploy isolated demo
+      - name: Scope test deployment
+        if: inputs.test_only
+        run: node --input-type=module -e "import fs from 'node:fs'; const p='deploy-demo.json'; const d=JSON.parse(fs.readFileSync(p)); d.domain='test.run-lamp.com'; d.settings.LAMP_APP_HOST='demo.test.run-lamp.com'; d.settings.LAMP_PAGE_HOST='page.demo.test.run-lamp.com'; fs.writeFileSync(p,JSON.stringify(d));"
+      - run: pnpm exec rer deploy --demo --environment "$DEMO_ENVIRONMENT" ${{ inputs.remove && '--remove --yes' || '' }}
         env:
-          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+          DEMO_ENVIRONMENT: ${{ inputs.test_only && 'demo-test' || 'production' }}
+          CLOUDFLARE_ACCOUNT_ID: b20c0ca9cab0c2b70e13d7cf724b89bd
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          TURNSTILE_SITE_KEY: ${{ vars.TURNSTILE_SITE_KEY }}
-          TURNSTILE_SECRET_KEY: ${{ secrets.TURNSTILE_SECRET_KEY }}
-          DEMO_PROOF: ${{ inputs.proof }}
-        run: |
-          authorized_account=b20c0ca9cab0c2b70e13d7cf724b89bd
-          if [ -n "$CLOUDFLARE_ACCOUNT_ID" ] && [ "$CLOUDFLARE_ACCOUNT_ID" != "$authorized_account" ]; then
-            echo 'Configured account differs from the authorized RunEditRun account.' >&2
-            exit 1
-          fi
-          export CLOUDFLARE_ACCOUNT_ID="$authorized_account"
-          environment=production
-          if [ "$DEMO_PROOF" = true ]; then
-            environment=demo-proof
-            export TURNSTILE_SITE_KEY=1x00000000000000000000AA
-            export TURNSTILE_SECRET_KEY=1x0000000000000000000000000000000AA
-            node --input-type=module <<'JS'
-          import {readFileSync,writeFileSync} from 'node:fs';
-          const path='deploy-demo.json', value=JSON.parse(readFileSync(path,'utf8'));
-          value.domain='test.run-lamp.com';
-          value.settings.LAMP_APP_HOST='demo.test.run-lamp.com';
-          value.settings.LAMP_PAGE_HOST='page.demo.test.run-lamp.com';
-          writeFileSync(path,JSON.stringify(value,null,2)+'\n');
-          JS
-          fi
-          pnpm exec rer deploy --demo --environment "$environment"
+          TURNSTILE_SITE_KEY: ${{ inputs.test_only && '1x00000000000000000000AA' || vars.TURNSTILE_SITE_KEY }}
+          TURNSTILE_SECRET_KEY: ${{ inputs.test_only && '1x0000000000000000000000000000000AA' || secrets.TURNSTILE_SECRET_KEY }}
+          RER_DEMO_OPERATOR_TOKEN: ${{ secrets.RER_DEMO_OPERATOR_TOKEN }}
       - name: Public readback
+        if: ${{ !inputs.remove }}
         run: |
           domain=demo.$(node -p "require('./deploy-demo.json').domain")
-          for i in $(seq 1 60); do
-            [ "$(curl -s -o /dev/null -w '%{http_code}' "https://$domain/")" = 200 ] && break
-            sleep 10
-          done
-          test "$(curl -s -o /dev/null -w '%{http_code}' "https://$domain/")" = 200
-          ! curl -s -D - -o /dev/null "https://$domain/" | grep -qi '^set-cookie:'
+          test "$(curl --fail --silent --show-error -o /dev/null -w '%{http_code}' "https://$domain/")" = 200
+          ! curl --fail --silent --show-error -D - -o /dev/null "https://$domain/" | grep -qi '^set-cookie:'

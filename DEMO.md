@@ -20,14 +20,13 @@ instance's disposable R2, including prior generations retained by Lamp.
 
 ## Base adoption
 
-Lamp uses the published npm package `@runeditrun/rer@0.2.8`, which includes the
+Lamp uses the published npm package `@runeditrun/rer@0.2.13`, which includes the
 demo CLI, host files, container ingress and egress isolation, build entry
 options and the production demo-binding refusal. No CLI package patch is needed.
 `modules/demo` retains the guard from Base revision `a6afad9f4d007bf1b97a75bd67880d1850683e5d`, with its HTTP helper import pointing at the installed package and Base's
 new CSP helper copied alongside it. The start and ended pages are unchanged.
-A narrow boundary compatibility change permits Lamp’s existing HTMLRewriter
-only for the workerd engine; the Node engine still refuses it. All other
-boundary restrictions remain active.
+Base's container boundary admits Lamp's existing HTMLRewriter for the workerd
+engine the demo image uses; the Node engine still refuses it.
 
 Ordinary deployment continues to use `hosted-check.json`; only `--demo`
 selects the existing container-capable `deploy.json` declaration.
@@ -35,19 +34,20 @@ selects the existing container-capable `deploy.json` declaration.
 ## Hosted deployment
 
 `rer deploy --demo --dry-run` builds the real application and prepares its
-container image folder and front Worker without contacting a provider. `run-demo.yml` dispatch deploys using
-the `run-demo` environment. Push deployment additionally requires the
-repository variable `RUN_DEMO_DEPLOY=true`; this adoption does not set it.
-The workflow accepts only the authorized RunEditRun account.
+container image folder and front Worker without contacting a provider. `run-demo.yml` is dispatched by hand and deploys
+from the `run-demo` environment to the RunEditRun account.
 
-The optional dispatch `proof=true` uses published Turnstile test keys only
-for a separate `demo-proof` Worker at `demo.test.run-lamp.com`. It does not
+The dispatch input `test_only` uses Cloudflare's published Turnstile test keys
+only for a separate `demo-test` Worker at `demo.test.run-lamp.com`. It does not
 change the production demo's widget or secret. Test keys are workflow inputs
 to the generated front Worker, never application bindings or source settings.
+The input `remove` runs `rer deploy --demo --remove --yes` for the selected
+host instead of deploying it. The optional `RER_DEMO_OPERATOR_TOKEN`
+environment secret lets the host operator read a failed start's probe record.
 
 Base currently routes only the app apex and fixes container ingress to that
 origin. Consequently `page.demo.run-lamp.com` is not yet a working hosted
 status surface. Its configured hostname is retained; no header override or
 public bypass is installed. Base needs an allowlisted secondary-host route
 that preserves the visitor cookie gate and authenticates the container ingress
-host. Hosted page acceptance and the homepage CTA remain pending that repair.
+host. Hosted page acceptance remains pending that repair.
