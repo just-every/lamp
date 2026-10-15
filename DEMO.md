@@ -25,10 +25,10 @@ checklist reads complete.
 
 ## Base adoption
 
-Lamp pins the published npm package `@runeditrun/rer@0.2.22`.
+Lamp pins the published npm package `@runeditrun/rer@0.2.23`.
 Every vendored Base copy (`modules/demo`, the operator-auth HTTP/CSP files,
 `modules/mail`, import-kit, d1-transport, integrations, delivery producer and
-authoring tools) is a verbatim copy from tag `rer-v0.2.22` (commit `1ce15dd`),
+authoring tools) is a verbatim copy from tag `rer-v0.2.23` (commit `b4b372b`),
 recorded together in `base-copies.json`; the owner claim comes from the package.
 Import-kit's additive custody schemas are migration `0024`. Vite passes the demo
 switches, isolates persistence through `RER_STATE_DIR`, and loads `demoSockets()`
@@ -51,6 +51,6 @@ The input `remove` runs `rer deploy --demo --remove --yes` for the selected
 host instead of deploying it. The optional `RER_DEMO_OPERATOR_TOKEN`
 environment secret lets the host operator read a failed start's probe record.
 
-rer 0.2.22 routes the declared secondary host `page.demo.run-lamp.com`
+rer 0.2.23 routes the declared secondary host `page.demo.run-lamp.com`
 (`container.hostVariables` in `deploy.json`) to the same visitor's container;
 an anonymous request to it returns to the start page.
