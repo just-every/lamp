@@ -124,8 +124,9 @@ test('native sign-in, confirmation and incident notification use real captured e
   const repeatedSubscription = await nativeFetch('/subscribe', { method: 'POST', body: new URLSearchParams({ email: subscriber }) });
   assert.equal(repeatedSubscription.status, 202);
   assert.equal(await repeatedSubscription.text(), subscriptionBody, 'suppressed confirmation retains generic local response');
-  const confirmation = (await envelopes()).find(envelope => envelope.message.to === subscriber && envelope.message.subject === 'Confirm your Lamp status subscription');
+  const confirmation = (await envelopes()).find(envelope => envelope.message.to === subscriber && envelope.message.text.includes('/confirm-subscription/'));
   assert.ok(confirmation, 'native subscription created a confirmation envelope');
+  assert.ok(confirmation.message.subject.includes('Local mail test'), 'confirmation identifies the configured business');
   assert.equal((await bindings.DB.prepare('SELECT state FROM subscribers WHERE destination = ?').bind(subscriber).first()).state, 'pending');
   const confirmPath = new URL(confirmation.message.text.match(/http:\/\/[^\s]+\/confirm-subscription\/[^\s]+/)[0]).pathname;
   await reopenStorage();
@@ -142,6 +143,7 @@ test('native sign-in, confirmation and incident notification use real captured e
   const published = await nativeFetch(`/api/app/incidents/${incident.id}/publish`, { method: 'POST', headers, body: JSON.stringify({ channels: ['email'] }) });
   assert.equal(published.status, 200, await published.clone().text());
   const { update } = await published.json();
+  assert.equal((await envelopes()).filter(envelope => envelope.message.idempotencyKey.startsWith('notification/')).length, 1, 'publication dispatches mail without waiting for cron');
   const { runtime: dispatch } = await localRuntime();
   await dispatch.services.deliveries.dispatchEvent(update.id, origin);
   await dispatch.services.deliveries.dispatchEvent(update.id, origin);

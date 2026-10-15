@@ -1255,3 +1255,27 @@ even when local installation settings contain provider credentials. This mode
 does not replace ordinary deployment or alter the static run-site homepage.
 The hosted secondary page hostname awaits Base's cookie-gated multi-host
 container ingress support, as documented in DEMO.md.
+
+
+## Stranger journey repairs — 15 October 2026
+
+NOTIFY-010's former requirement for SPF at the visible From domain refused a
+SendGrid-authenticated sender whose return-path subdomain owns SPF. Setup and
+deploy now require the configured From-domain DKIM selector to resolve to a
+nonempty public key and require a DMARC policy; aligned DKIM is sufficient
+without From-domain SPF. This replaces that specific DNS preflight requirement,
+while preserving the notification header requirements and provider authentication.
+
+Customer confirmation, management and unsubscribe documents and customer mail
+identify the configured business, with a return link to its status page. Local
+outbox navigation identifies the same page. Phone uptime captions use the full
+component width, keeping the reporting window and tracking coverage readable.
+
+A committed incident publication starts subscriber dispatch in its existing
+background completion, alongside chat dispatch. The immutable recipient set,
+durable outbox, retries, claims, frozen envelopes and provider idempotency remain
+authoritative; provider failures do not block the publish response. Cron still
+recovers pending work. Composer chat defaults follow saved channel configuration,
+setup actions use direct verbs, Settings describes loopback addresses as local,
+and a resolved incident names its retained severity as peak impact. These repair
+the existing workflows without changing the owner-final homepage or Run page.

@@ -66,8 +66,8 @@ export interface IncidentPublicationStatements {
 
 export interface IncidentRuntimeHooks {
   events?: Pick<LampEventDispatcher, "incidentOpened" | "incidentUpdatePublished" | "incidentResolved">;
-  /** After a publication commits: send what it queued to Slack and Teams channels. */
-  afterPublished?: () => Promise<void>;
+  /** After publication: dispatch its durable subscriber and channel notifications. */
+  afterPublished?: (update: StoredIncidentUpdate) => Promise<void>;
   formatPreviewTimestamp?: (timestamp: string) => Promise<string> | string;
 }
 
@@ -111,7 +111,7 @@ export function createIncidentsService(
     const cause = { type: "incident" as const, id: update.incidentId, operatorId: update.authorOperatorId };
     await Promise.all(components.flatMap((component) => component.componentId ? [componentsService.recomputePublicState(component.componentId, cause, update.isRetroactive ? undefined : update.publishedAt)] : []));
     await onPublicDataChanged();
-    await runtime.afterPublished?.();
+    await runtime.afterPublished?.(update);
   };
 
   const finishDeletion = async (incidentId: string, operatorId: string, deletedAt: string) => {

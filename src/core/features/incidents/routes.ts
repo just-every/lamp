@@ -21,7 +21,7 @@ function incidentIdFrom(context: Context<AppEnv>) {
   return ulidSchema.safeParse(context.req.param("incidentId"));
 }
 
-export function registerIncidentRoutes(app: Hono<AppEnv>, service: IncidentsService) {
+export function registerIncidentRoutes(app: Hono<AppEnv>, service: IncidentsService, options: { hasChatChannels?: () => Promise<boolean> } = {}) {
   app.get("/api/app/incident-templates", async (context) => context.json({ templates: await service.listTemplates() }));
   app.post("/api/app/incident-templates", async (context) => {
     const input = templateSchema.safeParse(await context.req.json().catch(() => null));
@@ -46,7 +46,7 @@ export function registerIncidentRoutes(app: Hono<AppEnv>, service: IncidentsServ
     const incidentId = incidentIdFrom(context);
     if (!incidentId.success) return context.json({ error: "Invalid incident identifier.", issues: incidentId.error.issues }, 400);
     const incident = await service.get(incidentId.data);
-    return incident ? context.json({ incident }) : context.json({ error: "Incident not found." }, 404);
+    return incident ? context.json({ incident, hasChatChannels: options.hasChatChannels ? await options.hasChatChannels() : false }) : context.json({ error: "Incident not found." }, 404);
   });
 
   app.post("/api/app/incidents/:incidentId/components", async (context) => {

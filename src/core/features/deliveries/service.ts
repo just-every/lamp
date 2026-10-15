@@ -1,3 +1,4 @@
+import { lampConfig } from "../../../ext/config";
 import type { DeliveryChannel, DeliveryOutcome } from "../../shared/domain";
 import { createUlid, nowIso } from "../../shared/ids";
 import { renderIncidentUpdate } from "../incidents/renderer";
@@ -81,7 +82,7 @@ function renderMaintenanceNotice(delivery: DispatchableDelivery) {
 
 export function createDeliveriesService(
   repository: DeliveryRepository,
-  options: { effectsPaused?: boolean; mail?: MailSender; fromAddress?: string | (() => Promise<string>); subscriberTokenSecret?: string; webhookSigningSecret?: string | string[]; events?: DeliveryEvents } = {},
+  options: { pageName?: () => Promise<string>; effectsPaused?: boolean; mail?: MailSender; fromAddress?: string | (() => Promise<string>); subscriberTokenSecret?: string; webhookSigningSecret?: string | string[]; events?: DeliveryEvents } = {},
 ): DeliveriesService {
   const tokens = options.subscriberTokenSecret ? new SubscriberTokenCodec(options.subscriberTokenSecret) : null;
   const events = options.events ?? defaultDeliveryEvents;
@@ -195,10 +196,12 @@ export function createDeliveriesService(
           : renderMaintenanceNotice(delivery);
       if (!rendered) throw permanentDeliveryError("This notification event has no supported rendered content.");
       const host = new URL(origin).host;
+      const pageName = options.pageName ? await options.pageName() : lampConfig.pageName;
+      const statusUrl = new URL("/", origin).href;
       const candidate: FrozenMailPayload = {
-        frozenAt: nowIso(), from: fromAddress, to: delivery.destination, subject: rendered.email.subject,
-        text: `${rendered.email.plainText}\n\nManage this subscription: ${manageUrl}\nUnsubscribe: ${unsubscribeUrl}`,
-        html: `<main><h1>${htmlText(rendered.email.subject)}</h1><pre>${htmlText(rendered.email.plainText)}</pre><p><a href="${htmlText(manageUrl)}">Manage subscription</a> · <a href="${htmlText(unsubscribeUrl)}">Unsubscribe</a></p></main>`,
+        frozenAt: nowIso(), from: fromAddress, to: delivery.destination, subject: `${pageName}: ${rendered.email.subject}`,
+        text: `${pageName}\n\n${rendered.email.plainText}\n\nManage this subscription: ${manageUrl}\nUnsubscribe: ${unsubscribeUrl}\nReturn to status: ${statusUrl}`,
+        html: `<main><p><a href="${htmlText(statusUrl)}">${htmlText(pageName)}</a></p><h1>${htmlText(rendered.email.subject)}</h1><pre>${htmlText(rendered.email.plainText)}</pre><p><a href="${htmlText(manageUrl)}">Manage subscription</a> · <a href="${htmlText(unsubscribeUrl)}">Unsubscribe</a></p></main>`,
         headers: {
           "List-Unsubscribe": `<mailto:${fromAddress}?subject=unsubscribe>, <${unsubscribeUrl}>`, "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
           "List-Id": `<${host}>`, "List-Archive": `${origin}/history`, "List-Help": manageUrl, "Auto-Submitted": "auto-generated",

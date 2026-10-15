@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict';
-import { readFile } from 'node:fs/promises';
+import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import test from 'node:test';
 import { describeOperations, inspectOperations } from '../scripts/operations.mjs';
@@ -80,4 +82,42 @@ test('real deployment requires both Cloudflare authority inputs before provision
     assert.doesNotMatch(result.stderr, /pnpm/);
     assert.equal(result.stdout, '');
   }
+});
+
+// Exercise the real provisioning command, replacing only its DNS network edge.
+// A passing sender reaches the authority check; absent authority prevents any
+// provider request or resource mutation in this credential-free test.
+test('setup accepts aligned DKIM without From-domain SPF and names missing sender records', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'lamp-sender-dns-'));
+  const preload = join(directory, 'dns.mjs');
+  try {
+    await writeFile(preload, `import { promises as dns } from 'node:dns';
+      dns.resolveTxt = async host => {
+        if (host === 'example.test') throw Error('The visible From domain must not need SPF');
+        if (host === 's1._domainkey.example.test') {
+          if (process.env.DNS_CASE === 'missing-dkim') throw Object.assign(Error('missing'), { code: 'ENODATA' });
+          return [['v=DKIM1; k=rsa; p=', process.env.DNS_CASE === 'revoked-dkim' ? '' : 'cHVibGljLWtleQ==']];
+        }
+        if (host === '_dmarc.example.test') {
+          if (process.env.DNS_CASE === 'missing-dmarc') throw Object.assign(Error('missing'), { code: 'ENOTFOUND' });
+          return [['v=DMARC1; p=none']];
+        }
+        throw Error('Unexpected DNS query');
+      };`);
+    for (const scenario of ['authenticated', 'missing-dkim', 'revoked-dkim', 'missing-dmarc']) {
+      const result = spawnSync(process.execPath, ['--import', preload, 'scripts/setup.mjs'], {
+        env: { ...applicationEnvironment, MAIL_PROVIDER: 'sendgrid', MAIL_DKIM_SELECTOR: 's1', DNS_CASE: scenario, PATH: '' },
+        encoding: 'utf8', timeout: 10_000,
+      });
+      assert.equal(result.status, 1);
+      if (scenario === 'authenticated') {
+        assert.match(result.stderr, /CLOUDFLARE_ACCOUNT_ID is required/);
+      } else {
+        assert.doesNotMatch(result.stderr, /CLOUDFLARE_ACCOUNT_ID/);
+        assert.match(result.stderr, scenario === 'missing-dmarc' ? /TXT record at _dmarc\.example\.test.*v=DMARC1; p=none/ : /s1\._domainkey\.example\.test.*CNAME target/);
+      }
+      assert.equal(result.stdout, '');
+      assert.ok(!result.stderr.includes(applicationEnvironment.MAIL_PROVIDER_API_KEY));
+    }
+  } finally { await rm(directory, { recursive: true, force: true }); }
 });

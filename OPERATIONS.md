@@ -21,13 +21,30 @@ tools, not `rer` verbs; `rer export` and `rer import` operate on local state.
 Supply `CLOUDFLARE_ACCOUNT_ID` and `CLOUDFLARE_API_TOKEN` for the intended account.
 The token needs Worker deployment, D1, R2, Queues and custom-hostname access,
 including Zone Workers Routes read/write permission for both hosts’ zones.
-Account Worker access alone can upload the artifact but cannot attach its hosts. Configure `LAMP_PAGE_HOST`, `LAMP_APP_HOST`,
-`LAMP_PAGE_NAME`, `LAMP_PAGE_TAGLINE`, `LAMP_PAGE_TIMEZONE`, `LAMP_ACCENT_COLOR`,
-`SETUP_OPERATOR_EMAIL`, `MAIL_FROM_ADDRESS`, `MAIL_DKIM_SELECTOR`,
-`MAIL_PROVIDER_API_KEY`, `SUBSCRIBER_TOKEN_SECRET` and `WEBHOOK_SIGNING_SECRET`.
-The two token secrets must each contain at least 32 characters. Keep their
-original values when restoring so existing subscriber tokens and webhook
-signatures remain valid. Store owner inputs outside committed source.
+Account Worker access alone can upload the artifact but cannot attach its hosts.
+For workers.dev hosting, custom-domain zone permissions are not needed; the token
+must be able to read the account's Workers subdomain.
+
+Hosted Lamp requires a mail provider and authenticated sender, including when
+using terminal recovery links. Supply the Cloudflare credentials, both hostnames,
+page branding, first operator email, `MAIL_FROM_ADDRESS`, `MAIL_DKIM_SELECTOR` and
+`MAIL_PROVIDER_API_KEY`. The complete [input reference](docs/deployment-reference.md#inputs-you-supply-and-values-rer-generates)
+distinguishes owner-supplied values from generated runtime secrets.
+
+Store inputs in an owned `0600` file outside the repository and pass it to every
+`rer deploy` invocation with `--env-file`, or export the same names in the calling
+shell. The [deployment guide](docs/deploy.md#save-private-deployment-inputs) gives
+file creation, contents and secret-generation commands. File values override the
+environment; this is a plain `KEY=VALUE` file, not a shell script.
+
+`rer deploy` generates `SETUP_TOKEN`, `SESSION_SECRET`, `SUBSCRIBER_TOKEN_SECRET`
+and `WEBHOOK_SIGNING_SECRET` when absent. These are required runtime bindings,
+not mandatory manual inputs for a first deploy. The native pipeline uploads the
+values for that run: for repeatable redeploys and recovery, supply and keep your
+original secrets in the private file. Each must contain at least 32 characters.
+Keep the original session, subscriber and webhook secrets on restore. Direct
+`setup:cloudflare` and `deploy:cloudflare` scripts require those values exported;
+they do not generate them or read `--env-file` themselves.
 
 Optionally set `OWNER_DISPLAY_NAME` to the first owner's name (1–120 characters).
 It is used only when setup creates the first operator; existing owners keep their
@@ -37,9 +54,13 @@ name and access. Without it, the native command retains its `Setup operator` nam
 `sendgrid`. Both use `MAIL_PROVIDER_API_KEY`; map an existing provider-specific
 credential into that environment variable without writing it into source.
 Likewise map the verified sender address into `MAIL_FROM_ADDRESS`. The sender
-domain must publish SPF, DMARC and a DKIM key at the chosen selector. Setup checks
-those records before provisioning. It does not prove DKIM's header coverage or
-recipient delivery: verify those against a received message.
+domain must publish a DMARC policy at `_dmarc.<From-domain>` and a reachable
+DKIM key at `<selector>._domainkey.<From-domain>`; provider CNAMEs are supported.
+SPF may be published on the provider's return-path domain instead of the From
+domain. DMARC alignment through DKIM is sufficient; configure the provider to
+sign with an aligned domain. Setup checks DKIM and DMARC before provisioning.
+It does not prove message alignment, DKIM's header coverage or recipient
+delivery: verify those against a received message.
 
 For SendGrid set `SENDGRID_WEBHOOK_PUBLIC_KEY` to its base64 P-256 public key and
 configure the signed Event Webhook URL as
@@ -101,9 +122,9 @@ development server with `rer dev --stop` or production preview with
 `rer preview --stop`; restart local work after the command completes.
 
 ```sh
-pnpm install --frozen-lockfile
-rer deploy --dry-run --environment staging
-rer deploy --environment production
+rer install
+rer deploy --dry-run --environment production --env-file "$HOME/.config/lamp/production.env"
+rer deploy --environment production --env-file "$HOME/.config/lamp/production.env"
 ```
 
 Dry run compiles and validates generated configuration without changing Cloudflare.
@@ -125,6 +146,24 @@ identity. The independent delivery service validates the run and retained bytes,
 then applies the approved resource plan. Its authority must live outside the
 editable application build job. Artifact creation alone does not deploy Lamp.
 Direct owner deployment remains available with `rer deploy`.
+
+### Remove a deployment
+
+Back up data before retiring an installation. From its deploying checkout, use
+the original account and environment:
+
+```sh
+rer deploy --environment production --env-file "$HOME/.config/lamp/production.env" --remove --yes
+```
+
+This removes only resources recorded as created by `rer` for that environment,
+including their data, and reads back their absence. No record means nothing is
+removed and the current command exits nonzero. Lamp's native
+`.seed/deployment/<environment>.json` is an archive/resource reference, not the
+`rer` ownership record. The current native hook does not create that ownership
+record; use the [native removal procedure and limits](docs/deployment-reference.md#removal-and-deployment-records)
+for installations it cannot remove. Do not treat a missing record as proof that
+Cloudflare has no resources.
 
 ## Provider uncertainty and recovery
 
@@ -331,17 +370,27 @@ This does not assert complete RER automatic Durable Object export/restore.
 
 Custom domains remain the default. To use the account's existing Workers subdomain without custom DNS, set `LAMP_HOSTING=workers-dev`. Set `LAMP_RESOURCE_PREFIX` to an explicit lowercase resource namespace (letters, digits and hyphens, at most 47 characters). If omitted, it is `lamp-<environment>`; the environment defaults to `production`.
 
-The app host is exactly `<prefix>.<subdomain>.workers.dev` and the page host exactly `<prefix>-page.<subdomain>.workers.dev`, with your account's Workers subdomain as `<subdomain>`; any other names are refused. For a prefix `my-status` and the Workers subdomain `my-account`, set:
+Both `LAMP_APP_HOST` and `LAMP_PAGE_HOST` remain required in this mode. Find the
+registered account subdomain in Cloudflare's Workers & Pages settings or use the
+[read-only API lookup](docs/deployment-reference.md#find-your-workersdev-hostnames).
+It is not the account name or ID. Lamp validates the configured names against the
+authenticated account without changing its subdomain.
+
+The app host is exactly `<prefix>.<subdomain>.workers.dev` and the page host
+exactly `<prefix>-page.<subdomain>.workers.dev`; any other names are refused.
+For a prefix `my-status` and the Workers subdomain `my-account`, export these
+values with the other owner inputs, or put them in the private input file:
 
 ```sh
 export LAMP_HOSTING=workers-dev
 export LAMP_RESOURCE_PREFIX=my-status
 export LAMP_APP_HOST=my-status.my-account.workers.dev
 export LAMP_PAGE_HOST=my-status-page.my-account.workers.dev
-rer deploy
 ```
 
-Configure the remaining inputs from the README deployment table before running these commands. Find the account subdomain in Cloudflare Workers settings; setup verifies it against the authenticated account before creating resources. It never changes account-level subdomain settings. The app Worker is named exactly the prefix; the public Worker adds `-page`. D1 adds `-db`, R2 adds `-files`, and the queue adds `-jobs`. The generated config records the supplied account ID. Deployment records preserve actual resource names for archive and sign-in commands.
+Then follow [the deploy commands](docs/deploy.md#validate-and-deploy) with the same
+environment and inputs. If using `--env-file`, update the hostname values in that
+file too; they override these exports. The app Worker is named exactly the prefix; the public Worker adds `-page`. D1 adds `-db`, R2 adds `-files`, and the queue adds `-jobs`. The generated config records the supplied account ID. Deployment records preserve actual resource names for archive and sign-in commands.
 
 Both Workers serve the same compiled source and retain the configured host checks: operator paths on the public hostname return 404, and operator APIs on the app hostname require a session. The app Worker owns the scheduled jobs, queue consumer and snapshot Durable Object. The public Worker uses that same object and storage without a second scheduler or consumer. The command deploys the app Worker first, then the public Worker. Keep the prefix reserved for this installation, and remove both Workers when retiring it.
 

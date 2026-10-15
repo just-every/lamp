@@ -1,8 +1,8 @@
 import { spawnSync } from "node:child_process";
-import { promises as dns } from "node:dns";
 import { existsSync } from "node:fs";
 import { resolve } from "node:path";
 import { readArchive } from "./archive-validation.mjs";
+import { assertMailDns } from "./mail-dns.mjs";
 
 import { applyOwnerMigrations } from "./owner-migrations.mjs";
 import { deploymentConfig, deploymentRecordPath, parseArgs, resourceNames, setupPageSettingsStatement, writeDeploymentRecord, writeGeneratedWrangler } from "./ops-config.mjs";
@@ -75,27 +75,6 @@ async function ensureQueue(api, resources) {
     if (queues.some((queue) => queue.queue_name === resources.queue)) return;
   }
   await api.request("/queues", { method: "POST", body: JSON.stringify({ queue_name: resources.queue }) });
-}
-
-async function assertMailDns(config) {
-  const domain = config.mailFromAddress.slice(config.mailFromAddress.lastIndexOf("@") + 1);
-  async function txt(host, label) {
-    try {
-      return await dns.resolveTxt(host);
-    } catch (cause) {
-      const reason = cause instanceof Error ? cause.message : String(cause);
-      throw new Error(`MAIL_FROM_ADDRESS domain ${domain} has no reachable ${label} TXT record at ${host}: ${reason}`);
-    }
-  }
-  const [spf, dmarc, dkim] = await Promise.all([
-    txt(domain, "SPF"),
-    txt(`_dmarc.${domain}`, "DMARC"),
-    txt(`${config.mailDkimSelector}._domainkey.${domain}`, "DKIM"),
-  ]);
-  const flatten = (records) => records.map((record) => record.join("")).join(" ").toLowerCase();
-  if (!flatten(spf).includes("v=spf1")) throw new Error(`MAIL_FROM_ADDRESS domain ${domain} has no SPF TXT record.`);
-  if (!flatten(dmarc).includes("v=dmarc1")) throw new Error(`MAIL_FROM_ADDRESS domain ${domain} has no DMARC TXT record.`);
-  if (!flatten(dkim).includes("v=dkim1") && !flatten(dkim).includes("p=")) throw new Error(`MAIL_DKIM_SELECTOR ${config.mailDkimSelector} has no DKIM TXT record for ${domain}.`);
 }
 
 async function main() {

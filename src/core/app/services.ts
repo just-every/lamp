@@ -31,6 +31,11 @@ export function createAppServices(bindings: AppBindings, blobs: BlobStore, execu
   const publicSnapshots = createPublicSnapshotService(createSnapshotRepository(bindings.DB), blobs, extensions.publicSnapshotPolicies, extensions.publicSnapshotEvents, extensions.slots, createRetainedSnapshotCache(bindings));
   const pageSettings = createPageSettingsService(createPageSettingsRepository(bindings.DB), publicSnapshots.rebuild, blobs, bindings.MAIL_FROM_ADDRESS);
   const configuredFromAddress = async () => (await pageSettings.get())?.mailFromAddress ?? bindings.MAIL_FROM_ADDRESS;
+  const configuredPageName = async () => {
+    const settings = await pageSettings.get();
+    if (!settings) throw new Error("Page settings are not configured.");
+    return settings.pageName;
+  };
   const formatPreviewTimestamp = async (timestamp: string) => {
     const settings = await pageSettings.get();
     if (!settings) throw new Error("Lamp cannot render an update preview before page settings are configured.");
@@ -43,6 +48,7 @@ export function createAppServices(bindings: AppBindings, blobs: BlobStore, execu
   const deliveries = createDeliveriesService(createDeliveryRepository(bindings.DB), {
     effectsPaused: bindings.EFFECTS_PAUSED === "1",
     mail,
+    pageName: configuredPageName,
     fromAddress: configuredFromAddress,
     subscriberTokenSecret: bindings.SUBSCRIBER_TOKEN_SECRET,
     webhookSigningSecret: bindings.WEBHOOK_SIGNING_SECRET?.split(",").map((secret) => secret.trim()).filter(Boolean),
@@ -68,7 +74,14 @@ export function createAppServices(bindings: AppBindings, blobs: BlobStore, execu
   }, extensions.updateReviewPolicy,
   async ({ incidentId, draftId, scheduledPublishAt }) => deliveries.queueOperatorAlert({ eventId: `scheduled-review/${draftId}/${scheduledPublishAt}`, title: "Lamp held a scheduled incident update for review", text: `Scheduled update for incident ${incidentId} requires review by another operator before it can publish.` }),
   extensions.updateDuePolicy,
-  { events: extensions.events, formatPreviewTimestamp, afterPublished: async () => { await channels.dispatchPending(); } });
+  { events: extensions.events, formatPreviewTimestamp, afterPublished: async (update) => {
+    const results = await Promise.allSettled([
+      notificationOrigin(bindings).then(origin => deliveries.dispatchEvent(update.id, origin)),
+      channels.dispatchPending(),
+    ]);
+    const failure = results.find((result): result is PromiseRejectedResult => result.status === "rejected");
+    if (failure) throw failure.reason;
+  } });
   // INCIDENT-010 and NOTIFY-006: one operator email per committed time and kind, sent by the scheduled trigger.
   const updateReminders = createUpdateReminders(bindings.DB, extensions.updateDuePolicy, async ({ kind, incidentId, reference, title, updateId, nextUpdateAt }) => {
     const committed = await formatPreviewTimestamp(nextUpdateAt);
@@ -84,6 +97,7 @@ export function createAppServices(bindings: AppBindings, blobs: BlobStore, execu
   extensions.events);
   const subscribers = createSubscribersService(createSubscriberRepository(bindings.DB), {
     mail,
+    pageName: configuredPageName,
     fromAddress: configuredFromAddress,
     tokenSecret: bindings.SUBSCRIBER_TOKEN_SECRET,
     confirmationPolicy: extensions.subscriberConfirmationPolicy,

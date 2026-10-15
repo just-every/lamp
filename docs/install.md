@@ -1,25 +1,38 @@
 # Install Lamp
 
 Lamp can run in a local checkout or in your Cloudflare account. For the local
-path, follow [Run it locally](../RUN-LOCALLY.md). A deployment creates separate
-hostnames for the public status page and the operator app.
+path, follow [Run it locally](../RUN-LOCALLY.md): `rer dev` installs dependencies,
+sets up the first owner and starts Lamp. Local mail stays in the development outbox.
 
-## Prepare a deployment
+## Prepare a hosted installation
 
-Choose two distinct hostnames and configure the private owner inputs for the
-Cloudflare account, page branding, first operator, and verified email sender.
-The required inputs are `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_API_TOKEN`,
-`LAMP_PAGE_HOST`, `LAMP_APP_HOST`, `LAMP_PAGE_NAME`, `LAMP_PAGE_TAGLINE`,
-`LAMP_PAGE_TIMEZONE`, `LAMP_ACCENT_COLOR`, `SETUP_OPERATOR_EMAIL`,
-`MAIL_FROM_ADDRESS`, `MAIL_DKIM_SELECTOR`, `MAIL_PROVIDER_API_KEY`,
-`SUBSCRIBER_TOKEN_SECRET`, and `WEBHOOK_SIGNING_SECRET`. Keep credentials and
-secrets outside the repository.
+Hosted Lamp requires a Resend or SendGrid account, its API key and an authenticated
+sender. Mail is required for operator sign-in and subscriber messages. There is
+no hosted mode without a mail provider; terminal recovery links do not replace
+this requirement.
 
-`MAIL_PROVIDER` selects Resend (the default) or SendGrid. Lamp checks the sender
-domain's SPF, DKIM and DMARC records during setup. That check does not prove
-recipient delivery; verify the configured sender on the deployed installation.
+Choose two distinct hostnames for the public status page and operator app. Use
+custom domains in your Cloudflare account, or use that account's existing
+`workers.dev` subdomain. Both hostname inputs are required in either mode.
 
-For deployment steps and hostnames, see [Deploy Lamp](deploy.md). The
-[deployment reference](deployment-reference.md) lists native command effects
-and required private inputs; owner-side provisioning details are in the
-technical [operations reference](../OPERATIONS.md).
+Follow [Deploy to Cloudflare](deploy.md) for the complete private-input file and
+commands. The [deployment reference](deployment-reference.md) distinguishes values
+you supply from generated secrets and shows how to find the `workers.dev` hosts.
+
+## Authenticate the sender
+
+`MAIL_PROVIDER` selects `resend` (the native command's default) or `sendgrid`.
+Set it explicitly to match your key. Authenticate the domain of
+`MAIL_FROM_ADDRESS` in that provider, then copy its DNS records to your DNS host.
+Set `MAIL_DKIM_SELECTOR` to the provider's selector, such as `s1` for SendGrid
+when its domain-authentication settings use `s1` and `s2`.
+
+Before provisioning, Lamp requires a reachable DKIM key at
+`<selector>._domainkey.<From-domain>` (a provider CNAME is supported) and a DMARC
+policy at `_dmarc.<From-domain>`. SPF may be on the provider's return-path domain;
+Lamp does not require SPF at the From domain. Configure the provider to sign with
+DKIM aligned to the From domain so DMARC can pass through DKIM.
+
+The DNS check does not send mail or prove delivery, alignment in a sent message,
+or DKIM header coverage. After deployment, verify a received message and the
+[provider receipt configuration](../OPERATIONS.md#owner-inputs).

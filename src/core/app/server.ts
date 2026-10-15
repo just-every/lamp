@@ -47,7 +47,7 @@ export function createApp(bindings: AppBindings, execution?: MailExecution) {
   registerOperatorRoutes(app, services.auth, bindings.LAMP_PAGE_HOST);
   registerOverviewRoutes(app, services.overview);
   registerComponentRoutes(app, services.components);
-  registerIncidentRoutes(app, services.incidents);
+  registerIncidentRoutes(app, services.incidents, { hasChatChannels: async () => (await services.channels.list()).length > 0 });
   registerReportRoutes(app, services.reports);
   registerBriefRoutes(app, services.briefs);
   registerAiRoutes(app, services.ai);

@@ -1,19 +1,19 @@
 # Run it locally
 
-Use the repository's installed `@runeditrun/rer` 0.2.13 command from the project root. Lamp runs on
+Use `rer` from the project root. The checkout pins its own `@runeditrun/rer`
+version; `rer describe` reports the commands and tooling in use. Lamp runs on
 your computer without a Cloudflare account or mail credentials; development mail
 is captured in the local outbox.
 
 ## Start Lamp
 
 ```sh
-rer install
-rer setup
 rer dev
 ```
 
-`rer setup` asks for the first owner's email. `rer dev` prints the local operator
-entry address and a `RER_READY` line when the app is ready. Open that entry
+On first launch, `rer dev` installs locked dependencies and prepares a local
+owner automatically. It prints the local operator entry address and a `RER_READY`
+line when the app is ready. Open that entry
 address to work as the owner. For email sign-in journeys, open `/signin` and
 check the development outbox shown by `rer outbox`; local mail is not delivered
 to an inbox.

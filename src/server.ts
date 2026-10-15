@@ -2,6 +2,8 @@
 import { withDemo } from '../modules/demo/index.mjs';
 import { seedDemo } from './demo';
 export { SnapshotCache } from "./core/platform/blobs/snapshot-cache";
+import { lampConfig } from "./ext/config";
+import { createPageSettingsRepository } from "./core/features/page-settings/repository";
 import { createSetupRepository } from "./core/features/setup/repository";
 import { devGate, devNotFound } from "@runeditrun/rer/modules/operator-auth";
 import { authConfig, authOrigin } from "./core/platform/auth/config";
@@ -87,7 +89,7 @@ export default withDemo({
       // holds sign-in links, so it answers only a request holding the dev key.
       const { pathname } = new URL(request.url);
       if ((pathname === DEV_OUTBOX_PATH || pathname.startsWith(`${DEV_OUTBOX_PATH}/`)) && !(gate && await gate.admits(request))) return devNotFound();
-      const outbox = await handleDevOutboxRequest(request, bindings.RER_DEMO === '1' ? { ...bindings, LAMP_DEV_OUTBOX: bindings.SNAPSHOTS, LAMP_BASE_MAIL: bindings.DB } : bindings);
+      const outbox = await handleDevOutboxRequest(request, bindings.RER_DEMO === '1' ? { ...bindings, LAMP_DEV_OUTBOX: bindings.SNAPSHOTS, LAMP_BASE_MAIL: bindings.DB } : bindings, async () => (await createPageSettingsRepository(bindings.DB).get())?.pageName ?? lampConfig.pageName);
       if (outbox) return outbox;
     }
     const url = new URL(request.url);

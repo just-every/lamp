@@ -1,3 +1,4 @@
+import { lampConfig } from "../../../ext/config";
 import { MailUnavailableError, type MailSender } from "../../platform/mail";
 import { createOpaqueToken, hashOpaqueToken } from "../../platform/security/opaque-tokens";
 import { createUlid, nowIso } from "../../shared/ids";
@@ -12,6 +13,7 @@ const PENDING_WINDOW_MS = 72 * 60 * 60 * 1000;
 export type SubscriberView = StoredSubscriber & { componentSelections: StoredSubscriberComponent[] };
 
 export interface SubscribersService {
+  getPageName(): Promise<string>;
   list(limit?: number, offset?: number): Promise<SubscriberView[]>;
   requestEmailSubscription(email: string, origin: string): Promise<void>;
   confirm(token: string): Promise<boolean>;
@@ -24,8 +26,8 @@ export interface SubscribersService {
   inviteImported(subscriberId: string, origin: string, pageName: string, claimSend: () => Promise<boolean>): Promise<boolean>;
 }
 
-export function renderSubscriberTokenPage(title: string, body: string) {
-  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light"><title>${escapeHtml(title)}</title><link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/status-page.css"></head><body><main class="page subscriber-page"><header class="masthead subscriber-masthead"><a class="brand" href="/"><img class="brand-logo" src="/assets/favicon.svg" alt=""><span>Status page</span></a></header><section class="subscriber-document" aria-labelledby="subscriber-title"><h1 id="subscriber-title">${escapeHtml(title)}</h1>${body}</section></main></body></html>`;
+export function renderSubscriberTokenPage(title: string, body: string, pageName: string = lampConfig.pageName) {
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light"><title>${escapeHtml(title)} · ${escapeHtml(pageName)}</title><link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/status-page.css"></head><body><main class="page subscriber-page"><header class="masthead subscriber-masthead"><a class="brand" href="/"><img class="brand-logo" src="/assets/favicon.svg" alt=""><span>${escapeHtml(pageName)}</span></a><nav class="status-utilities" aria-label="Status page"><a href="/">Return to status</a></nav></header><section class="subscriber-document" aria-labelledby="subscriber-title"><h1 id="subscriber-title">${escapeHtml(title)}</h1>${body}</section></main></body></html>`;
 }
 
 function normalizeEmail(email: string) {
@@ -50,7 +52,7 @@ function hasSafeWebhookDestination(value: string) {
 
 export function createSubscribersService(
   repository: SubscriberRepository,
-  options: { mail?: MailSender; fromAddress?: string | (() => Promise<string>); tokenSecret?: string; confirmationPolicy?: SubscriberConfirmationPolicy; events?: SubscriberEvents } = {},
+  options: { pageName?: () => Promise<string>; mail?: MailSender; fromAddress?: string | (() => Promise<string>); tokenSecret?: string; confirmationPolicy?: SubscriberConfirmationPolicy; events?: SubscriberEvents } = {},
 ): SubscribersService {
   const policy = options.confirmationPolicy ?? defaultSubscriberConfirmationPolicy;
   const tokens = options.tokenSecret ? new SubscriberTokenCodec(options.tokenSecret) : null;
@@ -93,12 +95,14 @@ export function createSubscribersService(
   }
 
   return {
+    async getPageName() { return options.pageName ? options.pageName() : lampConfig.pageName; },
     async list(limit = 100, offset = 0) {
       return Promise.all((await repository.listSubscribers(limit, offset)).map(view));
     },
     async requestEmailSubscription(rawEmail, origin) {
       const { mail } = requiredMailAndTokens();
       const fromAddress = await configuredFromAddress();
+      const pageName = await this.getPageName();
       const email = normalizeEmail(rawEmail);
       const timestamp = nowIso();
       const requiresConfirmation = policy.requiresConfirmation();
@@ -127,8 +131,8 @@ export function createSubscribersService(
         const manage = await issuedToken(subscriber.id, "manage", null);
         const manageUrl = new URL(`/manage/${encodeURIComponent(manage.token)}`, origin).toString();
         await mail.send({
-          from: fromAddress, to: email, subject: "You are already subscribed to Lamp status updates",
-          text: `You are already subscribed. Manage this subscription: ${manageUrl}`,
+          from: fromAddress, to: email, subject: `You are already subscribed to ${pageName}`,
+          text: `You are already subscribed to ${pageName}. Manage this subscription: ${manageUrl}`,
           headers: { "Auto-Submitted": "auto-generated" }, idempotencyKey: `already-subscribed/${subscriber.id}/${timestamp}`,
         });
         return;
@@ -147,15 +151,15 @@ export function createSubscribersService(
       const unsubscribe = await issuedToken(subscriber.id, "unsubscribe", null);
       if (subscriber.state === "active") {
         const manageUrl = new URL(`/manage/${encodeURIComponent(manage.token)}`, origin).toString();
-        await mail.send({ from: fromAddress, to: email, subject: "Lamp status subscription", text: `You are subscribed. Manage this subscription: ${manageUrl}`, headers: { "Auto-Submitted": "auto-generated" }, idempotencyKey: `subscriber-active/${subscriber.id}` });
+        await mail.send({ from: fromAddress, to: email, subject: `${pageName} subscription`, text: `You are subscribed to ${pageName}. Manage this subscription: ${manageUrl}`, headers: { "Auto-Submitted": "auto-generated" }, idempotencyKey: `subscriber-active/${subscriber.id}` });
         return;
       }
       const confirm = await issuedToken(subscriber.id, "confirm", new Date(Date.parse(subscriber.createdAt) + PENDING_WINDOW_MS).toISOString());
       const confirmationUrl = new URL(`/confirm-subscription/${encodeURIComponent(confirm.token)}`, origin).toString();
       const unsubscribeUrl = new URL(`/unsubscribe/${encodeURIComponent(unsubscribe.token)}`, origin).toString();
       await mail.send({
-        from: fromAddress, to: email, subject: "Confirm your Lamp status subscription",
-        text: `Confirm this subscription: ${confirmationUrl}\n\nIf this was not you, you can ignore this email. Unsubscribe: ${unsubscribeUrl}`,
+        from: fromAddress, to: email, subject: `Confirm your ${pageName} subscription`,
+        text: `${pageName}\n\nConfirm this subscription: ${confirmationUrl}\n\nIf this was not you, you can ignore this email. Unsubscribe: ${unsubscribeUrl}\nReturn to status: ${new URL("/", origin).href}`,
         headers: { "Auto-Submitted": "auto-generated" }, idempotencyKey: `subscriber-confirmation/${subscriber.id}/${timestamp.slice(0, 10)}`,
       });
     },
@@ -231,8 +235,8 @@ export function createSubscribersService(
       const unsubscribeUrl = new URL(`/unsubscribe/${encodeURIComponent(unsubscribe.token)}`, origin).toString();
       if (Date.parse(deadline) <= Date.now()) return false;
       const message = {
-        from: fromAddress, to: subscriber.destination, subject: `Confirm your ${pageName} status subscription`,
-        text: `${pageName} has moved its status page. You subscribed to its updates there; confirm before ${deadline} (the remaining part of the 72-hour window from import) to keep receiving them: ${confirmationUrl}\n\nIf you do nothing, you will receive no further email from this page. Unsubscribe: ${unsubscribeUrl}`,
+        from: fromAddress, to: subscriber.destination, subject: `Confirm your ${pageName} subscription`,
+        text: `${pageName} has moved its status page. You subscribed to its updates there; confirm before ${deadline} (the remaining part of the 72-hour window from import) to keep receiving them: ${confirmationUrl}\n\nIf you do nothing, you will receive no further email from this page. Unsubscribe: ${unsubscribeUrl}\nReturn to status: ${new URL("/", origin).href}`,
         headers: { "Auto-Submitted": "auto-generated" }, idempotencyKey: `subscriber-import-invite/${subscriber.id}`,
       };
       // Prepare subscriber authority before the claim. Adapter preparation may
@@ -247,10 +251,10 @@ export function createSubscribersService(
   };
 }
 
-export function renderSubscriberManagementPage(input: { unsubscribeToken: string; subscriber: SubscriberView; components: Array<{ id: string; name: string }> }) {
+export function renderSubscriberManagementPage(input: { unsubscribeToken: string; subscriber: SubscriberView; components: Array<{ id: string; name: string }> }, pageName: string = lampConfig.pageName) {
   const selected = new Set(input.subscriber.componentSelections.map((selection) => selection.componentId));
   const checks = input.components.map((component) => `<label><input type="checkbox" name="componentId" value="${escapeHtml(component.id)}"${input.subscriber.selectionMode === "all" || selected.has(component.id) ? " checked" : ""}> ${escapeHtml(component.name)}</label>`).join("");
   // With no visible components there is nothing to choose between, so the selection form is left out.
   const selection = checks ? `<form method="post"><fieldset><legend>Components</legend><p>Clear every selection to follow all current and future visible components.</p>${checks}</fieldset><button type="submit">Save selection</button></form>` : "";
-  return renderSubscriberTokenPage("Manage subscription", `<p>Channel: ${escapeHtml(input.subscriber.channel)}</p>${selection}<form method="post" action="/unsubscribe/${encodeURIComponent(input.unsubscribeToken)}"><input type="hidden" name="action" value="unsubscribe"><button type="submit">Unsubscribe</button></form>`);
+  return renderSubscriberTokenPage("Manage subscription", `<p>Channel: ${escapeHtml(input.subscriber.channel)}</p>${selection}<form method="post" action="/unsubscribe/${encodeURIComponent(input.unsubscribeToken)}"><input type="hidden" name="action" value="unsubscribe"><button type="submit">Unsubscribe</button></form>`, pageName);
 }

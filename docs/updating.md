@@ -21,7 +21,10 @@ exact recovery commands.
 Keep the deployment's private owner inputs outside source control. Back up the
 deployed data with the technical Cloudflare procedure before migration. Before
 the deploy build, stop any local development server with `rer dev --stop` or
-production preview with `rer preview --stop`. Run `rer deploy` from the updated
-source to verify, apply migrations and publish the Worker, then check the public
-page, operator sign-in and configured delivery paths. A source verifier pass
-does not establish live provider acceptance.
+production preview with `rer preview --stop`. From the updated source, run
+`rer deploy --environment production --env-file "$HOME/.config/lamp/production.env"`,
+substituting the original environment and input-file path. Keep the original
+session, subscriber and webhook signing secrets. Deploy applies migrations,
+builds, publishes and checks health; run `rer verify` separately for source and
+browser checks. Then check the public page, operator sign-in and configured
+delivery paths. A source verifier pass does not establish live provider acceptance.

@@ -19,7 +19,7 @@ import { SuggestionSources, type AppliedSuggestion, type SuggestedFieldName } fr
 import type { CheckedSuggestion } from "../../ai/service";
 import { useIncidentVisit } from "./use-incident-visit";
 
-type IncidentResponse = { incident: Awaited<ReturnType<IncidentsService["get"]>> };
+type IncidentResponse = { incident: Awaited<ReturnType<IncidentsService["get"]>>; hasChatChannels: boolean };
 type PreviewResponse = { preview: RenderedIncidentUpdate };
 
 const blankDraft: IncidentDraftInput = {
@@ -84,7 +84,7 @@ function IncidentVisit({ incidentId }: { incidentId: string }) {
   const [saveError, setSaveError] = useState<string | null>(null);
   const [preview, setPreview] = useState<RenderedIncidentUpdate | null>(null);
   const [previewError, setPreviewError] = useState<string | null>(null);
-  const [channels, setChannels] = useState<Array<"email" | "webhook" | "chat">>(["email", "chat"]);
+  const [channels, setChannels] = useState<Array<"email" | "webhook" | "chat">>(["email"]);
   const [scheduledPublishAt, setScheduledPublishAt] = useState<string | null>(null);
   const [historicalPublishedAt, setHistoricalPublishedAt] = useState<string | null>(null);
   const [publishState, setPublishState] = useState<"idle" | "publishing" | "scheduled" | "published" | "error">("idle");
@@ -115,6 +115,7 @@ function IncidentVisit({ incidentId }: { incidentId: string }) {
     if (!data?.incident || !loadedIncidentId || hydratedIncident.current === loadedIncidentId) return;
     const initial = draftFromIncident(data.incident);
     hydratedIncident.current = data.incident.id;
+    if (data.hasChatChannels) setChannels(["email", "chat"]);
     version.current = `${data.incident.draft?.id ?? "-"}:${data.incident.updates.length}`;
     hydratingDraft.current = true;
     pendingDraft.current = null;
@@ -293,7 +294,7 @@ function IncidentVisit({ incidentId }: { incidentId: string }) {
     <header className="incident-workspace-heading incident-context">
       <Link className="back-link" to="/app/incidents">← Back to incidents</Link>
       <p className="eyebrow">{incident.reference}</p><h1>{incident.title}</h1>
-      <div className="context-facts"><div><span>Lifecycle</span><strong className={`fact-dot ${stateClass(incident.lifecycle)}`}>{incident.lifecycle}</strong></div><div><span>Opened</span><strong>{formatOperatorTime(incident.openedAt)}</strong></div><div><span>Impact</span><strong className={`fact-dot ${stateClass(incident.impact ?? "")}`}>{incident.impact ?? "No component impact"}</strong></div></div>
+      <div className="context-facts"><div><span>Lifecycle</span><strong className={`fact-dot ${stateClass(incident.lifecycle)}`}>{incident.lifecycle}</strong></div><div><span>Opened</span><strong>{formatOperatorTime(incident.openedAt)}</strong></div><div><span>{incident.lifecycle === "Resolved" ? "Peak impact" : "Impact"}</span><strong className={`fact-dot ${stateClass(incident.impact ?? "")}`}>{incident.impact ?? "No component impact"}</strong></div></div>
     </header>
 
 

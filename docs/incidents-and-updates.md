@@ -1,7 +1,9 @@
 # Incidents and updates
 
-Open **Incidents** and choose **New incident**. Attach at least one component,
-then write a public update for the people affected. Lamp keeps each published
+Open **Incidents** and choose **Create incident** if the draft form is not
+already open. Enter the title and attach at least one component, then choose
+**Create incident draft**. In the composer, write a public update for the people
+affected. Lamp keeps each published
 update on the incident timeline; a correction is a new update that names the
 one it corrects.
 

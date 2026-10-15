@@ -51,14 +51,22 @@ The app host serves Lamp's public documentation at `/docs`. Start with the
 
 ## Deploy and verify
 
-Configure private deployment inputs outside the repository, then use the
-installed commands. Before a command that builds or verifies the checkout,
+Hosted Lamp needs a Resend or SendGrid account, an authenticated sender and its
+API key. There is no hosted mode without mail. Save the required inputs in a
+private file outside the checkout, owned by you with mode `0600`; follow the
+[complete input-file example](docs/deploy.md#save-private-deployment-inputs).
+You can also export the input names in the calling shell. The
+[input reference](docs/deployment-reference.md) distinguishes required owner
+values from secrets that `rer` generates on a first deploy.
+
+Use `rer` from the project root; the checkout pins its CLI version. Before a
+command that builds or verifies the checkout,
 stop a running development server with `rer dev --stop` or a production preview
 with `rer preview --stop`.
 
 ```sh
-rer deploy --dry-run
-rer deploy
+rer deploy --dry-run --environment production --env-file "$HOME/.config/lamp/production.env"
+rer deploy --environment production --env-file "$HOME/.config/lamp/production.env"
 ```
 
 The dry run validates and compiles locally without contacting Cloudflare. A
@@ -66,7 +74,11 @@ deployment validates owner inputs, provisions or reuses resources, applies
 migrations, builds and uploads the Worker with secrets, and checks application health.
 Run `rer verify` separately for the full source and browser checks; deployment does
 not run the verifier. Follow the [deployment guide](docs/install.md)
-for owner inputs and the [domain steps](docs/domains.md) before routing visitors.
+for sender preparation and the [domain steps](docs/domains.md) before routing
+visitors. For `workers.dev`, follow the
+[hostname lookup and examples](docs/deployment-reference.md#find-your-workersdev-hostnames);
+both host inputs remain required. Use the same environment on later deploys.
+To retire an installation, see the [removal command and record limits](docs/deploy.md#remove-an-installation).
 
 Before `rer verify`, stop the active development server or production preview
 with the corresponding command above. A passing source verifier does not
