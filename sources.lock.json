@@ -4160,7 +4160,7 @@
       "executable": false
     },
     "tests/dev-ingress/proof-boundary.test.mjs": {
-      "sha256": "59e68f3c8534970ddb80087e13e7ffa1ee64db30d655cf67a73523ee9808b602",
+      "sha256": "a3fe822e77d74775ccef202a63d012dc677cfc46517e2aa7b5682d8b7fd9a223",
       "executable": false
     },
     "tests/dev-ingress/public-read.test.mjs": {
@@ -4192,7 +4192,7 @@
       "executable": false
     },
     "tests/e2e/accessibility.test.mjs": {
-      "sha256": "06d399c1bc37364c544648c735ac0ddc28bdf2c3a269fd74da17b325684efd9f",
+      "sha256": "3705499eda6418b533d790996bbd65465482361ee51e0be90dd9adc54d7220d9",
       "executable": false
     },
     "tests/e2e/app-api.test.mjs": {
@@ -4401,10 +4401,6 @@
     },
     "tests/e2e/subscriber-isolation-helper.mjs": {
       "sha256": "758fa4af240736c774c93486fe1b937a966203c7b13edbcadd9d541e663f392c",
-      "executable": false
-    },
-    "tests/e2e/subscriber-journey-helper.mjs": {
-      "sha256": "c2cec38c371a81dd53be65eece58b7322ebcd272da89ee5bbf2c9a655d945db5",
       "executable": false
     },
     "tests/e2e/subscriber-revocation-regression.mjs": {
@@ -4928,7 +4924,7 @@
       "executable": false
     },
     "tests/reference-storage/incident-worker.test.mjs": {
-      "sha256": "b3980180e4263b94965ff186f4142671614b5d1de6f87d4a4db8c69ccccf6a00",
+      "sha256": "26c053507b4f332c59b6a3cf1c7f31347ec68c9cee69a88d08883b05758ff565",
       "executable": false
     },
     "tests/reference-storage/mail-composition.test.mjs": {
@@ -5076,7 +5072,7 @@
       "executable": false
     },
     "vite.config.ts": {
-      "sha256": "8bc5489cf83cc751d36fdf4ccd2ba22984027675159cfb8f2e07c633cb812fca",
+      "sha256": "33e878996a4994fa572553ec7e9078655bb659abca701df65dc78c6bb5f5fb5d",
       "executable": false
     },
     "vite.site.config.ts": {

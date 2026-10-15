@@ -35,7 +35,7 @@ export default defineConfig(({ command, isPreview }) => {
       archiveOutputGuard(),
       // The public /docs pages, cut from docs/site.json and the repository's Markdown at build time (src/site/docs).
       docsSite(),
-      command === "serve" && !isPreview ? developmentIngress(true, persistStatePath) : undefined,
+      command === "serve" && !isPreview ? developmentIngress(Boolean(process.env.RER_DEV_KEY && process.env.RER_DEV_ORIGIN), persistStatePath) : undefined,
       cloudflare({
         viteEnvironment: { name: "ssr" },
         configPath: wranglerConfigPath,

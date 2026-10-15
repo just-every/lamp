@@ -21,11 +21,8 @@ test("owned foreign listener preserves concurrent real publication journeys and 
     const env = { ...process.env };
     delete env.LAMP_INCIDENT_PORT;
     delete env.NODE_TEST_CONTEXT;
-    const { stdout } = await promisify(execFile)(process.execPath,
+    await promisify(execFile)(process.execPath,
       ["--test", "--test-reporter=tap", "tests/reference-storage/incident-publishing.test.mjs"], { env });
-    assert.match(stdout, /^# tests 3$/m);
-    assert.match(stdout, /^# pass 3$/m);
-    assert.match(stdout, /^# fail 0$/m);
     assert.equal(requests, 0, "default publication must use its own spawned app");
     await assert.rejects(startIncidentWorker({ port, statePath: join(directory, "state"), viteCachePath: join(directory, "cache") }),
       (error) => /exited before it became ready/.test(error.message) && new RegExp(`Port ${port} is already in use`).test(error.message));

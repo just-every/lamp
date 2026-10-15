@@ -12,7 +12,7 @@ test('the native socket boundary rejects a real consumed proof, tampering and cr
   const directory = await mkdtemp(resolve('.lamp-proof-ingress-'));
   const state = join(directory, 'state');
   const origin = `http://127.0.0.1:${Number(process.env.LAMP_DEV_INGRESS_PROOF_PORT ?? await reservePort({ label: 'dev ingress' }))}`;
-  const keys = ['LAMP_WORKERS_STATE_PATH', 'LAMP_VITE_CACHE_DIR', 'LAMP_DEV_OUTBOX_MODE', 'RER_DEV_KEY'];
+  const keys = ['LAMP_WORKERS_STATE_PATH', 'LAMP_VITE_CACHE_DIR', 'RER_DEV_KEY', 'RER_DEV_ORIGIN'];
   const previous = new Map(keys.map(key => [key, process.env[key]]));
   let server;
   let proof;
@@ -51,7 +51,7 @@ test('the native socket boundary rejects a real consumed proof, tampering and cr
   try {
     process.env.LAMP_WORKERS_STATE_PATH = state;
     process.env.LAMP_VITE_CACHE_DIR = join(directory, 'vite-cache');
-    process.env.LAMP_DEV_OUTBOX_MODE = 'local';
+    process.env.RER_DEV_ORIGIN = origin;
     process.env.RER_DEV_KEY = devKey;
     execFileSync('pnpm', ['run', 'migrate:local'], { stdio: 'pipe' });
     await start();

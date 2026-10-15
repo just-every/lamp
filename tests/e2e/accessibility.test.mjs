@@ -14,8 +14,6 @@ import { chromium } from "playwright";
 import { insertRealOperatorSession } from "./real-session-helper.mjs";
 import { appOrigin, pageOrigin } from "./helpers/hosts.mjs";
 import { reservePort, waitForWorker } from "./worker-startup.mjs";
-import { auditUnavailableSubscriptionForms } from "./subscriber-journey-helper.mjs";
-import { devKey } from "../helpers/dev-key.mjs";
 import { accessibilityFailure, analyzeScriptFreePage, newScriptFreePage, observeAuditPage } from "./subscriber-audit-helper.mjs";
 import { baseline } from "../baseline/e2e-baseline/case.mjs";
 import { isolatedWranglerConfig } from "../helpers/wrangler-config.mjs";
@@ -130,19 +128,17 @@ async function assertWcag22Aa(page, surface, selector) {
   assert.equal(results.violations.length, 0, `${surface} violates automated WCAG 2.2 AA checks: ${violationsText(results.violations)}`);
 }
 
-async function startWorker(localMailCapture) {
+async function startWorker() {
   worker = spawn("pnpm", ["exec", "vite", "--host", "127.0.0.1", "--port", new URL(appUrl).port, "--strictPort"], {
     cwd: process.cwd(),
     detached: true,
     stdio: "pipe",
     env: {
       ...process.env,
-      LAMP_DEV_OUTBOX_MODE: localMailCapture ? "local" : "",
       LAMP_DISABLE_INSPECTOR: "true",
       LAMP_WORKERS_STATE_PATH: statePath,
       LAMP_VITE_CACHE_DIR: viteCachePath,
       LAMP_WRANGLER_CONFIG: configPath,
-      RER_DEV_KEY: devKey,
     },
   });
   worker.stdout.resume();
@@ -165,7 +161,7 @@ before(async () => {
     cwd: process.cwd(),
     stdio: "pipe",
   });
-  await startWorker(false);
+  await startWorker();
 
   const neutralPublicPage = await fetch(`${pageUrl}/`);
   assert.equal(neutralPublicPage.status, 503, "an unconfigured public page stays unavailable until owner setup is complete");
