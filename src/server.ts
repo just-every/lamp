@@ -89,7 +89,7 @@ export default withDemo({
       // holds sign-in links, so it answers only a request holding the dev key.
       const { pathname } = new URL(request.url);
       if ((pathname === DEV_OUTBOX_PATH || pathname.startsWith(`${DEV_OUTBOX_PATH}/`)) && !(gate && await gate.admits(request))) return devNotFound();
-      const outbox = await handleDevOutboxRequest(request, bindings.RER_DEMO === '1' ? { ...bindings, LAMP_DEV_OUTBOX: bindings.SNAPSHOTS, LAMP_BASE_MAIL: bindings.DB } : bindings, async () => (await createPageSettingsRepository(bindings.DB).get())?.pageName ?? lampConfig.pageName);
+      const outbox = await handleDevOutboxRequest(request, bindings.RER_DEMO === '1' ? { ...bindings, LAMP_DEV_OUTBOX: bindings.SNAPSHOTS, LAMP_BASE_MAIL: bindings.DB } : bindings, async () => (await createPageSettingsRepository(bindings.DB).getIfMigrated())?.pageName ?? lampConfig.pageName);
       if (outbox) return outbox;
     }
     const url = new URL(request.url);

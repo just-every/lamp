@@ -2805,7 +2805,7 @@
       "executable": false
     },
     "src/core/features/page-settings/repository.ts": {
-      "sha256": "a2cbd1b40a6064dd12704ffeedab16272440f33dfb60ce884fbdefef1d3520fc",
+      "sha256": "1949d5f6a6f71b765311e47b3fc4405b4ff921be4285af86d5be3030628c6962",
       "executable": false
     },
     "src/core/features/page-settings/routes.ts": {
@@ -3417,7 +3417,7 @@
       "executable": false
     },
     "src/server.ts": {
-      "sha256": "f539516574d1b0647c5599268395fd09e5ca03d7672cdf409504ef47c5fc4d00",
+      "sha256": "c117403e98165f6c02a1fe17b30f651f3e25c5132853a2a8a15093d0184d43ac",
       "executable": false
     },
     "src/site/docs/body.ts": {
