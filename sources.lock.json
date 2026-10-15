@@ -4544,7 +4544,7 @@
       "executable": false
     },
     "tests/e2e/start-runtime.test.mjs": {
-      "sha256": "d81153f3fa70c36c66e717dbb42b091a62dbf61c8c6cfe2bfdb85f4dc250a61c",
+      "sha256": "01ea4130844b1a768cc6315a920533c52676ae6689dc844c23386c9c0aebeab1",
       "executable": false
     },
     "tests/e2e/statuspage-import.test.mjs": {
@@ -5040,7 +5040,7 @@
       "executable": false
     },
     "tests/lamp-site/browser.test.mjs": {
-      "sha256": "bf3abb00989fb08cfc6878831dbc6248f6158397dde92051386f387cc6bb697f",
+      "sha256": "84a533dbf43bace1dc152534c131439b4b5b9a3372096ff5a5a9a6a78960c5ea",
       "executable": false
     },
     "tests/operations-description.test.mjs": {

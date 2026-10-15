@@ -45,7 +45,7 @@ before(async () => {
   viteCachePath = await mkdtemp(join(tmpdir(), "lamp-site-vite-"));
   // Wrangler and Vite load `.dev.vars` from the directory of the config they are given, and it overrides the config's vars. The fixture's
   // config therefore lives in a directory of its own, so a checkout's local secrets and origin (written by `rer setup`) cannot steer this Worker.
-  fixtureConfig = isolatedWranglerConfig();
+  fixtureConfig = isolatedWranglerConfig((config) => ({ ...config, vars: { ...config.vars, MAIL_PROVIDER_API_KEY: "test-only-signin-presentation-no-delivery" } }));
   wranglerConfig = fixtureConfig.path;
   execFileSync("pnpm", ["exec", "wrangler", "d1", "migrations", "apply", "DB", "--local", "--config", wranglerConfig, "--persist-to", statePath], { cwd: process.cwd(), stdio: "pipe" });
   worker = spawn("pnpm", ["exec", "vite", "--host", "127.0.0.1", "--port", String(port), "--strictPort"], {
@@ -219,14 +219,38 @@ const lobby = async () => {
   assert.equal(response.status, 200);
   assert.match(response.headers.get("content-type") ?? "", /^text\/html/);
   const html = await response.text();
-  return { html, action: html.match(/<a class="btn" href="([^"]+)">([^<]+)/)?.slice(1) };
+  return { html };
 };
 const setupState = async () => (await (await fetch(`${BASE}/setup/state`)).json()).state;
 
-test("the app host's home page is the Lobby, Finish setup before an owner is claimed and Sign in immediately after bootstrap; the page host's is the status page; /lamp redirects home", async () => {
+async function followLobbyAction(path, email = "") {
+  const context = await browser.newContext({ javaScriptEnabled: false });
+  try {
+    const page = await context.newPage();
+    await page.goto(`${BASE}/`);
+    const action = page.locator(".door-card a.btn");
+    assert.equal(await action.count(), 1, "the Lobby offers one primary action");
+    const target = new URL(await action.getAttribute("href"), page.url());
+    assert.equal(target.origin, BASE, "the primary action stays on the app origin");
+    assert.equal(target.pathname, path);
+    assert.deepEqual([...target.searchParams], email ? [["login_hint", email]] : [], "only the local claimed owner's sign-in carries an email hint");
+    assert.ok(!(await page.locator("body").innerText()).includes("operator@example.test"), "the Lobby does not display the owner's email");
+    await action.click();
+    await page.waitForURL((url) => url.origin === BASE && url.pathname === "/signin");
+    const input = page.locator('input[name="email"][type="email"]');
+    assert.ok(await input.isVisible(), "the primary action reaches the native sign-in form without JavaScript");
+    assert.equal(await input.inputValue(), email, "the local owner can continue with their email already filled in");
+    if (email) assert.equal(await page.locator('input[name="token"]').count(), 0, "a claimed owner does not need the spent bootstrap token");
+    assert.ok(!(await context.cookies()).some((cookie) => cookie.name === sessionCookieName(BASE)), "following a hint does not authenticate the visitor");
+  } finally {
+    await context.close();
+  }
+}
+
+test("the app Lobby leads to setup before owner claim and prefilled sign-in after bootstrap, independently of first-run confirmation; the page host serves status; /lamp redirects home", async () => {
   assert.equal(await setupState(), "unclaimed");
   const waiting = await lobby();
-  assert.deepEqual(waiting.action, ["/setup", "Finish setup"], "before the claim the Lobby's one action is Finish setup");
+  await followLobbyAction("/setup");
   assert.doesNotMatch(waiting.html, /lamp-home|lamp-intro/, "the landing page lives on the run site, not the installed instance");
   for (const file of [...waiting.html.matchAll(/(?:href|src)="(\/[^"]+)"/g)].map(([, path]) => path).filter((path) => path !== "/setup")) {
     assert.equal((await fetch(`${BASE}${file}`)).status, 200, `the Lobby's ${file} is served`);
@@ -241,16 +265,14 @@ test("the app host's home page is the Lobby, Finish setup before an owner is cla
   const session = await insertRealOperatorSession({ persistTo: statePath, configPath: wranglerConfig, pageSettings: false });
   d1("INSERT INTO page_settings(id,page_name,tagline,accent_color,timezone,hostname,footer_credit_enabled,mail_from_address,feed_id,created_at,updated_at) VALUES ('default','Atlas Cloud Status','Current availability and incident communications for Atlas Cloud.','#16794C','America/Los_Angeles','status.atlascloud.example',1,'lamp@localhost.invalid','test-feed-identity-00000000000001','2026-08-31','2026-08-31')");
   assert.equal(await setupState(), "unclaimed", "page setup remains incomplete after owner bootstrap");
-  // The Lobby prefills sign-in with the claimed owner's address (the session helper's operator).
-  const ownerSignIn = `/signin?login_hint=${encodeURIComponent("operator@example.test")}`;
-  const bootstrapped = await lobby();
-  assert.deepEqual(bootstrapped.action, [ownerSignIn, "Sign in"], "the claimed owner can sign in before confirming page setup");
-  assert.doesNotMatch(bootstrapped.html, /setup token/, "bootstrap already retired the one-time setup token");
+  await followLobbyAction("/signin", "operator@example.test");
+  assert.doesNotMatch((await lobby()).html, /setup token/, "bootstrap already retired the one-time setup token");
+  assert.equal(await setupState(), "unclaimed", "following owner entry does not confirm the page's first-run settings");
   const confirmed = await fetch(`${BASE}/api/app/overview/first-run`, { method: "POST", body: "{}", headers: requestHeaders({ Cookie: `${sessionCookieName(BASE)}=${session}`, "Content-Type": "application/json", Origin: BASE }) });
   assert.equal(confirmed.status, 200, await confirmed.clone().text());
   assert.equal(await setupState(), "claimed");
   const claimed = await lobby();
-  assert.deepEqual(claimed.action, [ownerSignIn, "Sign in"], "once claimed the Lobby's one action is Sign in");
+  await followLobbyAction("/signin", "operator@example.test");
   assert.match(claimed.html, /Atlas Cloud Status/, "the Lobby names the page the owner configured");
 
   const statusPage = await fetch(`${PAGE}/`);
@@ -258,6 +280,9 @@ test("the app host's home page is the Lobby, Finish setup before an owner is cla
   assert.match(statusPage.headers.get("content-type") ?? "", /^text\/html/);
   assert.ok(statusPage.headers.get("content-security-policy"), "the status page keeps its CSP");
   const statusHtml = await statusPage.text();
+  for (const privateValue of ["operator@example.test", encodeURIComponent("operator@example.test"), "login_hint"]) {
+    assert.ok(!statusHtml.includes(privateValue), "the public status page never exposes the owner's email or local sign-in hint");
+  }
   const statusContent = statusHtml.match(/<main\b[^>]*>([\s\S]*?)<\/main>/i)?.[1] ?? "";
   assert.ok(visibleText(statusContent).includes("Atlas Cloud Status"), "the configured public page renders the seeded page identity in its body");
   assert.doesNotMatch(statusHtml, /lamp-home|lamp-intro|class="door"/, "the status page carries neither the landing page nor the Lobby");
