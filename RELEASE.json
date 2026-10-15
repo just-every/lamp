@@ -1,54 +1,11 @@
 {
-  "version": "1.5.0",
-  "previousVersion": "1.4.0",
+  "version": "1.5.1",
+  "previousVersion": "1.5.0",
   "date": "2026-10-16",
-  "publicReleaseNotes": "Lamp 1.5.0 adds confirmed component changes on live incidents with catch-up email, extensions to maintenance in progress, provider acceptance on Deliveries and in CSV, complete sender-domain checks and rer signin. Aligned DKIM with DMARC is sufficient under NOTIFY-010. Migration 0023 adds one-use owner sign-in grants and 0024 adds Base import-kit custody tables. The checkout uses rer 0.2.22. Local mail is suppressed; the development mail viewer and rer outbox are removed. Hosted APIs and existing data remain compatible.",
-  "contractChanges": {
-    "NOTIFY-010": {
-      "change": "changed",
-      "summary": "Setup and deployment accept aligned DKIM with DMARC without requiring SPF on the From domain; notification threading and list headers remain required.",
-      "was": "Mail headers: Every notification email carries `List-Id`, `List-Archive`, and `List-Help` identifying the page, `Auto-Submitted: auto-generated` so it triggers no vacation reply, and, for every update after an incident's first, `In-Reply-To` and `References` naming the message that carried the first, so a mail client groups an incident's updates into one thread. `pnpm setup` fails naming the record when the From address's domain publishes no SPF, no DKIM key for the configured selector, or no DMARC policy.",
-      "now": "Mail headers: Every notification email carries `List-Id`, `List-Archive`, and `List-Help` identifying the page, `Auto-Submitted: auto-generated` so it triggers no vacation reply, and, for every update after an incident's first, `In-Reply-To` and `References` naming the message that carried the first, so a mail client groups an incident's updates into one thread. `pnpm setup` and `rer deploy` fail naming the record when the From address's domain has no reachable DKIM public key for the configured selector or no DMARC policy. Aligned DKIM is sufficient; SPF at the From domain itself is not required, because a provider may authenticate its separate return-path domain."
-    }
-  },
-  "proseChanges": [
-    {
-      "document": "RUN-LOCALLY.md",
-      "section": "Start Lamp",
-      "change": "changed",
-      "date": "2026-10-15",
-      "summary": "Local development silently suppresses mail and no longer provides captured messages or rer outbox.",
-      "was": "Local development retained messages in a mail viewer and offered rer outbox for sign-in and subscriber links.",
-      "now": "Local mail is neither sent nor retained. Use automatic one-click owner entry locally and a hosted installation to check actual mail delivery. The old diagnostic address only explains suppression.",
-      "ownerAction": "Remove obsolete local outbox storage after backing up application data, as described in the 1.5.0 upgrade notes."
-    },
-    {
-      "document": "docs/subscribers-and-notifications.md",
-      "section": "Process email unsubscribe requests",
-      "change": "added",
-      "date": "2026-10-16",
-      "summary": "Owners must monitor the configured From mailbox and remove subscribers who request unsubscribe by email.",
-      "now": "Use a monitored From mailbox. Process mailto unsubscribe requests in Subscribers by removing the matching destination; HTTPS one-click unsubscribe remains automatic."
-    }
-  ],
-  "extensionPointChanges": [
-    {
-      "id": "mail.sender.v1",
-      "kind": "adapter",
-      "change": "changed",
-      "summary": "SentMail.disposition replaces the development-only captured result with suppressed. Provider acceptance is unchanged; custom adapters that handled captured must handle suppressed. Local suppression retains no messages."
-    }
-  ],
-  "migrations": [
-    {
-      "id": "0023_owner_signin.sql",
-      "buyerSteps": "Apply after 0022 before starting this revision. It adds Base's one-use owner sign-in grant table for rer signin; existing operator identities, sessions and migration history are unchanged. Grants are installation-local and do not travel in exports."
-    },
-    {
-      "id": "0024_import_kit_custody_upgrade.sql",
-      "buyerSteps": "Apply after 0023 before starting this revision. It adds Base import-kit's additive custody tables and triggers (reversal fences, preparation steps, person-erasure retirements and journal, erasure progress) that the refreshed import kit uses; existing import history, custody and migration history are unchanged."
-    }
-  ],
+  "publicReleaseNotes": "Lamp 1.5.1 is a maintenance release of 1.5.0. Test fixtures and documentation placeholders are marked as synthetic so hosted source admission accepts them; the checkout pins rer 0.2.24 with every Base copy refreshed from that release. Application behaviour, contract, migrations and stored data are unchanged. Product screenshot: .github/assets/release/lamp-1.5.1-status-page-1440.png (a business's public status page at 1440 pixels: components with 90-day uptime, scheduled maintenance and a resolved incident).",
+  "contractChanges": {},
+  "extensionPointChanges": [],
+  "migrations": [],
   "breaking": false,
-  "agentUpdateInstructions": "Back up data and owner source. Apply 0023_owner_signin.sql after 0022_import_maintenance_updates.sql, then 0024_import_kit_custody_upgrade.sql, before starting 1.5.0. Migration 0024 adds Base import-kit custody tables and triggers; local portability excludes this installation-specific import custody. Preserve operator identities, sessions, published records, migration history and installation identities. The migration adds only installation-local, one-use owner sign-in grants excluded from exports. Run rer verify separately and pnpm run verify:release from v1.4.0 before adopting. Update custom local mail adapters from captured to suppressed; local mail capture and rer outbox have been removed. Monitor the configured From mailbox and action email unsubscribe requests in Subscribers. Review the 1.5.0 local outbox cleanup instructions; retain the application database and snapshots. Hosted APIs and existing data remain compatible."
+  "agentUpdateInstructions": "No migration, contract or extension-point change since 1.5.0, and stored data stays compatible. Back up data and owner source as usual, update the source, run pnpm install --frozen-lockfile for the rer 0.2.24 pin, and restart. The docs/deploy.md example credentials now read synthetic-...; they were placeholders before and remain placeholders: replace them with the owner's real values, never commit real credentials. Installations still on 1.4.0 follow the 1.5.0 upgrade notes first (migrations 0023 and 0024)."
 }

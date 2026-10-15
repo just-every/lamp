@@ -395,6 +395,10 @@
       "sha256": "81654510e50ba42b3a0a5cb582dd7a29a35466473839eae6250479b592b81bd6",
       "executable": false
     },
+    ".github/assets/release/lamp-1.5.1-status-page-1440.png": {
+      "sha256": "8713e0cdb48f0d7c2d512a867296d8de151ab8b9ea4981876f8559150f1f2537",
+      "executable": false
+    },
     ".github/workflows/deploy.yml": {
       "sha256": "11d5ca961e653527116a7d8e595c60c793c8faf7d63f40e7e8fd2dfe97ff59c6",
       "executable": false
@@ -448,7 +452,7 @@
       "executable": false
     },
     "CHANGELOG.md": {
-      "sha256": "5f397df2a0e587add6eaaadbb4bc8d4f515b7daf9ca5089ffea5b6f6bc3516db",
+      "sha256": "3e379711d4876a05521d3d0854ae1ce95fc07b191502fa2cd80c72d603113c44",
       "executable": false
     },
     "CLAUDE.md": {
@@ -1812,7 +1816,7 @@
       "executable": false
     },
     "package.json": {
-      "sha256": "71c6a0a73e11d8438cd73d3bd3ddd2c0f5b3d384e38da31077634f03d15f283e",
+      "sha256": "68187932a13c526921363d90f2f4bf330a98e1d9ea19809a6d78ab1a302ec134",
       "executable": false
     },
     "pnpm-lock.yaml": {
@@ -1883,6 +1887,14 @@
       "sha256": "102dfcb872673893ea13268188c2c31aace0c618a9c496b17b8d8bcd32486543",
       "executable": false
     },
+    "release-history/1.5.0.CONTRACT.md": {
+      "sha256": "4a8807b0104f0c82638489f3848fef50dcc1546dffbc7c3a67f6b41898b0802c",
+      "executable": false
+    },
+    "release-history/1.5.0.json": {
+      "sha256": "f6969d2e5a6a480322f8b02b5bb8a6bf9539ec4f0afa2b9ed4c53b0f707fd264",
+      "executable": false
+    },
     "release-history/README.md": {
       "sha256": "fd13c03aa7a6da117aa4c7a71516a7682d6536853b96cb875631acc014cd164e",
       "executable": false
@@ -1892,7 +1904,7 @@
       "executable": false
     },
     "RELEASE.json": {
-      "sha256": "f6969d2e5a6a480322f8b02b5bb8a6bf9539ec4f0afa2b9ed4c53b0f707fd264",
+      "sha256": "a0d934dc6aa945aab43c0fa0d91a2abe84a1894cb718c6b1be8c393998390081",
       "executable": false
     },
     "rer-packaging.json": {
@@ -2360,7 +2372,7 @@
       "executable": false
     },
     "seed.json": {
-      "sha256": "2ffe23d71c8b36c4e3a2c13102b794e8fb40f7a452b7eb42ddbad1709b4a7461",
+      "sha256": "aa4d4f47c61bc1da26de2fd9767866e62193d57f2dca3654beda5b1398bf868a",
       "executable": false
     },
     "src/base/deployment-health.ts": {
