@@ -49,5 +49,6 @@ export async function exerciseDemo({ origin, pageOrigin, key, cookie, fetch }) {
   }
   assert.ok(deliveries.some(row => row.channel === 'webhook' && row.outcome === 'delivered'), 'mocked webhook completes successfully: ' + JSON.stringify(deliveries.map(row => ({ channel: row.channel, outcome: row.outcome, error: row.latestError }))));
   assert.ok(deliveries.some(row => row.channel === 'email' && row.providerAcceptedAt), 'mocked email has provider-shaped success');
+  assert.equal((await api('/api/app/deliveries')).body.mail.local, false, 'a demo reports its sends, not suppressed local mail');
   return { incidentId: incident.id, incidentTitle: incident.title, initialLifecycle: incident.lifecycle };
 }

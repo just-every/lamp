@@ -35,7 +35,9 @@ export function createApp(bindings: AppBindings, execution?: MailExecution) {
   const healthService = createHealthService(createHealthRepository(bindings.DB), createDependencyProber(bindings.SNAPSHOTS, createQueueDispatcher(bindings.JOBS)));
   const services = createAppServices(bindings, createSnapshotBlobStore(bindings), execution);
   const publicWriteLimiter = createPublicWriteRateLimiter(bindings.DB);
-  const localMail = isLocalMailExecution(bindings);
+  // Local development says its mail is suppressed; a demo completes sends as
+  // mocked success, so its pages read as a configured installation's.
+  const localMail = isLocalMailExecution(bindings) && bindings.RER_DEMO !== '1';
 
   for (const path of ["/auth/*", "/signin", "/.well-known/rer-*"]) app.all(path, context => authResponse(context.req.raw, bindings, services));
   registerHealthRoutes(app, healthService, bindings);

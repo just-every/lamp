@@ -2572,7 +2572,7 @@
       "executable": false
     },
     "src/core/app/server.ts": {
-      "sha256": "4ab6e93cab810ae34b7e8029baaf80990054cb6a1ddc57fe28bb57dce323f739",
+      "sha256": "84bf13df8c5c5e1d6feae3747335e87ebd43a1f8e480203540fb4a25e9486b5b",
       "executable": false
     },
     "src/core/app/services.ts": {
@@ -4300,7 +4300,7 @@
       "executable": false
     },
     "tests/demo-effects.mjs": {
-      "sha256": "bc52db7e33cdcb94a2c01fafbe60230516df6e50fbc96ad56ab8520b05c86783",
+      "sha256": "bdf670d767f3516390706ca6aa3e88c6634f69afaec1a38f4e3e3f64ef93e75c",
       "executable": false
     },
     "tests/demo/journey.test.mjs": {
