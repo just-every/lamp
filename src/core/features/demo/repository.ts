@@ -46,6 +46,16 @@ export async function seedDemoRecords(binding: D1Database, input: { ownerEmail: 
     binding.prepare("INSERT INTO maintenance_notices(id,maintenance_id,kind,body,published_at,author_operator_id,created_at,updated_at) VALUES(?,?,'scheduled',?,?,?,?,?) ON CONFLICT(id) DO NOTHING").bind(id('221'), id('201'), 'File downloads may pause briefly while we upgrade storage. Existing files are retained.', at, owner.id, at, at),
     ...[['first-run', 'complete'], ...(input.readiness ? [['sender', input.readiness.sender], ...['public', 'subscribe', 'domain'].map(step => [step, input.readiness!.publicOrigin])] : [])]
       .map(([step, key]) => binding.prepare('INSERT INTO setup_readiness(step,evidence_key,checked_at) VALUES(?,?,?) ON CONFLICT(step) DO NOTHING').bind(step, key, at)),
+    // The notifications those published updates and the notice already sent: email
+    // accepted by the provider, webhook delivered. No outbox row, so nothing dispatches.
+    ...([[id('121'), 'incident-update', time(-50)], [id('122'), 'incident-update', time(-15)], [id('123'), 'incident-update', time(-2820)], [id('221'), 'maintenance-notice', at]] as const).flatMap(([event, type, sentAt], index) => {
+      const email = id(String(401 + index * 2)), webhook = id(String(402 + index * 2));
+      const update = type === 'incident-update' ? event : null, maintenanceId = type === 'maintenance-notice' ? id('201') : null;
+      const delivery = (deliveryId: string, subscriberId: string, channel: string, outcome: string) => binding.prepare("INSERT INTO notification_deliveries(id,subscriber_id,incident_update_id,maintenance_id,channel,outcome,queued_at,outcome_at,created_at,updated_at,notification_event_id,notification_event_type) VALUES(?,?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT DO NOTHING")
+        .bind(deliveryId, subscriberId, update, maintenanceId, channel, outcome, sentAt, outcome === 'delivered' ? sentAt : null, sentAt, sentAt, event, type);
+      return [delivery(email, id('301'), 'email', 'queued'), delivery(webhook, id('302'), 'webhook', 'delivered'),
+        binding.prepare('INSERT INTO notification_delivery_attempts(id,delivery_id,attempt_number,attempted_at,provider_message_id,error,created_at) VALUES(?,?,1,?,?,NULL,?) ON CONFLICT DO NOTHING').bind(id(String(501 + index)), email, sentAt, `demo-${email}`, sentAt)];
+    }),
     ...[['INC', 'INC-1'], ['INC', 'INC-2'], ['SCH', 'SCH-1']].map(([namespace, reference]) => binding.prepare('INSERT INTO reference_allocations(namespace,reference) VALUES(?,?) ON CONFLICT DO NOTHING').bind(namespace, reference)),
   ]);
 }

@@ -135,7 +135,8 @@ export function createAppServices(bindings: AppBindings, blobs: BlobStore, execu
       origin.hostname = bindings.LAMP_PAGE_HOST;
       return origin.origin;
     },
-    sender: { local: local, provider: bindings.MAIL_PROVIDER ?? "resend", apiKey: bindings.MAIL_PROVIDER_API_KEY, mail },
+    // A demo's mail transport is local, but its sender reads as a configured one's.
+    sender: { local: local && bindings.RER_DEMO !== '1', demo: bindings.RER_DEMO === '1', provider: bindings.MAIL_PROVIDER ?? "resend", apiKey: bindings.MAIL_PROVIDER_API_KEY, mail },
   }));
 
   // Imported subscribers each get one confirmation invite; past incidents notify no one.

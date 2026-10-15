@@ -2576,7 +2576,7 @@
       "executable": false
     },
     "src/core/app/services.ts": {
-      "sha256": "fd5013aadeb86100782a3da7ef2010c1fd8ef007083803eec48af46fd8a71087",
+      "sha256": "014cb519117a828d7e4a2fb9a4e4626a941e92168f08b49e0d1aedc94724ba49",
       "executable": false
     },
     "src/core/app/types.ts": {
@@ -2736,7 +2736,7 @@
       "executable": false
     },
     "src/core/features/demo/repository.ts": {
-      "sha256": "e7716ee47c534c364fbf9ea949f2d81eb2f8c7edc4c0643fbe4a824f2d060c79",
+      "sha256": "92dc07fabb98bf3760047e393cf2b6d2ce504569999efadf89a5ba6827f71980",
       "executable": false
     },
     "src/core/features/health/repository.ts": {
@@ -2916,7 +2916,7 @@
       "executable": false
     },
     "src/core/features/overview/sender-check.ts": {
-      "sha256": "04f7bb797c145ff6e368793346075dbaff12e2ba474015d7898ffb50e964e3cd",
+      "sha256": "713da7bda6af330a45b9124b933b8a62f6c38e967e4764ef684f3372146cf515",
       "executable": false
     },
     "src/core/features/overview/service.ts": {
@@ -3252,7 +3252,7 @@
       "executable": false
     },
     "src/core/platform/ai/demo.ts": {
-      "sha256": "b1f89fe70355660cda84794525c7798ad2bfd7fe8781f61677339192bb26bb6d",
+      "sha256": "30334c3e4b38a83774daec485c1f954d28b74e8d7ce4984253c925b0d5228fef",
       "executable": false
     },
     "src/core/platform/ai/index.ts": {
@@ -3428,7 +3428,7 @@
       "executable": false
     },
     "src/demo.ts": {
-      "sha256": "3746e5855ec9e19c7b37fd24d6c5a915519483e26606e2ae8d70a5441c751fbe",
+      "sha256": "dbceeabab384d77a303756c582b7fd693e0941e1e2ea8a4f1eeed0cfb0bf7a51",
       "executable": false
     },
     "src/editor/editor-surface.ts": {
@@ -4300,7 +4300,7 @@
       "executable": false
     },
     "tests/demo-effects.mjs": {
-      "sha256": "0b2df41fec156dd179598559d0a95721ceec8994925954e46bb3377cbaa009b5",
+      "sha256": "bc52db7e33cdcb94a2c01fafbe60230516df6e50fbc96ad56ab8520b05c86783",
       "executable": false
     },
     "tests/demo/journey.test.mjs": {
@@ -4544,7 +4544,7 @@
       "executable": false
     },
     "tests/e2e/start-runtime.test.mjs": {
-      "sha256": "e8af6105493faa53717784b5de0fdf0edda63c7d593a28926b1a7d9105365676",
+      "sha256": "d81153f3fa70c36c66e717dbb42b091a62dbf61c8c6cfe2bfdb85f4dc250a61c",
       "executable": false
     },
     "tests/e2e/statuspage-import.test.mjs": {
@@ -5040,7 +5040,7 @@
       "executable": false
     },
     "tests/lamp-site/browser.test.mjs": {
-      "sha256": "585ebc46e3649ac11446818e902105314801b50c28022c4df0f7659cd2604ef5",
+      "sha256": "bf3abb00989fb08cfc6878831dbc6248f6158397dde92051386f387cc6bb697f",
       "executable": false
     },
     "tests/operations-description.test.mjs": {

@@ -338,7 +338,7 @@ test("DOCS-001 — the built single Worker preserves public docs, Hono/R2, Start
   const lobby = await request("/", appHost, { headers: { "Sec-Fetch-Mode": "navigate" } });
   assert.equal(lobby.status, 200, "the app host's home page is the Lobby");
   assert.match(lobby.headers.get("content-type") ?? "", /text\/html/);
-  assert.match(await lobby.text(), /href="\/(?:setup|signin)"/, "the Lobby's one action is Finish setup or Sign in");
+  assert.match(await lobby.text(), /href="\/(?:setup|signin(?:\?login_hint=[^"]+)?)"/, "the Lobby's one action is Finish setup or Sign in");
   const formerLanding = await request("/lamp", appHost, { redirect: "manual" });
   assert.equal(formerLanding.status, 301);
   assert.equal(formerLanding.headers.get("location"), `${appOrigin}/`);

@@ -7,6 +7,8 @@ export interface SenderCheckOptions {
   apiKey?: string;
   mail: MailSender;
   fetcher?: typeof fetch;
+  /** A disposable demo: the provider read is a Base demoEffect answering as verified. */
+  demo?: boolean;
 }
 export const LOCAL_SENDER_NOTICE = 'Local mail is suppressed; check the sender on a hosted installation.';
 export async function senderEvidenceKey(from: string, options: Pick<SenderCheckOptions, 'local' | 'provider' | 'apiKey'>) {
@@ -50,6 +52,14 @@ function sendGridAuthenticationError(domain: string, matches: SendGridDomain[]):
  * address. Local mode cannot verify a sender. */
 export async function checkSender(from: string, _operatorEmail: string, options: SenderCheckOptions): Promise<string> {
   if (options.local) return LOCAL_SENDER_NOTICE;
+  if (!options.demo) return verifyWithProvider(from, options);
+  const { demoEffect } = await import('../../../../modules/demo/index.mjs');
+  return demoEffect(() => verifyWithProvider(from, options), () => SENDER_VERIFIED);
+}
+
+const SENDER_VERIFIED = 'Sender domain verified by your mail provider. This checks authentication, not inbox delivery.';
+
+async function verifyWithProvider(from: string, options: SenderCheckOptions): Promise<string> {
   if (!options.mail.configured) throw new Error('Configure your mail sender before checking it.');
   if (!options.apiKey || !['sendgrid', 'resend'].includes(options.provider)) throw new Error('This sender needs a supported provider credential for the verification check.');
   const domain = from.split('@')[1]?.toLowerCase();
@@ -102,5 +112,5 @@ export async function checkSender(from: string, _operatorEmail: string, options:
   if (!verified) throw new Error(options.provider === 'sendgrid'
     ? sendGridAuthenticationError(domain ?? '', sendGridMatches)
     : 'The provider has not verified this sender domain. Complete domain authentication with your mail provider, then check again.');
-  return 'Sender domain verified by your mail provider. This checks authentication, not inbox delivery.';
+  return SENDER_VERIFIED;
 }

@@ -37,10 +37,10 @@ export function demoSuggestion({ incident, whatWeKnow: { alerts, updates, compon
     ? field(latest.affectedAudience, latestRef, 250)
     : field(affected.length ? `Customers using ${list(affected.map((component) => component.name))}` : "", affected.map((component) => component.ref), 250);
   const impact = affected.length
-    ? field(affected.map((component) => `${component.name} is ${condition[component.state]}.`).join(" "), affected.map((component) => component.ref), 250)
+    ? field(affected.map((component) => `Service is ${condition[component.state]} for ${component.name}.`).join(" "), affected.map((component) => component.ref), 250)
     : field(latest?.customerImpact ?? "", latestRef, 250);
   const stillWorks = working.length
-    ? field(`${list(working.map((component) => component.name))} ${working.length > 1 ? "are" : "is"} working normally.`, working.map((component) => component.ref), 250)
+    ? field(`Service is working normally for ${list(working.map((component) => component.name))}.`, working.map((component) => component.ref), 250)
     : field(latest?.whatStillWorks ?? "", latestRef, 250);
   const signal = alerts.at(-1);
   const details = latest

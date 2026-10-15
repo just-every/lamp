@@ -241,14 +241,16 @@ test("the app host's home page is the Lobby, Finish setup before an owner is cla
   const session = await insertRealOperatorSession({ persistTo: statePath, configPath: wranglerConfig, pageSettings: false });
   d1("INSERT INTO page_settings(id,page_name,tagline,accent_color,timezone,hostname,footer_credit_enabled,mail_from_address,feed_id,created_at,updated_at) VALUES ('default','Atlas Cloud Status','Current availability and incident communications for Atlas Cloud.','#16794C','America/Los_Angeles','status.atlascloud.example',1,'lamp@localhost.invalid','test-feed-identity-00000000000001','2026-08-31','2026-08-31')");
   assert.equal(await setupState(), "unclaimed", "page setup remains incomplete after owner bootstrap");
+  // The Lobby prefills sign-in with the claimed owner's address (the session helper's operator).
+  const ownerSignIn = `/signin?login_hint=${encodeURIComponent("operator@example.test")}`;
   const bootstrapped = await lobby();
-  assert.deepEqual(bootstrapped.action, ["/signin", "Sign in"], "the claimed owner can sign in before confirming page setup");
+  assert.deepEqual(bootstrapped.action, [ownerSignIn, "Sign in"], "the claimed owner can sign in before confirming page setup");
   assert.doesNotMatch(bootstrapped.html, /setup token/, "bootstrap already retired the one-time setup token");
   const confirmed = await fetch(`${BASE}/api/app/overview/first-run`, { method: "POST", body: "{}", headers: requestHeaders({ Cookie: `${sessionCookieName(BASE)}=${session}`, "Content-Type": "application/json", Origin: BASE }) });
   assert.equal(confirmed.status, 200, await confirmed.clone().text());
   assert.equal(await setupState(), "claimed");
   const claimed = await lobby();
-  assert.deepEqual(claimed.action, ["/signin", "Sign in"], "once claimed the Lobby's one action is Sign in");
+  assert.deepEqual(claimed.action, [ownerSignIn, "Sign in"], "once claimed the Lobby's one action is Sign in");
   assert.match(claimed.html, /Atlas Cloud Status/, "the Lobby names the page the owner configured");
 
   const statusPage = await fetch(`${PAGE}/`);

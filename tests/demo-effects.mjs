@@ -39,10 +39,11 @@ export async function exerciseDemo({ origin, pageOrigin, key, cookie, fetch }) {
   assert.ok(detail, 'sample incident is editable through its public API');
   const draft = await api(`/api/app/incidents/${incident.id}/draft`, { lifecycle: 'Monitoring', affectedAudience: 'Customers running background jobs', customerImpact: 'Jobs are now completing normally.', whatStillWorks: 'The dashboard and API remain available.', details: 'We are monitoring queue recovery.', nextUpdateAt: new Date(Date.now() + 3600000).toISOString() }, 'PUT', { 'If-Match': `${detail.draft?.id ?? '-'}:${detail.updates.length}` });
   assert.equal(draft.status, 200);
+  const seeded = new Set((await api('/api/app/deliveries')).body.deliveries.map(row => row.id));
   assert.equal((await api(`/api/app/incidents/${incident.id}/publish`, { channels: ['email', 'webhook', 'chat'] }, 'POST', { 'If-Match': `${draft.body.draft.id}:${detail.updates.length}` })).status, 200);
   let deliveries;
   for (const deadline = Date.now() + 30000; ; ) {
-    deliveries = (await api('/api/app/deliveries')).body.deliveries;
+    deliveries = (await api('/api/app/deliveries')).body.deliveries.filter(row => !seeded.has(row.id));
     if (deliveries.some(row => row.channel === 'webhook' && row.outcome === 'delivered') && deliveries.some(row => row.channel === 'email' && row.providerAcceptedAt) || Date.now() >= deadline) break;
     await new Promise(resolve => setTimeout(resolve, 250));
   }
