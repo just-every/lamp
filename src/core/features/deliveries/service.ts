@@ -1,3 +1,4 @@
+import { formatTime } from "../public-snapshot/format";
 import { lampConfig } from "../../../ext/config";
 import type { DeliveryChannel, DeliveryOutcome } from "../../shared/domain";
 import { createUlid, nowIso } from "../../shared/ids";
@@ -56,12 +57,7 @@ function parseFrozenMailPayload(value: string): FrozenMailPayload {
 }
 
 function displayNotificationTime(value: string, timezone: string | null) {
-  const options: Intl.DateTimeFormatOptions = { timeZone: timezone ?? "UTC", year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit", timeZoneName: "longOffset" };
-  try {
-    return new Intl.DateTimeFormat("en-GB", options).format(new Date(value));
-  } catch {
-    return new Intl.DateTimeFormat("en-GB", { ...options, timeZone: "UTC" }).format(new Date(value));
-  }
+  return formatTime(value, timezone ?? "UTC");
 }
 
 function renderMaintenanceNotice(delivery: DispatchableDelivery) {

@@ -30,3 +30,14 @@ matching channels.
 
 Use the delivery log to review queued, delivered, bounced, complained,
 suppressed or failed notifications and filter by channel, outcome or update.
+
+For email, queued can mean the provider has already accepted the message. The
+provider-accepted timestamp records that API response; it does not prove recipient
+delivery. Without signed receipts configured, **Accepted by SendGrid** (or **Accepted by
+Resend**) is the final email status shown for a successful send. The persisted
+transport outcome remains queued; CSV includes the provider-accepted timestamp.
+SendGrid receipts use `SENDGRID_WEBHOOK_PUBLIC_KEY` or the optional signed relay;
+Resend uses `RESEND_WEBHOOK_SECRET`. Configure the selected provider's verification key
+and signed webhook in [Owner inputs](../OPERATIONS.md#owner-inputs) to receive
+delivered, bounced or complained updates. Delivered records the provider's
+delivery report, never an open or proof that a person read the message.

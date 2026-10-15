@@ -29,12 +29,17 @@ function isHardResendBounce(bounceType: string | undefined) {
 }
 
 export function registerDeliveryRoutes(app: Hono<AppEnv>, service: DeliveriesService, options: { resendWebhookSecret?: string; sendGridWebhookPublicKey?: string; relaySecret?: string; mailProvider?: "resend" | "sendgrid" } = {}) {
+  const mailProvider = options.mailProvider ?? "resend";
+  const receiptsConfigured = mailProvider === "sendgrid"
+    ? Boolean(options.sendGridWebhookPublicKey?.trim() || options.relaySecret?.trim())
+    : Boolean(options.resendWebhookSecret?.trim());
   app.get("/api/app/deliveries", async (context) => {
     const parsed = deliveriesQuerySchema.safeParse(context.req.query());
     if (!parsed.success) return context.json({ error: "Invalid delivery query.", issues: parsed.error.issues }, 400);
     const rows = await service.list({ ...parsed.data, limit: parsed.data.limit + 1 });
     return context.json({
       deliveries: rows.slice(0, parsed.data.limit),
+      mail: { provider: mailProvider, receiptsConfigured },
       limit: parsed.data.limit,
       offset: parsed.data.offset,
       hasMore: rows.length > parsed.data.limit,
@@ -44,7 +49,7 @@ export function registerDeliveryRoutes(app: Hono<AppEnv>, service: DeliveriesSer
     const parsed = deliveriesQuerySchema.safeParse(context.req.query());
     if (!parsed.success) return context.json({ error: "Invalid subscriber query.", issues: parsed.error.issues }, 400);
     const rows = await service.export(parsed.data);
-    const csv = ["destination,channel,outcome,incidentUpdateId,queuedAt,outcomeAt", ...rows.map((row) => [row.destination, row.channel, row.outcome, row.incidentUpdateId ?? null, row.queuedAt, row.outcomeAt].map(csvCell).join(","))].join("\n");
+    const csv = ["destination,channel,outcome,incidentUpdateId,queuedAt,outcomeAt,providerAcceptedAt", ...rows.map((row) => [row.destination, row.channel, row.outcome, row.incidentUpdateId ?? null, row.queuedAt, row.outcomeAt, row.providerAcceptedAt].map(csvCell).join(","))].join("\n");
     return new Response(csv, { headers: { "Content-Type": "text/csv; charset=utf-8", "Content-Disposition": "attachment; filename=lamp-deliveries.csv", "Cache-Control": "no-store" } });
   });
   app.post("/api/intake/mail-events", async (context) => {

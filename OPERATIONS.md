@@ -29,7 +29,9 @@ Hosted Lamp requires a mail provider and authenticated sender, including when
 using terminal recovery links. Supply the Cloudflare credentials, both hostnames,
 page branding, first operator email, `MAIL_FROM_ADDRESS`, `MAIL_DKIM_SELECTOR` and
 `MAIL_PROVIDER_API_KEY`. The complete [input reference](docs/deployment-reference.md#inputs-you-supply-and-values-rer-generates)
-distinguishes owner-supplied values from generated runtime secrets.
+distinguishes owner-supplied values from generated runtime secrets and uses the
+same names as the CLI. The required-input source of truth is
+`requiredEnvironment` in [OPERATIONS.json](OPERATIONS.json).
 
 Store inputs in an owned `0600` file outside the repository and pass it to every
 `rer deploy` invocation with `--env-file`, or export the same names in the calling
@@ -48,7 +50,7 @@ they do not generate them or read `--env-file` themselves.
 
 Optionally set `OWNER_DISPLAY_NAME` to the first owner's name (1–120 characters).
 It is used only when setup creates the first operator; existing owners keep their
-name and access. Without it, the native command retains its `Setup operator` name.
+name and access. Without it, the native command uses `Owner`.
 
 `MAIL_PROVIDER` selects `resend` (default, preserving existing deployments) or
 `sendgrid`. Both use `MAIL_PROVIDER_API_KEY`; map an existing provider-specific
@@ -66,8 +68,14 @@ For SendGrid set `SENDGRID_WEBHOOK_PUBLIC_KEY` to its base64 P-256 public key an
 configure the signed Event Webhook URL as
 `https://<LAMP_PAGE_HOST>/api/intake/mail-events`, with delivered, bounce, dropped
 and spamreport events enabled. For Resend, set `RESEND_WEBHOOK_SECRET` and use the
-same URL. Without the selected provider's verification key this endpoint rejects
-callbacks; API acceptance alone does not mark recipient delivery.
+same URL. Without the selected provider's verification key or the optional signed
+SendGrid relay, this endpoint rejects callbacks. The delivery log then shows
+**Accepted by SendGrid** (or **Accepted by Resend**) as the final email status
+available, with its acceptance time. CSV retains the queued transport outcome
+and provider-accepted timestamp. API acceptance alone does not mark recipient
+delivery. With the key
+and webhook configured, signed receipts can report delivered, bounced or
+complained; a delivered report does not prove that a person read the email.
 
 SendGrid requests explicitly disable click, open, subscription and analytics
 tracking. Verify the received message has no added tracking and that DKIM's `h=`
@@ -182,8 +190,10 @@ The ledger contains opaque hashes/IDs and state, not message bodies or credentia
 
 Resend keeps its existing frozen-envelope idempotency behavior. In either provider,
 queued means pending or accepted without a delivery receipt; it does not mean
-mailbox delivery. Retain the D1/R2 archive and the private deployment inputs for
-recovery. No remote restore or provider acceptance is implied by local verification.
+mailbox delivery. If no receipt verification key is configured, a successful
+send retains queued in storage and shows provider acceptance as its final
+status in Deliveries. The optional signed SendGrid relay also enables receipts.
+Retain the D1/R2 archive and the private deployment inputs for recovery. No remote restore or provider acceptance is implied by local verification.
 
 ## Portable backups and restore
 
@@ -425,7 +435,7 @@ The minute cron sends an empty GET only on the heartbeat interval grid, after sc
 
 ## Shared operator authentication
 
-The checkout pins `@runeditrun/rer` 0.2.20. For hosted owner entry without email,
+The checkout pins `@runeditrun/rer` 0.2.21. For hosted owner entry without email,
 run this from the deploying checkout using the original account and environment:
 
 ```sh
@@ -439,7 +449,7 @@ does not save it, and sends no mail. Open it privately within 15 minutes. The
 grant is single-use and its use is audited. Retain the deploying checkout and its
 deployment records. An older installation needs additive migration
 `0023_owner_signin.sql` applied by redeployment before this command can issue a
-grant. `rer signin` 0.2.20 targets the default `lamp-<environment>` prefix; for a
+grant. `rer signin` 0.2.21 targets the default `lamp-<environment>` prefix; for a
 custom `LAMP_RESOURCE_PREFIX`, use the compatibility command below with that
 installation's generated configuration.
 Hosted mail remains mandatory for normal email sign-in and subscriber messages.

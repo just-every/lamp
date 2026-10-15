@@ -8,7 +8,13 @@ import { ListPagination } from "../../../app/client/ui/pagination";
 import { LoadingState, useOperatorTime } from "../../../app/client/ui/states";
 import { EmptyState, ErrorState } from "../../../app/client/ui/lit-states";
 
-type DeliveriesResponse = { deliveries: Awaited<ReturnType<DeliveriesService["list"]>>; limit: number; offset: number; hasMore: boolean };
+type DeliveriesResponse = {
+  deliveries: Awaited<ReturnType<DeliveriesService["list"]>>;
+  limit: number;
+  offset: number;
+  hasMore: boolean;
+  mail: { provider: "resend" | "sendgrid"; receiptsConfigured: boolean };
+};
 
 export function DeliveriesPage() {
   const formatOperatorTime = useOperatorTime();
@@ -26,6 +32,47 @@ export function DeliveriesPage() {
   if (channel) csvSearch.set("channel", channel);
   if (outcome) csvSearch.set("outcome", outcome);
   const csvHref = `/api/app/deliveries.csv?${csvSearch.toString()}`;
+  const providerName = data.mail.provider === "sendgrid" ? "SendGrid" : "Resend";
   function resetFilters(next: () => void) { next(); setOffset(0); }
-  return <div className="page-stack"><section className="page-title-row"><div><p className="eyebrow">Notification audit</p><h1>Deliveries</h1><p>Persisted transport outcomes, never reader tracking.</p></div><a className="quiet-link delivery-export" href={csvHref}>Export CSV <Icon name="external" width={15} height={15} /></a></section><section className="capability-note"><Icon name="warning" width={18} height={18} /><div><strong>Delivery records are read-only.</strong><p>Outcomes are queued, delivered, bounced, complained, suppressed, or failed; Lamp never records an opened outcome. Queued email may already be accepted by the provider; only a signed receipt marks it delivered. CSV export includes every matching record.</p></div></section><section className="data-card subscriber-table-card"><div className="list-controls"><label>Channel<select value={channel} onChange={(event) => resetFilters(() => setChannel(event.target.value as DeliveryChannel | ""))}><option value="">All channels</option>{DELIVERY_CHANNELS.map((value) => <option key={value}>{value}</option>)}</select></label><label>Outcome<select value={outcome} onChange={(event) => resetFilters(() => setOutcome(event.target.value as DeliveryOutcome | ""))}><option value="">All outcomes</option>{DELIVERY_OUTCOMES.map((value) => <option key={value}>{value}</option>)}</select></label></div><div className="table-scroll" tabIndex={0} role="region" aria-label="Delivery records"><table><thead><tr><th scope="col">Destination</th><th scope="col">Channel</th><th scope="col">Outcome</th><th scope="col">Queued</th><th scope="col">Outcome time</th></tr></thead><tbody>{data.deliveries.map((delivery) => <tr key={delivery.id}><td><strong>{delivery.destination}</strong><small>{delivery.subscriberState} subscriber</small></td><td>{delivery.channel}</td><td><span className={`state-pill state-${delivery.outcome}`}>{delivery.outcome}</span>{delivery.providerAcceptedAt ? <small>Provider accepted {formatOperatorTime(delivery.providerAcceptedAt)}{delivery.outcome === "queued" ? " · awaiting delivery receipt" : ""}</small> : null}{delivery.latestError && (delivery.outcome === "failed" || delivery.outcome === "queued") ? <small>{delivery.latestError}</small> : null}</td><td>{formatOperatorTime(delivery.queuedAt)}</td><td>{formatOperatorTime(delivery.outcomeAt)}</td></tr>)}</tbody></table></div>{data.deliveries.length === 0 ? <EmptyState>No delivery records match these filters.</EmptyState> : <ListPagination label="Delivery" offset={data.offset} shown={data.deliveries.length} hasMore={data.hasMore} onPrevious={() => setOffset((current) => Math.max(0, current - data.limit))} onNext={() => setOffset((current) => current + data.limit)} />}</section></div>;
+  return <div className="page-stack">
+    <section className="page-title-row">
+      <div><p className="eyebrow">Notification audit</p><h1>Deliveries</h1><p>Persisted transport outcomes, never reader tracking.</p></div>
+      <a className="quiet-link delivery-export" href={csvHref}>Export CSV <Icon name="external" width={15} height={15} /></a>
+    </section>
+    <section className="capability-note">
+      <Icon name="warning" width={18} height={18} />
+      <div>
+        <strong>Delivery records are read-only.</strong>
+        <p>{data.mail.receiptsConfigured
+          ? "Queued email may already be accepted by the provider; only a signed receipt marks it delivered."
+          : `Accepted by ${providerName} is the final email status available here because signed delivery receipts are not configured. Acceptance does not confirm inbox delivery.`} Lamp never records an opened outcome. CSV export includes every matching record, with persisted outcomes and provider acceptance times.</p>
+      </div>
+    </section>
+    <section className="data-card subscriber-table-card">
+      <div className="list-controls">
+        <label>Channel<select value={channel} onChange={(event) => resetFilters(() => setChannel(event.target.value as DeliveryChannel | ""))}><option value="">All channels</option>{DELIVERY_CHANNELS.map((value) => <option key={value}>{value}</option>)}</select></label>
+        <label>Outcome<select value={outcome} onChange={(event) => resetFilters(() => setOutcome(event.target.value as DeliveryOutcome | ""))}><option value="">All outcomes</option>{DELIVERY_OUTCOMES.map((value) => <option key={value} value={value}>{value === "queued" && channel !== "webhook" && !data.mail.receiptsConfigured ? "queued / accepted" : value}</option>)}</select></label>
+      </div>
+      <div className="table-scroll" tabIndex={0} role="region" aria-label="Delivery records">
+        <table>
+          <thead><tr><th scope="col">Destination</th><th scope="col">Channel</th><th scope="col">Outcome</th><th scope="col">Queued</th><th scope="col">Outcome time</th></tr></thead>
+          <tbody>{data.deliveries.map((delivery) => {
+            const acceptedWithoutReceipt = delivery.channel === "email" && delivery.outcome === "queued" && Boolean(delivery.providerAcceptedAt) && !data.mail.receiptsConfigured;
+            return <tr key={delivery.id}>
+              <td><strong>{delivery.destination}</strong><small>{delivery.subscriberState} subscriber</small></td>
+              <td>{delivery.channel}</td>
+              <td>
+                <span className={`state-pill state-${acceptedWithoutReceipt ? "accepted" : delivery.outcome}`}>{acceptedWithoutReceipt ? `Accepted by ${providerName}` : delivery.outcome}</span>
+                {delivery.providerAcceptedAt ? <small>Provider accepted {formatOperatorTime(delivery.providerAcceptedAt)}{delivery.outcome === "queued" && data.mail.receiptsConfigured ? " · awaiting delivery receipt" : ""}</small> : null}
+                {delivery.latestError && (delivery.outcome === "failed" || delivery.outcome === "queued") ? <small>{delivery.latestError}</small> : null}
+              </td>
+              <td>{formatOperatorTime(delivery.queuedAt)}</td>
+              <td>{formatOperatorTime(acceptedWithoutReceipt ? delivery.providerAcceptedAt : delivery.outcomeAt)}</td>
+            </tr>;
+          })}</tbody>
+        </table>
+      </div>
+      {data.deliveries.length === 0 ? <EmptyState>No delivery records match these filters.</EmptyState> : <ListPagination label="Delivery" offset={data.offset} shown={data.deliveries.length} hasMore={data.hasMore} onPrevious={() => setOffset((current) => Math.max(0, current - data.limit))} onNext={() => setOffset((current) => current + data.limit)} />}
+    </section>
+  </div>;
 }

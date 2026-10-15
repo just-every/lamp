@@ -86,6 +86,25 @@ async function operatorApi(path, method = "GET", body) {
   return response.json();
 }
 
+test("Subscriber erasure requires confirmation and offers no repeated removal", async () => {
+  const destination = "https://notify.example.test/lamp";
+  const { subscriber } = await operatorApi("/api/app/subscribers/webhook", "POST", { destination, contactEmail: "ops@example.test", componentIds: [] });
+  await page.goto(`${origin}/app/subscribers`);
+  const row = page.getByRole("row").filter({ hasText: destination });
+  await row.getByRole("button", { name: "Remove", exact: true }).waitFor();
+  page.once("dialog", dialog => dialog.dismiss());
+  await row.getByRole("button", { name: "Remove", exact: true }).click();
+  assert.equal((await operatorApi("/api/app/subscribers")).subscribers.some(item => item.id === subscriber.id && item.destination === destination), true, "cancel leaves the destination intact");
+  page.once("dialog", dialog => dialog.accept());
+  await row.getByRole("button", { name: "Remove", exact: true }).click();
+  const erased = page.getByRole("row").filter({ hasText: `deleted:${subscriber.id}` });
+  await erased.waitFor();
+  assert.equal(await erased.getByRole("button", { name: "Remove", exact: true }).count(), 0);
+  const saved = (await operatorApi("/api/app/subscribers")).subscribers.find(item => item.id === subscriber.id);
+  assert.equal(saved.contactEmail, null);
+  assert.equal(saved.state, "deactivated");
+});
+
 const audienceField = target => target.locator("label", { hasText: "Who is affected" }).locator("textarea");
 const impactField = target => target.locator("label", { hasText: "What is the impact" }).locator("textarea");
 

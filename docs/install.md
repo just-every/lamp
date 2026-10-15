@@ -1,6 +1,6 @@
 # Install Lamp
 
-Lamp uses the checkout's pinned `@runeditrun/rer` 0.2.20 and can run locally or
+Lamp uses the checkout's pinned `@runeditrun/rer` 0.2.21 and can run locally or
 in your Cloudflare account. For the local path, follow
 [Run it locally](../RUN-LOCALLY.md): `rer dev` installs dependencies,
 sets up the first owner and starts Lamp. Local mail is silently suppressed and
@@ -39,3 +39,7 @@ DKIM aligned to the From domain so DMARC can pass through DKIM.
 The DNS check does not send mail or prove delivery, alignment in a sent message,
 or DKIM header coverage. After deployment, verify a received message and the
 [provider receipt configuration](../OPERATIONS.md#owner-inputs).
+
+For SendGrid, the key used by **Check mail sender** also needs authenticated-domain
+read permission (`whitelabel.read`). Lamp searches all matching domain pages and
+shows the provider's outstanding DNS records when authentication is incomplete.

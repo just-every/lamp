@@ -30,11 +30,16 @@ LAMP_PAGE_TAGLINE=Service updates for Acme customers
 LAMP_PAGE_TIMEZONE=Europe/London
 LAMP_ACCENT_COLOR=#16794C
 SETUP_OPERATOR_EMAIL=owner@example.com
+OWNER_DISPLAY_NAME=Alex Morgan
 MAIL_PROVIDER=sendgrid
 MAIL_FROM_ADDRESS=status@example.com
 MAIL_DKIM_SELECTOR=s1
 MAIL_PROVIDER_API_KEY=your-mail-provider-api-key
 ```
+
+`OWNER_DISPLAY_NAME` sets the first owner's name and defaults to `Owner` when
+omitted. It does not rename an existing owner. The [input reference](deployment-reference.md#inputs-you-supply-and-values-rer-generates)
+uses the same input names as the CLI's required-input list.
 
 For `workers.dev`, replace the two hostnames and add `LAMP_HOSTING=workers-dev`
 using [Find your workers.dev hostnames](deployment-reference.md#find-your-workersdev-hostnames).
@@ -72,7 +77,7 @@ without `--env-file`. Do not commit inputs or paste secret values into logs.
 
 ## Validate and deploy
 
-Use `rer` from the project root; the checkout pins `@runeditrun/rer` 0.2.20. Before a
+Use `rer` from the project root; the checkout pins `@runeditrun/rer` 0.2.21. Before a
 command that builds or verifies the checkout, stop a running development server
 with `rer dev --stop` or a production preview with `rer preview --stop`.
 
@@ -96,7 +101,13 @@ run the full verifier; use `rer verify` separately for source and browser checks
 
 Afterward, check the public page and operator email sign-in on their selected
 hosts. Verify a received subscription or incident email and signed provider
-receipts separately; a healthy Worker does not prove inbox delivery.
+receipts separately; a healthy Worker does not prove inbox delivery. To receive
+verified delivery or bounce updates, also configure `SENDGRID_WEBHOOK_PUBLIC_KEY`
+or `RESEND_WEBHOOK_SECRET` and the provider webhook as described in
+[Owner inputs](../OPERATIONS.md#owner-inputs). Without that key or the optional signed SendGrid relay, provider acceptance
+is the final evidence Lamp can record for a successful send; the delivery log
+shows **Accepted by SendGrid** (or **Accepted by Resend**) with the acceptance
+time. The persisted transport outcome in CSV remains queued.
 
 To enter the hosted owner account from the deploying checkout without waiting
 for email, run:

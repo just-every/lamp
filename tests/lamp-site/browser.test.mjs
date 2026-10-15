@@ -223,7 +223,7 @@ const lobby = async () => {
 };
 const setupState = async () => (await (await fetch(`${BASE}/setup/state`)).json()).state;
 
-test("the app host's home page is the Lobby, Finish setup until the owner confirms first-run setup and Sign in after; the page host's is the status page; /lamp redirects home", async () => {
+test("the app host's home page is the Lobby, Finish setup before an owner is claimed and Sign in immediately after bootstrap; the page host's is the status page; /lamp redirects home", async () => {
   assert.equal(await setupState(), "unclaimed");
   const waiting = await lobby();
   assert.deepEqual(waiting.action, ["/setup", "Finish setup"], "before the claim the Lobby's one action is Finish setup");
@@ -237,10 +237,13 @@ test("the app host's home page is the Lobby, Finish setup until the owner confir
   assert.equal(counts.owners, 0, "homepage and public reads create no owner");
   assert.equal(counts.settings, 0, "homepage and public reads create no page settings");
 
-  // The owner confirms first-run setup as /setup does: the page saved, then first run completed.
+  // Bootstrap claims the owner before the page's separate first-run confirmation.
   const session = await insertRealOperatorSession({ persistTo: statePath, configPath: wranglerConfig, pageSettings: false });
   d1("INSERT INTO page_settings(id,page_name,tagline,accent_color,timezone,hostname,footer_credit_enabled,mail_from_address,feed_id,created_at,updated_at) VALUES ('default','Atlas Cloud Status','Current availability and incident communications for Atlas Cloud.','#16794C','America/Los_Angeles','status.atlascloud.example',1,'lamp@localhost.invalid','test-feed-identity-00000000000001','2026-08-31','2026-08-31')");
-  assert.equal(await setupState(), "unclaimed", "an owner and a saved page are not yet a claim");
+  assert.equal(await setupState(), "unclaimed", "page setup remains incomplete after owner bootstrap");
+  const bootstrapped = await lobby();
+  assert.deepEqual(bootstrapped.action, ["/signin", "Sign in"], "the claimed owner can sign in before confirming page setup");
+  assert.doesNotMatch(bootstrapped.html, /setup token/, "bootstrap already retired the one-time setup token");
   const confirmed = await fetch(`${BASE}/api/app/overview/first-run`, { method: "POST", body: "{}", headers: requestHeaders({ Cookie: `${sessionCookieName(BASE)}=${session}`, "Content-Type": "application/json", Origin: BASE }) });
   assert.equal(confirmed.status, 200, await confirmed.clone().text());
   assert.equal(await setupState(), "claimed");

@@ -1311,3 +1311,16 @@ retain the explicit manual retirement procedure.
 Ordinary development keeps `/__dev/outbox` as a 200 diagnostic explaining silent
 mail suppression. It stores and displays no mail, adds no injected viewer or bar,
 and is unavailable in demo and production.
+
+## Release readiness
+
+An owner claimed during deployment can sign in immediately, before confirming
+the page's separate first-run settings. A spent bootstrap token is never an
+operator-entry requirement. Accepted email is shown as accepted by the selected
+provider when signed receipts are not configured; only signed provider events
+establish delivery or bounce. Subscriber erasure requires confirmation, and an
+erased destination offers no further removal action.
+
+The checkout pins rer 0.2.21 with a dependency patch that reports missing mail
+inputs using the deploy declaration's environment names. Its runtime bindings
+remain mapped to Lamp's documented owner inputs.

@@ -74,7 +74,7 @@ export function createAppServices(bindings: AppBindings, blobs: BlobStore, execu
   }, extensions.updateReviewPolicy,
   async ({ incidentId, draftId, scheduledPublishAt }) => deliveries.queueOperatorAlert({ eventId: `scheduled-review/${draftId}/${scheduledPublishAt}`, title: "Lamp held a scheduled incident update for review", text: `Scheduled update for incident ${incidentId} requires review by another operator before it can publish.` }),
   extensions.updateDuePolicy,
-  { events: extensions.events, formatPreviewTimestamp, afterPublished: async (update) => {
+  { events: extensions.events, formatPreviewTimestamp, formatPreviewSubject: async (subject) => `${await configuredPageName()}: ${subject}`, afterPublished: async (update) => {
     const results = await Promise.allSettled([
       notificationOrigin(bindings).then(origin => deliveries.dispatchEvent(update.id, origin)),
       channels.dispatchPending(),

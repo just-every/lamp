@@ -68,6 +68,7 @@ export interface IncidentRuntimeHooks {
   events?: Pick<LampEventDispatcher, "incidentOpened" | "incidentUpdatePublished" | "incidentResolved">;
   /** After publication: dispatch its durable subscriber and channel notifications. */
   afterPublished?: (update: StoredIncidentUpdate) => Promise<void>;
+  formatPreviewSubject?: (subject: string) => Promise<string> | string;
   formatPreviewTimestamp?: (timestamp: string) => Promise<string> | string;
 }
 
@@ -206,7 +207,9 @@ export function createIncidentsService(
       const incident = await repository.findIncident(incidentId);
       if (!incident) return null;
       const nextUpdateDisplay = input.nextUpdateAt ? await runtime.formatPreviewTimestamp?.(input.nextUpdateAt) : null;
-      return renderIncidentUpdate({ incidentReference: incident.reference, incidentTitle: incident.title, ...input, nextUpdateDisplay });
+      const rendered = renderIncidentUpdate({ incidentReference: incident.reference, incidentTitle: incident.title, ...input, nextUpdateDisplay });
+      if (runtime.formatPreviewSubject) rendered.email.subject = await runtime.formatPreviewSubject(rendered.email.subject);
+      return rendered;
     },
     async create(input, operatorId) {
       if (!input.title.trim() || input.title.length > 250) throw new Error("Incident title is required and must be at most 250 characters.");
