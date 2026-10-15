@@ -11,7 +11,7 @@
   "operations": {
     "setup": "bash scripts/independent-build-setup.sh",
     "build": "pnpm run build",
-    "verify": "pnpm run verify",
+    "verify": "pnpm run validate:release && pnpm run check -- --profile first-party && pnpm run source:check && pnpm run source:copies",
     "artifact": "node scripts/build-delivery-artifact.mjs",
     "recovery": "Follow OPERATIONS.md: pause writes and scheduled work, retain exact source and private secrets, export D1 and R2, restore into fresh empty resources, re-export and compare bytes, then verify native sessions and publication before routing traffic. SnapshotCache is derived from retained R2 generation; existing migration names and bytes must remain unchanged."
   },

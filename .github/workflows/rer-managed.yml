@@ -21,7 +21,7 @@ on:
         required: true
         default: full
         type: choice
-        options: [full, visual]
+        options: [full]
 permissions:
   contents: read
   actions: read
@@ -35,4 +35,4 @@ jobs:
       environment: ${{ inputs.environment }}
       verification_profile: ${{ inputs.verification_profile }}
       artifact_file: 'lamp-worker-artifact.json'
-      build_profile: 'edition'
+      build_profile: 'project'
