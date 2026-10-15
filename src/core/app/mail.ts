@@ -3,9 +3,13 @@ import { developmentMail, ResendMailSender, SendGridMailSender, createMailSendRe
 
 export type MailExecution = Request | 'background';
 
+export function isLocalMailExecution(bindings: AppBindings): boolean {
+  return bindings.RER_DEMO === '1' || Boolean(import.meta.env.DEV && bindings.RER_DEV_KEY && bindings.RER_DEV_ORIGIN);
+}
+
 // Session material is installation-local, including in each disposable demo.
 export async function prepareAppMailBindings(bindings: AppBindings, _execution?: MailExecution): Promise<AppBindings> {
-  if (bindings.RER_DEMO !== '1' && !(import.meta.env.DEV && bindings.RER_DEV_KEY && bindings.RER_DEV_ORIGIN)) return bindings;
+  if (!isLocalMailExecution(bindings)) return bindings;
   if (!bindings.SESSION_SECRET) return bindings;
   return { ...bindings, SUBSCRIBER_TOKEN_SECRET: bindings.SUBSCRIBER_TOKEN_SECRET || bindings.SESSION_SECRET,
     WEBHOOK_SIGNING_SECRET: bindings.WEBHOOK_SIGNING_SECRET || bindings.SESSION_SECRET };
@@ -22,7 +26,7 @@ export function createAppMailTransport(bindings: AppBindings, extension: MailSen
       return demoEffect(() => real.send(message), () => ({ providerMessageId: `demo-${message.idempotencyKey}`, disposition: 'accepted' as const }));
     },
   } };
-  if (import.meta.env.DEV && bindings.RER_DEV_KEY && bindings.RER_DEV_ORIGIN) return { sender: developmentMail(), local: true };
+  if (isLocalMailExecution(bindings)) return { sender: developmentMail(), local: true };
   return { sender: real, local: false };
 }
 

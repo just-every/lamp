@@ -274,6 +274,10 @@ test("SUB-004 SUB-006 SUB-007 SUB-005 PAGE-013 SUB-012 SUB-008 — Scoped subscr
     const response = await call(`/incidents/${incidentId}/publish`, "POST", { channels, ...(historical ? { publishedAt: "2026-09-01T00:00:00.000Z" } : {}) }, { "If-Match": `${draft.id}:${before.updates.length}` });
     assert.equal(response.status,200); await Promise.all(pending.splice(0)); return (await response.json()).update;
   };
+  const previewAttachment = async (incidentId,componentId) => {
+    const response = await call(`/incidents/${incidentId}/components/preview`, "POST", { action: "attach", componentId, state: "Partially unavailable", relationship: "Dependent" });
+    assert.equal(response.status,200); return (await response.json()).preview;
+  };
   const attach = (incidentId,componentId) => call(`/incidents/${incidentId}/components`, "POST", { componentId, state: "Partially unavailable", relationship: "Dependent" });
   const deliveriesFor = async (incidentId) => (await db.prepare("SELECT d.subscriber_id AS subscriberId,d.incident_update_id AS updateId FROM notification_deliveries d JOIN incident_updates u ON u.id=d.incident_update_id WHERE u.incident_id=?").bind(incidentId).all()).results;
   const incident = await create(origin);
@@ -288,9 +292,16 @@ test("SUB-004 SUB-006 SUB-007 SUB-005 PAGE-013 SUB-012 SUB-008 — Scoped subscr
   const lateAll = createUlid();
   await db.prepare("INSERT INTO subscribers (id,channel,destination,state,selection_mode,token_hash,created_at,updated_at) VALUES (?,'email','catchup-late-all@example.test','active','all',?,?,?)").bind(lateAll,createUlid(),now,now).run();
   await deliveryService.dispatchEvent(latest.id,"https://status.example.test");
+  const beforePreview = await deliveriesFor(incident.id);
+  const preview = await previewAttachment(incident.id,audience);
+  assert.equal(preview.emailRecipients,2,"only the newly eligible selected and all-components subscribers count, excluding older receipts and non-active subscribers");
+  assert.equal(preview.webhookRecipients,0,"latest update did not select webhooks");
+  assert.deepEqual(await deliveriesFor(incident.id),beforePreview,"preview commits no notifications");
+  assert.equal((await (await call(`/incidents/${incident.id}`)).json()).incident.components.some((claim) => claim.componentId === audience),false,"preview attaches nothing");
   const attached = await Promise.all([attach(incident.id,audience),attach(incident.id,audience)]);
   assert.deepEqual(attached.map((response) => response.status).sort(),[201,409]);
   let rows = await deliveriesFor(incident.id);
+  assert.equal(rows.length-beforePreview.length,preview.emailRecipients+preview.webhookRecipients,"preview matches the atomic catch-up recipient set");
   assert.deepEqual(rows.filter((row) => row.subscriberId === lateAll).map((row) => row.updateId),[latest.id],"a newly active all-components subscriber catches up on attachment");
   assert.deepEqual(rows.filter((row) => row.subscriberId === readers.new).map((row) => row.updateId),[latest.id]);
   for (const label of ["pending","inactive","internal","webhook"]) assert.equal(rows.some((row) => row.subscriberId === readers[label]),false,label);
@@ -311,11 +322,13 @@ test("SUB-004 SUB-006 SUB-007 SUB-005 PAGE-013 SUB-012 SUB-008 — Scoped subscr
   for (const [componentId,historical] of [[internal,false],[origin,true]]) {
     const hidden = await create(componentId);
     await publish(hidden.id,"Private or historical record",["email"],historical);
+    assert.equal((await previewAttachment(hidden.id,audience)).emailRecipients,0,"private or historical updates have no preview recipients");
     assert.equal((await attach(hidden.id,audience)).status,201);
     assert.equal((await deliveriesFor(hidden.id)).some((row) => row.subscriberId === readers.new),false,"internal-only and historical updates must never be disclosed by attachment");
   }
   const silent = await create(origin);
   await publish(silent.id,"Page-only publication",[]);
+  assert.equal((await previewAttachment(silent.id,audience)).emailRecipients,0,"page-only updates have no preview recipients");
   assert.equal((await attach(silent.id,audience)).status,201);
   assert.deepEqual(await deliveriesFor(silent.id),[],"catch-up honors an update with no subscriber channels selected");
   const templated = await create(origin,"Degraded performance");
@@ -350,6 +363,9 @@ test("SUB-004 SUB-006 SUB-007 SUB-005 PAGE-013 SUB-012 SUB-008 — Scoped subscr
   assert.deepEqual(rows.filter((row) => row.subscriberId === readers.previous).map((row) => row.updateId).sort(),[templateUpdate.id,publishedTemplate.id].sort(),"existing recipients continue receiving normal updates");
   for (const label of ["pending","inactive","internal","webhook"]) assert.equal(rows.some((row) => row.subscriberId === readers[label]),false,label);
   const unpublished = await create(origin);
+  const draftPreview = await previewAttachment(unpublished.id,audience);
+  assert.equal(draftPreview.published,false);
+  assert.equal(draftPreview.emailRecipients,0);
   assert.equal((await attach(unpublished.id,audience)).status,201);
   assert.deepEqual(await deliveriesFor(unpublished.id),[]);
 

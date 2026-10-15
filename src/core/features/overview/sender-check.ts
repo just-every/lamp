@@ -1,5 +1,4 @@
 import type { MailSender } from '../../platform/mail';
-import { createUlid } from '../../shared/ids';
 import { hashOpaqueToken } from '../../platform/security/opaque-tokens';
 
 export interface SenderCheckOptions {
@@ -9,6 +8,7 @@ export interface SenderCheckOptions {
   mail: MailSender;
   fetcher?: typeof fetch;
 }
+export const LOCAL_SENDER_NOTICE = 'Local mail is suppressed; check the sender on a hosted installation.';
 export async function senderEvidenceKey(from: string, options: Pick<SenderCheckOptions, 'local' | 'provider' | 'apiKey'>) {
   return hashOpaqueToken(JSON.stringify([from, options.local ? 'local' : options.provider, options.local ? '' : options.apiKey ?? '']));
 }
@@ -47,13 +47,10 @@ function sendGridAuthenticationError(domain: string, matches: SendGridDomain[]):
 }
 
 /** Read provider authentication status, never infer verification from a saved
- * address. Local mode completes the send without retaining mail. */
-export async function checkSender(from: string, operatorEmail: string, options: SenderCheckOptions): Promise<string> {
+ * address. Local mode cannot verify a sender. */
+export async function checkSender(from: string, _operatorEmail: string, options: SenderCheckOptions): Promise<string> {
+  if (options.local) return LOCAL_SENDER_NOTICE;
   if (!options.mail.configured) throw new Error('Configure your mail sender before checking it.');
-  if (options.local) {
-    await options.mail.send({ from, to: operatorEmail, subject: 'Lamp sender check', text: 'Lamp sender check.', headers: { 'Auto-Submitted': 'auto-generated' }, idempotencyKey: `setup-sender/${createUlid()}` });
-    return 'Sender check complete.';
-  }
   if (!options.apiKey || !['sendgrid', 'resend'].includes(options.provider)) throw new Error('This sender needs a supported provider credential for the verification check.');
   const domain = from.split('@')[1]?.toLowerCase();
   const fetcher = options.fetcher ?? fetch;

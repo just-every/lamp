@@ -1,3 +1,4 @@
+import { previewComponentChange } from "./component-change-repository";
 import { activeIncidentGuard, attachClaimStatements, publicationComponentsGuard, writeClaimBatch, type AttachedIncidentComponent } from "./component-claims";
 import type { UpdateChannel } from "../../shared/domain";
 import { and, desc, eq, isNull } from "drizzle-orm";
@@ -74,6 +75,7 @@ export interface IncidentPublishRecord {
 }
 
 export interface IncidentRepository {
+  previewComponentChange(incidentId: string, componentId: string): Promise<{ remainingStates: ComponentState[]; emailRecipients: number; webhookRecipients: number }>;
   attachComponent(claim: AttachedIncidentComponent, recipients: D1PreparedStatement[]): Promise<void>;
   detachComponent(incidentId: string, componentId: string, timestamp: string, eventId: string): Promise<void>;
   listIncidents(): Promise<StoredIncident[]>;
@@ -127,6 +129,7 @@ export function createIncidentRepository(binding: D1Database): IncidentRepositor
   };
 
   return {
+    previewComponentChange: (incidentId, componentId) => previewComponentChange(binding, incidentId, componentId),
     async attachComponent(claim, recipients) {
       await writeClaimBatch(binding, [
         activeIncidentGuard(binding, claim.incidentId),

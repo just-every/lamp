@@ -216,6 +216,12 @@ export async function populate(mf, source, mail) {
     ),
   );
   const preview = await c.api("/api/app/statuspage-import/preview", { files });
+  const version = JSON.parse(
+    await readFile(join(source, "RELEASE.json"), "utf8"),
+  ).version;
+  const [major, minor] = version.split(".").map(Number);
+  const explicitInvitations = major > 1 || (major === 1 && minor >= 4);
+  const beforeImport = mail.length;
   let imported = await c.api("/api/app/statuspage-import/apply", {
     files,
     asOf: preview.report.asOf,
@@ -225,7 +231,8 @@ export async function populate(mf, source, mail) {
   for (
     let n = 0;
     n < 80 &&
-    (imported.job.state === "applying" || imported.invites.remaining > 0);
+    (imported.job.state === "applying" ||
+      (!explicitInvitations && imported.invites.remaining > 0));
     n++
   )
     imported = await c.api(
@@ -233,7 +240,16 @@ export async function populate(mf, source, mail) {
       {},
     );
   assert.equal(imported.job.state, "completed");
-  // The published previous release sends invitations during apply/resume.
+  if (explicitInvitations) {
+    assert.equal(mail.length, beforeImport, "import apply/resume sends no invitations");
+    assert.ok(imported.invites.remaining > 0, "import leaves invitations for an explicit owner action");
+    for (let n = 0; n < 80 && imported.invites.remaining > 0; n++)
+      imported = await c.api(
+        `/api/app/statuspage-import/jobs/${imported.job.id}/send-invitations`,
+        {},
+      );
+    assert.ok(mail.length > beforeImport, "the explicit action sends imported subscriber invitations");
+  }
   assert.equal(imported.invites.remaining, 0);
   // A provider's ambiguous accepted send cannot be manufactured through a happy
   // path. Seed this legitimate persisted edge state to guard against replay.

@@ -116,7 +116,8 @@ export default withDemo({
     // arrives, even before Cloudflare starts Cron. This runs no mail work.
     if (url.pathname === "/health") {
       try {
-        if (await createSetupRepository(bindings.DB).pageConfigured()) await runtime.services.publicSnapshots.retryPendingBuild();
+        if (!await runtime.services.publicSnapshots.hasCurrentSnapshot()
+          && await createSetupRepository(bindings.DB).pageConfigured()) await runtime.services.publicSnapshots.retryPendingBuild();
       } catch {
         return Response.json({ status: "unavailable", reason: "Public snapshot readiness failed." }, { status: 503 });
       }

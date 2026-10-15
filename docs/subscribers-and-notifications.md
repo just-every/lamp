@@ -5,6 +5,17 @@ link and become active only after confirming. A pending address expires after
 72 hours. Subscribers can manage their component selection or unsubscribe from
 their emailed link.
 
+## Process email unsubscribe requests
+
+Use a From address whose mailbox you monitor. Some mail clients send their
+unsubscribe request to that address using the notification's `mailto:` option.
+Lamp does not read incoming mail. When a request arrives, open **Subscribers**,
+find its destination, choose **Remove**, and confirm the removal. Process these
+requests promptly; the address stays subscribed until you remove it.
+
+The HTTPS one-click List-Unsubscribe option works automatically and needs no
+operator action. Every email also includes a visible unsubscribe link.
+
 ## Choose what each subscriber follows
 
 Subscribers can follow selected components. A subscription that has never been

@@ -26,7 +26,22 @@ export interface IncidentView extends StoredIncident {
 
 export class InvalidIncidentUpdateError extends Error {}
 
+export type IncidentComponentChange =
+  | { action: "attach"; componentId: string; state: ComponentState; relationship: "Primary" | "Dependent" }
+  | { action: "detach"; componentId: string };
+
+export interface IncidentComponentChangePreview {
+  published: boolean;
+  componentName: string;
+  internal: boolean;
+  previousState: ComponentState;
+  nextState: ComponentState;
+  emailRecipients: number;
+  webhookRecipients: number;
+}
+
 export interface IncidentsService {
+  previewComponentChange(incidentId: string, change: IncidentComponentChange): Promise<IncidentComponentChangePreview>;
   attachComponent(incidentId: string, claim: { componentId: string; state: ComponentState; relationship: "Primary" | "Dependent" }, operatorId: string): Promise<void>;
   detachComponent(incidentId: string, componentId: string, operatorId: string): Promise<void>;
   list(): Promise<IncidentView[]>;
@@ -164,6 +179,26 @@ export function createIncidentsService(
   };
 
   return {
+    async previewComponentChange(incidentId, change) {
+      const [incident, component, attached, updates] = await Promise.all([
+        repository.findIncident(incidentId), componentsService.get(change.componentId),
+        repository.listComponents(incidentId), repository.listUpdates(incidentId),
+      ]);
+      if (!incident || incident.lifecycle === "Resolved") throw new Error("Only an unresolved incident can change its affected components.");
+      if (!component) throw new Error("Component not found.");
+      const exists = attached.some((claim) => claim.componentId === component.id);
+      if (change.action === "attach" ? exists : !exists) throw new Error(change.action === "attach" ? "Component is already attached." : "Component is not attached.");
+      const published = updates.length > 0;
+      const preview = await repository.previewComponentChange(incidentId, component.id);
+      return {
+        published, componentName: component.name, internal: component.internal,
+        previousState: component.publicState,
+        nextState: !published ? component.publicState : change.action === "attach"
+          ? mostSevereState([component.publicState, change.state]) : mostSevereState(preview.remainingStates),
+        emailRecipients: change.action === "attach" && published ? preview.emailRecipients : 0,
+        webhookRecipients: change.action === "attach" && published ? preview.webhookRecipients : 0,
+      };
+    },
     async attachComponent(incidentId, claim, operatorId) {
       const [incident, component] = await Promise.all([repository.findIncident(incidentId), componentsService.get(claim.componentId)]);
       if (!incident || incident.lifecycle === "Resolved") throw new Error("Only an unresolved incident can change its affected components.");

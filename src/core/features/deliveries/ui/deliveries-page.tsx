@@ -13,7 +13,7 @@ type DeliveriesResponse = {
   limit: number;
   offset: number;
   hasMore: boolean;
-  mail: { provider: "resend" | "sendgrid"; receiptsConfigured: boolean };
+  mail: { provider: "resend" | "sendgrid"; local: boolean; receiptsConfigured: boolean };
 };
 
 export function DeliveriesPage() {
@@ -43,7 +43,9 @@ export function DeliveriesPage() {
       <Icon name="warning" width={18} height={18} />
       <div>
         <strong>Delivery records are read-only.</strong>
-        <p>{data.mail.receiptsConfigured
+        <p>{data.mail.local
+          ? "Local mail is suppressed. No email is sent and no provider acceptance or delivery is checked here."
+          : data.mail.receiptsConfigured
           ? "Queued email may already be accepted by the provider; only a signed receipt marks it delivered."
           : `Accepted by ${providerName} is the final email status available here because signed delivery receipts are not configured. Acceptance does not confirm inbox delivery.`} Lamp never records an opened outcome. CSV export includes every matching record, with persisted outcomes and provider acceptance times.</p>
       </div>
@@ -51,19 +53,19 @@ export function DeliveriesPage() {
     <section className="data-card subscriber-table-card">
       <div className="list-controls">
         <label>Channel<select value={channel} onChange={(event) => resetFilters(() => setChannel(event.target.value as DeliveryChannel | ""))}><option value="">All channels</option>{DELIVERY_CHANNELS.map((value) => <option key={value}>{value}</option>)}</select></label>
-        <label>Outcome<select value={outcome} onChange={(event) => resetFilters(() => setOutcome(event.target.value as DeliveryOutcome | ""))}><option value="">All outcomes</option>{DELIVERY_OUTCOMES.map((value) => <option key={value} value={value}>{value === "queued" && channel !== "webhook" && !data.mail.receiptsConfigured ? "queued / accepted" : value}</option>)}</select></label>
+        <label>Outcome<select value={outcome} onChange={(event) => resetFilters(() => setOutcome(event.target.value as DeliveryOutcome | ""))}><option value="">All outcomes</option>{DELIVERY_OUTCOMES.map((value) => <option key={value} value={value}>{value === "queued" && channel !== "webhook" && !data.mail.local && !data.mail.receiptsConfigured ? "queued / accepted" : value}</option>)}</select></label>
       </div>
       <div className="table-scroll" tabIndex={0} role="region" aria-label="Delivery records">
         <table>
           <thead><tr><th scope="col">Destination</th><th scope="col">Channel</th><th scope="col">Outcome</th><th scope="col">Queued</th><th scope="col">Outcome time</th></tr></thead>
           <tbody>{data.deliveries.map((delivery) => {
-            const acceptedWithoutReceipt = delivery.channel === "email" && delivery.outcome === "queued" && Boolean(delivery.providerAcceptedAt) && !data.mail.receiptsConfigured;
+            const acceptedWithoutReceipt = !data.mail.local && delivery.channel === "email" && delivery.outcome === "queued" && Boolean(delivery.providerAcceptedAt) && !data.mail.receiptsConfigured;
             return <tr key={delivery.id}>
               <td><strong>{delivery.destination}</strong><small>{delivery.subscriberState} subscriber</small></td>
               <td>{delivery.channel}</td>
               <td>
                 <span className={`state-pill state-${acceptedWithoutReceipt ? "accepted" : delivery.outcome}`}>{acceptedWithoutReceipt ? `Accepted by ${providerName}` : delivery.outcome}</span>
-                {delivery.providerAcceptedAt ? <small>Provider accepted {formatOperatorTime(delivery.providerAcceptedAt)}{delivery.outcome === "queued" && data.mail.receiptsConfigured ? " · awaiting delivery receipt" : ""}</small> : null}
+                {!data.mail.local && delivery.providerAcceptedAt ? <small>Provider accepted {formatOperatorTime(delivery.providerAcceptedAt)}{delivery.outcome === "queued" && data.mail.receiptsConfigured ? " · awaiting delivery receipt" : ""}</small> : null}
                 {delivery.latestError && (delivery.outcome === "failed" || delivery.outcome === "queued") ? <small>{delivery.latestError}</small> : null}
               </td>
               <td>{formatOperatorTime(delivery.queuedAt)}</td>

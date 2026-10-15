@@ -13,7 +13,7 @@ function providers(value?: string): AuthConfig['providers'] {
 
 // Origins come only from installation bindings. Request headers never configure authority.
 export function authOrigin(env: AppBindings): string {
-  return env.AUTH_ORIGIN || env.LAMP_LOCAL_ORIGIN || `https://${env.LAMP_APP_HOST}`;
+  return env.RER_DEV_ORIGIN || env.LAMP_LOCAL_ORIGIN || env.AUTH_ORIGIN || `https://${env.LAMP_APP_HOST}`;
 }
 
 export function authConfig(env: AppBindings): AuthConfig {

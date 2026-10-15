@@ -1,5 +1,21 @@
 # Changelog
 
+## 1.5.0
+
+- Attaching or detaching a component on a live incident asks for confirmation before changing the public page. Attaching queues the latest published update for eligible subscribers who follow that component and have not already been notified about the incident; the confirmation shows the current count. Detaching sends no email. Internal components are excluded from the attach picker.
+- Maintenance already in progress can be extended without starting a new window.
+- Deliveries shows **Accepted by SendGrid** or **Accepted by Resend** when the provider accepted a message and signed delivery receipts are not configured. CSV includes `providerAcceptedAt`; acceptance does not establish inbox delivery. Local pages explain that mail is suppressed.
+- Sender authentication checks read every provider page. NOTIFY-010 accepts aligned DKIM with DMARC without requiring SPF on the visible From domain. Local checks explain suppression and leave sender verification incomplete.
+- The initial operator is labelled **Owner**, and an owner claimed at deployment can enter from the Lobby before completing page setup.
+- Subscriber mail subjects and confirmation, management and unsubscribe pages use the configured page name. Subscribers asks for confirmation before removing a destination. Owners must monitor the From mailbox and process emailed unsubscribe requests in Subscribers; HTTPS one-click unsubscribe remains automatic.
+- `rer signin` supports one-use hosted owner entry. Migration `0023_owner_signin.sql` adds its installation-local grants table; grants are excluded from exports.
+- The development mail viewer and `rer outbox` have been removed. Local mail is neither sent nor retained; use a hosted installation to check actual mail delivery. Custom `mail.sender.v1` adapters must handle `suppressed` in place of the development-only `captured` disposition.
+- This checkout pins rer **0.2.22**, with all Base copies refreshed from that release; the former local production-auth diagnostic patch is no longer carried. The public installer may install a newer CLI; the checkout's pin selects its runtime. Local setup repairs obsolete `AUTH_ORIGIN` values when moving ports.
+- The standalone browser installer starts the managed development runtime so its one-click owner entry works.
+- The previous-tag upgrade gate now starts from v1.4.0 and explicitly sends imported invitations. Release tags and nightly CI run the upgrade, installer and README clone journeys.
+
+Upgrading: back up data and owner source, then apply `0023_owner_signin.sql` after `0022_import_maintenance_updates.sql`, followed by `0024_import_kit_custody_upgrade.sql`, before starting this revision. Migration 0024 adds Base import-kit custody tables and triggers; local archives keep that installation-specific custody out of portable product data. Run `rer verify` and `pnpm run verify:release` before adoption. Hosted APIs and stored application data remain compatible. After stopping local dev, old installations may still hold captured mail under the obsolete `lamp-local-development-outbox` R2 bucket and its separate development-outbox D1 store in `.wrangler/state`. Delete only those obsolete outbox stores after backing up; keep the `lamp-local` application database and `lamp-local-snapshots` bucket. The new runtime never reads the old mail.
+
 ## 1.4.0
 
 - Move-in now supports Statuspage, Better Stack and Instatus through their fixed-origin APIs or saved responses. Cutover preview shows the old and native addresses, feed behavior, unavailable paths, unsupported consumers and invitation deadlines; each Opens check follows a credentialless redirect and checks the resulting page, without claiming DNS or inbox delivery.
@@ -13,9 +29,9 @@
 - The public status-page header now links Sign in to the operator host. Owner documentation has been expanded and reorganized into task guides at the existing app-host /docs route and its /docs/<slug> pages.
 - Cloudflare deploy guidance now distinguishes deployment health from full source and browser verification. `rer deploy --dry-run` validates and builds without contacting Cloudflare; a real deploy validates inputs, provisions resources, applies migrations, builds and uploads the Worker with secrets, then checks application health. Run `rer verify` separately, and record hosted readiness and provider delivery for each installation.
 - Local backup and restore guidance now uses the canonical RUN-LOCALLY.md sequence: stop the server, export before reset, import only into an empty destination, and restore with the original owner. Deployed archives remain documented in OPERATIONS.md.
-- Dependency updates address the reviewed security advisories: Playwright and its test package move to [1.55.1](https://github.com/microsoft/playwright/releases/tag/v1.55.1); the lock and overrides update transitive Sharp to [0.35.5](https://github.com/lovell/sharp/releases/tag/v0.35.5), including its native libraries, Undici to [7.29.1](https://github.com/nodejs/undici/releases/tag/v7.29.1) and source-map-js to [1.2.2](https://github.com/7rulnik/source-map-js/releases/tag/v1.2.2). The RER CLI is pinned to 0.2.20; `rer signin` provides a private single-use hosted owner link without mail.
+- Dependency updates address the reviewed security advisories: Playwright and its test package move to [1.55.1](https://github.com/microsoft/playwright/releases/tag/v1.55.1); the lock and overrides update transitive Sharp to [0.35.5](https://github.com/lovell/sharp/releases/tag/v0.35.5), including its native libraries, Undici to [7.29.1](https://github.com/nodejs/undici/releases/tag/v7.29.1) and source-map-js to [1.2.2](https://github.com/7rulnik/source-map-js/releases/tag/v1.2.2). The RER CLI is also pinned to 0.2.1.
 
-Upgrading: back up data and owner source, then apply `0022_import_maintenance_updates.sql` after `0021_update_reminders.sql`, followed by `0023_owner_signin.sql`, before starting this revision. Run `rer verify` and `pnpm run verify:release` before adoption. The release check upgrades a populated installation from the previous published tag and verifies its data, owner access, publication and archive restore.
+Upgrading: back up data and owner source, then apply `0022_import_maintenance_updates.sql` after `0021_update_reminders.sql` before starting this revision. Run `rer verify` and `pnpm run verify:release` before adoption. The release check upgrades a populated installation from the previous published tag and verifies its data, owner access, publication and archive restore.
 
 
 ## 1.3.0

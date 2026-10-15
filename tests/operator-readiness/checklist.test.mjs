@@ -7,7 +7,7 @@ import { Hono } from 'hono';
 import { database, load } from './runtime.mjs';
 import { openSnapshotCacheRuntime } from '../e2e/snapshot-cache-runtime.mjs';
 
-test('protected setup actions keep real D1 facts, check silent local mail and a real public response, and invalidate changed sender/address evidence', async () => {
+test('protected setup actions keep real D1 facts, refuse local sender completion, preserve subscription privacy and invalidate changed address evidence', async () => {
   const dir = await mkdtemp(join(process.cwd(), '.lamp-readiness-checklist-'));
   let runtime, cache;
   try {
@@ -22,6 +22,11 @@ test('protected setup actions keep real D1 facts, check silent local mail and a 
     cache = await openSnapshotCacheRuntime(dir);
     const { developmentMail } = await load('src/core/platform/mail/development.ts');
     const { registerOverviewRoutes } = await load('src/core/features/overview/routes.ts');
+    const { senderEvidenceKey } = await load('src/core/features/overview/sender-check.ts');
+    const { registerDeliveryRoutes } = await load('src/core/features/deliveries/routes.ts');
+    const { registerSubscriberRoutes } = await load('src/core/features/subscribers/routes.ts');
+    const { createSubscribersService } = await load('src/core/features/subscribers/service.ts');
+    const { createSubscriberRepository } = await load('src/core/features/subscribers/repository.ts');
     const { requireOperator } = await load('src/core/features/operators/routes.ts');
     const origin = 'http://127.0.0.1:4177';
     const mail = developmentMail();
@@ -30,14 +35,19 @@ test('protected setup actions keep real D1 facts, check silent local mail and a 
     const settings = services.pageSettings;
     const repo = createOverviewRepository(db);
     let responseHtml = '<html><body>Public page without form</body></html>', responseStatus = 200, canonicalOrigin = origin;
-    const setup = createSetupChecklistService(repo, settings, { publicOrigin: async () => canonicalOrigin, sender: { local: true, provider: 'resend', mail }, fetcher: async () => new Response(responseHtml, { status: responseStatus, headers: { 'Content-Type': 'text/html' } }) });
+    const sender = { local: true, provider: 'resend', mail };
+    const setup = createSetupChecklistService(repo, settings, { publicOrigin: async () => canonicalOrigin, sender, fetcher: async () => new Response(responseHtml, { status: responseStatus, headers: { 'Content-Type': 'text/html' } }) });
     const fixture=authFixture(db,{origin});
     const id='01J00000000000000000000081',time=new Date().toISOString();
     await db.prepare("INSERT INTO oa_operators(id,email,display_name,role,status,created_at) VALUES (?,?,'Owner','owner','active',?)").bind(id,'owner@example.test',Date.now()).run();
     const cookie=await fixture.signIn();
     const app = new Hono(); app.use('*',async(c,next)=>{c.env={DB:db};await next();}); app.use('/api/app/*',requireOperator(()=>fixture.auth));
     registerOverviewRoutes(app, createOverviewService(services.components, services.incidents, services.maintenance, setup));
+    registerDeliveryRoutes(app, services.deliveries, { localMail: true, mailProvider: 'sendgrid', sendGridWebhookPublicKey: 'test-configured-receipt-key' });
+    const subscribers = createSubscribersService(createSubscriberRepository(db), { mail, fromAddress: 'lamp@localhost.invalid', tokenSecret: 'test-local-subscription-secret' });
+    registerSubscriberRoutes(app, subscribers, { localMail: true });
     const request = (action, signedIn = true) => app.request(`${origin}/api/app/overview/${action}`, { method: 'POST', headers: { ...(signedIn ? { Cookie: cookie } : {}), Host:new URL(origin).host,Origin:origin,'Content-Type': 'application/json' }, body: '{}' });
+    const operatorGet = path => app.request(`${origin}${path}`, { headers: { Cookie: cookie, Host: new URL(origin).host } });
     assert.equal((await request('check-sender', false)).status, 401);
     assert.equal((await request('open-public', false)).status, 401);
     const jsonOpen = (body = '{}', site = 'same-origin') => app.request(`${origin}/api/app/overview/open-public`, { method: 'POST', headers: { Cookie: cookie, Accept: 'application/json', Host:new URL(origin).host,Origin:origin,'Content-Type': 'application/json', 'Sec-Fetch-Site': site }, body });
@@ -48,12 +58,35 @@ test('protected setup actions keep real D1 facts, check silent local mail and a 
     assert.equal(fresh.steps.find(step => step.id === 'branding').done, false);
     assert.equal(fresh.steps.find(step => step.id === 'sender').done, false);
     await settings.ensureInitial({ pageName: 'Customer status', tagline: 'Updates for our customers', accentColor: '#165544', timezone: 'Australia/Brisbane', hostname: '127.0.0.1', footerCreditEnabled: true, mailFromAddress: 'lamp@localhost.invalid' });
+    // An upgrade can retain the former local-success record. It must never
+    // make a suppressed local check look like provider verification.
+    await repo.record('sender', await senderEvidenceKey('lamp@localhost.invalid', sender));
+    assert.equal((await (await operatorGet('/api/app/overview')).json()).overview.checklist.steps.find(step => step.id === 'sender').done, false);
     assert.equal((await request('check-sender')).status, 200);
+    assert.equal((await repo.evidence()).some(row => row.step === 'sender'), false);
     assert.equal((await request('accept-address')).status, 200);
     const configured = await setup.get(false);
     assert.equal(configured.complete, false);
-    for (const id of ['branding', 'timezone', 'sender', 'domain']) {
+    assert.equal(configured.steps.find(step => step.id === 'sender').done, false);
+    for (const id of ['branding', 'timezone', 'domain']) {
       assert.equal(configured.steps.find(step => step.id === id).done, true);
+    }
+    const deliveries = await (await operatorGet('/api/app/deliveries')).json();
+    assert.equal(deliveries.mail.local, true);
+    assert.equal(deliveries.mail.receiptsConfigured, false);
+    const subscribe = async email => {
+      const response = await app.request(`${origin}/subscribe`, { method: 'POST', headers: { Accept: 'text/html', Origin: origin }, body: new URLSearchParams({ email }) });
+      assert.equal(response.status, 202);
+      assert.equal(response.headers.has('set-cookie'), false);
+      return response.text();
+    };
+    const email = 'local-reader@example.test';
+    const firstResponse = await subscribe(email);
+    assert.equal((await subscribers.list()).find(row => row.destination === email).state, 'pending');
+    assert.equal(await subscribe(email), firstResponse);
+    for (const state of ['active', 'deactivated']) {
+      await db.prepare('UPDATE subscribers SET state = ? WHERE destination = ?').bind(state, email).run();
+      assert.equal(await subscribe(email), firstResponse);
     }
     assert.equal((await request('check-subscribe')).status, 400);
     responseStatus = 503;

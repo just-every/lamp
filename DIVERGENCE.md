@@ -1321,6 +1321,30 @@ provider when signed receipts are not configured; only signed provider events
 establish delivery or bounce. Subscriber erasure requires confirmation, and an
 erased destination offers no further removal action.
 
-The checkout pins rer 0.2.21 with a dependency patch that reports missing mail
-inputs using the deploy declaration's environment names. Its runtime bindings
-remain mapped to Lamp's documented owner inputs.
+The checkout pins rer 0.2.22. Its Base refresh removed Lamp's former 0.2.21
+production-auth dependency patch. Lamp's native deployment preflight continues
+to name its documented owner inputs; runtime bindings remain mapped to those
+inputs.
+
+## Release 1.5.0 repairs — 16 October 2026
+
+The former rer 0.2.21 dependency patch at
+`patches/@runeditrun__rer@0.2.21.patch` changed Base's
+`cli/production-auth.mjs` to name missing inputs using the deployment
+declaration's environment names. The rer 0.2.22 adoption
+removed the patch as part of its Base refresh; no local rer patch remains. No
+authentication authority changed. The Managed mail
+relay adoption remains a separate change.
+
+Owners must use a monitored From mailbox and process mailto unsubscribe requests
+in Subscribers. HTTPS one-click unsubscribe remains automatic. Live incident
+component changes require confirmation before changing the public page or
+queueing catch-up email. Local pages report mail suppression without claiming
+sender verification or provider acceptance. Health requests recover initial
+publication only while no current or retained snapshot exists; subsequent
+snapshot recovery remains the scheduler's responsibility.
+
+The standalone browser installer uses Base's shared install → setup → dev
+journey. Its one-click owner entry must lead to the actual development runtime;
+a production preview cannot serve the dev-key exchange it advertises. Setup
+still uses the production artifact for migration and owner bootstrap.

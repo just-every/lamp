@@ -1,7 +1,10 @@
 import {access,readFile} from 'node:fs/promises';
 import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
+import {parseEnv} from 'node:util';
 import {localInstaller} from '@runeditrun/rer/local-installer';
+import {readSettings} from '@runeditrun/rer/adapter-settings';
+import {writePrivateFile} from '@runeditrun/rer/internal/onboarding/private-files.mjs';
 import {commandAdapter as createCommandAdapter} from '@runeditrun/rer/adapter';
 import {localPortability} from '@runeditrun/rer/portability';
 import {nativeOwner} from './bootstrap.mjs';
@@ -34,10 +37,20 @@ export const adapter=localInstaller({
  guard:legacyState,prepare:async context=>{
   await legacyState(context);
   await validateAnswers(context.input,context.store);
+  // Earlier installs saved a second origin that Base does not move with --port.
+  // Keep one saved authority; auth derives its local origin from that binding.
+  const saved=await readSettings(context.root,{file:'.dev.vars'});
+  if(Object.hasOwn(saved.values,'AUTH_ORIGIN')){
+   const text=saved.text.replace(/^[\t ]*(?:export[\t ]+)?AUTH_ORIGIN[\t ]*=[^\r\n]*(?:\r?\n|$)/gm,'');
+   const cleaned=parseEnv(text);
+   if(Object.hasOwn(cleaned,'AUTH_ORIGIN')||Object.entries(saved.values).some(([key,value])=>key!=='AUTH_ORIGIN'&&cleaned[key]!==value))
+    throw Error('Could not remove the legacy AUTH_ORIGIN assignment without changing other settings. Remove that assignment from .dev.vars, then run setup again.');
+   await writePrivateFile(saved.path,text);
+  }
  },
  // Transfers have no setup answers; preserve saved settings and check legacy state.
  prepareData:legacyState,
- secrets:{keepExisting:true,originKey:'LAMP_LOCAL_ORIGIN',values:context=>({LAMP_LOCAL_ORIGIN:context.origin,AUTH_ORIGIN:context.origin,AUTH_LOCAL:'true'})},
+ secrets:{keepExisting:true,originKey:'LAMP_LOCAL_ORIGIN',values:context=>({LAMP_LOCAL_ORIGIN:context.origin,AUTH_LOCAL:'true'})},
  build:['pnpm',['run','build:app']],
  migrate:context=>['node',['scripts/migrate-local.mjs'],{env:environment(context)}],
  start:preview,owner:nativeOwner,signIn:localSignIn,

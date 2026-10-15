@@ -1,64 +1,9 @@
 {
-  "version": "1.4.0",
-  "previousVersion": "1.3.0",
-  "date": "2026-10-14",
-  "publicReleaseNotes": "Lamp 1.4.0: safer Statuspage, Better Stack and Instatus imports with explicit invitation control and cutover checks; Better Stack maintenance history; generation-current public snapshots; a status-page Sign in link and expanded app-host owner guides; Cloudflare deployment separate from full verification. The seed's public-read figure is now a local floor of 10 reads/second (one workerd process, offered rate, no CDN), not a hosted capacity; the 5,000/s attempt failed with loopback connection resets in the load client, and hosted capacity is unmeasured. The 1,000-subscriber run reached fake-provider acceptance only. Scheduled publication and automatic maintenance transitions now promise 240 seconds instead of 60. The figure comes from one local stress run in which 20 updates and 20 maintenance starts fell due in the same cron minute on a single workerd process on a shared runner; the Worker processed them one at a time, and the latest became publicly visible 238.5 seconds after its due time. That is one observation, not a p95 over independent runs, and not hosted Cron timing; a single due item published within 13.1 seconds of its tick. No scheduler fix was made. Optional AI requests use an 18-second provider budget within the 20-second visible error contract; provider timing remains unmeasured.",
+  "version": "1.5.0",
+  "previousVersion": "1.4.0",
+  "date": "2026-10-16",
+  "publicReleaseNotes": "Lamp 1.5.0 adds confirmed component changes on live incidents with catch-up email, extensions to maintenance in progress, provider acceptance on Deliveries and in CSV, complete sender-domain checks and rer signin. Aligned DKIM with DMARC is sufficient under NOTIFY-010. Migration 0023 adds one-use owner sign-in grants and 0024 adds Base import-kit custody tables. The checkout uses rer 0.2.22. Local mail is suppressed; the development mail viewer and rer outbox are removed. Hosted APIs and existing data remain compatible.",
   "contractChanges": {
-    "DOCS-001": {
-      "change": "added",
-      "summary": "The contract now explicitly guarantees public owner guides at the existing app-host /docs and /docs/<slug> routes, selected from repository Markdown by docs/site.json; the page host does not serve them.",
-      "now": "Public owner documentation: The app host serves `/docs` and each published `/docs/<slug>` page as public documentation built from repository Markdown selected by `docs/site.json`. Documentation is available without an operator session; the public page host does not serve it."
-    },
-    "PAGE-007": {
-      "change": "changed",
-      "summary": "Published surfaces keep the ten-second update guarantee while current-generation validation blocks earlier cached artifacts on healthy reads and retained responses serve origin failures.",
-      "was": "Publish latency and caching: The three surfaces in PAGE-005 are served with `Cache-Control: public, max-age=10, s-maxage=10, stale-while-revalidate=30, stale-if-error=3600`. An update, component state change, or maintenance transition purges that cache and is readable on all three surfaces within 10 seconds of the request that caused it returning 200.",
-      "now": "Publish latency and caching: Stable public URLs validate the current snapshot generation on reuse with a generation ETag and `Cache-Control: public, max-age=0, stale-if-error=3600`. Immutable artifact bytes are cached by generation and artifact key; advancing the published generation makes previous cache entries ineligible for a healthy current response. An update, component state change, or maintenance transition is readable on the status page, history, incident and maintenance permalinks, Atom feed, widget and public JSON within 10 seconds of the request that caused it returning 200. An unreachable origin may use its retained response for the one-hour error window; the application also retains labelled last-known snapshots under PAGE-006."
-    },
-    "PAGE-008": {
-      "change": "changed",
-      "summary": "Immutable generation bytes are shared in the edge cache; healthy requests still validate the current generation at the Worker without database reads, and public reads remain unrate-limited by Lamp. The seed's public-read local floor (not hosted capacity) is now 10 requests per second from four fresh local runs; deployment and CDN capacity remain unvalidated.",
-      "was": "Public read paths are not rate limited: The public read paths marked `read` in `seed.json → deploy.publicPaths` never return 429. Requests from one address up to the `publicPageRequestsPerSecond` limit in `seed.json → limits` all return 200. **Supersedes BASE-ACCESS-003** for those paths only. A status page is read hardest at the moment it matters most, and a per-address limit would reject real readers behind one egress address during an incident — but the decisive reason is mechanical: RFC 6585 requires that a 429 is never stored by a cache, so rate limiting the read path converts a cacheable traffic spike into an uncacheable one and sends it all to the origin. What replaces the limit is the cache itself: those paths return identical bytes to every visitor between snapshots, so origin load is a function of the PAGE-007 window and not of how many people are reading. The public write paths (`/subscribe`, `/unsubscribe`, `/manage`, `/api/intake/*`) stay rate limited under BASE-ACCESS-003.",
-      "now": "Public read paths are not rate limited: The public read paths marked `read` in `seed.json → deploy.publicPaths` never return 429. Requests from one address up to the `publicPageRequestsPerSecond` limit in `seed.json → limits` all return 200. **Supersedes BASE-ACCESS-003** for those paths only. A status page is read hardest at the moment it matters most, and a per-address limit would reject real readers behind one egress address during an incident — but the decisive reason is mechanical: RFC 6585 requires that a 429 is never stored by a cache, so rate limiting the read path converts a cacheable traffic spike into an uncacheable one and sends it all to the origin. Those paths share immutable generation bytes in the edge cache. Healthy requests validate the current generation without querying the database; artifact caching reduces object-byte reads, while validation requests still reach the Worker. The public write paths (`/subscribe`, `/unsubscribe`, `/manage`, `/api/intake/*`) stay rate limited under BASE-ACCESS-003."
-    },
-    "UPDATE-006": {
-      "change": "changed",
-      "summary": "Scheduled publication and automatic maintenance transitions now promise 240 seconds instead of 60. The figure comes from one local stress run in which 20 updates and 20 maintenance starts fell due in the same cron minute on a single workerd process on a shared runner; the Worker processed them one at a time, and the latest became publicly visible 238.5 seconds after its due time. That is one observation, not a p95 over independent runs, and not hosted Cron timing; a single due item published within 13.1 seconds of its tick. No scheduler fix was made.",
-      "was": "Scheduled publish: An update given a future publish time publishes within 60 seconds of that time and appears on no public surface and in no notification before it. If UPDATE-007 review is in force and the update has not been reviewed when that time arrives, it is not published, stays a draft, and is reported under NOTIFY-006.",
-      "now": "Scheduled publish: An update given a future publish time publishes within 240 seconds of that time and appears on no public surface and in no notification before it. If UPDATE-007 review is in force and the update has not been reviewed when that time arrives, it is not published, stays a draft, and is reported under NOTIFY-006. The 240-second bound is a declared promise based on one local stress observation with 20 updates and 20 maintenance starts due in the same cron minute on a single workerd process on a shared runner; it is not a p95 over independent runs or a hosted Cron guarantee."
-    },
-    "MAINT-002": {
-      "change": "changed",
-      "summary": "Scheduled publication and automatic maintenance transitions now promise 240 seconds instead of 60. The figure comes from one local stress run in which 20 updates and 20 maintenance starts fell due in the same cron minute on a single workerd process on a shared runner; the Worker processed them one at a time, and the latest became publicly visible 238.5 seconds after its due time. That is one observation, not a p95 over independent runs, and not hosted Cron timing; a single due item published within 13.1 seconds of its tick. No scheduler fix was made.",
-      "was": "Automatic transitions: A scheduled maintenance moves from Scheduled to In progress within 60 seconds of its start time, and from In progress to Completed within 60 seconds of its end time, with no operator action.",
-      "now": "Automatic transitions: A scheduled maintenance moves from Scheduled to In progress within 240 seconds of its start time, and from In progress to Completed within 240 seconds of its end time, with no operator action. The 240-second bound is a declared promise based on one local stress observation with 20 updates and 20 maintenance starts due in the same cron minute on a single workerd process on a shared runner; it is not a p95 over independent runs or a hosted Cron guarantee."
-    },
-    "MOVE-001": {
-      "change": "changed",
-      "summary": "Move-in supports Statuspage, Better Stack and Instatus through fixed-origin APIs or saved responses, with refusal rules for unsafe or unsupported source data.",
-      "was": "Dry run first: An owner moving from a hosted status page gives Settings → Move in either an API key with its page ID (read once with GET requests to the source's fixed API origin, never stored) or the source's saved API responses. A dry run counts every component, component group, incident with its updates, scheduled maintenance and subscriber as imported, changed, skipped or refused, names each reason, and writes nothing. An import applies only the reviewed dry run: if the source or this page changed since, it is refused and a fresh dry run is required.",
-      "now": "Dry run first: An owner moving from Statuspage, Better Stack or Instatus gives Settings → Move in either an API key with its page ID (read once with GET requests to the source's fixed API origin, never stored) or the source's saved API responses. A dry run counts every component, component group, incident with its updates, scheduled maintenance and subscriber as imported, changed, skipped or refused, names each reason, and writes nothing. An import applies only the reviewed dry run: if the source or this page changed since, it is refused and a fresh dry run is required."
-    },
-    "MOVE-002": {
-      "change": "changed",
-      "summary": "Sending invitations now requires an explicit owner action, claims before transport, fixes expiry to review time and leaves uncertain claimed sends unretried.",
-      "was": "Retroactive and silent: An import keeps every incident update's original publication time and derives each imported component's state history from those times, as INCIDENT-009 does; it queues no notification for any incident or maintenance and publishes no maintenance notice. A window already over is imported as completed. Each imported email subscriber is pending and receives exactly one confirmation invitation, which mentions no past incident; without confirmation the subscription expires under SUB-003.",
-      "now": "Retroactive and silent: An import keeps every incident update's original publication time and derives each imported component's state history from those times, as INCIDENT-009 does; it queues no notification for any incident or maintenance and publishes no maintenance notice. A window already over is imported as completed. Each imported email subscriber is pending. Preview, apply, resume, job reads and Cutover checks send no mail. Only the authenticated owner’s explicit Send invitations action claims and sends each eligible pending email subscriber at most one confirmation invitation, mentioning no past incident. Confirmation expires 72 hours from the import review time stored as created_at, even when sending is delayed; expired subscribers cannot be invited and SUB-003 deletes unconfirmed addresses. A claim precedes the transport call to prevent duplicates across concurrent batches and retries. Proven preparation failures remain retryable because no message was submitted; interrupted or uncertain claimed sends are not automatically retried."
-    },
-    "MOVE-005": {
-      "change": "changed",
-      "summary": "Source-feed aliases now cover Instatus and Better Stack, and Better Stack maintenance messages remain historical updates without guessed paths or notification replay.",
-      "was": "Old public addresses: Imported incident and maintenance source paths and supplied shortlink paths permanently redirect on the public host to each surviving record's Lamp permalink; maintenance has its own permanent page. Source Atom paths (`/history.atom` for Statuspage) serve Lamp's Atom feed after import, even without incident history, until a complete undo removes the import. These responses come from the same versioned snapshot as the page, without database queries. A second apply duplicates no aliases; conditional undo removes exactly the removed records' aliases and keeps preserved records' aliases. New imports refuse and name unsafe addresses, native-path collisions and conflicting destinations; an older retained source reports unusable aliases without withholding the public snapshot. Missing shortlinks are never invented. Source-owned shortlink hostnames remain outside Lamp's control.",
-      "now": "Old public addresses: Imported incident and maintenance source paths and supplied shortlink paths permanently redirect on the public host to each surviving record's Lamp permalink; maintenance has its own permanent page. Source Atom paths (`/history.atom` for Statuspage and Instatus; `/feed.atom` for Better Stack) serve Lamp's Atom feed after import, even without incident history, until a complete undo removes the import. These responses come from the same versioned snapshot as the page, without database queries. A second apply duplicates no aliases; conditional undo removes exactly the removed records' aliases and keeps preserved records' aliases. New imports refuse and name unsafe addresses, native-path collisions and conflicting destinations; an older retained source reports unusable aliases without withholding the public snapshot. Missing shortlinks are never invented. Source-owned shortlink hostnames remain outside Lamp's control. Better Stack REST reports supply no documented public URL; their paths are unavailable unless an unchanged saved status-page webhook supplies an exact shortlink with a matching report ID. No `/incident/<REST-id>` path is guessed. Better Stack maintenance messages are retained as historical updates, without creating native lifecycle notices or replaying notifications.",
-      "migrationIds": [
-        "0022_import_maintenance_updates.sql"
-      ]
-    },
-    "MOVE-006": {
-      "change": "added",
-      "summary": "Cutover review shows old and native addresses, feed behavior, unavailable paths, unsupported consumers and invitation deadlines, then credentiallessly checks resolved redirects without claiming DNS or inbox delivery.",
-      "now": "Cutover preview: Settings → Cutover is available after a dry run and for saved imports. It shows up to the first 25 old incident and maintenance addresses with proposed or surviving native permalinks, unavailable addresses and source-host limits, source feed answers, unsupported JSON/RSS/widget consumers, and eligible invitations with their original expiry deadline. Once the owner selects a public origin, each Opens check uses a credentialless browser request that follows the redirect and verifies the final native address and successful HTML response; failures remain explicit. The ordered guide covers import, preview, explicit invitations, hostname/custom-domain instructions, rechecking and keeping the source through the confirmation window. It claims neither DNS validation nor inbox delivery. Instatus accepts its documented saved management REST response families with a separate owner acknowledgement that the page and supplied history are published and unrestricted. Known protected or unpublished source records cannot become public. Visual Component parents are groups; audience groups are refused access restrictions. Only confirmed, approved email-only subscriptions with resolved preferences become pending. Exact supplied public-summary incident/maintenance URLs are joined by source ID; missing URLs are not invented. Maintenance ends use explicit timestamps or documented duration minutes under completed/autoEnd semantics, with every update retained silently."
-    },
     "NOTIFY-010": {
       "change": "changed",
       "summary": "Setup and deployment accept aligned DKIM with DMARC without requiring SPF on the From domain; notification threading and list headers remain required.",
@@ -68,66 +13,33 @@
   },
   "proseChanges": [
     {
-      "document": "AGENTS.md",
-      "section": "Run it locally",
+      "document": "RUN-LOCALLY.md",
+      "section": "Start Lamp",
       "change": "changed",
-      "date": "2026-10-14",
-      "summary": "The owner instructions now use the canonical local run guide and require stopping dev or preview before transfers, resets or builds, exporting before reset, importing only into an empty destination, and restoring with the original owner.",
-      "was": "The instructions gave a fixed sequence of setup, verification, reset, export and import commands directly in AGENTS.md.",
-      "now": "The instructions point to RUN-LOCALLY.md for safe launch and restore sequences and require stopping dev or preview before data transfer, reset, build or verification."
+      "date": "2026-10-15",
+      "summary": "Local development silently suppresses mail and no longer provides captured messages or rer outbox.",
+      "was": "Local development retained messages in a mail viewer and offered rer outbox for sign-in and subscriber links.",
+      "now": "Local mail is neither sent nor retained. Use automatic one-click owner entry locally and a hosted installation to check actual mail delivery. The old diagnostic address only explains suppression.",
+      "ownerAction": "Remove obsolete local outbox storage after backing up application data, as described in the 1.5.0 upgrade notes."
     },
     {
-      "document": "AGENTS.md",
-      "section": "Launch",
-      "change": "changed",
-      "date": "2026-10-14",
-      "summary": "The Cloudflare deploy guidance now describes input validation, provisioning, migration, build, upload and health checks without saying that deploy runs the full verifier.",
-      "was": "AGENTS.md said rer deploy verifies the source, provisions or reuses resources, uploads secrets and checks health.",
-      "now": "AGENTS.md says rer deploy validates owner inputs, provisions or reuses resources, builds and uploads the Worker with secrets, and checks health; full verification is run with rer verify."
-    },
-    {
-      "document": "AGENTS.md",
-      "section": "Verify",
-      "change": "changed",
-      "date": "2026-10-14",
-      "summary": "The verification instructions now use rer verify and require stopping dev or preview before verification or builds.",
-      "was": "The instructions used pnpm verify and pnpm dev or a preview for a user-facing journey.",
-      "now": "The instructions use rer verify and rer dev or rer preview, and require stopping dev or preview before verification or builds."
-    },
-    {
-      "document": "AGENTS.md",
-      "section": "Leave",
-      "change": "changed",
-      "date": "2026-10-14",
-      "summary": "The deployed Cloudflare archive and restore guidance now points owners to the technical procedure in OPERATIONS.md and its empty-target requirement.",
-      "was": "AGENTS.md named pnpm export:cloudflare and import:cloudflare as the deployed backup and restore commands.",
-      "now": "AGENTS.md directs deployed Cloudflare owners to the technical archive and restore procedure in OPERATIONS.md, including the empty-target requirement."
-    },
-    {
-      "document": "README.md",
-      "section": "Owner guides",
-      "change": "changed",
-      "date": "2026-10-14",
-      "summary": "The README now indexes owner guides and directs readers to public /docs pages on the app host.",
-      "was": "The README contained its own long setup, operation, authoring and backup instructions with a move-in guide link.",
-      "now": "The README lists installation, first-run, operations, domains, move-in, backup and update guides, and identifies /docs as public documentation on the app host."
-    },
-    {
-      "document": "README.md",
-      "section": "Deploy and verify",
-      "change": "changed",
-      "date": "2026-10-14",
-      "summary": "The README now distinguishes Cloudflare deploy and health checks from the full source and browser verifier and from hosted or provider acceptance.",
-      "was": "The README said rer deploy verifies the source before provisioning, migrations, secret upload and live readiness checks.",
-      "now": "The README says rer deploy --dry-run validates and compiles without Cloudflare requests, real deploy provisions and checks app health, and rer verify runs separately; hosted readiness and provider delivery are recorded per installation."
+      "document": "docs/subscribers-and-notifications.md",
+      "section": "Process email unsubscribe requests",
+      "change": "added",
+      "date": "2026-10-16",
+      "summary": "Owners must monitor the configured From mailbox and remove subscribers who request unsubscribe by email.",
+      "now": "Use a monitored From mailbox. Process mailto unsubscribe requests in Subscribers by removing the matching destination; HTTPS one-click unsubscribe remains automatic."
     }
   ],
-  "extensionPointChanges": [],
-  "migrations": [
+  "extensionPointChanges": [
     {
-      "id": "0022_import_maintenance_updates.sql",
-      "buyerSteps": "Back up data and owner source, then apply after 0021 before starting this revision. It adds the imported-maintenance update history table, timeline index and snapshot-refresh triggers; existing records remain unchanged. Imported Better Stack maintenance messages remain historical updates and create no native lifecycle notices or notification replay."
-    },
+      "id": "mail.sender.v1",
+      "kind": "adapter",
+      "change": "changed",
+      "summary": "SentMail.disposition replaces the development-only captured result with suppressed. Provider acceptance is unchanged; custom adapters that handled captured must handle suppressed. Local suppression retains no messages."
+    }
+  ],
+  "migrations": [
     {
       "id": "0023_owner_signin.sql",
       "buyerSteps": "Apply after 0022 before starting this revision. It adds Base's one-use owner sign-in grant table for rer signin; existing operator identities, sessions and migration history are unchanged. Grants are installation-local and do not travel in exports."
@@ -137,6 +49,6 @@
       "buyerSteps": "Apply after 0023 before starting this revision. It adds Base import-kit's additive custody tables and triggers (reversal fences, preparation steps, person-erasure retirements and journal, erasure progress) that the refreshed import kit uses; existing import history, custody and migration history are unchanged."
     }
   ],
-  "breaking": true,
-  "agentUpdateInstructions": "Back up data and the owner source revision first. Apply 0022_import_maintenance_updates.sql after 0021_update_reminders.sql before starting this revision; it adds the imported maintenance-update ledger and snapshot refresh triggers, leaving existing records unchanged and keeping Better Stack maintenance messages historical without lifecycle notices or notification replay. Apply 0023_owner_signin.sql and then 0024_import_kit_custody_upgrade.sql; 0024 only adds Base import-kit custody tables and triggers. Invitation expiry is fixed at import review, and sending requires the owner's explicit action; only eligible confirmed, approved email subscribers can be invited, and uncertain claimed sends are not automatically retried. Run rer verify separately before adopting; rer deploy validates and deploys but does not run the full source and browser verifier. Keep hosted readiness and provider delivery as separate installation evidence, and preserve the canonical project, deployment and package identities and existing archive identity."
+  "breaking": false,
+  "agentUpdateInstructions": "Back up data and owner source. Apply 0023_owner_signin.sql after 0022_import_maintenance_updates.sql, then 0024_import_kit_custody_upgrade.sql, before starting 1.5.0. Migration 0024 adds Base import-kit custody tables and triggers; local portability excludes this installation-specific import custody. Preserve operator identities, sessions, published records, migration history and installation identities. The migration adds only installation-local, one-use owner sign-in grants excluded from exports. Run rer verify separately and pnpm run verify:release from v1.4.0 before adopting. Update custom local mail adapters from captured to suppressed; local mail capture and rer outbox have been removed. Monitor the configured From mailbox and action email unsubscribe requests in Subscribers. Review the 1.5.0 local outbox cleanup instructions; retain the application database and snapshots. Hosted APIs and existing data remain compatible."
 }
