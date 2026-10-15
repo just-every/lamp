@@ -63,7 +63,7 @@ test('disposable demo opens signed in, captures effects and leaves owner state i
       if (first) {
         firstResult = await exerciseDemo({ origin, pageOrigin, key, cookie, fetch });
         t.diagnostic('Captured subscriber mail and sender check; blocked: ' + firstResult.witnessed.join(', '));
-        if (process.env.LAMP_DEMO_EVIDENCE) { await page.goto(origin + '/app'); await page.getByRole('region', { name: 'Active incidents', exact: true }).getByRole('link', { name: new RegExp(firstResult.incidentTitle) }).waitFor(); await page.locator('#rer-demo-bar summary').click(); await page.screenshot({ path: join(process.env.LAMP_DEMO_EVIDENCE, 'demo-effects.png'), fullPage: true }); }
+        if (process.env.LAMP_DEMO_EVIDENCE) { await page.goto(origin + '/app'); await page.getByRole('region', { name: 'Active incidents', exact: true }).getByRole('link', { name: new RegExp(firstResult.incidentTitle) }).waitFor(); await page.locator('#rer-demo-bar button').click(); await page.screenshot({ path: join(process.env.LAMP_DEMO_EVIDENCE, 'demo-effects.png'), fullPage: true }); }
       }
       else {
         const rows = await (await fetch(origin + '/api/app/incidents', { headers: { Cookie: cookie, 'x-rer-dev-key': key } })).json();

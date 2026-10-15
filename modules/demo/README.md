@@ -25,9 +25,15 @@ With `RER_DEMO=1`:
   beacon, `GET` for an event stream) and host only, in `rer_demo_outbound`.
 - **Demo data once.** After the owner exists, `seed(env, { ownerEmail, now })`
   runs once (marked in `rer_demo`). It must be idempotent.
-- **A visible bar.** Every HTML page opens with "Demo · nothing is sent · ends
-  HH:MM", the captured mail (development outbox subject and recipient) and the
-  blocked sends. Its style is allowed in the page's CSP by hash.
+- **A visible bar.** Every HTML page opens with a slim strip fixed to the top
+  of the viewport, "Demo · nothing is sent · ends HH:MM · N mail captured · N
+  sends blocked" on one line (on a narrow screen the counts give way first);
+  the page starts below it. Clicking it (or Enter/Space) opens a popover over
+  the page, without moving it, listing the captured mail (development outbox
+  subject and recipient) and the blocked sends; Escape, a second click or a
+  click outside closes it. No script: its one style is allowed in the page's
+  CSP by hash, and every rule is scoped to `#rer-demo-bar`, resetting what a
+  page sets on its elements.
 - Mail stays in the development outbox and AI stays unconfigured: demo settings
   never carry provider keys.
 

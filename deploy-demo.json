@@ -9,5 +9,6 @@
     "MAIL_FROM_ADDRESS": "status@demo.invalid",
     "LAMP_HEARTBEAT_URL": "https://heartbeat.example.invalid/lamp",
     "LAMP_HEARTBEAT_INTERVAL_MINUTES": "1"
-  }
+  },
+  "instanceType": "basic"
 }

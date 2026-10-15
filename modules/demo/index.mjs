@@ -165,7 +165,13 @@ async function seedOnce(bindings, seed, owner) {
   seeded = true;
 }
 
-const STYLE = 'body:has(>#rer-demo-bar){grid-template-rows:auto 1fr}#rer-demo-bar{grid-column:1/-1;justify-self:stretch;align-self:start;position:relative;z-index:2147483646;box-sizing:border-box;width:100%;margin:0 0 12px;padding:6px 12px;border-radius:8px;background:#7c2d12;color:#fff7ed;font:13px/1.5 system-ui,sans-serif;text-align:left}#rer-demo-bar summary{min-height:24px;cursor:pointer;overflow-wrap:anywhere;font-weight:600}#rer-demo-bar summary:focus-visible{outline:2px solid #fff;outline-offset:2px}#rer-demo-bar h2{margin:8px 0 2px;font:inherit;font-weight:600}#rer-demo-bar ul{margin:0;padding:0 0 0 18px}#rer-demo-bar p{margin:0;opacity:.85}';
+// A slim strip fixed to the top of the viewport; the document starts below it
+// (the root's padding, so a full-height layout still fits). Its detail is a
+// popover in the top layer: it opens over the page without moving it, and the
+// browser closes it on Escape, a second click or a click outside, with no
+// script. Every rule is scoped to the bar and resets what a page might set on
+// its elements, so neither looks different in any seed.
+const STYLE = 'html:has(>body>#rer-demo-bar){box-sizing:border-box;padding-top:34px;scroll-padding-top:34px}#rer-demo-bar,#rer-demo-bar *{all:revert;box-sizing:border-box}#rer-demo-bar{position:fixed;top:0;right:0;left:0;z-index:2147483646;display:block;height:34px;margin:0;padding:0;border-bottom:1px solid #b45309;background:#fef3c7;color:#1c1917;font:13px/1.25 system-ui,-apple-system,"Segoe UI",sans-serif;text-align:left}#rer-demo-bar>button{display:flex;align-items:center;width:100%;height:100%;margin:0;padding:0 12px;border:0;background:none;color:inherit;font:inherit;text-align:left;white-space:nowrap;cursor:pointer}#rer-demo-bar>button:focus-visible{outline:2px solid #1c1917;outline-offset:-4px}#rer-demo-bar .lead{flex:none;font-weight:700}#rer-demo-bar .rest{flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:pre;padding-right:14px}#rer-demo-bar .more{flex:none;width:7px;height:7px;margin:-3px 2px 0 auto;border:solid;border-width:0 2px 2px 0;transform:rotate(45deg)}#rer-demo-bar:has(:popover-open) .more{margin-top:3px;transform:rotate(225deg)}#rer-demo-detail{display:none}#rer-demo-bar #rer-demo-detail:popover-open{position:fixed;inset:38px auto auto 8px;display:block;width:min(440px,calc(100vw - 16px));max-height:calc(100vh - 54px);margin:0;padding:12px 14px;overflow:auto;border:1px solid #a8a29e;border-radius:8px;background:#fff;color:#1c1917;box-shadow:0 8px 24px rgba(0,0,0,.18);font:13px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif}#rer-demo-detail h2{margin:10px 0 2px;font:inherit;font-weight:700}#rer-demo-detail h2:first-child{margin-top:0}#rer-demo-detail p{margin:0}#rer-demo-detail p+h2{margin-top:10px}#rer-demo-detail p+p{margin-top:4px}#rer-demo-detail ul{margin:0;padding:0 0 0 18px}';
 let styleHash;
 
 // The end time as the starter wrote it (local ISO with offset): show its HH:MM.
@@ -180,11 +186,14 @@ async function barHtml() {
     rows('SELECT COUNT(*) AS count FROM rer_demo_outbound', [{ count: 0 }]),
   ]);
   const until = ends(env.RER_DEMO_EXPIRES);
-  const summary = ['Demo', 'nothing is sent', ...(until ? [`ends ${until}`] : []), `${mailCount[0].count} mail captured`, `${blockedCount[0].count} ${blockedCount[0].count === 1 ? 'send' : 'sends'} blocked`].join(' · ');
+  // "Demo · nothing is sent" always shows; the rest gives way on a narrow screen.
+  const rest = [...(until ? [`ends ${until}`] : []), `${mailCount[0].count} mail captured`, `${blockedCount[0].count} ${blockedCount[0].count === 1 ? 'send' : 'sends'} blocked`].map(part => ` · ${part}`).join('');
   const recipients = to => (Array.isArray(to) ? to : [to]).map(item => typeof item === 'string' ? item : item?.email).filter(Boolean).join(', ');
-  const mailList = mail.length ? `<ul>${mail.map(message => `<li>${escapeHtml(message.subject ?? '(no subject)')} → ${escapeHtml(recipients(message.to))}</li>`).join('')}</ul>` : '<p>None yet.</p>';
-  const blockedList = blocked.length ? `<ul>${blocked.map(row => `<li>${escapeHtml(row.method)} ${escapeHtml(row.host)}${row.times > 1 ? ` (${row.times}×)` : ''}</li>`).join('')}</ul>` : '<p>None yet.</p>';
-  return `<style>${STYLE}</style><aside id="rer-demo-bar" aria-label="Demo"><details><summary>${escapeHtml(summary)}</summary><h2>Captured mail (in the outbox, not sent)</h2>${mailList}<h2>Blocked sends</h2>${blockedList}</details></aside>`;
+  const list = items => items.length ? `<ul>${items.join('')}</ul>` : '<p>None yet.</p>';
+  const detail = mail.length || blocked.length
+    ? `<h2>Captured mail (in the outbox, not sent)</h2>${list(mail.map(message => `<li>${escapeHtml(message.subject ?? '(no subject)')} → ${escapeHtml(recipients(message.to))}</li>`))}<h2>Blocked sends</h2>${list(blocked.map(row => `<li>${escapeHtml(row.method)} ${escapeHtml(row.host)}${row.times > 1 ? ` (${row.times}×)` : ''}</li>`))}`
+    : '<p>No mail captured and no sends blocked yet.</p>';
+  return `<style>${STYLE}</style><aside id="rer-demo-bar" aria-label="Demo"><button type="button" popovertarget="rer-demo-detail"><span class="lead">Demo · nothing is sent</span><span class="rest">${escapeHtml(rest)}</span><span class="more" aria-hidden="true"></span></button><div id="rer-demo-detail" popover>${until ? `<p>This demo ends at ${until}.</p>` : ''}${detail}</div></aside>`;
 }
 
 async function decorate(response) {

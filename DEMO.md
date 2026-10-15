@@ -20,11 +20,10 @@ instance's disposable R2, including prior generations retained by Lamp.
 
 ## Base adoption
 
-Lamp uses the published npm package `@runeditrun/rer@0.2.13`, which includes the
+Lamp uses the published npm package `@runeditrun/rer@0.2.16`, which includes the
 demo CLI, host files, container ingress and egress isolation, build entry
 options and the production demo-binding refusal. No CLI package patch is needed.
-`modules/demo` retains the guard from Base revision `a6afad9f4d007bf1b97a75bd67880d1850683e5d`, with its HTTP helper import pointing at the installed package and Base's
-new CSP helper copied alongside it. The start and ended pages are unchanged.
+`modules/demo` is refreshed from Base tag `rer-v0.2.16` (commit `be254d4eb7831b9d6adc4bdff584cf61e2b972ce`), including the top-strip Demo bar. Its HTTP helper import points at the installed package; the CSP helper is copied alongside it. `edition.json` records this adapted runtime origin and mappings, and `sources.lock.json` retains its comparison source. The host package supplies start progress and keeps idle containers alive for the 15-minute idle / 60-minute lifetime.
 Base's container boundary admits Lamp's existing HTMLRewriter for the workerd
 engine the demo image uses; the Node engine still refuses it.
 
