@@ -54,8 +54,15 @@ jobs:
           key: lamp-linux-${{ runner.arch }}-${{ hashFiles('scripts/agent-bootstrap.sh', 'pnpm-lock.yaml', 'package.json') }}
       # Base requires 15 GiB free before starting native local servers.
       - name: Reserve disk for native runtime journeys
+        if: contains(fromJSON('["adoption", "demo", "imports-cutover", "portability"]'), matrix.shard)
         run: |
-          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
+          # Leave room for bootstrap without deleting every toolchain on every
+          # machine. The other shards do not start a Base-managed server.
+          free_kib() { df -Pk "$GITHUB_WORKSPACE" | awk 'END { print $4 }'; }
+          for unused_tools in /usr/local/lib/android /usr/share/dotnet /opt/ghc /opt/hostedtoolcache/CodeQL; do
+            if [ "$(free_kib)" -ge "$((20 * 1024 * 1024))" ]; then break; fi
+            sudo rm -rf -- "$unused_tools"
+          done
           df -h / "$RUNNER_TEMP"
       - name: Prepare verification logs
         run: mkdir -p "$RUNNER_TEMP/lamp-verification"
