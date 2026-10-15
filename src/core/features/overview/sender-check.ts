@@ -53,7 +53,7 @@ function sendGridAuthenticationError(domain: string, matches: SendGridDomain[]):
 export async function checkSender(from: string, _operatorEmail: string, options: SenderCheckOptions): Promise<string> {
   if (options.local) return LOCAL_SENDER_NOTICE;
   if (!options.demo) return verifyWithProvider(from, options);
-  const { demoEffect } = await import('../../../../modules/demo/index.mjs');
+  const { demoEffect } = await import('@runeditrun/rer/modules/demo');
   return demoEffect(() => verifyWithProvider(from, options), () => SENDER_VERIFIED);
 }
 
