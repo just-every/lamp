@@ -4889,7 +4889,7 @@
       "executable": false
     },
     "tests/independent-descriptor.test.mjs": {
-      "sha256": "c06d01949e219d27760e1fddb7e7e2a4eaacfd508f06ee8cbd90927bb7913b34",
+      "sha256": "25e5f4ac606676aa008a644123cdc8675921b4ea9041919b3a9cf44f04252281",
       "executable": false
     },
     "tests/installer-receipt.test.mjs": {

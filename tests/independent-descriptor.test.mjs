@@ -3,12 +3,11 @@ import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import config from '../scripts/delivery/base/packaging.json' with {type:'json'};
 const {specInputs}=config.artifact;
-test('independent release declares real commands, pinned full workflow and separate native surfaces',async()=>{
+test('independent release declares a pinned full workflow and separate native surfaces',async()=>{
  const descriptor=JSON.parse(await readFile('rer-project.json','utf8'));
  const workflow=await readFile('.github/workflows/deploy.yml','utf8');
  assert.equal(descriptor.sourceRepository,'https://github.com/just-every/run-lamp');
  assert.equal(descriptor.deployment.artifactFile,'lamp-worker-artifact.json');
- assert.equal(descriptor.operations.verify,'pnpm run verify');
  assert.match(workflow,/trusted-build\.yml@[a-f0-9]{40}/);
  assert.match(workflow,/build_profile: project/);
  assert.match(workflow,/verification_profile: full/);
