@@ -1,7 +1,7 @@
 {
   "id": "lamp",
   "name": "Lamp",
-  "version": "1.5.1",
+  "version": "1.6.0",
   "maturity": "ui-port-local-runtime",
   "category": "status",
   "spine": {
@@ -353,7 +353,7 @@
     {
       "id": "sorry-api",
       "required": false,
-      "why": "MOVE-001 only, at the owner\u2019s request: authenticated GET reads from https://api.sorryapp.com/v1/pages or keyless GET reads from the selected public Sorry HTTPS page. Redirects are refused; pagination stays on the selected collection. Keys are used only for the read and never stored. Saved responses make no network request.",
+      "why": "MOVE-001 only, at the owner’s request: authenticated GET reads from https://api.sorryapp.com/v1/pages or keyless GET reads from the selected public Sorry HTTPS page. Redirects are refused; pagination stays on the selected collection. Keys are used only for the read and never stored. Saved responses make no network request.",
       "data": [
         "API key in authenticated Authorization header only",
         "Page ID or public status-page hostname and notice IDs"
