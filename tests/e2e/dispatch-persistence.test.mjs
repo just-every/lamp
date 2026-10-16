@@ -126,7 +126,7 @@ test("Provider receipts reconcile before and after durable callback mapping", as
 
 
 
-test("Only committed lease winners may dispatch", async t => {
+test("Only committed lease winners may dispatch, and a rolled-back acceptance is never sent twice", async t => {
   t.diagnostic("a native claim batch exposes the post-claim row only to its winner and preserves lease expiry");
   await (async () => {
   const id = "claim-batch-winner";
@@ -161,11 +161,8 @@ test("Only committed lease winners may dispatch", async t => {
   assert.equal(claim.claimed, true);
   assert.equal(claim.delivery.id, id);
 })(t);
-});
-
-
-
-test("accepted receipt batch rollback preserves provider idempotency and callback replay across restart", async t => {
+  t.diagnostic("accepted receipt batch rollback preserves provider idempotency and callback replay across restart");
+  await (async () => {
   const id = "accepted-batch-rollback";
   const db = await seedDelivery(id);
   const { SendGridMailSender } = await vite.ssrLoadModule("/src/core/platform/mail/sendgrid.ts");
@@ -214,4 +211,5 @@ test("accepted receipt batch rollback preserves provider idempotency and callbac
   assert.deepEqual(await repository.listPendingProviderEvents(providerMessageId), []);
   await service.dispatchDelivery(id, "https://status.example.test");
   assert.equal(wireCalls, 1);
+})(t);
 });
