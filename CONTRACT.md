@@ -17,13 +17,13 @@ Every released clause has a stable ID and at least one tagged test; `pnpm verify
 Lamp is the status page and incident communication product for one business. It does the whole job the category's incumbents sell:
 
 - *Pages.* A public status page, private pages behind SSO or IP allow-lists for staff, and audience-specific pages for named enterprise customers. They are served on the buyer's own domain from infrastructure that keeps answering when the reported service, or Lamp's primary host, is down.
-- *Components that follow evidence.* Component state comes from operators, from accepted alerts, from Uptime monitors and monitoring tools under explicit owner rules, and from the public status feeds of third-party vendors such as AWS, Cloudflare, Stripe and GitHub.
+- *Components that follow evidence.* Component state comes from operators, from accepted alerts, from Uptime monitors, monitoring tools and alert emails under explicit owner rules, and from the public status feeds of third-party vendors such as AWS, Cloudflare, Stripe and GitHub.
 - *Incidents and maintenance.* Impact-first updates with templates, review, scheduled publication, next-update commitments, communication owners, post-incident reports and permanent history.
-- *Distribution.* One publish reaches the page, the Atom and RSS feeds, the widget, badges, the public JSON API, email, SMS, webhooks, Slack and Microsoft Teams. Subscribers choose components and events on every channel, and each audience receives its own wording.
+- *Distribution.* One publish reaches the page, the Atom and RSS feeds, the widget, badges, the public JSON API, email, SMS, webhooks (in Lamp's signed format or Statuspage's), Slack and Microsoft Teams. Webhook subscribers also hear every public component status change. Subscribers choose components and events on every channel, can follow a single incident, and each audience receives its own wording.
 - *Team.* Roles, SSO enforcement, SCIM, audit, a mobile operator desk and push reminders.
 - *Follow-up and automation.* Reminders before a promised update lapses, escalation, maintenance that starts and ends itself, report-due follow-up, automatic component changes under owner rules, redundant delivery and a visible list of every pending obligation.
-- *Integrations.* Uptime, Oncall, Datadog, PagerDuty, Prometheus Alertmanager, Grafana, New Relic, UptimeRobot, Better Stack, Pingdom, SendGrid, Mailgun, Amazon SES, Postmark, Twilio, Plivo, Slack, Microsoft Teams, HappyToHelp, Zendesk, Intercom, Okta, Microsoft Entra ID, Google Workspace, GitHub Actions and Terraform.
-- *Moving in.* Imports from Statuspage, Status.io, Better Stack, Instatus, incident.io and Sorry, with existing public addresses, feed readers and API consumers kept working.
+- *Integrations.* Uptime, Oncall, Datadog, PagerDuty, Jira Service Management, Opsgenie, Prometheus Alertmanager, Grafana, New Relic, UptimeRobot, Better Stack, Pingdom, SendGrid, Mailgun, Amazon SES, Postmark, Twilio, Plivo, Slack, Microsoft Teams, HappyToHelp, Zendesk, Intercom, Okta, Microsoft Entra ID, Google Workspace, GitHub Actions and Terraform.
+- *Moving in.* Imports from Statuspage, Status.io, Better Stack, Instatus, incident.io and Sorry, with existing public addresses, feed readers, API consumers, webhook receivers and email-wired monitors kept working.
 - *Agents.* An agent keeps the public story in line with responder evidence, drafts audience and language variants, keeps next-update promises and checks customer-visible recovery. A named operator approves everything that reaches a customer.
 
 Lamp is US-first: prices and costs in USD, SMS consent under TCPA and CTIA rules with 10DLC or toll-free registration, CAN-SPAM-compatible notification mail, and Section 508 / WCAG 2.2 AA accessibility for enterprise and public-sector buyers.
@@ -57,11 +57,17 @@ Nothing an automated source sends reaches a customer unless an operator publishe
 
 #### PAGE-015 — Served independently of what it reports.
 
-The public page, feeds, widget, badges and public API are served on the buyer's custom domain. The owner adds a hostname, and Lamp provisions it as a Cloudflare custom hostname with an automatically issued TLS certificate and shows the exact DNS record to create. Every snapshot generation (PAGE-005) is also copied to a secondary static origin that the owner chooses on a separate provider: an AWS S3 bucket behind CloudFront, a Backblaze B2 bucket, or a second Cloudflare account. The documented DNS failover serves that copy when the primary Worker cannot answer. The copy carries the PAGE-006 "last known state" label and its generation instant. A secondary copy that falls more than two generations or 5 minutes behind is reported to operators under BASE-OPS-004.
+The public page, feeds, widget, badges and public API are served on the buyer's custom domain. The owner adds a hostname, and Lamp provisions it as a Cloudflare custom hostname with an automatically issued TLS certificate and shows the exact DNS record to create.
 
-Acceptance: a custom-hostname journey shows the DNS record and certificate state, and serves `/` on that hostname. In a fault test the primary origin is stopped after a publish; the secondary serves the newest generation, labelled, within 60 seconds. A failing mirror write shows as a failed job on Overview.
+*Secondary origin.* Every snapshot generation (PAGE-005) is also copied, as static objects at the same paths, to a secondary origin the owner chooses on a separate provider. The supported secondaries are an AWS S3 bucket behind a CloudFront distribution that carries an ACM certificate for the buyer's hostname (independent of Cloudflare, and the recommended choice); a Backblaze B2 bucket behind a CDN that serves the buyer's hostname with its own certificate (Bunny.net or Fastly); and a second Cloudflare account. Setup states that a second Cloudflare account covers a failure of Lamp's Worker or account but not an outage of Cloudflare itself. Each copy carries the PAGE-006 "last known state" label and its generation instant. A secondary that falls more than two generations or 5 minutes behind is reported to operators under BASE-OPS-004 and listed in AUTO-003.
 
-Status: **partial** — `src/core/app/host-dispatch.ts`, `src/core/features/page-settings/service.ts`, `tests/e2e/public-contract.test.mjs`. The configured hostname, isolated public-host routing and retained snapshots (PAGE-006) ship. Custom-hostname provisioning and the secondary origin do not.
+*Failover topology.* Lamp does not operate DNS. The supported topology is health-checked failover at a DNS provider independent of Cloudflare: Amazon Route 53 failover routing (a primary record to the Cloudflare custom hostname with a health check, a secondary record to the secondary origin) or IBM NS1 Connect with an up/down monitor and a priority filter chain. Lamp's part is threefold. First, the primary serves `/__lamp/serving` on the buyer's hostname: it returns 200 only when the Worker can serve the current snapshot generation from object storage, and 503 otherwise. It needs no database, so a database outage, which PAGE-006 already survives, never triggers failover. Second, Settings → Independence shows the exact records and health-check settings for the chosen provider: an HTTPS check of `/__lamp/serving` every 10 seconds (Route 53 fast interval), failure threshold 3, record TTL 60 seconds. Third, a setup check verifies the arrangement end to end: the hostname resolves to the primary, the provider's secondary record names the secondary origin, the secondary answers TLS for the buyer's hostname (by SNI) with the newest generation, and the health check targets `/__lamp/serving`. Each failing step is named. With those settings the buyer's hostname serves the secondary within 180 seconds of the primary failing (30 seconds of detection, 60 seconds of TTL, and resolver margin). Failback is automatic when the health check passes again. Lamp keeps writing each new generation to the secondary while the primary serves, so failback never shows older content than failover did.
+
+*What the secondary serves.* Read-only, at the same paths as the primary: the status page, history, incident and maintenance permalinks, the Atom and RSS feeds (PAGE-010, PAGE-017), the widget and embed variants (PAGE-011, PAGE-019), badges (PAGE-018), the Statuspage-compatible and native public APIs with their CORS headers (PAGE-016), and `/maintenance.ics` (MAINT-007), each labelled with its generation instant. Not served: subscribe, manage, unsubscribe, alert intake and the operator app. The secondary answers their paths with 503 and `Retry-After` and a page that says subscriptions are paused while the standby copy is serving, never a false success. Publishing and notification delivery need the primary. During failover the page shows the last published generation, and work committed before the outage is delivered under NOTIFY-009 when the primary returns.
+
+Acceptance: a custom-hostname journey shows the DNS record and certificate state, and serves `/` on that hostname. `/__lamp/serving` returns 200 with the database stopped and 503 with object storage stopped. Against a Route 53 test zone configured from Settings → Independence (hosted acceptance; locally, a DNS harness polling `/__lamp/serving` with the same interval, threshold and TTL), the primary Worker is stopped after a publish: resolving and fetching the buyer's hostname returns the secondary's newest generation, labelled, within 180 seconds. On the secondary, `/api/v2/summary.json`, `/feed.rss` and a badge return 200 with the same generation, and `POST /subscribe` returns 503 with `Retry-After`. Restarting the primary returns the hostname to it. The setup check names a missing secondary record. A failing mirror write shows as a failed job on Overview.
+
+Status: **partial** — `src/core/app/host-dispatch.ts`, `src/core/features/page-settings/service.ts`, `tests/e2e/public-contract.test.mjs`. The configured hostname, isolated public-host routing and retained snapshots (PAGE-006) ship. Custom-hostname provisioning, the secondary origin, `/__lamp/serving`, the failover setup check and read-only standby serving do not.
 
 #### PAGE-016 — Statuspage-compatible public API.
 
@@ -97,19 +103,19 @@ Status: **partial** — `src/core/features/public-snapshot/feed-widget.ts`, `tes
 
 #### PAGE-020 — Accessible to the standard US buyers require.
 
-Every public page, private page, subscription page and email meets WCAG 2.2 AA. The project publishes a VPAT (Section 508 edition) for the current release, so enterprise and public-sector buyers can procure it. Component and incident states are never conveyed by colour alone, and the live region of PAGE-014 is announced by screen readers.
+Every public page, private page, subscription page and email meets WCAG 2.2 AA. Each release publishes a VPAT in the ITI VPAT 2.5 Rev 508 edition, `docs/accessibility/vpat.md`, which names the release version it describes, its evaluation date and the methods used. It is served at `/docs/accessibility/vpat` (DOCS-001) and linked from the public page footer, so enterprise and public-sector buyers can procure Lamp. Component and incident states are never conveyed by colour alone, and the live region of PAGE-014 is announced by screen readers.
 
-Acceptance: the accessibility suite runs axe at 1440 and 390 widths on the public page, history, incident permalink, maintenance permalink, subscription management and a private page with no serious or critical finding. A keyboard-only journey subscribes and manages a subscription.
+Acceptance: the accessibility suite runs axe at 1440 and 390 widths on the public page, history, incident permalink, maintenance permalink, subscription management and a private page with no serious or critical finding. A keyboard-only journey subscribes and manages a subscription. `pnpm validate:release` refuses a release whose `docs/accessibility/vpat.md` is absent, lacks the Section 508 chapters (Chapter 3 Functional Performance Criteria, Chapter 5 Software, Chapter 6 Support Documentation, and the WCAG 2.x A and AA tables), or names a version other than the one `RELEASE.json` releases. `GET /docs/accessibility/vpat` on the app host returns that document.
 
-Status: **partial** — `tests/e2e/accessibility.test.mjs`. An accessibility suite covers the public and operator documents. There is no VPAT, and no WCAG 2.2 AA conformance claim across every surface.
+Status: **partial** — `tests/e2e/accessibility.test.mjs`. An accessibility suite covers the public and operator documents. There is no VPAT, no release check for one, and no WCAG 2.2 AA conformance claim across every surface.
 
 ### Theming and languages — target
 
 #### THEME-001 — Full brand theming and custom CSS.
 
-In Settings, without a code change, the owner sets background, surface, text, link and per-state colours (Lamp checks each pair against WCAG AA contrast before saving), a font from the bundled set or an uploaded WOFF2 served from the page's own origin, a header image, custom header and footer links, and layout choices: groups collapsed or expanded, uptime bars shown or hidden per component, and how many days of history appear on the page. Owner CSS is accepted when it contains no `@import`, no `url()` to another origin, no `expression()` and no `behavior`. It is scoped to the page and shipped inside the snapshot stylesheet, so PAGE-003 and PAGE-013 still hold.
+In Settings, without a code change, the owner sets background, surface, text, link and per-state colours (Lamp checks each pair against WCAG AA contrast before saving), a font from the bundled set or an uploaded WOFF2 served from the page's own origin, a header image, custom header and footer links, custom header and footer HTML, and layout choices: groups collapsed or expanded, uptime bars shown or hidden per component, and how many days of history appear on the page. Owner CSS is accepted when it contains no `@import`, no `url()` to another origin, no `expression()` and no `behavior`. It is scoped to the page and shipped inside the snapshot stylesheet, so PAGE-003 and PAGE-013 still hold. Custom header and footer HTML (at most 8KB each) is sanitized on save to an allow-list of elements (`a`, `p`, `span`, `strong`, `em`, `br`, `ul`, `ol`, `li`, `nav`, `img`) and attributes (`href` to https or the page's own paths, `class`, `alt`, `src` to an image uploaded to the page's own origin). No script, event-handler attribute, `style` attribute, form, iframe or external resource survives, so the CSP of PAGE-013 needs no exception. The sanitized markup is rendered into the snapshot, so it is present without script.
 
-Acceptance: a settings journey changes every theme field, and the next snapshot shows them. CSS with `@import` or an external `url()` is refused with 400 and the offending rule named. A colour pair below 4.5:1 is refused. The page weight check of PAGE-003 passes with custom CSS present.
+Acceptance: a settings journey changes every theme field, and the next snapshot shows them. CSS with `@import` or an external `url()` is refused with 400 and the offending rule named. Header HTML containing `<script>`, an `onclick` attribute and an external `<img>` saves with all three removed, and the save response lists each removal. A colour pair below 4.5:1 is refused. The page weight check of PAGE-003 passes with custom CSS present.
 
 Status: **partial** — `src/core/features/page-settings/service.ts`, `src/core/features/public-snapshot/branding.ts`, `tests/e2e/public-contract.test.mjs`. Name, logo, accent colour, timezone, hostname, favicon and footer credit (PAGE-012) ship. Full palette, fonts, layout options and custom CSS do not.
 
@@ -143,7 +149,7 @@ Status: **missing**.
 
 #### COMP-008 — Monitor claims from measured evidence.
 
-A component can be linked to one or more Uptime monitors, or to a monitor in another tool through its intake preset (INTAKE-006, INTAKE-008 to INTAKE-011). A linked monitor becomes a fourth kind of claimant in COMP-006, beside incidents, maintenance and operators. When an AUTO-001 rule allows it, a confirmed failure claims the state the rule names, and the confirmed recovery releases that claim. Each claim records the monitor, the evidence instant and the rule in COMP-003's history. Unknown or stale monitor evidence never claims Operational, and it never releases a claim another claimant holds.
+A component can be linked to one or more Uptime monitors, or to a monitor or alert in another tool through its intake source: the presets of INTAKE-006 and INTAKE-008 to INTAKE-012 and INTAKE-014, and the component's automation email address (INTAKE-013). A linked monitor becomes a fourth kind of claimant in COMP-006, beside incidents, maintenance and operators. When an AUTO-001 rule allows it, a confirmed failure claims the state the rule names, and the confirmed recovery releases that claim. Each claim records the monitor or source, the evidence instant and the rule in COMP-003's history. Unknown or stale monitor evidence never claims Operational, and it never releases a claim another claimant holds.
 
 Acceptance: an Uptime signed failure for a monitor linked under an "automatic" rule moves the component to the named state on the page within 30 seconds and appends a history entry naming the monitor. The signed recovery releases the claim, while an operator's standing claim on the same component survives. A component whose rule only drafts changes no public state.
 
@@ -243,9 +249,17 @@ Status: **partial** — `src/core/features/incidents/reminders.ts`, `tests/e2e/u
 
 #### INCIDENT-012 — Run the incident from Slack or Teams.
 
-The Lamp Slack app and Teams app let a linked operator open a draft incident (`/lamp incident`), attach components with their claimed states, write the update fields of UPDATE-001, see the UPDATE-004 preview and publish. Every action keeps the same validation, review (UPDATE-007), role checks (TEAM-004) and attribution as the web desk, and nothing publishes without an explicit Publish click by a linked operator.
+The Lamp Slack app and Teams app let a linked operator open a draft incident (`/lamp incident` in Slack, the `incident` command or message extension in Teams), attach components with their claimed states, write the update fields of UPDATE-001, see the UPDATE-004 preview and publish. Every action keeps the same validation, review (UPDATE-007), role checks (TEAM-004) and attribution as the web desk, and nothing publishes without an explicit Publish click by a linked operator. An operator links a Slack user or a Microsoft Entra ID user to their Lamp operator once, from the operator app. Slack requests are accepted only with a valid `X-Slack-Signature` over the raw body within 5 minutes. Teams activities are accepted only with a Bot Framework bearer token whose signature verifies against the Bot Framework OpenID metadata keys and whose audience is Lamp's bot app ID. The Teams app shows the draft and preview as Adaptive Cards, and each step is an `Action.Execute` invoke.
 
-Acceptance: a recorded Slack interaction payload opens a draft, a second publishes it after preview, and the incident appears on the page attributed to the linked operator. A payload from an unlinked Slack user is refused and creates nothing.
+Acceptance: a recorded Slack interaction payload opens a draft, a second publishes it after preview, and the incident appears on the page attributed to the linked operator. A payload from an unlinked Slack user is refused and creates nothing, and a payload with a wrong signature returns 401. Recorded Bot Framework activity fixtures, signed with a test key served from a fake OpenID metadata edge, do the same in Teams: a message-extension invoke opens a draft, an `Action.Execute` attaches two components with their states, the next returns the preview card that UPDATE-004's renderer produced, and a Publish invoke publishes it, attributed to the linked operator. An activity from an unlinked Entra ID user is refused and creates nothing, and one whose token has the wrong audience or an invalid signature returns 401.
+
+Status: **missing**.
+
+#### INCIDENT-013 — Impact set by the operator.
+
+An operator can set an incident's impact explicitly, in Statuspage's vocabulary (none, minor, major, critical), above or below the impact INCIDENT-002 derives from component claims. The incident then shows that impact on every public surface, in the PAGE-016 `impact` field and in notifications, and the operator app shows both the set and the derived impact. Setting or clearing it is attributed (TEAM-003) and appended to the incident's internal timeline. Component states, the overall status (PAGE-004) and uptime (UPTIME-001) still come only from claims, so an impact override never changes a figure. Imports from Statuspage keep each incident's recorded impact this way. The release that ships this clause records INCIDENT-002 as changed.
+
+Acceptance: an incident whose components claim only Degraded performance, set to impact "major", shows major on the page and in `/api/v2/incidents.json`, while the component and uptime figures are unchanged. Clearing the override returns the derived impact, and both changes appear on the internal timeline with the operator.
 
 Status: **missing**.
 
@@ -358,7 +372,7 @@ Status: **partial** — `src/core/features/channels/teams.ts`, `tests/e2e/channe
 
 #### SUB-016 — Preferences on every channel.
 
-Every subscription on every channel (email, SMS, webhook, Slack, Teams, and audience subscriptions under AUD-004) selects components (SUB-004) and event kinds: incidents, maintenance, or both, and optionally only incidents whose impact reaches Partially unavailable or worse. The SUB-007 management page edits all of these without a session.
+Every subscription on every channel (email, SMS, webhook, Slack, Teams, and audience subscriptions under AUD-004) selects components (SUB-004) and event kinds: incidents, maintenance, component status changes (NOTIFY-017), or any combination, and optionally only incidents whose impact reaches Partially unavailable or worse. Webhook subscriptions start with component status changes selected, as Statuspage's do; other channels start without them. A subscription may instead follow a single incident (SUB-019). The SUB-007 management page edits all of these without a session.
 
 Acceptance: an SMS subscriber who chose "maintenance only" receives the maintenance start and nothing for an incident on the same component. An email subscriber who chose "Partially unavailable or worse" receives nothing for a Degraded incident and is notified when it escalates.
 
@@ -371,6 +385,22 @@ An operator imports subscribers from CSV (email, phone, webhook URL, components,
 Acceptance: a CSV with 100 rows, 3 malformed, dry-runs as 97 created and 3 refused with reasons, then applies as 97 pending subscriptions. Sending invitations sends at most one each. The export CSV has 97 rows.
 
 Status: **partial** — `src/core/features/statuspage-import/`, `tests/e2e/statuspage-import.test.mjs`. Move-in imports bring email subscribers in as pending (MOVE-002). CSV import and subscriber export do not exist.
+
+#### SUB-018 — Statuspage-format webhooks.
+
+Each webhook subscription has a body format: Lamp's (SUB-009) or Statuspage's. Webhook subscribers imported from Statuspage (MOVE-010) get the Statuspage format, and anyone subscribing a new endpoint can choose it. In the Statuspage format, an incident notification is the documented `{meta, page, incident}` body. `meta` carries `unsubscribe` (the subscription's SUB-006 link) and `documentation`. `page` carries `id`, `status_indicator` and `status_description` with PAGE-016's values. `incident` carries Statuspage's incident fields (`id`, `name`, `status`, `impact`, `shortlink`, `created_at`, `updated_at`, `resolved_at`, `components`) and the complete `incident_updates` array, each update with `id`, `body`, `status` and `created_at`. A component change is the `{meta, page, component_update, component}` body: `component_update` carries `id`, `component_id`, `created_at`, `old_status` and `new_status`, and `component` carries `id`, `name`, `status` and `created_at`. Statuses use Statuspage's values (`operational`, `degraded_performance`, `partial_outage`, `major_outage`, `under_maintenance`), which map one to one onto COMP-001. IDs are the imported Statuspage IDs where a record was imported, and stable Lamp IDs in the same format otherwise, matching PAGE-016. The UPDATE-001 fields render into `body` through UPDATE-002's renderer. A Statuspage-format delivery also carries SUB-009's `webhook-*` signature headers, which receivers that do not check them ignore, and carries no subscriber address. Delivery success, retry, at-most-once and failure rules are SUB-009, NOTIFY-003, NOTIFY-005 and SUB-010.
+
+Acceptance: a Statuspage webhook-receiver fixture, a receiver that validates Statuspage's documented incident and component-update bodies field by field and is kept unmodified, accepts every Lamp delivery in a journey that publishes an incident's first update, a second update and its resolution, and changes a component outside any incident. It receives three incident bodies, each with the complete `incident_updates` array, and one `component_update` whose `old_status` and `new_status` match the change. The same deliveries verify under SUB-009's signature scheme.
+
+Status: **partial** — `src/core/features/deliveries/service.ts`, `tests/e2e/delivery-contract.test.mjs`. Signed Lamp-format webhooks carrying the incident, every published update and each component's previous and new state ship (SUB-009). The Statuspage format and per-subscription format choice do not.
+
+#### SUB-019 — Follow one incident.
+
+Every incident permalink carries a "Get updates on this incident" form in its initial HTML. It offers email, SMS where SUB-013 is enabled, and webhook endpoint with contact address. The form is a standard POST that works without script (PAGE-002), and it follows SUB-001's confirmation, one-confirmation-per-24-hours limit and `Sec-Fetch-Site` rule, SUB-002's confirmation policy, SUB-003's pending expiry and SUB-012's no-enumeration response. An incident subscription notifies only for that incident: each later published update, its resolution and, when the owner leaves "include the post-incident report" on, the HIST-002 report. It never notifies for another incident, maintenance or component change. It ends after the resolution is delivered, or, with the report included, when the report is published or 30 days after resolution, whichever comes first. A reopening (INCIDENT-005) before it ends is notified. When it ends, Lamp sends nothing more and deletes the address within 24 hours unless the same address holds another subscription. The SUB-007 page for its token shows "Following INC-n" and unsubscribes it at once. Operators see incident subscribers on the incident and in SUB-011's list. The management API lists, creates and deletes them (API-001), as Statuspage's incident-subscriber endpoints do (API-002). Imports from Statuspage bring the incident subscribers of unresolved incidents in as pending under MOVE-002's invitation rules.
+
+Acceptance: with script disabled, a visitor subscribes an email address from INC-7's permalink and confirms it. That address receives INC-7's next update and its resolution, nothing for INC-8 on the same component, nothing for a maintenance, and nothing after the resolution; its address is gone 24 hours later. Submitting the same address again returns SUB-012's response. A cross-site POST returns 403.
+
+Status: **missing**.
 
 ## Notifications
 
@@ -399,7 +429,7 @@ Status: **partial** — `src/core/app/mail.ts`, `src/core/features/deliveries/se
 
 #### NOTIFY-014 — SMS delivery.
 
-SMS notifications go through Twilio or Plivo from the owner's registered 10DLC campaign or verified toll-free number. When both are configured, the other is used if the first fails retryably. Delivery receipts arrive through the provider's signed status callbacks (`X-Twilio-Signature`, Plivo's V3 signature) and record delivered, undelivered or failed (NOTIFY-004). Settings shows the estimated cost of the next publish in USD, from subscriber counts and the provider's rate the owner enters, and a monthly SMS spend cap. A publish that would pass the cap sends the SMS part only after an operator confirms.
+SMS notifications go through Twilio or Plivo from the owner's registered 10DLC campaign or verified toll-free number. When both are configured, the other is used if the first fails retryably. Delivery receipts arrive through the provider's signed status callbacks (`X-Twilio-Signature`, Plivo's V3 signature) and record delivered, undelivered or failed (NOTIFY-004). Settings shows the estimated cost of the next publish in USD, from subscriber counts and the provider's rate the owner enters, and a monthly SMS spend cap. A publish that would pass the cap sends the SMS part only after an operator confirms. Every eligible SMS for a publish is accepted by the provider within the time Settings states for the owner's registered throughput (subscriber count divided by the campaign's messages per second, plus 60 seconds), and NOTIFY-018 reports any message that misses it.
 
 Acceptance: through Twilio test credentials, a publish to 3 SMS subscribers records 3 delivered receipts from signed callbacks. An unsigned callback is refused with 401. A publish over the cap queues SMS until confirmed, and the page, email and feeds are not delayed (NOTIFY-009).
 
@@ -420,6 +450,30 @@ Every NOTIFY-006 operator alert, along with DEP-003 vendor alerts and HIST-006 t
 Acceptance: an overdue incident produces exactly one email, one Slack post to the operator channel and one push per subscribed device.
 
 Status: **missing**.
+
+#### NOTIFY-017 — Component status changes reach webhook subscribers.
+
+Every change of a visible component's public state notifies the subscriptions that selected component status changes (SUB-016) and follow that component (SUB-004). Webhook subscriptions have that selection by default. The change may come from any claimant in COMP-006 and COMP-008: an operator's claim, an incident or maintenance attaching, resolving or completing, a monitor or alert-source claim under an AUTO-001 rule, the automation email of INTAKE-013, or a vendor component following its feed (DEP-001). Each change is one notification carrying the previous and new state, the instant and the claimant kind (never an operator's name, TEAM-003). It goes out as SUB-018's `component_update` body or SUB-009's body with a `component.changed` event type. Only committed changes notify: a claim that AUTO-002's flap guard holds back sends nothing, and an undo sends one change back. A change that lands with an incident update is carried in that update's notification, and no separate component notification is sent for it. Internal components (COMP-005) never notify. Retroactive state history (INCIDENT-009, MOVE-002) and history corrections (UPTIME-004) notify no one. This replaces NOTIFY-001's default that a component change outside an incident or maintenance notifies no one, for subscriptions that select component changes. The release that ships it records NOTIFY-001 as changed.
+
+Acceptance: a webhook subscriber following component API receives exactly one `component_update` for each of an operator claim, a monitor claim under a "claim" rule, an automation-email claim and a vendor-feed change, each with the right old and new status. An email subscriber who did not select component changes receives none. A 60-second flap held by AUTO-002 sends nothing. An internal component's change sends nothing.
+
+Status: **missing**. Released NOTIFY-001 notifies no one for a change outside an incident or maintenance.
+
+#### NOTIFY-018 — Delivery time on every channel.
+
+At the subscriber limits in `seed.json → limits`, every eligible notification for a published update or a component change is accepted by its receiver within 5 minutes of the publish request returning 200: a 2xx from each webhook endpoint (SUB-009, SUB-018), from Slack for each Slack subscription and channel post (SUB-014, NOTIFY-012), and from Microsoft for each Teams subscription and channel post (SUB-015, NOTIFY-012). SMS follows NOTIFY-014's stated throughput bound. An endpoint that fails is retried under NOTIFY-003 and does not hold back other deliveries. The delivery log records, per update and channel, the time the last eligible delivery was accepted, and Overview reports any channel that missed its bound under BASE-OPS-004.
+
+Acceptance: at the webhook, Slack and Teams subscriber limits, against fake edges that answer 200, every delivery for one publish is accepted within 5 minutes, and the log's per-channel completion times show it. With one webhook endpoint answering 500, the others still complete within the bound, and the failing one shows as in retry.
+
+Status: **partial** — `src/core/features/deliveries/service.ts`, `tests/e2e/delivery-contract.test.mjs`. NOTIFY-002's 5-minute bound ships and is tested for email at the subscriber limit. No bound is stated or tested for webhooks, Slack, Teams or SMS.
+
+#### NOTIFY-019 — Notification email the owner can brand.
+
+Per page, the owner sets the sender display name, a reply-to address, a subject prefix, the header logo and plain-text header and footer lines for notification email, and previews the result through UPDATE-004's email preview. The From address stays the authenticated address of NOTIFY-008 and NOTIFY-010. The required unsubscribe link (SUB-006), the management link (SUB-007) and the List headers (NOTIFY-010) cannot be removed. The owner may add a postal address line, which Lamp suggests for CAN-SPAM-sensitive lists. Each audience page (AUD-001) can carry its own settings.
+
+Acceptance: after the owner sets a display name, a subject prefix `[Acme status]` and a footer line, the next notification carries `From: "Acme status" <configured address>`, a subject starting `[Acme status]` and the footer, together with the unsubscribe link and the List headers. A footer that tries to remove the unsubscribe link cannot be saved.
+
+Status: **partial** — `src/core/features/page-settings/service.ts`, `tests/e2e/delivery-contract.test.mjs`. The configured sender address and the page name in notification email ship (NOTIFY-008). Display name, reply-to, subject prefix and header and footer settings do not.
 
 ## Alert intake
 
@@ -467,11 +521,27 @@ Status: **partial** — `src/core/features/intake/presets.ts`, `tests/e2e/channe
 
 #### INTAKE-012 — Oncall.
 
-A source can be an Oncall preset. Oncall's signed incident events (opened, acknowledged, escalated, resolved) and its responder timeline entries flow into the matching Lamp draft or incident as brief evidence (DRAFT-004). Each Lamp publication posts back to the Oncall incident's timeline, and INCIDENT-011's escalation is delivered through Oncall's paging when it is linked. Lamp never pages anyone itself.
+A source can be an Oncall preset. It maps Oncall services to components, and Oncall's signed incident events (opened, acknowledged, escalated, resolved) and its responder timeline entries flow into the matching Lamp draft or incident as brief evidence (DRAFT-004). Under an AUTO-001 rule an opened event can also claim component state, and its resolution releases the claim (COMP-008). Each Lamp publication posts back to the Oncall incident's timeline, and INCIDENT-011's escalation is delivered through Oncall's paging when it is linked. Lamp never pages anyone itself.
 
-Acceptance: a signed Oncall "opened" fixture creates a draft, a later timeline entry appears in the brief with its time and author role, and a Lamp publish sends one timeline post to Oncall's fake edge.
+Acceptance: a signed Oncall "opened" fixture creates a draft, a later timeline entry appears in the brief with its time and author role, and a Lamp publish sends one timeline post to Oncall's fake edge. Under a "claim" rule the same opened event moves the mapped component to the rule's state, and the resolved event releases it.
 
 Status: **missing**.
+
+#### INTAKE-013 — Email automation for each component.
+
+Every component has its own automation email address, as Statuspage's components do, so monitors that can only send mail (Pingdom email alerts, CloudWatch alarms through SNS email, New Relic email, cron scripts) change component state with no webhook. Mail is received by a Cloudflare Email Worker on an inbound subdomain the owner chooses (for example `automation.status.example.com`), whose MX records Settings shows and a setup check verifies. The address is `c-<token>@<inbound domain>`, where the token addresses one component and carries at least 128 bits of entropy. It is shown in the component's Automation panel, can be rotated (the old address is refused from then on), and is stored only as a hash. The semantics are Statuspage's. A subject containing the word `DOWN` claims Major outage, and one containing `UP` releases the claim; the words match whole and in capitals, and when a subject holds both, the first one decides. Statuspage's address suffixes, as in `c-<token>+partial_outage@` and `c-<token>+degraded_performance@`, claim those states instead, and a suffixed address never releases a claim, so recovery needs the plain address. Pingdom's alert subjects ("DOWN alert: …", "UP alert: …") parse with no extra setup. Mail is processed in the order received and deduplicated by `Message-ID`. While an unresolved incident or in-progress maintenance claims the component, a message changes nothing and is recorded as ignored, as Statuspage ignores it. The component's AUTO-001 rule decides what an accepted message does: draft, claim, or claim and publish. AUTO-002's flap guard applies as to any source. The owner can also require that the sending domain pass DMARC alignment, or limit senders to listed addresses or domains. A message to an unknown or rotated token, from a refused sender, or with neither keyword is rejected during the SMTP session and records nothing on any component; refused and unparsed messages are counted on the source with their reason, without storing message bodies. Cutover (MOVE-006) lists each imported Statuspage component's old `automation_email` beside its new Lamp address, so the owner can repoint every monitor. The release that ships this clause records MOVE-006 as changed.
+
+Acceptance: an inbound-mail fixture with subject `DOWN alert: api is DOWN` sent to component API's address claims Major outage within 30 seconds under a "claim" rule. The same message under a "draft" rule creates a private draft attached to API and changes no public state. `UP` to the plain address releases the claim, and `UP` to the `+partial_outage` address releases nothing. A message to an address with a wrong token is rejected at SMTP and records nothing. A message while an incident claims API is recorded as ignored. After a Statuspage fixture import, Cutover lists each component's old and new automation address.
+
+Status: **missing**. Lamp has no inbound email path.
+
+#### INTAKE-014 — Jira Service Management and Opsgenie.
+
+A source can be a Jira Service Management (JSM) Operations preset or an Opsgenie preset. It accepts the alert webhook that JSM's and Opsgenie's outgoing Webhook integration sends for the alert actions Create, Acknowledge, AddNote, Escalate and Close. It is authenticated by the source's bearer token, which those integrations send as a custom header (INTAKE-001), and it deduplicates by `alertId` (INTAKE-003). The owner maps alerts to components by alert tags (for example `component:api`), by `entity`, or by JSM affected service, with matchers like INTAKE-010's. An alert matching several components attaches all of them, and an alert matching none is recorded against the source as unmapped. Create creates or updates a draft (or acts under the component's AUTO-001 rule). Acknowledge and Escalate become brief entries with time and responder role. AddNote becomes an internal note (INCIDENT-008), so a responder's note is never sent to a model or shown publicly unless an operator copies it. Close records recovery under INTAKE-004 and INTAKE-007. When the owner connects JSM Operations API credentials (Atlassian site, account email and API token) or an Opsgenie API key, each Lamp publication on the linked incident adds one note to the JSM or Opsgenie alert with the update's text and permalink. With "close alert on resolve" on, the operator's Resolved publication also closes the alert. Responders in JSM then see what customers were told, as Statuspage's JSM integration shows them.
+
+Acceptance: a recorded JSM alert-Create webhook tagged `component:api` creates a draft attached to API, and the same body with a wrong token returns 401 and records nothing. A recorded Acknowledge appears in the brief, and a recorded AddNote appears as an internal note and not in DRAFT-004's brief. A publish on the linked incident sends exactly one add-note request to the JSM fake edge with the update text and permalink, and a Resolved publish with "close alert on resolve" sends one close request. An Opsgenie fixture does the same against Opsgenie's fake alert API.
+
+Status: **partial** — `src/core/features/intake/service.ts`, `tests/e2e/publishing-contract.test.mjs`. A bearer-token generic source with JSON-path mapping (INTAKE-001, INTAKE-005) can receive a JSM or Opsgenie webhook sent with a custom header. There is no preset, no tag or service mapping, no note handling and no note back to JSM or Opsgenie.
 
 ### Automation — target
 
@@ -540,7 +610,7 @@ Status: **missing**.
 
 #### TEAM-006 — Enforced SSO and SCIM.
 
-The owner can require OpenID Connect sign-in through Auth, Okta, Microsoft Entra ID or Google Workspace for every operator. Email magic links are then disabled except for one recorded break-glass Owner path, which ACCESS-001's terminal sign-in keeps. A SCIM 2.0 endpoint provisions and deprovisions operators from the identity provider and maps IdP groups to TEAM-004 roles. A deprovisioned operator's sessions end within 60 seconds. Every SCIM change is audited.
+The owner can require single sign-on for every operator: OpenID Connect through Auth, Okta, Microsoft Entra ID or Google Workspace, or SAML 2.0 with signed assertions for SAML-only IdPs such as AD FS. Email magic links are then disabled except for one recorded break-glass Owner path, which ACCESS-001's terminal sign-in keeps. A SCIM 2.0 endpoint provisions and deprovisions operators from the identity provider and maps IdP groups to TEAM-004 roles. A deprovisioned operator's sessions end within 60 seconds. Every SCIM change is audited.
 
 Acceptance: with SSO enforced, a magic-link request for a non-owner returns the SSO notice and sends no mail. A SCIM `PATCH active=false` ends that operator's session, and their next request returns 401. A SCIM group change from Communicators to Responders removes publish rights.
 
@@ -587,6 +657,14 @@ Acceptance: a fixture with mixed channels reports counts equal to the SUB-011 li
 
 Status: **partial** — `src/core/features/subscribers/service.ts`, `tests/e2e/delivery-contract.test.mjs`. The operator subscriber list with channel, state, selection and deactivation reason ships (SUB-011). Counts, trends and export do not.
 
+#### HIST-008 — Complete browsable history.
+
+The public history covers every resolved incident and completed maintenance back to the earliest record, including imported history (MOVE-002), not only HIST-001's last 12 months. `/history` keeps HIST-001's 12 months and links to earlier months at `/history/YYYY-MM`. Each month page is a snapshot artifact with links to the previous and next month that hold records, works without script, and is served under PAGE-007 and PAGE-008. Every incident permalink stays reachable from a month page. The paths differ from the Sorry aliases of MOVE-005 (`/history/YYYY/month`), which keep redirecting. The release that ships this clause records HIST-001 as changed.
+
+Acceptance: after a Statuspage fixture import with incidents from three years ago, `/history/` links to an earlier month, and following previous-month links reaches the oldest imported incident, with script disabled. With the database unavailable, every month page returns 200 from the snapshot.
+
+Status: **partial** — `src/core/features/public-snapshot/renderer.ts`, `tests/e2e/public-contract.test.mjs`. The 12-month history page ships (HIST-001). Earlier months have no index.
+
 ## Audiences and private pages — target
 
 #### AUD-001 — Several pages in one deployment.
@@ -599,9 +677,9 @@ Status: **missing**. Replaces the released `seed.json → nonGoals` exclusions o
 
 #### AUD-002 — Private page access.
 
-A private page admits a visitor who passes the access methods the owner chose for it. The methods are: OIDC sign-in through Auth, Okta, Microsoft Entra ID or Google Workspace, optionally restricted to IdP groups; an emailed single-use link to an allow-listed address or email domain; or a source address in an IP allow-list (CIDR, IPv4 and IPv6). A visitor who fails sees a sign-in page that reveals nothing about the page except its name. An admitted visitor gets an HttpOnly, Secure, SameSite=Lax session cookie, signed so the Worker verifies it without a database read. That keeps PAGE-006's serving-through-failure on private pages. Private responses carry `Cache-Control: private, no-store` and are never stored in a shared edge cache. When shipped, this clause replaces BASE-PUBLIC-001's no-cookie rule for private-page hosts only, because a private page needs a session; public surfaces keep SUB-005. The release that ships it states that replacement in the released clause's own `Supersedes` form.
+A private page admits a visitor who passes the access methods the owner chose for it. The methods are: OIDC sign-in through Auth, Okta, Microsoft Entra ID or Google Workspace, or SAML 2.0 sign-in (SP-initiated, signed assertions, for IdPs such as AD FS that offer only SAML), optionally restricted to IdP groups; an emailed single-use link to an allow-listed address or email domain; or a source address in an IP allow-list (CIDR, IPv4 and IPv6). A visitor who fails sees a sign-in page that reveals nothing about the page except its name. An admitted visitor gets an HttpOnly, Secure, SameSite=Lax session cookie, signed so the Worker verifies it without a database read. That keeps PAGE-006's serving-through-failure on private pages. Private responses carry `Cache-Control: private, no-store` and are never stored in a shared edge cache. When shipped, this clause replaces BASE-PUBLIC-001's no-cookie rule for private-page hosts only, because a private page needs a session; public surfaces keep SUB-005. The release that ships it states that replacement in the released clause's own `Supersedes` form.
 
-Acceptance: a signed-out request to a private page returns its sign-in page with no incident text. Each access method admits an allowed visitor and refuses another. With the database unavailable, an admitted visitor still reads the last snapshot. No private response is cacheable by a shared cache.
+Acceptance: a signed-out request to a private page returns its sign-in page with no incident text. Each access method admits an allowed visitor and refuses another; a SAML response with an unsigned or wrongly signed assertion is refused. With the database unavailable, an admitted visitor still reads the last snapshot. No private response is cacheable by a shared cache.
 
 Status: **missing**.
 
@@ -615,9 +693,9 @@ Status: **missing**.
 
 #### AUD-004 — Audience subscribers.
 
-Signed-in audience members can subscribe on any SUB-016 channel from their page. Their notifications carry their audience's wording and are never sent to public subscribers. Public subscribers never receive audience-only incidents. Unsubscribe and management follow SUB-006 and SUB-007.
+Signed-in audience members, and admitted visitors of a private page that serves no audience (a staff page), can subscribe on any SUB-016 channel from their page. A subscription belongs to the page it was made on and receives only incidents and maintenance visible there. Their notifications carry their audience's wording and are never sent to public subscribers. Public subscribers never receive audience-only incidents. Unsubscribe and management follow SUB-006 and SUB-007.
 
-Acceptance: an audience-only update notifies the audience's subscribers and no public subscriber. A combined update sends each subscriber exactly one message with their own wording.
+Acceptance: an audience-only update notifies the audience's subscribers and no public subscriber. A combined update sends each subscriber exactly one message with their own wording. A staff-page subscriber receives a staff-only incident, and no public subscriber does.
 
 Status: **missing**.
 
@@ -641,9 +719,9 @@ Status: **partial** — `src/core/features/incidents/routes.ts`, `src/core/featu
 
 #### API-002 — Statuspage-compatible management API.
 
-A subset of the Statuspage REST v1 API (`/v1/pages/{page_id}/components`, component status `PATCH`, `/v1/pages/{page_id}/incidents` create and update, scheduled maintenance create) accepts `Authorization: OAuth <token>` with an API-001 token. Existing scripts, CI steps and monitoring integrations written for Statuspage then work by changing the base URL. Lamp records which compatibility calls each token makes, so the owner can move them to `/api/v1/`.
+A subset of the Statuspage REST v1 API (`/v1/pages/{page_id}/components` with component status `PATCH`, `/v1/pages/{page_id}/component-groups`, `/v1/pages/{page_id}/incidents` create and update, scheduled maintenance create, `/v1/pages/{page_id}/subscribers` list, create and delete, `/v1/pages/{page_id}/incidents/{incident_id}/subscribers` (SUB-019), and metric data points `POST /v1/pages/{page_id}/metrics/{metric_id}/data` into UPTIME-008) accepts `Authorization: OAuth <token>` with an API-001 token. Existing scripts, CI steps and monitoring integrations written for Statuspage then work by changing the base URL. Lamp records which compatibility calls each token makes, so the owner can move them to `/api/v1/`.
 
-Acceptance: the unmodified Statuspage component-status script from Atlassian's documentation, pointed at Lamp, changes the component state. An unsupported Statuspage endpoint returns 404 with a body naming the Lamp equivalent.
+Acceptance: the unmodified Statuspage component-status script from Atlassian's documentation, pointed at Lamp, changes the component state. Recorded Statuspage API calls that create and delete a subscriber, create a component group and push metric data points succeed against Lamp and produce the same records the native API would. An unsupported Statuspage endpoint returns 404 with a body naming the Lamp equivalent.
 
 Status: **missing**.
 
@@ -730,19 +808,27 @@ Status: **missing**.
 
 #### MOVE-009 — Statuspage consumers keep working at cutover.
 
-After a Statuspage import, everything that read the old page keeps working on the moved hostname: the Statuspage public API paths (PAGE-016), `/history.rss` and `/history.atom` (PAGE-017), and the embed script path `/embed/script.js`, which serves PAGE-019's floating notice. Cutover (MOVE-006) lists them as served instead of unsupported.
+After a Statuspage import, everything that read the old page keeps working on the moved hostname: the Statuspage public API paths (PAGE-016), `/history.rss` and `/history.atom` (PAGE-017), and the embed script path `/embed/script.js`, which serves PAGE-019's floating notice. Webhook receivers keep their Statuspage bodies (SUB-018, MOVE-010), and email-wired monitors get a new address for each component (INTAKE-013). Cutover (MOVE-006) lists all of them as served instead of unsupported, with each component's old and new automation address.
 
-Acceptance: after a Statuspage fixture import, an unmodified Statuspage client reads `/api/v2/summary.json`, a feed reader reads `/history.rss`, and an old embed tag renders the notice. Cutover lists every one as served.
+Acceptance: after a Statuspage fixture import, an unmodified Statuspage client reads `/api/v2/summary.json`, a feed reader reads `/history.rss`, an old embed tag renders the notice, and the Statuspage webhook-receiver fixture of SUB-018 accepts the next publish. Cutover lists every one as served.
 
 Status: **partial** — `src/core/features/statuspage-import/public-paths.mjs`, `src/core/features/public-snapshot/import-aliases.ts`, `tests/e2e/statuspage-import.test.mjs`. History and Atom aliases are served after import (MOVE-005). JSON API, RSS and embed compatibility are missing, and Cutover reports them as unsupported (MOVE-006).
 
 #### MOVE-010 — Every subscriber channel moves.
 
-Imports from Statuspage, Status.io and Better Stack bring webhook, Slack, Teams and SMS subscribers as well as email. Each arrives pending and is re-confirmed in its own channel's way: SMS by a YES reply (SUB-013), webhooks by a signed verification ping, Slack by reinstalling the app (SUB-014). The confirmation windows and owner-sent invitations of MOVE-002 apply. Nothing is sent before the owner's explicit invitation action.
+Imports from Statuspage, Status.io and Better Stack bring webhook, Slack, Teams and SMS subscribers as well as email, each with its component selection, and Statuspage's incident subscribers of unresolved incidents (SUB-019). Nothing is sent to anyone before the owner's explicit action, and each channel then moves in its own way:
 
-Acceptance: a Statuspage fixture with email, webhook and SMS subscribers dry-runs all three channels. After invitations, the SMS subscriber is active only after replying YES, and the webhook subscriber only after its ping succeeds.
+- *Webhooks.* An endpoint the source reports as an active, confirmed subscription is imported held, in the source's body format: Statuspage webhooks get SUB-018's Statuspage format, so the receivers keep parsing what they parsed. The owner's explicit "Activate imported webhooks" action, taken at cutover, makes every held endpoint active with no reply needed from the receiver. Statuspage receivers never had to answer a verification ping, and an unattended receiver could never pass one. Deliveries start with the next publish or component change (NOTIFY-017), and an endpoint that then fails is handled by SUB-010 and emails its contact address. An endpoint the source reports as unconfirmed comes in pending and is confirmed through its contact email address, under SUB-001's confirmation.
+- *SMS.* Re-confirmed by a YES reply (SUB-013), because TCPA consent was given to the source's sender, not Lamp's.
+- *Slack.* Re-confirmed by reinstalling Lamp's Slack app (SUB-014); a Slack incoming-webhook URL the source holds moves as a held webhook in Slack format.
+- *Teams.* Re-confirmed by SUB-015's verification card.
+- *Email.* Under MOVE-002 unchanged.
 
-Status: **missing**. Released imports carry email subscribers only.
+The confirmation windows of MOVE-002 apply to every pending channel. Activated webhook endpoints are recorded with the import as their consent source, so MOVE-004's undo deactivates them.
+
+Acceptance: a Statuspage fixture with email, webhook, SMS and incident subscribers dry-runs all four with counts. Before any owner action, a publish sends nothing to any imported subscriber. After "Activate imported webhooks", the Statuspage webhook-receiver fixture of SUB-018, which never answers a verification request, receives the next incident update and component change in Statuspage format. After invitations, the SMS subscriber is active only after replying YES. An endpoint the source reported as unconfirmed stays pending until its contact confirms.
+
+Status: **missing**. Released imports carry email subscribers only (`src/core/features/statuspage-import/`).
 
 ## Data, security and portability
 
@@ -772,7 +858,7 @@ These clauses go past what Instatus, incident.io and OpenStatus ship today. Each
 
 #### AGENT-001 — The public story matches responder evidence.
 
-**What the agent does:** it continuously compares the latest published update of each unresolved incident with the evidence Lamp holds, and flags where they disagree. The flags are: *stale* (evidence changed and nothing has been published since); *contradictory* (the public update says Monitoring while a linked monitor is still failing, or says one region while evidence shows three, or a resolved update while an alert is still firing); and *incomplete* (evidence shows another component failing that the incident does not name). For each flag it drafts a correction update in the composer. **Data:** accepted alerts, Uptime evidence (COMP-008), Oncall timeline entries (INTAKE-012), PagerDuty acknowledgements (INTAKE-009), vendor feeds (DEP-001), support-ticket counts (INTEG-001) and the published timeline: everything in DRAFT-002's brief and none of the internal notes. **Human control:** flags and drafts are private. A named operator edits and publishes any correction. A contradiction can still be resolved only by an operator recording an override reason (AGENT-004).
+**What the agent does:** it continuously compares the latest published update of each unresolved incident with the evidence Lamp holds, and flags where they disagree. The flags are: *stale* (evidence changed and nothing has been published since); *contradictory* (the public update says Monitoring while a linked monitor is still failing, or says one region while evidence shows three, or a resolved update while an alert is still firing); and *incomplete* (evidence shows another component failing that the incident does not name). For each flag it drafts a correction update in the composer. **Data:** accepted alerts, Uptime evidence (COMP-008), Oncall timeline entries (INTAKE-012), PagerDuty acknowledgements (INTAKE-009), Jira Service Management and Opsgenie acknowledgements and escalations (INTAKE-014), automation-email claims (INTAKE-013), vendor feeds (DEP-001), support-ticket counts (INTEG-001) and the published timeline: everything in DRAFT-002's brief and none of the internal notes. **Human control:** flags and drafts are private. A named operator edits and publishes any correction. A contradiction can still be resolved only by an operator recording an override reason (AGENT-004).
 
 Acceptance: a fixture with a public "Monitoring" update and a still-failing linked monitor shows a contradictory flag within 60 seconds. The flag cites the monitor evidence with its time, and the draft correction sits unpublished in the composer. Nothing public changes until an operator publishes.
 
@@ -804,7 +890,7 @@ Status: **partial** — `src/core/features/brief/build.ts`, `tests/e2e/incident-
 
 #### AGENT-005 — A post-incident report drafted from the record.
 
-**What the agent does:** for a resolved incident it drafts HIST-002's report. The summary and timeline come from alerts, published updates, Oncall and PagerDuty timeline entries and the measured outage window. Cause and remediation are left as marked prompts with the evidence that bears on them, never invented. Every timeline line cites its source. **Data:** the brief's sources and the measured window; no internal notes. **Human control:** the report stays a draft until an operator edits and publishes it, and the cause and remediation must be written by a person.
+**What the agent does:** for a resolved incident it drafts HIST-002's report. The summary and timeline come from alerts, published updates, Oncall, PagerDuty, Jira Service Management and Opsgenie timeline entries and the measured outage window. Cause and remediation are left as marked prompts with the evidence that bears on them, never invented. Every timeline line cites its source. **Data:** the brief's sources and the measured window; no internal notes. **Human control:** the report stays a draft until an operator edits and publishes it, and the cause and remediation must be written by a person.
 
 Acceptance: a resolved fixture incident yields a draft whose timeline lines each cite a brief reference, with cause and remediation empty and flagged. Publishing an untouched cause field is refused with 400.
 
@@ -812,9 +898,9 @@ Status: **missing**.
 
 #### AGENT-006 — Unreported incidents surface early.
 
-**What the agent does:** with no incident open, it watches for signs that customers are already affected: a traffic spike (HIST-006), a cluster of support conversations about one product area (INTEG-001), a vendor outage on a dependency (DEP-002), or monitors degrading below the alert threshold. When the signs line up, it proposes a private draft incident naming the likely components and the evidence. **Data:** aggregate counts and categories only, no customer messages or identities. **Human control:** the proposal reaches communicators as an operator alert. Nothing is public until a person publishes, and a dismissed proposal records who dismissed it and why.
+**What the agent does:** with no incident open, it watches for signs that customers are already affected: a traffic spike (HIST-006), a cluster of support conversations about one product area (INTEG-001), a vendor outage on a dependency (DEP-002), or early monitor evidence: an Uptime monitor linked to a component (COMP-008) reporting failing vantages or latency above its degraded threshold while its own failure confirmation has not yet been met, read from the same signed evidence as INTAKE-008. When the signs line up, it proposes a private draft incident naming the likely components and the evidence. **Data:** aggregate counts and categories only, no customer messages or identities. **Human control:** the proposal reaches communicators as an operator alert. Nothing is public until a person publishes, and a dismissed proposal records who dismissed it and why.
 
-Acceptance: a fixture with a 4× traffic spike and five support conversations tagged "login" in 10 minutes produces one private proposal naming the sign-in component and both signals, and changes no public surface.
+Acceptance: a fixture with a 4× traffic spike and five support conversations tagged "login" in 10 minutes produces one private proposal naming the sign-in component and both signals, and changes no public surface. A second fixture, with two of five Uptime vantages failing on the sign-in monitor below its confirmation and a traffic spike, produces one proposal citing the monitor evidence with its time.
 
 Status: **missing**.
 
@@ -849,12 +935,12 @@ What Lamp does not do, and how a buyer gets it:
 | Not in Lamp | How the buyer gets it |
 |---|---|
 | Running probes, synthetic checks or measuring uptime itself | [Uptime](https://github.com/just-every/run-uptime) measures, and Lamp consumes its signed evidence (COMP-008, UPTIME-007); Datadog, Pingdom, New Relic and Prometheus feed in through presets. |
-| Paging, on-call schedules and escalation of responders | [Oncall](https://github.com/just-every/run-oncall) or PagerDuty; Lamp hands them communication deadlines (INCIDENT-011) and takes in their timelines (INTAKE-009, INTAKE-012). |
+| Paging, on-call schedules and escalation of responders | [Oncall](https://github.com/just-every/run-oncall), PagerDuty, Jira Service Management or Opsgenie; Lamp hands them communication deadlines (INCIDENT-011), takes in their alerts and timelines, and posts each publication back (INTAKE-009, INTAKE-012, INTAKE-014). |
 | Being the support desk | [HappyToHelp](https://github.com/just-every/run-happytohelp), Zendesk or Intercom, with Lamp's incident context (INTEG-001). |
 | Visitor analytics or email open tracking | [Vane](https://github.com/just-every/run-vane) for site analytics; Lamp keeps only aggregate request counts (HIST-006) and delivery outcomes (NOTIFY-004). |
 | Logs, metrics storage and APM | The buyer's observability tool; Lamp shows at most 10 aggregated public metrics (UPTIME-008). |
 | Operating SMS carriers or guaranteeing inbox or handset arrival | Twilio or Plivo, and SendGrid, Mailgun, Amazon SES, Postmark or Resend; Lamp records accepted, delivered, bounced and failed separately, and never claims a person read a message. The owner registers their own 10DLC campaign or toll-free number and pays carrier fees in USD. |
-| Protection from an outage of every provider at once | PAGE-015's secondary origin on a separate provider covers the primary host; a buyer who needs a contractually independent standby keeps a separately operated status host. |
+| Operating DNS, or protection from an outage of every provider at once | The buyer's health-checked DNS provider (Amazon Route 53 or IBM NS1 Connect) switches the hostname to PAGE-015's secondary origin on a separate provider; Lamp supplies the health endpoint, the records and the setup check. Publishing and subscription changes wait for the primary. A buyer who needs a contractually independent standby keeps a separately operated status host. |
 | Compliance certification of private pages (SOC 2, HIPAA, FedRAMP) | Private pages are access control (AUD-002), not certification. Lamp signs no BAA, and protected health information does not belong in updates. |
 | Native App Store or Google Play apps | The installable app with push (MOBILE-002) is the mobile product. |
 | Publishing machine translations or agent text unreviewed | Never; agent text is always a draft (Push further). |
@@ -864,7 +950,7 @@ What Lamp does not do, and how a buyer gets it:
 
 Status at `just-every/run-lamp` main `0eebe91`. Released clauses are **done**: each has a tagged test in the routine `pnpm verify` plan. Target clauses carry the status stated in their text. Evidence paths are relative to the repository root.
 
-Totals: 179 clauses — **104 done**, **33 partial**, **42 missing** (104 released, 75 target).
+Totals: 188 clauses — **104 done**, **38 partial**, **46 missing** (104 released, 84 target).
 
 | Clause | Title | Kind | Status | Evidence |
 |---|---|---|---|---|
@@ -925,6 +1011,7 @@ Totals: 179 clauses — **104 done**, **33 partial**, **42 missing** (104 releas
 | INCIDENT-010 | Update due | released | done | `tests/e2e/update-reminders.test.mjs` |
 | INCIDENT-011 | A named communication owner | target | partial | `src/core/features/incidents/reminders.ts`, `tests/e2e/update-reminders.test.mjs` |
 | INCIDENT-012 | Run the incident from Slack or Teams | target | missing | — |
+| INCIDENT-013 | Impact set by the operator | target | missing | — |
 | UPDATE-001 | Template | released | done | `tests/e2e/publishing-contract.test.mjs`, `tests/reference-storage/incident-publishing.test.mjs`, `tests/reference-storage/migration.test.mjs` |
 | UPDATE-002 | One rendering | released | done | `tests/e2e/publishing-browser.test.mjs`, `tests/e2e/publishing-contract.test.mjs` |
 | UPDATE-003 | Sets the lifecycle | released | done | `tests/e2e/publishing-contract.test.mjs` |
@@ -961,6 +1048,8 @@ Totals: 179 clauses — **104 done**, **33 partial**, **42 missing** (104 releas
 | SUB-015 | Self-serve Microsoft Teams subscriptions | target | partial | `src/core/features/channels/teams.ts`, `tests/e2e/channels-and-presets.test.mjs` |
 | SUB-016 | Preferences on every channel | target | partial | `src/core/features/subscribers/service.ts`, `tests/e2e/delivery-contract.test.mjs` |
 | SUB-017 | Subscriber import and export | target | partial | `src/core/features/statuspage-import/`, `tests/e2e/statuspage-import.test.mjs` |
+| SUB-018 | Statuspage-format webhooks | target | partial | `src/core/features/deliveries/service.ts`, `tests/e2e/delivery-contract.test.mjs` |
+| SUB-019 | Follow one incident | target | missing | — |
 | NOTIFY-001 | What notifies subscribers | released | done | `tests/e2e/delivery-contract.test.mjs` |
 | NOTIFY-002 | Delivery time | released | done | `tests/e2e/delivery-contract.test.mjs` |
 | NOTIFY-003 | Retry | released | done | `tests/e2e/delivery-contract.test.mjs` |
@@ -977,6 +1066,9 @@ Totals: 179 clauses — **104 done**, **33 partial**, **42 missing** (104 releas
 | NOTIFY-014 | SMS delivery | target | missing | — |
 | NOTIFY-015 | Reach of each update | target | partial | `src/core/features/deliveries/service.ts`, `tests/e2e/delivery-contract.test.mjs` |
 | NOTIFY-016 | Operator alerts beyond email | target | missing | — |
+| NOTIFY-017 | Component status changes reach webhook subscribers | target | missing | — |
+| NOTIFY-018 | Delivery time on every channel | target | partial | `src/core/features/deliveries/service.ts`, `tests/e2e/delivery-contract.test.mjs` |
+| NOTIFY-019 | Notification email the owner can brand | target | partial | `src/core/features/page-settings/service.ts`, `tests/e2e/delivery-contract.test.mjs` |
 | INTAKE-001 | Authenticated requests | released | done | `tests/e2e/intake-references.test.mjs`, `tests/e2e/publishing-contract.test.mjs` |
 | INTAKE-002 | Alerts never publish | released | done | `tests/e2e/publishing-contract.test.mjs` |
 | INTAKE-003 | Deduplication | released | done | `tests/e2e/publishing-contract.test.mjs` |
@@ -989,6 +1081,8 @@ Totals: 179 clauses — **104 done**, **33 partial**, **42 missing** (104 releas
 | INTAKE-010 | Prometheus Alertmanager and Grafana Alerting | target | partial | `src/core/features/intake/service.ts`, `src/core/features/intake/alert-title.ts`, `tests/e2e/publishing-contract.test.mjs` |
 | INTAKE-011 | New Relic, Datadog and Pingdom depth | target | partial | `src/core/features/intake/presets.ts`, `tests/e2e/channels-and-presets.test.mjs` |
 | INTAKE-012 | Oncall | target | missing | — |
+| INTAKE-013 | Email automation for each component | target | missing | — |
+| INTAKE-014 | Jira Service Management and Opsgenie | target | partial | `src/core/features/intake/service.ts`, `tests/e2e/publishing-contract.test.mjs` |
 | AUTO-001 | Owner rules for what an alert may do | target | partial | `src/core/features/intake/policies.ts`, `src/core/features/intake/presets.ts`, `tests/e2e/channels-and-presets.test.mjs` |
 | AUTO-002 | Flap guard and undo for automatic changes | target | missing | — |
 | AUTO-003 | Every follow-up obligation is visible | target | partial | `src/core/features/incidents/reminders.ts`, `src/core/features/reports/service.ts`, `tests/e2e/update-reminders.test.mjs` |
@@ -1011,6 +1105,7 @@ Totals: 179 clauses — **104 done**, **33 partial**, **42 missing** (104 releas
 | HIST-005 | Communication performance | target | missing | — |
 | HIST-006 | Traffic spike alert without visitor tracking | target | missing | — |
 | HIST-007 | Subscriber reporting | target | partial | `src/core/features/subscribers/service.ts`, `tests/e2e/delivery-contract.test.mjs` |
+| HIST-008 | Complete browsable history | target | partial | `src/core/features/public-snapshot/renderer.ts`, `tests/e2e/public-contract.test.mjs` |
 | AUD-001 | Several pages in one deployment | target | missing | — |
 | AUD-002 | Private page access | target | missing | — |
 | AUD-003 | Audiences for named customers | target | missing | — |
