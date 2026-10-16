@@ -1,7 +1,9 @@
 /** Shared public snapshot path policy, also used before Vite handles a request. */
-export const sourceFeedPaths = { statuspage: ["/history.atom"], betterstack: ["/feed.atom"], instatus: ["/history.atom"] };
+export const sourceFeedPaths = { statuspage: ["/history.atom"], betterstack: ["/feed.atom"], instatus: ["/history.atom"], sorry: [] };
 const reserved = new Set(["app", "api", "auth", "signin", "setup", "health", "docs", "lamp", "history", "assets", "app-assets", "brand", "subscribe", "unsubscribe", "manage", "confirm-subscription", "node_modules", "src", "cdn-cgi"]);
+export const isSorryHistoryMonthPath = (path) => /^\/history\/[0-9]{4}\/(?:january|february|march|april|may|june|july|august|september|october|november|december)\/?$/iu.test(path);
 export function isImportAliasPath(path) {
+  if (path === "/history/" || path === "/notices" || isSorryHistoryMonthPath(path)) return true;
   // Lamp already serves this source-compatible address as its authoritative feed.
   if (path === "/feed.atom") return false;
   if (Object.values(sourceFeedPaths).some((paths) => paths.includes(path))) return true;

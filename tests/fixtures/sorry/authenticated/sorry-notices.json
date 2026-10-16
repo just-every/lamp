@@ -1,0 +1,116 @@
+{
+  "response": [
+    {
+      "id": 100,
+      "type": "unplanned",
+      "subject": "Delayed invoice processing",
+      "state": "resolved",
+      "timeline_state": "past_distant",
+      "url": "https://status.example.invalid/notices/synthetic-delayed-invoice-processing",
+      "created_at": "2025-04-02T10:00:00.000Z",
+      "updated_at": "2025-04-02T10:30:00.000Z",
+      "began_at": "2025-04-02T10:00:00.000Z",
+      "ended_at": "2025-04-02T10:30:00.000Z",
+      "components": [
+        {
+          "id": 11
+        }
+      ],
+      "updates": [
+        {
+          "id": 1000,
+          "state": "investigating",
+          "content": "Invoice processing is delayed. Existing invoices remain available.",
+          "created_at": "2025-04-02T10:00:00.000Z",
+          "updated_at": "2025-04-02T10:00:00.000Z"
+        },
+        {
+          "id": 1001,
+          "state": "resolved",
+          "content": "Invoice processing has recovered and the queue is clear.",
+          "created_at": "2025-04-02T10:30:00.000Z",
+          "updated_at": "2025-04-02T10:30:00.000Z"
+        }
+      ],
+      "link": "https://status.example.invalid/notices/synthetic-delayed-invoice-processing"
+    },
+    {
+      "id": 101,
+      "type": "planned",
+      "subject": "Database maintenance",
+      "state": "complete",
+      "timeline_state": "past_distant",
+      "url": "https://status.example.invalid/notices/synthetic-database-maintenance",
+      "created_at": "2025-04-02T10:00:00.000Z",
+      "updated_at": "2025-04-02T10:30:00.000Z",
+      "begins_at": "2025-04-02T10:00:00.000Z",
+      "ends_at": "2025-04-02T10:30:00.000Z",
+      "began_at": "2025-04-02T10:00:00.000Z",
+      "ended_at": "2025-04-02T10:30:00.000Z",
+      "components": [
+        {
+          "id": 11
+        }
+      ],
+      "updates": [
+        {
+          "id": 1010,
+          "state": "underway",
+          "content": "Database maintenance is underway.",
+          "created_at": "2025-04-02T10:00:00.000Z",
+          "updated_at": "2025-04-02T10:00:00.000Z"
+        },
+        {
+          "id": 1011,
+          "state": "complete",
+          "content": "Maintenance finished successfully.",
+          "created_at": "2025-04-02T10:30:00.000Z",
+          "updated_at": "2025-04-02T10:30:00.000Z"
+        }
+      ],
+      "link": "https://status.example.invalid/notices/synthetic-database-maintenance"
+    },
+    {
+      "id": 102,
+      "type": "general",
+      "subject": "Billing support hours",
+      "components": [],
+      "created_at": "2025-04-02T10:00:00.000Z",
+      "updated_at": "2025-04-02T10:00:00.000Z",
+      "link": "https://status.example.invalid/notices/synthetic-support-hours",
+      "updates": [
+        {
+          "id": 1020,
+          "content": "Support is available during published business hours.",
+          "created_at": "2025-04-02T10:00:00.000Z",
+          "updated_at": "2025-04-02T10:00:00.000Z"
+        }
+      ]
+    },
+    {
+      "id": 103,
+      "type": "planned",
+      "subject": "Cancelled database maintenance",
+      "state": "cancelled",
+      "components": [
+        {
+          "id": 11
+        }
+      ],
+      "created_at": "2025-04-02T10:00:00.000Z",
+      "updated_at": "2025-04-02T10:00:00.000Z",
+      "begins_at": "2099-04-02T10:00:00.000Z",
+      "ends_at": "2099-04-02T11:00:00.000Z",
+      "link": "https://status.example.invalid/notices/synthetic-cancelled-maintenance",
+      "updates": [
+        {
+          "id": 1030,
+          "content": "The planned work has been cancelled.",
+          "created_at": "2025-04-02T10:00:00.000Z",
+          "updated_at": "2025-04-02T10:00:00.000Z"
+        }
+      ]
+    }
+  ],
+  "count": 4
+}

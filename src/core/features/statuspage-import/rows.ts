@@ -80,7 +80,7 @@ export function mapSource(data: SourceData, snapshot: Snapshot, operatorId: stri
   const nextIncident = references("INC"), nextMaintenance = references("SCH");
 
   for (const incident of [...data.incidents].sort((a, b) => a.created_at.localeCompare(b.created_at) || a.id.localeCompare(b.id))) {
-    results.push(mapIncident(incident, components, claims, operatorId, asOf, nextIncident, identify, namespace === "betterstack" ? incident.resolved_at : undefined));
+    results.push(mapIncident(incident, components, claims, operatorId, asOf, nextIncident, identify, ["betterstack", "sorry"].includes(namespace) ? incident.resolved_at : undefined, namespace === "sorry" && incident.impact === "none"));
   }
   for (const window of [...data.maintenance].sort((a, b) => (a.scheduled_for ?? a.created_at).localeCompare(b.scheduled_for ?? b.created_at) || a.id.localeCompare(b.id))) {
     results.push(mapMaintenance(window, components, claims, operatorId, asOf, nextMaintenance, identify, namespace !== "statuspage"));
@@ -108,7 +108,7 @@ export function mapSource(data: SourceData, snapshot: Snapshot, operatorId: stri
   return [...results, ...componentResults, ...subscriberResults].sort((a, b) => order.indexOf(a.kind) - order.indexOf(b.kind));
 }
 
-function mapIncident(incident: SourceIncident, components: Map<string, { id: string; name: string }>, claims: Claim[], operatorId: string, asOf: string, reference: () => string, identify: typeof stableId, sourceEndedAt?: string | null): Mapped {
+function mapIncident(incident: SourceIncident, components: Map<string, { id: string; name: string }>, claims: Claim[], operatorId: string, asOf: string, reference: () => string, identify: typeof stableId, sourceEndedAt?: string | null, allowUnattached = false): Mapped {
   const name = incident.name;
   const updates = [...incident.incident_updates].sort((a, b) => at(a).localeCompare(at(b)) || a.id.localeCompare(b.id));
   if (!updates.length) return { kind: "incident", sourceId: incident.id, accounting: [{ kind: "incident", sourceId: incident.id, name, outcome: "rejected", reason: "No published updates to carry." }] };
@@ -147,7 +147,7 @@ function mapIncident(incident: SourceIncident, components: Map<string, { id: str
   if (incident.postmortem_body) notes.add("the post-incident report is not carried");
   const firstPublished = at(updates[0]);
   const attached = [...current.entries()].map(([code, state]) => ({ id: identify(`incident-component:${incident.id}:${code}`, firstPublished), incident_id: id, component_id: components.get(code)!.id, component_name: components.get(code)!.name, state, relationship: "Primary", created_at: asOf, updated_at: asOf, published_at: firstPublished }));
-  if (!attached.length) return { kind: "incident", sourceId: incident.id, accounting: [{ kind: "incident", sourceId: incident.id, name, outcome: "rejected", reason: "It names no component in the saved responses; Lamp incidents attach at least one." }] };
+  if (!attached.length && !allowUnattached) return { kind: "incident", sourceId: incident.id, accounting: [{ kind: "incident", sourceId: incident.id, name, outcome: "rejected", reason: "It names no component in the saved responses; Lamp incidents attach at least one." }] };
   const title = clip(name, 250);
   if (title !== name) notes.add("the title was shortened to 250 characters");
   return { kind: "incident", sourceId: incident.id, value: { tables: {
@@ -166,14 +166,14 @@ function mapMaintenance(window: SourceIncident, components: Map<string, { id: st
   if (!attached.length) return { kind: "maintenance", sourceId: window.id, accounting: [{ kind: "maintenance", sourceId: window.id, name, outcome: "rejected", reason: "It names no component in the saved responses." }] };
   // A window already over is history, whatever its source status: importing it
   // as Scheduled would make Lamp announce its start and end now.
-  const state = endsAt <= asOf || window.status === "completed" ? "Completed" : startsAt <= asOf ? "In progress" : "Scheduled";
+  const state = window.status === "cancelled" ? "Cancelled" : endsAt <= asOf || window.status === "completed" ? "Completed" : startsAt <= asOf ? "In progress" : "Scheduled";
   const completedAt = state === "Completed" ? (window.resolved_at ? iso(window.resolved_at) : endsAt) : null;
   for (const code of attached) {
-    if (state === "Scheduled") continue;
+    if (state === "Scheduled" || state === "Cancelled") continue;
     claims.push({ componentId: components.get(code)!.id, causeType: "maintenance", causeId: id, state: "Under maintenance", changedAt: startsAt });
     if (completedAt) claims.push({ componentId: components.get(code)!.id, causeType: "maintenance", causeId: id, state: null, changedAt: completedAt });
   }
-  const sourceState = ({ scheduled: "Scheduled", in_progress: "In progress", verifying: "In progress", completed: "Completed" } as Record<string, string>)[window.status];
+  const sourceState = ({ scheduled: "Scheduled", in_progress: "In progress", verifying: "In progress", completed: "Completed", cancelled: "Cancelled" } as Record<string, string>)[window.status];
   return { kind: "maintenance", sourceId: window.id, value: { tables: {
     maintenance: [{ id, reference: reference(), title: clip(name, 250), state, starts_at: startsAt, ends_at: endsAt, completed_at: completedAt, created_by_operator_id: operatorId, created_at: asOf, updated_at: asOf }],
     ...(preserveUpdates && window.incident_updates.length ? { import_maintenance_updates: window.incident_updates.map((update) => ({ id: identify(`maintenance-update:${update.id}`, at(update)), maintenance_id: id, body: update.body ?? "", published_at: at(update), source_states: JSON.stringify(update.affected_components ?? []) })).sort((a, b) => a.published_at.localeCompare(b.published_at) || a.id.localeCompare(b.id)) } : {}),
@@ -193,9 +193,9 @@ function mapSubscriber(subscriber: SourceSubscriber, components: Map<string, { i
   if (subscriber.components?.some((code) => !components.has(code))) return skip("A selected component is missing; preferences cannot be broadened.");
   const selected = subscriber.components ?? [];
   return { kind: "subscriber", sourceId: subscriber.id, value: { tables: {
-    subscribers: [{ id, channel: "email", destination: email, contact_email: null, state: "pending", selection_mode: selected.length ? "selected" : "all", token_hash: sha256(`${namespace}-import-subscriber:${subscriber.id}:${email}`), deactivation_reason: null, deactivated_at: null, created_at: asOf, updated_at: asOf }],
+    subscribers: [{ id, channel: "email", destination: email, contact_email: null, state: namespace === "sorry" ? "deactivated" : "pending", selection_mode: selected.length ? "selected" : "all", token_hash: sha256(`${namespace}-import-subscriber:${subscriber.id}:${email}`), deactivation_reason: namespace === "sorry" ? "held for Sorry cutover" : null, deactivated_at: null, created_at: asOf, updated_at: asOf }],
     subscriber_components: selected.map((code) => ({ id: identify(`subscriber-component:${subscriber.id}:${code}`, asOf), subscriber_id: id, component_id: components.get(code)!.id, created_at: asOf, updated_at: asOf })),
-  } }, accounting: [{ kind: "subscriber", sourceId: subscriber.id, name: "Email subscriber", outcome: "imported", reason: "Pending until they confirm one invitation; they are sent nothing about past incidents." }] };
+  } }, accounting: [{ kind: "subscriber", sourceId: subscriber.id, name: "Email subscriber", outcome: "imported", reason: namespace === "sorry" ? "Held without mail or confirmation expiry until you approve invitations after hostname cutover and the watch window. Each recipient must confirm in Lamp." : "Pending until they confirm one invitation; they are sent nothing about past incidents." }] };
 }
 
 /** The aggregate state timeline for one new component: an Operational

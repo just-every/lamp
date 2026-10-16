@@ -1,4 +1,5 @@
 import { aliasArtifactKey, isImportAliasPath, isLampPermalink } from "../statuspage-import/public-addresses";
+import { isSorryHistoryMonthPath } from "../statuspage-import/public-paths.mjs";
 import type { Context, Hono } from "hono";
 
 import type { AppEnv } from "../../app/types";
@@ -144,7 +145,11 @@ export function registerPublicSnapshotRoutes(app: Hono<AppEnv>, service: PublicS
       const object = await service.readArtifact(artifact(context));
       if (object) {
         const redirect = object.contentType === "application/vnd.lamp.redirect+json" ? JSON.parse(new TextDecoder().decode(object.bytes)).target : null;
-        if (redirect !== null && (typeof redirect !== "string" || !isLampPermalink(redirect))) throw new Error("Invalid snapshot redirect.");
+        const path = new URL(context.req.url).pathname;
+        const historyRedirect = (redirect === "/history/" && (path === "/history" || path === "/notices" || isSorryHistoryMonthPath(path)))
+          // Previously retained Sorry snapshots used /history as canonical.
+          || (redirect === "/history" && ["/notices", "/history/"].includes(path));
+        if (redirect !== null && (typeof redirect !== "string" || !(isLampPermalink(redirect) || historyRedirect))) throw new Error("Invalid snapshot redirect.");
         let response = publicResponse(redirect ? "" : object.bytes, redirect ? "text/plain; charset=utf-8" : object.contentType, context.req.url, redirect ? 301 : 200, true, download);
         if (redirect) response.headers.set("Location", redirect);
         response.headers.set("X-Lamp-Snapshot-Generated-At", object.generatedAt);
@@ -199,7 +204,9 @@ export function registerPublicSnapshotRoutes(app: Hono<AppEnv>, service: PublicS
   app.get("*", async (context, next) => {
     const path = new URL(context.req.url).pathname;
     if (!isImportAliasPath(path)) return next();
-    return serve(() => aliasArtifactKey(path), false, "not-found.html")(context);
+    // Every valid Sorry month shares the retained collection redirect. Its
+    // absence after undo yields 404, even for a month never previously visited.
+    return serve(() => aliasArtifactKey(isSorryHistoryMonthPath(path) ? "/notices" : path), false, "not-found.html")(context);
   });
   app.get("/maintenance/:reference", serve((context) => `maintenance/${encodeURIComponent(context.req.param("reference") ?? "")}.html`, false, "not-found.html"));
   app.get("/", serve(() => "page.html"));

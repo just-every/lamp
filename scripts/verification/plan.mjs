@@ -19,6 +19,7 @@ export const verificationPlan = {
   'imports-statuspage': ['test:move-in:statuspage'],
   'imports-betterstack': ['test:move-in:betterstack'],
   'imports-instatus': ['test:move-in:instatus'],
+  'imports-sorry': ['test:move-in:sorry'],
   notifications: ['test:extensions', 'test:intake-references', 'test:channels-and-presets', 'test:incident-brief', 'test:update-reminders'],
   artifact: ['test:deployment-artifact', 'test:independent-packaging', 'test:installer'],
   runtime: ['build:app', 'test:start-runtime:built', 'test:independent-runtime'],

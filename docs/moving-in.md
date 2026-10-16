@@ -7,9 +7,11 @@ email subscribers into your page.
 
 1. Sign in and open **Settings → Move in** (`/app/move-in`). Choose the matching
    source in the **Source** menu; its source-specific instructions are below.
-2. Enter the source page ID and API key or token, or upload saved provider JSON.
+2. Enter the source page ID and API key or token where supported, or upload saved provider JSON.
    Credential reads use fixed provider origins and `GET` requests only. Keys are
    used for that read, are not stored, and are not forwarded through redirects.
+   Sorry's authenticated export runs locally as described below; its key never
+   enters Lamp's Worker.
 3. Choose **Run dry run**. Nothing has been written. Review the read, imported,
    changed, skipped and refused counts and the reason for every non-imported row.
    You can download the exact responses read and use those saved files later.
@@ -22,6 +24,8 @@ email subscribers into your page.
 6. Choose **Send invitations** in Cutover. This is the only move-in action that
    sends mail. It sends one invitation to each eligible pending email subscriber;
    repeat for any remaining batch before the confirmation deadline.
+   For Sorry, complete the hostname switch and observation window first; its
+   imported subscriber candidates are held until that readiness check.
 7. Point a hostname you control to Lamp using [the custom-domain guide](domains.md),
    or keep the deployment's default public address. Select that public origin in
    Cutover. Selecting it records your choice; it does not check DNS.
@@ -47,7 +51,7 @@ Subject to the selected source's documented fields and the dry-run report:
 | Component groups and components | Native groups and components; supported names, descriptions, ordering and relationships are retained. |
 | Incidents and supplied updates | Native incident history at the source times the reader supports; notifications are not replayed. |
 | Scheduled maintenance | Native maintenance windows and source-specific history where supported; a window already over is imported as completed. |
-| Eligible email subscribers | Pending Lamp subscriptions. Each person must confirm an invitation before the deadline. |
+| Eligible email subscribers | Pending Lamp subscriptions; Sorry candidates are first held for cutover. Each person must confirm an invitation before the deadline. |
 
 The sources do not expose identical fields. Each source section and the dry run
 name omitted, changed, skipped or refused records; relevant source-specific
@@ -56,9 +60,10 @@ defaults are described below.
 Dry runs, import, **Continue**, job reads, re-running an import, undo and Cutover
 checks send no mail or trigger customer notices for imported history. Imported
 history appears on the public page. Only **Send invitations** sends mail.
-Eligible email rows stay pending until they confirm. Unconfirmed or unsubscribed
-source rows are skipped where the source provides those states; the reader
-differences are described below. Lamp permits at most one invitation per
+Eligible email rows stay pending until they confirm; Sorry candidates are held
+until released to pending after cutover. Unconfirmed or unsubscribed source rows
+are skipped where the source provides those states; the reader differences are
+described below. Lamp permits at most one invitation per
 imported subscriber and claims it before the mail transport call. A claimed or
 uncertain send is not automatically retried. A transport acceptance does not
 prove inbox delivery. Local development silently suppresses mail and retains no
@@ -67,11 +72,13 @@ subscriber confirmation. Do not use local **Send invitations** to prepare
 subscriptions you intend to invite after moving that data to hosting: its durable
 claims still prevent those invitations from being sent again.
 
-The confirmation deadline is **72 hours from the import review time**, even if
-you have not sent the invitation yet. Sending later leaves only the time
-remaining. Expired pending subscriptions cannot be invited; the expiry job
-deletes their unconfirmed addresses. Cutover shows eligible, already-claimed and
-expired counts.
+For Statuspage, Better Stack and Instatus, the confirmation deadline is
+**72 hours from the import review time**, even if you have not sent the
+invitation yet. Sending later leaves only the time remaining. Sorry candidates
+are held without a confirmation deadline until released after cutover; their
+72-hour clock starts at release. Expired pending subscriptions cannot be
+invited; the expiry job deletes their unconfirmed addresses. Cutover shows
+eligible, already-claimed and expired counts.
 
 Lamp serves its native public JSON at `/api/public/status`. It does not provide a
 provider-shaped JSON compatibility API by default. Cutover lists the selected
@@ -146,6 +153,142 @@ returns 404; change RSS readers to `/feed.atom`. Readers using the source JSON
 API under `/api/v2/` receive 404 and must use Lamp's native
 `/api/public/status` format. The source's provider widget is not served by
 Lamp; replace it with `/widget.js` and allow its origin in Settings.
+
+## Sorry
+
+Choose **Sorry**. Use a public page's HTTPS origin for a keyless read, or upload
+the unchanged JSON files from the local capture below. For an authenticated read, use the masked API key field or capture locally below
+with a hidden prompt or private key file. Lamp uses the key for GET requests only
+and never stores it. Only move material intended to be public and unrestricted.
+Source visibility, audience rules and private-page access do not transfer.
+
+### Capture an authenticated export locally
+
+In Sorry, open **My Account → API Tokens**. Tokens are user-specific. Find the
+page ID in its management UI, then run this command from the Lamp checkout with
+the pinned Node version:
+
+```sh
+node --experimental-strip-types scripts/sorry-capture.mjs --page-id PAGE_ID --out /absolute/private/path/sorry-export
+```
+
+The destination must not exist, its parent must exist, and it must be outside
+the checkout. Enter the token at the hidden terminal prompt. For an existing
+private token file, add `--key-file /absolute/private/path/token`; the file must
+be owned by you with no group or other permissions (`chmod 600`). Never put a
+token in a command argument or environment variable. The capture does not read
+environment credentials. See Sorry's [authentication reference](https://docs.sorryapp.com/v1/authentication).
+
+The command makes fixed-origin `GET` requests to
+`https://api.sorryapp.com/v1/pages/PAGE_ID` and its components, notices, notice
+details and subscribers. Notice reads request `include=components,updates`;
+subscriber reads include component preferences. Subscriber pages use
+`page=N&per_page=500` and continue until a short page. Supplied pagination must
+be complete; unsupported or inconsistent pagination is refused. The capture
+paces reads below the documented ten requests per second and refuses redirects.
+See the [REST API](https://docs.sorryapp.com/v1),
+[notices](https://docs.sorryapp.com/v1/notices) and
+[subscribers](https://docs.sorryapp.com/v1/subscribers) references.
+
+After the complete bounded read succeeds, the command creates a local directory
+with mode `0700` and original response files with mode `0600`. It never writes
+the API token and refuses a response that reflects it. Responses containing
+credentials outside the documented subscriber channel fields are also refused.
+SMS / phone, Slack, Microsoft Teams, Google Chat and legacy Slack channels do
+not move. Eligible email subscriptions on the same rows are retained; rows
+without an enabled email channel are skipped with a reason. Other channel
+values are omitted from every retained record. For a response containing
+these values, Lamp retains only its
+unchanged-byte hash and size, without original-response custody; sanitized
+bytes are never labelled as an original. The local capture files remain
+unchanged and can contain channel credentials, so keep them private. Captured files
+may contain email addresses: keep them private, outside Git, and remove them
+when no longer needed. Capture sends no mail and imports nothing. A failed
+capture is not an export to import.
+
+Upload the files together in Move in:
+
+- `sorry-page.json`, `sorry-components.json`, `sorry-notices.json`
+- `sorry-notice-ID.json` for every notice, including full components and updates
+- `sorry-subscribers.json`, with later subscriber pages named
+  `sorry-subscribers-2.json`, `sorry-subscribers-3.json` and so on
+
+The reader also accepts documented separate update-list exports as
+`sorry-notice-ID-updates.json`. Keep original envelopes intact. It refuses an
+incomplete timeline, missing required files or input over 8 MiB, 5,000 records
+or 200 files; the dry run names unsupported records rather than inventing them.
+
+### Public JSON and feeds
+
+For a keyless local capture, run:
+
+```sh
+node --experimental-strip-types scripts/sorry-capture.mjs --public-url https://status.example.com --out /absolute/private/path/sorry-public
+```
+
+The public reader gets `/api/v1/status`, every component and notice collection
+page, and `/api/v1/notices/ID` for each notice. Collections expose up to 25 rows
+per page; follow `meta.next_page` until complete, checking `meta.total_count`.
+The notice list contains summaries; each detail supplies affected components
+and full update history. A status overview or the first notice page alone is
+incomplete. Pagination stays on the selected HTTPS origin and collection.
+Public capture uses `sorry-status.json` instead of `sorry-page.json`, numbered
+collection files such as `sorry-notices-2.json`, and the same detail filenames.
+Public JSON provides no subscribers. For a bounded read-only sample, the preview
+door accepts `previewNoticeLimit` (1–10): it still reads every collection page,
+names uncaptured notice details as refused, and never permits that incomplete
+capture to apply. Omit the limit for a complete move. See the [public Status API](https://status.sorryapp.com/api).
+
+Sorry documents no native RSS/Atom feed. If the source HTML advertises an
+alternate feed, discover its actual `rel="alternate"` link; a feed is a
+supplementary discovery source, not proof of a complete history or subscriber
+export. Do not guess a feed endpoint or treat a recent feed window as the
+archive. Replace existing feed readers with Lamp's `/feed.atom` and JSON readers
+with `/api/public/status`. See Sorry's [feed and notification comparison](https://www.sorryapp.com/compare/sorry-vs-statuspage/notifications/).
+
+### Review history, then release subscribers after cutover
+
+The dry run reports native mappings, unsupported records and any changes to
+source meaning. Cancelled maintenance remains cancelled and never acquires
+a maintenance claim. General notices become resolved informational incidents,
+including notices without affected components. In particular, authenticated update text may not include a
+lifecycle state for each update; any lifecycle projection is disclosed as a
+change, not presented as source evidence. Supplied public notice URLs provide
+old-link paths. A path works on a hostname moved to Lamp; Sorry-owned hosts
+remain outside Lamp's control. Review the actual destinations in Cutover.
+
+While a Sorry import is retained, `/history`, `/notices` and Sorry's
+`/history/YYYY/month` URLs (English month names, such as
+`/history/2026/october`) redirect permanently to Lamp's history at `/history/`.
+These answers and the history document come from the same public snapshot as
+notice redirects. Complete undo removes the Sorry aliases and restores Lamp's
+ordinary `/history` document.
+
+Eligible email candidates have `notify_by_email: true` and an email address,
+even when other channels are enabled or populated. SMS / phone, Slack, Microsoft
+Teams, Google Chat and legacy Slack channels are listed as not carried in the
+dry run, and their values are not retained. Rows without an enabled email
+channel are skipped with a reason. Component preferences must resolve and are
+never broadened. Import holds Sorry candidates inactive, without sending mail
+or starting the confirmation deadline. They receive no ordinary notifications
+while held. Other provider confirmation deadlines are unchanged.
+
+Switch the intended hostname using [the custom-domain guide](domains.md), check
+that Lamp serves it, and finish the observation window you chose for the move.
+Keep Sorry available during this period. In Cutover, use that exact configured
+public origin and explicitly confirm both that the hostname is live and that
+the observation window has ended before **Send invitations**. Selecting an
+origin alone does not verify DNS or finish the observation window.
+
+This readiness action releases held candidates to pending confirmation and
+starts their 72-hour deadline at release. Send the remaining invitation batches
+within that window, keep the old page available through confirmation, and check
+delivery separately. Only recipients who confirm become active. Import,
+re-import, history inspection, link checks and the held state send no mail.
+
+Sorry references above checked **16 October 2026**. The public API and REST API
+describe different response envelopes; keep their captures separate and review
+each dry run before importing.
 
 ## Better Stack
 

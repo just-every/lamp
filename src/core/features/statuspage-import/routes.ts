@@ -7,8 +7,8 @@ import type { StatuspageImportService } from "./service";
 import { importLimits } from "./source";
 
 const files = z.array(z.object({ name: z.string().max(80), text: z.string() }).strict()).max(importLimits.files);
-const sourceFields = { source: z.enum(["statuspage", "betterstack", "instatus"]).optional(), publicAccessAcknowledged: z.boolean().optional() };
-const previewSchema = z.object({ ...sourceFields, files: files.optional(), pageId: z.string().max(40).optional(), apiKey: z.string().max(200).optional() }).strict();
+const sourceFields = { source: z.enum(["statuspage", "betterstack", "instatus", "sorry"]).optional(), publicAccessAcknowledged: z.boolean().optional(), publicUrl: z.string().url().max(2048).optional() };
+const previewSchema = z.object({ ...sourceFields, files: files.optional(), pageId: z.string().max(40).optional(), apiKey: z.string().max(200).optional(), previewNoticeLimit: z.number().int().min(1).max(10).optional() }).strict();
 const applySchema = z.object({ ...sourceFields, pageId: z.string().max(64).optional(), files: files.min(1), asOf: z.string().datetime(), fingerprint: z.string().regex(/^[a-f0-9]{64}$/u), acknowledged: z.literal(true) }).strict();
 const jobId = z.string().min(1).max(100);
 
@@ -47,8 +47,8 @@ export function registerStatuspageImportRoutes(app: Hono<AppEnv>, service: Statu
     const who = context.get("operatorSession");
     try {
       const command = await context.req.json().catch(() => null);
-      if (action === 'send-invitations' && !z.object({}).strict().safeParse(command).success) return context.json({ error: 'Send invitations with an empty command.' }, 400);
-      return context.json(action === "send-invitations" ? await service.sendInvitations(id.data, who) : action === "resume" ? await service.resume(id.data, who) : await service.undo(id.data, who)); }
+      if (action === 'send-invitations' && !z.union([z.object({}).strict(), z.object({ liveOrigin: z.string().url().max(2048), hostnameLive: z.literal(true), watchWindowClosed: z.literal(true) }).strict()]).safeParse(command).success) return context.json({ error: 'Confirm the live hostname and closed watch window before sending Sorry invitations.' }, 400);
+      return context.json(action === "send-invitations" ? await service.sendInvitations(id.data, who, command ?? undefined) : action === "resume" ? await service.resume(id.data, who) : await service.undo(id.data, who)); }
     catch (cause) { return context.json({ error: refused(cause) }, 409); }
   });
 }

@@ -1,0 +1,11 @@
+{
+  "version": "1.5.1",
+  "previousVersion": "1.5.0",
+  "date": "2026-10-16",
+  "publicReleaseNotes": "Lamp 1.5.1 is a maintenance release of 1.5.0. Test fixtures and documentation placeholders are marked as synthetic so hosted source admission accepts them; the checkout pins rer 0.2.24 with every Base copy refreshed from that release. Application behaviour, contract, migrations and stored data are unchanged. Product screenshot: .github/assets/release/lamp-1.5.1-status-page-1440.png (a business's public status page at 1440 pixels: components with 90-day uptime, scheduled maintenance and a resolved incident).",
+  "contractChanges": {},
+  "extensionPointChanges": [],
+  "migrations": [],
+  "breaking": false,
+  "agentUpdateInstructions": "No migration, contract or extension-point change since 1.5.0, and stored data stays compatible. Back up data and owner source as usual, update the source, run pnpm install --frozen-lockfile for the rer 0.2.24 pin, and restart. The docs/deploy.md example credentials now read synthetic-...; they were placeholders before and remain placeholders: replace them with the owner's real values, never commit real credentials. Installations still on 1.4.0 follow the 1.5.0 upgrade notes first (migrations 0023 and 0024)."
+}
