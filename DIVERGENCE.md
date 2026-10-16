@@ -1360,3 +1360,7 @@ values do not enter custody. Other credential-bearing responses are refused.
 While Sorry is retained, its history collection and month URLs redirect to
 Lamp's history at `/history/` in the same snapshot; complete undo restores
 Lamp's ordinary `/history` document.
+
+## Operator page responsiveness (owner, 16 October 2026)
+
+The signed-in workspace must open its main pages and primary actions in under one second on a normal hosted deployment. Keep its existing appearance, copy and flows. Read current records for each visit and preserve explicit mutation refreshes; speed must not come from serving stale data or deferring required work behind a loading state.

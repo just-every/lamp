@@ -11,7 +11,14 @@ export interface MaintenanceNotice { id: string; maintenanceId: string; kind: "s
 
 export interface ImportedMaintenanceUpdate { id: string; body: string; publishedAt: string; sourceStates: string }
 
+export interface MaintenanceCollectionDetails {
+  components: StoredMaintenanceComponent[];
+  notices: MaintenanceNotice[];
+  importedUpdates: Array<ImportedMaintenanceUpdate & { maintenanceId: string }>;
+}
+
 export interface MaintenanceRepository {
+  listCollectionDetails(): Promise<MaintenanceCollectionDetails>;
   listImportedUpdates(maintenanceId: string): Promise<ImportedMaintenanceUpdate[]>;
   allocateMaintenanceReference(): Promise<AllocatedReference>;
   listMaintenance(): Promise<StoredMaintenance[]>;
@@ -55,6 +62,14 @@ export function createMaintenanceRepository(binding: D1Database): MaintenanceRep
     async allocateMaintenanceReference() { return allocateReference(binding, "SCH"); },
     async listMaintenance() {
       return database.select().from(maintenance).orderBy(asc(maintenance.startsAt)).all();
+    },
+    async listCollectionDetails() {
+      const [components, notices, importedUpdates] = await Promise.all([
+        database.select().from(maintenanceComponents).orderBy(maintenanceComponents.maintenanceId).all(),
+        binding.prepare(`SELECT id, maintenance_id AS maintenanceId, kind, body, published_at AS publishedAt, author_operator_id AS authorOperatorId, created_at AS createdAt, updated_at AS updatedAt FROM maintenance_notices ORDER BY maintenance_id, published_at DESC`).all<MaintenanceNotice>(),
+        binding.prepare(`SELECT id, maintenance_id AS maintenanceId, body, published_at AS publishedAt, source_states AS sourceStates FROM import_maintenance_updates ORDER BY maintenance_id, published_at DESC, id`).all<ImportedMaintenanceUpdate & { maintenanceId: string }>(),
+      ]);
+      return { components, notices: notices.results, importedUpdates: importedUpdates.results };
     },
     async listComponents(maintenanceId) {
       return database.select().from(maintenanceComponents).where(eq(maintenanceComponents.maintenanceId, maintenanceId)).all();

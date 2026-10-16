@@ -4,9 +4,10 @@ import { installCompiledLiveEdits, setLiveEditsReady } from './live-edit-runtime
 import visualEdits from './visual-edits.json';
 import { mountEditor, type EditorConfig } from './editor-widget';
 // Optional server configuration. An authenticated local request reveals no credentials.
-export function EditorLauncher({ authorized }: { authorized: boolean }) {
+export function EditorLauncher({ authorized, initialConfig }: { authorized: boolean; initialConfig?: EditorConfig }) {
   useEffect(() => {
     if (!authorized) return;
+    if (initialConfig) return mountEditor(initialConfig, true);
     const controller = new AbortController();
     let cleanup = () => {};
     void fetch('/api/app/editor-config', { credentials: 'same-origin', signal: controller.signal })
@@ -14,7 +15,7 @@ export function EditorLauncher({ authorized }: { authorized: boolean }) {
       .then(config => { if (!controller.signal.aborted) cleanup = mountEditor(config, true); })
       .catch(() => { /* Optional management availability does not block the edition. */ });
     return () => { controller.abort(); cleanup(); };
-  }, [authorized]);
+  }, [authorized, initialConfig]);
   return null;
 }
 

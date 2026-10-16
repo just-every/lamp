@@ -1,4 +1,5 @@
 import { previewComponentChange } from "./component-change-repository";
+import { listIncidentRelations, publishingDraft } from "./list-relations";
 import { activeIncidentGuard, attachClaimStatements, publicationComponentsGuard, writeClaimBatch, type AttachedIncidentComponent } from "./component-claims";
 import type { UpdateChannel } from "../../shared/domain";
 import { and, desc, eq, isNull } from "drizzle-orm";
@@ -79,6 +80,7 @@ export interface IncidentRepository {
   attachComponent(claim: AttachedIncidentComponent, recipients: D1PreparedStatement[]): Promise<void>;
   detachComponent(incidentId: string, componentId: string, timestamp: string, eventId: string): Promise<void>;
   listIncidents(): Promise<StoredIncident[]>;
+  listRelations(): ReturnType<typeof listIncidentRelations>;
   findIncident(incidentId: string): Promise<StoredIncident | null>;
   listComponents(incidentId: string): Promise<StoredIncidentComponent[]>;
   listUpdates(incidentId: string): Promise<StoredIncidentUpdate[]>;
@@ -118,17 +120,10 @@ async function writeDraftBatch(binding: D1Database, statements: D1PreparedStatem
 
 export function createIncidentRepository(binding: D1Database): IncidentRepository {
   const database = createDatabase(binding);
-  const asPublishingDraft = (row: (Omit<PublishingDraft, "scheduledChannels"> & { scheduledChannelsJson: string | null }) | null) => {
-    if (!row) return null;
-    let candidate: unknown;
-    try {
-      candidate = JSON.parse(row.scheduledChannelsJson ?? "[]");
-    } catch { throw new Error("Scheduled delivery channel configuration is malformed."); }
-    if (!Array.isArray(candidate) || candidate.some((item) => item !== "email" && item !== "webhook" && item !== "chat")) throw new Error("Scheduled delivery channel configuration is invalid.");
-    return { ...row, scheduledChannels: [...new Set(candidate)] };
-  };
+  const asPublishingDraft = publishingDraft;
 
   return {
+    listRelations: () => listIncidentRelations(binding),
     previewComponentChange: (incidentId, componentId) => previewComponentChange(binding, incidentId, componentId),
     async attachComponent(claim, recipients) {
       await writeClaimBatch(binding, [

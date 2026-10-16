@@ -76,7 +76,20 @@ export function createComponentsService(
       await onPublicDataChanged();
     },
     async list() {
-      return Promise.all((await repository.listComponents()).map((component) => toView(repository, component)));
+      const [components, claims] = await Promise.all([repository.listComponents(), repository.listCurrentClaims()]);
+      const claimsByComponent = new Map<string, ComponentState[]>();
+      const standingClaims = new Map<string, ComponentState>();
+      for (const claim of claims) {
+        const states = claimsByComponent.get(claim.componentId) ?? [];
+        states.push(claim.state);
+        claimsByComponent.set(claim.componentId, states);
+        if (claim.causeType === "standing-claim") standingClaims.set(claim.componentId, claim.state);
+      }
+      return components.map((component) => ({
+        ...component,
+        publicState: mostSevereState(claimsByComponent.get(component.id) ?? []),
+        standingClaimState: standingClaims.get(component.id) ?? null,
+      }));
     },
     async listGroups() {
       return repository.listGroups();

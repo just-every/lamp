@@ -1,4 +1,8 @@
-import { useEffect, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
+import type { AppDataSnapshot } from "../../page-data";
+
+export const AppDataContext = createContext<AppDataSnapshot>({});
+type ResourceState<T> = { path: string | null; snapshot: AppDataSnapshot; data: T | null; error: string | null; loading: boolean };
 
 export class ApiError extends Error {
   constructor(message: string, public readonly status: number) {
@@ -26,31 +30,37 @@ export async function appApi<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export function useAppData<T>(path: string | null) {
-  const [data, setData] = useState<T | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(Boolean(path));
+  const snapshot = useContext(AppDataContext);
+  const initial = path ? snapshot[path] : undefined;
+  const initialState: ResourceState<T> = { path, snapshot, data: initial?.data as T ?? null, error: initial?.error ?? null, loading: Boolean(path && !initial) };
+  const [state, setState] = useState(initialState);
   const [revision, setRevision] = useState(0);
+  const previous = useRef({ path, snapshot, revision });
 
   useEffect(() => {
-    let cancelled = false;
+    const controller = new AbortController();
+    const refresh = previous.current.path === path && previous.current.snapshot === snapshot && previous.current.revision !== revision;
+    previous.current = { path, snapshot, revision };
     if (!path) {
-      setLoading(false);
-      return () => { cancelled = true; };
+      setState(initialState);
+      return;
     }
-    setLoading(true);
-    setError(null);
-    appApi<T>(path)
+    if (initial && !refresh) {
+      setState(initialState);
+      return;
+    }
+    setState(current => ({ ...current, path, snapshot, loading: true, error: null }));
+    appApi<T>(path, { signal: controller.signal })
       .then((next) => {
-        if (!cancelled) setData(next);
+        if (!controller.signal.aborted) setState({ path, snapshot, data: next, error: null, loading: false });
       })
       .catch((cause: unknown) => {
-        if (!cancelled) setError(cause instanceof Error ? cause.message : "The operator API could not be reached.");
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
+        if (!controller.signal.aborted) setState(current => ({ ...current, loading: false, error: cause instanceof Error ? cause.message : "The operator API could not be reached." }));
       });
-    return () => { cancelled = true; };
-  }, [path, revision]);
+    return () => controller.abort();
+  }, [path, snapshot, revision]);
 
-  return { data, error, loading, refresh: () => setRevision((current) => current + 1) };
+  const refresh = useCallback(() => setRevision((current) => current + 1), []);
+  const result = state.path === path && state.snapshot === snapshot ? state : initialState;
+  return { data: result.data, error: result.error, loading: result.loading, refresh };
 }

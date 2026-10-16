@@ -18,38 +18,14 @@ import { IncidentBriefPanel } from "../../brief/ui/incident-brief";
 import { SuggestionSources, type AppliedSuggestion, type SuggestedFieldName } from "./suggestion-sources";
 import type { CheckedSuggestion } from "../../ai/service";
 import { useIncidentVisit } from "./use-incident-visit";
+import { blankDraft, draftFromIncident, normalizeResolvedDraft } from "../draft";
 
-type IncidentResponse = { incident: Awaited<ReturnType<IncidentsService["get"]>>; hasChatChannels: boolean };
+type IncidentResponse = { incident: Awaited<ReturnType<IncidentsService["get"]>>; hasChatChannels: boolean; preview?: RenderedIncidentUpdate | null };
 type PreviewResponse = { preview: RenderedIncidentUpdate };
-
-const blankDraft: IncidentDraftInput = {
-  lifecycle: "Investigating",
-  affectedAudience: "",
-  customerImpact: "",
-  whatStillWorks: "",
-  details: "",
-  nextUpdateAt: null,
-};
 
 // The state chip's colour class for a lifecycle or impact, as .state-pill uses it.
 function stateClass(state: string) {
   return `state-${state.toLowerCase().replaceAll(" ", "-")}`;
-}
-
-function normalizeResolvedDraft(draft: IncidentDraftInput): IncidentDraftInput {
-  return draft.lifecycle === "Resolved" ? { ...draft, nextUpdateAt: null } : draft;
-}
-
-function draftFromIncident(incident: NonNullable<IncidentResponse["incident"]>): IncidentDraftInput {
-  if (!incident.draft) return { ...blankDraft, lifecycle: ({ Investigating: "Identified", Identified: "Monitoring", Monitoring: "Resolved", Resolved: "Resolved" } as const)[incident.lifecycle] };
-  return normalizeResolvedDraft({
-    lifecycle: incident.draft.lifecycle,
-    affectedAudience: incident.draft.affectedAudience,
-    customerImpact: incident.draft.customerImpact,
-    whatStillWorks: incident.draft.whatStillWorks,
-    details: incident.draft.details,
-    nextUpdateAt: incident.draft.nextUpdateAt,
-  });
 }
 
 export function IncidentDetailPage({ incidentId }: { incidentId: string }) {
@@ -68,6 +44,7 @@ function IncidentVisit({ incidentId }: { incidentId: string }) {
   }, [captureVisit]);
   const formatOperatorTime = useOperatorTime();
   const timezone = usePageTimezone();
+  const initialPreviewTimezone = useRef(timezone);
   const toLocalDateTime = (iso: string | null) => toPageDateTime(iso, timezone);
   const { data, error, loading, refresh } = useAppData<IncidentResponse>(`/api/app/incidents/${incidentId}`);
   const navigate = useNavigate();
@@ -78,11 +55,11 @@ function IncidentVisit({ incidentId }: { incidentId: string }) {
   const [timeErrors, setTimeErrors] = useState<Record<"nextUpdate" | "scheduled" | "historical", string | null>>({ nextUpdate: null, scheduled: null, historical: null });
   const hasTimeError = Object.values(timeErrors).some(Boolean);
   const version = useRef("-:0");
-  const [draft, setDraft] = useState<IncidentDraftInput>(blankDraft);
+  const [draft, setDraft] = useState<IncidentDraftInput>(() => data?.incident ? draftFromIncident(data.incident) : blankDraft);
   const [draftRevision, setDraftRevision] = useState(0);
   const [saveState, setSaveState] = useState<"saved" | "saving" | "error">("saved");
   const [saveError, setSaveError] = useState<string | null>(null);
-  const [preview, setPreview] = useState<RenderedIncidentUpdate | null>(null);
+  const [preview, setPreview] = useState<RenderedIncidentUpdate | null>(data?.preview ?? null);
   const [previewError, setPreviewError] = useState<string | null>(null);
   const [channels, setChannels] = useState<Array<"email" | "webhook" | "chat">>(["email"]);
   const [scheduledPublishAt, setScheduledPublishAt] = useState<string | null>(null);
@@ -195,6 +172,11 @@ function IncidentVisit({ incidentId }: { incidentId: string }) {
 
   useEffect(() => {
     if (!loadedIncidentId) return;
+    if (data?.preview && data.incident && initialPreviewTimezone.current === timezone && draftKey === JSON.stringify(draftFromIncident(data.incident))) {
+      setPreview(data.preview);
+      setPreviewError(null);
+      return;
+    }
     const isCurrent = captureUpdate();
     const controller = new AbortController();
     const timeout = window.setTimeout(() => {

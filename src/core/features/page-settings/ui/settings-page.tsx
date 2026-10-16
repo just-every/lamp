@@ -38,7 +38,7 @@ export function SettingsPage() {
   const { data, error, loading } = useAppData<SettingsResponse>("/api/app/page-settings");
   const publicOrigin = operatorRoute.useLoaderData().publicPageOrigin;
   const aiStatus = useAppData<AiStatusResponse>("/api/app/ai/status");
-  const [settings, setSettings] = useState<SettingsForm | null>(null);
+  const [settings, setSettings] = useState<SettingsForm | null>(() => data?.settings ? toSettingsForm(data.settings) : null);
   const [status, setStatus] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [logo, setLogo] = useState<File | null>(null);
