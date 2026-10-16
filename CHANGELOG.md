@@ -8,7 +8,7 @@
 - A resolution email's subject starts with "Resolved:". AI suggestions fill "Who is affected" and "What is the impact" in customer words, without brief refs, IDs or machine timestamps.
 - Identity provider settings walk through Okta and a Run Edit Run Auth link on the page, and say plainly why Microsoft Entra cannot be finished there. Sorry move-in finds your pages from a token. The UptimeRobot preset shows the JSON body to configure, and a new preset is listed at once.
 - A build never writes `.dev.vars` or another local settings file into `dist`, and the build refuses output that holds one.
-- Pin rer to 0.2.35, with the Run page's standard two lines: install `rer`, then `rer dev just-every/run-lamp`.
+- The Run page shows Base's standard two lines (rer 0.2.35 and later): install `rer`, then `rer dev just-every/run-lamp`.
 
 - Move-in keeps its source selector disabled until hydration so early selections cannot leave the displayed provider and import state out of sync. Verification hands local sign-in database state between Wrangler and its assertion proxy, and aggregates attempt-specific shard results without stale artifact overwrites.
 
