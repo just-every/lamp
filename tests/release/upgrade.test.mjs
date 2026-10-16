@@ -221,13 +221,23 @@ test(
       await migrate(current, state);
       mf = await runtime(current, state, mail);
       const migrated = await inventory(mf);
+      // A migration may add columns; existing rows keep every original value
+      // and carry null in each added column.
       for (const [name, rows] of Object.entries(before.tables))
-        if (name !== "d1_migrations")
+        if (name !== "d1_migrations") {
+          const original = new Set(rows.flatMap((row) => Object.keys(row)));
           assert.deepEqual(
-            migrated.tables[name],
+            migrated.tables[name]?.map((row) =>
+              Object.fromEntries(Object.entries(row).filter(([column]) => original.has(column))),
+            ),
             rows,
             `migration preserves existing ${name} records`,
           );
+          for (const row of migrated.tables[name] ?? [])
+            for (const [column, value] of Object.entries(row))
+              if (!original.has(column))
+                assert.equal(value, null, `migration leaves added ${name}.${column} empty on existing records`);
+        }
       assert.deepEqual(
         migrated.objects,
         before.objects,

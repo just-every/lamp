@@ -68,13 +68,12 @@ The app host serves Lamp's public documentation at `/docs`. Start with the
 
 The Run page's start line, `rer dev just-every/run-lamp` (or its one-line `npx`
 form), clones the default branch, `main`, not a release tag, into a `run-lamp`
-folder and starts it; after that, run `rer dev` from that folder. `main` is Lamp
-1.6.0 development source, with changes not yet in a release, and pins
-`@runeditrun/rer` 0.2.36. The latest tagged release is
-`v1.5.1`, which pins rer 0.2.24. To use that release instead:
+folder and starts it; after that, run `rer dev` from that folder. `main` is Lamp's
+development source and may hold changes not yet in a release. The latest tagged
+release is `v1.6.0`, which pins `@runeditrun/rer` 0.2.36. To use that release instead:
 
 ```sh
-git clone --branch v1.5.1 https://github.com/just-every/run-lamp.git lamp
+git clone --branch v1.6.0 https://github.com/just-every/run-lamp.git lamp
 ```
 
 Then follow the documentation inside that checkout, which matches its tools.

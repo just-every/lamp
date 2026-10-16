@@ -399,6 +399,10 @@
       "sha256": "8713e0cdb48f0d7c2d512a867296d8de151ab8b9ea4981876f8559150f1f2537",
       "executable": false
     },
+    ".github/assets/release/lamp-1.6.0-status-page-1440.png": {
+      "sha256": "d0c37414b5ee402e386899aac3ef4fd74158f70489df948f84be9014fdb0841f",
+      "executable": false
+    },
     ".github/workflows/deploy.yml": {
       "sha256": "11d5ca961e653527116a7d8e595c60c793c8faf7d63f40e7e8fd2dfe97ff59c6",
       "executable": false
@@ -452,7 +456,7 @@
       "executable": false
     },
     "CHANGELOG.md": {
-      "sha256": "59461e5bc87713e6e0fc4e427536ed835b6aef59ec45ebd75d67264226b2dc30",
+      "sha256": "23b7114518db188340050ba2cac4277132402e3d1aec7a292ec2de23dc2519b7",
       "executable": false
     },
     "CLAUDE.md": {
@@ -540,7 +544,7 @@
       "executable": false
     },
     "docs/install.md": {
-      "sha256": "ed3d53c7b4c1015f836c1708b40590713221fca911dd8c12f93ea0759d2dde5a",
+      "sha256": "9aba08316abeae084f4852250d4264227ca61c04c2fd2c2457012b7fd4638fff",
       "executable": false
     },
     "docs/maintenance.md": {
@@ -1928,7 +1932,7 @@
       "executable": false
     },
     "README.md": {
-      "sha256": "17df236caf86dd99b8bb3aac7d32f17ad567229edefb7b161b4c98329e73e094",
+      "sha256": "3afc43f42450988ee745205b6a2df1a330d7bdc1824540ff8621f589b4e3c9a6",
       "executable": false
     },
     "release-history/1.0.0.CONTRACT.md": {
@@ -1996,7 +2000,7 @@
       "executable": false
     },
     "RELEASE.json": {
-      "sha256": "bc05d1d7c69a5dcc8275aac118e94a9fd9ff5112b8b288f7afd7ab8b3a8576c8",
+      "sha256": "d17e88d8cc8a63d0b1c528707c9c9530483ee4f5d3f96bf58aedfc581883f579",
       "executable": false
     },
     "rer-packaging.json": {
@@ -2012,7 +2016,7 @@
       "executable": false
     },
     "RUN-LOCALLY.md": {
-      "sha256": "ae28664dbed99b4d12ae489a569e6b7e5f000a5a54838cd5bdaf604145efd464",
+      "sha256": "ef6eeaabf971d77b55f4aaf97182a5ba8b805d4a711089330cd63e2cc87df221",
       "executable": false
     },
     "schema/dependencies.mjs": {
@@ -5468,7 +5472,7 @@
       "executable": false
     },
     "tests/release/journeys.mjs": {
-      "sha256": "d30a9f18e37778883cd6ec637fde6bebcbc9e2f5714a0ac3be77d771df76e224",
+      "sha256": "c0e4025fcf378165b83ceda5fb748add4ae056c4c314aa111105488d4d4a2cfd",
       "executable": false
     },
     "tests/release/populate.mjs": {
@@ -5484,7 +5488,7 @@
       "executable": false
     },
     "tests/release/upgrade.test.mjs": {
-      "sha256": "9561aa0f2173b56bcd758699b5a67ecc2ea31251cc7f1020d732e43dce03feb6",
+      "sha256": "8f9c679dca1e4627dd42a51baab150d7910c77245aef2c222f886e8977362364",
       "executable": false
     },
     "tests/release/verify.mjs": {

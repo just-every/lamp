@@ -52,8 +52,12 @@ export async function upgradedJourneys(mf, data, before, current, mail) {
     before.tables.notification_outbox,
     "completed outbox commands never replay",
   );
+  // 0026 added message_key; retained sends keep every original value.
+  const ledgerColumns = new Set(before.tables.mail_send_ledger.flatMap((row) => Object.keys(row)));
   assert.deepEqual(
-    afterStartup.tables.mail_send_ledger,
+    afterStartup.tables.mail_send_ledger.map((row) =>
+      Object.fromEntries(Object.entries(row).filter(([column]) => ledgerColumns.has(column))),
+    ),
     before.tables.mail_send_ledger,
     "uncertain provider sends remain retained",
   );
@@ -152,6 +156,9 @@ export async function upgradedJourneys(mf, data, before, current, mail) {
     }),
   });
   assert.equal(alert.status, 202, await alert.clone().text());
+  // Deliver the alert's operator email before the import's mail baseline;
+  // any operator write may dispatch it.
+  await settle(mf);
   // Exercise the new historical-maintenance storage through the real importer.
   const importFiles = await Promise.all(
     (await readdir(join(current, "tests/fixtures/betterstack/small")))

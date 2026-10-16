@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.6.0
 
 - A redeploy never replaces the secrets behind existing links and sessions: each Worker keeps the `SESSION_SECRET`, `SUBSCRIBER_TOKEN_SECRET` and `WEBHOOK_SIGNING_SECRET` it holds, so emailed Manage, Unsubscribe and one-click links keep working and operators stay signed in. `LAMP_REPLACE_SECRETS=NAME` replaces one on purpose. The deploy guide's secret step needs only `od` and `tr`, not Node.
 - Subscribers can choose components on the subscribe form, and the subscribe form and management page keep exactly the boxes ticked (only the last one was kept before).
@@ -9,18 +9,19 @@
 - Identity provider settings walk through Okta and a Run Edit Run Auth link on the page, and say plainly why Microsoft Entra cannot be finished there. Sorry move-in finds your pages from a token. The UptimeRobot preset shows the JSON body to configure, and a new preset is listed at once.
 - A build never writes `.dev.vars` or another local settings file into `dist`, and the build refuses output that holds one.
 - The Run page shows Base's standard two lines (rer 0.2.35 and later): install `rer`, then `rer dev just-every/run-lamp`.
-
 - Move-in keeps its source selector disabled until hydration so early selections cannot leave the displayed provider and import state out of sync. Verification hands local sign-in database state between Wrangler and its assertion proxy, and aggregates attempt-specific shard results without stale artifact overwrites.
-
 - Storage verification keeps its kernel-assigned HTTP sockets bound through Vite/workerd startup, preventing port collisions without retrying or changing application assertions.
-
 - Post-incident reports can be saved, edited after reload, and published from the incident editor. Saving sends only the four editable report fields; publication metadata remains managed by the server.
 - Managed hosting includes RER mail without an owner provider account or mail key. RER supplies `MAIL_PROVIDER=rer`, `MAIL_FROM`, `MAIL_RELAY_URL` and private `MAIL_API_KEY`; ordinary hosting retains Resend and SendGrid.
-- Pin rer to 0.2.29 and adopt Base's relay adapter with one-click unsubscribe, list identity and incident threads rooted in the relay's returned Message-ID.
-
+- Adopt Base's relay adapter with one-click unsubscribe, list identity and incident threads rooted in the relay's returned Message-ID.
 - Native deploy and hosted proof select the provider’s own mail declaration after deployment environment inputs are loaded, preserving direct provider credentials alongside Managed mail.
 - Operations declares mail dispatch as a Worker loop and validates conditional provider credentials in Lamp’s configuration module, retaining compatibility with the pinned CLI.
 - Managed relay acceptance is shown as **Accepted by RER** in Deliveries. Migration `0026_managed_mail_threads.sql` adds the durable message-key index; apply it before restarting. The publication preview uses a clean frame without an email-pattern finding.
+- Lamp moves in from Sorry: authenticated saved/API reads or keyless public JSON, with held subscribers released only by the owner after hostname cutover (migration `0025_sorry_import_release.sql`).
+- This checkout pins rer **0.2.36**.
+- Product screenshot: `.github/assets/release/lamp-1.6.0-status-page-1440.png` (a business's public status page at 1440 pixels: grouped components with 90-day uptime, a resolved incident and the subscribe form's component choice).
+
+Upgrading: back up data and owner source, then apply `0025_sorry_import_release.sql` and `0026_managed_mail_threads.sql` before starting this revision; both are additive. Run `pnpm install --frozen-lockfile` for the rer 0.2.36 pin. Redeploys keep the secrets behind existing links and sessions; use `LAMP_REPLACE_SECRETS` only to rotate one on purpose. Installations on 1.5.0 or earlier follow the earlier notes below first.
 
 ## 1.5.1
 
