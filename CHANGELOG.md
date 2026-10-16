@@ -1,8 +1,12 @@
 # Changelog
 
-## Unreleased
+## 1.5.1
 
-- Mark synthetic credentials and documentation placeholders so hosted source admission accepts the fixtures.
+- Mark synthetic credentials and documentation placeholders so hosted source admission accepts the fixtures. Application behaviour, the contract, migrations and stored data are unchanged from 1.5.0.
+- This checkout pins rer **0.2.24**, with every Base copy refreshed from that release and the demo imported from the package. Lamp's SendGrid and Resend mail paths are unchanged.
+- Product screenshot: `.github/assets/release/lamp-1.5.1-status-page-1440.png` (a business's public status page at 1440 pixels: components with 90-day uptime, scheduled maintenance and a resolved incident).
+
+Upgrading: no migration. Back up as usual, update the source, run `pnpm install --frozen-lockfile` and restart. Installations on 1.4.0 follow the 1.5.0 notes below first.
 
 ## 1.5.0
 

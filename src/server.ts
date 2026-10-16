@@ -1,5 +1,5 @@
 /// <reference path="../scripts/dev-ingress/virtual.d.ts" />
-import { withDemo } from '../modules/demo/index.mjs';
+import { withDemo } from '@runeditrun/rer/modules/demo';
 import { seedDemo } from './demo';
 export { SnapshotCache } from "./core/platform/blobs/snapshot-cache";
 import { createSetupRepository } from "./core/features/setup/repository";

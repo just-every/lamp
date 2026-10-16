@@ -395,6 +395,10 @@
       "sha256": "81654510e50ba42b3a0a5cb582dd7a29a35466473839eae6250479b592b81bd6",
       "executable": false
     },
+    ".github/assets/release/lamp-1.5.1-status-page-1440.png": {
+      "sha256": "8713e0cdb48f0d7c2d512a867296d8de151ab8b9ea4981876f8559150f1f2537",
+      "executable": false
+    },
     ".github/workflows/deploy.yml": {
       "sha256": "11d5ca961e653527116a7d8e595c60c793c8faf7d63f40e7e8fd2dfe97ff59c6",
       "executable": false
@@ -440,7 +444,7 @@
       "executable": false
     },
     "base-copies.json": {
-      "sha256": "a596d4042b615eead712b03dbf9df97a41c1f899c2f44c6862a95c7654e5a82d",
+      "sha256": "45c2ed71fcbc3009a40c550299c5ffcab9c5fc37253e9b6b8ae86a65f80456bc",
       "executable": false
     },
     "BASELINE.md": {
@@ -448,7 +452,7 @@
       "executable": false
     },
     "CHANGELOG.md": {
-      "sha256": "5f397df2a0e587add6eaaadbb4bc8d4f515b7daf9ca5089ffea5b6f6bc3516db",
+      "sha256": "3e379711d4876a05521d3d0854ae1ce95fc07b191502fa2cd80c72d603113c44",
       "executable": false
     },
     "CLAUDE.md": {
@@ -484,7 +488,7 @@
       "executable": false
     },
     "deploy-demo.json": {
-      "sha256": "39b521985adf6252416c0aee99eddb1bd0c56998fe06daad65ebaf228d7e1310",
+      "sha256": "0b9abd6ebc4cef7b6b9a1274acbd88bcace42c65554d8275bd685fed6526486e",
       "executable": false
     },
     "deploy-site.json": {
@@ -748,15 +752,15 @@
       "executable": false
     },
     "modules/demo/label.mjs": {
-      "sha256": "05c208a184941cf4c8be04502e2918c0ce9372159978022f02fb35c219f74d4f",
+      "sha256": "e39cffea58d72eebacf6d587f539f1632dd7139bb8e851451877a5ef0a60f2e5",
       "executable": false
     },
     "modules/demo/README.md": {
-      "sha256": "b00a8aa86d6a0df3c7ce904c3fa3bbb18b0b25a5fac722b4d7beafad183ae74f",
+      "sha256": "8fb9b98295fa59c8d4bdd6bd0d0b9940dc1113bb4a6d01813e76b5c878a445fc",
       "executable": false
     },
     "modules/demo/responses.mjs": {
-      "sha256": "3194f1a6aaec1f84477c15cf22fd32b650e317a119cfca26f0529c7ec5cd0cc5",
+      "sha256": "f91b6cb14dfde5c30750e6d248820f7218a855353e43e2defbc10fcc25fedc5d",
       "executable": false
     },
     "modules/demo/sockets.mjs": {
@@ -884,7 +888,7 @@
       "executable": false
     },
     "modules/import-kit/src/d1/erasure-stage.ts": {
-      "sha256": "9ecbdf112c28bb1bccf49ad28fcb2f469b01c8982a726efd99d3271ec64018b4",
+      "sha256": "9e4a69b1373d49269ef38bf3311468102bb94b308391838a8317ca361ddbe42d",
       "executable": false
     },
     "modules/import-kit/src/d1/erasure-step.ts": {
@@ -892,7 +896,7 @@
       "executable": false
     },
     "modules/import-kit/src/d1/erasure-values.ts": {
-      "sha256": "aa84881bea35969c83fce0b072a2878e761cbbc58137786a6d657ea28a27f22d",
+      "sha256": "57ccad1fc84f020c6b8d4d8bed2d2018028455961e38bc793acc5f27865094fe",
       "executable": false
     },
     "modules/import-kit/src/d1/erasure-writes.ts": {
@@ -1088,7 +1092,7 @@
       "executable": false
     },
     "modules/import-kit/src/d1/retirement-bounded.ts": {
-      "sha256": "508f3e2efa5624e525eb4ebf1c75ed954a3cfbdce8129ee10f8821a125f8e25d",
+      "sha256": "832581740e597e7c42e701370cf01372a67f97be84d42c44d701c13f5e62eaca",
       "executable": false
     },
     "modules/import-kit/src/d1/retirement-schema.ts": {
@@ -1548,7 +1552,7 @@
       "executable": false
     },
     "modules/mail/README.md": {
-      "sha256": "4eae21c84caf86429a0274e5dccb002a304915c74ff58f0c75279555d2cb16a0",
+      "sha256": "2067e03ab3f25fcf55d0ada52a19c44689839c6ca322853529d497430d4aa429",
       "executable": false
     },
     "modules/mail/src/adapters/cloudflare/headers.mjs": {
@@ -1596,11 +1600,11 @@
       "executable": false
     },
     "modules/mail/src/adapters/rer/contract.mjs": {
-      "sha256": "b8ae90da173b40c7bde1a194ac35e9367802b9b608f050d63e2337a64e58454c",
+      "sha256": "3dba4b2c07367775768b5d1683cb859ffd000a6eefd2236308a33ebf7ecad1dd",
       "executable": false
     },
     "modules/mail/src/adapters/rer/index.mjs": {
-      "sha256": "2f27ff23d1182b4792b13b777e44fe1de9f7568474df11f3b60655415d2a6635",
+      "sha256": "23faa46d74aa987e7fc51e1a78d83760414a169e8bc0101e399bb4d685c4ce14",
       "executable": false
     },
     "modules/mail/src/adapters/resend/index.mjs": {
@@ -1640,7 +1644,7 @@
       "executable": false
     },
     "modules/mail/src/core/transport.mjs": {
-      "sha256": "aecc91b5b12c2f315a3154679bb6780518453d04516c750517f06f25548ebb18",
+      "sha256": "67b721f37bdde8a5f419ca88eda0e88650ffaca06bcbf91eab0e33c879d0e230",
       "executable": false
     },
     "modules/mail/src/core/validation.mjs": {
@@ -1812,11 +1816,11 @@
       "executable": false
     },
     "package.json": {
-      "sha256": "090eed784b06be787618d587fed68588e3099f052602886c8c4d13fccf05c2a3",
+      "sha256": "68187932a13c526921363d90f2f4bf330a98e1d9ea19809a6d78ab1a302ec134",
       "executable": false
     },
     "pnpm-lock.yaml": {
-      "sha256": "4ca7792c045184476eac8da8bfc69cffb0d617ed45689e26218ab7f60ba2374f",
+      "sha256": "3df24ee24288a52b05e6858c8ee65ac3f647ae2cfd09ae977593866c8323d95f",
       "executable": false
     },
     "public/app-assets/brand/lamp-mark.svg": {
@@ -1883,6 +1887,14 @@
       "sha256": "102dfcb872673893ea13268188c2c31aace0c618a9c496b17b8d8bcd32486543",
       "executable": false
     },
+    "release-history/1.5.0.CONTRACT.md": {
+      "sha256": "4a8807b0104f0c82638489f3848fef50dcc1546dffbc7c3a67f6b41898b0802c",
+      "executable": false
+    },
+    "release-history/1.5.0.json": {
+      "sha256": "f6969d2e5a6a480322f8b02b5bb8a6bf9539ec4f0afa2b9ed4c53b0f707fd264",
+      "executable": false
+    },
     "release-history/README.md": {
       "sha256": "fd13c03aa7a6da117aa4c7a71516a7682d6536853b96cb875631acc014cd164e",
       "executable": false
@@ -1892,7 +1904,7 @@
       "executable": false
     },
     "RELEASE.json": {
-      "sha256": "f6969d2e5a6a480322f8b02b5bb8a6bf9539ec4f0afa2b9ed4c53b0f707fd264",
+      "sha256": "a0d934dc6aa945aab43c0fa0d91a2abe84a1894cb718c6b1be8c393998390081",
       "executable": false
     },
     "rer-packaging.json": {
@@ -2356,11 +2368,11 @@
       "executable": false
     },
     "SEED-COMMAND-CONTRACT.md": {
-      "sha256": "bc75a370396fc1f655a5993919e108b0eba0441e18d1d346934b482b0d9fe518",
+      "sha256": "0b97e2459883fbb77845844cf20e6760dc775881fd26640a6a6dae050504b891",
       "executable": false
     },
     "seed.json": {
-      "sha256": "2ffe23d71c8b36c4e3a2c13102b794e8fb40f7a452b7eb42ddbad1709b4a7461",
+      "sha256": "aa4d4f47c61bc1da26de2fd9767866e62193d57f2dca3654beda5b1398bf868a",
       "executable": false
     },
     "src/base/deployment-health.ts": {
@@ -2564,7 +2576,7 @@
       "executable": false
     },
     "src/core/app/mail.ts": {
-      "sha256": "0a766aa0f8bf3afe62fb94a0cdccb583ad854f34b90d3e8f0af40d09903d6099",
+      "sha256": "3dd8c2db90d59f95b0cbe76b84bd2fe0d1dbe7f103fb4d38969f73e9ed54c1dc",
       "executable": false
     },
     "src/core/app/public-origin.ts": {
@@ -2916,7 +2928,7 @@
       "executable": false
     },
     "src/core/features/overview/sender-check.ts": {
-      "sha256": "713da7bda6af330a45b9124b933b8a62f6c38e967e4764ef684f3372146cf515",
+      "sha256": "95febcc1456c090d1b2ee96306f45ae427612ff3b1bb9528d3e60f2a40895f31",
       "executable": false
     },
     "src/core/features/overview/service.ts": {
@@ -3252,7 +3264,7 @@
       "executable": false
     },
     "src/core/platform/ai/demo.ts": {
-      "sha256": "30334c3e4b38a83774daec485c1f954d28b74e8d7ce4984253c925b0d5228fef",
+      "sha256": "26aee52c1ed071bd5eeda1d8784596ec88a6cf2792e910b541886b8065152a7f",
       "executable": false
     },
     "src/core/platform/ai/index.ts": {
@@ -3576,7 +3588,7 @@
       "executable": false
     },
     "src/server.ts": {
-      "sha256": "c42c85675b1890e39fcb707004dfa7b8d73b392eeb7499c64a1c3b2f6ca2a4b0",
+      "sha256": "1f82546f31c1b5f920930f1286feadc667d87c328057adedd16d24f1fb75645f",
       "executable": false
     },
     "src/site/docs/body.ts": {
@@ -5228,7 +5240,7 @@
       "executable": false
     },
     "vite.config.ts": {
-      "sha256": "eb1e55b9c1c25fb649e64820dbcb7fca094f469bbd2d62990f6d154c8c807281",
+      "sha256": "e95caebe626e29718f8bde74eb288ed68021c6f8af0b8d65878507409cd6f390",
       "executable": false
     },
     "vite.site.config.ts": {

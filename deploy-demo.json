@@ -6,9 +6,10 @@
   "settings": {
     "LAMP_APP_HOST": "demo.run-lamp.com",
     "LAMP_PAGE_HOST": "page.demo.run-lamp.com",
-    "MAIL_FROM_ADDRESS": "status@demo.invalid",
+    "MAIL_FROM_ADDRESS": "status@northstar.example",
     "LAMP_HEARTBEAT_URL": "https://heartbeat.example.invalid/lamp",
     "LAMP_HEARTBEAT_INTERVAL_MINUTES": "1"
   },
-  "instanceType": "standard-4"
+  "instanceType": "basic",
+  "ownerEmail": "maya@northstar.example"
 }

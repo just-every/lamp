@@ -22,7 +22,7 @@ export function createAppMailTransport(bindings: AppBindings, extension: MailSen
     : new ResendMailSender({ apiKey: bindings.MAIL_PROVIDER_API_KEY, fromAddress: bindings.MAIL_FROM_ADDRESS }));
   if (bindings.RER_DEMO === '1') return { local: true, sender: { configured: true,
     async send(message) {
-      const { demoEffect } = await import('../../../modules/demo/index.mjs');
+      const { demoEffect } = await import('@runeditrun/rer/modules/demo');
       return demoEffect(() => real.send(message), () => ({ providerMessageId: `demo-${message.idempotencyKey}`, disposition: 'accepted' as const }));
     },
   } };

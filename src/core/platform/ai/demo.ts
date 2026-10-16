@@ -14,7 +14,7 @@ const condition: Record<ComponentState, string> = {
 export function createDemoAiProvider(real: AiProvider | null): AiProvider {
   return {
     async suggestUpdate(context) {
-      const { demoEffect } = await import("../../../../modules/demo/index.mjs");
+      const { demoEffect } = await import("@runeditrun/rer/modules/demo");
       return demoEffect(
         () => real ? real.suggestUpdate(context) : Promise.reject(new Error("No AI provider is configured.")),
         () => demoSuggestion(context),
