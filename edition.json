@@ -47,7 +47,7 @@
         ],
         "origin": {
           "repository": "https://github.com/runeditrun/base.git",
-          "revision": "3d643dda1d203d36e3fa57e8e5ba14e414bba6f9",
+          "revision": "d320c1436aaeb95d2485c1a0e69afa00ac8fb51a",
           "path": ".",
           "paths": [
             "deployment/owner-migrations.mjs",
@@ -83,7 +83,7 @@
         ],
         "origin": {
           "repository": "https://github.com/runeditrun/base.git",
-          "revision": "3d643dda1d203d36e3fa57e8e5ba14e414bba6f9",
+          "revision": "d320c1436aaeb95d2485c1a0e69afa00ac8fb51a",
           "path": ".",
           "paths": [
             "modules/sendgrid-email",
@@ -117,7 +117,7 @@
         ],
         "origin": {
           "repository": "https://github.com/runeditrun/base.git",
-          "revision": "3d643dda1d203d36e3fa57e8e5ba14e414bba6f9",
+          "revision": "d320c1436aaeb95d2485c1a0e69afa00ac8fb51a",
           "path": ".",
           "paths": [
             "modules/mail"
@@ -141,7 +141,7 @@
         ],
         "origin": {
           "repository": "https://github.com/runeditrun/base.git",
-          "revision": "3d643dda1d203d36e3fa57e8e5ba14e414bba6f9",
+          "revision": "d320c1436aaeb95d2485c1a0e69afa00ac8fb51a",
           "path": ".",
           "paths": [
             "edition-authoring"
@@ -166,7 +166,7 @@
         ],
         "origin": {
           "repository": "https://github.com/runeditrun/base.git",
-          "revision": "3d643dda1d203d36e3fa57e8e5ba14e414bba6f9",
+          "revision": "d320c1436aaeb95d2485c1a0e69afa00ac8fb51a",
           "path": ".",
           "paths": [
             "operations/operations.mjs",
@@ -213,7 +213,7 @@
         ],
         "origin": {
           "repository": "https://github.com/runeditrun/base.git",
-          "revision": "3d643dda1d203d36e3fa57e8e5ba14e414bba6f9",
+          "revision": "d320c1436aaeb95d2485c1a0e69afa00ac8fb51a",
           "path": ".",
           "paths": [
             "modules/delivery-producer/artifact.mjs",
@@ -327,7 +327,7 @@
         ],
         "origin": {
           "repository": "https://github.com/runeditrun/base.git",
-          "revision": "8981bc2c4d9e61feca5787c83b4ed44056659dd9",
+          "revision": "d320c1436aaeb95d2485c1a0e69afa00ac8fb51a",
           "path": ".",
           "paths": [
             "export/RUN-LOCALLY.md"

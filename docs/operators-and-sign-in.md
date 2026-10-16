@@ -11,7 +11,7 @@ keeping the opaque audit attribution.
 
 ## Terminal entry for the hosted owner
 
-With the checkout's pinned `@runeditrun/rer` (0.2.32), the hosted owner can enter without receiving email.
+With the checkout's pinned `@runeditrun/rer` (0.2.36), the hosted owner can enter without receiving email.
 From the checkout that deployed Lamp, use the same Cloudflare account, deployment
 environment and [private input file](deploy.md#save-private-deployment-inputs):
 

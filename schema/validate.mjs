@@ -6,9 +6,11 @@
 //   node schema/validate.mjs ../crisp/RELEASE.json ../notion/RELEASE.json
 //   node schema/validate.mjs --schema SEED              the example manifest here
 //   node schema/validate.mjs --schema SEED ../notion/seed.json
+//   node schema/validate.mjs --schema SETUP
+//   node schema/validate.mjs --schema SETUP --expect-invalid schema/SETUP.invalid.example.json
 //
-// --schema takes a name in this directory (RELEASE, SEED) or a path to a schema
-// file, and defaults to RELEASE. With no files, it validates the example that
+// --schema takes a name in this directory (RELEASE, SEED, COMPOSITION, SETUP) or a path to a schema
+// file, and defaults to RELEASE. COMPOSITION validates author assembly plans. With no files, it validates the example that
 // sits beside the chosen schema. Exits non-zero naming the file and the failing
 // path.
 
@@ -16,6 +18,7 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join, relative, resolve } from 'node:path';
 import { checkSchema, validate } from './json-schema.mjs';
+import { parseSetupManifestBytes, SETUP_SCHEMA_ID, validateSetupManifest } from './setup-validation.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 
@@ -26,7 +29,12 @@ const schemaFile = (value) =>
 const args = process.argv.slice(2);
 const targets = [];
 let schemaPath = join(here, 'RELEASE.schema.json');
+let expectInvalid = false;
 for (let index = 0; index < args.length; index += 1) {
+  if (args[index] === '--expect-invalid') {
+    expectInvalid = true;
+    continue;
+  }
   if (args[index] !== '--schema') {
     targets.push(args[index]);
     continue;
@@ -57,15 +65,40 @@ let failures = 0;
 for (const target of targets) {
   const path = resolve(target);
   const shown = relative(process.cwd(), path) || target;
-  let data;
+  let bytes;
   try {
-    data = JSON.parse(readFileSync(path, 'utf8'));
+    bytes = readFileSync(path);
   } catch (error) {
     failures += 1;
     console.error(`FAIL ${shown}\n  ${error.message}`);
     continue;
   }
-  const errors = validate(schema, data);
+  let data;
+  try {
+    data = schema.$id === SETUP_SCHEMA_ID
+      ? parseSetupManifestBytes(bytes)
+      : JSON.parse(bytes.toString('utf8'));
+  } catch (error) {
+    if (expectInvalid) {
+      console.log(`ok invalid ${shown}`);
+      continue;
+    }
+    failures += 1;
+    console.error(`FAIL ${shown}\n  ${error.message}`);
+    continue;
+  }
+  const errors = schema.$id === SETUP_SCHEMA_ID
+    ? validateSetupManifest(schema, data)
+    : validate(schema, data);
+  if (expectInvalid) {
+    if (errors.length === 0) {
+      failures += 1;
+      console.error(`FAIL ${shown}\n  expected an invalid document`);
+    } else {
+      console.log(`ok invalid ${shown}`);
+    }
+    continue;
+  }
   if (errors.length > 0) {
     failures += 1;
     console.error(`FAIL ${shown}`);

@@ -25,32 +25,43 @@ checklist reads complete.
 
 ## Base adoption
 
-Lamp pins the published npm package `@runeditrun/rer@0.2.22`.
-Every vendored Base copy (`modules/demo`, the operator-auth HTTP/CSP files,
-`modules/mail`, import-kit, d1-transport, integrations, delivery producer and
-authoring tools) is a verbatim copy from tag `rer-v0.2.22` (commit `1ce15dd`),
-recorded together in `base-copies.json`; the owner claim comes from the package.
-Import-kit's additive custody schemas are migration `0024`. Vite passes the demo
-switches, isolates persistence through `RER_STATE_DIR`, and loads `demoSockets()`
-first. Base provides one-click owner sign-in and the Demo/Dev label.
+Lamp pins the published npm package `@runeditrun/rer@0.2.36`.
+Every vendored Base copy (`modules/demo`, operator-auth, `modules/mail`,
+import-kit, d1-transport, integrations, delivery producer, authoring tools and
+the `run-demo.yml`/`run-site.yml` workflows) is a verbatim copy from tag
+`rer-v0.2.36` (commit `d320c14`), recorded together in `base-copies.json`; the
+owner claim comes from the package. Import-kit's additive custody schemas are
+migration `0024`. Vite passes the demo switches, isolates persistence through
+`RER_STATE_DIR`, and loads `demoSockets()` first. Base provides one-click owner
+sign-in and the Demo/Dev label.
 
 Ordinary deployment continues to use `hosted-check.json`; only `--demo`
-selects the existing container-capable `deploy.json` declaration.
+reads `deploy.json`'s Worker declaration and `container.hostVariables`.
 
 ## Hosted deployment
 
-`rer deploy --demo --dry-run` builds the real application and prepares its
-container image folder and front Worker without contacting a provider. `run-demo.yml` is dispatched by hand and deploys
+`rer deploy --demo` publishes `demo.run-lamp.com` on Base's native Worker
+Loader host: Turnstile admits each visitor into their own isolate of Lamp's
+ordinary Worker bundle, with SQLite facets for `DB` and `SnapshotCache`, the
+`SNAPSHOTS` objects in that visitor's own storage, durable `JOBS` queue
+batches and the every-minute cron delivered by alarm. Static files are served
+at the edge. A copy ends after 60 minutes, 15 idle minutes or sign-out, and its
+storage is erased. `rer deploy --demo --dry-run` builds `.rer/demo-host/`
+without contacting a provider. `run-demo.yml` is dispatched by hand and deploys
 from the `run-demo` environment to the RunEditRun account.
 
-The dispatch input `test_only` uses Cloudflare's published Turnstile test keys
-only for a separate `demo-test` Worker at `demo.test.run-lamp.com`. It does not
-change the production demo's widget or secret. Test keys are workflow inputs
-to the generated front Worker, never application bindings or source settings.
-The input `remove` runs `rer deploy --demo --remove --yes` for the selected
-host instead of deploying it. The optional `RER_DEMO_OPERATOR_TOKEN`
-environment secret lets the host operator read a failed start's probe record.
+The declared secondary host `page.demo.run-lamp.com`
+(`container.hostVariables` in `deploy.json`) is a second custom domain on the
+same demo Worker and reaches the same visitor's isolate, so the visitor's
+public status page, subscribe form and feeds answer there; an anonymous
+request to it returns to the start page.
 
-rer 0.2.22 routes the declared secondary host `page.demo.run-lamp.com`
-(`container.hostVariables` in `deploy.json`) to the same visitor's container;
-an anonymous request to it returns to the start page.
+The dispatch input `test_only` uses Cloudflare's published Turnstile test keys
+for a separate `demo-test` Worker at `demo.test.run-lamp.com`; starts there need
+the private measurement token. Base's template scopes only the declaration's
+`domain`, while Lamp's two host settings must sit under the demo hostname, so a
+test host is dispatched from a branch whose `deploy-demo.json` sets
+`LAMP_APP_HOST` to `demo.test.run-lamp.com` and `LAMP_PAGE_HOST` to
+`page.demo.test.run-lamp.com`. The input `remove` runs
+`rer deploy --demo --remove --yes` for the selected host instead of deploying
+it.

@@ -27,7 +27,7 @@ function policy(value) {
 
 /** Generate rer-project.json source content. Register its committed SHA separately. */
 export function generateProjectDescriptor(input) {
-  object(input, 'project descriptor', ['schema', 'projectId', 'name', 'sourceRepository', 'license', 'deployment', 'operations', 'verification']);
+  object(input, 'project descriptor', ['schema', 'projectId', 'name', 'sourceRepository', 'license', 'deployment', 'operations', 'verification', 'verifyWorkflow']);
   if (input.schema !== 1) throw new Error('Project descriptor schema must be 1');
   const projectId = string(input.projectId, 'projectId', 160);
   if (!/^[a-z0-9][a-z0-9._-]*(?:\/[a-z0-9][a-z0-9._-]*)?$/.test(projectId)) throw new Error('projectId must be a slug or publisher-qualified slug');
@@ -44,5 +44,6 @@ export function generateProjectDescriptor(input) {
     deployment: {target: string(input.deployment.target, 'deployment.target', 100), artifactFile: artifactFilename(input.deployment.artifactFile === undefined ? 'rer-worker-artifact.json' : input.deployment.artifactFile)},
     operations,
     ...(Object.hasOwn(input, 'verification') ? {verification: policy(input.verification)} : {}),
+    ...(Object.hasOwn(input, 'verifyWorkflow') ? {verifyWorkflow: string(input.verifyWorkflow, 'verifyWorkflow', 300)} : {}),
   };
 }

@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://runeditrun.com/schema/SEED.schema.json",
   "title": "seed.json",
-  "description": "One seed's manifest: what the product is, which family spine it builds and which incumbents it replaces, the capabilities it guarantees and the clauses that carry each one, everything that leaves the deployment, and the capacity and cost numbers the buyer may check. Written by the seed author; read by the catalogue, `rer`, the harness, and the owner's agent. It records what the seed is and what it promises, not how it is built.",
+  "description": "An installable product manifest: identity, purpose, guarantees, dependencies and evidence. Optional composition names the base, headless family, selected source modules and complete edition; legacy spine remains domain-focus metadata during consumer migration.",
   "type": "object",
   "required": [
     "id",
@@ -35,7 +35,7 @@
     },
     "version": {
       "$ref": "#/$defs/semver",
-      "description": "The version this manifest describes. Matches the tag and `RELEASE.json → version`."
+      "description": "The version this manifest describes. Matches the tag and `RELEASE.json \u2192 version`."
     },
     "maturity": {
       "type": "string",
@@ -111,13 +111,14 @@
     },
     "spine": {
       "$ref": "#/$defs/spine",
-      "description": "The family spine this seed builds. A family splits into two spines only where the primary record differs, so the spine, not the reference product, is what the seed is."
+      "description": "The product's domain focus, recorded as an identifier and record description. Editions in one headless family may have different primary records and workflows; this field does not determine repository boundaries."
     },
     "replaces": {
       "type": "array",
-      "minItems": 1,
-      "description": "The incumbents this seed replaces, in the order the catalogue prints them. An incumbent is named here only once its research report is finished and an importer receives its data, so this field is absent until the spine can satisfy one name. Order carries meaning: the first entry's conventions are the defaults the product ships with, and the others are reachable through the policies the spine declares.",
-      "items": { "$ref": "#/$defs/replaced" }
+      "description": "Optional incumbent replacement claims, in display order. Each claim requires a finished research report, an importer verified against a real export, and the applicable product behaviour. Purpose-specific editions may have no incumbent replacement claim. Display order does not prescribe product defaults or require a superset of the incumbents' features.",
+      "items": {
+        "$ref": "#/$defs/replaced"
+      }
     },
     "description": {
       "type": "string",
@@ -133,23 +134,32 @@
       "type": "array",
       "minItems": 1,
       "description": "What the product does, in the order the catalogue and the owner's agent should read it, each capability naming the `CONTRACT.md` clauses that make it a guarantee. An array rather than a map: the order is the author's, and a capability carries an id that a card, a policy, or a later release can refer to.",
-      "items": { "$ref": "#/$defs/capability" }
+      "items": {
+        "$ref": "#/$defs/capability"
+      }
     },
     "nonGoals": {
       "type": "array",
       "minItems": 1,
       "description": "What this seed deliberately does not do, each as one sentence a buyer can match against their own need. A seed with no non-goals has not decided what it is.",
-      "items": { "type": "string", "minLength": 1 }
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
     },
     "externals": {
       "type": "array",
       "description": "Every service outside the deployment that the product talks to, why an owned primitive cannot do the job, and what data reaches it. Empty when nothing leaves.",
-      "items": { "$ref": "#/$defs/external" }
+      "items": {
+        "$ref": "#/$defs/external"
+      }
     },
     "env": {
       "type": "array",
       "description": "Every environment variable the product reads, whether it is a secret, and when it is required. The typed config module fails at startup naming anything missing from this list.",
-      "items": { "$ref": "#/$defs/envVar" }
+      "items": {
+        "$ref": "#/$defs/envVar"
+      }
     },
     "deploy": {
       "$ref": "#/$defs/deploy",
@@ -170,7 +180,7 @@
     },
     "limits": {
       "$ref": "#/$defs/measured",
-      "description": "Capacity and rate limits as data rather than clauses, with `status` saying whether they were measured or estimated. The rest of the object is per product — a load test produces different numbers for a scheduler and a support desk — so this schema constrains only the honesty of the claim."
+      "description": "Capacity and rate limits as data rather than clauses, with `status` saying whether they were measured or estimated. The rest of the object is per product \u2014 a load test produces different numbers for a scheduler and a support desk \u2014 so this schema constrains only the honesty of the claim."
     },
     "accessibility": {
       "$ref": "#/$defs/accessibility",
@@ -178,7 +188,10 @@
     },
     "operatingCost": {
       "$ref": "#/$defs/measured",
-      "description": "What one deployment costs to run, with `status` saying whether the figure was measured or estimated. The rest of the object is per product — plans, allowances, and provider charges differ — so this schema constrains only the honesty of the claim."
+      "description": "What one deployment costs to run, with `status` saying whether the figure was measured or estimated. The rest of the object is per product \u2014 plans, allowances, and provider charges differ \u2014 so this schema constrains only the honesty of the claim."
+    },
+    "composition": {
+      "$ref": "#/$defs/composition"
     }
   },
   "$defs": {
@@ -194,7 +207,7 @@
     "clauseId": {
       "type": "string",
       "pattern": "^[A-Z][A-Z0-9]*(?:-[A-Z][A-Z0-9]*)*-[0-9]{3}$",
-      "description": "A `CONTRACT.md` or `BASELINE.md` clause ID — one uppercase area and a three-digit number (`CHAN-003`), with the `BASE-` prefix reserved for the baseline."
+      "description": "A `CONTRACT.md` or `BASELINE.md` clause ID \u2014 one uppercase area and a three-digit number (`CHAN-003`), with the `BASE-` prefix reserved for the baseline."
     },
     "extensionId": {
       "type": "string",
@@ -203,7 +216,9 @@
     },
     "extensionIds": {
       "type": "array",
-      "items": { "$ref": "#/$defs/extensionId" }
+      "items": {
+        "$ref": "#/$defs/extensionId"
+      }
     },
     "path": {
       "type": "string",
@@ -212,23 +227,29 @@
     },
     "spine": {
       "type": "object",
-      "required": ["id", "record"],
+      "required": [
+        "id",
+        "record"
+      ],
       "additionalProperties": false,
       "properties": {
         "id": {
           "$ref": "#/$defs/slug",
-          "description": "The spine's identifier, e.g. `knowledge`, `ticket-desk`. It is the `id` of the spine's entry in `research/spines.json`, which is where a spine is defined and where a new one is added first. Two seeds share a spine only while one is being retired into the other."
+          "description": "The domain focus identifier, e.g. `knowledge`, `ticket-desk`. Research domain identifiers are recorded in `research/spines.json`. Multiple editions may share an identifier; edition composition and repository boundaries are chosen separately."
         },
         "record": {
           "type": "string",
           "minLength": 1,
-          "description": "The spine's primary record, named as the family knows it, e.g. `a page in a tree in a container`. Two spines exist in one family exactly when this sentence differs."
+          "description": "The product's primary record, e.g. `a page in a tree in a container`. A shared family may support editions built around different records."
         }
       }
     },
     "replaced": {
       "type": "object",
-      "required": ["name", "edition"],
+      "required": [
+        "name",
+        "edition"
+      ],
       "additionalProperties": false,
       "properties": {
         "name": {
@@ -237,15 +258,21 @@
           "description": "The incumbent as its owner spells it: `Help Scout`, `HubSpot CRM`, `monday.com`. Nominative use to say what the seed replaces; no logos, no taglines, no untested compatibility claim."
         },
         "edition": {
-          "type": ["string", "null"],
+          "type": [
+            "string",
+            "null"
+          ],
           "minLength": 1,
-          "description": "The edition that carries this incumbent's vocabulary, navigation, and policy defaults, as its slug. `null` while the seed replaces the incumbent from its default profile alone, which is where every spine starts: editions are a later layer, and the field is present so a manifest says which it is rather than leaving it unanswered."
+          "description": "The edition identifier associated with this replacement claim, or null when the artifact has no separate edition identifier. An edition owns the configured capabilities, defaults, and complete interface; this field alone does not describe its composition."
         }
       }
     },
     "capability": {
       "type": "object",
-      "required": ["id", "clauses"],
+      "required": [
+        "id",
+        "clauses"
+      ],
       "additionalProperties": false,
       "properties": {
         "id": {
@@ -261,13 +288,21 @@
           "type": "array",
           "minItems": 1,
           "description": "The clause IDs that make this capability a guarantee. A capability with no clause is a claim, not a capability.",
-          "items": { "$ref": "#/$defs/clauseId" }
+          "items": {
+            "$ref": "#/$defs/clauseId"
+          }
         }
       }
     },
     "external": {
       "type": "object",
-      "required": ["id", "required", "why", "data", "adapters"],
+      "required": [
+        "id",
+        "required",
+        "why",
+        "data",
+        "adapters"
+      ],
       "additionalProperties": false,
       "properties": {
         "id": {
@@ -292,7 +327,10 @@
           "type": "array",
           "minItems": 1,
           "description": "What leaves the deployment for this service, item by item, at the grain a buyer can check against their own privacy position.",
-          "items": { "type": "string", "minLength": 1 }
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
         },
         "adapters": {
           "$ref": "#/$defs/extensionIds",
@@ -302,7 +340,12 @@
     },
     "envVar": {
       "type": "object",
-      "required": ["name", "required", "secret", "why"],
+      "required": [
+        "name",
+        "required",
+        "secret",
+        "why"
+      ],
       "additionalProperties": false,
       "properties": {
         "name": {
@@ -337,7 +380,10 @@
     },
     "deploy": {
       "type": "object",
-      "required": ["healthPath", "publicPaths"],
+      "required": [
+        "healthPath",
+        "publicPaths"
+      ],
       "additionalProperties": false,
       "properties": {
         "healthPath": {
@@ -356,7 +402,9 @@
           "type": "array",
           "minItems": 1,
           "description": "Every path served without a session, including the public landing at `/`, which is matched exactly and opens nothing beneath it. Anything not listed requires one; the harness checks this list against the running deployment.",
-          "items": { "$ref": "#/$defs/path" }
+          "items": {
+            "$ref": "#/$defs/path"
+          }
         },
         "notes": {
           "type": "string",
@@ -367,7 +415,13 @@
     },
     "extensionPoints": {
       "type": "object",
-      "required": ["contributions", "policies", "events", "slots", "adapters"],
+      "required": [
+        "contributions",
+        "policies",
+        "events",
+        "slots",
+        "adapters"
+      ],
       "additionalProperties": false,
       "properties": {
         "contributions": {
@@ -376,7 +430,7 @@
         },
         "policies": {
           "$ref": "#/$defs/extensionIds",
-          "description": "The decisions the owner may replace. About eight per seed; a spine's divergences between incumbents arrive here."
+          "description": "Named product decisions with replaceable defaults. Add a policy where it reduces customization work; owners may also change source directly."
         },
         "events": {
           "$ref": "#/$defs/extensionIds",
@@ -384,7 +438,7 @@
         },
         "slots": {
           "$ref": "#/$defs/extensionIds",
-          "description": "The places in the interface the owner may render into. About ten per seed."
+          "description": "Named places in the edition's interface for contributed UI. Modules may supply reusable UI; the edition owns the finished experience."
         },
         "adapters": {
           "$ref": "#/$defs/extensionIds",
@@ -394,7 +448,10 @@
     },
     "accessibility": {
       "type": "object",
-      "required": ["level", "status"],
+      "required": [
+        "level",
+        "status"
+      ],
       "additionalProperties": false,
       "properties": {
         "level": {
@@ -411,19 +468,53 @@
           "type": "array",
           "minItems": 1,
           "description": "The surfaces the level covers, where it does not cover everything the deployment serves.",
-          "items": { "type": "string", "minLength": 1 }
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
         }
       }
     },
     "measured": {
       "type": "object",
-      "required": ["status"],
+      "required": [
+        "status"
+      ],
       "additionalProperties": true,
       "properties": {
         "status": {
           "type": "string",
           "minLength": 1,
           "description": "Whether these figures were measured, and by what, or estimated and pending. An estimate and a measurement must not read the same."
+        }
+      }
+    },
+    "composition": {
+      "type": "object",
+      "required": [
+        "base",
+        "family",
+        "edition",
+        "modules"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "base": {
+          "$ref": "#/$defs/slug"
+        },
+        "family": {
+          "$ref": "#/$defs/slug"
+        },
+        "edition": {
+          "$ref": "#/$defs/slug"
+        },
+        "modules": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/slug"
+          },
+          "description": "Selected ordinary source modules. No independent module version or runtime plugin loading."
         }
       }
     }

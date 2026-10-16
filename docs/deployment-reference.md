@@ -1,7 +1,7 @@
 # Deployment reference
 
 Use `rer deploy` from the project root. The checkout pins
-`@runeditrun/rer` 0.2.32; use `rer describe` and `rer deploy --help` for the installed
+`@runeditrun/rer` 0.2.36; use `rer describe` and `rer deploy --help` for the installed
 command reference. The [deployment guide](deploy.md) gives a complete private
 `0600` input file, validation, deploy and removal commands. `--env-file` values
 override the calling shell's exported values.
