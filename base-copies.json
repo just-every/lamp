@@ -59,31 +59,101 @@
       }
     },
     {
-      "path": "modules/demo",
-      "originPath": "modules/demo",
+      "path": "modules/demo/effects.mjs",
+      "originPath": "modules/demo/effects.mjs",
       "revision": "1ee378e41142c673a9098f60af21664c6d8477d1",
       "files": {
-        "modules/demo/effects.mjs": "e74d46fec165fdb5eafc62e53d6691e3064d5b9b5257c53f3cd6dd9a40386226",
-        "modules/demo/index.d.mts": "71caa39f5001ab8bd2891ae5bdb9bf1ab4910c121fb038d83ae549adaf8fcf10",
-        "modules/demo/index.mjs": "a90f58afaf7d7d54121f1e49746a51631c1b12c603e44edba81b1570eaa68d96",
-        "modules/demo/label.d.mts": "96a4692d568cfb6fd5593c9d7d4296bced338e0f54c2d17f80ae1da105287285",
-        "modules/demo/label.mjs": "e39cffea58d72eebacf6d587f539f1632dd7139bb8e851451877a5ef0a60f2e5",
-        "modules/demo/README.md": "8fb9b98295fa59c8d4bdd6bd0d0b9940dc1113bb4a6d01813e76b5c878a445fc",
-        "modules/demo/responses.mjs": "f91b6cb14dfde5c30750e6d248820f7218a855353e43e2defbc10fcc25fedc5d",
-        "modules/demo/sockets.mjs": "af88b298b721b3b2a9fe2425b9a8b7c95d842f28b56b3c48cf4366226ec90389",
-        "modules/demo/vite.d.mts": "f43b152b4a993feaf96afdbc276922bfa20d64725ea0150a12ec6ec805a7c7b3",
+        "modules/demo/effects.mjs": "e74d46fec165fdb5eafc62e53d6691e3064d5b9b5257c53f3cd6dd9a40386226"
+      },
+      "modes": {
+        "modules/demo/effects.mjs": "100644"
+      }
+    },
+    {
+      "path": "modules/demo/index.d.mts",
+      "originPath": "modules/demo/index.d.mts",
+      "revision": "1ee378e41142c673a9098f60af21664c6d8477d1",
+      "files": {
+        "modules/demo/index.d.mts": "71caa39f5001ab8bd2891ae5bdb9bf1ab4910c121fb038d83ae549adaf8fcf10"
+      },
+      "modes": {
+        "modules/demo/index.d.mts": "100644"
+      }
+    },
+    {
+      "path": "modules/demo/index.mjs",
+      "originPath": "modules/demo/index.mjs",
+      "revision": "1ee378e41142c673a9098f60af21664c6d8477d1",
+      "files": {
+        "modules/demo/index.mjs": "a90f58afaf7d7d54121f1e49746a51631c1b12c603e44edba81b1570eaa68d96"
+      },
+      "modes": {
+        "modules/demo/index.mjs": "100644"
+      }
+    },
+    {
+      "path": "modules/demo/label.d.mts",
+      "originPath": "modules/demo/label.d.mts",
+      "revision": "1ee378e41142c673a9098f60af21664c6d8477d1",
+      "files": {
+        "modules/demo/label.d.mts": "96a4692d568cfb6fd5593c9d7d4296bced338e0f54c2d17f80ae1da105287285"
+      },
+      "modes": {
+        "modules/demo/label.d.mts": "100644"
+      }
+    },
+    {
+      "path": "modules/demo/label.mjs",
+      "originPath": "modules/demo/label.mjs",
+      "revision": "1ee378e41142c673a9098f60af21664c6d8477d1",
+      "files": {
+        "modules/demo/label.mjs": "e39cffea58d72eebacf6d587f539f1632dd7139bb8e851451877a5ef0a60f2e5"
+      },
+      "modes": {
+        "modules/demo/label.mjs": "100644"
+      }
+    },
+    {
+      "path": "modules/demo/README.md",
+      "originPath": "modules/demo/README.md",
+      "revision": "1ee378e41142c673a9098f60af21664c6d8477d1",
+      "files": {
+        "modules/demo/README.md": "8fb9b98295fa59c8d4bdd6bd0d0b9940dc1113bb4a6d01813e76b5c878a445fc"
+      },
+      "modes": {
+        "modules/demo/README.md": "100644"
+      }
+    },
+    {
+      "path": "modules/demo/sockets.mjs",
+      "originPath": "modules/demo/sockets.mjs",
+      "revision": "1ee378e41142c673a9098f60af21664c6d8477d1",
+      "files": {
+        "modules/demo/sockets.mjs": "af88b298b721b3b2a9fe2425b9a8b7c95d842f28b56b3c48cf4366226ec90389"
+      },
+      "modes": {
+        "modules/demo/sockets.mjs": "100644"
+      }
+    },
+    {
+      "path": "modules/demo/vite.d.mts",
+      "originPath": "modules/demo/vite.d.mts",
+      "revision": "1ee378e41142c673a9098f60af21664c6d8477d1",
+      "files": {
+        "modules/demo/vite.d.mts": "f43b152b4a993feaf96afdbc276922bfa20d64725ea0150a12ec6ec805a7c7b3"
+      },
+      "modes": {
+        "modules/demo/vite.d.mts": "100644"
+      }
+    },
+    {
+      "path": "modules/demo/vite.mjs",
+      "originPath": "modules/demo/vite.mjs",
+      "revision": "1ee378e41142c673a9098f60af21664c6d8477d1",
+      "files": {
         "modules/demo/vite.mjs": "e38556e50c954814ee8e12278babd627d5cdd051a7ea2c242a61d6c5d84d12f8"
       },
       "modes": {
-        "modules/demo/effects.mjs": "100644",
-        "modules/demo/index.d.mts": "100644",
-        "modules/demo/index.mjs": "100644",
-        "modules/demo/label.d.mts": "100644",
-        "modules/demo/label.mjs": "100644",
-        "modules/demo/README.md": "100644",
-        "modules/demo/responses.mjs": "100644",
-        "modules/demo/sockets.mjs": "100644",
-        "modules/demo/vite.d.mts": "100644",
         "modules/demo/vite.mjs": "100644"
       }
     },
