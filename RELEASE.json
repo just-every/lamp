@@ -33,6 +33,18 @@
       "migrationIds": [
         "0025_sorry_import_release.sql"
       ]
+    },
+    "SUB-001": {
+      "change": "changed",
+      "summary": "Unsubscribing through an emailed link restores the address's confirmation allowance, so re-subscribing sends a fresh confirmation.",
+      "was": "Submitting an email address on the public page creates a pending subscription and sends one confirmation email to that address within 60 seconds. That address receives at most one confirmation email in any 24 hours however many times it is submitted, which is what bounds a subscription-bombing attack. A pending subscription receives no other notification. The form is a standard POST that works with script disabled, is rejected with 403 when the request carries `Sec-Fetch-Site: cross-site`, and carries no CSRF token, because with no cookie and no session there is no ambient authority to forge.",
+      "now": "Submitting an email address on the public page creates a pending subscription and sends one confirmation email to that address within 60 seconds. That address receives at most one confirmation email in any 24 hours however many times it is submitted, which is what bounds a subscription-bombing attack. Unsubscribing through a link emailed to the address proves it is the subscriber's own and restores that allowance, so re-subscribing after unsubscribing sends a fresh confirmation. A pending subscription receives no other notification. The form is a standard POST that works with script disabled, is rejected with 403 when the request carries `Sec-Fetch-Site: cross-site`, and carries no CSRF token, because with no cookie and no session there is no ambient authority to forge."
+    },
+    "SUB-004": {
+      "change": "changed",
+      "summary": "Subscribers choose components on the subscribe form as well as the management page, and both keep exactly the ticked components.",
+      "was": "A subscriber selects which components they want updates about, and is notified about an incident or maintenance only when it claims a state for at least one component in that selection. A subscription whose selection has never been narrowed follows every visible component, including components added after it was created. A subscription with a narrowed selection is unchanged when a component is added. When a component is attached to an unresolved incident, every subscriber who follows that component and has received no notification for that incident receives exactly one notification carrying its most recent published update, and then receives subsequent updates normally.",
+      "now": "A subscriber selects which components they want updates about, on the subscribe form or later on the management page, and the subscription follows exactly the components ticked (none ticked follows all), and is notified about an incident or maintenance only when it claims a state for at least one component in that selection. A subscription whose selection has never been narrowed follows every visible component, including components added after it was created. A subscription with a narrowed selection is unchanged when a component is added. When a component is attached to an unresolved incident, every subscriber who follows that component and has received no notification for that incident receives exactly one notification carrying its most recent published update, and then receives subsequent updates normally."
     }
   },
   "extensionPointChanges": [],
