@@ -72,7 +72,7 @@
     "export:cloudflare": "node scripts/export.mjs",
     "import:cloudflare": "node scripts/import.mjs",
     "test:rer-journey": "node --test --test-concurrency=1 tests/e2e/auth-adoption-journey.test.mjs",
-    "test:move-in": "pnpm run test:move-in:cutover && pnpm run test:move-in:statuspage && pnpm run test:move-in:betterstack && pnpm run test:move-in:instatus",
+    "test:move-in": "pnpm run test:move-in:cutover && pnpm run test:move-in:statuspage && pnpm run test:move-in:betterstack && pnpm run test:move-in:instatus && pnpm run test:move-in:sorry",
     "test:channels-and-presets": "node --test --test-concurrency=1 tests/e2e/channels-and-presets.test.mjs",
     "test:incident-brief": "node --test --test-concurrency=1 tests/e2e/incident-brief.test.mjs",
     "test:update-reminders": "node --test --test-concurrency=1 tests/e2e/update-reminders.test.mjs",
@@ -87,7 +87,9 @@
     "test:move-in:cutover": "node --test --test-concurrency=1 tests/auth-adoption/cutover.test.mjs tests/e2e/cutover-browser.test.mjs",
     "test:move-in:statuspage": "node --test --test-concurrency=1 tests/e2e/statuspage-import.test.mjs",
     "test:move-in:betterstack": "node --test --test-concurrency=1 tests/betterstack/reader.test.mjs tests/betterstack/flow.test.mjs tests/e2e/betterstack-browser.test.mjs",
-    "test:move-in:instatus": "node --test --test-concurrency=1 tests/instatus/reader.test.mjs tests/e2e/instatus-import.test.mjs tests/e2e/instatus-browser.test.mjs"
+    "test:move-in:instatus": "node --test --test-concurrency=1 tests/instatus/reader.test.mjs tests/e2e/instatus-import.test.mjs tests/e2e/instatus-browser.test.mjs",
+    "test:move-in:sorry": "node --test --test-concurrency=1 tests/e2e/sorry-import.test.mjs",
+    "sorry:capture": "node --experimental-strip-types scripts/sorry-capture.mjs"
   },
   "dependencies": {
     "@radix-ui/react-slot": "^1.3.3",

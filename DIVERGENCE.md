@@ -1348,3 +1348,7 @@ The standalone browser installer uses Base's shared install → setup → dev
 journey. Its one-click owner entry must lead to the actual development runtime;
 a production preview cannot serve the dev-key exchange it advertises. Setup
 still uses the production artifact for migration and owner bootstrap.
+
+## Sorry migration — 16 October 2026
+
+MOVE-001 accepts Sorry authenticated saved/API reads and keyless published JSON history. MOVE-002’s review-time expiry remains for existing sources; Sorry subscriber candidates are held inert through cutover and the watch window. A separate owner action attests to the live configured hostname, records the release, and begins their 72-hour confirmation window. No imported history sends notifications; source IDs and exact public links remain in import-kit custody and the published alias snapshot. Partial public samples are preview-only and name each missing detail.

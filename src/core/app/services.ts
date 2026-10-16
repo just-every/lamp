@@ -1,3 +1,4 @@
+import { publicPageOrigin } from "./public-origin";
 import { createRetainedSnapshotCache } from "../platform/blobs/retained";
 import type { AppBindings } from "./types";
 import type { BlobStore } from "../platform/blobs/store";
@@ -140,8 +141,10 @@ export function createAppServices(bindings: AppBindings, blobs: BlobStore, execu
   }));
 
   // Imported subscribers each get one confirmation invite; past incidents notify no one.
+  const importPublicOrigin = async () => execution instanceof Request ? publicPageOrigin(execution.url, bindings.LAMP_PAGE_HOST) : notificationOrigin(bindings);
   const statuspageImport = createStatuspageImportService(bindings.DB, {
-    inviteSubscriber: async (subscriberId, claimSend) => subscribers.inviteImported(subscriberId, await notificationOrigin(bindings), (await pageSettings.get())?.pageName ?? "This status page", claimSend),
+    publicOrigin: importPublicOrigin,
+    inviteSubscriber: async (subscriberId, claimSend) => subscribers.inviteImported(subscriberId, await importPublicOrigin(), (await pageSettings.get())?.pageName ?? "This status page", claimSend),
     publicDataChanged: () => publicSnapshots.rebuild(true),
   }, { apiOrigin: import.meta.env?.DEV && bindings.LAMP_DEV_STATUSPAGE_ORIGIN?.startsWith("http://127.0.0.1:") ? bindings.LAMP_DEV_STATUSPAGE_ORIGIN : undefined });
 

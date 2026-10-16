@@ -1,3 +1,5 @@
+import { fetchSorryPublicResponses } from "./sorry";
+import { releaseSorrySubscribers, type SorryReleaseApproval } from "./sorry-release.repository";
 import { readCutover } from "./cutover.repository";
 import { loadPlans } from "../../../../modules/import-kit/src/d1/plans";
 import { readImportedPublicRecords } from "./alias-repository";
@@ -24,6 +26,7 @@ export interface MoveInResult { job: ImportJob; report: MoveInReport; invites: {
 export interface MoveInHooks {
   inviteSubscriber(subscriberId: string, claimSend: () => Promise<boolean>): Promise<boolean>;
   publicDataChanged(): Promise<void>;
+  publicOrigin?(): Promise<string>;
 }
 
 /** The kit evaluates this in D1 before and after every batch: a signed-out or
@@ -48,7 +51,7 @@ const artifactIdentity = (plan: ImportPlan | { artifacts: Array<{ name: string; 
 export function createStatuspageImportService(db: D1Database, hooks: MoveInHooks, options: { apiOrigin?: string } = {}) {
   async function contextForJob(id: string, actor: MoveInActor) {
     const row = await db.prepare("SELECT namespace FROM ik_jobs WHERE id=? AND destination=? AND principal_id=?").bind(id, DESTINATION, actor.operator.id).first<{ namespace: string }>();
-    if (!row || !["statuspage", "betterstack", "instatus"].includes(row.namespace)) throw new Error("Import not found.");
+    if (!row || !["statuspage", "betterstack", "instatus", "sorry"].includes(row.namespace)) throw new Error("Import not found.");
     return importContext(db, actor, row.namespace);
   }
   async function assertAuthority(context: D1ImportContext) {
@@ -94,9 +97,9 @@ export function createStatuspageImportService(db: D1Database, hooks: MoveInHooks
   async function sourceClear(plan: ImportPlan) {
     // Exclude this operation so the import kit's post-write authority check
     // accepts its own new job, while serializing competing alias reservations.
-    const otherJobs = "SELECT count(*) AS n FROM ik_jobs WHERE destination='lamp' AND namespace IN ('statuspage','betterstack','instatus') AND NOT (principal_id=? AND fingerprint=?)";
+    const otherJobs = "SELECT count(*) AS n FROM ik_jobs WHERE destination='lamp' AND namespace IN ('statuspage','betterstack','instatus','sorry') AND NOT (principal_id=? AND fingerprint=?)";
     const observed = await db.prepare(otherJobs).bind(plan.principalId, plan.fingerprint).first<{n: number}>();
-    const pending = (await db.prepare("SELECT id,plan_json FROM ik_jobs WHERE destination='lamp' AND namespace IN ('statuspage','betterstack','instatus') AND state NOT IN ('undone','rolled_back')").all<{id: string; plan_json: string}>()).results;
+    const pending = (await db.prepare("SELECT id,plan_json FROM ik_jobs WHERE destination='lamp' AND namespace IN ('statuspage','betterstack','instatus','sorry') AND state NOT IN ('undone','rolled_back')").all<{id: string; plan_json: string}>()).results;
     const occupied = new Map<string, string>();
     for (const stored of (await loadPlans(pending, db as never)).values()) {
       for (const entry of stored.entries.filter((entry) => !entry.erased && entry.effects.length && ["incident", "maintenance"].includes(entry.source.kind))) {
@@ -117,7 +120,7 @@ export function createStatuspageImportService(db: D1Database, hooks: MoveInHooks
       }
     }
     const clear = {
-      sql: `(SELECT count(*) FROM ik_jobs WHERE destination='lamp' AND namespace IN ('statuspage','betterstack','instatus') AND NOT (principal_id=? AND fingerprint=?))=? AND NOT EXISTS (SELECT 1 FROM ik_d1_plan_index i JOIN ik_jobs j ON j.id=i.job_id WHERE j.destination=? AND j.namespace=? AND i.source_identity IN (SELECT value FROM json_each(?)) AND j.state NOT IN ('undone','rolled_back') AND NOT (j.principal_id=? AND j.fingerprint=?))`,
+      sql: `(SELECT count(*) FROM ik_jobs WHERE destination='lamp' AND namespace IN ('statuspage','betterstack','instatus','sorry') AND NOT (principal_id=? AND fingerprint=?))=? AND NOT EXISTS (SELECT 1 FROM ik_d1_plan_index i JOIN ik_jobs j ON j.id=i.job_id WHERE j.destination=? AND j.namespace=? AND i.source_identity IN (SELECT value FROM json_each(?)) AND j.state NOT IN ('undone','rolled_back') AND NOT (j.principal_id=? AND j.fingerprint=?))`,
       params: [plan.principalId, plan.fingerprint, observed?.n ?? 0, DESTINATION, plan.namespace, JSON.stringify(plan.entries.map((entry) => entry.identity)), plan.principalId, plan.fingerprint],
     };
     const result = await db.prepare(`SELECT ${clear.sql} AS clear`).bind(...clear.params).first<{ clear: number }>();
@@ -199,6 +202,7 @@ export function createStatuspageImportService(db: D1Database, hooks: MoveInHooks
 
   async function source(input: SourceInput) {
     if (input.files?.length) return { files: input.files, fetched: false };
+    if (input.source === "sorry" && input.publicUrl) return { files: await fetchSorryPublicResponses({ publicUrl: input.publicUrl, noticeLimit: input.previewNoticeLimit }), fetched: true };
     if (!input.pageId || !input.apiKey) throw new Error(`Choose saved ${sourceAdapter(input.source).label} responses, or enter a page ID and API key.`);
     return { files: await sourceAdapter(input.source).fetch({ pageId: input.pageId, apiKey: input.apiKey }, options.apiOrigin), fetched: true };
   }
@@ -207,7 +211,7 @@ export function createStatuspageImportService(db: D1Database, hooks: MoveInHooks
     /** Writes nothing: reads the source, plans every record and reports it. */
     async preview(input: SourceInput, actor: MoveInActor) {
       const { files, fetched } = await source(input);
-      const read = await sourceAdapter(input.source).read(files, input);
+      const read = await sourceAdapter(input.source).read(files, { ...input, allowPartialPreview: Boolean(input.previewNoticeLimit) });
       const context = importContext(db, actor, input.source);
       const existing = await existingPlan(artifactIdentity(read), context);
       if (existing) {
@@ -252,11 +256,12 @@ export function createStatuspageImportService(db: D1Database, hooks: MoveInHooks
       await hooks.publicDataChanged();
       return result(id, actor);
     },
-    async sendInvitations(id: string, actor: MoveInActor) {
+    async sendInvitations(id: string, actor: MoveInActor, approval?: SorryReleaseApproval) {
       const context = await contextForJob(id, actor);
       const job = await readD1ImportJob(id, context);
       if (job.state !== "completed") throw new Error("Finish the import before sending invitations.");
       const { plan } = await stored(id, context);
+      if (context.namespace === "sorry") await releaseSorrySubscribers(db, id, plan, context, approval, await hooks.publicOrigin?.());
       const invites = await sendInvites(id, plan, context);
       return { ...await result(id, actor), invites };
     },
@@ -264,7 +269,7 @@ export function createStatuspageImportService(db: D1Database, hooks: MoveInHooks
     async list(actor: MoveInActor) {
       const context = importContext(db, actor);
       await assertAuthority(context);
-      const rows = (await db.prepare("SELECT id, namespace, state, checkpoint, total FROM ik_jobs WHERE principal_id=? AND destination=? AND namespace IN ('statuspage','betterstack','instatus') ORDER BY rowid DESC LIMIT 30").bind(actor.operator.id, DESTINATION).all()).results;
+      const rows = (await db.prepare("SELECT id, namespace, state, checkpoint, total FROM ik_jobs WHERE principal_id=? AND destination=? AND namespace IN ('statuspage','betterstack','instatus','sorry') ORDER BY rowid DESC LIMIT 30").bind(actor.operator.id, DESTINATION).all()).results;
       await assertAuthority(context);
       return rows;
     },

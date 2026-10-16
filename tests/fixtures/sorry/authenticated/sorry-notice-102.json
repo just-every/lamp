@@ -1,0 +1,19 @@
+{
+  "response": {
+    "id": 102,
+    "type": "general",
+    "subject": "Billing support hours",
+    "components": [],
+    "created_at": "2025-04-02T10:00:00.000Z",
+    "updated_at": "2025-04-02T10:00:00.000Z",
+    "link": "https://status.example.invalid/notices/synthetic-support-hours",
+    "updates": [
+      {
+        "id": 1020,
+        "content": "Support is available during published business hours.",
+        "created_at": "2025-04-02T10:00:00.000Z",
+        "updated_at": "2025-04-02T10:00:00.000Z"
+      }
+    ]
+  }
+}

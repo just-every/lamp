@@ -144,7 +144,7 @@ export function registerPublicSnapshotRoutes(app: Hono<AppEnv>, service: PublicS
       const object = await service.readArtifact(artifact(context));
       if (object) {
         const redirect = object.contentType === "application/vnd.lamp.redirect+json" ? JSON.parse(new TextDecoder().decode(object.bytes)).target : null;
-        if (redirect !== null && (typeof redirect !== "string" || !isLampPermalink(redirect))) throw new Error("Invalid snapshot redirect.");
+        if (redirect !== null && (typeof redirect !== "string" || !(isLampPermalink(redirect) || (redirect === "/history" && ["/notices", "/history/"].includes(new URL(context.req.url).pathname))))) throw new Error("Invalid snapshot redirect.");
         let response = publicResponse(redirect ? "" : object.bytes, redirect ? "text/plain; charset=utf-8" : object.contentType, context.req.url, redirect ? 301 : 200, true, download);
         if (redirect) response.headers.set("Location", redirect);
         response.headers.set("X-Lamp-Snapshot-Generated-At", object.generatedAt);

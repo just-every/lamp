@@ -18,6 +18,7 @@ export function renderImportAliases(source: PublicSnapshotSource, incidents: Arr
   // once, regardless of which surviving import still owns it.
   const feedPaths = new Set([...namespaces].flatMap((namespace) => sourceFeedPaths[namespace] ?? []).filter(isImportAliasPath));
   return [
+    ...(namespaces.has("sorry") ? ["/history/", "/notices"].map(path => ({ key: aliasArtifactKey(path), body: JSON.stringify({ target: "/history" }), contentType: "application/vnd.lamp.redirect+json" })) : []),
     ...[...aliases].sort(([a], [b]) => a.localeCompare(b)).map(([path, { target }]) => ({ key: aliasArtifactKey(path), body: JSON.stringify({ target }), contentType: "application/vnd.lamp.redirect+json" })),
     ...[...feedPaths].map((path) => ({ key: aliasArtifactKey(path), body: feed, contentType: "application/atom+xml; charset=utf-8" })),
   ];
