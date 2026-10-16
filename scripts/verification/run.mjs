@@ -13,7 +13,7 @@ const directory = process.env.LAMP_VERIFICATION_DIRECTORY ?? '.seed/installer/ve
 await mkdir(directory, { recursive: true });
 let failed = false;
 for (const shard of selected) {
-  const record = { shard, commit: process.env.GITHUB_SHA ?? null, success: false, steps: [] };
+  const record = { shard, commit: process.env.GITHUB_SHA ?? null, runId: process.env.GITHUB_RUN_ID ?? null, runAttempt: Number(process.env.GITHUB_RUN_ATTEMPT ?? 0), success: false, steps: [] };
   const path = join(directory, `${shard}.json`);
   await writeFile(path, `${JSON.stringify(record, null, 2)}\n`);
   // Continue after a failed gate so the first run retains every independent result.

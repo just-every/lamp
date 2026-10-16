@@ -5,12 +5,34 @@ import { verificationPlan, shardNames } from './plan.mjs';
 const directory = process.env.LAMP_VERIFICATION_DIRECTORY ?? '.seed/installer/verification/ci-shards';
 const expectedCommit = process.env.GITHUB_SHA;
 if (!expectedCommit) throw Error('GITHUB_SHA is required to aggregate CI results.');
+const runId = process.env.GITHUB_RUN_ID;
+const runAttempt = Number(process.env.GITHUB_RUN_ATTEMPT);
+if (!/^\d+$/.test(runId ?? '') || !Number.isSafeInteger(runAttempt) || runAttempt < 1) throw Error('GITHUB_RUN_ID and GITHUB_RUN_ATTEMPT are required to aggregate CI results.');
 const issues = [], shards = [];
 await mkdir(directory, { recursive: true });
-for (const name of await readdir(directory)) if (name.endsWith('.json') && !shardNames.includes(name.slice(0, -5))) issues.push(`Unexpected shard receipt: ${name}`);
+// A partial rerun retains untouched shards from earlier attempts. Select the
+// newest attempt per shard before validating it; artifact IDs are not ordered
+// by creation time, and merging directories can overwrite a newer result.
+const latest = new Map();
+for (const name of await readdir(directory)) {
+  const match = /^lamp-shard-(\d+)-(\d+)-(.+)$/.exec(name);
+  const attempt = Number(match?.[2]);
+  if (!match || match[1] !== runId || !Number.isSafeInteger(attempt) || attempt < 1 || attempt > runAttempt || !shardNames.includes(match[3])) {
+    issues.push(`Unexpected shard artifact: ${name}`);
+    continue;
+  }
+  const shard = match[3];
+  if (!latest.has(shard) || latest.get(shard).attempt < attempt) latest.set(shard, { name, attempt });
+}
+if (process.env.SHARDS_RESULT !== 'success') issues.push('The shard jobs did not all succeed.');
 for (const shard of shardNames) {
   try {
-    const record = JSON.parse(await readFile(join(directory, `${shard}.json`), 'utf8'));
+    const selected = latest.get(shard);
+    if (!selected) throw Error('missing shard artifact');
+    const files = await readdir(join(directory, selected.name));
+    if (files.length !== 1 || files[0] !== `${shard}.json`) throw Error('unexpected shard artifact contents');
+    const record = JSON.parse(await readFile(join(directory, selected.name, `${shard}.json`), 'utf8'));
+    if (record.runId !== runId || record.runAttempt !== selected.attempt) throw Error('wrong run or attempt');
     if (record.shard !== shard || record.commit !== expectedCommit || record.success !== true) throw Error('wrong shard, commit or unsuccessful completion');
     if (JSON.stringify(record.steps?.map(step => step.script)) !== JSON.stringify(verificationPlan[shard])) throw Error('planned steps did not all execute exactly once');
     if (record.steps.some(step => step.exitCode !== 0)) throw Error('a verification step failed');

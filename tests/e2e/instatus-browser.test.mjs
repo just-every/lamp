@@ -12,7 +12,7 @@ import { notificationActivity, assertNoNewNotifications } from '../helpers/impor
 test('MOVE-001 Instatus source-first review and Cutover keep provider labels, invalidate switched-source previews and fit desktop/mobile', { timeout: 600000 }, async () => {
   const runtime = await openNativeRuntime(); let browser;
   try {
-    await runtime.start(); await runtime.seedOperator(); browser = await chromium.launch();
+    await runtime.start(); await runtime.seedOperator(); browser = await chromium.launch({ headless: true, args: ['--use-mock-keychain', '--password-store=basic'] });
     const context = await browser.newContext();
     await context.route(url => url.pathname.startsWith('/@fs/'), route => route.continue({ headers: { ...route.request().headers(), 'x-rer-dev-key': devKey } }));
     const entered = await signInAs({ origin, key: devKey });
@@ -20,6 +20,18 @@ test('MOVE-001 Instatus source-first review and Cutover keep provider labels, in
     const page = await context.newPage(); await page.goto(origin + entered.location); await page.waitForURL('**/app');
     const before = await notificationActivity(runtime);
     const evidence = resolve(process.env.LAMP_INSTATUS_EVIDENCE ?? 'visual/instatus'); await mkdir(evidence, { recursive: true });
+    // Hold the browser entry at the network boundary: a server-rendered select
+    // must not accept a source change before React can handle that change.
+    let release;
+    const hydration = new Promise(resolve => { release = resolve; });
+    const holdEntry = async route => { await hydration; await route.continue(); };
+    await page.route('**/src/client.tsx', holdEntry);
+    try {
+      await page.goto(`${origin}/app/move-in`, { waitUntil: 'commit' });
+      const source = page.getByRole('combobox', { name: 'Source', exact: true });
+      await source.waitFor(); assert.equal(await source.isDisabled(), true);
+    } finally { release(); await page.unrouteAll({ behavior: 'wait' }); }
+    await page.waitForFunction(() => document.querySelector('select')?.disabled === false);
     const openMoveIn = async () => {
       const hydrated = page.waitForResponse(response => response.url() === origin + '/api/app/statuspage-import/jobs' && response.request().method() === 'GET' && response.status() === 200);
       await page.goto(`${origin}/app/move-in`); await hydrated;
@@ -49,7 +61,12 @@ test('MOVE-001 Instatus source-first review and Cutover keep provider labels, in
       const feeds = page.locator('section').filter({ has: page.getByRole('heading', { name: 'Feeds and other readers', exact: true }) });
       assert.match(await feeds.innerText(), /Instatus/); assert.match(await feeds.innerText(), /\/history\.atom/); assert.match(await feeds.innerText(), /\/history\.rss/);
       assert.doesNotMatch(await feeds.innerText(), /Statuspage|Better Stack|\/index\.json/);
+      for (const width of [1440, 390]) {
+        await page.setViewportSize({ width, height: 1000 });
+        await page.screenshot({ path: join(evidence, `${family}-cutover-${width}.png`), fullPage: true });
+      }
       await openMoveIn(); await page.getByRole('combobox', { name: 'Source', exact: true }).selectOption('instatus');
+      await page.getByRole('heading', { name: 'Move in from Instatus', exact: true }).waitFor();
       await page.getByLabel('Instatus page ID', { exact: true }).fill('synthpage01');
       await page.getByLabel('Saved responses', { exact: true }).setInputFiles((await readdir(directory)).map(name => join(directory, name)));
       await page.getByLabel(/This Instatus page and all supplied history/).check();

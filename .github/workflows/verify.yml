@@ -85,7 +85,7 @@ jobs:
         if: ${{ always() }}
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: lamp-shard-${{ matrix.shard }}
+          name: lamp-shard-${{ github.run_id }}-${{ github.run_attempt }}-${{ matrix.shard }}
           path: ${{ runner.temp }}/lamp-verification/ci-shards/${{ matrix.shard }}.json
           if-no-files-found: error
           retention-days: 7
@@ -93,7 +93,7 @@ jobs:
         if: ${{ always() }}
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: lamp-evidence-${{ matrix.shard }}
+          name: lamp-evidence-${{ github.run_id }}-${{ github.run_attempt }}-${{ matrix.shard }}
           path: |
             ${{ runner.temp }}/lamp-verification/
             test-results/
@@ -111,9 +111,9 @@ jobs:
           persist-credentials: false
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
         with:
-          pattern: lamp-shard-*
+          pattern: lamp-shard-${{ github.run_id }}-*
           path: ${{ runner.temp }}/lamp-verification/ci-shards
-          merge-multiple: true
+          merge-multiple: false
       - name: Require every planned command to succeed on this commit
         if: ${{ always() }}
         env:

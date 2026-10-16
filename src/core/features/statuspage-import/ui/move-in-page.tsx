@@ -40,11 +40,15 @@ export function MoveInPage() {
   const [result, setResult] = useState<Result | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
     // History can restore the native selection without our in-memory source.
     // A fresh mount must let the owner select those same files again.
     if (fileInput.current) fileInput.current.value = "";
+    // A native select can change before React attaches its change handler.
+    // Keep the displayed provider and the submitted source in the same state.
+    setHydrated(true);
   }, []);
 
   async function run<T>(work: () => Promise<T>, done: (value: T) => void) {
@@ -78,7 +82,7 @@ export function MoveInPage() {
   return <div className="page-stack move-in-page">
     <section className="page-title-row"><div><p className="eyebrow">Settings</p><h1>Move in from {sourceLabel}</h1><p>Bring your components, groups, incident history, scheduled maintenance and email subscribers. Nothing is written until you review a dry run, past incidents notify no one, and subscribers stay pending until you choose Send invitations in Cutover. {source === "sorry" ? "Public mode reads only published history; subscribers require the authenticated API and stay held until after cutover." : "Synthetic-only validation: no real account export has been supplied."}</p></div></section>
     <section className="data-card"><form className="move-in-form" onSubmit={dryRun}>
-      <label className="form-label">Source<select value={source} disabled={busy} onChange={event => { setSource(event.target.value as typeof source); setPreview(null); setResult(null); setFiles([]); setPageId(""); setPublicUrl(""); setApiKey(""); setAcknowledged(false); setPublicAccessAcknowledged(false); setError(null); clearCutover(); }}><option value="statuspage">Statuspage</option><option value="betterstack">Better Stack</option><option value="instatus">Instatus</option><option value="sorry">Sorry</option></select></label>
+      <label className="form-label">Source<select value={source} disabled={busy || !hydrated} onChange={event => { setSource(event.target.value as typeof source); setPreview(null); setResult(null); setFiles([]); setPageId(""); setPublicUrl(""); setApiKey(""); setAcknowledged(false); setPublicAccessAcknowledged(false); setError(null); clearCutover(); }}><option value="statuspage">Statuspage</option><option value="betterstack">Better Stack</option><option value="instatus">Instatus</option><option value="sorry">Sorry</option></select></label>
       <fieldset><legend>From your {sourceLabel} account</legend><p>{source === "sorry" ? "Use your Sorry page ID and API key, or capture responses locally with the hidden-prompt tool in the moving-in guide. Lamp uses GET only and never stores the key." : source === "instatus" ? "Use your Instatus page ID and API key. Lamp reads the selected page, components, incident history, maintenance details and subscribers from api.instatus.com using GET only." : source === "betterstack" ? "Use a Better Stack API token and the status page ID. Lamp reads the page, sections, resources, reports, every update page and email subscribers from incidents.betterstack.com with GET only." : "On Statuspage, open your avatar menu, then API info."} The key is used for this dry run and is not saved.</p>
         <label className="form-label">{sourceLabel} page ID<input value={pageId} autoComplete="off" onChange={(event) => setPageId(event.target.value.trim())} /></label>
         <label className="form-label">{source === "betterstack" ? "API token" : "API key"}<input type="password" value={apiKey} autoComplete="off" onChange={(event) => setApiKey(event.target.value.trim())} /></label></fieldset>

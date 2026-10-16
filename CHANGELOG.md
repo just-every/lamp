@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Move-in keeps its source selector disabled until hydration so early selections cannot leave the displayed provider and import state out of sync. Verification hands local sign-in database state between Wrangler and its assertion proxy, and aggregates attempt-specific shard results without stale artifact overwrites.
+
 - Storage verification keeps its kernel-assigned HTTP sockets bound through Vite/workerd startup, preventing port collisions without retrying or changing application assertions.
 
 - Post-incident reports can be saved, edited after reload, and published from the incident editor. Saving sends only the four editable report fields; publication metadata remains managed by the server.

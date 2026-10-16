@@ -420,7 +420,7 @@
       "executable": false
     },
     ".github/workflows/verify.yml": {
-      "sha256": "d725b511eaf0fbfa397614d1f56db15d545e7d78121c32402baf4c387ee86490",
+      "sha256": "eb20725adad8a479e3af89c1c49912ecd16a1545d660c252d3d839fd97698f03",
       "executable": false
     },
     ".gitignore": {
@@ -452,7 +452,7 @@
       "executable": false
     },
     "CHANGELOG.md": {
-      "sha256": "7d6d0990f4526c621e49804c7350d7654a6ce07e781ec81de2eef5394f6eb069",
+      "sha256": "7774ce68b3a20b4c4dfe5f6a462f73d50a2f6cb4b64070ceb559826ed91c4ddb",
       "executable": false
     },
     "CLAUDE.md": {
@@ -2372,7 +2372,7 @@
       "executable": false
     },
     "scripts/verification/aggregate.mjs": {
-      "sha256": "dad301a45d9311ea7171b3fd72f4e4ace92513f60641e54827f54c8610a8dcc4",
+      "sha256": "e7e31c5fea9d872e87e7f810ebfc70272646481029e2759c1f565f08076b46ab",
       "executable": false
     },
     "scripts/verification/check-plan.mjs": {
@@ -2388,7 +2388,7 @@
       "executable": false
     },
     "scripts/verification/run.mjs": {
-      "sha256": "6cc304e0974f46baa2e2431c986c417457d18de0dddf7c55ab14be2d4f968907",
+      "sha256": "2016d0f99f1b0d01491b8299173e1aa7094af636c1a5ba596c37d979fee02594",
       "executable": false
     },
     "scripts/verification/visual-heading.mjs": {
@@ -3292,7 +3292,7 @@
       "executable": false
     },
     "src/core/features/statuspage-import/ui/move-in-page.tsx": {
-      "sha256": "c0391fc262e063563005f6ccd9dee2e45d168251f681f9142f03c56b32b724f7",
+      "sha256": "5d3c62ef42ff649e11dd0abcc05348d8ac1d24f9fa25bd3b5ca6f40c8976b4fa",
       "executable": false
     },
     "src/core/features/subscribers/events.ts": {
@@ -4560,7 +4560,7 @@
       "executable": false
     },
     "tests/e2e/instatus-browser.test.mjs": {
-      "sha256": "33c84ccf6e980ef2ad2a92a6e82bfced1d110f443e9b199d4b01a90f2d7b223e",
+      "sha256": "6f8297015433d89b6e52b17ac732e22e24b06fbb1d51b6fa4cbfd19d02c7a397",
       "executable": false
     },
     "tests/e2e/instatus-import.test.mjs": {
@@ -4624,7 +4624,7 @@
       "executable": false
     },
     "tests/e2e/signin-link.test.mjs": {
-      "sha256": "f3bf05db990048524358082f29d64a8e414b9e66ca1ab2d3b763503a3e760756",
+      "sha256": "1a05e20ed67d3b06b9c085763c6a7a0f2568fabdffb7de41149e797936999f1a",
       "executable": false
     },
     "tests/e2e/snapshot-cache-runtime.mjs": {
