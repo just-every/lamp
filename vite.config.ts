@@ -25,14 +25,14 @@ export default defineConfig(({ command, isPreview }) => {
         build: {
           rolldownOptions: {
             output: {
-              // The authenticated extension mount is already in the page's
-              // initial graph. Keep its compile-time slots beside it, so
-              // hydration does not discover another network round trip.
+              // Tiny shared runtime chunks otherwise create many cold asset
+              // requests, followed by an extension request after hydration.
+              // Keep the shared runtime together; leaf pages stay split.
               codeSplitting: {
                 groups: [{
-                  name: "operator-extensions",
-                  includeDependenciesRecursively: false,
-                  test: /\/src\/(?:core\/app\/client\/extensions|ext\/index\.client)\.tsx$/,
+                  name: "operator-runtime",
+                  test: id => /\/node_modules\/(?:@tanstack\/|react(?:-dom)?\/|scheduler\/)/.test(id)
+                    || /\/src\/(?:core\/app\/client\/|editor\/|ext\/index\.client\.tsx)/.test(id),
                 }],
               },
             },

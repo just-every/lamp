@@ -25,19 +25,21 @@ function redirectToSignIn(requestUrl: URL): never {
 export const loadOperatorSession = createServerFn({ method: "GET" })
 .inputValidator(z.object({ path: z.string().regex(/^\/app(?:\/[^?#]*)?$/) }))
 .handler(async ({ data: input }): Promise<OperatorSessionView> => {
-  const [{ getRequest, getRequestUrl, setResponseHeader }, { requestBindings }, { createApp }, { prepareAppMailBindings }] = await Promise.all([
+  const [{ getRequest, getRequestUrl, setResponseHeader }, { requestBindings }, { createApp }, { prepareAppMailBindings }, { operatorRequest }] = await Promise.all([
     import("@tanstack/react-start/server"),
     import("../platform/bindings.server"),
     import("./server"),
     import("./mail"),
+    import("../platform/operator-request.server"),
   ]);
   const bindings = requestBindings();
   const requestUrl = getRequestUrl();
 
   const request = getRequest();
   setResponseHeader("Cache-Control", "private, no-store");
-  const runtime = createApp(await prepareAppMailBindings(bindings, request), request);
-  const session = await runtime.services.auth().getSession(request);
+  const current = operatorRequest();
+  const runtime = current?.runtime ?? createApp(await prepareAppMailBindings(bindings, request), request);
+  const session = current?.session ?? await runtime.services.auth().getSession(request);
   if (!session) redirectToSignIn(requestUrl);
   const settingsPromise = runtime.services.pageSettings.get();
   const operatorPromise = runtime.services.operators.view(session.operator);

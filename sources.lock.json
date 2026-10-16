@@ -2604,7 +2604,7 @@
       "executable": false
     },
     "src/core/app/loaders.ts": {
-      "sha256": "d0997feb9ba2d7be9368d2f7c71aaf3005d1132586366c4cf2cd35153113da8e",
+      "sha256": "b0aa2a343bf71d422959eaca1cd67c1f50e9315d61c8dde5ec230104cbc05085",
       "executable": false
     },
     "src/core/app/mail.ts": {
@@ -3491,6 +3491,10 @@
       "sha256": "4c5f1a32ed1fada94f7d3480d3cff0e3800982dac1d7e1dc2f6238ea26c3a4bc",
       "executable": false
     },
+    "src/core/platform/operator-request.server.ts": {
+      "sha256": "14eda5aae48cfde14938b77d58a614f19bbdc2cd61b2c6ce9784bbdce4442921",
+      "executable": false
+    },
     "src/core/platform/security/opaque-tokens.ts": {
       "sha256": "806c9fa9b636bc5ede8fcbfb68d3a0a1c174b28518e77ee36b3e791a3b7f618b",
       "executable": false
@@ -3676,7 +3680,7 @@
       "executable": false
     },
     "src/server.ts": {
-      "sha256": "1f82546f31c1b5f920930f1286feadc667d87c328057adedd16d24f1fb75645f",
+      "sha256": "042256e85469cfc2e8fe4d01070e63cd254ae562de208d2652c6d2c61cb6bcb5",
       "executable": false
     },
     "src/site/docs/body.ts": {
@@ -5408,7 +5412,7 @@
       "executable": false
     },
     "vite.config.ts": {
-      "sha256": "b55f0ddc2d420587e9ccb14e66ef850b4406742cda018afe6994e5b4a1d097b4",
+      "sha256": "8688b7f4f038d0fa41e22279c4f872806a59f39e8d6d48381fc462264d77bf88",
       "executable": false
     },
     "vite.site.config.ts": {
