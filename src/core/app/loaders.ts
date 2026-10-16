@@ -42,13 +42,13 @@ export const loadOperatorSession = createServerFn({ method: "GET" })
   const settingsPromise = runtime.services.pageSettings.get();
   const operatorPromise = runtime.services.operators.view(session.operator);
   const paths = operatorPageReads(input.path);
+  const operator = await operatorPromise;
   const read = async (path: string) => {
-    const response = await runtime.app.fetch(new Request(new URL(path, requestUrl), { headers: request.headers }), bindings);
+    const response = await runtime.readOperator(path, request, { session, operator });
     const data = await response.json() as AppJson;
     const error = response.ok ? null : data && typeof data === "object" && !Array.isArray(data) && typeof data.error === "string" ? data.error : `The operator API returned ${response.status}.`;
     return [path, { data, error }] as const;
   };
-  const operator = await operatorPromise;
   if (operator.isSetupOperator) paths.push("/api/app/editor-config");
   const [settings, entries] = await Promise.all([settingsPromise, Promise.all(paths.map(read))]);
   if (!settings) throw new Error("Page settings are not configured.");
