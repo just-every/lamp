@@ -4492,7 +4492,7 @@
       "executable": false
     },
     "tests/e2e/composer-visit-regression.mjs": {
-      "sha256": "7b9924ba8eacff5b6701b774cb197b163b555e9c05e13d03719efc1fbf261ecc",
+      "sha256": "0629b4a0e1e8bb6dc4e964a4c241a5706501009d71856066492293ea1b368435",
       "executable": false
     },
     "tests/e2e/cutover-browser.test.mjs": {
