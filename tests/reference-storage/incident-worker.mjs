@@ -10,7 +10,19 @@ export async function stopIncidentWorker(server) {
 
 /** Call after emulator setup/migrations so their listeners cannot claim the HTTP port. */
 export async function startIncidentWorker({ port, statePath, viteCachePath, onOutput = () => {} }) {
-  port ??= await reservePort({ label: "Lamp incident Worker" });
+  if (port !== undefined) return spawnIncidentWorker({ port, statePath, viteCachePath, onOutput });
+  // A reserved ephemeral port is released before Vite binds it, so a concurrent
+  // test process can claim it first. Only that lost race is retried on a new port.
+  for (let attempt = 1; ; attempt++) {
+    try {
+      return await spawnIncidentWorker({ port: await reservePort({ label: "Lamp incident Worker" }), statePath, viteCachePath, onOutput });
+    } catch (cause) {
+      if (attempt >= 3 || !/Port \d+ is already in use/.test(cause?.message ?? "")) throw cause;
+    }
+  }
+}
+
+async function spawnIncidentWorker({ port, statePath, viteCachePath, onOutput }) {
   const baseUrl = appOrigin(port);
   const server = spawn("pnpm", ["exec", "vite", "--host", "127.0.0.1", "--port", String(port), "--strictPort"], {
     cwd: process.cwd(), stdio: "pipe", detached: true,
