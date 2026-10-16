@@ -39,7 +39,7 @@ INSERT INTO incident_updates (id,incident_id,lifecycle,affected_audience,custome
 INSERT INTO incident_drafts (id,incident_id,lifecycle,affected_audience,customer_impact,what_still_works,details,next_update_at,author_operator_id,created_at,updated_at) VALUES
   ('01J00000000000000000000024','01J00000000000000000000020','Monitoring','Customers using the Public API in us-east-1 and eu-west-1.','API responses are improving, but some requests can still fail.','Dashboard viewing, user management, and data exports continue to work.','We are continuing to monitor the mitigation before resolving this incident.','2026-09-08T03:00:00.000Z','01J00000000000000000000001','${createdAt}','${createdAt}');
 INSERT INTO maintenance (id,reference,title,state,starts_at,ends_at,completed_at,created_by_operator_id,created_at,updated_at) VALUES
-  ('01J00000000000000000000030','SCH-144','Database maintenance','Scheduled','2026-09-09T06:00:00.000Z','2026-09-09T07:00:00.000Z',NULL,'01J00000000000000000000001','${createdAt}','${createdAt}');
+  ('01J00000000000000000000030','SCH-144','Database maintenance','Scheduled','2030-09-09T06:00:00.000Z','2030-09-09T07:00:00.000Z',NULL,'01J00000000000000000000001','${createdAt}','${createdAt}');
 INSERT INTO maintenance_components (id,maintenance_id,component_id,component_name,state,created_at,updated_at) VALUES
   ('01J00000000000000000000031','01J00000000000000000000030','01J00000000000000000000014','Database','Under maintenance','${createdAt}','${createdAt}');
 INSERT INTO subscribers (id,channel,destination,contact_email,state,selection_mode,token_hash,deactivation_reason,deactivated_at,created_at,updated_at) VALUES
