@@ -3,7 +3,9 @@ import { Link, Outlet, useRouterState } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 
 import type { StoredOperator } from "../../../features/operators/repository";
-import { ApiError, appApi, useAppData } from "./api";
+import { ApiError, appApi, useAppData, AppDataContext } from "./api";
+import type { OperatorSessionView } from "../../loaders";
+import type { EditorConfig } from "../../../../editor/editor-widget";
 import { PageTimezoneContext } from "./timezone";
 import { Button } from "./button";
 import { Icon } from "./icon";
@@ -32,7 +34,11 @@ function Brand() {
   return <Link className="app-brand" to="/app" aria-label="Lamp overview"><img className="app-brand-mark" src={badge} alt="" width="28" height="28" /><span data-rer-name>Lamp</span></Link>;
 }
 
-export function OperatorShell({ initialSession }: { initialSession: { operator: StoredOperator; publicPageOrigin: string; timezone: string } }) {
+export function OperatorShell({ initialSession }: { initialSession: OperatorSessionView }) {
+  return <AppDataContext.Provider value={initialSession.data}><OperatorWorkspace initialSession={initialSession} /></AppDataContext.Provider>;
+}
+
+function OperatorWorkspace({ initialSession }: { initialSession: OperatorSessionView }) {
   const sessionRequest = useAppData<{ operator: StoredOperator; publicPageHost: string }>("/api/app/session");
   const pageSettingsRequest = useAppData<{ settings: { timezone: string } }>("/api/app/page-settings");
   useEffect(() => {
@@ -76,7 +82,7 @@ export function OperatorShell({ initialSession }: { initialSession: { operator: 
   return (
     <PageTimezoneContext.Provider value={pageSettingsRequest.data?.settings.timezone ?? initialSession.timezone}>
     <ClientExtensionProvider operatorId={operator.id}>
-    <EditorLauncher authorized={operator.isSetupOperator && !sessionRequest.error} />
+    <EditorLauncher authorized={operator.isSetupOperator && !sessionRequest.error} initialConfig={initialSession.data["/api/app/editor-config"]?.error ? undefined : initialSession.data["/api/app/editor-config"]?.data as EditorConfig | undefined} />
     <div className="operator-shell">
       <aside className="operator-rail" aria-label="Operator navigation">
         <Brand />

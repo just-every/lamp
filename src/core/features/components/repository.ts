@@ -17,6 +17,7 @@ import { COMPONENT_STATE_SEVERITY, type ComponentState } from "../../shared/doma
 import type { ComponentGroupUpdateInput, ComponentUpdateInput } from "../../shared/schemas";
 
 export type StoredComponent = typeof components.$inferSelect;
+export type CurrentComponentClaim = { componentId: string; state: ComponentState; causeType: "standing-claim" | "incident" | "maintenance" };
 export type StateClaimCause = { type: "standing-claim" | "incident" | "maintenance" | "correction"; id: string | null; operatorId: string | null };
 export type StoredComponentGroup = typeof componentGroups.$inferSelect;
 export type ComponentHistoryEntry = Pick<typeof componentStateHistory.$inferSelect, "id" | "previousState" | "newState" | "causeType" | "causeId" | "operatorId" | "changedAt" | "createdAt">;
@@ -27,6 +28,7 @@ export type ComponentStateHistoryInput = { id: string; componentId: string; prev
 
 export interface ComponentRepository {
   listComponents(): Promise<Array<StoredComponent & { groupName: string | null }>>;
+  listCurrentClaims(): Promise<CurrentComponentClaim[]>;
   reorder(kind: "components" | "groups", expectedIds: string[], orderedIds: string[], groupId: string | null): Promise<void>;
   listGroups(): Promise<StoredComponentGroup[]>;
   findComponent(componentId: string): Promise<StoredComponent | null>;
@@ -75,6 +77,24 @@ export function createComponentRepository(binding: D1Database): ComponentReposit
         .leftJoin(componentGroups, eq(components.groupId, componentGroups.id))
         .orderBy(componentGroups.displayOrder, components.displayOrder, components.id)
         .all();
+    },
+    async listCurrentClaims() {
+      const result = await binding.prepare(`
+        SELECT component_id AS componentId, state, 'standing-claim' AS causeType
+        FROM component_standing_claims
+        UNION ALL
+        SELECT attached.component_id AS componentId, attached.state, 'incident' AS causeType
+        FROM incident_components AS attached
+        JOIN incidents AS incident ON incident.id = attached.incident_id
+        WHERE attached.component_id IS NOT NULL AND attached.published_at IS NOT NULL
+          AND incident.deleted_at IS NULL AND incident.lifecycle <> 'Resolved'
+        UNION ALL
+        SELECT attached.component_id AS componentId, attached.state, 'maintenance' AS causeType
+        FROM maintenance_components AS attached
+        JOIN maintenance AS window ON window.id = attached.maintenance_id
+        WHERE attached.component_id IS NOT NULL AND window.state = 'In progress'
+      `).all<CurrentComponentClaim>();
+      return result.results;
     },
     async reorder(kind, expectedIds, orderedIds, groupId) {
       const table = kind === "groups" ? "component_groups" : "components";

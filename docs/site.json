@@ -87,6 +87,12 @@
           "summary": "Connect a monitor preset and review its draft incident."
         },
         {
+          "slug": "ai-assistance",
+          "title": "AI draft assistance",
+          "source": "docs/ai-assistance.md",
+          "summary": "Connect an AI provider, save tone instructions and check a real draft suggestion."
+        },
+        {
           "slug": "operators-and-sign-in",
           "title": "Operators and sign-in",
           "source": "docs/operators-and-sign-in.md",
@@ -94,9 +100,9 @@
         },
         {
           "slug": "moving-in",
-          "title": "Move in from Statuspage",
+          "title": "Move in from another status page",
           "source": "docs/moving-in.md",
-          "summary": "Preview a move, import supported records, send invitations and review cutover."
+          "summary": "Move supported records from Statuspage, Better Stack, Instatus or Sorry and review cutover."
         }
       ]
     },

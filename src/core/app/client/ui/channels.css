@@ -31,3 +31,5 @@
 .cutover-page th small { display: block; font-weight: 400; margin-top: 8px; }
 .cutover-page .form-label { margin: 16px 0; }
 .cutover-page li { margin: 8px 0; }
+.channel-actions { display: inline-flex; flex-wrap: wrap; gap: 8px; }
+.channel-list li > .setup-result { flex-basis: 100%; }

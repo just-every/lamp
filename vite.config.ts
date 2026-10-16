@@ -20,6 +20,26 @@ export default defineConfig(({ command, isPreview }) => {
     // Parallel Workers previews must never rebuild each other's optimized
     // dependency graph. Test and browser runners set a private directory.
     cacheDir,
+    environments: {
+      client: {
+        build: {
+          rolldownOptions: {
+            output: {
+              // Tiny shared runtime chunks otherwise create many cold asset
+              // requests, followed by an extension request after hydration.
+              // Keep the shared runtime together; leaf pages stay split.
+              codeSplitting: {
+                groups: [{
+                  name: "operator-runtime",
+                  test: id => /\/node_modules\/(?:@tanstack\/|react(?:-dom)?\/|scheduler\/)/.test(id)
+                    || /\/src\/(?:core\/app\/client\/|editor\/|ext\/index\.client\.tsx)/.test(id),
+                }],
+              },
+            },
+          },
+        },
+      },
+    },
     server: {
       fs: {
         strict: true,

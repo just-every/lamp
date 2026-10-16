@@ -35,6 +35,16 @@ function assertWindow(startsAt: string, endsAt: string) {
   if (!Number.isFinite(start) || !Number.isFinite(end) || end <= start) throw new Error("Maintenance end time must be after start time.");
 }
 
+function groupByMaintenance<T extends { maintenanceId: string }>(records: T[]): Map<string, T[]> {
+  const groups = new Map<string, T[]>();
+  for (const record of records) {
+    const group = groups.get(record.maintenanceId) ?? [];
+    group.push(record);
+    groups.set(record.maintenanceId, group);
+  }
+  return groups;
+}
+
 export function createMaintenanceService(
   repository: MaintenanceRepository,
   componentsService: ComponentsService,
@@ -44,7 +54,12 @@ export function createMaintenanceService(
   onOverrun: (event: MaintenanceOverrunAlertEvent) => Promise<void>,
   events?: MaintenanceRuntimeEvents,
 ): MaintenanceService {
-  const view = async (record: StoredMaintenance): Promise<MaintenanceView> => ({ ...record, components: await repository.listComponents(record.id), notices: await repository.listNotices(record.id), importedUpdates: await repository.listImportedUpdates(record.id), overrunning: record.state === "In progress" && new Date(record.endsAt).getTime() + 15 * 60 * 1000 <= Date.now() });
+  const view = async (record: StoredMaintenance): Promise<MaintenanceView> => {
+    const [components, notices, importedUpdates] = await Promise.all([
+      repository.listComponents(record.id), repository.listNotices(record.id), repository.listImportedUpdates(record.id),
+    ]);
+    return { ...record, components, notices, importedUpdates, overrunning: record.state === "In progress" && new Date(record.endsAt).getTime() + 15 * 60 * 1000 <= Date.now() };
+  };
   const prepareNotice = async (record: StoredMaintenance, components: StoredMaintenanceComponent[], kind: MaintenanceNotice["kind"], operatorId: string | null, recipientScope: "eligible" | "previous") => {
     if (!notificationStatements) throw new Error("Maintenance notification transaction wiring is required.");
     const timestamp = nowIso(); const notice: MaintenanceNotice = { id: createUlid(), maintenanceId: record.id, kind, body: `${record.reference}: ${record.title}`, publishedAt: timestamp, authorOperatorId: operatorId, createdAt: timestamp, updatedAt: timestamp };
@@ -58,8 +73,17 @@ export function createMaintenanceService(
   };
   return {
     async list() {
-      const records = await repository.listMaintenance();
-      const result = await Promise.all(records.map(view));
+      const [records, details] = await Promise.all([repository.listMaintenance(), repository.listCollectionDetails()]);
+      const components = groupByMaintenance(details.components);
+      const notices = groupByMaintenance(details.notices);
+      const importedUpdates = groupByMaintenance(details.importedUpdates);
+      const result = records.map((record): MaintenanceView => ({
+        ...record,
+        components: components.get(record.id) ?? [],
+        notices: notices.get(record.id) ?? [],
+        importedUpdates: (importedUpdates.get(record.id) ?? []).map(({ maintenanceId, ...update }) => update),
+        overrunning: record.state === "In progress" && new Date(record.endsAt).getTime() + 15 * 60 * 1000 <= Date.now(),
+      }));
       await Promise.all(result.filter((record) => record.overrunning).map((record) => onOverrun({ maintenanceId: record.id, endsAt: record.endsAt })));
       return result;
     },

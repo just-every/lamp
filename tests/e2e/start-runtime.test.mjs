@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
 import { mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import { request as httpRequest } from "node:http";
+import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { after, before, test } from "node:test";
@@ -21,7 +22,7 @@ const artifactPath = resolve("dist/server/wrangler.json");
 
 let appOrigin = "";
 let port;
-let privateLoaderId;
+let privateLoaderPath;
 let sessionId;
 let statePath;
 let envArgs;
@@ -57,6 +58,15 @@ async function filesUnder(directory) {
 
 function escapeRegExp(value) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+// Start's browser client serializes a server function's input with seroval
+// into the GET request's payload parameter; send exactly that request.
+async function clientServerFunctionPath(id, data) {
+  const startRequire = createRequire(createRequire(import.meta.url).resolve("@tanstack/react-start/package.json"));
+  const { toJSONAsync } = createRequire(startRequire.resolve("@tanstack/start-client-core/package.json"))("seroval");
+  const payload = JSON.stringify(await toJSONAsync({ data }));
+  return `/_serverFn/${id}?${new URLSearchParams({ payload })}`;
 }
 
 async function emittedServerFunctionId(name) {
@@ -257,7 +267,7 @@ before(async () => {
     label: "Built Worker",
     probe: ({ signal }) => request("/health", appHost, { signal }),
   });
-  privateLoaderId = await emittedServerFunctionId("loadOperatorSession");
+  privateLoaderPath = await clientServerFunctionPath(await emittedServerFunctionId("loadOperatorSession"), { path: "/app" });
 });
 
 after(async () => {
@@ -304,16 +314,16 @@ test("DOCS-001 — the built single Worker preserves public docs, Hono/R2, Start
   assert.match(nativeSession.headers.get("content-type") ?? "", /application\/json/);
   assert.equal((await nativeSession.json()).operator.email, "operator@example.test", "Hono API dispatch remains session-protected");
 
-  const privateNoOrigin = await request(`/_serverFn/${privateLoaderId}`, appHost, { headers: { "x-tsr-serverfn": "true", Accept: "application/json" } });
+  const privateNoOrigin = await request(privateLoaderPath, appHost, { headers: { "x-tsr-serverfn": "true", Accept: "application/json" } });
   assert.equal(privateNoOrigin.status, 403, "the generated private transport requires a same-origin request");
-  const privateCrossOrigin = await request(`/_serverFn/${privateLoaderId}`, appHost, { headers: { "x-tsr-serverfn": "true", Accept: "application/json", Origin: "https://attacker.example", Cookie: `${sessionCookieName(appOrigin)}=${sessionId}` } });
+  const privateCrossOrigin = await request(privateLoaderPath, appHost, { headers: { "x-tsr-serverfn": "true", Accept: "application/json", Origin: "https://attacker.example", Cookie: `${sessionCookieName(appOrigin)}=${sessionId}` } });
   assert.equal(privateCrossOrigin.status, 403, "a hostile Origin cannot invoke an authenticated Start server function");
-  const privateNoSession = await request(`/_serverFn/${privateLoaderId}`, appHost, { headers: { "x-tsr-serverfn": "true", Accept: "application/json", Origin: appOrigin } });
+  const privateNoSession = await request(privateLoaderPath, appHost, { headers: { "x-tsr-serverfn": "true", Accept: "application/json", Origin: appOrigin } });
   const privateNoSessionBody = await privateNoSession.text();
   assert.equal(privateNoSession.status, 200);
   assert.match(privateNoSessionBody, /signin/);
   assert.doesNotMatch(privateNoSessionBody, /Contract Operator|operator@example\.test/);
-  const privateSession = await appRequest(`/_serverFn/${privateLoaderId}`, { headers: { "x-tsr-serverfn": "true", Accept: "application/json", Origin: appOrigin } });
+  const privateSession = await appRequest(privateLoaderPath, { headers: { "x-tsr-serverfn": "true", Accept: "application/json", Origin: appOrigin } });
   const privateSessionBody = await privateSession.text();
   assert.equal(privateSession.status, 200);
   assert.match(privateSessionBody, /Contract Operator/);
@@ -372,7 +382,7 @@ test("DOCS-001 — the built single Worker preserves public docs, Hono/R2, Start
   const browser = await browserNavigationProof();
   await stopWorker(worker);
   await startPageWorker();
-  const transportOnPageHost = await pageRequest(`/_serverFn/${privateLoaderId}`, { headers: { "x-tsr-serverfn": "true", Accept: "application/json", Origin: appOrigin } });
+  const transportOnPageHost = await pageRequest(privateLoaderPath, { headers: { "x-tsr-serverfn": "true", Accept: "application/json", Origin: appOrigin } });
   assert.equal(transportOnPageHost.status, 404, "the generated Start transport is app-host-only");
   assert.equal((await pageRequest("/signin")).status, 404, "sign-in is app-host-only");
   assert.equal((await pageRequest("/lamp")).status, 404, "the former landing address is app-host-only");

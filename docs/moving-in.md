@@ -42,6 +42,29 @@ switch affects the address you control. It does not transfer or control a
 provider-owned shortlink host, so keep its redirect active or update links that
 still use that host.
 
+## What saved API responses means
+
+These are `.json` files containing the records your old provider returned when
+its API was asked for components, incidents or subscribers. They are not
+screenshots, CSV exports or a browser's saved public web page. Upload the files
+unchanged and together; Lamp reads them without using an API key. Instatus also
+needs the page ID so it can select the right page from those files.
+
+If you have no such files, use the source account/API option in Move in, or ask
+the person managing your old status page to capture them using the provider
+instructions below. **Download these saved responses** after a dry run also gives you
+files you can use for a later saved-response import. Keep them private: subscriber
+files can contain personal information. Do not put them in Git.
+
+The filename lists below are for the person collecting those responses.
+A provider may return a long list in several **pages**. Save every page in order:
+the first has the base filename, the second adds `-2`, the third `-3`, and so on.
+For example, a list requested in groups of 100 is complete only when a response
+has fewer than 100 records, including an empty response. Include that final
+response too; do not rename or edit records inside the files. A missing file or
+page can leave history or subscribers out, so resolve dry-run refusals before
+importing.
+
 ## What carries over
 
 Subject to the selected source's documented fields and the dry-run report:
@@ -292,8 +315,18 @@ each dry run before importing.
 
 ## Better Stack
 
-Choose **Better Stack**. Enter the status page ID and **API token**, or upload
-saved original JSON response envelopes. Lamp reads from
+Choose **Better Stack**. In Better Stack, open **API tokens → Team-based tokens**,
+select the team that owns the page, then create or copy an **Uptime API token**
+from that team's Uptime section. The [API token settings](https://betterstack.com/settings/api-tokens/0)
+and [official token guide](https://betterstack.com/docs/uptime/api/getting-started-with-uptime-api/)
+show the account controls.
+
+Paste the token into Move in and choose **Find my pages**. Lamp lists the
+status pages that token can read, with each page's name, address and ID; choose
+**Use this page** beside yours to fill the page ID. (Lamp reads that list from
+Better Stack's [List status pages](https://betterstack.com/docs/uptime/api/list-all-existing-status-pages/)
+API.) The page ID is not a monitor ID or the public hostname.
+Enter that page ID and **API token**, or upload the saved original JSON files. Lamp reads from
 `https://incidents.betterstack.com/api/v2` using Bearer authentication and `GET`
 only; the token is not saved, redirects are refused, and requests stay within
 the selected page and report. See the [official status-page API reference](https://betterstack.com/docs/uptime/api/list-all-existing-status-pages/).
@@ -358,8 +391,15 @@ record.
 
 ## Instatus
 
-Choose **Instatus**. Enter the page ID for saved files or an API read. For an API
-read, also enter the **API key**. Lamp uses fixed-origin `GET` requests to
+Choose **Instatus**. In your [Instatus dashboard](https://dashboard.instatus.com),
+right-click the project name at the top left and choose **Copy Project ID**;
+that value is the **page ID** Lamp asks for. Or paste your API key into Move in
+and choose **Find my pages**, then **Use this page** beside yours. Open **User settings → Developer
+settings** (or [Developer settings](https://dashboard.instatus.com/developer))
+to copy your **API key**. See the [official API help](https://instatus.com/help/api).
+
+Enter the page ID for saved files or an API read. For an API read, also enter
+the **API key**. Lamp uses fixed-origin `GET` requests to
 `https://api.instatus.com`; it does not save the key or forward it through a
 redirect. It selects the requested page from `/v2/pages`, then reads components,
 incidents with embedded updates, maintenance lists and each maintenance's
@@ -384,8 +424,7 @@ establish affected components. The optional
 `instatus-summary.json` can preserve exact public links supplied for a record;
 it is not a complete history export. The API help uses v2 component and
 maintenance lists while the official OpenAPI attaches their schemas to v1
-reads; deployed account parity has not been verified. Fixture families remain
-synthetic-only.
+reads; check your dry run for missing or refused records before importing.
 
 The saved pages response cannot establish public access or the absence of
 audience rules. Lamp asks you to confirm that the page and supplied history are

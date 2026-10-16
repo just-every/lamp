@@ -1,12 +1,22 @@
 import type { Hono, MiddlewareHandler } from 'hono';
 import { z } from 'zod';
-import { AuthError, type OperatorAuth } from '@runeditrun/rer/modules/operator-auth';
+import { AuthError, type OperatorAuth, type Session } from '@runeditrun/rer/modules/operator-auth';
 import type { AppEnv } from '../../app/types';
-import { createOperatorRepository } from './repository';
+import { createOperatorRepository, type StoredOperator } from './repository';
+export type OperatorReadSession = { session: Session; operator: StoredOperator };
 const idSchema = z.union([z.uuid(),z.string().regex(/^[0-9A-HJKMNP-TV-Z]{26}$/)]);
 const inviteSchema = z.object({email:z.email(),displayName:z.string().trim().min(1).max(120)}).strict();
-export function requireOperator(auth: () => OperatorAuth): MiddlewareHandler<AppEnv> {
+export function requireOperator(auth: () => OperatorAuth, authorizedRead?: (request: Request) => OperatorReadSession | undefined): MiddlewareHandler<AppEnv> {
   return async (c,next) => {
+    // A document's internal GETs share its just-validated authority. Only the
+    // server can put the exact Request object in this request-local registry.
+    const read = c.req.method === 'GET' ? authorizedRead?.(c.req.raw) : undefined;
+    if (read) {
+      c.set('operator', read.operator);
+      c.set('operatorSession', read.session);
+      await next();
+      return;
+    }
     const session = await auth().getSession(c.req.raw);
     if (!session) return c.json({error:'A valid operator session is required.'},401);
     if(!['GET','HEAD','OPTIONS'].includes(c.req.method)&&(c.req.header('Origin')!==new URL(c.req.url).origin||c.req.header('Sec-Fetch-Site')==='cross-site'))return c.json({error:'A same-origin request is required.'},403);

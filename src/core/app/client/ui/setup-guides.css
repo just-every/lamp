@@ -1,0 +1,19 @@
+/* Setup guides on Settings, Move in and identity: numbered steps, text to copy, a check. */
+.setup-guide { display: grid; gap: 12px; margin: 12px 0 0; color: var(--ink-2); font-size: 14px; line-height: 1.5; }
+.setup-guide ol { display: grid; gap: 10px; margin: 0; padding-left: 20px; }
+.setup-guide p { margin: 0; }
+.setup-guide code { overflow-wrap: anywhere; }
+.setup-guide summary { display: flex; align-items: center; min-height: 44px; cursor: pointer; color: var(--ink); font-weight: 500; }
+.copy-block { display: grid; gap: 8px; justify-items: start; min-width: 0; }
+.copy-block pre { box-sizing: border-box; width: 100%; margin: 0; border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; overflow-x: auto; background: var(--chip); color: var(--ink); font-family: var(--mono); font-size: 13px; white-space: pre-wrap; overflow-wrap: anywhere; }
+.copy-button { min-height: 36px; padding: 6px 14px; font-size: 13px; }
+.setup-result { margin: 0; border-left: 3px solid var(--line); padding: 6px 12px; overflow-wrap: anywhere; }
+.setup-result[data-ok="true"] { border-color: var(--ok); }
+.setup-result[data-ok="false"] { border-color: var(--down); }
+.setup-guide a { color: var(--ink); text-decoration: underline; text-decoration-color: var(--link-line); text-underline-offset: 3px; }
+details.setup-guide, div.setup-guide { margin-bottom: 16px; }
+details.setup-guide[open] > summary { margin-bottom: 4px; }
+ol.setup-guide { margin-top: 0; padding-left: 20px; }
+ol.setup-guide > li + li { margin-top: 0; }
+.setup-guide ol, ol.setup-guide { list-style: decimal; }
+.setup-guide li { display: list-item; }

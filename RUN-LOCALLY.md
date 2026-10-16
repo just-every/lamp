@@ -1,9 +1,16 @@
 # Run it locally
 
-Use `rer` from the project root. The checkout pins `@runeditrun/rer` 0.2.22;
+Use `rer` from the project root. The checkout pins `@runeditrun/rer` 0.2.32;
 `rer describe` reports the commands and tooling in use. Lamp runs on
 your computer without a Cloudflare account or mail credentials; development mail
 is silently suppressed.
+
+The Run page's one line, `npx -y @runeditrun/rer dev just-every/run-lamp`,
+clones `main` (development source) into `run-lamp` and starts it. The latest
+release tag, `v1.5.1`, pins rer 0.2.24; if you choose the tag, use that
+checkout's own instructions. See [source and tooling versions](README.md#source-and-tooling-versions).
+`rer` selects the project's pinned Node 22.20.0 and pnpm 10.12.4, downloading
+its Node version when needed even if your shell has a newer Node.
 
 ## Start Lamp
 

@@ -6,6 +6,7 @@ import { COMPONENT_STATES, INCIDENT_LIFECYCLES } from "../../shared/domain";
 import { ulidSchema } from "../../shared/ids";
 import { incidentDraftSchema } from "../../shared/schemas";
 import { InvalidIncidentUpdateError, type IncidentsService } from "./service";
+import { draftFromIncident } from "./draft";
 
 const incidentQuerySchema = z.object({ lifecycle: z.enum(INCIDENT_LIFECYCLES).optional() }).strict();
 const publishSchema = z.object({ channels: z.array(z.enum(["email", "webhook", "chat"])).max(3).transform((channels) => [...new Set(channels)]), publishedAt: z.iso.datetime().optional() }).strict();
@@ -50,7 +51,12 @@ export function registerIncidentRoutes(app: Hono<AppEnv>, service: IncidentsServ
     const incidentId = incidentIdFrom(context);
     if (!incidentId.success) return context.json({ error: "Invalid incident identifier.", issues: incidentId.error.issues }, 400);
     const incident = await service.get(incidentId.data);
-    return incident ? context.json({ incident, hasChatChannels: options.hasChatChannels ? await options.hasChatChannels() : false }) : context.json({ error: "Incident not found." }, 404);
+    if (!incident) return context.json({ error: "Incident not found." }, 404);
+    const [hasChatChannels, preview] = await Promise.all([
+      options.hasChatChannels ? options.hasChatChannels() : false,
+      service.preview(incident.id, draftFromIncident(incident)),
+    ]);
+    return context.json({ incident, hasChatChannels, preview });
   });
 
   app.post("/api/app/incidents/:incidentId/components/preview", async (context) => {

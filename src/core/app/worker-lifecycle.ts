@@ -3,6 +3,8 @@ import { createApp } from "./server";
 import { notificationOrigin, prepareAppMailBindings } from "./mail";
 import type { AppBindings } from "./types";
 import type { LampJob } from "../platform/jobs";
+import { createOverviewRepository } from "../features/overview/repository";
+import { CRON_EVIDENCE_STEP } from "./request-work";
 
 let localSnapshotBootstrapFinished = false;
 
@@ -24,6 +26,9 @@ export async function ensureDevelopmentSnapshot(runtime: ReturnType<typeof creat
 export async function runScheduled(bindings: AppBindings, executionContext: ExecutionContext, scheduledAt = Date.now()) {
   const runtime = createApp(await prepareAppMailBindings(bindings, "background"), "background");
   executionContext.waitUntil((async () => {
+    // Requests leave due work to Cron once it has recorded a recent run.
+    // A failed marker only lets requests keep helping; it must not stop this run.
+    await createOverviewRepository(bindings.DB).record(CRON_EVIDENCE_STEP, "cron").catch((cause) => console.error("Lamp could not record its Cron run.", cause));
     // State changes and operator reminders first, at the trigger's own time,
     // so the mail they queue goes out in this same run.
     const changes = await Promise.allSettled([

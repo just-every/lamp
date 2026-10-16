@@ -217,7 +217,14 @@ export function createIncidentsService(
     },
     // Reading incidents never sends mail: reminders come from the scheduled trigger.
     async list() {
-      return Promise.all((await repository.listIncidents()).map((incident) => toIncidentView(repository, incident, updateDuePolicy.leadMinutes())));
+      const [incidents, relations] = await Promise.all([repository.listIncidents(), repository.listRelations()]);
+      const leadMinutes = updateDuePolicy.leadMinutes();
+      return incidents.map(incident => {
+        const components = relations.components.get(incident.id) ?? [];
+        const updates = relations.updates.get(incident.id) ?? [];
+        const impact = relations.impacts.get(incident.id) ?? (components.length ? mostSevereState(components.map(component => component.state)) : null);
+        return { ...incident, impact, components, updates, draft: relations.drafts.get(incident.id) ?? null, internalNotes: relations.notes.get(incident.id) ?? [], ...updateDueState({ lifecycle: incident.lifecycle, nextUpdateAt: updates[0]?.nextUpdateAt ?? null, leadMinutes, now: Date.now() }) };
+      });
     },
     async get(incidentId) {
       const incident = await repository.findIncident(incidentId);

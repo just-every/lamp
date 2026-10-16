@@ -28,7 +28,7 @@ test('MOVE-001 Better Stack source-first wizard and source-specific Cutover pres
       assert.equal(await page.getByRole('heading',{name:'Move in from Better Stack'}).count(),1);
       const dir=resolve('tests/fixtures/betterstack',family);
       await page.getByLabel('Saved responses').setInputFiles((await readdir(dir)).map(name=>join(dir,name)));
-      await page.getByLabel(/This Better Stack page is public and unrestricted/).check();
+      await page.getByLabel(/This Better Stack page is public/).check();
       const before=await notificationActivity(runtime);
       const response=page.waitForResponse(r=>r.url().endsWith('/statuspage-import/preview'));
       await page.getByRole('button',{name:'Run dry run',exact:true}).click();const dry=await response;assert.equal(dry.status(),200,await dry.text());
@@ -37,7 +37,7 @@ test('MOVE-001 Better Stack source-first wizard and source-specific Cutover pres
         assert.equal(await page.getByRole('heading',{name:'Dry run',exact:true}).count(),0);
         await page.getByRole('combobox',{name:'Source',exact:true}).selectOption('betterstack');
         await page.getByLabel('Saved responses').setInputFiles((await readdir(dir)).map(name=>join(dir,name)));
-        await page.getByLabel(/This Better Stack page is public and unrestricted/).check();
+        await page.getByLabel(/This Better Stack page is public/).check();
         await page.getByRole('button',{name:'Run dry run',exact:true}).click();
       }
       await page.getByLabel('I reviewed what changes, is skipped or is refused.').check();

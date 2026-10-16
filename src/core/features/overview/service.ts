@@ -22,13 +22,15 @@ export function createOverviewService(
   return {
     setup,
     async get() {
-      const [components, incidents, maintenance] = await Promise.all([
-        componentsService.list(),
+      const componentsPromise = componentsService.list();
+      const [components, incidents, maintenance, checklist] = await Promise.all([
+        componentsPromise,
         incidentsService.list(),
         maintenanceService.list(),
+        componentsPromise.then(components => setup.get(components.length > 0)),
       ]);
       return {
-        checklist: await setup.get(components.length > 0),
+        checklist,
         components,
         activeIncidents: incidents.filter((incident) => incident.lifecycle !== "Resolved"),
         maintenance,

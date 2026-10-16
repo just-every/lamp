@@ -87,10 +87,12 @@ export async function installation(mode) {
     }
   }
   try {
-    // Use the public Run page's real clone command, then select this candidate.
+    // The Run page's one line clones the public repository into its repo-name folder; do that clone, then select this candidate.
     const runPage = await readFile(join(source, "src/site/run.ts"), "utf8");
-    const clone = /clone:\s*'git clone (https:\/\/github\.com\/[\w/-]+\.git) ([\w-]+)'/.exec(runPage);
-    assert.ok(clone, "Run page provides a supported public Git clone command");
+    const line = /clone:\s*'npx -y @runeditrun\/rer dev just-every\/([\w-]+)'/.exec(runPage);
+    const folder = /folder:\s*'([\w-]+)'/.exec(runPage);
+    assert.ok(line && folder && folder[1] === line[1], "Run page provides the one-line install and its repo-name folder");
+    const clone = [null, `https://github.com/just-every/${line[1]}.git`, folder[1]];
     const sha = (await run("git", ["rev-parse", "HEAD"], source)).trim();
     await run("git", ["clone", clone[1], clone[2]]);
     root = join(directory, clone[2]);

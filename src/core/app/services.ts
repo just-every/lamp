@@ -11,6 +11,7 @@ import { createMaintenanceRepository, createMaintenanceService } from "../featur
 import { createOverviewRepository } from "../features/overview/repository";
 import { createSetupChecklistService } from "../features/overview/setup-checklist";
 import { notificationOrigin } from "./mail";
+import { outboundUnavailable } from "./hosting";
 import { createOverviewService } from "../features/overview";
 import { createPageSettingsRepository, createPageSettingsService } from "../features/page-settings";
 import { createLampAuth } from "../platform/auth";
@@ -66,6 +67,7 @@ export function createAppServices(bindings: AppBindings, blobs: BlobStore, execu
     webhookSecret: bindings.WEBHOOK_SIGNING_SECRET,
     developmentReceiver: import.meta.env?.DEV && bindings.LAMP_DEV_CHANNEL_RECEIVER?.startsWith("http://127.0.0.1:") ? bindings.LAMP_DEV_CHANNEL_RECEIVER : undefined,
     publicOrigin: () => notificationOrigin(bindings),
+    unavailable: outboundUnavailable(bindings, "Slack and Teams posts"),
   });
   const incidents = createIncidentsService(createIncidentRepository(bindings.DB), components, publicSnapshots.rebuild, {
     forAttachedComponents: async (input) => incidentCatchupStatements(bindings.DB, input),
@@ -126,7 +128,8 @@ export function createAppServices(bindings: AppBindings, blobs: BlobStore, execu
   // A demo visitor sees suggestions without the provider being called (Base demoEffect).
   const aiProvider = bindings.RER_DEMO === '1' ? createDemoAiProvider(configuredAi) : configuredAi;
   const briefs = createBriefService(createBriefRepository(bindings.DB));
-  const ai = createAiService(briefs, aiProvider);
+  const aiUnavailable = outboundUnavailable(bindings, "AI suggestions");
+  const ai = createAiService(briefs, aiUnavailable ? null : aiProvider, aiUnavailable);
   const overview = createOverviewService(components, incidents, maintenance, createSetupChecklistService(createOverviewRepository(bindings.DB), pageSettings, {
     // The checklist answers an operator request on the app host; the page host
     // shares its scheme and port, as the Settings link to the public page does.

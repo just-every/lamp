@@ -12,9 +12,11 @@ import { installedHomeResponse } from "./installed-home";
 import { createHostDispatch, isDevelopmentAppPath, type LampSurface } from "./core/app/host-dispatch";
 import { createApp } from "./core/app/server";
 import { prepareAppMailBindings } from "./core/app/mail";
+import { withOperatorRequest } from "./core/platform/operator-request.server";
 import { admitsDevelopmentRequest } from "./core/platform/development/access";
 import type { AppBindings } from "./core/app/types";
 import { ensureDevelopmentSnapshot, runQueue, runScheduled } from "./core/app/worker-lifecycle";
+import { queueDueWork } from "./core/app/request-work";
 
 function isHonoRequest(surface: LampSurface, request: Request, pathname: string) {
   if (surface === "page") return true;
@@ -59,7 +61,7 @@ async function operatorDocumentPreflight(request: Request, runtime: ReturnType<t
     const complete = await runtime.services.overview.setup.firstRunComplete();
     if (!complete && pathname !== "/setup") return Response.redirect(new URL("/setup", request.url), 302);
     if (complete && pathname === "/setup") return Response.redirect(new URL("/app", request.url), 302);
-    return null;
+    return { session: operator };
   }
 
   const requested = new URL(request.url);
@@ -123,13 +125,20 @@ export default withDemo({
       }
     }
 
-    if (isHonoRequest(surface, request, url.pathname)) return runtime.app.fetch(request, bindings, executionContext);
+    if (isHonoRequest(surface, request, url.pathname)) {
+      const response = await runtime.app.fetch(request, bindings, executionContext);
+      queueDueWork(runtime, bindings, executionContext, request, response);
+      return response;
+    }
+    let session;
     if (isOperatorDocument(request, url.pathname)) {
       const rejected = await operatorDocumentPreflight(request, runtime);
-      if (rejected) return rejected;
+      if (rejected instanceof Response) return rejected;
+      session = rejected.session;
     }
     if (isStartRequest(surface, request, url.pathname)) {
-      const response = await start.fetch(request);
+      const response = await withOperatorRequest({ runtime, session }, () => start.fetch(request));
+      queueDueWork(runtime, bindings, executionContext, request, response);
       // Proxies must preserve the HTML React hydrates, including docs addresses.
       // Keep Start's existing cache policy and leave server-function data alone.
       if (!response.headers.get("content-type")?.includes("text/html")) return response;

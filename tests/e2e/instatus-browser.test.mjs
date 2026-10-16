@@ -44,7 +44,7 @@ test('MOVE-001 Instatus source-first review and Cutover keep provider labels, in
       await page.getByLabel('Instatus page ID', { exact: true }).fill('synthpage01');
       const directory = resolve('tests/fixtures/instatus', family);
       await page.getByLabel('Saved responses', { exact: true }).setInputFiles((await readdir(directory)).map(name => join(directory, name)));
-      await page.getByLabel(/This Instatus page and all supplied history/).check();
+      await page.getByLabel(/This Instatus page and its history/).check();
       const reviewing = page.waitForResponse(response => response.url().endsWith('/statuspage-import/preview'));
       await page.getByRole('button', { name: 'Run dry run', exact: true }).click();
       const reviewed = await reviewing; assert.equal(reviewed.status(), 200, await reviewed.text());
@@ -69,7 +69,7 @@ test('MOVE-001 Instatus source-first review and Cutover keep provider labels, in
       await page.getByRole('heading', { name: 'Move in from Instatus', exact: true }).waitFor();
       await page.getByLabel('Instatus page ID', { exact: true }).fill('synthpage01');
       await page.getByLabel('Saved responses', { exact: true }).setInputFiles((await readdir(directory)).map(name => join(directory, name)));
-      await page.getByLabel(/This Instatus page and all supplied history/).check();
+      await page.getByLabel(/This Instatus page and its history/).check();
       await page.getByRole('button', { name: 'Run dry run', exact: true }).click(); await page.getByRole('heading', { name: 'Dry run', exact: true }).waitFor();
       await page.getByRole('combobox', { name: 'Source', exact: true }).selectOption('betterstack');
       assert.equal(await page.getByRole('heading', { name: 'Dry run', exact: true }).count(), 0);

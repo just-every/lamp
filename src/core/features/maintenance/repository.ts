@@ -11,7 +11,14 @@ export interface MaintenanceNotice { id: string; maintenanceId: string; kind: "s
 
 export interface ImportedMaintenanceUpdate { id: string; body: string; publishedAt: string; sourceStates: string }
 
+export interface MaintenanceCollectionDetails {
+  components: StoredMaintenanceComponent[];
+  notices: MaintenanceNotice[];
+  importedUpdates: Array<ImportedMaintenanceUpdate & { maintenanceId: string }>;
+}
+
 export interface MaintenanceRepository {
+  listCollectionDetails(): Promise<MaintenanceCollectionDetails>;
   listImportedUpdates(maintenanceId: string): Promise<ImportedMaintenanceUpdate[]>;
   allocateMaintenanceReference(): Promise<AllocatedReference>;
   listMaintenance(): Promise<StoredMaintenance[]>;
@@ -30,7 +37,7 @@ export interface MaintenanceRepository {
 
 export function createMaintenanceRepository(binding: D1Database): MaintenanceRepository {
   const database = createDatabase(binding);
-  const noticeStatement = (notice: MaintenanceNotice) => binding.prepare(`INSERT INTO maintenance_notices (id,maintenance_id,kind,body,published_at,author_operator_id,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?)`)
+  const noticeStatement = (notice: MaintenanceNotice) => binding.prepare(`INSERT OR IGNORE INTO maintenance_notices (id,maintenance_id,kind,body,published_at,author_operator_id,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?)`)
     .bind(notice.id, notice.maintenanceId, notice.kind, notice.body, notice.publishedAt, notice.authorOperatorId, notice.createdAt, notice.updatedAt);
   const writeMutationWithNotice = async (mutation: D1PreparedStatement, notice: MaintenanceNotice, notificationStatements: D1PreparedStatement[]) => {
     const auditId = createUlid();
@@ -55,6 +62,14 @@ export function createMaintenanceRepository(binding: D1Database): MaintenanceRep
     async allocateMaintenanceReference() { return allocateReference(binding, "SCH"); },
     async listMaintenance() {
       return database.select().from(maintenance).orderBy(asc(maintenance.startsAt)).all();
+    },
+    async listCollectionDetails() {
+      const [components, notices, importedUpdates] = await Promise.all([
+        database.select().from(maintenanceComponents).orderBy(maintenanceComponents.maintenanceId).all(),
+        binding.prepare(`SELECT id, maintenance_id AS maintenanceId, kind, body, published_at AS publishedAt, author_operator_id AS authorOperatorId, created_at AS createdAt, updated_at AS updatedAt FROM maintenance_notices ORDER BY maintenance_id, published_at DESC`).all<MaintenanceNotice>(),
+        binding.prepare(`SELECT id, maintenance_id AS maintenanceId, body, published_at AS publishedAt, source_states AS sourceStates FROM import_maintenance_updates ORDER BY maintenance_id, published_at DESC, id`).all<ImportedMaintenanceUpdate & { maintenanceId: string }>(),
+      ]);
+      return { components, notices: notices.results, importedUpdates: importedUpdates.results };
     },
     async listComponents(maintenanceId) {
       return database.select().from(maintenanceComponents).where(eq(maintenanceComponents.maintenanceId, maintenanceId)).all();
@@ -110,11 +125,11 @@ export function createMaintenanceRepository(binding: D1Database): MaintenanceRep
       return result.results;
     },
     async writeNotice(input, notificationStatements) {
-      await binding.batch([
+      const results = await binding.batch([
         noticeStatement(input),
         ...notificationStatements,
       ]);
-      return true;
+      return results[0].meta.changes === 1;
     },
     async listImportedUpdates(maintenanceId) {
       return (await binding.prepare("SELECT id,body,published_at AS publishedAt,source_states AS sourceStates FROM import_maintenance_updates WHERE maintenance_id=? ORDER BY published_at DESC,id").bind(maintenanceId).all<ImportedMaintenanceUpdate>()).results;

@@ -1,11 +1,11 @@
 import { and, asc, eq, isNull, lte, sql } from "drizzle-orm";
 
 import { createDatabase } from "../../platform/db/client";
-import { notificationDeliveries, operators, subscribers } from "../../shared/schema";
+import { maintenance, notificationDeliveries, operators, subscribers } from "../../shared/schema";
 import { notificationOutbox } from "./schema";
 import { createUlid } from "../../shared/ids";
 
-export type DeliveryRow = typeof notificationDeliveries.$inferSelect & { destination: string; subscriberState: "pending" | "active" | "deactivated"; providerAcceptedAt: string | null; latestError: string | null; localCaptureId: string | null; localCapturedAt: string | null };
+export type DeliveryRow = typeof notificationDeliveries.$inferSelect & { destination: string; subscriberState: "pending" | "active" | "deactivated"; providerAcceptedAt: string | null; latestError: string | null; localCaptureId: string | null; localCapturedAt: string | null; maintenanceReference: string | null; maintenanceTitle: string | null; maintenanceNoticeKind: string | null };
 
 export interface DispatchableDelivery {
   id: string;
@@ -73,6 +73,7 @@ export interface DeliveryRepository {
   freezeMailPayload(deliveryId: string, payloadJson: string): Promise<string>;
   ensureNotificationTokens(subscriberId: string, candidates: NotificationTokenCandidates, now: string): Promise<{ manage: string; unsubscribe: string } | null>;
   listOutbox(limit: number, now: string): Promise<Array<typeof notificationOutbox.$inferSelect>>;
+  claimOutbox(id: string, now: string, reclaimBefore: string): Promise<boolean>;
   completeOutbox(id: string, now: string): Promise<void>;
   completeOutboxForEvent(eventId: string, now: string): Promise<void>;
   retryOutbox(id: string, input: { attempts: number; availableAt: string; error: string; now: string; failed: boolean }): Promise<void>;
@@ -140,11 +141,13 @@ export function createDeliveryRepository(binding: D1Database): DeliveryRepositor
         id: notificationDeliveries.id, subscriberId: notificationDeliveries.subscriberId, incidentUpdateId: notificationDeliveries.incidentUpdateId, maintenanceId: notificationDeliveries.maintenanceId,
         channel: notificationDeliveries.channel, outcome: notificationDeliveries.outcome, queuedAt: notificationDeliveries.queuedAt, outcomeAt: notificationDeliveries.outcomeAt,
         createdAt: notificationDeliveries.createdAt, updatedAt: notificationDeliveries.updatedAt, destination: subscribers.destination, subscriberState: subscribers.state,
+        maintenanceReference: maintenance.reference, maintenanceTitle: maintenance.title,
+        maintenanceNoticeKind: sql<string | null>`(SELECT kind FROM maintenance_notices WHERE id = notification_deliveries.notification_event_id)`,
         providerAcceptedAt: sql<string | null>`(SELECT attempted_at FROM notification_delivery_attempts WHERE delivery_id = ${notificationDeliveries.id} AND provider_message_id IS NOT NULL AND error IS NULL ORDER BY attempted_at LIMIT 1)`,
         localCaptureId: sql<string | null>`(SELECT local_capture_id FROM notification_delivery_attempts WHERE delivery_id = ${notificationDeliveries.id} AND local_capture_id IS NOT NULL ORDER BY attempted_at LIMIT 1)`,
         localCapturedAt: sql<string | null>`(SELECT attempted_at FROM notification_delivery_attempts WHERE delivery_id = ${notificationDeliveries.id} AND local_capture_id IS NOT NULL ORDER BY attempted_at LIMIT 1)`,
         latestError: sql<string | null>`(SELECT error FROM notification_delivery_attempts WHERE delivery_id = ${notificationDeliveries.id} ORDER BY attempted_at DESC, attempt_number DESC LIMIT 1)`,
-      }).from(notificationDeliveries).innerJoin(subscribers, eq(notificationDeliveries.subscriberId, subscribers.id)).where(conditions.length ? and(...conditions) : undefined).orderBy(asc(notificationDeliveries.queuedAt));
+      }).from(notificationDeliveries).innerJoin(subscribers, eq(notificationDeliveries.subscriberId, subscribers.id)).leftJoin(maintenance, eq(notificationDeliveries.maintenanceId, maintenance.id)).where(conditions.length ? and(...conditions) : undefined).orderBy(asc(notificationDeliveries.queuedAt));
       return input.limit === undefined ? query.all() : query.limit(input.limit).offset(input.offset ?? 0).all();
     },
     async getDelivery(deliveryId) {
@@ -246,8 +249,23 @@ export function createDeliveryRepository(binding: D1Database): DeliveryRepositor
     async listOutbox(limit, now) {
       return database.select().from(notificationOutbox).where(and(isNull(notificationOutbox.completedAt), isNull(notificationOutbox.failedAt), lte(notificationOutbox.availableAt, now))).orderBy(asc(notificationOutbox.availableAt)).limit(limit).all();
     },
+    async claimOutbox(id, now, reclaimBefore) {
+      const result = await binding.prepare(`UPDATE notification_outbox SET locked_at = ?, updated_at = ?
+        WHERE id = ? AND completed_at IS NULL AND failed_at IS NULL AND available_at <= ?
+          AND (locked_at IS NULL OR locked_at < ?)`)
+        .bind(now, now, id, now, reclaimBefore).run();
+      return result.meta.changes === 1;
+    },
     async completeOutbox(id, now) { await database.update(notificationOutbox).set({ completedAt: now, lockedAt: null, updatedAt: now }).where(eq(notificationOutbox.id, id)); },
-    async completeOutboxForEvent(eventId, now) { await binding.prepare("UPDATE notification_outbox SET completed_at = ?, locked_at = NULL, updated_at = ? WHERE kind = 'delivery-dispatch' AND aggregate_id = ? AND completed_at IS NULL").bind(now, now, eventId).run(); },
+    async completeOutboxForEvent(eventId, now) {
+      await binding.prepare(`UPDATE notification_outbox SET completed_at = ?, locked_at = NULL, updated_at = ?
+        WHERE kind = 'delivery-dispatch' AND aggregate_id = ? AND completed_at IS NULL
+          AND NOT EXISTS (SELECT 1 FROM notification_deliveries d
+            WHERE d.notification_event_id = ? AND d.outcome = 'queued'
+              AND NOT EXISTS (SELECT 1 FROM notification_delivery_attempts a
+                WHERE a.delivery_id = d.id AND (a.provider_message_id IS NOT NULL OR a.local_capture_id IS NOT NULL)))`)
+        .bind(now, now, eventId, eventId).run();
+    },
     async retryOutbox(id, input) { await database.update(notificationOutbox).set({ attempts: input.attempts, availableAt: input.availableAt, lastError: input.error, failedAt: input.failed ? input.now : null, lockedAt: null, updatedAt: input.now }).where(eq(notificationOutbox.id, id)); },
     async enqueueOperatorAlert(input) {
       await binding.prepare("INSERT OR IGNORE INTO notification_outbox (id, kind, aggregate_id, payload_json, available_at, attempts, locked_at, completed_at, failed_at, last_error, created_at, updated_at) VALUES (?, 'operator-alert', ?, ?, ?, 0, NULL, NULL, NULL, NULL, ?, ?)")

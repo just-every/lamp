@@ -20,6 +20,7 @@ import { saveAndConfirmDraft } from "./saved-draft-helper.mjs";
 import { isolatedWranglerConfig } from "../helpers/wrangler-config.mjs";
 import { sessionCookieName } from "../helpers/session-cookie.mjs";
 import { postIncidentReportFlow } from "./helpers/post-incident-report-flow.mjs";
+import { operatorHydrated } from "./helpers/operator-hydrated.mjs";
 
 let appUrl = "";
 let pageUrl = "";
@@ -182,9 +183,8 @@ test("compiled visual edits survive actual operator navigation and reload", asyn
   try {
     const paths = [...new Set(['/app','/app/components','/app/subscribers',...snapshot.edits.map(edit => edit.path)])];
     for (const path of paths) {
-      const sessionReady = page.waitForResponse(response => new URL(response.url()).pathname === '/api/app/session' && response.ok());
       await page.goto(appUrl + path, { waitUntil: 'networkidle' });
-      await sessionReady; // The shell requests its session from a post-hydration effect.
+      await operatorHydrated(page);
       await page.locator('.operator-navigation').waitFor();
       const expected = snapshot.edits.filter(edit => edit.target.navigation || edit.path === path);
       const check = async () => {
@@ -233,6 +233,7 @@ contract("INCIDENT-001", "an operator can start with an empty product, create a 
 
   await page.setViewportSize({ width: 1440, height: 1000 });
   await page.goto(`${appUrl}/app/incidents`);
+  await operatorHydrated(page);
   await page.getByRole("heading", { name: "Record the situation before communicating it" }).waitFor();
   await page.getByLabel("Incident title").fill("Journey API request failures");
   await page.getByLabel("Affected component 1").selectOption({ label: "Journey API" });
@@ -313,6 +314,7 @@ contract("INCIDENT-004", "operator controls create internal notes, retroactive r
   assert.equal(record.internalNotes[0].body, "PRIVATE-OPERATOR-CONTEXT");
 
   await page.reload();
+  await operatorHydrated(page);
   await page.getByRole("heading", { name: "Compose public update" }).waitFor();
   await saveAndConfirmDraft({ page, appFetch, incidentId, t,
     expected: { lifecycle: "Identified", affectedAudience: "Correction audience.", customerImpact: "", whatStillWorks: "", details: "", nextUpdateAt: null },
@@ -339,6 +341,7 @@ contract("UPDATE-005", "composer autosaves a changed draft in under two seconds 
   const incident = await createBrowserIncident();
   autosaveIncidentId = incident.id;
   await page.goto(`${appUrl}/app/incidents/${incident.id}`);
+  await operatorHydrated(page);
   await page.getByRole("heading", { name: "Compose public update" }).waitFor();
   await page.locator("label", { hasText: "Who is affected" }).locator("textarea").fill("Browser contract customers.");
   await page.locator("label", { hasText: "What is the impact" }).locator("textarea").fill("Requests can fail during this condition.");
@@ -349,6 +352,7 @@ contract("UPDATE-005", "composer autosaves a changed draft in under two seconds 
   await page.getByText("Draft saved", { exact: true }).waitFor({ timeout: 2000 });
   assert.ok(Date.now() - changedAt < 2000, "the operator draft did not save within two seconds");
   await page.reload();
+  await operatorHydrated(page);
   await page.getByRole("heading", { name: "Compose public update" }).waitFor();
   await assert.equal(await page.locator("label", { hasText: "Additional details" }).locator("textarea").inputValue(), details);
   assert.equal(await page.getByLabel("Next update date and time").inputValue(), "2027-09-08T13:41", "the datetime control presents the saved instant in the operator's configured local time");
@@ -362,6 +366,7 @@ contract("UPDATE-005", "composer autosaves a changed draft in under two seconds 
 contract("UPDATE-006", "the composer schedules publication separately from its next-update commitment", async () => {
   const incident = await createBrowserIncident();
   await page.goto(`${appUrl}/app/incidents/${incident.id}`);
+  await operatorHydrated(page);
   await page.getByRole("heading", { name: "Compose public update" }).waitFor();
   await page.locator("label", { hasText: "Who is affected" }).locator("textarea").fill("Scheduled browser customers.");
   await page.locator("label", { hasText: "What is the impact" }).locator("textarea").fill("A scheduled update has a distinct publication time.");
@@ -376,12 +381,14 @@ contract("UPDATE-006", "the composer schedules publication separately from its n
 contract("DRAFT-002", "operators save and reload AI tone instructions while the UI honestly reports an unconfigured provider", async () => {
   const tone = "Lead with customer impact, use concise factual language, and name the next update commitment.";
   await page.goto(`${appUrl}/app/settings`);
+  await operatorHydrated(page);
   await page.getByText("No provider configured", { exact: true }).waitFor();
   const toneField = page.getByLabel("Tone instructions");
   await toneField.fill(tone);
   await page.getByRole("button", { name: "Save settings" }).click();
   await page.getByText("Settings saved and the public snapshot was rebuilt.", { exact: true }).waitFor();
   await page.reload();
+  await operatorHydrated(page);
   await page.getByText("No provider configured", { exact: true }).waitFor();
   assert.equal(await page.getByLabel("Tone instructions").inputValue(), tone);
 });
@@ -467,6 +474,7 @@ contract("UPDATE-002", "composer publication controls remain visible and operabl
     for (const width of [1280, 390]) {
       await page.setViewportSize({ width, height: 900 });
       await page.goto(`${appUrl}/app/incidents/${incident.id}`);
+      await operatorHydrated(page);
       const controls = page.getByRole("region", { name: "Publication controls" });
       await controls.getByText("Schedule or backdate", { exact: true }).click();
       const timestamp = controls.getByLabel("Historical publication date and time");

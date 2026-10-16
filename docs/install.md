@@ -1,13 +1,27 @@
 # Install Lamp
 
-Lamp uses the checkout's pinned `@runeditrun/rer` 0.2.23 and can run locally or
-in your Cloudflare account. For the local path, follow
-[Run it locally](../RUN-LOCALLY.md): `rer dev` installs dependencies,
-sets up the first owner and starts Lamp. Local mail is silently suppressed and
+Lamp uses the checkout's pinned `@runeditrun/rer` 0.2.32 and can run locally or
+in your Cloudflare account. For the local path, run
+`npx -y @runeditrun/rer dev just-every/run-lamp`, which installs `rer`, clones Lamp, installs dependencies,
+sets up the first owner and starts it; to start it again later, run `cd run-lamp && rer dev`.
+The [local guide](../RUN-LOCALLY.md) has the details. Local mail is silently suppressed and
 not retained. The local guide explains the `/__dev/outbox` compatibility notice;
 use a hosted installation to exercise real email delivery.
 
+That one line clones `main`, Lamp's development source. The latest release tag
+is `v1.5.1` (rer 0.2.24); see [source and tooling versions](../README.md#source-and-tooling-versions)
+to use it instead.
+
 ## Prepare a hosted installation
+
+- **Free:** you run Lamp's open source yourself in your own Cloudflare account,
+  with no Run Edit Run charge. The commands in this guide are this path.
+- **Assisted:** Run Edit Run installs and maintains Lamp for you, while it stays
+  in your own Cloudflare account and GitHub repository (early access).
+- **Managed:** Run Edit Run hosts and runs Lamp for you (waitlist only).
+
+Compare them on [Run Edit Run plans](https://runeditrun.com/pricing).
+
 
 Managed hosting includes mail without a provider account or mail key from you.
 RER fills and hides `MAIL_PROVIDER=rer`, `MAIL_FROM`, `MAIL_RELAY_URL` and private

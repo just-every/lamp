@@ -1,16 +1,16 @@
 import { createServerFn } from "@tanstack/react-start";
 import { redirect } from "@tanstack/react-router";
+import { z } from "zod";
 
 import { publicPageOrigin } from "./public-origin";
+import { operatorPageReads, type AppDataSnapshot, type AppJson } from "./page-data";
+import type { StoredOperator } from "../features/operators/repository";
 
 export type OperatorSessionView = {
-  operator: {
-    id: string;
-    email: string;
-    displayName: string;
-  };
+  operator: StoredOperator;
   publicPageOrigin: string;
   timezone: string;
+  data: AppDataSnapshot;
 };
 
 // This wrapper is imported by route modules. The implementation imports only
@@ -22,23 +22,40 @@ function redirectToSignIn(requestUrl: URL): never {
   throw redirect({ href: signIn.toString(), statusCode: 302 });
 }
 
-export const loadOperatorSession = createServerFn({ method: "GET" }).handler(async (): Promise<OperatorSessionView> => {
-  const [{ getRequest, getRequestUrl }, { requestBindings }, { createApp }, { prepareAppMailBindings }] = await Promise.all([
+export const loadOperatorSession = createServerFn({ method: "GET" })
+.inputValidator(z.object({ path: z.string().regex(/^\/app(?:\/[^?#]*)?$/) }))
+.handler(async ({ data: input }): Promise<OperatorSessionView> => {
+  const [{ getRequest, getRequestUrl, setResponseHeader }, { requestBindings }, { createApp }, { prepareAppMailBindings }, { operatorRequest }] = await Promise.all([
     import("@tanstack/react-start/server"),
     import("../platform/bindings.server"),
     import("./server"),
     import("./mail"),
+    import("../platform/operator-request.server"),
   ]);
   const bindings = requestBindings();
   const requestUrl = getRequestUrl();
 
   const request = getRequest();
-  const runtime = createApp(await prepareAppMailBindings(bindings, request), request);
-  const session = await runtime.services.auth().getSession(request);
+  setResponseHeader("Cache-Control", "private, no-store");
+  const current = operatorRequest();
+  const runtime = current?.runtime ?? createApp(await prepareAppMailBindings(bindings, request), request);
+  const session = current?.session ?? await runtime.services.auth().getSession(request);
   if (!session) redirectToSignIn(requestUrl);
-  const operator = await runtime.services.operators.view(session.operator);
-
-  const settings = await runtime.services.pageSettings.get();
+  const settingsPromise = runtime.services.pageSettings.get();
+  const operatorPromise = runtime.services.operators.view(session.operator);
+  const paths = operatorPageReads(input.path);
+  const operator = await operatorPromise;
+  const read = async (path: string) => {
+    const response = await runtime.readOperator(path, request, { session, operator });
+    const data = await response.json() as AppJson;
+    const error = response.ok ? null : data && typeof data === "object" && !Array.isArray(data) && typeof data.error === "string" ? data.error : `The operator API returned ${response.status}.`;
+    return [path, { data, error }] as const;
+  };
+  if (operator.isSetupOperator) paths.push("/api/app/editor-config");
+  const [settings, entries] = await Promise.all([settingsPromise, Promise.all(paths.map(read))]);
   if (!settings) throw new Error("Page settings are not configured.");
-  return { operator, publicPageOrigin: publicPageOrigin(requestUrl, bindings.LAMP_PAGE_HOST), timezone: settings.timezone };
+  const data = Object.fromEntries(entries) as AppDataSnapshot;
+  data["/api/app/session"] = { data: { operator: { ...operator }, publicPageHost: bindings.LAMP_PAGE_HOST }, error: null };
+  data["/api/app/page-settings"] = { data: { settings }, error: null };
+  return { operator, publicPageOrigin: publicPageOrigin(requestUrl, bindings.LAMP_PAGE_HOST), timezone: settings.timezone, data };
 });
