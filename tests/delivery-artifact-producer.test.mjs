@@ -13,7 +13,7 @@ test('bundle transports runtime bytes without granting configuration authority',
   try {
     for (const folder of ['dist/server', 'dist/client', 'migrations/core']) await mkdir(join(root, folder), { recursive: true });
     await writeFile(join(root, 'dist/server/index.js'), 'export default {};');
-    await writeFile(join(root, 'dist/server/wrangler.json'), JSON.stringify({compatibility_date:'2026-09-08',d1_databases:[{binding:'DB',migrations_dir:'../../migrations/core'}]}));
+    await writeFile(join(root, 'dist/server/wrangler.json'), JSON.stringify({compatibility_date:'2026-09-08',vars:{MAIL_PROVIDER:'rer',MAIL_FROM:'status@example.test',MAIL_RELAY_URL:'https://relay.example.test/send'},d1_databases:[{binding:'DB',migrations_dir:'../../migrations/core'}]}));
     await writeFile(join(root, 'dist/client/app.js'), 'console.log(1)');
     await cp('scripts/delivery/rer-entry.template.mjs',join(root,'rer-entry.template.mjs'));
     await mkdir(join(root,'scripts/delivery'),{recursive:true});

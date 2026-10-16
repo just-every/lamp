@@ -41,7 +41,7 @@ async function signOut(page,origin){
  assert.equal(new URL(document.headers().location,origin).pathname,'/signin');
  await page.goto(origin+'/app');
  assert.equal(new URL(page.url()).pathname,'/signin','operator documents remain inaccessible after sign-out');
- await page.getByRole('link',{name:'Continue as owner'}).waitFor({state:'visible'});
+ await page.locator('a[href^="/auth/dev/enter?as=owner&"]').waitFor({state:'visible'});
 }
 async function denied(origin,archive){for(const path of ['/cdn-cgi/local/explorer/api/local/workers','/cdn-cgi/handler/scheduled','/.rer/local/dev-key.env','/.seed/installer/secrets.json',...(archive?['/exports/probe.rer','/probe.rer','/@fs/'+archive]:[])]){const result=await fetch(origin+path,{redirect:'manual'});assert.equal((path.startsWith('/cdn-cgi/')||path.startsWith('/.rer/')||path.startsWith('/.seed/'))?result.status===404:[403,404].includes(result.status),true,'sensitive route denied: '+path);assert.equal((await result.text()).includes('auth-journey-private-sentinel'),false);}}
 

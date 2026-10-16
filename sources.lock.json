@@ -4364,7 +4364,7 @@
       "executable": false
     },
     "tests/delivery-artifact-producer.test.mjs": {
-      "sha256": "9864c94a92a755e487d55eb1eeb697a5e555e52852e35021c4e7c16084cfc4d4",
+      "sha256": "9859ff4cbe0935767b0abe9fb8f7ee2cdd5484de932ec181a5d4a7e81a12b374",
       "executable": false
     },
     "tests/delivery-credential-files.test.mjs": {
@@ -4448,7 +4448,7 @@
       "executable": false
     },
     "tests/e2e/auth-adoption-journey.test.mjs": {
-      "sha256": "d00f7e8e2a8b8e7ca570559afb2afa3ce1aae487f10a3a43e3ff2503db1578e4",
+      "sha256": "ad6a437b6ff29e0eb7306f365c2b58a27da9065a4b3c815d8eecd18806300d6a",
       "executable": false
     },
     "tests/e2e/autosave-integrity.test.mjs": {
