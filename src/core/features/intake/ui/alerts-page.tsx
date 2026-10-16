@@ -71,7 +71,8 @@ export function AlertsPage() {
 
   const sourceData = sources.data?.sources ?? [];
   const receiptData = receipts.data?.receipts ?? [];
-  const loading = sources.loading || receipts.loading;
+  // A refresh keeps the page (and a just-created preset's one-time token) on screen.
+  const loading = (sources.loading && !sources.data) || (receipts.loading && !receipts.data);
   const error = sources.error ?? receipts.error;
 
   function openCreate() {

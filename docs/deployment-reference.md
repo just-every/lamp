@@ -38,7 +38,7 @@ Optional values follow the required entries in the table.
 | `LAMP_PAGE_TIMEZONE`, `LAMP_ACCENT_COLOR` | An IANA time zone and a six-digit hex colour, such as `Europe/London` and `#16794C`. |
 | `SETUP_OPERATOR_EMAIL` | The first owner's email address. Supply it explicitly for Lamp's native deployment. |
 | `MAIL_FROM_ADDRESS`, `MAIL_DKIM_SELECTOR`, `MAIL_PROVIDER_API_KEY` | Your provider-authenticated sender, its DKIM selector and the selected provider's API key. These are required owner inputs. |
-| `SETUP_TOKEN`, `SESSION_SECRET`, `SUBSCRIBER_TOKEN_SECRET`, `WEBHOOK_SIGNING_SECRET` | Required runtime secrets. `rer deploy` generates fresh random values when absent; they are not mandatory manual inputs for a first deployment. For repeatable native redeploys, terminal recovery and restores, supply and retain your original values as shown in the deployment guide. Each must be at least 32 characters. |
+| `SETUP_TOKEN`, `SESSION_SECRET`, `SUBSCRIBER_TOKEN_SECRET`, `WEBHOOK_SIGNING_SECRET` | Required runtime secrets. `rer deploy` generates fresh random values when absent; they are not mandatory manual inputs for a first deployment. A redeploy keeps the `SESSION_SECRET`, `SUBSCRIBER_TOKEN_SECRET` and `WEBHOOK_SIGNING_SECRET` each Worker already holds, so links and sessions survive it; `LAMP_REPLACE_SECRETS=NAME` replaces one on purpose. For restores into a new installation, supply and retain your original values as shown in the deployment guide. Each must be at least 32 characters. |
 | `MAIL_PROVIDER` | `resend` (native default) or `sendgrid`. Set explicitly to match the API key. |
 | `OWNER_DISPLAY_NAME` | Optional first-owner name, 1–120 characters; the native default is `Owner`. Existing owners keep their name. |
 | `LAMP_HOSTING` | `custom-domain` (default) or `workers-dev`. |
@@ -84,16 +84,10 @@ the following makes a read-only request and prints only the subdomain:
 curl --fail --silent --show-error \
   --header "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
   "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/workers/subdomain" \
-  | node --input-type=module -e '
-    let body = "";
-    for await (const chunk of process.stdin) body += chunk;
-    const data = JSON.parse(body);
-    if (!data.success || !data.result?.subdomain) {
-      throw new Error("No Workers subdomain returned; check the account and token permissions.");
-    }
-    console.log(data.result.subdomain);
-  '
+  | grep -o '"subdomain":"[^"]*"' | cut -d '"' -f 4
 ```
+
+No output means no subdomain was returned; check the account and token permissions.
 
 The API token needs **Workers Scripts Read** or **Workers Scripts Write** for
 this [subdomain lookup](https://developers.cloudflare.com/api/resources/workers/subresources/subdomains/methods/get/).
@@ -131,6 +125,9 @@ deploying checkout with the original account, environment and private input file
 ```sh
 node scripts/remove-deployment.mjs --environment production --env-file "$HOME/.config/lamp/production.env" --yes
 ```
+
+It runs on Node 22 or later, not through `rer`; see [Remove an installation](deploy.md#remove-an-installation)
+for getting Node when the Run page's installer kept its Node private.
 
 In `workers-dev` mode, this removes the public Worker first, then the app Worker
 and its owned data resources, reading back their absence. Custom-domain mode has

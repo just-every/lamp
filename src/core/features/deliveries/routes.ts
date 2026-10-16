@@ -39,6 +39,7 @@ export function registerDeliveryRoutes(app: Hono<AppEnv>, service: DeliveriesSer
     const rows = await service.list({ ...parsed.data, limit: parsed.data.limit + 1 });
     return context.json({
       deliveries: rows.slice(0, parsed.data.limit),
+      subscriptionMail: await service.listSubscriptionMail(),
       mail: { provider: mailProvider, local: options.localMail === true, receiptsConfigured: !options.localMail && receiptsConfigured },
       limit: parsed.data.limit,
       offset: parsed.data.offset,

@@ -10,11 +10,35 @@ import { EmptyState, ErrorState } from "../../../app/client/ui/lit-states";
 
 type DeliveriesResponse = {
   deliveries: Awaited<ReturnType<DeliveriesService["list"]>>;
+  subscriptionMail: Awaited<ReturnType<DeliveriesService["listSubscriptionMail"]>>;
   limit: number;
   offset: number;
   hasMore: boolean;
   mail: { provider: "rer" | "resend" | "sendgrid"; local: boolean; receiptsConfigured: boolean };
 };
+
+const MAIL_KINDS = { confirmation: "Confirmation email", "already-subscribed": "Already subscribed", subscribed: "Subscribed notice" } as const;
+
+// Confirmation and other subscription emails: sent once each, with no retries,
+// so they sit apart from the notification records above.
+function SubscriptionMail({ rows, providerName }: { rows: DeliveriesResponse["subscriptionMail"]; providerName: string }) {
+  const formatOperatorTime = useOperatorTime();
+  return <section className="data-card subscriber-table-card" aria-labelledby="subscription-mail-title">
+    <h2 id="subscription-mail-title">Subscription emails</h2>
+    <p>The latest confirmation and subscription emails, newest first.</p>
+    {rows.length === 0 ? <EmptyState>No subscription email has been sent yet.</EmptyState> : <div className="table-scroll" tabIndex={0} role="region" aria-label="Subscription emails">
+      <table>
+        <thead><tr><th scope="col">Destination</th><th scope="col">Email</th><th scope="col">Outcome</th><th scope="col">Sent</th></tr></thead>
+        <tbody>{rows.map((row) => <tr key={row.id}>
+          <td><strong>{row.destination}</strong><small>{row.subscriberState} subscriber</small></td>
+          <td>{MAIL_KINDS[row.kind]}</td>
+          <td><span className={`state-pill state-${row.outcome}`}>{row.outcome === "accepted" ? `Accepted by ${providerName}` : row.outcome === "suppressed" ? "Not sent: local mail is suppressed" : "Failed"}</span></td>
+          <td>{formatOperatorTime(row.sentAt)}</td>
+        </tr>)}</tbody>
+      </table>
+    </div>}
+  </section>;
+}
 
 export function DeliveriesPage() {
   const formatOperatorTime = useOperatorTime();
@@ -61,7 +85,7 @@ export function DeliveriesPage() {
           <tbody>{data.deliveries.map((delivery) => {
             const acceptedWithoutReceipt = !data.mail.local && delivery.channel === "email" && delivery.outcome === "queued" && Boolean(delivery.providerAcceptedAt) && !data.mail.receiptsConfigured;
             return <tr key={delivery.id}>
-              <td><strong>{delivery.destination}</strong><small>{delivery.subscriberState} subscriber</small>{delivery.maintenanceReference ? <small>{delivery.maintenanceReference}: {delivery.maintenanceTitle} · {delivery.maintenanceNoticeKind}</small> : null}</td>
+              <td><strong>{delivery.destination}</strong><small>{delivery.subscriberState} subscriber</small>{delivery.maintenanceReference ? <small>{delivery.maintenanceReference}: {delivery.maintenanceTitle} · {delivery.maintenanceNoticeKind}</small> : null}{delivery.incidentReference ? <small>{delivery.incidentReference}: {delivery.incidentTitle} · {delivery.incidentLifecycle?.toLowerCase()}</small> : null}</td>
               <td>{delivery.channel}</td>
               <td>
                 <span className={`state-pill state-${acceptedWithoutReceipt ? "accepted" : delivery.outcome}`}>{acceptedWithoutReceipt ? `Accepted by ${providerName}` : delivery.outcome}</span>
@@ -76,5 +100,6 @@ export function DeliveriesPage() {
       </div>
       {data.deliveries.length === 0 ? <EmptyState>No delivery records match these filters.</EmptyState> : <ListPagination label="Delivery" offset={data.offset} shown={data.deliveries.length} hasMore={data.hasMore} onPrevious={() => setOffset((current) => Math.max(0, current - data.limit))} onNext={() => setOffset((current) => current + data.limit)} />}
     </section>
+    <SubscriptionMail rows={data.subscriptionMail} providerName={providerName} />
   </div>;
 }

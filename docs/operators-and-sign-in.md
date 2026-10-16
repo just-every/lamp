@@ -48,10 +48,13 @@ only enables provider sign-in; register and configure the provider first.
 SCIM and role synchronization are not supported.
 
 **Settings → Operators → Identity provider settings** says whether a provider
-is set up and walks you through Google on the page itself: the exact redirect
-URI, the two settings lines (with a fresh random secret), the deploy step and a
-sign-in test, each with a copy button. Microsoft and Okta need the extra values
-below.
+is set up and walks you through Google, Okta and a Run Edit Run Auth link on the
+page itself: the exact redirect URI or addresses, the settings lines (with a fresh
+random secret), where each value is in the provider's console, the deploy step and
+a sign-in test, each with a copy button. Microsoft Entra cannot be finished there:
+Lamp links each Microsoft person by the subject Microsoft issues to the app, which
+the Entra admin center does not show. Use the steps below only if your identity
+administrator can give you each operator's subject.
 
 ### Register Google, Microsoft or Okta
 
@@ -101,12 +104,7 @@ placeholders, not usable credentials:
    printing it, run this once before that key exists in the file:
 
 ```sh
-node --input-type=module <<'NODE'
-import { appendFileSync } from "node:fs";
-import { randomBytes } from "node:crypto";
-const file = process.env.HOME + "/.config/lamp/production.env";
-appendFileSync(file, "\nOIDC_TRANSACTION_SECRET=" + randomBytes(32).toString("hex") + "\n");
-NODE
+printf 'OIDC_TRANSACTION_SECRET=%s\n' "$(od -An -vtx1 -N32 /dev/urandom | tr -d ' \n')" >> "$HOME/.config/lamp/production.env"
 ```
 
 3. Stop any local development or preview server, then validate and redeploy:

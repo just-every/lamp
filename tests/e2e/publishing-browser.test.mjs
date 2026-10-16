@@ -371,7 +371,14 @@ contract("UPDATE-006", "the composer schedules publication separately from its n
   await page.locator("label", { hasText: "Who is affected" }).locator("textarea").fill("Scheduled browser customers.");
   await page.locator("label", { hasText: "What is the impact" }).locator("textarea").fill("A scheduled update has a distinct publication time.");
   await page.getByLabel("Next update date and time").fill("2027-09-08T14:00");
-  await page.getByText("Draft saved", { exact: true }).waitFor({ timeout: 2000 });
+  // Scheduling publishes the stored draft, so wait for the server to hold all three
+  // edits (UPDATE-005 keeps the strict two-second autosave gate).
+  for (const deadline = Date.now() + 15_000; ; await new Promise(resolve => setTimeout(resolve, 200))) {
+    const draft = (await (await appFetch(`/api/app/incidents/${incident.id}`)).json()).incident.draft;
+    if (draft?.affectedAudience === "Scheduled browser customers." && draft.customerImpact === "A scheduled update has a distinct publication time." && draft.nextUpdateAt) break;
+    assert.ok(Date.now() < deadline, `the composer never stored the scheduled draft: ${JSON.stringify(draft)}`);
+  }
+  await page.getByText("Draft saved", { exact: true }).waitFor();
   await page.getByText("Schedule or backdate", { exact: true }).click();
   await page.getByLabel("Scheduled publication date and time").fill("2027-09-08T13:30");
   await page.getByRole("button", { name: "Schedule update" }).click();

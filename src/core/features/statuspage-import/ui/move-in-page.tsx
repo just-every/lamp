@@ -85,8 +85,8 @@ export function MoveInPage() {
     <section className="data-card"><form className="move-in-form" onSubmit={dryRun}>
       <label className="form-label">Source<select value={source} disabled={busy || !hydrated} onChange={event => { setSource(event.target.value as typeof source); setPreview(null); setResult(null); setFiles([]); setPageId(""); setPublicUrl(""); setApiKey(""); setAcknowledged(false); setPublicAccessAcknowledged(false); setError(null); clearCutover(); }}><option value="statuspage">Statuspage</option><option value="betterstack">Better Stack</option><option value="instatus">Instatus</option><option value="sorry">Sorry</option></select></label>
       <fieldset><legend>From your {sourceLabel} account</legend><AccountHelp source={source} />
-        {source === "betterstack" || source === "instatus" ? <>
-          <label className="form-label">{source === "betterstack" ? "API token" : "API key"}<input type="password" value={apiKey} autoComplete="off" onChange={(event) => setApiKey(event.target.value.trim())} /></label>
+        {source === "betterstack" || source === "instatus" || source === "sorry" ? <>
+          <label className="form-label">{source === "instatus" ? "API key" : "API token"}<input type="password" value={apiKey} autoComplete="off" onChange={(event) => setApiKey(event.target.value.trim())} /></label>
           <PageFinder key={source} source={source} apiKey={apiKey} onChoose={setPageId} />
           <label className="form-label">{sourceLabel} page ID<input value={pageId} autoComplete="off" onChange={(event) => setPageId(event.target.value.trim())} /></label>
         </> : <>

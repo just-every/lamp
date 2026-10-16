@@ -7,7 +7,7 @@ import { type MailMessage, type MailSender } from "../../platform/mail";
 import { hmacSha256 } from "../../platform/security/opaque-tokens";
 import { SubscriberTokenCodec } from "../subscribers/tokens";
 import { defaultDeliveryEvents, type DeliveryEvents } from "./events";
-import type { DeliveryRepository, DeliveryRow, DispatchableDelivery, PendingProviderEvent } from "./repository";
+import type { DeliveryRepository, DeliveryRow, DispatchableDelivery, PendingProviderEvent, SubscriptionMailRow } from "./repository";
 
 const RETRY_DELAYS_MS = [60_000, 5 * 60_000, 15 * 60_000, 20 * 60_000, 20 * 60_000];
 const RESEND_IDEMPOTENCY_WINDOW_MS = 24 * 60 * 60 * 1000;
@@ -19,6 +19,7 @@ type FrozenMailPayload = MailMessage & { frozenAt: string };
 export interface DeliveriesService {
   list(filter?: { channel?: DeliveryChannel; outcome?: DeliveryOutcome; incidentUpdateId?: string; limit?: number; offset?: number }): Promise<DeliveryRow[]>;
   export(filter?: { channel?: DeliveryChannel; outcome?: DeliveryOutcome; incidentUpdateId?: string }): Promise<DeliveryRow[]>;
+  listSubscriptionMail(limit?: number): Promise<SubscriptionMailRow[]>;
   dispatchDue(origin: string, limit?: number): Promise<void>;
   dispatchEvent(eventId: string, origin: string): Promise<void>;
   dispatchDelivery(deliveryId: string, origin: string): Promise<void>;
@@ -310,6 +311,9 @@ export function createDeliveriesService(
     },
     async export(filter) {
       return repository.listDeliveries({ channel: filter?.channel, outcome: filter?.outcome, incidentUpdateId: filter?.incidentUpdateId });
+    },
+    async listSubscriptionMail(limit = 20) {
+      return repository.listSubscriptionMail(limit);
     },
     async dispatchDue(origin, limit = 100) {
       if (options.effectsPaused) return;

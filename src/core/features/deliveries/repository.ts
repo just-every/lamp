@@ -5,7 +5,10 @@ import { maintenance, notificationDeliveries, operators, subscribers } from "../
 import { notificationOutbox } from "./schema";
 import { createUlid } from "../../shared/ids";
 
-export type DeliveryRow = typeof notificationDeliveries.$inferSelect & { destination: string; subscriberState: "pending" | "active" | "deactivated"; providerAcceptedAt: string | null; latestError: string | null; localCaptureId: string | null; localCapturedAt: string | null; maintenanceReference: string | null; maintenanceTitle: string | null; maintenanceNoticeKind: string | null };
+export type DeliveryRow = typeof notificationDeliveries.$inferSelect & { destination: string; subscriberState: "pending" | "active" | "deactivated"; providerAcceptedAt: string | null; latestError: string | null; localCaptureId: string | null; localCapturedAt: string | null; maintenanceReference: string | null; maintenanceTitle: string | null; maintenanceNoticeKind: string | null; incidentReference: string | null; incidentTitle: string | null; incidentLifecycle: string | null };
+
+/** A confirmation or other subscription email, sent outside notification deliveries (subscribers/service.ts). */
+export interface SubscriptionMailRow { id: string; destination: string; subscriberState: "pending" | "active" | "deactivated"; kind: "confirmation" | "already-subscribed" | "subscribed"; outcome: "accepted" | "suppressed" | "failed"; sentAt: string }
 
 export interface DispatchableDelivery {
   id: string;
@@ -60,6 +63,7 @@ export type NotificationTokenCandidates = Record<"manage" | "unsubscribe", { id:
 export interface DeliveryRepository {
   hasMailSendClaim(providerMessageId: string): Promise<boolean>;
   listDeliveries(input: { limit?: number; offset?: number; channel?: "email" | "webhook"; outcome?: DeliveryRow["outcome"]; incidentUpdateId?: string }): Promise<DeliveryRow[]>;
+  listSubscriptionMail(limit: number): Promise<SubscriptionMailRow[]>;
   getDelivery(deliveryId: string): Promise<DispatchableDelivery | null>;
   claimAndGetDelivery(deliveryId: string, now: string, reclaimBefore: string): Promise<{ claimed: boolean; delivery: DispatchableDelivery | null }>;
   claimDelivery(deliveryId: string, now: string, reclaimBefore: string): Promise<boolean>;
@@ -143,12 +147,21 @@ export function createDeliveryRepository(binding: D1Database): DeliveryRepositor
         createdAt: notificationDeliveries.createdAt, updatedAt: notificationDeliveries.updatedAt, destination: subscribers.destination, subscriberState: subscribers.state,
         maintenanceReference: maintenance.reference, maintenanceTitle: maintenance.title,
         maintenanceNoticeKind: sql<string | null>`(SELECT kind FROM maintenance_notices WHERE id = notification_deliveries.notification_event_id)`,
+        incidentReference: sql<string | null>`(SELECT i.reference FROM incident_updates u JOIN incidents i ON i.id = u.incident_id WHERE u.id = notification_deliveries.incident_update_id)`,
+        incidentTitle: sql<string | null>`(SELECT i.title FROM incident_updates u JOIN incidents i ON i.id = u.incident_id WHERE u.id = notification_deliveries.incident_update_id)`,
+        incidentLifecycle: sql<string | null>`(SELECT lifecycle FROM incident_updates WHERE id = notification_deliveries.incident_update_id)`,
         providerAcceptedAt: sql<string | null>`(SELECT attempted_at FROM notification_delivery_attempts WHERE delivery_id = ${notificationDeliveries.id} AND provider_message_id IS NOT NULL AND error IS NULL ORDER BY attempted_at LIMIT 1)`,
         localCaptureId: sql<string | null>`(SELECT local_capture_id FROM notification_delivery_attempts WHERE delivery_id = ${notificationDeliveries.id} AND local_capture_id IS NOT NULL ORDER BY attempted_at LIMIT 1)`,
         localCapturedAt: sql<string | null>`(SELECT attempted_at FROM notification_delivery_attempts WHERE delivery_id = ${notificationDeliveries.id} AND local_capture_id IS NOT NULL ORDER BY attempted_at LIMIT 1)`,
         latestError: sql<string | null>`(SELECT error FROM notification_delivery_attempts WHERE delivery_id = ${notificationDeliveries.id} ORDER BY attempted_at DESC, attempt_number DESC LIMIT 1)`,
       }).from(notificationDeliveries).innerJoin(subscribers, eq(notificationDeliveries.subscriberId, subscribers.id)).leftJoin(maintenance, eq(notificationDeliveries.maintenanceId, maintenance.id)).where(conditions.length ? and(...conditions) : undefined).orderBy(asc(notificationDeliveries.queuedAt));
       return input.limit === undefined ? query.all() : query.limit(input.limit).offset(input.offset ?? 0).all();
+    },
+    async listSubscriptionMail(limit) {
+      const result = await binding.prepare(`SELECT a.id, s.destination, s.state AS subscriberState, json_extract(a.payload_json, '$.kind') AS kind, json_extract(a.payload_json, '$.outcome') AS outcome, a.created_at AS sentAt
+        FROM audit_entries a JOIN subscribers s ON s.id = a.entity_id
+        WHERE a.entity_type = 'subscriber' AND a.action = 'subscription-mail' ORDER BY a.created_at DESC, a.id DESC LIMIT ?`).bind(limit).all<SubscriptionMailRow>();
+      return result.results;
     },
     async getDelivery(deliveryId) {
       const result = await deliveryStatement(deliveryId).first<DispatchableDelivery>();

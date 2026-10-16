@@ -1,10 +1,10 @@
 import { lampConfig } from "../../../ext/config";
-import { MailUnavailableError, type MailSender } from "../../platform/mail";
+import { MailUnavailableError, type MailMessage, type MailSender } from "../../platform/mail";
 import { createOpaqueToken, hashOpaqueToken } from "../../platform/security/opaque-tokens";
 import { createUlid, nowIso } from "../../shared/ids";
 import { defaultSubscriberEvents, type SubscriberEvents } from "./events";
 import { defaultSubscriberConfirmationPolicy, type SubscriberConfirmationPolicy } from "./policies";
-import type { StoredSubscriber, StoredSubscriberComponent, SubscriberRepository } from "./repository";
+import type { StoredSubscriber, StoredSubscriberComponent, SubscriberRepository, SubscriptionMailKind } from "./repository";
 import { SubscriberTokenCodec, type SubscriberTokenScope } from "./tokens";
 
 const CONFIRMATION_WINDOW_MS = 24 * 60 * 60 * 1000;
@@ -15,7 +15,7 @@ export type SubscriberView = StoredSubscriber & { componentSelections: StoredSub
 export interface SubscribersService {
   getPageName(): Promise<string>;
   list(limit?: number, offset?: number): Promise<SubscriberView[]>;
-  requestEmailSubscription(email: string, origin: string): Promise<void>;
+  requestEmailSubscription(email: string, origin: string, componentIds?: string[]): Promise<void>;
   confirm(token: string): Promise<boolean>;
   getManagedSubscription(token: string): Promise<{ unsubscribeToken: string; subscriber: SubscriberView; components: Array<{ id: string; name: string }> } | null>;
   updateManagedSelection(token: string, componentIds: string[]): Promise<boolean>;
@@ -90,6 +90,22 @@ export function createSubscribersService(
     return repository.findSubscriberByToken(await tokens.hash(token), scope, nowIso());
   }
 
+  async function visibleSelection(componentIds: string[]) {
+    const valid = new Set((await repository.listVisibleComponents()).map((component) => component.id));
+    return [...new Set(componentIds)].filter((componentId) => valid.has(componentId));
+  }
+
+  // Subscription mail goes straight to the provider, outside notification
+  // deliveries; its outcome is recorded so Deliveries can show it.
+  async function sendSubscriptionMail(mail: MailSender, subscriberId: string, kind: SubscriptionMailKind, message: MailMessage) {
+    let outcome: "accepted" | "suppressed" | "failed" = "failed";
+    try {
+      outcome = (await mail.send(message))?.disposition === "suppressed" ? "suppressed" : "accepted";
+    } finally {
+      await repository.recordSubscriptionMail(subscriberId, kind, outcome, nowIso());
+    }
+  }
+
   async function view(subscriber: StoredSubscriber): Promise<SubscriberView> {
     return { ...subscriber, componentSelections: await repository.listComponents(subscriber.id) };
   }
@@ -99,7 +115,7 @@ export function createSubscribersService(
     async list(limit = 100, offset = 0) {
       return Promise.all((await repository.listSubscribers(limit, offset)).map(view));
     },
-    async requestEmailSubscription(rawEmail, origin) {
+    async requestEmailSubscription(rawEmail, origin, componentIds = []) {
       const { mail } = requiredMailAndTokens();
       const fromAddress = await configuredFromAddress();
       const pageName = await this.getPageName();
@@ -109,6 +125,9 @@ export function createSubscribersService(
       await repository.deleteExpiredPending(new Date(Date.now() - PENDING_WINDOW_MS).toISOString());
       let subscriber = await repository.findSubscriberByDestination(email);
       const wasActive = subscriber?.state === "active";
+      // Only a new or re-opened subscription takes the form's selection, so a
+      // submit for an existing address changes nothing about it (SUB-012).
+      const opened = !subscriber || subscriber.state === "deactivated";
       if (!subscriber) {
         const id = createUlid();
         await repository.createPendingSubscriber({
@@ -123,6 +142,7 @@ export function createSubscribersService(
         subscriber = await repository.findSubscriber(subscriber.id);
       }
       if (!subscriber) throw new Error("Subscriber was not stored.");
+      if (opened) await repository.updateSelection(subscriber.id, await visibleSelection(componentIds), timestamp);
 
       // An established subscriber gets the same neutral form response plus a
       // management-only email. This is not a confirmation message and does
@@ -130,7 +150,7 @@ export function createSubscribersService(
       if (subscriber.state === "active" && wasActive) {
         const manage = await issuedToken(subscriber.id, "manage", null);
         const manageUrl = new URL(`/manage/${encodeURIComponent(manage.token)}`, origin).toString();
-        await mail.send({
+        await sendSubscriptionMail(mail, subscriber.id, "already-subscribed", {
           from: fromAddress, to: email, subject: `You are already subscribed to ${pageName}`,
           text: `You are already subscribed to ${pageName}. Manage this subscription: ${manageUrl}`,
           headers: { "Auto-Submitted": "auto-generated" }, idempotencyKey: `already-subscribed/${subscriber.id}/${timestamp}`,
@@ -151,16 +171,16 @@ export function createSubscribersService(
       const unsubscribe = await issuedToken(subscriber.id, "unsubscribe", null);
       if (subscriber.state === "active") {
         const manageUrl = new URL(`/manage/${encodeURIComponent(manage.token)}`, origin).toString();
-        await mail.send({ from: fromAddress, to: email, subject: `${pageName} subscription`, text: `You are subscribed to ${pageName}. Manage this subscription: ${manageUrl}`, headers: { "Auto-Submitted": "auto-generated" }, idempotencyKey: `subscriber-active/${subscriber.id}` });
+        await sendSubscriptionMail(mail, subscriber.id, "subscribed", { from: fromAddress, to: email, subject: `${pageName} subscription`, text: `You are subscribed to ${pageName}. Manage this subscription: ${manageUrl}`, headers: { "Auto-Submitted": "auto-generated" }, idempotencyKey: `subscriber-active/${subscriber.id}` });
         return;
       }
       const confirm = await issuedToken(subscriber.id, "confirm", new Date(Date.parse(subscriber.createdAt) + PENDING_WINDOW_MS).toISOString());
       const confirmationUrl = new URL(`/confirm-subscription/${encodeURIComponent(confirm.token)}`, origin).toString();
       const unsubscribeUrl = new URL(`/unsubscribe/${encodeURIComponent(unsubscribe.token)}`, origin).toString();
-      await mail.send({
+      await sendSubscriptionMail(mail, subscriber.id, "confirmation", {
         from: fromAddress, to: email, subject: `Confirm your ${pageName} subscription`,
         text: `${pageName}\n\nConfirm this subscription: ${confirmationUrl}\n\nIf this was not you, you can ignore this email. Unsubscribe: ${unsubscribeUrl}\nReturn to status: ${new URL("/", origin).href}`,
-        headers: { "Auto-Submitted": "auto-generated" }, idempotencyKey: `subscriber-confirmation/${subscriber.id}/${timestamp.slice(0, 10)}`,
+        headers: { "Auto-Submitted": "auto-generated" }, idempotencyKey: `subscriber-confirmation/${subscriber.id}/${subscriber.createdAt}`,
       });
     },
     async confirm(token) {
@@ -184,15 +204,17 @@ export function createSubscribersService(
     async updateManagedSelection(token, componentIds) {
       const matched = await fromToken(token, "manage");
       if (!matched || matched.subscriber.state !== "active") return false;
-      const valid = new Set((await repository.listVisibleComponents()).map((component) => component.id));
-      const unique = [...new Set(componentIds)].filter((componentId) => valid.has(componentId));
-      return repository.updateManagedSelection({ subscriberId: matched.subscriber.id, tokenHash: matched.token.tokenHash }, unique, nowIso());
+      return repository.updateManagedSelection({ subscriberId: matched.subscriber.id, tokenHash: matched.token.tokenHash }, await visibleSelection(componentIds), nowIso());
     },
     async unsubscribe(token) {
       const matched = await fromToken(token, "unsubscribe");
       if (!matched || matched.subscriber.state === "deactivated") return false;
       const timestamp = nowIso();
-      if (!await repository.unsubscribeSubscriber({ subscriberId: matched.subscriber.id, tokenHash: matched.token.tokenHash }, timestamp)) return false;
+      // Following an emailed unsubscribe link proves the address is the subscriber's
+      // own, so it restores the address's confirmation allowance (SUB-001): a later
+      // re-subscribe gets a fresh confirmation instead of silence.
+      const allowance = matched.subscriber.channel === "email" ? await hashOpaqueToken(`confirmation-address:${matched.subscriber.destination}`) : null;
+      if (!await repository.unsubscribeSubscriber({ subscriberId: matched.subscriber.id, tokenHash: matched.token.tokenHash }, timestamp, allowance)) return false;
       await emitAfterCommit(() => events.subscriberDeactivated({ subscriberId: matched.subscriber.id, channel: matched.subscriber.channel, occurredAt: timestamp, reason: "unsubscribed" }));
       return true;
     },

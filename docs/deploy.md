@@ -63,26 +63,26 @@ An optional pair of double quotes around a value is removed. Do not add `export`
 shell substitutions or multiline values: `--env-file` reads data and does not
 execute a shell script. File values override exported environment values.
 
-On a first deployment, `rer` can generate `SETUP_TOKEN`, `SESSION_SECRET`,
-`SUBSCRIBER_TOKEN_SECRET` and `WEBHOOK_SIGNING_SECRET` when omitted. For a
-repeatable native deployment and recovery, generate them once into this private
-file before the first deploy and retain them. Run the following only once, before
-those keys exist in the file; it appends random values without printing them:
+`rer` generates `SETUP_TOKEN`, `SESSION_SECRET`, `SUBSCRIBER_TOKEN_SECRET` and
+`WEBHOOK_SIGNING_SECRET` when they are not in the file. A redeploy never replaces
+the last three on a running installation: Lamp keeps the values each Worker
+already holds, so subscriber Manage, Unsubscribe and one-click links and operator
+sessions keep working, and the deploy says which it kept. To restore into a new
+installation you need the originals, so generate them once into this private file
+before the first deploy and keep the file. Run this once, before those keys exist
+in the file; it needs only the standard `od` and `tr` tools and appends random
+values without printing them:
 
 ```sh
-node --input-type=module <<'NODE'
-import { appendFileSync } from "node:fs";
-import { randomBytes } from "node:crypto";
-const names = [
-  "SETUP_TOKEN", "SESSION_SECRET",
-  "SUBSCRIBER_TOKEN_SECRET", "WEBHOOK_SIGNING_SECRET",
-];
-appendFileSync(process.env.LAMP_DEPLOY_ENV, "\n" +
-  names.map(name => `${name}=${randomBytes(32).toString("hex")}\n`).join(""));
-NODE
+for name in SETUP_TOKEN SESSION_SECRET SUBSCRIBER_TOKEN_SECRET WEBHOOK_SIGNING_SECRET; do
+  printf '%s=%s\n' "$name" "$(od -An -vtx1 -N32 /dev/urandom | tr -d ' \n')" >> "$LAMP_DEPLOY_ENV"
+done
 ```
 
-Reuse the original secrets on redeploy or restore. The [input reference](deployment-reference.md#inputs-you-supply-and-values-rer-generates)
+To replace one of the three on purpose (for example after a leak), put its new
+value in the file and add `LAMP_REPLACE_SECRETS=SESSION_SECRET` (comma-separated
+names) for that one deploy. Replacing `SUBSCRIBER_TOKEN_SECRET` ends every emailed
+subscriber link; replacing `SESSION_SECRET` signs every operator out. The [input reference](deployment-reference.md#inputs-you-supply-and-values-rer-generates)
 explains which are required, generated or optional.
 
 You can instead export the same input names in the calling shell. For example,
@@ -148,6 +148,11 @@ archives and recovery, see the [operations reference](../OPERATIONS.md).
 Back up any data you intend to keep using [Backups and recovery](backups-and-recovery.md).
 From the checkout that deployed it, use the same account, environment and private
 inputs:
+
+This one command runs on Node 22 or later rather than through `rer`. Check with
+`node --version`. If it is missing or older (the Run page's installer keeps its
+Node private to `rer`), install Node 22 from [nodejs.org](https://nodejs.org/en/download)
+or your package manager, open a new terminal, then run:
 
 ```sh
 node scripts/remove-deployment.mjs --environment production --env-file "$LAMP_DEPLOY_ENV" --yes

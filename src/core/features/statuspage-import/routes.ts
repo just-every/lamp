@@ -29,8 +29,8 @@ export function registerStatuspageImportRoutes(app: Hono<AppEnv>, service: Statu
     catch (cause) { return context.json({ error: refused(cause) }, 400); }
   });
   app.post("/api/app/statuspage-import/pages", async (context) => {
-    const parsed = z.object({ source: z.enum(["betterstack", "instatus"]), apiKey: z.string().max(256) }).strict().safeParse(await context.req.json().catch(() => null));
-    if (!parsed.success) return context.json({ error: "Choose Better Stack or Instatus and paste its API key." }, 400);
+    const parsed = z.object({ source: z.enum(["betterstack", "instatus", "sorry"]), apiKey: z.string().max(256) }).strict().safeParse(await context.req.json().catch(() => null));
+    if (!parsed.success) return context.json({ error: "Choose Better Stack, Instatus or Sorry and paste its API key." }, 400);
     try { return context.json({ pages: await findSourcePages(parsed.data) }); }
     catch (cause) { return context.json({ error: cause instanceof Error ? cause.message : "Your status pages could not be listed." }, 400); }
   });

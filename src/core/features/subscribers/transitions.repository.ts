@@ -8,7 +8,8 @@ interface SubscriberPermission {
 export interface SubscriberTransitions {
   confirmSubscriber(permission: SubscriberPermission, now: string): Promise<boolean>;
   updateManagedSelection(permission: SubscriberPermission, componentIds: string[], now: string): Promise<boolean>;
-  unsubscribeSubscriber(permission: SubscriberPermission, now: string): Promise<boolean>;
+  /** confirmationAllowance, when given, is the address's anti-bomb key; it is cleared in the same transaction. */
+  unsubscribeSubscriber(permission: SubscriberPermission, now: string, confirmationAllowance?: string | null): Promise<boolean>;
 }
 
 export function createSubscriberTransitions(binding: D1Database): SubscriberTransitions {
@@ -61,8 +62,9 @@ export function createSubscriberTransitions(binding: D1Database): SubscriberTran
           .bind(componentIds.length ? "selected" : "all", now, permission.subscriberId),
       ]);
     },
-    async unsubscribeSubscriber(permission, now) {
+    async unsubscribeSubscriber(permission, now, confirmationAllowance = null) {
       return transition(permission, "unsubscribe", "subscribed", [
+        ...(confirmationAllowance ? [binding.prepare("DELETE FROM subscriber_confirmation_attempts WHERE email_hash = ?").bind(confirmationAllowance)] : []),
         binding.prepare("UPDATE subscribers SET state = 'deactivated', deactivation_reason = 'unsubscribed', deactivated_at = ?, updated_at = ? WHERE id = ?")
           .bind(now, now, permission.subscriberId),
         binding.prepare("UPDATE subscriber_tokens SET revoked_at = ?, updated_at = ? WHERE subscriber_id = ? AND revoked_at IS NULL")

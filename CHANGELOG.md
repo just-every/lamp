@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- A redeploy never replaces the secrets behind existing links and sessions: each Worker keeps the `SESSION_SECRET`, `SUBSCRIBER_TOKEN_SECRET` and `WEBHOOK_SIGNING_SECRET` it holds, so emailed Manage, Unsubscribe and one-click links keep working and operators stay signed in. `LAMP_REPLACE_SECRETS=NAME` replaces one on purpose. The deploy guide's secret step needs only `od` and `tr`, not Node.
+- Subscribers can choose components on the subscribe form, and the subscribe form and management page keep exactly the boxes ticked (only the last one was kept before).
+- Unsubscribing restores the address's confirmation allowance, so re-subscribing sends a fresh confirmation. Deliveries lists confirmation and other subscription emails, and labels incident rows with their reference, title and status.
+- A resolution email's subject starts with "Resolved:". AI suggestions fill "Who is affected" and "What is the impact" in customer words, without brief refs, IDs or machine timestamps.
+- Identity provider settings walk through Okta and a Run Edit Run Auth link on the page, and say plainly why Microsoft Entra cannot be finished there. Sorry move-in finds your pages from a token. The UptimeRobot preset shows the JSON body to configure, and a new preset is listed at once.
+- A build never writes `.dev.vars` or another local settings file into `dist`, and the build refuses output that holds one.
+- Pin rer to 0.2.35, with the Run page's standard two lines: install `rer`, then `rer dev just-every/run-lamp`.
+
 - Move-in keeps its source selector disabled until hydration so early selections cannot leave the displayed provider and import state out of sync. Verification hands local sign-in database state between Wrangler and its assertion proxy, and aggregates attempt-specific shard results without stale artifact overwrites.
 
 - Storage verification keeps its kernel-assigned HTTP sockets bound through Vite/workerd startup, preventing port collisions without retrying or changing application assertions.

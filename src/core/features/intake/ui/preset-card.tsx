@@ -3,12 +3,12 @@ import { useState, type FormEvent } from "react";
 import { appApi, useAppData } from "../../../app/client/ui/api";
 import { Button } from "../../../app/client/ui/button";
 import { FormError } from "../../../app/client/ui/states";
-import { ALERT_PRESETS, datadogPayloadTemplate, presetLabels, type AlertPreset } from "../presets";
+import { ALERT_PRESETS, datadogPayloadTemplate, presetLabels, uptimeRobotPayloadTemplate, type AlertPreset } from "../presets";
 
 type Created = { source: { id: string; name: string; endpointUrl: string; token?: string; preset: AlertPreset } };
 const setup: Record<AlertPreset, string> = {
   datadog: "In Datadog, add a webhook with this URL, a custom header {\"Authorization\": \"Bearer <token>\"} and this payload, then mention @webhook-<name> in the monitor.",
-  uptimerobot: "In UptimeRobot, add a webhook integration with this URL, Send as JSON, and a custom header Authorization: Bearer <token>.",
+  uptimerobot: "In UptimeRobot, open Integrations and add a Webhook. Paste the Endpoint below into URL to Notify, tick Send as JSON, paste the JSON body below into POST value, and add the custom HTTP header {\"Authorization\": \"Bearer <token>\"} with the token below. Save it, then choose it as an alert contact on each monitor for this component.",
   betterstack: "In Better Stack, add an Incident webhook (Integrations → Exporting data) with the URL that ends in your token.",
   pingdom: "In My Pingdom, add a webhook integration with the URL that ends in your token and attach it to the check.",
 };
@@ -28,6 +28,8 @@ export function PresetCard({ onCreated }: { onCreated: () => void }) {
     try {
       const result = await appApi<Created>("/api/app/intake/sources", { method: "POST", body: JSON.stringify({ name: name || `${presetLabels[preset]} alerts`, preset, componentId, credentialKind: "bearer-token" }) });
       setCreated(result.source); setName("");
+      // The new source is listed at once; the token stays on screen until it is copied.
+      onCreated();
     } catch (cause) { setError(cause instanceof Error ? cause.message : "The preset could not be saved."); }
     finally { setSaving(false); }
   }
@@ -45,7 +47,8 @@ export function PresetCard({ onCreated }: { onCreated: () => void }) {
       <label className="form-label">Endpoint with token<input readOnly value={`${created.endpointUrl}/${created.token}`} onFocus={(event) => event.target.select()} /></label>
       <label className="form-label">Token<input readOnly value={created.token} onFocus={(event) => event.target.select()} /></label>
       {created.preset === "datadog" && <label className="form-label">Datadog payload<textarea readOnly rows={9} value={datadogPayloadTemplate} /></label>}
-      <Button type="button" variant="secondary" onClick={() => { setCreated(null); onCreated(); }}>I copied the token</Button>
+      {created.preset === "uptimerobot" && <label className="form-label">UptimeRobot JSON body<textarea readOnly rows={8} value={uptimeRobotPayloadTemplate} /></label>}
+      <Button type="button" variant="secondary" onClick={() => setCreated(null)}>I copied the token</Button>
     </div>}
   </section>;
 }

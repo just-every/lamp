@@ -5,8 +5,11 @@ Use `rer` from the project root. The checkout pins `@runeditrun/rer` 0.2.36;
 your computer without a Cloudflare account or mail credentials; development mail
 is silently suppressed.
 
-The Run page's one line, `npx -y @runeditrun/rer dev just-every/run-lamp`,
-clones `main` (development source) into `run-lamp` and starts it. The latest
+The Run page's two lines, `curl -fsSL https://runeditrun.com/install.sh | sh`
+and then `rer dev just-every/run-lamp`, install `rer` (with its own Node when you
+have none) and clone `main` (development source, not a release tag) into
+`run-lamp` and start it. With Node 22 or later,
+`npx -y @runeditrun/rer dev just-every/run-lamp` does both in one line. The latest
 release tag, `v1.5.1`, pins rer 0.2.24; if you choose the tag, use that
 checkout's own instructions. See [source and tooling versions](README.md#source-and-tooling-versions).
 `rer` selects the project's pinned Node 22.20.0 and pnpm 10.12.4, downloading

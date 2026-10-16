@@ -10,6 +10,7 @@ import { createSubscriberTransitions, type SubscriberTransitions } from "./trans
 export type StoredSubscriber = typeof subscribers.$inferSelect;
 export type StoredSubscriberComponent = typeof subscriberComponents.$inferSelect;
 export type StoredSubscriberToken = typeof subscriberTokens.$inferSelect;
+export type SubscriptionMailKind = "confirmation" | "already-subscribed" | "subscribed";
 
 export interface SubscriberRepository extends SubscriberTransitions {
   listSubscribers(limit: number, offset?: number): Promise<StoredSubscriber[]>;
@@ -27,6 +28,8 @@ export interface SubscriberRepository extends SubscriberTransitions {
   anonymizeAndDeactivate(subscriberId: string, operatorId: string, now: string): Promise<void>;
   deleteExpiredPending(cutoff: string): Promise<void>;
   recordConfirmationSendIfAllowed(emailHash: string, cutoff: string, now: string): Promise<boolean>;
+  /** An audit entry on the subscriber: no address is copied, so erasure of the subscriber erases what it shows. */
+  recordSubscriptionMail(subscriberId: string, kind: SubscriptionMailKind, outcome: "accepted" | "suppressed" | "failed", now: string): Promise<void>;
 }
 
 export function createSubscriberRepository(binding: D1Database): SubscriberRepository {
@@ -188,6 +191,10 @@ export function createSubscriberRepository(binding: D1Database): SubscriberRepos
         "INSERT INTO subscriber_confirmation_attempts (email_hash, last_sent_at, created_at, updated_at) VALUES (?, ?, ?, ?) ON CONFLICT(email_hash) DO UPDATE SET last_sent_at = excluded.last_sent_at, updated_at = excluded.updated_at WHERE subscriber_confirmation_attempts.last_sent_at < ?",
       ).bind(emailHash, now, now, now, cutoff).run();
       return result.meta.changes === 1;
+    },
+    async recordSubscriptionMail(subscriberId, kind, outcome, now) {
+      await binding.prepare("INSERT INTO audit_entries (id, entity_type, entity_id, action, operator_id, payload_json, created_at, updated_at) VALUES (?, 'subscriber', ?, 'subscription-mail', NULL, ?, ?, ?)")
+        .bind(createUlid(), subscriberId, JSON.stringify({ kind, outcome }), now, now).run();
     },
   };
 }

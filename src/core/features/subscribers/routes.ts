@@ -56,11 +56,12 @@ export function registerSubscriberRoutes(app: Hono<AppEnv>, service: Subscribers
     const result = (title: string, message: string, status: number) => publicFormResponse(context.req.raw, title, message, status, pageName);
     if (context.req.header("Sec-Fetch-Site") === "cross-site") return result("Subscription unavailable", "Cross-site subscription requests are not accepted.", 403);
     if (options.rateLimiter && !(await options.rateLimiter.allow({ scope: "subscribe", subject: requestNetworkSubject(context.req.raw), limit: 5 }))) return result("Too many requests", "Too many subscription requests. Try again in a minute.", 429);
-    const body = await context.req.parseBody();
+    // all: true keeps every ticked componentId; without it Hono keeps only the last one.
+    const body = await context.req.parseBody({ all: true });
     const parsed = emailSchema.safeParse({ email: body.email });
     if (!parsed.success) return result("Check your email address", "Enter a valid email address.", 400);
     try {
-      await service.requestEmailSubscription(parsed.data.email, new URL(context.req.url).origin);
+      await service.requestEmailSubscription(parsed.data.email, new URL(context.req.url).origin, parsedComponentIds(body.componentId));
       // Preserve the same response for active, pending and suppressed requests.
       if (options.localMail) return result("Local email is suppressed", "No email is sent locally. Confirming or managing a subscription by email requires a hosted installation.", 202);
       return result("Check your email", "Check your email to confirm or manage this subscription.", 202);
@@ -89,7 +90,7 @@ export function registerSubscriberRoutes(app: Hono<AppEnv>, service: Subscribers
     const token = context.req.param("token") ?? "";
     const limited = await allowedTokenRequest(context, options.rateLimiter, "subscription-manage", token, pageName);
     if (limited) return limited;
-    const updated = await service.updateManagedSelection(token, parsedComponentIds((await context.req.parseBody()).componentId));
+    const updated = await service.updateManagedSelection(token, parsedComponentIds((await context.req.parseBody({ all: true })).componentId));
     return updated ? tokenResponse(context.req.raw, renderSubscriberTokenPage("Subscription updated", "<p>Your selection has been updated.</p>", pageName)) : tokenResponse(context.req.raw, renderSubscriberTokenPage("Subscription unavailable", "<p>This subscription link is invalid or no longer active.</p>", pageName), 404);
   });
   app.get("/unsubscribe/:token", async (context) => {

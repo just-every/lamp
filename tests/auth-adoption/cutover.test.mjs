@@ -209,9 +209,12 @@ test("MOVE-002 MOVE-006 — Imported invitation expiry, revoked authority and pu
   assert.equal((await publicApp.request(unsubscribe, {method:'POST', body:new URLSearchParams({'List-Unsubscribe':'One-Click'})})).status, 404, 'previous unsubscribe authority stays revoked');
   const currentUnsubscribe = r.messages.at(-1).text.match(/https?:\/\/\S+\/unsubscribe\/\S+/u)[0];
   assert.equal((await publicApp.request(currentUnsubscribe, {method:'POST', body:new URLSearchParams({'List-Unsubscribe':'One-Click'})})).status, 200);
-  const beforeSuppressed = r.messages.length;
+  const beforeRejoin = r.messages.length;
   assert.equal((await subscribe(invitations[0].to)).status, 202);
-  assert.equal(r.messages.length, beforeSuppressed, 'rejoin preserves the address anti-bomb allowance');
+  assert.equal(r.messages.length, beforeRejoin + 1, 'the address\'s own unsubscribe restores its allowance, so a rejoin gets a fresh confirmation (SUB-001)');
+  assert.match(r.messages.at(-1).text, /confirm-subscription/);
+  assert.equal((await subscribe(invitations[0].to)).status, 202);
+  assert.equal(r.messages.length, beforeRejoin + 1, 'a repeated rejoin within 24 hours keeps the anti-bomb bound');
   await r.db.prepare("UPDATE subscriber_confirmation_attempts SET last_sent_at='2000-01-01T00:00:00.000Z'").run();
   assert.equal((await subscribe(invitations[0].to)).status, 202);
   const finalPending = await r.db.prepare('SELECT created_at FROM subscribers WHERE id=?').bind(renewed.id).first();

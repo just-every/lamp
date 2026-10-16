@@ -74,7 +74,7 @@ async function main() {
   await applyOwnerMigrations("wrangler.toml", ["--remote"]);
   wrangler(["d1", "execute", "DB", "--remote", "--config", "wrangler.toml", "--command", `${setupPageSettingsStatement(config)}`]);
   if (!existsSync("wrangler.toml")) throw new Error("Setup did not generate wrangler.toml.");
-  console.log(`Provisioned ${names.worker}; migrations and page settings are initialized. Claim the owner with SETUP_TOKEN after deployment.`);
+  console.log(`Provisioned ${names.worker}; migrations and page settings are initialized.`);
 }
 
 main().catch((error) => { console.error(error instanceof Error ? error.message : error); process.exit(1); });

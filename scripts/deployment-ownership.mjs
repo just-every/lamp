@@ -19,6 +19,11 @@ export function deploymentOwnership(config, env = process.env) {
   const read = (page = false) => readOwnerState(path(page), target(page));
   const save = (state, page = false) => writeOwnerState(path(page), state);
   return { api, target, path, read,
+    /** The secret names the live Worker holds (never values); none before its first deploy. */
+    async heldSecrets(page = false) {
+      const live = await activeWorker(api, target(page).worker);
+      return live ? live.settings.bindings.filter(binding => binding.type === 'secret_text').map(binding => binding.name) : [];
+    },
     async resource(kind, name, find, create) {
       const state = await read(), existing = await find();
       if (existing) {

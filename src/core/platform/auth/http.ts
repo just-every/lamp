@@ -33,7 +33,7 @@ export async function authResponse(request:Request,env:AppBindings,services:AppS
       return new Response(response.body, { status: response.status, statusText: response.statusText, headers });
     }
     return request.method === 'GET' && url.pathname === '/auth/settings/identity'
-      ? await identitySettingsPage(response, { origin: config.origin, providers: config.providers, linkedAuth: Boolean(env.IDENTITY_PROVIDER), local: Boolean(import.meta.env?.DEV), saved: url.searchParams.get('saved') === '1' })
+      ? await identitySettingsPage(response, { origin: config.origin, providers: config.providers, identityProvider: env.IDENTITY_PROVIDER || undefined, local: Boolean(import.meta.env?.DEV), saved: url.searchParams.get('saved') === '1' })
       : response;
   } catch(error) {return Response.json({error:error instanceof AuthError?error.code:'auth_unavailable'},{status:error instanceof AuthError?error.status:503,headers:securityHeaders()});}
 }

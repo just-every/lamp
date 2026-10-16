@@ -39,10 +39,16 @@ information.
 ## Run it locally
 
 ```sh
-npx -y @runeditrun/rer dev just-every/run-lamp
+curl -fsSL https://runeditrun.com/install.sh | sh
+rer dev just-every/run-lamp
 ```
 
-That one line installs `rer`, clones Lamp, sets up the first owner and starts it. To start it again later, run `cd run-lamp && rer dev`.
+The first line installs `rer` for you alone, with its own Node if you have no
+Node 22 or later; if it prints an `export PATH=…` line, run that line first. The
+second gets Lamp, installs everything, makes you the owner and prints a link that
+opens Lamp signed in. To start it again later, run `cd run-lamp && rer dev`.
+Already have Node 22 or later? `npx -y @runeditrun/rer dev just-every/run-lamp`
+does both in one line.
 
 ## Owner guides
 
@@ -60,10 +66,11 @@ The app host serves Lamp's public documentation at `/docs`. Start with the
 
 ## Source and tooling versions
 
-The Run page's one line, `npx -y @runeditrun/rer dev just-every/run-lamp`,
-clones `main` into a `run-lamp` folder and starts it; after that, run `rer dev`
-from that folder. `main` is Lamp 1.6.0 development source, with changes not yet
-in a release, and pins `@runeditrun/rer` 0.2.36. The latest tagged release is
+The Run page's start line, `rer dev just-every/run-lamp` (or its one-line `npx`
+form), clones the default branch, `main`, not a release tag, into a `run-lamp`
+folder and starts it; after that, run `rer dev` from that folder. `main` is Lamp
+1.6.0 development source, with changes not yet in a release, and pins
+`@runeditrun/rer` 0.2.36. The latest tagged release is
 `v1.5.1`, which pins rer 0.2.24. To use that release instead:
 
 ```sh
@@ -73,7 +80,10 @@ git clone --branch v1.5.1 https://github.com/just-every/run-lamp.git lamp
 Then follow the documentation inside that checkout, which matches its tools.
 
 Node 22.20.0 and pnpm 10.12.4 are pinned. `rer` downloads and uses that Node
-version when your shell has a different one, and says so when it starts.
+version when your shell has a different one, and says so when it starts. Every
+command in the guides runs through `rer`, except
+[removing a deployment](docs/deploy.md#remove-an-installation), which needs
+Node 22 or later on your PATH.
 
 ## Deploy and verify
 

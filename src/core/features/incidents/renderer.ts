@@ -38,7 +38,8 @@ export function renderIncidentUpdate(input: IncidentUpdateRenderInput): Rendered
   return {
     public: { heading, lifecycle: input.lifecycle, fields },
     email: {
-      subject: `[${input.incidentReference}] ${input.incidentTitle}`,
+      // A resolution says so in the subject; earlier updates keep the incident's own subject so the thread stays together.
+      subject: `[${input.incidentReference}] ${input.lifecycle === "Resolved" ? "Resolved: " : ""}${input.incidentTitle}`,
       plainText: [heading, `Status: ${input.lifecycle}`, ...fields.map((field) => `${field.label}: ${field.value}`)].join("\n\n"),
     },
   };

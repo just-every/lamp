@@ -422,6 +422,30 @@ test("SUB-004 SUB-006 SUB-007 SUB-005 PAGE-013 SUB-012 SUB-008 — Scoped subscr
   assert.equal(unsubscribed.status, 200);
   assert.equal(await unsubscribed.text(), "");
   assert.equal(unsubscribed.headers.get("location"), null);
+
+  // SUB-004 through both public doors: the subscribe form and the management page
+  // keep exactly the boxes ticked (one, several, every one, none), and the
+  // operator list reports the same selection.
+  const selectable = (await platform.env.DB.prepare("SELECT id FROM components WHERE internal = 0 ORDER BY id").all()).results.map((row) => row.id);
+  assert.ok(selectable.length >= 3, "the fixture has at least three public components");
+  const ticked = (ids, fields = {}) => { const form = new URLSearchParams(fields); for (const id of ids) form.append("componentId", id); return form; };
+  const operatorList = async (email) => {
+    const listed = (await service.list(100)).find((item) => item.destination === email);
+    return { mode: listed.selectionMode, ids: listed.componentSelections.map((selection) => selection.componentId).sort() };
+  };
+  const signedUp = await app.request("https://status.example.test/subscribe", { method: "POST", body: ticked(selectable.slice(0, 2), { email: "picker@example.test" }) });
+  assert.equal(signedUp.status, 202);
+  assert.deepEqual(await operatorList("picker@example.test"), { mode: "selected", ids: selectable.slice(0, 2).sort() }, "signup keeps both ticked components, not only the last");
+  await service.confirm(new URL(mail.messages.at(-1).text.match(/https:\/\/[^\s]+\/confirm-subscription\/[^\s]+/)[0]).pathname.split("/").at(-1));
+  await service.requestEmailSubscription("picker@example.test", "https://status.example.test");
+  const pickerManage = new URL(mail.messages.at(-1).text.match(/https:\/\/[^\s]+\/manage\/[^\s]+/)[0]).pathname;
+  for (const choice of [selectable.slice(1, 2), selectable.slice(0, 3), selectable, []]) {
+    assert.equal((await app.request(`https://status.example.test${pickerManage}`, { method: "POST", body: ticked(choice) })).status, 200);
+    assert.deepEqual(await operatorList("picker@example.test"), { mode: choice.length ? "selected" : "all", ids: [...choice].sort() });
+    const reopened = await (await app.request(`https://status.example.test${pickerManage}`)).text();
+    const shown = [...reopened.matchAll(/name="componentId" value="([^"]+)" checked/g)].map((match) => match[1]).sort();
+    assert.deepEqual(shown, (choice.length ? [...choice] : [...selectable]).sort(), "the reopened page shows the saved selection");
+  }
 })(t);
   t.diagnostic("SUB-005 — in-flight subscriber permissions cannot change completed opt-out or a rejoined subscription");
   await (async () => {

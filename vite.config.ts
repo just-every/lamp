@@ -7,6 +7,7 @@ import react from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
 import { archiveOutputGuard } from "@runeditrun/rer/archive-output";
 import { developmentIngress } from "./scripts/dev-ingress/plugin.mjs";
+import { localSecretsStayLocal } from "./scripts/local-secret-files.mjs";
 import { docsSite } from "./src/site/docs/build/plugin.ts";
 
 const persistStatePath = process.env.RER_STATE_DIR ?? process.env.LAMP_WORKERS_STATE_PATH ?? ".wrangler/state";
@@ -79,6 +80,7 @@ export default defineConfig(({ command, isPreview }) => {
         // migration command and the Worker use one local D1 database.
         persistState: { path: persistStatePath },
       }),
+      localSecretsStayLocal(),
       tanstackStart({ prerender: { enabled: false } }),
       react(),
       tailwindcss(),

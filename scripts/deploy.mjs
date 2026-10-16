@@ -4,7 +4,7 @@ import { rm, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 
 import { deploymentConfig, mailEnvironmentNames, mailEnvironmentSources, parseArgs, resourceNames, writeGeneratedWrangler } from "./ops-config.mjs";
-import { withDeploymentSecrets } from "./deployment-secrets.mjs";
+import { keptSecrets, replacedSecrets, withDeploymentSecrets } from "./deployment-secrets.mjs";
 import { withPublicWorkerConfig } from "./native-public-worker.mjs";
 import { readOperations } from "./operations.mjs";
 import { dryRunInputFailure } from "./deploy-preflight.mjs";
@@ -70,10 +70,15 @@ async function main() {
   const builtConfig = await buildGeneratedWorker(resolve("wrangler.toml"), config);
   const identity = { source: deploySource(), fingerprint: await deployFingerprint() };
   const ownership = deploymentOwnership(config);
-  await withDeploymentSecrets(config, async (file) => {
-    await ownership.upload(false, identity, () => run("pnpm", ["exec", "wrangler", "deploy", "--config", builtConfig, "--secrets-file", file, ...identityVars(identity)]));
-    if (config.hosting === "workers-dev") await withPublicWorkerConfig(builtConfig, names, path => ownership.upload(true, identity, () => run("pnpm", ["exec", "wrangler", "deploy", "--config", path, "--secrets-file", file, ...identityVars(identity)])));
-  });
+  const replace = replacedSecrets();
+  // Each Worker keeps the signing secrets it already holds (deployment-secrets.mjs).
+  const upload = async (page, deploy) => {
+    const kept = keptSecrets(await ownership.heldSecrets(page), replace);
+    if (kept.length) console.log(`Kept ${kept.join(", ")} on ${page ? names.publicWorker : names.worker}, so existing subscriber links and operator sessions keep working.`);
+    await withDeploymentSecrets(config, kept, file => ownership.upload(page, identity, () => deploy(file)));
+  };
+  await upload(false, file => run("pnpm", ["exec", "wrangler", "deploy", "--config", builtConfig, "--secrets-file", file, ...identityVars(identity)]));
+  if (config.hosting === "workers-dev") await withPublicWorkerConfig(builtConfig, names, path => upload(true, file => run("pnpm", ["exec", "wrangler", "deploy", "--config", path, "--secrets-file", file, ...identityVars(identity)])));
   const response = await fetch(`https://${config.appHost}/health`, { signal: AbortSignal.timeout(15_000), redirect: "error" });
   const health = await response.json().catch(() => null);
   if (response.status !== 200 || health?.status !== "ok") throw new Error(`Deployment smoke check failed for https://${config.appHost}/health.`);

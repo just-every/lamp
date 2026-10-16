@@ -20,12 +20,16 @@ export function AccountHelp({ source }: { source: Source }) {
     <li>Paste it below and choose <strong>Find my pages</strong>, then <strong>Use this page</strong> beside your status page. You can also right-click the project name at the top left of your Instatus dashboard and choose <strong>Copy Project ID</strong>.</li>
     <li>Confirm the page is public, then choose <strong>Run dry run</strong>. Nothing is imported until you review it.</li>
   </ol>;
-  if (source === "sorry") return <p className="setup-guide">In Sorry, copy your page ID and API key into the fields below, then choose <strong>Run dry run</strong>. No key? Use your public status page address in the next section instead.</p>;
+  if (source === "sorry") return <ol className="setup-guide">
+    <li>Sign in to <a href="https://app.sorryapp.com" {...external}>Sorry</a>, open <strong>My Account → API Tokens</strong> and copy a token (create one if the list is empty). Tokens belong to your user, so use an account that can see the status page.</li>
+    <li>Paste it below and choose <strong>Find my pages</strong>, then <strong>Use this page</strong> beside your status page. That fills the page ID.</li>
+    <li>Choose <strong>Run dry run</strong>. Nothing is imported until you review it. No token? Use your public status page address in the next section instead; it moves everything except subscribers.</li>
+  </ol>;
   return <p className="setup-guide">On Statuspage, open your avatar menu, then <strong>API info</strong>. Copy the page ID and API key into the fields below, then choose <strong>Run dry run</strong>.</p>;
 }
 
-/** Better Stack and Instatus: list the pages the key can read and fill the chosen page ID. */
-export function PageFinder({ source, apiKey, onChoose }: { source: "betterstack" | "instatus"; apiKey: string; onChoose: (id: string) => void }) {
+/** Better Stack, Instatus and Sorry: list the pages the key can read and fill the chosen page ID. */
+export function PageFinder({ source, apiKey, onChoose }: { source: "betterstack" | "instatus" | "sorry"; apiKey: string; onChoose: (id: string) => void }) {
   const [pages, setPages] = useState<SourcePage[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);

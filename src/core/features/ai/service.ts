@@ -1,5 +1,6 @@
 import { SUGGESTED_FIELDS, type AiProvider, type AiSuggestion } from "../../platform/ai";
 import { briefReferences, type BriefService, type IncidentBrief } from "../brief";
+import { customerText } from "./customer-text";
 
 /** A suggestion whose every source names an item of the brief it was built from. */
 export interface CheckedSuggestion { suggestion: AiSuggestion; brief: IncidentBrief }
@@ -8,7 +9,7 @@ export interface AiService { configured(): boolean; unavailable: string | null; 
 // A fixed, fictional brief: the connection check sends no installation data.
 const CHECK_BRIEF: IncidentBrief = {
   incident: { reference: "CHECK-1", title: "Connection check: card payments are slow", lifecycle: "Investigating", openedAt: "2026-01-01T00:00:00.000Z" },
-  whatWeKnow: { alerts: [], updates: [], components: [] },
+  whatWeKnow: { alerts: [], updates: [], components: [{ ref: "C1", name: "Card payments", state: "Degraded performance", relationship: "Primary" }] },
   whatWeDoNotKnowYet: [],
   toneInstructions: "",
 };
@@ -21,7 +22,7 @@ export function createAiService(briefs: BriefService, provider: AiProvider | nul
       if (!provider) return { ok: false, message: unavailable ?? "No AI provider is configured." };
       try {
         const answer = await provider.suggestUpdate(CHECK_BRIEF);
-        return { ok: true, message: `The provider answered with a suggestion: “${answer.customerImpact.text || answer.details.text || answer.affectedAudience.text}”` };
+        return { ok: true, message: `The provider answered with a suggestion: “${customerText(answer.customerImpact.text || answer.affectedAudience.text || answer.details.text)}”` };
       } catch (cause) {
         return { ok: false, message: cause instanceof Error ? cause.message : "The AI provider did not answer." };
       }
@@ -35,7 +36,7 @@ export function createAiService(briefs: BriefService, provider: AiProvider | nul
       const known = briefReferences(brief);
       const suggestion = Object.fromEntries(SUGGESTED_FIELDS.map((name) => {
         const field = answer[name];
-        return [name, { text: field.text.trim(), sources: [...new Set(field.sources)].filter((ref) => known.has(ref)) }];
+        return [name, { text: customerText(field.text), sources: [...new Set(field.sources)].filter((ref) => known.has(ref)) }];
       })) as unknown as AiSuggestion;
       return { suggestion, brief };
     },
