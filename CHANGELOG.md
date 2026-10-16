@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Storage verification keeps its kernel-assigned HTTP sockets bound through Vite/workerd startup, preventing port collisions without retrying or changing application assertions.
+
 - Post-incident reports can be saved, edited after reload, and published from the incident editor. Saving sends only the four editable report fields; publication metadata remains managed by the server.
 
 ## 1.5.1

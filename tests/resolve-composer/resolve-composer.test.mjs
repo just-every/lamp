@@ -1,8 +1,7 @@
 import { requestHeaders } from "../helpers/request-headers.mjs";
 import { withDraftVersion } from "../e2e/draft-version-helper.mjs";
 import assert from "node:assert/strict";
-import { execFileSync, spawn } from "node:child_process";
-import { createServer } from "node:net";
+import { execFileSync } from "node:child_process";
 import { mkdir, mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -10,31 +9,22 @@ import { after, before, test } from "node:test";
 import { chromium } from "playwright";
 
 import { insertRealOperatorSession } from "../e2e/real-session-helper.mjs";
-import { appOrigin, pageOrigin } from "../e2e/helpers/hosts.mjs";
-import { reservePort, waitForWorker } from "../e2e/worker-startup.mjs";
+import { pageOrigin } from "../e2e/helpers/hosts.mjs";
+import { startViteWorker, stopViteWorker } from "../e2e/vite-worker.mjs";
 import { sessionCookieName } from "../helpers/session-cookie.mjs";
 
-const port = Number(process.env.LAMP_COMPOSER_PORT ?? await reservePort({ label: "composer" }));
-
-const origin = appOrigin(port);
+const requestedPort = Number(process.env.LAMP_COMPOSER_PORT ?? 0);
+let port;
+let origin;
 const testDirectory = await mkdtemp(join(tmpdir(), "lamp-composer-"));
 const statePath = join(testDirectory, "worker-state");
 const viteCachePath = join(testDirectory, "vite-cache");
 let sessionId;
 let server;
-let serverClosed;
 let browser;
 let context;
 let page;
 let serverOutput = "";
-
-async function assertPortAvailable() {
-  await new Promise((resolve, reject) => {
-    const listener = createServer();
-    listener.once("error", () => reject(new Error(`Lamp composer browser test port ${port} is already in use.`)));
-    listener.listen(port, "127.0.0.1", () => listener.close((error) => error ? reject(error) : resolve()));
-  });
-}
 
 async function appFetch(path, init = {}) {
   init = await withDraftVersion(path, init, appFetch);
@@ -95,32 +85,15 @@ async function waitForSavedDraft() {
 }
 
 before(async () => {
-  await assertPortAvailable();
   await mkdir(viteCachePath, { recursive: true });
   execFileSync("pnpm", ["exec", "wrangler", "d1", "migrations", "apply", "DB", "--local", "--config", "wrangler.jsonc", "--persist-to", statePath], { stdio: "pipe" });
   sessionId = await insertRealOperatorSession({ persistTo: statePath });
-  const startupStartedAt = performance.now();
-  server = spawn("pnpm", ["exec", "vite", "--host", "127.0.0.1", "--port", String(port), "--strictPort"], {
-    cwd: process.cwd(),
-    detached: true,
-    stdio: "pipe",
-    env: { ...process.env, LAMP_WORKERS_STATE_PATH: statePath, LAMP_VITE_CACHE_DIR: viteCachePath, LAMP_DISABLE_INSPECTOR: "true" },
-  });
-  console.info(`Lamp composer Vite started: pid=${server.pid}, cwd=${process.cwd()}, at=${new Date().toISOString()}`);
-  serverClosed = new Promise((resolve) => server.once("close", (code, signal) => {
-    console.info(`Lamp composer Vite closed: pid=${server.pid}, code=${code}, signal=${signal}`);
-    resolve();
+  ({ server, baseUrl: origin } = await startViteWorker({
+    port: requestedPort, statePath, viteCachePath, timeoutMs: 120_000,
+    label: "Lamp composer Worker", onOutput: (chunk) => { serverOutput += chunk; },
   }));
-  server.stdout.on("data", (chunk) => { serverOutput += chunk; });
-  server.stderr.on("data", (chunk) => { serverOutput += chunk; });
-  server.on("exit", (code, signal) => {
-    const diagnostic = `Lamp composer Vite exited: code=${code}, signal=${signal}`;
-    serverOutput += `\n${diagnostic}\n`;
-    console.info(diagnostic);
-  });
-  await waitForWorker({ origin, child: server, output: () => serverOutput, timeoutMs: 120_000, label: "Lamp composer Worker" });
-  console.info(`Lamp composer Worker ready after ${Math.round(performance.now() - startupStartedAt)}ms (120000ms cold-start budget).`);
-  browser = await chromium.launch({ headless: true });
+  port = Number(new URL(origin).port);
+  browser = await chromium.launch({ headless: true, args: ["--use-mock-keychain", "--password-store=basic"] });
   context = await browser.newContext({ timezoneId: "Australia/Brisbane", viewport: { width: 1440, height: 1000 } });
   await context.addCookies([{ name: sessionCookieName(origin), value: sessionId, url: origin }]);
   page = await context.newPage();
@@ -130,25 +103,7 @@ after(async () => {
   await page?.close();
   await context?.close();
   await browser?.close();
-  if (server) {
-    try { process.kill(-server.pid, "SIGTERM"); }
-    catch (cause) { if (cause?.code !== "ESRCH") throw cause; }
-    let cleanupTimer;
-    try {
-      await Promise.race([
-        serverClosed,
-        new Promise((_, reject) => {
-          cleanupTimer = setTimeout(() => reject(new Error(`Composer Vite cleanup timed out: pid=${server.pid}, code=${server.exitCode}, signal=${server.signalCode}`)), 10_000);
-        }),
-      ]);
-    } catch (error) {
-      try { process.kill(-server.pid, "SIGKILL"); }
-      catch (cause) { if (cause?.code !== "ESRCH") throw cause; }
-      throw error;
-    } finally {
-      clearTimeout(cleanupTimer);
-    }
-  }
+  await stopViteWorker(server);
   await rm(testDirectory, { recursive: true, force: true });
 });
 

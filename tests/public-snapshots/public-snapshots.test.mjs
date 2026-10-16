@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { execFileSync, spawn } from "node:child_process";
+import { execFileSync } from "node:child_process";
 import { mkdir, mkdtemp, readFile, rm } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -9,7 +9,7 @@ import { chromium } from "playwright";
 
 import { legacyApiFixtureSql } from "../e2e/fixtures/legacy-api-fixture.mjs";
 import { appHost, pageOrigin } from "../e2e/helpers/hosts.mjs";
-import { reservePort, waitForWorker } from "../e2e/worker-startup.mjs";
+import { startViteWorker, stopViteWorker } from "../e2e/vite-worker.mjs";
 import { fixtureFetch as fetch } from "./fixture-fetch.mjs";
 
 const worktreeRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
@@ -30,9 +30,9 @@ const safeEnv = () => ({
   WRANGLER_LOG_PATH: resolve(sessionRoot, "wrangler.log"),
   CI: "1",
 });
-const port = Number(process.env.LAMP_PUBLIC_PORT ?? await reservePort({ label: "public snapshot" }));
+const requestedPort = Number(process.env.LAMP_PUBLIC_PORT ?? 0);
 // Every request here is a public status page read on the page host.
-const origin = pageOrigin(port);
+let origin;
 const legacyActivePromise = "2026-09-08T03:00:00.000Z";
 const legacyResolvedPromise = "2026-09-08T09:00:00.000Z";
 // The renderer identity the current source publishes; older pointers must be rebuilt to it.
@@ -45,41 +45,24 @@ let viteCachePath;
 let server;
 let serverOutput = "";
 
-function startWorker(label = "public snapshot Worker") {
+async function startWorker(label = "public snapshot Worker") {
   serverOutput = "";
-  server = spawn("pnpm", ["exec", "vite", "--host", "127.0.0.1", "--port", String(port), "--strictPort", "--mode", "development"], {
-    cwd: worktreeRoot,
-    stdio: "pipe",
-    detached: true,
-    env: {
-      ...safeEnv(),
-      LAMP_DISABLE_INSPECTOR: "true",
-      LAMP_WORKERS_STATE_PATH: statePath,
-      LAMP_VITE_CACHE_DIR: viteCachePath,
-      LAMP_WRANGLER_CONFIG: resolve(worktreeRoot, "wrangler.jsonc"),
-    },
-  });
-  server.stdout.on("data", (chunk) => { serverOutput += String(chunk); });
-  server.stderr.on("data", (chunk) => { serverOutput += String(chunk); });
-  return waitForWorker({
-    origin,
-    child: server,
-    output: () => `${serverOutput}\nState: ${statePath}`,
-    label,
-    probe: async ({ signal }) => {
+  const worker = await startViteWorker({
+    port: requestedPort, statePath, viteCachePath, label,
+    env: { ...safeEnv(), LAMP_WRANGLER_CONFIG: resolve(worktreeRoot, "wrangler.jsonc") },
+    onOutput: (chunk) => { serverOutput += String(chunk); },
+    probe: async ({ signal, origin: appOrigin }) => {
+      origin = pageOrigin(new URL(appOrigin).port);
       const response = await fetch(`${origin}/`, { signal });
       const body = await response.text();
       return { status: response.status === 200 && /Atlas Cloud Status/.test(body) ? 200 : response.status, text: () => body };
     },
   });
+  server = worker.server;
 }
 
 async function stopWorker() {
-  if (server?.pid && server.exitCode === null) {
-    const stopped = new Promise((resolveExit) => server.once("exit", resolveExit));
-    try { process.kill(-server.pid, "SIGTERM"); } catch { /* Worker already stopped. */ }
-    await stopped;
-  }
+  await stopViteWorker(server);
   server = undefined;
 }
 
@@ -269,7 +252,7 @@ test("Snapshot renderer upgrades preserve public history and last-known state", 
   assert.match(missingHtml, /href="\/"[^>]*>Current status/);
   assert.match(missingHtml, /href="\/history"[^>]*>Resolved history/);
 
-  const browser = await chromium.launch({ headless: true, env: safeEnv() });
+  const browser = await chromium.launch({ headless: true, args: ["--use-mock-keychain", "--password-store=basic"] });
   try {
     for (const width of [1440, 390]) {
       const page = await browser.newPage({ viewport: { width, height: width === 390 ? 844 : 900 }, javaScriptEnabled: false });
