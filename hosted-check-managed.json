@@ -1,0 +1,50 @@
+{
+  "$comment": "rer verify serves the production build with stand-ins for private inputs. Managed mail uses the declared relay bindings; native direct providers retain their ordinary input names.",
+  "project": "just-every/lamp",
+  "vars": {
+    "LAMP_APP_HOST": "rer-hosted-check.invalid",
+    "LAMP_PAGE_HOST": "status.rer-hosted-check.invalid",
+    "SETUP_OPERATOR_EMAIL": "owner@rer-hosted-check.invalid",
+    "MAIL_PROVIDER": "rer",
+    "MAIL_FROM": "proof@rer-hosted-check.invalid",
+    "MAIL_FROM_ADDRESS": "proof@rer-hosted-check.invalid",
+    "MAIL_RELAY_URL": "https://mail.rer-hosted-check.invalid/api/managed-mail/send"
+  },
+  "secrets": [
+    {
+      "binding": "SETUP_TOKEN",
+      "environment": "SETUP_TOKEN"
+    },
+    {
+      "binding": "SESSION_SECRET",
+      "environment": "SESSION_SECRET"
+    },
+    {
+      "binding": "SUBSCRIBER_TOKEN_SECRET",
+      "environment": "SUBSCRIBER_TOKEN_SECRET"
+    },
+    {
+      "binding": "WEBHOOK_SIGNING_SECRET",
+      "environment": "WEBHOOK_SIGNING_SECRET"
+    },
+    {
+      "binding": "MAIL_PROVIDER",
+      "environment": "MAIL_PROVIDER",
+      "verifyStandIn": "rer"
+    },
+    {
+      "binding": "MAIL_FROM",
+      "environment": "MAIL_FROM",
+      "verifyStandIn": "proof@rer-hosted-check.invalid"
+    },
+    {
+      "binding": "MAIL_API_KEY",
+      "environment": "MAIL_API_KEY"
+    },
+    {
+      "binding": "MAIL_RELAY_URL",
+      "environment": "MAIL_RELAY_URL",
+      "verifyStandIn": "https://mail.rer-hosted-check.invalid/api/managed-mail/send"
+    }
+  ]
+}

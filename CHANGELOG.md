@@ -8,6 +8,7 @@
 - Managed hosting includes RER mail without an owner provider account or mail key. RER supplies `MAIL_PROVIDER=rer`, `MAIL_FROM`, `MAIL_RELAY_URL` and private `MAIL_API_KEY`; ordinary hosting retains Resend and SendGrid.
 - Pin rer to 0.2.29 and adopt Base's relay adapter with one-click unsubscribe, list identity and incident threads rooted in the relay's returned Message-ID.
 
+- Native deploy and hosted proof select the provider’s own mail declaration after deployment environment inputs are loaded, preserving direct provider credentials alongside Managed mail.
 - Operations declares mail dispatch as a Worker loop and validates conditional provider credentials in Lamp’s configuration module, retaining compatibility with the pinned CLI.
 - Managed relay acceptance is shown as **Accepted by RER** in Deliveries. Migration `0026_managed_mail_threads.sql` adds the durable message-key index; apply it before restarting. The publication preview uses a clean frame without an email-pattern finding.
 

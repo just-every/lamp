@@ -77,9 +77,17 @@ const docs=JSON.parse(await readFile(new URL('../../docs/site.json',import.meta.
 export const commandAdapter=createCommandAdapter(adapter,{
  product:model.product.name,dev:vite,preview,
  publicPages:['/','/docs',...docs.sections.flatMap(section=>section.pages.map(page=>`/docs/${page.slug}`))],
- devIdentity:{entry:'src/server.dev.ts',output:['dist'],emailLinkTest:'tests/e2e/auth-adoption-journey.test.mjs'},verify:['pnpm',['run','verify:app']],deploy:lampDeploy(adapter),deployDeclaration:process.argv.includes('--demo')?'deploy.json':'hosted-check.json',
+ devIdentity:{entry:'src/server.dev.ts',output:['dist'],emailLinkTest:'tests/e2e/auth-adoption-journey.test.mjs'},verify:['pnpm',['run','verify:app']],deploy:lampDeploy(adapter),
  portability:transfer,generatedOutputs:['src/routeTree.gen.ts'],
  site:{entry:'src/site/pages.tsx',output:'dist/site',declaration:'deploy-site.json',config:'vite.site.config.ts'},
  setup:{manifestFile:'rer-setup.json'},browserModule:'scripts/installer/ui/seed.mjs',
  input:{names:{email:'SETUP_OPERATOR_EMAIL',name:'OWNER_DISPLAY_NAME'},defaults:async()=>({target:'local',OWNER_DISPLAY_NAME:'Owner',LAMP_PAGE_NAME:'Status',LAMP_PAGE_TAGLINE:'Current service status',LAMP_PAGE_TIMEZONE:'UTC'})},
+});
+
+// Read after rer applies --env-file: each provider keeps its actual credential
+// mapping for the shared production-auth preflight and hosted-output checks.
+Object.defineProperty(commandAdapter, 'deployDeclaration', {
+ enumerable: true,
+ get: () => process.argv.includes('--demo') ? 'deploy.json'
+  : process.env.MAIL_PROVIDER?.trim() === 'rer' ? 'hosted-check-managed.json' : 'hosted-check.json',
 });

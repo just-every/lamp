@@ -452,7 +452,7 @@
       "executable": false
     },
     "CHANGELOG.md": {
-      "sha256": "b5aef4d5a4f13a2e4dbda979e9bd47bf83cfd4206a0838e66feebab4566f893e",
+      "sha256": "7d6d0990f4526c621e49804c7350d7654a6ce07e781ec81de2eef5394f6eb069",
       "executable": false
     },
     "CLAUDE.md": {
@@ -579,8 +579,12 @@
       "sha256": "d322c5cfa2f11762ca5a5dc82b06fa8492e55a1f67cd9106303a0481e16b27e3",
       "executable": false
     },
-    "hosted-check.json": {
+    "hosted-check-managed.json": {
       "sha256": "acac01977ae9944f96a4783b0b1c6035c9eabb0e4a2dea69c97a8e07dc12ae2b",
+      "executable": false
+    },
+    "hosted-check.json": {
+      "sha256": "e0da0831730860a036990c4176dff42c9032c3161cb2c1418f8ecbcdff4e25b7",
       "executable": false
     },
     "LICENSE": {
@@ -2244,7 +2248,7 @@
       "executable": false
     },
     "scripts/installer/local.mjs": {
-      "sha256": "314ea03df85c894ec688d78ee2c2475de4c88501fb0becd85dbf022290ebec09",
+      "sha256": "81fb2c2e898f63203566ecc44912f9898d74e88ff426e9a828585ce8f34ec338",
       "executable": false
     },
     "scripts/installer/README.md": {
