@@ -1,5 +1,6 @@
 import { readFileSource } from "../../../../../modules/import-kit/src/readers/index.ts";
-import { canonicalJson } from "../../../../../modules/import-kit/src/d1/index.ts";
+import { canonicalJson, sha256 } from "../../../../../modules/import-kit/src/d1/index.ts";
+import { safeValue } from "../../../../../modules/import-kit/src/readers/records.ts";
 import type { Json, SourceArtifact } from "../../../../../modules/import-kit/src/types.ts";
 import type { SavedFile } from "../source.ts";
 import { assertSorrySafe, parseSorryJson, retainedSorry } from "./json.ts";
@@ -28,11 +29,13 @@ export async function readSorryFiles(files: SavedFile[], pageId?: string, captur
     if (envelopes.has(file.name) || !/^sorry-(?:status|page|components(?:-[1-9][0-9]*)?|notices(?:-[1-9][0-9]*)?|subscribers(?:-[1-9][0-9]*)?|notice-[0-9]+(?:-updates(?:-[1-9][0-9]*)?)?)\.json$/u.test(file.name)) throw new Error("Unsupported or duplicate Sorry saved-response filename.");
     try {
       const value = object(parseSorryJson(file.text));
-      assertSorrySafe(value);
-      // Reader owns exact bytes, duplicate-key/credential checks and original custody.
-      // The callback retains exact ID lexemes from the independently validated input.
-      const bundle = await readFileSource({ namespace: "sorry", name: file.name, bytes: new TextEncoder().encode(file.text), format: "json", parse: () => ({ kind: "response", sourceId: file.name, payload: retainedSorry(value) }) }, { ...sorryLimits, maxRecordBytes: sorryLimits.maxBytes });
-      const origin = bundle.artifacts[0];
+      const hasChannels = assertSorrySafe(value, undefined, /^sorry-subscribers(?:-[1-9][0-9]*)?\.json$/u.test(file.name));
+      safeValue(retainedSorry(value));
+      // Capability-bearing subscriber originals stay transient. Hash the exact
+      // input as Instatus does; never label sanitized bytes as original custody.
+      const origin: SourceArtifact = hasChannels
+        ? { name: file.name, sha256: sha256(file.text), size: new TextEncoder().encode(file.text).length }
+        : (await readFileSource({ namespace: "sorry", name: file.name, bytes: new TextEncoder().encode(file.text), format: "json", parse: () => ({ kind: "response", sourceId: file.name, payload: retainedSorry(value) }) }, { ...sorryLimits, maxRecordBytes: sorryLimits.maxBytes })).artifacts[0];
       envelopes.set(file.name, { value, origin }); artifacts.push(origin);
     } catch { throw new Error(`${file.name}: invalid Sorry JSON, credential-bearing response or unsupported source size.`); }
   }

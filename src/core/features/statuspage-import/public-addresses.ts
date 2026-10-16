@@ -1,6 +1,6 @@
 /** Source compatibility lives here; these are paths on the moved public host,
  * never authority to redirect or serve a source-owned hostname. */
-import { sourceFeedPaths, isImportAliasPath } from "./public-paths.mjs";
+import { sourceFeedPaths, isImportAliasPath, isSorryHistoryMonthPath } from "./public-paths.mjs";
 export { sourceFeedPaths, isImportAliasPath, isLampPermalink } from "./public-paths.mjs";
 export function sourcePublicAddresses(sourceId: string, shortlink: unknown, namespace = "statuspage", supplied?: string[]): Array<{ address: string; path: string }> {
   if (!/^[A-Za-z0-9_-]+$/u.test(sourceId)) throw new Error(`Source incident ${sourceId}: unsafe public address.`);
@@ -17,7 +17,7 @@ export function sourcePublicAddresses(sourceId: string, shortlink: unknown, name
     }
     addresses.push({ address: shortlink, path });
   }
-  for (const item of addresses) if (!isImportAliasPath(item.path) || ["/notices", "/history/"].includes(item.path) || Object.values(sourceFeedPaths).some((paths) => paths.includes(item.path))) throw new Error(`Source incident ${sourceId}: public address ${item.address} is unsafe or reserved by Lamp.`);
+  for (const item of addresses) if (!isImportAliasPath(item.path) || ["/notices", "/history", "/history/"].includes(item.path) || isSorryHistoryMonthPath(item.path) || Object.values(sourceFeedPaths).some((paths) => paths.includes(item.path))) throw new Error(`Source incident ${sourceId}: public address ${item.address} is unsafe or reserved by Lamp.`);
   return addresses.filter((item, index) => addresses.findIndex((other) => other.path === item.path) === index);
 }
 export const aliasArtifactKey = (path: string) => `aliases/${encodeURIComponent(path)}.json`;

@@ -1,5 +1,5 @@
 import type { SavedFile } from "../source.ts";
-import { assertSorrySafe, parseSorryJson } from "./json.ts";
+import { assertSorrySafe, parseSorryJson, retainedSorry } from "./json.ts";
 import { managementPageSchema, nextPublicPage, object, publicPageSchema, publicUrl, recordId, sorryId, sorryLimits } from "./schema.ts";
 import { reflectedCredentialMatcher } from "../../../../../modules/import-kit/src/provenance/credentials.ts";
 import { safeValue } from "../../../../../modules/import-kit/src/readers/records.ts";
@@ -39,8 +39,8 @@ function reader(fetcher: typeof fetch, apiKey?: string) {
     let value: ReturnType<typeof object>;
     try {
       if (apiKey && reflectedCredentialMatcher([apiKey])(text)) throw new Error("Reflected credential.");
-      value = object(parseSorryJson(text)); assertSorrySafe(value, apiKey);
-      safeValue(value, apiKey ? [apiKey] : []);
+      value = object(parseSorryJson(text)); assertSorrySafe(value, apiKey, /^sorry-subscribers(?:-[1-9][0-9]*)?\.json$/u.test(name));
+      safeValue(retainedSorry(value), apiKey ? [apiKey] : []);
     } catch { throw new Error("Sorry returned invalid JSON, credential material or an access capability; nothing was retained."); }
     function count(row: unknown) {
       if (++records > sorryLimits.maxRecords || new TextEncoder().encode(JSON.stringify(row)).length > sorryLimits.maxRecordBytes) throw new Error("Sorry source count or record size exceeds its limit; nothing was truncated.");

@@ -5,6 +5,7 @@ import { nativeRequest, openNativeRuntime, origin, publicOrigin } from '../dev-i
 import { signInAs } from '@runeditrun/rer/internal/modules/operator-auth/dev/sign-in-as.mjs';
 import { devKey } from '../helpers/dev-key.mjs';
 import { notificationActivity, assertNoNewNotifications } from '../helpers/import-notifications.mjs';
+import { load } from '../operator-readiness/runtime.mjs';
 
 const endpoint = '/api/app/statuspage-import';
 const fixture = family => readdirSync(`tests/fixtures/sorry/${family}`).map(name => ({ name, text: readFileSync(`tests/fixtures/sorry/${family}/${name}`, 'utf8') }));
@@ -57,15 +58,47 @@ test('MOVE-001 MOVE-002 MOVE-004 MOVE-005 MOVE-006 Sorry previews without writes
       assert.equal(response.headers.get('location'), `/incidents/${incident.reference}`);
       assert.equal((await fetch(publicOrigin + response.headers.get('location'))).status, 200);
     }
-    const history = await fetch(`${publicOrigin}/notices`, { redirect: 'manual' }); assert.equal(history.status, 301); assert.equal(history.headers.get('location'), '/history');
-    assert.equal((await fetch(`${publicOrigin}/history`)).status, 200);
+    for (const path of ['/notices', '/history', '/history/2026/october', '/history/2025/april']) {
+      const history = await fetch(publicOrigin + path, { redirect: 'manual' }); assert.equal(history.status, 301);
+      assert.equal(history.headers.get('location'), '/history/');
+      assert.ok(history.headers.get('x-lamp-snapshot-version'));
+      assert.equal((await fetch(publicOrigin + history.headers.get('location'))).status, 200);
+    }
+    assert.equal((await fetch(`${publicOrigin}/history/2026/not-a-month`, { redirect: 'manual' })).status, 404);
     assert.equal((await apply(files)).job.id, imported.job.id);
     await undo(imported.job.id); assert.deepEqual(await counts(), initial);
     assert.equal((await fetch(`${publicOrigin}/notices/100`, { redirect: 'manual' })).status, 404);
-    const authFiles = fixture('authenticated'), held = await apply(authFiles);
+    assert.equal((await fetch(`${publicOrigin}/history/2026/october`, { redirect: 'manual' })).status, 404);
+    assert.equal((await fetch(`${publicOrigin}/history`, { redirect: 'manual' })).status, 200);
+    const { fetchSorryResponses } = await load('src/core/features/statuspage-import/sorry/fetch.ts');
+    const { readSorryResponses } = await load('src/core/features/statuspage-import/sorry/read.ts');
+    const saved = fixture('authenticated'), apiKey = 'synthetic-sorry-api-key';
+    const fetcher = async (url, init) => {
+      assert.equal(url.origin, 'https://api.sorryapp.com'); assert.equal(init.method, 'GET');
+      assert.equal(init.redirect, 'manual'); assert.equal(init.headers.Authorization, `Bearer ${apiKey}`);
+      const resource = url.pathname.replace('/v1/pages/synthpage01', '').replace(/^\//, '');
+      const name = resource.startsWith('notices/') ? `sorry-notice-${resource.split('/')[1]}.json` : `sorry-${resource || 'page'}.json`;
+      const file = saved.find(file => file.name === name); assert.ok(file, 'API requests only documented source resources');
+      return new Response(file.text, { headers: { 'content-type': 'application/json' } });
+    };
+    const authFiles = await fetchSorryResponses({ pageId: source.pageId, apiKey, fetcher });
+    const parsed = await readSorryResponses(authFiles, source);
+    const channels = JSON.parse(saved.find(file => file.name === 'sorry-subscribers.json').text).response;
+    const retainedInput = JSON.stringify(parsed);
+    for (const row of channels) for (const field of ['slack_webhook_url', 'microsoft_teams_url']) if (row[field]) assert.ok(!retainedInput.includes(row[field]), 'channel capability must not enter retained records or original bytes');
+    assert.notEqual(parsed.artifacts.find(row => row.name === 'sorry-subscribers.json').original?.status, 'available');
+    for (const [field, value] of [['google_chat_space', 'https://chat.googleapis.com/v1/spaces/synthetic?key=synthetic'], ['legacy_slack_oauth_token', 'synthetic-legacy-slack']]) {
+      const files = authFiles.map(file => file.name !== 'sorry-subscribers.json' ? file : { ...file, text: JSON.stringify({ response: [{ ...channels[0], [field]: value }], count: 1 }) });
+      const read = await readSorryResponses(files, source);
+      assert.equal(read.data.subscribers.length, 0); assert.ok(!JSON.stringify(read).includes(value));
+    }
+    const credential = authFiles.map(file => file.name !== 'sorry-page.json' ? file : { ...file, text: file.text.replace('"response": {', '"response": {"api_key":"must-be-refused",') });
+    assert.equal((await read(credential)).status, 400, 'other credential-bearing responses still fail closed');
+    const held = await apply(authFiles);
     assert.equal((await call('/api/app/maintenance')).body.maintenance.find(row => row.title === 'Cancelled database maintenance').state, 'Cancelled');
     assert.equal((await call('/api/app/incidents')).body.incidents.find(row => row.title === 'Billing support hours').lifecycle, 'Resolved');
-    assert.equal(held.report.counts.subscriber.imported + held.report.counts.subscriber.changed, 1); assert.equal(held.report.counts.subscriber.skipped, 1);
+    assert.equal(held.report.counts.subscriber.imported + held.report.counts.subscriber.changed, 1); assert.equal(held.report.counts.subscriber.skipped, 3);
+    for (const name of ['Slack', 'Microsoft Teams']) assert.ok(held.report.items.some(row => row.kind === 'subscriber' && row.outcome === 'skipped' && row.reason.includes(name)));
     assert.equal(held.report.cutover.invitations.deadline, null); assert.equal(held.invites.remaining, 1);
     const subscriber = (await call('/api/app/subscribers')).body.subscribers.find(row => row.destination === 'reader@example.invalid'); assert.equal(subscriber.state, 'deactivated');
     await assertNoNewNotifications(runtime, notifications);

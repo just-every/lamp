@@ -1352,3 +1352,11 @@ still uses the production artifact for migration and owner bootstrap.
 ## Sorry migration — 16 October 2026
 
 MOVE-001 accepts Sorry authenticated saved/API reads and keyless published JSON history. MOVE-002’s review-time expiry remains for existing sources; Sorry subscriber candidates are held inert through cutover and the watch window. A separate owner action attests to the live configured hostname, records the release, and begins their 72-hour confirmation window. No imported history sends notifications; source IDs and exact public links remain in import-kit custody and the published alias snapshot. Partial public samples are preview-only and name each missing detail.
+
+Documented Sorry subscriber channel capabilities stay transient: unsupported
+Slack, Teams, Google Chat and legacy Slack rows are skipped with reasons.
+Their response hashes remain, but capability-bearing originals and channel
+values do not enter custody. Other credential-bearing responses are refused.
+While Sorry is retained, its history collection and month URLs redirect to
+Lamp's history at `/history/` in the same snapshot; complete undo restores
+Lamp's ordinary `/history` document.

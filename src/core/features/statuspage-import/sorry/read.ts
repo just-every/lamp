@@ -3,7 +3,7 @@ import type { SourceArtifact, SourceRecord } from "../../../../../modules/import
 import type { Accounting } from "../rows.ts";
 import type { ReadSource, SavedFile, SourceData } from "../source.ts";
 import { normalizeSorryComponents } from "./groups.ts";
-import { retainedSorry } from "./json.ts";
+import { retainedSorry, sorrySubscriberChannels } from "./json.ts";
 import { normalizeSorryNotice } from "./notices.ts";
 import { accessFields, agree, readSorryFiles } from "./saved.ts";
 import { noticeSchema, publicUrl, updateSchema, type ObjectValue } from "./schema.ts";
@@ -74,8 +74,10 @@ export async function readSorryResponses(files: SavedFile[], options: SorryReadO
     const selected = row.components?.map((component) => component.id) ?? row.component_ids;
     let reason: string | undefined;
     const otherChannels = Object.entries(row).filter(([key, value]) => key.startsWith("notify_by_") && key !== "notify_by_email" && value === true).map(([key]) => key.replace("notify_by_", ""));
-    if (!row.notify_by_email || !row.email) reason = "Sorry subscription has no enabled email channel; no subscriber was created.";
+    const capabilities = Object.entries(sorrySubscriberChannels).filter(([field]) => Boolean(row[field])).map(([, label]) => label);
+    if (capabilities.length) reason = `Sorry ${capabilities.join(" / ")} subscription is unsupported; channel credentials were not retained and no subscriber was created.`;
     else if (otherChannels.length) reason = `Sorry ${otherChannels.join(" / ")} subscription is unsupported; only email-only subscriptions can move.`;
+    else if (!row.notify_by_email || !row.email) reason = "Sorry subscription has no enabled email channel; no subscriber was created.";
     else if (row.confirmed === false || row.verified === false || row.email_verified === false || row.unsubscribed === true || row.unsubscribed_at || row.deleted_at || row.deactivated_at) reason = "Sorry subscription is explicitly unconfirmed, unsubscribed or inactive; consent was not carried.";
     else if (!selected || selected.some((id) => !components.has(id))) reason = "Sorry component preferences are absent or unresolved; importing would broaden the subscription.";
     else if (row.components && row.component_ids && canonicalJson([...selected].sort()) !== canonicalJson([...row.component_ids].sort())) reason = "Sorry subscription component_ids and included components disagree.";

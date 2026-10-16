@@ -39,21 +39,31 @@ export function parseSorryJson(text: string): Json {
   return JSON.parse(transformed + text.slice(last)) as Json;
 }
 
+export const sorrySubscriberChannels = {
+  slack_webhook_url: "Slack", microsoft_teams_url: "Microsoft Teams",
+  google_chat_space: "Google Chat", legacy_slack_oauth_token: "legacy Slack",
+} as const;
 const capability = /(?:token|secret|password|authorization|cookie|api.?key|webhook|secure.?link|manage.?url|unsubscribe.?url|confirmation.?url|microsoft.?teams.?url|google.?chat.?space)/iu;
-/** A capability-bearing original is refused, never redacted and relabelled as
- * original custody. Empty documented integration fields carry no capability. */
-export function assertSorrySafe(value: unknown, key?: string): void {
+/** Only documented channel fields on subscriber rows may carry capabilities.
+ * Such responses retain a hash, never original bytes or redacted originals. */
+export function assertSorrySafe(value: unknown, key?: string, subscriberResponse = false): boolean {
   const reflected = reflectedCredentialMatcher(key ? [key] : []);
+  const rows = subscriberResponse && value && typeof value === "object" && "response" in value && Array.isArray(value.response) ? new Set(value.response) : new Set();
+  let hasChannelCapabilities = false;
   function visit(item: unknown): void {
     if (typeof item === "string" && reflected(item)) throw new Error("Sorry returned credential material; nothing was retained.");
     if (Array.isArray(item)) { item.forEach(visit); return; }
     if (item && typeof item === "object") for (const [name, child] of Object.entries(item)) {
       if (reflected(name)) throw new Error("Sorry returned credential material; nothing was retained.");
-      if (capability.test(decodedCredentialText(name)) && child != null && child !== "" && typeof child !== "boolean") throw new Error("Sorry returned an access capability; save responses without operational credentials before importing.");
+      if (capability.test(decodedCredentialText(name)) && child != null && child !== "" && typeof child !== "boolean") {
+        if (!rows.has(item) || !Object.hasOwn(sorrySubscriberChannels, name) || typeof child !== "string") throw new Error("Sorry returned an access capability; save responses without operational credentials before importing.");
+        hasChannelCapabilities = true;
+      }
       visit(child);
     }
   }
   visit(value);
+  return hasChannelCapabilities;
 }
 
 export function retainedSorry(value: unknown): Json {

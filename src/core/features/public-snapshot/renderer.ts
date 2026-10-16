@@ -220,7 +220,6 @@ export function renderPublicSnapshot(source: PublicSnapshotSource, generatedAt =
   const model = toPublicModel(source, generatedAt, policies);
   const artifacts: SnapshotArtifact[] = [
     { key: "page.html", body: renderPage(model, slots), contentType: "text/html; charset=utf-8" },
-    { key: "history.html", body: renderHistory(model, slots), contentType: "text/html; charset=utf-8" },
     { key: "feed.atom", body: renderAtom(model), contentType: "application/atom+xml; charset=utf-8" },
     { key: "widget.js", body: renderWidget(statusPayload(model), model.settings), contentType: "application/javascript; charset=utf-8" },
     { key: "status.json", body: JSON.stringify(statusPayload(model)), contentType: "application/json; charset=utf-8" },
@@ -232,6 +231,6 @@ export function renderPublicSnapshot(source: PublicSnapshotSource, generatedAt =
     ...model.incidents.map((incident) => ({ key: `incidents/${encodeURIComponent(incident.reference)}.html`, body: renderIncidentPage(incident, model, slots), contentType: "text/html; charset=utf-8" })),
   ];
   artifacts.push(...model.maintenance.map((item) => ({ key: `maintenance/${encodeURIComponent(item.reference)}.html`, body: pageShell(`${item.reference} · ${model.settings.pageName}`, `${breadcrumb(item.reference)}${maintenanceMarkup(item, model.settings.timezone, generatedAt, true)}`, model, slots, "other"), contentType: "text/html; charset=utf-8" })));
-  artifacts.push(...renderImportAliases(source, model.incidents, model.maintenance, renderAtom(model)));
+  artifacts.push(...renderImportAliases(source, model.incidents, model.maintenance, renderAtom(model), renderHistory(model, slots)));
   return { generatedAt, artifacts };
 }

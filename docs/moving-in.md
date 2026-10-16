@@ -193,9 +193,13 @@ See the [REST API](https://docs.sorryapp.com/v1),
 After the complete bounded read succeeds, the command creates a local directory
 with mode `0700` and original response files with mode `0600`. It never writes
 the API token and refuses a response that reflects it. Responses containing
-operational access capabilities, such as populated integration webhook URLs,
-are also refused. A credential-free source export is needed in that case;
-editing a saved response would no longer preserve the original. Captured files
+credentials outside the documented subscriber channel fields are also refused.
+Slack, Microsoft Teams, Google Chat and legacy Slack subscribers are skipped
+with a reason. Their channel capabilities are omitted from every retained
+record. For a response containing these capabilities, Lamp retains only its
+unchanged-byte hash and size, without original-response custody; sanitized
+bytes are never labelled as an original. The local capture files remain
+unchanged and can contain channel credentials, so keep them private. Captured files
 may contain email addresses: keep them private, outside Git, and remove them
 when no longer needed. Capture sends no mail and imports nothing. A failed
 capture is not an export to import.
@@ -251,8 +255,16 @@ change, not presented as source evidence. Supplied public notice URLs provide
 old-link paths. A path works on a hostname moved to Lamp; Sorry-owned hosts
 remain outside Lamp's control. Review the actual destinations in Cutover.
 
+While a Sorry import is retained, `/history`, `/notices` and Sorry's
+`/history/YYYY/month` URLs (English month names, such as
+`/history/2026/october`) redirect permanently to Lamp's history at `/history/`.
+These answers and the history document come from the same public snapshot as
+notice redirects. Complete undo removes the Sorry aliases and restores Lamp's
+ordinary `/history` document.
+
 Eligible email candidates have `notify_by_email: true`; disabled email and
-unsupported channels are skipped. Component preferences must resolve and are
+unsupported channels are skipped, including rows with populated documented
+channel fields even when an email channel is enabled. Component preferences must resolve and are
 never broadened. Import holds Sorry candidates inactive, without sending mail
 or starting the confirmation deadline. They receive no ordinary notifications
 while held. Other provider confirmation deadlines are unchanged.
