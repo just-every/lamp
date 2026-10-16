@@ -1,8 +1,15 @@
 # Deploy to Cloudflare
 
-Hosted Lamp requires Cloudflare credentials and a Resend or SendGrid provider
-with an authenticated sender. Prepare the sender using [Install Lamp](install.md).
-A local outbox or terminal sign-in link does not provide a hosted mail service.
+Managed hosting includes mail without an owner provider account or mail key.
+RER fills and hides `MAIL_PROVIDER=rer`, `MAIL_FROM`, `MAIL_RELAY_URL` and private
+`MAIL_API_KEY`. Free and Assisted hosting keep your own Resend or SendGrid account
+and use `MAIL_FROM_ADDRESS`, `MAIL_DKIM_SELECTOR` and `MAIL_PROVIDER_API_KEY`.
+Every hosted installation needs working mail.
+
+The native Cloudflare deployment below requires your Cloudflare credentials and
+a Resend or SendGrid provider with an authenticated sender. Prepare that sender
+using [Install Lamp](install.md). A terminal sign-in link does not replace the
+hosted mail service.
 
 ## Save private deployment inputs
 
@@ -77,7 +84,7 @@ without `--env-file`. Do not commit inputs or paste secret values into logs.
 
 ## Validate and deploy
 
-Use `rer` from the project root; the checkout pins `@runeditrun/rer` 0.2.22. Before a
+Use `rer` from the project root; the checkout pins `@runeditrun/rer` 0.2.23. Before a
 command that builds or verifies the checkout, stop a running development server
 with `rer dev --stop` or a production preview with `rer preview --stop`.
 

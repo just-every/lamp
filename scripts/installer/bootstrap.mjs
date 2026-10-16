@@ -21,7 +21,7 @@ export async function nativeOwner(context){
   await claimed.body?.cancel();if(claimed.status!==303)throw context.fail('setup');
  }
  const bindings={...JSON.parse(await readFile(join(context.root,'dist/server/wrangler.json'),'utf8')).vars,...vars};
- const config={pageName:input.LAMP_PAGE_NAME,pageTagline:input.LAMP_PAGE_TAGLINE,pageAccentColor:'#2563eb',pageTimezone:input.LAMP_PAGE_TIMEZONE,pageHost:bindings.LAMP_PAGE_HOST,mailFromAddress:bindings.MAIL_FROM_ADDRESS};
+ const config={pageName:input.LAMP_PAGE_NAME,pageTagline:input.LAMP_PAGE_TAGLINE,pageAccentColor:'#2563eb',pageTimezone:input.LAMP_PAGE_TIMEZONE,pageHost:bindings.LAMP_PAGE_HOST,mailFromAddress:bindings.MAIL_PROVIDER==='rer'?bindings.MAIL_FROM:bindings.MAIL_FROM_ADDRESS};
  await context.run('Saving the status page','pnpm',['exec','wrangler','d1','execute','DB','--local','--config',join(context.root,'wrangler.jsonc'),'--persist-to',resolve(context.root,context.env?.RER_STATE_DIR??process.env.RER_STATE_DIR??'.wrangler/state'),'--command',setupPageSettingsStatement(config)],{cwd:context.root,step:'setup'});
  const health=await fetch(new URL('/health',origin),{signal,redirect:'error'});await health.body?.cancel();
  await store.step('Owner and page are ready');

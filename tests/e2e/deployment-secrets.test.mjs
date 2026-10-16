@@ -10,7 +10,7 @@ test('deployment secrets remain private and are removed after success or failure
     const action = withDeploymentSecrets(config, async file => {
       path = file;
       assert.equal((await stat(file)).mode & 0o777, 0o600);
-      assert.deepEqual(JSON.parse(await readFile(file, 'utf8')), { SESSION_SECRET:config.sessionSecret,SETUP_TOKEN:config.setupToken,AUTH_PROVIDERS:"",OIDC_TRANSACTION_SECRET:"",MAIL_PROVIDER_API_KEY: config.mailProviderApiKey, SUBSCRIBER_TOKEN_SECRET: config.subscriberTokenSecret, WEBHOOK_SIGNING_SECRET: config.webhookSigningSecret, RER_MAIL_RELAY_SECRET: "", RESEND_WEBHOOK_SECRET: "", AI_PROVIDER_API_KEY: "" });
+      assert.deepEqual(JSON.parse(await readFile(file, 'utf8')), { SESSION_SECRET:config.sessionSecret,SETUP_TOKEN:config.setupToken,AUTH_PROVIDERS:"",OIDC_TRANSACTION_SECRET:"",MAIL_PROVIDER_API_KEY: config.mailProviderApiKey, MAIL_API_KEY: "", SUBSCRIBER_TOKEN_SECRET: config.subscriberTokenSecret, WEBHOOK_SIGNING_SECRET: config.webhookSigningSecret, RER_MAIL_RELAY_SECRET: "", RESEND_WEBHOOK_SECRET: "", AI_PROVIDER_API_KEY: "" });
       if (fail) throw new Error('test failure');
     });
     if (fail) await assert.rejects(action, /test failure/); else await action;
@@ -23,11 +23,11 @@ test('redeploy clears removed product integrations but retains unrelated owner s
   const required = { mailProviderApiKey: 'required-mail', subscriberTokenSecret: 'required-token', webhookSigningSecret: 'required-signing' };
   const existing = { OWNER_PRIVATE_KEY: 'owner-value' };
   const apply = async config => withDeploymentSecrets(config, async file => Object.assign(existing, JSON.parse(await readFile(file, 'utf8'))));
-  await apply({ ...required, relaySecret: 'old-relay', resendWebhookSecret: 'old-resend', aiProviderApiKey: 'old-ai' });
+  await apply({ ...required, mailApiKey: 'old-managed-mail', relaySecret: 'old-relay', resendWebhookSecret: 'old-resend', aiProviderApiKey: 'old-ai' });
   assert.equal(existing.RER_MAIL_RELAY_SECRET, 'old-relay');
   await apply(required);
   assert.equal(existing.OWNER_PRIVATE_KEY, 'owner-value');
-  for (const name of ['RER_MAIL_RELAY_SECRET', 'RESEND_WEBHOOK_SECRET', 'AI_PROVIDER_API_KEY']) assert.equal(existing[name], '');
+  for (const name of ['MAIL_API_KEY', 'RER_MAIL_RELAY_SECRET', 'RESEND_WEBHOOK_SECRET', 'AI_PROVIDER_API_KEY']) assert.equal(existing[name], '');
 });
 
 test('empty optional bindings disable runtime AI and relay instead of retaining stale configuration', async () => {

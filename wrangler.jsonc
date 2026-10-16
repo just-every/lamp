@@ -19,7 +19,10 @@
     "LAMP_APP_HOST": "127.0.0.1",
     // Local sample identity; without a provider key, mail requests fail explicitly.
     // Deployment setup supplies the buyer's verified sender.
-    "MAIL_FROM_ADDRESS": "lamp@localhost.invalid"
+    "MAIL_FROM_ADDRESS": "lamp@localhost.invalid",
+    "MAIL_PROVIDER": "",
+    "MAIL_FROM": "",
+    "MAIL_RELAY_URL": ""
   },
   "d1_databases": [
     { "binding": "DB", "database_name": "lamp-local", "database_id": "00000000-0000-0000-0000-000000000000", "migrations_dir": "migrations/core" }

@@ -11,7 +11,7 @@ keeping the opaque audit attribution.
 
 ## Terminal entry for the hosted owner
 
-With `@runeditrun/rer` 0.2.22, the hosted owner can enter without receiving email.
+With `@runeditrun/rer` 0.2.23, the hosted owner can enter without receiving email.
 From the checkout that deployed Lamp, use the same Cloudflare account, deployment
 environment and [private input file](deploy.md#save-private-deployment-inputs):
 
@@ -33,7 +33,11 @@ resource prefix, `lamp-<environment>`. If you set `LAMP_RESOURCE_PREFIX` to anot
 value, use the compatibility command in the
 [technical sign-in reference](../OPERATIONS.md#shared-operator-authentication)
 with that installation's generated configuration instead. Hosted Lamp still
-requires a mail provider and authenticated sender.
+requires working mail. Managed hosting includes it without an owner provider
+account or mail key: RER fills and hides `MAIL_PROVIDER=rer`, `MAIL_FROM`,
+`MAIL_RELAY_URL` and private `MAIL_API_KEY`. Free and Assisted hosting retain
+your own Resend or SendGrid account with `MAIL_FROM_ADDRESS`,
+`MAIL_DKIM_SELECTOR` and `MAIL_PROVIDER_API_KEY`.
 
 ## Optional single sign-on
 

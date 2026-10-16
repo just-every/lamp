@@ -43,7 +43,10 @@ export interface AppBindings {
   LAMP_APP_HOST: string;
   MAIL_FROM_ADDRESS: string;
   MAIL_PROVIDER_API_KEY?: string;
-  MAIL_PROVIDER?: "resend" | "sendgrid";
+  MAIL_PROVIDER?: "rer" | "resend" | "sendgrid";
+  MAIL_FROM?: string;
+  MAIL_RELAY_URL?: string;
+  MAIL_API_KEY?: string;
   SENDGRID_WEBHOOK_PUBLIC_KEY?: string;
   RER_MAIL_RELAY_SECRET?: string;
   SUBSCRIBER_TOKEN_SECRET?: string;

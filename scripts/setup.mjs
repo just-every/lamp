@@ -49,11 +49,11 @@ async function main() {
   const restoreFrom = flags.get("restore-from");
   if (restoreFrom) await readArchive(resolve(restoreFrom));
   if (flags.get("dry-run")) {
-    console.log(JSON.stringify({ environment: config.environment, pageHost: config.pageHost, appHost: config.appHost, pageName: config.pageName, resources: names, dnsValidation: "required during a real setup" }, null, 2));
+    console.log(JSON.stringify({ environment: config.environment, pageHost: config.pageHost, appHost: config.appHost, pageName: config.pageName, resources: names, dnsValidation: config.mailProvider === "rer" ? "managed by Run Edit Run" : "required during a real setup" }, null, 2));
     return;
   }
 
-  await assertMailDns(config);
+  if (config.mailProvider !== "rer") await assertMailDns(config);
   const ownership = deploymentOwnership(config);
   const api = ownership.api;
   if (config.hosting === "workers-dev") {

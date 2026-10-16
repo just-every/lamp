@@ -36,7 +36,11 @@
       "surfaces": {
         "app": {
           "path": "/signin",
-          "hostnameVariable": "LAMP_APP_HOST"
+          "hostnameVariable": "LAMP_APP_HOST",
+          "signIn": {
+            "path": "/signin",
+            "loginHint": true
+          }
         },
         "page": {
           "path": "/",
@@ -73,12 +77,14 @@
         "RER_RELEASE_DIGEST",
         "AUTH_ORIGIN",
         "SETUP_OPERATOR_EMAIL",
-        "IDENTITY_PROVIDER"
+        "IDENTITY_PROVIDER",
+        "MAIL_FROM",
+        "MAIL_RELAY_URL",
+        "MAIL_DKIM_SELECTOR"
       ],
       "secretNames": [
         "SETUP_TOKEN",
         "SESSION_SECRET",
-        "MAIL_PROVIDER_API_KEY",
         "SUBSCRIBER_TOKEN_SECRET",
         "WEBHOOK_SIGNING_SECRET"
       ],
@@ -87,7 +93,9 @@
         "AI_PROVIDER_API_KEY",
         "RER_MAIL_RELAY_SECRET",
         "AUTH_PROVIDERS",
-        "OIDC_TRANSACTION_SECRET"
+        "OIDC_TRANSACTION_SECRET",
+        "MAIL_API_KEY",
+        "MAIL_PROVIDER_API_KEY"
       ],
       "migrationPrefix": "core-",
       "recovery": "Retain source and database backup before migration. Preserve applied migration history. Restore into fresh installation resources and verify owner workflows before switching traffic.",
@@ -98,7 +106,12 @@
           "prefix": "ext-",
           "optional": true
         }
-      ]
+      ],
+      "mail": {
+        "providers": [
+          "rer"
+        ]
+      }
     },
     "mainModule": "rer-entry.js",
     "additionalModules": [

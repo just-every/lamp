@@ -28,11 +28,11 @@ function isHardResendBounce(bounceType: string | undefined) {
   return normalized === "permanent" || normalized === "hard";
 }
 
-export function registerDeliveryRoutes(app: Hono<AppEnv>, service: DeliveriesService, options: { resendWebhookSecret?: string; sendGridWebhookPublicKey?: string; relaySecret?: string; mailProvider?: "resend" | "sendgrid"; localMail?: boolean } = {}) {
+export function registerDeliveryRoutes(app: Hono<AppEnv>, service: DeliveriesService, options: { resendWebhookSecret?: string; sendGridWebhookPublicKey?: string; relaySecret?: string; mailProvider?: "rer" | "resend" | "sendgrid"; localMail?: boolean } = {}) {
   const mailProvider = options.mailProvider ?? "resend";
   const receiptsConfigured = mailProvider === "sendgrid"
     ? Boolean(options.sendGridWebhookPublicKey?.trim() || options.relaySecret?.trim())
-    : Boolean(options.resendWebhookSecret?.trim());
+    : mailProvider === "resend" && Boolean(options.resendWebhookSecret?.trim());
   app.get("/api/app/deliveries", async (context) => {
     const parsed = deliveriesQuerySchema.safeParse(context.req.query());
     if (!parsed.success) return context.json({ error: "Invalid delivery query.", issues: parsed.error.issues }, 400);
@@ -53,6 +53,7 @@ export function registerDeliveryRoutes(app: Hono<AppEnv>, service: DeliveriesSer
     return new Response(csv, { headers: { "Content-Type": "text/csv; charset=utf-8", "Content-Disposition": "attachment; filename=lamp-deliveries.csv", "Cache-Control": "no-store" } });
   });
   app.post("/api/intake/mail-events", async (context) => {
+    if (mailProvider === "rer") return context.text("Mail delivery webhooks are not configured.", 503);
     if (options.mailProvider === "sendgrid") return handleSendGridEvents(context.req.raw, options.sendGridWebhookPublicKey, service, options.relaySecret);
     if (!options.resendWebhookSecret) return context.text("Mail delivery webhooks are not configured.", 503);
     const raw = await context.req.text();

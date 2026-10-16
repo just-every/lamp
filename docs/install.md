@@ -1,6 +1,6 @@
 # Install Lamp
 
-Lamp uses the checkout's pinned `@runeditrun/rer` 0.2.22 and can run locally or
+Lamp uses the checkout's pinned `@runeditrun/rer` 0.2.23 and can run locally or
 in your Cloudflare account. For the local path, follow
 [Run it locally](../RUN-LOCALLY.md): `rer dev` installs dependencies,
 sets up the first owner and starts Lamp. Local mail is silently suppressed and
@@ -9,10 +9,12 @@ use a hosted installation to exercise real email delivery.
 
 ## Prepare a hosted installation
 
-Hosted Lamp requires a Resend or SendGrid account, its API key and an authenticated
-sender. Mail is required for operator sign-in and subscriber messages. There is
-no hosted mode without a mail provider; terminal recovery links do not replace
-this requirement.
+Managed hosting includes mail without a provider account or mail key from you.
+RER fills and hides `MAIL_PROVIDER=rer`, `MAIL_FROM`, `MAIL_RELAY_URL` and private
+`MAIL_API_KEY`. Free and Assisted hosting keep your own Resend or SendGrid account,
+authenticated sender and key, using `MAIL_FROM_ADDRESS`, `MAIL_DKIM_SELECTOR` and
+`MAIL_PROVIDER_API_KEY`. Every hosted installation needs working mail for operator
+sign-in and subscriber messages; terminal recovery links do not replace it.
 
 Choose two distinct hostnames for the public status page and operator app. Use
 custom domains in your Cloudflare account, or use that account's existing
@@ -23,6 +25,9 @@ commands. The [deployment reference](deployment-reference.md) distinguishes valu
 you supply from generated secrets and shows how to find the `workers.dev` hosts.
 
 ## Authenticate the sender
+
+For Free, Assisted and native deployment, prepare your own sender as follows.
+Managed hosting supplies the sender and relay credential automatically.
 
 `MAIL_PROVIDER` selects `resend` (the native command's default) or `sendgrid`.
 Set it explicitly to match your key. Authenticate the domain of

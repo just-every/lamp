@@ -42,7 +42,7 @@ export function isMailPreparationError(error: unknown): error is MailPreparation
 export class MailUnavailableError extends MailPreparationError {
   constructor() {
     super(undefined);
-    this.message = "mail.sender.v1 requires MAIL_PROVIDER_API_KEY and MAIL_FROM_ADDRESS.";
+    this.message = "Mail is not configured. Managed mail requires MAIL_FROM, MAIL_RELAY_URL and MAIL_API_KEY; direct providers require MAIL_FROM_ADDRESS and MAIL_PROVIDER_API_KEY.";
     this.name = "MailUnavailableError";
   }
 }

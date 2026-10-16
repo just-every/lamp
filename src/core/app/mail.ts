@@ -1,5 +1,5 @@
 import type { AppBindings } from './types';
-import { developmentMail, ResendMailSender, SendGridMailSender, createMailSendRepository, type MailSender } from '../platform/mail';
+import { developmentMail, ResendMailSender, SendGridMailSender, RerMailSender, createMailSendRepository, type MailSender } from '../platform/mail';
 
 export type MailExecution = Request | 'background';
 
@@ -9,6 +9,7 @@ export function isLocalMailExecution(bindings: AppBindings): boolean {
 
 // Session material is installation-local, including in each disposable demo.
 export async function prepareAppMailBindings(bindings: AppBindings, _execution?: MailExecution): Promise<AppBindings> {
+  if (bindings.MAIL_PROVIDER === 'rer') bindings = { ...bindings, MAIL_FROM_ADDRESS: bindings.MAIL_FROM ?? '' };
   if (!isLocalMailExecution(bindings)) return bindings;
   if (!bindings.SESSION_SECRET) return bindings;
   return { ...bindings, SUBSCRIBER_TOKEN_SECRET: bindings.SUBSCRIBER_TOKEN_SECRET || bindings.SESSION_SECRET,
@@ -16,8 +17,10 @@ export async function prepareAppMailBindings(bindings: AppBindings, _execution?:
 }
 
 export function createAppMailTransport(bindings: AppBindings, extension: MailSender | undefined, _execution?: MailExecution): { sender: MailSender; local: boolean } {
-  if (bindings.MAIL_PROVIDER && !['resend', 'sendgrid'].includes(bindings.MAIL_PROVIDER)) throw new Error('MAIL_PROVIDER must be resend or sendgrid.');
-  const real = extension ?? (bindings.MAIL_PROVIDER === 'sendgrid'
+  if (bindings.MAIL_PROVIDER && !['rer', 'resend', 'sendgrid'].includes(bindings.MAIL_PROVIDER)) throw new Error('MAIL_PROVIDER must be rer, resend or sendgrid.');
+  const real = extension ?? (bindings.MAIL_PROVIDER === 'rer'
+    ? new RerMailSender({ apiKey: bindings.MAIL_API_KEY, fromAddress: bindings.MAIL_FROM, relayUrl: bindings.MAIL_RELAY_URL }, createMailSendRepository(bindings.DB))
+    : bindings.MAIL_PROVIDER === 'sendgrid'
     ? new SendGridMailSender({ apiKey: bindings.MAIL_PROVIDER_API_KEY, fromAddress: bindings.MAIL_FROM_ADDRESS }, createMailSendRepository(bindings.DB))
     : new ResendMailSender({ apiKey: bindings.MAIL_PROVIDER_API_KEY, fromAddress: bindings.MAIL_FROM_ADDRESS }));
   if (bindings.RER_DEMO === '1') return { local: true, sender: { configured: true,

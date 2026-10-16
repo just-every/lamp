@@ -80,6 +80,10 @@
     {
       "binding": "OIDC_TRANSACTION_SECRET",
       "environment": "OIDC_TRANSACTION_SECRET"
+    },
+    {
+      "binding": "MAIL_API_KEY",
+      "environment": "MAIL_API_KEY"
     }
   ],
   "crons": [

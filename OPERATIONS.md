@@ -25,8 +25,14 @@ Account Worker access alone can upload the artifact but cannot attach its hosts.
 For workers.dev hosting, custom-domain zone permissions are not needed; the token
 must be able to read the account's Workers subdomain.
 
-Hosted Lamp requires a mail provider and authenticated sender, including when
-using terminal recovery links. Supply the Cloudflare credentials, both hostnames,
+Hosted Lamp requires working mail, including when using terminal recovery links.
+Managed hosting includes it without a provider account or mail key from the owner:
+RER fills and hides `MAIL_PROVIDER=rer`, `MAIL_FROM`, `MAIL_RELAY_URL` and the
+private installation credential `MAIL_API_KEY`. These values are runtime bindings;
+provider credentials never enter the application build.
+
+Free and Assisted hosting retain your own Resend or SendGrid configuration. For
+native deployment, supply the Cloudflare credentials, both hostnames,
 page branding, first operator email, `MAIL_FROM_ADDRESS`, `MAIL_DKIM_SELECTOR` and
 `MAIL_PROVIDER_API_KEY`. The complete [input reference](docs/deployment-reference.md#inputs-you-supply-and-values-rer-generates)
 distinguishes owner-supplied values from generated runtime secrets and uses the
@@ -52,9 +58,9 @@ Optionally set `OWNER_DISPLAY_NAME` to the first owner's name (1–120 character
 It is used only when setup creates the first operator; existing owners keep their
 name and access. Without it, the native command uses `Owner`.
 
-`MAIL_PROVIDER` selects `resend` (default, preserving existing deployments) or
-`sendgrid`. Both use `MAIL_PROVIDER_API_KEY`; map an existing provider-specific
-credential into that environment variable without writing it into source.
+For Free, Assisted and native deployment, `MAIL_PROVIDER` selects `resend`
+(default, preserving existing deployments) or `sendgrid`. Both use
+`MAIL_PROVIDER_API_KEY`; map an existing provider-specific credential into that environment variable without writing it into source.
 Likewise map the verified sender address into `MAIL_FROM_ADDRESS`. The sender
 domain must publish a DMARC policy at `_dmarc.<From-domain>` and a reachable
 DKIM key at `<selector>._domainkey.<From-domain>`; provider CNAMEs are supported.
@@ -365,10 +371,13 @@ public readiness must be200; inconsistent settings or dependency failures fail.
 The public host cannot reach setup, sessions, operator APIs or operator assets.
 
 Supply independent `SETUP_TOKEN` and `SESSION_SECRET` (at least 32 random characters each),
-`MAIL_PROVIDER_API_KEY`, `SUBSCRIBER_TOKEN_SECRET` and `WEBHOOK_SIGNING_SECRET`
-through the broker's separate runtime secret channel. Configure a real
-`MAIL_FROM_ADDRESS`, the chosen mail provider, and signed receipt verification as
-above. The candidate receives none of these secrets while building. Native
+`SUBSCRIBER_TOKEN_SECRET` and `WEBHOOK_SIGNING_SECRET` through the broker's separate
+runtime secret channel. Managed hosting fills and hides `MAIL_PROVIDER=rer`,
+`MAIL_FROM`, `MAIL_RELAY_URL` and private `MAIL_API_KEY`; no provider account or mail
+key is needed from the owner. Free and Assisted hosting instead use
+`MAIL_FROM_ADDRESS`, `MAIL_DKIM_SELECTOR` and private `MAIL_PROVIDER_API_KEY` for
+the selected Resend or SendGrid account, with receipt verification as above.
+The candidate receives none of these secrets while building. Native
 `POST /auth/bootstrap` claims the configured `SETUP_OPERATOR_EMAIL` with JSON `token` (the `SETUP_TOKEN`) and `displayName`. Base issues the owner's session and refuses repeated or racing claims. The installer then applies product page settings. Keep the installer-managed `SETUP_TOKEN` for subsequent setup/deploy commands; the durable Base claim prevents reuse against an initialized store. Keep `SESSION_SECRET` stable. Subsequent sign-in uses Base email links and a confirmation POST.
 
 Core migration bytes and broker identities `core-<filename>` and owner migration
@@ -423,8 +432,9 @@ hosted installation's actual provider and recipient mailbox.
 
 `node scripts/operations.mjs check` prints the required inputs and their sources,
 plus a plain next step. Version 2 of `OPERATIONS.json` describes the real native
-mail dispatch and scheduled-update loops. Lamp's chosen provider consumes
-`MAIL_PROVIDER_API_KEY`; this check never sends mail, queries provider credentials
+mail dispatch and scheduled-update loops. Resend and SendGrid consume
+`MAIL_PROVIDER_API_KEY`; Managed mail uses the private `MAIL_API_KEY` relay
+credential. This check never sends mail, queries provider credentials
 or establishes hosted health.
 
 ## Independent external heartbeat

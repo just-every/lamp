@@ -242,7 +242,7 @@
     {
       "id": "mail-sender",
       "required": true,
-      "why": "Cloudflare Workers cannot deliver email to arbitrary recipients. Subscriber notification is the product's second surface, and SUB-006 and NOTIFY-008 require authenticated bulk sending with List-Unsubscribe support.",
+      "why": "Cloudflare Workers cannot deliver email to arbitrary recipients. Subscriber notification is the product's second surface, and SUB-006 and NOTIFY-008 require authenticated bulk sending with List-Unsubscribe support. Managed hosting uses the declared Run Edit Run relay with an installation credential; ordinary hosting uses Resend or SendGrid directly.",
       "data": [
         "Subscriber email address",
         "The published update's fields",
@@ -412,15 +412,15 @@
     },
     {
       "name": "MAIL_PROVIDER_API_KEY",
-      "required": true,
+      "required": false,
       "secret": true,
-      "why": "mail.sender.v1."
+      "why": "Required for ordinary Resend or SendGrid mail only. mail.sender.v1."
     },
     {
       "name": "MAIL_PROVIDER",
       "required": false,
       "secret": false,
-      "why": "Select resend (default) or sendgrid for mail.sender.v1."
+      "why": "Select rer for managed relay mail, resend (default), or sendgrid for mail.sender.v1. Hosted mail must be configured."
     },
     {
       "name": "SENDGRID_WEBHOOK_PUBLIC_KEY",
@@ -430,15 +430,15 @@
     },
     {
       "name": "MAIL_FROM_ADDRESS",
-      "required": true,
+      "required": false,
       "secret": false,
-      "why": "NOTIFY-008."
+      "why": "Required for ordinary Resend or SendGrid mail only. NOTIFY-008."
     },
     {
       "name": "MAIL_DKIM_SELECTOR",
-      "required": true,
+      "required": false,
       "secret": false,
-      "why": "NOTIFY-010 DNS preflight identifies the provider-published DKIM selector for MAIL_FROM_ADDRESS."
+      "why": "Required for ordinary Resend or SendGrid mail only. NOTIFY-010 DNS preflight identifies the provider-published DKIM selector for MAIL_FROM_ADDRESS."
     },
     {
       "name": "RESEND_WEBHOOK_SECRET",
@@ -529,6 +529,24 @@
       "required": false,
       "secret": false,
       "why": "Heartbeat interval on the cron minute grid; defaults to five minutes."
+    },
+    {
+      "name": "MAIL_FROM",
+      "required": false,
+      "secret": false,
+      "why": "Required when MAIL_PROVIDER is rer. Run Edit Run assigns the verified managed sender; Lamp uses it as the product sender address."
+    },
+    {
+      "name": "MAIL_RELAY_URL",
+      "required": false,
+      "secret": false,
+      "why": "Required when MAIL_PROVIDER is rer. HTTPS Run Edit Run managed mail endpoint; never follows redirects."
+    },
+    {
+      "name": "MAIL_API_KEY",
+      "required": false,
+      "secret": true,
+      "why": "Required when MAIL_PROVIDER is rer. Private installation and environment credential for the managed mail relay."
     }
   ],
   "deploy": {

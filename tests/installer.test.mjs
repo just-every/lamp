@@ -14,7 +14,7 @@ import {hostLamp} from '../scripts/installer/hosting.mjs';
 import {nativeSecrets} from '../scripts/installer/secrets.mjs';
 import {deploymentConfig} from '../scripts/ops-config.mjs';
 import * as browser from '../scripts/installer/ui/seed.mjs';
-test("Deliberate local installation and invalid-input refusal", async t => {
+test("Deliberate local installation, invalid-input refusal and destination-bound hosting", async t => {
   t.diagnostic("local-first Lamp browser setup saves only nonsecret fields and requires deliberate start");
   await (async()=>{
  const root=await mkdtemp(join(tmpdir(),'lamp-installer-'));
@@ -50,10 +50,17 @@ test("Deliberate local installation and invalid-input refusal", async t => {
   await (async()=>{
  const manifest=JSON.parse(await readFile('rer-setup.json','utf8'));
  const model=createInstallerModel(manifest,browser);
- const common={SESSION_SECRET:'test-only-session-secret-'.repeat(3),SETUP_TOKEN:'test-only-setup-token-'.repeat(3),SETUP_OPERATOR_EMAIL:'owner@example.test',OWNER_DISPLAY_NAME:'Owner',LAMP_PAGE_NAME:'Owner page',LAMP_PAGE_TAGLINE:'Status',LAMP_PAGE_TIMEZONE:'UTC'};
+ const common={...model.initialDraft({draft:{}}),SESSION_SECRET:'test-only-session-secret-'.repeat(3),SETUP_TOKEN:'test-only-setup-token-'.repeat(3),SETUP_OPERATOR_EMAIL:'owner@example.test',OWNER_DISPLAY_NAME:'Owner',LAMP_PAGE_NAME:'Owner page',LAMP_PAGE_TAGLINE:'Status',LAMP_PAGE_TIMEZONE:'UTC'};
  assert.equal(model.setupModel({...common,target:'local'}).ready,true);
  assert.equal(model.setupModel({...common,target:'remote'}).ready,false);
- assert.equal(model.setupModel({...common,target:'remote',accountId:'a'.repeat(32),prefix:'lamp-page',appOrigin:'https://app.example.test',apiToken:'synthetic-owner-credential'}).ready,true);
+ const hosted={...common,target:'remote',accountId:'a'.repeat(32),prefix:'lamp-page',appOrigin:'https://app.example.test',apiToken:'synthetic-owner-credential'};
+ // Online mail is validated by hostLamp before any effect; local trials keep direct inputs optional.
+ assert.equal(model.setupModel(hosted).ready,true);
+ const direct={...hosted,MAIL_PROVIDER:'sendgrid',MAIL_FROM_ADDRESS:'status@example.test',MAIL_DKIM_SELECTOR:'s1',MAIL_PROVIDER_API_KEY:'test-only-direct-key'};
+ assert.equal(model.setupModel(direct).ready,true);
+ const managed={...hosted,MAIL_PROVIDER:'rer',MAIL_FROM:'status@example.test',MAIL_RELAY_URL:'https://relay.example.test/send',MAIL_API_KEY:'test-only-relay-key'};
+ assert.equal(model.setupModel(managed).ready,true);
+ assert.equal(model.setupModel({...managed,MAIL_API_KEY:''}).ready,false);
  assert.equal(model.fields.INSTALL_TARGET,undefined);
 })(t);
   t.diagnostic("native-invalid setup stops with value-free guidance before any installation effect");
@@ -74,12 +81,7 @@ test("Deliberate local installation and invalid-input refusal", async t => {
   assert.doesNotMatch(steps.join('\n'),/xxx|app\.example\.test/);
  }
 })(t);
-});
-
-
-
-
-test("Hosting credentials remain bound to the chosen owner and destination", async t => {
+  t.diagnostic("Hosting credentials remain bound to the chosen owner and destination");
   t.diagnostic("hosting credentials invalidate when their Cloudflare account or mail identity changes");
   await (async()=>{
  const manifest=JSON.parse(await readFile('rer-setup.json','utf8'));

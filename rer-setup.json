@@ -18,7 +18,7 @@
     {
       "id": "mail",
       "label": "Online mail settings",
-      "help": "For Online hosting, use Edit to enter your verified sender, DKIM selector and provider key before Start. Local sign-in is one click and requires no mail."
+      "help": "For Online hosting, configure a mail provider before Start. Run Edit Run supplies managed mail settings; ordinary providers use your verified sender and provider key. Local sign-in is one click and requires no mail."
     }
   ],
   "fields": [
@@ -99,10 +99,14 @@
       "name": "MAIL_PROVIDER",
       "label": "Online mail provider",
       "kind": "select",
-      "required": false,
+      "required": true,
       "default": "sendgrid",
       "group": "mail",
       "options": [
+        {
+          "value": "rer",
+          "label": "Run Edit Run"
+        },
         {
           "value": "sendgrid",
           "label": "SendGrid"
@@ -114,11 +118,87 @@
       ]
     },
     {
+      "name": "MAIL_FROM",
+      "label": "Managed sender address",
+      "kind": "email",
+      "required": false,
+      "group": "mail",
+      "when": {
+        "field": "MAIL_PROVIDER",
+        "equals": "rer"
+      },
+      "presentations": [
+        {
+          "when": {
+            "field": "MAIL_PROVIDER",
+            "equals": "rer"
+          },
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "MAIL_RELAY_URL",
+      "label": "Managed mail relay URL",
+      "kind": "url",
+      "required": false,
+      "group": "mail",
+      "when": {
+        "field": "MAIL_PROVIDER",
+        "equals": "rer"
+      },
+      "presentations": [
+        {
+          "when": {
+            "field": "MAIL_PROVIDER",
+            "equals": "rer"
+          },
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "MAIL_API_KEY",
+      "label": "Managed mail API key",
+      "kind": "secret",
+      "required": false,
+      "group": "mail",
+      "when": {
+        "field": "MAIL_PROVIDER",
+        "equals": "rer"
+      },
+      "presentations": [
+        {
+          "when": {
+            "field": "MAIL_PROVIDER",
+            "equals": "rer"
+          },
+          "required": true
+        }
+      ],
+      "input": "entered",
+      "ownerVisible": true
+    },
+    {
       "name": "MAIL_FROM_ADDRESS",
       "label": "Verified sender address",
       "kind": "email",
       "required": false,
-      "group": "mail"
+      "group": "mail",
+      "presentations": [
+        {
+          "when": {
+            "field": "MAIL_PROVIDER",
+            "equals": "resend"
+          }
+        },
+        {
+          "when": {
+            "field": "MAIL_PROVIDER",
+            "equals": "sendgrid"
+          }
+        }
+      ]
     },
     {
       "name": "MAIL_DKIM_SELECTOR",
@@ -126,7 +206,21 @@
       "kind": "text",
       "required": false,
       "group": "mail",
-      "help": "Online only. The sender domain must already publish SPF, DKIM and DMARC."
+      "help": "Online only. The sender domain must already publish SPF, DKIM and DMARC.",
+      "presentations": [
+        {
+          "when": {
+            "field": "MAIL_PROVIDER",
+            "equals": "resend"
+          }
+        },
+        {
+          "when": {
+            "field": "MAIL_PROVIDER",
+            "equals": "sendgrid"
+          }
+        }
+      ]
     },
     {
       "name": "MAIL_PROVIDER_API_KEY",
@@ -136,19 +230,26 @@
       "required": false,
       "ownerVisible": true,
       "group": "mail",
-      "when": {
-        "field": "MAIL_PROVIDER",
-        "nonEmpty": true
-      },
       "presentations": [
         {
           "when": {
-            "field": "MAIL_FROM_ADDRESS",
-            "nonEmpty": true
+            "field": "MAIL_PROVIDER",
+            "equals": "resend"
           },
-          "help": "Online only. Enter the key for this provider and sender. It remains private and is sent only through the native deployment command."
+          "help": "Online only. Enter the direct provider key for this sender. It remains private and is sent only through the native deployment command."
+        },
+        {
+          "when": {
+            "field": "MAIL_PROVIDER",
+            "equals": "sendgrid"
+          },
+          "help": "Online only. Enter the direct provider key for this sender. It remains private and is sent only through the native deployment command."
         }
-      ]
+      ],
+      "when": {
+        "field": "MAIL_FROM_ADDRESS",
+        "nonEmpty": true
+      }
     },
     {
       "name": "SETUP_TOKEN",

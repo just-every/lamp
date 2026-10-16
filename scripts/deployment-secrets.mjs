@@ -10,7 +10,8 @@ export async function withDeploymentSecrets(config, action) {
       // Wrangler preserves omitted secrets. Empty known optional bindings
       // explicitly disable removed integrations without touching owner secrets.
       RER_MAIL_RELAY_SECRET: config.relaySecret ?? "",
-      MAIL_PROVIDER_API_KEY: config.mailProviderApiKey,
+      MAIL_PROVIDER_API_KEY: config.mailProviderApiKey ?? "",
+      MAIL_API_KEY: config.mailApiKey ?? "",
       SESSION_SECRET: config.sessionSecret,
       SETUP_TOKEN: config.setupToken,
       AUTH_PROVIDERS:config.authProviders??"",

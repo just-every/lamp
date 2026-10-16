@@ -3,7 +3,7 @@ import { existsSync } from "node:fs";
 import { rm, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 
-import { deploymentConfig, parseArgs, resourceNames, writeGeneratedWrangler } from "./ops-config.mjs";
+import { deploymentConfig, mailEnvironmentNames, parseArgs, resourceNames, writeGeneratedWrangler } from "./ops-config.mjs";
 import { withDeploymentSecrets } from "./deployment-secrets.mjs";
 import { withPublicWorkerConfig } from "./native-public-worker.mjs";
 import { readOperations } from "./operations.mjs";
@@ -24,6 +24,7 @@ async function buildGeneratedWorker(configPath, expected) {
   if (built.config.name !== worker) throw new Error(`Vite emitted ${built.config.name ?? "an unnamed Worker"} instead of ${worker}.`);
   if (built.config.compatibility_date !== "2026-09-08" || !["nodejs_compat", "global_fetch_strictly_public"].every(flag => built.config.compatibility_flags?.includes(flag))) throw new Error("The compiled Worker configuration did not retain the required Start compatibility settings.");
   if (built.config.vars?.LAMP_PAGE_HOST !== expected.pageHost || built.config.vars?.LAMP_APP_HOST !== expected.appHost || built.config.vars?.MAIL_FROM_ADDRESS !== expected.mailFromAddress) throw new Error("The compiled Worker configuration did not retain the generated deployment bindings.");
+  if (expected.mailProvider === "rer" && (built.config.vars?.MAIL_FROM !== expected.mailFromAddress || built.config.vars?.MAIL_RELAY_URL !== expected.mailRelayUrl)) throw new Error("The compiled Worker configuration did not retain managed mail bindings.");
   return built.path;
 }
 
@@ -31,6 +32,7 @@ async function main() {
   const flags = parseArgs(process.argv.slice(2));
   const environment = flags.get("environment") ?? "production";
   const { descriptor } = await readOperations(process.cwd());
+  descriptor.requiredEnvironment = [...new Set([...descriptor.requiredEnvironment, ...mailEnvironmentNames(process.env)])];
   const dryRunFailure = flags.get("dry-run") ? dryRunInputFailure(descriptor, process.env) : null;
   if (dryRunFailure) {
     console.error(dryRunFailure);

@@ -1,11 +1,14 @@
 {
-  "$comment": "rer verify serves the production build at one https origin with stand-ins for these secrets. Lamp answers built files and /health on its app host. The MAIL_PROVIDER/MAIL_FROM/MAIL_API_KEY mappings also expose Lamp's native input names to rer's shared production sign-in preflight; the native upload still uses OPERATIONS.md and its own generated bindings.",
+  "$comment": "rer verify serves the production build with stand-ins for private inputs. Managed mail uses the declared relay bindings; native direct providers retain their ordinary input names.",
   "project": "just-every/lamp",
   "vars": {
     "LAMP_APP_HOST": "rer-hosted-check.invalid",
     "LAMP_PAGE_HOST": "status.rer-hosted-check.invalid",
     "SETUP_OPERATOR_EMAIL": "owner@rer-hosted-check.invalid",
-    "MAIL_PROVIDER": "resend"
+    "MAIL_PROVIDER": "rer",
+    "MAIL_FROM": "proof@rer-hosted-check.invalid",
+    "MAIL_FROM_ADDRESS": "proof@rer-hosted-check.invalid",
+    "MAIL_RELAY_URL": "https://mail.rer-hosted-check.invalid/api/managed-mail/send"
   },
   "secrets": [
     {
@@ -27,16 +30,21 @@
     {
       "binding": "MAIL_PROVIDER",
       "environment": "MAIL_PROVIDER",
-      "verifyStandIn": "sendgrid"
+      "verifyStandIn": "rer"
     },
     {
       "binding": "MAIL_FROM",
-      "environment": "MAIL_FROM_ADDRESS",
+      "environment": "MAIL_FROM",
       "verifyStandIn": "proof@rer-hosted-check.invalid"
     },
     {
       "binding": "MAIL_API_KEY",
-      "environment": "MAIL_PROVIDER_API_KEY"
+      "environment": "MAIL_API_KEY"
+    },
+    {
+      "binding": "MAIL_RELAY_URL",
+      "environment": "MAIL_RELAY_URL",
+      "verifyStandIn": "https://mail.rer-hosted-check.invalid/api/managed-mail/send"
     }
   ]
 }

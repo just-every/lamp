@@ -13,7 +13,7 @@ type DeliveriesResponse = {
   limit: number;
   offset: number;
   hasMore: boolean;
-  mail: { provider: "resend" | "sendgrid"; local: boolean; receiptsConfigured: boolean };
+  mail: { provider: "rer" | "resend" | "sendgrid"; local: boolean; receiptsConfigured: boolean };
 };
 
 export function DeliveriesPage() {
@@ -32,7 +32,7 @@ export function DeliveriesPage() {
   if (channel) csvSearch.set("channel", channel);
   if (outcome) csvSearch.set("outcome", outcome);
   const csvHref = `/api/app/deliveries.csv?${csvSearch.toString()}`;
-  const providerName = data.mail.provider === "sendgrid" ? "SendGrid" : "Resend";
+  const providerName = data.mail.provider === "rer" ? "RER" : data.mail.provider === "sendgrid" ? "SendGrid" : "Resend";
   function resetFilters(next: () => void) { next(); setOffset(0); }
   return <div className="page-stack">
     <section className="page-title-row">

@@ -28,7 +28,7 @@
         "rer",
         "dev"
       ],
-      "effects": "Serves Lamp locally with Base keyed owner dev identity and captured mail for native email-link testing.",
+      "effects": "Serves Lamp locally with Base keyed owner dev identity and silently suppressed mail.",
       "inputs": [
         "package.json",
         "scripts/installer/local.mjs"
@@ -165,12 +165,9 @@
     "LAMP_PAGE_TAGLINE",
     "LAMP_PAGE_TIMEZONE",
     "LAMP_ACCENT_COLOR",
-    "MAIL_FROM_ADDRESS",
     "SETUP_OPERATOR_EMAIL",
-    "MAIL_PROVIDER_API_KEY",
     "SUBSCRIBER_TOKEN_SECRET",
     "WEBHOOK_SIGNING_SECRET",
-    "MAIL_DKIM_SELECTOR",
     "SETUP_TOKEN",
     "SESSION_SECRET"
   ],
@@ -212,9 +209,43 @@
   "loops": [
     {
       "id": "native-mail-dispatch",
-      "type": "worker",
+      "type": "mail",
       "required": true,
-      "enabled": true
+      "enabled": true,
+      "binding": {
+        "providerEnvironment": "MAIL_PROVIDER",
+        "providers": {
+          "rer": {
+            "apiKeyEnvironment": "MAIL_API_KEY",
+            "requiredEnvironment": [
+              "MAIL_FROM",
+              "MAIL_RELAY_URL"
+            ]
+          },
+          "resend": {
+            "apiKeyEnvironment": "MAIL_PROVIDER_API_KEY",
+            "requiredEnvironment": [
+              "MAIL_FROM_ADDRESS",
+              "MAIL_DKIM_SELECTOR"
+            ]
+          },
+          "sendgrid": {
+            "apiKeyEnvironment": "MAIL_PROVIDER_API_KEY",
+            "requiredEnvironment": [
+              "MAIL_FROM_ADDRESS",
+              "MAIL_DKIM_SELECTOR"
+            ]
+          }
+        },
+        "whenUnset": {
+          "provider": "resend",
+          "apiKeyEnvironment": "MAIL_PROVIDER_API_KEY",
+          "requiredEnvironment": [
+            "MAIL_FROM_ADDRESS",
+            "MAIL_DKIM_SELECTOR"
+          ]
+        }
+      }
     },
     {
       "id": "scheduled-status-updates",
@@ -239,7 +270,11 @@
     "WEBHOOK_SIGNING_SECRET": "Generate a private random webhook signing value",
     "MAIL_DKIM_SELECTOR": "Your mail provider domain DNS settings",
     "SETUP_TOKEN": "Generate a private random one-time setup value",
-    "SESSION_SECRET": "Generate and preserve a private random session signing value"
+    "SESSION_SECRET": "Generate and preserve a private random session signing value",
+    "MAIL_PROVIDER": "Online mail provider selection",
+    "MAIL_FROM": "Run Edit Run assigned managed sender address",
+    "MAIL_RELAY_URL": "Run Edit Run assigned managed mail relay endpoint",
+    "MAIL_API_KEY": "Run Edit Run private installation mail credential"
   },
   "seedContract": {
     "version": 1,

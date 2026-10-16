@@ -10,14 +10,12 @@
     "LAMP_PAGE_TAGLINE",
     "LAMP_PAGE_TIMEZONE",
     "LAMP_ACCENT_COLOR",
-    "MAIL_FROM_ADDRESS",
-    "MAIL_DKIM_SELECTOR",
     "SETUP_OPERATOR_EMAIL",
     "MAIL_PROVIDER"
   ],
   "ownerSetup": "Claim the configured operator through Base /auth/bootstrap with SETUP_TOKEN. SESSION_SECRET must remain stable. Product setup migrations initialize only page settings.",
   "providerSetup": [
-    "Verified Resend or SendGrid sender and webhook configuration"
+    "Managed mail uses the assigned Run Edit Run sender, relay URL and private installation credential; ordinary hosting requires a verified Resend or SendGrid sender, DKIM selector and provider key."
   ],
   "operationalGaps": [
     "Source visibility and owner fork access must be verified before catalogue installation"

@@ -1,4 +1,4 @@
-import {deploymentConfig} from '../ops-config.mjs';
+import {deploymentConfig,mailEnvironmentNames} from '../ops-config.mjs';
 import {installationFailure} from '@runeditrun/rer/failures';
 import {installationReceipt} from './receipt.mjs';
 import {nativeSecrets} from './secrets.mjs';
@@ -10,9 +10,10 @@ export async function hostLamp({root,input,store,signal}) {
  const credentials={
   CLOUDFLARE_API_TOKEN:input.apiToken,
   MAIL_PROVIDER_API_KEY:input.MAIL_PROVIDER_API_KEY,
+  MAIL_API_KEY:input.MAIL_API_KEY,
  };
- store.addSecrets(credentials);
- const missing=['LAMP_PAGE_HOST','LAMP_HOSTING','LAMP_ACCENT_COLOR','MAIL_PROVIDER','MAIL_FROM_ADDRESS','MAIL_DKIM_SELECTOR','MAIL_PROVIDER_API_KEY'].filter(key=>typeof input[key]!=='string'||!input[key].trim());
+ store.addSecrets(Object.fromEntries(Object.entries(credentials).filter(([,value])=>typeof value==='string'&&value)));
+ const missing=['LAMP_PAGE_HOST','LAMP_HOSTING','LAMP_ACCENT_COLOR','MAIL_PROVIDER',...mailEnvironmentNames(input)].filter(key=>typeof input[key]!=='string'||!input[key].trim());
  if(missing.length){
   await store.step(`Before Online hosting, open Edit for Online page settings and Online mail settings, then provide: ${missing.join(', ')}.`);
   throw installationFailure('command_failed',{step:'deploy'});
@@ -32,6 +33,7 @@ export async function hostLamp({root,input,store,signal}) {
    LAMP_PAGE_TIMEZONE:input.LAMP_PAGE_TIMEZONE,LAMP_ACCENT_COLOR:input.LAMP_ACCENT_COLOR,
    MAIL_PROVIDER:input.MAIL_PROVIDER,MAIL_FROM_ADDRESS:input.MAIL_FROM_ADDRESS,
    MAIL_DKIM_SELECTOR:input.MAIL_DKIM_SELECTOR,
+   MAIL_FROM:input.MAIL_FROM,MAIL_RELAY_URL:input.MAIL_RELAY_URL,
   };
  }catch{
   await store.step('In Hosting & connections, supply a Cloudflare account and API token, resource name and exact HTTPS operator address without a path or port. Select an Online hosting mode in Online page settings. See OPERATIONS.md.');
@@ -41,7 +43,7 @@ export async function hostLamp({root,input,store,signal}) {
   const secrets=await nativeSecrets(root,store,'hosting');
   Object.assign(env,secrets);
   try{config=deploymentConfig(env);}catch(error){
-   const fields=['LAMP_PAGE_HOST','LAMP_APP_HOST','LAMP_HOSTING','LAMP_RESOURCE_PREFIX','SETUP_OPERATOR_EMAIL','OWNER_DISPLAY_NAME','LAMP_PAGE_NAME','LAMP_PAGE_TAGLINE','LAMP_PAGE_TIMEZONE','LAMP_ACCENT_COLOR','MAIL_PROVIDER','MAIL_FROM_ADDRESS','MAIL_DKIM_SELECTOR','MAIL_PROVIDER_API_KEY'];
+   const fields=['LAMP_PAGE_HOST','LAMP_APP_HOST','LAMP_HOSTING','LAMP_RESOURCE_PREFIX','SETUP_OPERATOR_EMAIL','OWNER_DISPLAY_NAME','LAMP_PAGE_NAME','LAMP_PAGE_TAGLINE','LAMP_PAGE_TIMEZONE','LAMP_ACCENT_COLOR','MAIL_PROVIDER',...mailEnvironmentNames(input)];
    const field=fields.find(name=>error.message.startsWith(name));
    await store.step(field?`Correct ${field} in Online settings before deploying; see its requirements in OPERATIONS.md.`:'Correct the distinct public and operator hostnames for the selected hosting mode; see OPERATIONS.md.');
    throw installationFailure('command_failed',{step:'deploy'});

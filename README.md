@@ -51,15 +51,19 @@ The app host serves Lamp's public documentation at `/docs`. Start with the
 
 ## Deploy and verify
 
-Hosted Lamp needs a Resend or SendGrid account, an authenticated sender and its
-API key. There is no hosted mode without mail. Save the required inputs in a
-private file outside the checkout, owned by you with mode `0600`; follow the
+Managed hosting includes mail: you need no provider account or mail key. RER
+fills and hides `MAIL_PROVIDER=rer`, `MAIL_FROM`, `MAIL_RELAY_URL` and the private
+`MAIL_API_KEY`. Free and Assisted hosting keep your own Resend or SendGrid account,
+authenticated sender and API key, using `MAIL_FROM_ADDRESS`, `MAIL_DKIM_SELECTOR`
+and `MAIL_PROVIDER_API_KEY`. Every hosted installation needs working mail. For
+native deployment, save the required inputs in a private file outside the
+checkout, owned by you with mode `0600`; follow the
 [complete input-file example](docs/deploy.md#save-private-deployment-inputs).
 You can also export the input names in the calling shell. The
 [input reference](docs/deployment-reference.md) distinguishes required owner
 values from secrets that `rer` generates on a first deploy.
 
-Use `rer` from the project root; the checkout pins `@runeditrun/rer` 0.2.22. Before a
+Use `rer` from the project root; the checkout pins `@runeditrun/rer` 0.2.23. Before a
 command that builds or verifies the checkout,
 stop a running development server with `rer dev --stop` or a production preview
 with `rer preview --stop`.
