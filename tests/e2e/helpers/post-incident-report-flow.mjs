@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { mkdir } from "node:fs/promises";
 import { join } from "node:path";
 import { expect } from "@playwright/test";
+import { operatorHydrated } from "./operator-hydrated.mjs";
 
 export async function postIncidentReportFlow({ page, appFetch, appUrl, pageUrl }) {
   const api = async (path, method, body) => {
@@ -46,10 +47,12 @@ export async function postIncidentReportFlow({ page, appFetch, appUrl, pageUrl }
   };
 
   await page.goto(`${appUrl}/app/incidents/${incident.id}`);
+  await operatorHydrated(page);
   await editor.getByLabel("Summary", { exact: true }).waitFor();
   for (const [field, value] of Object.entries(report)) await editor.getByLabel(field, { exact: false }).fill(value);
   await save();
   await page.reload();
+  await operatorHydrated(page);
   await assertFields();
   report.cause += " The pool had not been resized after the latest traffic increase.";
   await editor.getByLabel("Cause").fill(report.cause);

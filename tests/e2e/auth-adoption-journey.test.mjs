@@ -8,6 +8,7 @@ import {chromium} from 'playwright';
 import AxeBuilder from '@axe-core/playwright';
 import {unstable_splitSqlQuery} from 'wrangler';
 import {reservePort} from './worker-startup.mjs';
+import {operatorHydrated} from './helpers/operator-hydrated.mjs';
 import {readDevKey,signInAs} from '@runeditrun/rer/internal/modules/operator-auth/dev/sign-in-as.mjs';
 import {createRedaction} from '@runeditrun/rer/redaction';
 
@@ -123,6 +124,7 @@ test('SETUP-002 Base setup/dev, one-click sign-in, invite, signout and prior-dat
     if(!upgraded){
      await capture(page,'workspace-'+width);const landing=await context.newPage();await landing.setViewportSize({width,height:1000});await landing.goto(origin+'/');await capture(landing,'landing-'+width);await landing.close();
      await page.goto(origin+'/app/settings');
+     await operatorHydrated(page);
      const operators=page.getByRole('region',{name:'Operators',exact:true});
      const pending=page.getByRole('region',{name:'Pending invitations'});
      const email=`invited-${width}@example.test`,cancelledEmail=`cancelled-${width}@example.test`;
