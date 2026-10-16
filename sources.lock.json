@@ -444,7 +444,7 @@
       "executable": false
     },
     "base-copies.json": {
-      "sha256": "9a23027ca51b4a6b6a8c497394f99305318fa4abb8cf8e0cade578c2255a8e3a",
+      "sha256": "43bd12090e3c3e0187f5b6cf94430559a2b1cc2686666421a431766aceb752c5",
       "executable": false
     },
     "BASELINE.md": {
@@ -776,7 +776,7 @@
       "executable": false
     },
     "modules/demo/responses.mjs": {
-      "sha256": "f91b6cb14dfde5c30750e6d248820f7218a855353e43e2defbc10fcc25fedc5d",
+      "sha256": "f43f0e88b024900ea5b25f1a32c9cd5b61a5a42c594320dfd33e4f70023b8107",
       "executable": false
     },
     "modules/demo/sockets.mjs": {
