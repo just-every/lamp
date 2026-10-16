@@ -20,6 +20,26 @@ export default defineConfig(({ command, isPreview }) => {
     // Parallel Workers previews must never rebuild each other's optimized
     // dependency graph. Test and browser runners set a private directory.
     cacheDir,
+    environments: {
+      client: {
+        build: {
+          rolldownOptions: {
+            output: {
+              // The authenticated extension mount is already in the page's
+              // initial graph. Keep its compile-time slots beside it, so
+              // hydration does not discover another network round trip.
+              codeSplitting: {
+                groups: [{
+                  name: "operator-extensions",
+                  includeDependenciesRecursively: false,
+                  test: /\/src\/(?:core\/app\/client\/extensions|ext\/index\.client)\.tsx$/,
+                }],
+              },
+            },
+          },
+        },
+      },
+    },
     server: {
       fs: {
         strict: true,
