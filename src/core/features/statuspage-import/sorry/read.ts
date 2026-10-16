@@ -73,17 +73,19 @@ export async function readSorryResponses(files: SavedFile[], options: SorryReadO
     add("subscriber", row.id, row, origin);
     const selected = row.components?.map((component) => component.id) ?? row.component_ids;
     let reason: string | undefined;
-    const otherChannels = Object.entries(row).filter(([key, value]) => key.startsWith("notify_by_") && key !== "notify_by_email" && value === true).map(([key]) => key.replace("notify_by_", ""));
-    const capabilities = Object.entries(sorrySubscriberChannels).filter(([field]) => Boolean(row[field])).map(([, label]) => label);
-    if (capabilities.length) reason = `Sorry ${capabilities.join(" / ")} subscription is unsupported; channel credentials were not retained and no subscriber was created.`;
-    else if (otherChannels.length) reason = `Sorry ${otherChannels.join(" / ")} subscription is unsupported; only email-only subscriptions can move.`;
-    else if (!row.notify_by_email || !row.email) reason = "Sorry subscription has no enabled email channel; no subscriber was created.";
+    const otherChannels = Object.entries(row).filter(([key, value]) => key.startsWith("notify_by_") && key !== "notify_by_email" && value === true).map(([key]) => {
+      const field = key.replace("notify_by_", "");
+      return sorrySubscriberChannels[field as keyof typeof sorrySubscriberChannels] ?? field;
+    });
+    const channels = [...new Set([...otherChannels, ...Object.entries(sorrySubscriberChannels).filter(([field]) => Boolean(row[field])).map(([, label]) => label)])];
+    const omitted = channels.length ? ` ${channels.join(", ")} channels were not carried; their values were not retained.` : "";
+    if (!row.notify_by_email || !row.email) reason = "Sorry subscription has no enabled email channel; no subscriber was created.";
     else if (row.confirmed === false || row.verified === false || row.email_verified === false || row.unsubscribed === true || row.unsubscribed_at || row.deleted_at || row.deactivated_at) reason = "Sorry subscription is explicitly unconfirmed, unsubscribed or inactive; consent was not carried.";
     else if (!selected || selected.some((id) => !components.has(id))) reason = "Sorry component preferences are absent or unresolved; importing would broaden the subscription.";
     else if (row.components && row.component_ids && canonicalJson([...selected].sort()) !== canonicalJson([...row.component_ids].sort())) reason = "Sorry subscription component_ids and included components disagree.";
-    if (reason) { accounting.push({ kind: "subscriber", sourceId: row.id, name: "Sorry subscriber", outcome: "skipped", reason }); continue; }
+    if (reason) { accounting.push({ kind: "subscriber", sourceId: row.id, name: "Sorry subscriber", outcome: "skipped", reason: reason + omitted }); continue; }
     data.subscribers.push({ id: row.id, mode: "email", email: row.email, components: [...new Set(selected!)] });
-    accounting.push({ kind: "subscriber", sourceId: row.id, name: "Sorry subscriber", outcome: "changed", reason: "Documented enabled email preference retained for an owner-released confirmation invitation; no active subscription or notification is created by import." });
+    accounting.push({ kind: "subscriber", sourceId: row.id, name: "Sorry subscriber", outcome: "changed", reason: "Documented enabled email preference retained for an owner-released confirmation invitation; no active subscription or notification is created by import." + omitted });
   }
   return { namespace: "sorry", records, artifacts: saved.artifacts, data, origins, accounting, publicAddresses,
     sourceInfo: { label: "Sorry", pageId: saved.page.id ?? options.pageId ?? new URL(saved.pageUrl).hostname, publicUrl: saved.pageUrl } };

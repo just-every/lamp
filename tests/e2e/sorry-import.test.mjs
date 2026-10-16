@@ -85,12 +85,12 @@ test('MOVE-001 MOVE-002 MOVE-004 MOVE-005 MOVE-006 Sorry previews without writes
     const parsed = await readSorryResponses(authFiles, source);
     const channels = JSON.parse(saved.find(file => file.name === 'sorry-subscribers.json').text).response;
     const retainedInput = JSON.stringify(parsed);
-    for (const row of channels) for (const field of ['slack_webhook_url', 'microsoft_teams_url']) if (row[field]) assert.ok(!retainedInput.includes(row[field]), 'channel capability must not enter retained records or original bytes');
+    for (const row of channels) for (const field of ['phone_number', 'slack_webhook_url', 'microsoft_teams_url']) if (row[field]) assert.ok(!retainedInput.includes(row[field]), 'channel value must not enter retained records or original bytes');
     assert.notEqual(parsed.artifacts.find(row => row.name === 'sorry-subscribers.json').original?.status, 'available');
     for (const [field, value] of [['google_chat_space', 'https://chat.googleapis.com/v1/spaces/synthetic?key=synthetic'], ['legacy_slack_oauth_token', 'synthetic-legacy-slack']]) {
       const files = authFiles.map(file => file.name !== 'sorry-subscribers.json' ? file : { ...file, text: JSON.stringify({ response: [{ ...channels[0], [field]: value }], count: 1 }) });
       const read = await readSorryResponses(files, source);
-      assert.equal(read.data.subscribers.length, 0); assert.ok(!JSON.stringify(read).includes(value));
+      assert.equal(read.data.subscribers.length, 1); assert.ok(!JSON.stringify(read).includes(value));
     }
     const credential = authFiles.map(file => file.name !== 'sorry-page.json' ? file : { ...file, text: file.text.replace('"response": {', '"response": {"api_key":"must-be-refused",') });
     assert.equal((await read(credential)).status, 400, 'other credential-bearing responses still fail closed');

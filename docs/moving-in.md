@@ -194,9 +194,11 @@ After the complete bounded read succeeds, the command creates a local directory
 with mode `0700` and original response files with mode `0600`. It never writes
 the API token and refuses a response that reflects it. Responses containing
 credentials outside the documented subscriber channel fields are also refused.
-Slack, Microsoft Teams, Google Chat and legacy Slack subscribers are skipped
-with a reason. Their channel capabilities are omitted from every retained
-record. For a response containing these capabilities, Lamp retains only its
+SMS / phone, Slack, Microsoft Teams, Google Chat and legacy Slack channels do
+not move. Eligible email subscriptions on the same rows are retained; rows
+without an enabled email channel are skipped with a reason. Other channel
+values are omitted from every retained record. For a response containing
+these values, Lamp retains only its
 unchanged-byte hash and size, without original-response custody; sanitized
 bytes are never labelled as an original. The local capture files remain
 unchanged and can contain channel credentials, so keep them private. Captured files
@@ -262,9 +264,11 @@ These answers and the history document come from the same public snapshot as
 notice redirects. Complete undo removes the Sorry aliases and restores Lamp's
 ordinary `/history` document.
 
-Eligible email candidates have `notify_by_email: true`; disabled email and
-unsupported channels are skipped, including rows with populated documented
-channel fields even when an email channel is enabled. Component preferences must resolve and are
+Eligible email candidates have `notify_by_email: true` and an email address,
+even when other channels are enabled or populated. SMS / phone, Slack, Microsoft
+Teams, Google Chat and legacy Slack channels are listed as not carried in the
+dry run, and their values are not retained. Rows without an enabled email
+channel are skipped with a reason. Component preferences must resolve and are
 never broadened. Import holds Sorry candidates inactive, without sending mail
 or starting the confirmation deadline. They receive no ordinary notifications
 while held. Other provider confirmation deadlines are unchanged.

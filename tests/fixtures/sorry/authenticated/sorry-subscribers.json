@@ -4,7 +4,7 @@
       "id": 400,
       "email": "reader@example.invalid",
       "notify_by_email": true,
-      "phone_number": null,
+      "phone_number": "+12025550123",
       "components": [
         {
           "id": 11
@@ -14,7 +14,7 @@
       "updated_at": "2025-04-02T10:00:00.000Z",
       "slack_webhook_url": null,
       "microsoft_teams_url": null,
-      "notify_by_phone_number": false,
+      "notify_by_phone_number": true,
       "notify_by_slack_webhook_url": false,
       "notify_by_legacy_slack_oauth_token": false,
       "notify_by_microsoft_teams_url": false,

@@ -40,6 +40,7 @@ export function parseSorryJson(text: string): Json {
 }
 
 export const sorrySubscriberChannels = {
+  phone_number: "SMS / phone",
   slack_webhook_url: "Slack", microsoft_teams_url: "Microsoft Teams",
   google_chat_space: "Google Chat", legacy_slack_oauth_token: "legacy Slack",
 } as const;
@@ -55,7 +56,7 @@ export function assertSorrySafe(value: unknown, key?: string, subscriberResponse
     if (Array.isArray(item)) { item.forEach(visit); return; }
     if (item && typeof item === "object") for (const [name, child] of Object.entries(item)) {
       if (reflected(name)) throw new Error("Sorry returned credential material; nothing was retained.");
-      if (capability.test(decodedCredentialText(name)) && child != null && child !== "" && typeof child !== "boolean") {
+      if ((Object.hasOwn(sorrySubscriberChannels, name) || capability.test(decodedCredentialText(name))) && child != null && child !== "" && typeof child !== "boolean") {
         if (!rows.has(item) || !Object.hasOwn(sorrySubscriberChannels, name) || typeof child !== "string") throw new Error("Sorry returned an access capability; save responses without operational credentials before importing.");
         hasChannelCapabilities = true;
       }
@@ -68,6 +69,6 @@ export function assertSorrySafe(value: unknown, key?: string, subscriberResponse
 
 export function retainedSorry(value: unknown): Json {
   if (Array.isArray(value)) return value.map(retainedSorry);
-  if (value && typeof value === "object") return Object.fromEntries(Object.entries(value).filter(([key]) => !capability.test(decodedCredentialText(key))).map(([key, child]) => [key, retainedSorry(child)])) as Json;
+  if (value && typeof value === "object") return Object.fromEntries(Object.entries(value).filter(([key]) => !Object.hasOwn(sorrySubscriberChannels, key) && !capability.test(decodedCredentialText(key))).map(([key, child]) => [key, retainedSorry(child)])) as Json;
   return value as Json;
 }

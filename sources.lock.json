@@ -544,7 +544,7 @@
       "executable": false
     },
     "docs/moving-in.md": {
-      "sha256": "3ea405948f3ac484f9d21b0c160ee584f4f97ee43cd2c058d6be82134606368c",
+      "sha256": "d62c3176d89c1b2d9f9562fd29b298e2e060b00c119a0a3a3cad7af198a64ff4",
       "executable": false
     },
     "docs/operators-and-sign-in.md": {
@@ -3240,7 +3240,7 @@
       "executable": false
     },
     "src/core/features/statuspage-import/sorry/json.ts": {
-      "sha256": "396161a67cf63232aaf31e64704e9f1968865a7e5d66ff25755a7a072addf21b",
+      "sha256": "7925b94a2a97bf05ee988e294d2ed4e3bff08ce5ff8100d72d5c3dc570499a1a",
       "executable": false
     },
     "src/core/features/statuspage-import/sorry/notices.ts": {
@@ -3248,7 +3248,7 @@
       "executable": false
     },
     "src/core/features/statuspage-import/sorry/read.ts": {
-      "sha256": "a5ca020170a1c66e14173a6fca1b50cf8705574761f05e4a7cb45cd051338666",
+      "sha256": "8dae33cd2536cb4ffafa495b600624572c6b6346dd3812ca43ee61cd2c363400",
       "executable": false
     },
     "src/core/features/statuspage-import/sorry/saved.ts": {
@@ -4612,7 +4612,7 @@
       "executable": false
     },
     "tests/e2e/sorry-import.test.mjs": {
-      "sha256": "3dfc0d69aa363c8ed9c8b8dee48e59957d8342f94dba0b0108678153682cae8a",
+      "sha256": "9deb7c1be4e027316b74e1c073d85d430671f01b5d4215165803c6ef676e24a8",
       "executable": false
     },
     "tests/e2e/start-runtime.test.mjs": {
@@ -5052,7 +5052,7 @@
       "executable": false
     },
     "tests/fixtures/sorry/authenticated/sorry-subscribers.json": {
-      "sha256": "cab162c0022e034c05ca70a0509667a930f300e6d1ea0829e47309e3847c1ab7",
+      "sha256": "3e0f07da33e3da6c4fc02cbc7dbf38da3821f73d1e8146fe558942c8f442946c",
       "executable": false
     },
     "tests/fixtures/sorry/public/sorry-components.json": {
