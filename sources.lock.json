@@ -452,7 +452,7 @@
       "executable": false
     },
     "CHANGELOG.md": {
-      "sha256": "3cfc2a5b903668baffc3203165f0bd69fe17b9d97269d287e3b45211c6aedc29",
+      "sha256": "b5aef4d5a4f13a2e4dbda979e9bd47bf83cfd4206a0838e66feebab4566f893e",
       "executable": false
     },
     "CLAUDE.md": {
@@ -1824,11 +1824,11 @@
       "executable": false
     },
     "OPERATIONS.json": {
-      "sha256": "efd94be5629d2fb79480052902084eca50e1b5ef9bedfb324085ed7af6c38a9e",
+      "sha256": "72d35c1c349a09fb907eca83410fca751fc7bc3e91f84b653bad15c8e6d4f20d",
       "executable": false
     },
     "OPERATIONS.md": {
-      "sha256": "528723d0ef941a2c40a0237287cc0ccc5bebb1e97527f68aac5a09e9c5296e0c",
+      "sha256": "62fbcf42b1cd3dea2fa7ed756568e36243f4b710db44dcc6e7f8367b0a524b31",
       "executable": false
     },
     "package.json": {
@@ -2112,7 +2112,7 @@
       "executable": false
     },
     "scripts/deploy.mjs": {
-      "sha256": "9bfbf9ac186caeea3b180b423438505344e495dc63e00c7dff7b6a2b867dea4c",
+      "sha256": "de5c7d32bc5bdab1207afbf3dddc4a181e0382d422ec79c47df643cb0334ef8c",
       "executable": false
     },
     "scripts/deployment-identity.mjs": {
@@ -2316,7 +2316,7 @@
       "executable": false
     },
     "scripts/ops-config.mjs": {
-      "sha256": "1e308d15a4cb62674b59a353c3131a3aeca1516f672d7b19ee6ea106197336af",
+      "sha256": "6556d71b70fc41c95e703ced77e85d7dcf4ea8c6940f8457d283e171e5c0d9a9",
       "executable": false
     },
     "scripts/owner-claim-config.mjs": {
@@ -5208,7 +5208,7 @@
       "executable": false
     },
     "tests/operations-description.test.mjs": {
-      "sha256": "2561f7fd28a4407a859c1ed65fc1d6df771f436ed2ab0d941db809a2dd208988",
+      "sha256": "fd29429f3ece5a23629589810829d0b8a3d099a2bb317bee649a228f8bfe3171",
       "executable": false
     },
     "tests/operator-readiness/checklist.test.mjs": {

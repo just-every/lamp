@@ -3,7 +3,7 @@ import { existsSync } from "node:fs";
 import { rm, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 
-import { deploymentConfig, mailEnvironmentNames, parseArgs, resourceNames, writeGeneratedWrangler } from "./ops-config.mjs";
+import { deploymentConfig, mailEnvironmentNames, mailEnvironmentSources, parseArgs, resourceNames, writeGeneratedWrangler } from "./ops-config.mjs";
 import { withDeploymentSecrets } from "./deployment-secrets.mjs";
 import { withPublicWorkerConfig } from "./native-public-worker.mjs";
 import { readOperations } from "./operations.mjs";
@@ -33,6 +33,7 @@ async function main() {
   const environment = flags.get("environment") ?? "production";
   const { descriptor } = await readOperations(process.cwd());
   descriptor.requiredEnvironment = [...new Set([...descriptor.requiredEnvironment, ...mailEnvironmentNames(process.env)])];
+  descriptor.environmentSources = { ...descriptor.environmentSources, ...mailEnvironmentSources };
   const dryRunFailure = flags.get("dry-run") ? dryRunInputFailure(descriptor, process.env) : null;
   if (dryRunFailure) {
     console.error(dryRunFailure);

@@ -1,5 +1,11 @@
 # Lamp operations
 
+Mail dispatch is a required Worker loop. Lamp's configuration module validates
+its conditional RER, SendGrid or Resend credentials before deployment; the
+Managed relay capability and assigned fields are declared in the generated
+deployment specification. Rer 0.2.29's generic mail-loop schema lists only direct
+providers, so it does not describe Lamp's relay transport.
+
 Lamp uses distinct public page and operator application hosts. Each has its own
 home page: the page host's `/` is the company's public status page, and the app
 host's `/` is the Lamp landing page beside sign-in and the operator app. Its deployment

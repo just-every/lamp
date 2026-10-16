@@ -4,6 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import test from 'node:test';
+import { mailEnvironmentSources } from '../scripts/ops-config.mjs';
 import { describeOperations, inspectOperations } from '../scripts/operations.mjs';
 
 test("Operations discoverability and value-free missing-input diagnostics", async t => {
@@ -59,7 +60,7 @@ test("Dry-run and deployment refuse missing authority or invalid native configur
   assert.equal(result.status, 1);
   for (const name of ['LAMP_PAGE_NAME', 'MAIL_PROVIDER_API_KEY']) {
     assert.ok(result.stderr.includes(name));
-    assert.ok(result.stderr.includes(descriptor.environmentSources[name]));
+    assert.ok(result.stderr.includes((mailEnvironmentSources[name] ?? descriptor.environmentSources[name])));
   }
   assert.ok(result.stderr.includes(descriptor.commands.deploy.argv.join(' ')));
   assert.ok(!result.stderr.includes('CLOUDFLARE_API_TOKEN'));

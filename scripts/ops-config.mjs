@@ -102,6 +102,18 @@ export function parseArgs(argv) {
   return flags;
 }
 
+// Conditional application inputs are checked by the native configuration module.
+// Base's OPERATIONS worker-loop schema does not model the Managed relay provider.
+export const mailEnvironmentSources = {
+  MAIL_PROVIDER: 'Online mail provider selection',
+  MAIL_FROM: 'Run Edit Run assigned managed sender address',
+  MAIL_RELAY_URL: 'Run Edit Run assigned managed mail relay endpoint',
+  MAIL_API_KEY: 'Run Edit Run private installation mail credential',
+  MAIL_FROM_ADDRESS: 'Verified sender address in your chosen mail provider',
+  MAIL_DKIM_SELECTOR: 'Your mail provider domain DNS settings',
+  MAIL_PROVIDER_API_KEY: 'Your selected mail provider API key settings',
+};
+
 export function mailEnvironmentNames(env = process.env) {
   return env.MAIL_PROVIDER?.trim() === "rer"
     ? ["MAIL_PROVIDER", "MAIL_FROM", "MAIL_RELAY_URL", "MAIL_API_KEY"]
