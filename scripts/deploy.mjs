@@ -79,9 +79,14 @@ async function main() {
   };
   await upload(false, file => run("pnpm", ["exec", "wrangler", "deploy", "--config", builtConfig, "--secrets-file", file, ...identityVars(identity)]));
   if (config.hosting === "workers-dev") await withPublicWorkerConfig(builtConfig, names, path => upload(true, file => run("pnpm", ["exec", "wrangler", "deploy", "--config", path, "--secrets-file", file, ...identityVars(identity)])));
-  const response = await fetch(`https://${config.appHost}/health`, { signal: AbortSignal.timeout(15_000), redirect: "error" });
-  const health = await response.json().catch(() => null);
-  if (response.status !== 200 || health?.status !== "ok") throw new Error(`Deployment smoke check failed for https://${config.appHost}/health.`);
+  // A new workers.dev Worker can answer 404 for a few seconds after its first upload.
+  let response, health;
+  for (const healthDeadline = Date.now() + 90_000; ; await new Promise((resolve) => setTimeout(resolve, 3_000))) {
+    response = await fetch(`https://${config.appHost}/health`, { cache: "no-store", signal: AbortSignal.timeout(15_000), redirect: "error" }).catch(() => null);
+    health = await response?.json().catch(() => null);
+    if ((response?.status === 200 && health?.status === "ok" && reportsIdentity(health, identity)) || Date.now() > healthDeadline) break;
+  }
+  if (response?.status !== 200 || health?.status !== "ok") throw new Error(`Deployment smoke check failed for https://${config.appHost}/health (HTTP ${response?.status ?? "unreachable"} after 90 seconds).`);
   if (!reportsIdentity(health, identity)) throw new Error(`https://${config.appHost}/health does not name this deployment (source ${identity.source}); another version may be serving.`);
   // Existing installations and restored archives prime the replica from R2;
   // legacy snapshots without a bundle are rebuilt by the minute scheduler.
