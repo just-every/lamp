@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Post-incident reports can be saved, edited after reload, and published from the incident editor. Saving sends only the four editable report fields; publication metadata remains managed by the server.
+
 ## 1.5.1
 
 - Mark synthetic credentials and documentation placeholders so hosted source admission accepts the fixtures. Application behaviour, the contract, migrations and stored data are unchanged from 1.5.0.

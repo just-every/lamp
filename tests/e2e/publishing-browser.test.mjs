@@ -19,6 +19,7 @@ import { reservePort, waitForWorker } from "./worker-startup.mjs";
 import { saveAndConfirmDraft } from "./saved-draft-helper.mjs";
 import { isolatedWranglerConfig } from "../helpers/wrangler-config.mjs";
 import { sessionCookieName } from "../helpers/session-cookie.mjs";
+import { postIncidentReportFlow } from "./helpers/post-incident-report-flow.mjs";
 
 let appUrl = "";
 let pageUrl = "";
@@ -495,4 +496,8 @@ contract("UPDATE-002", "composer publication controls remain visible and operabl
       }
     }
   } finally { if (originalViewport) await page.setViewportSize(originalViewport); }
+});
+
+contract("HIST-002", "an operator saves, reloads, edits and publishes a post-incident report", async () => {
+  await postIncidentReportFlow({ page, appFetch, appUrl, pageUrl });
 });

@@ -452,7 +452,7 @@
       "executable": false
     },
     "CHANGELOG.md": {
-      "sha256": "3e379711d4876a05521d3d0854ae1ce95fc07b191502fa2cd80c72d603113c44",
+      "sha256": "4a74d35c97db04d6a71978c6b0b5abcc8b1468cfd1982f279dc66bc6ff508c48",
       "executable": false
     },
     "CLAUDE.md": {
@@ -2808,7 +2808,7 @@
       "executable": false
     },
     "src/core/features/incidents/ui/incident-composer-tools.tsx": {
-      "sha256": "267d342468355c3d3e97950e656482ece109bcab66e6bf9f58e9229530804c69",
+      "sha256": "f800d80d4ac9c59aeaf0851d3dd41f3809f4148d2ebc0f55fc6853f0bbbdf0d0",
       "executable": false
     },
     "src/core/features/incidents/ui/incident-create-panel.tsx": {
@@ -4463,6 +4463,10 @@
       "sha256": "84a12f0c3c00dc994f5f6d6573296debb0d2814991aedcefe9e8b6dfcbb020e8",
       "executable": false
     },
+    "tests/e2e/helpers/post-incident-report-flow.mjs": {
+      "sha256": "e66d709552739837b046464a52853ebf756d0f5dda53a86dd47deb7a02a11d72",
+      "executable": false
+    },
     "tests/e2e/helpers/public-freshness-flow.mjs": {
       "sha256": "3a1e16ef14453bb62f5fd41527611a89bc7bc07c1c1ff56561b73738d880919c",
       "executable": false
@@ -4504,7 +4508,7 @@
       "executable": false
     },
     "tests/e2e/publishing-browser.test.mjs": {
-      "sha256": "63b1c01bfa43dc219312639625f731ab0c95e750ce36960bfbb8e94902c8660f",
+      "sha256": "725b704024d0145fa4c2a1b4acb7d7f4e5adbff65a5b71e62a28de2ddfd4b307",
       "executable": false
     },
     "tests/e2e/publishing-contract.test.mjs": {

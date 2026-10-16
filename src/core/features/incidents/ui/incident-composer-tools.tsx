@@ -59,7 +59,11 @@ export function ReportEditor({ incidentId }: { incidentId: string }) {
   useEffect(() => { if (data?.report) setReport(data.report); }, [data]);
   if (report.publishedAt) return <section className="context-section"><h2>Post-incident report</h2><p>Published {formatOperatorTime(report.publishedAt)}.</p></section>;
   const update = (field: keyof Omit<Report, "publishedAt">, value: string) => setReport((current) => ({ ...current, [field]: value }));
-  const save = async () => { try { await appApi(`/api/app/incidents/${incidentId}/report`, { method: "PUT", body: JSON.stringify(report) }); setMessage("Report saved."); refresh(); } catch (cause) { setMessage(cause instanceof Error ? cause.message : "Report could not be saved."); } };
+  const save = async () => {
+    const { summary, timeline, cause, remediation } = report;
+    try { await appApi(`/api/app/incidents/${incidentId}/report`, { method: "PUT", body: JSON.stringify({ summary, timeline, cause, remediation }) }); setMessage("Report saved."); refresh(); }
+    catch (cause) { setMessage(cause instanceof Error ? cause.message : "Report could not be saved."); }
+  };
   const publish = async () => { try { await appApi(`/api/app/incidents/${incidentId}/report/publish`, { method: "POST", body: JSON.stringify({ channels: ["email"] }) }); setMessage("Report published."); refresh(); } catch (cause) { setMessage(cause instanceof Error ? cause.message : "Report could not be published."); } };
   return <section className="context-section report-editor"><h2>Post-incident report</h2><p>Publish one factual report when this incident is complete.</p>{(["summary", "timeline", "cause", "remediation"] as const).map((field) => <label className="form-label" key={field}>{field[0].toUpperCase() + field.slice(1)}<textarea value={report[field]} maxLength={10_000} onChange={(event) => update(field, event.target.value)} /></label>)}{message ? <p role="status">{message}</p> : null}<div className="form-actions"><Button type="button" variant="secondary" onClick={save}>Save report</Button><Button type="button" onClick={publish}>Publish report</Button></div></section>;
 }
