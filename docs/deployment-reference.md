@@ -1,12 +1,20 @@
 # Deployment reference
 
 Use `rer deploy` from the project root. The checkout pins
-`@runeditrun/rer` 0.2.23; use `rer describe` and `rer deploy --help` for the installed
+`@runeditrun/rer` 0.2.32; use `rer describe` and `rer deploy --help` for the installed
 command reference. The [deployment guide](deploy.md) gives a complete private
 `0600` input file, validation, deploy and removal commands. `--env-file` values
 override the calling shell's exported values.
 
 ## Inputs you supply and values rer generates
+
+- **Free:** you run Lamp's open source yourself in your own Cloudflare account,
+  with no Run Edit Run charge. The commands in this guide are this path.
+- **Assisted:** Run Edit Run installs and maintains Lamp for you, while it stays
+  in your own Cloudflare account and GitHub repository (early access).
+- **Managed:** Run Edit Run hosts and runs Lamp for you (waitlist only).
+
+Compare them on [Run Edit Run plans](https://runeditrun.com/pricing).
 
 Hosted Lamp requires working mail. Managed hosting includes it without an owner
 provider account or mail key: RER fills and hides `MAIL_PROVIDER=rer`, `MAIL_FROM`,
@@ -50,9 +58,14 @@ generation. They need those values already exported. The native upload uses the
 values supplied to that run, so retain the original session, subscriber and
 webhook secrets rather than omitting them on a redeploy.
 
-AI configuration, optional identity providers, event relay and external heartbeat
-are described in the [technical operations reference](../OPERATIONS.md). They
-are not required for a hosted status page.
+Optional [AI draft assistance](ai-assistance.md) needs `AI_PROVIDER_URL`,
+`AI_PROVIDER_MODEL` and private `AI_PROVIDER_API_KEY` together. Optional
+[single sign-on](operators-and-sign-in.md#optional-single-sign-on) uses private
+`AUTH_PROVIDERS` JSON and an independent `OIDC_TRANSACTION_SECRET`, or an approved
+Auth installation link through `IDENTITY_PROVIDER`. The guides include the
+configuration and check steps. Event relay and external heartbeat are described
+in the [technical operations reference](../OPERATIONS.md). None is required for
+a hosted status page.
 
 ## Find your workers.dev hostnames
 

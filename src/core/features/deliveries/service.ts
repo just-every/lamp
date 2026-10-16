@@ -314,6 +314,7 @@ export function createDeliveriesService(
     async dispatchDue(origin, limit = 100) {
       if (options.effectsPaused) return;
       for (const job of await repository.listOutbox(limit, nowIso())) {
+        if (!await repository.claimOutbox(job.id, nowIso(), new Date(Date.now() - DELIVERY_CLAIM_MS).toISOString())) continue;
         try {
           if (job.kind === "operator-alert") {
             await dispatchOperatorAlert(job);

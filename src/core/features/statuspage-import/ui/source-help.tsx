@@ -1,0 +1,58 @@
+import { useState } from "react";
+
+import { appApi } from "../../../app/client/ui/api";
+import { Button } from "../../../app/client/ui/button";
+import type { SourcePage } from "../page-finder";
+
+type Source = "statuspage" | "betterstack" | "instatus" | "sorry";
+
+const external = { target: "_blank", rel: "noreferrer" } as const;
+
+/** Where each source's key and page ID live, in the order the owner fills the fields. */
+export function AccountHelp({ source }: { source: Source }) {
+  if (source === "betterstack") return <ol className="setup-guide">
+    <li>Open <a href="https://betterstack.com/settings/api-tokens/0" {...external}>Better Stack API tokens</a>. Under <strong>Team-based tokens</strong>, select your team and copy a token from <strong>Uptime API tokens</strong> (or create one).</li>
+    <li>Paste it below and choose <strong>Find my pages</strong>, then <strong>Use this page</strong> beside your status page. That fills the page ID.</li>
+    <li>Confirm the page is public, then choose <strong>Run dry run</strong>. Nothing is imported until you review it.</li>
+  </ol>;
+  if (source === "instatus") return <ol className="setup-guide">
+    <li>Open <a href="https://dashboard.instatus.com/developer" {...external}>Instatus developer settings</a> (User settings → Developer settings) and copy your API key.</li>
+    <li>Paste it below and choose <strong>Find my pages</strong>, then <strong>Use this page</strong> beside your status page. You can also right-click the project name at the top left of your Instatus dashboard and choose <strong>Copy Project ID</strong>.</li>
+    <li>Confirm the page is public, then choose <strong>Run dry run</strong>. Nothing is imported until you review it.</li>
+  </ol>;
+  if (source === "sorry") return <p className="setup-guide">In Sorry, copy your page ID and API key into the fields below, then choose <strong>Run dry run</strong>. No key? Use your public status page address in the next section instead.</p>;
+  return <p className="setup-guide">On Statuspage, open your avatar menu, then <strong>API info</strong>. Copy the page ID and API key into the fields below, then choose <strong>Run dry run</strong>.</p>;
+}
+
+/** Better Stack and Instatus: list the pages the key can read and fill the chosen page ID. */
+export function PageFinder({ source, apiKey, onChoose }: { source: "betterstack" | "instatus"; apiKey: string; onChoose: (id: string) => void }) {
+  const [pages, setPages] = useState<SourcePage[] | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  async function find() {
+    setBusy(true); setError(null); setPages(null);
+    try { setPages((await appApi<{ pages: SourcePage[] }>("/api/app/statuspage-import/pages", { method: "POST", body: JSON.stringify({ source, apiKey }) })).pages); }
+    catch (cause) { setError(cause instanceof Error ? cause.message : "Your status pages could not be listed."); }
+    finally { setBusy(false); }
+  }
+  return <div className="setup-guide">
+    <Button type="button" variant="secondary" disabled={busy || !apiKey} onClick={() => void find()}>{busy ? "Finding pages…" : "Find my pages"}</Button>
+    {error && <p className="setup-result" data-ok="false" role="alert">{error}</p>}
+    {pages && (pages.length
+      ? <ul className="channel-list" aria-label="Your status pages">{pages.map((page) => <li key={page.id}><span><strong>{page.name}</strong>{page.address ? ` · ${page.address}` : ""} · ID {page.id}</span><Button type="button" variant="secondary" className="table-action" onClick={() => onChoose(page.id)}>Use this page</Button></li>)}</ul>
+      : <p className="setup-result" data-ok="false" role="status">This key can read no status pages. Check you copied it from the team that owns your page.</p>)}
+  </div>;
+}
+
+export function SavedResponsesHelp({ source }: { source: Source }) {
+  return <div className="setup-guide">
+    <p>Only if you already have them: unchanged JSON files saved from the {source === "betterstack" ? "Better Stack" : source === "instatus" ? "Instatus" : source === "sorry" ? "Sorry" : "Statuspage"} API. Most people use the account option above instead. Select all the files together, then choose <strong>Run dry run</strong>.{source === "instatus" && " Enter your Instatus page ID above as well."}</p>
+    <details><summary>Which files</summary><p>{source === "sorry"
+      ? "sorry-status.json (public) or sorry-page.json (with a key), sorry-components.json, sorry-notices.json and each notice's detail file. Only files saved with a key may include sorry-subscribers.json."
+      : source === "instatus"
+        ? "instatus-pages.json, instatus-components.json, instatus-incidents.json, instatus-maintenances.json, instatus-subscribers.json, instatus-audience-groups.json, and instatus-maintenance-ID.json for each maintenance. Name later pages -2, -3 and so on."
+        : source === "betterstack"
+          ? "status-page.json, sections.json, resources.json, status-reports.json, subscribers.json, and status-updates-REPORTID.json for each report. Name later pages -2, -3 and so on."
+          : "components.json, component-groups.json, incidents.json, incidents-scheduled.json and subscribers.json. Name later pages incidents-2.json and so on."} The <a href={`/docs/moving-in#${source === "betterstack" ? "better-stack" : source}`} {...external}>moving-in guide</a> shows how to save them. The dry run lists anything missing before you import.</p></details>
+  </div>;
+}

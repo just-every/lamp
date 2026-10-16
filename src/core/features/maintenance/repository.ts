@@ -37,7 +37,7 @@ export interface MaintenanceRepository {
 
 export function createMaintenanceRepository(binding: D1Database): MaintenanceRepository {
   const database = createDatabase(binding);
-  const noticeStatement = (notice: MaintenanceNotice) => binding.prepare(`INSERT INTO maintenance_notices (id,maintenance_id,kind,body,published_at,author_operator_id,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?)`)
+  const noticeStatement = (notice: MaintenanceNotice) => binding.prepare(`INSERT OR IGNORE INTO maintenance_notices (id,maintenance_id,kind,body,published_at,author_operator_id,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?)`)
     .bind(notice.id, notice.maintenanceId, notice.kind, notice.body, notice.publishedAt, notice.authorOperatorId, notice.createdAt, notice.updatedAt);
   const writeMutationWithNotice = async (mutation: D1PreparedStatement, notice: MaintenanceNotice, notificationStatements: D1PreparedStatement[]) => {
     const auditId = createUlid();
@@ -125,11 +125,11 @@ export function createMaintenanceRepository(binding: D1Database): MaintenanceRep
       return result.results;
     },
     async writeNotice(input, notificationStatements) {
-      await binding.batch([
+      const results = await binding.batch([
         noticeStatement(input),
         ...notificationStatements,
       ]);
-      return true;
+      return results[0].meta.changes === 1;
     },
     async listImportedUpdates(maintenanceId) {
       return (await binding.prepare("SELECT id,body,published_at AS publishedAt,source_states AS sourceStates FROM import_maintenance_updates WHERE maintenance_id=? ORDER BY published_at DESC,id").bind(maintenanceId).all<ImportedMaintenanceUpdate>()).results;

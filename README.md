@@ -53,11 +53,37 @@ The app host serves Lamp's public documentation at `/docs`. Start with the
 - [First-run setup](docs/first-run.md), [components and groups](docs/components-and-groups.md),
   [incidents and updates](docs/incidents-and-updates.md), and [maintenance](docs/maintenance.md).
 - [Public page](docs/public-page.md), [subscribers and notifications](docs/subscribers-and-notifications.md),
-  [monitoring alerts](docs/alerts-from-monitoring-tools.md), and [operators](docs/operators-and-sign-in.md).
+  [monitoring alerts](docs/alerts-from-monitoring-tools.md), [AI assistance](docs/ai-assistance.md),
+  and [operators](docs/operators-and-sign-in.md).
 - [Domains](docs/domains.md), [move-in](docs/moving-in.md),
   [backups and recovery](docs/backups-and-recovery.md), and [updating](docs/updating.md).
 
+## Source and tooling versions
+
+The Run page's one line, `npx -y @runeditrun/rer dev just-every/run-lamp`,
+clones `main` into a `run-lamp` folder and starts it; after that, run `rer dev`
+from that folder. `main` is Lamp 1.6.0 development source, with changes not yet
+in a release, and pins `@runeditrun/rer` 0.2.32. The latest tagged release is
+`v1.5.1`, which pins rer 0.2.24. To use that release instead:
+
+```sh
+git clone --branch v1.5.1 https://github.com/just-every/run-lamp.git lamp
+```
+
+Then follow the documentation inside that checkout, which matches its tools.
+
+Node 22.20.0 and pnpm 10.12.4 are pinned. `rer` downloads and uses that Node
+version when your shell has a different one, and says so when it starts.
+
 ## Deploy and verify
+
+- **Free:** you run Lamp's open source yourself in your own Cloudflare account,
+  with no Run Edit Run charge. The commands in this guide are this path.
+- **Assisted:** Run Edit Run installs and maintains Lamp for you, while it stays
+  in your own Cloudflare account and GitHub repository (early access).
+- **Managed:** Run Edit Run hosts and runs Lamp for you (waitlist only).
+
+Compare them on [Run Edit Run plans](https://runeditrun.com/pricing).
 
 Managed hosting includes mail: you need no provider account or mail key. RER
 fills and hides `MAIL_PROVIDER=rer`, `MAIL_FROM`, `MAIL_RELAY_URL` and the private
@@ -71,7 +97,7 @@ You can also export the input names in the calling shell. The
 [input reference](docs/deployment-reference.md) distinguishes required owner
 values from secrets that `rer` generates on a first deploy.
 
-Use `rer` from the project root; the checkout pins `@runeditrun/rer` 0.2.23. Before a
+Use `rer` from the project root; the checkout pins `@runeditrun/rer` 0.2.32. Before a
 command that builds or verifies the checkout,
 stop a running development server with `rer dev --stop` or a production preview
 with `rer preview --stop`.

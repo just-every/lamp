@@ -61,7 +61,7 @@ export function DeliveriesPage() {
           <tbody>{data.deliveries.map((delivery) => {
             const acceptedWithoutReceipt = !data.mail.local && delivery.channel === "email" && delivery.outcome === "queued" && Boolean(delivery.providerAcceptedAt) && !data.mail.receiptsConfigured;
             return <tr key={delivery.id}>
-              <td><strong>{delivery.destination}</strong><small>{delivery.subscriberState} subscriber</small></td>
+              <td><strong>{delivery.destination}</strong><small>{delivery.subscriberState} subscriber</small>{delivery.maintenanceReference ? <small>{delivery.maintenanceReference}: {delivery.maintenanceTitle} · {delivery.maintenanceNoticeKind}</small> : null}</td>
               <td>{delivery.channel}</td>
               <td>
                 <span className={`state-pill state-${acceptedWithoutReceipt ? "accepted" : delivery.outcome}`}>{acceptedWithoutReceipt ? `Accepted by ${providerName}` : delivery.outcome}</span>

@@ -5,6 +5,7 @@ import { bodyLimit } from "hono/body-limit";
 import type { AppEnv } from "../../app/types";
 import type { StatuspageImportService } from "./service";
 import { importLimits } from "./source";
+import { findSourcePages } from "./page-finder";
 
 const files = z.array(z.object({ name: z.string().max(80), text: z.string() }).strict()).max(importLimits.files);
 const sourceFields = { source: z.enum(["statuspage", "betterstack", "instatus", "sorry"]).optional(), publicAccessAcknowledged: z.boolean().optional(), publicUrl: z.string().url().max(2048).optional() };
@@ -26,6 +27,12 @@ export function registerStatuspageImportRoutes(app: Hono<AppEnv>, service: Statu
     if (!parsed.success) return context.json({ error: "Choose saved source responses, or enter a page ID and API key." }, 400);
     try { return context.json(await service.preview(parsed.data, context.get("operatorSession"))); }
     catch (cause) { return context.json({ error: refused(cause) }, 400); }
+  });
+  app.post("/api/app/statuspage-import/pages", async (context) => {
+    const parsed = z.object({ source: z.enum(["betterstack", "instatus"]), apiKey: z.string().max(256) }).strict().safeParse(await context.req.json().catch(() => null));
+    if (!parsed.success) return context.json({ error: "Choose Better Stack or Instatus and paste its API key." }, 400);
+    try { return context.json({ pages: await findSourcePages(parsed.data) }); }
+    catch (cause) { return context.json({ error: cause instanceof Error ? cause.message : "Your status pages could not be listed." }, 400); }
   });
   app.post("/api/app/statuspage-import/apply", async (context) => {
     const parsed = applySchema.safeParse(await context.req.json().catch(() => null));

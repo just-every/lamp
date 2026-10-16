@@ -49,7 +49,7 @@ export function registerDeliveryRoutes(app: Hono<AppEnv>, service: DeliveriesSer
     const parsed = deliveriesQuerySchema.safeParse(context.req.query());
     if (!parsed.success) return context.json({ error: "Invalid subscriber query.", issues: parsed.error.issues }, 400);
     const rows = await service.export(parsed.data);
-    const csv = ["destination,channel,outcome,incidentUpdateId,queuedAt,outcomeAt,providerAcceptedAt", ...rows.map((row) => [row.destination, row.channel, row.outcome, row.incidentUpdateId ?? null, row.queuedAt, row.outcomeAt, row.providerAcceptedAt].map(csvCell).join(","))].join("\n");
+    const csv = ["destination,channel,outcome,incidentUpdateId,queuedAt,outcomeAt,providerAcceptedAt,maintenanceReference,maintenanceTitle,maintenanceNoticeKind", ...rows.map((row) => [row.destination, row.channel, row.outcome, row.incidentUpdateId ?? null, row.queuedAt, row.outcomeAt, row.providerAcceptedAt, row.maintenanceReference, row.maintenanceTitle, row.maintenanceNoticeKind].map(csvCell).join(","))].join("\n");
     return new Response(csv, { headers: { "Content-Type": "text/csv; charset=utf-8", "Content-Disposition": "attachment; filename=lamp-deliveries.csv", "Cache-Control": "no-store" } });
   });
   app.post("/api/intake/mail-events", async (context) => {

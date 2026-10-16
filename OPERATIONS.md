@@ -31,6 +31,14 @@ Account Worker access alone can upload the artifact but cannot attach its hosts.
 For workers.dev hosting, custom-domain zone permissions are not needed; the token
 must be able to read the account's Workers subdomain.
 
+- **Free:** you run Lamp's open source yourself in your own Cloudflare account,
+  with no Run Edit Run charge. The commands in this guide are this path.
+- **Assisted:** Run Edit Run installs and maintains Lamp for you, while it stays
+  in your own Cloudflare account and GitHub repository (early access).
+- **Managed:** Run Edit Run hosts and runs Lamp for you (waitlist only).
+
+Compare them on [Run Edit Run plans](https://runeditrun.com/pricing).
+
 Hosted Lamp requires working mail, including when using terminal recovery links.
 Managed hosting includes it without a provider account or mail key from the owner:
 RER fills and hides `MAIL_PROVIDER=rer`, `MAIL_FROM`, `MAIL_RELAY_URL` and the
@@ -451,7 +459,7 @@ The minute cron sends an empty GET only on the heartbeat interval grid, after sc
 
 ## Shared operator authentication
 
-The checkout pins `@runeditrun/rer` 0.2.22. For hosted owner entry without email,
+The checkout pins `@runeditrun/rer` 0.2.32. For hosted owner entry without email,
 run this from the deploying checkout using the original account and environment:
 
 ```sh
@@ -465,7 +473,7 @@ does not save it, and sends no mail. Open it privately within 15 minutes. The
 grant is single-use and its use is audited. Retain the deploying checkout and its
 deployment records. An older installation needs additive migration
 `0023_owner_signin.sql` applied by redeployment before this command can issue a
-grant. `rer signin` 0.2.22 targets the default `lamp-<environment>` prefix; for a
+grant. The pinned `rer signin` targets the default `lamp-<environment>` prefix; for a
 custom `LAMP_RESOURCE_PREFIX`, use the compatibility command below with that
 installation's generated configuration.
 Hosted mail remains mandatory for normal email sign-in and subscriber messages.
@@ -485,7 +493,11 @@ exact HTTPS operator origin. Capture stdout privately. This command uses Base's
 creates no session until the confirmation POST. Prefer `rer signin` for hosted
 owner entry.
 
-Optional Auth installs link through the declared `oidc-provider@1` dependency (`IDENTITY_PROVIDER`). Base settings at `/auth/settings/identity` control admission. A link alone does not enable sign-in on existing installations. Google, Microsoft and Okta may also be configured with Base `AUTH_PROVIDERS` JSON and an independent `OIDC_TRANSACTION_SECRET`; use Base's included identity/oidc documentation for issuer, key and explicit subject association requirements. SCIM and role synchronization remain unsupported. No live identity provider has been exercised by the local adoption checks.
+Optional provider setup is documented step by step under [Single sign-on](docs/operators-and-sign-in.md#optional-single-sign-on)
+and the [technical identity configuration](#identity-provider-configuration) below.
+SCIM and role synchronization remain unsupported. A saved setting, discovery
+response or local protocol check does not establish a working live identity
+provider; verify an invited operator's real sign-in on the installation.
 
 Apply migration 0020 after 0019 before starting the refreshed runtime. It adds
 setup-link session provenance and exact approval attempts. Pending provider-link
@@ -498,3 +510,100 @@ After restore, sign in with a fresh email link. Old sessions, pending email link
 and provider-link approvals do not travel; provider links require fresh approval
 and sign-in is disabled until the owner enables it. Subscriber capabilities and
 product attribution retain their authority.
+
+## AI provider configuration
+
+The [AI assistance guide](docs/ai-assistance.md) covers account setup, private
+inputs, deploy commands and a real suggestion check. Native deployment accepts
+`AI_PROVIDER_URL`, `AI_PROVIDER_MODEL` and private `AI_PROVIDER_API_KEY` only as a
+complete set. The URL is the full HTTPS Chat Completions endpoint, not a base
+URL: Lamp posts to it unchanged with Bearer authentication, the configured
+model and `response_format: {"type":"json_object"}`. Select a model supporting
+that format. The native deployment writes URL/model as Worker variables and
+uploads the API key as a Worker secret; a dry run does not call the AI provider.
+
+For local development, stop `rer dev`, add all three values to private
+`.dev.vars` and restart. For a native hosted installation, add all three to the
+existing private input file and use the same `rer deploy --environment` and
+`--env-file` as the original installation. Removing all three and redeploying
+clears the known optional API-key binding. Do not configure them alongside a
+custom `ai.provider.v1` adapter; the runtime refuses that conflict. Tone
+instructions are page settings and do not provision a provider. A configured
+status checks presence of values; a real requested suggestion checks transport
+and model access. Provider charges and data handling belong to the chosen
+provider. DRAFT-002 limits the request to the incident brief, excluding internal
+notes and components.
+
+## Identity provider configuration
+
+### Direct Google, Microsoft and Okta registration
+
+Follow the [owner registration and configuration steps](docs/operators-and-sign-in.md#optional-single-sign-on).
+`AUTH_PROVIDERS` is a JSON array uploaded as a Worker secret, alongside a separate
+`OIDC_TRANSACTION_SECRET` of at least 32 characters. Preserve that secret across
+ordinary deploys. Each provider entry has `id`, `preset`, `clientId` and client
+authentication matching its registration: `client_secret_post` or
+`client_secret_basic` plus `clientSecret`, or `private_key_jwt` plus a private
+JWK in `privateKey` (with `kid`, the private parameters and a supported key
+algorithm). Keep private keys and secrets out of source and logs.
+
+Register `https://<LAMP_APP_HOST>/auth/oidc/<id>/callback` exactly. Google fixes
+its issuer; Microsoft requires an exact `tenant`; Okta requires its exact HTTPS
+`issuer`. Microsoft and Okta require a server-configured `subjectEmails` map
+from each application's exact upstream `sub` to an existing invited operator's
+email. Provider email alone is insufficient for these presets.
+
+On first use, discovery pins the provider's issuer, client ID and endpoints.
+Changing configuration records a pending re-link and keeps the previous pin.
+For a change or a provider explicitly unlinked earlier, sign in as the setup
+owner, choose **Settings → Operators → Confirm my identity**, complete the
+emailed confirmation in that browser, then use the authenticated public API:
+
+- `GET /auth/providers` lists provider pins and pending re-links.
+- `POST /auth/providers/relink` with JSON `{"provider":"google"}` approves and
+  pins the currently configured Google registration (use its configured ID).
+- `POST /auth/providers/unlink` with the same JSON ends that provider link and
+  revokes its sessions. Re-linking requires fresh owner approval.
+
+Make these requests from the signed-in operator origin with its session cookie,
+exact matching `Origin` header and `Content-Type: application/json`. They are
+administrator API operations, not controls supplied by the identity checkbox.
+Keep an email session available while checking the next real provider sign-in.
+
+### Link an installed Auth provider
+
+Set `IDENTITY_PROVIDER` to the Auth installation's exact HTTPS origin in the
+private input file and redeploy. The provider must serve RER's dependency-link
+metadata and advertise `oidc-provider@1.0.0` or newer in OIDC discovery. An
+arbitrary OIDC issuer URL does not implement this protocol.
+
+1. Claim Lamp's native owner first. Sign in as that owner, use **Confirm my
+   identity** in Settings and complete the emailed confirmation.
+2. On Lamp's signed-in operator origin, make the authenticated JSON request
+   `POST /auth/dependencies/relink` with
+   `{"interface":"oidc-provider@1","issuer":"https://auth.example.com"}`,
+   replacing the issuer. This opens Lamp's ten-minute approval for that exact
+   origin; a response of `{"pending":true}` is not a completed link.
+3. Have the Auth owner approve this Lamp operator origin and the three exact
+   addresses `https://<LAMP_APP_HOST>/.well-known/rer-link/callback`,
+   `https://<LAMP_APP_HOST>/auth/oidc/auth/callback` and
+   `https://<LAMP_APP_HOST>/auth/oidc/auth/logout`. Complete Auth's provider-owned
+   link flow within Lamp's approval window. Auth calls back to Lamp, which
+   generates its private key and retains the accepted registration. Do not put
+   a hand-written Auth entry into `AUTH_PROVIDERS` for this linked-provider path.
+4. Read `GET /auth/dependencies/status` and require the matching issuer and
+   `oidc-provider@1` entry with `linked:true`. Then enable provider sign-in at
+   `/auth/settings/identity` and check an invited operator's real Auth sign-in.
+
+For an unattended provider initiation, Auth can issue a one-use approval JSON
+file for those exact addresses. Keep it untracked, owned by you and mode `0600`,
+and set `RER_LINK_TOKEN_FILE` to its path when continuing `rer setup` or
+`rer deploy`. The CLI validates and consumes it; it deletes the file only after
+checking Lamp's accepted link. It does not replace the current owner's fresh
+Lamp-side approval on an existing installation. Use the provider's actual
+approval flow to obtain the file; do not invent a token or registration.
+
+Disabling provider sign-in revokes provider sessions; enabling it does not
+restore them. Existing and restored installations need explicit enablement;
+restored links also require fresh approval. Native email access and application
+invitations remain authoritative throughout.

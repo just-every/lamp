@@ -1364,3 +1364,23 @@ Lamp's ordinary `/history` document.
 ## Operator page responsiveness (owner, 16 October 2026)
 
 The signed-in workspace must open its main pages and primary actions in under one second on a normal hosted deployment. Keep its existing appearance, copy and flows. Read current records for each visit and preserve explicit mutation refreshes; speed must not come from serving stale data or deferring required work behind a loading state.
+
+## Maintenance mail without waiting for Cron — 17 October 2026
+
+A new hosted installation must send committed maintenance notices even while
+Cloudflare has not yet started its first Cron run. An operator write sends the mail it
+committed right after it responds, as incident publication does. While Cron has
+recorded no run for three minutes (its `scheduler` readiness evidence), other
+requests (public page, operator app, health) run due maintenance transitions and
+pending mail, at most every 20 seconds per isolate. Once Cron runs, it alone does
+the time-based work. Every path
+keeps the existing guarded transitions, one notice per kind, and outbox and
+delivery claims, so MAINT-005 and NOTIFY-005 hold and no subscriber receives a
+notice twice. Delivery rows and CSV name the maintenance reference, title and
+notice kind.
+
+Setup pages (AI assistance, identity provider settings, Move in, Slack and
+Teams) give their steps, links, text to copy and a check on the page. On
+Managed hosting, which relays mail but has no outbound relay for other
+integrations yet, AI assistance and Slack and Teams say so in one line and
+accept no settings that could not send.

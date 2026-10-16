@@ -1,5 +1,13 @@
 # Deploy to Cloudflare
 
+- **Free:** you run Lamp's open source yourself in your own Cloudflare account,
+  with no Run Edit Run charge. The commands in this guide are this path.
+- **Assisted:** Run Edit Run installs and maintains Lamp for you, while it stays
+  in your own Cloudflare account and GitHub repository (early access).
+- **Managed:** Run Edit Run hosts and runs Lamp for you (waitlist only).
+
+Compare them on [Run Edit Run plans](https://runeditrun.com/pricing).
+
 Managed hosting includes mail without an owner provider account or mail key.
 RER fills and hides `MAIL_PROVIDER=rer`, `MAIL_FROM`, `MAIL_RELAY_URL` and private
 `MAIL_API_KEY`. Free and Assisted hosting keep your own Resend or SendGrid account
@@ -84,7 +92,7 @@ without `--env-file`. Do not commit inputs or paste secret values into logs.
 
 ## Validate and deploy
 
-Use `rer` from the project root; the checkout pins `@runeditrun/rer` 0.2.23. Before a
+Use `rer` from the project root; the checkout pins `@runeditrun/rer` 0.2.32. Before a
 command that builds or verifies the checkout, stop a running development server
 with `rer dev --stop` or a production preview with `rer preview --stop`.
 

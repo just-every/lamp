@@ -28,3 +28,9 @@ export function teamsCard(data: ChannelPostData): string {
     }],
   });
 }
+
+export function teamsTestCard(text: string): string {
+  return JSON.stringify({ type: "message", attachments: [{ contentType: "application/vnd.microsoft.card.adaptive", content: {
+    $schema: "http://adaptivecards.io/schemas/adaptive-card.json", type: "AdaptiveCard", version: "1.4", body: [{ type: "TextBlock", text, wrap: true }],
+  } }] });
+}
