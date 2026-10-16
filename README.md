@@ -36,6 +36,14 @@ business. The operator app manages components, incidents, maintenance and
 subscriber communication; its separate page host serves customer-facing status
 information.
 
+## Run it locally
+
+```sh
+npx -y @runeditrun/rer dev just-every/run-lamp
+```
+
+That one line installs `rer`, clones Lamp, sets up the first owner and starts it. To start it again later, run `cd run-lamp && rer dev`.
+
 ## Owner guides
 
 The app host serves Lamp's public documentation at `/docs`. Start with the

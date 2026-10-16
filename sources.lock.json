@@ -536,7 +536,7 @@
       "executable": false
     },
     "docs/install.md": {
-      "sha256": "def2a87eeb47aacd5b7d71aaea243d2992e1d5eb7d799aaba148c435e019ab77",
+      "sha256": "ff3863c8526f8b502d86c1f4bf0226b06574ead39147339ff3ff856d0459ca00",
       "executable": false
     },
     "docs/maintenance.md": {
@@ -1864,7 +1864,7 @@
       "executable": false
     },
     "README.md": {
-      "sha256": "81c65572deaa0416f746a2fcbdc5107ada3399ff07fec206008f892c84c962c6",
+      "sha256": "669b798e4f27dfecea687043f14b2797b1d368c3aa99dacffbf04eae1e0d7b19",
       "executable": false
     },
     "release-history/1.0.0.CONTRACT.md": {
@@ -4288,7 +4288,7 @@
       "executable": false
     },
     "src/site/run.ts": {
-      "sha256": "5cfd15a561637a83c2813a0d2753715d609f691d92efc2bcd7d5a4f26f0d471d",
+      "sha256": "cd179a71daae6ee5b18abaceeb81815872452240aeff66386a9f0f295e55266c",
       "executable": false
     },
     "TESTING.md": {
@@ -5308,7 +5308,7 @@
       "executable": false
     },
     "tests/release/installation-runtime.mjs": {
-      "sha256": "c4667994e5aa9f71a4ef50461df2f2577ff79cfa8c29c1d4957a0093cea48fb3",
+      "sha256": "c7d72d67323333d15b01caa67c3a71b794c3d69d012c39fb0513a3fed9c96f19",
       "executable": false
     },
     "tests/release/journeys.mjs": {
