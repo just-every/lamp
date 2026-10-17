@@ -12,7 +12,16 @@
     }
   },
   "extensionPointChanges": [],
-  "migrations": [],
+  "migrations": [
+    {
+      "id": "0027_update_component_changes.sql",
+      "buyerSteps": "Back up the installation, then apply pending migrations in order. Stores staged component changes and immutable update snapshots; existing imported history remains unchanged."
+    },
+    {
+      "id": "0028_wording_checks.sql",
+      "buyerSteps": "Apply after 0027. Adds page wording-check settings with defaults; no owner action is required."
+    }
+  ],
   "breaking": false,
-  "agentUpdateInstructions": "Back up data and owner source. This release adds no migration. Run pnpm install --frozen-lockfile for the rer 0.2.42 pin. Redeploys keep SESSION_SECRET, SUBSCRIBER_TOKEN_SECRET, WEBHOOK_SIGNING_SECRET and now OIDC_TRANSACTION_SECRET as the Worker holds them; a Worker deployed without OIDC_TRANSACTION_SECRET derives a stable one from its kept session secret. Rotate one only on purpose with rer deploy --rotate-secret NAME or LAMP_REPLACE_SECRETS. Sorry subscribers still held for cutover more than 30 days after their reviewed dry run are deleted with their addresses by the first scheduled run after the update: release or undo them first if you mean to keep them. Hosted backups now run with node scripts/export.mjs --remote and restores with node scripts/setup.mjs --restore-from, each with --env-file; neither needs global pnpm, and a restore needs no setup token. Page data files from Settings restore only into a new, empty installation. Run rer verify and pnpm run verify:release from v1.6.0 before adopting."
+  "agentUpdateInstructions": "Back up data and owner source. Apply the pending component-update and wording-check migrations in order after the backup. Run pnpm install --frozen-lockfile for the rer 0.2.42 pin. Redeploys keep SESSION_SECRET, SUBSCRIBER_TOKEN_SECRET, WEBHOOK_SIGNING_SECRET and now OIDC_TRANSACTION_SECRET as the Worker holds them; a Worker deployed without OIDC_TRANSACTION_SECRET derives a stable one from its kept session secret. Rotate one only on purpose with rer deploy --rotate-secret NAME or LAMP_REPLACE_SECRETS. Sorry subscribers still held for cutover more than 30 days after their reviewed dry run are deleted with their addresses by the first scheduled run after the update: release or undo them first if you mean to keep them. Hosted backups now run with node scripts/export.mjs --remote and restores with node scripts/setup.mjs --restore-from, each with --env-file; neither needs global pnpm, and a restore needs no setup token. Page data files from Settings restore only into a new, empty installation. Run rer verify and pnpm run verify:release from v1.6.0 before adopting."
 }
