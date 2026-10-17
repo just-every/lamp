@@ -1,10 +1,12 @@
 import {array, bindingPattern, keys, string, strings} from './bindings.mjs';
 
 const pathPattern = /^\/[A-Za-z0-9/_.~-]*$/;
+const signInPath = value => typeof value === 'string' && /^\/(?!\/)[a-zA-Z0-9/_-]*$/.test(value);
 const validSignIn = value => value && typeof value === 'object' && !Array.isArray(value)
-  && Object.keys(value).every(key => ['path','loginHint'].includes(key))
-  && typeof value.path === 'string' && /^\/(?!\/)[a-zA-Z0-9/_-]*$/.test(value.path)
-  && typeof value.loginHint === 'boolean';
+  && Object.keys(value).every(key => ['path','loginHint','ownerSignIn'].includes(key))
+  && signInPath(value.path)
+  && typeof value.loginHint === 'boolean'
+  && (value.ownerSignIn === undefined || signInPath(value.ownerSignIn));
 const status = (value, label) => {
   if (!Number.isInteger(value) || value < 100 || value > 599) throw Error(`Invalid ${label}`);
 };

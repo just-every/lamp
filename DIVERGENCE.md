@@ -1393,3 +1393,7 @@ each one confirmation, which starts SUB-003's 72-hour window, and are deleted
 30 days after the restore otherwise. The rule is the same hosted and on Managed
 hosting. The restore's empty-page check runs inside its one transaction, and a
 refused restore removes the logo it stored.
+
+## Managed preview owner entry (18 October 2026)
+
+Managed previews declare `/auth/owner-signin` as their owner entry so RER can bind the preview's single-use owner grant there. A missing, used or expired grant redirects to Lamp's sign-in page with a notice; an unavailable auth service does the same. Successful grant consumption retains Base's native session and single-use checks.

@@ -39,7 +39,8 @@
           "hostnameVariable": "LAMP_APP_HOST",
           "signIn": {
             "path": "/signin",
-            "loginHint": true
+            "loginHint": true,
+            "ownerSignIn": "/auth/owner-signin"
           }
         },
         "page": {
