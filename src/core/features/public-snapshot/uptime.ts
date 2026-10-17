@@ -20,11 +20,10 @@ function reportingDays(windowStart: number, now: number, timezone: string) {
   return days;
 }
 
-export function computeUptime(source: PublicSnapshotSource, componentId: string, now: number, timezone: string, policies: PublicSnapshotPolicies): Uptime {
+export function computeUptime(source: Pick<PublicSnapshotSource, "history" | "corrections">, componentId: string, now: number, timezone: string, policies: PublicSnapshotPolicies, startDate: string | null = null): Uptime {
   const events = source.history.filter((entry) => entry.componentId === componentId && entry.causeType !== "correction").sort((left, right) => left.changedAt.localeCompare(right.changedAt) || left.createdAt.localeCompare(right.createdAt) || (left.id ?? "").localeCompare(right.id ?? ""));
   const corrections = source.corrections.filter((entry) => entry.componentId === componentId).sort((left, right) => left.createdAt.localeCompare(right.createdAt));
   const windowStart = now - REPORTING_DAYS * DAY;
-  const startDate = source.components.find(component => component.id === componentId)?.uptimeStartDate;
   const configuredStart = startDate ? localMidnight(startDate, timezone) : Number.NEGATIVE_INFINITY;
   const days = reportingDays(windowStart, now, timezone);
   const marks = days.map(({ day }) => ({ day, downtimeMinutes: null as number | null }));

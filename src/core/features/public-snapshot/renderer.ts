@@ -55,7 +55,7 @@ function toPublicModel(source: PublicSnapshotSource, generatedAt: string, polici
     // COMP-006 fixes individual component derivation. The rollup policy is
     // deliberately only for the single overall page status.
     state: mostSevereState(claims.get(component.id) ?? []),
-    uptime: computeUptime(source, component.id, now, source.settings.timezone, policies),
+    uptime: computeUptime(source, component.id, now, source.settings.timezone, policies, component.uptimeStartDate),
   }));
   const visibleComponents = components.filter(isPublicComponentShown);
   const hiddenIds = new Set(components.filter(component => !isPublicComponentShown(component)).map(component => component.id));

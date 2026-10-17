@@ -3408,7 +3408,7 @@
       "executable": false
     },
     "src/core/features/public-snapshot/renderer.ts": {
-      "sha256": "be8122485bd7aada2c0b1590f67fdb30770c0181fd0afa93a609e4fd981f2a3e",
+      "sha256": "5b5dd9233fd89ac3a0eab060ae7898c5b306f50cc02a1c02e5d52dce8218ad7e",
       "executable": false
     },
     "src/core/features/public-snapshot/repository.ts": {
@@ -3448,7 +3448,7 @@
       "executable": false
     },
     "src/core/features/public-snapshot/uptime.ts": {
-      "sha256": "01553ea52ee8fb058461174472d452d071d97b385d908d9b4aa77d3f98d3dd23",
+      "sha256": "2161e40fca3a92c742d53f25780fb5b91ed56a97d3b78a650b339fc2351bb6fb",
       "executable": false
     },
     "src/core/features/public-snapshot/widget-runtime.js": {
