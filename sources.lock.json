@@ -488,7 +488,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "61854e5f3017c95e0453a1e286cfc5bae60eccd0624cc02f85ea5e971ed9882d",
+      "sha256": "41c7d8a31ebfbd6aea1144a525a0d03acb8a6c411d185c05786aee0c14de412b",
       "executable": false
     },
     "DEMO.md": {
@@ -580,7 +580,7 @@
       "executable": false
     },
     "docs/subscribers-and-notifications.md": {
-      "sha256": "e730b9762808caf34bb459f6d19203229b6fa1c998c01954ee00c169828eb0a8",
+      "sha256": "97d155e96dbd004a7556428a53b9f0b7b77ccd06f9728d70c8ba082045ca57ad",
       "executable": false
     },
     "docs/updating.md": {
@@ -2804,11 +2804,11 @@
       "executable": false
     },
     "src/core/app/server.ts": {
-      "sha256": "3ff64e6b4eca23e0ac170429c70a9d77282128a6a7c3d55169e0092edbd7d55e",
+      "sha256": "572c6bdb3ae4ce36845d3763df8962697ebb0eacb0dd41252e89758452650bcc",
       "executable": false
     },
     "src/core/app/services.ts": {
-      "sha256": "df3ddffa472669dc7b1e44a582a652047005b478cebec90848cba309350980a9",
+      "sha256": "29d36aa248d55061a3f8e107320fb2ff8bc485ddf3b7c32606d358a56114c553",
       "executable": false
     },
     "src/core/app/types.ts": {
@@ -2905,6 +2905,66 @@
     },
     "src/core/features/channels/ui/channels-card.tsx": {
       "sha256": "fad675827b76a2ee8d99a6cf24b2ecc7a970d5a8bfa480d80e716d04fa9adcff",
+      "executable": false
+    },
+    "src/core/features/communication-performance/csv.ts": {
+      "sha256": "a2e7032939d3418860164c0a6eb87575780cdaf473f3c16c8245774d8d91c238",
+      "executable": false
+    },
+    "src/core/features/communication-performance/index.ts": {
+      "sha256": "b7dbcf7a281f55b7c459eeb84d0e018139e1cebc84258e4d378f0107fb81d2ed",
+      "executable": false
+    },
+    "src/core/features/communication-performance/measurement.ts": {
+      "sha256": "8b5214aa6a86dc4f9703836bb2c801ea3ed9d1a0347b5a83fea75dc4973103fe",
+      "executable": false
+    },
+    "src/core/features/communication-performance/month.ts": {
+      "sha256": "e5a18820819557f069712de60cc1eeed8a93875ec40df6656531ab7a3339b4db",
+      "executable": false
+    },
+    "src/core/features/communication-performance/repository.ts": {
+      "sha256": "c76e8be068460349444d4fed6c389f6caeef320b962227957ea4db0b59dca28b",
+      "executable": false
+    },
+    "src/core/features/communication-performance/routes.ts": {
+      "sha256": "ce2330e1150ea6a34e4907be8959f1af868af307ea1326f3bc78fa20d7ffdb4e",
+      "executable": false
+    },
+    "src/core/features/communication-performance/service.ts": {
+      "sha256": "bd3f3cb7aa698042fba46b26594a5cf191e0769c9352185c6ee7f7faa556159d",
+      "executable": false
+    },
+    "src/core/features/communication-performance/types.ts": {
+      "sha256": "26cb0d909e29dd3927d00c3403638cb40e84dce760b85d8b27ad0f7d6dfaef3d",
+      "executable": false
+    },
+    "src/core/features/communication-performance/ui/communication-performance.tsx": {
+      "sha256": "74e140a6b03cf73338ef86752d39bc08f26663f23c5e6a7707f3dd07677ab324",
+      "executable": false
+    },
+    "src/core/features/communication-performance/ui/download.ts": {
+      "sha256": "0750959b7487243b87851e0cbb95bfc2b5ec4319910eea255db7e6bc14b8bd36",
+      "executable": false
+    },
+    "src/core/features/communication-performance/ui/incident-reach.tsx": {
+      "sha256": "446e8a0f43a521e84ec3400f15c9754074330a98da5204b799d5baafdc44b5d4",
+      "executable": false
+    },
+    "src/core/features/communication-performance/ui/index.ts": {
+      "sha256": "08a193f318af457446ea78c9fcbb90fc004339ed70342f4364f024288c6b4cf1",
+      "executable": false
+    },
+    "src/core/features/communication-performance/ui/performance.css": {
+      "sha256": "30c9c888d16b70bd9fdd5cb37da2c2b10df98bb74828de9008794fc830c7cf28",
+      "executable": false
+    },
+    "src/core/features/communication-performance/ui/reach-counts.tsx": {
+      "sha256": "d9cb2828d206055ad98990bd80a7a45b6d3744c96b17db2c08ff079912cf37b6",
+      "executable": false
+    },
+    "src/core/features/communication-performance/ui/use-panel-read.ts": {
+      "sha256": "abd21b20266322a5ce730b244f238a3a41fe6d2994d576edf0d0c22abe977615",
       "executable": false
     },
     "src/core/features/components/catalogue-csv.ts": {
@@ -3140,7 +3200,7 @@
       "executable": false
     },
     "src/core/features/incidents/ui/incident-detail-page.tsx": {
-      "sha256": "fd8ca3ccac31f6e1422c49b78c90b8e3fcdd6f51a23f18adb71a1c1fef1433f3",
+      "sha256": "15d56b7c34ac8de8a27112d15544d1c22d4ca47fc4da2301766447eb36de9efa",
       "executable": false
     },
     "src/core/features/incidents/ui/incident-operator-controls.tsx": {
@@ -3280,7 +3340,7 @@
       "executable": false
     },
     "src/core/features/overview/ui/overview-page.tsx": {
-      "sha256": "dcc54082671135f8a28c2499ecd51ff642b2e83902d2a0bdc4ca6cf7c83471c0",
+      "sha256": "f8ad7804195c74e7a7780688b64ca8d0014fc3423bf1ce5e0606b2f2d2498863",
       "executable": false
     },
     "src/core/features/overview/ui/readiness-settings.tsx": {
@@ -4987,6 +5047,10 @@
       "sha256": "1a6762d5c1d60755dc60065dc5842fa7686ff318e313890aa321dc5cd25a5cf7",
       "executable": false
     },
+    "tests/e2e/helpers/communication-performance-flow.mjs": {
+      "sha256": "0af152b1a0b4a453e1088950f05a8fba53d70576be9059f1550d8b9b97b1af8c",
+      "executable": false
+    },
     "tests/e2e/helpers/dispatch-token-fixture.mjs": {
       "sha256": "de95b8a33f38614aa6c640f74157f5175f8ce834574508325540c74f712cc4c8",
       "executable": false
@@ -5092,7 +5156,7 @@
       "executable": false
     },
     "tests/e2e/publishing-contract.test.mjs": {
-      "sha256": "1bb7ecff61481daa65cb25e5a827012ee5597fbad10dc643620876303889e1a0",
+      "sha256": "f5b00074b73f7fc78ec54bf808084c33bde379ef539c1d19b171b9e3d40b14e0",
       "executable": false
     },
     "tests/e2e/queue-outage.test.mjs": {
