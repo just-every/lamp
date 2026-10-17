@@ -94,8 +94,10 @@ test("NOTIFY-011 NOTIFY-012 — Private channel configuration delivers the selec
   const id = incident.body.incident.id;
   const draft = { lifecycle: "Investigating", ...UPDATE_LINK_FIELDS, nextUpdateAt: new Date(Date.now() + 3_600_000).toISOString() };
   assert.equal((await api(`/api/app/incidents/${id}/draft`, { method: "PUT", body: JSON.stringify(draft) })).status, 200);
+  assert.equal((await api(`/api/app/incidents/${id}/impact`, { method: "PUT", body: JSON.stringify({ impactOverride: "major" }) })).status, 200);
   const published = await post(`/api/app/incidents/${id}/publish`, { channels: ["chat"] });
   assert.equal(published.status, 200, published.text);
+  assert.equal((await api(`/api/app/incidents/${id}/impact`, { method: "PUT", body: JSON.stringify({ impactOverride: null }) })).status, 200);
   await settle();
   // A second scheduled pass finds nothing new to send.
   await fetch(`${publicOrigin.replace("localhost", "127.0.0.1")}/cdn-cgi/handler/scheduled`);
@@ -108,6 +110,8 @@ test("NOTIFY-011 NOTIFY-012 — Private channel configuration delivers the selec
   assert.match(JSON.parse(slack[0].body).text, /INC-\d+ Investigating: Card payments failing/);
   assert.equal(JSON.parse(teams[0].body).attachments[0].contentType, "application/vnd.microsoft.card.adaptive");
   const slackMessage = JSON.parse(slack[0].body);
+  assert.match(slackMessage.text, /Incident impact: Major/);
+  assert.deepEqual(sql("SELECT incident_impact AS impact FROM channel_posts").map(row => row.impact), ["major", "major"], "committed channel impact survives a later clear");
   assert.ok(slackMessage.text.includes("<https://help.example.com/kb/123>"), "Slack notification text carries explicit links");
   const elements = slackMessage.blocks.flatMap(block => block.elements.flatMap(section => section.elements));
   assert.ok(elements.some(element => element.type === "link" && element.url === "https://help.example.com/kb/123"));

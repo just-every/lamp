@@ -18,7 +18,7 @@ export function renderSubscriberSlackMessage(delivery: DispatchableDelivery, ori
       nextUpdateDisplay: delivery.nextUpdateAt ? time(delivery.nextUpdateAt) : null,
       componentChanges: parsePublishedComponentChanges(delivery.componentChangesJson),
     });
-    return renderLampSlackMessage(update.email.subject, [
+    return renderLampSlackMessage(`${update.email.subject}${delivery.incidentImpact === null ? "" : ` · Incident impact: ${impactLabel(delivery.incidentImpact)}`}`, [
       update.public.heading, `Status: ${update.public.lifecycle}`,
       ...update.public.fields.map(field => `${field.label}: ${field.value}`),
       new URL(`/incidents/${encodeURIComponent(delivery.incidentReference)}`, origin).href,
@@ -27,7 +27,7 @@ export function renderSubscriberSlackMessage(delivery: DispatchableDelivery, ori
   if (delivery.incidentReportId) {
     if (!delivery.incidentReference || !delivery.incidentTitle) throw new Error("Slack incident report content is unavailable.");
     const fields = [["Summary", delivery.reportSummary], ["Timeline", delivery.reportTimeline], ["Cause", delivery.reportCause], ["Remediation", delivery.reportRemediation]];
-    return renderLampSlackMessage(`[${delivery.incidentReference}] Post-incident report`, [
+    return renderLampSlackMessage(`[${delivery.incidentReference}] Post-incident report${delivery.incidentImpact === null ? "" : ` · Incident impact: ${impactLabel(delivery.incidentImpact)}`}`, [
       `${delivery.incidentReference}: ${delivery.incidentTitle}`,
       ...(delivery.incidentImpact === null ? [] : [`Incident impact: ${impactLabel(delivery.incidentImpact)}`]),
       ...fields.flatMap(([label, value]) => value ? [`${label}: ${value}`] : []),

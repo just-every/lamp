@@ -174,10 +174,12 @@ export function createPageExportRepository(binding: D1Database): PageExportRepos
       sql.push(...insertStatements("subscriber_tokens", consent));
       sql.push(`UPDATE page_settings SET page_name = ${literal(settings.pageName)}, tagline = ${literal(settings.tagline)}, accent_color = ${literal(settings.accentColor)}, timezone = ${literal(settings.timezone)}, footer_credit_enabled = ${settings.footerCreditEnabled ? 1 : 0}, widget_allowed_origins = ${literal(settings.widgetAllowedOrigins)}, ai_tone_instructions = ${literal(settings.aiToneInstructions)}, feed_id = ${literal(settings.feedId)}, logo_key = ${literal(settings.logoKey)}, logo_content_type = ${literal(settings.logoContentType)}, updated_at = ${literal(now)} WHERE id = 'default'`);
       // One batch is one transaction: a refused row leaves the page unchanged.
-      // Its first statement fails (json() refuses the text) when the page holds
+      // The guard fails (json() refuses the text) when the page holds
       // owner records, so a write that lands after the check stops the restore.
-      const holdsRecords = OWNER_RECORD_TABLES.map((table) => `SELECT 1 FROM ${identifier(table)}`).join(" UNION ALL ");
-      const emptyPage = `SELECT json(CASE WHEN EXISTS (${holdsRecords}) THEN 'page holds owner records' ELSE '0' END)`;
+      // Workerd limits compound SELECTs to five terms. Independent existence
+      // checks also cover the sixth owner table without a compound query.
+      const holdsRecords = OWNER_RECORD_TABLES.map((table) => `EXISTS (SELECT 1 FROM ${identifier(table)})`).join(" OR ");
+      const emptyPage = `SELECT json(CASE WHEN ${holdsRecords} THEN 'page holds owner records' ELSE '0' END)`;
       try {
         await binding.batch([binding.prepare("PRAGMA defer_foreign_keys = ON"), binding.prepare(emptyPage), ...sql.map((statement) => binding.prepare(statement))]);
       } catch (cause) {

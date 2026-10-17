@@ -509,14 +509,18 @@ test("NOTIFY-002 NOTIFY-004 NOTIFY-005 NOTIFY-007 NOTIFY-008 NOTIFY-010 — Dura
   await (async () => {
   const db = platform.env.DB;
   const now = "2026-09-08T03:00:00.000Z";
+  await db.prepare("UPDATE incidents SET impact_override = 'major' WHERE id = (SELECT incident_id FROM incident_updates WHERE id = ?)").bind("01J00000000000000000000032").run();
   await db.batch([
     db.prepare("INSERT INTO subscribers (id,channel,destination,contact_email,state,selection_mode,token_hash,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?)").bind("01J00000000000000000000043", "email", "notify-reader@example.test", null, "active", "all", "notify-token", now, now),
     db.prepare("INSERT INTO notification_deliveries (id,subscriber_id,incident_update_id,channel,outcome,queued_at,created_at,updated_at,notification_event_id,notification_event_type) VALUES (?,?,?,?,?,?,?,?,?,?)").bind("01J00000000000000000000044", "01J00000000000000000000043", "01J00000000000000000000032", "email", "queued", now, now, now, "01J00000000000000000000032", "incident-update"),
   ]);
   const mail = new CapturingMail();
   const deliveries = createDeliveriesService(createDeliveryRepository(db), { mail, fromAddress: "lamp@example.test", subscriberTokenSecret: randomBytes(32).toString("hex") });
+  await db.prepare("UPDATE incidents SET impact_override = NULL WHERE id = (SELECT incident_id FROM incident_updates WHERE id = ?)").bind("01J00000000000000000000032").run();
   await deliveries.dispatchDelivery("01J00000000000000000000044", "https://status.example.test");
   assert.equal(mail.messages.length, 1);
+  assert.match(mail.messages[0].text, /Incident impact: Major/);
+  assert.equal((await db.prepare("SELECT incident_impact AS impact FROM notification_deliveries WHERE id = ?").bind("01J00000000000000000000044").first()).impact, "major", "queued impact survives a later clear");
   assert.equal((await db.prepare("SELECT provider_message_id AS id FROM notification_delivery_attempts WHERE delivery_id = ?").bind("01J00000000000000000000044").first()).id, "mail-1");
 })(t);
   t.diagnostic("NOTIFY-004 — the actual delivery log exposes only contract outcomes and exports filterable CSV");

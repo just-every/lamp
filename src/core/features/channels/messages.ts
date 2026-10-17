@@ -1,5 +1,5 @@
 import { renderNotificationUpdate } from "../../shared/update-renderer";
-import type { IncidentImpact } from "../../shared/incident-impact";
+import { impactLabel, type IncidentImpact } from "../../shared/incident-impact";
 import { formatTime } from "../public-snapshot/format";
 import { renderUpdateTeams } from "../../shared/update-links";
 import type { IncidentLifecycle } from "../../shared/domain";
@@ -35,7 +35,7 @@ function channelUpdate(data: ChannelPostData) {
 /** Every populated field and immutable component change uses the shared renderer. */
 export function renderChannelSlack(data: ChannelPostData) {
   const update = channelUpdate(data);
-  return renderLampSlackMessage(`${data.reference} ${data.lifecycle}: ${data.title}`, [
+  return renderLampSlackMessage(`${data.reference} ${data.lifecycle}: ${data.title}${data.incidentImpact === null ? "" : ` · Incident impact: ${impactLabel(data.incidentImpact)}`}`, [
     update.public.heading, `Status: ${update.public.lifecycle}`,
     ...update.public.fields.map(field => `${field.label}: ${field.value}`), data.url,
   ]);
