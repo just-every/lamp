@@ -3284,7 +3284,7 @@
       "executable": false
     },
     "src/core/features/public-snapshot/feed-content.ts": {
-      "sha256": "2ac7d8708adee20822b8d7d0046b5556fca8cbae5a6003db215798a6e832187c",
+      "sha256": "6dd25806d4ae5b53530622df8b1b355303017c9e2cc5821d03713c93aa686eb0",
       "executable": false
     },
     "src/core/features/public-snapshot/feed-widget.ts": {
@@ -3372,7 +3372,7 @@
       "executable": false
     },
     "src/core/features/public-snapshot/service.ts": {
-      "sha256": "37f59c178c039aca319762953978b52139381c0d24d822923dc778b9c86fe619",
+      "sha256": "81775fd22bbbc5720f9ba32cce06c1d0cc03a6805a2778906524ca6bcc323032",
       "executable": false
     },
     "src/core/features/public-snapshot/styles/components.css": {
