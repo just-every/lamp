@@ -460,7 +460,7 @@
       "executable": false
     },
     "CHANGELOG.md": {
-      "sha256": "2803ddf34eeb3e51a259a07a33490660f3f366d5d861f1e787826621eb84854e",
+      "sha256": "8bf187c640d034ca7114d3e4b91079ffed65ce75f46e3c3e78c20418919eb291",
       "executable": false
     },
     "CLAUDE.md": {
@@ -548,7 +548,7 @@
       "executable": false
     },
     "docs/install.md": {
-      "sha256": "e898fa1fa41209620eaab38d9156d0cc497c9be1c70dc74130cba663f7ee91b3",
+      "sha256": "7b5760b5d9f291a5bf2b3054a9018a2172b76f54eebf2727bc04a04142d0f328",
       "executable": false
     },
     "docs/maintenance.md": {
@@ -1940,7 +1940,7 @@
       "executable": false
     },
     "README.md": {
-      "sha256": "6293b16049a6e6d48bdb3dd3eb8f6ab4142fefb4eff20a54be1f9e46e6e4d3c2",
+      "sha256": "1cc0508225f5fad3138f55b30e5ca97ac625d6d94b4a613ed4c7bb1118357ccf",
       "executable": false
     },
     "release-history/1.0.0.CONTRACT.md": {
@@ -2016,7 +2016,7 @@
       "executable": false
     },
     "RELEASE.json": {
-      "sha256": "f7fdf826cccc0241f8086b52985b67521612d93cfb8517e8a1d2195e9b94feda",
+      "sha256": "1ce6bf1c597ec6369dc008966c0eabea1ab25854f85c296a8dc1235554b4931b",
       "executable": false
     },
     "rer-packaging.json": {
@@ -2032,7 +2032,7 @@
       "executable": false
     },
     "RUN-LOCALLY.md": {
-      "sha256": "8c624740a40ac579703b34344a09de2f6e087f7c5460b6fd4e8bd4c0e0b9eeee",
+      "sha256": "11d2acc94f59c1228c200ff4fbc2310f260f91086c4d3495006d252241406a55",
       "executable": false
     },
     "schema/dependencies.mjs": {
