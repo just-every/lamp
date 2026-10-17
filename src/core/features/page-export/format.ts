@@ -52,6 +52,11 @@ export const OMITTED_COLUMNS: Partial<Record<PageDataTable, string[]>> = { subsc
 /** Derived per subscriber: when they confirmed, from their used confirmation link. */
 export const SUBSCRIBER_CONSENT_COLUMN = "confirmed_at";
 
+/** Email subscribers from a file Lamp cannot vouch for wait in this state until
+ * the owner sends their confirmations, and are deleted after HELD_RESTORE_DAYS. */
+export const HELD_RESTORE_REASON = "held for page data confirmation";
+export const HELD_RESTORE_DAYS = 30;
+
 const cell = z.union([z.string().refine((value) => !value.includes("\u0000"), "Text cannot contain a NUL character."), z.number(), z.null()]);
 const row = z.record(z.string().regex(/^[a-z][a-z0-9_]*$/), cell);
 
@@ -73,6 +78,8 @@ export const pageDataFileSchema = z.object({
   }).strict(),
   people: z.array(z.object({ email: z.string().min(3).max(320), displayName: z.string().min(1).max(120) }).strict()),
   records: z.object(Object.fromEntries(PAGE_DATA_TABLES.map(({ table }) => [table, z.array(row)])) as Record<PageDataTable, z.ZodArray<typeof row>>).strict(),
+  // Files from earlier Lamp releases have none; see integrity.ts.
+  integrity: z.object({ algorithm: z.literal("HMAC-SHA256"), value: z.string().regex(/^[A-Za-z0-9_-]{43}$/) }).strict().optional(),
 }).strict();
 
 export type PageDataFile = z.infer<typeof pageDataFileSchema>;

@@ -12,7 +12,7 @@ import { HELD_SORRY_DAYS } from "../held-sorry";
 type SavedFile = { name: string; text: string };
 type Preview = { report: MoveInReport; jobId?: string; files?: SavedFile[] };
 type Job = { id: string; namespace?: string; state: string; checkpoint: number; total: number };
-type Result = { job: Job; report: MoveInReport; invites: { sent: number; remaining: number }; undo?: { dispositions: Array<{ disposition: string; targetKind?: string; reason?: string }> } };
+type Result = { job: Job; report: MoveInReport; invites: { sent: number; remaining: number }; undo?: { dispositions: Array<{ disposition: string; targetKind?: string; reason?: string }>; expiredSubscribers: number } };
 
 const kindLabels: Record<string, string> = { group: "Component groups", component: "Components", incident: "Incidents", maintenance: "Maintenance", subscriber: "Subscribers" };
 
@@ -115,6 +115,7 @@ export function MoveInPage() {
       <p><a className="text-link" href={`/app/cutover?job=${encodeURIComponent(result.job.id)}`}>Read Cutover and send invitations</a></p><ReportTable report={result.report} />
       {result.job.state === "completed" && <p>{result.invites.remaining ? `${result.invites.remaining} subscriber invitations still to send.` : "No eligible invitations remain. Read Cutover for subscription and expiry details."}</p>}
       {result.undo && <p>{result.undo.dispositions.filter((item) => item.disposition === "retained").length} record(s) changed since the import stayed.</p>}
+      {result.undo?.expiredSubscribers ? <p>{result.undo.expiredSubscribers} held subscriber(s) had already expired and were deleted before this undo.</p> : null}
       {(result.job.state === "applying") && <Button type="button" disabled={busy} onClick={() => act(result.job.id, "resume")}>Continue</Button>}
       {result.job.state === "undoing" && <Button type="button" disabled={busy} onClick={() => act(result.job.id, "undo")}>Continue undo</Button>}
     </section>}

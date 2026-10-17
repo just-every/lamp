@@ -39,6 +39,7 @@ The file is JSON in Lamp's `lamp-page-data` format, version 1:
 | `page` | `pageName`, `tagline`, `accentColor`, `timezone`, `footerCreditEnabled`, `widgetAllowedOrigins`, `aiToneInstructions`, `feedId` (your Atom feed's identity) and `logo` (`contentType` and `base64` bytes, or `null`). |
 | `people` | `email` and `displayName` of each operator who wrote or reviewed a record. |
 | `records` | One list of rows per Lamp table, keyed by table name, with each row's columns as Lamp stores them: `component_groups`, `components`, `component_standing_claims`, `component_claim_events`, `component_state_history`, `component_state_corrections`, `incidents`, `incident_components`, `incident_updates`, `incident_drafts`, `incident_internal_notes`, `incident_reports`, `maintenance`, `maintenance_components`, `maintenance_notices`, `import_maintenance_updates`, `subscribers`, `subscriber_components`, `reference_allocations` and `reference_counters`. |
+| `integrity` | `algorithm` (`"HMAC-SHA256"`) and `value`: a keyed hash of everything else in the file. Its key is derived from the exporting installation's `SUBSCRIBER_TOKEN_SECRET` and never leaves it. Files from Lamp 1.7.0 and earlier have no `integrity`. |
 
 Rows name their author, and a draft its reviewer, by email (`operator_email`,
 `created_by_email`, `author_email`, `reviewed_by_email`) instead of an
@@ -55,14 +56,41 @@ maintenance or subscribers to it: a local one (`rer dev`) or a hosted one
 Restore page data**, choose the file and **Check file**: Lamp counts what the
 file holds and says whether this page can take it, without writing anything.
 Then choose **Restore page data**. It restores everything in one step or nothing
-at all, and rebuilds the public page.
+at all, and rebuilds the public page. If anyone adds a record to the page while
+it runs, the restore stops and writes nothing.
 
-Afterwards a fresh **Download page data** gives back the same file, apart from
-`exportedAt`. Subscribers keep their state and are not emailed. Links in emails
-the old page sent stop working; every later email carries new ones. Webhook
+The restore itself emails nobody. Links in emails the old page sent stop
+working; every later email carries new ones. Webhook
 subscribers verify signatures with the new installation's signing secret. Authors
 who are not operators on the new page are listed as former operators: their
 records keep their name, and they cannot sign in unless you invite them.
+
+#### Subscribers and consent
+
+Email subscribers keep their state (subscribed, pending, or when and why they
+left) only when the new installation can check the file's `integrity` value
+itself. That works when the file is unchanged and the new installation holds
+the same `SUBSCRIBER_TOKEN_SECRET` as the one that exported it: the same
+installation, or a recovery given its [signing secrets](#restore-a-hosted-installation).
+Afterwards a fresh **Download page data** gives back the same file, apart from
+`exportedAt` and `integrity`.
+
+Otherwise each email subscriber who was subscribed or pending is held: a file
+edited by hand, a file from another installation with its own secret, and a file
+from Lamp 1.7.0 or earlier. This rule is the same hosted and on Managed hosting.
+It is the double opt-in every other import keeps: an address shows consent only
+by following a link this page emailed it. **Check file** says how many
+subscribers will be held, before anything is written. Held subscribers receive
+nothing. Under **Restore page data**, **Send confirmation emails** sends each of
+them one confirmation; whoever follows its link within 72 hours is subscribed
+again, and the rest are deleted as unconfirmed. Held subscribers you never send
+one to are deleted, address and all, 30 days after the restore. Webhook
+subscribers are restored as they were: a webhook endpoint has no confirmation
+step anywhere in Lamp.
+
+Scheduled updates and maintenance in the file carry on as scheduled. Any that
+fell due between the export and the restore run within a minute of it and notify
+the subscribers who kept their state.
 
 ## Back up a hosted installation
 

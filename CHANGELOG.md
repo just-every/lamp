@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased
+
+- **A page data restore keeps double opt-in.** An export now carries an integrity value keyed by the installation's `SUBSCRIBER_TOKEN_SECRET`, which never leaves it. Email subscribers keep their state only when the restoring installation can check that value: an unchanged file from the same installation, or from a recovery given its signing secrets. Otherwise (a hand-edited file, one from another installation, or one from 1.7.0 or earlier) subscribed and pending email subscribers are held. **Check file** says how many before anything is written; held subscribers receive nothing until **Send confirmation emails** sends each one confirmation, and are deleted 30 days after the restore if never sent one. The same rule applies hosted and on Managed hosting.
+- A restore checks that the page is empty inside its own transaction, so a record added while it runs stops it with nothing written, and a refused restore no longer leaves its logo in storage.
+- **Check file** counts scheduled updates and upcoming or running maintenance, which carry on as scheduled after a restore; the card and docs no longer say a restore never leads to mail.
+- Moving between incidents while the operator app's loader is still reloading shows that incident's current record, never what an earlier visit loaded.
+- `rer deploy --rotate-secret` errors name `--rotate-secret`, not `LAMP_REPLACE_SECRETS`. A deploy whose input file sets `OIDC_TRANSACTION_SECRET` while the Worker keeps its own says so, and the sign-in guide gives the one-time `--rotate-secret OIDC_TRANSACTION_SECRET` step for a page first deployed by 1.6.0 or earlier.
+- Undoing a Sorry import after its held subscribers expired reports them as expired and deleted, not as kept. A scheduled run that fails in several steps reports every failure.
+
 ## 1.7.0
 
 - **Feeds, public APIs, badges and embeds.** The public page serves `/feed.rss` beside `/feed.atom`, `/history.atom` and `/history.rss` on every installation, and per-component Atom and RSS feeds and status and uptime badges under `/components/<id>/`, addressed by immutable ID so they survive renaming. `/badge.svg` and `/badge.json` (Shields endpoint) give the page's state. Statuspage's public API answers at `/api/v2/` (summary, status, components, incidents and scheduled maintenances, keeping imported Statuspage IDs where the import journal retained them), and a native paginated API at `/api/public/v1/`. Every one reads only the published snapshot: internal components, operator names, notes and subscriber data are excluded. Settings → Public resources and embeds builds a banner, floating incident notice or status-dot embed (`/embed/script.js`) for your listed widget origins. docs/public-resources.md describes them.

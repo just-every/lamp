@@ -13,10 +13,20 @@ import { join } from 'node:path';
 export const signingSecrets = ['SESSION_SECRET', 'SUBSCRIBER_TOKEN_SECRET', 'WEBHOOK_SIGNING_SECRET', 'OIDC_TRANSACTION_SECRET'];
 
 export function replacedSecrets(env = process.env) {
-  const names = [env.LAMP_REPLACE_SECRETS, env.RER_ROTATE_SECRETS].join(',').split(',').map(name => name.trim()).filter(Boolean);
-  const unknown = names.filter(name => !signingSecrets.includes(name));
-  if (unknown.length) throw new Error(`LAMP_REPLACE_SECRETS names ${unknown.join(', ')}; it takes only ${signingSecrets.join(', ')}.`);
-  return names;
+  // rer deploy --rotate-secret NAME reaches this script as RER_ROTATE_SECRETS.
+  const sources = [['LAMP_REPLACE_SECRETS', 'LAMP_REPLACE_SECRETS'], ['RER_ROTATE_SECRETS', 'rer deploy --rotate-secret']];
+  return sources.flatMap(([variable, source]) => {
+    const names = (env[variable] ?? '').split(',').map(name => name.trim()).filter(Boolean);
+    const unknown = names.filter(name => !signingSecrets.includes(name));
+    if (unknown.length) throw new Error(`${source} names ${unknown.join(', ')}; it takes only ${signingSecrets.join(', ')}.`);
+    return names;
+  });
+}
+
+/** A kept OIDC_TRANSACTION_SECRET the owner's file also supplies: the file's value goes unused. */
+export function ignoredOidcSecretNotice(config, kept) {
+  if (!config.oidcTransactionSecret || !kept.includes('OIDC_TRANSACTION_SECRET')) return null;
+  return 'Kept the OIDC_TRANSACTION_SECRET this Worker already holds; the value in your input file was not uploaded. A page first deployed by Lamp 1.6.0 or earlier holds it empty: if you have just added it to your file for single sign-on, deploy once with --rotate-secret OIDC_TRANSACTION_SECRET.';
 }
 
 /** The signing secrets this upload leaves as they are on a Worker that holds them. */

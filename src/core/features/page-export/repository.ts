@@ -1,5 +1,13 @@
 import { createUlid } from "../../shared/ids";
-import { AUTHOR_COLUMNS, OMITTED_COLUMNS, OWNER_RECORD_TABLES, PAGE_DATA_TABLES, SUBSCRIBER_CONSENT_COLUMN, type PageDataRow, type PageDataTable } from "./format";
+import { AUTHOR_COLUMNS, HELD_RESTORE_REASON, OMITTED_COLUMNS, OWNER_RECORD_TABLES, PAGE_DATA_TABLES, SUBSCRIBER_CONSENT_COLUMN, type PageDataRow, type PageDataTable } from "./format";
+
+/** The restore found owner records written since its check; it wrote nothing. */
+export class PageNotEmptyError extends Error {
+  constructor(readonly tables: PageDataTable[]) {
+    super("The page is no longer empty.");
+    this.name = "PageNotEmptyError";
+  }
+}
 
 export interface StoredPageSettingsRow {
   page_name: string;
@@ -43,6 +51,12 @@ export interface PageExportRepository {
     settings: PageSettingsWrite;
     now: string;
   }): Promise<void>;
+  heldSubscriberIds(limit: number): Promise<{ id: string; heldAt: string }[]>;
+  /** Moves one held email subscriber to pending, its 72-hour window starting now; false when it is no longer held. */
+  releaseHeld(subscriberId: string, now: string): Promise<boolean>;
+  holdAgain(subscriberId: string, heldAt: string, releasedAt: string): Promise<void>;
+  heldSummary(): Promise<{ held: number; earliest: string | null }>;
+  deleteHeldBefore(cutoff: string): Promise<void>;
 }
 
 const MAX_STATEMENT_BYTES = 90_000;
@@ -93,7 +107,7 @@ function erasedOperatorId(email: string) {
 }
 
 export function createPageExportRepository(binding: D1Database): PageExportRepository {
-  return {
+  const repository: PageExportRepository = {
     async readSettings() {
       return binding.prepare("SELECT page_name, tagline, accent_color, timezone, footer_credit_enabled, widget_allowed_origins, ai_tone_instructions, feed_id, logo_key, logo_content_type FROM page_settings WHERE id = 'default'").first<StoredPageSettingsRow>();
     },
@@ -160,7 +174,37 @@ export function createPageExportRepository(binding: D1Database): PageExportRepos
       sql.push(...insertStatements("subscriber_tokens", consent));
       sql.push(`UPDATE page_settings SET page_name = ${literal(settings.pageName)}, tagline = ${literal(settings.tagline)}, accent_color = ${literal(settings.accentColor)}, timezone = ${literal(settings.timezone)}, footer_credit_enabled = ${settings.footerCreditEnabled ? 1 : 0}, widget_allowed_origins = ${literal(settings.widgetAllowedOrigins)}, ai_tone_instructions = ${literal(settings.aiToneInstructions)}, feed_id = ${literal(settings.feedId)}, logo_key = ${literal(settings.logoKey)}, logo_content_type = ${literal(settings.logoContentType)}, updated_at = ${literal(now)} WHERE id = 'default'`);
       // One batch is one transaction: a refused row leaves the page unchanged.
-      await binding.batch([binding.prepare("PRAGMA defer_foreign_keys = ON"), ...sql.map((statement) => binding.prepare(statement))]);
+      // Its first statement fails (json() refuses the text) when the page holds
+      // owner records, so a write that lands after the check stops the restore.
+      const holdsRecords = OWNER_RECORD_TABLES.map((table) => `SELECT 1 FROM ${identifier(table)}`).join(" UNION ALL ");
+      const emptyPage = `SELECT json(CASE WHEN EXISTS (${holdsRecords}) THEN 'page holds owner records' ELSE '0' END)`;
+      try {
+        await binding.batch([binding.prepare("PRAGMA defer_foreign_keys = ON"), binding.prepare(emptyPage), ...sql.map((statement) => binding.prepare(statement))]);
+      } catch (cause) {
+        const counts = await repository.ownerRecordCounts();
+        const held = OWNER_RECORD_TABLES.filter((table) => counts[table] > 0);
+        if (held.length) throw new PageNotEmptyError(held);
+        throw cause;
+      }
+    },
+    async heldSubscriberIds(limit) {
+      const rows = await binding.prepare("SELECT id, deactivated_at AS heldAt FROM subscribers WHERE state = 'deactivated' AND deactivation_reason = ? AND channel = 'email' ORDER BY id LIMIT ?").bind(HELD_RESTORE_REASON, limit).all<{ id: string; heldAt: string }>();
+      return rows.results;
+    },
+    async releaseHeld(subscriberId, now) {
+      const result = await binding.prepare("UPDATE subscribers SET state = 'pending', deactivation_reason = NULL, deactivated_at = NULL, created_at = ?, updated_at = ? WHERE id = ? AND state = 'deactivated' AND deactivation_reason = ? AND channel = 'email'").bind(now, now, subscriberId, HELD_RESTORE_REASON).run();
+      return result.meta.changes === 1;
+    },
+    async holdAgain(subscriberId, heldAt, releasedAt) {
+      await binding.prepare("UPDATE subscribers SET state = 'deactivated', deactivation_reason = ?, deactivated_at = ?, updated_at = ? WHERE id = ? AND state = 'pending' AND created_at = ?").bind(HELD_RESTORE_REASON, heldAt, heldAt, subscriberId, releasedAt).run();
+    },
+    async heldSummary() {
+      const row = await binding.prepare("SELECT COUNT(*) AS held, MIN(deactivated_at) AS earliest FROM subscribers WHERE state = 'deactivated' AND deactivation_reason = ? AND channel = 'email'").bind(HELD_RESTORE_REASON).first<{ held: number; earliest: string | null }>();
+      return { held: Number(row?.held ?? 0), earliest: row?.earliest ?? null };
+    },
+    async deleteHeldBefore(cutoff) {
+      await binding.prepare("DELETE FROM subscribers WHERE state = 'deactivated' AND deactivation_reason = ? AND deactivated_at < ?").bind(HELD_RESTORE_REASON, cutoff).run();
     },
   };
+  return repository;
 }

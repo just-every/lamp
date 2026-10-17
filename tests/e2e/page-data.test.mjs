@@ -7,7 +7,7 @@ import { test } from "node:test";
 
 import { legacyApiFixtureSql } from "./fixtures/legacy-api-fixture.mjs";
 import { insertRealOperatorSession } from "./real-session-helper.mjs";
-import { appOrigin, pageOrigin } from "./helpers/hosts.mjs";
+import { appHost, appOrigin, pageOrigin } from "./helpers/hosts.mjs";
 import { reservePort, waitForWorker } from "./worker-startup.mjs";
 import { fixtureFetch as fetch } from "../public-snapshots/fixture-fetch.mjs";
 import { sessionCookieName } from "../helpers/session-cookie.mjs";
@@ -29,9 +29,12 @@ INSERT INTO subscriber_tokens (id,subscriber_id,scope,token_hash,expires_at,revo
 INSERT INTO reference_counters (namespace,last_number) VALUES ('INC',4821) ON CONFLICT(namespace) DO UPDATE SET last_number=excluded.last_number;
 `;
 
-async function startPage(seedSql) {
+// Both pages share one subscriber signing secret, as a recovery given the original's secrets does.
+const signingSecret = { SUBSCRIBER_TOKEN_SECRET: "test-only-page-data-subscriber-secret-cccccccccccc" };
+
+async function startPage(seedSql, vars = () => signingSecret) {
   const port = await reservePort({ label: "Page data Worker" });
-  const app = appOrigin(port);
+  const app = appOrigin(port, vars(`http://${appHost}:${port}`));
   const state = await mkdtemp(join(tmpdir(), "lamp-page-data-d1-"));
   const cache = await mkdtemp(join(tmpdir(), "lamp-page-data-vite-"));
   execFileSync("pnpm", ["run", "migrate:local"], { stdio: "pipe", env: { ...process.env, LAMP_WORKERS_STATE_PATH: state } });
@@ -49,6 +52,7 @@ async function startPage(seedSql) {
   const cookie = `${sessionCookieName(app)}=${session}`;
   return {
     page: pageOrigin(port),
+    subscribers: () => JSON.parse(execFileSync("pnpm", ["exec", "wrangler", "d1", "execute", "DB", "--local", "--json", "--config", resolve("wrangler.jsonc"), "--persist-to", state, "--command", "SELECT destination, state, deactivation_reason FROM subscribers ORDER BY destination"], { stdio: "pipe" }).toString())[0].results,
     request: (path, init = {}) => fetch(`${app}${path}`, { ...init, headers: { Cookie: cookie, Origin: app, ...init.headers } }),
     async stop() {
       if (server.pid && server.exitCode === null) {
@@ -62,7 +66,7 @@ async function startPage(seedSql) {
 }
 
 const json = (body) => ({ method: "POST", body: JSON.stringify(body), headers: { "Content-Type": "application/json", Accept: "application/json" } });
-const withoutTime = ({ exportedAt: _time, ...file }) => file;
+const withoutTime = ({ exportedAt: _time, integrity: _integrity, ...file }) => file;
 
 test("The owner's page data downloads from the app and restores identically into a new installation", async () => {
   const source = await startPage(`${legacyApiFixtureSql()}\n${ownerHistorySql}`);
@@ -100,6 +104,7 @@ test("The owner's page data downloads from the app and restores identically into
     const checked = await (await destination.request("/api/app/page-data/check", json(exported))).json();
     assert.equal(checked.check.ok, true, checked.check.problems.join(" "));
     assert.equal(checked.check.counts.subscribers, 4);
+    assert.deepEqual(checked.check.consent, { kept: true, provenance: "verified", emailSubscribers: 2 });
 
     const restored = await destination.request("/api/app/page-data/restore", json(exported));
     assert.equal(restored.status, 200, JSON.stringify(await restored.clone().json()));
@@ -110,6 +115,40 @@ test("The owner's page data downloads from the app and restores identically into
     assert.match(publicPage, /Elevated API error rates/);
     const repeat = await destination.request("/api/app/page-data/restore", json(exported));
     assert.equal(repeat.status, 409, "a second restore must not duplicate the page");
+  } finally {
+    await destination.stop();
+  }
+});
+
+test("A hand-edited page data file cannot restore active subscribers: they are held until the owner sends confirmations", async () => {
+  const source = await startPage(legacyApiFixtureSql());
+  let edited;
+  try {
+    edited = await (await source.request("/api/app/page-data")).json();
+  } finally {
+    await source.stop();
+  }
+  edited.records.subscribers.push({ ...edited.records.subscribers.find((row) => row.destination === "ops-team@atlascloud.example"), id: "01J00000000000000000000098", destination: "bought-list@example.test", confirmed_at: "2026-09-08T00:05:00.000Z" });
+
+  // Local mail lets the owner's send complete; it delivers nothing.
+  const destination = await startPage(null, (origin) => ({ ...signingSecret, RER_DEV_KEY: "test-only-page-data-dev-key-dddddddddddd", RER_DEV_ORIGIN: origin }));
+  try {
+    const { integrity: _integrity, ...unsigned } = edited;
+    assert.equal((await (await destination.request("/api/app/page-data/check", json(unsigned))).json()).check.consent.provenance, "unsigned");
+    const checked = await (await destination.request("/api/app/page-data/check", json(edited))).json();
+    assert.deepEqual(checked.check.consent, { kept: false, provenance: "unverified", emailSubscribers: 2 });
+    assert.equal((await destination.request("/api/app/page-data/restore", json(edited))).status, 200);
+    const held = "held for page data confirmation";
+    assert.deepEqual(destination.subscribers(), [
+      { destination: "bought-list@example.test", state: "deactivated", deactivation_reason: held },
+      { destination: "https://status-receiver.atlascloud.example/events", state: "active", deactivation_reason: null },
+      { destination: "ops-team@atlascloud.example", state: "deactivated", deactivation_reason: held },
+    ]);
+    assert.equal((await (await destination.request("/api/app/page-data/confirmations")).json()).confirmations.held, 2);
+
+    const sent = await (await destination.request("/api/app/page-data/confirmations", { method: "POST", headers: { Accept: "application/json" } })).json();
+    assert.deepEqual(sent.confirmations, { sent: 2, held: 0, deleteAfter: null });
+    assert.deepEqual(destination.subscribers().map((row) => row.state), ["pending", "active", "pending"], "a confirmation starts each address's pending window");
   } finally {
     await destination.stop();
   }

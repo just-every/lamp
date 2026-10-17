@@ -4,7 +4,7 @@ import { rm, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 
 import { deploymentConfig, mailEnvironmentNames, parseArgs, resourceNames, writeGeneratedWrangler } from "./ops-config.mjs";
-import { keptSecrets, replacedSecrets, withDeploymentSecrets } from "./deployment-secrets.mjs";
+import { ignoredOidcSecretNotice, keptSecrets, replacedSecrets, withDeploymentSecrets } from "./deployment-secrets.mjs";
 import { withPublicWorkerConfig } from "./native-public-worker.mjs";
 import { readOperations } from "./operations.mjs";
 import { dryRunInputFailure, realDeployInputFailure, realDeployNotice } from "./deploy-preflight.mjs";
@@ -75,6 +75,8 @@ async function main() {
   const upload = async (page, deploy) => {
     const kept = keptSecrets(await ownership.heldSecrets(page), replace);
     if (kept.length) console.log(`Kept ${kept.join(", ")} on ${page ? names.publicWorker : names.worker}, so existing subscriber links, operator sessions and sign-ins in progress keep working.`);
+    const ignored = ignoredOidcSecretNotice(config, kept);
+    if (ignored) console.log(ignored);
     await withDeploymentSecrets(config, kept, file => ownership.upload(page, identity, () => deploy(file)));
   };
   await upload(false, file => run("pnpm", ["exec", "wrangler", "deploy", "--config", builtConfig, "--secrets-file", file, ...identityVars(identity)]));

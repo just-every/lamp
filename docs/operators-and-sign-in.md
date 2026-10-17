@@ -114,6 +114,12 @@ rer deploy --dry-run --environment production --env-file "$HOME/.config/lamp/pro
 rer deploy --environment production --env-file "$HOME/.config/lamp/production.env"
 ```
 
+   A redeploy keeps the `OIDC_TRANSACTION_SECRET` the Worker already holds, so
+   sign-ins in progress survive it. A page first deployed by Lamp 1.6.0 or
+   earlier holds it empty, and the deploy says it kept it. The first time you add
+   it to the file on such a page, deploy with
+   `--rotate-secret OIDC_TRANSACTION_SECRET` so the Worker takes your value.
+
 4. As the setup owner, open **Settings → Operators → Identity provider settings**.
    Enable **Allow provider sign-in** and save. This permits the configured
    providers; the checkbox alone does not establish a connection.

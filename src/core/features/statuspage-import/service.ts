@@ -22,7 +22,7 @@ const REVIEW_WINDOW_MS = 30 * 60 * 1000;
 const INVITES_PER_REQUEST = 50;
 
 export type MoveInActor = Session;
-export interface MoveInResult { job: ImportJob; report: MoveInReport; invites: { sent: number; remaining: number }; undo?: Awaited<ReturnType<typeof readD1ImportUndoReport>> }
+export interface MoveInResult { job: ImportJob; report: MoveInReport; invites: { sent: number; remaining: number }; undo?: Awaited<ReturnType<typeof readD1ImportUndoReport>> & { expiredSubscribers: number } }
 export interface MoveInHooks {
   inviteSubscriber(subscriberId: string, claimSend: () => Promise<boolean>): Promise<boolean>;
   publicDataChanged(): Promise<void>;
@@ -185,6 +185,16 @@ export function createStatuspageImportService(db: D1Database, hooks: MoveInHooks
     return { sent, remaining: Number(remaining?.n ?? 0) };
   }
 
+  // A held Sorry subscriber deleted by its expiry (held-sorry.ts) before the undo
+  // reads as retained in the undo report; it is gone, not kept, so it is counted apart.
+  async function undoReport(id: string, context: D1ImportContext) {
+    const report = await readD1ImportUndoReport(id, context, { limit: 1000 });
+    const kept = report.dispositions.filter((row) => row.disposition === "retained" && row.targetKind === "subscriber").map((row) => row.targetId);
+    const present = new Set(kept.length ? (await db.prepare("SELECT id FROM subscribers WHERE id IN (SELECT value FROM json_each(?))").bind(JSON.stringify(kept)).all<{ id: string }>()).results.map((row) => row.id) : []);
+    const expired = new Set(kept.filter((targetId) => !present.has(targetId)));
+    return { ...report, dispositions: report.dispositions.filter((row) => !(row.targetKind === "subscriber" && expired.has(row.targetId))), expiredSubscribers: expired.size };
+  }
+
   async function result(id: string, actor: MoveInActor): Promise<MoveInResult> {
     const context = await contextForJob(id, actor);
     const job = await readD1ImportJob(id, context);
@@ -197,7 +207,7 @@ export function createStatuspageImportService(db: D1Database, hooks: MoveInHooks
     const existingAddresses = resolvePublicAddresses((await readImportedPublicRecords(db)).map((record) => ({ ...record, target: `${record.targetKind}:${record.targetId}` })));
     report.unavailableAddresses = [...new Set([...report.unavailableAddresses, ...cutover.unavailable])];
     await assertAuthority(context);
-    return { job, report, invites, ...(job.state === "undone" ? { undo: await readD1ImportUndoReport(job.id, context, { limit: 1000 }) } : {}) };
+    return { job, report, invites, ...(job.state === "undone" ? { undo: await undoReport(job.id, context) } : {}) };
   }
 
   async function source(input: SourceInput) {

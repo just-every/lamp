@@ -1377,3 +1377,19 @@ Teams) give their steps, links, text to copy and a check on the page. On
 Managed hosting, which relays mail but has no outbound relay for other
 integrations yet, AI assistance and Slack and Teams say so in one line and
 accept no settings that could not send.
+
+## Page data restore keeps double opt-in — 17 October 2026
+
+A page data restore must never turn addresses into active subscribers without
+the double opt-in every other import enforces (MOVE-002, NOTIFY-008). An export
+carries an integrity value keyed by the exporting installation's
+`SUBSCRIBER_TOKEN_SECRET`; the key never leaves it. Email subscribers keep the
+state the file gives them only when the restoring installation recomputes that
+value with its own secret: an unchanged file from the same installation, or from
+a recovery given its signing secrets. Every other file (edited, from another
+installation, or from Lamp 1.7.0 or earlier) restores its subscribed and pending
+email subscribers held. Held subscribers receive nothing until the owner sends
+each one confirmation, which starts SUB-003's 72-hour window, and are deleted
+30 days after the restore otherwise. The rule is the same hosted and on Managed
+hosting. The restore's empty-page check runs inside its one transaction, and a
+refused restore removes the logo it stored.

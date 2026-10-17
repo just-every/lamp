@@ -153,7 +153,12 @@ export function createAppServices(bindings: AppBindings, blobs: BlobStore, execu
     publicDataChanged: () => publicSnapshots.rebuild(true),
   }, { apiOrigin: import.meta.env?.DEV && bindings.LAMP_DEV_STATUSPAGE_ORIGIN?.startsWith("http://127.0.0.1:") ? bindings.LAMP_DEV_STATUSPAGE_ORIGIN : undefined });
 
-  const pageExport = createPageExportService(createPageExportRepository(bindings.DB), blobs, () => publicSnapshots.rebuild(true));
+  // Subscribers a restore could not vouch for get the same one confirmation as a move-in import's.
+  const pageExport = createPageExportService(createPageExportRepository(bindings.DB), blobs, {
+    integritySecret: bindings.SUBSCRIBER_TOKEN_SECRET,
+    onPublicDataChanged: () => publicSnapshots.rebuild(true),
+    sendConfirmation: async (subscriberId) => subscribers.inviteImported(subscriberId, await importPublicOrigin(), (await pageSettings.get())?.pageName ?? "This status page", async () => true),
+  });
 
   return { auth, operators, pageSettings, pageExport, components, incidents, maintenance, subscribers, deliveries, reports, intake, briefs, ai, overview, updateReminders, publicSnapshots, statuspageImport, channels };
 }

@@ -12,6 +12,7 @@ import { Icon } from "./icon";
 import { badge } from "../../../../site/lamp/badge";
 import { ClientExtensionProvider } from "../extensions";
 import { FormError } from "./states";
+import { useVisitSnapshot } from "./visit-snapshot";
 
 type NavigationItem = {
   to: "/app" | "/app/incidents" | "/app/components" | "/app/maintenance" | "/app/subscribers" | "/app/deliveries" | "/app/alerts" | "/app/settings";
@@ -35,7 +36,9 @@ function Brand() {
 }
 
 export function OperatorShell({ initialSession }: { initialSession: OperatorSessionView }) {
-  return <AppDataContext.Provider value={initialSession.data}><OperatorWorkspace initialSession={initialSession} /></AppDataContext.Provider>;
+  const { href, pathname } = useRouterState({ select: (state) => ({ href: state.location.href, pathname: state.location.pathname }), structuralSharing: true });
+  const snapshot = useVisitSnapshot(initialSession.data, initialSession.path, href, pathname);
+  return <AppDataContext.Provider value={snapshot}><OperatorWorkspace initialSession={initialSession} /></AppDataContext.Provider>;
 }
 
 function OperatorWorkspace({ initialSession }: { initialSession: OperatorSessionView }) {

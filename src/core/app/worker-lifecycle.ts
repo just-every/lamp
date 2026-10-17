@@ -35,6 +35,7 @@ export async function runScheduled(bindings: AppBindings, executionContext: Exec
     const changes = await Promise.allSettled([
       runtime.services.subscribers.expirePending(),
       expireHeldSorrySubscribers(bindings.DB, scheduledAt),
+      runtime.services.pageExport.expireHeld(scheduledAt),
       runtime.services.incidents.publishDue(),
       runtime.services.maintenance.runDue(),
       runtime.services.updateReminders.remindDue(new Date(scheduledAt).toISOString()),
@@ -44,9 +45,10 @@ export async function runScheduled(bindings: AppBindings, executionContext: Exec
       runtime.services.publicSnapshots.retryPendingBuild(),
       runtime.services.channels.dispatchPending(),
     ]);
-    const results = [...changes, ...deliveries];
-    const failure = results.find((result): result is PromiseRejectedResult => result.status === "rejected");
-    if (failure) throw failure.reason;
+    // Every failed step is reported, not only the first.
+    const failures = [...changes, ...deliveries].filter((result): result is PromiseRejectedResult => result.status === "rejected").map((result) => result.reason);
+    if (failures.length === 1) throw failures[0];
+    if (failures.length) throw new AggregateError(failures, `Lamp's scheduled run had ${failures.length} failed steps.`);
     await pingExternalHeartbeat(bindings, runtime, scheduledAt);
   })());
 }

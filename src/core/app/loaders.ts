@@ -10,6 +10,8 @@ export type OperatorSessionView = {
   operator: StoredOperator;
   publicPageOrigin: string;
   timezone: string;
+  /** The /app path whose reads `data` holds. */
+  path: string;
   data: AppDataSnapshot;
 };
 
@@ -57,5 +59,5 @@ export const loadOperatorSession = createServerFn({ method: "GET" })
   const data = Object.fromEntries(entries) as AppDataSnapshot;
   data["/api/app/session"] = { data: { operator: { ...operator }, publicPageHost: bindings.LAMP_PAGE_HOST }, error: null };
   data["/api/app/page-settings"] = { data: { settings }, error: null };
-  return { operator, publicPageOrigin: publicPageOrigin(requestUrl, bindings.LAMP_PAGE_HOST), timezone: settings.timezone, data };
+  return { operator, publicPageOrigin: publicPageOrigin(requestUrl, bindings.LAMP_PAGE_HOST), timezone: settings.timezone, path: input.path, data };
 });

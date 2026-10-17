@@ -24,4 +24,10 @@ export function registerPageExportRoutes(app: Hono<AppEnv>, service: PageExportS
     const check = await service.restore(input);
     return context.json({ check }, check.ok ? 200 : 409);
   });
+
+  // Restored email subscribers held until the owner sends their confirmations.
+  app.get("/api/app/page-data/confirmations", async (context) => context.json({ confirmations: await service.heldConfirmations() }));
+
+  // Each call sends up to one batch; the response says how many are still held.
+  app.post("/api/app/page-data/confirmations", async (context) => context.json({ confirmations: await service.sendConfirmations() }));
 }

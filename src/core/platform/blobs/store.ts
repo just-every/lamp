@@ -15,4 +15,5 @@ export interface BlobStore {
   putTextConditionally(key: string, text: string, contentType: string, condition: { eTag: string | null }): Promise<boolean>;
   getBytes(key: string): Promise<BlobBytes | null>;
   putBytes(key: string, bytes: ArrayBuffer, contentType: string): Promise<void>;
+  delete(key: string): Promise<void>;
 }
