@@ -1411,3 +1411,8 @@ catch-up lineage and guarded writes. Unchanged import-kit source and verifier
 siblings remain exact recorded Base copies. The existing Sorry integration case
 now also exercises the Business door for both source formats, retaining every
 previous assertion and the 200-case test cap.
+
+Business catch-ups replace source-owned records under the reviewed native
+revision and can undo back to that revision, while preserving incoming native
+references. Door uploads, plans, grants, approvals and lineage are installation
+custody: local exports exclude every `ik_door_*` table alongside import-kit jobs.

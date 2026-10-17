@@ -85,14 +85,27 @@ export const statuspageTargets: D1TargetAdapter = {
   },
   write(row) {
     const statements: D1Sql[] = [];
-    for (const table of Object.keys(tablesOf(row.targetKind))) {
+    const entries = Object.entries(tablesOf(row.targetKind));
+    const [owner] = entries[0];
+    // The kit fences this whole value and its expectedRevision in the same
+    // transaction. Replace owned children, but keep the owner row so incoming
+    // references (including native records outside the import) do not cascade.
+    for (const [table, column] of entries.slice(1).reverse()) statements.push({ sql: `DELETE FROM ${table} WHERE ${column}=?`, params: [row.targetId] });
+    for (const [table] of entries) {
       const records = valueOf(row).tables[table] ?? [];
       if (!records.length) continue;
       const columns = Object.keys(records[0]);
       if (columns.some((key) => !/^\w+$/u.test(key)) || records.some((record) => Object.keys(record).length !== columns.length || columns.some((key) => !(key in record)))) throw new Error("Invalid native columns.");
-      statements.push(...insertJsonRows(table, columns, records));
+      const inserts = insertJsonRows(table, columns, records);
+      if (table === owner) for (const statement of inserts) {
+        const suffix = ` WHERE true ON CONFLICT(id) DO UPDATE SET ${columns.filter((column) => column !== "id").map((column) => `${column}=excluded.${column}`).join(",")}`;
+        statement.sql += suffix;
+        // Retained-value transport rebuilds SQL from these same parts.
+        if (statement.retainedValues) statement.retainedValues.parts[statement.retainedValues.parts.length - 1] += suffix;
+      }
+      statements.push(...inserts);
     }
-    statements.push(row.targetKind === "template" ? { sql: "INSERT INTO statuspage_import_template_targets(id,revision) VALUES(?,?)", params: [row.targetId, row.revision] } : { sql: "INSERT INTO statuspage_import_targets(kind,id,revision) VALUES(?,?,?)", params: [row.targetKind, row.targetId, row.revision] });
+    statements.push(row.targetKind === "template" ? { sql: "INSERT INTO statuspage_import_template_targets(id,revision) VALUES(?,?) ON CONFLICT(id) DO UPDATE SET revision=excluded.revision", params: [row.targetId, row.revision] } : { sql: "INSERT INTO statuspage_import_targets(kind,id,revision) VALUES(?,?,?) ON CONFLICT(kind,id) DO UPDATE SET revision=excluded.revision", params: [row.targetKind, row.targetId, row.revision] });
     return statements;
   },
   remove(_destination, kind, id) {
