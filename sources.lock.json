@@ -544,7 +544,7 @@
       "executable": false
     },
     "docs/install.md": {
-      "sha256": "6db3f3a1f5a0da1a2d27cad034fa085077d5c3b9cb6905c719e0b2cdbdf20d34",
+      "sha256": "6dc9f8445c0e0ecd7a02ac617481d3544855fd197fee919dea924fccf8114f48",
       "executable": false
     },
     "docs/maintenance.md": {
@@ -1932,7 +1932,7 @@
       "executable": false
     },
     "README.md": {
-      "sha256": "498089831eaa256678fc89a81489a61f2663f0a3f50099db6b554da99cabd99e",
+      "sha256": "f56d5085162a86657477c74ef2bfef1138e2df886c513680543158dd5d8276b7",
       "executable": false
     },
     "release-history/1.0.0.CONTRACT.md": {
@@ -2016,7 +2016,7 @@
       "executable": false
     },
     "RUN-LOCALLY.md": {
-      "sha256": "e9df93998ad1d016107b8877256d07c7557b12934de07fab999e43d205227dd7",
+      "sha256": "addea96fd756fdc6cc3a2b4569417169f4e29397b437445cd210dd4bb79181f9",
       "executable": false
     },
     "schema/dependencies.mjs": {
