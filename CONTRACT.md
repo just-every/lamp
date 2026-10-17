@@ -1086,8 +1086,8 @@ Judged from the code and tests at commit `0eebe911043bd05c448af177fbeae52a377f36
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
 | Published | 104 | 0 | 0 | 104 |
-| Target and push further | 2 | 43 | 49 | 94 |
-| All | 106 | 43 | 49 | 198 |
+| Target and push further | 3 | 44 | 47 | 94 |
+| All | 107 | 44 | 47 | 198 |
 
 | Clause | Title | Kind | Status | Evidence | Gap |
 | --- | --- | --- | --- | --- | --- |
@@ -1161,9 +1161,9 @@ Judged from the code and tests at commit `0eebe911043bd05c448af177fbeae52a377f36
 | `UPDATE-008` | Publish is atomic | published | done | `tests/e2e/delivery-contract.test.mjs`, `tests/e2e/publishing-contract.test.mjs` |  |
 | `UPDATE-009` | Templates | published | done | `tests/e2e/publishing-contract.test.mjs` |  |
 | `UPDATE-010` | Audience variants of one update | target | missing |  | Not built. |
-| `UPDATE-011` | Wording checks before publish | target | missing |  | Not built. |
-| `UPDATE-012` | Component states change with the update | target | partial | `src/core/features/incidents/repository.ts`, `src/core/features/incidents/component-claims.ts`, `tests/e2e/publishing-contract.test.mjs` | A publish already commits its claim events and COMP-003 history entries in the update's own batch. Components attached to a draft or applied from a template (UPDATE-009) are promoted with the next update, and stale attachments are refused at publish. An attached claim's state cannot be changed: the only routes are attach and an immediate detach (`src/core/features/incidents/routes.ts`), so stepping a state down publishes Operational in between. |
-| `UPDATE-013` | Links in update text | target | missing |  | UPDATE-001 interprets no markup (`src/core/features/incidents/renderer.ts`). |
+| `UPDATE-011` | Wording checks before publish | target | done | `src/core/features/incidents/wording-checks.ts`, `tests/e2e/publishing-contract.test.mjs`, `work/sd-cp-lamp/shots/UPDATE-011/` | Deterministic per-field findings name six rules, respect saved owner terms and length, can be dismissed, and never block publish. |
+| `UPDATE-012` | Component states change with the update | target | partial | `migrations/core/0027_update_component_changes.sql`, `src/core/features/incidents/publication-repository.ts`, `tests/e2e/helpers/review-update-flow.mjs`, `work/sd-cp-lamp/shots/UPDATE-012/` | Native drafts stage state changes, attachments and releases; review, scheduling and templates keep the choices. One transaction publishes claims, aggregate history, immutable timeline changes and recipients; mail and signed webhooks retain the published changes after later recovery. Gap: management-token and Statuspage write APIs, automation, chat desks, SMS and component-only/Statuspage webhook subscriptions are not built. Overlap history follows aggregate changes; the acceptance sentence asking for no entry when Major changes to Partial needs clarification. |
+| `UPDATE-013` | Links in update text | target | partial | `src/core/shared/update-links.ts`, `tests/e2e/helpers/review-update-flow.mjs`, `tests/e2e/channels-and-presets.test.mjs`, `work/sd-cp-lamp/shots/UPDATE-013/` | Bare HTTPS links render directly in public pages, history, permalinks, Atom/RSS, email HTML, Slack and Teams. Other schemes and markup remain literal; generic webhooks stay raw. Gap: SMS is not built; Slack/Teams real clients pass recorded network-edge fixtures, but live provider acceptance awaits sandbox credentials. |
 | `MAINT-001` | Distinct from incidents | published | done | `tests/e2e/intake-references.test.mjs`, `tests/e2e/publishing-contract.test.mjs`, `tests/reference-storage/references.test.mjs` |  |
 | `MAINT-002` | Automatic transitions | published | done | `tests/e2e/publishing-contract.test.mjs` |  |
 | `MAINT-003` | Component states | published | done | `tests/e2e/publishing-contract.test.mjs` |  |
