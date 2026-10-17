@@ -68,7 +68,7 @@ async function startPage(seedSql, vars = () => signingSecret) {
 const json = (body) => ({ method: "POST", body: JSON.stringify(body), headers: { "Content-Type": "application/json", Accept: "application/json" } });
 const withoutTime = ({ exportedAt: _time, integrity: _integrity, ...file }) => file;
 
-test("The owner's page data downloads from the app and restores identically into a new installation", async () => {
+test("Page data restores verified consent and holds unverified addresses until confirmation", async () => {
   const source = await startPage(`${legacyApiFixtureSql()}\n${ownerHistorySql}`);
   let exported;
   try {
@@ -118,9 +118,10 @@ test("The owner's page data downloads from the app and restores identically into
   } finally {
     await destination.stop();
   }
+  await verifyUntrustedPageDataRestore();
 });
 
-test("A hand-edited page data file cannot restore active subscribers: they are held until the owner sends confirmations", async () => {
+async function verifyUntrustedPageDataRestore() {
   const source = await startPage(legacyApiFixtureSql());
   let edited;
   try {
@@ -152,4 +153,4 @@ test("A hand-edited page data file cannot restore active subscribers: they are h
   } finally {
     await destination.stop();
   }
-});
+}

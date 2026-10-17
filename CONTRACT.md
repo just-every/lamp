@@ -84,7 +84,7 @@ The public host serves `/api/v2/summary.json`, `/api/v2/status.json`, `/api/v2/c
 
 Acceptance: a snapshot test validates every v2 response against Statuspage's published v2 schema fixtures, and an unmodified Statuspage client library reads a Lamp page. With the database unavailable, every path still returns 200 from the snapshot.
 
-Status: **partial** — `src/core/features/public-snapshot/routes.ts`, `tests/e2e/public-contract.test.mjs`. The fixed-size `/api/public/status` (PAGE-014) ships. The v2-compatible and native record APIs do not.
+Status: **partial** — `src/core/features/public-snapshot/public-api.ts`, `tests/e2e/helpers/public-resources-flow.mjs`, `tests/e2e/snapshot-retained.test.mjs`. Statuspage v2 responses, stable imported IDs, an unmodified Statuspage embed client, and paginated native timelines and reports ship from retained snapshots. MAINT-009 wording, Verifying and per-window automation switches remain unbuilt; maintenance responses expose existing native lifecycle notices.
 
 #### PAGE-017 — RSS and per-component feeds.
 
@@ -92,7 +92,7 @@ Status: **partial** — `src/core/features/public-snapshot/routes.ts`, `tests/e2
 
 Acceptance: the W3C feed validator accepts every feed. A component feed omits an incident that never touched that component. A feed reader polling `/history.rss` before and after a publish sees the new entry within PAGE-007's 10 seconds.
 
-Status: **partial** — `src/core/features/public-snapshot/feed-widget.ts`, `tests/e2e/public-contract.test.mjs`. The Atom feed ships, and `/history.atom` is aliased after a Statuspage or Instatus import (MOVE-005). RSS and per-component feeds do not.
+Status: **done** — `src/core/features/public-snapshot/feeds.ts`, `tests/e2e/helpers/public-resources-flow.mjs`. Ten actual dev Atom/RSS feeds validate with zero W3C errors or warnings; global aliases and component feeds retain event identity and share their snapshot.
 
 #### PAGE-018 — Status badges.
 
@@ -100,7 +100,7 @@ Status: **partial** — `src/core/features/public-snapshot/feed-widget.ts`, `tes
 
 Acceptance: a test fetches each badge after a component change and finds the new label within 10 seconds. shields.io's endpoint badge renders `/badge.json`. With the database unavailable, badges are served from the snapshot.
 
-Status: **missing**.
+Status: **partial** — `src/core/features/public-snapshot/badges.ts`, `tests/e2e/helpers/public-resources-flow.mjs`, `tests/e2e/snapshot-retained.test.mjs`. Overall and component SVGs and shields endpoint JSON ship, update with the snapshot and serve without the database. The shields.io hosted rendering check has not been run.
 
 #### PAGE-019 — Embed variants.
 
@@ -108,7 +108,7 @@ Besides the PAGE-011 banner, the owner can choose a floating notice that appears
 
 Acceptance: a browser journey embeds each variant on an allow-listed origin and an origin that is not listed. Only the allow-listed origin renders, and the floating notice appears and disappears with the incident.
 
-Status: **partial** — `src/core/features/public-snapshot/feed-widget.ts`, `tests/e2e/public-contract.test.mjs`. The banner widget ships; the floating notice and status dot do not.
+Status: **done** — `src/core/features/page-settings/ui/public-resources.tsx`, `tests/e2e/helpers/widget-variants-flow.mjs`, `tests/e2e/helpers/widget-privacy-flow.mjs`. Banner, floating notice and dot are configurable and refresh without cookies, referrers or visitor data; unlisted origins render nothing.
 
 #### PAGE-020 — Accessible to the standard US buyers require.
 
@@ -327,7 +327,7 @@ Before publish, the composer checks each field without a model and lists finding
 
 Acceptance: an impact statement containing "fixed in 10 minutes" and `db-prod-3.internal` shows two findings with their rules, and publishing still succeeds when the operator dismisses them.
 
-Status: **missing**.
+Status: **done** — `src/core/features/incidents/wording-checks.ts`, `tests/e2e/publishing-contract.test.mjs`. Deterministic per-field findings name six rules, respect saved owner terms and length, can be dismissed, and never block publish.
 
 #### UPDATE-012 — Component states change with the update.
 
@@ -345,7 +345,7 @@ An incident's state per component changes with the updates that tell customers a
 
 Acceptance: an incident claims Major outage on API, and a webhook subscriber in Statuspage format and an email subscriber follow API. Publishing a Monitoring update that sets API to Degraded performance produces exactly one COMP-003 entry, Major outage → Degraded performance, at the publication instant. A poll of `/api/v2/components.json` and `/api/public/status` every second across the publish never reads `operational`. The uptime minute after the publish is weighted as Degraded performance. The SUB-018 webhook-receiver fixture receives exactly one incident body, whose `components` show API as `degraded_performance`, and no `component_update`. The email shows "API: Major outage → Degraded performance" beside the update text, as the preview did. With a second incident claiming Partially unavailable on API, the same step-down writes no history entry and the page shows Partially unavailable. A recorded Statuspage `PATCH /v1/pages/{page_id}/incidents/{incident_id}` with `incident[status]=monitoring` and a `components` map does the same through API-002. A draft whose staged change was reviewed, followed by a second operator detaching API, is refused with 409 at publish.
 
-Status: **partial** — `src/core/features/incidents/repository.ts`, `src/core/features/incidents/component-claims.ts`, `tests/e2e/publishing-contract.test.mjs:462`. A publish already commits its claim events and COMP-003 history entries in the update's own batch. Components attached to a draft or applied from a template (UPDATE-009) are promoted with the next update, and stale attachments are refused at publish. An attached claim's state cannot be changed: the only routes are attach and an immediate detach (`src/core/features/incidents/routes.ts`), so stepping a state down publishes Operational in between.
+Status: **partial** — `migrations/core/0027_update_component_changes.sql`, `src/core/features/incidents/publication-repository.ts`, `tests/e2e/helpers/review-update-flow.mjs`. Native drafts stage state changes, attachments and releases; review, scheduling and templates keep the choices. One transaction publishes claims, aggregate history, immutable timeline changes and recipients; mail and signed webhooks retain the published changes after later recovery. Gap: management-token and Statuspage write APIs, automation, chat desks, SMS and component-only/Statuspage webhook subscriptions are not built. Overlap history follows aggregate changes; the acceptance sentence asking for no entry when Major changes to Partial needs clarification.
 
 #### UPDATE-013 — Links in update text.
 
@@ -353,7 +353,7 @@ Update fields stay plain text (UPDATE-001), with one addition: a bare `https://`
 
 Acceptance: an update whose impact statement contains `See https://help.example.com/kb/123.` renders on the page as a link to `https://help.example.com/kb/123` with the full URL as its text and the period outside it, in the email's HTML part as the same link, in the text part as the URL, and in the Slack fixture body as `<https://help.example.com/kb/123>`. `javascript:alert(1)` and `<a href="https://x.test">x</a>` render as literal text. The email's link points directly at the URL.
 
-Status: **missing**. UPDATE-001 interprets no markup (`src/core/features/incidents/renderer.ts`).
+Status: **partial** — `src/core/shared/update-links.ts`, `tests/e2e/helpers/review-update-flow.mjs`, `tests/e2e/channels-and-presets.test.mjs`. Bare HTTPS links render directly in public pages, history, permalinks, Atom/RSS, email HTML, Slack and Teams. Other schemes and markup remain literal; generic webhooks stay raw. Gap: SMS is not built; Slack/Teams real clients pass recorded network-edge fixtures, but live provider acceptance awaits sandbox credentials.
 
 ## Scheduled maintenance
 
@@ -1107,10 +1107,10 @@ Judged from the code and tests at commit `0eebe911043bd05c448af177fbeae52a377f36
 | `PAGE-013` | Enforced isolation | published | done | `tests/e2e/delivery-contract.test.mjs`, `tests/e2e/public-contract.test.mjs` |  |
 | `PAGE-014` | Live refresh | published | done | `tests/e2e/public-contract.test.mjs` |  |
 | `PAGE-015` | Served independently of what it reports | target | partial | `src/core/app/host-dispatch.ts`, `src/core/features/page-settings/service.ts`, `tests/e2e/public-contract.test.mjs` | The configured hostname, isolated public-host routing and retained snapshots (PAGE-006) ship. Custom-hostname provisioning, the secondary origin, `/__lamp/serving`, the failover setup check and read-only standby serving do not. |
-| `PAGE-016` | Statuspage-compatible public API | target | partial | `src/core/features/public-snapshot/public-api.ts`, `tests/e2e/helpers/public-resources-flow.mjs`, `tests/e2e/snapshot-retained.test.mjs`, `work/sd-cp-lamp/shots/PAGE-016/` | Statuspage v2 responses, stable imported IDs, an unmodified Statuspage embed client, and paginated native timelines and reports ship from retained snapshots. MAINT-009 wording, Verifying and per-window automation switches remain unbuilt; maintenance responses expose existing native lifecycle notices. |
-| `PAGE-017` | RSS and per-component feeds | target | done | `src/core/features/public-snapshot/feeds.ts`, `tests/e2e/helpers/public-resources-flow.mjs`, `work/sd-cp-lamp/shots/PAGE-017/` | Ten actual dev Atom/RSS feeds validate with zero W3C errors or warnings; global aliases and component feeds retain event identity and share their snapshot. |
-| `PAGE-018` | Status badges | target | partial | `src/core/features/public-snapshot/badges.ts`, `tests/e2e/helpers/public-resources-flow.mjs`, `tests/e2e/snapshot-retained.test.mjs`, `work/sd-cp-lamp/shots/PAGE-018/` | Overall and component SVGs and shields endpoint JSON ship, update with the snapshot and serve without the database. The shields.io hosted rendering check has not been run. |
-| `PAGE-019` | Embed variants | target | done | `src/core/features/page-settings/ui/public-resources.tsx`, `tests/e2e/helpers/widget-variants-flow.mjs`, `tests/e2e/helpers/widget-privacy-flow.mjs`, `work/sd-cp-lamp/shots/PAGE-019/` | Banner, floating notice and dot are configurable and refresh without cookies, referrers or visitor data; unlisted origins render nothing. |
+| `PAGE-016` | Statuspage-compatible public API | target | partial | `src/core/features/public-snapshot/public-api.ts`, `tests/e2e/helpers/public-resources-flow.mjs`, `tests/e2e/snapshot-retained.test.mjs` | Statuspage v2 responses, stable imported IDs, an unmodified Statuspage embed client, and paginated native timelines and reports ship from retained snapshots. MAINT-009 wording, Verifying and per-window automation switches remain unbuilt; maintenance responses expose existing native lifecycle notices. |
+| `PAGE-017` | RSS and per-component feeds | target | done | `src/core/features/public-snapshot/feeds.ts`, `tests/e2e/helpers/public-resources-flow.mjs` | Ten actual dev Atom/RSS feeds validate with zero W3C errors or warnings; global aliases and component feeds retain event identity and share their snapshot. |
+| `PAGE-018` | Status badges | target | partial | `src/core/features/public-snapshot/badges.ts`, `tests/e2e/helpers/public-resources-flow.mjs`, `tests/e2e/snapshot-retained.test.mjs` | Overall and component SVGs and shields endpoint JSON ship, update with the snapshot and serve without the database. The shields.io hosted rendering check has not been run. |
+| `PAGE-019` | Embed variants | target | done | `src/core/features/page-settings/ui/public-resources.tsx`, `tests/e2e/helpers/widget-variants-flow.mjs`, `tests/e2e/helpers/widget-privacy-flow.mjs` | Banner, floating notice and dot are configurable and refresh without cookies, referrers or visitor data; unlisted origins render nothing. |
 | `PAGE-020` | Accessible to the standard US buyers require | target | partial | `tests/e2e/accessibility.test.mjs` | An accessibility suite covers the public and operator documents. There is no VPAT, no release check for one, and no WCAG 2.2 AA conformance claim across every surface. |
 | `PAGE-021` | Public read capacity of the hosted page | target | partial | `src/core/features/public-snapshot/routes.ts`, `tests/e2e/public-contract.test.mjs` | Generation-cached, database-free and unthrottled public reads ship (PAGE-005, PAGE-007, PAGE-008). They are measured only as a local Miniflare floor of 10 requests per second (`seed.json → limits`). There is no hosted load run and no stated hosted rate. |
 | `THEME-001` | Full brand theming and custom CSS | target | partial | `src/core/features/page-settings/service.ts`, `src/core/features/public-snapshot/branding.ts`, `tests/e2e/public-contract.test.mjs` | Name, logo, accent colour, timezone, hostname, favicon and footer credit (PAGE-012) ship. Full palette, fonts, layout options and custom CSS do not. |
@@ -1161,9 +1161,9 @@ Judged from the code and tests at commit `0eebe911043bd05c448af177fbeae52a377f36
 | `UPDATE-008` | Publish is atomic | published | done | `tests/e2e/delivery-contract.test.mjs`, `tests/e2e/publishing-contract.test.mjs` |  |
 | `UPDATE-009` | Templates | published | done | `tests/e2e/publishing-contract.test.mjs` |  |
 | `UPDATE-010` | Audience variants of one update | target | missing |  | Not built. |
-| `UPDATE-011` | Wording checks before publish | target | done | `src/core/features/incidents/wording-checks.ts`, `tests/e2e/publishing-contract.test.mjs`, `work/sd-cp-lamp/shots/UPDATE-011/` | Deterministic per-field findings name six rules, respect saved owner terms and length, can be dismissed, and never block publish. |
-| `UPDATE-012` | Component states change with the update | target | partial | `migrations/core/0027_update_component_changes.sql`, `src/core/features/incidents/publication-repository.ts`, `tests/e2e/helpers/review-update-flow.mjs`, `work/sd-cp-lamp/shots/UPDATE-012/` | Native drafts stage state changes, attachments and releases; review, scheduling and templates keep the choices. One transaction publishes claims, aggregate history, immutable timeline changes and recipients; mail and signed webhooks retain the published changes after later recovery. Gap: management-token and Statuspage write APIs, automation, chat desks, SMS and component-only/Statuspage webhook subscriptions are not built. Overlap history follows aggregate changes; the acceptance sentence asking for no entry when Major changes to Partial needs clarification. |
-| `UPDATE-013` | Links in update text | target | partial | `src/core/shared/update-links.ts`, `tests/e2e/helpers/review-update-flow.mjs`, `tests/e2e/channels-and-presets.test.mjs`, `work/sd-cp-lamp/shots/UPDATE-013/` | Bare HTTPS links render directly in public pages, history, permalinks, Atom/RSS, email HTML, Slack and Teams. Other schemes and markup remain literal; generic webhooks stay raw. Gap: SMS is not built; Slack/Teams real clients pass recorded network-edge fixtures, but live provider acceptance awaits sandbox credentials. |
+| `UPDATE-011` | Wording checks before publish | target | done | `src/core/features/incidents/wording-checks.ts`, `tests/e2e/publishing-contract.test.mjs` | Deterministic per-field findings name six rules, respect saved owner terms and length, can be dismissed, and never block publish. |
+| `UPDATE-012` | Component states change with the update | target | partial | `migrations/core/0027_update_component_changes.sql`, `src/core/features/incidents/publication-repository.ts`, `tests/e2e/helpers/review-update-flow.mjs` | Native drafts stage state changes, attachments and releases; review, scheduling and templates keep the choices. One transaction publishes claims, aggregate history, immutable timeline changes and recipients; mail and signed webhooks retain the published changes after later recovery. Gap: management-token and Statuspage write APIs, automation, chat desks, SMS and component-only/Statuspage webhook subscriptions are not built. Overlap history follows aggregate changes; the acceptance sentence asking for no entry when Major changes to Partial needs clarification. |
+| `UPDATE-013` | Links in update text | target | partial | `src/core/shared/update-links.ts`, `tests/e2e/helpers/review-update-flow.mjs`, `tests/e2e/channels-and-presets.test.mjs` | Bare HTTPS links render directly in public pages, history, permalinks, Atom/RSS, email HTML, Slack and Teams. Other schemes and markup remain literal; generic webhooks stay raw. Gap: SMS is not built; Slack/Teams real clients pass recorded network-edge fixtures, but live provider acceptance awaits sandbox credentials. |
 | `MAINT-001` | Distinct from incidents | published | done | `tests/e2e/intake-references.test.mjs`, `tests/e2e/publishing-contract.test.mjs`, `tests/reference-storage/references.test.mjs` |  |
 | `MAINT-002` | Automatic transitions | published | done | `tests/e2e/publishing-contract.test.mjs` |  |
 | `MAINT-003` | Component states | published | done | `tests/e2e/publishing-contract.test.mjs` |  |
