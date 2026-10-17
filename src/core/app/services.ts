@@ -1,4 +1,6 @@
 import { createCommunicationPerformanceRepository, createCommunicationPerformanceService } from "../features/communication-performance";
+import { maintenanceChannelStatements, createMaintenanceChannelDispatch } from "../features/deliveries/maintenance-channels";
+import { createMaintenanceDraftRepository } from "../features/maintenance/drafts";
 import { createIncidentImpactRepository, createIncidentImpactService } from "../features/incident-impact";
 import { publicPageOrigin } from "./public-origin";
 import { createRetainedSnapshotCache } from "../platform/blobs/retained";
@@ -70,13 +72,15 @@ export function createAppServices(bindings: AppBindings, blobs: BlobStore, execu
   });
   const allowedIncidentChannels = new Set(extensions.notificationEventsPolicy.channelsForIncidentUpdate());
   // Slack and Teams channels: webhook URLs sealed with WEBHOOK_SIGNING_SECRET; local dev may name a loopback receiver.
-  const channels = createChannelsService(bindings.DB, {
+  const incidentChannels = createChannelsService(bindings.DB, {
     effectsPaused: bindings.EFFECTS_PAUSED === "1",
     webhookSecret: bindings.WEBHOOK_SIGNING_SECRET,
     developmentReceiver: import.meta.env?.DEV && bindings.LAMP_DEV_CHANNEL_RECEIVER?.startsWith("http://127.0.0.1:") ? bindings.LAMP_DEV_CHANNEL_RECEIVER : undefined,
     publicOrigin: () => notificationOrigin(bindings),
     unavailable: outboundUnavailable(bindings, "Slack and Teams posts"),
   });
+  const dispatchMaintenanceChannels = createMaintenanceChannelDispatch(bindings.DB, { effectsPaused:bindings.EFFECTS_PAUSED === "1",webhookSecret:bindings.WEBHOOK_SIGNING_SECRET,developmentReceiver:import.meta.env?.DEV && bindings.LAMP_DEV_CHANNEL_RECEIVER?.startsWith("http://127.0.0.1:") ? bindings.LAMP_DEV_CHANNEL_RECEIVER : undefined,unavailable:incidentChannels.unavailable });
+  const channels = { ...incidentChannels, async dispatchPending(limit=25) { await dispatchMaintenanceChannels(); return incidentChannels.dispatchPending(limit); } };
   const incidents = createIncidentsService(createIncidentRepository(bindings.DB), components, publicSnapshots.rebuild, {
     forAttachedComponents: async (input) => incidentCatchupStatements(bindings.DB, input),
     forIncidentUpdate: async (input) => [
@@ -103,9 +107,9 @@ export function createAppServices(bindings: AppBindings, blobs: BlobStore, execu
       : { eventId: `incident-overdue/${updateId}`, title: `Lamp incident is overdue for an update: ${reference}`, text: `${reference} ${title} passed its next-update commitment of ${committed} with no newer update. The public page still shows that time. Write the update here: ${link}` });
   });
   const maintenance = createMaintenanceService(createMaintenanceRepository(bindings.DB), components, publicSnapshots.rebuild, {
-    forMaintenanceNotice: async (input) => notificationPublicationStatements(bindings.DB, { eventId: input.eventId, eventType: "maintenance-notice", maintenanceId: input.maintenanceId, componentIds: input.componentIds, channels: ["email", "webhook"], queuedAt: input.queuedAt, recipientScope: input.recipientScope, previousEventIds: input.previousEventIds }),
+    forMaintenanceNotice: async (input) => [...notificationPublicationStatements(bindings.DB, { eventId: input.eventId, eventType: "maintenance-notice", maintenanceId: input.maintenanceId, componentIds: input.componentIds, channels: (input.channels ?? ["email", "webhook"]).filter((channel): channel is "email" | "webhook" => channel !== "chat"), queuedAt: input.queuedAt, recipientScope: input.recipientScope, previousEventIds: input.previousEventIds }), ...((input.channels ?? ["email","webhook","chat"]).includes("chat") ? maintenanceChannelStatements(bindings.DB,input) : [])],
   }, extensions.maintenanceRemindersPolicy,
-  async ({ maintenanceId, endsAt }) => deliveries.queueOperatorAlert({ eventId: `maintenance-overrun/${maintenanceId}/${endsAt}`, title: "Lamp maintenance is running longer than planned", text: `Maintenance ${maintenanceId} is still in progress more than fifteen minutes after its scheduled end.` }),
+  async ({ maintenanceId, endsAt, kind }) => deliveries.queueOperatorAlert({ eventId: `maintenance-${kind ?? "overrun"}/${maintenanceId}/${endsAt}`, title: kind === "start-due" ? "Lamp maintenance start is due" : "Lamp maintenance is running longer than planned", text: kind === "start-due" ? `Maintenance ${maintenanceId} is scheduled to start. Auto-start is off; publish In progress to start it.` : `Maintenance ${maintenanceId} is still active more than fifteen minutes after its scheduled end.` }),
   extensions.events);
   const subscribers = createSubscribersService(createSubscriberRepository(bindings.DB), {
     mail,
@@ -167,7 +171,7 @@ export function createAppServices(bindings: AppBindings, blobs: BlobStore, execu
     sendConfirmation: async (subscriberId) => subscribers.inviteImported(subscriberId, await importPublicOrigin(), (await pageSettings.get())?.pageName ?? "This status page", async () => true),
   });
 
-  return { auth, operators, communicationPerformance, incidentImpact, pageSettings, pageExport, components, componentCatalogue, incidents, maintenance, subscribers, deliveries, reports, intake, briefs, ai, overview, updateReminders, publicSnapshots, statuspageImport, channels };
+  return { maintenanceDrafts: createMaintenanceDraftRepository(bindings.DB), auth, operators, communicationPerformance, incidentImpact, pageSettings, pageExport, components, componentCatalogue, incidents, maintenance, subscribers, deliveries, reports, intake, briefs, ai, overview, updateReminders, publicSnapshots, statuspageImport, channels };
 }
 
 export type AppServices = ReturnType<typeof createAppServices>;

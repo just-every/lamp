@@ -65,8 +65,8 @@ export interface PublicSnapshotSource {
   maintenance: Array<typeof maintenance.$inferSelect>;
   maintenanceComponents: Array<typeof maintenanceComponents.$inferSelect>;
   reports: Array<{ incidentId: string; summary: string; timeline: string; cause: string; remediation: string; publishedAt: string }>;
-  importedMaintenanceUpdates?: Array<{ id: string; maintenanceId: string; body: string; publishedAt: string }>;
-  maintenanceNotices: Array<{ id: string; maintenanceId: string; kind: string; body: string; publishedAt: string }>;
+  importedMaintenanceUpdates?: Array<{ id: string; maintenanceId: string; body: string; publishedAt: string; sourceStatus?: string | null }>;
+  maintenanceNotices: Array<{ id: string; maintenanceId: string; kind: string; body: string; publishedAt: string; snapshotJson?: string | null; correctsNoticeId?: string | null }>;
 }
 
 export function createSnapshotRepository(binding: D1Database, publicOrigin?: string): SnapshotRepository {
@@ -133,10 +133,10 @@ export function createSnapshotRepository(binding: D1Database, publicOrigin?: str
           .all()
           .then((rows) => rows.map((row) => row.maintenance_components)),
         binding.prepare(`SELECT incident_id AS incidentId, summary, timeline, cause, remediation, published_at AS publishedAt FROM incident_reports WHERE published_at IS NOT NULL ORDER BY published_at DESC`).all<{ incidentId: string; summary: string; timeline: string; cause: string; remediation: string; publishedAt: string }>().then((result) => result.results),
-        binding.prepare(`SELECT id, maintenance_id AS maintenanceId, kind, body, published_at AS publishedAt FROM maintenance_notices ORDER BY published_at DESC`).all<{ id: string; maintenanceId: string; kind: string; body: string; publishedAt: string }>().then((result) => result.results),
+        binding.prepare(`SELECT id, maintenance_id AS maintenanceId, COALESCE(notice_kind,kind) AS kind, snapshot_json AS snapshotJson, corrects_notice_id AS correctsNoticeId, body, published_at AS publishedAt FROM maintenance_notices ORDER BY published_at DESC`).all<{ id: string; maintenanceId: string; kind: string; body: string; publishedAt: string }>().then((result) => result.results),
         readImportedPublicRecords(binding),
         readImportedNamespaces(binding),
-        binding.prepare("SELECT id,maintenance_id AS maintenanceId,body,published_at AS publishedAt FROM import_maintenance_updates ORDER BY published_at DESC,id").all<{id: string; maintenanceId: string; body: string; publishedAt: string}>().then(result => result.results),
+        binding.prepare("SELECT id,maintenance_id AS maintenanceId,body,published_at AS publishedAt,source_status AS sourceStatus FROM import_maintenance_updates ORDER BY published_at DESC,id").all<{id: string; maintenanceId: string; body: string; publishedAt: string; sourceStatus: string | null}>().then(result => result.results),
         loadPublicApiIds(binding),
         binding.prepare("SELECT id,peak_impact AS impact FROM incidents WHERE deleted_at IS NULL").all<{ id: string; impact: typeof componentStandingClaims.$inferSelect.state | null }>().then(result => result.results),
       ]);

@@ -12,6 +12,7 @@ function failure(message: string, retryable: boolean, providerMessageId?: string
 
 export class SendGridMailSender implements MailSender {
   readonly configured: boolean;
+  readonly supportsCalendarAttachments = true;
   constructor(private readonly configuration: { apiKey?: string; fromAddress?: string }, private readonly repository: MailSendRepository) {
     this.configured = Boolean(configuration.apiKey && configuration.fromAddress);
   }
@@ -20,14 +21,14 @@ export class SendGridMailSender implements MailSender {
     let providerMessageId, wireMessage, envelopeHash, claimed;
     try {
       providerMessageId = `sendgrid-${await hash(message.idempotencyKey)}`;
-      wireMessage = { ...message, to: [message.to], deliveryId: providerMessageId,
+      wireMessage = { ...message, ...(message.attachments ? {attachments:message.attachments.map(attachment=>({filename:attachment.filename,content:attachment.content,type:attachment.contentType.split(";", 1)[0]!.trim()}))} : {}), to: [message.to], deliveryId: providerMessageId,
         customArgs: { lamp_message_id: providerMessageId, rer_product: 'lamp' }, subscriptionTracking: false };
       envelopeHash = `v2:${await hash(serializeSendGridMessage(wireMessage))}`;
       claimed = await this.repository.claim(providerMessageId, envelopeHash, new Date().toISOString());
     } catch (error) { throw new MailPreparationError(error); }
     if (!claimed) {
       const previous = await this.repository.get(providerMessageId);
-      if (!previous || (previous.envelope_hash !== envelopeHash && previous.envelope_hash !== await hash(legacySendGridEnvelope(message, providerMessageId)))) throw failure('Mail idempotency key was reused with a different envelope.', false);
+      if (!previous || (previous.envelope_hash !== envelopeHash && (Boolean(message.attachments?.length) || previous.envelope_hash !== await hash(legacySendGridEnvelope(message, providerMessageId))))) throw failure('Mail idempotency key was reused with a different envelope.', false);
       if (previous.state === 'accepted') return { providerMessageId };
       if (previous.state === 'sending' && Date.now() - Date.parse(previous.updated_at) < 30_000) throw failure('SendGrid request is already in progress.', true);
       throw failure('SendGrid acceptance is unconfirmed or rejected; automatic resend is disabled to prevent duplicate mail. Inspect signed provider receipts.', false, providerMessageId);

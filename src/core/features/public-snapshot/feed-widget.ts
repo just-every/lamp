@@ -55,7 +55,7 @@ export function statusPayload(input: { incidents: Array<PublicFeedIncident & { e
     version: 1,
     generatedAt: input.generatedAt,
     overall: input.overall,
-    maintenance: input.maintenance.filter(item => item.state === "In progress").map(item => ({ reference: item.reference, title: item.title, state: item.state }))[0] ?? null,
+    maintenance: input.maintenance.filter(item => ["In progress","Verifying"].includes(item.state)).map(item => ({ reference: item.reference, title: item.title, state: item.state }))[0] ?? null,
     incident: newest ? {
       reference: newest.incident.reference,
       title: newest.incident.title,

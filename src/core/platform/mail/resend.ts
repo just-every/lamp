@@ -12,6 +12,7 @@ interface ResendResponse {
  */
 export class ResendMailSender implements MailSender {
   readonly configured: boolean;
+  readonly supportsCalendarAttachments = true;
 
   constructor(private readonly configuration: { apiKey?: string; fromAddress?: string }) {
     this.configured = Boolean(configuration.apiKey && configuration.fromAddress);
@@ -29,7 +30,7 @@ export class ResendMailSender implements MailSender {
       const request = new Request("https://api.resend.com/emails", {
         method: "POST", signal: controller.signal,
         headers: { Authorization: `Bearer ${this.configuration.apiKey}`, "Content-Type": "application/json", "User-Agent": "lamp-mail-sender/1.0", "Idempotency-Key": message.idempotencyKey },
-        body: JSON.stringify({ from: message.from, to: [message.to], subject: message.subject, text: message.text, ...(message.html ? { html: message.html } : {}), headers: message.headers }),
+        body: JSON.stringify({ from: message.from, to: [message.to], subject: message.subject, text: message.text, ...(message.html ? { html: message.html } : {}), headers: message.headers, ...(message.attachments?.length ? {attachments:message.attachments.map(attachment=>({filename:attachment.filename,content:attachment.content,content_type:attachment.contentType}))} : {}) }),
       });
       timeout = setTimeout(() => controller.abort(), 20_000);
       submitted = true;

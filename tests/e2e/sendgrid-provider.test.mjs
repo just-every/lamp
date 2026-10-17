@@ -23,6 +23,14 @@ before(async () => {
 after(async () => { await platform?.dispose(); await vite?.close(); if (state) await rm(state, { recursive: true, force: true }); });
 const message = id => ({ idempotencyKey: id, from: 'status@example.test', to: 'reader@example.test', subject: 'Status', text: 'Real notification', html: '<p>Real notification</p>', headers: { 'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click', 'Auto-Submitted': 'auto-generated' } });
 function sender() { return new Sender({ apiKey: 'test-only-key', fromAddress: 'status@example.test' }, repository(platform.env.DB)); }
+const calendarText = [
+  'BEGIN:VCALENDAR', 'VERSION:2.0', 'METHOD:PUBLISH', 'BEGIN:VEVENT',
+  'UID:provider-calendar@example.test', 'DTSTAMP:20300101T000000Z',
+  'DTSTART:20300102T010000Z', 'DTEND:20300102T020000Z',
+  'SUMMARY:Payment maintenance — café', 'END:VEVENT', 'END:VCALENDAR', '',
+].join('\r\n');
+const calendarAttachment = { filename: 'maintenance.ics', contentType: 'text/calendar', content: Buffer.from(calendarText, 'utf8').toString('base64') };
+
 
 
 
@@ -148,6 +156,7 @@ test('full application routes signed mail events before generic alert source int
     if (state === 'accepted') assert.deepEqual(await sender().send(input), { providerMessageId: id });
     else await assert.rejects(sender().send(input), error => error.retryable === false && error.providerMessageId === id);
     await assert.rejects(sender().send({ ...input, text: 'Different envelope' }), /different envelope/);
+    await assert.rejects(sender().send({ ...input, attachments: [calendarAttachment] }), /different envelope/, 'a retained claim cannot silently discard a newly attached calendar');
   }
   assert.equal(request.mock.callCount(), 0);
 });
@@ -173,7 +182,7 @@ test('full application routes signed mail events before generic alert source int
   try {
     for (const scenario of [{ status: 202, receipt: true }, { status: 202, receipt: false }, ...[408, 429, 500, 502, 301, 302, 303, 307, 308, 400, 401].map(status => ({ status })), { status: 202, interrupted: true }]) {
       ({ status, receipt = false, interrupted = false } = scenario);
-      const input = message(`native-${status}-${receipt}-${interrupted}`), before = calls;
+      const input = { ...message(`native-${status}-${receipt}-${interrupted}`), attachments: [calendarAttachment] }, before = calls;
       if (status === 202 && !interrupted) {
         const accepted = await sender().send(input);
         const record = await repository(platform.env.DB).get(accepted.providerMessageId);
@@ -185,6 +194,13 @@ test('full application routes signed mail events before generic alert source int
         assert.equal(payload.custom_args.rer_delivery_id, accepted.providerMessageId);
         for (const tracking of ['open_tracking', 'click_tracking', 'subscription_tracking', 'ganalytics']) assert.equal(payload.tracking_settings[tracking].enable, false);
         assert.equal(payload.headers['List-Unsubscribe-Post'], 'List-Unsubscribe=One-Click');
+        assert.equal(payload.attachments.length, 1, 'the actual HTTP body carries the calendar');
+        assert.equal(payload.attachments[0].filename, calendarAttachment.filename);
+        assert.equal(payload.attachments[0].type, calendarAttachment.contentType);
+        assert.equal(payload.attachments[0].disposition, 'attachment');
+        assert.equal(Buffer.from(payload.attachments[0].content, 'base64').toString('utf8'), calendarText, 'serialization preserves the calendar bytes and Unicode');
+        await assert.rejects(sender().send({ ...input, attachments: [] }), /different envelope/, 'attachment removal changes the durable envelope');
+        await assert.rejects(sender().send({ ...input, attachments: [{ ...calendarAttachment, content: Buffer.from(calendarText.replace('METHOD:PUBLISH', 'METHOD:CANCEL')).toString('base64') }] }), /different envelope/, 'calendar content changes cannot reuse a prior acceptance');
         await assert.rejects(sender().send({ ...input, text: 'Changed' }), /different envelope/);
         assert.deepEqual(await sender().send(input), accepted);
       } else if (status === 429) {

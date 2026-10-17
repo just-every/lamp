@@ -1,3 +1,4 @@
+import { maintenanceCalendar } from "./calendar";
 import { publicUpdate } from "./public-update";
 import { incidentImpact } from "../../shared/incident-impact";
 import { reportMarkup } from "./report-markup";
@@ -80,7 +81,7 @@ function toPublicModel(source: PublicSnapshotSource, generatedAt: string, polici
   const noticesByMaintenance = new Map<string, PublicMaintenance["notices"]>();
   for (const notice of source.maintenanceNotices) noticesByMaintenance.set(notice.maintenanceId, [...(noticesByMaintenance.get(notice.maintenanceId) ?? []), notice]);
   const maintenance: PublicMaintenance[] = source.maintenance
-    .map((item) => ({ ...item, components: attachedByMaintenance.get(item.id) ?? [], notices: noticesByMaintenance.get(item.id) ?? [], importedUpdates: (source.importedMaintenanceUpdates ?? []).filter(update => update.maintenanceId === item.id) }))
+    .map((item) => ({ ...item, state: item.verifying && item.state === "In progress" ? "Verifying" : item.state, components: attachedByMaintenance.get(item.id) ?? [], notices: noticesByMaintenance.get(item.id) ?? [], importedUpdates: (source.importedMaintenanceUpdates ?? []).filter(update => update.maintenanceId === item.id) }))
     .filter((item) => attachedMaintenanceIds.has(item.id));
   return { origin: source.publicOrigin ?? `https://${source.settings.hostname}`, settings: source.settings, components, visibleComponents, incidents, maintenance, generatedAt, policies, overall: policies.pageStatusRollup(components.map((component) => component.state)) };
 }
@@ -166,7 +167,7 @@ function timelineEntry(kind: "incident" | "maintenance" | "resolved", body: stri
 function timelineMarkup(model: ReturnType<typeof toPublicModel>, slots: LampServerSlots) {
   const { incidents, maintenance, settings, generatedAt } = model;
   const newestFirst = (left: string, right: string) => right.localeCompare(left);
-  const activeMaintenance = maintenance.filter((item) => item.state === "In progress").sort((left, right) => left.startsAt.localeCompare(right.startsAt));
+  const activeMaintenance = maintenance.filter((item) => ["In progress","Verifying"].includes(item.state)).sort((left, right) => left.startsAt.localeCompare(right.startsAt));
   const upcomingMaintenance = maintenance.filter((item) => item.state === "Scheduled" && new Date(item.startsAt).getTime() <= new Date(generatedAt).getTime() + 14 * DAY).sort((left, right) => left.startsAt.localeCompare(right.startsAt));
   const unresolved = incidents.filter((incident) => incident.lifecycle !== "Resolved").sort((left, right) => newestFirst(left.updates[0]?.publishedAt ?? left.openedAt, right.updates[0]?.publishedAt ?? right.openedAt));
   const recentResolved = incidents.filter((incident) => incident.lifecycle === "Resolved" && incident.resolvedAt).sort((left, right) => newestFirst(left.resolvedAt ?? "", right.resolvedAt ?? "")).slice(0, 6);
@@ -228,6 +229,7 @@ export function renderPublicSnapshot(source: PublicSnapshotSource, generatedAt =
   const model = toPublicModel(source, generatedAt, policies);
   const feeds = renderFeeds(model, source);
   const artifacts: SnapshotArtifact[] = [
+    {key:"maintenance.ics",body:maintenanceCalendar(model.maintenance.filter(item=>item.state!=="Completed"),model.origin,generatedAt),contentType:"text/calendar; charset=utf-8"},
     { key: "page.html", body: renderPage(model, slots), contentType: "text/html; charset=utf-8" },
     ...feeds,
     ...renderBadges(model),

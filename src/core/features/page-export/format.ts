@@ -29,6 +29,7 @@ export const PAGE_DATA_TABLES = [
   { table: "maintenance", order: ["id"] },
   { table: "maintenance_components", order: ["id"] },
   { table: "maintenance_notices", order: ["id"] },
+  { table: "maintenance_drafts", order: ["id"] },
   { table: "import_maintenance_updates", order: ["id"] },
   { table: "subscribers", order: ["id"] },
   { table: "subscriber_components", order: ["id"] },
@@ -80,7 +81,7 @@ export const pageDataFileSchema = z.object({
     logo: z.object({ contentType: z.enum(["image/png", "image/jpeg", "image/webp"]), base64: z.string().max(3_000_000) }).nullable(),
   }).strict(),
   people: z.array(z.object({ email: z.string().min(3).max(320), displayName: z.string().min(1).max(120) }).strict()),
-  records: z.object(Object.fromEntries(PAGE_DATA_TABLES.map(({ table }) => [table, z.array(row)])) as Record<PageDataTable, z.ZodArray<typeof row>>).partial({ incident_impact_changes: true, incident_templates: true, incident_template_components: true }).strict(),
+  records: z.object(Object.fromEntries(PAGE_DATA_TABLES.map(({ table }) => [table, z.array(row)])) as Record<PageDataTable, z.ZodArray<typeof row>>).partial({ incident_impact_changes: true, incident_templates: true, incident_template_components: true, maintenance_drafts: true }).strict(),
   // Files from earlier Lamp releases have none; see integrity.ts.
   integrity: z.object({ algorithm: z.literal("HMAC-SHA256"), value: z.string().regex(/^[A-Za-z0-9_-]{43}$/) }).strict().optional(),
 }).strict();

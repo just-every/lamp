@@ -171,9 +171,11 @@ function mapMaintenance(window: SourceIncident, components: Map<string, { id: st
   const id = identify(`maintenance:${window.id}`, startsAt);
   const attached = [...new Set([...(window.components ?? []).map((component) => component.id), ...window.incident_updates.flatMap((update) => (update.affected_components ?? []).map((affected) => affected.code))])].filter((code) => components.has(code));
   if (!attached.length) return { kind: "maintenance", sourceId: window.id, accounting: [{ kind: "maintenance", sourceId: window.id, name, outcome: "rejected", reason: "It names no component in the saved responses." }] };
-  // A window already over is history, whatever its source status: importing it
-  // as Scheduled would make Lamp announce its start and end now.
-  const state = window.status === "cancelled" ? "Cancelled" : endsAt <= asOf || window.status === "completed" ? "Completed" : startsAt <= asOf ? "In progress" : "Scheduled";
+  // Old windows remain history unless the source explicitly disabled a
+  // transition and still records that lifecycle. Import sends no notice.
+  const heldScheduled = window.status === "scheduled" && window.scheduled_auto_in_progress === false;
+  const heldActive = ["in_progress", "verifying"].includes(window.status) && window.scheduled_auto_completed === false;
+  const state = window.status === "cancelled" ? "Cancelled" : heldScheduled ? "Scheduled" : heldActive ? "In progress" : endsAt <= asOf || window.status === "completed" ? "Completed" : startsAt <= asOf ? "In progress" : "Scheduled";
   const completedAt = state === "Completed" ? (window.resolved_at ? iso(window.resolved_at) : endsAt) : null;
   for (const code of attached) {
     if (state === "Scheduled" || state === "Cancelled") continue;
@@ -182,8 +184,8 @@ function mapMaintenance(window: SourceIncident, components: Map<string, { id: st
   }
   const sourceState = ({ scheduled: "Scheduled", in_progress: "In progress", verifying: "In progress", completed: "Completed", cancelled: "Cancelled" } as Record<string, string>)[window.status];
   return { kind: "maintenance", sourceId: window.id, value: { tables: {
-    maintenance: [{ id, reference: reference(), title: clip(name, 250), state, starts_at: startsAt, ends_at: endsAt, completed_at: completedAt, created_by_operator_id: operatorId, created_at: asOf, updated_at: asOf }],
-    ...(preserveUpdates && window.incident_updates.length ? { import_maintenance_updates: window.incident_updates.map((update) => ({ id: identify(`maintenance-update:${update.id}`, at(update)), maintenance_id: id, body: update.body ?? "", published_at: at(update), source_states: JSON.stringify(update.affected_components ?? []) })).sort((a, b) => a.published_at.localeCompare(b.published_at) || a.id.localeCompare(b.id)) } : {}),
+    maintenance: [{ id, reference: reference(), title: clip(name, 250), state, starts_at: startsAt, ends_at: endsAt, completed_at: completedAt, auto_start: window.scheduled_auto_in_progress === false ? 0 : 1, auto_complete: window.scheduled_auto_completed === false ? 0 : 1, remind_prior: window.scheduled_remind_prior === false ? 0 : 1, verifying: state === "In progress" && window.status === "verifying" ? 1 : 0, created_by_operator_id: operatorId, created_at: asOf, updated_at: asOf }],
+    ...(preserveUpdates && window.incident_updates.length ? { import_maintenance_updates: window.incident_updates.map((update) => ({ id: identify(`maintenance-update:${update.id}`, at(update)), maintenance_id: id, body: update.body ?? "", published_at: at(update), source_states: JSON.stringify(update.affected_components ?? []), source_status: update.status })).sort((a, b) => a.published_at.localeCompare(b.published_at) || a.id.localeCompare(b.id)) } : {}),
     maintenance_components: attached.map((code) => ({ id: identify(`maintenance-component:${window.id}:${code}`, startsAt), maintenance_id: id, component_id: components.get(code)!.id, component_name: components.get(code)!.name, state: "Under maintenance", created_at: asOf, updated_at: asOf })),
   } }, accounting: [{ kind: "maintenance", sourceId: window.id, name, outcome: sourceState === state ? "imported" : "changed", reason: sourceState === state ? `${state} window carried over; no notice is sent for it.` : `Imported as ${state} because its window is ${state === "Completed" ? "over" : "under way"}; no notice is sent for it.` }] };
 }

@@ -28,7 +28,7 @@ export function publicFeedEntries(model: PublicSnapshotModel): FeedEntry[] {
       recordKind: "incident" as const,
       recordId: incident.id,
     }))),
-    ...model.maintenance.flatMap((item) => item.notices.map((notice) => ({
+    ...model.maintenance.flatMap((item) => [...item.notices,...(item.importedUpdates ?? []).map(update=>({...update,kind:update.sourceStatus ?? "Imported update"}))].map((notice) => ({
       id: `maintenance-notice-${notice.id}`,
       title: `${item.reference}: ${item.title} — ${notice.kind}`,
       publishedAt: notice.publishedAt,

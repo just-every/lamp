@@ -1,3 +1,5 @@
+import { maintenanceCalendar } from "../public-snapshot/calendar";
+import type { NoticeSnapshot } from "../maintenance/wording";
 import { resolveSlackWebhook } from "../../../../modules/integrations/slack/protocol.ts";
 import { classifySlackIncomingWebhook } from "../../../../modules/integrations/slack/classify.ts";
 import { renderSubscriberSlackMessage } from "./slack-message";
@@ -69,17 +71,8 @@ function displayNotificationTime(value: string, timezone: string | null) {
 
 function renderMaintenanceNotice(delivery: DispatchableDelivery) {
   if (!delivery.maintenanceReference || !delivery.maintenanceTitle || !delivery.maintenanceState || !delivery.maintenanceNoticeKind) return null;
-  const starts = delivery.maintenanceStartsAt ? displayNotificationTime(delivery.maintenanceStartsAt, delivery.timezone) : "Not recorded";
-  const ends = delivery.maintenanceEndsAt ? displayNotificationTime(delivery.maintenanceEndsAt, delivery.timezone) : "Not recorded";
   const kind = delivery.maintenanceNoticeKind[0]!.toUpperCase() + delivery.maintenanceNoticeKind.slice(1);
-  const plainText = [
-    `${delivery.maintenanceReference}: ${delivery.maintenanceTitle}`,
-    `Status: ${delivery.maintenanceState}`,
-    `Notice: ${kind}`,
-    `Start: ${starts}`,
-    `End: ${ends}`,
-    delivery.maintenanceNoticeBody ?? "",
-  ].filter(Boolean).join("\n\n");
+  const plainText = delivery.maintenanceNoticeBody ?? `${delivery.maintenanceReference}: ${delivery.maintenanceTitle}`;
   return { email: { subject: `[${delivery.maintenanceReference}] ${kind}: ${delivery.maintenanceTitle}`, plainText } };
 }
 
@@ -202,6 +195,13 @@ export function createDeliveriesService(
       const pageName = options.pageName ? await options.pageName() : lampConfig.pageName;
       const statusUrl = new URL("/", origin).href;
       const candidate: FrozenMailPayload = {
+        ...(delivery.maintenanceId && delivery.maintenanceStartsAt && delivery.maintenanceEndsAt && options.mail.supportsCalendarAttachments ? {attachments:[{
+          filename:"maintenance.ics",contentType:`text/calendar; charset=utf-8; method=${delivery.maintenanceState === "Cancelled" ? "CANCEL" : "PUBLISH"}`,
+          content:btoa(String.fromCharCode(...new TextEncoder().encode(maintenanceCalendar([{
+            ...(delivery.maintenanceSnapshotJson ? JSON.parse(delivery.maintenanceSnapshotJson) as NoticeSnapshot : {}),
+            id:delivery.maintenanceId,title:delivery.maintenanceTitle ?? "Maintenance",reference:delivery.maintenanceReference ?? delivery.maintenanceId,state:delivery.maintenanceState ?? "Scheduled",startsAt:delivery.maintenanceStartsAt,endsAt:delivery.maintenanceEndsAt,
+          }],origin,new Date().toISOString(),delivery.maintenanceState === "Cancelled" ? "CANCEL" : "PUBLISH"))))
+        }]} : {}),
         frozenAt: nowIso(), from: fromAddress, to: delivery.destination, subject: `${pageName}: ${rendered.email.subject}`,
         text: `${pageName}\n\n${rendered.email.plainText}\n\nManage this subscription: ${manageUrl}\nUnsubscribe: ${unsubscribeUrl}\nReturn to status: ${statusUrl}`,
         html: `<main><p><a href="${htmlText(statusUrl)}">${htmlText(pageName)}</a></p><h1>${htmlText(rendered.email.subject)}</h1><pre>${renderUpdateHtml(rendered.email.plainText)}</pre><p><a href="${htmlText(manageUrl)}">Manage subscription</a> · <a href="${htmlText(unsubscribeUrl)}">Unsubscribe</a></p></main>`,
@@ -241,7 +241,7 @@ export function createDeliveriesService(
     const incidentEvent = !slack && delivery.incidentId && delivery.incidentUpdateId ? await repository.getIncidentWebhookPayload(delivery.incidentId, delivery.incidentUpdateId, delivery.notificationEventId) : null;
     const event = incidentEvent
       ? { event: "incident.update.published", deliveryId: delivery.id, ...incidentEvent, incident: { ...incidentEvent.incident, impact: delivery.incidentImpact } }
-      : { event: delivery.maintenanceId ? "maintenance.notice.published" : "incident.report.published", deliveryId: delivery.id, incident: delivery.incidentReference ? { reference: delivery.incidentReference, title: delivery.incidentTitle, impact: delivery.incidentImpact } : null, maintenance: delivery.maintenanceId ? { id: delivery.maintenanceId, reference: delivery.maintenanceReference, title: delivery.maintenanceTitle, state: delivery.maintenanceState, notice: delivery.maintenanceNoticeKind } : null };
+      : { event: delivery.maintenanceId ? "maintenance.notice.published" : "incident.report.published", deliveryId: delivery.id, incident: delivery.incidentReference ? { reference: delivery.incidentReference, title: delivery.incidentTitle, impact: delivery.incidentImpact } : null, maintenance: delivery.maintenanceId ? { id: delivery.maintenanceId, reference: delivery.maintenanceReference, title: delivery.maintenanceTitle, state: delivery.maintenanceState, notice: delivery.maintenanceNoticeKind, body: delivery.maintenanceNoticeBody, wording: delivery.maintenanceSnapshotJson ? JSON.parse(delivery.maintenanceSnapshotJson) : null, updates: delivery.notificationEventId ? await repository.getMaintenanceWebhookUpdates(delivery.maintenanceId,delivery.notificationEventId) : [] } : null };
     const body = JSON.stringify(slack ? renderSubscriberSlackMessage(delivery, origin) : event);
     const timestamp = String(Math.floor(Date.now() / 1000));
     const signature = (await Promise.all(secrets.map(async (secret) => `v1=${await hmacSha256(secret, `${delivery.id}.${timestamp}.${body}`)}`))).join(" ");

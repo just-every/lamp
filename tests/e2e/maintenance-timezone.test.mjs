@@ -62,7 +62,7 @@ test("Native maintenance editing preserves instants across configured zones and 
       const { pageName, tagline, accentColor, hostname, footerCreditEnabled, widgetAllowedOrigins, mailFromAddress } = settings;
       await api("/api/app/page-settings", "PUT", { pageName, tagline, accentColor, hostname, footerCreditEnabled, widgetAllowedOrigins, mailFromAddress, timezone: scenario.zone });
       const { component } = await api("/api/app/components", "POST", { groupId: null, name: `Timezone ${scenario.start} ${scenario.zone}`, description: "", internal: false, displayOrder: 1, note: "" });
-      const { maintenance } = await api("/api/app/maintenance", "POST", { title: "Timezone window", startsAt: scenario.start, endsAt: scenario.end, componentIds: [component.id] });
+      const { maintenance } = await api("/api/app/maintenance", "POST", { title: "Timezone window", affectedAudience: "Customers of the timezone service", customerImpact: "The service may be unavailable during the displayed window.", startsAt: scenario.start, endsAt: scenario.end, componentIds: [component.id] });
       await page.goto(`${origin}/app/maintenance`);
       await operatorHydrated(page);
       const row = page.locator(".maintenance-row").filter({ hasText: maintenance.reference });
@@ -114,9 +114,14 @@ test("maintenance creation, correction and historical incident entry all use the
     await operatorHydrated(page);
     const create = page.locator(".maintenance-schedule-card");
     await create.getByLabel("Title", { exact: true }).fill("Configured-zone window");
+    await create.getByLabel("Affected audience", { exact: true }).fill("Customers of the configured-zone service");
+    await create.getByLabel("Customer impact", { exact: true }).fill("The service may be unavailable during the displayed window.");
     await create.getByLabel("Configured-zone service", { exact: true }).check();
     await create.getByLabel("Starts", { exact: true }).fill("2027-07-15T09:00");
     await create.getByLabel("Ends", { exact: true }).fill("2027-07-15T10:00");
+    await create.getByText("Private draft saved", { exact: true }).waitFor();
+    await create.getByRole("button", { name: "Preview notice", exact: true }).click();
+    await create.getByRole("region", { name: "Public page and email preview", exact: true }).waitFor();
     const created = page.waitForResponse(response => response.url().endsWith("/api/app/maintenance") && response.request().method() === "POST");
     await create.getByRole("button", { name: "Schedule window", exact: true }).click();
     const window = (await (await created).json()).maintenance;

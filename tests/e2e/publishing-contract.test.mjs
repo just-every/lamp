@@ -1,4 +1,5 @@
 import { communicationPerformanceFlow } from "./helpers/communication-performance-flow.mjs";
+import { maintenanceCommunicationFlow } from "./helpers/maintenance-communication-flow.mjs";
 import { incidentImpactFlow } from "./helpers/incident-impact-flow.mjs";
 import { importedTemplateApplyFlow } from "./helpers/imported-template-apply-flow.mjs";
 import { reviewUpdateFlow } from "./helpers/review-update-flow.mjs";
@@ -635,7 +636,7 @@ test("INCIDENT-001 INCIDENT-002 INCIDENT-003 INCIDENT-004 INCIDENT-005 INCIDENT-
   const current = await createIncident("Current same-component outage", { components: [{ componentId: component.id, state: "Major outage", relationship: "Primary" }] });
   await saveDraft(current.id, { lifecycle: "Identified" });
   await expectStatus(await publish(current.id), 200);
-  const maintenanceCreated = await appFetch("/api/app/maintenance", { method: "POST", body: JSON.stringify({ title: "Current maintenance provenance", startsAt: new Date(Date.now() - 60_000).toISOString(), endsAt: new Date(Date.now() + 60 * 60_000).toISOString(), componentIds: [component.id] }) });
+  const maintenanceCreated = await appFetch("/api/app/maintenance", { method: "POST", body: JSON.stringify({ affectedAudience: "Customers using the maintained service.", customerImpact: "Requests may pause while planned work runs.", title: "Current maintenance provenance", startsAt: new Date(Date.now() - 60_000).toISOString(), endsAt: new Date(Date.now() + 60 * 60_000).toISOString(), componentIds: [component.id] }) });
   await expectStatus(maintenanceCreated, 201);
   const maintenance = (await maintenanceCreated.json()).maintenance;
   await expectStatus(await fetch(`${pageUrl}/cdn-cgi/local/scheduled`), 200);
@@ -858,12 +859,13 @@ test("INTAKE-001 INTAKE-002 INTAKE-003 INTAKE-004 INTAKE-005 — Authenticated m
 
 
 test("MAINT-002 MAINT-001 MAINT-003 MAINT-004 MAINT-005 MAINT-006 — Scheduled maintenance transitions, notices, extension and cancellation", async t => {
+  await maintenanceCommunicationFlow({ appFetch, pageUrl, querySql: sql => queryD1Sql(testStatePath, sql) });
   t.diagnostic("MAINT-002 — the Worker scheduled event starts and completes a recorded maintenance without an operator mutation");
   await (async () => {
   const componentId = "01J00000000000000000000011";
   const end = new Date(Date.now() - 1_000).toISOString();
   const start = new Date(Date.now() - 2_000).toISOString();
-  const created = await appFetch("/api/app/maintenance", { method: "POST", body: JSON.stringify({ title: "Automatic transition test", startsAt: start, endsAt: end, componentIds: [componentId] }) });
+  const created = await appFetch("/api/app/maintenance", { method: "POST", body: JSON.stringify({ affectedAudience: "Customers using the maintained service.", customerImpact: "Requests may pause while planned work runs.", title: "Automatic transition test", startsAt: start, endsAt: end, componentIds: [componentId] }) });
   if (created.status !== 201) throw new Error(await created.text());
   const maintenance = (await created.json()).maintenance;
 
@@ -883,7 +885,7 @@ test("MAINT-002 MAINT-001 MAINT-003 MAINT-004 MAINT-005 MAINT-006 — Scheduled 
 })(t);
   t.diagnostic("MAINT-001 — scheduled maintenance has its own SCH reference and operator list");
   await (async () => {
-  const created = await appFetch("/api/app/maintenance", { method: "POST", body: JSON.stringify({ title: "Distinct maintenance", startsAt: new Date(Date.now() + 2 * 60 * 60_000).toISOString(), endsAt: new Date(Date.now() + 3 * 60 * 60_000).toISOString(), componentIds: ["01J00000000000000000000011"] }) });
+  const created = await appFetch("/api/app/maintenance", { method: "POST", body: JSON.stringify({ affectedAudience: "Customers using the maintained service.", customerImpact: "Requests may pause while planned work runs.", title: "Distinct maintenance", startsAt: new Date(Date.now() + 2 * 60 * 60_000).toISOString(), endsAt: new Date(Date.now() + 3 * 60 * 60_000).toISOString(), componentIds: ["01J00000000000000000000011"] }) });
   await expectStatus(created, 201);
   const maintenance = (await created.json()).maintenance;
   assert.match(maintenance.reference, /^SCH-\d+$/);
@@ -892,7 +894,7 @@ test("MAINT-002 MAINT-001 MAINT-003 MAINT-004 MAINT-005 MAINT-006 — Scheduled 
   t.diagnostic("MAINT-003 — maintenance claims Under maintenance only while its recorded window is in progress");
   await (async () => {
   const component = await createIsolatedComponent("Maintenance component claim");
-  const created = await appFetch("/api/app/maintenance", { method: "POST", body: JSON.stringify({ title: "Maintenance component claim", startsAt: new Date(Date.now() - 60_000).toISOString(), endsAt: new Date(Date.now() + 60 * 60_000).toISOString(), componentIds: [component.id] }) });
+  const created = await appFetch("/api/app/maintenance", { method: "POST", body: JSON.stringify({ affectedAudience: "Customers using the maintained service.", customerImpact: "Requests may pause while planned work runs.", title: "Maintenance component claim", startsAt: new Date(Date.now() - 60_000).toISOString(), endsAt: new Date(Date.now() + 60 * 60_000).toISOString(), componentIds: [component.id] }) });
   await expectStatus(created, 201);
   const maintenance = (await created.json()).maintenance;
   assert.equal((await (await appFetch("/api/app/components")).json()).components.find((item) => item.id === component.id).publicState, "Operational");
@@ -913,8 +915,8 @@ test("MAINT-002 MAINT-001 MAINT-003 MAINT-004 MAINT-005 MAINT-006 — Scheduled 
   const createMaintenanceRepository = await loadMaintenanceRepositoryFactory();
   const database = new DatabaseSync(":memory:");
   database.exec(`
-    CREATE TABLE maintenance (id TEXT PRIMARY KEY, state TEXT NOT NULL, starts_at TEXT NOT NULL, ends_at TEXT NOT NULL, completed_at TEXT, updated_at TEXT NOT NULL);
-    CREATE TABLE maintenance_notices (id TEXT PRIMARY KEY, maintenance_id TEXT NOT NULL, kind TEXT NOT NULL, body TEXT NOT NULL, published_at TEXT NOT NULL, author_operator_id TEXT, created_at TEXT NOT NULL, updated_at TEXT NOT NULL);
+    CREATE TABLE maintenance (id TEXT PRIMARY KEY, state TEXT NOT NULL, starts_at TEXT NOT NULL, ends_at TEXT NOT NULL, completed_at TEXT, updated_at TEXT NOT NULL, verifying INTEGER NOT NULL DEFAULT 0, calendar_sequence INTEGER NOT NULL DEFAULT 0);
+    CREATE TABLE maintenance_notices (id TEXT PRIMARY KEY, maintenance_id TEXT NOT NULL, kind TEXT NOT NULL, body TEXT NOT NULL, published_at TEXT NOT NULL, author_operator_id TEXT, created_at TEXT NOT NULL, updated_at TEXT NOT NULL, snapshot_json TEXT, notice_kind TEXT, corrects_notice_id TEXT);
     CREATE TABLE audit_entries (id TEXT PRIMARY KEY, entity_type TEXT NOT NULL, entity_id TEXT NOT NULL, action TEXT NOT NULL, operator_id TEXT, reason TEXT, payload_json TEXT NOT NULL, created_at TEXT NOT NULL, updated_at TEXT NOT NULL);
     INSERT INTO maintenance (id, state, starts_at, ends_at, completed_at, updated_at) VALUES ('maintenance-guard', 'Scheduled', '2026-09-08T00:00:00.000Z', '2026-09-08T00:30:00.000Z', NULL, '2026-09-08T00:00:00.000Z');
   `);
@@ -934,7 +936,7 @@ test("MAINT-002 MAINT-001 MAINT-003 MAINT-004 MAINT-005 MAINT-006 — Scheduled 
 })(t);
   t.diagnostic("MAINT-004 — an overrun is public after its recorded end, and operators can extend or complete it");
   await (async () => {
-  const created = await appFetch("/api/app/maintenance", { method: "POST", body: JSON.stringify({ title: "Manual overrun completion", startsAt: new Date(Date.now() + 2 * 60 * 60_000).toISOString(), endsAt: new Date(Date.now() + 3 * 60 * 60_000).toISOString(), componentIds: ["01J00000000000000000000011"] }) });
+  const created = await appFetch("/api/app/maintenance", { method: "POST", body: JSON.stringify({ affectedAudience: "Customers using the maintained service.", customerImpact: "Requests may pause while planned work runs.", title: "Manual overrun completion", startsAt: new Date(Date.now() + 2 * 60 * 60_000).toISOString(), endsAt: new Date(Date.now() + 3 * 60 * 60_000).toISOString(), componentIds: ["01J00000000000000000000011"] }) });
   await expectStatus(created, 201);
   const maintenance = (await created.json()).maintenance;
   executeFixtureSql(`UPDATE maintenance SET state = 'In progress', starts_at = '${new Date(Date.now() - 60 * 60_000).toISOString()}', ends_at = '${new Date(Date.now() - 16 * 60_000).toISOString()}' WHERE id = '${maintenance.id}'`);
@@ -945,7 +947,7 @@ test("MAINT-002 MAINT-001 MAINT-003 MAINT-004 MAINT-005 MAINT-006 — Scheduled 
 
   const originalStart = new Date(Date.now() - 60 * 60_000).toISOString();
   const nearThresholdEnd = new Date(Date.now() - 14 * 60_000 - 40_000).toISOString();
-  const extensionResponse = await appFetch("/api/app/maintenance", { method: "POST", body: JSON.stringify({ title: "Manual overrun extension", startsAt: originalStart, endsAt: nearThresholdEnd, componentIds: ["01J00000000000000000000011"] }) });
+  const extensionResponse = await appFetch("/api/app/maintenance", { method: "POST", body: JSON.stringify({ affectedAudience: "Customers using the maintained service.", customerImpact: "Requests may pause while planned work runs.", title: "Manual overrun extension", startsAt: originalStart, endsAt: nearThresholdEnd, componentIds: ["01J00000000000000000000011"] }) });
   await expectStatus(extensionResponse, 201);
   const extension = (await extensionResponse.json()).maintenance;
   const thresholdAt = Date.parse(nearThresholdEnd) + 15 * 60_000;
@@ -998,7 +1000,7 @@ test("MAINT-002 MAINT-001 MAINT-003 MAINT-004 MAINT-005 MAINT-006 — Scheduled 
   assert.doesNotMatch(completedPermalink.text, /Running longer than planned/);
   await expectStatus(await appFetch(`/api/app/maintenance/${extension.id}/window`, { method: "PUT", body: JSON.stringify({ startsAt: originalStart, endsAt: new Date(Date.now() + 2 * 60 * 60_000).toISOString() }) }), 409);
 
-  const cancelledResponse = await appFetch("/api/app/maintenance", { method: "POST", body: JSON.stringify({ title: "Cancelled maintenance window", startsAt: new Date(Date.now() + 6 * 60 * 60_000).toISOString(), endsAt: new Date(Date.now() + 7 * 60 * 60_000).toISOString(), componentIds: ["01J00000000000000000000011"] }) });
+  const cancelledResponse = await appFetch("/api/app/maintenance", { method: "POST", body: JSON.stringify({ affectedAudience: "Customers using the maintained service.", customerImpact: "Requests may pause while planned work runs.", title: "Cancelled maintenance window", startsAt: new Date(Date.now() + 6 * 60 * 60_000).toISOString(), endsAt: new Date(Date.now() + 7 * 60 * 60_000).toISOString(), componentIds: ["01J00000000000000000000011"] }) });
   await expectStatus(cancelledResponse, 201);
   const cancelled = (await cancelledResponse.json()).maintenance;
   await expectStatus(await appFetch(`/api/app/maintenance/${cancelled.id}/cancel`, { method: "POST" }), 200);
@@ -1006,7 +1008,7 @@ test("MAINT-002 MAINT-001 MAINT-003 MAINT-004 MAINT-005 MAINT-006 — Scheduled 
 })(t);
   t.diagnostic("MAINT-005 — scheduled, reminder, start, and completion notices are immutable maintenance events");
   await (async () => {
-  const created = await appFetch("/api/app/maintenance", { method: "POST", body: JSON.stringify({ title: "Reminder lifecycle", startsAt: new Date(Date.now() + 23 * 60 * 60_000).toISOString(), endsAt: new Date(Date.now() + 24 * 60 * 60_000).toISOString(), componentIds: ["01J00000000000000000000011"] }) });
+  const created = await appFetch("/api/app/maintenance", { method: "POST", body: JSON.stringify({ affectedAudience: "Customers using the maintained service.", customerImpact: "Requests may pause while planned work runs.", title: "Reminder lifecycle", startsAt: new Date(Date.now() + 23 * 60 * 60_000).toISOString(), endsAt: new Date(Date.now() + 24 * 60 * 60_000).toISOString(), componentIds: ["01J00000000000000000000011"] }) });
   await expectStatus(created, 201);
   const maintenance = (await created.json()).maintenance;
   assert.equal(maintenance.notices.some((notice) => notice.kind === "scheduled"), true);
@@ -1016,7 +1018,7 @@ test("MAINT-002 MAINT-001 MAINT-003 MAINT-004 MAINT-005 MAINT-006 — Scheduled 
 })(t);
   t.diagnostic("MAINT-006 — rescheduling and cancellation create notices and retain a cancelled maintenance record");
   await (async () => {
-  const created = await appFetch("/api/app/maintenance", { method: "POST", body: JSON.stringify({ title: "Reschedule and cancel", startsAt: new Date(Date.now() + 3 * 60 * 60_000).toISOString(), endsAt: new Date(Date.now() + 4 * 60 * 60_000).toISOString(), componentIds: ["01J00000000000000000000011"] }) });
+  const created = await appFetch("/api/app/maintenance", { method: "POST", body: JSON.stringify({ affectedAudience: "Customers using the maintained service.", customerImpact: "Requests may pause while planned work runs.", title: "Reschedule and cancel", startsAt: new Date(Date.now() + 3 * 60 * 60_000).toISOString(), endsAt: new Date(Date.now() + 4 * 60 * 60_000).toISOString(), componentIds: ["01J00000000000000000000011"] }) });
   await expectStatus(created, 201);
   const maintenance = (await created.json()).maintenance;
   await expectStatus(await appFetch(`/api/app/maintenance/${maintenance.id}/window`, { method: "PUT", body: JSON.stringify({ startsAt: new Date(Date.now() + 5 * 60 * 60_000).toISOString(), endsAt: new Date(Date.now() + 6 * 60 * 60_000).toISOString() }) }), 200);

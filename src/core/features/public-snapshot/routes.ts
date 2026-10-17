@@ -17,7 +17,7 @@ const CACHE_CONTROL = "public, max-age=0, stale-if-error=3600";
 const MAINTENANCE_OVERRUN_MS = 15 * 60_000;
 function isMaintenanceOverrunning(state: string | null | undefined, endsAt: string | null | undefined, now: number) {
   const end = endsAt ? Date.parse(endsAt) : Number.NaN;
-  return state === "In progress" && Number.isFinite(end) && end + MAINTENANCE_OVERRUN_MS <= now;
+  return (state === "In progress" || state === "Verifying") && Number.isFinite(end) && end + MAINTENANCE_OVERRUN_MS <= now;
 }
 function applyPublicHeaders(headers: Headers, origin: string, cacheable = true) {
   if (cacheable) headers.set("Cache-Control", CACHE_CONTROL);
@@ -220,6 +220,7 @@ export function registerPublicSnapshotRoutes(app: Hono<AppEnv>, service: PublicS
   app.get("/history/:month", serve(context => /^\d{4}-(?:0[1-9]|1[0-2])$/.test(context.req.param("month") ?? "") ? `history/${context.req.param("month")}.html` : "history/invalid.html", false, "not-found.html"));
   app.get("/history", serve(() => "history.html"));
   app.get("/incidents/:reference", serve((context) => `incidents/${encodeURIComponent(context.req.param("reference") ?? "")}.html`, false, "not-found.html"));
+  app.get("/maintenance.ics", serve(() => "maintenance.ics"));
   app.get("/feed.atom", serve(() => "feed.atom"));
   app.get("/feed.rss", serve(() => "feed.rss"));
   app.get("/history.atom", serve(() => "history.atom"));

@@ -25,11 +25,12 @@ export interface DispatchableDelivery {
   maintenanceId: string | null;
   maintenanceReference: string | null;
   maintenanceTitle: string | null;
-  maintenanceState: "Scheduled" | "In progress" | "Completed" | "Cancelled" | null;
+  maintenanceState: "Scheduled" | "In progress" | "Verifying" | "Completed" | "Cancelled" | null;
   maintenanceStartsAt: string | null;
   maintenanceEndsAt: string | null;
-  maintenanceNoticeKind: "scheduled" | "rescheduled" | "reminder" | "started" | "completed" | "cancelled" | null;
+  maintenanceNoticeKind: "scheduled" | "rescheduled" | "reminder" | "started" | "completed" | "cancelled" | "verifying" | "update" | null;
   maintenanceNoticeBody: string | null;
+  maintenanceSnapshotJson: string | null;
   incidentId: string | null;
   incidentImpact: IncidentImpact | null;
   isFirstIncidentUpdate: number;
@@ -65,6 +66,7 @@ export interface PendingProviderEvent {
 export type NotificationTokenCandidates = Record<"manage" | "unsubscribe", { id: string; tokenHash: string }>;
 
 export interface DeliveryRepository {
+  getMaintenanceWebhookUpdates(maintenanceId:string,eventId:string): Promise<Array<{id:string;kind:string;body:string;publishedAt:string;snapshotJson:string|null;correctsNoticeId:string|null}>>;
   hasMailSendClaim(providerMessageId: string): Promise<boolean>;
   listDeliveries(input: { limit?: number; offset?: number; channel?: "email" | "webhook"; outcome?: DeliveryRow["outcome"]; incidentUpdateId?: string }): Promise<DeliveryRow[]>;
   listSubscriptionMail(limit: number): Promise<SubscriptionMailRow[]>;
@@ -108,8 +110,8 @@ export function createDeliveryRepository(binding: D1Database): DeliveryRepositor
           COALESCE(i.reference, reportIncident.reference) AS incidentReference, COALESCE(i.title, reportIncident.title) AS incidentTitle, u.lifecycle, u.affected_audience AS affectedAudience,
           u.customer_impact AS customerImpact, u.what_still_works AS whatStillWorks, u.details, u.next_update_at AS nextUpdateAt, u.component_changes_json AS componentChangesJson,
           report.summary AS reportSummary, report.timeline AS reportTimeline, report.cause AS reportCause, report.remediation AS reportRemediation,
-          maintenance.reference AS maintenanceReference, maintenance.title AS maintenanceTitle, maintenance.state AS maintenanceState, maintenance.starts_at AS maintenanceStartsAt, maintenance.ends_at AS maintenanceEndsAt,
-          notice.kind AS maintenanceNoticeKind, notice.body AS maintenanceNoticeBody, settings.timezone, d.mail_payload_json AS mailPayloadJson
+          COALESCE(json_extract(notice.snapshot_json,'$.reference'),maintenance.reference) AS maintenanceReference, COALESCE(json_extract(notice.snapshot_json,'$.title'),maintenance.title) AS maintenanceTitle, COALESCE(json_extract(notice.snapshot_json,'$.state'),maintenance.state) AS maintenanceState, COALESCE(json_extract(notice.snapshot_json,'$.startsAt'),maintenance.starts_at) AS maintenanceStartsAt, COALESCE(json_extract(notice.snapshot_json,'$.endsAt'),maintenance.ends_at) AS maintenanceEndsAt,
+          COALESCE(notice.notice_kind,notice.kind) AS maintenanceNoticeKind, notice.snapshot_json AS maintenanceSnapshotJson, notice.body AS maintenanceNoticeBody, settings.timezone, d.mail_payload_json AS mailPayloadJson
         FROM notification_deliveries d
         JOIN subscribers s ON s.id = d.subscriber_id
         LEFT JOIN incident_updates u ON u.id = d.incident_update_id
@@ -140,6 +142,9 @@ export function createDeliveryRepository(binding: D1Database): DeliveryRepositor
     return binding.prepare("SELECT id, event_type AS eventType, hard_bounce AS hardBounce FROM mail_provider_webhook_events WHERE provider_message_id = ? AND applied_at IS NULL ORDER BY received_at ASC, id ASC").bind(providerMessageId);
   }
   return {
+    async getMaintenanceWebhookUpdates(maintenanceId,eventId) {
+      return (await binding.prepare(`SELECT id,COALESCE(notice_kind,kind) AS kind,body,published_at AS publishedAt,snapshot_json AS snapshotJson,corrects_notice_id AS correctsNoticeId FROM maintenance_notices WHERE maintenance_id=? AND published_at <= (SELECT published_at FROM maintenance_notices WHERE id=?) ORDER BY published_at DESC,id`).bind(maintenanceId,eventId).all<{id:string;kind:string;body:string;publishedAt:string;snapshotJson:string|null;correctsNoticeId:string|null}>()).results;
+    },
     async listDeliveries(input) {
       const conditions = [];
       if (input.channel) conditions.push(eq(notificationDeliveries.channel, input.channel));

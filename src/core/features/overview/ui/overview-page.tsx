@@ -35,7 +35,7 @@ export function OverviewPage() {
     counts[component.publicState] = (counts[component.publicState] ?? 0) + 1;
     return counts;
   }, {});
-  const upcoming = maintenance.filter((item) => item.state === "Scheduled" || item.state === "In progress");
+  const upcoming = maintenance.filter((item) => item.state === "Scheduled" || item.state === "In progress" || item.state === "Verifying");
 
   return <div className="page-stack">
     <section className="page-title-row">

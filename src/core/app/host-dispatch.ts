@@ -8,6 +8,7 @@ export interface HostDispatchBindings {
 
 const pageExactPaths = new Set([
   "/history",
+  "/maintenance.ics",
   "/feed.atom",
   "/feed.rss", "/history.atom", "/history.rss", "/badge.svg", "/badge.json", "/embed/script.js", "/api/public/v1",
   "/widget.js",

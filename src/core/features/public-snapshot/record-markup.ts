@@ -1,3 +1,4 @@
+import { wordingText } from "../maintenance/wording";
 import type { PublishedIncidentComponentChange } from "../../shared/incident-component-changes";
 import type { IncidentLifecycle } from "../../shared/domain";
 import { impactLabel, type IncidentImpact } from "../../shared/incident-impact";
@@ -32,8 +33,9 @@ export interface PublicMaintenance {
   endsAt: string;
   completedAt: string | null;
   components: string[];
-  importedUpdates?: Array<{ id: string; body: string; publishedAt: string }>;
-  notices: Array<{ id: string; kind: string; body: string; publishedAt: string }>;
+  affectedAudience?: string; customerImpact?: string; whatStillWorks?: string; details?: string; autoStart?: boolean; autoComplete?: boolean; calendarSequence?: number; updatedAt?: string;
+  importedUpdates?: Array<{ id: string; body: string; publishedAt: string; sourceStatus?: string | null }>;
+  notices: Array<{ id: string; kind: string; body: string; publishedAt: string; snapshotJson?: string | null; correctsNoticeId?: string | null }>;
 }
 
 export type TitleHeading = "h1" | "h3" | "h4";
@@ -74,11 +76,11 @@ export function resolvedMarkup(incident: PublicIncident, timezone: string) {
 }
 
 export function noticeMarkup(notice: PublicMaintenance["notices"][number], timezone: string) {
-  return `<article class="update maintenance-notice"><div class="update-head"><strong>${escapeHtml(notice.kind)}</strong><span>${timestamp(notice.publishedAt, timezone)}</span></div>${notice.body ? `<p>${renderUpdateHtml(notice.body)}</p>` : ""}</article>`;
+  return `<article class="update maintenance-notice"><div class="update-head"><strong>${escapeHtml(notice.kind)}</strong><span>${timestamp(notice.publishedAt, timezone)}</span></div>${notice.correctsNoticeId ? `<p>Correction to update ${escapeHtml(notice.correctsNoticeId)}</p>` : ""}${notice.body ? `<p>${renderUpdateHtml(notice.body)}</p>` : ""}</article>`;
 }
 
 export function maintenanceMarkup(item: PublicMaintenance, timezone: string, generatedAt: string, permalink = false) {
-  const overrun = item.state === "In progress" && new Date(item.endsAt).getTime() + 15 * MINUTE <= new Date(generatedAt).getTime();
-  const notices = [...item.notices, ...(item.importedUpdates ?? []).map(update => ({ ...update, kind: "Imported update" }))].sort((a, b) => b.publishedAt.localeCompare(a.publishedAt)).map((notice) => noticeMarkup(notice, timezone)).join("");
-  return `<article class="maintenance">${recordHead(item.state === "Scheduled" ? "Planned maintenance" : "Maintenance", item.reference, permalink ? escapeHtml(item.title) : `<a href="/maintenance/${encodeURIComponent(item.reference)}">${escapeHtml(item.title)}</a>`, permalink ? "h1" : "h4", item.state)}<p class="maintenance-window" data-maintenance-state="${escapeHtml(item.state)}" data-maintenance-ends-at="${escapeHtml(item.endsAt)}">${timestamp(item.startsAt, timezone)} – ${timestamp(item.endsAt, timezone)}${overrun ? ` <span class="overrun">Running longer than planned</span>` : ""}</p>${item.components.length ? `<p class="incident-meta">Affects ${escapeHtml(item.components.join(", "))}</p>` : ""}${notices ? `<div class="updates">${notices}</div>` : ""}</article>`;
+  const overrun = ["In progress","Verifying"].includes(item.state) && new Date(item.endsAt).getTime() + 15 * MINUTE <= new Date(generatedAt).getTime();
+  const notices = [...item.notices, ...(item.importedUpdates ?? []).map(update => ({ ...update, kind: update.sourceStatus ?? "Imported update" }))].sort((a, b) => b.publishedAt.localeCompare(a.publishedAt)).map((notice) => noticeMarkup(notice, timezone)).join("");
+  return `<article class="maintenance">${recordHead(item.state === "Scheduled" ? "Planned maintenance" : "Maintenance", item.reference, permalink ? escapeHtml(item.title) : `<a href="/maintenance/${encodeURIComponent(item.reference)}">${escapeHtml(item.title)}</a>`, permalink ? "h1" : "h4", item.state)}<p class="maintenance-window" data-maintenance-state="${escapeHtml(item.state)}" data-maintenance-ends-at="${escapeHtml(item.endsAt)}">${timestamp(item.startsAt, timezone)} – ${timestamp(item.endsAt, timezone)}${overrun ? ` <span class="overrun">Running longer than planned</span>` : ""}</p>${item.components.length ? `<p class="incident-meta">Affects ${escapeHtml(item.components.join(", "))}</p>` : ""}${wordingText(item) ? `<p class="maintenance-wording">${renderUpdateHtml(wordingText(item))}</p>` : ""}${notices ? `<div class="updates">${notices}</div>` : ""}</article>`;
 }

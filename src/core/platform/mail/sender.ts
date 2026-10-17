@@ -1,4 +1,6 @@
+export interface MailAttachment { filename: string; content: string; contentType: string }
 export interface MailMessage {
+  attachments?: MailAttachment[];
   from: string;
   to: string;
   subject: string;
@@ -21,6 +23,7 @@ export type SentMail = {
 
 export interface MailSender {
   readonly configured: boolean;
+  readonly supportsCalendarAttachments?: boolean;
   /** Throw MailPreparationError only if no transport/capture was attempted.
    * All other failures, including uncertain prior submissions, retain claims. */
   send(message: MailMessage): Promise<SentMail>;

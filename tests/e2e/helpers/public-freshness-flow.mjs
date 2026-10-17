@@ -24,6 +24,7 @@ export async function publicFreshnessFlow({ appFetch, appUrl, pageUrl, diagnosti
   await publish();
   const { maintenance } = await mutate("/api/app/maintenance", "POST", {
     title: "Cache freshness maintenance", componentIds: [component.id],
+    affectedAudience: "Customers using the cache freshness service", customerImpact: "Requests may be delayed while the cache is refreshed.",
     startsAt: new Date(Date.now() + 3600000).toISOString(), endsAt: new Date(Date.now() + 7200000).toISOString(),
   }, 201);
   // Let initial background publication finish before warming either cache.
