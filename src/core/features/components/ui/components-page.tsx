@@ -8,6 +8,7 @@ import { Icon } from "../../../app/client/ui/icon";
 import { LoadingState, FormError } from "../../../app/client/ui/states";
 import { EmptyState, ErrorState } from "../../../app/client/ui/lit-states";
 import { ComponentEditorDrawer, ComponentHistoryDrawer, StandingClaimDrawer } from "./component-drawer";
+import { CatalogueDrawer } from "./catalogue-drawer";
 import { ComponentGroupDrawer } from "./component-group-drawer";
 
 type ComponentsResponse = {
@@ -24,6 +25,7 @@ export function ComponentsPage() {
   const [componentPanel, setComponentPanel] = useState<ComponentPanel | null>(null);
   const [moveError, setMoveError] = useState<string | null>(null);
   const [moving, setMoving] = useState(false);
+  const [bulkOpen, setBulkOpen] = useState(false);
   const [groupPanel, setGroupPanel] = useState<GroupPanel | null>(null);
   if (loading) return <LoadingState />;
   if (error) return <ErrorState onRetry={() => window.location.reload()}>{error}</ErrorState>;
@@ -58,10 +60,11 @@ export function ComponentsPage() {
   };
 
   return <div className="page-stack components-page">
-    <section className="page-title-row component-title-row"><div><p className="eyebrow">Public services</p><h1>Components</h1><p>Organize services and set their status. Active incidents and maintenance can raise a service’s public status.</p></div><div className="component-title-actions"><Button variant="secondary" type="button" onClick={() => setGroupPanel({ kind: "create-group" })}>Add group</Button><Button type="button" onClick={() => setComponentPanel({ kind: "create-component", groupId: null })}>Add component</Button></div></section>
+    <section className="page-title-row component-title-row"><div><p className="eyebrow">Public services</p><h1>Components</h1><p>Organize services and set their status. Active incidents and maintenance can raise a service’s public status.</p></div><div className="component-title-actions"><Button variant="secondary" type="button" onClick={() => setBulkOpen(true)}>Bulk edit / import CSV</Button><Button variant="secondary" type="button" onClick={() => setGroupPanel({ kind: "create-group" })}>Add group</Button><Button type="button" onClick={() => setComponentPanel({ kind: "create-component", groupId: null })}>Add component</Button></div></section>
     {moveError ? <FormError>{moveError}</FormError> : null}
     <section className="limit-note"><Icon name="warning" width={17} height={17} />Published incident and maintenance updates retain a removed component’s recorded name. A state correction appends history and records its reason.</section>
     {groups.length ? <section className="component-groups">{groups.map((group) => <ComponentGroupCard key={group.key} group={group} moving={moving} onMoveComponent={moveComponent} onMoveGroup={moveGroup} firstGroup={data.groups[0]?.id === group.group?.id} lastGroup={data.groups.at(-1)?.id === group.group?.id} onCreateComponent={() => setComponentPanel({ kind: "create-component", groupId: group.group?.id ?? null })} onEditGroup={() => group.group && setGroupPanel({ kind: "edit-group", group: group.group })} onEditComponent={(component) => setComponentPanel({ kind: "edit-component", component })} onStandingClaim={(component) => setComponentPanel({ kind: "standing-claim", component })} onHistory={(component) => setComponentPanel({ kind: "history", component })} />)}</section> : <EmptyState>No components are configured. Add the first component before creating an incident.</EmptyState>}
+    {bulkOpen && <CatalogueDrawer onClose={() => setBulkOpen(false)} onSaved={() => { setBulkOpen(false); refresh(); }} />}
     {componentPanel?.kind === "create-component" && <ComponentEditorDrawer component={null} groups={data.groups} defaultGroupId={componentPanel.groupId} defaultDisplayOrder={nextComponentOrder} onClose={() => setComponentPanel(null)} onSaved={closeAndRefresh} />}
     {componentPanel?.kind === "edit-component" && <ComponentEditorDrawer component={componentPanel.component} groups={data.groups} defaultDisplayOrder={nextComponentOrder} onClose={() => setComponentPanel(null)} onSaved={closeAndRefresh} />}
     {componentPanel?.kind === "standing-claim" && <StandingClaimDrawer component={componentPanel.component} onClose={() => setComponentPanel(null)} onSaved={closeAndRefresh} />}

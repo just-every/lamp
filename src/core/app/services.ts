@@ -3,6 +3,8 @@ import { createRetainedSnapshotCache } from "../platform/blobs/retained";
 import type { AppBindings } from "./types";
 import type { BlobStore } from "../platform/blobs/store";
 import { createComponentRepository, createComponentsService } from "../features/components";
+import { createCatalogueRepository } from "../features/components/catalogue.repository";
+import { createCatalogueService } from "../features/components/catalogue-service";
 import { createDeliveriesService, createDeliveryRepository, notificationPublicationStatements, incidentCatchupStatements } from "../features/deliveries";
 import { createIncidentRepository, createIncidentsService, createUpdateReminders } from "../features/incidents";
 import { authOrigin } from "../platform/auth/config";
@@ -50,6 +52,7 @@ export function createAppServices(bindings: AppBindings, blobs: BlobStore, execu
   let authority: ReturnType<typeof createLampAuth> | undefined;
   const auth = () => authority ??= createLampAuth(bindings, mail);
   const components = createComponentsService(createComponentRepository(bindings.DB), publicSnapshots.rebuild, extensions.componentEvents);
+  const componentCatalogue = createCatalogueService(createCatalogueRepository(bindings.DB), publicSnapshots.rebuild);
   const deliveries = createDeliveriesService(createDeliveryRepository(bindings.DB), {
     effectsPaused: bindings.EFFECTS_PAUSED === "1",
     mail,
@@ -160,7 +163,7 @@ export function createAppServices(bindings: AppBindings, blobs: BlobStore, execu
     sendConfirmation: async (subscriberId) => subscribers.inviteImported(subscriberId, await importPublicOrigin(), (await pageSettings.get())?.pageName ?? "This status page", async () => true),
   });
 
-  return { auth, operators, pageSettings, pageExport, components, incidents, maintenance, subscribers, deliveries, reports, intake, briefs, ai, overview, updateReminders, publicSnapshots, statuspageImport, channels };
+  return { auth, operators, pageSettings, pageExport, components, componentCatalogue, incidents, maintenance, subscribers, deliveries, reports, intake, briefs, ai, overview, updateReminders, publicSnapshots, statuspageImport, channels };
 }
 
 export type AppServices = ReturnType<typeof createAppServices>;

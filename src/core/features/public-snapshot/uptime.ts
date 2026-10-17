@@ -24,13 +24,15 @@ export function computeUptime(source: PublicSnapshotSource, componentId: string,
   const events = source.history.filter((entry) => entry.componentId === componentId && entry.causeType !== "correction").sort((left, right) => left.changedAt.localeCompare(right.changedAt) || left.createdAt.localeCompare(right.createdAt) || (left.id ?? "").localeCompare(right.id ?? ""));
   const corrections = source.corrections.filter((entry) => entry.componentId === componentId).sort((left, right) => left.createdAt.localeCompare(right.createdAt));
   const windowStart = now - REPORTING_DAYS * DAY;
+  const startDate = source.components.find(component => component.id === componentId)?.uptimeStartDate;
+  const configuredStart = startDate ? localMidnight(startDate, timezone) : Number.NEGATIVE_INFINITY;
   const days = reportingDays(windowStart, now, timezone);
   const marks = days.map(({ day }) => ({ day, downtimeMinutes: null as number | null }));
   const earliest = Math.min(...events.map((event) => new Date(event.changedAt).getTime()), ...corrections.map((correction) => new Date(correction.startsAt).getTime()));
   if (!Number.isFinite(earliest)) return { percentage: null, trackingSince: null, coverageDays: 0, marks };
-  const coverageStart = Math.max(windowStart, earliest);
+  const coverageStart = Math.max(windowStart, earliest, configuredStart);
   const coverageMinutes = Math.max(0, (now - coverageStart) / MINUTE);
-  if (coverageMinutes <= 0) return { percentage: null, trackingSince: earliest <= now ? new Date(earliest).toISOString() : null, coverageDays: 0, marks };
+  if (coverageMinutes <= 0) return { percentage: null, trackingSince: null, coverageDays: 0, marks };
 
   const boundaries = new Set<number>([coverageStart, now]);
   for (const event of events) boundaries.add(new Date(event.changedAt).getTime());
@@ -56,7 +58,7 @@ export function computeUptime(source: PublicSnapshotSource, componentId: string,
     else if (marks[day]!.downtimeMinutes === null) marks[day]!.downtimeMinutes = 0;
   }
   const percentage = Math.floor((100 - (weightedDowntime / coverageMinutes) * 100) * 100) / 100;
-  return { percentage: `${Math.max(0, percentage).toFixed(2)}%`, trackingSince: new Date(earliest).toISOString(), coverageDays: Math.floor(coverageMinutes / (24 * 60)), marks };
+  return { percentage: `${Math.max(0, percentage).toFixed(2)}%`, trackingSince: new Date(Math.max(earliest, configuredStart)).toISOString(), coverageDays: Math.floor(coverageMinutes / (24 * 60)), marks };
 }
 
 export function uptimeMarkup(component: { name: string; uptime: Uptime }, timezone: string, generatedAt: string) {

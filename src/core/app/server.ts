@@ -10,6 +10,7 @@ import { createDependencyProber } from "../platform/health";
 import { createQueueDispatcher } from "../platform/jobs";
 import { createPublicWriteRateLimiter } from "../platform/security/rate-limiter";
 import { registerComponentRoutes } from "../features/components";
+import { registerCatalogueRoutes } from "../features/components/catalogue-routes";
 import { registerDeliveryRoutes } from "../features/deliveries";
 import { createHealthRepository } from "../features/health/repository";
 import { registerHealthRoutes } from "../features/health/routes";
@@ -51,6 +52,7 @@ export function createApp(bindings: AppBindings, execution?: MailExecution) {
   registerIntakeRoutes(app, services.intake, { publicPageHost: bindings.LAMP_PAGE_HOST, rateLimiter: publicWriteLimiter });
   registerOperatorRoutes(app, services.auth, bindings.LAMP_PAGE_HOST, { localMail });
   registerOverviewRoutes(app, services.overview);
+  registerCatalogueRoutes(app, services.componentCatalogue);
   registerComponentRoutes(app, services.components);
   registerIncidentRoutes(app, services.incidents, { hasChatChannels: async () => (await services.channels.list()).length > 0, wordingChecks: async () => { const settings = await services.pageSettings.get(); if (!settings) throw new Error("Page settings are not configured."); return { blockedTerms: settings.wordingBlockedTerms, friendlyLength: settings.wordingFriendlyLength }; } });
   registerReportRoutes(app, services.reports);

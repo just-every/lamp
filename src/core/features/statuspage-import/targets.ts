@@ -39,6 +39,12 @@ async function readTables(db: D1Database, kind: string, id: string) {
     // shared with its planned value, including updates at the same instant.
     const order = table === "import_maintenance_updates" ? "published_at,id" : "rowid";
     const rows = (await db.prepare(`SELECT * FROM ${table} WHERE ${column}=? ORDER BY ${order}`).bind(id).all<Row>()).results;
+    // Defaults added after old import journals were sealed do not constitute
+    // an owner edit. Non-default values remain visible to custody and undo.
+    if (table === "components") for (const row of rows) {
+      if (row.only_show_if_degraded === 0) delete row.only_show_if_degraded;
+      if (row.uptime_start_date === null) delete row.uptime_start_date;
+    }
     // Existing import journals predate per-update component snapshots. Empty
     // migration defaults are not an operator edit; real published changes are.
     if (table === "incident_updates") for (const row of rows) {

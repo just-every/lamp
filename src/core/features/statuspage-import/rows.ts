@@ -67,7 +67,6 @@ export function mapSource(data: SourceData, snapshot: Snapshot, operatorId: stri
     components.set(component.id, { id: identify(`component:${component.id}`, component.created_at), name: clip(component.name, 120), created: iso(component.created_at) });
     const notes: string[] = [];
     if (component.group_id && !groupIds.has(component.group_id)) notes.push("its group was not in the saved responses, so it is ungrouped");
-    if (component.only_show_if_degraded) notes.push("Lamp always shows visible components, so 'only show if degraded' is dropped");
     if (namespace === "statuspage" && component.status && component.status !== "operational") notes.push(`its current '${component.status}' status is set by open incidents and maintenance here, not carried as a manual status`);
     componentAccounting.set(component.id, [{ kind: "component", sourceId: component.id, name: component.name, outcome: notes.length ? "changed" : "imported", reason: notes.length ? `Imported; ${notes.join("; ")}.` : "Component, description and order carried over." }]);
   });
@@ -96,7 +95,7 @@ export function mapSource(data: SourceData, snapshot: Snapshot, operatorId: stri
     const created = [native.created, ...own.map((claim) => claim.changedAt)].sort()[0];
     const history = deriveHistory(native.id, created, own, operatorId, asOf, identify);
     componentResults.push({ kind: "component", sourceId: component.id, accounting: componentAccounting.get(component.id)!, value: { tables: {
-      components: [{ id: native.id, group_id: component.group_id ? groupIds.get(component.group_id) ?? null : null, name: native.name, description: clip(component.description ?? "", 280), internal: 0, display_order: snapshot.maxComponentOrder + index + 1, note: "", created_at: created, updated_at: asOf }],
+      components: [{ id: native.id, group_id: component.group_id ? groupIds.get(component.group_id) ?? null : null, name: native.name, description: clip(component.description ?? "", 500), internal: 0, ...(component.only_show_if_degraded ? { only_show_if_degraded: 1 } : {}), display_order: snapshot.maxComponentOrder + index + 1, note: "", created_at: created, updated_at: asOf }],
       ...(namespace !== "statuspage" && component.status && component.status !== "operational" ? { component_standing_claims: [{ id: identify(`standing:${component.id}`, asOf), component_id: native.id, state: componentStates[component.status], operator_id: operatorId, created_at: asOf, updated_at: asOf }] } : {}),
       component_claim_events: history.events,
       component_state_history: history.history,

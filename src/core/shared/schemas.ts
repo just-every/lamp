@@ -33,8 +33,10 @@ export const pageSettingsSchema = z.object({
 export const componentSchema = z.object({
   groupId: z.string().nullable(),
   name: nonEmptyText(120),
-  description: optionalText(280),
+  description: optionalText(500),
   internal: z.boolean(),
+  onlyShowIfDegraded: z.boolean().optional(),
+  uptimeStartDate: z.iso.date().nullable().optional(),
   displayOrder: z.number().int().min(0),
   note: optionalText(250),
 }).strict();

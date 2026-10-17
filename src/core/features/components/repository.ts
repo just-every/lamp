@@ -68,6 +68,8 @@ export function createComponentRepository(binding: D1Database): ComponentReposit
           name: components.name,
           description: components.description,
           internal: components.internal,
+          onlyShowIfDegraded: components.onlyShowIfDegraded,
+          uptimeStartDate: components.uptimeStartDate,
           displayOrder: components.displayOrder,
           note: components.note,
           createdAt: components.createdAt,
@@ -362,8 +364,8 @@ export function createComponentRepository(binding: D1Database): ComponentReposit
     },
     async insertComponent(input, initialState) {
       await binding.batch([
-        binding.prepare(`INSERT INTO components (id,group_id,name,description,internal,display_order,note,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?)`)
-          .bind(input.id, input.groupId, input.name, input.description, input.internal ? 1 : 0, input.displayOrder, input.note, input.createdAt, input.updatedAt),
+        binding.prepare(`INSERT INTO components (id,group_id,name,description,internal,only_show_if_degraded,uptime_start_date,display_order,note,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?)`)
+          .bind(input.id, input.groupId, input.name, input.description, input.internal ? 1 : 0, input.onlyShowIfDegraded ? 1 : 0, input.uptimeStartDate ?? null, input.displayOrder, input.note, input.createdAt, input.updatedAt),
         binding.prepare(`INSERT INTO component_claim_events (id,component_id,cause_type,cause_id,state,changed_at,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?)`)
           .bind(initialState.event.id, initialState.event.componentId, initialState.event.causeType, initialState.event.causeId, initialState.event.state, initialState.event.changedAt, initialState.event.createdAt, initialState.event.updatedAt),
         binding.prepare(`INSERT INTO component_state_history (id,component_id,previous_state,new_state,cause_type,cause_id,operator_id,changed_at,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?)`)
