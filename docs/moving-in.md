@@ -136,12 +136,16 @@ empty-destination requirements.
 Choose **Statuspage**. In that account, open the avatar menu and choose **API
 info**; enter the displayed **page ID** and **API key**. Lamp makes bounded `GET`
 requests to `https://api.statuspage.io` and uses the key only in those requests.
-The API calls read components, component groups, incidents, scheduled incidents
-and subscribers. The key is not saved. See the [official API reference](https://developer.statuspage.io/).
+The API calls read components, component groups, incidents, scheduled incidents,
+subscribers and incident templates. The key is not saved. See the [official API reference](https://developer.statuspage.io/).
 
 For saved responses, upload the unchanged JSON arrays named:
 `component-groups.json`, `components.json`, `incidents.json`,
-`incidents-scheduled.json` and `subscribers.json`. Include later pages as
+`incidents-scheduled.json`, `subscribers.json` and `incident-templates.json`.
+An optional `incident-template-groups.json` array of group IDs and names supplies
+template folder names; embedded template groups also supply names. The documented
+management API exposes no group-list read. Without a group name, its source ID
+is retained as the folder and the dry run names that change. Include later pages as
 `<resource>-2.json`, `<resource>-3.json` and so on. The incidents and scheduled
 incidents collections may both contain a maintenance; duplicates are carried
 once. Statuspage maintenance windows carry over, but their update messages do
@@ -164,10 +168,35 @@ invitation and confirmation described above.
 
 The import does not read the source page's visibility settings. Check that the
 page is intended to become publicly readable before moving it; Lamp's public
-page does not preserve member-login or IP restrictions. The import also omits
-post-mortem text, templates and unsupported subscriber channels. Components
-marked `only_show_if_degraded` are shown normally in Lamp; the dry run names
-that change. The source's `showcase` flag does not set a Lamp visibility rule.
+page does not preserve member-login or IP restrictions. Unsupported subscriber
+channels do not move. Components marked `only_show_if_degraded` retain their
+conditional visibility in Lamp. The source's `showcase` flag does not set a Lamp
+visibility rule.
+
+Postmortems with a valid `postmortem_published_at` become published incident
+reports at that original time. Bodies with no publication time stay private,
+visible only to operators. The report keeps the full body in Summary; the other
+report fields are empty. Markdown and HTML become plain text, keeping paragraphs,
+headings, list items, link labels and URLs. Images become text naming the image
+and source URL; Lamp never fetches or embeds them. Invalid report bodies or
+publication times refuse that report without rejecting an otherwise valid incident.
+The dry run counts published, kept-private and refused postmortems separately.
+Import sends no postmortem notifications, even when the source requested them.
+
+Incident templates retain their name, title, lifecycle, affected components and
+states, folder and notification default. Their first body paragraph becomes
+Customer impact and the rest becomes Details; Who is affected names their
+components. Oversized wording is retained in full and the dry run names each
+field to shorten. Open the imported template in the composer, shorten and save
+those fields before applying it. An absent next-update offset stays unset for
+the operator to choose. Applying a template fills a private draft and publishes
+nothing. The source incident's recorded impact is preserved independently of
+component claims and uptime history.
+
+Reports belong to their imported incident for repeat and undo. Undo removes an
+unchanged report with its incident and removes unchanged templates and their
+component selections. An edited or added report retains its incident; an edited
+template retains its components. Repeating the import duplicates neither.
 
 This reader maps the source `/incidents/<id>` path for each imported incident or
 maintenance, along with any supplied `shortlink` path. If a source shortlink is

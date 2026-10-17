@@ -1,3 +1,4 @@
+import type { IncidentImpact } from "../../shared/incident-impact";
 import { parsePublishedComponentChanges, type PublishedIncidentComponentChange } from "../../shared/incident-component-changes";
 import { and, asc, eq, isNull, lte, sql } from "drizzle-orm";
 
@@ -30,6 +31,7 @@ export interface DispatchableDelivery {
   maintenanceNoticeKind: "scheduled" | "rescheduled" | "reminder" | "started" | "completed" | "cancelled" | null;
   maintenanceNoticeBody: string | null;
   incidentId: string | null;
+  incidentImpact: IncidentImpact | null;
   isFirstIncidentUpdate: number;
   mailPayloadJson: string | null;
   incidentReference: string | null;
@@ -102,7 +104,7 @@ export function createDeliveryRepository(binding: D1Database): DeliveryRepositor
     return binding.prepare(`
         SELECT d.id, d.notification_event_id AS notificationEventId, d.subscriber_id AS subscriberId, d.channel, s.state AS subscriberState, s.destination, s.contact_email AS contactEmail,
           d.incident_update_id AS incidentUpdateId, d.incident_report_id AS incidentReportId, d.maintenance_id AS maintenanceId,
-          i.id AS incidentId, CASE WHEN u.id IS NOT NULL AND u.id = (SELECT first_update.id FROM incident_updates first_update WHERE first_update.incident_id = i.id ORDER BY first_update.published_at ASC, first_update.id ASC LIMIT 1) THEN 1 ELSE 0 END AS isFirstIncidentUpdate,
+          d.incident_impact AS incidentImpact, i.id AS incidentId, CASE WHEN u.id IS NOT NULL AND u.id = (SELECT first_update.id FROM incident_updates first_update WHERE first_update.incident_id = i.id ORDER BY first_update.published_at ASC, first_update.id ASC LIMIT 1) THEN 1 ELSE 0 END AS isFirstIncidentUpdate,
           COALESCE(i.reference, reportIncident.reference) AS incidentReference, COALESCE(i.title, reportIncident.title) AS incidentTitle, u.lifecycle, u.affected_audience AS affectedAudience,
           u.customer_impact AS customerImpact, u.what_still_works AS whatStillWorks, u.details, u.next_update_at AS nextUpdateAt, u.component_changes_json AS componentChangesJson,
           report.summary AS reportSummary, report.timeline AS reportTimeline, report.cause AS reportCause, report.remediation AS reportRemediation,

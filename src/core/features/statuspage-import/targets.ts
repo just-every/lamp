@@ -9,6 +9,8 @@ const tablesOf = (kind: string) => {
   return kind === "component" ? { ...tables, component_standing_claims: "component_id" } : kind === "maintenance" ? { ...tables, import_maintenance_updates: "maintenance_id" } : tables;
 };
 const valueOf = (row: TargetRow) => row.value as unknown as NativeValue;
+const markerTable = (kind: string) => kind === "template" ? "statuspage_import_template_targets" : "statuspage_import_targets";
+const markerWhere = (kind: string) => kind === "template" ? { sql: "id=?", params: [] as string[] } : { sql: "kind=? AND id=?", params: [kind] };
 
 /** Balanced AND keeps nested snapshot predicates inside D1's expression depth. */
 function conjunction(parts: readonly string[]): string {
@@ -37,7 +39,7 @@ async function readTables(db: D1Database, kind: string, id: string) {
   for (const [table, column] of Object.entries(tablesOf(kind))) {
     // Archive restore changes rowids. New imported history has a stable order
     // shared with its planned value, including updates at the same instant.
-    const order = table === "import_maintenance_updates" ? "published_at,id" : "rowid";
+    const order = table === "import_maintenance_updates" ? "published_at,id" : table === "incident_template_components" ? "id" : "rowid";
     const rows = (await db.prepare(`SELECT * FROM ${table} WHERE ${column}=? ORDER BY ${order}`).bind(id).all<Row>()).results;
     // Defaults added after old import journals were sealed do not constitute
     // an owner edit. Non-default values remain visible to custody and undo.
@@ -51,8 +53,9 @@ async function readTables(db: D1Database, kind: string, id: string) {
       if (row.component_changes_json === "[]") delete row.component_changes_json;
       if (row.component_snapshot_json === "[]") delete row.component_snapshot_json;
     }
+    if (table === "incidents") for (const row of rows) if (row.impact_override === null) delete row.impact_override;
     // Legacy journals have no history key: empty additions must not change their revision value.
-    if (!["import_maintenance_updates", "component_standing_claims"].includes(table) || rows.length) tables[table] = rows;
+    if (!["import_maintenance_updates", "component_standing_claims", "incident_reports"].includes(table) || rows.length) tables[table] = rows;
   }
   return tables;
 }
@@ -62,7 +65,8 @@ async function readTables(db: D1Database, kind: string, id: string) {
  * apply and undo commit or refuse it atomically with the kit's journal. */
 export const statuspageTargets: D1TargetAdapter = {
   async read(db, destination, kind, id) {
-    const marker = await db.prepare("SELECT revision FROM statuspage_import_targets WHERE kind=? AND id=?").bind(kind, id).first<{ revision: string }>();
+    const where = markerWhere(kind);
+    const marker = await db.prepare(`SELECT revision FROM ${markerTable(kind)} WHERE ${where.sql}`).bind(...where.params, id).first<{ revision: string }>();
     if (!marker) return undefined;
     return { destination, targetKind: kind, targetId: id, value: { tables: await readTables(db, kind, id) } as never, revision: marker.revision };
   },
@@ -71,9 +75,10 @@ export const statuspageTargets: D1TargetAdapter = {
     return { sql: conjunction(parts.map((part) => part.sql)), params: parts.flatMap((part) => part.params ?? []) };
   },
   matchesParts(row, _destination, kind, id) {
+    const where = markerWhere(kind);
     const parts: D1Sql[] = [{
-      sql: row ? "EXISTS(SELECT 1 FROM statuspage_import_targets WHERE kind=? AND id=? AND revision=?)" : "NOT EXISTS(SELECT 1 FROM statuspage_import_targets WHERE kind=? AND id=?)",
-      params: row ? [kind, id, row.revision] : [kind, id],
+      sql: row ? `EXISTS(SELECT 1 FROM ${markerTable(kind)} WHERE ${where.sql} AND revision=?)` : `NOT EXISTS(SELECT 1 FROM ${markerTable(kind)} WHERE ${where.sql})`,
+      params: row ? [...where.params, id, row.revision] : [...where.params, id],
     }];
     for (const [table, column] of Object.entries(tablesOf(kind))) parts.push(exactRows(table, column, id, row ? valueOf(row).tables[table] ?? [] : []));
     return parts;
@@ -87,22 +92,23 @@ export const statuspageTargets: D1TargetAdapter = {
       if (columns.some((key) => !/^\w+$/u.test(key)) || records.some((record) => Object.keys(record).length !== columns.length || columns.some((key) => !(key in record)))) throw new Error("Invalid native columns.");
       statements.push(...insertJsonRows(table, columns, records));
     }
-    statements.push({ sql: "INSERT INTO statuspage_import_targets(kind,id,revision) VALUES(?,?,?)", params: [row.targetKind, row.targetId, row.revision] });
+    statements.push(row.targetKind === "template" ? { sql: "INSERT INTO statuspage_import_template_targets(id,revision) VALUES(?,?)", params: [row.targetId, row.revision] } : { sql: "INSERT INTO statuspage_import_targets(kind,id,revision) VALUES(?,?,?)", params: [row.targetKind, row.targetId, row.revision] });
     return statements;
   },
   remove(_destination, kind, id) {
     // Child rows cascade from the owning row; history and claims cascade from a component.
     const [owner] = Object.keys(tablesOf(kind));
-    return [{ sql: `DELETE FROM ${owner} WHERE id=?`, params: [id] }, { sql: "DELETE FROM statuspage_import_targets WHERE kind=? AND id=?", params: [kind, id] }];
+    const where = markerWhere(kind);
+    return [{ sql: `DELETE FROM ${owner} WHERE id=?`, params: [id] }, { sql: `DELETE FROM ${markerTable(kind)} WHERE ${where.sql}`, params: [...where.params, id] }];
   },
   async list(db, destination) {
-    const markers = (await db.prepare("SELECT kind,id,revision FROM statuspage_import_targets ORDER BY kind,id").all<{ kind: string; id: string; revision: string }>()).results;
+    const markers = (await db.prepare("SELECT kind,id,revision FROM statuspage_import_targets UNION ALL SELECT 'template' AS kind,id,revision FROM statuspage_import_template_targets ORDER BY kind,id").all<{ kind: string; id: string; revision: string }>()).results;
     const rows: TargetRow[] = [];
     for (const marker of markers) rows.push({ destination, targetKind: marker.kind, targetId: marker.id, revision: marker.revision, value: { tables: await readTables(db, marker.kind, marker.id) } as never });
     return rows;
   },
   matchesCount(count) {
-    return { sql: "(SELECT count(*) FROM statuspage_import_targets)=?", params: [count] };
+    return { sql: "((SELECT count(*) FROM statuspage_import_targets)+(SELECT count(*) FROM statuspage_import_template_targets))=?", params: [count] };
   },
   async preparePreservedUndo(db: D1Database, destination: string, effects: D1UndoEffect[]) {
     const observations = [], dependencies: D1UndoDependency[] = [], guards: D1Sql[] = [];
@@ -112,7 +118,7 @@ export const statuspageTargets: D1TargetAdapter = {
       observations.push({ effectId: effect.provenance.id, current: current ?? null, entity: { table: Object.keys(tablesOf(kind))[0], recordId: id } });
       guards.push(...this.matchesParts!(current ?? null, destination, kind, id));
       // A component or group stays while anything native still cites it.
-      const citing = kind === "group" ? [["components", "group_id"]] : kind === "component" ? [["incident_components", "component_id"], ["maintenance_components", "component_id"], ["subscriber_components", "component_id"], ["component_standing_claims", "component_id"]] : [];
+      const citing = kind === "group" ? [["components", "group_id"]] : kind === "component" ? [["incident_components", "component_id"], ["maintenance_components", "component_id"], ["subscriber_components", "component_id"], ["component_standing_claims", "component_id"], ["incident_template_components", "component_id"]] : [];
       for (const [table, column] of citing) {
         const rows = (await db.prepare(`SELECT id FROM ${table} WHERE ${column}=? ORDER BY id`).bind(id).all<{ id: string }>()).results;
         guards.push({ sql: `(SELECT json_group_array(id) FROM (SELECT id FROM ${table} WHERE ${column}=? ORDER BY id))=?`, params: [id, JSON.stringify(rows.map((row) => row.id))] });

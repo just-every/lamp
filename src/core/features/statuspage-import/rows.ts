@@ -1,17 +1,20 @@
+import { attachPostmortem } from "./postmortems";
+import { mapTemplates } from "./templates";
 import { mostSevereState, type ComponentState, type IncidentLifecycle } from "../../shared/domain";
 import { sha256 } from "../../../../modules/import-kit/src/d1/index.ts";
 import type { SourceData, SourceIncident, SourceSubscriber } from "./source";
 
 export type Row = Record<string, string | number | null>;
-export type EntityKind = "group" | "component" | "incident" | "maintenance" | "subscriber";
+export type EntityKind = "group" | "component" | "incident" | "maintenance" | "subscriber" | "template";
 export interface NativeValue { tables: Record<string, Row[]> }
-export interface Accounting { kind: string; sourceId: string; name: string; outcome: "imported" | "changed" | "skipped" | "rejected"; reason: string }
+export interface Accounting { kind: string; sourceId: string; name: string; outcome: "imported" | "changed" | "skipped" | "rejected" | "kept-private"; reason: string }
 export interface Snapshot {
   maxGroupOrder: number;
   maxComponentOrder: number;
   lastReference: { INC: number; SCH: number };
   allocated: Set<string>;
   destinations: Set<string>;
+  templateNames?: Set<string>;
 }
 export interface Mapped { kind: EntityKind; sourceId: string; value?: NativeValue; accounting: Accounting[] }
 
@@ -19,8 +22,9 @@ export interface Mapped { kind: EntityKind; sourceId: string; value?: NativeValu
 export const entityTables: Record<EntityKind, Record<string, string>> = {
   group: { component_groups: "id" },
   component: { components: "id", component_claim_events: "component_id", component_state_history: "component_id" },
-  incident: { incidents: "id", incident_components: "incident_id", incident_updates: "incident_id" },
+  incident: { incidents: "id", incident_components: "incident_id", incident_updates: "incident_id", incident_reports: "incident_id" },
   maintenance: { maintenance: "id", maintenance_components: "maintenance_id" },
+  template: { incident_templates: "id", incident_template_components: "template_id" },
   subscriber: { subscribers: "id", subscriber_components: "subscriber_id" },
 };
 
@@ -79,7 +83,9 @@ export function mapSource(data: SourceData, snapshot: Snapshot, operatorId: stri
   const nextIncident = references("INC"), nextMaintenance = references("SCH");
 
   for (const incident of [...data.incidents].sort((a, b) => a.created_at.localeCompare(b.created_at) || a.id.localeCompare(b.id))) {
-    results.push(mapIncident(incident, components, claims, operatorId, asOf, nextIncident, identify, ["betterstack", "sorry"].includes(namespace) ? incident.resolved_at : undefined, namespace === "sorry" && incident.impact === "none"));
+    const mapped = mapIncident(incident, components, claims, operatorId, asOf, nextIncident, identify, ["betterstack", "sorry"].includes(namespace) ? incident.resolved_at : undefined, namespace === "sorry" && incident.impact === "none", namespace === "statuspage");
+    attachPostmortem(mapped, incident, operatorId, asOf, identify);
+    results.push(mapped);
   }
   for (const window of [...data.maintenance].sort((a, b) => (a.scheduled_for ?? a.created_at).localeCompare(b.scheduled_for ?? b.created_at) || a.id.localeCompare(b.id))) {
     results.push(mapMaintenance(window, components, claims, operatorId, asOf, nextMaintenance, identify, namespace !== "statuspage"));
@@ -103,11 +109,12 @@ export function mapSource(data: SourceData, snapshot: Snapshot, operatorId: stri
   });
 
   const subscriberResults = data.subscribers.map((subscriber) => mapSubscriber(subscriber, components, snapshot, asOf, identify, namespace));
-  const order: EntityKind[] = ["group", "component", "incident", "maintenance", "subscriber"];
-  return [...results, ...componentResults, ...subscriberResults].sort((a, b) => order.indexOf(a.kind) - order.indexOf(b.kind));
+  const templates = mapTemplates(data, components, snapshot, operatorId, asOf, identify);
+  const order: EntityKind[] = ["group", "component", "incident", "maintenance", "template", "subscriber"];
+  return [...results, ...componentResults, ...templates, ...subscriberResults].sort((a, b) => order.indexOf(a.kind) - order.indexOf(b.kind));
 }
 
-function mapIncident(incident: SourceIncident, components: Map<string, { id: string; name: string }>, claims: Claim[], operatorId: string, asOf: string, reference: () => string, identify: typeof stableId, sourceEndedAt?: string | null, allowUnattached = false): Mapped {
+function mapIncident(incident: SourceIncident, components: Map<string, { id: string; name: string }>, claims: Claim[], operatorId: string, asOf: string, reference: () => string, identify: typeof stableId, sourceEndedAt?: string | null, allowUnattached = false, independentImpact = false): Mapped {
   const name = incident.name;
   const updates = [...incident.incident_updates].sort((a, b) => at(a).localeCompare(at(b)) || a.id.localeCompare(b.id));
   if (!updates.length) return { kind: "incident", sourceId: incident.id, accounting: [{ kind: "incident", sourceId: incident.id, name, outcome: "rejected", reason: "No published updates to carry." }] };
@@ -116,7 +123,8 @@ function mapIncident(incident: SourceIncident, components: Map<string, { id: str
   const notes = new Set<string>();
   const current = new Map<string, ComponentState>();
   const peak: ComponentState[] = [];
-  for (const listed of incident.components ?? []) if (components.has(listed.id)) current.set(listed.id, impactStates[incident.impact ?? "minor"] ?? "Degraded performance");
+  // Statuspage impact is the recorded incident severity, not component evidence.
+  for (const listed of independentImpact ? [] : incident.components ?? []) if (components.has(listed.id)) current.set(listed.id, impactStates[incident.impact ?? "minor"] ?? "Degraded performance");
   const rows: Row[] = [];
   let lifecycle: IncidentLifecycle = "Investigating";
   let resolvedAt: string | null = null;
@@ -143,14 +151,14 @@ function mapIncident(incident: SourceIncident, components: Map<string, { id: str
     rows.push({ id: identify(`incident-update:${update.id}`, publishedAt), incident_id: id, lifecycle, affected_audience: clip(names.length ? `Customers using ${names.join(", ")}` : "All customers", 250), customer_impact: impact, what_still_works: "", details, next_update_at: null, published_at: publishedAt, author_operator_id: operatorId, corrects_update_id: null, is_retroactive: 1, created_at: asOf, updated_at: asOf });
   }
   if (claimEndsAt) for (const code of current.keys()) claims.push({ componentId: components.get(code)!.id, causeType: "incident", causeId: id, state: null, changedAt: claimEndsAt });
-  if (incident.postmortem_body) notes.add("the post-incident report is not carried");
+  if (independentImpact && incident.components?.some(component => !current.has(component.id))) notes.add("a listed component has no explicit state in the saved updates; no component claim was invented from the incident impact");
   const firstPublished = at(updates[0]);
   const attached = [...current.entries()].map(([code, state]) => ({ id: identify(`incident-component:${incident.id}:${code}`, firstPublished), incident_id: id, component_id: components.get(code)!.id, component_name: components.get(code)!.name, state, relationship: "Primary", created_at: asOf, updated_at: asOf, published_at: firstPublished }));
-  if (!attached.length && !allowUnattached) return { kind: "incident", sourceId: incident.id, accounting: [{ kind: "incident", sourceId: incident.id, name, outcome: "rejected", reason: "It names no component in the saved responses; Lamp incidents attach at least one." }] };
+  if (!attached.length && !allowUnattached) return { kind: "incident", sourceId: incident.id, accounting: [{ kind: "incident", sourceId: incident.id, name, outcome: "rejected", reason: independentImpact ? "No affected component with an explicit source state resolves in the saved responses; incident impact is not component-state evidence." : "It names no component in the saved responses; Lamp incidents attach at least one." }] };
   const title = clip(name, 250);
   if (title !== name) notes.add("the title was shortened to 250 characters");
   return { kind: "incident", sourceId: incident.id, value: { tables: {
-    incidents: [{ id, reference: reference(), title, lifecycle, opened_at: iso(incident.created_at), resolved_at: lifecycle === "Resolved" ? (incident.resolved_at ? iso(incident.resolved_at) : resolvedAt) : null, created_by_operator_id: operatorId, deleted_at: null, deletion_reason: null, created_at: asOf, updated_at: asOf, peak_impact: mostSevereState(peak) }],
+    incidents: [{ id, reference: reference(), title, lifecycle, opened_at: iso(incident.created_at), resolved_at: lifecycle === "Resolved" ? (incident.resolved_at ? iso(incident.resolved_at) : resolvedAt) : null, created_by_operator_id: operatorId, deleted_at: null, deletion_reason: null, created_at: asOf, updated_at: asOf, peak_impact: mostSevereState(peak), ...(independentImpact && ["none", "minor", "major", "critical"].includes(incident.impact ?? "") ? { impact_override: incident.impact! } : {}) }],
     incident_components: attached,
     incident_updates: rows,
   } }, accounting: [{ kind: "incident", sourceId: incident.id, name, outcome: notes.size ? "changed" : "imported", reason: `${updates.length} update${updates.length === 1 ? "" : "s"} at their original times, notifying no one${notes.size ? `; ${[...notes].join("; ")}` : ""}.` }] };

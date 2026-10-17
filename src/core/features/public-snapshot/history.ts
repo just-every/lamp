@@ -1,3 +1,4 @@
+import { incidentImpactMarkup } from "./record-markup";
 import type { PublicIncident, PublicMaintenance } from "./record-markup";
 import { noticeMarkup, recordHead, updateMarkup } from "./record-markup";
 import { DAY, durationText, escapeHtml, timestamp } from "./format";
@@ -16,7 +17,7 @@ function historyRecords(model: HistoryModel): HistoryRecord[] {
   return [
     ...model.incidents.filter(incident => incident.lifecycle === "Resolved" && incident.resolvedAt).map(incident => ({
       timestamp: incident.resolvedAt!,
-      html: () => `<article class="history-item">${recordHead("Incident", incident.reference, `<a href="/incidents/${encodeURIComponent(incident.reference)}">${escapeHtml(incident.title)}</a>`, "h3", incident.lifecycle)}<p class="incident-meta">Resolved ${timestamp(incident.resolvedAt!, timezone)} · ${escapeHtml(durationText(incident.openedAt, incident.resolvedAt!))}${incident.components.length ? ` · affected ${escapeHtml(incident.components.join(", "))}` : ""}</p><div class="updates">${incident.updates.map(update => updateMarkup(incident, update, timezone)).join("")}</div></article>`,
+      html: () => `<article class="history-item">${recordHead("Incident", incident.reference, `<a href="/incidents/${encodeURIComponent(incident.reference)}">${escapeHtml(incident.title)}</a>`, "h3", incident.lifecycle)}${incidentImpactMarkup(incident)}<p class="incident-meta">Resolved ${timestamp(incident.resolvedAt!, timezone)} · ${escapeHtml(durationText(incident.openedAt, incident.resolvedAt!))}${incident.components.length ? ` · affected ${escapeHtml(incident.components.join(", "))}` : ""}</p><div class="updates">${incident.updates.map(update => updateMarkup(incident, update, timezone)).join("")}</div></article>`,
     })),
     ...model.maintenance.filter(item => item.state === "Completed" || item.state === "Cancelled").map(item => ({
       timestamp: item.completedAt ?? item.endsAt,

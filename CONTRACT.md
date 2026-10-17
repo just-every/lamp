@@ -403,7 +403,7 @@ An operator can set an incident's impact explicitly, in Statuspage's vocabulary 
 
 Acceptance: an incident whose components claim only Degraded performance, set to impact "major", shows major on the page and in `/api/v2/incidents.json`, while the component and uptime figures are unchanged. Clearing the override returns the derived impact, and both changes appear on the internal timeline with the operator.
 
-Status: **missing**.
+Status: **done** — `src/core/features/incident-impact/`, `migrations/core/0031_incident_impact.sql`, `tests/e2e/helpers/incident-impact-flow.mjs`. Operators set or clear an attributed impact independently of claims; public snapshots, APIs and committed notifications carry it while component states and uptime remain claim-derived.
 
 ### Updates — target
 
@@ -951,7 +951,7 @@ The Statuspage reader (API key or saved responses, MOVE-001) also reads each inc
 
 Acceptance: a Statuspage fixture with two incidents, one with a published postmortem and one with a draft postmortem, and three incident templates dry-runs with "2 postmortems: 1 imported, 1 kept private; 3 templates: 3 imported" and writes nothing. After apply, no notification of any kind is queued. The old `/incidents/<id>` URL redirects to a Lamp permalink that shows the published postmortem's text with script disabled, and the draft's text appears on no public surface (page, permalinks, feeds, `/api/v2/*`, `/api/public/v1/`). Applying an imported template fills the composer with its components, states and wording and publishes nothing. Undo removes all five records. A separate fixture template whose body exceeds the details limit dry-runs with that template and field named, and its imported text is unchanged.
 
-Status: **partial** — `src/core/features/statuspage-import/source.ts`, `src/core/features/statuspage-import/rows.ts`. The Statuspage reader already parses each incident's `postmortem_body`, and the dry run notes "the post-incident report is not carried" for it. Post-incident reports (HIST-002) and templates (UPDATE-009) ship as native records to import into. No postmortem or template is imported, and `docs/moving-in.md` lists both as omitted.
+Status: **partial** — `src/core/features/statuspage-import/postmortems.ts`, `src/core/features/statuspage-import/templates.ts`, `tests/e2e/helpers/postmortem-template-import-flow.mjs`, `tests/e2e/helpers/imported-template-apply-flow.mjs`. Statuspage published reports retain original times, draft reports remain private, and templates retain metadata, component states and full oversized wording for shortening. Dry run, silent apply, repeat and conditional undo cover both. Gap: Status.io and incident.io readers are not built.
 
 #### MOVE-012 — Private and audience pages move as private.
 
@@ -1088,8 +1088,8 @@ Judged from the code and tests at commit `0eebe911043bd05c448af177fbeae52a377f36
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
 | Published | 104 | 0 | 0 | 104 |
-| Target and push further | 6 | 42 | 46 | 94 |
-| All | 110 | 42 | 46 | 198 |
+| Target and push further | 7 | 42 | 45 | 94 |
+| All | 111 | 42 | 45 | 198 |
 
 | Clause | Title | Kind | Status | Evidence | Gap |
 | --- | --- | --- | --- | --- | --- |
@@ -1152,7 +1152,7 @@ Judged from the code and tests at commit `0eebe911043bd05c448af177fbeae52a377f36
 | `INCIDENT-010` | Update due | published | done | `tests/e2e/update-reminders.test.mjs` |  |
 | `INCIDENT-011` | A named communication owner | target | partial | `src/core/features/incidents/reminders.ts`, `tests/e2e/update-reminders.test.mjs` | Due and overdue reminders ship to operators. Owners, escalation and the Oncall handoff do not. |
 | `INCIDENT-012` | Run the incident from Slack or Teams | target | missing |  | Not built. |
-| `INCIDENT-013` | Impact set by the operator | target | missing |  | Not built. |
+| `INCIDENT-013` | Impact set by the operator | target | done | `src/core/features/incident-impact/`, `migrations/core/0031_incident_impact.sql`, `tests/e2e/helpers/incident-impact-flow.mjs` | Operators set or clear an attributed impact independently of claims; public snapshots, APIs and committed notifications carry it while component states and uptime remain claim-derived. |
 | `UPDATE-001` | Template | published | done | `tests/e2e/publishing-contract.test.mjs`, `tests/reference-storage/incident-publishing.test.mjs`, `tests/reference-storage/migration.test.mjs` |  |
 | `UPDATE-002` | One rendering | published | done | `tests/e2e/publishing-browser.test.mjs`, `tests/e2e/publishing-contract.test.mjs` |  |
 | `UPDATE-003` | Sets the lifecycle | published | done | `tests/e2e/publishing-contract.test.mjs` |  |
@@ -1278,7 +1278,7 @@ Judged from the code and tests at commit `0eebe911043bd05c448af177fbeae52a377f36
 | `MOVE-008` | From incident.io Status Pages | target | missing |  | Not built. |
 | `MOVE-009` | Statuspage consumers keep working at cutover | target | partial | `src/core/features/statuspage-import/public-paths.mjs`, `src/core/features/public-snapshot/import-aliases.ts`, `tests/e2e/statuspage-import.test.mjs` | History and Atom aliases are served after import (MOVE-005). JSON API, RSS and embed compatibility are missing, and Cutover reports them as unsupported (MOVE-006). |
 | `MOVE-010` | Every subscriber channel moves | target | missing |  | Released imports carry email subscribers only (`src/core/features/statuspage-import/`). |
-| `MOVE-011` | Postmortems and templates move | target | partial | `src/core/features/statuspage-import/source.ts`, `src/core/features/statuspage-import/rows.ts` | The Statuspage reader already parses each incident's `postmortem_body`, and the dry run notes "the post-incident report is not carried" for it. Post-incident reports (HIST-002) and templates (UPDATE-009) ship as native records to import into. No postmortem or template is imported, and `docs/moving-in.md` lists both as omitted. |
+| `MOVE-011` | Postmortems and templates move | target | partial | `src/core/features/statuspage-import/postmortems.ts`, `src/core/features/statuspage-import/templates.ts`, `tests/e2e/helpers/postmortem-template-import-flow.mjs`, `tests/e2e/helpers/imported-template-apply-flow.mjs` | Statuspage published reports retain original times, draft reports remain private, and templates retain metadata, component states and full oversized wording for shortening. Dry run, silent apply, repeat and conditional undo cover both. Gap: Status.io and incident.io readers are not built. |
 | `MOVE-012` | Private and audience pages move as private | target | partial | `src/core/features/statuspage-import/betterstack/read.ts`, `src/core/features/statuspage-import/instatus/normalize.ts`, `src/core/features/statuspage-import/sorry/read.ts`, `tests/betterstack/reader.test.mjs` | The Better Stack, Instatus and Sorry readers refuse private, password-protected, IP-restricted and audience-scoped sources rather than publishing them. The Statuspage reader reads no visibility at all (`docs/moving-in.md`), so a private Statuspage page would import as public, and private and audience pages (AUD-001 to AUD-005) are not built. |
 | `PORT-001` | Every new record travels | target | partial | `tests/e2e/export-import.test.mjs` | Export, clean restore and equivalent re-export cover every released record (HIST-004). Target entities are not built. |
 | `PORT-002` | Erasure reaches every new identifier | target | partial | `tests/e2e/subscriber-erasure.test.mjs`, `tests/auth-adoption/operator-erasure.test.mjs` | Subscriber and operator erasure ship for released records. The identifiers that target clauses add are not built. |

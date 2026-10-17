@@ -14,16 +14,16 @@ type Preview = { report: MoveInReport; jobId?: string; files?: SavedFile[] };
 type Job = { id: string; namespace?: string; state: string; checkpoint: number; total: number };
 type Result = { job: Job; report: MoveInReport; invites: { sent: number; remaining: number }; undo?: { dispositions: Array<{ disposition: string; targetKind?: string; reason?: string }>; expiredSubscribers: number } };
 
-const kindLabels: Record<string, string> = { group: "Component groups", component: "Components", incident: "Incidents", maintenance: "Maintenance", subscriber: "Subscribers" };
+const kindLabels: Record<string, string> = { group: "Component groups", component: "Components", incident: "Incidents", maintenance: "Maintenance", subscriber: "Subscribers", postmortem: "Postmortems", template: "Incident templates" };
 
 function ReportTable({ report }: { report: MoveInReport }) {
-  return <>{report.unavailableAddresses?.length > 0 && <div role="status"><p>Some old public addresses are unavailable:</p><ul>{report.unavailableAddresses.map((reason) => <li key={reason}>{reason}</li>)}</ul></div>}<div className="table-scroll" tabIndex={0} role="region" aria-label="Move-in counts"><table><thead><tr><th scope="col">Records</th><th scope="col">Read</th><th scope="col">Imported</th><th scope="col">Changed</th><th scope="col">Skipped</th><th scope="col">Refused</th></tr></thead><tbody>{Object.entries(report.counts).map(([kind, count]) => <tr key={kind}><th scope="row">{kindLabels[kind] ?? kind}</th><td>{count.read}</td><td>{count.imported}</td><td>{count.changed}</td><td>{count.skipped}</td><td>{count.rejected}</td></tr>)}</tbody></table></div></>;
+  return <>{report.unavailableAddresses?.length > 0 && <div role="status"><p>Some old public addresses are unavailable:</p><ul>{report.unavailableAddresses.map((reason) => <li key={reason}>{reason}</li>)}</ul></div>}<div className="table-scroll" tabIndex={0} role="region" aria-label="Move-in counts"><table><thead><tr><th scope="col">Records</th><th scope="col">Read</th><th scope="col">Imported</th><th scope="col">Kept private</th><th scope="col">Changed</th><th scope="col">Skipped</th><th scope="col">Refused</th></tr></thead><tbody>{Object.entries(report.counts).map(([kind, count]) => <tr key={kind}><th scope="row">{kindLabels[kind] ?? kind}</th><td>{count.read}</td><td>{count.imported}</td><td>{count["kept-private"] ?? 0}</td><td>{count.changed}</td><td>{count.skipped}</td><td>{count.rejected}</td></tr>)}</tbody></table></div></>;
 }
 
 function ReportItems({ report }: { report: MoveInReport }) {
   const notable = report.items.filter((item) => item.outcome !== "imported");
   if (!notable.length) return <p>Every record carries over unchanged.</p>;
-  return <details><summary>{notable.length} record{notable.length === 1 ? "" : "s"} changed, skipped or refused</summary><ul className="move-in-items">{notable.map((item) => <li key={`${item.kind}:${item.sourceId}`}><strong>{item.name}</strong> ({item.outcome}): {item.reason}</li>)}</ul></details>;
+  return <details><summary>{notable.length} record{notable.length === 1 ? "" : "s"} changed, kept private, skipped or refused</summary><ul className="move-in-items">{notable.map((item) => <li key={`${item.kind}:${item.sourceId}`}><strong>{item.name}</strong> ({item.outcome}): {item.reason}</li>)}</ul></details>;
 }
 
 /** Settings → Move in: a dry run first, then the import, then undo. */

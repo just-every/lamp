@@ -1,4 +1,5 @@
-import { renderIncidentUpdate } from "../incidents/renderer";
+import { renderNotificationUpdate } from "../../shared/update-renderer";
+import { impactLabel } from "../../shared/incident-impact";
 import { renderLampSlackMessage } from "../channels/slack-message";
 import { parsePublishedComponentChanges } from "../../shared/incident-component-changes";
 import { formatTime } from "../public-snapshot/format";
@@ -9,7 +10,8 @@ export function renderSubscriberSlackMessage(delivery: DispatchableDelivery, ori
   const time = (instant: string) => formatTime(instant, delivery.timezone ?? "UTC");
   if (delivery.incidentUpdateId) {
     if (delivery.incidentReference === null || delivery.incidentTitle === null || delivery.lifecycle === null || delivery.affectedAudience === null || delivery.customerImpact === null) throw new Error("Slack incident update content is unavailable.");
-    const update = renderIncidentUpdate({
+    const update = renderNotificationUpdate({
+      incidentImpact: delivery.incidentImpact,
       incidentReference: delivery.incidentReference, incidentTitle: delivery.incidentTitle, lifecycle: delivery.lifecycle,
       affectedAudience: delivery.affectedAudience, customerImpact: delivery.customerImpact,
       whatStillWorks: delivery.whatStillWorks ?? "", details: delivery.details ?? "", nextUpdateAt: delivery.nextUpdateAt,
@@ -27,6 +29,7 @@ export function renderSubscriberSlackMessage(delivery: DispatchableDelivery, ori
     const fields = [["Summary", delivery.reportSummary], ["Timeline", delivery.reportTimeline], ["Cause", delivery.reportCause], ["Remediation", delivery.reportRemediation]];
     return renderLampSlackMessage(`[${delivery.incidentReference}] Post-incident report`, [
       `${delivery.incidentReference}: ${delivery.incidentTitle}`,
+      ...(delivery.incidentImpact === null ? [] : [`Incident impact: ${impactLabel(delivery.incidentImpact)}`]),
       ...fields.flatMap(([label, value]) => value ? [`${label}: ${value}`] : []),
       new URL(`/incidents/${encodeURIComponent(delivery.incidentReference)}`, origin).href,
     ]);

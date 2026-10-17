@@ -1,7 +1,10 @@
+import { incidentImpact, type IncidentImpact } from "../../shared/incident-impact";
+import { createIncidentTemplateService, type IncidentTemplateService } from "./template-service";
+export type { IncidentTemplateInput } from "./template-schema";
 import { stageComponentChoices, publicationComponents, componentChangeRecord } from "./component-staging";
 import type { IncidentComponentChoice, IncidentClaimState, PublishedIncidentComponentChange } from "../../shared/incident-component-changes";
 import type { UpdateChannel } from "../../shared/domain";
-import { mostSevereState, type ComponentState, type IncidentLifecycle } from "../../shared/domain";
+import { mostSevereState, type ComponentState } from "../../shared/domain";
 import { createUlid, nowIso } from "../../shared/ids";
 import type { IncidentDraftInput } from "../../shared/schemas";
 import type { LampEventDispatcher } from "../../api/extensions";
@@ -10,10 +13,12 @@ import { renderIncidentUpdate, type RenderedIncidentUpdate } from "./renderer";
 import { defaultUpdateDuePolicy, defaultUpdateReviewPolicy, type UpdateDuePolicy, type UpdateReviewPolicy } from "./policies";
 import { updateDueState } from "./reminders";
 import { DraftConflictError } from "./repository";
-import type { IncidentPublishRecord, IncidentRepository, IncidentTemplateComponentRecord, IncidentTemplateRecord, PublishingDraft, StoredIncident, StoredIncidentComponent, StoredIncidentDraft, StoredIncidentUpdate } from "./repository";
+import type { IncidentPublishRecord, IncidentRepository, PublishingDraft, StoredIncident, StoredIncidentComponent, StoredIncidentDraft, StoredIncidentUpdate } from "./repository";
 
 export interface IncidentView extends StoredIncident {
   impact: ComponentState | null;
+  derivedImpact: IncidentImpact;
+  effectiveImpact: IncidentImpact;
   components: StoredIncidentComponent[];
   updates: StoredIncidentUpdate[];
   draft: PublishingDraft | null;
@@ -42,7 +47,7 @@ export interface IncidentComponentChangePreview {
   webhookRecipients: number;
 }
 
-export interface IncidentsService {
+export interface IncidentsService extends IncidentTemplateService {
   previewComponentChange(incidentId: string, change: IncidentComponentChange): Promise<IncidentComponentChangePreview>;
   attachComponent(incidentId: string, claim: { componentId: string; state: ComponentState; relationship: "Primary" | "Dependent" }, operatorId: string): Promise<void>;
   detachComponent(incidentId: string, componentId: string, operatorId: string): Promise<void>;
@@ -58,22 +63,8 @@ export interface IncidentsService {
   addInternalNote(incidentId: string, body: string, operatorId: string): Promise<boolean>;
   publishDue(now?: string): Promise<{ published: string[]; heldForReview: string[] }>;
   delete(incidentId: string, reason: string, operatorId: string): Promise<string | null>;
-  listTemplates(): Promise<Array<IncidentTemplateRecord & { components: IncidentTemplateComponentRecord[] }>>;
-  saveTemplate(input: IncidentTemplateInput, operatorId: string): Promise<IncidentTemplateRecord & { components: IncidentTemplateComponentRecord[] }>;
-  applyTemplate(incidentId: string, templateId: string, operatorId: string, expectedVersion: string): Promise<StoredIncidentDraft | null>;
   finishPublication(update: StoredIncidentUpdate): Promise<void>;
   finishDeletion(incidentId: string, operatorId: string, deletedAt: string): Promise<void>;
-}
-
-export interface IncidentTemplateInput {
-  name: string;
-  lifecycle: IncidentLifecycle;
-  affectedAudience: string;
-  customerImpact: string;
-  whatStillWorks: string;
-  details: string;
-  nextUpdateOffsetMinutes: number;
-  components: Array<{ componentId: string; state: ComponentState; relationship: "Primary" | "Dependent" }>;
 }
 
 export interface IncidentPublicationStatements {
@@ -104,7 +95,7 @@ async function toIncidentView(repository: IncidentRepository, incident: StoredIn
     repository.findPeakImpact(incident.id),
   ]);
   const impact = peakImpact ?? (components.length === 0 ? null : mostSevereState(components.map((component) => component.state)));
-  return { ...incident, impact, components, updates, draft, internalNotes, ...updateDueState({ lifecycle: incident.lifecycle, nextUpdateAt: updates[0]?.nextUpdateAt ?? null, leadMinutes, now: Date.now() }) };
+  return { ...incident, impact, ...incidentImpact(impact, incident.impactOverride), components, updates, draft, internalNotes, ...updateDueState({ lifecycle: incident.lifecycle, nextUpdateAt: updates[0]?.nextUpdateAt ?? null, leadMinutes, now: Date.now() }) };
 }
 
 function assertPublishableDraft(draft: PublishingDraft, components: StoredIncidentComponent[]) {
@@ -240,7 +231,7 @@ export function createIncidentsService(
         const components = relations.components.get(incident.id) ?? [];
         const updates = relations.updates.get(incident.id) ?? [];
         const impact = relations.impacts.get(incident.id) ?? (components.length ? mostSevereState(components.map(component => component.state)) : null);
-        return { ...incident, impact, components, updates, draft: relations.drafts.get(incident.id) ?? null, internalNotes: relations.notes.get(incident.id) ?? [], ...updateDueState({ lifecycle: incident.lifecycle, nextUpdateAt: updates[0]?.nextUpdateAt ?? null, leadMinutes, now: Date.now() }) };
+        return { ...incident, impact, ...incidentImpact(impact, incident.impactOverride), components, updates, draft: relations.drafts.get(incident.id) ?? null, internalNotes: relations.notes.get(incident.id) ?? [], ...updateDueState({ lifecycle: incident.lifecycle, nextUpdateAt: updates[0]?.nextUpdateAt ?? null, leadMinutes, now: Date.now() }) };
       });
     },
     async get(incidentId) {
@@ -348,33 +339,7 @@ export function createIncidentsService(
       if (!(await repository.softDelete(incidentId, reason.trim(), operatorId, deletedAt, createUlid(), claimEvents))) return null;
       return deletedAt;
     },
-    listTemplates: () => repository.listTemplates(),
-    async saveTemplate(input, operatorId) {
-      if (!input.name.trim() || input.name.length > 120) throw new Error("Template name is required and must be at most 120 characters.");
-      if (!Number.isInteger(input.nextUpdateOffsetMinutes) || input.nextUpdateOffsetMinutes < 1 || input.nextUpdateOffsetMinutes > 7 * 24 * 60) throw new Error("Template next-update offset must be between 1 minute and 7 days.");
-      if (!input.components.length) throw new Error("A template must attach at least one component.");
-      if (!input.affectedAudience.trim() || !input.customerImpact.trim()) throw new Error("A template needs affected audience and customer impact.");
-      if (input.affectedAudience.length > 250 || input.customerImpact.length > 250 || input.whatStillWorks.length > 250 || input.details.length > 500) throw new Error("The template exceeds update field limits.");
-      const records = await Promise.all(input.components.map(async (claim) => ({ claim, component: await componentsService.get(claim.componentId) })));
-      if (records.some(({ component }) => !component)) throw new Error("A template component no longer exists.");
-      const timestamp = nowIso(); const id = createUlid();
-      await repository.saveTemplate({ id, name: input.name.trim(), lifecycle: input.lifecycle, affectedAudience: input.affectedAudience.trim(), customerImpact: input.customerImpact.trim(), whatStillWorks: input.whatStillWorks.trim(), details: input.details.trim(), nextUpdateOffsetMinutes: input.nextUpdateOffsetMinutes, createdByOperatorId: operatorId, createdAt: timestamp, updatedAt: timestamp }, records.map(({ claim, component }) => ({ id: createUlid(), templateId: id, componentId: claim.componentId, componentName: component!.name, state: claim.state, relationship: claim.relationship, createdAt: timestamp, updatedAt: timestamp })));
-      return (await repository.listTemplates()).find((template) => template.name === input.name.trim())!;
-    },
-    async applyTemplate(incidentId, templateId, operatorId, expectedVersion) {
-      const [incident, template] = await Promise.all([repository.findIncident(incidentId), repository.findTemplate(templateId)]);
-      if (!incident || !template) return null;
-      if (template.nextUpdateOffsetMinutes === null) throw new Error("Template has no next-update offset.");
-      const templateComponents = await Promise.all(template.components.map(async (claim) => ({ claim, component: claim.componentId ? await componentsService.get(claim.componentId) : null })));
-      if (templateComponents.some(({ component }) => !component)) throw new Error("A template component no longer exists.");
-      const timestamp = nowIso(); const current = await repository.listComponents(incidentId);
-      const currentDraft = await repository.findPublishingDraft(incidentId);
-      const componentChanges = await stageComponentChoices(templateComponents.map(({ claim }) => ({ componentId: claim.componentId!, state: claim.state, relationship: claim.relationship })), currentDraft?.componentChanges ?? [], current, componentsService);
-
-      const draft: StoredIncidentDraft = { id: createUlid(), incidentId, lifecycle: template.lifecycle, affectedAudience: template.affectedAudience, customerImpact: template.customerImpact, whatStillWorks: template.whatStillWorks, details: template.details, nextUpdateAt: new Date(Date.now() + template.nextUpdateOffsetMinutes * 60_000).toISOString(), componentChanges, authorOperatorId: operatorId, createdAt: timestamp, updatedAt: timestamp };
-      await repository.applyTemplate(incidentId, draft, expectedVersion);
-      return draft;
-    },
+    ...createIncidentTemplateService(repository, componentsService),
     finishPublication,
     finishDeletion,
   };

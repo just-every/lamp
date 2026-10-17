@@ -1,3 +1,4 @@
+import { registerIncidentImpactRoutes } from "../features/incident-impact";
 import { registerSetupRoutes } from "../features/setup/routes";
 import { authResponse } from "../platform/auth/http";
 import { Hono } from "hono";
@@ -55,6 +56,7 @@ export function createApp(bindings: AppBindings, execution?: MailExecution) {
   registerCatalogueRoutes(app, services.componentCatalogue);
   registerComponentRoutes(app, services.components);
   registerIncidentRoutes(app, services.incidents, { hasChatChannels: async () => (await services.channels.list()).length > 0, wordingChecks: async () => { const settings = await services.pageSettings.get(); if (!settings) throw new Error("Page settings are not configured."); return { blockedTerms: settings.wordingBlockedTerms, friendlyLength: settings.wordingFriendlyLength }; } });
+  registerIncidentImpactRoutes(app, services.incidentImpact);
   registerReportRoutes(app, services.reports);
   registerBriefRoutes(app, services.briefs);
   registerAiRoutes(app, services.ai);

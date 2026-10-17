@@ -124,6 +124,7 @@ export const incidents = sqliteTable("incidents", {
   lifecycle: text({ enum: ["Investigating", "Identified", "Monitoring", "Resolved"] }).$type<IncidentLifecycle>().notNull(),
   openedAt: text("opened_at").notNull(),
   resolvedAt: text("resolved_at"),
+  impactOverride: text("impact_override", { enum: ["none", "minor", "major", "critical"] }).$type<import("./incident-impact").IncidentImpact>(),
   createdByOperatorId: text("created_by_operator_id").notNull().references(() => operators.id),
   deletedAt: text("deleted_at"),
   deletionReason: text("deletion_reason"),

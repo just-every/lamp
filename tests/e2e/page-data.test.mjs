@@ -75,6 +75,13 @@ test("Page data restores verified consent and holds unverified addresses until c
     const form = new FormData();
     form.set("logo", new Blob([logo], { type: "image/png" }), "logo.png");
     assert.equal((await source.request("/api/app/page-settings/logo", { method: "POST", body: form, headers: { Accept: "application/json" } })).status, 200);
+    const template = await source.request("/api/app/incident-templates", json({ name: "Regional API recovery", lifecycle: "Monitoring", affectedAudience: "Public API customers", customerImpact: "Request errors are recovering.", whatStillWorks: "The dashboard remains available.", details: "We are watching the recovered workers.", nextUpdateOffsetMinutes: 60, components: [{ componentId: "01J00000000000000000000011", state: "Degraded performance", relationship: "Primary" }] }));
+    assert.equal(template.status, 201, await template.clone().text());
+    const savedTemplate = (await template.json()).template;
+    const templateMetadata = await source.request(`/api/app/incident-templates/${savedTemplate.id}`, { method: "PUT", body: JSON.stringify({ title: "API recovery", folder: "Operations", shouldSendNotifications: false }), headers: { "Content-Type": "application/json" } });
+    assert.equal(templateMetadata.status, 200, await templateMetadata.clone().text());
+    const impact = await source.request("/api/app/incidents/01J00000000000000000000020/impact", { method: "PUT", body: JSON.stringify({ impactOverride: "minor" }), headers: { "Content-Type": "application/json" } });
+    assert.equal(impact.status, 200, await impact.clone().text());
     const download = await source.request("/api/app/page-data");
     assert.equal(download.status, 200);
     assert.match(download.headers.get("content-disposition") ?? "", /attachment; filename=lamp-page-data-\d{4}-\d{2}-\d{2}\.json/);
@@ -89,6 +96,12 @@ test("Page data restores verified consent and holds unverified addresses until c
     assert.equal(subscribers["pending@customer.example"].confirmed_at, null);
     assert.ok(exported.records.subscribers.every((row) => !("token_hash" in row)), "an installation credential left in the file");
     assert.ok(exported.records.incident_updates.some((row) => row.author_email === "former@example.test"));
+    assert.equal(exported.records.incident_templates[0].name, "Regional API recovery");
+    assert.equal(exported.records.incident_templates[0].should_send_notifications, 0);
+    assert.equal(exported.records.incident_template_components[0].component_id, "01J00000000000000000000011");
+    assert.equal(exported.records.incident_impact_changes[0].impact_override, "minor");
+    assert.ok(exported.records.incident_impact_changes[0].operator_email, "impact attribution travels as an author, never an installation operator ID");
+
 
     const populated = await (await source.request("/api/app/page-data/check", json(exported))).json();
     assert.equal(populated.check.ok, false, "a page that already holds records must refuse a restore");

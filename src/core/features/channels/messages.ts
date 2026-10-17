@@ -1,4 +1,5 @@
-import { renderIncidentUpdate } from "../incidents/renderer";
+import { renderNotificationUpdate } from "../../shared/update-renderer";
+import type { IncidentImpact } from "../../shared/incident-impact";
 import { formatTime } from "../public-snapshot/format";
 import { renderUpdateTeams } from "../../shared/update-links";
 import type { IncidentLifecycle } from "../../shared/domain";
@@ -6,6 +7,7 @@ import type { PublishedIncidentComponentChange } from "../../shared/incident-com
 import { renderLampSlackMessage } from "./slack-message";
 
 export interface ChannelPostData {
+  incidentImpact: IncidentImpact | null;
   reference: string;
   title: string;
   lifecycle: IncidentLifecycle;
@@ -20,7 +22,8 @@ export interface ChannelPostData {
 }
 
 function channelUpdate(data: ChannelPostData) {
-  return renderIncidentUpdate({
+  return renderNotificationUpdate({
+    incidentImpact: data.incidentImpact,
     incidentReference: data.reference, incidentTitle: data.title, lifecycle: data.lifecycle,
     affectedAudience: data.affectedAudience, customerImpact: data.customerImpact,
     whatStillWorks: data.whatStillWorks, details: data.details, nextUpdateAt: data.nextUpdateAt,

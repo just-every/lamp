@@ -1,9 +1,10 @@
 import assert from "node:assert/strict";
-import { execFileSync } from "node:child_process";
 import { readdirSync, readFileSync } from "node:fs";
 import { createServer } from "node:http";
 import { join } from "node:path";
 import { after, before } from "node:test";
+
+import { continuityFiles, assertContinuityCounts, postmortemTemplateImportFlow } from "./helpers/postmortem-template-import-flow.mjs";
 
 import { contract } from "../contract.mjs";
 
@@ -63,12 +64,12 @@ async function importAll(files) {
 before(async () => {
   statuspage = createServer((request, response) => {
     statuspageRequests.push({ method: request.method, url: request.url, authorization: request.headers.authorization });
-    const match = /^\/v1\/pages\/synthpage01\/([a-z/-]+)\?/u.exec(request.url ?? "");
+    const match = /^\/v1\/pages\/synthpage01\/([a-z/_-]+)\?/u.exec(request.url ?? "");
     if (request.headers.authorization !== `OAuth ${API_KEY}`) { response.writeHead(401).end("{}"); return; }
-    const resource = match?.[1].replace("/", "-");
+    const resource = match?.[1].replace("/", "-").replaceAll("_", "-");
     const page = Number(new URL(request.url, "http://x").searchParams.get("page"));
     const name = page === 1 ? `${resource}.json` : `${resource}-${page}.json`;
-    const file = fixtures("small").find((candidate) => candidate.name === name);
+    const file = continuityFiles(fixtures("small")).find((candidate) => candidate.name === name);
     response.writeHead(200, { "Content-Type": "application/json" }).end(file?.text ?? "[]");
   });
   await new Promise((resolve) => statuspage.listen(0, "127.0.0.1", resolve));
@@ -91,10 +92,11 @@ contract("MOVE-001", "a dry run reports every record and writes nothing; the API
   assert.equal(unauthenticated.status, 401);
   const preview = await api("/api/app/statuspage-import/preview", { pageId: "synthpage01", apiKey: API_KEY });
   assert.equal(preview.status, 200, JSON.stringify(preview.body));
-  assert.deepEqual(Object.fromEntries(Object.entries(preview.body.report.counts).map(([kind, count]) => [kind, count.imported + count.changed])), { group: 0, component: 2, incident: 2, maintenance: 0, subscriber: 2 });
-  assert.ok(statuspageRequests.length >= 5 && statuspageRequests.every((request) => request.method === "GET" && request.authorization === `OAuth ${API_KEY}`));
+  assert.deepEqual(Object.fromEntries(Object.entries(preview.body.report.counts).map(([kind, count]) => [kind, count.imported + count.changed])), { group: 0, component: 2, incident: 2, maintenance: 0, subscriber: 2, template: 3, postmortem: 1 });
+  assertContinuityCounts(preview.body.report);
+  assert.ok(statuspageRequests.length >= 6 && statuspageRequests.every((request) => request.method === "GET" && request.authorization === `OAuth ${API_KEY}`));
   // The fetched responses come back to the owner as saved responses; the key does not.
-  assert.deepEqual(preview.body.files.map((file) => file.name).sort(), ["component-groups.json", "components.json", "incidents-scheduled.json", "incidents.json", "subscribers.json"]);
+  assert.deepEqual(preview.body.files.map((file) => file.name).sort(), ["component-groups.json", "components.json", "incident-templates.json", "incidents-scheduled.json", "incidents.json", "subscribers.json"]);
   assert.doesNotMatch(JSON.stringify(preview.body), new RegExp(API_KEY));
   const refusedKey = await api("/api/app/statuspage-import/preview", { pageId: "synthpage01", apiKey: "wrong-key-wrong-key-0001" });
   assert.equal(refusedKey.status, 400);
@@ -115,6 +117,10 @@ contract("MOVE-001", "a dry run reports every record and writes nothing; the API
   const stale = await api("/api/app/statuspage-import/apply", { files: fixtures("small"), asOf: preview.body.report.asOf, fingerprint: "0".repeat(64), acknowledged: true });
   assert.equal(stale.status, 409);
   assert.deepEqual(await counts(), before);
+  const mailBefore = await notificationActivity(runtime);
+  await postmortemTemplateImportFlow({ api, request: (path, init) => nativeRequest(path, { cookie, ...init }), importAll, original: fixtures("small"), publicOrigin });
+  assert.deepEqual(await counts(), before, "complete undo removes both reports and all three templates");
+  await assertNoNewNotifications(runtime, mailBefore, "postmortem/template preview, apply, repeat and undo send nothing");
 });
 
 contract("MOVE-002", "an import is retroactive: history keeps its times, nobody is notified of it, and subscribers are invited only by the owner", async t => {
@@ -258,4 +264,7 @@ contract("MOVE-004", "undo removes what the import created and keeps what an ope
   const independentSmall = fixtures("small").map((file) => ({ ...file, text: file.text.replaceAll("i000000000", "small00000").replaceAll("c000000000", "smallcomp0").replaceAll("https://stspg.io/", "https://stspg.io/small-") }));
   await importAll(independentSmall);
   assert.deepEqual(await counts(), { ...after, components: after.components + 2, incidents: after.incidents + 2, subscribers: after.subscribers + 2 });
+  const continuityMailBefore = await notificationActivity(runtime);
+  await postmortemTemplateImportFlow({ api, request: (path, init) => nativeRequest(path, { cookie, ...init }), importAll, original: fixtures("small"), publicOrigin, preserveEdits: true });
+  await assertNoNewNotifications(runtime, continuityMailBefore, "edited report/template undo sends nothing");
 });

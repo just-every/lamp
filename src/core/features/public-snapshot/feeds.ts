@@ -1,3 +1,4 @@
+import { impactLabel } from "../../shared/incident-impact";
 import { renderAtomContent, renderRssDescription } from "./feed-content";
 import type { PublicSnapshotModel, SnapshotArtifact } from "./renderer";
 import type { PublicSnapshotSource } from "./repository";
@@ -22,7 +23,7 @@ export function publicFeedEntries(model: PublicSnapshotModel): FeedEntry[] {
       id: `update-${update.id}`,
       title: `${incident.reference}: ${incident.title}`,
       publishedAt: update.publishedAt,
-      content: [updateText(incident, update, model.settings.timezone), incident.components.length ? `Affected components: ${incident.components.join(", ")}` : ""].filter(Boolean).join("\n\n"),
+      content: [`Incident impact: ${impactLabel(incident.effectiveImpact)}`, updateText(incident, update, model.settings.timezone), incident.components.length ? `Affected components: ${incident.components.join(", ")}` : ""].filter(Boolean).join("\n\n"),
       path: `/incidents/${encodeURIComponent(incident.reference)}`,
       recordKind: "incident" as const,
       recordId: incident.id,

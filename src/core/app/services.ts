@@ -1,3 +1,4 @@
+import { createIncidentImpactRepository, createIncidentImpactService } from "../features/incident-impact";
 import { publicPageOrigin } from "./public-origin";
 import { createRetainedSnapshotCache } from "../platform/blobs/retained";
 import type { AppBindings } from "./types";
@@ -36,6 +37,7 @@ export function createAppServices(bindings: AppBindings, blobs: BlobStore, execu
   const { sender: mail, local } = createAppMailTransport(bindings, extensions.adapters["mail.sender.v1"], execution);
   const snapshotOrigin = bindings.LAMP_LOCAL_ORIGIN ? publicPageOrigin(bindings.LAMP_LOCAL_ORIGIN, bindings.LAMP_PAGE_HOST) : undefined;
   const publicSnapshots = createPublicSnapshotService(createSnapshotRepository(bindings.DB, snapshotOrigin), blobs, extensions.publicSnapshotPolicies, extensions.publicSnapshotEvents, extensions.slots, createRetainedSnapshotCache(bindings));
+  const incidentImpact = createIncidentImpactService(createIncidentImpactRepository(bindings.DB), publicSnapshots.rebuild);
   const pageSettings = createPageSettingsService(createPageSettingsRepository(bindings.DB), publicSnapshots.rebuild, blobs, bindings.MAIL_FROM_ADDRESS);
   const configuredFromAddress = async () => (await pageSettings.get())?.mailFromAddress ?? bindings.MAIL_FROM_ADDRESS;
   const configuredPageName = async () => {
@@ -163,7 +165,7 @@ export function createAppServices(bindings: AppBindings, blobs: BlobStore, execu
     sendConfirmation: async (subscriberId) => subscribers.inviteImported(subscriberId, await importPublicOrigin(), (await pageSettings.get())?.pageName ?? "This status page", async () => true),
   });
 
-  return { auth, operators, pageSettings, pageExport, components, componentCatalogue, incidents, maintenance, subscribers, deliveries, reports, intake, briefs, ai, overview, updateReminders, publicSnapshots, statuspageImport, channels };
+  return { auth, operators, incidentImpact, pageSettings, pageExport, components, componentCatalogue, incidents, maintenance, subscribers, deliveries, reports, intake, briefs, ai, overview, updateReminders, publicSnapshots, statuspageImport, channels };
 }
 
 export type AppServices = ReturnType<typeof createAppServices>;

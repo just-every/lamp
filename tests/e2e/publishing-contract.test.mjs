@@ -1,3 +1,5 @@
+import { incidentImpactFlow } from "./helpers/incident-impact-flow.mjs";
+import { importedTemplateApplyFlow } from "./helpers/imported-template-apply-flow.mjs";
 import { reviewUpdateFlow } from "./helpers/review-update-flow.mjs";
 import { updateComponentFlow } from "./helpers/update-component-flow.mjs";
 import { test } from 'node:test';
@@ -430,6 +432,7 @@ test("UPDATE-005 UPDATE-006 UPDATE-007 — Private drafts, scheduled publication
 
 
 test("PAGE-006 UPDATE-009 — Snapshot outage and private template application", async t => {
+  await importedTemplateApplyFlow({ appFetch, pageUrl, executeFixtureSql });
   t.diagnostic("PAGE-006 — a warmed snapshot remains available and visibly stale when R2 pointer reads fail");
   await (async () => {
   const pointer = r2Object("snapshots/current.json");
@@ -469,6 +472,7 @@ test("PAGE-006 UPDATE-009 — Snapshot outage and private template application",
 
 
 test("INCIDENT-001 INCIDENT-002 INCIDENT-003 INCIDENT-004 INCIDENT-005 INCIDENT-006 INCIDENT-007 INCIDENT-008 INCIDENT-009 — Incident lifecycle, immutable correction, reasoned deletion and historical replay", async t => {
+  await incidentImpactFlow({ appFetch, pageUrl });
   t.diagnostic("INCIDENT-001 — an incident begins Investigating and each published update makes its selected lifecycle public");
   await (async () => {
   const incident = await createIncident("Lifecycle publication");

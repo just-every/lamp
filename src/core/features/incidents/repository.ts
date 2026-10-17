@@ -1,3 +1,6 @@
+import { createIncidentTemplateRepository } from "./template-repository";
+import type { IncidentTemplateRecord, IncidentTemplateComponentRecord } from "./template-repository";
+export type { IncidentTemplateRecord, IncidentTemplateComponentRecord } from "./template-repository";
 import { publishIncidentDraft } from "./publication-repository";
 import { previewComponentChange } from "./component-change-repository";
 import { listIncidentRelations, publishingDraft } from "./list-relations";
@@ -21,31 +24,6 @@ export type StoredIncident = typeof incidents.$inferSelect;
 export type StoredIncidentComponent = typeof incidentComponents.$inferSelect;
 export type StoredIncidentDraft = typeof incidentDrafts.$inferSelect;
 export type StoredIncidentUpdate = typeof incidentUpdates.$inferSelect;
-
-export interface IncidentTemplateRecord {
-  id: string;
-  name: string;
-  lifecycle: "Investigating" | "Identified" | "Monitoring" | "Resolved";
-  affectedAudience: string;
-  customerImpact: string;
-  whatStillWorks: string;
-  details: string;
-  nextUpdateOffsetMinutes: number | null;
-  createdByOperatorId: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface IncidentTemplateComponentRecord {
-  id: string;
-  templateId: string;
-  componentId: string | null;
-  componentName: string;
-  state: ComponentState;
-  relationship: "Primary" | "Dependent";
-  createdAt: string;
-  updatedAt: string;
-}
 
 export type PublishingDraft = StoredIncidentDraft & {
   scheduledPublishAt: string | null;
@@ -106,6 +84,7 @@ export interface IncidentRepository {
   softDelete(incidentId: string, reason: string, operatorId: string, deletedAt: string, auditId: string, claimEvents: ComponentClaimEventInput[]): Promise<boolean>;
   listTemplates(): Promise<Array<IncidentTemplateRecord & { components: IncidentTemplateComponentRecord[] }>>;
   saveTemplate(input: IncidentTemplateRecord, components: IncidentTemplateComponentRecord[]): Promise<void>;
+  updateTemplate(input: IncidentTemplateRecord, components?: IncidentTemplateComponentRecord[]): Promise<void>;
   findTemplate(templateId: string): Promise<(IncidentTemplateRecord & { components: IncidentTemplateComponentRecord[] }) | null>;
   applyTemplate(incidentId: string, draft: StoredIncidentDraft, expectedVersion: string): Promise<void>;
 }
@@ -228,25 +207,7 @@ export function createIncidentRepository(binding: D1Database): IncidentRepositor
       const results = await binding.batch([mutation, audit, ...releases]);
       return results[1]?.meta.changes === 1;
     },
-    async listTemplates() {
-      const templates = await binding.prepare(`SELECT id, name, lifecycle, affected_audience AS affectedAudience, customer_impact AS customerImpact, what_still_works AS whatStillWorks, details, next_update_offset_minutes AS nextUpdateOffsetMinutes, created_by_operator_id AS createdByOperatorId, created_at AS createdAt, updated_at AS updatedAt FROM incident_templates ORDER BY name COLLATE NOCASE`).all<IncidentTemplateRecord>();
-      return Promise.all(templates.results.map(async (template) => ({ ...template, components: (await binding.prepare(`SELECT id, template_id AS templateId, component_id AS componentId, component_name AS componentName, state, relationship, created_at AS createdAt, updated_at AS updatedAt FROM incident_template_components WHERE template_id = ? ORDER BY created_at`).bind(template.id).all<IncidentTemplateComponentRecord>()).results })));
-    },
-    async saveTemplate(input, components) {
-      await binding.batch([
-        binding.prepare(`INSERT INTO incident_templates (id,name,lifecycle,affected_audience,customer_impact,what_still_works,details,next_update_offset_minutes,created_by_operator_id,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT(name) DO UPDATE SET lifecycle=excluded.lifecycle,affected_audience=excluded.affected_audience,customer_impact=excluded.customer_impact,what_still_works=excluded.what_still_works,details=excluded.details,next_update_offset_minutes=excluded.next_update_offset_minutes,updated_at=excluded.updated_at`).bind(input.id, input.name, input.lifecycle, input.affectedAudience, input.customerImpact, input.whatStillWorks, input.details, input.nextUpdateOffsetMinutes, input.createdByOperatorId, input.createdAt, input.updatedAt),
-        binding.prepare(`DELETE FROM incident_template_components WHERE template_id = (SELECT id FROM incident_templates WHERE name = ? LIMIT 1)`).bind(input.name),
-      ]);
-      const saved = await binding.prepare(`SELECT id FROM incident_templates WHERE name = ?`).bind(input.name).first<{ id: string }>();
-      if (!saved) throw new Error("Incident template could not be saved.");
-      if (components.length) await binding.batch(components.map((component) => binding.prepare(`INSERT INTO incident_template_components (id,template_id,component_id,component_name,state,relationship,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?)`).bind(component.id, saved.id, component.componentId, component.componentName, component.state, component.relationship, component.createdAt, component.updatedAt)));
-    },
-    async findTemplate(templateId) {
-      const template = await binding.prepare(`SELECT id, name, lifecycle, affected_audience AS affectedAudience, customer_impact AS customerImpact, what_still_works AS whatStillWorks, details, next_update_offset_minutes AS nextUpdateOffsetMinutes, created_by_operator_id AS createdByOperatorId, created_at AS createdAt, updated_at AS updatedAt FROM incident_templates WHERE id = ?`).bind(templateId).first<IncidentTemplateRecord>();
-      if (!template) return null;
-      const components = (await binding.prepare(`SELECT id, template_id AS templateId, component_id AS componentId, component_name AS componentName, state, relationship, created_at AS createdAt, updated_at AS updatedAt FROM incident_template_components WHERE template_id = ? ORDER BY created_at`).bind(template.id).all<IncidentTemplateComponentRecord>()).results;
-      return { ...template, components };
-    },
+    ...createIncidentTemplateRepository(binding),
     async applyTemplate(incidentId, draft, expectedVersion) {
       if (draft.incidentId !== incidentId) throw new Error("Template draft does not belong to this incident.");
       await this.upsertDraft(draft, expectedVersion);

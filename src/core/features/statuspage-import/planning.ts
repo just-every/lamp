@@ -48,7 +48,7 @@ export async function planMoveIn(read: ReadSource, snapshot: Snapshot, context: 
     map: (source) => {
       const accounting = (source.payload as unknown as { accounting: Accounting[] }).accounting;
       const effect = effects.get(`${source.kind}:${source.sourceId}`);
-      const rejected = accounting.find((item) => item.outcome === "rejected");
+      const rejected = accounting.find((item) => item.outcome === "rejected" && item.kind === source.kind);
       return {
         effects: effect ? [effect] : [],
         unmapped: accounting.filter((item) => item.outcome === "skipped" || item.outcome === "changed").map((item) => ({ field: item.kind, reason: item.reason })),
@@ -58,14 +58,17 @@ export async function planMoveIn(read: ReadSource, snapshot: Snapshot, context: 
   }, context);
 }
 
-export type Counts = Record<EntityKind, { read: number; imported: number; changed: number; skipped: number; rejected: number }>;
+export type CountKind = EntityKind | "postmortem";
+export type Counts = Record<CountKind, { read: number; imported: number; changed: number; skipped: number; rejected: number; "kept-private": number }>;
 export interface MoveInReport { state: string; asOf: string; fingerprint: string; counts: Counts; items: Accounting[]; cutover: CutoverPreview; unavailableAddresses: string[] }
 
 /** The dry-run report, rebuilt from the reviewed plan so a saved job reports exactly what it applied. */
 export function reportFromPlan(plan: ImportPlan, state = "dry run"): MoveInReport {
   const items = plan.entries.flatMap((entry) => entry.erased ? [] : ((entry.source.payload as { accounting?: Accounting[] }).accounting ?? []));
-  const counts = Object.fromEntries((Object.keys(entityTables) as EntityKind[]).map((kind) => [kind, { read: 0, imported: 0, changed: 0, skipped: 0, rejected: 0 }])) as Counts;
-  for (const item of items) { counts[item.kind as EntityKind].read += 1; counts[item.kind as EntityKind][item.outcome] += 1; }
+  const kinds = Object.keys(entityTables).filter(kind => kind !== "template" || plan.namespace === "statuspage" || items.some(item => item.kind === kind));
+  if (plan.namespace === "statuspage" || items.some(item => item.kind === "postmortem")) kinds.push("postmortem");
+  const counts = Object.fromEntries((kinds as CountKind[]).map((kind) => [kind, { read: 0, imported: 0, changed: 0, skipped: 0, rejected: 0, "kept-private": 0 }])) as Counts;
+  for (const item of items) { counts[item.kind as CountKind].read += 1; counts[item.kind as CountKind][item.outcome] += 1; }
   const metadata = plan.entries.find((entry) => entry.source.kind === "metadata")?.source.payload as { raw?: { asOf?: string } } | undefined;
   const candidates = plan.entries.filter((entry) => !entry.erased && ["incident", "maintenance"].includes(entry.source.kind)).flatMap((entry) => entry.effects.map((effect) => ({ namespace: entry.source.namespace, sourceId: entry.source.sourceId, targetId: effect.targetId, targetKind: effect.targetKind, target: `${effect.targetKind}:${effect.targetId}`, publicAddresses: (entry.source.payload as { publicAddresses?: string[] }).publicAddresses, shortlink: (entry.source.payload as { raw?: { shortlink?: unknown } }).raw?.shortlink })));
   const { unavailable: unavailableAddresses } = resolvePublicAddresses(candidates);

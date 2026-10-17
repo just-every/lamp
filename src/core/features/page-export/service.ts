@@ -126,7 +126,7 @@ export function createPageExportService(repository: PageExportRepository, blobs:
     if (held.length) problems.push(ownerRecordsProblem(held));
     const people = new Set(file.people.map((person) => person.email.toLowerCase()));
     for (const { table } of PAGE_DATA_TABLES) {
-      const rows = file.records[table];
+      const rows = file.records[table] ?? [];
       if (!rows.length) continue;
       const columns = await repository.columns(table);
       const accepted = new Set([...columns, ...Object.entries(AUTHOR_COLUMNS).filter(([column]) => columns.has(column)).map(([, email]) => email), ...(table === "subscribers" ? [SUBSCRIBER_CONSENT_COLUMN] : [])]);
@@ -140,7 +140,7 @@ export function createPageExportService(repository: PageExportRepository, blobs:
       ok: problems.length === 0,
       problems,
       counts: {
-        ...Object.fromEntries(COUNTED.map(({ label, table }) => [label, file.records[table].length])),
+        ...Object.fromEntries(COUNTED.map(({ label, table }) => [label, (file.records[table] ?? []).length])),
         // These carry on here as scheduled; any already due run on the next minute.
         scheduledUpdates: file.records.incident_drafts.filter((row) => typeof row.scheduled_publish_at === "string").length,
         openMaintenance: file.records.maintenance.filter((row) => row.state === "Scheduled" || row.state === "In progress").length,
@@ -191,7 +191,7 @@ export function createPageExportService(repository: PageExportRepository, blobs:
       const confirmations: { subscriberId: string; confirmedAt: string; subscribedAt: string }[] = [];
       const tables = PAGE_DATA_TABLES.map(({ table }) => ({
         table,
-        rows: file.records[table].map((row): PageDataRow => {
+        rows: (file.records[table] ?? []).map((row): PageDataRow => {
           if (table !== "subscribers") return row;
           const { [SUBSCRIBER_CONSENT_COLUMN]: confirmedAt, ...stored } = row;
           // The legacy per-subscriber hash is never exported; each restored row gets a fresh one.

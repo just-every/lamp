@@ -1,3 +1,4 @@
+import { impactLabel, type IncidentImpact } from "../../shared/incident-impact";
 import type { PublishedIncidentComponentChange } from "../../shared/incident-component-changes";
 import { renderIncidentUpdate } from "../incidents/renderer";
 
@@ -48,7 +49,7 @@ export function updateSummary(incident: PublicFeedIncident, update: PublicFeedUp
   return [incident.reference, update.lifecycle, compactImpact].filter(Boolean).join(" · ");
 }
 
-export function statusPayload(input: { incidents: PublicFeedIncident[]; maintenance: Array<{reference: string; title: string; state: string}>; generatedAt: string; overall: string; settings: { timezone: string } }) {
+export function statusPayload(input: { incidents: Array<PublicFeedIncident & { effectiveImpact: IncidentImpact }>; maintenance: Array<{reference: string; title: string; state: string}>; generatedAt: string; overall: string; settings: { timezone: string } }) {
   const newest = input.incidents.filter((incident) => incident.lifecycle !== "Resolved").flatMap((incident) => incident.updates.map((update) => ({ incident, update }))).sort((left, right) => right.update.publishedAt.localeCompare(left.update.publishedAt))[0];
   return {
     version: 1,
@@ -59,9 +60,10 @@ export function statusPayload(input: { incidents: PublicFeedIncident[]; maintena
       reference: newest.incident.reference,
       title: newest.incident.title,
       lifecycle: newest.incident.lifecycle,
+      impact: newest.incident.effectiveImpact,
       publishedAt: newest.update.publishedAt,
       summary: updateSummary(newest.incident, newest.update),
-      message: updateText(newest.incident, newest.update, input.settings.timezone),
+      message: `Incident impact: ${impactLabel(newest.incident.effectiveImpact)}\n\n${updateText(newest.incident, newest.update, input.settings.timezone)}`,
     } : null,
   };
 }

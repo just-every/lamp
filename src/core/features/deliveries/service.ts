@@ -6,7 +6,8 @@ import { lampConfig } from "../../../ext/config";
 import type { DeliveryChannel, DeliveryOutcome } from "../../shared/domain";
 import { createUlid, nowIso } from "../../shared/ids";
 import { parsePublishedComponentChanges } from "../../shared/incident-component-changes";
-import { renderIncidentUpdate } from "../incidents/renderer";
+import { renderNotificationUpdate } from "../../shared/update-renderer";
+import { impactLabel } from "../../shared/incident-impact";
 import { renderUpdateHtml } from "../../shared/update-links";
 import { type MailMessage, type MailSender } from "../../platform/mail";
 import { hmacSha256 } from "../../platform/security/opaque-tokens";
@@ -192,9 +193,9 @@ export function createDeliveriesService(
       const manageUrl = new URL(`/manage/${encodeURIComponent(manage)}`, origin).toString();
       const unsubscribeUrl = new URL(`/unsubscribe/${encodeURIComponent(unsubscribe)}`, origin).toString();
       const rendered = delivery.incidentReportId && delivery.incidentReference && delivery.incidentTitle
-        ? { email: { subject: `[${delivery.incidentReference}] Post-incident report`, plainText: [`${delivery.incidentReference}: ${delivery.incidentTitle}`, `Summary: ${delivery.reportSummary ?? ""}`, `Timeline: ${delivery.reportTimeline ?? ""}`, `Cause: ${delivery.reportCause ?? ""}`, `Remediation: ${delivery.reportRemediation ?? ""}`].join("\n\n") } }
+        ? { email: { subject: `[${delivery.incidentReference}] Post-incident report`, plainText: [`${delivery.incidentReference}: ${delivery.incidentTitle}`, ...(delivery.incidentImpact === null ? [] : [`Incident impact: ${impactLabel(delivery.incidentImpact)}`]), ...[["Summary", delivery.reportSummary], ["Timeline", delivery.reportTimeline], ["Cause", delivery.reportCause], ["Remediation", delivery.reportRemediation]].flatMap(([label, value]) => value?.trim() ? [`${label}: ${value}`] : [])].join("\n\n") } }
         : delivery.incidentUpdateId !== null && delivery.incidentReference !== null && delivery.incidentTitle !== null && delivery.lifecycle !== null && delivery.affectedAudience !== null && delivery.customerImpact !== null
-          ? renderIncidentUpdate({ incidentReference: delivery.incidentReference, incidentTitle: delivery.incidentTitle, lifecycle: delivery.lifecycle, affectedAudience: delivery.affectedAudience, customerImpact: delivery.customerImpact, whatStillWorks: delivery.whatStillWorks ?? "", details: delivery.details ?? "", nextUpdateAt: delivery.nextUpdateAt, componentChanges: parsePublishedComponentChanges(delivery.componentChangesJson), nextUpdateDisplay: delivery.nextUpdateAt ? displayNotificationTime(delivery.nextUpdateAt, delivery.timezone) : null })
+          ? renderNotificationUpdate({ incidentImpact: delivery.incidentImpact, incidentReference: delivery.incidentReference, incidentTitle: delivery.incidentTitle, lifecycle: delivery.lifecycle, affectedAudience: delivery.affectedAudience, customerImpact: delivery.customerImpact, whatStillWorks: delivery.whatStillWorks ?? "", details: delivery.details ?? "", nextUpdateAt: delivery.nextUpdateAt, componentChanges: parsePublishedComponentChanges(delivery.componentChangesJson), nextUpdateDisplay: delivery.nextUpdateAt ? displayNotificationTime(delivery.nextUpdateAt, delivery.timezone) : null })
           : renderMaintenanceNotice(delivery);
       if (!rendered) throw permanentDeliveryError("This notification event has no supported rendered content.");
       const host = new URL(origin).host;
@@ -239,8 +240,8 @@ export function createDeliveriesService(
     const destination = slack ? await resolveSlackWebhook(async () => delivery.destination, delivery.subscriberId) : delivery.destination;
     const incidentEvent = !slack && delivery.incidentId && delivery.incidentUpdateId ? await repository.getIncidentWebhookPayload(delivery.incidentId, delivery.incidentUpdateId, delivery.notificationEventId) : null;
     const event = incidentEvent
-      ? { event: "incident.update.published", deliveryId: delivery.id, ...incidentEvent }
-      : { event: delivery.maintenanceId ? "maintenance.notice.published" : "incident.report.published", deliveryId: delivery.id, incident: delivery.incidentReference ? { reference: delivery.incidentReference, title: delivery.incidentTitle } : null, maintenance: delivery.maintenanceId ? { id: delivery.maintenanceId, reference: delivery.maintenanceReference, title: delivery.maintenanceTitle, state: delivery.maintenanceState, notice: delivery.maintenanceNoticeKind } : null };
+      ? { event: "incident.update.published", deliveryId: delivery.id, ...incidentEvent, incident: { ...incidentEvent.incident, impact: delivery.incidentImpact } }
+      : { event: delivery.maintenanceId ? "maintenance.notice.published" : "incident.report.published", deliveryId: delivery.id, incident: delivery.incidentReference ? { reference: delivery.incidentReference, title: delivery.incidentTitle, impact: delivery.incidentImpact } : null, maintenance: delivery.maintenanceId ? { id: delivery.maintenanceId, reference: delivery.maintenanceReference, title: delivery.maintenanceTitle, state: delivery.maintenanceState, notice: delivery.maintenanceNoticeKind } : null };
     const body = JSON.stringify(slack ? renderSubscriberSlackMessage(delivery, origin) : event);
     const timestamp = String(Math.floor(Date.now() / 1000));
     const signature = (await Promise.all(secrets.map(async (secret) => `v1=${await hmacSha256(secret, `${delivery.id}.${timestamp}.${body}`)}`))).join(" ");

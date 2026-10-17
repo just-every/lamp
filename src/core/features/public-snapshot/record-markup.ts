@@ -1,5 +1,6 @@
 import type { PublishedIncidentComponentChange } from "../../shared/incident-component-changes";
 import type { IncidentLifecycle } from "../../shared/domain";
+import { impactLabel, type IncidentImpact } from "../../shared/incident-impact";
 import { renderUpdateHtml } from "../../shared/update-links";
 
 import { renderedUpdate } from "./feed-widget";
@@ -12,6 +13,9 @@ export interface PublicIncident {
   reference: string;
   title: string;
   lifecycle: IncidentLifecycle;
+  derivedImpact: IncidentImpact;
+  impactOverride: IncidentImpact | null;
+  effectiveImpact: IncidentImpact;
   openedAt: string;
   resolvedAt: string | null;
   components: string[];
@@ -43,6 +47,10 @@ export function recordHead(kicker: string, reference: string, title: string, hea
   return `<header class="record-head"><div class="record-title"><p class="section-kicker">${escapeHtml(kicker)} · <span class="timeline-reference">${escapeHtml(reference)}</span></p><${heading}>${title}</${heading}></div>${state ? statePill(state, "lifecycle-pill") : ""}</header>`;
 }
 
+export function incidentImpactMarkup(incident: PublicIncident) {
+  return `<p class="incident-meta" data-incident-impact="${incident.effectiveImpact}">Incident impact: ${impactLabel(incident.effectiveImpact)}</p>`;
+}
+
 export function updateMarkup(incident: PublicIncident, update: PublicIncident["updates"][number], timezone: string) {
   const rendered = renderedUpdate(incident, update, timezone);
   const fields = rendered.public.fields.map((field) => `<div><dt>${escapeHtml(field.label)}</dt><dd>${field.instant ? timestamp(field.instant, timezone) : renderUpdateHtml(field.value)}</dd></div>`).join("");
@@ -54,7 +62,7 @@ export function updateMarkup(incident: PublicIncident, update: PublicIncident["u
 export function incidentMarkup(incident: PublicIncident, timezone: string, maximumUpdates?: number, label = "Incident", heading: TitleHeading = "h3") {
   const updates = maximumUpdates === undefined ? incident.updates : incident.updates.slice(0, maximumUpdates);
   const more = maximumUpdates !== undefined ? `<a class="text-link" href="/incidents/${encodeURIComponent(incident.reference)}">${incident.updates.length > updates.length ? `View all ${incident.updates.length} updates` : "View incident"}</a>` : "";
-  return `<article class="incident">${recordHead(label, incident.reference, escapeHtml(incident.title), heading, heading === "h1" ? null : incident.lifecycle)}${incident.components.length ? `<p class="incident-meta">Affecting ${escapeHtml(incident.components.join(", "))}</p>` : ""}<div class="updates">${updates.map((update) => updateMarkup(incident, update, timezone)).join("")}</div>${more}</article>`;
+  return `<article class="incident">${recordHead(label, incident.reference, escapeHtml(incident.title), heading, heading === "h1" ? null : incident.lifecycle)}${incidentImpactMarkup(incident)}${incident.components.length ? `<p class="incident-meta">Affecting ${escapeHtml(incident.components.join(", "))}</p>` : ""}<div class="updates">${updates.map((update) => updateMarkup(incident, update, timezone)).join("")}</div>${more}</article>`;
 }
 
 /** A recently resolved incident on the current page: what it was, when it ended and what customers were told last. */
@@ -62,7 +70,7 @@ export function resolvedMarkup(incident: PublicIncident, timezone: string) {
   const title = `<a href="/incidents/${encodeURIComponent(incident.reference)}">${escapeHtml(incident.title)}</a>`;
   const impact = incident.updates[0]?.customerImpact.trim();
   const ended = incident.resolvedAt ? `Resolved ${timestamp(incident.resolvedAt, timezone)} · lasted ${escapeHtml(durationText(incident.openedAt, incident.resolvedAt))} · ` : "";
-  return `<article class="incident resolved-incident">${recordHead("Resolved incident", incident.reference, title, "h4", incident.lifecycle)}<p class="incident-meta">${ended}Affected ${escapeHtml(incident.components.join(", "))}</p>${impact ? `<p class="resolved-summary">${renderUpdateHtml(impact)}</p>` : ""}</article>`;
+  return `<article class="incident resolved-incident">${recordHead("Resolved incident", incident.reference, title, "h4", incident.lifecycle)}${incidentImpactMarkup(incident)}<p class="incident-meta">${ended}Affected ${escapeHtml(incident.components.join(", "))}</p>${impact ? `<p class="resolved-summary">${renderUpdateHtml(impact)}</p>` : ""}</article>`;
 }
 
 export function noticeMarkup(notice: PublicMaintenance["notices"][number], timezone: string) {

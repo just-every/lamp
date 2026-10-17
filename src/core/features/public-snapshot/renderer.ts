@@ -1,4 +1,6 @@
 import { publicUpdate } from "./public-update";
+import { incidentImpact } from "../../shared/incident-impact";
+import { reportMarkup } from "./report-markup";
 import { historyMonths, renderHistoryContent } from "./history";
 import { isPublicComponentShown } from "./component-visibility";
 import { renderImportAliases } from "./import-aliases";
@@ -68,6 +70,7 @@ function toPublicModel(source: PublicSnapshotSource, generatedAt: string, polici
   const reportsByIncident = new Map(source.reports.map((report) => [report.incidentId, report]));
   const incidents: PublicIncident[] = source.incidents.map((incident) => ({
     ...incident,
+    ...incidentImpact(source.incidentImpacts?.[incident.id], incident.impactOverride, source.incidentComponents.filter(component => component.incidentId === incident.id).map(component => component.state)),
     components: attachedByIncident.get(incident.id) ?? [],
     updates: updatesByIncident.get(incident.id) ?? [],
     report: reportsByIncident.get(incident.id) ?? null,
@@ -203,7 +206,7 @@ function breadcrumb(here: string) {
 
 function renderIncidentPage(incident: PublicIncident, model: ReturnType<typeof toPublicModel>, slots: LampServerSlots) {
   const timezone = model.settings.timezone;
-  const report = incident.report ? `<section class="report"><p class="eyebrow">Post-incident report</p><h2>What happened and what we changed</h2><dl><div><dt>Summary</dt><dd>${escapeHtml(incident.report.summary)}</dd></div><div><dt>Timeline</dt><dd>${escapeHtml(incident.report.timeline)}</dd></div><div><dt>Cause</dt><dd>${escapeHtml(incident.report.cause)}</dd></div><div><dt>Remediation</dt><dd>${escapeHtml(incident.report.remediation)}</dd></div></dl></section>` : "";
+  const report = reportMarkup(incident.report);
   const resolutionUpdateCarriesTime = incident.updates.some((update) => update.lifecycle === "Resolved" && update.publishedAt === incident.resolvedAt);
   const resolved = incident.lifecycle === "Resolved" && incident.resolvedAt
     ? `<p class="incident-resolution">${resolutionUpdateCarriesTime ? "" : `Resolved at ${timestamp(incident.resolvedAt, timezone)}. `}Duration: ${escapeHtml(durationText(incident.openedAt, incident.resolvedAt))}</p>`

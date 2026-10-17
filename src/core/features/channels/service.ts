@@ -76,7 +76,7 @@ export function createChannelsService(db: D1Database, options: { effectsPaused?:
       if (options.effectsPaused || options.unavailable) return;
       const origin = await options.publicOrigin();
       for (const post of await repository.pending(limit)) {
-        const data: ChannelPostData = { reference: post.reference, title: post.title, lifecycle: post.lifecycle, customerImpact: post.customerImpact, affectedAudience: post.affectedAudience, whatStillWorks: post.whatStillWorks, details: post.details, nextUpdateAt: post.nextUpdateAt, timezone: post.timezone, componentChanges: parsePublishedComponentChanges(post.componentChangesJson), url: new URL(`/incidents/${encodeURIComponent(post.reference)}`, origin).href };
+        const data: ChannelPostData = { incidentImpact: post.incidentImpact, reference: post.reference, title: post.title, lifecycle: post.lifecycle, customerImpact: post.customerImpact, affectedAudience: post.affectedAudience, whatStillWorks: post.whatStillWorks, details: post.details, nextUpdateAt: post.nextUpdateAt, timezone: post.timezone, componentChanges: parsePublishedComponentChanges(post.componentChangesJson), url: new URL(`/incidents/${encodeURIComponent(post.reference)}`, origin).href };
         try {
           await delivery.enqueue(post.kind === "slack"
             ? { id: post.id, tenant: NAMESPACE, destinationId: post.destinationId, event: "incident.update", protocol: SLACK_WEBHOOK_PROTOCOL, body: JSON.stringify(renderChannelSlack(data)) }

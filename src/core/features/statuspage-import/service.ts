@@ -62,12 +62,13 @@ export function createStatuspageImportService(db: D1Database, hooks: MoveInHooks
 
   async function snapshot(context: D1ImportContext): Promise<Snapshot> {
     await assertAuthority(context);
-    const [groups, components, counters, allocated, destinations] = await db.batch<Record<string, unknown>>([
+    const [groups, components, counters, allocated, destinations, templates] = await db.batch<Record<string, unknown>>([
       db.prepare("SELECT coalesce(max(display_order), -1) AS value FROM component_groups"),
       db.prepare("SELECT coalesce(max(display_order), -1) AS value FROM components"),
       db.prepare("SELECT namespace, last_number FROM reference_counters"),
       db.prepare("SELECT reference FROM reference_allocations"),
       db.prepare("SELECT destination FROM subscribers"),
+      db.prepare("SELECT name FROM incident_templates"),
     ]);
     await assertAuthority(context);
     const last = Object.fromEntries(counters.results.map((row) => [row.namespace, Number(row.last_number)]));
@@ -75,6 +76,7 @@ export function createStatuspageImportService(db: D1Database, hooks: MoveInHooks
       maxGroupOrder: Number(groups.results[0].value), maxComponentOrder: Number(components.results[0].value),
       lastReference: { INC: last.INC ?? 0, SCH: last.SCH ?? 0 },
       allocated: new Set(allocated.results.map((row) => String(row.reference))),
+      templateNames: new Set(templates.results.map((row) => String(row.name))),
       destinations: new Set(destinations.results.map((row) => String(row.destination))),
     };
   }

@@ -1,13 +1,13 @@
 import { z } from "zod";
 import { readFileSource } from "../../../../modules/import-kit/src/readers/index.ts";
-import type { Json, SourceArtifact, SourceRecord } from "../../../../modules/import-kit/src/types.ts";
+import type { SourceArtifact, SourceRecord } from "../../../../modules/import-kit/src/types.ts";
 
 /** Saved Statuspage API responses: each file is one unchanged JSON array page
  * from https://api.statuspage.io/v1, named `<resource>.json` or
  * `<resource>-<page>.json`. The API-key path saves exactly these files. */
 export const namespace = "statuspage";
 export const importLimits = { maxBytes: 8 * 1024 * 1024, maxRecords: 5000, maxRecordBytes: 512 * 1024, files: 200 };
-export const resources = ["component-groups", "components", "incidents", "incidents-scheduled", "subscribers"] as const;
+export const resources = ["component-groups", "components", "incidents", "incidents-scheduled", "subscribers", "incident-templates", "incident-template-groups"] as const;
 export type Resource = (typeof resources)[number];
 export type SavedFile = { name: string; text: string };
 
@@ -21,7 +21,9 @@ const shapes = {
   group: { id, name: text, description: text.nullable().optional(), components: z.array(id), position: z.coerce.number().int(), created_at: time, updated_at: time.optional() },
   component: { id, name: text, description: text.nullable().optional(), group_id: id.nullable().optional(), group: z.boolean().optional(), position: z.number().int(), status: componentStatus, showcase: z.boolean().optional(), only_show_if_degraded: z.boolean().optional(), created_at: time, updated_at: time.optional() },
   update: { id, status: incidentStatus, body: text.nullable(), created_at: time, display_at: time.nullable().optional(), affected_components: z.array(z.object({ code: id, name: text.optional(), old_status: componentStatus.optional(), new_status: componentStatus })).nullable().optional() },
-  incident: { id, name: text, status: incidentStatus, impact: z.string().optional(), created_at: time, resolved_at: time.nullable().optional(), scheduled_for: time.nullable().optional(), scheduled_until: time.nullable().optional(), postmortem_body: text.nullable().optional(), components: z.array(z.object({ id })).optional(), incident_updates: z.array(z.unknown()) },
+  incident: { id, name: text, status: incidentStatus, impact: z.string().optional(), created_at: time, resolved_at: time.nullable().optional(), scheduled_for: time.nullable().optional(), scheduled_until: time.nullable().optional(), postmortem_body: z.unknown().optional(), postmortem_published_at: z.unknown().optional(), components: z.array(z.object({ id })).optional(), incident_updates: z.array(z.unknown()) },
+  template: { id, name: z.string(), title: z.string(), body: z.string(), group_id: id.nullable().optional(), group: z.object({ id, name: z.string() }).nullable().optional(), update_status: z.string(), should_send_notifications: z.boolean().nullable().optional(), components: z.array(z.object({ id, status: z.string() }).passthrough()), created_at: time.optional() },
+  templateGroup: { id, name: z.string() },
   subscriber: { id, mode: z.string(), email: z.string().max(320).nullable().optional(), quarantined_at: time.nullable().optional(), components: z.array(id).nullable().optional(), created_at: time.optional() },
 };
 // Undocumented fields pass through to the retained source; only these are read.
@@ -31,6 +33,8 @@ export const sourceSchemas = {
   update: z.object(shapes.update).passthrough(),
   incident: z.object(shapes.incident).passthrough(),
   subscriber: z.object(shapes.subscriber).passthrough(),
+  template: z.object(shapes.template).passthrough(),
+  templateGroup: z.object(shapes.templateGroup).passthrough(),
 };
 
 export type SourceGroup = z.infer<z.ZodObject<typeof shapes.group>>;
@@ -38,10 +42,12 @@ export type SourceComponent = z.infer<z.ZodObject<typeof shapes.component>>;
 export type SourceUpdate = z.infer<z.ZodObject<typeof shapes.update>>;
 export type SourceIncident = Omit<z.infer<z.ZodObject<typeof shapes.incident>>, "incident_updates" | "status"> & { status: z.infer<z.ZodObject<typeof shapes.incident>>["status"] | "cancelled"; incident_updates: SourceUpdate[] };
 export type SourceSubscriber = z.infer<z.ZodObject<typeof shapes.subscriber>>;
-export interface SourceData { groups: SourceGroup[]; components: SourceComponent[]; incidents: SourceIncident[]; maintenance: SourceIncident[]; subscribers: SourceSubscriber[] }
+export type SourceTemplate = z.infer<z.ZodObject<typeof shapes.template>>;
+export type SourceTemplateGroup = z.infer<z.ZodObject<typeof shapes.templateGroup>>;
+export interface SourceData { templates?: SourceTemplate[]; templateGroups?: SourceTemplateGroup[]; groups: SourceGroup[]; components: SourceComponent[]; incidents: SourceIncident[]; maintenance: SourceIncident[]; subscribers: SourceSubscriber[] }
 export interface ReadSource { namespace?: string; accounting?: import("./rows").Accounting[]; publicAddresses?: Record<string, string[]>; sourceInfo?: { label: string; pageId: string; publicUrl: string }; records: SourceRecord[]; artifacts: SourceArtifact[]; data: SourceData; origins: Map<string, SourceArtifact> }
 
-const fileName = /^(component-groups|components|incidents-scheduled|incidents|subscribers)(?:-(\d{1,3}))?\.json$/u;
+const fileName = /^(component-groups|components|incidents-scheduled|incidents|subscribers|incident-templates|incident-template-groups)(?:-(\d{1,3}))?\.json$/u;
 
 function resourceOf(name: string): Resource {
   const match = fileName.exec(name);
@@ -68,7 +74,7 @@ export async function readSavedResponses(files: SavedFile[]): Promise<ReadSource
   if (size > importLimits.maxBytes) throw new Error("Saved responses exceed the 8 MiB total limit.");
   if (![...names].some((name) => resourceOf(name) === "components")) throw new Error("Include components.json: every import starts from the page's components.");
 
-  const data: SourceData = { groups: [], components: [], incidents: [], maintenance: [], subscribers: [] };
+  const data: SourceData = { templates: [], templateGroups: [], groups: [], components: [], incidents: [], maintenance: [], subscribers: [] };
   const records: SourceRecord[] = [];
   const artifacts: SourceArtifact[] = [];
   const origins = new Map<string, SourceArtifact>();
@@ -80,6 +86,8 @@ export async function readSavedResponses(files: SavedFile[]): Promise<ReadSource
       // Every Statuspage list response is a JSON array; the reader parses its elements one by one.
       if (!file.text.trimStart().startsWith("[")) throw new Error("shape");
       read = await readFileSource({ namespace, name: file.name, bytes: new TextEncoder().encode(file.text), format: "json", parse: (raw) => {
+        if (resource === "incident-templates") { const row = sourceSchemas.template.parse(raw); return { kind: "template", sourceId: row.id, payload: raw }; }
+        if (resource === "incident-template-groups") { const row = sourceSchemas.templateGroup.parse(raw); return { kind: "template-group", sourceId: row.id, payload: raw }; }
         if (resource === "component-groups") { const row = sourceSchemas.group.parse(raw); return { kind: "group", sourceId: row.id, payload: raw }; }
         if (resource === "components") { const row = sourceSchemas.component.parse(raw); return { kind: row.group ? "group-component" : "component", sourceId: row.id, payload: raw }; }
         if (resource === "subscribers") { const row = sourceSchemas.subscriber.parse(raw); return { kind: "subscriber", sourceId: row.id, payload: raw }; }
@@ -101,7 +109,9 @@ export async function readSavedResponses(files: SavedFile[]): Promise<ReadSource
       origins.set(key, artifact);
       records.push(record);
       const raw = record.payload as Record<string, unknown>;
-      if (record.kind === "group") data.groups.push(sourceSchemas.group.parse(raw));
+      if (record.kind === "template") data.templates!.push(sourceSchemas.template.parse(raw));
+      else if (record.kind === "template-group") data.templateGroups!.push(sourceSchemas.templateGroup.parse(raw));
+      else if (record.kind === "group") data.groups.push(sourceSchemas.group.parse(raw));
       else if (record.kind === "component") data.components.push(sourceSchemas.component.parse(raw));
       else if (record.kind === "subscriber") data.subscribers.push(sourceSchemas.subscriber.parse(raw));
       else {
@@ -124,8 +134,10 @@ export async function fetchSavedResponses(input: { pageId: string; apiKey: strin
   const fetcher = input.fetcher ?? fetch;
   const files: SavedFile[] = [];
   const perPage = 100;
-  const paths: Record<Resource, string> = { "component-groups": "component-groups", components: "components", incidents: "incidents", "incidents-scheduled": "incidents/scheduled", subscribers: "subscribers" };
-  for (const resource of resources) {
+  const paths: Partial<Record<Resource, string>> = { "incident-templates": "incident_templates", "component-groups": "component-groups", components: "components", incidents: "incidents", "incidents-scheduled": "incidents/scheduled", subscribers: "subscribers" };
+  // The management API exposes templates but no documented template-group read.
+  // Group names can accompany saved responses or an embedded source group.
+  for (const resource of resources.filter((resource) => resource !== "incident-template-groups")) {
     for (let page = 1; page <= 50; page += 1) {
       const url = new URL(`/v1/pages/${input.pageId}/${paths[resource]}`, origin);
       url.searchParams.set("page", String(page));

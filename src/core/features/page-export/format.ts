@@ -23,6 +23,9 @@ export const PAGE_DATA_TABLES = [
   { table: "incident_drafts", order: ["id"] },
   { table: "incident_internal_notes", order: ["id"] },
   { table: "incident_reports", order: ["id"] },
+  { table: "incident_impact_changes", order: ["id"] },
+  { table: "incident_templates", order: ["id"] },
+  { table: "incident_template_components", order: ["id"] },
   { table: "maintenance", order: ["id"] },
   { table: "maintenance_components", order: ["id"] },
   { table: "maintenance_notices", order: ["id"] },
@@ -36,7 +39,7 @@ export const PAGE_DATA_TABLES = [
 export type PageDataTable = typeof PAGE_DATA_TABLES[number]["table"];
 
 /** A restore needs a page with none of these yet. */
-export const OWNER_RECORD_TABLES: PageDataTable[] = ["component_groups", "components", "incidents", "maintenance", "subscribers"];
+export const OWNER_RECORD_TABLES: PageDataTable[] = ["component_groups", "components", "incidents", "maintenance", "subscribers", "incident_templates"];
 
 /** Operator ID columns and the email column that replaces each in the file. */
 export const AUTHOR_COLUMNS: Record<string, string> = {
@@ -77,7 +80,7 @@ export const pageDataFileSchema = z.object({
     logo: z.object({ contentType: z.enum(["image/png", "image/jpeg", "image/webp"]), base64: z.string().max(3_000_000) }).nullable(),
   }).strict(),
   people: z.array(z.object({ email: z.string().min(3).max(320), displayName: z.string().min(1).max(120) }).strict()),
-  records: z.object(Object.fromEntries(PAGE_DATA_TABLES.map(({ table }) => [table, z.array(row)])) as Record<PageDataTable, z.ZodArray<typeof row>>).strict(),
+  records: z.object(Object.fromEntries(PAGE_DATA_TABLES.map(({ table }) => [table, z.array(row)])) as Record<PageDataTable, z.ZodArray<typeof row>>).partial({ incident_impact_changes: true, incident_templates: true, incident_template_components: true }).strict(),
   // Files from earlier Lamp releases have none; see integrity.ts.
   integrity: z.object({ algorithm: z.literal("HMAC-SHA256"), value: z.string().regex(/^[A-Za-z0-9_-]{43}$/) }).strict().optional(),
 }).strict();
@@ -85,4 +88,4 @@ export const pageDataFileSchema = z.object({
 export type PageDataFile = z.infer<typeof pageDataFileSchema>;
 export type PageDataRow = Record<string, string | number | null>;
 
-export const PAGE_DATA_CONTENTS = "Page settings and logo; component groups and components with their status history; incidents with every update, draft, internal note and post-incident report; maintenance with its notices; subscribers with their channel, chosen components and consent state; incident and maintenance reference numbers. Authors are named by email.";
+export const PAGE_DATA_CONTENTS = "Page settings and logo; component groups and components with their status history; incidents with every update, draft, internal note, impact choice and post-incident report; reusable incident templates; maintenance with its notices; subscribers with their channel, chosen components and consent state; incident and maintenance reference numbers. Authors are named by email.";

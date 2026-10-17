@@ -1,3 +1,4 @@
+import { templateSchema, templateUpdateSchema } from "./template-schema";
 import type { Context, Hono } from "hono";
 import { z } from "zod";
 
@@ -19,7 +20,6 @@ const componentChangeSchema = z.discriminatedUnion("action", [
   z.object({ action: z.literal("detach"), componentId: ulidSchema }).strict(),
 ]);
 const createIncidentSchema = z.object({ title: z.string().trim().min(1).max(250), openedAt: z.iso.datetime().optional(), components: z.array(z.object({ componentId: ulidSchema, state: z.enum(COMPONENT_STATES), relationship: z.enum(["Primary", "Dependent"]).default("Primary") }).strict()).min(1).max(100) }).strict();
-const templateSchema = z.object({ name: z.string().trim().min(1).max(120), lifecycle: z.enum(INCIDENT_LIFECYCLES), affectedAudience: z.string().trim().min(1).max(250), customerImpact: z.string().trim().min(1).max(250), whatStillWorks: z.string().max(250), details: z.string().max(500), nextUpdateOffsetMinutes: z.number().int().min(1).max(10_080), components: z.array(z.object({ componentId: ulidSchema, state: z.enum(COMPONENT_STATES), relationship: z.enum(["Primary", "Dependent"]).default("Primary") }).strict()).min(1).max(100) }).strict();
 const correctionSchema = z.object({ updateId: ulidSchema }).strict();
 const internalNoteSchema = z.object({ body: z.string().trim().min(1).max(5_000) }).strict();
 
@@ -34,6 +34,15 @@ export function registerIncidentRoutes(app: Hono<AppEnv>, service: IncidentsServ
     if (!input.success) return context.json({ error: "A complete template and at least one affected component are required." }, 400);
     try { return context.json({ template: await service.saveTemplate(input.data, context.get("operator").id) }, 201); }
     catch (cause) { return context.json({ error: cause instanceof Error ? cause.message : "Template could not be saved." }, 409); }
+  });
+  app.put("/api/app/incident-templates/:templateId", async (context) => {
+    const templateId = ulidSchema.safeParse(context.req.param("templateId"));
+    const input = templateUpdateSchema.safeParse(await context.req.json().catch(() => null));
+    if (!templateId.success || !input.success) return context.json({ error: "Valid template fields within their limits are required.", ...(!input.success ? { issues: input.error.issues } : {}) }, 400);
+    try {
+      const template = await service.updateTemplate(templateId.data, input.data, context.get("operator").id);
+      return template ? context.json({ template }) : context.json({ error: "Template not found." }, 404);
+    } catch (cause) { return context.json({ error: cause instanceof Error ? cause.message : "Template could not be updated." }, 409); }
   });
   app.post("/api/app/incidents", async (context) => {
     const input = createIncidentSchema.safeParse(await context.req.json().catch(() => null));
@@ -159,7 +168,13 @@ export function registerIncidentRoutes(app: Hono<AppEnv>, service: IncidentsServ
   app.post("/api/app/incidents/:incidentId/templates/:templateId/apply", async (context) => {
     const incidentId = incidentIdFrom(context); const templateId = ulidSchema.safeParse(context.req.param("templateId"));
     if (!incidentId.success || !templateId.success) return context.json({ error: "Invalid incident or template identifier." }, 400);
-    try { const draft = await service.applyTemplate(incidentId.data, templateId.data, context.get("operator").id, context.req.header("If-Match")!); return draft ? context.json({ draft }) : context.json({ error: "Incident or template not found." }, 404); }
+    try {
+      const applied = await service.applyTemplate(incidentId.data, templateId.data, context.get("operator").id, context.req.header("If-Match")!);
+      if (!applied) return context.json({ error: "Incident or template not found." }, 404);
+      const channels = applied.template.shouldSendNotifications === null ? undefined : applied.template.shouldSendNotifications
+        ? ["email", "webhook", ...(await options.hasChatChannels?.() ? ["chat"] : [])] : [];
+      return context.json({ ...applied, ...(channels === undefined ? {} : { channels }) });
+    }
     catch (cause) { return context.json({ error: cause instanceof Error ? cause.message : "Template could not be applied." }, 409); }
   });
 
