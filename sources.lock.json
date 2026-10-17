@@ -4924,7 +4924,7 @@
       "executable": false
     },
     "tests/e2e/helpers/public-freshness-flow.mjs": {
-      "sha256": "95e281ed8782ae1ad39a4d390270db07f593a4cb74778e0577d570146276dbba",
+      "sha256": "77814b0dc331e0766c7d3fa95f97570f94400614c26fcb0338b2673b5dbe76ae",
       "executable": false
     },
     "tests/e2e/helpers/public-resources-flow.mjs": {

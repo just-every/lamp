@@ -24,7 +24,7 @@ export async function publicFreshnessFlow({ appFetch, appUrl, pageUrl, diagnosti
   await publish();
   const { maintenance } = await mutate("/api/app/maintenance", "POST", {
     title: "Cache freshness maintenance", componentIds: [component.id],
-    startsAt: new Date(Date.now() - 1000).toISOString(), endsAt: new Date(Date.now() + 3600000).toISOString(),
+    startsAt: new Date(Date.now() + 3600000).toISOString(), endsAt: new Date(Date.now() + 7200000).toISOString(),
   }, 201);
   // Let initial background publication finish before warming either cache.
   const setupDeadline = performance.now() + 10000;
@@ -82,6 +82,9 @@ export async function publicFreshnessFlow({ appFetch, appUrl, pageUrl, diagnosti
     await measure("incident update", publish, bodies => ["/", "/feed.atom", "/widget.js", "/api/public/status", `/incidents/${incident.reference}`].every(path => bodies[path].includes("Fresh diagnosis reaches every customer.")));
     await measure("component change", () => mutate(`/api/app/components/${component.id}/standing-claim`, "PUT", { state: "Major outage" }), bodies => ["/", "/widget.js", "/api/public/status"].every(path => bodies[path].includes("Major outage")));
     await measure("maintenance start", async () => {
+      // Keep the window in the future while warming caches: request-assisted
+      // due work must not start it before this measured action.
+      await mutate(`/api/app/maintenance/${maintenance.id}/window`, "PUT", { startsAt: new Date(Date.now() - 1000).toISOString(), endsAt: new Date(Date.now() + 3600000).toISOString() });
       const response = await fetch(`${appUrl}/cdn-cgi/handler/scheduled`);
       assert.equal(response.status, 200, await response.text());
     }, bodies => bodies[`/maintenance/${maintenance.reference}`].includes("In progress"));
@@ -102,6 +105,11 @@ export async function publicFreshnessFlow({ appFetch, appUrl, pageUrl, diagnosti
   } finally {
     await browser?.close();
     await proxy.close();
+    await mutate(`/api/app/incidents/${incident.id}`, "DELETE", { reason: "Remove cache freshness journey incident." });
+    const windows = await mutate("/api/app/maintenance", "GET");
+    const window = windows.maintenance.find(row => row.id === maintenance.id);
+    if (window?.state === "Scheduled") await mutate(`/api/app/maintenance/${maintenance.id}/cancel`, "POST");
+    else if (window?.state === "In progress") await mutate(`/api/app/maintenance/${maintenance.id}/complete`, "POST");
     // The standing claim must not change later tests' initial status or component count.
     await mutate(`/api/app/components/${component.id}`, "DELETE", undefined, 204);
     const cleanupDeadline = performance.now() + 10000;
