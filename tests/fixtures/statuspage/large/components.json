@@ -11,7 +11,7 @@
     "position": 1,
     "status": "operational",
     "showcase": true,
-    "only_show_if_degraded": false,
+    "only_show_if_degraded": true,
     "automation_email": "component+1@notifications.statuspage.example",
     "start_date": "2026-01-01"
   },

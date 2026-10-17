@@ -123,8 +123,6 @@ contract("MOVE-002", "an import is retroactive: history keeps its times, nobody 
   const files = fixtures("large");
   const componentFile = files.find(file => file.name === "components.json");
   const sourceComponents = JSON.parse(componentFile.text);
-  sourceComponents.find(row => !row.group).only_show_if_degraded = true;
-  componentFile.text = JSON.stringify(sourceComponents);
   const { preview, result } = await importAll(files);
   const expected = { group: [3, 0, 0], component: [12, 1, 0], incident: [84, 6, 2], maintenance: [3, 1, 0], subscriber: [6, 0, 0] };
   for (const [kind, [imported, changed, rejected]] of Object.entries(expected)) {
