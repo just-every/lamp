@@ -21,7 +21,13 @@ function exactRows(table: string, column: string, id: string, rows: Row[]): D1Sq
   const columns = [...new Set(rows.flatMap((row) => Object.keys(row)))];
   if (columns.some((key) => !/^\w+$/u.test(key))) throw new Error("Invalid native column.");
   return {
-    sql: `(SELECT count(*) FROM ${table} WHERE ${column}=?)=? AND NOT EXISTS(SELECT 1 FROM json_each(?) wanted WHERE NOT EXISTS(SELECT 1 FROM ${table} actual WHERE ${conjunction(columns.map((key) => `actual.${key} IS json_extract(wanted.value,'$.${key}')`))}))`,
+    sql: `(SELECT count(*) FROM ${table} WHERE ${column}=?)=? AND NOT EXISTS(SELECT 1 FROM json_each(?) wanted WHERE NOT EXISTS(SELECT 1 FROM ${table} actual WHERE ${conjunction(columns.map((key) => {
+      const wanted = `json_extract(wanted.value,'$.${key}')`;
+      // One incident can mix sealed pre-migration updates with a later native
+      // publication. Missing new fields mean their database default, not NULL.
+      const value = table === "incident_updates" && ["component_changes_json", "component_snapshot_json"].includes(key) ? `COALESCE(${wanted},'[]')` : wanted;
+      return `actual.${key} IS ${value}`;
+    }))}))`,
     params: [id, rows.length, JSON.stringify(rows)],
   };
 }
