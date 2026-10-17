@@ -15,7 +15,7 @@ const pageExactPaths = new Set([
   "/subscribe",
   "/unsubscribe",
 ]);
-const pagePathPrefixes = ["/incidents/", "/maintenance/", "/components/", "/api/v2/", "/api/public/v1/", "/assets/", "/manage/", "/unsubscribe/", "/confirm-subscription/", "/api/intake/"];
+const pagePathPrefixes = ["/history/", "/incidents/", "/maintenance/", "/components/", "/api/v2/", "/api/public/v1/", "/assets/", "/manage/", "/unsubscribe/", "/confirm-subscription/", "/api/intake/"];
 // `/lamp` is the landing page's former address; server.ts redirects it to `/` for one release.
 // `/docs` and `/docs/` are the product's own docs, public and on the app host only: the page host's paths are the status
 // snapshot's. `/setup/state` and `/brand/` serve the Lobby, the app host's home page.

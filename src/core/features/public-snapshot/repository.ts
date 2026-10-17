@@ -44,6 +44,8 @@ export interface PublicSnapshotSource {
     id: string;
     name: string;
     description: string;
+    onlyShowIfDegraded?: boolean;
+    uptimeStartDate?: string | null;
     note: string;
     groupId: string | null;
     groupName: string | null;
@@ -81,6 +83,8 @@ export function createSnapshotRepository(binding: D1Database, publicOrigin?: str
             id: components.id,
             name: components.name,
             description: components.description,
+            onlyShowIfDegraded: components.onlyShowIfDegraded,
+            uptimeStartDate: components.uptimeStartDate,
             note: components.note,
             groupId: components.groupId,
             groupName: componentGroups.name,

@@ -555,6 +555,7 @@
     "publicPaths": [
       "/",
       "/history",
+      "/history/",
       "/incidents/",
       "/maintenance/",
       "/history.atom",

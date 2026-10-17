@@ -217,6 +217,7 @@ export function registerPublicSnapshotRoutes(app: Hono<AppEnv>, service: PublicS
   });
   app.get("/maintenance/:reference", serve((context) => `maintenance/${encodeURIComponent(context.req.param("reference") ?? "")}.html`, false, "not-found.html"));
   app.get("/", serve(() => "page.html"));
+  app.get("/history/:month", serve(context => /^\d{4}-(?:0[1-9]|1[0-2])$/.test(context.req.param("month") ?? "") ? `history/${context.req.param("month")}.html` : "history/invalid.html", false, "not-found.html"));
   app.get("/history", serve(() => "history.html"));
   app.get("/incidents/:reference", serve((context) => `incidents/${encodeURIComponent(context.req.param("reference") ?? "")}.html`, false, "not-found.html"));
   app.get("/feed.atom", serve(() => "feed.atom"));

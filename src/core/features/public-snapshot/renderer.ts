@@ -1,4 +1,6 @@
 import { publicUpdate } from "./public-update";
+import { historyMonths, renderHistoryContent } from "./history";
+import { isPublicComponentShown } from "./component-visibility";
 import { renderImportAliases } from "./import-aliases";
 import { COMPONENT_STATES, mostSevereState, type ComponentState } from "../../shared/domain";
 import type { LampServerSlots } from "../../api/extensions";
@@ -15,7 +17,7 @@ import { renderFeeds } from "./feeds";
 import { renderBadges } from "./badges";
 import { renderPublicApi } from "./public-api";
 import { publicComponentResources } from "./component-address";
-import { incidentMarkup, maintenanceMarkup, noticeMarkup, recordHead, resolvedMarkup, statePill, updateMarkup, type PublicIncident, type PublicMaintenance } from "./record-markup";
+import { incidentMarkup, maintenanceMarkup, resolvedMarkup, statePill, type PublicIncident, type PublicMaintenance } from "./record-markup";
 import { DAY, REPORTING_DAYS, durationText, escapeHtml, stateClass, timestamp, timezoneLabel } from "./format";
 import { computeUptime, type Uptime, uptimeMarkup } from "./uptime";
 
@@ -34,6 +36,8 @@ interface PublicComponent {
   id: string;
   name: string;
   description: string;
+  onlyShowIfDegraded?: boolean;
+  uptimeStartDate?: string | null;
   note: string;
   groupName: string | null;
   groupOrder: number | null;
@@ -51,10 +55,14 @@ function toPublicModel(source: PublicSnapshotSource, generatedAt: string, polici
     // COMP-006 fixes individual component derivation. The rollup policy is
     // deliberately only for the single overall page status.
     state: mostSevereState(claims.get(component.id) ?? []),
-    uptime: computeUptime(source, component.id, now, source.settings.timezone, policies),
+    uptime: computeUptime(source, component.id, now, source.settings.timezone, policies, component.uptimeStartDate),
   }));
+  const visibleComponents = components.filter(isPublicComponentShown);
+  const hiddenIds = new Set(components.filter(component => !isPublicComponentShown(component)).map(component => component.id));
+  const attachedIncidentIds = new Set(source.incidentComponents.map(component => component.incidentId));
+  const attachedMaintenanceIds = new Set(source.maintenanceComponents.map(component => component.maintenanceId));
   const attachedByIncident = new Map<string, string[]>();
-  for (const component of source.incidentComponents) attachedByIncident.set(component.incidentId, [...(attachedByIncident.get(component.incidentId) ?? []), component.componentName]);
+  for (const component of source.incidentComponents.filter(component => !component.componentId || !hiddenIds.has(component.componentId))) attachedByIncident.set(component.incidentId, [...(attachedByIncident.get(component.incidentId) ?? []), component.componentName]);
   const updatesByIncident = new Map<string, PublicIncident["updates"]>();
   for (const update of source.updates) updatesByIncident.set(update.incidentId, [...(updatesByIncident.get(update.incidentId) ?? []), publicUpdate(source, update)]);
   const reportsByIncident = new Map(source.reports.map((report) => [report.incidentId, report]));
@@ -63,15 +71,15 @@ function toPublicModel(source: PublicSnapshotSource, generatedAt: string, polici
     components: attachedByIncident.get(incident.id) ?? [],
     updates: updatesByIncident.get(incident.id) ?? [],
     report: reportsByIncident.get(incident.id) ?? null,
-  })).filter((incident) => incident.updates.length > 0 && incident.components.length > 0);
+  })).filter((incident) => incident.updates.length > 0 && attachedIncidentIds.has(incident.id));
   const attachedByMaintenance = new Map<string, string[]>();
-  for (const component of source.maintenanceComponents) attachedByMaintenance.set(component.maintenanceId, [...(attachedByMaintenance.get(component.maintenanceId) ?? []), component.componentName]);
+  for (const component of source.maintenanceComponents.filter(component => !component.componentId || !hiddenIds.has(component.componentId))) attachedByMaintenance.set(component.maintenanceId, [...(attachedByMaintenance.get(component.maintenanceId) ?? []), component.componentName]);
   const noticesByMaintenance = new Map<string, PublicMaintenance["notices"]>();
   for (const notice of source.maintenanceNotices) noticesByMaintenance.set(notice.maintenanceId, [...(noticesByMaintenance.get(notice.maintenanceId) ?? []), notice]);
   const maintenance: PublicMaintenance[] = source.maintenance
     .map((item) => ({ ...item, components: attachedByMaintenance.get(item.id) ?? [], notices: noticesByMaintenance.get(item.id) ?? [], importedUpdates: (source.importedMaintenanceUpdates ?? []).filter(update => update.maintenanceId === item.id) }))
-    .filter((item) => item.components.length > 0);
-  return { origin: source.publicOrigin ?? `https://${source.settings.hostname}`, settings: source.settings, components, incidents, maintenance, generatedAt, policies, overall: policies.pageStatusRollup(components.map((component) => component.state)) };
+    .filter((item) => attachedMaintenanceIds.has(item.id));
+  return { origin: source.publicOrigin ?? `https://${source.settings.hostname}`, settings: source.settings, components, visibleComponents, incidents, maintenance, generatedAt, policies, overall: policies.pageStatusRollup(components.map((component) => component.state)) };
 }
 
 export type PublicSnapshotModel = ReturnType<typeof toPublicModel>;
@@ -116,11 +124,11 @@ function pageShell(title: string, body: string, model: ReturnType<typeof toPubli
 
 function componentMarkup(component: PublicComponent, timezone: string, generatedAt: string) {
   const resources = publicComponentResources(component);
-  return `<article class="component"><div class="component-name"><h4>${escapeHtml(component.name)}</h4>${statePill(component.state, "component-state")}${component.note ? `<p class="component-note">${escapeHtml(component.note)}</p>` : ""}<details class="component-resources"><summary>Feeds and badges</summary><a href="${resources.atom}">Atom</a> · <a href="${resources.rss}">RSS</a> · <a href="${resources.badge}">Status badge</a> · <a href="${resources.uptime}">Uptime badge</a></details></div><div class="component-status">${uptimeMarkup(component, timezone, generatedAt)}</div></article>`;
+  return `<article class="component"><div class="component-name"><h4>${escapeHtml(component.name)}</h4>${statePill(component.state, "component-state")}${component.description ? `<details class="component-description"><summary>About ${escapeHtml(component.name)}</summary><p>${escapeHtml(component.description)}</p></details>` : ""}${component.note ? `<p class="component-note">${escapeHtml(component.note)}</p>` : ""}<details class="component-resources"><summary>Feeds and badges</summary><a href="${resources.atom}">Atom</a> · <a href="${resources.rss}">RSS</a> · <a href="${resources.badge}">Status badge</a> · <a href="${resources.uptime}">Uptime badge</a></details></div><div class="component-status">${uptimeMarkup(component, timezone, generatedAt)}</div></article>`;
 }
 
 function componentHealthMarkup(model: ReturnType<typeof toPublicModel>) {
-  const { components, settings, generatedAt } = model;
+  const { visibleComponents: components, settings, generatedAt } = model;
   // One section per group in the shared component order. Ungrouped components
   // take the shared heading only beside named groups; a page without groups
   // lists its components with no invented heading.
@@ -186,7 +194,7 @@ function renderPage(model: ReturnType<typeof toPublicModel>, slots: LampServerSl
   const status = `<section class="status-banner ${stateClass(overall)}" aria-labelledby="overall-status"><div id="status-live" role="status" aria-live="polite" aria-atomic="true"><div class="status-summary">${publicIcon(statusIcon, "overall-status-icon")}<div><p class="eyebrow">Current status</p><h1 id="overall-status" data-overall>${escapeHtml(overall)}</h1></div></div><p class="status-live-update" data-newest-update>${escapeHtml(newest ? updateSummary(newest.incident, newest.update) : "There are no open incidents.")}</p><p class="status-generated" data-generated-at>Snapshot generated ${timestamp(generatedAt, settings.timezone)}.</p></div></section>`;
   const pageTitle = /\bstatus\s*$/i.test(settings.pageName.trim()) ? settings.pageName : `${settings.pageName} status`;
   const timeline = timelineMarkup(model, slots);
-  return pageShell(pageTitle, `${status}${timeline.active}${componentHealthMarkup(model)}<div class="component-extension">${slotMarkup(slots, "status-page.components.after.v1", model)}</div>${timeline.rest}${subscriptionMarkup(model.components)}`, model, slots, "root");
+  return pageShell(pageTitle, `${status}${timeline.active}${componentHealthMarkup(model)}<div class="component-extension">${slotMarkup(slots, "status-page.components.after.v1", model)}</div>${timeline.rest}${subscriptionMarkup(model.visibleComponents)}`, model, slots, "root");
 }
 
 function breadcrumb(here: string) {
@@ -200,7 +208,7 @@ function renderIncidentPage(incident: PublicIncident, model: ReturnType<typeof t
   const resolved = incident.lifecycle === "Resolved" && incident.resolvedAt
     ? `<p class="incident-resolution">${resolutionUpdateCarriesTime ? "" : `Resolved at ${timestamp(incident.resolvedAt, timezone)}. `}Duration: ${escapeHtml(durationText(incident.openedAt, incident.resolvedAt))}</p>`
     : "";
-  const content = `${breadcrumb(incident.reference)}<div class="incident-document"><div class="incident-document-main">${incidentMarkup(incident, timezone, undefined, "Incident", "h1")}<section class="about"><h2>About this incident</h2><p>Opened ${timestamp(incident.openedAt, timezone)}. Affected components: ${escapeHtml(incident.components.join(", "))}.</p>${resolved}</section>${report}</div><aside class="incident-summary" aria-label="Incident status"><p class="eyebrow">Incident status</p><h2 class="summary-state">${statePill(incident.lifecycle)}</h2><dl><div><dt>Reference</dt><dd>${escapeHtml(incident.reference)}</dd></div><div><dt>Opened</dt><dd>${timestamp(incident.openedAt, timezone)}</dd></div><div><dt>Updates</dt><dd>${incident.updates.length}</dd></div></dl><a class="text-link" href="/">Current status</a></aside></div>`;
+  const content = `${breadcrumb(incident.reference)}<div class="incident-document"><div class="incident-document-main">${incidentMarkup(incident, timezone, undefined, "Incident", "h1")}<section class="about"><h2>About this incident</h2><p>Opened ${timestamp(incident.openedAt, timezone)}. ${incident.components.length ? `Affected components: ${escapeHtml(incident.components.join(", "))}.` : ""}</p>${resolved}</section>${report}</div><aside class="incident-summary" aria-label="Incident status"><p class="eyebrow">Incident status</p><h2 class="summary-state">${statePill(incident.lifecycle)}</h2><dl><div><dt>Reference</dt><dd>${escapeHtml(incident.reference)}</dd></div><div><dt>Opened</dt><dd>${timestamp(incident.openedAt, timezone)}</dd></div><div><dt>Updates</dt><dd>${incident.updates.length}</dd></div></dl><a class="text-link" href="/">Current status</a></aside></div>`;
   return pageShell(`${incident.reference} · ${model.settings.pageName}`, content, model, slots, "other");
 }
 
@@ -209,23 +217,8 @@ function renderNotFoundPage(model: ReturnType<typeof toPublicModel>, slots: Lamp
   return pageShell(`Incident not found · ${model.settings.pageName}`, content, model, slots, "other");
 }
 
-function renderHistory(model: ReturnType<typeof toPublicModel>, slots: LampServerSlots) {
-  const timezone = model.settings.timezone;
-  const cutoff = new Date(model.generatedAt).getTime() - 365 * DAY;
-  const resolved = model.incidents.filter((incident) => incident.lifecycle === "Resolved" && incident.resolvedAt && new Date(incident.resolvedAt).getTime() >= cutoff);
-  const completed = model.maintenance.filter((item) => (item.state === "Completed" || item.state === "Cancelled") && new Date(item.endsAt).getTime() >= cutoff);
-  const records = [
-    ...resolved.map((incident) => ({ timestamp: incident.resolvedAt!, html: `<article class="history-item">${recordHead("Incident", incident.reference, `<a href="/incidents/${encodeURIComponent(incident.reference)}">${escapeHtml(incident.title)}</a>`, "h3", incident.lifecycle)}<p class="incident-meta">Resolved ${timestamp(incident.resolvedAt!, timezone)} · ${escapeHtml(durationText(incident.openedAt, incident.resolvedAt!))} · affected ${escapeHtml(incident.components.join(", "))}</p><div class="updates">${incident.updates.map((update) => updateMarkup(incident, update, timezone)).join("")}</div></article>` })),
-    ...completed.map((item) => ({ timestamp: item.completedAt ?? item.endsAt, html: `<article class="history-item">${recordHead("Maintenance", item.reference, `<a href="/maintenance/${encodeURIComponent(item.reference)}">${escapeHtml(item.title)}</a>`, "h3", item.state)}<p class="incident-meta">${timestamp(item.startsAt, timezone)} – ${timestamp(item.endsAt, timezone)} · ${escapeHtml(durationText(item.startsAt, item.endsAt))} · affected ${escapeHtml(item.components.join(", "))}</p><div class="updates">${[...item.notices, ...(item.importedUpdates ?? []).map(update => ({ ...update, kind: "Imported update" }))].sort((a, b) => b.publishedAt.localeCompare(a.publishedAt)).map((notice) => noticeMarkup(notice, timezone)).join("")}</div></article>` })),
-  ].sort((left, right) => right.timestamp.localeCompare(left.timestamp));
-  const monthFormatter = new Intl.DateTimeFormat("en-US", { timeZone: timezone, month: "long", year: "numeric" });
-  const groups = new Map<string, string[]>();
-  for (const record of records) {
-    const month = monthFormatter.format(new Date(record.timestamp));
-    groups.set(month, [...(groups.get(month) ?? []), record.html]);
-  }
-  const content = `${breadcrumb("History")}<section class="history"><header class="history-intro"><h1>Resolved history</h1><p>Resolved incidents and completed or cancelled maintenance from the last 12 months. For active incidents and upcoming maintenance, return to current status.</p></header>${[...groups.entries()].map(([month, entries]) => `<section class="history-month"><h2>${escapeHtml(month)}</h2>${entries.join("")}</section>`).join("") || "<p class=\"empty-state\">No past incidents or maintenance in the last 12 months.</p>"}</section>`;
-  return pageShell(`History · ${model.settings.pageName}`, content, model, slots, "history");
+function renderHistory(model: ReturnType<typeof toPublicModel>, slots: LampServerSlots, month?: string) {
+  return pageShell(`${month ?? "History"} · ${model.settings.pageName}`, `${breadcrumb("History")}${renderHistoryContent(model, month)}`, model, slots, "history");
 }
 
 export function renderPublicSnapshot(source: PublicSnapshotSource, generatedAt = new Date().toISOString(), policies: PublicSnapshotPolicies = defaultPublicSnapshotPolicies, branding: { logoDataUrl: string | null } = { logoDataUrl: null }, slots: LampServerSlots = {}): RenderedSnapshot {
@@ -247,6 +240,7 @@ export function renderPublicSnapshot(source: PublicSnapshotSource, generatedAt =
     ...model.incidents.map((incident) => ({ key: `incidents/${encodeURIComponent(incident.reference)}.html`, body: renderIncidentPage(incident, model, slots), contentType: "text/html; charset=utf-8" })),
   ];
   artifacts.push(...model.maintenance.map((item) => ({ key: `maintenance/${encodeURIComponent(item.reference)}.html`, body: pageShell(`${item.reference} · ${model.settings.pageName}`, `${breadcrumb(item.reference)}${maintenanceMarkup(item, model.settings.timezone, generatedAt, true)}`, model, slots, "other"), contentType: "text/html; charset=utf-8" })));
+  artifacts.push(...historyMonths(model).map(month => ({ key: `history/${month}.html`, body: renderHistory(model, slots, month), contentType: "text/html; charset=utf-8" })));
   artifacts.push(...renderImportAliases(source, model.incidents, model.maintenance, renderHistory(model, slots)));
   return { generatedAt, artifacts };
 }

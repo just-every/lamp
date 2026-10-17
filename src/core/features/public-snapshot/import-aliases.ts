@@ -20,7 +20,7 @@ export function renderImportAliases(source: PublicSnapshotSource, incidents: Arr
     { key: "history.html", body: JSON.stringify({ target: "/history/" }), contentType: "application/vnd.lamp.redirect+json" },
     { key: aliasArtifactKey("/history/"), body: history, contentType: "text/html; charset=utf-8" },
     { key: aliasArtifactKey("/notices"), body: JSON.stringify({ target: "/history/" }), contentType: "application/vnd.lamp.redirect+json" },
-  ] : [{ key: "history.html", body: history, contentType: "text/html; charset=utf-8" }];
+  ] : [{ key: "history.html", body: history, contentType: "text/html; charset=utf-8" }, { key: aliasArtifactKey("/history/"), body: history, contentType: "text/html; charset=utf-8" }];
   return [
     ...historyArtifacts,
     ...[...aliases].sort(([a], [b]) => a.localeCompare(b)).map(([path, { target }]) => ({ key: aliasArtifactKey(path), body: JSON.stringify({ target }), contentType: "application/vnd.lamp.redirect+json" })),

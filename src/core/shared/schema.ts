@@ -56,6 +56,8 @@ export const components = sqliteTable("components", {
   name: text().notNull(),
   description: text().notNull().default(""),
   internal: integer({ mode: "boolean" }).notNull().default(false),
+  onlyShowIfDegraded: integer("only_show_if_degraded", { mode: "boolean" }).notNull().default(false),
+  uptimeStartDate: text("uptime_start_date"),
   displayOrder: integer("display_order").notNull(),
   note: text().notNull().default(""),
   ...timestamps,

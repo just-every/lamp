@@ -1,3 +1,4 @@
+import { catalogueHistoryFlow } from "./helpers/catalogue-history-flow.mjs";
 import { widgetVariantsFlow } from "./helpers/widget-variants-flow.mjs";
 import { publicResourcesFlow } from "./helpers/public-resources-flow.mjs";
 import { publicFreshnessFlow } from "./helpers/public-freshness-flow.mjs";
@@ -176,6 +177,7 @@ after(async () => {
 });
 
 test("PAGE-007 COMP-002 PAGE-002 — Public generation refresh, ordering and script-free status", async t => {
+  await catalogueHistoryFlow({ appFetch, fetch, pageUrl, queryLocalSql, executeLocalSql, updateSettings, diagnostic: text => t.diagnostic(text) });
   t.diagnostic("PAGE-007 warmed browser and proxy follow publication generations and retain origin outages");
   await (async (t) => {
   await publicFreshnessFlow({ appFetch, appUrl, pageUrl, diagnostic: text => t.diagnostic(text) });
@@ -783,4 +785,5 @@ test("HIST-001 PAGE-010 PAGE-006 — Stable feed history and corrupt-pointer rec
     r2Object("snapshots/current.json", pointer);
   }
 })(t);
+
 });

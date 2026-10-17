@@ -17,7 +17,12 @@ overall status and unresolved incident information from the public snapshot.
 ## Read history and uptime
 
 History lists resolved incidents and completed maintenance for the previous
-12 months. The public page shows a 90-day uptime window for each visible
+12 months and links to earlier populated months. Each `/history/YYYY-MM` page
+links to adjacent months with records and to permanent incident pages, including
+imported history. These pages work without JavaScript and remain available from
+the published snapshot when the database is unavailable.
+
+The public page shows a 90-day uptime window for each visible
 component. It counts Major outage and Partially unavailable as full downtime,
 Degraded performance as half downtime, and Under maintenance as no downtime.
 Lamp computes this from component state history, and the page states the method.

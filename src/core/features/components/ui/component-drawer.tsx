@@ -11,7 +11,7 @@ import { LoadingState, useOperatorTime, FormError } from "../../../app/client/ui
 import { usePageTimezone, fromPageDateTime } from "../../../app/client/ui/timezone";
 
 type ComponentGroup = Awaited<ReturnType<ComponentsService["listGroups"]>>[number];
-type ComponentInput = Pick<ComponentView, "groupId" | "name" | "description" | "internal" | "note">;
+type ComponentInput = Pick<ComponentView, "groupId" | "name" | "description" | "internal" | "note" | "onlyShowIfDegraded" | "uptimeStartDate">;
 
 export function ComponentEditorDrawer({ component, groups, defaultGroupId = null, defaultDisplayOrder, onClose, onSaved }: { component: ComponentView | null; groups: ComponentGroup[]; defaultGroupId?: string | null; defaultDisplayOrder: number; onClose: () => void; onSaved: () => void }) {
   const [input, setInput] = useState<ComponentInput>({
@@ -19,6 +19,8 @@ export function ComponentEditorDrawer({ component, groups, defaultGroupId = null
     name: component?.name ?? "",
     description: component?.description ?? "",
     internal: component?.internal ?? false,
+    onlyShowIfDegraded: component?.onlyShowIfDegraded ?? false,
+    uptimeStartDate: component?.uptimeStartDate ?? null,
     note: component?.note ?? "",
   });
   const [saving, setSaving] = useState(false);
@@ -56,7 +58,9 @@ export function ComponentEditorDrawer({ component, groups, defaultGroupId = null
     <p className="drawer-copy">Components carry their public name, ordering, visibility, and operator state note. Active incidents and maintenance may raise their public status.</p>
     <form className="component-editor-form" onSubmit={save}>
       <label className="form-label">Component name<input required maxLength={120} value={input.name} onChange={(event) => setInput({ ...input, name: event.target.value })} /></label>
-      <label className="form-label">Description <span className="field-hint">Optional · shown publicly</span><textarea maxLength={280} value={input.description} onChange={(event) => setInput({ ...input, description: event.target.value })} /></label>
+      <label className="form-label">Description <span className="field-hint">Optional · shown publicly</span><textarea maxLength={500} value={input.description} onChange={(event) => setInput({ ...input, description: event.target.value })} /></label>
+      <label className="form-label">Uptime start date<input type="date" value={input.uptimeStartDate ?? ""} onChange={(event) => setInput({ ...input, uptimeStartDate: event.target.value || null })} /><small>Only show uptime from this date in the page's timezone. Earlier state history is kept.</small></label>
+      <label className="checkbox-label"><input type="checkbox" checked={input.onlyShowIfDegraded} onChange={(event) => setInput({ ...input, onlyShowIfDegraded: event.target.checked })} />Show only when not Operational</label>
       <label className="form-label">State note <span className="field-hint">Optional · 250 characters · shown beside public state</span><textarea maxLength={250} value={input.note} onChange={(event) => setInput({ ...input, note: event.target.value })} /></label>
       <div className="component-editor-grid"><label className="form-label">Group<select value={input.groupId ?? ""} onChange={(event) => setInput({ ...input, groupId: event.target.value || null })}><option value="">Ungrouped</option>{groups.map((group) => <option key={group.id} value={group.id}>{group.name}</option>)}</select></label></div>
       <label className="checkbox-label component-internal-toggle"><input type="checkbox" checked={input.internal} onChange={(event) => setInput({ ...input, internal: event.target.checked })} /><span>Internal only</span> <small>Exclude this component from the status page, Atom feed, widget, overall status, and uptime.</small></label>

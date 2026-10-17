@@ -24,17 +24,17 @@ export function renderPublicApi(model: PublicSnapshotModel, source: PublicSnapsh
   const id = (native: string) => source.publicApiIds?.[native] ?? nativePublicId(`lamp-public:${native}`);
   const page = { id: id(model.settings.feedId), name: model.settings.pageName, url: model.origin, time_zone: model.settings.timezone, updated_at: model.generatedAt };
   const status = { indicator: impacts[model.overall], description: model.overall === "Operational" ? "All Systems Operational" : model.overall };
-  const components = model.components.map(component => {
+  const components = model.visibleComponents.map(component => {
     const stored = source.components.find(row => row.id === component.id)!;
-    return { id: id(component.id), name: component.name, description: component.description || null, status: statuspageStates[component.state], position: component.displayOrder, group_id: stored.groupId ? id(stored.groupId) : null, group: false, only_show_if_degraded: false, page_id: page.id, created_at: stored.createdAt, updated_at: stored.updatedAt };
+    return { id: id(component.id), name: component.name, description: component.description || null, status: statuspageStates[component.state], position: component.displayOrder, group_id: stored.groupId ? id(stored.groupId) : null, group: false, only_show_if_degraded: stored.onlyShowIfDegraded, page_id: page.id, created_at: stored.createdAt, updated_at: stored.updatedAt };
   });
   const groups = [...new Set(source.components.map(component => component.groupId).filter((group): group is string => group !== null))].map(groupId => {
-    const members = model.components.filter(component => source.components.find(row => row.id === component.id)?.groupId === groupId);
+    const members = model.visibleComponents.filter(component => source.components.find(row => row.id === component.id)?.groupId === groupId);
     const stored = source.components.find(row => row.groupId === groupId)!;
     return { id: id(groupId), name: stored.groupName, description: null, status: statuspageStates[mostSevereState(members.map(component => component.state))], position: stored.groupOrder, group_id: null, group: true, components: members.map(component => id(component.id)), only_show_if_degraded: false, page_id: page.id, created_at: stored.groupCreatedAt, updated_at: stored.groupUpdatedAt };
-  });
+  }).filter(group => group.components.length > 0);
   const publicComponents = [...components, ...groups].sort((left, right) => (left.position ?? 0) - (right.position ?? 0));
-  const componentIds = new Set(model.components.map(component => component.id));
+  const componentIds = new Set(model.visibleComponents.map(component => component.id));
   const incidentComponents = (incidentId: string) => source.incidentComponents.filter(row => row.incidentId === incidentId && row.componentId && componentIds.has(row.componentId)).flatMap(row => {
     const component = components.find(component => component.id === id(row.componentId!));
     return component ? [component] : [];
@@ -63,7 +63,7 @@ export function renderPublicApi(model: PublicSnapshotModel, source: PublicSnapsh
     json("api/v2/scheduled-maintenances/upcoming.json", { page, scheduled_maintenances: upcoming }),
     json("api/v2/scheduled-maintenances/active.json", { page, scheduled_maintenances: active }),
     json("api/public/v1/summary.json", { generatedAt: model.generatedAt, page: { name: page.name, hostname: model.settings.hostname, timezone: model.settings.timezone }, overall: model.overall, collections: ["components", "incidents", "maintenance"].map(name => `/api/public/v1/${name}`) }),
-    ...nativeCollectionArtifacts("components", model.components.map(component => ({ id: component.id, slug: componentSlug(component), name: component.name, description: component.description, note: component.note, state: component.state, uptime: component.uptime })), model.generatedAt),
+    ...nativeCollectionArtifacts("components", model.visibleComponents.map(component => ({ id: component.id, slug: componentSlug(component), name: component.name, description: component.description, onlyShowIfDegraded: component.onlyShowIfDegraded, uptimeStartDate: component.uptimeStartDate, note: component.note, state: component.state, uptime: component.uptime })), model.generatedAt),
     ...nativeCollectionArtifacts("incidents", model.incidents.map(incident => ({ id: incident.id, reference: incident.reference, title: incident.title, lifecycle: incident.lifecycle, openedAt: incident.openedAt, resolvedAt: incident.resolvedAt, components: incident.components, updates: incident.updates.map(update => ({ id: update.id, lifecycle: update.lifecycle, affectedAudience: update.affectedAudience, customerImpact: update.customerImpact, whatStillWorks: update.whatStillWorks, details: update.details, nextUpdateAt: update.lifecycle === "Resolved" ? null : update.nextUpdateAt, publishedAt: update.publishedAt, componentChanges: (update.componentChanges ?? []).map(({ componentId, name, previousState, newState }) => ({ componentId, name, previousState, newState })) })), report: incident.report })), model.generatedAt),
     ...nativeCollectionArtifacts("maintenance", model.maintenance.map(item => ({ id: item.id, reference: item.reference, title: item.title, state: item.state, startsAt: item.startsAt, endsAt: item.endsAt, completedAt: item.completedAt, components: item.components, notices: item.notices, importedUpdates: item.importedUpdates })), model.generatedAt),
   ];

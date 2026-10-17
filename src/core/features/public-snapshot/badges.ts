@@ -27,7 +27,7 @@ export function renderBadges(model: PublicSnapshotModel): SnapshotArtifact[] {
     svg("badge.svg", "status", model.overall, STATE_COLORS[model.overall]),
     { key: "badge.json", body: JSON.stringify({ schemaVersion: 1, label: "status", message: model.overall, color: STATE_COLORS[model.overall], isError: false }), contentType: "application/json; charset=utf-8" },
   ];
-  for (const component of model.components) {
+  for (const component of model.visibleComponents) {
     const paths = publicComponentResources(component);
     artifacts.push(
       svg(paths.badge.slice(1), component.name, component.state, STATE_COLORS[component.state]),

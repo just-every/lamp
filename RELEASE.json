@@ -20,6 +20,10 @@
     {
       "id": "0028_wording_checks.sql",
       "buyerSteps": "Apply after 0027. Adds page wording-check settings with defaults; no owner action is required."
+    },
+    {
+      "id": "0029_component_catalogue.sql",
+      "buyerSteps": "Apply after 0028. Adds conditional component visibility and optional uptime start dates; existing components stay visible with their existing uptime history."
     }
   ],
   "breaking": false,

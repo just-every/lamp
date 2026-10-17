@@ -30,3 +30,7 @@
 .availability-method[open] { flex-basis: 100%; }
 .availability-method[open] summary { margin-left: 0; }
 .availability-method p { max-width: 72ch; margin: 8px 0 0; }
+
+.component-description { flex-basis: 100%; color: var(--ink-2); font-size: 14px; }
+.component-description summary { cursor: pointer; }
+.component-description p { margin: 8px 0 0; white-space: pre-wrap; overflow-wrap: anywhere; }
