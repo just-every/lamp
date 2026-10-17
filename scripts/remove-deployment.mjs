@@ -25,6 +25,8 @@ try {
       if (await activeWorker(ownership.api, ownership.target(page).worker)) throw new Error('The public Worker has no creation record; removal refuses to adopt it');
       continue;
     }
+    // Each pass can take a few minutes while Cloudflare confirms the data is gone.
+    console.log(page ? 'Removing the public page Worker…' : 'Removing the app Worker, its database, files and queue…');
     const result = await ownerRemove({ api: ownership.api, target: ownership.target(page), statePath: ownership.path(page) });
     removed.push(...result.removed);
   }

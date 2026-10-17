@@ -107,9 +107,7 @@ test('SETUP-002 Base setup/dev, one-click sign-in, invite, signout and prior-dat
    assert.equal(output.includes('RER_READY '),true,'rer dev reaches readiness');
    await denied(origin,join(root,'probe.rer'));
    const key=await readDevKey(root);
-   for(const path of ['/__dev/outbox','/__dev/outbox?format=json','/__dev/outbox/any-envelope?format=json'])assert.equal((await fetch(origin+path)).status,404,'the outbox answers only a request holding the dev key: '+path);
-   const notice=await fetch(origin+'/__dev/outbox',{headers:{'x-rer-dev-key':key}});
-   assert.equal(notice.status,200);assert.match(notice.headers.get('content-type'),/^text\/plain/);assert.equal(notice.headers.get('cache-control'),'no-store');await notice.body?.cancel();
+   for(const headers of [{},{'x-rer-dev-key':key}])assert.equal((await fetch(origin+'/__dev/outbox',{headers})).status,404,'local dev has no mail outbox, even for the dev key');
    const entered=await signInAs({origin,key});const devContext=await journeyContext(browser,key);await devContext.addCookies(entered.cookies.map(c=>({...c,url:origin})));
    const devPage=await devContext.newPage();await devPage.goto(origin+entered.location);
    const devSession=await devPage.request.get(origin+'/api/app/session');

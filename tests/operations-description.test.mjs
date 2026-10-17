@@ -4,7 +4,6 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import test from 'node:test';
-import { mailEnvironmentSources } from '../scripts/ops-config.mjs';
 import { describeOperations, inspectOperations } from '../scripts/operations.mjs';
 
 test("Operations discoverability and value-free missing-input diagnostics", async t => {
@@ -50,7 +49,7 @@ function deploy(args, env) {
 }
 
 test("Dry-run and deployment refuse missing authority or invalid native configuration", async t => {
-  t.diagnostic("deployment dry run reports missing native inputs and their sources without values");
+  t.diagnostic("deployment dry run lists exactly the missing inputs by name, in the deploy guide's order, without values");
   await (async () => {
   const descriptor = await describeOperations(process.cwd());
   const result = deploy(['--dry-run'], {
@@ -58,12 +57,10 @@ test("Dry-run and deployment refuse missing authority or invalid native configur
     LAMP_PAGE_HOST: 'private-invalid-value/path',
   });
   assert.equal(result.status, 1);
-  for (const name of ['LAMP_PAGE_NAME', 'MAIL_PROVIDER_API_KEY']) {
-    assert.ok(result.stderr.includes(name));
-    assert.ok(result.stderr.includes((mailEnvironmentSources[name] ?? descriptor.environmentSources[name])));
-  }
+  const listed = [...result.stderr.matchAll(/^  ([A-Z][A-Z0-9_]*) — step \d+: /gm)].map(match => match[1]);
+  assert.deepEqual(listed, ['LAMP_PAGE_NAME', 'MAIL_PROVIDER_API_KEY', 'CLOUDFLARE_ACCOUNT_ID', 'CLOUDFLARE_API_TOKEN']);
+  assert.ok(result.stderr.includes('docs/deploy.md'));
   assert.ok(result.stderr.includes(descriptor.commands.deploy.argv.join(' ')));
-  assert.ok(!result.stderr.includes('CLOUDFLARE_API_TOKEN'));
   assert.ok(!result.stderr.includes('private-invalid-value'));
   assert.ok(!result.stderr.includes(applicationEnvironment.SUBSCRIBER_TOKEN_SECRET));
   assert.equal(result.stdout, '');
@@ -73,7 +70,6 @@ test("Dry-run and deployment refuse missing authority or invalid native configur
   const result = deploy(['--dry-run'], { ...applicationEnvironment, LAMP_PAGE_HOST: 'private-invalid-value/path' });
   assert.equal(result.status, 1);
   assert.match(result.stderr, /LAMP_PAGE_HOST/);
-  assert.ok(!result.stderr.includes('CLOUDFLARE_API_TOKEN'));
   assert.ok(!result.stderr.includes('private-invalid-value'));
   assert.equal(result.stdout, '');
 })(t);

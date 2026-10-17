@@ -11,9 +11,9 @@ keeping the opaque audit attribution.
 
 ## Terminal entry for the hosted owner
 
-With the checkout's pinned `@runeditrun/rer` (0.2.38), the hosted owner can enter without receiving email.
+With the checkout's pinned `@runeditrun/rer` (0.2.40), the hosted owner can enter without receiving email.
 From the checkout that deployed Lamp, use the same Cloudflare account, deployment
-environment and [private input file](deploy.md#save-private-deployment-inputs):
+environment and [private input file](deploy.md#step-1-make-a-private-input-file):
 
 ```sh
 rer signin --environment production --env-file "$HOME/.config/lamp/production.env"
@@ -96,7 +96,7 @@ placeholders, not usable credentials:
 ### Configure Lamp and check sign-in
 
 1. Put the selected JSON array on **one line** as `AUTH_PROVIDERS=[...]` in your
-   existing [private deployment input file](deploy.md#save-private-deployment-inputs).
+   existing [private deployment input file](deploy.md#step-1-make-a-private-input-file).
    Include only the providers you registered; replace every placeholder. The
    array contains client secrets and must stay outside Git and shared logs.
 2. Add `OIDC_TRANSACTION_SECRET` to the same file: a separate random value of at

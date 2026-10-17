@@ -154,7 +154,7 @@ until its acceptance below passes through the public door it names.
 | HIST-001 | Public history | done | `tests/e2e/public-contract.test.mjs:720` |
 | HIST-002 | Post-incident report | done | `tests/e2e/publishing-browser.test.mjs:501`, `tests/e2e/publishing-contract.test.mjs:1041` |
 | HIST-003 | Report due | done | `tests/e2e/publishing-contract.test.mjs:1041` |
-| HIST-004 | Export contents | done | `tests/e2e/export-import.test.mjs:58` |
+| HIST-004 | Export contents | done | `tests/e2e/export-import.test.mjs:30` |
 | SETUP-001 | Setup readiness | done | `tests/e2e/setup-readiness.test.mjs:17` |
 | SETUP-002 | First-run setup | done | `tests/e2e/auth-adoption-journey.test.mjs:63` |
 | ACCESS-001 | Owner-terminal sign-in | done | `tests/auth-adoption/dependencies.test.mjs:13`, `tests/auth-adoption/portability.test.mjs:35`, `tests/auth-adoption/upgrade.test.mjs:11`, `tests/auth-adoption/upgrade.test.mjs:96` |

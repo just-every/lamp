@@ -1,6 +1,6 @@
 # Run it locally
 
-Use `rer` from the project root. The checkout pins `@runeditrun/rer` 0.2.38,
+Use `rer` from the project root. The checkout pins `@runeditrun/rer` 0.2.40,
 which every `rer` command here runs whatever `rer` you installed;
 `rer describe` reports the commands and tooling in use. Lamp runs on
 your computer without a Cloudflare account or mail credentials; development mail
@@ -23,11 +23,7 @@ owner automatically. When ready, it prints `RER_READY` with the app address and
 `RER_OPEN` with your private one-click owner entry link. Open the `RER_OPEN`
 link to work as the owner; no email is needed. Keep that link private.
 
-Local mail is not sent or retained. In ordinary development,
-after opening the local owner entry address, `GET /__dev/outbox` on the local
-app host returns HTTP 200 with a plain-text
-suppression notice. It is a compatibility address, with no inbox or captured
-messages. Test emailed sign-in and subscriber delivery on a hosted installation
+Local mail is not sent or retained, and there is no local inbox. Test emailed sign-in and subscriber delivery on a hosted installation
 with its real mail provider and mailbox.
 
 The local addresses serve three different purposes:

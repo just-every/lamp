@@ -1,9 +1,10 @@
 # Deployment reference
 
 Use `rer deploy` from the project root. The checkout pins
-`@runeditrun/rer` 0.2.38; use `rer describe` and `rer deploy --help` for the installed
-command reference. The [deployment guide](deploy.md) gives a complete private
-`0600` input file, validation, deploy and removal commands. `--env-file` values
+`@runeditrun/rer` 0.2.40; use `rer describe` and `rer deploy --help` for the installed
+command reference. [Deploy to Cloudflare](deploy.md) is the guided setup: it asks
+for each input below in the order `rer deploy --dry-run` lists missing ones, and
+gives the validation, deploy and removal commands. `--env-file` values
 override the calling shell's exported values.
 
 ## Inputs you supply and values rer generates
@@ -32,12 +33,12 @@ Optional values follow the required entries in the table.
 
 | Input | What you supply |
 |---|---|
-| `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_API_TOKEN` | Credentials for the intended account; account ID is available on its overview. |
+| `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_API_TOKEN` | The account ID and an API token with Account **Workers Scripts**, **D1**, **Workers R2 Storage** and **Queues** set to **Edit**, plus Zone **Workers Routes: Edit** for an own domain ([step 2](deploy.md#step-2-cloudflare-account-id-and-api-token)). |
 | `LAMP_APP_HOST`, `LAMP_PAGE_HOST` | Two distinct bare hostnames, without scheme, port or path. Both remain required with `LAMP_HOSTING=workers-dev`. |
 | `LAMP_PAGE_NAME`, `LAMP_PAGE_TAGLINE` | Your business's page name and description. |
 | `LAMP_PAGE_TIMEZONE`, `LAMP_ACCENT_COLOR` | An IANA time zone and a six-digit hex colour, such as `Europe/London` and `#16794C`. |
 | `SETUP_OPERATOR_EMAIL` | The first owner's email address. Supply it explicitly for Lamp's native deployment. |
-| `MAIL_FROM_ADDRESS`, `MAIL_DKIM_SELECTOR`, `MAIL_PROVIDER_API_KEY` | Your provider-authenticated sender, its DKIM selector and the selected provider's API key. These are required owner inputs. |
+| `MAIL_FROM_ADDRESS`, `MAIL_DKIM_SELECTOR`, `MAIL_PROVIDER_API_KEY` | Your provider-authenticated sender, its DKIM selector and the selected provider's API key ([step 6](deploy.md#step-6-mail)). These are required owner inputs. |
 | `SETUP_TOKEN`, `SESSION_SECRET`, `SUBSCRIBER_TOKEN_SECRET`, `WEBHOOK_SIGNING_SECRET` | Required runtime secrets. `rer deploy` generates fresh random values when absent; they are not mandatory manual inputs for a first deployment. rer keeps the values it generates in `.rer/deploy/<environment>.secrets.env` and reuses them. A redeploy keeps the `SESSION_SECRET`, `SUBSCRIBER_TOKEN_SECRET`, `WEBHOOK_SIGNING_SECRET` and `OIDC_TRANSACTION_SECRET` each Worker already holds, so links, sessions and sign-ins in progress survive it; `LAMP_REPLACE_SECRETS=NAME` (with the new value in the file) or `rer deploy --rotate-secret NAME` replaces one on purpose. For restores into a new installation, supply and retain your original values as shown in the deployment guide. Each must be at least 32 characters. |
 | `MAIL_PROVIDER` | `resend` (native default) or `sendgrid`. Set explicitly to match the API key. |
 | `OWNER_DISPLAY_NAME` | Optional first-owner name, 1–120 characters; the native default is `Owner`. Existing owners keep their name. |

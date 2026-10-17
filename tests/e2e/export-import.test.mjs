@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { execFileSync } from "node:child_process";
-import { mkdir, mkdtemp, readFile, readdir, rm, symlink, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { test } from "node:test";
@@ -10,7 +10,6 @@ import { getPlatformProxy } from "wrangler";
 
 import { contract } from "../contract.mjs";
 import { applyOwnerMigrations } from "../../scripts/owner-migrations.mjs";
-import { renderRemoteArchiveWranglerToml } from "../../scripts/ops-config.mjs";
 import { importHistoryForRestore, undoHistoryAfterRestore } from "../betterstack/portability.mjs";
 
 const configPath = "wrangler.jsonc";
@@ -27,33 +26,6 @@ function platformFor(statePath) {
 function quoted(name) {
   return `"${name.replaceAll('"', '""')}"`;
 }
-
-test("remote archive proxy configuration binds only the recorded D1 and R2 resources remotely and discovers core migrations", async () => {
-  const config = renderRemoteArchiveWranglerToml({
-    accountId: "0123456789abcdef0123456789abcdef",
-    database: "lamp-production-db",
-    databaseId: "01234567-89ab-cdef-0123-456789abcdef",
-    bucket: "lamp-production-files",
-    migrationsDir: resolve("migrations", "core"),
-  });
-  assert.match(config, /^account_id = "0123456789abcdef0123456789abcdef"/m);
-  assert.match(config, /binding = "DB"\ndatabase_name = "lamp-production-db"\ndatabase_id = "01234567-89ab-cdef-0123-456789abcdef"\nmigrations_dir = ".*\/migrations\/core"\nremote = true/);
-  assert.match(config, /binding = "SNAPSHOTS"\nbucket_name = "lamp-production-files"\nremote = true/);
-  assert.doesNotMatch(config, /JOBS|ASSETS|routes|\[assets\]/);
-  const sandbox = await mkdtemp(join(tmpdir(), "lamp-archive-proxy-config-"));
-  const configPath = join(sandbox, "remote-archive.toml");
-  const statePath = join(sandbox, "state");
-  try {
-    await writeFile(configPath, config, "utf8");
-    run(["exec", "wrangler", "d1", "migrations", "apply", "DB", "--local", "--persist-to", statePath, "--config", configPath]);
-    const output = execFileSync("pnpm", ["exec", "wrangler", "d1", "execute", "DB", "--local", "--persist-to", statePath, "--config", configPath, "--json", "--command", "SELECT name FROM d1_migrations ORDER BY name"], { cwd: process.cwd(), encoding: "utf8", stdio: ["pipe", "pipe", "pipe"] });
-    const jsonStart = output.indexOf("[");
-    const rows = JSON.parse(output.slice(jsonStart))[0].results.map((row) => row.name);
-    assert.deepEqual(rows, (await readdir("migrations/core")).filter((name) => name.endsWith(".sql")).sort());
-  } finally {
-    await rm(sandbox, { recursive: true, force: true });
-  }
-});
 
 contract("HIST-004", "export restores every JSON entity, settings and audit entry plus original image bytes into an empty local deployment", async () => {
   const sourceState = await mkdtemp(join(tmpdir(), "lamp-export-source-"));

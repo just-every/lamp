@@ -66,9 +66,7 @@ receipts; see `ACCEPTANCE.md`.
 `test:reference-storage` proves nullable-time upgrades and durable reference allocation on real prior D1 data, including concurrency, rollback, restart, and capture-receipt exclusion from provider retry. `test:public-snapshots`, `test:intake-references`, and `test:resolve-composer` exercise the native Worker and browser behavior; passing source checks alone does not qualify them. `test:release-identity` checks the current repository descriptors and retained edition provenance. All are part of `verify`.
 
 Ordinary `rer dev` signs the owner in through its private one-click entry and
-suppresses local mail without retaining messages. Check that
-`GET /__dev/outbox` returns 200 with the suppression notice, and that the notice
-is unavailable in production and demos. It is not a captured-mail journey.
+suppresses local mail without retaining messages; there is no local outbox.
 Emailed sign-in, subscriber confirmation and received-message evidence require a
 hosted installation and its actual mail provider; local success does not prove
 provider acceptance or inbox delivery.

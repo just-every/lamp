@@ -46,6 +46,5 @@ for the source contract and remaining runtime evidence.
 
 Local state remains in the private installer runtime folder. Legacy capture
 metadata is never treated as provider delivery or silently resent. Local mail is
-suppressed without retaining new messages. In ordinary `rer dev`,
-`GET /__dev/outbox` returns 200 with a plain-text suppression notice, not a viewer.
+suppressed without retaining new messages.
 Local checks do not establish provider delivery or hosted acceptance.

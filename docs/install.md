@@ -1,6 +1,6 @@
 # Install Lamp
 
-Lamp uses the checkout's pinned `@runeditrun/rer` 0.2.38 and can run locally or
+Lamp uses the checkout's pinned `@runeditrun/rer` 0.2.40 and can run locally or
 in your Cloudflare account. For the local path, run `npx -y @runeditrun/rer dev just-every/run-lamp`, which clones Lamp, installs dependencies, sets up the first owner and starts it; to start it again later, run `cd run-lamp && rer dev`. Without Node, `curl -fsSL https://runeditrun.com/install.sh | sh -s -- dev just-every/run-lamp` brings its own and does the same.
 The [local guide](../RUN-LOCALLY.md) has the details. Local mail is silently
 suppressed and not retained; use a hosted installation to exercise real email delivery.
@@ -32,8 +32,8 @@ Choose two distinct hostnames for the public status page and operator app. Use
 custom domains in your Cloudflare account, or use that account's existing
 `workers.dev` subdomain. Both hostname inputs are required in either mode.
 
-Follow [Deploy to Cloudflare](deploy.md) for the complete private-input file and
-commands. The [deployment reference](deployment-reference.md) distinguishes values
+Follow [Deploy to Cloudflare](deploy.md), one guided page, for the private input
+file, each input in the order the dry run asks for it, and the commands. The [deployment reference](deployment-reference.md) distinguishes values
 you supply from generated secrets and shows how to find the `workers.dev` hosts.
 
 ## Authenticate the sender
@@ -43,9 +43,10 @@ Managed hosting supplies the sender and relay credential automatically.
 
 `MAIL_PROVIDER` selects `resend` (the native command's default) or `sendgrid`.
 Set it explicitly to match your key. Authenticate the domain of
-`MAIL_FROM_ADDRESS` in that provider, then copy its DNS records to your DNS host.
-Set `MAIL_DKIM_SELECTOR` to the provider's selector, such as `s1` for SendGrid
-when its domain-authentication settings use `s1` and `s2`.
+`MAIL_FROM_ADDRESS` in that provider and copy its DNS records to your DNS host:
+[step 6 of Deploy to Cloudflare](deploy.md#step-6-mail) walks through it at
+SendGrid and Resend. Set `MAIL_DKIM_SELECTOR` to the provider's selector, such
+as `s1` for SendGrid when its domain-authentication settings use `s1` and `s2`.
 
 Before provisioning, Lamp requires a reachable DKIM key at
 `<selector>._domainkey.<From-domain>` (a provider CNAME is supported) and a DMARC

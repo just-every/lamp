@@ -123,6 +123,9 @@ confirmed subscribers stay, with their reason shown. Aliases stay for surviving
 imported incidents or maintenance and are removed when the imported target is
 removed. Undo sends no mail.
 
+Moving from another Lamp page? Download **Settings → Export page data** there and
+restore the file on the new page; see [Backups and recovery](backups-and-recovery.md#export-your-page-data-from-the-app).
+
 Undo applies to one move-in job; it is not a full installation restore. To
 restore a complete Lamp installation from an archive, follow [Backups and
 recovery](backups-and-recovery.md). Full restore has its own archive and

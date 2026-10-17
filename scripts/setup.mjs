@@ -1,6 +1,7 @@
 import { spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";
 import { resolve } from "node:path";
+import { readDeployEnvFile } from "@runeditrun/rer/internal/modules/deploy-kit/env-file.mjs";
 import { readArchive } from "./archive-validation.mjs";
 import { assertMailDns } from "./mail-dns.mjs";
 import { deploymentOwnership } from "./deployment-ownership.mjs";
@@ -8,8 +9,9 @@ import { deploymentOwnership } from "./deployment-ownership.mjs";
 import { applyOwnerMigrations } from "./owner-migrations.mjs";
 import { deploymentConfig, deploymentRecordPath, parseArgs, resourceNames, setupPageSettingsStatement, writeDeploymentRecord, writeGeneratedWrangler } from "./ops-config.mjs";
 
+// The checkout's own Wrangler, run by this Node: a restore needs no global pnpm.
 function wrangler(args, options = {}) {
-  const result = spawnSync("pnpm", ["exec", "wrangler", ...args], { encoding: "utf8", stdio: ["pipe", "pipe", "pipe"], ...options });
+  const result = spawnSync(process.execPath, [resolve("node_modules", "wrangler", "bin", "wrangler.js"), ...args], { encoding: "utf8", stdio: ["pipe", "pipe", "pipe"], ...options });
   if (result.status !== 0) throw new Error(`wrangler ${args.join(" ")} failed: ${result.stderr || result.stdout}`);
   return result.stdout;
 }
@@ -42,9 +44,11 @@ async function ensureQueue(ownership, resources) {
 
 async function main() {
   const flags = parseArgs(process.argv.slice(2));
-  if (flags.get("local")) throw new Error("pnpm setup provisions deployable Cloudflare resources; use pnpm dev for local development.");
+  if (flags.get("local")) throw new Error("scripts/setup.mjs provisions deployable Cloudflare resources; use rer dev for local development.");
+  // The same private input file as rer deploy; its values override exported ones.
+  if (flags.get("env-file")) Object.assign(process.env, await readDeployEnvFile(process.cwd(), flags.get("env-file")));
   const environment = flags.get("environment") ?? "production";
-  const config = deploymentConfig(process.env, environment);
+  const config = deploymentConfig(process.env, environment, { claimsOwner: false });
   const names = resourceNames(config.environment, config.resourcePrefix);
   const restoreFrom = flags.get("restore-from");
   if (restoreFrom) await readArchive(resolve(restoreFrom));

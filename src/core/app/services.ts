@@ -23,6 +23,7 @@ import { createAiService } from "../features/ai";
 import { createBriefRepository, createBriefService } from "../features/brief";
 import { createStatuspageImportService } from "../features/statuspage-import";
 import { createChannelsService } from "../features/channels";
+import { createPageExportRepository, createPageExportService } from "../features/page-export";
 import { createAppMailTransport, type MailExecution } from "./mail";
 import { createOpenAiCompatibleProvider } from "../platform/ai";
 import { createDemoAiProvider } from "../platform/ai/demo";
@@ -151,7 +152,9 @@ export function createAppServices(bindings: AppBindings, blobs: BlobStore, execu
     publicDataChanged: () => publicSnapshots.rebuild(true),
   }, { apiOrigin: import.meta.env?.DEV && bindings.LAMP_DEV_STATUSPAGE_ORIGIN?.startsWith("http://127.0.0.1:") ? bindings.LAMP_DEV_STATUSPAGE_ORIGIN : undefined });
 
-  return { auth, operators, pageSettings, components, incidents, maintenance, subscribers, deliveries, reports, intake, briefs, ai, overview, updateReminders, publicSnapshots, statuspageImport, channels };
+  const pageExport = createPageExportService(createPageExportRepository(bindings.DB), blobs, () => publicSnapshots.rebuild(true));
+
+  return { auth, operators, pageSettings, pageExport, components, incidents, maintenance, subscribers, deliveries, reports, intake, briefs, ai, overview, updateReminders, publicSnapshots, statuspageImport, channels };
 }
 
 export type AppServices = ReturnType<typeof createAppServices>;

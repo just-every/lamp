@@ -102,3 +102,10 @@
 .settings-form > .form-actions { margin-top: 0; }
 .branding-card { display: grid; gap: 16px; }
 .branding-card p:not(.card-kicker) { margin: 0; color: var(--ink-2); }
+.page-data-card { display: grid; gap: 12px; }
+.page-data-card p:not(.card-kicker), .page-data-card ul { margin: 0; color: var(--ink-2); }
+.page-data-card ul { padding-left: 18px; }
+.page-data-card h3 { margin: 12px 0 0; }
+.page-data-check { display: grid; gap: 8px; }
+.page-data-counts { display: flex; flex-wrap: wrap; gap: 6px 16px; list-style: none; padding: 0 !important; }
+.page-data-card ul:not(.page-data-counts) { list-style: disc; }

@@ -12,15 +12,16 @@ host's `/` is the Lamp landing page beside sign-in and the operator app. Its dep
 commands provision a real D1 database, R2 bucket and Queue by environment name,
 apply migrations, initialize the first operator and page settings, build the
 Worker and publish the emitted artifact. `rer deploy` runs all of these;
-`pnpm run setup:cloudflare` runs the provisioning alone. (`pnpm run setup` is the
-local first-owner setup.)
+`node scripts/setup.mjs --environment <name> --env-file <file>` runs the
+provisioning alone. (`rer setup` is the local first-owner setup.)
 
 Owner task guides are published at `/docs` on the app host. Use
 [`RUN-LOCALLY.md`](RUN-LOCALLY.md) for local launch, export, reset and restore;
 it is the canonical local command sequence. This file remains the technical
 reference for deployment inputs and Cloudflare archive operations. The
-`export:cloudflare` and `import:cloudflare` scripts below are remote archive
-tools, not `rer` verbs; `rer export` and `rer import` operate on local state.
+`scripts/export.mjs` and `scripts/import.mjs` commands below are remote archive
+tools run with Node 22 or later, not `rer` verbs; `rer export` and `rer import`
+operate on local state.
 
 ## Owner inputs
 
@@ -55,7 +56,7 @@ same names as the CLI. The required-input source of truth is
 
 Store inputs in an owned `0600` file outside the repository and pass it to every
 `rer deploy` invocation with `--env-file`, or export the same names in the calling
-shell. The [deployment guide](docs/deploy.md#save-private-deployment-inputs) gives
+shell. The [deployment guide](docs/deploy.md#step-1-make-a-private-input-file) gives
 file creation, contents and secret-generation commands. File values override the
 environment; this is a plain `KEY=VALUE` file, not a shell script.
 
@@ -244,10 +245,17 @@ manifest; use a new empty output directory for the next attempt. Archive files
 are private because they include subscriber data, sessions and frozen mail.
 
 ```sh
-pnpm run export:cloudflare -- --remote --environment production --out /private/backups/lamp-first
-pnpm run export:cloudflare -- --persist-to /private/local-state --out /private/backups/lamp-local
-pnpm run import:cloudflare -- --from /private/backups/lamp-local --persist-to /private/empty-state
+node scripts/export.mjs --remote --environment production --env-file "$HOME/.config/lamp/production.env" --out /private/backups/lamp-first
+node scripts/export.mjs --persist-to /private/local-state --out /private/backups/lamp-local
+node scripts/import.mjs --from /private/backups/lamp-local --persist-to /private/empty-state
 ```
+
+They need only Node 22 or later and the checkout's installed dependencies
+(`rer install`), not a global pnpm. A remote archive reads `CLOUDFLARE_ACCOUNT_ID`
+and `CLOUDFLARE_API_TOKEN` from `--env-file` (or the exported shell values) and
+the D1 and R2 names from `.seed/deployment/<environment>.json` in the deploying
+checkout. The app's **Settings → Export page data** file is separate: it holds
+the owner's page data, not this full archive ([Backups and recovery](docs/backups-and-recovery.md)).
 
 Keep the owner's exact source revision alongside the backup. Import checks the
 archive checksums and core/owner migration hashes before any destination mutation.
@@ -281,7 +289,7 @@ A Cloudflare-wide outage needs separately operated hosting; this release does no
 provision an independent standby or make that deployment claim.
 
 For a remote restore, choose a new environment name and replacement host inputs,
-then run `pnpm run setup:cloudflare -- --environment recovery --restore-from /private/backups/lamp-first`.
+then run `node scripts/setup.mjs --environment recovery --env-file /private/recovery.env --restore-from /private/backups/lamp-first`.
 This provisions an empty target and imports before initialization; it never
 publishes a Worker. Inspect the restored archive and record equivalence before
 `rer deploy --environment recovery`. Keep original host routing active
@@ -436,7 +444,7 @@ export LAMP_APP_HOST=my-status.my-account.workers.dev
 export LAMP_PAGE_HOST=my-status-page.my-account.workers.dev
 ```
 
-Then follow [the deploy commands](docs/deploy.md#validate-and-deploy) with the same
+Then follow [the deploy commands](docs/deploy.md#step-7-check-then-deploy) with the same
 environment and inputs. If using `--env-file`, update the hostname values in that
 file too; they override these exports. The app Worker is named exactly the prefix; the public Worker adds `-page`. D1 adds `-db`, R2 adds `-files`, and the queue adds `-jobs`. The generated config records the supplied account ID. Deployment records preserve actual resource names for archive and sign-in commands.
 
@@ -450,10 +458,7 @@ Local dev signs the owner in with one click and silently suppresses mail.
 Demos mock sends to people and third parties while public reads run for real.
 Neither mode retains mail or serves a captured-mail viewer.
 
-In ordinary development, `GET /__dev/outbox` returns HTTP 200 with a plain-text
-notice that local mail is suppressed and no messages are retained. It provides
-the compatibility path, not a mail viewer. The notice is excluded from demos
-and production. Exercise emailed sign-in and subscriber messages through a
+Exercise emailed sign-in and subscriber messages through a
 hosted installation's actual provider and recipient mailbox.
 
 `node scripts/operations.mjs check` prints the required inputs and their sources,
@@ -471,7 +476,7 @@ The minute cron sends an empty GET only on the heartbeat interval grid, after sc
 
 ## Shared operator authentication
 
-The checkout pins `@runeditrun/rer` 0.2.38. For hosted owner entry without email,
+The checkout pins `@runeditrun/rer` 0.2.40. For hosted owner entry without email,
 run this from the deploying checkout using the original account and environment:
 
 ```sh

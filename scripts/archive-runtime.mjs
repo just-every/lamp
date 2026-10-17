@@ -2,6 +2,7 @@ import { mkdir, rm, writeFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
 
 import { getPlatformProxy } from "wrangler";
+import { readDeployEnvFile } from "@runeditrun/rer/internal/modules/deploy-kit/env-file.mjs";
 
 import { deploymentRecordPath, readDeploymentRecord, renderRemoteArchiveWranglerToml } from "./ops-config.mjs";
 
@@ -19,6 +20,15 @@ function archiveEnvironment(flags) {
   return environment;
 }
 
+// A remote archive reads the deployment's Cloudflare credentials from the same
+// private input file as rer deploy; file values override exported ones.
+async function loadCloudflareCredentials(flags) {
+  const file = flags.get("env-file");
+  if (!file) return;
+  const values = await readDeployEnvFile(process.cwd(), file);
+  for (const name of ["CLOUDFLARE_ACCOUNT_ID", "CLOUDFLARE_API_TOKEN"]) if (values[name]) process.env[name] = values[name];
+}
+
 async function remoteConfig(flags) {
   if (flags.get("config")) throw new Error("Remote archives use the generated owner deployment record; --config is only supported for local archives.");
   const environment = archiveEnvironment(flags);
@@ -27,10 +37,11 @@ async function remoteConfig(flags) {
     record = await readDeploymentRecord(deploymentRecordPath(environment));
   } catch (cause) {
     const reason = cause instanceof Error ? cause.message : String(cause);
-    throw new Error(`Remote archive requires the deployment record written by pnpm setup for ${environment}: ${reason}`);
+    throw new Error(`Remote archive requires the deployment record rer deploy wrote for ${environment} in this checkout (.seed/deployment/${environment}.json): ${reason}`);
   }
+  await loadCloudflareCredentials(flags);
   const accountId = process.env.CLOUDFLARE_ACCOUNT_ID?.trim();
-  if (!accountId) throw new Error("CLOUDFLARE_ACCOUNT_ID is required for remote archive operations. Wrangler then uses the owner API token or OAuth profile at command runtime.");
+  if (!accountId) throw new Error("CLOUDFLARE_ACCOUNT_ID is required for remote archive operations. Pass the deployment's private input file with --env-file, or export CLOUDFLARE_ACCOUNT_ID and CLOUDFLARE_API_TOKEN.");
   if (record.accountId && record.accountId !== accountId) throw new Error(`CLOUDFLARE_ACCOUNT_ID does not match the ${environment} deployment record.`);
   const path = resolve(".seed", "deployment", `${environment}.archive-proxy-${process.pid}.toml`);
   await mkdir(resolve(".seed", "deployment"), { recursive: true });

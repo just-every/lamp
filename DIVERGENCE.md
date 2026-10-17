@@ -972,12 +972,6 @@ same-incident immutable correction target retain their existing meaning. A write
 already committed to the original draft remains valid even when its delivered
 completion no longer owns the current interface.
 
-- Local mail is stored by Base's D1 development outbox (`modules/mail/src/development`), but
-  `/__dev/outbox` keeps Lamp's own viewer page. Base's viewer opens a captured link with
-  `rel=noreferrer`; Lamp's app host and page host are distinct local sites, and the development
-  gates admit a navigation between them only with the other surface's origin as the referrer.
-  Base's viewer would therefore strand subscriber links opened from the app host's outbox.
-
 - The setup checklist checks the public page and its subscribe form by fetching the page host's `/`
   from the Worker. Locally the page host is another loopback name on the same port, so workerd sends
   that as a real subrequest stamped `CF-Worker`. The raw development ingress admits `CF-Worker` only
@@ -1308,9 +1302,8 @@ consumers, object bytes and recorded data resources. Removal reads back absence
 before deleting its local records. Older installations without creation history
 retain the explicit manual retirement procedure.
 
-Ordinary development keeps `/__dev/outbox` as a 200 diagnostic explaining silent
-mail suppression. It stores and displays no mail, adds no injected viewer or bar,
-and is unavailable in demo and production.
+Ordinary development has no local outbox address: mail is silently suppressed,
+nothing is stored or displayed, and no viewer or bar is injected.
 
 ## Release readiness
 

@@ -3,11 +3,11 @@ import { existsSync } from "node:fs";
 import { rm, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 
-import { deploymentConfig, mailEnvironmentNames, mailEnvironmentSources, parseArgs, resourceNames, writeGeneratedWrangler } from "./ops-config.mjs";
+import { deploymentConfig, mailEnvironmentNames, parseArgs, resourceNames, writeGeneratedWrangler } from "./ops-config.mjs";
 import { keptSecrets, replacedSecrets, withDeploymentSecrets } from "./deployment-secrets.mjs";
 import { withPublicWorkerConfig } from "./native-public-worker.mjs";
 import { readOperations } from "./operations.mjs";
-import { dryRunInputFailure } from "./deploy-preflight.mjs";
+import { dryRunInputFailure, realDeployInputFailure, realDeployNotice } from "./deploy-preflight.mjs";
 import { readBuiltWorkerArtifact } from "./build-output.mjs";
 import { deployFingerprint, deploySource, identityVars, reportsIdentity } from "./deployment-identity.mjs";
 import { deploymentOwnership } from './deployment-ownership.mjs';
@@ -33,17 +33,15 @@ async function main() {
   const environment = flags.get("environment") ?? "production";
   const { descriptor } = await readOperations(process.cwd());
   descriptor.requiredEnvironment = [...new Set([...descriptor.requiredEnvironment, ...mailEnvironmentNames(process.env)])];
-  descriptor.environmentSources = { ...descriptor.environmentSources, ...mailEnvironmentSources };
   const dryRunFailure = flags.get("dry-run") ? dryRunInputFailure(descriptor, process.env) : null;
   if (dryRunFailure) {
     console.error(dryRunFailure);
     process.exitCode = 1;
     return;
   }
-  const missing = descriptor.requiredEnvironment.filter(name => !process.env[name]?.trim());
-  if (!flags.get("dry-run") && missing.length) {
-    // Names only: a value never reaches the terminal.
-    console.error(`Missing deployment inputs: ${missing.join(", ")}. Read OPERATIONS.md, set them, then run rer deploy again.`);
+  const realDeployFailure = flags.get("dry-run") ? null : realDeployInputFailure(descriptor, process.env);
+  if (realDeployFailure) {
+    console.error(realDeployFailure);
     process.exitCode = 1;
     return;
   }
@@ -63,6 +61,8 @@ async function main() {
       await rm(dryRunConfig, { force: true });
     }
     console.log("Dry run compiled the generated Start Worker configuration and dist/client assets. No Cloudflare resource or deployment was changed.");
+    const notice = realDeployNotice(process.env);
+    if (notice) console.log(notice);
     return;
   }
   run("pnpm", ["run", "setup:cloudflare", "--", "--environment", config.environment, ...restoreArgs]);
@@ -109,6 +109,7 @@ async function main() {
   if (!retained) throw new Error("Deployment is live but retained snapshot readiness is unverified; inspect snapshot build failures before accepting this deployment.");
   if (flags.get("result-file")) await writeFile(resolve(flags.get("result-file")), JSON.stringify({ deployed: true, environment, origin: `https://${config.appHost}` }) + '\n', { mode: 0o600, flag: 'wx' });
   console.log(`Deployment smoke check passed for ${config.appHost}.`);
+  console.log(`Your public status page: https://${config.pageHost} · sign in at https://${config.appHost}`);
 }
 
 main().catch((error) => { console.error(error instanceof Error ? error.message : error); process.exit(1); });

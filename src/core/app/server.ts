@@ -27,6 +27,7 @@ import { registerAiRoutes } from "../features/ai";
 import { registerBriefRoutes } from "../features/brief";
 import { registerStatuspageImportRoutes } from "../features/statuspage-import";
 import { registerChannelRoutes } from "../features/channels";
+import { registerPageExportRoutes } from "../features/page-export";
 
 export type { AppBindings } from "./types";
 
@@ -58,6 +59,7 @@ export function createApp(bindings: AppBindings, execution?: MailExecution) {
   registerMaintenanceRoutes(app, services.maintenance);
   registerSubscriberRoutes(app, services.subscribers, { rateLimiter: publicWriteLimiter, localMail });
   registerPageSettingsRoutes(app, services.pageSettings);
+  registerPageExportRoutes(app, services.pageExport);
   registerStatuspageImportRoutes(app, services.statuspageImport);
   registerChannelRoutes(app, services.channels);
 

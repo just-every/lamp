@@ -16,7 +16,7 @@ Managed the card says so. They work on Free and Assisted installations.
    its API documentation. Lamp sends a POST to that URL unchanged; a dashboard
    URL or just an API base URL is insufficient. For example, an endpoint may end
    in `/v1/chat/completions`.
-3. Add all three values to your existing [private deployment input file](deploy.md#save-private-deployment-inputs).
+3. Add all three values to your existing [private deployment input file](deploy.md#step-1-make-a-private-input-file).
    This is an example of file contents; replace each value with the provider's
    actual value. Keep the API key private:
 

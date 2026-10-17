@@ -15,9 +15,10 @@ function quotedIdentifier(name) {
   return `"${name.replaceAll('"', '""')}"`;
 }
 
+// The checkout's own Wrangler, run by this Node: no global pnpm needed.
 function runWrangler(args) {
   try {
-    execFileSync("pnpm", ["exec", "wrangler", ...args], { stdio: "inherit" });
+    execFileSync(process.execPath, [resolve("node_modules", "wrangler", "bin", "wrangler.js"), ...args], { stdio: "inherit" });
   } catch {
     throw new Error(`wrangler ${args.join(" ")} failed.`);
   }
@@ -26,7 +27,7 @@ function runWrangler(args) {
 async function main() {
   const flags = parseArgs(process.argv.slice(2));
   const source = flags.get("from");
-  if (!source) throw new Error("pnpm import requires --from <export-directory>.");
+  if (!source) throw new Error("node scripts/import.mjs requires --from <export-directory>.");
   const input = resolve(source);
   const { manifest, entities } = await readArchive(input);
   const tables = entities.tables;
