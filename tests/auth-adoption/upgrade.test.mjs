@@ -1,12 +1,20 @@
 import assert from 'node:assert/strict';
 import {test} from 'node:test';
-import {mkdtemp,readFile,rm} from 'node:fs/promises';
+import {mkdtemp,readdir,readFile,rm} from 'node:fs/promises';
 import {join} from 'node:path';
 import {unstable_splitSqlQuery} from 'wrangler';
 import {Hono} from 'hono';
 import {openRuntime,executeSql} from '../reference-storage/runtime.mjs';
 import {load} from '../operator-readiness/runtime.mjs';
 import {authFixture,secret,setupToken} from './runtime.mjs';
+
+// Keep the captured starting schema, then bring it through every migration
+// required by the current product routes after the explicit auth upgrade.
+async function migrateAfterDependencyApproval(db){
+ const directory='migrations/core';
+ const migrations=(await readdir(directory)).filter(name=>/^\d{4}_.+\.sql$/.test(name)&&Number(name.slice(0,4))>20).sort();
+ for(const migration of migrations)await executeSql(db,await readFile(join(directory,migration),'utf8'));
+}
 
 test('ACCESS-001 TEAM-001 TEAM-002 upgrade preserves identities, history and subscriber authority and destroys legacy credentials',async()=>{
  const directory=await mkdtemp(join(process.cwd(),'.lamp-auth-upgrade-'));const runtime=openRuntime(directory);
@@ -25,6 +33,7 @@ test('ACCESS-001 TEAM-001 TEAM-002 upgrade preserves identities, history and sub
   await db.prepare("INSERT INTO rer_dependency_pending(interface,issuer,approved_by,expires_at,approved_session,approved_version,callbacks) VALUES('oidc-provider@1','https://old-idp.example.test','legacy-owner',9999999999999,'legacy-session',1,'[]')").run();
   await executeSql(db,await readFile('migrations/core/0020_dependency_approval.sql','utf8'));
   assert.equal((await db.prepare('SELECT COUNT(*) n FROM rer_dependency_pending').first()).n,0);
+  await migrateAfterDependencyApproval(db);
   const auth=authFixture(db);
   const {createLampAuth,requireOperator,registerOperatorRoutes,createComponentRepository,createComponentsService,registerComponentRoutes,createSubscriberRepository,createSubscribersService,registerSubscriberRoutes}=await load('tests/auth-adoption/adapter.ts');
   const bindings={DB:db,LAMP_APP_HOST:'app.example.test',SETUP_OPERATOR_EMAIL:'owner@example.test',SESSION_SECRET:secret,SETUP_TOKEN:setupToken,MAIL_FROM_ADDRESS:'lamp@example.test'};
@@ -55,7 +64,7 @@ test('ACCESS-001 TEAM-001 TEAM-002 upgrade preserves identities, history and sub
   const forged=new Request(auth.origin+'/api/app/components',{method:'POST',headers:{Cookie:cookies['owner@example.test'],Origin:'https://attacker.example','Content-Type':'application/json'},body:JSON.stringify({name:'forged'})});
   assert.equal((await app.fetch(forged,bindings)).status,403);
   const component=await call('/api/app/components',{method:'POST',cookie:cookies['third@example.test'],body:{name:'Upgraded actor',description:'',groupId:null,internal:false,displayOrder:0,note:''}});
-  assert.equal(component.status,201,'migrated operator can create a real product record');
+  assert.equal(component.status,201,`migrated operator can create a real product record: ${await component.clone().text()}`);
   const managed=await call('/manage/v1.manage.prior-manage.NlLnezYyjGOeel4Ol69LbZ2roTyfwuVqTg-zT8JnibU');assert.equal(managed.status,200);assert.equal(managed.headers.has('set-cookie'),false);
   const unsubscribed=await app.fetch(new Request(auth.origin+'/unsubscribe/v1.unsubscribe.prior-unsubscribe.8NHGOaVy7qkNQywROcQbISo2HIbDoKWJI0gmQ981_Oo',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'List-Unsubscribe=One-Click'}),bindings);assert.equal(unsubscribed.status,200);
   assert.equal((await call('/manage/v1.manage.prior-manage.NlLnezYyjGOeel4Ol69LbZ2roTyfwuVqTg-zT8JnibU')).status,404);
@@ -107,6 +116,7 @@ test('ACCESS-001 upgrade moves setup authority only with the setup operator who 
    if(before)await executeSql(db,before);
    await executeSql(db,await readFile('migrations/core/0019_operator_auth.sql','utf8'));
    await executeSql(db,await readFile('migrations/core/0020_dependency_approval.sql','utf8'));
+   await migrateAfterDependencyApproval(db);
    const auth=authFixture(db);
    const {createLampAuth,requireOperator,registerOperatorRoutes}=await load('tests/auth-adoption/adapter.ts');
    const bindings={DB:db,LAMP_APP_HOST:'app.example.test',SETUP_OPERATOR_EMAIL:'owner@example.test',SESSION_SECRET:secret,SETUP_TOKEN:setupToken,MAIL_FROM_ADDRESS:'lamp@example.test'};

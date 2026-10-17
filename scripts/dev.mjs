@@ -1,6 +1,7 @@
 import { spawn, spawnSync } from 'node:child_process';
 import { setTimeout as delay } from 'node:timers/promises';
 import { devOptions } from './local-options.mjs';
+import { stripVTControlCharacters } from 'node:util';
 
 // A real page-host request records development notification origin metadata.
 // A fresh installation returns 503 until owner setup; this never seeds product data.
@@ -26,7 +27,7 @@ try {
   const migrated = spawnSync(process.execPath, ['scripts/migrate-local.mjs', ...(verbose ? ['--verbose'] : [])], { stdio: 'inherit' });
   if (migrated.status !== 0) throw new Error('Local migration failed; development server was not started.');
   const child = spawn('pnpm', ['exec', 'vite', '--host', '127.0.0.1', '--port', port, '--strictPort', ...forwarded], {
-    stdio: 'inherit', env: { ...process.env },
+    stdio: ['inherit', 'pipe', 'inherit'], env: { ...process.env },
   });
   for (const signal of ['SIGINT', 'SIGTERM']) process.on(signal, () => child.kill(signal));
   child.on('error', error => { console.error(error.message); process.exitCode = 1; });
@@ -34,5 +35,16 @@ try {
   // Behind `rer dev` the browser reaches this server through the CLI's proxy on
   // the public port it names in RER_DEV_ORIGIN.
   const publicPort = process.env.RER_DEV_ORIGIN ? new URL(process.env.RER_DEV_ORIGIN).port : port;
-  void warmPageOrigin(child, `http://127.0.0.1:${publicPort}`, `http://localhost:${publicPort}`);
+  // Workerd opens ephemeral RPC sockets during startup. An HTTP probe before
+  // Vite announces its address can hit such a socket and corrupt that RPC.
+  let announced = false;
+  let startup = '';
+  child.stdout.on('data', chunk => {
+    process.stdout.write(chunk);
+    startup = (startup + stripVTControlCharacters(chunk.toString())).slice(-8192);
+    if (!announced && startup.includes(`http://127.0.0.1:${port}/`)) {
+      announced = true;
+      void warmPageOrigin(child, `http://127.0.0.1:${publicPort}`, `http://localhost:${publicPort}`);
+    }
+  });
 } catch (error) { console.error(error.message); process.exitCode = 1; }
