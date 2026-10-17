@@ -33,6 +33,7 @@ export function cutoverFromPlan(plan: ImportPlan, asOf: string): CutoverPreview 
     if (!isLampPermalink(target)) return [];
     return [{ namespace: entry.source.namespace, sourceId: entry.source.sourceId, targetId: effect.targetId, targetKind: effect.targetKind, target, publicAddresses: (entry.source.payload as { publicAddresses?: string[] }).publicAddresses, shortlink: (entry.source.payload as { raw?: { shortlink?: unknown } }).raw?.shortlink }];
   }));
+  const afterCutover = plan.namespace === 'sorry' || Boolean((plan.entries.find(entry=>entry.source.kind==='metadata')?.source.payload as {raw?:{subscribersAfterCutover?:boolean}})?.raw?.subscribersAfterCutover);
   const eligible = plan.entries.filter(entry => !entry.erased).flatMap(entry => entry.effects).filter(effect => effect.targetKind === 'subscriber').length;
-  return { source: plan.namespace, afterCutover: plan.namespace === "sorry", readerGaps: sourceReaderGaps(plan.namespace), ...cutoverAddresses(records), feeds: [...new Set(plan.entries.flatMap(entry => sourceFeedPaths[entry.source.namespace] ?? []))], invitations: { eligible, claimed: 0, expired: 0, deadline: plan.namespace !== "sorry" && eligible && asOf ? pendingDeadline(asOf) : null, heldUntil: plan.namespace === "sorry" && eligible && asOf ? heldDeadline(asOf) : null } };
+  return { source: plan.namespace, afterCutover, readerGaps: sourceReaderGaps(plan.namespace), ...cutoverAddresses(records), feeds: [...new Set(plan.entries.flatMap(entry => sourceFeedPaths[entry.source.namespace] ?? []))], invitations: { eligible, claimed: 0, expired: 0, deadline: !afterCutover && eligible && asOf ? pendingDeadline(asOf) : null, heldUntil: afterCutover && eligible && asOf ? heldDeadline(asOf) : null } };
 }

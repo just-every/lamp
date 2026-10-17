@@ -34,7 +34,7 @@ async function readInput(request: Request): Promise<Record<string,unknown>> {
 }
 /** Server-side mount only. A null response belongs to another dispatcher. */
 export function createImportDoorHandler(options: ImportDoorOptions): (request: Request)=>Promise<Response|null> {
-  if (!options.ownerPrincipalId?.trim() || !options.destination?.trim() || !options.mapping?.version || typeof options.parse!=='function') throw new DoorError('invalid_configuration',503);
+  if (!options.ownerPrincipalId?.trim() || !options.destination?.trim() || !options.mapping?.version || (!options.prepareSource && (typeof options.parse!=='function' || !('map' in options.mapping)))) throw new DoorError('invalid_configuration',503);
   return async request => {
     const url = new URL(request.url);
     if (!url.pathname.startsWith('/api/rer/import/')) return null;

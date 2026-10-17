@@ -15,11 +15,14 @@ import type { Snapshot } from "./rows";
 import type { SavedFile } from "./source";
 import { sourceAdapter, type SourceInput } from "./adapters";
 import { statuspageTargets } from "./targets";
+import { doorMapping, moveInPlan, readDoorExport } from './door-plan';
+import { createImportDoorRepository } from './door.repository';
 
 const DESTINATION = "lamp";
 const NAMESPACE = "statuspage";
 const REVIEW_WINDOW_MS = 30 * 60 * 1000;
 const INVITES_PER_REQUEST = 50;
+const contextForSource = (context: D1ImportContext, namespace: string): D1ImportContext => ({...context,namespace});
 
 export type MoveInActor = Session;
 export interface MoveInResult { job: ImportJob; report: MoveInReport; invites: { sent: number; remaining: number }; undo?: Awaited<ReturnType<typeof readD1ImportUndoReport>> & { expiredSubscribers: number } }
@@ -51,7 +54,7 @@ const artifactIdentity = (plan: ImportPlan | { artifacts: Array<{ name: string; 
 export function createStatuspageImportService(db: D1Database, hooks: MoveInHooks, options: { apiOrigin?: string } = {}) {
   async function contextForJob(id: string, actor: MoveInActor) {
     const row = await db.prepare("SELECT namespace FROM ik_jobs WHERE id=? AND destination=? AND principal_id=?").bind(id, DESTINATION, actor.operator.id).first<{ namespace: string }>();
-    if (!row || !["statuspage", "betterstack", "instatus", "sorry"].includes(row.namespace)) throw new Error("Import not found.");
+    if (!row || (!['statuspage','betterstack','instatus','sorry'].includes(row.namespace) && !await db.prepare("SELECT 1 FROM ik_door_plans WHERE job_id=? AND namespace IN ('statuspage','sorry')").bind(id).first())) throw new Error("Import not found.");
     return importContext(db, actor, row.namespace);
   }
   async function assertAuthority(context: D1ImportContext) {
@@ -201,7 +204,7 @@ export function createStatuspageImportService(db: D1Database, hooks: MoveInHooks
     const context = await contextForJob(id, actor);
     const job = await readD1ImportJob(id, context);
     const { plan } = await stored(id, context);
-    const cutover = await readCutover(db, job.id, plan);
+    const cutover = await readCutover(db, job.id, moveInPlan(plan));
     const invites = { sent: 0, remaining: cutover.invitations.eligible };
     await assertAuthority(context);
     const report = reportFromPlan(plan, job.state);
@@ -220,6 +223,14 @@ export function createStatuspageImportService(db: D1Database, hooks: MoveInHooks
   }
 
   return {
+    async prepareDoor(bytes: Uint8Array, context: D1ImportContext, namespace: string) {
+      const {input,read} = await readDoorExport(bytes);
+      if (namespace!==input.source) throw new Error('The grant namespace must match the source.');
+      const plan = await planMoveIn(read,await snapshot(context),contextForSource(context,input.source),context.authorization.principalId,nowIso());
+      await sourceClear(plan);
+      await assertAuthority(context);
+      return doorMapping(plan,context);
+    },
     /** Writes nothing: reads the source, plans every record and reports it. */
     async preview(input: SourceInput, actor: MoveInActor) {
       const { files, fetched } = await source(input);
@@ -261,6 +272,7 @@ export function createStatuspageImportService(db: D1Database, hooks: MoveInHooks
     /** Removes what the import created and nobody changed since; changed records stay and are named. */
     async undo(id: string, actor: MoveInActor) {
       const context = await contextForJob(id, actor);
+      await createImportDoorRepository(db).assertNewest(id);
       await undoD1Import(id, context);
       const fence = context.authorization.predicate('undo', DESTINATION);
       await db.prepare(`DELETE FROM statuspage_import_invites WHERE job_id=? AND subscriber_id NOT IN (SELECT id FROM subscribers) AND ${fence.sql}`).bind(id, ...fence.params ?? []).run();
@@ -273,7 +285,7 @@ export function createStatuspageImportService(db: D1Database, hooks: MoveInHooks
       const job = await readD1ImportJob(id, context);
       if (job.state !== "completed") throw new Error("Finish the import before sending invitations.");
       const { plan } = await stored(id, context);
-      if (context.namespace === "sorry") await releaseSorrySubscribers(db, id, plan, context, approval, await hooks.publicOrigin?.());
+      if (context.namespace === "sorry" || context.namespace.startsWith('door:')) await releaseSorrySubscribers(db, id, plan, context, approval, await hooks.publicOrigin?.());
       const invites = await sendInvites(id, plan, context);
       return { ...await result(id, actor), invites };
     },
@@ -281,7 +293,7 @@ export function createStatuspageImportService(db: D1Database, hooks: MoveInHooks
     async list(actor: MoveInActor) {
       const context = importContext(db, actor);
       await assertAuthority(context);
-      const rows = (await db.prepare("SELECT id, namespace, state, checkpoint, total FROM ik_jobs WHERE principal_id=? AND destination=? AND namespace IN ('statuspage','betterstack','instatus','sorry') ORDER BY rowid DESC LIMIT 30").bind(actor.operator.id, DESTINATION).all()).results;
+      const rows = (await db.prepare("SELECT j.id,coalesce(d.namespace,j.namespace) AS namespace,j.state,j.checkpoint,j.total,CASE WHEN a.plan_id IS NOT NULL THEN 'approved via Business by '||a.owner||' at '||a.approved_at||', fingerprint '||a.fingerprint END AS approvalCaption FROM ik_jobs j LEFT JOIN ik_door_plans d ON d.job_id=j.id LEFT JOIN ik_door_approvals a ON a.plan_id=d.id WHERE j.principal_id=? AND j.destination=? AND (j.namespace IN ('statuspage','betterstack','instatus','sorry') OR d.namespace IN ('statuspage','sorry')) ORDER BY j.rowid DESC LIMIT 30").bind(actor.operator.id, DESTINATION).all()).results;
       await assertAuthority(context);
       return rows;
     },

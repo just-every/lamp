@@ -4,6 +4,7 @@ import { canonicalJson, planD1Import, sha256, type D1ImportContext, type ImportP
 import type { Json } from "../../../../modules/import-kit/src/types.ts";
 import { mapSource, type Accounting, type EntityKind, type Snapshot } from "./rows";
 import { entityTables } from "./rows";
+import { moveInPlan } from './door-plan';
 import { namespace, type ReadSource } from "./source";
 
 const json = (value: unknown) => JSON.parse(JSON.stringify(value)) as Json;
@@ -64,6 +65,7 @@ export interface MoveInReport { state: string; asOf: string; fingerprint: string
 
 /** The dry-run report, rebuilt from the reviewed plan so a saved job reports exactly what it applied. */
 export function reportFromPlan(plan: ImportPlan, state = "dry run"): MoveInReport {
+  plan = moveInPlan(plan);
   const items = plan.entries.flatMap((entry) => entry.erased ? [] : ((entry.source.payload as { accounting?: Accounting[] }).accounting ?? []));
   const kinds = Object.keys(entityTables).filter(kind => kind !== "template" || plan.namespace === "statuspage" || items.some(item => item.kind === kind));
   if (plan.namespace === "statuspage" || items.some(item => item.kind === "postmortem")) kinds.push("postmortem");

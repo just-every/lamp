@@ -32,6 +32,10 @@
     {
       "id": "0031_incident_impact.sql",
       "buyerSteps": "Apply after 0030. Adds independent attributed incident impact choices and retains the committed impact on outgoing notifications; component claims and uptime remain unchanged."
+    },
+    {
+      "id": "0032_business_import_door.sql",
+      "buyerSteps": "Apply after 0031. Adds disabled-by-default Business upload, grant revocation, plan and approval custody. Enable explicitly in Settings; Business-imported subscribers remain held until cutover approval."
     }
   ],
   "breaking": false,

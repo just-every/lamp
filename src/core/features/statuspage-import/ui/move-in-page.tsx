@@ -11,7 +11,7 @@ import { HELD_SORRY_DAYS } from "../held-sorry";
 
 type SavedFile = { name: string; text: string };
 type Preview = { report: MoveInReport; jobId?: string; files?: SavedFile[] };
-type Job = { id: string; namespace?: string; state: string; checkpoint: number; total: number };
+type Job = { approvalCaption?: string; id: string; namespace?: string; state: string; checkpoint: number; total: number };
 type Result = { job: Job; report: MoveInReport; invites: { sent: number; remaining: number }; undo?: { dispositions: Array<{ disposition: string; targetKind?: string; reason?: string }>; expiredSubscribers: number } };
 
 const kindLabels: Record<string, string> = { group: "Component groups", component: "Components", incident: "Incidents", maintenance: "Maintenance", subscriber: "Subscribers", postmortem: "Postmortems", template: "Incident templates" };
@@ -120,7 +120,7 @@ export function MoveInPage() {
       {result.job.state === "undoing" && <Button type="button" disabled={busy} onClick={() => act(result.job.id, "undo")}>Continue undo</Button>}
     </section>}
     <section className="data-card" aria-labelledby="move-in-history"><h2 id="move-in-history">Your imports</h2>
-      {jobs.data?.jobs.length ? <ul className="move-in-jobs">{jobs.data.jobs.filter(job => (job.namespace ?? "statuspage") === source).map((job) => <li key={job.id}><a href={`/app/cutover?job=${encodeURIComponent(job.id)}`}>Cutover</a><span>{job.id.slice(0, 12)} · {job.state} · {job.checkpoint}/{job.total}</span>{job.state === "completed" && <Button type="button" variant="secondary" disabled={busy} onClick={() => act(job.id, "undo")}>Undo</Button>}{job.state === "applying" && <Button type="button" variant="secondary" disabled={busy} onClick={() => act(job.id, "resume")}>Continue</Button>}{job.state === "undoing" && <Button type="button" variant="secondary" disabled={busy} onClick={() => act(job.id, "undo")}>Continue undo</Button>}</li>)}</ul> : <EmptyState>No imports yet.</EmptyState>}
+      {jobs.data?.jobs.length ? <ul className="move-in-jobs">{jobs.data.jobs.filter(job => (job.namespace ?? "statuspage") === source).map((job) => <li key={job.id}><a href={`/app/cutover?job=${encodeURIComponent(job.id)}`}>Cutover</a><span>{job.id.slice(0, 12)} · {job.state} · {job.checkpoint}/{job.total}{job.approvalCaption && <small style={{display:"block",overflowWrap:"anywhere"}}>{job.approvalCaption}</small>}</span>{job.state === "completed" && <Button type="button" variant="secondary" disabled={busy} onClick={() => act(job.id, "undo")}>Undo</Button>}{job.state === "applying" && <Button type="button" variant="secondary" disabled={busy} onClick={() => act(job.id, "resume")}>Continue</Button>}{job.state === "undoing" && <Button type="button" variant="secondary" disabled={busy} onClick={() => act(job.id, "undo")}>Continue undo</Button>}</li>)}</ul> : <EmptyState>No imports yet.</EmptyState>}
     </section>
   </div>;
 }

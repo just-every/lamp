@@ -30,6 +30,7 @@ import { registerReportRoutes } from "../features/reports";
 import { registerAiRoutes } from "../features/ai";
 import { registerBriefRoutes } from "../features/brief";
 import { registerStatuspageImportRoutes } from "../features/statuspage-import";
+import { registerImportDoor } from '../features/statuspage-import/door';
 import { registerChannelRoutes } from "../features/channels";
 import { registerPageExportRoutes } from "../features/page-export";
 
@@ -73,6 +74,7 @@ export function createApp(bindings: AppBindings, execution?: MailExecution) {
   registerPageSettingsRoutes(app, services.pageSettings);
   registerPageExportRoutes(app, services.pageExport);
   registerStatuspageImportRoutes(app, services.statuspageImport);
+  registerImportDoor(app, bindings, services.statuspageImport,()=>services.publicSnapshots.rebuild(true));
   registerChannelRoutes(app, services.channels);
 
   async function readOperator(path: string, source: Request, authority: OperatorReadSession) {

@@ -499,3 +499,37 @@ incident and maintenance paths redirect to surviving Lamp records. The source's
 `/v3/summary.json` and `/v3/components.json` are unsupported. Update JSON readers
 to Lamp's native `/api/public/v1/` format. The source hostname
 remains outside Lamp's control.
+
+## Business import door (opt-in)
+
+An installation with signed owner-claim trust configured can enable **Allow
+Business imports** in Settings → Move in. It starts off; uploads and every other
+`/api/rer/import/` route return 404 until enabled. The trusted grant key selector
+in that same settings row permanently revokes a key immediately. Re-enabling the
+door does not restore a revoked key; provisioning must rotate to a new key id.
+The door uses the same installation id, issuer, app origin, configured owner email
+and ES256 public keys as owner-claim. It never accepts an operator cookie as an
+import grant.
+
+Business uploads a UTF-8 JSON envelope containing `source` (`statuspage` or
+`sorry`), `files` (the unchanged saved responses as `{name,text}`), and the same
+optional `pageId`, `publicAccessAcknowledged` and `publicUrl` fields as Lamp's
+move-in form. The grant namespace equals `source`. The envelope and saved
+responses must fit Lamp's 8 MiB / 5,000 record limits. Upload chunks, per-action
+grants, plan fingerprints, reconciliation and bounded undo follow the
+[Base door protocol](../modules/import-kit/src/door/README.md). Original bytes
+stay in this installation.
+
+The door calls Lamp's existing readers, native mapping and target adapter. A
+plan makes no native changes. Applying requires the exact reviewed fingerprint
+in both the signed approval and request body. **Your imports** shows the
+Business owner, approval time and fingerprint alongside the ordinary Undo and
+Cutover links. Owners can undo their imports even after disabling the door or
+revoking its grant key; snapshots must be undone newest first.
+
+Both Statuspage and Sorry subscribers arriving through Business are held without
+invitations until cutover. In Cutover, select the configured live public hostname
+and explicitly confirm that it is live and the watch window has closed before
+**Send invitations**. That separate owner action starts the existing 72-hour
+confirmation window. Unreleased held subscribers expire after 30 days. Undo
+cannot recall an invitation already sent. Imported history never queues notices.

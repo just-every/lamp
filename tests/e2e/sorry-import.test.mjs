@@ -1,3 +1,4 @@
+import { businessImportDoorFlow } from './helpers/import-door-flow.mjs';
 import assert from 'node:assert/strict';
 import { readdirSync, readFileSync } from 'node:fs';
 import { test } from 'node:test';
@@ -11,7 +12,7 @@ const endpoint = '/api/app/statuspage-import';
 const fixture = family => readdirSync(`tests/fixtures/sorry/${family}`).map(name => ({ name, text: readFileSync(`tests/fixtures/sorry/${family}/${name}`, 'utf8') }));
 const source = { source: 'sorry', publicAccessAcknowledged: true, pageId: 'synthpage01' };
 
-test('MOVE-001 MOVE-002 MOVE-004 MOVE-005 MOVE-006 Sorry previews without writes, applies and undoes history, redirects old notices and holds invitations until cutover', { timeout: 600000 }, async () => {
+test('MOVE-001 MOVE-002 MOVE-004 MOVE-005 MOVE-006 Sorry and the opt-in Business door preview, apply, reconcile and undo history with subscribers held until cutover', { timeout: 600000 }, async () => {
   const runtime = await openNativeRuntime();
   try {
     await runtime.start(); await runtime.seedOperator();
@@ -110,4 +111,5 @@ test('MOVE-001 MOVE-002 MOVE-004 MOVE-005 MOVE-006 Sorry previews without writes
     const retained = await undo(held.job.id);
     assert.ok(retained.undo.dispositions.some(row => row.targetKind === 'subscriber' && row.disposition === 'retained'), 'release changes the held row, so undo cannot claim to retract its invitation');
   } finally { await runtime.close(); }
+  await businessImportDoorFlow();
 });

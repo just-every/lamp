@@ -1393,3 +1393,21 @@ each one confirmation, which starts SUB-003's 72-hour window, and are deleted
 30 days after the restore otherwise. The rule is the same hosted and on Managed
 hosting. The restore's empty-page check runs inside its one transaction, and a
 refused restore removes the logo it stored.
+
+## Business adoption — 18 October 2026
+
+The owner requested Base's optional Business import door, disabled by default,
+with a single settings row and permanent grant-key revocation. Door plans reuse
+Lamp's Statuspage and Sorry move-in readers, mapper and native target adapter;
+both hold subscribers until a separate live-hostname/watch-window approval.
+Local imports retain their existing behavior. Business approval metadata appears
+in the existing owner-bound history and undo flow.
+
+The four adapted door files (`types.ts`, `index.ts`, `planning.ts`, `authority.ts`) are tracked
+as local source with Base 0.2.50 comparison origins in `edition.json`. Their
+server-only asynchronous preparation hook lets Lamp reuse its existing planner;
+the kit still validates the final source/mapping, quota, reviewed fingerprint,
+catch-up lineage and guarded writes. Unchanged import-kit source and verifier
+siblings remain exact recorded Base copies. The existing Sorry integration case
+now also exercises the Business door for both source formats, retaining every
+previous assertion and the 200-case test cap.

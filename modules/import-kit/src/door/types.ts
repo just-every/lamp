@@ -1,6 +1,6 @@
 import type { OwnerClaimConfig } from '../../../owner-claim/index.mjs';
-import type { D1Database, D1Sql, D1TargetAdapter } from '../d1/types.ts';
-import type { ImportMapping, ImportPlan, Json, ParsedRecord, ReaderLimits, PersistedImport } from '../types.ts';
+import type { D1Database, D1Sql, D1TargetAdapter, D1ImportContext } from '../d1/types.ts';
+import type { ImportMapping, ImportPlan, Json, ParsedRecord, ReaderLimits, PersistedImport, SourceBundle } from '../types.ts';
 import type { DoorGrant } from './grants.ts';
 
 export interface ImportDoorOptions {
@@ -11,10 +11,15 @@ export interface ImportDoorOptions {
   /** The seed's actual owner principal, so its ordinary import history/undo works. */
   ownerPrincipalId: string;
   destination: string;
-  mapping: ImportMapping;
-  parse(value: Json, index: number): ParsedRecord | ParsedRecord[];
+  mapping: Pick<ImportMapping, 'version'> & Partial<ImportMapping>;
+  parse?(value: Json, index: number): ParsedRecord | ParsedRecord[];
   format: 'json' | 'ndjson';
   limits?: ReaderLimits;
+  reversalPolicy?: D1ImportContext['reversalPolicy'];
+  /** Lamp adaptation: reuse its asynchronous source readers and native planner.
+   * Called only after grant admission; the ordinary door planner still validates
+   * mappings, quotas, catch-up, fingerprints and all native writes. */
+  prepareSource?(bytes: Uint8Array, context: D1ImportContext, namespace: string): Promise<{source: SourceBundle; mapping: ImportMapping}>;
 }
 export interface DoorTarget { kind: string; id: string; ownerPlanId: string; sourceIdentity: string }
 export interface DoorRecord {

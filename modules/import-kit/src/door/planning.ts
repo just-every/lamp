@@ -37,8 +37,13 @@ export async function plan(request: DoorRequest, input: Record<string, unknown>)
   if (!previous && (input.catchup === true || request.grant.catchup === 'bounded')) throw new DoorError('catchup_requires_baseline',409);
   const bytes = await bundleBytes(request,upload), options = request.options;
   const kitNamespace = 'door:' + sha256(canonicalJson([request.grant.namespace,upload.bundle_sha256]));
-  const source = await readFileSource({namespace:kitNamespace,name:upload.name,bytes,format:options.format,parse:options.parse},
+  const prepared = options.prepareSource ? await options.prepareSource(bytes,kitContext(request,{id:'',kitNamespace,plan:{mappingVersion:options.mapping.version} as ImportPlan}),request.grant.namespace) : null;
+  const source = prepared?.source ?? await readFileSource({namespace:kitNamespace,name:upload.name,bytes,format:options.format,parse:options.parse!},
     {...options.limits,maxBytes:Math.min(options.limits?.maxBytes ?? request.grant.maxBytes,request.grant.maxBytes),maxRecords:Math.min(options.limits?.maxRecords ?? request.grant.maxRecords,request.grant.maxRecords)});
+  if (source.records.length > Math.min(options.limits?.maxRecords ?? request.grant.maxRecords,request.grant.maxRecords)) throw new DoorError('plan_exceeds_grant_quota');
+  if (prepared && (prepared.mapping.version !== options.mapping.version || source.artifacts.reduce((total,artifact)=>total+artifact.size,0) > Math.min(options.limits?.maxBytes ?? request.grant.maxBytes,request.grant.maxBytes))) throw new DoorError('source_exceeds_grant_quota');
+  const sourceMap = (prepared?.mapping ?? options.mapping).map;
+  if (!sourceMap) throw new DoorError('invalid_configuration',503);
   const prior = new Map((previous?.records ?? []).map(r=>[recordKey(r),r]));
   const revisions = new Map<string,{revision:string;matches:boolean}>();
   for (const record of prior.values()) for (const target of record.targets) {
@@ -56,7 +61,7 @@ export async function plan(request: DoorRequest, input: Record<string, unknown>)
       result = {effects:[],unmapped:[{reason:'Unchanged source; previous imported targets retained.'}]};
       snapshot.differences.unchanged.push(key);
     } else {
-      result = options.mapping.map(record);
+      result = sourceMap(record);
       if (old?.targets.length && !result.rejection) {
         const keys = result.effects.map(e=>canonicalJson([e.targetKind,e.targetId])).sort();
         const oldKeys = old.targets.map(t=>canonicalJson([t.kind,t.id])).sort();
