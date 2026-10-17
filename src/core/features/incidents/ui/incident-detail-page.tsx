@@ -12,6 +12,10 @@ import { LoadingState, useOperatorTime, FormError } from "../../../app/client/ui
 import { EmptyState, ErrorState } from "../../../app/client/ui/lit-states";
 import { usePageTimezone, toPageDateTime, fromPageDateTime } from "../../../app/client/ui/timezone";
 import { FieldNumber, PreviewCard, AiSuggestionButton, TemplateControls, ReportEditor } from "./incident-composer-tools";
+import { WordingFindings } from "./wording-findings";
+import { checkUpdateWording } from "../wording-checks";
+import { DraftComponentStates } from "./draft-component-states";
+import { componentChangeLines } from "../renderer";
 import { IncidentComponents } from "./incident-components";
 import { IncidentOperatorControls } from "./incident-operator-controls";
 import { IncidentBriefPanel } from "../../brief/ui/incident-brief";
@@ -20,7 +24,7 @@ import type { CheckedSuggestion } from "../../ai/service";
 import { useIncidentVisit } from "./use-incident-visit";
 import { blankDraft, draftFromIncident, normalizeResolvedDraft } from "../draft";
 
-type IncidentResponse = { incident: Awaited<ReturnType<IncidentsService["get"]>>; hasChatChannels: boolean; preview?: RenderedIncidentUpdate | null };
+type IncidentResponse = { wordingChecks?: { blockedTerms: string[]; friendlyLength: number }; incident: Awaited<ReturnType<IncidentsService["get"]>>; hasChatChannels: boolean; previewError?: string | null; preview?: RenderedIncidentUpdate | null };
 type PreviewResponse = { preview: RenderedIncidentUpdate };
 
 // The state chip's colour class for a lifecycle or impact, as .state-pill uses it.
@@ -79,13 +83,14 @@ function IncidentVisit({ incidentId }: { incidentId: string }) {
   const failedKey = useRef<string | null>(null);
   const hydratedIncident = useRef<string | null>(null);
   const hydratingDraft = useRef(false);
+  const wordingFindings = useMemo(() => data?.wordingChecks ? checkUpdateWording({ affectedAudience: draft.affectedAudience, customerImpact: draft.customerImpact, whatStillWorks: draft.whatStillWorks, details: draft.details }, data.wordingChecks) : [], [draft.affectedAudience, draft.customerImpact, draft.whatStillWorks, draft.details, data?.wordingChecks]);
   const draftKey = useMemo(() => JSON.stringify(draft), [draft]);
   const latestDraftKey = useRef(draftKey);
   latestDraftKey.current = draftKey;
   // Eligibility follows the displayed bytes, including before effects run.
   const draftSaved = savedKey.current === draftKey && !activeSave.current && saveState !== "error";
   const draftEmpty = untouchedDraft.current && pristineKey.current === draftKey;
-  const publishable = Boolean(draft.affectedAudience.trim() && draft.customerImpact.trim() && (draft.lifecycle === "Resolved" || (draft.nextUpdateAt && Number.isFinite(Date.parse(draft.nextUpdateAt)))) && data?.incident?.components.some(component => component.componentId));
+  const publishable = Boolean(draft.affectedAudience.trim() && draft.customerImpact.trim() && (draft.lifecycle === "Resolved" || (draft.nextUpdateAt && Number.isFinite(Date.parse(draft.nextUpdateAt)))) && (data?.incident?.components.some(component => component.componentId) || draft.componentChanges?.length));
   const visibleSaveState = draftEmpty ? "empty" : draftSaved ? "saved" : saveState === "error" && failedKey.current === draftKey ? "error" : "saving";
 
   // Establish the saved draft authority before controls can accept input.
@@ -176,6 +181,10 @@ function IncidentVisit({ incidentId }: { incidentId: string }) {
     if (data?.preview && data.incident && initialPreviewTimezone.current === timezone && draftKey === JSON.stringify(draftFromIncident(data.incident))) {
       setPreview(data.preview);
       setPreviewError(null);
+      return;
+    }
+    if (data?.previewError && data.incident && draftKey === JSON.stringify(draftFromIncident(data.incident))) {
+      setPreviewError(data.previewError);
       return;
     }
     const isCurrent = captureUpdate();
@@ -289,11 +298,11 @@ function IncidentVisit({ incidentId }: { incidentId: string }) {
       <AiSuggestionButton key={updateGeneration.current} incidentId={incident.id} onSuggestion={applySuggestion} captureUpdate={captureUpdate} />
       <form inert={publishState === "publishing"} className="impact-form" onSubmit={(event) => event.preventDefault()}>
         <FieldNumber value="1" label="Who is affected" required count={draft.affectedAudience.length} max={250}><textarea required placeholder={`Who is affected during ${draft.lifecycle.toLowerCase()}?`} value={draft.affectedAudience} maxLength={250} onChange={(event) => updateField("affectedAudience", event.target.value)} /></FieldNumber>
-        <SuggestionSources field="affectedAudience" applied={appliedSuggestion} />
+        <WordingFindings findings={wordingFindings.filter(finding => finding.field === "affectedAudience")} /><SuggestionSources field="affectedAudience" applied={appliedSuggestion} />
         <FieldNumber value="2" label="What is the impact" required count={draft.customerImpact.length} max={250}><textarea required placeholder={`Describe the current impact during ${draft.lifecycle.toLowerCase()}.`} value={draft.customerImpact} maxLength={250} onChange={(event) => updateField("customerImpact", event.target.value)} /></FieldNumber>
-        <SuggestionSources field="customerImpact" applied={appliedSuggestion} />
+        <WordingFindings findings={wordingFindings.filter(finding => finding.field === "customerImpact")} /><SuggestionSources field="customerImpact" applied={appliedSuggestion} />
         <FieldNumber value="3" label="What still works" count={draft.whatStillWorks.length} max={250}><textarea value={draft.whatStillWorks} maxLength={250} onChange={(event) => updateField("whatStillWorks", event.target.value)} /></FieldNumber>
-        <SuggestionSources field="whatStillWorks" applied={appliedSuggestion} />
+        <WordingFindings findings={wordingFindings.filter(finding => finding.field === "whatStillWorks")} /><SuggestionSources field="whatStillWorks" applied={appliedSuggestion} />
         {draft.lifecycle === "Resolved" ? (
           <div className="impact-field resolution-note" role="status">
             <span className="field-label"><b>4</b>Resolution</span>
@@ -312,8 +321,9 @@ function IncidentVisit({ incidentId }: { incidentId: string }) {
           </fieldset>
         )}
         <FieldNumber value="5" label="Additional details" count={draft.details.length} max={500}><textarea value={draft.details} maxLength={500} onChange={(event) => updateField("details", event.target.value)} /></FieldNumber>
-        <SuggestionSources field="details" applied={appliedSuggestion} />
+        <WordingFindings findings={wordingFindings.filter(finding => finding.field === "details")} /><SuggestionSources field="details" applied={appliedSuggestion} />
         <label className="lifecycle-control">Lifecycle<select value={draft.lifecycle} onChange={(event) => changeLifecycle(event.target.value as IncidentDraftInput["lifecycle"])}>{["Investigating", "Identified", "Monitoring", "Resolved"].map((state) => <option key={state}>{state}</option>)}</select></label>
+        <DraftComponentStates incident={incident} draft={draft} onChange={changes => updateField("componentChanges", changes)} />
         <ClientExtensionSlot id="incident.composer.fields.after.v1" context={{ incident: { id: incident.id, reference: incident.reference, lifecycle: incident.lifecycle } }} />
       </form>
       <details className="draft-tools"><summary>Update templates</summary><TemplateControls key={updateGeneration.current} incident={incident} draft={draft} onApplied={applyDraft} version={version.current} captureUpdate={captureUpdate} /></details>
@@ -330,7 +340,7 @@ function IncidentVisit({ incidentId }: { incidentId: string }) {
     </section>
     <aside className="incident-context">
       <IncidentComponents key={incident.id} incident={incident} onChanged={refresh} captureVisit={captureVisit} />
-      <section className="context-section"><h2>Published timeline</h2>{incident.updates.length ? <ol className="timeline">{incident.updates.map((update) => <li key={update.id}><strong>{update.lifecycle}</strong><span>{formatOperatorTime(update.publishedAt)}</span><p>{update.customerImpact}</p></li>)}</ol> : <p>No public updates are recorded.</p>}</section>
+      <section className="context-section"><h2>Published timeline</h2>{incident.updates.length ? <ol className="timeline">{incident.updates.map((update) => <li key={update.id}><strong>{update.lifecycle}</strong><span>{formatOperatorTime(update.publishedAt)}</span><p>{update.customerImpact}</p>{componentChangeLines(update.componentChanges).map((line, index) => <p key={index}>{line}</p>)}</li>)}</ol> : <p>No public updates are recorded.</p>}</section>
       {incident.lifecycle === "Resolved" ? <ReportEditor incidentId={incident.id} /> : null}
       <IncidentOperatorControls incident={incident} captureVisit={captureVisit} captureUpdate={captureUpdate} getDraftVersion={() => version.current} onChanged={refresh} onDeleted={() => void navigate({ to: "/app/incidents" })} />
       <ClientExtensionSlot id="incident.sidebar.after.v1" context={{ incident: { id: incident.id, reference: incident.reference, lifecycle: incident.lifecycle } }} />

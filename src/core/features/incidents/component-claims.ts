@@ -23,17 +23,16 @@ export function attachClaimStatements(binding: D1Database, claim: AttachedIncide
 
 /** Reject stale claims before any publication write, including a detach/reattach
  * of the same component. The row IDs identify the exact attachment reviewed. */
-export function publicationComponentsGuard(binding: D1Database, incidentId: string, components: Pick<StoredIncidentComponent, "id" | "componentId" | "state">[]): D1PreparedStatement {
-  const snapshot = JSON.stringify(components.map(({ id, componentId, state }) => ({ id, componentId, state })));
+export function publicationComponentsGuard(binding: D1Database, incidentId: string, components: Pick<StoredIncidentComponent, "id" | "componentId" | "state" | "updatedAt">[]): D1PreparedStatement {
+  const snapshot = JSON.stringify(components.map(({ id, componentId, state, updatedAt }) => ({ id, componentId, state, updatedAt })));
   return binding.prepare(`SELECT CASE WHEN
     EXISTS (SELECT 1 FROM incidents WHERE id = ? AND deleted_at IS NULL)
-    AND json_array_length(?) > 0
     AND (SELECT count(*) FROM incident_components WHERE incident_id = ?) = json_array_length(?)
     AND NOT EXISTS (SELECT 1 FROM incident_components current WHERE current.incident_id = ? AND NOT EXISTS (
       SELECT 1 FROM json_each(?) expected WHERE json_extract(expected.value,'$.id') = current.id
-        AND json_extract(expected.value,'$.componentId') IS current.component_id AND json_extract(expected.value,'$.state') = current.state
+        AND json_extract(expected.value,'$.componentId') IS current.component_id AND json_extract(expected.value,'$.state') = current.state AND json_extract(expected.value,'$.updatedAt') = current.updated_at
     )) THEN 1 ELSE json('Incident components changed') END`)
-    .bind(incidentId,snapshot,incidentId,snapshot,incidentId,snapshot);
+    .bind(incidentId,incidentId,snapshot,incidentId,snapshot);
 }
 
 export function activeIncidentGuard(binding: D1Database, incidentId: string): D1PreparedStatement {

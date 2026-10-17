@@ -1,10 +1,12 @@
+import { parsePublishedComponentChanges } from "../../shared/incident-component-changes";
 import { DeliveryService } from "../../../../modules/integrations/core/delivery.ts";
 import { D1SqlDatabase } from "../../../../modules/integrations/core/database.ts";
 import { IntegrationsRepository } from "../../../../modules/integrations/core/repository.ts";
-import { createSlackIncomingWebhookProtocol, resolveSlackWebhook, SLACK_WEBHOOK_PROTOCOL } from "../../../../modules/integrations/slack/protocol.ts";
-import { renderSlackEvent, serializeSlackMessage } from "../../../../modules/integrations/slack/message.ts";
+import { resolveSlackWebhook, SLACK_WEBHOOK_PROTOCOL } from "../../../../modules/integrations/slack/protocol.ts";
+import { createLampSlackProtocol } from "./slack";
+import { renderLampSlackMessage } from "./slack-message";
 import { createUlid, nowIso } from "../../shared/ids";
-import { slackTemplates, teamsCard, teamsTestCard, type ChannelPostData } from "./messages";
+import { renderChannelSlack, teamsCard, teamsTestCard, type ChannelPostData } from "./messages";
 import { createChannelRepository, type ChannelDestination, type ChannelKind } from "./repository";
 import { openUrl, sealingSecrets, sealUrl } from "./sealing";
 import { createTeamsProtocol, TEAMS_WEBHOOK_PROTOCOL } from "./teams";
@@ -13,7 +15,7 @@ import { createChannelTransport, isChannelHost } from "./transport";
 const NAMESPACE = "lamp-channels";
 export type ChannelView = Omit<ChannelDestination, "sealedUrl">;
 
-/** Slack (through Base's Slack notifier protocol and renderer) and Teams
+/** Slack and Teams
  * channels share Base's durable delivery service: one immutable delivery per
  * update and channel, retried on its policy, never sent twice once accepted. */
 export function createChannelsService(db: D1Database, options: { effectsPaused?: boolean; webhookSecret?: string; developmentReceiver?: string; publicOrigin: () => Promise<string>; unavailable?: string | null }) {
@@ -27,7 +29,7 @@ export function createChannelsService(db: D1Database, options: { effectsPaused?:
   const transport = createChannelTransport({ developmentReceiver: options.developmentReceiver });
   const delivery = new DeliveryService({
     repository: integrations, transport,
-    protocols: [createSlackIncomingWebhookProtocol({ resolveDestination: resolve }), createTeamsProtocol(resolve)],
+    protocols: [createLampSlackProtocol(resolve), createTeamsProtocol(resolve)],
   });
   const view = ({ sealedUrl: _sealed, ...channel }: ChannelDestination): ChannelView => channel;
 
@@ -56,7 +58,7 @@ export function createChannelsService(db: D1Database, options: { effectsPaused?:
       const destination = await repository.find(id);
       if (!destination) return null;
       const text = `Test post from Lamp. Published incident updates for ${destination.selectionMode === "all" ? "every visible component" : "this channel's components"} will appear in ${destination.name}.`;
-      const body = destination.kind === "slack" ? JSON.stringify({ text }) : teamsTestCard(text);
+      const body = destination.kind === "slack" ? JSON.stringify(renderLampSlackMessage(text, [text])) : teamsTestCard(text);
       const provider = destination.kind === "slack" ? "Slack" : "Teams";
       try {
         const response = await transport.send({ url: await resolve(id), headers: { "content-type": "application/json; charset=utf-8" }, body });
@@ -74,10 +76,10 @@ export function createChannelsService(db: D1Database, options: { effectsPaused?:
       if (options.effectsPaused || options.unavailable) return;
       const origin = await options.publicOrigin();
       for (const post of await repository.pending(limit)) {
-        const data: ChannelPostData = { reference: post.reference, title: post.title, lifecycle: post.lifecycle, customerImpact: post.customerImpact, affectedAudience: post.affectedAudience, url: new URL(`/incidents/${encodeURIComponent(post.reference)}`, origin).href };
+        const data: ChannelPostData = { reference: post.reference, title: post.title, lifecycle: post.lifecycle, customerImpact: post.customerImpact, affectedAudience: post.affectedAudience, whatStillWorks: post.whatStillWorks, details: post.details, nextUpdateAt: post.nextUpdateAt, timezone: post.timezone, componentChanges: parsePublishedComponentChanges(post.componentChangesJson), url: new URL(`/incidents/${encodeURIComponent(post.reference)}`, origin).href };
         try {
           await delivery.enqueue(post.kind === "slack"
-            ? { id: post.id, tenant: NAMESPACE, destinationId: post.destinationId, event: "incident.update", protocol: SLACK_WEBHOOK_PROTOCOL, body: serializeSlackMessage(renderSlackEvent("incident.update", data, slackTemplates)) }
+            ? { id: post.id, tenant: NAMESPACE, destinationId: post.destinationId, event: "incident.update", protocol: SLACK_WEBHOOK_PROTOCOL, body: JSON.stringify(renderChannelSlack(data)) }
             : { id: post.id, tenant: NAMESPACE, destinationId: post.destinationId, event: "incident.update", protocol: TEAMS_WEBHOOK_PROTOCOL, body: teamsCard(data) });
         } catch {
           // The address or message failed its checks; nothing was sent. No URL or text is logged.

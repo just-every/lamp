@@ -52,7 +52,7 @@ export function createApp(bindings: AppBindings, execution?: MailExecution) {
   registerOperatorRoutes(app, services.auth, bindings.LAMP_PAGE_HOST, { localMail });
   registerOverviewRoutes(app, services.overview);
   registerComponentRoutes(app, services.components);
-  registerIncidentRoutes(app, services.incidents, { hasChatChannels: async () => (await services.channels.list()).length > 0 });
+  registerIncidentRoutes(app, services.incidents, { hasChatChannels: async () => (await services.channels.list()).length > 0, wordingChecks: async () => { const settings = await services.pageSettings.get(); if (!settings) throw new Error("Page settings are not configured."); return { blockedTerms: settings.wordingBlockedTerms, friendlyLength: settings.wordingFriendlyLength }; } });
   registerReportRoutes(app, services.reports);
   registerBriefRoutes(app, services.briefs);
   registerAiRoutes(app, services.ai);

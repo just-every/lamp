@@ -1,4 +1,5 @@
 import type { IncidentLifecycle } from "../../shared/domain";
+import type { PublishedIncidentComponentChange } from "../../shared/incident-component-changes";
 
 export interface IncidentUpdateRenderInput {
   incidentReference: string;
@@ -11,6 +12,7 @@ export interface IncidentUpdateRenderInput {
   nextUpdateAt: string | null;
   /** Public and email surfaces supply their configured-zone representation. */
   nextUpdateDisplay?: string | null;
+  componentChanges?: PublishedIncidentComponentChange[];
 }
 
 export interface RenderedIncidentUpdate {
@@ -25,6 +27,10 @@ export interface RenderedIncidentUpdate {
   };
 }
 
+export function componentChangeLines(changes: PublishedIncidentComponentChange[] = []): string[] {
+  return changes.filter(change => !change.internal && change.previousState !== change.newState).map(change => `${change.name}: ${change.previousState} → ${change.newState}`);
+}
+
 export function renderIncidentUpdate(input: IncidentUpdateRenderInput): RenderedIncidentUpdate {
   const fields = [
     { label: "Who is affected", value: input.affectedAudience },
@@ -32,6 +38,7 @@ export function renderIncidentUpdate(input: IncidentUpdateRenderInput): Rendered
     { label: "What still works", value: input.whatStillWorks },
     ...(input.lifecycle === "Resolved" ? [] : [{ label: "Next update by", value: input.nextUpdateDisplay ?? input.nextUpdateAt ?? "Not yet committed", instant: input.nextUpdateAt ?? undefined }]),
     { label: "Additional details", value: input.details },
+    ...componentChangeLines(input.componentChanges).map(value => ({ label: "Component state", value })),
   ].filter((field) => field.value.length > 0);
   const heading = `${input.incidentReference}: ${input.incidentTitle}`;
 

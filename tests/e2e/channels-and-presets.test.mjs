@@ -1,3 +1,4 @@
+import { UPDATE_LINK_FIELDS } from "./helpers/update-component-flow.mjs";
 import { test } from 'node:test';
 import { requestHeaders } from "../helpers/request-headers.mjs";
 import assert from "node:assert/strict";
@@ -91,7 +92,7 @@ test("NOTIFY-011 NOTIFY-012 — Private channel configuration delivers the selec
   const incident = await post("/api/app/incidents", { title: "Card payments failing", components: [{ componentId: payments.id, state: "Partially unavailable", relationship: "Primary" }] });
   assert.equal(incident.status, 201, incident.text);
   const id = incident.body.incident.id;
-  const draft = { lifecycle: "Investigating", affectedAudience: "Customers paying by card.", customerImpact: "Card payments fail at checkout.", whatStillWorks: "Bank transfers work.", details: "", nextUpdateAt: new Date(Date.now() + 3_600_000).toISOString() };
+  const draft = { lifecycle: "Investigating", ...UPDATE_LINK_FIELDS, nextUpdateAt: new Date(Date.now() + 3_600_000).toISOString() };
   assert.equal((await api(`/api/app/incidents/${id}/draft`, { method: "PUT", body: JSON.stringify(draft) })).status, 200);
   const published = await post(`/api/app/incidents/${id}/publish`, { channels: ["chat"] });
   assert.equal(published.status, 200, published.text);
@@ -106,6 +107,16 @@ test("NOTIFY-011 NOTIFY-012 — Private channel configuration delivers the selec
   assert.equal(received.filter((entry) => entry.path === new URL(SLACK_B).pathname).length, 0, "a channel for another component receives nothing");
   assert.match(JSON.parse(slack[0].body).text, /INC-\d+ Investigating: Card payments failing/);
   assert.equal(JSON.parse(teams[0].body).attachments[0].contentType, "application/vnd.microsoft.card.adaptive");
+  const slackMessage = JSON.parse(slack[0].body);
+  assert.ok(slackMessage.text.includes("<https://help.example.com/kb/123>"), "Slack notification text carries explicit links");
+  const elements = slackMessage.blocks.flatMap(block => block.elements.flatMap(section => section.elements));
+  assert.ok(elements.some(element => element.type === "link" && element.url === "https://help.example.com/kb/123"));
+  assert.ok(elements.some(element => element.type === "text" && element.text.includes('Literal <a href="https://x.test">x</a>, **markdown**, javascript:alert(1)')));
+  assert.ok(!elements.some(element => element.type === "link" && /x\.test|^http:|^javascript:/.test(element.url)));
+  const teamsBody = JSON.parse(teams[0].body).attachments[0].content.body.map(block => block.text).join("\n");
+  assert.match(teamsBody, /\[https:/);
+  assert.match(teamsBody, /help\.example\.com\/kb\/123/);
+  assert.ok(teamsBody.includes("\\*\\*markdown\\*\\*"), "Teams keeps author markup literal");
   assert.match(teams[0].path, /sig=teamsSecretSignature0003/, "Teams keeps its signed query");
   assert.deepEqual(sql("SELECT state FROM integration_deliveries ORDER BY state").map((row) => row.state), ["accepted", "accepted"]);
 })(t);

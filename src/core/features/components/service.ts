@@ -31,6 +31,8 @@ export interface ComponentsService {
   setStandingClaim(componentId: string, state: ComponentState | null, operatorId: string): Promise<ComponentView | null>;
   correctHistory(componentId: string, input: ComponentHistoryCorrectionInput, operatorId: string): Promise<void>;
   canReconstructHistoricalState(componentId: string, instant: string): Promise<boolean>;
+  incidentClaimStateAt(componentId: string, incidentId: string, instant: string): Promise<ComponentState | null>;
+  announceCommittedTransitions(componentIds: string[], incidentId: string, changedAt: string, createdAt: string): Promise<void>;
   prepareHistoricalStateTransitions(input: { componentId: string; cause: StateClaimCause; claimEvent: ComponentClaimEventInput }): Promise<ComponentStateHistoryInput[]>;
   recomputePublicState(componentId: string, cause: StateClaimCause, changedAt?: string): Promise<ComponentState>;
 }
@@ -210,6 +212,17 @@ export function createComponentsService(
     },
     async canReconstructHistoricalState(componentId, instant) {
       return !(await repository.hasUnprovenClaimHistorySince(componentId, instant));
+    },
+    async incidentClaimStateAt(componentId, incidentId, instant) {
+      return (await repository.listClaimEventsAt(componentId, instant)).find(event => event.causeType === "incident" && event.causeId === incidentId)?.state ?? null;
+    },
+    async announceCommittedTransitions(componentIds, incidentId, changedAt, createdAt) {
+      for (const componentId of componentIds) {
+        const entries = await repository.listHistory(componentId);
+        for (const entry of entries.filter(row => row.causeType === "incident" && row.causeId === incidentId && row.changedAt === changedAt && row.createdAt === createdAt)) {
+          await events.componentStatusChanged({ componentId, previousState: entry.previousState, state: entry.newState, changedAt, cause: "incident" });
+        }
+      }
     },
     async prepareHistoricalStateTransitions({ componentId, cause, claimEvent }) {
       const startsAt = claimEvent.changedAt;

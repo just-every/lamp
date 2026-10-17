@@ -1,8 +1,13 @@
+import { resolveSlackWebhook } from "../../../../modules/integrations/slack/protocol.ts";
+import { classifySlackIncomingWebhook } from "../../../../modules/integrations/slack/classify.ts";
+import { renderSubscriberSlackMessage } from "./slack-message";
 import { formatTime } from "../public-snapshot/format";
 import { lampConfig } from "../../../ext/config";
 import type { DeliveryChannel, DeliveryOutcome } from "../../shared/domain";
 import { createUlid, nowIso } from "../../shared/ids";
+import { parsePublishedComponentChanges } from "../../shared/incident-component-changes";
 import { renderIncidentUpdate } from "../incidents/renderer";
+import { renderUpdateHtml } from "../../shared/update-links";
 import { type MailMessage, type MailSender } from "../../platform/mail";
 import { hmacSha256 } from "../../platform/security/opaque-tokens";
 import { SubscriberTokenCodec } from "../subscribers/tokens";
@@ -189,7 +194,7 @@ export function createDeliveriesService(
       const rendered = delivery.incidentReportId && delivery.incidentReference && delivery.incidentTitle
         ? { email: { subject: `[${delivery.incidentReference}] Post-incident report`, plainText: [`${delivery.incidentReference}: ${delivery.incidentTitle}`, `Summary: ${delivery.reportSummary ?? ""}`, `Timeline: ${delivery.reportTimeline ?? ""}`, `Cause: ${delivery.reportCause ?? ""}`, `Remediation: ${delivery.reportRemediation ?? ""}`].join("\n\n") } }
         : delivery.incidentUpdateId !== null && delivery.incidentReference !== null && delivery.incidentTitle !== null && delivery.lifecycle !== null && delivery.affectedAudience !== null && delivery.customerImpact !== null
-          ? renderIncidentUpdate({ incidentReference: delivery.incidentReference, incidentTitle: delivery.incidentTitle, lifecycle: delivery.lifecycle, affectedAudience: delivery.affectedAudience, customerImpact: delivery.customerImpact, whatStillWorks: delivery.whatStillWorks ?? "", details: delivery.details ?? "", nextUpdateAt: delivery.nextUpdateAt, nextUpdateDisplay: delivery.nextUpdateAt ? displayNotificationTime(delivery.nextUpdateAt, delivery.timezone) : null })
+          ? renderIncidentUpdate({ incidentReference: delivery.incidentReference, incidentTitle: delivery.incidentTitle, lifecycle: delivery.lifecycle, affectedAudience: delivery.affectedAudience, customerImpact: delivery.customerImpact, whatStillWorks: delivery.whatStillWorks ?? "", details: delivery.details ?? "", nextUpdateAt: delivery.nextUpdateAt, componentChanges: parsePublishedComponentChanges(delivery.componentChangesJson), nextUpdateDisplay: delivery.nextUpdateAt ? displayNotificationTime(delivery.nextUpdateAt, delivery.timezone) : null })
           : renderMaintenanceNotice(delivery);
       if (!rendered) throw permanentDeliveryError("This notification event has no supported rendered content.");
       const host = new URL(origin).host;
@@ -198,7 +203,7 @@ export function createDeliveriesService(
       const candidate: FrozenMailPayload = {
         frozenAt: nowIso(), from: fromAddress, to: delivery.destination, subject: `${pageName}: ${rendered.email.subject}`,
         text: `${pageName}\n\n${rendered.email.plainText}\n\nManage this subscription: ${manageUrl}\nUnsubscribe: ${unsubscribeUrl}\nReturn to status: ${statusUrl}`,
-        html: `<main><p><a href="${htmlText(statusUrl)}">${htmlText(pageName)}</a></p><h1>${htmlText(rendered.email.subject)}</h1><pre>${htmlText(rendered.email.plainText)}</pre><p><a href="${htmlText(manageUrl)}">Manage subscription</a> · <a href="${htmlText(unsubscribeUrl)}">Unsubscribe</a></p></main>`,
+        html: `<main><p><a href="${htmlText(statusUrl)}">${htmlText(pageName)}</a></p><h1>${htmlText(rendered.email.subject)}</h1><pre>${renderUpdateHtml(rendered.email.plainText)}</pre><p><a href="${htmlText(manageUrl)}">Manage subscription</a> · <a href="${htmlText(unsubscribeUrl)}">Unsubscribe</a></p></main>`,
         headers: {
           "List-Unsubscribe": `<mailto:${fromAddress}?subject=unsubscribe>, <${unsubscribeUrl}>`, "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
           "List-Id": `<${host}>`, "List-Archive": `${origin}/history`, "List-Help": manageUrl, "Auto-Submitted": "auto-generated",
@@ -226,23 +231,27 @@ export function createDeliveriesService(
     await applyPendingProviderEvents(message.providerMessageId, pending);
   }
 
-  async function sendWebhook(delivery: DispatchableDelivery) {
+  async function sendWebhook(delivery: DispatchableDelivery, origin: string) {
     const secrets = (Array.isArray(options.webhookSigningSecret) ? options.webhookSigningSecret : [options.webhookSigningSecret]).filter((value): value is string => Boolean(value));
     if (!secrets.length) throw new Error("WEBHOOK_SIGNING_SECRET is required for webhook subscriptions.");
     if (!isSafeWebhookDestination(delivery.destination)) throw new Error("Webhook delivery destination is not a public HTTPS URL.");
-    const incidentEvent = delivery.incidentId ? await repository.getIncidentWebhookPayload(delivery.incidentId) : null;
+    const slack = new URL(delivery.destination).hostname === "hooks.slack.com";
+    const destination = slack ? await resolveSlackWebhook(async () => delivery.destination, delivery.subscriberId) : delivery.destination;
+    const incidentEvent = !slack && delivery.incidentId && delivery.incidentUpdateId ? await repository.getIncidentWebhookPayload(delivery.incidentId, delivery.incidentUpdateId, delivery.notificationEventId) : null;
     const event = incidentEvent
       ? { event: "incident.update.published", deliveryId: delivery.id, ...incidentEvent }
       : { event: delivery.maintenanceId ? "maintenance.notice.published" : "incident.report.published", deliveryId: delivery.id, incident: delivery.incidentReference ? { reference: delivery.incidentReference, title: delivery.incidentTitle } : null, maintenance: delivery.maintenanceId ? { id: delivery.maintenanceId, reference: delivery.maintenanceReference, title: delivery.maintenanceTitle, state: delivery.maintenanceState, notice: delivery.maintenanceNoticeKind } : null };
-    const slack = new URL(delivery.destination).hostname === "hooks.slack.com";
-    const body = JSON.stringify(slack ? { text: `*${event.event}* — ${event.incident?.reference ?? event.maintenance?.reference ?? "Lamp"}`, event } : event);
+    const body = JSON.stringify(slack ? renderSubscriberSlackMessage(delivery, origin) : event);
     const timestamp = String(Math.floor(Date.now() / 1000));
     const signature = (await Promise.all(secrets.map(async (secret) => `v1=${await hmacSha256(secret, `${delivery.id}.${timestamp}.${body}`)}`))).join(" ");
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 30_000);
     try {
-      const response = await fetch(delivery.destination, { method: "POST", redirect: "manual", signal: controller.signal, headers: { "Content-Type": "application/json", "webhook-id": delivery.id, "webhook-timestamp": timestamp, "webhook-signature": signature }, body });
-      if (response.status < 200 || response.status >= 300) throw new Error(`Webhook destination returned ${response.status}.`);
+      const response = await fetch(destination, { method: "POST", redirect: "manual", signal: controller.signal, headers: { "Content-Type": "application/json", "webhook-id": delivery.id, "webhook-timestamp": timestamp, "webhook-signature": signature }, body });
+      if (slack) {
+        const outcome = classifySlackIncomingWebhook({ status: response.status, headers: { "retry-after": response.headers.get("retry-after") ?? "" }, body: await response.text() });
+        if (outcome.kind !== "accepted") throw new Error(`Slack webhook did not accept the message (${outcome.code}).`);
+      } else if (response.status < 200 || response.status >= 300) throw new Error(`Webhook destination returned ${response.status}.`);
       const now = nowIso();
       const attempt = (await repository.getAttemptCount(delivery.id)) + 1;
       await repository.recordAttempt({ id: createUlid(), deliveryId: delivery.id, attemptNumber: attempt, attemptedAt: now, providerMessageId: null, error: null, createdAt: now });
@@ -359,7 +368,7 @@ export function createDeliveriesService(
         return;
       }
       try {
-        if (delivery.channel === "email") await sendEmail(delivery, origin); else await sendWebhook(delivery);
+        if (delivery.channel === "email") await sendEmail(delivery, origin); else await sendWebhook(delivery, origin);
       } catch (error) { await recordFailure(delivery, error); throw error; }
       finally { await repository.releaseDeliveryClaim(deliveryId); }
     },

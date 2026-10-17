@@ -1,3 +1,4 @@
+import { publicUpdate } from "./public-update";
 import { renderImportAliases } from "./import-aliases";
 import { COMPONENT_STATES, mostSevereState, type ComponentState } from "../../shared/domain";
 import type { LampServerSlots } from "../../api/extensions";
@@ -55,7 +56,7 @@ function toPublicModel(source: PublicSnapshotSource, generatedAt: string, polici
   const attachedByIncident = new Map<string, string[]>();
   for (const component of source.incidentComponents) attachedByIncident.set(component.incidentId, [...(attachedByIncident.get(component.incidentId) ?? []), component.componentName]);
   const updatesByIncident = new Map<string, PublicIncident["updates"]>();
-  for (const update of source.updates) updatesByIncident.set(update.incidentId, [...(updatesByIncident.get(update.incidentId) ?? []), update]);
+  for (const update of source.updates) updatesByIncident.set(update.incidentId, [...(updatesByIncident.get(update.incidentId) ?? []), publicUpdate(source, update)]);
   const reportsByIncident = new Map(source.reports.map((report) => [report.incidentId, report]));
   const incidents: PublicIncident[] = source.incidents.map((incident) => ({
     ...incident,

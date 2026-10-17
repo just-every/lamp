@@ -1,3 +1,5 @@
+import { reviewUpdateFlow } from "./helpers/review-update-flow.mjs";
+import { updateComponentFlow } from "./helpers/update-component-flow.mjs";
 import { test } from 'node:test';
 import { requestHeaders } from "../helpers/request-headers.mjs";
 import { withDraftVersion } from "./draft-version-helper.mjs";
@@ -169,15 +171,6 @@ async function createIntakeSource(name, overrides = {}) {
   return (await response.json()).source;
 }
 
-async function loadIncidentsServiceFactory() {
-  const vite = await createIsolatedViteServer();
-  try {
-    return (await vite.ssrLoadModule("/src/core/features/incidents/service.ts")).createIncidentsService;
-  } finally {
-    await vite.close();
-  }
-}
-
 async function loadMaintenanceRepositoryFactory() {
   const vite = await createIsolatedViteServer();
   try {
@@ -292,7 +285,7 @@ const validDraft = {
   lifecycle: "Identified", affectedAudience: "API customers.", customerImpact: "Some requests can fail.", whatStillWorks: "The dashboard remains available.", details: "Engineers are mitigating the condition.", nextUpdateAt: "2026-09-08T04:00:00.000Z",
 };
 
-test("UPDATE-001 UPDATE-008 UPDATE-002 UPDATE-003 — Validated publication, shared rendering and resolution", async t => {
+test("UPDATE-001 UPDATE-008 UPDATE-002 UPDATE-003 UPDATE-011 UPDATE-012 UPDATE-013 — Validated publication, shared rendering and resolution", async t => {
   t.diagnostic("UPDATE-001 — invalid required publication fields return 400 and leave the draft unpublished");
   await (async () => {
   const created = await appFetch("/api/app/incidents", { method: "POST", body: JSON.stringify({ title: "Publication transaction test", components: [{ componentId: "01J00000000000000000000011", state: "Major outage", relationship: "Primary" }] }) });
@@ -365,6 +358,23 @@ test("UPDATE-001 UPDATE-008 UPDATE-002 UPDATE-003 — Validated publication, sha
   const components = (await (await appFetch("/api/app/components")).json()).components;
   assert.equal(components.find((item) => item.id === component.id).publicState, "Operational");
 })(t);
+  t.diagnostic("UPDATE-011 UPDATE-012 UPDATE-013 — advisory wording, versioned staged recovery, immutable changes and safe public links");
+  const recovery = await updateComponentFlow({ appFetch });
+  const html = (await publicArtifact(recovery.publicIncidentPath, /Update publishing API: Major outage/, "immutable public component changes")).text;
+  assert.match(html, /href="https:\/\/help\.example\.com\/kb\/123" rel="nofollow noopener ugc"/);
+  assert.doesNotMatch(html, /href="(?:https:\/\/x\.test|javascript:|http:\/\/help)/);
+  assert.match(html, /&lt;a href=&quot;https:\/\/x\.test&quot;&gt;x&lt;\/a&gt;/);
+  for (const path of ["/feed.atom", "/feed.rss"]) {
+    const body = await (await fetch(pageUrl + path)).text();
+    assert.match(body, /https:\/\/help\.example\.com\/kb\/123/);
+    assert.match(body, /nofollow noopener ugc/);
+  }
+  const native = await (await fetch(pageUrl + "/api/public/v1/incidents")).json();
+  const retained = native.data.find(item => item.id === recovery.incident.id).updates.find(item => item.id === recovery.stepDownUpdate.id);
+  assert.deepEqual(retained.componentChanges, [{ componentId: recovery.component.id, name: recovery.component.name, previousState: "Major outage", newState: "Degraded performance" }]);
+  const compatibility = await (await fetch(pageUrl + "/api/v2/incidents.json")).json();
+  const changes = compatibility.incidents.find(item => item.name === recovery.incident.title).incident_updates.flatMap(update => update.affected_components);
+  assert.ok(changes.some(change => change.name === recovery.component.name && change.old_status === "major_outage" && change.new_status === "degraded_performance"));
 });
 
 
@@ -407,28 +417,11 @@ test("UPDATE-005 UPDATE-006 UPDATE-007 — Private drafts, scheduled publication
 })(t);
   t.diagnostic("UPDATE-007 — the update review policy can hold publication until a different operator has reviewed the draft");
   await (async () => {
-  const createIncidentsService = await loadIncidentsServiceFactory();
-  const incident = { id: "incident-1", reference: "INC-1", title: "Review policy incident", lifecycle: "Investigating", openedAt: new Date().toISOString(), resolvedAt: null, createdByOperatorId: "author", deletedAt: null, deletionReason: null, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() };
-  const draft = { id: "draft-1", incidentId: incident.id, lifecycle: "Identified", affectedAudience: "API customers.", customerImpact: "Requests can fail.", whatStillWorks: "Reads work.", details: "Mitigation is underway.", nextUpdateAt: new Date(Date.now() + 60 * 60_000).toISOString(), authorOperatorId: "author", createdAt: incident.createdAt, updatedAt: incident.updatedAt, scheduledPublishAt: null, scheduledChannels: [], reviewedByOperatorId: null, reviewedAt: null, correctsUpdateId: null };
-  const components = [{ id: "claim-1", incidentId: incident.id, componentId: "component-1", componentName: "API", state: "Major outage", relationship: "Primary", publishedAt: null, createdAt: incident.createdAt, updatedAt: incident.updatedAt }];
-  let published = null;
-  const repository = {
-    findIncident: async () => incident,
-    findPublishingDraft: async () => draft,
-    listComponents: async () => components,
-    findPeakImpact: async () => null,
-    hasRetroactiveUpdate: async () => false,
-    publishDraft: async (record) => { published = record; },
-    listUpdates: async () => published ? [published] : [],
-  };
-  const service = createIncidentsService(repository, {}, async () => {}, { forIncidentUpdate: async () => [] }, { requiresReview: () => true }, async () => {});
-  await assert.rejects(() => service.publish(incident.id, "author", { channels: [], expectedVersion: `${draft.id}:0` }), /requires review/);
-  assert.equal(published, null);
-  draft.reviewedAt = new Date().toISOString();
-  draft.reviewedByOperatorId = "reviewer";
-  const update = await service.publish(incident.id, "author", { channels: [], expectedVersion: `${draft.id}:0` });
-  assert.equal(update?.incidentId, incident.id);
-  assert.equal(update?.lifecycle, "Identified");
+  const { getPlatformProxy } = await import("wrangler");
+  const platform = await getPlatformProxy({ configPath: "wrangler.jsonc", persist: { path: `${testStatePath}/v3` }, remoteBindings: false });
+  const loader = await createIsolatedViteServer();
+  try { await reviewUpdateFlow({ vite: loader, bindings: platform.env }); }
+  finally { await platform.dispose(); await loader.close(); }
 })(t);
 });
 

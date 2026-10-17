@@ -19,8 +19,8 @@ export function FirstRunPage({ publicPageOrigin }: { publicPageOrigin: string })
   const [saving, setSaving] = useState(false);
   useEffect(() => {
     if (!data?.settings || form) return;
-    const { pageName, tagline, accentColor, timezone, hostname, footerCreditEnabled, widgetAllowedOrigins, mailFromAddress, aiToneInstructions } = data.settings;
-    setForm({ pageName, tagline, accentColor, timezone, hostname, footerCreditEnabled, widgetAllowedOrigins, mailFromAddress, aiToneInstructions });
+    const { pageName, tagline, accentColor, timezone, hostname, footerCreditEnabled, widgetAllowedOrigins, mailFromAddress, aiToneInstructions, wordingBlockedTerms, wordingFriendlyLength } = data.settings;
+    setForm({ pageName, tagline, accentColor, timezone, hostname, footerCreditEnabled, widgetAllowedOrigins, mailFromAddress, aiToneInstructions, wordingBlockedTerms, wordingFriendlyLength });
   }, [data, form]);
   if (loading) return <LoadingState />;
   if (error) return <ErrorState onRetry={() => window.location.reload()}>{error}</ErrorState>;

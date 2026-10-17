@@ -1,3 +1,4 @@
+import { parsePublishedComponentChanges, type PublishedIncidentComponentChange } from "../../shared/incident-component-changes";
 import { and, asc, eq, isNull, lte, sql } from "drizzle-orm";
 
 import { createDatabase } from "../../platform/db/client";
@@ -39,6 +40,7 @@ export interface DispatchableDelivery {
   whatStillWorks: string | null;
   details: string | null;
   nextUpdateAt: string | null;
+  componentChangesJson: string | null;
   reportSummary: string | null;
   reportTimeline: string | null;
   reportCause: string | null;
@@ -48,7 +50,7 @@ export interface DispatchableDelivery {
 
 export interface IncidentWebhookPayload {
   incident: { reference: string; title: string };
-  updates: Array<{ id: string; lifecycle: string; affectedAudience: string; customerImpact: string; whatStillWorks: string; details: string; nextUpdateAt: string | null; publishedAt: string }>;
+  updates: Array<{ id: string; lifecycle: string; affectedAudience: string; customerImpact: string; whatStillWorks: string; details: string; nextUpdateAt: string | null; publishedAt: string; componentChanges: PublishedIncidentComponentChange[] }>;
   components: Array<{ id: string | null; name: string; previousState: string; newState: string }>;
 }
 
@@ -91,7 +93,7 @@ export interface DeliveryRepository {
   completeProviderEvent(eventId: string, deliveryId: string, now: string): Promise<void>;
   countConsecutiveOutcomes(subscriberId: string, channel: "email" | "webhook", outcomes: string[], limit: number): Promise<number>;
   deactivateSubscriber(subscriberId: string, reason: string, now: string): Promise<boolean>;
-  getIncidentWebhookPayload(incidentId: string): Promise<IncidentWebhookPayload | null>;
+  getIncidentWebhookPayload(incidentId: string, updateId: string, eventId: string | null): Promise<IncidentWebhookPayload | null>;
 }
 
 export function createDeliveryRepository(binding: D1Database): DeliveryRepository {
@@ -102,7 +104,7 @@ export function createDeliveryRepository(binding: D1Database): DeliveryRepositor
           d.incident_update_id AS incidentUpdateId, d.incident_report_id AS incidentReportId, d.maintenance_id AS maintenanceId,
           i.id AS incidentId, CASE WHEN u.id IS NOT NULL AND u.id = (SELECT first_update.id FROM incident_updates first_update WHERE first_update.incident_id = i.id ORDER BY first_update.published_at ASC, first_update.id ASC LIMIT 1) THEN 1 ELSE 0 END AS isFirstIncidentUpdate,
           COALESCE(i.reference, reportIncident.reference) AS incidentReference, COALESCE(i.title, reportIncident.title) AS incidentTitle, u.lifecycle, u.affected_audience AS affectedAudience,
-          u.customer_impact AS customerImpact, u.what_still_works AS whatStillWorks, u.details, u.next_update_at AS nextUpdateAt,
+          u.customer_impact AS customerImpact, u.what_still_works AS whatStillWorks, u.details, u.next_update_at AS nextUpdateAt, u.component_changes_json AS componentChangesJson,
           report.summary AS reportSummary, report.timeline AS reportTimeline, report.cause AS reportCause, report.remediation AS reportRemediation,
           maintenance.reference AS maintenanceReference, maintenance.title AS maintenanceTitle, maintenance.state AS maintenanceState, maintenance.starts_at AS maintenanceStartsAt, maintenance.ends_at AS maintenanceEndsAt,
           notice.kind AS maintenanceNoticeKind, notice.body AS maintenanceNoticeBody, settings.timezone, d.mail_payload_json AS mailPayloadJson
@@ -335,17 +337,29 @@ export function createDeliveryRepository(binding: D1Database): DeliveryRepositor
       ]);
       return result[0]?.meta.changes === 1;
     },
-    async getIncidentWebhookPayload(incidentId) {
+    async getIncidentWebhookPayload(incidentId, updateId, eventId) {
       const incident = await binding.prepare("SELECT reference, title FROM incidents WHERE id = ?").bind(incidentId).first<{ reference: string; title: string }>();
       if (!incident) return null;
-      const [updates, components] = await Promise.all([
-        binding.prepare("SELECT id, lifecycle, affected_audience AS affectedAudience, customer_impact AS customerImpact, what_still_works AS whatStillWorks, details, next_update_at AS nextUpdateAt, published_at AS publishedAt FROM incident_updates WHERE incident_id = ? ORDER BY published_at ASC, id ASC").bind(incidentId).all<IncidentWebhookPayload["updates"][number]>(),
-        binding.prepare(`SELECT ic.component_id AS id, ic.component_name AS name,
-          COALESCE((SELECT h.previous_state FROM component_state_history h WHERE h.component_id = ic.component_id AND h.cause_type = 'incident' AND h.cause_id = ? ORDER BY h.changed_at DESC, h.id DESC LIMIT 1), ic.state) AS previousState,
-          COALESCE((SELECT h.new_state FROM component_state_history h WHERE h.component_id = ic.component_id AND h.cause_type = 'incident' AND h.cause_id = ? ORDER BY h.changed_at DESC, h.id DESC LIMIT 1), ic.state) AS newState
-          FROM incident_components ic LEFT JOIN components c ON c.id = ic.component_id WHERE ic.incident_id = ? AND ic.published_at IS NOT NULL AND (ic.component_id IS NULL OR c.internal = 0)`).bind(incidentId, incidentId, incidentId).all<IncidentWebhookPayload["components"][number]>(),
+      const [updates, snapshot] = await Promise.all([
+        binding.prepare(`SELECT id, lifecycle, affected_audience AS affectedAudience, customer_impact AS customerImpact, what_still_works AS whatStillWorks, details, next_update_at AS nextUpdateAt, published_at AS publishedAt, component_changes_json AS componentChangesJson
+          FROM incident_updates WHERE incident_id = ? ORDER BY published_at ASC, id ASC`)
+          .bind(incidentId).all<Omit<IncidentWebhookPayload["updates"][number], "componentChanges"> & { componentChangesJson: string }>(),
+        binding.prepare("SELECT component_snapshot_json AS snapshot FROM incident_updates WHERE id = ? AND incident_id = ?").bind(updateId,incidentId).first<{ snapshot: string }>(),
       ]);
-      return { incident, updates: updates.results, components: components.results };
+      if (!snapshot) return null;
+      // An explicit live attachment is its own catch-up event. Its historical
+      // update supplies the text; the newly attached component supplies state.
+      const attachmentEvent = eventId?.startsWith("incident-attachment/")
+        ? await binding.prepare(`SELECT ic.component_id AS id, ic.component_name AS name,
+            COALESCE((SELECT h.previous_state FROM component_state_history h WHERE h.component_id = ic.component_id AND h.cause_type = 'incident' AND h.cause_id = ? ORDER BY h.changed_at DESC,h.id DESC LIMIT 1), ic.state) AS previousState,
+            COALESCE((SELECT h.new_state FROM component_state_history h WHERE h.component_id = ic.component_id AND h.cause_type = 'incident' AND h.cause_id = ? ORDER BY h.changed_at DESC,h.id DESC LIMIT 1), ic.state) AS newState
+          FROM incident_components ic JOIN components c ON c.id = ic.component_id WHERE ic.incident_id = ? AND ic.published_at IS NOT NULL AND c.internal = 0 ORDER BY ic.created_at,ic.id`)
+          .bind(incidentId,incidentId,incidentId).all<IncidentWebhookPayload["components"][number]>() : null;
+      return {
+        incident,
+        updates: updates.results.map(({ componentChangesJson, ...row }) => ({ ...row, componentChanges: parsePublishedComponentChanges(componentChangesJson).filter(change => !change.internal) })),
+        components: attachmentEvent ? attachmentEvent.results : parsePublishedComponentChanges(snapshot.snapshot).filter(change => !change.internal).map(change => ({ id: change.componentId, name: change.name, previousState: change.previousState, newState: change.newState })),
+      };
     },
   };
 }

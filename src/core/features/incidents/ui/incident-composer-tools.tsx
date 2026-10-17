@@ -1,5 +1,7 @@
 import { useEffect, useState, type ReactNode } from "react";
+import { tokenizeUpdateLinks } from "../../../shared/update-links";
 import type { IncidentDraftInput } from "../../../shared/schemas";
+import type { StoredIncidentDraft } from "../repository";
 import type { IncidentView } from "../service";
 import type { CheckedSuggestion } from "../../ai/service";
 import { appApi, useAppData } from "../../../app/client/ui/api";
@@ -11,7 +13,7 @@ export function FieldNumber({ value, label, required, count, max, children }: { 
 }
 
 export function PreviewCard({ title, heading, lifecycle, fields }: { title: string; heading: string; lifecycle: string | null; fields: Array<{ label: string; value: string }> }) {
-  return <section className="preview-card"><p className="preview-type">{title}</p>{lifecycle && <span className={`state-pill state-${lifecycle.toLowerCase()}`}>{lifecycle}</span>}<h3>{heading}</h3><dl>{fields.map((field, index) => <div key={`${field.label}-${index}`}><dt>{field.label}</dt><dd>{field.value}</dd></div>)}</dl></section>;
+  return <section className="preview-card"><p className="preview-type">{title}</p>{lifecycle && <span className={`state-pill state-${lifecycle.toLowerCase()}`}>{lifecycle}</span>}<h3>{heading}</h3><dl>{fields.map((field, index) => <div key={`${field.label}-${index}`}><dt>{field.label}</dt><dd>{tokenizeUpdateLinks(field.value).map(token => token.kind === "https" ? <a key={token.start} href={token.href} rel="nofollow noopener ugc">{token.text}</a> : token.text)}</dd></div>)}</dl></section>;
 }
 
 export function AiSuggestionButton({ incidentId, onSuggestion, captureUpdate }: { incidentId: string; onSuggestion: (checked: CheckedSuggestion) => void; captureUpdate: () => () => boolean }) {
@@ -30,7 +32,7 @@ export function TemplateControls({ incident, draft, onApplied, version, captureU
     const isCurrent = captureUpdate();
     const nextUpdateOffsetMinutes = Number(offset);
     try {
-      await appApi("/api/app/incident-templates", { method: "POST", body: JSON.stringify({ name, lifecycle: draft.lifecycle, affectedAudience: draft.affectedAudience, customerImpact: draft.customerImpact, whatStillWorks: draft.whatStillWorks, details: draft.details, nextUpdateOffsetMinutes, components: incident.components.flatMap((component) => component.componentId ? [{ componentId: component.componentId, state: component.state, relationship: component.relationship }] : []) }) });
+      await appApi("/api/app/incident-templates", { method: "POST", body: JSON.stringify({ name, lifecycle: draft.lifecycle, affectedAudience: draft.affectedAudience, customerImpact: draft.customerImpact, whatStillWorks: draft.whatStillWorks, details: draft.details, nextUpdateOffsetMinutes, components: [...incident.components.flatMap((component) => component.componentId ? [{ componentId: component.componentId, state: draft.componentChanges?.find(change => change.componentId === component.componentId)?.state ?? component.state, relationship: component.relationship }] : []), ...(draft.componentChanges ?? []).filter(change => !incident.components.some(component => component.componentId === change.componentId)).map(change => ({ ...change, relationship: change.relationship ?? "Primary" }))] }) });
       if (!isCurrent()) return;
       setMessage("Template saved."); setName(""); refresh();
     } catch (cause) { if (!isCurrent()) return; setMessage(cause instanceof Error ? cause.message : "Template could not be saved."); }
@@ -39,12 +41,13 @@ export function TemplateControls({ incident, draft, onApplied, version, captureU
     if (!selected) return;
     const isCurrent = captureUpdate();
     try {
-      const response = await appApi<{ draft: IncidentDraftInput & { id: string } }>(`/api/app/incidents/${incident.id}/templates/${selected}/apply`, { method: "POST", headers: { "If-Match": version } });
+      const response = await appApi<{ draft: StoredIncidentDraft }>(`/api/app/incidents/${incident.id}/templates/${selected}/apply`, { method: "POST", headers: { "If-Match": version } });
       if (!isCurrent()) return;
       // The template endpoint returns a stored record; only editable fields
       // belong in the subsequent autosave input.
       const { lifecycle, affectedAudience, customerImpact, whatStillWorks, details, nextUpdateAt } = response.draft;
-      onApplied({ lifecycle, affectedAudience, customerImpact, whatStillWorks, details, nextUpdateAt }, response.draft.id); setMessage("Template filled the private draft.");
+      const componentChanges = response.draft.componentChanges.map(({ componentId, state, relationship }) => ({ componentId, state, relationship }));
+      onApplied({ lifecycle, affectedAudience, customerImpact, whatStillWorks, details, nextUpdateAt, componentChanges }, response.draft.id); setMessage("Template filled the private draft.");
     } catch (cause) { if (!isCurrent()) return; setMessage(cause instanceof Error ? cause.message : "Template could not be applied."); }
   };
   return <section className="template-controls" aria-label="Update templates"><div><strong>Update templates</strong><p>Save this private draft and its affected components, or apply a saved template without publishing.</p></div><div className="template-form"><label className="form-label">Template name<input aria-label="Template name" value={name} onChange={(event) => setName(event.target.value)} maxLength={120} placeholder="Template name" /></label><label className="form-label">Next update offset (minutes)<input aria-label="Next update offset in minutes" type="number" min="1" max="10080" value={offset} onChange={(event) => setOffset(event.target.value)} /></label><Button type="button" variant="secondary" disabled={!name.trim()} onClick={save}>Save template</Button></div>{data?.templates.length ? <div className="template-form"><label className="form-label">Saved update template<select aria-label="Saved update template" value={selected} onChange={(event) => setSelected(event.target.value)}><option value="">Choose a saved template</option>{data.templates.map((template) => <option key={template.id} value={template.id}>{template.name}</option>)}</select></label><Button type="button" variant="secondary" disabled={!selected} onClick={apply}>Apply template</Button></div> : null}{message ? <p role="status">{message}</p> : null}</section>;

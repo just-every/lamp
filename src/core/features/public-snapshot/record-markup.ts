@@ -1,4 +1,6 @@
+import type { PublishedIncidentComponentChange } from "../../shared/incident-component-changes";
 import type { IncidentLifecycle } from "../../shared/domain";
+import { renderUpdateHtml } from "../../shared/update-links";
 
 import { renderedUpdate } from "./feed-widget";
 import { MINUTE, durationText, escapeHtml, stateClass, timestamp } from "./format";
@@ -13,7 +15,7 @@ export interface PublicIncident {
   openedAt: string;
   resolvedAt: string | null;
   components: string[];
-  updates: Array<{ id: string; lifecycle: string; affectedAudience: string; customerImpact: string; whatStillWorks: string; details: string; nextUpdateAt: string | null; publishedAt: string }>;
+  updates: Array<{ componentChanges?: PublishedIncidentComponentChange[]; id: string; lifecycle: string; affectedAudience: string; customerImpact: string; whatStillWorks: string; details: string; nextUpdateAt: string | null; publishedAt: string }>;
   report: { summary: string; timeline: string; cause: string; remediation: string; publishedAt: string } | null;
 }
 
@@ -43,7 +45,7 @@ export function recordHead(kicker: string, reference: string, title: string, hea
 
 export function updateMarkup(incident: PublicIncident, update: PublicIncident["updates"][number], timezone: string) {
   const rendered = renderedUpdate(incident, update, timezone);
-  const fields = rendered.public.fields.map((field) => `<div><dt>${escapeHtml(field.label)}</dt><dd>${field.instant ? timestamp(field.instant, timezone) : escapeHtml(field.value)}</dd></div>`).join("");
+  const fields = rendered.public.fields.map((field) => `<div><dt>${escapeHtml(field.label)}</dt><dd>${field.instant ? timestamp(field.instant, timezone) : renderUpdateHtml(field.value)}</dd></div>`).join("");
   const isResolutionTime = incident.lifecycle === "Resolved" && update.lifecycle === "Resolved" && update.publishedAt === incident.resolvedAt;
   const published = isResolutionTime ? `Resolved at ${timestamp(update.publishedAt, timezone)}` : timestamp(update.publishedAt, timezone);
   return `<article class="update"><div class="update-head"><strong>${escapeHtml(rendered.public.lifecycle)}</strong><span>${published}</span></div><dl>${fields}</dl></article>`;
@@ -60,11 +62,11 @@ export function resolvedMarkup(incident: PublicIncident, timezone: string) {
   const title = `<a href="/incidents/${encodeURIComponent(incident.reference)}">${escapeHtml(incident.title)}</a>`;
   const impact = incident.updates[0]?.customerImpact.trim();
   const ended = incident.resolvedAt ? `Resolved ${timestamp(incident.resolvedAt, timezone)} · lasted ${escapeHtml(durationText(incident.openedAt, incident.resolvedAt))} · ` : "";
-  return `<article class="incident resolved-incident">${recordHead("Resolved incident", incident.reference, title, "h4", incident.lifecycle)}<p class="incident-meta">${ended}Affected ${escapeHtml(incident.components.join(", "))}</p>${impact ? `<p class="resolved-summary">${escapeHtml(impact)}</p>` : ""}</article>`;
+  return `<article class="incident resolved-incident">${recordHead("Resolved incident", incident.reference, title, "h4", incident.lifecycle)}<p class="incident-meta">${ended}Affected ${escapeHtml(incident.components.join(", "))}</p>${impact ? `<p class="resolved-summary">${renderUpdateHtml(impact)}</p>` : ""}</article>`;
 }
 
 export function noticeMarkup(notice: PublicMaintenance["notices"][number], timezone: string) {
-  return `<article class="update maintenance-notice"><div class="update-head"><strong>${escapeHtml(notice.kind)}</strong><span>${timestamp(notice.publishedAt, timezone)}</span></div>${notice.body ? `<p>${escapeHtml(notice.body)}</p>` : ""}</article>`;
+  return `<article class="update maintenance-notice"><div class="update-head"><strong>${escapeHtml(notice.kind)}</strong><span>${timestamp(notice.publishedAt, timezone)}</span></div>${notice.body ? `<p>${renderUpdateHtml(notice.body)}</p>` : ""}</article>`;
 }
 
 export function maintenanceMarkup(item: PublicMaintenance, timezone: string, generatedAt: string, permalink = false) {

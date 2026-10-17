@@ -2,6 +2,7 @@ import type { Context, Hono } from "hono";
 import { z } from "zod";
 
 import type { AppEnv } from "../../app/types";
+import { INCIDENT_CLAIM_STATES } from "../../shared/incident-component-changes";
 import { COMPONENT_STATES, INCIDENT_LIFECYCLES } from "../../shared/domain";
 import { ulidSchema } from "../../shared/ids";
 import { incidentDraftSchema } from "../../shared/schemas";
@@ -9,7 +10,7 @@ import { InvalidIncidentUpdateError, type IncidentsService } from "./service";
 import { draftFromIncident } from "./draft";
 
 const incidentQuerySchema = z.object({ lifecycle: z.enum(INCIDENT_LIFECYCLES).optional() }).strict();
-const publishSchema = z.object({ channels: z.array(z.enum(["email", "webhook", "chat"])).max(3).transform((channels) => [...new Set(channels)]), publishedAt: z.iso.datetime().optional() }).strict();
+const publishSchema = z.object({ channels: z.array(z.enum(["email", "webhook", "chat"])).max(3).transform((channels) => [...new Set(channels)]), publishedAt: z.iso.datetime().optional(), componentStates: z.record(ulidSchema, z.enum(INCIDENT_CLAIM_STATES)).optional() }).strict();
 const scheduleSchema = z.object({ publishAt: z.iso.datetime(), channels: z.array(z.enum(["email", "webhook", "chat"])).max(3).transform((channels) => [...new Set(channels)]) }).strict();
 const deleteSchema = z.object({ reason: z.string().trim().min(1).max(1_000) }).strict();
 const attachedComponentSchema = z.object({ componentId: ulidSchema, state: z.enum(COMPONENT_STATES), relationship: z.enum(["Primary", "Dependent"]).default("Primary") }).strict();
@@ -26,7 +27,7 @@ function incidentIdFrom(context: Context<AppEnv>) {
   return ulidSchema.safeParse(context.req.param("incidentId"));
 }
 
-export function registerIncidentRoutes(app: Hono<AppEnv>, service: IncidentsService, options: { hasChatChannels?: () => Promise<boolean> } = {}) {
+export function registerIncidentRoutes(app: Hono<AppEnv>, service: IncidentsService, options: { hasChatChannels?: () => Promise<boolean>; wordingChecks?: () => Promise<{ blockedTerms: string[]; friendlyLength: number }> } = {}) {
   app.get("/api/app/incident-templates", async (context) => context.json({ templates: await service.listTemplates() }));
   app.post("/api/app/incident-templates", async (context) => {
     const input = templateSchema.safeParse(await context.req.json().catch(() => null));
@@ -52,11 +53,12 @@ export function registerIncidentRoutes(app: Hono<AppEnv>, service: IncidentsServ
     if (!incidentId.success) return context.json({ error: "Invalid incident identifier.", issues: incidentId.error.issues }, 400);
     const incident = await service.get(incidentId.data);
     if (!incident) return context.json({ error: "Incident not found." }, 404);
-    const [hasChatChannels, preview] = await Promise.all([
+    const [hasChatChannels, rendering, wordingChecks] = await Promise.all([
       options.hasChatChannels ? options.hasChatChannels() : false,
-      service.preview(incident.id, draftFromIncident(incident)),
+      service.preview(incident.id, draftFromIncident(incident)).then(preview => ({ preview, previewError: null as string | null })).catch(cause => ({ preview: null, previewError: cause instanceof Error ? cause.message : "The draft could not be previewed." })),
+      options.wordingChecks?.(),
     ]);
-    return context.json({ incident, hasChatChannels, preview });
+    return context.json({ incident, hasChatChannels, ...rendering, wordingChecks });
   });
 
   app.post("/api/app/incidents/:incidentId/components/preview", async (context) => {
@@ -112,8 +114,10 @@ export function registerIncidentRoutes(app: Hono<AppEnv>, service: IncidentsServ
     if (!incidentId.success) return context.json({ error: "Invalid incident identifier.", issues: incidentId.error.issues }, 400);
     const parsed = incidentDraftSchema.safeParse(await context.req.json().catch(() => null));
     if (!parsed.success) return context.json({ error: "Invalid incident draft.", issues: parsed.error.issues }, 400);
-    const preview = await service.preview(incidentId.data, parsed.data);
-    return preview ? context.json({ preview }) : context.json({ error: "Incident not found." }, 404);
+    try {
+      const preview = await service.preview(incidentId.data, parsed.data);
+      return preview ? context.json({ preview }) : context.json({ error: "Incident not found." }, 404);
+    } catch (cause) { return context.json({ error: cause instanceof Error ? cause.message : "Component changes could not be previewed." }, 409); }
   });
 
   app.post("/api/app/incidents/:incidentId/publish", async (context) => {

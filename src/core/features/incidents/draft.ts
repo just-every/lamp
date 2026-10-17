@@ -8,6 +8,7 @@ export const blankDraft: IncidentDraftInput = {
   whatStillWorks: "",
   details: "",
   nextUpdateAt: null,
+  componentChanges: [],
 };
 
 export function normalizeResolvedDraft(draft: IncidentDraftInput): IncidentDraftInput {
@@ -23,6 +24,7 @@ export function draftFromIncident(incident: Pick<IncidentView, "draft" | "lifecy
     whatStillWorks: incident.draft.whatStillWorks,
     details: incident.draft.details,
     nextUpdateAt: incident.draft.nextUpdateAt,
+    componentChanges: incident.draft.componentChanges.map(({ componentId, state, relationship }) => ({ componentId, state, relationship })),
   });
 }
 

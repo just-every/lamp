@@ -1,6 +1,8 @@
 import { z } from "zod";
 
 import { COMPONENT_STATES, INCIDENT_LIFECYCLES } from "./domain";
+import { INCIDENT_CLAIM_STATES } from "./incident-component-changes";
+import { ulidSchema } from "./ids";
 
 const nonEmptyText = (maximum: number) => z.string().trim().min(1).max(maximum);
 const optionalText = (maximum: number) => z.string().trim().max(maximum);
@@ -24,6 +26,8 @@ export const pageSettingsSchema = z.object({
   widgetAllowedOrigins: z.array(widgetOriginSchema).max(100).optional(),
   mailFromAddress: z.email().optional(),
   aiToneInstructions: optionalText(2_000).default(""),
+  wordingBlockedTerms: z.array(nonEmptyText(100)).max(100).optional(),
+  wordingFriendlyLength: z.number().int().min(1).max(500).optional(),
 }).strict();
 
 export const componentSchema = z.object({
@@ -62,6 +66,11 @@ export const incidentDraftSchema = z.object({
   whatStillWorks: optionalText(250),
   details: optionalText(500),
   nextUpdateAt: z.iso.datetime().nullable().default(null),
+  componentChanges: z.array(z.object({
+    componentId: ulidSchema,
+    state: z.enum(INCIDENT_CLAIM_STATES),
+    relationship: z.enum(["Primary", "Dependent"]).optional(),
+  }).strict()).max(200).refine((changes) => new Set(changes.map(change => change.componentId)).size === changes.length, "A component may appear only once.").optional(),
 }).strict();
 
 export type ComponentStandingClaimInput = z.infer<typeof componentStandingClaimSchema>;

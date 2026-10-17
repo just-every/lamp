@@ -1,7 +1,8 @@
+import { renderAtomContent, renderRssDescription } from "./feed-content";
 import type { PublicSnapshotModel, SnapshotArtifact } from "./renderer";
 import type { PublicSnapshotSource } from "./repository";
 import { componentSlug, publicComponentResources } from "./component-address";
-import { DAY, escapeHtml, escapeXml } from "./format";
+import { DAY, escapeXml } from "./format";
 import { updateText } from "./feed-widget";
 
 interface FeedEntry {
@@ -57,7 +58,7 @@ interface FeedDocument {
 function atomDocument(feed: FeedDocument) {
   const { model, entries } = feed;
   const origin = model.origin;
-  return `<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom"><id>${escapeXml(feed.identity)}</id><title>${escapeXml(feed.title)}</title><updated>${escapeXml(model.generatedAt)}</updated><author><name>${escapeXml(model.settings.pageName)}</name></author><link href="${escapeXml(origin + feed.atomPath)}" rel="self" type="application/atom+xml"/><link href="${escapeXml(origin + "/")}" rel="alternate" type="text/html"/>${entries.map((entry) => `<entry><id>${escapeXml(`${feedIdentity(model)}:event:${entry.id}`)}</id><title>${escapeXml(entry.title)}</title><updated>${escapeXml(entry.publishedAt)}</updated><link href="${escapeXml(origin + entry.path)}" rel="alternate" type="text/html"/><content type="text">${escapeXml(entry.content)}</content></entry>`).join("")}</feed>`;
+  return `<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom"><id>${escapeXml(feed.identity)}</id><title>${escapeXml(feed.title)}</title><updated>${escapeXml(model.generatedAt)}</updated><author><name>${escapeXml(model.settings.pageName)}</name></author><link href="${escapeXml(origin + feed.atomPath)}" rel="self" type="application/atom+xml"/><link href="${escapeXml(origin + "/")}" rel="alternate" type="text/html"/>${entries.map((entry) => `<entry><id>${escapeXml(`${feedIdentity(model)}:event:${entry.id}`)}</id><title>${escapeXml(entry.title)}</title><updated>${escapeXml(entry.publishedAt)}</updated><link href="${escapeXml(origin + entry.path)}" rel="alternate" type="text/html"/>${renderAtomContent(entry.content)}</entry>`).join("")}</feed>`;
 }
 
 function rssDocument(feed: FeedDocument) {
@@ -65,7 +66,7 @@ function rssDocument(feed: FeedDocument) {
   const origin = model.origin;
   // RSS descriptions carry HTML. Encode the prose inside that HTML as well as
   // encoding the XML, so a literal <tag> remains text in a feed reader.
-  return `<?xml version="1.0" encoding="utf-8"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>${escapeXml(feed.title)}</title><link>${escapeXml(origin + "/")}</link><description>${escapeXml(`${feed.title} — incident and maintenance updates`)}</description><language>en</language><lastBuildDate>${escapeXml(new Date(model.generatedAt).toUTCString())}</lastBuildDate><atom:link href="${escapeXml(origin + feed.rssPath)}" rel="self" type="application/rss+xml"/>${entries.map((entry) => `<item><guid isPermaLink="false">${escapeXml(`${feedIdentity(model)}:event:${entry.id}`)}</guid><title>${escapeXml(entry.title)}</title><link>${escapeXml(origin + entry.path)}</link><pubDate>${escapeXml(new Date(entry.publishedAt).toUTCString())}</pubDate><description>${escapeXml(`<pre>${escapeHtml(entry.content)}</pre>`)}</description></item>`).join("")}</channel></rss>`;
+  return `<?xml version="1.0" encoding="utf-8"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>${escapeXml(feed.title)}</title><link>${escapeXml(origin + "/")}</link><description>${escapeXml(`${feed.title} — incident and maintenance updates`)}</description><language>en</language><lastBuildDate>${escapeXml(new Date(model.generatedAt).toUTCString())}</lastBuildDate><atom:link href="${escapeXml(origin + feed.rssPath)}" rel="self" type="application/rss+xml"/>${entries.map((entry) => `<item><guid isPermaLink="false">${escapeXml(`${feedIdentity(model)}:event:${entry.id}`)}</guid><title>${escapeXml(entry.title)}</title><link>${escapeXml(origin + entry.path)}</link><pubDate>${escapeXml(new Date(entry.publishedAt).toUTCString())}</pubDate>${renderRssDescription(entry.content)}</item>`).join("")}</channel></rss>`;
 }
 
 export function renderFeeds(model: PublicSnapshotModel, source: PublicSnapshotSource): SnapshotArtifact[] {

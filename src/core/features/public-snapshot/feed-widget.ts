@@ -1,8 +1,10 @@
+import type { PublishedIncidentComponentChange } from "../../shared/incident-component-changes";
 import { renderIncidentUpdate } from "../incidents/renderer";
 
 import { formatTime } from "./format";
 
 export interface PublicFeedUpdate {
+  componentChanges?: PublishedIncidentComponentChange[];
   id: string;
   lifecycle: string;
   affectedAudience: string;
@@ -30,6 +32,7 @@ export function renderedUpdate(incident: PublicFeedIncident, update: PublicFeedU
     customerImpact: update.customerImpact,
     whatStillWorks: update.whatStillWorks,
     details: update.details,
+    componentChanges: update.componentChanges,
     nextUpdateAt: update.nextUpdateAt || null,
     nextUpdateDisplay: update.nextUpdateAt ? formatTime(update.nextUpdateAt, timezone) : null,
   });

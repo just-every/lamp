@@ -1,11 +1,12 @@
+import { publishIncidentDraft } from "./publication-repository";
 import { previewComponentChange } from "./component-change-repository";
 import { listIncidentRelations, publishingDraft } from "./list-relations";
-import { activeIncidentGuard, attachClaimStatements, publicationComponentsGuard, writeClaimBatch, type AttachedIncidentComponent } from "./component-claims";
+import { activeIncidentGuard, attachClaimStatements, writeClaimBatch, type AttachedIncidentComponent } from "./component-claims";
 import type { UpdateChannel } from "../../shared/domain";
 import { and, desc, eq, isNull } from "drizzle-orm";
 
 import { createDatabase } from "../../platform/db/client";
-import { COMPONENT_STATE_SEVERITY, type ComponentState } from "../../shared/domain";
+import type { ComponentState } from "../../shared/domain";
 import { allocateReference } from "../../shared/references/repository";
 import type { ComponentClaimEventInput, ComponentStateHistoryInput } from "../components";
 import {
@@ -70,7 +71,12 @@ export interface IncidentPublishRecord {
   peakImpact: ComponentState;
   createdAt: string;
   updatedAt: string;
-  components: Pick<StoredIncidentComponent, "id" | "componentId" | "state">[];
+  components: StoredIncidentComponent[];
+  baselineComponents: StoredIncidentComponent[];
+  stagedChanges: import("../../shared/incident-component-changes").StagedIncidentComponent[];
+  componentChanges: import("../../shared/incident-component-changes").PublishedIncidentComponentChange[];
+  componentSnapshot: import("../../shared/incident-component-changes").PublishedIncidentComponentChange[];
+  claimEventCounts?: Record<string, number>;
   claimEvents: ComponentClaimEventInput[];
   historyEntries: ComponentStateHistoryInput[];
 }
@@ -85,6 +91,7 @@ export interface IncidentRepository {
   listComponents(incidentId: string): Promise<StoredIncidentComponent[]>;
   listUpdates(incidentId: string): Promise<StoredIncidentUpdate[]>;
   findPublishingDraft(incidentId: string): Promise<PublishingDraft | null>;
+  claimEventCounts(componentIds: string[]): Promise<Record<string, number>>;
   findPeakImpact(incidentId: string): Promise<ComponentState | null>;
   hasRetroactiveUpdate(incidentId: string): Promise<boolean>;
   listInternalNotes(incidentId: string): Promise<Array<typeof incidentInternalNotes.$inferSelect>>;
@@ -100,22 +107,11 @@ export interface IncidentRepository {
   listTemplates(): Promise<Array<IncidentTemplateRecord & { components: IncidentTemplateComponentRecord[] }>>;
   saveTemplate(input: IncidentTemplateRecord, components: IncidentTemplateComponentRecord[]): Promise<void>;
   findTemplate(templateId: string): Promise<(IncidentTemplateRecord & { components: IncidentTemplateComponentRecord[] }) | null>;
-  applyTemplate(incidentId: string, draft: StoredIncidentDraft, components: Array<typeof incidentComponents.$inferInsert>, expectedVersion: string): Promise<void>;
+  applyTemplate(incidentId: string, draft: StoredIncidentDraft, expectedVersion: string): Promise<void>;
 }
 
 export class DraftConflictError extends Error {
   constructor(message = "This draft changed in another tab. Reload to continue with the saved update.") { super(message); }
-}
-
-async function writeDraftBatch(binding: D1Database, statements: D1PreparedStatement[]) {
-  try { await binding.batch(statements); }
-  catch (cause) {
-    // A conditional ID becomes NULL only when the reviewed draft was replaced.
-    // SQLite rejects it and rolls the entire publication/template batch back.
-    if (cause instanceof Error && /NOT NULL constraint failed: incident_(?:drafts|updates)\.id/.test(cause.message)) throw new DraftConflictError();
-    if (cause instanceof Error && cause.message.includes("malformed JSON")) throw new DraftConflictError("The incident or its affected components changed. Refresh and try again.");
-    throw cause;
-  }
 }
 
 export function createIncidentRepository(binding: D1Database): IncidentRepository {
@@ -154,8 +150,12 @@ export function createIncidentRepository(binding: D1Database): IncidentRepositor
       return database.select().from(incidentUpdates).where(eq(incidentUpdates.incidentId, incidentId)).orderBy(desc(incidentUpdates.publishedAt)).all();
     },
     async findPublishingDraft(incidentId) {
-      const row = await binding.prepare(`SELECT id, incident_id AS incidentId, lifecycle, affected_audience AS affectedAudience, customer_impact AS customerImpact, what_still_works AS whatStillWorks, details, next_update_at AS nextUpdateAt, author_operator_id AS authorOperatorId, created_at AS createdAt, updated_at AS updatedAt, scheduled_publish_at AS scheduledPublishAt, scheduled_channels_json AS scheduledChannelsJson, reviewed_by_operator_id AS reviewedByOperatorId, reviewed_at AS reviewedAt, corrects_update_id AS correctsUpdateId FROM incident_drafts WHERE incident_id = ?`).bind(incidentId).first<Omit<PublishingDraft, "scheduledChannels"> & { scheduledChannelsJson: string | null }>();
+      const row = await binding.prepare(`SELECT id, incident_id AS incidentId, lifecycle, affected_audience AS affectedAudience, customer_impact AS customerImpact, what_still_works AS whatStillWorks, details, next_update_at AS nextUpdateAt, author_operator_id AS authorOperatorId, created_at AS createdAt, updated_at AS updatedAt, scheduled_publish_at AS scheduledPublishAt, scheduled_channels_json AS scheduledChannelsJson, reviewed_by_operator_id AS reviewedByOperatorId, reviewed_at AS reviewedAt, corrects_update_id AS correctsUpdateId, component_changes_json AS componentChangesJson FROM incident_drafts WHERE incident_id = ?`).bind(incidentId).first<import("./list-relations").DraftRow>();
       return asPublishingDraft(row);
+    },
+    async claimEventCounts(componentIds) {
+      const counts = await Promise.all(componentIds.map(async id => [id, (await binding.prepare("SELECT count(*) AS count FROM component_claim_events WHERE component_id = ?").bind(id).first<{ count: number }>())!.count] as const));
+      return Object.fromEntries(counts);
     },
     async findPeakImpact(incidentId) {
       const result = await binding.prepare(`SELECT peak_impact AS peakImpact FROM incidents WHERE id = ?`).bind(incidentId).first<{ peakImpact: ComponentState | null }>();
@@ -182,12 +182,13 @@ export function createIncidentRepository(binding: D1Database): IncidentRepositor
     },
     async upsertDraft(input, expectedVersion) {
       const [draftId, count] = expectedVersion.split(":");
-      const row = await binding.prepare(`INSERT INTO incident_drafts (id,incident_id,lifecycle,affected_audience,customer_impact,what_still_works,details,next_update_at,author_operator_id,created_at,updated_at)
-        SELECT ?,?,?,?,?,?,?,?,?,?,? WHERE
+      const row = await binding.prepare(`INSERT INTO incident_drafts (id,incident_id,lifecycle,affected_audience,customer_impact,what_still_works,details,next_update_at,author_operator_id,created_at,updated_at,component_changes_json)
+        SELECT ?,?,?,?,?,?,?,?,?,?,?,? WHERE
         COALESCE((SELECT id FROM incident_drafts WHERE incident_id = ?), '-') = ?
         AND (SELECT count(*) FROM incident_updates WHERE incident_id = ?) = ?
-        ON CONFLICT(incident_id) DO UPDATE SET id=excluded.id,lifecycle=excluded.lifecycle,affected_audience=excluded.affected_audience,customer_impact=excluded.customer_impact,what_still_works=excluded.what_still_works,details=excluded.details,next_update_at=excluded.next_update_at,author_operator_id=excluded.author_operator_id,updated_at=excluded.updated_at,scheduled_publish_at=NULL,scheduled_channels_json=NULL,reviewed_by_operator_id=NULL,reviewed_at=NULL,corrects_update_id=NULL RETURNING id`)
-        .bind(input.id,input.incidentId,input.lifecycle,input.affectedAudience,input.customerImpact,input.whatStillWorks,input.details,input.nextUpdateAt,input.authorOperatorId,input.createdAt,input.updatedAt,input.incidentId,draftId,input.incidentId,Number(count)).first();
+        AND EXISTS (SELECT 1 FROM incidents WHERE id = ? AND deleted_at IS NULL)
+        ON CONFLICT(incident_id) DO UPDATE SET id=excluded.id,lifecycle=excluded.lifecycle,affected_audience=excluded.affected_audience,customer_impact=excluded.customer_impact,what_still_works=excluded.what_still_works,details=excluded.details,next_update_at=excluded.next_update_at,author_operator_id=excluded.author_operator_id,updated_at=excluded.updated_at,scheduled_publish_at=NULL,scheduled_channels_json=NULL,reviewed_by_operator_id=NULL,reviewed_at=NULL,corrects_update_id=NULL,component_changes_json=excluded.component_changes_json RETURNING id`)
+        .bind(input.id,input.incidentId,input.lifecycle,input.affectedAudience,input.customerImpact,input.whatStillWorks,input.details,input.nextUpdateAt,input.authorOperatorId,input.createdAt,input.updatedAt,JSON.stringify(input.componentChanges ?? []),input.incidentId,draftId,input.incidentId,Number(count),input.incidentId).first();
       if (!row) throw new DraftConflictError();
     },
     async scheduleDraft(incidentId, scheduledPublishAt, channels, updatedAt, expectedDraftId, replacementDraftId) {
@@ -204,44 +205,18 @@ export function createIncidentRepository(binding: D1Database): IncidentRepositor
         .bind(correctsUpdateId, updatedAt, incidentId, draftId, incidentId, Number(count), correctsUpdateId, incidentId).first<{ id: string }>());
     },
     async listDueScheduledDrafts(now) {
-      const rows = await binding.prepare(`SELECT id, incident_id AS incidentId, lifecycle, affected_audience AS affectedAudience, customer_impact AS customerImpact, what_still_works AS whatStillWorks, details, next_update_at AS nextUpdateAt, author_operator_id AS authorOperatorId, created_at AS createdAt, updated_at AS updatedAt, scheduled_publish_at AS scheduledPublishAt, scheduled_channels_json AS scheduledChannelsJson, reviewed_by_operator_id AS reviewedByOperatorId, reviewed_at AS reviewedAt, corrects_update_id AS correctsUpdateId FROM incident_drafts WHERE scheduled_publish_at IS NOT NULL AND scheduled_publish_at <= ?`).bind(now).all<Omit<PublishingDraft, "scheduledChannels"> & { scheduledChannelsJson: string | null }>();
+      const rows = await binding.prepare(`SELECT id, incident_id AS incidentId, lifecycle, affected_audience AS affectedAudience, customer_impact AS customerImpact, what_still_works AS whatStillWorks, details, next_update_at AS nextUpdateAt, author_operator_id AS authorOperatorId, created_at AS createdAt, updated_at AS updatedAt, scheduled_publish_at AS scheduledPublishAt, scheduled_channels_json AS scheduledChannelsJson, reviewed_by_operator_id AS reviewedByOperatorId, reviewed_at AS reviewedAt, corrects_update_id AS correctsUpdateId, component_changes_json AS componentChangesJson FROM incident_drafts WHERE scheduled_publish_at IS NOT NULL AND scheduled_publish_at <= ?`).bind(now).all<import("./list-relations").DraftRow>();
       return rows.results.flatMap((row) => {
         const draft = asPublishingDraft(row);
         return draft ? [draft] : [];
       });
     },
     async publishDraft(input, recipientStatements) {
-      await writeDraftBatch(binding, [
-        publicationComponentsGuard(binding, input.incidentId, input.components),
-        binding.prepare(`UPDATE incident_components SET published_at = ? WHERE incident_id = ? AND published_at IS NULL`).bind(input.publishedAt, input.incidentId),
-        binding.prepare(`INSERT INTO incident_updates (id, incident_id, lifecycle, affected_audience, customer_impact, what_still_works, details, next_update_at, published_at, is_retroactive, author_operator_id, corrects_update_id, created_at, updated_at) VALUES ((SELECT id FROM incident_drafts WHERE id = ?), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
-          .bind(input.id, input.incidentId, input.lifecycle, input.affectedAudience, input.customerImpact, input.whatStillWorks, input.details, input.nextUpdateAt, input.publishedAt, input.isRetroactive ? 1 : 0, input.authorOperatorId, input.correctsUpdateId, input.createdAt, input.updatedAt),
-        binding.prepare(`UPDATE incidents
-          SET lifecycle = (
-                SELECT lifecycle
-                FROM incident_updates
-                WHERE incident_id = ?
-                ORDER BY published_at DESC, created_at DESC, id DESC
-                LIMIT 1
-              ),
-              resolved_at = (
-                SELECT CASE WHEN lifecycle = 'Resolved' THEN published_at ELSE NULL END
-                FROM incident_updates
-                WHERE incident_id = ?
-                ORDER BY published_at DESC, created_at DESC, id DESC
-                LIMIT 1
-              ),
-              peak_impact = (SELECT value FROM json_each(?) WHERE value = incidents.peak_impact OR value = ? ORDER BY key LIMIT 1), updated_at = ?
-          WHERE id = ?`).bind(input.incidentId, input.incidentId, JSON.stringify(COMPONENT_STATE_SEVERITY), input.peakImpact, input.updatedAt, input.incidentId),
-        binding.prepare(`DELETE FROM incident_drafts WHERE id = ?`).bind(input.id),
-        binding.prepare(`INSERT INTO audit_entries (id, entity_type, entity_id, action, operator_id, payload_json, created_at, updated_at) VALUES (?, 'incident-update', ?, 'published', ?, ?, ?, ?)`)
-          .bind(`${input.id}-audit`, input.id, input.authorOperatorId, JSON.stringify({ incidentId: input.incidentId, publishedAt: input.publishedAt }), input.createdAt, input.updatedAt),
-        ...input.claimEvents.map((event) => binding.prepare(`INSERT INTO component_claim_events (id, component_id, cause_type, cause_id, state, changed_at, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`)
-          .bind(event.id, event.componentId, event.causeType, event.causeId, event.state, event.changedAt, event.createdAt, event.updatedAt)),
-        ...input.historyEntries.map((entry) => binding.prepare(`INSERT INTO component_state_history (id, component_id, previous_state, new_state, cause_type, cause_id, operator_id, changed_at, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
-          .bind(entry.id, entry.componentId, entry.previousState, entry.newState, entry.cause.type, entry.cause.id, entry.cause.operatorId, entry.changedAt, entry.createdAt, entry.updatedAt)),
-        ...recipientStatements,
-      ]);
+      try { await publishIncidentDraft(binding, input, recipientStatements); }
+      catch (cause) {
+        if (cause instanceof Error && (cause.message.includes("malformed JSON") || /NOT NULL constraint failed: incident_updates.id/.test(cause.message))) throw new DraftConflictError("The draft or affected components changed. Reload and review before publishing.");
+        throw cause;
+      }
     },
     async softDelete(incidentId, reason, operatorId, deletedAt, auditId, claimEvents) {
       const mutation = binding.prepare(`UPDATE incidents SET deleted_at = ?, deletion_reason = ?, updated_at = ? WHERE id = ? AND deleted_at IS NULL`).bind(deletedAt, reason, deletedAt, incidentId);
@@ -272,23 +247,9 @@ export function createIncidentRepository(binding: D1Database): IncidentRepositor
       const components = (await binding.prepare(`SELECT id, template_id AS templateId, component_id AS componentId, component_name AS componentName, state, relationship, created_at AS createdAt, updated_at AS updatedAt FROM incident_template_components WHERE template_id = ? ORDER BY created_at`).bind(template.id).all<IncidentTemplateComponentRecord>()).results;
       return { ...template, components };
     },
-    async applyTemplate(incidentId, draft, components, expectedVersion) {
-      const [expectedId, expectedCount] = expectedVersion.split(":");
-      const idExpression = "(SELECT ? WHERE COALESCE((SELECT id FROM incident_drafts WHERE incident_id = ?), '-') = ? AND (SELECT count(*) FROM incident_updates WHERE incident_id = ?) = ?)";
-      const idBindings = [draft.id, incidentId, expectedId, incidentId, Number(expectedCount)];
+    async applyTemplate(incidentId, draft, expectedVersion) {
       if (draft.incidentId !== incidentId) throw new Error("Template draft does not belong to this incident.");
-      await writeDraftBatch(binding, [
-        binding.prepare(`SELECT CASE WHEN EXISTS (SELECT 1 FROM incidents WHERE id = ? AND deleted_at IS NULL) THEN 1 ELSE json('Incident is missing or deleted') END`).bind(incidentId),
-        binding.prepare(`INSERT INTO incident_drafts (id,incident_id,lifecycle,affected_audience,customer_impact,what_still_works,details,next_update_at,author_operator_id,created_at,updated_at) VALUES (${idExpression},?,?,?,?,?,?,?,?,?,?) ON CONFLICT(incident_id) DO UPDATE SET id=excluded.id,lifecycle=excluded.lifecycle,affected_audience=excluded.affected_audience,customer_impact=excluded.customer_impact,what_still_works=excluded.what_still_works,details=excluded.details,next_update_at=excluded.next_update_at,author_operator_id=excluded.author_operator_id,updated_at=excluded.updated_at,scheduled_publish_at=NULL,scheduled_channels_json=NULL,reviewed_by_operator_id=NULL,reviewed_at=NULL,corrects_update_id=NULL`).bind(...idBindings, draft.incidentId, draft.lifecycle, draft.affectedAudience, draft.customerImpact, draft.whatStillWorks, draft.details, draft.nextUpdateAt, draft.authorOperatorId, draft.createdAt, draft.updatedAt),
-        // Applying a template edits a private draft, even after an earlier
-        // publication. publishDraft promotes these claims with its next update.
-        ...components.flatMap((component) => [
-          binding.prepare(`SELECT CASE WHEN EXISTS (SELECT 1 FROM components WHERE id = ?) AND NOT EXISTS (SELECT 1 FROM incident_components WHERE incident_id = ? AND component_id = ?) THEN 1 ELSE json('Component is missing or already attached') END`).bind(component.componentId, incidentId, component.componentId),
-          binding.prepare(`INSERT INTO incident_components (id,incident_id,component_id,component_name,state,relationship,published_at,created_at,updated_at)
-            SELECT ?,?,id,name,?,?,NULL,?,? FROM components WHERE id = ?`)
-            .bind(component.id, incidentId, component.state, component.relationship, component.createdAt, component.updatedAt, component.componentId),
-        ]),
-      ]);
+      await this.upsertDraft(draft, expectedVersion);
     },
   };
 }

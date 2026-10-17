@@ -1,6 +1,8 @@
+import type { IncidentLifecycle } from "../../shared/domain";
+
 export type ChannelKind = "slack" | "teams";
 export interface ChannelDestination { id: string; kind: ChannelKind; name: string; sealedUrl: string; host: string; selectionMode: "all" | "selected"; createdAt: string; componentIds: string[] }
-export interface PendingPost { id: string; destinationId: string; kind: ChannelKind; incidentUpdateId: string; reference: string; title: string; lifecycle: string; customerImpact: string; affectedAudience: string; publishedAt: string }
+export interface PendingPost { componentChangesJson: string; id: string; destinationId: string; kind: ChannelKind; incidentUpdateId: string; reference: string; title: string; lifecycle: IncidentLifecycle; customerImpact: string; affectedAudience: string; whatStillWorks: string; details: string; nextUpdateAt: string | null; timezone: string; publishedAt: string }
 
 /** Slack and Teams channels a page posts its incident updates to, and the
  * posts each published update committed to them. */
@@ -33,8 +35,8 @@ export function createChannelRepository(db: D1Database) {
         .bind(input.updateId, input.updateId, input.queuedAt, ...input.componentIds, ...input.componentIds)];
     },
     async pending(limit: number): Promise<PendingPost[]> {
-      return (await db.prepare(`SELECT p.id, p.destination_id AS destinationId, d.kind, p.incident_update_id AS incidentUpdateId, i.reference, i.title, u.lifecycle, u.customer_impact AS customerImpact, u.affected_audience AS affectedAudience, u.published_at AS publishedAt
-        FROM channel_posts p JOIN channel_destinations d ON d.id = p.destination_id JOIN incident_updates u ON u.id = p.incident_update_id JOIN incidents i ON i.id = u.incident_id
+      return (await db.prepare(`SELECT p.id, p.destination_id AS destinationId, d.kind, p.incident_update_id AS incidentUpdateId, i.reference, i.title, u.lifecycle, u.customer_impact AS customerImpact, u.affected_audience AS affectedAudience, u.published_at AS publishedAt, u.component_changes_json AS componentChangesJson, u.what_still_works AS whatStillWorks, u.details, u.next_update_at AS nextUpdateAt, settings.timezone
+        FROM channel_posts p JOIN channel_destinations d ON d.id = p.destination_id JOIN incident_updates u ON u.id = p.incident_update_id JOIN incidents i ON i.id = u.incident_id JOIN page_settings settings ON settings.id = 'default'
         WHERE d.removed_at IS NULL AND i.deleted_at IS NULL AND NOT EXISTS (SELECT 1 FROM integration_deliveries x WHERE x.namespace = 'lamp-channels' AND x.id = p.id)
         ORDER BY p.queued_at, p.id LIMIT ?`).bind(limit).all<PendingPost>()).results;
     },

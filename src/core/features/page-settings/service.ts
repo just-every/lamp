@@ -8,8 +8,9 @@ import type { PageSettingsRepository, StoredPageSettings } from "./repository";
 const MAX_LOGO_BYTES = 2 * 1024 * 1024;
 const LOGO_CONTENT_TYPES = new Set(["image/png", "image/jpeg", "image/webp"]);
 
-export type PageSettingsView = Omit<StoredPageSettings, "widgetAllowedOrigins"> & {
+export type PageSettingsView = Omit<StoredPageSettings, "widgetAllowedOrigins" | "wordingBlockedTerms"> & {
   widgetAllowedOrigins: string[];
+  wordingBlockedTerms: string[];
 };
 
 export interface PageSettingsService {
@@ -21,7 +22,9 @@ export interface PageSettingsService {
 }
 
 function toView(settings: StoredPageSettings): PageSettingsView {
-  return { ...settings, widgetAllowedOrigins: parseWidgetAllowedOrigins(settings.widgetAllowedOrigins) };
+  const wordingBlockedTerms: unknown = JSON.parse(settings.wordingBlockedTerms);
+  if (!Array.isArray(wordingBlockedTerms) || wordingBlockedTerms.some(term => typeof term !== "string")) throw new Error("Wording check terms are invalid.");
+  return { ...settings, wordingBlockedTerms, widgetAllowedOrigins: parseWidgetAllowedOrigins(settings.widgetAllowedOrigins) };
 }
 
 export function createPageSettingsService(
@@ -57,6 +60,8 @@ export function createPageSettingsService(
         widgetAllowedOrigins: JSON.stringify(settings.widgetAllowedOrigins ?? []),
         mailFromAddress,
         aiToneInstructions: settings.aiToneInstructions ?? "",
+        wordingBlockedTerms: JSON.stringify(settings.wordingBlockedTerms ?? []),
+        wordingFriendlyLength: settings.wordingFriendlyLength ?? 160,
         feedId: createUlid(),
         createdAt: timestamp,
         updatedAt: timestamp,
@@ -74,6 +79,8 @@ export function createPageSettingsService(
         widgetAllowedOrigins: JSON.stringify(settings.widgetAllowedOrigins ?? parseWidgetAllowedOrigins(existing.widgetAllowedOrigins)),
         mailFromAddress: settings.mailFromAddress ?? existing.mailFromAddress,
         aiToneInstructions: settings.aiToneInstructions ?? existing.aiToneInstructions,
+        wordingBlockedTerms: settings.wordingBlockedTerms ? JSON.stringify(settings.wordingBlockedTerms) : existing.wordingBlockedTerms,
+        wordingFriendlyLength: settings.wordingFriendlyLength ?? existing.wordingFriendlyLength,
         updatedAt: nowIso(),
       });
       return rebuildAndRead();

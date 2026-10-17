@@ -37,6 +37,8 @@ export const pageSettings = sqliteTable("page_settings", {
   widgetAllowedOrigins: text("widget_allowed_origins").notNull().default("[]"),
   mailFromAddress: text("mail_from_address").notNull().default(""),
   aiToneInstructions: text("ai_tone_instructions").notNull().default(""),
+  wordingBlockedTerms: text("wording_blocked_terms").notNull().default("[]"),
+  wordingFriendlyLength: integer("wording_friendly_length").notNull().default(160),
   feedId: text("feed_id").notNull().default(""),
   ...timestamps,
 });
@@ -150,6 +152,8 @@ export const incidentUpdates = sqliteTable("incident_updates", {
   isRetroactive: integer("is_retroactive", { mode: "boolean" }).notNull().default(false),
   authorOperatorId: text("author_operator_id").notNull().references(() => operators.id),
   correctsUpdateId: text("corrects_update_id").references((): ReturnType<typeof text> => incidentUpdates.id),
+  componentChanges: text("component_changes_json", { mode: "json" }).$type<import("./incident-component-changes").PublishedIncidentComponentChange[]>().notNull().default([]),
+  componentSnapshot: text("component_snapshot_json", { mode: "json" }).$type<import("./incident-component-changes").PublishedIncidentComponentChange[]>().notNull().default([]),
   ...timestamps,
 }, (table) => [index("incident_updates_incident_published_idx").on(table.incidentId, table.publishedAt)]);
 
@@ -162,6 +166,7 @@ export const incidentDrafts = sqliteTable("incident_drafts", {
   whatStillWorks: text("what_still_works").notNull().default(""),
   details: text().notNull().default(""),
   nextUpdateAt: text("next_update_at"),
+  componentChanges: text("component_changes_json", { mode: "json" }).$type<import("./incident-component-changes").StagedIncidentComponent[]>().notNull().default([]),
   authorOperatorId: text("author_operator_id").notNull().references(() => operators.id),
   ...timestamps,
 }, (table) => [uniqueIndex("incident_drafts_incident_id_unique").on(table.incidentId)]);
