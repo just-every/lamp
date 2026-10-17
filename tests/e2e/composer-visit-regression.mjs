@@ -45,20 +45,30 @@ export async function assertComposerVisitIsolation({ page, api, openIncident, in
   // Establish real browser history A → list → B, then traverse directly between
   // A and B. Skipping the list is essential: the detail route must change params
   // in one live app, not gain isolation from a full document or list unmount.
+  // The operator loader is one /app match: a navigation that starts while its
+  // reload is in flight reuses that reload, and the visit then renders from the
+  // previous incident's snapshot. Each traversal waits for the last loader first.
+  const loaders = new Set();
+  const track = request => { if (request.url().includes("/_serverFn/")) loaders.add(request); };
+  const untrack = request => loaders.delete(request);
+  page.on("request", track); page.on("requestfinished", untrack); page.on("requestfailed", untrack);
+  const loadersSettled = async phase => {
+    const deadline = Date.now() + 15_000;
+    while (loaders.size) {
+      assert.ok(Date.now() < deadline, `The operator loader did not settle ${phase}.`);
+      await page.waitForTimeout(50);
+    }
+  };
   await page.locator('.back-link').click();
   await page.locator(`a[href="/app/incidents/${b.id}"]`).click();
   await saved();
   const traverse = async (delta, id) => {
+    await loadersSettled(`before traversing to ${id}`);
     await page.evaluate(delta => history.go(delta), delta);
     await page.waitForURL(url => url.pathname === `/app/incidents/${id}`);
     assert.equal(await page.evaluate(() => performance.timeOrigin), documentStarted);
   };
-  // Let A's operator loader settle before anything is held. While it is still in
-  // flight, the router keeps the snapshot from the earlier visit to B, and B's
-  // visit would render from that cache instead of reading B.
-  const loaderA = page.waitForResponse(response => response.url().includes("/_serverFn/") && decodeURIComponent(response.url()).includes(`/app/incidents/${a.id}`));
   await traverse(-2, a.id);
-  await loaderA;
   await saved();
 
   const held = [];
@@ -130,6 +140,7 @@ export async function assertComposerVisitIsolation({ page, api, openIncident, in
   } finally {
     for (const release of held) release.resolve();
     await page.unrouteAll({ behavior: "wait" });
+    page.off("request", track); page.off("requestfinished", untrack); page.off("requestfailed", untrack);
   }
 }
 
