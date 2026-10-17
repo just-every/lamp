@@ -37,7 +37,9 @@ export async function captureImportDoor({cookies,source,jobId,origin,directory,r
         await toggle.scrollIntoViewIfNeeded();
         await page.screenshot({path:`${directory}/settings-revoked-${width}.png`});
         await page.goto(`${origin}/app/move-in`);
-        await page.getByText(/· undone ·/).waitFor();
+        const jobs = page.locator('.move-in-jobs li');
+        await jobs.first().waitFor();
+        for (const job of await jobs.allTextContents()) assert.match(job, /· undone ·/, 'every visible import is undone');
         await page.getByRole('heading',{name:'Your imports'}).scrollIntoViewIfNeeded();
         await page.screenshot({path:`${directory}/history-undone-${width}.png`,fullPage:true});
         continue;
@@ -52,7 +54,8 @@ export async function captureImportDoor({cookies,source,jobId,origin,directory,r
       await page.screenshot({path:`${directory}/${source}-settings-on-${width}.png`});
       await page.goto(`${origin}/app/move-in`);
       if(source==='sorry') await page.getByRole('combobox',{name:'Source',exact:true}).selectOption('sorry');
-      await page.getByText('approved via Business by',{exact:false}).waitFor();
+      const job = page.locator('.move-in-jobs li').filter({has:page.locator(`a[href="/app/cutover?job=${encodeURIComponent(jobId)}"]`)});
+      await job.getByText('approved via Business by',{exact:false}).waitFor();
       await page.getByRole('heading',{name:'Your imports'}).scrollIntoViewIfNeeded();
       await page.screenshot({path:`${directory}/${source}-history-${width}.png`});
       await page.goto(`${origin}/app/cutover?job=${encodeURIComponent(jobId)}`);

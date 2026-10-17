@@ -5154,7 +5154,7 @@
       "executable": false
     },
     "tests/e2e/helpers/import-door-visuals.mjs": {
-      "sha256": "2233c53fa5985f7b459e68281429b083b492f03389cb739f2c236586c501090d",
+      "sha256": "de6d05eeed6cddf4152b5c004c98c134a072316a22aac8215149be9c74429492",
       "executable": false
     },
     "tests/e2e/helpers/imported-template-apply-flow.mjs": {
