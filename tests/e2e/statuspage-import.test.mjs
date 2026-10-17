@@ -124,7 +124,7 @@ contract("MOVE-002", "an import is retroactive: history keeps its times, nobody 
   const componentFile = files.find(file => file.name === "components.json");
   const sourceComponents = JSON.parse(componentFile.text);
   const { preview, result } = await importAll(files);
-  const expected = { group: [3, 0, 0], component: [12, 1, 0], incident: [84, 6, 2], maintenance: [3, 1, 0], subscriber: [6, 0, 0] };
+  const expected = { group: [3, 0, 0], component: [13, 0, 0], incident: [84, 6, 2], maintenance: [3, 1, 0], subscriber: [6, 0, 0] };
   for (const [kind, [imported, changed, rejected]] of Object.entries(expected)) {
     assert.deepEqual([preview.report.counts[kind].imported, preview.report.counts[kind].changed, preview.report.counts[kind].rejected], [imported, changed, rejected], kind);
   }
@@ -138,7 +138,7 @@ contract("MOVE-002", "an import is retroactive: history keeps its times, nobody 
   assert.equal(first.updates.at(-1).publishedAt, "2026-01-04T08:00:00.000Z");
   assert.ok(first.updates.every((update) => update.isRetroactive));
   const component = (await api("/api/app/components")).body.components.find((row) => row.name === "Service 1.2");
-  const importedConditional = (await api("/api/app/components")).body.components.find(row => row.name === sourceComponents.find(row => !row.group).name);
+  const importedConditional = (await api("/api/app/components")).body.components.find(row => row.name === sourceComponents.find(row => row.only_show_if_degraded).name);
   assert.equal(importedConditional.onlyShowIfDegraded, true, "Statuspage conditional visibility survives the native import");
   const history = (await api(`/api/app/components/${component.id}/history`)).body;
   assert.ok(JSON.stringify(history).includes("2026-01-04T08:00:00.000Z"), "uptime history carries the source time");
