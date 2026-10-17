@@ -5468,7 +5468,7 @@
       "executable": false
     },
     "tests/release/installation-runtime.mjs": {
-      "sha256": "c7d72d67323333d15b01caa67c3a71b794c3d69d012c39fb0513a3fed9c96f19",
+      "sha256": "79c5f2a77e59295b0b3efc3893a56bc3e867f937e1f0a42128724f4a804d3a1d",
       "executable": false
     },
     "tests/release/journeys.mjs": {

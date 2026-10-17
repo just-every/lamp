@@ -111,7 +111,7 @@ export async function installation(mode) {
       }
     }
     const site = await readFile(join(root, "src/base/run-site.ts"), "utf8");
-    const installer = /script:\s*'curl -fsSL (https:\/\/[^\s']+) \| sh'/.exec(site);
+    const installer = /installRer = 'curl -fsSL (https:\/\/[^\s']+) \| sh'/.exec(site);
     assert.ok(installer, "Run page provides its actual public installer");
     const installerPath = join(directory, "install-rer.sh");
     await run("curl", ["-fsSL", installer[1], "-o", installerPath]);
