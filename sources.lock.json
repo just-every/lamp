@@ -452,7 +452,7 @@
       "executable": false
     },
     "base-copies.json": {
-      "sha256": "cdc40381123ae532ce7954b5261fed62c1e9eabd25296e14a91a310ad3c1e883",
+      "sha256": "5705bf466bf1deb752ba121fda4bf5023781cabcb514aeb68bd7baf8b5ce7b5e",
       "executable": false
     },
     "BASELINE.md": {
@@ -844,7 +844,7 @@
       "executable": false
     },
     "modules/import-kit/src/d1/apply.ts": {
-      "sha256": "97190e9e8924fd0751d5f31c94f2a227705a6c5f3edda8672b70168fac2f6d8e",
+      "sha256": "68ef23214fa11ca8fed729e4ef38661be5a7d3d14415c04cd6ab7d271839ce52",
       "executable": false
     },
     "modules/import-kit/src/d1/budget.ts": {
@@ -864,7 +864,7 @@
       "executable": false
     },
     "modules/import-kit/src/d1/database.ts": {
-      "sha256": "1e3c63e3aa832d9df3ee712c9a2d22e56fc73764c635c0de35918f9bbecc36fc",
+      "sha256": "9755dcfd5be863d4953076807db031ea0eabd1ce2eb402e4ca595917eaceb70c",
       "executable": false
     },
     "modules/import-kit/src/d1/erased-artifacts.ts": {
@@ -1172,11 +1172,11 @@
       "executable": false
     },
     "modules/import-kit/src/d1/reversal-fence.ts": {
-      "sha256": "5b0b3c50b29b55f016d7c46e83bc8c1eec6ef34bb5de2c05a5b7bea35cb7946e",
+      "sha256": "fbc9dcde629b75cf19c14f9f97cb18a8c0f040417016170c5cc7cf3d161457d4",
       "executable": false
     },
     "modules/import-kit/src/d1/reverse.ts": {
-      "sha256": "50ee46b4c728f7d2e627cd0b98722773ac9f31e92fdbbd2fb1cd59c99d720dbd",
+      "sha256": "e179031882f2de156f8680c77d5e51dff14c825611732598670c6efd88f9d7a7",
       "executable": false
     },
     "modules/import-kit/src/d1/reviewed-source.ts": {
@@ -1936,11 +1936,11 @@
       "executable": false
     },
     "package.json": {
-      "sha256": "d212a2bb0de028b4cac6360d156ca41a742481d7ede5526b5dd117d5f301532a",
+      "sha256": "780e46f7b0a9acf48da83dd578d9ce60390bdaa92b5e7d798769bb8ea7186a82",
       "executable": false
     },
     "pnpm-lock.yaml": {
-      "sha256": "cbef9d8a967416cbfdd39521b9404a2fc328203bfbf8b1c776cab145fe9c62e6",
+      "sha256": "d654118c38443dc883e1dc7ab832fbd0246b663a2809272634e1adcb23efa8b9",
       "executable": false
     },
     "public/app-assets/brand/lamp-mark.svg": {
@@ -2536,7 +2536,7 @@
       "executable": false
     },
     "SEED-COMMAND-CONTRACT.md": {
-      "sha256": "ad8bd1fc3accd92c699f4ec0f857bd0fea846fcadf1a82bbaf0f008c365aac56",
+      "sha256": "fbcb2c05be4afa82c6919becc280c47c5ea8f9e3d8024513f01c41ba4c99641b",
       "executable": false
     },
     "seed.json": {
@@ -2620,11 +2620,11 @@
       "executable": false
     },
     "src/base/seed-contract.d.mts": {
-      "sha256": "2add6b0252ab6cb78051c7c5c2754daaebada6d7bea411df85eb8b0cb8a0ce09",
+      "sha256": "89a49eeec744b201f66b3c5d599dad839174e28d3c463944823de25ecfae738d",
       "executable": false
     },
     "src/base/seed-contract.mjs": {
-      "sha256": "fe40fa189caf33b7531b6d02e31616275f324d5727b9b0db7ddf35998712dd7c",
+      "sha256": "7beada5d271beaaf63d76e1f8cf2712ba906ec7d430f8312f4abedfad57428b4",
       "executable": false
     },
     "src/base/setup-state.ts": {

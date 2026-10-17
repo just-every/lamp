@@ -87,8 +87,8 @@ export function atomicStatements(context: Parameters<typeof authority>[0] & Pick
   return [...packGuards([authority(context, action), ...statements, authority(context, action), sql('DELETE FROM ik_d1_assertions')]),...(context.maxBatchBytes===undefined?[]:[finalAuthority(context,action)])];
 }
 export async function atomic(context: D1ImportContext, action: ImportAction, statements: D1Sql[], returnReads = 0, scope?: NativeStagingScope): Promise<void> {
-  const {packed,post}=atomicPreparation(context,action,statements,scope);
-  if (packed.length + returnReads > remaining(context)) throw new D1RequestLimitError();
+  const {packed,post,count}=atomicPreparation(context,action,statements,scope,returnReads);
+  if (count > remaining(context)) throw new D1RequestLimitError();
   if (!withinBatchBytes(context, packed)) {
     if (!scope) throw new Error('IMPORT_D1_TRANSPORT_LIMIT');
     await stageNativeTransaction(context, action, statements, {...scope,postGuards:post}, returnReads); return;
@@ -119,9 +119,14 @@ export const fitsBatch = (context:D1ImportContext,action:ImportAction,statements
 export function preparedAtomic(context:Parameters<typeof authority>[0]&Pick<D1ImportContext,'maxBatchBytes'>,action:ImportAction,statements:D1Sql[],scope?:NativeStagingScope):D1Sql[]{
   return atomicPreparation(context,action,statements,scope).packed;
 }
-function atomicPreparation(context:Parameters<typeof authority>[0]&Pick<D1ImportContext,'maxBatchBytes'>,action:ImportAction,statements:D1Sql[],scope?:NativeStagingScope){
+/** The statements one atomic() request spends: the packed writes and guards,
+ * authority, post-conditions with the scope's guards, final authority and the
+ * return reads. Planners size a batch with this same count before sending it. */
+export const atomicCount = (context:Parameters<typeof authority>[0]&Pick<D1ImportContext,'maxBatchBytes'>,action:ImportAction,statements:D1Sql[],returnReads:number,scope?:NativeStagingScope):number => atomicPreparation(context,action,statements,scope,returnReads).count;
+function atomicPreparation(context:Parameters<typeof authority>[0]&Pick<D1ImportContext,'maxBatchBytes'>,action:ImportAction,statements:D1Sql[],scope?:NativeStagingScope,returnReads=0){
   const post=postConditions(context,statements,scope,action);
-  return {post,packed:[...atomicStatements(context,action,statements),...readonlyChecks(post),...(post.length?[finalAuthority(context,action)]:[])]};
+  const packed=[...atomicStatements(context,action,statements),...readonlyChecks(post),...(post.length?[finalAuthority(context,action)]:[])];
+  return {post,packed,count:packed.length+returnReads};
 }
 /** SELECT-only fence: inspect every packed scalar before publishing snapshots.
  * Mutations continue to use atomic() and SQL CHECK rollback, never this path. */
