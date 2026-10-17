@@ -28,7 +28,7 @@ export function validateSetupValue(field, value) {
       if (!['http:', 'https:'].includes(url.protocol) || url.username || url.password || url.href.includes('?') || url.href.includes('#')) throw Error();
     } catch { throw Error(`Invalid URL for ${field.name}`); }
   }
-  if (field.kind === 'colour' && !/^#[a-f\d]{6}$/i.test(value)) throw Error(`Invalid colour for ${field.name}`);
+  if (field.kind === 'colour' && !/^#[a-f\d]{6}$/i.test(value)) throw Error(`Invalid color for ${field.name}`);
   if (field.kind === 'timezone') {
     try { new Intl.DateTimeFormat('en', {timeZone: value}); }
     catch { throw Error(`Invalid timezone for ${field.name}`); }

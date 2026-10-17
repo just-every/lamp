@@ -10,7 +10,7 @@ export const comparePaths = (a, b) => a < b ? -1 : a > b ? 1 : 0;
 export function relativePath(value, label = 'path') {
   if (typeof value !== 'string' || !value || value.length > 512 || /^[a-z]:/i.test(value) || /[\x00-\x1f\x7f"\\]/.test(value)
     || value.split('/').some(part => !part || part === '.' || part === '..')) throw new Error(`Invalid ${label}: expected a root-relative portable path`);
-  if (value.split('/').some(part => privateName.test(part) || privateDirectories.has(part.toLowerCase()) || reserved.has(part.toLowerCase()))) throw new Error(`Private or reserved ${label} refused`);
+  if (value.split('/').some(part => privateName.test(part) || privateDirectories.has(part.toLowerCase()) || reserved.has(part.toLowerCase()))) throw new Error(`Private or reserved ${label} refused: ${value}`);
   return value;
 }
 
