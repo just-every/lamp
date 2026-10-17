@@ -53,7 +53,12 @@ export async function assertComposerVisitIsolation({ page, api, openIncident, in
     await page.waitForURL(url => url.pathname === `/app/incidents/${id}`);
     assert.equal(await page.evaluate(() => performance.timeOrigin), documentStarted);
   };
+  // Let A's operator loader settle before anything is held. While it is still in
+  // flight, the router keeps the snapshot from the earlier visit to B, and B's
+  // visit would render from that cache instead of reading B.
+  const loaderA = page.waitForResponse(response => response.url().includes("/_serverFn/") && decodeURIComponent(response.url()).includes(`/app/incidents/${a.id}`));
   await traverse(-2, a.id);
+  await loaderA;
   await saved();
 
   const held = [];
