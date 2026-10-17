@@ -35,7 +35,7 @@ export default function LampHome() {
       <OwnershipSection />
       <CloseSection />
     </main>
-    <SiteFooter />
+    <SiteFooter variant="site" />
     <PageMotion />
   </div>;
 }

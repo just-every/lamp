@@ -20,7 +20,7 @@ export function DocsArticle({ slug, body, variant }: { slug: string; body: DocsB
   const { previous, next } = docsNeighbours(slug);
   return (
     <DocsLayout variant={variant}>
-      <DocsSidebar current={slug} />
+      <DocsSidebar current={slug} variant={variant} />
       <div id="docs-content" className="docs-content" tabIndex={-1}>
         <DocsMenu current={slug} label={page.title} />
         <HydrationUnit>

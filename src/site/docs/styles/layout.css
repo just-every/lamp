@@ -17,6 +17,7 @@
 /* Section navigation, shared by the sidebar and the phone menu. */
 .lamp-home :is(.docs-sidebar, .docs-toc) { display: none; }
 .lamp-home .docs-sidebar-home { display: block; width: max-content; margin-bottom: 20px; padding-block: 4px; color: var(--lamp-ink-3); font-size: 15px; font-weight: 500; line-height: 1.3; }
+.lamp-home .docs-sidebar-contract { margin: 20px 0 0; }
 .lamp-home :is(.docs-sidebar-home:hover, .docs-sidebar-home[aria-current]) { color: var(--lamp-ink); }
 .lamp-home .docs-sidebar-home[aria-current] { font-weight: 600; }
 .lamp-home .docs-nav-group + .docs-nav-group { margin-top: 28px; }

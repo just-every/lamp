@@ -5,6 +5,8 @@ import { repository } from '../../../package.json';
 export const sourceUrl = repository.url.replace(/\.git$/, '');
 // The docs are the site's own pages, drawn from the repository's Markdown at build time (src/site/docs).
 export const docsUrl = '/docs';
+// The run site's contract page: every clause of the product target and how far the code has come.
+export const contractUrl = '/contract';
 export const licenceUrl = `${sourceUrl}/blob/main/LICENSE`;
 // The landing page's way in, on the run site (run-lamp.com) where it lives: the Run page's two commands.
 export const runAction = { label: 'Run Lamp', href: '/run' };

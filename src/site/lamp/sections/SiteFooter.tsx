@@ -1,11 +1,11 @@
 import { badge } from '../badge';
-import { docsUrl, licenceUrl, sourceUrl } from '../repository';
+import { contractUrl, docsUrl, licenceUrl, sourceUrl } from '../repository';
 import { FooterIndex } from './FooterIndex';
 import './footer.css';
 
 // The footer, a sign-off with a map: the lockup of mark 18 and the name over the page's one line, then an index of the
 // page's sections, Docs, GitHub and the licence. On the docs pages the index leads back to the landing page's sections.
-export function SiteFooter({ onDocs = false }: { onDocs?: boolean }) {
+export function SiteFooter({ onDocs = false, variant }: { onDocs?: boolean; variant?: 'site' }) {
   return <footer className="lamp-footer">
     <div className="lamp-footer__bar">
       <div className="lamp-footer__sign">
@@ -19,6 +19,7 @@ export function SiteFooter({ onDocs = false }: { onDocs?: boolean }) {
         <FooterIndex onDocs={onDocs} />
         <nav className="lamp-footer__nav" aria-label="Footer">
           <a href={docsUrl} aria-current={onDocs ? 'page' : undefined}>Docs</a>
+          {variant === 'site' && <a href={contractUrl}>Contract</a>}
           <a href={sourceUrl}>GitHub</a>
           <a className="lamp-footer__licence" href={licenceUrl}>MIT licence</a>
         </nav>

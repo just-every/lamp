@@ -1,4 +1,5 @@
 import { HydrationUnit } from '../../base/hydration/unit';
+import { contractUrl } from '../lamp/repository';
 import { docsSections } from './pages';
 
 /** The sections and their pages, the current one marked. `idPrefix` keeps the sidebar's and the phone menu's ids apart. */
@@ -22,12 +23,13 @@ export function DocsNavList({ current, idPrefix }: { current?: string; idPrefix:
 }
 
 /** The section navigation beside the page from 1024px; it stays in view while the page scrolls. Without a current page it is the docs home's own sidebar, and "All docs" is the current one. */
-export function DocsSidebar({ current }: { current?: string }) {
+export function DocsSidebar({ current, variant }: { current?: string; variant?: 'site' }) {
   return (
     <HydrationUnit>
       <nav className="docs-sidebar" aria-label="Docs">
         <a className="docs-sidebar-home" href="/docs" aria-current={current ? undefined : 'page'}>All docs</a>
         <DocsNavList current={current} idPrefix="docs-sidebar" />
+        {variant === 'site' && <a className="docs-sidebar-home docs-sidebar-contract" href={contractUrl}>Contract</a>}
       </nav>
     </HydrationUnit>
   );

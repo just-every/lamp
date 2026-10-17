@@ -448,7 +448,7 @@
       "executable": false
     },
     "base-copies.json": {
-      "sha256": "5139ac56fe06d6157d27a6ca2bc0e567a1f73e3821698ce64acd2e97b14ff23b",
+      "sha256": "9a76f6639f7bd9f642cd6a3f762d403fccdfdd3b3fcad596b1544a022bf9e040",
       "executable": false
     },
     "BASELINE.md": {
@@ -1904,11 +1904,11 @@
       "executable": false
     },
     "package.json": {
-      "sha256": "826cfb5400c526eafecb7ba2a2c07166b2e35fac9cd93642d01b3b929a35d8ad",
+      "sha256": "abe30c98f78ac4e00d6559e8e234a42443c70ea9c8b57835669cd5a6ad6cb3c9",
       "executable": false
     },
     "pnpm-lock.yaml": {
-      "sha256": "d652490edd36e7086489be64d182061dcc48b64fb2c1d75bac4d9022b4432a9e",
+      "sha256": "648ade13f973fda64396e06d56d88578ab950362efcd6df1274cdbeb4cd0afb2",
       "executable": false
     },
     "public/app-assets/brand/lamp-mark.svg": {
@@ -2515,6 +2515,18 @@
       "sha256": "2f2411c94af00854c4d040ae74a8e6bd11da98308e7d5b0211473f46679d791a",
       "executable": false
     },
+    "src/base/contract-filter.ts": {
+      "sha256": "eec5be7da15653b69dd343fb3cf9f7a2e695eb215c5ee118f3508090e9c29232",
+      "executable": false
+    },
+    "src/base/contract-page.ts": {
+      "sha256": "8fff886df5869401818c0a3422a9a9cb73f3f1c4cb100d46f2a315176102b64f",
+      "executable": false
+    },
+    "src/base/contract-style.ts": {
+      "sha256": "41afdf1cb60983b340283b13e414102387eb2a4af022d730220050a4384d0753",
+      "executable": false
+    },
     "src/base/deployment-health.ts": {
       "sha256": "49f4dac80429ea7d9477b40799a6242f9af4870f3229df70d0ac1f635476b8b7",
       "executable": false
@@ -2564,7 +2576,15 @@
       "executable": false
     },
     "src/base/run-site.ts": {
-      "sha256": "53b3f379b9b35c7736ab7f62e36b2687c61ce135bfc0f3b7fc77f752092bc081",
+      "sha256": "608a6b61630ee1cddfa4bd797f2b6c1880ab699b89c82e37bba18f4690b5ca01",
+      "executable": false
+    },
+    "src/base/seed-contract.d.mts": {
+      "sha256": "2add6b0252ab6cb78051c7c5c2754daaebada6d7bea411df85eb8b0cb8a0ce09",
+      "executable": false
+    },
+    "src/base/seed-contract.mjs": {
+      "sha256": "fe40fa189caf33b7531b6d02e31616275f324d5727b9b0db7ddf35998712dd7c",
       "executable": false
     },
     "src/base/setup-state.ts": {
@@ -3872,19 +3892,19 @@
       "executable": false
     },
     "src/site/docs/DocsArticle.tsx": {
-      "sha256": "cb68d9463f1202a6309e561efac3649b07be0a6ad38bb0e20884dc16d4e7d9dc",
+      "sha256": "0375c9a2c9bba8d522c4e09932857397fe21e216ee5e174f285e8e2f53182323",
       "executable": false
     },
     "src/site/docs/DocsIndex.tsx": {
-      "sha256": "f740f548a0fc69da5519cc57c871ed7cb55e987c9e487823274d49cab85f2907",
+      "sha256": "65015e91de1db73fffe8f1e6e5ed3c519375d8ef72acb0dddb3dd6787fa53480",
       "executable": false
     },
     "src/site/docs/DocsLayout.tsx": {
-      "sha256": "2fa0ecfc7b6ace84b32c452bbf873e36fb28731f200569cdcc00b1d5ae1eea4c",
+      "sha256": "fe94f3e4f6fdb76c12f0f6e6baf7e6a831d7ea25f9ec268d2729182874700253",
       "executable": false
     },
     "src/site/docs/DocsNav.tsx": {
-      "sha256": "7162d3801af585e6a951f06d4a63636ba25f0748f94512659f8dc2f381d20da1",
+      "sha256": "5cd4cdd387fb7fc0558375b3e3a4adf9ef75b368f18243e4d4daa921cd41faee",
       "executable": false
     },
     "src/site/docs/DocsNotFound.tsx": {
@@ -3908,7 +3928,7 @@
       "executable": false
     },
     "src/site/docs/styles/layout.css": {
-      "sha256": "092dd273fdc29b3c5e62b93b6db8bb1a05d5fd7592d4566028fb993bb9dcdc8c",
+      "sha256": "fbe4716412d6c4b22206b93d8f71f3bc7dd401dda04f19cd05c458014fb33103",
       "executable": false
     },
     "src/site/docs/styles/prose.css": {
@@ -4064,7 +4084,7 @@
       "executable": false
     },
     "src/site/lamp/LampHome.tsx": {
-      "sha256": "2edbd450c1e916c1be204c48a2eccf2ef2c16fbcf6c1c788e623e07465094f85",
+      "sha256": "ba0dbbae594ec75e16e49454bf95448155d9d9e2c557858bb2dcfede36721829",
       "executable": false
     },
     "src/site/lamp/LampRig.tsx": {
@@ -4296,7 +4316,7 @@
       "executable": false
     },
     "src/site/lamp/repository.ts": {
-      "sha256": "9672c9e26ebafb6542f77c1795ba29d45e0202c6d9dd1df1875e5978f590c0bd",
+      "sha256": "99fb1e90bc5e39e5dc06c32bb9af2a35b92be5fb8748979027297fface0e0785",
       "executable": false
     },
     "src/site/lamp/reveal/reveal.css": {
@@ -4396,7 +4416,7 @@
       "executable": false
     },
     "src/site/lamp/sections/SiteFooter.tsx": {
-      "sha256": "6d9397efb2d828338b975ad55cb8aec0418a6aedd709355ff15c9dffd4873f39",
+      "sha256": "d04910bdacf789678ce3dd16eb3ada20fb51d4a1b58810aa638e362469bb204d",
       "executable": false
     },
     "src/site/lamp/sections/static-lamp.css": {
@@ -4436,7 +4456,7 @@
       "executable": false
     },
     "src/site/pages.tsx": {
-      "sha256": "4a29113c132eb0c0d2857c062947e30e34dc9b2bbafd227a37456a96eadbf46d",
+      "sha256": "53f70f6f081e84d56e62f2339f24ed3e588722f85454c11c50e74367d043ccba",
       "executable": false
     },
     "src/site/run.ts": {

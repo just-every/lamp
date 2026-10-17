@@ -11,7 +11,7 @@ import { docsLead, docsSections } from './pages';
 export function DocsIndex({ variant }: { variant?: 'site' }) {
   return (
     <DocsLayout variant={variant}>
-      <DocsSidebar />
+      <DocsSidebar variant={variant} />
       <div id="docs-content" className="docs-content docs-content--index" tabIndex={-1}>
         <HydrationUnit>
           <header className="docs-head">

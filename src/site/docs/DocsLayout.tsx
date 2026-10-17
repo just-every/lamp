@@ -18,7 +18,7 @@ export function DocsLayout({ children, variant }: { children: ReactNode; variant
       <HydrationUnit><a className="lamp-skip" href="#docs-content">Skip to content</a></HydrationUnit>
       <HydrationUnit><SiteHeader current="docs" variant={variant} /></HydrationUnit>
       <main id="lamp-main" className="docs-shell">{children}</main>
-      <HydrationUnit><SiteFooter onDocs /></HydrationUnit>
+      <HydrationUnit><SiteFooter onDocs variant={variant} /></HydrationUnit>
     </div>
   );
 }

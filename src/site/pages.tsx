@@ -1,6 +1,7 @@
 import type { LinkHTMLAttributes, MetaHTMLAttributes, ReactElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { bodies } from 'virtual:lamp-docs/bodies';
+import { contractPageHtml } from '../base/contract-page';
 import { runPageHtml, siteNotFoundHtml, type SiteBuild, type SiteContext } from '../base/run-site';
 import { identity } from '../identity';
 import { run } from './run';
@@ -17,7 +18,7 @@ type Head = { meta?: MetaHTMLAttributes<HTMLMetaElement>[]; links?: LinkHTMLAttr
 
 // The run site, run-lamp.com, built by `rer build --site`: the approved landing page with Run Lamp as its way in, the
 // Run page, the docs and the 404 page, as static HTML that needs no JavaScript.
-export function sitePages({ styles }: SiteContext): SiteBuild {
+export function sitePages({ styles, contract }: SiteContext): SiteBuild {
   const document = (head: Head, body: ReactElement) => '<!doctype html>' + renderToStaticMarkup(
     <html lang="en"><head><meta charSet="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
       {(head.meta ?? []).map((row, index) => row.title ? <title key={index}>{row.title}</title> : <meta key={index} {...row} />)}
@@ -26,10 +27,11 @@ export function sitePages({ styles }: SiteContext): SiteBuild {
   return {
     pages: [
       { path: '/', html: document(lampHead(), <LampHome />) },
-      { path: '/run', html: runPageHtml(identity, run) },
+      { path: '/run', html: runPageHtml(identity, run, contract) },
+      ...(contract ? [{ path: '/contract', html: contractPageHtml(identity, run, contract) }] : []),
       { path: '/docs', html: document(docsHead(), <DocsIndex variant="site" />) },
       ...docsPages.map(page => ({ path: `/docs/${page.slug}`, html: document(docsHead(page.slug), <DocsArticle slug={page.slug} body={bodies[page.slug]} variant="site" />) })),
-      { path: '/404', html: siteNotFoundHtml(identity, run) },
+      { path: '/404', html: siteNotFoundHtml(identity, run, contract) },
     ],
     assets: ['rer-theme.css', 'app-assets', 'brand'],
   };
