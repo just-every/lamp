@@ -488,7 +488,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "d477312cdc7b94a8c1efcbc7d53b483bb55a216b3e30388fb981ca913e899b9d",
+      "sha256": "6db243fe9f48ecfd03f55cfca9c130726cd9fbff6528c0469d8e387bbd6f8ffa",
       "executable": false
     },
     "DEMO.md": {
@@ -3420,7 +3420,7 @@
       "executable": false
     },
     "src/core/features/public-snapshot/service.ts": {
-      "sha256": "81775fd22bbbc5720f9ba32cce06c1d0cc03a6805a2778906524ca6bcc323032",
+      "sha256": "9a6ec8e52311fdf2cf8e340f94e03bba969bf04092c55ee599e78a7580c8d715",
       "executable": false
     },
     "src/core/features/public-snapshot/styles/components.css": {

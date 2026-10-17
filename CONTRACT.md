@@ -1086,8 +1086,8 @@ Judged from the code and tests at commit `0eebe911043bd05c448af177fbeae52a377f36
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
 | Published | 104 | 0 | 0 | 104 |
-| Target and push further | 3 | 44 | 47 | 94 |
-| All | 107 | 44 | 47 | 198 |
+| Target and push further | 6 | 42 | 46 | 94 |
+| All | 110 | 42 | 46 | 198 |
 
 | Clause | Title | Kind | Status | Evidence | Gap |
 | --- | --- | --- | --- | --- | --- |
@@ -1124,8 +1124,8 @@ Judged from the code and tests at commit `0eebe911043bd05c448af177fbeae52a377f36
 | `COMP-006` | Component state is claimed, not set | published | done | `tests/e2e/app-api.test.mjs` |  |
 | `COMP-007` | Deletion | published | done | `tests/e2e/public-contract.test.mjs` |  |
 | `COMP-008` | Monitor claims from measured evidence | target | missing |  | Released COMP-006 names three claimants; the release that ships this clause records COMP-006 as changed. |
-| `COMP-009` | Component bulk editing and descriptions | target | partial | `src/core/features/components/service.ts`, `tests/e2e/public-contract.test.mjs` | Components, groups, ordering and notes (COMP-002, COMP-004) ship. Bulk editing, CSV import and descriptions do not. |
-| `COMP-010` | Shown only while affected | target | missing |  | Not built. |
+| `COMP-009` | Component bulk editing and descriptions | target | done | `src/core/features/components/catalogue-routes.ts`, `src/core/features/components/ui/catalogue-drawer.tsx`, `tests/e2e/helpers/catalogue-history-flow.mjs`, `work/sd-cp-lamp/shots/COMP-009/` |  |
+| `COMP-010` | Shown only while affected | target | done | `src/core/features/public-snapshot/component-visibility.ts`, `tests/e2e/helpers/catalogue-history-flow.mjs`, `tests/e2e/statuspage-import.test.mjs`, `work/sd-cp-lamp/shots/COMP-010/` |  |
 | `DEP-001` | Vendor components that follow vendor status | target | missing |  | Not built. |
 | `DEP-002` | Vendor state never silently becomes the buyer's outage | target | missing |  | Not built. |
 | `DEP-003` | Vendor watch for the team | target | missing |  | Not built. |
@@ -1249,7 +1249,7 @@ Judged from the code and tests at commit `0eebe911043bd05c448af177fbeae52a377f36
 | `HIST-005` | Communication performance | target | missing |  | Not built. |
 | `HIST-006` | Traffic spike alert without visitor tracking | target | missing |  | Not built. |
 | `HIST-007` | Subscriber reporting | target | partial | `src/core/features/subscribers/service.ts`, `tests/e2e/delivery-contract.test.mjs` | The operator subscriber list with channel, state, selection and deactivation reason ships (SUB-011). Counts, trends and export do not. |
-| `HIST-008` | Complete browsable history | target | partial | `src/core/features/public-snapshot/renderer.ts`, `tests/e2e/public-contract.test.mjs` | The 12-month history page ships (HIST-001). Earlier months have no index. |
+| `HIST-008` | Complete browsable history | target | done | `src/core/features/public-snapshot/history.ts`, `tests/e2e/helpers/catalogue-history-flow.mjs`, `tests/e2e/snapshot-retained.test.mjs`, `work/sd-cp-lamp/shots/HIST-008/` |  |
 | `AUD-001` | Several pages in one deployment | target | missing |  | Replaces the released `seed.json → nonGoals` exclusions of more than one page per deployment and of private or audience-scoped pages. |
 | `AUD-002` | Private page access | target | missing |  | Not built. |
 | `AUD-003` | Audiences for named customers | target | missing |  | Not built. |
