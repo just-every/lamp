@@ -3096,7 +3096,7 @@
       "executable": false
     },
     "src/core/features/incidents/ui/incident-detail-page.tsx": {
-      "sha256": "ff1c1588cdfae2f854b5d78f3b2ef0f35e96d15264c33d058284d6618074822d",
+      "sha256": "77d16c17d1b7e4a469f03c1daab0fd038fdd1b84a249d9b89db563e9894dd675",
       "executable": false
     },
     "src/core/features/incidents/ui/incident-operator-controls.tsx": {
@@ -4836,7 +4836,7 @@
       "executable": false
     },
     "tests/e2e/autosave-refresh-regression.mjs": {
-      "sha256": "4f5740144d3c74a1a397986f8937a0a45202d8126807f50d84e34a4a9d7cd8f9",
+      "sha256": "a819fcf1cc91c45a1460b78f6d7769ff3cbc50f2868221fb49de50322b40237c",
       "executable": false
     },
     "tests/e2e/betterstack-browser.test.mjs": {

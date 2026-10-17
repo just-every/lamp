@@ -63,8 +63,8 @@ export async function assertAutosaveDuringRefresh({ page, api, openIncident, ass
     await field.fill(audience);
     timings.finalEdit = await page.evaluate(() => window.autosaveRefreshProbe.finalEdit);
     await assertPrivateUnsaved();
-    // A refresh arriving one second after an edit must not buy a fresh debounce.
-    await page.waitForTimeout(Math.max(0, timings.finalEdit + 1000 - Date.now()));
+    // Deliver the held refresh while this draft is unsaved. Do not assume a
+    // particular debounce duration: faster autosaves can finish within a second.
     releaseRefresh();
     let deadlineError;
     await page.getByText("Draft saved", { exact: true })

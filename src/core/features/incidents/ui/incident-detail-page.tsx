@@ -120,7 +120,8 @@ function IncidentVisit({ incidentId }: { incidentId: string }) {
     // Count time behind an earlier write toward this edit's debounce. An
     // acknowledgement wakes the effect but must not start a new deadline.
     if (pendingDraft.current?.key !== draftKey) {
-      pendingDraft.current = { key: draftKey, dueAt: performance.now() + 1200 };
+      // Leave most of the two-second deadline for the native write and acknowledgement.
+      pendingDraft.current = { key: draftKey, dueAt: performance.now() + 500 };
     }
     // One native write at a time: an older request must never land after a newer
     // draft. Completion wakes this effect to save the latest displayed draft.
