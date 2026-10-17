@@ -2540,7 +2540,7 @@
       "executable": false
     },
     "seed.json": {
-      "sha256": "af70cb5f2f056280977e745a451646228a96e6dc33edc29889fca28de87461fe",
+      "sha256": "8afe46a826987a7520ed4b232dc75d9f491a827b4496b07f3baeabf7e62a51c5",
       "executable": false
     },
     "src/base/actor.ts": {
