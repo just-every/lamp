@@ -78,8 +78,8 @@ export async function assertAutosaveDuringRefresh({ page, api, openIncident, ass
     const stored = (await api(endpoint)).incident;
     timings.storedDraft = stored.draft;
     assert.equal(stored.internalNotes[0].body, note);
-    assert.deepEqual(timings.putBytes, { ...initial, affectedAudience: audience });
-    for (const [key, value] of Object.entries(timings.putBytes)) assert.equal(stored.draft[key], value);
+    assert.deepEqual(timings.putBytes, { ...initial, affectedAudience: audience, componentChanges: [] });
+    for (const [key, value] of Object.entries(timings.putBytes)) assert.deepEqual(stored.draft[key], value);
     await page.reload();
     await page.getByText("Draft saved", { exact: true }).waitFor();
     timings.reloadedDraft = {
@@ -92,7 +92,9 @@ export async function assertAutosaveDuringRefresh({ page, api, openIncident, ass
     };
     t.diagnostic(JSON.stringify({ ...timings, elapsedToSaved: timings.saved - timings.finalEdit, deadlinePassed: !deadlineError }));
     const { settings } = await api("/api/app/page-settings");
-    assert.deepEqual(timings.reloadedDraft, { ...timings.putBytes, nextUpdateAt: configuredDateTimeInput(timings.putBytes.nextUpdateAt, settings.timezone) }, "reload restores every draft field, displaying the saved instant in the page zone");
+    const { componentChanges, ...textFields } = timings.putBytes;
+    assert.deepEqual((await api(endpoint)).incident.draft.componentChanges, componentChanges, "reload retains the acknowledged staged choices");
+    assert.deepEqual(timings.reloadedDraft, { ...textFields, nextUpdateAt: configuredDateTimeInput(timings.putBytes.nextUpdateAt, settings.timezone) }, "reload restores every draft field, displaying the saved instant in the page zone");
     assert.equal(timings.putStatus, 200);
     assert.ok(timings.refreshDelivered > timings.finalEdit && timings.refreshReceived < timings.putDispatched);
     assert.ok(timings.saved >= timings.putAcknowledged, "Saved must follow the native PUT acknowledgement");

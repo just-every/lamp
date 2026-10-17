@@ -69,11 +69,11 @@ export async function assertQueuedAutosaveDeadline({ page, api, openIncident, as
     timings.deadlinePassed = !deadlineError;
     t.diagnostic(JSON.stringify(timings));
     assert.equal(writes.length, 2, "pending edits must coalesce into one latest write");
-    assert.deepEqual(writes[1].body, { ...initial, affectedAudience: latest });
+    assert.deepEqual(writes[1].body, { ...initial, affectedAudience: latest, componentChanges: [] });
     assert.ok(writes[1].at >= timings.earlierAcknowledged, "writes must remain serialized");
     assert.ok(timings.saved >= timings.latestAcknowledged, "Draft saved must follow the latest native acknowledgement");
     const stored = (await api(`/api/app/incidents/${incident.id}`)).incident.draft;
-    for (const [key, value] of Object.entries(writes[1].body)) assert.equal(stored[key], value);
+    for (const [key, value] of Object.entries(writes[1].body)) assert.deepEqual(stored[key], value);
     await page.reload();
     await page.getByText("Draft saved", { exact: true }).waitFor();
     assert.equal(await field.inputValue(), latest);
