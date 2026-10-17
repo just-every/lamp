@@ -14,6 +14,7 @@ export function DraftComponentStates({ incident, draft, onChange }: {
 }) {
   const { data, error } = useAppData<{ components: Awaited<ReturnType<ComponentsService["list"]>> }>("/api/app/components");
   const [componentId, setComponentId] = useState("");
+  const [relationship, setRelationship] = useState<"Primary" | "Dependent">("Primary");
   const [state, setState] = useState<IncidentClaimState>("Major outage");
   const choices = draft.componentChanges ?? [];
   const resolved = draft.lifecycle === "Resolved";
@@ -34,13 +35,15 @@ export function DraftComponentStates({ incident, draft, onChange }: {
       <label className="form-label">{row.name} state with this update<select aria-label={`${row.name} state with this update`} disabled={resolved} value={resolved ? "Operational" : choices.find(choice => choice.componentId === row.componentId)?.state ?? incident.components.find(component => component.componentId === row.componentId)?.state ?? "Operational"} onChange={event => choose(row.componentId, event.target.value as IncidentClaimState, row.relationship)}>
         {INCIDENT_CLAIM_STATES.map(value => <option key={value}>{value}</option>)}
       </select></label>
+      <label className="form-label">{row.name} relationship with this update<select aria-label={`${row.name} relationship with this update`} disabled={resolved} value={choices.find(choice => choice.componentId === row.componentId)?.relationship ?? row.relationship} onChange={event => choose(row.componentId, (choices.find(choice => choice.componentId === row.componentId)?.state ?? incident.components.find(component => component.componentId === row.componentId)?.state ?? "Operational") as IncidentClaimState, event.target.value as "Primary" | "Dependent")}><option>Primary</option><option>Dependent</option></select></label>
       {choices.some(choice => choice.componentId === row.componentId) && <Button type="button" variant="secondary" onClick={() => onChange(choices.filter(choice => choice.componentId !== row.componentId))}>{incident.components.some(component => component.componentId === row.componentId) ? "Keep current claim" : "Remove from draft"}</Button>}
       {!resolved && <Button type="button" variant="secondary" onClick={() => choose(row.componentId, "Operational", row.relationship)}>Release {row.name} with this update</Button>}
     </div>)}
     {resolved ? <p>Resolving releases every component claim.</p> : <div className="settings-grid">
       <label className="form-label">Attach with this update<select value={componentId} onChange={event => setComponentId(event.target.value)}><option value="">Choose a component</option>{available.map(component => <option key={component.id} value={component.id}>{component.name}</option>)}</select></label>
       <label className="form-label">New component state<select value={state} onChange={event => setState(event.target.value as IncidentClaimState)}>{INCIDENT_CLAIM_STATES.map(value => <option key={value}>{value}</option>)}</select></label>
-      <Button type="button" variant="secondary" disabled={!componentId} onClick={() => { choose(componentId, state, "Primary"); setComponentId(""); }}>Attach with this update</Button>
+      <label className="form-label">Relationship<select value={relationship} onChange={event => setRelationship(event.target.value as "Primary" | "Dependent")}><option>Primary</option><option>Dependent</option></select></label>
+      <Button type="button" variant="secondary" disabled={!componentId} onClick={() => { choose(componentId, state, relationship); setComponentId(""); }}>Attach with this update</Button>
     </div>}
     {error && <FormError>{error}</FormError>}
   </fieldset>;

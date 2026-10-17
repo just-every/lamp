@@ -544,7 +544,7 @@
       "executable": false
     },
     "docs/incidents-and-updates.md": {
-      "sha256": "020baf90923a576c11129454bcd89d6abf9a0696394bec08598cd927cd732c46",
+      "sha256": "d0379d1fef8a9b88c5aa9aa2466cd8c370ed7b7ee4997206bf45a7f5f72cc61d",
       "executable": false
     },
     "docs/install.md": {
@@ -2848,7 +2848,7 @@
       "executable": false
     },
     "src/core/features/channels/messages.ts": {
-      "sha256": "13c2bc92ab8b2d5b2a8519604f9240c664f73c1b857c6f27abe887972f357d94",
+      "sha256": "2ad2ac986a987dd1552dee44d11ccdeee81bc30c7c5c6afe0c91210f629c2c23",
       "executable": false
     },
     "src/core/features/channels/repository.ts": {
@@ -3044,15 +3044,11 @@
       "executable": false
     },
     "src/core/features/incidents/ui/draft-component-states.tsx": {
-      "sha256": "bb08f72a2a98cdec614efc00e102bb2926ec4f7687ff756901b1751f7c3873e0",
-      "executable": false
-    },
-    "src/core/features/incidents/ui/incident-component-confirmation.tsx": {
-      "sha256": "468522ee6ca96df61b6ac3f9b5787a085b089c8e23dc26cd8214251d4a40afca",
+      "sha256": "908ec0b5aa810a7490c4fdab4dec0f99291fe015053a7a50b53df2cbb03c266a",
       "executable": false
     },
     "src/core/features/incidents/ui/incident-components.tsx": {
-      "sha256": "763df1af630b5509af5283729db426e15eeede2c5a48f68053b97b9de4dd4570",
+      "sha256": "93a8c4245fb3c224d132e8f8acd05a4ce7c9538e5af5613c66d86f489cd2b88d",
       "executable": false
     },
     "src/core/features/incidents/ui/incident-composer-tools.tsx": {
@@ -3064,7 +3060,7 @@
       "executable": false
     },
     "src/core/features/incidents/ui/incident-detail-page.tsx": {
-      "sha256": "c14507b37f217c3fde87a979a3f695081649afe42d687c809605a98f8b3fd93b",
+      "sha256": "ff1c1588cdfae2f854b5d78f3b2ef0f35e96d15264c33d058284d6618074822d",
       "executable": false
     },
     "src/core/features/incidents/ui/incident-operator-controls.tsx": {
@@ -4884,7 +4880,7 @@
       "executable": false
     },
     "tests/e2e/helpers/review-update-flow.mjs": {
-      "sha256": "0c8ced2324f293246a59369de3203dce294643a18b2e7bfca398e50f9d0e857b",
+      "sha256": "396ddcac7d5a4269e38885f621ecb9bb19e72c165d380974bc931d9a4cd41b62",
       "executable": false
     },
     "tests/e2e/helpers/snapshot-proxy.mjs": {

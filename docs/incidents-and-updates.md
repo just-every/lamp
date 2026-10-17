@@ -26,26 +26,35 @@ retroactive updates.
 
 ## Change affected components
 
-Use **Affected components** on the incident page to attach a public component or
-detach an existing component. Internal components are excluded from the attach
-list, as they are when creating an incident.
+Use **Component states with this update** in the composer. Each attached
+component shows this incident's current claim and the state the next update will
+set. Choose **Attach with this update** to include another public component,
+with its state and Primary or Dependent relationship. Internal components stay
+out of that picker.
 
-On a published incident, Lamp asks for confirmation before either change. The
-confirmation names the component's resulting public status, including when
-another incident, maintenance or standing claim keeps that status unchanged.
-Attaching immediately publishes the component claim and queues the latest
-published update for eligible subscribers who follow that component and have
-not already been notified about the incident. The confirmation shows the current
-number of email and webhook recipients separately; it respects the latest
-update's selected channels. Pending or deactivated subscribers, internal-only
-updates and retroactive incidents receive no catch-up notification. Eligibility
-is checked again when attaching; subscriber changes before confirmation can
-change the final recipients.
+Saving keeps these choices private in the versioned draft. Preview shows the
+changes; review and scheduling retain them. Publishing commits the wording and
+states together, so Major outage can step directly to Degraded performance.
+Other incidents, standing claims and maintenance still determine the resulting
+public state. A conflicting attachment change requires a fresh review.
 
-Detaching immediately releases this incident's public claim. Remaining claims
-determine the component's status. It sends no email or subscriber notification;
-publish a separate update when customers need an explanation. Changes to an
-unpublished incident remain private and send no notifications.
+Choose **Release … with this update** or Operational to stop claiming an outage
+while retaining the attachment and its subscribers. Resolved releases every
+claim. Customers receive one notification per selected channel, containing the
+wording and the component changes.
+
+## Wording and links
+
+Settings lets the owner list terms to flag and choose a preferred field length.
+The composer also flags resolution-time promises, internal hosts, IP addresses
+and email addresses. Each finding appears beside its field and can be dismissed.
+These checks never block publishing.
+
+A bare HTTPS URL becomes a link with the URL itself as its label. Trailing
+punctuation stays outside the link. HTML, Markdown and other URL schemes remain
+literal text. Email HTML links directly to the URL; its text part and generic
+webhook bodies retain the original wording. Slack and Teams posts also include
+the help links and every populated field.
 
 ## Use the brief and suggestions
 

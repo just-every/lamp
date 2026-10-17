@@ -339,7 +339,7 @@ function IncidentVisit({ incidentId }: { incidentId: string }) {
         <Button type="button" disabled={publishState === "publishing" || !draftSaved || !publishable || hasTimeError} onClick={publish}>{publishState === "publishing" ? "Publishing…" : historicalPublishedAt ? "Publish historical update" : "Publish update"}</Button>
     </section>
     <aside className="incident-context">
-      <IncidentComponents key={incident.id} incident={incident} onChanged={refresh} captureVisit={captureVisit} />
+      <IncidentComponents incident={incident} />
       <section className="context-section"><h2>Published timeline</h2>{incident.updates.length ? <ol className="timeline">{incident.updates.map((update) => <li key={update.id}><strong>{update.lifecycle}</strong><span>{formatOperatorTime(update.publishedAt)}</span><p>{update.customerImpact}</p>{componentChangeLines(update.componentChanges).map((line, index) => <p key={index}>{line}</p>)}</li>)}</ol> : <p>No public updates are recorded.</p>}</section>
       {incident.lifecycle === "Resolved" ? <ReportEditor incidentId={incident.id} /> : null}
       <IncidentOperatorControls incident={incident} captureVisit={captureVisit} captureUpdate={captureUpdate} getDraftVersion={() => version.current} onChanged={refresh} onDeleted={() => void navigate({ to: "/app/incidents" })} />

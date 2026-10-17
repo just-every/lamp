@@ -52,7 +52,7 @@ export async function reviewUpdateFlow({ vite, bindings }) {
   assert.equal((await read()).draft.componentChanges[0].state,'Degraded performance');
   const published=await call(`/incidents/${incident.id}/publish`,'POST',{channels:['email','webhook']},version);assert.equal(published.status,200,JSON.stringify(published.body));
   const update=published.body.update;
-  const rows=(await db.prepare('SELECT id,channel FROM notification_deliveries WHERE incident_update_id=?').bind(update.id).all()).results;
+  const rows=(await db.prepare('SELECT id,channel FROM notification_deliveries WHERE incident_update_id=? AND subscriber_id IN (?,?)').bind(update.id,...readers).all()).results;
   assert.deepEqual(rows.map(row=>row.channel).sort(),['email','webhook']);
   const accepted=[],received=[];
   const mail={configured:true,send:async message=>{accepted.push(message);return{providerMessageId:'reviewed-recovery-mail'};}};

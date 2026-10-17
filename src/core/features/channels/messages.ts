@@ -32,7 +32,7 @@ function channelUpdate(data: ChannelPostData) {
 /** Every populated field and immutable component change uses the shared renderer. */
 export function renderChannelSlack(data: ChannelPostData) {
   const update = channelUpdate(data);
-  return renderLampSlackMessage(update.email.subject, [
+  return renderLampSlackMessage(`${data.reference} ${data.lifecycle}: ${data.title}`, [
     update.public.heading, `Status: ${update.public.lifecycle}`,
     ...update.public.fields.map(field => `${field.label}: ${field.value}`), data.url,
   ]);
