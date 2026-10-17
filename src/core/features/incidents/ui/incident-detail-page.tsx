@@ -1,5 +1,5 @@
 import { Link, useNavigate } from "@tanstack/react-router";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 
 import { createUlid } from "../../../shared/ids";
 import type { IncidentDraftInput } from "../../../shared/schemas";
@@ -88,7 +88,8 @@ function IncidentVisit({ incidentId }: { incidentId: string }) {
   const publishable = Boolean(draft.affectedAudience.trim() && draft.customerImpact.trim() && (draft.lifecycle === "Resolved" || (draft.nextUpdateAt && Number.isFinite(Date.parse(draft.nextUpdateAt)))) && data?.incident?.components.some(component => component.componentId));
   const visibleSaveState = draftEmpty ? "empty" : draftSaved ? "saved" : saveState === "error" && failedKey.current === draftKey ? "error" : "saving";
 
-  useEffect(() => {
+  // Establish the saved draft authority before controls can accept input.
+  useLayoutEffect(() => {
     if (!data?.incident || !loadedIncidentId || hydratedIncident.current === loadedIncidentId) return;
     const initial = draftFromIncident(data.incident);
     hydratedIncident.current = data.incident.id;

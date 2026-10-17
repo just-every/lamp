@@ -146,7 +146,7 @@ before(async () => {
   await startWorker(configPath);
   sessionId = await insertRealOperatorSession({ persistTo: statePath });
   if (process.env.RER_VISUAL_HEADING_PROBE === '1') execFileSync('pnpm',['exec','wrangler','d1','execute','DB','--local','--config',defaultConfigPath,'--persist-to',statePath,'--command',"UPDATE operators SET is_setup_operator=0 WHERE id='01J00000000000000000000001'"],{stdio:'pipe'});
-  browser = await chromium.launch({ headless: true });
+  browser = await chromium.launch({ headless: true, args: ["--use-mock-keychain", "--password-store=basic"] });
   await openAuthenticatedPage();
 });
 

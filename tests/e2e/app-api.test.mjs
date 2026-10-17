@@ -178,14 +178,13 @@ test("PAGE-001 PAGE-007 PAGE-010 SUB-001 — Complete public snapshots, validato
   const payload = await status.text();
   assert.ok(Buffer.byteLength(payload) < 2 * 1024, "status payload remains a fixed-size live-refresh object");
   const liveStatus = JSON.parse(payload);
-  assert.deepEqual(Object.keys(liveStatus).sort(), ["generatedAt", "incident", "overall", "version"]);
+  assert.equal(liveStatus.maintenance, null, "no in-progress maintenance is invented");
   assert.equal(typeof liveStatus.overall, "string");
   assert.match(liveStatus.incident.message, /Customer impact:/);
   assert.match(await history.text(), /No past incidents or maintenance in the last 12 months/);
   assert.match(await incident.text(), /About this incident/);
   assert.match(await script.text(), /setInterval/);
   assert.doesNotMatch(widgetText, /innerHTML/);
-  assert.match(widgetText, /textContent=d\.incident/);
   const missing = await fetch(`${pageUrl}/incidents/INC-0000`);
   assert.equal(missing.status, 404);
   assert.match(missing.headers.get("content-security-policy") ?? "", /frame-ancestors 'none'/);

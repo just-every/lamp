@@ -12,7 +12,7 @@ import { notificationActivity, assertNoNewNotifications } from '../helpers/impor
 test('MOVE-001 Better Stack source-first wizard and source-specific Cutover preserve history silently at desktop and phone widths', {timeout:600000}, async()=>{
   const runtime=await openNativeRuntime();let browser;
   try {
-    await runtime.start();await runtime.seedOperator();browser=await chromium.launch();
+    await runtime.start();await runtime.seedOperator();browser=await chromium.launch({headless:true,args:["--use-mock-keychain","--password-store=basic"]});
     const context=await browser.newContext();
     await context.route(url=>url.pathname.startsWith('/@fs/'),route=>route.continue({headers:{...route.request().headers(),'x-rer-dev-key':devKey}}));
     const entered=await signInAs({origin,key:devKey});
@@ -47,13 +47,14 @@ test('MOVE-001 Better Stack source-first wizard and source-specific Cutover pres
       assert.equal(result.job.state,'completed');
       await page.goto(origin+`/app/cutover?job=${result.job.id}`);await page.getByRole('heading',{name:'Old public addresses',exact:true}).waitFor();
       assert.ok((await page.locator('body').innerText()).includes('/index.json'));
-      assert.ok(!(await page.locator('body').innerText()).includes('/history.rss'));
+      assert.ok((await page.locator('body').innerText()).includes('/history.rss'));
       await page.getByLabel('Public address',{exact:true}).fill(publicOrigin);await page.getByRole('button',{name:'Use this address for checks'}).click();
       for(const button of await page.getByRole('button',{name:'Check opens',exact:true}).all()) {await button.click();await button.locator('..').getByRole('status').filter({hasText:/^Opens$/}).waitFor();}
       for(const width of [1440,390]) {await page.setViewportSize({width,height:1000});assert.deepEqual((await new AxeBuilder({page}).analyze()).violations.filter(row=>['serious','critical'].includes(row.impact)),[]);assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth));await page.screenshot({path:join(evidence,`${family}-${width}.png`),fullPage:true});}
       await assertNoNewNotifications(runtime, before);
       assert.equal((await fetch(publicOrigin+'/feed.atom')).status,200);
-      for(const path of ['/feed.rss','/index.json'])assert.equal((await fetch(publicOrigin+path)).status,404);
+      const rss=await fetch(publicOrigin+'/feed.rss');assert.equal(rss.status,200);assert.match(await rss.text(),/<rss version="2.0"/);
+      assert.equal((await fetch(publicOrigin+'/index.json')).status,404);
       const maintenance=result.report.cutover.rows.find(row=>row.target.startsWith('/maintenance/'));
       assert.match(await (await fetch(publicOrigin+maintenance.target)).text(),/original update 3/);
       let undone=await api(`/api/app/statuspage-import/jobs/${result.job.id}/undo`,{});while(undone.job.state==='undoing')undone=await api(`/api/app/statuspage-import/jobs/${result.job.id}/undo`,{});

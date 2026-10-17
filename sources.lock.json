@@ -3028,7 +3028,7 @@
       "executable": false
     },
     "src/core/features/incidents/ui/incident-detail-page.tsx": {
-      "sha256": "006136271db0bb1f12d7928fd9e3fb431839f46c64af83862c6ebbad8f05961e",
+      "sha256": "d16a0bf9615748c8a213e0a6fc36bce142654b143e858a2bf68a90613f615113",
       "executable": false
     },
     "src/core/features/incidents/ui/incident-operator-controls.tsx": {
@@ -3536,7 +3536,7 @@
       "executable": false
     },
     "src/core/features/statuspage-import/ui/cutover-page.tsx": {
-      "sha256": "0f8410dc8fc523e6df74f788aa347fb071561b5b59e4e46cde188e7271dd2a27",
+      "sha256": "e4ae37c2fd6acfd62e686a12e49e3aeace8530ebdc8be9a5557e3f5f36ee31a8",
       "executable": false
     },
     "src/core/features/statuspage-import/ui/move-in-page.tsx": {
@@ -4600,7 +4600,7 @@
       "executable": false
     },
     "tests/baseline/e2e-baseline/core-baseline.test.mjs": {
-      "sha256": "5c5a8842d88ddf512bd58cf666c81671da008bc09440d52b736539e8db6ae0bf",
+      "sha256": "189f97de8a7e7b29bff2bff08a93e83b8a82ca3ce07e2fda2f3cfee30f186085",
       "executable": false
     },
     "tests/baseline/e2e-baseline/driver.mjs": {
@@ -4712,7 +4712,7 @@
       "executable": false
     },
     "tests/e2e/app-api.test.mjs": {
-      "sha256": "92772dc29ce3d7d466e18e95ba0da63200f6f11979654cc04166638547f9b85e",
+      "sha256": "22525d264c09b72cd6b15c029148d8f1eefb6468839e9253ca937d1e5a9e70f7",
       "executable": false
     },
     "tests/e2e/auth-adoption-journey.test.mjs": {
@@ -4732,7 +4732,7 @@
       "executable": false
     },
     "tests/e2e/betterstack-browser.test.mjs": {
-      "sha256": "1051a7e779c5897953486ce8d3c8f6d3b69808f0924e6f2921cbd372b7281a6b",
+      "sha256": "6d7718b8a4b89cd455214d4faba8e64a414f438cec13025d4127c5ac8188b8ff",
       "executable": false
     },
     "tests/e2e/channels-and-presets.test.mjs": {
@@ -4823,6 +4823,10 @@
       "sha256": "2186cff1424b49274601258d1945e9d0046481cd6cf04f51acf9d13c06258bb9",
       "executable": false
     },
+    "tests/e2e/helpers/widget-privacy-flow.mjs": {
+      "sha256": "bd85f13fead10e56bcea6cf0afe50e8abdc8b0fda117354c8e5932afc4839784",
+      "executable": false
+    },
     "tests/e2e/helpers/widget-variants-flow.mjs": {
       "sha256": "3e46e72f43b3230d0f60bc755f1d091cb90dfd2bb600f6fea5d16ce204e71a16",
       "executable": false
@@ -4872,7 +4876,7 @@
       "executable": false
     },
     "tests/e2e/publishing-browser.test.mjs": {
-      "sha256": "cfd1db4d5006e411f3facf14b15c235b9af000d51e70f7d44ceefbbd5e0c28fa",
+      "sha256": "6b2123e48239b98e5035927a97d119611ba586a68552669ec52a72d967a28a53",
       "executable": false
     },
     "tests/e2e/publishing-contract.test.mjs": {

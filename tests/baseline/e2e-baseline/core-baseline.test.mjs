@@ -1,3 +1,4 @@
+import { widgetPrivacyFlow } from "../../e2e/helpers/widget-privacy-flow.mjs";
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import { mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
@@ -175,7 +176,7 @@ baseline(["BASE-SECRET-001","BASE-SECRET-002"], "Secrets remain private and miss
   assert.equal(subscribers.status, 200);
   assert.equal(management.status, 404, "the configured subscriber signing key validated the malformed management token");
   assert.equal(invalidBoundary.status, 400);
-  const browser = await chromium.launch({ headless: true });
+  const browser = await chromium.launch({ headless: true, args: ["--use-mock-keychain", "--password-store=basic"] });
   let clientBodies = [];
   try {
     const context = await browser.newContext();
@@ -291,8 +292,7 @@ baseline(["BASE-DATA-002","BASE-DATA-003","BASE-DATA-004"], "Retention and erasu
   assert.ok(Array.isArray(manifest.externals));
   const html = await (await fixture.fetch("/")).text();
   assert.doesNotMatch(html, /<(?:script|img|link|iframe)[^>]+https?:\/\//i);
-  const widget = await (await fixture.fetch("/widget.js")).text();
-  assert.doesNotMatch(widget, /fetch\(|XMLHttpRequest|importScripts|\.src\s*=/);
+  await widgetPrivacyFlow(fixture);
 })(t);
 });
 
@@ -314,9 +314,10 @@ baseline(["BASE-DATA-005","BASE-PUBLIC-001","BASE-PUBLIC-002"], "Public artifact
   await response.text();
   assert.equal(response.headers.get("set-cookie"), null);
   assert.match(response.headers.get("content-security-policy") ?? "", new RegExp(`default-src ${fixture.pageUrl}`));
-  const browser = await chromium.launch({ headless: true });
+  const browser = await chromium.launch({ headless: true, args: ["--use-mock-keychain", "--password-store=basic"] });
   try {
-    const page = await browser.newPage();
+    const context = await browser.newContext();
+    const page = await context.newPage();
     const requests = [];
     page.on("request", (request) => requests.push(request.url()));
     await page.goto(`${fixture.pageUrl}/`, { waitUntil: "networkidle" });
@@ -328,16 +329,7 @@ baseline(["BASE-DATA-005","BASE-PUBLIC-001","BASE-PUBLIC-002"], "Public artifact
   assert.equal(tokenResponse.headers.get("referrer-policy"), "no-referrer", "SUB-005's token-addressed exception retains referrer protection");
   assert.equal(tokenResponse.headers.get("set-cookie"), null);
 })(t);
-  t.diagnostic("widget snapshot encodes only configured embedding origins");
-  await (async () => {
-  const { settings } = await (await fixture.appFetch("/api/app/page-settings")).json();
-  const update = await fixture.appFetch("/api/app/page-settings", { method: "PUT", body: JSON.stringify({ pageName: settings.pageName, tagline: settings.tagline, accentColor: settings.accentColor, timezone: settings.timezone, hostname: settings.hostname, footerCreditEnabled: settings.footerCreditEnabled, mailFromAddress: settings.mailFromAddress, aiToneInstructions: settings.aiToneInstructions, widgetAllowedOrigins: [fixture.pageUrl] }) });
-  assert.equal(update.status, 200);
-  const widget = await (await fixture.fetch("/widget.js")).text();
-  assert.match(widget, new RegExp(JSON.stringify([fixture.pageUrl]).replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
-  assert.doesNotMatch(widget, /evil\.example/);
-  assert.match(widget, /a\.indexOf\(window\.location\.origin\)<0\)return/);
-})(t);
+
 });
 
 
