@@ -27,7 +27,7 @@ before(async () => {
   worker.stdout.on("data", chunk => { output += chunk; });
   worker.stderr.on("data", chunk => { output += chunk; });
   await waitForWorker({ origin, child: worker, output: () => output, label: "UI interaction Worker" });
-  browser = await chromium.launch();
+  browser = await chromium.launch({ headless: true, args: ["--use-mock-keychain", "--password-store=basic"] });
   context = await browser.newContext({ timezoneId: "Australia/Brisbane", viewport: { width: 390, height: 844 } });
   await context.addCookies([{ name: sessionCookieName(origin), value: sessionId, url: origin }]);
   page = await context.newPage();
@@ -106,8 +106,8 @@ test("Subscriber erasure requires confirmation and offers no repeated removal", 
   assert.equal(saved.state, "deactivated");
 });
 
-const audienceField = target => target.locator("label", { hasText: "Who is affected" }).locator("textarea");
-const impactField = target => target.locator("label", { hasText: "What is the impact" }).locator("textarea");
+const audienceField = target => target.locator("label.impact-field", { hasText: "Who is affected" }).locator("textarea");
+const impactField = target => target.locator("label.impact-field", { hasText: "What is the impact" }).locator("textarea");
 
 test("Fresh publication drafts and narrow operator navigation preserve deliberate sign-out", async t => {
   t.diagnostic("each publication opens a fresh unsaved draft, and stale tabs cannot replace its next update");
