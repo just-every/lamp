@@ -347,7 +347,8 @@ test("SUB-004 SUB-006 SUB-007 SUB-005 PAGE-013 SUB-012 SUB-008 — Scoped subscr
   const beforeTemplate = await templatePublicState();
   const apply = await call(`/incidents/${templated.id}/templates/${template.id}/apply`,"POST",{}, { "If-Match": "-:1" });
   assert.equal(apply.status,200); const templateDraft = (await apply.json()).draft;
-  assert.equal((await db.prepare("SELECT published_at FROM incident_components WHERE incident_id = ? AND component_id = ?").bind(templated.id,audience).first()).published_at,null);
+  assert.equal(await db.prepare("SELECT published_at FROM incident_components WHERE incident_id = ? AND component_id = ?").bind(templated.id,audience).first(),null,"template attachments remain only in the unpublished draft");
+  assert.ok(templateDraft.componentChanges.some(choice => choice.componentId === audience && choice.state === "Major outage" && choice.relationship === "Dependent"),"the draft retains the reviewed template attachment and state");
   assert.deepEqual(await templatePublicState(),beforeTemplate,"applying a template changes no public claim, history, peak, notification or snapshot work");
   assert.deepEqual((await deliveriesFor(templated.id)).filter((row) => row.subscriberId === readers.new),[],"a private template attachment sends no catch-up");
   const templatePublication = await call(`/incidents/${templated.id}/publish`,"POST",{ channels: ["email"] },{ "If-Match": `${templateDraft.id}:1` });
