@@ -103,6 +103,12 @@
           "title": "Move in from another status page",
           "source": "docs/moving-in.md",
           "summary": "Move supported records from Statuspage, Better Stack, Instatus or Sorry and review cutover."
+        },
+        {
+          "slug": "public-resources",
+          "title": "Feeds, APIs, badges and embeds",
+          "source": "docs/public-resources.md",
+          "summary": "Connect status readers, dashboards and your website to published snapshots."
         }
       ]
     },

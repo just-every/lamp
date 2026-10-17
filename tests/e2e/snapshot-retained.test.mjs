@@ -158,7 +158,13 @@ test("PAGE-005 PAGE-006 PAGE-007 cold durable replica keeps complete generations
     const oldFeed = await fetch("/history.atom"); assert.equal(oldFeed.status, 200);
     assert.match(oldFeed.headers.get("Content-Type"), /application\/atom\+xml/);
     assert.equal(await oldFeed.text(), await (await fetch("/feed.atom")).text());
-    for (const path of ["/api/v2/summary.json", "/history.rss", "/auth/login", "/app/settings"]) assert.equal((await fetch(path)).status, 404);
+    for (const path of ["/auth/login", "/app/settings"]) assert.equal((await fetch(path)).status, 404);
+    for (const path of ["/api/v2/summary.json", "/history.rss", "/badge.svg", "/badge.json", "/api/public/v1/incidents", "/embed/script.js"]) {
+      for (const suffix of ["", "?storage=down"]) {
+        const response = await fetch(path + suffix); assert.equal(response.status, 200, path + suffix);
+        assert.ok((await response.text()).length > 0);
+      }
+    }
     // The next snapshot has no removed record or its alias, even after cache warming.
     const removed = structuredClone(source); removed.incidents = []; removed.updates = []; removed.incidentComponents = [];
     assert.equal((await rebuild({ generation: 21, source: removed })).failure, null);
@@ -179,7 +185,7 @@ test("PAGE-005 PAGE-006 PAGE-007 cold durable replica keeps complete generations
     assert.equal((await fetch("/history.atom")).status, 200, "component-only import still serves source feed");
     noHistory.importedNamespaces = [];
     assert.equal((await rebuild({ generation: 24, source: noHistory })).failure, null);
-    assert.equal((await fetch("/history.atom")).status, 404, "complete undo removes source feed");
+    assert.equal(await (await fetch("/history.atom")).text(), await (await fetch("/feed.atom")).text(), "native compatibility feed survives complete import undo");
 
   } finally { await runtime.dispose(); await rm(directory, { recursive: true, force: true }); }
 });

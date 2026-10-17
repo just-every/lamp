@@ -1086,8 +1086,8 @@ Judged from the code and tests at commit `0eebe911043bd05c448af177fbeae52a377f36
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
 | Published | 104 | 0 | 0 | 104 |
-| Target and push further | 0 | 44 | 50 | 94 |
-| All | 104 | 44 | 50 | 198 |
+| Target and push further | 2 | 43 | 49 | 94 |
+| All | 106 | 43 | 49 | 198 |
 
 | Clause | Title | Kind | Status | Evidence | Gap |
 | --- | --- | --- | --- | --- | --- |
@@ -1107,10 +1107,10 @@ Judged from the code and tests at commit `0eebe911043bd05c448af177fbeae52a377f36
 | `PAGE-013` | Enforced isolation | published | done | `tests/e2e/delivery-contract.test.mjs`, `tests/e2e/public-contract.test.mjs` |  |
 | `PAGE-014` | Live refresh | published | done | `tests/e2e/public-contract.test.mjs` |  |
 | `PAGE-015` | Served independently of what it reports | target | partial | `src/core/app/host-dispatch.ts`, `src/core/features/page-settings/service.ts`, `tests/e2e/public-contract.test.mjs` | The configured hostname, isolated public-host routing and retained snapshots (PAGE-006) ship. Custom-hostname provisioning, the secondary origin, `/__lamp/serving`, the failover setup check and read-only standby serving do not. |
-| `PAGE-016` | Statuspage-compatible public API | target | partial | `src/core/features/public-snapshot/routes.ts`, `tests/e2e/public-contract.test.mjs` | The fixed-size `/api/public/status` (PAGE-014) ships. The v2-compatible and native record APIs do not. |
-| `PAGE-017` | RSS and per-component feeds | target | partial | `src/core/features/public-snapshot/feed-widget.ts`, `tests/e2e/public-contract.test.mjs` | The Atom feed ships, and `/history.atom` is aliased after a Statuspage or Instatus import (MOVE-005). RSS and per-component feeds do not. |
-| `PAGE-018` | Status badges | target | missing |  | Not built. |
-| `PAGE-019` | Embed variants | target | partial | `src/core/features/public-snapshot/feed-widget.ts`, `tests/e2e/public-contract.test.mjs` | The banner widget ships; the floating notice and status dot do not. |
+| `PAGE-016` | Statuspage-compatible public API | target | partial | `src/core/features/public-snapshot/public-api.ts`, `tests/e2e/helpers/public-resources-flow.mjs`, `tests/e2e/snapshot-retained.test.mjs`, `work/sd-cp-lamp/shots/PAGE-016/` | Statuspage v2 responses, stable imported IDs, an unmodified Statuspage embed client, and paginated native timelines and reports ship from retained snapshots. MAINT-009 wording, Verifying and per-window automation switches remain unbuilt; maintenance responses expose existing native lifecycle notices. |
+| `PAGE-017` | RSS and per-component feeds | target | done | `src/core/features/public-snapshot/feeds.ts`, `tests/e2e/helpers/public-resources-flow.mjs`, `work/sd-cp-lamp/shots/PAGE-017/` |  |
+| `PAGE-018` | Status badges | target | partial | `src/core/features/public-snapshot/badges.ts`, `tests/e2e/helpers/public-resources-flow.mjs`, `tests/e2e/snapshot-retained.test.mjs`, `work/sd-cp-lamp/shots/PAGE-018/` | Overall and component SVGs and shields endpoint JSON ship, update with the snapshot and serve without the database. The shields.io hosted rendering check has not been run. |
+| `PAGE-019` | Embed variants | target | done | `src/core/features/page-settings/ui/public-resources.tsx`, `tests/e2e/helpers/widget-variants-flow.mjs`, `work/sd-cp-lamp/shots/PAGE-019/` |  |
 | `PAGE-020` | Accessible to the standard US buyers require | target | partial | `tests/e2e/accessibility.test.mjs` | An accessibility suite covers the public and operator documents. There is no VPAT, no release check for one, and no WCAG 2.2 AA conformance claim across every surface. |
 | `PAGE-021` | Public read capacity of the hosted page | target | partial | `src/core/features/public-snapshot/routes.ts`, `tests/e2e/public-contract.test.mjs` | Generation-cached, database-free and unthrottled public reads ship (PAGE-005, PAGE-007, PAGE-008). They are measured only as a local Miniflare floor of 10 requests per second (`seed.json → limits`). There is no hosted load run and no stated hosted rate. |
 | `THEME-001` | Full brand theming and custom CSS | target | partial | `src/core/features/page-settings/service.ts`, `src/core/features/public-snapshot/branding.ts`, `tests/e2e/public-contract.test.mjs` | Name, logo, accent colour, timezone, hostname, favicon and footer credit (PAGE-012) ship. Full palette, fonts, layout options and custom CSS do not. |

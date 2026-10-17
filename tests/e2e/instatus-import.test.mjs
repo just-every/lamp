@@ -101,7 +101,8 @@ test('MOVE-001/002/003/004/005 Instatus owner route reviews, fences, imports sil
   }
   assert.equal(await (await fetch(`${publicOrigin}/history.atom`)).text(), await (await fetch(`${publicOrigin}/feed.atom`)).text());
   const cutover = await get(`${route}/jobs/${imported.result.job.id}`);
-  assert.ok(cutover.body.report.cutover.readerGaps.some(message => message.includes('/history.rss')));
+  assert.equal((await fetch(`${publicOrigin}/history.rss`)).status, 200);
+  assert.ok(cutover.body.report.cutover.readerGaps.some(message => message.includes('/v3/summary.json')));
   await assertNoNewNotifications(runtime, mailBefore, 'Cutover read sends nothing');
   const beforeRepeated = await counts();
   const repeated = await apply(large);

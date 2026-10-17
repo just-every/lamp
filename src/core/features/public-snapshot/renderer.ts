@@ -8,7 +8,12 @@ import { publicPageScript, publicPageStyles } from "./assets";
 import { publicIcon } from "./icons";
 import { defaultPublicSnapshotPolicies, type PublicSnapshotPolicies } from "./policies";
 import { renderBrandSvg } from "./branding";
-import { renderAtom, renderWidget, statusPayload, updateSummary } from "./feed-widget";
+import { statusPayload, updateSummary } from "./feed-widget";
+import { renderWidget } from "./widget";
+import { renderFeeds } from "./feeds";
+import { renderBadges } from "./badges";
+import { renderPublicApi } from "./public-api";
+import { publicComponentResources } from "./component-address";
 import { incidentMarkup, maintenanceMarkup, noticeMarkup, recordHead, resolvedMarkup, statePill, updateMarkup, type PublicIncident, type PublicMaintenance } from "./record-markup";
 import { DAY, REPORTING_DAYS, durationText, escapeHtml, stateClass, timestamp, timezoneLabel } from "./format";
 import { computeUptime, type Uptime, uptimeMarkup } from "./uptime";
@@ -65,8 +70,10 @@ function toPublicModel(source: PublicSnapshotSource, generatedAt: string, polici
   const maintenance: PublicMaintenance[] = source.maintenance
     .map((item) => ({ ...item, components: attachedByMaintenance.get(item.id) ?? [], notices: noticesByMaintenance.get(item.id) ?? [], importedUpdates: (source.importedMaintenanceUpdates ?? []).filter(update => update.maintenanceId === item.id) }))
     .filter((item) => item.components.length > 0);
-  return { settings: source.settings, components, incidents, maintenance, generatedAt, policies, overall: policies.pageStatusRollup(components.map((component) => component.state)) };
+  return { origin: source.publicOrigin ?? `https://${source.settings.hostname}`, settings: source.settings, components, incidents, maintenance, generatedAt, policies, overall: policies.pageStatusRollup(components.map((component) => component.state)) };
 }
+
+export type PublicSnapshotModel = ReturnType<typeof toPublicModel>;
 
 function uptimeMethod(policies: PublicSnapshotPolicies) {
   return COMPONENT_STATES.map((state) => `${state} counts as ${policies.uptimeDowntimeWeight(state)} downtime minute${policies.uptimeDowntimeWeight(state) === 1 ? "" : "s"}`).join("; ");
@@ -100,14 +107,15 @@ function pageNavigation(current: "root" | "history" | "other") {
 
 function pageShell(title: string, body: string, model: ReturnType<typeof toPublicModel>, slots: LampServerSlots, current: "root" | "history" | "other") {
   const { settings, overall } = model;
-  const publicOrigin = `https://${settings.hostname}`;
+  const publicOrigin = model.origin;
   const masthead = `<header class="masthead"><div class="masthead-brand"><a class="brand" href="/"><img class="brand-logo" src="/assets/favicon.svg" alt=""><span>${escapeHtml(settings.pageName)}</span></a><p class="tagline">${escapeHtml(settings.tagline)}</p></div>${pageNavigation(current)}</header>`;
   const meta = `<p class="page-meta"><span class="host">${escapeHtml(settings.hostname)}</span><span class="host" data-timezone-label data-timezone="${escapeHtml(settings.timezone)}">Times shown in ${escapeHtml(timezoneLabel(settings.timezone))}</span></p>`;
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light"><meta name="description" content="${escapeHtml(settings.tagline)}"><meta property="og:title" content="${escapeHtml(`${settings.pageName}: ${overall}`)}"><meta property="og:image" content="${escapeHtml(`${publicOrigin}/assets/og.svg`)}"><meta property="og:image:alt" content="${escapeHtml(`${settings.pageName}: ${overall}`)}"><title>${escapeHtml(title)}</title><link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/status-page.css"></head><body><main class="page${current === "root" ? " root-page" : ""}">${masthead}${slotMarkup(slots, "status-page.header.after.v1", model)}${body}${meta}<footer>${slotMarkup(slots, "status-page.footer.before.v1", model)}${settings.footerCreditEnabled ? "Powered by Lamp" : ""}</footer></main><script src="/assets/status-page.js" defer></script></body></html>`;
 }
 
 function componentMarkup(component: PublicComponent, timezone: string, generatedAt: string) {
-  return `<article class="component"><div class="component-name"><h4>${escapeHtml(component.name)}</h4>${statePill(component.state, "component-state")}${component.note ? `<p class="component-note">${escapeHtml(component.note)}</p>` : ""}</div><div class="component-status">${uptimeMarkup(component, timezone, generatedAt)}</div></article>`;
+  const resources = publicComponentResources(component);
+  return `<article class="component"><div class="component-name"><h4>${escapeHtml(component.name)}</h4>${statePill(component.state, "component-state")}${component.note ? `<p class="component-note">${escapeHtml(component.note)}</p>` : ""}<details class="component-resources"><summary>Feeds and badges</summary><a href="${resources.atom}">Atom</a> · <a href="${resources.rss}">RSS</a> · <a href="${resources.badge}">Status badge</a> · <a href="${resources.uptime}">Uptime badge</a></details></div><div class="component-status">${uptimeMarkup(component, timezone, generatedAt)}</div></article>`;
 }
 
 function componentHealthMarkup(model: ReturnType<typeof toPublicModel>) {
@@ -221,10 +229,14 @@ function renderHistory(model: ReturnType<typeof toPublicModel>, slots: LampServe
 
 export function renderPublicSnapshot(source: PublicSnapshotSource, generatedAt = new Date().toISOString(), policies: PublicSnapshotPolicies = defaultPublicSnapshotPolicies, branding: { logoDataUrl: string | null } = { logoDataUrl: null }, slots: LampServerSlots = {}): RenderedSnapshot {
   const model = toPublicModel(source, generatedAt, policies);
+  const feeds = renderFeeds(model, source);
   const artifacts: SnapshotArtifact[] = [
     { key: "page.html", body: renderPage(model, slots), contentType: "text/html; charset=utf-8" },
-    { key: "feed.atom", body: renderAtom(model), contentType: "application/atom+xml; charset=utf-8" },
+    ...feeds,
+    ...renderBadges(model),
+    ...renderPublicApi(model, source),
     { key: "widget.js", body: renderWidget(statusPayload(model), model.settings), contentType: "application/javascript; charset=utf-8" },
+    { key: "embed/script.js", body: renderWidget(statusPayload(model), model.settings, "floating"), contentType: "application/javascript; charset=utf-8" },
     { key: "status.json", body: JSON.stringify(statusPayload(model)), contentType: "application/json; charset=utf-8" },
     { key: "assets/status-page.js", body: publicPageScript, contentType: "application/javascript; charset=utf-8" },
     { key: "assets/status-page.css", body: publicPageStyles(model.settings.accentColor), contentType: "text/css; charset=utf-8" },
@@ -234,6 +246,6 @@ export function renderPublicSnapshot(source: PublicSnapshotSource, generatedAt =
     ...model.incidents.map((incident) => ({ key: `incidents/${encodeURIComponent(incident.reference)}.html`, body: renderIncidentPage(incident, model, slots), contentType: "text/html; charset=utf-8" })),
   ];
   artifacts.push(...model.maintenance.map((item) => ({ key: `maintenance/${encodeURIComponent(item.reference)}.html`, body: pageShell(`${item.reference} · ${model.settings.pageName}`, `${breadcrumb(item.reference)}${maintenanceMarkup(item, model.settings.timezone, generatedAt, true)}`, model, slots, "other"), contentType: "text/html; charset=utf-8" })));
-  artifacts.push(...renderImportAliases(source, model.incidents, model.maintenance, renderAtom(model), renderHistory(model, slots)));
+  artifacts.push(...renderImportAliases(source, model.incidents, model.maintenance, renderHistory(model, slots)));
   return { generatedAt, artifacts };
 }

@@ -184,7 +184,8 @@ contract("MOVE-005", "imported incident and maintenance bookmarks reach permanen
   const feed = await fetch(`${publicOrigin}/history.atom`);
   assert.equal(feed.status, 200); assert.match(feed.headers.get("Content-Type"), /application\/atom\+xml/u);
   assert.equal(await feed.text(), await (await fetch(`${publicOrigin}/feed.atom`)).text());
-  for (const path of ["/auth/login", "/app/settings", "/api/v2/summary.json", "/history.rss"]) assert.equal((await fetch(`${publicOrigin}${path}`)).status, 404);
+  for (const path of ["/api/v2/summary.json", "/history.rss"]) { const response = await fetch(`${publicOrigin}${path}`); assert.equal(response.status, 200); assert.ok((await response.text()).length > 0); }
+  for (const path of ["/auth/login", "/app/settings"]) assert.equal((await fetch(`${publicOrigin}${path}`)).status, 404);
 });
 
 contract("MOVE-003", "a second run of the same source changes nothing and sends nothing", async () => {

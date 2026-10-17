@@ -1,5 +1,6 @@
 import { readImportedNamespaces, readImportedPublicRecords } from "../statuspage-import/alias-repository";
 import type { ImportedPublicRecord } from "../statuspage-import/public-addresses";
+import { loadPublicApiIds } from "./api-identity-repository";
 import { and, asc, desc, eq, isNull, ne, or, sql } from "drizzle-orm";
 
 import { createDatabase } from "../../platform/db/client";
@@ -33,6 +34,9 @@ export interface SnapshotRepository {
 }
 
 export interface PublicSnapshotSource {
+  publicOrigin?: string;
+  publicApiIds?: Record<string, string>;
+  incidentImpacts?: Record<string, typeof componentStandingClaims.$inferSelect.state>;
   importedNamespaces?: string[];
   importedPublicRecords?: ImportedPublicRecord[];
   settings: typeof pageSettings.$inferSelect;
@@ -44,7 +48,11 @@ export interface PublicSnapshotSource {
     groupId: string | null;
     groupName: string | null;
     groupOrder: number | null;
+    groupCreatedAt?: string | null;
+    groupUpdatedAt?: string | null;
     displayOrder: number;
+    createdAt: string;
+    updatedAt: string;
   }>;
   claims: Array<{ componentId: string; state: typeof componentStandingClaims.$inferSelect.state }>;
   history: Array<typeof componentStateHistory.$inferSelect>;
@@ -59,7 +67,7 @@ export interface PublicSnapshotSource {
   maintenanceNotices: Array<{ id: string; maintenanceId: string; kind: string; body: string; publishedAt: string }>;
 }
 
-export function createSnapshotRepository(binding: D1Database): SnapshotRepository {
+export function createSnapshotRepository(binding: D1Database, publicOrigin?: string): SnapshotRepository {
   const database = createDatabase(binding);
 
   return {
@@ -67,7 +75,7 @@ export function createSnapshotRepository(binding: D1Database): SnapshotRepositor
       const settings = await database.select().from(pageSettings).where(eq(pageSettings.id, "default")).get();
       if (!settings) return null;
 
-      const [componentRows, standingClaims, incidentClaims, maintenanceClaims, history, corrections, incidentRows, attachedComponents, updates, maintenanceRows, attachedMaintenanceComponents, reports, maintenanceNotices, importedPublicRecords, importedNamespaces, importedMaintenanceUpdates] = await Promise.all([
+      const [componentRows, standingClaims, incidentClaims, maintenanceClaims, history, corrections, incidentRows, attachedComponents, updates, maintenanceRows, attachedMaintenanceComponents, reports, maintenanceNotices, importedPublicRecords, importedNamespaces, importedMaintenanceUpdates, publicApiIds, incidentImpactRows] = await Promise.all([
         database
           .select({
             id: components.id,
@@ -77,7 +85,11 @@ export function createSnapshotRepository(binding: D1Database): SnapshotRepositor
             groupId: components.groupId,
             groupName: componentGroups.name,
             groupOrder: componentGroups.displayOrder,
+            groupCreatedAt: componentGroups.createdAt,
+            groupUpdatedAt: componentGroups.updatedAt,
             displayOrder: components.displayOrder,
+            createdAt: components.createdAt,
+            updatedAt: components.updatedAt,
           })
           .from(components)
           .leftJoin(componentGroups, eq(components.groupId, componentGroups.id))
@@ -121,9 +133,13 @@ export function createSnapshotRepository(binding: D1Database): SnapshotRepositor
         readImportedPublicRecords(binding),
         readImportedNamespaces(binding),
         binding.prepare("SELECT id,maintenance_id AS maintenanceId,body,published_at AS publishedAt FROM import_maintenance_updates ORDER BY published_at DESC,id").all<{id: string; maintenanceId: string; body: string; publishedAt: string}>().then(result => result.results),
+        loadPublicApiIds(binding),
+        binding.prepare("SELECT id,peak_impact AS impact FROM incidents WHERE deleted_at IS NULL").all<{ id: string; impact: typeof componentStandingClaims.$inferSelect.state | null }>().then(result => result.results),
       ]);
 
       return {
+        publicOrigin,
+        publicApiIds, incidentImpacts: Object.fromEntries(incidentImpactRows.filter(row => row.impact !== null).map(row => [row.id, row.impact!])),
         importedPublicRecords, importedNamespaces,
         settings,
         components: componentRows,

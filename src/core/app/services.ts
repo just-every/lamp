@@ -32,7 +32,8 @@ import { createServerExtensionMount } from "./extensions/server";
 export function createAppServices(bindings: AppBindings, blobs: BlobStore, execution?: MailExecution) {
   const extensions = createServerExtensionMount();
   const { sender: mail, local } = createAppMailTransport(bindings, extensions.adapters["mail.sender.v1"], execution);
-  const publicSnapshots = createPublicSnapshotService(createSnapshotRepository(bindings.DB), blobs, extensions.publicSnapshotPolicies, extensions.publicSnapshotEvents, extensions.slots, createRetainedSnapshotCache(bindings));
+  const snapshotOrigin = bindings.LAMP_LOCAL_ORIGIN ? publicPageOrigin(bindings.LAMP_LOCAL_ORIGIN, bindings.LAMP_PAGE_HOST) : undefined;
+  const publicSnapshots = createPublicSnapshotService(createSnapshotRepository(bindings.DB, snapshotOrigin), blobs, extensions.publicSnapshotPolicies, extensions.publicSnapshotEvents, extensions.slots, createRetainedSnapshotCache(bindings));
   const pageSettings = createPageSettingsService(createPageSettingsRepository(bindings.DB), publicSnapshots.rebuild, blobs, bindings.MAIL_FROM_ADDRESS);
   const configuredFromAddress = async () => (await pageSettings.get())?.mailFromAddress ?? bindings.MAIL_FROM_ADDRESS;
   const configuredPageName = async () => {

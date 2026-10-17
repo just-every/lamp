@@ -34,7 +34,7 @@ test('MOVE-006 rer setup twice, one-click sign-in, silent imports and browser cu
     for(let pass=0;pass<2;pass++) await runtime.run('setup','--owner-email',owner,'--non-interactive','--port',String(port));
     await runtime.start();
     const key = await readDevKey(root);
-    browser=await chromium.launch();
+    browser=await chromium.launch({headless:true,args:["--use-mock-keychain","--password-store=basic"]});
     const context=await browser.newContext();
     await context.route(url=>url.pathname.startsWith('/@fs/'),route=>route.continue({headers:{...route.request().headers(),'x-rer-dev-key':key}}));
     const page=await context.newPage();
@@ -90,7 +90,7 @@ test('MOVE-006 rer setup twice, one-click sign-in, silent imports and browser cu
       }
       await visible(page,width,`${family}-opens`);
       const feed=await fetch(publicOrigin+'/history.atom');assert.equal(feed.status,200);assert.match(feed.headers.get('content-type'),/atom/);
-      for(const path of ['/history.rss','/api/v2/status.json']) assert.equal((await fetch(publicOrigin+path)).status,404);
+      for(const path of ['/history.rss','/api/v2/status.json']) { const response=await fetch(publicOrigin+path);assert.equal(response.status,200);assert.ok((await response.text()).length>0); }
       await page.getByLabel('Public address',{exact:true}).fill(`http://127.0.0.1:${await reservePort()}`);
       await page.getByRole('button',{name:'Use this address for checks'}).click();
       const first=page.getByRole('button',{name:'Check opens',exact:true}).first();await first.click();

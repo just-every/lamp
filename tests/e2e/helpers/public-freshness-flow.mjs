@@ -37,8 +37,8 @@ export async function publicFreshnessFlow({ appFetch, appUrl, pageUrl, diagnosti
   const proxy = await snapshotProxy(pageUrl);
   let browser;
   try {
-    browser = await chromium.launch({ headless: true });
-    const page = await browser.newPage();
+    browser = await chromium.launch({ headless: true, args: ["--use-mock-keychain", "--password-store=basic"] });
+    const page = await (await browser.newContext()).newPage();
     await page.goto(`${pageUrl}/`, { waitUntil: "networkidle" });
     const signIn = page.getByRole("link", { name: "Sign in", exact: true });
     assert.equal(await signIn.getAttribute("href"), `${appUrl}/signin`, "installed action preserves local scheme/port and configured app hostname");

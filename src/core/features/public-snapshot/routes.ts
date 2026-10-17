@@ -6,6 +6,7 @@ import type { AppEnv } from "../../app/types";
 import { escapeHtml } from "./format";
 import { applyPublicIsolationHeaders } from "./headers";
 import type { PublicSnapshotService } from "./service";
+import { nativeApiArtifact } from "./native-api";
 
 // Stable public URLs are selectors, not immutable artifacts. Revalidate the
 // generation on every reuse; downstream stale-while-revalidate can otherwise
@@ -68,11 +69,15 @@ async function labelledStaleResponse(cached: Response, artifact: string) {
     const body = (await cached.clone().text()).replace(/<title>([^<]*)<\/title>/, `<title>$1</title><subtitle>Last known state — content generated at ${headers.get("X-Lamp-Snapshot-Generated-At") ?? "unknown"}; current state could not be verified.</subtitle>`);
     return new Response(body, { status: cached.status, headers });
   }
+  if (contentType.includes("rss+xml")) {
+    const body = (await cached.clone().text()).replace(/<description>[^<]*<\/description>/, `<description>Last known state — content generated at ${headers.get("X-Lamp-Snapshot-Generated-At") ?? "unknown"}; current state could not be verified.</description>`);
+    return new Response(body, { status: cached.status, headers });
+  }
   if (artifact === "status.json" && contentType.includes("application/json")) {
     const payload = JSON.parse(await cached.clone().text()) as Record<string, unknown>;
     return new Response(JSON.stringify({ ...payload, snapshotState: "stale" }), { status: cached.status, headers });
   }
-  if (artifact === "widget.js" && contentType.includes("javascript")) {
+  if ((artifact === "widget.js" || artifact === "embed/script.js") && contentType.includes("javascript")) {
     const body = `${await cached.clone().text()};(()=>{const n=document.currentScript?.nextElementSibling;if(n?.getAttribute('role')==='status'){const l=document.createElement('span');l.textContent=${JSON.stringify(` · Last known state — generated at ${headers.get('X-Lamp-Snapshot-Generated-At') ?? 'unknown'}`)};n.append(l)}})();`;
     return new Response(body, { status: cached.status, headers });
   }
@@ -140,6 +145,7 @@ export function registerPublicSnapshotRoutes(app: Hono<AppEnv>, service: PublicS
     const cache = await caches.open("lamp-public-snapshot-fallback").catch(() => null);
     const cacheUrl = new URL(context.req.url);
     cacheUrl.search = ""; // Public artifacts do not vary by query parameters.
+    if (cacheUrl.pathname.startsWith("/api/public/v1/")) cacheUrl.searchParams.set("artifact", artifact(context));
     const cacheRequest = new Request(cacheUrl, { method: "GET" });
     try {
       const object = await service.readArtifact(artifact(context));
@@ -203,6 +209,7 @@ export function registerPublicSnapshotRoutes(app: Hono<AppEnv>, service: PublicS
 
   app.get("*", async (context, next) => {
     const path = new URL(context.req.url).pathname;
+    if (["/history.atom", "/history.rss"].includes(path)) return next();
     if (!isImportAliasPath(path)) return next();
     // Every valid Sorry month shares the retained collection redirect. Its
     // absence after undo yields 404, even for a month never previously visited.
@@ -213,7 +220,19 @@ export function registerPublicSnapshotRoutes(app: Hono<AppEnv>, service: PublicS
   app.get("/history", serve(() => "history.html"));
   app.get("/incidents/:reference", serve((context) => `incidents/${encodeURIComponent(context.req.param("reference") ?? "")}.html`, false, "not-found.html"));
   app.get("/feed.atom", serve(() => "feed.atom"));
+  app.get("/feed.rss", serve(() => "feed.rss"));
+  app.get("/history.atom", serve(() => "history.atom"));
+  app.get("/history.rss", serve(() => "history.rss"));
+  app.get("/badge.svg", serve(() => "badge.svg"));
+  app.get("/badge.json", serve(() => "badge.json"));
+  for (const resource of ["feed.atom", "feed.rss", "badge.svg", "uptime.svg"]) {
+    app.get(`/components/:slug/${resource}`, serve(context => `components/${encodeURIComponent(context.req.param("slug") ?? "")}/${resource}`));
+  }
+  app.get("/api/v2/*", serve(context => new URL(context.req.url).pathname.slice(1)));
+  for (const path of ["/api/public/v1", "/api/public/v1/", "/api/public/v1/summary.json"]) app.get(path, serve(() => "api/public/v1/summary.json"));
+  app.get("/api/public/v1/*", serve(context => nativeApiArtifact(new URL(context.req.url).pathname, context.req.query("cursor"))));
   app.get("/widget.js", serve(() => "widget.js"));
+  app.get("/embed/script.js", serve(() => "embed/script.js"));
   app.get("/assets/status-page.css", serve(() => "assets/status-page.css"));
   app.get("/assets/status-page.js", serve(() => "assets/status-page.js"));
   app.get("/assets/logo", serve(() => "assets/logo", true));

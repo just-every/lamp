@@ -177,11 +177,11 @@ that source-owned host; Lamp can serve `/abc` on your moved hostname only when
 that path was supplied and accepted. Keep the original redirect or update the
 consumer's link.
 
-The source's `/history.atom` path reaches Lamp's Atom feed. `/history.rss`
-returns 404; change RSS readers to `/feed.atom`. Readers using the source JSON
-API under `/api/v2/` receive 404 and must use Lamp's native
-`/api/public/status` format. The source's provider widget is not served by
-Lamp; replace it with `/widget.js` and allow its origin in Settings.
+The source's `/history.atom` and `/history.rss` paths reach Lamp's feeds.
+Statuspage JSON readers use `/api/v2/` on the moved hostname. The old
+`/embed/script.js` path serves Lamp's floating notice; allow the embedding
+origin in Settings. [Public resources](public-resources.md) documents the
+read APIs, native pagination and remaining maintenance compatibility gaps.
 
 ## Sorry
 
@@ -466,7 +466,7 @@ The optional summary file preserves exact supplied public URLs from
 to management records by source ID. A summary is not complete history. Old URLs
 missing from it are unavailable; Lamp never guesses a path or host. Supplied
 incident and maintenance paths redirect to surviving Lamp records. The source's
-`/history.atom` path reaches Lamp's Atom feed; `/history.rss`, `/summary.json`,
-`/v3/summary.json` and `/v3/components.json` are unsupported. Update readers to
-`/feed.atom` or Lamp's native `/api/public/status` format. The source hostname
+`/history.atom` and `/history.rss` paths reach Lamp's feeds. `/summary.json`,
+`/v3/summary.json` and `/v3/components.json` are unsupported. Update JSON readers
+to Lamp's native `/api/public/v1/` format. The source hostname
 remains outside Lamp's control.

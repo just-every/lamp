@@ -15,8 +15,8 @@ export interface CutoverPreview {
 }
 export function sourceReaderGaps(namespace: string) {
   if (namespace === 'sorry') return ["Sorry public JSON readers under /api/v1/ are not served by Lamp. Update them to /api/public/status. Sorry feeds are not a complete history export; use Lamp’s /feed.atom after moving."];
-  if (namespace === 'instatus') return ["Instatus RSS /history.rss is not served by Lamp; change readers to /feed.atom.", "Instatus public JSON /summary.json, /v3/summary.json and /v3/components.json are not served by Lamp. Update API readers to Lamp's native /api/public/status format."];
-  return namespace === 'betterstack' ? ["Better Stack RSS /feed.rss and public JSON /index.json are not served by Lamp. Update readers to /feed.atom and the native /api/public/status format."] : ["Statuspage JSON API readers under /api/v2/ receive 404; Lamp does not implement that compatibility API. Update those readers to Lamp's native /api/public/status format.", "Statuspage RSS readers at /history.rss receive 404; change their subscription to /feed.atom."];
+  if (namespace === 'instatus') return ["Instatus public JSON /summary.json, /v3/summary.json and /v3/components.json are not served by Lamp. Update API readers to Lamp's native /api/public/status format."];
+  return namespace === 'betterstack' ? ["Better Stack public JSON /index.json is not served by Lamp. Update JSON readers to /api/public/v1/. RSS /feed.rss is served."] : ["Statuspage /api/v2/ read endpoints, /history.rss and /history.atom are served. Per-window maintenance switches and Verifying still await MAINT-009. Webhook body compatibility and component automation email addresses remain unavailable."];
 }
 export const pendingDeadline = (createdAt: string) => new Date(Date.parse(createdAt) + 72 * 60 * 60 * 1000).toISOString();
 export function cutoverAddresses(records: PublicAddressCandidate[]) {
