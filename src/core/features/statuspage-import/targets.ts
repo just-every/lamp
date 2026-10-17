@@ -33,6 +33,12 @@ async function readTables(db: D1Database, kind: string, id: string) {
     // shared with its planned value, including updates at the same instant.
     const order = table === "import_maintenance_updates" ? "published_at,id" : "rowid";
     const rows = (await db.prepare(`SELECT * FROM ${table} WHERE ${column}=? ORDER BY ${order}`).bind(id).all<Row>()).results;
+    // Existing import journals predate per-update component snapshots. Empty
+    // migration defaults are not an operator edit; real published changes are.
+    if (table === "incident_updates") for (const row of rows) {
+      if (row.component_changes_json === "[]") delete row.component_changes_json;
+      if (row.component_snapshot_json === "[]") delete row.component_snapshot_json;
+    }
     // Legacy journals have no history key: empty additions must not change their revision value.
     if (!["import_maintenance_updates", "component_standing_claims"].includes(table) || rows.length) tables[table] = rows;
   }

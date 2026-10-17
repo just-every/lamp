@@ -756,7 +756,7 @@
       "executable": false
     },
     "migrations/core/0027_update_component_changes.sql": {
-      "sha256": "8b1e1266483843f72970d5f2161f476e1310c99610fd5b00bdefaefe07647d7a",
+      "sha256": "5d198f76ba15ef21db012eeb201128cfdc123541d51e983436f51b87329e67fa",
       "executable": false
     },
     "migrations/core/0028_wording_checks.sql": {
@@ -3580,7 +3580,7 @@
       "executable": false
     },
     "src/core/features/statuspage-import/targets.ts": {
-      "sha256": "6bbedf21334bdcff15e2a4f2a73096fd0bb6dfb4f4ec75083e1625c3eda96b82",
+      "sha256": "ac2d65ac929f2d196ce1dc99d0ea7658fc34323814c091a63992fe190138a02a",
       "executable": false
     },
     "src/core/features/statuspage-import/ui/cutover-draft.ts": {

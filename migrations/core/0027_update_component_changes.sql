@@ -16,4 +16,7 @@ UPDATE incident_updates AS u SET component_snapshot_json = (
     'internal', json(CASE WHEN c.internal = 1 THEN 'true' ELSE 'false' END)
   )) FROM incident_components ic JOIN components c ON c.id = ic.component_id
   WHERE ic.incident_id = u.incident_id AND ic.published_at <= u.published_at
-);
+)
+-- Imported history never notified subscribers. Preserve its sealed move-in
+-- value so upgrading alone cannot make undo treat it as an operator edit.
+WHERE NOT EXISTS (SELECT 1 FROM statuspage_import_targets t WHERE t.kind = 'incident' AND t.id = u.incident_id);
