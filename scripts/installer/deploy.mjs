@@ -13,7 +13,9 @@ export function lampDeploy(lifecycle){
   const resultFile=join(temporary,'result.json');
   try{
    const args=['run','deploy:cloudflare','--','--environment',environment,'--result-file',resultFile,...(options.dryRun?['--dry-run']:[])];
-   await store.run(options.dryRun?'Validating the Lamp deployment locally':'Deploying Lamp to Cloudflare','pnpm',args,{cwd:root,signal,env:{...process.env,RER_LOCAL_OPERATION:operationToken}});
+   // `rer deploy --rotate-secret NAME` hands a fresh value for NAME; the pipeline keeps
+   // every secret the Worker holds unless it is named for replacement.
+   await store.run(options.dryRun?'Validating the Lamp deployment locally':'Deploying Lamp to Cloudflare','pnpm',args,{cwd:root,signal,env:{...process.env,RER_LOCAL_OPERATION:operationToken,RER_ROTATE_SECRETS:options.rotateSecret??''}});
    if(options.dryRun){store.report('deploy: dry run complete; no deployment occurred and no provider request was made.');return {dryRun:true,deployed:false};}
    const deployed=JSON.parse(await readFile(resultFile,'utf8'));
    const config=deploymentConfig(process.env,environment);

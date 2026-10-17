@@ -67,7 +67,12 @@ execute a shell script. File values override exported environment values.
 `WEBHOOK_SIGNING_SECRET` when they are not in the file. A redeploy never replaces
 the last three on a running installation: Lamp keeps the values each Worker
 already holds, so subscriber Manage, Unsubscribe and one-click links and operator
-sessions keep working, and the deploy says which it kept. To restore into a new
+sessions keep working, and the deploy says which it kept. The same holds for
+`OIDC_TRANSACTION_SECRET` when you use [single sign-on](operators-and-sign-in.md#optional-single-sign-on),
+so a sign-in in progress survives a redeploy. rer also keeps the values it
+generates in `.rer/deploy/<environment>.secrets.env` in your Lamp folder; to
+deploy from another checkout, copy that file there or keep the values in this
+private file. To restore into a new
 installation you need the originals, so generate them once into this private file
 before the first deploy and keep the file. Run this once, before those keys exist
 in the file; it needs only the standard `od` and `tr` tools and appends random
@@ -79,9 +84,11 @@ for name in SETUP_TOKEN SESSION_SECRET SUBSCRIBER_TOKEN_SECRET WEBHOOK_SIGNING_S
 done
 ```
 
-To replace one of the three on purpose (for example after a leak), put its new
+To replace one of these on purpose (for example after a leak), put its new
 value in the file and add `LAMP_REPLACE_SECRETS=SESSION_SECRET` (comma-separated
-names) for that one deploy. Replacing `SUBSCRIBER_TOKEN_SECRET` ends every emailed
+names) for that one deploy. For a secret rer generated and the file does not hold,
+`rer deploy --environment production --env-file "$LAMP_DEPLOY_ENV" --rotate-secret SESSION_SECRET`
+replaces it with a fresh value instead. Replacing `SUBSCRIBER_TOKEN_SECRET` ends every emailed
 subscriber link; replacing `SESSION_SECRET` signs every operator out. The [input reference](deployment-reference.md#inputs-you-supply-and-values-rer-generates)
 explains which are required, generated or optional.
 
@@ -92,7 +99,7 @@ without `--env-file`. Do not commit inputs or paste secret values into logs.
 
 ## Validate and deploy
 
-Use `rer` from the project root; the checkout pins `@runeditrun/rer` 0.2.36. Before a
+Use `rer` from the project root; the checkout pins `@runeditrun/rer` 0.2.38. Before a
 command that builds or verifies the checkout, stop a running development server
 with `rer dev --stop` or a production preview with `rer preview --stop`.
 

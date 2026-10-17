@@ -1,6 +1,7 @@
 # Run it locally
 
-Use `rer` from the project root. The checkout pins `@runeditrun/rer` 0.2.36;
+Use `rer` from the project root. The checkout pins `@runeditrun/rer` 0.2.38,
+which every `rer` command here runs whatever `rer` you installed;
 `rer describe` reports the commands and tooling in use. Lamp runs on
 your computer without a Cloudflare account or mail credentials; development mail
 is silently suppressed.

@@ -22,8 +22,8 @@ export function OperatorsPanel() {
     event.preventDefault();
     setSaving(true); setMessage(null);
     try {
-      await appApi("/api/app/operators/invite", { method: "POST", body: JSON.stringify({ email, displayName }) });
-      setEmail(""); setDisplayName(""); setMessage("Invitation email sent.");
+      const sent = await appApi<{ email: "sent" | "suppressed" }>("/api/app/operators/invite", { method: "POST", body: JSON.stringify({ email, displayName }) });
+      setEmail(""); setDisplayName(""); setMessage(sent.email === "suppressed" ? "Invitation saved. Local mail is suppressed, so no email was sent; on a hosted installation the person gets an invitation email." : "Invitation email sent.");
       invited.refresh();
     } catch (cause) {
       setMessage(cause instanceof Error ? cause.message : "The invitation could not be sent.");
@@ -66,7 +66,7 @@ export function OperatorsPanel() {
     <form action="/auth/step-up" method="post">
       <input type="hidden" name="action" value="owner:transfer" />
       <input type="hidden" name="returnTo" value="/app/settings" />
-      <p>Before changing operator access, confirm your identity with an email link. Confirmation lasts ten minutes.</p>
+      <p>Before changing operator access, confirm your identity with an email link. You stay signed in: the button opens the sign-in page, which emails you a link, and opening that link brings you back here confirmed for ten minutes.</p>
       <Button variant="secondary">Confirm my identity</Button>
       <a href="/auth/settings/identity">Identity provider settings</a>
     </form>

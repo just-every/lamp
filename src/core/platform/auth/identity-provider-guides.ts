@@ -18,11 +18,11 @@ export interface GuideInput { origin: string; local: boolean; identityProvider?:
 const deployCommand = 'rer deploy --environment production --env-file "$HOME/.config/lamp/production.env"';
 
 function settingsStep(input: GuideInput, id: string, lines: string, placeholders: string) {
-  return `<li>${input.local ? 'Stop <code>rer dev</code>. Add these two lines to the <code>.dev.vars</code> file in your Lamp folder' : 'Add these two lines to the private settings file you deploy Lamp with'}, replacing ${placeholders}. The second line is a fresh random secret for this installation; keep it private. If the file already has an <code>AUTH_PROVIDERS</code> line, put the entry between its <code>[ ]</code> after a comma instead, and keep its <code>OIDC_TRANSACTION_SECRET</code> line.${copyBlock(id, lines, 'Copy the two lines')}</li>`;
+  return `<li>${input.local ? 'Stop Lamp by running <code>rer dev --stop</code> in your Lamp folder. Add these two lines to the <code>.dev.vars</code> file in your Lamp folder' : 'Add these two lines to the private settings file you deploy Lamp with'}, replacing ${placeholders}. The second line is a fresh random secret for this installation; keep it private. If the file already has an <code>AUTH_PROVIDERS</code> line, put the entry between its <code>[ ]</code> after a comma instead, and keep its <code>OIDC_TRANSACTION_SECRET</code> line.${copyBlock(id, lines, 'Copy the two lines')}</li>`;
 }
 
 function deployStep(input: GuideInput, id: string, provider: string) {
-  return `<li>${input.local ? 'Start <code>rer dev</code> again.' : `Deploy again from your Lamp folder, with your own environment name and file:${copyBlock(id, deployCommand, 'Copy the deploy command')}`} This page then says ${provider} is set up. A redeploy keeps every signed-in session and subscriber link.</li>`;
+  return `<li>${input.local ? 'Start Lamp again with <code>rer dev</code> in the same folder.' : `Deploy again from your Lamp folder, with your own environment name and file:${copyBlock(id, deployCommand, 'Copy the deploy command')}`} This page then says ${provider} is set up. A redeploy keeps every signed-in session and subscriber link.</li>`;
 }
 
 function enableStep(provider: string, account: string) {

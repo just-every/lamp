@@ -1,7 +1,7 @@
 # Deployment reference
 
 Use `rer deploy` from the project root. The checkout pins
-`@runeditrun/rer` 0.2.36; use `rer describe` and `rer deploy --help` for the installed
+`@runeditrun/rer` 0.2.38; use `rer describe` and `rer deploy --help` for the installed
 command reference. The [deployment guide](deploy.md) gives a complete private
 `0600` input file, validation, deploy and removal commands. `--env-file` values
 override the calling shell's exported values.
@@ -38,7 +38,7 @@ Optional values follow the required entries in the table.
 | `LAMP_PAGE_TIMEZONE`, `LAMP_ACCENT_COLOR` | An IANA time zone and a six-digit hex colour, such as `Europe/London` and `#16794C`. |
 | `SETUP_OPERATOR_EMAIL` | The first owner's email address. Supply it explicitly for Lamp's native deployment. |
 | `MAIL_FROM_ADDRESS`, `MAIL_DKIM_SELECTOR`, `MAIL_PROVIDER_API_KEY` | Your provider-authenticated sender, its DKIM selector and the selected provider's API key. These are required owner inputs. |
-| `SETUP_TOKEN`, `SESSION_SECRET`, `SUBSCRIBER_TOKEN_SECRET`, `WEBHOOK_SIGNING_SECRET` | Required runtime secrets. `rer deploy` generates fresh random values when absent; they are not mandatory manual inputs for a first deployment. A redeploy keeps the `SESSION_SECRET`, `SUBSCRIBER_TOKEN_SECRET` and `WEBHOOK_SIGNING_SECRET` each Worker already holds, so links and sessions survive it; `LAMP_REPLACE_SECRETS=NAME` replaces one on purpose. For restores into a new installation, supply and retain your original values as shown in the deployment guide. Each must be at least 32 characters. |
+| `SETUP_TOKEN`, `SESSION_SECRET`, `SUBSCRIBER_TOKEN_SECRET`, `WEBHOOK_SIGNING_SECRET` | Required runtime secrets. `rer deploy` generates fresh random values when absent; they are not mandatory manual inputs for a first deployment. rer keeps the values it generates in `.rer/deploy/<environment>.secrets.env` and reuses them. A redeploy keeps the `SESSION_SECRET`, `SUBSCRIBER_TOKEN_SECRET`, `WEBHOOK_SIGNING_SECRET` and `OIDC_TRANSACTION_SECRET` each Worker already holds, so links, sessions and sign-ins in progress survive it; `LAMP_REPLACE_SECRETS=NAME` (with the new value in the file) or `rer deploy --rotate-secret NAME` replaces one on purpose. For restores into a new installation, supply and retain your original values as shown in the deployment guide. Each must be at least 32 characters. |
 | `MAIL_PROVIDER` | `resend` (native default) or `sendgrid`. Set explicitly to match the API key. |
 | `OWNER_DISPLAY_NAME` | Optional first-owner name, 1–120 characters; the native default is `Owner`. Existing owners keep their name. |
 | `LAMP_HOSTING` | `custom-domain` (default) or `workers-dev`. |

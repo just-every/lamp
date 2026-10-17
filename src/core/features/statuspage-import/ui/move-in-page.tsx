@@ -7,6 +7,7 @@ import { Button } from "../../../app/client/ui/button";
 import { EmptyState } from "../../../app/client/ui/lit-states";
 import { FormError } from "../../../app/client/ui/states";
 import type { MoveInReport } from "../planning";
+import { HELD_SORRY_DAYS } from "../held-sorry";
 
 type SavedFile = { name: string; text: string };
 type Preview = { report: MoveInReport; jobId?: string; files?: SavedFile[] };
@@ -81,7 +82,7 @@ export function MoveInPage() {
   const saved = preview?.files ? URL.createObjectURL(new Blob([JSON.stringify(preview.files)], { type: "application/json" })) : null;
 
   return <div className="page-stack move-in-page">
-    <section className="page-title-row"><div><p className="eyebrow">Settings</p><h1>Move in from {sourceLabel}</h1><p>Bring your components, groups, incident history, scheduled maintenance and email subscribers. Nothing is written until you review a dry run, past incidents notify no one, and subscribers stay pending until you choose Send invitations in Cutover. {source === "sorry" && "Public mode reads only published history; subscribers require the authenticated API and stay held until after cutover."}</p></div></section>
+    <section className="page-title-row"><div><p className="eyebrow">Settings</p><h1>Move in from {sourceLabel}</h1><p>Bring your components, groups, incident history, scheduled maintenance and email subscribers. Nothing is written until you review a dry run, past incidents notify no one, and subscribers stay pending until you choose Send invitations in Cutover. {source === "sorry" && `Public mode reads only published history; subscribers require the authenticated API and stay held until after cutover, for up to ${HELD_SORRY_DAYS} days.`}</p></div></section>
     <section className="data-card"><form className="move-in-form" onSubmit={dryRun}>
       <label className="form-label">Source<select value={source} disabled={busy || !hydrated} onChange={event => { setSource(event.target.value as typeof source); setPreview(null); setResult(null); setFiles([]); setPageId(""); setPublicUrl(""); setApiKey(""); setAcknowledged(false); setPublicAccessAcknowledged(false); setError(null); clearCutover(); }}><option value="statuspage">Statuspage</option><option value="betterstack">Better Stack</option><option value="instatus">Instatus</option><option value="sorry">Sorry</option></select></label>
       <fieldset><legend>From your {sourceLabel} account</legend><AccountHelp source={source} />

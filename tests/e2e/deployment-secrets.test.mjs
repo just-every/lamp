@@ -14,7 +14,7 @@ test('deployment secrets remain private and are removed after success or failure
     const action = withDeploymentSecrets(config, [], async file => {
       path = file;
       assert.equal((await stat(file)).mode & 0o777, 0o600);
-      assert.deepEqual(JSON.parse(await readFile(file, 'utf8')), { SESSION_SECRET:config.sessionSecret,SETUP_TOKEN:config.setupToken,AUTH_PROVIDERS:"",OIDC_TRANSACTION_SECRET:"",MAIL_PROVIDER_API_KEY: config.mailProviderApiKey, MAIL_API_KEY: "", SUBSCRIBER_TOKEN_SECRET: config.subscriberTokenSecret, WEBHOOK_SIGNING_SECRET: config.webhookSigningSecret, RER_MAIL_RELAY_SECRET: "", RESEND_WEBHOOK_SECRET: "", AI_PROVIDER_API_KEY: "" });
+      assert.deepEqual(JSON.parse(await readFile(file, 'utf8')), { SESSION_SECRET:config.sessionSecret,SETUP_TOKEN:config.setupToken,AUTH_PROVIDERS:"",MAIL_PROVIDER_API_KEY: config.mailProviderApiKey, MAIL_API_KEY: "", SUBSCRIBER_TOKEN_SECRET: config.subscriberTokenSecret, WEBHOOK_SIGNING_SECRET: config.webhookSigningSecret, RER_MAIL_RELAY_SECRET: "", RESEND_WEBHOOK_SECRET: "", AI_PROVIDER_API_KEY: "" });
       if (fail) throw new Error('test failure');
     });
     if (fail) await assert.rejects(action, /test failure/); else await action;
@@ -48,7 +48,8 @@ test('a redeploy as the guide says keeps subscriber links and operator sessions,
   const modules = await load('tests/auth-adoption/adapter.ts');
   // The Worker's secrets: a deploy writes what its secrets file names; Wrangler keeps the rest.
   const worker = {};
-  const deploy = (env = {}) => withDeploymentSecrets(generated(), keptSecrets(Object.keys(worker), replacedSecrets(env)), async file => Object.assign(worker, JSON.parse(await readFile(file, 'utf8'))));
+  // The owner's file carries OIDC_TRANSACTION_SECRET; a re-copied identity guide gives a new one each time.
+  const deploy = (env = {}, oidc = randomBytes(32).toString('hex')) => withDeploymentSecrets({ ...generated(), oidcTransactionSecret: oidc }, keptSecrets(Object.keys(worker), replacedSecrets(env)), async file => Object.assign(worker, JSON.parse(await readFile(file, 'utf8'))));
   const messages = [];
   const pageFor = () => {
     const app = new Hono();
@@ -74,6 +75,8 @@ test('a redeploy as the guide says keeps subscriber links and operator sessions,
   await deploy();
   page = pageFor();
   for (const name of signingSecrets) assert.equal(worker[name], first[name], `${name} survives a redeploy`);
+  await deploy({}, undefined);
+  assert.equal(worker.OIDC_TRANSACTION_SECRET, first.OIDC_TRANSACTION_SECRET, 'a file without it leaves the identity-provider secret as it is');
   assert.notEqual(worker.SETUP_TOKEN, first.SETUP_TOKEN, 'the one-time setup token is still replaced');
   assert.equal((await page.request(manage)).status, 200, 'an emailed Manage link still opens');
   assert.equal((await page.request(unsubscribe, { method: 'POST', body: new URLSearchParams({ 'List-Unsubscribe': 'One-Click' }) })).status, 200, 'the RFC 8058 one-click POST still unsubscribes');
@@ -82,6 +85,9 @@ test('a redeploy as the guide says keeps subscriber links and operator sessions,
   await deploy({ LAMP_REPLACE_SECRETS: 'SESSION_SECRET' });
   assert.notEqual(worker.SESSION_SECRET, first.SESSION_SECRET);
   assert.equal(worker.SUBSCRIBER_TOKEN_SECRET, first.SUBSCRIBER_TOKEN_SECRET);
+  await deploy({ RER_ROTATE_SECRETS: 'SUBSCRIBER_TOKEN_SECRET' });
+  assert.notEqual(worker.SUBSCRIBER_TOKEN_SECRET, first.SUBSCRIBER_TOKEN_SECRET, 'rer deploy --rotate-secret reaches the pipeline');
+  assert.equal(worker.OIDC_TRANSACTION_SECRET, first.OIDC_TRANSACTION_SECRET);
   assert.throws(() => replacedSecrets({ LAMP_REPLACE_SECRETS: 'SETUP_TOKEN' }), /takes only/);
 
   // Removed product integrations are cleared while unrelated owner secrets stay.

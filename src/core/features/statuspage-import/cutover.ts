@@ -1,5 +1,6 @@
 import type { ImportPlan } from '../../../../modules/import-kit/src/d1/index';
 import type { NativeValue } from './rows';
+import { heldDeadline } from './held-sorry';
 import { isLampPermalink, resolvePublicAddresses, sourceFeedPaths, type PublicAddressCandidate } from './public-addresses';
 
 export interface CutoverPreview {
@@ -10,7 +11,7 @@ export interface CutoverPreview {
   total: number;
   unavailable: string[];
   feeds: string[];
-  invitations: { eligible: number; claimed: number; expired: number; deadline: string | null };
+  invitations: { eligible: number; claimed: number; expired: number; deadline: string | null; heldUntil?: string | null };
 }
 export function sourceReaderGaps(namespace: string) {
   if (namespace === 'sorry') return ["Sorry public JSON readers under /api/v1/ are not served by Lamp. Update them to /api/public/status. Sorry feeds are not a complete history export; use Lamp’s /feed.atom after moving."];
@@ -33,5 +34,5 @@ export function cutoverFromPlan(plan: ImportPlan, asOf: string): CutoverPreview 
     return [{ namespace: entry.source.namespace, sourceId: entry.source.sourceId, targetId: effect.targetId, targetKind: effect.targetKind, target, publicAddresses: (entry.source.payload as { publicAddresses?: string[] }).publicAddresses, shortlink: (entry.source.payload as { raw?: { shortlink?: unknown } }).raw?.shortlink }];
   }));
   const eligible = plan.entries.filter(entry => !entry.erased).flatMap(entry => entry.effects).filter(effect => effect.targetKind === 'subscriber').length;
-  return { source: plan.namespace, afterCutover: plan.namespace === "sorry", readerGaps: sourceReaderGaps(plan.namespace), ...cutoverAddresses(records), feeds: [...new Set(plan.entries.flatMap(entry => sourceFeedPaths[entry.source.namespace] ?? []))], invitations: { eligible, claimed: 0, expired: 0, deadline: plan.namespace !== "sorry" && eligible && asOf ? pendingDeadline(asOf) : null } };
+  return { source: plan.namespace, afterCutover: plan.namespace === "sorry", readerGaps: sourceReaderGaps(plan.namespace), ...cutoverAddresses(records), feeds: [...new Set(plan.entries.flatMap(entry => sourceFeedPaths[entry.source.namespace] ?? []))], invitations: { eligible, claimed: 0, expired: 0, deadline: plan.namespace !== "sorry" && eligible && asOf ? pendingDeadline(asOf) : null, heldUntil: plan.namespace === "sorry" && eligible && asOf ? heldDeadline(asOf) : null } };
 }

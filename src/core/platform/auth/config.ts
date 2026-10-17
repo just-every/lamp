@@ -23,7 +23,11 @@ export function authConfig(env: AppBindings): AuthConfig {
     OWNER_EMAIL: (env.SETUP_OPERATOR_EMAIL || env.OWNER_EMAIL)!, SESSION_SECRET: env.SESSION_SECRET!, SETUP_TOKEN: env.SETUP_TOKEN,
     MAIL_FROM: env.MAIL_FROM_ADDRESS, linkSeconds: 20 * 60,
     branding: { productName: 'Lamp', accentColor: '#163c60', signInPath: '/signin', theme: '/rer-theme.css' },
-    dependencies: true, OIDC_TRANSACTION_SECRET: env.OIDC_TRANSACTION_SECRET,
+    dependencies: true,
+    // A Worker that Lamp 1.6.0 or earlier deployed without one holds it empty, and redeploys keep it.
+    // Empty means unset: derive a distinct stable value from the kept session
+    // secret, as Base does for the Auth dependency.
+    OIDC_TRANSACTION_SECRET: env.OIDC_TRANSACTION_SECRET || `${env.SESSION_SECRET}-oidc`,
     providers: providers(env.AUTH_PROVIDERS),
   };
 }

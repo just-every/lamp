@@ -61,10 +61,22 @@ environment; this is a plain `KEY=VALUE` file, not a shell script.
 
 `rer deploy` generates `SETUP_TOKEN`, `SESSION_SECRET`, `SUBSCRIBER_TOKEN_SECRET`
 and `WEBHOOK_SIGNING_SECRET` when absent. These are required runtime bindings,
-not mandatory manual inputs for a first deploy. The native pipeline uploads the
-values for that run: for repeatable redeploys and recovery, supply and keep your
-original secrets in the private file. Each must contain at least 32 characters.
-Keep the original session, subscriber and webhook secrets on restore. Direct
+not mandatory manual inputs for a first deploy. rer keeps the values it generates
+in `.rer/deploy/<environment>.secrets.env` (private, ignored by Git) and reuses
+them on the next deploy; to deploy from another checkout, copy that file there or
+keep the values in your private input file, or rer stops before uploading. A redeploy never replaces a live secret: each Worker
+keeps the `SESSION_SECRET`, `SUBSCRIBER_TOKEN_SECRET`, `WEBHOOK_SIGNING_SECRET`
+and `OIDC_TRANSACTION_SECRET` it already holds, whatever value the run supplies,
+and the deploy names the ones it kept. Values reach only a Worker without them:
+a first deploy, or a restore into a new installation. To replace one on purpose,
+run `rer deploy … --rotate-secret NAME` for a secret rer generates and you have
+not put in the file, or put the new value in the file and add
+`LAMP_REPLACE_SECRETS=NAME` (comma-separated) for that one deploy. Replacing
+`SESSION_SECRET` signs every operator out, and replacing `SUBSCRIBER_TOKEN_SECRET`
+ends every emailed subscriber link. Each must contain at least 32 characters.
+For recovery, supply and keep your original secrets in the private file: a
+restore into a new installation needs the original session, subscriber and
+webhook secrets. Direct
 `setup:cloudflare` and `deploy:cloudflare` scripts require those values exported;
 they do not generate them or read `--env-file` themselves.
 
@@ -459,7 +471,7 @@ The minute cron sends an empty GET only on the heartbeat interval grid, after sc
 
 ## Shared operator authentication
 
-The checkout pins `@runeditrun/rer` 0.2.36. For hosted owner entry without email,
+The checkout pins `@runeditrun/rer` 0.2.38. For hosted owner entry without email,
 run this from the deploying checkout using the original account and environment:
 
 ```sh

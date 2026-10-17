@@ -1,5 +1,6 @@
 import type { D1ImportContext, ImportPlan } from '../../../../modules/import-kit/src/d1/index.ts';
 import { nowIso } from '../../shared/ids';
+import { HELD_SORRY_DAYS } from './held-sorry';
 
 export interface SorryReleaseApproval { liveOrigin?: string; hostnameLive?: boolean; watchWindowClosed?: boolean }
 
@@ -22,4 +23,11 @@ export async function releaseSorrySubscribers(db: D1Database, jobId: string, pla
       AND EXISTS(SELECT 1 FROM ik_jobs WHERE id=? AND state='completed')`)
       .bind(timestamp, timestamp, JSON.stringify(ids), ...fence.params ?? [], jobId, url.origin, jobId),
   ]);
+}
+
+/** A held row the owner never released or undid is deleted, address and all,
+ * HELD_SORRY_DAYS after its reviewed dry run, like an unconfirmed pending row. */
+export async function expireHeldSorrySubscribers(db: D1Database, now = Date.now()) {
+  await db.prepare("DELETE FROM subscribers WHERE state='deactivated' AND deactivation_reason='held for Sorry cutover' AND created_at < ?")
+    .bind(new Date(now - HELD_SORRY_DAYS * 24 * 60 * 60 * 1000).toISOString()).run();
 }

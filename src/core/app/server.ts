@@ -48,7 +48,7 @@ export function createApp(bindings: AppBindings, execution?: MailExecution) {
   // Register the reserved mail-events endpoint before /api/intake/:sourceId.
   registerDeliveryRoutes(app, services.deliveries, { resendWebhookSecret: bindings.RESEND_WEBHOOK_SECRET, relaySecret: bindings.RER_MAIL_RELAY_SECRET, sendGridWebhookPublicKey: bindings.SENDGRID_WEBHOOK_PUBLIC_KEY, mailProvider: bindings.MAIL_PROVIDER, localMail });
   registerIntakeRoutes(app, services.intake, { publicPageHost: bindings.LAMP_PAGE_HOST, rateLimiter: publicWriteLimiter });
-  registerOperatorRoutes(app, services.auth, bindings.LAMP_PAGE_HOST);
+  registerOperatorRoutes(app, services.auth, bindings.LAMP_PAGE_HOST, { localMail });
   registerOverviewRoutes(app, services.overview);
   registerComponentRoutes(app, services.components);
   registerIncidentRoutes(app, services.incidents, { hasChatChannels: async () => (await services.channels.list()).length > 0 });

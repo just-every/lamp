@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+- A redeploy keeps `OIDC_TRANSACTION_SECRET` as it keeps the other link and session secrets, so an identity-provider sign-in in progress survives it, and a deploy without it no longer blanks it. `rer deploy --rotate-secret NAME` now replaces a secret on purpose, as `LAMP_REPLACE_SECRETS` does. OPERATIONS.md describes both.
+- Sorry subscribers held for cutover are deleted with their addresses 30 days after the import's review time if the owner neither releases them nor undoes the import. Cutover shows the **Release by** date.
+- The AI provider and identity provider guides name `rer dev --stop` and `rer dev`. A local operator invitation says no email was sent because local mail is suppressed. **Confirm my identity** says it keeps you signed in and how confirmation works.
+- README names the latest release tag (`v1.6.0`), how to start it, and which `rer` version a checkout runs.
+- Pins `@runeditrun/rer` 0.2.38: generated deployment secrets are kept in `.rer/deploy/<environment>.secrets.env` and reused, and deploy hooks build without local settings files.
+
 ## 1.6.0
 
 - A redeploy never replaces the secrets behind existing links and sessions: each Worker keeps the `SESSION_SECRET`, `SUBSCRIBER_TOKEN_SECRET` and `WEBHOOK_SIGNING_SECRET` it holds, so emailed Manage, Unsubscribe and one-click links keep working and operators stay signed in. `LAMP_REPLACE_SECRETS=NAME` replaces one on purpose. The deploy guide's secret step needs only `od` and `tr`, not Node.

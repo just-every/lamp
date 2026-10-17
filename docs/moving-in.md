@@ -25,7 +25,8 @@ email subscribers into your page.
    sends mail. It sends one invitation to each eligible pending email subscriber;
    repeat for any remaining batch before the confirmation deadline.
    For Sorry, complete the hostname switch and observation window first; its
-   imported subscriber candidates are held until that readiness check.
+   imported subscriber candidates are held until that readiness check, for at
+   most 30 days.
 7. Point a hostname you control to Lamp using [the custom-domain guide](domains.md),
    or keep the deployment's default public address. Select that public origin in
    Cutover. Selecting it records your choice; it does not check DNS.
@@ -99,7 +100,9 @@ For Statuspage, Better Stack and Instatus, the confirmation deadline is
 **72 hours from the import review time**, even if you have not sent the
 invitation yet. Sending later leaves only the time remaining. Sorry candidates
 are held without a confirmation deadline until released after cutover; their
-72-hour clock starts at release. Expired pending subscriptions cannot be
+72-hour clock starts at release. Candidates not released **30 days after the
+import review time** are deleted with their addresses, as an undo would remove
+them; Cutover shows the date as **Release by**. Expired pending subscriptions cannot be
 invited; the expiry job deletes their unconfirmed addresses. Cutover shows
 eligible, already-claimed and expired counts.
 
@@ -294,7 +297,9 @@ dry run, and their values are not retained. Rows without an enabled email
 channel are skipped with a reason. Component preferences must resolve and are
 never broadened. Import holds Sorry candidates inactive, without sending mail
 or starting the confirmation deadline. They receive no ordinary notifications
-while held. Other provider confirmation deadlines are unchanged.
+while held. If you neither release them nor undo the import, they are deleted
+with their addresses 30 days after the import review time, so an abandoned move
+keeps no one's address. Other provider confirmation deadlines are unchanged.
 
 Switch the intended hostname using [the custom-domain guide](domains.md), check
 that Lamp serves it, and finish the observation window you chose for the move.

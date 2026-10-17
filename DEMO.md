@@ -25,7 +25,7 @@ checklist reads complete.
 
 ## Base adoption
 
-Lamp pins the published npm package `@runeditrun/rer@0.2.36`.
+Lamp pins the published npm package `@runeditrun/rer@0.2.38`.
 Every vendored Base copy (`modules/demo`, operator-auth, `modules/mail`,
 import-kit, d1-transport, integrations, delivery producer, authoring tools and
 the `run-demo.yml`/`run-site.yml` workflows) is a verbatim copy from tag

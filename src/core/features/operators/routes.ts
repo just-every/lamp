@@ -25,7 +25,7 @@ export function requireOperator(auth: () => OperatorAuth, authorizedRead?: (requ
     await next();
   };
 }
-export function registerOperatorRoutes(app:Hono<AppEnv>,auth:()=>OperatorAuth,publicPageHost:string) {
+export function registerOperatorRoutes(app:Hono<AppEnv>,auth:()=>OperatorAuth,publicPageHost:string,options:{localMail?:boolean}={}) {
   app.onError((error,c) => c.json({error:error instanceof AuthError ? error.code : 'Operation unavailable.'},error instanceof AuthError ? error.status as 400 : 503));
   app.get('/api/app/session',c=>c.json({operator:c.get('operator'),publicPageHost}));
   app.post('/api/app/session/signout',async c=> {const result=await auth().signOut(c.req.raw);return new Response(null,{status:204,headers:{'Set-Cookie':result.cookie}});});
@@ -43,7 +43,9 @@ export function registerOperatorRoutes(app:Hono<AppEnv>,auth:()=>OperatorAuth,pu
   app.get('/api/app/operators/former',async c=> {await auth().listOperators(c.req.raw);return c.json({operators:await createOperatorRepository(c.env.DB).listFormerOperators()});});
   app.post('/api/app/operators/invite',async c=> {
     const parsed=inviteSchema.safeParse(await c.req.json().catch(()=>null));if(!parsed.success)return c.json({error:'An email and display name are required.'},400);
-    await auth().invite(c.req.raw,{...parsed.data,role:'owner'});await createOperatorRepository(c.env.DB).recordInvitation(parsed.data.email,c.get('operator').id);return c.body(null,202);
+    await auth().invite(c.req.raw,{...parsed.data,role:'owner'});await createOperatorRepository(c.env.DB).recordInvitation(parsed.data.email,c.get('operator').id);
+    // Local development suppresses mail, so the panel must not say an email went out.
+    return c.json({email:options.localMail?'suppressed':'sent'},202);
   });
   app.post('/api/app/operators/:operatorId/revoke-access',async c=> {
     const id=idSchema.safeParse(c.req.param('operatorId'));if(!id.success)return c.json({error:'Invalid operator ID.'},400);

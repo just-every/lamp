@@ -16,15 +16,15 @@ function ConnectSteps({ local }: { local: boolean }) {
     <ol>
       <li>Create an API key with your provider. For OpenAI, open <a href="https://platform.openai.com/api-keys" target="_blank" rel="noreferrer">API keys</a> and choose <strong>Create new secret key</strong>, and pick a model name from its <a href="https://platform.openai.com/docs/models" target="_blank" rel="noreferrer">models list</a>. Any provider with an OpenAI-compatible Chat Completions endpoint and JSON responses works; use its endpoint and model name instead.</li>
       <li>{local
-        ? <>Stop <code>rer dev</code>, then add these three lines to the <code>.dev.vars</code> file in your Lamp folder, with your model name and key:</>
+        ? <>Stop Lamp by running <code>rer dev --stop</code> in your Lamp folder, then add these three lines to the <code>.dev.vars</code> file in your Lamp folder, with your model name and key:</>
         : <>Add these three lines, with your model name and key, to the private settings file you deploy Lamp with:</>}
         <CopyBlock text={providerLines} label="Copy the three lines" /></li>
       <li>{local
-        ? <>Start <code>rer dev</code> again and reload this page.</>
+        ? <>Start Lamp again with <code>rer dev</code> in the same folder and reload this page.</>
         : <>Deploy again from your Lamp folder, using your own environment name and file, then reload this page:<CopyBlock text={deployCommand} label="Copy the deploy command" /></>}</li>
       <li>When this card says <strong>Provider configured</strong>, choose <strong>Test the provider</strong> below.</li>
     </ol>
-    <p>Saving this page never stores an API key. To disconnect, remove all three lines and {local ? "restart rer dev" : "deploy again"}. <a href="/docs/ai-assistance">AI setup guide</a></p>
+    <p>Saving this page never stores an API key. To disconnect, remove all three lines and {local ? <>run <code>rer dev --stop</code>, then <code>rer dev</code></> : "deploy again"}. <a href="/docs/ai-assistance">AI setup guide</a></p>
   </details>;
 }
 

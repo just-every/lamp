@@ -5,6 +5,7 @@ import type { AppBindings } from "./types";
 import type { LampJob } from "../platform/jobs";
 import { createOverviewRepository } from "../features/overview/repository";
 import { CRON_EVIDENCE_STEP } from "./request-work";
+import { expireHeldSorrySubscribers } from "../features/statuspage-import/sorry-release.repository";
 
 let localSnapshotBootstrapFinished = false;
 
@@ -33,6 +34,7 @@ export async function runScheduled(bindings: AppBindings, executionContext: Exec
     // so the mail they queue goes out in this same run.
     const changes = await Promise.allSettled([
       runtime.services.subscribers.expirePending(),
+      expireHeldSorrySubscribers(bindings.DB, scheduledAt),
       runtime.services.incidents.publishDue(),
       runtime.services.maintenance.runDue(),
       runtime.services.updateReminders.remindDue(new Date(scheduledAt).toISOString()),

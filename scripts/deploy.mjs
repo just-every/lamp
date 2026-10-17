@@ -74,7 +74,7 @@ async function main() {
   // Each Worker keeps the signing secrets it already holds (deployment-secrets.mjs).
   const upload = async (page, deploy) => {
     const kept = keptSecrets(await ownership.heldSecrets(page), replace);
-    if (kept.length) console.log(`Kept ${kept.join(", ")} on ${page ? names.publicWorker : names.worker}, so existing subscriber links and operator sessions keep working.`);
+    if (kept.length) console.log(`Kept ${kept.join(", ")} on ${page ? names.publicWorker : names.worker}, so existing subscriber links, operator sessions and sign-ins in progress keep working.`);
     await withDeploymentSecrets(config, kept, file => ownership.upload(page, identity, () => deploy(file)));
   };
   await upload(false, file => run("pnpm", ["exec", "wrangler", "deploy", "--config", builtConfig, "--secrets-file", file, ...identityVars(identity)]));

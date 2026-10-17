@@ -69,14 +69,21 @@ The app host serves Lamp's public documentation at `/docs`. Start with the
 The Run page's start line, `rer dev just-every/run-lamp` (or its one-line `npx`
 form), clones the default branch, `main`, not a release tag, into a `run-lamp`
 folder and starts it; after that, run `rer dev` from that folder. `main` is Lamp's
-development source and may hold changes not yet in a release. The latest tagged
-release is `v1.6.0`, which pins `@runeditrun/rer` 0.2.36. To use that release instead:
+development source and may hold changes not yet in a release; it pins
+`@runeditrun/rer` 0.2.38. The latest tagged release is `v1.6.0`, which pins
+`@runeditrun/rer` 0.2.36. To use that release instead, clone the tag and start it:
 
 ```sh
 git clone --branch v1.6.0 https://github.com/just-every/run-lamp.git lamp
+cd lamp && rer dev
 ```
 
 Then follow the documentation inside that checkout, which matches its tools.
+
+`rer --version` prints the `rer` you installed on its first line and the version
+this checkout pins on its second. Inside the checkout every `rer` command runs the
+pinned version once the checkout's dependencies are installed (`rer dev` and
+`rer install` install them); the installed `rer` only starts it.
 
 Node 22.20.0 and pnpm 10.12.4 are pinned. `rer` downloads and uses that Node
 version when your shell has a different one, and says so when it starts. Every
@@ -106,7 +113,7 @@ You can also export the input names in the calling shell. The
 [input reference](docs/deployment-reference.md) distinguishes required owner
 values from secrets that `rer` generates on a first deploy.
 
-Use `rer` from the project root; the checkout pins `@runeditrun/rer` 0.2.36. Before a
+Use `rer` from the project root; the checkout pins `@runeditrun/rer` 0.2.38. Before a
 command that builds or verifies the checkout,
 stop a running development server with `rer dev --stop` or a production preview
 with `rer preview --stop`.
