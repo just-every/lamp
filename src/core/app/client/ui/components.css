@@ -66,6 +66,7 @@
 .catalogue-workspace .card-heading, .catalogue-workspace .drawer-actions { flex-wrap: wrap; }
 .catalogue-workspace input[type="file"] { max-width: 100%; }
 .catalogue-fields { min-width: 0; margin: 0; padding: 0; border: 0; display: grid; gap: 24px; }
+.catalogue-fields > section { min-width: 0; }
 .catalogue-table-scroll { max-width: 100%; overflow-x: auto; }
 .catalogue-table { width: 100%; border-collapse: collapse; text-align: left; }
 .catalogue-table th, .catalogue-table td { padding: 10px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
