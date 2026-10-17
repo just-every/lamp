@@ -149,8 +149,16 @@ contract("MOVE-002", "an import is retroactive: history keeps its times, nobody 
   const history = (await api(`/api/app/components/${component.id}/history`)).body;
   assert.ok(JSON.stringify(history).includes("2026-01-04T08:00:00.000Z"), "uptime history carries the source time");
   const maintenance = (await api("/api/app/maintenance")).body.maintenance;
-  assert.deepEqual(maintenance.map((window) => window.state).sort(), ["Completed", "Completed", "In progress", "Scheduled"]);
+  assert.deepEqual(maintenance.map((window) => window.state).sort(), ["Completed", "Completed", "Scheduled", "Verifying"]);
   assert.ok(maintenance.every((window) => window.notices.length === 0), "no maintenance notice is published for imported windows");
+  const sourceActive=maintenance.find(row=>row.title==="Storage migration");
+  assert.equal(sourceActive.autoComplete,false);assert.equal(sourceActive.remindPrior,false);
+  assert.equal(sourceActive.importedUpdates.length,2);
+  assert.ok(sourceActive.importedUpdates.some(update=>update.body==="Migration finished; checking reads and writes."&&update.sourceStatus==="verifying"&&update.publishedAt==="2026-10-01T00:30:00.000Z"));
+  const sourceScheduled=maintenance.find(row=>row.title==="Planned failover test");assert.equal(sourceScheduled.autoStart,false);assert.equal(sourceScheduled.autoComplete,false);
+  const activePublic=await (await fetch(`${publicOrigin}/api/v2/scheduled-maintenances/active.json`)).json();
+  const movedWindow=activePublic.scheduled_maintenances.find(row=>row.name==="Storage migration");assert.equal(movedWindow.status,"verifying");assert.ok(movedWindow.incident_updates.some(update=>update.status==="verifying"&&update.created_at==="2026-10-01T00:30:00.000Z"&&update.body==="Migration finished; checking reads and writes."));
+
 
   assert.equal(await deliveries(), 0, "no notification is queued for imported history");
   await assertNoNewNotifications(runtime, mailBefore, "import and resume send no mail");

@@ -26,7 +26,7 @@ before(async () => {
   worker.stdout.on("data", chunk => { output += chunk; });
   worker.stderr.on("data", chunk => { output += chunk; });
   await waitForWorker({ origin, child: worker, output: () => output, label: "Maintenance timezone Worker" });
-  browser = await chromium.launch();
+  browser = await chromium.launch({ headless: true, args: ["--use-mock-keychain", "--password-store=basic"] });
 
 });
 after(async () => {

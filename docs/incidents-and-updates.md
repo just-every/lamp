@@ -85,3 +85,24 @@ After resolving an incident, attach its post-incident report from the incident
 page. The report holds a summary, timeline, cause and remediation. The operator
 app marks a report as due 7 days after resolution when the incident reached
 Partially unavailable or Major outage and has no report.
+
+## Choose public incident impact
+
+The **Incident impact** card shows the impact derived from component claims and
+the public impact. Choose None, Minor, Major or Critical and **Save impact** to
+set a separate public description. Choose **Use component claims** to clear it.
+Each choice appears in Impact history with the operator and time. Component
+states, overall status and uptime continue to follow claims. The incident
+header's peak component state records the most severe claim during its history.
+
+## Edit and apply update templates
+
+Expand **Update templates** in the composer and choose a saved template. An
+imported template shows its original title, folder and notification default.
+Edit its wording and save that same template before applying. Oversized imported
+wording is kept in full; the editor names every field to shorten and blocks
+application until the saved text fits. Applying fills only the private draft and
+stages its component choices; it keeps the incident's title and publishes nothing.
+If the template has no next-update interval, choose the commitment yourself.
+A **No notifications** default clears subscriber channels; check the selection
+before publication.

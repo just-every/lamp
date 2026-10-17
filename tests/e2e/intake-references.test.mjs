@@ -25,6 +25,10 @@ VALUES ('01J00000000000000000000071','01J00000000000000000000070','01J0000000000
 INSERT INTO incident_updates (id,incident_id,lifecycle,affected_audience,customer_impact,what_still_works,details,next_update_at,published_at,author_operator_id,created_at,updated_at)
 VALUES ('01J00000000000000000000072','01J00000000000000000000070','Investigating','Customers using the Public API.','Some API requests may fail.','Other services continue to work.','Engineers are investigating.','2026-09-08T01:03:00.000Z','2026-09-08T00:03:00.000Z','01J00000000000000000000001','2026-09-08T00:03:00.000Z','2026-09-08T00:03:00.000Z');`;
 
+// Wrangler fixture commands can outlast a local keep-alive socket.
+const nativeFetch = globalThis.fetch;
+globalThis.fetch = (input, init) => { const request = new Request(input, init); request.headers.set("connection", "close"); return nativeFetch(request, { referrer: request.referrer, referrerPolicy: request.referrerPolicy }); };
+
 let server;
 let serverOutput = "";
 let sessionId;

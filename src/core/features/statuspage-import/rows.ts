@@ -88,7 +88,7 @@ export function mapSource(data: SourceData, snapshot: Snapshot, operatorId: stri
     results.push(mapped);
   }
   for (const window of [...data.maintenance].sort((a, b) => (a.scheduled_for ?? a.created_at).localeCompare(b.scheduled_for ?? b.created_at) || a.id.localeCompare(b.id))) {
-    results.push(mapMaintenance(window, components, claims, operatorId, asOf, nextMaintenance, identify, namespace !== "statuspage"));
+    results.push(mapMaintenance(window, components, claims, operatorId, asOf, nextMaintenance, identify));
   }
 
   // Components carry their whole derived history, so they are planned after
@@ -164,7 +164,7 @@ function mapIncident(incident: SourceIncident, components: Map<string, { id: str
   } }, accounting: [{ kind: "incident", sourceId: incident.id, name, outcome: notes.size ? "changed" : "imported", reason: `${updates.length} update${updates.length === 1 ? "" : "s"} at their original times, notifying no one${notes.size ? `; ${[...notes].join("; ")}` : ""}.` }] };
 }
 
-function mapMaintenance(window: SourceIncident, components: Map<string, { id: string; name: string }>, claims: Claim[], operatorId: string, asOf: string, reference: () => string, identify: typeof stableId, preserveUpdates: boolean): Mapped {
+function mapMaintenance(window: SourceIncident, components: Map<string, { id: string; name: string }>, claims: Claim[], operatorId: string, asOf: string, reference: () => string, identify: typeof stableId): Mapped {
   const name = window.name;
   const startsAt = window.scheduled_for ? iso(window.scheduled_for) : null, endsAt = window.scheduled_until ? iso(window.scheduled_until) : null;
   if (!startsAt || !endsAt || endsAt <= startsAt) return { kind: "maintenance", sourceId: window.id, accounting: [{ kind: "maintenance", sourceId: window.id, name, outcome: "rejected", reason: "It has no valid scheduled window." }] };
@@ -184,8 +184,8 @@ function mapMaintenance(window: SourceIncident, components: Map<string, { id: st
   }
   const sourceState = ({ scheduled: "Scheduled", in_progress: "In progress", verifying: "In progress", completed: "Completed", cancelled: "Cancelled" } as Record<string, string>)[window.status];
   return { kind: "maintenance", sourceId: window.id, value: { tables: {
-    maintenance: [{ id, reference: reference(), title: clip(name, 250), state, starts_at: startsAt, ends_at: endsAt, completed_at: completedAt, auto_start: window.scheduled_auto_in_progress === false ? 0 : 1, auto_complete: window.scheduled_auto_completed === false ? 0 : 1, remind_prior: window.scheduled_remind_prior === false ? 0 : 1, verifying: state === "In progress" && window.status === "verifying" ? 1 : 0, created_by_operator_id: operatorId, created_at: asOf, updated_at: asOf }],
-    ...(preserveUpdates && window.incident_updates.length ? { import_maintenance_updates: window.incident_updates.map((update) => ({ id: identify(`maintenance-update:${update.id}`, at(update)), maintenance_id: id, body: update.body ?? "", published_at: at(update), source_states: JSON.stringify(update.affected_components ?? []), source_status: update.status })).sort((a, b) => a.published_at.localeCompare(b.published_at) || a.id.localeCompare(b.id)) } : {}),
+    maintenance: [{ id, reference: reference(), title: clip(name, 250), state, starts_at: startsAt, ends_at: endsAt, completed_at: completedAt, ...(window.scheduled_auto_in_progress === false ? {auto_start:0} : {}), ...(window.scheduled_auto_completed === false ? {auto_complete:0} : {}), ...(window.scheduled_remind_prior === false ? {remind_prior:0} : {}), ...(state === "In progress" && window.status === "verifying" ? {verifying:1} : {}), created_by_operator_id: operatorId, created_at: asOf, updated_at: asOf }],
+    ...(window.incident_updates.length ? { import_maintenance_updates: window.incident_updates.map((update) => ({ id: identify(`maintenance-update:${update.id}`, at(update)), maintenance_id: id, body: update.body ?? "", published_at: at(update), source_states: JSON.stringify(update.affected_components ?? []), source_status: update.status })).sort((a, b) => a.published_at.localeCompare(b.published_at) || a.id.localeCompare(b.id)) } : {}),
     maintenance_components: attached.map((code) => ({ id: identify(`maintenance-component:${window.id}:${code}`, startsAt), maintenance_id: id, component_id: components.get(code)!.id, component_name: components.get(code)!.name, state: "Under maintenance", created_at: asOf, updated_at: asOf })),
   } }, accounting: [{ kind: "maintenance", sourceId: window.id, name, outcome: sourceState === state ? "imported" : "changed", reason: sourceState === state ? `${state} window carried over; no notice is sent for it.` : `Imported as ${state} because its window is ${state === "Completed" ? "over" : "under way"}; no notice is sent for it.` }] };
 }

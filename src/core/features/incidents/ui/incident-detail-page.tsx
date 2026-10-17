@@ -290,7 +290,7 @@ function IncidentVisit({ incidentId }: { incidentId: string }) {
     <header className="incident-workspace-heading incident-context">
       <Link className="back-link" to="/app/incidents">← Back to incidents</Link>
       <p className="eyebrow">{incident.reference}</p><h1>{incident.title}</h1>
-      <div className="context-facts"><div><span>Lifecycle</span><strong className={`fact-dot ${stateClass(incident.lifecycle)}`}>{incident.lifecycle}</strong></div><div><span>Opened</span><strong>{formatOperatorTime(incident.openedAt)}</strong></div><div><span>{incident.lifecycle === "Resolved" ? "Peak impact" : "Impact"}</span><strong className={`fact-dot ${stateClass(incident.impact ?? "")}`}>{incident.impact ?? "No component impact"}</strong></div></div>
+      <div className="context-facts"><div><span>Lifecycle</span><strong className={`fact-dot ${stateClass(incident.lifecycle)}`}>{incident.lifecycle}</strong></div><div><span>Opened</span><strong>{formatOperatorTime(incident.openedAt)}</strong></div><div><span>Peak component state</span><strong className={`fact-dot ${stateClass(incident.impact ?? "")}`}>{incident.impact ?? "No component impact"}</strong></div></div>
     </header>
 
 

@@ -54,6 +54,13 @@ async function readTables(db: D1Database, kind: string, id: string) {
       if (row.component_snapshot_json === "[]") delete row.component_snapshot_json;
     }
     if (table === "incidents") for (const row of rows) if (row.impact_override === null) delete row.impact_override;
+    if (table === "maintenance") for (const row of rows) {
+      for (const field of ["affected_audience","customer_impact","what_still_works","details"]) if(row[field]==="")delete row[field];
+      for (const field of ["wording_required","verifying","calendar_sequence"]) if(row[field]===0)delete row[field];
+      for (const field of ["auto_start","auto_complete","remind_prior"]) if(row[field]===1)delete row[field];
+    }
+    if (table === "import_maintenance_updates") for (const row of rows) if(row.source_status===null)delete row.source_status;
+
     // Legacy journals have no history key: empty additions must not change their revision value.
     if (!["import_maintenance_updates", "component_standing_claims", "incident_reports"].includes(table) || rows.length) tables[table] = rows;
   }
