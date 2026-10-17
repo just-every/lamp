@@ -22,7 +22,7 @@ export function publicFeedEntries(model: PublicSnapshotModel): FeedEntry[] {
       id: `update-${update.id}`,
       title: `${incident.reference}: ${incident.title}`,
       publishedAt: update.publishedAt,
-      content: updateText(incident, update, model.settings.timezone),
+      content: [updateText(incident, update, model.settings.timezone), incident.components.length ? `Affected components: ${incident.components.join(", ")}` : ""].filter(Boolean).join("\n\n"),
       path: `/incidents/${encodeURIComponent(incident.reference)}`,
       recordKind: "incident" as const,
       recordId: incident.id,
@@ -81,7 +81,7 @@ export function renderFeeds(model: PublicSnapshotModel, source: PublicSnapshotSo
     { key: "history.atom", body: atom, contentType: "application/atom+xml; charset=utf-8" },
     { key: "history.rss", body: rss, contentType: "application/rss+xml; charset=utf-8" },
   ];
-  for (const component of model.components) {
+  for (const component of model.visibleComponents) {
     const incidents = new Set(source.incidentComponents.filter((claim) => claim.componentId === component.id).map((claim) => claim.incidentId));
     const maintenance = new Set(source.maintenanceComponents.filter((claim) => claim.componentId === component.id).map((claim) => claim.maintenanceId));
     const paths = publicComponentResources(component);

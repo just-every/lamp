@@ -107,7 +107,7 @@ export async function catalogueHistoryFlow({ appFetch, fetch, pageUrl, queryLoca
     diagnostic("COMP-010 — an incident reveals a conditional component, then recovery hides it without erasing its ledger");
     const states = () => Promise.all([read("/"), read("/feed.atom"), read("/api/v2/components.json")]);
     const visibility = (responses, visible, state) => responses.every(response => response.status === 200) &&
-      Boolean(article(responses[0].body, conditional.name)) === visible && responses[1].body.includes(conditional.name) === visible &&
+      Boolean(article(responses[0].body, conditional.name)) === visible && Boolean(responses[1].body.match(/Affected components: [^\n<]*/gu)?.some(line => line.includes(conditional.name))) === visible &&
       (() => { const row = JSON.parse(responses[2].body).components.find(component => component.name === conditional.name); return visible ? row?.only_show_if_degraded === true && row.status === state : row === undefined; })();
     await published("Operational conditional component is hidden", states, responses => visibility(responses, false));
     const historyBefore = await queryLocalSql(`SELECT * FROM component_state_history WHERE component_id=${quote(conditional.id)} ORDER BY changed_at,id`);

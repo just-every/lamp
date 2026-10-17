@@ -1,3 +1,4 @@
+import { catalogueHistoryFlow } from "./helpers/catalogue-history-flow.mjs";
 import { widgetVariantsFlow } from "./helpers/widget-variants-flow.mjs";
 import { publicResourcesFlow } from "./helpers/public-resources-flow.mjs";
 import { publicFreshnessFlow } from "./helpers/public-freshness-flow.mjs";
@@ -783,4 +784,6 @@ test("HIST-001 PAGE-010 PAGE-006 — Stable feed history and corrupt-pointer rec
     r2Object("snapshots/current.json", pointer);
   }
 })(t);
+  await catalogueHistoryFlow({ appFetch, fetch, pageUrl, queryLocalSql, executeLocalSql, updateSettings, diagnostic: text => t.diagnostic(text) });
+
 });

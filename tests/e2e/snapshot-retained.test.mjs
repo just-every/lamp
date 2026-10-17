@@ -143,6 +143,10 @@ test("PAGE-005 PAGE-006 PAGE-007 cold durable replica keeps complete generations
       maintenanceComponents: [{ maintenanceId: "maintenance", componentName: "API" }], maintenanceNotices: [],
       importedPublicRecords: [{ namespace: "statuspage", sourceId: "original-outage", targetKind: "incident", targetId: "incident", shortlink: "https://stspg.io/outage" }, { namespace: "statuspage", sourceId: "original-upgrade", targetKind: "maintenance", targetId: "maintenance", shortlink: "https://stspg.io/upgrade" }],
     };
+    const ancient = "2022-04-13T12:00:00.000Z";
+    source.incidents.push({ ...source.incidents[0], id: "ancient-incident", reference: "INC-2", title: "Archived API outage", openedAt: ancient, resolvedAt: ancient });
+    source.incidentComponents.push({ incidentId: "ancient-incident", componentName: "API" });
+    source.updates.push({ ...source.updates[0], id: "ancient-update", incidentId: "ancient-incident", publishedAt: ancient });
     const imported = await rebuild({ generation: 20, source });
     assert.equal(imported.failure, null);
     for (const [path, destination, title] of [["/incidents/original-outage", "/incidents/INC-1", "Original outage"], ["/outage", "/incidents/INC-1", "Original outage"], ["/incidents/original-upgrade", "/maintenance/SCH-1", "Database upgrade"], ["/upgrade", "/maintenance/SCH-1", "Database upgrade"]]) {
@@ -159,12 +163,15 @@ test("PAGE-005 PAGE-006 PAGE-007 cold durable replica keeps complete generations
     assert.match(oldFeed.headers.get("Content-Type"), /application\/atom\+xml/);
     assert.equal(await oldFeed.text(), await (await fetch("/feed.atom")).text());
     for (const path of ["/auth/login", "/app/settings"]) assert.equal((await fetch(path)).status, 404);
-    for (const path of ["/api/v2/summary.json", "/history.rss", "/badge.svg", "/badge.json", "/api/public/v1/incidents", "/embed/script.js"]) {
+    for (const path of ["/history", "/history/2022-04", "/api/v2/summary.json", "/history.rss", "/badge.svg", "/badge.json", "/api/public/v1/incidents", "/embed/script.js"]) {
       for (const suffix of ["", "?storage=down"]) {
         const response = await fetch(path + suffix); assert.equal(response.status, 200, path + suffix);
         assert.ok((await response.text()).length > 0);
       }
     }
+    assert.match(await (await fetch("/history/2022-04?storage=down")).text(), /Archived API outage/);
+    const oldMonthPath = await fetch("/history/2022/04", { redirect: "manual" });
+    assert.equal(oldMonthPath.status, 301);assert.equal(oldMonthPath.headers.get("Location"), "/history/2022-04");
     // The next snapshot has no removed record or its alias, even after cache warming.
     const removed = structuredClone(source); removed.incidents = []; removed.updates = []; removed.incidentComponents = [];
     assert.equal((await rebuild({ generation: 21, source: removed })).failure, null);
