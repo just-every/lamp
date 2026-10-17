@@ -86,10 +86,12 @@
     "verify:plan": "node scripts/verification/check-plan.mjs",
     "test:move-in:cutover": "node --test --test-concurrency=1 tests/auth-adoption/cutover.test.mjs tests/e2e/cutover-browser.test.mjs",
     "test:move-in:statuspage": "node --test --test-concurrency=1 tests/e2e/statuspage-import.test.mjs",
-    "test:move-in:betterstack": "node --test --test-concurrency=1 tests/betterstack/reader.test.mjs tests/betterstack/flow.test.mjs tests/e2e/betterstack-browser.test.mjs",
+    "test:move-in:betterstack": "pnpm run test:move-in:betterstack:contract && pnpm run test:move-in:betterstack:browser",
     "test:move-in:instatus": "node --test --test-concurrency=1 tests/instatus/reader.test.mjs tests/e2e/instatus-import.test.mjs tests/e2e/instatus-browser.test.mjs",
     "test:move-in:sorry": "node --test --test-concurrency=1 tests/e2e/sorry-import.test.mjs",
-    "sorry:capture": "node --experimental-strip-types scripts/sorry-capture.mjs"
+    "sorry:capture": "node --experimental-strip-types scripts/sorry-capture.mjs",
+    "test:move-in:betterstack:contract": "node --test --test-concurrency=1 tests/betterstack/reader.test.mjs tests/betterstack/flow.test.mjs",
+    "test:move-in:betterstack:browser": "node --test --test-concurrency=1 tests/e2e/betterstack-browser.test.mjs"
   },
   "dependencies": {
     "@radix-ui/react-slot": "^1.3.3",
