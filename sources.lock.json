@@ -4980,7 +4980,7 @@
       "executable": false
     },
     "tests/e2e/saved-draft-helper.mjs": {
-      "sha256": "ddc5243ed6065d6abbc4127c40fbcfd574e3a4c6ef5782ed67b86366febf1a1f",
+      "sha256": "1d69aed401e46465b0bbe6228b11a03cf2fbbaa67b40c71602944e312c8bdc37",
       "executable": false
     },
     "tests/e2e/sendgrid-provider.test.mjs": {

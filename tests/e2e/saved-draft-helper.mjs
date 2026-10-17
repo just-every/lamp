@@ -14,12 +14,14 @@ export function configuredDateTimeInput(iso, timezone) {
 // UPDATE-005 and autosave-integrity retain their separate strict 2,000 ms gates.
 export async function saveAndConfirmDraft({ page, appFetch, incidentId, expected, edit, t }) {
   const endpoint = `/api/app/incidents/${incidentId}/draft`;
+  // These text-edit journeys leave the new staged component choices unchanged.
+  const expectedRequest = { ...expected, componentChanges: [] };
   const startedAt = Date.now();
   const acknowledged = page.waitForResponse((response) => {
     const request = response.request();
     return new URL(response.url()).pathname === endpoint
       && request.method() === "PUT"
-      && isDeepStrictEqual(request.postDataJSON(), expected);
+      && isDeepStrictEqual(request.postDataJSON(), expectedRequest);
   }, { timeout: 10_000 });
   const [response] = await Promise.all([acknowledged, edit()]);
   const acknowledgement = await response.json();
@@ -29,6 +31,7 @@ export async function saveAndConfirmDraft({ page, appFetch, incidentId, expected
   const fields = (record) => Object.fromEntries(Object.keys(expected).map((key) => [key, record[key]]));
   assert.equal(draft.incidentId, incidentId);
   assert.deepEqual(fields(draft), expected, "the native acknowledgement must contain this exact draft");
+  assert.deepEqual(draft.componentChanges, [], "text edits must not stage component changes");
 
   const stored = await appFetch(`/api/app/incidents/${incidentId}`);
   const record = await stored.json();
@@ -37,6 +40,7 @@ export async function saveAndConfirmDraft({ page, appFetch, incidentId, expected
   assert.equal(incident.draft.id, draft.id);
   assert.equal(incident.draft.updatedAt, draft.updatedAt);
   assert.deepEqual(fields(incident.draft), expected, "the acknowledged draft must be durably readable");
+  assert.deepEqual(incident.draft.componentChanges, [], "the stored draft must retain the unchanged component choices");
 
   await page.getByText("Draft saved", { exact: true }).waitFor({ timeout: 10_000 });
   const displayed = {
