@@ -5310,7 +5310,7 @@
       "executable": false
     },
     "tests/e2e/sorry-import.test.mjs": {
-      "sha256": "7af5d0e2df7aaf5757d8d006c1a8f7d8208ed6d4288d75ebdaa89aec002ab9fb",
+      "sha256": "83f8b09e95eba89b992f744bffa0c7f2d933b0663393a5806a994a13b90c28ff",
       "executable": false
     },
     "tests/e2e/start-runtime.test.mjs": {

@@ -169,7 +169,7 @@ test('MOVE-001 MOVE-002 MOVE-004 MOVE-005 MOVE-006 Sorry and the opt-in Business
       assert.equal(after.incidents.length, before.incidents.length + 1);
       assert.equal(new Set(after.incidents.map(row => row.id)).size, after.incidents.length);
       assert.deepEqual(after.components, before.components, 'existing components are reused');
-      assert.deepEqual(after.links.filter(row => row.incident_id === original.id), before.links.filter(row => row.incident_id === original.id));
+      assert.deepEqual(after.links.filter(row => row.incident_id === original.id), [...replacement.value.tables.incident_components].sort((a, b) => a.id.localeCompare(b.id)), 'replacement links match the full reviewed image');
       assert.ok(after.links.every(row => after.components.some(component => component.id === row.component_id)), 'all incident component links resolve');
       const provenance = rows(`SELECT record_json FROM ik_provenance WHERE job_id='${applied.body.job.id}' AND target_kind='incident' AND target_id='${original.id}'`).map(row => JSON.parse(row.record_json));
       assert.equal(provenance.length, 1);
