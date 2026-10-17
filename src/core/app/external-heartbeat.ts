@@ -12,10 +12,9 @@ export async function pingExternalHeartbeat(bindings: AppBindings, runtime: Retu
   let url: URL;
   try { url = new URL(bindings.LAMP_HEARTBEAT_URL); } catch { throw new Error('Invalid external heartbeat URL'); }
   if (url.protocol !== 'https:' || url.username || url.password || url.hash || !url.hostname || ['localhost', '127.0.0.1', '[::1]'].includes(url.hostname)) throw new Error('External heartbeat requires a public HTTPS URL');
-  // The normal public health door probes D1, R2 and Queue. A working timer
-  // alone must never mask one of these dependencies being unavailable.
-  const health = await runtime.app.request(`https://${bindings.LAMP_APP_HOST}/health`);
-  if (!health.ok) return;
+  // A live check of D1, R2 and Queue, never /health's remembered result. A
+  // working timer alone must never mask one of these dependencies being unavailable.
+  if ((await runtime.health.live()).status !== 'ok') return;
   let response: Response;
   try { response = await fetch(url.href, { method: 'GET', redirect: 'manual', signal: AbortSignal.timeout(10000) }); } catch { throw new Error('External heartbeat ping failed'); }
   await response.body?.cancel();

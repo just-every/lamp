@@ -5,6 +5,8 @@ export function legacyApiFixtureSql() {
   return `
 INSERT INTO operators (id,email,display_name,is_setup_operator,deactivated_at,created_at,updated_at) VALUES
   ('01J00000000000000000000001','operator@example.test','Contract Operator',1,NULL,'${createdAt}','${createdAt}');
+-- Migration 0019 gives an installation with a setup operator its owner claim, and this data arrives after the migrations.
+INSERT INTO oa_bootstrap (singleton,claim_id,claimed_at) VALUES (1,'01J00000000000000000000001',${Date.parse(createdAt)}) ON CONFLICT DO NOTHING;
 INSERT INTO page_settings (id,page_name,tagline,accent_color,timezone,hostname,footer_credit_enabled,logo_key,logo_content_type,widget_allowed_origins,mail_from_address,ai_tone_instructions,feed_id,created_at,updated_at) VALUES
   ('default','Atlas Cloud Status','Current availability and incident communications for Atlas Cloud.','#16794C','America/Los_Angeles','status.atlascloud.example',1,NULL,NULL,'[]','lamp@localhost.invalid','','legacy-api-feed-identity','${createdAt}','${createdAt}');
 INSERT INTO component_groups (id,name,display_order,created_at,updated_at) VALUES

@@ -2,7 +2,6 @@
 import { withDemo } from '@runeditrun/rer/modules/demo';
 import { seedDemo } from './demo';
 export { SnapshotCache } from "./core/platform/blobs/snapshot-cache";
-import { createSetupRepository } from "./core/features/setup/repository";
 import { devGate } from "@runeditrun/rer/modules/operator-auth";
 import { authConfig, authOrigin } from "./core/platform/auth/config";
 import { authResponse } from "./core/platform/auth/http";
@@ -107,16 +106,6 @@ export default withDemo({
       return authResponse(request, bindings, runtime.services);
     }
     await ensureDevelopmentSnapshot(runtime);
-    // Every hosted deployment must publish its initial state before traffic
-    // arrives, even before Cloudflare starts Cron. This runs no mail work.
-    if (url.pathname === "/health") {
-      try {
-        if (!await runtime.services.publicSnapshots.hasCurrentSnapshot()
-          && await createSetupRepository(bindings.DB).pageConfigured()) await runtime.services.publicSnapshots.retryPendingBuild();
-      } catch {
-        return Response.json({ status: "unavailable", reason: "Public snapshot readiness failed." }, { status: 503 });
-      }
-    }
 
     if (isHonoRequest(surface, request, url.pathname)) {
       const response = await runtime.app.fetch(request, bindings, executionContext);

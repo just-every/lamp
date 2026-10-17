@@ -279,10 +279,14 @@ successful responses in its local edge cache for the one-hour outage window and
 marks that response as last known state when snapshot storage reads fail. A cold
 edge cache with inaccessible storage cannot recover bytes it has never seen;
 retain the original data and verify the tested deployment's warmed-cache path.
-`/health` checks D1, R2 and Queue reachability separately and must return503 during
-a dependency failure. A successful public response is not a healthy-backend proof.
-For managed installations (`RER_INSTALLATION_ID`), `/health` also completes pending
-public snapshot work before reporting readiness, including the initial migrated
+`/health` checks D1, R2 and Queue reachability separately and returns503 naming
+the failed dependency. A good result is recorded and answers later probes without
+storage calls; once it is 30 seconds old a probe refreshes it in the background,
+and after 10 minutes a probe checks every dependency itself. A failure is never
+recorded, so every probe after a failed refresh checks again until it passes: a
+dependency failure shows within one 30-second refresh period. A successful public
+response is not a healthy-backend proof. `/health` also publishes a configured
+page's first snapshot before reporting readiness, including the initial migrated
 state in previews where cron is disabled. A failed snapshot build returns 503.
 This readiness step does not dispatch scheduled incidents, maintenance or mail.
 A Cloudflare-wide outage needs separately operated hosting; this release does not
@@ -397,10 +401,11 @@ local verification.
 
 The independent candidate declares distinct app/public surfaces. The broker must
 support that declarative interface and native pending setup readiness; an older
-single-gateway broker is incompatible. Use `/signin` for app readiness. On an
-empty owner database `/setup/status` returns409 and the public root correctly
-returns503 because no snapshot exists. The approved plan permits that public503
-only during explicit pending setup. Once initialized, status returns200 and
+single-gateway broker is incompatible. Use `/signin` for app readiness. Until the
+owner claims the installation, `/setup/status` returns409 and the public root
+returns503, the declared `pendingSetupStatuses`: with the body of the page the
+deployment published from its stored settings, or a short not-set-up notice when
+none exists. The approved plan permits that public503 only during explicit pending setup. Once initialized, status returns200 and
 public readiness must be200; inconsistent settings or dependency failures fail.
 The public host cannot reach setup, sessions, operator APIs or operator assets.
 
@@ -472,7 +477,7 @@ or establishes hosted health.
 
 Set `LAMP_HEARTBEAT_URL` to the public HTTPS ping URL of the owner's chosen external heartbeat service. It is off when omitted. Keep this capability URL secret. `LAMP_HEARTBEAT_INTERVAL_MINUTES` defaults to 5. Configure the service's expected interval and grace period to match; the service sends the alarm when pings stop. Choose the receiving mailbox and phone on infrastructure independent of this hosting provider.
 
-The minute cron sends an empty GET only on the heartbeat interval grid, after scheduled work completes and `/health` verifies D1, R2 and Queue. Failed dependencies and the hosting-move `EFFECTS_PAUSED=1` hold stop pings. No subscriber, incident, page, visitor or owner data travels. A successful ping establishes the service acknowledged that ping; it does not prove human receipt. This watch does not provide standby hosting.
+The minute cron sends an empty GET only on the heartbeat interval grid, after scheduled work completes and a live check (never `/health`'s recorded result) verifies D1, R2 and Queue. Failed dependencies and the hosting-move `EFFECTS_PAUSED=1` hold stop pings. No subscriber, incident, page, visitor or owner data travels. A successful ping establishes the service acknowledged that ping; it does not prove human receipt. This watch does not provide standby hosting.
 
 ## Shared operator authentication
 

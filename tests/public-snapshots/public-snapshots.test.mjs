@@ -169,8 +169,6 @@ before(async () => {
   executeSql(`${resolvedLegacyFixtureSql()}
 INSERT INTO oa_operators (id,email,display_name,role,status,created_at)
   SELECT id,email,display_name,'owner','active',unixepoch(created_at) * 1000 FROM operators WHERE is_setup_operator = 1;
-INSERT INTO oa_bootstrap (singleton,claim_id,claimed_at)
-  SELECT 1,id,created_at FROM oa_operators WHERE role = 'owner';
 UPDATE maintenance SET starts_at = '2027-09-09T06:00:00.000Z', ends_at = '2027-09-09T07:00:00.000Z' WHERE reference = 'SCH-144';
 DELETE FROM notification_deliveries;`);
 

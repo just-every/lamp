@@ -178,7 +178,10 @@ test("compiled generated Start Worker serves operator routes and prepares fresh 
     runtime = await startBuiltWorker(artifactPath, managedStatePath, "status.lamp.test", () => true, managedVariables);
     server = runtime.server;
     const readyPage = await fetch(`http://127.0.0.1:${runtime.port}/`, { headers: { Host: "status.lamp.test" }, signal: AbortSignal.timeout(30_000) });
-    assert.equal(readyPage.status, 200, "managed health completes the first snapshot before returning");
+    // The owner has not set up this installation yet, so the page answers the declared
+    // pendingSetupStatuses (503) with the first snapshot that health published.
+    assert.equal(readyPage.status, 503, "managed health completes the first snapshot before returning; the page stays pending until owner setup");
+    assert.equal(readyPage.headers.get("Cache-Control"), "no-store");
     assert.match(await readyPage.text(), /Snapshot generated/);
     const generatedAt = readyPage.headers.get("X-Lamp-Snapshot-Generated-At");
     assert.ok(generatedAt && Number.isFinite(Date.parse(generatedAt)));

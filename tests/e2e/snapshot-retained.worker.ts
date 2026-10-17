@@ -40,8 +40,9 @@ export default {
       : cache;
     const service = createPublicSnapshotService(repository, failing, undefined, undefined, undefined, replica);
     const app = new Hono();
+    const down = async (): Promise<never> => { throw new Error("D1 unavailable"); };
     registerPublicSnapshotRoutes(app, service);
-    registerHealthRoutes(app, createHealthService({ checkDatabase: async () => { throw new Error("D1 unavailable"); } }, {}));
+    registerHealthRoutes(app, createHealthService({ key: env, checkDatabase: down, lastGood: down, recordGood: down, forgetGood: down }, {}));
     if (url.searchParams.get("cacheWrites") !== "down") return app.fetch(request, env);
     // Cache API is another network/storage edge. Failing its writes must not
     // prevent serving a verified generation from R2.

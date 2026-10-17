@@ -1,6 +1,7 @@
 import { registerCommunicationPerformanceRoutes } from "../features/communication-performance";
 import { registerIncidentImpactRoutes } from "../features/incident-impact";
 import { registerSetupRoutes } from "../features/setup/routes";
+import { createSetupRepository } from "../features/setup/repository";
 import { authResponse } from "../platform/auth/http";
 import { Hono } from "hono";
 
@@ -37,8 +38,13 @@ export type { AppBindings } from "./types";
 export function createApp(bindings: AppBindings, execution?: MailExecution) {
   const app = new Hono<AppEnv>();
   const authorizedReads = new WeakMap<Request, OperatorReadSession>();
-  const healthService = createHealthService(createHealthRepository(bindings.DB), createDependencyProber(bindings.SNAPSHOTS, createQueueDispatcher(bindings.JOBS)));
   const services = createAppServices(bindings, createSnapshotBlobStore(bindings), execution);
+  const healthService = createHealthService(createHealthRepository(bindings.DB), createDependencyProber(bindings.SNAPSHOTS, createQueueDispatcher(bindings.JOBS)), async () => {
+    if (await services.publicSnapshots.hasCurrentSnapshot()) return true;
+    if (!await createSetupRepository(bindings.DB).pageConfigured()) return false;
+    await services.publicSnapshots.retryPendingBuild();
+    return services.publicSnapshots.hasCurrentSnapshot();
+  });
   const publicWriteLimiter = createPublicWriteRateLimiter(bindings.DB);
   // Local development says its mail is suppressed; a demo completes sends as
   // mocked success, so its pages read as a configured installation's.
@@ -75,5 +81,5 @@ export function createApp(bindings: AppBindings, execution?: MailExecution) {
     try { return await app.fetch(request, bindings); }
     finally { authorizedReads.delete(request); }
   }
-  return { app, services, readOperator };
+  return { app, services, readOperator, health: healthService };
 }

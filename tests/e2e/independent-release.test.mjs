@@ -58,15 +58,23 @@ test('independent emitted artifact owns secure empty setup, native sessions and 
   assert.equal((await request('/auth/bootstrap',{...setup,body:JSON.stringify({token:'wrong',displayName:owner.displayName})})).status,403);
   assert.equal((await publicRequest('/auth/bootstrap',setup)).status,404);
   assert.equal((await request('/auth/bootstrap',{...setup,headers:{...setup.headers,Origin:'https://other.test'}})).status,403);
+  // A hosted deployment stores the page settings before the owner claims it, and
+  // health publishes that page. Until setup the page answers its declared pending status.
+  await db.prepare(setupPageSettingsStatement({pageName:owner.pageName,pageTagline:owner.tagline,pageTimezone:owner.timezone,pageHost:'status.lamp.test',mailFromAddress:'status@example.test',pageAccentColor:'#16794C'})).run();
+  assert.equal((await request('/health')).status,200);
+  assert.equal((await request('/setup/status')).status,409);
+  const pendingPage=await publicRequest('/');
+  assert.equal(pendingPage.status,artifact.deploymentSpec.surfaces.page.readiness[0].pendingSetupStatuses[0]);
+  assert.equal(pendingPage.headers.get('cache-control'),'no-store');
+  assert.match(await pendingPage.text(),/Independent Lamp/);
   const created=await request('/auth/bootstrap',setup);
   assert.equal(created.status,303);
   assert.equal(Boolean(created.headers.get('set-cookie')),true);
-  await db.prepare(setupPageSettingsStatement({pageName:owner.pageName,pageTagline:owner.tagline,pageTimezone:owner.timezone,pageHost:'status.lamp.test',mailFromAddress:'status@example.test',pageAccentColor:'#16794C'})).run();
   assert.equal((await request('/auth/bootstrap',setup)).status,409);
   assert.equal((await request('/setup/status')).status,200);
   assert.equal((await request('/health')).status,200);
   const publicPage=await publicRequest('/');
-  assert.equal(publicPage.status,200);
+  assert.equal(publicPage.status,artifact.deploymentSpec.surfaces.page.readiness[0].statuses[0]);
   assert.equal(publicPage.headers.get('set-cookie'),null);
   assert.match(await publicPage.text(),/Independent Lamp/);
   assert.equal((await request('/signin')).status,200);
