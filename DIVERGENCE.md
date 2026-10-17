@@ -1416,3 +1416,7 @@ Business catch-ups replace source-owned records under the reviewed native
 revision and can undo back to that revision, while preserving incoming native
 references. Door uploads, plans, grants, approvals and lineage are installation
 custody: local exports exclude every `ik_door_*` table alongside import-kit jobs.
+
+## Managed preview owner entry (18 October 2026)
+
+Managed previews declare `/auth/owner-signin` as their owner entry so RER can bind the preview's single-use owner grant there. A missing, used or expired grant redirects to Lamp's sign-in page with a notice; an unavailable auth service does the same. Successful grant consumption retains Base's native session and single-use checks.

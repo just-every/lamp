@@ -498,7 +498,7 @@
       "executable": false
     },
     "base-copies.json": {
-      "sha256": "694281ba73190d56d5adef37f2ee585ddd3dddbe3dac680481c661e8971d1a43",
+      "sha256": "ae86e2127e1da5d290f97953c5fbc9c91ef86c42ba388a02893324ddc7b7d50d",
       "executable": false
     },
     "BASELINE.md": {
@@ -554,7 +554,7 @@
       "executable": false
     },
     "DIVERGENCE.md": {
-      "sha256": "47f102f3c3f17ea49526a7e2ac9a7ac11bff9a0d26417f12969f3bfa93ae8618",
+      "sha256": "b4ffcc279e28bfb9e77633e89ba20c3211dc4b891c5bb1aa7ceee7a935cb7f81",
       "executable": false
     },
     "docs/ai-assistance.md": {
@@ -2002,11 +2002,11 @@
       "executable": false
     },
     "package.json": {
-      "sha256": "094d2684eaee6bec996e7165fb45c692a51491f7a3d3d72e85583b655d2b7147",
+      "sha256": "f7329f4f20195ecc812d1c1973ac38ad09daf2d5ae149f75347484aed2467972",
       "executable": false
     },
     "pnpm-lock.yaml": {
-      "sha256": "5607b3d49b5c3e6c4228c777e3124a2aa729ba8dc5b24a235f481b156b753379",
+      "sha256": "4bb5289f5e576f30688639895c493831c211c8ba5f004d02002e514500667b43",
       "executable": false
     },
     "public/app-assets/brand/lamp-mark.svg": {
@@ -2110,7 +2110,7 @@
       "executable": false
     },
     "rer-packaging.json": {
-      "sha256": "6a7f36b88ba345a4b357c969a4c6e57ba5c022cb0e48cbb0b10da658ea42eb28",
+      "sha256": "acecfa63e3aee8e9a6da1ca8746042a2702eb04cdcaef7a7565434531a7a1bbc",
       "executable": false
     },
     "rer-project.json": {
@@ -2254,7 +2254,7 @@
       "executable": false
     },
     "scripts/delivery/base/packaging.json": {
-      "sha256": "6a7f36b88ba345a4b357c969a4c6e57ba5c022cb0e48cbb0b10da658ea42eb28",
+      "sha256": "acecfa63e3aee8e9a6da1ca8746042a2702eb04cdcaef7a7565434531a7a1bbc",
       "executable": false
     },
     "scripts/delivery/base/paths.mjs": {
@@ -2442,7 +2442,7 @@
       "executable": false
     },
     "scripts/installer/local.mjs": {
-      "sha256": "81fb2c2e898f63203566ecc44912f9898d74e88ff426e9a828585ce8f34ec338",
+      "sha256": "6f6c436d30c25146267dec99af86f4709670145f419445aef957d6fa4932da7d",
       "executable": false
     },
     "scripts/installer/README.md": {
@@ -3842,7 +3842,7 @@
       "executable": false
     },
     "src/core/features/statuspage-import/targets.ts": {
-      "sha256": "fe97ba3cbcc16b191846fdac2beacadb5002143f5f57eed9a8557f3603144c30",
+      "sha256": "c8c8ddafadde2130d8e26a33ac67ac46ba440189b5bf717265cf875e7f9a29ce",
       "executable": false
     },
     "src/core/features/statuspage-import/templates.ts": {
@@ -3934,7 +3934,7 @@
       "executable": false
     },
     "src/core/platform/auth/http.ts": {
-      "sha256": "25495af6e6c30705d6c35ae13af27981601f948e1b1055e04b57288d1d7ac34e",
+      "sha256": "40a4a11b298407363c20c78d8a8ad5b8ce8fcbf09c79389913917dc38e8a69c1",
       "executable": false
     },
     "src/core/platform/auth/identity-provider-guides.ts": {
@@ -5150,7 +5150,7 @@
       "executable": false
     },
     "tests/e2e/helpers/import-door-flow.mjs": {
-      "sha256": "298c47c9ffeb498894e03346e276844cf4d85b61b38dd25c3d26cb91abf6b021",
+      "sha256": "00712a3e48e28c064fe013fa9eb3807142ff38a6c5b0c2c21ac0dbd3bf7a8c94",
       "executable": false
     },
     "tests/e2e/helpers/import-door-visuals.mjs": {
@@ -5310,7 +5310,7 @@
       "executable": false
     },
     "tests/e2e/sorry-import.test.mjs": {
-      "sha256": "2fcc00ead73075156b6c3af5ddae0b05c2b63da059008a24980a278992660e1c",
+      "sha256": "7af5d0e2df7aaf5757d8d006c1a8f7d8208ed6d4288d75ebdaa89aec002ab9fb",
       "executable": false
     },
     "tests/e2e/start-runtime.test.mjs": {

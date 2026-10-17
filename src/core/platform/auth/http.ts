@@ -31,8 +31,19 @@ export async function authResponse(request:Request,env:AppBindings,services:AppS
       headers.set('Location', '/auth/settings/identity?saved=1');
       return new Response(response.body, { status: response.status, statusText: response.statusText, headers });
     }
+    if (url.pathname === '/auth/owner-signin' && response.status >= 400) return ownerSignInRefused(response);
     return request.method === 'GET' && url.pathname === '/auth/settings/identity'
       ? await identitySettingsPage(response, { origin: config.origin, providers: config.providers, identityProvider: env.IDENTITY_PROVIDER || undefined, local: Boolean(import.meta.env?.DEV), saved: url.searchParams.get('saved') === '1' })
       : response;
-  } catch(error) {return Response.json({error:error instanceof AuthError?error.code:'auth_unavailable'},{status:error instanceof AuthError?error.status:503,headers:securityHeaders()});}
+  } catch(error) {
+    const response=Response.json({error:error instanceof AuthError?error.code:'auth_unavailable'},{status:error instanceof AuthError?error.status:503,headers:securityHeaders()});
+    return new URL(request.url).pathname === '/auth/owner-signin' ? ownerSignInRefused(response) : response;
+  }
+}
+
+// A missing, used or expired owner grant sends the person to /signin; the grant route never shows them raw JSON.
+async function ownerSignInRefused(response:Response):Promise<Response> {
+  const body=(response.headers.get('content-type')??'').includes('json')?await response.json().catch(()=>null) as {error?:unknown}|null:null;
+  const notice=typeof body?.error==='string'&&/^[a-z_]+$/.test(body.error)?body.error:'invalid_or_expired';
+  return new Response(null,{status:303,headers:{...securityHeaders(),Location:`/signin?notice=${notice}`}});
 }
