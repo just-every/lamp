@@ -403,6 +403,10 @@
       "sha256": "d0c37414b5ee402e386899aac3ef4fd74158f70489df948f84be9014fdb0841f",
       "executable": false
     },
+    ".github/assets/release/lamp-1.7.0-status-page-1440.png": {
+      "sha256": "29895b43d2a7a7f2735cab2473c5cd93ebfe11da3a5fc3424d1951879acf1ff8",
+      "executable": false
+    },
     ".github/workflows/deploy.yml": {
       "sha256": "11d5ca961e653527116a7d8e595c60c793c8faf7d63f40e7e8fd2dfe97ff59c6",
       "executable": false
@@ -1989,6 +1993,14 @@
     },
     "release-history/1.5.1.json": {
       "sha256": "a0d934dc6aa945aab43c0fa0d91a2abe84a1894cb718c6b1be8c393998390081",
+      "executable": false
+    },
+    "release-history/1.6.0.CONTRACT.md": {
+      "sha256": "4c74cbcfccd5bccf3ca10bed83c6cdcb829cf54bc6523da0cbe32f903ab03429",
+      "executable": false
+    },
+    "release-history/1.6.0.json": {
+      "sha256": "d17e88d8cc8a63d0b1c528707c9c9530483ee4f5d3f96bf58aedfc581883f579",
       "executable": false
     },
     "release-history/README.md": {
