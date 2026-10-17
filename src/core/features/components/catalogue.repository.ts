@@ -8,7 +8,7 @@ export class CatalogueChangedError extends Error {
 export function createCatalogueRepository(binding: D1Database) {
   return {
     async read(): Promise<CatalogueSnapshot> {
-      const results = await binding.batch([
+      const results = await binding.batch<Record<string, unknown>>([
         binding.prepare("SELECT requested_revision AS revision FROM public_snapshot_work WHERE id = 'default'"),
         binding.prepare("SELECT id,name,display_order AS displayOrder FROM component_groups ORDER BY display_order,id"),
         binding.prepare("SELECT id,group_id AS groupId,name,description,internal,only_show_if_degraded AS onlyShowIfDegraded,uptime_start_date AS uptimeStartDate,display_order AS displayOrder,note FROM components ORDER BY display_order,id"),

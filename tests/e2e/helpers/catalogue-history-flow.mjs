@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
-import { readFile } from "node:fs/promises";
+import { readFile, readdir } from "node:fs/promises";
 import { setTimeout as delay } from "node:timers/promises";
 
 const DAY = 86_400_000;
@@ -38,7 +38,8 @@ export async function catalogueHistoryFlow({ appFetch, fetch, pageUrl, queryLoca
   const bulk = "/api/app/components/bulk";
   const move = "/api/app/statuspage-import";
   const newComponents = new Set(), newGroups = new Set();
-  let conditionalIncident, importJob, boundaryId, originalTimezone;
+  let conditionalIncident, boundaryId, originalTimezone;
+  const importJobs = [];
   async function api(path, method = "GET", input, status = 200) {
     const response = await appFetch(path, { method, ...(input === undefined ? {} : { body: JSON.stringify(input) }) });
     const text = await response.text();
@@ -148,10 +149,17 @@ export async function catalogueHistoryFlow({ appFetch, fetch, pageUrl, queryLoca
     const source = { source: "sorry", publicAccessAcknowledged: true };
     const importedPreview = await api(`${move}/preview`, "POST", { ...source, files });
     let imported = await api(`${move}/apply`, "POST", { ...source, files, asOf: importedPreview.report.asOf, fingerprint: importedPreview.report.fingerprint, acknowledged: true });
-    importJob = imported.job.id;
-    for (let round = 0; imported.job.state === "applying" && round < 100; round += 1) imported = await api(`${move}/jobs/${importJob}/resume`, "POST", {});
+    importJobs.push(imported.job.id);
+    for (let round = 0; imported.job.state === "applying" && round < 100; round += 1) imported = await api(`${move}/jobs/${imported.job.id}/resume`, "POST", {});
     assert.equal(imported.job.state, "completed");
-    const importedIncident = (await api("/api/app/incidents")).incidents.find(incident => incident.title === "Delayed invoice processing" && incident.openedAt.startsWith(`${year}-`));
+    const statuspageDirectory = new URL("../../fixtures/statuspage/small/", import.meta.url);
+    const statuspageFiles = await Promise.all((await readdir(statuspageDirectory)).filter(name => name !== "subscribers.json").map(async name => ({ name, text: (await readFile(new URL(name, statuspageDirectory), "utf8")).replaceAll("2026-01-11", `${year}-02-02`).replaceAll("2026-01-21", `${year + 1}-08-02`).replaceAll("2026-", `${year}-`) })));
+    const statuspagePreview = await api(`${move}/preview`, "POST", { files: statuspageFiles });
+    let statuspageImport = await api(`${move}/apply`, "POST", { files: statuspageFiles, asOf: statuspagePreview.report.asOf, fingerprint: statuspagePreview.report.fingerprint, acknowledged: true });
+    importJobs.push(statuspageImport.job.id);
+    for (let round = 0; statuspageImport.job.state === "applying" && round < 100; round += 1) statuspageImport = await api(`${move}/jobs/${statuspageImport.job.id}/resume`, "POST", {});
+    assert.equal(statuspageImport.job.state, "completed");
+    const importedIncident = (await api("/api/app/incidents")).incidents.find(incident => incident.title === "Elevated API errors" && incident.openedAt.startsWith(`${year}-`));
     assert.ok(importedIncident, "the import's actual native incident is available");
     boundaryId = randomUUID();
     const reference = `INC-${900000000 + Math.floor(Math.random() * 100000000)}`;
@@ -177,7 +185,7 @@ export async function catalogueHistoryFlow({ appFetch, fetch, pageUrl, queryLoca
       path = previous;
     }
     assert.ok(reachedOldest, "previous-month links reach the oldest imported incident");
-    assert.ok((await read(`/incidents/${importedIncident.reference}`)).body.includes("Invoice processing has recovered"));
+    assert.ok((await read(`/incidents/${importedIncident.reference}`)).body.includes("Elevated API errors"));
     const primaryHistory = await read("/history", { redirect: "manual" });
     assert.equal(primaryHistory.status, 301); assert.equal(primaryHistory.location, "/history/");
     const legacyMonth = await read(`/history/${year}/february`, { redirect: "manual" });
@@ -185,7 +193,7 @@ export async function catalogueHistoryFlow({ appFetch, fetch, pageUrl, queryLoca
     assert.equal((await read(`/history/${year}-13`)).status, 404, "invalid new month paths never become Sorry aliases");
   } finally {
     if (boundaryId) await executeLocalSql(`DELETE FROM incidents WHERE id=${quote(boundaryId)}`);
-    if (importJob) {
+    for (const importJob of importJobs.reverse()) {
       let undone;
       for (let round = 0; round < 100; round += 1) {
         undone = await api(`${move}/jobs/${importJob}/undo`, "POST", {});

@@ -171,7 +171,7 @@ test("PAGE-005 PAGE-006 PAGE-007 cold durable replica keeps complete generations
     }
     assert.match(await (await fetch("/history/2022-04?storage=down")).text(), /Archived API outage/);
     const oldMonthPath = await fetch("/history/2022/04", { redirect: "manual" });
-    assert.equal(oldMonthPath.status, 301);assert.equal(oldMonthPath.headers.get("Location"), "/history/2022-04");
+    assert.equal(oldMonthPath.status, 404, "a Statuspage import does not invent a Sorry month alias");
     // The next snapshot has no removed record or its alias, even after cache warming.
     const removed = structuredClone(source); removed.incidents = []; removed.updates = []; removed.incidentComponents = [];
     assert.equal((await rebuild({ generation: 21, source: removed })).failure, null);
@@ -193,6 +193,11 @@ test("PAGE-005 PAGE-006 PAGE-007 cold durable replica keeps complete generations
     noHistory.importedNamespaces = [];
     assert.equal((await rebuild({ generation: 24, source: noHistory })).failure, null);
     assert.equal(await (await fetch("/history.atom")).text(), await (await fetch("/feed.atom")).text(), "native compatibility feed survives complete import undo");
+    const sorryHistory = { ...source, importedNamespaces: ["statuspage", "sorry"] };
+    assert.equal((await rebuild({ generation: 25, source: sorryHistory })).failure, null);
+    const sorryMonth = await fetch("/history/2022/april?storage=down", { redirect: "manual" });
+    assert.equal(sorryMonth.status, 301);assert.equal(sorryMonth.headers.get("Location"), "/history/");
+    assert.equal((await fetch("/history/2022-04?storage=down")).status, 200, "the distinct native month stays available through cold storage");
 
   } finally { await runtime.dispose(); await rm(directory, { recursive: true, force: true }); }
 });
