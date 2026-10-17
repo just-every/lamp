@@ -9,6 +9,9 @@ export function localWranglerConfig(change = (config) => config, environment = p
   const config = JSON.parse(readFileSync(resolve("wrangler.jsonc"), "utf8").replace(/^\s*\/\/.*$/gm, ""));
   config.vars = {...config.vars, ...Object.fromEntries(['AUTH_ORIGIN','AUTH_LOCAL','SESSION_SECRET','SETUP_OPERATOR_EMAIL'].filter(key=>environment[key]).map(key=>[key,environment[key]]))};
   config.main = resolve(config.main);
+  // Producers stay so code that enqueues still works; the real queue consumer does not start unless
+  // LAMP_TEST_QUEUE_CONSUMERS=1, because a job a test leaves on the queue is then delivered mid-test (gr-base-215).
+  if (config.queues && environment.LAMP_TEST_QUEUE_CONSUMERS !== "1") delete config.queues.consumers;
   for (const database of config.d1_databases) database.migrations_dir = resolve(database.migrations_dir);
   return JSON.stringify(change(config), null, 2);
 }

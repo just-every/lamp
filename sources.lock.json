@@ -5800,7 +5800,7 @@
       "executable": false
     },
     "tests/helpers/wrangler-config.mjs": {
-      "sha256": "fe75f48ea76bec8dbd42173cc629d1980dd0ff5fb4c6003194ce17df18fd08bf",
+      "sha256": "9912ef3164ce786e67fc4d5fafc7ad881248a013cfe0676d73099255ca8beba8",
       "executable": false
     },
     "tests/installer-receipt.test.mjs": {
