@@ -2676,7 +2676,7 @@
       "executable": false
     },
     "src/core/app/client/ui/components.css": {
-      "sha256": "6b45582e1e3825790ff4a58eaa0979f7b1a4c967da13c2dc1817fbae80458586",
+      "sha256": "a52089888b0d14116cb76dc82fd91f5216a44f3fd8fef4cd58e095af012515e0",
       "executable": false
     },
     "src/core/app/client/ui/composer.css": {
@@ -3448,7 +3448,7 @@
       "executable": false
     },
     "src/core/features/public-snapshot/uptime.ts": {
-      "sha256": "2161e40fca3a92c742d53f25780fb5b91ed56a97d3b78a650b339fc2351bb6fb",
+      "sha256": "9d3b06fd425857ccf530c26eeb872d344d67e5738e4130e4efdda41b80cb8568",
       "executable": false
     },
     "src/core/features/public-snapshot/widget-runtime.js": {

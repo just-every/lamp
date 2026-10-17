@@ -31,7 +31,7 @@ export function computeUptime(source: Pick<PublicSnapshotSource, "history" | "co
   if (!Number.isFinite(earliest)) return { percentage: null, trackingSince: null, coverageDays: 0, marks };
   const coverageStart = Math.max(windowStart, earliest, configuredStart);
   const coverageMinutes = Math.max(0, (now - coverageStart) / MINUTE);
-  if (coverageMinutes <= 0) return { percentage: null, trackingSince: null, coverageDays: 0, marks };
+  if (coverageMinutes <= 0) return { percentage: null, trackingSince: new Date(Math.max(earliest, configuredStart)).toISOString(), coverageDays: 0, marks };
 
   const boundaries = new Set<number>([coverageStart, now]);
   for (const event of events) boundaries.add(new Date(event.changedAt).getTime());

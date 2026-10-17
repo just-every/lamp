@@ -60,7 +60,11 @@
 
 /* The catalogue editor uses the same controls in a wider, scrollable sheet. */
 .catalogue-drawer { width: min(100%, 1100px); }
-.catalogue-workspace { display: grid; gap: 20px; }
+.catalogue-workspace { display: grid; min-width: 0; grid-template-columns: minmax(0, 1fr); gap: 20px; }
+.catalogue-workspace > *, .catalogue-workspace .form-label { min-width: 0; }
+.catalogue-workspace code { overflow-wrap: anywhere; }
+.catalogue-workspace .card-heading, .catalogue-workspace .drawer-actions { flex-wrap: wrap; }
+.catalogue-workspace input[type="file"] { max-width: 100%; }
 .catalogue-fields { min-width: 0; margin: 0; padding: 0; border: 0; display: grid; gap: 24px; }
 .catalogue-table-scroll { max-width: 100%; overflow-x: auto; }
 .catalogue-table { width: 100%; border-collapse: collapse; text-align: left; }
