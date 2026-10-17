@@ -37,11 +37,12 @@ The file is JSON in Lamp's `lamp-page-data` format, version 1:
 | `format`, `version` | `"lamp-page-data"` and `1`. |
 | `exportedAt`, `contents` | When it was made, and a sentence naming what it holds. |
 | `page` | `pageName`, `tagline`, `accentColor`, `timezone`, `footerCreditEnabled`, `widgetAllowedOrigins`, `aiToneInstructions`, `feedId` (your Atom feed's identity) and `logo` (`contentType` and `base64` bytes, or `null`). |
-| `people` | `email` and `displayName` of each operator who wrote a record. |
+| `people` | `email` and `displayName` of each operator who wrote or reviewed a record. |
 | `records` | One list of rows per Lamp table, keyed by table name, with each row's columns as Lamp stores them: `component_groups`, `components`, `component_standing_claims`, `component_claim_events`, `component_state_history`, `component_state_corrections`, `incidents`, `incident_components`, `incident_updates`, `incident_drafts`, `incident_internal_notes`, `incident_reports`, `maintenance`, `maintenance_components`, `maintenance_notices`, `import_maintenance_updates`, `subscribers`, `subscriber_components`, `reference_allocations` and `reference_counters`. |
 
-Rows name their author by email (`operator_email`, `created_by_email`,
-`author_email`) instead of an installation's operator ID. Each subscriber row
+Rows name their author, and a draft its reviewer, by email (`operator_email`,
+`created_by_email`, `author_email`, `reviewed_by_email`) instead of an
+installation's operator ID. Each subscriber row
 adds `confirmed_at`, the time they confirmed by email, or `null`; its `state` is
 `pending`, `active` or `deactivated`, with `deactivation_reason` and
 `deactivated_at` for someone who left.

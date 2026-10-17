@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.7.0
 
 - **Export page data from the app.** Settings → Export page data downloads everything the status page holds as one JSON file (`lamp-page-data`, version 1): page settings and logo, component groups and components with their status history, incidents with updates, drafts, internal notes and post-incident reports, maintenance with notices, subscribers with channel, components and consent state, and reference numbers. The card says what is in it and what is left out. Restore page data takes that file on a new installation (local or hosted) with a check first and an all-or-nothing restore; downloading again gives back the same file. docs/backups-and-recovery.md documents the format.
 - **Hosted backups and restores need only Node, git and rer.** `node scripts/export.mjs --remote`, `node scripts/setup.mjs --restore-from` and `node scripts/import.mjs` read the deployment's private input file with `--env-file` and run the checkout's own Wrangler, so no global pnpm is needed. Backups and recovery, Update Lamp (its pre-update backup) and OPERATIONS.md give these commands instead of `pnpm run export:cloudflare`.
@@ -11,8 +11,13 @@
 - A redeploy keeps `OIDC_TRANSACTION_SECRET` as it keeps the other link and session secrets, so an identity-provider sign-in in progress survives it, and a deploy without it no longer blanks it. `rer deploy --rotate-secret NAME` now replaces a secret on purpose, as `LAMP_REPLACE_SECRETS` does. OPERATIONS.md describes both.
 - Sorry subscribers held for cutover are deleted with their addresses 30 days after the import's review time if the owner neither releases them nor undoes the import. Cutover shows the **Release by** date.
 - The AI provider and identity provider guides name `rer dev --stop` and `rer dev`. A local operator invitation says no email was sent because local mail is suppressed. **Confirm my identity** says it keeps you signed in and how confirmation works.
-- README names the latest release tag (`v1.6.0`), how to start it, and which `rer` version a checkout runs.
+- README names the latest release tag, how to start it, and which `rer` version a checkout runs.
 - Pins `@runeditrun/rer` 0.2.38: generated deployment secrets are kept in `.rer/deploy/<environment>.secrets.env` and reused, and deploy hooks build without local settings files.
+- A page data file names a draft's reviewer by email (`reviewed_by_email`), as it names authors, so a page holding a reviewed, unpublished draft restores instead of being refused.
+- This checkout pins rer **0.2.40**.
+- Product screenshot: `.github/assets/release/lamp-1.7.0-status-page-1440.png` (a business's public status page at 1440 pixels: grouped components with 90-day uptime, an incident in progress with its latest update, and the subscribe form).
+
+Upgrading: back up data and owner source. This release adds no migration. Run `pnpm install --frozen-lockfile` for the rer 0.2.40 pin. Sorry subscribers still held for cutover more than 30 days after their reviewed dry run are deleted with their addresses by the first scheduled run after the update: release or undo them first if you mean to keep them. Hosted backups and restores now use `node scripts/export.mjs --remote` and `node scripts/setup.mjs --restore-from` with `--env-file` (docs/backups-and-recovery.md). Installations on 1.5.1 or earlier follow the earlier notes below first.
 
 ## 1.6.0
 

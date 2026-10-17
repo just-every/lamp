@@ -43,6 +43,7 @@ export const AUTHOR_COLUMNS: Record<string, string> = {
   operator_id: "operator_email",
   created_by_operator_id: "created_by_email",
   author_operator_id: "author_email",
+  reviewed_by_operator_id: "reviewed_by_email",
 };
 
 /** Kept out of the file: a subscriber's legacy token hash is an installation credential. */
