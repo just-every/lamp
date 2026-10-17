@@ -39,16 +39,13 @@ information.
 ## Run it locally
 
 ```sh
-curl -fsSL https://runeditrun.com/install.sh | sh
-rer dev just-every/run-lamp
+npx -y @runeditrun/rer dev just-every/run-lamp
 ```
 
-The first line installs `rer` for you alone, with its own Node if you have no
-Node 22 or later; if it prints an `export PATH=…` line, run that line first. The
-second gets Lamp, installs everything, makes you the owner and prints a link that
-opens Lamp signed in. To start it again later, run `cd run-lamp && rer dev`.
-Already have Node 22 or later? `npx -y @runeditrun/rer dev just-every/run-lamp`
-does both in one line.
+That one line gets Lamp, installs everything, makes you the owner and prints a link
+that opens Lamp signed in. To start it again later, run `cd run-lamp && rer dev`.
+No Node? `curl -fsSL https://runeditrun.com/install.sh | sh -s -- dev just-every/run-lamp`
+brings its own and does the same.
 
 ## Owner guides
 
@@ -66,8 +63,7 @@ The app host serves Lamp's public documentation at `/docs`. Start with the
 
 ## Source and tooling versions
 
-The Run page's start line, `rer dev just-every/run-lamp` (or its one-line `npx`
-form), clones the default branch, `main`, not a release tag, into a `run-lamp`
+The Run page's start line, `npx -y @runeditrun/rer dev just-every/run-lamp`, clones the default branch, `main`, not a release tag, into a `run-lamp`
 folder and starts it; after that, run `rer dev` from that folder. `main` is Lamp's
 development source and may hold changes not yet in a release; it pins
 `@runeditrun/rer` 0.2.38. The latest tagged release is `v1.6.0`, which pins

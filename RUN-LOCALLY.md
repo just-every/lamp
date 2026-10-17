@@ -6,11 +6,7 @@ which every `rer` command here runs whatever `rer` you installed;
 your computer without a Cloudflare account or mail credentials; development mail
 is silently suppressed.
 
-The Run page's two lines, `curl -fsSL https://runeditrun.com/install.sh | sh`
-and then `rer dev just-every/run-lamp`, install `rer` (with its own Node when you
-have none) and clone `main` (development source, not a release tag) into
-`run-lamp` and start it. With Node 22 or later,
-`npx -y @runeditrun/rer dev just-every/run-lamp` does both in one line. The latest
+The Run page's one line, `npx -y @runeditrun/rer dev just-every/run-lamp`, installs `rer` and clones `main` (development source, not a release tag) into `run-lamp` and starts it. Without Node, `curl -fsSL https://runeditrun.com/install.sh | sh -s -- dev just-every/run-lamp` does the same with its own Node. The latest
 release tag, `v1.6.0`, pins rer 0.2.36; if you choose the tag, use that
 checkout's own instructions. See [source and tooling versions](README.md#source-and-tooling-versions).
 `rer` selects the project's pinned Node 22.20.0 and pnpm 10.12.4, downloading
