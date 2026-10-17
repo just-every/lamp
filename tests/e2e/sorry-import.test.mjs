@@ -1,5 +1,7 @@
 import { businessImportDoorFlow } from './helpers/import-door-flow.mjs';
 import assert from 'node:assert/strict';
+import { DatabaseSync } from 'node:sqlite';
+import { createHash, randomUUID } from 'node:crypto';
 import { readdirSync, readFileSync } from 'node:fs';
 import { test } from 'node:test';
 import { nativeRequest, openNativeRuntime, origin, publicOrigin } from '../dev-ingress/runtime.mjs';
@@ -111,5 +113,88 @@ test('MOVE-001 MOVE-002 MOVE-004 MOVE-005 MOVE-006 Sorry and the opt-in Business
     const retained = await undo(held.job.id);
     assert.ok(retained.undo.dispositions.some(row => row.targetKind === 'subscriber' && row.disposition === 'retained'), 'release changes the held row, so undo cannot claim to retract its invitation');
   } finally { await runtime.close(); }
-  await businessImportDoorFlow();
+  await businessImportDoorFlow({ afterApply: async ({ source, runtime, door, planId, cookies }) => {
+    if (source !== 'statuspage') return;
+    const directory = `${runtime.state}/v3/d1/miniflare-D1DatabaseObject`;
+    const db = new DatabaseSync(`${directory}/${readdirSync(directory).find(name => name.endsWith('.sqlite') && name !== 'metadata.sqlite')}`, { readOnly: true });
+    const rows = sql => db.prepare(sql).all().map(row => ({ ...row }));
+    const snapshot = () => ({
+      incidents: rows('SELECT * FROM incidents ORDER BY id'),
+      links: rows('SELECT * FROM incident_components ORDER BY id'),
+      updates: rows('SELECT * FROM incident_updates ORDER BY id'),
+      components: rows('SELECT * FROM components ORDER BY id'),
+      targets: rows('SELECT * FROM statuspage_import_targets ORDER BY kind,id'),
+    });
+    try {
+      const before = snapshot();
+      const files = readdirSync('tests/fixtures/statuspage/small').map(name => ({ name, text: readFileSync(`tests/fixtures/statuspage/small/${name}`, 'utf8') }));
+      const file = files.find(file => file.name === 'incidents.json');
+      const incidents = JSON.parse(file.text), originalName = incidents[0].name;
+      const added = structuredClone(incidents[0]);
+      added.id = 'i0000000099'; added.shortlink = 'https://stspg.io/99'; added.name = 'Catch-up added incident';
+      added.incident_updates = added.incident_updates.map((update, index) => ({ ...update, id: `${added.id}u${index + 1}`, incident_id: added.id }));
+      incidents[0].name = `${originalName} (renamed at source)`;
+      incidents.push(added); file.text = JSON.stringify(incidents);
+      const bytes = Buffer.from(JSON.stringify({ source, files }));
+      const hash = bytes => createHash('sha256').update(bytes).digest('hex');
+      let uploadId;
+      for (let offset = 0, index = 0; offset < bytes.length; offset += 65536, index++) {
+        const chunk = bytes.subarray(offset, offset + 65536);
+        const uploaded = await door('uploads', source, { ...(uploadId ? { uploadId } : {}), name: 'statuspage-catchup.json', bundleSha256: hash(bytes), totalBytes: bytes.length, totalChunks: Math.ceil(bytes.length / 65536), index, chunkSha256: hash(chunk), base64: chunk.toString('base64') });
+        assert.equal(uploaded.status, 200, JSON.stringify(uploaded.body)); uploadId = uploaded.body.uploadId;
+      }
+      const planned = await door('plan', source, { uploadId, catchup: true });
+      assert.equal(planned.status, 200, JSON.stringify(planned.body));
+      assert.equal(planned.body.differences.additions.length, 1);
+      assert.equal(planned.body.differences.replacements.length, 1);
+      assert.deepEqual(snapshot(), before, 'catch-up planning makes no native writes');
+      const { planId: catchupId, fingerprint } = planned.body;
+      const retainedPlan = JSON.parse(rows(`SELECT body FROM ik_door_plan_chunks WHERE plan_id='${catchupId}' ORDER BY ordinal`).map(row => row.body).join(''));
+      const original = before.incidents.find(row => row.title === originalName);
+      const priorTarget = before.targets.find(row => row.kind === 'incident' && row.id === original.id);
+      const replacement = retainedPlan.plan.entries.flatMap(entry => entry.effects).find(effect => effect.targetKind === 'incident' && effect.targetId === original.id);
+      assert.equal(replacement.expectedRevision, priorTarget.revision, 'catch-up is fenced by the current native revision');
+      const approval = { fingerprint, approvalRecordId: randomUUID(), approvedAt: new Date().toISOString() };
+      let applied;
+      for (let round = 0; round < 40; round++) {
+        applied = await door('apply', source, { planId: catchupId, reviewedFingerprint: fingerprint }, approval);
+        if (applied.status !== 200) console.log('Failed catch-up custody:', JSON.stringify(rows(`SELECT j.state,a.owner,a.approval_id FROM ik_door_plans p JOIN ik_jobs j ON j.id=p.job_id LEFT JOIN ik_door_approvals a ON a.plan_id=p.id WHERE p.id='${catchupId}'`)));
+        assert.equal(applied.status, 200, JSON.stringify(applied.body));
+        if (applied.body.job.state === 'completed') break;
+      }
+      assert.equal(applied.body.job.state, 'completed');
+      const after = snapshot();
+      assert.equal(after.incidents.find(row => row.id === original.id).title, incidents[0].name);
+      assert.equal(after.incidents.filter(row => row.title === added.name).length, 1);
+      assert.equal(after.incidents.length, before.incidents.length + 1);
+      assert.equal(new Set(after.incidents.map(row => row.id)).size, after.incidents.length);
+      assert.deepEqual(after.components, before.components, 'existing components are reused');
+      assert.deepEqual(after.links.filter(row => row.incident_id === original.id), before.links.filter(row => row.incident_id === original.id));
+      assert.ok(after.links.every(row => after.components.some(component => component.id === row.component_id)), 'all incident component links resolve');
+      const provenance = rows(`SELECT record_json FROM ik_provenance WHERE job_id='${applied.body.job.id}' AND target_kind='incident' AND target_id='${original.id}'`).map(row => JSON.parse(row.record_json));
+      assert.equal(provenance.length, 1);
+      assert.equal(provenance[0].before.revision, priorTarget.revision, 'replacement retained the expected previous revision');
+      const target = after.targets.find(row => row.kind === 'incident' && row.id === original.id);
+      assert.notEqual(target.revision, priorTarget.revision);
+      assert.equal(target.revision, provenance[0].appliedRevision, 'native target records the applied revision');
+      const reconciled = await door('reconcile', source, { planId: catchupId });
+      assert.equal(reconciled.status, 200, JSON.stringify(reconciled.body)); assert.equal(reconciled.body.ok, true);
+      if (process.env.LAMP_IMPORT_DOOR_VISUALS) {
+        const { captureImportDoor } = await import('./helpers/import-door-visuals.mjs');
+        await captureImportDoor({ cookies, source: 'statuspage-catchup', jobId: applied.body.job.id, origin, directory: process.env.LAMP_IMPORT_DOOR_VISUALS });
+      }
+      const olderUndo = await door('undo', source, { planId });
+      assert.equal(olderUndo.status, 409, 'undo must start with the newest catch-up');
+      let undone;
+      for (let round = 0; round < 40; round++) {
+        undone = await door('undo', source, { planId: catchupId });
+        assert.equal(undone.status, 200, JSON.stringify(undone.body));
+        if (undone.body.job.state === 'undone') break;
+      }
+      assert.equal(undone.body.job.state, 'undone');
+      assert.deepEqual(snapshot(), before, 'catch-up undo restores all previous native records and target revisions');
+      assert.equal((await door('reconcile', source, { planId })).body.ok, true);
+      console.log('Statuspage catch-up: changed incident replaced, addition unique, revision advanced, reconcile clean, undo restored full previous state.');
+    } finally { db.close(); }
+  } });
 });

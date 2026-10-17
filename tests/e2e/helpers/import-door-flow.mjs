@@ -11,7 +11,7 @@ const fixture = (source,family) => readdirSync(`tests/fixtures/${source}/${famil
 const hash = bytes => createHash('sha256').update(bytes).digest('hex');
 const json64 = value => Buffer.from(JSON.stringify(value)).toString('base64url');
 
-export async function businessImportDoorFlow() {
+export async function businessImportDoorFlow({ afterApply } = {}) {
   const {privateKey,publicKey} = generateKeyPairSync('ec',{namedCurve:'P-256'});
   const kid='synthetic-business',installationId=randomUUID(),issuer='https://business.example.test';
   const vars={RER_OWNER_CLAIM_PUBLIC_KEYS:JSON.stringify({[kid]:publicKey.export({format:'jwk'})}),RER_OWNER_CLAIM_ISSUER:issuer,RER_OWNER_CLAIM_INSTALLATION_ID:installationId};
@@ -80,6 +80,7 @@ export async function businessImportDoorFlow() {
         const {captureImportDoor}=await import('./import-door-visuals.mjs');
         await captureImportDoor({cookies:entered.cookies,source,jobId:applied.body.job.id,origin,directory:process.env.LAMP_IMPORT_DOOR_VISUALS});
       }
+      await afterApply?.({ source, runtime, door, owner, planId, applied, cookies: entered.cookies });
       if(source==='sorry') {
         let ownerUndo;
         do {
