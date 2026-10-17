@@ -1,3 +1,4 @@
+import { CommunicationPerformance } from "../../communication-performance/ui/communication-performance";
 import { Link } from "@tanstack/react-router";
 
 import { SetupChecklist } from "./setup-checklist";
@@ -69,6 +70,7 @@ export function OverviewPage() {
         <Link className="text-link" to="/app/maintenance">View maintenance <Icon name="arrow" width={15} height={15} /></Link>
       </article>
     </section>
+    <CommunicationPerformance />
     <ClientExtensionSlot id="overview.dashboard.after.v1" context={{}} />
   </div>;
 }

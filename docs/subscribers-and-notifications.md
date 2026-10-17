@@ -95,3 +95,59 @@ Resend uses `RESEND_WEBHOOK_SECRET`. Configure the selected provider's verificat
 and signed webhook in [Owner inputs](../OPERATIONS.md#owner-inputs) to receive
 delivered, bounced or complained updates. Delivered records the provider's
 delivery report, never an open or proof that a person read the message.
+
+## See the reach of an update
+
+Open an incident's **Communication and reach** panel to see its whole-incident
+figures. Expand **Reach of each update** for the recipient set and outcomes of
+each publication. Email and webhook channels show committed sends, delivered,
+bounced, complained, suppressed, failed and queued records. The panel refreshes
+its own reads every 15 seconds while visible, including after publication;
+refreshing counts leaves the update composer and its saved draft alone.
+
+Committed sends count delivery rows. **Distinct subscribers delivered** counts
+each opaque subscriber ID once per channel across the incident's updates. A
+second update to the same ten subscribers adds ten sends, not ten additional
+people. Erasing a destination preserves these anonymous counts. Operator Slack
+and Teams destination posts appear separately and never increase subscriber
+reach.
+
+**Provider accepted sends** records successful provider-message attempts once
+per delivery, even if there were retries. An email can be accepted and still be
+queued until a signed delivery receipt arrives. Webhook delivery records its
+endpoint's acknowledgement. Neither channel measures reading. Imported
+historical updates have unknown source delivery figures; a mixed total labels
+its known records as incomplete. **Download CSV** exports the same counts and
+measurement definitions.
+
+## Review communication performance
+
+On **Overview**, use **Communication performance** to choose the calendar month
+in the page's configured timezone. The cohort contains incidents opened from
+the first instant of that local month, inclusive, to the next month's first
+instant, exclusive. Their later publications and current delivery outcomes stay
+with that opening month. Expand an incident for its individual figures, or open
+its communication panel. The CSV includes raw counts, known timing totals,
+averages, timezone and measurement time.
+
+Alert-to-first-update latency starts at the first accepted alert receipt. A
+manually opened incident without one has unknown alert latency. Native updates
+use their actual publication record time, including later backdated updates;
+imported updates retain the source's public timeline. Resolution duration runs
+from incident opening to resolution; a later native backdated resolution cannot
+shorten it to before the publication actually happened.
+
+Each native public update with a next-update deadline makes one promise. The
+next actual public publication keeps it when it happens at or before that
+deadline. A late successor misses it. A promise with no successor stays pending
+until its deadline passes, then counts as missed. Pending promises are excluded
+from the kept share. Later backdating cannot turn a missed promise into a kept
+one; imported source promises are unavailable.
+
+The delivery failure rate divides bounced, complained and failed rows by all
+known committed email/webhook rows, including queued and suppressed records.
+The label gives that denominator; partial import coverage remains explicit.
+Reports owed uses the existing report-due policy and the incident's retained
+component-derived peak impact, independently of an operator-set impact override.
+The default policy counts an unpublished report as owed seven days after a
+Partially unavailable or Major outage incident resolves.

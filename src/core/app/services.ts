@@ -1,3 +1,4 @@
+import { createCommunicationPerformanceRepository, createCommunicationPerformanceService } from "../features/communication-performance";
 import { createIncidentImpactRepository, createIncidentImpactService } from "../features/incident-impact";
 import { publicPageOrigin } from "./public-origin";
 import { createRetainedSnapshotCache } from "../platform/blobs/retained";
@@ -117,6 +118,7 @@ export function createAppServices(bindings: AppBindings, blobs: BlobStore, execu
       subscriberDeactivated: extensions.events.subscriberDeactivated,
     },
   });
+  const communicationPerformance = createCommunicationPerformanceService(createCommunicationPerformanceRepository(bindings.DB), extensions.postmortemDuePolicy);
   const reports = createReportsService(createReportRepository(bindings.DB), publicSnapshots.rebuild, extensions.postmortemDuePolicy, {
     forIncidentReport: async (input) => notificationPublicationStatements(bindings.DB, { eventId: input.eventId, eventType: "incident-report", incidentReportId: input.eventId, componentIds: input.componentIds, channels: input.channels, queuedAt: input.queuedAt }),
   });
@@ -165,7 +167,7 @@ export function createAppServices(bindings: AppBindings, blobs: BlobStore, execu
     sendConfirmation: async (subscriberId) => subscribers.inviteImported(subscriberId, await importPublicOrigin(), (await pageSettings.get())?.pageName ?? "This status page", async () => true),
   });
 
-  return { auth, operators, incidentImpact, pageSettings, pageExport, components, componentCatalogue, incidents, maintenance, subscribers, deliveries, reports, intake, briefs, ai, overview, updateReminders, publicSnapshots, statuspageImport, channels };
+  return { auth, operators, communicationPerformance, incidentImpact, pageSettings, pageExport, components, componentCatalogue, incidents, maintenance, subscribers, deliveries, reports, intake, briefs, ai, overview, updateReminders, publicSnapshots, statuspageImport, channels };
 }
 
 export type AppServices = ReturnType<typeof createAppServices>;

@@ -1,0 +1,21 @@
+.communication-panel { min-width: 0; }
+.communication-panel .card-heading { flex-wrap: wrap; gap: 12px; }
+.incident-context .communication-panel .card-heading { flex-direction: column; align-items: stretch; }
+.communication-panel h2, .communication-panel p, .communication-panel summary, .communication-panel dd { overflow-wrap: anywhere; }
+.communication-panel h3 { margin: 20px 0 12px; font-size: 15px; }
+.communication-panel button, .communication-panel summary, .communication-panel input { min-height: 44px; }
+.communication-panel summary { display: flex; align-items: center; cursor: pointer; font-weight: 600; }
+.communication-channels { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr)); gap: 16px; margin: 16px 0; }
+.communication-channel { min-width: 0; padding: 16px; border: 1px solid var(--line); border-radius: 10px; }
+.communication-channel dl { margin: 12px 0 0; }
+.communication-channel dl div { display: flex; justify-content: space-between; gap: 12px; padding: 5px 0; }
+.communication-channel dt { min-width: 0; }
+.communication-channel dd { margin: 0; text-align: right; font-variant-numeric: tabular-nums; }
+.communication-metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 190px), 1fr)); gap: 20px; margin: 24px 0; }
+.communication-metrics dt, .communication-note { font-size: 13px; color: var(--ink-3); }
+.communication-metrics dd { margin: 6px 0 0; font-weight: 600; }
+.communication-metrics small { display: block; margin-top: 6px; font-weight: 400; }
+.communication-update, .communication-incidents > details, .communication-updates, .communication-definitions { border-top: 1px solid var(--line); padding-top: 12px; margin-top: 16px; }
+.communication-month { width: min(100%, 250px); margin: 16px 0; }
+.communication-definitions p { font-size: 13px; line-height: 1.6; }
+@media (max-width: 480px) { .communication-panel .card-heading { align-items: flex-start; flex-direction: column; } .communication-panel .card-heading button { width: 100%; } }

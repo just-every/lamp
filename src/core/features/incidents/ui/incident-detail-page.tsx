@@ -1,3 +1,4 @@
+import { IncidentReach } from "../../communication-performance/ui/incident-reach";
 import { IncidentImpactCard } from "../../incident-impact/ui";
 import { TemplateControls } from "./template-controls";
 import { Link, useNavigate } from "@tanstack/react-router";
@@ -345,6 +346,7 @@ function IncidentVisit({ incidentId }: { incidentId: string }) {
       <IncidentComponents incident={incident} />
       <IncidentImpactCard incidentId={incident.id} />
       <section className="context-section"><h2>Published timeline</h2>{incident.updates.length ? <ol className="timeline">{incident.updates.map((update) => <li key={update.id}><strong>{update.lifecycle}</strong><span>{formatOperatorTime(update.publishedAt)}</span><p>{update.customerImpact}</p>{componentChangeLines(update.componentChanges).map((line, index) => <p key={index}>{line}</p>)}</li>)}</ol> : <p>No public updates are recorded.</p>}</section>
+      <IncidentReach incidentId={incident.id} updateIds={incident.updates.map(update => update.id)} />
       {incident.lifecycle === "Resolved" ? <ReportEditor incidentId={incident.id} /> : null}
       <IncidentOperatorControls incident={incident} captureVisit={captureVisit} captureUpdate={captureUpdate} getDraftVersion={() => version.current} onChanged={refresh} onDeleted={() => void navigate({ to: "/app/incidents" })} />
       <ClientExtensionSlot id="incident.sidebar.after.v1" context={{ incident: { id: incident.id, reference: incident.reference, lifecycle: incident.lifecycle } }} />

@@ -577,7 +577,7 @@ The update view shows, live, how many subscribers it was committed to on each ch
 
 Acceptance: after a publish to 10 email and 2 webhook subscribers, with one email bouncing, the update view shows 10/2 committed and 9 delivered, 1 bounced and 2 delivered, matching the CSV export.
 
-Status: **partial** — `src/core/features/deliveries/service.ts`, `tests/e2e/delivery-contract.test.mjs`. The filterable delivery log and CSV export ship (NOTIFY-004). Per-update reach in the update view does not.
+Status: **done** — `src/core/features/communication-performance/repository.ts`, `src/core/features/communication-performance/ui/incident-reach.tsx`, `tests/e2e/helpers/communication-performance-flow.mjs`. The incident panel shows each update and distinct incident reach from committed email/webhook delivery rows, with separate provider acceptance, signed email delivery outcomes and CSV. Its own visible polling leaves the composer untouched; imported source delivery is labelled unknown.
 
 #### NOTIFY-016 — Operator alerts beyond email.
 
@@ -759,7 +759,7 @@ Operators see, per incident and per month: the time from the first accepted aler
 
 Acceptance: a fixture month with three incidents, one of which missed a commitment by 4 minutes, reports 2 of 3 kept, with each incident's time to first update matching its timeline.
 
-Status: **missing**.
+Status: **done** — `src/core/features/communication-performance/service.ts`, `src/core/features/communication-performance/ui/communication-performance.tsx`, `tests/e2e/helpers/communication-performance-flow.mjs`. Overview and incident panels expose accepted-alert latency, promise counts, resolution duration, distinct subscriber reach, labelled delivery failure denominators and reports owed, with matching CSV. Calendar cohorts use the configured page timezone; actual native publication times prevent later backdating from improving promise or latency results, and absent alert/source delivery facts remain unknown.
 
 #### HIST-006 — Traffic spike alert without visitor tracking.
 
@@ -1088,8 +1088,8 @@ Judged from the code and tests at commit `0eebe911043bd05c448af177fbeae52a377f36
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
 | Published | 104 | 0 | 0 | 104 |
-| Target and push further | 7 | 42 | 45 | 94 |
-| All | 111 | 42 | 45 | 198 |
+| Target and push further | 9 | 41 | 44 | 94 |
+| All | 113 | 41 | 44 | 198 |
 
 | Clause | Title | Kind | Status | Evidence | Gap |
 | --- | --- | --- | --- | --- | --- |
@@ -1209,7 +1209,7 @@ Judged from the code and tests at commit `0eebe911043bd05c448af177fbeae52a377f36
 | `NOTIFY-012` | Channel posts | published | done | `tests/e2e/channels-and-presets.test.mjs` |  |
 | `NOTIFY-013` | Redundant email delivery | target | partial | `src/core/app/mail.ts`, `src/core/features/deliveries/service.ts`, `src/core/features/deliveries/sendgrid-events.ts`, `tests/e2e/sendgrid-provider.test.mjs` | One selectable provider with durable retries and SendGrid signed events ships. A secondary provider, failover and other providers' events do not. |
 | `NOTIFY-014` | SMS delivery | target | missing |  | Not built. |
-| `NOTIFY-015` | Reach of each update | target | partial | `src/core/features/deliveries/service.ts`, `tests/e2e/delivery-contract.test.mjs` | The filterable delivery log and CSV export ship (NOTIFY-004). Per-update reach in the update view does not. |
+| `NOTIFY-015` | Reach of each update | target | done | `src/core/features/communication-performance/repository.ts`, `src/core/features/communication-performance/ui/incident-reach.tsx`, `tests/e2e/helpers/communication-performance-flow.mjs` |  |
 | `NOTIFY-016` | Operator alerts beyond email | target | missing |  | Not built. |
 | `NOTIFY-017` | Component status changes reach webhook subscribers | target | missing |  | Released NOTIFY-001 notifies no one for a change outside an incident or maintenance. |
 | `NOTIFY-018` | Delivery time on every channel | target | partial | `src/core/features/deliveries/service.ts`, `tests/e2e/delivery-contract.test.mjs` | NOTIFY-002's 5-minute bound ships and is tested for email at the subscriber limit. No bound is stated or tested for webhooks, Slack, Teams or SMS. |
@@ -1248,7 +1248,7 @@ Judged from the code and tests at commit `0eebe911043bd05c448af177fbeae52a377f36
 | `HIST-002` | Post-incident report | published | done | `tests/e2e/publishing-browser.test.mjs`, `tests/e2e/publishing-contract.test.mjs` |  |
 | `HIST-003` | Report due | published | done | `tests/e2e/publishing-contract.test.mjs` |  |
 | `HIST-004` | Export contents | published | done | `tests/e2e/export-import.test.mjs` |  |
-| `HIST-005` | Communication performance | target | missing |  | Not built. |
+| `HIST-005` | Communication performance | target | done | `src/core/features/communication-performance/service.ts`, `src/core/features/communication-performance/ui/communication-performance.tsx`, `tests/e2e/helpers/communication-performance-flow.mjs` |  |
 | `HIST-006` | Traffic spike alert without visitor tracking | target | missing |  | Not built. |
 | `HIST-007` | Subscriber reporting | target | partial | `src/core/features/subscribers/service.ts`, `tests/e2e/delivery-contract.test.mjs` | The operator subscriber list with channel, state, selection and deactivation reason ships (SUB-011). Counts, trends and export do not. |
 | `HIST-008` | Complete browsable history | target | done | `src/core/features/public-snapshot/history.ts`, `tests/e2e/helpers/catalogue-history-flow.mjs`, `tests/e2e/snapshot-retained.test.mjs` |  |

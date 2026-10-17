@@ -1,3 +1,4 @@
+import { communicationPerformanceFlow } from "./helpers/communication-performance-flow.mjs";
 import { incidentImpactFlow } from "./helpers/incident-impact-flow.mjs";
 import { importedTemplateApplyFlow } from "./helpers/imported-template-apply-flow.mjs";
 import { reviewUpdateFlow } from "./helpers/review-update-flow.mjs";
@@ -422,7 +423,11 @@ test("UPDATE-005 UPDATE-006 UPDATE-007 — Private drafts, scheduled publication
   const { getPlatformProxy } = await import("wrangler");
   const platform = await getPlatformProxy({ configPath: "wrangler.jsonc", persist: { path: `${testStatePath}/v3` }, remoteBindings: false });
   const loader = await createIsolatedViteServer();
-  try { await reviewUpdateFlow({ vite: loader, bindings: platform.env }); }
+  try {
+    await reviewUpdateFlow({ vite: loader, bindings: platform.env });
+    t.diagnostic("NOTIFY-015 HIST-005 — committed subscriber reach and monthly communication promises use retained facts");
+    await communicationPerformanceFlow({ vite: loader, bindings: platform.env });
+  }
   finally { await platform.dispose(); await loader.close(); }
 })(t);
 });
