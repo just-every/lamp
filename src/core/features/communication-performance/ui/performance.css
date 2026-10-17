@@ -10,7 +10,7 @@
 .communication-channel dl { margin: 12px 0 0; }
 .communication-channel dl div { display: flex; justify-content: space-between; gap: 12px; padding: 5px 0; }
 .communication-channel dt { min-width: 0; }
-.communication-channel dd { margin: 0; text-align: right; font-variant-numeric: tabular-nums; }
+.communication-channel dd { flex-shrink: 0; white-space: nowrap; margin: 0; text-align: right; font-variant-numeric: tabular-nums; }
 .communication-metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 190px), 1fr)); gap: 20px; margin: 24px 0; }
 .communication-metrics dt, .communication-note { font-size: 13px; color: var(--ink-3); }
 .communication-metrics dd { margin: 6px 0 0; font-weight: 600; }

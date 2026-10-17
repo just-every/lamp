@@ -2956,7 +2956,7 @@
       "executable": false
     },
     "src/core/features/communication-performance/ui/performance.css": {
-      "sha256": "30c9c888d16b70bd9fdd5cb37da2c2b10df98bb74828de9008794fc830c7cf28",
+      "sha256": "1a925a33e48e8c81eb97057ef071eca4a7a2eeb32023270438e26a1157aa0bca",
       "executable": false
     },
     "src/core/features/communication-performance/ui/reach-counts.tsx": {
