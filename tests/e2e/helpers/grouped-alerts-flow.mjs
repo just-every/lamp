@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdir } from 'node:fs/promises';
+import { mkdir, readFile } from 'node:fs/promises';
 import { chromium } from 'playwright';
 import { AxeBuilder } from '@axe-core/playwright';
 import { operatorHydrated } from './operator-hydrated.mjs';
@@ -7,21 +7,46 @@ import { operatorHydrated } from './operator-hydrated.mjs';
 export const groupedPayload = (key, states = ['firing', 'firing']) => ({ version: '4', receiver: 'lamp', status: states.some(state => state === 'firing') ? 'firing' : 'resolved', groupKey: key, groupLabels: { alertname: 'ServiceUnavailable' }, commonLabels: { region: 'us-east' }, commonAnnotations: {}, externalURL: 'https://monitor.example.test', truncatedAlerts: 0,
   alerts: states.map((status, index) => ({ status, labels: { alertname: 'ServiceUnavailable', service: index ? 'dashboard' : 'api', region: 'us-east' }, annotations: { summary: index ? 'Dashboard requests timing out' : 'API request failures' }, startsAt: '2026-10-18T00:00:00Z', endsAt: status === 'resolved' ? '2026-10-18T00:05:00Z' : '0001-01-01T00:00:00Z', generatorURL: 'https://monitor.example.test/graph', fingerprint: index ? 'b2b2b2' : 'a1a1a1' })) });
 
+// Grafana's own default two-alert example, retained without changing its fields:
+// https://grafana.com/docs/grafana/latest/alerting/configure-notifications/manage-contact-points/integrations/webhook-notifier/
+const grafanaPayload = JSON.parse(await readFile(new URL('../fixtures/grafana-webhook-v1.json', import.meta.url), 'utf8'));
+const recoveredPayload = (body, states) => ({ ...body,
+  status: states.includes('firing') ? 'firing' : 'resolved',
+  ...(body.version === '1' ? { state: states.includes('firing') ? 'alerting' : 'ok' } : {}),
+  alerts: body.alerts.map((alert, index) => ({ ...alert, status: states[index], endsAt: states[index] === 'resolved' ? '2026-10-18T00:05:00Z' : '0001-01-01T00:00:00Z' })),
+});
+
 export async function groupedAlertsFlow({ api, post, component, sql, origin, publicOrigin, cookie }) {
-  const targets = [await component('US API grouped alerts'), await component('Dashboard grouped alerts')];
+  const targets = [await component('US application services'), await component('EU application services')];
   const matchers = targets.map((target, index) => ({ componentId: target.id, labels: { service: index ? 'dashboard' : 'api', region: 'us-east' } }));
+  const grafanaMatchers = targets.map((target, index) => ({ componentId: target.id, labels: { team: 'blue', zone: index ? 'eu-1' : 'us-1' } }));
   const send = async (source, body, token = source.token) => {
     const response = await fetch(source.endpointUrl, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify(body) });
     return { status: response.status, body: await response.json() };
   };
+  let alertmanagerNotice;
   for (const preset of ['alertmanager', 'grafana']) {
-    const created = await post('/api/app/intake/sources', { name: `${preset} production grouped alerts`, preset, credentialKind: 'bearer-token', labelMatchers: matchers });
+    const created = await post('/api/app/intake/sources', { name: `${preset} production grouped alerts`, preset, credentialKind: 'bearer-token', labelMatchers: preset === 'grafana' ? grafanaMatchers : matchers });
     assert.equal(created.status, 201, created.text);
     const source = created.body.source;
-    const body = groupedPayload(`${preset}-service-group`);
-    if (preset === 'grafana') delete body.version; // Grafana's default shape has no version field.
+    const body = preset === 'grafana' ? structuredClone(grafanaPayload) : groupedPayload(`${preset}-service-group`);
     assert.equal((await send(source, body, 'invalid')).status, 401);
-    assert.equal((await send(source, { arbitrary: 'not a documented group' })).status, 400);
+    for (const invalid of [
+      { arbitrary: 'not a documented group' },
+      ...[undefined, null, 1, 4, '2', '5', preset === 'grafana' ? '4' : '1'].map(version => ({ ...body, version })),
+      { ...body, status: 'unknown' }, { ...body, alerts: [] },
+      { ...body, alerts: [{ ...body.alerts[0], fingerprint: '' }] },
+      { ...body, alerts: [{ ...body.alerts[0], annotations: 'invalid' }] },
+      { ...body, alerts: [body.alerts[0], body.alerts[0]] },
+      { ...body, truncatedAlerts: 1 },
+    ]) {
+      const refused = await send(source, invalid);
+      assert.equal(refused.status, 400, `${preset} rejects unsupported or malformed payloads`);
+      assert.equal(refused.body.incidentId, null);
+      const receipt = (await api('/api/app/intake/receipts')).body.receipts.find(row => row.id === refused.body.receiptId);
+      assert.equal(receipt.state, 'invalid');
+      assert.ok(receipt.error, 'refusal gives the operator a plain reason');
+    }
     assert.equal((await send(source, { ...body, alerts: [{ ...body.alerts[0], labels: { service: 'not-mapped' } }] })).status, 400);
     const unmapped = (await api('/api/app/intake/receipts')).body.receipts.find(row => row.sourceId === source.id && row.error?.includes('Unmapped'));
     assert.ok(unmapped && !unmapped.incidentId);
@@ -32,15 +57,25 @@ export async function groupedAlertsFlow({ api, post, component, sql, origin, pub
     let incident = (await api(`/api/app/incidents/${id}`)).body.incident;
     assert.deepEqual(incident.components.map(row => row.componentId).sort(), targets.map(row => row.id).sort());
     assert.equal(incident.updates.length, 0);
+    assert.equal(incident.title, preset === 'grafana' ? body.title : body.alerts[0].annotations.summary);
+    const retained = sql(`SELECT deduplication_key,payload_json FROM alert_receipts WHERE id='${results[0].body.receiptId}'`)[0];
+    assert.equal(retained.deduplication_key, body.groupKey);
+    assert.deepEqual(JSON.parse(retained.payload_json), body, 'all documented fields remain in the private receipt');
+    assert.deepEqual(sql(`SELECT fingerprint,state FROM alert_group_members WHERE incident_id='${id}' ORDER BY fingerprint`), body.alerts.map(alert => ({ fingerprint: alert.fingerprint, state: alert.status })).sort((a, b) => a.fingerprint.localeCompare(b.fingerprint)));
+    const notices = sql(`SELECT payload_json FROM notification_outbox WHERE kind='operator-alert' AND aggregate_id='intake-draft/${id}'`);
+    assert.equal(notices.length, 1, 'one operator notice for the grouped draft, including concurrent replay');
+    const notice = JSON.parse(notices[0].payload_json);
+    assert.ok(notice.text.includes(id));
+    const normalizedNotice = { ...notice, text: notice.text.replaceAll(id, '<incident>') };
+    if (preset === 'alertmanager') alertmanagerNotice = normalizedNotice;
+    else assert.deepEqual(normalizedNotice, alertmanagerNotice, 'Grafana queues the same operator notice as Alertmanager');
     assert.equal(sql(`SELECT count(*) AS n FROM alert_group_members WHERE incident_id='${id}'`)[0].n, 2);
-    const mixed = { ...body, ...groupedPayload(body.groupKey, ['resolved', 'firing']) };
-    if (preset === 'grafana') delete mixed.version;
+    const mixed = recoveredPayload(body, ['resolved', 'firing']);
     await send(source, mixed);
     incident = (await api(`/api/app/incidents/${id}`)).body.incident;
     assert.equal(incident.lifecycle, 'Investigating', 'partial recovery keeps the group open');
     assert.equal(sql(`SELECT count(*) AS n FROM alert_group_members WHERE incident_id='${id}' AND state='resolved'`)[0].n, 1);
-    const resolved = { ...body, ...groupedPayload(body.groupKey, ['resolved', 'resolved']) };
-    if (preset === 'grafana') delete resolved.version;
+    const resolved = recoveredPayload(body, ['resolved', 'resolved']);
     const singleRecovery = { ...body, alerts: [resolved.alerts[0]], status: 'resolved' };
     await send(source, singleRecovery);
     assert.equal((await api(`/api/app/incidents/${id}`)).body.incident.lifecycle, 'Investigating', 'an omitted firing fingerprint is still active');
@@ -67,20 +102,20 @@ export async function groupedAlertsFlow({ api, post, component, sql, origin, pub
       await page.setViewportSize({ width, height: width === 390 ? 844 : 1000 });
       await page.goto(`${origin}/app/alerts`);
       await operatorHydrated(page);
-      await page.getByLabel('Grouped tool').selectOption(width === 390 ? 'grafana' : 'alertmanager');
+      await page.getByLabel('Grouped tool').selectOption('grafana');
       await page.getByLabel('Connection name').fill(`US production ${width}`);
       await page.getByLabel('Mapped component 1').selectOption(targets[0].id);
-      await page.getByLabel('Label matchers 1').fill('service="api", region="us-east"');
+      await page.getByLabel('Label matchers 1').fill('team="blue", zone="us-1"');
       await page.getByRole('button', { name: 'Add component mapping', exact: true }).click();
       await page.getByLabel('Mapped component 2').selectOption(targets[1].id);
-      await page.getByLabel('Label matchers 2').fill('service="dashboard", region="us-east"');
+      await page.getByLabel('Label matchers 2').fill('team="blue", zone="eu-1"');
       await inspect('grouped-mappings');
       await page.getByRole('button', { name: 'Create grouped source', exact: true }).click();
       await page.getByText('Grouped source saved. Alerts remain private until publication.').waitFor();
       const endpointUrl = await page.getByLabel('Grouped endpoint', { exact: true }).inputValue();
       const token = await page.getByLabel('Grouped token', { exact: true }).inputValue();
       await inspect('grouped-configured');
-      const payload = groupedPayload(`browser-group-${width}`);
+      const payload = structuredClone(grafanaPayload);
       const response = await send({ endpointUrl, token }, payload);
       assert.equal(response.status, 202);
       await page.reload();
@@ -94,6 +129,7 @@ export async function groupedAlertsFlow({ api, post, component, sql, origin, pub
       const result = (await api(`/api/app/incidents/${response.body.incidentId}`)).body.incident;
       assert.deepEqual(result.components.map(row => row.componentId).sort(), targets.map(row => row.id).sort());
       assert.equal(result.updates.length, 0);
+      assert.equal(result.title, grafanaPayload.title);
       await inspect('grouped-private-draft');
       const publicText = await (await fetch(`${publicOrigin}/`)).text();
       assert.ok(!publicText.includes(result.reference), 'inbound group has no public story before operator publication');

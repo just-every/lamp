@@ -440,7 +440,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "ac4594fd176ff9b42ccc4d36895c37d31649e108f932a267930455d32018874c",
+      "sha256": "8d85cf29a4fe1031c32399dbbd077da14667f796b9500bc512a7bbf8c52e1cb7",
       "executable": false
     },
     "AGENTS.md": {
@@ -488,7 +488,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "b456dab23d342bbbd39a82c825a4ac23e4094dbc97bd3df405f7d8fb336c821b",
+      "sha256": "3b773e4c4b7bb8c3b1cddc881f8520062b66a188a18a7a697153ea1790945289",
       "executable": false
     },
     "DEMO.md": {
@@ -508,7 +508,7 @@
       "executable": false
     },
     "DIVERGENCE.md": {
-      "sha256": "5a31b3058876929ea6836e21509f3db30ae1168ac26cf85910397e0a1ab0b0a6",
+      "sha256": "3b73cdefcf4bae926149a98ecb912b6af956c0ee6b2b125fde9852ff48e25a63",
       "executable": false
     },
     "docs/ai-assistance.md": {
@@ -524,7 +524,7 @@
       "executable": false
     },
     "docs/CLAIMS.md": {
-      "sha256": "d47bc974f315440d05f3a9085600996d42b82dd9fc21dd7b2f8ec1e46f18b2ae",
+      "sha256": "77429fc0b2259dcca58427ac834398f393e72c5a2f441ba4a403743d150187de",
       "executable": false
     },
     "docs/components-and-groups.md": {
@@ -3292,7 +3292,7 @@
       "executable": false
     },
     "src/core/features/intake/grouped-alerts.ts": {
-      "sha256": "44170e0403e0a15d22c3b83b5fd28a743df75c3a8285b213c092a0bcd6f12398",
+      "sha256": "3a06987009bcda838e7e8653897d22e4ac43e591bf6077a623f3b30300ceb354",
       "executable": false
     },
     "src/core/features/intake/grouped-repository.ts": {
@@ -5143,6 +5143,10 @@
       "sha256": "822072ca6c0bb1a0f914374cfbf7f53712a4935a30e3b010a4f86d057fa713fb",
       "executable": false
     },
+    "tests/e2e/fixtures/grafana-webhook-v1.json": {
+      "sha256": "79de89f6c6fdc94c8f1ed9ddfd0024cbf6db37421d5caa508db2934e7fc75733",
+      "executable": false
+    },
     "tests/e2e/fixtures/legacy-api-fixture.mjs": {
       "sha256": "bf937d35ca33fa59d66c4a4a5362b57a0eb46f5af7f51cc714abd06fcd191029",
       "executable": false
@@ -5176,7 +5180,7 @@
       "executable": false
     },
     "tests/e2e/helpers/grouped-alerts-flow.mjs": {
-      "sha256": "436d94bf05758dd83d17f9e14ff9e86764749f0396a10c4adb9daa0bee211aa2",
+      "sha256": "304d132381000720ba0a125c9f2c45258fa7ab91d837c5519e7f16c5cc60cd81",
       "executable": false
     },
     "tests/e2e/helpers/hosts.mjs": {

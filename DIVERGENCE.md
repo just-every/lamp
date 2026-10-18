@@ -1447,3 +1447,7 @@ Subscriber reports count current records separately from daily growth in pending
 Alertmanager and Grafana contact points can map each alert's exact labels to several components while retaining one private incident per open source group. Per-alert fingerprints retain partial recovery evidence; only a completely recovered, never-published draft closes automatically. Existing source credentials and single-component presets retain their behavior. Native technical archives carry grouped mappings and member state.
 
 The package pin moves to rer 0.2.57 with the configured-provider sign-in patch retained.
+
+## Documented grouped webhook versions — 18 October 2026
+
+Each grouped preset accepts its documented source format: Alertmanager version 4 and Grafana version 1. Missing, numeric, cross-source and unknown versions are refused with an operator-readable reason. Grafana's title names the private draft; its message and other source context stay in the retained private receipt. Neither becomes a public update without operator publication. The unmodified Grafana documentation example exercises the same grouped incident, notice, mapping, deduplication and recovery path as Alertmanager.
