@@ -13,3 +13,5 @@
 @import "./ui/setup-guides.css";
 @import "./ui/responsive.css";
 @import "../../features/audit-log/ui/audit-log.css";
+
+@import "../../features/subscriber-reporting/ui/subscriber-reporting.css";

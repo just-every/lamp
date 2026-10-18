@@ -196,8 +196,8 @@ export function createPageExportRepository(binding: D1Database): PageExportRepos
       return rows.results;
     },
     async releaseHeld(subscriberId, now) {
-      const result = await binding.prepare("UPDATE subscribers SET state = 'pending', deactivation_reason = NULL, deactivated_at = NULL, created_at = ?, updated_at = ? WHERE id = ? AND state = 'deactivated' AND deactivation_reason = ? AND channel = 'email'").bind(now, now, subscriberId, HELD_RESTORE_REASON).run();
-      return result.meta.changes === 1;
+      const result = await binding.prepare("UPDATE subscribers SET state = 'pending', deactivation_reason = NULL, deactivated_at = NULL, created_at = ?, updated_at = ? WHERE id = ? AND state = 'deactivated' AND deactivation_reason = ? AND channel = 'email' RETURNING id").bind(now, now, subscriberId, HELD_RESTORE_REASON).first<{ id: string }>();
+      return result?.id === subscriberId;
     },
     async holdAgain(subscriberId, heldAt, releasedAt) {
       await binding.prepare("UPDATE subscribers SET state = 'deactivated', deactivation_reason = ?, deactivated_at = ?, updated_at = ? WHERE id = ? AND state = 'pending' AND created_at = ?").bind(HELD_RESTORE_REASON, heldAt, heldAt, subscriberId, releasedAt).run();

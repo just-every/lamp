@@ -1437,3 +1437,7 @@ sign-in patch retained. Its native owner and provider flows remain available.
 ## Operator audit visibility — 18 October 2026
 
 Settings exposes retained audit records with actor, action and UTC-date filters and matching CSV. Names are resolved from the current identity so erased operators show an opaque anonymised reference. Component state changes are audited in their history transaction; maintenance scheduling and reminder notices also record attribution. The released equal-operator policy remains in force until TEAM-004; TEAM-007 stays partial for that gate and its unbuilt event families.
+
+## Subscriber reporting — 18 October 2026
+
+Subscriber reports count current records separately from daily growth in pending-plus-active inventory. Anonymous database triggers observe inserts, transitions, channel moves, expiry, erasure and undo in the same transactions as those changes. Existing records establish an inventory baseline; observation begins with the first subscriber change or report read, keeping an empty installation’s migration seeds deterministic for native restore. creation timestamps cannot reconstruct earlier growth. Technical archive restore retains these facts, or starts a fresh explicit baseline for older archives. Audience and language reporting remain unbuilt and HIST-007 remains partial.

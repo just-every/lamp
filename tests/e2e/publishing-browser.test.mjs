@@ -22,6 +22,7 @@ import { sessionCookieName } from "../helpers/session-cookie.mjs";
 import { postIncidentReportFlow } from "./helpers/post-incident-report-flow.mjs";
 import { emailBrandingBrowserFlow } from "./helpers/email-branding-browser-flow.mjs";
 import { phoneDeskFlow } from "./helpers/phone-desk-flow.mjs";
+import { subscriberReportingBrowserFlow } from "./helpers/subscriber-reporting-browser-flow.mjs";
 import { auditLogFlow } from "./helpers/audit-log-flow.mjs";
 import { operatorHydrated } from "./helpers/operator-hydrated.mjs";
 
@@ -520,7 +521,8 @@ contract("UPDATE-002", "NOTIFY-019 — composer controls and saved notification 
   await emailBrandingBrowserFlow({ page, appUrl, pageUrl, appFetch });
 });
 
-contract("HIST-002", "TEAM-007 — an operator publishes a report and browses attributed audit history", async () => {
+contract("HIST-002", "TEAM-007 HIST-007 — an operator publishes a report, browses audit history and reports subscribers", async () => {
   await postIncidentReportFlow({ page, appFetch, appUrl, pageUrl });
   await auditLogFlow({ page, appUrl, appFetch });
+  await subscriberReportingBrowserFlow({ page, appUrl, appFetch });
 });

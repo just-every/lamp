@@ -169,3 +169,11 @@ its original branding during retries, even if you change Settings afterwards.
 Managed mail controls From and Reply-To, so those two controls are disabled and
 unsupported identity changes are refused. Subject prefixes, the logo and message
 wording remain available. SendGrid and Resend support all these branding settings.
+
+## Subscriber reporting
+
+Open **Subscribers** for current counts by channel and state. Expand **Counts by component** or **Deactivation reasons** for detail. A subscription following every component appears in each component's count, so component counts overlap. Erased destinations are excluded.
+
+Choose a growth month and channel, then **Download CSV** to export the same figures. The month filters the growth record; current counts always describe the present. Adding or removing a subscriber refreshes the figures while keeping the report's filters.
+
+Daily growth measures pending plus active subscriptions: a new pending subscription joins inventory, confirmation does not add it again, and deactivation or erasure leaves inventory. Dates use UTC. Tracking starts with the first subscriber change or report read, from the baseline displayed on the report; earlier daily changes are unknown. The first tracked day and the current day are incomplete. Technical backups retain this anonymous history; restoring an older archive starts a new baseline. Audience and language reporting are not yet available.

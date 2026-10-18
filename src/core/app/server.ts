@@ -1,3 +1,4 @@
+import { createSubscriberReportingRepository, createSubscriberReportingService, registerSubscriberReportingRoutes } from "../features/subscriber-reporting";
 import { registerCommunicationPerformanceRoutes } from "../features/communication-performance";
 import { registerAuditLogRoutes } from "../features/audit-log/routes";
 import { createAuditLogRepository } from "../features/audit-log/repository";
@@ -63,6 +64,7 @@ export function createApp(bindings: AppBindings, execution?: MailExecution) {
   registerOperatorRoutes(app, services.auth, bindings.LAMP_PAGE_HOST, { localMail });
   registerOverviewRoutes(app, services.overview);
   registerAuditLogRoutes(app, createAuditLogRepository(bindings.DB));
+  registerSubscriberReportingRoutes(app, createSubscriberReportingService(createSubscriberReportingRepository(bindings.DB)));
   registerCommunicationPerformanceRoutes(app, services.communicationPerformance);
   registerCatalogueRoutes(app, services.componentCatalogue);
   registerComponentRoutes(app, services.components);

@@ -775,7 +775,7 @@ Operators see subscriber counts by channel, state, component, audience and langu
 
 Acceptance: a fixture with mixed channels reports counts equal to the SUB-011 list totals, and the trend shows each day's net change.
 
-Status: **partial** — `src/core/features/subscribers/service.ts`, `tests/e2e/delivery-contract.test.mjs`. The operator subscriber list with channel, state, selection and deactivation reason ships (SUB-011). Counts, trends and export do not.
+Status: **partial** — `src/core/features/subscriber-reporting/`, `migrations/core/0034_subscriber_reporting.sql`, `tests/e2e/helpers/subscriber-reporting-flow.mjs`, `tests/e2e/helpers/subscriber-reporting-browser-flow.mjs`, `tests/e2e/export-import.test.mjs`. Subscribers shows current email/webhook counts by channel, state and component, deactivation reasons, matching CSV and anonymous daily pending-plus-active inventory changes from an explicit baseline. Confirmation does not double-count growth; import, channel moves, expiry, undo and erasure are observed atomically. Current technical archives preserve facts; older archives start a new restore baseline. Earlier daily history is unknown. Audience and language dimensions await AUD-004 and I18N-001.
 
 #### HIST-008 — Complete browsable history.
 
@@ -1250,7 +1250,7 @@ Judged from the code and tests at commit `16d853b92b6e78cd259891ea708ce848323ae7
 | `HIST-004` | Export contents | published | done | `tests/e2e/export-import.test.mjs` |  |
 | `HIST-005` | Communication performance | target | done | `src/core/features/communication-performance/service.ts`, `src/core/features/communication-performance/ui/communication-performance.tsx`, `tests/e2e/helpers/communication-performance-flow.mjs` |  |
 | `HIST-006` | Traffic spike alert without visitor tracking | target | missing |  | Not built. |
-| `HIST-007` | Subscriber reporting | target | partial | `src/core/features/subscribers/service.ts`, `tests/e2e/delivery-contract.test.mjs` | The operator subscriber list with channel, state, selection and deactivation reason ships (SUB-011). Counts, trends and export do not. |
+| `HIST-007` | Subscriber reporting | target | partial | `src/core/features/subscriber-reporting/`, `migrations/core/0034_subscriber_reporting.sql`, `tests/e2e/helpers/subscriber-reporting-flow.mjs`, `tests/e2e/helpers/subscriber-reporting-browser-flow.mjs`, `tests/e2e/export-import.test.mjs` | Subscribers shows current email/webhook counts by channel, state and component, deactivation reasons, matching CSV and anonymous daily pending-plus-active inventory changes from an explicit baseline. Confirmation does not double-count growth; import, channel moves, expiry, undo and erasure are observed atomically. Current technical archives preserve facts; older archives start a new restore baseline. Earlier daily history is unknown. Audience and language dimensions await AUD-004 and I18N-001. |
 | `HIST-008` | Complete browsable history | target | done | `src/core/features/public-snapshot/history.ts`, `tests/e2e/helpers/catalogue-history-flow.mjs`, `tests/e2e/snapshot-retained.test.mjs` |  |
 | `AUD-001` | Several pages in one deployment | target | missing |  | Replaces the released `seed.json → nonGoals` exclusions of more than one page per deployment and of private or audience-scoped pages. |
 | `AUD-002` | Private page access | target | missing |  | Not built. |
