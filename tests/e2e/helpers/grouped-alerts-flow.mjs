@@ -68,7 +68,7 @@ export async function groupedAlertsFlow({ api, post, component, sql, origin, pub
       await page.goto(`${origin}/app/alerts`);
       await operatorHydrated(page);
       await page.getByLabel('Grouped tool').selectOption(width === 390 ? 'grafana' : 'alertmanager');
-      await page.getByLabel('Grouped source name').fill(`US production ${width}`);
+      await page.getByLabel('Connection name').fill(`US production ${width}`);
       await page.getByLabel('Mapped component 1').selectOption(targets[0].id);
       await page.getByLabel('Label matchers 1').fill('service="api", region="us-east"');
       await page.getByRole('button', { name: 'Add component mapping', exact: true }).click();

@@ -3332,7 +3332,7 @@
       "executable": false
     },
     "src/core/features/intake/ui/grouped-preset-card.tsx": {
-      "sha256": "9fcba4216e50ba3e333e12eb0e45ad8ca4ca0e4e166336cd5032a5c34e96f9e6",
+      "sha256": "8f8fc69f0336c0e7c031e522064120dd742a78a9f2564057da878269badd22bf",
       "executable": false
     },
     "src/core/features/intake/ui/preset-card.tsx": {
@@ -5176,7 +5176,7 @@
       "executable": false
     },
     "tests/e2e/helpers/grouped-alerts-flow.mjs": {
-      "sha256": "fc0b1fa120a1c0a7169b1e51e604f32e51d7c03b7ab9b6f1bb22be45937fa60f",
+      "sha256": "436d94bf05758dd83d17f9e14ff9e86764749f0396a10c4adb9daa0bee211aa2",
       "executable": false
     },
     "tests/e2e/helpers/hosts.mjs": {
@@ -5279,8 +5279,12 @@
       "sha256": "993f19e3e2c73df598cb8b39a7c78bbb63314a2f943ee661c66d75fe873ffc67",
       "executable": false
     },
+    "tests/e2e/page-data-runtime.mjs": {
+      "sha256": "771930f502b7d3a3b3b435e99abfee7e68f18a1d83e1180a715153045787d690",
+      "executable": false
+    },
     "tests/e2e/page-data.test.mjs": {
-      "sha256": "0b08c8019ced970d468fa16def7ed581ff02e02e8e2d955fe7a43635d67b939a",
+      "sha256": "4172473014a973ef6d5035ca68153465caa52dec263087ac4ba89928f4f2e03a",
       "executable": false
     },
     "tests/e2e/public-contract.test.mjs": {
