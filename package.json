@@ -115,7 +115,7 @@
     "@cloudflare/vite-plugin": "1.54.5",
     "@cloudflare/workers-types": "5.20260908.1",
     "@playwright/test": "1.63.0",
-    "@runeditrun/rer": "0.2.55",
+    "@runeditrun/rer": "0.2.57",
     "@tailwindcss/vite": "^4.3.3",
     "@types/node": "22.19.17",
     "@types/react": "^19.2.18",
@@ -146,7 +146,7 @@
       "source-map-js@<1.2.2": "1.2.2"
     },
     "patchedDependencies": {
-      "@runeditrun/rer@0.2.55": "patches/@runeditrun__rer@0.2.55.patch"
+      "@runeditrun/rer@0.2.57": "patches/@runeditrun__rer@0.2.57.patch"
     }
   }
 }

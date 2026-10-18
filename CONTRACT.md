@@ -649,7 +649,7 @@ A source can be an Alertmanager or a Grafana Alerting preset. It accepts their w
 
 Acceptance: a two-alert Alertmanager fixture matching two components creates one draft attached to both. The resolved fixture records recovery for both, and a payload whose labels match no component is recorded against the source as unmapped.
 
-Status: **partial** — `src/core/features/intake/service.ts`, `src/core/features/intake/alert-title.ts`, `tests/e2e/publishing-contract.test.mjs`. A generic bearer source reading one JSON path for key, title and state can take a single Alertmanager group. There are no label matchers, no per-alert fingerprints and no preset.
+Status: **done** — `src/core/features/intake/grouped-alerts.ts`, `src/core/features/intake/grouped-repository.ts`, `src/core/features/intake/ui/grouped-preset-card.tsx`, `tests/e2e/helpers/grouped-alerts-flow.mjs`, `tests/e2e/export-import.test.mjs`. Alertmanager v4 and Grafana default grouped webhooks authenticate with bearer tokens, match exact labels to multiple components and deduplicate groups and alert fingerprints into private incidents. Mixed and partial recoveries retain firing members; complete recovery closes only unpublished drafts. Unmapped alerts show their reason. Worker, archive round-trip and 1440/390 browser journeys prove the saved configuration, receipts and private draft.
 
 #### INTAKE-011 — New Relic, Datadog and Pingdom depth.
 
@@ -1083,13 +1083,13 @@ What Lamp does not do, and how a buyer gets it:
 
 ## Status
 
-Judged from the code and tests at commit `f172bd4fa2b21f259aea59e08d38596ed7458c07` (18 October 2026).
+Status includes the grouped monitoring alert journeys in this revision (18 October 2026); unchanged rows retain their cited evidence.
 
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
 | Published | 104 | 0 | 0 | 104 |
-| Target and push further | 10 | 40 | 44 | 94 |
-| All | 114 | 40 | 44 | 198 |
+| Target and push further | 11 | 39 | 44 | 94 |
+| All | 115 | 39 | 44 | 198 |
 
 | Clause | Title | Kind | Status | Evidence | Gap |
 | --- | --- | --- | --- | --- | --- |
@@ -1224,7 +1224,7 @@ Judged from the code and tests at commit `f172bd4fa2b21f259aea59e08d38596ed7458c
 | `INTAKE-007` | Preset recovery | published | done | `tests/e2e/channels-and-presets.test.mjs` |  |
 | `INTAKE-008` | Uptime preset | target | partial | `src/core/features/intake/service.ts`, `tests/e2e/publishing-contract.test.mjs` | A generic signed source with configurable timestamp and signature headers and JSON-path mapping (INTAKE-001, INTAKE-005) can receive Uptime's webhook. There is no preset, no monitor-to-component mapping and no test with Uptime's payload. |
 | `INTAKE-009` | PagerDuty | target | partial | `src/core/features/intake/service.ts`, `tests/e2e/publishing-contract.test.mjs` | A bearer-token generic source with JSON-path mapping can receive PagerDuty webhooks sent with a custom header. There is no preset, no v3 signature check and no note back to PagerDuty. |
-| `INTAKE-010` | Prometheus Alertmanager and Grafana Alerting | target | partial | `src/core/features/intake/service.ts`, `src/core/features/intake/alert-title.ts`, `tests/e2e/publishing-contract.test.mjs` | A generic bearer source reading one JSON path for key, title and state can take a single Alertmanager group. There are no label matchers, no per-alert fingerprints and no preset. |
+| `INTAKE-010` | Prometheus Alertmanager and Grafana Alerting | target | done | `src/core/features/intake/grouped-alerts.ts`, `src/core/features/intake/grouped-repository.ts`, `src/core/features/intake/ui/grouped-preset-card.tsx`, `tests/e2e/helpers/grouped-alerts-flow.mjs`, `tests/e2e/export-import.test.mjs` | Alertmanager v4 and Grafana default grouped webhooks authenticate with bearer tokens, match exact labels to multiple components and deduplicate groups and alert fingerprints into private incidents. Mixed and partial recoveries retain firing members; complete recovery closes only unpublished drafts. Unmapped alerts show their reason. Worker, archive round-trip and 1440/390 browser journeys prove the saved configuration, receipts and private draft. |
 | `INTAKE-011` | New Relic, Datadog and Pingdom depth | target | partial | `src/core/features/intake/presets.ts`, `tests/e2e/channels-and-presets.test.mjs` | Datadog, UptimeRobot, Better Stack and Pingdom alert presets ship (INTAKE-006). New Relic and metric ingestion do not. |
 | `INTAKE-012` | Oncall | target | missing |  | Not built. |
 | `INTAKE-013` | Email automation for each component | target | missing |  | Lamp has no inbound email path. |

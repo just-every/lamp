@@ -1441,3 +1441,9 @@ Settings exposes retained audit records with actor, action and UTC-date filters 
 ## Subscriber reporting — 18 October 2026
 
 Subscriber reports count current records separately from daily growth in pending-plus-active inventory. Anonymous database triggers observe inserts, transitions, channel moves, expiry, erasure and undo in the same transactions as those changes. Existing records establish an inventory baseline; observation begins with the first subscriber change or report read, keeping an empty installation’s migration seeds deterministic for native restore. Creation timestamps cannot reconstruct earlier growth. Technical archive restore retains these facts, or starts a fresh explicit baseline for older archives. Audience and language reporting remain unbuilt and HIST-007 remains partial.
+
+## Grouped monitoring alerts — 18 October 2026
+
+Alertmanager and Grafana contact points can map each alert's exact labels to several components while retaining one private incident per open source group. Per-alert fingerprints retain partial recovery evidence; only a completely recovered, never-published draft closes automatically. Existing source credentials and single-component presets retain their behavior. Native technical archives carry grouped mappings and member state.
+
+The package pin moves to rer 0.2.57 with the configured-provider sign-in patch retained.

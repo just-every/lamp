@@ -5,8 +5,10 @@ import { Button } from "../../../app/client/ui/button";
 import { FormError } from "../../../app/client/ui/states";
 import { ALERT_PRESETS, datadogPayloadTemplate, presetLabels, uptimeRobotPayloadTemplate, type AlertPreset } from "../presets";
 
+import { isGroupedPreset } from "../grouped-alerts";
+
 type Created = { source: { id: string; name: string; endpointUrl: string; token?: string; preset: AlertPreset } };
-const setup: Record<AlertPreset, string> = {
+const setup: Partial<Record<AlertPreset, string>> = {
   datadog: "In Datadog, add a webhook with this URL, a custom header {\"Authorization\": \"Bearer <token>\"} and this payload, then mention @webhook-<name> in the monitor.",
   uptimerobot: "In UptimeRobot, open Integrations and add a Webhook. Paste the Endpoint below into URL to Notify, tick Send as JSON, paste the JSON body below into POST value, and add the custom HTTP header {\"Authorization\": \"Bearer <token>\"} with the token below. Save it, then choose it as an alert contact on each monitor for this component.",
   betterstack: "In Better Stack, add an Incident webhook (Integrations → Exporting data) with the URL that ends in your token.",
@@ -36,7 +38,7 @@ export function PresetCard({ onCreated }: { onCreated: () => void }) {
 
   return <section className="data-card preset-card" aria-labelledby="preset-title"><div><p className="card-kicker">Monitor presets</p><h2 id="preset-title">Connect a monitoring tool</h2><p>Alerts become draft incidents on one component; nothing is published until you publish it. A recovery closes a draft that was never published.</p></div>
     <form className="preset-form" onSubmit={save}>
-      <label className="form-label">Tool<select value={preset} onChange={(event) => setPreset(event.target.value as AlertPreset)}>{ALERT_PRESETS.map((value) => <option key={value} value={value}>{presetLabels[value]}</option>)}</select></label>
+      <label className="form-label">Tool<select value={preset} onChange={(event) => setPreset(event.target.value as AlertPreset)}>{ALERT_PRESETS.filter(value => !isGroupedPreset(value)).map((value) => <option key={value} value={value}>{presetLabels[value]}</option>)}</select></label>
       <label className="form-label">Component<select required value={componentId} onChange={(event) => setComponentId(event.target.value)}><option value="">Choose a component</option>{components.data?.components.map((component) => <option key={component.id} value={component.id}>{component.name}</option>)}</select></label>
       <label className="form-label">Name<input maxLength={120} placeholder={`${presetLabels[preset]} alerts`} value={name} onChange={(event) => setName(event.target.value)} /></label>
       <Button disabled={saving || !componentId}>{saving ? "Saving…" : "Create preset"}</Button>

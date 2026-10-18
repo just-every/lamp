@@ -6,7 +6,7 @@
   "contractChanges": {
     "SETUP-001": {
       "change": "changed",
-      "summary": "Local development suppresses outgoing mail and uses automatic one-click owner entry under the owner’s 15 October 2026 no-inbox decision; suppressed delivery outcomes prove notice production without claiming provider acceptance or inbox delivery.",
+      "summary": "Local development suppresses outgoing mail and uses automatic one-click owner entry under the owner\u2019s 15 October 2026 no-inbox decision; suppressed delivery outcomes prove notice production without claiming provider acceptance or inbox delivery.",
       "was": "Setup readiness: Overview shows eight steps from saved server state: non-sample page name and branding, configured time zone, sender checked, first component, first published incident, public page opened through its protected check, reachable subscription form, and public address selected with custom-domain documentation. Open steps lead to their completion screen; all-complete collapses the checklist. Provider authentication checks and local outbox capture are labelled separately, and neither claims inbox delivery. Public GET paths remain database-free; protected operator actions retain the public-read checks. Choosing an address acknowledges that choice, not DNS validation, and the default deployment address is supported.",
       "now": "Setup readiness: Overview shows eight steps from saved server state: non-sample page name and branding, configured time zone, sender checked, first component, first published incident, public page opened through its protected check, reachable subscription form, and public address selected with custom-domain documentation. Open steps lead to their completion screen; all-complete collapses the checklist. Local development suppresses outgoing mail, offers no captured-mail inbox, and prepares automatic one-click owner entry without email (owner decision, 15 October 2026). To prove a subscriber notice was produced locally, publish to an active subscriber, let dispatch run, and inspect its `suppressed` outcome in Notifications or `GET /api/app/deliveries`; `notification_deliveries` records that outcome without a provider-acceptance claim. The local sender check explicitly reports suppression and requires a hosted installation to check provider authentication; that hosted check does not claim inbox delivery. Public GET paths remain database-free; protected operator actions retain the public-read checks. Choosing an address acknowledges that choice, not DNS validation, and the default deployment address is supported."
     },
@@ -50,6 +50,10 @@
     {
       "id": "0034_subscriber_reporting.sql",
       "buyerSteps": "Apply after 0033. Starts anonymous daily subscriber inventory tracking with an explicit baseline; previous daily changes remain unknown. Technical archives preserve these facts."
+    },
+    {
+      "id": "0035_grouped_alerts.sql",
+      "buyerSteps": "Apply after 0034. Adds exact label mappings for Alertmanager and Grafana groups and tracks each alert fingerprint so partial recoveries keep private drafts open. Existing monitoring sources retain their mappings and credentials."
     }
   ],
   "breaking": false,

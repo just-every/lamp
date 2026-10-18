@@ -1,3 +1,4 @@
+import { groupedAlertsFlow } from "./helpers/grouped-alerts-flow.mjs";
 import { UPDATE_LINK_FIELDS } from "./helpers/update-component-flow.mjs";
 import { test } from 'node:test';
 import { requestHeaders } from "../helpers/request-headers.mjs";
@@ -160,7 +161,7 @@ const payloads = {
 };
 const sources = {};
 
-test("INTAKE-006 INTAKE-007 — Authenticated monitor presets keep recovery within unpublished drafts", async t => {
+test("INTAKE-006 INTAKE-007 INTAKE-010 — Authenticated monitor presets keep recovery within unpublished drafts", async t => {
   t.diagnostic("INTAKE-006 — each monitor preset turns its tool's alert into a draft on its component, and refuses other payloads and bad credentials");
   await (async () => {
   for (const preset of Object.keys(payloads)) {
@@ -211,4 +212,5 @@ test("INTAKE-006 INTAKE-007 — Authenticated monitor presets keep recovery with
   assert.equal((await api(`/api/app/incidents/${fired.incidentId}`)).body.incident.lifecycle, "Investigating");
   assert.ok(shop.id);
 })(t);
+  await groupedAlertsFlow({ api, post, component, sql, origin, publicOrigin, cookie });
 });
