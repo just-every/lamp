@@ -5972,7 +5972,7 @@
       "executable": false
     },
     "tests/resolve-composer/resolve-composer.test.mjs": {
-      "sha256": "71ede3a80dbbaef65ece7be925ad0bef6a9e44f35cc37b90349fa08e61898d19",
+      "sha256": "0c4bb720c18caaaf659ea042ed1f2b8cbf78a1560453e108f47306aeea4f3fd1",
       "executable": false
     },
     "tsconfig.json": {
