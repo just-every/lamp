@@ -14,6 +14,30 @@ const sixty = () => files('small').map(file => {
     return { ...structuredClone(seed), id, shortlink: `https://stspg.io/${id}`, name: `Synthetic incident ${n}`, incident_updates: seed.incident_updates.map((update, k) => ({ ...update, id: `${id}u${k + 1}`, incident_id: id })) };
   })) };
 });
+/** The large page repeated: each copy's incidents, updates and subscribers take new ids and addresses. */
+const scaled = times => files('large').map(file => {
+  if (!['incidents.json', 'incidents-2.json', 'subscribers.json'].includes(file.name)) return file;
+  const rows = JSON.parse(file.text), copies = [rows];
+  for (let n = 1; n < times; n++) copies.push(rows.map(row => {
+    if (file.name === 'subscribers.json') return { ...row, id: `${row.id}x${n}`, ...(row.email ? { email: row.email.replace('@', `+x${n}@`) } : {}) };
+    const id = `${row.id}x${n}`.slice(0, 20);
+    return { ...structuredClone(row), id, shortlink: `https://stspg.io/${id}`, name: `${row.name} x${n}`, incident_updates: row.incident_updates.map((update, k) => ({ ...update, id: `${id}u${k + 1}`, incident_id: id })) };
+  }));
+  return { name: file.name, text: JSON.stringify(copies.flat()) };
+});
+/** The small page with text in every shape a real export can carry: U+0000,
+ * lone surrogates, an emoji at the 250-character cut, combining marks and
+ * right-to-left text. */
+const characters = () => files('small').map(file => {
+  const rows = JSON.parse(file.text);
+  if (file.name === 'components.json') rows[0].description = 'Komponent\u0000 ✓ 𝔘𝔫𝔦𝔠𝔬𝔡𝔢 \u202e';
+  else if (file.name === 'incidents.json') {
+    rows[0].name = 'Null\u0000 byte, עברית مرحبا \u200f\u202e, e\u0301 a\u0308, 🙏🏽 👨‍👩‍👧';
+    rows[0].incident_updates[0].body = 'Lone \ud83d high and \ude4f low surrogates, NUL\u0000 inside.';
+    rows[1].incident_updates[0].body = `${'x'.repeat(248)}🙏 Thanks for your patience ${'y'.repeat(480)}🚀 end`;
+  } else return file;
+  return { name: file.name, text: JSON.stringify(rows) };
+});
 /** The same export with some incidents renamed at the source and some added. */
 function variant(base, { rename = [], add = 0, tag }) {
   const changed = base.map(file => ({ ...file }));
@@ -103,6 +127,39 @@ export async function importDoorScale({ runtime, door, owner }) {
     await undo(basePlan.body.planId);
     assert.equal(native(), empty, 'undo removes the large import');
 
+    // Every character a real export carries imports, reconciles, catches up and undoes.
+    const text = characters();
+    const textPlan = await plan(text, 'characters.json');
+    assert.equal(textPlan.status, 200, JSON.stringify(textPlan.body));
+    await apply(textPlan);
+    const bytes = rows('SELECT hex(title) AS h FROM incidents UNION ALL SELECT hex(description) FROM components UNION ALL SELECT hex(customer_impact) FROM incident_updates UNION ALL SELECT hex(details) FROM incident_updates').map(row => Buffer.from(row.h, 'hex'));
+    assert.ok(bytes.every(value => Buffer.from(value.toString('utf8')).equals(value)), 'every stored text is valid UTF-8');
+    assert.equal(bytes.filter(value => value.includes(0)).length, 3, 'U+0000 is stored, not cut');
+    assert.ok(bytes.some(value => value.equals(Buffer.from(`${'x'.repeat(248)}🙏…`))), 'the 250-character cut keeps a whole emoji');
+    assert.ok(bytes.some(value => value.toString('utf8').startsWith('Lone \ufffd high and \ufffd low')), 'lone surrogates read as U+FFFD');
+    const textReconciled = await door('reconcile', 'statuspage', { planId: textPlan.body.planId });
+    assert.equal(textReconciled.status, 200, JSON.stringify(textReconciled.body)); assert.equal(textReconciled.body.ok, true);
+    const textBaseline = native();
+    const textCaught = await plan(variant(text, { rename: [0, 1], add: 1, tag: 'u' }).files, 'characters-catchup.json', { catchup: true });
+    assert.equal(textCaught.status, 200, JSON.stringify(textCaught.body));
+    assert.deepEqual([keys(textCaught.body.differences.additions), keys(textCaught.body.differences.replacements), textCaught.body.differences.conflicts], [['incident'], ['incident', 'incident', 'metadata'], []]);
+    await apply(textCaught);
+    const textCaughtUp = await door('reconcile', 'statuspage', { planId: textCaught.body.planId });
+    assert.equal(textCaughtUp.status, 200, JSON.stringify(textCaughtUp.body)); assert.equal(textCaughtUp.body.ok, true);
+    await undo(textCaught.body.planId);
+    assert.equal(native(), textBaseline, 'catch-up undo restores every character');
+    assert.equal((await door('reconcile', 'statuspage', { planId: textPlan.body.planId })).body.ok, true);
+    await undo(textPlan.body.planId);
+    assert.equal(native(), empty, 'undo removes every character import');
+
+    // Three large pages: one read per target made undo's first round exceed a request's D1 queries.
+    const bigPlan = await plan(scaled(3), 'large-x3.json');
+    assert.equal(bigPlan.status, 200, JSON.stringify(bigPlan.body));
+    await apply(bigPlan);
+    assert.equal(rows('SELECT (SELECT count(*) FROM statuspage_import_targets)+(SELECT count(*) FROM statuspage_import_source_targets) AS n')[0].n, bigPlan.body.summary.created, 'every planned target was written');
+    await undo(bigPlan.body.planId);
+    assert.equal(native(), empty, 'undo removes the scaled import');
+
     // Sixty incidents with subscribers: a bounded grant admits one addition and
     // one unedited replacement; past the bound or after a native edit it refuses.
     const page = sixty();
@@ -131,6 +188,6 @@ export async function importDoorScale({ runtime, door, owner }) {
     assert.ok(reviewed.body.rejected.some(row => row.reason.startsWith('Native edit conflict')), 'an owner edit is never replaced');
     await undo(reviewed.body.planId);
     await undo(sixtyPlan.body.planId);
-    console.log('Door at size: 124-record import reconciled, caught up and undone; bounded catch-up of 60 incidents with subscribers admitted, applied and undone; over-bound and owner-edited catch-ups refused.');
+    console.log('Door at size: 124-record import reconciled, caught up and undone; every character shape reconciled, caught up and undone; a three-page import applied and undone; bounded catch-up of 60 incidents with subscribers admitted, applied and undone; over-bound and owner-edited catch-ups refused.');
   } finally { db.close(); }
 }

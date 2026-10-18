@@ -602,7 +602,7 @@
       "executable": false
     },
     "docs/moving-in.md": {
-      "sha256": "45b6924a351bd53a37871dcee244e4759a92e3657614bc0908a189bf0fb2a704",
+      "sha256": "d9c32dd44d3a60a070666ab5a4d2f8cfb9abc70afee5b284c415c3152b01e098",
       "executable": false
     },
     "docs/operators-and-sign-in.md": {
@@ -3770,7 +3770,7 @@
       "executable": false
     },
     "src/core/features/statuspage-import/planning.ts": {
-      "sha256": "20edc0d3d63b71b6c21f3f13f5e4bdf0840568248749fe91417f3754e071e252",
+      "sha256": "d4d091e5a93d53700738e96023951340d9c4a1885e9131bf8c9275b76fb2b0f8",
       "executable": false
     },
     "src/core/features/statuspage-import/postmortems.ts": {
@@ -3798,7 +3798,7 @@
       "executable": false
     },
     "src/core/features/statuspage-import/rows.ts": {
-      "sha256": "5f5f101b621c0617d77b74510efe4140809ec633d56ea1398a05f8fd144cae8a",
+      "sha256": "26cfffa8761bb50cf23e6e28957e915b7e85cb9f39c93f48db0840287b3c5d5f",
       "executable": false
     },
     "src/core/features/statuspage-import/service.ts": {
@@ -3846,11 +3846,11 @@
       "executable": false
     },
     "src/core/features/statuspage-import/target-digest.ts": {
-      "sha256": "8beb2910cedd4d66dfe94c5859f95eb4fba99a142c7f84d10122e2a095f2484e",
+      "sha256": "12aac5d21750929788127d4113399fec40f635be2eb6b075944ac90641f2d9c2",
       "executable": false
     },
     "src/core/features/statuspage-import/targets.ts": {
-      "sha256": "cbc1c5aac7726a7c7a31002b78bdf5d1705e2adf8ff9f34ba4c3c3d02af627fb",
+      "sha256": "9900e6157938e9cb96c477078e7957dd08c08866104dbf9c87afd27f08c9c51d",
       "executable": false
     },
     "src/core/features/statuspage-import/templates.ts": {
@@ -5162,7 +5162,7 @@
       "executable": false
     },
     "tests/e2e/helpers/import-door-scale.mjs": {
-      "sha256": "88bae8dbbc770cafa98c4b53ee577f8e4153c7a654f7319e3284784cc7cf744b",
+      "sha256": "0f71c6871938819672145371aa2d3d082327066afce4f0ccb659f9d32fbe506d",
       "executable": false
     },
     "tests/e2e/helpers/import-door-visuals.mjs": {
@@ -6050,7 +6050,7 @@
       "executable": false
     },
     "tsconfig.json": {
-      "sha256": "f605010ff86b6ba2db6d5186aee9835d666c7733843a1f712e5d27b4bd83f4c8",
+      "sha256": "47893dbedd790574ad29979ae61fb3855c46b6c44b1f5bbcfdb121393a711aaa",
       "executable": false
     },
     "visual/01-public-status-active-desktop.png": {

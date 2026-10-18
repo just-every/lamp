@@ -8,6 +8,11 @@ import { moveInPlan } from './door-plan';
 import { namespace, type ReadSource } from "./source";
 
 const json = (value: unknown) => JSON.parse(JSON.stringify(value)) as Json;
+/** Every source string well formed: a lone surrogate in an export reads as U+FFFD,
+ * as D1 stores and returns it, instead of reaching native rows as invalid UTF-8. */
+const wellFormed = <T>(value: T): T => typeof value === "string" ? value.toWellFormed() as T
+  : Array.isArray(value) ? value.map(wellFormed) as T
+  : value && typeof value === "object" ? Object.fromEntries(Object.entries(value).map(([key, item]) => [key, wellFormed(item)])) as T : value;
 
 export async function planMoveIn(read: ReadSource, snapshot: Snapshot, context: D1ImportContext, operatorId: string, asOf: string): Promise<ImportPlan> {
   const namespace = read.namespace ?? "statuspage";
@@ -20,7 +25,7 @@ export async function planMoveIn(read: ReadSource, snapshot: Snapshot, context: 
       addresses.set(path, identity);
     }
   }
-  const mapped = mapSource(read.data, snapshot, operatorId, asOf, namespace);
+  const mapped = mapSource(wellFormed(read.data), snapshot, operatorId, asOf, namespace);
   for (const item of read.accounting ?? []) {
     const entry = mapped.find(row => row.kind === item.kind && row.sourceId === item.sourceId);
     if (entry) {

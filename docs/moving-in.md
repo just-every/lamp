@@ -537,6 +537,12 @@ it came from. Under a standing (bounded) Business approval, a catch-up is
 admitted only when it adds or replaces unedited records and changes under 5% of
 the previous snapshot; anything else needs a separate owner review.
 
+Saved text carries over byte for byte, including U+0000, emoji, combining marks
+and right-to-left text; half of a surrogate pair with no partner reads as U+FFFD
+(�). A field Lamp shortens is cut between characters, never inside one.
+For reconcile, catch-up and undo, Lamp reads its imported records with one
+query per table, not one per record.
+
 Both Statuspage and Sorry subscribers arriving through Business are held without
 invitations until cutover. In Cutover, select the configured live public hostname
 and explicitly confirm that it is live and the watch window has closed before
