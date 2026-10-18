@@ -1083,7 +1083,7 @@ What Lamp does not do, and how a buyer gets it:
 
 ## Status
 
-Status includes the grouped monitoring alert journeys in this revision (18 October 2026); unchanged rows retain their cited evidence.
+Judged from the code and tests at commit `64d260c3b8167c1bed5fda8ead79cdf1a6c399c8` (18 October 2026).
 
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
