@@ -3842,7 +3842,7 @@
       "executable": false
     },
     "src/core/features/statuspage-import/door.ts": {
-      "sha256": "b23f33c610d5f23622db2e1b70d75ceb66755c28dea7c52971bb919c6b860516",
+      "sha256": "af1ee99d1efbb337a365f8bd4ce8659fa42f68ff2cbc740057fb2f47d57120f5",
       "executable": false
     },
     "src/core/features/statuspage-import/held-sorry.ts": {

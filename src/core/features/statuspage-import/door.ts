@@ -45,6 +45,28 @@ function importSource(name: string, prepared: Promise<Prepared> | null): Promise
   );
 }
 
+/** The door's own request bound: a larger body never reaches it. */
+const MAX_DOOR_BODY = 100_000;
+/** A door request Lamp reads first (a plan or undo): its JSON input, and the
+ * same bytes as a fresh request for the door, which reads its body again.
+ * Null when the body exceeds the door's bound. */
+async function readFirst(request: Request) {
+  const chunks: Uint8Array[] = [];
+  let size = 0;
+  if (request.body) for (const reader = request.body.getReader(); ;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    size += value.byteLength;
+    if (size > MAX_DOOR_BODY) { await reader.cancel(); return null; }
+    chunks.push(value);
+  }
+  const bytes = new Uint8Array(size);
+  chunks.reduce((offset, chunk) => { bytes.set(chunk, offset); return offset + chunk.byteLength; }, 0);
+  let input: { uploadId?: unknown; planId?: unknown } | null;
+  try { input = JSON.parse(new TextDecoder().decode(bytes)); } catch { input = null; }
+  return { input, request: new Request(request.url, { method: request.method, headers: request.headers, body: request.body ? bytes : null }) };
+}
+
 /** The `attempt` an upload of a source imported and undone before carries; a
  * bundle that is not a JSON object is refused by its preparation instead. */
 function uploadAttempt(bytes: Uint8Array) {
@@ -63,13 +85,17 @@ export function registerImportDoor(app: Hono<AppEnv>, bindings: AppBindings, ser
     const valueHash = sha256(canonicalJson(JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(bytes)) as Json));
     return { ...await service.prepareDoor(bytes, namespace, principalId, operatorId, authority, business), valueHash };
   };
-  /** What every successful apply or undo changes, whichever authority approved it. */
-  const settle = async (path: string, response: Response, fence: D1Sql) => {
-    if (!response.ok || !['apply', 'undo'].includes(path.slice(path.lastIndexOf('/') + 1))) return;
-    const { job } = await response.clone().json() as { job?: { id: string; state: string } };
-    if (!job) return;
-    if (path.endsWith('/undo')) await service.forgetUndoneInvites(job.id, fence);
-    await changed();
+  /** What every successful apply or undo changes, whichever authority approved
+   * it. The door's response is read once and answered with the same body. */
+  const settle = async (path: string, response: Response, fence: D1Sql): Promise<Response> => {
+    if (!response.ok || !['apply', 'undo'].includes(path.slice(path.lastIndexOf('/') + 1))) return response;
+    const body = await response.text();
+    const { job } = JSON.parse(body) as { job?: { id: string; state: string } };
+    if (job) {
+      if (path.endsWith('/undo')) await service.forgetUndoneInvites(job.id, fence);
+      await changed();
+    }
+    return new Response(body, { status: response.status, headers: response.headers });
   };
 
   app.get('/api/app/import-door/settings',async c=> {
@@ -95,14 +121,15 @@ export function registerImportDoor(app: Hono<AppEnv>, bindings: AppBindings, ser
     if (!owner) return c.json({error:'not_found'},404);
     const key = await repository.key(bindings);
     const authority = { sql: "EXISTS(SELECT 1 FROM oa_operators WHERE id=? AND role='owner' AND status='active')", params: [owner] };
-    const planning = c.req.path === '/api/rer/import/plan' && c.req.method === 'POST' ? await c.req.raw.clone().json().catch(() => null) as { uploadId?: unknown } | null : undefined;
+    const read = c.req.path === '/api/rer/import/plan' && c.req.method === 'POST' ? await readFirst(c.req.raw) : undefined;
+    if (read === null) return c.json({error:'request_too_large'},413);
+    const planning = read?.input;
     const handle = createImportDoorHandler({database:bindings.DB,targets:statuspageTargets,claim,installationId:key,ownerPrincipalId:owner,destination:'lamp',
       format:'json',limits:doorLimits,reversalPolicy:'preserve-conflicts',
       source:namespace=>importSource(namespace,planning === undefined || !isImportSource(namespace) ? null : prepare(key,namespace,planning?.uploadId,owner,owner,authority,true)),
     });
-    const response = await handle(c.req.raw);
-    if (response) await settle(c.req.path, response, authority);
-    return response ?? c.notFound();
+    const response = await handle(read?.request ?? c.req.raw);
+    return response ? settle(c.req.path, response, authority) : c.notFound();
   });
 
   // The owner's own Move in: the current owner session, same-origin requests,
@@ -119,7 +146,9 @@ export function registerImportDoor(app: Hono<AppEnv>, bindings: AppBindings, ser
     const key = await repository.key(bindings);
     await repository.ensureSettings(key, authority);
     const action = c.req.path.slice(operatorPrefix.length);
-    const input = c.req.method === 'POST' && ['plan', 'undo'].includes(action) ? await c.req.raw.clone().json().catch(() => null) as { uploadId?: unknown; planId?: unknown } | null : null;
+    const read = c.req.method === 'POST' && ['plan', 'undo'].includes(action) ? await readFirst(c.req.raw) : undefined;
+    if (read === null) return c.json({error:'request_too_large'},413);
+    const input = read?.input ?? null, request = read?.request ?? c.req.raw;
     const handler = async (prepared: Promise<Prepared> | null) => createImportOperatorHandler({database:bindings.DB,targets:statuspageTargets,installationId:key,appOrigin:authOrigin(bindings),
       ownerEmail:session.operator.email,ownerPrincipalId:principal,namespace:name,destination:'lamp',format:'json',limits:doorLimits,reversalPolicy:'preserve-conflicts',
       ...(await importSource(name,prepared))!,
@@ -129,7 +158,7 @@ export function registerImportDoor(app: Hono<AppEnv>, bindings: AppBindings, ser
     const discardUnstarted = async (keep: { bundle?: string; planId?: string }) => {
       const pending = await repository.unstartedPending(key, name);
       if (!pending || pending.bundle_sha256 === keep.bundle || pending.id === keep.planId) return;
-      const headers = new Headers(c.req.raw.headers); headers.delete('Content-Length'); headers.set('Content-Type','application/json');
+      const headers = new Headers(request.headers); headers.delete('Content-Length'); headers.set('Content-Type','application/json');
       const cancelled = await (await handler(null))(new Request(new URL(`${operatorPrefix}undo`, c.req.url), { method: 'POST', headers, body: JSON.stringify({ planId: pending.id }) }));
       if (!cancelled?.ok) throw new Error('An earlier dry run could not be discarded.');
     };
@@ -149,9 +178,9 @@ export function registerImportDoor(app: Hono<AppEnv>, bindings: AppBindings, ser
       try { await discardUnstarted({ planId: input.planId }); await repository.assertNewest(input.planId); }
       catch (cause) { return c.json({ error: refusal(cause) }, 409); }
     }
-    const response = await (await handler(prepared))(c.req.raw);
-    if (!response) return c.notFound();
-    await settle(c.req.path, response, authority);
+    const answered = await (await handler(prepared))(request);
+    if (!answered) return c.notFound();
+    const response = await settle(c.req.path, answered, authority);
     if (action !== 'plan' || !response.ok) return response;
     const plan = await response.json() as { planId: string };
     const saved = await repository.planSnapshot(key, plan.planId);
