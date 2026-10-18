@@ -1,0 +1,54 @@
+diff --git a/modules/operator-auth/dev/index.mjs b/modules/operator-auth/dev/index.mjs
+index 71cd3a36bdfaecf65b603f26f152f47880ee4238..ec8e8c41e2ba150bf02dece3d92bc5f5c425c8b2 100644
+--- a/modules/operator-auth/dev/index.mjs
++++ b/modules/operator-auth/dev/index.mjs
+@@ -58,7 +58,8 @@ export function withDevIdentity(worker, { bindings = env => env, config: authCon
+           ...person, displayName: (await context.store.byEmail(person.email))?.displayName ?? declared.find(p => p.as === person.as)?.displayName ?? person.email,
+           href: `/auth/dev/enter?as=${encodeURIComponent(person.as)}&returnTo=${encodeURIComponent(returnTo)}`,
+         })));
+-        return decorateLabel(await oneClickPage({ branding: context.config.branding, people, method: request.method }), env.RER_DEMO === '1' ? 'Demo' : 'Dev');
++        const providers = (await context.auth.providers.list()).filter(provider => provider.visible);
++        return decorateLabel(await oneClickPage({ branding: context.config.branding, people, providers, returnTo, method: request.method }), env.RER_DEMO === '1' ? 'Demo' : 'Dev');
+       }
+       if (path === '/auth/dev/enter' || path === '/__dev/personas' || path === '/auth/local/cli-session') {
+         if (!gate || env.RER_DEV_IDENTITY === 'off' || (path !== '/auth/local/cli-session' && !await gate.admits(request))) return rejectedResponse(request, devNotFound());
+diff --git a/modules/operator-auth/signin/index.mjs b/modules/operator-auth/signin/index.mjs
+index fd7adef0abf9e379623dd59f8c8ae5f6978cd2f4..d9beb38e16d22845610c0cc9aa21a8c2633f496d 100644
+--- a/modules/operator-auth/signin/index.mjs
++++ b/modules/operator-auth/signin/index.mjs
+@@ -51,13 +51,13 @@ export function createSignInHandler(auth, { setup, links, defaultReturnTo = '/ap
+     const branding = auth.presentation;
+     const returnTo = safeReturnTo(url.searchParams.get('returnTo'), defaultReturnTo);
+     const hint = emailHint(url.searchParams.get('login_hint'));
++    const providers = auth.providers ? (await auth.providers.list()).filter(p => p.visible) : [];
+     const people = await auth.oneClick?.people(request);
+-    if (people?.length) return oneClickPage({ branding, method: request.method, people: people.map(person => {
++    if (people?.length) return oneClickPage({ branding, method: request.method, providers, returnTo, people: people.map(person => {
+       const href = new URL(person.href, url.origin);
+       href.searchParams.set('returnTo', returnTo);
+       return { ...person, href: href.pathname + href.search };
+     }) });
+-    const providers = auth.providers ? (await auth.providers.list()).filter(p => p.visible) : [];
+     const parts = [];
+     const emailAvailable = auth.emailSignInAvailable;
+     const notice = noticeFor(url.searchParams.get('notice'), emailAvailable)
+diff --git a/modules/operator-auth/signin/one-click.mjs b/modules/operator-auth/signin/one-click.mjs
+index aa8ff86390562ae7de6898358b86b91c450cf144..d3517a5e92a802daa5c258024f38df490d20fbdc 100644
+--- a/modules/operator-auth/signin/one-click.mjs
++++ b/modules/operator-auth/signin/one-click.mjs
+@@ -1,7 +1,12 @@
+ import { escapeHtml } from '../http.mjs';
+ import { pageResponse } from '../page.mjs';
+ 
+-export function oneClickPage({ branding, people, method = 'GET' }) {
+-  const content = `<div class="stack">${people.map(person => `<a class="action" href="${escapeHtml(person.href)}">Sign in as ${escapeHtml(person.displayName || person.email)}</a>`).join('')}</div>`;
+-  return pageResponse({ branding, heading: `Sign in to ${escapeHtml(branding.productName)}`, content, method });
++export function oneClickPage({ branding, people, providers = [], returnTo = '/app', method = 'GET' }) {
++  const owners = people.map(person => `<a class="action" href="${escapeHtml(person.href)}">Sign in as ${escapeHtml(person.displayName || person.email)}</a>`).join('');
++  const choices = providers.map(provider => `<form method="post" action="${escapeHtml(provider.startPath)}"><input type="hidden" name="returnTo" value="${escapeHtml(returnTo)}"><button class="secondary" type="submit">Continue with ${escapeHtml(provider.label)}</button></form>`).join('');
++  const content = `<div class="stack">${owners}${choices}</div>`;
++  const formTargets = [...new Set(providers.flatMap(provider => provider.authorizationOrigins))];
++  // Native provider forms require an Origin and CSP permission for their redirect.
++  return pageResponse({ branding, heading: `Sign in to ${escapeHtml(branding.productName)}`, content, method,
++    ...(providers.length ? { referrer: 'strict-origin', formTargets } : {}) });
+ }

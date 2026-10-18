@@ -27,6 +27,7 @@ let cookie;
 let runtime;
 let receiver;
 const received = [];
+let slackReply = { status: 200, body: "ok" };
 
 async function api(path, init = {}) {
   init = await withDraftVersion(path, init, (readPath) => nativeRequest(readPath, { cookie }));
@@ -46,7 +47,7 @@ before(async () => {
     request.on("end", () => {
       received.push({ path: request.url, body });
       // Slack answers "ok"; a Teams Workflows webhook answers 202.
-      if (request.url.startsWith("/services/")) response.writeHead(200, { "Content-Type": "text/plain" }).end("ok");
+      if (request.url.startsWith("/services/")) response.writeHead(slackReply.status, { "Content-Type": "text/plain" }).end(slackReply.body);
       else response.writeHead(202).end();
     });
   });
@@ -123,6 +124,29 @@ test("NOTIFY-011 NOTIFY-012 — Private channel configuration delivers the selec
   assert.ok(teamsBody.includes("\\*\\*markdown\\*\\*"), "Teams keeps author markup literal");
   assert.match(teams[0].path, /sig=teamsSecretSignature0003/, "Teams keeps its signed query");
   assert.deepEqual(sql("SELECT state FROM integration_deliveries ORDER BY state").map((row) => row.state), ["accepted", "accepted"]);
+  const channels = (await api("/api/app/channels")).body.channels;
+  const slackChannel = channels.find(channel => channel.name === "#payments");
+  for (const reply of [
+    { status: 200, body: "invalid_payload" },
+    { status: 400, body: "channel_is_archived" },
+    { status: 200, body: "" },
+    { status: 200, body: "not ok" },
+    { status: 400, body: `invalid_payload: ${SLACK_A}` },
+    { status: 200, body: "ok" },
+  ]) {
+    slackReply = reply;
+    const result = await post(`/api/app/channels/${slackChannel.id}/test`, {});
+    assert.equal(result.status, 200, result.text);
+    assert.equal(result.body.sent, reply.body === "ok", `Slack HTTP ${reply.status}: ${reply.body || "empty response"}`);
+    if (reply.body && reply.body !== "ok") assert.ok(result.body.message.includes(reply.body.replaceAll(SLACK_A, "[webhook URL]")), "show Slack's rejection text without the webhook credential");
+    assert.doesNotMatch(result.text, /slackAsecret|\/services\/T0LAMPTEST/);
+    assert.match(JSON.parse(received.at(-1).body).text, /Test post from Lamp/);
+  }
+  const teamsChannel = channels.find(channel => channel.kind === "teams");
+  const teamsTest = await post(`/api/app/channels/${teamsChannel.id}/test`, {});
+  assert.equal(teamsTest.status, 200, teamsTest.text);
+  assert.equal(teamsTest.body.sent, true, "Teams accepts an empty HTTP 202 response");
+  assert.equal(sql("SELECT count(*) AS n FROM integration_deliveries")[0].n, 2, "test posts stay outside the durable publication log");
 })(t);
 });
 

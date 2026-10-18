@@ -508,7 +508,7 @@
       "executable": false
     },
     "DIVERGENCE.md": {
-      "sha256": "e5a8c27bae74394341715fee6a44222843d299a9566207e2f0938795e247a675",
+      "sha256": "39573a5022e21c7890182153c7a3295abdb93860f503ce5ede0f303d6c3c16c6",
       "executable": false
     },
     "docs/ai-assistance.md": {
@@ -1936,11 +1936,15 @@
       "executable": false
     },
     "package.json": {
-      "sha256": "6e4aa2af071707c4d0cd20d517693ac431c884e88bbf8bc6db2f4f1a633b5c88",
+      "sha256": "c25c67e9a9569ab0616ec6100d9dd760e4eb0507515aedf307508815bf589118",
+      "executable": false
+    },
+    "patches/@runeditrun__rer@0.2.54.patch": {
+      "sha256": "2c00d32788b3952dbd4df08a6fcdf3900d96a98381a1d6facb03045f7c564fbd",
       "executable": false
     },
     "pnpm-lock.yaml": {
-      "sha256": "4bb5289f5e576f30688639895c493831c211c8ba5f004d02002e514500667b43",
+      "sha256": "d3bcd005b1b0aa7fd06bfed5d91ee1f1cf4b9280708c97973859f0bc20f25599",
       "executable": false
     },
     "public/app-assets/brand/lamp-mark.svg": {
@@ -2888,7 +2892,7 @@
       "executable": false
     },
     "src/core/features/channels/service.ts": {
-      "sha256": "ba61cef98a420cbf9ffe7d106a6984ab028dea1a309a3da0da43eeda960be976",
+      "sha256": "44f8088481e2b35ce347f4e262c35406550d27555fed1db5fd78beff3510e961",
       "executable": false
     },
     "src/core/features/channels/slack-message.ts": {
@@ -3860,7 +3864,7 @@
       "executable": false
     },
     "src/core/platform/auth/identity-settings-page.ts": {
-      "sha256": "e3e221acc0b9bd497b81f35cb71af29513d09a568a451641e94d30f3ab8d4910",
+      "sha256": "d9243377d9a532b7fe8c35e22c1c156f15220a3e06ff456ad30b2fe9980e795d",
       "executable": false
     },
     "src/core/platform/auth/index.ts": {
@@ -4820,7 +4824,7 @@
       "executable": false
     },
     "tests/auth-adoption/dependencies.test.mjs": {
-      "sha256": "b488ce2714f7c724c180c9a4163b7fc1d958aa18f9f2ddc3aa22e9a370bcf00b",
+      "sha256": "69ac41d3ef092eaa57b0c5cbece7d37bd94e4990f6a3837501115e4e68ae5d97",
       "executable": false
     },
     "tests/auth-adoption/fixtures/prechange.sql": {
@@ -4992,7 +4996,7 @@
       "executable": false
     },
     "tests/e2e/channels-and-presets.test.mjs": {
-      "sha256": "3ff12a264ae7f7ca69a62870aeded598248461aa75b212d00910e576c6ddc885",
+      "sha256": "f11db72e0c2ae733aa53ac80bfef310f13b7207f83ecc38cad83569a6f9c88c3",
       "executable": false
     },
     "tests/e2e/composer-visit-regression.mjs": {

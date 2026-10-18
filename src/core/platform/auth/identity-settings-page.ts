@@ -22,10 +22,7 @@ export async function identitySettingsPage(response: Response, input: { origin: 
       : '<p class="notice" role="status">No sign-in provider is set up on this installation yet, so this setting has no effect. Choose a provider below and follow its steps. Email sign-in links keep working either way.</p>';
   const saved = input.saved ? `<p class="notice" role="status">Saved.${configured ? ' Check it with the sign-in test below.' : ' No provider is set up yet, so nobody can sign in with one until you finish the steps below.'}</p>` : '';
   const guide = { origin: input.origin, local: input.local, identityProvider: input.identityProvider };
-  // rer dev signs in only with its own link, so a provider is tested where Lamp has its public address.
-  const test = input.local
-    ? '<p>On this computer, rer signs you in only with its RER_OPEN link, so test provider sign-in on your hosted Lamp. There, keep one window signed in and, in a private browser window, open your hosted operator address followed by <code>/signin</code>, such as <code>https://ops.example.com/signin</code>.</p>'
-    : `<p>Keep this window signed in. In a private browser window, open <a href="/signin" target="_blank" rel="noreferrer">${escapeHtml(input.origin)}/signin</a>.</p>`;
+  const test = `<p>Keep this window signed in. In a private browser window, open <a href="/signin" target="_blank" rel="noreferrer">${escapeHtml(input.origin)}/signin</a>.</p>`;
   const body = `${googleGuide(guide, !configured)}${oktaGuide(guide)}${microsoftGuide()}${authGuide(guide)}
     <h2>Test sign-in</h2>${test}
     <p>Choose <strong>Continue with</strong> your provider as an invited person. Success: you land in the Lamp workspace as that person. No provider button means the settings lines or deploy step did not take effect; a refusal after the provider usually means the redirect URI does not match exactly, or the person is not invited (for Okta, or their user ID and email are not paired).</p>`;

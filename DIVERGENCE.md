@@ -1405,3 +1405,15 @@ origin. The public status page keeps a separate hostname on the same port:
 localhost beside the default 127.0.0.1 app, or status.localhost beside a localhost
 app. Selecting localhost must complete
 owner setup and health readiness without provider credentials.
+
+## Configured sign-in choices and channel checks — 18 October 2026
+
+ACCESS-001's enabled, configured providers remain available beside the local
+one-click owner entry. Native provider forms retain their same-origin Origin
+and allow the provider authorization redirect under CSP. With no enabled
+provider, owner entry stays unchanged. A scoped rer 0.2.54 patch preserves these
+choices in the shared development and one-click sign-in renderers.
+
+A Slack channel test succeeds only on Slack's exact `ok` acknowledgement;
+HTTP success with another body reports the provider's refusal text. Teams keeps
+its HTTP acknowledgement semantics.

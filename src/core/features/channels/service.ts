@@ -61,10 +61,13 @@ export function createChannelsService(db: D1Database, options: { effectsPaused?:
       const body = destination.kind === "slack" ? JSON.stringify(renderLampSlackMessage(text, [text])) : teamsTestCard(text);
       const provider = destination.kind === "slack" ? "Slack" : "Teams";
       try {
-        const response = await transport.send({ url: await resolve(id), headers: { "content-type": "application/json; charset=utf-8" }, body });
-        return response.status >= 200 && response.status < 300
+        const url = await resolve(id);
+        const response = await transport.send({ url, headers: { "content-type": "application/json; charset=utf-8" }, body });
+        const accepted = response.status >= 200 && response.status < 300 && (destination.kind !== "slack" || response.body === "ok");
+        const providerError = destination.kind === "slack" && response.body ? `: ${response.body.replaceAll(url, "[webhook URL]")}` : "";
+        return accepted
           ? { sent: true, message: `${provider} accepted the test post. Check ${destination.name} for it.` }
-          : { sent: false, message: `${provider} refused the test post (HTTP ${response.status}). Create a new webhook URL, remove this channel and add it again.` };
+          : { sent: false, message: `${provider} refused the test post (HTTP ${response.status}${providerError}). Create a new webhook URL, remove this channel and add it again.` };
       } catch {
         return { sent: false, message: `Lamp could not reach ${provider}. Check the webhook URL and try again.` };
       }
