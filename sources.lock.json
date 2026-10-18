@@ -440,7 +440,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "f4750b27d1ce2833fe9d40d16f015548a0265df6e2d415415b119711145f3659",
+      "sha256": "b6dd4d0a729a8bacf0ec87350d2ce956f05ad83eb2b8cbae9b9807847a226885",
       "executable": false
     },
     "AGENTS.md": {
@@ -488,7 +488,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "f9b57749f8c5f4b1979c097feea822bb2538647f09abe87d802890e4053bd6d1",
+      "sha256": "6670f7a7327f497c3e64d4b756a5aa5d40c643ac35c244788af63b5fbdc2a5be",
       "executable": false
     },
     "DEMO.md": {
@@ -508,7 +508,7 @@
       "executable": false
     },
     "DIVERGENCE.md": {
-      "sha256": "88c797ea43bc9bea7ea4848d501e22f30522985eed88588c6405492900316556",
+      "sha256": "c85949eb6225da479b0bf52c64a79dee517ce8da716cb75fae17d35f07bc2059",
       "executable": false
     },
     "docs/ai-assistance.md": {
