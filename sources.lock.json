@@ -2007,6 +2007,14 @@
       "sha256": "d17e88d8cc8a63d0b1c528707c9c9530483ee4f5d3f96bf58aedfc581883f579",
       "executable": false
     },
+    "release-history/1.7.0.CONTRACT.md": {
+      "sha256": "b55c2a181a1b4cf13db4b001bff3ee4073aac239d2f9a586533207281f2279b3",
+      "executable": false
+    },
+    "release-history/1.7.0.json": {
+      "sha256": "1ce6bf1c597ec6369dc008966c0eabea1ab25854f85c296a8dc1235554b4931b",
+      "executable": false
+    },
     "release-history/README.md": {
       "sha256": "fd13c03aa7a6da117aa4c7a71516a7682d6536853b96cb875631acc014cd164e",
       "executable": false
@@ -2016,7 +2024,7 @@
       "executable": false
     },
     "RELEASE.json": {
-      "sha256": "1eaacff7b6e335cd38c7fd27433e9f3b7004888368448750871ab05c20f53f62",
+      "sha256": "8f269f88fdff270e605fae349e3480ee7c4a989c4619e4ba94bdf3a4b60a4170",
       "executable": false
     },
     "rer-packaging.json": {
