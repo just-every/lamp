@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.7.1
+
+Description only; no product change. The catalogue description is now "Keep customers informed with a status page and clear incident updates.", the same sentence as main. The application, contract, migrations and configuration are identical to 1.7.0, so upgrading from 1.7.0 needs no migration, configuration or data step.
+
 ## 1.7.0
 
 - **Feeds, public APIs, badges and embeds.** The public page serves `/feed.rss` beside `/feed.atom`, `/history.atom` and `/history.rss` on every installation, and per-component Atom and RSS feeds and status and uptime badges under `/components/<id>/`, addressed by immutable ID so they survive renaming. `/badge.svg` and `/badge.json` (Shields endpoint) give the page's state. Statuspage's public API answers at `/api/v2/` (summary, status, components, incidents and scheduled maintenances, keeping imported Statuspage IDs where the import journal retained them), and a native paginated API at `/api/public/v1/`. Every one reads only the published snapshot: internal components, operator names, notes and subscriber data are excluded. Settings → Public resources and embeds builds a banner, floating incident notice or status-dot embed (`/embed/script.js`) for your listed widget origins. docs/public-resources.md describes them.

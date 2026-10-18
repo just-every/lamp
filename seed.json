@@ -1,7 +1,7 @@
 {
   "id": "lamp",
   "name": "Lamp",
-  "version": "1.7.0",
+  "version": "1.7.1",
   "maturity": "ui-port-local-runtime",
   "category": "status",
   "spine": {
@@ -22,7 +22,7 @@
       "edition": null
     }
   ],
-  "description": "A status page and incident communication desk for one business.",
+  "description": "Keep customers informed with a status page and clear incident updates.",
   "capabilities": [
     {
       "id": "public-status-page",

@@ -1,8 +1,8 @@
 {
-  "version": "1.7.0",
-  "previousVersion": "1.6.0",
-  "date": "2026-10-17",
-  "publicReleaseNotes": "Lamp 1.7.0 adds page data export and restore in the app: Settings → Export page data downloads everything a status page holds as one JSON file (lamp-page-data, version 1): page settings and logo, components with their status history, incidents with every update, draft, internal note and post-incident report, maintenance with notices, subscribers with their channel, components and consent state, and reference numbers. Restore page data checks the file first and restores it all or nothing into a new, empty Lamp, local or hosted, without emailing anyone. Hosted backups and restores need only Node, git and rer (node scripts/export.mjs --remote and node scripts/setup.mjs --restore-from read the deployment's private input file), and a restore no longer needs the setup token. Deploy to Cloudflare is one guided page, and rer deploy --dry-run names each missing input with the step that explains it. A redeploy also keeps OIDC_TRANSACTION_SECRET, so identity-provider sign-ins in progress survive it; rer deploy --rotate-secret NAME replaces a secret on purpose. Sorry subscribers held for cutover and never released are deleted with their addresses 30 days after the reviewed dry run, and Cutover shows that date. The public page also serves RSS beside Atom, per-component feeds and status and uptime badges, /badge.svg and a Shields /badge.json, Statuspage's public API at /api/v2/ (keeping imported Statuspage IDs) and a native paginated API at /api/public/v1/, all read from the published snapshot without internal components, operator names, notes or subscriber data; Settings builds banner, floating notice and status-dot embeds for listed origins. The checkout pins rer 0.2.42. Product screenshot: .github/assets/release/lamp-1.7.0-status-page-1440.png (a business's public status page at 1440 pixels: grouped components with 90-day uptime, an incident in progress with its latest update, and the subscribe form).",
+  "version": "1.7.1",
+  "previousVersion": "1.7.0",
+  "date": "2026-10-18",
+  "publicReleaseNotes": "Lamp 1.7.1 changes only the catalogue description, which is now: Keep customers informed with a status page and clear incident updates. Description only; no product change. The application, contract, migrations and configuration are identical to 1.7.0.",
   "contractChanges": {
     "MOVE-006": {
       "change": "changed",
@@ -14,5 +14,5 @@
   "extensionPointChanges": [],
   "migrations": [],
   "breaking": false,
-  "agentUpdateInstructions": "Back up data and owner source. This release adds no migration. Run pnpm install --frozen-lockfile for the rer 0.2.42 pin. Redeploys keep SESSION_SECRET, SUBSCRIBER_TOKEN_SECRET, WEBHOOK_SIGNING_SECRET and now OIDC_TRANSACTION_SECRET as the Worker holds them; a Worker deployed without OIDC_TRANSACTION_SECRET derives a stable one from its kept session secret. Rotate one only on purpose with rer deploy --rotate-secret NAME or LAMP_REPLACE_SECRETS. Sorry subscribers still held for cutover more than 30 days after their reviewed dry run are deleted with their addresses by the first scheduled run after the update: release or undo them first if you mean to keep them. Hosted backups now run with node scripts/export.mjs --remote and restores with node scripts/setup.mjs --restore-from, each with --env-file; neither needs global pnpm, and a restore needs no setup token. Page data files from Settings restore only into a new, empty installation. Run rer verify and pnpm run verify:release from v1.6.0 before adopting."
+  "agentUpdateInstructions": "From 1.7.0: description only; no product change. Update the checkout to v1.7.1; no migration, configuration, data or redeploy step is needed. From an earlier version, first follow the upgrade to 1.7.0 (RELEASE.json at tag v1.7.0)."
 }
