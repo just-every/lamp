@@ -420,7 +420,8 @@ contract("INTAKE-005", "operators configure a real authenticated source and insp
   await page.getByLabel("Source name").fill("Browser alert source — primary");
   await page.getByRole("button", { name: "Save source" }).click();
   await page.getByText("Alert source updated. Existing secrets remain hidden.", { exact: true }).waitFor();
-  const endpoint = await page.locator(".alert-source-card code").first().textContent();
+  const sourceCard = page.locator(".alert-source-card").filter({ has: page.getByRole("heading", { name: "Browser alert source — primary", exact: true }) });
+  const endpoint = await sourceCard.locator("code").first().textContent();
   assert.ok(endpoint?.startsWith(`${pageUrl}/api/intake/`), "the configured source must show its real intake endpoint");
 
   async function sendAlert(payload) {
@@ -437,8 +438,9 @@ contract("INTAKE-005", "operators configure a real authenticated source and insp
 
   await page.reload();
   await page.locator(".alert-source-card").getByRole("heading", { name: "Browser alert source — primary", exact: true }).waitFor();
-  await page.getByText("Accepted", { exact: true }).waitFor();
-  await page.getByText("Rejected", { exact: true }).waitFor();
+  const ownReceipts = page.locator(".receipt-card tr").filter({ hasText: "Browser alert source — primary" });
+  await ownReceipts.getByText("Accepted", { exact: true }).waitFor();
+  await ownReceipts.getByText("Rejected", { exact: true }).waitFor();
   const receiptText = await page.locator(".receipt-card").innerText();
   assert.match(receiptText, /deduplication path/i);
   assert.doesNotMatch(receiptText, /browser-alert-source-secret|browser-alert-accepted/);

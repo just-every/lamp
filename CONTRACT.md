@@ -1083,7 +1083,7 @@ What Lamp does not do, and how a buyer gets it:
 
 ## Status
 
-Status counts include the MOBILE-001 phone-desk implementation (18 October 2026); unchanged rows retain their cited evidence.
+Judged from the code and tests at commit `93eef47aea927ac3a9b568739721bf1a7b0964db` (18 October 2026).
 
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |

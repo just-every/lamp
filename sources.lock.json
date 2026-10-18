@@ -488,7 +488,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "f31aa4143e61f501f0886a6d47e5ab834c7924fa122c3b3f6224dcebf3e6e706",
+      "sha256": "bdf89a9f9aef3aceb6e6165b818a2559c182d4728a6870939cc5ccfc2c6c5006",
       "executable": false
     },
     "DEMO.md": {
@@ -1936,15 +1936,15 @@
       "executable": false
     },
     "package.json": {
-      "sha256": "c25c67e9a9569ab0616ec6100d9dd760e4eb0507515aedf307508815bf589118",
+      "sha256": "1dd60b1c2cf312f267777239e1c028f955dabc3f098eba9820123bbaf9114357",
       "executable": false
     },
-    "patches/@runeditrun__rer@0.2.54.patch": {
+    "patches/@runeditrun__rer@0.2.55.patch": {
       "sha256": "2c00d32788b3952dbd4df08a6fcdf3900d96a98381a1d6facb03045f7c564fbd",
       "executable": false
     },
     "pnpm-lock.yaml": {
-      "sha256": "d3bcd005b1b0aa7fd06bfed5d91ee1f1cf4b9280708c97973859f0bc20f25599",
+      "sha256": "27a493411a3ec41b9ced57431124b646195a99e1a155b0febf0a2bb63a3410dc",
       "executable": false
     },
     "public/app-assets/brand/lamp-mark.svg": {
@@ -2060,7 +2060,7 @@
       "executable": false
     },
     "RUN-LOCALLY.md": {
-      "sha256": "e2cc5e8d6abbf7b53329305129e73c77743db6a2772bb7475f97825d0138c050",
+      "sha256": "6fe33d1e98fc87e496b638e460c42a16539c13d5f9d222aa22004e8369cc6559",
       "executable": false
     },
     "schema/dependencies.mjs": {
@@ -5168,7 +5168,7 @@
       "executable": false
     },
     "tests/e2e/publishing-browser.test.mjs": {
-      "sha256": "0459a32b5823e12b28f292830281eaae526717ca1fa4fe4c0dbaa2d211a0e893",
+      "sha256": "493bb92a2d65decb4590658b0296c89dd61d367b1ddeee4645f6b4cd3af202f6",
       "executable": false
     },
     "tests/e2e/publishing-contract.test.mjs": {
@@ -5260,7 +5260,7 @@
       "executable": false
     },
     "tests/e2e/ui-interactions.test.mjs": {
-      "sha256": "567d1c5f88a7dd90f215674b60158c0bd9ca3533ab94e3fff4f7d23c9ad68e10",
+      "sha256": "ac97f2bb3be982619ccb45882c5945b36e479f0f3d3fc8a593c67bc322786270",
       "executable": false
     },
     "tests/e2e/update-reminders.test.mjs": {
