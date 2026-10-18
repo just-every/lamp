@@ -1,3 +1,5 @@
+import { teamsSubscriptionFlow, teamsFixtureResponse } from "./helpers/teams-subscription-flow.mjs";
+import { teamsSubscriptionBrowserFlow, teamsOperatorBrowserFlow } from "./helpers/teams-subscription-browser-flow.mjs";
 import { groupedAlertsFlow } from "./helpers/grouped-alerts-flow.mjs";
 import { UPDATE_LINK_FIELDS } from "./helpers/update-component-flow.mjs";
 import { test } from 'node:test';
@@ -47,6 +49,8 @@ before(async () => {
     request.on("data", (chunk) => { body += chunk; });
     request.on("end", () => {
       received.push({ path: request.url, body });
+      const reply = teamsFixtureResponse(request.url, body);
+      if (reply) { response.writeHead(reply.status).end(reply.body); return; }
       // Slack answers "ok"; a Teams Workflows webhook answers 202.
       if (request.url.startsWith("/services/")) response.writeHead(slackReply.status, { "Content-Type": "text/plain" }).end(slackReply.body);
       else response.writeHead(202).end();
@@ -71,7 +75,7 @@ after(async () => {
   await new Promise((resolve) => receiver?.close(resolve));
 });
 
-test("NOTIFY-011 NOTIFY-012 — Private channel configuration delivers the selected publication once", async t => {
+test("NOTIFY-011 NOTIFY-012 SUB-015 — Private channel configuration delivers the selected publication once", async t => {
   t.diagnostic("NOTIFY-011 — a Slack or Teams webhook URL is stored encrypted and never shown again");
   await (async () => {
   const api_ = await component("Payments API");
@@ -149,6 +153,7 @@ test("NOTIFY-011 NOTIFY-012 — Private channel configuration delivers the selec
   assert.equal(teamsTest.body.sent, true, "Teams accepts an empty HTTP 202 response");
   assert.equal(sql("SELECT count(*) AS n FROM integration_deliveries")[0].n, 2, "test posts stay outside the durable publication log");
 })(t);
+  await teamsSubscriptionFlow({ api, post, sql, received, publicOrigin, browserProof: teamsSubscriptionBrowserFlow, operatorProof: input => teamsOperatorBrowserFlow({ origin, publicOrigin, cookie, ...input }) });
 });
 
 

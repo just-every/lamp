@@ -203,6 +203,7 @@ export function createPageExportService(repository: PageExportRepository, blobs:
           // Without a file this installation can vouch for, an email address has
           // shown no consent here: it waits, as a move-in import's does, until the
           // owner sends its one confirmation (NOTIFY-008, MOVE-002).
+          if (!consentKept && row.delivery_kind === "teams" && (row.state === "active" || row.state === "pending")) return { ...restored, state: "deactivated", deactivation_reason: "Teams channel must subscribe and confirm again after page data restore", deactivated_at: now, updated_at: now };
           if (!consentKept && awaitingConsent(row)) return { ...restored, state: "deactivated", deactivation_reason: HELD_RESTORE_REASON, deactivated_at: now, updated_at: now };
           if (typeof confirmedAt === "string" && consentKept) confirmations.push({ subscriberId: String(stored.id), confirmedAt, subscribedAt: String(stored.created_at) });
           return restored;

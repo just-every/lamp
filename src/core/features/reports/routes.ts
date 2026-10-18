@@ -6,7 +6,7 @@ import { ulidSchema } from "../../shared/ids";
 import type { ReportsService } from "./service";
 
 const reportSchema = z.object({ summary: z.string().trim().min(1).max(10_000), timeline: z.string().trim().min(1).max(10_000), cause: z.string().trim().min(1).max(10_000), remediation: z.string().trim().min(1).max(10_000) }).strict();
-const channelsSchema = z.object({ channels: z.array(z.enum(["email", "webhook"])).max(2).transform((channels) => [...new Set(channels)]) }).strict();
+const channelsSchema = z.object({ channels: z.array(z.enum(["email", "webhook", "teams"])).max(3).transform((channels) => [...new Set(channels)]) }).strict();
 
 export function registerReportRoutes(app: Hono<AppEnv>, service: ReportsService) {
   app.get("/api/app/incidents/:incidentId/report", async (context) => {

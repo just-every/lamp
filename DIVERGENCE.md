@@ -1447,3 +1447,7 @@ Subscriber reports count current records separately from daily growth in pending
 Alertmanager and Grafana contact points can map each alert's exact labels to several components while retaining one private incident per open source group. Per-alert fingerprints retain partial recovery evidence; only a completely recovered, never-published draft closes automatically. Existing source credentials and single-component presets retain their behavior. Native technical archives carry grouped mappings and member state.
 
 The package pin moves to rer 0.2.57 with the configured-provider sign-in patch retained.
+
+## Verified Teams subscriptions — 18 October 2026
+
+Customers subscribe their own Teams Workflows channels from the public status page. Lamp encrypts the webhook credential and sends a confirmation card before delivering any updates. Active subscriptions use the existing durable webhook transport with a distinct Teams delivery kind, component preferences, Adaptive Cards, and the existing failing-destination cutoff. Operator reports and delivery records identify Teams without exposing its credential. Managed installations state the missing outbound Teams capability instead of accepting a subscription they cannot deliver.

@@ -8,7 +8,7 @@ const day = z.string().regex(/^\d{4}-\d{2}-\d{2}$/).refine(value => {
 export const reportingQuery = z.object({
   month: z.string().regex(/^(?:[1-9]\d{3})-(?:0[1-9]|1[0-2])$/).refine(value => Number(value.slice(0, 4)) <= 9998).optional(),
   from: day.optional(), to: day.optional(),
-  channel: z.enum(["email", "webhook"]).optional(),
+  channel: z.enum(["email", "webhook", "teams"]).optional(),
   format: z.enum(["json", "csv"]).optional(),
 }).strict().superRefine((value, context) => {
   if (value.month && (value.from || value.to)) context.addIssue({ code: "custom", message: "Choose a month or a date range." });

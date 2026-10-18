@@ -6,6 +6,7 @@ export function isSameOriginSubscriberPost(method, target, origin, fetchSite) {
   if (origin !== 'null' || fetchSite !== 'same-origin' || method !== 'POST') return false;
   if (/[\x00-\x20\x7f\\#]/.test(target)) return false;
   const pathname = target.split('?', 1)[0];
-  const match = /^\/(?:manage|unsubscribe)\/([A-Za-z0-9._~-]+)$/.exec(pathname);
+  if (pathname === '/subscribe/teams') return true;
+  const match = /^\/(?:manage|unsubscribe|confirm-subscription)\/([A-Za-z0-9._~-]+)$/.exec(pathname);
   return match !== null && match[1] !== '.' && match[1] !== '..';
 }

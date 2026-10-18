@@ -1,4 +1,4 @@
-import { and, asc, eq, gt, isNull, lt, sql } from "drizzle-orm";
+import { and, asc, eq, gt, isNull, sql } from "drizzle-orm";
 
 import { createDatabase } from "../../platform/db/client";
 import { componentGroups, components, subscriberComponents, subscribers } from "../../shared/schema";
@@ -13,10 +13,12 @@ export type StoredSubscriberToken = typeof subscriberTokens.$inferSelect;
 export type SubscriptionMailKind = "confirmation" | "already-subscribed" | "subscribed";
 
 export interface SubscriberRepository extends SubscriberTransitions {
+  hasActiveTeams(): Promise<boolean>;
   listSubscribers(limit: number, offset?: number): Promise<StoredSubscriber[]>;
   listComponents(subscriberId: string): Promise<StoredSubscriberComponent[]>;
   listVisibleComponents(): Promise<Array<{ id: string; name: string }>>;
   findSubscriber(subscriberId: string): Promise<StoredSubscriber | null>;
+  findSubscriberByDestinationKey(key: string): Promise<StoredSubscriber | null>;
   findSubscriberByDestination(destination: string): Promise<StoredSubscriber | null>;
   findSubscriberByToken(tokenHash: string, scope: "confirm" | "manage" | "unsubscribe", now: string): Promise<{ subscriber: StoredSubscriber; token: StoredSubscriberToken } | null>;
   createPendingSubscriber(input: typeof subscribers.$inferInsert): Promise<void>;
@@ -29,6 +31,7 @@ export interface SubscriberRepository extends SubscriberTransitions {
   deleteExpiredPending(cutoff: string): Promise<void>;
   recordConfirmationSendIfAllowed(emailHash: string, cutoff: string, now: string): Promise<boolean>;
   /** An audit entry on the subscriber: no address is copied, so erasure of the subscriber erases what it shows. */
+  recordTeamsVerification(subscriberId: string, outcome: "accepted" | "failed", now: string): Promise<void>;
   recordSubscriptionMail(subscriberId: string, kind: SubscriptionMailKind, outcome: "accepted" | "suppressed" | "failed", now: string): Promise<void>;
 }
 
@@ -36,6 +39,7 @@ export function createSubscriberRepository(binding: D1Database): SubscriberRepos
   const database = createDatabase(binding);
   return {
     ...createSubscriberTransitions(binding),
+    async hasActiveTeams() { return Boolean(await binding.prepare("SELECT 1 AS found FROM subscribers WHERE delivery_kind = 'teams' AND state = 'active' LIMIT 1").first()); },
     async listSubscribers(limit, offset = 0) {
       return database.select().from(subscribers).orderBy(asc(subscribers.createdAt)).limit(limit).offset(offset).all();
     },
@@ -53,6 +57,9 @@ export function createSubscriberRepository(binding: D1Database): SubscriberRepos
     async findSubscriber(subscriberId) {
       return (await database.select().from(subscribers).where(eq(subscribers.id, subscriberId)).get()) ?? null;
     },
+    async findSubscriberByDestinationKey(key) {
+      return (await database.select().from(subscribers).where(eq(subscribers.destinationKey, key)).get()) ?? null;
+    },
     async findSubscriberByDestination(destination) {
       return (await database.select().from(subscribers).where(eq(subscribers.destination, destination)).get()) ?? null;
     },
@@ -68,8 +75,9 @@ export function createSubscriberRepository(binding: D1Database): SubscriberRepos
     },
     async createPendingSubscriber(input) {
       await database.insert(subscribers).values(input).onConflictDoUpdate({
-        target: subscribers.destination,
-        set: { state: input.state, selectionMode: input.selectionMode, deactivationReason: null, deactivatedAt: null,
+        target: input.deliveryKind === "teams" ? subscribers.destinationKey : subscribers.destination,
+        ...(input.deliveryKind === "teams" ? { targetWhere: sql`${subscribers.destinationKey} IS NOT NULL` } : {}),
+        set: { destination: input.destination, destinationKey: input.destinationKey, deliveryKind: input.deliveryKind, contactEmail: input.contactEmail, state: input.state, selectionMode: input.selectionMode, deactivationReason: null, deactivatedAt: null,
           // A fresh opt-in starts a fresh pending lifetime. Ordinary repeated
           // requests and import invitations retain their original deadline.
           createdAt: sql`CASE WHEN ${subscribers.state} = 'deactivated' THEN ${input.createdAt} ELSE ${subscribers.createdAt} END`,
@@ -178,19 +186,30 @@ export function createSubscriberRepository(binding: D1Database): SubscriberRepos
       await binding.batch([
         ...removeRecipients,
         ...redactions,
-        binding.prepare("UPDATE subscribers SET destination = ?, contact_email = NULL, state = 'deactivated', deactivation_reason = 'deleted by operator', deactivated_at = ?, updated_at = ? WHERE id = ?").bind(`deleted:${subscriberId}`, now, now, subscriberId),
+        binding.prepare("UPDATE subscribers SET destination = ?, destination_key = NULL, contact_email = NULL, state = 'deactivated', deactivation_reason = 'deleted by operator', deactivated_at = ?, updated_at = ? WHERE id = ?").bind(`deleted:${subscriberId}`, now, now, subscriberId),
         binding.prepare("UPDATE subscriber_tokens SET revoked_at = ?, updated_at = ? WHERE subscriber_id = ? AND revoked_at IS NULL").bind(now, now, subscriberId),
         binding.prepare("INSERT INTO audit_entries (id, entity_type, entity_id, action, operator_id, payload_json, created_at, updated_at) VALUES (?, 'subscriber', ?, 'deleted', ?, '{}', ?, ?)").bind(createUlid(), subscriberId, operatorId, now, now),
       ]);
     },
     async deleteExpiredPending(cutoff) {
-      await database.delete(subscribers).where(and(eq(subscribers.state, "pending"), lt(subscribers.createdAt, cutoff)));
+      // Reopened Teams subscriptions retain earlier outcomes (RESTRICT).
+      // Expire their unconfirmed bearer URL while keeping anonymous outcomes.
+      const expiredAt = new Date().toISOString();
+      await binding.batch([
+        binding.prepare("UPDATE subscriber_tokens SET revoked_at = ?, updated_at = ? WHERE subscriber_id IN (SELECT id FROM subscribers WHERE state = 'pending' AND created_at < ?)").bind(expiredAt, expiredAt, cutoff),
+        binding.prepare("UPDATE subscribers SET destination = 'deleted:' || id, destination_key = NULL, contact_email = NULL, state = 'deactivated', deactivation_reason = 'pending confirmation expired', deactivated_at = ?, updated_at = ? WHERE state = 'pending' AND delivery_kind = 'teams' AND created_at < ? AND EXISTS (SELECT 1 FROM notification_deliveries d WHERE d.subscriber_id = subscribers.id)").bind(expiredAt, expiredAt, cutoff),
+        binding.prepare("DELETE FROM subscribers WHERE state = 'pending' AND created_at < ?").bind(cutoff),
+      ]);
     },
     async recordConfirmationSendIfAllowed(emailHash, cutoff, now) {
       const result = await binding.prepare(
         "INSERT INTO subscriber_confirmation_attempts (email_hash, last_sent_at, created_at, updated_at) VALUES (?, ?, ?, ?) ON CONFLICT(email_hash) DO UPDATE SET last_sent_at = excluded.last_sent_at, updated_at = excluded.updated_at WHERE subscriber_confirmation_attempts.last_sent_at < ?",
       ).bind(emailHash, now, now, now, cutoff).run();
       return result.meta.changes === 1;
+    },
+    async recordTeamsVerification(subscriberId, outcome, now) {
+      await binding.prepare("INSERT INTO audit_entries (id, entity_type, entity_id, action, operator_id, payload_json, created_at, updated_at) VALUES (?, 'subscriber', ?, 'teams-verification', NULL, ?, ?, ?)")
+        .bind(createUlid(), subscriberId, JSON.stringify({ outcome }), now, now).run();
     },
     async recordSubscriptionMail(subscriberId, kind, outcome, now) {
       await binding.prepare("INSERT INTO audit_entries (id, entity_type, entity_id, action, operator_id, payload_json, created_at, updated_at) VALUES (?, 'subscriber', ?, 'subscription-mail', NULL, ?, ?, ?)")

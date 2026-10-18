@@ -1,3 +1,5 @@
+import { teamsTransport, type TeamsOptions } from "../subscribers/teams";
+import { renderSubscriberTeamsMessage } from "./teams-message";
 import { resolveSlackWebhook } from "../../../../modules/integrations/slack/protocol.ts";
 import { classifySlackIncomingWebhook } from "../../../../modules/integrations/slack/classify.ts";
 import { renderSubscriberSlackMessage } from "./slack-message";
@@ -85,8 +87,9 @@ function renderMaintenanceNotice(delivery: DispatchableDelivery) {
 
 export function createDeliveriesService(
   repository: DeliveryRepository,
-  options: { emailBranding?: () => Promise<{ branding: EmailBranding; hasLogo: boolean }>; pageName?: () => Promise<string>; effectsPaused?: boolean; mail?: MailSender; fromAddress?: string | (() => Promise<string>); subscriberTokenSecret?: string; webhookSigningSecret?: string | string[]; events?: DeliveryEvents } = {},
+  options: { teams?: TeamsOptions; emailBranding?: () => Promise<{ branding: EmailBranding; hasLogo: boolean }>; pageName?: () => Promise<string>; effectsPaused?: boolean; mail?: MailSender; fromAddress?: string | (() => Promise<string>); subscriberTokenSecret?: string; webhookSigningSecret?: string | string[]; events?: DeliveryEvents } = {},
 ): DeliveriesService {
+  const teams = teamsTransport(options.teams ?? {});
   const tokens = options.subscriberTokenSecret ? new SubscriberTokenCodec(options.subscriberTokenSecret) : null;
   const events = options.events ?? defaultDeliveryEvents;
 
@@ -162,11 +165,11 @@ export function createDeliveriesService(
         text: `Delivery ${delivery.id} to ${delivery.channel} subscriber ${delivery.subscriberId} could not confirm delivery: ${description}`,
       });
       if (delivery.channel === "webhook" && (await repository.countConsecutiveOutcomes(delivery.subscriberId, "webhook", ["failed"], 10)) >= 10) {
-        await deactivateSubscriber(delivery, "ten consecutive webhook delivery failures", timestamp);
+        await deactivateSubscriber(delivery, delivery.deliveryKind === "teams" ? "ten consecutive Teams delivery failures" : "ten consecutive webhook delivery failures", timestamp);
         if (delivery.contactEmail) await queueMailAlert({
           eventId: `webhook-deactivated/${delivery.subscriberId}`,
-          title: "Lamp disabled a failing webhook subscription",
-          text: "Lamp stopped sending to this webhook endpoint after ten consecutive failed deliveries. An operator can add a replacement endpoint.",
+          title: delivery.deliveryKind === "teams" ? "Lamp disabled a failing Teams subscription" : "Lamp disabled a failing webhook subscription",
+          text: delivery.deliveryKind === "teams" ? "Lamp stopped sending to your Teams channel after ten consecutive failed deliveries. Check the Workflow, then subscribe its webhook URL again from the status page and confirm the new card." : "Lamp stopped sending to this webhook endpoint after ten consecutive failed deliveries. An operator can add a replacement endpoint.",
           recipients: [delivery.contactEmail],
         });
       }
@@ -235,6 +238,15 @@ export function createDeliveriesService(
   }
 
   async function sendWebhook(delivery: DispatchableDelivery, origin: string) {
+    if (delivery.deliveryKind === "teams") {
+      const links = await stableTokens(delivery.subscriberId);
+      if (!links) { await repository.markOutcome(delivery.id, "suppressed", nowIso(), nowIso()); return; }
+      await teams.send(delivery.destination, delivery.subscriberId, renderSubscriberTeamsMessage(delivery, origin, links));
+      const now = nowIso();
+      await repository.recordAttempt({ id: createUlid(), deliveryId: delivery.id, attemptNumber: (await repository.getAttemptCount(delivery.id)) + 1, attemptedAt: now, providerMessageId: null, error: null, createdAt: now });
+      await repository.markOutcome(delivery.id, "delivered", now, now);
+      return;
+    }
     const secrets = (Array.isArray(options.webhookSigningSecret) ? options.webhookSigningSecret : [options.webhookSigningSecret]).filter((value): value is string => Boolean(value));
     if (!secrets.length) throw new Error("WEBHOOK_SIGNING_SECRET is required for webhook subscriptions.");
     if (!isSafeWebhookDestination(delivery.destination)) throw new Error("Webhook delivery destination is not a public HTTPS URL.");

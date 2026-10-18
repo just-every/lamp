@@ -4,11 +4,11 @@ import { defaultPostmortemDuePolicy, type PostmortemDuePolicy } from "./policies
 import type { IncidentReportRow, ReportRepository } from "./repository";
 
 export interface ReportInput { summary: string; timeline: string; cause: string; remediation: string; }
-export interface ReportsNotificationStatements { forIncidentReport(input: { eventId: string; incidentId: string; componentIds: string[]; channels: Array<"email" | "webhook">; queuedAt: string }): Promise<D1PreparedStatement[]>; }
+export interface ReportsNotificationStatements { forIncidentReport(input: { eventId: string; incidentId: string; componentIds: string[]; channels: Array<"email" | "webhook" | "teams">; queuedAt: string }): Promise<D1PreparedStatement[]>; }
 export interface ReportsService {
   get(incidentId: string): Promise<IncidentReportRow | null>;
   save(incidentId: string, input: ReportInput, operatorId: string): Promise<IncidentReportRow>;
-  publish(incidentId: string, operatorId: string, channels: Array<"email" | "webhook">): Promise<IncidentReportRow | null>;
+  publish(incidentId: string, operatorId: string, channels: Array<"email" | "webhook" | "teams">): Promise<IncidentReportRow | null>;
   owing(now?: string): Promise<string[]>;
 }
 

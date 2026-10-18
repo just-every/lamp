@@ -54,8 +54,16 @@
     {
       "id": "0035_grouped_alerts.sql",
       "buyerSteps": "Apply after 0034. Adds exact label mappings for Alertmanager and Grafana groups and tracks each alert fingerprint so partial recoveries keep private drafts open. Existing monitoring sources retain their mappings and credentials."
+    },
+    {
+      "id": "0036_teams_subscribers.sql",
+      "buyerSteps": "Apply after 0035. Adds encrypted, verified Teams subscriptions on the existing webhook transport, preserves anonymous reporting history with a Teams dimension and retains update channel choices for catch-up notifications. Backups need the original WEBHOOK_SIGNING_SECRET to reopen saved channel URLs."
+    },
+    {
+      "id": "0037_report_deliveries.sql",
+      "buyerSteps": "Apply after 0036. Allows post-incident report recipients in the durable delivery table while preserving delivery attempts, provider callback links, indexes and committed impact history."
     }
   ],
   "breaking": false,
-  "agentUpdateInstructions": "Back up data and owner source. Apply the pending component-update and wording-check migrations in order after the backup. Run pnpm install --frozen-lockfile for the rer 0.2.42 pin. Redeploys keep SESSION_SECRET, SUBSCRIBER_TOKEN_SECRET, WEBHOOK_SIGNING_SECRET and now OIDC_TRANSACTION_SECRET as the Worker holds them; a Worker deployed without OIDC_TRANSACTION_SECRET derives a stable one from its kept session secret. Rotate one only on purpose with rer deploy --rotate-secret NAME or LAMP_REPLACE_SECRETS. Sorry subscribers still held for cutover more than 30 days after their reviewed dry run are deleted with their addresses by the first scheduled run after the update: release or undo them first if you mean to keep them. Hosted backups now run with node scripts/export.mjs --remote and restores with node scripts/setup.mjs --restore-from, each with --env-file; neither needs global pnpm, and a restore needs no setup token. Page data files from Settings restore only into a new, empty installation. Run rer verify and pnpm run verify:release from v1.6.0 before adopting."
+  "agentUpdateInstructions": "Back up data and owner source. Apply the pending component-update and wording-check migrations in order after the backup. Run pnpm install --frozen-lockfile for the rer 0.2.57 pin. Redeploys keep SESSION_SECRET, SUBSCRIBER_TOKEN_SECRET, WEBHOOK_SIGNING_SECRET and now OIDC_TRANSACTION_SECRET as the Worker holds them; a Worker deployed without OIDC_TRANSACTION_SECRET derives a stable one from its kept session secret. Rotate one only on purpose with rer deploy --rotate-secret NAME or LAMP_REPLACE_SECRETS. Sorry subscribers still held for cutover more than 30 days after their reviewed dry run are deleted with their addresses by the first scheduled run after the update: release or undo them first if you mean to keep them. Hosted backups now run with node scripts/export.mjs --remote and restores with node scripts/setup.mjs --restore-from, each with --env-file; neither needs global pnpm, and a restore needs no setup token. Page data files from Settings restore only into a new, empty installation. Run rer verify and pnpm run verify:release from v1.6.0 before adopting."
 }

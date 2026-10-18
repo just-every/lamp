@@ -49,3 +49,10 @@
 .subscriber-document input[type="checkbox"] { width: 18px; height: 18px; flex: none; margin: 0; accent-color: var(--ink); }
 .subscriber-document form + form { margin-top: 28px; border-top: 1px solid var(--line); padding-top: 24px; }
 .subscriber-document form + form button { background: var(--card); border-color: rgb(180 68 50 / .35); color: #9c3626; box-shadow: none; }
+
+.subscriber-document input[type="url"], .subscriber-document input[type="email"] {
+  display: block; width: 100%; min-width: 0; min-height: 44px; margin: 0 0 16px;
+  border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px;
+  background: var(--card); color: var(--ink); font: inherit;
+}
+.subscriber-document input:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }

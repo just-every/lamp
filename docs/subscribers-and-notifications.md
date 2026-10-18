@@ -177,3 +177,26 @@ Open **Subscribers** for current counts by channel and state. Expand **Counts by
 Choose a growth month and channel, then **Download CSV** to export the same figures. The month filters the growth record; current counts always describe the present. Adding or removing a subscriber refreshes the figures while keeping the report's filters.
 
 Daily growth measures pending plus active subscriptions: a new pending subscription joins inventory, confirmation does not add it again, and deactivation or erasure leaves inventory. Dates use UTC. Tracking starts with the first subscriber change or report read, from the baseline displayed on the report; earlier daily changes are unknown. The first tracked day and the current day are incomplete. Technical backups retain this anonymous history; restoring an older archive starts a new baseline. Audience and language reporting are not yet available.
+
+## Subscribe a Microsoft Teams channel
+
+From the public status page, choose **Get updates in Microsoft Teams**. In your
+Teams channel, create the **When a Teams webhook request is received** Workflow
+and allow **Anyone** to send requests. Use the Workflow that posts Adaptive Cards
+to the channel, then paste its webhook URL and a contact email into Lamp. Choose
+components, or leave all clear to follow current and future visible components.
+
+Lamp sends one verification card. Open **Confirm subscription** from that card and
+confirm on Lamp's page before any updates start. Repeated requests send at most
+one card per URL in 24 hours. The card's link expires after 72 hours.
+
+Later cards include management and unsubscribe links. The channel's webhook URL
+stays encrypted and never appears in the operator directory or delivery export.
+Ten consecutive failed updates deactivate the subscription and email its contact.
+Subscribers and Deliveries label this channel **Teams**; subscriber reporting has
+a separate Teams filter. The incident desk's **Slack and Teams** selection includes
+confirmed Teams subscribers. A post-incident report has its own **Teams subscribers**
+notification choice.
+
+Managed hosting currently has no outbound chat relay. Its subscription form names
+that limitation and does not accept a subscription it cannot verify or deliver.

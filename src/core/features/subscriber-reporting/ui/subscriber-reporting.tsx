@@ -20,7 +20,7 @@ export function SubscriberReporting({ refreshKey }: { refreshKey: number }) {
     <p>Current counts and observed daily changes. Audience and language reporting are not available.</p>
     <div className="subscriber-webhook-form">
       <label className="form-label" htmlFor={monthId}>Growth month (UTC)<input id={monthId} type="month" min="1000-01" max="9998-12" required value={month} onChange={event => { if (event.target.value) setMonth(event.target.value); }} /></label>
-      <label className="form-label" htmlFor={channelId}>Channel<select id={channelId} value={channel} onChange={event => setChannel(event.target.value)}><option value="">All channels</option><option value="email">Email</option><option value="webhook">Webhook</option></select></label>
+      <label className="form-label" htmlFor={channelId}>Channel<select id={channelId} value={channel} onChange={event => setChannel(event.target.value)}><option value="">All channels</option><option value="email">Email</option><option value="webhook">Webhook</option><option value="teams">Teams</option></select></label>
       <Button type="button" variant="secondary" onClick={refresh} disabled={loading}>Refresh report</Button>
     </div>
     {error || csv.error ? <FormError>{error ?? csv.error}</FormError> : null}

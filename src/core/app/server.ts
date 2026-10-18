@@ -68,7 +68,7 @@ export function createApp(bindings: AppBindings, execution?: MailExecution) {
   registerCommunicationPerformanceRoutes(app, services.communicationPerformance);
   registerCatalogueRoutes(app, services.componentCatalogue);
   registerComponentRoutes(app, services.components);
-  registerIncidentRoutes(app, services.incidents, { hasChatChannels: async () => (await services.channels.list()).length > 0, wordingChecks: async () => { const settings = await services.pageSettings.get(); if (!settings) throw new Error("Page settings are not configured."); return { blockedTerms: settings.wordingBlockedTerms, friendlyLength: settings.wordingFriendlyLength }; } });
+  registerIncidentRoutes(app, services.incidents, { hasChatChannels: async () => (await services.channels.list()).length > 0 || await services.subscribers.hasActiveTeams(), wordingChecks: async () => { const settings = await services.pageSettings.get(); if (!settings) throw new Error("Page settings are not configured."); return { blockedTerms: settings.wordingBlockedTerms, friendlyLength: settings.wordingFriendlyLength }; } });
   registerIncidentImpactRoutes(app, services.incidentImpact);
   registerReportRoutes(app, services.reports);
   registerBriefRoutes(app, services.briefs);

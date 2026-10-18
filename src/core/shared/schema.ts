@@ -216,6 +216,8 @@ export const maintenanceComponents = sqliteTable("maintenance_components", {
 }, (table) => [index("maintenance_components_maintenance_id_idx").on(table.maintenanceId)]);
 
 export const subscribers = sqliteTable("subscribers", {
+  deliveryKind: text("delivery_kind", { enum: ["standard", "teams"] }).notNull().default("standard"),
+  destinationKey: text("destination_key"),
   id: text().primaryKey(),
   channel: text({ enum: ["email", "webhook"] }).$type<DeliveryChannel>().notNull(),
   destination: text().notNull().unique(),

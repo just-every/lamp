@@ -21,6 +21,8 @@ export const subscriberConfirmationAttempts = sqliteTable("subscriber_confirmati
 });
 
 export const notificationChannelSelections = sqliteTable("notification_channel_selections", {
+  teamsSelected: integer("teams_selected", { mode: "boolean" }).notNull().default(false),
+  webhookSelected: integer("webhook_selected", { mode: "boolean" }).notNull().default(true),
   incidentUpdateId: text("incident_update_id").notNull().references(() => incidentUpdates.id),
   channel: text({ enum: ["email", "webhook"] }).$type<"email" | "webhook">().notNull(),
   createdAt: text("created_at").notNull(),

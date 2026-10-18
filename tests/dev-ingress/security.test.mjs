@@ -124,7 +124,7 @@ test('no-referrer subscriber POSTs pass both development gates only with exact s
     assert.equal(modules.access.admitsDevelopmentRequest(bindings, request), allowed, 'Worker gate decision');
   }
   try {
-    for (const path of ['/manage/v1.manage.test-id.test_signature', '/unsubscribe/v1.unsubscribe.test-id.test_signature']) {
+    for (const path of ['/manage/v1.manage.test-id.test_signature', '/unsubscribe/v1.unsubscribe.test-id.test_signature', '/confirm-subscription/v1.confirm.test-id.test_signature', '/subscribe/teams']) {
       check(path, 'POST', metadata, true);
       check(`${path}?selection=all`, 'POST', metadata, true);
       for (const method of ['GET', 'HEAD', 'PUT', 'DELETE', 'OPTIONS']) check(path, method, metadata, false);
@@ -141,7 +141,7 @@ test('no-referrer subscriber POSTs pass both development gates only with exact s
       assert.equal(inspectIngress(incoming([...metadata, 'Origin', 'null'], { method: 'POST', url: path })), null);
       assert.equal(inspectIngress(incoming([...metadata, 'Sec-Fetch-Site', 'same-origin'], { method: 'POST', url: path })), null);
     }
-    for (const path of ['/manage', '/manage/', '/manage/a/', '/manage/a/b', '/manage/a%2fb', '/manage/a%5cb', '/manage/%00', '/manage/%0a', '/manage/%252f', '/manage/a;b', '/Manage/a', '/management/a', '/unsubscribe', '/unsubscribe/', '/unsubscribe/a/b', '/unsubscribe/a%2Fb', '/health', '/health/detail', '/auth/magic-link', '/setup', '/api/app/subscribers', '/subscribe', '/confirm-subscription/a', '/assets/status-page.css', '/__debug', '/cdn-cgi/local/explorer']) {
+    for (const path of ['/manage', '/manage/', '/manage/a/', '/manage/a/b', '/manage/a%2fb', '/manage/a%5cb', '/manage/%00', '/manage/%0a', '/manage/%252f', '/manage/a;b', '/Manage/a', '/management/a', '/unsubscribe', '/unsubscribe/', '/unsubscribe/a/b', '/unsubscribe/a%2Fb', '/health', '/health/detail', '/auth/magic-link', '/setup', '/api/app/subscribers', '/subscribe', '/subscribe/teams/', '/subscribe/teams/a', '/confirm-subscription/', '/confirm-subscription/a/b', '/confirm-subscription/a%2Fb', '/assets/status-page.css', '/__debug', '/cdn-cgi/local/explorer']) {
       check(path, 'POST', metadata, false);
     }
     // WHATWG URL parsing removes dot segments. Inspect the original socket

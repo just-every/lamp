@@ -280,11 +280,13 @@
     {
       "id": "team-chat-channels",
       "required": false,
-      "why": "NOTIFY-011 and NOTIFY-012: Slack incoming webhooks (hooks.slack.com) and Microsoft Teams channel webhooks (*.logic.azure.com, *.environment.api.powerplatform.com, *.webhook.office.com) receive the published update's public fields. The owner adds each channel; its URL is the credential and is stored encrypted.",
+      "why": "NOTIFY-011, NOTIFY-012 and SUB-015: owner Slack/Teams channels and subscriber-chosen Microsoft Teams Workflows receive public notification fields. Teams subscribers first receive a verification card and confirm it from their channel. Bearer URLs are stored encrypted; Managed hosting refuses configuration until it supports outbound chat.",
       "data": [
         "The published update's public fields",
         "The incident reference and title",
-        "A link to the incident's public page"
+        "A link to the incident's public page",
+        "Teams verification wording and a single-use confirmation link",
+        "Subscription-scoped management and unsubscribe links"
       ],
       "adapters": []
     },
@@ -564,6 +566,7 @@
       "/api/public/status",
       "/assets/",
       "/subscribe",
+      "/subscribe/teams",
       "/confirm-subscription/",
       "/unsubscribe",
       "/unsubscribe/",

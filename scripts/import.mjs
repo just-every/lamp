@@ -86,13 +86,14 @@ async function main() {
         platform.env.DB.prepare("DELETE FROM subscriber_reporting_baseline"),
         platform.env.DB.prepare(`INSERT INTO subscriber_reporting_baseline
           SELECT channels.channel, COUNT(s.id)
-          FROM (SELECT 'email' AS channel UNION ALL SELECT 'webhook') channels
-          LEFT JOIN subscribers s ON s.channel = channels.channel
+          FROM (SELECT 'email' AS channel UNION ALL SELECT 'webhook' UNION ALL SELECT 'teams') channels
+          LEFT JOIN subscribers s ON (CASE WHEN s.delivery_kind = 'teams' THEN 'teams' ELSE s.channel END) = channels.channel
             AND s.state IN ('pending', 'active') AND s.destination NOT LIKE 'deleted:%'
           GROUP BY channels.channel`),
         platform.env.DB.prepare("INSERT INTO subscriber_reporting_tracking(id, started_at) VALUES (1, strftime('%Y-%m-%dT%H:%M:%fZ', 'now')) ON CONFLICT(id) DO UPDATE SET started_at = excluded.started_at"),
       );
     }
+    statements.push(platform.env.DB.prepare("INSERT OR IGNORE INTO subscriber_reporting_baseline(channel, eligible) VALUES ('teams', 0)"));
     statements.push(...triggers.map((trigger) => platform.env.DB.prepare(trigger.sql)));
     await platform.env.DB.batch(statements);
     for (const object of manifest.objects) {

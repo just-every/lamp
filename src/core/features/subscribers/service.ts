@@ -7,6 +7,8 @@ import { defaultSubscriberConfirmationPolicy, type SubscriberConfirmationPolicy 
 import type { StoredSubscriber, StoredSubscriberComponent, SubscriberRepository, SubscriptionMailKind } from "./repository";
 import { SubscriberTokenCodec, type SubscriberTokenScope } from "./tokens";
 
+import { teamsAdaptiveCard, teamsTransport, teamsWorkflowUrl, type TeamsOptions } from "./teams";
+
 const CONFIRMATION_WINDOW_MS = 24 * 60 * 60 * 1000;
 const PENDING_WINDOW_MS = 72 * 60 * 60 * 1000;
 
@@ -16,6 +18,12 @@ export interface SubscribersService {
   getPageName(): Promise<string>;
   list(limit?: number, offset?: number): Promise<SubscriberView[]>;
   requestEmailSubscription(email: string, origin: string, componentIds?: string[]): Promise<void>;
+  hasActiveTeams(): Promise<boolean>;
+  teamsAvailability(): string | null;
+  teamsComponents(): Promise<Array<{ id: string; name: string }>>;
+  requestTeamsSubscription(input: { destination: string; contactEmail: string; componentIds: string[] }, origin: string): Promise<void>;
+  pendingTeamsConfirmation(token: string): Promise<boolean>;
+  confirmTeams(token: string): Promise<string | null>;
   confirm(token: string): Promise<boolean>;
   getManagedSubscription(token: string): Promise<{ unsubscribeToken: string; subscriber: SubscriberView; components: Array<{ id: string; name: string }> } | null>;
   updateManagedSelection(token: string, componentIds: string[]): Promise<boolean>;
@@ -52,8 +60,10 @@ function hasSafeWebhookDestination(value: string) {
 
 export function createSubscribersService(
   repository: SubscriberRepository,
-  options: { pageName?: () => Promise<string>; mail?: MailSender; fromAddress?: string | (() => Promise<string>); tokenSecret?: string; confirmationPolicy?: SubscriberConfirmationPolicy; events?: SubscriberEvents } = {},
+  options: { teams?: TeamsOptions; pageName?: () => Promise<string>; mail?: MailSender; fromAddress?: string | (() => Promise<string>); tokenSecret?: string; confirmationPolicy?: SubscriberConfirmationPolicy; events?: SubscriberEvents } = {},
 ): SubscribersService {
+  const teams = teamsTransport(options.teams ?? {});
+  const teamsUnavailable = () => options.teams?.unavailable ?? (options.teams?.effectsPaused ? "Teams subscriptions are paused during this installation move." : !options.teams?.webhookSecret || !options.tokenSecret ? "Teams subscriptions are not configured on this installation." : null);
   const policy = options.confirmationPolicy ?? defaultSubscriberConfirmationPolicy;
   const tokens = options.tokenSecret ? new SubscriberTokenCodec(options.tokenSecret) : null;
   const events = options.events ?? defaultSubscriberEvents;
@@ -107,10 +117,64 @@ export function createSubscribersService(
   }
 
   async function view(subscriber: StoredSubscriber): Promise<SubscriberView> {
-    return { ...subscriber, componentSelections: await repository.listComponents(subscriber.id) };
+    return { ...subscriber, destination: subscriber.deliveryKind === "teams" && !subscriber.destination.startsWith("deleted:") ? "Microsoft Teams channel" : subscriber.destination, destinationKey: null, componentSelections: await repository.listComponents(subscriber.id) };
   }
 
   return {
+    hasActiveTeams: () => repository.hasActiveTeams(),
+    teamsAvailability: teamsUnavailable,
+    teamsComponents: () => repository.listVisibleComponents(),
+    async requestTeamsSubscription(input, origin) {
+      const destination = teamsWorkflowUrl(input.destination);
+      const unavailable = teamsUnavailable();
+      if (unavailable) throw new Error(unavailable);
+      const key = await hashOpaqueToken(`teams:${destination}`);
+      const timestamp = nowIso();
+      await repository.deleteExpiredPending(new Date(Date.now() - PENDING_WINDOW_MS).toISOString());
+      // Reserve before creating or sending: repeat submissions cannot bomb a
+      // channel or change an active channel's component/contact preferences.
+      if (!await repository.recordConfirmationSendIfAllowed(key, new Date(Date.now() - CONFIRMATION_WINDOW_MS).toISOString(), timestamp)) return;
+      let subscriber = await repository.findSubscriberByDestinationKey(key);
+      const opened = !subscriber || subscriber.state === "deactivated";
+      if (opened) {
+        const id = subscriber?.id ?? createUlid();
+        await repository.createPendingSubscriber({ id, channel: "webhook", deliveryKind: "teams", destinationKey: key,
+          destination: await teams.seal(destination, id), contactEmail: normalizeEmail(input.contactEmail), state: "pending", selectionMode: "all",
+          tokenHash: await hashOpaqueToken(createOpaqueToken()), deactivationReason: null, deactivatedAt: null, createdAt: timestamp, updatedAt: timestamp });
+        subscriber = await repository.findSubscriberByDestinationKey(key);
+        if (subscriber) await repository.updateSelection(subscriber.id, await visibleSelection(input.componentIds), timestamp);
+      }
+      if (!subscriber) throw new Error("Teams subscription was not stored.");
+      const pageName = await this.getPageName();
+      let body: string;
+      if (subscriber.state === "active") {
+        const manage = await issuedToken(subscriber.id, "manage", null);
+        body = teamsAdaptiveCard([`${pageName} status updates`, "This Teams channel is already subscribed. Manage its component selection or unsubscribe below."], [{ title: "Manage subscription", url: new URL(`/manage/${encodeURIComponent(manage.token)}`, origin).href }]);
+      } else {
+        const confirm = await issuedToken(subscriber.id, "confirm", new Date(Date.parse(subscriber.createdAt) + PENDING_WINDOW_MS).toISOString());
+        body = teamsAdaptiveCard([`Confirm ${pageName} status updates`, "Someone requested status updates in this channel. Confirm below to activate this subscription. Until then, no updates will be sent. Ignore this card if you did not request it. This link expires after 72 hours."], [{ title: "Confirm subscription", url: new URL(`/confirm-subscription/${encodeURIComponent(confirm.token)}`, origin).href }]);
+      }
+      try { await teams.send(subscriber.destination, subscriber.id, body); }
+      catch (error) {
+        // A refused or uncertain verification stays pending. The reservation
+        // prevents an automatic or repeated send from bombing the channel.
+        await repository.recordTeamsVerification(subscriber.id, "failed", nowIso());
+        throw error;
+      }
+      await repository.recordTeamsVerification(subscriber.id, "accepted", nowIso());
+    },
+    async pendingTeamsConfirmation(token) {
+      const matched = await fromToken(token, "confirm");
+      return Boolean(matched && matched.subscriber.deliveryKind === "teams" && matched.subscriber.state === "pending");
+    },
+    async confirmTeams(token) {
+      const matched = await fromToken(token, "confirm");
+      if (!matched || matched.subscriber.deliveryKind !== "teams" || matched.subscriber.state !== "pending") return null;
+      const timestamp = nowIso();
+      if (!await repository.confirmSubscriber({ subscriberId: matched.subscriber.id, tokenHash: matched.token.tokenHash }, timestamp)) return null;
+      await emitAfterCommit(() => events.subscriberConfirmed({ subscriberId: matched.subscriber.id, channel: "webhook", occurredAt: timestamp }));
+      return (await issuedToken(matched.subscriber.id, "manage", null)).token;
+    },
     async getPageName() { return options.pageName ? options.pageName() : lampConfig.pageName; },
     async list(limit = 100, offset = 0) {
       return Promise.all((await repository.listSubscribers(limit, offset)).map(view));
@@ -185,7 +249,7 @@ export function createSubscribersService(
     },
     async confirm(token) {
       const matched = await fromToken(token, "confirm");
-      if (!matched || matched.subscriber.state !== "pending") return false;
+      if (!matched || matched.subscriber.deliveryKind === "teams" || matched.subscriber.state !== "pending") return false;
       const timestamp = nowIso();
       if (!await repository.confirmSubscriber({ subscriberId: matched.subscriber.id, tokenHash: matched.token.tokenHash }, timestamp)) return false;
       await emitAfterCommit(() => events.subscriberConfirmed({ subscriberId: matched.subscriber.id, channel: matched.subscriber.channel, occurredAt: timestamp }));
@@ -213,7 +277,7 @@ export function createSubscribersService(
       // Following an emailed unsubscribe link proves the address is the subscriber's
       // own, so it restores the address's confirmation allowance (SUB-001): a later
       // re-subscribe gets a fresh confirmation instead of silence.
-      const allowance = matched.subscriber.channel === "email" ? await hashOpaqueToken(`confirmation-address:${matched.subscriber.destination}`) : null;
+      const allowance = matched.subscriber.deliveryKind === "teams" ? matched.subscriber.destinationKey : matched.subscriber.channel === "email" ? await hashOpaqueToken(`confirmation-address:${matched.subscriber.destination}`) : null;
       if (!await repository.unsubscribeSubscriber({ subscriberId: matched.subscriber.id, tokenHash: matched.token.tokenHash }, timestamp, allowance)) return false;
       await emitAfterCommit(() => events.subscriberDeactivated({ subscriberId: matched.subscriber.id, channel: matched.subscriber.channel, occurredAt: timestamp, reason: "unsubscribed" }));
       return true;
@@ -278,5 +342,5 @@ export function renderSubscriberManagementPage(input: { unsubscribeToken: string
   const checks = input.components.map((component) => `<label><input type="checkbox" name="componentId" value="${escapeHtml(component.id)}"${input.subscriber.selectionMode === "all" || selected.has(component.id) ? " checked" : ""}> ${escapeHtml(component.name)}</label>`).join("");
   // With no visible components there is nothing to choose between, so the selection form is left out.
   const selection = checks ? `<form method="post"><fieldset><legend>Components</legend><p>Clear every selection to follow all current and future visible components.</p>${checks}</fieldset><button type="submit">Save selection</button></form>` : "";
-  return renderSubscriberTokenPage("Manage subscription", `<p>Channel: ${escapeHtml(input.subscriber.channel)}</p>${selection}<form method="post" action="/unsubscribe/${encodeURIComponent(input.unsubscribeToken)}"><input type="hidden" name="action" value="unsubscribe"><button type="submit">Unsubscribe</button></form>`, pageName);
+  return renderSubscriberTokenPage("Manage subscription", `<p>Channel: ${escapeHtml(input.subscriber.deliveryKind === "teams" ? "Microsoft Teams" : input.subscriber.channel)}</p>${selection}<form method="post" action="/unsubscribe/${encodeURIComponent(input.unsubscribeToken)}"><input type="hidden" name="action" value="unsubscribe"><button type="submit">Unsubscribe</button></form>`, pageName);
 }

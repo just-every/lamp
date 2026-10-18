@@ -12,6 +12,8 @@ export interface NotificationPublicationInput {
   componentIds: readonly string[];
   channels: readonly DeliveryChannel[];
   queuedAt: string;
+  /** Teams subscriptions use the webhook transport and the chat publication selection. */
+  teams?: boolean;
   recipientScope?: "eligible" | "previous";
   previousEventIds?: readonly string[];
 }
@@ -22,7 +24,7 @@ export interface NotificationPublicationInput {
  * same all-or-nothing batch; the unique event index makes retries idempotent.
  */
 export function notificationPublicationStatements(binding: D1Database, input: NotificationPublicationInput): D1PreparedStatement[] {
-  const channels = [...new Set(input.channels)];
+  const channels = [...new Set([...input.channels, ...(input.teams ? ["webhook" as const] : [])])];
   if (!channels.length) return [];
   const requiresPublishedNotice = input.eventType === "maintenance-notice";
   const componentPlaceholders = input.componentIds.length ? input.componentIds.map(() => "?").join(", ") : "NULL";
@@ -33,6 +35,7 @@ export function notificationPublicationStatements(binding: D1Database, input: No
         .bind(input.incidentUpdateId, channel, input.queuedAt));
     }
   }
+  if (input.incidentUpdateId) statements.push(binding.prepare("UPDATE notification_channel_selections SET teams_selected = ?, webhook_selected = ? WHERE incident_update_id = ? AND channel = 'webhook'").bind(input.teams ? 1 : 0, input.channels.includes("webhook") ? 1 : 0, input.incidentUpdateId));
   for (const channel of channels) {
     const selection = input.componentIds.length
       ? `(s.selection_mode = 'all' AND EXISTS (SELECT 1 FROM components public_component WHERE public_component.id IN (${componentPlaceholders}) AND public_component.internal = 0))
@@ -49,7 +52,7 @@ export function notificationPublicationStatements(binding: D1Database, input: No
     const previousPlaceholders = input.previousEventIds?.length ? input.previousEventIds.map(() => "?").join(", ") : "NULL";
     const source = usePrevious
       ? `notification_deliveries previous JOIN subscribers s ON s.id = previous.subscriber_id WHERE previous.notification_event_id IN (${previousPlaceholders}) AND previous.channel = ? AND s.state = 'active'`
-      : `subscribers s WHERE s.state = 'active' AND s.channel = ? AND (${selection})`;
+      : `subscribers s WHERE s.state = 'active' AND s.channel = ? AND (s.delivery_kind <> 'teams' OR ${input.teams ? '1' : '0'}) AND (s.delivery_kind = 'teams' OR ${input.channels.includes('webhook') ? '1' : '0'} OR s.channel <> 'webhook') AND (${selection})`;
     const query = `
       INSERT OR IGNORE INTO notification_deliveries
         (id, subscriber_id, incident_update_id, incident_report_id, maintenance_id, channel, outcome, queued_at, outcome_at, created_at, updated_at, notification_event_id, notification_event_type)

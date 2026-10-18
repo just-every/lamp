@@ -13,7 +13,7 @@ export function incidentCatchupRecipients(input: { incidentId: string } & ({ com
       SELECT s.id AS subscriberId,s.channel,u.id AS updateId
       FROM subscribers s JOIN incidents i ON i.id = ?
       JOIN incident_updates u ON u.id = (SELECT latest.id FROM incident_updates latest WHERE latest.incident_id = i.id ORDER BY latest.published_at DESC,latest.created_at DESC,latest.id DESC LIMIT 1)
-      JOIN notification_channel_selections channels ON channels.incident_update_id = u.id AND channels.channel = s.channel
+      JOIN notification_channel_selections channels ON channels.incident_update_id = u.id AND channels.channel = s.channel AND (CASE WHEN s.delivery_kind = 'teams' THEN channels.teams_selected ELSE channels.webhook_selected END) = 1
       WHERE s.state = 'active' AND i.deleted_at IS NULL AND i.lifecycle <> 'Resolved'
         AND (EXISTS (SELECT 1 FROM incident_components published_claim JOIN components published_component ON published_component.id = published_claim.component_id
           WHERE published_claim.incident_id = i.id AND published_claim.id NOT IN (SELECT id FROM attaching) AND published_claim.published_at <= u.published_at AND published_component.internal = 0)

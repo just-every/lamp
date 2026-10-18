@@ -507,7 +507,7 @@ A visitor can subscribe a Microsoft Teams channel by pasting a Teams Workflows w
 
 Acceptance: against a recorded Teams Workflows endpoint, a subscription activates after confirmation and receives an Adaptive Card on publish. A non-Microsoft host is refused with 400.
 
-Status: **partial** — `src/core/features/channels/teams.ts`, `tests/e2e/channels-and-presets.test.mjs`. Operator-configured Teams channels ship (NOTIFY-011, NOTIFY-012). Subscriber-owned Teams subscriptions do not.
+Status: **done** — `src/core/features/subscribers/teams.ts`, `src/core/features/subscribers/service.ts`, `src/core/features/subscribers/routes.ts`, `src/core/features/deliveries/teams-message.ts`, `tests/e2e/helpers/teams-subscription-flow.mjs`, `tests/e2e/helpers/teams-subscription-browser-flow.mjs`. Visitors subscribe Teams Workflows URLs, confirm the card from their channel and manage component preferences. Only documented Microsoft hosts are accepted; URLs are encrypted and masked. Worker journeys prove Adaptive Cards with update fields, component filtering, catch-up, reports, maintenance, retries and deactivation with a contact notice after ten failures. Browser journeys at 1440/390 cover signup without JavaScript, confirmation, preferences and operator records. Managed installations explicitly refuse unsupported outbound Teams.
 
 #### SUB-016 — Preferences on every channel.
 
@@ -1083,13 +1083,13 @@ What Lamp does not do, and how a buyer gets it:
 
 ## Status
 
-Judged from the code and tests at commit `6ddb5aa9ee01963493dbfb50e796022038dccebd` (18 October 2026).
+Judged from the code and tests at commit `6ddb5aa` (18 October 2026).
 
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
 | Published | 104 | 0 | 0 | 104 |
-| Target and push further | 11 | 39 | 44 | 94 |
-| All | 115 | 39 | 44 | 198 |
+| Target and push further | 12 | 38 | 44 | 94 |
+| All | 116 | 38 | 44 | 198 |
 
 | Clause | Title | Kind | Status | Evidence | Gap |
 | --- | --- | --- | --- | --- | --- |
@@ -1189,7 +1189,7 @@ Judged from the code and tests at commit `6ddb5aa9ee01963493dbfb50e796022038dcce
 | `SUB-012` | No enumeration | published | done | `tests/e2e/delivery-contract.test.mjs` |  |
 | `SUB-013` | SMS subscribers | target | missing |  | Released `seed.json → nonGoals` excludes SMS; this clause and NOTIFY-014 replace that exclusion. |
 | `SUB-014` | Self-serve Slack subscriptions | target | partial | `src/core/features/subscribers/service.ts`, `src/core/features/channels/service.ts`, `tests/e2e/delivery-contract.test.mjs` | A subscriber can register a Slack incoming-webhook URL as a webhook subscriber (SUB-009), and operators add Slack channels (NOTIFY-011). Slack app sign-up does not exist. |
-| `SUB-015` | Self-serve Microsoft Teams subscriptions | target | partial | `src/core/features/channels/teams.ts`, `tests/e2e/channels-and-presets.test.mjs` | Operator-configured Teams channels ship (NOTIFY-011, NOTIFY-012). Subscriber-owned Teams subscriptions do not. |
+| `SUB-015` | Self-serve Microsoft Teams subscriptions | target | done | `src/core/features/subscribers/teams.ts`, `src/core/features/subscribers/service.ts`, `src/core/features/subscribers/routes.ts`, `src/core/features/deliveries/teams-message.ts`, `tests/e2e/helpers/teams-subscription-flow.mjs`, `tests/e2e/helpers/teams-subscription-browser-flow.mjs` | Visitors subscribe Teams Workflows URLs, confirm the card from their channel and manage component preferences. Only documented Microsoft hosts are accepted; URLs are encrypted and masked. Worker journeys prove Adaptive Cards with update fields, component filtering, catch-up, reports, maintenance, retries and deactivation with a contact notice after ten failures. Browser journeys at 1440/390 cover signup without JavaScript, confirmation, preferences and operator records. Managed installations explicitly refuse unsupported outbound Teams. |
 | `SUB-016` | Preferences on every channel | target | partial | `src/core/features/subscribers/service.ts`, `tests/e2e/delivery-contract.test.mjs` | Component selection on subscriptions ships. Event-kind and impact-threshold preferences do not. |
 | `SUB-017` | Subscriber import and export | target | partial | `src/core/features/statuspage-import/`, `tests/e2e/statuspage-import.test.mjs` | Move-in imports bring email subscribers in as pending (MOVE-002). CSV import and subscriber export do not exist. |
 | `SUB-018` | Statuspage-format webhooks | target | partial | `src/core/features/deliveries/service.ts`, `tests/e2e/delivery-contract.test.mjs` | Signed Lamp-format webhooks carrying the incident, every published update and each component's previous and new state ship (SUB-009). The Statuspage format and per-subscription format choice do not. |

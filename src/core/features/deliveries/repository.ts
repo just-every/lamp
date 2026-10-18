@@ -7,7 +7,7 @@ import { maintenance, notificationDeliveries, operators, subscribers } from "../
 import { notificationOutbox } from "./schema";
 import { createUlid } from "../../shared/ids";
 
-export type DeliveryRow = typeof notificationDeliveries.$inferSelect & { destination: string; subscriberState: "pending" | "active" | "deactivated"; providerAcceptedAt: string | null; latestError: string | null; localCaptureId: string | null; localCapturedAt: string | null; maintenanceReference: string | null; maintenanceTitle: string | null; maintenanceNoticeKind: string | null; incidentReference: string | null; incidentTitle: string | null; incidentLifecycle: string | null };
+export type DeliveryRow = { deliveryKind: "standard" | "teams" } & typeof notificationDeliveries.$inferSelect & { destination: string; subscriberState: "pending" | "active" | "deactivated"; providerAcceptedAt: string | null; latestError: string | null; localCaptureId: string | null; localCapturedAt: string | null; maintenanceReference: string | null; maintenanceTitle: string | null; maintenanceNoticeKind: string | null; incidentReference: string | null; incidentTitle: string | null; incidentLifecycle: string | null };
 
 /** A confirmation or other subscription email, sent outside notification deliveries (subscribers/service.ts). */
 export interface SubscriptionMailRow { id: string; destination: string; subscriberState: "pending" | "active" | "deactivated"; kind: "confirmation" | "already-subscribed" | "subscribed"; outcome: "accepted" | "suppressed" | "failed"; sentAt: string }
@@ -16,6 +16,7 @@ export interface DispatchableDelivery {
   id: string;
   notificationEventId: string | null;
   subscriberId: string;
+  deliveryKind: "standard" | "teams";
   channel: "email" | "webhook";
   subscriberState: "pending" | "active" | "deactivated";
   destination: string;
@@ -102,7 +103,7 @@ export function createDeliveryRepository(binding: D1Database): DeliveryRepositor
   const database = createDatabase(binding);
   function deliveryStatement(deliveryId: string) {
     return binding.prepare(`
-        SELECT d.id, d.notification_event_id AS notificationEventId, d.subscriber_id AS subscriberId, d.channel, s.state AS subscriberState, s.destination, s.contact_email AS contactEmail,
+        SELECT d.id, d.notification_event_id AS notificationEventId, d.subscriber_id AS subscriberId, d.channel, s.state AS subscriberState, s.delivery_kind AS deliveryKind, s.destination, s.contact_email AS contactEmail,
           d.incident_update_id AS incidentUpdateId, d.incident_report_id AS incidentReportId, d.maintenance_id AS maintenanceId,
           d.incident_impact AS incidentImpact, i.id AS incidentId, CASE WHEN u.id IS NOT NULL AND u.id = (SELECT first_update.id FROM incident_updates first_update WHERE first_update.incident_id = i.id ORDER BY first_update.published_at ASC, first_update.id ASC LIMIT 1) THEN 1 ELSE 0 END AS isFirstIncidentUpdate,
           COALESCE(i.reference, reportIncident.reference) AS incidentReference, COALESCE(i.title, reportIncident.title) AS incidentTitle, u.lifecycle, u.affected_audience AS affectedAudience,
@@ -148,7 +149,7 @@ export function createDeliveryRepository(binding: D1Database): DeliveryRepositor
       const query = database.select({
         id: notificationDeliveries.id, subscriberId: notificationDeliveries.subscriberId, incidentUpdateId: notificationDeliveries.incidentUpdateId, maintenanceId: notificationDeliveries.maintenanceId,
         channel: notificationDeliveries.channel, outcome: notificationDeliveries.outcome, queuedAt: notificationDeliveries.queuedAt, outcomeAt: notificationDeliveries.outcomeAt,
-        createdAt: notificationDeliveries.createdAt, updatedAt: notificationDeliveries.updatedAt, destination: subscribers.destination, subscriberState: subscribers.state,
+        createdAt: notificationDeliveries.createdAt, updatedAt: notificationDeliveries.updatedAt, deliveryKind: subscribers.deliveryKind, destination: sql<string>`CASE WHEN ${subscribers.deliveryKind} = 'teams' AND ${subscribers.destination} NOT LIKE 'deleted:%' THEN 'Microsoft Teams channel' ELSE ${subscribers.destination} END`, subscriberState: subscribers.state,
         maintenanceReference: maintenance.reference, maintenanceTitle: maintenance.title,
         maintenanceNoticeKind: sql<string | null>`(SELECT kind FROM maintenance_notices WHERE id = notification_deliveries.notification_event_id)`,
         incidentReference: sql<string | null>`(SELECT i.reference FROM incident_updates u JOIN incidents i ON i.id = u.incident_id WHERE u.id = notification_deliveries.incident_update_id)`,
