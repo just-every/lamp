@@ -123,6 +123,25 @@ contract("HIST-004", "export restores every JSON entity, settings and audit entr
       entities,
       "a second export after import must preserve the entire entity graph",
     );
+    // Archives from before subscriber reporting have no observed daily facts.
+    // Restore their real inventory as a new baseline rather than inventing it
+    // from historical creation dates.
+    const legacyEntities = { ...entities, tables: entities.tables.filter(table => !table.name.startsWith("subscriber_reporting_")) };
+    const legacyBytes = Buffer.from(JSON.stringify(legacyEntities));
+    const legacyManifest = JSON.parse(originalManifest);
+    legacyManifest.database.sha256 = createHash("sha256").update(legacyBytes).digest("hex");
+    await writeFile(join(archive, "entities.json"), legacyBytes);
+    await writeFile(manifestPath, JSON.stringify(legacyManifest));
+    const legacyState = join(targetState, "legacy-copy");
+    run(["run", "import:cloudflare", "--", "--from", archive, "--persist-to", legacyState]);
+    const legacy = await platformFor(legacyState);
+    try {
+      const baseline = (await legacy.env.DB.prepare("SELECT channel, eligible FROM subscriber_reporting_baseline ORDER BY channel").all()).results;
+      const actual = (await legacy.env.DB.prepare("SELECT channels.channel, COUNT(s.id) AS eligible FROM (SELECT 'email' AS channel UNION ALL SELECT 'webhook') channels LEFT JOIN subscribers s ON s.channel = channels.channel AND s.state IN ('pending', 'active') AND s.destination NOT LIKE 'deleted:%' GROUP BY channels.channel ORDER BY channels.channel").all()).results;
+      assert.deepEqual(baseline, actual);
+      assert.equal((await legacy.env.DB.prepare("SELECT COUNT(*) AS n FROM subscriber_reporting_daily").first()).n, 0);
+      assert.ok((await legacy.env.DB.prepare("SELECT started_at FROM subscriber_reporting_tracking WHERE id = 1").first()).started_at);
+    } finally { await legacy.dispose(); }
   } finally {
     await Promise.all([rm(sourceState, { recursive: true, force: true }), rm(targetState, { recursive: true, force: true }), rm(archive, { recursive: true, force: true }), rm(restoredArchive, { recursive: true, force: true })]);
   }

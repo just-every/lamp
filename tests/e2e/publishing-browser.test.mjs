@@ -22,6 +22,7 @@ import { sessionCookieName } from "../helpers/session-cookie.mjs";
 import { postIncidentReportFlow } from "./helpers/post-incident-report-flow.mjs";
 import { emailBrandingBrowserFlow } from "./helpers/email-branding-browser-flow.mjs";
 import { phoneDeskFlow } from "./helpers/phone-desk-flow.mjs";
+import { subscriberReportingBrowserFlow } from "./helpers/subscriber-reporting-browser-flow.mjs";
 import { auditLogFlow } from "./helpers/audit-log-flow.mjs";
 import { operatorHydrated } from "./helpers/operator-hydrated.mjs";
 
@@ -179,8 +180,9 @@ async function waitForPublicIncident(reference, expectedText) {
   throw new Error(`The public snapshot did not contain ${expectedText} for ${reference}.`);
 }
 
-test("TEAM-007 — audit browsing and compiled visual edits survive actual operator navigation and reload", async () => {
+test("TEAM-007 HIST-007 — audit browsing, subscriber reporting and compiled visual edits survive actual operator navigation and reload", async () => {
   await auditLogFlow({ page, appUrl, appFetch });
+  await subscriberReportingBrowserFlow({ page, appUrl, appFetch });
   const snapshot = JSON.parse(readFileSync(resolve('src/editor/visual-edits.json'),'utf8'));
   const errors = [], recordError = error => errors.push(error.message);
   page.on('pageerror',recordError);
