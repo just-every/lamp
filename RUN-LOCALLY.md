@@ -28,10 +28,13 @@ with its real mail provider and mailbox.
 
 The local addresses serve three different purposes:
 
-- `RER_READY` names the operator app on `127.0.0.1`. Use `RER_OPEN` to sign in.
+- `RER_READY` names the operator app on the selected hostname (`127.0.0.1` by
+  default). Use `RER_OPEN` to sign in.
 - For the business's public status page, use `localhost` with the same app port.
   For example, if `RER_READY` is `http://127.0.0.1:8899`, open
   `http://localhost:8899/` for the public page.
+  With `rer dev --host localhost --port 8899`, the app uses `localhost` and
+  the public page uses `http://status.localhost:8899/`. Lamp prints both addresses.
 - `RER_SITE` names a separate preview of Lamp's static run site: the product
   homepage and Run page. It uses the first free port above the app's port.
   It does not show the business's live public status page. Use the exact

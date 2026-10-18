@@ -1,6 +1,6 @@
 import { isImportAliasPath, isLampPermalink } from '../../features/statuspage-import/public-paths.mjs';
 
-const loopbackAuthority = /^(?:localhost|127\.0\.0\.1|\[::1\])(?::[0-9]{1,5})?$/;
+const loopbackAuthority = /^(?:(?:status\.)?localhost|127\.0\.0\.1|\[::1\])(?::[0-9]{1,5})?$/;
 
 /** A candidate for the owner's credentialless Cutover fetch. Socket ingress
  * checks the raw target; the Worker must additionally check configured hosts.

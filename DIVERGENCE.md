@@ -1397,3 +1397,11 @@ refused restore removes the logo it stored.
 ## Managed preview owner entry (18 October 2026)
 
 Managed previews declare `/auth/owner-signin` as their owner entry so RER can bind the preview's single-use owner grant there. A missing, used or expired grant redirects to Lamp's sign-in page with a notice; an unavailable auth service does the same. Successful grant consumption retains Base's native session and single-use checks.
+
+## Local hostname selection (18 October 2026)
+
+Local setup, development and preview keep the operator surface on rer's selected
+origin. The public status page keeps a separate hostname on the same port:
+localhost beside the default 127.0.0.1 app, or status.localhost beside a localhost
+app. Selecting localhost must complete
+owner setup and health readiness without provider credentials.

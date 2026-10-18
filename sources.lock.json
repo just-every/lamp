@@ -508,7 +508,7 @@
       "executable": false
     },
     "DIVERGENCE.md": {
-      "sha256": "84d72cb37d7ff5e55b767cdd9d35b10d8b6b2a203ac4400559f1f78e634336d8",
+      "sha256": "e5a8c27bae74394341715fee6a44222843d299a9566207e2f0938795e247a675",
       "executable": false
     },
     "docs/ai-assistance.md": {
@@ -2056,7 +2056,7 @@
       "executable": false
     },
     "RUN-LOCALLY.md": {
-      "sha256": "11d2acc94f59c1228c200ff4fbc2310f260f91086c4d3495006d252241406a55",
+      "sha256": "e2cc5e8d6abbf7b53329305129e73c77743db6a2772bb7475f97825d0138c050",
       "executable": false
     },
     "schema/dependencies.mjs": {
@@ -2272,7 +2272,7 @@
       "executable": false
     },
     "scripts/dev-ingress/plugin.mjs": {
-      "sha256": "d890ee08f8898aebde5bb78cddd9ade082f00baaebeff19246bf1fb24fbcf0e2",
+      "sha256": "0b54d05cda452d3738723b20c164ac4c8927598b2c019252fe2c0a7f93ef0b35",
       "executable": false
     },
     "scripts/dev-ingress/protocol.d.mts": {
@@ -2296,7 +2296,7 @@
       "executable": false
     },
     "scripts/dev.mjs": {
-      "sha256": "727d145c99a7d5a7f9a01135636092a7581b7ac6699e2225beb1ada1d1544420",
+      "sha256": "57ed58c0562db84b011e876cbc65647013f86583bb048bf8cb47600f35e653bb",
       "executable": false
     },
     "scripts/edition-authoring/base-copies.mjs": {
@@ -2375,8 +2375,12 @@
       "sha256": "b4cfd2b47b9df75accb61c91554909ed4623378fdb1df22b5313af34b306f335",
       "executable": false
     },
+    "scripts/installer/local-hosts.mjs": {
+      "sha256": "cdecdc5e111b3dcf6d414976ab797a538507b6c8daee4dfb7f1f124cd7388f2c",
+      "executable": false
+    },
     "scripts/installer/local.mjs": {
-      "sha256": "81fb2c2e898f63203566ecc44912f9898d74e88ff426e9a828585ce8f34ec338",
+      "sha256": "bca88791a08791cec258ff4ed807938deca7139f1459e103b3ea6b38a0be491c",
       "executable": false
     },
     "scripts/installer/README.md": {
@@ -3892,7 +3896,7 @@
       "executable": false
     },
     "src/core/platform/development/access.ts": {
-      "sha256": "355db1107ab949d8b12b0223567d1da036e8d6a3807eefd7dbc7c2ff27cd06c8",
+      "sha256": "7dab37315902492dc8a780ba480dedf71404a80cd631323ed672f327494adca2",
       "executable": false
     },
     "src/core/platform/development/public-read.d.mts": {
@@ -3900,7 +3904,7 @@
       "executable": false
     },
     "src/core/platform/development/public-read.mjs": {
-      "sha256": "8d9a64161bac70f51a3f9c0ae7053b18c75fc31ee2f52df989739346e2272a3d",
+      "sha256": "a12ee6331505de19c342933e4df53bfee038e2d84373b555a615937f769a5f78",
       "executable": false
     },
     "src/core/platform/development/subscriber-origin.d.mts": {
