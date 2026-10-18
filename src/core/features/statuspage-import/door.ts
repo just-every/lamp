@@ -15,6 +15,7 @@ import { createImportDoorRepository } from './door.repository';
 import { importLimits } from './source';
 import { isImportSource } from './adapters';
 import { refusal } from './routes';
+import { reviewedPage } from './door-plan';
 
 /** The whole upload is one JSON value, so one record may be the whole bundle.
  * It carries each saved response as JSON text, so it may take twice the 8 MiB
@@ -79,11 +80,14 @@ function uploadAttempt(bytes: Uint8Array) {
 export function registerImportDoor(app: Hono<AppEnv>, bindings: AppBindings, service: StatuspageImportService, changed: ()=>Promise<unknown>, auth: () => OperatorAuth) {
   const repository = createImportDoorRepository(bindings.DB);
   /** Plans an upload exactly as Move in plans a source, under the door's authority. */
+  const prepareBytes = async (bytes: Uint8Array, namespace: string, principalId: string, operatorId: string, authority: D1Sql, business: boolean, asOf?: string): Promise<Prepared> => {
+    const valueHash = sha256(canonicalJson(JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(bytes)) as Json));
+    return { ...await service.prepareDoor(bytes, namespace, principalId, operatorId, authority, business, asOf), valueHash };
+  };
   const prepare = async (key: string, namespace: string, uploadId: unknown, principalId: string, operatorId: string, authority: D1Sql, business: boolean): Promise<Prepared> => {
     const bytes = typeof uploadId === 'string' ? await repository.uploadBytes(key, namespace, uploadId) : null;
     if (!bytes) throw new Error('No complete upload to plan.');
-    const valueHash = sha256(canonicalJson(JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(bytes)) as Json));
-    return { ...await service.prepareDoor(bytes, namespace, principalId, operatorId, authority, business), valueHash };
+    return prepareBytes(bytes, namespace, principalId, operatorId, authority, business);
   };
   /** What every successful apply or undo changes, whichever authority approved
    * it. The door's response is read once and answered with the same body. */
@@ -146,7 +150,11 @@ export function registerImportDoor(app: Hono<AppEnv>, bindings: AppBindings, ser
     const key = await repository.key(bindings);
     await repository.ensureSettings(key, authority);
     const action = c.req.path.slice(operatorPrefix.length);
-    const read = c.req.method === 'POST' && ['plan', 'undo'].includes(action) ? await readFirst(c.req.raw) : undefined;
+    // An apply that can start an import (the namespace holds a dry run nobody
+    // started) is read first, to check that dry run; any other apply, a resume,
+    // reaches the door as it arrives.
+    const starting = c.req.method === 'POST' && action === 'apply' && Boolean(await repository.unstartedPending(key, name));
+    const read = c.req.method === 'POST' && (['plan', 'undo'].includes(action) || starting) ? await readFirst(c.req.raw) : undefined;
     if (read === null) return c.json({error:'request_too_large'},413);
     const input = read?.input ?? null, request = read?.request ?? c.req.raw;
     const handler = async (prepared: Promise<Prepared> | null) => createImportOperatorHandler({database:bindings.DB,targets:statuspageTargets,installationId:key,appOrigin:authOrigin(bindings),
@@ -154,24 +162,58 @@ export function registerImportDoor(app: Hono<AppEnv>, bindings: AppBindings, ser
       ...(await importSource(name,prepared))!,
       authorize:async()=>authority,
     });
+    const cancel = async (planId: string) => {
+      const headers = new Headers(request.headers); headers.delete('Content-Length'); headers.set('Content-Type','application/json');
+      const cancelled = await (await handler(null))(new Request(new URL(`${operatorPrefix}undo`, c.req.url), { method: 'POST', headers, body: JSON.stringify({ planId }) }));
+      if (!cancelled?.ok) throw new Error('An earlier dry run could not be discarded.');
+    };
     // A dry run or undo replaces an earlier dry run nobody started importing.
     const discardUnstarted = async (keep: { bundle?: string; planId?: string }) => {
       const pending = await repository.unstartedPending(key, name);
-      if (!pending || pending.bundle_sha256 === keep.bundle || pending.id === keep.planId) return;
-      const headers = new Headers(request.headers); headers.delete('Content-Length'); headers.set('Content-Type','application/json');
-      const cancelled = await (await handler(null))(new Request(new URL(`${operatorPrefix}undo`, c.req.url), { method: 'POST', headers, body: JSON.stringify({ planId: pending.id }) }));
-      if (!cancelled?.ok) throw new Error('An earlier dry run could not be discarded.');
+      if (pending && pending.bundle_sha256 !== keep.bundle && pending.id !== keep.planId) await cancel(pending.id);
+    };
+    /** Whether an unstarted dry run still plans exactly as reviewed: its bytes
+     * prepared again at its review instant against the page as it is now. */
+    const stillPlans = async (planId: string, bytes: Uint8Array | null) => {
+      const saved = await repository.planSnapshot(key, planId);
+      const reviewed = saved ? reviewedPage(saved.plan) : {};
+      if (!bytes || !reviewed.asOf || !reviewed.page) return false;
+      return (await prepareBytes(bytes, name, principal, session.operator.id, authority, false, reviewed.asOf)).page === reviewed.page;
     };
     let prepared: Promise<Prepared> | null = null, attempt = 0;
     if (action === 'plan' && typeof input?.uploadId === 'string') {
       const bytes = await repository.uploadBytes(key, name, input.uploadId);
       const bundle = bytes ? sha256(bytes) : null;
       if (bytes) attempt = uploadAttempt(bytes);
-      if (bundle && !await repository.planned(key, name, bundle)) {
-        prepared = prepare(key, name, input.uploadId, principal, session.operator.id, authority, false);
-        // Move in shows the owner why a source cannot be imported, as it always has.
-        try { await prepared; } catch (cause) { return c.json({ error: refusal(cause) }, 400); }
-        try { await discardUnstarted({ bundle }); } catch (cause) { return c.json({ error: refusal(cause) }, 409); }
+      const existing = bundle ? await repository.planOf(key, name, bundle) : null;
+      if (bytes && bundle && !existing?.started) {
+        try {
+          // Move in reports a source it imported before the door as already imported, as it always has.
+          const before = await service.importedBefore(bytes, name, session);
+          if (before) return c.json(before, 200, { 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff' });
+          // A dry run is always of the page as it is now: an earlier one of these
+          // bytes stands only while it still plans the same, and is replaced otherwise.
+          if (!existing || !await stillPlans(existing.id, bytes)) {
+            prepared = prepare(key, name, input.uploadId, principal, session.operator.id, authority, false);
+            await prepared;
+          }
+        } catch (cause) {
+          // Move in shows the owner why a source cannot be imported, as it always has.
+          return c.json({ error: refusal(cause) }, 400);
+        }
+        try { if (prepared && existing) await cancel(existing.id); await discardUnstarted({ bundle }); }
+        catch (cause) { return c.json({ error: refusal(cause) }, 409); }
+      }
+    }
+    // MOVE-001: an import starts only from a dry run of the page as it still is;
+    // if the source or this page changed since, the owner reviews a fresh one.
+    if (action === 'apply' && typeof input?.planId === 'string') {
+      const plan = await repository.unstarted(key, name, input.planId);
+      if (plan) {
+        let current: boolean;
+        try { current = await stillPlans(plan.id, await repository.bundleBytes(key, name, plan.bundle_sha256)); }
+        catch (cause) { return c.json({ error: refusal(cause) }, 409); }
+        if (!current) return c.json({ error: 'The source or this page changed since the dry run. Review a fresh dry run.' }, 409);
       }
     }
     if (action === 'undo' && typeof input?.planId === 'string') {

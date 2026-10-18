@@ -69,9 +69,13 @@ test('MOVE-001/002/003/004/005 Instatus owner route reviews, fences, imports sil
   const changed = await moveIn.preview({ ...source, files: changedSource });
   assert.equal(changed.status, 200, JSON.stringify(changed.body));
   assert.equal((await moveIn.apply(changed.body, preview.fingerprint)).status, 403, 'a reviewed fingerprint applies only the source it reviewed');
+  const reviewed = (await moveIn.preview({ ...source, files: small })).body;
   const created = await api('/api/app/components', { name: 'Native component', description: '', groupId: null, internal: false, displayOrder: 0, note: '' });
   assert.equal(created.status, 201, JSON.stringify(created.body));
-  assert.equal((await moveIn.apply(preview)).status, 404, 'a newer dry run replaced the earlier one nobody imported');
+  const unchanged = await counts(), jobs = (await get(`${route}/jobs`)).body.jobs;
+  const stale = await moveIn.apply(reviewed);
+  assert.equal(stale.status, 409, JSON.stringify(stale.body)); assert.equal(stale.body.error, 'The source or this page changed since the dry run. Review a fresh dry run.');
+  assert.deepEqual(await counts(), unchanged); assert.deepEqual((await get(`${route}/jobs`)).body.jobs, jobs);
   const beforeSmall = await counts();
   const smallImport = await apply(small), smallWant = expected(small);
   assert.deepEqual(await counts(), Object.fromEntries(Object.entries(beforeSmall).map(([key, value]) => [key, value + smallWant[key]])));

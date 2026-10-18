@@ -59,9 +59,26 @@ export function createImportDoorRepository(db: D1Database) {
       const bytes = Buffer.concat(chunks.map(chunk=>Buffer.from(chunk.base64,'base64')));
       return bytes.length===upload.total_bytes && sha256(bytes)===upload.bundle_sha256 ? new Uint8Array(bytes) : null;
     },
-    /** Whether the door already holds a usable plan of these exact bytes, which it answers without reading them again. */
-    async planned(installationId: string, namespace: string, bundleSha256: string) {
-      return Boolean(await db.prepare('SELECT 1 FROM ik_door_plans p WHERE installation_id=? AND namespace=? AND bundle_sha256=? AND complete=1 AND NOT EXISTS(SELECT 1 FROM ik_door_apply_failures f WHERE f.plan_id=p.id)').bind(installationId,namespace,bundleSha256).first());
+    /** The usable plan the door holds of these exact bytes, which it answers
+     * without reading them again, and whether its import started. */
+    async planOf(installationId: string, namespace: string, bundleSha256: string) {
+      const row = await db.prepare(`SELECT p.id,(p.job_id IS NOT NULL OR EXISTS(SELECT 1 FROM ik_jobs j WHERE j.operation_key='door:'||p.id)) AS started FROM ik_door_plans p
+        WHERE installation_id=? AND namespace=? AND bundle_sha256=? AND complete=1 AND NOT EXISTS(SELECT 1 FROM ik_door_apply_failures f WHERE f.plan_id=p.id)`).bind(installationId,namespace,bundleSha256).first<{id:string;started:number}>();
+      return row ? {id:row.id,started:row.started===1} : null;
+    },
+    /** A complete plan of the namespace nobody started importing, with its bundle. */
+    async unstarted(installationId: string, namespace: string, planId: string) {
+      return db.prepare(`SELECT p.id,p.bundle_sha256 FROM ik_door_plans p WHERE p.id=? AND p.installation_id=? AND p.namespace=? AND p.complete=1 AND p.job_id IS NULL
+        AND NOT EXISTS(SELECT 1 FROM ik_jobs j WHERE j.operation_key='door:'||p.id)`).bind(planId,installationId,namespace).first<{id:string;bundle_sha256:string}>();
+    },
+    /** The bytes of a complete upload of this bundle, as the door holds them for its plan. */
+    async bundleBytes(installationId: string, namespace: string, bundleSha256: string) {
+      const uploads = (await db.prepare('SELECT id FROM ik_door_uploads WHERE installation_id=? AND namespace=? AND bundle_sha256=? ORDER BY rowid').bind(installationId,namespace,bundleSha256).all<{id:string}>()).results;
+      for (const upload of uploads) {
+        const bytes = await this.uploadBytes(installationId,namespace,upload.id);
+        if (bytes) return bytes;
+      }
+      return null;
     },
     /** The namespace's pending plan that nobody started applying, with its bundle. */
     async unstartedPending(installationId: string, namespace: string) {

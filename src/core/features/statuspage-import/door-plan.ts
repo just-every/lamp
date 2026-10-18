@@ -29,14 +29,16 @@ export function moveInPlan(plan: ImportPlan): ImportPlan {
  * names the bundle and review instant and maps to the namespace's native source
  * record, so a catch-up replaces it rather than reporting the old one gone. The
  * door reads these records from the upload and plans them with this mapping.
+ * The metadata also carries the page fingerprint: Lamp's own plan of these
+ * responses against the page as it stood, so an apply can tell the page changed.
  * A Business import holds its subscribers until the owner's cutover release;
  * the owner's own Move in keeps each source's subscriber policy. */
-export function doorMapping(plan: ImportPlan, business: boolean): { records: ParsedRecord[]; mapping: ImportMapping } {
+export function doorMapping(plan: ImportPlan, business: boolean): { records: ParsedRecord[]; mapping: ImportMapping; page: string } {
   const effects = new Map(plan.entries.map(entry=>[`${entry.source.kind}:${entry.source.sourceId}`,entry]));
   const records = plan.source.records.map((record): ParsedRecord => {
     if (record.kind!=='metadata') return {kind:record.kind,sourceId:record.sourceId,payload:record.payload};
     const value = record.payload as {raw:Record<string,never>};
-    return {kind:record.kind,sourceId:plan.namespace,payload:{...value,raw:{...value.raw,importSource:plan.namespace,...(business ? {subscribersAfterCutover:true} : {}),bundle:record.sourceId}}};
+    return {kind:record.kind,sourceId:plan.namespace,payload:{...value,raw:{...value.raw,importSource:plan.namespace,...(business ? {subscribersAfterCutover:true} : {}),bundle:record.sourceId,page:plan.fingerprint}}};
   });
   const mapping: ImportMapping = {version:'1',map(record) {
     if (record.kind==='metadata') {
@@ -52,7 +54,13 @@ export function doorMapping(plan: ImportPlan, business: boolean): { records: Par
       return {...effect,value:{...value,tables:{...value.tables,subscribers:value.tables.subscribers.map(row=>({...row,state:'deactivated',deactivation_reason:'held for Business cutover'}))}}};
     }),unmapped:entry.unmapped,...(entry.rejection ? {rejection:entry.rejection} : {})};
   }};
-  return {records,mapping};
+  return {records,mapping,page:plan.fingerprint};
+}
+
+/** The review instant and page fingerprint a saved door plan was prepared with. */
+export function reviewedPage(plan: ImportPlan): { asOf?: string; page?: string } {
+  const raw = (plan.entries.find(entry=>entry.source.kind==='metadata')?.source.payload as {raw?:{asOf?:string;page?:string}} | undefined)?.raw;
+  return {asOf:raw?.asOf,page:raw?.page};
 }
 
 export async function readDoorExport(bytes: Uint8Array) {

@@ -8,7 +8,7 @@ import { sourcePublicAddresses, inspectSourcePublicAddresses, resolvePublicAddre
 import type { Session } from '@runeditrun/rer/modules/operator-auth';
 import { sessionAuthority } from '../../platform/auth/authority';
 import { isMailPreparationError } from '../../platform/mail/sender';
-import { readD1ImportJob, readD1ImportUndoReport, resumeD1Import, undoD1Import, type D1ImportContext, type D1Sql, type ImportJob, type ImportPlan } from "../../../../modules/import-kit/src/d1/index.ts";
+import { canonicalJson, readD1ImportJob, readD1ImportUndoReport, resumeD1Import, undoD1Import, type D1ImportContext, type D1Sql, type ImportJob, type ImportPlan } from "../../../../modules/import-kit/src/d1/index.ts";
 import { stored } from "../../../../modules/import-kit/src/d1/jobs.ts";
 import { nowIso } from "../../shared/ids";
 import { planMoveIn, reportFromPlan, type MoveInReport } from "./planning";
@@ -56,6 +56,12 @@ function doorPreparationContext(db: D1Database, principalId: string, namespace: 
     authorization: { principalId, predicate: () => authority },
   };
 }
+
+/** A source's saved responses, by file name and content. */
+const artifactIdentity = (plan: ImportPlan | { artifacts: Array<{ name: string; sha256: string }> }) => {
+  const artifacts = "source" in plan ? plan.source.artifacts : plan.artifacts;
+  return canonicalJson(artifacts.map((artifact) => ({ name: artifact.name, sha256: artifact.sha256 })).sort((a, b) => a.name.localeCompare(b.name)));
+};
 
 export function createStatuspageImportService(db: D1Database, hooks: MoveInHooks, options: { apiOrigin?: string } = {}) {
   /** An import Move in made before the door (the operator's own, by its source
@@ -208,15 +214,34 @@ export function createStatuspageImportService(db: D1Database, hooks: MoveInHooks
     /** One door upload, planned as Move in has always planned a source, for the
      * door's own plan: the records it reads and the mapping it applies. Read-only;
      * the door admitted the session or grant first. */
-    async prepareDoor(bytes: Uint8Array, namespace: string, principalId: string, operatorId: string, authority: D1Sql, business: boolean) {
+    async prepareDoor(bytes: Uint8Array, namespace: string, principalId: string, operatorId: string, authority: D1Sql, business: boolean, asOf = nowIso()) {
       const {input,read} = await readDoorExport(bytes);
       if (namespace!==input.source) throw new Error('The grant namespace must match the source.');
       const context = doorPreparationContext(db, principalId, input.source, authority);
       // Imported records name the operator who imported them as their author.
-      const plan = await planMoveIn(read,await snapshot(context),context,operatorId,nowIso());
+      const plan = await planMoveIn(read,await snapshot(context),context,operatorId,asOf);
       await sourceClear(plan);
       await assertAuthority(context);
       return doorMapping(plan, business);
+    },
+    /** A source Move in imported before the door, by its saved responses (an
+     * import the operator made and did not undo): Move in reports it as already
+     * imported and changes nothing, as it always has. Door imports carry their own
+     * kit namespace, so only those earlier imports match. */
+    async importedBefore(bytes: Uint8Array, namespace: string, actor: MoveInActor) {
+      const {input,read} = await readDoorExport(bytes);
+      if (namespace!==input.source) return null;
+      const context = importContext(db, actor, input.source), identity = artifactIdentity(read);
+      await assertAuthority(context);
+      const rows = (await db.prepare("SELECT id FROM ik_jobs WHERE principal_id=? AND destination=? AND namespace=? AND state NOT IN ('undone','rolled_back') ORDER BY rowid DESC").bind(actor.operator.id, DESTINATION, input.source).all<{ id: string }>()).results;
+      for (const row of rows) {
+        const { plan } = await stored(row.id, context);
+        if (artifactIdentity(plan) !== identity) continue;
+        const current = await result(row.id, actor);
+        return { report: { ...current.report, state: "already imported" }, jobId: row.id };
+      }
+      await assertAuthority(context);
+      return null;
     },
     /** Writes nothing: reads a source account or public page with its key or
      * address, and returns its saved responses for Move in to upload. The key is

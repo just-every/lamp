@@ -106,8 +106,11 @@ contract('MOVE-002','Better Stack refuses unsafe preview and stale source/target
   const changedFiles=structuredClone(files); const page=changedFiles.find(f=>f.name==='status-page.json');const raw=JSON.parse(page.text);raw.data.attributes.company_name='Changed source';page.text=JSON.stringify(raw);
   const changed=await preview(r,changedFiles);
   assert.equal((await moveIn(r,r.cookie).apply(changed,review.fingerprint)).status,403,'a reviewed fingerprint applies only the source it reviewed');
+  const reviewed=await preview(r,files);
   const group=await api(r,'/api/app/component-groups',{name:'Operator group',displayOrder:1});assert.equal(group.status,201,JSON.stringify(group.body));
-  assert.equal((await moveIn(r,r.cookie).apply(review)).status,404,'a newer dry run replaced the earlier one nobody imported');
+  const stale=await moveIn(r,r.cookie).apply(reviewed);
+  assert.equal(stale.status,409,JSON.stringify(stale.body));assert.equal(stale.body.error,'The source or this page changed since the dry run. Review a fresh dry run.');
+  assert.equal(await count(r,'ik_jobs'),0);assert.equal(await count(r,'components'),0);assert.equal(await count(r,'component_groups'),1);
   const result=await apply(r,await preview(r,files));
   assert.equal(r.messages.length,0);
   await moveIn(r,r.cookie).apply(result.door);await api(r,endpoint(result.job.id));assert.equal(r.messages.length,0);
