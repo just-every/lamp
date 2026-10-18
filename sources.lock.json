@@ -5242,7 +5242,7 @@
       "executable": false
     },
     "tests/e2e/betterstack-browser.test.mjs": {
-      "sha256": "44c61bc76f9462b60a508c20fd3ed75c4c5853b64d79cb27fc1c60da57eb64cb",
+      "sha256": "c96688556d03a4e684dd1ab35b737f764e938a6f38438d69380a0bc0b713b306",
       "executable": false
     },
     "tests/e2e/channels-and-presets.test.mjs": {

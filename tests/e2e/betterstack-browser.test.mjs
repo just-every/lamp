@@ -57,7 +57,7 @@ test('MOVE-001 Better Stack source-first wizard and source-specific Cutover pres
       const maintenance=result.report.cutover.rows.find(row=>row.target.startsWith('/maintenance/'));
       assert.match(await (await fetch(publicOrigin+maintenance.target)).text(),/original update 3/);
       const undone=await moveIn.undo(result.door);
-      assert.equal(undone.body.job.state,'undone');await assertNoNewNotifications(runtime, before);
+      assert.equal(undone.status,200,JSON.stringify(undone.body));assert.equal(undone.body.job.state,'undone');await assertNoNewNotifications(runtime, before);
     }
     await context.close();
   } finally {await browser?.close();await runtime.close();}
