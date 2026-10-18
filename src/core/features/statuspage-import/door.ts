@@ -45,6 +45,15 @@ function importSource(name: string, prepared: Promise<Prepared> | null): Promise
   );
 }
 
+/** The `attempt` an upload of a source imported and undone before carries; a
+ * bundle that is not a JSON object is refused by its preparation instead. */
+function uploadAttempt(bytes: Uint8Array) {
+  try {
+    const value = JSON.parse(new TextDecoder().decode(bytes)) as { attempt?: unknown } | null;
+    return typeof value?.attempt === 'number' ? value.attempt : 0;
+  } catch { return 0; }
+}
+
 export function registerImportDoor(app: Hono<AppEnv>, bindings: AppBindings, service: StatuspageImportService, changed: ()=>Promise<unknown>, auth: () => OperatorAuth) {
   const repository = createImportDoorRepository(bindings.DB);
   /** Plans an upload exactly as Move in plans a source, under the door's authority. */
@@ -117,9 +126,9 @@ export function registerImportDoor(app: Hono<AppEnv>, bindings: AppBindings, ser
       authorize:async()=>authority,
     });
     // A dry run or undo replaces an earlier dry run nobody started importing.
-    const discardUnstarted = async (keep?: string) => {
+    const discardUnstarted = async (keep: { bundle?: string; planId?: string }) => {
       const pending = await repository.unstartedPending(key, name);
-      if (!pending || pending.bundle_sha256 === keep) return;
+      if (!pending || pending.bundle_sha256 === keep.bundle || pending.id === keep.planId) return;
       const headers = new Headers(c.req.raw.headers); headers.delete('Content-Length'); headers.set('Content-Type','application/json');
       const cancelled = await (await handler(null))(new Request(new URL(`${operatorPrefix}undo`, c.req.url), { method: 'POST', headers, body: JSON.stringify({ planId: pending.id }) }));
       if (!cancelled?.ok) throw new Error('An earlier dry run could not be discarded.');
@@ -128,16 +137,16 @@ export function registerImportDoor(app: Hono<AppEnv>, bindings: AppBindings, ser
     if (action === 'plan' && typeof input?.uploadId === 'string') {
       const bytes = await repository.uploadBytes(key, name, input.uploadId);
       const bundle = bytes ? sha256(bytes) : null;
-      if (bytes) attempt = Number((JSON.parse(new TextDecoder().decode(bytes)) as { attempt?: unknown }).attempt ?? 0);
+      if (bytes) attempt = uploadAttempt(bytes);
       if (bundle && !await repository.planned(key, name, bundle)) {
         prepared = prepare(key, name, input.uploadId, principal, session.operator.id, authority, false);
         // Move in shows the owner why a source cannot be imported, as it always has.
         try { await prepared; } catch (cause) { return c.json({ error: refusal(cause) }, 400); }
-        try { await discardUnstarted(bundle); } catch (cause) { return c.json({ error: refusal(cause) }, 409); }
+        try { await discardUnstarted({ bundle }); } catch (cause) { return c.json({ error: refusal(cause) }, 409); }
       }
     }
     if (action === 'undo' && typeof input?.planId === 'string') {
-      try { await discardUnstarted(); await repository.assertNewest(input.planId); }
+      try { await discardUnstarted({ planId: input.planId }); await repository.assertNewest(input.planId); }
       catch (cause) { return c.json({ error: refusal(cause) }, 409); }
     }
     const response = await (await handler(prepared))(c.req.raw);
