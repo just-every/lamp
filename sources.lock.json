@@ -2752,7 +2752,7 @@
       "executable": false
     },
     "src/core/app/client/ui/surfaces.css": {
-      "sha256": "3a69f34fa63df9a5993a21869a7645a11ec7604a329d595ec4a06dd1abe23d72",
+      "sha256": "bd8669f07c5d42eadc7b6e709e0bbb7bf9a7d16ffa15c6ede58a1c51900ebe56",
       "executable": false
     },
     "src/core/app/client/ui/timezone.tsx": {
@@ -2760,7 +2760,7 @@
       "executable": false
     },
     "src/core/app/client/ui/tokens.css": {
-      "sha256": "0cfe3c15dd2951cc0d59d8a10786de9372cc44ab39cb0f265ae68244925e4107",
+      "sha256": "1c30fcbd7467fa8b737057ec9f4b2f28c70c48b5a40e156d84a64d4c69081162",
       "executable": false
     },
     "src/core/app/client/ui/visit-snapshot.ts": {
@@ -4152,7 +4152,7 @@
       "executable": false
     },
     "src/routes/app.tsx": {
-      "sha256": "845ab96a346885d7d5537e6a3ac750288bc15d44db5eb5e97644d00587f03f7e",
+      "sha256": "df5cdd94099c0872808a30f9c183094dfa0818a28251abd65c9bb5c918b00d74",
       "executable": false
     },
     "src/routes/docs.$slug.tsx": {
