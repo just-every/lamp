@@ -65,13 +65,15 @@ export function createStatuspageImportService(db: D1Database, hooks: MoveInHooks
 
   async function snapshot(context: D1ImportContext): Promise<Snapshot> {
     await assertAuthority(context);
-    const [groups, components, counters, allocated, destinations, templates] = await db.batch<Record<string, unknown>>([
+    const [groups, components, counters, allocated, destinations, templates, references, orders] = await db.batch<Record<string, unknown>>([
       db.prepare("SELECT coalesce(max(display_order), -1) AS value FROM component_groups"),
       db.prepare("SELECT coalesce(max(display_order), -1) AS value FROM components"),
       db.prepare("SELECT namespace, last_number FROM reference_counters"),
       db.prepare("SELECT reference FROM reference_allocations"),
-      db.prepare("SELECT destination FROM subscribers"),
-      db.prepare("SELECT name FROM incident_templates"),
+      db.prepare("SELECT s.destination, CASE WHEN EXISTS (SELECT 1 FROM ik_provenance p WHERE p.destination='lamp' AND p.target_kind='subscriber' AND p.target_id=s.id AND p.reversed=0) THEN s.id END AS imported FROM subscribers s"),
+      db.prepare("SELECT t.name, CASE WHEN EXISTS (SELECT 1 FROM ik_provenance p WHERE p.destination='lamp' AND p.target_kind='template' AND p.target_id=t.id AND p.reversed=0) THEN t.id END AS imported FROM incident_templates t"),
+      db.prepare("SELECT id, reference FROM incidents UNION ALL SELECT id, reference FROM maintenance"),
+      db.prepare("SELECT id, display_order FROM components UNION ALL SELECT id, display_order FROM component_groups"),
     ]);
     await assertAuthority(context);
     const last = Object.fromEntries(counters.results.map((row) => [row.namespace, Number(row.last_number)]));
@@ -79,8 +81,10 @@ export function createStatuspageImportService(db: D1Database, hooks: MoveInHooks
       maxGroupOrder: Number(groups.results[0].value), maxComponentOrder: Number(components.results[0].value),
       lastReference: { INC: last.INC ?? 0, SCH: last.SCH ?? 0 },
       allocated: new Set(allocated.results.map((row) => String(row.reference))),
-      templateNames: new Set(templates.results.map((row) => String(row.name))),
-      destinations: new Set(destinations.results.map((row) => String(row.destination))),
+      references: new Map(references.results.map((row) => [String(row.id), String(row.reference)])),
+      orders: new Map(orders.results.map((row) => [String(row.id), Number(row.display_order)])),
+      templateNames: new Map(templates.results.map((row) => [String(row.name), row.imported === null ? null : String(row.imported)])),
+      destinations: new Map(destinations.results.map((row) => [String(row.destination), row.imported === null ? null : String(row.imported)])),
     };
   }
 

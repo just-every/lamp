@@ -35,7 +35,7 @@
     },
     {
       "id": "0032_business_import_door.sql",
-      "buyerSteps": "Apply after 0031. Adds disabled-by-default Business upload, grant revocation, plan and approval custody. Enable explicitly in Settings; Business-imported subscribers remain held until cutover approval."
+      "buyerSteps": "Apply after 0031. Adds disabled-by-default Business upload, grant revocation, plan and approval custody, and the source bundle each Business move-in came from. Enable explicitly in Settings; Business-imported subscribers remain held until cutover approval."
     }
   ],
   "breaking": false,

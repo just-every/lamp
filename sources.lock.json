@@ -602,7 +602,7 @@
       "executable": false
     },
     "docs/moving-in.md": {
-      "sha256": "15ee9f59584cc86dae10d8167a579d0bcb2bc83443f09fc36ca9cf70ae0b6744",
+      "sha256": "45b6924a351bd53a37871dcee244e4759a92e3657614bc0908a189bf0fb2a704",
       "executable": false
     },
     "docs/operators-and-sign-in.md": {
@@ -822,7 +822,7 @@
       "executable": false
     },
     "migrations/core/0032_business_import_door.sql": {
-      "sha256": "18782acec1d3ee58092dfec25f2b552120020782264fb442d819ae37b1704bc8",
+      "sha256": "705ec110bc223e0049943a9e8f356be4e40d3a51b48c5802c9b93aae2282134c",
       "executable": false
     },
     "migrations/README.md": {
@@ -2106,7 +2106,7 @@
       "executable": false
     },
     "RELEASE.json": {
-      "sha256": "ce034f9424f936c7317a6f859d514d1972eff0763877ac27858e8b42282d2dd9",
+      "sha256": "ec500b038afa40da632037a21c4ccce4d6a3b73f5c781498bad21f71c83ee18a",
       "executable": false
     },
     "rer-packaging.json": {
@@ -3714,7 +3714,7 @@
       "executable": false
     },
     "src/core/features/statuspage-import/door-plan.ts": {
-      "sha256": "371a8d27d425a628dbf700cc529f27381fc3edd5ef3ec147acdf9ca080b63eb7",
+      "sha256": "b641f58acb4f93e3f8081eb550faf274fda9d328b763762a1df0bdaf28aaafc9",
       "executable": false
     },
     "src/core/features/statuspage-import/door.repository.ts": {
@@ -3761,6 +3761,10 @@
       "sha256": "e5aaec8e006b41fc7406d3daac89489c941241de7ada3f2744e5950985853690",
       "executable": false
     },
+    "src/core/features/statuspage-import/native-tables.ts": {
+      "sha256": "c3c3685ba7a3938bff23cb0c20fb2849ecbf3eb4be968d42474cc0658ce0f75e",
+      "executable": false
+    },
     "src/core/features/statuspage-import/page-finder.ts": {
       "sha256": "51c62d5ea552f9d55e8e521d5b8f75579e8eb308dabb768ff74ee19eb8fb5ab3",
       "executable": false
@@ -3794,11 +3798,11 @@
       "executable": false
     },
     "src/core/features/statuspage-import/rows.ts": {
-      "sha256": "f1636d158477fd4a6269a699fd72e32cdf2072da32223d78a281f7fba7da947e",
+      "sha256": "5f5f101b621c0617d77b74510efe4140809ec633d56ea1398a05f8fd144cae8a",
       "executable": false
     },
     "src/core/features/statuspage-import/service.ts": {
-      "sha256": "a11d7820f6615bfe6bb1c14fd473bacc1f827aab4fa74d63d881e7883586cd2a",
+      "sha256": "3cee144acc93e74b48350cd14a834b984e108d454d8d0bfb8a2f6575e59cb874",
       "executable": false
     },
     "src/core/features/statuspage-import/sorry-release.repository.ts": {
@@ -3841,12 +3845,16 @@
       "sha256": "bde1670fd09d7ee58e687c81b0bada765b20d954713b85e848dcbe7560297a1d",
       "executable": false
     },
+    "src/core/features/statuspage-import/target-digest.ts": {
+      "sha256": "8beb2910cedd4d66dfe94c5859f95eb4fba99a142c7f84d10122e2a095f2484e",
+      "executable": false
+    },
     "src/core/features/statuspage-import/targets.ts": {
-      "sha256": "c8c8ddafadde2130d8e26a33ac67ac46ba440189b5bf717265cf875e7f9a29ce",
+      "sha256": "cbc1c5aac7726a7c7a31002b78bdf5d1705e2adf8ff9f34ba4c3c3d02af627fb",
       "executable": false
     },
     "src/core/features/statuspage-import/templates.ts": {
-      "sha256": "4452a8823338a9d9ffdd9ec220edf61d4628298712d1f5c2c8011041bd33f063",
+      "sha256": "e17c6b6d18e87fb25bb41cc19aea51633ec6233f1330ebd7184bf5cb75f44859",
       "executable": false
     },
     "src/core/features/statuspage-import/ui/cutover-draft.ts": {
@@ -4962,7 +4970,7 @@
       "executable": false
     },
     "tests/betterstack/reader.test.mjs": {
-      "sha256": "6b308a46c1f29a5b8dff7c2e3e3b8af49d306a9d55144298ec7c06045f8d5a8f",
+      "sha256": "ff31866f2209d25d5cd02bf7979287024864cc2f4c1fa661d58dc283b7f0f7dc",
       "executable": false
     },
     "tests/contract.mjs": {
@@ -5150,7 +5158,11 @@
       "executable": false
     },
     "tests/e2e/helpers/import-door-flow.mjs": {
-      "sha256": "00712a3e48e28c064fe013fa9eb3807142ff38a6c5b0c2c21ac0dbd3bf7a8c94",
+      "sha256": "dd69e1404c0fe0f68accc52d473643fd9f67194943dbc35b573b8b19f59d416a",
+      "executable": false
+    },
+    "tests/e2e/helpers/import-door-scale.mjs": {
+      "sha256": "88bae8dbbc770cafa98c4b53ee577f8e4153c7a654f7319e3284784cc7cf744b",
       "executable": false
     },
     "tests/e2e/helpers/import-door-visuals.mjs": {
@@ -5310,7 +5322,7 @@
       "executable": false
     },
     "tests/e2e/sorry-import.test.mjs": {
-      "sha256": "83f8b09e95eba89b992f744bffa0c7f2d933b0663393a5806a994a13b90c28ff",
+      "sha256": "8637b7ddb4ce53ba165ee70b78723b9de7ac58d9a01edabb613b2be857ed5ebf",
       "executable": false
     },
     "tests/e2e/start-runtime.test.mjs": {

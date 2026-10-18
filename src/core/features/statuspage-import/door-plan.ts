@@ -20,17 +20,26 @@ export function moveInPlan(plan: ImportPlan): ImportPlan {
   return namespace ? {...plan,namespace,entries:plan.entries.map(entry=>({...entry,source:{...entry.source,namespace}}))} : plan;
 }
 
+/** Each door namespace keeps one metadata record under a stable source id. It
+ * names the bundle and review instant and maps to the namespace's native source
+ * record, so a catch-up replaces it rather than reporting the old one gone. */
 export function doorMapping(plan: ImportPlan, context: D1ImportContext) {
   const effects = new Map(plan.entries.map(entry=>[`${entry.source.kind}:${entry.source.sourceId}`,entry]));
   const source = {...plan.source, records:plan.source.records.map(record=> {
-    let payload = record.payload;
+    let payload = record.payload, sourceId = record.sourceId;
     if (record.kind==='metadata') {
       const value = payload as {raw:Record<string,never>};
-      payload = {...value,raw:{...value.raw,importSource:plan.namespace,subscribersAfterCutover:true}};
+      payload = {...value,raw:{...value.raw,importSource:plan.namespace,subscribersAfterCutover:true,bundle:record.sourceId}};
+      sourceId = plan.namespace;
     }
-    return {...record,namespace:context.namespace,payload,payloadHash:sha256(canonicalJson(payload))};
+    return {...record,namespace:context.namespace,sourceId,payload,payloadHash:sha256(canonicalJson(payload))};
   })};
   const mapping: ImportMapping = {version:'1',map(record) {
+    if (record.kind==='metadata') {
+      const raw = (record.payload as {raw:{asOf:string;bundle:string}}).raw;
+      const id = `business-door:${plan.namespace}`;
+      return {effects:[{targetKind:'source',targetId:id,value:{tables:{statuspage_import_sources:[{id,namespace:plan.namespace,bundle:raw.bundle,as_of:raw.asOf}]}}}]};
+    }
     const entry = effects.get(`${record.kind}:${record.sourceId}`);
     if (!entry) throw new Error('Unknown move-in record.');
     return {effects:entry.effects.map(effect=> {

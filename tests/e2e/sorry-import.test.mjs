@@ -1,4 +1,5 @@
 import { businessImportDoorFlow } from './helpers/import-door-flow.mjs';
+import { importDoorScale } from './helpers/import-door-scale.mjs';
 import assert from 'node:assert/strict';
 import { DatabaseSync } from 'node:sqlite';
 import { createHash, randomUUID } from 'node:crypto';
@@ -14,7 +15,7 @@ const endpoint = '/api/app/statuspage-import';
 const fixture = family => readdirSync(`tests/fixtures/sorry/${family}`).map(name => ({ name, text: readFileSync(`tests/fixtures/sorry/${family}/${name}`, 'utf8') }));
 const source = { source: 'sorry', publicAccessAcknowledged: true, pageId: 'synthpage01' };
 
-test('MOVE-001 MOVE-002 MOVE-004 MOVE-005 MOVE-006 Sorry and the opt-in Business door preview, apply, reconcile and undo history with subscribers held until cutover', { timeout: 600000 }, async () => {
+test('MOVE-001 MOVE-002 MOVE-004 MOVE-005 MOVE-006 Sorry and the opt-in Business door preview, apply, reconcile and undo history with subscribers held until cutover, at real size and under a bounded catch-up', { timeout: 900000 }, async () => {
   const runtime = await openNativeRuntime();
   try {
     await runtime.start(); await runtime.seedOperator();
@@ -146,7 +147,8 @@ test('MOVE-001 MOVE-002 MOVE-004 MOVE-005 MOVE-006 Sorry and the opt-in Business
       const planned = await door('plan', source, { uploadId, catchup: true });
       assert.equal(planned.status, 200, JSON.stringify(planned.body));
       assert.equal(planned.body.differences.additions.length, 1);
-      assert.equal(planned.body.differences.replacements.length, 1);
+      assert.deepEqual(planned.body.differences.replacements.map(key => JSON.parse(key)[0]).sort(), ['incident', 'metadata'], 'the renamed incident and the namespace source record are replaced');
+      assert.deepEqual(planned.body.differences.conflicts, [], 'already-imported subscribers are unchanged, not conflicts');
       assert.deepEqual(snapshot(), before, 'catch-up planning makes no native writes');
       const { planId: catchupId, fingerprint } = planned.body;
       const retainedPlan = JSON.parse(rows(`SELECT body FROM ik_door_plan_chunks WHERE plan_id='${catchupId}' ORDER BY ordinal`).map(row => row.body).join(''));
@@ -165,6 +167,7 @@ test('MOVE-001 MOVE-002 MOVE-004 MOVE-005 MOVE-006 Sorry and the opt-in Business
       assert.equal(applied.body.job.state, 'completed');
       const after = snapshot();
       assert.equal(after.incidents.find(row => row.id === original.id).title, incidents[0].name);
+      assert.equal(after.incidents.find(row => row.id === original.id).reference, original.reference, 'the replaced incident keeps its public reference');
       assert.equal(after.incidents.filter(row => row.title === added.name).length, 1);
       assert.equal(after.incidents.length, before.incidents.length + 1);
       assert.equal(new Set(after.incidents.map(row => row.id)).size, after.incidents.length);
@@ -196,5 +199,5 @@ test('MOVE-001 MOVE-002 MOVE-004 MOVE-005 MOVE-006 Sorry and the opt-in Business
       assert.equal((await door('reconcile', source, { planId })).body.ok, true);
       console.log('Statuspage catch-up: changed incident replaced, addition unique, revision advanced, reconcile clean, undo restored full previous state.');
     } finally { db.close(); }
-  } });
+  }, afterSources: importDoorScale });
 });

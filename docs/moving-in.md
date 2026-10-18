@@ -527,6 +527,16 @@ Business owner, approval time and fingerprint alongside the ordinary Undo and
 Cutover links. Owners can undo their imports even after disabling the door or
 revoking its grant key; snapshots must be undone newest first.
 
+A later upload to the same namespace is a catch-up. Records whose saved
+responses did not change stay as they are, including the subscribers and
+templates that namespace already brought in. A changed record is replaced in
+place, keeping its id, public reference and display order, unless you edited it
+in Lamp: then it is kept and listed as a conflict. Each catch-up also replaces
+the namespace's source record, which names the saved responses and review time
+it came from. Under a standing (bounded) Business approval, a catch-up is
+admitted only when it adds or replaces unedited records and changes under 5% of
+the previous snapshot; anything else needs a separate owner review.
+
 Both Statuspage and Sorry subscribers arriving through Business are held without
 invitations until cutover. In Cutover, select the configured live public hostname
 and explicitly confirm that it is live and the watch window has closed before

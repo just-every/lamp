@@ -11,7 +11,7 @@ const fixture = (source,family) => readdirSync(`tests/fixtures/${source}/${famil
 const hash = bytes => createHash('sha256').update(bytes).digest('hex');
 const json64 = value => Buffer.from(JSON.stringify(value)).toString('base64url');
 
-export async function businessImportDoorFlow({ afterApply } = {}) {
+export async function businessImportDoorFlow({ afterApply, afterSources } = {}) {
   const {privateKey,publicKey} = generateKeyPairSync('ec',{namedCurve:'P-256'});
   const kid='synthetic-business',installationId=randomUUID(),issuer='https://business.example.test';
   const vars={RER_OWNER_CLAIM_PUBLIC_KEYS:JSON.stringify({[kid]:publicKey.export({format:'jwk'})}),RER_OWNER_CLAIM_ISSUER:issuer,RER_OWNER_CLAIM_INSTALLATION_ID:installationId};
@@ -96,6 +96,7 @@ export async function businessImportDoorFlow({ afterApply } = {}) {
       }
       assert.equal(undone.body.job.state,'undone'); assert.deepEqual(await counts(),before);
     }
+    await afterSources?.({ runtime, door, owner });
     const token=grant('uploads','statuspage');
     assert.equal((await owner('/api/app/import-door/settings',{enabled:true,revokedKids:[kid]},'PUT')).status,200);
     assert.equal((await door('uploads','statuspage',{}, {},token)).status,403);

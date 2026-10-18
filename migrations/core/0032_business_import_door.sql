@@ -38,3 +38,9 @@ CREATE TABLE IF NOT EXISTS ik_door_approvals (
     plan_id TEXT PRIMARY KEY REFERENCES ik_door_plans(id), approval_id TEXT NOT NULL,
     owner TEXT NOT NULL, approved_at TEXT NOT NULL, fingerprint TEXT NOT NULL,
     reviewer TEXT NOT NULL);
+
+-- The source bundle and review instant each Business door namespace was moved in from.
+CREATE TABLE IF NOT EXISTS statuspage_import_sources (
+    id TEXT PRIMARY KEY NOT NULL, namespace TEXT NOT NULL, bundle TEXT NOT NULL, as_of TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS statuspage_import_source_targets (
+    id TEXT PRIMARY KEY NOT NULL, revision TEXT NOT NULL);

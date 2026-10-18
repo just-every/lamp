@@ -1,16 +1,11 @@
 import type { D1Database, D1Sql, D1TargetAdapter, D1UndoDependency, D1UndoEffect, TargetRow } from "../../../../modules/import-kit/src/d1/index.ts";
 import { insertJsonRows } from "../../../../modules/import-kit/src/d1/sets.ts";
 import { entityTables, type EntityKind, type NativeValue, type Row } from "./rows";
+import { allMarkers, markerTable, markerWhere, sealedDefaults, tablesOf } from "./native-tables";
+import { matchesAll } from "./target-digest";
 
 const kinds = Object.keys(entityTables) as EntityKind[];
-const tablesOf = (kind: string) => {
-  const tables = entityTables[kind as EntityKind];
-  if (!tables) throw new Error("Unsupported import native kind.");
-  return kind === "component" ? { ...tables, component_standing_claims: "component_id" } : kind === "maintenance" ? { ...tables, import_maintenance_updates: "maintenance_id" } : tables;
-};
 const valueOf = (row: TargetRow) => row.value as unknown as NativeValue;
-const markerTable = (kind: string) => kind === "template" ? "statuspage_import_template_targets" : "statuspage_import_targets";
-const markerWhere = (kind: string) => kind === "template" ? { sql: "id=?", params: [] as string[] } : { sql: "kind=? AND id=?", params: [kind] };
 
 /** Balanced AND keeps nested snapshot predicates inside D1's expression depth. */
 function conjunction(parts: readonly string[]): string {
@@ -43,17 +38,7 @@ async function readTables(db: D1Database, kind: string, id: string) {
     const rows = (await db.prepare(`SELECT * FROM ${table} WHERE ${column}=? ORDER BY ${order}`).bind(id).all<Row>()).results;
     // Defaults added after old import journals were sealed do not constitute
     // an owner edit. Non-default values remain visible to custody and undo.
-    if (table === "components") for (const row of rows) {
-      if (row.only_show_if_degraded === 0) delete row.only_show_if_degraded;
-      if (row.uptime_start_date === null) delete row.uptime_start_date;
-    }
-    // Existing import journals predate per-update component snapshots. Empty
-    // migration defaults are not an operator edit; real published changes are.
-    if (table === "incident_updates") for (const row of rows) {
-      if (row.component_changes_json === "[]") delete row.component_changes_json;
-      if (row.component_snapshot_json === "[]") delete row.component_snapshot_json;
-    }
-    if (table === "incidents") for (const row of rows) if (row.impact_override === null) delete row.impact_override;
+    for (const [column, value] of Object.entries(sealedDefaults[table] ?? {})) for (const row of rows) if (row[column] === value) delete row[column];
     // Legacy journals have no history key: empty additions must not change their revision value.
     if (!["import_maintenance_updates", "component_standing_claims", "incident_reports"].includes(table) || rows.length) tables[table] = rows;
   }
@@ -105,7 +90,8 @@ export const statuspageTargets: D1TargetAdapter = {
       }
       statements.push(...inserts);
     }
-    statements.push(row.targetKind === "template" ? { sql: "INSERT INTO statuspage_import_template_targets(id,revision) VALUES(?,?) ON CONFLICT(id) DO UPDATE SET revision=excluded.revision", params: [row.targetId, row.revision] } : { sql: "INSERT INTO statuspage_import_targets(kind,id,revision) VALUES(?,?,?) ON CONFLICT(kind,id) DO UPDATE SET revision=excluded.revision", params: [row.targetKind, row.targetId, row.revision] });
+    const marker = markerTable(row.targetKind);
+    statements.push(marker !== "statuspage_import_targets" ? { sql: `INSERT INTO ${marker}(id,revision) VALUES(?,?) ON CONFLICT(id) DO UPDATE SET revision=excluded.revision`, params: [row.targetId, row.revision] } : { sql: "INSERT INTO statuspage_import_targets(kind,id,revision) VALUES(?,?,?) ON CONFLICT(kind,id) DO UPDATE SET revision=excluded.revision", params: [row.targetKind, row.targetId, row.revision] });
     return statements;
   },
   remove(_destination, kind, id) {
@@ -115,13 +101,13 @@ export const statuspageTargets: D1TargetAdapter = {
     return [{ sql: `DELETE FROM ${owner} WHERE id=?`, params: [id] }, { sql: `DELETE FROM ${markerTable(kind)} WHERE ${where.sql}`, params: [...where.params, id] }];
   },
   async list(db, destination) {
-    const markers = (await db.prepare("SELECT kind,id,revision FROM statuspage_import_targets UNION ALL SELECT 'template' AS kind,id,revision FROM statuspage_import_template_targets ORDER BY kind,id").all<{ kind: string; id: string; revision: string }>()).results;
+    const markers = (await db.prepare(`${allMarkers} ORDER BY kind,id`).all<{ kind: string; id: string; revision: string }>()).results;
     const rows: TargetRow[] = [];
     for (const marker of markers) rows.push({ destination, targetKind: marker.kind, targetId: marker.id, revision: marker.revision, value: { tables: await readTables(db, marker.kind, marker.id) } as never });
     return rows;
   },
-  matchesCount(count) {
-    return { sql: "((SELECT count(*) FROM statuspage_import_targets)+(SELECT count(*) FROM statuspage_import_template_targets))=?", params: [count] };
+  matchesMany(rows) {
+    return matchesAll(rows);
   },
   async preparePreservedUndo(db: D1Database, destination: string, effects: D1UndoEffect[]) {
     const observations = [], dependencies: D1UndoDependency[] = [], guards: D1Sql[] = [];
