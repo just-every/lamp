@@ -1417,3 +1417,7 @@ choices in the shared development and one-click sign-in renderers.
 A Slack channel test succeeds only on Slack's exact `ok` acknowledgement;
 HTTP success with another body reports the provider's refusal text. Teams keeps
 its HTTP acknowledgement semantics.
+
+## Phone incident desk — 18 October 2026
+
+Operators must be able to carry an alert through publication and resolution on a phone, including a recovered draft after reload. Receipt actions stay visible in a stacked phone layout, and operator controls use at least 44 px touch targets without changing the desktop layout. The same journey covers native sign-in, component claims and maintenance scheduling.

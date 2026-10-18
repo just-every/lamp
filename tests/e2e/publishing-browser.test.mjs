@@ -20,6 +20,7 @@ import { saveAndConfirmDraft } from "./saved-draft-helper.mjs";
 import { isolatedWranglerConfig } from "../helpers/wrangler-config.mjs";
 import { sessionCookieName } from "../helpers/session-cookie.mjs";
 import { postIncidentReportFlow } from "./helpers/post-incident-report-flow.mjs";
+import { phoneDeskFlow } from "./helpers/phone-desk-flow.mjs";
 import { operatorHydrated } from "./helpers/operator-hydrated.mjs";
 
 let appUrl = "";
@@ -219,7 +220,7 @@ test("compiled visual edits survive actual operator navigation and reload", asyn
   } finally { page.off('pageerror',recordError); }
 });
 
-contract("INCIDENT-001", "an operator can start with an empty product, create a component and incident, preview, publish, resolve, and inspect the public record", async () => {
+contract("INCIDENT-001", "MOBILE-001 — an operator can start empty, publish and resolve, then run the full alert-to-resolution phone desk", async () => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto(`${appUrl}/app/components`);
   await page.getByText("No components are configured. Add the first component before creating an incident.").waitFor();
@@ -268,6 +269,7 @@ contract("INCIDENT-001", "an operator can start with an empty product, create a 
   await page.goto(`${pageUrl}/incidents/${reference}`);
   await page.getByText("Journey API request failures", { exact: true }).waitFor();
   assert.match(await page.locator("body").innerText(), /Resolved/);
+  await phoneDeskFlow({ page, appUrl, pageUrl, appFetch, signInLink: async () => execFileSync(process.execPath, ["scripts/signin-link.mjs", "--email", "operator@example.test", "--origin", appUrl, "--config", configPath, "--persist-to", statePath], { env: process.env, encoding: "utf8" }).trim() });
 });
 
 contract("INCIDENT-004", "operator controls create internal notes, retroactive records, corrections, review decisions, and a reasoned deletion", async (t) => {

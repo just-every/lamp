@@ -887,7 +887,7 @@ At 390 px wide, an operator can sign in, approve an alert draft, attach componen
 
 Acceptance: a browser journey at 390×844 publishes and resolves an incident from an alert draft with no horizontal overflow, and the accessibility checks pass on each step.
 
-Status: **partial** — `tests/e2e/accessibility.test.mjs`. The subscriber screen is checked at 390 px for horizontal overflow. There is no full phone-width publish journey.
+Status: **done** — `src/core/app/client/ui/responsive.css`, `src/core/features/intake/ui/alerts-page.tsx`, `tests/e2e/helpers/phone-desk-flow.mjs`. Native terminal-link sign-in, signed-alert draft, attachment, autosave/reload, preview, publish, resolution, standing claim and maintenance scheduling pass at 390×844 and 1440 px, with accessibility, overflow and 44 px phone-control checks.
 
 #### MOBILE-002 — Installable app with push.
 
@@ -1083,13 +1083,13 @@ What Lamp does not do, and how a buyer gets it:
 
 ## Status
 
-Judged from the code and tests at commit `0eebe911043bd05c448af177fbeae52a377f36f4` (16 October 2026).
+Status counts include the MOBILE-001 phone-desk implementation (18 October 2026); unchanged rows retain their cited evidence.
 
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
 | Published | 104 | 0 | 0 | 104 |
-| Target and push further | 9 | 41 | 44 | 94 |
-| All | 113 | 41 | 44 | 198 |
+| Target and push further | 10 | 40 | 44 | 94 |
+| All | 114 | 40 | 44 | 198 |
 
 | Clause | Title | Kind | Status | Evidence | Gap |
 | --- | --- | --- | --- | --- | --- |
@@ -1263,7 +1263,7 @@ Judged from the code and tests at commit `0eebe911043bd05c448af177fbeae52a377f36
 | `API-004` | Terraform, GitHub Actions and config-as-code | target | missing |  | Not built. |
 | `INTEG-001` | Incident context in the support desk | target | missing |  | Not built. |
 | `INTEG-002` | Updates posted to the page's social accounts | target | missing |  | Not built. |
-| `MOBILE-001` | The operator desk works on a phone | target | partial | `tests/e2e/accessibility.test.mjs` | The subscriber screen is checked at 390 px for horizontal overflow. There is no full phone-width publish journey. |
+| `MOBILE-001` | The operator desk works on a phone | target | done | `src/core/app/client/ui/responsive.css`, `src/core/features/intake/ui/alerts-page.tsx`, `tests/e2e/helpers/phone-desk-flow.mjs` | Native terminal-link sign-in, signed-alert draft, attachment, autosave/reload, preview, publish, resolution, standing claim and maintenance scheduling pass at 390×844 and 1440 px, with accessibility, overflow and 44 px phone-control checks. |
 | `MOBILE-002` | Installable app with push | target | missing |  | Not built. |
 | `SETUP-001` | Setup readiness | published | done | `tests/e2e/setup-readiness.test.mjs` |  |
 | `SETUP-002` | First-run setup | published | done | `tests/e2e/auth-adoption-journey.test.mjs` |  |
