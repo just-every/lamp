@@ -474,7 +474,7 @@
       "executable": false
     },
     ".github/workflows/verify.yml": {
-      "sha256": "eb20725adad8a479e3af89c1c49912ecd16a1545d660c252d3d839fd97698f03",
+      "sha256": "e958b6a387b2710a56a0968fc62eff7262796fc30bb7062aa5b0275e792c1d9d",
       "executable": false
     },
     ".gitignore": {
@@ -2002,7 +2002,7 @@
       "executable": false
     },
     "package.json": {
-      "sha256": "f7329f4f20195ecc812d1c1973ac38ad09daf2d5ae149f75347484aed2467972",
+      "sha256": "6e4aa2af071707c4d0cd20d517693ac431c884e88bbf8bc6db2f4f1a633b5c88",
       "executable": false
     },
     "pnpm-lock.yaml": {
@@ -2586,7 +2586,7 @@
       "executable": false
     },
     "scripts/verification/plan.mjs": {
-      "sha256": "bbe96a8fd2a6f5bb3f9384be3258f7393b931c69daa99821f610e5e36d2ef16a",
+      "sha256": "d56f7cef32d65da0063cb820490cc74e72f71f679348a49471523d17d85cf06f",
       "executable": false
     },
     "scripts/verification/run.mjs": {

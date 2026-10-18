@@ -24,7 +24,7 @@ jobs:
           persist-credentials: false
       - id: plan
         name: Read the shared local and CI verification plan
-        run: node --input-type=module -e 'import { shardNames } from "./scripts/verification/plan.mjs"; console.log("shards=" + JSON.stringify(shardNames));' >> "$GITHUB_OUTPUT"
+        run: node --input-type=module -e 'import { ciShardNames } from "./scripts/verification/plan.mjs"; console.log("shards=" + JSON.stringify(ciShardNames));' >> "$GITHUB_OUTPUT"
 
   shards:
     needs: plan
@@ -54,7 +54,7 @@ jobs:
           key: lamp-linux-${{ runner.arch }}-${{ hashFiles('scripts/agent-bootstrap.sh', 'pnpm-lock.yaml', 'package.json') }}
       # Base requires 15 GiB free before starting native local servers.
       - name: Reserve disk for native runtime journeys
-        if: contains(fromJSON('["adoption", "demo", "imports-cutover", "portability"]'), matrix.shard)
+        if: contains(fromJSON('["adoption", "demo", "imports-cutover-browser", "portability"]'), matrix.shard)
         run: |
           # Leave room for bootstrap without deleting every toolchain on every
           # machine. The other shards do not start a Base-managed server.
