@@ -179,8 +179,7 @@ async function waitForPublicIncident(reference, expectedText) {
   throw new Error(`The public snapshot did not contain ${expectedText} for ${reference}.`);
 }
 
-test("TEAM-007 — audit browsing and compiled visual edits survive actual operator navigation and reload", async () => {
-  await auditLogFlow({ page, appUrl, appFetch });
+test("compiled visual edits survive actual operator navigation and reload", async () => {
   const snapshot = JSON.parse(readFileSync(resolve('src/editor/visual-edits.json'),'utf8'));
   const errors = [], recordError = error => errors.push(error.message);
   page.on('pageerror',recordError);
@@ -521,6 +520,7 @@ contract("UPDATE-002", "NOTIFY-019 — composer controls and saved notification 
   await emailBrandingBrowserFlow({ page, appUrl, pageUrl, appFetch });
 });
 
-contract("HIST-002", "an operator saves, reloads, edits and publishes a post-incident report", async () => {
+contract("HIST-002", "TEAM-007 — an operator publishes a report and browses attributed audit history", async () => {
   await postIncidentReportFlow({ page, appFetch, appUrl, pageUrl });
+  await auditLogFlow({ page, appUrl, appFetch });
 });

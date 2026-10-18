@@ -1083,7 +1083,7 @@ What Lamp does not do, and how a buyer gets it:
 
 ## Status
 
-Judged from the code and tagged journeys in this revision (18 October 2026).
+Judged from the code and tests at commit `16d853b92b6e78cd259891ea708ce848323ae7f8` (18 October 2026).
 
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |

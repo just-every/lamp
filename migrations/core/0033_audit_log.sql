@@ -9,7 +9,7 @@ SELECT 'state-history/' || id, 'component', component_id, 'state-changed', opera
   json_object('previousState', previous_state, 'newState', new_state, 'causeType', cause_type, 'causeId', cause_id), created_at, updated_at
 FROM component_state_history;
 CREATE TRIGGER component_state_audit AFTER INSERT ON component_state_history BEGIN
-  INSERT INTO audit_entries(id, entity_type, entity_id, action, operator_id, payload_json, created_at, updated_at)
+  INSERT OR IGNORE INTO audit_entries(id, entity_type, entity_id, action, operator_id, payload_json, created_at, updated_at)
   VALUES ('state-history/' || NEW.id, 'component', NEW.component_id, 'state-changed', NEW.operator_id,
     json_object('previousState', NEW.previous_state, 'newState', NEW.new_state, 'causeType', NEW.cause_type, 'causeId', NEW.cause_id), NEW.created_at, NEW.updated_at);
 END;

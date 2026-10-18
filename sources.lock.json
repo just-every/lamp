@@ -488,7 +488,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "c406a5f0f1d0d08bf96fa213b2a95e36b1c76a1c52ae93dc5eaccae113ce1019",
+      "sha256": "4cfe9a6f251afef49b6add2d7274b226afc469821e416320b0e5988580b2af2e",
       "executable": false
     },
     "DEMO.md": {
@@ -784,7 +784,7 @@
       "executable": false
     },
     "migrations/core/0033_audit_log.sql": {
-      "sha256": "35fa12dca3511ab2b5bec0aa537e15d63b9e5eb77798eab3b2f186c91883eb93",
+      "sha256": "7d0e79bf968e7582930b5a31b6bec200e5db699b5c5dde33de006a28d17357f9",
       "executable": false
     },
     "migrations/README.md": {
@@ -5216,11 +5216,11 @@
       "executable": false
     },
     "tests/e2e/publishing-browser.test.mjs": {
-      "sha256": "836cd8502ffac40afbf3a311ed56329242ce35bd4adc18d463029c5c76f5327b",
+      "sha256": "a9c49dd46ae1912360b2cbcb617d0469383626859292b5913abd7b0a9db6e63c",
       "executable": false
     },
     "tests/e2e/publishing-contract.test.mjs": {
-      "sha256": "f5b00074b73f7fc78ec54bf808084c33bde379ef539c1d19b171b9e3d40b14e0",
+      "sha256": "affcdfa8f1b89ab0143af1ef443d3515e3354a11a19fdcec063292e694bd08dc",
       "executable": false
     },
     "tests/e2e/queue-outage.test.mjs": {
