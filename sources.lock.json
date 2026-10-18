@@ -5248,7 +5248,7 @@
       "executable": false
     },
     "tests/e2e/helpers/teams-subscription-browser-flow.mjs": {
-      "sha256": "daf7c214b26a9b5ca90a75f95a2d3e10f79d71efd8a671532b350ff17d8900f4",
+      "sha256": "0aced7109719ccbf7f8cf6c18c81d3ae9082b0bdd281cb2fdf0f802fd5487b4f",
       "executable": false
     },
     "tests/e2e/helpers/teams-subscription-flow.mjs": {

@@ -117,7 +117,7 @@ export async function teamsOperatorBrowserFlow({ origin, publicOrigin, cookie, r
     await publishedReport.getByText(/^Published /).waitFor();
     for (const width of [1440, 390]) {
       await page.setViewportSize({ width, height: width === 390 ? 844 : 1000 });
-      await publishedReport.scrollIntoViewIfNeeded();
+      await publishedReport.evaluate(element => element.scrollIntoView({ block: 'center' }));
       if (proof) await publishedReport.screenshot({ path: `${proof}/${width}-teams-report-published.png` });
     }
     async function inspect(name) {
