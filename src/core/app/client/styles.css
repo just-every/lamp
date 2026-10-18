@@ -12,3 +12,4 @@
 @import "./ui/channels.css";
 @import "./ui/setup-guides.css";
 @import "./ui/responsive.css";
+@import "../../features/audit-log/ui/audit-log.css";

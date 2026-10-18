@@ -1,4 +1,6 @@
 import { registerCommunicationPerformanceRoutes } from "../features/communication-performance";
+import { registerAuditLogRoutes } from "../features/audit-log/routes";
+import { createAuditLogRepository } from "../features/audit-log/repository";
 import { registerIncidentImpactRoutes } from "../features/incident-impact";
 import { registerSetupRoutes } from "../features/setup/routes";
 import { createSetupRepository } from "../features/setup/repository";
@@ -60,6 +62,7 @@ export function createApp(bindings: AppBindings, execution?: MailExecution) {
   registerIntakeRoutes(app, services.intake, { publicPageHost: bindings.LAMP_PAGE_HOST, rateLimiter: publicWriteLimiter });
   registerOperatorRoutes(app, services.auth, bindings.LAMP_PAGE_HOST, { localMail });
   registerOverviewRoutes(app, services.overview);
+  registerAuditLogRoutes(app, createAuditLogRepository(bindings.DB));
   registerCommunicationPerformanceRoutes(app, services.communicationPerformance);
   registerCatalogueRoutes(app, services.componentCatalogue);
   registerComponentRoutes(app, services.components);

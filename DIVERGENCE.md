@@ -1433,3 +1433,7 @@ identity changes, including a page-data restore that would introduce them.
 
 The package pin moves to rer 0.2.55 with the existing configured-provider
 sign-in patch retained. Its native owner and provider flows remain available.
+
+## Operator audit visibility — 18 October 2026
+
+Settings exposes retained audit records with actor, action and UTC-date filters and matching CSV. Names are resolved from the current identity so erased operators show an opaque anonymised reference. Component state changes are audited in their history transaction; maintenance scheduling and reminder notices also record attribution. The released equal-operator policy remains in force until TEAM-004; TEAM-007 stays partial for that gate and its unbuilt event families.

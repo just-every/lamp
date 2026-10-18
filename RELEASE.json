@@ -42,6 +42,10 @@
     {
       "id": "0032_email_branding.sql",
       "buyerSteps": "Apply after 0031. Adds optional notification email branding; existing messages and frozen retries keep their original content. Managed mail retains its own sender identity."
+    },
+    {
+      "id": "0033_audit_log.sql",
+      "buyerSteps": "Apply after 0032. Adds audit filtering indexes and copies retained component state history into the private audit log; subsequent state records are audited in the same transaction."
     }
   ],
   "breaking": false,

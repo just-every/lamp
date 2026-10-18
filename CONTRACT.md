@@ -749,7 +749,7 @@ Owners and Admins see the audit log of BASE-OPS-005 in the operator app. It cove
 
 Acceptance: after a publish, a correction, a role change and a subscriber erasure, the audit view lists all four with actor and time, and the CSV export matches the filtered view.
 
-Status: **partial** — `src/core/features/incidents/repository.ts`, `src/core/features/operators/repository.ts`, `tests/e2e/delivery-contract.test.mjs`. Audit entries are recorded for destructive and attributed actions (BASE-OPS-005, UPTIME-004, INCIDENT-007). There is no audit view or export.
+Status: **partial** — `src/core/features/audit-log/`, `migrations/core/0033_audit_log.sql`, `tests/e2e/helpers/audit-log-flow.mjs`, `tests/auth-adoption/operator-erasure.test.mjs`. Settings provides actor, action and UTC-date filters, pagination and matching CSV; erased actors retain only their anonymised reference. Publications, corrections, subscriber/operator erasures, component state history and maintenance notices are covered. Role-restricted access and role/rule/management-token events await TEAM-004, AUTO-001 and API-001; component/group deletion attribution is not yet recorded.
 
 ### History and reports — target
 
@@ -1083,7 +1083,7 @@ What Lamp does not do, and how a buyer gets it:
 
 ## Status
 
-Judged from the code and tests at commit `cc8419ed8e3be99807b702544d09ec967ae36b93` (18 October 2026).
+Judged from the code and tagged journeys in this revision (18 October 2026).
 
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
@@ -1243,7 +1243,7 @@ Judged from the code and tests at commit `cc8419ed8e3be99807b702544d09ec967ae36b
 | `TEAM-004` | Roles | target | missing |  | Replaces released TEAM-001's "There are no roles" and the `seed.json → nonGoals` roles exclusion when shipped. |
 | `TEAM-005` | Access scoped to pages and audiences | target | missing |  | Not built. |
 | `TEAM-006` | Enforced SSO and SCIM | target | partial | `src/core/platform/auth/config.ts`, `tests/auth-adoption/dependencies.test.mjs` | Optional OIDC sign-in through Base (ACCESS-001) ships, off by default. Enforcement, break-glass and SCIM do not. When shipped, this replaces ACCESS-001's "SCIM and role synchronization remain out of scope". |
-| `TEAM-007` | Audit log view | target | partial | `src/core/features/incidents/repository.ts`, `src/core/features/operators/repository.ts`, `tests/e2e/delivery-contract.test.mjs` | Audit entries are recorded for destructive and attributed actions (BASE-OPS-005, UPTIME-004, INCIDENT-007). There is no audit view or export. |
+| `TEAM-007` | Audit log view | target | partial | `src/core/features/audit-log/`, `migrations/core/0033_audit_log.sql`, `tests/e2e/helpers/audit-log-flow.mjs`, `tests/auth-adoption/operator-erasure.test.mjs` | Settings provides actor, action and UTC-date filters, pagination and matching CSV; erased actors retain only their anonymised reference. Publications, corrections, subscriber/operator erasures, component state history and maintenance notices are covered. Role-restricted access and role/rule/management-token events await TEAM-004, AUTO-001 and API-001; component/group deletion attribution is not yet recorded. |
 | `HIST-001` | Public history | published | done | `tests/e2e/public-contract.test.mjs` |  |
 | `HIST-002` | Post-incident report | published | done | `tests/e2e/publishing-browser.test.mjs`, `tests/e2e/publishing-contract.test.mjs` |  |
 | `HIST-003` | Report due | published | done | `tests/e2e/publishing-contract.test.mjs` |  |
