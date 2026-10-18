@@ -151,3 +151,21 @@ Reports owed uses the existing report-due policy and the incident's retained
 component-derived peak impact, independently of an operator-set impact override.
 The default policy counts an unpublished report as owed seven days after a
 Partially unavailable or Major outage incident resolves.
+
+## Brand notification email
+
+In Settings → Notification email, set your sender display name, reply-to address,
+subject prefix, and plain-text header and footer. The From address remains your
+configured, authenticated address. You can include a postal address in the footer.
+Management and unsubscribe links and the required List headers are always added.
+Upload a PNG, JPEG or WebP under Brand mark and select Use the uploaded page logo
+in email; the HTML part loads it from your public status host, and the text part
+carries no image reference. Other image URLs are not accepted.
+
+Save Settings, then open an incident's Email preview to check the saved name,
+reply-to, subject, logo and wording. An email already submitted for delivery keeps
+its original branding during retries, even if you change Settings afterwards.
+
+Managed mail controls From and Reply-To, so those two controls are disabled and
+unsupported identity changes are refused. Subject prefixes, the logo and message
+wording remain available. SendGrid and Resend support all these branding settings.

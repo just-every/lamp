@@ -609,7 +609,7 @@ Per page, the owner sets the sender display name, a reply-to address, a subject 
 
 Acceptance: after the owner sets a display name, a subject prefix `[Acme status]` and a footer line, the next notification carries `From: "Acme status" <configured address>`, a subject starting `[Acme status]` and the footer, together with the unsubscribe link and the List headers. The same notification carries `Reply-To:` with the configured reply-to address, and its HTML part shows the header logo as an image from the page's public host with the page name as its alt text, while the text part carries no image reference. A footer that tries to remove the unsubscribe link cannot be saved, and neither can a logo URL on another host.
 
-Status: **partial** — `src/core/features/page-settings/service.ts`, `tests/e2e/delivery-contract.test.mjs`. The configured sender address and the page name in notification email ship (NOTIFY-008). Display name, reply-to, subject prefix and header and footer settings do not.
+Status: **partial** — `src/core/shared/email-branding.ts`, `src/core/features/page-settings/ui/email-branding-settings.tsx`, `tests/e2e/helpers/email-branding-worker-flow.mjs`, `tests/e2e/helpers/email-branding-browser-flow.mjs`, `tests/e2e/page-data.test.mjs`. Display name and Reply-To work with SendGrid and Resend. Subject prefixes, uploaded same-host logos, plain-text headers/footers, shared preview, immutable retry envelopes and page-data export/restore ship. Managed mail supports subject/logo/wording but owns From and does not accept Reply-To; Settings and restore refuse unsupported identity settings. Audience-specific settings await AUD-001. Provider transport is proven against network-edge fixtures, not live inbox receipt.
 
 #### NOTIFY-020 — Delivery at Statuspage Business and Enterprise scale.
 
@@ -1083,7 +1083,7 @@ What Lamp does not do, and how a buyer gets it:
 
 ## Status
 
-Judged from the code and tests at commit `93eef47aea927ac3a9b568739721bf1a7b0964db` (18 October 2026).
+Judged from the code and tests at commit `3f22bb83f86d3896f7fdc90dab778d9851c907c2` (18 October 2026).
 
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
@@ -1213,7 +1213,7 @@ Judged from the code and tests at commit `93eef47aea927ac3a9b568739721bf1a7b0964
 | `NOTIFY-016` | Operator alerts beyond email | target | missing |  | Not built. |
 | `NOTIFY-017` | Component status changes reach webhook subscribers | target | missing |  | Released NOTIFY-001 notifies no one for a change outside an incident or maintenance. |
 | `NOTIFY-018` | Delivery time on every channel | target | partial | `src/core/features/deliveries/service.ts`, `tests/e2e/delivery-contract.test.mjs` | NOTIFY-002's 5-minute bound ships and is tested for email at the subscriber limit. No bound is stated or tested for webhooks, Slack, Teams or SMS. |
-| `NOTIFY-019` | Notification email the owner can brand | target | partial | `src/core/features/page-settings/service.ts`, `tests/e2e/delivery-contract.test.mjs` | The configured sender address and the page name in notification email ship (NOTIFY-008). Display name, reply-to, subject prefix and header and footer settings do not. |
+| `NOTIFY-019` | Notification email the owner can brand | target | partial | `src/core/shared/email-branding.ts`, `src/core/features/page-settings/ui/email-branding-settings.tsx`, `tests/e2e/helpers/email-branding-worker-flow.mjs`, `tests/e2e/helpers/email-branding-browser-flow.mjs`, `tests/e2e/page-data.test.mjs` | Display name and Reply-To work with SendGrid and Resend. Subject prefixes, uploaded same-host logos, plain-text headers/footers, shared preview, immutable retry envelopes and page-data export/restore ship. Managed mail supports subject/logo/wording but owns From and does not accept Reply-To; Settings and restore refuse unsupported identity settings. Audience-specific settings await AUD-001. Provider transport is proven against network-edge fixtures, not live inbox receipt. |
 | `NOTIFY-020` | Delivery at Statuspage Business and Enterprise scale | target | partial | `src/core/features/deliveries/service.ts`, `tests/e2e/delivery-contract.test.mjs` | Durable queued email delivery ships, with the 5-minute bound qualified only locally at 1,000 subscribers under a 10-per-second fake quota (`seed.json → limits`). There is no hosted run, no qualification above 1,000, no provider batch sending, and no check of the provider account's rate. |
 | `INTAKE-001` | Authenticated requests | published | done | `tests/e2e/intake-references.test.mjs`, `tests/e2e/publishing-contract.test.mjs` |  |
 | `INTAKE-002` | Alerts never publish | published | done | `tests/e2e/publishing-contract.test.mjs` |  |

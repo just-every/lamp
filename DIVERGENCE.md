@@ -1421,3 +1421,15 @@ its HTTP acknowledgement semantics.
 ## Phone incident desk — 18 October 2026
 
 Operators must be able to carry an alert through publication and resolution on a phone, including a recovered draft after reload. Receipt actions stay visible in a stacked phone layout, and operator controls use at least 44 px touch targets without changing the desktop layout. The same journey covers native sign-in, component claims and maintenance scheduling.
+
+## Notification email branding — 18 October 2026
+
+Owners can brand subscriber notification subjects and wording and reuse the
+uploaded page logo without making unsubscribe, management or List headers
+editable. Preview and delivery share the same branding renderer, and a frozen
+retry retains the original identity and wording. Managed mail owns From and does
+not accept Reply-To: Settings states that boundary and refuses unsupported
+identity changes, including a page-data restore that would introduce them.
+
+The package pin moves to rer 0.2.55 with the existing configured-provider
+sign-in patch retained. Its native owner and provider flows remain available.

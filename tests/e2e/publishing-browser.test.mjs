@@ -20,6 +20,7 @@ import { saveAndConfirmDraft } from "./saved-draft-helper.mjs";
 import { isolatedWranglerConfig } from "../helpers/wrangler-config.mjs";
 import { sessionCookieName } from "../helpers/session-cookie.mjs";
 import { postIncidentReportFlow } from "./helpers/post-incident-report-flow.mjs";
+import { emailBrandingBrowserFlow } from "./helpers/email-branding-browser-flow.mjs";
 import { phoneDeskFlow } from "./helpers/phone-desk-flow.mjs";
 import { operatorHydrated } from "./helpers/operator-hydrated.mjs";
 
@@ -473,7 +474,7 @@ contract("DRAFT-003", "a configured but failing AI provider leaves the ordinary 
 });
 
 
-contract("UPDATE-002", "composer publication controls remain visible and operable at 1280 and 390 pixels", async () => {
+contract("UPDATE-002", "NOTIFY-019 — composer controls and saved notification branding work on desktop and phone", async () => {
   const component = await appFetch("/api/app/components", { method: "POST", body: JSON.stringify({ groupId: null, name: "Responsive composer API", description: "Publication control layout verification", internal: false, displayOrder: 2, note: "" }) });
   assert.equal(component.status, 201);
   const componentId = (await component.json()).component.id;
@@ -515,6 +516,7 @@ contract("UPDATE-002", "composer publication controls remain visible and operabl
       }
     }
   } finally { if (originalViewport) await page.setViewportSize(originalViewport); }
+  await emailBrandingBrowserFlow({ page, appUrl, pageUrl, appFetch });
 });
 
 contract("HIST-002", "an operator saves, reloads, edits and publishes a post-incident report", async () => {

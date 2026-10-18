@@ -82,11 +82,16 @@ test("Page data restores verified consent and holds unverified addresses until c
     assert.equal(templateMetadata.status, 200, await templateMetadata.clone().text());
     const impact = await source.request("/api/app/incidents/01J00000000000000000000020/impact", { method: "PUT", body: JSON.stringify({ impactOverride: "minor" }), headers: { "Content-Type": "application/json" } });
     assert.equal(impact.status, 200, await impact.clone().text());
+    const { settings } = await (await source.request("/api/app/page-settings")).json();
+    const input = Object.fromEntries(["pageName","tagline","accentColor","timezone","hostname","footerCreditEnabled","mailFromAddress"].map(key => [key, settings[key]]));
+    const emailBranding = { displayName: "Atlas service updates", replyTo: "help@atlascloud.example", subjectPrefix: "[Atlas]", header: "Service updates", footer: "Atlas Cloud, 100 Market Street", usePageLogo: true };
+    assert.equal((await source.request("/api/app/page-settings", { ...json({ ...input, emailBranding }), method: "PUT" })).status, 200);
     const download = await source.request("/api/app/page-data");
     assert.equal(download.status, 200);
     assert.match(download.headers.get("content-disposition") ?? "", /attachment; filename=lamp-page-data-\d{4}-\d{2}-\d{2}\.json/);
     exported = await download.json();
     assert.equal(exported.format, "lamp-page-data");
+    assert.deepEqual(exported.page.emailBranding, emailBranding);
     assert.equal(exported.page.logo.base64, logo.toString("base64"));
     assert.deepEqual(exported.people.map((person) => person.email), ["former@example.test", "operator@example.test"]);
     const subscribers = Object.fromEntries(exported.records.subscribers.map((row) => [row.destination, row]));

@@ -29,7 +29,7 @@ export class ResendMailSender implements MailSender {
       const request = new Request("https://api.resend.com/emails", {
         method: "POST", signal: controller.signal,
         headers: { Authorization: `Bearer ${this.configuration.apiKey}`, "Content-Type": "application/json", "User-Agent": "lamp-mail-sender/1.0", "Idempotency-Key": message.idempotencyKey },
-        body: JSON.stringify({ from: message.from, to: [message.to], subject: message.subject, text: message.text, ...(message.html ? { html: message.html } : {}), headers: message.headers }),
+        body: JSON.stringify({ from: message.from, to: [message.to], subject: message.subject, text: message.text, ...(message.replyTo ? { reply_to: message.replyTo } : {}), ...(message.html ? { html: message.html } : {}), headers: message.headers }),
       });
       timeout = setTimeout(() => controller.abort(), 20_000);
       submitted = true;

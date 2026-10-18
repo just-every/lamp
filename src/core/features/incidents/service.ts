@@ -76,7 +76,7 @@ export interface IncidentRuntimeHooks {
   events?: Pick<LampEventDispatcher, "incidentOpened" | "incidentUpdatePublished" | "incidentResolved">;
   /** After publication: dispatch its durable subscriber and channel notifications. */
   afterPublished?: (update: StoredIncidentUpdate) => Promise<void>;
-  formatPreviewSubject?: (subject: string) => Promise<string> | string;
+  formatPreviewEmail?: (email: RenderedIncidentUpdate["email"]) => Promise<RenderedIncidentUpdate["email"]>;
   formatPreviewTimestamp?: (timestamp: string) => Promise<string> | string;
 }
 
@@ -267,7 +267,7 @@ export function createIncidentsService(
       }))).filter((change): change is PublishedIncidentComponentChange => change !== null);
       const nextUpdateDisplay = input.nextUpdateAt ? await runtime.formatPreviewTimestamp?.(input.nextUpdateAt) : null;
       const rendered = renderIncidentUpdate({ incidentReference: incident.reference, incidentTitle: incident.title, ...input, componentChanges, nextUpdateDisplay });
-      if (runtime.formatPreviewSubject) rendered.email.subject = await runtime.formatPreviewSubject(rendered.email.subject);
+      if (runtime.formatPreviewEmail) rendered.email = await runtime.formatPreviewEmail(rendered.email);
       return rendered;
     },
     async create(input, operatorId) {

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { emailBrandingSchema } from "./email-branding";
 
 import { COMPONENT_STATES, INCIDENT_LIFECYCLES } from "./domain";
 import { INCIDENT_CLAIM_STATES } from "./incident-component-changes";
@@ -25,6 +26,7 @@ export const pageSettingsSchema = z.object({
   footerCreditEnabled: z.boolean(),
   widgetAllowedOrigins: z.array(widgetOriginSchema).max(100).optional(),
   mailFromAddress: z.email().optional(),
+  emailBranding: emailBrandingSchema.optional(),
   aiToneInstructions: optionalText(2_000).default(""),
   wordingBlockedTerms: z.array(nonEmptyText(100)).max(100).optional(),
   wordingFriendlyLength: z.number().int().min(1).max(500).optional(),
