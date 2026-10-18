@@ -2,7 +2,7 @@ import type { Hono } from "hono";
 
 import type { AppEnv } from "../../app/types";
 import { pageSettingsSchema } from "../../shared/schemas";
-import type { PageSettingsService } from "./service";
+import { UnsupportedMailIdentityError, type PageSettingsService } from "./service";
 
 export function registerPageSettingsRoutes(app: Hono<AppEnv>, service: PageSettingsService) {
   app.get("/api/app/page-settings", async (context) => {
@@ -14,8 +14,13 @@ export function registerPageSettingsRoutes(app: Hono<AppEnv>, service: PageSetti
     const parsed = pageSettingsSchema.safeParse(await context.req.json().catch(() => null));
     if (!parsed.success) return context.json({ error: "Invalid page settings.", issues: parsed.error.issues }, 400);
 
-    const settings = await service.update(parsed.data);
-    return settings ? context.json({ settings }) : context.json({ error: "Page settings are not configured." }, 404);
+    try {
+      const settings = await service.update(parsed.data);
+      return settings ? context.json({ settings }) : context.json({ error: "Page settings are not configured." }, 404);
+    } catch (cause) {
+      if (cause instanceof UnsupportedMailIdentityError) return context.json({ error: cause.message }, 400);
+      throw cause;
+    }
   });
 
   app.post("/api/app/page-settings/logo", async (context) => {

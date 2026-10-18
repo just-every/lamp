@@ -1403,14 +1403,17 @@ both hold subscribers until a separate live-hostname/watch-window approval.
 Local imports retain their existing behavior. Business approval metadata appears
 in the existing owner-bound history and undo flow.
 
-The four adapted door files (`types.ts`, `index.ts`, `planning.ts`, `authority.ts`) are tracked
-as local source with Base 0.2.50 comparison origins in `edition.json`. Their
-server-only asynchronous preparation hook lets Lamp reuse its existing planner;
-the kit still validates the final source/mapping, quota, reviewed fingerprint,
-catch-up lineage and guarded writes. Unchanged import-kit source and verifier
-siblings remain exact recorded Base copies. The existing Sorry integration case
-now also exercises the Business door for both source formats, retaining every
-previous assertion and the 200-case test cap.
+Since rer 0.2.61 the door is Base's integrated door, refreshed with
+`refresh-base`/`record-base` and recorded in `base-copies.json`, except two
+adapted files (`types.ts`, `authority.ts`) tracked as local source with a Base
+0.2.61 comparison origin in `edition.json`. Their one change passes a
+`reversalPolicy` into each door job, so Business imports undo as every Lamp
+import does: preserving the records the owner changed. Base's server-side
+source resolver admits the `statuspage` and `sorry` namespaces only; a plan
+request prepares the named upload with Lamp's existing readers, native planner
+and target adapter before the door reads it. Migrations 0037-0039 apply Base's
+custody REPLACE triggers and the door's apply-failure and scope migrations; the
+existing Sorry integration case also runs Base's public door conformance.
 
 Business catch-ups replace source-owned records under the reviewed native
 revision and can undo back to that revision, while preserving incoming native
@@ -1420,3 +1423,57 @@ custody: local exports exclude every `ik_door_*` table alongside import-kit jobs
 ## Managed preview owner entry (18 October 2026)
 
 Managed previews declare `/auth/owner-signin` as their owner entry so RER can bind the preview's single-use owner grant there. A missing, used or expired grant redirects to Lamp's sign-in page with a notice; an unavailable auth service does the same. Successful grant consumption retains Base's native session and single-use checks.
+
+## Local hostname selection (18 October 2026)
+
+Local setup, development and preview keep the operator surface on rer's selected
+origin. The public status page keeps a separate hostname on the same port:
+localhost beside the default 127.0.0.1 app, or status.localhost beside a localhost
+app. Selecting localhost must complete
+owner setup and health readiness without provider credentials.
+
+## Configured sign-in choices and channel checks — 18 October 2026
+
+ACCESS-001's enabled, configured providers remain available beside the local
+one-click owner entry. Native provider forms retain their same-origin Origin
+and allow the provider authorization redirect under CSP. With no enabled
+provider, owner entry stays unchanged. A scoped rer 0.2.54 patch preserves these
+choices in the shared development and one-click sign-in renderers.
+
+A Slack channel test succeeds only on Slack's exact `ok` acknowledgement;
+HTTP success with another body reports the provider's refusal text. Teams keeps
+its HTTP acknowledgement semantics.
+
+## Phone incident desk — 18 October 2026
+
+Operators must be able to carry an alert through publication and resolution on a phone, including a recovered draft after reload. Receipt actions stay visible in a stacked phone layout, and operator controls use at least 44 px touch targets without changing the desktop layout. The same journey covers native sign-in, component claims and maintenance scheduling.
+
+## Notification email branding — 18 October 2026
+
+Owners can brand subscriber notification subjects and wording and reuse the
+uploaded page logo without making unsubscribe, management or List headers
+editable. Preview and delivery share the same branding renderer, and a frozen
+retry retains the original identity and wording. Managed mail owns From and does
+not accept Reply-To: Settings states that boundary and refuses unsupported
+identity changes, including a page-data restore that would introduce them.
+
+The package pin moves to rer 0.2.55 with the existing configured-provider
+sign-in patch retained. Its native owner and provider flows remain available.
+
+## Operator audit visibility — 18 October 2026
+
+Settings exposes retained audit records with actor, action and UTC-date filters and matching CSV. Names are resolved from the current identity so erased operators show an opaque anonymised reference. Component state changes are audited in their history transaction; maintenance scheduling and reminder notices also record attribution. The released equal-operator policy remains in force until TEAM-004; TEAM-007 stays partial for that gate and its unbuilt event families.
+
+## Subscriber reporting — 18 October 2026
+
+Subscriber reports count current records separately from daily growth in pending-plus-active inventory. Anonymous database triggers observe inserts, transitions, channel moves, expiry, erasure and undo in the same transactions as those changes. Existing records establish an inventory baseline; observation begins with the first subscriber change or report read, keeping an empty installation’s migration seeds deterministic for native restore. Creation timestamps cannot reconstruct earlier growth. Technical archive restore retains these facts, or starts a fresh explicit baseline for older archives. Audience and language reporting remain unbuilt and HIST-007 remains partial.
+
+## Grouped monitoring alerts — 18 October 2026
+
+Alertmanager and Grafana contact points can map each alert's exact labels to several components while retaining one private incident per open source group. Per-alert fingerprints retain partial recovery evidence; only a completely recovered, never-published draft closes automatically. Existing source credentials and single-component presets retain their behavior. Native technical archives carry grouped mappings and member state.
+
+The package pin moves to rer 0.2.57 with the configured-provider sign-in patch retained.
+
+## Documented grouped webhook versions — 18 October 2026
+
+Each grouped preset accepts its documented source format: Alertmanager version 4 and Grafana version 1. Missing, numeric, cross-source and unknown versions are refused with an operator-readable reason. Grafana's title names the private draft; its message and other source context stay in the retained private receipt. Neither becomes a public update without operator publication. The unmodified Grafana documentation example exercises the same grouped incident, notice, mapping, deduplication and recovery path as Alertmanager.

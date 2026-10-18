@@ -11,6 +11,7 @@ import {nativeOwner} from './bootstrap.mjs';
 import {localSignIn} from './signin.mjs';
 import {lampDeploy} from './deploy.mjs';
 import {validateAnswers} from './validation.mjs';
+import {localHosts} from './local-hosts.mjs';
 import * as model from './ui/seed.mjs';
 
 const exists=path=>access(path).then(()=>true,()=>false);
@@ -29,8 +30,14 @@ const environment=(context,extra={})=>({...process.env,...context.env,...context
 const listen=context=>String(context.runtimePort??(new URL(context.origin).port||80));
 // dev:app applies new migrations, serves Vite and opens the page host once so
 // notification links know the page origin.
-const vite=context=>['node',['scripts/dev.mjs','--port',listen(context)],{env:environment(context)}];
-const preview=context=>[process.execPath,[fileURLToPath(new URL(import.meta.resolve('@runeditrun/rer/production-runtime')))],{env:{...environment(context),RER_RUNTIME_PORT:listen(context),RER_RUNTIME_HOST:context.runtimePort?'127.0.0.1':new URL(context.origin).hostname.replace(/^\[|\]$/g,''),RER_ORIGIN_KEY:'LAMP_LOCAL_ORIGIN',CLOUDFLARE_INCLUDE_PROCESS_ENV:'false'}}];
+const vite=async context=>{
+ await localHosts(context);
+ return ['node',['scripts/dev.mjs','--port',listen(context)],{env:environment(context)}];
+};
+const preview=async context=>{
+ await localHosts(context);
+ return [process.execPath,[fileURLToPath(new URL(import.meta.resolve('@runeditrun/rer/production-runtime')))],{env:{...environment(context),RER_RUNTIME_PORT:listen(context),RER_RUNTIME_HOST:context.runtimePort?'127.0.0.1':new URL(context.origin).hostname.replace(/^\[|\]$/g,''),RER_ORIGIN_KEY:'LAMP_LOCAL_ORIGIN',CLOUDFLARE_INCLUDE_PROCESS_ENV:'false'}}];
+};
 
 export const adapter=localInstaller({
  node:'22.20.0',features:{...model.features,hosting:false},

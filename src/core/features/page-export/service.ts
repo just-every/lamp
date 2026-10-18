@@ -1,3 +1,4 @@
+import { emailBrandingSchema } from "../../shared/email-branding";
 import { createUlid, nowIso } from "../../shared/ids";
 import { parseWidgetAllowedOrigins } from "../../shared/widget-origins";
 import type { BlobStore } from "../../platform/blobs/store";
@@ -62,6 +63,7 @@ const ownerRecordsProblem = (tables: PageDataTable[]) => `This page already hold
 export interface PageExportOptions {
   /** The installation's SUBSCRIBER_TOKEN_SECRET; it keys the file's integrity value. */
   integritySecret?: string;
+  mailIdentityEditable?: boolean;
   onPublicDataChanged: () => Promise<void>;
   /** Sends a held subscriber, already moved to pending, their one confirmation email. */
   sendConfirmation: (subscriberId: string) => Promise<boolean>;
@@ -105,6 +107,7 @@ export function createPageExportService(repository: PageExportRepository, blobs:
         footerCreditEnabled: settings.footer_credit_enabled === 1,
         widgetAllowedOrigins: parseWidgetAllowedOrigins(settings.widget_allowed_origins),
         aiToneInstructions: settings.ai_tone_instructions,
+        emailBranding: emailBrandingSchema.parse(JSON.parse(settings.email_branding)),
         feedId: settings.feed_id,
         logo: logo && settings.logo_content_type ? { contentType: settings.logo_content_type as "image/png" | "image/jpeg" | "image/webp", base64: base64(logo.bytes) } : null,
       },
@@ -121,6 +124,7 @@ export function createPageExportService(repository: PageExportRepository, blobs:
     }
     const file = parsed.data;
     const problems: string[] = [];
+    if (options.mailIdentityEditable === false && (file.page.emailBranding?.displayName || file.page.emailBranding?.replyTo)) problems.push("Managed mail controls From and Reply-To. Clear those branding fields in the source before restoring.");
     const existing = await repository.ownerRecordCounts();
     const held = OWNER_RECORD_TABLES.filter((table) => existing[table] > 0);
     if (held.length) problems.push(ownerRecordsProblem(held));
@@ -224,6 +228,7 @@ export function createPageExportService(repository: PageExportRepository, blobs:
             footerCreditEnabled: file.page.footerCreditEnabled,
             widgetAllowedOrigins: JSON.stringify(file.page.widgetAllowedOrigins),
             aiToneInstructions: file.page.aiToneInstructions,
+            emailBranding: JSON.stringify(file.page.emailBranding ?? {}),
             feedId: file.page.feedId,
             logoKey,
             logoContentType: file.page.logo?.contentType ?? null,

@@ -1,5 +1,6 @@
 import { createCommunicationPerformanceRepository, createCommunicationPerformanceService } from "../features/communication-performance";
 import { createIncidentImpactRepository, createIncidentImpactService } from "../features/incident-impact";
+import { brandEmail } from "../shared/email-branding";
 import { publicPageOrigin } from "./public-origin";
 import { createRetainedSnapshotCache } from "../platform/blobs/retained";
 import type { AppBindings } from "./types";
@@ -39,7 +40,7 @@ export function createAppServices(bindings: AppBindings, blobs: BlobStore, execu
   const snapshotOrigin = bindings.LAMP_LOCAL_ORIGIN ? publicPageOrigin(bindings.LAMP_LOCAL_ORIGIN, bindings.LAMP_PAGE_HOST) : undefined;
   const publicSnapshots = createPublicSnapshotService(createSnapshotRepository(bindings.DB, snapshotOrigin), blobs, extensions.publicSnapshotPolicies, extensions.publicSnapshotEvents, extensions.slots, createRetainedSnapshotCache(bindings));
   const incidentImpact = createIncidentImpactService(createIncidentImpactRepository(bindings.DB), publicSnapshots.rebuild);
-  const pageSettings = createPageSettingsService(createPageSettingsRepository(bindings.DB), publicSnapshots.rebuild, blobs, bindings.MAIL_FROM_ADDRESS);
+  const pageSettings = createPageSettingsService(createPageSettingsRepository(bindings.DB), publicSnapshots.rebuild, blobs, bindings.MAIL_FROM_ADDRESS, bindings.MAIL_PROVIDER !== "rer");
   const configuredFromAddress = async () => (await pageSettings.get())?.mailFromAddress ?? bindings.MAIL_FROM_ADDRESS;
   const configuredPageName = async () => {
     const settings = await pageSettings.get();
@@ -60,6 +61,7 @@ export function createAppServices(bindings: AppBindings, blobs: BlobStore, execu
     effectsPaused: bindings.EFFECTS_PAUSED === "1",
     mail,
     pageName: configuredPageName,
+    emailBranding: async () => { const settings = await pageSettings.get(); if (!settings) throw new Error("Page settings are not configured."); return { branding: settings.emailBranding, hasLogo: Boolean(settings.logoKey) }; },
     fromAddress: configuredFromAddress,
     subscriberTokenSecret: bindings.SUBSCRIBER_TOKEN_SECRET,
     webhookSigningSecret: bindings.WEBHOOK_SIGNING_SECRET?.split(",").map((secret) => secret.trim()).filter(Boolean),
@@ -86,7 +88,11 @@ export function createAppServices(bindings: AppBindings, blobs: BlobStore, execu
   }, extensions.updateReviewPolicy,
   async ({ incidentId, draftId, scheduledPublishAt }) => deliveries.queueOperatorAlert({ eventId: `scheduled-review/${draftId}/${scheduledPublishAt}`, title: "Lamp held a scheduled incident update for review", text: `Scheduled update for incident ${incidentId} requires review by another operator before it can publish.` }),
   extensions.updateDuePolicy,
-  { events: extensions.events, formatPreviewTimestamp, formatPreviewSubject: async (subject) => `${await configuredPageName()}: ${subject}`, afterPublished: async (update) => {
+  { events: extensions.events, formatPreviewTimestamp, formatPreviewEmail: async (email) => {
+    const settings = await pageSettings.get();
+    if (!settings) throw new Error("Page settings are not configured.");
+    return brandEmail(email, { branding: settings.emailBranding, pageName: settings.pageName, fromAddress: settings.mailFromAddress, origin: publicPageOrigin(authOrigin(bindings), bindings.LAMP_PAGE_HOST), hasLogo: Boolean(settings.logoKey) });
+  }, afterPublished: async (update) => {
     const results = await Promise.allSettled([
       notificationOrigin(bindings).then(origin => deliveries.dispatchEvent(update.id, origin)),
       channels.dispatchPending(),
@@ -163,6 +169,7 @@ export function createAppServices(bindings: AppBindings, blobs: BlobStore, execu
   // Subscribers a restore could not vouch for get the same one confirmation as a move-in import's.
   const pageExport = createPageExportService(createPageExportRepository(bindings.DB), blobs, {
     integritySecret: bindings.SUBSCRIBER_TOKEN_SECRET,
+    mailIdentityEditable: bindings.MAIL_PROVIDER !== "rer",
     onPublicDataChanged: () => publicSnapshots.rebuild(true),
     sendConfirmation: async (subscriberId) => subscribers.inviteImported(subscriberId, await importPublicOrigin(), (await pageSettings.get())?.pageName ?? "This status page", async () => true),
   });

@@ -985,9 +985,9 @@ test("MAINT-002 MAINT-001 MAINT-003 MAINT-004 MAINT-005 MAINT-006 — Scheduled 
   const extensionNotice = extended.notices.find((notice) => notice.kind === "rescheduled");
   assert.ok(extensionNotice, "extending the window publishes a rescheduled notice");
   const extensionAudit = queryD1Sql(testStatePath, `SELECT operator_id AS operatorId, created_at AS createdAt FROM audit_entries WHERE entity_type = 'maintenance' AND entity_id = '${extension.id}' AND action = 'notice-published' AND operator_id = '${maintenance.createdByOperatorId}'`);
-  assert.equal(extensionAudit.length, 1);
-  assert.equal(extensionAudit[0].operatorId, maintenance.createdByOperatorId);
-  assert.equal(extensionAudit[0].createdAt, extensionNotice.createdAt);
+  assert.equal(extensionAudit.length, 2, "scheduling and extending each retain one attributed audit entry");
+  assert.ok(extensionAudit.every(entry => entry.operatorId === maintenance.createdByOperatorId));
+  assert.deepEqual(extensionAudit.map(entry => entry.createdAt).sort(), [extended.notices.find(notice => notice.kind === "scheduled").createdAt, extensionNotice.createdAt].sort());
   const updatedPage = await publicArtifact("/", `data-maintenance-ends-at="${laterEnd}"`, "the extended maintenance snapshot");
   assert.doesNotMatch(updatedPage.text, /Running longer than planned/);
   const updatedPermalink = await publicArtifact(`/maintenance/${extension.reference}`, `data-maintenance-ends-at="${laterEnd}"`, "the extended maintenance permalink");

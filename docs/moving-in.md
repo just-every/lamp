@@ -520,6 +520,12 @@ grants, plan fingerprints, reconciliation and bounded undo follow the
 [Base door protocol](../modules/import-kit/src/door/README.md). Original bytes
 stay in this installation.
 
+Lamp's door accepts the `statuspage` and `sorry` namespaces only: a grant for
+any other answers 403 `unknown_import_source` before anything is stored. An
+apply that fails ends that plan, which says why in **Your imports**; plan the
+upload again and approve its new fingerprint. A request too large for one
+request's D1 reads answers 413 `import_door_too_large` and writes nothing.
+
 The door calls Lamp's existing readers, native mapping and target adapter. A
 plan makes no native changes. Applying requires the exact reviewed fingerprint
 in both the signed approval and request body. **Your imports** shows the

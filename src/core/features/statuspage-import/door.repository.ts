@@ -1,4 +1,6 @@
+import { Buffer } from 'node:buffer';
 import { writeImportDoorSettings } from '../../../../modules/import-kit/src/door';
+import { sha256 } from '../../../../modules/import-kit/src/d1/index';
 import { AuthError, type Session } from '@runeditrun/rer/modules/operator-auth';
 import type { OwnerClaimConfig } from '../../../../modules/owner-claim/index.mjs';
 import { sessionAuthority } from '../../platform/auth/authority';
@@ -26,6 +28,15 @@ export function createImportDoorRepository(db: D1Database) {
     },
     async save(claim: OwnerClaimConfig, actor: Session, changes: {enabled:boolean;revokedKids?:string[]}) {
       await writeImportDoorSettings(db,claim.installationId,changes,sessionAuthority(actor));
+    },
+    /** A complete door upload's bytes in this installation and namespace, as the door itself reads them. */
+    async uploadBytes(installationId: string, namespace: string, uploadId: string) {
+      const upload = await db.prepare('SELECT bundle_sha256,total_bytes,total_chunks FROM ik_door_uploads WHERE id=? AND installation_id=? AND namespace=?').bind(uploadId,installationId,namespace).first<{bundle_sha256:string;total_bytes:number;total_chunks:number}>();
+      if (!upload) return null;
+      const chunks = (await db.prepare('SELECT base64 FROM ik_door_chunks WHERE upload_id=? ORDER BY ordinal').bind(uploadId).all<{base64:string}>()).results;
+      if (chunks.length!==upload.total_chunks) return null;
+      const bytes = Buffer.concat(chunks.map(chunk=>Buffer.from(chunk.base64,'base64')));
+      return bytes.length===upload.total_bytes && sha256(bytes)===upload.bundle_sha256 ? new Uint8Array(bytes) : null;
     },
     async assertNewest(id: string) {
       const newer = await db.prepare(`SELECT 1 FROM ik_door_plans p JOIN ik_door_plans newer ON newer.installation_id=p.installation_id AND newer.namespace=p.namespace AND newer.rowid>p.rowid LEFT JOIN ik_jobs j ON j.id=newer.job_id WHERE p.job_id=? AND (newer.job_id IS NULL OR j.state NOT IN ('undone','rolled_back')) LIMIT 1`).bind(id).first();

@@ -179,7 +179,7 @@ test("Resolve clears the promise in the native composer and publishes the shared
   await emailDisclosure.locator("summary").click();
   const emailCard = emailDisclosure.locator(".preview-card");
   assert.equal(await emailCard.locator("h3").innerText(), preview.email.subject);
-  assert.deepEqual(await emailCard.locator("dd").allTextContents(), preview.email.plainText.split("\n\n").slice(1));
+  assert.deepEqual(await emailCard.locator("dd").allTextContents(), [...[preview.email.from, preview.email.replyTo].filter(Boolean), ...preview.email.plainText.split("\n\n").slice(1)]);
   assert.doesNotMatch(await emailCard.innerText(), /Next update by|Not yet committed/);
 
   const publishResponse = page.waitForResponse((response) => response.request().method() === "POST" && new URL(response.url()).pathname === `/api/app/incidents/${resolution.id}/publish`);

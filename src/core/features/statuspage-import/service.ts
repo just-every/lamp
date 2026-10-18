@@ -17,12 +17,12 @@ import { sourceAdapter, type SourceInput } from "./adapters";
 import { statuspageTargets } from "./targets";
 import { doorMapping, moveInPlan, readDoorExport } from './door-plan';
 import { createImportDoorRepository } from './door.repository';
+import { approvalCaption } from '../../../../modules/import-kit/src/door/failures';
 
 const DESTINATION = "lamp";
 const NAMESPACE = "statuspage";
 const REVIEW_WINDOW_MS = 30 * 60 * 1000;
 const INVITES_PER_REQUEST = 50;
-const contextForSource = (context: D1ImportContext, namespace: string): D1ImportContext => ({...context,namespace});
 
 export type MoveInActor = Session;
 export interface MoveInResult { job: ImportJob; report: MoveInReport; invites: { sent: number; remaining: number }; undo?: Awaited<ReturnType<typeof readD1ImportUndoReport>> & { expiredSubscribers: number } }
@@ -43,6 +43,16 @@ function importContext(db: D1Database, actor: MoveInActor, namespace = "statuspa
       principalId: actor.operator.id,
       predicate: () => sessionAuthority(actor),
     },
+  };
+}
+
+/** Door preparation runs for the installation's active owner, whose grant the
+ * door has already verified; every door write rechecks the grant itself. */
+function doorPreparationContext(db: D1Database, ownerId: string, namespace: string): D1ImportContext {
+  return {
+    destination: DESTINATION, namespace, mappingVersion: "1",
+    storage: { database: db as never, targets: statuspageTargets },
+    authorization: { principalId: ownerId, predicate: () => ({ sql: "EXISTS(SELECT 1 FROM oa_operators WHERE id=? AND role='owner' AND status='active')", params: [ownerId] }) },
   };
 }
 
@@ -227,13 +237,17 @@ export function createStatuspageImportService(db: D1Database, hooks: MoveInHooks
   }
 
   return {
-    async prepareDoor(bytes: Uint8Array, context: D1ImportContext, namespace: string) {
+    /** A Business door upload, planned exactly as the move-in screen plans it,
+     * for the door's own plan: the records it reads and the mapping it applies.
+     * Read-only; the door admits the grant before calling this. */
+    async prepareDoor(bytes: Uint8Array, namespace: string, ownerId: string) {
       const {input,read} = await readDoorExport(bytes);
       if (namespace!==input.source) throw new Error('The grant namespace must match the source.');
-      const plan = await planMoveIn(read,await snapshot(context),contextForSource(context,input.source),context.authorization.principalId,nowIso());
+      const context = doorPreparationContext(db, ownerId, input.source);
+      const plan = await planMoveIn(read,await snapshot(context),context,ownerId,nowIso());
       await sourceClear(plan);
       await assertAuthority(context);
-      return doorMapping(plan,context);
+      return doorMapping(plan);
     },
     /** Writes nothing: reads the source, plans every record and reports it. */
     async preview(input: SourceInput, actor: MoveInActor) {
@@ -297,9 +311,10 @@ export function createStatuspageImportService(db: D1Database, hooks: MoveInHooks
     async list(actor: MoveInActor) {
       const context = importContext(db, actor);
       await assertAuthority(context);
-      const rows = (await db.prepare("SELECT j.id,coalesce(d.namespace,j.namespace) AS namespace,j.state,j.checkpoint,j.total,CASE WHEN a.plan_id IS NOT NULL THEN 'approved via Business by '||a.owner||' at '||a.approved_at||', fingerprint '||a.fingerprint END AS approvalCaption FROM ik_jobs j LEFT JOIN ik_door_plans d ON d.job_id=j.id LEFT JOIN ik_door_approvals a ON a.plan_id=d.id WHERE j.principal_id=? AND j.destination=? AND (j.namespace IN ('statuspage','betterstack','instatus','sorry') OR d.namespace IN ('statuspage','sorry')) ORDER BY j.rowid DESC LIMIT 30").bind(actor.operator.id, DESTINATION).all()).results;
+      const rows = (await db.prepare("SELECT j.id,coalesce(d.namespace,j.namespace) AS namespace,j.state,j.checkpoint,j.total,d.fingerprint,a.plan_id AS approved,a.owner,a.approved_at,a.approval_id,a.reviewer,f.reason_code AS failure FROM ik_jobs j LEFT JOIN ik_door_plans d ON d.job_id=j.id LEFT JOIN ik_door_approvals a ON a.plan_id=d.id LEFT JOIN ik_door_apply_failures f ON f.plan_id=d.id WHERE j.principal_id=? AND j.destination=? AND (j.namespace IN ('statuspage','betterstack','instatus','sorry') OR d.namespace IN ('statuspage','sorry')) ORDER BY j.rowid DESC LIMIT 30").bind(actor.operator.id, DESTINATION).all<Record<string, unknown>>()).results;
       await assertAuthority(context);
-      return rows;
+      // Business approvals read "approved via Business by …", and a failed Business apply says so.
+      return rows.map(({ fingerprint, approved, owner, approved_at, approval_id, reviewer, failure, ...job }) => ({ ...job, approvalCaption: approved === null ? null : approvalCaption({ owner, approved_at, approval_id, reviewer }, fingerprint, failure) }));
     },
   };
 }

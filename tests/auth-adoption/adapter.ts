@@ -8,3 +8,6 @@ export { createStatuspageImportService, registerStatuspageImportRoutes } from '.
 export { withDevIdentity } from '@runeditrun/rer/modules/operator-auth/dev';
 export { authConfig } from '../../src/core/platform/auth/config';
 export { createAuthHandler } from '@runeditrun/rer/modules/operator-auth';
+
+export { registerAuditLogRoutes } from '../../src/core/features/audit-log/routes';
+export { createAuditLogRepository } from '../../src/core/features/audit-log/repository';

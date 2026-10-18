@@ -66,8 +66,8 @@ test("Component and group dialogs retain keyboard focus and record tables remain
 }
 });
 
-test("Component and group dialogs retain keyboard focus and record tables remain keyboard scrollable (tables)", async t => {
-  for (const [route, label] of [["subscribers", "Subscriber records"], ["deliveries", "Delivery records"], ["alerts", "Alert receipt records"]]) {
+test("Component and group dialogs retain keyboard focus and record tables scroll with the keyboard while phone alert receipts stack", async t => {
+  for (const [route, label] of [["subscribers", "Subscriber records"], ["deliveries", "Delivery records"]]) {
   t.diagnostic(`${label} can be scrolled with the keyboard on narrow screens`);
     await (async () => {
     await page.goto(`${origin}/app/${route}`);
@@ -78,7 +78,17 @@ test("Component and group dialogs retain keyboard focus and record tables remain
     await page.waitForFunction(label => [...document.querySelectorAll('[role="region"]')].some(node => node.getAttribute("aria-label") === label && node.scrollLeft > 0), label);
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
   })(t);
-}
+  }
+  const { source } = await operatorApi("/api/app/intake/sources", "POST", { name: "Phone receipt monitor", credentialKind: "bearer-token", bearerToken: "test-only-phone-receipt-token", deduplicationPath: "$.id", titlePath: "$.title", statePath: "$.state", recoveredValue: "recovered" });
+  const response = await context.request.post(`${origin.replace("127.0.0.1", "localhost")}/api/intake/${source.id}`, { headers: { Authorization: "Bearer test-only-phone-receipt-token" }, data: { id: "phone-receipt", title: "Checkout failures", state: "firing" } });
+  assert.equal(response.status(), 202);
+  await page.goto(`${origin}/app/alerts`); await operatorHydrated(page);
+  const receipt = page.locator(".receipt-card tr").filter({ hasText: "Phone receipt monitor" });
+  await receipt.getByRole("link", { name: "Open draft", exact: true }).waitFor();
+  const geometry = await receipt.locator("td").evaluateAll(cells => cells.map(cell => { const box = cell.getBoundingClientRect(); return { left: box.left, right: box.right, scroll: cell.scrollWidth, width: cell.clientWidth }; }));
+  assert.equal(geometry.length, 5);
+  assert.ok(geometry.every(cell => cell.left >= 0 && cell.right <= 390 && cell.scroll <= cell.width), "every receipt field and the draft action fit without horizontal scrolling");
+  assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
 });
 
 async function operatorApi(path, method = "GET", body) {

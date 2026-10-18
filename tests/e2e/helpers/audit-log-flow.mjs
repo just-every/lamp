@@ -1,0 +1,73 @@
+import assert from "node:assert/strict";
+import { mkdir } from "node:fs/promises";
+import { AxeBuilder } from "@axe-core/playwright";
+import { operatorHydrated } from "./operator-hydrated.mjs";
+
+export async function auditLogFlow({ page, appUrl, appFetch }) {
+  const originalViewport = page.viewportSize();
+  const since = new Date().toISOString();
+  const request = async (path, method = "GET", body, status = 200) => {
+    const response = await appFetch(path, { method, ...(body === undefined ? {} : { body: JSON.stringify(body) }) });
+    assert.equal(response.status, status, `${method} ${path}: ${await response.clone().text()}`);
+    return status === 204 ? null : response.json();
+  };
+  const component = (await request("/api/app/components", "POST", { groupId: null, name: "Checkout API audit journey", description: "Payment processing and checkout availability.", internal: false, displayOrder: 1001, note: "" }, 201)).component;
+  await request(`/api/app/components/${component.id}/standing-claim`, "PUT", { state: "Degraded performance" });
+  const reason = '=Restore measured availability, "operator correction"';
+  await request(`/api/app/components/${component.id}/history-corrections`, "POST", { state: "Operational", startsAt: new Date(Date.now() - 120000).toISOString(), endsAt: new Date(Date.now() - 60000).toISOString(), reason }, 204);
+  const incident = (await request("/api/app/incidents", "POST", { title: "Checkout communication audit", components: [{ componentId: component.id, state: "Partially unavailable", relationship: "Primary" }] }, 201)).incident;
+  await request(`/api/app/incidents/${incident.id}/draft`, "PUT", { lifecycle: "Investigating", affectedAudience: "Customers checking out in the US", customerImpact: "Payment requests are delayed.", whatStillWorks: "Existing sessions remain available.", details: "Engineers are restoring capacity.", nextUpdateAt: new Date(Date.now() + 3600000).toISOString() });
+  const publication = await request(`/api/app/incidents/${incident.id}/publish`, "POST", { channels: [] });
+  const subscriber = (await request("/api/app/subscribers/webhook", "POST", { destination: "https://hooks.example.test/audit-journey", contactEmail: "audit-private@example.test", componentIds: [] }, 201)).subscriber;
+  await request(`/api/app/subscribers/${subscriber.id}`, "DELETE", undefined, 204);
+  const maintenance = (await request("/api/app/maintenance", "POST", { title: "Database capacity upgrade audit", startsAt: new Date(Date.now() + 86400000).toISOString(), endsAt: new Date(Date.now() + 90000000).toISOString(), componentIds: [component.id] }, 201)).maintenance;
+  const data = await request(`/api/app/audit-log?from=${encodeURIComponent(since)}&limit=100`);
+  const published = data.entries.find(row => row.entityId === publication.update.id && row.action === "published");
+  assert.ok(published?.actorId && published.actorName === "Contract Operator");
+  assert.ok(data.entries.some(row => row.entityId === component.id && row.action === "state-changed"));
+  assert.ok(data.entries.some(row => row.action === "corrected" && row.reason === reason));
+  assert.ok(data.entries.some(row => row.entityId === subscriber.id && row.action === "deleted"));
+  assert.ok(data.entries.some(row => row.entityId === maintenance.id && row.action === "notice-published"));
+  assert.ok(data.entries.every(row => Number.isFinite(Date.parse(row.createdAt))));
+  assert.ok(!JSON.stringify(data).includes("audit-private@example.test"));
+  const selection = `actorId=${encodeURIComponent(published.actorId)}&action=corrected&from=${encodeURIComponent(since)}`;
+  const filtered = await request(`/api/app/audit-log?${selection}`);
+  assert.ok(filtered.entries.length);
+  assert.ok(filtered.entries.every(row => row.actorId === published.actorId && row.action === "corrected"));
+  const csv = await appFetch(`/api/app/audit-log?format=csv&${selection}`);
+  assert.equal(csv.headers.get("cache-control"), "no-store");
+  const exported = await csv.text();
+  assert.ok(exported.includes(`"'${reason.replaceAll('"', '""')}"`), "CSV quotes reasons and neutralizes formulas");
+  for (const entry of filtered.entries) assert.ok(exported.includes(`"${entry.id}"`));
+  assert.equal(exported.trimEnd().split("\r\n").length - 1, filtered.entries.length);
+  const first = await request("/api/app/audit-log?limit=1");
+  const second = await request("/api/app/audit-log?limit=1&offset=1");
+  assert.equal(first.hasMore, true); assert.notEqual(first.entries[0].id, second.entries[0].id);
+  assert.equal((await appFetch("/api/app/audit-log?from=invalid")).status, 400);
+  assert.equal((await fetch(`${appUrl}/api/app/audit-log`)).status, 401);
+  const proof = process.env.LAMP_SCREENSHOTS;
+  if (proof) await mkdir(proof, { recursive: true });
+  for (const width of [1440, 390]) {
+    await page.setViewportSize({ width, height: width === 390 ? 844 : 1600 });
+    await page.goto(`${appUrl}/app/settings`); await operatorHydrated(page);
+    await page.getByRole("button", { name: "Open audit log", exact: true }).click();
+    const panel = page.locator("#audit-log");
+    await panel.getByRole("region", { name: "Audit entries", exact: true }).waitFor();
+    await panel.getByLabel("Audit actor").selectOption(published.actorId);
+    await panel.getByLabel("Audit action").selectOption("corrected");
+    await panel.getByRole("button", { name: "Apply filters", exact: true }).click();
+    await panel.getByText(reason, { exact: true }).waitFor();
+    assert.equal(await panel.locator("tbody tr").count(), filtered.entries.length);
+    const href = await panel.getByRole("link", { name: "Export matching audit CSV" }).getAttribute("href");
+    assert.ok(href.includes("action=corrected") && href.includes("actorId="));
+    assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), "no document overflow");
+    const axe = await new AxeBuilder({ page }).include("#audit-log").withTags(["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa"]).analyze();
+    assert.deepEqual(axe.violations.filter(row => ["serious", "critical"].includes(row.impact)).map(row => row.id), []);
+    if (proof) await panel.screenshot({ path: `${proof}/${width}-audit-filtered.png` });
+    await panel.getByLabel("Audit action").selectOption("");
+    await panel.getByRole("button", { name: "Apply filters", exact: true }).click();
+    await panel.locator("tbody").getByText("published", { exact: true }).first().waitFor();
+    if (proof) await panel.screenshot({ path: `${proof}/${width}-audit-all.png` });
+  }
+  await page.setViewportSize(originalViewport);
+}

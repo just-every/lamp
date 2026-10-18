@@ -1,3 +1,4 @@
+import { subscriberReportingFlow } from "./helpers/subscriber-reporting-flow.mjs";
 import {authFixture} from '../auth-adoption/runtime.mjs';
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
@@ -99,7 +100,8 @@ test("BASE-ACCESS-001 BASE-ACCESS-002 — Existing-owner sign-in and one-use con
 });
 
 
-test("SUB-001 SUB-005 UPDATE-008 SUB-002 SUB-003 — Concurrent subscriptions, scoped tokens, recipient capture and expiry", async t => {
+test("HIST-007 SUB-001 SUB-005 UPDATE-008 SUB-002 SUB-003 — Concurrent subscriptions, scoped tokens, recipient capture and expiry", async t => {
+  await subscriberReportingFlow({ vite, bindings: platform.env });
   t.diagnostic("SUB-001 — concurrent subscriptions reserve one confirmation email per address each day");
   await (async () => {
   const mail = new CapturingMail();

@@ -10,7 +10,7 @@ export function operatorPageReads(path: string): string[] {
     case "/app/incidents": return ["/api/app/incidents", components];
     case "/app/components": return [components];
     case "/app/maintenance": return ["/api/app/maintenance", components];
-    case "/app/subscribers": return ["/api/app/subscribers?limit=100&offset=0"];
+    case "/app/subscribers": return ["/api/app/subscribers?limit=100&offset=0", `/api/app/subscriber-reporting?month=${new Date().toISOString().slice(0, 7)}`];
     case "/app/deliveries": return ["/api/app/deliveries?limit=100&offset=0"];
     case "/app/alerts": return ["/api/app/intake/sources", "/api/app/intake/receipts?limit=100", components];
     case "/app/settings": return ["/api/app/ai/status", "/api/app/channels", components, "/api/app/operators", "/api/app/operators/invited", "/api/app/operators/former", "/api/app/overview"];

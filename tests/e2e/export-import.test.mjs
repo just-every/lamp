@@ -55,6 +55,8 @@ contract("HIST-004", "export restores every JSON entity, settings and audit entr
         source.env.DB.prepare("INSERT INTO subscribers (id, channel, destination, contact_email, state, selection_mode, token_hash, deactivation_reason, deactivated_at, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)").bind("subscriber-export", "email", "reader@example.test", "reader@example.test", "active", "selected", "token-hash-export", null, null, "2026-09-08T00:00:00.000Z", "2026-09-08T00:00:00.000Z"),
         source.env.DB.prepare("INSERT INTO subscriber_components (id, subscriber_id, component_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?)").bind("subscriber-component-export", "subscriber-export", "component-export", "2026-09-08T00:00:00.000Z", "2026-09-08T00:00:00.000Z"),
         source.env.DB.prepare("INSERT INTO notification_deliveries (id, subscriber_id, incident_update_id, maintenance_id, channel, outcome, queued_at, outcome_at, created_at, updated_at, notification_event_id, notification_event_type) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)").bind("delivery-export", "subscriber-export", "update-export", null, "email", "delivered", "2026-09-08T00:15:00.000Z", "2026-09-08T00:15:01.000Z", "2026-09-08T00:15:00.000Z", "2026-09-08T00:15:01.000Z", "update-export", "incident-update"),
+        source.env.DB.prepare("INSERT INTO alert_sources (id,name,credential_kind,bearer_token_hash,deduplication_path,title_path,state_path,created_by_operator_id,created_at,updated_at,grouped_preset,label_matchers_json) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)").bind("group-source-export","Production Alertmanager","bearer-token","synthetic-archive-hash","preset:alertmanager","preset:alertmanager","preset:alertmanager","operator-export","2026-09-08","2026-09-08","alertmanager",JSON.stringify([{componentId:"component-export",labels:{service:"api",region:"us-east"}}])),
+        source.env.DB.prepare("INSERT INTO alert_group_members (source_id,incident_id,group_key,fingerprint,state,received_at,recovered_at) VALUES (?,?,?,?,?,?,?)").bind("group-source-export","incident-export","service-group","alert-fingerprint","resolved","2026-09-08T00:15:00.000Z","2026-09-08T00:15:00.000Z"),
         source.env.DB.prepare("INSERT INTO audit_entries (id, entity_type, entity_id, action, operator_id, reason, payload_json, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)").bind("audit-export", "component-state-history", "history-export", "corrected", "operator-export", "Verified export", '{"before":"Operational","after":"Major outage"}', "2026-09-08T00:00:00.000Z", "2026-09-08T00:00:00.000Z"),
       ]);
       await source.env.SNAPSHOTS.put("branding/original.png", logo, { httpMetadata: { contentType: "image/png", contentDisposition: "attachment; filename=brand.png", cacheControl: "public, max-age=60" }, customMetadata: { owner: "portable-brand" } });
@@ -123,6 +125,25 @@ contract("HIST-004", "export restores every JSON entity, settings and audit entr
       entities,
       "a second export after import must preserve the entire entity graph",
     );
+    // Archives from before subscriber reporting have no observed daily facts.
+    // Restore their real inventory as a new baseline rather than inventing it
+    // from historical creation dates.
+    const legacyEntities = { ...entities, tables: entities.tables.filter(table => !table.name.startsWith("subscriber_reporting_")) };
+    const legacyBytes = Buffer.from(JSON.stringify(legacyEntities));
+    const legacyManifest = JSON.parse(originalManifest);
+    legacyManifest.database.sha256 = createHash("sha256").update(legacyBytes).digest("hex");
+    await writeFile(join(archive, "entities.json"), legacyBytes);
+    await writeFile(manifestPath, JSON.stringify(legacyManifest));
+    const legacyState = join(targetState, "legacy-copy");
+    run(["run", "import:cloudflare", "--", "--from", archive, "--persist-to", legacyState]);
+    const legacy = await platformFor(legacyState);
+    try {
+      const baseline = (await legacy.env.DB.prepare("SELECT channel, eligible FROM subscriber_reporting_baseline ORDER BY channel").all()).results;
+      const actual = (await legacy.env.DB.prepare("SELECT channels.channel, COUNT(s.id) AS eligible FROM (SELECT 'email' AS channel UNION ALL SELECT 'webhook') channels LEFT JOIN subscribers s ON s.channel = channels.channel AND s.state IN ('pending', 'active') AND s.destination NOT LIKE 'deleted:%' GROUP BY channels.channel ORDER BY channels.channel").all()).results;
+      assert.deepEqual(baseline, actual);
+      assert.equal((await legacy.env.DB.prepare("SELECT COUNT(*) AS n FROM subscriber_reporting_daily").first()).n, 0);
+      assert.ok((await legacy.env.DB.prepare("SELECT started_at FROM subscriber_reporting_tracking WHERE id = 1").first()).started_at);
+    } finally { await legacy.dispose(); }
   } finally {
     await Promise.all([rm(sourceState, { recursive: true, force: true }), rm(targetState, { recursive: true, force: true }), rm(archive, { recursive: true, force: true }), rm(restoredArchive, { recursive: true, force: true })]);
   }

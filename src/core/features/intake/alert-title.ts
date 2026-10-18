@@ -1,3 +1,4 @@
+import { isGroupedPreset, readGroupedAlerts } from "./grouped-alerts";
 import { readPreset, type AlertPreset } from "./presets";
 
 export function readPath(payload: unknown, path: string): unknown {
@@ -12,6 +13,7 @@ export function readPath(payload: unknown, path: string): unknown {
 
 /** The title a source's own mapping reads from an accepted alert, or null. */
 export function alertTitle(source: { preset: AlertPreset | null; titlePath: string }, payload: unknown): string | null {
+  if (isGroupedPreset(source.preset)) { const reading = readGroupedAlerts(source.preset, payload, []); return "refused" in reading ? null : reading.title; }
   if (source.preset) {
     const reading = readPreset(source.preset, payload);
     return "refused" in reading ? null : reading.title;

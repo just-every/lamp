@@ -8,14 +8,14 @@ export interface DevelopmentBindings {
   LAMP_PAGE_HOST: string;
 }
 
-const localHosts = new Set(['localhost', '127.0.0.1', '[::1]']);
+const localHosts = new Set(['localhost', 'status.localhost', '127.0.0.1', '[::1]']);
 
 export function isLoopbackHostname(hostname: string): boolean {
   return localHosts.has(hostname.toLowerCase());
 }
 
 function localAuthority(authority: string): boolean {
-  if (!/^(?:localhost|127\.0\.0\.1|\[::1\])(?::[0-9]{1,5})?$/i.test(authority)) return false;
+  if (!/^(?:(?:status\.)?localhost|127\.0\.0\.1|\[::1\])(?::[0-9]{1,5})?$/i.test(authority)) return false;
   try {
     const parsed = new URL(`http://${authority}`);
     return isLoopbackHostname(parsed.hostname) && (!parsed.port || Number(parsed.port) <= 65535);

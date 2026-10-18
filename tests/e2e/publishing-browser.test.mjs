@@ -20,6 +20,10 @@ import { saveAndConfirmDraft } from "./saved-draft-helper.mjs";
 import { isolatedWranglerConfig } from "../helpers/wrangler-config.mjs";
 import { sessionCookieName } from "../helpers/session-cookie.mjs";
 import { postIncidentReportFlow } from "./helpers/post-incident-report-flow.mjs";
+import { emailBrandingBrowserFlow } from "./helpers/email-branding-browser-flow.mjs";
+import { phoneDeskFlow } from "./helpers/phone-desk-flow.mjs";
+import { subscriberReportingBrowserFlow } from "./helpers/subscriber-reporting-browser-flow.mjs";
+import { auditLogFlow } from "./helpers/audit-log-flow.mjs";
 import { operatorHydrated } from "./helpers/operator-hydrated.mjs";
 
 let appUrl = "";
@@ -219,7 +223,7 @@ test("compiled visual edits survive actual operator navigation and reload", asyn
   } finally { page.off('pageerror',recordError); }
 });
 
-contract("INCIDENT-001", "an operator can start with an empty product, create a component and incident, preview, publish, resolve, and inspect the public record", async () => {
+contract("INCIDENT-001", "MOBILE-001 — an operator can start empty, publish and resolve, then run the full alert-to-resolution phone desk", async () => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto(`${appUrl}/app/components`);
   await page.getByText("No components are configured. Add the first component before creating an incident.").waitFor();
@@ -268,6 +272,7 @@ contract("INCIDENT-001", "an operator can start with an empty product, create a 
   await page.goto(`${pageUrl}/incidents/${reference}`);
   await page.getByText("Journey API request failures", { exact: true }).waitFor();
   assert.match(await page.locator("body").innerText(), /Resolved/);
+  await phoneDeskFlow({ page, appUrl, pageUrl, appFetch, signInLink: async () => execFileSync(process.execPath, ["scripts/signin-link.mjs", "--email", "operator@example.test", "--origin", appUrl, "--config", configPath, "--persist-to", statePath], { env: process.env, encoding: "utf8" }).trim() });
 });
 
 contract("INCIDENT-004", "operator controls create internal notes, retroactive records, corrections, review decisions, and a reasoned deletion", async (t) => {
@@ -418,7 +423,8 @@ contract("INTAKE-005", "operators configure a real authenticated source and insp
   await page.getByLabel("Source name").fill("Browser alert source — primary");
   await page.getByRole("button", { name: "Save source" }).click();
   await page.getByText("Alert source updated. Existing secrets remain hidden.", { exact: true }).waitFor();
-  const endpoint = await page.locator(".alert-source-card code").first().textContent();
+  const sourceCard = page.locator(".alert-source-card").filter({ has: page.getByRole("heading", { name: "Browser alert source — primary", exact: true }) });
+  const endpoint = await sourceCard.locator("code").first().textContent();
   assert.ok(endpoint?.startsWith(`${pageUrl}/api/intake/`), "the configured source must show its real intake endpoint");
 
   async function sendAlert(payload) {
@@ -435,8 +441,9 @@ contract("INTAKE-005", "operators configure a real authenticated source and insp
 
   await page.reload();
   await page.locator(".alert-source-card").getByRole("heading", { name: "Browser alert source — primary", exact: true }).waitFor();
-  await page.getByText("Accepted", { exact: true }).waitFor();
-  await page.getByText("Rejected", { exact: true }).waitFor();
+  const ownReceipts = page.locator(".receipt-card tr").filter({ hasText: "Browser alert source — primary" });
+  await ownReceipts.getByText("Accepted", { exact: true }).waitFor();
+  await ownReceipts.getByText("Rejected", { exact: true }).waitFor();
   const receiptText = await page.locator(".receipt-card").innerText();
   assert.match(receiptText, /deduplication path/i);
   assert.doesNotMatch(receiptText, /browser-alert-source-secret|browser-alert-accepted/);
@@ -469,7 +476,7 @@ contract("DRAFT-003", "a configured but failing AI provider leaves the ordinary 
 });
 
 
-contract("UPDATE-002", "composer publication controls remain visible and operable at 1280 and 390 pixels", async () => {
+contract("UPDATE-002", "NOTIFY-019 — composer controls and saved notification branding work on desktop and phone", async () => {
   const component = await appFetch("/api/app/components", { method: "POST", body: JSON.stringify({ groupId: null, name: "Responsive composer API", description: "Publication control layout verification", internal: false, displayOrder: 2, note: "" }) });
   assert.equal(component.status, 201);
   const componentId = (await component.json()).component.id;
@@ -511,8 +518,11 @@ contract("UPDATE-002", "composer publication controls remain visible and operabl
       }
     }
   } finally { if (originalViewport) await page.setViewportSize(originalViewport); }
+  await emailBrandingBrowserFlow({ page, appUrl, pageUrl, appFetch });
 });
 
-contract("HIST-002", "an operator saves, reloads, edits and publishes a post-incident report", async () => {
+contract("HIST-002", "TEAM-007 HIST-007 — an operator publishes a report, browses audit history and reports subscribers", async () => {
   await postIncidentReportFlow({ page, appFetch, appUrl, pageUrl });
+  await auditLogFlow({ page, appUrl, appFetch });
+  await subscriberReportingBrowserFlow({ page, appUrl, appFetch });
 });

@@ -1,3 +1,5 @@
+import { isGroupedPreset, type LabelMatcher } from "./grouped-alerts";
+import { acceptGroupedAlert } from "./grouped-service";
 import { createUlid, nowIso } from "../../shared/ids";
 import type { LampEventDispatcher } from "../../api/extensions";
 import { constantTimeEqual, createOpaqueToken, hashOpaqueToken, hmacSha256 } from "../../platform/security/opaque-tokens";
@@ -6,7 +8,7 @@ import { readPreset, type AlertPreset } from "./presets";
 import { defaultAlertIntakePolicy, type AlertIntakePolicy } from "./policies";
 import type { AlertReceiptRow, AlertReceiptView, AlertSourceRow, IntakeRepository } from "./repository";
 
-export interface AlertSourceInput { name: string; preset?: AlertPreset; componentId?: string; credentialKind: AlertSourceRow["credentialKind"]; signingSecret?: string; bearerToken?: string; timestampHeader?: string; signatureHeader?: string; deduplicationPath: string; titlePath: string; statePath: string; recoveredValue?: string; }
+export interface AlertSourceInput { name: string; preset?: AlertPreset; labelMatchers?: LabelMatcher[]; componentId?: string; credentialKind: AlertSourceRow["credentialKind"]; signingSecret?: string; bearerToken?: string; timestampHeader?: string; signatureHeader?: string; deduplicationPath: string; titlePath: string; statePath: string; recoveredValue?: string; }
 export type AlertSourceView = Omit<AlertSourceRow, "signingSecret" | "bearerTokenHash"> & { endpointPath: string; /** Shown once, when Lamp generated a preset's token. */ token?: string };
 /** The operator API's view: `endpointUrl` is on the public page host, the only host that routes `/api/intake/*`. */
 export type AlertSourceEndpointView = AlertSourceView & { endpointUrl: string };
@@ -58,7 +60,7 @@ export function createIntakeService(
       // A preset reads its tool's own payload, so its paths only describe that shape.
       let generated: string | undefined;
       if (input.preset) {
-        if (!input.componentId) throw new Error("A monitor preset needs the component its alerts are about.");
+        if (isGroupedPreset(input.preset) ? !input.labelMatchers?.length : !input.componentId) throw new Error("A monitor preset needs its component or label-to-component mappings.");
         if (!input.bearerToken && !existing?.bearerTokenHash) generated = createOpaqueToken();
         input = { ...input, credentialKind: "bearer-token", bearerToken: input.bearerToken ?? generated, deduplicationPath: `preset:${input.preset}`, titlePath: `preset:${input.preset}`, statePath: `preset:${input.preset}` };
       }
@@ -66,7 +68,7 @@ export function createIntakeService(
       if (input.credentialKind === "hmac-sha256" && !input.signingSecret && (!existing || existing.credentialKind !== "hmac-sha256" || !existing.signingSecret)) throw new Error("An HMAC source requires a signing secret.");
       if (input.credentialKind === "bearer-token" && !input.bearerToken && (!existing || existing.credentialKind !== "bearer-token" || !existing.bearerTokenHash)) throw new Error("A bearer source requires a bearer token.");
       const timestamp = nowIso();
-      const source: AlertSourceRow = { id: existing?.id ?? createUlid(), name: input.name.trim(), credentialKind: input.credentialKind, signingSecret: input.credentialKind === "hmac-sha256" ? (input.signingSecret ?? existing?.signingSecret ?? null) : null, bearerTokenHash: input.credentialKind === "bearer-token" ? (input.bearerToken ? await hashOpaqueToken(input.bearerToken) : existing?.bearerTokenHash ?? null) : null, timestampHeader: (input.timestampHeader ?? existing?.timestampHeader ?? "x-lamp-timestamp").toLowerCase(), signatureHeader: (input.signatureHeader ?? existing?.signatureHeader ?? "x-lamp-signature").toLowerCase(), deduplicationPath: input.deduplicationPath, titlePath: input.titlePath, statePath: input.statePath, recoveredValue: input.recoveredValue ?? existing?.recoveredValue ?? "recovered", preset: input.preset ?? null, componentId: input.preset ? input.componentId ?? null : null, createdByOperatorId: existing?.createdByOperatorId ?? operatorId, createdAt: existing?.createdAt ?? timestamp, updatedAt: timestamp };
+      const source: AlertSourceRow = { id: existing?.id ?? createUlid(), name: input.name.trim(), credentialKind: input.credentialKind, signingSecret: input.credentialKind === "hmac-sha256" ? (input.signingSecret ?? existing?.signingSecret ?? null) : null, bearerTokenHash: input.credentialKind === "bearer-token" ? (input.bearerToken ? await hashOpaqueToken(input.bearerToken) : existing?.bearerTokenHash ?? null) : null, timestampHeader: (input.timestampHeader ?? existing?.timestampHeader ?? "x-lamp-timestamp").toLowerCase(), signatureHeader: (input.signatureHeader ?? existing?.signatureHeader ?? "x-lamp-signature").toLowerCase(), deduplicationPath: input.deduplicationPath, titlePath: input.titlePath, statePath: input.statePath, recoveredValue: input.recoveredValue ?? existing?.recoveredValue ?? "recovered", labelMatchers: isGroupedPreset(input.preset) ? input.labelMatchers : [], preset: input.preset ?? null, componentId: input.preset ? input.componentId ?? null : null, createdByOperatorId: existing?.createdByOperatorId ?? operatorId, createdAt: existing?.createdAt ?? timestamp, updatedAt: timestamp };
       await repository.upsertSource(source);
       return generated ? { ...sourceView(source), token: generated } : sourceView(source);
     },
@@ -100,6 +102,7 @@ export function createIntakeService(
         await repository.recordInvalid(receipt);
         return { status: 400, receiptId: receipt.id, incidentId: null, replayed: false };
       }
+      if (isGroupedPreset(source.preset)) return acceptGroupedAlert({ repository, source, preset: source.preset, requestHash, rawBody, parsed, timestamp, policy, onDraftCreated, events });
       if (source.preset) return acceptPreset(source, requestHash, rawBody, parsed, timestamp);
       const deduplicationValue = readPath(parsed, source.deduplicationPath);
       if (typeof deduplicationValue !== "string" || !deduplicationValue.trim()) {
