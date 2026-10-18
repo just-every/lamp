@@ -5180,7 +5180,7 @@
       "executable": false
     },
     "tests/e2e/deployment-artifact.test.mjs": {
-      "sha256": "5ae266c47d2e34135fe0f5d6891235769b28c2e99cc2c9bfc73b47a957004dd8",
+      "sha256": "acf266886249046171375b47d5396759e9ccbf1b10ea6e5e1d80948192827e2d",
       "executable": false
     },
     "tests/e2e/deployment-secrets.test.mjs": {
