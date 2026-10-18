@@ -5254,7 +5254,7 @@
       "executable": false
     },
     "tests/e2e/cutover-browser.test.mjs": {
-      "sha256": "ba78e94e5fe3ec2eb2f637d37743f02be5a46ee274f5745ccaa1287f59694081",
+      "sha256": "38a1bafda1cf0c1e5c4750e4e86226aa52fbd7c1594ba89e108448d546cd0f08",
       "executable": false
     },
     "tests/e2e/cutover-runtime.mjs": {

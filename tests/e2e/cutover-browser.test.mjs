@@ -61,7 +61,8 @@ test('MOVE-006 rer setup twice, one-click sign-in, silent imports and browser cu
       await page.goto(origin+'/app/move-in');await hydrated;
       const fixtureDir=resolve('tests/fixtures/statuspage',family);
       await page.getByLabel('Saved responses').setInputFiles((await readdir(fixtureDir)).map(name=>join(fixtureDir,name)));
-      const dryResponse=page.waitForResponse(response=>response.url()===origin+'/api/operator/import/plan');
+      // A source imported and undone in an earlier pass is uploaded afresh: the reviewed plan is the 200.
+      const dryResponse=page.waitForResponse(response=>response.url()===origin+'/api/operator/import/plan'&&response.status()===200);
       await page.getByRole('button',{name:'Run dry run',exact:true}).click();
       const dry=await (await dryResponse).json();assert.ok(dry.report.cutover.rows.length);
       // Inspect the proposed table before apply, then return to the retained wizard.
