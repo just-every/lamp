@@ -29,6 +29,10 @@ function exactRows(table: string, column: string, id: string, rows: Row[]): D1Sq
   };
 }
 
+/** No subscriber row beyond the anonymised record an operator's deletion keeps
+ * (destination `deleted:<id>`) for its delivery history; no import owns it. */
+const anonymisedOnly = (id: string): D1Sql => ({ sql: "NOT EXISTS(SELECT 1 FROM subscribers WHERE id=? AND destination<>'deleted:'||id)", params: [id] });
+
 // Archive restore changes rowids. New imported history has a stable order
 // shared with its planned value, including updates at the same instant.
 const orderOf = (table: string) => table === "import_maintenance_updates" ? "x.published_at,x.id" : table === "incident_template_components" ? "x.id" : "x.rowid";
@@ -101,7 +105,7 @@ export const statuspageTargets: D1TargetAdapter = {
       sql: row ? `EXISTS(SELECT 1 FROM ${markerTable(kind)} WHERE ${where.sql} AND revision=?)` : `NOT EXISTS(SELECT 1 FROM ${markerTable(kind)} WHERE ${where.sql})`,
       params: row ? [...where.params, id, row.revision] : [...where.params, id],
     }];
-    for (const [table, column] of Object.entries(tablesOf(kind))) parts.push(exactRows(table, column, id, row ? valueOf(row).tables[table] ?? [] : []));
+    for (const [table, column] of Object.entries(tablesOf(kind))) parts.push(!row && kind === "subscriber" && table === "subscribers" ? anonymisedOnly(id) : exactRows(table, column, id, row ? valueOf(row).tables[table] ?? [] : []));
     return parts;
   },
   write(row) {

@@ -37,6 +37,26 @@ email subscribers into your page.
 9. Keep the old page available through the pending subscribers' confirmation
    deadlines. Update old links, feeds, widgets and API readers before retiring it.
 
+Move in, `rer` and Business imports share one import door. **Run dry run**
+uploads the saved responses, unchanged, as one JSON envelope (`source`, `files`
+and the form's `pageId`, `publicAccessAcknowledged` and `publicUrl`) to the
+door's owner surface, `/api/operator/import/*`, as the signed-in owner, and
+shows the door's plan; a key or public page is first read into saved responses
+(`POST /api/app/statuspage-import/fetch`, which writes nothing). **Import**
+applies exactly the fingerprint you reviewed, in bounded steps. A later import
+of the same source is that import's catch-up (see below), and selecting the same
+files again reads as already imported. A new dry run replaces one you did not
+import. Importing again a source whose import you undid uploads it afresh.
+**Your imports** lists your imports ("approved by") and Business imports
+("approved via Business by") together; undo the newest import of a source first.
+Imports made before the door keep their own read, Continue and Undo.
+
+Deleting a subscriber, and the expiry of an unconfirmed or held one, also erases
+that address from import custody: its imported record becomes an erased entry,
+and the door's retained uploads and plan snapshots, which hold whole exports, are
+withdrawn. Earlier imports still undo. An export that still holds an erased
+subscriber is refused (`source_erased`); remove that subscriber from it first.
+
 Cutover lists the first 25 public addresses. A live check covers only the rows
 shown there; it does not validate the rest of the total automatically. A hostname
 switch affects the address you control. It does not transfer or control a
@@ -292,10 +312,8 @@ and full update history. A status overview or the first notice page alone is
 incomplete. Pagination stays on the selected HTTPS origin and collection.
 Public capture uses `sorry-status.json` instead of `sorry-page.json`, numbered
 collection files such as `sorry-notices-2.json`, and the same detail filenames.
-Public JSON provides no subscribers. For a bounded read-only sample, the preview
-door accepts `previewNoticeLimit` (1–10): it still reads every collection page,
-names uncaptured notice details as refused, and never permits that incomplete
-capture to apply. Omit the limit for a complete move. See the [public Status API](https://status.sorryapp.com/api).
+Public JSON provides no subscribers. Every notice's detail is read; a capture
+missing one is refused. See the [public Status API](https://status.sorryapp.com/api).
 
 Sorry documents no native RSS/Atom feed. If the source HTML advertises an
 alternate feed, discover its actual `rel="alternate"` link; a feed is a
@@ -511,17 +529,21 @@ The door uses the same installation id, issuer, app origin, configured owner ema
 and ES256 public keys as owner-claim. It never accepts an operator cookie as an
 import grant.
 
-Business uploads a UTF-8 JSON envelope containing `source` (`statuspage` or
-`sorry`), `files` (the unchanged saved responses as `{name,text}`), and the same
-optional `pageId`, `publicAccessAcknowledged` and `publicUrl` fields as Lamp's
-move-in form. The grant namespace equals `source`. The envelope and saved
-responses must fit Lamp's 8 MiB / 5,000 record limits. Upload chunks, per-action
+Business uploads the same UTF-8 JSON envelope as Move in: `source`
+(`statuspage`, `betterstack`, `instatus` or `sorry`), `files` (the unchanged
+saved responses as `{name,text}`), and the same optional `pageId`,
+`publicAccessAcknowledged` and `publicUrl` fields as Lamp's move-in form. The
+grant namespace equals `source`. The saved responses must fit Lamp's 8 MiB /
+5,000 record limits; the envelope, which carries them as JSON text, may take
+16 MiB. Upload chunks, per-action
 grants, plan fingerprints, reconciliation and bounded undo follow the
 [Base door protocol](../modules/import-kit/src/door/README.md). Original bytes
 stay in this installation.
 
-Lamp's door accepts the `statuspage` and `sorry` namespaces only: a grant for
-any other answers 403 `unknown_import_source` before anything is stored. An
+Lamp's door accepts the four sources Move in offers, `statuspage`,
+`betterstack`, `instatus` and `sorry`, one namespace each, on one server-owned
+allow-list shared with the owner's Move in: a grant for any other answers 403
+`unknown_import_source` (Move in answers 400) before anything is stored. An
 apply that fails ends that plan, which says why in **Your imports**; plan the
 upload again and approve its new fingerprint. A request too large for one
 request's D1 reads answers 413 `import_door_too_large` and writes nothing.
@@ -549,7 +571,7 @@ and right-to-left text; half of a surrogate pair with no partner reads as U+FFFD
 For reconcile, catch-up and undo, Lamp reads its imported records with one
 query per table, not one per record.
 
-Both Statuspage and Sorry subscribers arriving through Business are held without
+Subscribers from every source arriving through Business are held without
 invitations until cutover. In Cutover, select the configured live public hostname
 and explicitly confirm that it is live and the watch window has closed before
 **Send invitations**. That separate owner action starts the existing 72-hour

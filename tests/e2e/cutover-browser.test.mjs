@@ -9,6 +9,7 @@ import AxeBuilder from '@axe-core/playwright';
 import { readDevKey,signInAs } from '@runeditrun/rer/internal/modules/operator-auth/dev/sign-in-as.mjs';
 import { reservePort } from './worker-startup.mjs';
 import { cutoverRuntime } from './cutover-runtime.mjs';
+import { moveInDoor } from '../helpers/import-notifications.mjs';
 
 const owner = 'cutover-owner@example.test';
 const evidence = resolve(process.env.LAMP_CUTOVER_EVIDENCE ?? 'visual/cutover');
@@ -48,6 +49,10 @@ test('MOVE-006 rer setup twice, one-click sign-in, silent imports and browser cu
       const response=body===undefined ? await page.request.get(origin+path) : await page.request.post(origin+path,{headers:{Origin:origin},data:body});
       assert.equal(response.status(),200,await response.text());return response.json();
     };
+    const moveIn=moveInDoor(async(path,body,headers)=>{
+      const response=body===undefined ? await page.request.get(origin+path) : await page.request.post(origin+path,{headers:{Origin:origin,...headers},data:body});
+      return {status:response.status(),body:await response.json()};
+    });
     const publicOrigin=(await api('/api/app/overview')).overview.checklist.publicOrigin;
     await fetch(publicOrigin+'/'); // capture the actual local notification origin
     for(const width of [1440,390]) for(const family of ['small','large']) {
@@ -56,7 +61,7 @@ test('MOVE-006 rer setup twice, one-click sign-in, silent imports and browser cu
       await page.goto(origin+'/app/move-in');await hydrated;
       const fixtureDir=resolve('tests/fixtures/statuspage',family);
       await page.getByLabel('Saved responses').setInputFiles((await readdir(fixtureDir)).map(name=>join(fixtureDir,name)));
-      const dryResponse=page.waitForResponse(response=>response.url().endsWith('/statuspage-import/preview'));
+      const dryResponse=page.waitForResponse(response=>response.url()===origin+'/api/operator/import/plan');
       await page.getByRole('button',{name:'Run dry run',exact:true}).click();
       const dry=await (await dryResponse).json();assert.ok(dry.report.cutover.rows.length);
       // Inspect the proposed table before apply, then return to the retained wizard.
@@ -72,10 +77,9 @@ test('MOVE-006 rer setup twice, one-click sign-in, silent imports and browser cu
       await page.getByLabel('Saved responses').setInputFiles((await readdir(fixtureDir)).map(name=>join(fixtureDir,name)));
       await page.getByRole('button',{name:'Run dry run',exact:true}).click();
       await page.getByLabel('I reviewed what changes, is skipped or is refused.').check();
-      const applying=page.waitForResponse(response=>response.url().endsWith('/statuspage-import/apply'));
+      const applying=page.waitForResponse(response=>/\/api\/app\/statuspage-import\/jobs\/[^/]+$/.test(new URL(response.url()).pathname)&&response.request().method()==='GET');
       await page.getByRole('button',{name:'Import',exact:true}).click();
-      let result=await (await applying).json();
-      while(result.job.state==='applying') result=await api(`/api/app/statuspage-import/jobs/${result.job.id}/resume`,{});
+      const result=await (await applying).json();
       assert.equal(result.job.state,'completed');
       await page.goto(origin+`/app/cutover?job=${result.job.id}`);
       await page.getByRole('heading',{name:'Old public addresses',exact:true}).waitFor();
@@ -112,10 +116,9 @@ test('MOVE-006 rer setup twice, one-click sign-in, silent imports and browser cu
       await expect(page.getByRole('button',{name:'Send invitations',exact:true})).toBeDisabled();
       await visible(page,width,`${family}-saved-invitations`);
       const files=await Promise.all((await readdir(fixtureDir)).map(async name=>({name,text:await readFile(join(fixtureDir,name),'utf8')})));
-      const again=await api('/api/app/statuspage-import/preview',{files});
-      const reapplied=await api('/api/app/statuspage-import/apply',{files,asOf:again.report.asOf,fingerprint:again.report.fingerprint,acknowledged:true});
-      let undone=await api(`/api/app/statuspage-import/jobs/${result.job.id}/undo`,{});
-      while(undone.job.state==='undoing') undone=await api(`/api/app/statuspage-import/jobs/${result.job.id}/undo`,{});
+      const again=await moveIn.preview({files});assert.equal(again.status,200,JSON.stringify(again.body));
+      const reapplied=await moveIn.apply(again.body);assert.equal(reapplied.body.job.id,result.job.id);
+      const undone=await moveIn.undo(result.door);assert.equal(undone.body.job.state,'undone');
       for(const row of result.report.cutover.rows) assert.equal((await fetch(publicOrigin+row.path)).status,404);
     }
     await context.close();

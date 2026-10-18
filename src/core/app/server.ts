@@ -79,7 +79,7 @@ export function createApp(bindings: AppBindings, execution?: MailExecution) {
   registerPageSettingsRoutes(app, services.pageSettings);
   registerPageExportRoutes(app, services.pageExport);
   registerStatuspageImportRoutes(app, services.statuspageImport);
-  registerImportDoor(app, bindings, services.statuspageImport,()=>services.publicSnapshots.rebuild(true));
+  registerImportDoor(app, bindings, services.statuspageImport,()=>services.publicSnapshots.rebuild(true), services.auth);
   registerChannelRoutes(app, services.channels);
 
   async function readOperator(path: string, source: Request, authority: OperatorReadSession) {

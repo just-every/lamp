@@ -22,7 +22,7 @@ export interface SorryRead extends ReadSource {
   publicAddresses: Record<string, string[]>;
   sourceInfo: { label: string; pageId: string; publicUrl: string };
 }
-export interface SorryReadOptions { pageId?: string; publicAccessAcknowledged?: boolean; publicUrl?: string; allowPartialPreview?: boolean }
+export interface SorryReadOptions { pageId?: string; publicAccessAcknowledged?: boolean; publicUrl?: string }
 
 /** Public snapshots have no subscriber authority. Both modes require owner
  * confirmation of unrestricted publication; authentication never implies it. */
@@ -45,15 +45,10 @@ export async function readSorryResponses(files: SavedFile[], options: SorryReadO
     add("component", raw.id, raw, origin);
     if (data.groups.some((group) => group.id === raw.id)) add("group", raw.id, raw, origin);
   }
-  for (const { raw: list, origin } of saved.notices) {
+  for (const { raw: list } of saved.notices) {
     const kind = list.type === "planned" ? "maintenance" : "incident";
     const detail = saved.details.get(list.id);
-    if (!detail) {
-      if (!options.allowPartialPreview) throw new Error("Every Sorry notice requires its complete saved detail and update history; capture every detail before importing.");
-      add(kind, list.id, list, origin);
-      accounting.push({ kind, sourceId: list.id, name: list.subject, outcome: "rejected", reason: "Detail not captured in this preview; import requires every notice detail." });
-      continue;
-    }
+    if (!detail) throw new Error("Every Sorry notice requires its complete saved detail and update history; capture every detail before importing.");
     const row = noticeSchema.parse(detail.raw);
     agree(list, row, accessFields);
     const history = saved.updates.get(list.id)!;

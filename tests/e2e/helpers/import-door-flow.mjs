@@ -5,7 +5,7 @@ import { nativeRequest, openNativeRuntime, origin, operator } from '../../dev-in
 import { appOrigin } from './hosts.mjs';
 import { signInAs } from '@runeditrun/rer/internal/modules/operator-auth/dev/sign-in-as.mjs';
 import { devKey } from '../../helpers/dev-key.mjs';
-import { notificationActivity, assertNoNewNotifications } from '../../helpers/import-notifications.mjs';
+import { notificationActivity, assertNoNewNotifications, moveInDoor } from '../../helpers/import-notifications.mjs';
 
 const fixture = (source,family) => readdirSync(`tests/fixtures/${source}/${family}`).map(name=>({name,text:readFileSync(`tests/fixtures/${source}/${family}/${name}`,'utf8')}));
 const hash = bytes => createHash('sha256').update(bytes).digest('hex');
@@ -79,10 +79,11 @@ export async function businessImportDoorFlow({ afterApply, afterSources } = {}) 
     await runtime.start(); await runtime.seedOperator();
     const entered=await signInAs({origin,key:devKey});
     const cookie=entered.header;
-    const owner=async(path,body,method=body?'POST':'GET')=> {
-      const response=await nativeRequest(path,{cookie,method,...(body?{json:body}:{})});
+    const owner=async(path,body,method=body?'POST':'GET',headers)=> {
+      const response=await nativeRequest(path,{cookie,method,...(body?{json:body}:{}),...(headers?{headers}:{})});
       return {status:response.status,body:await response.json()};
     };
+    const moveIn=moveInDoor((path,body,headers)=>owner(path,body,undefined,headers));
     const grant=(action,namespace,extra={})=> {
       const iat=Math.floor(Date.now()/1000);
       const payload={v:1,iss:issuer,aud:origin,installationId,email:operator,jti:randomUUID(),iat,exp:iat+300,action,namespace,maxBytes:8*1024*1024,maxChunks:128,maxRecords:5000,...extra};
@@ -97,7 +98,8 @@ export async function businessImportDoorFlow({ afterApply, afterSources } = {}) 
     assert.equal((await nativeRequest('/api/app/import-door/settings',{method:'PUT',json:{enabled:true}})).status,401);
     assert.equal((await owner('/api/app/import-door/settings')).body.enabled,false);
     assert.equal((await owner('/api/app/import-door/settings',{enabled:true},'PUT')).status,200);
-    assert.deepEqual(await door('uploads','betterstack',{}),{status:403,body:{error:'unknown_import_source'}},'only Lamp\'s listed sources have a door namespace');
+    assert.deepEqual(await door('uploads','pagerduty',{}),{status:403,body:{error:'unknown_import_source'}},'only Lamp\'s listed sources have a door namespace');
+    assert.deepEqual(await moveIn.door('pagerduty','uploads',{}),{status:400,body:{error:'unknown_import_source'}},'the owner\'s Move in shares that allow-list');
     const counts=async()=> Promise.all(['/api/app/components','/api/app/incidents','/api/app/maintenance','/api/app/subscribers'].map(async path=>{
       const result=await owner(path); assert.equal(result.status,200); return result.body;
     }));
@@ -117,8 +119,9 @@ export async function businessImportDoorFlow({ afterApply, afterSources } = {}) 
       },
       assertUndone:async(snapshot,after)=>assert.deepEqual(after,snapshot),
     });
-    for (const source of ['statuspage','sorry']) {
-      const bytes=Buffer.from(JSON.stringify({source,files:fixture(source,source==='sorry'?'authenticated':'small'),...(source==='sorry'?{pageId:'synthpage01',publicAccessAcknowledged:true}:{})}));
+    // Every source Move in offers has its door namespace.
+    for (const source of ['statuspage','sorry','betterstack','instatus']) {
+      const bytes=Buffer.from(JSON.stringify({source,files:fixture(source,source==='sorry'?'authenticated':'small'),...(source==='statuspage'?{}:source==='betterstack'?{publicAccessAcknowledged:true}:{pageId:'synthpage01',publicAccessAcknowledged:true})}));
       let uploadId;
       for(let offset=0,index=0;offset<bytes.length;offset+=65536,index++) {
         const chunk=bytes.subarray(offset,offset+65536);
@@ -143,11 +146,11 @@ export async function businessImportDoorFlow({ afterApply, afterSources } = {}) 
       const status=await door('status',source,{planId});
       assert.equal(status.body.approval.owner,operator);
       const history=(await owner('/api/app/statuspage-import/jobs')).body.jobs;
-      assert.ok(history.find(job=>job.id===applied.body.job.id)?.approvalCaption.includes(fingerprint));
+      assert.match(history.find(job=>job.id===applied.body.job.id)?.approvalCaption ?? '',new RegExp(`^approved via Business by ${operator} at .+, fingerprint ${fingerprint}$`));
       const read=await owner(`/api/app/statuspage-import/jobs/${applied.body.job.id}`);
       assert.equal(read.status,200,JSON.stringify(read.body)); assert.equal(read.body.report.cutover.afterCutover,true);
       const subscribers=(await owner('/api/app/subscribers')).body.subscribers;
-      assert.ok(subscribers.length>0); assert.ok(subscribers.every(row=>row.state==='deactivated'));
+      assert.ok(subscribers.length>0); assert.ok(subscribers.every(row=>row.state==='deactivated'),'held until cutover');
       assert.equal((await owner(`/api/app/statuspage-import/jobs/${applied.body.job.id}/send-invitations`,{})).status,409,'cutover approval is separate');
       await assertNoNewNotifications(runtime,notifications);
       if(process.env.LAMP_IMPORT_DOOR_VISUALS) {
@@ -156,11 +159,8 @@ export async function businessImportDoorFlow({ afterApply, afterSources } = {}) 
       }
       await afterApply?.({ source, runtime, door, owner, planId, applied, cookies: entered.cookies });
       if(source==='sorry') {
-        let ownerUndo;
-        do {
-          ownerUndo=await owner(`/api/app/statuspage-import/jobs/${applied.body.job.id}/undo`,{});
-          assert.equal(ownerUndo.status,200,JSON.stringify(ownerUndo.body));
-        } while(ownerUndo.body.job.state==='undoing');
+        const ownerUndo=await moveIn.undo(history.find(job=>job.id===applied.body.job.id));
+        assert.equal(ownerUndo.status,200,JSON.stringify(ownerUndo.body));
         assert.equal(ownerUndo.body.job.state,'undone','ordinary owner history can undo Business imports');
       }
       let undone;
@@ -171,6 +171,18 @@ export async function businessImportDoorFlow({ afterApply, afterSources } = {}) 
       assert.equal(undone.body.job.state,'undone'); assert.deepEqual(await counts(),before);
     }
     await afterSources?.({ runtime, door, owner });
+    // The owner's own Move in lands in the same history, approved by the owner,
+    // and imports again the very export Business imported and undid.
+    const beforeOwn=await counts();
+    const own=await moveIn.preview({source:'instatus',files:fixture('instatus','small'),pageId:'synthpage01',publicAccessAcknowledged:true});
+    assert.equal(own.status,200,JSON.stringify(own.body));
+    const ownImport=await moveIn.apply(own.body);
+    assert.equal(ownImport.status,200,JSON.stringify(ownImport.body)); assert.equal(ownImport.body.job.state,'completed');
+    const together=(await owner('/api/app/statuspage-import/jobs')).body.jobs;
+    assert.match(together.find(job=>job.id===ownImport.body.job.id).approvalCaption,new RegExp(`^approved by ${operator} at .+, fingerprint ${own.body.fingerprint}$`));
+    assert.ok(together.some(job=>job.approvalCaption?.startsWith(`approved via Business by ${operator}`)),'Business imports stay in the same history');
+    assert.equal((await moveIn.undo(ownImport.body.door)).body.job.state,'undone');
+    assert.deepEqual(await counts(),beforeOwn);
     const token=grant('uploads','statuspage');
     assert.equal((await owner('/api/app/import-door/settings',{enabled:true,revokedKids:[kid]},'PUT')).status,200);
     assert.equal((await door('uploads','statuspage',{}, {},token)).status,403);

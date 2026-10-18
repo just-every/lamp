@@ -3,15 +3,28 @@ import { importDoorScale } from './helpers/import-door-scale.mjs';
 import assert from 'node:assert/strict';
 import { DatabaseSync } from 'node:sqlite';
 import { createHash, randomUUID } from 'node:crypto';
+import { inflateRawSync } from 'node:zlib';
 import { readdirSync, readFileSync } from 'node:fs';
 import { test } from 'node:test';
 import { nativeRequest, openNativeRuntime, origin, publicOrigin } from '../dev-ingress/runtime.mjs';
 import { signInAs } from '@runeditrun/rer/internal/modules/operator-auth/dev/sign-in-as.mjs';
 import { devKey } from '../helpers/dev-key.mjs';
-import { notificationActivity, assertNoNewNotifications } from '../helpers/import-notifications.mjs';
+import { notificationActivity, assertNoNewNotifications, moveInDoor } from '../helpers/import-notifications.mjs';
 import { load } from '../operator-readiness/runtime.mjs';
 
 const endpoint = '/api/app/statuspage-import';
+/** Whether any import custody row holds the value: plain, in a door upload's
+ * base64 chunks, or in a kit job's compressed plan. Reads the local D1 file. */
+function custodyHolds(runtime, value) {
+  const directory = `${runtime.state}/v3/d1/miniflare-D1DatabaseObject`;
+  const db = new DatabaseSync(`${directory}/${readdirSync(directory).find(name => name.endsWith('.sqlite') && name !== 'metadata.sqlite')}`, { readOnly: true });
+  const forms = text => [text, ...(/^[A-Za-z0-9+/]+=*$/.test(text) ? [Buffer.from(text, 'base64').toString('utf8')] : []),
+    ...(text.includes('"d1Plan":2') ? [inflateRawSync(Buffer.from(JSON.parse(text).data, 'base64')).toString('utf8')] : [])];
+  try {
+    return db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name LIKE 'ik\\_%' ESCAPE '\\'").all().some(({ name }) =>
+      db.prepare(`SELECT * FROM "${name}"`).all().some(row => Object.values(row).some(cell => typeof cell === 'string' && forms(cell).some(text => text.toLowerCase().includes(value)))));
+  } finally { db.close(); }
+}
 const fixture = family => readdirSync(`tests/fixtures/sorry/${family}`).map(name => ({ name, text: readFileSync(`tests/fixtures/sorry/${family}/${name}`, 'utf8') }));
 const source = { source: 'sorry', publicAccessAcknowledged: true, pageId: 'synthpage01' };
 
@@ -20,36 +33,37 @@ test('MOVE-001 MOVE-002 MOVE-004 MOVE-005 MOVE-006 Sorry and the opt-in Business
   try {
     await runtime.start(); await runtime.seedOperator();
     const cookie = (await signInAs({ origin, key: devKey })).header;
-    const call = async (path, body) => {
-      const response = await nativeRequest(path, { cookie, ...(body ? { method: 'POST', json: body } : {}) });
+    const call = async (path, body, headers) => {
+      const response = await nativeRequest(path, { cookie, ...(body ? { method: 'POST', json: body } : {}), ...(headers ? { headers } : {}) });
       return { status: response.status, body: await response.json() };
     };
+    const moveIn = moveInDoor(call);
     const counts = async () => {
       const rows = await Promise.all(['/api/app/components', '/api/app/incidents', '/api/app/maintenance', '/api/app/subscribers'].map(path => call(path)));
       return [rows[0].body.components.length, rows[0].body.groups.length, rows[1].body.incidents.length, rows[2].body.maintenance.length, rows[3].body.subscribers.length];
     };
-    const read = files => call(`${endpoint}/preview`, { ...source, files });
+    const read = files => moveIn.preview({ ...source, files });
     const apply = async files => {
       const preview = await read(files); assert.equal(preview.status, 200, JSON.stringify(preview.body));
-      let result = await call(`${endpoint}/apply`, { ...source, files, asOf: preview.body.report.asOf, fingerprint: preview.body.report.fingerprint, acknowledged: true });
-      while (result.body.job?.state === 'applying') result = await call(`${endpoint}/jobs/${result.body.job.id}/resume`, {});
+      const result = await moveIn.apply(preview.body);
       assert.equal(result.status, 200, JSON.stringify(result.body)); assert.equal(result.body.job.state, 'completed');
       return result.body;
     };
-    const undo = async id => {
-      let result;
-      do { result = await call(`${endpoint}/jobs/${id}/undo`, {}); assert.equal(result.status, 200, JSON.stringify(result.body)); } while (result.body.job.state === 'undoing');
+    const undo = async imported => {
+      const result = await moveIn.undo(imported.door);
+      assert.equal(result.status, 200, JSON.stringify(result.body));
       assert.equal(result.body.job.state, 'undone'); return result.body;
     };
     const initial = await counts(), notifications = await notificationActivity(runtime), files = fixture('public');
-    const guest = await nativeRequest(`${endpoint}/preview`, { method: 'POST', json: { ...source, files } }); assert.equal(guest.status, 401);
+    const guest = await nativeRequest('/api/operator/import/uploads', { method: 'POST', json: {}, headers: { 'X-Import-Source': 'sorry' } }); assert.equal(guest.status, 401);
     const preview = await read(files); assert.equal(preview.status, 200, JSON.stringify(preview.body));
     for (const [kind, amount] of Object.entries({ component: 2, group: 1, incident: 1, maintenance: 1, subscriber: 0 })) assert.equal(preview.body.report.counts[kind].read, amount);
     assert.deepEqual(await counts(), initial); await assertNoNewNotifications(runtime, notifications);
     assert.equal((await read(files.filter(file => file.name !== 'sorry-notice-100.json'))).status, 400, 'incomplete detail cannot be applied');
     assert.equal((await read([...files, ...fixture('authenticated').filter(file => file.name.includes('subscribers'))])).status, 400, 'public captures cannot contain subscribers');
     const altered = files.map(file => file.name.includes('components') ? { ...file, text: file.text.replace('Billing API', 'Changed billing API') } : file);
-    assert.equal((await call(`${endpoint}/apply`, { ...source, files: altered, asOf: preview.body.report.asOf, fingerprint: preview.body.report.fingerprint, acknowledged: true })).status, 409);
+    const alteredPlan = await read(altered); assert.equal(alteredPlan.status, 200, JSON.stringify(alteredPlan.body));
+    assert.equal((await moveIn.apply(alteredPlan.body, preview.body.fingerprint)).status, 403, 'a reviewed fingerprint applies only the bytes it reviewed');
     const imported = await apply(files);
     assert.deepEqual(await counts(), [2, 1, 1, 1, 0]);
     const incident = (await call('/api/app/incidents')).body.incidents[0];
@@ -70,7 +84,7 @@ test('MOVE-001 MOVE-002 MOVE-004 MOVE-005 MOVE-006 Sorry and the opt-in Business
     }
     assert.equal((await fetch(`${publicOrigin}/history/2026/not-a-month`, { redirect: 'manual' })).status, 404);
     assert.equal((await apply(files)).job.id, imported.job.id);
-    await undo(imported.job.id); assert.deepEqual(await counts(), initial);
+    await undo(imported); assert.deepEqual(await counts(), initial);
     assert.equal((await fetch(`${publicOrigin}/notices/100`, { redirect: 'manual' })).status, 404);
     assert.equal((await fetch(`${publicOrigin}/history/2026/october`, { redirect: 'manual' })).status, 404);
     assert.equal((await fetch(`${publicOrigin}/history`, { redirect: 'manual' })).status, 200);
@@ -111,8 +125,12 @@ test('MOVE-001 MOVE-002 MOVE-004 MOVE-005 MOVE-006 Sorry and the opt-in Business
     const sent = await call(`${endpoint}/jobs/${held.job.id}/send-invitations`, { liveOrigin: publicOrigin, hostnameLive: true, watchWindowClosed: true });
     assert.equal(sent.status, 200, JSON.stringify(sent.body)); assert.equal(sent.body.report.cutover.invitations.claimed, 1);
     const repeated = await call(`${endpoint}/jobs/${held.job.id}/send-invitations`, { liveOrigin: publicOrigin, hostnameLive: true, watchWindowClosed: true }); assert.equal(repeated.body.invites.sent, 0);
-    const retained = await undo(held.job.id);
+    const retained = await undo(held);
     assert.ok(retained.undo.dispositions.some(row => row.targetKind === 'subscriber' && row.disposition === 'retained'), 'release changes the held row, so undo cannot claim to retract its invitation');
+    // Deleting the subscriber erases their address from every retained import copy.
+    assert.ok(custodyHolds(runtime, 'reader@example.invalid'), 'the import retained the address before the deletion');
+    assert.equal((await nativeRequest(`/api/app/subscribers/${subscriber.id}`, { cookie, method: 'DELETE' })).status, 204);
+    assert.equal(custodyHolds(runtime, 'reader@example.invalid'), false, 'no upload, plan snapshot or import job keeps a deleted subscriber');
   } finally { await runtime.close(); }
   await businessImportDoorFlow({ afterApply: async ({ source, runtime, door, planId, cookies }) => {
     if (source !== 'statuspage') return;

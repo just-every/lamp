@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { readFile, readdir } from "node:fs/promises";
 import { setTimeout as delay } from "node:timers/promises";
+import { moveInDoor } from "../../helpers/import-notifications.mjs";
 
 const DAY = 86_400_000;
 const quote = value => `'${String(value).replaceAll("'", "''")}'`;
@@ -36,7 +37,12 @@ async function ancientSorryFiles(year) {
 export async function catalogueHistoryFlow({ appFetch, fetch, pageUrl, queryLocalSql, executeLocalSql, updateSettings, diagnostic = () => {} }) {
   const prefix = `Catalogue ${randomUUID().slice(0, 8)}`;
   const bulk = "/api/app/components/bulk";
-  const move = "/api/app/statuspage-import";
+  const moveIn = moveInDoor(async (path, input, headers) => {
+    const response = await appFetch(path, { method: input === undefined ? "GET" : "POST", ...(input === undefined ? {} : { body: JSON.stringify(input) }), ...(headers ? { headers } : {}) });
+    const text = await response.text();
+    return { status: response.status, body: text ? JSON.parse(text) : null };
+  });
+  const moved = response => { assert.equal(response.status, 200, JSON.stringify(response.body)); return response.body; };
   const newComponents = new Set(), newGroups = new Set();
   let conditionalIncident, boundaryId, originalTimezone;
   const importJobs = [];
@@ -147,17 +153,13 @@ export async function catalogueHistoryFlow({ appFetch, fetch, pageUrl, queryLoca
     const year = new Date().getUTCFullYear() - 4;
     const files = await ancientSorryFiles(year);
     const source = { source: "sorry", publicAccessAcknowledged: true };
-    const importedPreview = await api(`${move}/preview`, "POST", { ...source, files });
-    let imported = await api(`${move}/apply`, "POST", { ...source, files, asOf: importedPreview.report.asOf, fingerprint: importedPreview.report.fingerprint, acknowledged: true });
-    importJobs.push(imported.job.id);
-    for (let round = 0; imported.job.state === "applying" && round < 100; round += 1) imported = await api(`${move}/jobs/${imported.job.id}/resume`, "POST", {});
+    const imported = moved(await moveIn.apply(moved(await moveIn.preview({ ...source, files }))));
+    importJobs.push(imported.door);
     assert.equal(imported.job.state, "completed");
     const statuspageDirectory = new URL("../../fixtures/statuspage/small/", import.meta.url);
     const statuspageFiles = await Promise.all((await readdir(statuspageDirectory)).filter(name => name !== "subscribers.json").map(async name => ({ name, text: (await readFile(new URL(name, statuspageDirectory), "utf8")).replaceAll("2026-01-11", `${year}-02-02`).replaceAll("2026-01-21", `${year + 1}-08-02`).replaceAll("2026-", `${year}-`) })));
-    const statuspagePreview = await api(`${move}/preview`, "POST", { files: statuspageFiles });
-    let statuspageImport = await api(`${move}/apply`, "POST", { files: statuspageFiles, asOf: statuspagePreview.report.asOf, fingerprint: statuspagePreview.report.fingerprint, acknowledged: true });
-    importJobs.push(statuspageImport.job.id);
-    for (let round = 0; statuspageImport.job.state === "applying" && round < 100; round += 1) statuspageImport = await api(`${move}/jobs/${statuspageImport.job.id}/resume`, "POST", {});
+    const statuspageImport = moved(await moveIn.apply(moved(await moveIn.preview({ files: statuspageFiles }))));
+    importJobs.push(statuspageImport.door);
     assert.equal(statuspageImport.job.state, "completed");
     const importedIncident = (await api("/api/app/incidents")).incidents.find(incident => incident.title === "Elevated API errors" && incident.openedAt.startsWith(`${year}-`));
     assert.ok(importedIncident, "the import's actual native incident is available");
@@ -193,14 +195,7 @@ export async function catalogueHistoryFlow({ appFetch, fetch, pageUrl, queryLoca
     assert.equal((await read(`/history/${year}-13`)).status, 404, "invalid new month paths never become Sorry aliases");
   } finally {
     if (boundaryId) await executeLocalSql(`DELETE FROM incidents WHERE id=${quote(boundaryId)}`);
-    for (const importJob of importJobs.reverse()) {
-      let undone;
-      for (let round = 0; round < 100; round += 1) {
-        undone = await api(`${move}/jobs/${importJob}/undo`, "POST", {});
-        if (undone.job.state !== "undoing") break;
-      }
-      assert.equal(undone.job.state, "undone");
-    }
+    for (const importJob of importJobs.reverse()) assert.equal(moved(await moveIn.undo(importJob)).job.state, "undone");
     if (conditionalIncident) await api(`/api/app/incidents/${conditionalIncident.id}`, "DELETE", { reason: "Catalogue journey fixture cleanup." });
     if (newComponents.size || newGroups.size) {
       const latest = await current();

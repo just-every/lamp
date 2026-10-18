@@ -1,12 +1,15 @@
 import { loadPlans } from "../../../../modules/import-kit/src/d1/plans";
 import { stableId } from "../statuspage-import/rows";
 
+/** A Statuspage import: one made before the import door, or a door import of the Statuspage source. */
+const statuspageJob = "(j.namespace='statuspage' OR EXISTS(SELECT 1 FROM ik_door_plans d WHERE d.job_id=j.id AND d.namespace='statuspage'))";
+
 /** Original public identifiers come from the retained import journal, never a
  * guessed reverse mapping. Only the renderer's public records use this map. */
 export async function loadPublicApiIds(db: D1Database): Promise<Record<string, string>> {
-  const rows = (await db.prepare("SELECT DISTINCT j.id,j.plan_json FROM ik_jobs j JOIN ik_provenance p ON p.job_id=j.id WHERE j.namespace='statuspage' AND j.destination='lamp' AND p.reversed=0").all<{ id: string; plan_json: string }>()).results;
+  const rows = (await db.prepare(`SELECT DISTINCT j.id,j.plan_json FROM ik_jobs j JOIN ik_provenance p ON p.job_id=j.id WHERE ${statuspageJob} AND j.destination='lamp' AND p.reversed=0`).all<{ id: string; plan_json: string }>()).results;
   const plans = await loadPlans(rows, db as never);
-  const applied = (await db.prepare("SELECT p.job_id,p.ordinal,p.target_id FROM ik_provenance p JOIN ik_jobs j ON j.id=p.job_id WHERE j.namespace='statuspage' AND p.destination='lamp' AND p.reversed=0").all<{ job_id: string; ordinal: number; target_id: string }>()).results;
+  const applied = (await db.prepare(`SELECT p.job_id,p.ordinal,p.target_id FROM ik_provenance p JOIN ik_jobs j ON j.id=p.job_id WHERE ${statuspageJob} AND p.destination='lamp' AND p.reversed=0`).all<{ job_id: string; ordinal: number; target_id: string }>()).results;
   const ids: Record<string, string> = {};
   for (const row of applied) {
     const entry = plans.get(row.job_id)?.entries[row.ordinal];

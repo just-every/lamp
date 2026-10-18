@@ -1,31 +1,31 @@
 import { fetchSorryPublicResponses } from "./sorry";
 import { releaseSorrySubscribers, type SorryReleaseApproval } from "./sorry-release.repository";
 import { readCutover } from "./cutover.repository";
+import { cutoverFromPlan } from "./cutover";
 import { loadPlans } from "../../../../modules/import-kit/src/d1/plans";
 import { readImportedPublicRecords } from "./alias-repository";
 import { sourcePublicAddresses, inspectSourcePublicAddresses, resolvePublicAddresses } from "./public-addresses";
 import type { Session } from '@runeditrun/rer/modules/operator-auth';
 import { sessionAuthority } from '../../platform/auth/authority';
 import { isMailPreparationError } from '../../platform/mail/sender';
-import { applyD1ImportBatches, canonicalJson, createD1ImportJob, readD1ImportJob, readD1ImportUndoReport, resumeD1Import, undoD1Import, type D1ImportContext, type ImportJob, type ImportPlan } from "../../../../modules/import-kit/src/d1/index.ts";
+import { readD1ImportJob, readD1ImportUndoReport, resumeD1Import, undoD1Import, type D1ImportContext, type D1Sql, type ImportJob, type ImportPlan } from "../../../../modules/import-kit/src/d1/index.ts";
 import { stored } from "../../../../modules/import-kit/src/d1/jobs.ts";
 import { nowIso } from "../../shared/ids";
 import { planMoveIn, reportFromPlan, type MoveInReport } from "./planning";
 import type { Snapshot } from "./rows";
-import type { SavedFile } from "./source";
-import { sourceAdapter, type SourceInput } from "./adapters";
+import { importSources, isImportSource, sourceAdapter, type SourceInput } from "./adapters";
 import { statuspageTargets } from "./targets";
 import { doorMapping, moveInPlan, readDoorExport } from './door-plan';
-import { createImportDoorRepository } from './door.repository';
 import { approvalCaption } from '../../../../modules/import-kit/src/door/failures';
 
 const DESTINATION = "lamp";
-const NAMESPACE = "statuspage";
-const REVIEW_WINDOW_MS = 30 * 60 * 1000;
 const INVITES_PER_REQUEST = 50;
+const SOURCES = `(${importSources.map((name) => `'${name}'`).join(",")})`;
 
 export type MoveInActor = Session;
-export interface MoveInResult { job: ImportJob; report: MoveInReport; invites: { sent: number; remaining: number }; undo?: Awaited<ReturnType<typeof readD1ImportUndoReport>> & { expiredSubscribers: number } }
+/** A door import's plan, for Move in's resume and undo through the door. */
+export interface MoveInDoorPlan { planId: string; fingerprint: string; namespace: string }
+export interface MoveInResult { job: ImportJob; door: MoveInDoorPlan | null; report: MoveInReport; invites: { sent: number; remaining: number }; undo?: Awaited<ReturnType<typeof readD1ImportUndoReport>> & { expiredSubscribers: number } }
 export interface MoveInHooks {
   inviteSubscriber(subscriberId: string, claimSend: () => Promise<boolean>): Promise<boolean>;
   publicDataChanged(): Promise<void>;
@@ -34,38 +34,48 @@ export interface MoveInHooks {
 
 /** The kit evaluates this in D1 before and after every batch: a signed-out or
  * removed operator stops an import at its next batch. */
-function importContext(db: D1Database, actor: MoveInActor, namespace = "statuspage"): D1ImportContext {
+function importContext(db: D1Database, actor: MoveInActor, namespace = "statuspage", principalId = actor.operator.id): D1ImportContext {
   return {
     destination: DESTINATION, namespace, mappingVersion: "1",
     storage: { database: db as never, targets: statuspageTargets },
     batchSize: 4, maxBatches: 3, reversalPolicy: "preserve-conflicts",
     authorization: {
-      principalId: actor.operator.id,
+      principalId,
       predicate: () => sessionAuthority(actor),
     },
   };
 }
 
-/** Door preparation runs for the installation's active owner, whose grant the
- * door has already verified; every door write rechecks the grant itself. */
-function doorPreparationContext(db: D1Database, ownerId: string, namespace: string): D1ImportContext {
+/** Door preparation runs under the authority the door admitted: the owner's
+ * session for Move in, the installation's active owner for a Business grant.
+ * Every door write rechecks that authority itself. */
+function doorPreparationContext(db: D1Database, principalId: string, namespace: string, authority: D1Sql): D1ImportContext {
   return {
     destination: DESTINATION, namespace, mappingVersion: "1",
     storage: { database: db as never, targets: statuspageTargets },
-    authorization: { principalId: ownerId, predicate: () => ({ sql: "EXISTS(SELECT 1 FROM oa_operators WHERE id=? AND role='owner' AND status='active')", params: [ownerId] }) },
+    authorization: { principalId, predicate: () => authority },
   };
 }
 
-const artifactIdentity = (plan: ImportPlan | { artifacts: Array<{ name: string; sha256: string }> }) => {
-  const artifacts = "source" in plan ? plan.source.artifacts : plan.artifacts;
-  return canonicalJson(artifacts.map((artifact) => ({ name: artifact.name, sha256: artifact.sha256 })).sort((a, b) => a.name.localeCompare(b.name)));
-};
-
 export function createStatuspageImportService(db: D1Database, hooks: MoveInHooks, options: { apiOrigin?: string } = {}) {
+  /** An import Move in made before the door (the operator's own, by its source
+   * namespace) or a door import of a listed source, under the session's authority. */
+  async function jobOf(id: string, actor: MoveInActor) {
+    const row = await db.prepare(`SELECT j.namespace,j.principal_id,d.id AS plan_id,d.fingerprint,d.namespace AS source FROM ik_jobs j LEFT JOIN ik_door_plans d ON d.job_id=j.id WHERE j.id=? AND j.destination=?`).bind(id, DESTINATION).first<{ namespace: string; principal_id: string; plan_id: string | null; fingerprint: string | null; source: string | null }>();
+    // A door import's principal is the installation's owner; any owner session reads it.
+    if (row?.plan_id && row.source && isImportSource(row.source)) return { context: importContext(db, actor, row.namespace, row.principal_id), door: { planId: row.plan_id, fingerprint: row.fingerprint!, namespace: row.source } };
+    if (row && !row.plan_id && row.principal_id === actor.operator.id && isImportSource(row.namespace)) return { context: importContext(db, actor, row.namespace), door: null };
+    throw new Error("Import not found.");
+  }
   async function contextForJob(id: string, actor: MoveInActor) {
-    const row = await db.prepare("SELECT namespace FROM ik_jobs WHERE id=? AND destination=? AND principal_id=?").bind(id, DESTINATION, actor.operator.id).first<{ namespace: string }>();
-    if (!row || (!['statuspage','betterstack','instatus','sorry'].includes(row.namespace) && !await db.prepare("SELECT 1 FROM ik_door_plans WHERE job_id=? AND namespace IN ('statuspage','sorry')").bind(id).first())) throw new Error("Import not found.");
-    return importContext(db, actor, row.namespace);
+    return (await jobOf(id, actor)).context;
+  }
+  /** Resume and undo of an import made before the door. A door import resumes
+   * and undoes through the door, like every new import. */
+  async function contextForLegacyJob(id: string, actor: MoveInActor) {
+    const job = await jobOf(id, actor);
+    if (job.door) throw new Error("Continue or undo this import from Move in.");
+    return job.context;
   }
   async function assertAuthority(context: D1ImportContext) {
     const fence = context.authorization.predicate('read', DESTINATION);
@@ -98,27 +108,13 @@ export function createStatuspageImportService(db: D1Database, hooks: MoveInHooks
     };
   }
 
-  /** A source already applied by this operator is reported as already here; it is never planned twice. */
-  async function existingPlan(identity: string, context: D1ImportContext) {
-    await assertAuthority(context);
-    const rows = (await db.prepare("SELECT id FROM ik_jobs WHERE principal_id=? AND destination=? AND namespace=? ORDER BY rowid DESC").bind(context.authorization.principalId, DESTINATION, context.namespace).all<{ id: string }>()).results;
-    for (const row of rows) {
-      const { job, plan } = await stored(row.id, context);
-      await assertAuthority(context);
-      if (artifactIdentity(plan) !== identity || job.state === "undone" || job.state === "rolled_back") continue;
-      return { job, plan };
-    }
-    await assertAuthority(context);
-    return null;
-  }
-
   /** Equal operators share native data, but each source record lands once. */
   async function sourceClear(plan: ImportPlan) {
     // Exclude this operation so the import kit's post-write authority check
     // accepts its own new job, while serializing competing alias reservations.
-    const otherJobs = "SELECT count(*) AS n FROM ik_jobs WHERE destination='lamp' AND namespace IN ('statuspage','betterstack','instatus','sorry') AND NOT (principal_id=? AND fingerprint=?)";
+    const otherJobs = `SELECT count(*) AS n FROM ik_jobs WHERE destination='lamp' AND namespace IN ${SOURCES} AND NOT (principal_id=? AND fingerprint=?)`;
     const observed = await db.prepare(otherJobs).bind(plan.principalId, plan.fingerprint).first<{n: number}>();
-    const pending = (await db.prepare("SELECT id,plan_json FROM ik_jobs WHERE destination='lamp' AND namespace IN ('statuspage','betterstack','instatus','sorry') AND state NOT IN ('undone','rolled_back')").all<{id: string; plan_json: string}>()).results;
+    const pending = (await db.prepare(`SELECT id,plan_json FROM ik_jobs WHERE destination='lamp' AND namespace IN ${SOURCES} AND state NOT IN ('undone','rolled_back')`).all<{id: string; plan_json: string}>()).results;
     const occupied = new Map<string, string>();
     for (const stored of (await loadPlans(pending, db as never)).values()) {
       for (const entry of stored.entries.filter((entry) => !entry.erased && entry.effects.length && ["incident", "maintenance"].includes(entry.source.kind))) {
@@ -139,34 +135,12 @@ export function createStatuspageImportService(db: D1Database, hooks: MoveInHooks
       }
     }
     const clear = {
-      sql: `(SELECT count(*) FROM ik_jobs WHERE destination='lamp' AND namespace IN ('statuspage','betterstack','instatus','sorry') AND NOT (principal_id=? AND fingerprint=?))=? AND NOT EXISTS (SELECT 1 FROM ik_d1_plan_index i JOIN ik_jobs j ON j.id=i.job_id WHERE j.destination=? AND j.namespace=? AND i.source_identity IN (SELECT value FROM json_each(?)) AND j.state NOT IN ('undone','rolled_back') AND NOT (j.principal_id=? AND j.fingerprint=?))`,
+      sql: `(SELECT count(*) FROM ik_jobs WHERE destination='lamp' AND namespace IN ${SOURCES} AND NOT (principal_id=? AND fingerprint=?))=? AND NOT EXISTS (SELECT 1 FROM ik_d1_plan_index i JOIN ik_jobs j ON j.id=i.job_id WHERE j.destination=? AND j.namespace=? AND i.source_identity IN (SELECT value FROM json_each(?)) AND j.state NOT IN ('undone','rolled_back') AND NOT (j.principal_id=? AND j.fingerprint=?))`,
       params: [plan.principalId, plan.fingerprint, observed?.n ?? 0, DESTINATION, plan.namespace, JSON.stringify(plan.entries.map((entry) => entry.identity)), plan.principalId, plan.fingerprint],
     };
     const result = await db.prepare(`SELECT ${clear.sql} AS clear`).bind(...clear.params).first<{ clear: number }>();
     if (result?.clear !== 1) throw new Error("Some of these records were imported already. Undo that import first, or import only new saved responses.");
     return clear;
-  }
-
-  /** Re-applying a reviewed source after an undo is a new application of it. */
-  async function applicationContext(context: D1ImportContext, plan: ImportPlan): Promise<D1ImportContext> {
-    const clear = await sourceClear(plan);
-    const history = "SELECT count(*) FROM ik_jobs WHERE destination=? AND namespace=? AND mapping_version=? AND principal_id=? AND fingerprint=? AND state IN ('undone','rolled_back')";
-    const params = [DESTINATION, context.namespace, "1", context.authorization.principalId, plan.fingerprint];
-    const generation = Number((await db.prepare(history.replace("count(*)", "count(*) AS generation")).bind(...params).first<{ generation: number }>())?.generation ?? 0);
-    return {
-      ...context, reviewedFingerprint: plan.fingerprint, operationKey: generation ? `${plan.fingerprint}:application:${generation}` : plan.fingerprint,
-      authorization: { ...context.authorization, predicate(action, destination) {
-        const authority = context.authorization.predicate(action, destination);
-        if (action !== "create") return authority;
-        return { sql: `(${authority.sql}) AND (${clear.sql}) AND (${history})=?`, params: [...authority.params ?? [], ...clear.params, ...params, generation] };
-      } },
-    };
-  }
-
-  function reviewedInstant(asOf: string) {
-    const instant = Date.parse(asOf);
-    if (!Number.isFinite(instant) || instant > Date.now() + 60_000 || instant < Date.now() - REVIEW_WINDOW_MS) throw new Error("This dry run has expired. Run the dry run again.");
-    return new Date(instant).toISOString();
   }
 
   async function sendInvites(jobId: string, plan: ImportPlan, context: D1ImportContext) {
@@ -215,7 +189,7 @@ export function createStatuspageImportService(db: D1Database, hooks: MoveInHooks
   }
 
   async function result(id: string, actor: MoveInActor): Promise<MoveInResult> {
-    const context = await contextForJob(id, actor);
+    const { context, door } = await jobOf(id, actor);
     const job = await readD1ImportJob(id, context);
     const { plan } = await stored(id, context);
     const cutover = await readCutover(db, job.id, moveInPlan(plan));
@@ -226,60 +200,45 @@ export function createStatuspageImportService(db: D1Database, hooks: MoveInHooks
     const existingAddresses = resolvePublicAddresses((await readImportedPublicRecords(db)).map((record) => ({ ...record, target: `${record.targetKind}:${record.targetId}` })));
     report.unavailableAddresses = [...new Set([...report.unavailableAddresses, ...cutover.unavailable])];
     await assertAuthority(context);
-    return { job, report, invites, ...(job.state === "undone" ? { undo: await undoReport(job.id, context) } : {}) };
-  }
-
-  async function source(input: SourceInput) {
-    if (input.files?.length) return { files: input.files, fetched: false };
-    if (input.source === "sorry" && input.publicUrl) return { files: await fetchSorryPublicResponses({ publicUrl: input.publicUrl, noticeLimit: input.previewNoticeLimit }), fetched: true };
-    if (!input.pageId || !input.apiKey) throw new Error(`Choose saved ${sourceAdapter(input.source).label} responses, or enter a page ID and API key.`);
-    return { files: await sourceAdapter(input.source).fetch({ pageId: input.pageId, apiKey: input.apiKey }, options.apiOrigin), fetched: true };
+    // A door import's job reads as its source, as Move in's history lists it.
+    return { job: door ? { ...job, namespace: door.namespace } : job, door, report, invites, ...(job.state === "undone" ? { undo: await undoReport(job.id, context) } : {}) };
   }
 
   return {
-    /** A Business door upload, planned exactly as the move-in screen plans it,
-     * for the door's own plan: the records it reads and the mapping it applies.
-     * Read-only; the door admits the grant before calling this. */
-    async prepareDoor(bytes: Uint8Array, namespace: string, ownerId: string) {
+    /** One door upload, planned as Move in has always planned a source, for the
+     * door's own plan: the records it reads and the mapping it applies. Read-only;
+     * the door admitted the session or grant first. */
+    async prepareDoor(bytes: Uint8Array, namespace: string, principalId: string, operatorId: string, authority: D1Sql, business: boolean) {
       const {input,read} = await readDoorExport(bytes);
       if (namespace!==input.source) throw new Error('The grant namespace must match the source.');
-      const context = doorPreparationContext(db, ownerId, input.source);
-      const plan = await planMoveIn(read,await snapshot(context),context,ownerId,nowIso());
+      const context = doorPreparationContext(db, principalId, input.source, authority);
+      // Imported records name the operator who imported them as their author.
+      const plan = await planMoveIn(read,await snapshot(context),context,operatorId,nowIso());
       await sourceClear(plan);
       await assertAuthority(context);
-      return doorMapping(plan);
+      return doorMapping(plan, business);
     },
-    /** Writes nothing: reads the source, plans every record and reports it. */
-    async preview(input: SourceInput, actor: MoveInActor) {
-      const { files, fetched } = await source(input);
-      const read = await sourceAdapter(input.source).read(files, { ...input, allowPartialPreview: Boolean(input.previewNoticeLimit) });
-      const context = importContext(db, actor, input.source);
-      const existing = await existingPlan(artifactIdentity(read), context);
-      if (existing) {
-        const current = await result(existing.job.id, actor);
-        return { report: { ...current.report, state: "already imported" }, jobId: existing.job.id, files: fetched ? files : undefined };
+    /** Writes nothing: reads a source account or public page with its key or
+     * address, and returns its saved responses for Move in to upload. The key is
+     * used for these reads and never saved. */
+    async fetchSource(input: SourceInput, actor: MoveInActor) {
+      await assertAuthority(importContext(db, actor));
+      if (input.source === "sorry" && input.publicUrl) return fetchSorryPublicResponses({ publicUrl: input.publicUrl });
+      if (!input.pageId || !input.apiKey) throw new Error(`Choose saved ${sourceAdapter(input.source).label} responses, or enter a page ID and API key.`);
+      return sourceAdapter(input.source).fetch({ pageId: input.pageId, apiKey: input.apiKey }, options.apiOrigin);
+    },
+    /** The dry-run report of a door plan, from the plan the owner reviews. A
+     * plan whose import already finished reads as already imported. */
+    async planReport(plan: ImportPlan, jobId: string | null, actor: MoveInActor) {
+      if (jobId) {
+        const current = await result(jobId, actor);
+        if (current.job.state === "completed") return { report: { ...current.report, state: "already imported" }, jobId };
       }
-      const asOf = nowIso();
-      const plan = await planMoveIn(read, await snapshot(context), context, actor.operator.id, asOf);
-      await sourceClear(plan);
-      await assertAuthority(context);
-      return { report: reportFromPlan(plan), files: fetched ? files : undefined };
-    },
-    async apply(input: SourceInput & { files: SavedFile[]; asOf: string; fingerprint: string }, actor: MoveInActor) {
-      const read = await sourceAdapter(input.source).read(input.files, input);
-      const context = importContext(db, actor, input.source);
-      const existing = await existingPlan(artifactIdentity(read), context);
-      if (existing) return result(existing.job.id, actor);
-      const plan = await planMoveIn(read, await snapshot(context), context, actor.operator.id, reviewedInstant(input.asOf));
-      if (plan.fingerprint !== input.fingerprint) throw new Error("The source or this page changed since the dry run. Review a fresh dry run.");
-      const job = await createD1ImportJob(plan, await applicationContext(context, plan));
-      await applyD1ImportBatches(job.id, context);
-      const applied = await readD1ImportJob(job.id, context);
-      if (applied.state === "completed") await hooks.publicDataChanged();
-      return result(job.id, actor);
+      await assertAuthority(importContext(db, actor));
+      return { report: reportFromPlan(plan) };
     },
     async resume(id: string, actor: MoveInActor) {
-      const context = await contextForJob(id, actor);
+      const context = await contextForLegacyJob(id, actor);
       const before = await readD1ImportJob(id, context);
       if (before.state === "applying" || before.state === "queued") {
         await resumeD1Import(id, context);
@@ -289,32 +248,37 @@ export function createStatuspageImportService(db: D1Database, hooks: MoveInHooks
     },
     /** Removes what the import created and nobody changed since; changed records stay and are named. */
     async undo(id: string, actor: MoveInActor) {
-      const context = await contextForJob(id, actor);
-      await createImportDoorRepository(db).assertNewest(id);
+      const context = await contextForLegacyJob(id, actor);
       await undoD1Import(id, context);
-      const fence = context.authorization.predicate('undo', DESTINATION);
-      await db.prepare(`DELETE FROM statuspage_import_invites WHERE job_id=? AND subscriber_id NOT IN (SELECT id FROM subscribers) AND ${fence.sql}`).bind(id, ...fence.params ?? []).run();
+      await this.forgetUndoneInvites(id, context.authorization.predicate('undo', DESTINATION));
       await assertAuthority(context);
       await hooks.publicDataChanged();
       return result(id, actor);
+    },
+    /** Invitation claims of subscribers an undo removed. */
+    async forgetUndoneInvites(jobId: string, fence: D1Sql) {
+      await db.prepare(`DELETE FROM statuspage_import_invites WHERE job_id=? AND subscriber_id NOT IN (SELECT id FROM subscribers) AND ${fence.sql}`).bind(jobId, ...fence.params ?? []).run();
     },
     async sendInvitations(id: string, actor: MoveInActor, approval?: SorryReleaseApproval) {
       const context = await contextForJob(id, actor);
       const job = await readD1ImportJob(id, context);
       if (job.state !== "completed") throw new Error("Finish the import before sending invitations.");
       const { plan } = await stored(id, context);
-      if (context.namespace === "sorry" || context.namespace.startsWith('door:')) await releaseSorrySubscribers(db, id, plan, context, approval, await hooks.publicOrigin?.());
+      // Subscribers held until cutover (Sorry's, and every Business import's) are released first.
+      if (cutoverFromPlan(moveInPlan(plan), "").afterCutover) await releaseSorrySubscribers(db, id, plan, context, approval, await hooks.publicOrigin?.());
       const invites = await sendInvites(id, plan, context);
       return { ...await result(id, actor), invites };
     },
     read: (id: string, actor: MoveInActor) => result(id, actor),
+    /** Move in's history: every door import, the owner's own and Business's,
+     * with the operator's imports from before the door. */
     async list(actor: MoveInActor) {
       const context = importContext(db, actor);
       await assertAuthority(context);
-      const rows = (await db.prepare("SELECT j.id,coalesce(d.namespace,j.namespace) AS namespace,j.state,j.checkpoint,j.total,d.fingerprint,a.plan_id AS approved,a.owner,a.approved_at,a.approval_id,a.reviewer,f.reason_code AS failure FROM ik_jobs j LEFT JOIN ik_door_plans d ON d.job_id=j.id LEFT JOIN ik_door_approvals a ON a.plan_id=d.id LEFT JOIN ik_door_apply_failures f ON f.plan_id=d.id WHERE j.principal_id=? AND j.destination=? AND (j.namespace IN ('statuspage','betterstack','instatus','sorry') OR d.namespace IN ('statuspage','sorry')) ORDER BY j.rowid DESC LIMIT 30").bind(actor.operator.id, DESTINATION).all<Record<string, unknown>>()).results;
+      const rows = (await db.prepare(`SELECT j.id,coalesce(d.namespace,j.namespace) AS namespace,j.state,j.checkpoint,j.total,d.id AS planId,d.fingerprint,a.plan_id AS approved,a.owner,a.approved_at,a.approval_id,a.reviewer,f.reason_code AS failure FROM ik_jobs j LEFT JOIN ik_door_plans d ON d.job_id=j.id LEFT JOIN ik_door_approvals a ON a.plan_id=d.id LEFT JOIN ik_door_apply_failures f ON f.plan_id=d.id WHERE j.destination=? AND ((d.id IS NULL AND j.principal_id=? AND j.namespace IN ${SOURCES}) OR d.namespace IN ${SOURCES}) ORDER BY j.rowid DESC LIMIT 30`).bind(DESTINATION, actor.operator.id).all<Record<string, unknown>>()).results;
       await assertAuthority(context);
-      // Business approvals read "approved via Business by …", and a failed Business apply says so.
-      return rows.map(({ fingerprint, approved, owner, approved_at, approval_id, reviewer, failure, ...job }) => ({ ...job, approvalCaption: approved === null ? null : approvalCaption({ owner, approved_at, approval_id, reviewer }, fingerprint, failure) }));
+      // An owner's approval reads "approved by …", Business's "approved via Business by …", and a failed apply says so.
+      return rows.map(({ approved, owner, approved_at, approval_id, reviewer, failure, ...job }) => ({ ...job, approvalCaption: approved === null ? null : approvalCaption({ owner, approved_at, approval_id, reviewer }, job.fingerprint, failure) }));
     },
   };
 }

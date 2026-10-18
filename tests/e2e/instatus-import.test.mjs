@@ -5,7 +5,7 @@ import { before, after, test } from 'node:test';
 import { nativeRequest, openNativeRuntime, publicOrigin, origin } from '../dev-ingress/runtime.mjs';
 import { devKey } from '../helpers/dev-key.mjs';
 import { signInAs } from '@runeditrun/rer/internal/modules/operator-auth/dev/sign-in-as.mjs';
-import { notificationActivity, assertNoNewNotifications } from '../helpers/import-notifications.mjs';
+import { notificationActivity, assertNoNewNotifications, moveInDoor } from '../helpers/import-notifications.mjs';
 const fixtures = family => readdirSync(join('tests/fixtures/instatus', family)).map(name => ({ name, text: readFileSync(join('tests/fixtures/instatus', family, name), 'utf8') }));
 const source = { source: 'instatus', pageId: 'synthpage01', publicAccessAcknowledged: true };
 let runtime, cookie;
@@ -14,6 +14,7 @@ const api = async (path, json, method = 'POST', headers) => {
   return { status: response.status, body: await response.json() };
 };
 const get = path => api(path);
+const moveIn = moveInDoor((path, json, headers) => api(path, json, 'POST', headers));
 const route = '/api/app/statuspage-import';
 const expected = files => {
   const rows = prefix => files.filter(file => new RegExp(`^instatus-${prefix}(?:-\\d+)?\\.json$`).test(file.name)).flatMap(file => JSON.parse(file.text));
@@ -27,16 +28,14 @@ async function counts() {
   return { components: components.body.components.length, groups: components.body.groups.length, incidents: incidents.body.incidents.length, maintenance: maintenance.body.maintenance.length, subscribers };
 }
 async function apply(files) {
-  const preview = await api(`${route}/preview`, { ...source, files });
+  const preview = await moveIn.preview({ ...source, files });
   assert.equal(preview.status, 200, JSON.stringify(preview.body));
-  let response = await api(`${route}/apply`, { ...source, files, asOf: preview.body.report.asOf, fingerprint: preview.body.report.fingerprint, acknowledged: true });
-  for (let round = 0; round < 100 && response.body.job?.state === 'applying'; round++) response = await api(`${route}/jobs/${response.body.job.id}/resume`, {});
+  const response = await moveIn.apply(preview.body);
   assert.equal(response.status, 200, JSON.stringify(response.body)); assert.equal(response.body.job.state, 'completed');
   return { preview: preview.body, result: response.body };
 }
-async function undo(job) {
-  let response;
-  for (let round = 0; round < 100; round++) { response = await api(`${route}/jobs/${job}/undo`, {}); if (response.body.job?.state !== 'undoing') break; }
+async function undo(result) {
+  const response = await moveIn.undo(result.door);
   assert.equal(response.status, 200, JSON.stringify(response.body)); assert.equal(response.body.job.state, 'undone'); return response.body;
 }
 before(async () => {
@@ -49,34 +48,35 @@ after(async () => { await runtime?.close(); });
 test('MOVE-001/002/003/004/005 Instatus owner route reviews, fences, imports silently, preserves history and conditionally undoes', async () => {
   const initial = await counts(), mailBefore = await notificationActivity(runtime);
   const small = fixtures('small'), large = fixtures('large');
-  const guest = await nativeRequest(`${route}/preview`, { method: 'POST', json: { ...source, files: small } });
+  const guest = await nativeRequest('/api/operator/import/uploads', { method: 'POST', json: {}, headers: { 'X-Import-Source': 'instatus' } });
   assert.equal(guest.status, 401);
   for (const text of ['{broken', '{"data":[]}', ' '.repeat(8 * 1024 * 1024 + 1)]) {
-    const refused = await api(`${route}/preview`, { ...source, files: [{ name: 'instatus-components.json', text }] });
+    const refused = await moveIn.preview({ ...source, files: [{ name: 'instatus-components.json', text }] });
     assert.equal(refused.status, 400, JSON.stringify(refused.body));
     assert.ok(refused.body.error.length > 10); assert.doesNotMatch(refused.body.error, /[\r\n]/);
     assert.deepEqual(await counts(), initial);
   }
   for (const files of [small, large]) {
-    const preview = await api(`${route}/preview`, { ...source, files });
+    const preview = await moveIn.preview({ ...source, files });
     assert.equal(preview.status, 200, JSON.stringify(preview.body));
     const want = expected(files), report = preview.body.report;
     for (const [kind, plural] of [['component', 'components'], ['group', 'groups'], ['incident', 'incidents'], ['maintenance', 'maintenance'], ['subscriber', 'subscribers']]) assert.equal(report.counts[kind].imported + report.counts[kind].changed, want[plural]);
     assert.equal(report.counts.subscriber.skipped, want.skipped);
     assert.deepEqual(await counts(), initial); await assertNoNewNotifications(runtime, mailBefore);
   }
-  const preview = (await api(`${route}/preview`, { ...source, files: small })).body;
+  const preview = (await moveIn.preview({ ...source, files: small })).body;
   const changedSource = small.map(file => file.name === 'instatus-components.json' ? { ...file, text: file.text.replace('Synthetic service', 'Changed source service') } : file);
-  const reviewed = { ...source, asOf: preview.report.asOf, fingerprint: preview.report.fingerprint, acknowledged: true };
-  assert.equal((await api(`${route}/apply`, { ...reviewed, files: changedSource })).status, 409);
+  const changed = await moveIn.preview({ ...source, files: changedSource });
+  assert.equal(changed.status, 200, JSON.stringify(changed.body));
+  assert.equal((await moveIn.apply(changed.body, preview.fingerprint)).status, 403, 'a reviewed fingerprint applies only the source it reviewed');
   const created = await api('/api/app/components', { name: 'Native component', description: '', groupId: null, internal: false, displayOrder: 0, note: '' });
   assert.equal(created.status, 201, JSON.stringify(created.body));
-  assert.equal((await api(`${route}/apply`, { ...reviewed, files: small })).status, 409);
+  assert.equal((await moveIn.apply(preview)).status, 404, 'a newer dry run replaced the earlier one nobody imported');
   const beforeSmall = await counts();
   const smallImport = await apply(small), smallWant = expected(small);
   assert.deepEqual(await counts(), Object.fromEntries(Object.entries(beforeSmall).map(([key, value]) => [key, value + smallWant[key]])));
   await assertNoNewNotifications(runtime, mailBefore);
-  await undo(smallImport.result.job.id);
+  await undo(smallImport.result);
   assert.deepEqual(await counts(), beforeSmall);
   await assertNoNewNotifications(runtime, mailBefore);
   const beforeImport = await counts();
@@ -114,12 +114,11 @@ test('MOVE-001/002/003/004/005 Instatus owner route reviews, fences, imports sil
   // components; email destinations stay unique across source namespaces.
   const otherComponents = JSON.parse(readFileSync('tests/fixtures/statuspage/small/components.json', 'utf8')).map(row => ({ ...row, created_at: '2020-01-01T00:00:00Z', name: `Statuspage ${row.name}` }));
   const otherFiles = [{ name: 'components.json', text: JSON.stringify(otherComponents) }, { name: 'subscribers.json', text: JSON.stringify([{ id: 'subscriber-1', mode: 'email', email: 'large-1@example.invalid', components: [] }]) }];
-  const otherPreview = await api(`${route}/preview`, { source: 'statuspage', files: otherFiles });
+  const otherPreview = await moveIn.preview({ source: 'statuspage', files: otherFiles });
   assert.equal(otherPreview.status, 200, JSON.stringify(otherPreview.body));
   assert.equal(otherPreview.body.report.counts.subscriber.skipped, 1);
   const beforeOther = await counts();
-  let other = await api(`${route}/apply`, { source: 'statuspage', files: otherFiles, asOf: otherPreview.body.report.asOf, fingerprint: otherPreview.body.report.fingerprint, acknowledged: true });
-  while (other.body.job?.state === 'applying') other = await api(`${route}/jobs/${other.body.job.id}/resume`, {});
+  const other = await moveIn.apply(otherPreview.body);
   assert.equal(other.status, 200, JSON.stringify(other.body));
   assert.equal((await counts()).components, beforeOther.components + otherComponents.length);
   assert.equal((await counts()).subscribers, beforeOther.subscribers);
@@ -144,7 +143,7 @@ test('MOVE-001/002/003/004/005 Instatus owner route reviews, fences, imports sil
   const publishedFeed = await (await fetch(`${publicOrigin}/feed.atom`)).text();
   assert.match(publishedFeed, /Owner correction after import/);
   assert.equal(await (await fetch(`${publicOrigin}/history.atom`)).text(), publishedFeed, 'overlapping source feed paths serve the current published feed');
-  const undone = await undo(imported.result.job.id);
+  const undone = await undo(imported.result);
   assert.ok(undone.undo.dispositions.some(row => row.targetKind === 'incident' && row.disposition === 'retained' && row.reason));
   assert.equal((await get('/api/app/incidents')).body.incidents.length, initial.incidents + 1);
   assert.equal((await fetch(`${publicOrigin}${new URL(summary.recentlyResolvedIncidents[0].url).pathname}`, { redirect: 'manual' })).status, 301);
