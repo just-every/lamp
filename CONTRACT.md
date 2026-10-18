@@ -1083,7 +1083,7 @@ What Lamp does not do, and how a buyer gets it:
 
 ## Status
 
-Judged from the code and tests at commit `3f22bb83f86d3896f7fdc90dab778d9851c907c2` (18 October 2026).
+Judged from the code and tests at commit `cc8419ed8e3be99807b702544d09ec967ae36b93` (18 October 2026).
 
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
