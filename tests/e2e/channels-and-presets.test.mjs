@@ -1,3 +1,4 @@
+import { uptimePresetFlow } from "./helpers/uptime-preset-flow.mjs";
 import { groupedAlertsFlow } from "./helpers/grouped-alerts-flow.mjs";
 import { UPDATE_LINK_FIELDS } from "./helpers/update-component-flow.mjs";
 import { test } from 'node:test';
@@ -161,7 +162,7 @@ const payloads = {
 };
 const sources = {};
 
-test("INTAKE-006 INTAKE-007 INTAKE-010 — Authenticated monitor presets keep recovery within unpublished drafts", async t => {
+test("INTAKE-006 INTAKE-007 INTAKE-008 INTAKE-010 — Authenticated monitor presets keep recovery within unpublished drafts", async t => {
   t.diagnostic("INTAKE-006 — each monitor preset turns its tool's alert into a draft on its component, and refuses other payloads and bad credentials");
   await (async () => {
   for (const preset of Object.keys(payloads)) {
@@ -212,5 +213,7 @@ test("INTAKE-006 INTAKE-007 INTAKE-010 — Authenticated monitor presets keep re
   assert.equal((await api(`/api/app/incidents/${fired.incidentId}`)).body.incident.lifecycle, "Investigating");
   assert.ok(shop.id);
 })(t);
+  t.diagnostic("INTAKE-008 — Uptime signed envelopes map monitors, retain evidence and close only private drafts");
+  await uptimePresetFlow({ api, post, component, origin, publicOrigin, cookie });
   await groupedAlertsFlow({ api, post, component, sql, origin, publicOrigin, cookie });
 });

@@ -1,8 +1,9 @@
 import type { ComponentState, IncidentLifecycle } from "../../shared/domain";
+import { uptimeEvidence } from "../intake/uptime";
 import { alertTitle } from "../intake/alert-title";
 import type { BriefFacts } from "./repository";
 
-export interface BriefAlert { ref: string; receivedAt: string; source: string; state: "firing" | "recovered"; title: string | null; payload: unknown }
+export interface BriefAlert { ref: string; receivedAt: string; source: string; state: "firing" | "recovered"; title: string | null; evidenceSummary?: string; payload: unknown }
 export interface BriefUpdate { ref: string; publishedAt: string; lifecycle: IncidentLifecycle; affectedAudience: string; customerImpact: string; whatStillWorks: string; details: string; nextUpdateAt: string | null }
 export interface BriefComponent { ref: string; name: string; state: ComponentState; relationship: string }
 export interface BriefQuestion { ref: string; question: string; at?: string }
@@ -22,7 +23,7 @@ function parsePayload(text: string): unknown {
 export function buildIncidentBrief(facts: BriefFacts, now: Date): IncidentBrief {
   const alerts = facts.alerts.map((alert, index): BriefAlert => {
     const payload = parsePayload(alert.payloadJson);
-    return { ref: `A${index + 1}`, receivedAt: alert.receivedAt, source: alert.source, state: alert.state, title: alertTitle(alert, payload), payload };
+    return { ref: `A${index + 1}`, receivedAt: alert.receivedAt, source: alert.source, state: alert.state, title: alertTitle(alert, payload), ...(alert.preset === "uptime" ? { evidenceSummary: uptimeEvidence(payload) } : {}), payload };
   });
   const updates = facts.updates.map((update, index): BriefUpdate => ({ ref: `U${index + 1}`, ...update }));
   const components = facts.components.map((component, index): BriefComponent => ({ ref: `C${index + 1}`, ...component }));

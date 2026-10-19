@@ -1,3 +1,4 @@
+import type { MonitorMapping } from "./uptime";
 import { isGroupedPreset, type LabelMatcher } from "./grouped-alerts";
 import { acceptGroupedAlert } from "./grouped-service";
 import { createUlid, nowIso } from "../../shared/ids";
@@ -8,7 +9,7 @@ import { readPreset, type AlertPreset } from "./presets";
 import { defaultAlertIntakePolicy, type AlertIntakePolicy } from "./policies";
 import type { AlertReceiptRow, AlertReceiptView, AlertSourceRow, IntakeRepository } from "./repository";
 
-export interface AlertSourceInput { name: string; preset?: AlertPreset; labelMatchers?: LabelMatcher[]; componentId?: string; credentialKind: AlertSourceRow["credentialKind"]; signingSecret?: string; bearerToken?: string; timestampHeader?: string; signatureHeader?: string; deduplicationPath: string; titlePath: string; statePath: string; recoveredValue?: string; }
+export interface AlertSourceInput { name: string; preset?: AlertPreset; monitorMappings?: MonitorMapping[]; labelMatchers?: LabelMatcher[]; componentId?: string; credentialKind: AlertSourceRow["credentialKind"]; signingSecret?: string; bearerToken?: string; timestampHeader?: string; signatureHeader?: string; deduplicationPath: string; titlePath: string; statePath: string; recoveredValue?: string; }
 export type AlertSourceView = Omit<AlertSourceRow, "signingSecret" | "bearerTokenHash"> & { endpointPath: string; /** Shown once, when Lamp generated a preset's token. */ token?: string };
 /** The operator API's view: `endpointUrl` is on the public page host, the only host that routes `/api/intake/*`. */
 export type AlertSourceEndpointView = AlertSourceView & { endpointUrl: string };
@@ -30,7 +31,10 @@ export function createIntakeService(
   events?: Pick<LampEventDispatcher, "alertAccepted">,
 ): IntakeService {
   async function acceptPreset(source: AlertSourceRow, requestHash: string, rawBody: string, parsed: unknown, timestamp: string): Promise<IntakeResult> {
-    const reading = readPreset(source.preset!, parsed);
+    let reading = readPreset(source.preset!, parsed);
+    const monitorId = "refused" in reading ? undefined : reading.monitorId;
+    const mappedComponentId = !("refused" in reading) && source.preset === "uptime" ? source.monitorMappings?.find(row => row.monitorId === monitorId)?.componentId : source.componentId;
+    if (!("refused" in reading) && source.preset === "uptime" && !mappedComponentId) reading = { refused: "Unmapped Uptime monitor. Add a monitor-to-component mapping." };
     if ("refused" in reading) {
       const receipt: AlertReceiptRow = { id: createUlid(), sourceId: source.id, requestHash, deduplicationKey: null, incidentId: null, state: "invalid", receivedAt: timestamp, recoveredAt: null, payloadJson: rawBody, error: reading.refused, createdAt: timestamp, updatedAt: timestamp };
       await repository.recordInvalid(receipt);
@@ -38,7 +42,7 @@ export function createIntakeService(
     }
     const existingIncidentId = await repository.findOpenIncident(source.id, reading.key);
     const createsDraft = !reading.recovered && !existingIncidentId && policy.createsDraft({ sourceId: source.id, deduplicationKey: reading.key, recovered: false });
-    const incident = createsDraft ? { id: createUlid(), reference: await repository.allocateIncidentReference(), title: reading.title, operatorId: source.createdByOperatorId, timestamp, ...(source.componentId ? { component: { id: source.componentId, state: reading.state } } : {}) } : null;
+    const incident = createsDraft ? { id: createUlid(), reference: await repository.allocateIncidentReference(), title: reading.title, operatorId: source.createdByOperatorId, timestamp, ...(mappedComponentId ? { component: { id: mappedComponentId, state: reading.state } } : {}) } : null;
     const receipt: AlertReceiptRow = { id: createUlid(), sourceId: source.id, requestHash, deduplicationKey: reading.key, incidentId: existingIncidentId ?? incident?.id ?? null, state: reading.recovered ? "recovered" : "firing", receivedAt: timestamp, recoveredAt: reading.recovered ? timestamp : null, payloadJson: rawBody, error: null, createdAt: timestamp, updatedAt: timestamp };
     const recorded = await repository.recordReceipt(receipt, incident);
     if (recorded.replayed) return { status: 202, receiptId: recorded.receipt.id, incidentId: recorded.receipt.incidentId, replayed: true };
@@ -60,15 +64,16 @@ export function createIntakeService(
       // A preset reads its tool's own payload, so its paths only describe that shape.
       let generated: string | undefined;
       if (input.preset) {
-        if (isGroupedPreset(input.preset) ? !input.labelMatchers?.length : !input.componentId) throw new Error("A monitor preset needs its component or label-to-component mappings.");
-        if (!input.bearerToken && !existing?.bearerTokenHash) generated = createOpaqueToken();
-        input = { ...input, credentialKind: "bearer-token", bearerToken: input.bearerToken ?? generated, deduplicationPath: `preset:${input.preset}`, titlePath: `preset:${input.preset}`, statePath: `preset:${input.preset}` };
+        if (input.preset === "uptime" ? !input.monitorMappings?.length : isGroupedPreset(input.preset) ? !input.labelMatchers?.length : !input.componentId) throw new Error("A monitor preset needs its component or label-to-component mappings.");
+        if (input.preset === "uptime" && new Set(input.monitorMappings!.map(row => row.monitorId)).size !== input.monitorMappings!.length) throw new Error("Map each Uptime monitor only once.");
+        if (input.preset !== "uptime" && !input.bearerToken && !existing?.bearerTokenHash) generated = createOpaqueToken();
+        input = { ...input, credentialKind: input.preset === "uptime" ? "hmac-sha256" : "bearer-token", bearerToken: input.bearerToken ?? generated, ...(input.preset === "uptime" ? { timestampHeader: "x-lamp-timestamp", signatureHeader: "x-lamp-signature" } : {}), deduplicationPath: `preset:${input.preset}`, titlePath: `preset:${input.preset}`, statePath: `preset:${input.preset}` };
       }
       if (!input.name.trim() || !input.deduplicationPath || !input.titlePath || !input.statePath) throw new Error("A source name and all three JSON paths are required.");
       if (input.credentialKind === "hmac-sha256" && !input.signingSecret && (!existing || existing.credentialKind !== "hmac-sha256" || !existing.signingSecret)) throw new Error("An HMAC source requires a signing secret.");
       if (input.credentialKind === "bearer-token" && !input.bearerToken && (!existing || existing.credentialKind !== "bearer-token" || !existing.bearerTokenHash)) throw new Error("A bearer source requires a bearer token.");
       const timestamp = nowIso();
-      const source: AlertSourceRow = { id: existing?.id ?? createUlid(), name: input.name.trim(), credentialKind: input.credentialKind, signingSecret: input.credentialKind === "hmac-sha256" ? (input.signingSecret ?? existing?.signingSecret ?? null) : null, bearerTokenHash: input.credentialKind === "bearer-token" ? (input.bearerToken ? await hashOpaqueToken(input.bearerToken) : existing?.bearerTokenHash ?? null) : null, timestampHeader: (input.timestampHeader ?? existing?.timestampHeader ?? "x-lamp-timestamp").toLowerCase(), signatureHeader: (input.signatureHeader ?? existing?.signatureHeader ?? "x-lamp-signature").toLowerCase(), deduplicationPath: input.deduplicationPath, titlePath: input.titlePath, statePath: input.statePath, recoveredValue: input.recoveredValue ?? existing?.recoveredValue ?? "recovered", labelMatchers: isGroupedPreset(input.preset) ? input.labelMatchers : [], preset: input.preset ?? null, componentId: input.preset ? input.componentId ?? null : null, createdByOperatorId: existing?.createdByOperatorId ?? operatorId, createdAt: existing?.createdAt ?? timestamp, updatedAt: timestamp };
+      const source: AlertSourceRow = { id: existing?.id ?? createUlid(), name: input.name.trim(), credentialKind: input.credentialKind, signingSecret: input.credentialKind === "hmac-sha256" ? (input.signingSecret ?? existing?.signingSecret ?? null) : null, bearerTokenHash: input.credentialKind === "bearer-token" ? (input.bearerToken ? await hashOpaqueToken(input.bearerToken) : existing?.bearerTokenHash ?? null) : null, timestampHeader: (input.timestampHeader ?? existing?.timestampHeader ?? "x-lamp-timestamp").toLowerCase(), signatureHeader: (input.signatureHeader ?? existing?.signatureHeader ?? "x-lamp-signature").toLowerCase(), deduplicationPath: input.deduplicationPath, titlePath: input.titlePath, statePath: input.statePath, recoveredValue: input.recoveredValue ?? existing?.recoveredValue ?? "recovered", monitorMappings: input.preset === "uptime" ? input.monitorMappings : [], labelMatchers: isGroupedPreset(input.preset) ? input.labelMatchers : [], preset: input.preset ?? null, componentId: input.preset ? input.componentId ?? null : null, createdByOperatorId: existing?.createdByOperatorId ?? operatorId, createdAt: existing?.createdAt ?? timestamp, updatedAt: timestamp };
       await repository.upsertSource(source);
       return generated ? { ...sourceView(source), token: generated } : sourceView(source);
     },
