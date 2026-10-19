@@ -13,6 +13,7 @@ import { renderIncidentUpdate, type RenderedIncidentUpdate } from "./renderer";
 import { defaultUpdateDuePolicy, defaultUpdateReviewPolicy, type UpdateDuePolicy, type UpdateReviewPolicy } from "./policies";
 import { updateDueState } from "./reminders";
 import { DraftConflictError } from "./repository";
+import { checkRecovery, RecoveryCheckError, type RecoveryCheck } from "../brief/recovery-check";
 import type { IncidentPublishRecord, IncidentRepository, PublishingDraft, StoredIncident, StoredIncidentComponent, StoredIncidentDraft, StoredIncidentUpdate } from "./repository";
 
 export interface IncidentView extends StoredIncident {
@@ -53,15 +54,16 @@ export interface IncidentsService extends IncidentTemplateService {
   detachComponent(incidentId: string, componentId: string, operatorId: string): Promise<void>;
   list(): Promise<IncidentView[]>;
   get(incidentId: string): Promise<IncidentView | null>;
+  recoveryCheck(incidentId: string): Promise<RecoveryCheck | null>;
   saveDraft(incidentId: string, input: IncidentDraftInput, operatorId: string, expectedVersion: string, requestedId?: string): Promise<StoredIncidentDraft | null>;
   preview(incidentId: string, input: IncidentDraftInput): Promise<RenderedIncidentUpdate | null>;
   create(input: { title: string; openedAt?: string; components: Array<{ componentId: string; state: ComponentState; relationship: "Primary" | "Dependent" }> }, operatorId: string): Promise<IncidentView>;
-  publish(incidentId: string, operatorId: string, input: { channels: Array<UpdateChannel>; publishedAt?: string; componentStates?: Record<string, IncidentClaimState>; expectedVersion: string }): Promise<StoredIncidentUpdate | null>;
+  publish(incidentId: string, operatorId: string, input: { channels: Array<UpdateChannel>; publishedAt?: string; componentStates?: Record<string, IncidentClaimState>; expectedVersion: string; overrideReason?: string }): Promise<StoredIncidentUpdate | null>;
   schedule(incidentId: string, operatorId: string, publishAt: string, channels: Array<UpdateChannel>, expectedVersion: string): Promise<PublishingDraft | null>;
   review(incidentId: string, operatorId: string, expectedVersion: string): Promise<boolean>;
   markCorrection(incidentId: string, updateId: string, expectedVersion: string): Promise<boolean>;
   addInternalNote(incidentId: string, body: string, operatorId: string): Promise<boolean>;
-  publishDue(now?: string): Promise<{ published: string[]; heldForReview: string[] }>;
+  publishDue(now?: string): Promise<{ published: string[]; heldForReview: string[]; heldForRecovery: string[] }>;
   delete(incidentId: string, reason: string, operatorId: string): Promise<string | null>;
   finishPublication(update: StoredIncidentUpdate): Promise<void>;
   finishDeletion(incidentId: string, operatorId: string, deletedAt: string): Promise<void>;
@@ -126,7 +128,7 @@ export function createIncidentsService(
     await Promise.all(components.flatMap((component) => component.componentId ? [componentsService.recomputePublicState(component.componentId, { type: "incident", id: incidentId, operatorId }, deletedAt)] : []));
     await onPublicDataChanged();
   };
-  const publish = async (incidentId: string, operatorId: string, input: { channels: Array<UpdateChannel>; publishedAt?: string; componentStates?: Record<string, IncidentClaimState>; expectedVersion: string }, scheduled = false) => {
+  const publish = async (incidentId: string, operatorId: string, input: { channels: Array<UpdateChannel>; publishedAt?: string; componentStates?: Record<string, IncidentClaimState>; expectedVersion: string; overrideReason?: string }, scheduled = false) => {
     const [incident, draft, baselineComponents] = await Promise.all([repository.findIncident(incidentId), repository.findPublishingDraft(incidentId), repository.listComponents(incidentId)]);
     if (!incident || !draft) return null;
     if (input.expectedVersion.split(":")[0] !== draft.id) throw new DraftConflictError();
@@ -140,6 +142,18 @@ export function createIncidentsService(
     if (requiresReview && !draft.reviewedAt) throw new Error("This update requires review by another operator.");
     if (!publicationStatements) throw new Error("Incident publication requires the notification transaction wiring.");
     const timestamp = nowIso();
+    let recovery: IncidentPublishRecord["recovery"];
+    if (draft.lifecycle === "Resolved") {
+      const evidence = await repository.loadRecoverySnapshot(incidentId);
+      if (!evidence) return null;
+      const result = checkRecovery(evidence.evidence, timestamp);
+      const reason = input.overrideReason?.trim();
+      if (reason && reason.length > 1_000) throw new InvalidIncidentUpdateError("An override reason must contain at most 1,000 characters.");
+      // Scheduling never grants a future override. Cron evaluates the evidence
+      // at execution, using the same authoritative path as an immediate publish.
+      if (!result.passed && (scheduled || !reason)) throw new RecoveryCheckError(result);
+      recovery = { snapshot: evidence.snapshot, result, overrideReason: !result.passed ? reason! : null };
+    }
     const publishedAt = input.publishedAt ?? timestamp;
     const isRetroactive = !scheduled && Boolean(input.publishedAt && new Date(input.publishedAt).getTime() < new Date(timestamp).getTime());
     if (isRetroactive) {
@@ -175,7 +189,7 @@ export function createIncidentsService(
     const historyEntries: ComponentStateHistoryInput[] = isRetroactive
       ? (await Promise.all(claimEvents.map((claimEvent) => componentsService.prepareHistoricalStateTransitions({ componentId: claimEvent.componentId, cause: { type: "incident", id: incidentId, operatorId }, claimEvent })))).flat()
       : [];
-    const record: IncidentPublishRecord = { id: draft.id, incidentId, lifecycle: draft.lifecycle, affectedAudience: draft.affectedAudience, customerImpact: draft.customerImpact, whatStillWorks: draft.whatStillWorks, details: draft.details, nextUpdateAt: draft.lifecycle === "Resolved" ? null : draft.nextUpdateAt, publishedAt, isRetroactive, authorOperatorId: operatorId, correctsUpdateId: draft.correctsUpdateId, peakImpact, createdAt: timestamp, updatedAt: timestamp, components, baselineComponents, stagedChanges, componentChanges, componentSnapshot, claimEventCounts, claimEvents, historyEntries };
+    const record: IncidentPublishRecord = { id: draft.id, incidentId, lifecycle: draft.lifecycle, affectedAudience: draft.affectedAudience, customerImpact: draft.customerImpact, whatStillWorks: draft.whatStillWorks, details: draft.details, nextUpdateAt: draft.lifecycle === "Resolved" ? null : draft.nextUpdateAt, publishedAt, isRetroactive, authorOperatorId: operatorId, correctsUpdateId: draft.correctsUpdateId, peakImpact, createdAt: timestamp, updatedAt: timestamp, components, baselineComponents, stagedChanges, componentChanges, componentSnapshot, claimEventCounts, claimEvents, historyEntries, recovery };
     const channels = isRetroactive || hasRetroactiveUpdate ? [] : input.channels;
     const recipientStatements = await publicationStatements.forIncidentUpdate({ updateId: record.id, incidentId, componentIds: components.flatMap((component) => component.componentId ? [component.componentId] : []), channels, queuedAt: publishedAt });
     await repository.publishDraft(record, recipientStatements);
@@ -187,6 +201,10 @@ export function createIncidentsService(
   };
 
   return {
+    async recoveryCheck(incidentId) {
+      const snapshot = await repository.loadRecoverySnapshot(incidentId);
+      return snapshot ? checkRecovery(snapshot.evidence, nowIso()) : null;
+    },
     async previewComponentChange(incidentId, change) {
       const [incident, component, attached, updates] = await Promise.all([
         repository.findIncident(incidentId), componentsService.get(change.componentId),
@@ -304,7 +322,7 @@ export function createIncidentsService(
     },
     async publishDue(now = nowIso()) {
       const due = await repository.listDueScheduledDrafts(now);
-      const published: string[] = []; const heldForReview: string[] = [];
+      const published: string[] = []; const heldForReview: string[] = []; const heldForRecovery: string[] = [];
       for (const draft of due) {
         if (reviewPolicy.requiresReview({ authorOperatorId: draft.authorOperatorId, draft }) && !draft.reviewedAt) {
           heldForReview.push(draft.incidentId);
@@ -318,9 +336,13 @@ export function createIncidentsService(
             published.push(draft.incidentId);
           }
         }
-        catch (cause) { if (cause instanceof DraftConflictError) continue; throw new Error(`Scheduled update for ${draft.incidentId} could not be published.`); }
+        catch (cause) {
+          if (cause instanceof RecoveryCheckError) { heldForRecovery.push(draft.incidentId); continue; }
+          if (cause instanceof DraftConflictError) continue;
+          throw new Error(`Scheduled update for ${draft.incidentId} could not be published.`);
+        }
       }
-      return { published, heldForReview };
+      return { published, heldForReview, heldForRecovery };
     },
     async delete(incidentId, reason, operatorId) {
       if (!reason.trim()) throw new Error("A deletion reason is required.");

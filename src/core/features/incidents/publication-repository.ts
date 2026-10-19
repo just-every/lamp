@@ -2,11 +2,13 @@ import { COMPONENT_STATE_SEVERITY } from "../../shared/domain";
 import { createUlid } from "../../shared/ids";
 import { currentStateHistoryStatement } from "../components/state-history-repository";
 import { publicationComponentsGuard } from "./component-claims";
+import { recoverySnapshotGuard } from "./recovery-repository";
 import type { IncidentPublishRecord } from "./repository";
 
 /** Update, claims, aggregate history and recipient selection share one D1 commit. */
 export async function publishIncidentDraft(binding: D1Database, input: IncidentPublishRecord, recipients: D1PreparedStatement[]) {
   const statements = [publicationComponentsGuard(binding, input.incidentId, input.baselineComponents)];
+  if (input.recovery) statements.push(recoverySnapshotGuard(binding, input.incidentId, input.recovery.snapshot));
   for (const change of input.stagedChanges) {
     statements.push(change.attachmentId === null
       ? binding.prepare(`SELECT CASE WHEN EXISTS (SELECT 1 FROM components WHERE id = ?) AND NOT EXISTS (SELECT 1 FROM incident_components WHERE incident_id = ? AND component_id = ?) THEN 1 ELSE json('Staged component changed') END`).bind(change.componentId, input.incidentId, change.componentId)
@@ -48,10 +50,14 @@ export async function publishIncidentDraft(binding: D1Database, input: IncidentP
       changedAt: input.publishedAt, createdAt: input.createdAt, updatedAt: input.updatedAt,
     }));
   }
+  if (input.recovery?.overrideReason) statements.push(
+    binding.prepare(`INSERT INTO incident_internal_notes (id,incident_id,body,author_operator_id,created_at,updated_at) VALUES (?,?,?,?,?,?)`)
+      .bind(createUlid(),input.incidentId,`Recovery check overridden: ${input.recovery.overrideReason}`,input.authorOperatorId,input.createdAt,input.updatedAt),
+  );
   statements.push(
     binding.prepare(`DELETE FROM incident_drafts WHERE id = ?`).bind(input.id),
-    binding.prepare(`INSERT INTO audit_entries (id,entity_type,entity_id,action,operator_id,payload_json,created_at,updated_at) VALUES (?,'incident-update',?,'published',?,?,?,?)`)
-      .bind(`${input.id}-audit`,input.id,input.authorOperatorId,JSON.stringify({ incidentId: input.incidentId, publishedAt: input.publishedAt, correctsUpdateId: input.correctsUpdateId, componentChanges: input.componentChanges }),input.createdAt,input.updatedAt),
+    binding.prepare(`INSERT INTO audit_entries (id,entity_type,entity_id,action,operator_id,reason,payload_json,created_at,updated_at) VALUES (?,'incident-update',?,'published',?,?,?,?,?)`)
+      .bind(`${input.id}-audit`,input.id,input.authorOperatorId,input.recovery?.overrideReason ?? null,JSON.stringify({ incidentId: input.incidentId, publishedAt: input.publishedAt, correctsUpdateId: input.correctsUpdateId, componentChanges: input.componentChanges, recovery: input.recovery?.result }),input.createdAt,input.updatedAt),
     ...recipients,
   );
   await binding.batch(statements);

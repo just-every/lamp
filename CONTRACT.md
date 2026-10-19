@@ -1021,7 +1021,9 @@ Status: **partial** — `src/core/features/incidents/service.ts`, `tests/referen
 
 Acceptance: choosing Resolved while a linked monitor still fails shows the failing item with its evidence time and refuses the publish without an override reason (409). With a reason, it publishes and the reason is audited.
 
-Status: **partial** — `src/core/features/brief/build.ts`, `tests/e2e/incident-brief.test.mjs`. The brief notes a recorded monitor recovery that has not been published as Resolved. There is no pre-close recovery check and no override.
+**Current evidence and future obligations (ct, 19 October 2026):** every linked single-alert key and grouped member Lamp currently tracks participates. For webhook evidence, the hold means a reported recovery at least five minutes earlier (AUTO-002's default), with no later firing receipt; repeated group recovery conservatively restarts the recorded hold. This does not certify continuously sampled monitor passing. Absent vendor, traffic, support and continuous-monitor evidence is shown as **not tracked**, never as passing. DEP-001, HIST-006, INTEG-001 and COMP-008 must join this same pre-close check before those capabilities ship. Immediate, historical and scheduled resolutions all use the check; scheduled resolutions recheck when due and retain a failing draft. An override authorizes the current immediate publication only.
+
+Status: **done** — `src/core/features/brief/recovery-check.ts`, `src/core/features/incidents/recovery-repository.ts`, `src/core/features/incidents/publication-repository.ts`, `tests/e2e/helpers/recovery-check-flow.mjs` (AGENT-004 through `tests/e2e/incident-brief.test.mjs`). Firing, recovery holds, re-fires and partial grouped recovery refuse unreasoned publication; a named operator's override is private and atomically audited.
 
 #### AGENT-005 — A post-incident report drafted from the record.
 
@@ -1083,13 +1085,13 @@ What Lamp does not do, and how a buyer gets it:
 
 ## Status
 
-Judged from the code and tests at commit `6ddb5aa9ee01963493dbfb50e796022038dccebd` (18 October 2026).
+Initial assessment at `6ddb5aa9ee01963493dbfb50e796022038dccebd` (18 October 2026); AGENT-004 refreshed on 19 October against its named API and browser journey below.
 
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
 | Published | 104 | 0 | 0 | 104 |
-| Target and push further | 11 | 39 | 44 | 94 |
-| All | 115 | 39 | 44 | 198 |
+| Target and push further | 12 | 38 | 44 | 94 |
+| All | 116 | 38 | 44 | 198 |
 
 | Clause | Title | Kind | Status | Evidence | Gap |
 | --- | --- | --- | --- | --- | --- |
@@ -1285,7 +1287,7 @@ Judged from the code and tests at commit `6ddb5aa9ee01963493dbfb50e796022038dcce
 | `AGENT-001` | The public story matches responder evidence | push-further | partial | `src/core/features/brief/build.ts`, `src/core/features/ai/service.ts`, `tests/e2e/incident-brief.test.mjs` | The model-free brief flags a monitor recovery with a non-resolved lifecycle and a passed commitment, and an operator can request a cited suggestion (DRAFT-001, DRAFT-004). Continuous comparison against responder, monitor and support evidence does not exist. |
 | `AGENT-002` | The next-update promise is kept | push-further | partial | `src/core/features/incidents/reminders.ts`, `src/core/features/ai/service.ts`, `tests/e2e/update-reminders.test.mjs` | Due and overdue reminders and on-request suggestions ship. Automatic drafting before the deadline and owner escalation do not. |
 | `AGENT-003` | Audience-specific impact | push-further | partial | `src/core/features/incidents/service.ts`, `tests/reference-storage/incident-publishing.test.mjs` | Each update carries an operator-written affected-audience statement (UPDATE-001). There are no audiences and no drafted variants. |
-| `AGENT-004` | Customer-visible recovery is checked before close | push-further | partial | `src/core/features/brief/build.ts`, `tests/e2e/incident-brief.test.mjs` | The brief notes a recorded monitor recovery that has not been published as Resolved. There is no pre-close recovery check and no override. |
+| `AGENT-004` | Customer-visible recovery is checked before close | push-further | done | `src/core/features/brief/recovery-check.ts`, `src/core/features/incidents/recovery-repository.ts`, `src/core/features/incidents/publication-repository.ts`, `tests/e2e/helpers/recovery-check-flow.mjs`, `tests/e2e/incident-brief.test.mjs` |  |
 | `AGENT-005` | A post-incident report drafted from the record | push-further | missing |  | Not built. |
 | `AGENT-006` | Unreported incidents surface early | push-further | missing |  | Not built. |
 | `AGENT-007` | Translations drafted, never auto-published | push-further | missing |  | Not built. |
