@@ -440,7 +440,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "0794d5a0263b92fd81a7dba5d74f469416c3d8d4c0ccee0b7236783ab523e7d3",
+      "sha256": "9f651ef0dffae94de309d5e31bf0f229c6d8a0bf9bc19e92dec5181cc8633957",
       "executable": false
     },
     "AGENTS.md": {
@@ -488,7 +488,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "d4854fb6b17528df9dd376780d9fbb718179ef404f1876a875b765d720dcd870",
+      "sha256": "592da0bb1458efe1556856de96d428307e181efa75d5ff435b6bc19e83ee466c",
       "executable": false
     },
     "DEMO.md": {
@@ -524,7 +524,7 @@
       "executable": false
     },
     "docs/CLAIMS.md": {
-      "sha256": "a722ba642b31a66e240f0a202aa4d9b53cb49461272451aa405b34968c3c54dd",
+      "sha256": "2e4329ff18a28c9032e57a8ebb2631d26c679f6b582de98e8078b941266d84aa",
       "executable": false
     },
     "docs/components-and-groups.md": {
@@ -2908,7 +2908,7 @@
       "executable": false
     },
     "src/core/app/services.ts": {
-      "sha256": "907ead790afc38f4ee610e94b8b187d6c013039786b973335b9489aa3304ff69",
+      "sha256": "0fca3feaeddcf4c01d4174929cca5f79500498e3159c1fbfa3d2af015d83908c",
       "executable": false
     },
     "src/core/app/types.ts": {
@@ -3316,7 +3316,7 @@
       "executable": false
     },
     "src/core/features/incidents/ui/incident-composer-tools.tsx": {
-      "sha256": "c61ac4ef79c835068605eaa9cb3d61c47e8de6a7ad07ca110804b9455c6df25d",
+      "sha256": "852ad341d07ad12892dde1bbc8b6cc6a00f0fbee765ed71a032ef4f1846a66f4",
       "executable": false
     },
     "src/core/features/incidents/ui/incident-create-panel.tsx": {
@@ -3723,6 +3723,10 @@
       "sha256": "e03a4b4ed7f80e58fa50b708ebf6bf272ddafb30331a363f337fa7e3d3fdd4c8",
       "executable": false
     },
+    "src/core/features/reports/draft.ts": {
+      "sha256": "3e6e76685f0076a4cb8b283c8fe60d275f7cbbbb0690cc8175c7d6edf0ae1ad2",
+      "executable": false
+    },
     "src/core/features/reports/index.ts": {
       "sha256": "12bca05871135a77be4d169d14a6a4541b388f2eef1a50a35533c9bb3b07b923",
       "executable": false
@@ -3732,15 +3736,19 @@
       "executable": false
     },
     "src/core/features/reports/repository.ts": {
-      "sha256": "5466cb93ce09e6010f8020923149cde80fa5d97290a602c2ef4b7ce933902036",
+      "sha256": "73e8487b329d99953d458d747a0fe46b68ec775c689cab05292d483e6c733eac",
       "executable": false
     },
     "src/core/features/reports/routes.ts": {
-      "sha256": "921342e5306e16e9a49974a4fd6e09116c45b266045052836eb8e81a0dd743e5",
+      "sha256": "1e245b9e540f4b6806ff1b2a959f9864514a7ef2a1d7fcfec1a2f322e347532c",
       "executable": false
     },
     "src/core/features/reports/service.ts": {
-      "sha256": "698fac9bcaae3892c63271097665924987f325f159a11c3f3fa878ed9ce662b3",
+      "sha256": "ff01ae635c2403221ec9c73a1861c9fb356fa3a6a5858d92cbfd4fe6276bfb40",
+      "executable": false
+    },
+    "src/core/features/reports/ui/report-editor.tsx": {
+      "sha256": "a7f6aaf22ca0d37b95812de70fbe9feda2304f333ee2985a7f4f3e9fd6e07b18",
       "executable": false
     },
     "src/core/features/setup/repository.ts": {
@@ -5288,7 +5296,7 @@
       "executable": false
     },
     "tests/e2e/helpers/post-incident-report-flow.mjs": {
-      "sha256": "8a977be6d0be37fdbfeb66757c48d759b73b5b6498a8ec504a7f17d9d1e0f7d9",
+      "sha256": "9531c1539543f1d4007baf41f1713106dc4c0b190d62fe61773225003aa0ba59",
       "executable": false
     },
     "tests/e2e/helpers/postmortem-template-import-flow.mjs": {
@@ -5384,11 +5392,11 @@
       "executable": false
     },
     "tests/e2e/publishing-browser.test.mjs": {
-      "sha256": "0ae887c41296b7b59cb0ef40a4efae16aba9441431d653b1c938e3b1484e6800",
+      "sha256": "944c2a90c7685fe282a9a8a4ca642624a4f6b840b05aa8a3eadbc3099d977e5f",
       "executable": false
     },
     "tests/e2e/publishing-contract.test.mjs": {
-      "sha256": "affcdfa8f1b89ab0143af1ef443d3515e3354a11a19fdcec063292e694bd08dc",
+      "sha256": "e79d20dc40b53d2114ba28a23060ce3c6fc18ef3623e6f6e23fdbb5e54ab9ee0",
       "executable": false
     },
     "tests/e2e/queue-outage.test.mjs": {
