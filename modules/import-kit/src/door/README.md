@@ -36,6 +36,7 @@ Construct the handler with these seed-owned options:
 | `format`, `parse` | `'json'` or `'ndjson'`, and the product's parser of source records. |
 | `source` | Instead of `parse`/`mapping`, for several sources: `source(namespace)` returns that namespace's `{parse, mapping, ownerPrincipalId?}` from the seed's server-owned allow-list, or `null`. It runs after grant verification and before any write; `null` is refused with 403 `unknown_import_source`. |
 | `limits` | Optional reader limits; grant quotas still apply. |
+| `reversalPolicy` | Optional undo policy for new door jobs: `'strict'` (the default) or `'preserve-conflicts'`, which keeps the owner's native edits on undo, as a seed's own preserving imports do, and needs the adapter's `preparePreservedUndo`. Existing jobs keep their policy. See ADOPTING.md. |
 
 A fresh installation applies the statements in `importDoorSchema: string[]`
 in a new product-owned numbered migration after the D1 import-kit schemas.
@@ -208,11 +209,58 @@ All bodies are JSON. Quotas are admission limits, not a hosted capacity promise.
 | --- | --- |
 | `uploads` | `{ uploadId?, name, bundleSha256, totalBytes, totalChunks, index, chunkSha256, base64 }`; decoded chunks are exactly 64 KiB except the final chunk. `totalChunks` must equal `ceil(totalBytes / 65536)`. Omit `uploadId` on the first chunk to receive a server-generated UUID. Reuse it and the same bundle metadata for subsequent chunks. Both chunk and complete bundle SHA-256 are checked before reporting completion. |
 | `uploads` | `{ uploadId }` returns received-chunk inventory for resuming. An identical duplicate chunk is idempotent with a fresh grant. |
-| `plan` | `{ uploadId, catchup?: boolean }` returns `planId`, `fingerprint`, server-derived counts, summary, rejected rows with reasons and differences including gone source ids. Planning makes no native target writes. |
+| `plan` | `{ uploadId, catchup?: boolean }` returns `planId`, `fingerprint`, server-derived counts, summary, rejected rows with reasons, `diagnostics` and differences including gone source ids. Planning makes no native target writes. |
 | `apply` | `{ planId, reviewedFingerprint }` creates or resumes the real kit job in bounded batches. Repeat with a fresh valid grant to continue. |
 | `status` | `{ planId }` reads current job progress. |
 | `reconcile` | `{ planId }` derives source-id disposition/presence and native/provenance revision, value, attachment and count checks on the server. |
 | `undo` | `{ planId }` reverses the newest snapshot's attributed effects in bounded kit work, preserving native edits. |
+
+### Credentials and source refusals
+
+`plan` reads the upload with the kit's `credentials: 'remove'`. A credential
+field holding null, an empty string or a mask is not a credential and imports as
+it is. A real value is removed from its record, which is kept: a credential-named
+field is dropped: any key whose whole name parts are a credential word or
+phrase (`apiKey`, `httpPassword`, `http_password`, `client_secret`, `X-Api-Key`,
+`pushToken`, `integration_key`, `webhook_url`, `secret_key`, `x-functions-key`,
+`Ocp-Apim-Subscription-Key`, `pwd`, `X-Auth` and the like; `Signature` and
+`Session-Id` only as header names, so an agent's `signature` field stays; `auth`
+and `credentials` only when they hold a credential, so `auth: {type: 'oauth2'}`
+stays and `auth: {token}` loses its token); a plural
+(`apiKeys: [...]`, `tokens: [...]`) when it holds text, so a count such as
+`tokens: 1500` stays; the `value` of a `{name|key, value}` pair naming one
+(`{name: 'Authorization', value}`), and the value of such a `[name, value]`
+pair in a list of them (Sentry's header tuples). Booleans stay, and names
+merely containing such letters (`keyword`, `monkey`, `author`, `signal`, `design`,
+`primaryKey`) are not credential names, so a keyword monitor's `?keyword=up` URL
+imports intact. A URL of any scheme, after leading whitespace, loses its
+user name and password and its credential query and fragment parameters
+(`api_key`, `access_token`, `sig` and the like), including the `removed@` and
+`?api_key=removed` markers rer's vendor exports leave. Each removal is a
+`CREDENTIAL_REMOVED` warning in `diagnostics` with the record's `kind`,
+`sourceId`, the field pointer and its kind, never the value; a field holding the
+`[removed]` marker rer's vendor exports leave is reported as removed before
+upload. The plan never holds a removed value: the original bytes are withheld
+(`ORIGINAL_UNAVAILABLE`), and the upload's chunks are deleted once the plan is
+saved, keeping its header so the same plan can be fetched again. A plan refused
+for any other reason (`catchup_required`, a catch-up bound, a pending import)
+deletes them too. Planning such an upload again reads its records from a plan
+of the same bytes the namespace still holds (one whose apply failed, or that
+was undone); with none, `plan` answers 410 `upload_credentials_withheld` and
+Business uploads the bundle again. These wider rules apply only to the door's
+removal; the kit's default refuse mode, which seeds' local imports use, is
+unchanged.
+
+Every refusal from the reader or a bundle check is a named 4xx whose
+`details.reason` is a fixed sentence and whose `details.row`/`details.pointer`
+locate it; no source value is reflected:
+
+| Error / status | Meaning |
+| --- | --- |
+| `source_credential` / 422 | A credential the door cannot remove: one a record repeats elsewhere, an encoded or nested credential URL, or a credential field the mapping proposes. `details.field` names its kind (`credential field "token"`, `URL user name or password`, `URL credential query parameter`, `repeated credential value`). The upload is deleted. |
+| `source_invalid_or_credential_source_data` / 422 | A value the reader cannot inspect for credentials: a URL that cannot be parsed, or text encoded more than 32 layers deep. The upload is deleted. |
+| `source_<reader or bundle code>` / 422 | For example `source_malformed_json`, `source_malformed_utf8`, `source_parser_failed`, `source_duplicate_source_conflict`, `source_duplicate_target`, `source_active_effect_forbidden`. |
+| `source_byte_limit`, `source_record_limit`, `source_record_byte_limit`, `source_effect_limit`, `source_import_plan_too_large` / 413 | A source or plan bound. |
 
 Bodies are limited to 100,000 bytes. The 1,024-chunk bound limits one bundle to
 64 MiB even if a grant's byte quota is larger. A smaller grant quota wins.
@@ -248,9 +296,22 @@ their revision was unchanged. Gone source records are reported without deletion.
 
 Only one plan may remain pending per logical namespace until applied or undone.
 Committed kit state recovers lineage after an interrupted call. Repeating a
-bundle reuses its exact retained plan unless that plan's apply failed; use a fresh explicit namespace and review
+bundle reuses its exact retained plan unless that plan's apply failed or its
+import was undone or rolled back: then the same bundle plans afresh, so a file
+can be imported again after undo. Use a fresh explicit namespace and review
 for a different mapping. Undo snapshots newest first, including undo from the
-seed's ordinary owner history.
+seed's ordinary owner history. Undoing a snapshot while a newer one still holds
+its records answers 409 `import_superseded`; a strict undo after an owner edit
+answers 409 `native_edit_conflict`. Each has a `details.reason`.
+
+When an erasure withdrew the live import's snapshot, nothing can be compared
+with it: an owner-session `plan` retires it as the baseline and plans a new
+one, while a Business catch-up still answers 410 `snapshot_withdrawn`. While an
+earlier import of the source still holds a record the new plan writes, the kit
+would refuse its apply, so `plan` answers 409 `earlier_import_holds_records`
+instead, with `details.planIds` and a `details.reason` to undo the earlier
+import first; nothing is retired. After that undo the same upload plans and
+applies.
 
 An interrupted private plan preparation reports
 `plan_staging_interrupted_cancel_and_replan` with `details.planId`. Call `undo` with that `planId`
@@ -275,7 +336,9 @@ Every failed plan is terminal: further applies return
 nonce stays consumed. A retry needs a new plan, fingerprint and approval record;
 the approval associated with the failure cannot approve a retry, including a
 standing catch-up approval. When checkpoint is zero, `plan` can immediately
-prepare the same retained upload again in the same logical namespace. If earlier
+prepare the same retained upload again in the same logical namespace, including
+one whose credential-bearing bytes went: its records come from the failed
+plan's snapshot. If earlier
 batches committed, first finish `undo` (guarded rollback) before replanning.
 The old job, immutable snapshot, approval and failure fact remain readable.
 

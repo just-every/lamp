@@ -735,7 +735,13 @@ Strict undo retains its full native revision/value/attachment comparison and
 current ordinary `undo` authorization in every transaction, including batches
 which only record conflicts and the terminal batch. The same selected policy applies to rollback of partially published work;
 its report covers only the effects already committed. Undo and rollback cannot change an existing reversal mode.
-A job beneath any successor still rejects with `IMPORT_SUPERSEDED`.
+A job beneath any successor still rejects with `IMPORT_SUPERSEDED`, except
+where the successor's preserved undo kept an effect for the owner: that undo
+releases, in the same batch, the history beneath the kept effect (each
+predecessor returns to its own job's provenance as reversed, and that job's
+claim goes once nothing else backs it). The predecessor job's own undo then
+reports each such effect `retained` with reason `superseded` (a strict job just
+skips it), so a lineage with a catch-up undoes fully and the owner's edit stays.
 
 To support preserved undo, implement `targets.preparePreservedUndo(db,
 destination, effects)` and, only when native effects own disjoint parts of a
