@@ -2,6 +2,8 @@ import { createIncidentTemplateRepository } from "./template-repository";
 import type { IncidentTemplateRecord, IncidentTemplateComponentRecord } from "./template-repository";
 export type { IncidentTemplateRecord, IncidentTemplateComponentRecord } from "./template-repository";
 import { publishIncidentDraft } from "./publication-repository";
+import { loadRecoverySnapshot, type RecoverySnapshot } from "./recovery-repository";
+import type { RecoveryCheck } from "../brief/recovery-check";
 import { previewComponentChange } from "./component-change-repository";
 import { listIncidentRelations, publishingDraft } from "./list-relations";
 import { activeIncidentGuard, attachClaimStatements, writeClaimBatch, type AttachedIncidentComponent } from "./component-claims";
@@ -57,6 +59,7 @@ export interface IncidentPublishRecord {
   claimEventCounts?: Record<string, number>;
   claimEvents: ComponentClaimEventInput[];
   historyEntries: ComponentStateHistoryInput[];
+  recovery?: { snapshot: string; result: RecoveryCheck; overrideReason: string | null };
 }
 
 export interface IncidentRepository {
@@ -66,6 +69,7 @@ export interface IncidentRepository {
   listIncidents(): Promise<StoredIncident[]>;
   listRelations(): ReturnType<typeof listIncidentRelations>;
   findIncident(incidentId: string): Promise<StoredIncident | null>;
+  loadRecoverySnapshot(incidentId: string): Promise<RecoverySnapshot | null>;
   listComponents(incidentId: string): Promise<StoredIncidentComponent[]>;
   listUpdates(incidentId: string): Promise<StoredIncidentUpdate[]>;
   findPublishingDraft(incidentId: string): Promise<PublishingDraft | null>;
@@ -98,6 +102,7 @@ export function createIncidentRepository(binding: D1Database): IncidentRepositor
   const asPublishingDraft = publishingDraft;
 
   return {
+    loadRecoverySnapshot: (incidentId) => loadRecoverySnapshot(binding, incidentId),
     listRelations: () => listIncidentRelations(binding),
     previewComponentChange: (incidentId, componentId) => previewComponentChange(binding, incidentId, componentId),
     async attachComponent(claim, recipients) {

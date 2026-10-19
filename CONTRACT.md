@@ -921,7 +921,7 @@ After a Statuspage import, everything that read the old page keeps working on th
 
 Acceptance: after a Statuspage fixture import, an unmodified Statuspage client reads `/api/v2/summary.json`, a feed reader reads `/history.rss`, an old embed tag renders the notice, and the Statuspage webhook-receiver fixture of SUB-018 accepts the next publish. Cutover lists every one as served, and its guide contains the correction-update and component-state notes.
 
-Status: **partial** — `src/core/features/statuspage-import/public-paths.mjs`, `src/core/features/public-snapshot/import-aliases.ts`, `tests/e2e/statuspage-import.test.mjs`. History and Atom aliases are served after import (MOVE-005). JSON API, RSS and embed compatibility are missing, and Cutover reports them as unsupported (MOVE-006).
+Status: **partial** — `src/core/features/statuspage-import/public-paths.mjs`, `src/core/features/public-snapshot/import-aliases.ts`, `tests/e2e/statuspage-import.test.mjs`. History and Atom aliases, Statuspage /api/v2 read endpoints, RSS and embed compatibility are served after import. Webhook bodies and subscriber-channel migration (SUB-018, MOVE-010), automation-email continuity (INTAKE-013), and correction-update/component-state cutover guidance remain.
 
 #### MOVE-010 — Every subscriber channel moves.
 
@@ -967,7 +967,7 @@ A Statuspage private page (staff sign-in) or audience-specific page moves into L
 
 Acceptance: a Statuspage fixture whose page has `viewers_must_be_team_members: true` dry-runs into a new private page, and is refused with its reason named when the public page is chosen as the target. After apply, AUD-005's canary search of every public artifact, response and notification finds none of its incident text. A signed-out request to the private page gets the sign-in page with no incident text, and the page admits nobody until an access method passes its setup check; once an OIDC method is configured, a fixture IdP user reads the imported history. A fixture with `ip_restrictions` imports that allow-list. An audience-specific fixture with two page-access groups imports two audiences; each audience's member sees only that group's components and incidents, and its subscribers receive no public-only update. Saved files without `page.json` are refused. Undo removes the pages, audiences and members.
 
-Status: **partial** — `src/core/features/statuspage-import/betterstack/read.ts`, `src/core/features/statuspage-import/instatus/normalize.ts`, `src/core/features/statuspage-import/sorry/read.ts`, `tests/betterstack/reader.test.mjs:47`. The Better Stack, Instatus and Sorry readers refuse private, password-protected, IP-restricted and audience-scoped sources rather than publishing them. The Statuspage reader reads no visibility at all (`docs/moving-in.md`), so a private Statuspage page would import as public, and private and audience pages (AUD-001 to AUD-005) are not built.
+Status: **partial** — `src/core/features/statuspage-import/betterstack/read.ts`, `src/core/features/statuspage-import/instatus/normalize.ts`, `src/core/features/statuspage-import/sorry/read.ts`, `tests/betterstack/reader.test.mjs:47`. The Better Stack, Instatus and Sorry readers refuse private, password-protected, IP-restricted and audience-scoped sources rather than publishing them. The Statuspage reader also requires page and page-access-group responses and refuses private, IP-restricted, audience-scoped or unknown visibility (MOVE-012 in `tests/auth-adoption/cutover.test.mjs`). Importing private and audience pages as private (AUD-001 to AUD-005) is not built.
 
 ### Data, security and portability — target
 
@@ -1021,7 +1021,9 @@ Status: **partial** — `src/core/features/incidents/service.ts`, `tests/referen
 
 Acceptance: choosing Resolved while a linked monitor still fails shows the failing item with its evidence time and refuses the publish without an override reason (409). With a reason, it publishes and the reason is audited.
 
-Status: **partial** — `src/core/features/brief/build.ts`, `tests/e2e/incident-brief.test.mjs`. The brief notes a recorded monitor recovery that has not been published as Resolved. There is no pre-close recovery check and no override.
+**Current evidence and future obligations (ct, 19 October 2026):** every linked single-alert key and grouped member Lamp currently tracks participates. For webhook evidence, the hold means a reported recovery at least five minutes earlier (AUTO-002's default), with no later firing receipt; repeated group recovery conservatively restarts the recorded hold. This does not certify continuously sampled monitor passing. Absent vendor, traffic, support and continuous-monitor evidence is shown as **not tracked**, never as passing. DEP-001, HIST-006, INTEG-001 and COMP-008 must join this same pre-close check before those capabilities ship. Immediate, historical and scheduled resolutions all use the check; scheduled resolutions recheck when due and retain a failing draft. An override authorizes the current immediate publication only.
+
+Status: **done** — `src/core/features/brief/recovery-check.ts`, `src/core/features/incidents/recovery-repository.ts`, `src/core/features/incidents/publication-repository.ts`, `tests/e2e/helpers/recovery-check-flow.mjs` (AGENT-004 through `tests/e2e/incident-brief.test.mjs`). Firing, recovery holds, re-fires and partial grouped recovery refuse unreasoned publication; a named operator's override is private and atomically audited.
 
 #### AGENT-005 — A post-incident report drafted from the record.
 
@@ -1029,7 +1031,9 @@ Status: **partial** — `src/core/features/brief/build.ts`, `tests/e2e/incident-
 
 Acceptance: a resolved fixture incident yields a draft whose timeline lines each cite a brief reference, with cause and remediation empty and flagged. Publishing an untouched cause field is refused with 400.
 
-Status: **missing**.
+**Current evidence and future obligations (ct, 19 October 2026):** every currently held brief alert and published update is included with its existing A/U reference. The incident's recorded opening-to-published-resolution window is labelled **recorded**, never monitor-measured customer downtime. Oncall (INTAKE-012), PagerDuty (INTAKE-009), and Jira Service Management/Opsgenie (INTAKE-014) timeline evidence must enter this same cited generator before those timeline capabilities ship; measured monitor evidence (COMP-008, UPTIME-007) must likewise join when available. Internal notes remain excluded. Cause and remediation are empty fields with human-input flags and cited evidence to review; publishing either untouched prompt or empty field is refused with 400. Draft generation never replaces an existing operator report.
+
+Status: **done** — `src/core/features/reports/draft.ts`, `src/core/features/reports/service.ts`, `src/core/features/reports/ui/report-editor.tsx`, AGENT-005 in `tests/e2e/publishing-contract.test.mjs` and `tests/e2e/helpers/post-incident-report-flow.mjs`. Private cited drafts, empty flagged fields, refusal until human completion, preservation of edits, and immutable publication are exercised through operator doors.
 
 #### AGENT-006 — Unreported incidents surface early.
 
@@ -1083,13 +1087,15 @@ What Lamp does not do, and how a buyer gets it:
 
 ## Status
 
-Judged from the code and tests at commit `6ddb5aa9ee01963493dbfb50e796022038dccebd` (18 October 2026).
+Judged from the code and tests at commit `26e8a8fff0a6a6eb47537d687f71e89482dd984b` (19 October 2026).
+
+AGENT-004 and AGENT-005 are proven by their named API and browser journeys below.
 
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
 | Published | 104 | 0 | 0 | 104 |
-| Target and push further | 11 | 39 | 44 | 94 |
-| All | 115 | 39 | 44 | 198 |
+| Target and push further | 13 | 38 | 43 | 94 |
+| All | 117 | 38 | 43 | 198 |
 
 | Clause | Title | Kind | Status | Evidence | Gap |
 | --- | --- | --- | --- | --- | --- |
@@ -1276,17 +1282,17 @@ Judged from the code and tests at commit `6ddb5aa9ee01963493dbfb50e796022038dcce
 | `MOVE-006` | Cutover preview | published | done | `tests/auth-adoption/cutover.test.mjs`, `tests/e2e/cutover-browser.test.mjs`, `tests/e2e/sorry-import.test.mjs` |  |
 | `MOVE-007` | From Status.io | target | missing |  | Not built. |
 | `MOVE-008` | From incident.io Status Pages | target | missing |  | Not built. |
-| `MOVE-009` | Statuspage consumers keep working at cutover | target | partial | `src/core/features/statuspage-import/public-paths.mjs`, `src/core/features/public-snapshot/import-aliases.ts`, `tests/e2e/statuspage-import.test.mjs` | History and Atom aliases are served after import (MOVE-005). JSON API, RSS and embed compatibility are missing, and Cutover reports them as unsupported (MOVE-006). |
+| `MOVE-009` | Statuspage consumers keep working at cutover | target | partial | `src/core/features/statuspage-import/public-paths.mjs`, `src/core/features/public-snapshot/import-aliases.ts`, `tests/e2e/statuspage-import.test.mjs` | History and Atom aliases, Statuspage /api/v2 read endpoints, RSS and embed compatibility are served after import. Webhook bodies and subscriber-channel migration (SUB-018, MOVE-010), automation-email continuity (INTAKE-013), and correction-update/component-state cutover guidance remain. |
 | `MOVE-010` | Every subscriber channel moves | target | missing |  | Released imports carry email subscribers only (`src/core/features/statuspage-import/`). |
 | `MOVE-011` | Postmortems and templates move | target | partial | `src/core/features/statuspage-import/postmortems.ts`, `src/core/features/statuspage-import/templates.ts`, `tests/e2e/helpers/postmortem-template-import-flow.mjs`, `tests/e2e/helpers/imported-template-apply-flow.mjs` | Statuspage published reports retain original times, draft reports remain private, and templates retain metadata, component states and full oversized wording for shortening. Dry run, silent apply, repeat and conditional undo cover both. Gap: Status.io and incident.io readers are not built. |
-| `MOVE-012` | Private and audience pages move as private | target | partial | `src/core/features/statuspage-import/betterstack/read.ts`, `src/core/features/statuspage-import/instatus/normalize.ts`, `src/core/features/statuspage-import/sorry/read.ts`, `tests/betterstack/reader.test.mjs` | The Better Stack, Instatus and Sorry readers refuse private, password-protected, IP-restricted and audience-scoped sources rather than publishing them. The Statuspage reader reads no visibility at all (`docs/moving-in.md`), so a private Statuspage page would import as public, and private and audience pages (AUD-001 to AUD-005) are not built. |
+| `MOVE-012` | Private and audience pages move as private | target | partial | `src/core/features/statuspage-import/betterstack/read.ts`, `src/core/features/statuspage-import/instatus/normalize.ts`, `src/core/features/statuspage-import/sorry/read.ts`, `tests/betterstack/reader.test.mjs` | The Better Stack, Instatus and Sorry readers refuse private, password-protected, IP-restricted and audience-scoped sources rather than publishing them. The Statuspage reader also requires page and page-access-group responses and refuses private, IP-restricted, audience-scoped or unknown visibility (MOVE-012 in `tests/auth-adoption/cutover.test.mjs`). Importing private and audience pages as private (AUD-001 to AUD-005) is not built. |
 | `PORT-001` | Every new record travels | target | partial | `tests/e2e/export-import.test.mjs` | Export, clean restore and equivalent re-export cover every released record (HIST-004). Target entities are not built. |
 | `PORT-002` | Erasure reaches every new identifier | target | partial | `tests/e2e/subscriber-erasure.test.mjs`, `tests/auth-adoption/operator-erasure.test.mjs` | Subscriber and operator erasure ship for released records. The identifiers that target clauses add are not built. |
 | `AGENT-001` | The public story matches responder evidence | push-further | partial | `src/core/features/brief/build.ts`, `src/core/features/ai/service.ts`, `tests/e2e/incident-brief.test.mjs` | The model-free brief flags a monitor recovery with a non-resolved lifecycle and a passed commitment, and an operator can request a cited suggestion (DRAFT-001, DRAFT-004). Continuous comparison against responder, monitor and support evidence does not exist. |
 | `AGENT-002` | The next-update promise is kept | push-further | partial | `src/core/features/incidents/reminders.ts`, `src/core/features/ai/service.ts`, `tests/e2e/update-reminders.test.mjs` | Due and overdue reminders and on-request suggestions ship. Automatic drafting before the deadline and owner escalation do not. |
 | `AGENT-003` | Audience-specific impact | push-further | partial | `src/core/features/incidents/service.ts`, `tests/reference-storage/incident-publishing.test.mjs` | Each update carries an operator-written affected-audience statement (UPDATE-001). There are no audiences and no drafted variants. |
-| `AGENT-004` | Customer-visible recovery is checked before close | push-further | partial | `src/core/features/brief/build.ts`, `tests/e2e/incident-brief.test.mjs` | The brief notes a recorded monitor recovery that has not been published as Resolved. There is no pre-close recovery check and no override. |
-| `AGENT-005` | A post-incident report drafted from the record | push-further | missing |  | Not built. |
+| `AGENT-004` | Customer-visible recovery is checked before close | push-further | done | `src/core/features/brief/recovery-check.ts`, `src/core/features/incidents/recovery-repository.ts`, `src/core/features/incidents/publication-repository.ts`, `tests/e2e/helpers/recovery-check-flow.mjs`, `tests/e2e/incident-brief.test.mjs` |  |
+| `AGENT-005` | A post-incident report drafted from the record | push-further | done | `src/core/features/reports/draft.ts`, `src/core/features/reports/service.ts`, `src/core/features/reports/ui/report-editor.tsx`, `tests/e2e/publishing-contract.test.mjs`, `tests/e2e/helpers/post-incident-report-flow.mjs` |  |
 | `AGENT-006` | Unreported incidents surface early | push-further | missing |  | Not built. |
 | `AGENT-007` | Translations drafted, never auto-published | push-further | missing |  | Not built. |
 | `AGENT-008` | Scoped MCP tools for outside agents | push-further | missing |  | Not built. |

@@ -1,3 +1,4 @@
+import { RecoveryCheckPanel } from "./recovery-check";
 import { IncidentReach } from "../../communication-performance/ui/incident-reach";
 import { IncidentImpactCard } from "../../incident-impact/ui";
 import { TemplateControls } from "./template-controls";
@@ -73,6 +74,9 @@ function IncidentVisit({ incidentId }: { incidentId: string }) {
   const [historicalPublishedAt, setHistoricalPublishedAt] = useState<string | null>(null);
   const [publishState, setPublishState] = useState<"idle" | "publishing" | "scheduled" | "published" | "error">("idle");
   const [publishMessage, setPublishMessage] = useState<string | null>(null);
+  const [overrideReason, setOverrideReason] = useState("");
+  const [recoveryRevision, setRecoveryRevision] = useState(0);
+  useEffect(() => { if (draft.lifecycle !== "Resolved") setOverrideReason(""); }, [draft.lifecycle]);
   const [appliedSuggestion, setAppliedSuggestion] = useState<AppliedSuggestion | null>(null);
   const timingDisclosure = useRef<HTMLDetailsElement>(null);
   const previewHeading = useRef<HTMLHeadingElement>(null);
@@ -248,7 +252,7 @@ function IncidentVisit({ incidentId }: { incidentId: string }) {
     }
     let isCurrent = captureUpdate();
     setPublishState("publishing"); setPublishMessage(null);
-    try { await appApi(`/api/app/incidents/${incident.id}/publish`, { method: "POST", headers: { "If-Match": version.current }, body: JSON.stringify({ channels, ...(historicalPublishedAt ? { publishedAt: historicalPublishedAt } : {}) }) });
+    try { await appApi(`/api/app/incidents/${incident.id}/publish`, { method: "POST", headers: { "If-Match": version.current }, body: JSON.stringify({ channels, ...(draft.lifecycle === "Resolved" && overrideReason.trim() ? { overrideReason: overrideReason.trim() } : {}), ...(historicalPublishedAt ? { publishedAt: historicalPublishedAt } : {}) }) });
       if (!isCurrent()) return;
       // Publication consumes one update's authority, even without navigation.
       // Suggestions, templates, previews or saves started for that update must
@@ -262,7 +266,7 @@ function IncidentVisit({ incidentId }: { incidentId: string }) {
       const response = await appApi<IncidentResponse>(`/api/app/incidents/${incident.id}`);
       if (!isCurrent()) return;
       if (!response.incident) throw new Error("The published incident could not be refreshed.");
-      setPublishedIncident(response.incident); setAppliedSuggestion(null);
+      setPublishedIncident(response.incident); setAppliedSuggestion(null); setOverrideReason("");
       const next = draftFromIncident(response.incident);
       version.current = `${response.incident.draft?.id ?? "-"}:${response.incident.updates.length}`;
       pristineKey.current = JSON.stringify(next);
@@ -274,7 +278,7 @@ function IncidentVisit({ incidentId }: { incidentId: string }) {
       setPreview(null); setPreviewError(null);
       setScheduledPublishAt(null); setHistoricalPublishedAt(null);
       setPublishState("published"); setPublishMessage(historicalPublishedAt ? "Historical update published. It did not notify subscribers." : "Update published. The fixed recipient set is now queued for delivery."); refresh(); }
-    catch (cause) { if (!isCurrent()) return; setPublishState("error"); setPublishMessage(cause instanceof Error ? cause.message : "The update could not be published."); }
+    catch (cause) { if (!isCurrent()) return; setPublishState("error"); setRecoveryRevision(current => current + 1); setPublishMessage(cause instanceof Error ? cause.message : "The update could not be published."); }
   };
   const schedule = async () => {
     if (!draftSaved || !publishable || hasTimeError) return;
@@ -331,6 +335,7 @@ function IncidentVisit({ incidentId }: { incidentId: string }) {
         <ClientExtensionSlot id="incident.composer.fields.after.v1" context={{ incident: { id: incident.id, reference: incident.reference, lifecycle: incident.lifecycle } }} />
       </form>
       <details className="draft-tools"><summary>Update templates</summary><TemplateControls key={updateGeneration.current} incident={incident} draft={draft} onApplied={applyDraft} onChannelsApplied={setChannels} version={version.current} captureUpdate={captureUpdate} /></details>
+      {draft.lifecycle === "Resolved" && <RecoveryCheckPanel key={recoveryRevision} incidentId={incident.id} overrideReason={overrideReason} onOverrideReason={setOverrideReason} />}
       <section className="publication-controls" aria-label="Publication controls"><div><strong>Delivery channels</strong><p>Public page, feed, and widget always update. Select subscriber channels for this immutable update.</p></div><div className="channel-checks"><label className="checkbox-label"><input type="checkbox" checked={channels.includes("email")} onChange={() => toggleChannel("email")} />Email</label><label className="checkbox-label"><input type="checkbox" checked={channels.includes("webhook")} onChange={() => toggleChannel("webhook")} />Webhook</label><label className="checkbox-label"><input type="checkbox" checked={channels.includes("chat")} onChange={() => toggleChannel("chat")} />Slack and Teams</label></div><details className="draft-tools publication-timing" ref={timingDisclosure} open={Boolean(scheduledPublishAt || historicalPublishedAt || timeErrors.scheduled || timeErrors.historical)}><summary>Schedule or backdate</summary><div className="publication-timing-fields"><p>Times in {timezone}.</p>{timeErrors.scheduled ? <FormError>{timeErrors.scheduled}</FormError> : null}{timeErrors.historical ? <FormError>{timeErrors.historical}</FormError> : null}<label className="form-label scheduled-publication-control"><span>Scheduled publication</span><small>The update remains private until this future time.</small><input aria-label="Scheduled publication date and time" type="datetime-local" value={toLocalDateTime(scheduledPublishAt)} onChange={(event) => { try { setScheduledPublishAt(fromPageDateTime(event.target.value, timezone)); setTimeErrors(current => ({ ...current, scheduled: null })); } catch (cause) { setScheduledPublishAt(null); setTimeErrors(current => ({ ...current, scheduled: (cause as Error).message })); } }} /></label><label className="form-label historical-publication-control"><span>Historical publication timestamp</span><input aria-label="Historical publication date and time" type="datetime-local" value={toLocalDateTime(historicalPublishedAt)} onChange={(event) => { try { setHistoricalPublishedAt(fromPageDateTime(event.target.value, timezone)); setTimeErrors(current => ({ ...current, historical: null })); } catch (cause) { setHistoricalPublishedAt(null); setTimeErrors(current => ({ ...current, historical: (cause as Error).message })); } }} /><small>Use a past instant to add a retroactive public record without notifying subscribers.</small></label><div className="form-actions"><Button type="button" variant="secondary" onClick={() => { setScheduledPublishAt(null); setHistoricalPublishedAt(null); setTimeErrors(current => ({ ...current, scheduled: null, historical: null })); timingDisclosure.current?.querySelector("summary")?.focus(); }}>Use current time</Button><Button variant="secondary" type="button" disabled={publishState === "publishing" || !draftSaved || !publishable || hasTimeError} onClick={schedule}>Schedule update</Button></div></div></details></section>
       <div className="composer-actions">
         <Button type="button" variant="secondary" onClick={() => { const isCurrent = captureUpdate(); setPreviewOpen(true); window.clearTimeout(previewScroll.current); previewScroll.current = window.setTimeout(() => { if (isCurrent()) previewHeading.current?.scrollIntoView({ block: "start", behavior: "smooth" }); }, 0); }}>Preview</Button>

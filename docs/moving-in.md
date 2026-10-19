@@ -158,10 +158,12 @@ empty-destination requirements.
 Choose **Statuspage**. In that account, open the avatar menu and choose **API
 info**; enter the displayed **page ID** and **API key**. Lamp makes bounded `GET`
 requests to `https://api.statuspage.io` and uses the key only in those requests.
-The API calls read components, component groups, incidents, scheduled incidents,
+The API calls first read the page and page-access groups, then components, component groups, incidents, scheduled incidents,
 subscribers and incident templates. The key is not saved. See the [official API reference](https://developer.statuspage.io/).
 
-For saved responses, upload the unchanged JSON arrays named:
+For saved responses, include the unchanged object from `GET /v1/pages/{page_id}` as
+`page.json` and the unchanged array from `GET /v1/pages/{page_id}/page_access_groups`
+as `page-access-groups.json`. Also upload the unchanged JSON arrays named:
 `component-groups.json`, `components.json`, `incidents.json`,
 `incidents-scheduled.json`, `subscribers.json` and `incident-templates.json`.
 An optional `incident-template-groups.json` array of group IDs and names supplies
@@ -188,9 +190,10 @@ hand-picked all-state export, so do not upload one. Non-email and quarantined
 rows are skipped. Eligible email rows become pending and need the Lamp
 invitation and confirmation described above.
 
-The import does not read the source page's visibility settings. Check that the
-page is intended to become publicly readable before moving it; Lamp's public
-page does not preserve member-login or IP restrictions. Unsupported subscriber
+The reader refuses team-member-only pages, IP restrictions and nonempty page-access
+groups. Missing or unreadable visibility also refuses the import with a plain
+notice. Lamp cannot yet preserve private or audience access; no such source is
+imported into its public page. Unsupported subscriber
 channels do not move. Components marked `only_show_if_degraded` retain their
 conditional visibility in Lamp. The source's `showcase` flag does not set a Lamp
 visibility rule.

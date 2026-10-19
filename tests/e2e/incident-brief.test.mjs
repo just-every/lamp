@@ -1,3 +1,5 @@
+import { execFileSync } from "node:child_process";
+import { recoveryCheckFlow } from "./helpers/recovery-check-flow.mjs";
 import { test } from 'node:test';
 import { requestHeaders } from "../helpers/request-headers.mjs";
 import assert from "node:assert/strict";
@@ -81,7 +83,7 @@ after(async () => {
 
 let alertIncident;
 
-test("DRAFT-004 DRAFT-002 DRAFT-001 — Private incident brief constrains AI suggestions without changing published state", async t => {
+test("AGENT-004 DRAFT-004 DRAFT-002 DRAFT-001 — Private incident brief constrains AI suggestions without changing published state", async t => {
   t.diagnostic("DRAFT-004 — an alert's draft shows a brief of what is known and what is not, with no internal note in it");
   await (async () => {
   const checkout = await component("Checkout");
@@ -160,6 +162,10 @@ test("DRAFT-004 DRAFT-002 DRAFT-001 — Private incident brief constrains AI sug
   assert.deepEqual(incidentAfter.draft, incidentBefore.draft, "the saved draft changes only when the operator edits it");
   assert.deepEqual(await surfaces(), publicBefore, "page, feed and widget are byte-identical");
 })(t);
+  t.diagnostic("AGENT-004 — pre-close evidence, hold, re-fire, grouped members and private audited override");
+  await recoveryCheckFlow({ api, post, component, alertSource, draft, origin, publicOrigin, devKey, cookie,
+    sql: command => execFileSync('pnpm', ['exec', 'wrangler', 'd1', 'execute', 'DB', '--local', '--persist-to', runtime.state, '--config', runtime.env.LAMP_WRANGLER_CONFIG, '--command', command], { env: runtime.env, stdio: 'pipe' }),
+  });
 });
 
 const reply = (fields) => () => ({ status: 200, body: { choices: [{ message: { content: JSON.stringify(fields) } }] } });

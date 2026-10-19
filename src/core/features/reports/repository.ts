@@ -13,8 +13,9 @@ export interface IncidentReportRow {
 
 export interface ReportRepository {
   find(incidentId: string): Promise<IncidentReportRow | null>;
+  createDraft(input: IncidentReportRow): Promise<boolean>;
   upsert(input: IncidentReportRow): Promise<void>;
-  publish(incidentId: string, reportId: string, publishedAt: string, operatorId: string, notificationStatements: D1PreparedStatement[]): Promise<boolean>;
+  publish(incidentId: string, report: IncidentReportRow, publishedAt: string, operatorId: string, notificationStatements: D1PreparedStatement[]): Promise<boolean>;
   listComponentIds(incidentId: string): Promise<string[]>;
   listResolvedWithoutPublishedReport(): Promise<Array<{ id: string; lifecycle: string; resolvedAt: string | null; impact: string | null }>>;
 }
@@ -33,6 +34,14 @@ export function createReportRepository(binding: D1Database): ReportRepository {
     async find(incidentId) {
       return row(await binding.prepare(`SELECT id, incident_id AS incidentId, summary, timeline, cause, remediation, published_at AS publishedAt, author_operator_id AS authorOperatorId, created_at AS createdAt, updated_at AS updatedAt FROM incident_reports WHERE incident_id = ?`).bind(incidentId).first());
     },
+    async createDraft(input) {
+      const result = await binding.prepare(`INSERT INTO incident_reports (id, incident_id, summary, timeline, cause, remediation, published_at, author_operator_id, created_at, updated_at)
+        SELECT ?, ?, ?, ?, ?, ?, NULL, ?, ?, ?
+        WHERE EXISTS (SELECT 1 FROM incidents WHERE id = ? AND lifecycle = 'Resolved' AND deleted_at IS NULL)
+        ON CONFLICT(incident_id) DO NOTHING`)
+        .bind(input.id, input.incidentId, input.summary, input.timeline, input.cause, input.remediation, input.authorOperatorId, input.createdAt, input.updatedAt, input.incidentId).run();
+      return result.meta.changes === 1;
+    },
     async upsert(input) {
       await binding.prepare(`INSERT INTO incident_reports (id, incident_id, summary, timeline, cause, remediation, published_at, author_operator_id, created_at, updated_at)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -40,7 +49,8 @@ export function createReportRepository(binding: D1Database): ReportRepository {
         WHERE incident_reports.published_at IS NULL`)
         .bind(input.id, input.incidentId, input.summary, input.timeline, input.cause, input.remediation, input.publishedAt, input.authorOperatorId, input.createdAt, input.updatedAt).run();
     },
-    async publish(incidentId, reportId, publishedAt, operatorId, notificationStatements) {
+    async publish(incidentId, report, publishedAt, operatorId, notificationStatements) {
+      const reportId = report.id;
       // The guard shares the update batch with recipient capture. If a
       // competing publisher (or a non-resolved incident) makes the update a
       // no-op, its NULL payload violates the audit contract and rolls the
@@ -52,8 +62,8 @@ export function createReportRepository(binding: D1Database): ReportRepository {
         .bind(`${reportId}-publish-${publishedAt}`, reportId, operatorId, reportId, incidentId, publishedAt, publishedAt, publishedAt);
       try {
         await binding.batch([
-          binding.prepare(`UPDATE incident_reports SET published_at = ?, author_operator_id = ?, updated_at = ? WHERE incident_id = ? AND id = ? AND published_at IS NULL AND EXISTS (SELECT 1 FROM incidents WHERE incidents.id = ? AND incidents.lifecycle = 'Resolved')`)
-            .bind(publishedAt, operatorId, publishedAt, incidentId, reportId, incidentId),
+          binding.prepare(`UPDATE incident_reports SET published_at = ?, author_operator_id = ?, updated_at = ? WHERE incident_id = ? AND id = ? AND published_at IS NULL AND EXISTS (SELECT 1 FROM incidents WHERE incidents.id = ? AND incidents.lifecycle = 'Resolved' AND incidents.deleted_at IS NULL) AND summary = ? AND timeline = ? AND cause = ? AND remediation = ?`)
+            .bind(publishedAt, operatorId, publishedAt, incidentId, reportId, incidentId, report.summary, report.timeline, report.cause, report.remediation),
           guard,
           ...notificationStatements,
         ]);

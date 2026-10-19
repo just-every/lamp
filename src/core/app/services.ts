@@ -125,9 +125,10 @@ export function createAppServices(bindings: AppBindings, blobs: BlobStore, execu
     },
   });
   const communicationPerformance = createCommunicationPerformanceService(createCommunicationPerformanceRepository(bindings.DB), extensions.postmortemDuePolicy);
+  const briefs = createBriefService(createBriefRepository(bindings.DB));
   const reports = createReportsService(createReportRepository(bindings.DB), publicSnapshots.rebuild, extensions.postmortemDuePolicy, {
     forIncidentReport: async (input) => notificationPublicationStatements(bindings.DB, { eventId: input.eventId, eventType: "incident-report", incidentReportId: input.eventId, componentIds: input.componentIds, channels: input.channels, queuedAt: input.queuedAt }),
-  });
+  }, briefs);
   const intake = createIntakeService(createIntakeRepository(bindings.DB), extensions.alertIntakePolicy, async (incidentId) => deliveries.queueOperatorAlert({ eventId: `intake-draft/${incidentId}`, title: "Lamp alert intake created an incident draft", text: `A configured alert source created draft incident ${incidentId}; review and publish it if customer communication is needed.` }), extensions.events);
   const aiValues = [bindings.AI_PROVIDER_URL, bindings.AI_PROVIDER_API_KEY, bindings.AI_PROVIDER_MODEL];
   const configuredAiValues = aiValues.filter((value) => Boolean(value)).length;
@@ -142,7 +143,6 @@ export function createAppServices(bindings: AppBindings, blobs: BlobStore, execu
     : null);
   // A demo visitor sees suggestions without the provider being called (Base demoEffect).
   const aiProvider = bindings.RER_DEMO === '1' ? createDemoAiProvider(configuredAi) : configuredAi;
-  const briefs = createBriefService(createBriefRepository(bindings.DB));
   const aiUnavailable = outboundUnavailable(bindings, "AI suggestions");
   const ai = createAiService(briefs, aiUnavailable ? null : aiProvider, aiUnavailable);
   const overview = createOverviewService(components, incidents, maintenance, createSetupChecklistService(createOverviewRepository(bindings.DB), pageSettings, {

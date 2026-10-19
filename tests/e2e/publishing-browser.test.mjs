@@ -223,7 +223,7 @@ test("compiled visual edits survive actual operator navigation and reload", asyn
   } finally { page.off('pageerror',recordError); }
 });
 
-contract("INCIDENT-001", "MOBILE-001 — an operator can start empty, publish and resolve, then run the full alert-to-resolution phone desk", async () => {
+contract("INCIDENT-001", "AGENT-004 MOBILE-001 — an operator can start empty, publish and resolve, then run the full alert-to-resolution phone desk", async () => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto(`${appUrl}/app/components`);
   await page.getByText("No components are configured. Add the first component before creating an incident.").waitFor();
@@ -521,7 +521,7 @@ contract("UPDATE-002", "NOTIFY-019 — composer controls and saved notification 
   await emailBrandingBrowserFlow({ page, appUrl, pageUrl, appFetch });
 });
 
-contract("HIST-002", "TEAM-007 HIST-007 — an operator publishes a report, browses audit history and reports subscribers", async () => {
+contract("HIST-002", "AGENT-005 TEAM-007 HIST-007 — an operator publishes a report, browses audit history and reports subscribers", async () => {
   await postIncidentReportFlow({ page, appFetch, appUrl, pageUrl });
   await auditLogFlow({ page, appUrl, appFetch });
   await subscriberReportingBrowserFlow({ page, appUrl, appFetch });

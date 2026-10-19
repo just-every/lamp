@@ -118,7 +118,7 @@ test('MOVE-001/002/003/004/005 Instatus owner route reviews, fences, imports sil
   // The same provider-local IDs and creation dates still name different native
   // components; email destinations stay unique across source namespaces.
   const otherComponents = JSON.parse(readFileSync('tests/fixtures/statuspage/small/components.json', 'utf8')).map(row => ({ ...row, created_at: '2020-01-01T00:00:00Z', name: `Statuspage ${row.name}` }));
-  const otherFiles = [{ name: 'components.json', text: JSON.stringify(otherComponents) }, { name: 'subscribers.json', text: JSON.stringify([{ id: 'subscriber-1', mode: 'email', email: 'large-1@example.invalid', components: [] }]) }];
+  const otherFiles = [{ name: 'page.json', text: readFileSync('tests/fixtures/statuspage/small/page.json', 'utf8') }, { name: 'page-access-groups.json', text: '[]' }, { name: 'components.json', text: JSON.stringify(otherComponents) }, { name: 'subscribers.json', text: JSON.stringify([{ id: 'subscriber-1', mode: 'email', email: 'large-1@example.invalid', components: [] }]) }];
   const otherPreview = await moveIn.preview({ source: 'statuspage', files: otherFiles });
   assert.equal(otherPreview.status, 200, JSON.stringify(otherPreview.body));
   assert.equal(otherPreview.body.report.counts.subscriber.skipped, 1);

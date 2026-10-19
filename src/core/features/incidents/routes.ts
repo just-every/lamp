@@ -8,10 +8,11 @@ import { COMPONENT_STATES, INCIDENT_LIFECYCLES } from "../../shared/domain";
 import { ulidSchema } from "../../shared/ids";
 import { incidentDraftSchema } from "../../shared/schemas";
 import { InvalidIncidentUpdateError, type IncidentsService } from "./service";
+import { RecoveryCheckError } from "../brief/recovery-check";
 import { draftFromIncident } from "./draft";
 
 const incidentQuerySchema = z.object({ lifecycle: z.enum(INCIDENT_LIFECYCLES).optional() }).strict();
-const publishSchema = z.object({ channels: z.array(z.enum(["email", "webhook", "chat"])).max(3).transform((channels) => [...new Set(channels)]), publishedAt: z.iso.datetime().optional(), componentStates: z.record(ulidSchema, z.enum(INCIDENT_CLAIM_STATES)).optional() }).strict();
+const publishSchema = z.object({ channels: z.array(z.enum(["email", "webhook", "chat"])).max(3).transform((channels) => [...new Set(channels)]), publishedAt: z.iso.datetime().optional(), componentStates: z.record(ulidSchema, z.enum(INCIDENT_CLAIM_STATES)).optional(), overrideReason: z.string().trim().max(1_000).optional() }).strict();
 const scheduleSchema = z.object({ publishAt: z.iso.datetime(), channels: z.array(z.enum(["email", "webhook", "chat"])).max(3).transform((channels) => [...new Set(channels)]) }).strict();
 const deleteSchema = z.object({ reason: z.string().trim().min(1).max(1_000) }).strict();
 const attachedComponentSchema = z.object({ componentId: ulidSchema, state: z.enum(COMPONENT_STATES), relationship: z.enum(["Primary", "Dependent"]).default("Primary") }).strict();
@@ -28,6 +29,12 @@ function incidentIdFrom(context: Context<AppEnv>) {
 }
 
 export function registerIncidentRoutes(app: Hono<AppEnv>, service: IncidentsService, options: { hasChatChannels?: () => Promise<boolean>; wordingChecks?: () => Promise<{ blockedTerms: string[]; friendlyLength: number }> } = {}) {
+  app.get("/api/app/incidents/:incidentId/recovery-check", async (context) => {
+    const incidentId = incidentIdFrom(context);
+    if (!incidentId.success) return context.json({ error: "Invalid incident identifier." }, 400);
+    const recovery = await service.recoveryCheck(incidentId.data);
+    return recovery ? context.json({ recovery }) : context.json({ error: "Incident not found." }, 404);
+  });
   app.get("/api/app/incident-templates", async (context) => context.json({ templates: await service.listTemplates() }));
   app.post("/api/app/incident-templates", async (context) => {
     const input = templateSchema.safeParse(await context.req.json().catch(() => null));
@@ -136,7 +143,10 @@ export function registerIncidentRoutes(app: Hono<AppEnv>, service: IncidentsServ
       const update = await service.publish(incidentId.data, context.get("operator").id, { ...parsed.data, expectedVersion: context.req.header("If-Match")! });
       if (update) context.executionCtx.waitUntil(service.finishPublication(update));
       return update ? context.json({ update }) : context.json({ error: "A saved draft is required." }, 409);
-    } catch (cause) { return context.json({ error: cause instanceof Error ? cause.message : "The update could not be published." }, cause instanceof InvalidIncidentUpdateError ? 400 : 409); }
+    } catch (cause) {
+      if (cause instanceof RecoveryCheckError) return context.json({ error: cause.message, recovery: cause.recovery }, 409);
+      return context.json({ error: cause instanceof Error ? cause.message : "The update could not be published." }, cause instanceof InvalidIncidentUpdateError ? 400 : 409);
+    }
   });
 
   app.post("/api/app/incidents/:incidentId/draft/schedule", async (context) => {
