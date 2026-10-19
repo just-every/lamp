@@ -287,9 +287,9 @@ Status: **partial** — `src/core/features/page-settings/service.ts`, `src/core/
 
 #### I18N-001 — Pages in several languages.
 
-The owner picks a default language and any additional languages from a shipped set. American English and US Spanish come first, then French, German, Brazilian Portuguese and Japanese. Every fixed string on public and private pages, in feeds, in emails and SMS, and on subscription pages is translated. Times follow PAGE-009 in each locale's format. Each language has its own snapshot under `/<lang>/` with `hreflang` alternates and a visible language switcher. Accept-Language suggests a language through a link and never silently changes what a URL serves. Each subscriber has a language, chosen when subscribing and changeable from SUB-007's page.
+The owner picks a default language and any additional languages from a shipped set. American English and US Spanish come first, then French, German, Brazilian Portuguese and Japanese. Every fixed string on public and private pages, in feeds, in emails and SMS, and on subscription pages is translated. Times follow PAGE-009 in each locale's format. Each language has its own snapshot under `/<lang>/` with `hreflang` alternates and a visible language switcher. Accept-Language suggests a language through a link and never silently changes what a URL serves. Each subscriber has a language, chosen when subscribing and changeable from SUB-007's page. Subscriber reporting (HIST-007) counts subscribers by language, in its current counts, daily trend and CSV.
 
-Acceptance: with English and Spanish enabled, `/es/` renders every fixed string in Spanish, in the initial HTML and without script. A Spanish-language subscriber's email uses the Spanish template. Turning a language off removes its pages from the next snapshot.
+Acceptance: with English and Spanish enabled, `/es/` renders every fixed string in Spanish, in the initial HTML and without script. A Spanish-language subscriber's email uses the Spanish template. Turning a language off removes its pages from the next snapshot. HIST-007's report and CSV count the English and Spanish subscribers separately.
 
 Status: **missing**. Released `seed.json → nonGoals` excludes multi-language pages; this clause replaces that exclusion.
 
@@ -775,11 +775,11 @@ Status: **missing**.
 
 #### HIST-007 — Subscriber reporting.
 
-Operators see subscriber counts by channel, state, component, audience and language, with growth over time and the deactivation reasons of SUB-010. The counts are exportable as CSV.
+Operators see subscriber counts by channel, state, component, audience and language, with growth over time and the deactivation reasons of SUB-010. The counts are exportable as CSV. Until audience subscribers (AUD-004) and subscriber languages (I18N-001) exist, every subscriber belongs to the one public page in its one language, and the report says that audience and language breakdowns are not available. AUD-004 and I18N-001 add those breakdowns to the current counts, the daily trend and the CSV when they ship.
 
 Acceptance: a fixture with mixed channels reports counts equal to the SUB-011 list totals, and the trend shows each day's net change.
 
-Status: **partial** — `src/core/features/subscriber-reporting/`, `migrations/core/0034_subscriber_reporting.sql`, `tests/e2e/helpers/subscriber-reporting-flow.mjs`, `tests/e2e/helpers/subscriber-reporting-browser-flow.mjs`, `tests/e2e/export-import.test.mjs`. Subscribers shows current email/webhook counts by channel, state and component, deactivation reasons, matching CSV and anonymous daily pending-plus-active inventory changes from an explicit baseline. Confirmation does not double-count growth; import, channel moves, expiry, undo and erasure are observed atomically. Current technical archives preserve facts; older archives start a new restore baseline. Earlier daily history is unknown. Audience and language dimensions await AUD-004 and I18N-001.
+Status: **done** — `src/core/features/subscriber-reporting/`, `migrations/core/0034_subscriber_reporting.sql`, `tests/e2e/helpers/subscriber-reporting-flow.mjs`, `tests/e2e/helpers/subscriber-reporting-browser-flow.mjs`, `tests/e2e/delivery-contract.test.mjs`, `tests/e2e/publishing-browser.test.mjs`, `tests/e2e/export-import.test.mjs`. Subscribers shows current email/webhook counts by channel, state and component, deactivation reasons, matching CSV and anonymous daily pending-plus-active inventory changes from an explicit baseline. Confirmation does not double-count growth; import, channel moves, expiry, undo and erasure are observed atomically. Current technical archives preserve facts; older archives start a new restore baseline. Earlier daily history is labelled unknown. The report says audience and language breakdowns are not available; AUD-004 and I18N-001 add them.
 
 #### HIST-008 — Complete browsable history.
 
@@ -817,9 +817,9 @@ Status: **missing**.
 
 #### AUD-004 — Audience subscribers.
 
-Signed-in audience members, and admitted visitors of a private page that serves no audience (a staff page), can subscribe on any SUB-016 channel from their page. A subscription belongs to the page it was made on and receives only incidents and maintenance visible there. Their notifications carry their audience's wording and are never sent to public subscribers. Public subscribers never receive audience-only incidents. Unsubscribe and management follow SUB-006 and SUB-007.
+Signed-in audience members, and admitted visitors of a private page that serves no audience (a staff page), can subscribe on any SUB-016 channel from their page. A subscription belongs to the page it was made on and receives only incidents and maintenance visible there. Their notifications carry their audience's wording and are never sent to public subscribers. Public subscribers never receive audience-only incidents. Unsubscribe and management follow SUB-006 and SUB-007. Subscriber reporting (HIST-007) counts subscribers by the page they subscribed on, in its current counts, daily trend and CSV.
 
-Acceptance: an audience-only update notifies the audience's subscribers and no public subscriber. A combined update sends each subscriber exactly one message with their own wording. A staff-page subscriber receives a staff-only incident, and no public subscriber does.
+Acceptance: an audience-only update notifies the audience's subscribers and no public subscriber. A combined update sends each subscriber exactly one message with their own wording. A staff-page subscriber receives a staff-only incident, and no public subscriber does. HIST-007's report and CSV count the audience and staff subscribers by page, with totals equal to each page's subscriber list.
 
 Status: **missing**.
 
@@ -1100,8 +1100,8 @@ AGENT-004, AGENT-005, INTAKE-008 and UPTIME-009 are proven by their named API an
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
 | Published | 104 | 0 | 0 | 104 |
-| Target and push further | 16 | 36 | 42 | 94 |
-| All | 120 | 36 | 42 | 198 |
+| Target and push further | 17 | 35 | 42 | 94 |
+| All | 121 | 35 | 42 | 198 |
 
 | Clause | Title | Kind | Status | Evidence | Gap |
 | --- | --- | --- | --- | --- | --- |
@@ -1262,7 +1262,7 @@ AGENT-004, AGENT-005, INTAKE-008 and UPTIME-009 are proven by their named API an
 | `HIST-004` | Export contents | published | done | `tests/e2e/export-import.test.mjs` |  |
 | `HIST-005` | Communication performance | target | done | `src/core/features/communication-performance/service.ts`, `src/core/features/communication-performance/ui/communication-performance.tsx`, `tests/e2e/helpers/communication-performance-flow.mjs` |  |
 | `HIST-006` | Traffic spike alert without visitor tracking | target | missing |  | Not built. |
-| `HIST-007` | Subscriber reporting | target | partial | `src/core/features/subscriber-reporting/`, `migrations/core/0034_subscriber_reporting.sql`, `tests/e2e/helpers/subscriber-reporting-flow.mjs`, `tests/e2e/helpers/subscriber-reporting-browser-flow.mjs`, `tests/e2e/export-import.test.mjs` | Subscribers shows current email/webhook counts by channel, state and component, deactivation reasons, matching CSV and anonymous daily pending-plus-active inventory changes from an explicit baseline. Confirmation does not double-count growth; import, channel moves, expiry, undo and erasure are observed atomically. Current technical archives preserve facts; older archives start a new restore baseline. Earlier daily history is unknown. Audience and language dimensions await AUD-004 and I18N-001. |
+| `HIST-007` | Subscriber reporting | target | done | `src/core/features/subscriber-reporting/`, `migrations/core/0034_subscriber_reporting.sql`, `tests/e2e/helpers/subscriber-reporting-flow.mjs`, `tests/e2e/helpers/subscriber-reporting-browser-flow.mjs`, `tests/e2e/delivery-contract.test.mjs`, `tests/e2e/publishing-browser.test.mjs`, `tests/e2e/export-import.test.mjs` | Subscribers shows current email/webhook counts by channel, state and component, deactivation reasons, matching CSV and anonymous daily pending-plus-active inventory changes from an explicit baseline. Confirmation does not double-count growth; import, channel moves, expiry, undo and erasure are observed atomically. Current technical archives preserve facts; older archives start a new restore baseline. Earlier daily history is labelled unknown. The report says audience and language breakdowns are not available; AUD-004 and I18N-001 add them. |
 | `HIST-008` | Complete browsable history | target | done | `src/core/features/public-snapshot/history.ts`, `tests/e2e/helpers/catalogue-history-flow.mjs`, `tests/e2e/snapshot-retained.test.mjs` |  |
 | `AUD-001` | Several pages in one deployment | target | missing |  | Replaces the released `seed.json → nonGoals` exclusions of more than one page per deployment and of private or audience-scoped pages. |
 | `AUD-002` | Private page access | target | missing |  | Not built. |

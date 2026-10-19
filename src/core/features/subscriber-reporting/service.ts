@@ -7,7 +7,7 @@ export const reportingDefinitions = {
   growth: "Inventory means pending plus active subscribers, not confirmed delivery recipients. Joined and left count entries into and exits from that inventory. Pending confirmation does not change inventory. A channel change leaves the old channel and joins the new one.",
   tracking: "Daily changes use the UTC database observation day, including imports, undo, expiry and erasure. Tracking starts on the first subscriber change or report read, at the recorded baseline; its first day is partial, and the current day is incomplete. Earlier history is unknown. Imports are never backdated to subscriber creation dates.",
   baseline: "The baseline records eligible inventory when tracking began. Daily opening inventory is that baseline plus earlier observed net changes; closing inventory adds the day's net change. Technical archives retain these anonymous facts; page-data imports are observed as new changes.",
-  coverage: "Audience and language reporting are unavailable because native audience and language subscriptions are not built. HIST-007 remains partial.",
+  coverage: "Audience and language reporting are unavailable: every subscriber belongs to the one public page in its one language until audience subscribers (AUD-004) and subscriber languages (I18N-001) exist, and those clauses add the breakdowns.",
 };
 
 export interface SubscriberReportingService { report(range: ReportingRange): Promise<SubscriberReportingResponse> }

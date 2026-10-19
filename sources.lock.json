@@ -474,7 +474,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "3f5836ee4b5e0e9353e6f4972279e7a4125f3f0f883e8dee4c792c1c8391762e",
+      "sha256": "fc6cd17ba331aae852906c23ccf716d965b5e0f0e7d9bc98ae9a28a20a80d9bf",
       "executable": false
     },
     "AGENTS.md": {
@@ -522,7 +522,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "377fdad192e913b1bc9e2f8d717511f187115b75bf5149a6e83dfabe176dfb79",
+      "sha256": "fccf996b884969bebeb43b517b0c9cc4f568ea520bf61d5f5f2a25820a58d6af",
       "executable": false
     },
     "DEMO.md": {
@@ -558,7 +558,7 @@
       "executable": false
     },
     "docs/CLAIMS.md": {
-      "sha256": "a89ba86047dfdc60a850ab667a9142aafa76679f22c850863c8ddb9605ab512d",
+      "sha256": "df61f3b8cb1524aadb0c292e008f8d74fc76e9bd78e8a891daf6d3cc2d47548d",
       "executable": false
     },
     "docs/components-and-groups.md": {
@@ -4142,7 +4142,7 @@
       "executable": false
     },
     "src/core/features/subscriber-reporting/service.ts": {
-      "sha256": "a7fcf94cbdcc10c3388d57669285fc9f661d397f2619e0b4112e9f886544b9b0",
+      "sha256": "96b4ce2fd589251432fce8b958300ff5d32044c9312ae802781a5fc03b1b4702",
       "executable": false
     },
     "src/core/features/subscriber-reporting/types.ts": {
