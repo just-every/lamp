@@ -94,7 +94,7 @@ LAMP_ACCENT_COLOR=#16794C
 `LAMP_PAGE_TAGLINE` the sentence under it. `LAMP_PAGE_TIMEZONE` is the time zone
 your page shows times in, as a name from the
 [time zone list](https://en.wikipedia.org/wiki/List_of_tz_database_time_zones)
-such as `America/New_York`. `LAMP_ACCENT_COLOR` is your brand colour: `#` and
+such as `America/New_York`. `LAMP_ACCENT_COLOR` is your brand color: `#` and
 six hex digits. You can change all four later in **Settings**.
 
 ## Step 5: You, the owner
@@ -126,7 +126,7 @@ authenticated there. Authenticate the exact domain of your sender address: for
    selector as SendGrid offers it (`s1`). Choose **Next**.
 4. SendGrid shows three **CNAME** records: `em…`, `s1._domainkey` and
    `s2._domainkey`. Add each at your DNS host with the name and value exactly as
-   shown. In Cloudflare DNS, set each to **DNS only** (grey cloud), not proxied.
+   shown. In Cloudflare DNS, set each to **DNS only** (gray cloud), not proxied.
 5. Add a DMARC record if your domain has none: a **TXT** record named `_dmarc`
    (on the same sending domain) with the value `v=DMARC1; p=none;`.
 6. Back in SendGrid, tick that you added the records and choose **Verify**. DNS

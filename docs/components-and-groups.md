@@ -29,12 +29,12 @@ Choose **Show only when not Operational** for a service that customers need to
 see only while affected. Its claims still count toward overall status. Recovery
 hides its component row and uptime again without deleting either record.
 
-## Edit the catalogue together
+## Edit the catalog together
 
 Choose **Bulk edit / import CSV** to edit component and group rows together.
 Change names, descriptions, positions, groups, visibility or uptime dates, and
 add or remove rows. Choose **Review changes** to see the counts and deletions;
-the dry run writes nothing. **Apply reviewed changes** commits that catalogue.
+the dry run writes nothing. **Apply reviewed changes** commits that catalog.
 A concurrent edit makes the review stale, so reload and review again.
 
 **Import CSV** accepts a file or pasted contents. The required header is `name`;

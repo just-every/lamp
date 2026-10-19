@@ -6,7 +6,7 @@ choose how customers recognize the page and where its widget may run.
 
 ## Set branding and widget access
 
-In **Settings**, edit the page name, tagline, hostname, accent colour, time zone
+In **Settings**, edit the page name, tagline, hostname, accent color, time zone
 and footer credit. Upload a logo or remove it; Lamp serves the logo from its own
 origin and generates the status favicon and social image. List the full origins
 where you embed the widget. The widget refuses requests from other host origins.

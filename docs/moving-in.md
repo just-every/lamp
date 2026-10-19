@@ -252,7 +252,7 @@ Cutover lists how running Lamp differs from running Statuspage:
 - Component states change with each update: set each affected component's state
   in the update you publish, and publishing applies the states and the update
   together.
-- Components set to show only while degraded keep that behaviour after import.
+- Components set to show only while degraded keep that behavior after import.
 
 ## Sorry
 
@@ -300,7 +300,7 @@ without an enabled email channel are skipped with a reason. Other channel
 values are omitted from every retained record. For a response containing
 these values, Lamp retains only its
 unchanged-byte hash and size, without original-response custody; sanitized
-bytes are never labelled as an original. The local capture files remain
+bytes are never labeled as an original. The local capture files remain
 unchanged and can contain channel credentials, so keep them private. Captured files
 may contain email addresses: keep them private, outside Git, and remove them
 when no longer needed. Capture sends no mail and imports nothing. A failed
@@ -347,7 +347,7 @@ with `/api/public/status`. See Sorry's [feed and notification comparison](https:
 ### Review history, then release subscribers after cutover
 
 The dry run reports native mappings, unsupported records and any changes to
-source meaning. Cancelled maintenance remains cancelled and never acquires
+source meaning. Canceled maintenance remains canceled and never acquires
 a maintenance claim. General notices become resolved informational incidents,
 including notices without affected components. In particular, authenticated update text may not include a
 lifecycle state for each update; any lifecycle projection is disclosed as a
@@ -505,7 +505,7 @@ reads; check your dry run for missing or refused records before importing.
 
 The saved pages response cannot establish public access or the absence of
 audience rules. Lamp asks you to confirm that the page and supplied history are
-published and unrestricted; this is your acknowledgement, not provider
+published and unrestricted; this is your acknowledgment, not provider
 evidence. Known private, allow-listed, audience-scoped or secure-link pages are
 refused, and known unpublished records are not made public. Audience groups are
 access controls, not display groups. Visual parent components and their
