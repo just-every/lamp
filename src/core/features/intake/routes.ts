@@ -3,11 +3,12 @@ import { z } from "zod";
 import { publicPageOrigin } from "../../app/public-origin";
 import type { AppEnv } from "../../app/types";
 import type { PublicWriteRateLimiter } from "../../platform/security/rate-limiter";
+import { monitorMappingSchema } from "./uptime";
 import { labelMatcherSchema } from "./grouped-alerts";
 import { ALERT_PRESETS } from "./presets";
 import { AlertSourceNotFoundError, UnauthorizedAlertError, type AlertSourceEndpointView, type AlertSourceView, type IntakeService } from "./service";
 
-const sourceSchema = z.object({ name: z.string().trim().min(1).max(120), preset: z.enum(ALERT_PRESETS).optional(), labelMatchers: z.array(labelMatcherSchema).max(200).optional(), componentId: z.string().regex(/^[0-9A-HJKMNP-TV-Z]{26}$/).optional(), credentialKind: z.enum(["hmac-sha256", "bearer-token"]), signingSecret: z.string().min(1).optional(), bearerToken: z.string().min(1).optional(), timestampHeader: z.string().min(1).max(120).optional(), signatureHeader: z.string().min(1).max(120).optional(), deduplicationPath: z.string().max(250).default(""), titlePath: z.string().max(250).default(""), statePath: z.string().max(250).default(""), recoveredValue: z.string().min(1).max(100).optional() }).strict();
+const sourceSchema = z.object({ name: z.string().trim().min(1).max(120), preset: z.enum(ALERT_PRESETS).optional(), monitorMappings: z.array(monitorMappingSchema).max(200).optional(), labelMatchers: z.array(labelMatcherSchema).max(200).optional(), componentId: z.string().regex(/^[0-9A-HJKMNP-TV-Z]{26}$/).optional(), credentialKind: z.enum(["hmac-sha256", "bearer-token"]), signingSecret: z.string().min(1).optional(), bearerToken: z.string().min(1).optional(), timestampHeader: z.string().min(1).max(120).optional(), signatureHeader: z.string().min(1).max(120).optional(), deduplicationPath: z.string().max(250).default(""), titlePath: z.string().max(250).default(""), statePath: z.string().max(250).default(""), recoveredValue: z.string().min(1).max(100).optional() }).strict();
 
 // Operators read sources on the app host, but monitoring tools must post to the
 // page host: derive that origin from the configured page hostname on the server.

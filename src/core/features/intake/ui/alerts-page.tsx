@@ -9,6 +9,7 @@ import { LoadingState, useOperatorTime } from "../../../app/client/ui/states";
 import { EmptyState, ErrorState } from "../../../app/client/ui/lit-states";
 import { GroupedPresetCard } from "./grouped-preset-card";
 import { isGroupedPreset } from "../grouped-alerts";
+import { UptimePresetCard } from "./uptime-preset-card";
 import { PresetCard } from "./preset-card";
 import { presetLabels } from "../presets";
 
@@ -139,6 +140,7 @@ export function AlertsPage() {
     <section className="page-title-row"><div><p className="eyebrow">Inbound alert intake</p><h1>Alerts</h1><p>Configure authenticated alert sources. Accepted, recovered, and rejected receipt records never expose inbound payloads or source credentials.</p></div><Button type="button" onClick={openCreate}><Icon name="plus" width={18} height={18} />Add alert source</Button></section>
     <section className="capability-note"><Icon name="warning" width={18} height={18} /><div><strong>Source secrets are write-only.</strong><p>Editing a source leaves its existing secret in place until you provide a replacement. The endpoint accepts only the configured authentication method.</p></div></section>
     <PresetCard onCreated={sources.refresh} />
+    <UptimePresetCard sources={sourceData.filter(source => source.preset === "uptime")} onSaved={sources.refresh} />
     <GroupedPresetCard sources={sourceData.filter(source => isGroupedPreset(source.preset))} onSaved={sources.refresh} />
     {(creating || editing) && <SourceEditor source={editing} form={form} saving={saving} message={message} onChange={update} onSubmit={save} onClose={closeEditor} />}
     {message && !(creating || editing) && <p className="save-message" role="status">{message}</p>}
@@ -151,7 +153,7 @@ export function AlertsPage() {
 
 function AlertSourceCard({ source, onEdit }: { source: Source; onEdit?: () => void }) {
   const endpoint = source.endpointUrl;
-  return <article className="data-card alert-source-card"><div className="card-heading"><div><p className="card-kicker">{source.preset ? `${presetLabels[source.preset]} preset` : "Authenticated source"}</p><h2>{source.name}</h2></div><span className="state-pill state-active">Configured</span></div><dl className="alert-source-facts"><div><dt>Authentication</dt><dd>{source.credentialKind === "hmac-sha256" ? "HMAC-SHA256 signed request" : "Bearer token"}</dd></div><div><dt>Endpoint</dt><dd><code>{endpoint}</code></dd></div>{isGroupedPreset(source.preset) ? <div><dt>Component mappings</dt><dd>{source.labelMatchers?.length ?? 0} exact label rules. Edit mappings in Grouped monitoring alerts above.</dd></div> : <><div><dt>Deduplication path</dt><dd><code>{source.deduplicationPath}</code></dd></div><div><dt>Title path</dt><dd><code>{source.titlePath}</code></dd></div><div><dt>State path</dt><dd><code>{source.statePath}</code></dd></div></>}</dl><div className="form-actions">{onEdit ? <Button type="button" variant="secondary" onClick={onEdit}>Edit source</Button> : null}</div></article>;
+  return <article className="data-card alert-source-card"><div className="card-heading"><div><p className="card-kicker">{source.preset ? `${presetLabels[source.preset]} preset` : "Authenticated source"}</p><h2>{source.name}</h2></div><span className="state-pill state-active">Configured</span></div><dl className="alert-source-facts"><div><dt>Authentication</dt><dd>{source.credentialKind === "hmac-sha256" ? "HMAC-SHA256 signed request" : "Bearer token"}</dd></div><div><dt>Endpoint</dt><dd><code>{endpoint}</code></dd></div>{source.preset === "uptime" ? <div><dt>Monitor mappings</dt><dd>{source.monitorMappings?.length ?? 0} monitors. Edit in Connect Uptime above.</dd></div> : isGroupedPreset(source.preset) ? <div><dt>Component mappings</dt><dd>{source.labelMatchers?.length ?? 0} exact label rules. Edit mappings in Grouped monitoring alerts above.</dd></div> : <><div><dt>Deduplication path</dt><dd><code>{source.deduplicationPath}</code></dd></div><div><dt>Title path</dt><dd><code>{source.titlePath}</code></dd></div><div><dt>State path</dt><dd><code>{source.statePath}</code></dd></div></>}</dl><div className="form-actions">{onEdit ? <Button type="button" variant="secondary" onClick={onEdit}>Edit source</Button> : null}</div></article>;
 }
 
 function SourceEditor({ source, form, saving, message, onChange, onSubmit, onClose }: { source: Source | null; form: SourceForm; saving: boolean; message: string | null; onChange: <K extends keyof SourceForm>(field: K, value: SourceForm[K]) => void; onSubmit: (event: FormEvent<HTMLFormElement>) => Promise<void>; onClose: () => void }) {

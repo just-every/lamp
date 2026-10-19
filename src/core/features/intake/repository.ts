@@ -1,3 +1,4 @@
+import type { MonitorMapping } from "./uptime";
 import { groupedReceiptStatements } from "./grouped-repository";
 import type { GroupedReading, LabelMatcher } from "./grouped-alerts";
 import { allocateReference, type AllocatedReference } from "../../shared/references/repository";
@@ -20,6 +21,7 @@ export interface AlertSourceRow {
   preset: AlertPreset | null;
   componentId: string | null;
   labelMatchers?: LabelMatcher[];
+  monitorMappings?: MonitorMapping[];
   createdByOperatorId: string;
   createdAt: string;
   updatedAt: string;
@@ -45,7 +47,7 @@ export interface IntakeRepository {
 }
 
 function sourceRow(value: Record<string, unknown>): AlertSourceRow {
-  return { id: String(value.id), name: String(value.name), credentialKind: value.credentialKind as AlertSourceRow["credentialKind"], signingSecret: value.signingSecret === null ? null : String(value.signingSecret), bearerTokenHash: value.bearerTokenHash === null ? null : String(value.bearerTokenHash), timestampHeader: String(value.timestampHeader), signatureHeader: String(value.signatureHeader), deduplicationPath: String(value.deduplicationPath), titlePath: String(value.titlePath), statePath: String(value.statePath), recoveredValue: String(value.recoveredValue), labelMatchers: JSON.parse(String(value.labelMatchersJson ?? "[]")) as LabelMatcher[], preset: value.preset === null || value.preset === undefined ? null : value.preset as AlertPreset, componentId: value.componentId === null || value.componentId === undefined ? null : String(value.componentId), createdByOperatorId: String(value.createdByOperatorId), createdAt: String(value.createdAt), updatedAt: String(value.updatedAt) };
+  return { id: String(value.id), name: String(value.name), credentialKind: value.credentialKind as AlertSourceRow["credentialKind"], signingSecret: value.signingSecret === null ? null : String(value.signingSecret), bearerTokenHash: value.bearerTokenHash === null ? null : String(value.bearerTokenHash), timestampHeader: String(value.timestampHeader), signatureHeader: String(value.signatureHeader), deduplicationPath: String(value.deduplicationPath), titlePath: String(value.titlePath), statePath: String(value.statePath), recoveredValue: String(value.recoveredValue), monitorMappings: JSON.parse(String(value.monitorMappingsJson ?? "[]")) as MonitorMapping[], labelMatchers: JSON.parse(String(value.labelMatchersJson ?? "[]")) as LabelMatcher[], preset: value.preset === null || value.preset === undefined ? null : value.preset as AlertPreset, componentId: value.componentId === null || value.componentId === undefined ? null : String(value.componentId), createdByOperatorId: String(value.createdByOperatorId), createdAt: String(value.createdAt), updatedAt: String(value.updatedAt) };
 }
 function receiptRow(value: Record<string, unknown>): AlertReceiptRow {
   return { id: String(value.id), sourceId: String(value.sourceId), requestHash: String(value.requestHash), deduplicationKey: value.deduplicationKey === null ? null : String(value.deduplicationKey), incidentId: value.incidentId === null ? null : String(value.incidentId), state: value.state as AlertReceiptRow["state"], receivedAt: String(value.receivedAt), recoveredAt: value.recoveredAt === null ? null : String(value.recoveredAt), payloadJson: String(value.payloadJson), error: value.error === null ? null : String(value.error), createdAt: String(value.createdAt), updatedAt: String(value.updatedAt) };
@@ -57,7 +59,7 @@ function receiptViewRow(value: Record<string, unknown>): AlertReceiptView {
 }
 
 export function createIntakeRepository(binding: D1Database): IntakeRepository {
-  const sourceFields = "id, name, credential_kind AS credentialKind, signing_secret AS signingSecret, bearer_token_hash AS bearerTokenHash, timestamp_header AS timestampHeader, signature_header AS signatureHeader, deduplication_path AS deduplicationPath, title_path AS titlePath, state_path AS statePath, recovered_value AS recoveredValue, COALESCE(grouped_preset,preset) AS preset, label_matchers_json AS labelMatchersJson, component_id AS componentId, created_by_operator_id AS createdByOperatorId, created_at AS createdAt, updated_at AS updatedAt";
+  const sourceFields = "id, name, credential_kind AS credentialKind, signing_secret AS signingSecret, bearer_token_hash AS bearerTokenHash, timestamp_header AS timestampHeader, signature_header AS signatureHeader, deduplication_path AS deduplicationPath, title_path AS titlePath, state_path AS statePath, recovered_value AS recoveredValue, COALESCE(uptime_preset,grouped_preset,preset) AS preset, label_matchers_json AS labelMatchersJson, monitor_mappings_json AS monitorMappingsJson, component_id AS componentId, created_by_operator_id AS createdByOperatorId, created_at AS createdAt, updated_at AS updatedAt";
   const receiptFields = "alert_receipts.id, alert_receipts.source_id AS sourceId, alert_receipts.request_hash AS requestHash, alert_receipts.deduplication_key AS deduplicationKey, alert_receipts.incident_id AS incidentId, alert_receipts.state, alert_receipts.received_at AS receivedAt, alert_receipts.recovered_at AS recoveredAt, alert_receipts.payload_json AS payloadJson, alert_receipts.error, alert_receipts.created_at AS createdAt, alert_receipts.updated_at AS updatedAt";
   return {
     async allocateIncidentReference() { return allocateReference(binding, "INC"); },
@@ -68,14 +70,14 @@ export function createIntakeRepository(binding: D1Database): IntakeRepository {
     },
     async findSource(sourceId) { const value = await binding.prepare(`SELECT ${sourceFields} FROM alert_sources WHERE id = ?`).bind(sourceId).first<Record<string, unknown>>(); return value ? sourceRow(value) : null; },
     async upsertSource(source) {
-      const ids = [...new Set((source.labelMatchers ?? []).map(row => row.componentId))];
+      const ids = [...new Set([...(source.labelMatchers ?? []), ...(source.monitorMappings ?? [])].map(row => row.componentId))];
       if (ids.length) {
         const found = await binding.prepare(`SELECT id FROM components WHERE id IN (SELECT value FROM json_each(?))`).bind(JSON.stringify(ids)).all<{ id: string }>();
         if (found.results.length !== ids.length) throw new Error("A mapped component no longer exists. Choose an existing component.");
       }
-      await binding.prepare(`INSERT INTO alert_sources (id,name,credential_kind,signing_secret,bearer_token_hash,timestamp_header,signature_header,deduplication_path,title_path,state_path,recovered_value,preset,component_id,created_by_operator_id,created_at,updated_at,grouped_preset,label_matchers_json)
-        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET name=excluded.name, credential_kind=excluded.credential_kind, signing_secret=excluded.signing_secret, bearer_token_hash=excluded.bearer_token_hash, timestamp_header=excluded.timestamp_header, signature_header=excluded.signature_header, deduplication_path=excluded.deduplication_path, title_path=excluded.title_path, state_path=excluded.state_path, recovered_value=excluded.recovered_value, preset=excluded.preset, grouped_preset=excluded.grouped_preset, label_matchers_json=excluded.label_matchers_json, component_id=excluded.component_id, updated_at=excluded.updated_at`)
-        .bind(source.id, source.name, source.credentialKind, source.signingSecret, source.bearerTokenHash, source.timestampHeader, source.signatureHeader, source.deduplicationPath, source.titlePath, source.statePath, source.recoveredValue, source.preset === "alertmanager" || source.preset === "grafana" ? null : source.preset, source.componentId, source.createdByOperatorId, source.createdAt, source.updatedAt, source.preset === "alertmanager" || source.preset === "grafana" ? source.preset : null, JSON.stringify(source.labelMatchers ?? [])).run();
+      await binding.prepare(`INSERT INTO alert_sources (id,name,credential_kind,signing_secret,bearer_token_hash,timestamp_header,signature_header,deduplication_path,title_path,state_path,recovered_value,preset,component_id,created_by_operator_id,created_at,updated_at,grouped_preset,label_matchers_json,uptime_preset,monitor_mappings_json)
+        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET name=excluded.name, credential_kind=excluded.credential_kind, signing_secret=excluded.signing_secret, bearer_token_hash=excluded.bearer_token_hash, timestamp_header=excluded.timestamp_header, signature_header=excluded.signature_header, deduplication_path=excluded.deduplication_path, title_path=excluded.title_path, state_path=excluded.state_path, recovered_value=excluded.recovered_value, preset=excluded.preset, grouped_preset=excluded.grouped_preset, label_matchers_json=excluded.label_matchers_json, uptime_preset=excluded.uptime_preset, monitor_mappings_json=excluded.monitor_mappings_json, component_id=excluded.component_id, updated_at=excluded.updated_at`)
+        .bind(source.id, source.name, source.credentialKind, source.signingSecret, source.bearerTokenHash, source.timestampHeader, source.signatureHeader, source.deduplicationPath, source.titlePath, source.statePath, source.recoveredValue, source.preset === "uptime" || source.preset === "alertmanager" || source.preset === "grafana" ? null : source.preset, source.componentId, source.createdByOperatorId, source.createdAt, source.updatedAt, source.preset === "alertmanager" || source.preset === "grafana" ? source.preset : null, JSON.stringify(source.labelMatchers ?? []), source.preset === "uptime" ? "uptime" : null, JSON.stringify(source.monitorMappings ?? [])).run();
     },
     async findReceipt(sourceId, requestHash) { const value = await binding.prepare(`SELECT ${receiptFields} FROM alert_receipts WHERE source_id = ? AND request_hash = ?`).bind(sourceId, requestHash).first<Record<string, unknown>>(); return value ? receiptRow(value) : null; },
     async findOpenIncident(sourceId, deduplicationKey) {

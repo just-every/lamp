@@ -633,7 +633,9 @@ A source can be an Uptime preset. It accepts Uptime's signed JSON webhook destin
 
 Acceptance: a signed Uptime failure fixture creates a draft on the mapped component, and the brief lists the vantages. A replay outside 5 minutes is refused with 401. The signed recovery records recovery and closes a never-published draft (INTAKE-007).
 
-Status: **partial** — `src/core/features/intake/service.ts`, `tests/e2e/publishing-contract.test.mjs`. A generic signed source with configurable timestamp and signature headers and JSON-path mapping (INTAKE-001, INTAKE-005) can receive Uptime's webhook. There is no preset, no monitor-to-component mapping and no test with Uptime's payload.
+**Current evidence and future obligations (19 October 2026):** Uptime's default schema-2 `uptime.incident.firing`/`uptime.incident.recovered` envelope is verified over the exact timestamp and body using its X-Lamp headers. Each monitor ID maps to one component; monitor ID and incident key together identify the private incident. The brief shows supplied failed vantages, error category and Uptime's confirmed start time, labelled as confirmed rather than an earlier unobserved failure. Optional context absent from older envelopes is labelled not supplied. AUTO-001/COMP-008 must use these same verified mappings and transition evidence before monitor claims ship; intake never publishes or claims component state on its own.
+
+Status: **done** — `src/core/features/intake/uptime.ts`, `src/core/features/intake/ui/uptime-preset-card.tsx`, INTAKE-008 in `tests/e2e/channels-and-presets.test.mjs` and `tests/e2e/helpers/uptime-preset-flow.mjs`. Signed default envelopes, timestamp/signature refusal, mapping isolation, brief evidence, deduplication, private recovery and saved 1440/390 operator journeys are exercised.
 
 #### INTAKE-009 — PagerDuty.
 
@@ -1089,13 +1091,13 @@ What Lamp does not do, and how a buyer gets it:
 
 Judged from the code and tests at commit `5848c133e34c6eba316b60aa490af56a3584ea14` (19 October 2026).
 
-AGENT-004 and AGENT-005 are proven by their named API and browser journeys below.
+AGENT-004, AGENT-005 and INTAKE-008 are proven by their named API and browser journeys below.
 
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
 | Published | 104 | 0 | 0 | 104 |
-| Target and push further | 13 | 38 | 43 | 94 |
-| All | 117 | 38 | 43 | 198 |
+| Target and push further | 14 | 37 | 43 | 94 |
+| All | 118 | 37 | 43 | 198 |
 
 | Clause | Title | Kind | Status | Evidence | Gap |
 | --- | --- | --- | --- | --- | --- |
@@ -1228,7 +1230,7 @@ AGENT-004 and AGENT-005 are proven by their named API and browser journeys below
 | `INTAKE-005` | Payload mapping | published | done | `tests/e2e/app-api.test.mjs`, `tests/e2e/publishing-browser.test.mjs`, `tests/e2e/publishing-contract.test.mjs` |  |
 | `INTAKE-006` | Monitor presets | published | done | `tests/e2e/channels-and-presets.test.mjs` |  |
 | `INTAKE-007` | Preset recovery | published | done | `tests/e2e/channels-and-presets.test.mjs` |  |
-| `INTAKE-008` | Uptime preset | target | partial | `src/core/features/intake/service.ts`, `tests/e2e/publishing-contract.test.mjs` | A generic signed source with configurable timestamp and signature headers and JSON-path mapping (INTAKE-001, INTAKE-005) can receive Uptime's webhook. There is no preset, no monitor-to-component mapping and no test with Uptime's payload. |
+| `INTAKE-008` | Uptime preset | target | done | `src/core/features/intake/uptime.ts`, `src/core/features/intake/service.ts`, `src/core/features/intake/ui/uptime-preset-card.tsx`, `tests/e2e/channels-and-presets.test.mjs`, `tests/e2e/helpers/uptime-preset-flow.mjs` |  |
 | `INTAKE-009` | PagerDuty | target | partial | `src/core/features/intake/service.ts`, `tests/e2e/publishing-contract.test.mjs` | A bearer-token generic source with JSON-path mapping can receive PagerDuty webhooks sent with a custom header. There is no preset, no v3 signature check and no note back to PagerDuty. |
 | `INTAKE-010` | Prometheus Alertmanager and Grafana Alerting | target | done | `src/core/features/intake/grouped-alerts.ts`, `src/core/features/intake/grouped-repository.ts`, `src/core/features/intake/ui/grouped-preset-card.tsx`, `tests/e2e/helpers/grouped-alerts-flow.mjs`, `tests/e2e/export-import.test.mjs` | Alertmanager v4 and Grafana v1 default grouped webhooks authenticate with bearer tokens, match exact labels to multiple components and deduplicate groups and alert fingerprints into private incidents. Mixed and partial recoveries retain firing members; complete recovery closes only unpublished drafts. Unmapped alerts show their reason. Worker, archive round-trip and 1440/390 browser journeys prove the saved configuration, receipts and private draft. |
 | `INTAKE-011` | New Relic, Datadog and Pingdom depth | target | partial | `src/core/features/intake/presets.ts`, `tests/e2e/channels-and-presets.test.mjs` | Datadog, UptimeRobot, Better Stack and Pingdom alert presets ship (INTAKE-006). New Relic and metric ingestion do not. |

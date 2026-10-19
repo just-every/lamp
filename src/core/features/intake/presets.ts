@@ -1,3 +1,4 @@
+import { readUptime } from "./uptime";
 import { GROUPED_PRESETS } from "./grouped-alerts";
 import { z } from "zod";
 import type { ComponentState } from "../../shared/domain";
@@ -8,9 +9,9 @@ import type { ComponentState } from "../../shared/domain";
  * UptimeRobot webhook JSON variables (help.uptimerobot.com, webhook integration),
  * Better Stack incident webhook (betterstack.com/docs/uptime/webhooks, incident object),
  * Pingdom state change webhook (pingdom.com state change webhooks). */
-export const ALERT_PRESETS = ["datadog", "uptimerobot", "betterstack", "pingdom", ...GROUPED_PRESETS] as const;
+export const ALERT_PRESETS = ["uptime", "datadog", "uptimerobot", "betterstack", "pingdom", ...GROUPED_PRESETS] as const;
 export type AlertPreset = (typeof ALERT_PRESETS)[number];
-export type PresetReading = { key: string; title: string; recovered: boolean; state: ComponentState } | { refused: string };
+export type PresetReading = { key: string; title: string; recovered: boolean; state: ComponentState; monitorId?: string } | { refused: string };
 
 const text = z.string().max(2000);
 const id = z.union([z.string().min(1).max(200), z.number().int()]).transform(String);
@@ -24,6 +25,7 @@ const pingdom = z.object({ check_id: id, check_name: text, current_state: z.stri
 const title = (value: string | null | undefined, fallback: string) => (value ?? "").trim().slice(0, 250) || fallback;
 
 export function readPreset(preset: AlertPreset, payload: unknown): PresetReading {
+  if (preset === "uptime") return readUptime(payload);
   if (preset === "datadog") {
     const parsed = datadog.safeParse(payload);
     if (!parsed.success) return { refused: "Not a Datadog alert in the documented webhook template." };
@@ -54,4 +56,4 @@ export function readPreset(preset: AlertPreset, payload: unknown): PresetReading
 export const datadogPayloadTemplate = JSON.stringify({ alert_id: "$ALERT_ID", alert_cycle_key: "$ALERT_CYCLE_KEY", alert_transition: "$ALERT_TRANSITION", alert_title: "$ALERT_TITLE", event_title: "$EVENT_TITLE", date: "$DATE", link: "$LINK" }, null, 2);
 // UptimeRobot replaces each *variable* in its webhook's "POST value (JSON format)" before sending.
 export const uptimeRobotPayloadTemplate = JSON.stringify({ monitorID: "*monitorID*", monitorFriendlyName: "*monitorFriendlyName*", monitorURL: "*monitorURL*", alertType: "*alertType*", alertDetails: "*alertDetails*" }, null, 2);
-export const presetLabels: Record<AlertPreset, string> = { datadog: "Datadog", uptimerobot: "UptimeRobot", betterstack: "Better Stack", pingdom: "Pingdom", alertmanager: "Prometheus Alertmanager", grafana: "Grafana Alerting" };
+export const presetLabels: Record<AlertPreset, string> = { uptime: "Uptime", datadog: "Datadog", uptimerobot: "UptimeRobot", betterstack: "Better Stack", pingdom: "Pingdom", alertmanager: "Prometheus Alertmanager", grafana: "Grafana Alerting" };
