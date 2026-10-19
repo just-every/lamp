@@ -6,6 +6,7 @@ import { parseArgs } from "./ops-config.mjs";
 import { archivePersistence, openArchivePlatform } from "./archive-runtime.mjs";
 import { readArchive } from "./archive-validation.mjs";
 import { applyOwnerMigrations } from "./owner-migrations.mjs";
+import { assertNewManagedDestination, platformLedger } from "./platform-ledger.mjs";
 
 function databaseFlags(flags) {
   return flags.get("remote") ? ["--remote"] : ["--local", "--persist-to", archivePersistence(flags)];
@@ -36,21 +37,30 @@ async function main() {
   let archive = await openArchivePlatform(flags);
   const configPath = archive.configPath;
   let platform = archive.platform;
+  // RER Managed applies this revision itself and keeps its own migration ledger,
+  // so a new Managed installation is restored in place; any other destination
+  // must be empty and is migrated here.
+  let managed, keepConfig = false;
   try {
-    const existingTables = await platform.env.DB.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND lower(substr(name, 1, 7)) <> 'sqlite_' AND lower(substr(name, 1, 4)) <> '_cf_' AND name NOT IN ('d1_migrations')").all();
+    const existingTables = (await platform.env.DB.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND lower(substr(name, 1, 7)) <> 'sqlite_' AND lower(substr(name, 1, 4)) <> '_cf_' AND name NOT IN ('d1_migrations')").all()).results.map((row) => String(row.name));
+    managed = existingTables.includes(platformLedger);
+    if (managed) await assertNewManagedDestination(platform.env.DB, existingTables, tables);
     const existingObjects = await platform.env.SNAPSHOTS.list({ limit: 1 });
-    if (existingTables.results.length || existingObjects.objects.length) throw new Error("Import requires an empty D1 database and R2 bucket; create a new deployment instead of overwriting existing records.");
+    if ((!managed && existingTables.length) || existingObjects.objects.length) throw new Error("Import requires an empty D1 database and R2 bucket; create a new deployment instead of overwriting existing records.");
+    keepConfig = remote && !managed;
   } finally {
-    await archive.dispose({ keepConfig: remote });
+    await archive.dispose({ keepConfig });
   }
 
-  try {
-    runWrangler(["d1", "migrations", "apply", "DB", "--config", configPath, ...databaseFlags(flags)]);
-    await applyOwnerMigrations(configPath, databaseFlags(flags));
-  } catch (cause) {
-    throw new Error("Restore stopped during migrations. Keep the source archive and restore into a new empty database and bucket; the partial destination has not been published.", { cause });
-  } finally {
-    if (remote) await rm(configPath, { force: true });
+  if (!managed) {
+    try {
+      runWrangler(["d1", "migrations", "apply", "DB", "--config", configPath, ...databaseFlags(flags)]);
+      await applyOwnerMigrations(configPath, databaseFlags(flags));
+    } catch (cause) {
+      throw new Error("Restore stopped during migrations. Keep the source archive and restore into a new empty database and bucket; the partial destination has not been published.", { cause });
+    } finally {
+      if (remote) await rm(configPath, { force: true });
+    }
   }
   archive = await openArchivePlatform(flags);
   platform = archive.platform;

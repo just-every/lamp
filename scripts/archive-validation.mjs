@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { readFile, readdir } from "node:fs/promises";
 import { basename, join } from "node:path";
 import { ownerMigrationFiles } from "./owner-migrations.mjs";
+import { assertPlatformLedger, platformLedger } from "./platform-ledger.mjs";
 
 export function digest(bytes) {
   return createHash("sha256").update(bytes).digest("hex");
@@ -31,6 +32,13 @@ export async function readArchive(input) {
       columns ??= keys;
       if (!keys || keys !== columns) throw new Error(`Inconsistent columns in ${table.name}.`);
     }
+  }
+  // Lamp 1.8.0 and earlier archived a Managed installation's ledger as data.
+  // It must still describe this revision; restore never writes it.
+  const ledger = entities.tables.find((table) => table.name === platformLedger);
+  if (ledger) {
+    await assertPlatformLedger(ledger.rows);
+    entities.tables = entities.tables.filter((table) => table !== ledger);
   }
   const migrations = new Set();
   const available = (await readdir("migrations/core")).filter((name) => name.endsWith(".sql")).sort();
