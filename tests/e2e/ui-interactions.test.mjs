@@ -296,7 +296,7 @@ test("Concurrent component edits preserve newer ordering, visibility and names",
     const record = request => { if (request.method() !== "GET" && new URL(request.url()).pathname.startsWith("/api/app/component")) writes.push(request); };
     page.on("request", record);
     await page.getByRole("button", { name: "Move Move first down", exact: true }).click();
-    await page.getByText("Renamed private service", { exact: true }).waitFor();
+    await page.locator(".component-row-summary").getByText("Renamed private service", { exact: true }).waitFor();
     page.off("request", record);
     assert.equal(writes.length, 1, "The entire move is one ordering mutation");
     assert.ok(writes[0].url().endsWith(`/components/${first.id}/move`));
@@ -356,7 +356,8 @@ test("Concurrent component edits preserve newer ordering, visibility and names",
       assert.equal(Object.hasOwn(saved.request().postDataJSON(), "displayOrder"), false, "A visible name edit has no hidden ordering mutation");
       await editor.getByRole("dialog").waitFor({ state: "detached" });
       await editor.reload();
-      await editor.getByText(renamed, { exact: true }).waitFor();
+      if (isComponent) await editor.locator(".component-row-summary").getByText(renamed, { exact: true }).waitFor();
+      else await editor.getByRole("heading", { name: renamed, exact: true }).waitFor();
       const reloaded = await operatorApi("/api/app/components");
       for (const collection of ["components", "groups"]) {
         const withoutTimestamps = rows => rows.map(({ updatedAt, ...row }) => row);

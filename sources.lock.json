@@ -522,7 +522,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "848e45a8d1a297c3a1487401d4e12e706d6dedbad8f07bd29f75110b554f0b18",
+      "sha256": "8724f26167f75c000a6643179ef3b4b62fa72ae354aed21f7f7e01a9862ffac6",
       "executable": false
     },
     "DEMO.md": {
@@ -5586,7 +5586,7 @@
       "executable": false
     },
     "tests/e2e/publishing-browser.test.mjs": {
-      "sha256": "944c2a90c7685fe282a9a8a4ca642624a4f6b840b05aa8a3eadbc3099d977e5f",
+      "sha256": "5c664b7c8861e8d351d79ba6dbdf04b38faa877aaaa4d687512cfd42fc6789d7",
       "executable": false
     },
     "tests/e2e/publishing-contract.test.mjs": {
@@ -5678,7 +5678,7 @@
       "executable": false
     },
     "tests/e2e/ui-interactions.test.mjs": {
-      "sha256": "ac97f2bb3be982619ccb45882c5945b36e479f0f3d3fc8a593c67bc322786270",
+      "sha256": "9d7187eb7ce4b0a4bd0eb2d00dc3ce40c16f8064c71711ee88cca9629348f123",
       "executable": false
     },
     "tests/e2e/update-reminders.test.mjs": {

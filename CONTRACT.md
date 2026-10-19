@@ -1091,7 +1091,9 @@ What Lamp does not do, and how a buyer gets it:
 
 ## Status
 
-Baseline judged from code and tests at commit `5848c133e34c6eba316b60aa490af56a3584ea14` (19 October 2026). INTAKE-008 and UPTIME-009 include the subsequent named API/browser journeys below.
+Judged from the code and tests at commit `5848c133e34c6eba316b60aa490af56a3584ea14` (19 October 2026).
+
+INTAKE-008 and UPTIME-009 include the subsequent named API/browser journeys below.
 
 AGENT-004, AGENT-005, INTAKE-008 and UPTIME-009 are proven by their named API and browser journeys below.
 

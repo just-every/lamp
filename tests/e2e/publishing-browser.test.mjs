@@ -233,7 +233,7 @@ contract("INCIDENT-001", "AGENT-004 MOBILE-001 — an operator can start empty, 
   await page.getByLabel("Component name").fill("Journey API");
   await page.getByLabel(/Description/).fill("Customer API used for the empty-product incident journey.");
   await page.getByRole("button", { name: "Create component" }).click();
-  await page.getByText("Journey API", { exact: true }).waitFor();
+  await page.locator(".component-row-summary").getByText("Journey API", { exact: true }).waitFor();
 
   await page.setViewportSize({ width: 1440, height: 1000 });
   await page.goto(`${appUrl}/app/incidents`);
