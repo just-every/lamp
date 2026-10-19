@@ -80,8 +80,8 @@ export async function uptimePresetFlow({ api, post, component, origin, publicOri
     for (const width of [1440, 390]) {
       await page.setViewportSize({ width, height: width === 390 ? 844 : 1000 });
       await page.goto(`${origin}/app/alerts`); await operatorHydrated(page);
-      await page.getByLabel('Uptime source name').fill(`Commerce Uptime ${width}`);
-      await page.getByLabel('Uptime signing secret').fill(secret);
+      await page.getByLabel('Uptime label').fill(`Commerce Uptime ${width}`);
+      await page.getByLabel('Uptime HMAC key').fill(secret);
       await page.getByLabel('Uptime monitor ID 1', { exact: true }).fill('checkout');
       await page.getByLabel('Uptime component 1').selectOption(targets[0].id);
       await page.getByRole('button', { name: 'Add Uptime monitor', exact: true }).click();

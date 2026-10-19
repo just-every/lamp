@@ -64,6 +64,10 @@
     {
       "id": "0039_import_door_scopes.sql",
       "buyerSteps": "Apply after 0038. Binds each Business door namespace to Lamp's import destination for erasure scoping. Additive; until 0038 and 0039 are applied the door answers 503 import_door_schema_outdated."
+    },
+    {
+      "id": "0040_uptime_preset.sql",
+      "buyerSteps": "Apply after 0039. Adds signed Uptime preset identification and monitor-to-component mappings. Existing sources and credentials are retained; configure an Uptime source explicitly in Alerts."
     }
   ],
   "breaking": false,
