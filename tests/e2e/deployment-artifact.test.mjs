@@ -61,7 +61,7 @@ function run(command, args, options = {}) {
     child.stdout.on("data", (chunk) => { output += chunk; });
     child.stderr.on("data", (chunk) => { output += chunk; });
     child.once("error", reject);
-    child.once("exit", (code) => code === 0 ? resolvePromise(output) : reject(new Error(`${command} ${args.join(" ")} exited ${code}:\n${output}`)));
+    child.once("exit", (code) => code === (options.expected ?? 0) ? resolvePromise(output) : reject(new Error(`${command} ${args.join(" ")} exited ${code}:\n${output}`)));
   });
 }
 
@@ -105,7 +105,12 @@ async function startBuiltWorker(artifactPath, statePath, localUpstream, readines
 }
 
 test("compiled generated Start Worker serves operator routes and prepares fresh managed public snapshots", async () => {
-  await run("pnpm", ["run", "deploy", "--", "--dry-run", "--environment", "staging"]);
+  // Lamp's existing offline pipeline compiles and validates its generated deployment
+  // artifact. Base #275 separately requires credentials to read target secrets.
+  const noCredentials = { CLOUDFLARE_ACCOUNT_ID: "", CLOUDFLARE_API_TOKEN: "" };
+  await run("pnpm", ["run", "deploy:cloudflare", "--", "--dry-run", "--environment", "staging"], { env: noCredentials });
+  const refused = await run("pnpm", ["run", "deploy", "--", "--dry-run", "--environment", "staging"], { env: noCredentials, expected: 3 });
+  for (const name of ["CLOUDFLARE_ACCOUNT_ID", "CLOUDFLARE_API_TOKEN"]) assert.ok(refused.includes(name), refused);
   const artifactPath = resolve("dist/server/wrangler.json");
   const artifact = JSON.parse(await readFile(artifactPath, "utf8"));
   assert.equal(artifact.main, "index.js");
