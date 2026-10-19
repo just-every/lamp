@@ -24,7 +24,7 @@ test("Better Stack source history remains complete and fixed-origin requests fai
       raw.data.reverse();
     });
     const read=await readBetterStack(files,{publicAccessAcknowledged:true});
-    const mapped=mapSource(read.data,{maxGroupOrder:0,maxComponentOrder:0,lastReference:{INC:0,SCH:0},allocated:new Set(),destinations:new Set()},'operator','2025-02-01T00:00:00Z','betterstack');
+    const mapped=mapSource(read.data,{maxGroupOrder:0,maxComponentOrder:0,lastReference:{INC:0,SCH:0},allocated:new Set(),references:new Map(),orders:new Map(),destinations:new Map()},'operator','2025-02-01T00:00:00Z','betterstack');
     const tables=mapped.find(row=>row.kind==='incident'&&row.sourceId===report.id).value.tables;
     assert.equal(tables.incidents[0].lifecycle,'Resolved');
     assert.equal(tables.incidents[0].resolved_at,new Date(report.attributes.ends_at).toISOString());

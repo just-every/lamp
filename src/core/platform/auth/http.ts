@@ -3,6 +3,7 @@ import { createDependencies } from '@runeditrun/rer/modules/dependencies';
 import { createIdpOwnerClaimHandler, createOwnerClaimHandler } from '@runeditrun/rer/modules/owner-claim';
 import { authConfig } from './config';
 import { identitySettingsPage } from './identity-settings-page';
+import { ownerClaimConfig } from './claim';
 import type { AppBindings } from '../../app/types';
 import type { AppServices } from '../../app/services';
 export async function authResponse(request:Request,env:AppBindings,services:AppServices):Promise<Response> {
@@ -12,9 +13,7 @@ export async function authResponse(request:Request,env:AppBindings,services:AppS
     if (env.RER_OWNER_CLAIM_PUBLIC_KEYS) {
       const signed = await createOwnerClaimHandler({ db: env.DB, authConfig: config,
         clientIp: () => config.local ? 'loopback' : request.headers.get('CF-Connecting-IP') ?? '',
-        issuer: env.RER_OWNER_CLAIM_ISSUER ?? '', installationId: env.RER_OWNER_CLAIM_INSTALLATION_ID ?? '',
-        appOrigin: config.origin, expectedEmail: config.OWNER_EMAIL,
-        publicKeys: JSON.parse(env.RER_OWNER_CLAIM_PUBLIC_KEYS),
+        ...ownerClaimConfig(env)!,
       })(request);
       if (signed) return signed;
     }

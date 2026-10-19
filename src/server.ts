@@ -24,6 +24,8 @@ function isHonoRequest(surface: LampSurface, request: Request, pathname: string)
     || pathname === "/health"
     || pathname === "/api/app"
     || pathname.startsWith("/api/app/")
+    || pathname.startsWith('/api/rer/import/')
+    || pathname.startsWith('/api/operator/import/')
 ;
 }
 

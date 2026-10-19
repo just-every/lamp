@@ -7,7 +7,7 @@ import AxeBuilder from '@axe-core/playwright';
 import { openNativeRuntime, origin, publicOrigin } from '../dev-ingress/runtime.mjs';
 import { devKey } from '../helpers/dev-key.mjs';
 import { signInAs } from '@runeditrun/rer/internal/modules/operator-auth/dev/sign-in-as.mjs';
-import { notificationActivity, assertNoNewNotifications } from '../helpers/import-notifications.mjs';
+import { notificationActivity, assertNoNewNotifications, moveInDoor } from '../helpers/import-notifications.mjs';
 
 test('MOVE-001 Better Stack source-first wizard and source-specific Cutover preserve history silently at desktop and phone widths', {timeout:600000}, async()=>{
   const runtime=await openNativeRuntime();let browser;
@@ -20,7 +20,7 @@ test('MOVE-001 Better Stack source-first wizard and source-specific Cutover pres
     const page=await context.newPage();await page.goto(origin+entered.location);await page.waitForURL('**/app');
     await fetch(publicOrigin+'/');
     const evidence=resolve(process.env.LAMP_BETTERSTACK_EVIDENCE??'visual/betterstack');await mkdir(evidence,{recursive:true});
-    const api=async(path,body)=>{const response=await page.request.post(origin+path,{headers:{Origin:origin},data:body});assert.equal(response.status(),200,await response.text());return response.json();};
+    const moveIn=moveInDoor(async(path,body,headers)=>{const response=body===undefined?await page.request.get(origin+path):await page.request.post(origin+path,{headers:{Origin:origin,...headers},data:body});return {status:response.status(),body:await response.json()};});
     for(const family of ['small','large']) {
       const hydrated=page.waitForResponse(response=>response.url()===origin+'/api/app/statuspage-import/jobs'&&response.request().method()==='GET'&&response.status()===200);
       await page.goto(origin+'/app/move-in');await hydrated;
@@ -30,7 +30,7 @@ test('MOVE-001 Better Stack source-first wizard and source-specific Cutover pres
       await page.getByLabel('Saved responses').setInputFiles((await readdir(dir)).map(name=>join(dir,name)));
       await page.getByLabel(/This Better Stack page is public/).check();
       const before=await notificationActivity(runtime);
-      const response=page.waitForResponse(r=>r.url().endsWith('/statuspage-import/preview'));
+      const response=page.waitForResponse(r=>r.url()===origin+'/api/operator/import/plan');
       await page.getByRole('button',{name:'Run dry run',exact:true}).click();const dry=await response;assert.equal(dry.status(),200,await dry.text());
       if(family==='small') {
         await page.getByRole('combobox',{name:'Source',exact:true}).selectOption('statuspage');
@@ -41,9 +41,8 @@ test('MOVE-001 Better Stack source-first wizard and source-specific Cutover pres
         await page.getByRole('button',{name:'Run dry run',exact:true}).click();
       }
       await page.getByLabel('I reviewed what changes, is skipped or is refused.').check();
-      const applying=page.waitForResponse(r=>r.url().endsWith('/statuspage-import/apply'));
-      await page.getByRole('button',{name:'Import',exact:true}).click();let result=await (await applying).json();
-      while(result.job.state==='applying')result=await api(`/api/app/statuspage-import/jobs/${result.job.id}/resume`,{});
+      const applying=page.waitForResponse(r=>/\/api\/app\/statuspage-import\/jobs\/[^/]+$/.test(new URL(r.url()).pathname)&&r.request().method()==='GET');
+      await page.getByRole('button',{name:'Import',exact:true}).click();const result=await (await applying).json();
       assert.equal(result.job.state,'completed');
       await page.goto(origin+`/app/cutover?job=${result.job.id}`);await page.getByRole('heading',{name:'Old public addresses',exact:true}).waitFor();
       assert.ok((await page.locator('body').innerText()).includes('/index.json'));
@@ -57,8 +56,8 @@ test('MOVE-001 Better Stack source-first wizard and source-specific Cutover pres
       assert.equal((await fetch(publicOrigin+'/index.json')).status,404);
       const maintenance=result.report.cutover.rows.find(row=>row.target.startsWith('/maintenance/'));
       assert.match(await (await fetch(publicOrigin+maintenance.target)).text(),/original update 3/);
-      let undone=await api(`/api/app/statuspage-import/jobs/${result.job.id}/undo`,{});while(undone.job.state==='undoing')undone=await api(`/api/app/statuspage-import/jobs/${result.job.id}/undo`,{});
-      assert.equal(undone.job.state,'undone');await assertNoNewNotifications(runtime, before);
+      const undone=await moveIn.undo(result.door);
+      assert.equal(undone.status,200,JSON.stringify(undone.body));assert.equal(undone.body.job.state,'undone');await assertNoNewNotifications(runtime, before);
     }
     await context.close();
   } finally {await browser?.close();await runtime.close();}

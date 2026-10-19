@@ -9,6 +9,8 @@ import { SubscriberTokenCodec, type SubscriberTokenScope } from "./tokens";
 
 const CONFIRMATION_WINDOW_MS = 24 * 60 * 60 * 1000;
 const PENDING_WINDOW_MS = 72 * 60 * 60 * 1000;
+/** Each import custody erasure is its own bounded D1 batch; a scheduled run takes a few. */
+const CUSTODY_ERASURES_PER_RUN = 3;
 
 export type SubscriberView = StoredSubscriber & { componentSelections: StoredSubscriberComponent[] };
 
@@ -122,7 +124,8 @@ export function createSubscribersService(
       const email = normalizeEmail(rawEmail);
       const timestamp = nowIso();
       const requiresConfirmation = policy.requiresConfirmation();
-      await repository.deleteExpiredPending(new Date(Date.now() - PENDING_WINDOW_MS).toISOString());
+      // Import custody erasures are left to the scheduled run.
+      await repository.deleteExpiredPending(new Date(Date.now() - PENDING_WINDOW_MS).toISOString(), 0);
       let subscriber = await repository.findSubscriberByDestination(email);
       const wasActive = subscriber?.state === "active";
       // Only a new or re-opened subscription takes the form's selection, so a
@@ -268,7 +271,7 @@ export function createSubscribersService(
       return true;
     },
     async expirePending() {
-      await repository.deleteExpiredPending(new Date(Date.now() - PENDING_WINDOW_MS).toISOString());
+      await repository.deleteExpiredPending(new Date(Date.now() - PENDING_WINDOW_MS).toISOString(), CUSTODY_ERASURES_PER_RUN);
     },
   };
 }

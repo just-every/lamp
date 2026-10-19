@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, readdirSync } from 'node:fs';
 import { Hono } from 'hono';
-import { lampRuntime, preview, suspendedBody } from './lamp-runtime.mjs';
+import { lampRuntime, moveIn, preview, suspendedBody } from './lamp-runtime.mjs';
 import { secret } from './runtime.mjs';
 import { holdConfirmationWrite } from './cutover-race-helper.mjs';
 import { exerciseMailPreparation } from './cutover-mail-helper.mjs';
@@ -10,16 +10,10 @@ import { exerciseMailPreparation } from './cutover-mail-helper.mjs';
 const fixture = family => readdirSync(`tests/fixtures/statuspage/${family}`).map(name => ({ name, text: readFileSync(`tests/fixtures/statuspage/${family}/${name}`, 'utf8') }));
 const endpoint = id => `/api/app/statuspage-import/jobs/${id}`;
 async function apply(r, files, cookie = r.cookie) {
-  const body = await preview(r, cookie, files);
-  let response = await r.call('/api/app/statuspage-import/apply', { method: 'POST', cookie, body });
-  assert.equal(response.status, 200, await response.clone().text());
-  let result = await response.json();
-  while (result.job.state === 'applying') {
-    response = await r.call(`${endpoint(result.job.id)}/resume`, { method: 'POST', cookie, body: {} });
-    assert.equal(response.status, 200); result = await response.json();
-  }
-  assert.equal(result.job.state, 'completed');
-  return result;
+  const response = await moveIn(r, cookie).apply(await preview(r, cookie, files));
+  assert.equal(response.status, 200, JSON.stringify(response.body));
+  assert.equal(response.body.job.state, 'completed');
+  return response.body;
 }
 const send = (r, id, cookie = r.cookie) => r.call(`${endpoint(id)}/send-invitations`, { method: 'POST', cookie, body: {} });
 
@@ -39,18 +33,20 @@ test("MOVE-012 MOVE-006 MOVE-002 — Owner-approved cutover invitations and prep
     [{ name: 'page.json', text: JSON.stringify({ id: 'synthpage01', viewers_must_be_team_members: false, ip_restrictions: null }) }, { name: 'page-access-groups.json', text: '[{"id":"team-only"}]' }],
   ]) {
     const files = [...withoutVisibility, ...visibility];
-    const response = await r.call('/api/app/statuspage-import/preview', { method: 'POST', cookie: r.cookie, body: { files } });
-    assert.equal(response.status, 400, await response.clone().text());
-    assert.match((await response.json()).error, /visibility|private|restricted|audience/i);
-    const direct = await r.call('/api/app/statuspage-import/apply', { method: 'POST', cookie: r.cookie, body: { files, asOf: new Date().toISOString(), fingerprint: '0'.repeat(64), acknowledged: true } });
-    assert.equal(direct.status, 409);
+    // Move in's one import path is the owner door: the dry run is refused there.
+    const response = await moveIn(r, r.cookie).preview({ files });
+    assert.equal(response.status, 400, JSON.stringify(response.body));
+    assert.match(response.body.error, /visibility|private|restricted|audience/i);
+    // No plan exists to apply, so an apply naming one writes nothing either.
+    const direct = await moveIn(r, r.cookie).door('statuspage', 'apply', { planId: 'plan-never-made', reviewedFingerprint: '0'.repeat(64) });
+    assert.equal(direct.status, 409, JSON.stringify(direct.body));
+    assert.match(direct.body.error, /changed since the dry run/);
     assert.equal((await r.db.prepare('SELECT count(*) n FROM components').first()).n, 0);
     assert.equal((await r.db.prepare('SELECT count(*) n FROM ik_jobs').first()).n, 0);
   }
   const files = fixture('small');
   files.find(file => file.name === 'subscribers.json').text = JSON.stringify(Array.from({length: 57}, (_, i) => ({ id: `subscriber-${i}`, email: `person-${i}@example.test`, mode: 'email', created_at: '2026-01-01T00:00:00Z' })));
-  const reviewed = await r.call('/api/app/statuspage-import/preview', {method:'POST', cookie:r.cookie, body:{files}});
-  const dry = (await reviewed.json()).report.cutover;
+  const dry = (await preview(r, r.cookie, files)).report.cutover;
   assert.ok(dry.rows.length > 0);
   assert.ok(dry.rows.every(row => /^\/(incidents\/INC|maintenance\/SCH)-\d+$/.test(row.target)));
   const result = await apply(r, files);
@@ -58,7 +54,7 @@ test("MOVE-012 MOVE-006 MOVE-002 — Owner-approved cutover invitations and prep
   assert.deepEqual(result.report.cutover.rows, dry.rows);
   assert.equal(result.report.cutover.invitations.eligible, 57);
   for (const path of [endpoint(id), '/api/app/statuspage-import/jobs']) assert.equal((await r.call(path, {cookie:r.cookie})).status, 200);
-  await r.call(`${endpoint(id)}/resume`, {method:'POST', cookie:r.cookie, body:{}});
+  await moveIn(r, r.cookie).apply(result.door);
   await apply(r, files);
   assert.equal(r.messages.length, 0);
   assert.equal((await r.db.prepare('SELECT count(*) n FROM notification_deliveries').first()).n, 0);
@@ -71,9 +67,12 @@ test("MOVE-012 MOVE-006 MOVE-002 — Owner-approved cutover invitations and prep
   assert.equal(new Set(r.messages.map(message => message.to)).size, 57);
   assert.equal(new Set(r.messages.map(message => message.idempotencyKey)).size, 57);
   assert.equal((await r.db.prepare('SELECT count(*) n FROM notification_deliveries').first()).n, 0);
-  const large = await r.call('/api/app/statuspage-import/preview', { method:'POST', cookie:r.cookie, body:{files:fixture('large')} });
-  // Source overlaps this import, so duplicate source identities must still be refused.
-  assert.equal(large.status, 400);
+  const large = await moveIn(r, r.cookie).preview({ files: fixture('large') });
+  // Source overlaps this import, so the door plans it as this import's catch-up:
+  // a shared source identity is replaced or unchanged, never created twice.
+  assert.equal(large.status, 200, JSON.stringify(large.body));
+  assert.ok(large.body.differences.replacements.length + large.body.differences.unchanged.length > 0);
+  assert.ok(large.body.differences.additions.every(key => !large.body.differences.replacements.includes(key) && !large.body.differences.unchanged.includes(key)));
 })(t);
   t.diagnostic("MOVE-002 — invitation preparation failures remain retryable while ambiguous transport failures stay claimed");
   await (async t => {
@@ -158,8 +157,7 @@ test("MOVE-002 MOVE-006 — Imported invitation expiry, revoked authority and pu
   assert.equal(r.messages.length, 0);
   assert.equal((await r.db.prepare('SELECT count(*) n FROM statuspage_import_invites').first()).n, 0);
   const other = await lampRuntime(t);
-  const report = await other.call('/api/app/statuspage-import/preview', {method:'POST',cookie:other.cookie,body:{files:fixture('large')}});
-  const cutover = (await report.json()).report.cutover;
+  const cutover = (await preview(other, other.cookie, fixture('large'))).report.cutover;
   assert.ok(cutover.rows.length <= 25); assert.ok(cutover.total > cutover.rows.length);
   assert.ok(cutover.rows.every(row => row.address && row.path && row.target));
 })(t);
@@ -240,7 +238,7 @@ test("MOVE-002 MOVE-006 — Imported invitation expiry, revoked authority and pu
   const finalPending = await r.db.prepare('SELECT created_at FROM subscribers WHERE id=?').bind(renewed.id).first();
   // The cleanup repository takes a 72-hour cutoff; advance that cutoff just
   // beyond the renewed deadline without changing the process or D1 clock.
-  await r.modules.createSubscriberRepository(r.db).deleteExpiredPending(new Date(Date.parse(finalPending.created_at)+1).toISOString());
+  await r.modules.createSubscriberRepository(r.db).deleteExpiredPending(new Date(Date.parse(finalPending.created_at)+1).toISOString(), 3);
   assert.equal(await r.db.prepare('SELECT id FROM subscribers WHERE id=?').bind(renewed.id).first(), null, 'cleanup after the renewed deadline removes the unconfirmed address');
 })(t);
 });

@@ -5,7 +5,7 @@ export const AppDataContext = createContext<AppDataSnapshot>({});
 type ResourceState<T> = { path: string | null; snapshot: AppDataSnapshot; data: T | null; error: string | null; loading: boolean };
 
 export class ApiError extends Error {
-  constructor(message: string, public readonly status: number) {
+  constructor(message: string, public readonly status: number, public readonly details?: Record<string, unknown>) {
     super(message);
   }
 }
@@ -24,7 +24,8 @@ export async function appApi<T>(path: string, init?: RequestInit): Promise<T> {
     const message = body && typeof body === "object" && "error" in body && typeof body.error === "string"
       ? body.error
       : `The operator API returned ${response.status}.`;
-    throw new ApiError(message, response.status);
+    const details = body && typeof body === "object" && "details" in body && body.details && typeof body.details === "object" ? body.details as Record<string, unknown> : undefined;
+    throw new ApiError(message, response.status, details);
   }
   return body as T;
 }

@@ -1394,6 +1394,52 @@ each one confirmation, which starts SUB-003's 72-hour window, and are deleted
 hosting. The restore's empty-page check runs inside its one transaction, and a
 refused restore removes the logo it stored.
 
+## Business adoption — 18 October 2026
+
+The owner requested Base's optional Business import door, disabled by default,
+with a single settings row and permanent grant-key revocation. Door plans reuse
+Lamp's Statuspage and Sorry move-in readers, mapper and native target adapter;
+both hold subscribers until a separate live-hostname/watch-window approval.
+Local imports retain their existing behavior. Business approval metadata appears
+in the existing owner-bound history and undo flow.
+
+Since rer 0.2.61 the door is Base's integrated door, refreshed with
+`refresh-base`/`record-base` and recorded in `base-copies.json`, except two
+adapted files (`types.ts`, `authority.ts`) tracked as local source with a Base
+0.2.61 comparison origin in `edition.json`. Their one change passes a
+`reversalPolicy` into each door job, so Business imports undo as every Lamp
+import does: preserving the records the owner changed (until Base #298 ships it).
+Base's server-side source resolver admits the four sources Move in offers
+(`statuspage`, `betterstack`, `instatus`, `sorry`); a plan request prepares the
+named upload with Lamp's existing readers, native planner and target adapter
+before the door reads it. Migrations 0037-0039 apply Base's
+custody REPLACE triggers and the door's apply-failure and scope migrations; the
+existing Sorry integration case also runs Base's public door conformance.
+
+## One import path — 19 October 2026
+
+The owner's 17 October decision: one way to import. Move in's screen keeps its
+look, copy and steps but runs on the door's owner-session mount
+(`createImportOperatorHandler` at `/api/operator/import/*`, Base ADOPTING steps 3
+and 5) with the same allow-list and door key as the Business grant mount. The
+old preview and apply routes are deleted; jobs they created keep their read,
+resume and undo routes, and history lists every door import with them. Door
+imports run as the installation's configured owner, so the owner's imports and
+Business's share one lineage, history and undo; each request is still bound to
+the signing-in owner's session. Lamp-specific behavior around the door: a key
+or public page is read into saved responses first; a new dry run discards an
+earlier unstarted one; an undone source is uploaded afresh with an `attempt`
+field; owner imports keep each source's subscriber policy, while Business holds
+subscribers until cutover. Subscriber deletion and expiry erase the subscriber
+from import custody through the kit (Base ADOPTING step 6); the kit requires an
+erased target to be gone, so Lamp's target adapter treats the anonymised record
+an operator deletion keeps (`deleted:<id>`) as no import target.
+
+Business catch-ups replace source-owned records under the reviewed native
+revision and can undo back to that revision, while preserving incoming native
+references. Door uploads, plans, grants, approvals and lineage are installation
+custody: local exports exclude every `ik_door_*` table alongside import-kit jobs.
+
 ## Managed preview owner entry (18 October 2026)
 
 Managed previews declare `/auth/owner-signin` as their owner entry so RER can bind the preview's single-use owner grant there. A missing, used or expired grant redirects to Lamp's sign-in page with a notice; an unavailable auth service does the same. Successful grant consumption retains Base's native session and single-use checks.

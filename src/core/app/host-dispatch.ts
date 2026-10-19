@@ -20,7 +20,7 @@ const pagePathPrefixes = ["/history/", "/incidents/", "/maintenance/", "/compone
 // `/docs` and `/docs/` are the product's own docs, public and on the app host only: the page host's paths are the status
 // snapshot's. `/setup/state` and `/brand/` serve the Lobby, the app host's home page.
 const appExactPaths = new Set(["/setup/status", "/setup/state", "/setup", "/health", "/signin", "/lamp", "/docs", "/app", "/api/app", "/rer-theme.css"]);
-const appPathPrefixes = ["/auth/", "/docs/", "/.well-known/rer-", "/app/", "/app-assets/", "/brand/", "/api/app/", "/_serverFn/"];
+const appPathPrefixes = ["/auth/", "/docs/", "/.well-known/rer-", "/app/", "/app-assets/", "/brand/", "/api/app/", "/api/rer/import/", "/api/operator/import/", "/_serverFn/"];
 // Vite and TanStack Start request these modules only from `vite dev`. They are
 // never enabled by the emitted Worker, which continues to expose only the
 // declared app paths above. `/package.json` is the module the landing page reads

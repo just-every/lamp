@@ -21,6 +21,7 @@ export function kitContext(request: DoorRequest, snapshot: Pick<DoorSnapshot, 'k
     operationKey: 'door:' + snapshot.id,
     ...(grant.action === 'apply' ? {reviewedFingerprint: grant.fingerprint} : {}),
     batchSize: 20, maxBatches: 1,
+    ...(options.reversalPolicy ? {reversalPolicy: options.reversalPolicy} : {}),
     storage: {database: options.database, targets: options.targets},
     authorization: {
       principalId: options.ownerPrincipalId,

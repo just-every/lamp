@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { readFile, readdir } from "node:fs/promises";
 import { join } from "node:path";
+import { moveInDoor } from "../helpers/import-notifications.mjs";
 import {
   bindings,
   client,
@@ -176,20 +177,17 @@ export async function upgradedJourneys(mf, data, before, current, mail) {
     publicAccessAcknowledged: true,
     files: importFiles,
   };
-  const review = await c.api("/api/app/statuspage-import/preview", input);
-  const mailBeforeImport = mail.length;
-  let moved = await c.api("/api/app/statuspage-import/apply", {
-    ...input,
-    asOf: review.report.asOf,
-    fingerprint: review.report.fingerprint,
-    acknowledged: true,
+  // The upgraded Move in runs every import through the import door.
+  const moveIn = moveInDoor(async (path, json, headers) => {
+    const response = await c.request(path, { method: json === undefined ? "GET" : "POST", json, headers });
+    return { status: response.status, body: await response.json() };
   });
-  for (let i = 0; i < 80 && moved.job.state === "applying"; i++)
-    moved = await c.api(
-      `/api/app/statuspage-import/jobs/${moved.job.id}/resume`,
-      {},
-    );
-  assert.equal(moved.job.state, "completed");
+  const review = await moveIn.preview(input);
+  assert.equal(review.status, 200, JSON.stringify(review.body));
+  const mailBeforeImport = mail.length;
+  const moved = await moveIn.apply(review.body);
+  assert.equal(moved.status, 200, JSON.stringify(moved.body));
+  assert.equal(moved.body.job.state, "completed");
   const nativeDb = await mf.getD1Database("DB");
   const importedHistory = (
     await nativeDb

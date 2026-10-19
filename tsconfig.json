@@ -3,6 +3,7 @@
     "target": "ES2022",
     "lib": [
       "ES2023",
+      "ES2024.String",
       "DOM",
       "DOM.Iterable"
     ],

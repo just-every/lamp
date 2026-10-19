@@ -1,4 +1,4 @@
-import { and, asc, eq, gt, isNull, lt, sql } from "drizzle-orm";
+import { and, asc, eq, gt, isNull, sql } from "drizzle-orm";
 
 import { createDatabase } from "../../platform/db/client";
 import { componentGroups, components, subscriberComponents, subscribers } from "../../shared/schema";
@@ -6,6 +6,8 @@ import { publicComponentOrder } from "../../shared/component-order";
 import { subscriberTokens } from "../deliveries/schema";
 import { createUlid } from "../../shared/ids";
 import { createSubscriberTransitions, type SubscriberTransitions } from "./transitions.repository";
+import { retireSubscriberCustody, subjectsInCustody } from "../statuspage-import/custody";
+import type { D1Sql } from "../../../../modules/import-kit/src/d1/index.ts";
 
 export type StoredSubscriber = typeof subscribers.$inferSelect;
 export type StoredSubscriberComponent = typeof subscriberComponents.$inferSelect;
@@ -26,7 +28,10 @@ export interface SubscriberRepository extends SubscriberTransitions {
   revokeTokens(subscriberId: string, now: string, scope?: "confirm" | "manage" | "unsubscribe"): Promise<void>;
   deactivateSubscriber(subscriberId: string, reason: string, now: string): Promise<void>;
   anonymizeAndDeactivate(subscriberId: string, operatorId: string, now: string): Promise<void>;
-  deleteExpiredPending(cutoff: string): Promise<void>;
+  /** Deletes expired unconfirmed subscribers, erasing at most `custodyErasures` of
+   * those an import holds from its custody (each is its own D1 batch); the
+   * rest wait for a later run. */
+  deleteExpiredPending(cutoff: string, custodyErasures: number): Promise<void>;
   recordConfirmationSendIfAllowed(emailHash: string, cutoff: string, now: string): Promise<boolean>;
   /** An audit entry on the subscriber: no address is copied, so erasure of the subscriber erases what it shows. */
   recordSubscriptionMail(subscriberId: string, kind: SubscriptionMailKind, outcome: "accepted" | "suppressed" | "failed", now: string): Promise<void>;
@@ -155,36 +160,60 @@ export function createSubscriberRepository(binding: D1Database): SubscriberRepos
       if (!subscriber) return;
       const replacement = `deleted:${subscriberId}`;
       const personalValues = [...new Set([subscriber.destination, subscriber.contactEmail].filter((value): value is string => Boolean(value)))];
-      const removeRecipients = personalValues.map((value) =>
+      const removeRecipients = personalValues.map((value): D1Sql => ({
         // A deleted webhook contact must not be replaced with a synthetic
         // email-like destination. Keep the operator-alert record, but remove
         // this recipient before a later outbox attempt can address it. Only
         // the alert addressed to this subscriber's contact is touched: the
         // same address may be an operator's, and their other alerts stay.
-        binding.prepare(`UPDATE notification_outbox
+        sql: `UPDATE notification_outbox
           SET payload_json = json_set(payload_json, '$.recipients', json((SELECT json_group_array(value) FROM json_each(notification_outbox.payload_json, '$.recipients') WHERE value <> ?)))
           WHERE kind = 'operator-alert' AND aggregate_id = ? AND json_valid(payload_json)
-            AND EXISTS (SELECT 1 FROM json_each(notification_outbox.payload_json, '$.recipients') WHERE value = ?)`)
-          .bind(value, `webhook-deactivated/${subscriberId}`, value),
-      );
+            AND EXISTS (SELECT 1 FROM json_each(notification_outbox.payload_json, '$.recipients') WHERE value = ?)`,
+        params: [value, `webhook-deactivated/${subscriberId}`, value],
+      }));
       // A frozen envelope is retained for idempotency, but its recipient
       // cannot outlive an operator-initiated subscriber deletion. Only this
       // subscriber's own envelopes are rewritten; alert text never carries an
       // address, and another person's address may contain this one.
-      const redactions = personalValues.map((value) =>
-        binding.prepare("UPDATE notification_deliveries SET mail_payload_json = replace(mail_payload_json, ?, ?) WHERE subscriber_id = ? AND mail_payload_json IS NOT NULL")
-          .bind(value, replacement, subscriberId),
-      );
-      await binding.batch([
+      const redactions = personalValues.map((value): D1Sql => ({
+        sql: "UPDATE notification_deliveries SET mail_payload_json = replace(mail_payload_json, ?, ?) WHERE subscriber_id = ? AND mail_payload_json IS NOT NULL",
+        params: [value, replacement, subscriberId],
+      }));
+      const native: D1Sql[] = [
         ...removeRecipients,
         ...redactions,
-        binding.prepare("UPDATE subscribers SET destination = ?, contact_email = NULL, state = 'deactivated', deactivation_reason = 'deleted by operator', deactivated_at = ?, updated_at = ? WHERE id = ?").bind(`deleted:${subscriberId}`, now, now, subscriberId),
-        binding.prepare("UPDATE subscriber_tokens SET revoked_at = ?, updated_at = ? WHERE subscriber_id = ? AND revoked_at IS NULL").bind(now, now, subscriberId),
-        binding.prepare("INSERT INTO audit_entries (id, entity_type, entity_id, action, operator_id, payload_json, created_at, updated_at) VALUES (?, 'subscriber', ?, 'deleted', ?, '{}', ?, ?)").bind(createUlid(), subscriberId, operatorId, now, now),
-      ]);
+        { sql: "UPDATE subscribers SET destination = ?, contact_email = NULL, state = 'deactivated', deactivation_reason = 'deleted by operator', deactivated_at = ?, updated_at = ? WHERE id = ?", params: [`deleted:${subscriberId}`, now, now, subscriberId] },
+        { sql: "UPDATE subscriber_tokens SET revoked_at = ?, updated_at = ? WHERE subscriber_id = ? AND revoked_at IS NULL", params: [now, now, subscriberId] },
+      ];
+      // An imported subscriber stops being an import target: its selections and
+      // import marker go, and only the anonymised record stays.
+      const imported: D1Sql[] = [
+        { sql: "DELETE FROM subscriber_components WHERE subscriber_id = ?", params: [subscriberId] },
+        { sql: "DELETE FROM statuspage_import_targets WHERE kind = 'subscriber' AND id = ?", params: [subscriberId] },
+      ];
+      const audit: D1Sql = { sql: "INSERT INTO audit_entries (id, entity_type, entity_id, action, operator_id, payload_json, created_at, updated_at) VALUES (?, 'subscriber', ?, 'deleted', ?, '{}', ?, ?)", params: [createUlid(), subscriberId, operatorId, now, now] };
+      // An import's retained copies of this subscriber go in the same batch.
+      const subject = { id: subscriberId, values: personalValues };
+      if ((await subjectsInCustody(binding, [subject])).length) {
+        await retireSubscriberCustody(binding, subject, [...native, ...imported], [audit], { principalId: operatorId, authority: { sql: "EXISTS(SELECT 1 FROM oa_operators WHERE id=? AND role='owner' AND status='active')", params: [operatorId] } });
+        return;
+      }
+      await binding.batch([...native, audit].map((statement) => binding.prepare(statement.sql).bind(...statement.params ?? [])));
     },
-    async deleteExpiredPending(cutoff) {
-      await database.delete(subscribers).where(and(eq(subscribers.state, "pending"), lt(subscribers.createdAt, cutoff)));
+    async deleteExpiredPending(cutoff, custodyErasures) {
+      const expired = (await binding.prepare("SELECT id, destination, contact_email FROM subscribers WHERE state = 'pending' AND created_at < ?").bind(cutoff).all<{ id: string; destination: string; contact_email: string | null }>()).results;
+      if (!expired.length) return;
+      // An unconfirmed subscriber an import holds leaves import custody with
+      // its row; the rest are ordinary deletions.
+      const held = await subjectsInCustody(binding, expired.map((row) => ({ id: row.id, values: [row.destination, row.contact_email ?? ""].filter(Boolean) })));
+      await binding.prepare("DELETE FROM subscribers WHERE state = 'pending' AND created_at < ? AND id NOT IN (SELECT value FROM json_each(?))").bind(cutoff, JSON.stringify(held.map((subject) => subject.id))).run();
+      for (const subject of held.slice(0, custodyErasures)) {
+        const deletion: D1Sql = { sql: "DELETE FROM subscribers WHERE id = ? AND state = 'pending' AND created_at < ?", params: [subject.id, cutoff] };
+        // Admitted while the row is still expired and unconfirmed, and after its deletion.
+        const marker: D1Sql = { sql: "DELETE FROM statuspage_import_targets WHERE kind = 'subscriber' AND id = ?", params: [subject.id] };
+        await retireSubscriberCustody(binding, subject, [marker], [deletion], { principalId: "lamp:pending-expiry", authority: { sql: "NOT EXISTS(SELECT 1 FROM subscribers WHERE id = ? AND (state <> 'pending' OR created_at >= ?))", params: [subject.id, cutoff] } });
+      }
     },
     async recordConfirmationSendIfAllowed(emailHash, cutoff, now) {
       const result = await binding.prepare(

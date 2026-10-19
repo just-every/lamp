@@ -4,6 +4,7 @@ import { join } from 'node:path';
 import { Hono } from 'hono';
 import { database, load } from '../operator-readiness/runtime.mjs';
 import { authFixture, secret, setupToken } from './runtime.mjs';
+import { moveInDoor } from '../helpers/import-notifications.mjs';
 
 const adapter = load('tests/auth-adoption/adapter.ts');
 export const linkToken = message => new URL(message.text.match(/https?:\/\/[^\s]+/)[0]).searchParams.get('token');
@@ -28,11 +29,14 @@ export async function lampRuntime(t, { local = false, ownerClaim = false, regist
     mail: { configured: true, async send(message) { messages.push(message); return { providerMessageId: `captured-${messages.length}` }; } },
     fromAddress: 'lamp@example.test', tokenSecret: secret,
   });
-  modules.registerStatuspageImportRoutes(app, modules.createStatuspageImportService(db, { inviteSubscriber: (id, authority) => subscribers.inviteImported(id, 'https://page.example.test', 'Test page', authority), async publicDataChanged() { publications++; } }));
+  const imports = modules.createStatuspageImportService(db, { inviteSubscriber: (id, authority) => subscribers.inviteImported(id, 'https://page.example.test', 'Test page', authority), async publicDataChanged() { publications++; } });
+  modules.registerStatuspageImportRoutes(app, imports);
+  modules.registerImportDoor(app, bindings, imports, async () => { publications++; }, () => auth);
   await registerRoutes?.({ app, db, modules });
   const request = (path, options = {}) => {
     const req = base.request(path, options);
     req.headers.set('CF-Connecting-IP', '192.0.2.10');
+    for (const [name, value] of Object.entries(options.headers ?? {})) req.headers.set(name, value);
     return req;
   };
   const call = (path, options = {}) => app.fetch(request(path, options), bindings);
@@ -82,18 +86,23 @@ export async function lampRuntime(t, { local = false, ownerClaim = false, regist
 }
 
 export const source = (name = 'imported', count = 1) => [{ name: 'page.json', text: JSON.stringify({ id: 'synthpage01', viewers_must_be_team_members: false, ip_restrictions: null }) }, { name: 'page-access-groups.json', text: '[]' }, { name: 'components.json', text: JSON.stringify(Array.from({ length: count }, (_, i) => ({ id: `${name}-${i}`, name: `${name} ${i}`, position: i, status: 'operational', created_at: '2026-01-01T00:00:00Z' }))) }];
+/** Move in's door client as this signed-in session. */
+export const moveIn = (r, cookie) => moveInDoor(async (path, body, headers) => {
+  const response = await r.call(path, { method: body === undefined ? 'GET' : 'POST', cookie, body, headers });
+  return { status: response.status, body: await response.json() };
+});
+/** A reviewed dry run of saved responses, ready to apply. */
 export async function preview(r, cookie, files) {
-  const response = await r.call('/api/app/statuspage-import/preview', { method: 'POST', cookie, body: { files } });
-  assert.equal(response.status, 200);
-  const { report } = await response.json();
-  return { files, asOf: report.asOf, fingerprint: report.fingerprint, acknowledged: true };
+  const response = await moveIn(r, cookie).preview({ files });
+  assert.equal(response.status, 200, JSON.stringify(response.body));
+  return response.body;
 }
-export async function suspendedBody(r, path, cookie, body) {
+export async function suspendedBody(r, path, cookie, body, headers = {}) {
   let release, reading;
   const paused = new Promise(resolve => { reading = resolve; });
   const released = new Promise(resolve => { release = resolve; });
   const stream = new ReadableStream({ async pull(controller) { reading(); await released; controller.enqueue(new TextEncoder().encode(JSON.stringify(body))); controller.close(); } }, { highWaterMark: 0 });
-  const request = r.request(path, { method: 'POST', cookie });
+  const request = r.request(path, { method: 'POST', cookie, headers: { 'Content-Type': 'application/json', ...headers } });
   const response = r.app.fetch(new Request(request, { body: stream, duplex: 'half', headers: request.headers }), r.bindings);
   await Promise.race([paused, response.then(() => { throw new Error("Request finished before reading the streamed body"); })]);
   return { response, release };

@@ -104,12 +104,9 @@ export async function fetchSorryResponses(input: { pageId: string; apiKey: strin
 }
 
 /** No key is accepted. API paths are fixed under the selected HTTPS public
- * origin; provider links cannot choose a host, filter or alternate endpoint.
- * noticeLimit is explicit preview capture only; the default reader refuses its
- * missing detail files and strict apply can never use a partial capture. */
-export async function fetchSorryPublicResponses(input: { publicUrl: string; fetcher?: typeof fetch; noticeLimit?: number }): Promise<SavedFile[]> {
+ * origin; provider links cannot choose a host, filter or alternate endpoint. */
+export async function fetchSorryPublicResponses(input: { publicUrl: string; fetcher?: typeof fetch }): Promise<SavedFile[]> {
   const selected = publicUrl(input.publicUrl);
-  if (input.noticeLimit !== undefined && (!Number.isSafeInteger(input.noticeLimit) || input.noticeLimit < 1 || input.noticeLimit > sorryLimits.maxRecords)) throw new Error("Sorry preview detail limit must be a positive bounded integer.");
   const transport = reader(input.fetcher ?? fetch);
   const page = await transport.get(new URL("/api/v1/status", selected.origin), "sorry-status.json");
   publicPageSchema.parse(page.page);
@@ -138,7 +135,7 @@ export async function fetchSorryPublicResponses(input: { publicUrl: string; fetc
     if (seen.has(id)) throw new Error("Sorry repeats a notice across public pages.");
     seen.add(id);
   }
-  for (const notice of notices.slice(0, input.noticeLimit ?? notices.length)) {
+  for (const notice of notices) {
     const id = recordId.parse(notice.id);
     const detail = await transport.get(new URL(`/api/v1/notices/${id}`, selected.origin), `sorry-notice-${id}.json`);
     const row = object(detail.notice);
