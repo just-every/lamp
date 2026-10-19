@@ -494,7 +494,7 @@
       "executable": false
     },
     "CHANGELOG.md": {
-      "sha256": "ef31dcd3ceebe5760ce5b974270a83617543550428f6297c572f0492d8717990",
+      "sha256": "cd25df538bcf963f9c028d7f076142e9938d82bde4db38f76591313ff1c8b3ec",
       "executable": false
     },
     "CLAUDE.md": {
@@ -594,7 +594,7 @@
       "executable": false
     },
     "docs/moving-in.md": {
-      "sha256": "6a143a76c8605c471448ab3a6d6f29573f920e54fb74a854aeac92b74dd83ceb",
+      "sha256": "2e0a7e00147705c49b3d72eda9eddebc09b118d6f1ed47a7e3b922b99d33d0a1",
       "executable": false
     },
     "docs/operators-and-sign-in.md": {

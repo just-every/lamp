@@ -47,7 +47,9 @@ applies exactly the fingerprint you reviewed, in bounded steps. A later import
 of the same source is that import's catch-up (see below), and selecting the same
 files again reads as already imported. A new dry run replaces one you did not
 import. Importing again a source whose import you undid uploads it afresh.
-**Your imports** lists your imports ("approved by") and Business imports
+A dry run plans the page as it is at that moment and imports for 30 minutes;
+after that **Import** answers "This dry run has expired. Run the dry run again."
+and changes nothing. **Your imports** lists your imports ("approved by") and Business imports
 ("approved via Business by") together; undo the newest import of a source first.
 Imports made before the door keep their own read, Continue and Undo.
 
@@ -545,7 +547,11 @@ Lamp's door accepts the four sources Move in offers, `statuspage`,
 allow-list shared with the owner's Move in: a grant for any other answers 403
 `unknown_import_source` (Move in answers 400) before anything is stored. An
 apply that fails ends that plan, which says why in **Your imports**; plan the
-upload again and approve its new fingerprint. A request too large for one
+upload again and approve its new fingerprint. A plan applies within 30 minutes
+of its dry run, as Move in's does: after that its apply, and a plan of the same
+upload, answer 409 "This dry run has expired. Run the dry run again." (the plan
+refusal names the expired `planId`) and store nothing; undo that plan, then plan
+the upload again. A request too large for one
 request's D1 reads answers 413 `import_door_too_large` and writes nothing.
 
 The door calls Lamp's existing readers, native mapping and target adapter. A
