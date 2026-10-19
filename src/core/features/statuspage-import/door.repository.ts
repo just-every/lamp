@@ -60,16 +60,27 @@ export function createImportDoorRepository(db: D1Database) {
       return bytes.length===upload.total_bytes && sha256(bytes)===upload.bundle_sha256 ? new Uint8Array(bytes) : null;
     },
     /** The usable plan the door holds of these exact bytes, which it answers
-     * without reading them again, and whether its import started. */
+     * without reading them again, and whether its import started. As in the
+     * door, a plan whose apply failed or whose import was undone or rolled back
+     * is not reused: the same bytes plan afresh. */
     async planOf(installationId: string, namespace: string, bundleSha256: string) {
       const row = await db.prepare(`SELECT p.id,(p.job_id IS NOT NULL OR EXISTS(SELECT 1 FROM ik_jobs j WHERE j.operation_key='door:'||p.id)) AS started FROM ik_door_plans p
-        WHERE installation_id=? AND namespace=? AND bundle_sha256=? AND complete=1 AND NOT EXISTS(SELECT 1 FROM ik_door_apply_failures f WHERE f.plan_id=p.id)`).bind(installationId,namespace,bundleSha256).first<{id:string;started:number}>();
+        WHERE installation_id=? AND namespace=? AND bundle_sha256=? AND complete=1 AND NOT EXISTS(SELECT 1 FROM ik_door_apply_failures f WHERE f.plan_id=p.id)
+        AND NOT EXISTS(SELECT 1 FROM ik_jobs j WHERE j.operation_key='door:'||p.id AND j.state IN ('undone','rolled_back'))`).bind(installationId,namespace,bundleSha256).first<{id:string;started:number}>();
       return row ? {id:row.id,started:row.started===1} : null;
     },
     /** A complete plan of the namespace nobody started importing, with its bundle. */
     async unstarted(installationId: string, namespace: string, planId: string) {
       return db.prepare(`SELECT p.id,p.bundle_sha256 FROM ik_door_plans p WHERE p.id=? AND p.installation_id=? AND p.namespace=? AND p.complete=1 AND p.job_id IS NULL
         AND NOT EXISTS(SELECT 1 FROM ik_jobs j WHERE j.operation_key='door:'||p.id)`).bind(planId,installationId,namespace).first<{id:string;bundle_sha256:string}>();
+    },
+    /** A Business archive's exact bytes in this installation and namespace, as the door's restore-check reads them. */
+    async archiveBytes(installationId: string, namespace: string, archiveId: string) {
+      const archive = await db.prepare('SELECT bundle_sha256,total_bytes FROM ik_door_archives WHERE id=? AND installation_id=? AND namespace=?').bind(archiveId,installationId,namespace).first<{bundle_sha256:string;total_bytes:number}>();
+      if (!archive) return null;
+      const chunks = (await db.prepare('SELECT base64 FROM ik_door_archive_chunks WHERE archive_id=? ORDER BY ordinal').bind(archiveId).all<{base64:string}>()).results;
+      const bytes = Buffer.concat(chunks.map(chunk=>Buffer.from(chunk.base64,'base64')));
+      return bytes.length===archive.total_bytes && sha256(bytes)===archive.bundle_sha256 ? new Uint8Array(bytes) : null;
     },
     /** The bytes of a complete upload of this bundle, as the door holds them for its plan. */
     async bundleBytes(installationId: string, namespace: string, bundleSha256: string) {
@@ -91,10 +102,6 @@ export function createImportDoorRepository(db: D1Database) {
       const chunks = (await db.prepare('SELECT body FROM ik_door_plan_chunks WHERE plan_id=? ORDER BY ordinal').bind(planId).all<{body:string}>()).results;
       if (!row || !chunks.length) return null;
       return {plan:(JSON.parse(chunks.map(chunk=>chunk.body).join('')) as {plan:ImportPlan}).plan,jobId:row.job_id};
-    },
-    /** Whether an import job was undone or rolled back. */
-    async reversed(jobId: string) {
-      return Boolean(await db.prepare("SELECT 1 FROM ik_jobs WHERE id=? AND state IN ('undone','rolled_back')").bind(jobId).first());
     },
     /** A namespace's snapshots undo newest first. */
     async assertNewest(planId: string) {

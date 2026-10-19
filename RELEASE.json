@@ -9,6 +9,10 @@
     {
       "id": "0040_uptime_preset.sql",
       "buyerSteps": "Apply after 0039. Adds signed Uptime preset identification and monitor-to-component mappings. Existing sources and credentials are retained; configure an Uptime source explicitly in Alerts."
+    },
+    {
+      "id": "0041_import_door_archives.sql",
+      "buyerSteps": "Apply after 0040. Adds the Business import door's archive tables (ik_door_archives, ik_door_archive_chunks) for the door's archive and restore-check actions. Additive; no existing row changes."
     }
   ],
   "breaking": false,

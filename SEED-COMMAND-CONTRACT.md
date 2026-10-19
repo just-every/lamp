@@ -238,6 +238,8 @@ First-run completion is stored durably; a setup rerun does not clear it.
 
 A first-party seed may declare one theme so the shared installer, sign-in confirmation, `/setup` pages wear its look: a CSS file at the root of its served static directory (conventionally `public/rer-theme.css`) holding only `:root` `--rer-*` tokens (page, surface, text, muted, border, focus, optional accent pair, link, font stacks, radius, logo) and `@font-face` rules for font files the app serves. The app serves it at `/rer-theme.css` (a Worker that admits only listed static paths lists it). The installer seed descriptor names it as `theme: 'public/rer-theme.css'`; the Worker passes `/rer-theme.css` to operator-auth `branding.theme`, to `firstRunResponse(..., { theme })`. The installer refuses a theme outside that grammar, naming a file the app does not serve, or whose declared colours fail contrast (4.5:1 for text pairs, 3:1 for focus and borders). Without a theme the pages are unchanged. Vendored seeds keep the token table and wiring note in `scripts/base-onboarding/README.md`.
 
+Operator-auth also accepts optional `branding.mark: '/brand/mark.svg'`, independently of the theme. Serve that SVG or PNG from the installation and allow its static path through the Worker. The root-relative pathname is 2–2048 characters using ASCII letters, digits, `/`, `.`, `_`, `~` and `-`, with no doubled slashes or `.`/`..` segments; URLs, encoded paths, queries, fragments, whitespace, quotes and angle brackets are refused. Sign-in, one-click entry and confirmation headers show the mark at 32×32 beside the product name as text; the dev key exchange header uses 40×40. Images have the product name as alt text and decode asynchronously under same-origin CSP. The explicit mark takes precedence over `--rer-logo`; omitting it leaves the existing HTML unchanged.
+
 ## Installed homepage and run site
 
 The run site privacy check matches the saved owner's whole name and exact email
@@ -281,6 +283,8 @@ A seed's `CONTRACT.md` says what the product is being built towards and how far 
 `rer deploy` uploads `dist/client/` behind the Worker (`assets.run_worker_first`), so the Worker sees every request first and a built file reaches the browser only when the Worker hands it to `env.ASSETS`. Make `staticAssetResponse(request, env)` from Base's `foundation/runtime/static-assets.ts` (in an edition, `src/base/static-assets.ts`) the first thing the Worker entry's `fetch` does, and return its answer when it is not null. It answers GET and HEAD for paths with a file extension from `env.ASSETS` (a built `.html` file too: when assets' `html_handling` answers `/guide.html` with a redirect to `/guide`, it follows that redirect inside `env.ASSETS` and returns the file with 200) and returns null on a miss, so app routes and documents keep their own handling; it never looks up dot paths (`.rer`, `.seed`, `.well-known`, `.dev.vars`), `/exports/`, `/__dev/` or `*.rer`. Declare `ASSETS?: Fetcher` in the seed's bindings type; TypeScript rejects the call until the type shares it. A seed that prerenders pages builds with the same routing, so `rer preview` serves them as deployed: give the Cloudflare Vite plugin `config: { assets: { binding: 'ASSETS', run_worker_first: true } }` for the build only (the reference's `vite.config.ts`; under `vite dev` the Worker would also take Vite's module requests). A prerendered page then reaches the browser as the Worker's document, with its `Cache-Control`, under preview as under deploy. The uploaded assets never hold `dist/client/.assetsignore` or any file its gitignore-style patterns name (the Cloudflare Vite plugin writes it with `wrangler.json` and `.dev.vars`): `rer deploy` and the delivery producer's artifact (`modules/delivery-producer`, a seed's `scripts/delivery/base/`) both leave them out, so `/.assetsignore` answers 404 when hosted.
 
 Answer `/health` with `deploymentHealth(env)` from `foundation/runtime/deployment-health.ts` (`src/base/deployment-health.ts`): `{ok: true, deployment: {sourceSha, fingerprint, versionId}}` from the `RER_DEPLOY_SOURCE`, `RER_DEPLOY_FINGERPRINT` and `RER_VERSION` bindings the deploy kit sets. Spread it into a body that carries other fields (`{status: 'ok', ...deploymentHealth(env)}`) and run any readiness check first. Declare `RER_DEPLOY_SOURCE?: string`, `RER_DEPLOY_FINGERPRINT?: string` and `RER_VERSION?: { id: string }` in the bindings type too. `rer deploy` compares these three values with what it just deployed and exits 1 when they differ.
+
+The owner deployment declaration may set top-level `"productDirectory": ".rer/deploy/product"` for a product staged by the build or deploy hook. It must name a normalized checkout-relative subdirectory: no absolute path, backslash, empty, `.` or `..` segment. The directory must exist after the build or hook, with no symlink on its path. rer reads this field and passes `--product` only to the kit's packaging commands (`dry-run`, `deploy` and `health`), including its extra dry run after a custom hook. A hook that invokes the kit itself still supplies `--product` on its own invocation; the wrapper reads the declaration for its own steps. Omitting the field keeps packaging at the checkout root. State, root ownership, secret changes and removal keep their existing locations and behavior; dry run still requires credentials for target secret reads.
 
 For an optional canonical public origin, declare `"publicOriginSetting": "PUBLIC_ORIGIN"` beside `originVar` (`AUTH_ORIGIN` or `APP_ORIGIN`) in `deploy.json`. `rer deploy` reads `PUBLIC_ORIGIN` from the adapter's saved settings; the process environment overrides saved settings and `--env-file` wins over both. The value must be `https://host[:port]`, with no credentials, path (including a trailing `/`), query, fragment, whitespace or backslashes; it is normalized to `URL.origin`. When omitted, the origin remains workers.dev. This changes only `originVar`: readiness, health checks, the deployment target, recorded resource names and IDs, and the owner claim retain the kit's workers.dev origin and identity.
 
@@ -621,7 +625,8 @@ Independent projects without an adapter use `OPERATIONS.json` v2 `commands.NAME.
 
 A seed may explicitly mount import-kit's D1-only
 `createImportDoorHandler(options)` from `modules/import-kit/src/door/index.ts`
-under POST `/api/rer/import/{uploads,plan,apply,status,reconcile,undo}`. This is
+under POST `/api/rer/import/{uploads,plan,apply,status,reconcile,undo,archive,restore-check}`
+(the last two grant-only). This is
 the optional grant authority for the same pipeline used by the signed-in
 operator mount, not a second importer. The seed supplies its database, real
 target adapter, parser/mapping, destination and actual owner principal, and
@@ -630,8 +635,10 @@ A seed that already installed the door never re-applies `importDoorSchema`
 (it refuses on that older door schema, so the deploy fails rather than keep the
 old plan table). It applies the door migrations once each, in order, each in a
 new numbered migration: `importDoorApplyFailureMigration` as a single atomic
-batch, then `importDoorScopesMigration`. Until both are applied, an enabled
-door answers every route with 503 `import_door_schema_outdated`.
+batch, then `importDoorScopesMigration`, then `importDoorArchiveMigration`.
+Until the first two are applied, an enabled door answers every route with 503
+`import_door_schema_outdated`; without the third, only `archive` and
+`restore-check` do.
 Base does not mount the door in a seed automatically. Copy the module's
 `CONTRACT.md` and `src/door/README.md` with its runtime and dependencies.
 

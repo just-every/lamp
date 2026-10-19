@@ -154,15 +154,31 @@ establish source integrity; every product and installation obligation remains.
 
 ## Base components, delivery and the rer CLI
 
-Lamp's Base copies are byte-identical to Base `main` at
-`3d643dda1d203d36e3fa57e8e5ba14e414bba6f9` and recorded in `base-copies.json`:
+Lamp's Base copies are byte-identical to Base at
+`052e5ea88c1e7b73cca10c4813524a5f72580af8` (`rer-v0.2.71`, the pinned
+`@runeditrun/rer`) and recorded in `base-copies.json`:
 onboarding (`scripts/base-onboarding/`), the rer CLI (`scripts/base-cli/`), mail
 (`modules/mail/`), the delivery producer (`scripts/delivery/base/`), owner
 migrations, operations and edition authoring. `pnpm run source:copies` checks the
 bytes. Base's own tests stay in Base; Lamp carries the tests of its adoption.
 The move-in uses Base's import kit (`modules/import-kit`) and Slack and Teams
 channels use Base's integrations core and Slack notifier (`modules/integrations`),
-both recorded copies at the same pin.
+both recorded copies at the same pin. The import door (`modules/import-kit/src/door/`)
+is one verbatim recorded copy with no local changes: Lamp's undo policy reaches it
+through Base's `reversalPolicy: 'preserve-conflicts'` option, and migration
+`0041_import_door_archives.sql` applies Base's `importDoorArchiveMigration` for the
+door's `archive` and `restore-check` grant actions.
+
+`POST /api/rer/cutover-status` (`src/core/features/statuspage-import/rer-cutover-status.ts`)
+is Run Edit Run Business's signed read of a move: an RER grant of action
+`cutover-status` verified with Base's `verifyRerGrant` under the owner-claim key ring,
+refused for a key revoked in Settings → Business imports, and 404 without that trust.
+It takes `{since}` and answers counts and ids only: the old addresses Cutover lists
+(total and up to 25 `{path, target}`), component, incident and maintenance counts,
+held and pending subscribers and invitations sent since, incidents, maintenance and
+subscribers created in Lamp since (imported records excluded), and each alert
+source's receipts since. The Sorry import test (`tests/e2e/sorry-import.test.mjs`)
+exercises it through the Worker.
 
 Delivery packages use the Base producer's schema 2 with raw payloads.
 `.github/workflows/rer-managed.yml` and `.github/workflows/deploy.yml` build with

@@ -35,6 +35,7 @@ import { registerAiRoutes } from "../features/ai";
 import { registerBriefRoutes } from "../features/brief";
 import { registerStatuspageImportRoutes } from "../features/statuspage-import";
 import { registerImportDoor } from '../features/statuspage-import/door';
+import { registerRerCutoverStatus } from '../features/statuspage-import/rer-cutover-status';
 import { registerChannelRoutes } from "../features/channels";
 import { registerPageExportRoutes } from "../features/page-export";
 
@@ -82,6 +83,7 @@ export function createApp(bindings: AppBindings, execution?: MailExecution) {
   registerPageExportRoutes(app, services.pageExport);
   registerStatuspageImportRoutes(app, services.statuspageImport);
   registerImportDoor(app, bindings, services.statuspageImport,()=>services.publicSnapshots.rebuild(true), services.auth);
+  registerRerCutoverStatus(app, bindings);
   registerChannelRoutes(app, services.channels);
 
   async function readOperator(path: string, source: Request, authority: OperatorReadSession) {

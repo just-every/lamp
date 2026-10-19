@@ -80,7 +80,9 @@ const HOME = 'main{max-width:1360px;margin:0 auto;padding:0 56px calc(var(--art)
   + '.link{font-weight:500;text-decoration:underline;text-underline-offset:4px}'
   + '@media(max-width:760px){main{padding:0 16px calc(var(--art) + 40px)}.hero{padding-top:96px}.btn{min-height:56px;font-size:18px}}'
 
-const RUN = 'body{--art:max(20vh,150px)}main{max-width:1360px;margin:0 auto;padding:0 56px calc(var(--art) + 40px)}.intro{text-align:center;padding-top:36px}.intro h1{font-size:58px}.intro .sub{margin-inline:auto;max-width:760px;margin-top:20px}'
+// A seed's wordmark and optional navigation must reflow when their own fonts
+// need more room. Keep overflow visible so a layout defect cannot be clipped away.
+const RUN = 'body{--art:max(20vh,150px);overflow-x:visible}.bar,.bar nav{flex-wrap:wrap}main{max-width:1360px;margin:0 auto;padding:0 56px calc(var(--art) + 40px)}.intro{text-align:center;padding-top:36px}.intro h1{font-size:58px}.intro .sub{margin-inline:auto;max-width:760px;margin-top:20px}'
   + '.steps{max-width:990px;margin:34px auto 0;display:grid;gap:18px}'
   + '.step{position:relative;display:grid;grid-template-columns:62px 1fr;gap:0 32px;padding:24px 30px 24px 28px;border-radius:24px;background:color-mix(in srgb,var(--rer-surface,#fff) 86%,transparent);border:1px solid var(--site-line);box-shadow:0 24px 48px -36px color-mix(in srgb,var(--site-ink) 45%,transparent);backdrop-filter:blur(6px)}'
   + '.step.option{grid-template-columns:1fr;padding-left:124px}.body{min-width:0}'

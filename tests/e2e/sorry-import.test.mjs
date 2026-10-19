@@ -1,5 +1,6 @@
 import { businessImportDoorFlow } from './helpers/import-door-flow.mjs';
 import { importDoorScale } from './helpers/import-door-scale.mjs';
+import { cutoverStatusFlow } from './helpers/cutover-status-flow.mjs';
 import assert from 'node:assert/strict';
 import { DatabaseSync } from 'node:sqlite';
 import { createHash, randomUUID } from 'node:crypto';
@@ -219,4 +220,6 @@ test('MOVE-001 MOVE-002 MOVE-004 MOVE-005 MOVE-006 Sorry and the opt-in Business
       console.log('Statuspage catch-up: changed incident replaced, addition unique, revision advanced, reconcile clean, undo restored full previous state.');
     } finally { db.close(); }
   }, afterSources: importDoorScale });
+  // RER's signed cutover-status read of a move to this Lamp, and the door's archive of its final export.
+  await cutoverStatusFlow();
 });

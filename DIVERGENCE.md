@@ -1404,11 +1404,14 @@ Local imports retain their existing behavior. Business approval metadata appears
 in the existing owner-bound history and undo flow.
 
 Since rer 0.2.61 the door is Base's integrated door, refreshed with
-`refresh-base`/`record-base` and recorded in `base-copies.json`, except two
-adapted files (`types.ts`, `authority.ts`) tracked as local source with a Base
-0.2.61 comparison origin in `edition.json`. Their one change passes a
-`reversalPolicy` into each door job, so Business imports undo as every Lamp
-import does: preserving the records the owner changed (until Base #298 ships it).
+`refresh-base`/`record-base` and recorded in `base-copies.json`. Until rer 0.2.71
+two adapted files (`types.ts`, `authority.ts`) were local source whose one change
+passed a `reversalPolicy` into each door job. Since rer 0.2.71 (Base #298) the
+whole door directory is one verbatim recorded copy with no local divergence: Lamp
+passes Base's `reversalPolicy: 'preserve-conflicts'` option to both mounts, so
+Business imports still undo as every Lamp import does, preserving the records the
+owner changed. Migration 0041 applies Base's archive migration for the door's
+`archive` and `restore-check` actions.
 Base's server-side source resolver admits the four sources Move in offers
 (`statuspage`, `betterstack`, `instatus`, `sorry`); a plan request prepares the
 named upload with Lamp's existing readers, native planner and target adapter
@@ -1428,8 +1431,9 @@ imports run as the installation's configured owner, so the owner's imports and
 Business's share one lineage, history and undo; each request is still bound to
 the signing-in owner's session. Lamp-specific behavior around the door: a key
 or public page is read into saved responses first; a new dry run discards an
-earlier unstarted one; an undone source is uploaded afresh with an `attempt`
-field; owner imports keep each source's subscriber policy, while Business holds
+earlier unstarted one; an undone source plans afresh from the same bytes, as
+the door does since rer 0.2.71 (earlier clients' `attempt` field is accepted and
+unused); owner imports keep each source's subscriber policy, while Business holds
 subscribers until cutover. Subscriber deletion and expiry erase the subscriber
 from import custody through the kit (Base ADOPTING step 6); the kit requires an
 erased target to be gone, so Lamp's target adapter treats the anonymised record

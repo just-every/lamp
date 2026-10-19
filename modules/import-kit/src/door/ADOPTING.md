@@ -48,7 +48,8 @@ Owner history and undo must include jobs from either authority.
      again (it refuses that schema at deploy), but
      `importDoorApplyFailureMigration` as one atomic batch, then
      `importDoorScopesMigration`. Until both are applied, the door answers 503
-     `import_door_schema_outdated`.
+     `import_door_schema_outdated`. Then `importDoorArchiveMigration`; until it
+     is applied, only `archive` and `restore-check` answer that 503.
 2. **Native adapter.** Supply the seed's real `D1TargetAdapter`, parser,
    `ImportMapping`, destination and actual owner principal. Read/write/remove
    guards must protect native revisions and values in the same D1 transaction.
@@ -59,6 +60,21 @@ Owner history and undo must include jobs from either authority.
    already-imported target for catch-up, `list` must read the native set in a
    fixed number of queries, and large imports need a compact `matchesMany`
    (see Pitfalls).
+   **Undo policy.** Door jobs use the kit's `strict` undo unless the runtime
+   options set `reversalPolicy`. A seed whose own imports preserve the owner's
+   edits on undo passes `reversalPolicy: 'preserve-conflicts'` to every door
+   mount (operator and grant), and its adapter implements `preparePreservedUndo`
+   (a mount refuses construction with 503 `invalid_configuration` otherwise).
+   Door jobs are then created with that policy: the seed's ordinary history,
+   which reads each import job with its own policy, lists them, and door undo
+   after an owner edit keeps the owner's change and reverses the rest, as the
+   seed's local imports do. Only new door jobs take the option; earlier ones keep
+   the policy they were created with, even when an apply in flight resumes
+   after the seed remounts with another policy. Strict remains the default,
+   unchanged. With preserve, undoing a catch-up that kept an owner's edit
+   releases the layer beneath it, so the baseline then undoes too. A
+   seed that adapted `door/types.ts` and `door/authority.ts` to pass a policy
+   (Lamp) drops that change, re-vendors the door verbatim and passes the option.
 3. **Operator mount.** Import `createImportOperatorHandler` from
    `modules/import-kit/src/door/operator.ts`. Supply the runtime options in
    `types.ts`, plus server-owned `installationId`, `appOrigin`, `ownerEmail`,
@@ -133,14 +149,17 @@ Owner history and undo must include jobs from either authority.
 5. **Move-in screen.** Call POST `/api/operator/import/{uploads,plan,apply,status,
    reconcile,undo}` with the current owner cookie, exact `Origin` and normal
    seed CSRF headers. Bodies and results are in [README.md](README.md). Upload
-   original bytes, show the returned counts, rejections and differences, then
+   original bytes, show the returned counts, rejections, differences and each
+   `CREDENTIAL_REMOVED` diagnostic (a credential value the door removed from that
+   record), and each named source refusal's `details.reason`, then
    require the owner's review before posting `{planId, reviewedFingerprint}`.
    Repeat bounded apply calls with that fingerprint until `job.state` is
    `completed`; reconcile from native data and expose Undo. Never mint an import
    grant for this screen. Use `readImportDoorHistory` with the current owner
    predicate and the door key for approval metadata; local approvals are
    labelled `approved by`, Business approvals `approved via Business by`.
-6. **Erasure.** Include retained uploads/chunks, plan snapshots/chunks, approvals,
+6. **Erasure.** Include retained uploads/chunks, plan snapshots/chunks, archive
+   bytes (`ik_door_archive_chunks`, withdrawn whole) and headers, approvals,
    namespace lineage and destination bindings (`ik_door_scopes`), apply-failure
    facts (`ik_door_apply_failures`) and grant metadata in the seed's
    erasure/custody inventory,
@@ -178,6 +197,26 @@ scope, expiry and approval rules do not change.
 
 ## Pitfalls found in adoptions
 
+- **Credential fields in exports.** Vendor exports carry credential-named
+  fields (UptimeRobot's `apiKey: null` on every monitor) and URLs with
+  `user:pass@`. The door reads every upload with the kit's `credentials:
+  'remove'`: null, empty, masked and boolean values pass, and a real value is
+  removed from its record, which is kept and noted. Names match by whole parts
+  (camelCase, `_`, `-`, digits), not letters: it covers compound names
+  (`httpPassword`, `client_secret`, `customHttpHeaders['X-Api-Key']`,
+  `secret_key`, `Ocp-Apim-Subscription-Key`, `X-Auth`, `pwd`), plurals holding
+  text (`apiKeys: [...]`), header pairs (`{name: 'Authorization', value}`) and
+  `[name, value]` header tuples, and URLs of any scheme, including the markers
+  rer's vendor exports leave (`removed@`, `?api_key=removed`). Look-alikes such
+  as UptimeRobot's `?keyword=up`, `author`, `signal` or `primaryKey` are not
+  credentials and import with the URL and fields intact, and neither is a
+  support export's agent `signature` or a chat's `session_id` (`Signature` and
+  `Session-Id` count only as header names), nor `auth: {type: 'oauth2'}` or
+  `credentials: []`. The plan
+  holds none, the original bytes are withheld and the upload's chunks are
+  deleted once the plan is saved, or once a plan of them is refused.
+  Do not drop such records or fields in the seed's parser to get past a refusal.
+
 - **Export custody.** A seed whose export policy excludes import custody
   (`excludeTables`) must also exclude `ik_door_%`; door uploads and plans hold
   original source bytes.
@@ -207,7 +246,7 @@ scope, expiry and approval rules do not change.
 - **Door migrations.** Apply every door migration Base ships, each once, in
   order, in its own new numbered seed migration: today
   `importDoorApplyFailureMigration` (one atomic batch, foreign keys on), then
-  `importDoorScopesMigration`. Never re-apply an updated `importDoorSchema` to
+  `importDoorScopesMigration`, then `importDoorArchiveMigration`. Never re-apply an updated `importDoorSchema` to
   an installed door: its `CREATE TABLE IF NOT EXISTS` statements would skip
   changed tables, so its first statement refuses an earlier door's plan table
   and the deploy fails.

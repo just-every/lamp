@@ -37,13 +37,14 @@ type Prepared = Awaited<ReturnType<StatuspageImportService['prepareDoor']>> & { 
 /** Lamp's one allow-list (adapters.ts `importSources`): every source Move in
  * offers, each one door namespace, for the owner's Move in and Business grants
  * alike. Lamp plans an upload with its native snapshot and existing imports,
- * which takes D1 reads, so a plan request prepares the upload it names before
- * the door reads it again: the parser returns the prepared records for exactly
- * those bytes and the mapping maps them. Other door actions never parse or map.
+ * which takes D1 reads, so a plan, archive or restore-check request prepares the
+ * bytes it names before the door reads them again: the parser returns the
+ * prepared records for exactly those bytes and the mapping maps them. Other door
+ * actions never parse or map.
  * A preparation failure is the parser's, so the door's own refusals keep their order. */
 function importSource(name: string, prepared: Promise<Prepared> | null): Promise<ImportDoorSource | null> | null {
   if (!isImportSource(name)) return null;
-  if (!prepared) return Promise.resolve({ parse() { throw new Error('Only a plan reads an upload.'); }, mapping: { version: '1', map() { throw new Error('Only a plan maps records.'); } } });
+  if (!prepared) return Promise.resolve({ parse() { throw new Error('Only a plan, archive or restore-check reads a bundle.'); }, mapping: { version: '1', map() { throw new Error('Only a plan, archive or restore-check maps records.'); } } });
   return prepared.then(
     ready => ({
       parse(value: Json) {
@@ -73,18 +74,9 @@ async function readFirst(request: Request) {
   }
   const bytes = new Uint8Array(size);
   chunks.reduce((offset, chunk) => { bytes.set(chunk, offset); return offset + chunk.byteLength; }, 0);
-  let input: { uploadId?: unknown; planId?: unknown } | null;
+  let input: { uploadId?: unknown; planId?: unknown; archiveId?: unknown } | null;
   try { input = JSON.parse(new TextDecoder().decode(bytes)); } catch { input = null; }
   return { input, request: new Request(request.url, { method: request.method, headers: request.headers, body: request.body ? bytes : null }) };
-}
-
-/** The `attempt` an upload of a source imported and undone before carries; a
- * bundle that is not a JSON object is refused by its preparation instead. */
-function uploadAttempt(bytes: Uint8Array) {
-  try {
-    const value = JSON.parse(new TextDecoder().decode(bytes)) as { attempt?: unknown } | null;
-    return typeof value?.attempt === 'number' ? value.attempt : 0;
-  } catch { return 0; }
 }
 
 export function registerImportDoor(app: Hono<AppEnv>, bindings: AppBindings, service: StatuspageImportService, changed: ()=>Promise<unknown>, auth: () => OperatorAuth) {
@@ -153,16 +145,27 @@ export function registerImportDoor(app: Hono<AppEnv>, bindings: AppBindings, ser
     const key = await repository.key(bindings);
     const authority = { sql: "EXISTS(SELECT 1 FROM oa_operators WHERE id=? AND role='owner' AND status='active')", params: [owner] };
     const action = c.req.method === 'POST' ? c.req.path.slice('/api/rer/import/'.length) : '';
-    const read = ['plan', 'apply'].includes(action) ? await readFirst(c.req.raw) : undefined;
+    const read = ['plan', 'apply', 'archive', 'restore-check'].includes(action) ? await readFirst(c.req.raw) : undefined;
     if (read === null) return c.json({error:'request_too_large'},413);
-    const planning = action === 'plan' ? read?.input : undefined;
+    const input = read?.input;
+    /** The bytes this action parses, prepared as Move in plans them: a plan's or
+     * an archive's upload, or the archive a restore-check reads. */
+    const preparing = (namespace: string): Promise<Prepared> | null => {
+      if (action === 'plan' || action === 'archive') return prepare(key,namespace,input?.uploadId,owner,owner,authority,true);
+      if (action !== 'restore-check') return null;
+      return (async () => {
+        const bytes = typeof input?.archiveId === 'string' ? await repository.archiveBytes(key,namespace,input.archiveId) : null;
+        if (!bytes) throw new Error('No complete archive to check.');
+        return prepareBytes(bytes,namespace,owner,owner,authority,true);
+      })();
+    };
     const handle = createImportDoorHandler({database:bindings.DB,targets:statuspageTargets,claim,installationId:key,ownerPrincipalId:owner,destination:'lamp',
       format:'json',limits:doorLimits,reversalPolicy:'preserve-conflicts',
       // Resolved once the grant is verified and before it is recorded: a Business
       // plan or apply of a dry run past its review window is refused and writes nothing.
       source:async namespace=> {
-        if (isImportSource(namespace)) await refuseExpired(action, namespace, read?.input);
-        return importSource(namespace,planning === undefined || !isImportSource(namespace) ? null : prepare(key,namespace,planning?.uploadId,owner,owner,authority,true));
+        if (isImportSource(namespace)) await refuseExpired(action, namespace, input);
+        return importSource(namespace,isImportSource(namespace) ? preparing(namespace) : null);
       },
     });
     const response = await handle(read?.request ?? c.req.raw);
@@ -222,11 +225,10 @@ export function registerImportDoor(app: Hono<AppEnv>, bindings: AppBindings, ser
       const again = await prepareBytes(bytes, name, principal, session.operator.id, authority, false, reviewed.asOf);
       return again.page === reviewed.page && (!now || again.shape === now.shape);
     };
-    let prepared: Promise<Prepared> | null = null, attempt = 0;
+    let prepared: Promise<Prepared> | null = null;
     if (action === 'plan' && typeof input?.uploadId === 'string') {
       const bytes = await repository.uploadBytes(key, name, input.uploadId);
       const bundle = bytes ? sha256(bytes) : null;
-      if (bytes) attempt = uploadAttempt(bytes);
       const existing = bundle ? await repository.planOf(key, name, bundle) : null;
       if (bytes && bundle && !existing?.started) {
         try {
@@ -273,10 +275,6 @@ export function registerImportDoor(app: Hono<AppEnv>, bindings: AppBindings, ser
     if (action !== 'plan' || !response.ok) return response;
     const plan = await response.json() as { planId: string };
     const saved = await repository.planSnapshot(key, plan.planId);
-    const headers = { 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff' };
-    // These bytes are a plan whose import was undone; importing the source again
-    // is a new application of it, which Move in uploads afresh.
-    if (saved?.jobId && await repository.reversed(saved.jobId)) return c.json({ error: 'import_undone_upload_again', details: { attempt: attempt + 1 } }, 409, headers);
-    return c.json(saved ? { ...plan, ...await service.planReport(saved.plan, saved.jobId, session) } : plan, 200, headers);
+    return c.json(saved ? { ...plan, ...await service.planReport(saved.plan, saved.jobId, session) } : plan, 200, { 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff' });
   });
 }
