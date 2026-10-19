@@ -474,7 +474,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "99f5634cbad24522fd62235ab0e2ebf316b8ff4343c1226b9bc35d7f80fd74cf",
+      "sha256": "db332352d34a9c88b0691123bab2b49a9b37c8f2671bcbaf145d4ede0faf136e",
       "executable": false
     },
     "AGENTS.md": {
@@ -494,7 +494,7 @@
       "executable": false
     },
     "CHANGELOG.md": {
-      "sha256": "28051389ac9018bb4e464fe2fb031eaa0ba6096848a863294c8429d2abbfae22",
+      "sha256": "138a815f3b9119462d590a89e395f922d75a40eae4d1db47fba51102fa68d4f2",
       "executable": false
     },
     "CLAUDE.md": {
@@ -586,7 +586,7 @@
       "executable": false
     },
     "docs/install.md": {
-      "sha256": "c3a88fdeeb766b81cfda4148dfbe96573c66aabf84c3d44050bbe39d45d5022d",
+      "sha256": "31da526aba80c11ec6c81c6dd12d2f1700ab142b76563904234a5077ae2c7b52",
       "executable": false
     },
     "docs/maintenance.md": {
@@ -2082,11 +2082,11 @@
       "executable": false
     },
     "OPERATIONS.md": {
-      "sha256": "6cf9d1e91d730c627cae410cb81f1b262d98d75dcc57a4add9aaafc11ccb1360",
+      "sha256": "0a012c326ca95f3d525ac63db0ce12d6129fc74cb6e5b874a3a1a59e0d21cfdb",
       "executable": false
     },
     "package.json": {
-      "sha256": "862bcb97b9403aa14bf76f14d52797a7a1a8f45d751c264f209d61e5a217ad79",
+      "sha256": "6652576e109e611cd4f005aaf48ee8bf5252050fe882e7a98039a07ff965bc77",
       "executable": false
     },
     "patches/@runeditrun__rer@0.2.63.patch": {
@@ -2118,7 +2118,7 @@
       "executable": false
     },
     "README.md": {
-      "sha256": "6c4d35619ca0dfebacb8bb78f97d5748798e6b039d55422b684da0c150bf375f",
+      "sha256": "c319e0b92c8464449201b2ca2ca3017f3aca4daefa10ecf2b7f4ae36687e723e",
       "executable": false
     },
     "release-history/1.0.0.CONTRACT.md": {
@@ -2201,6 +2201,14 @@
       "sha256": "b6d864638070f132affb76249c9a8b8aa18ddd7f5e39be1b4f474e05d6abb3eb",
       "executable": false
     },
+    "release-history/1.8.0.CONTRACT.md": {
+      "sha256": "9de24057b7a026acb3d978edb8b5c8cb244cff710556723557f2f416ad391802",
+      "executable": false
+    },
+    "release-history/1.8.0.json": {
+      "sha256": "033a5870e2d26dda5ecc03737360f569b1867ec97c66f6e5c8132ef426a00e76",
+      "executable": false
+    },
     "release-history/README.md": {
       "sha256": "fd13c03aa7a6da117aa4c7a71516a7682d6536853b96cb875631acc014cd164e",
       "executable": false
@@ -2210,7 +2218,7 @@
       "executable": false
     },
     "RELEASE.json": {
-      "sha256": "edd791ef87efb5682a2d43a2d7ca23af2becf146d027c6b64aaa9933f69ab0a0",
+      "sha256": "2850e1a4aa265005c15255de9ef9596b9e42b0eb6f5bd27a5fe6661b8a22019d",
       "executable": false
     },
     "rer-packaging.json": {
@@ -2226,7 +2234,7 @@
       "executable": false
     },
     "RUN-LOCALLY.md": {
-      "sha256": "1b343dd332f3b2ee0f689840337a779323edb4261a35e78a6c1d6db3c3c468b9",
+      "sha256": "0cc11a701aba8e8ea6507a03b86f14e8ece6b5a5e8715d288a9b4b47051790db",
       "executable": false
     },
     "schema/dependencies.mjs": {
@@ -2262,7 +2270,7 @@
       "executable": false
     },
     "scripts/archive-validation.mjs": {
-      "sha256": "ce4859482329872e8c017f761c6bf8c05edf459604e4dece3d8f94f15611fe07",
+      "sha256": "575a44a14aa93b43a7a0b8e78bacdfea780f4d5ca60f03f44f5fe4cac0fcebd5",
       "executable": false
     },
     "scripts/baseline/catalog.mjs": {
@@ -2510,11 +2518,11 @@
       "executable": false
     },
     "scripts/export.mjs": {
-      "sha256": "837faf01536f916519ccf516c120a07448a5388312d972c613c5e22fb62478ba",
+      "sha256": "c174dbb4c35fe89f9de792222c14e7e6e8faa584d0b180847f8cb09bc8d60dec",
       "executable": false
     },
     "scripts/import.mjs": {
-      "sha256": "ac6f7c65c620985214c0435c63337a86a7638048721d52c7df1ad9095930777b",
+      "sha256": "c73000064077a004fdf6a1d78dcebabc21af6f7994206e90317d8837b9365ce7",
       "executable": false
     },
     "scripts/independent-build-setup.sh": {
@@ -2641,6 +2649,10 @@
       "sha256": "03181f497eed46ebcf940288b8d54f39c5177a0f8f83106097f25b0b090be59b",
       "executable": false
     },
+    "scripts/platform-ledger.mjs": {
+      "sha256": "06c992cf677a2ec1d832ec49f38984c87f200ae1431bba449ad97a0aebbb1ead",
+      "executable": false
+    },
     "scripts/project-operations.mjs": {
       "sha256": "583a32cabf96c13a53b3cd493d8dd798c8a3e1ad4ff460b33512c4a37ef43385",
       "executable": false
@@ -2714,7 +2726,7 @@
       "executable": false
     },
     "seed.json": {
-      "sha256": "c67e2f2e6d18ecfde3ba789f98f86f429e28e7c697d21d5519bccf43d33272fa",
+      "sha256": "9be6880b46bc397caf5bc5111fed7d506028af319ff6112984e0c9edc64963bd",
       "executable": false
     },
     "src/base/actor.ts": {
@@ -5358,7 +5370,7 @@
       "executable": false
     },
     "tests/e2e/export-import.test.mjs": {
-      "sha256": "65ab1ec5af1225c02c212014b1adcf0e49ccb24c5320e86c1805102b74837c39",
+      "sha256": "3e96a7033c7e60bcc1b366ffcdf744a0a464a8d1f09dd2bd7cfd151ca80995c3",
       "executable": false
     },
     "tests/e2e/extensions-contract.test.mjs": {
@@ -5427,6 +5439,10 @@
     },
     "tests/e2e/helpers/incident-impact-flow.mjs": {
       "sha256": "51982ab8f67cee2d65a4c2236c7168d24fa1974be7233c6bf67c2d9b7b2a693a",
+      "executable": false
+    },
+    "tests/e2e/helpers/managed-install.mjs": {
+      "sha256": "0b8974124634b2ab56fbf8953e74cac61c377110e6b910a1d7b0c524e447db03",
       "executable": false
     },
     "tests/e2e/helpers/operator-hydrated.mjs": {
@@ -6314,7 +6330,7 @@
       "executable": false
     },
     "tests/release/populate.mjs": {
-      "sha256": "8b8a570c5cfa28808726439cd4b64be3f8e35d37d7693eaad452fe410ab27cb3",
+      "sha256": "7bf0514a9059ff6404d2f50d2285f451e21f5dd09efd88b3f79921db4c75ba5e",
       "executable": false
     },
     "tests/release/README.md": {
@@ -6326,7 +6342,7 @@
       "executable": false
     },
     "tests/release/upgrade.test.mjs": {
-      "sha256": "8f9c679dca1e4627dd42a51baab150d7910c77245aef2c222f886e8977362364",
+      "sha256": "47b069390df0f1905c2ee713b4d32648ec16dda2ba4d7c1c9813892d1daf1da6",
       "executable": false
     },
     "tests/release/verify.mjs": {
