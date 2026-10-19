@@ -1,5 +1,22 @@
 # Cloudflare D1 port
 
+To bring existing data into a seed, sign in as the owner and use its import
+screen. First step: open this path on the destination app:
+
+```text
+/app/import
+```
+
+Upload a supported source export, review the plan and its differences, then
+approve that exact plan to apply it. Reconcile the result against native data;
+use Undo from the same history when needed. Base's reference accepts people JSON
+here, not installation `.rer` archives. Editions adopt this same door
+with their own supported readers and native adapters.
+
+For seed integration, follow [the door adoption guide](../door/ADOPTING.md)
+first. The D1 primitives below back that shared pipeline; do not mount separate
+job creation/apply routes beside it. Keep native readers and target adapters.
+
 Import `src/d1/index.ts` in Workers with `nodejs_compat`. This entry point does
 not import `node:sqlite` or the optional file/API readers. Products that need the
 readers can explicitly import `src/readers/index.ts`. The synchronous Node API and its guarantees remain

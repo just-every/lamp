@@ -12,6 +12,7 @@ import type { AppBindings, AppEnv } from '../../app/types';
 import type { StatuspageImportService } from './service';
 import { statuspageTargets } from './targets';
 import { createImportDoorRepository } from './door.repository';
+import { openDoorAtFirstClaim } from './door-claim';
 import { importLimits } from './source';
 import { isImportSource } from './adapters';
 import { refusal } from './routes';
@@ -179,6 +180,9 @@ export function registerImportDoor(app: Hono<AppEnv>, bindings: AppBindings, ser
     if (!isImportSource(name)) return c.json({error:'unknown_import_source'},400);
     const principal = await repository.principalId(authConfig(bindings).OWNER_EMAIL);
     if (!principal) return c.json({error:'owner_required'},409);
+    // On a Business-provisioned install the owner's claim opens the door; Move in
+    // never records it closed first.
+    await openDoorAtFirstClaim(bindings);
     const key = await repository.key(bindings);
     await repository.ensureSettings(key, authority);
     const action = c.req.path.slice(operatorPrefix.length);

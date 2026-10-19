@@ -4,26 +4,34 @@ import { createIdpOwnerClaimHandler, createOwnerClaimHandler } from '@runeditrun
 import { authConfig } from './config';
 import { identitySettingsPage } from './identity-settings-page';
 import { ownerClaimConfig } from './claim';
+import { openDoorAtFirstClaim } from '../../features/statuspage-import/door-claim';
 import type { AppBindings } from '../../app/types';
 import type { AppServices } from '../../app/services';
 export async function authResponse(request:Request,env:AppBindings,services:AppServices):Promise<Response> {
   try {
     const auth=services.auth(),config=authConfig(env);
     // A host-configured key set selects native signed claims. Claims never choose their own authority.
-    if (env.RER_OWNER_CLAIM_PUBLIC_KEYS) {
-      const signed = await createOwnerClaimHandler({ db: env.DB, authConfig: config,
-        clientIp: () => config.local ? 'loopback' : request.headers.get('CF-Connecting-IP') ?? '',
-        ...ownerClaimConfig(env)!,
-      })(request);
-      if (signed) return signed;
+    const trust = ownerClaimConfig(env);
+    let response = trust ? await createOwnerClaimHandler({ db: env.DB, authConfig: config,
+      clientIp: () => config.local ? 'loopback' : request.headers.get('CF-Connecting-IP') ?? '',
+      ...trust,
+    })(request) : null;
+    if (!response) {
+      const claim=createIdpOwnerClaimHandler({db:env.DB,authConfig:config,clientIp:()=>config.local?'loopback':request.headers.get('CF-Connecting-IP')??''});
+      const dependency=await createDependencies({db:env.DB,origin:config.origin,name:'Lamp',provider:env.IDENTITY_PROVIDER,local:config.local,auth,
+        claimOwner:token=>claim(new Request(config.origin+'/auth/owner-claim',{method:'POST',headers:{Host:new URL(config.origin).host,Origin:config.origin,'Content-Type':'application/json'},body:JSON.stringify({token})}))}).handle(request);
+      response = dependency ?? await claim(request) ?? await createSignInHandler(auth,{
+        setup:async()=> env.SETUP_TOKEN&&!await services.operators.initialized()?{instructions:'Use the setup token from your installation to claim the first owner.'}:null,
+      })(request) ?? await createAuthHandler(auth)(request) ?? new Response('Not found',{status:404});
     }
-    const claim=createIdpOwnerClaimHandler({db:env.DB,authConfig:config,clientIp:()=>config.local?'loopback':request.headers.get('CF-Connecting-IP')??''});
-    const dependency=await createDependencies({db:env.DB,origin:config.origin,name:'Lamp',provider:env.IDENTITY_PROVIDER,local:config.local,auth,
-      claimOwner:token=>claim(new Request(config.origin+'/auth/owner-claim',{method:'POST',headers:{Host:new URL(config.origin).host,Origin:config.origin,'Content-Type':'application/json'},body:JSON.stringify({token})}))}).handle(request);
-    const response = dependency ?? await claim(request) ?? await createSignInHandler(auth,{
-      setup:async()=> env.SETUP_TOKEN&&!await services.operators.initialized()?{instructions:'Use the setup token from your installation to claim the first owner.'}:null,
-    })(request) ?? await createAuthHandler(auth)(request) ?? new Response('Not found',{status:404});
     const url = new URL(request.url);
+    // A claim's answer (the first claim, or already claimed) and every sign-in
+    // that starts a session open a Business-provisioned install's door when no
+    // owner choice is recorded yet. The claim already committed, so a failure
+    // here is healed by the owner's next claim answer or sign-in.
+    if (env.RER_IMPORT_DOOR === 'on' && (['/auth/bootstrap', '/auth/owner-claim'].includes(url.pathname) || response.headers.has('Set-Cookie'))) {
+      await openDoorAtFirstClaim(env).catch(error => console.error('Lamp could not open the Business import door at the owner claim.', error));
+    }
     if (url.pathname === '/auth/settings/identity' && request.method === 'POST'
       && (request.headers.get('content-type') ?? '').split(';')[0].trim().toLowerCase() === 'application/x-www-form-urlencoded'
       && response.status === 303 && response.headers.get('location') === '/auth/settings/identity') {

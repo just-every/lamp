@@ -45,7 +45,7 @@ export function ImportDoorSetting() {
       <input type="checkbox" checked={settings?.enabled ?? false} disabled={busy || resource.loading || Boolean(resource.error) || !settings?.configured} onChange={event => void save(event.target.checked)} />
       Allow Business imports
     </label>
-    <small className="field-note">Off by default. Changes take effect immediately.</small>
+    <small className="field-note">Off by default; on from the owner’s first claim when RER set this app up for a Business plan. Changes take effect immediately.</small>
     {resource.loading && <p role="status">Checking Business import availability…</p>}
     {!resource.loading && settings && !settings.configured && <p>Business imports are unavailable until this installation’s owner claim and trusted grant keys are configured.</p>}
     {settings && settings.keys.length > 0 && <>

@@ -1,5 +1,17 @@
 # Import kit contract v1
 
+For records move-in, start at the seed's signed-in owner import screen:
+
+```text
+/app/import
+```
+
+Upload a supported source export, review its plan, approve that fingerprint,
+apply, reconcile and undo through the shared door. Follow
+[src/door/ADOPTING.md](src/door/ADOPTING.md) for integration; the engine APIs
+below implement that door rather than a second product importer. Installation
+archive backup/restore is a separate recovery mechanism.
+
 This is an inert data import engine. It cannot send, enqueue or activate access.
 The default adapter retains JSON rows and attachment originals in durable SQLite;
 native integrations supply a synchronous TargetAdapter on the SAME database and
@@ -77,7 +89,7 @@ plans or the durable job; secret-bearing keys and credential URLs in persisted
 metadata are rejected rather than retained.
 
 
-## Optional D1 import door
+## Shared D1 import door with optional grant authority
 
 `src/door/index.ts` exports `createImportDoorHandler(options)`, returning an
 async `(request: Request) => Promise<Response | null>` handler for POST

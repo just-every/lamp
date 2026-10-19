@@ -1,5 +1,20 @@
 # Adopt one import pipeline
 
+For an owner moving data, start at the seed's signed-in import screen:
+
+```text
+/app/import
+```
+
+In a Base checkout, the [default reference journey](../../../../default-seed/IMPORTING.md) uses
+an exported people JSON file, review, apply, reconcile and undo. The
+[local-run guide](../../../../export/RUN-LOCALLY.md) describes how to launch and
+claim the local app. Installation `.rer` archive recovery is currently a
+separate developer-only mechanism; it is not accepted by this door.
+
+Installation backup/restore keeps its archive integrity and erasure fences. It
+is separate from bringing records in; never claim an archive traverses the door.
+
 The seed's signed-in move-in screen, `rer` and Business must share **upload →
 plan → reviewed fingerprint → apply → reconcile → undo**. Keep source readers,
 mappings and native target adapters; delete the old importer routes, separate
@@ -80,9 +95,26 @@ Owner history and undo must include jobs from either authority.
      return createImportOperatorHandler({...runtime(env), ...source, namespace: name})(request);
    }
    ```
-4. **Settings and grants.** Create the installation settings row with
-   `writeImportDoorSettings(db, installationId, {enabled:false}, ownerPredicate)`.
-   This flag controls Business grants, not the owner's own imports. If the seed
+4. **Settings and grants.** The door is off until a settings row enables it;
+   the owner's settings action writes it with
+   `writeImportDoorSettings(db, installationId, {enabled}, ownerPredicate)`.
+   This flag controls Business grants, not the owner's own imports. On an
+   install RER provisions for a Business plan, `RER_IMPORT_DOOR` is `on`: when it
+   is exactly `on`, call
+   `enableDoorAtFirstClaim(db, installationId, ownerPredicate)` from the path
+   that completes the first owner claim (bootstrap or signed) **and** from every
+   later owner path while the variable is `on`: the claim's already-initialized
+   answer, and owner sign-in or session start. Pass the door key and a predicate
+   that holds once that owner exists. The claim and the enable are separate
+   commits and the claim cannot complete twice, so the later calls are what heal
+   a failure between them; without them the door stays closed until the owner
+   turns it on in settings. It enables the door only while no settings row
+   exists, so never write a disabled row before the first claim on such an
+   install; it never reopens a door the owner turned off.
+   Self-host `rer deploy` never sets the variable. Read the grant mount's claim
+   configuration from `RER_OWNER_CLAIM_ISSUER`, `RER_OWNER_CLAIM_INSTALLATION_ID`,
+   `RER_OWNER_CLAIM_APP_ORIGIN`, `RER_OWNER_CLAIM_PUBLIC_KEYS` and the owner
+   email; RER sets that trust on Business installs whatever the claim mode. If the seed
    has owner-claim, additionally mount `createImportDoorHandler` from `index.ts`
    with the **same** server-owned claim/key-ring configuration and
    `installationId` set to the operator mount's door key (it defaults to
@@ -92,8 +124,12 @@ Owner history and undo must include jobs from either authority.
    entry, and refuses an unlisted namespace with 403 `unknown_import_source`.
    Dispatch this grant handler **before** the operator
    handler. Enable only through an owner
-   settings action or the owner's provisioning approval. Keep durable key
+   settings action or `enableDoorAtFirstClaim` under the owner's provisioning
+   approval. Keep durable key
    revocations and show them in that settings row; re-enabling never unrevokes.
+   A seed route RER reads outside the door (Uptime's runner status) verifies
+   its request with `verifyRerGrant(request, claimConfig, action)` from
+   `index.ts`; see README.md.
 5. **Move-in screen.** Call POST `/api/operator/import/{uploads,plan,apply,status,
    reconcile,undo}` with the current owner cookie, exact `Origin` and normal
    seed CSRF headers. Bodies and results are in [README.md](README.md). Upload
@@ -118,7 +154,9 @@ Owner history and undo must include jobs from either authority.
    reads. Cover anonymous/non-owner and cross-origin refusal, no-write planning,
    fingerprint refusal, apply/reconcile/undo, native edit protection, session
    revocation during mutation, disabled/revoked grants, owner undo while Business
-   is off, and erasure of retained door custody. No test skips or SQL bypasses.
+   is off, the door opening at the first claim with `RER_IMPORT_DOOR=on` and
+   staying closed without it, and erasure of retained door custody. No test
+   skips or SQL bypasses.
 
 **Without owner-claim:** vendor the operator runtime, omitting the three optional
 grant-only files `door/index.ts`, `door/admission.ts` and `door/grants.ts` from

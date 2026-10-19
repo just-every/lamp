@@ -3,10 +3,10 @@ import { admit, enabled } from './admission.ts';
 import { createDoorHandler, runtimeOptions } from './handler.ts';
 import { DoorError } from './grants.ts';
 export type * from './types.ts';
-export type { DoorAction, DoorGrant } from './grants.ts';
-export { verifyImportGrant, DoorError } from './grants.ts';
+export type { DoorAction, DoorGrant, RerGrant } from './grants.ts';
+export { verifyImportGrant, verifyRerGrant, DoorError } from './grants.ts';
 export { importDoorSchema, importDoorApplyFailureMigration, importDoorScopesMigration } from './schema.ts';
-export { writeImportDoorSettings, readImportDoorHistory } from './authority.ts';
+export { writeImportDoorSettings, readImportDoorHistory, enableDoorAtFirstClaim } from './authority.ts';
 export { createImportOperatorHandler } from './operator.ts';
 
 /** Grant mount: disabled until a trusted key ring and explicit opt-in exist. */
