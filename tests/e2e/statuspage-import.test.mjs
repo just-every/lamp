@@ -64,6 +64,12 @@ async function importAll(files) {
 before(async () => {
   statuspage = createServer((request, response) => {
     statuspageRequests.push({ method: request.method, url: request.url, authorization: request.headers.authorization });
+    if (request.headers.authorization === `OAuth ${API_KEY}` && request.url === '/v1/pages/synthpage01') {
+      response.writeHead(200, { 'Content-Type': 'application/json' }).end(fixtures('small').find(file => file.name === 'page.json').text); return;
+    }
+    if (request.headers.authorization === `OAuth ${API_KEY}` && request.url === '/v1/pages/synthpage01/page_access_groups') {
+      response.writeHead(200, { 'Content-Type': 'application/json' }).end('[]'); return;
+    }
     const match = /^\/v1\/pages\/synthpage01\/([a-z/_-]+)\?/u.exec(request.url ?? "");
     if (request.headers.authorization !== `OAuth ${API_KEY}`) { response.writeHead(401).end("{}"); return; }
     const resource = match?.[1].replace("/", "-").replaceAll("_", "-");
@@ -96,7 +102,7 @@ contract("MOVE-001", "a dry run reports every record and writes nothing; the API
   assertContinuityCounts(preview.body.report);
   assert.ok(statuspageRequests.length >= 6 && statuspageRequests.every((request) => request.method === "GET" && request.authorization === `OAuth ${API_KEY}`));
   // The fetched responses come back to the owner as saved responses; the key does not.
-  assert.deepEqual(preview.body.files.map((file) => file.name).sort(), ["component-groups.json", "components.json", "incident-templates.json", "incidents-scheduled.json", "incidents.json", "subscribers.json"]);
+  assert.deepEqual(preview.body.files.map((file) => file.name).sort(), ["component-groups.json", "components.json", "incident-templates.json", "incidents-scheduled.json", "incidents.json", "page-access-groups.json", "page.json", "subscribers.json"]);
   assert.doesNotMatch(JSON.stringify(preview.body), new RegExp(API_KEY));
   const refusedKey = await api("/api/app/statuspage-import/preview", { pageId: "synthpage01", apiKey: "wrong-key-wrong-key-0001" });
   assert.equal(refusedKey.status, 400);

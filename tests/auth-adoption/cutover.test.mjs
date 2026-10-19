@@ -23,10 +23,30 @@ async function apply(r, files, cookie = r.cookie) {
 }
 const send = (r, id, cookie = r.cookie) => r.call(`${endpoint(id)}/send-invitations`, { method: 'POST', cookie, body: {} });
 
-test("MOVE-006 MOVE-002 — Owner-approved cutover invitations and preparation failure recovery", async t => {
+test("MOVE-012 MOVE-006 MOVE-002 — Owner-approved cutover invitations and preparation failure recovery", async t => {
   t.diagnostic("MOVE-006 — dry runs and saved cutover previews carry truthful destinations and mail waits for the owner across batches and repeats");
   await (async t => {
   const r = await lampRuntime(t);
+  t.diagnostic("MOVE-012 — documented private Statuspage pages and unknown visibility are refused before preview or apply writes");
+  const publicFiles = fixture('small');
+  const privatePage = readFileSync('tests/fixtures/statuspage/private/page.json', 'utf8');
+  const withoutVisibility = publicFiles.filter(file => !['page.json', 'page-access-groups.json'].includes(file.name));
+  for (const visibility of [
+    [],
+    [{ name: 'page.json', text: privatePage }, { name: 'page-access-groups.json', text: '[]' }],
+    [{ name: 'page.json', text: '{}' }, { name: 'page-access-groups.json', text: '[]' }],
+    [{ name: 'page.json', text: JSON.stringify({ id: 'synthpage01', viewers_must_be_team_members: false, ip_restrictions: '192.0.2.0/24' }) }, { name: 'page-access-groups.json', text: '[]' }],
+    [{ name: 'page.json', text: JSON.stringify({ id: 'synthpage01', viewers_must_be_team_members: false, ip_restrictions: null }) }, { name: 'page-access-groups.json', text: '[{"id":"team-only"}]' }],
+  ]) {
+    const files = [...withoutVisibility, ...visibility];
+    const response = await r.call('/api/app/statuspage-import/preview', { method: 'POST', cookie: r.cookie, body: { files } });
+    assert.equal(response.status, 400, await response.clone().text());
+    assert.match((await response.json()).error, /visibility|private|restricted|audience/i);
+    const direct = await r.call('/api/app/statuspage-import/apply', { method: 'POST', cookie: r.cookie, body: { files, asOf: new Date().toISOString(), fingerprint: '0'.repeat(64), acknowledged: true } });
+    assert.equal(direct.status, 409);
+    assert.equal((await r.db.prepare('SELECT count(*) n FROM components').first()).n, 0);
+    assert.equal((await r.db.prepare('SELECT count(*) n FROM ik_jobs').first()).n, 0);
+  }
   const files = fixture('small');
   files.find(file => file.name === 'subscribers.json').text = JSON.stringify(Array.from({length: 57}, (_, i) => ({ id: `subscriber-${i}`, email: `person-${i}@example.test`, mode: 'email', created_at: '2026-01-01T00:00:00Z' })));
   const reviewed = await r.call('/api/app/statuspage-import/preview', {method:'POST', cookie:r.cookie, body:{files}});

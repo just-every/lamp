@@ -1,0 +1,6 @@
+{
+  "id": "synthpage01",
+  "name": "Internal service status",
+  "viewers_must_be_team_members": true,
+  "ip_restrictions": "10.0.0.0/8"
+}

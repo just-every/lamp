@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { readVisibility, visibilityFiles } from "./visibility";
 import { readFileSource } from "../../../../modules/import-kit/src/readers/index.ts";
 import type { SourceArtifact, SourceRecord } from "../../../../modules/import-kit/src/types.ts";
 
@@ -72,14 +73,16 @@ export async function readSavedResponses(files: SavedFile[]): Promise<ReadSource
     size += new TextEncoder().encode(file.text).length;
   }
   if (size > importLimits.maxBytes) throw new Error("Saved responses exceed the 8 MiB total limit.");
-  if (![...names].some((name) => resourceOf(name) === "components")) throw new Error("Include components.json: every import starts from the page's components.");
+  const visibility = await readVisibility(files);
+  const dataFiles = files.filter(file => !visibilityFiles.has(file.name));
+  if (!dataFiles.some((file) => resourceOf(file.name) === "components")) throw new Error("Include components.json: every import starts from the page's components.");
 
   const data: SourceData = { templates: [], templateGroups: [], groups: [], components: [], incidents: [], maintenance: [], subscribers: [] };
   const records: SourceRecord[] = [];
-  const artifacts: SourceArtifact[] = [];
+  const artifacts: SourceArtifact[] = [...visibility];
   const origins = new Map<string, SourceArtifact>();
   const seen = new Set<string>();
-  for (const file of [...files].sort((a, b) => a.name.localeCompare(b.name))) {
+  for (const file of [...dataFiles].sort((a, b) => a.name.localeCompare(b.name))) {
     const resource = resourceOf(file.name);
     let read;
     try {
@@ -133,6 +136,12 @@ export async function fetchSavedResponses(input: { pageId: string; apiKey: strin
   const origin = input.origin ?? "https://api.statuspage.io";
   const fetcher = input.fetcher ?? fetch;
   const files: SavedFile[] = [];
+  for (const [name, path] of [["page.json", ""], ["page-access-groups.json", "/page_access_groups"]]) {
+    const response = await fetcher(new URL(`/v1/pages/${input.pageId}${path}`, origin), { method: "GET", redirect: "manual", headers: { Authorization: `OAuth ${input.apiKey}`, Accept: "application/json" }, signal: AbortSignal.timeout(20_000) });
+    if (!response.ok) throw new Error("Statuspage visibility could not be read. Check the key and page ID; the import was refused.");
+    files.push({ name, text: await response.text() });
+  }
+  await readVisibility(files);
   const perPage = 100;
   const paths: Partial<Record<Resource, string>> = { "incident-templates": "incident_templates", "component-groups": "component-groups", components: "components", incidents: "incidents", "incidents-scheduled": "incidents/scheduled", subscribers: "subscribers" };
   // The management API exposes templates but no documented template-group read.

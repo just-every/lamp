@@ -81,7 +81,7 @@ export async function lampRuntime(t, { local = false, ownerClaim = false, regist
   return { db, baseMail, bucket, app, bindings, auth, authHandle, base, request, call, cookie, owner, messages, invite, providerSession, stepUp, modules, get publications() { return publications; } };
 }
 
-export const source = (name = 'imported', count = 1) => [{ name: 'components.json', text: JSON.stringify(Array.from({ length: count }, (_, i) => ({ id: `${name}-${i}`, name: `${name} ${i}`, position: i, status: 'operational', created_at: '2026-01-01T00:00:00Z' }))) }];
+export const source = (name = 'imported', count = 1) => [{ name: 'page.json', text: JSON.stringify({ id: 'synthpage01', viewers_must_be_team_members: false, ip_restrictions: null }) }, { name: 'page-access-groups.json', text: '[]' }, { name: 'components.json', text: JSON.stringify(Array.from({ length: count }, (_, i) => ({ id: `${name}-${i}`, name: `${name} ${i}`, position: i, status: 'operational', created_at: '2026-01-01T00:00:00Z' }))) }];
 export async function preview(r, cookie, files) {
   const response = await r.call('/api/app/statuspage-import/preview', { method: 'POST', cookie, body: { files } });
   assert.equal(response.status, 200);
