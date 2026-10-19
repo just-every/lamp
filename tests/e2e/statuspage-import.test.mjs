@@ -89,7 +89,7 @@ after(async () => {
   await new Promise((resolve) => statuspage?.close(resolve));
 });
 
-contract("MOVE-001", "a dry run reports every record and writes nothing; the API-key path reads Statuspage with GET only", async () => {
+contract("MOVE-001", "MOVE-011 — a dry run reports every record and writes nothing; the API-key path reads Statuspage with GET only; postmortems and templates dry-run, apply silently, repeat and undo", async () => {
   const before = await counts();
   const unauthenticated = await nativeRequest("/api/operator/import/uploads", { method: "POST", json: {}, headers: { "X-Import-Source": "statuspage" } });
   assert.equal(unauthenticated.status, 401);
@@ -217,7 +217,7 @@ contract("MOVE-003", "a second run of the same source changes nothing and sends 
   assert.deepEqual(reread, aliasBefore, "second apply leaves every alias unchanged");
 });
 
-contract("MOVE-004", "undo removes what the import created and keeps what an operator changed since", async () => {
+contract("MOVE-004", "MOVE-011 — undo removes what the import created and keeps what an operator changed since, including edited reports and templates", async () => {
   const jobs = (await api("/api/app/statuspage-import/jobs")).body.jobs;
   const job = jobs.find((candidate) => candidate.state === "completed");
   const components = (await api("/api/app/components")).body.components;

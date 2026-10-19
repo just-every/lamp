@@ -905,17 +905,17 @@ Status: **missing**.
 
 #### MOVE-007 — From Status.io.
 
-An owner gives Settings → Move in a Status.io API ID and key (read with GET requests to Status.io's API origin, never stored) or saved API responses. The dry run, apply, single import, undo and old-address rules of MOVE-001 to MOVE-006 apply. Containers become groups or components, incidents keep their messages and times, maintenance keeps its windows, and email, SMS and webhook subscribers come in as pending on their channels (MOVE-010).
+An owner gives Settings → Move in a Status.io API ID and key (read with GET requests to Status.io's API origin, never stored) or saved API responses. The dry run, apply, single import, undo and old-address rules of MOVE-001 to MOVE-006 apply. Containers become groups or components, incidents keep their messages and times, maintenance keeps its windows, and email, SMS and webhook subscribers come in as pending on their channels (MOVE-010). Published post-incident text and incident templates that Status.io's API exposes move under MOVE-011's rules for postmortems and templates.
 
-Acceptance: a saved Status.io fixture dry-runs with counts and reasons, applies silently with original times, redirects its old incident paths, and undoes cleanly.
+Acceptance: a saved Status.io fixture dry-runs with counts and reasons, applies silently with original times, redirects its old incident paths, and undoes cleanly. Post-incident text and templates in the fixture dry-run, import and undo under MOVE-011's rules.
 
 Status: **missing**.
 
 #### MOVE-008 — From incident.io Status Pages.
 
-An owner gives an incident.io API key with status-page read scope, or saved responses. Components, groups, incidents with updates and maintenance import under MOVE-001 to MOVE-006. Where incident.io exposes no subscriber export, the Cutover guide says so and shows how to invite those subscribers from the new page.
+An owner gives an incident.io API key with status-page read scope, or saved responses. Components, groups, incidents with updates and maintenance import under MOVE-001 to MOVE-006. Where incident.io exposes no subscriber export, the Cutover guide says so and shows how to invite those subscribers from the new page. Published post-incident text and templates that incident.io's API exposes move under MOVE-011's rules for postmortems and templates.
 
-Acceptance: a saved incident.io fixture dry-runs and applies with original times and silent history, and Cutover names the subscriber limitation.
+Acceptance: a saved incident.io fixture dry-runs and applies with original times and silent history, and Cutover names the subscriber limitation. Post-incident text and templates in the fixture dry-run, import and undo under MOVE-011's rules.
 
 Status: **missing**.
 
@@ -951,11 +951,11 @@ The Statuspage reader (API key or saved responses, MOVE-001) also reads each inc
 
 *Templates.* Each incident template (`GET /v1/pages/{page_id}/incident_templates`, or a saved `incident-templates.json`) becomes an UPDATE-009 template with its name, title, lifecycle (`update_status`), components with their states and channel default (`should_send_notifications`). Template groups become template folders. The body is mapped into UPDATE-001's fields: its first paragraph becomes the customer-impact statement and the rest the details statement, and the affected-audience statement is set from the template's components ("Customers using API, Dashboard"). A body part that exceeds its field's limit is reported in the dry run with the template and field named. That template is imported with the field marked for the owner to shorten before it can be applied, and its text is never silently truncated.
 
-*Counts and undo.* The dry run counts postmortems (imported, kept private or refused, with reasons) and templates (imported, or imported with a field to shorten) beside the other records, and the apply imports only what was reviewed. MOVE-003 never imports either twice, and MOVE-004's undo removes every imported report and template nobody has changed since, naming the ones it keeps. Status.io (MOVE-007) and incident.io (MOVE-008) imports carry their published post-incident text and templates by the same rules where their APIs expose them. The release that ships this clause records MOVE-001, MOVE-002 and MOVE-004 as changed, and `docs/moving-in.md` stops listing post-mortem text and templates as omitted.
+*Counts and undo.* The dry run counts postmortems (imported, kept private or refused, with reasons) and templates (imported, or imported with a field to shorten) beside the other records, and the apply imports only what was reviewed. MOVE-003 never imports either twice, and MOVE-004's undo removes every imported report and template nobody has changed since, naming the ones it keeps. Status.io (MOVE-007) and incident.io (MOVE-008) imports carry their published post-incident text and templates by the same rules where their APIs expose them; that obligation and its proof belong to those readers' own clauses and ship with them. The release that ships this clause records MOVE-001, MOVE-002 and MOVE-004 as changed, and `docs/moving-in.md` stops listing post-mortem text and templates as omitted.
 
 Acceptance: a Statuspage fixture with two incidents, one with a published postmortem and one with a draft postmortem, and three incident templates dry-runs with "2 postmortems: 1 imported, 1 kept private; 3 templates: 3 imported" and writes nothing. After apply, no notification of any kind is queued. The old `/incidents/<id>` URL redirects to a Lamp permalink that shows the published postmortem's text with script disabled, and the draft's text appears on no public surface (page, permalinks, feeds, `/api/v2/*`, `/api/public/v1/`). Applying an imported template fills the composer with its components, states and wording and publishes nothing. Undo removes all five records. A separate fixture template whose body exceeds the details limit dry-runs with that template and field named, and its imported text is unchanged.
 
-Status: **partial** — `src/core/features/statuspage-import/postmortems.ts`, `src/core/features/statuspage-import/templates.ts`, `tests/e2e/helpers/postmortem-template-import-flow.mjs`, `tests/e2e/helpers/imported-template-apply-flow.mjs`. Statuspage published reports retain original times, draft reports remain private, and templates retain metadata, component states and full oversized wording for shortening. Dry run, silent apply, repeat and conditional undo cover both. Gap: Status.io and incident.io readers are not built.
+Status: **done** — `src/core/features/statuspage-import/postmortems.ts`, `src/core/features/statuspage-import/templates.ts`, `tests/e2e/helpers/postmortem-template-import-flow.mjs`, `tests/e2e/helpers/imported-template-apply-flow.mjs`, `tests/e2e/statuspage-import.test.mjs`, `tests/e2e/publishing-contract.test.mjs`. Statuspage published reports retain original times, draft reports remain private, and templates retain metadata, component states and full oversized wording for shortening. Dry run, silent apply, repeat and conditional undo cover both. Status.io and incident.io carry the same rules as part of MOVE-007 and MOVE-008. The next release records MOVE-001, MOVE-002 and MOVE-004 as changed; 1.8.0 shipped the reader without that record.
 
 #### MOVE-012 — Private and audience pages move as private.
 
@@ -1091,7 +1091,7 @@ What Lamp does not do, and how a buyer gets it:
 
 ## Status
 
-Judged from the code and tests at commit `70c055d396135f37687456d31de9337c1eb589da` (19 October 2026).
+Judged from the code and tests at commit `be83d06ae7e83ca661d6b427f0b6855409d0a659` (19 October 2026). Rows changed after that commit name their own journeys under Evidence.
 
 INTAKE-008 and UPTIME-009 include the subsequent named API/browser journeys below.
 
@@ -1100,8 +1100,8 @@ AGENT-004, AGENT-005, INTAKE-008 and UPTIME-009 are proven by their named API an
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
 | Published | 104 | 0 | 0 | 104 |
-| Target and push further | 15 | 37 | 42 | 94 |
-| All | 119 | 37 | 42 | 198 |
+| Target and push further | 16 | 36 | 42 | 94 |
+| All | 120 | 36 | 42 | 198 |
 
 | Clause | Title | Kind | Status | Evidence | Gap |
 | --- | --- | --- | --- | --- | --- |
@@ -1290,7 +1290,7 @@ AGENT-004, AGENT-005, INTAKE-008 and UPTIME-009 are proven by their named API an
 | `MOVE-008` | From incident.io Status Pages | target | missing |  | Not built. |
 | `MOVE-009` | Statuspage consumers keep working at cutover | target | partial | `src/core/features/statuspage-import/public-paths.mjs`, `src/core/features/public-snapshot/import-aliases.ts`, `tests/e2e/statuspage-import.test.mjs` | History and Atom aliases, Statuspage /api/v2 read endpoints, RSS and embed compatibility are served after import. Webhook bodies and subscriber-channel migration (SUB-018, MOVE-010), automation-email continuity (INTAKE-013), and correction-update/component-state cutover guidance remain. |
 | `MOVE-010` | Every subscriber channel moves | target | missing |  | Released imports carry email subscribers only (`src/core/features/statuspage-import/`). |
-| `MOVE-011` | Postmortems and templates move | target | partial | `src/core/features/statuspage-import/postmortems.ts`, `src/core/features/statuspage-import/templates.ts`, `tests/e2e/helpers/postmortem-template-import-flow.mjs`, `tests/e2e/helpers/imported-template-apply-flow.mjs` | Statuspage published reports retain original times, draft reports remain private, and templates retain metadata, component states and full oversized wording for shortening. Dry run, silent apply, repeat and conditional undo cover both. Gap: Status.io and incident.io readers are not built. |
+| `MOVE-011` | Postmortems and templates move | target | done | `src/core/features/statuspage-import/postmortems.ts`, `src/core/features/statuspage-import/templates.ts`, `tests/e2e/helpers/postmortem-template-import-flow.mjs`, `tests/e2e/helpers/imported-template-apply-flow.mjs`, `tests/e2e/statuspage-import.test.mjs`, `tests/e2e/publishing-contract.test.mjs` | Statuspage published reports retain original times, draft reports remain private, and templates retain metadata, component states and full oversized wording for shortening. Dry run, silent apply, repeat and conditional undo cover both. Status.io and incident.io carry the same rules as part of MOVE-007 and MOVE-008. The next release records MOVE-001, MOVE-002 and MOVE-004 as changed; 1.8.0 shipped the reader without that record. |
 | `MOVE-012` | Private and audience pages move as private | target | partial | `src/core/features/statuspage-import/betterstack/read.ts`, `src/core/features/statuspage-import/instatus/normalize.ts`, `src/core/features/statuspage-import/sorry/read.ts`, `tests/betterstack/reader.test.mjs` | The Better Stack, Instatus and Sorry readers refuse private, password-protected, IP-restricted and audience-scoped sources rather than publishing them. The Statuspage reader also requires page and page-access-group responses and refuses private, IP-restricted, audience-scoped or unknown visibility (MOVE-012 in `tests/auth-adoption/cutover.test.mjs`). Importing private and audience pages as private (AUD-001 to AUD-005) is not built. |
 | `PORT-001` | Every new record travels | target | partial | `tests/e2e/export-import.test.mjs` | Export, clean restore and equivalent re-export cover every released record (HIST-004). Target entities are not built. |
 | `PORT-002` | Erasure reaches every new identifier | target | partial | `tests/e2e/subscriber-erasure.test.mjs`, `tests/auth-adoption/operator-erasure.test.mjs` | Subscriber and operator erasure ship for released records. The identifiers that target clauses add are not built. |

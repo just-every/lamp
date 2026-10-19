@@ -439,7 +439,7 @@ test("UPDATE-005 UPDATE-006 UPDATE-007 UPTIME-009 — Private drafts, scheduled 
 
 
 
-test("PAGE-006 UPDATE-009 — Snapshot outage and private template application", async t => {
+test("PAGE-006 UPDATE-009 MOVE-011 — Snapshot outage, private template application and imported Statuspage templates", async t => {
   await importedTemplateApplyFlow({ appFetch, pageUrl, executeFixtureSql });
   t.diagnostic("PAGE-006 — a warmed snapshot remains available and visibly stale when R2 pointer reads fail");
   await (async () => {
