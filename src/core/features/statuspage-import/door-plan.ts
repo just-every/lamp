@@ -1,6 +1,6 @@
 import { z } from 'zod';
-import type { ImportPlan } from '../../../../modules/import-kit/src/d1/index';
-import type { ImportMapping, ParsedRecord } from '../../../../modules/import-kit/src/types';
+import { canonicalJson, sha256, type ImportPlan } from '../../../../modules/import-kit/src/d1/index';
+import type { ImportMapping, Json, ParsedRecord } from '../../../../modules/import-kit/src/types';
 import { importSources, sourceAdapter } from './adapters';
 import { importLimits } from './source';
 
@@ -33,7 +33,7 @@ export function moveInPlan(plan: ImportPlan): ImportPlan {
  * responses against the page as it stood, so an apply can tell the page changed.
  * A Business import holds its subscribers until the owner's cutover release;
  * the owner's own Move in keeps each source's subscriber policy. */
-export function doorMapping(plan: ImportPlan, business: boolean): { records: ParsedRecord[]; mapping: ImportMapping; page: string } {
+export function doorMapping(plan: ImportPlan, business: boolean): { records: ParsedRecord[]; mapping: ImportMapping; page: string; shape: string } {
   const effects = new Map(plan.entries.map(entry=>[`${entry.source.kind}:${entry.source.sourceId}`,entry]));
   const records = plan.source.records.map((record): ParsedRecord => {
     if (record.kind!=='metadata') return {kind:record.kind,sourceId:record.sourceId,payload:record.payload};
@@ -54,7 +54,17 @@ export function doorMapping(plan: ImportPlan, business: boolean): { records: Par
       return {...effect,value:{...value,tables:{...value.tables,subscribers:value.tables.subscribers.map(row=>({...row,state:'deactivated',deactivation_reason:'held for Business cutover'}))}}};
     }),unmapped:entry.unmapped,...(entry.rejection ? {rejection:entry.rejection} : {})};
   }};
-  return {records,mapping,page:plan.fingerprint};
+  return {records,mapping,page:plan.fingerprint,shape:timeless(plan)};
+}
+
+/** What a preparation imports apart from its review instant: two dry runs of the
+ * same bytes have the same shape only when the clock between them changed nothing
+ * they import (a maintenance window that ended, say), not just the instant itself. */
+function timeless(plan: ImportPlan) {
+  const asOf = (plan.entries.find(entry=>entry.source.kind==='metadata')?.source.payload as {raw?:{asOf?:string}} | undefined)?.raw?.asOf;
+  const entries = plan.entries.map(entry=>({kind:entry.source.kind,sourceId:entry.source.sourceId,payload:entry.source.payload,effects:entry.effects,unmapped:entry.unmapped,rejection:entry.rejection ?? null}));
+  const text = canonicalJson(JSON.parse(JSON.stringify(entries)) as Json);
+  return sha256(asOf ? text.split(asOf).join('') : text);
 }
 
 /** The review instant and page fingerprint a saved door plan was prepared with. */

@@ -105,7 +105,7 @@ contract('MOVE-002','Better Stack refuses unsafe preview and stale source/target
   const review=await preview(r,files);
   const changedFiles=structuredClone(files); const page=changedFiles.find(f=>f.name==='status-page.json');const raw=JSON.parse(page.text);raw.data.attributes.company_name='Changed source';page.text=JSON.stringify(raw);
   const changed=await preview(r,changedFiles);
-  assert.equal((await moveIn(r,r.cookie).apply(changed,review.fingerprint)).status,403,'a reviewed fingerprint applies only the source it reviewed');
+  const crossed=await moveIn(r,r.cookie).apply(changed,review.fingerprint);assert.equal(crossed.status,409,'a reviewed fingerprint applies only the source it reviewed');assert.equal(crossed.body.error,'The source or this page changed since the dry run. Review a fresh dry run.');
   const reviewed=await preview(r,files);
   const group=await api(r,'/api/app/component-groups',{name:'Operator group',displayOrder:1});assert.equal(group.status,201,JSON.stringify(group.body));
   const stale=await moveIn(r,r.cookie).apply(reviewed);

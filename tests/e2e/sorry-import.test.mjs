@@ -63,7 +63,8 @@ test('MOVE-001 MOVE-002 MOVE-004 MOVE-005 MOVE-006 Sorry and the opt-in Business
     assert.equal((await read([...files, ...fixture('authenticated').filter(file => file.name.includes('subscribers'))])).status, 400, 'public captures cannot contain subscribers');
     const altered = files.map(file => file.name.includes('components') ? { ...file, text: file.text.replace('Billing API', 'Changed billing API') } : file);
     const alteredPlan = await read(altered); assert.equal(alteredPlan.status, 200, JSON.stringify(alteredPlan.body));
-    assert.equal((await moveIn.apply(alteredPlan.body, preview.body.fingerprint)).status, 403, 'a reviewed fingerprint applies only the bytes it reviewed');
+    const crossed = await moveIn.apply(alteredPlan.body, preview.body.fingerprint);
+    assert.equal(crossed.status, 409, 'a reviewed fingerprint applies only the bytes it reviewed'); assert.equal(crossed.body.error, 'The source or this page changed since the dry run. Review a fresh dry run.');
     const imported = await apply(files);
     assert.deepEqual(await counts(), [2, 1, 1, 1, 0]);
     const incident = (await call('/api/app/incidents')).body.incidents[0];

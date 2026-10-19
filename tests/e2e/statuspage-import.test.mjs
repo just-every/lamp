@@ -112,7 +112,7 @@ contract("MOVE-001", "a dry run reports every record and writes nothing; the API
   assert.equal(conflict.status, 400); assert.match(JSON.stringify(conflict.body), /conflicts/u);
   assert.deepEqual(await counts(), before);
   const stale = await moveIn.apply(preview.body, "0".repeat(64));
-  assert.equal(stale.status, 403);
+  assert.equal(stale.status, 409); assert.equal(stale.body.error, "The source or this page changed since the dry run. Review a fresh dry run.");
   assert.deepEqual(await counts(), before);
   const mailBefore = await notificationActivity(runtime);
   await postmortemTemplateImportFlow({ api, request: (path, init) => nativeRequest(path, { cookie, ...init }), importAll, moveIn, original: fixtures("small"), publicOrigin });

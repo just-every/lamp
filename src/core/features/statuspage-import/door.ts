@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import type { Hono } from 'hono';
 import type { OperatorAuth } from '@runeditrun/rer/modules/operator-auth';
-import { createImportDoorHandler, type ImportDoorSource } from '../../../../modules/import-kit/src/door';
+import { createImportDoorHandler, DoorError, type ImportDoorSource } from '../../../../modules/import-kit/src/door';
 import { createImportOperatorHandler } from '../../../../modules/import-kit/src/door/operator';
 import { canonicalJson, sha256, type D1Sql } from '../../../../modules/import-kit/src/d1/index';
 import type { Json } from '../../../../modules/import-kit/src/types';
@@ -22,6 +22,15 @@ import { reviewedPage } from './door-plan';
  * of responses the source readers accept, as Move in's request always could. */
 const doorLimits = { maxBytes: importLimits.maxBytes * 2, maxRecords: importLimits.maxRecords, maxRecordBytes: importLimits.maxBytes * 2 };
 const operatorPrefix = '/api/operator/import/';
+/** A dry run imports within 30 minutes of its review instant, as Move in always
+ * allowed, and one dated in the future never does. */
+const REVIEW_WINDOW_MS = 30 * 60 * 1000;
+function expired(asOf: string | undefined) {
+  const instant = Date.parse(asOf ?? '');
+  return !Number.isFinite(instant) || instant > Date.now() + 60_000 || instant < Date.now() - REVIEW_WINDOW_MS;
+}
+const EXPIRED = 'This dry run has expired. Run the dry run again.';
+const CHANGED = 'The source or this page changed since the dry run. Review a fresh dry run.';
 type Prepared = Awaited<ReturnType<StatuspageImportService['prepareDoor']>> & { valueHash: string };
 
 /** Lamp's one allow-list (adapters.ts `importSources`): every source Move in
@@ -102,6 +111,23 @@ export function registerImportDoor(app: Hono<AppEnv>, bindings: AppBindings, ser
     return new Response(body, { status: response.status, headers: response.headers });
   };
 
+  /** Business's dry run (an unstarted plan the door holds) imports within the same
+   * 30 minutes: its apply is refused, and so is a plan of the same bytes, which
+   * names the expired plan for Business to undo before it plans them afresh. */
+  const refuseExpired = async (action: string, namespace: string, input: { uploadId?: unknown; planId?: unknown } | null | undefined) => {
+    const key = await repository.key(bindings);
+    let planId: string | undefined;
+    if (action === 'apply' && typeof input?.planId === 'string') planId = (await repository.unstarted(key, namespace, input.planId))?.id;
+    if (action === 'plan' && typeof input?.uploadId === 'string') {
+      const bytes = await repository.uploadBytes(key, namespace, input.uploadId);
+      const existing = bytes ? await repository.planOf(key, namespace, sha256(bytes)) : null;
+      if (existing && !existing.started) planId = existing.id;
+    }
+    const saved = planId ? await repository.planSnapshot(key, planId) : null;
+    const asOf = saved ? reviewedPage(saved.plan).asOf : undefined;
+    if (asOf && expired(asOf)) throw new DoorError(EXPIRED, 409, action === 'plan' ? { planId } : undefined);
+  };
+
   app.get('/api/app/import-door/settings',async c=> {
     c.header('Cache-Control','no-store');
     return c.json(await repository.settings(await repository.key(bindings),ownerClaimConfig(bindings),c.get('operatorSession')));
@@ -125,12 +151,18 @@ export function registerImportDoor(app: Hono<AppEnv>, bindings: AppBindings, ser
     if (!owner) return c.json({error:'not_found'},404);
     const key = await repository.key(bindings);
     const authority = { sql: "EXISTS(SELECT 1 FROM oa_operators WHERE id=? AND role='owner' AND status='active')", params: [owner] };
-    const read = c.req.path === '/api/rer/import/plan' && c.req.method === 'POST' ? await readFirst(c.req.raw) : undefined;
+    const action = c.req.method === 'POST' ? c.req.path.slice('/api/rer/import/'.length) : '';
+    const read = ['plan', 'apply'].includes(action) ? await readFirst(c.req.raw) : undefined;
     if (read === null) return c.json({error:'request_too_large'},413);
-    const planning = read?.input;
+    const planning = action === 'plan' ? read?.input : undefined;
     const handle = createImportDoorHandler({database:bindings.DB,targets:statuspageTargets,claim,installationId:key,ownerPrincipalId:owner,destination:'lamp',
       format:'json',limits:doorLimits,reversalPolicy:'preserve-conflicts',
-      source:namespace=>importSource(namespace,planning === undefined || !isImportSource(namespace) ? null : prepare(key,namespace,planning?.uploadId,owner,owner,authority,true)),
+      // Resolved once the grant is verified and before it is recorded: a Business
+      // plan or apply of a dry run past its review window is refused and writes nothing.
+      source:async namespace=> {
+        if (isImportSource(namespace)) await refuseExpired(action, namespace, read?.input);
+        return importSource(namespace,planning === undefined || !isImportSource(namespace) ? null : prepare(key,namespace,planning?.uploadId,owner,owner,authority,true));
+      },
     });
     const response = await handle(read?.request ?? c.req.raw);
     return response ? settle(c.req.path, response, authority) : c.notFound();
@@ -172,13 +204,19 @@ export function registerImportDoor(app: Hono<AppEnv>, bindings: AppBindings, ser
       const pending = await repository.unstartedPending(key, name);
       if (pending && pending.bundle_sha256 !== keep.bundle && pending.id !== keep.planId) await cancel(pending.id);
     };
-    /** Whether an unstarted dry run still plans exactly as reviewed: its bytes
-     * prepared again at its review instant against the page as it is now. */
-    const stillPlans = async (planId: string, bytes: Uint8Array | null) => {
+    /** The review instant and page fingerprint of a saved dry run. */
+    const reviewOf = async (planId: string) => {
       const saved = await repository.planSnapshot(key, planId);
-      const reviewed = saved ? reviewedPage(saved.plan) : {};
-      if (!bytes || !reviewed.asOf || !reviewed.page) return false;
-      return (await prepareBytes(bytes, name, principal, session.operator.id, authority, false, reviewed.asOf)).page === reviewed.page;
+      return saved ? reviewedPage(saved.plan) : {};
+    };
+    /** Whether an unstarted dry run still plans exactly as reviewed: within its
+     * review window, its bytes prepared again at its review instant against the
+     * page as it is now. With `now`, the same bytes prepared at the current time,
+     * the clock since must also have changed nothing they import. */
+    const stillPlans = async (reviewed: { asOf?: string; page?: string }, bytes: Uint8Array | null, now?: Prepared) => {
+      if (!bytes || !reviewed.asOf || !reviewed.page || expired(reviewed.asOf)) return false;
+      const again = await prepareBytes(bytes, name, principal, session.operator.id, authority, false, reviewed.asOf);
+      return again.page === reviewed.page && (!now || again.shape === now.shape);
     };
     let prepared: Promise<Prepared> | null = null, attempt = 0;
     if (action === 'plan' && typeof input?.uploadId === 'string') {
@@ -191,12 +229,11 @@ export function registerImportDoor(app: Hono<AppEnv>, bindings: AppBindings, ser
           // Move in reports a source it imported before the door as already imported, as it always has.
           const before = await service.importedBefore(bytes, name, session);
           if (before) return c.json(before, 200, { 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff' });
-          // A dry run is always of the page as it is now: an earlier one of these
-          // bytes stands only while it still plans the same, and is replaced otherwise.
-          if (!existing || !await stillPlans(existing.id, bytes)) {
-            prepared = prepare(key, name, input.uploadId, principal, session.operator.id, authority, false);
-            await prepared;
-          }
+          // A dry run is always of the page as it is now, at the current time: an
+          // earlier one of these bytes stands only while it is within its review
+          // window and still plans the same now, and is replaced otherwise.
+          const now = await prepareBytes(bytes, name, principal, session.operator.id, authority, false);
+          if (!existing || !await stillPlans(await reviewOf(existing.id), bytes, now)) prepared = Promise.resolve(now);
         } catch (cause) {
           // Move in shows the owner why a source cannot be imported, as it always has.
           return c.json({ error: refusal(cause) }, 400);
@@ -205,16 +242,16 @@ export function registerImportDoor(app: Hono<AppEnv>, bindings: AppBindings, ser
         catch (cause) { return c.json({ error: refusal(cause) }, 409); }
       }
     }
-    // MOVE-001: an import starts only from a dry run of the page as it still is;
-    // if the source or this page changed since, the owner reviews a fresh one.
-    if (action === 'apply' && typeof input?.planId === 'string') {
-      const plan = await repository.unstarted(key, name, input.planId);
-      if (plan) {
-        let current: boolean;
-        try { current = await stillPlans(plan.id, await repository.bundleBytes(key, name, plan.bundle_sha256)); }
-        catch (cause) { return c.json({ error: refusal(cause) }, 409); }
-        if (!current) return c.json({ error: 'The source or this page changed since the dry run. Review a fresh dry run.' }, 409);
-      }
+    // MOVE-001: an import starts only from a dry run reviewed within 30 minutes,
+    // of the page as it still is; otherwise the owner reviews a fresh one.
+    const starts = action === 'apply' && typeof input?.planId === 'string' ? await repository.unstarted(key, name, input.planId) : null;
+    if (starts) {
+      const reviewed = await reviewOf(starts.id);
+      if (reviewed.asOf && expired(reviewed.asOf)) return c.json({ error: EXPIRED }, 409);
+      let current: boolean;
+      try { current = await stillPlans(reviewed, await repository.bundleBytes(key, name, starts.bundle_sha256)); }
+      catch (cause) { return c.json({ error: refusal(cause) }, 409); }
+      if (!current) return c.json({ error: CHANGED }, 409);
     }
     if (action === 'undo' && typeof input?.planId === 'string') {
       try { await discardUnstarted({ planId: input.planId }); await repository.assertNewest(input.planId); }
@@ -222,6 +259,12 @@ export function registerImportDoor(app: Hono<AppEnv>, bindings: AppBindings, ser
     }
     const answered = await (await handler(prepared))(request);
     if (!answered) return c.notFound();
+    // Move in's refusal of an import whose source changed since its dry run: the
+    // dry run another one replaced, or another dry run's reviewed fingerprint.
+    if (action === 'apply' && [403, 404].includes(answered.status)) {
+      const { error } = await answered.clone().json().catch(() => ({})) as { error?: string };
+      if (error === 'plan_not_found' || (starts && error === 'review_fingerprint_mismatch')) return c.json({ error: CHANGED }, 409, { 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff' });
+    }
     const response = await settle(c.req.path, answered, authority);
     if (action !== 'plan' || !response.ok) return response;
     const plan = await response.json() as { planId: string };
