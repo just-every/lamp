@@ -11,6 +11,10 @@
 
 **Uptime alerts.** Alerts → Connect Uptime takes the signing secret from Uptime's JSON webhook destination and a mapping from each Uptime monitor ID to a Lamp component. A confirmed failure opens one private draft on the mapped component, with the failing vantages, error category and confirmed start time in the incident brief; a request older than five minutes or with a wrong signature is refused, unmapped monitors are listed in Receipts, and recovery is recorded and closes a draft nothing was published from. Nothing reaches the public page until you publish.
 
+**Availability reports.** Each component's page offers its availability for a UTC calendar month or quarter as CSV or PDF, for operators only, computed with the same state history, corrections and maintenance weighting as the public page's uptime. A period still running counts the time elapsed; a future period or one without history says No data.
+
+**Business import door on Managed installations.** When Run Edit Run provisioned the installation, the Business import door opens at the owner's first sign-in instead of waiting to be switched on in Settings. Self-hosted installations keep it off; the owner's choice in Settings stands.
+
 Who was affected: owners on Managed hosting who tried to back up or restore Lamp with the technical archive. Nothing was lost; the refused restore wrote nothing. Self-hosted installations behave as before.
 
 Upgrading from 1.8.0: back up first, update the checkout to `v1.8.1`, run `pnpm install --frozen-lockfile` (rer 0.2.63, unchanged) and `rer deploy` with the same environment and input file. One migration applies:
