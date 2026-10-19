@@ -244,6 +244,15 @@ point-in-time backup while data is changing. A failed export leaves no completed
 manifest; use a new empty output directory for the next attempt. Archive files
 are private because they include subscriber data, sessions and frozen mail.
 
+A database Run Edit Run Managed installed carries Platform's own migration
+ledger, `rer_migrations`. It is installation history, not owner data: export
+and import refuse unless it lists exactly this revision's migration files with
+their hashes (plus the installation's page initializer), the archive never
+carries it, and restore never writes it. Import restores in place into a new
+Managed installation whose owner has not signed in and whose tables match the
+archive; Platform has already applied the migrations. Any other table,
+including another `rer_` name, still stops the restore.
+
 ```sh
 node scripts/export.mjs --remote --environment production --env-file "$HOME/.config/lamp/production.env" --out /private/backups/lamp-first
 node scripts/export.mjs --persist-to /private/local-state --out /private/backups/lamp-local
