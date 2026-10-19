@@ -55,7 +55,7 @@ async function populate(env) {
   await env.SNAPSHOTS.put("branding/original.png", logo, { httpMetadata: { contentType: "image/png", contentDisposition: "attachment; filename=brand.png", cacheControl: "public, max-age=60" }, customMetadata: { owner: "portable-brand" } });
 }
 
-contract("HIST-004", "export restores every JSON entity, settings and audit entry plus original image bytes into an empty local deployment", async () => {
+contract("HIST-004", "export restores every JSON entity, settings and audit entry plus original image bytes into an empty local deployment and into a new RER Managed installation", async () => {
   const sourceState = await mkdtemp(join(tmpdir(), "lamp-export-source-"));
   const targetState = await mkdtemp(join(tmpdir(), "lamp-export-target-"));
   const archive = await mkdtemp(join(tmpdir(), "lamp-export-archive-"));
@@ -151,13 +151,16 @@ contract("HIST-004", "export restores every JSON entity, settings and audit entr
       assert.equal((await legacy.env.DB.prepare("SELECT COUNT(*) AS n FROM subscriber_reporting_daily").first()).n, 0);
       assert.ok((await legacy.env.DB.prepare("SELECT started_at FROM subscriber_reporting_tracking WHERE id = 1").first()).started_at);
     } finally { await legacy.dispose(); }
+    await managedRoundTrip();
   } finally {
     await Promise.all([rm(sourceState, { recursive: true, force: true }), rm(targetState, { recursive: true, force: true }), rm(archive, { recursive: true, force: true }), rm(restoredArchive, { recursive: true, force: true })]);
   }
 });
 
 
-contract("HIST-004", "a RER Managed installation exports and restores into a new Managed installation while each keeps its own Platform migration ledger", async () => {
+// A RER Managed installation exports and restores into a new Managed
+// installation while each keeps its own Platform migration ledger.
+async function managedRoundTrip() {
   const sandbox = await mkdtemp(join(tmpdir(), "lamp-managed-archive-"));
   const state = (name) => join(sandbox, name);
   const archive = join(sandbox, "archive");
@@ -232,7 +235,7 @@ contract("HIST-004", "a RER Managed installation exports and restores into a new
   } finally {
     await rm(sandbox, { recursive: true, force: true });
   }
-});
+}
 
 test("owner sidecar migrations apply once and survive export/import/export", async () => {
   const sandbox = await mkdtemp(join(tmpdir(), "lamp-owner-portability-"));
