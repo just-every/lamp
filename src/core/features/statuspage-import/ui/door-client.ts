@@ -35,22 +35,16 @@ export function moveInDoor(source: string) {
   }
   return {
     /** Uploads the export and plans it. A source imported before is planned as
-     * its catch-up; one imported and undone is uploaded afresh, as the server asks. */
+     * its catch-up; one imported and undone plans afresh. */
     async plan<T>(upload: Record<string, unknown>): Promise<T> {
-      for (let attempt: number | undefined; ;) {
-        const bytes = new TextEncoder().encode(JSON.stringify(attempt ? { ...upload, attempt } : upload));
-        const bundleSha256 = await sha256(bytes), totalChunks = Math.ceil(bytes.length / CHUNK_BYTES);
-        let uploadId: string | undefined;
-        for (let index = 0; index < totalChunks; index++) {
-          const chunk = bytes.subarray(index * CHUNK_BYTES, (index + 1) * CHUNK_BYTES);
-          uploadId = (await call<{ uploadId: string }>("uploads", { ...(uploadId ? { uploadId } : {}), name: `${source}-move-in.json`, bundleSha256, totalBytes: bytes.length, totalChunks, index, chunkSha256: await sha256(chunk), base64: base64(chunk) })).uploadId;
-        }
-        try { return await planned<T>(uploadId!); }
-        catch (cause) {
-          if (!(cause instanceof ApiError) || cause.message !== "import_undone_upload_again" || !cause.details?.attempt) throw cause;
-          attempt = Number(cause.details.attempt);
-        }
+      const bytes = new TextEncoder().encode(JSON.stringify(upload));
+      const bundleSha256 = await sha256(bytes), totalChunks = Math.ceil(bytes.length / CHUNK_BYTES);
+      let uploadId: string | undefined;
+      for (let index = 0; index < totalChunks; index++) {
+        const chunk = bytes.subarray(index * CHUNK_BYTES, (index + 1) * CHUNK_BYTES);
+        uploadId = (await call<{ uploadId: string }>("uploads", { ...(uploadId ? { uploadId } : {}), name: `${source}-move-in.json`, bundleSha256, totalBytes: bytes.length, totalChunks, index, chunkSha256: await sha256(chunk), base64: base64(chunk) })).uploadId;
       }
+      return planned<T>(uploadId!);
     },
     apply: (planId: string, reviewedFingerprint: string) => until("apply", { planId, reviewedFingerprint }, ["queued", "applying"]),
     undo: (planId: string) => until("undo", { planId }, ["undoing"]),

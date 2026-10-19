@@ -5,13 +5,15 @@ import { statuspageTargets } from './targets';
 /** A subscriber leaving Lamp, with the exact addresses they were known by. */
 export interface CustodySubject { id: string; values: string[] }
 
-/** Lamp's own read of the door's retained plan snapshots and upload bundles:
- * every record an upload held, imported or not, as text. Upload chunks are
- * base64 of one UTF-8 bundle, and a chunk may split a character. */
+/** Lamp's own read of the door's retained plan snapshots, upload bundles and
+ * Business archives: every record an upload or archive held, imported or not,
+ * as text. Upload and archive chunks are base64 of one UTF-8 bundle, and a
+ * chunk may split a character. */
 async function doorTexts(db: D1Database): Promise<string[]> {
-  const [plans, uploads] = await db.batch<{ owner: string; body: string }>([
+  const [plans, uploads, archives] = await db.batch<{ owner: string; body: string }>([
     db.prepare('SELECT plan_id AS owner,body FROM ik_door_plan_chunks ORDER BY plan_id,ordinal'),
     db.prepare('SELECT upload_id AS owner,base64 AS body FROM ik_door_chunks ORDER BY upload_id,ordinal'),
+    db.prepare('SELECT archive_id AS owner,base64 AS body FROM ik_door_archive_chunks ORDER BY archive_id,ordinal'),
   ]);
   const grouped = <T>(rows: Array<{ owner: string; body: string }>, part: (body: string) => T) => {
     const owners = new Map<string, T[]>();
@@ -20,7 +22,7 @@ async function doorTexts(db: D1Database): Promise<string[]> {
   };
   return [
     ...grouped(plans.results, (body) => body).map((parts) => parts.join('')),
-    ...grouped(uploads.results, (body) => Buffer.from(body, 'base64')).map((parts) => Buffer.concat(parts).toString('utf8')),
+    ...[...grouped(uploads.results, (body) => Buffer.from(body, 'base64')), ...grouped(archives.results, (body) => Buffer.from(body, 'base64'))].map((parts) => Buffer.concat(parts).toString('utf8')),
   ];
 }
 
@@ -40,8 +42,8 @@ export async function subjectsInCustody(db: D1Database, subjects: CustodySubject
 
 /** Erase a subscriber from Lamp's import custody in one D1 batch with their
  * native deletion: their imported records become tombstones in every import,
- * the door's retained bundles and plan snapshots are withdrawn whole (they are
- * indivisible), and the kit journals it. `authority` is the deletion's own
+ * the door's retained bundles, plan snapshots and archive bytes are withdrawn
+ * whole (they are indivisible), and the kit journals it. `authority` is the deletion's own
  * admission, checked before and after the batch's writes. Lamp's archives never
  * carry import custody, so `checkpoint`, the deletion's record, fences it. */
 export async function retireSubscriberCustody(db: D1Database, subject: CustodySubject, native: D1Sql[], checkpoint: D1Sql[], authorization: { principalId: string; authority: D1Sql }) {

@@ -2,7 +2,7 @@
 
 ## 1.9.0
 
-**Managed installations build again.** Lamp 1.8.0 and 1.8.1 patched their pinned rer (0.2.63) so the sign-in page offered your identity providers beside the owner entry. Run Edit Run's trusted build checks that `pnpm-lock.yaml` locks the plain rer release (`rer check --profile first-party`, SC-13) and refused the patched lock, so a new Managed installation of 1.8.1 could not be built. Lamp 1.9.0 pins rer 0.2.69, which offers those sign-in choices itself, and carries no rer patch: the `patches/` directory and the `patchedDependencies` entry are gone and the trusted build's checks pass. The sign-in page looks and works as before.
+**Managed installations build again.** Lamp 1.8.0 and 1.8.1 patched their pinned rer (0.2.63) so the sign-in page offered your identity providers beside the owner entry. Run Edit Run's trusted build checks that `pnpm-lock.yaml` locks the plain rer release (`rer check --profile first-party`, SC-13) and refused the patched lock, so a new Managed installation of 1.8.1 could not be built. Lamp 1.9.0 pins rer 0.2.71, which offers those sign-in choices itself, and carries no rer patch: the `patches/` directory and the `patchedDependencies` entry are gone and the trusted build's checks pass. The sign-in page looks and works as before.
 
 **Deletions in the audit log.** Deleting a component or a component group, one at a time or in a bulk catalogue edit, writes one audit entry naming the operator, in the same write as the deletion; deleting something already gone writes nothing. Settings → Audit log lists each deletion with its actor and time, in its filters and in CSV (TEAM-007). Every operator is an owner until roles ship (TEAM-004), so every operator sees the log.
 
@@ -10,11 +10,11 @@
 
 The contract records MOVE-009, MOVE-011, HIST-007 and TEAM-007 as done; their audience, language, role, rule and token parts now belong to AUD-004, I18N-001, TEAM-004, AUTO-001, API-001, SUB-018, MOVE-010 and INTAKE-013, which are not built. No released guarantee changed.
 
-Upgrading from 1.8.1: back up first (`node scripts/export.mjs --remote` for a hosted installation, and Settings → Export page data), update the checkout to `v1.9.0`, run `pnpm install --frozen-lockfile` (rer 0.2.69) and `rer deploy` with the same environment and input file. No migration applies and no input changes; the deploy keeps your signing secrets, subscriber links and operator sessions. If your fork kept its own copy of the 1.8.x rer patch, drop it.
+Upgrading from 1.8.1: back up first (`node scripts/export.mjs --remote` for a hosted installation, and Settings → Export page data), update the checkout to `v1.9.0`, run `pnpm install --frozen-lockfile` (rer 0.2.71) and `rer deploy` with the same environment and input file. Migration 0041 applies on deploy and no input changes; the deploy keeps your signing secrets, subscriber links and operator sessions. If your fork kept its own copy of the 1.8.x rer patch, drop it.
 
-Migrations: none.
+Migrations: `0041_import_door_archives.sql` adds the Business import door's archive tables (additive; no existing row changes).
 
-Not in this release: the import door's newer upload reader from Base (per-record credential removal, named source refusals, retained-source replans); Lamp's door and Move in keep the reader 1.8.1 shipped. `pnpm run export -- --remote` (shown on the homepage's Ownership panel) is still refused by rer; the hosted backup command is `node scripts/export.mjs --remote`. Roles, audience pages, subscriber languages, SMS and measured uptime are not built.
+Not in this release: `pnpm run export -- --remote` (shown on the homepage's Ownership panel) is still refused by rer; the hosted backup command is `node scripts/export.mjs --remote`. Roles, audience pages, subscriber languages, SMS and measured uptime are not built.
 
 Known issues: a `rer deploy` of an existing installation run without a terminal may stop with "Deploy needs your owner name"; pass `--owner-name "Your name"`. A drafted post-incident report keeps machine timestamps and `[U1]`-style citations until you edit them. Wrangler may print "Network connection lost" during a hosted export or restore that still completes; check the final "Exported" or "Imported" line. On a new hosted installation the public page shows a published update once its snapshot rebuilds, usually within seconds.
 

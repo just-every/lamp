@@ -596,6 +596,25 @@ it came from. Under a standing (bounded) Business approval, a catch-up is
 admitted only when it adds or replaces unedited records and changes under 5% of
 the previous snapshot; anything else needs a separate owner review.
 
+When a move is done, Business keeps the old tool's final export with the door's
+`archive` action (in this installation's database, as `business-archive/<tool>/<time>`)
+and proves it restores with `restore-check`, which reads the archive with the same
+readers and writes nothing to the page. Both are grant only, and an erasure
+withdraws the archive's bytes as it does the door's other content.
+
+While Business moves a page to Lamp it checks the move with one signed read,
+`POST /api/rer/cutover-status`, on the same trust: an RER grant of action
+`cutover-status` under the owner-claim keys, refused 403 for a revoked key,
+another action, installation or owner, or an expired grant, 401 without a grant,
+405 for anything but POST, and 404 when RER's trust is not configured. It reads
+and changes nothing else. Given `{since}` (an ISO time) it answers counts and ids
+only: the old addresses Cutover lists (their total and up to 25 `{path, target}`
+pairs), how many components, incidents and maintenance windows Lamp holds,
+subscribers held for cutover and pending, invitations sent since, incidents,
+maintenance and subscribers created in Lamp since (imported records excluded), and
+each alert source's id, kind and receipts since. It never returns a name, title,
+address or secret.
+
 Saved text carries over byte for byte, including U+0000, emoji, combining marks
 and right-to-left text; half of a surrogate pair with no partner reads as U+FFFD
 (�). A field Lamp shortens is cut between characters, never inside one.

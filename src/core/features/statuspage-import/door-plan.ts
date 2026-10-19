@@ -12,8 +12,9 @@ export const doorExport = z.object({
   pageId: z.string().max(64).optional(),
   publicAccessAcknowledged: z.boolean().optional(),
   publicUrl: z.string().url().max(2048).optional(),
-  /** Set only on a source that was imported and undone, to plan it afresh:
-   * identical bytes are the door's same, undone plan. */
+  /** Earlier Move in clients set this on a source imported and undone, to plan
+   * it afresh. The door now plans the same bytes afresh after an undo; an upload
+   * that still carries it is accepted and the value is unused. */
   attempt: z.number().int().min(1).max(100).optional(),
 }).strict();
 
