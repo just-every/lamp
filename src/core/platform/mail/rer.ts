@@ -17,6 +17,7 @@ export class RerMailSender implements MailSender {
 
   async send(message: MailMessage): Promise<SentMail> {
     if (!this.configured) throw new MailUnavailableError();
+    if (message.replyTo || message.from.includes("<")) throw new MailPreparationError(new Error("Managed mail controls From and Reply-To."));
     // Lamp's frozen headers identify the logical incident message. The relay
     // owns the RFC ID; all recipients of that first update share its stable key.
     const headers = Object.fromEntries(Object.entries(message.headers).filter(([name]) => name.toLowerCase() !== 'message-id'));

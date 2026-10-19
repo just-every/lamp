@@ -8,11 +8,14 @@ import { EmptyState } from "../../../app/client/ui/lit-states";
 import { FormError } from "../../../app/client/ui/states";
 import type { MoveInReport } from "../planning";
 import { HELD_SORRY_DAYS } from "../held-sorry";
+import { moveInDoor } from "./door-client";
 
 type SavedFile = { name: string; text: string };
-type Preview = { report: MoveInReport; jobId?: string; files?: SavedFile[] };
-type Job = { approvalCaption?: string; id: string; namespace?: string; state: string; checkpoint: number; total: number };
-type Result = { job: Job; report: MoveInReport; invites: { sent: number; remaining: number }; undo?: { dispositions: Array<{ disposition: string; targetKind?: string; reason?: string }>; expiredSubscribers: number } };
+type Preview = { report: MoveInReport; jobId?: string; files?: SavedFile[]; planId: string; fingerprint: string };
+/** A door import carries its plan; an import from before the door has none. */
+type DoorPlan = { planId?: string | null; fingerprint?: string | null; namespace?: string };
+type Job = DoorPlan & { approvalCaption?: string; id: string; state: string; checkpoint: number; total: number };
+type Result = { job: Job; door: DoorPlan | null; report: MoveInReport; invites: { sent: number; remaining: number }; undo?: { dispositions: Array<{ disposition: string; targetKind?: string; reason?: string }>; expiredSubscribers: number } };
 
 const kindLabels: Record<string, string> = { group: "Component groups", component: "Components", incident: "Incidents", maintenance: "Maintenance", subscriber: "Subscribers", postmortem: "Postmortems", template: "Incident templates" };
 
@@ -67,18 +70,30 @@ export function MoveInPage() {
 
   function dryRun(event: FormEvent<HTMLFormElement>) {
     event.preventDefault(); setResult(null); setAcknowledged(false);
-    void run(() => appApi<Preview>("/api/app/statuspage-import/preview", { method: "POST", body: JSON.stringify({ source, publicAccessAcknowledged, pageId, ...(source === "sorry" && publicUrl ? { publicUrl } : {}), ...(files.length ? { files } : { apiKey }) }) }), (next) => {
+    void run(async (): Promise<Preview> => {
+      // A key or public page is read once, into saved responses; the import door plans those.
+      const fetched = files.length ? null : (await appApi<{ files: SavedFile[] }>("/api/app/statuspage-import/fetch", { method: "POST", body: JSON.stringify({ source, publicAccessAcknowledged, pageId, ...(source === "sorry" && publicUrl ? { publicUrl } : {}), apiKey }) })).files;
+      const planned = await moveInDoor(source).plan<Omit<Preview, "files">>({ source, files: fetched ?? files, pageId, publicAccessAcknowledged, ...(source === "sorry" && publicUrl ? { publicUrl } : {}) });
+      return { ...planned, ...(fetched ? { files: fetched } : {}) };
+    }, (next) => {
       setPreview(next); rememberCutover(next.report.cutover); setApiKey("");
       if (next.files) setFiles(next.files);
     });
   }
 
+  const read = (id: string) => appApi<Result>(`/api/app/statuspage-import/jobs/${encodeURIComponent(id)}`);
   function apply() {
     if (!preview) return;
-    void run(() => appApi<Result>("/api/app/statuspage-import/apply", { method: "POST", body: JSON.stringify({ source, publicAccessAcknowledged, pageId, ...(source === "sorry" && publicUrl ? { publicUrl } : {}), files, asOf: preview.report.asOf, fingerprint: preview.report.fingerprint, acknowledged: true }) }), setResult);
+    void run(async () => read((await moveInDoor(source).apply(preview.planId, preview.fingerprint)).id), setResult);
   }
 
-  const act = (id: string, action: "resume" | "undo") => run(() => appApi<Result>(`/api/app/statuspage-import/jobs/${encodeURIComponent(id)}/${action}`, { method: "POST" }), setResult);
+  /** A door import continues and undoes through the door; one from before it, through its own job. */
+  const act = (job: DoorPlan & { id: string }, action: "resume" | "undo") => run(async () => {
+    if (!job.planId) return appApi<Result>(`/api/app/statuspage-import/jobs/${encodeURIComponent(job.id)}/${action}`, { method: "POST" });
+    const door = moveInDoor(job.namespace ?? source);
+    await (action === "resume" ? door.apply(job.planId, job.fingerprint!) : door.undo(job.planId));
+    return read(job.id);
+  }, setResult);
   const saved = preview?.files ? URL.createObjectURL(new Blob([JSON.stringify(preview.files)], { type: "application/json" })) : null;
 
   return <div className="page-stack move-in-page">
@@ -116,11 +131,11 @@ export function MoveInPage() {
       {result.job.state === "completed" && <p>{result.invites.remaining ? `${result.invites.remaining} subscriber invitations still to send.` : "No eligible invitations remain. Read Cutover for subscription and expiry details."}</p>}
       {result.undo && <p>{result.undo.dispositions.filter((item) => item.disposition === "retained").length} record(s) changed since the import stayed.</p>}
       {result.undo?.expiredSubscribers ? <p>{result.undo.expiredSubscribers} held subscriber(s) had already expired and were deleted before this undo.</p> : null}
-      {(result.job.state === "applying") && <Button type="button" disabled={busy} onClick={() => act(result.job.id, "resume")}>Continue</Button>}
-      {result.job.state === "undoing" && <Button type="button" disabled={busy} onClick={() => act(result.job.id, "undo")}>Continue undo</Button>}
+      {(result.job.state === "applying") && <Button type="button" disabled={busy} onClick={() => act({ id: result.job.id, ...result.door }, "resume")}>Continue</Button>}
+      {result.job.state === "undoing" && <Button type="button" disabled={busy} onClick={() => act({ id: result.job.id, ...result.door }, "undo")}>Continue undo</Button>}
     </section>}
     <section className="data-card" aria-labelledby="move-in-history"><h2 id="move-in-history">Your imports</h2>
-      {jobs.data?.jobs.length ? <ul className="move-in-jobs">{jobs.data.jobs.filter(job => (job.namespace ?? "statuspage") === source).map((job) => <li key={job.id}><a href={`/app/cutover?job=${encodeURIComponent(job.id)}`}>Cutover</a><span>{job.id.slice(0, 12)} · {job.state} · {job.checkpoint}/{job.total}{job.approvalCaption && <small style={{display:"block",overflowWrap:"anywhere"}}>{job.approvalCaption}</small>}</span>{job.state === "completed" && <Button type="button" variant="secondary" disabled={busy} onClick={() => act(job.id, "undo")}>Undo</Button>}{job.state === "applying" && <Button type="button" variant="secondary" disabled={busy} onClick={() => act(job.id, "resume")}>Continue</Button>}{job.state === "undoing" && <Button type="button" variant="secondary" disabled={busy} onClick={() => act(job.id, "undo")}>Continue undo</Button>}</li>)}</ul> : <EmptyState>No imports yet.</EmptyState>}
+      {jobs.data?.jobs.length ? <ul className="move-in-jobs">{jobs.data.jobs.filter(job => (job.namespace ?? "statuspage") === source).map((job) => <li key={job.id}><a href={`/app/cutover?job=${encodeURIComponent(job.id)}`}>Cutover</a><span>{job.id.slice(0, 12)} · {job.state} · {job.checkpoint}/{job.total}{job.approvalCaption && <small style={{display:"block",overflowWrap:"anywhere"}}>{job.approvalCaption}</small>}</span>{job.state === "completed" && <Button type="button" variant="secondary" disabled={busy} onClick={() => act(job, "undo")}>Undo</Button>}{job.state === "applying" && <Button type="button" variant="secondary" disabled={busy} onClick={() => act(job, "resume")}>Continue</Button>}{job.state === "undoing" && <Button type="button" variant="secondary" disabled={busy} onClick={() => act(job, "undo")}>Continue undo</Button>}</li>)}</ul> : <EmptyState>No imports yet.</EmptyState>}
     </section>
   </div>;
 }

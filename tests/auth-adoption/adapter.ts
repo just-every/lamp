@@ -5,6 +5,10 @@ export { createComponentsService } from '../../src/core/features/components/serv
 export { registerComponentRoutes } from '../../src/core/features/components/routes';
 export { createSubscriberRepository, createSubscribersService, registerSubscriberRoutes } from '../../src/core/features/subscribers';
 export { createStatuspageImportService, registerStatuspageImportRoutes } from '../../src/core/features/statuspage-import';
+export { registerImportDoor } from '../../src/core/features/statuspage-import/door';
 export { withDevIdentity } from '@runeditrun/rer/modules/operator-auth/dev';
 export { authConfig } from '../../src/core/platform/auth/config';
 export { createAuthHandler } from '@runeditrun/rer/modules/operator-auth';
+
+export { registerAuditLogRoutes } from '../../src/core/features/audit-log/routes';
+export { createAuditLogRepository } from '../../src/core/features/audit-log/repository';

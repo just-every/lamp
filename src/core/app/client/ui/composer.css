@@ -118,3 +118,5 @@ aside.incident-context { grid-area: context; border-right: 1px solid var(--line)
 .field-sources b { font-weight: 600; }
 .field-sources.is-unsourced { border-left: 2px solid var(--amber); padding-left: 8px; color: var(--amber-ink); }
 .next-update-prompt { margin: 0; color: var(--ink); font-size: 13px; font-weight: 600; }
+
+.email-preview-logo { display: block; width: 160px; max-width: 100%; height: auto; margin-top: 16px; }

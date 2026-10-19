@@ -10,7 +10,7 @@ const resolvedId = `\0${virtualId}`;
 const workerPath = fileURLToPath(new URL('./worker.ts', import.meta.url));
 const loopbackAddresses = new Set(['127.0.0.1', '::1', '::ffff:127.0.0.1']);
 
-const loopbackAuthority = /^(localhost|127\.0\.0\.1|\[::1\])(?::[0-9]{1,5})?$/i;
+const loopbackAuthority = /^((?:status\.)?localhost|127\.0\.0\.1|\[::1\])(?::[0-9]{1,5})?$/i;
 const scheduledPaths = ['/cdn-cgi/handler/scheduled', '/cdn-cgi/local/scheduled', '/cdn-cgi/mf/scheduled'];
 
 /** The app host and the page host share one listening port but are distinct

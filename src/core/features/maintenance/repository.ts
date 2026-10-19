@@ -83,6 +83,7 @@ export function createMaintenanceRepository(binding: D1Database): MaintenanceRep
         binding.prepare(`INSERT INTO maintenance (id,reference,title,state,starts_at,ends_at,completed_at,created_by_operator_id,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?)`).bind(input.id, input.reference, input.title, input.state, input.startsAt, input.endsAt, input.completedAt, input.createdByOperatorId, input.createdAt, input.updatedAt),
         ...attached.map((component) => binding.prepare(`INSERT INTO maintenance_components (id,maintenance_id,component_id,component_name,state,created_at,updated_at) VALUES (?,?,?,?,?,?,?)`).bind(component.id, component.maintenanceId, component.componentId, component.componentName, component.state, component.createdAt, component.updatedAt)),
         binding.prepare(`INSERT INTO maintenance_notices (id,maintenance_id,kind,body,published_at,author_operator_id,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?)`).bind(notice.id, notice.maintenanceId, notice.kind, notice.body, notice.publishedAt, notice.authorOperatorId, notice.createdAt, notice.updatedAt),
+        binding.prepare("INSERT INTO audit_entries (id, entity_type, entity_id, action, operator_id, payload_json, created_at, updated_at) VALUES (?, 'maintenance', ?, 'notice-published', ?, ?, ?, ?)").bind(`${notice.id}-audit`, input.id, notice.authorOperatorId, JSON.stringify({ kind: notice.kind }), notice.createdAt, notice.updatedAt),
         ...notificationStatements,
       ]);
     },
@@ -127,6 +128,7 @@ export function createMaintenanceRepository(binding: D1Database): MaintenanceRep
     async writeNotice(input, notificationStatements) {
       const results = await binding.batch([
         noticeStatement(input),
+        binding.prepare("INSERT INTO audit_entries (id, entity_type, entity_id, action, operator_id, payload_json, created_at, updated_at) SELECT ?, 'maintenance', ?, 'notice-published', ?, ?, ?, ? WHERE changes() = 1").bind(`${input.id}-audit`, input.maintenanceId, input.authorOperatorId, JSON.stringify({ kind: input.kind }), input.createdAt, input.updatedAt),
         ...notificationStatements,
       ]);
       return results[0].meta.changes === 1;

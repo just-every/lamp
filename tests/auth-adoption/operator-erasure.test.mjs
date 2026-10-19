@@ -61,14 +61,27 @@ test("Concurrent owner erasure preserves a recoverable active identity", async t
   t.diagnostic("native and stepped-up provider owners can erase themselves atomically while the remaining owner stays recoverable");
   await (async t => {
   for (const kind of ['native', 'oidc']) {
-    const r = await lampRuntime(t, { ownerClaim: true });
+    const r = await lampRuntime(t, { ownerClaim: true, registerRoutes: ({ app, db, modules }) => modules.registerAuditLogRoutes(app, modules.createAuditLogRepository(db)) });
     const other = await r.invite('recovery@example.test', true);
+    const auditPath = `/api/app/audit-log?actorId=${encodeURIComponent(r.owner.id)}&action=invited`;
+    const originalAudit = (await (await r.call(auditPath, { cookie: other.cookie })).json()).entries.find(row => row.entityId === other.id);
+    assert.equal(originalAudit.actorName, r.owner.displayName);
     const actorCookie = kind === 'oidc' ? await r.providerSession(r.owner.id) : r.cookie;
     if (kind === 'oidc') await r.stepUp(actorCookie);
     const refused = await r.call(`/api/app/operators/${r.owner.id}`, { method: 'DELETE', cookie: other.cookie });
     assert.equal(refused.status, 403, 'another owner cannot erase the setup owner');
     assert.equal((await r.call(`/api/app/operators/${r.owner.id}`, { method: 'DELETE', cookie: actorCookie })).status, 204);
     await assertErased(r, r.owner.id);
+    const erasedAudit = await (await r.call(auditPath, { cookie: other.cookie })).json();
+    const anonymous = `Erased operator · ${r.owner.id}`;
+    assert.equal(erasedAudit.entries.find(row => row.id === originalAudit.id).actorName, anonymous);
+    assert.equal(erasedAudit.actors.find(row => row.id === r.owner.id).name, anonymous);
+    const csv = await (await r.call(`${auditPath}&format=csv`, { cookie: other.cookie })).text();
+    assert.ok(csv.includes(originalAudit.id) && csv.includes(anonymous));
+    for (const path of [auditPath, `${auditPath}&format=csv`]) {
+      assert.equal((await r.call(path, { cookie: actorCookie })).status, 401);
+      assert.equal((await r.call(path)).status, 401);
+    }
     const claim = await r.db.prepare('SELECT email,completed,jti,operator_id FROM oc_owner_claims').first();
     assert.equal(claim.email, `deleted-${r.owner.id.toLowerCase()}@operator.invalid`);
     assert.equal(claim.operator_id, r.owner.id);

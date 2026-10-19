@@ -29,20 +29,63 @@ function exactRows(table: string, column: string, id: string, rows: Row[]): D1Sq
   };
 }
 
-async function readTables(db: D1Database, kind: string, id: string) {
-  const tables: NativeValue["tables"] = {};
-  for (const [table, column] of Object.entries(tablesOf(kind))) {
-    // Archive restore changes rowids. New imported history has a stable order
-    // shared with its planned value, including updates at the same instant.
-    const order = table === "import_maintenance_updates" ? "published_at,id" : table === "incident_template_components" ? "id" : "rowid";
-    const rows = (await db.prepare(`SELECT * FROM ${table} WHERE ${column}=? ORDER BY ${order}`).bind(id).all<Row>()).results;
-    // Defaults added after old import journals were sealed do not constitute
-    // an owner edit. Non-default values remain visible to custody and undo.
-    for (const [column, value] of Object.entries(sealedDefaults[table] ?? {})) for (const row of rows) if (row[column] === value) delete row[column];
-    // Legacy journals have no history key: empty additions must not change their revision value.
-    if (!["import_maintenance_updates", "component_standing_claims", "incident_reports"].includes(table) || rows.length) tables[table] = rows;
+/** No subscriber row beyond the anonymised record an operator's deletion keeps
+ * (destination `deleted:<id>`) for its delivery history; no import owns it. */
+const anonymisedOnly = (id: string): D1Sql => ({ sql: "NOT EXISTS(SELECT 1 FROM subscribers WHERE id=? AND destination<>'deleted:'||id)", params: [id] });
+
+// Archive restore changes rowids. New imported history has a stable order
+// shared with its planned value, including updates at the same instant.
+const orderOf = (table: string) => table === "import_maintenance_updates" ? "x.published_at,x.id" : table === "incident_template_components" ? "x.id" : "x.rowid";
+
+/** One owner's rows of one table, as its revision value holds them. */
+function settle(tables: NativeValue["tables"], table: string, rows: Row[]) {
+  // Defaults added after old import journals were sealed do not constitute
+  // an owner edit. Non-default values remain visible to custody and undo.
+  for (const [column, value] of Object.entries(sealedDefaults[table] ?? {})) for (const row of rows) if (row[column] === value) delete row[column];
+  // Legacy journals have no history key: empty additions must not change their revision value.
+  if (!["import_maintenance_updates", "component_standing_claims", "incident_reports"].includes(table) || rows.length) tables[table] = rows;
+}
+
+/** Imported targets (every one, or those wanted) with their owned tables, in
+ * one query for the markers and one per owned table, whatever their number:
+ * each table joined to its kind's markers, then grouped by owner. */
+async function readTargets(db: D1Database, destination: string, wanted?: ReadonlyArray<{ targetKind: string; targetId: string }>): Promise<TargetRow[]> {
+  const only = wanted ? JSON.stringify(wanted.map((target) => [target.targetKind, target.targetId])) : undefined;
+  const markers = (await (only
+    ? db.prepare(`SELECT a.kind,a.id,a.revision FROM (${allMarkers}) a WHERE a.id IN (SELECT json_extract(value,'$[1]') FROM json_each(?1)) AND EXISTS(SELECT 1 FROM json_each(?1) w WHERE json_extract(w.value,'$[0]')=a.kind AND json_extract(w.value,'$[1]')=a.id) ORDER BY a.kind,a.id`).bind(only)
+    : db.prepare(`${allMarkers} ORDER BY kind,id`)).all<{ kind: string; id: string; revision: string }>()).results;
+  const owned = new Map<string, Row[]>();
+  const of = (key: string) => { let rows = owned.get(key); if (!rows) owned.set(key, rows = []); return rows; };
+  for (const kind of new Set(markers.map((marker) => marker.kind))) {
+    const shared = markerWhere(kind).params.length > 0;
+    const where = [...shared ? ["m.kind=?"] : [], ...only ? ["m.id IN (SELECT value FROM json_each(?))"] : []];
+    const params = [...shared ? [kind] : [], ...only ? [JSON.stringify(markers.filter((marker) => marker.kind === kind).map((marker) => marker.id))] : []];
+    for (const [table, column] of Object.entries(tablesOf(kind))) {
+      const rows = (await db.prepare(`SELECT x.* FROM ${markerTable(kind)} m JOIN ${table} x ON x.${column}=m.id${where.length ? ` WHERE ${where.join(" AND ")}` : ""} ORDER BY ${orderOf(table)}`).bind(...params).all<Row>()).results;
+      for (const row of rows) of(`${kind}:${table}:${row[column]}`).push(row);
+    }
   }
-  return tables;
+  return markers.map((marker) => {
+    const tables: NativeValue["tables"] = {};
+    for (const table of Object.keys(tablesOf(marker.kind))) settle(tables, table, owned.get(`${marker.kind}:${table}:${marker.id}`) ?? []);
+    return { destination, targetKind: marker.kind, targetId: marker.id, revision: marker.revision, value: { tables } as never };
+  });
+}
+
+/** Native records that cite a component or group, by cited id, in one query per citing table. */
+const citingTables = (kind: string) => kind === "group" ? [["components", "group_id"]] : kind === "component" ? [["incident_components", "component_id"], ["maintenance_components", "component_id"], ["subscriber_components", "component_id"], ["component_standing_claims", "component_id"], ["incident_template_components", "component_id"]] : [];
+async function readCiting(db: D1Database, effects: D1UndoEffect[]) {
+  const cited = new Map<string, string[]>();
+  const of = (key: string) => { let ids = cited.get(key); if (!ids) cited.set(key, ids = []); return ids; };
+  for (const kind of ["group", "component"]) {
+    const ids = effects.filter((effect) => effect.expected.targetKind === kind).map((effect) => effect.expected.targetId);
+    if (!ids.length) continue;
+    for (const [table, column] of citingTables(kind)) {
+      const rows = (await db.prepare(`SELECT ${column} AS cited,id FROM ${table} WHERE ${column} IN (SELECT value FROM json_each(?)) ORDER BY id`).bind(JSON.stringify(ids)).all<{ cited: string; id: string }>()).results;
+      for (const row of rows) of(`${table}:${row.cited}`).push(row.id);
+    }
+  }
+  return (table: string, id: string) => cited.get(`${table}:${id}`) ?? [];
 }
 
 /** Native writes for a Statuspage move-in. Every effect is one whole entity
@@ -50,10 +93,7 @@ async function readTables(db: D1Database, kind: string, id: string) {
  * apply and undo commit or refuse it atomically with the kit's journal. */
 export const statuspageTargets: D1TargetAdapter = {
   async read(db, destination, kind, id) {
-    const where = markerWhere(kind);
-    const marker = await db.prepare(`SELECT revision FROM ${markerTable(kind)} WHERE ${where.sql}`).bind(...where.params, id).first<{ revision: string }>();
-    if (!marker) return undefined;
-    return { destination, targetKind: kind, targetId: id, value: { tables: await readTables(db, kind, id) } as never, revision: marker.revision };
+    return (await readTargets(db, destination, [{ targetKind: kind, targetId: id }]))[0];
   },
   matches(row, destination, kind, id) {
     const parts = this.matchesParts!(row, destination, kind, id);
@@ -65,7 +105,7 @@ export const statuspageTargets: D1TargetAdapter = {
       sql: row ? `EXISTS(SELECT 1 FROM ${markerTable(kind)} WHERE ${where.sql} AND revision=?)` : `NOT EXISTS(SELECT 1 FROM ${markerTable(kind)} WHERE ${where.sql})`,
       params: row ? [...where.params, id, row.revision] : [...where.params, id],
     }];
-    for (const [table, column] of Object.entries(tablesOf(kind))) parts.push(exactRows(table, column, id, row ? valueOf(row).tables[table] ?? [] : []));
+    for (const [table, column] of Object.entries(tablesOf(kind))) parts.push(!row && kind === "subscriber" && table === "subscribers" ? anonymisedOnly(id) : exactRows(table, column, id, row ? valueOf(row).tables[table] ?? [] : []));
     return parts;
   },
   write(row) {
@@ -101,33 +141,31 @@ export const statuspageTargets: D1TargetAdapter = {
     return [{ sql: `DELETE FROM ${owner} WHERE id=?`, params: [id] }, { sql: `DELETE FROM ${markerTable(kind)} WHERE ${where.sql}`, params: [...where.params, id] }];
   },
   async list(db, destination) {
-    const markers = (await db.prepare(`${allMarkers} ORDER BY kind,id`).all<{ kind: string; id: string; revision: string }>()).results;
-    const rows: TargetRow[] = [];
-    for (const marker of markers) rows.push({ destination, targetKind: marker.kind, targetId: marker.id, revision: marker.revision, value: { tables: await readTables(db, marker.kind, marker.id) } as never });
-    return rows;
+    return readTargets(db, destination);
   },
   matchesMany(rows) {
     return matchesAll(rows);
   },
   async preparePreservedUndo(db: D1Database, destination: string, effects: D1UndoEffect[]) {
     const observations = [], dependencies: D1UndoDependency[] = [], guards: D1Sql[] = [];
+    const rows = new Map((await readTargets(db, destination, effects.map((effect) => effect.expected))).map((row) => [`${row.targetKind}:${row.targetId}`, row]));
+    const citing = await readCiting(db, effects);
     for (const effect of effects) {
       const { targetKind: kind, targetId: id } = effect.expected;
-      const current = await this.read(db, destination, kind, id);
+      const current = rows.get(`${kind}:${id}`);
       observations.push({ effectId: effect.provenance.id, current: current ?? null, entity: { table: Object.keys(tablesOf(kind))[0], recordId: id } });
       guards.push(...this.matchesParts!(current ?? null, destination, kind, id));
       // A component or group stays while anything native still cites it.
-      const citing = kind === "group" ? [["components", "group_id"]] : kind === "component" ? [["incident_components", "component_id"], ["maintenance_components", "component_id"], ["subscriber_components", "component_id"], ["component_standing_claims", "component_id"], ["incident_template_components", "component_id"]] : [];
-      for (const [table, column] of citing) {
-        const rows = (await db.prepare(`SELECT id FROM ${table} WHERE ${column}=? ORDER BY id`).bind(id).all<{ id: string }>()).results;
-        guards.push({ sql: `(SELECT json_group_array(id) FROM (SELECT id FROM ${table} WHERE ${column}=? ORDER BY id))=?`, params: [id, JSON.stringify(rows.map((row) => row.id))] });
-        for (const cited of rows) {
+      for (const [table, column] of citingTables(kind)) {
+        const citers = citing(table, id);
+        guards.push({ sql: `(SELECT json_group_array(id) FROM (SELECT id FROM ${table} WHERE ${column}=? ORDER BY id))=?`, params: [id, JSON.stringify(citers)] });
+        for (const cited of citers) {
           // An imported citer reverses first; a native citer keeps this record.
-          const related = effects.find((candidate) => ownsRow(candidate, table, cited.id));
+          const related = effects.find((candidate) => ownsRow(candidate, table, cited));
           // Owned child rows reverse with this effect; they cannot depend on
           // their own reversal. Their query and equality guards still apply.
           if (related === effect) continue;
-          dependencies.push({ requiredEffectId: effect.provenance.id, ...(related ? { dependentEffectId: related.provenance.id } : {}), cause: { table, recordId: cited.id }, evidence: { reason: `Cited by ${table}.` } as never });
+          dependencies.push({ requiredEffectId: effect.provenance.id, ...(related ? { dependentEffectId: related.provenance.id } : {}), cause: { table, recordId: cited }, evidence: { reason: `Cited by ${table}.` } as never });
         }
       }
     }

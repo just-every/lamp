@@ -40,10 +40,10 @@ export function assertContinuityCounts(report) {
   assert.equal(report.counts.template.imported + report.counts.template.changed, 3);
 }
 
-export async function postmortemTemplateImportFlow({ api, request, importAll, original, publicOrigin, preserveEdits = false }) {
+export async function postmortemTemplateImportFlow({ api, request, importAll, moveIn, original, publicOrigin, preserveEdits = false }) {
   const files = continuityFiles(original, { oversized: preserveEdits });
   const templatesBefore = (await api("/api/app/incident-templates")).body.templates.length;
-  const preview = await api("/api/app/statuspage-import/preview", { files });
+  const preview = await moveIn.preview({ files });
   assert.equal(preview.status, 200, JSON.stringify(preview.body));
   assertContinuityCounts(preview.body.report);
   if (!preserveEdits) assert.equal(preview.body.report.counts.template.imported, 3);
@@ -53,7 +53,7 @@ export async function postmortemTemplateImportFlow({ api, request, importAll, or
   const invalid = files.map(file => ({ ...file }));
   const incidentFile = invalid.find(file => file.name === "incidents.json");
   const invalidRows = JSON.parse(incidentFile.text); invalidRows[0].postmortem_published_at = "invalid"; incidentFile.text = JSON.stringify(invalidRows);
-  const refused = await api("/api/app/statuspage-import/preview", { files: invalid });
+  const refused = await moveIn.preview({ files: invalid });
   assert.equal(refused.status, 200, JSON.stringify(refused.body));
   assert.equal(refused.body.report.counts.postmortem.rejected, 1);
   assert.equal(refused.body.report.counts.incident.rejected, 0);
@@ -98,9 +98,9 @@ export async function postmortemTemplateImportFlow({ api, request, importAll, or
     assert.equal(body.includes(privateText), false, `${path} keeps the draft report private`);
     assert.equal(body.includes(templateText), false, `${path} keeps templates private`);
   }
-  const unchanged = await api("/api/app/statuspage-import/preview", { files });
+  const unchanged = await moveIn.preview({ files });
   assert.equal(unchanged.body.report.state, "already imported");
-  const repeated = await api("/api/app/statuspage-import/apply", { files, asOf: unchanged.body.report.asOf, fingerprint: unchanged.body.report.fingerprint, acknowledged: true });
+  const repeated = await moveIn.apply(unchanged.body);
   assert.equal(repeated.status, 200, JSON.stringify(repeated.body));
   assert.equal((await api("/api/app/incident-templates")).body.templates.length, templatesBefore + 3);
   const applied = await request(`/api/app/incidents/${published.id}/templates/${first.id}/apply`, { method: "POST", headers: { "If-Match": `-:${published.updates.length}` }, json: {} });
@@ -125,8 +125,7 @@ export async function postmortemTemplateImportFlow({ api, request, importAll, or
     const reportSaved = await request(`/api/app/incidents/${draftIncident.id}/report`, { method: "PUT", json: { summary: `${privateText} edited here`, timeline: "Reviewed timeline", cause: "Reviewed cause", remediation: "Reviewed actions" } });
     assert.equal(reportSaved.status, 200, await reportSaved.clone().text());
   }
-  let undone = await api(`/api/app/statuspage-import/jobs/${result.job.id}/undo`, {});
-  for (let round = 0; round < 80 && undone.body.job?.state === "undoing"; round += 1) undone = await api(`/api/app/statuspage-import/jobs/${result.job.id}/undo`, {});
+  const undone = await moveIn.undo(result.door);
   assert.equal(undone.status, 200, JSON.stringify(undone.body));
   assert.equal(undone.body.job.state, "undone");
   assert.equal((await api("/api/app/incident-templates")).body.templates.length, templatesBefore + Number(preserveEdits));

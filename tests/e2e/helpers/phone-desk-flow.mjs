@@ -1,0 +1,105 @@
+import assert from 'node:assert/strict';
+import { createHmac } from 'node:crypto';
+import { mkdir } from 'node:fs/promises';
+import { AxeBuilder } from '@axe-core/playwright';
+import { operatorHydrated } from './operator-hydrated.mjs';
+
+export async function phoneDeskFlow({ page, appUrl, pageUrl, appFetch, signInLink }) {
+  page.setDefaultTimeout(15_000);
+  const proof = process.env.LAMP_SCREENSHOTS;
+  if (proof) await mkdir(proof, { recursive: true });
+  async function inspect(name, { controls = true } = {}) {
+    process.stderr.write(`Phone desk: ${page.viewportSize().width} ${name}\n`);
+    const layout = await page.evaluate(() => ({ document: document.documentElement.scrollWidth, viewport: innerWidth }));
+    assert.ok(layout.document <= layout.viewport, `${name} overflows: ${JSON.stringify(layout)}`);
+    const axe = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa']).analyze();
+    assert.deepEqual(axe.violations.filter(v => ['serious', 'critical'].includes(v.impact)).map(v => ({ id: v.id, nodes: v.nodes.map(n => n.target) })), [], `${name} accessibility`);
+    if (controls && layout.viewport === 390) {
+      const small = await page.evaluate(() => [...document.querySelectorAll('.operator-shell button, .operator-shell select, .operator-shell summary, .operator-shell .operator-nav-link, .operator-shell .back-link, .operator-shell .text-link, .operator-shell .checkbox-label')].flatMap(node => {
+        const box = node.getBoundingClientRect();
+        return box.width && box.height && (box.height < 44 || box.width < 44) ? [{ text: node.textContent.trim().slice(0, 70), width: box.width, height: box.height }] : [];
+      }));
+      assert.deepEqual(small, [], `${name} has controls below the phone target size`);
+    }
+    if (proof) await page.screenshot({ path: `${proof}/${layout.viewport}-${name}.png`, fullPage: true });
+  }
+  for (const width of [390, 1440]) {
+    await page.setViewportSize({ width, height: width === 390 ? 844 : 1000 });
+    await page.context().clearCookies();
+    await page.goto(await signInLink());
+    await inspect('sign-in', { controls: false });
+    await page.getByRole('button', { name: 'Confirm', exact: true }).click();
+    await page.waitForURL(url => url.pathname === '/app');
+    await operatorHydrated(page);
+    const componentResponse = await appFetch('/api/app/components', { method: 'POST', body: JSON.stringify({ groupId: null, name: `Payments API ${width}`, description: 'Card authorization and settlement for customer checkouts.', internal: false, displayOrder: 1, note: '' }) });
+    assert.equal(componentResponse.status, 201);
+    const component = (await componentResponse.json()).component;
+    const sourceResponse = await appFetch('/api/app/intake/sources', { method: 'POST', body: JSON.stringify({ name: `Checkout monitor ${width}`, credentialKind: 'hmac-sha256', signingSecret: 'phone-journey-network-edge-secret', deduplicationPath: '$.alert.id', titlePath: '$.alert.title', statePath: '$.alert.state', recoveredValue: 'recovered' }) });
+    assert.equal(sourceResponse.status, 201);
+    const source = (await sourceResponse.json()).source;
+    const body = JSON.stringify({ alert: { id: `payments-${width}`, title: `Checkout authorization failures ${width}`, state: 'firing' } });
+    const timestamp = new Date().toISOString();
+    const signature = createHmac('sha256', 'phone-journey-network-edge-secret').update(`${timestamp}.${body}`).digest('base64url');
+    const intake = await fetch(`${pageUrl}/api/intake/${source.id}`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-lamp-timestamp': timestamp, 'x-lamp-signature': signature }, body });
+    assert.equal(intake.status, 202);
+    const { incidentId } = await intake.json();
+    const before = (await (await appFetch(`/api/app/incidents/${incidentId}`)).json()).incident;
+    assert.equal(before.updates.length, 0, 'accepted evidence stays private until the operator publishes');
+    await page.goto(`${appUrl}/app/alerts`);
+    await operatorHydrated(page);
+    await inspect('alerts');
+    await page.locator(`a[href="/app/incidents/${incidentId}"]`).click();
+    await page.getByRole('heading', { name: 'Compose public update' }).waitFor();
+    await operatorHydrated(page);
+    await page.getByRole('combobox', { name: /^Attach with this update/ }).selectOption(component.id);
+    await page.getByRole('button', { name: 'Attach with this update', exact: true }).click();
+    const audience = page.locator('label', { hasText: 'Who is affected' }).locator('textarea');
+    const impact = page.locator('label', { hasText: 'What is the impact' }).locator('textarea');
+    await audience.fill('Customers making card payments in the US.');
+    await impact.fill('Some checkouts fail during authorization. Retrying may succeed.');
+    await page.getByLabel('Next update date and time').fill('2027-09-08T14:00');
+    await page.getByText('Draft saved', { exact: true }).waitFor();
+    await page.reload();
+    await operatorHydrated(page);
+    assert.equal(await impact.inputValue(), 'Some checkouts fail during authorization. Retrying may succeed.');
+    await page.getByLabel(`${component.name} state with this update`).waitFor();
+    await inspect('composer');
+    await page.getByText('Email preview', { exact: true }).click();
+    await page.getByText('Notification email', { exact: true }).waitFor();
+    await inspect('preview');
+    await page.getByRole('button', { name: 'Publish update', exact: true }).click();
+    await page.getByText('Update published. The fixed recipient set is now queued for delivery.').waitFor();
+    const published = (await (await appFetch(`/api/app/incidents/${incidentId}`)).json()).incident;
+    assert.equal(published.updates.length, 1);
+    assert.equal(published.components[0].componentId, component.id);
+    await page.getByRole('combobox', { name: /^Lifecycle/ }).selectOption('Resolved');
+    await audience.fill('Customers making card payments in the US.');
+    await impact.fill('Card authorization is restored. Checkouts are completing normally.');
+    await page.getByText('Draft saved', { exact: true }).waitFor();
+    await inspect('resolve');
+    await page.getByRole('button', { name: 'Publish update', exact: true }).click();
+    await page.getByText('Update published. The fixed recipient set is now queued for delivery.').waitFor();
+    assert.equal((await (await appFetch(`/api/app/incidents/${incidentId}`)).json()).incident.lifecycle, 'Resolved');
+    await inspect('resolved');
+    await page.goto(`${appUrl}/app/components`);
+    await operatorHydrated(page);
+    const row = page.locator('.component-row').filter({ hasText: component.name });
+    await row.getByRole('button', { name: 'Set status', exact: true }).click();
+    await page.getByRole('dialog').waitFor();
+    await inspect('claim');
+    await page.getByLabel('Service status').selectOption('Degraded performance');
+    await page.getByRole('button', { name: 'Save status', exact: true }).click();
+    await row.getByText('Degraded performance', { exact: true }).waitFor();
+    await inspect('components');
+    await page.goto(`${appUrl}/app/maintenance`);
+    await operatorHydrated(page);
+    await page.getByLabel('Title', { exact: true }).fill(`Payments database index rollout ${width}`);
+    await page.getByRole('checkbox', { name: component.name, exact: true }).check();
+    await page.getByLabel('Starts', { exact: true }).fill('2027-09-09T02:00');
+    await page.getByLabel('Ends', { exact: true }).fill('2027-09-09T02:30');
+    await inspect('schedule');
+    await page.getByRole('button', { name: 'Schedule window', exact: true }).click();
+    await page.getByRole('heading', { name: `Payments database index rollout ${width}`, exact: true }).waitFor();
+    await inspect('scheduled');
+  }
+}

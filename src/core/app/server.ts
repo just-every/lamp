@@ -1,4 +1,7 @@
+import { createSubscriberReportingRepository, createSubscriberReportingService, registerSubscriberReportingRoutes } from "../features/subscriber-reporting";
 import { registerCommunicationPerformanceRoutes } from "../features/communication-performance";
+import { registerAuditLogRoutes } from "../features/audit-log/routes";
+import { createAuditLogRepository } from "../features/audit-log/repository";
 import { registerIncidentImpactRoutes } from "../features/incident-impact";
 import { registerSetupRoutes } from "../features/setup/routes";
 import { createSetupRepository } from "../features/setup/repository";
@@ -61,6 +64,8 @@ export function createApp(bindings: AppBindings, execution?: MailExecution) {
   registerIntakeRoutes(app, services.intake, { publicPageHost: bindings.LAMP_PAGE_HOST, rateLimiter: publicWriteLimiter });
   registerOperatorRoutes(app, services.auth, bindings.LAMP_PAGE_HOST, { localMail });
   registerOverviewRoutes(app, services.overview);
+  registerAuditLogRoutes(app, createAuditLogRepository(bindings.DB));
+  registerSubscriberReportingRoutes(app, createSubscriberReportingService(createSubscriberReportingRepository(bindings.DB)));
   registerCommunicationPerformanceRoutes(app, services.communicationPerformance);
   registerCatalogueRoutes(app, services.componentCatalogue);
   registerComponentRoutes(app, services.components);
@@ -74,7 +79,7 @@ export function createApp(bindings: AppBindings, execution?: MailExecution) {
   registerPageSettingsRoutes(app, services.pageSettings);
   registerPageExportRoutes(app, services.pageExport);
   registerStatuspageImportRoutes(app, services.statuspageImport);
-  registerImportDoor(app, bindings, services.statuspageImport,()=>services.publicSnapshots.rebuild(true));
+  registerImportDoor(app, bindings, services.statuspageImport,()=>services.publicSnapshots.rebuild(true), services.auth);
   registerChannelRoutes(app, services.channels);
 
   async function readOperator(path: string, source: Request, authority: OperatorReadSession) {

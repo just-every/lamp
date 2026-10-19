@@ -70,8 +70,24 @@ test('ACCESS-001 dependency linking keeps exact owner approval through setup, un
     assert.equal((await storage.db.prepare('SELECT COUNT(*) n FROM rer_dependency_link').first()).n, 0);
     assert.equal((await callback()).status, 200, 'the new owner approval remains usable');
     assert.equal((await (await call('/auth/settings/identity', { cookie: proof })).json()).idpSignIn, false, 'ordinary relinking preserves the owner choice to disable sign-in');
+    const disabledPage = await call('/signin');
+    assert.equal((await disabledPage.text()).includes('action="/auth/oidc/auth/start"'), false);
     assert.equal((await post('/auth/settings/identity', { idpSignIn: true }, proof)).status, 200);
-    assert.equal((await post('/auth/oidc/auth/start')).status, 303);
+    const signIn = await call('/signin?returnTo=%2Fapp%2Fsettings');
+    assert.equal(signIn.status, 200);
+    assert.equal(signIn.headers.get('referrer-policy'), 'strict-origin');
+    assert.ok(signIn.headers.get('content-security-policy').includes(issuer));
+    const html = await signIn.text();
+    const providerForm = /<form method="post" action="([^"]*\/auth\/oidc\/auth\/start)">([\s\S]*?)<\/form>/.exec(html);
+    assert.ok(providerForm, 'hosted sign-in exposes the enabled provider start form');
+    const returnTo = /name="returnTo" value="([^"]+)"/.exec(providerForm[2])[1];
+    assert.equal(returnTo, '/app/settings');
+    const start = await app.fetch(new Request(new URL(providerForm[1], origin), {
+      method: 'POST', headers: { Host: new URL(origin).host, Origin: origin, 'CF-Connecting-IP': '192.0.2.31', 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({ returnTo }),
+    }), env);
+    assert.equal(start.status, 303, 'the form offered by hosted sign-in starts provider authorization');
+    assert.equal(new URL(start.headers.get('location')).origin, issuer);
     assert.equal((await call('/api/app/session', { cookie: proof })).status, 200, 'native email access remains usable');
   } finally {
     globalThis.fetch = originalFetch;

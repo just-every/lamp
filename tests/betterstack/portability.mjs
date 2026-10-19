@@ -3,6 +3,7 @@ import { readFile, readdir } from 'node:fs/promises';
 import { Hono } from 'hono';
 import { authFixture, secret, setupToken } from '../auth-adoption/runtime.mjs';
 import { load } from '../operator-readiness/runtime.mjs';
+import { moveInDoor } from '../helpers/import-notifications.mjs';
 
 async function ownerApi(db, bootstrap) {
   const owner='move-in-owner@example.test';
@@ -18,18 +19,21 @@ async function ownerApi(db, bootstrap) {
   const app=new Hono();
   app.use('/api/app/*',modules.requireOperator(()=>auth));
   modules.registerOperatorRoutes(app,()=>auth,'page.example.test');
-  modules.registerStatuspageImportRoutes(app,modules.createStatuspageImportService(db,{
+  const imports=modules.createStatuspageImportService(db,{
     async inviteSubscriber(){assert.fail('Archive restoration must not send invitations.');},
     async publicDataChanged(){},
-  }));
-  return async (path,body) => {
-    const request=base.request(`/api/app/statuspage-import${path}`,{cookie,method:'POST',body});
+  });
+  modules.registerStatuspageImportRoutes(app,imports);
+  modules.registerImportDoor(app,bindings,imports,async()=>{},()=>auth);
+  const moveIn=moveInDoor(async (path,body,headers={}) => {
+    const request=base.request(path,{cookie,method:body===undefined?'GET':'POST',body});
     request.headers.set('CF-Connecting-IP','192.0.2.10');
+    for (const [name,value] of Object.entries(headers)) request.headers.set(name,value);
     const response=await app.fetch(request,bindings);
-    const result=await response.json();
-    assert.equal(response.status,200,JSON.stringify(result));
-    return result;
-  };
+    return {status:response.status,body:await response.json()};
+  });
+  const ok=response => { assert.equal(response.status,200,JSON.stringify(response.body)); return response.body; };
+  return {preview:async input=>ok(await moveIn.preview(input)),apply:async plan=>ok(await moveIn.apply(plan)),undo:async door=>ok(await moveIn.undo(door))};
 }
 
 export async function importHistoryForRestore(db) {
@@ -43,24 +47,20 @@ export async function importHistoryForRestore(db) {
     raw.data.forEach(row=>{row.attributes.published_at='2025-01-03T09:30:00.000Z';});
     file.text=JSON.stringify(raw);
   }
-  const input={source:'betterstack',publicAccessAcknowledged:true,files};
-  const preview=await api('/preview',input);
-  let result=await api('/apply',{...input,asOf:preview.report.asOf,fingerprint:preview.report.fingerprint,acknowledged:true});
-  while (result.job.state==='applying') result=await api(`/jobs/${result.job.id}/resume`,{});
+  const result=await api.apply(await api.preview({source:'betterstack',publicAccessAcknowledged:true,files}));
   assert.equal(result.job.state,'completed');
   const maintenance=await db.prepare('SELECT id FROM maintenance WHERE title=?').bind(report.attributes.title).first();
   const history=(await db.prepare('SELECT * FROM import_maintenance_updates WHERE maintenance_id=? ORDER BY published_at,id').bind(maintenance.id).all()).results;
   assert.equal(history.length,3);
   assert.equal(new Set(history.map(row=>row.published_at)).size,1);
-  return {jobId:result.job.id,maintenanceId:maintenance.id,history};
+  return {door:result.door,maintenanceId:maintenance.id,history};
 }
 
 export async function undoHistoryAfterRestore(db,imported) {
   const history=(await db.prepare('SELECT * FROM import_maintenance_updates WHERE maintenance_id=? ORDER BY published_at,id').bind(imported.maintenanceId).all()).results;
   assert.deepEqual(history,imported.history,'the full archive retains every same-time imported maintenance update');
   const api=await ownerApi(db,false);
-  let result=await api(`/jobs/${imported.jobId}/undo`,{});
-  while (result.job.state==='undoing') result=await api(`/jobs/${imported.jobId}/undo`,{});
+  const result=await api.undo(imported.door);
   assert.equal(result.job.state,'undone');
   const disposition=result.undo.dispositions.find(row=>row.targetKind==='maintenance'&&row.targetId===imported.maintenanceId);
   assert.ok(disposition);

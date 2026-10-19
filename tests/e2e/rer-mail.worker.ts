@@ -6,7 +6,7 @@ export { SnapshotCache } from '../../src/core/platform/blobs/snapshot-cache';
 const transport = globalThis.fetch;
 const redirects: string[] = [];
 globalThis.fetch = (input, init) => {
-  redirects.push(init?.redirect ?? new Request(input).redirect);
+  redirects.push(init?.redirect ?? (input instanceof Request ? input.redirect : "follow"));
   return transport(input, init);
 };
 

@@ -8,7 +8,7 @@ import { createUlid, nowIso } from "../../shared/ids";
 import { parsePublishedComponentChanges } from "../../shared/incident-component-changes";
 import { renderNotificationUpdate } from "../../shared/update-renderer";
 import { impactLabel } from "../../shared/incident-impact";
-import { renderUpdateHtml } from "../../shared/update-links";
+import { brandEmail, defaultEmailBranding, type EmailBranding } from "../../shared/email-branding";
 import { type MailMessage, type MailSender } from "../../platform/mail";
 import { hmacSha256 } from "../../platform/security/opaque-tokens";
 import { SubscriberTokenCodec } from "../subscribers/tokens";
@@ -85,7 +85,7 @@ function renderMaintenanceNotice(delivery: DispatchableDelivery) {
 
 export function createDeliveriesService(
   repository: DeliveryRepository,
-  options: { pageName?: () => Promise<string>; effectsPaused?: boolean; mail?: MailSender; fromAddress?: string | (() => Promise<string>); subscriberTokenSecret?: string; webhookSigningSecret?: string | string[]; events?: DeliveryEvents } = {},
+  options: { emailBranding?: () => Promise<{ branding: EmailBranding; hasLogo: boolean }>; pageName?: () => Promise<string>; effectsPaused?: boolean; mail?: MailSender; fromAddress?: string | (() => Promise<string>); subscriberTokenSecret?: string; webhookSigningSecret?: string | string[]; events?: DeliveryEvents } = {},
 ): DeliveriesService {
   const tokens = options.subscriberTokenSecret ? new SubscriberTokenCodec(options.subscriberTokenSecret) : null;
   const events = options.events ?? defaultDeliveryEvents;
@@ -201,10 +201,12 @@ export function createDeliveriesService(
       const host = new URL(origin).host;
       const pageName = options.pageName ? await options.pageName() : lampConfig.pageName;
       const statusUrl = new URL("/", origin).href;
+      const brand = options.emailBranding ? await options.emailBranding() : { branding: defaultEmailBranding, hasLogo: false };
+      const branded = brandEmail(rendered.email, { ...brand, pageName, fromAddress, origin });
       const candidate: FrozenMailPayload = {
-        frozenAt: nowIso(), from: fromAddress, to: delivery.destination, subject: `${pageName}: ${rendered.email.subject}`,
-        text: `${pageName}\n\n${rendered.email.plainText}\n\nManage this subscription: ${manageUrl}\nUnsubscribe: ${unsubscribeUrl}\nReturn to status: ${statusUrl}`,
-        html: `<main><p><a href="${htmlText(statusUrl)}">${htmlText(pageName)}</a></p><h1>${htmlText(rendered.email.subject)}</h1><pre>${renderUpdateHtml(rendered.email.plainText)}</pre><p><a href="${htmlText(manageUrl)}">Manage subscription</a> · <a href="${htmlText(unsubscribeUrl)}">Unsubscribe</a></p></main>`,
+        frozenAt: nowIso(), from: branded.from, ...(branded.replyTo ? { replyTo: branded.replyTo } : {}), to: delivery.destination, subject: branded.subject,
+        text: `${branded.plainText}\n\nManage this subscription: ${manageUrl}\nUnsubscribe: ${unsubscribeUrl}\nReturn to status: ${statusUrl}`,
+        html: `<main>${branded.html}<p><a href="${htmlText(manageUrl)}">Manage subscription</a> · <a href="${htmlText(unsubscribeUrl)}">Unsubscribe</a></p></main>`,
         headers: {
           "List-Unsubscribe": `<mailto:${fromAddress}?subject=unsubscribe>, <${unsubscribeUrl}>`, "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
           "List-Id": `<${host}>`, "List-Archive": `${origin}/history`, "List-Help": manageUrl, "Auto-Submitted": "auto-generated",

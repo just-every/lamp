@@ -50,7 +50,9 @@ export function stableId(key: string, at: string, namespace = "statuspage") {
 const componentStates: Record<string, ComponentState> = { "": "Operational", operational: "Operational", degraded_performance: "Degraded performance", partial_outage: "Partially unavailable", major_outage: "Major outage", under_maintenance: "Under maintenance" };
 const impactStates: Record<string, ComponentState> = { none: "Operational", minor: "Degraded performance", major: "Partially unavailable", critical: "Major outage", maintenance: "Under maintenance" };
 const lifecycles: Record<string, IncidentLifecycle> = { investigating: "Investigating", identified: "Identified", monitoring: "Monitoring", resolved: "Resolved", postmortem: "Resolved" };
-const clip = (value: string, limit: number) => value.length > limit ? `${value.slice(0, limit - 1)}…` : value;
+// Cut by code points, as the schema's length() checks count, so a cut never
+// splits a surrogate pair into text that D1 cannot store and read back.
+const clip = (value: string, limit: number) => { const points = Array.from(value); return points.length > limit ? `${points.slice(0, limit - 1).join("")}…` : value; };
 const at = (update: { display_at?: string | null; created_at: string }) => new Date(update.display_at ?? update.created_at).toISOString();
 const iso = (value: string) => new Date(value).toISOString();
 
@@ -156,10 +158,10 @@ function mapIncident(incident: SourceIncident, components: Map<string, { id: str
       if (!claimEndsAt || publishedAt < claimEndsAt) claims.push({ componentId: components.get(code)!.id, causeType: "incident", causeId: id, state: !claimEndsAt && lifecycle === "Resolved" ? null : state, changedAt: publishedAt });
     }
     if (lifecycle === "Resolved") resolvedAt = publishedAt;
-    const body = (update.body ?? "").trim() || name;
+    const body = (update.body ?? "").trim() || name, points = Array.from(body);
     const impact = clip(body, 250);
-    const details = body.length > 250 ? clip(body.slice(249), 500) : "";
-    if (body.length > 749) notes.add("long update text was shortened to Lamp's update fields");
+    const details = points.length > 250 ? clip(points.slice(249).join(""), 500) : "";
+    if (points.length > 749) notes.add("long update text was shortened to Lamp's update fields");
     const names = [...current.keys()].map((code) => components.get(code)!.name);
     rows.push({ id: identify(`incident-update:${update.id}`, publishedAt), incident_id: id, lifecycle, affected_audience: clip(names.length ? `Customers using ${names.join(", ")}` : "All customers", 250), customer_impact: impact, what_still_works: "", details, next_update_at: null, published_at: publishedAt, author_operator_id: operatorId, corrects_update_id: null, is_retroactive: 1, created_at: asOf, updated_at: asOf });
   }

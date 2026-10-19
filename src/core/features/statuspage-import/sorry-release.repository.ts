@@ -1,6 +1,10 @@
 import type { D1ImportContext, ImportPlan } from '../../../../modules/import-kit/src/d1/index.ts';
 import { nowIso } from '../../shared/ids';
 import { HELD_SORRY_DAYS } from './held-sorry';
+import { retireSubscriberCustody, subjectsInCustody } from './custody';
+
+/** Each import custody erasure is its own bounded D1 batch; a scheduled run takes a few. */
+const CUSTODY_ERASURES_PER_RUN = 3;
 
 export interface SorryReleaseApproval { liveOrigin?: string; hostnameLive?: boolean; watchWindowClosed?: boolean }
 
@@ -26,8 +30,19 @@ export async function releaseSorrySubscribers(db: D1Database, jobId: string, pla
 }
 
 /** A held row the owner never released or undid is deleted, address and all,
- * HELD_SORRY_DAYS after its reviewed dry run, like an unconfirmed pending row. */
+ * HELD_SORRY_DAYS after its reviewed dry run, like an unconfirmed pending row.
+ * Its retained import copies leave custody with it, a few per run. */
 export async function expireHeldSorrySubscribers(db: D1Database, now = Date.now()) {
-  await db.prepare("DELETE FROM subscribers WHERE state='deactivated' AND deactivation_reason IN ('held for Sorry cutover','held for Business cutover') AND created_at < ?")
-    .bind(new Date(now - HELD_SORRY_DAYS * 24 * 60 * 60 * 1000).toISOString()).run();
+  const cutoff = new Date(now - HELD_SORRY_DAYS * 24 * 60 * 60 * 1000).toISOString();
+  const held = "state='deactivated' AND deactivation_reason IN ('held for Sorry cutover','held for Business cutover')";
+  const expired = (await db.prepare(`SELECT id,destination FROM subscribers WHERE ${held} AND created_at < ?`).bind(cutoff).all<{ id: string; destination: string }>()).results;
+  if (!expired.length) return;
+  const custody = await subjectsInCustody(db, expired.map(row => ({ id: row.id, values: [row.destination] })));
+  await db.prepare(`DELETE FROM subscribers WHERE ${held} AND created_at < ? AND id NOT IN (SELECT value FROM json_each(?))`).bind(cutoff, JSON.stringify(custody.map(subject => subject.id))).run();
+  for (const subject of custody.slice(0, CUSTODY_ERASURES_PER_RUN)) {
+    const deletion = { sql: `DELETE FROM subscribers WHERE id=? AND ${held} AND created_at < ?`, params: [subject.id, cutoff] };
+    // Admitted while the row is still held past its deadline, and after its deletion.
+    const marker = { sql: "DELETE FROM statuspage_import_targets WHERE kind='subscriber' AND id=?", params: [subject.id] };
+    await retireSubscriberCustody(db, subject, [marker], [deletion], { principalId: 'lamp:held-expiry', authority: { sql: `NOT EXISTS(SELECT 1 FROM subscribers WHERE id=? AND NOT (${held} AND created_at < ?))`, params: [subject.id, cutoff] } });
+  }
 }

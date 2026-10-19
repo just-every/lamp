@@ -17,6 +17,7 @@ export interface StoredPageSettingsRow {
   footer_credit_enabled: number;
   widget_allowed_origins: string;
   ai_tone_instructions: string;
+  email_branding: string;
   feed_id: string;
   logo_key: string | null;
   logo_content_type: string | null;
@@ -30,6 +31,7 @@ export interface PageSettingsWrite {
   footerCreditEnabled: boolean;
   widgetAllowedOrigins: string;
   aiToneInstructions: string;
+  emailBranding: string;
   feedId: string;
   logoKey: string | null;
   logoContentType: string | null;
@@ -109,7 +111,7 @@ function erasedOperatorId(email: string) {
 export function createPageExportRepository(binding: D1Database): PageExportRepository {
   const repository: PageExportRepository = {
     async readSettings() {
-      return binding.prepare("SELECT page_name, tagline, accent_color, timezone, footer_credit_enabled, widget_allowed_origins, ai_tone_instructions, feed_id, logo_key, logo_content_type FROM page_settings WHERE id = 'default'").first<StoredPageSettingsRow>();
+      return binding.prepare("SELECT page_name, tagline, accent_color, timezone, footer_credit_enabled, widget_allowed_origins, ai_tone_instructions, email_branding, feed_id, logo_key, logo_content_type FROM page_settings WHERE id = 'default'").first<StoredPageSettingsRow>();
     },
     async readTables() {
       const statements = PAGE_DATA_TABLES.map(({ table, order }) => table === "subscribers"
@@ -172,7 +174,7 @@ export function createPageExportRepository(binding: D1Database): PageExportRepos
       // A used confirmation link is the subscriber's recorded consent.
       const consent = confirmations.map((entry) => ({ id: createUlid(), subscriber_id: entry.subscriberId, scope: "confirm", token_hash: `restored-consent-${createUlid()}`, expires_at: entry.confirmedAt, revoked_at: entry.confirmedAt, created_at: entry.subscribedAt, updated_at: entry.confirmedAt }));
       sql.push(...insertStatements("subscriber_tokens", consent));
-      sql.push(`UPDATE page_settings SET page_name = ${literal(settings.pageName)}, tagline = ${literal(settings.tagline)}, accent_color = ${literal(settings.accentColor)}, timezone = ${literal(settings.timezone)}, footer_credit_enabled = ${settings.footerCreditEnabled ? 1 : 0}, widget_allowed_origins = ${literal(settings.widgetAllowedOrigins)}, ai_tone_instructions = ${literal(settings.aiToneInstructions)}, feed_id = ${literal(settings.feedId)}, logo_key = ${literal(settings.logoKey)}, logo_content_type = ${literal(settings.logoContentType)}, updated_at = ${literal(now)} WHERE id = 'default'`);
+      sql.push(`UPDATE page_settings SET page_name = ${literal(settings.pageName)}, tagline = ${literal(settings.tagline)}, accent_color = ${literal(settings.accentColor)}, timezone = ${literal(settings.timezone)}, footer_credit_enabled = ${settings.footerCreditEnabled ? 1 : 0}, widget_allowed_origins = ${literal(settings.widgetAllowedOrigins)}, ai_tone_instructions = ${literal(settings.aiToneInstructions)}, email_branding = ${literal(settings.emailBranding)}, feed_id = ${literal(settings.feedId)}, logo_key = ${literal(settings.logoKey)}, logo_content_type = ${literal(settings.logoContentType)}, updated_at = ${literal(now)} WHERE id = 'default'`);
       // One batch is one transaction: a refused row leaves the page unchanged.
       // The guard fails (json() refuses the text) when the page holds
       // owner records, so a write that lands after the check stops the restore.
@@ -194,8 +196,8 @@ export function createPageExportRepository(binding: D1Database): PageExportRepos
       return rows.results;
     },
     async releaseHeld(subscriberId, now) {
-      const result = await binding.prepare("UPDATE subscribers SET state = 'pending', deactivation_reason = NULL, deactivated_at = NULL, created_at = ?, updated_at = ? WHERE id = ? AND state = 'deactivated' AND deactivation_reason = ? AND channel = 'email'").bind(now, now, subscriberId, HELD_RESTORE_REASON).run();
-      return result.meta.changes === 1;
+      const result = await binding.prepare("UPDATE subscribers SET state = 'pending', deactivation_reason = NULL, deactivated_at = NULL, created_at = ?, updated_at = ? WHERE id = ? AND state = 'deactivated' AND deactivation_reason = ? AND channel = 'email' RETURNING id").bind(now, now, subscriberId, HELD_RESTORE_REASON).first<{ id: string }>();
+      return result?.id === subscriberId;
     },
     async holdAgain(subscriberId, heldAt, releasedAt) {
       await binding.prepare("UPDATE subscribers SET state = 'deactivated', deactivation_reason = ?, deactivated_at = ?, updated_at = ? WHERE id = ? AND state = 'pending' AND created_at = ?").bind(HELD_RESTORE_REASON, heldAt, heldAt, subscriberId, releasedAt).run();

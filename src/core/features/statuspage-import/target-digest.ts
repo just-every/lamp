@@ -5,17 +5,23 @@ import { allMarkers, markerTable, markerWhere, nativeKinds, sealedDefaults, tabl
 /** A full-set fence for every imported native target whose size does not grow
  * with the rows it covers. Each marker (kind, id, revision) and each row an
  * entity owns is rendered to one canonical text, identically in JS and SQL, and
- * hashed as a polynomial over its code points in four independent prime fields
- * (124 bits). The set digest is a count plus a nonlinear sum of item hashes, so
+ * hashed as a polynomial over the hex digits of its UTF-8 bytes in four
+ * independent prime fields (124 bits). Bytes, not characters: SQLite's
+ * length(), substr() and unicode() stop at U+0000, while hex() and a BLOB cast
+ * read every stored byte, as JS's TextEncoder does. The set digest is a count plus a nonlinear sum of item hashes, so
  * any added, removed or edited row, column or marker changes it. D1 has no hash
  * function, so SQL evaluates the same polynomial with integer arithmetic. */
 
 const lanes = [0, 1, 2, 3] as const;
 const P = [2147483647n, 2147483629n, 2147483587n, 2147483579n];
 const B = [1000003n, 999983n, 1000033n, 1299709n];
-// Three code points (< 2^21 each) form one 63-bit unit; units are read in
-// 48-point chunks of 3072-point spans so long text is never rescanned per unit.
-const UNIT = 3, CHUNK = 48, SPAN = 3072;
+// Nine hex digits (< 2^7 each) form one 63-bit unit; units are read in
+// 144-digit chunks of 9216-digit spans so long text is never rescanned per
+// unit. SQL hexes each span's 4608 bytes on its own, so no value outgrows its text.
+const UNIT = 9, CHUNK = 144, SPAN = 9216, SPAN_BYTES = SPAN / 2;
+const DIGIT = 128n, digitWeights = Array.from({ length: UNIT }, (_, index) => DIGIT ** BigInt(UNIT - 1 - index));
+const utf8 = new TextEncoder(), HEX = Array.from({ length: 256 }, (_, byte) => byte.toString(16).toUpperCase().padStart(2, "0"));
+const hexOf = (text: string) => { let hex = ""; for (const byte of utf8.encode(text)) hex += HEX[byte]; return hex; };
 const pow = (base: bigint, exponent: number, modulus: bigint) => { let result = 1n; for (let n = 0; n < exponent; n++) result = result * base % modulus; return result; };
 const chunkWeight = lanes.map((l) => pow(B[l], CHUNK / UNIT, P[l])), spanWeight = lanes.map((l) => pow(B[l], SPAN / UNIT, P[l]));
 
@@ -24,13 +30,13 @@ const name = (value: string) => { if (!/^\w+$/u.test(value)) throw new Error("In
 /** Self-delimiting value text: typeof tag plus content, as SQLite reports it. */
 function encode(value: unknown): string {
   if (value === null) return "n";
-  if (typeof value === "string") return `t${[...value].length}:${value}`;
+  if (typeof value === "string") return `t${utf8.encode(value).length}:${value}`;
   if (typeof value === "number" && Number.isSafeInteger(value)) return `i${value};`;
   // A non-integral number compares by SQLite's own text for it; any mismatch fails closed.
   if (typeof value === "number") return `real:${value};`;
   throw new Error("Unsupported native value.");
 }
-const encodeSql = (x: string) => `CASE typeof(${x}) WHEN 'null' THEN 'n' WHEN 'text' THEN 't'||length(${x})||':'||${x} WHEN 'integer' THEN 'i'||${x}||';' ELSE typeof(${x})||':'||${x}||';' END`;
+const encodeSql = (x: string) => `CASE typeof(${x}) WHEN 'null' THEN 'n' WHEN 'text' THEN 't'||length(CAST(${x} AS BLOB))||':'||${x} WHEN 'integer' THEN 'i'||${x}||';' ELSE typeof(${x})||':'||${x}||';' END`;
 const literal = (value: Row[string]) => value === null ? "NULL" : typeof value === "number" ? String(value) : `'${value.replaceAll("'", "''")}'`;
 
 function columnsOf(table: string, rows: readonly Row[]) {
@@ -53,12 +59,16 @@ function renderRowSql(table: string, columns: string[]) {
 const rowPrefix = (kind: string, table: string) => `r${encode(kind)}${encode(table)}`;
 
 function itemHash(text: string): bigint[] {
-  const points = [...text].map((point) => BigInt(point.codePointAt(0)!));
+  const hex = hexOf(text), units: bigint[] = [];
+  for (let index = 0; index < hex.length; index += UNIT) {
+    let unit = 0n;
+    for (let digit = 0; digit < UNIT; digit++) unit += BigInt(hex.charCodeAt(index + digit) || 0) * digitWeights[digit];
+    units.push(unit);
+  }
   return lanes.map((l) => {
-    let hash = BigInt(points.length) % P[l], weight = 1n;
-    for (let index = 0; index < points.length; index += UNIT) {
+    let hash = BigInt(hex.length) % P[l], weight = 1n;
+    for (const unit of units) {
       weight = weight * B[l] % P[l];
-      const unit = points[index] * 4398046511104n + (points[index + 1] ?? 0n) * 2097152n + (points[index + 2] ?? 0n);
       hash = (hash + unit % P[l] * weight) % P[l];
     }
     return hash;
@@ -79,13 +89,13 @@ function setDigest(texts: string[]) {
 function digestSql(items: string) {
   const each = (f: (l: number) => string) => lanes.map(f).join(",");
   return `(WITH RECURSIVE
-items(k,t) AS MATERIALIZED (SELECT row_number() OVER (),t FROM (${items})),
-spans(s,${each((l) => `w${l}`)}) AS (SELECT 0,1,1,1,1 UNION ALL SELECT s+1,${each((l) => `w${l}*${spanWeight[l]}%${P[l]}`)} FROM spans WHERE (s+1)*${SPAN}<(SELECT max(length(t)) FROM items)),
+items(k,t) AS MATERIALIZED (SELECT row_number() OVER (),CAST(t AS BLOB) FROM (${items})),
+spans(s,${each((l) => `w${l}`)}) AS (SELECT 0,1,1,1,1 UNION ALL SELECT s+1,${each((l) => `w${l}*${spanWeight[l]}%${P[l]}`)} FROM spans WHERE (s+1)*${SPAN_BYTES}<(SELECT max(length(t)) FROM items)),
 chunks(c,${each((l) => `w${l}`)}) AS (SELECT 0,1,1,1,1 UNION ALL SELECT c+1,${each((l) => `w${l}*${chunkWeight[l]}%${P[l]}`)} FROM chunks WHERE c<${SPAN / CHUNK - 1}),
 units(u,${each((l) => `w${l}`)}) AS (SELECT 0,${each((l) => String(B[l]))} UNION ALL SELECT u+1,${each((l) => `w${l}*${B[l]}%${P[l]}`)} FROM units WHERE u<${CHUNK / UNIT - 1}),
-parts(k,${each((l) => `w${l}`)},p) AS MATERIALIZED (SELECT k,${each((l) => `spans.w${l}`)},substr(t,s*${SPAN}+1,${SPAN}) FROM items JOIN spans ON s*${SPAN}<length(t)),
+parts(k,${each((l) => `w${l}`)},p) AS MATERIALIZED (SELECT k,${each((l) => `spans.w${l}`)},hex(substr(t,s*${SPAN_BYTES}+1,${SPAN_BYTES})) FROM items JOIN spans ON s*${SPAN_BYTES}<length(t)),
 pieces(k,${each((l) => `w${l}`)},q) AS MATERIALIZED (SELECT k,${each((l) => `parts.w${l}*chunks.w${l}%${P[l]}`)},substr(p,c*${CHUNK}+1,${CHUNK}) FROM parts JOIN chunks ON c*${CHUNK}<length(p)),
-terms(k,${each((l) => `w${l}`)},v) AS MATERIALIZED (SELECT k,1,1,1,1,length(t) FROM items UNION ALL SELECT k,${each((l) => `pieces.w${l}*units.w${l}%${P[l]}`)},unicode(substr(q,u*${UNIT}+1,1))*4398046511104+coalesce(unicode(substr(q,u*${UNIT}+2,1)),0)*2097152+coalesce(unicode(substr(q,u*${UNIT}+3,1)),0) FROM pieces JOIN units ON u*${UNIT}<length(q)),
+terms(k,${each((l) => `w${l}`)},v) AS MATERIALIZED (SELECT k,1,1,1,1,2*length(t) FROM items UNION ALL SELECT k,${each((l) => `pieces.w${l}*units.w${l}%${P[l]}`)},${digitWeights.map((weight, digit) => `coalesce(unicode(substr(q,u*${UNIT}+${digit + 1},1)),0)*${weight}`).join("+")} FROM pieces JOIN units ON u*${UNIT}<length(q)),
 hashes(${each((l) => `h${l}`)}) AS (SELECT ${each((l) => `sum(v%${P[l]}*w${l}%${P[l]})%${P[l]}`)} FROM terms GROUP BY k)
 SELECT json_array(count(*),${each((l) => `coalesce(sum(h${l}*h${(l + 1) % 4}%${P[l]}+h${l}),0)%${P[l]}`)}) FROM hashes)`;
 }

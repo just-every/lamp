@@ -109,3 +109,6 @@
 .page-data-check { display: grid; gap: 8px; }
 .page-data-counts { display: flex; flex-wrap: wrap; gap: 6px 16px; list-style: none; padding: 0 !important; }
 .page-data-card ul:not(.page-data-counts) { list-style: disc; }
+
+.email-branding-settings > p { max-width: 75ch; }
+.email-branding-settings .settings-grid { margin-top: 20px; }

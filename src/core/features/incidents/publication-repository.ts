@@ -51,7 +51,7 @@ export async function publishIncidentDraft(binding: D1Database, input: IncidentP
   statements.push(
     binding.prepare(`DELETE FROM incident_drafts WHERE id = ?`).bind(input.id),
     binding.prepare(`INSERT INTO audit_entries (id,entity_type,entity_id,action,operator_id,payload_json,created_at,updated_at) VALUES (?,'incident-update',?,'published',?,?,?,?)`)
-      .bind(`${input.id}-audit`,input.id,input.authorOperatorId,JSON.stringify({ incidentId: input.incidentId, publishedAt: input.publishedAt, componentChanges: input.componentChanges }),input.createdAt,input.updatedAt),
+      .bind(`${input.id}-audit`,input.id,input.authorOperatorId,JSON.stringify({ incidentId: input.incidentId, publishedAt: input.publishedAt, correctsUpdateId: input.correctsUpdateId, componentChanges: input.componentChanges }),input.createdAt,input.updatedAt),
     ...recipients,
   );
   await binding.batch(statements);

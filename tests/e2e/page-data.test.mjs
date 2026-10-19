@@ -4,11 +4,13 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { test } from "node:test";
+import { fileURLToPath } from "node:url";
 
 import { legacyApiFixtureSql } from "./fixtures/legacy-api-fixture.mjs";
 import { insertRealOperatorSession } from "./real-session-helper.mjs";
-import { appHost, appOrigin, pageOrigin } from "./helpers/hosts.mjs";
-import { reservePort, waitForWorker } from "./worker-startup.mjs";
+import { appOrigin, pageOrigin } from "./helpers/hosts.mjs";
+import { waitForWorker } from "./worker-startup.mjs";
+import { stopOwnedGroup } from "./owned-process-group.mjs";
 import { fixtureFetch as fetch } from "../public-snapshots/fixture-fetch.mjs";
 import { sessionCookieName } from "../helpers/session-cookie.mjs";
 
@@ -32,37 +34,46 @@ INSERT INTO reference_counters (namespace,last_number) VALUES ('INC',4821) ON CO
 // Both pages share one subscriber signing secret, as a recovery given the original's secrets does.
 const signingSecret = { SUBSCRIBER_TOKEN_SECRET: "test-only-page-data-subscriber-secret-cccccccccccc" };
 
-async function startPage(seedSql, vars = () => signingSecret) {
-  const port = await reservePort({ label: "Page data Worker" });
-  const app = appOrigin(port, vars(`http://${appHost}:${port}`));
+async function startPage(seedSql, vars = signingSecret) {
+  appOrigin(0, vars);
   const state = await mkdtemp(join(tmpdir(), "lamp-page-data-d1-"));
   const cache = await mkdtemp(join(tmpdir(), "lamp-page-data-vite-"));
-  execFileSync("pnpm", ["run", "migrate:local"], { stdio: "pipe", env: { ...process.env, LAMP_WORKERS_STATE_PATH: state } });
-  if (seedSql) execFileSync("pnpm", ["exec", "wrangler", "d1", "execute", "DB", "--local", "--config", resolve("wrangler.jsonc"), "--persist-to", state, "--command", seedSql], { stdio: "pipe" });
-  const server = spawn("pnpm", ["exec", "vite", "--host", "0.0.0.0", "--port", String(port), "--strictPort"], {
-    stdio: "pipe",
-    detached: true,
-    env: { ...process.env, LAMP_DISABLE_INSPECTOR: "true", LAMP_WORKERS_STATE_PATH: state, LAMP_VITE_CACHE_DIR: cache },
-  });
-  let output = "";
-  server.stdout.on("data", (chunk) => { output += String(chunk); });
-  server.stderr.on("data", (chunk) => { output += String(chunk); });
-  await waitForWorker({ origin: app, child: server, output: () => output, label: "Page data Worker" });
-  const session = await insertRealOperatorSession({ persistTo: state });
-  const cookie = `${sessionCookieName(app)}=${session}`;
-  return {
-    page: pageOrigin(port),
-    subscribers: () => JSON.parse(execFileSync("pnpm", ["exec", "wrangler", "d1", "execute", "DB", "--local", "--json", "--config", resolve("wrangler.jsonc"), "--persist-to", state, "--command", "SELECT destination, state, deactivation_reason FROM subscribers ORDER BY destination"], { stdio: "pipe" }).toString())[0].results,
-    request: (path, init = {}) => fetch(`${app}${path}`, { ...init, headers: { Cookie: cookie, Origin: app, ...init.headers } }),
-    async stop() {
-      if (server.pid && server.exitCode === null) {
-        const stopped = new Promise((resolveStopped) => server.once("exit", resolveStopped));
-        try { process.kill(-server.pid, "SIGTERM"); } catch { /* already exited */ }
-        await stopped;
-      }
-      await Promise.all([rm(state, { recursive: true, force: true }), rm(cache, { recursive: true, force: true })]);
-    },
+  let server;
+  const stop = async () => {
+    await stopOwnedGroup(server);
+    await Promise.all([rm(state, { recursive: true, force: true }), rm(cache, { recursive: true, force: true })]);
   };
+  try {
+    execFileSync("pnpm", ["run", "migrate:local"], { stdio: "pipe", env: { ...process.env, LAMP_WORKERS_STATE_PATH: state } });
+    if (seedSql) execFileSync("pnpm", ["exec", "wrangler", "d1", "execute", "DB", "--local", "--config", resolve("wrangler.jsonc"), "--persist-to", state, "--command", seedSql], { stdio: "pipe" });
+    server = spawn(process.execPath, [fileURLToPath(new URL("./page-data-runtime.mjs", import.meta.url)), JSON.stringify(vars)], {
+      stdio: "pipe",
+      detached: true,
+      env: { ...process.env, LAMP_DISABLE_INSPECTOR: "true", LAMP_WORKERS_STATE_PATH: state, LAMP_VITE_CACHE_DIR: cache },
+    });
+    let output = "";
+    let app;
+    const capture = (chunk) => {
+      output += String(chunk);
+      app = output.match(/^LAMP_PAGE_DATA_ORIGIN=(http:\/\/127\.0\.0\.1:\d+)\r?$/m)?.[1];
+    };
+    server.stdout.on("data", capture);
+    server.stderr.on("data", capture);
+    await waitForWorker({ child: server, output: () => output, label: "Page data Worker", isListening: () => Boolean(app), probe: ({ signal }) => fetch(`${app}/health`, { signal }) });
+    const port = new URL(app).port;
+    appOrigin(port, { ...vars, ...(vars.RER_DEV_KEY ? { RER_DEV_ORIGIN: app } : {}) });
+    const session = await insertRealOperatorSession({ persistTo: state });
+    const cookie = `${sessionCookieName(app)}=${session}`;
+    return {
+      page: pageOrigin(port),
+      subscribers: () => JSON.parse(execFileSync("pnpm", ["exec", "wrangler", "d1", "execute", "DB", "--local", "--json", "--config", resolve("wrangler.jsonc"), "--persist-to", state, "--command", "SELECT destination, state, deactivation_reason FROM subscribers ORDER BY destination"], { stdio: "pipe" }).toString())[0].results,
+      request: (path, init = {}) => fetch(`${app}${path}`, { ...init, headers: { Cookie: cookie, Origin: app, ...init.headers } }),
+      stop,
+    };
+  } catch (cause) {
+    await stop();
+    throw cause;
+  }
 }
 
 const json = (body) => ({ method: "POST", body: JSON.stringify(body), headers: { "Content-Type": "application/json", Accept: "application/json" } });
@@ -82,11 +93,16 @@ test("Page data restores verified consent and holds unverified addresses until c
     assert.equal(templateMetadata.status, 200, await templateMetadata.clone().text());
     const impact = await source.request("/api/app/incidents/01J00000000000000000000020/impact", { method: "PUT", body: JSON.stringify({ impactOverride: "minor" }), headers: { "Content-Type": "application/json" } });
     assert.equal(impact.status, 200, await impact.clone().text());
+    const { settings } = await (await source.request("/api/app/page-settings")).json();
+    const input = Object.fromEntries(["pageName","tagline","accentColor","timezone","hostname","footerCreditEnabled","mailFromAddress"].map(key => [key, settings[key]]));
+    const emailBranding = { displayName: "Atlas service updates", replyTo: "help@atlascloud.example", subjectPrefix: "[Atlas]", header: "Service updates", footer: "Atlas Cloud, 100 Market Street", usePageLogo: true };
+    assert.equal((await source.request("/api/app/page-settings", { ...json({ ...input, emailBranding }), method: "PUT" })).status, 200);
     const download = await source.request("/api/app/page-data");
     assert.equal(download.status, 200);
     assert.match(download.headers.get("content-disposition") ?? "", /attachment; filename=lamp-page-data-\d{4}-\d{2}-\d{2}\.json/);
     exported = await download.json();
     assert.equal(exported.format, "lamp-page-data");
+    assert.deepEqual(exported.page.emailBranding, emailBranding);
     assert.equal(exported.page.logo.base64, logo.toString("base64"));
     assert.deepEqual(exported.people.map((person) => person.email), ["former@example.test", "operator@example.test"]);
     const subscribers = Object.fromEntries(exported.records.subscribers.map((row) => [row.destination, row]));
@@ -145,7 +161,7 @@ async function verifyUntrustedPageDataRestore() {
   edited.records.subscribers.push({ ...edited.records.subscribers.find((row) => row.destination === "ops-team@atlascloud.example"), id: "01J00000000000000000000098", destination: "bought-list@example.test", confirmed_at: "2026-09-08T00:05:00.000Z" });
 
   // Local mail lets the owner's send complete; it delivers nothing.
-  const destination = await startPage(null, (origin) => ({ ...signingSecret, RER_DEV_KEY: "test-only-page-data-dev-key-dddddddddddd", RER_DEV_ORIGIN: origin }));
+  const destination = await startPage(null, { ...signingSecret, RER_DEV_KEY: "test-only-page-data-dev-key-dddddddddddd" });
   try {
     const { integrity: _integrity, ...unsigned } = edited;
     assert.equal((await (await destination.request("/api/app/page-data/check", json(unsigned))).json()).check.consent.provenance, "unsigned");

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { emailBrandingSchema } from "../../shared/email-branding";
 
 /**
  * The owner's page data file, `lamp-page-data` version 1 (docs/backups-and-recovery.md).
@@ -76,6 +77,7 @@ export const pageDataFileSchema = z.object({
     footerCreditEnabled: z.boolean(),
     widgetAllowedOrigins: z.array(z.string()).max(50),
     aiToneInstructions: z.string(),
+    emailBranding: emailBrandingSchema.optional(),
     feedId: z.string(),
     logo: z.object({ contentType: z.enum(["image/png", "image/jpeg", "image/webp"]), base64: z.string().max(3_000_000) }).nullable(),
   }).strict(),

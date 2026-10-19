@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { emailBrandingWorkerFlow } from './helpers/email-branding-worker-flow.mjs';
 import { createHash } from 'node:crypto';
 import { test } from 'node:test';
 import { mkdtemp, readdir, readFile, rm } from 'node:fs/promises';
@@ -13,7 +14,7 @@ const require = createRequire(import.meta.url), workerRequire = createRequire(re
 const { Miniflare, convertV4MiniflareOptions } = workerRequire('miniflare');
 const { build } = workerRequire('esbuild');
 
-test('SUB-006 NOTIFY-010 — Managed relay sends sign-in, list and threaded subscriber mail in workerd, queues 429 and exposes rejection', async t => {
+test('SUB-006 NOTIFY-010 NOTIFY-019 — Managed relay sends sign-in, list and threaded subscriber mail in workerd, queues 429 and exposes rejection', async t => {
   const state = await mkdtemp(join(tmpdir(), 'lamp-rer-mail-'));
   let runtime, status = 202;
   const submissions = [];
@@ -64,6 +65,18 @@ test('SUB-006 NOTIFY-010 — Managed relay sends sign-in, list and threaded subs
     const confirmed = await call('/auth/confirm', { token });
     assert.equal(confirmed.status, 303);
     const cookie = confirmed.headers.get('set-cookie').split(';')[0];
+    const { settings: managedSettings } = await (await call('/api/app/page-settings', null, cookie)).json();
+    assert.equal(managedSettings.mailIdentityEditable, false);
+    const managedInput = Object.fromEntries(['pageName','tagline','accentColor','timezone','hostname','footerCreditEnabled','mailFromAddress'].map(key => [key, managedSettings[key]]));
+    const updateManaged = body => runtime.dispatchFetch('https://app.example.test/api/app/page-settings', { method: 'PUT', headers: { Host: 'app.example.test', Origin: 'https://app.example.test', Cookie: cookie, 'Content-Type': 'application/json' }, body: JSON.stringify({ ...managedInput, emailBranding: body }) });
+    assert.equal((await updateManaged({ displayName: 'Unsupported identity' })).status, 400);
+    assert.equal((await updateManaged({ replyTo: 'help@example.test' })).status, 400);
+    assert.equal((await updateManaged({ subjectPrefix: '[Atlas]', header: 'Service updates', footer: 'Atlas Cloud' })).status, 200);
+    const pageData = await (await call('/api/app/page-data', null, cookie)).json();
+    pageData.page.emailBranding.displayName = 'Unsupported identity';
+    const restored = (await (await call('/api/app/page-data/check', pageData, cookie)).json()).check;
+    assert.equal(restored.ok, false);
+    assert.ok(restored.problems.some(problem => problem.includes('Managed mail controls From and Reply-To')));
     const { notificationPublicationStatements } = await load('src/core/features/deliveries/publication.ts');
     await db.batch(notificationPublicationStatements(db, { eventId: '01J00000000000000000000023', eventType: 'incident-update',
       incidentUpdateId: '01J00000000000000000000023', componentIds: ['01J00000000000000000000011'], channels: ['email'], queuedAt: new Date().toISOString() }));
@@ -84,6 +97,8 @@ test('SUB-006 NOTIFY-010 — Managed relay sends sign-in, list and threaded subs
     const notification = submissions.at(-1);
     assert.deepEqual(Object.keys(notification).sort(), ['html', 'listArchive', 'listHelp', 'listId', 'listUnsubscribe', 'listUnsubscribePost', 'messageKey', 'subject', 'text', 'to']);
     assert.equal(notification.listUnsubscribePost, true);
+    assert.ok(notification.subject.startsWith('[Atlas]'));
+    assert.ok(notification.text.includes('Service updates') && notification.text.includes('Atlas Cloud'));
     assert.match(notification.listUnsubscribe, /<https:\/\/status\.example\.test\//);
     assert.equal(notification.to, 'ops-team@atlascloud.example');
     assert.equal(notification.listId, '<status.example.test>');
@@ -123,5 +138,7 @@ test('SUB-006 NOTIFY-010 — Managed relay sends sign-in, list and threaded subs
     const redirects = await (await call('/__test/transport')).json();
     assert.ok(redirects.length > 0);
     assert.ok(redirects.every(mode => mode === 'manual'), 'the actual workerd fetch uses manual redirects');
+    await runtime.dispose(); runtime = undefined;
+    await emailBrandingWorkerFlow({ Miniflare, convertV4MiniflareOptions, script: built.outputFiles[0].text, state });
   } finally { await runtime?.dispose(); await rm(state, { recursive: true, force: true }); }
 });

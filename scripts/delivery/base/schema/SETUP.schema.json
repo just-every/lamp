@@ -104,6 +104,10 @@
         "help": {
           "type": "string"
         },
+        "audience": {
+          "enum": ["owner", "developer"],
+          "description": "Audience inherited by this group's public fields: owner when absent, or developer. An explicit owner field inside a developer group is invalid. This metadata does not change local installer or rer setup visibility."
+        },
         "presentations": {
           "type": "array",
           "items": {
@@ -140,6 +144,10 @@
             "timezone",
             "secret"
           ]
+        },
+        "audience": {
+          "enum": ["owner", "developer"],
+          "description": "Public fields only: owner or developer. When absent, inherit the group's audience, or owner without a group audience. An explicit owner value inside a developer group is invalid. This metadata does not change local installer or rer setup visibility; secret visibility uses ownerVisible and input."
         },
         "required": {
           "type": "boolean"

@@ -45,7 +45,7 @@ test('MOVE-001 Instatus source-first review and Cutover keep provider labels, in
       const directory = resolve('tests/fixtures/instatus', family);
       await page.getByLabel('Saved responses', { exact: true }).setInputFiles((await readdir(directory)).map(name => join(directory, name)));
       await page.getByLabel(/This Instatus page and its history/).check();
-      const reviewing = page.waitForResponse(response => response.url().endsWith('/statuspage-import/preview'));
+      const reviewing = page.waitForResponse(response => response.url() === origin + '/api/operator/import/plan');
       await page.getByRole('button', { name: 'Run dry run', exact: true }).click();
       const reviewed = await reviewing; assert.equal(reviewed.status(), 200, await reviewed.text());
       await page.getByRole('heading', { name: 'Dry run', exact: true }).waitFor();

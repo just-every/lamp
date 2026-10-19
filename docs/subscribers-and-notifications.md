@@ -151,3 +151,29 @@ Reports owed uses the existing report-due policy and the incident's retained
 component-derived peak impact, independently of an operator-set impact override.
 The default policy counts an unpublished report as owed seven days after a
 Partially unavailable or Major outage incident resolves.
+
+## Brand notification email
+
+In Settings → Notification email, set your sender display name, reply-to address,
+subject prefix, and plain-text header and footer. The From address remains your
+configured, authenticated address. You can include a postal address in the footer.
+Management and unsubscribe links and the required List headers are always added.
+Upload a PNG, JPEG or WebP under Brand mark and select Use the uploaded page logo
+in email; the HTML part loads it from your public status host, and the text part
+carries no image reference. Other image URLs are not accepted.
+
+Save Settings, then open an incident's Email preview to check the saved name,
+reply-to, subject, logo and wording. An email already submitted for delivery keeps
+its original branding during retries, even if you change Settings afterwards.
+
+Managed mail controls From and Reply-To, so those two controls are disabled and
+unsupported identity changes are refused. Subject prefixes, the logo and message
+wording remain available. SendGrid and Resend support all these branding settings.
+
+## Subscriber reporting
+
+Open **Subscribers** for current counts by channel and state. Expand **Counts by component** or **Deactivation reasons** for detail. A subscription following every component appears in each component's count, so component counts overlap. Erased destinations are excluded.
+
+Choose a growth month and channel, then **Download CSV** to export the same figures. The month filters the growth record; current counts always describe the present. Adding or removing a subscriber refreshes the figures while keeping the report's filters.
+
+Daily growth measures pending plus active subscriptions: a new pending subscription joins inventory, confirmation does not add it again, and deactivation or erasure leaves inventory. Dates use UTC. Tracking starts with the first subscriber change or report read, from the baseline displayed on the report; earlier daily changes are unknown. The first tracked day and the current day are incomplete. Technical backups retain this anonymous history; restoring an older archive starts a new baseline. Audience and language reporting are not yet available.

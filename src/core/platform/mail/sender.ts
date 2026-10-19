@@ -4,6 +4,7 @@ export interface MailMessage {
   subject: string;
   text: string;
   html?: string;
+  replyTo?: string;
   headers: Record<string, string>;
   /** Stable per recipient/event value. Adapters must enforce idempotence, using provider support or a durable send ledger. */
   idempotencyKey: string;

@@ -14,3 +14,8 @@
 .alert-source-facts dd { min-width: 0; margin: 0; color: var(--ink); font-size: 14px; overflow-wrap: anywhere; }
 .alert-source-facts code { color: var(--ink-2); font-family: var(--mono); font-size: 12.5px; }
 .alert-editor-form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin-top: 20px; }
+
+.grouped-mapping { min-width: 0; margin: 0; padding: 16px; border: 1px solid var(--border); border-radius: 8px; }
+.grouped-mapping .form-label + .form-label { margin-top: 12px; }
+
+.grouped-source-card .form-actions button { min-width: 0; max-width: 100%; height: auto; min-height: 44px; white-space: normal; overflow-wrap: anywhere; }

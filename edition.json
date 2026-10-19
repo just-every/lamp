@@ -348,37 +348,25 @@
         "kind": "local",
         "paths": [
           "modules/import-kit/src/door/authority.ts",
-          "modules/import-kit/src/door/index.ts",
-          "modules/import-kit/src/door/planning.ts",
           "modules/import-kit/src/door/types.ts"
         ],
         "origin": {
           "repository": "https://github.com/runeditrun/base.git",
-          "revision": "0ed18342a1ca240f1ae698bb50e18385b6f509ec",
+          "revision": "3478fc15bb18c2f74def8e8906bd308320c7953b",
           "path": ".",
           "paths": [
             "modules/import-kit/src/door/authority.ts",
-            "modules/import-kit/src/door/index.ts",
-            "modules/import-kit/src/door/planning.ts",
             "modules/import-kit/src/door/types.ts"
           ]
         },
         "mappings": [
           {
-            "path": "modules/import-kit/src/door/index.ts",
-            "originPath": "modules/import-kit/src/door/index.ts"
-          },
-          {
-            "path": "modules/import-kit/src/door/planning.ts",
-            "originPath": "modules/import-kit/src/door/planning.ts"
+            "path": "modules/import-kit/src/door/authority.ts",
+            "originPath": "modules/import-kit/src/door/authority.ts"
           },
           {
             "path": "modules/import-kit/src/door/types.ts",
             "originPath": "modules/import-kit/src/door/types.ts"
-          },
-          {
-            "path": "modules/import-kit/src/door/authority.ts",
-            "originPath": "modules/import-kit/src/door/authority.ts"
           }
         ]
       }

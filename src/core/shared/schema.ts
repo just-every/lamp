@@ -36,6 +36,7 @@ export const pageSettings = sqliteTable("page_settings", {
   logoContentType: text("logo_content_type"),
   widgetAllowedOrigins: text("widget_allowed_origins").notNull().default("[]"),
   mailFromAddress: text("mail_from_address").notNull().default(""),
+  emailBranding: text("email_branding").notNull().default("{}"),
   aiToneInstructions: text("ai_tone_instructions").notNull().default(""),
   wordingBlockedTerms: text("wording_blocked_terms").notNull().default("[]"),
   wordingFriendlyLength: integer("wording_friendly_length").notNull().default(160),

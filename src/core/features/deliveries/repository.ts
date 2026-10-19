@@ -334,10 +334,10 @@ export function createDeliveryRepository(binding: D1Database): DeliveryRepositor
     },
     async deactivateSubscriber(subscriberId, reason, now) {
       const result = await binding.batch([
-        binding.prepare("UPDATE subscribers SET state = 'deactivated', deactivation_reason = ?, deactivated_at = ?, updated_at = ? WHERE id = ? AND state = 'active'").bind(reason, now, now, subscriberId),
+        binding.prepare("UPDATE subscribers SET state = 'deactivated', deactivation_reason = ?, deactivated_at = ?, updated_at = ? WHERE id = ? AND state = 'active' RETURNING id").bind(reason, now, now, subscriberId),
         binding.prepare("UPDATE subscriber_tokens SET revoked_at = ?, updated_at = ? WHERE subscriber_id = ? AND revoked_at IS NULL").bind(now, now, subscriberId),
       ]);
-      return result[0]?.meta.changes === 1;
+      return result[0]?.results.length === 1;
     },
     async getIncidentWebhookPayload(incidentId, updateId, eventId) {
       const incident = await binding.prepare("SELECT reference, title FROM incidents WHERE id = ?").bind(incidentId).first<{ reference: string; title: string }>();

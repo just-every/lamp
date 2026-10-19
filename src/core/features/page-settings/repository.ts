@@ -8,7 +8,7 @@ export type StoredPageSettings = typeof pageSettings.$inferSelect;
 export interface PageSettingsRepository {
   get(): Promise<StoredPageSettings | null>;
   insertIfMissing(settings: typeof pageSettings.$inferInsert): Promise<void>;
-  update(settings: Pick<StoredPageSettings, "pageName" | "tagline" | "accentColor" | "timezone" | "hostname" | "footerCreditEnabled" | "widgetAllowedOrigins" | "mailFromAddress" | "aiToneInstructions" | "wordingBlockedTerms" | "wordingFriendlyLength" | "updatedAt">): Promise<void>;
+  update(settings: Pick<StoredPageSettings, "pageName" | "tagline" | "accentColor" | "timezone" | "hostname" | "footerCreditEnabled" | "widgetAllowedOrigins" | "mailFromAddress" | "emailBranding" | "aiToneInstructions" | "wordingBlockedTerms" | "wordingFriendlyLength" | "updatedAt">): Promise<void>;
   updateLogo(input: Pick<StoredPageSettings, "logoKey" | "logoContentType" | "updatedAt">): Promise<void>;
 }
 

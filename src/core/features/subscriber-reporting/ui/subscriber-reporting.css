@@ -1,0 +1,20 @@
+.subscriber-reporting { display: grid; gap: 16px; min-width: 0; }
+.subscriber-reporting .card-heading { flex-wrap: wrap; gap: 12px; }
+.subscriber-reporting :is(p, h2, h3) { margin: 0; }
+.subscriber-reporting details > :not(summary) { margin-top: 12px; }
+.subscriber-reporting :is(label, input, select, details) { min-width: 0; max-width: 100%; }
+.subscriber-reporting p { overflow-wrap: anywhere; }
+.subscriber-reporting table { min-width: 0; }
+.subscriber-reporting :is(th, td) { overflow-wrap: anywhere; }
+.subscriber-reporting-current { table-layout: fixed; }
+
+@media (max-width: 620px) {
+  .subscriber-reporting .table-scroll { overflow: visible; contain: none; }
+  .subscriber-reporting .subscriber-webhook-form { grid-template-columns: minmax(0, 1fr); }
+  .subscriber-reporting :is(th, td) { padding: 12px 6px; }
+  .subscriber-reporting-stack thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+  .subscriber-reporting-stack :is(tbody, tr) { display: grid; }
+  .subscriber-reporting-stack tr { padding: 12px 0; border-top: 1px solid var(--line); }
+  .subscriber-reporting-stack td { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; padding: 6px 0; border: 0; }
+  .subscriber-reporting-stack td::before { content: attr(data-label); color: var(--ink-3); font-size: 12px; }
+}

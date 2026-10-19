@@ -85,3 +85,26 @@
   .operator-actions { justify-content: flex-start; }
   :where(input:not(.lamp-home *), select:not(.lamp-home *), textarea:not(.lamp-home *)) { font-size: 16px; }
 }
+
+/* Phone operators need the same reachable controls as the desktop desk. */
+@media (max-width: 620px) {
+  .operator-shell :is(button, select, summary, .operator-nav-link, .back-link, .text-link, .checkbox-label) { min-height: 44px; }
+  .operator-shell :is(.icon-button, .copy-button) { min-width: 44px; }
+  .operator-shell :is(.back-link, .text-link) { align-items: center; }
+  .operator-shell .checkbox-label { padding-block: 10px; }
+  .operator-shell :is(.component-fact, .incident-workspace-heading, .maintenance-row) { overflow-wrap: anywhere; }
+  .operator-shell .brief-columns { grid-template-columns: minmax(0, 1fr); }
+  .signin-page :is(button, .button) { min-height: 44px; }
+}
+
+@media (max-width: 620px) {
+  /* The draft action must be reachable without swiping a receipt table. */
+  .receipt-card .table-scroll { overflow: visible; }
+  .receipt-card table { min-width: 0; }
+  .receipt-card thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+  .receipt-card tbody, .receipt-card tr { display: grid; }
+  .receipt-card tr { padding: 12px 0; border-top: 1px solid var(--line); }
+  .receipt-card td { display: grid; grid-template-columns: 72px minmax(0, 1fr); align-items: center; gap: 12px; padding: 6px 0; border: 0; overflow-wrap: anywhere; }
+  .receipt-card td::before { content: attr(data-label); color: var(--ink-3); font-size: 12px; }
+  .receipt-card td[colspan] { display: block; }
+}

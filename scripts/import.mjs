@@ -78,6 +78,21 @@ async function main() {
       const sql = `INSERT INTO ${quotedIdentifier(table.name)} (${columns.map(quotedIdentifier).join(", ")}) VALUES (${columns.map(() => "?").join(", ")})`;
       for (const row of table.rows) statements.push(platform.env.DB.prepare(sql).bind(...columns.map((column) => row[column])));
     }
+    // Older archives predate anonymous subscriber trend facts. Begin a fresh
+    // baseline at restore time; creation dates cannot reconstruct past changes.
+    if (!tables.some(table => table.name === "subscriber_reporting_tracking")) {
+      statements.push(
+        platform.env.DB.prepare("DELETE FROM subscriber_reporting_daily"),
+        platform.env.DB.prepare("DELETE FROM subscriber_reporting_baseline"),
+        platform.env.DB.prepare(`INSERT INTO subscriber_reporting_baseline
+          SELECT channels.channel, COUNT(s.id)
+          FROM (SELECT 'email' AS channel UNION ALL SELECT 'webhook') channels
+          LEFT JOIN subscribers s ON s.channel = channels.channel
+            AND s.state IN ('pending', 'active') AND s.destination NOT LIKE 'deleted:%'
+          GROUP BY channels.channel`),
+        platform.env.DB.prepare("INSERT INTO subscriber_reporting_tracking(id, started_at) VALUES (1, strftime('%Y-%m-%dT%H:%M:%fZ', 'now')) ON CONFLICT(id) DO UPDATE SET started_at = excluded.started_at"),
+      );
+    }
     statements.push(...triggers.map((trigger) => platform.env.DB.prepare(trigger.sql)));
     await platform.env.DB.batch(statements);
     for (const object of manifest.objects) {
