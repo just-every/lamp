@@ -377,7 +377,9 @@ Operators download, per component and for any month or quarter, an availability 
 
 Acceptance: the report for a fixture month equals the page's figures for the same window to two decimal places, and lists every incident whose claims fall in that window.
 
-Status: **missing**.
+**Current evidence and future obligations (19 October 2026):** every current component has operator-only CSV/PDF exports for UTC calendar months and quarters, with the same aggregate state-history, correction and weighting policy as the public page. Bounds are start-inclusive/end-exclusive; current periods count elapsed tracked time, future periods and absent history say No data. Configured tracking dates retain the page's timezone. Total minutes are labelled weighted downtime; maintenance's zero weight follows the page, while all overlapping scheduled/cancelled/completed windows retain their state labels. Incident membership follows retained component claim intervals, including claims masked by a higher-severity incident; older imported incidents use their retained public attachments/history. There is no linked measured uptime yet: UPTIME-007/COMP-008 must add measured figures to these exports before that evidence ships. AUD-003 must add sharing on the selected audience's private page before audience sharing ships; the operator download does not claim private-page sharing today.
+
+Status: **done** — `src/core/features/availability-reports/`, `src/core/features/public-snapshot/uptime.ts`, UPTIME-009 in `tests/e2e/publishing-contract.test.mjs`, `tests/e2e/helpers/availability-report-flow.mjs` and `tests/e2e/helpers/availability-report-browser-flow.mjs`. Month/quarter bounds, weighted overlap/correction/maintenance parity, complete incident membership, no-data coverage, authenticated CSV/PDF downloads and 1440/390 operator journeys are exercised.
 
 ### Incidents — target
 
@@ -1089,15 +1091,15 @@ What Lamp does not do, and how a buyer gets it:
 
 ## Status
 
-Judged from the code and tests at commit `5848c133e34c6eba316b60aa490af56a3584ea14` (19 October 2026).
+Baseline judged from code and tests at commit `5848c133e34c6eba316b60aa490af56a3584ea14` (19 October 2026). INTAKE-008 and UPTIME-009 include the subsequent named API/browser journeys below.
 
-AGENT-004, AGENT-005 and INTAKE-008 are proven by their named API and browser journeys below.
+AGENT-004, AGENT-005, INTAKE-008 and UPTIME-009 are proven by their named API and browser journeys below.
 
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
 | Published | 104 | 0 | 0 | 104 |
-| Target and push further | 14 | 37 | 43 | 94 |
-| All | 118 | 37 | 43 | 198 |
+| Target and push further | 15 | 37 | 42 | 94 |
+| All | 119 | 37 | 42 | 198 |
 
 | Clause | Title | Kind | Status | Evidence | Gap |
 | --- | --- | --- | --- | --- | --- |
@@ -1147,7 +1149,7 @@ AGENT-004, AGENT-005 and INTAKE-008 are proven by their named API and browser jo
 | `UPTIME-006` | Daily record | published | done | `tests/e2e/public-contract.test.mjs` |  |
 | `UPTIME-007` | Measured uptime bars | target | missing |  | Not built. |
 | `UPTIME-008` | Public performance metrics | target | missing |  | Not built. |
-| `UPTIME-009` | Availability reports | target | missing |  | Not built. |
+| `UPTIME-009` | Availability reports | target | done | `src/core/features/availability-reports/`, `src/core/features/public-snapshot/uptime.ts`, `tests/e2e/publishing-contract.test.mjs`, `tests/e2e/helpers/availability-report-flow.mjs`, `tests/e2e/helpers/availability-report-browser-flow.mjs` |  |
 | `INCIDENT-001` | Lifecycle | published | done | `tests/e2e/publishing-browser.test.mjs`, `tests/e2e/publishing-contract.test.mjs` |  |
 | `INCIDENT-002` | Impact | published | done | `tests/e2e/publishing-contract.test.mjs` |  |
 | `INCIDENT-003` | Reference | published | done | `tests/e2e/publishing-contract.test.mjs`, `tests/reference-storage/references.test.mjs` |  |

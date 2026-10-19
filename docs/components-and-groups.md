@@ -42,3 +42,17 @@ the form lists the optional headers. Quote descriptions containing commas,
 quotes or newlines. Rows without an ID add components; rows naming an existing
 ID change it. Existing components stay unless an identified row says
 `action=delete`. New group names create groups. Review before applying.
+
+## Download availability reports
+
+In **Components → Availability report**, choose a component and a UTC calendar
+month or quarter, then **Download CSV** or **Download PDF**. Each report lists
+claimed uptime, weighted downtime minutes, incidents whose component claims
+intersect the period, and maintenance windows with their recorded states.
+
+The percentage uses the public page's state-history weights and corrections.
+Maintenance has zero downtime weight. Current periods stop at the report time;
+future time and time before tracking began are not counted. No history is
+reported as **No data**. A configured uptime start date uses the page's timezone,
+while the report period's boundaries are UTC. Monitor-measured figures and
+private audience sharing are not available yet.

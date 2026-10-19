@@ -20,23 +20,24 @@ function reportingDays(windowStart: number, now: number, timezone: string) {
   return days;
 }
 
-export function computeUptime(source: Pick<PublicSnapshotSource, "history" | "corrections">, componentId: string, now: number, timezone: string, policies: PublicSnapshotPolicies, startDate: string | null = null): Uptime {
+export function computeUptime(source: Pick<PublicSnapshotSource, "history" | "corrections">, componentId: string, now: number, timezone: string, policies: PublicSnapshotPolicies, startDate: string | null = null, window?: { startsAt: number; endsAt: number }): Uptime {
+  const windowEnd = window?.endsAt ?? now;
   const events = source.history.filter((entry) => entry.componentId === componentId && entry.causeType !== "correction").sort((left, right) => left.changedAt.localeCompare(right.changedAt) || left.createdAt.localeCompare(right.createdAt) || (left.id ?? "").localeCompare(right.id ?? ""));
   const corrections = source.corrections.filter((entry) => entry.componentId === componentId).sort((left, right) => left.createdAt.localeCompare(right.createdAt));
-  const windowStart = now - REPORTING_DAYS * DAY;
+  const windowStart = window?.startsAt ?? now - REPORTING_DAYS * DAY;
   const configuredStart = startDate ? localMidnight(startDate, timezone) : Number.NEGATIVE_INFINITY;
-  const days = reportingDays(windowStart, now, timezone);
+  const days = reportingDays(windowStart, window ? windowEnd - 1 : now, timezone);
   const marks = days.map(({ day }) => ({ day, downtimeMinutes: null as number | null }));
   const earliest = Math.min(...events.map((event) => new Date(event.changedAt).getTime()), ...corrections.map((correction) => new Date(correction.startsAt).getTime()));
   if (!Number.isFinite(earliest)) return { percentage: null, trackingSince: null, coverageDays: 0, marks };
   const coverageStart = Math.max(windowStart, earliest, configuredStart);
-  const coverageMinutes = Math.max(0, (now - coverageStart) / MINUTE);
+  const coverageMinutes = Math.max(0, (windowEnd - coverageStart) / MINUTE);
   if (coverageMinutes <= 0) return { percentage: null, trackingSince: new Date(Math.max(earliest, configuredStart)).toISOString(), coverageDays: 0, marks };
 
-  const boundaries = new Set<number>([coverageStart, now]);
+  const boundaries = new Set<number>([coverageStart, windowEnd]);
   for (const event of events) boundaries.add(new Date(event.changedAt).getTime());
   for (const correction of corrections) { boundaries.add(new Date(correction.startsAt).getTime()); boundaries.add(new Date(correction.endsAt).getTime()); }
-  const segments = [...boundaries].filter((instant) => instant >= coverageStart && instant <= now).sort((left, right) => left - right);
+  const segments = [...boundaries].filter((instant) => instant >= coverageStart && instant <= windowEnd).sort((left, right) => left - right);
   let weightedDowntime = 0;
   for (let index = 0; index < segments.length - 1; index += 1) {
     const [segmentStart, segmentEnd] = [segments[index]!, segments[index + 1]!];
@@ -53,7 +54,7 @@ export function computeUptime(source: Pick<PublicSnapshotSource, "history" | "co
     }
   }
   for (let day = 0; day < days.length; day += 1) {
-    if (days[day]!.endsAt <= coverageStart || days[day]!.startsAt >= now) marks[day]!.downtimeMinutes = null;
+    if (days[day]!.endsAt <= coverageStart || days[day]!.startsAt >= windowEnd) marks[day]!.downtimeMinutes = null;
     else if (marks[day]!.downtimeMinutes === null) marks[day]!.downtimeMinutes = 0;
   }
   const percentage = Math.floor((100 - (weightedDowntime / coverageMinutes) * 100) * 100) / 100;

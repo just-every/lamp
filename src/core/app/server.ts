@@ -1,3 +1,4 @@
+import { registerAvailabilityReportRoutes } from "../features/availability-reports";
 import { createSubscriberReportingRepository, createSubscriberReportingService, registerSubscriberReportingRoutes } from "../features/subscriber-reporting";
 import { registerCommunicationPerformanceRoutes } from "../features/communication-performance";
 import { registerAuditLogRoutes } from "../features/audit-log/routes";
@@ -67,6 +68,7 @@ export function createApp(bindings: AppBindings, execution?: MailExecution) {
   registerAuditLogRoutes(app, createAuditLogRepository(bindings.DB));
   registerSubscriberReportingRoutes(app, createSubscriberReportingService(createSubscriberReportingRepository(bindings.DB)));
   registerCommunicationPerformanceRoutes(app, services.communicationPerformance);
+  registerAvailabilityReportRoutes(app, services.availabilityReports);
   registerCatalogueRoutes(app, services.componentCatalogue);
   registerComponentRoutes(app, services.components);
   registerIncidentRoutes(app, services.incidents, { hasChatChannels: async () => (await services.channels.list()).length > 0, wordingChecks: async () => { const settings = await services.pageSettings.get(); if (!settings) throw new Error("Page settings are not configured."); return { blockedTerms: settings.wordingBlockedTerms, friendlyLength: settings.wordingFriendlyLength }; } });

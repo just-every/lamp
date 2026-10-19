@@ -1,3 +1,4 @@
+import { createAvailabilityReportRepository, createAvailabilityReportService } from "../features/availability-reports";
 import { createCommunicationPerformanceRepository, createCommunicationPerformanceService } from "../features/communication-performance";
 import { createIncidentImpactRepository, createIncidentImpactService } from "../features/incident-impact";
 import { brandEmail } from "../shared/email-branding";
@@ -124,6 +125,7 @@ export function createAppServices(bindings: AppBindings, blobs: BlobStore, execu
       subscriberDeactivated: extensions.events.subscriberDeactivated,
     },
   });
+  const availabilityReports = createAvailabilityReportService(createAvailabilityReportRepository(bindings.DB), extensions.publicSnapshotPolicies);
   const communicationPerformance = createCommunicationPerformanceService(createCommunicationPerformanceRepository(bindings.DB), extensions.postmortemDuePolicy);
   const briefs = createBriefService(createBriefRepository(bindings.DB));
   const reports = createReportsService(createReportRepository(bindings.DB), publicSnapshots.rebuild, extensions.postmortemDuePolicy, {
@@ -174,7 +176,7 @@ export function createAppServices(bindings: AppBindings, blobs: BlobStore, execu
     sendConfirmation: async (subscriberId) => subscribers.inviteImported(subscriberId, await importPublicOrigin(), (await pageSettings.get())?.pageName ?? "This status page", async () => true),
   });
 
-  return { auth, operators, communicationPerformance, incidentImpact, pageSettings, pageExport, components, componentCatalogue, incidents, maintenance, subscribers, deliveries, reports, intake, briefs, ai, overview, updateReminders, publicSnapshots, statuspageImport, channels };
+  return { auth, operators, availabilityReports, communicationPerformance, incidentImpact, pageSettings, pageExport, components, componentCatalogue, incidents, maintenance, subscribers, deliveries, reports, intake, briefs, ai, overview, updateReminders, publicSnapshots, statuspageImport, channels };
 }
 
 export type AppServices = ReturnType<typeof createAppServices>;

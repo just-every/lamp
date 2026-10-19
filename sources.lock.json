@@ -474,7 +474,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "99f5634cbad24522fd62235ab0e2ebf316b8ff4343c1226b9bc35d7f80fd74cf",
+      "sha256": "4d805d0e681e265b63075cc3548cf43eb707174cc688b0efa0dbc09d7d5b1b22",
       "executable": false
     },
     "AGENTS.md": {
@@ -522,7 +522,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "d9c4571b82764625498961cfd5f2144d6b1e0bcb82a7de439e4c744ce2b454b4",
+      "sha256": "848e45a8d1a297c3a1487401d4e12e706d6dedbad8f07bd29f75110b554f0b18",
       "executable": false
     },
     "DEMO.md": {
@@ -558,11 +558,11 @@
       "executable": false
     },
     "docs/CLAIMS.md": {
-      "sha256": "a2acc264ac244eda031d87eaebe9f26fedd7f4879b05f52b2acac04d9746aa7e",
+      "sha256": "a89ba86047dfdc60a850ab667a9142aafa76679f22c850863c8ddb9605ab512d",
       "executable": false
     },
     "docs/components-and-groups.md": {
-      "sha256": "0a55e0d5fef041cd3b90daf497b80d08d99524da046240206796ac12610c02bc",
+      "sha256": "c765490751f77742d2fc4bc8aa62fac7c2038de0f2e3988562652382a6b0fe00",
       "executable": false
     },
     "docs/deploy.md": {
@@ -2990,11 +2990,11 @@
       "executable": false
     },
     "src/core/app/server.ts": {
-      "sha256": "c635de46acab520ef29f92fc0426c470fa0190aa219121be18ac113b7fa59e18",
+      "sha256": "1926d833096768d03d6788bdf0222e2803fcdfe73a06581a26f1db55eea1391e",
       "executable": false
     },
     "src/core/app/services.ts": {
-      "sha256": "0fca3feaeddcf4c01d4174929cca5f79500498e3159c1fbfa3d2af015d83908c",
+      "sha256": "2caf7e5bf6e672ba7a233d5ab5ebcf663f26b773b013a4650bf3294f9fe6b80e",
       "executable": false
     },
     "src/core/app/types.ts": {
@@ -3035,6 +3035,46 @@
     },
     "src/core/features/audit-log/ui/audit-log.tsx": {
       "sha256": "915a88f10ec3658dfdbd1e08f572b5ba4022ac4fedfe2b0e73f46ae919db54f6",
+      "executable": false
+    },
+    "src/core/features/availability-reports/csv.ts": {
+      "sha256": "2cf642f86f5fcf7ce6a8c9c96e1182e43def25c8dba1be2d8e25731c053f6699",
+      "executable": false
+    },
+    "src/core/features/availability-reports/index.ts": {
+      "sha256": "2209b78d2c6f28c2b033760537d7b7d2f1b3eefa7d4b11dbbfa351bb0f78b4af",
+      "executable": false
+    },
+    "src/core/features/availability-reports/pdf.ts": {
+      "sha256": "f246c33559398d45ba8db6c83da8848ec0ef84660967cf0de02d6f9ba6d202c0",
+      "executable": false
+    },
+    "src/core/features/availability-reports/period.ts": {
+      "sha256": "84f5d880b34a8cece21435e0515f7fd8f206326c336b795153078c8309b270e6",
+      "executable": false
+    },
+    "src/core/features/availability-reports/repository.ts": {
+      "sha256": "17dca72be80a29d8ebcd3e1ce8e8a10b780c284fa76ab1d874fc81ffd8ce4e29",
+      "executable": false
+    },
+    "src/core/features/availability-reports/routes.ts": {
+      "sha256": "223589cb43b709c0e2b0cdf12bb1fcebffd8789dbc58850ec28e1b1601f57229",
+      "executable": false
+    },
+    "src/core/features/availability-reports/service.ts": {
+      "sha256": "506442c30161a2aa9a60b813dc85fbe1e9ca233f5357aaef119f09df059c4c82",
+      "executable": false
+    },
+    "src/core/features/availability-reports/types.ts": {
+      "sha256": "1361dbf27fb3127e7bdf0cf79fca1cf74ae9a3e200d3b08465d3ba33598282ef",
+      "executable": false
+    },
+    "src/core/features/availability-reports/ui/availability-report.css": {
+      "sha256": "f8fe6104a993f98737b6a009a32573642cc7ddd3c60ee3e078e1b023e0cde6aa",
+      "executable": false
+    },
+    "src/core/features/availability-reports/ui/availability-report.tsx": {
+      "sha256": "26bcfc4fabc24fe2de1bf8e5275c66fd431214c9a12f98293b27eefe7c0919ae",
       "executable": false
     },
     "src/core/features/brief/build.ts": {
@@ -3234,7 +3274,7 @@
       "executable": false
     },
     "src/core/features/components/ui/components-page.tsx": {
-      "sha256": "7ce86afe7bc3e69fb34f561f608bed742231ea4e1b30b91893b2e75af8f0532e",
+      "sha256": "a59f3b57471795e51929a53ef40b38312e68e1933553c61c160d33cc688c7059",
       "executable": false
     },
     "src/core/features/deliveries/events.ts": {
@@ -3810,7 +3850,7 @@
       "executable": false
     },
     "src/core/features/public-snapshot/uptime.ts": {
-      "sha256": "9d3b06fd425857ccf530c26eeb872d344d67e5738e4130e4efdda41b80cb8568",
+      "sha256": "275ffb323aa4534c8b9590063a34c3488218f52208d6d21b879e90b2a45283d6",
       "executable": false
     },
     "src/core/features/public-snapshot/widget-runtime.js": {
@@ -5314,7 +5354,7 @@
       "executable": false
     },
     "tests/e2e/channels-and-presets.test.mjs": {
-      "sha256": "93bb10dfb4e873bdebe99b1f0a52002b8836f41c922713fde0c77a04d8999d01",
+      "sha256": "9af4c12c2727b91b26e088ec5dcd12eac8b9fa1169c201cbb841a42083da53d4",
       "executable": false
     },
     "tests/e2e/composer-visit-regression.mjs": {
@@ -5379,6 +5419,14 @@
     },
     "tests/e2e/helpers/audit-log-flow.mjs": {
       "sha256": "86afa96d2c8ec4fe519f8bf5ffa473c2ec05557b5535e8abca8f94f292d0c188",
+      "executable": false
+    },
+    "tests/e2e/helpers/availability-report-browser-flow.mjs": {
+      "sha256": "3eea41e17f6fe79eb8a65e58f8f0930575ff182a26abe177995b1775ddf37b14",
+      "executable": false
+    },
+    "tests/e2e/helpers/availability-report-flow.mjs": {
+      "sha256": "4f69298cac5a9cf7b75bd33ff3f4f0603cbe0c30b9cb937a0e82961529b5fdbf",
       "executable": false
     },
     "tests/e2e/helpers/catalogue-history-flow.mjs": {
@@ -5542,7 +5590,7 @@
       "executable": false
     },
     "tests/e2e/publishing-contract.test.mjs": {
-      "sha256": "e79d20dc40b53d2114ba28a23060ce3c6fc18ef3623e6f6e23fdbb5e54ab9ee0",
+      "sha256": "e10d30f8e556c8eacf278aa6ea78ddcf4df7bfdcf4a56a9c6bb59bc4ff2e3d56",
       "executable": false
     },
     "tests/e2e/queue-outage.test.mjs": {

@@ -1,3 +1,4 @@
+import { AvailabilityReport } from "../../availability-reports/ui/availability-report";
 import { useState } from "react";
 
 import type { ComponentsService } from "../service";
@@ -64,6 +65,7 @@ export function ComponentsPage() {
     {moveError ? <FormError>{moveError}</FormError> : null}
     <section className="limit-note"><Icon name="warning" width={17} height={17} />Published incident and maintenance updates retain a removed component’s recorded name. A state correction appends history and records its reason.</section>
     {groups.length ? <section className="component-groups">{groups.map((group) => <ComponentGroupCard key={group.key} group={group} moving={moving} onMoveComponent={moveComponent} onMoveGroup={moveGroup} firstGroup={data.groups[0]?.id === group.group?.id} lastGroup={data.groups.at(-1)?.id === group.group?.id} onCreateComponent={() => setComponentPanel({ kind: "create-component", groupId: group.group?.id ?? null })} onEditGroup={() => group.group && setGroupPanel({ kind: "edit-group", group: group.group })} onEditComponent={(component) => setComponentPanel({ kind: "edit-component", component })} onStandingClaim={(component) => setComponentPanel({ kind: "standing-claim", component })} onHistory={(component) => setComponentPanel({ kind: "history", component })} />)}</section> : <EmptyState>No components are configured. Add the first component before creating an incident.</EmptyState>}
+    <AvailabilityReport components={data.components} />
     {bulkOpen && <CatalogueDrawer onClose={() => setBulkOpen(false)} onSaved={() => { setBulkOpen(false); refresh(); }} />}
     {componentPanel?.kind === "create-component" && <ComponentEditorDrawer component={null} groups={data.groups} defaultGroupId={componentPanel.groupId} defaultDisplayOrder={nextComponentOrder} onClose={() => setComponentPanel(null)} onSaved={closeAndRefresh} />}
     {componentPanel?.kind === "edit-component" && <ComponentEditorDrawer component={componentPanel.component} groups={data.groups} defaultDisplayOrder={nextComponentOrder} onClose={() => setComponentPanel(null)} onSaved={closeAndRefresh} />}

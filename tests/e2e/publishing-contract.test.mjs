@@ -1,3 +1,4 @@
+import { availabilityReportFlow } from "./helpers/availability-report-flow.mjs";
 import { communicationPerformanceFlow } from "./helpers/communication-performance-flow.mjs";
 import { incidentImpactFlow } from "./helpers/incident-impact-flow.mjs";
 import { importedTemplateApplyFlow } from "./helpers/imported-template-apply-flow.mjs";
@@ -386,7 +387,7 @@ test("UPDATE-001 UPDATE-008 UPDATE-002 UPDATE-003 UPDATE-011 UPDATE-012 UPDATE-0
 
 
 
-test("UPDATE-005 UPDATE-006 UPDATE-007 — Private drafts, scheduled publication and independent review", async t => {
+test("UPDATE-005 UPDATE-006 UPDATE-007 UPTIME-009 — Private drafts, scheduled publication and independent review", async t => {
   t.diagnostic("UPDATE-005 — a private saved draft survives an operator reload without appearing in the public snapshot");
   await (async () => {
   const incident = await createIncident("Private draft persistence");
@@ -427,6 +428,8 @@ test("UPDATE-005 UPDATE-006 UPDATE-007 — Private drafts, scheduled publication
     await reviewUpdateFlow({ vite: loader, bindings: platform.env });
     t.diagnostic("NOTIFY-015 HIST-005 — committed subscriber reach and monthly communication promises use retained facts");
     await communicationPerformanceFlow({ vite: loader, bindings: platform.env });
+    t.diagnostic("UPTIME-009 — month and quarter exports match public uptime math and retain all overlapping claims");
+    await availabilityReportFlow({ vite: loader, bindings: platform.env, appFetch });
   }
   finally { await platform.dispose(); await loader.close(); }
 })(t);
