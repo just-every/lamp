@@ -494,7 +494,7 @@
       "executable": false
     },
     "CHANGELOG.md": {
-      "sha256": "457f1502d407b56a26857beeac12af22343c66a747b62ee74581261bfe3d7818",
+      "sha256": "be8eda9aa69a933e398dd9bad2efc87ddd2157fcd61d47955ab0433a8e606881",
       "executable": false
     },
     "CLAUDE.md": {
@@ -586,7 +586,7 @@
       "executable": false
     },
     "docs/install.md": {
-      "sha256": "88b7bf39d9f78795bc8b65cf694423e55baba8fcb1407ef9aaaa83a23d4b80d2",
+      "sha256": "d4e103b638cc0cc88107cde2eb6cb77577bc3c92502fa59babde69d7c07296bc",
       "executable": false
     },
     "docs/maintenance.md": {
@@ -2086,7 +2086,7 @@
       "executable": false
     },
     "package.json": {
-      "sha256": "99c865b4d35f9b1b1c269d8297a4ed57814f048870b2c94c4302ba5514f2cdf0",
+      "sha256": "18a5bc587609c572a7e6af9d90186bda7c03656118bd567b52903b97d54e7b46",
       "executable": false
     },
     "pnpm-lock.yaml": {
@@ -2114,7 +2114,7 @@
       "executable": false
     },
     "README.md": {
-      "sha256": "0ad767cb75892776f28a25db25987d95d073f236131f57895c1b79b7107b3d96",
+      "sha256": "dbfc17c818f510bbb5b9f5e244e51805d5c6e19606fd8410cb50e0630d35f6c3",
       "executable": false
     },
     "release-history/1.0.0.CONTRACT.md": {
@@ -2214,7 +2214,7 @@
       "executable": false
     },
     "RELEASE.json": {
-      "sha256": "4048b080c0227b338d89c80e0753c5cfe94b5c26c56ec0c51ce4a6b0b0ad2889",
+      "sha256": "1695f3b655eabe62cea4bb68c1835c88e231599e9971d0a1aa390fc7b59044eb",
       "executable": false
     },
     "rer-packaging.json": {
@@ -2230,7 +2230,7 @@
       "executable": false
     },
     "RUN-LOCALLY.md": {
-      "sha256": "4fca5d05a46df99ed79c21146976443c222d33c2d90748002f65fa095612a47f",
+      "sha256": "1801d928d967466ae2cebc925dd182232e6b7bfabfee98ae6f5fc28f3311b6d2",
       "executable": false
     },
     "schema/dependencies.mjs": {
@@ -2722,7 +2722,7 @@
       "executable": false
     },
     "seed.json": {
-      "sha256": "9be6880b46bc397caf5bc5111fed7d506028af319ff6112984e0c9edc64963bd",
+      "sha256": "ff1bcabd40a533bf66fa21e9c79057c387f69782149ca4242438320baf6689e2",
       "executable": false
     },
     "src/base/actor.ts": {

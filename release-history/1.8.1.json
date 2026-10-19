@@ -1,0 +1,16 @@
+{
+  "version": "1.8.1",
+  "previousVersion": "1.8.0",
+  "date": "2026-10-19",
+  "publicReleaseNotes": "Lamp 1.8.1 fixes backup and restore for owners on Run Edit Run Managed hosting, and adds an Uptime alert preset and availability reports. Lamp's technical backup and restore (node scripts/export.mjs and node scripts/import.mjs) did not recognise the migration history Run Edit Run keeps in a Managed database (the rer_migrations table): a backup carried that history as if it were page data, a restore into a new Managed installation was refused, and a restore could have overwritten the destination's own history. Lamp 1.8.1 treats that table as installation history: a backup and a restore both check that it lists exactly this release's migrations with their file hashes and refuse otherwise, the backup never carries it, and a restore into a new Managed installation (before its owner signs in) writes your data without touching the new installation's history. A backup made by 1.8.0 from a Managed installation restores too, and any other unknown table still stops a restore. Self-hosted backups and restores are unchanged. Alerts → Connect Uptime takes Uptime's signed JSON webhook, maps each Uptime monitor to a component, opens a private draft with the failing vantages in the incident brief, refuses stale or unsigned requests, and records recovery. Each component can now be exported as an availability report for a calendar month or quarter, as CSV or PDF, computed the same way as the public page's uptime. On Run Edit Run Managed hosting, the Business import door opens at the owner's first sign-in when Run Edit Run provisioned the installation; the owner's choice in Settings still stands. One migration, 0040, applies on update; back up first. The checkout pins rer 0.2.63. Product screenshot: .github/assets/release/lamp-1.7.0-status-page-1440.png",
+  "contractChanges": {},
+  "extensionPointChanges": [],
+  "migrations": [
+    {
+      "id": "0040_uptime_preset.sql",
+      "buyerSteps": "Apply after 0039. Adds signed Uptime preset identification and monitor-to-component mappings. Existing sources and credentials are retained; configure an Uptime source explicitly in Alerts."
+    }
+  ],
+  "breaking": false,
+  "agentUpdateInstructions": "Back up data and owner source first: node scripts/export.mjs --remote with the deployment's --env-file, plus Settings → Export page data. Update the checkout to v1.8.1 and run pnpm install --frozen-lockfile (rer 0.2.63 pin, unchanged), then rer deploy with the same environment and input file; it applies migration 0040_uptime_preset.sql, which adds Uptime preset columns to alert sources and changes no existing source. On Run Edit Run Managed hosting, back up and restore with node scripts/export.mjs and node scripts/import.mjs as OPERATIONS.md describes; the Managed migration ledger rer_migrations is checked and kept on each installation, never archived or written. Run rer verify and pnpm run validate:release before adopting."
+}
