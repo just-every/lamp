@@ -237,6 +237,23 @@ Statuspage JSON readers use `/api/v2/` on the moved hostname. The old
 origin in Settings. [Public resources](public-resources.md) documents the
 read APIs, native pagination and remaining maintenance compatibility gaps.
 
+Statuspage-format webhook bodies and per-component automation email addresses
+are not available yet, and Cutover says so. Until they are, keep webhook
+receivers and email-wired monitors pointed at Statuspage, or move them to Lamp's
+signed webhooks and [alert intake](alerts-from-monitoring-tools.md).
+
+### Operating Lamp after Statuspage
+
+Cutover lists how running Lamp differs from running Statuspage:
+
+- A published update is never edited in place. Fix a mistake with a correction
+  update that names it, and publish it with no channels selected when nobody
+  should be notified again. Both updates stay on the timeline.
+- Component states change with each update: set each affected component's state
+  in the update you publish, and publishing applies the states and the update
+  together.
+- Components set to show only while degraded keep that behaviour after import.
+
 ## Sorry
 
 Choose **Sorry**. Use a public page's HTTPS origin for a keyless read, or upload

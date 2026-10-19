@@ -23,7 +23,7 @@ async function visible(page, width, name) {
   await page.screenshot({path:join(evidence,`${name}-${width}.png`),fullPage:true});
 }
 
-test('MOVE-006 rer setup twice, one-click sign-in, silent imports and browser cutover at both widths and fixture families', {timeout:1200000}, async () => {
+test('MOVE-006 MOVE-009 rer setup twice, one-click sign-in, silent imports and browser cutover at both widths and fixture families', {timeout:1200000}, async () => {
   await mkdir(evidence,{recursive:true});
   const runtime = await cutoverRuntime(evidence);
   const {root} = runtime;
@@ -69,6 +69,8 @@ test('MOVE-006 rer setup twice, one-click sign-in, silent imports and browser cu
       await page.getByRole('link',{name:'Read the Cutover preview',exact:true}).click();
       await page.getByRole('heading',{name:'Old public addresses',exact:true}).waitFor();
       await expect(page.getByRole('button',{name:'Send invitations',exact:true})).toBeDisabled();
+      const operating=page.getByRole('region',{name:'Operating Lamp after Statuspage',exact:true});
+      for(const note of [/correction update that names it/,/no channels selected/,/Component states change with each update/,/show only while degraded/]) await expect(operating).toContainText(note);
       await visible(page,width,`${family}-dry-run`);
       const returned=page.waitForResponse(response=>response.url()===origin+'/api/app/statuspage-import/jobs'&&response.request().method()==='GET'&&response.status()===200);
       await page.goBack();await returned;
@@ -95,7 +97,7 @@ test('MOVE-006 rer setup twice, one-click sign-in, silent imports and browser cu
       }
       await visible(page,width,`${family}-opens`);
       const feed=await fetch(publicOrigin+'/history.atom');assert.equal(feed.status,200);assert.match(feed.headers.get('content-type'),/atom/);
-      for(const path of ['/history.rss','/api/v2/status.json']) { const response=await fetch(publicOrigin+path);assert.equal(response.status,200);assert.ok((await response.text()).length>0); }
+      for(const path of ['/history.rss','/api/v2/status.json','/api/v2/summary.json','/embed/script.js']) { const response=await fetch(publicOrigin+path);assert.equal(response.status,200);assert.ok((await response.text()).length>0); }
       await page.getByLabel('Public address',{exact:true}).fill(`http://127.0.0.1:${await reservePort()}`);
       await page.getByRole('button',{name:'Use this address for checks'}).click();
       const first=page.getByRole('button',{name:'Check opens',exact:true}).first();await first.click();

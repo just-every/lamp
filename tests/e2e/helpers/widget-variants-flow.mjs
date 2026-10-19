@@ -19,7 +19,9 @@ export async function widgetVariantsFlow({appFetch,pageUrl,currentSettings,updat
       document.body.append(script);await new Promise((resolve,reject)=>{script.onload=resolve;script.onerror=reject;});
     },{url:pageUrl+'/widget.js',variant});
     await install('banner');await install('dot');await install('floating');
-    const widgets=page.locator('section[role=status]');assert.equal(await widgets.count(),3);
+    // A Statuspage embed tag kept after cutover (MOVE-009) loads the floating notice from the old path.
+    await page.evaluate(async url=>{const script=document.createElement('script');script.src=url;document.body.append(script);await new Promise((resolve,reject)=>{script.onload=resolve;script.onerror=reject;});},pageUrl+'/embed/script.js');
+    const widgets=page.locator('section[role=status]');assert.equal(await widgets.count(),4);
     assert.equal(await widgets.nth(1).locator('strong').textContent(),(await (await fetch(pageUrl+'/api/public/status')).json()).overall);
     assert.equal(await widgets.nth(2).isVisible(),false);
     component=(await (await appFetch('/api/app/components',{method:'POST',body:JSON.stringify({name:'Embed journey API',description:'Customer requests',groupId:null,internal:false,displayOrder:1000,note:''})})).json()).component;
@@ -35,8 +37,9 @@ export async function widgetVariantsFlow({appFetch,pageUrl,currentSettings,updat
     await draft('Investigating');await waitForPublic('Investigating');
     await page.clock.fastForward(30000);
     await widgets.nth(2).waitFor({state:'visible'});assert.match(await widgets.nth(2).innerText(),/Elevated request errors/);
+    await widgets.nth(3).waitFor({state:'visible'});assert.match(await widgets.nth(3).innerText(),/Elevated request errors/);
     assert.equal(await widgets.nth(2).evaluate(element=>element.style.top),'16px');
-    await draft('Resolved');await waitForPublic('Resolved');await page.clock.fastForward(30000);await widgets.nth(2).waitFor({state:'hidden'});
+    await draft('Resolved');await waitForPublic('Resolved');await page.clock.fastForward(30000);await widgets.nth(2).waitFor({state:'hidden'});await widgets.nth(3).waitFor({state:'hidden'});
     const denied=await (await browser.newContext()).newPage();await denied.setContent(`<script src="${pageUrl}/embed/script.js"></script>`);await denied.waitForLoadState();assert.equal(await denied.locator('section[role=status]').count(),0);
   } finally {
     if (incident) await appFetch(`/api/app/incidents/${incident.id}`,{method:'DELETE',body:JSON.stringify({reason:'Remove completed embed test fixture'})});

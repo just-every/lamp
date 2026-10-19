@@ -512,7 +512,7 @@ test("PAGE-012 UPTIME-006 SUB-003 — Branding, daily coverage and pending subsc
 
 
 
-test("PAGE-012 PAGE-011 PAGE-019 — Uploaded branding artwork and allow-listed widget", async t => {
+test("PAGE-012 PAGE-011 PAGE-019 MOVE-009 — Uploaded branding artwork, allow-listed widget and the old Statuspage embed tag", async t => {
   t.diagnostic("PAGE-012 — a real logo upload, favicon, Open Graph image, and allow-listed widget are snapshot artifacts");
   await (async () => {
   await uploadTestLogo();

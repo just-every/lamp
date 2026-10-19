@@ -179,7 +179,7 @@ contract("MOVE-002", "an import is retroactive: history keeps its times, nobody 
   assert.deepEqual(confirmed.map((subscriber) => subscriber.destination), [mail[0].message.to]);
 });
 
-contract("MOVE-005", "imported incident and maintenance bookmarks reach permanent public records and old Atom serves the native feed", async () => {
+contract("MOVE-005", "MOVE-009 — imported incident and maintenance bookmarks reach permanent public records, old Atom serves the native feed, and Statuspage JSON, RSS and embed readers keep working", async () => {
   const records = sourceRows("large");
   const incidents = (await api("/api/app/incidents")).body.incidents;
   const maintenance = (await api("/api/app/maintenance")).body.maintenance;
@@ -198,7 +198,7 @@ contract("MOVE-005", "imported incident and maintenance bookmarks reach permanen
   const feed = await fetch(`${publicOrigin}/history.atom`);
   assert.equal(feed.status, 200); assert.match(feed.headers.get("Content-Type"), /application\/atom\+xml/u);
   assert.equal(await feed.text(), await (await fetch(`${publicOrigin}/feed.atom`)).text());
-  for (const path of ["/api/v2/summary.json", "/history.rss"]) { const response = await fetch(`${publicOrigin}${path}`); assert.equal(response.status, 200); assert.ok((await response.text()).length > 0); }
+  for (const path of ["/api/v2/summary.json", "/history.rss", "/embed/script.js"]) { const response = await fetch(`${publicOrigin}${path}`); assert.equal(response.status, 200); assert.ok((await response.text()).length > 0); }
   for (const path of ["/auth/login", "/app/settings"]) assert.equal((await fetch(`${publicOrigin}${path}`)).status, 404);
 });
 
