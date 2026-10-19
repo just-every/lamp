@@ -1,0 +1,11 @@
+{
+  "version": "1.7.1",
+  "previousVersion": "1.7.0",
+  "date": "2026-10-18",
+  "publicReleaseNotes": "Lamp 1.7.1 changes only the catalogue description, which is now: Keep customers informed with a status page and clear incident updates. Description only; no product change. The application, contract, migrations and configuration are identical to 1.7.0. Product screenshot: .github/assets/release/lamp-1.7.0-status-page-1440.png (unchanged).",
+  "contractChanges": {},
+  "extensionPointChanges": [],
+  "migrations": [],
+  "breaking": false,
+  "agentUpdateInstructions": "From 1.7.0: description only; no product change. Update the checkout to v1.7.1; no migration, configuration, data or redeploy step is needed. From an earlier version, first follow the upgrade to 1.7.0 (RELEASE.json at tag v1.7.0)."
+}

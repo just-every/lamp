@@ -481,7 +481,7 @@ The minute cron sends an empty GET only on the heartbeat interval grid, after sc
 
 ## Shared operator authentication
 
-The checkout pins `@runeditrun/rer` 0.2.40. For hosted owner entry without email,
+The checkout pins `@runeditrun/rer` 0.2.63. For hosted owner entry without email,
 run this from the deploying checkout using the original account and environment:
 
 ```sh

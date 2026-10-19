@@ -1,7 +1,24 @@
 # Changelog
 
-## Unreleased
+## 1.8.0
 
+**Privacy fix: take this release if you moved in from Statuspage.** Lamp 1.3.0 to 1.7.1 did not read a Statuspage page's visibility. A page that was private (viewers must be team members), IP-restricted or audience-specific was imported like a public one, so its components, incident and maintenance history and subscribers appeared on Lamp's public page, feeds, widget and public APIs. Lamp 1.8.0 reads the page record and its page-access groups first (the API-key path fetches them; saved responses must include `page.json` and `page-access-groups.json`) and refuses any private, restricted, audience-specific or unreadable page before writing anything. Who was affected: owners who imported a Statuspage page whose access was restricted. What to check: in Statuspage, open the imported page's access settings; if it required sign-in, had IP restrictions or audience-specific access, review Lamp's public page and history, and undo the import (Settings → Move in) or delete what should not be public. Better Stack, Instatus and Sorry already refused restricted sources. Lamp cannot yet import a private page as a private page.
+
+What you get:
+
+- **Grouped alerts from Prometheus Alertmanager and Grafana Alerting.** Alerts → Connect Alertmanager or Grafana takes each tool's documented webhook (Alertmanager version 4, Grafana version 1) with a bearer token shown once, maps alerts to components by exact label rules, and opens one private draft per alert group. Repeats are deduplicated per alert fingerprint, alerts no rule maps are listed in Receipts, and the draft closes only when every alert in the group has recovered and nothing was published.
+- **Recovery check before you resolve.** Resolving shows which linked alerts have recovered and lists, by name, what Lamp does not track (vendor dependencies, traffic, support tickets, continuous monitor samples). A reported recovery is held for five minutes; an override is recorded privately in the audit log.
+- **Post-incident report drafted from the record.** On a resolved incident, **Draft report** writes the summary and timeline from published updates and held alerts, each line citing its source, and leaves cause and remediation empty for a person to write; publishing is refused until they are. Drafting never replaces edits you made.
+- **Component states change with the update.** The composer stages state changes, new components and releases in the draft; the published update changes them in one step and shows each change on the public page and in mail. Resolving releases every claim.
+- **Incident impact set by the operator**, independent of component claims, with its history; public pages, APIs and notifications use it.
+- **Wording checks** flag unclear or long update text against six rules and your saved terms; they never block publishing.
+- **Communication and reach** on each incident: committed, accepted, delivered, bounced and failed sends per channel, promises kept and time to first update, with CSV. Counts describe delivery, never reading.
+- **Subscriber reporting** in Subscribers: current counts by channel, state and component, deactivation reasons and anonymous daily growth from the day tracking starts, with matching CSV.
+- **Audit log** in Settings with actor, action and date filters, pagination and CSV; erased operators keep only an anonymised reference.
+- **Notification email branding** in Settings with saved previews; messages already queued keep their content.
+- **Component catalogues**: edit several components at once with public descriptions, and show a component only while it is affected. Public history is complete and browsable.
+- **The operator desk works on a phone**, from sign-in through alert draft, publishing and resolution.
+- **Identity providers** you configured are offered beside Lamp's owner entry on the sign-in page.
 - **One import path.** Move in now runs every import through the import door that Business uses: the owner's dry run uploads the saved responses to `/api/operator/import/*` and shows the door's plan, **Import** applies exactly the reviewed fingerprint, and Undo and Continue go through the door. The screen looks and reads as before. The old `/api/app/statuspage-import/preview` and `/apply` routes are gone; a key or public page is read into saved responses by `POST /api/app/statuspage-import/fetch`. Imports made before keep their read, Continue and Undo. **Your imports** lists the owner's imports ("approved by") with Business imports ("approved via Business by"). The Sorry preview-only `previewNoticeLimit` sample is gone with the preview route.
 - **A dry run imports for 30 minutes, as before.** Through the door, an older dry run answers "This dry run has expired. Run the dry run again." and a new dry run plans the page at the current time, so a maintenance window that ended in between imports as completed. Business plans are bounded the same way.
 - **Business imports take every Move in source**: Better Stack and Instatus join Statuspage and Sorry on the door's one allow-list.
@@ -14,6 +31,30 @@
 - Moving between incidents while the operator app's loader is still reloading shows that incident's current record, never what an earlier visit loaded.
 - `rer deploy --rotate-secret` errors name `--rotate-secret`, not `LAMP_REPLACE_SECRETS`. A deploy whose input file sets `OIDC_TRANSACTION_SECRET` while the Worker keeps its own says so, and the sign-in guide gives the one-time `--rotate-secret OIDC_TRANSACTION_SECRET` step for a page first deployed by 1.6.0 or earlier.
 - Undoing a Sorry import after its held subscribers expired reports them as expired and deleted, not as kept. A scheduled run that fails in several steps reports every failure.
+
+Upgrading from 1.7.x: back up first, with `node scripts/export.mjs --remote` for a hosted installation and Settings → Export page data. Then update the checkout to `v1.8.0`, run `pnpm install --frozen-lockfile` (rer 0.2.63) and `rer deploy` with the same environment and input file. These migrations apply in order and keep existing data:
+
+- `0027_update_component_changes.sql` staged component changes in drafts and their published snapshots.
+- `0028_wording_checks.sql` wording-check settings with defaults.
+- `0029_component_catalogue.sql` conditional component visibility and optional uptime start dates.
+- `0030_imported_templates.sql` imported template titles, folders and notification defaults.
+- `0031_incident_impact.sql` operator-set incident impact and its history.
+- `0032_email_branding.sql` notification email branding.
+- `0033_audit_log.sql` audit filtering indexes; copies retained component state history into the audit log.
+- `0034_subscriber_reporting.sql` anonymous daily subscriber counts from an explicit baseline.
+- `0035_grouped_alerts.sql` label mappings and per-alert fingerprints for grouped alerts.
+- `0036_business_import_door.sql` the import door's upload, plan and approval custody, off until enabled in Settings.
+- `0037_import_custody_replace.sql` triggers that keep import custody from being dropped or reused.
+- `0038_import_door_apply_failures.sql` rebuilds the door's plan tables keeping every plan and approval, and records a failed apply. Apply it as one batch.
+- `0039_import_door_scopes.sql` binds each door namespace to Lamp's import destination for erasure. Until 0038 and 0039 are applied, Move in answers 503 `import_door_schema_outdated`.
+
+Not in this release: private and audience pages (AUD-001 to AUD-005), so a private Statuspage page is refused rather than imported privately; SMS; measured uptime and monitor-driven component states (Lamp still reports what operators, alerts and maintenance say). The homepage's Ownership panel shows `pnpm run setup`, `pnpm run deploy` and `pnpm run export -- --remote`; the hosted backup command is `node scripts/export.mjs --remote` (docs/backups-and-recovery.md), because `rer export` saves only a local copy. Signed webhooks, Slack and Teams posts, custom domains and serving a stale page through a database outage are proven by the verifier's tests, not by this release's hosted check.
+
+Known issues: with rer 0.2.63, a `rer deploy` run without a terminal stops with "Deploy needs your owner name" the first time an existing installation redeploys; pass `--owner-name "Your name"` (a terminal asks for it). A drafted post-incident report keeps machine timestamps and `[U1]`-style citations in its summary and timeline until you edit them, and they are published as written. Wrangler may print "Network connection lost" during a hosted export or restore that still completes; check the final "Exported" or "Imported" line.
+
+## 1.7.1
+
+Description only; no product change. The catalogue description became "Keep customers informed with a status page and clear incident updates." The application, contract, migrations and configuration are identical to 1.7.0.
 
 ## 1.7.0
 

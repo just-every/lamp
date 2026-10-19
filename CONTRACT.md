@@ -1087,7 +1087,7 @@ What Lamp does not do, and how a buyer gets it:
 
 ## Status
 
-Judged from the code and tests at commit `26e8a8fff0a6a6eb47537d687f71e89482dd984b` (19 October 2026).
+Judged from the code and tests at commit `5848c133e34c6eba316b60aa490af56a3584ea14` (19 October 2026).
 
 AGENT-004 and AGENT-005 are proven by their named API and browser journeys below.
 
