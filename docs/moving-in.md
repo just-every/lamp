@@ -525,9 +525,14 @@ remains outside Lamp's control.
 
 ## Business import door (opt-in)
 
-An installation with signed owner-claim trust configured can enable **Allow
+An installation with RER's owner-claim trust configured can enable **Allow
 Business imports** in Settings → Move in. It starts off; uploads and every other
-`/api/rer/import/` route return 404 until enabled. The trusted grant key selector
+`/api/rer/import/` route return 404 until enabled. When RER sets the app up for a
+Business plan, it also sets `RER_IMPORT_DOOR=on`, and the owner's first claim turns
+the door on (Lamp still claims its owner with the setup token there). The owner can
+turn it off and on again in the same settings row; a later claim or sign-in never
+reopens a door the owner turned off. `rer deploy` never sets the variable, so a
+self-hosted Lamp's door stays off until its owner turns it on. The trusted grant key selector
 in that same settings row permanently revokes a key immediately. Re-enabling the
 door does not restore a revoked key; provisioning must rotate to a new key id.
 The door uses the same installation id, issuer, app origin, configured owner email

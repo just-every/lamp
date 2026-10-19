@@ -1,11 +1,35 @@
 # Import kit
 
+To bring existing data into a seed, sign in as the owner and use its import
+screen. First step: open this path on the destination app:
+
+```text
+/app/import
+```
+
+Upload a supported source export, review the plan and its differences, then
+approve that exact plan to apply it. Reconcile the result against native data;
+use Undo from the same history when needed. Base's reference accepts people JSON
+here, not installation `.rer` archives. Editions adopt this same door
+with their own supported readers and native adapters.
+
 The import kit plans and applies reviewed, inert data imports. It preserves the
 source records, exact available source bytes, and the provenance needed to inspect,
 resume, reconcile, or reverse an import. It does not send messages, enqueue work,
 activate access, or run application lifecycle hooks.
 
-## Consumer flow
+## Adopt the shared door
+
+For a seed, start with [the complete door adoption guide](src/door/ADOPTING.md).
+The signed-in screen, RER and Business share upload, plan, reviewed fingerprint,
+apply, reconcile and undo. Keep product readers, mappings and native adapters;
+remove separate importer routes and their job creation/apply callers. Owner
+history and Undo include jobs from either authority.
+
+## Engine primitives
+
+The APIs below implement the shared pipeline. They are not an alternative
+owner-facing importer to mount alongside the door.
 
 The source entry point is [`src/index.ts`](./src/index.ts). Its main exports are:
 

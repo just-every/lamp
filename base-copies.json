@@ -145,9 +145,9 @@
     {
       "path": "modules/import-kit/CONTRACT.md",
       "originPath": "modules/import-kit/CONTRACT.md",
-      "revision": "b70dbba0f53353eb6f3cdd2713f3cca0712b341b",
+      "revision": "2505cf7436e9be1b2e1e539c9ff5126fc58006da",
       "files": {
-        "modules/import-kit/CONTRACT.md": "2c7cb883e1a332fcc9120354a340be84ebf95a01253dc7ef860f545fd5b69b1d"
+        "modules/import-kit/CONTRACT.md": "44be36fc70bc963fea918ef2157c97723e3aebd851391dd973109ac41c315e68"
       },
       "modes": {
         "modules/import-kit/CONTRACT.md": "100644"
@@ -156,9 +156,9 @@
     {
       "path": "modules/import-kit/README.md",
       "originPath": "modules/import-kit/README.md",
-      "revision": "b70dbba0f53353eb6f3cdd2713f3cca0712b341b",
+      "revision": "2505cf7436e9be1b2e1e539c9ff5126fc58006da",
       "files": {
-        "modules/import-kit/README.md": "01da58977a16d8d5cdfea669d186e5629f8a3343c18e0262c4ac2c78af660277"
+        "modules/import-kit/README.md": "f3e8d232c5ca8d092b75237be5ce12f4f621d2bc0cecb27291c7db253aea3b70"
       },
       "modes": {
         "modules/import-kit/README.md": "100644"
@@ -167,7 +167,7 @@
     {
       "path": "modules/import-kit/schema",
       "originPath": "modules/import-kit/schema",
-      "revision": "b70dbba0f53353eb6f3cdd2713f3cca0712b341b",
+      "revision": "2505cf7436e9be1b2e1e539c9ff5126fc58006da",
       "files": {
         "modules/import-kit/schema/importer-verification-receipt.schema.json": "710740a418fbd1fda5dd7a9017c247040c2bef98a6eadbec2a59220a5afa0ae7",
         "modules/import-kit/schema/importers.schema.json": "70ffac46763ab493388cad8fb0bc40946be819b8e8036274a7bff30cf3b4d9c3"
@@ -180,7 +180,7 @@
     {
       "path": "modules/import-kit/src/d1",
       "originPath": "modules/import-kit/src/d1",
-      "revision": "b70dbba0f53353eb6f3cdd2713f3cca0712b341b",
+      "revision": "2505cf7436e9be1b2e1e539c9ff5126fc58006da",
       "files": {
         "modules/import-kit/src/d1/apply.ts": "68ef23214fa11ca8fed729e4ef38661be5a7d3d14415c04cd6ab7d271839ce52",
         "modules/import-kit/src/d1/budget.ts": "b555798bf820bafbbe1e1162f8fb4432dcd9f7037304f0fe63aa5cd12443410b",
@@ -257,7 +257,7 @@
         "modules/import-kit/src/d1/published-stream.ts": "8e672ca3c1921fce0dc2fe37fa4470a5ada1dd38924a9b39db0cb5a97060a222",
         "modules/import-kit/src/d1/read-fence.ts": "e77cf651e56af1d6d37c78ac68ae339b7a5e98049dad2e3f501b602b01b203b3",
         "modules/import-kit/src/d1/read-results.ts": "75fe5cb009f41c2aa850941e8db21bfe77261baeccf5a0203505871d4ef66e2d",
-        "modules/import-kit/src/d1/README.md": "38906f769776a6e047e9a8443315476d451d2eb0999a8ef408591a2834ce10ba",
+        "modules/import-kit/src/d1/README.md": "1b0d8802671889f122764fa6c9c72bcfb06f12a78ae77e48088dabf807717c04",
         "modules/import-kit/src/d1/redacted-custody.ts": "4ff48e38c5063bab4911c4a117fc89fb32898f3924a35d01340e106a87fa2692",
         "modules/import-kit/src/d1/redaction-step.ts": "f80c6181f3941e5c2e9ac9c7618c4b4c87b959eb61aa912e36936c19266d5edd",
         "modules/import-kit/src/d1/referenced-plans.ts": "71db1440bd8e8e14e5a1802915893de71c994d6ef51be17d807b80b2f3256b68",
@@ -443,7 +443,7 @@
     {
       "path": "modules/import-kit/src/door/admission.ts",
       "originPath": "modules/import-kit/src/door/admission.ts",
-      "revision": "b70dbba0f53353eb6f3cdd2713f3cca0712b341b",
+      "revision": "2505cf7436e9be1b2e1e539c9ff5126fc58006da",
       "files": {
         "modules/import-kit/src/door/admission.ts": "be300af64f0572d69c09567c5129f5d83564ae0f753b344526655260321d94ac"
       },
@@ -454,9 +454,9 @@
     {
       "path": "modules/import-kit/src/door/ADOPTING.md",
       "originPath": "modules/import-kit/src/door/ADOPTING.md",
-      "revision": "b70dbba0f53353eb6f3cdd2713f3cca0712b341b",
+      "revision": "2505cf7436e9be1b2e1e539c9ff5126fc58006da",
       "files": {
-        "modules/import-kit/src/door/ADOPTING.md": "23eb00f530558877acc289495d79c8a9cf07876b961fa53a1f2f6a720586a713"
+        "modules/import-kit/src/door/ADOPTING.md": "b1847eb93641d1fb9e1338f79c962bb42ca68f63f972018acf83406d2183068b"
       },
       "modes": {
         "modules/import-kit/src/door/ADOPTING.md": "100644"
@@ -465,7 +465,7 @@
     {
       "path": "modules/import-kit/src/door/failures.ts",
       "originPath": "modules/import-kit/src/door/failures.ts",
-      "revision": "b70dbba0f53353eb6f3cdd2713f3cca0712b341b",
+      "revision": "2505cf7436e9be1b2e1e539c9ff5126fc58006da",
       "files": {
         "modules/import-kit/src/door/failures.ts": "5dbf118cd5ea2f5e565f1fe868559d197cb2bcdf6cd13ea73d3cedf38cdcfc91"
       },
@@ -476,9 +476,9 @@
     {
       "path": "modules/import-kit/src/door/grants.ts",
       "originPath": "modules/import-kit/src/door/grants.ts",
-      "revision": "b70dbba0f53353eb6f3cdd2713f3cca0712b341b",
+      "revision": "2505cf7436e9be1b2e1e539c9ff5126fc58006da",
       "files": {
-        "modules/import-kit/src/door/grants.ts": "8f7b7dccb347b2c981ed787d7ffe7c64cd573d3efba4684df91ba00fefbbb0e2"
+        "modules/import-kit/src/door/grants.ts": "01412ad861e607d133c75e53ef48fd6377237f5f0cca3f2a535c5f9d4028d7c9"
       },
       "modes": {
         "modules/import-kit/src/door/grants.ts": "100644"
@@ -487,7 +487,7 @@
     {
       "path": "modules/import-kit/src/door/handler.ts",
       "originPath": "modules/import-kit/src/door/handler.ts",
-      "revision": "b70dbba0f53353eb6f3cdd2713f3cca0712b341b",
+      "revision": "2505cf7436e9be1b2e1e539c9ff5126fc58006da",
       "files": {
         "modules/import-kit/src/door/handler.ts": "f57165cb36d217c58c09d3021d0bc6e9edaeb474c41b60168dd40dd2589d5eb9"
       },
@@ -498,9 +498,9 @@
     {
       "path": "modules/import-kit/src/door/index.ts",
       "originPath": "modules/import-kit/src/door/index.ts",
-      "revision": "b70dbba0f53353eb6f3cdd2713f3cca0712b341b",
+      "revision": "2505cf7436e9be1b2e1e539c9ff5126fc58006da",
       "files": {
-        "modules/import-kit/src/door/index.ts": "00f5e7403e8339fa42d407d80348e24a8bd429fc5c58c5967b2a2895d48b3c12"
+        "modules/import-kit/src/door/index.ts": "c9dc4abbc556cabd344e2b7d71342e8250fc303061a9462e7fe3c1bfae4afbbb"
       },
       "modes": {
         "modules/import-kit/src/door/index.ts": "100644"
@@ -509,7 +509,7 @@
     {
       "path": "modules/import-kit/src/door/inventory.ts",
       "originPath": "modules/import-kit/src/door/inventory.ts",
-      "revision": "b70dbba0f53353eb6f3cdd2713f3cca0712b341b",
+      "revision": "2505cf7436e9be1b2e1e539c9ff5126fc58006da",
       "files": {
         "modules/import-kit/src/door/inventory.ts": "0e080c4d14fb501099bf3dece0a2dcb624c4aa4e3a6ec0fe35fc07a944ef9e46"
       },
@@ -520,7 +520,7 @@
     {
       "path": "modules/import-kit/src/door/jobs.ts",
       "originPath": "modules/import-kit/src/door/jobs.ts",
-      "revision": "b70dbba0f53353eb6f3cdd2713f3cca0712b341b",
+      "revision": "2505cf7436e9be1b2e1e539c9ff5126fc58006da",
       "files": {
         "modules/import-kit/src/door/jobs.ts": "7d81d30e56506daa589ce0b9326e490035c45b65213ed5eab2212bb82425e602"
       },
@@ -531,7 +531,7 @@
     {
       "path": "modules/import-kit/src/door/limits.ts",
       "originPath": "modules/import-kit/src/door/limits.ts",
-      "revision": "b70dbba0f53353eb6f3cdd2713f3cca0712b341b",
+      "revision": "2505cf7436e9be1b2e1e539c9ff5126fc58006da",
       "files": {
         "modules/import-kit/src/door/limits.ts": "3838303bd3d8521eb44b237c51aac838aef0e88f6ab3172a2df9c5d6de52f016"
       },
@@ -542,7 +542,7 @@
     {
       "path": "modules/import-kit/src/door/operator.ts",
       "originPath": "modules/import-kit/src/door/operator.ts",
-      "revision": "b70dbba0f53353eb6f3cdd2713f3cca0712b341b",
+      "revision": "2505cf7436e9be1b2e1e539c9ff5126fc58006da",
       "files": {
         "modules/import-kit/src/door/operator.ts": "5db9a4fc56bcee7b824293d4715b2c915bb95fe42a9d3fc104f51e59a239b45f"
       },
@@ -553,7 +553,7 @@
     {
       "path": "modules/import-kit/src/door/planning.ts",
       "originPath": "modules/import-kit/src/door/planning.ts",
-      "revision": "b70dbba0f53353eb6f3cdd2713f3cca0712b341b",
+      "revision": "2505cf7436e9be1b2e1e539c9ff5126fc58006da",
       "files": {
         "modules/import-kit/src/door/planning.ts": "cec9d73ab8befbc6f700889a28da97d489af1ea1d55b25e207dfc4ebe563aa3e"
       },
@@ -564,7 +564,7 @@
     {
       "path": "modules/import-kit/src/door/protocol.ts",
       "originPath": "modules/import-kit/src/door/protocol.ts",
-      "revision": "b70dbba0f53353eb6f3cdd2713f3cca0712b341b",
+      "revision": "2505cf7436e9be1b2e1e539c9ff5126fc58006da",
       "files": {
         "modules/import-kit/src/door/protocol.ts": "0decd22289c0a0d0bc28db1134a75789ed58131a9b181f5795353ce7025792b4"
       },
@@ -575,9 +575,9 @@
     {
       "path": "modules/import-kit/src/door/README.md",
       "originPath": "modules/import-kit/src/door/README.md",
-      "revision": "b70dbba0f53353eb6f3cdd2713f3cca0712b341b",
+      "revision": "2505cf7436e9be1b2e1e539c9ff5126fc58006da",
       "files": {
-        "modules/import-kit/src/door/README.md": "a8adfb4b3bfedc98fb426172b4e25ff1b995b839c87d60bd72d8c6570abc44b6"
+        "modules/import-kit/src/door/README.md": "3c92285becde525a8f8bf1f8f4319497f02044e2f5dde9ffe00c4e29860e1d21"
       },
       "modes": {
         "modules/import-kit/src/door/README.md": "100644"
@@ -586,7 +586,7 @@
     {
       "path": "modules/import-kit/src/door/schema.ts",
       "originPath": "modules/import-kit/src/door/schema.ts",
-      "revision": "b70dbba0f53353eb6f3cdd2713f3cca0712b341b",
+      "revision": "2505cf7436e9be1b2e1e539c9ff5126fc58006da",
       "files": {
         "modules/import-kit/src/door/schema.ts": "f5814a590ec4329e2ae77bdb98af6d1d3726a53b4d5939c7513d49c348593c0d"
       },
@@ -597,7 +597,7 @@
     {
       "path": "modules/import-kit/src/door/store.ts",
       "originPath": "modules/import-kit/src/door/store.ts",
-      "revision": "b70dbba0f53353eb6f3cdd2713f3cca0712b341b",
+      "revision": "2505cf7436e9be1b2e1e539c9ff5126fc58006da",
       "files": {
         "modules/import-kit/src/door/store.ts": "c97b97f678b81f6396fcd1860b8515da448ba36d97948406e73ec507ff6eb33a"
       },
@@ -608,7 +608,7 @@
     {
       "path": "modules/import-kit/src/door/uploads.ts",
       "originPath": "modules/import-kit/src/door/uploads.ts",
-      "revision": "b70dbba0f53353eb6f3cdd2713f3cca0712b341b",
+      "revision": "2505cf7436e9be1b2e1e539c9ff5126fc58006da",
       "files": {
         "modules/import-kit/src/door/uploads.ts": "4c2cd00b5ff86521ae288df4c0b68b5eaea4023e40c26dc8c3a6dffb0adac915"
       },
@@ -619,7 +619,7 @@
     {
       "path": "modules/import-kit/src/engine",
       "originPath": "modules/import-kit/src/engine",
-      "revision": "b70dbba0f53353eb6f3cdd2713f3cca0712b341b",
+      "revision": "2505cf7436e9be1b2e1e539c9ff5126fc58006da",
       "files": {
         "modules/import-kit/src/engine/apply.ts": "f7b73708e4ecd05b7835cd384595bcf577239bf4e36fbffdf49609cedc8e6c2a",
         "modules/import-kit/src/engine/index.ts": "b7570a4ab5a12e9df4eb427aec3ab3bdc2c55330c50fefcd42815ad76cd7c91f",
@@ -634,7 +634,7 @@
     {
       "path": "modules/import-kit/src/index.ts",
       "originPath": "modules/import-kit/src/index.ts",
-      "revision": "b70dbba0f53353eb6f3cdd2713f3cca0712b341b",
+      "revision": "2505cf7436e9be1b2e1e539c9ff5126fc58006da",
       "files": {
         "modules/import-kit/src/index.ts": "3d6c29b0cd2449988f6973da43ba44ef1d5d1ff66ec99a99d0a4daf556e718c6"
       },
@@ -645,7 +645,7 @@
     {
       "path": "modules/import-kit/src/journal",
       "originPath": "modules/import-kit/src/journal",
-      "revision": "b70dbba0f53353eb6f3cdd2713f3cca0712b341b",
+      "revision": "2505cf7436e9be1b2e1e539c9ff5126fc58006da",
       "files": {
         "modules/import-kit/src/journal/authority.ts": "45934861cf653954615329c2ac003a106d8abad33a8e42c633cde43832af7b37",
         "modules/import-kit/src/journal/boundary.ts": "ee0ef90f37adaae55859d4875b56c12bf9de8eabbbcac892f9fc91d76c79cde0",
@@ -662,7 +662,7 @@
     {
       "path": "modules/import-kit/src/plan",
       "originPath": "modules/import-kit/src/plan",
-      "revision": "b70dbba0f53353eb6f3cdd2713f3cca0712b341b",
+      "revision": "2505cf7436e9be1b2e1e539c9ff5126fc58006da",
       "files": {
         "modules/import-kit/src/plan/budget.ts": "4a97e89a91edf916720fab61815a62ac50b35a975d52fff8cc9f346f2f26a837",
         "modules/import-kit/src/plan/index.ts": "5f4e545df75190be885c79524e51d5ccb8d3abf3698a6b22beee16a7f11a0d4e",
@@ -677,7 +677,7 @@
     {
       "path": "modules/import-kit/src/provenance",
       "originPath": "modules/import-kit/src/provenance",
-      "revision": "b70dbba0f53353eb6f3cdd2713f3cca0712b341b",
+      "revision": "2505cf7436e9be1b2e1e539c9ff5126fc58006da",
       "files": {
         "modules/import-kit/src/provenance/canonical-hash.ts": "e0acc9e93bacbe75ccc8f71f2c5297fb6a7772c832c20ad77a8f97e80d46b964",
         "modules/import-kit/src/provenance/canonical-stream.ts": "94b9bef088d1d907edd4de44b74132ba257fa488a1ca447ad2cceb0f1d049890",
@@ -702,7 +702,7 @@
     {
       "path": "modules/import-kit/src/readers",
       "originPath": "modules/import-kit/src/readers",
-      "revision": "b70dbba0f53353eb6f3cdd2713f3cca0712b341b",
+      "revision": "2505cf7436e9be1b2e1e539c9ff5126fc58006da",
       "files": {
         "modules/import-kit/src/readers/api-policy.ts": "ebbe7df062cc4dee2e2fc42e1d7c8aa40570c39b2f7f4ff1fd505278b38b9380",
         "modules/import-kit/src/readers/api.ts": "e7ffd06ea57383553296e5904d1e5773ab7fc101f1e9022e4388a05a587f6747",
@@ -733,7 +733,7 @@
     {
       "path": "modules/import-kit/src/reconcile",
       "originPath": "modules/import-kit/src/reconcile",
-      "revision": "b70dbba0f53353eb6f3cdd2713f3cca0712b341b",
+      "revision": "2505cf7436e9be1b2e1e539c9ff5126fc58006da",
       "files": {
         "modules/import-kit/src/reconcile/index.ts": "0d73e5867657405de295b20e3aaaf659062a4f2e357b3a3ae18d1b5289d54f54"
       },
@@ -744,7 +744,7 @@
     {
       "path": "modules/import-kit/src/status",
       "originPath": "modules/import-kit/src/status",
-      "revision": "b70dbba0f53353eb6f3cdd2713f3cca0712b341b",
+      "revision": "2505cf7436e9be1b2e1e539c9ff5126fc58006da",
       "files": {
         "modules/import-kit/src/status/encoding.ts": "27c23888a400c38e63fad8febda18d339d9a6114a3f2fa6db79d3e1c7e18c49d",
         "modules/import-kit/src/status/evidence.ts": "f253b3e73ba183fec6c9a15da2f476bac35e9bdf70778cd081b00cdc9ef7f362",
@@ -763,7 +763,7 @@
     {
       "path": "modules/import-kit/src/storage",
       "originPath": "modules/import-kit/src/storage",
-      "revision": "b70dbba0f53353eb6f3cdd2713f3cca0712b341b",
+      "revision": "2505cf7436e9be1b2e1e539c9ff5126fc58006da",
       "files": {
         "modules/import-kit/src/storage/cleanup.ts": "d07d231a526948e59ec89ef5113b01cf4a7b25b8e897e53bc6ede19183cdb58e",
         "modules/import-kit/src/storage/integrity.ts": "d9dc5e580e97e6355e7b092bedaf9e6ecc395e53dd085f10f0fb440ac1cdf5c4",
@@ -784,7 +784,7 @@
     {
       "path": "modules/import-kit/src/types.ts",
       "originPath": "modules/import-kit/src/types.ts",
-      "revision": "b70dbba0f53353eb6f3cdd2713f3cca0712b341b",
+      "revision": "2505cf7436e9be1b2e1e539c9ff5126fc58006da",
       "files": {
         "modules/import-kit/src/types.ts": "ece4ba2269831421ec40e2b36cca39ba729977bc8c21a62a50cd6e1dee6dddfd"
       },
@@ -1032,7 +1032,7 @@
     {
       "path": "modules/owner-claim/index.d.mts",
       "originPath": "modules/owner-claim/index.d.mts",
-      "revision": "b70dbba0f53353eb6f3cdd2713f3cca0712b341b",
+      "revision": "2505cf7436e9be1b2e1e539c9ff5126fc58006da",
       "files": {
         "modules/owner-claim/index.d.mts": "33fc8d1b756cb2c0a4317ea4dbc29ae704dd137f76993278859d98ae5e9ad184"
       },
@@ -1043,7 +1043,7 @@
     {
       "path": "modules/owner-claim/verify.d.mts",
       "originPath": "modules/owner-claim/verify.d.mts",
-      "revision": "b70dbba0f53353eb6f3cdd2713f3cca0712b341b",
+      "revision": "2505cf7436e9be1b2e1e539c9ff5126fc58006da",
       "files": {
         "modules/owner-claim/verify.d.mts": "2af3697c67421d2105e2f45cedcced5b1ed562978b7007003189f93d0dd597c5"
       },
@@ -1054,7 +1054,7 @@
     {
       "path": "modules/owner-claim/verify.mjs",
       "originPath": "modules/owner-claim/verify.mjs",
-      "revision": "b70dbba0f53353eb6f3cdd2713f3cca0712b341b",
+      "revision": "2505cf7436e9be1b2e1e539c9ff5126fc58006da",
       "files": {
         "modules/owner-claim/verify.mjs": "a1cc5094a30415c60f739b67ad2eda40750e8d963d199fad45bdd562f7d0248b"
       },

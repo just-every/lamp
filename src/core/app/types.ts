@@ -13,6 +13,10 @@ export interface AppBindings {
   RER_OWNER_CLAIM_PUBLIC_KEYS?: string;
   RER_OWNER_CLAIM_ISSUER?: string;
   RER_OWNER_CLAIM_INSTALLATION_ID?: string;
+  /** The app origin RER's door trust names; absent means Lamp's own origin. */
+  RER_OWNER_CLAIM_APP_ORIGIN?: string;
+  /** `on` only on installs RER provisions for a Business plan: the first owner claim opens the import door. */
+  RER_IMPORT_DOOR?: string;
   SETUP_TOKEN?: string;
   SESSION_SECRET?: string;
   SETUP_OPERATOR_EMAIL?: string;

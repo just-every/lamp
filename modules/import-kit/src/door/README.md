@@ -1,11 +1,25 @@
-# Optional D1 import door
+# Shared D1 import door
+
+To bring existing data into a seed, sign in as the owner and use its import
+screen. First step: open this path on the destination app:
+
+```text
+/app/import
+```
+
+Upload a supported source export, review the plan and its differences, then
+approve that exact plan to apply it. Reconcile the result against native data;
+use Undo from the same history when needed. Base's reference accepts people JSON
+here, not installation `.rer` archives. Editions adopt this same door
+with their own supported readers and native adapters.
 
 See [ADOPTING.md](ADOPTING.md) for the single-path adoption checklist, the
 owner-session mount without owner-claim, and public HTTP conformance.
 
 Import `createImportDoorHandler`, `importDoorSchema`,
 `importDoorApplyFailureMigration`, `importDoorScopesMigration`,
-`writeImportDoorSettings` and `readImportDoorHistory` from `./index.ts`.
+`writeImportDoorSettings`, `enableDoorAtFirstClaim`, `readImportDoorHistory`
+and `verifyRerGrant` from `./index.ts`.
 The handler returns `(request: Request) => Promise<Response | null>`; pass
 unhandled requests to the seed's existing router. Only POST routes under
 `/api/rer/import/` are supported. Nothing mounts a route automatically.
@@ -107,6 +121,27 @@ or provisioning authority under the owner's approved plan, in the same database.
 No public door route enables itself. Revoked key ids persist across settings
 writes; removal is unsupported. Rotate to a new `kid` to grant access again.
 
+An install RER provisions for a Business plan the owner approved with the door
+opted in carries `RER_IMPORT_DOOR=on` alongside its `RER_OWNER_CLAIM_ISSUER`,
+`RER_OWNER_CLAIM_INSTALLATION_ID`, `RER_OWNER_CLAIM_APP_ORIGIN` and
+`RER_OWNER_CLAIM_PUBLIC_KEYS` trust, whatever its claim mode (bootstrap or
+signed). When the seed sees exactly `on`, it calls
+`enableDoorAtFirstClaim(database, installationId, ownerPredicate)` from the
+path that completes its first owner claim and again from every later owner path
+while the variable is `on`: the claim's already-initialized answer, and owner
+sign-in or session start. The call takes the door key and a predicate that holds
+once that owner exists. One batch checks the predicate before and after and
+creates the settings row enabled only when the installation has no settings row
+yet. So it never overrides the owner: a door the owner turned off stays off,
+revoked keys stay revoked, and a repeated call changes nothing. The claim and
+this batch are separate commits and the claim cannot complete twice, so if the
+Worker or D1 fails between them, the next owner path's call is what opens the
+door; without it the door stays closed until the owner turns it on in settings.
+Before an
+owner exists it writes nothing and throws 403 `owner_required`. Self-host
+`rer deploy` never sets `RER_IMPORT_DOOR`, so a self-hosted door stays off until
+its owner opts in.
+
 Call `readImportDoorHistory(database, installationId, ownerPredicate)` to show
 approval metadata joined to real kit jobs. The caption is
 "approved via Business by <owner> at <time>, fingerprint <x>" for a job without
@@ -145,6 +180,25 @@ closed. Every request needs a fresh nonce, including each chunk, upload inventor
 read, status call and retry. Current enablement, key revocation and expiry are
 checked inside kit mutation batches, so a previously accepted request does not
 grant continuing authority after revocation or expiry.
+
+### RER-signed reads outside the door
+
+`verifyRerGrant(request, claimConfig, action)` lets a seed accept an RER-signed
+request on its own route outside `/api/rer/import/`, such as Uptime's
+`POST /api/rer/runner-status` (action `runner-status`). Pass the same
+server-owned claim configuration as the grant mount. The grant uses the same
+protected header and key ring; its payload is exactly
+`{v, iss, aud, installationId, email, jti, iat, exp, action}`, under the same
+issuer, audience, installation, owner, nonce-format and 300-second rules, with
+`action` equal to the route's action. `action` is lowercase letters, digits and
+hyphens, and never a door action. A door grant, an unknown or missing member,
+another action, a forged signature or an expired grant answers 403
+`invalid_grant`; a missing bearer 401 `grant_required`; a request not addressed
+to the claim's app origin 403 `grant_binding_mismatch`; a bad configuration or
+action 503 `invalid_configuration`. It returns `{grant, kid}`. It records no
+nonce, so serve only reads whose repeat within the grant's life discloses
+nothing more, and check `kid` against the seed's revoked keys
+(`ik_door_revoked_keys` for the door key) where the route needs revocation.
 
 ## Requests
 
