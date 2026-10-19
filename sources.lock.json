@@ -488,7 +488,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "b8f332350cf6fbbe18071b9f86a4c665f69def4d86d6c38dbe1acd32d13eb9ae",
+      "sha256": "12cc1067333c507453ac5a66cb5477a5ea27522fde00ba1e4eaa5570618cd54f",
       "executable": false
     },
     "DEMO.md": {
@@ -560,7 +560,7 @@
       "executable": false
     },
     "docs/moving-in.md": {
-      "sha256": "83279f49013b0c4ab47b75aa6d27448cb6b2e64a110604657879c258f11d3f93",
+      "sha256": "8ae1cd05fa6b4b4470bb31d102fded797270cd2ce1ddf91ba3d75c8dde3d704a",
       "executable": false
     },
     "docs/operators-and-sign-in.md": {
@@ -3888,7 +3888,7 @@
       "executable": false
     },
     "src/core/features/statuspage-import/source.ts": {
-      "sha256": "bde1670fd09d7ee58e687c81b0bada765b20d954713b85e848dcbe7560297a1d",
+      "sha256": "653124cf240a39cfd16b4473ab8d68433e7afe33ce95237f798e817fea13f33c",
       "executable": false
     },
     "src/core/features/statuspage-import/targets.ts": {
@@ -3912,7 +3912,11 @@
       "executable": false
     },
     "src/core/features/statuspage-import/ui/source-help.tsx": {
-      "sha256": "4498439c012f6b691d4c7541a4ad6e92d17961675f2b491cb567592f0dd58832",
+      "sha256": "663218199fbc9c5e1bb2a036e781eb3acd3f9203a941b0d6bc23e3ad0a944f04",
+      "executable": false
+    },
+    "src/core/features/statuspage-import/visibility.ts": {
+      "sha256": "1a36bb39b4754f44563f663aded8d2bc65392afaee7bd97ec03b4c7ac7e94505",
       "executable": false
     },
     "src/core/features/subscriber-reporting/csv.ts": {
@@ -4984,7 +4988,7 @@
       "executable": false
     },
     "tests/auth-adoption/cutover.test.mjs": {
-      "sha256": "aee2be10bfd6b645c054c7653d8820a21038a056b7e4efc4cf1b1e19a557668c",
+      "sha256": "365061df73200bee69ff6965b2e6e2c17b0e6510092b993ae864e13c587db291",
       "executable": false
     },
     "tests/auth-adoption/dependencies.test.mjs": {
@@ -5000,7 +5004,7 @@
       "executable": false
     },
     "tests/auth-adoption/lamp-runtime.mjs": {
-      "sha256": "b925f8b957a723aaa4cbf3d9b4112d88ed0d7c6e3e4d0979f2fcb631250d463e",
+      "sha256": "3b5d702788e5102b085a6cf262d758c5c972fb2db432860c96b50c5506896487",
       "executable": false
     },
     "tests/auth-adoption/operator-erasure.test.mjs": {
@@ -5328,7 +5332,7 @@
       "executable": false
     },
     "tests/e2e/instatus-import.test.mjs": {
-      "sha256": "00b6e8e28407f5610a6b9aae51fa6b5cebdaed22479a01a7a60b818c826568ef",
+      "sha256": "3d7d1bd8e37cb973808b065c19e11dcb7f89d3e3e6a4da6ac8e07fb9c30f8b68",
       "executable": false
     },
     "tests/e2e/intake-references.test.mjs": {
@@ -5432,7 +5436,7 @@
       "executable": false
     },
     "tests/e2e/statuspage-import.test.mjs": {
-      "sha256": "dd9aa01bdea4c664b4457d60321d5f3169d4502b1dc44738f651e9d10a7adc1c",
+      "sha256": "8d4498c34bce62862289f4458101489f7dcbc5f4459f6fdb375bf8ff2aeb1fb1",
       "executable": false
     },
     "tests/e2e/subscriber-audit-helper.mjs": {
@@ -5959,8 +5963,20 @@
       "sha256": "93536df14b3cb48add33ce16a2f597ac7d567bc88a1f276165f1c9c085189638",
       "executable": false
     },
+    "tests/fixtures/statuspage/large/page-access-groups.json": {
+      "sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+      "executable": false
+    },
+    "tests/fixtures/statuspage/large/page.json": {
+      "sha256": "44a7bf5dd29f86532e43a54ae2cb265444ba8471da301e9d26633d861be84e65",
+      "executable": false
+    },
     "tests/fixtures/statuspage/large/subscribers.json": {
       "sha256": "827c9701f3c8f123049d3839a9db6039e7f60f2532cbfe2f5d352808775d2116",
+      "executable": false
+    },
+    "tests/fixtures/statuspage/private/page.json": {
+      "sha256": "7aabbea39510f7cb4fb15f4f0a5154bd3bc0510526a6721b2d614e71343c8e78",
       "executable": false
     },
     "tests/fixtures/statuspage/small/components.json": {
@@ -5969,6 +5985,14 @@
     },
     "tests/fixtures/statuspage/small/incidents.json": {
       "sha256": "97de4c6bb4958ba80f98182c50ff0ab1602b4a688dd06e6a56a8f15e2c3a4389",
+      "executable": false
+    },
+    "tests/fixtures/statuspage/small/page-access-groups.json": {
+      "sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+      "executable": false
+    },
+    "tests/fixtures/statuspage/small/page.json": {
+      "sha256": "44a7bf5dd29f86532e43a54ae2cb265444ba8471da301e9d26633d861be84e65",
       "executable": false
     },
     "tests/fixtures/statuspage/small/subscribers.json": {
