@@ -222,7 +222,17 @@ test(
       mf = await runtime(current, state, mail);
       const migrated = await inventory(mf);
       // A migration may add columns; existing rows keep every original value
-      // and carry null in each added column.
+      // and carry each added column's declared default (null when it has
+      // none), so no migration writes data into existing records.
+      const migratedDb = await mf.getD1Database("DB");
+      const addedDefault = async (table, column) => {
+        const { dflt_value: declared } = await migratedDb
+          .prepare("SELECT dflt_value FROM pragma_table_info(?) WHERE name = ?")
+          .bind(table, column)
+          .first();
+        // ADD COLUMN accepts only constant defaults, so SQLite evaluates it alone.
+        return declared === null ? null : (await migratedDb.prepare(`SELECT ${declared} AS value`).first()).value;
+      };
       for (const [name, rows] of Object.entries(before.tables))
         if (name !== "d1_migrations") {
           const original = new Set(rows.flatMap((row) => Object.keys(row)));
@@ -236,7 +246,7 @@ test(
           for (const row of migrated.tables[name] ?? [])
             for (const [column, value] of Object.entries(row))
               if (!original.has(column))
-                assert.equal(value, null, `migration leaves added ${name}.${column} empty on existing records`);
+                assert.equal(value, await addedDefault(name, column), `migration leaves added ${name}.${column} at its declared default on existing records`);
         }
       assert.deepEqual(
         migrated.objects,

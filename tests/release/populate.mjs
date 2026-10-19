@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { readFile, readdir } from "node:fs/promises";
 import { join } from "node:path";
+import { moveInDoor } from "../helpers/import-notifications.mjs";
 import {
   bindings,
   client,
@@ -215,19 +216,35 @@ export async function populate(mf, source, mail) {
       }),
     ),
   );
-  const preview = await c.api("/api/app/statuspage-import/preview", { files });
   const version = JSON.parse(
     await readFile(join(source, "RELEASE.json"), "utf8"),
   ).version;
   const [major, minor] = version.split(".").map(Number);
   const explicitInvitations = major > 1 || (major === 1 && minor >= 4);
+  // From 1.8.0 Move in runs only through the import door.
+  const throughDoor = major > 1 || (major === 1 && minor >= 8);
   const beforeImport = mail.length;
-  let imported = await c.api("/api/app/statuspage-import/apply", {
-    files,
-    asOf: preview.report.asOf,
-    fingerprint: preview.report.fingerprint,
-    acknowledged: true,
-  });
+  let imported;
+  if (throughDoor) {
+    const moveIn = moveInDoor(async (path, json, headers = {}) => {
+      const response = await c.request(path, json === undefined ? {} : { method: "POST", json, headers });
+      const text = await response.text();
+      return { status: response.status, body: text ? JSON.parse(text) : null };
+    });
+    const reviewed = await moveIn.preview({ source: "statuspage", files });
+    assert.equal(reviewed.status, 200, JSON.stringify(reviewed.body));
+    const applied = await moveIn.apply(reviewed.body);
+    assert.equal(applied.status, 200, JSON.stringify(applied.body));
+    imported = applied.body;
+  } else {
+    const preview = await c.api("/api/app/statuspage-import/preview", { files });
+    imported = await c.api("/api/app/statuspage-import/apply", {
+      files,
+      asOf: preview.report.asOf,
+      fingerprint: preview.report.fingerprint,
+      acknowledged: true,
+    });
+  }
   for (
     let n = 0;
     n < 80 &&
