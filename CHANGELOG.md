@@ -1,5 +1,26 @@
 # Changelog
 
+## 1.8.1
+
+**Backup and restore on Run Edit Run Managed hosting.** Lamp 1.8.0 and earlier could not back up, move or restore a Lamp that Run Edit Run Managed installed. Run Edit Run keeps its own record of the migrations it applied in that database (the `rer_migrations` table), and Lamp's technical backup (`node scripts/export.mjs`) copied it as if it were page data, while restore (`node scripts/import.mjs`) refused every new Managed installation as not empty, and could have overwritten the destination's own record. Lamp 1.8.1 treats `rer_migrations` as installation history, by that exact name:
+
+- A backup checks that it lists exactly this release's migration files with their hashes (plus the installation's page setup), refuses if it does not, and never puts it in the archive.
+- A restore into a new Managed installation, before its owner signs in, checks the destination's record the same way and writes your data without running migrations or touching that record. A restore into a self-hosted empty database works as before.
+- A backup made by 1.8.0 from a Managed installation, which carried that record, restores: the record is checked and left out.
+- Any other unknown table, including another `rer_` name, still stops a restore, and a populated destination is still refused.
+
+**Uptime alerts.** Alerts → Connect Uptime takes the signing secret from Uptime's JSON webhook destination and a mapping from each Uptime monitor ID to a Lamp component. A confirmed failure opens one private draft on the mapped component, with the failing vantages, error category and confirmed start time in the incident brief; a request older than five minutes or with a wrong signature is refused, unmapped monitors are listed in Receipts, and recovery is recorded and closes a draft nothing was published from. Nothing reaches the public page until you publish.
+
+Who was affected: owners on Managed hosting who tried to back up or restore Lamp with the technical archive. Nothing was lost; the refused restore wrote nothing. Self-hosted installations behave as before.
+
+Upgrading from 1.8.0: back up first, update the checkout to `v1.8.1`, run `pnpm install --frozen-lockfile` (rer 0.2.63, unchanged) and `rer deploy` with the same environment and input file. One migration applies:
+
+- `0040_uptime_preset.sql` Uptime preset identification and monitor-to-component mappings on alert sources; existing sources and credentials are unchanged.
+
+There is no configuration change.
+
+Product screenshot: `.github/assets/release/lamp-1.7.0-status-page-1440.png` (the public page is unchanged in 1.8.1).
+
 ## 1.8.0
 
 **Privacy fix: take this release if you moved in from Statuspage.** Lamp 1.3.0 to 1.7.1 did not read a Statuspage page's visibility. A page that was private (viewers must be team members), IP-restricted or audience-specific was imported like a public one, so its components, incident and maintenance history and subscribers appeared on Lamp's public page, feeds, widget and public APIs. Lamp 1.8.0 reads the page record and its page-access groups first (the API-key path fetches them; saved responses must include `page.json` and `page-access-groups.json`) and refuses any private, restricted, audience-specific or unreadable page before writing anything. Who was affected: owners who imported a Statuspage page whose access was restricted. What to check: in Statuspage, open the imported page's access settings; if it required sign-in, had IP restrictions or audience-specific access, review Lamp's public page and history, and undo the import (Settings → Move in) or delete what should not be public. Better Stack, Instatus and Sorry already refused restricted sources. Lamp cannot yet import a private page as a private page.
