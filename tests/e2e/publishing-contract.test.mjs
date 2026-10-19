@@ -1040,7 +1040,7 @@ test("MAINT-002 MAINT-001 MAINT-003 MAINT-004 MAINT-005 MAINT-006 — Scheduled 
 
 
 
-test("DRAFT-003 HIST-002 HIST-003 — Unavailable AI and post-incident reporting", async t => {
+test("DRAFT-003 AGENT-005 HIST-002 HIST-003 — Unavailable AI and post-incident reporting", async t => {
   t.diagnostic("DRAFT-003 — without a provider the suggestion route is unavailable while normal publication remains available");
   await (async () => {
   const status = await appFetch("/api/app/ai/status");
@@ -1051,24 +1051,75 @@ test("DRAFT-003 HIST-002 HIST-003 — Unavailable AI and post-incident reporting
   await saveDraft(incident.id);
   await expectStatus(await publish(incident.id), 200);
 })(t);
-  t.diagnostic("HIST-002 — a resolved incident publishes one immutable report with its selected recipient channel");
+  t.diagnostic("AGENT-005 HIST-002 — a resolved incident drafts from cited evidence, requires human cause and remediation, then publishes one immutable report");
   await (async () => {
   const componentId = "01J00000000000000000000011";
-  const created = await appFetch("/api/app/incidents", { method: "POST", body: JSON.stringify({ title: "Report contract incident", components: [{ componentId, state: "Major outage", relationship: "Primary" }] }) });
-  assert.equal(created.status, 201);
-  const incident = (await created.json()).incident;
+  const source = await createIntakeSource("Report evidence source");
+  const accepted = await signedIntake(source.id, "contract-intake-secret", { alert: { id: "report-evidence", title: "Report contract incident\nPayment timeouts observed", state: "firing" } });
+  await expectStatus(accepted, 202);
+  const incident = await incidentView((await accepted.json()).incidentId);
+  const endpoint = `/api/app/incidents/${incident.id}/report`;
+  await expectStatus(await appFetch(`${endpoint}/draft`, { method: "POST" }), 409);
+  assert.equal((await (await appFetch(endpoint)).json()).report, null, "an unresolved incident gets no report");
+  await expectStatus(await appFetch(`/api/app/incidents/${incident.id}/components`, { method: "POST", body: JSON.stringify({ componentId, state: "Major outage", relationship: "Primary" }) }), 201);
+  await saveDraft(incident.id, { details: "Published investigation evidence.\nRequests are being checked." });
+  await expectStatus(await publish(incident.id), 200);
+  await expectStatus(await appFetch(`/api/app/incidents/${incident.id}/internal-notes`, { method: "POST", body: JSON.stringify({ body: "PRIVATE REPORT NOTE — unconfirmed root cause" }) }), 201);
+  await expectStatus(await signedIntake(source.id, "contract-intake-secret", { alert: { id: "report-evidence", title: "Payment timeouts recovered", state: "recovered" } }), 202);
   const resolvedDraft = { ...validDraft, lifecycle: "Resolved", nextUpdateAt: new Date(Date.now() + 3_600_000).toISOString() };
-  assert.equal((await appFetch(`/api/app/incidents/${incident.id}/draft`, { method: "PUT", body: JSON.stringify(resolvedDraft) })).status, 200);
-  assert.equal((await appFetch(`/api/app/incidents/${incident.id}/publish`, { method: "POST", body: JSON.stringify({ channels: [] }) })).status, 200);
-  const report = { summary: "A database timeout interrupted requests.", timeline: "We detected, mitigated, and verified recovery.", cause: "A connection pool was exhausted.", remediation: "We raised the pool limit and added alerting." };
-  assert.equal((await appFetch(`/api/app/incidents/${incident.id}/report`, { method: "PUT", body: JSON.stringify(report) })).status, 200);
-  const published = await appFetch(`/api/app/incidents/${incident.id}/report/publish`, { method: "POST", body: JSON.stringify({ channels: ["email"] }) });
+  await saveDraft(incident.id, resolvedDraft);
+  await expectStatus(await publish(incident.id, { overrideReason: "Operator verified payment recovery; proceed before the monitor hold expires." }), 200);
+  const brief = (await (await appFetch(`/api/app/incidents/${incident.id}/brief`)).json()).brief;
+  const sources = [...brief.whatWeKnow.alerts, ...brief.whatWeKnow.updates];
+  const references = new Set(sources.map((item) => item.ref));
+  assert.ok(brief.whatWeKnow.alerts.length && brief.whatWeKnow.updates.length, "the draft uses alerts and published updates");
+  const attempts = await Promise.all([appFetch(`${endpoint}/draft`, { method: "POST" }), appFetch(`${endpoint}/draft`, { method: "POST" })]);
+  assert.deepEqual(attempts.map((response) => response.status).sort(), [200, 409], "concurrent drafting creates one private report without replacement");
+  const { report: generated, review } = await attempts.find((response) => response.status === 200).json();
+  assert.equal(generated.cause, ""); assert.equal(generated.remediation, ""); assert.equal(generated.publishedAt, null);
+  assert.equal(review.cause.required, true); assert.equal(review.remediation.required, true);
+  assert.ok(review.cause.prompt && review.remediation.prompt);
+  assert.deepEqual(new Set(review.evidenceRefs), references);
+  const citedRefs = generated.timeline.split("\n").map((line) => {
+    const ref = line.match(/\[(A\d+|U\d+)\]$/)?.[1];
+    assert.ok(ref && references.has(ref), `timeline line cites a real brief source: ${line}`);
+    return ref;
+  });
+  assert.deepEqual(new Set(citedRefs), references, "every available alert and update is represented");
+  assert.equal(citedRefs.length, sources.length, "source newlines cannot create uncited timeline lines");
+  assert.ok(generated.summary.includes(brief.incident.openedAt));
+  assert.ok(generated.summary.includes(brief.whatWeKnow.updates.at(-1).publishedAt));
+  assert.doesNotMatch(JSON.stringify(generated), /PRIVATE REPORT NOTE/);
+  for (const path of ["/", `/incidents/${incident.reference}`, "/feed.atom", "/api/public/status", "/api/v2/incidents.json"]) {
+    const publicDraft = await fetch(`${pageUrl}${path}`);
+    await expectStatus(publicDraft, 200);
+    assert.equal((await publicDraft.text()).includes(generated.summary), false, `report draft stays private on ${path}`);
+  }
+  await expectStatus(await appFetch(`${endpoint}/publish`, { method: "POST", body: JSON.stringify({ channels: ["email"] }) }), 400);
+  const { summary, timeline } = generated;
+  await expectStatus(await appFetch(endpoint, { method: "PUT", body: JSON.stringify({ summary, timeline, cause: review.cause.prompt, remediation: review.remediation.prompt }) }), 200);
+  await expectStatus(await appFetch(`${endpoint}/publish`, { method: "POST", body: JSON.stringify({ channels: [] }) }), 400);
+  await expectStatus(await appFetch(endpoint, { method: "PUT", body: JSON.stringify({ summary, timeline, cause: "", remediation: "" }) }), 200);
+  const report = { summary, timeline, cause: "A connection pool was exhausted.", remediation: "We raised the pool limit and added alerting." };
+  await expectStatus(await appFetch(endpoint, { method: "PUT", body: JSON.stringify({ ...report, remediation: "" }) }), 200);
+  await expectStatus(await appFetch(`${endpoint}/publish`, { method: "POST", body: JSON.stringify({ channels: [] }) }), 400);
+  await expectStatus(await appFetch(endpoint, { method: "PUT", body: JSON.stringify(report) }), 200);
+  await expectStatus(await appFetch(`${endpoint}/draft`, { method: "POST" }), 409);
+  const saved = (await (await appFetch(endpoint)).json()).report;
+  for (const field of Object.keys(report)) assert.equal(saved[field], report[field], "drafting cannot overwrite operator work");
+  const published = await appFetch(`${endpoint}/publish`, { method: "POST", body: JSON.stringify({ channels: ["email"] }) });
   if (published.status !== 200) throw new Error(await published.text());
-  const visible = await appFetch(`/api/app/incidents/${incident.id}/report`);
+  const visible = await appFetch(endpoint);
   assert.equal((await visible.json()).report.publishedAt !== null, true);
+  await expectStatus(await appFetch(`${endpoint}/draft`, { method: "POST" }), 409);
+  await expectStatus(await appFetch(endpoint, { method: "PUT", body: JSON.stringify({ ...report, cause: "Changed after publication" }) }), 409);
+  await expectStatus(await appFetch(`${endpoint}/publish`, { method: "POST", body: JSON.stringify({ channels: [] }) }), 409);
   const publicReport = await fetch(`${pageUrl}/incidents/${incident.reference}`);
   assert.equal(publicReport.status, 200);
   assert.match(await publicReport.text(), /connection pool was exhausted/i);
+  const deleted = await createIncident("Deleted incident cannot draft report");
+  await expectStatus(await appFetch(`/api/app/incidents/${deleted.id}`, { method: "DELETE", body: JSON.stringify({ reason: "Remove private fixture" }) }), 200);
+  await expectStatus(await appFetch(`/api/app/incidents/${deleted.id}/report/draft`, { method: "POST" }), 404);
 
   const owingCreated = await appFetch("/api/app/incidents", { method: "POST", body: JSON.stringify({ title: "Past major incident", openedAt: new Date(Date.now() - 9 * 24 * 60 * 60 * 1000).toISOString(), components: [{ componentId, state: "Major outage", relationship: "Primary" }] }) });
   assert.equal(owingCreated.status, 201);

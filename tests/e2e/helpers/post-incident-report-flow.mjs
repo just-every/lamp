@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { createHmac } from "node:crypto";
 import { mkdir } from "node:fs/promises";
 import { join } from "node:path";
 import { expect } from "@playwright/test";
@@ -11,13 +12,31 @@ export async function postIncidentReportFlow({ page, appFetch, appUrl, pageUrl }
     return response.json();
   };
   const { component } = await api("/api/app/components", "POST", { groupId: null, name: "Payments API", description: "Payment processing for Atlas Cloud customers.", internal: false, displayOrder: 1, note: "" });
-  const { incident } = await api("/api/app/incidents", "POST", { title: "Payment requests timed out", components: [{ componentId: component.id, state: "Major outage", relationship: "Primary" }] });
-  await api(`/api/app/incidents/${incident.id}/draft`, "PUT", { lifecycle: "Resolved", affectedAudience: "Customers submitting card payments.", customerImpact: "Payment processing has recovered. Timed-out requests can be retried safely.", whatStillWorks: "Account access and existing payment records remained available.", details: "We verified recovery after restoring database capacity.", nextUpdateAt: null });
+  const { source } = await api("/api/app/intake/sources", "POST", { name: "Payment report evidence", credentialKind: "hmac-sha256", signingSecret: "browser-report-secret", deduplicationPath: "$.alert.id", titlePath: "$.alert.title", statePath: "$.alert.state", recoveredValue: "recovered" });
+  const alert = async (state) => {
+    const body = JSON.stringify({ alert: { id: "payment-report", title: `Payment timeout ${state}`, state } });
+    const timestamp = new Date().toISOString();
+    const signature = createHmac("sha256", "browser-report-secret").update(`${timestamp}.${body}`).digest("base64url");
+    const response = await fetch(`${pageUrl}/api/intake/${source.id}`, { method: "POST", headers: { "Content-Type": "application/json", "x-lamp-timestamp": timestamp, "x-lamp-signature": signature }, body });
+    assert.equal(response.status, 202, await response.clone().text());
+    return response.json();
+  };
+  const accepted = await alert("firing");
+  const { incident } = await api(`/api/app/incidents/${accepted.incidentId}`, "GET");
+  await api(`/api/app/incidents/${incident.id}/components`, "POST", { componentId: component.id, state: "Major outage", relationship: "Primary" });
+  const update = { lifecycle: "Investigating", affectedAudience: "Customers submitting card payments.", customerImpact: "Payment requests are timing out.", whatStillWorks: "Account access and existing payment records remain available.", details: "We are investigating database capacity.", nextUpdateAt: new Date(Date.now() + 3_600_000).toISOString() };
+  await api(`/api/app/incidents/${incident.id}/draft`, "PUT", update);
   await api(`/api/app/incidents/${incident.id}/publish`, "POST", { channels: [] });
+  await page.goto(`${appUrl}/app/incidents/${incident.id}`);
+  await operatorHydrated(page);
+  assert.equal(await page.getByRole("button", { name: "Draft report", exact: true }).count(), 0, "reports are offered only after resolution");
+  await alert("recovered");
+  await api(`/api/app/incidents/${incident.id}/draft`, "PUT", { ...update, lifecycle: "Resolved", customerImpact: "Payment processing has recovered. Timed-out requests can be retried safely.", details: "We verified recovery after restoring database capacity.", nextUpdateAt: null });
+  await api(`/api/app/incidents/${incident.id}/publish`, "POST", { channels: [], overrideReason: "Operator verified payment recovery; proceed before the monitor hold expires." });
   const endpoint = `/api/app/incidents/${incident.id}/report`;
   const report = {
-    summary: "Payment requests timed out for 18 minutes. Service is fully restored and no payment records were lost.",
-    timeline: "09:12 UTC: elevated timeouts detected. 09:18: connection limit identified. 09:25: capacity restored. 09:30: recovery verified.",
+    summary: "",
+    timeline: "",
     cause: "A database connection pool reached its limit during the morning payment peak.",
     remediation: "Raised connection capacity, added pool saturation alerts, and scheduled a peak-traffic load exercise.",
   };
@@ -49,6 +68,24 @@ export async function postIncidentReportFlow({ page, appFetch, appUrl, pageUrl }
   await page.goto(`${appUrl}/app/incidents/${incident.id}`);
   await operatorHydrated(page);
   await editor.getByLabel("Summary", { exact: true }).waitFor();
+  const drafting = page.waitForResponse(response => new URL(response.url()).pathname === `${endpoint}/draft` && response.request().method() === "POST");
+  await editor.getByRole("button", { name: "Draft report", exact: true }).click();
+  const drafted = await drafting;
+  assert.equal(drafted.status(), 200, await drafted.text());
+  const generated = await drafted.json();
+  report.summary = generated.report.summary; report.timeline = generated.report.timeline;
+  await expect(editor.getByLabel("Summary", { exact: true })).toHaveValue(report.summary);
+  await expect(editor.getByLabel("Cause", { exact: true })).toHaveValue("");
+  await expect(editor.getByLabel("Remediation", { exact: true })).toHaveValue("");
+  await expect(editor.locator("textarea[aria-describedby]")).toHaveCount(2);
+  await expect(editor.getByRole("button", { name: "Draft report", exact: true })).toBeDisabled();
+  const { brief } = await api(`/api/app/incidents/${incident.id}/brief`, "GET");
+  const refs = new Set([...brief.whatWeKnow.alerts, ...brief.whatWeKnow.updates].map((item) => item.ref));
+  for (const line of report.timeline.split("\n")) assert.ok(refs.has(line.match(/\[(A\d+|U\d+)\]$/)?.[1]), "each generated timeline line cites the incident brief");
+  const incompletePublish = page.waitForResponse(response => new URL(response.url()).pathname === `${endpoint}/publish` && response.request().method() === "POST");
+  await editor.getByRole("button", { name: "Publish report", exact: true }).click();
+  assert.equal((await incompletePublish).status(), 400, "the untouched report requires human cause and remediation");
+  await capture(editor, "generated");
   for (const [field, value] of Object.entries(report)) await editor.getByLabel(field, { exact: false }).fill(value);
   await save();
   await page.reload();

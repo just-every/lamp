@@ -521,7 +521,7 @@ contract("UPDATE-002", "NOTIFY-019 — composer controls and saved notification 
   await emailBrandingBrowserFlow({ page, appUrl, pageUrl, appFetch });
 });
 
-contract("HIST-002", "TEAM-007 HIST-007 — an operator publishes a report, browses audit history and reports subscribers", async () => {
+contract("HIST-002", "AGENT-005 TEAM-007 HIST-007 — an operator publishes a report, browses audit history and reports subscribers", async () => {
   await postIncidentReportFlow({ page, appFetch, appUrl, pageUrl });
   await auditLogFlow({ page, appUrl, appFetch });
   await subscriberReportingBrowserFlow({ page, appUrl, appFetch });

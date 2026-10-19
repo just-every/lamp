@@ -1031,7 +1031,9 @@ Status: **done** — `src/core/features/brief/recovery-check.ts`, `src/core/feat
 
 Acceptance: a resolved fixture incident yields a draft whose timeline lines each cite a brief reference, with cause and remediation empty and flagged. Publishing an untouched cause field is refused with 400.
 
-Status: **missing**.
+**Current evidence and future obligations (ct, 19 October 2026):** every currently held brief alert and published update is included with its existing A/U reference. The incident's recorded opening-to-published-resolution window is labelled **recorded**, never monitor-measured customer downtime. Oncall (INTAKE-012), PagerDuty (INTAKE-009), and Jira Service Management/Opsgenie (INTAKE-014) timeline evidence must enter this same cited generator before those timeline capabilities ship; measured monitor evidence (COMP-008, UPTIME-007) must likewise join when available. Internal notes remain excluded. Cause and remediation are empty fields with human-input flags and cited evidence to review; publishing either untouched prompt or empty field is refused with 400. Draft generation never replaces an existing operator report.
+
+Status: **done** — `src/core/features/reports/draft.ts`, `src/core/features/reports/service.ts`, `src/core/features/reports/ui/report-editor.tsx`, AGENT-005 in `tests/e2e/publishing-contract.test.mjs` and `tests/e2e/helpers/post-incident-report-flow.mjs`. Private cited drafts, empty flagged fields, refusal until human completion, preservation of edits, and immutable publication are exercised through operator doors.
 
 #### AGENT-006 — Unreported incidents surface early.
 
@@ -1085,15 +1087,15 @@ What Lamp does not do, and how a buyer gets it:
 
 ## Status
 
-Judged from the code and tests at commit `c7c2445b652cba1bffa6d129b13ce3ca9c537ad2` (19 October 2026).
+Judged from the code and tests at commit `26e8a8fff0a6a6eb47537d687f71e89482dd984b` (19 October 2026).
 
-AGENT-004 is proven by its named API and browser journey below.
+AGENT-004 and AGENT-005 are proven by their named API and browser journeys below.
 
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
 | Published | 104 | 0 | 0 | 104 |
-| Target and push further | 12 | 38 | 44 | 94 |
-| All | 116 | 38 | 44 | 198 |
+| Target and push further | 13 | 38 | 43 | 94 |
+| All | 117 | 38 | 43 | 198 |
 
 | Clause | Title | Kind | Status | Evidence | Gap |
 | --- | --- | --- | --- | --- | --- |
@@ -1290,7 +1292,7 @@ AGENT-004 is proven by its named API and browser journey below.
 | `AGENT-002` | The next-update promise is kept | push-further | partial | `src/core/features/incidents/reminders.ts`, `src/core/features/ai/service.ts`, `tests/e2e/update-reminders.test.mjs` | Due and overdue reminders and on-request suggestions ship. Automatic drafting before the deadline and owner escalation do not. |
 | `AGENT-003` | Audience-specific impact | push-further | partial | `src/core/features/incidents/service.ts`, `tests/reference-storage/incident-publishing.test.mjs` | Each update carries an operator-written affected-audience statement (UPDATE-001). There are no audiences and no drafted variants. |
 | `AGENT-004` | Customer-visible recovery is checked before close | push-further | done | `src/core/features/brief/recovery-check.ts`, `src/core/features/incidents/recovery-repository.ts`, `src/core/features/incidents/publication-repository.ts`, `tests/e2e/helpers/recovery-check-flow.mjs`, `tests/e2e/incident-brief.test.mjs` |  |
-| `AGENT-005` | A post-incident report drafted from the record | push-further | missing |  | Not built. |
+| `AGENT-005` | A post-incident report drafted from the record | push-further | done | `src/core/features/reports/draft.ts`, `src/core/features/reports/service.ts`, `src/core/features/reports/ui/report-editor.tsx`, `tests/e2e/publishing-contract.test.mjs`, `tests/e2e/helpers/post-incident-report-flow.mjs` |  |
 | `AGENT-006` | Unreported incidents surface early | push-further | missing |  | Not built. |
 | `AGENT-007` | Translations drafted, never auto-published | push-further | missing |  | Not built. |
 | `AGENT-008` | Scoped MCP tools for outside agents | push-further | missing |  | Not built. |
