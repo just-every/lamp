@@ -520,23 +520,23 @@
       "executable": false
     },
     "docs/backups-and-recovery.md": {
-      "sha256": "84b69ce3283876dc07ba5bcdfa23512f4ad89930212162160ceb15716cb5f6ab",
+      "sha256": "9061e008e974305ef224f981bce27121a421377ec6577aacb719d09fbc0e5158",
       "executable": false
     },
     "docs/CLAIMS.md": {
-      "sha256": "68e757dc0fbaf98b51c63776ef66b77521494489869caf35e7f8f4c2620d2cf1",
+      "sha256": "d53e33abb2f8881439409ff6775d574d1049ba899fa2f37e2534cd989b3cca9b",
       "executable": false
     },
     "docs/components-and-groups.md": {
-      "sha256": "c765490751f77742d2fc4bc8aa62fac7c2038de0f2e3988562652382a6b0fe00",
+      "sha256": "19896b8409f2809613e8bca44e2c00090f389bb3389bd16b8b8740a5bd6eafb1",
       "executable": false
     },
     "docs/deploy.md": {
-      "sha256": "a0cfd3ab58f1e29f73073502890f60f3f81dcf46304665ef735b5d6ded1be621",
+      "sha256": "b12b87ea7e108fd81e5410f36f760831c5d5e8650e35f6a0ec93726e91e6a3c1",
       "executable": false
     },
     "docs/deployment-reference.md": {
-      "sha256": "8edc56a73ba68de8596d0957f3d74dce879c944ddf3b31266b1d797290689ff2",
+      "sha256": "79a507721122ffeb54d91774ebfaaf3b2710766502062a2a7d3d0f2cd1fcc537",
       "executable": false
     },
     "docs/domains.md": {
@@ -544,7 +544,7 @@
       "executable": false
     },
     "docs/first-run.md": {
-      "sha256": "4afc50ebbfc1add1cb7d14604426b909d0745883a4a23cc3cf63f155ea1369bf",
+      "sha256": "b65b9a9e3bb8606bd6afca2acd251e149a6933ff0f2db2ec3b1ae492be1e59f8",
       "executable": false
     },
     "docs/incidents-and-updates.md": {
@@ -556,11 +556,11 @@
       "executable": false
     },
     "docs/maintenance.md": {
-      "sha256": "08b687b1cbecaedf702e43562210ab7e41a8c5c7a27202210b2e22adbdad48ca",
+      "sha256": "dfb474f5c5d2c2ae29fcbf00daeb634478096da2d92ecdfe2b695bd3b11b9381",
       "executable": false
     },
     "docs/moving-in.md": {
-      "sha256": "f949e203a18f901136860bd9dde1303a8f61ca79542796b84b230af7a5ee64a1",
+      "sha256": "f0deac011f38684e2c59f01d138602032b3d351903dc76579619ae17d35b583f",
       "executable": false
     },
     "docs/operators-and-sign-in.md": {
@@ -572,11 +572,11 @@
       "executable": false
     },
     "docs/public-page.md": {
-      "sha256": "ca1d0fb4a2c5fbd836ce30e7ebe97513703993f404f0d6f0161b42c71ef9287e",
+      "sha256": "d20c34974337204b93e839fb7b63eec6f63d28ecd04c798b5fed2910ea402954",
       "executable": false
     },
     "docs/public-resources.md": {
-      "sha256": "414c4f9b62a4068dfcb88b48a080a04eb9f1c88f73ba9d4567687859ce34cedf",
+      "sha256": "f429a1e88e4344121f06bbe3a3f664fcab80989debeef84db5a30cd23dd84c65",
       "executable": false
     },
     "docs/site.json": {
@@ -584,7 +584,7 @@
       "executable": false
     },
     "docs/subscribers-and-notifications.md": {
-      "sha256": "8e60f6802e547ad78fbbf87ab1b0788e831a55e7d50be85078c790b715fa4280",
+      "sha256": "bb1b8db36fee85c7acb324cb82d0367e63810bf2105dcbbf1b9b6f5ddfd660ab",
       "executable": false
     },
     "docs/updating.md": {

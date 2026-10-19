@@ -14,7 +14,7 @@ Lamp gives you two kinds of copy:
 Sign in and open **Settings → Export page data → Download page data**. The file,
 `lamp-page-data-<date>.json`, holds:
 
-- page settings (name, tagline, colour, time zone, footer credit, widget origins,
+- page settings (name, tagline, color, time zone, footer credit, widget origins,
   AI tone) and the logo;
 - component groups and components, with their current status and status history;
 - incidents with every update, unpublished draft, internal note and post-incident

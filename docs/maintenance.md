@@ -11,9 +11,9 @@ claim from an incident, maintenance or standing operator status.
 
 You can reschedule or cancel a scheduled window from its controls. Changes and
 cancellation publish notices to subscribers already notified about that
-maintenance. Scheduled, rescheduled, started, completed and cancelled notices
+maintenance. Scheduled, rescheduled, started, completed and canceled notices
 appear in the Atom feed. Notices remain with their maintenance record and appear
-in public history when the window is completed or cancelled.
+in public history when the window is completed or canceled.
 
 ## Subscriber notices and delivery checks
 

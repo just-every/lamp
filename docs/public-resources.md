@@ -1,6 +1,6 @@
 # Feeds, APIs, badges and embeds
 
-Settings → Public resources and embeds links to your public API, feeds and badge and builds a tag for a banner, floating incident notice or compact status dot. Add the embedding site's full origin to Widget host origins and save settings first. Unlisted origins render nothing. Position, background, text colour and hiding a healthy state are choices carried in your copied tag. The floating notice is visible only during an unresolved incident or in-progress maintenance. Embeds refresh from the same public host every 30 seconds.
+Settings → Public resources and embeds links to your public API, feeds and badge and builds a tag for a banner, floating incident notice or compact status dot. Add the embedding site's full origin to Widget host origins and save settings first. Unlisted origins render nothing. Position, background, text color and hiding a healthy state are choices carried in your copied tag. The floating notice is visible only during an unresolved incident or in-progress maintenance. Embeds refresh from the same public host every 30 seconds.
 
 ## Feed readers and badges
 
@@ -8,7 +8,7 @@ Settings → Public resources and embeds links to your public API, feeds and bad
 
 Each component's **Feeds and badges** disclosure gives its own Atom, RSS, status badge and uptime badge URLs. These addresses use its immutable ID as a slug and survive renaming. Component feeds include only incidents and maintenance attached to that component.
 
-Use `/badge.svg` in a README or dashboard, or supply `/badge.json` to the [Shields endpoint badge](https://shields.io/badges/endpoint-badge). Component badges use `/components/<slug>/badge.svg` and `/components/<slug>/uptime.svg`. Every badge states its value in text as well as colour.
+Use `/badge.svg` in a README or dashboard, or supply `/badge.json` to the [Shields endpoint badge](https://shields.io/badges/endpoint-badge). Component badges use `/components/<slug>/badge.svg` and `/components/<slug>/uptime.svg`. Every badge states its value in text as well as color.
 
 ## Statuspage public API
 
@@ -28,7 +28,7 @@ Responses use [Statuspage's documented public format](https://status.atlassian.c
 | Major outage | major_outage | critical |
 | Under maintenance | under_maintenance | maintenance |
 
-Incident lifecycle names become lowercase. Maintenance Scheduled, In progress, Completed and Cancelled map to scheduled, in_progress, completed and completed; cancellation remains stated in its notice body. The current automatic maintenance lifecycle has auto-start and auto-complete enabled. Per-window switches, Verifying and editable maintenance messages await MAINT-009; this API does not supply those controls.
+Incident lifecycle names become lowercase. Maintenance Scheduled, In progress, Completed and Canceled map to scheduled, in_progress, completed and completed; cancellation remains stated in its notice body. The current automatic maintenance lifecycle has auto-start and auto-complete enabled. Per-window switches, Verifying and editable maintenance messages await MAINT-009; this API does not supply those controls.
 
 ## Native public API
 

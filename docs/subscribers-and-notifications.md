@@ -115,7 +115,7 @@ reach.
 **Provider accepted sends** records successful provider-message attempts once
 per delivery, even if there were retries. An email can be accepted and still be
 queued until a signed delivery receipt arrives. Webhook delivery records its
-endpoint's acknowledgement. Neither channel measures reading. Imported
+endpoint's acknowledgment. Neither channel measures reading. Imported
 historical updates have unknown source delivery figures; a mixed total labels
 its known records as incomplete. **Download CSV** exports the same counts and
 measurement definitions.

@@ -2,7 +2,7 @@
 
 After installing Lamp, open the local owner entry address from `rer dev` or the
 operator hostname of your deployment. On a new installation, confirm the page
-name, tagline, time zone and accent colour at `/setup`.
+name, tagline, time zone and accent color at `/setup`.
 
 ## Complete the checklist
 
