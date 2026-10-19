@@ -5110,7 +5110,7 @@
       "executable": false
     },
     "tests/auth-adoption/cutover.test.mjs": {
-      "sha256": "9dc5a28717df6bb1bfc0f38a39199bd55f34eb751cc91ccf2c8426413e3a6144",
+      "sha256": "5363a60c48fe85e7e4b42b44a2ef4d14e9992a023b0c8cae83745df7e5acfbfb",
       "executable": false
     },
     "tests/auth-adoption/dependencies.test.mjs": {

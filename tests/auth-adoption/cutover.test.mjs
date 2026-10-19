@@ -33,11 +33,14 @@ test("MOVE-012 MOVE-006 MOVE-002 — Owner-approved cutover invitations and prep
     [{ name: 'page.json', text: JSON.stringify({ id: 'synthpage01', viewers_must_be_team_members: false, ip_restrictions: null }) }, { name: 'page-access-groups.json', text: '[{"id":"team-only"}]' }],
   ]) {
     const files = [...withoutVisibility, ...visibility];
-    const response = await r.call('/api/app/statuspage-import/preview', { method: 'POST', cookie: r.cookie, body: { files } });
-    assert.equal(response.status, 400, await response.clone().text());
-    assert.match((await response.json()).error, /visibility|private|restricted|audience/i);
-    const direct = await r.call('/api/app/statuspage-import/apply', { method: 'POST', cookie: r.cookie, body: { files, asOf: new Date().toISOString(), fingerprint: '0'.repeat(64), acknowledged: true } });
-    assert.equal(direct.status, 409);
+    // Move in's one import path is the owner door: the dry run is refused there.
+    const response = await moveIn(r, r.cookie).preview({ files });
+    assert.equal(response.status, 400, JSON.stringify(response.body));
+    assert.match(response.body.error, /visibility|private|restricted|audience/i);
+    // No plan exists to apply, so an apply naming one writes nothing either.
+    const direct = await moveIn(r, r.cookie).door('statuspage', 'apply', { planId: 'plan-never-made', reviewedFingerprint: '0'.repeat(64) });
+    assert.equal(direct.status, 409, JSON.stringify(direct.body));
+    assert.match(direct.body.error, /changed since the dry run/);
     assert.equal((await r.db.prepare('SELECT count(*) n FROM components').first()).n, 0);
     assert.equal((await r.db.prepare('SELECT count(*) n FROM ik_jobs').first()).n, 0);
   }
