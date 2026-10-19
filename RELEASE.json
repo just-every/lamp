@@ -1,75 +1,16 @@
 {
-  "version": "1.8.0",
-  "previousVersion": "1.7.1",
+  "version": "1.8.1",
+  "previousVersion": "1.8.0",
   "date": "2026-10-19",
-  "publicReleaseNotes": "Lamp 1.8.0 is a regular release from main and includes a privacy fix every owner who moved in from Statuspage should take: a Statuspage page that was private (team members only), IP-restricted or audience-specific, or whose visibility cannot be read, is now refused instead of being imported onto the public page; owners who imported such a page with 1.3.0 to 1.7.1 should check what it published. Alerts from Prometheus Alertmanager and Grafana Alerting arrive as one private draft per alert group, mapped to components by exact labels, and a group that fully recovers closes its unpublished draft. Resolving checks the recovery Lamp can see and says plainly what it does not track; a resolved incident can draft its post-incident report from the published record, with every line cited and cause and remediation left for a person to write. Component state changes are staged in the update that announces them, an operator can set an incident's public impact on its own, and wording checks flag unclear updates without blocking publication. Each incident shows who was reached on each channel and how quickly updates followed, and Settings adds reporting on subscriber counts and growth, a filterable audit log with CSV, saved branding and previews for notification email, and component catalogues with descriptions and components shown only while affected. Public history is complete and browsable, the operator desk works on a phone, the public page answers 503 until the owner finishes setup, /health answers from its last good check, and a page data restore keeps double opt-in for email subscribers. Move in now runs every import through the same import door Business uses, with the 30-minute dry-run window kept, and deleting a subscriber also erases them from import custody. Thirteen migrations, 0027 to 0039, apply in order on update; back up first. The checkout pins rer 0.2.63. Product screenshot: .github/assets/release/lamp-1.7.0-status-page-1440.png (a business's public status page at 1440 pixels: grouped components with 90-day uptime, an incident in progress with its latest update, and the subscribe form; the public page is unchanged in 1.8.0).",
-  "contractChanges": {
-    "SETUP-001": {
-      "change": "changed",
-      "summary": "Local development suppresses outgoing mail, has no captured-mail inbox and signs the owner in with one-click entry; a suppressed delivery outcome proves a notice was produced locally without claiming provider acceptance.",
-      "was": "Overview shows eight steps from saved server state: non-sample page name and branding, configured time zone, sender checked, first component, first published incident, public page opened through its protected check, reachable subscription form, and public address selected with custom-domain documentation. Open steps lead to their completion screen; all-complete collapses the checklist. Provider authentication checks and local outbox capture are labelled separately, and neither claims inbox delivery. Public GET paths remain database-free; protected operator actions retain the public-read checks. Choosing an address acknowledges that choice, not DNS validation, and the default deployment address is supported.",
-      "now": "Overview shows eight steps from saved server state: non-sample page name and branding, configured time zone, sender checked, first component, first published incident, public page opened through its protected check, reachable subscription form, and public address selected with custom-domain documentation. Open steps lead to their completion screen; all-complete collapses the checklist. Local development suppresses outgoing mail, offers no captured-mail inbox, and prepares automatic one-click owner entry without email (owner decision, 15 October 2026). To prove a subscriber notice was produced locally, publish to an active subscriber, let dispatch run, and inspect its `suppressed` outcome in Notifications or `GET /api/app/deliveries`; `notification_deliveries` records that outcome without a provider-acceptance claim. The local sender check explicitly reports suppression and requires a hosted installation to check provider authentication; that hosted check does not claim inbox delivery. Public GET paths remain database-free; protected operator actions retain the public-read checks. Choosing an address acknowledges that choice, not DNS validation, and the default deployment address is supported."
-    }
-  },
+  "publicReleaseNotes": "Lamp 1.8.1 fixes backup and restore for owners on Run Edit Run Managed hosting and adds an Uptime alert preset. Lamp's technical backup and restore (node scripts/export.mjs and node scripts/import.mjs) did not recognise the migration history Run Edit Run keeps in a Managed database (the rer_migrations table): a backup carried that history as if it were page data, a restore into a new Managed installation was refused, and a restore could have overwritten the destination's own history. Lamp 1.8.1 treats that table as installation history: a backup and a restore both check that it lists exactly this release's migrations with their file hashes and refuse otherwise, the backup never carries it, and a restore into a new Managed installation (before its owner signs in) writes your data without touching the new installation's history. A backup made by 1.8.0 from a Managed installation restores too, and any other unknown table still stops a restore. Self-hosted backups and restores are unchanged. Alerts → Connect Uptime takes Uptime's signed JSON webhook, maps each Uptime monitor to a component, opens a private draft with the failing vantages in the incident brief, refuses stale or unsigned requests, and records recovery. One migration, 0040, applies on update; back up first. The checkout pins rer 0.2.63. Product screenshot: .github/assets/release/lamp-1.7.0-status-page-1440.png",
+  "contractChanges": {},
   "extensionPointChanges": [],
   "migrations": [
-    {
-      "id": "0027_update_component_changes.sql",
-      "buyerSteps": "Back up the installation, then apply pending migrations in order. Stores staged component changes and immutable update snapshots; existing imported history remains unchanged."
-    },
-    {
-      "id": "0028_wording_checks.sql",
-      "buyerSteps": "Apply after 0027. Adds page wording-check settings with defaults; no owner action is required."
-    },
-    {
-      "id": "0029_component_catalogue.sql",
-      "buyerSteps": "Apply after 0028. Adds conditional component visibility and optional uptime start dates; existing components stay visible with their existing uptime history."
-    },
-    {
-      "id": "0030_imported_templates.sql",
-      "buyerSteps": "Apply after 0029. Retains imported template titles, folders, notification defaults and full wording requiring shortening; no invitations or notifications are sent."
-    },
-    {
-      "id": "0031_incident_impact.sql",
-      "buyerSteps": "Apply after 0030. Adds independent attributed incident impact choices and retains the committed impact on outgoing notifications; component claims and uptime remain unchanged."
-    },
-    {
-      "id": "0032_email_branding.sql",
-      "buyerSteps": "Apply after 0031. Adds optional notification email branding; existing messages and frozen retries keep their original content. Managed mail retains its own sender identity."
-    },
-    {
-      "id": "0033_audit_log.sql",
-      "buyerSteps": "Apply after 0032. Adds audit filtering indexes and copies retained component state history into the private audit log; subsequent state records are audited in the same transaction."
-    },
-    {
-      "id": "0034_subscriber_reporting.sql",
-      "buyerSteps": "Apply after 0033. Starts anonymous daily subscriber inventory tracking with an explicit baseline; previous daily changes remain unknown. Technical archives preserve these facts."
-    },
-    {
-      "id": "0035_grouped_alerts.sql",
-      "buyerSteps": "Apply after 0034. Adds exact label mappings for Alertmanager and Grafana groups and tracks each alert fingerprint so partial recoveries keep private drafts open. Existing monitoring sources retain their mappings and credentials."
-    },
-    {
-      "id": "0036_business_import_door.sql",
-      "buyerSteps": "Apply after 0035. Adds disabled-by-default Business upload, grant revocation, plan and approval custody, and the source bundle each Business move-in came from. Enable explicitly in Settings; Business-imported subscribers remain held until cutover approval."
-    },
-    {
-      "id": "0037_import_custody_replace.sql",
-      "buyerSteps": "Apply after 0036. Adds import custody triggers so a replacing insert or update can never silently drop or reuse import custody; existing imports, history and undo are unchanged."
-    },
-    {
-      "id": "0038_import_door_apply_failures.sql",
-      "buyerSteps": "Apply after 0037, as one batch. Rebuilds the Business door's plan tables keeping every retained plan, snapshot and approval, and records a failed apply as a terminal audit fact so the owner plans again instead of retrying a stuck job."
-    },
-    {
-      "id": "0039_import_door_scopes.sql",
-      "buyerSteps": "Apply after 0038. Binds each Business door namespace to Lamp's import destination for erasure scoping. Additive; until 0038 and 0039 are applied the door answers 503 import_door_schema_outdated."
-    },
     {
       "id": "0040_uptime_preset.sql",
       "buyerSteps": "Apply after 0039. Adds signed Uptime preset identification and monitor-to-component mappings. Existing sources and credentials are retained; configure an Uptime source explicitly in Alerts."
     }
   ],
   "breaking": false,
-  "agentUpdateInstructions": "Back up data and owner source first: node scripts/export.mjs --remote with the deployment's --env-file, plus Settings → Export page data. Update the checkout to v1.8.0, run pnpm install --frozen-lockfile for the rer 0.2.63 pin, then rer deploy with the same environment and input file; it applies migrations 0027 to 0039 in order (until 0038 and 0039 are applied the import door answers 503 import_door_schema_outdated) and keeps SESSION_SECRET, SUBSCRIBER_TOKEN_SECRET, WEBHOOK_SIGNING_SECRET and OIDC_TRANSACTION_SECRET. A deploy run without a terminal must name the owner with --owner-name the first time this checkout deploys with rer 0.2.63. Statuspage move-in now needs page.json and page-access-groups.json (the API-key path reads them itself) and refuses private, IP-restricted, audience-specific or unreadable pages; if the installation imported from Statuspage, confirm the source page was public and remove anything it should not have published. Page data files exported by 1.7.x hold email subscribers on restore until Send confirmation emails. Run rer verify and pnpm run validate:release before adopting."
+  "agentUpdateInstructions": "Back up data and owner source first: node scripts/export.mjs --remote with the deployment's --env-file, plus Settings → Export page data. Update the checkout to v1.8.1 and run pnpm install --frozen-lockfile (rer 0.2.63 pin, unchanged), then rer deploy with the same environment and input file; it applies migration 0040_uptime_preset.sql, which adds Uptime preset columns to alert sources and changes no existing source. On Run Edit Run Managed hosting, back up and restore with node scripts/export.mjs and node scripts/import.mjs as OPERATIONS.md describes; the Managed migration ledger rer_migrations is checked and kept on each installation, never archived or written. Run rer verify and pnpm run validate:release before adopting."
 }
