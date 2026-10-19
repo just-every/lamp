@@ -201,8 +201,11 @@ export async function catalogueHistoryFlow({ appFetch, fetch, pageUrl, queryLoca
       const latest = await current();
       const catalogue = { components: latest.catalogue.components.filter(component => !newComponents.has(component.id)), groups: latest.catalogue.groups.filter(group => !newGroups.has(group.id)) };
       const cleanup = await api(`${bulk}/preview`, "POST", { catalogue, revision: latest.revision });
+      const deletedSince = new Date().toISOString();
       await apply(cleanup);
       assert.ok((await current()).catalogue.components.every(component => !newComponents.has(component.id)), "bulk deletion removes all journey components");
+      const audited = await (await appFetch(`/api/app/audit-log?format=csv&action=deleted&from=${encodeURIComponent(deletedSince)}`)).text();
+      for (const id of [...newComponents, ...newGroups]) assert.ok(audited.includes(`"${id}"`), "TEAM-007: every bulk deletion is attributed in the audit log");
     }
     await updateSettings({ timezone: originalTimezone });
   }

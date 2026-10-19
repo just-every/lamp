@@ -21,6 +21,11 @@ export async function auditLogFlow({ page, appUrl, appFetch }) {
   const subscriber = (await request("/api/app/subscribers/webhook", "POST", { destination: "https://hooks.example.test/audit-journey", contactEmail: "audit-private@example.test", componentIds: [] }, 201)).subscriber;
   await request(`/api/app/subscribers/${subscriber.id}`, "DELETE", undefined, 204);
   const maintenance = (await request("/api/app/maintenance", "POST", { title: "Database capacity upgrade audit", startsAt: new Date(Date.now() + 86400000).toISOString(), endsAt: new Date(Date.now() + 90000000).toISOString(), componentIds: [component.id] }, 201)).maintenance;
+  const group = (await request("/api/app/component-groups", "POST", { name: "Retired audit group", displayOrder: 9101 }, 201)).group;
+  const retired = (await request("/api/app/components", "POST", { groupId: group.id, name: "Retired audit component", description: "Removed by the audit journey.", internal: false, displayOrder: 1002, note: "" }, 201)).component;
+  await request(`/api/app/components/${retired.id}`, "DELETE", undefined, 204);
+  await request(`/api/app/component-groups/${group.id}`, "DELETE", undefined, 204);
+  await request(`/api/app/components/${retired.id}`, "DELETE", undefined, 404);
   const data = await request(`/api/app/audit-log?from=${encodeURIComponent(since)}&limit=100`);
   const published = data.entries.find(row => row.entityId === publication.update.id && row.action === "published");
   assert.ok(published?.actorId && published.actorName === "Contract Operator");
@@ -28,6 +33,11 @@ export async function auditLogFlow({ page, appUrl, appFetch }) {
   assert.ok(data.entries.some(row => row.action === "corrected" && row.reason === reason));
   assert.ok(data.entries.some(row => row.entityId === subscriber.id && row.action === "deleted"));
   assert.ok(data.entries.some(row => row.entityId === maintenance.id && row.action === "notice-published"));
+  for (const [entityType, entityId] of [["component", retired.id], ["component-group", group.id]]) {
+    const deleted = data.entries.filter(row => row.entityId === entityId && row.action === "deleted");
+    assert.equal(deleted.length, 1, `${entityType} deletion is recorded once, and a repeated delete records nothing`);
+    assert.equal(deleted[0].entityType, entityType); assert.equal(deleted[0].actorId, published.actorId); assert.equal(deleted[0].actorName, "Contract Operator");
+  }
   assert.ok(data.entries.every(row => Number.isFinite(Date.parse(row.createdAt))));
   assert.ok(!JSON.stringify(data).includes("audit-private@example.test"));
   const selection = `actorId=${encodeURIComponent(published.actorId)}&action=corrected&from=${encodeURIComponent(since)}`;
@@ -64,6 +74,11 @@ export async function auditLogFlow({ page, appUrl, appFetch }) {
     const axe = await new AxeBuilder({ page }).include("#audit-log").withTags(["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa"]).analyze();
     assert.deepEqual(axe.violations.filter(row => ["serious", "critical"].includes(row.impact)).map(row => row.id), []);
     if (proof) await panel.screenshot({ path: `${proof}/${width}-audit-filtered.png` });
+    await panel.getByLabel("Audit action").selectOption("deleted");
+    await panel.getByRole("button", { name: "Apply filters", exact: true }).click();
+    await panel.locator("tbody").getByText(group.id, { exact: true }).waitFor();
+    await panel.locator("tbody").getByText(retired.id, { exact: true }).waitFor();
+    if (proof) await panel.screenshot({ path: `${proof}/${width}-audit-deleted.png` });
     await panel.getByLabel("Audit action").selectOption("");
     await panel.getByRole("button", { name: "Apply filters", exact: true }).click();
     await panel.locator("tbody").getByText("published", { exact: true }).first().waitFor();

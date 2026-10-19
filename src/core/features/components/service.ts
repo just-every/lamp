@@ -24,10 +24,10 @@ export interface ComponentsService {
   get(componentId: string): Promise<ComponentView | null>;
   create(input: ComponentInput, operatorId: string): Promise<ComponentView>;
   update(componentId: string, input: ComponentUpdateInput): Promise<ComponentView | null>;
-  remove(componentId: string): Promise<boolean>;
+  remove(componentId: string, operatorId: string): Promise<boolean>;
   createGroup(input: ComponentGroupInput): Promise<{ id: string; name: string; displayOrder: number }>;
   updateGroup(groupId: string, input: ComponentGroupUpdateInput): Promise<boolean>;
-  removeGroup(groupId: string): Promise<boolean>;
+  removeGroup(groupId: string, operatorId: string): Promise<boolean>;
   setStandingClaim(componentId: string, state: ComponentState | null, operatorId: string): Promise<ComponentView | null>;
   correctHistory(componentId: string, input: ComponentHistoryCorrectionInput, operatorId: string): Promise<void>;
   canReconstructHistoricalState(componentId: string, instant: string): Promise<boolean>;
@@ -130,8 +130,8 @@ export function createComponentsService(
       const component = await repository.findComponent(componentId);
       return component ? toView(repository, { ...component, groupName: null }) : null;
     },
-    async remove(componentId) {
-      const removed = await repository.deleteComponent(componentId);
+    async remove(componentId, operatorId) {
+      const removed = await repository.deleteComponent(componentId, operatorId);
       if (removed) await onPublicDataChanged();
       return removed;
     },
@@ -147,8 +147,8 @@ export function createComponentsService(
       if (updated) await onPublicDataChanged();
       return updated;
     },
-    async removeGroup(groupId) {
-      const removed = await repository.deleteGroup(groupId);
+    async removeGroup(groupId, operatorId) {
+      const removed = await repository.deleteGroup(groupId, operatorId);
       if (removed) await onPublicDataChanged();
       return removed;
     },

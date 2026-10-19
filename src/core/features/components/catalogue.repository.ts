@@ -1,5 +1,6 @@
 import { createUlid } from "../../shared/ids";
 import { catalogueSchema, type CatalogueSnapshot, type ComponentCatalogue } from "./catalogue-schema";
+import { deletionAudit } from "./deletion-audit";
 
 export class CatalogueChangedError extends Error {
   constructor() { super("The catalogue or published state changed. Refresh and review the changes again."); }
@@ -46,8 +47,8 @@ export function createCatalogueRepository(binding: D1Database) {
           statements.push(binding.prepare("INSERT INTO component_state_history (id,component_id,previous_state,new_state,cause_type,cause_id,operator_id,changed_at,created_at,updated_at) VALUES (?,?,'Operational','Operational','standing-claim',NULL,?,?,?,?)").bind(createUlid(), component.id, operatorId, now, now, now));
         }
       }
-      for (const component of previous.catalogue.components) if (!componentIds.has(component.id)) statements.push(binding.prepare("DELETE FROM components WHERE id=?").bind(component.id));
-      for (const group of previous.catalogue.groups) if (!groupIds.has(group.id)) statements.push(binding.prepare("DELETE FROM component_groups WHERE id=?").bind(group.id));
+      for (const component of previous.catalogue.components) if (!componentIds.has(component.id)) statements.push(deletionAudit(binding, "component", component.id, operatorId, now), binding.prepare("DELETE FROM components WHERE id=?").bind(component.id));
+      for (const group of previous.catalogue.groups) if (!groupIds.has(group.id)) statements.push(deletionAudit(binding, "component-group", group.id, operatorId, now), binding.prepare("DELETE FROM component_groups WHERE id=?").bind(group.id));
       try { await binding.batch(statements); }
       catch (cause) {
         if (cause instanceof Error && cause.message.includes("malformed JSON")) throw new CatalogueChangedError();

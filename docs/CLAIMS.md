@@ -4,7 +4,7 @@ The full product inventory and counts are in [CONTRACT.md](../CONTRACT.md). Thes
 
 | Clause | Status | Proven | Remaining |
 | --- | --- | --- | --- |
-| TEAM-007 | partial | Settings audit filters, pagination, CSV, state and maintenance records, anonymised erased actors; Worker and 1440/390 browser journeys. | Role-restricted access; role, rule and management-token events; attributed component/group deletions. |
+| TEAM-007 | done | Settings audit filters, pagination, CSV, state and maintenance records, attributed component/group deletions (single and bulk), anonymised erased actors; Worker and 1440/390 browser journeys. | None for this clause; TEAM-004, AUTO-001 and API-001 add role-restricted access and their role, rule and token events. |
 | HIST-007 | done | Current email/webhook counts by channel, state, component and deactivation reason; anonymous observed daily growth, JSON/CSV parity and archive restore; Worker and 1440/390 browser journeys. | None for this clause; AUD-004 and I18N-001 add audience and language breakdowns, and daily history before tracking is labelled unknown. |
 | INTAKE-010 | done | Documented Alertmanager v4/Grafana v1 grouped payloads, exact label mapping, per-fingerprint deduplication and recovery, unmapped receipts, private drafts, archive restore and 1440/390 browser journeys. | None for this clause; automatic claims remain AUTO-001/COMP-008. |
 | AGENT-004 | done | Linked alert and grouped-member recovery check, five-minute reported recovery hold, atomic private audited override and scheduled recheck; named API and 1440/390 browser journey. | DEP-001, HIST-006, INTEG-001 and COMP-008 must join before shipping; absent evidence is explicitly not tracked. |

@@ -1,4 +1,5 @@
 import { currentStateHistoryStatement } from "./state-history-repository";
+import { deletionAudit } from "./deletion-audit";
 import { and, desc, eq, isNull, lte, ne, sql } from "drizzle-orm";
 
 import { createDatabase } from "../../platform/db/client";
@@ -50,10 +51,10 @@ export interface ComponentRepository {
   replaceStandingClaim(input: { id: string; componentId: string; state: ComponentState | null; operatorId: string; createdAt: string; updatedAt: string; event: ComponentClaimEventInput }): Promise<void>;
   insertGroup(input: typeof componentGroups.$inferInsert): Promise<void>;
   updateGroup(groupId: string, input: ComponentGroupUpdateInput & { updatedAt: string }): Promise<boolean>;
-  deleteGroup(groupId: string): Promise<boolean>;
+  deleteGroup(groupId: string, operatorId: string): Promise<boolean>;
   insertComponent(input: typeof components.$inferInsert, initialState: { event: ComponentClaimEventInput; history: ComponentStateHistoryInput }): Promise<void>;
   updateComponent(componentId: string, input: ComponentUpdateInput & { updatedAt: string }): Promise<boolean>;
-  deleteComponent(componentId: string): Promise<boolean>;
+  deleteComponent(componentId: string, operatorId: string): Promise<boolean>;
 }
 
 export function createComponentRepository(binding: D1Database): ComponentRepository {
@@ -358,9 +359,12 @@ export function createComponentRepository(binding: D1Database): ComponentReposit
       ]);
       return true;
     },
-    async deleteGroup(groupId) {
-      const result = await database.delete(componentGroups).where(eq(componentGroups.id, groupId)).returning({ id: componentGroups.id });
-      return result.length > 0;
+    async deleteGroup(groupId, operatorId) {
+      const [, deleted] = await binding.batch<{ id: string }>([
+        deletionAudit(binding, "component-group", groupId, operatorId, new Date().toISOString()),
+        binding.prepare("DELETE FROM component_groups WHERE id = ? RETURNING id").bind(groupId),
+      ]);
+      return deleted.results.length > 0;
     },
     async insertComponent(input, initialState) {
       await binding.batch([
@@ -378,9 +382,12 @@ export function createComponentRepository(binding: D1Database): ComponentReposit
       const result = await database.update(components).set(input).where(eq(components.id, componentId)).returning({ id: components.id });
       return result.length > 0;
     },
-    async deleteComponent(componentId) {
-      const result = await database.delete(components).where(eq(components.id, componentId)).returning({ id: components.id });
-      return result.length > 0;
+    async deleteComponent(componentId, operatorId) {
+      const [, deleted] = await binding.batch<{ id: string }>([
+        deletionAudit(binding, "component", componentId, operatorId, new Date().toISOString()),
+        binding.prepare("DELETE FROM components WHERE id = ? RETURNING id").bind(componentId),
+      ]);
+      return deleted.results.length > 0;
     },
   };
 }

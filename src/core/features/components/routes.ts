@@ -51,7 +51,7 @@ export function registerComponentRoutes(app: Hono<AppEnv>, service: ComponentsSe
   app.delete("/api/app/components/:componentId", async (context) => {
     const componentId = ulidSchema.safeParse(context.req.param("componentId"));
     if (!componentId.success) return context.json({ error: "Invalid component identifier.", issues: componentId.error.issues }, 400);
-    return (await service.remove(componentId.data)) ? context.body(null, 204) : context.json({ error: "Component not found." }, 404);
+    return (await service.remove(componentId.data, context.get("operator").id)) ? context.body(null, 204) : context.json({ error: "Component not found." }, 404);
   });
 
   app.post("/api/app/component-groups", async (context) => {
@@ -71,7 +71,7 @@ export function registerComponentRoutes(app: Hono<AppEnv>, service: ComponentsSe
   app.delete("/api/app/component-groups/:groupId", async (context) => {
     const groupId = ulidSchema.safeParse(context.req.param("groupId"));
     if (!groupId.success) return context.json({ error: "Invalid component group identifier.", issues: groupId.error.issues }, 400);
-    return (await service.removeGroup(groupId.data)) ? context.body(null, 204) : context.json({ error: "Component group not found." }, 404);
+    return (await service.removeGroup(groupId.data, context.get("operator").id)) ? context.body(null, 204) : context.json({ error: "Component group not found." }, 404);
   });
 
   app.put("/api/app/components/:componentId/standing-claim", async (context) => {

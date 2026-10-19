@@ -691,9 +691,9 @@ Status: **partial** — `src/core/features/intake/service.ts`, `tests/e2e/publis
 
 #### AUTO-001 — Owner rules for what an alert may do.
 
-For each component and source, the owner chooses one rule (*Policy: `alert.intake.v1` is replaced per component, never globally*). The choices are: **draft** (the released default, INTAKE-002); **claim** (claim the named state automatically while firing, and release on recovery); or **claim and publish** (also publish a saved UPDATE-009 template written in advance, and on recovery publish the template's Resolved update). Automatic publication is attributed to "rule <name>, approved by <owner>". It goes through UPDATE-008's atomic publish and NOTIFY-007's channel selection saved in the template, and is listed on the incident's internal timeline with the alert that caused it. A rule can only publish text an operator wrote and saved, so UPDATE-001's fields always exist.
+For each component and source, the owner chooses one rule (*Policy: `alert.intake.v1` is replaced per component, never globally*). The choices are: **draft** (the released default, INTAKE-002); **claim** (claim the named state automatically while firing, and release on recovery); or **claim and publish** (also publish a saved UPDATE-009 template written in advance, and on recovery publish the template's Resolved update). Automatic publication is attributed to "rule <name>, approved by <owner>". It goes through UPDATE-008's atomic publish and NOTIFY-007's channel selection saved in the template, and is listed on the incident's internal timeline with the alert that caused it. A rule can only publish text an operator wrote and saved, so UPDATE-001's fields always exist. Rule changes are recorded in TEAM-007's audit log with actor and time.
 
-Acceptance: under "claim", a firing alert changes the component's public state within 30 seconds, and no update or notification is sent. Under "claim and publish", the template's update appears on the page and subscribers are notified exactly once. Under "draft", nothing public changes. A rule edit is audited.
+Acceptance: under "claim", a firing alert changes the component's public state within 30 seconds, and no update or notification is sent. Under "claim and publish", the template's update appears on the page and subscribers are notified exactly once. Under "draft", nothing public changes. A rule edit appears in TEAM-007's audit view with actor and time.
 
 Status: **partial** — `src/core/features/intake/policies.ts`, `src/core/features/intake/presets.ts`, `tests/e2e/channels-and-presets.test.mjs`. The replaceable `alert.intake.v1` policy and preset-to-component mapping ship. There are no per-component rules, automatic claims or template publication.
 
@@ -725,9 +725,9 @@ Status: **partial** — `src/core/features/reports/service.ts`, `tests/e2e/publi
 
 #### TEAM-004 — Roles.
 
-Each operator has one role. **Owner** and **Admin** manage settings, team, integrations, pages and billing-relevant providers. **Communicator** publishes, resolves, schedules maintenance and manages subscribers. **Responder** drafts, writes internal notes and attaches components, but cannot publish. **Viewer** has read-only access, including private pages. Every operator route enforces the role on the server. A forbidden request returns 403, changes nothing and is audited. UPDATE-007's review policy still applies on top of roles. The operator configured at setup is an Owner, and the last Owner cannot be demoted or removed.
+Each operator has one role. **Owner** and **Admin** manage settings, team, integrations, pages and billing-relevant providers. **Communicator** publishes, resolves, schedules maintenance and manages subscribers. **Responder** drafts, writes internal notes and attaches components, but cannot publish. **Viewer** has read-only access, including private pages. Every operator route enforces the role on the server. A forbidden request returns 403, changes nothing and is audited. UPDATE-007's review policy still applies on top of roles. The operator configured at setup is an Owner, and the last Owner cannot be demoted or removed. Role changes are recorded in TEAM-007's audit log with actor and time, and from then on only Owners and Admins see that log.
 
-Acceptance: a Responder's publish request returns 403, and the same draft published by a Communicator succeeds. A Viewer's settings write returns 403. Every 403 has an audit entry naming the operator, the route and the time.
+Acceptance: a Responder's publish request returns 403, and the same draft published by a Communicator succeeds. A Viewer's settings write returns 403. Every 403 has an audit entry naming the operator, the route and the time. A role change appears in TEAM-007's audit view with actor and time, and a Communicator's audit-log request returns 403.
 
 Status: **missing**. Replaces released TEAM-001's "There are no roles" and the `seed.json → nonGoals` roles exclusion when shipped.
 
@@ -749,11 +749,11 @@ Status: **partial** — `src/core/platform/auth/config.ts`, `tests/auth-adoption
 
 #### TEAM-007 — Audit log view.
 
-Owners and Admins see the audit log of BASE-OPS-005 in the operator app. It covers every publication, state change, correction, deletion, rule change, role change, token use and erasure, and is filterable by actor, action and time and exportable as CSV. Entries for erased people show the anonymised reference (BASE-DATA-003).
+Owners and Admins see the audit log of BASE-OPS-005 in the operator app. It covers every publication, state change, correction, deletion, rule change, role change, token use and erasure, and is filterable by actor, action and time and exportable as CSV. Entries for erased people show the anonymised reference (BASE-DATA-003). Until roles ship (TEAM-004), every operator is an owner under TEAM-001 and sees the audit log; TEAM-004 limits it to Owners and Admins. Role changes, rule changes and token use are recorded here by TEAM-004, AUTO-001 and API-001, which have no such events until they ship.
 
-Acceptance: after a publish, a correction, a role change and a subscriber erasure, the audit view lists all four with actor and time, and the CSV export matches the filtered view.
+Acceptance: after a publish, a correction, a component and group deletion and a subscriber erasure, the audit view lists each with actor and time, and the CSV export matches the filtered view. The role-change entry is TEAM-004's acceptance.
 
-Status: **partial** — `src/core/features/audit-log/`, `migrations/core/0033_audit_log.sql`, `tests/e2e/helpers/audit-log-flow.mjs`, `tests/auth-adoption/operator-erasure.test.mjs`. Settings provides actor, action and UTC-date filters, pagination and matching CSV; erased actors retain only their anonymised reference. Publications, corrections, subscriber/operator erasures, component state history and maintenance notices are covered. Role-restricted access and role/rule/management-token events await TEAM-004, AUTO-001 and API-001; component/group deletion attribution is not yet recorded.
+Status: **done** — `src/core/features/audit-log/`, `migrations/core/0033_audit_log.sql`, `src/core/features/components/deletion-audit.ts`, `tests/e2e/helpers/audit-log-flow.mjs`, `tests/e2e/helpers/catalogue-history-flow.mjs`, `tests/auth-adoption/operator-erasure.test.mjs`. Settings provides actor, action and UTC-date filters, pagination and matching CSV; erased actors retain only their anonymised reference. Publications, corrections, subscriber/operator erasures, component state history, maintenance notices and component/group deletions (one by one or by bulk catalogue) are recorded with their actor in the same write. Every operator is an owner under TEAM-001; TEAM-004, AUTO-001 and API-001 carry role-restricted access and their role, rule and token events.
 
 ### History and reports — target
 
@@ -835,9 +835,9 @@ Status: **missing**.
 
 #### API-001 — Token-authenticated management API.
 
-`/api/v1/` exposes pages, components, groups, incidents (create draft, publish an update under UPDATE-001's validation, resolve), maintenance, templates, subscribers (create, import, delete), audiences, metrics push and automation rules. An OpenAPI 3.1 document is served at `/api/v1/openapi.json`. Owners and Admins issue scoped tokens (`read`, `incidents:write`, `components:write`, `maintenance:write`, `subscribers:write`, `metrics:write`, `admin`). Each token is shown once, stored only as a hash, and has an expiry, a last-used time and an immediate revoke. Each token has its own rate limit with 429 and `Retry-After`. Every write is audited with the token's ID and issuing operator. Publication through a token still honours UPDATE-007 review and TEAM-004 roles: a token acts as its issuer, never with more rights. When shipped, this clause replaces BASE-ACCESS-002's session requirement for `/api/v1/` only. The release that ships it states that replacement in the released clause's own `Supersedes` form.
+`/api/v1/` exposes pages, components, groups, incidents (create draft, publish an update under UPDATE-001's validation, resolve), maintenance, templates, subscribers (create, import, delete), audiences, metrics push and automation rules. An OpenAPI 3.1 document is served at `/api/v1/openapi.json`. Owners and Admins issue scoped tokens (`read`, `incidents:write`, `components:write`, `maintenance:write`, `subscribers:write`, `metrics:write`, `admin`). Each token is shown once, stored only as a hash, and has an expiry, a last-used time and an immediate revoke. Each token has its own rate limit with 429 and `Retry-After`. Every write is audited with the token's ID and issuing operator. Publication through a token still honours UPDATE-007 review and TEAM-004 roles: a token acts as its issuer, never with more rights. When shipped, this clause replaces BASE-ACCESS-002's session requirement for `/api/v1/` only. The release that ships it states that replacement in the released clause's own `Supersedes` form. A change made with a token is recorded in TEAM-007's audit log, attributed to the token.
 
-Acceptance: a `components:write` token changes a component's state, and the change is attributed to the token. The same token's incident publish returns 403. A revoked token returns 401 within 10 seconds. The OpenAPI document validates, and a generated client completes an incident lifecycle.
+Acceptance: a `components:write` token changes a component's state, and the change is attributed to the token. The same token's incident publish returns 403. A revoked token returns 401 within 10 seconds. The OpenAPI document validates, and a generated client completes an incident lifecycle. The component change appears in TEAM-007's audit view attributed to the token.
 
 Status: **partial** — `src/core/features/incidents/routes.ts`, `src/core/features/maintenance/routes.ts`, `tests/e2e/app-api.test.mjs`. Session-authenticated operator APIs exist for the app. There are no tokens, no public versioned API and no OpenAPI document. Replaces the released `seed.json → nonGoals` exclusion of a token API.
 
@@ -1100,8 +1100,8 @@ AGENT-004, AGENT-005, INTAKE-008 and UPTIME-009 are proven by their named API an
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
 | Published | 104 | 0 | 0 | 104 |
-| Target and push further | 18 | 34 | 42 | 94 |
-| All | 122 | 34 | 42 | 198 |
+| Target and push further | 19 | 33 | 42 | 94 |
+| All | 123 | 33 | 42 | 198 |
 
 | Clause | Title | Kind | Status | Evidence | Gap |
 | --- | --- | --- | --- | --- | --- |
@@ -1255,7 +1255,7 @@ AGENT-004, AGENT-005, INTAKE-008 and UPTIME-009 are proven by their named API an
 | `TEAM-004` | Roles | target | missing |  | Replaces released TEAM-001's "There are no roles" and the `seed.json → nonGoals` roles exclusion when shipped. |
 | `TEAM-005` | Access scoped to pages and audiences | target | missing |  | Not built. |
 | `TEAM-006` | Enforced SSO and SCIM | target | partial | `src/core/platform/auth/config.ts`, `tests/auth-adoption/dependencies.test.mjs` | Optional OIDC sign-in through Base (ACCESS-001) ships, off by default. Enforcement, break-glass and SCIM do not. When shipped, this replaces ACCESS-001's "SCIM and role synchronization remain out of scope". |
-| `TEAM-007` | Audit log view | target | partial | `src/core/features/audit-log/`, `migrations/core/0033_audit_log.sql`, `tests/e2e/helpers/audit-log-flow.mjs`, `tests/auth-adoption/operator-erasure.test.mjs` | Settings provides actor, action and UTC-date filters, pagination and matching CSV; erased actors retain only their anonymised reference. Publications, corrections, subscriber/operator erasures, component state history and maintenance notices are covered. Role-restricted access and role/rule/management-token events await TEAM-004, AUTO-001 and API-001; component/group deletion attribution is not yet recorded. |
+| `TEAM-007` | Audit log view | target | done | `src/core/features/audit-log/`, `migrations/core/0033_audit_log.sql`, `src/core/features/components/deletion-audit.ts`, `tests/e2e/helpers/audit-log-flow.mjs`, `tests/e2e/helpers/catalogue-history-flow.mjs`, `tests/auth-adoption/operator-erasure.test.mjs` | Settings provides actor, action and UTC-date filters, pagination and matching CSV; erased actors retain only their anonymised reference. Publications, corrections, subscriber/operator erasures, component state history, maintenance notices and component/group deletions (one by one or by bulk catalogue) are recorded with their actor in the same write. Every operator is an owner under TEAM-001; TEAM-004, AUTO-001 and API-001 carry role-restricted access and their role, rule and token events. |
 | `HIST-001` | Public history | published | done | `tests/e2e/public-contract.test.mjs` |  |
 | `HIST-002` | Post-incident report | published | done | `tests/e2e/publishing-browser.test.mjs`, `tests/e2e/publishing-contract.test.mjs` |  |
 | `HIST-003` | Report due | published | done | `tests/e2e/publishing-contract.test.mjs` |  |
