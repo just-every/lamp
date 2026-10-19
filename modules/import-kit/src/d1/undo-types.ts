@@ -70,9 +70,7 @@ export interface D1UndoDisposition {
   targetId: string;
   entity: D1UndoEntity;
   disposition: 'reversed' | 'retained';
-  /** 'superseded': a later import's effect over it was kept for the owner, so
-   * it can never be restored; it is reversed in provenance and kept. */
-  reason: 'unchanged' | 'edited' | 'dependency' | 'superseded';
+  reason: 'unchanged' | 'edited' | 'dependency';
   expected: D1UndoEvidence;
   observed: D1UndoEvidence;
   protectedBy: D1UndoDependency[];

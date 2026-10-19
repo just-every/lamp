@@ -145,9 +145,9 @@
     {
       "path": "modules/import-kit/CONTRACT.md",
       "originPath": "modules/import-kit/CONTRACT.md",
-      "revision": "d1e9ca8cb648295259289901f524b2834463f4ee",
+      "revision": "2505cf7436e9be1b2e1e539c9ff5126fc58006da",
       "files": {
-        "modules/import-kit/CONTRACT.md": "1d3006673249175c27729fa76472da435340d03ec2de05b227089135577378bc"
+        "modules/import-kit/CONTRACT.md": "44be36fc70bc963fea918ef2157c97723e3aebd851391dd973109ac41c315e68"
       },
       "modes": {
         "modules/import-kit/CONTRACT.md": "100644"
@@ -156,9 +156,9 @@
     {
       "path": "modules/import-kit/README.md",
       "originPath": "modules/import-kit/README.md",
-      "revision": "d1e9ca8cb648295259289901f524b2834463f4ee",
+      "revision": "2505cf7436e9be1b2e1e539c9ff5126fc58006da",
       "files": {
-        "modules/import-kit/README.md": "64305ae9baf79d9531db7822a4282152b0d63a6b9c41bba61d8ff0c1c27257a3"
+        "modules/import-kit/README.md": "f3e8d232c5ca8d092b75237be5ce12f4f621d2bc0cecb27291c7db253aea3b70"
       },
       "modes": {
         "modules/import-kit/README.md": "100644"
@@ -167,7 +167,7 @@
     {
       "path": "modules/import-kit/schema",
       "originPath": "modules/import-kit/schema",
-      "revision": "d1e9ca8cb648295259289901f524b2834463f4ee",
+      "revision": "2505cf7436e9be1b2e1e539c9ff5126fc58006da",
       "files": {
         "modules/import-kit/schema/importer-verification-receipt.schema.json": "710740a418fbd1fda5dd7a9017c247040c2bef98a6eadbec2a59220a5afa0ae7",
         "modules/import-kit/schema/importers.schema.json": "70ffac46763ab493388cad8fb0bc40946be819b8e8036274a7bff30cf3b4d9c3"
@@ -180,7 +180,7 @@
     {
       "path": "modules/import-kit/src/d1",
       "originPath": "modules/import-kit/src/d1",
-      "revision": "d1e9ca8cb648295259289901f524b2834463f4ee",
+      "revision": "2505cf7436e9be1b2e1e539c9ff5126fc58006da",
       "files": {
         "modules/import-kit/src/d1/apply.ts": "68ef23214fa11ca8fed729e4ef38661be5a7d3d14415c04cd6ab7d271839ce52",
         "modules/import-kit/src/d1/budget.ts": "b555798bf820bafbbe1e1162f8fb4432dcd9f7037304f0fe63aa5cd12443410b",
@@ -218,7 +218,7 @@
         "modules/import-kit/src/d1/expected-state.ts": "bd5b5bc97ee20b910646161186717418951da673a4c294e09e75653c98892df0",
         "modules/import-kit/src/d1/field-redaction.ts": "f7320418e95c0cba58048e526e561b567739b263f6e66299cc159d060fd3566f",
         "modules/import-kit/src/d1/guards.ts": "7f8c7d43a1d5f41d88017a24435d88f9c7b5cb58140ca8d9d0a343697ec09e44",
-        "modules/import-kit/src/d1/history.ts": "6d4e90a5fa63146a8ad1ee968d4f2e5f5584af7740ec05fb45d1c2c701aebcf4",
+        "modules/import-kit/src/d1/history.ts": "004b6b72a3c33b33de05196ccaa7ee09777c9a3253bac8128f3cf4ebeb66aea9",
         "modules/import-kit/src/d1/index.ts": "700b2a694780cce4b4aa87a48a69fe13f5d7bdae5b712a8783d45c4e7c343f11",
         "modules/import-kit/src/d1/integrity.ts": "bca91ca3bf5d9a1b868a8f53a9989dee12ddfa69c1b6edee10a9ee84d51c6b14",
         "modules/import-kit/src/d1/inventory-snapshot.ts": "687f41c9ef55f372e4af0e1c63a70945a9808036d118acfe97978f9c6ec04d6f",
@@ -250,14 +250,14 @@
         "modules/import-kit/src/d1/preparation-steps-schema.ts": "b085e0b64abc7b045178ed2e27c0a77db2766b668150f8acf3c6191547237888",
         "modules/import-kit/src/d1/preparation-steps.ts": "d23442e368506740ce0acbfdf1f44c4934f2735db445965c290d30eaa421bb7c",
         "modules/import-kit/src/d1/preparations.ts": "3e674caf01c9f104df6bc038563018dfcbac4f25c0e1fe87ddafd7ac94f7d4d2",
-        "modules/import-kit/src/d1/preserved-reverse.ts": "72ea2770b1d7cddb292f50bb2715d02c2edef94be118a1724367545822732170",
+        "modules/import-kit/src/d1/preserved-reverse.ts": "8283befaf15dc5edf67f091808f1f182f1eb2038f4bf8f28351e0240ce3aebe4",
         "modules/import-kit/src/d1/provenance-set.ts": "c769e025887b695b0a7c766319f8dd7a4fb50d234fffde630ed614fcb2ebdb92",
         "modules/import-kit/src/d1/publication-fence.ts": "b8fd1857119e520bec5cf10d07b3c81a2fbc1caf066b05c774394a8f2ba2c14a",
         "modules/import-kit/src/d1/publication-receipt-schema.ts": "a8562507cad8506e7c3ceaade0161b6de82a202f5bad368ea322187c62be1929",
         "modules/import-kit/src/d1/published-stream.ts": "8e672ca3c1921fce0dc2fe37fa4470a5ada1dd38924a9b39db0cb5a97060a222",
         "modules/import-kit/src/d1/read-fence.ts": "e77cf651e56af1d6d37c78ac68ae339b7a5e98049dad2e3f501b602b01b203b3",
         "modules/import-kit/src/d1/read-results.ts": "75fe5cb009f41c2aa850941e8db21bfe77261baeccf5a0203505871d4ef66e2d",
-        "modules/import-kit/src/d1/README.md": "63bb9054232b437bc5eb55d2ad33a031df30123b00f4a25729d059a0e49f4826",
+        "modules/import-kit/src/d1/README.md": "1b0d8802671889f122764fa6c9c72bcfb06f12a78ae77e48088dabf807717c04",
         "modules/import-kit/src/d1/redacted-custody.ts": "4ff48e38c5063bab4911c4a117fc89fb32898f3924a35d01340e106a87fa2692",
         "modules/import-kit/src/d1/redaction-step.ts": "f80c6181f3941e5c2e9ac9c7618c4b4c87b959eb61aa912e36936c19266d5edd",
         "modules/import-kit/src/d1/referenced-plans.ts": "71db1440bd8e8e14e5a1802915893de71c994d6ef51be17d807b80b2f3256b68",
@@ -307,8 +307,8 @@
         "modules/import-kit/src/d1/undo-observations.ts": "aa5c7eac0fd202244fe7a5518a95dcab377809b9eda12c52b610fe03b00f9958",
         "modules/import-kit/src/d1/undo-report.ts": "10776e6240f7090e59023aa2e9ed212ead66b37c2c696ec0d44dba424be34b71",
         "modules/import-kit/src/d1/undo-snapshot.ts": "e92301721da9d72c37213a99a308701c94c882657d2fe0a263ad95614d3928d2",
-        "modules/import-kit/src/d1/undo-state.ts": "170ade2e4b9430ab1f96e713a6a7e11f7093f7bf19586647874cf751ecd37db1",
-        "modules/import-kit/src/d1/undo-types.ts": "6690cc39744fdd257925a541af770e6c243eb923e23f4b7582570cae30edbfd5"
+        "modules/import-kit/src/d1/undo-state.ts": "3f225c8220357ef67ac5bcb30a8bcec851f824f2d167bb75f774d539df6c2390",
+        "modules/import-kit/src/d1/undo-types.ts": "39a110602c82019bf19bccd13316d590ee3e6f3fbc7171b5aa35d982e6158b50"
       },
       "modes": {
         "modules/import-kit/src/d1/apply.ts": "100644",
@@ -443,7 +443,7 @@
     {
       "path": "modules/import-kit/src/door/admission.ts",
       "originPath": "modules/import-kit/src/door/admission.ts",
-      "revision": "d1e9ca8cb648295259289901f524b2834463f4ee",
+      "revision": "2505cf7436e9be1b2e1e539c9ff5126fc58006da",
       "files": {
         "modules/import-kit/src/door/admission.ts": "be300af64f0572d69c09567c5129f5d83564ae0f753b344526655260321d94ac"
       },
@@ -454,9 +454,9 @@
     {
       "path": "modules/import-kit/src/door/ADOPTING.md",
       "originPath": "modules/import-kit/src/door/ADOPTING.md",
-      "revision": "d1e9ca8cb648295259289901f524b2834463f4ee",
+      "revision": "2505cf7436e9be1b2e1e539c9ff5126fc58006da",
       "files": {
-        "modules/import-kit/src/door/ADOPTING.md": "918d2ea38a152c711cdb25c9a9d8b5ff5a9b5c6a293064fbaf91329a363eb4df"
+        "modules/import-kit/src/door/ADOPTING.md": "b1847eb93641d1fb9e1338f79c962bb42ca68f63f972018acf83406d2183068b"
       },
       "modes": {
         "modules/import-kit/src/door/ADOPTING.md": "100644"
@@ -465,7 +465,7 @@
     {
       "path": "modules/import-kit/src/door/failures.ts",
       "originPath": "modules/import-kit/src/door/failures.ts",
-      "revision": "d1e9ca8cb648295259289901f524b2834463f4ee",
+      "revision": "2505cf7436e9be1b2e1e539c9ff5126fc58006da",
       "files": {
         "modules/import-kit/src/door/failures.ts": "5dbf118cd5ea2f5e565f1fe868559d197cb2bcdf6cd13ea73d3cedf38cdcfc91"
       },
@@ -476,7 +476,7 @@
     {
       "path": "modules/import-kit/src/door/grants.ts",
       "originPath": "modules/import-kit/src/door/grants.ts",
-      "revision": "d1e9ca8cb648295259289901f524b2834463f4ee",
+      "revision": "2505cf7436e9be1b2e1e539c9ff5126fc58006da",
       "files": {
         "modules/import-kit/src/door/grants.ts": "01412ad861e607d133c75e53ef48fd6377237f5f0cca3f2a535c5f9d4028d7c9"
       },
@@ -487,9 +487,9 @@
     {
       "path": "modules/import-kit/src/door/handler.ts",
       "originPath": "modules/import-kit/src/door/handler.ts",
-      "revision": "d1e9ca8cb648295259289901f524b2834463f4ee",
+      "revision": "2505cf7436e9be1b2e1e539c9ff5126fc58006da",
       "files": {
-        "modules/import-kit/src/door/handler.ts": "68fc5f00f6983565f163aae798a97964c492e41af4c283c72e4c5add09bcd6d8"
+        "modules/import-kit/src/door/handler.ts": "f57165cb36d217c58c09d3021d0bc6e9edaeb474c41b60168dd40dd2589d5eb9"
       },
       "modes": {
         "modules/import-kit/src/door/handler.ts": "100644"
@@ -498,9 +498,9 @@
     {
       "path": "modules/import-kit/src/door/index.ts",
       "originPath": "modules/import-kit/src/door/index.ts",
-      "revision": "d1e9ca8cb648295259289901f524b2834463f4ee",
+      "revision": "2505cf7436e9be1b2e1e539c9ff5126fc58006da",
       "files": {
-        "modules/import-kit/src/door/index.ts": "7f26711e7aa84e21e6f914687d208acb307545233995f0b96f169e56a72b5717"
+        "modules/import-kit/src/door/index.ts": "c9dc4abbc556cabd344e2b7d71342e8250fc303061a9462e7fe3c1bfae4afbbb"
       },
       "modes": {
         "modules/import-kit/src/door/index.ts": "100644"
@@ -509,7 +509,7 @@
     {
       "path": "modules/import-kit/src/door/inventory.ts",
       "originPath": "modules/import-kit/src/door/inventory.ts",
-      "revision": "d1e9ca8cb648295259289901f524b2834463f4ee",
+      "revision": "2505cf7436e9be1b2e1e539c9ff5126fc58006da",
       "files": {
         "modules/import-kit/src/door/inventory.ts": "0e080c4d14fb501099bf3dece0a2dcb624c4aa4e3a6ec0fe35fc07a944ef9e46"
       },
@@ -520,9 +520,9 @@
     {
       "path": "modules/import-kit/src/door/jobs.ts",
       "originPath": "modules/import-kit/src/door/jobs.ts",
-      "revision": "d1e9ca8cb648295259289901f524b2834463f4ee",
+      "revision": "2505cf7436e9be1b2e1e539c9ff5126fc58006da",
       "files": {
-        "modules/import-kit/src/door/jobs.ts": "15fb1d0ab65c0626173a5ed11848dc23c429a989e70fc752d43603153276f2db"
+        "modules/import-kit/src/door/jobs.ts": "7d81d30e56506daa589ce0b9326e490035c45b65213ed5eab2212bb82425e602"
       },
       "modes": {
         "modules/import-kit/src/door/jobs.ts": "100644"
@@ -531,7 +531,7 @@
     {
       "path": "modules/import-kit/src/door/limits.ts",
       "originPath": "modules/import-kit/src/door/limits.ts",
-      "revision": "d1e9ca8cb648295259289901f524b2834463f4ee",
+      "revision": "2505cf7436e9be1b2e1e539c9ff5126fc58006da",
       "files": {
         "modules/import-kit/src/door/limits.ts": "3838303bd3d8521eb44b237c51aac838aef0e88f6ab3172a2df9c5d6de52f016"
       },
@@ -542,7 +542,7 @@
     {
       "path": "modules/import-kit/src/door/operator.ts",
       "originPath": "modules/import-kit/src/door/operator.ts",
-      "revision": "d1e9ca8cb648295259289901f524b2834463f4ee",
+      "revision": "2505cf7436e9be1b2e1e539c9ff5126fc58006da",
       "files": {
         "modules/import-kit/src/door/operator.ts": "5db9a4fc56bcee7b824293d4715b2c915bb95fe42a9d3fc104f51e59a239b45f"
       },
@@ -553,9 +553,9 @@
     {
       "path": "modules/import-kit/src/door/planning.ts",
       "originPath": "modules/import-kit/src/door/planning.ts",
-      "revision": "d1e9ca8cb648295259289901f524b2834463f4ee",
+      "revision": "2505cf7436e9be1b2e1e539c9ff5126fc58006da",
       "files": {
-        "modules/import-kit/src/door/planning.ts": "a522c56c67b7fe96fabb1d79c99f695985dab8a0adda834452b232748d51fd26"
+        "modules/import-kit/src/door/planning.ts": "cec9d73ab8befbc6f700889a28da97d489af1ea1d55b25e207dfc4ebe563aa3e"
       },
       "modes": {
         "modules/import-kit/src/door/planning.ts": "100644"
@@ -564,7 +564,7 @@
     {
       "path": "modules/import-kit/src/door/protocol.ts",
       "originPath": "modules/import-kit/src/door/protocol.ts",
-      "revision": "d1e9ca8cb648295259289901f524b2834463f4ee",
+      "revision": "2505cf7436e9be1b2e1e539c9ff5126fc58006da",
       "files": {
         "modules/import-kit/src/door/protocol.ts": "0decd22289c0a0d0bc28db1134a75789ed58131a9b181f5795353ce7025792b4"
       },
@@ -575,29 +575,18 @@
     {
       "path": "modules/import-kit/src/door/README.md",
       "originPath": "modules/import-kit/src/door/README.md",
-      "revision": "d1e9ca8cb648295259289901f524b2834463f4ee",
+      "revision": "2505cf7436e9be1b2e1e539c9ff5126fc58006da",
       "files": {
-        "modules/import-kit/src/door/README.md": "1cc6c400007eb6a08a9698a22d4b6cfd41ace42b04eb59927bd34c776bbe444c"
+        "modules/import-kit/src/door/README.md": "3c92285becde525a8f8bf1f8f4319497f02044e2f5dde9ffe00c4e29860e1d21"
       },
       "modes": {
         "modules/import-kit/src/door/README.md": "100644"
       }
     },
     {
-      "path": "modules/import-kit/src/door/refusals.ts",
-      "originPath": "modules/import-kit/src/door/refusals.ts",
-      "revision": "d1e9ca8cb648295259289901f524b2834463f4ee",
-      "files": {
-        "modules/import-kit/src/door/refusals.ts": "1c03c2366bac97733ba30ad9e0f69311191735dcddced839a5e804dc2e4f6d6e"
-      },
-      "modes": {
-        "modules/import-kit/src/door/refusals.ts": "100644"
-      }
-    },
-    {
       "path": "modules/import-kit/src/door/schema.ts",
       "originPath": "modules/import-kit/src/door/schema.ts",
-      "revision": "d1e9ca8cb648295259289901f524b2834463f4ee",
+      "revision": "2505cf7436e9be1b2e1e539c9ff5126fc58006da",
       "files": {
         "modules/import-kit/src/door/schema.ts": "f5814a590ec4329e2ae77bdb98af6d1d3726a53b4d5939c7513d49c348593c0d"
       },
@@ -608,9 +597,9 @@
     {
       "path": "modules/import-kit/src/door/store.ts",
       "originPath": "modules/import-kit/src/door/store.ts",
-      "revision": "d1e9ca8cb648295259289901f524b2834463f4ee",
+      "revision": "2505cf7436e9be1b2e1e539c9ff5126fc58006da",
       "files": {
-        "modules/import-kit/src/door/store.ts": "43dc779bf2ab8acdd949ed75677328e3e0a461002d1dd81ad519d9b4214a6b39"
+        "modules/import-kit/src/door/store.ts": "c97b97f678b81f6396fcd1860b8515da448ba36d97948406e73ec507ff6eb33a"
       },
       "modes": {
         "modules/import-kit/src/door/store.ts": "100644"
@@ -619,7 +608,7 @@
     {
       "path": "modules/import-kit/src/door/uploads.ts",
       "originPath": "modules/import-kit/src/door/uploads.ts",
-      "revision": "d1e9ca8cb648295259289901f524b2834463f4ee",
+      "revision": "2505cf7436e9be1b2e1e539c9ff5126fc58006da",
       "files": {
         "modules/import-kit/src/door/uploads.ts": "4c2cd00b5ff86521ae288df4c0b68b5eaea4023e40c26dc8c3a6dffb0adac915"
       },
@@ -630,7 +619,7 @@
     {
       "path": "modules/import-kit/src/engine",
       "originPath": "modules/import-kit/src/engine",
-      "revision": "d1e9ca8cb648295259289901f524b2834463f4ee",
+      "revision": "2505cf7436e9be1b2e1e539c9ff5126fc58006da",
       "files": {
         "modules/import-kit/src/engine/apply.ts": "f7b73708e4ecd05b7835cd384595bcf577239bf4e36fbffdf49609cedc8e6c2a",
         "modules/import-kit/src/engine/index.ts": "b7570a4ab5a12e9df4eb427aec3ab3bdc2c55330c50fefcd42815ad76cd7c91f",
@@ -645,7 +634,7 @@
     {
       "path": "modules/import-kit/src/index.ts",
       "originPath": "modules/import-kit/src/index.ts",
-      "revision": "d1e9ca8cb648295259289901f524b2834463f4ee",
+      "revision": "2505cf7436e9be1b2e1e539c9ff5126fc58006da",
       "files": {
         "modules/import-kit/src/index.ts": "3d6c29b0cd2449988f6973da43ba44ef1d5d1ff66ec99a99d0a4daf556e718c6"
       },
@@ -656,7 +645,7 @@
     {
       "path": "modules/import-kit/src/journal",
       "originPath": "modules/import-kit/src/journal",
-      "revision": "d1e9ca8cb648295259289901f524b2834463f4ee",
+      "revision": "2505cf7436e9be1b2e1e539c9ff5126fc58006da",
       "files": {
         "modules/import-kit/src/journal/authority.ts": "45934861cf653954615329c2ac003a106d8abad33a8e42c633cde43832af7b37",
         "modules/import-kit/src/journal/boundary.ts": "ee0ef90f37adaae55859d4875b56c12bf9de8eabbbcac892f9fc91d76c79cde0",
@@ -673,10 +662,10 @@
     {
       "path": "modules/import-kit/src/plan",
       "originPath": "modules/import-kit/src/plan",
-      "revision": "d1e9ca8cb648295259289901f524b2834463f4ee",
+      "revision": "2505cf7436e9be1b2e1e539c9ff5126fc58006da",
       "files": {
         "modules/import-kit/src/plan/budget.ts": "4a97e89a91edf916720fab61815a62ac50b35a975d52fff8cc9f346f2f26a837",
-        "modules/import-kit/src/plan/index.ts": "f8ae35ef3b15d8f4e7be257a02af767d4ba16d10cc2aa77390c9d24647f179a7",
+        "modules/import-kit/src/plan/index.ts": "5f4e545df75190be885c79524e51d5ccb8d3abf3698a6b22beee16a7f11a0d4e",
         "modules/import-kit/src/plan/size.ts": "769e9e4e53b8554550f0861d312e87b2c6f75907961579967b4ef76df605c04f"
       },
       "modes": {
@@ -688,12 +677,11 @@
     {
       "path": "modules/import-kit/src/provenance",
       "originPath": "modules/import-kit/src/provenance",
-      "revision": "d1e9ca8cb648295259289901f524b2834463f4ee",
+      "revision": "2505cf7436e9be1b2e1e539c9ff5126fc58006da",
       "files": {
         "modules/import-kit/src/provenance/canonical-hash.ts": "e0acc9e93bacbe75ccc8f71f2c5297fb6a7772c832c20ad77a8f97e80d46b964",
         "modules/import-kit/src/provenance/canonical-stream.ts": "94b9bef088d1d907edd4de44b74132ba257fa488a1ca447ad2cceb0f1d049890",
-        "modules/import-kit/src/provenance/credential-names.ts": "51c836f11d6c8a938c724a9ceb07746dfbbdd8f1474627ece80fbd917634f01f",
-        "modules/import-kit/src/provenance/credentials.ts": "c37e95627fe3d1d7054155920a115010aed24124f0bcf31b1e70fb8f01a142ae",
+        "modules/import-kit/src/provenance/credentials.ts": "2103f268a6b40afba8cc455e11157a8e9ce742e44944b504011f78f9b2f6a81f",
         "modules/import-kit/src/provenance/identity.ts": "924dacb8c3599456a724b7c743226509e97cdf67f524c988f91f7a8b2207627e",
         "modules/import-kit/src/provenance/json-snapshot.ts": "0f966fc02c2605bdb055b9db13fb954d499f64439ab5e4873137c8d825c4b212",
         "modules/import-kit/src/provenance/numeric-credentials.ts": "dd21174c30a70a93e984a06a30f1045d1d36ca0d6a789c676c1cc183605f66c4",
@@ -703,7 +691,6 @@
       "modes": {
         "modules/import-kit/src/provenance/canonical-hash.ts": "100644",
         "modules/import-kit/src/provenance/canonical-stream.ts": "100644",
-        "modules/import-kit/src/provenance/credential-names.ts": "100644",
         "modules/import-kit/src/provenance/credentials.ts": "100644",
         "modules/import-kit/src/provenance/identity.ts": "100644",
         "modules/import-kit/src/provenance/json-snapshot.ts": "100644",
@@ -715,19 +702,19 @@
     {
       "path": "modules/import-kit/src/readers",
       "originPath": "modules/import-kit/src/readers",
-      "revision": "d1e9ca8cb648295259289901f524b2834463f4ee",
+      "revision": "2505cf7436e9be1b2e1e539c9ff5126fc58006da",
       "files": {
         "modules/import-kit/src/readers/api-policy.ts": "ebbe7df062cc4dee2e2fc42e1d7c8aa40570c39b2f7f4ff1fd505278b38b9380",
         "modules/import-kit/src/readers/api.ts": "e7ffd06ea57383553296e5904d1e5773ab7fc101f1e9022e4388a05a587f6747",
         "modules/import-kit/src/readers/bytes.ts": "deedcee195b9755a1cc531b1332ce8e7a1df0b4760f2bd86f04e849e705c9e5c",
-        "modules/import-kit/src/readers/errors.ts": "c62106d8041b5416afccfcd3ff1315756fd6417e4e008f87885a156ef8be8436",
-        "modules/import-kit/src/readers/file.ts": "ab1d74d6ff9884ffd62a5ee003b03c5739c1d1f7fb6435ea0bc2ee3b028c8c57",
+        "modules/import-kit/src/readers/errors.ts": "77acdcdbe7acd8ff93265c21f0659c4c3140218f0b207703d18f60edf493304d",
+        "modules/import-kit/src/readers/file.ts": "c4949da0c9531a577346882ec843ab6ab3908e2c5a68dfd96f0de4ae6d1a4813",
         "modules/import-kit/src/readers/index.ts": "706ad319e14d9765dd4516548db083a59aced86cdb16a734142236d76262fe36",
         "modules/import-kit/src/readers/json.ts": "027363a82d7a1e2a343cfc9a6a464bccee0f397bdb34c63acb68f5e36de06aa7",
         "modules/import-kit/src/readers/numeric-lexemes.ts": "7db8e41a1660d86be02468fb6bb3b5f38fed31c2c84b3a65ef02ceea2a4c311b",
         "modules/import-kit/src/readers/original.ts": "dd24c02854f80d86005d4f2677945a55ad736c478b752583e719bdd5141227a6",
-        "modules/import-kit/src/readers/README.md": "c6326cbe4d50b56f341b5087717c7caf234f5eabd76a6c225b05ea6d08155a77",
-        "modules/import-kit/src/readers/records.ts": "69a388c9a18305dab4cb274f9f631b60cd7a62e18106b6887408fa301e387eb3"
+        "modules/import-kit/src/readers/README.md": "349b39f3c499e731cd0d05bb1e93233b72ce7205783a07291c4fdd3d5ca9fffd",
+        "modules/import-kit/src/readers/records.ts": "f8fab783215ba04596f6ef698f5f2fde15916e9e6370f799ebb5eccc50a09fb1"
       },
       "modes": {
         "modules/import-kit/src/readers/api-policy.ts": "100644",
@@ -746,7 +733,7 @@
     {
       "path": "modules/import-kit/src/reconcile",
       "originPath": "modules/import-kit/src/reconcile",
-      "revision": "d1e9ca8cb648295259289901f524b2834463f4ee",
+      "revision": "2505cf7436e9be1b2e1e539c9ff5126fc58006da",
       "files": {
         "modules/import-kit/src/reconcile/index.ts": "0d73e5867657405de295b20e3aaaf659062a4f2e357b3a3ae18d1b5289d54f54"
       },
@@ -757,7 +744,7 @@
     {
       "path": "modules/import-kit/src/status",
       "originPath": "modules/import-kit/src/status",
-      "revision": "d1e9ca8cb648295259289901f524b2834463f4ee",
+      "revision": "2505cf7436e9be1b2e1e539c9ff5126fc58006da",
       "files": {
         "modules/import-kit/src/status/encoding.ts": "27c23888a400c38e63fad8febda18d339d9a6114a3f2fa6db79d3e1c7e18c49d",
         "modules/import-kit/src/status/evidence.ts": "f253b3e73ba183fec6c9a15da2f476bac35e9bdf70778cd081b00cdc9ef7f362",
@@ -776,11 +763,11 @@
     {
       "path": "modules/import-kit/src/storage",
       "originPath": "modules/import-kit/src/storage",
-      "revision": "d1e9ca8cb648295259289901f524b2834463f4ee",
+      "revision": "2505cf7436e9be1b2e1e539c9ff5126fc58006da",
       "files": {
         "modules/import-kit/src/storage/cleanup.ts": "d07d231a526948e59ec89ef5113b01cf4a7b25b8e897e53bc6ede19183cdb58e",
         "modules/import-kit/src/storage/integrity.ts": "d9dc5e580e97e6355e7b092bedaf9e6ecc395e53dd085f10f0fb440ac1cdf5c4",
-        "modules/import-kit/src/storage/originals.ts": "e746d31d06d6fd06fd6ff768633407a0587f37a7af40b9818094477a8a1d4a0f",
+        "modules/import-kit/src/storage/originals.ts": "4d72a139b6de26cdda9b4f46091ec1323b62af3ff26ea00a5e842e6586e42ad1",
         "modules/import-kit/src/storage/provenance.ts": "3451afc924b65570aff588773c75223d3a1b956c7e599b0573777c93aa611047",
         "modules/import-kit/src/storage/schema.ts": "4173d0e3d1c02ee49899cbe651986363c4bb5d8a8c7d59fc068313d4c00ad5df",
         "modules/import-kit/src/storage/sqlite.ts": "e13a6a0902ea266a40e5db7a95c32017e0c4341b8ad7c0d7587d3919729f545c"
@@ -797,9 +784,9 @@
     {
       "path": "modules/import-kit/src/types.ts",
       "originPath": "modules/import-kit/src/types.ts",
-      "revision": "d1e9ca8cb648295259289901f524b2834463f4ee",
+      "revision": "2505cf7436e9be1b2e1e539c9ff5126fc58006da",
       "files": {
-        "modules/import-kit/src/types.ts": "ce31b0bae06aca21b3350c86344c981d53022e4fa502f1423e0027cd6bc1bc3c"
+        "modules/import-kit/src/types.ts": "ece4ba2269831421ec40e2b36cca39ba729977bc8c21a62a50cd6e1dee6dddfd"
       },
       "modes": {
         "modules/import-kit/src/types.ts": "100644"
