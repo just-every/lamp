@@ -5225,16 +5225,12 @@
       "sha256": "bdf670d767f3516390706ca6aa3e88c6634f69afaec1a38f4e3e3f64ef93e75c",
       "executable": false
     },
-    "tests/demo/import-door-claim.test.mjs": {
-      "sha256": "4065b29273a3c78f44ad3fb758dbaed6eed3b8408c54c6e4f1766b930e67ff4d",
-      "executable": false
-    },
     "tests/demo/journey.test.mjs": {
       "sha256": "45115f7afbeeb353bec9db6e3e3b7e7a47b3953562fd15fb329ff41b4fc48561",
       "executable": false
     },
     "tests/demo/owner-claim.test.mjs": {
-      "sha256": "51d088f18c81094088914b45098c51b5557f3539ac076bc92387b741fb2229f7",
+      "sha256": "0715d76a71adc22ef7e34e34f8a4310fa851013b3a9b2be65163f2ea8b048f98",
       "executable": false
     },
     "tests/dev-ingress/compile-access.mjs": {
