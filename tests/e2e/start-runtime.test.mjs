@@ -461,7 +461,7 @@ test("vite dev serves Start's client entry and stylesheet through the app host",
       await page.goto(`${devOrigin}/app`, { waitUntil: "networkidle" });
       await page.getByText("Contract Operator", { exact: true }).waitFor();
       assert.equal(await page.locator(".operator-shell").evaluate((element) => getComputedStyle(element).display), "grid", "the real operator stylesheet must apply in Vite dev");
-      assert.equal(await page.locator(".operator-history-link").getAttribute("href"), `http://${pageHost}:${devPort}/history`, "hydration must preserve the request-derived public origin, including its local port");
+      assert.equal(await page.locator(".operator-page-link").getAttribute("href"), `http://${pageHost}:${devPort}/`, "hydration must preserve the request-derived public origin, including its local port");
       const before = await page.evaluate(() => performance.timeOrigin);
       await page.getByRole("link", { name: "Incidents", exact: true }).click();
       await page.waitForURL("**/app/incidents");
