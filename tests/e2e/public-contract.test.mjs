@@ -470,11 +470,14 @@ test("PAGE-012 UPTIME-006 SUB-003 — Branding, daily coverage and pending subsc
   await (async () => {
   await updateSettings({ footerCreditEnabled: true });
   const enabled = await (await fetch(`${pageUrl}/`)).text();
-  assert.match(enabled, /<footer>\S[\s\S]*?<\/footer>/);
+  assert.match(enabled.match(/<footer>[\s\S]*?<\/footer>/)?.[0] ?? "", /Powered by Lamp/);
   assert.doesNotMatch(enabled, /runeditrun\.com/);
   await updateSettings({ footerCreditEnabled: false });
   const disabled = await (await fetch(`${pageUrl}/`)).text();
-  assert.match(disabled, /<footer>\s*<\/footer>/);
+  const disabledFooter = disabled.match(/<footer>[\s\S]*?<\/footer>/)?.[0] ?? "";
+  assert.doesNotMatch(disabledFooter, /Powered by Lamp/);
+  assert.match(disabledFooter, /data-lamp-signin/, "hiding the credit keeps the operator entry");
+  assert.match(disabledFooter, /href="\/feed.atom"/, "hiding the credit keeps customer resources");
   await updateSettings({ footerCreditEnabled: true });
 })(t);
   t.diagnostic("UPTIME-006 — daily marks distinguish no data from a day with zero or weighted downtime");
