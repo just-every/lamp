@@ -60,7 +60,7 @@ jobs:
           console.log('Loaded the authenticated sending domain DKIM selector.');
           NODE
       - name: Deploy Lamp with its native Cloudflare deployment
-        run: pnpm exec rer deploy --environment lamp-status
+        run: pnpm exec rer deploy --environment lamp-status --owner-name "Lamp operations" --non-interactive
         env:
           CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
