@@ -125,7 +125,13 @@ const introHeight = (page) => page.$eval(".lamp-intro", (intro) => intro.offsetH
 /** Scrolls down the whole page and back so every lazy image loads, then waits for them. */
 async function scrollThrough(page) {
   const height = await page.evaluate(() => document.documentElement.scrollHeight);
-  for (let y = 0; y <= height; y += 500) { await page.evaluate((top) => window.scrollTo(0, top), y); await page.waitForTimeout(20); }
+  const reveals = await page.locator("[data-reveal]").count();
+  // Deliver layout and intersection observations at each stop, even on a busy runner.
+  for (let y = 0; y <= height; y += 500) {
+    await page.evaluate((top) => window.scrollTo(0, top), y);
+    if (reveals) await frames(page);
+    else await page.waitForTimeout(20);
+  }
   await page.waitForFunction(() => [...document.images].every((image) => image.complete), null, { timeout: 60_000 });
   await page.evaluate(() => window.scrollTo(0, 0));
   // Without JavaScript no animation frame ever runs, so this waits on the clock.

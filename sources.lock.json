@@ -6384,7 +6384,7 @@
       "executable": false
     },
     "tests/lamp-site/browser.test.mjs": {
-      "sha256": "0b658d980022fa2fcbf42d8d0b8c6fd5fc14f7f4f7004914594a21aa557972d6",
+      "sha256": "367d19fd98bae57e3a0c2f1a7a229717946e0d2b3761fdc80329cd45a39381e3",
       "executable": false
     },
     "tests/lamp-site/docs-search-flow.mjs": {
