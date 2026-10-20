@@ -6,7 +6,8 @@ export { cleanText, decodeEntities } from "./text.ts";
  * No page DOM is created and none of the page's scripts run. */
 export interface HtmlTag { name: string; attributes: Record<string, string> }
 export interface HtmlAnchor { href: string; text: string; name: string; groups: string[]; accountNavigation: boolean; region: "nav" | "header" | "footer" | "body" }
-export interface HtmlScan { title: string | null; tags: HtmlTag[]; anchors: HtmlAnchor[]; styles: string[] }
+/** `prose` is the page's readable text outside links. */
+export interface HtmlScan { title: string | null; tags: HtmlTag[]; anchors: HtmlAnchor[]; styles: string[]; prose: string }
 
 const TAG = /<!--[\s\S]*?-->|<(\/?)([a-zA-Z][a-zA-Z0-9-]*)((?:\s+[^\s"'>/=]+(?:\s*=\s*(?:"[^"]*"|'[^']*'|[^\s"'=<>`]+))?)*)\s*\/?>/g;
 const ATTRIBUTE = /([^\s"'>/=]+)(?:\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'=<>`]+)))?/g;
@@ -24,7 +25,7 @@ function attributesOf(source: string) {
 }
 
 export function scanHtml(html: string): HtmlScan {
-  const tags: HtmlTag[] = [], anchors: HtmlAnchor[] = [], styles: string[] = [];
+  const tags: HtmlTag[] = [], anchors: HtmlAnchor[] = [], styles: string[] = [], prose: string[] = [];
   const stack: { tag: string; group: string; accountNavigation: boolean; label?: string }[] = [];
   const lower = html.toLowerCase();
   let title: string | null = null, titleStart = -1;
@@ -34,6 +35,7 @@ export function scanHtml(html: string): HtmlScan {
   for (let match = TAG.exec(html); match; match = TAG.exec(html)) {
     const text = html.slice(previous, match.index);
     if (anchor) { anchor.text += ` ${text}`; anchor.parts.text(text); }
+    else prose.push(text);
     for (const frame of stack) if (frame.label !== undefined) frame.label += ` ${text}`;
     previous = TAG.lastIndex;
     if (match[0].startsWith("<!--")) continue;
@@ -75,5 +77,5 @@ export function scanHtml(html: string): HtmlScan {
       accountNavigation: /^(auth|authenticated|isAuthenticated|loggedIn|isLoggedIn|signedIn|isSignedIn)$/i.test(attributes["x-show"] ?? ""),
       ...(!anchor && (/^(button|h[1-6]|summary)$/.test(name) || attributes.role === "heading" || /(?:^|[\s_-])(title|heading)(?:$|[\s_-])/i.test(attributes.class ?? "")) ? { label: "" } : {}) });
   }
-  return { title, tags, anchors, styles };
+  return { title, tags, anchors, styles, prose: cleanText(prose.join(" ")) };
 }

@@ -24,6 +24,10 @@ function hostnamePageName(input: string): { pageName?: string } {
   } catch { return {}; }
 }
 
+const siteHost = (input: string) => {
+  try { return normaliseWebsite(input).hostname.replace(/^www\./, ""); } catch { return null; }
+};
+
 export interface WebsiteService {
   current(): Promise<WebsiteRecord | null>;
   read(input: string): Promise<WebsiteReadResponse>;
@@ -50,7 +54,12 @@ export function createWebsiteService(repository: WebsiteRepository, options: { r
     async read(input) {
       if (options.unavailable) return { found: null, message: options.unavailable, ...hostnamePageName(input) };
       const result = await options.read(input);
-      if (!result.ok) return { found: null, message: result.message, ...(result.reason !== "invalid-url" && result.reason !== "refused-address" ? hostnamePageName(input) : {}) };
+      if (!result.ok) {
+        // The owner has moved on from the stored site, so the page must no longer link back to it.
+        const current = await repository.get();
+        if (current && siteHost(current.url) !== siteHost(input)) await repository.clear();
+        return { found: null, message: result.message, ...(result.reason !== "invalid-url" && result.reason !== "refused-address" ? hostnamePageName(input) : {}) };
+      }
       const detected = result.site.statusPage;
       const statusPage = detected ? await options.readStatusPage(detected.url).catch(() => ({ url: detected.url, source: null, pageId: null })) : null;
       await repository.record(result.site.url, statusPage);

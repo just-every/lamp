@@ -8,6 +8,7 @@ export interface WebsiteRecord { url: string; readAt: string; statusPage: Websit
 export interface WebsiteRepository {
   get(): Promise<WebsiteRecord | null>;
   record(url: string, statusPage: WebsiteStatusPage | null): Promise<void>;
+  clear(): Promise<void>;
 }
 export function createWebsiteRepository(db: D1Database): WebsiteRepository {
   return {
@@ -25,6 +26,9 @@ export function createWebsiteRepository(db: D1Database): WebsiteRepository {
           ? db.prepare("INSERT INTO setup_readiness (step,evidence_key,checked_at) VALUES ('website-status-page',?,?) ON CONFLICT(step) DO UPDATE SET evidence_key=excluded.evidence_key, checked_at=excluded.checked_at").bind(JSON.stringify(statusPage), checkedAt)
           : db.prepare("DELETE FROM setup_readiness WHERE step='website-status-page'"),
       ]);
+    },
+    async clear() {
+      await db.prepare("DELETE FROM setup_readiness WHERE step IN ('website','website-status-page')").run();
     },
   };
 }

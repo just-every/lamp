@@ -52,12 +52,18 @@ contract('SETUP-002', 'a fresh owner gives their website first; Lamp fills in th
     await page.getByRole('button', { name: "Skip, I'll fill it in", exact: true }).click();
     await page.getByRole('button', { name: 'Open Lamp', exact: true }).waitFor();
     assert.equal(await page.getByRole('button', { name: 'Read again', exact: true }).count(), 0);
-    // A site that refuses: setup keeps the real domain as the name and offers a retry.
-    await website.fill('blocked.example.com');
+    // A site that refuses after one that answered: setup keeps the refusing domain as the name, offers a retry,
+    // and forgets the site read before, so the page never links back to a site other than the one it is named for.
+    await website.fill('acme-tracking.com');
     await page.getByRole('button', { name: 'Read website', exact: true }).click();
+    await page.getByRole('status').filter({ hasText: 'We read acme-tracking.com' }).waitFor();
+    assert.equal((await (await nativeRequest('/api/app/website', { cookie })).json()).website.url, 'https://www.acme-tracking.com/');
+    await website.fill('blocked.example.com');
+    await page.getByRole('button', { name: 'Read again', exact: true }).click();
     await page.getByRole('alert').filter({ hasText: "couldn't read that website" }).waitFor();
     assert.doesNotMatch(await page.getByRole('alert').innerText(), /403/);
     assert.equal(await row('page name').innerText(), 'blocked.example.com Status');
+    assert.equal((await (await nativeRequest('/api/app/website', { cookie })).json()).website, null, 'no link back to acme-tracking.com under a page named for blocked.example.com');
 
     // A site that answers: everything it says is filled in, and only that.
     await website.fill('acme-tracking.com');

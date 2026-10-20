@@ -23,7 +23,7 @@ else result.reason;           // "invalid-url" | "refused-address" | "unreachabl
 | `icon` | Declared SVG icon first, then the largest declared raster (link icons, apple-touch-icon, manifest), then `/favicon.ico` if nothing is declared. Bytes as a `data:` URL, type sniffed from the bytes |
 | `colours`, `accent` | theme-color, the SVG mark's own fills, CSS custom properties named brand/primary/accent, pinned-tab colour, manifest theme_color; `accent` is the first saturated one |
 | `fonts` | Google Fonts links and inline `@font-face` families |
-| `components` | Up to 8 plausible product/app areas from the site's header and `<nav>` (footer links if the header has too few). Product/app menu groups, product subpaths and distinct service subdomains take priority over weaker service-name evidence. Audience, comparison, migration, account, documentation and marketing navigation are dropped. Fewer than 2 plausible areas returns an empty list. |
+| `components` | Up to 8 plausible product/app areas from the site's header and `<nav>` (footer links if the header has too few). Product/app menu groups, product subpaths and distinct service subdomains take priority over weaker service-name evidence. Audience, comparison, migration, account, documentation and marketing navigation are dropped. Over 8, the areas the page links to most (counting pages beneath them) and names most in its own text are kept, before pages beneath another area. Fewer than 2 plausible areas returns an empty list. |
 | `statusPage` | A link named Status, or to a known status host |
 
 Nothing is guessed: a field the site does not give is `null` or empty.
@@ -32,15 +32,20 @@ Component names use the link's structure: a heading or title/label element wins
 over a description, subtitle, paragraph or small print. Separate block siblings
 are read as a name followed by supporting text; ordinary inline spans remain
 one name. Badges (NEW, BETA, Soon and counts), emoji and decorative elements are
-removed. The site's spelling, case and ampersands are retained. No description
-word list is used to shorten names.
+removed. A badge leaves only when it stands on its own: a trailing element or
+separate text, bracketed or set off by a separator ("Search (42)"), or in capitals
+after a mixed-case name ("Metrics BETA"). Words and numbers inside one text are
+the name ("What's New", "Microsoft 365", "Build Preview"). The site's spelling,
+case and ampersands are retained. No description word list is used to shorten names.
 
 Menu buttons and headings supply the surrounding group, including footer product
 groups. A Features menu alone needs additional service evidence; it does not make
 every benefit into a component. Pricing, customer stories, feature/benefit indices,
 blog, company, careers, contact, legal, sign-in/up and documentation routes stay
-excluded even inside a product group. Duplicates by name or destination merge
-before the cap, and the selected links retain their order on the site.
+excluded even inside a product group, as are calls to action (a trailing arrow,
+"Explore …", "… more"), downloads and release notes. Generic links are matched on
+the link's whole text as well as the cleaned name. Duplicates by name or
+destination merge before the cap, and the selected links retain their order on the site.
 
 These are editable starting points, not a discovered availability architecture.
 Single-product sites can legitimately return no components; menus rendered only

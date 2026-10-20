@@ -127,6 +127,24 @@ test('the site reader reads what a site says about itself, refuses private desti
     <a href="/products/new-relic">New Relic</a>
   </nav>`)).map(component => component.name), ['Seer', 'Metrics', 'Queue', 'Search', 'New Relic']);
 
+  t.diagnostic('names are never cut: a trailing number or word in the name stays; a changelog link stays out under its whole text');
+  assert.deepEqual((await read(`<nav><div><button>Products</button>
+    <a href="/products/office">Microsoft 365</a>
+    <a href="/products/sonnet">Sonnet 4.5</a>
+    <a href="/products/build">Build Preview</a>
+    <a href="/products/windows">Windows<!-- --> <!-- -->11</a>
+    <a href="/products/region">Region 2 <span>NEW</span></a>
+    <a href="/releases">What's New</a>
+    <a href="/products/updates">What’s <span>New</span></a>
+  </div></nav>`)).map(component => component.name), ['Microsoft 365', 'Sonnet 4.5', 'Build Preview', 'Windows 11', 'Region 2']);
+
+  t.diagnostic('calls to action, downloads, release notes and "… more" links stay out, even inside a product menu');
+  assert.deepEqual((await read(`<nav><div><button>Product</button>
+    <a href="/product/ai">Acme AI</a><a href="/product/mail">Mail</a>
+    <a href="/explore">Explore more →</a><a href="/download">Acme App →</a><a href="/download">Acme App</a>
+    <a href="/gallery">Templates and more</a><a href="/product/calendar">Calendar →</a>
+  </div></nav>`)).map(component => component.name), ['Acme AI', 'Mail']);
+
   t.diagnostic('titles and separate blocks supply names without merging their descriptions, irrespective of the words used');
   assert.deepEqual((await read(`<header><nav>
     <a href="/products/analytics"><div><h4>Analytics</h4><p>Podcast analytics software</p></div></a>
@@ -163,4 +181,11 @@ test('the site reader reads what a site says about itself, refuses private desti
     </div><div><h3>Company</h3><a href="/products/office">Office tour</a></div></footer>`);
   assert.ok(capped.length >= 2 && capped.length < names.length, 'a long product menu is capped');
   assert.deepEqual(capped.map(component => component.name), names.slice(0, capped.length), 'deduplication and selection preserve source order');
+
+  t.diagnostic('over the cap, the areas the site links to and names most are kept, before pages beneath another area, still in site order');
+  const catalogue = ['Atlas', 'Beacon', 'Billing', 'Capital', 'Climate', 'Connect', 'Ledger', 'Orbit', 'Payments', 'Radar', 'Terminal'];
+  const chosen = await read(`<main><h1>Accept payments online</h1><p>Payments, Billing and Terminal for every business. Radar stops fraud; Connect pays out.</p></main>
+    <nav><a href="/pricing">Pricing</a></nav><footer><div><h3>Products</h3>${catalogue.map(name => `<a href="/${name.toLowerCase()}">${name}</a>`).join('')}
+    <a href="/payments/checkout">Checkout</a><a href="/payments/links">Payment links</a></div></footer>`);
+  assert.deepEqual(chosen.map(component => component.name), ['Atlas', 'Beacon', 'Billing', 'Capital', 'Connect', 'Payments', 'Radar', 'Terminal']);
 });
