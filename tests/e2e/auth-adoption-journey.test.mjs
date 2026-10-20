@@ -73,13 +73,13 @@ test('SETUP-002 Base setup/dev, one-click sign-in, invite, signout and prior-dat
  // checkout, under the already admitted node_modules asset namespace.
  const env={...inherited,LAMP_VITE_CACHE_DIR:cache,RER_SERVER_JOURNEY:'1',RER_SERVERS_DIR:servers,CI:'true',X_LOCAL_EXPLORER:'false'};
  let child,browser;let output='',verb='dev';
- const stop=async()=>{if(child&&child.exitCode===null){run(root,env,verb,'--stop');await new Promise(done=>child.exitCode!==null?done():child.once('exit',done));}child=undefined;};
+ const stop=async()=>{if(child&&child.exitCode===null){const stopped=new Promise(done=>child.once('close',done));child.kill('SIGTERM');await stopped;}child=undefined;};
  try{
   execFileSync('sh',['-c','git ls-files -z --cached --others --exclude-standard | tar --null -T - -cf - | tar -xf - -C "$1"','copy',root]);
   await symlink(resolve('node_modules'),join(root,'node_modules'),'dir');
   const port=await reservePort(),origin=`http://127.0.0.1:${port}`;
   await setupAndProbe(root,env,port,origin);
-  browser=await chromium.launch();
+  browser=await chromium.launch({headless:true,args:['--use-mock-keychain','--password-store=basic']});
   for(const upgraded of [false,true]){
    if(upgraded){
     // An in-place upgrade of an install made before Base sign-in: its saved
