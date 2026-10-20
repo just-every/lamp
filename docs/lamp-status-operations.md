@@ -1,5 +1,13 @@
 # Lamp's own status installation
 
+The 20 October deployment is blocked after the native upload: pinned rer 0.2.71
+rejects the custom-domain owner claim with `owner-claim-origin-mismatch`.
+Its deployment inspector reports the derived workers.dev origin instead of
+the custom origin in Lamp's retained ownership receipt. The operator claim,
+setup-token retirement and monitor deployment remain incomplete. Resolve that
+upstream integration defect before advertising this installation or accepting
+an empty page's default operational banner as monitoring evidence.
+
 The `Deploy Lamp status` workflow deploys this edition with its pinned `rer`
 into the RunEditRun Cloudflare account, using only the `lamp-status` GitHub
 environment. The public host is `status.run-lamp.com`; the operator host is
@@ -22,7 +30,8 @@ gh workflow run deploy.yml --repo just-every/run-lamp --ref uip/status -f lamp_s
 
 The environment must contain `CLOUDFLARE_API_TOKEN`, `MAIL_PROVIDER_API_KEY`,
 `SETUP_TOKEN`, `SESSION_SECRET`, `SUBSCRIBER_TOKEN_SECRET` and
-`WEBHOOK_SIGNING_SECRET` and `LAMP_STATUS_MONITOR_TOKEN`. Generate these values once with a
+`WEBHOOK_SIGNING_SECRET` and `LAMP_STATUS_MONITOR_TOKEN`. Generate only the five
+setup, signing and monitor values once with a
 cryptographically secure generator and send their values to `gh secret set
 --env lamp-status` on stdin. Never print them or rotate them on redeployment.
 Set environment variables `CLOUDFLARE_ACCOUNT_ID`, `SETUP_OPERATOR_EMAIL` and
