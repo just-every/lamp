@@ -96,8 +96,18 @@ function installedSignInUrl(context: Context<AppEnv>) {
 function installedSignIn(response: Response, context: Context<AppEnv>) {
   if (!response.headers.get("Content-Type")?.includes("text/html")) return response;
   const target = installedSignInUrl(context);
+  const operatorLink = `<a data-lamp-signin href="${escapeHtml(target)}">Sign in</a>`;
   let signInSeen = false;
   return new HTMLRewriter()
+    .on("body", {
+      element(element) {
+        element.onEndTag((endTag) => {
+          if (signInSeen) return;
+          endTag.before(`<footer>${operatorLink}</footer>`, { html: true });
+          signInSeen = true;
+        });
+      },
+    })
     .on("nav.status-utilities a", {
       element(element) {
         if (element.hasAttribute("data-lamp-signin") || element.getAttribute("href") === "/signin" || element.getAttribute("href") === target) element.remove();
@@ -109,7 +119,7 @@ function installedSignIn(response: Response, context: Context<AppEnv>) {
         // when present, or add the operator entry after the customer resources.
         element.onEndTag((endTag) => {
           if (signInSeen) return;
-          endTag.before(` <a data-lamp-signin href="${escapeHtml(target)}">Sign in</a>`, { html: true });
+          endTag.before(` ${operatorLink}`, { html: true });
           signInSeen = true;
         });
       },
@@ -172,7 +182,7 @@ export function registerPublicSnapshotRoutes(app: Hono<AppEnv>, service: PublicS
         const html = object.contentType.includes("text/html") ? new TextDecoder().decode(object.bytes) : "";
         const overrunState = object.contentType.includes("text/html") ? maintenanceOverrunState(html, servedAt) : "";
         const representation = object.contentType.includes("text/html")
-          ? `installed-signin-footer-v2:${installedSignInUrl(context)}${overrunState.includes("1") ? `:maintenance-overrun-v1:${overrunState}` : ""}`
+          ? `installed-signin-footer-v3:${installedSignInUrl(context)}${overrunState.includes("1") ? `:maintenance-overrun-v1:${overrunState}` : ""}`
           : context.env?.LAMP_APP_HOST ?? "";
         const etag = `W/"${encodeURIComponent(object.version)}/${encodeURIComponent(artifact(context))}/${encodeURIComponent(representation)}"`;
         response.headers.set("ETag", etag);

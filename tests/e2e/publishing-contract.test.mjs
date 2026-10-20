@@ -512,7 +512,7 @@ test("INCIDENT-001 INCIDENT-002 INCIDENT-003 INCIDENT-004 INCIDENT-005 INCIDENT-
   assert.notEqual(first.reference, second.reference);
   await saveDraft(first.id);
   await expectStatus(await publish(first.id), 200);
-  await publicArtifact(`/incidents/${first.reference}`, first.reference, "incident public URL");
+  await publicArtifact(`/incidents/${first.reference}`, first.title, "incident public URL");
 })(t);
   t.diagnostic("INCIDENT-004 — a correction publishes an immutable update linked to the correction target");
   await (async () => {
@@ -557,7 +557,7 @@ test("INCIDENT-001 INCIDENT-002 INCIDENT-003 INCIDENT-004 INCIDENT-005 INCIDENT-
   await saveDraft(incident.id, { nextUpdateAt: new Date(Date.now() - 60_000).toISOString() });
   await expectStatus(await publish(incident.id), 200);
   assert.equal((await incidentView(incident.id)).overdue, true);
-  const publicPage = await publicArtifact(`/incidents/${incident.reference}`, incident.reference, "overdue incident public page");
+  const publicPage = await publicArtifact(`/incidents/${incident.reference}`, incident.title, "overdue incident public page");
   assert.doesNotMatch(publicPage.text, /\boverdue\b/i);
 })(t);
   t.diagnostic("INCIDENT-007 — deletion requires a reason and removes an incident from public history and the Atom feed");

@@ -3912,7 +3912,7 @@
       "executable": false
     },
     "src/core/features/public-snapshot/routes.ts": {
-      "sha256": "71f943e56a5f82618ea85f39bb8256f0cb72cc7522547e6dc8300844fdf515cf",
+      "sha256": "46f2c8395633db3b256de399ee60b9e2a833a0ce78f617211419bf4f384667fa",
       "executable": false
     },
     "src/core/features/public-snapshot/service.ts": {
@@ -5504,7 +5504,7 @@
       "executable": false
     },
     "tests/e2e/app-api.test.mjs": {
-      "sha256": "22525d264c09b72cd6b15c029148d8f1eefb6468839e9253ca937d1e5a9e70f7",
+      "sha256": "84c7e3f3e0b044a7544821bc143cacc635abaed577a80fdf4f4c4742cf748d81",
       "executable": false
     },
     "tests/e2e/auth-adoption-journey.test.mjs": {
@@ -5772,7 +5772,7 @@
       "executable": false
     },
     "tests/e2e/publishing-contract.test.mjs": {
-      "sha256": "cf9bbacbdff10f682ba14e39ad469ff7673406f7a13f3e0469ef271aaa66811e",
+      "sha256": "7c92f90d851c65cfeab2b0835c540315e7440e85a2b372c17ac737d210299870",
       "executable": false
     },
     "tests/e2e/queue-outage.test.mjs": {
@@ -5820,7 +5820,7 @@
       "executable": false
     },
     "tests/e2e/snapshot-retained.test.mjs": {
-      "sha256": "4e98af7cf8c61fa8602af02dc4f32472ad39b742ccb79ff970a14a5a5c6feb60",
+      "sha256": "483d936f1cacf956771b2d6f84a29a9fdcc0084f5954b3583e9295d9c9514e3b",
       "executable": false
     },
     "tests/e2e/snapshot-retained.worker.ts": {
