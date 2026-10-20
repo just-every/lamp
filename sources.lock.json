@@ -3876,7 +3876,7 @@
       "executable": false
     },
     "src/core/features/public-snapshot/page-chrome.ts": {
-      "sha256": "352d5816938820390e8c24a2e7c148b8e7955e3f68c3183bc14b0bd5e743d6ef",
+      "sha256": "2fc23521f6d7f5893a3b295993642e9699eb768eb830469034ad4be8ff0bde40",
       "executable": false
     },
     "src/core/features/public-snapshot/policies.ts": {
@@ -3912,7 +3912,7 @@
       "executable": false
     },
     "src/core/features/public-snapshot/routes.ts": {
-      "sha256": "9f6699406788788606b3346482957d7a1b9b37baee4c0d98b26ce6019a14195c",
+      "sha256": "71f943e56a5f82618ea85f39bb8256f0cb72cc7522547e6dc8300844fdf515cf",
       "executable": false
     },
     "src/core/features/public-snapshot/service.ts": {
@@ -5676,7 +5676,7 @@
       "executable": false
     },
     "tests/e2e/helpers/public-freshness-flow.mjs": {
-      "sha256": "77814b0dc331e0766c7d3fa95f97570f94400614c26fcb0338b2673b5dbe76ae",
+      "sha256": "12ddd7052cb6c96c2ad1c58b3edbe6e1c174ec56101a0df971957765a5622280",
       "executable": false
     },
     "tests/e2e/helpers/public-resources-flow.mjs": {

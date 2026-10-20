@@ -42,6 +42,8 @@ export async function publicFreshnessFlow({ appFetch, appUrl, pageUrl, diagnosti
     await page.goto(`${pageUrl}/`, { waitUntil: "networkidle" });
     const signIn = page.getByRole("link", { name: "Sign in", exact: true });
     assert.equal(await signIn.getAttribute("href"), `${appUrl}/signin`, "installed action preserves local scheme/port and configured app hostname");
+    assert.equal(await page.locator("footer [data-lamp-signin]").count(), 1, "operator entry belongs in the footer");
+    assert.equal(await page.locator(".masthead [data-lamp-signin]").count(), 0, "customer navigation keeps its three destinations");
     await signIn.click();
     await page.waitForURL(`${appUrl}/signin`);
     assert.ok(await page.locator('input[type="email"]').isVisible(), "action reaches native sign-in");

@@ -98,18 +98,23 @@ function installedSignIn(response: Response, context: Context<AppEnv>) {
   const target = installedSignInUrl(context);
   let signInSeen = false;
   return new HTMLRewriter()
-    .on("nav.status-utilities", {
+    .on("nav.status-utilities a", {
       element(element) {
-        // Archived generations predate the marker. Wait until the navigation
-        // ends so a link already present in newer or cached HTML is reused.
+        if (element.hasAttribute("data-lamp-signin") || element.getAttribute("href") === "/signin" || element.getAttribute("href") === target) element.remove();
+      },
+    })
+    .on("footer", {
+      element(element) {
+        // Archived generations predate the footer link. Reuse a marked link
+        // when present, or add the operator entry after the customer resources.
         element.onEndTag((endTag) => {
           if (signInSeen) return;
-          endTag.before(`<a data-lamp-signin href="${escapeHtml(target)}">Sign in</a>`, { html: true });
+          endTag.before(` <a data-lamp-signin href="${escapeHtml(target)}">Sign in</a>`, { html: true });
           signInSeen = true;
         });
       },
     })
-    .on("a[data-lamp-signin]", {
+    .on("footer a[data-lamp-signin]", {
       element(element) {
         if (signInSeen) return void element.remove();
         element.setAttribute("href", target);
@@ -163,11 +168,11 @@ export function registerPublicSnapshotRoutes(app: Hono<AppEnv>, service: PublicS
         const servedAt = Date.now();
         // HTML also varies with its serving-time action and full installed URL.
         // Version that transformation so an old validator cannot retain a
-        // header without Sign in after an upgrade of the same stored artifact.
+        // header sign-in link after an upgrade of the same stored artifact.
         const html = object.contentType.includes("text/html") ? new TextDecoder().decode(object.bytes) : "";
         const overrunState = object.contentType.includes("text/html") ? maintenanceOverrunState(html, servedAt) : "";
         const representation = object.contentType.includes("text/html")
-          ? `installed-signin-v1:${installedSignInUrl(context)}${overrunState.includes("1") ? `:maintenance-overrun-v1:${overrunState}` : ""}`
+          ? `installed-signin-footer-v2:${installedSignInUrl(context)}${overrunState.includes("1") ? `:maintenance-overrun-v1:${overrunState}` : ""}`
           : context.env?.LAMP_APP_HOST ?? "";
         const etag = `W/"${encodeURIComponent(object.version)}/${encodeURIComponent(artifact(context))}/${encodeURIComponent(representation)}"`;
         response.headers.set("ETag", etag);
