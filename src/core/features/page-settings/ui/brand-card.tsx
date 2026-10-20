@@ -34,13 +34,13 @@ export function BrandCard({ settings, accentColor, footerCreditEnabled, onAccent
     if (logo.type === "image/svg+xml") await saveMark(await readFileAsDataUrl(logo), true);
     else onSettings(await uploadMark(logo) as PageSettingsView);
     setLogo(null);
-    return "Logo saved and the public snapshot was rebuilt.";
+    return "Logo saved and live.";
   });
   const removeLogo = () => run(async () => {
     const body = await appApi<{ settings: PageSettingsView | null }>("/api/app/page-settings/logo", { method: "DELETE" });
     if (!body.settings) throw new Error("The logo could not be removed.");
     onSettings(body.settings);
-    return "Logo removed and the public snapshot was rebuilt.";
+    return "Logo removed. Your page is live.";
   });
   const readWebsite = (input: string) => run(async () => {
     const result = await appApi<WebsiteReadResponse>("/api/app/website/read", { method: "POST", body: JSON.stringify({ website: input }) });

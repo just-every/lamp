@@ -99,7 +99,7 @@ export function PageDataCard() {
   return <section className="data-card page-data-card" aria-labelledby="page-data-title">
     <p className="card-kicker">Your data</p>
     <h2 id="page-data-title">Export page data</h2>
-    <p>Download everything this status page holds as one JSON file (format <code>lamp-page-data</code>, version 1):</p>
+    <p>Download this page’s settings, history and subscribers in one file:</p>
     <ul>
       <li>page settings and logo;</li>
       <li>component groups and components, with their status history;</li>

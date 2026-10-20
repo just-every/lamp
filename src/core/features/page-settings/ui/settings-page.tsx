@@ -2,7 +2,7 @@ import { EmailBrandingSettings } from "./email-branding-settings";
 import { AuditLog } from "../../audit-log/ui/audit-log";
 import { PublicResources } from "./public-resources";
 import { useEffect, useState, type FormEvent, type ReactNode } from "react";
-import { Link, getRouteApi } from "@tanstack/react-router";
+import { Link, getRouteApi, useBlocker } from "@tanstack/react-router";
 
 import type { PageSettingsInput } from "../../../shared/schemas";
 import type { PageSettingsService, PageSettingsView } from "../service";
@@ -59,6 +59,13 @@ export function SettingsPage() {
   const [settings, setSettings] = useState<SettingsForm | null>(() => data?.settings ? toSettingsForm(data.settings) : null);
   const [status, setStatus] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [ready, setReady] = useState(false);
+  useEffect(() => setReady(true), []);
+  const dirty = Boolean(settings && saved && JSON.stringify(settings) !== JSON.stringify(toSettingsForm(saved)));
+  useBlocker({
+    shouldBlockFn: ({ next }) => dirty && next.pathname !== "/app/settings" && !window.confirm("Leave Settings without saving your changes?"),
+    enableBeforeUnload: dirty,
+  });
   useEffect(() => {
     if (data?.settings && !settings) { setSettings(toSettingsForm(data.settings)); setSaved(data.settings); }
   }, [data, settings]);
@@ -69,30 +76,34 @@ export function SettingsPage() {
   const live = overview.data?.overview.live ?? null;
   const components = (overview.data?.overview.components ?? []).filter((component) => !component.internal).map((component) => ({ name: component.name, state: component.publicState }));
   const markSrc = saved.logoKey ? `/api/app/page-settings/brand/logo?v=${encodeURIComponent(saved.updatedAt)}` : `/api/app/page-settings/brand/favicon?v=${encodeURIComponent(saved.updatedAt)}`;
-  const update = <K extends keyof SettingsForm>(field: K, value: SettingsForm[K]) => setSettings((current) => current ? { ...current, [field]: value } : current);
+  const update = <K extends keyof SettingsForm>(field: K, value: SettingsForm[K]) => { setStatus(null); setSettings((current) => current ? { ...current, [field]: value } : current); };
   // A logo change saves on its own; the form keeps any unsaved edits.
   const adoptSaved = (next: PageSettingsView) => { setSaved(next); window.dispatchEvent(new Event("lamp:page-settings-changed")); };
   async function save(event: FormEvent) {
     event.preventDefault(); setSaving(true); setStatus(null);
     try {
       const body = await appApi<SettingsResponse>("/api/app/page-settings", { method: "PUT", body: JSON.stringify(settings) });
-      if (body.settings) setSaved(body.settings);
+      const next = body.settings;
+      if (next) {
+        setSaved(next);
+        setSettings((current) => current === settings ? toSettingsForm(next) : current);
+      }
       window.dispatchEvent(new Event("lamp:page-settings-changed"));
       overview.refresh();
-      setStatus("Settings saved and the public snapshot was rebuilt.");
+      setStatus("Saved and live.");
     } catch (cause) {
       setStatus(cause instanceof Error ? cause.message : "Settings could not be saved.");
     } finally { setSaving(false); }
   }
   const timezones = zones();
   const saveBar = <div className="settings-save-bar">
-    {status ? <p className="save-message" role="status">{status}</p> : <p className="settings-save-note"><Icon name="check" width={16} height={16} />Changes publish as soon as you save.</p>}
+    <div><p className="settings-save-note">{dirty ? "Unsaved changes" : <><Icon name="check" width={16} height={16} />Changes go live when you save.</>}</p>{status ? <p className="save-message" role="status">{status}</p> : null}</div>
     <Button disabled={saving}>{saving ? "Saving…" : "Save settings"}</Button>
   </div>;
   const form = (children: ReactNode) => <form className="settings-form page-stack" onSubmit={save}>{children}{saveBar}</form>;
 
-  return <div className="page-stack settings-page">
-    <section className="page-title-row"><div><p className="eyebrow">Public page configuration</p><h1>Settings</h1><p>What your status page is, where it lives, and how it looks.</p></div></section>
+  return <div className="page-stack settings-page" inert={!ready}>
+    <section className="page-title-row"><h1>Settings</h1></section>
     <SettingsTabs current={tab} />
     {tab === "page" ? form(<>
       <PageHero live={live} pageName={settings.pageName} accentColor={settings.accentColor} markSrc={markSrc} components={components} />
@@ -120,14 +131,11 @@ export function SettingsPage() {
       <WordingSettings terms={settings.wordingBlockedTerms} friendlyLength={settings.wordingFriendlyLength} onTermsChange={(value) => update("wordingBlockedTerms", value)} onLengthChange={(value) => update("wordingFriendlyLength", value)} />
     </>) : null}
     {tab === "embeds" ? form(<>
-      <section className="data-card">
-        <label className="form-label">Widget host origins<textarea value={settings.widgetAllowedOrigins.join("\n")} placeholder="https://app.example.com" onChange={(event) => update("widgetAllowedOrigins", event.target.value.split("\n").map((value) => value.trim()).filter(Boolean))} /><small>One full origin per line. The widget refuses every other host.</small></label>
-      </section>
-      <PublicResources publicOrigin={publicOrigin} />
+      <PublicResources publicOrigin={publicOrigin} allowedOrigins={settings.widgetAllowedOrigins} onOriginsChange={(value) => update("widgetAllowedOrigins", value)} />
     </>) : null}
     {tab === "channels" ? <>
       <ChannelsCard />
-      <section className="data-card intake-link-card"><p className="card-kicker">Inbound alerts</p><h2>Alert sources</h2><p>Configure a signed HMAC or bearer-token source, its JSON paths, and receipt visibility in the operator workspace.</p><Link className="text-link" to="/app/alerts">Manage alert sources <Icon name="arrow" width={16} height={16} /></Link></section>
+      <section className="data-card intake-link-card"><p className="card-kicker">Inbound alerts</p><h2>Alert sources</h2><p>Connect a monitoring tool to create incident drafts from alerts.</p><Link className="text-link" to="/app/alerts">Manage alert sources <Icon name="arrow" width={16} height={16} /></Link></section>
     </> : null}
     {tab === "operators" ? <OperatorsPanel /> : null}
     {tab === "data" ? <>

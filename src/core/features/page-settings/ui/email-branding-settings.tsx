@@ -6,7 +6,7 @@ export function EmailBrandingSettings({ value, onChange, identityEditable }: {
   const update = <K extends keyof EmailBranding>(key: K, next: EmailBranding[K]) => onChange({ ...value, [key]: next });
   return <section className="data-card email-branding-settings" aria-labelledby="email-branding-title">
     <p className="card-kicker">Subscriber notifications</p><h2 id="email-branding-title">Notification email</h2>
-    <p>The authenticated From address stays the one configured above. Preview your saved branding in an incident’s Email preview.</p>
+    <p>Preview saved email branding in an incident’s Email preview.</p>
     {!identityEditable && <p>Managed mail controls From and Reply-To. You can still brand the subject and message below.</p>}
     <div className="settings-grid">
       <label className="form-label">Sender display name<input maxLength={120} disabled={!identityEditable} value={value.displayName} onChange={event => update("displayName", event.target.value)} /></label>

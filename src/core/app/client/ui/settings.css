@@ -34,3 +34,12 @@
 .sender-status { display: flex; align-items: center; margin: 14px 0 0; color: var(--ink-2); font-size: 14px; }
 .sender-status.is-failing { color: var(--amber-ink); font-weight: 500; }
 .settings-form > .data-card { display: grid; gap: 14px; }
+.embed-preview { display: grid; gap: 12px; }
+.embed-preview .card-kicker { margin: 0; }
+.embed-preview-status { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 10px; border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; }
+.embed-preview-status .page-preview-dot { width: 8px; height: 8px; flex: none; border-radius: 50%; }
+.embed-preview-status p { flex: 1 1 100%; margin: 2px 0 0; border-top: 1px solid var(--line); padding-top: 10px; white-space: pre-line; }
+.embed-preview-dot { justify-self: start; border: 0; padding: 4px 0; }
+@media (max-width: 600px) {
+  .settings-tabs { flex-wrap: wrap; gap: 0 22px; overflow: visible; }
+}

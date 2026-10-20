@@ -1502,3 +1502,13 @@ The package pin moves to rer 0.2.57 with the configured-provider sign-in patch r
 ## Documented grouped webhook versions — 18 October 2026
 
 Each grouped preset accepts its documented source format: Alertmanager version 4 and Grafana version 1. Missing, numeric, cross-source and unknown versions are refused with an operator-readable reason. Grafana's title names the private draft; its message and other source context stay in the retained private receipt. Neither becomes a public update without operator publication. The unmodified Grafana documentation example exercises the same grouped incident, notice, mapping, deduplication and recovery path as Alertmanager.
+
+## Settings polish — owner L10, 20 October 2026
+
+Settings keeps an owner's unsaved edits across its tabs and warns before leaving
+without saving. Fields become interactive only when their handlers are ready.
+Saving publishes the changes; the wording must make that explicit. All tabs are
+visible on a phone, setup help opens the app's documentation, and embed choices
+preview the actual published status. Ask for identity confirmation only when an
+access change requires it, and keep the last owner’s access protected. The
+existing typography, colours and surfaces stay as they are.

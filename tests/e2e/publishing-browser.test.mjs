@@ -397,8 +397,16 @@ contract("DRAFT-002", "operators save and reload AI tone instructions while the 
   await page.getByText("No provider configured", { exact: true }).waitFor();
   const toneField = page.getByLabel("Tone instructions");
   await toneField.fill(tone);
+  await page.getByRole("link", { name: "Page", exact: true }).click();
+  await page.getByRole("link", { name: "Writing", exact: true }).click();
+  assert.equal(await toneField.inputValue(), tone, "switching Settings tabs keeps the unsaved draft");
+  const warning = page.waitForEvent("dialog");
+  const leave = page.getByRole("link", { name: "Overview", exact: true }).click();
+  await (await warning).dismiss(); await leave;
+  assert.equal(new URL(page.url()).pathname, "/app/settings", "cancelling navigation keeps Settings open");
+  assert.equal(await toneField.inputValue(), tone, "cancelling navigation keeps the edit");
   await page.getByRole("button", { name: "Save settings" }).click();
-  await page.getByText("Settings saved and the public snapshot was rebuilt.", { exact: true }).waitFor();
+  await page.getByText("Saved and live.", { exact: true }).waitFor();
   await page.reload();
   await operatorHydrated(page);
   await page.getByText("No provider configured", { exact: true }).waitFor();
