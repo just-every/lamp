@@ -76,7 +76,7 @@ export function createIntakeRepository(binding: D1Database): IntakeRepository {
     },
     async deleteSource(sourceId, operatorId, at) {
       const auditId = createUlid();
-      const result = await binding.batch([
+      const result = await binding.batch<{ id: string }>([
         binding.prepare("INSERT INTO audit_entries(id,entity_type,entity_id,action,operator_id,payload_json,created_at,updated_at) SELECT ?, 'alert-source', id, 'erased', ?, '{}', ?, ? FROM alert_sources WHERE id = ?").bind(auditId, operatorId, at, at, sourceId),
         binding.prepare("DELETE FROM alert_sources WHERE id = ? AND EXISTS (SELECT 1 FROM audit_entries WHERE id = ?) RETURNING id").bind(sourceId, auditId),
       ]);
