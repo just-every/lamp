@@ -60,10 +60,11 @@ export async function auditLogFlow({ page, appUrl, appFetch }) {
   for (const width of [1440, 390]) {
     await page.setViewportSize({ width, height: width === 390 ? 844 : 1600 });
     await page.goto(`${appUrl}/app/settings`); await operatorHydrated(page);
+    await page.getByRole("link", { name: "Your data", exact: true }).click();
     await page.getByRole("button", { name: "Open audit log", exact: true }).click();
     const panel = page.locator("#audit-log");
     await panel.getByRole("region", { name: "Audit entries", exact: true }).waitFor();
-    await panel.getByLabel("Audit actor").selectOption(published.actorId);
+    await panel.getByLabel("Operator").selectOption(published.actorId);
     await panel.getByLabel("Audit action").selectOption("corrected");
     await panel.getByRole("button", { name: "Apply filters", exact: true }).click();
     await panel.getByText(reason, { exact: true }).waitFor();

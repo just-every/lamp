@@ -1,6 +1,7 @@
 import { readImportedNamespaces, readImportedPublicRecords } from "../statuspage-import/alias-repository";
 import type { ImportedPublicRecord } from "../statuspage-import/public-addresses";
 import { loadPublicApiIds } from "./api-identity-repository";
+import { createWebsiteRepository } from "../website/repository";
 import { and, asc, desc, eq, isNull, ne, or, sql } from "drizzle-orm";
 
 import { createDatabase } from "../../platform/db/client";
@@ -34,6 +35,7 @@ export interface SnapshotRepository {
 }
 
 export interface PublicSnapshotSource {
+  websiteUrl?: string | null;
   publicOrigin?: string;
   publicApiIds?: Record<string, string>;
   incidentImpacts?: Record<string, typeof componentStandingClaims.$inferSelect.state>;
@@ -141,7 +143,9 @@ export function createSnapshotRepository(binding: D1Database, publicOrigin?: str
         binding.prepare("SELECT id,peak_impact AS impact FROM incidents WHERE deleted_at IS NULL").all<{ id: string; impact: typeof componentStandingClaims.$inferSelect.state | null }>().then(result => result.results),
       ]);
 
+      const website = await createWebsiteRepository(binding).get();
       return {
+        websiteUrl: website?.url ?? null,
         publicOrigin,
         publicApiIds, incidentImpacts: Object.fromEntries(incidentImpactRows.filter(row => row.impact !== null).map(row => [row.id, row.impact!])),
         importedPublicRecords, importedNamespaces,

@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { mkdir } from 'node:fs/promises';
 import { chromium } from 'playwright';
 import { groupedPayload } from './grouped-alerts-flow.mjs';
+import { operatorHydrated } from './operator-hydrated.mjs';
 
 export async function recoveryCheckFlow({ api, post, component, alertSource, draft, sql, origin, publicOrigin, devKey, cookie }) {
   const path = id => `/api/app/incidents/${id}`;
@@ -31,8 +32,8 @@ export async function recoveryCheckFlow({ api, post, component, alertSource, dra
   const browser = process.env.LAMP_RECOVERY_SCREENSHOTS ? await openBrowser(origin, devKey, cookie) : null;
   try {
     if (browser) await capture(browser.page, origin, id, 'failing', async page => {
-      await page.getByRole('combobox', { name: /^Lifecycle/ }).selectOption('Monitoring');
-      await page.getByRole('combobox', { name: /^Lifecycle/ }).selectOption('Resolved');
+      await page.getByRole('combobox', { name: /^Status/ }).selectOption('Monitoring');
+      await page.getByRole('combobox', { name: /^Status/ }).selectOption('Resolved');
       const rejected = page.waitForResponse(response => response.url().endsWith(`${path(id)}/publish`) && response.request().method() === 'POST');
       await page.getByRole('button', { name: 'Publish update', exact: true }).click();
       assert.equal((await rejected).status(), 409);
@@ -103,7 +104,7 @@ async function capture(page, origin, id, state, prepare) {
   for (const width of [1440, 390]) {
     await page.setViewportSize({ width, height: 1100 });
     await page.goto(`${origin}/app/incidents/${id}`);
-    await page.locator('.header-signout:enabled').waitFor();
+    await operatorHydrated(page);
     await page.getByRole('heading', { name: 'Recovery check', exact: true }).waitFor();
     await page.getByText('Checking the linked evidence…', { exact: true }).waitFor({ state: 'hidden' });
     await prepare?.(page);

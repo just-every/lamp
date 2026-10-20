@@ -83,8 +83,10 @@ export async function exerciseOwner({ context, page, origin, expectedOwner }, ev
   assert.equal(operator.isSetupOperator, true, "fresh entry belongs to the claimed installation owner");
   if (expectedOwner) assert.equal(operator.email, expectedOwner);
   if (new URL(page.url()).pathname === "/setup") {
-    await page.getByLabel("Page name").fill("Release Journey");
-    await page.getByRole("button", { name: "Save and open Lamp" }).click();
+    await page.getByRole("button", { name: "Skip, I'll fill it in" }).click();
+    await page.getByRole("button", { name: "Edit page name" }).click();
+    await page.getByLabel("Page name", { exact: true }).fill("Release Journey");
+    await page.getByRole("button", { name: "Looks right, open Lamp" }).click();
     await page.waitForURL("**/app");
   }
   // Use the real authenticated API and check both rendered surfaces.

@@ -4,7 +4,24 @@ import type { AppEnv } from "../../app/types";
 import { pageSettingsSchema } from "../../shared/schemas";
 import { UnsupportedMailIdentityError, type PageSettingsService } from "./service";
 
-export function registerPageSettingsRoutes(app: Hono<AppEnv>, service: PageSettingsService) {
+const BRAND_ARTIFACTS = { mark: "assets/mark.svg", favicon: "assets/favicon.svg", social: "assets/og.svg", logo: "assets/logo" } as const;
+
+export function registerPageSettingsRoutes(app: Hono<AppEnv>, service: PageSettingsService, readArtifact: (key: string) => Promise<{ bytes: ArrayBuffer; contentType: string } | null>) {
+  app.get("/api/app/page-settings/embed-preview", async (context) => {
+    const artifact = await readArtifact("status.json");
+    if (!artifact) return context.json({ error: "Your page has not been published yet." }, 404);
+    return new Response(artifact.bytes, { headers: { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff" } });
+  });
+
+  // The published mark, favicon and social image, served on the app host so Settings and Your page can
+  // show them wherever the page host lives. Images only: nothing in them can run here.
+  app.get("/api/app/page-settings/brand/:kind", async (context) => {
+    const key = BRAND_ARTIFACTS[context.req.param("kind") as keyof typeof BRAND_ARTIFACTS];
+    const artifact = key ? await readArtifact(key) : null;
+    if (!artifact || !/^image\//.test(artifact.contentType)) return context.json({ error: "Not published yet." }, 404);
+    return new Response(artifact.bytes, { headers: { "Content-Type": artifact.contentType, "Content-Security-Policy": "default-src 'none'; style-src 'unsafe-inline'; sandbox", "X-Content-Type-Options": "nosniff", "Cache-Control": "private, max-age=60" } });
+  });
+
   app.get("/api/app/page-settings", async (context) => {
     const settings = await service.get();
     return settings ? context.json({ settings }) : context.json({ error: "Page settings are not configured." }, 404);

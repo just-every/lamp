@@ -32,7 +32,7 @@ export async function availabilityReportBrowserFlow({ api, post, component, orig
       await page.goto(`${origin}/app/components`); await operatorHydrated(page);
       const card = page.locator('.availability-report');
       await card.getByLabel('Component').selectOption(componentId);
-      await card.getByLabel('UTC month').fill(month);
+      await card.getByLabel('Month', { exact: true }).fill(month);
       await inspect('availability-month');
       let downloadEvent = page.waitForEvent('download');
       await card.getByRole('button', { name: 'Download CSV', exact: true }).click();
@@ -42,8 +42,8 @@ export async function availabilityReportBrowserFlow({ api, post, component, orig
       assert.ok(csv.toString('utf8').includes(expectedMonthUptime));
       assert.ok(csv.toString('utf8').includes(expectedRecord));
       await card.getByLabel('Period').selectOption('quarter');
-      await card.getByLabel('UTC year').fill(month.slice(0, 4));
-      await card.getByLabel('UTC quarter').selectOption(String(Math.floor((Number(month.slice(5)) - 1) / 3) + 1));
+      await card.getByLabel('Year', { exact: true }).fill(month.slice(0, 4));
+      await card.getByLabel('Quarter', { exact: true }).selectOption(String(Math.floor((Number(month.slice(5)) - 1) / 3) + 1));
       await inspect('availability-quarter');
       downloadEvent = page.waitForEvent('download');
       await card.getByRole('button', { name: 'Download PDF', exact: true }).click();

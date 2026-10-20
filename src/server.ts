@@ -60,7 +60,7 @@ async function operatorDocumentPreflight(request: Request, runtime: ReturnType<t
   if (operator) {
     // Until first-run setup is stored, every app document sends the owner to /setup.
     const pathname = new URL(request.url).pathname;
-    const complete = await runtime.services.overview.setup.firstRunComplete();
+    const complete = await runtime.services.overview.live.firstRunComplete();
     if (!complete && pathname !== "/setup") return Response.redirect(new URL("/setup", request.url), 302);
     if (complete && pathname === "/setup") return Response.redirect(new URL("/app", request.url), 302);
     return { session: operator };

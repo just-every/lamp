@@ -1,3 +1,4 @@
+import { stripVTControlCharacters } from "node:util";
 import { requestHeaders } from "../helpers/request-headers.mjs";
 import { withDraftVersion } from "./draft-version-helper.mjs";
 import assert from "node:assert/strict";
@@ -86,7 +87,7 @@ async function startWorker(config = defaultConfigPath) {
   });
   server.stdout.on("data", (chunk) => { serverOutput += chunk; });
   server.stderr.on("data", (chunk) => { serverOutput += chunk; });
-  await waitForWorker({ origin: appUrl, child: server, output: () => `${serverOutput}\nState: ${statePath}`, label: "Publishing browser Worker" });
+  await waitForWorker({ origin: appUrl, isListening: () => stripVTControlCharacters(serverOutput).includes(`${appUrl}/`), child: server, output: () => `${serverOutput}\nState: ${statePath}`, label: "Publishing browser Worker" });
 }
 
 async function stopWorker() {
@@ -101,6 +102,8 @@ async function stopWorker() {
 
 async function openAuthenticatedPage(viewport) {
   browserContext = await browser.newContext({ timezoneId: "Australia/Brisbane", ...(viewport ? { viewport } : {}) });
+  // Cold client builds leave server-rendered controls disabled until hydration.
+  browserContext.setDefaultTimeout(60_000);
   await browserContext.addCookies([{ name: sessionCookieName(appUrl), value: sessionId, url: appUrl }]);
   page = await browserContext.newPage();
 }
@@ -144,7 +147,7 @@ before(async () => {
     originalVisualSource = readFileSync(source);
     // The first verification pass covers the complete owner snapshot. This pass
     // isolates the probe so an owner's edit to the same heading cannot conflict.
-    const snapshot = {revision:1,edits:[{id:'test-heading-probe',revision:1,path:'/app',target:{selector:'h1:nth-child(2)',tag:'h1',role:'',beforeText:'Overview'},change:{text:'Workspace overview'}}]};
+    const snapshot = {revision:1,edits:[{id:'test-heading-probe',revision:1,path:'/app',target:{selector:'h1:nth-child(1)',tag:'h1',role:'',beforeText:'Overview'},change:{text:'Workspace overview'}}]};
     writeFileSync(source,JSON.stringify(snapshot,null,2)+'\n');
   }
   await startWorker(configPath);
@@ -184,12 +187,19 @@ test("compiled visual edits survive actual operator navigation and reload", asyn
   const snapshot = JSON.parse(readFileSync(resolve('src/editor/visual-edits.json'),'utf8'));
   const errors = [], recordError = error => errors.push(error.message);
   page.on('pageerror',recordError);
+  const closeEmptyComponentForm = async () => {
+    if (new URL(page.url()).pathname !== '/app/components') return;
+    await page.getByRole('heading', { name: 'Add component', exact: true }).waitFor();
+    await page.keyboard.press('Escape');
+    await page.getByRole('dialog').waitFor({ state: 'detached' });
+  };
   try {
     const paths = [...new Set(['/app','/app/components','/app/subscribers',...snapshot.edits.map(edit => edit.path)])];
     for (const path of paths) {
-      await page.goto(appUrl + path, { waitUntil: 'networkidle' });
+      await page.goto(appUrl + path, { waitUntil: 'domcontentloaded' });
       await operatorHydrated(page);
       await page.locator('.operator-navigation').waitFor();
+      await closeEmptyComponentForm();
       const expected = snapshot.edits.filter(edit => edit.target.navigation || edit.path === path);
       const check = async () => {
         for (const edit of expected) await page.waitForFunction(edit => {
@@ -214,7 +224,8 @@ test("compiled visual edits survive actual operator navigation and reload", asyn
       await page.locator(`.operator-navigation a[href="${next}"]`).click();
       await page.waitForURL(url => url.pathname === next);
       assert.equal(await page.evaluate(() => performance.timeOrigin),stamp,'navigation remains within the running app');
-      await page.locator(`.operator-navigation a[href="${path}"]`).count().then(async count => { if (count === 1) { await page.locator(`.operator-navigation a[href="${path}"]`).click(); await page.waitForURL(url => url.pathname === path); } else await page.goto(appUrl + path, { waitUntil: 'networkidle' }); });
+      await closeEmptyComponentForm();
+      await page.locator(`.operator-navigation a[href="${path}"]`).count().then(async count => { if (count === 1) { await page.locator(`.operator-navigation a[href="${path}"]`).click(); await page.waitForURL(url => url.pathname === path); } else await page.goto(appUrl + path, { waitUntil: 'domcontentloaded' }); });
       await check();
       await page.reload(); await page.locator('.operator-navigation').waitFor(); await check();
     }
@@ -226,8 +237,6 @@ test("compiled visual edits survive actual operator navigation and reload", asyn
 contract("INCIDENT-001", "AGENT-004 MOBILE-001 — an operator can start empty, publish and resolve, then run the full alert-to-resolution phone desk", async () => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto(`${appUrl}/app/components`);
-  await page.getByText("No components are configured. Add the first component before creating an incident.").waitFor();
-  await page.getByRole("button", { name: "Add component" }).click();
   await page.getByRole("heading", { name: "Add component" }).waitFor();
   assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "the narrow component drawer must not introduce horizontal page overflow");
   await page.getByLabel("Component name").fill("Journey API");
@@ -238,7 +247,7 @@ contract("INCIDENT-001", "AGENT-004 MOBILE-001 — an operator can start empty, 
   await page.setViewportSize({ width: 1440, height: 1000 });
   await page.goto(`${appUrl}/app/incidents`);
   await operatorHydrated(page);
-  await page.getByRole("heading", { name: "Record the situation before communicating it" }).waitFor();
+  await page.getByRole("heading", { name: "Start a private draft" }).waitFor();
   await page.getByLabel("Incident title").fill("Journey API request failures");
   await page.getByLabel("Affected component 1").selectOption({ label: "Journey API" });
   await page.getByLabel("Component status 1").selectOption("Major outage");
@@ -258,11 +267,11 @@ contract("INCIDENT-001", "AGENT-004 MOBILE-001 — an operator can start empty, 
   await page.waitForTimeout(1_500);
   await page.getByText("Draft saved", { exact: true }).waitFor({ timeout: 2_000 });
   await page.getByRole("button", { name: "Publish update" }).click();
-  await page.getByText("Update published. The fixed recipient set is now queued for delivery.").waitFor();
+  await page.getByText("Update published.").waitFor();
   await waitForPublicIncident(reference, "Requests to Journey API are failing.");
 
   assert.equal(await page.locator("label", { hasText: "Who is affected" }).locator("textarea").inputValue(), "", "publication starts a blank next-update draft");
-  await page.getByLabel("Lifecycle").selectOption("Resolved");
+  await page.getByLabel("Status").selectOption("Resolved");
   await page.locator("label", { hasText: "Who is affected" }).locator("textarea").fill("Journey API customers.");
   await page.locator("label", { hasText: "What is the impact" }).locator("textarea").fill("Journey API requests are restored.");
   await page.waitForTimeout(1_500);
@@ -287,7 +296,7 @@ contract("INCIDENT-004", "operator controls create internal notes, retroactive r
   }, offsetMs);
   await page.goto(`${appUrl}/app/incidents`);
   await page.getByRole("button", { name: "Create incident", exact: true }).click();
-  await page.getByRole("heading", { name: "Record the situation before communicating it" }).waitFor();
+  await page.getByRole("heading", { name: "Start a private draft" }).waitFor();
   await page.getByLabel("Incident title").fill("Historical correction controls");
   await page.getByLabel("Opened at").fill(await localInput(-2 * 60 * 60_000));
   await page.getByLabel("Affected component 1").selectOption(component.id);
@@ -387,18 +396,26 @@ contract("UPDATE-006", "the composer schedules publication separately from its n
   await page.getByText("Schedule or backdate", { exact: true }).click();
   await page.getByLabel("Scheduled publication date and time").fill("2027-09-08T13:30");
   await page.getByRole("button", { name: "Schedule update" }).click();
-  await page.getByText("Update scheduled. It remains private until its recorded publication time.").waitFor();
+  await page.getByText("Update scheduled. It stays private until then.").waitFor();
 });
 
 contract("DRAFT-002", "operators save and reload AI tone instructions while the UI honestly reports an unconfigured provider", async () => {
   const tone = "Lead with customer impact, use concise factual language, and name the next update commitment.";
-  await page.goto(`${appUrl}/app/settings`);
+  await page.goto(`${appUrl}/app/settings#writing`);
   await operatorHydrated(page);
   await page.getByText("No provider configured", { exact: true }).waitFor();
   const toneField = page.getByLabel("Tone instructions");
   await toneField.fill(tone);
+  await page.getByRole("link", { name: "Page", exact: true }).click();
+  await page.getByRole("link", { name: "Writing", exact: true }).click();
+  assert.equal(await toneField.inputValue(), tone, "switching Settings tabs keeps the unsaved draft");
+  const warning = page.waitForEvent("dialog");
+  const leave = page.getByRole("link", { name: "Overview", exact: true }).click();
+  await (await warning).dismiss(); await leave;
+  assert.equal(new URL(page.url()).pathname, "/app/settings", "cancelling navigation keeps Settings open");
+  assert.equal(await toneField.inputValue(), tone, "cancelling navigation keeps the edit");
   await page.getByRole("button", { name: "Save settings" }).click();
-  await page.getByText("Settings saved and the public snapshot was rebuilt.", { exact: true }).waitFor();
+  await page.getByText("Saved and live.", { exact: true }).waitFor();
   await page.reload();
   await operatorHydrated(page);
   await page.getByText("No provider configured", { exact: true }).waitFor();
@@ -472,7 +489,7 @@ contract("DRAFT-003", "a configured but failing AI provider leaves the ordinary 
   const publish = page.getByRole("button", { name: "Publish update" });
   await assert.equal(await publish.isEnabled(), true);
   await publish.click();
-  await page.getByText("Update published. The fixed recipient set is now queued for delivery.").waitFor();
+  await page.getByText("Update published.").waitFor();
 });
 
 

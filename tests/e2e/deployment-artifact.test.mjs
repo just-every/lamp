@@ -187,7 +187,7 @@ test("compiled generated Start Worker serves operator routes and prepares fresh 
     // pendingSetupStatuses (503) with the first snapshot that health published.
     assert.equal(readyPage.status, 503, "managed health completes the first snapshot before returning; the page stays pending until owner setup");
     assert.equal(readyPage.headers.get("Cache-Control"), "no-store");
-    assert.match(await readyPage.text(), /Snapshot generated/);
+    assert.match(await readyPage.text(), /Updated <time/);
     const generatedAt = readyPage.headers.get("X-Lamp-Snapshot-Generated-At");
     assert.ok(generatedAt && Number.isFinite(Date.parse(generatedAt)));
     for (const path of ["/feed.atom", "/widget.js", "/api/public/status"]) {

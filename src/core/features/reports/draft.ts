@@ -1,7 +1,7 @@
 import { briefReferences, type IncidentBrief } from "../brief/build";
 
 export const REPORT_PROMPTS = {
-  cause: "Write the cause supported by the incident evidence.",
+  cause: "Write the cause confirmed by the sources.",
   remediation: "Write the remediation and follow-up actions confirmed by the team.",
 };
 
@@ -30,7 +30,7 @@ export function draftIncidentReport(brief: IncidentBrief) {
     ...updates.map((update) => ({ at: update.publishedAt, ref: update.ref, text: `Published ${update.lifecycle}. ${[update.affectedAudience, update.customerImpact, update.whatStillWorks, update.details].filter(Boolean).map(line).join(" ")}` })),
   ].sort((a, b) => Date.parse(a.at) - Date.parse(b.at) || a.ref.localeCompare(b.ref));
   // These are publication timestamps, not a monitor-measured outage interval.
-  const summary = `${line(brief.incident.reference)}: ${line(brief.incident.title)}. Recorded incident window: ${brief.incident.openedAt} to published resolution ${resolution.publishedAt} [${resolution.ref}]. This window is not a measurement of customer downtime. Latest resolved update: ${line(resolution.customerImpact)} [${resolution.ref}]`;
+  const summary = `${line(brief.incident.reference)}: ${line(brief.incident.title)}. Incident period: ${brief.incident.openedAt} to published resolution ${resolution.publishedAt} [${resolution.ref}]. This window is not a measurement of customer downtime. Latest resolved update: ${line(resolution.customerImpact)} [${resolution.ref}]`;
   const timeline = events.map((event) => {
     if (!references.has(event.ref)) throw new ReportInputError("A report source reference is unavailable.");
     return `${event.at} — ${event.text} [${event.ref}]`;
@@ -44,6 +44,6 @@ export function reportReview(report: { cause: string; remediation: string }, evi
     cause: { required: !report.cause.trim() || report.cause.trim() === REPORT_PROMPTS.cause, prompt: REPORT_PROMPTS.cause },
     remediation: { required: !report.remediation.trim() || report.remediation.trim() === REPORT_PROMPTS.remediation, prompt: REPORT_PROMPTS.remediation },
     evidenceRefs,
-    limitations: ["The recorded incident window is not monitor-measured customer downtime.", "External Oncall, PagerDuty, Jira Service Management and Opsgenie timelines are not connected."],
+    limitations: ["Incident times do not measure customer downtime.", "External Oncall, PagerDuty, Jira Service Management and Opsgenie timelines are not connected."],
   };
 }

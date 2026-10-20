@@ -63,8 +63,8 @@ export default defineConfig(({ command, isPreview }) => {
         // This emulator-only bucket is not SNAPSHOTS and never enters an export
         // or emitted Worker config. Preview executes the production artifact.
         config: (config) => {
-          // Loopback stand-ins for api.statuspage.io and for Slack and Teams, for local journeys only.
-          const standIns = Object.fromEntries(["LAMP_DEV_STATUSPAGE_ORIGIN", "LAMP_DEV_CHANNEL_RECEIVER"].flatMap((name) => command === "serve" && !isPreview && process.env[name]?.startsWith("http://127.0.0.1:") ? [[name, process.env[name]]] : []));
+          // Loopback stand-ins for api.statuspage.io, Slack and Teams, and the owner's website, for local journeys only.
+          const standIns = Object.fromEntries(["LAMP_DEV_STATUSPAGE_ORIGIN", "LAMP_DEV_CHANNEL_RECEIVER", "LAMP_DEV_SITE_ORIGIN"].flatMap((name) => command === "serve" && !isPreview && process.env[name]?.startsWith("http://127.0.0.1:") ? [[name, process.env[name]]] : []));
           const localVar = (name: string) => process.env[name] ? { [name]: process.env[name]! } : {};
           const devAuth = local ? { main: fileURLToPath(new URL('./src/server.dev.ts', import.meta.url)), vars: {
             ...config.vars, ...localVar('RER_DEMO'), ...localVar('RER_DEMO_EXPIRES'),

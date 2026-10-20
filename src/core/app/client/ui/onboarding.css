@@ -1,0 +1,41 @@
+/* First run at /setup: the website first, then one quiet card of what Lamp found beside a preview. */
+.first-run-page { display: grid; width: min(100%, 720px); gap: 18px; }
+.first-run-page h1 { margin: 0; }
+.first-run-page .eyebrow { margin-bottom: -8px; }
+.website-form { display: grid; gap: 8px; }
+.website-field { display: flex; gap: 10px; }
+.website-field input { flex: 1; }
+.website-note { margin: 0; color: var(--ink-2); font-size: 14px; }
+.website-warning { border-left: 3px solid var(--degraded); padding: 8px 12px; background: var(--card-tint); color: var(--ink); }
+.first-run-details { min-width: 0; border: 0; padding: 0; margin: 0; }
+.first-run-progress { display: grid; gap: 4px; margin: 0; padding: 0; list-style: none; color: var(--ink-2); font-size: 13px; }
+.found-preview .page-preview-bar strong { overflow: visible; text-overflow: clip; white-space: normal; overflow-wrap: anywhere; }
+.website-skip { justify-self: start; border: 0; background: none; padding: 4px 0; color: var(--ink-2); font-size: 14px; text-decoration: underline 1.5px var(--link-line); text-underline-offset: 4px; }
+.website-skip:hover { color: var(--ink); text-decoration-color: var(--ink); }
+.found-card { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(220px, 1fr); gap: 24px; }
+.found-list { display: grid; align-content: start; }
+.found-row { border-bottom: 1px solid var(--line); padding: 12px 0; }
+.found-row:first-child { padding-top: 0; }
+.found-row:last-child { border-bottom: 0; padding-bottom: 0; }
+.found-row-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.found-label { margin: 0 0 4px; color: var(--ink-3); font-size: 11px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; }
+.found-edit { min-height: 24px; border: 0; background: none; padding: 0; color: var(--ink-2); font-size: 13px; text-decoration: underline 1px var(--link-line); text-underline-offset: 3px; }
+.found-edit:hover { color: var(--ink); }
+.found-value { color: var(--ink); font-size: 14px; line-height: 1.5; overflow-wrap: anywhere; }
+.found-components { margin: 0; padding: 0; list-style: none; }
+.found-editor { display: grid; gap: 8px; padding-top: 4px; }
+.found-editor .form-label { font-size: 13px; }
+.found-muted { color: var(--ink-3); }
+.found-note { display: block; font-size: 12px; }
+.found-mark { display: flex; align-items: center; gap: 12px; }
+.found-mark img { width: 40px; height: 40px; flex: none; border-radius: 8px; object-fit: contain; }
+.found-mark small { color: var(--ink-2); font-size: 13px; }
+.found-mark-editor { display: grid; gap: 8px; justify-items: start; }
+.found-colour { display: inline-flex; align-items: center; gap: 10px; font-variant-numeric: tabular-nums; }
+.found-colour i { width: 20px; height: 20px; border: 1px solid var(--line-strong); border-radius: 50%; }
+.found-colour-editor { display: flex; gap: 8px; }
+.found-colour-editor input[type="color"], .colour-field .colour-picker { width: 48px; min-width: 48px; flex: none; padding: 4px; }
+.found-preview { display: grid; align-content: start; gap: 8px; border-left: 1px solid var(--line); padding-left: 24px; }
+.found-caption { margin: 0; color: var(--ink-3); font-size: 12px; }
+.first-run-finish { display: grid; justify-items: center; gap: 8px; margin-top: 6px; text-align: center; }
+.first-run-finish p { margin: 0; color: var(--ink-3); font-size: 13px; }

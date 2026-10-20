@@ -15,7 +15,7 @@ import { devKey } from '../helpers/dev-key.mjs';
 import { operatorHydrated } from "./helpers/operator-hydrated.mjs";
 const executeFile = promisify(execFile);
 
-test('SETUP-001 local setup renders correctly at 1440 and 390 and leaves hosted sender verification outstanding', { timeout: 180_000 }, async () => {
+test('SETUP-001 Lamp publishes and checks the page on its own: Overview shows one live line at 1440 and 390, its links open finished pages, and the local sender stays honest', { timeout: 180_000 }, async () => {
   const directory = await mkdtemp(join(process.cwd(), '.lamp-readiness-browser-'));
   const state = join(directory, 'state');
   let cache, worker, browser, page, origin, publicOrigin, output = '';
@@ -42,9 +42,9 @@ test('SETUP-001 local setup renders correctly at 1440 and 390 and leaves hosted 
       assert.equal(response.ok, true, `${method} ${path} succeeds`);
       return response.json();
     };
-    // The owner has finished first-run setup at /setup; the checklist follows on Overview.
+    // The owner has finished first-run setup at /setup; Overview reports the live page.
     await api('/api/app/overview/first-run', 'POST', {});
-    browser = await chromium.launch();
+    browser = await chromium.launch({ headless: true, args: ['--use-mock-keychain', '--password-store=basic'] });
     const context = await browser.newContext(); await context.addCookies([{ name: sessionCookieName(origin), value: sessionId, url: origin }]);
     page = await context.newPage();
     observeAuditPage(page, diagnostics);
@@ -52,15 +52,9 @@ test('SETUP-001 local setup renders correctly at 1440 and 390 and leaves hosted 
       const pathname = new URL(response.url()).pathname;
       const category = new Map([
         ['/api/app/page-settings', 'settings'], ['/api/app/session', 'session'],
-        ['/api/app/ai/status', 'ai-status'], ['/api/app/overview', 'overview'],
-        ['/api/app/overview/check-subscribe', 'subscribe-action'],
+        ['/api/app/ai/status', 'ai-status'], ['/api/app/overview', 'overview'], ['/api/app/overview/live', 'live'],
       ]).get(pathname);
       if (category) diagnostics.apiResponses = { ...diagnostics.apiResponses, [category]: response.status() };
-      if (category === 'subscribe-action' && response.status() >= 400) {
-        const body = await response.json().catch(() => null);
-        diagnostics.subscribeErrorString = typeof body?.error === 'string';
-        diagnostics.subscribeErrorKinds = ['Invalid redirect value', 'redirect', 'Illegal invocation', 'incorrect `this` reference', 'public page is not reachable', 'public response does not contain', 'Invalid setup action', 'Cross-site setup actions', 'AbortSignal', 'RequestInit', 'signal', 'timeout', 'not implemented', 'not supported', 'fetch', 'private', 'loopback', 'disallowed', 'header', 'Network', 'Internal', 'SQLITE', 'D1', 'Recursion'].filter(kind => typeof body?.error === 'string' && body.error.includes(kind));
-      }
       if (response.request().resourceType() === 'script' && response.status() >= 400) {
         const moduleCategory = new Map([
           ['/modules/mail/src/development/index.mjs', 'server-development-mail'],
@@ -76,49 +70,51 @@ test('SETUP-001 local setup renders correctly at 1440 and 390 and leaves hosted 
     });
     const evidencePath = process.env.LAMP_READINESS_EVIDENCE_DIR;
     if (evidencePath) await mkdir(resolve(evidencePath), { recursive: true });
-    async function inspect(name, facts) {
+    const host = new URL(publicOrigin).host;
+    async function inspect(name) {
       diagnostics.phase = name;
-      const checklist = (await api('/api/app/overview')).overview.checklist;
-      diagnostics.expectedPublicOrigin = checklist.publicOrigin === publicOrigin;
-      diagnostics.publicOriginHostMatches = new URL(checklist.publicOrigin).hostname === new URL(publicOrigin).hostname;
-      diagnostics.publicOriginPortMatches = new URL(checklist.publicOrigin).port === new URL(origin).port;
-      assert.equal(checklist.complete, false);
-      for (const [id, done] of Object.entries(facts)) {
-        assert.equal(checklist.steps.find(step => step.id === id)?.done, done, `${name}: ${id}`);
-      }
+      const live = (await api('/api/app/overview/live')).live;
+      diagnostics.expectedPublicOrigin = live.publicOrigin === publicOrigin;
+      diagnostics.publicOriginHostMatches = new URL(live.publicOrigin).hostname === new URL(publicOrigin).hostname;
+      diagnostics.publicOriginPortMatches = new URL(live.publicOrigin).port === new URL(origin).port;
+      // Nobody pressed a check: Lamp read its own public page and form.
+      assert.equal(live.publicOrigin, publicOrigin);
+      assert.equal(Boolean(live.publishedAt), true);
+      assert.deepEqual([live.page?.ok, live.subscribe?.ok], [true, true]);
+      assert.ok(Date.parse(live.subscribe.checkedAt) >= Date.parse(live.publishedAt), 'the check read the page as last published');
+      assert.equal(live.sender.state, 'local');
       for (const width of [1440,390]) {
         await page.setViewportSize({ width, height: 900 }); await page.goto(`${origin}/app`);
-        const card = page.getByRole('region', { name: 'Setup checklist' }).or(page.locator('details[aria-label="Setup checklist"]'));
-        try { await card.waitFor(); }
-        catch (error) { throw accessibilityFailure(error, `${name} setup checklist at ${width}px`, diagnostics); }
-        for (const [id, done] of Object.entries(facts)) {
-          assert.equal(await page.locator(`[data-setup-step="${id}"]`).getAttribute('data-complete'), String(done));
-        }
-        assert.equal(await page.locator('details[aria-label="Setup checklist"]').count(), 0);
+        const strip = page.getByRole('region', { name: 'Your public page' });
+        try { await strip.waitFor(); }
+        catch (error) { throw accessibilityFailure(error, `${name} live strip at ${width}px`, diagnostics); }
+        assert.match(await strip.innerText(), new RegExp(`Live at ${host.replace('.', '\\.')}`));
+        assert.match(await strip.innerText(), /page and subscribe form checked/);
+        assert.equal(await page.getByText('Set up your status page').count(), 0, 'setup asks nothing of the owner');
         assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
         const result = await new AxeBuilder({ page }).withTags(['wcag2a','wcag2aa','wcag21aa','wcag22aa']).analyze();
         assert.deepEqual(result.violations.filter(v => ['serious','critical'].includes(v.impact)).map(v => v.id), []);
         if (evidencePath) await page.screenshot({ path: join(resolve(evidencePath), `${name}-${width}.png`), fullPage: true });
-        for (const step of checklist.steps) {
-          assert.equal(await card.locator(`[data-setup-step="${step.id}"]`).locator('a, button').isVisible(), true, `${name}: ${step.id} action is visible at ${width}px`);
-        }
-        for (const [step, control] of [['sender', 'Check mail sender'], ['domain', 'Use this public address']]) {
-          await page.locator(`[data-setup-step="${step}"] a`).click();
-          await page.getByRole('button', { name: control, exact: true }).waitFor();
-          await page.getByRole('link', { name: 'Return to setup checklist', exact: true }).click();
-          await page.locator('[data-setup-step="sender"]').waitFor();
-        }
+        assert.equal(await strip.getByRole('link', { name: host }).getAttribute('href'), `${publicOrigin}/`);
+        await strip.getByRole('link', { name: 'Review page', exact: true }).click();
+        await page.getByRole('heading', { name: 'Your page', exact: true }).waitFor();
+        await page.getByText('Subscribe form working', { exact: true }).waitFor();
+        assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+        await page.goto(`${origin}/app`);
+        await strip.getByRole('link', { name: 'Change address', exact: true }).click();
+        await page.getByRole('heading', { name: 'Settings', exact: true }).waitFor();
+        await page.locator('.page-hero').getByRole('link', { name: host }).waitFor();
       }
     }
-    await inspect('fresh', { timezone: true, branding: false, component: false, sender: false });
+    await inspect('fresh');
     diagnostics.phase = 'settings-save';
-    await page.locator('[data-setup-step="branding"] a').click();
+    await page.goto(`${origin}/app/settings`);
     await operatorHydrated(page);
     await page.getByLabel('Page name', { exact: true }).fill('Customer status');
     // The native label wraps a populated textarea; its text includes the
     // initial textarea contents. Select that label's actual editable control.
     await page.locator('label').filter({ hasText: /^Tagline/ }).locator('textarea').fill('Current service availability');
-    await page.getByLabel('Timezone', { exact: true }).fill('Australia/Brisbane');
+    await page.locator('label').filter({ hasText: /^Time zone/ }).locator('select').selectOption('Australia/Brisbane');
     const savedSettings = page.waitForResponse(response => new URL(response.url()).pathname === '/api/app/page-settings' && response.request().method() === 'PUT');
     await page.getByRole('button', { name: 'Save settings', exact: true }).click();
     diagnostics.phase = 'settings-save-response';
@@ -127,10 +123,14 @@ test('SETUP-001 local setup renders correctly at 1440 and 390 and leaves hosted 
     assert.equal(saved.pageName, 'Customer status');
     assert.equal(saved.tagline, 'Current service availability');
     assert.equal(saved.timezone, 'Australia/Brisbane');
-    await page.goto(`${origin}/app`);
+    diagnostics.phase = 'settings-sender';
+    await page.goto(`${origin}/app/settings#notifications`);
+    await page.getByRole('heading', { name: 'Notification email', exact: true }).waitFor();
+    assert.equal(await page.locator('.sender-status').count(), 0, 'local mail stays quiet');
+    assert.equal((await api('/api/app/deliveries')).mail.local, true);
     diagnostics.phase = 'component-create';
-    await page.locator('[data-setup-step="component"] a').click();
-    await page.getByRole('button', { name: 'Add component', exact: true }).click();
+    await page.goto(`${origin}/app/components`);
+    await page.getByRole('heading', { name: 'Add component', exact: true }).waitFor();
     await page.getByLabel('Component name', { exact: true }).fill('API');
     const createdComponent = page.waitForResponse(response => new URL(response.url()).pathname === '/api/app/components' && response.request().method() === 'POST');
     await page.getByRole('button', { name: 'Create component', exact: true }).click();
@@ -138,48 +138,14 @@ test('SETUP-001 local setup renders correctly at 1440 and 390 and leaves hosted 
     assert.equal(componentResponse.ok(), true);
     const { component } = await componentResponse.json();
     assert.equal((await api('/api/app/components')).components.find(item => item.id === component.id)?.name, 'API');
-    await page.goto(`${origin}/app`);
-    diagnostics.phase = 'settings-address';
-    await page.locator('[data-setup-step="domain"] a').click();
-    const acceptedAddress = page.waitForResponse(response => new URL(response.url()).pathname === '/api/app/overview/accept-address' && response.request().method() === 'POST');
-    await page.getByRole('button', { name: 'Use this public address', exact: true }).click();
-    assert.equal((await acceptedAddress).status(), 200);
-    await inspect('half', { branding: true, timezone: true, component: true, domain: true, sender: false, incident: false });
-    diagnostics.phase = 'settings-sender';
-    await page.locator('[data-setup-step="sender"] a').click();
-    const checkedSender = page.waitForResponse(response => new URL(response.url()).pathname === '/api/app/overview/check-sender' && response.request().method() === 'POST');
-    await page.getByRole('button', { name: 'Check mail sender', exact: true }).click();
-    assert.equal((await checkedSender).status(), 200);
-    assert.equal((await api('/api/app/overview')).overview.checklist.steps.find(step => step.id === 'sender').done, false);
-    assert.equal((await api('/api/app/deliveries')).mail.local, true);
-    diagnostics.phase = 'subscribe';
-    await page.goto(`${origin}/app`);
-    await page.getByRole('button', { name: 'Check subscribe form', exact: true }).click();
-    await page.locator('[data-setup-step="subscribe"][data-complete="true"]').waitFor();
-    assert.equal((await api('/api/app/overview')).overview.checklist.steps.find(step => step.id === 'subscribe').done, true);
     diagnostics.phase = 'publish';
-    await page.locator('[data-setup-step="incident"] a').click();
-    await page.getByRole('heading', { name: 'Incidents', exact: true }).waitFor();
     const { incident } = await api('/api/app/incidents','POST',{ title: 'Brief service interruption', components: [{ componentId: component.id, state: 'Degraded performance', relationship: 'Primary' }] });
     const current = (await api(`/api/app/incidents/${incident.id}`)).incident;
     const { draft } = await api(`/api/app/incidents/${incident.id}/draft`, 'PUT', { lifecycle: 'Resolved', affectedAudience: 'API customers', customerImpact: 'Requests were briefly delayed', whatStillWorks: '', details: 'Service has recovered', nextUpdateAt: null }, { 'If-Match': `${current.draft?.id ?? '-'}:${current.updates.length}` });
     const { update } = await api(`/api/app/incidents/${incident.id}/publish`, 'POST', { channels: [] }, { 'If-Match': `${draft.id}:${current.updates.length}` });
-    await page.goto(`${origin}/app`);
-    await page.locator('[data-setup-step="public"][data-complete="false"]').waitFor();
     assert.equal((await api(`/api/app/incidents/${incident.id}`)).incident.updates.some(item => item.id === update.id), true);
-    assert.equal((await api('/api/app/overview')).overview.checklist.steps.find(step => step.id === 'incident').done, true);
-    const popupPromise = context.waitForEvent('page');
-    diagnostics.phase = 'public-open';
-    await page.getByRole('button', { name: 'Open public page', exact: true }).click();
-    const popup = await popupPromise;
-    await popup.waitForURL(`${publicOrigin}/`); await popup.waitForLoadState(); await popup.close();
-    await page.bringToFront();
-    // Opening the real public page updates Overview without a reload. Local
-    // mail cannot finish the sender step, so the checklist stays expanded.
-    await page.locator('[data-setup-step="public"][data-complete="true"]').waitFor({ state: 'attached' });
-    assert.equal(await page.locator('details[aria-label="Setup checklist"]').count(), 0);
-    assert.equal((await api('/api/app/overview')).overview.checklist.complete, false);
-    await inspect('local-ready', { incident: true, public: true, subscribe: true, sender: false });
+    // Every change republished the page; Lamp checks the new one by itself.
+    await inspect('local-ready');
     // Exercise the actual executable and Wrangler adapter, capturing its sole
     // stdout line in memory and consuming it without tracing or screenshots.
     diagnostics.phase = 'terminal-signin';
@@ -218,12 +184,12 @@ test('SETUP-001 local setup renders correctly at 1440 and 390 and leaves hosted 
     if (page && !page.isClosed()) {
       diagnostics.expectedSettingsRoute = new URL(page.url()).pathname === '/app/settings';
       diagnostics.pageNameFields = await page.getByLabel('Page name', { exact: true }).count();
-      diagnostics.senderControls = await page.getByRole('button', { name: 'Check mail sender', exact: true }).count();
+      diagnostics.liveStrips = await page.getByRole('region', { name: 'Your public page' }).count();
       diagnostics.errorAlerts = await page.getByRole('alert').count();
       const statusText = await page.getByRole('status').allTextContents();
-      diagnostics.statusErrorKinds = ['public page is not reachable', 'public response does not contain', 'Invalid setup action', 'Cross-site setup actions', 'fetch failed', 'Network connection lost', 'localhost', 'private IP', 'loopback'].filter(kind => statusText.some(value => value.includes(kind)));
+      diagnostics.statusErrorKinds = ['not answering', 'no subscribe form', 'fetch failed', 'Network connection lost', 'localhost', 'private IP', 'loopback'].filter(kind => statusText.some(value => value.includes(kind)));
       diagnostics.invalidSettingsFields = [];
-      for (const label of ['Page name', 'Host name', 'Tagline', 'Accent colour', 'Timezone', 'From email']) {
+      for (const label of ['Page name', 'Tagline', 'Accent colour', 'Time zone', 'From email']) {
         const field = page.getByLabel(label, { exact: true });
         if (await field.count() === 1 && !await field.evaluate(node => node.validity.valid)) diagnostics.invalidSettingsFields.push(label);
       }
@@ -231,7 +197,7 @@ test('SETUP-001 local setup renders correctly at 1440 and 390 and leaves hosted 
         await page.screenshot({ path: join(resolve(process.env.LAMP_READINESS_EVIDENCE_DIR), 'settings-failure.png'), fullPage: true });
       }
     }
-    if (diagnostics.phase === 'subscribe') {
+    if (diagnostics.phase === 'fresh' || diagnostics.phase === 'local-ready') {
       const publicResponse = await fetch(`${publicOrigin}/`, { redirect: 'manual', signal: AbortSignal.timeout(8000) });
       diagnostics.publicDocumentStatus = publicResponse.status;
       diagnostics.publicDocumentHtml = publicResponse.headers.get('Content-Type')?.includes('text/html') ?? false;

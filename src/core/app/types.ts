@@ -61,6 +61,8 @@ export interface AppBindings {
   AI_PROVIDER_MODEL?: string;
   /** Local Vite development only: a loopback stand-in for api.statuspage.io. */
   LAMP_DEV_STATUSPAGE_ORIGIN?: string;
+  /** Local Vite development only: a loopback stand-in for the internet when Lamp reads the owner's website. */
+  LAMP_DEV_SITE_ORIGIN?: string;
   /** Local Vite development only: a loopback receiver standing in for Slack and Teams. */
   LAMP_DEV_CHANNEL_RECEIVER?: string;
 }

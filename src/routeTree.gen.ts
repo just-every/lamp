@@ -20,6 +20,7 @@ import { Route as AppDeliveriesRouteImport } from './routes/app.deliveries'
 import { Route as AppIncidentsRouteImport } from './routes/app.incidents'
 import { Route as AppMaintenanceRouteImport } from './routes/app.maintenance'
 import { Route as AppMoveInRouteImport } from './routes/app.move-in'
+import { Route as AppPageRouteImport } from './routes/app.page'
 import { Route as AppSettingsRouteImport } from './routes/app.settings'
 import { Route as AppSubscribersRouteImport } from './routes/app.subscribers'
 import { Route as DocsIndexRouteImport } from './routes/docs.index'
@@ -82,6 +83,11 @@ const AppMoveInRoute = AppMoveInRouteImport.update({
   path: '/move-in',
   getParentRoute: () => AppRoute,
 } as any)
+const AppPageRoute = AppPageRouteImport.update({
+  id: '/page',
+  path: '/page',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppSettingsRoute = AppSettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
@@ -124,6 +130,7 @@ export interface FileRoutesByFullPath {
   '/app/incidents': typeof AppIncidentsRouteWithChildren
   '/app/maintenance': typeof AppMaintenanceRoute
   '/app/move-in': typeof AppMoveInRoute
+  '/app/page': typeof AppPageRoute
   '/app/settings': typeof AppSettingsRoute
   '/app/subscribers': typeof AppSubscribersRoute
   '/docs/$slug': typeof DocsSlugRoute
@@ -140,6 +147,7 @@ export interface FileRoutesByTo {
   '/app/deliveries': typeof AppDeliveriesRoute
   '/app/maintenance': typeof AppMaintenanceRoute
   '/app/move-in': typeof AppMoveInRoute
+  '/app/page': typeof AppPageRoute
   '/app/settings': typeof AppSettingsRoute
   '/app/subscribers': typeof AppSubscribersRoute
   '/docs/$slug': typeof DocsSlugRoute
@@ -160,6 +168,7 @@ export interface FileRoutesById {
   '/app/incidents': typeof AppIncidentsRouteWithChildren
   '/app/maintenance': typeof AppMaintenanceRoute
   '/app/move-in': typeof AppMoveInRoute
+  '/app/page': typeof AppPageRoute
   '/app/settings': typeof AppSettingsRoute
   '/app/subscribers': typeof AppSubscribersRoute
   '/docs/$slug': typeof DocsSlugRoute
@@ -181,6 +190,7 @@ export interface FileRouteTypes {
     | '/app/incidents'
     | '/app/maintenance'
     | '/app/move-in'
+    | '/app/page'
     | '/app/settings'
     | '/app/subscribers'
     | '/docs/$slug'
@@ -197,6 +207,7 @@ export interface FileRouteTypes {
     | '/app/deliveries'
     | '/app/maintenance'
     | '/app/move-in'
+    | '/app/page'
     | '/app/settings'
     | '/app/subscribers'
     | '/docs/$slug'
@@ -216,6 +227,7 @@ export interface FileRouteTypes {
     | '/app/incidents'
     | '/app/maintenance'
     | '/app/move-in'
+    | '/app/page'
     | '/app/settings'
     | '/app/subscribers'
     | '/docs/$slug'
@@ -310,6 +322,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppMoveInRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/page': {
+      id: '/app/page'
+      path: '/page'
+      fullPath: '/app/page'
+      preLoaderRoute: typeof AppPageRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/app/settings': {
       id: '/app/settings'
       path: '/settings'
@@ -377,6 +396,7 @@ interface AppRouteChildren {
   AppIncidentsRoute: typeof AppIncidentsRouteWithChildren
   AppMaintenanceRoute: typeof AppMaintenanceRoute
   AppMoveInRoute: typeof AppMoveInRoute
+  AppPageRoute: typeof AppPageRoute
   AppSettingsRoute: typeof AppSettingsRoute
   AppSubscribersRoute: typeof AppSubscribersRoute
   AppIndexRoute: typeof AppIndexRoute
@@ -390,6 +410,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppIncidentsRoute: AppIncidentsRouteWithChildren,
   AppMaintenanceRoute: AppMaintenanceRoute,
   AppMoveInRoute: AppMoveInRoute,
+  AppPageRoute: AppPageRoute,
   AppSettingsRoute: AppSettingsRoute,
   AppSubscribersRoute: AppSubscribersRoute,
   AppIndexRoute: AppIndexRoute,

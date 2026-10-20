@@ -15,7 +15,7 @@ export function FormError({ children }: { children: ReactNode }) {
 }
 
 export function formatOperatorTime(iso: string | null, timezone: string) {
-  return iso ? formatTime(iso, timezone) : "Not recorded";
+  return iso ? formatTime(iso, timezone) : "Not yet";
 }
 
 export function useOperatorTime() {

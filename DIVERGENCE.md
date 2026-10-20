@@ -972,12 +972,13 @@ same-incident immutable correction target retain their existing meaning. A write
 already committed to the original draft remains valid even when its delivered
 completion no longer owns the current interface.
 
-- The setup checklist checks the public page and its subscribe form by fetching the page host's `/`
+- Lamp's own live check reads the public page and its subscribe form by fetching the page host's `/`
   from the Worker. Locally the page host is another loopback name on the same port, so workerd sends
   that as a real subrequest stamped `CF-Worker`. The raw development ingress admits `CF-Worker` only
   once, alone among `cf-*` headers, and only on a GET or HEAD with no `Origin` or `Sec-Fetch-*`
-  header: a request any local process could already send without it. The checklist derives the page
-  origin from the operator's request (the page host on the same scheme and port), as Settings does.
+  header: a request any local process could already send without it. An operator request derives the page
+  origin from itself (the page host on the same scheme and port), as Settings does; Cron uses the
+  deployment's.
 
 ## Seed command contract 1 (rer CLI)
 
@@ -995,8 +996,8 @@ Lamp runs the Base rer CLI (`scripts/base-cli/`, thin `scripts/rer.mjs`) with th
   transfer needs an HTTP portability endpoint Lamp does not serve.
 - The development ingress accepts the CLI proxy's public port (from `RER_DEV_ORIGIN`) in the Host
   header; the proxy forwards the browser's Host to the internal listener unchanged.
-- First-run setup at `/setup` confirms the page name, tagline, time zone and colour (SETUP-002);
-  the eight-step setup checklist (SETUP-001) stays on Overview.
+- First-run setup at `/setup` reads the owner's website and confirms what it found (SETUP-002);
+  Overview shows one live line (SETUP-001).
 
 ## Slack and Teams channels on a Worker — 11 October 2026
 
@@ -1501,3 +1502,64 @@ The package pin moves to rer 0.2.57 with the configured-provider sign-in patch r
 ## Documented grouped webhook versions — 18 October 2026
 
 Each grouped preset accepts its documented source format: Alertmanager version 4 and Grafana version 1. Missing, numeric, cross-source and unknown versions are refused with an operator-readable reason. Grafana's title names the private draft; its message and other source context stay in the retained private receipt. Neither becomes a public update without operator publication. The unmodified Grafana documentation example exercises the same grouped incident, notice, mapping, deduplication and recovery path as Alertmanager.
+
+## Setup and Move-in polish — 20 October 2026
+
+Owner L10 keeps the existing look while making setup honest and resumable. Website
+navigation supplies components only when at least two plausible services remain;
+audience, account, documentation and marketing links are omitted. A failed read
+uses the valid public domain for its default name and offers a retry. The signed-in
+owner's browser retains the read and edits until they open Lamp, with publishing
+and subscribe-form progress shown during that action.
+
+The detected status page stays with the website record. Move-in selects a provider
+only from public provider evidence and fills a page ID from Statuspage's public
+summary or Better Stack's public page JSON. This reads migration metadata only: the existing reviewed import and
+invitation steps remain in force.
+
+## Public page clarity — owner L10, 20 October 2026
+
+Keep the approved public appearance. Customer pages share Status, History and
+Subscribe navigation; operator sign-in and feeds belong in the footer. Show
+one update time and one history-start note, readable component states and
+coverage, without internal incident references or duplicate impact labels.
+Uptime bars distinguish degraded/partial service (amber) from major outage
+(red), based on the worst state during that day, including corrections.
+Page marks show the business artwork cleanly; the favicon keeps its status dot.
+The footer links to the business website already read during setup. Development
+subscription mail remains silently suppressed, with the normal confirmation page.
+
+For PAGE-009, the owner's S4 replaces the generation time's visible clock with
+a relative label while script runs. Its absolute tooltip keeps the configured
+timezone and UTC offset, its datetime keeps the ISO instant, and the initial
+HTML remains absolute for readers without script. Incident and maintenance
+timestamps keep their existing display. The existing PAGE-014/PAGE-009 browser
+journey checks the relative label and the absolute tooltip together.
+
+For UPTIME-003, first-day coverage uses elapsed hours and minutes instead of
+zero whole days or a repeated tracking date. Zero elapsed time still says
+No data. Coverage from one whole day onward keeps its whole-day label. The
+existing uptime correction/coverage journey checks these first-day labels.
+
+## Overview and navigation — owner L10, 20 October 2026
+
+Keep the existing operator appearance. On phones, one compact menu exposes every
+section and the live page. Overview gives empty incident and maintenance cards
+a direct create action. A month without incidents shows a short empty state;
+delivery details stay folded until requested. Initial HTML uses the same month,
+font and link arrows as the hydrated page. Sign out and CSV work immediately.
+Background reads update the current view without closing its menu or disclosures.
+
+## Settings polish — owner L10, 20 October 2026
+
+Settings keeps an owner's unsaved edits across its tabs and warns before leaving
+without saving. Fields become interactive only when their handlers are ready.
+Saving publishes the changes; the wording must make that explicit. All tabs are
+visible on a phone, setup help opens the app's documentation, and embed choices
+preview the actual published status. Ask for identity confirmation only when an
+access change requires it, and keep the last owner’s access protected. The
+existing typography, colours and surfaces stay as they are.
+
+## Lamp L10 follow-up and L17 names (owner, 20 October 2026)
+
+Operator screens use the owner's words, including folded reports and history controls. Development and demo mail stays silent and shows the same accepted-send success as a real send; stored outcomes and real delivery behavior stay intact. Website component suggestions prefer supported product navigation, strip decorative badges and descriptions, exclude account/community/company navigation, and retain the eight-name cap.

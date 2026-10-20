@@ -9,6 +9,7 @@ import { FormError } from "../../../app/client/ui/states";
 import type { MoveInReport } from "../planning";
 import { HELD_SORRY_DAYS } from "../held-sorry";
 import { moveInDoor } from "./door-client";
+import type { WebsiteRecord } from "../../website/repository";
 
 type SavedFile = { name: string; text: string };
 type Preview = { report: MoveInReport; jobId?: string; files?: SavedFile[]; planId: string; fingerprint: string };
@@ -32,11 +33,12 @@ function ReportItems({ report }: { report: MoveInReport }) {
 /** Settings → Move in: a dry run first, then the import, then undo. */
 export function MoveInPage() {
   const jobs = useAppData<{ jobs: Job[] }>("/api/app/statuspage-import/jobs");
-  const [source, setSource] = useState<"statuspage" | "betterstack" | "instatus" | "sorry">("statuspage");
+  const website = useAppData<{ website: WebsiteRecord | null }>("/api/app/website");
+  const [source, setSource] = useState<"statuspage" | "betterstack" | "instatus" | "sorry">(website.data?.website?.statusPage?.source ?? "statuspage");
   const sourceLabel = source === "sorry" ? "Sorry" : source === "instatus" ? "Instatus" : source === "betterstack" ? "Better Stack" : "Statuspage";
   const [publicAccessAcknowledged, setPublicAccessAcknowledged] = useState(false);
   const [publicUrl, setPublicUrl] = useState("");
-  const [pageId, setPageId] = useState("");
+  const [pageId, setPageId] = useState(website.data?.website?.statusPage?.pageId ?? "");
   const [apiKey, setApiKey] = useState("");
   const [files, setFiles] = useState<SavedFile[]>([]);
   const fileInput = useRef<HTMLInputElement>(null);
@@ -46,6 +48,17 @@ export function MoveInPage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [hydrated, setHydrated] = useState(false);
+  const detected = website.data?.website?.statusPage;
+  const detectionApplied = useRef(false);
+
+  useEffect(() => {
+    if (!website.data || detectionApplied.current) return;
+    detectionApplied.current = true;
+    if (!detected) return;
+    if (detected.source) setSource(detected.source);
+    if (detected.pageId) setPageId(detected.pageId);
+    if (detected.source === "sorry") setPublicUrl(detected.url);
+  }, [website.data, detected]);
 
   useEffect(() => {
     // History can restore the native selection without our in-memory source.
@@ -97,16 +110,16 @@ export function MoveInPage() {
   const saved = preview?.files ? URL.createObjectURL(new Blob([JSON.stringify(preview.files)], { type: "application/json" })) : null;
 
   return <div className="page-stack move-in-page">
-    <section className="page-title-row"><div><p className="eyebrow">Settings</p><h1>Move in from {sourceLabel}</h1><p>Bring your components, groups, incident history, scheduled maintenance and email subscribers. Nothing is written until you review a dry run, past incidents notify no one, and subscribers stay pending until you choose Send invitations in Cutover. {source === "sorry" && `Public mode reads only published history; subscribers require the authenticated API and stay held until after cutover, for up to ${HELD_SORRY_DAYS} days.`}</p></div></section>
+    <section className="page-title-row"><div><a className="text-link" href="/app/settings#data">← Your data</a><h1>Move in from {sourceLabel}</h1><p>Bring your components, history and subscribers. Review a dry run before importing. Past incidents send no notifications; subscribers wait for your invitation. {source === "sorry" && `Public pages supply history only. Subscribers need an API key and wait up to ${HELD_SORRY_DAYS} days for an invitation after cutover.`}</p>{detected && <p>Moving from <a className="text-link" href={detected.url} target="_blank" rel="noreferrer">{new URL(detected.url).host}</a></p>}</div></section>
     <section className="data-card"><form className="move-in-form" onSubmit={dryRun}>
-      <label className="form-label">Source<select value={source} disabled={busy || !hydrated} onChange={event => { setSource(event.target.value as typeof source); setPreview(null); setResult(null); setFiles([]); setPageId(""); setPublicUrl(""); setApiKey(""); setAcknowledged(false); setPublicAccessAcknowledged(false); setError(null); clearCutover(); }}><option value="statuspage">Statuspage</option><option value="betterstack">Better Stack</option><option value="instatus">Instatus</option><option value="sorry">Sorry</option></select></label>
+      <label className="form-label">Source<select value={source} disabled={busy || !hydrated} onChange={event => { detectionApplied.current = true; setSource(event.target.value as typeof source); setPreview(null); setResult(null); setFiles([]); setPageId(""); setPublicUrl(""); setApiKey(""); setAcknowledged(false); setPublicAccessAcknowledged(false); setError(null); clearCutover(); }}><option value="statuspage">Statuspage</option><option value="betterstack">Better Stack</option><option value="instatus">Instatus</option><option value="sorry">Sorry</option></select></label>
       <fieldset><legend>From your {sourceLabel} account</legend><AccountHelp source={source} />
         {source === "betterstack" || source === "instatus" || source === "sorry" ? <>
           <label className="form-label">{source === "instatus" ? "API key" : "API token"}<input type="password" value={apiKey} autoComplete="off" onChange={(event) => setApiKey(event.target.value.trim())} /></label>
           <PageFinder key={source} source={source} apiKey={apiKey} onChoose={setPageId} />
-          <label className="form-label">{sourceLabel} page ID<input value={pageId} autoComplete="off" onChange={(event) => setPageId(event.target.value.trim())} /></label>
+          <label className="form-label">{sourceLabel} page ID<input value={pageId} autoComplete="off" onChange={(event) => { detectionApplied.current = true; setPageId(event.target.value.trim()); }} /></label>
         </> : <>
-          <label className="form-label">{sourceLabel} page ID<input value={pageId} autoComplete="off" onChange={(event) => setPageId(event.target.value.trim())} /></label>
+          <label className="form-label">{sourceLabel} page ID<input value={pageId} autoComplete="off" onChange={(event) => { detectionApplied.current = true; setPageId(event.target.value.trim()); }} /></label>
           <label className="form-label">API key<input type="password" value={apiKey} autoComplete="off" onChange={(event) => setApiKey(event.target.value.trim())} /></label>
         </>}
         <small className="field-note">Lamp only reads from your {sourceLabel} account. The key is used for this dry run and never saved.</small></fieldset>

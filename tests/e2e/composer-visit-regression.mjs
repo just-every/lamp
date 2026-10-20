@@ -197,7 +197,7 @@ async function assertConsumedUpdateNoteIsolation({ page, read, incidentId, held,
     assert.equal(await note.inputValue(), "Pending context for the next public update");
     assert.equal(await field.inputValue(), current.draft.affectedAudience);
     assert.equal(await page.getByLabel(/What is the impact/).inputValue(), current.draft.customerImpact);
-    assert.equal(await page.getByLabel("Lifecycle").inputValue(), current.draft.lifecycle);
+    assert.equal(await page.getByLabel("Status").inputValue(), current.draft.lifecycle);
     assert.equal(await page.getByLabel("Next update date and time").inputValue(), "2027-09-08T17:00");
     assert.equal(await page.getByRole("checkbox", { name: "Email", exact: true }).isChecked(), true);
     assert.equal(await page.getByRole("checkbox", { name: "Webhook", exact: true }).isChecked(), true);

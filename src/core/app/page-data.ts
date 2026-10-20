@@ -6,14 +6,16 @@ export type AppDataSnapshot = Record<string, { data: AppJson; error: string | nu
 export function operatorPageReads(path: string): string[] {
   const components = "/api/app/components";
   switch (path.replace(/\/$/, "")) {
-    case "/app": return ["/api/app/overview"];
+    case "/app": return ["/api/app/overview", "/api/app/communication-performance"];
+    case "/app/page": return ["/api/app/overview", "/api/app/page-settings"];
+    case "/app/move-in": return ["/api/app/website"];
     case "/app/incidents": return ["/api/app/incidents", components];
     case "/app/components": return [components];
     case "/app/maintenance": return ["/api/app/maintenance", components];
     case "/app/subscribers": return ["/api/app/subscribers?limit=100&offset=0", `/api/app/subscriber-reporting?month=${new Date().toISOString().slice(0, 7)}`];
     case "/app/deliveries": return ["/api/app/deliveries?limit=100&offset=0"];
     case "/app/alerts": return ["/api/app/intake/sources", "/api/app/intake/receipts?limit=100", components];
-    case "/app/settings": return ["/api/app/ai/status", "/api/app/channels", components, "/api/app/operators", "/api/app/operators/invited", "/api/app/operators/former", "/api/app/overview"];
+    case "/app/settings": return ["/api/app/ai/status", "/api/app/channels", components, "/api/app/operators", "/api/app/operators/invited", "/api/app/operators/former", "/api/app/overview", "/api/app/website"];
     default: {
       const incident = /^\/app\/incidents\/([0-9A-HJKMNP-TV-Z]{26})$/.exec(path);
       if (!incident) return [];

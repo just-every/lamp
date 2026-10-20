@@ -1,3 +1,4 @@
+import { stripVTControlCharacters } from "node:util";
 import {appOrigin} from './helpers/hosts.mjs';
 import assert from "node:assert/strict";
 import { execFileSync, spawn } from "node:child_process";
@@ -25,7 +26,7 @@ before(async () => {
   });
   worker.stdout.on("data", chunk => { output += chunk; });
   worker.stderr.on("data", chunk => { output += chunk; });
-  await waitForWorker({ origin, child: worker, output: () => output, label: "Maintenance timezone Worker" });
+  await waitForWorker({ origin, isListening: () => stripVTControlCharacters(output).includes(`${origin}/`), child: worker, output: () => output, label: "Maintenance timezone Worker" });
   browser = await chromium.launch();
 
 });
@@ -129,12 +130,13 @@ test("maintenance creation, correction and historical incident entry all use the
     await drawer.getByLabel("Ends at", { exact: true }).fill("2020-07-15T10:00");
     await drawer.getByLabel("Reason", { exact: true }).fill("Recorded outage interval");
     const corrected = page.waitForResponse(response => response.url().endsWith(`/components/${component.id}/history-corrections`));
-    await drawer.getByRole("button", { name: "Record correction", exact: true }).click();
+    await drawer.getByRole("button", { name: "Save correction", exact: true }).click();
     assert.equal((await corrected).status(), 204);
     const correction = (await api(`/api/app/components/${component.id}/history`)).corrections[0];
     assert.equal(correction.startsAt, "2020-07-14T23:00:00.000Z"); assert.equal(correction.endsAt, "2020-07-15T00:00:00.000Z");
     await page.goto(`${origin}/app/incidents`);
-    await page.getByRole("button", { name: "Create incident", exact: true }).click();
+    await operatorHydrated(page);
+    await page.getByRole("heading", { name: "Start a private draft", exact: true }).waitFor();
     await page.getByLabel("Incident title", { exact: true }).fill("Historical configured-zone incident");
     await page.getByLabel("Affected component 1", { exact: true }).selectOption(component.id);
     await page.getByLabel("Opened at", { exact: true }).fill("2020-07-15T09:00");

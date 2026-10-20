@@ -6,7 +6,7 @@ import { MailUnavailableError } from "../../platform/mail";
 import { requestNetworkSubject, type PublicWriteRateLimiter } from "../../platform/security/rate-limiter";
 import { ulidSchema } from "../../shared/ids";
 import { applyPublicIsolationHeaders } from "../public-snapshot/headers";
-import { renderSubscriberManagementPage, renderSubscriberTokenPage, type SubscribersService } from "./service";
+import { renderSubscribeResult, renderSubscriberManagementPage, renderSubscriberTokenPage, type SubscribersService } from "./service";
 
 const subscriberQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(100).default(100),
@@ -14,6 +14,8 @@ const subscriberQuerySchema = z.object({
 }).strict();
 const emailSchema = z.object({ email: z.email() }).strict();
 const webhookSchema = z.object({ destination: z.url(), contactEmail: z.email(), componentIds: z.array(ulidSchema).max(200).default([]) }).strict();
+
+const escapeHtml = (value: string) => value.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;");
 
 function tokenHeaders(headers: Headers) {
   headers.set("Referrer-Policy", "no-referrer");
@@ -30,7 +32,7 @@ function tokenResponse(request: Request, body: string, status = 200) {
 
 function publicFormResponse(request: Request, title: string, message: string, status: number, pageName: string) {
   if (request.headers.get("Accept")?.includes("text/html")) {
-    return tokenResponse(request, renderSubscriberTokenPage(title, `<p>${message}</p><p><a href="/#subscribe">Return to subscriptions</a></p>`, pageName), status);
+    return tokenResponse(request, renderSubscriberTokenPage(title, `<p>${message}</p><p><a href="/#subscribe">Back to the subscribe form</a></p>`, pageName), status);
   }
   return new Response(message, { status, headers: { "Content-Type": "text/plain; charset=utf-8" } });
 }
@@ -50,7 +52,7 @@ function parsedComponentIds(value: unknown) {
   });
 }
 
-export function registerSubscriberRoutes(app: Hono<AppEnv>, service: SubscribersService, options: { rateLimiter?: PublicWriteRateLimiter; localMail?: boolean } = {}) {
+export function registerSubscriberRoutes(app: Hono<AppEnv>, service: SubscribersService, options: { rateLimiter?: PublicWriteRateLimiter } = {}) {
   app.post("/subscribe", async (context) => {
     const pageName = await service.getPageName();
     const result = (title: string, message: string, status: number) => publicFormResponse(context.req.raw, title, message, status, pageName);
@@ -61,10 +63,11 @@ export function registerSubscriberRoutes(app: Hono<AppEnv>, service: Subscribers
     const parsed = emailSchema.safeParse({ email: body.email });
     if (!parsed.success) return result("Check your email address", "Enter a valid email address.", 400);
     try {
-      await service.requestEmailSubscription(parsed.data.email, new URL(context.req.url).origin, parsedComponentIds(body.componentId));
+      const componentIds = parsedComponentIds(body.componentId);
+      await service.requestEmailSubscription(parsed.data.email, new URL(context.req.url).origin, componentIds);
       // Preserve the same response for active, pending and suppressed requests.
-      if (options.localMail) return result("Local email is suppressed", "No email is sent locally. Confirming or managing a subscription by email requires a hosted installation.", 202);
-      return result("Check your email", "Check your email to confirm or manage this subscription.", 202);
+      if (!context.req.header("Accept")?.includes("text/html")) return result("Check your inbox", "Check your email to confirm or manage this subscription.", 202);
+      return tokenResponse(context.req.raw, renderSubscribeResult({ email: parsed.data.email, components: await service.componentNames(componentIds) }, pageName), 202);
     } catch (error) {
       if (error instanceof MailUnavailableError) return result("Subscriptions unavailable", "Subscriptions are not configured because this deployment has no mail sender. No confirmation email was sent.", 503);
       throw error;
@@ -75,7 +78,7 @@ export function registerSubscriberRoutes(app: Hono<AppEnv>, service: Subscribers
     const limited = await allowedTokenRequest(context, options.rateLimiter, "subscription-confirm", context.req.param("token") ?? "", pageName);
     if (limited) return limited;
     const confirmed = await service.confirm(context.req.param("token") ?? "");
-    return tokenResponse(context.req.raw, confirmed ? renderSubscriberTokenPage("Subscription confirmed", "<p>Your status subscription is confirmed.</p>", pageName) : renderSubscriberTokenPage("Subscription unavailable", "<p>This confirmation link is invalid or has expired.</p>", pageName), confirmed ? 200 : 404);
+    return tokenResponse(context.req.raw, confirmed ? renderSubscriberTokenPage("Subscription confirmed", `<p>You'll get ${escapeHtml(pageName)} updates by email. Every email has a link to change or stop them.</p><p><a href="/">See current status</a></p>`, pageName, "done") : renderSubscriberTokenPage("Subscription unavailable", "<p>This confirmation link is invalid or has expired.</p>", pageName), confirmed ? 200 : 404);
   });
   app.get("/manage/:token", async (context) => {
     const pageName = await service.getPageName();
@@ -91,7 +94,7 @@ export function registerSubscriberRoutes(app: Hono<AppEnv>, service: Subscribers
     const limited = await allowedTokenRequest(context, options.rateLimiter, "subscription-manage", token, pageName);
     if (limited) return limited;
     const updated = await service.updateManagedSelection(token, parsedComponentIds((await context.req.parseBody({ all: true })).componentId));
-    return updated ? tokenResponse(context.req.raw, renderSubscriberTokenPage("Subscription updated", "<p>Your selection has been updated.</p>", pageName)) : tokenResponse(context.req.raw, renderSubscriberTokenPage("Subscription unavailable", "<p>This subscription link is invalid or no longer active.</p>", pageName), 404);
+    return updated ? tokenResponse(context.req.raw, renderSubscriberTokenPage("Subscription updated", "<p>Your selection is saved.</p><p><a href=\"/\">See current status</a></p>", pageName, "done")) : tokenResponse(context.req.raw, renderSubscriberTokenPage("Subscription unavailable", "<p>This subscription link is invalid or no longer active.</p>", pageName), 404);
   });
   app.get("/unsubscribe/:token", async (context) => {
     const pageName = await service.getPageName();
@@ -108,7 +111,7 @@ export function registerSubscriberRoutes(app: Hono<AppEnv>, service: Subscribers
     const unsubscribed = accepted && await service.unsubscribe(context.req.param("token") ?? "");
     if (!oneClick && context.req.header("Accept")?.includes("text/html")) {
       return tokenResponse(context.req.raw, renderSubscriberTokenPage(unsubscribed ? "Unsubscribed" : "Subscription unavailable", unsubscribed
-        ? "<p>You will no longer receive status updates.</p>"
+        ? "<p>You won't get status updates any more.</p><p><a href=\"/#subscribe\">Subscribe again</a></p>"
         : "<p>This subscription link is invalid or no longer active.</p>", pageName), unsubscribed ? 200 : 404);
     }
     const response = new Response(unsubscribed ? "" : "Subscription link is invalid or no longer active.", { status: unsubscribed ? 200 : 404 });

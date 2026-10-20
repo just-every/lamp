@@ -205,7 +205,7 @@
     },
     {
       "id": "operator-readiness",
-      "description": "Saved setup checklist and owner-terminal issuance of native single-use sign-in links.",
+      "description": "Website-first setup, Lamp's own live checks, and owner-terminal issuance of native single-use sign-in links.",
       "clauses": [
         "SETUP-001",
         "ACCESS-001",
@@ -239,6 +239,16 @@
     "Native mobile apps: the public page is the mobile experience, and it has to work with script disabled."
   ],
   "externals": [
+    {
+      "id": "owner-website-reader",
+      "required": false,
+      "why": "SETUP-002, at the owner's request: read the supplied public website, its declared manifest and mark, and its linked public status page to retain migration metadata. Page IDs are read only from an identified Statuspage provider's public /api/v2/summary.json or Better Stack's public /index.json. Public DNS-over-HTTPS at cloudflare-dns.com validates every destination and redirect; private addresses are refused. No source key is used and no public history is imported.",
+      "data": [
+        "Owner-supplied website URL and linked public resource URLs",
+        "Destination hostnames for public DNS resolution"
+      ],
+      "adapters": []
+    },
     {
       "id": "mail-sender",
       "required": true,

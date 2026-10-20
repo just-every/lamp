@@ -62,7 +62,7 @@ export async function cutoverRuntime(evidence) {
       assert.ok(output.includes('RER_READY '), 'rer dev ready; see sanitized command log');
     },
     async close() {
-      try { if (server) { try { await run('dev', '--stop'); } finally { await serverCustody.stop(); } } }
+      try { if (server) { await serverCustody.stop(); assert.ok(server.exitCode !== null || server.signalCode !== null, 'the owned development server stopped'); } }
       finally {
         await writeFile(join(evidence, 'rer-dev.log'), sanitize(output));
         await rm(cache, { recursive: true, force: true });

@@ -41,7 +41,7 @@ export interface RecoveryCheck {
 
 export class RecoveryCheckError extends Error {
   constructor(public readonly recovery: RecoveryCheck) {
-    super("Recovery evidence is still firing or within the five-minute recovery hold. Record an override reason before publishing Resolved.");
+    super("A monitor still reports a problem or recovered less than five minutes ago. Give a reason to publish Resolved now.");
   }
 }
 
@@ -73,6 +73,6 @@ export function checkRecovery(evidence: RecoveryEvidence, checkedAt: string): Re
     ...evidence.members.map(member => item(member.source, `${member.groupKey}/${member.fingerprint}`, member.receivedAt, member.state === "resolved" ? member.recoveredAt : null)),
   ];
   const notTracked = ["Vendor dependencies", "Public-page traffic baseline", "Linked support tickets", "Continuous monitor passing samples"];
-  if (!items.length) notTracked.unshift("Linked monitors and alerts (no evidence recorded)");
+  if (!items.length) notTracked.unshift("Linked monitors and alerts (none received)");
   return { passed: items.every(item => item.state === "recovered"), checkedAt, holdMinutes: 5, items, notTracked };
 }

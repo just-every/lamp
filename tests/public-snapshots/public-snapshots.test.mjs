@@ -248,7 +248,7 @@ test("Snapshot renderer upgrades preserve public history and last-known state", 
   assert.match(missingHtml, /Atlas Cloud Status/);
   assert.match(missingHtml, /We couldn't find that incident/);
   assert.match(missingHtml, /href="\/"[^>]*>Current status/);
-  assert.match(missingHtml, /href="\/history"[^>]*>Resolved history/);
+  assert.match(missingHtml, /href="\/history"[^>]*>History/);
 
   const browser = await chromium.launch({ headless: true, args: ["--use-mock-keychain", "--password-store=basic"] });
   try {

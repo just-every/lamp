@@ -4,7 +4,7 @@
 .communication-panel h2, .communication-panel p, .communication-panel summary, .communication-panel dd { overflow-wrap: anywhere; }
 .communication-panel h3 { margin: 20px 0 12px; font-size: 15px; }
 .communication-panel button, .communication-panel summary, .communication-panel input { min-height: 44px; }
-.communication-panel summary { display: flex; align-items: center; cursor: pointer; font-weight: 600; }
+.communication-panel summary { display: list-item; align-content: center; cursor: pointer; font-weight: 600; }
 .communication-channels { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr)); gap: 16px; margin: 16px 0; }
 .communication-channel { min-width: 0; padding: 16px; border: 1px solid var(--line); border-radius: 10px; }
 .communication-channel dl { margin: 12px 0 0; }

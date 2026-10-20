@@ -13,7 +13,7 @@ export interface AvailabilityFacts extends Pick<PublicSnapshotSource, "history" 
 }
 export interface AvailabilityReport extends ReportPeriod {
   component: { id: string; name: string };
-  timezone: "UTC";
+  timezone: string;
   generatedAt: string;
   observedUntil: string;
   basis: "claimed";

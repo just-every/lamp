@@ -1,40 +1,52 @@
-import type { SetupChecklistService } from "./setup-checklist";
+import type { LiveStatusService } from "./live-status";
 import type { ComponentsService } from "../components";
 import type { IncidentsService } from "../incidents";
 import type { MaintenanceService } from "../maintenance";
 
 export interface OverviewService {
-  setup: SetupChecklistService;
+  live: LiveStatusService;
   get(): Promise<{
-    checklist: Awaited<ReturnType<SetupChecklistService["get"]>>;
+    live: Awaited<ReturnType<LiveStatusService["get"]>>;
     components: Awaited<ReturnType<ComponentsService["list"]>>;
     activeIncidents: Awaited<ReturnType<IncidentsService["list"]>>;
     maintenance: Awaited<ReturnType<MaintenanceService["list"]>>;
   }>;
+  /** First run: add the components the owner kept, skipping names that already exist, then store completion. */
+  finishFirstRun(operatorId: string, componentNames: string[]): Promise<void>;
 }
 
 export function createOverviewService(
   componentsService: ComponentsService,
   incidentsService: IncidentsService,
   maintenanceService: MaintenanceService,
-  setup: SetupChecklistService,
+  live: LiveStatusService,
 ): OverviewService {
   return {
-    setup,
+    live,
     async get() {
-      const componentsPromise = componentsService.list();
-      const [components, incidents, maintenance, checklist] = await Promise.all([
-        componentsPromise,
+      const [components, incidents, maintenance, status] = await Promise.all([
+        componentsService.list(),
         incidentsService.list(),
         maintenanceService.list(),
-        componentsPromise.then(components => setup.get(components.length > 0)),
+        live.get(),
       ]);
       return {
-        checklist,
+        live: status,
         components,
         activeIncidents: incidents.filter((incident) => incident.lifecycle !== "Resolved"),
         maintenance,
       };
+    },
+    async finishFirstRun(operatorId, componentNames) {
+      const existing = await componentsService.list();
+      const taken = new Set(existing.map((component) => component.name.trim().toLowerCase()));
+      let displayOrder = existing.length;
+      for (const name of componentNames.map((value) => value.trim()).filter(Boolean)) {
+        if (taken.has(name.toLowerCase())) continue;
+        taken.add(name.toLowerCase());
+        await componentsService.create({ groupId: null, name, description: "", internal: false, displayOrder: displayOrder++, note: "" }, operatorId);
+      }
+      await live.completeFirstRun();
     },
   };
 }

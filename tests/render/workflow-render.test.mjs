@@ -17,6 +17,7 @@ const react = {...React, useState(initial) {
   const index = stateIndex++;
   return React.useState(Object.hasOwn(stateSnapshot, index) ? stateSnapshot[index] : initial);
 }};
+const appDataContext = React.createContext({});
 const cache = new Map();
 function load(filename) {
   filename = path.resolve(filename);
@@ -26,7 +27,7 @@ function load(filename) {
   function localRequire(id) {
     if (id === 'react') return react;
     if (id === '@tanstack/react-router') return {Link: ({to, params, children, ...props}) => React.createElement('a', {...props, href: to}, children), useNavigate: () => noop};
-    if (id.endsWith('/ui/api')) return {useAppData: route => ({data: responses[route] ?? null, loading: false, error: null, refresh: noop}), appApi: () => {throw Error('Render tests must not call an API');}};
+    if (id.endsWith('/ui/api')) return {AppDataContext: appDataContext, useAppData: route => ({data: responses[route] ?? null, loading: false, error: null, refresh: noop}), appApi: () => {throw Error('Render tests must not call an API');}};
     if (id.endsWith('/extensions')) return {ClientExtensionSlot: () => null};
     // As Vite does: a stylesheet import has no exports, and a ?url asset import is its URL.
     if (id.endsWith('.css')) return {};
@@ -49,7 +50,7 @@ function render(Component, data, state = {}, props = {}) {
   responses=data; stateSnapshot=state; stateIndex=0;
   return renderToStaticMarkup(React.createElement(PageTimezoneContext.Provider, {value: "Australia/Brisbane"}, React.createElement(Component, props)));
 }
-const checklist = { complete: false, completed: 0, publicOrigin: 'https://status.example.test', steps: ['branding','timezone','sender','component','incident','public','subscribe','domain'].map(id => ({id, label:id, done:false, detail:'Complete this setup step', href:'/app/settings'})) };
+const live = { publicOrigin: 'https://status.example.test', publishedAt: '2026-10-02T01:00:00Z', page: { ok: true, checkedAt: '2026-10-02T01:01:00Z', reason: null }, subscribe: { ok: true, checkedAt: '2026-10-02T01:01:00Z', reason: null }, sender: { state: 'local', message: null, checkedAt: null } };
 const incident = {id:'incident-render',reference:'INC-RENDER',title:'Checkout delayed',lifecycle:'Investigating',openedAt:'2026-10-02T01:00:00Z',components:[],updates:[],internalNotes:[],draft:null};
 const incidentData = {'/api/app/incidents/incident-render':{incident}, '/api/app/incident-templates':{templates:[]}};
 const preview = {public:{heading:'Checkout delayed',lifecycle:'Investigating',fields:[{label:'Impact',value:'Checkout is delayed'}]},email:{subject:'Checkout delayed',plainText:'Title\n\nStatus: Investigating\n\nCheckout is delayed'}};
@@ -62,7 +63,7 @@ function details(html, summary) {
 test("Operator incident overview and composer preserve timing and review controls", async t => {
   t.diagnostic("overview lists each active incident once and offers one action for an overdue update");
   await (() => {
-  const html=render(OverviewPage, {'/api/app/overview':{overview:{checklist,components:[{publicState:'Operational'}],activeIncidents:[{...incident,overdue:true,updateDue:false,updateDueAt:'2026-09-08T01:00:00.000Z',impact:'Degraded performance'}],maintenance:[]}}});
+  const html=render(OverviewPage, {'/api/app/overview':{overview:{live,components:[{publicState:'Operational'}],activeIncidents:[{...incident,overdue:true,updateDue:false,updateDueAt:'2026-09-08T01:00:00.000Z',impact:'Degraded performance'}],maintenance:[]}}});
   const list=html.slice(html.indexOf('aria-label="Active incidents"'));
   assert.equal(list.split('INC-RENDER').length-1,1);
   assert.equal(list.split('Checkout delayed').length-1,1);
@@ -80,7 +81,7 @@ test("Operator incident overview and composer preserve timing and review control
   assert.match(timing.body,/without notifying subscribers/);
   assert.match(html,/A communication commitment, not an estimate of service restoration/);
   assert.match(html,/Saving draft/); assert.match(html,/<button[^>]*disabled=""[^>]*>Publish update<\/button>/);
-  assert.match(html,/A different operator can record the required review/);
+  assert.match(html,/Another operator can review before the scheduled update/);
 })(t);
   t.diagnostic("active historical timing stays exposed and names its publication action");
   await (() => {
@@ -105,7 +106,7 @@ test("Maintenance editing and destructive confirmation remain deliberate", async
   t.diagnostic("destructive confirmation retains recorded reason and audit/history warning");
   await (() => {
   const html=render(IncidentOperatorControls,{}, {2:true}, {incident,onChanged:noop,onDeleted:noop});
-  assert.match(html,/Deletion removes it from public history while retaining the operator audit record/);
+  assert.match(html,/Removes it from public history. The audit log keeps who deleted it and why/);
   assert.match(html,/aria-label="Deletion reason"/); assert.match(html,/Confirm deletion/); assert.match(html,/>Cancel<\/button>/);
 })(t);
 });

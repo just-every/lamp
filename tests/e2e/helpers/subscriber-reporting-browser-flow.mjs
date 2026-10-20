@@ -16,6 +16,9 @@ export async function subscriberReportingBrowserFlow({ page, appUrl, appFetch })
     const before = await (await appFetch("/api/app/subscriber-reporting")).json();
     await page.setViewportSize({ width, height: width === 390 ? 844 : 1600 });
     await page.goto(`${appUrl}/app/subscribers`); await operatorHydrated(page);
+    const reporting = page.locator(".subscriber-reporting-disclosure");
+    assert.equal(await reporting.evaluate(node => node.open), false, "reports start folded below the subscriber directory");
+    await reporting.getByText("Subscriber reporting", { exact: true }).first().click();
     const panel = page.getByRole("region", { name: "Subscriber reporting", exact: true });
     await panel.getByText(`${before.total} current subscribers`, { exact: true }).waitFor();
     const endpoint = `https://noc.acme.example/hooks/fulfilment-${width}`;

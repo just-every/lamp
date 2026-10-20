@@ -15,7 +15,8 @@ import { authOrigin } from "../platform/auth/config";
 import { createIntakeRepository, createIntakeService } from "../features/intake";
 import { createMaintenanceRepository, createMaintenanceService } from "../features/maintenance";
 import { createOverviewRepository } from "../features/overview/repository";
-import { createSetupChecklistService } from "../features/overview/setup-checklist";
+import { createLiveStatusService } from "../features/overview/live-status";
+import { createWebsiteRepository, createWebsiteService, websiteReader, statusPageReader } from "../features/website";
 import { notificationOrigin } from "./mail";
 import { outboundUnavailable } from "./hosting";
 import { createOverviewService } from "../features/overview";
@@ -147,18 +148,25 @@ export function createAppServices(bindings: AppBindings, blobs: BlobStore, execu
   const aiProvider = bindings.RER_DEMO === '1' ? createDemoAiProvider(configuredAi) : configuredAi;
   const aiUnavailable = outboundUnavailable(bindings, "AI suggestions");
   const ai = createAiService(briefs, aiUnavailable ? null : aiProvider, aiUnavailable);
-  const overview = createOverviewService(components, incidents, maintenance, createSetupChecklistService(createOverviewRepository(bindings.DB), pageSettings, {
-    // The checklist answers an operator request on the app host; the page host
-    // shares its scheme and port, as the Settings link to the public page does.
+  const overview = createOverviewService(components, incidents, maintenance, createLiveStatusService(createOverviewRepository(bindings.DB), pageSettings, {
+    // An operator request reads the page host at its own scheme and port, as
+    // the Settings link to the public page does; Cron uses the deployment's.
     publicOrigin: async () => {
       if (!(execution instanceof Request)) return notificationOrigin(bindings);
       const origin = new URL(execution.url);
       origin.hostname = bindings.LAMP_PAGE_HOST;
       return origin.origin;
     },
+    publishedAt: () => publicSnapshots.publishedAt(),
     // A demo's mail transport is local, but its sender reads as a configured one's.
     sender: { local: local && bindings.RER_DEMO !== '1', demo: bindings.RER_DEMO === '1', provider: bindings.MAIL_PROVIDER ?? "resend", apiKey: bindings.MAIL_PROVIDER_API_KEY, mail },
   }));
+
+  const website = createWebsiteService(createWebsiteRepository(bindings.DB), {
+    read: websiteReader(import.meta.env?.DEV && bindings.LAMP_DEV_SITE_ORIGIN?.startsWith("http://127.0.0.1:") ? bindings.LAMP_DEV_SITE_ORIGIN : undefined),
+    readStatusPage: statusPageReader(import.meta.env?.DEV && bindings.LAMP_DEV_SITE_ORIGIN?.startsWith("http://127.0.0.1:") ? bindings.LAMP_DEV_SITE_ORIGIN : undefined),
+    unavailable: outboundUnavailable(bindings, "Reading your website") ? "Lamp can't read websites on Managed hosting yet. Fill in the rest below." : null,
+  });
 
   // Imported subscribers each get one confirmation invite; past incidents notify no one.
   const importPublicOrigin = async () => execution instanceof Request ? publicPageOrigin(execution.url, bindings.LAMP_PAGE_HOST) : notificationOrigin(bindings);
@@ -176,7 +184,7 @@ export function createAppServices(bindings: AppBindings, blobs: BlobStore, execu
     sendConfirmation: async (subscriberId) => subscribers.inviteImported(subscriberId, await importPublicOrigin(), (await pageSettings.get())?.pageName ?? "This status page", async () => true),
   });
 
-  return { auth, operators, availabilityReports, communicationPerformance, incidentImpact, pageSettings, pageExport, components, componentCatalogue, incidents, maintenance, subscribers, deliveries, reports, intake, briefs, ai, overview, updateReminders, publicSnapshots, statuspageImport, channels };
+  return { auth, operators, availabilityReports, communicationPerformance, incidentImpact, pageSettings, pageExport, components, componentCatalogue, incidents, maintenance, subscribers, deliveries, reports, intake, briefs, ai, overview, website, updateReminders, publicSnapshots, statuspageImport, channels };
 }
 
 export type AppServices = ReturnType<typeof createAppServices>;

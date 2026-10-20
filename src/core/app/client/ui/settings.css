@@ -1,0 +1,45 @@
+/* Settings: tabs, the status page hero, Page and Brand side by side, one save bar. */
+.settings-tabs { display: flex; gap: 4px 26px; overflow-x: auto; border-bottom: 1px solid var(--line); scrollbar-width: none; }
+.settings-tabs a { flex: none; margin-bottom: -1px; border-bottom: 2px solid transparent; padding: 10px 0 12px; color: var(--ink-2); font-size: 15px; white-space: nowrap; }
+.settings-tabs a:hover { color: var(--ink); }
+.settings-tabs a[aria-current="page"] { border-bottom-color: var(--ink); color: var(--ink); font-weight: 600; }
+.page-hero { display: grid; grid-template-columns: 84px minmax(0, 1fr) minmax(220px, 300px); align-items: center; gap: 24px; overflow: hidden; }
+.page-hero-mark { width: 84px; height: 84px; border-radius: 18px; object-fit: contain; }
+.page-hero-facts { display: grid; min-width: 0; justify-items: start; gap: 6px; }
+.page-hero-facts .card-kicker { margin: 0; }
+.page-hero-address { display: inline-flex; max-width: 100%; align-items: center; gap: 8px; margin: 0; color: var(--ink); font-size: 28px; font-weight: 600; letter-spacing: -.02em; overflow-wrap: anywhere; }
+.page-hero-address svg { flex: none; color: var(--ink-3); }
+.page-hero-live { display: flex; align-items: center; margin: 0; color: var(--ink-2); font-size: 15px; }
+.page-hero-live.is-failing { color: var(--amber-ink); font-weight: 500; }
+.page-hero-note { margin: 0; color: var(--ink-3); font-size: 13px; }
+.page-hero-preview { align-self: stretch; margin: -24px -24px -24px 0; background: var(--stage); padding: 20px 20px 0; }
+.page-hero-preview .page-preview { border-bottom: 0; border-radius: 10px 10px 0 0; box-shadow: none; font-size: 12px; }
+.settings-pair { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; gap: 20px; }
+.page-card, .brand-card { display: grid; gap: 18px; }
+.page-card .card-kicker, .brand-card .card-kicker { margin: 0; }
+.brand-marks { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 22px; }
+.brand-marks figure { display: grid; gap: 6px; margin: 0; }
+.brand-marks figcaption { color: var(--ink-3); font-size: 12px; font-weight: 500; }
+.brand-mark-large { width: 88px; height: 88px; border-radius: 18px; object-fit: contain; }
+.brand-favicon { width: 40px; height: 40px; border-radius: 8px; }
+.brand-social { width: 128px; height: 67px; border: 1px solid var(--line); border-radius: 8px; object-fit: cover; }
+.colour-field { grid-template-columns: 48px minmax(0, 1fr); }
+.brand-website { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 10px 16px; color: var(--ink-3); font-size: 13px; }
+.brand-website .form-label { flex: 1 1 200px; }
+.brand-upload summary { color: var(--ink); font-size: 14px; font-weight: 500; text-decoration: underline 1.5px var(--link-line); text-underline-offset: 4px; cursor: pointer; }
+.brand-upload[open] summary { margin-bottom: 12px; }
+.settings-save-bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--card); box-shadow: var(--shadow-card); padding: 12px 14px 12px 20px; }
+.settings-save-note { display: flex; align-items: center; gap: 10px; margin: 0; color: var(--ink-2); font-size: 14px; }
+.settings-save-note svg { color: var(--ok); }
+.sender-status { display: flex; align-items: center; margin: 14px 0 0; color: var(--ink-2); font-size: 14px; }
+.sender-status.is-failing { color: var(--amber-ink); font-weight: 500; }
+.settings-form > .data-card { display: grid; gap: 14px; }
+.embed-preview { display: grid; gap: 12px; }
+.embed-preview .card-kicker { margin: 0; }
+.embed-preview-status { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 10px; border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; }
+.embed-preview-status .page-preview-dot { width: 8px; height: 8px; flex: none; border-radius: 50%; }
+.embed-preview-status p { flex: 1 1 100%; margin: 2px 0 0; border-top: 1px solid var(--line); padding-top: 10px; white-space: pre-line; }
+.embed-preview-dot { justify-self: start; border: 0; padding: 4px 0; }
+@media (max-width: 600px) {
+  .settings-tabs { flex-wrap: wrap; gap: 0 22px; overflow: visible; }
+}

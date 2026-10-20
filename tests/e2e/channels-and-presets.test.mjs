@@ -73,7 +73,7 @@ after(async () => {
   await new Promise((resolve) => receiver?.close(resolve));
 });
 
-test("NOTIFY-011 NOTIFY-012 — Private channel configuration delivers the selected publication once", async t => {
+test("NOTIFY-011 NOTIFY-012 UPDATE-013 — Private channels deliver the selected publication once with literal text and punctuated links", async t => {
   t.diagnostic("NOTIFY-011 — a Slack or Teams webhook URL is stored encrypted and never shown again");
   await (async () => {
   const api_ = await component("Payments API");
@@ -117,6 +117,7 @@ test("NOTIFY-011 NOTIFY-012 — Private channel configuration delivers the selec
   assert.match(slackMessage.text, /Incident impact: Major/);
   assert.deepEqual(sql("SELECT incident_impact AS impact FROM channel_posts").map(row => row.impact), ["major", "major"], "committed channel impact survives a later clear");
   assert.ok(slackMessage.text.includes("<https://help.example.com/kb/123>"), "Slack notification text carries explicit links");
+  assert.ok(slackMessage.text.includes("See <https://help.example.com/kb/123>."), "Slack history and notification text keep the period outside the link");
   const elements = slackMessage.blocks.flatMap(block => block.elements.flatMap(section => section.elements));
   assert.ok(elements.some(element => element.type === "link" && element.url === "https://help.example.com/kb/123"));
   assert.ok(elements.some(element => element.type === "text" && element.text.includes('Literal <a href="https://x.test">x</a>, **markdown**, javascript:alert(1)')));
