@@ -20,7 +20,7 @@ export async function pagerDutyBrowserFlow({ api, component, origin, cookie }) {
       await page.goto(`${origin}/app/alerts`); await operatorHydrated(page);
       const editor = page.locator('section').filter({ has: page.getByRole('heading', { name: 'Connect PagerDuty', exact: true }) });
       const name = `Production PagerDuty ${width}`;
-      await editor.getByLabel('PagerDuty source name', { exact: true }).fill(name);
+      await editor.getByLabel('PagerDuty name', { exact: true }).fill(name);
       await editor.getByLabel('Component 1').selectOption(target.id);
       await editor.getByLabel('PagerDuty service ID 1', { exact: true }).fill('PAPI123');
       await editor.getByRole('button', { name: 'Create PagerDuty endpoint', exact: true }).click();
@@ -28,7 +28,7 @@ export async function pagerDutyBrowserFlow({ api, component, origin, cookie }) {
       await card.getByText('Awaiting signing secret', { exact: true }).waitFor();
       await capture(editor, 'pagerduty-endpoint');
       await card.getByRole('button', { name: `Add signing secret for ${name}`, exact: true }).click();
-      await editor.getByLabel('Subscription signing secret').fill(secret);
+      await editor.getByLabel('PagerDuty subscription secret', { exact: true }).fill(secret);
       await editor.getByRole('button', { name: 'Save PagerDuty source', exact: true }).click();
       await card.getByText('Configured', { exact: true }).waitFor();
       const source = (await api('/api/app/intake/sources')).body.sources.find(row => row.name === name);

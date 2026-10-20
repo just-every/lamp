@@ -1095,7 +1095,7 @@ What Lamp does not do, and how a buyer gets it:
 
 ## Status
 
-Judged from the code and tests at commit `d32780261919a73819b6c2484f23c743716c2386` (20 October 2026), the base this round builds on. Rows changed after that commit name their own journeys under Evidence.
+Judged from the code and tests at commit `d32780261919a73819b6c2484f23c743716c2386` (20 October 2026). Rows changed after that commit name their own journeys under Evidence.
 
 INTAKE-009 includes the subsequent named API and browser journey below.
 
