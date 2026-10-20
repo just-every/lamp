@@ -277,7 +277,7 @@ test("Fresh publication drafts and narrow operator navigation preserve deliberat
         await select.selectOption("Degraded performance");
         assert.equal(await select.inputValue(), "Degraded performance");
       }
-      if (name === "Status history") await dialog.getByRole("heading", { name: "Correct a closed interval" }).waitFor();
+      if (name === "Status history") await dialog.getByRole("heading", { name: "Correct a past period" }).waitFor();
       assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
       await page.keyboard.press("Escape");
     }
