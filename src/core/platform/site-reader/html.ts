@@ -6,7 +6,7 @@ export { cleanText, decodeEntities } from "./text.ts";
  * No page DOM is created and none of the page's scripts run. */
 export interface HtmlTag { name: string; attributes: Record<string, string> }
 /** `titleRank`: 2 for a title inside the link, 1 for a heading around it, 0 for plain link text. */
-export interface HtmlAnchor { href: string; text: string; name: string; titleRank: 0 | 1 | 2; groups: string[]; accountNavigation: boolean; region: "nav" | "header" | "footer" | "body" }
+export interface HtmlAnchor { href: string; text: string; name: string; titleRank: 0 | 1 | 2; described: boolean; groups: string[]; accountNavigation: boolean; region: "nav" | "header" | "footer" | "body" }
 /** `prose` is the page's readable text outside links. */
 export interface HtmlScan { title: string | null; tags: HtmlTag[]; anchors: HtmlAnchor[]; styles: string[]; prose: string }
 
@@ -56,7 +56,7 @@ export function scanHtml(html: string): HtmlScan {
     }
     if (closing) {
       if (name === "a" && anchor) {
-        anchors.push({ href: anchor.href, text: cleanText(anchor.text) || cleanText(anchor.label), name: anchor.parts.name(anchor.label), titleRank: anchor.parts.titled() ? 2 : anchor.heading ? 1 : 0, region: anchor.region, groups: anchor.groups, accountNavigation: anchor.accountNavigation });
+        anchors.push({ href: anchor.href, text: cleanText(anchor.text) || cleanText(anchor.label), name: anchor.parts.name(anchor.label), titleRank: anchor.parts.titled() ? 2 : anchor.heading ? 1 : 0, described: anchor.parts.described(), region: anchor.region, groups: anchor.groups, accountNavigation: anchor.accountNavigation });
         anchor = null;
       } else anchor?.parts.close(name);
       const at = stack.findLastIndex(frame => frame.tag === name);

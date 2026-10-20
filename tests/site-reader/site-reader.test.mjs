@@ -182,6 +182,29 @@ test('the site reader reads what a site says about itself, refuses private desti
     <a href="/products/orbit">Orbit</a><a href="/products/relay">Relay</a>
   </div></nav>`), [], 'a services menu cannot fill an otherwise empty list');
 
+  t.diagnostic('services, training, support and release navigation never become products, at any depth or slug spelling');
+  const chrome = [
+    ['/services/onboarding', 'Personalized onboarding'], ['/services/customer-success-management', 'Customer success'],
+    ['/services/', 'Professional Services'], ['/products/release-overview', 'Product Releases'],
+    ['/platform/product_releases', 'Recent changes'], ['/products/whatsNew', 'Latest news'],
+    ['/products/changelog/archive', 'Timeline'], ['/apps/weekly-updates', 'Fresh additions'],
+    ['/platform/customer-support', 'Assistance'], ['/tools/product-training', 'Courses'],
+    ['/platform/academy/courses', 'Courses'], ['/products/career-opportunities', 'Open positions'],
+    ['/products/partner-program', 'Ecosystem'], ['/apps/legal-notices', 'Notices'],
+    ['/apps/pricing-options', 'Options'], ['/products/consulting', 'Expert advice'],
+    ['/learn/product/one', 'Courseware'], ['/resources/products/two', 'Resources library'],
+    ['/products/three', 'Product Training'], ['/products/four', 'Release Notes'],
+    ['/platform/five', 'Consulting Services'], ['/products/six', 'Premium Support'],
+    ['/products/seven', 'Success plans'], ['/products/eight', 'Product Academy'],
+    ['/products/nine', 'What’s New'], ['/products/ten', 'Product Updates'],
+    ['/enterprise/', 'Enterprise Class'], ['/compliance/', 'Regulatory Compliance'],
+    ['/platform/strategy', 'AI at Acme'],
+  ].map(([url, label]) => `<a href="${url}">${label}</a>`).join('');
+  const operational = '<a href="/products/data">Data Services</a><a href="/products/learning">Learning Services</a><a href="/products/service">Service Hub</a>';
+  assert.deepEqual((await read(`<nav><div><button>Products and pricing</button>${operational}${chrome}</div></nav>`)).map(component => component.name), ['Data Services', 'Learning Services', 'Service Hub']);
+  assert.deepEqual(await read(`<nav><div><button>Products</button>${chrome}</div></nav>`), [], 'an empty product list stays empty rather than being filled with consulting offerings');
+  assert.deepEqual((await read(`<nav>${operational}<div><h3>Training and support</h3><a href="/products/extra">Assistance</a></div></nav>`)).map(component => component.name), ['Data Services', 'Learning Services', 'Service Hub']);
+
   t.diagnostic('titles and separate blocks supply names without merging their descriptions, irrespective of the words used');
   assert.deepEqual((await read(`<header><nav>
     <a href="/products/analytics"><div><h4>Analytics</h4><p>Podcast analytics software</p></div></a>
@@ -197,6 +220,20 @@ test('the site reader reads what a site says about itself, refuses private desti
     <a href="/software/comet"><div class="description"><strong>Comet</strong><span class="description">Keep every project moving</span></div></a>
     <a href="/software/office">Microsoft <strong>365</strong></a>
   </nav>`)).map(component => component.name), ['Orbit', 'Relay', 'Comet', 'Microsoft 365'], 'description wrappers retain their structural titles without glued prose or number loss');
+
+  t.diagnostic('description-styled wrappers expose their product title while the separate description stays out');
+  assert.deepEqual((await read(`<nav>
+    <a href="/products/converse"><div class="product-description-container"><div class="product-header"><strong>Converse</strong></div><span class="product-description">Discuss every project together</span></div></a>
+    <a href="/products/orbit"><div class="description-wrapper"><h4>Orbit</h4><span class="description">Keep every project moving</span></div></a>
+    <a href="/products/relay"><div class="description-container"><strong>Relay</strong><span class="description">Send messages across the world</span></div></a>
+    <a href="/products/office"><strong>Office</strong> 2024</a>
+    <a href="/products/observatory"><div class="description-layout"><h4>Observatory</h4><span>See every system together</span></div></a>
+  </nav>`)).map(component => component.name), ['Converse', 'Orbit', 'Relay', 'Office 2024', 'Observatory']);
+  assert.deepEqual((await read(`<nav><div aria-label="Products: Dropdown Content">
+    <a href="/software/converse"><div class="product-description-container"><div class="product-header"><strong>Converse</strong></div><span class="product-description">Discuss every project together</span></div></a>
+    <a href="/software/orbit"><div class="description-layout"><h4>Orbit</h4><span>Keep every project moving</span></div></a>
+    <a href="/collections/team"><div>Supercharge every team</div><div>Converse Orbit</div></a>
+  </div></nav>`)).map(component => component.name), ['Converse', 'Orbit'], 'a menu role suffix still exposes titled product links, without promoting a descriptive collection card');
 
   t.diagnostic('product groups and distinct app hosts beat marketing, account and documentation links');
   const products = await read(`<header><nav>
@@ -254,6 +291,13 @@ test('the site reader reads what a site says about itself, refuses private desti
   </div></nav></header>`);
   assert.deepEqual(menu.map(component => component.name), ['Free CRM', 'Mail Hub', 'AI Sorter', 'Chat Hub', 'Talk Hub']);
   assert.equal(menu[1].url, 'https://example.com/products/mail', 'the hub keeps its place and address under its own title');
+  const renamed = await read(`<header><nav><div><button>Products</button>
+    <a href="/platform/generative-ai"><h3>Acme Advance</h3><p>Automate every task</p></a>
+  </div></nav></header><footer><nav><div><h3>Platform</h3>
+    <a href="/platform/generative-ai">Generative AI</a><a href="/platform/operations">Operations</a>
+  </div></nav></footer>`);
+  assert.deepEqual(renamed.map(component => component.name), ['Acme Advance', 'Operations'], 'the product-menu name beats a footer category that spells the URL');
+  assert.equal(renamed[0].url, 'https://example.com/platform/generative-ai');
   const shelf = ['Agents', 'Bases', 'GPUs', 'Metal', 'Engine', 'Data', 'Learning', 'Droplets', 'Clusters'];
   const indexed = await read(`<main><p>Evals for Learning. Evals everywhere: Evals, Evals. Droplets.</p></main><nav><a href="/pricing">Pricing</a></nav>
     <footer><div><h3>Products</h3><a href="/products">Catalogue</a>${shelf.map(name => `<a href="/products/${name.toLowerCase()}">${name}</a>${name === 'Learning' ? '<a href="/products/learning/evals">Evals</a>' : ''}`).join('')}</div></footer>`);

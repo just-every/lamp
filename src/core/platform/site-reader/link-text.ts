@@ -29,12 +29,17 @@ export function cleanComponentName(value: string) {
   return BADGE.test(text) ? "" : text;
 }
 
-const role = (element: Element) => {
+const role = (element: Element): "decoration" | "description" | "title" | "text" => {
   const hint = `${element.attributes.class ?? ""} ${element.attributes["data-slot"] ?? ""}`;
   // Badges, counters and text kept for screen readers only are not part of the shown name.
   if (element.attributes["aria-hidden"] === "true" || "hidden" in element.attributes || /(?:^|[\s_-])(badge|pill|chip|count|counter)(?:$|[\s_-])/i.test(hint) || /(?:^|\s)(sr-only|visually-?hidden|screen-reader-text)(?:$|\s)/i.test(hint)) return "decoration";
   if (/^h[1-6]$/.test(element.tag) || /(?:^|[\s_-])(title|name|label|heading|header)(?:$|[\s_-])/i.test(hint)) return "title";
-  if (/^(small|p)$/.test(element.tag) || /(?:^|[\s_-])(description|subtitle|summary|caption|detail)(?:$|[\s_-])/i.test(hint)) return "description";
+  if (/^(small|p)$/.test(element.tag)) return "description";
+  if (/(?:^|[\s_-])(description|subtitle|summary|caption|detail)(?:$|[\s_-])/i.test(hint)) {
+    // A wrapper can contain both the name and a separately marked description.
+    const wrapper = element.children.some(child => typeof child !== "string" && role(child) === "description");
+    return wrapper ? "text" : "description";
+  }
   return "text";
 };
 
@@ -54,6 +59,14 @@ function titles(element: Element, inDescription = false): string[] {
   if (role(element) === "title" || inDescription && element.tag === "strong") return [visible(element)].filter(Boolean);
   // A description-styled wrapper can contain a title; only its supporting text leaves.
   return element.children.flatMap(child => typeof child === "string" ? [] : titles(child, inDescription));
+}
+
+// Separate block siblings express a label followed by supporting text.
+function firstBlock(element: Element): string {
+  const blocks = element.children.filter((child): child is Element => typeof child !== "string" && /^(div|p|h[1-6])$/.test(child.tag) && Boolean(visible(child)));
+  if (blocks.length > 1) return firstBlock(blocks[0]) || visible(blocks[0]);
+  if (blocks.length === 1 && !element.children.some(child => typeof child === "string" && cleanComponentName(child))) return firstBlock(blocks[0]);
+  return "";
 }
 
 /** A stack of just this link's text elements, discarded when the link closes. */
@@ -81,16 +94,11 @@ export class LinkText {
   }
   /** Whether the link's name came from a heading or title element inside it. */
   titled() { return Boolean(titles(this.root)[0]); }
+  /** A supporting block supplied a short label rather than an explicit title or plain link name. */
+  described() { return Boolean(firstBlock(this.root)); }
   name(fallback: string) {
     const named = titles(this.root)[0];
     if (named) return named;
-    // Separate block siblings express a label followed by supporting text.
-    const firstBlock = (element: Element): string => {
-      const blocks = element.children.filter((child): child is Element => typeof child !== "string" && /^(div|p|h[1-6])$/.test(child.tag) && Boolean(visible(child)));
-      if (blocks.length > 1) return firstBlock(blocks[0]) || visible(blocks[0]);
-      if (blocks.length === 1 && !element.children.some(child => typeof child === "string" && cleanComponentName(child))) return firstBlock(blocks[0]);
-      return "";
-    };
     return firstBlock(this.root) || visible(this.root) || cleanComponentName(this.root.attributes.title ?? fallback);
   }
 }

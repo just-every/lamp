@@ -1,17 +1,14 @@
 import { siteDomain } from "./domain.ts";
 import type { HtmlAnchor, HtmlScan } from "./html.ts";
 import { cleanComponentName } from "./link-text.ts";
+import { nonProductLabel, nonProductPath } from "./navigation.ts";
 import type { SiteComponent } from "./types.ts";
 
 const GENERIC = /^(home|pricing|plans? and pricing|blog|about( us)?|company|careers|jobs|contact( us| sales)?|talk to (sales|us)|sales|(book|request|get|watch) a demo|demo|get started( free| for free)?|start (your )?free trial|start for free|try (it )?(for )?free|free trial|sign ?up( free)?|register|learn more|read more|resources|customers|case studies|(customer )?stories|partners|press|news(room)?|events|webinars|community|help( cent(er|re))?|support|faq|privacy( policy)?|terms( of (service|use))?|legal|cookies?( policy| settings)?|menu|close|skip to (main )?content|english|language|products?|features?( and benefits)?|benefits|solutions|platform|overview|explore( more| all)?|enterprise|compare|why .+|see all.*|view all.*|all .+|more|status|system status|log ?out|sign ?out|download|apps?|guides?|templates|integrations? directory|changelog|release notes|what['’]?s new|security|trust|accessibility|sitemap|investors|affiliates?|refer a friend|gift cards?)$/i;
 // Calls to action, sentences, plan and pricing wording, catalogue links and menu chrome are not product areas.
 const CHROME = /^(pricing|sign ?up|get started|try|book|request|start|navigate|go to|back to|skip|open app|download|see|view|learn|read|watch|join|contact|help|explore|discover)\b|\b(overview|home|homepage|more|plans|pricing|prices)$|\ball (products|services|apps|tools|solutions|features)$|\b(for|at)\b|\b(is|are|was|our|your|we|you|to the|of the)\b/i;
 const NON_SERVICE_NAME = /^(docs?|documentation|developers?|developer docs|api (docs|reference)|integrations?|now|log[ -]?in|sign[ -]?in|accounts?|dashboard login|e-?commerce|saas|agencies|creators?( and publishers?)?|publishers?|public sector|industries|use cases)$|^(vs\.?|versus|compare|migrat\w*|switch|white[ -]label)\b/i;
-// These offerings surround a product; a Products heading cannot turn them into product areas.
-// Match words, not substrings: "Data Services" and "Customer Service Ops" can still be products.
-const NON_PRODUCT_WORDING = /\b(training|academy|certifications?|consulting|consultancy|onboarding|customer success|professional services?|release notes?|change ?logs?|what['’]?s new)\b|\b(releases?|updates?|careers|pricing|legal|compliance)$|\bsupport(?: (plans?|programs?|portal|cent(er|re)))?$|^partners?$/i;
-const NON_PRODUCT_SEGMENT = /^(services|professional-services?|training|academy|certifications?|consulting|consultancy|onboarding|customer-success(?:-management)?|support|releases?|change-?logs?|updates?|careers?|partners?|pricing|legal|enterprise)$|(?:^|-)(training|academy|certifications?|consulting|support|releases?|change-?logs?|updates?|careers?|pricing|legal)(?:-|$)|^(?:whats|what-s)-new$/i;
-const NON_SERVICE_PATH = /\/(docs?|documentation|developers?|reference|learn|guides?|help|support|blog|news|now|changelog|releases?|release-notes|whats-new|downloads?|explore|resources|integrations?|customers?|stories|case-studies|partners|templates|for|use-cases|industries|solutions?|compare|comparisons?|alternatives?|vs|migrat\w*|log-?in|sign-?in|sign-?up|auth|accounts?|pricing|about|company|careers|jobs|contact|legal|privacy|terms|cookies|benefits|press|events|security|trust)(\/|$)/i;
+const NON_SERVICE_PATH = /\/(docs?|documentation|developers?|reference|learn|guides?|help|support|blog|news|now|changelog|releases?|release-notes|whats-new|downloads?|explore|resources|integrations?|customers?|stories|case-studies|partners|templates|for|use-cases|industries|enterprise|solutions?|compare|comparisons?|alternatives?|vs|migrat\w*|log-?in|sign-?in|sign-?up|auth|accounts?|pricing|about|company|careers|jobs|contact|legal|privacy|terms|cookies|benefits|press|events|security|trust)(\/|$)/i;
 const NON_SERVICE_HOST = /^(docs?|developers?|help|support|learn|accounts?|auth|id|sso|login)\./i;
 const PRODUCT_PATH = /^\/(products?|apps?|tools?)\/[^/]+/i;
 // A feature menu alone is weak evidence: keep only names of usable service areas,
@@ -105,24 +102,23 @@ export function siteComponents(scan: HtmlScan, base: URL): SiteComponent[] {
     if (!/^https?:$/.test(url.protocol) || !(url.hostname === domain || url.hostname.endsWith(`.${domain}`)) || STATUS_HOST.test(url.hostname)) return [];
     if (anchor.accountNavigation) return [];
     const text = anchor.name;
+    if (nonProductLabel(text) || nonProductPath(url.pathname) || anchor.groups.some(label => !PRODUCT_GROUP.test(label) && nonProductLabel(label))) return [];
     // The link's whole text is checked too, so a cleaned name never hides a generic link ("What's New").
     const whole = anchor.text.replace(/[\s›»→↗➔>]+$/u, "");
     if (ARROWED.test(anchor.text) || GENERIC.test(whole)) return [];
-    const groups = anchor.groups.map(label => label.replace(/:\s*(dropdown|menu|navigation)( content)?$/i, ""));
-    const productGroup = groups.findLast(label => PRODUCT_GROUP.test(label) || OTHER_GROUP.test(label) || NON_PRODUCT_WORDING.test(label) || /^services?$/i.test(label));
-    const product = Boolean(productGroup && PRODUCT_GROUP.test(productGroup)) || PRODUCT_PATH.test(url.pathname);
+    const groups = anchor.groups.map(label => label.replace(/\s*[:–—-]\s*(dropdown|menu|navigation)( content)?$/i, ""));
+    const productGroup = groups.findLast(label => PRODUCT_GROUP.test(label) || OTHER_GROUP.test(label) || nonProductLabel(label));
+    const roleMenu = groups.some((label, index) => label !== anchor.groups[index]);
+    const productMenu = Boolean(productGroup && PRODUCT_GROUP.test(productGroup)) && (!roleMenu || anchor.titleRank > 0 || !anchor.described);
+    const product = productMenu || PRODUCT_PATH.test(url.pathname);
     if (/^(plans?|search)$/i.test(text) && !product) return [];
     if (text.length < 2 || text.length > 40 || text.split(" ").length > 5 || GENERIC.test(text) || CHROME.test(text) || NON_SERVICE_NAME.test(text)) return [];
-    const segments = url.pathname.split("/").map(segment => {
-      try { return decodeURIComponent(segment).replace(/([a-z])([A-Z])/g, "$1-$2").replace(/['’]/g, "").replace(/[^\p{L}\p{N}-]+/gu, "-"); } catch { return segment; }
-    });
-    if (NON_PRODUCT_WORDING.test(text.replace(/[-_]+/g, " ")) || segments.some(segment => NON_PRODUCT_SEGMENT.test(segment))) return [];
     if ((NON_SERVICE_PATH.test(url.pathname) && !(product && /^\/auth\/?$/.test(url.pathname))) || MARKETING_INDEX.test(url.pathname) || NON_SERVICE_HOST.test(url.hostname) || (url.pathname === "/" && url.hostname === base.hostname)) return [];
     if (productGroup && !PRODUCT_GROUP.test(productGroup)) return [];
     const service = SERVICE_NAME.test(text) || SERVICE_ENDING.test(text);
     const primary = product || service && url.hostname.replace(/^www\./, "") !== base.hostname.replace(/^www\./, "");
     if (!primary && !service) return [];
-    return [{ name: text, url: url.href, primary, titleRank: anchor.titleRank, menu: anchor.region !== "footer" && Boolean(productGroup && PRODUCT_GROUP.test(productGroup)), groups: anchor.groups }];
+    return [{ name: text, url: url.href, primary, titleRank: anchor.titleRank, menu: anchor.region !== "footer" && productMenu, groups: anchor.groups }];
   });
   let candidates = unique(consider(scan.anchors.filter(anchor => anchor.region === "nav" || anchor.region === "header")));
   if (candidates.length < 2) candidates = unique([...candidates, ...consider(scan.anchors.filter(anchor => anchor.region === "footer"))]);
