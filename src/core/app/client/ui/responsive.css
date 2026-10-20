@@ -17,10 +17,11 @@
   .operator-navigation-panel.is-open { display: flex; }
   .operator-navigation { margin-top: 12px; }
   .operator-rail-footer { margin-top: 12px; padding: 14px 12px; }
-  .operator-mobile-account { display: block; border-top: 1px solid var(--line); padding: 14px 12px 4px; }
-  .operator-mobile-account .operator-account { justify-content: space-between; flex-wrap: nowrap; }
-  .operator-mobile-account .operator-identity { justify-items: start; }
   .operator-header { display: none; }
+  .operator-header.is-menu-open { position: static; display: flex; height: auto; min-height: 64px; padding: 10px 28px; }
+  .operator-header > p { display: none; }
+  .operator-header .operator-account { width: 100%; justify-content: space-between; }
+  .operator-header .operator-identity { justify-items: start; }
   .operator-main { padding: 24px 16px; }
   .incident-workspace { grid-template-columns: 1fr; grid-template-areas: "heading" "composer" "preview" "actions" "context"; }
   aside.incident-context { border-right: 0; border-top: 1px solid var(--line); }

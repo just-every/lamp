@@ -144,7 +144,7 @@ before(async () => {
     originalVisualSource = readFileSync(source);
     // The first verification pass covers the complete owner snapshot. This pass
     // isolates the probe so an owner's edit to the same heading cannot conflict.
-    const snapshot = {revision:1,edits:[{id:'test-heading-probe',revision:1,path:'/app',target:{selector:'h1:nth-child(2)',tag:'h1',role:'',beforeText:'Overview'},change:{text:'Workspace overview'}}]};
+    const snapshot = {revision:1,edits:[{id:'test-heading-probe',revision:1,path:'/app',target:{selector:'.page-title-row h1',tag:'h1',role:'',beforeText:'Overview'},change:{text:'Workspace overview'}}]};
     writeFileSync(source,JSON.stringify(snapshot,null,2)+'\n');
   }
   await startWorker(configPath);

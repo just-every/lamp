@@ -1,7 +1,7 @@
 .operator-shell { display: grid; min-height: 100vh; grid-template-columns: 248px minmax(0, 1fr); background: var(--paper); font: 400 15px/1.55 var(--sans); }
 .operator-shell .text-link::after { content: none; }
 .operator-brand-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
-.operator-brand-row .operator-menu-button, .operator-mobile-account { display: none; }
+.operator-brand-row .operator-menu-button { display: none; }
 .operator-navigation-panel { display: flex; flex: 1; flex-direction: column; }
 .operator-rail { position: sticky; top: 0; display: flex; height: 100vh; flex-direction: column; background: var(--paper); padding: 24px 16px 22px; }
 /* The landing's lockup (mark.css): mark 18 beside "Lamp" in 600 at -0.035em. */

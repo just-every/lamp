@@ -102,11 +102,10 @@ function OperatorWorkspace({ initialSession }: { initialSession: OperatorSession
         <div className="operator-rail-footer">
           <a href={`${publicOrigin}/`} className="operator-page-link" target="_blank" rel="noopener">View your page <Icon name="external" width={15} height={15} /></a>
         </div>
-        <div className="operator-mobile-account">{account}</div>
         </div>
       </aside>
       <div className="operator-workspace">
-        <header className="operator-header">
+        <header className={`operator-header${menuOpen ? " is-menu-open" : ""}`}>
           <p><span className="header-live-dot" />Your status page</p>
           {account}
         </header>

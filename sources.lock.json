@@ -2900,7 +2900,7 @@
       "executable": false
     },
     "src/core/app/client/ui/app-shell.tsx": {
-      "sha256": "d3b16d98edcbe197baa04d35dd39156396dedcf70dfed799bba8215086ab4bea",
+      "sha256": "89b04ccb8420ac170592dd6b45d4877d259583f73bd92aa74c87ef300517f224",
       "executable": false
     },
     "src/core/app/client/ui/button.tsx": {
@@ -2976,7 +2976,7 @@
       "executable": false
     },
     "src/core/app/client/ui/responsive.css": {
-      "sha256": "eb21bf4be0bb2a6153b4da6ff5d084f3c466f128e009621f40e03ca4640ee254",
+      "sha256": "83f838face35fd3cf3cfa58390151dde14931a909fb179c59637ac2da04da904",
       "executable": false
     },
     "src/core/app/client/ui/settings.css": {
@@ -2988,7 +2988,7 @@
       "executable": false
     },
     "src/core/app/client/ui/shell.css": {
-      "sha256": "c8ab0ae992157c10825404279ebc842689ad0bd805456a0256229944fbfe322c",
+      "sha256": "ba36e2e1b44ae6794d279d781782802b2c999d956ee0eb32c977b69160367aeb",
       "executable": false
     },
     "src/core/app/client/ui/states.css": {
@@ -5764,7 +5764,7 @@
       "executable": false
     },
     "tests/e2e/publishing-browser.test.mjs": {
-      "sha256": "82783b335be3507822580dc2404541eef3f3dfaf5624123e4599f3c7a82987fc",
+      "sha256": "c7c4413fe8fb423784d86d4b5def0441ab3ce9479162af2fd2c2474a711f561f",
       "executable": false
     },
     "tests/e2e/publishing-contract.test.mjs": {
