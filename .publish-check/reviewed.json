@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "findings": [
+    {
+      "rule": "secret.assignment",
+      "path": "tests/fixtures/archive/listed-c5dab715.rer",
+      "blob": "e6095f933c56c774de9bbedf5bca1a37ed19c0f9",
+      "reason": "Retained native backup of a deleted scratch Lamp install at c5dab715 (pr-platform-catalogue-pins-24), kept byte for byte so the prior-backup test restores the listed release's own archive. The generic-api-key and hex-api-key matches are subscriber token_hash SHA-256 digests of that install's random tokens and the archive's migration file list; no credential.",
+      "reviewer": "sd-lamp-rel3",
+      "date": "2026-10-20"
+    }
+  ]
+}
