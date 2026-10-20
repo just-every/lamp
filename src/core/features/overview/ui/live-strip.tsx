@@ -8,7 +8,8 @@ import { relativeTime } from "../../../app/client/ui/relative-time";
 export function LiveStrip({ live }: { live: LiveStatus }) {
   const host = new URL(live.publicOrigin).host;
   const address = <a className="live-address" href={`${live.publicOrigin}/`} target="_blank" rel="noopener">{host}</a>;
-  const problems = [live.page, live.subscribe].flatMap((check) => check && !check.ok && check.reason ? [check.reason] : []);
+  // A page that does not answer fails both checks for the same reason; say it once.
+  const problems = [...new Set([live.page, live.subscribe].flatMap((check) => check && !check.ok && check.reason ? [check.reason] : []))];
   if (live.sender.state === "failed" && live.sender.message) problems.push(`Mail sender: ${live.sender.message}`);
   if (!live.publishedAt) return <section className="live-strip" aria-label="Your public page"><span className="live-dot is-pending" />Publishing {address}…</section>;
   const checkedAt = live.page?.checkedAt;

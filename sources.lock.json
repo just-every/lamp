@@ -3688,7 +3688,7 @@
       "executable": false
     },
     "src/core/features/overview/ui/live-strip.tsx": {
-      "sha256": "de5fb728fec3b4066b838330b15e35189a2ea53a8d092d7cba315c052f8546bb",
+      "sha256": "b77f7b9466cea83585803d52eee247e4d4b51d12c71499c00683575ec7529533",
       "executable": false
     },
     "src/core/features/overview/ui/overview-page.tsx": {
@@ -5588,7 +5588,7 @@
       "executable": false
     },
     "tests/e2e/helpers/audit-log-flow.mjs": {
-      "sha256": "d1383914f4b9295e461ebb4c6d722d7266b264df167184d150e0d04b896d2ec7",
+      "sha256": "bfcf684784d6288108dbf190d02c8c66b1f713ecea4118221c9e661b03d2a268",
       "executable": false
     },
     "tests/e2e/helpers/availability-report-browser-flow.mjs": {
@@ -5640,7 +5640,7 @@
       "executable": false
     },
     "tests/e2e/helpers/import-door-visuals.mjs": {
-      "sha256": "1eb3d173e82e370aff9c9562ffc31042fc11be9a4af50e495415791e165553ce",
+      "sha256": "a27430e2bb27018a8137588cc9f3469a12ed16d09e414b45df4833807873d389",
       "executable": false
     },
     "tests/e2e/helpers/imported-template-apply-flow.mjs": {
