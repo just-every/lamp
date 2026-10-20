@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+**Badges and linked Slack updates.** PAGE-018’s hosted shields.io check renders “status: Operational”; the clause stays partial because the hosted public root returned HTTP 503 on check and retry. Slack notification and stored history text now retain update fields with their HTTPS links and punctuation together; UPDATE-013’s live post was read back, deleted and absent on readback. SMS link text is inherited by NOTIFY-014 and SUB-013, and subscriber-owned Teams Cards by SUB-015; Teams remains qualified by its recorded Workflows fixture. No migration.
+
 **Your status page, from your website.** First run asks for your website, reads it once and fills in the page name, tagline, mark, accent colour and first components from it, with the time zone from your browser; you check it on one card and open Lamp. A site Lamp cannot read leaves plain defaults. Settings → Page can read the site again, and logo upload now takes SVG (stored as a PNG). The website reader (`src/core/platform/site-reader/`) is self-contained for other seeds to adopt.
 
 **Setup that runs itself.** The eight-step checklist is gone. Lamp checks its own public page and subscribe form after every publish and every minute, and a hosted sender when it changes; Overview shows one line, amber only when a check fails. Review page opens Your page (`/app/page`); Settings opens on your page's address, mark and look, with the rest behind tabs. The page after subscribing, and the confirm, manage and unsubscribe pages, are one branded card.
