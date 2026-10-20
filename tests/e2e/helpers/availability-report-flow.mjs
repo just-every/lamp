@@ -44,7 +44,9 @@ export async function availabilityReportFlow({ vite, bindings, appFetch }) {
     if (componentId === component) { await claim(id, "Major outage", start); await claim(id, null, end); }
     return id;
   };
+  const originalPageSettings = await db.prepare("SELECT timezone FROM page_settings WHERE id='default'").first();
   try {
+    await sql("UPDATE page_settings SET timezone='UTC' WHERE id='default'");
     for (const id of [component, empty, short]) await sql("INSERT INTO components(id,group_id,name,description,internal,display_order,note,uptime_start_date,created_at,updated_at) VALUES(?,NULL,?,'',0,1000,'',?,?,?)", id, id === component ? "Availability café 東京 (API)" : id, id === short ? "2024-02-29" : null, stamp, stamp);
     const cross = await incident("cross-boundary", "2024-01-31T23:00:00.000Z", "2024-02-01T01:00:00.000Z", { attach: true });
     const degraded = await incident("degraded", "2024-02-10T00:00:00.000Z", "2024-02-10T02:00:00.000Z");
@@ -168,6 +170,7 @@ export async function availabilityReportFlow({ vite, bindings, appFetch }) {
     assert.equal((await appFetch("/api/app/availability-report?component=missing&month=2024-02")).status, 404);
     assert.equal((await appFetch(`/api/app/availability-report?${base}&month=2024-02`, { headers: { Cookie: "" } })).status, 401, "Operator report refuses an absent session through the real application middleware");
   } finally {
+    await sql("UPDATE page_settings SET timezone=? WHERE id='default'", originalPageSettings.timezone);
     for (const id of [component, empty, short]) {
       await sql("DELETE FROM component_state_corrections WHERE component_id=?", id);
       await sql("DELETE FROM component_state_history WHERE component_id=?", id);
