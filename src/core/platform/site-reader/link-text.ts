@@ -34,12 +34,7 @@ const role = (element: Element): "decoration" | "description" | "title" | "text"
   // Badges, counters and text kept for screen readers only are not part of the shown name.
   if (element.attributes["aria-hidden"] === "true" || "hidden" in element.attributes || /(?:^|[\s_-])(badge|pill|chip|count|counter)(?:$|[\s_-])/i.test(hint) || /(?:^|\s)(sr-only|visually-?hidden|screen-reader-text)(?:$|\s)/i.test(hint)) return "decoration";
   if (/^h[1-6]$/.test(element.tag) || /(?:^|[\s_-])(title|name|label|heading|header)(?:$|[\s_-])/i.test(hint)) return "title";
-  if (/^(small|p)$/.test(element.tag)) return "description";
-  if (/(?:^|[\s_-])(description|subtitle|summary|caption|detail)(?:$|[\s_-])/i.test(hint)) {
-    // A wrapper can contain both the name and a separately marked description.
-    const wrapper = element.children.some(child => typeof child !== "string" && role(child) === "description");
-    return wrapper ? "text" : "description";
-  }
+  if (/^(small|p)$/.test(element.tag) || /(?:^|[\s_-])(description|subtitle|summary|caption|detail)(?:$|[\s_-])/i.test(hint)) return "description";
   return "text";
 };
 

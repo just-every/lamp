@@ -4528,7 +4528,7 @@
       "executable": false
     },
     "src/core/platform/site-reader/link-text.ts": {
-      "sha256": "03e72be1209559fc2d8dfa14cbea1d94e5ca389a4ef50f36511de83dcb9f15e7",
+      "sha256": "ad1dc1a5ff77d0cbb1e9b0715db2b4c52006110e459b479b9a1f6479f19eed2d",
       "executable": false
     },
     "src/core/platform/site-reader/navigation.ts": {
