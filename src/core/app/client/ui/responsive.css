@@ -12,7 +12,7 @@
   .operator-workspace { border-left: 0; }
   .operator-rail { position: static; height: auto; border-bottom: 1px solid var(--line); padding: 10px 16px; }
   .app-brand { width: fit-content; padding: 0; }
-  .operator-menu-button { display: inline-flex; min-height: 44px; }
+  .operator-brand-row .operator-menu-button { display: inline-flex; min-height: 44px; }
   .operator-navigation-panel { display: none; max-height: calc(100dvh - 65px); overflow-y: auto; }
   .operator-navigation-panel.is-open { display: flex; }
   .operator-navigation { margin-top: 12px; }

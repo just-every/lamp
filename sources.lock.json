@@ -2976,7 +2976,7 @@
       "executable": false
     },
     "src/core/app/client/ui/responsive.css": {
-      "sha256": "990b0a59ea694e3b398bb2d54466eda8ec2a8121ee49fd5bfcc510098a6e8780",
+      "sha256": "eb21bf4be0bb2a6153b4da6ff5d084f3c466f128e009621f40e03ca4640ee254",
       "executable": false
     },
     "src/core/app/client/ui/settings.css": {
@@ -2988,7 +2988,7 @@
       "executable": false
     },
     "src/core/app/client/ui/shell.css": {
-      "sha256": "315ee9217b0827db97f357421477314bf66e0df679032a445c4543de5d92134d",
+      "sha256": "c8ab0ae992157c10825404279ebc842689ad0bd805456a0256229944fbfe322c",
       "executable": false
     },
     "src/core/app/client/ui/states.css": {
@@ -3268,7 +3268,7 @@
       "executable": false
     },
     "src/core/features/communication-performance/ui/performance.css": {
-      "sha256": "1a925a33e48e8c81eb97057ef071eca4a7a2eeb32023270438e26a1157aa0bca",
+      "sha256": "991998640a27d2afce7a4ea57a1f350ed74152f701db8b2660c64763cd5f50fa",
       "executable": false
     },
     "src/core/features/communication-performance/ui/reach-counts.tsx": {
