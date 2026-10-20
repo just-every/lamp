@@ -2,6 +2,7 @@ import { availabilityReportBrowserFlow } from "./helpers/availability-report-bro
 import { uptimePresetFlow } from "./helpers/uptime-preset-flow.mjs";
 import { groupedAlertsFlow } from "./helpers/grouped-alerts-flow.mjs";
 import { UPDATE_LINK_FIELDS } from "./helpers/update-component-flow.mjs";
+import { LINKED_URL, assertLinkedSlackText } from "./helpers/update-link-evidence.mjs";
 import { test } from 'node:test';
 import { requestHeaders } from "../helpers/request-headers.mjs";
 import assert from "node:assert/strict";
@@ -116,16 +117,24 @@ test("NOTIFY-011 NOTIFY-012 UPDATE-013 — Private channels deliver the selected
   const slackMessage = JSON.parse(slack[0].body);
   assert.match(slackMessage.text, /Incident impact: Major/);
   assert.deepEqual(sql("SELECT incident_impact AS impact FROM channel_posts").map(row => row.impact), ["major", "major"], "committed channel impact survives a later clear");
-  assert.ok(slackMessage.text.includes("<https://help.example.com/kb/123>"), "Slack notification text carries explicit links");
-  assert.ok(slackMessage.text.includes("See <https://help.example.com/kb/123>."), "Slack history and notification text keep the period outside the link");
+  assertLinkedSlackText(slackMessage.text, "Slack channel post");
   const elements = slackMessage.blocks.flatMap(block => block.elements.flatMap(section => section.elements));
-  assert.ok(elements.some(element => element.type === "link" && element.url === "https://help.example.com/kb/123"));
-  assert.ok(elements.some(element => element.type === "text" && element.text.includes('Literal <a href="https://x.test">x</a>, **markdown**, javascript:alert(1)')));
-  assert.ok(!elements.some(element => element.type === "link" && /x\.test|^http:|^javascript:/.test(element.url)));
+  assert.ok(elements.some(element => element.type === "link" && element.url === LINKED_URL && element.text === LINKED_URL));
+  assert.ok(elements.some(element => element.type === "text" && element.text.includes('Literal <a href="https://x.test">x</a>, **markdown**, javascript:alert(1), http://example.com/x and data:text/html,x')));
+  assert.ok(!elements.some(element => element.type === "link" && (element.text !== element.url || /x\.test|^http:|^javascript:|^data:/.test(element.url))));
+  for (const field of Object.values(UPDATE_LINK_FIELDS)) assert.ok(elements.map(element => element.text).join("").includes(field), "Slack rich text keeps each field unchanged");
+  // Adaptive Card TextBlock Markdown: each link's visible text is its own URL, punctuation stays outside.
   const teamsBody = JSON.parse(teams[0].body).attachments[0].content.body.map(block => block.text).join("\n");
-  assert.match(teamsBody, /\[https:/);
-  assert.match(teamsBody, /help\.example\.com\/kb\/123/);
+  const teamsLink = url => `[${url.replace(/[\\`*_{}\[\]()#+.!|~-]/g, "\\$&")}](${url})`;
+  assert.ok(teamsBody.includes(`See ${teamsLink(LINKED_URL)}\\.`), "Teams links the named URL with the period outside");
+  assert.ok(teamsBody.includes(`at ${teamsLink(LINKED_URL)}, and the guide \\(${teamsLink(LINKED_URL)}\\) explains`), "Teams keeps a comma and a closing parenthesis outside the link");
+  for (const [, label, url] of teamsBody.matchAll(/\[((?:\\.|[^\]\\])*)\]\(([^)]*)\)/g)) {
+    assert.equal(label.replace(/\\(.)/g, "$1"), url, "every Teams link shows its own URL");
+    assert.match(url, /^https:\/\//, "only bare HTTPS URLs become Teams links");
+  }
+  assert.doesNotMatch(teamsBody, /\]\((?:javascript:|http:|data:|https:\/\/x\.test)/);
   assert.ok(teamsBody.includes("\\*\\*markdown\\*\\*"), "Teams keeps author markup literal");
+  assert.ok(teamsBody.includes("javascript:alert\\(1\\)") && teamsBody.includes("data:text/html,x"), "Teams keeps other schemes literal");
   assert.match(teams[0].path, /sig=teamsSecretSignature0003/, "Teams keeps its signed query");
   assert.deepEqual(sql("SELECT state FROM integration_deliveries ORDER BY state").map((row) => row.state), ["accepted", "accepted"]);
   const channels = (await api("/api/app/channels")).body.channels;

@@ -4,6 +4,7 @@ import { incidentImpactFlow } from "./helpers/incident-impact-flow.mjs";
 import { importedTemplateApplyFlow } from "./helpers/imported-template-apply-flow.mjs";
 import { reviewUpdateFlow } from "./helpers/review-update-flow.mjs";
 import { updateComponentFlow } from "./helpers/update-component-flow.mjs";
+import { LINKED_URL, assertLinkedFeed, assertLinkedUpdateHtml, assertPublicCsp } from "./helpers/update-link-evidence.mjs";
 import { test } from 'node:test';
 import { requestHeaders } from "../helpers/request-headers.mjs";
 import { withDraftVersion } from "./draft-version-helper.mjs";
@@ -364,15 +365,18 @@ test("UPDATE-001 UPDATE-008 UPDATE-002 UPDATE-003 UPDATE-011 UPDATE-012 UPDATE-0
 })(t);
   t.diagnostic("UPDATE-011 UPDATE-012 UPDATE-013 — advisory wording, versioned staged recovery, immutable changes and safe public links");
   const recovery = await updateComponentFlow({ appFetch });
-  const html = (await publicArtifact(recovery.publicIncidentPath, /Update publishing API: Major outage/, "immutable public component changes")).text;
-  assert.match(html, /href="https:\/\/help\.example\.com\/kb\/123" rel="nofollow noopener ugc"/);
-  assert.doesNotMatch(html, /href="(?:https:\/\/x\.test|javascript:|http:\/\/help)/);
-  assert.match(html, /&lt;a href=&quot;https:\/\/x\.test&quot;&gt;x&lt;\/a&gt;/);
-  for (const path of ["/feed.atom", "/feed.rss"]) {
-    const body = await (await fetch(pageUrl + path)).text();
-    assert.match(body, /https:\/\/help\.example\.com\/kb\/123/);
-    assert.match(body, /nofollow noopener ugc/);
-  }
+  const { response: permalink, text: html } = await publicArtifact(recovery.publicIncidentPath, /Update publishing API: Major outage/, "immutable public component changes");
+  const pageHost = new URL(pageUrl).origin;
+  assertLinkedUpdateHtml(html, "incident permalink");
+  assertPublicCsp(permalink.headers, pageHost, "incident permalink");
+  const history = await fetch(pageUrl + "/history");
+  assertLinkedUpdateHtml(await history.text(), "history");
+  assertPublicCsp(history.headers, pageHost, "history");
+  const current = await fetch(pageUrl + "/");
+  assert.ok((await current.text()).includes(`See <a href="${LINKED_URL}" rel="nofollow noopener ugc">${LINKED_URL}</a>.`), "the current page's resolved summary links the named URL");
+  assertPublicCsp(current.headers, pageHost, "current page");
+  const componentFeeds = [`/components/${recovery.component.id.toLowerCase()}/feed.atom`, `/components/${recovery.component.id.toLowerCase()}/feed.rss`];
+  for (const path of ["/feed.atom", "/feed.rss", "/history.atom", "/history.rss", ...componentFeeds]) assertLinkedFeed(await (await fetch(pageUrl + path)).text(), path);
   const native = await (await fetch(pageUrl + "/api/public/v1/incidents")).json();
   const retained = native.data.find(item => item.id === recovery.incident.id).updates.find(item => item.id === recovery.stepDownUpdate.id);
   assert.deepEqual(retained.componentChanges, [{ componentId: recovery.component.id, name: recovery.component.name, previousState: "Major outage", newState: "Degraded performance" }]);
