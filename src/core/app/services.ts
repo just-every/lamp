@@ -16,7 +16,7 @@ import { createIntakeRepository, createIntakeService } from "../features/intake"
 import { createMaintenanceRepository, createMaintenanceService } from "../features/maintenance";
 import { createOverviewRepository } from "../features/overview/repository";
 import { createLiveStatusService } from "../features/overview/live-status";
-import { createWebsiteRepository, createWebsiteService, websiteReader } from "../features/website";
+import { createWebsiteRepository, createWebsiteService, websiteReader, statusPageReader } from "../features/website";
 import { notificationOrigin } from "./mail";
 import { outboundUnavailable } from "./hosting";
 import { createOverviewService } from "../features/overview";
@@ -164,6 +164,7 @@ export function createAppServices(bindings: AppBindings, blobs: BlobStore, execu
 
   const website = createWebsiteService(createWebsiteRepository(bindings.DB), {
     read: websiteReader(import.meta.env?.DEV && bindings.LAMP_DEV_SITE_ORIGIN?.startsWith("http://127.0.0.1:") ? bindings.LAMP_DEV_SITE_ORIGIN : undefined),
+    readStatusPage: statusPageReader(import.meta.env?.DEV && bindings.LAMP_DEV_SITE_ORIGIN?.startsWith("http://127.0.0.1:") ? bindings.LAMP_DEV_SITE_ORIGIN : undefined),
     unavailable: outboundUnavailable(bindings, "Reading your website") ? "Lamp can't read websites on Managed hosting yet. Fill in the rest below." : null,
   });
 

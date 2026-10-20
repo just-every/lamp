@@ -52,6 +52,7 @@ function OperatorWorkspace({ initialSession }: { initialSession: OperatorSession
   }, [pageSettingsRequest.refresh]);
   const operator = sessionRequest.data?.operator ?? initialSession.operator;
   const location = useRouterState({ select: (state) => state.location.href });
+  const movingIn = location.split(/[?#]/)[0] === "/app/move-in";
   const navigationRow = useRef<HTMLElement>(null);
   // On narrow screens the sections are one scrolling row of tabs: keep the current one in view.
   useEffect(() => {
@@ -92,7 +93,7 @@ function OperatorWorkspace({ initialSession }: { initialSession: OperatorSession
         <Brand />
         <nav ref={navigationRow} aria-label="Workspace sections" className="operator-navigation">
           {navigation.map((item) => (
-            <Link key={item.to} to={item.to} activeOptions={{ exact: item.to === "/app" }} className="operator-nav-link" activeProps={{ className: "operator-nav-link is-active" }}>
+            <Link key={item.to} to={item.to} activeOptions={{ exact: item.to === "/app" }} className={`operator-nav-link${item.to === "/app/settings" && movingIn ? " is-active" : ""}`} aria-current={item.to === "/app/settings" && movingIn ? "page" : undefined} activeProps={{ className: "operator-nav-link is-active" }}>
               <Icon name={item.icon} width={20} height={20} />
               <span>{item.label}</span>
             </Link>

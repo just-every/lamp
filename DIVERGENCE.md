@@ -1502,3 +1502,17 @@ The package pin moves to rer 0.2.57 with the configured-provider sign-in patch r
 ## Documented grouped webhook versions — 18 October 2026
 
 Each grouped preset accepts its documented source format: Alertmanager version 4 and Grafana version 1. Missing, numeric, cross-source and unknown versions are refused with an operator-readable reason. Grafana's title names the private draft; its message and other source context stay in the retained private receipt. Neither becomes a public update without operator publication. The unmodified Grafana documentation example exercises the same grouped incident, notice, mapping, deduplication and recovery path as Alertmanager.
+
+## Setup and Move-in polish — 20 October 2026
+
+Owner L10 keeps the existing look while making setup honest and resumable. Website
+navigation supplies components only when at least two plausible services remain;
+audience, account, documentation and marketing links are omitted. A failed read
+uses the valid public domain for its default name and offers a retry. The signed-in
+owner's browser retains the read and edits until they open Lamp, with publishing
+and subscribe-form progress shown during that action.
+
+The detected status page stays with the website record. Move-in selects a provider
+only from public provider evidence and fills a Statuspage page ID from its public
+summary. This reads migration metadata only: the existing reviewed import and
+invitation steps remain in force.

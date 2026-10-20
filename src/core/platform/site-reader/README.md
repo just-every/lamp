@@ -23,7 +23,7 @@ else result.reason;           // "invalid-url" | "refused-address" | "unreachabl
 | `icon` | Declared SVG icon first, then the largest declared raster (link icons, apple-touch-icon, manifest), then `/favicon.ico` if nothing is declared. Bytes as a `data:` URL, type sniffed from the bytes |
 | `colours`, `accent` | theme-color, the SVG mark's own fills, CSS custom properties named brand/primary/accent, pinned-tab colour, manifest theme_color; `accent` is the first saturated one |
 | `fonts` | Google Fonts links and inline `@font-face` families |
-| `components` | Up to 8 links from the site's header and `<nav>` (footer product links if the header has too few): product paths first; generic links (pricing, blog, careers…) dropped; "Log in" becomes `Sign-in`, developer docs become `API` |
+| `components` | Up to 8 plausible service links from the site's header and `<nav>` (footer links if the header has too few). Product/service paths or clear service names supply evidence; audience, comparison, migration, account, documentation and marketing navigation are dropped. Names come from the links; no entries are synthesized. Fewer than 2 plausible services returns an empty list. |
 | `statusPage` | A link named Status, or to a known status host |
 
 Nothing is guessed: a field the site does not give is `null` or empty.

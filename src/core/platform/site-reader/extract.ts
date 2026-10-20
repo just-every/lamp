@@ -78,35 +78,33 @@ export function siteFonts(scan: HtmlScan) {
 const GENERIC = /^(home|pricing|plans?( and pricing)?|blog|about( us)?|company|careers|jobs|contact( us| sales)?|talk to (sales|us)|sales|(book|request|get|watch) a demo|demo|get started( free| for free)?|start (your )?free trial|start for free|try (it )?(for )?free|free trial|sign ?up( free)?|register|learn more|read more|resources|customers|case studies|(customer )?stories|partners|press|news(room)?|events|webinars|community|help( cent(er|re))?|support|faq|privacy( policy)?|terms( of (service|use))?|legal|cookies?( policy| settings)?|menu|search|close|skip to (main )?content|english|language|products?|features|solutions|platform|overview|explore|enterprise|compare|why .+|see all.*|view all.*|all .+|more|status|system status|log ?out|sign ?out|download|apps?|guides?|templates|integrations? directory|changelog|what'?s new|security|trust|accessibility|sitemap|investors|affiliates?|refer a friend|gift cards?)$/i;
 // Calls to action, sentences and menu chrome are not product areas.
 const CHROME = /^(pricing|sign ?up|get started|try|book|request|start|navigate|go to|back to|skip|open app|download|see|view|learn|read|watch|join|contact|help)\b|\b(overview|home|homepage)$|\bfor\b|\b(is|are|was|our|your|we|you|to the|of the)\b/i;
-const LISTING_PATH = /^\/(integrations?|customers?|blog|stories|case-studies|partners|templates|guides|resources)\/[^/]+/i;
-const PRODUCT_PATH = /^\/(features?|products?|platform|apps?|integrations?|solutions?|tools?|services?)(\/|$)/i;
+const NON_SERVICE_NAME = /^(docs?|documentation|developers?|developer docs|api (docs|reference)|integrations?|now|log[ -]?in|sign[ -]?in|accounts?|dashboard login|e-?commerce|saas|agencies|creators?( and publishers?)?|publishers?|public sector|industries|use cases)$|^(vs\.?|versus|compare|migrat\w*|switch|white[ -]label)\b/i;
+const NON_SERVICE_PATH = /\/(docs?|documentation|developers?|reference|learn|guides?|help|support|blog|news|now|changelog|resources|integrations?|customers?|stories|case-studies|partners|templates|for|use-cases|industries|solutions?|compare|comparisons?|alternatives?|vs|migrat\w*|log-?in|sign-?in|sign-?up|auth|accounts?|pricing|about|company|careers|contact)(\/|$)/i;
+const NON_SERVICE_HOST = /^(docs?|developers?|help|support|learn|accounts?|auth|id|sso|login)\./i;
+const PRODUCT_PATH = /^\/(products?|apps?|tools?|services?)\/[^/]+/i;
+// A feature menu alone is weak evidence: keep only names of usable service areas,
+// rather than benefits such as "Zero downtime deploys" or "Granular routing".
+const SERVICE_NAME = /^(api|dashboard|console|web app|mobile app|website|storage|databases?|compute|cdn|authentication|payments|invoices|invoicing( and payments)?|timesheets|time tracking|reports|reporting|analytics|messaging|email|search|hosting)$/i;
 const STATUS_HOST = /(^|\.)(statuspage\.io|status\.io|instatus\.com|betteruptime\.com|statuspal\.io|hund\.io|status\.[a-z0-9-]+\.[a-z.]+)$|^status\./i;
 
-/** Product areas from the site's own header and navigation links. */
+/** Plausible service areas from the site's own links; ambiguous navigation is omitted. */
 export function siteComponents(scan: HtmlScan, base: URL): SiteComponent[] {
   const domain = siteDomain(base.hostname);
-  type Candidate = SiteComponent & { product: boolean; special: boolean };
-  const candidates: Candidate[] = [];
+  const candidates: SiteComponent[] = [];
   const consider = (anchors: HtmlScan["anchors"]) => {
     for (const anchor of anchors) {
       let url: URL;
       try { url = new URL(anchor.href, base); } catch { continue; }
       if (!/^https?:$/.test(url.protocol) || !(url.hostname === domain || url.hostname.endsWith(`.${domain}`)) || STATUS_HOST.test(url.hostname)) continue;
       const text = anchor.text.replace(/[\s›»→↗➔>]+$/u, "").replace(/\s+&\s+/g, " and ").trim();
-      if (/^(log ?in|sign ?in)$/i.test(text)) { candidates.push({ name: "Sign-in", url: url.href, product: false, special: true }); continue; }
-      if (/^(api|developers?|developer docs|api (docs|reference))$/i.test(text) || /^api\./.test(url.hostname)) { candidates.push({ name: "API", url: url.href, product: false, special: true }); continue; }
-      // A listing's entries (one integration, one customer story) stand for the listing itself.
-      const listing = url.hostname === base.hostname ? url.pathname.match(LISTING_PATH)?.[1] : undefined;
-      if (listing) {
-        if (/^integrations?$/i.test(listing)) candidates.push({ name: "Integrations", url: new URL(`/${listing}`, url).href, product: true, special: false });
-        continue;
-      }
-      if (text.length < 2 || text.length > 40 || text.split(" ").length > 5 || GENERIC.test(text) || CHROME.test(text) || /^\d+$/.test(text) || (url.pathname === "/" && url.hostname === base.hostname)) continue;
-      candidates.push({ name: text[0].toUpperCase() + text.slice(1), url: url.href, product: PRODUCT_PATH.test(url.pathname) || url.hostname !== base.hostname, special: false });
+      if (text.length < 2 || text.length > 40 || text.split(" ").length > 5 || GENERIC.test(text) || CHROME.test(text) || NON_SERVICE_NAME.test(text) || /^\d+$/.test(text)) continue;
+      if (NON_SERVICE_PATH.test(url.pathname) || NON_SERVICE_HOST.test(url.hostname) || (url.pathname === "/" && url.hostname === base.hostname)) continue;
+      if (!PRODUCT_PATH.test(url.pathname) && !SERVICE_NAME.test(text)) continue;
+      candidates.push({ name: text[0].toUpperCase() + text.slice(1), url: url.href });
     }
   };
   consider(scan.anchors.filter((anchor) => anchor.region === "nav" || anchor.region === "header"));
-  if (candidates.filter((candidate) => !candidate.special).length < 3) consider(scan.anchors.filter((anchor) => anchor.region === "footer" && PRODUCT_PATH.test(safePath(anchor.href, base))));
+  if (candidates.length < 2) consider(scan.anchors.filter((anchor) => anchor.region === "footer"));
   const seen = new Set<string>();
   const unique = candidates.filter((candidate) => {
     const key = candidate.name.toLowerCase(), address = candidate.url.replace(/[#?].*$/, "");
@@ -114,15 +112,7 @@ export function siteComponents(scan: HtmlScan, base: URL): SiteComponent[] {
     seen.add(key); seen.add(address);
     return true;
   });
-  // A nav with clear product links keeps only those; otherwise every specific link counts.
-  const products = unique.filter((candidate) => candidate.product);
-  const chosen = products.length >= 3 ? unique.filter((candidate) => candidate.product || candidate.special) : unique;
-  const ordered = [...chosen.filter((candidate) => !candidate.special), ...chosen.filter((candidate) => candidate.special)];
-  return ordered.slice(0, 8).map(({ name, url }) => ({ name, url }));
-}
-
-function safePath(href: string, base: URL) {
-  try { return new URL(href, base).pathname; } catch { return ""; }
+  return unique.length >= 2 ? unique.slice(0, 8) : [];
 }
 
 export function siteStatusPage(scan: HtmlScan, base: URL) {

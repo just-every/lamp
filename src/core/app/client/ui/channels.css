@@ -14,6 +14,9 @@
 .move-in-items { display: grid; gap: 8px; margin: 8px 0 0; padding-left: 18px; color: var(--ink-2); font-size: 14px; }
 .move-in-form fieldset { display: grid; gap: 12px; min-width: 0; border: 0; margin: 0; padding: 0; }
 .move-in-form fieldset > p { margin: 0; color: var(--ink-3); font-size: 13px; }
+.move-in-page p.setup-guide { display: block; }
+.move-in-page .setup-guide details > summary::before { content: "+"; margin-right: 8px; }
+.move-in-page .setup-guide details[open] > summary::before { content: "−"; }
 .move-in-form > .button, .preset-form > .button, .channel-form > .button { justify-self: start; }
 .move-in-page .data-card > .table-scroll { margin: 16px 0; border: 1px solid var(--line); border-radius: 10px; }
 .move-in-page .data-card > .table-scroll table { min-width: 560px; }
