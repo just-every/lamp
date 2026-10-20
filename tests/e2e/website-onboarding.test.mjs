@@ -26,7 +26,7 @@ contract('SETUP-002', 'a fresh owner gives their website first; Lamp fills in th
     if (host === 'acme-tracking.com' && request.url === '/') { response.writeHead(301, { Location: 'https://www.acme-tracking.com/' }).end(); return; }
     if (host === 'www.acme-tracking.com' && request.url === '/') { response.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' }).end(home); return; }
     if (host === 'www.acme-tracking.com' && request.url === '/mark.svg') { response.writeHead(200, { 'Content-Type': 'image/svg+xml' }).end(mark); return; }
-    if (host === 'status.acme-tracking.com' && request.url === '/') { response.writeHead(200, { 'Content-Type': 'text/html' }).end('<a href="https://www.atlassian.com/software/statuspage">Powered by Atlassian Statuspage</a>'); return; }
+    if (host === 'status.acme-tracking.com' && request.url === '/') { response.writeHead(200, { 'Content-Type': 'text/html' }).end('<footer><a href="https://www.atlassian.com/software/statuspage"><svg viewBox="0 0 10 10"><path d="M0 0h10v10H0z"/></svg></a></footer>'); return; }
     if (host === 'status.acme-tracking.com' && request.url === '/api/v2/summary.json') { response.writeHead(200, { 'Content-Type': 'application/json' }).end(JSON.stringify({ page: { id: 'acmetracking01' }, status: { indicator: 'none' }, components: [], incidents: [], scheduled_maintenances: [] })); return; }
     response.writeHead(404).end();
   });

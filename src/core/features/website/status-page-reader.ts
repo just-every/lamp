@@ -31,7 +31,7 @@ export async function readStatusPage(input: string, options: SiteReadOptions = {
       const scan = scanHtml(html);
       // Attribution links name the platform even when the page uses its own hostname.
       for (const anchor of scan.anchors) {
-        if (!/powered by|statuspage|better stack|instatus|sorry/i.test(anchor.text)) continue;
+        if (anchor.region !== "footer" && !/powered by|statuspage|better stack|instatus|sorry/i.test(anchor.text)) continue;
         try {
           const target = new URL(anchor.href, landing.url);
           const source = providerHost(target.hostname)
