@@ -7,7 +7,7 @@ export async function templateChoiceFlow({ page, origin, publicOrigin, api, with
   const select = page.getByRole('combobox', { name: /^Template/ });
   assert.equal(await select.locator('option[value="regions"]').isDisabled(), !withRegions);
   if (!withRegions) {
-    const settings = (await api('/api/app/page-settings')).settings;
+    const { id, logoKey, logoContentType, feedId, createdAt, updatedAt, mailIdentityEditable, regionsAvailable, ...settings } = (await api('/api/app/page-settings')).settings;
     const refused = await page.evaluate(async settings => {
       const response = await fetch('/api/app/page-settings', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...settings, template: 'regions' }) });
       return { status: response.status, body: await response.json() };
