@@ -4132,7 +4132,7 @@
       "executable": false
     },
     "src/core/features/statuspage-import/native-tables.ts": {
-      "sha256": "c3c3685ba7a3938bff23cb0c20fb2849ecbf3eb4be968d42474cc0658ce0f75e",
+      "sha256": "8214f154838dbfd231ec6432037e43f2f790d5e58822482792d3fed14a29e2fa",
       "executable": false
     },
     "src/core/features/statuspage-import/operating-notes.ts": {

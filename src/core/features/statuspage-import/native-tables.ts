@@ -22,7 +22,7 @@ export const allMarkers = ["SELECT kind,id,revision FROM statuspage_import_targe
 /** Defaults added after old import journals were sealed do not constitute an
  * owner edit: a native value equal to its default reads as absent. */
 export const sealedDefaults: Record<string, Row> = {
-  components: { only_show_if_degraded: 0, uptime_start_date: null },
+  components: { only_show_if_degraded: 0, uptime_start_date: null, region: null },
   // Existing import journals predate per-update component snapshots. Empty
   // migration defaults are not an operator edit; real published changes are.
   incident_updates: { component_changes_json: "[]", component_snapshot_json: "[]" },
