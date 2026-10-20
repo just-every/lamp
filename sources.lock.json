@@ -2652,7 +2652,7 @@
       "executable": false
     },
     "scripts/lamp-status/deploy.mjs": {
-      "sha256": "3612344e9aa0fd8c19762bbe95894432f66dcc34abefa9e35736a19a07c02d4d",
+      "sha256": "fd87422c7723b36d5e63ffd729d31fc588438f92cc54fce305e4b3f1e50c9b25",
       "executable": false
     },
     "scripts/lamp-status/observe.mjs": {
@@ -2668,7 +2668,7 @@
       "executable": false
     },
     "scripts/lamp-status/worker.mjs": {
-      "sha256": "f4821cb08e0bd544b110ac8ecb287b8388d680e6395312566ea65eace40b3aa6",
+      "sha256": "578c56ae36adf6aa340e1d80a641cebfd26fb365a984a1c9c7be18f2bccd7248",
       "executable": false
     },
     "scripts/local-options.mjs": {

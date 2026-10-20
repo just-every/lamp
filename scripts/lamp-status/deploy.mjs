@@ -47,7 +47,7 @@ async function main() {
       method: 'POST', signal: AbortSignal.timeout(120000),
       headers: { Authorization: `Bearer ${process.env.LAMP_STATUS_MONITOR_TOKEN}` },
     });
-    if (!result.ok) throw new Error(`The initial real checks failed (HTTP ${result.status}); inspect the monitor logs.`);
+    if (!result.ok) throw new Error(`The initial real checks failed (HTTP ${result.status}): ${(await result.json().catch(() => null))?.error ?? 'no reason given'}`);
     const measured = await result.json();
     await mkdir('lamp-status-results', { recursive: true });
     await writeFile('lamp-status-results/checks.json', JSON.stringify(measured, null, 2) + '\n');

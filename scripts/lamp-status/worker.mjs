@@ -36,6 +36,7 @@ export default {
       return new Response('Unauthorized', { status: 401 });
     }
     try { return Response.json(await check(env, new URL(request.url).searchParams.get('prove') === 'true')); }
-    catch (error) { console.error(error.message); return Response.json({ error: 'HTTP checks failed; inspect the monitor logs.' }, { status: 500 }); }
+    // The caller holds the monitor token; the reason is the monitor's own message, never a link or cookie.
+    catch (error) { console.error(error.message); return Response.json({ error: error.message }, { status: 500 }); }
   },
 };
