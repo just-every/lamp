@@ -46,7 +46,7 @@ export function AiAssistanceCard({ toneInstructions, status, loading, error, onT
   const availability = error
     ? { label: "Availability unavailable", className: "state-failed", detail: error }
     : loading || !status
-      ? { label: "Checking provider…", className: "state-pending", detail: "Lamp is reading the configured AI adapter." }
+      ? { label: "Checking provider…", className: "state-pending", detail: "Checking your AI provider." }
       : status.unavailable
         ? { label: "Not available here", className: "state-pending", detail: status.unavailable }
         : status.configured

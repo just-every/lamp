@@ -45,9 +45,9 @@ export function ImportDoorSetting() {
       <input type="checkbox" checked={settings?.enabled ?? false} disabled={busy || resource.loading || Boolean(resource.error) || !settings?.configured} onChange={event => void save(event.target.checked)} />
       Allow Business imports
     </label>
-    <small className="field-note">Allow imports from your RER Business account. Changes take effect immediately.</small>
+    <small className="field-note">Allow imports included with a Business plan. Changes take effect immediately.</small>
     {resource.loading && <p role="status">Checking Business import availability…</p>}
-    {!resource.loading && settings && !settings.configured && <p>Connect this installation to your RER Business account to allow imports.</p>}
+    {!resource.loading && settings && !settings.configured && <p>Business imports are not set up for this installation.</p>}
     {settings && settings.keys.length > 0 && <>
       <label className="form-label">Import signing key
         <select value={selectedKid} disabled={busy || resource.loading || Boolean(resource.error)} onChange={event => setSelectedKid(event.target.value)}>

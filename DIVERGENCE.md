@@ -1549,3 +1549,13 @@ a direct create action. A month without incidents shows a short empty state;
 delivery details stay folded until requested. Initial HTML uses the same month,
 font and link arrows as the hydrated page. Sign out and CSV work immediately.
 Background reads update the current view without closing its menu or disclosures.
+
+## Settings polish — owner L10, 20 October 2026
+
+Settings keeps an owner's unsaved edits across its tabs and warns before leaving
+without saving. Fields become interactive only when their handlers are ready.
+Saving publishes the changes; the wording must make that explicit. All tabs are
+visible on a phone, setup help opens the app's documentation, and embed choices
+preview the actual published status. Ask for identity confirmation only when an
+access change requires it, and keep the last owner’s access protected. The
+existing typography, colours and surfaces stay as they are.
