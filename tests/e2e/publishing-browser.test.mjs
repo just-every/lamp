@@ -1,3 +1,4 @@
+import { stripVTControlCharacters } from "node:util";
 import { requestHeaders } from "../helpers/request-headers.mjs";
 import { withDraftVersion } from "./draft-version-helper.mjs";
 import assert from "node:assert/strict";
@@ -86,7 +87,7 @@ async function startWorker(config = defaultConfigPath) {
   });
   server.stdout.on("data", (chunk) => { serverOutput += chunk; });
   server.stderr.on("data", (chunk) => { serverOutput += chunk; });
-  await waitForWorker({ origin: appUrl, isListening: () => serverOutput.includes(`${appUrl}/`), child: server, output: () => `${serverOutput}\nState: ${statePath}`, label: "Publishing browser Worker" });
+  await waitForWorker({ origin: appUrl, isListening: () => stripVTControlCharacters(serverOutput).includes(`${appUrl}/`), child: server, output: () => `${serverOutput}\nState: ${statePath}`, label: "Publishing browser Worker" });
 }
 
 async function stopWorker() {
