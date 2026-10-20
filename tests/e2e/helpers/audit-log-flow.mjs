@@ -64,7 +64,7 @@ export async function auditLogFlow({ page, appUrl, appFetch }) {
     await page.getByRole("button", { name: "Open audit log", exact: true }).click();
     const panel = page.locator("#audit-log");
     await panel.getByRole("region", { name: "Audit entries", exact: true }).waitFor();
-    await panel.getByLabel("Audit actor").selectOption(published.actorId);
+    await panel.getByLabel("Operator").selectOption(published.actorId);
     await panel.getByLabel("Audit action").selectOption("corrected");
     await panel.getByRole("button", { name: "Apply filters", exact: true }).click();
     await panel.getByText(reason, { exact: true }).waitFor();

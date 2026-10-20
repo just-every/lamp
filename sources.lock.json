@@ -5620,7 +5620,7 @@
       "executable": false
     },
     "tests/e2e/helpers/audit-log-flow.mjs": {
-      "sha256": "bfcf684784d6288108dbf190d02c8c66b1f713ecea4118221c9e661b03d2a268",
+      "sha256": "2220f1dbfd10931f7bf5b2025b49d55588abfe44a27a48446cc4690e8f1aa662",
       "executable": false
     },
     "tests/e2e/helpers/availability-report-browser-flow.mjs": {
@@ -5696,7 +5696,7 @@
       "executable": false
     },
     "tests/e2e/helpers/post-incident-report-flow.mjs": {
-      "sha256": "9531c1539543f1d4007baf41f1713106dc4c0b190d62fe61773225003aa0ba59",
+      "sha256": "5e0a5a984aea31c4323e8eae023939d45f72ba7ad08217025e06ffe2c342324d",
       "executable": false
     },
     "tests/e2e/helpers/postmortem-template-import-flow.mjs": {
