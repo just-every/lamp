@@ -29,7 +29,14 @@ test('disposable demo opens signed in, mocks effects and leaves owner state inta
     execFileSync('sh', ['-c', 'git ls-files -z --cached --others --exclude-standard | tar --null -T - -cf - | tar -xf - -C "$1"', 'copy', root]);
     await symlink(resolve('node_modules'), join(root, 'node_modules'), 'dir');
     const port = await reservePort(), origin = `http://127.0.0.1:${port}`, pageOrigin = `http://localhost:${port}`;
-    assert.equal(cli('setup', '--owner-email', 'owner@example.invalid', '--non-interactive', '--port', String(port)).status, 0, 'ordinary setup succeeds');
+    const setup = cli('setup', '--owner-email', 'owner@example.invalid', '--non-interactive', '--port', String(port));
+    if (setup.status !== 0) {
+      const redaction = createRedaction();
+      const settings = await readFile(join(root, '.dev.vars'), 'utf8').catch(() => '');
+      redaction.addSecrets(settings.split('\n').map(line => line.slice(line.indexOf('=') + 1)).filter(Boolean));
+      t.diagnostic(redaction.redact(`${setup.stdout}\n${setup.stderr}`).replace(/(?:RER_OPEN|RER_DEV_KEY|RER_LOCAL_CLI).*$/gm, '[private entry]'));
+    }
+    assert.equal(setup.status, 0, 'ordinary setup succeeds');
     await appendFile(join(root, '.dev.vars'), '\nAI_PROVIDER_URL=https://ai.example.invalid/v1\nAI_PROVIDER_MODEL=demo-test\nAI_PROVIDER_API_KEY=uncredentialed-test-value\n');
     const before = await digestTree(join(root, '.wrangler/state'));
     browser = await chromium.launch();

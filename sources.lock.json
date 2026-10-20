@@ -5508,7 +5508,7 @@
       "executable": false
     },
     "tests/demo/journey.test.mjs": {
-      "sha256": "45115f7afbeeb353bec9db6e3e3b7e7a47b3953562fd15fb329ff41b4fc48561",
+      "sha256": "ef149c4fcbae4aa373d97f978dc85d8716cb077738a5e55a41de98052226fc16",
       "executable": false
     },
     "tests/demo/owner-claim.test.mjs": {
