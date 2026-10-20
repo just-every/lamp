@@ -111,9 +111,8 @@ test('the site reader reads what a site says about itself, refuses private desti
   const empty = await readSite('plain.example.com', network({ 'https://plain.example.com/': { body: '<p>Hello</p>' } }));
   assert.deepEqual({ ...empty.site, url: undefined }, { url: undefined, host: 'plain.example.com', name: null, title: null, description: null, icon: null, colours: [], accent: null, fonts: [], components: [], statusPage: null }, 'nothing the site did not give is filled in');
   }
-});
 
-test('component names follow link structure and product navigation, in site order', async (t) => {
+  t.diagnostic('component names follow link structure and product navigation, in site order');
   const read = async html => {
     const result = await readSite('example.com', network({ 'https://example.com/': { body: html } }));
     assert.equal(result.ok, true);
