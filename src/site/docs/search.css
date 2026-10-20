@@ -5,6 +5,8 @@
   --ink-soft: var(--lamp-ink-3);
   --rule: var(--lamp-line-strong);
 }
+/* The field supplies the focus ring around its input and shortcut together. */
+.lamp-docs .docs-search input:focus-visible { outline: none; }
 @container lamp-page (min-width: 1024px) {
   .lamp-home .docs-index-search { display: none; }
 }
