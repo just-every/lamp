@@ -1,10 +1,11 @@
 import { siteDomain } from "./domain.ts";
 import type { HtmlAnchor, HtmlScan } from "./html.ts";
+import { cleanComponentName } from "./link-text.ts";
 import type { SiteComponent } from "./types.ts";
 
 const GENERIC = /^(home|pricing|plans? and pricing|blog|about( us)?|company|careers|jobs|contact( us| sales)?|talk to (sales|us)|sales|(book|request|get|watch) a demo|demo|get started( free| for free)?|start (your )?free trial|start for free|try (it )?(for )?free|free trial|sign ?up( free)?|register|learn more|read more|resources|customers|case studies|(customer )?stories|partners|press|news(room)?|events|webinars|community|help( cent(er|re))?|support|faq|privacy( policy)?|terms( of (service|use))?|legal|cookies?( policy| settings)?|menu|close|skip to (main )?content|english|language|products?|features?( and benefits)?|benefits|solutions|platform|overview|explore( more| all)?|enterprise|compare|why .+|see all.*|view all.*|all .+|more|status|system status|log ?out|sign ?out|download|apps?|guides?|templates|integrations? directory|changelog|release notes|what['’]?s new|security|trust|accessibility|sitemap|investors|affiliates?|refer a friend|gift cards?)$/i;
-// Calls to action, sentences and menu chrome are not product areas.
-const CHROME = /^(pricing|sign ?up|get started|try|book|request|start|navigate|go to|back to|skip|open app|download|see|view|learn|read|watch|join|contact|help|explore|discover)\b|\b(overview|home|homepage|more)$|\bfor\b|\b(is|are|was|our|your|we|you|to the|of the)\b/i;
+// Calls to action, sentences, plan and pricing wording, catalogue links and menu chrome are not product areas.
+const CHROME = /^(pricing|sign ?up|get started|try|book|request|start|navigate|go to|back to|skip|open app|download|see|view|learn|read|watch|join|contact|help|explore|discover)\b|\b(overview|home|homepage|more|plans|pricing|prices)$|\ball (products|services|apps|tools|solutions|features)$|\bfor\b|\b(is|are|was|our|your|we|you|to the|of the)\b/i;
 const NON_SERVICE_NAME = /^(docs?|documentation|developers?|developer docs|api (docs|reference)|integrations?|now|log[ -]?in|sign[ -]?in|accounts?|dashboard login|e-?commerce|saas|agencies|creators?( and publishers?)?|publishers?|public sector|industries|use cases)$|^(vs\.?|versus|compare|migrat\w*|switch|white[ -]label)\b/i;
 const NON_SERVICE_PATH = /\/(docs?|documentation|developers?|reference|learn|guides?|help|support|blog|news|now|changelog|releases?|release-notes|whats-new|downloads?|explore|resources|integrations?|customers?|stories|case-studies|partners|templates|for|use-cases|industries|solutions?|compare|comparisons?|alternatives?|vs|migrat\w*|log-?in|sign-?in|sign-?up|auth|accounts?|pricing|about|company|careers|jobs|contact|legal|privacy|terms|cookies|benefits|press|events|security|trust)(\/|$)/i;
 const NON_SERVICE_HOST = /^(docs?|developers?|help|support|learn|accounts?|auth|id|sso|login)\./i;
@@ -24,19 +25,56 @@ const ARROWED = /[→➔➜⟶›»]\s*$/u;
 
 const CAP = 8;
 
-interface Candidate extends SiteComponent { primary: boolean }
+interface Candidate extends SiteComponent { primary: boolean; titled: boolean; groups: string[] }
 
 const destination = (url: string) => url.replace(/[#?].*$/, "").replace(/\/$/, "");
+const key = (name: string) => name.toLowerCase().replace(/\s*&\s*/g, " and ");
+const words = (value: string) => value.toLowerCase().split(/[^\p{L}\p{N}]+/u).filter(Boolean);
 
+/** How well a name names its address: the group label a link to it sits under, the address's own words, a heading. */
+function fit(candidate: Candidate, links: Candidate[]) {
+  const name = key(candidate.name);
+  const slug = words(new URL(candidate.url).pathname.split("/").filter(Boolean).at(-1) ?? "");
+  const group = links.some(link => link.groups.some(label => key(cleanComponentName(label)) === name));
+  const spelled = slug.length > 0 && slug.every(word => words(candidate.name).includes(word));
+  return 4 * Number(group) + 2 * Number(spelled) + Number(candidate.titled);
+}
+
+/** Text that links to several addresses is boilerplate and leaves every one of them: at three or more
+ * ("Free and premium plans" on each product card), or at two when another link names one of them. Text that
+ * is the only name of two pages ("Analytics") stays once. Each address keeps its best name, where the site first links to it. */
 function unique(candidates: Candidate[]) {
-  const names = new Set<string>(), addresses = new Set<string>();
-  return candidates.filter(candidate => {
-    const name = candidate.name.toLowerCase().replace(/\s*&\s*/g, " and ");
-    const address = destination(candidate.url);
-    const duplicate = names.has(name) || addresses.has(address);
-    names.add(name); addresses.add(address);
-    return !duplicate;
+  const group = <T>(by: (candidate: Candidate) => string, value: (candidate: Candidate) => T) => {
+    const map = new Map<string, Set<T>>();
+    for (const candidate of candidates) map.set(by(candidate), (map.get(by(candidate)) ?? new Set<T>()).add(value(candidate)));
+    return map;
+  };
+  const addressesOf = group(candidate => key(candidate.name), candidate => destination(candidate.url));
+  const namesAt = group(candidate => destination(candidate.url), candidate => key(candidate.name));
+  const boilerplate = (name: string) => {
+    const addresses = [...addressesOf.get(name)!];
+    return addresses.length >= 3 || addresses.length === 2 && addresses.some(address => namesAt.get(address)!.size > 1);
+  };
+  const byAddress = new Map<string, Candidate[]>(), named = new Set<string>();
+  for (const candidate of candidates) {
+    const name = key(candidate.name), address = destination(candidate.url);
+    if (boilerplate(name) || named.has(name) && !byAddress.get(address)?.some(link => key(link.name) === name)) continue;
+    named.add(name);
+    byAddress.set(address, [...byAddress.get(address) ?? [], candidate]);
+  }
+  return [...byAddress.values()].map(links => {
+    const best = links.reduce((chosen, link) => fit(link, links) > fit(chosen, links) ? link : chosen);
+    return { ...best, primary: links.some(link => link.primary) };
   });
+}
+
+/** A catalogue index ("Browse all products" at /products) is not an area: the one candidate at its level
+ * whose address is the parent of two or more others. A main area beside other areas keeps its sub-pages. */
+function catalogueIndexes(candidates: Candidate[]) {
+  const addresses = candidates.map(candidate => destination(candidate.url));
+  const parent = (address: string) => address.replace(/\/[^/]*$/, "");
+  return new Set(addresses.filter(address => addresses.filter(other => other.startsWith(`${address}/`)).length >= 2
+    && !addresses.some(other => other !== address && parent(other) === parent(address))));
 }
 
 /** Over the cap, keep the site's main areas: the ones it links to (counting the pages beneath them) and
@@ -75,12 +113,14 @@ export function siteComponents(scan: HtmlScan, base: URL): SiteComponent[] {
     const service = SERVICE_NAME.test(text) || SERVICE_ENDING.test(text);
     const primary = product || service && url.hostname.replace(/^www\./, "") !== base.hostname.replace(/^www\./, "");
     if (!primary && !service) return [];
-    return [{ name: text, url: url.href, primary }];
+    return [{ name: text, url: url.href, primary, titled: anchor.titled, groups: anchor.groups }];
   });
   let candidates = unique(consider(scan.anchors.filter(anchor => anchor.region === "nav" || anchor.region === "header")));
   if (candidates.length < 2) candidates = unique([...candidates, ...consider(scan.anchors.filter(anchor => anchor.region === "footer"))]);
   const preferred = candidates.filter(candidate => candidate.primary);
   if (preferred.length >= 2) candidates = preferred;
+  const indexes = catalogueIndexes(candidates);
+  candidates = candidates.filter(candidate => !indexes.has(destination(candidate.url)));
   if (candidates.length < 2) return [];
   const links = scan.anchors.flatMap(anchor => { try { return [destination(new URL(anchor.href, base).href)]; } catch { return []; } });
   return prominent(candidates, links, scan.prose).map(({ name, url }) => ({ name, url }));

@@ -5,7 +5,8 @@ export { cleanText, decodeEntities } from "./text.ts";
 /** A tolerant text scan with a stack for navigation groups and link labels.
  * No page DOM is created and none of the page's scripts run. */
 export interface HtmlTag { name: string; attributes: Record<string, string> }
-export interface HtmlAnchor { href: string; text: string; name: string; groups: string[]; accountNavigation: boolean; region: "nav" | "header" | "footer" | "body" }
+/** `titled`: the name is a heading, inside the link or around it. */
+export interface HtmlAnchor { href: string; text: string; name: string; titled: boolean; groups: string[]; accountNavigation: boolean; region: "nav" | "header" | "footer" | "body" }
 /** `prose` is the page's readable text outside links. */
 export interface HtmlScan { title: string | null; tags: HtmlTag[]; anchors: HtmlAnchor[]; styles: string[]; prose: string }
 
@@ -26,10 +27,10 @@ function attributesOf(source: string) {
 
 export function scanHtml(html: string): HtmlScan {
   const tags: HtmlTag[] = [], anchors: HtmlAnchor[] = [], styles: string[] = [], prose: string[] = [];
-  const stack: { tag: string; group: string; accountNavigation: boolean; label?: string }[] = [];
+  const stack: { tag: string; group: string; accountNavigation: boolean; heading: boolean; label?: string }[] = [];
   const lower = html.toLowerCase();
   let title: string | null = null, titleStart = -1;
-  let anchor: { href: string; text: string; label: string; parts: LinkText; region: HtmlAnchor["region"]; groups: string[]; accountNavigation: boolean } | null = null;
+  let anchor: { href: string; text: string; label: string; parts: LinkText; region: HtmlAnchor["region"]; groups: string[]; accountNavigation: boolean; heading: boolean } | null = null;
   TAG.lastIndex = 0;
   let previous = 0;
   for (let match = TAG.exec(html); match; match = TAG.exec(html)) {
@@ -55,7 +56,7 @@ export function scanHtml(html: string): HtmlScan {
     }
     if (closing) {
       if (name === "a" && anchor) {
-        anchors.push({ href: anchor.href, text: cleanText(anchor.text) || cleanText(anchor.label), name: anchor.parts.name(anchor.label), region: anchor.region, groups: anchor.groups, accountNavigation: anchor.accountNavigation });
+        anchors.push({ href: anchor.href, text: cleanText(anchor.text) || cleanText(anchor.label), name: anchor.parts.name(anchor.label), titled: anchor.heading || anchor.parts.titled(), region: anchor.region, groups: anchor.groups, accountNavigation: anchor.accountNavigation });
         anchor = null;
       } else anchor?.parts.close(name);
       const at = stack.findLastIndex(frame => frame.tag === name);
@@ -69,11 +70,11 @@ export function scanHtml(html: string): HtmlScan {
     const attributes = attributesOf(match[3]);
     if (name === "a") {
       const region = (["nav", "header", "footer"] as const).find(kind => stack.some(frame => frame.tag === kind)) ?? "body";
-      anchor = attributes.href ? { href: attributes.href, text: "", label: attributes["aria-label"] ?? attributes.title ?? "", parts: new LinkText(attributes), region, groups: stack.map(frame => frame.group).filter(Boolean), accountNavigation: stack.some(frame => frame.accountNavigation) } : null;
+      anchor = attributes.href ? { href: attributes.href, text: "", label: attributes["aria-label"] ?? attributes.title ?? "", parts: new LinkText(attributes), region, groups: stack.map(frame => frame.group).filter(Boolean), accountNavigation: stack.some(frame => frame.accountNavigation), heading: stack.some(frame => frame.heading) } : null;
     } else anchor?.parts.open(name, attributes);
     if (name === "img" && anchor) anchor.label ||= attributes.alt ?? "";
     else if (KEPT.has(name)) tags.push({ name, attributes });
-    if (!VOID.has(name) && !/\/\s*>$/.test(match[0])) stack.push({ tag: name, group: attributes["aria-label"] ?? "",
+    if (!VOID.has(name) && !/\/\s*>$/.test(match[0])) stack.push({ tag: name, group: attributes["aria-label"] ?? "", heading: /^h[1-6]$/.test(name) || attributes.role === "heading",
       accountNavigation: /^(auth|authenticated|isAuthenticated|loggedIn|isLoggedIn|signedIn|isSignedIn)$/i.test(attributes["x-show"] ?? ""),
       ...(!anchor && (/^(button|h[1-6]|summary)$/.test(name) || attributes.role === "heading" || /(?:^|[\s_-])(title|heading)(?:$|[\s_-])/i.test(attributes.class ?? "")) ? { label: "" } : {}) });
   }

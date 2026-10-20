@@ -122,10 +122,11 @@ test('the site reader reads what a site says about itself, refuses private desti
   assert.deepEqual((await read(`<nav>
     <a href="/products/seer">Seer <span class="new-pill">NEW</span></a>
     <a href="/products/metrics">📊 Metrics BETA</a>
-    <a href="/products/queue">Queue <span>12</span> Soon</a>
+    <a href="/products/queue">Queue <span class="count">12</span> Soon</a>
     <a href="/products/search">Search (42)</a>
     <a href="/products/new-relic">New Relic</a>
-  </nav>`)).map(component => component.name), ['Seer', 'Metrics', 'Queue', 'Search', 'New Relic']);
+    <a href="/products/inbox">Inbox <span class="counter">3</span></a>
+  </nav>`)).map(component => component.name), ['Seer', 'Metrics', 'Queue', 'Search', 'New Relic', 'Inbox']);
 
   t.diagnostic('names are never cut: a trailing number or word in the name stays; a changelog link stays out under its whole text');
   assert.deepEqual((await read(`<nav><div><button>Products</button>
@@ -136,7 +137,9 @@ test('the site reader reads what a site says about itself, refuses private desti
     <a href="/products/region">Region 2 <span>NEW</span></a>
     <a href="/releases">What's New</a>
     <a href="/products/updates">What’s <span>New</span></a>
-  </div></nav>`)).map(component => component.name), ['Microsoft 365', 'Sonnet 4.5', 'Build Preview', 'Windows 11', 'Region 2']);
+    <a href="/products/android">Android <b>15</b></a><a href="/products/office-2024"><span>Office</span> <span>2024</span></a>
+    <a href="/products/haiku">Haiku <span>4.5</span></a>
+  </div></nav>`)).map(component => component.name), ['Microsoft 365', 'Sonnet 4.5', 'Build Preview', 'Windows 11', 'Region 2', 'Android 15', 'Office 2024', 'Haiku 4.5']);
 
   t.diagnostic('calls to action, downloads, release notes and "… more" links stay out, even inside a product menu');
   assert.deepEqual((await read(`<nav><div><button>Product</button>
@@ -188,4 +191,22 @@ test('the site reader reads what a site says about itself, refuses private desti
     <nav><a href="/pricing">Pricing</a></nav><footer><div><h3>Products</h3>${catalogue.map(name => `<a href="/${name.toLowerCase()}">${name}</a>`).join('')}
     <a href="/payments/checkout">Checkout</a><a href="/payments/links">Payment links</a></div></footer>`);
   assert.deepEqual(chosen.map(component => component.name), ['Atlas', 'Beacon', 'Billing', 'Capital', 'Connect', 'Payments', 'Radar', 'Terminal']);
+
+  t.diagnostic('large product menus: repeated and plan wording leave, each address keeps its card title, a catalogue index is not an area');
+  const hubs = ['Mail', 'Chat', 'Talk'];
+  const menu = await read(`<header><nav><div><button>Products</button>
+    <a href="/products/everything">Free CRM</a><a href="/products/get-started">Overview of all products</a>
+    ${hubs.map(hub => `<div><h3>${hub} Hub</h3><p>${hub} software</p><a href="/products/${hub.toLowerCase()}">Free forever</a></div>`).join('')}
+    <div><h3>Mail Hub</h3><a href="/products/mail">Inbox zero tools</a></div>
+    <a href="/products/team">Team plans</a><a href="/products/billing">Billing pricing</a>
+    <div><h3><a href="/products/mail/ai-sorter">Automate mail sorting</a></h3><p>Sort every inbox</p></div>
+    ${hubs.map(hub => `<a href="/products/${hub.toLowerCase()}"><h3>${hub} Hub</h3><p>${hub} software</p></a>`).join('')}
+    <a href="/products/mail/ai-sorter">AI Sorter<span class="visually-hidden">AI Sorter</span></a>
+  </div></nav></header>`);
+  assert.deepEqual(menu.map(component => component.name), ['Free CRM', 'Mail Hub', 'AI Sorter', 'Chat Hub', 'Talk Hub']);
+  assert.equal(menu[1].url, 'https://example.com/products/mail', 'the hub keeps its place and address under its own title');
+  const shelf = ['Agents', 'Bases', 'GPUs', 'Metal', 'Engine', 'Data', 'Learning', 'Droplets', 'Clusters'];
+  const indexed = await read(`<main><p>Evals for Learning. Evals everywhere: Evals, Evals. Droplets.</p></main><nav><a href="/pricing">Pricing</a></nav>
+    <footer><div><h3>Products</h3><a href="/products">Catalogue</a>${shelf.map(name => `<a href="/products/${name.toLowerCase()}">${name}</a>${name === 'Learning' ? '<a href="/products/learning/evals">Evals</a>' : ''}`).join('')}</div></footer>`);
+  assert.deepEqual(indexed.map(component => component.name), shelf.slice(0, 8), 'neither the index nor a page beneath an area takes a main area\'s place');
 });
