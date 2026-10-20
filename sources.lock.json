@@ -440,7 +440,7 @@
       "executable": false
     },
     ".publish-check/reviewed.json": {
-      "sha256": "bc31c8400d5b49e19d594332bf7903925248d43174d5f4f7ea6e9923552c35a5",
+      "sha256": "2638b1ad97906f070692ae6a7c6e06fbf5c2b6869a63bf842c355b18df61f6cf",
       "executable": false
     },
     "ACCEPTANCE.md": {
@@ -5664,7 +5664,7 @@
       "executable": false
     },
     "tests/e2e/prior-backup.test.mjs": {
-      "sha256": "4d84585ae9e4aa231219227605ae2236b0efa0fa438078902e7c4caf5d60b8c3",
+      "sha256": "67de1ea35020fe96774d806ffabf4e3072c0a510748b047558d3c602c0e8757f",
       "executable": false
     },
     "tests/e2e/public-contract.test.mjs": {
@@ -5788,7 +5788,7 @@
       "executable": false
     },
     "tests/fixtures/archive/listed-c5dab715.rer": {
-      "sha256": "7ccdc86c2baf9e60f6e7e817ecee8b95b80029e6a27f07504ace1f87b52d75b3",
+      "sha256": "d0a81f2a45f507e6ff4ef66aeb2eea374ee94099bcaf0d653b84111bead00fb6",
       "executable": false
     },
     "tests/fixtures/base/oidc-idp.mjs": {

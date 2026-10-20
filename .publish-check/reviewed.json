@@ -4,8 +4,8 @@
     {
       "rule": "secret.assignment",
       "path": "tests/fixtures/archive/listed-c5dab715.rer",
-      "blob": "e6095f933c56c774de9bbedf5bca1a37ed19c0f9",
-      "reason": "Retained native backup of a deleted scratch Lamp install at c5dab715 (pr-platform-catalogue-pins-24), kept byte for byte so the prior-backup test restores the listed release's own archive. The generic-api-key and hex-api-key matches are subscriber token_hash SHA-256 digests of that install's random tokens and the archive's migration file list; no credential.",
+      "blob": "f9f5164bcec59bd5541be78c39921f8957e4c27c",
+      "reason": "Retained native backup the listed release (c5dab715) made with its own rer of a synthetic install, kept byte for byte so the prior-backup test restores that release's own archive. The generic-api-key match is the archive manifest's list of migration file names; no credential.",
       "reviewer": "sd-lamp-rel3",
       "date": "2026-10-20"
     }
