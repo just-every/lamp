@@ -1,12 +1,28 @@
 # Changelog
 
-## Unreleased
+## 1.10.0
 
-US spelling in CONTRACT.md and ACCEPTANCE.md; spelling only, meaning unchanged. The release inventory records PAGE-004, PAGE-006, PAGE-007, PAGE-010, PAGE-012, UPTIME-006, UPDATE-005, MAINT-006, SETUP-002, MOVE-006 as changed because their published text uses US spelling. Clause IDs, row titles, Status values, identifiers, paths, URLs and protocol tokens retain their existing values.
+**Hosted backups with `rer export`.** `rer export --target remote --output DIR` now backs up the hosted installation this checkout deployed as `production`: it runs Lamp's hosted backup, `node scripts/export.mjs --remote --environment production --out DIR`, with the Cloudflare credentials in your shell (`CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_API_TOKEN`), and names the folder and exit status when it finishes. rer 0.2.72 and earlier refused it and printed `wrangler d1 export` commands instead. The folder is the same hosted archive as before, restored with `node scripts/import.mjs` ([backups and recovery](docs/backups-and-recovery.md)). Lamp pins rer 0.2.73 (no local patch to rer), which carries this.
+
+**Business moves you can check.** Lamp's import door is now Base's door exactly as rer 0.2.71 ships it; the local change that undid Business imports while keeping your later edits is gone, because Base's door now does that itself. Business can archive an uploaded source and check that a restore of it would read, with no write to Lamp; a source uploaded again after an undo plans afresh. Deleting a subscriber, or its expiry, also withdraws the Business archives that name them. `POST /api/rer/cutover-status` answers Business's signed read of a move (counts and ids only: old addresses, components, incidents and maintenance, held and pending subscribers and invitations sent since a time, records created in Lamp since then, and each alert source's receipts). It is refused without Run Edit Run trust or with a revoked key.
+
+**The status page host answers `/health`.** It returns the same health response as the app host, so Run Edit Run's cutover check can confirm a repointed status hostname serves Lamp. No other page-host path changed.
+
+**Contract spelling.** CONTRACT.md and ACCEPTANCE.md use US spelling. PAGE-004, PAGE-006, PAGE-007, PAGE-010, PAGE-012, UPTIME-006, UPDATE-005, MAINT-006, SETUP-002 and MOVE-006 are recorded as changed because their published text changed; spelling only, meaning unchanged. Clause IDs, Status values, identifiers, paths, URLs and protocol tokens keep their values.
+
+Upgrading from 1.9.0: back up first (`node scripts/export.mjs --remote`, or `rer export --target remote --output DIR`, for a hosted installation, and Settings → Export page data), update the checkout to `v1.10.0`, run `pnpm install --frozen-lockfile` (rer 0.2.73) and `rer deploy` with the same environment and input file. One migration applies on deploy and no input changes; the deploy keeps your signing secrets, subscriber links and operator sessions. If your fork adapted the import door, take Base's door at rer-v0.2.71 and re-apply only your own changes.
+
+Migrations: `0041_import_door_archives.sql` adds the Business import door's archive tables (`ik_door_archives`, `ik_door_archive_chunks`; additive, no existing row changes).
+
+Not in this release: `pnpm run export -- --remote` (shown on the homepage's Ownership panel) is still refused by rer; use `rer export --target remote --output DIR` or `node scripts/export.mjs --remote`. Roles, audience pages, subscriber languages, SMS and measured uptime are not built.
+
+Known issues: a local backup (`rer export`) made by Lamp before 1.8.0 (before migration 0033) by an installation that ever changed a component state is refused by `rer import` with `schema_mismatch:migration_data` naming `0033_audit_log.sql`. 0033 writes an audit entry for each earlier state change, and the restore cannot write them yet. Nothing is written by the refused restore; keep the backup, or update that installation in place, which keeps every row. A `rer deploy` of an existing installation run without a terminal may stop with "Deploy needs your owner name"; pass `--owner-name "Your name"`. A drafted post-incident report keeps machine timestamps and `[U1]`-style citations until you edit them. Wrangler may print "Network connection lost" during a hosted export or restore that still completes; check the final "Exported" or "Imported" line. On a new hosted installation the public page shows a published update once its snapshot rebuilds, usually within seconds.
+
+Product screenshot: `.github/assets/release/lamp-1.7.0-status-page-1440.png` (the public page is unchanged in 1.10.0).
 
 ## 1.9.0
 
-**Managed installations build again.** Lamp 1.8.0 and 1.8.1 patched their pinned rer (0.2.63) so the sign-in page offered your identity providers beside the owner entry. Run Edit Run's trusted build checks that `pnpm-lock.yaml` locks the plain rer release (`rer check --profile first-party`, SC-13) and refused the patched lock, so a new Managed installation of 1.8.1 could not be built. Lamp 1.9.0 pins rer 0.2.71, which offers those sign-in choices itself, and carries no rer patch: the `patches/` directory and the `patchedDependencies` entry are gone and the trusted build's checks pass. The sign-in page looks and works as before.
+**Managed installations build again.** Lamp 1.8.0 and 1.8.1 patched their pinned rer (0.2.63) so the sign-in page offered your identity providers beside the owner entry. Run Edit Run's trusted build checks that `pnpm-lock.yaml` locks the plain rer release (`rer check --profile first-party`, SC-13) and refused the patched lock, so a new Managed installation of 1.8.1 could not be built. Lamp 1.9.0 pins rer 0.2.69, which offers those sign-in choices itself, and carries no rer patch: the `patches/` directory and the `patchedDependencies` entry are gone and the trusted build's checks pass. The sign-in page looks and works as before.
 
 **Deletions in the audit log.** Deleting a component or a component group, one at a time or in a bulk catalogue edit, writes one audit entry naming the operator, in the same write as the deletion; deleting something already gone writes nothing. Settings → Audit log lists each deletion with its actor and time, in its filters and in CSV (TEAM-007). Every operator is an owner until roles ship (TEAM-004), so every operator sees the log.
 
@@ -14,11 +30,11 @@ US spelling in CONTRACT.md and ACCEPTANCE.md; spelling only, meaning unchanged. 
 
 The contract records MOVE-009, MOVE-011, HIST-007 and TEAM-007 as done; their audience, language, role, rule and token parts now belong to AUD-004, I18N-001, TEAM-004, AUTO-001, API-001, SUB-018, MOVE-010 and INTAKE-013, which are not built. No released guarantee changed.
 
-Upgrading from 1.8.1: back up first (`node scripts/export.mjs --remote` for a hosted installation, and Settings → Export page data), update the checkout to `v1.9.0`, run `pnpm install --frozen-lockfile` (rer 0.2.71) and `rer deploy` with the same environment and input file. Migration 0041 applies on deploy and no input changes; the deploy keeps your signing secrets, subscriber links and operator sessions. If your fork kept its own copy of the 1.8.x rer patch, drop it.
+Upgrading from 1.8.1: back up first (`node scripts/export.mjs --remote` for a hosted installation, and Settings → Export page data), update the checkout to `v1.9.0`, run `pnpm install --frozen-lockfile` (rer 0.2.69) and `rer deploy` with the same environment and input file. No migration applies and no input changes; the deploy keeps your signing secrets, subscriber links and operator sessions. If your fork kept its own copy of the 1.8.x rer patch, drop it.
 
-Migrations: `0041_import_door_archives.sql` adds the Business import door's archive tables (additive; no existing row changes).
+Migrations: none.
 
-Not in this release: `pnpm run export -- --remote` (shown on the homepage's Ownership panel) is still refused by rer; the hosted backup command is `node scripts/export.mjs --remote`. Roles, audience pages, subscriber languages, SMS and measured uptime are not built.
+Not in this release: the import door's newer upload reader from Base (per-record credential removal, named source refusals, retained-source replans); Lamp's door and Move in keep the reader 1.8.1 shipped. `pnpm run export -- --remote` (shown on the homepage's Ownership panel) is still refused by rer; the hosted backup command is `node scripts/export.mjs --remote`. Roles, audience pages, subscriber languages, SMS and measured uptime are not built.
 
 Known issues: a `rer deploy` of an existing installation run without a terminal may stop with "Deploy needs your owner name"; pass `--owner-name "Your name"`. A drafted post-incident report keeps machine timestamps and `[U1]`-style citations until you edit them. Wrangler may print "Network connection lost" during a hosted export or restore that still completes; check the final "Exported" or "Imported" line. On a new hosted installation the public page shows a published update once its snapshot rebuilds, usually within seconds.
 

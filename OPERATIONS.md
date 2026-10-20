@@ -20,8 +20,10 @@ Owner task guides are published at `/docs` on the app host. Use
 it is the canonical local command sequence. This file remains the technical
 reference for deployment inputs and Cloudflare archive operations. The
 `scripts/export.mjs` and `scripts/import.mjs` commands below are remote archive
-tools run with Node 22 or later, not `rer` verbs; `rer export` and `rer import`
-operate on local state.
+tools run with Node 22 or later. `rer export` and `rer import` operate on local
+state, except `rer export --target remote --output DIR`, which runs
+`node scripts/export.mjs --remote --environment production --out DIR` for the
+installation this checkout deployed as `production`.
 
 ## Owner inputs
 
@@ -490,7 +492,7 @@ The minute cron sends an empty GET only on the heartbeat interval grid, after sc
 
 ## Shared operator authentication
 
-The checkout pins `@runeditrun/rer` 0.2.71. For hosted owner entry without email,
+The checkout pins `@runeditrun/rer` 0.2.73. For hosted owner entry without email,
 run this from the deploying checkout using the original account and environment:
 
 ```sh
