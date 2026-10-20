@@ -106,7 +106,7 @@ contract('SETUP-002', 'a fresh owner gives their website first; Lamp fills in th
     assert.equal((await api('/api/app/website')).website.url, 'https://www.acme-tracking.com/');
     await page.goto(`${origin}/app/move-in`);
     await page.getByRole('link', { name: 'status.acme-tracking.com', exact: true }).waitFor();
-    assert.equal(await page.getByLabel('Source', { exact: true }).inputValue(), 'statuspage');
+    assert.equal(await page.getByLabel('Source').inputValue(), 'statuspage');
     assert.equal(await page.getByLabel('Statuspage page ID', { exact: true }).inputValue(), 'acmetracking01');
     // Customers see the page as confirmed; the SVG mark is stored and served as a PNG.
     const published = await (await fetch(`${publicOrigin}/`, { headers: devKeyHeaders })).text();
