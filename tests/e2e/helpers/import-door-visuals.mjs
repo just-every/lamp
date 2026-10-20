@@ -13,7 +13,7 @@ export async function captureImportDoor({cookies,source,jobId,origin,directory,r
     const page=await context.newPage();
     for(const width of [1440,390]) {
       await page.setViewportSize({width,height:width===1440?1000:844});
-      await page.goto(`${origin}/app/settings`);
+      await page.goto(`${origin}/app/settings#data`);
       const row=page.locator('summary').filter({hasText:'Business imports'});
       await row.waitFor();
       await page.getByText(`Business imports · ${revoked?'Off':'On'}`,{exact:true}).waitFor();

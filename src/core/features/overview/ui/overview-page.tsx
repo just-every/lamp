@@ -1,7 +1,7 @@
 import { CommunicationPerformance } from "../../communication-performance/ui/communication-performance";
 import { Link } from "@tanstack/react-router";
 
-import { SetupChecklist } from "./setup-checklist";
+import { LiveStrip } from "./live-strip";
 import type { OverviewService } from "../service";
 import { ClientExtensionSlot } from "../../../app/client/extensions";
 import { Button } from "../../../app/client/ui/button";
@@ -25,8 +25,9 @@ function severeImpact(impact: string | null) {
 export function OverviewPage() {
   const formatOperatorTime = useOperatorTime();
   const committedTime = useCommittedTime();
-  const { data, error, loading, refresh } = useAppData<OverviewResponse>("/api/app/overview");
-  if (loading) return <LoadingState />;
+  const { data, error, loading } = useAppData<OverviewResponse>("/api/app/overview");
+  // A refresh keeps the page mounted: only the first load shows the loading state.
+  if (loading && !data) return <LoadingState />;
   if (error) return <ErrorState onRetry={() => window.location.reload()}>{error}</ErrorState>;
   if (!data) return null;
 
@@ -43,7 +44,7 @@ export function OverviewPage() {
       {components.length === 0 ? <Button asChild><Link to="/app/components">Add component <Icon name="arrow" width={16} height={16} /></Link></Button> : null}
     </section>
 
-    <SetupChecklist checklist={data.overview.checklist} refresh={refresh} />
+    <LiveStrip live={data.overview.live} />
 
     <UpdateDueNotice incidents={activeIncidents} />
 

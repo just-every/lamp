@@ -15,7 +15,7 @@ const STALE_MARKER_KEY = "snapshots/stale.json";
 const STALE_BUILD_MS = 5 * 60_000;
 const RETRY_LEASE_MS = 2 * 60_000;
 const LOGO_CONTENT_TYPES = new Set(["image/png", "image/jpeg", "image/webp"]);
-export const PUBLIC_SNAPSHOT_RENDERER_VERSION = "lamp-public-snapshot-v16";
+export const PUBLIC_SNAPSHOT_RENDERER_VERSION = "lamp-public-snapshot-v17";
 
 interface SnapshotPointer {
   version: string;
@@ -45,6 +45,8 @@ export interface PublicSnapshotService {
   hasCurrentSnapshot(): Promise<boolean>;
   readArtifact(key: string): Promise<{ bytes: ArrayBuffer; contentType: string; version: string; generatedAt: string; stale: boolean; retainedReady?: boolean } | null>;
   latestBuild(): ReturnType<SnapshotRepository["latestBuild"]>;
+  /** When the page customers see now was published; null before the first snapshot. */
+  publishedAt(): Promise<string | null>;
   retryPendingBuild(): Promise<boolean>;
 }
 
@@ -277,6 +279,10 @@ export function createPublicSnapshotService(
       }
     },
     latestBuild: () => repository.latestBuild(),
+    async publishedAt() {
+      try { return (await readPointer())?.generatedAt ?? null; }
+      catch { return null; /* An unreadable pointer reads as not yet published. */ }
+    },
     async retryPendingBuild() {
       try {
         const now = new Date();

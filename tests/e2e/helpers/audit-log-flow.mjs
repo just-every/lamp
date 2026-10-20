@@ -59,7 +59,7 @@ export async function auditLogFlow({ page, appUrl, appFetch }) {
   if (proof) await mkdir(proof, { recursive: true });
   for (const width of [1440, 390]) {
     await page.setViewportSize({ width, height: width === 390 ? 844 : 1600 });
-    await page.goto(`${appUrl}/app/settings`); await operatorHydrated(page);
+    await page.goto(`${appUrl}/app/settings#data`); await operatorHydrated(page);
     await page.getByRole("button", { name: "Open audit log", exact: true }).click();
     const panel = page.locator("#audit-log");
     await panel.getByRole("region", { name: "Audit entries", exact: true }).waitFor();

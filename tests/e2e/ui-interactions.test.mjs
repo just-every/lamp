@@ -42,7 +42,7 @@ after(async () => {
   await Promise.all([statePath, cachePath].filter(Boolean).map(path => rm(path, { recursive: true, force: true })));
 });
 
-test("Component and group dialogs retain keyboard focus and record tables remain keyboard scrollable", async t => {
+test("Component and group dialogs retain keyboard focus and record tables scroll with the keyboard while phone alert receipts stack", async t => {
   for (const [triggerName, fieldName] of [["Add component", "Component name"], ["Add group", "Group name"]]) {
   t.diagnostic(`${triggerName} contains keyboard focus and restores its trigger`);
     await (async () => {
@@ -64,9 +64,6 @@ test("Component and group dialogs retain keyboard focus and record tables remain
     assert.equal(await trigger.evaluate(node => node === document.activeElement), true, "Escape restores the opening control");
   })(t);
 }
-});
-
-test("Component and group dialogs retain keyboard focus and record tables scroll with the keyboard while phone alert receipts stack", async t => {
   for (const [route, label] of [["subscribers", "Subscriber records"], ["deliveries", "Delivery records"]]) {
   t.diagnostic(`${label} can be scrolled with the keyboard on narrow screens`);
     await (async () => {

@@ -392,7 +392,7 @@ contract("UPDATE-006", "the composer schedules publication separately from its n
 
 contract("DRAFT-002", "operators save and reload AI tone instructions while the UI honestly reports an unconfigured provider", async () => {
   const tone = "Lead with customer impact, use concise factual language, and name the next update commitment.";
-  await page.goto(`${appUrl}/app/settings`);
+  await page.goto(`${appUrl}/app/settings#writing`);
   await operatorHydrated(page);
   await page.getByText("No provider configured", { exact: true }).waitFor();
   const toneField = page.getByLabel("Tone instructions");

@@ -82,11 +82,6 @@ input[type="file"]::file-selector-button:hover { background: var(--stage); }
 .data-card > p:not(.card-kicker):not(.eyebrow) { color: var(--ink-2); }
 .data-card > .button { margin: 4px 0 12px; }
 
-/* First-run setup at /setup stands alone, outside the operator shell, under the sign-in page's lamp. */
-.first-run-page { width: min(100%, 640px); }
-.first-run-page .settings-form { display: grid; gap: 18px; }
-.first-run-page > p { color: var(--ink-2); }
-.keep-together { white-space: nowrap; }
 
 /* Updates due or overdue (INCIDENT-010): live work, so an amber block with one action. */
 .update-due-notice { display: grid; gap: 10px; }

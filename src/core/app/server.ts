@@ -27,6 +27,7 @@ import { registerIntakeRoutes } from "../features/intake";
 import { registerMaintenanceRoutes } from "../features/maintenance";
 import { registerOverviewRoutes } from "../features/overview";
 import { registerPageSettingsRoutes } from "../features/page-settings";
+import { registerWebsiteRoutes } from "../features/website";
 import { registerOperatorRoutes, requireOperator, type OperatorReadSession } from "../features/operators/routes";
 import { registerSubscriberRoutes } from "../features/subscribers";
 import { registerPublicSnapshotRoutes } from "../features/public-snapshot";
@@ -79,7 +80,8 @@ export function createApp(bindings: AppBindings, execution?: MailExecution) {
   registerAiRoutes(app, services.ai);
   registerMaintenanceRoutes(app, services.maintenance);
   registerSubscriberRoutes(app, services.subscribers, { rateLimiter: publicWriteLimiter, localMail });
-  registerPageSettingsRoutes(app, services.pageSettings);
+  registerPageSettingsRoutes(app, services.pageSettings, (key) => services.publicSnapshots.readArtifact(key));
+  registerWebsiteRoutes(app, services.website);
   registerPageExportRoutes(app, services.pageExport);
   registerStatuspageImportRoutes(app, services.statuspageImport);
   registerImportDoor(app, bindings, services.statuspageImport,()=>services.publicSnapshots.rebuild(true), services.auth);

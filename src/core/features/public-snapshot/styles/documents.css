@@ -49,3 +49,10 @@
 .subscriber-document input[type="checkbox"] { width: 18px; height: 18px; flex: none; margin: 0; accent-color: var(--ink); }
 .subscriber-document form + form { margin-top: 28px; border-top: 1px solid var(--line); padding-top: 24px; }
 .subscriber-document form + form button { background: var(--card); border-color: rgb(180 68 50 / .35); color: #9c3626; box-shadow: none; }
+.subscriber-icon { display: inline-grid; width: 64px; height: 64px; place-items: center; margin-bottom: 20px; border-radius: 16px; background: color-mix(in srgb, var(--accent) 12%, var(--card)); color: var(--accent); }
+.subscriber-icon svg { width: 34px; height: 34px; }
+.subscriber-email { color: var(--ink); font-weight: 600; overflow-wrap: anywhere; }
+.subscriber-scope { margin: 22px 0; border: 1px solid var(--line); border-radius: 12px; background: var(--card-tint, var(--card)); padding: 16px 20px; }
+.subscriber-document .subscriber-kicker { margin: 0 0 4px; color: var(--ink-3); font-size: 12px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; }
+.subscriber-document .subscriber-scope-value { margin: 0; color: var(--ink); font-size: 17px; font-weight: 600; }
+.subscriber-document .subscriber-again { color: var(--ink); text-decoration: underline 1.5px var(--accent); text-underline-offset: 4px; }
