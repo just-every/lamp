@@ -11,6 +11,7 @@ import { GroupedPresetCard } from "./grouped-preset-card";
 import { isGroupedPreset } from "../grouped-alerts";
 import { UptimePresetCard } from "./uptime-preset-card";
 import { PresetCard } from "./preset-card";
+import { PagerDutyPresetCard } from "./pagerduty-preset-card";
 import { presetLabels } from "../presets";
 
 type SourcesResponse = { sources: Source[] };
@@ -54,7 +55,9 @@ function sourceForm(source: Source): SourceForm {
   };
 }
 
-function receiptLabel(state: ReceiptsResponse["receipts"][number]["state"]) {
+function receiptLabel(receipt: ReceiptsResponse["receipts"][number]) {
+  if (receipt.direction === "note") return receipt.state === "invalid" ? "Note failed" : "Note sent";
+  const state = receipt.state;
   return state === "firing" ? "Accepted" : state === "recovered" ? "Recovered" : "Rejected";
 }
 
@@ -140,14 +143,15 @@ export function AlertsPage() {
     <section className="page-title-row"><div><p className="eyebrow">Inbound alert intake</p><h1>Alerts</h1><p>Configure authenticated alert sources. Accepted, recovered, and rejected receipt records never expose inbound payloads or source credentials.</p></div><Button type="button" onClick={openCreate}><Icon name="plus" width={18} height={18} />Add alert source</Button></section>
     <section className="capability-note"><Icon name="warning" width={18} height={18} /><div><strong>Source secrets are write-only.</strong><p>Editing a source leaves its existing secret in place until you provide a replacement. The endpoint accepts only the configured authentication method.</p></div></section>
     <PresetCard onCreated={sources.refresh} />
+    <PagerDutyPresetCard sources={sourceData.filter(source => source.preset === "pagerduty")} onSaved={() => { sources.refresh(); receipts.refresh(); }} />
     <UptimePresetCard sources={sourceData.filter(source => source.preset === "uptime")} onSaved={sources.refresh} />
     <GroupedPresetCard sources={sourceData.filter(source => isGroupedPreset(source.preset))} onSaved={sources.refresh} />
     {(creating || editing) && <SourceEditor source={editing} form={form} saving={saving} message={message} onChange={update} onSubmit={save} onClose={closeEditor} />}
     {message && !(creating || editing) && <p className="save-message" role="status">{message}</p>}
-    <section className="alert-source-grid" aria-label="Configured alert sources">
-      {sourceData.length ? sourceData.map((source) => <AlertSourceCard key={source.id} source={source} onEdit={source.preset ? undefined : () => openEdit(source)} />) : <EmptyState>No alert sources are configured. Add a source to receive authenticated alert payloads.</EmptyState>}
-    </section>
-    <section className="data-card receipt-card"><div className="card-heading"><div><p className="card-kicker">Receipt visibility</p><h2>Accepted and rejected alerts</h2><p className="card-support">The most recent 100 receipt records. Payload bodies and request hashes are intentionally omitted.</p></div><span className="count-label">{receiptData.length} recorded</span></div><div className="table-scroll" tabIndex={0} role="region" aria-label="Alert receipt records"><table><thead><tr><th scope="col">Received</th><th scope="col">Source</th><th scope="col">Result</th><th scope="col">Incident</th><th scope="col">Reason</th></tr></thead><tbody>{receiptData.map((receipt) => <tr key={receipt.id}><td data-label="Received">{formatOperatorTime(receipt.receivedAt)}</td><td data-label="Source"><strong>{receipt.sourceName}</strong></td><td data-label="Result"><span className={`state-pill ${receiptClass(receipt.state)}`}>{receiptLabel(receipt.state)}</span></td><td data-label="Incident">{receipt.incidentId ? <Link className="text-link" to="/app/incidents/$incidentId" params={{ incidentId: receipt.incidentId }}>Open draft</Link> : "—"}</td><td data-label="Reason">{receipt.error ?? "Recorded without exposing the payload."}</td></tr>)}{receiptData.length === 0 && <tr><td colSpan={5} className="receipt-empty"><p>No alerts have been received from configured sources.</p></td></tr>}</tbody></table></div></section>
+    {(sourceData.some(source => source.preset !== "pagerduty") || sourceData.length === 0) && <section className="alert-source-grid" aria-label="Configured alert sources">
+      {sourceData.length ? sourceData.filter(source => source.preset !== "pagerduty").map((source) => <AlertSourceCard key={source.id} source={source} onEdit={source.preset ? undefined : () => openEdit(source)} />) : <EmptyState>No alert sources are configured. Add a source to receive authenticated alert payloads.</EmptyState>}
+    </section>}
+    <section className="data-card receipt-card"><div className="card-heading"><div><p className="card-kicker">Receipt visibility</p><h2>Alert and responder note receipts</h2><p className="card-support">The most recent 100 receipt records. Payload bodies and request hashes are intentionally omitted.</p></div><span className="count-label">{receiptData.length} recorded</span></div><div className="table-scroll" tabIndex={0} role="region" aria-label="Alert receipt records"><table><thead><tr><th scope="col">Received</th><th scope="col">Source</th><th scope="col">Result</th><th scope="col">Incident</th><th scope="col">Reason</th></tr></thead><tbody>{receiptData.map((receipt) => <tr key={receipt.id}><td data-label="Received">{formatOperatorTime(receipt.receivedAt)}</td><td data-label="Source"><strong>{receipt.sourceName}</strong></td><td data-label="Result"><span className={`state-pill ${receiptClass(receipt.state)}`}>{receiptLabel(receipt)}</span></td><td data-label="Incident">{receipt.incidentId ? <Link className="text-link" to="/app/incidents/$incidentId" params={{ incidentId: receipt.incidentId }}>Open draft</Link> : "—"}</td><td data-label="Reason">{receipt.error ?? (receipt.direction === "note" ? "Publication note sent to PagerDuty." : "Recorded without exposing the payload.")}</td></tr>)}{receiptData.length === 0 && <tr><td colSpan={5} className="receipt-empty"><p>No alerts have been received from configured sources.</p></td></tr>}</tbody></table></div></section>
   </div>;
 }
 

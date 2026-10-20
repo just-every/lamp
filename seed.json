@@ -359,6 +359,18 @@
         "Page ID or public status-page hostname and notice IDs"
       ],
       "adapters": []
+    },
+    {
+      "id": "pagerduty-notes",
+      "required": false,
+      "why": "INTAKE-009: when the owner connects a sealed REST API key, each linked publication posts one note to the fixed https://api.pagerduty.com REST host. Redirects are refused. No connected key means no request.",
+      "data": [
+        "The connected API key in the Authorization header only",
+        "PagerDuty user email in the From header",
+        "The published update text and incident permalink",
+        "The linked PagerDuty incident ID"
+      ],
+      "adapters": []
     }
   ],
   "env": [

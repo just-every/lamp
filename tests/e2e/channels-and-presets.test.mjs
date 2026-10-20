@@ -1,6 +1,8 @@
+import { pagerDutyBrowserFlow } from "./helpers/pagerduty-browser-flow.mjs";
 import { availabilityReportBrowserFlow } from "./helpers/availability-report-browser-flow.mjs";
 import { uptimePresetFlow } from "./helpers/uptime-preset-flow.mjs";
 import { groupedAlertsFlow } from "./helpers/grouped-alerts-flow.mjs";
+import { pagerDutyFlow } from "./helpers/pagerduty-flow.mjs";
 import { UPDATE_LINK_FIELDS } from "./helpers/update-component-flow.mjs";
 import { test } from 'node:test';
 import { requestHeaders } from "../helpers/request-headers.mjs";
@@ -163,7 +165,7 @@ const payloads = {
 };
 const sources = {};
 
-test("INTAKE-006 INTAKE-007 INTAKE-008 INTAKE-010 UPTIME-009 — Authenticated monitor presets keep recovery within unpublished drafts", async t => {
+test("INTAKE-009 PagerDuty v3 signed events create drafts, brief entries and one note per publication · INTAKE-006 INTAKE-007", async t => {
   t.diagnostic("INTAKE-006 — each monitor preset turns its tool's alert into a draft on its component, and refuses other payloads and bad credentials");
   await (async () => {
   for (const preset of Object.keys(payloads)) {
@@ -219,4 +221,7 @@ test("INTAKE-006 INTAKE-007 INTAKE-008 INTAKE-010 UPTIME-009 — Authenticated m
   await groupedAlertsFlow({ api, post, component, sql, origin, publicOrigin, cookie });
   t.diagnostic("UPTIME-009 — authenticated month/quarter downloads in the native operator browser at 1440 and 390");
   await availabilityReportBrowserFlow({ api, post, component, origin, cookie });
+  t.diagnostic("INTAKE-009 — signed PagerDuty evidence stays private until publication; responder notes survive replay, rejection and restore safely");
+  await pagerDutyBrowserFlow({ api, component, origin, cookie });
+  await pagerDutyFlow({ runtime, t });
 });

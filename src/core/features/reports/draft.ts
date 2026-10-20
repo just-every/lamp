@@ -26,7 +26,7 @@ export function draftIncidentReport(brief: IncidentBrief) {
   if (!resolution) throw new ReportDraftError("A published resolution is required to draft a report.", 409);
   const references = briefReferences(brief);
   const events = [
-    ...alerts.map((alert) => ({ at: alert.receivedAt, ref: alert.ref, text: `Alert received from ${line(alert.source)}: ${alert.state}${alert.title ? ` — ${line(alert.title)}` : ""}.` })),
+    ...alerts.map((alert) => ({ at: alert.receivedAt, ref: alert.ref, text: `Alert received from ${line(alert.source)}: ${alert.state}${alert.title ? ` — ${line(alert.title)}` : ""}.${alert.evidenceSummary ? ` ${line(alert.evidenceSummary)}` : ""}` })),
     ...updates.map((update) => ({ at: update.publishedAt, ref: update.ref, text: `Published ${update.lifecycle}. ${[update.affectedAudience, update.customerImpact, update.whatStillWorks, update.details].filter(Boolean).map(line).join(" ")}` })),
   ].sort((a, b) => Date.parse(a.at) - Date.parse(b.at) || a.ref.localeCompare(b.ref));
   // These are publication timestamps, not a monitor-measured outage interval.
@@ -44,6 +44,6 @@ export function reportReview(report: { cause: string; remediation: string }, evi
     cause: { required: !report.cause.trim() || report.cause.trim() === REPORT_PROMPTS.cause, prompt: REPORT_PROMPTS.cause },
     remediation: { required: !report.remediation.trim() || report.remediation.trim() === REPORT_PROMPTS.remediation, prompt: REPORT_PROMPTS.remediation },
     evidenceRefs,
-    limitations: ["The recorded incident window is not monitor-measured customer downtime.", "External Oncall, PagerDuty, Jira Service Management and Opsgenie timelines are not connected."],
+    limitations: ["The recorded incident window is not monitor-measured customer downtime.", "External Oncall, Jira Service Management and Opsgenie timelines are not connected."],
   };
 }

@@ -645,7 +645,11 @@ A source can be a PagerDuty preset. It accepts PagerDuty v3 webhook subscription
 
 Acceptance: a signed v3 `incident.triggered` fixture creates a draft on the mapped component, and a wrong signature returns 401 and records nothing. A publish on the linked incident sends one note request to PagerDuty's fake REST edge.
 
-Status: **partial** — `src/core/features/intake/service.ts`, `tests/e2e/publishing-contract.test.mjs`. A bearer-token generic source with JSON-path mapping can receive PagerDuty webhooks sent with a custom header. There is no preset, no v3 signature check and no note back to PagerDuty.
+**Current evidence (20 October 2026):** an owner can first save the source and mappings without a signing secret to obtain the endpoint, then create the PagerDuty subscription and save its generated secret. Until that secret is saved, every inbound event is refused; the source card reports the webhook connection separately from the optional REST connection. The preset checks the exact raw request body using HMAC-SHA256 hex and constant-time comparison against every comma-separated `v1` signature in `X-PagerDuty-Signature`, following [PagerDuty’s signature specification](https://docs.pagerduty.com/developer/verifying-webhook-signatures). A wrong signature returns 401 before recording anything. Exact `service_id` and `service_name` matchers attach every matching component; supplied fields in one row must all match. Unsupported and unmapped signed events remain visible as source receipts. Triggered events create private drafts, acknowledgments and escalations enter the cited brief with their event timestamps, and resolution records recovery, closing only a never-published draft. These entries also enter AGENT-005’s cited report timeline. Intake never publishes an update or claims component state.
+
+The optional REST API key and note-author email are sealed with AES-GCM, never displayed and excluded from archives; a restored connection requires reconnection. Without a key no note is sent. The note-author email defaults to the source owner’s Lamp email, which must identify a valid PagerDuty user: PagerDuty requires its `From` header for [creating an incident note](https://docs.pagerduty.com/developer/api/reference/rest/incidents/create-incident-note). Each linked PagerDuty incident receives at most one request per Lamp publication, with the published text and permalink, only to `https://api.pagerduty.com/incidents/:id/notes`; redirects are refused. Failures appear in source receipts and never block publication. Erasing a source removes its credentials and receipts. [Connection instructions](docs/alerts-from-monitoring-tools.md#pagerduty) cover the v3 subscription and optional note connection.
+
+Status: **done** — `src/core/features/intake/`, `tests/e2e/channels-and-presets.test.mjs` ("INTAKE-009 PagerDuty v3 signed events create drafts, brief entries and one note per publication"), `tests/e2e/helpers/pagerduty-flow.mjs`. The named journey covers signed intake, mapping, private brief and recovery behavior, publication notes against a fake PagerDuty REST edge, failure receipts, erasure and archive reconnection. This is local provider-edge proof, not live PagerDuty account acceptance.
 
 #### INTAKE-010 — Prometheus Alertmanager and Grafana Alerting.
 
@@ -1081,7 +1085,7 @@ What Lamp does not do, and how a buyer gets it:
 | Paging, on-call schedules and escalation of responders | [Oncall](https://github.com/just-every/run-oncall), PagerDuty, Jira Service Management or Opsgenie; Lamp hands them communication deadlines (INCIDENT-011), takes in their alerts and timelines, and posts each publication back (INTAKE-009, INTAKE-012, INTAKE-014). |
 | Being the support desk | [HappyToHelp](https://github.com/just-every/run-happytohelp), Zendesk or Intercom, with Lamp's incident context (INTEG-001). |
 | Visitor analytics or email open tracking | [Vane](https://github.com/just-every/run-vane) for site analytics; Lamp keeps only aggregate request counts (HIST-006) and delivery outcomes (NOTIFY-004). |
-| Logs, metrics storage and APM | The buyer's observability tool; Lamp shows at most 10 aggregated public metrics (UPTIME-008). |
+| Logs, metrics storage and APM | [Porthole](https://github.com/just-every/run-porthole) or the buyer's observability tool; Lamp shows at most 10 aggregated public metrics (UPTIME-008). |
 | Operating SMS carriers or guaranteeing inbox or handset arrival | Twilio or Plivo, and SendGrid, Mailgun, Amazon SES, Postmark or Resend; Lamp records accepted, delivered, bounced and failed separately, and never claims a person read a message. The owner registers their own 10DLC campaign or toll-free number and pays carrier fees in USD. |
 | Operating DNS, or protection from an outage of every provider at once | The buyer's health-checked DNS provider (Amazon Route 53 or IBM NS1 Connect) switches the hostname to PAGE-015's secondary origin on a separate provider; Lamp supplies the health endpoint, the records and the setup check. Publishing and subscription changes wait for the primary. A buyer who needs a contractually independent standby keeps a separately operated status host. |
 | Compliance certification of private pages (SOC 2, HIPAA, FedRAMP) | Private pages are access control (AUD-002), not certification. Lamp signs no BAA, and protected health information does not belong in updates. |
@@ -1091,17 +1095,15 @@ What Lamp does not do, and how a buyer gets it:
 
 ## Status
 
-Judged from the code and tests at commit `be83d06ae7e83ca661d6b427f0b6855409d0a659` (19 October 2026). Rows changed after that commit name their own journeys under Evidence.
+Judged from the code and tests at commit `d32780261919a73819b6c2484f23c743716c2386` (20 October 2026), the base this round builds on. Rows changed after that commit name their own journeys under Evidence.
 
-INTAKE-008 and UPTIME-009 include the subsequent named API/browser journeys below.
-
-AGENT-004, AGENT-005, INTAKE-008 and UPTIME-009 are proven by their named API and browser journeys below.
+INTAKE-009 includes the subsequent named API and browser journey below.
 
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
 | Published | 104 | 0 | 0 | 104 |
-| Target and push further | 19 | 33 | 42 | 94 |
-| All | 123 | 33 | 42 | 198 |
+| Target and push further | 20 | 32 | 42 | 94 |
+| All | 124 | 32 | 42 | 198 |
 
 | Clause | Title | Kind | Status | Evidence | Gap |
 | --- | --- | --- | --- | --- | --- |
@@ -1235,7 +1237,7 @@ AGENT-004, AGENT-005, INTAKE-008 and UPTIME-009 are proven by their named API an
 | `INTAKE-006` | Monitor presets | published | done | `tests/e2e/channels-and-presets.test.mjs` |  |
 | `INTAKE-007` | Preset recovery | published | done | `tests/e2e/channels-and-presets.test.mjs` |  |
 | `INTAKE-008` | Uptime preset | target | done | `src/core/features/intake/uptime.ts`, `src/core/features/intake/service.ts`, `src/core/features/intake/ui/uptime-preset-card.tsx`, `tests/e2e/channels-and-presets.test.mjs`, `tests/e2e/helpers/uptime-preset-flow.mjs` |  |
-| `INTAKE-009` | PagerDuty | target | partial | `src/core/features/intake/service.ts`, `tests/e2e/publishing-contract.test.mjs` | A bearer-token generic source with JSON-path mapping can receive PagerDuty webhooks sent with a custom header. There is no preset, no v3 signature check and no note back to PagerDuty. |
+| `INTAKE-009` | PagerDuty | target | done | `src/core/features/intake/`, `tests/e2e/channels-and-presets.test.mjs` ("INTAKE-009 PagerDuty v3 signed events create drafts, brief entries and one note per publication"), `tests/e2e/helpers/pagerduty-flow.mjs` |  |
 | `INTAKE-010` | Prometheus Alertmanager and Grafana Alerting | target | done | `src/core/features/intake/grouped-alerts.ts`, `src/core/features/intake/grouped-repository.ts`, `src/core/features/intake/ui/grouped-preset-card.tsx`, `tests/e2e/helpers/grouped-alerts-flow.mjs`, `tests/e2e/export-import.test.mjs` | Alertmanager v4 and Grafana v1 default grouped webhooks authenticate with bearer tokens, match exact labels to multiple components and deduplicate groups and alert fingerprints into private incidents. Mixed and partial recoveries retain firing members; complete recovery closes only unpublished drafts. Unmapped alerts show their reason. Worker, archive round-trip and 1440/390 browser journeys prove the saved configuration, receipts and private draft. |
 | `INTAKE-011` | New Relic, Datadog and Pingdom depth | target | partial | `src/core/features/intake/presets.ts`, `tests/e2e/channels-and-presets.test.mjs` | Datadog, UptimeRobot, Better Stack and Pingdom alert presets ship (INTAKE-006). New Relic and metric ingestion do not. |
 | `INTAKE-012` | Oncall | target | missing |  | Not built. |

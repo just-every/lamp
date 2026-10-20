@@ -1,0 +1,14 @@
+{
+  "event": {
+    "id": "01PDTRIGGERED1",
+    "event_type": "incident.triggered",
+    "occurred_at": "2026-10-20T01:00:00.000Z",
+    "agent": { "type": "user_reference", "summary": "Primary responder" },
+    "data": {
+      "id": "PDINC1",
+      "type": "incident",
+      "title": "API elevated errors",
+      "service": { "id": "PAPI123", "summary": "Production API" }
+    }
+  }
+}
