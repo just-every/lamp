@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+US spelling in CONTRACT.md and ACCEPTANCE.md; spelling only, meaning unchanged. The release inventory records PAGE-004, PAGE-006, PAGE-007, PAGE-010, PAGE-012, UPTIME-006, UPDATE-005, MAINT-006, SETUP-002, MOVE-006 as changed because their published text uses US spelling. Clause IDs, row titles, Status values, identifiers, paths, URLs and protocol tokens retain their existing values.
+
 ## 1.9.0
 
 **Managed installations build again.** Lamp 1.8.0 and 1.8.1 patched their pinned rer (0.2.63) so the sign-in page offered your identity providers beside the owner entry. Run Edit Run's trusted build checks that `pnpm-lock.yaml` locks the plain rer release (`rer check --profile first-party`, SC-13) and refused the patched lock, so a new Managed installation of 1.8.1 could not be built. Lamp 1.9.0 pins rer 0.2.71, which offers those sign-in choices itself, and carries no rer patch: the `patches/` directory and the `patchedDependencies` entry are gone and the trusted build's checks pass. The sign-in page looks and works as before.
