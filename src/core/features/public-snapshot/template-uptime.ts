@@ -19,7 +19,7 @@ export function uptimeHeatmap(model: PublicSnapshotModel) {
       const label = `${component.name}, ${mark.day}: ${state}${incident ? `; ${incident.title}` : ""}`;
       const cls = mark.downtimeMinutes === null ? "no-data" : mark.downtimeMinutes > 0 ? `downtime${mark.worstDowntimeState === "Major outage" ? " major-outage" : ""}` : "good";
       const attr = `class="uptime-mark ${cls}${incident ? " incident-day" : ""}" aria-label="${escapeHtml(label)}" title="${escapeHtml(label)}"`;
-      return `<span role="listitem">${incident ? `<a ${attr} href="/incidents/${encodeURIComponent(incident.reference)}"></a>` : `<span ${attr}></span>`}</span>`;
+      return `<span role="listitem">${incident ? `<a ${attr} href="/incidents/${encodeURIComponent(incident.reference)}"></a>` : `<span role="img" ${attr}></span>`}</span>`;
     }).join("");
     const coverage = component.uptime.percentage === null ? "No data" : `${component.uptime.percentage} · ${component.uptime.coverageDays < 1 ? "less than a day" : `${component.uptime.coverageDays} days`} observed`;
     return `<article class="heatmap-row"><div class="component-name"><h3>${escapeHtml(component.name)}</h3>${statePill(component.state)}<span class="heatmap-percentage">${coverage}</span></div>${component.description ? `<details class="component-description"><summary>About ${escapeHtml(component.name)}</summary><p>${escapeHtml(component.description)}</p></details>` : ""}${component.note ? `<p class="component-note">${escapeHtml(component.note)}</p>` : ""}<div class="uptime-marks" role="list" aria-label="90-day history for ${escapeHtml(component.name)}">${marks}</div></article>`;
