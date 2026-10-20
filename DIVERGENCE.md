@@ -1514,3 +1514,15 @@ Uptime bars distinguish degraded/partial service (amber) from major outage
 Page marks show the business artwork cleanly; the favicon keeps its status dot.
 The footer links to the business website already read during setup. Development
 subscription mail remains silently suppressed, with the normal confirmation page.
+
+For PAGE-009, the owner's S4 replaces the generation time's visible clock with
+a relative label while script runs. Its absolute tooltip keeps the configured
+timezone and UTC offset, its datetime keeps the ISO instant, and the initial
+HTML remains absolute for readers without script. Incident and maintenance
+timestamps keep their existing display. The existing PAGE-014/PAGE-009 browser
+journey checks the relative label and the absolute tooltip together.
+
+For UPTIME-003, first-day coverage uses elapsed hours and minutes instead of
+zero whole days or a repeated tracking date. Zero elapsed time still says
+No data. Coverage from one whole day onward keeps its whole-day label. The
+existing uptime correction/coverage journey checks these first-day labels.
