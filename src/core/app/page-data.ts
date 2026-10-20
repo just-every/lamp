@@ -8,7 +8,7 @@ export function operatorPageReads(path: string): string[] {
   switch (path.replace(/\/$/, "")) {
     case "/app": return ["/api/app/overview"];
     case "/app/page": return ["/api/app/overview", "/api/app/page-settings"];
-    case "/app/move-in": return ["/api/app/website", "/api/app/statuspage-import/jobs"];
+    case "/app/move-in": return ["/api/app/website"];
     case "/app/incidents": return ["/api/app/incidents", components];
     case "/app/components": return [components];
     case "/app/maintenance": return ["/api/app/maintenance", components];

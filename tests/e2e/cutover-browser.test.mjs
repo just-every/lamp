@@ -45,7 +45,7 @@ test('MOVE-006 MOVE-009 rer setup twice, one-click sign-in, silent imports and b
       await page.getByRole('button',{name:"Skip, I'll fill it in"}).click();
       await page.getByRole('button',{name:'Edit page name'}).click();
       await page.getByLabel('Page name',{exact:true}).fill('Cutover fixture');
-      await page.getByRole('button',{name:'Looks right, open Lamp'}).click();await page.waitForURL('**/app');
+      await page.getByRole('button',{name:'Open Lamp',exact:true}).click();await page.waitForURL('**/app');
     }
     const api=async(path,body)=>{
       const response=body===undefined ? await page.request.get(origin+path) : await page.request.post(origin+path,{headers:{Origin:origin},data:body});
