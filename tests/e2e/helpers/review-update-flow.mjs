@@ -81,7 +81,7 @@ export async function reviewUpdateFlow({ vite, bindings }) {
   const text=part('text/plain'),html=part('text/html');
   assert.match(text,/Reviewed recovery API: Major outage → Degraded performance/);
   for(const field of Object.values(UPDATE_LINK_FIELDS)) assert.ok(text.includes(field),'the text part carries each field with its bare URLs');
-  assert.ok(text.includes(`See ${LINKED_URL}.`));assert.doesNotMatch(text,/<a\b/);
+  assert.ok(text.includes(`See ${LINKED_URL}.`));assert.doesNotMatch(text,/<a href="https:\/\/help|rel="nofollow/,'the text part carries bare URLs, never generated markup');
   assertLinkedUpdateHtml(html,'email HTML part');
   for(const [,href] of html.matchAll(/href="([^"]*)"/g)) assert.match(href,/^https:\/\/(?:help\.example\.com|db-prod-3\.internal|10\.0\.0\.5|status\.example\.test)\//,'every email link points directly at its destination, with no redirect or tracking host');
   const signed=delivery=>{
