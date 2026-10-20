@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { mkdir } from 'node:fs/promises';
 import { chromium } from 'playwright';
 import { groupedPayload } from './grouped-alerts-flow.mjs';
+import { operatorHydrated } from './operator-hydrated.mjs';
 
 export async function recoveryCheckFlow({ api, post, component, alertSource, draft, sql, origin, publicOrigin, devKey, cookie }) {
   const path = id => `/api/app/incidents/${id}`;
@@ -103,7 +104,7 @@ async function capture(page, origin, id, state, prepare) {
   for (const width of [1440, 390]) {
     await page.setViewportSize({ width, height: 1100 });
     await page.goto(`${origin}/app/incidents/${id}`);
-    await page.locator('.header-signout:enabled').waitFor();
+    await operatorHydrated(page);
     await page.getByRole('heading', { name: 'Recovery check', exact: true }).waitFor();
     await page.getByText('Checking the linked evidence…', { exact: true }).waitFor({ state: 'hidden' });
     await prepare?.(page);

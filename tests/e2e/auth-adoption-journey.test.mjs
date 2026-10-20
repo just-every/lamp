@@ -27,6 +27,9 @@ async function emailSignIn(context,origin,email,width,key){
  const session=await page.request.get(origin+'/api/app/session');assert.equal(session.status(),200);assert.equal((await session.json()).operator.email,email);return page;
 }
 async function signOut(page,origin){
+ await operatorHydrated(page);
+ const menu=page.getByRole('button',{name:'Menu',exact:true});
+ if(await menu.isVisible()&&!await page.getByRole('button',{name:'Sign out',exact:true}).isVisible())await menu.click();
  const response=page.waitForResponse(response=>new URL(response.url()).pathname==='/api/app/session/signout'&&response.request().method()==='POST');
  await page.getByRole('button',{name:'Sign out',exact:true}).click();
  const signedOut=await response;
