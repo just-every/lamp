@@ -14,8 +14,8 @@ const PRODUCT_PATH = /^\/(products?|apps?|tools?|services?)\/[^/]+/i;
 const SERVICE_NAME = /^(api|dashboard|console|web app|mobile app|website|storage|databases?|compute|cdn|authentication|payments|invoices|invoicing( and payments)?|timesheets|time tracking|reports|reporting|analytics|messaging|email|search|hosting)$/i;
 const STATUS_HOST = /(^|\.)(statuspage\.io|status\.io|instatus\.com|betteruptime\.com|statuspal\.io|hund\.io|status\.[a-z0-9-]+\.[a-z.]+)$|^status\./i;
 
-const PRODUCT_GROUP = /^(products?|platform|apps?|services?)$/i;
-const OTHER_GROUP = /^(company|resources?|developers?|support|solutions?|industries|use cases)$/i;
+const PRODUCT_GROUP = /^(products?( and pricing)?|platform|apps?|services?)$/i;
+const OTHER_GROUP = /^(company|community|social|resources?|developers?|support|solutions?|industries|use cases|integrations?( and custom solutions)?)$/i;
 // Feature navigation alone needs an operational area, not just a named benefit.
 const SERVICE_ENDING = /\b(hosting|analytics|monitoring|messaging|storage|payments|invoicing|reporting|analysis|builders?|players?|transcription|time tracking)$/i;
 const MARKETING_INDEX = /^\/(features?|benefits)(?:\/|$)$/i;
@@ -40,15 +40,17 @@ export function siteComponents(scan: HtmlScan, base: URL): SiteComponent[] {
     let url: URL;
     try { url = new URL(anchor.href, base); } catch { return []; }
     if (!/^https?:$/.test(url.protocol) || !(url.hostname === domain || url.hostname.endsWith(`.${domain}`)) || STATUS_HOST.test(url.hostname)) return [];
+    if (anchor.accountNavigation) return [];
     const text = anchor.name;
     const productGroup = anchor.groups.findLast(label => PRODUCT_GROUP.test(label) || OTHER_GROUP.test(label));
     const product = Boolean(productGroup && PRODUCT_GROUP.test(productGroup)) || PRODUCT_PATH.test(url.pathname);
     if (/^(plans?|search)$/i.test(text) && !product) return [];
     if (text.length < 2 || text.length > 40 || text.split(" ").length > 5 || GENERIC.test(text) || CHROME.test(text) || NON_SERVICE_NAME.test(text)) return [];
-    if (NON_SERVICE_PATH.test(url.pathname) || MARKETING_INDEX.test(url.pathname) || NON_SERVICE_HOST.test(url.hostname) || (url.pathname === "/" && url.hostname === base.hostname)) return [];
+    if ((NON_SERVICE_PATH.test(url.pathname) && !(product && /^\/auth\/?$/.test(url.pathname))) || MARKETING_INDEX.test(url.pathname) || NON_SERVICE_HOST.test(url.hostname) || (url.pathname === "/" && url.hostname === base.hostname)) return [];
     if (productGroup && OTHER_GROUP.test(productGroup)) return [];
-    const primary = product || url.hostname.replace(/^www\./, "") !== base.hostname.replace(/^www\./, "");
-    if (!primary && !SERVICE_NAME.test(text) && !SERVICE_ENDING.test(text)) return [];
+    const service = SERVICE_NAME.test(text) || SERVICE_ENDING.test(text);
+    const primary = product || service && url.hostname.replace(/^www\./, "") !== base.hostname.replace(/^www\./, "");
+    if (!primary && !service) return [];
     return [{ name: text, url: url.href, primary }];
   });
   let candidates = unique(consider(scan.anchors.filter(anchor => anchor.region === "nav" || anchor.region === "header")));

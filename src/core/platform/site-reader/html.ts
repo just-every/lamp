@@ -5,7 +5,7 @@ export { cleanText, decodeEntities } from "./text.ts";
 /** A tolerant text scan with a stack for navigation groups and link labels.
  * No page DOM is created and none of the page's scripts run. */
 export interface HtmlTag { name: string; attributes: Record<string, string> }
-export interface HtmlAnchor { href: string; text: string; name: string; groups: string[]; region: "nav" | "header" | "footer" | "body" }
+export interface HtmlAnchor { href: string; text: string; name: string; groups: string[]; accountNavigation: boolean; region: "nav" | "header" | "footer" | "body" }
 export interface HtmlScan { title: string | null; tags: HtmlTag[]; anchors: HtmlAnchor[]; styles: string[] }
 
 const TAG = /<!--[\s\S]*?-->|<(\/?)([a-zA-Z][a-zA-Z0-9-]*)((?:\s+[^\s"'>/=]+(?:\s*=\s*(?:"[^"]*"|'[^']*'|[^\s"'=<>`]+))?)*)\s*\/?>/g;
@@ -25,10 +25,10 @@ function attributesOf(source: string) {
 
 export function scanHtml(html: string): HtmlScan {
   const tags: HtmlTag[] = [], anchors: HtmlAnchor[] = [], styles: string[] = [];
-  const stack: { tag: string; group: string; label?: string }[] = [];
+  const stack: { tag: string; group: string; accountNavigation: boolean; label?: string }[] = [];
   const lower = html.toLowerCase();
   let title: string | null = null, titleStart = -1;
-  let anchor: { href: string; text: string; label: string; parts: LinkText; region: HtmlAnchor["region"]; groups: string[] } | null = null;
+  let anchor: { href: string; text: string; label: string; parts: LinkText; region: HtmlAnchor["region"]; groups: string[]; accountNavigation: boolean } | null = null;
   TAG.lastIndex = 0;
   let previous = 0;
   for (let match = TAG.exec(html); match; match = TAG.exec(html)) {
@@ -53,7 +53,7 @@ export function scanHtml(html: string): HtmlScan {
     }
     if (closing) {
       if (name === "a" && anchor) {
-        anchors.push({ href: anchor.href, text: cleanText(anchor.text) || cleanText(anchor.label), name: anchor.parts.name(anchor.label), region: anchor.region, groups: anchor.groups });
+        anchors.push({ href: anchor.href, text: cleanText(anchor.text) || cleanText(anchor.label), name: anchor.parts.name(anchor.label), region: anchor.region, groups: anchor.groups, accountNavigation: anchor.accountNavigation });
         anchor = null;
       } else anchor?.parts.close(name);
       const at = stack.findLastIndex(frame => frame.tag === name);
@@ -67,11 +67,13 @@ export function scanHtml(html: string): HtmlScan {
     const attributes = attributesOf(match[3]);
     if (name === "a") {
       const region = (["nav", "header", "footer"] as const).find(kind => stack.some(frame => frame.tag === kind)) ?? "body";
-      anchor = attributes.href ? { href: attributes.href, text: "", label: attributes["aria-label"] ?? attributes.title ?? "", parts: new LinkText(attributes), region, groups: stack.map(frame => frame.group).filter(Boolean) } : null;
+      anchor = attributes.href ? { href: attributes.href, text: "", label: attributes["aria-label"] ?? attributes.title ?? "", parts: new LinkText(attributes), region, groups: stack.map(frame => frame.group).filter(Boolean), accountNavigation: stack.some(frame => frame.accountNavigation) } : null;
     } else anchor?.parts.open(name, attributes);
     if (name === "img" && anchor) anchor.label ||= attributes.alt ?? "";
     else if (KEPT.has(name)) tags.push({ name, attributes });
-    if (!VOID.has(name) && !/\/\s*>$/.test(match[0])) stack.push({ tag: name, group: attributes["aria-label"] ?? "", ...(!anchor && /^(button|h[1-6]|summary)$/.test(name) ? { label: "" } : {}) });
+    if (!VOID.has(name) && !/\/\s*>$/.test(match[0])) stack.push({ tag: name, group: attributes["aria-label"] ?? "",
+      accountNavigation: /^(auth|authenticated|isAuthenticated|loggedIn|isLoggedIn|signedIn|isSignedIn)$/i.test(attributes["x-show"] ?? ""),
+      ...(!anchor && (/^(button|h[1-6]|summary)$/.test(name) || attributes.role === "heading" || /(?:^|[\s_-])(title|heading)(?:$|[\s_-])/i.test(attributes.class ?? "")) ? { label: "" } : {}) });
   }
   return { title, tags, anchors, styles };
 }
