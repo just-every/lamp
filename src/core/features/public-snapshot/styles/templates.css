@@ -1,0 +1,80 @@
+/* Built-in templates are scoped; the original page retains its existing appearance. */
+body[data-template] { background: var(--paper); }
+body[data-template] .page { max-width: 1088px; padding-inline: 48px; }
+body[data-template] .masthead { padding: 42px 0 38px; border-bottom: 1px solid var(--line); }
+body[data-template] .brand-logo { border-radius: 0; background: none; box-shadow: none; object-fit: contain; }
+body[data-template] #status-live { border: 0; border-radius: 0; padding: 68px 0 24px; background: none; box-shadow: none; }
+body[data-template] h1 { max-width: 20ch; margin: 18px 0 0; font-size: clamp(36px, 4vw, 54px); font-weight: 500; letter-spacing: -.035em; line-height: 1.12; }
+.template-status-label { display: flex; align-items: center; gap: 9px; margin: 0; color: var(--ink-2); font-size: 14px; }
+.template-status-dot { width: 9px; height: 9px; flex: none; border-radius: 50%; background: var(--ok); }
+.partially-unavailable .template-status-dot, .degraded-performance .template-status-dot { background: var(--degraded); }
+.major-outage .template-status-dot { background: var(--down); }
+.under-maintenance .template-status-dot { background: var(--maint); }
+body[data-template] .status-live-update { max-width: 72ch; margin-top: 20px; padding: 0; border: 0; }
+body[data-template] .status-generated { margin-top: 12px; }
+body[data-template] .component-health, body[data-template] .history-timeline { margin-top: 48px; }
+body[data-template] .component-name h3 { flex: 1 1 auto; margin: 0; font-size: 16px; overflow-wrap: anywhere; }
+body[data-template] .component { border-bottom: 1px solid var(--line); }
+body[data-template] .component + .component { border-top: 0; }
+body[data-template] .component-status { margin-top: 4px; }
+body[data-template] .state-pill { border: 0; border-radius: 0; background: none; padding: 0; white-space: normal; }
+body[data-template] .timeline-entry, body[data-template] .resolved-list, body[data-template] .subscribe { border: 0; border-radius: 0; background: none; box-shadow: none; }
+body[data-template] .timeline-entry { border-top: 1px solid var(--line); padding: 24px 0; }
+body[data-template] .resolved-list .timeline-resolved { padding: 20px 0; }
+body[data-template] .subscribe { margin-top: 52px; border-top: 1px solid var(--line); padding: 32px 0 0; }
+body[data-template] .status-utilities a, body[data-template] .subscribe button { border-radius: 5px; box-shadow: none; }
+.template-history-link { margin: 20px 0 0; font-size: 14px; }
+.template-empty { margin: 40px 0; color: var(--ink-2); }
+/* A single aligned history surface puts every component on the same daily axis. */
+body[data-template="uptime"] #status-live { padding-top: 36px; padding-bottom: 0; }
+body[data-template="uptime"] h1 { max-width: none; margin-top: 10px; font-size: 28px; }
+.uptime-hero { margin: 48px 0 0; }
+.uptime-hero-number { margin: 8px 0 12px; font-size: clamp(62px, 9vw, 112px); line-height: 1; font-weight: 500; letter-spacing: -.065em; font-variant-numeric: tabular-nums; }
+.uptime-hero-number span { font-size: .55em; margin-left: 5px; }
+.uptime-hero > p:last-child { max-width: 62ch; margin-bottom: 0; color: var(--ink-2); font-size: 13px; }
+.heatmap-dates { display: flex; justify-content: space-between; color: var(--ink-3); font-size: 12px; }
+.heatmap-row { min-width: 0; border-bottom: 1px solid var(--line); padding: 20px 0; }
+.heatmap-row .uptime-marks { margin-top: 12px; height: 22px; }
+.heatmap-row .uptime-marks > span { display: block; min-width: 0; }
+.heatmap-row .uptime-mark { width: 100%; height: 100%; border-radius: 1px; }
+.heatmap-row .incident-day { border-bottom: 3px solid var(--ink); }
+.heatmap-percentage { color: var(--ink-2); font-size: 12px; font-variant-numeric: tabular-nums; }
+.heatmap > .availability-legend { margin-top: 20px; color: var(--ink-2); font-size: 12px; }
+.heatmap-help { margin: 12px 0; color: var(--ink-3); font-size: 13px; }
+.heatmap .availability-method { font-size: 13px; }
+.heatmap .availability-method summary { margin-left: 0; }
+/* Geography is navigation, with the component list usable before JavaScript runs. */
+.regions-map { margin-top: 36px; }
+.regions-map svg { display: block; width: 100%; height: auto; overflow: visible; }
+.world-dots { fill: #bcc6be; }
+.map-marker { fill: var(--ok); text-decoration: none; }
+.map-marker > circle:first-of-type { fill-opacity: .13; stroke: currentColor; stroke-width: 1; color: var(--ok); }
+.map-marker.degraded-performance, .map-marker.partially-unavailable { fill: var(--degraded); }
+.map-marker.major-outage { fill: var(--down); }
+.map-marker.under-maintenance { fill: var(--maint); }
+.map-marker text { fill: var(--ink); font: 500 13px var(--public-font); paint-order: stroke; stroke: var(--paper); stroke-width: 4px; stroke-linejoin: round; }
+.map-caption { margin: 6px 0 0; color: var(--ink-3); font-size: 12px; }
+.region-filters { display: flex; flex-wrap: wrap; gap: 8px; margin: 20px 0 24px; }
+.region-filters a { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; border: 1px solid var(--line-strong); border-radius: 5px; padding: 8px 14px; text-decoration: none; font-size: 13px; }
+.region-filters a[aria-current="true"] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.region-filters span { font-size: 11px; }
+.region-heading { margin: 24px 0 0; color: var(--ink-3); font-size: 13px; }
+.region-section[hidden] { display: none; }
+@media (max-width: 640px) {
+  body[data-template] .page { padding-inline: 20px; }
+  body[data-template] .masthead { padding: 24px 0; }
+  body[data-template] #status-live { padding: 44px 0 4px; }
+  body[data-template] h1 { font-size: 38px; }
+  body[data-template] .component-health, body[data-template] .history-timeline { margin-top: 36px; }
+  body[data-template] .subscribe { padding: 26px 0 0; }
+  .heatmap-row .component-name { gap: 8px; }
+  .heatmap-row .component-name h3 { flex-basis: 100%; }
+  .heatmap-percentage { flex-basis: 100%; }
+  .heatmap-row .uptime-marks { gap: 1px; height: 22px; }
+  .uptime-hero { margin-top: 36px; }
+  .regions-map { margin-top: 32px; }
+  .regions-map svg { margin-inline: -10px; width: calc(100% + 20px); }
+  .map-marker text { display: none; }
+  .region-filters { gap: 6px; }
+  .region-filters a { padding-inline: 10px; }
+}

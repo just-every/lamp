@@ -1563,3 +1563,15 @@ existing typography, colours and surfaces stay as they are.
 ## Lamp L10 follow-up and L17 names (owner, 20 October 2026)
 
 Operator screens use the owner's words, including folded reports and history controls. Development and demo mail stays silent and shows the same accepted-send success as a real send; stored outcomes and real delivery behavior stay intact. Website component suggestions prefer supported product navigation, strip decorative badges and descriptions, exclude account/community/company navigation, and retain the eight-name cap.
+
+
+## Built-in public page templates — owner L9, 20 October 2026
+
+The original public page remains the default. Settings can publish Calm headline,
+Uptime-history-led, or Regions map using the same business branding and public
+facts. The saved template and why it is showing stay visible in Settings. Regions
+map requires a visible component with an optional region; labels without a known
+broad geographic position stay filterable and are explicitly identified. Removing
+the last region preserves the chosen layout with an unavailable-map explanation,
+never an unannounced switch. Built-in choices do not require AI. Generated house
+style is a later feature and is not offered as an implemented option.

@@ -1,3 +1,4 @@
+import { templateChoiceFlow } from './helpers/template-choice-flow.mjs';
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { execFileSync, execFile, spawn } from 'node:child_process';
@@ -123,6 +124,8 @@ test('SETUP-001 Lamp publishes and checks the page on its own: Overview shows on
     assert.equal(saved.pageName, 'Customer status');
     assert.equal(saved.tagline, 'Current service availability');
     assert.equal(saved.timezone, 'Australia/Brisbane');
+    diagnostics.phase = 'template-choice';
+    await templateChoiceFlow({ page, origin, publicOrigin, api });
     diagnostics.phase = 'settings-sender';
     await page.goto(`${origin}/app/settings#notifications`);
     await page.getByRole('heading', { name: 'Notification email', exact: true }).waitFor();
@@ -132,12 +135,15 @@ test('SETUP-001 Lamp publishes and checks the page on its own: Overview shows on
     await page.goto(`${origin}/app/components`);
     await page.getByRole('heading', { name: 'Add component', exact: true }).waitFor();
     await page.getByLabel('Component name', { exact: true }).fill('API');
+    await page.getByRole('combobox', { name: /^Region / }).fill('Europe');
     const createdComponent = page.waitForResponse(response => new URL(response.url()).pathname === '/api/app/components' && response.request().method() === 'POST');
     await page.getByRole('button', { name: 'Create component', exact: true }).click();
     const componentResponse = await createdComponent;
     assert.equal(componentResponse.ok(), true);
     const { component } = await componentResponse.json();
     assert.equal((await api('/api/app/components')).components.find(item => item.id === component.id)?.name, 'API');
+    diagnostics.phase = 'template-regions';
+    await templateChoiceFlow({ page, origin, publicOrigin, api, withRegions: true });
     diagnostics.phase = 'publish';
     const { incident } = await api('/api/app/incidents','POST',{ title: 'Brief service interruption', components: [{ componentId: component.id, state: 'Degraded performance', relationship: 'Primary' }] });
     const current = (await api(`/api/app/incidents/${incident.id}`)).incident;

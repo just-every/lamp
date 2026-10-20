@@ -81,6 +81,7 @@ export function catalogueFromCsv(csv: string, current: ComponentCatalogue): Comp
       id, groupId,
       name: values.name.trim(),
       description: values.description ?? existing?.description ?? "",
+      region: existing?.region ?? null,
       displayOrder: values.display_order?.trim() ? order(values.display_order.trim(), "display_order", number) : existing?.displayOrder ?? Math.max(-1, ...catalogue.components.map(item => item.displayOrder)) + 1,
       note: values.note ?? existing?.note ?? "",
       internal: values.internal !== undefined ? boolean(values.internal.trim().toLowerCase(), "internal", number) : existing?.internal ?? false,

@@ -12,7 +12,7 @@ export function createCatalogueRepository(binding: D1Database) {
       const results = await binding.batch<Record<string, unknown>>([
         binding.prepare("SELECT requested_revision AS revision FROM public_snapshot_work WHERE id = 'default'"),
         binding.prepare("SELECT id,name,display_order AS displayOrder FROM component_groups ORDER BY display_order,id"),
-        binding.prepare("SELECT id,group_id AS groupId,name,description,internal,only_show_if_degraded AS onlyShowIfDegraded,uptime_start_date AS uptimeStartDate,display_order AS displayOrder,note FROM components ORDER BY display_order,id"),
+        binding.prepare("SELECT id,group_id AS groupId,name,description,region,internal,only_show_if_degraded AS onlyShowIfDegraded,uptime_start_date AS uptimeStartDate,display_order AS displayOrder,note FROM components ORDER BY display_order,id"),
       ]);
       const revision = results[0].results[0]?.revision;
       if (typeof revision !== "number") throw new Error("Catalogue revision is unavailable.");
@@ -40,8 +40,8 @@ export function createCatalogueRepository(binding: D1Database) {
       for (const component of catalogue.components) {
         const existing = previousComponents.get(component.id);
         if (existing && JSON.stringify(existing) === JSON.stringify(component)) continue;
-        statements.push(binding.prepare("INSERT INTO components (id,group_id,name,description,internal,only_show_if_degraded,uptime_start_date,display_order,note,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET group_id=excluded.group_id,name=excluded.name,description=excluded.description,internal=excluded.internal,only_show_if_degraded=excluded.only_show_if_degraded,uptime_start_date=excluded.uptime_start_date,display_order=excluded.display_order,note=excluded.note,updated_at=excluded.updated_at")
-          .bind(component.id, component.groupId, component.name, component.description, component.internal ? 1 : 0, component.onlyShowIfDegraded ? 1 : 0, component.uptimeStartDate, component.displayOrder, component.note, now, now));
+        statements.push(binding.prepare("INSERT INTO components (id,group_id,name,description,region,internal,only_show_if_degraded,uptime_start_date,display_order,note,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET group_id=excluded.group_id,name=excluded.name,description=excluded.description,region=excluded.region,internal=excluded.internal,only_show_if_degraded=excluded.only_show_if_degraded,uptime_start_date=excluded.uptime_start_date,display_order=excluded.display_order,note=excluded.note,updated_at=excluded.updated_at")
+          .bind(component.id, component.groupId, component.name, component.description, component.region === undefined ? existing?.region ?? null : component.region, component.internal ? 1 : 0, component.onlyShowIfDegraded ? 1 : 0, component.uptimeStartDate, component.displayOrder, component.note, now, now));
         if (!existing) {
           statements.push(binding.prepare("INSERT INTO component_claim_events (id,component_id,cause_type,cause_id,state,changed_at,created_at,updated_at) VALUES (?,?,'standing-claim',NULL,'Operational',?,?,?)").bind(createUlid(), component.id, now, now, now));
           statements.push(binding.prepare("INSERT INTO component_state_history (id,component_id,previous_state,new_state,cause_type,cause_id,operator_id,changed_at,created_at,updated_at) VALUES (?,?,'Operational','Operational','standing-claim',NULL,?,?,?,?)").bind(createUlid(), component.id, operatorId, now, now, now));

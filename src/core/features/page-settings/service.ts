@@ -8,6 +8,7 @@ import type { PageSettingsRepository, StoredPageSettings } from "./repository";
 import { emailBrandingSchema, type EmailBranding } from "../../shared/email-branding";
 
 export class UnsupportedMailIdentityError extends Error {}
+export class UnavailablePageTemplateError extends Error {}
 
 const MAX_LOGO_BYTES = 2 * 1024 * 1024;
 const LOGO_CONTENT_TYPES = new Set(["image/png", "image/jpeg", "image/webp"]);
@@ -17,6 +18,7 @@ export type PageSettingsView = Omit<StoredPageSettings, "widgetAllowedOrigins" |
   mailIdentityEditable: boolean;
   widgetAllowedOrigins: string[];
   wordingBlockedTerms: string[];
+  regionsAvailable: boolean;
 };
 
 export interface PageSettingsService {
@@ -27,10 +29,10 @@ export interface PageSettingsService {
   removeLogo(): Promise<PageSettingsView | null>;
 }
 
-function toView(settings: StoredPageSettings, mailIdentityEditable: boolean): PageSettingsView {
+function toView(settings: StoredPageSettings, mailIdentityEditable: boolean, regionsAvailable: boolean): PageSettingsView {
   const wordingBlockedTerms: unknown = JSON.parse(settings.wordingBlockedTerms);
   if (!Array.isArray(wordingBlockedTerms) || wordingBlockedTerms.some(term => typeof term !== "string")) throw new Error("Wording check terms are invalid.");
-  return { ...settings, emailBranding: emailBrandingSchema.parse(JSON.parse(settings.emailBranding)), mailIdentityEditable, wordingBlockedTerms, widgetAllowedOrigins: parseWidgetAllowedOrigins(settings.widgetAllowedOrigins) };
+  return { ...settings, emailBranding: emailBrandingSchema.parse(JSON.parse(settings.emailBranding)), mailIdentityEditable, regionsAvailable, wordingBlockedTerms, widgetAllowedOrigins: parseWidgetAllowedOrigins(settings.widgetAllowedOrigins) };
 }
 
 export function createPageSettingsService(
@@ -48,14 +50,17 @@ export function createPageSettingsService(
 
   async function rebuildAndRead() {
     await onPublicDataChanged();
-    const settings = await repository.get();
-    return settings ? toView(settings, mailIdentityEditable) : null;
+    return readView();
+  }
+
+  async function readView() {
+    const [settings, regionsAvailable] = await Promise.all([repository.get(), repository.hasVisibleRegion()]);
+    return settings ? toView(settings, mailIdentityEditable, regionsAvailable) : null;
   }
 
   return {
     async get() {
-      const settings = await repository.get();
-      return settings ? toView(settings, mailIdentityEditable) : null;
+      return readView();
     },
     async ensureInitial(settings) {
       const timestamp = nowIso();
@@ -64,6 +69,7 @@ export function createPageSettingsService(
       await repository.insertIfMissing({
         id: "default",
         ...settings,
+        template: settings.template ?? "default",
         emailBranding: JSON.stringify(settings.emailBranding ?? {}),
         widgetAllowedOrigins: JSON.stringify(settings.widgetAllowedOrigins ?? []),
         mailFromAddress,
@@ -77,6 +83,8 @@ export function createPageSettingsService(
     },
     async update(settings) {
       const existing = await readRequired();
+      const template = settings.template ?? existing.template;
+      if (template === "regions" && !await repository.hasVisibleRegion()) throw new UnavailablePageTemplateError("Regions map is unavailable because no visible component has a region. Add a region to a public component or choose another template.");
       if (!mailIdentityEditable && (settings.emailBranding?.displayName || settings.emailBranding?.replyTo)) throw new UnsupportedMailIdentityError("Managed mail controls From and Reply-To. Clear those fields; subject, logo and message wording remain editable.");
       await repository.update({
         pageName: settings.pageName,
@@ -85,6 +93,7 @@ export function createPageSettingsService(
         timezone: settings.timezone,
         hostname: settings.hostname,
         footerCreditEnabled: settings.footerCreditEnabled,
+        template,
         widgetAllowedOrigins: JSON.stringify(settings.widgetAllowedOrigins ?? parseWidgetAllowedOrigins(existing.widgetAllowedOrigins)),
         mailFromAddress: settings.mailFromAddress ?? existing.mailFromAddress,
         emailBranding: settings.emailBranding ? JSON.stringify(settings.emailBranding) : existing.emailBranding,

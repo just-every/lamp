@@ -11,13 +11,14 @@ import { LoadingState, useOperatorTime, FormError } from "../../../app/client/ui
 import { usePageTimezone, fromPageDateTime } from "../../../app/client/ui/timezone";
 
 type ComponentGroup = Awaited<ReturnType<ComponentsService["listGroups"]>>[number];
-type ComponentInput = Pick<ComponentView, "groupId" | "name" | "description" | "internal" | "note" | "onlyShowIfDegraded" | "uptimeStartDate">;
+type ComponentInput = Pick<ComponentView, "groupId" | "name" | "description" | "region" | "internal" | "note" | "onlyShowIfDegraded" | "uptimeStartDate">;
 
 export function ComponentEditorDrawer({ component, groups, defaultGroupId = null, defaultDisplayOrder, onClose, onSaved }: { component: ComponentView | null; groups: ComponentGroup[]; defaultGroupId?: string | null; defaultDisplayOrder: number; onClose: () => void; onSaved: () => void }) {
   const [input, setInput] = useState<ComponentInput>({
     groupId: component?.groupId ?? defaultGroupId,
     name: component?.name ?? "",
     description: component?.description ?? "",
+    region: component?.region ?? null,
     internal: component?.internal ?? false,
     onlyShowIfDegraded: component?.onlyShowIfDegraded ?? false,
     uptimeStartDate: component?.uptimeStartDate ?? null,
@@ -59,6 +60,7 @@ export function ComponentEditorDrawer({ component, groups, defaultGroupId = null
     <form className="component-editor-form" onSubmit={save}>
       <label className="form-label">Component name<input required maxLength={120} value={input.name} onChange={(event) => setInput({ ...input, name: event.target.value })} /></label>
       <label className="form-label">Description <span className="field-hint">Optional · shown publicly</span><textarea maxLength={500} value={input.description} onChange={(event) => setInput({ ...input, description: event.target.value })} /></label>
+      <label className="form-label">Region <span className="field-hint">Optional · shown publicly</span><input maxLength={80} list="component-region-options" value={input.region ?? ""} onChange={(event) => setInput({ ...input, region: event.target.value || null })} /><datalist id="component-region-options">{["North America", "South America", "Europe", "Africa", "Asia Pacific", "Middle East"].map(region => <option key={region} value={region} />)}</datalist><small>Group this component by location in the Regions map template.</small></label>
       <label className="form-label">Uptime start date<input type="date" value={input.uptimeStartDate ?? ""} onChange={(event) => setInput({ ...input, uptimeStartDate: event.target.value || null })} /><small>Only show uptime from this date in the page's timezone. Earlier state history is kept.</small></label>
       <label className="checkbox-label"><input type="checkbox" checked={input.onlyShowIfDegraded} onChange={(event) => setInput({ ...input, onlyShowIfDegraded: event.target.checked })} />Show only when not Operational</label>
       <label className="form-label">State note <span className="field-hint">Optional · 250 characters · shown beside public state</span><textarea maxLength={250} value={input.note} onChange={(event) => setInput({ ...input, note: event.target.value })} /></label>

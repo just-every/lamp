@@ -20,6 +20,7 @@ import { ImportDoorSetting } from "./import-door-setting";
 import { AiAssistanceCard, type AiStatus } from "./ai-assistance-card";
 import { PageDataCard } from "../../page-export/ui/page-data-card";
 import { PageHero } from "./page-hero";
+import { TemplateChoice } from "./template-choice";
 import { BrandCard } from "./brand-card";
 import { SenderStatusLine } from "./sender-status";
 import { SettingsTabs, useSettingsTab } from "./settings-tabs";
@@ -33,6 +34,7 @@ type SettingsForm = Omit<Required<PageSettingsInput>, "emailBranding"> & { email
 function toSettingsForm(settings: PageSettingsView): SettingsForm {
   return {
     pageName: settings.pageName,
+    template: settings.template,
     tagline: settings.tagline,
     accentColor: settings.accentColor,
     timezone: settings.timezone,
@@ -107,6 +109,7 @@ export function SettingsPage() {
     <SettingsTabs current={tab} />
     {tab === "page" ? form(<>
       <PageHero live={live} pageName={settings.pageName} accentColor={settings.accentColor} markSrc={markSrc} components={components} />
+      <TemplateChoice value={settings.template} showing={saved.template} regionsAvailable={saved.regionsAvailable} onChange={(value) => update("template", value)} />
       <div className="settings-pair">
         <section className="data-card page-card" aria-labelledby="page-card-title">
           <p className="card-kicker" id="page-card-title">Page</p>

@@ -2,7 +2,7 @@ import type { Hono } from "hono";
 
 import type { AppEnv } from "../../app/types";
 import { pageSettingsSchema } from "../../shared/schemas";
-import { UnsupportedMailIdentityError, type PageSettingsService } from "./service";
+import { UnavailablePageTemplateError, UnsupportedMailIdentityError, type PageSettingsService } from "./service";
 
 const BRAND_ARTIFACTS = { mark: "assets/mark.svg", favicon: "assets/favicon.svg", social: "assets/og.svg", logo: "assets/logo" } as const;
 
@@ -35,7 +35,7 @@ export function registerPageSettingsRoutes(app: Hono<AppEnv>, service: PageSetti
       const settings = await service.update(parsed.data);
       return settings ? context.json({ settings }) : context.json({ error: "Page settings are not configured." }, 404);
     } catch (cause) {
-      if (cause instanceof UnsupportedMailIdentityError) return context.json({ error: cause.message }, 400);
+      if (cause instanceof UnsupportedMailIdentityError || cause instanceof UnavailablePageTemplateError) return context.json({ error: cause.message }, 400);
       throw cause;
     }
   });

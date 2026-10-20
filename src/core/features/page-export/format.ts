@@ -75,6 +75,8 @@ export const pageDataFileSchema = z.object({
     accentColor: z.string().regex(/^#[0-9A-Fa-f]{6}$/),
     timezone: z.string().min(1).max(100),
     footerCreditEnabled: z.boolean(),
+    // Keep absent in parsed older files so their signed content stays unchanged.
+    template: z.enum(["default", "calm", "uptime", "regions"]).optional(),
     widgetAllowedOrigins: z.array(z.string()).max(50),
     aiToneInstructions: z.string(),
     emailBranding: emailBrandingSchema.optional(),
