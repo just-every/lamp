@@ -1,10 +1,11 @@
 import type { SVGProps } from "react";
 
-type IconName = "plus" | "overview" | "incident" | "components" | "maintenance" | "subscribers" | "deliveries" | "settings" | "external" | "arrow" | "check" | "warning" | "clock" | "close";
+type IconName = "plus" | "overview" | "page" | "incident" | "components" | "maintenance" | "subscribers" | "deliveries" | "settings" | "external" | "arrow" | "check" | "warning" | "clock" | "close";
 
 const paths: Record<IconName, string> = {
   plus: "M12 5v14M5 12h14",
   overview: "M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z",
+  page: "M3 5h18v14H3zM3 9h18M6 7h.01M9 7h.01",
   incident: "M12 3 21 20H3L12 3Zm0 6v4m0 3h.01",
   components: "M5 5h5v5H5zM14 5h5v5h-5zM5 14h5v5H5zM14 14h5v5h-5zM10 7.5h4M7.5 10v4M16.5 10v4",
   maintenance: "M14.7 6.3a5 5 0 0 0-6.9 6.9L3 18l3 3 4.8-4.8a5 5 0 0 0 6.9-6.9l-3 3-2.4-2.4 2.4-3.6Z",

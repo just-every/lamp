@@ -205,7 +205,7 @@
     },
     {
       "id": "operator-readiness",
-      "description": "Saved setup checklist and owner-terminal issuance of native single-use sign-in links.",
+      "description": "Website-first setup, Lamp's own live checks, and owner-terminal issuance of native single-use sign-in links.",
       "clauses": [
         "SETUP-001",
         "ACCESS-001",

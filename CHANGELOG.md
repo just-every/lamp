@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+**Your status page, from your website.** First run asks for your website, reads it once and fills in the page name, tagline, mark, accent colour and first components from it, with the time zone from your browser; you check it on one card and open Lamp. A site Lamp cannot read leaves plain defaults. Settings → Page can read the site again, and logo upload now takes SVG (stored as a PNG). The website reader (`src/core/platform/site-reader/`) is self-contained for other seeds to adopt.
+
+**Setup that runs itself.** The eight-step checklist is gone. Lamp checks its own public page and subscribe form after every publish and every minute, and a hosted sender when it changes; Overview shows one line, amber only when a check fails. Review page opens Your page (`/app/page`); Settings opens on your page's address, mark and look, with the rest behind tabs. The page after subscribing, and the confirm, manage and unsubscribe pages, are one branded card.
+
+Upgrading: no migration. Old setup-checklist rows stay in `setup_readiness` and are no longer read.
+
 US spelling in CONTRACT.md and ACCEPTANCE.md; spelling only, meaning unchanged. The release inventory records PAGE-004, PAGE-006, PAGE-007, PAGE-010, PAGE-012, UPTIME-006, UPDATE-005, MAINT-006, SETUP-002, MOVE-006 as changed because their published text uses US spelling. Clause IDs, row titles, Status values, identifiers, paths, URLs and protocol tokens retain their existing values.
 
 ## 1.9.0

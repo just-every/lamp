@@ -108,3 +108,26 @@
   .receipt-card td::before { content: attr(data-label); color: var(--ink-3); font-size: 12px; }
   .receipt-card td[colspan] { display: block; }
 }
+
+/* First run, Your page and Settings stack under 900px; the hero's small preview gives way first. */
+@media (max-width: 1180px) {
+  .page-hero { grid-template-columns: 84px minmax(0, 1fr); }
+  .page-hero-preview { display: none; }
+}
+@media (max-width: 900px) {
+  .your-page-grid, .settings-pair { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 760px) {
+  .found-card { grid-template-columns: minmax(0, 1fr); }
+  .found-preview { border-top: 1px solid var(--line); border-left: 0; padding: 20px 0 0; }
+}
+@media (max-width: 620px) {
+  .website-field { flex-direction: column; }
+  .page-hero { grid-template-columns: minmax(0, 1fr); gap: 16px; }
+  .page-hero-mark { width: 64px; height: 64px; border-radius: 14px; }
+  .page-hero-address { font-size: 22px; }
+  .your-page-preview { padding: 12px; }
+  .page-preview-large .page-preview-bar { padding: 16px 18px; font-size: 19px; }
+  .page-preview-large .page-preview-body { padding: 16px 18px 20px; }
+  .your-page-actions .button { flex: 1 1 auto; }
+}

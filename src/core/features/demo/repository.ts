@@ -4,9 +4,8 @@ import { componentGroups, components, componentStandingClaims, componentClaimEve
 // Fixed product IDs, real product tables, and conflict-safe inserts make retrying
 // a partially completed demo seed harmless. Owner identity remains Base's.
 const id = (suffix: string) => '01KDM'.padEnd(21, '0') + suffix.padStart(5, '0');
-// readiness: the evidence keys a configured workspace's own setup checks recorded
-// (sender check, public page opened, subscribe form checked, address accepted).
-export async function seedDemoRecords(binding: D1Database, input: { ownerEmail: string; now: Date; pageHost: string; from: string; readiness?: { sender: string; publicOrigin: string } }) {
+// readiness: the sender evidence a configured workspace's own sender check records.
+export async function seedDemoRecords(binding: D1Database, input: { ownerEmail: string; now: Date; pageHost: string; from: string; readiness?: { sender: string } }) {
   const owner = await binding.prepare("SELECT id FROM oa_operators WHERE email=? AND role='owner' AND status='active'").bind(input.ownerEmail).first<{ id: string }>();
   if (!owner) throw new Error('Demo data requires the existing active owner.');
   const db = drizzle(binding), at = input.now.toISOString();
@@ -44,7 +43,7 @@ export async function seedDemoRecords(binding: D1Database, input: { ownerEmail: 
   ]).onConflictDoNothing();
   await binding.batch([
     binding.prepare("INSERT INTO maintenance_notices(id,maintenance_id,kind,body,published_at,author_operator_id,created_at,updated_at) VALUES(?,?,'scheduled',?,?,?,?,?) ON CONFLICT(id) DO NOTHING").bind(id('221'), id('201'), 'File downloads may pause briefly while we upgrade storage. Existing files are retained.', at, owner.id, at, at),
-    ...[['first-run', 'complete'], ...(input.readiness ? [['sender', input.readiness.sender], ...['public', 'subscribe', 'domain'].map(step => [step, input.readiness!.publicOrigin])] : [])]
+    ...[['first-run', 'complete'], ...(input.readiness ? [['sender', input.readiness.sender]] : [])]
       .map(([step, key]) => binding.prepare('INSERT INTO setup_readiness(step,evidence_key,checked_at) VALUES(?,?,?) ON CONFLICT(step) DO NOTHING').bind(step, key, at)),
     // The notifications those published updates and the notice already sent: email
     // accepted by the provider, webhook delivered. No outbox row, so nothing dispatches.

@@ -49,7 +49,7 @@ function render(Component, data, state = {}, props = {}) {
   responses=data; stateSnapshot=state; stateIndex=0;
   return renderToStaticMarkup(React.createElement(PageTimezoneContext.Provider, {value: "Australia/Brisbane"}, React.createElement(Component, props)));
 }
-const checklist = { complete: false, completed: 0, publicOrigin: 'https://status.example.test', steps: ['branding','timezone','sender','component','incident','public','subscribe','domain'].map(id => ({id, label:id, done:false, detail:'Complete this setup step', href:'/app/settings'})) };
+const live = { publicOrigin: 'https://status.example.test', publishedAt: '2026-10-02T01:00:00Z', page: { ok: true, checkedAt: '2026-10-02T01:01:00Z', reason: null }, subscribe: { ok: true, checkedAt: '2026-10-02T01:01:00Z', reason: null }, sender: { state: 'local', message: null, checkedAt: null } };
 const incident = {id:'incident-render',reference:'INC-RENDER',title:'Checkout delayed',lifecycle:'Investigating',openedAt:'2026-10-02T01:00:00Z',components:[],updates:[],internalNotes:[],draft:null};
 const incidentData = {'/api/app/incidents/incident-render':{incident}, '/api/app/incident-templates':{templates:[]}};
 const preview = {public:{heading:'Checkout delayed',lifecycle:'Investigating',fields:[{label:'Impact',value:'Checkout is delayed'}]},email:{subject:'Checkout delayed',plainText:'Title\n\nStatus: Investigating\n\nCheckout is delayed'}};
@@ -62,7 +62,7 @@ function details(html, summary) {
 test("Operator incident overview and composer preserve timing and review controls", async t => {
   t.diagnostic("overview lists each active incident once and offers one action for an overdue update");
   await (() => {
-  const html=render(OverviewPage, {'/api/app/overview':{overview:{checklist,components:[{publicState:'Operational'}],activeIncidents:[{...incident,overdue:true,updateDue:false,updateDueAt:'2026-09-08T01:00:00.000Z',impact:'Degraded performance'}],maintenance:[]}}});
+  const html=render(OverviewPage, {'/api/app/overview':{overview:{live,components:[{publicState:'Operational'}],activeIncidents:[{...incident,overdue:true,updateDue:false,updateDueAt:'2026-09-08T01:00:00.000Z',impact:'Degraded performance'}],maintenance:[]}}});
   const list=html.slice(html.indexOf('aria-label="Active incidents"'));
   assert.equal(list.split('INC-RENDER').length-1,1);
   assert.equal(list.split('Checkout delayed').length-1,1);

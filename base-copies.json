@@ -1657,7 +1657,7 @@
     {
       "path": "src/base/site/docs-search",
       "originPath": "modules/site/docs-search",
-      "revision": "4b110a1a541269613172bfc1b6c6b7c5225d7b49",
+      "revision": "58dc718e9d3256113d8a862ae0ec1986fe977138",
       "files": {
         "src/base/site/docs-search/artifacts.mjs": "8c21c7d8183927544050510df2af45f5dd482937aab7b4d6cbebb2f2393caab8",
         "src/base/site/docs-search/client.ts": "9d1c3d573c5cab0ef24e1a629f58733126cdb56c90190ec7e21cfa33bf882519",

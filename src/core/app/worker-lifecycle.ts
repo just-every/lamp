@@ -44,6 +44,9 @@ export async function runScheduled(bindings: AppBindings, executionContext: Exec
       notificationOrigin(bindings).then((origin) => runtime.services.deliveries.dispatchDue(origin)),
       runtime.services.publicSnapshots.retryPendingBuild(),
       runtime.services.channels.dispatchPending(),
+      // Lamp checks its own public page, subscribe form and sender; Overview shows the result.
+      runtime.services.overview.live.runChecks(),
+      runtime.services.overview.live.checkSenderIfDue(),
     ]);
     // Every failed step is reported, not only the first.
     const failures = [...changes, ...deliveries].filter((result): result is PromiseRejectedResult => result.status === "rejected").map((result) => result.reason);

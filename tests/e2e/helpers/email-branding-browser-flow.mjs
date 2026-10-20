@@ -26,10 +26,12 @@ export async function emailBrandingBrowserFlow({ page, appUrl, pageUrl, appFetch
     await page.goto(`${appUrl}/app/settings`);
     await operatorHydrated(page);
     const uploaded = page.waitForResponse(response => new URL(response.url()).pathname === '/api/app/page-settings/logo' && response.request().method() === 'POST');
+    await page.getByText('Upload a different logo', { exact: true }).click();
     await page.getByLabel('Logo file').setInputFiles('src/site/lamp/art/lamp-badge-touch.png');
     await page.getByRole('button', { name: 'Upload logo', exact: true }).click();
     assert.equal((await uploaded).status(), 200);
     await page.getByText('Logo saved and the public snapshot was rebuilt.', { exact: true }).waitFor();
+    await page.getByRole('link', { name: 'Notifications', exact: true }).click();
     await page.getByLabel('Sender display name', { exact: true }).fill('Acme status');
     await page.getByLabel('Reply-to address', { exact: true }).fill('support@acme.example');
     await page.getByLabel('Subject prefix', { exact: true }).fill('[Acme status]');
@@ -42,7 +44,7 @@ export async function emailBrandingBrowserFlow({ page, appUrl, pageUrl, appFetch
     assert.equal((await saved).status(), 200);
     await page.getByText('Settings saved and the public snapshot was rebuilt.', { exact: true }).waitFor();
     await page.reload(); await operatorHydrated(page);
-    assert.equal(await page.getByLabel('Subject prefix', { exact: true }).inputValue(), '[Acme status]');
+    assert.equal(await page.getByLabel('Subject prefix', { exact: true }).inputValue(), '[Acme status]', 'the reload keeps the Notifications tab');
     await page.goto(`${appUrl}/app/incidents/${incident.id}`); await operatorHydrated(page);
     await page.locator('label', { hasText: 'Who is affected' }).locator('textarea').fill('Customers paying by card in the US.');
     await page.locator('label', { hasText: 'What is the impact' }).locator('textarea').fill('Authorizations may take longer than usual.');

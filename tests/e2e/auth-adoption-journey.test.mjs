@@ -113,7 +113,7 @@ test('SETUP-002 Base setup/dev, one-click sign-in, invite, signout and prior-dat
    const devSession=await devPage.request.get(origin+'/api/app/session');
    if(devSession.status()!==200){const redaction=createRedaction();redaction.addSecrets([key,...(await readFile(join(root,'.dev.vars'),'utf8')).split('\n').map(line=>line.slice(line.indexOf('=')+1)).filter(Boolean)]);t.diagnostic(redaction.redact((await devSession.text())+'\n'+output));}
    assert.equal(devSession.status(),200);
-   if(!upgraded){await devPage.getByLabel('Page name').fill('Auth Journey');await devPage.getByRole('button',{name:'Save and open Lamp'}).click();await devPage.waitForURL('**/app');}
+   if(!upgraded){await devPage.getByRole('button',{name:"Skip, I'll fill it in"}).click();await devPage.getByRole('button',{name:'Edit page name'}).click();await devPage.getByLabel('Page name',{exact:true}).fill('Auth Journey');await devPage.getByRole('button',{name:'Looks right, open Lamp'}).click();await devPage.waitForURL('**/app');}
    await devContext.close();
    for(const width of [1440,390]){
     const context=await journeyContext(browser,key);const page=await emailSignIn(context,origin,owner,width,key);await accessible(page);
@@ -121,7 +121,7 @@ test('SETUP-002 Base setup/dev, one-click sign-in, invite, signout and prior-dat
     const discovery=await page.request.get(origin+'/.well-known/rer-dependencies');assert.equal(discovery.status(),200);assert.equal((await discovery.json()).dependencies.some(d=>d.interface==='oidc-provider@1'&&d.optional),true);
     if(!upgraded){
      await capture(page,'workspace-'+width);const landing=await context.newPage();await landing.setViewportSize({width,height:1000});await landing.goto(origin+'/');await capture(landing,'landing-'+width);await landing.close();
-     await page.goto(origin+'/app/settings');
+     await page.goto(origin+'/app/settings#operators');
      await operatorHydrated(page);
      const operators=page.getByRole('region',{name:'Operators',exact:true});
      const pending=page.getByRole('region',{name:'Pending invitations'});

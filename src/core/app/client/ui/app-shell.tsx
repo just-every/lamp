@@ -15,13 +15,14 @@ import { FormError } from "./states";
 import { useVisitSnapshot } from "./visit-snapshot";
 
 type NavigationItem = {
-  to: "/app" | "/app/incidents" | "/app/components" | "/app/maintenance" | "/app/subscribers" | "/app/deliveries" | "/app/alerts" | "/app/settings";
+  to: "/app" | "/app/page" | "/app/incidents" | "/app/components" | "/app/maintenance" | "/app/subscribers" | "/app/deliveries" | "/app/alerts" | "/app/settings";
   label: string;
   icon: Parameters<typeof Icon>[0]["name"];
 };
 
 const navigation: NavigationItem[] = [
   { to: "/app", label: "Overview", icon: "overview" },
+  { to: "/app/page", label: "Your page", icon: "page" },
   { to: "/app/incidents", label: "Incidents", icon: "incident" },
   { to: "/app/components", label: "Components", icon: "components" },
   { to: "/app/maintenance", label: "Maintenance", icon: "maintenance" },

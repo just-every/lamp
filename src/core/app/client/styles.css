@@ -11,6 +11,9 @@
 @import "./ui/alerts.css";
 @import "./ui/channels.css";
 @import "./ui/setup-guides.css";
+@import "./ui/page-live.css";
+@import "./ui/onboarding.css";
+@import "./ui/settings.css";
 @import "./ui/responsive.css";
 @import "../../features/audit-log/ui/audit-log.css";
 

@@ -23,8 +23,9 @@ export async function exerciseDemo({ origin, pageOrigin, key, cookie, fetch }) {
   assert.equal(publicPage.status, 200);
   assert.equal(publicPage.headers.get('X-Lamp-Snapshot-Retained'), 'true', 'disposable public snapshot has its retained copy');
   assert.ok((await publicPage.text()).includes(incidents.find(row => row.lifecycle !== 'Resolved').title), 'public snapshot carries the actual active incident');
-  assert.equal((await api('/api/app/overview/check-subscribe', {})).status, 200, 'real public subscription-form check completes');
-  assert.equal((await api('/api/app/overview/check-sender', {})).status, 200);
+  const { live } = (await api('/api/app/overview/live')).body;
+  assert.equal(live.subscribe?.ok, true, 'Lamp\'s own check reads the real public subscription form');
+  assert.equal(live.sender.state, 'verified', 'the demo sender reads as a configured one\'s');
   const subscription = await fetch(pageOrigin + '/subscribe', { method: 'POST', headers: { Origin: pageOrigin, 'x-rer-dev-key': key }, body: new URLSearchParams({ email: 'visitor@example.invalid' }) });
   assert.equal(subscription.status, 202);
   for (const [kind, url] of [['slack', 'https://hooks.slack.com/services/T0DEMO/B0DEMO/demonstration'], ['teams', 'https://demo.webhook.office.com/workflows/demo']]) {

@@ -972,12 +972,13 @@ same-incident immutable correction target retain their existing meaning. A write
 already committed to the original draft remains valid even when its delivered
 completion no longer owns the current interface.
 
-- The setup checklist checks the public page and its subscribe form by fetching the page host's `/`
+- Lamp's own live check reads the public page and its subscribe form by fetching the page host's `/`
   from the Worker. Locally the page host is another loopback name on the same port, so workerd sends
   that as a real subrequest stamped `CF-Worker`. The raw development ingress admits `CF-Worker` only
   once, alone among `cf-*` headers, and only on a GET or HEAD with no `Origin` or `Sec-Fetch-*`
-  header: a request any local process could already send without it. The checklist derives the page
-  origin from the operator's request (the page host on the same scheme and port), as Settings does.
+  header: a request any local process could already send without it. An operator request derives the page
+  origin from itself (the page host on the same scheme and port), as Settings does; Cron uses the
+  deployment's.
 
 ## Seed command contract 1 (rer CLI)
 
@@ -995,8 +996,8 @@ Lamp runs the Base rer CLI (`scripts/base-cli/`, thin `scripts/rer.mjs`) with th
   transfer needs an HTTP portability endpoint Lamp does not serve.
 - The development ingress accepts the CLI proxy's public port (from `RER_DEV_ORIGIN`) in the Host
   header; the proxy forwards the browser's Host to the internal listener unchanged.
-- First-run setup at `/setup` confirms the page name, tagline, time zone and colour (SETUP-002);
-  the eight-step setup checklist (SETUP-001) stays on Overview.
+- First-run setup at `/setup` reads the owner's website and confirms what it found (SETUP-002);
+  Overview shows one live line (SETUP-001).
 
 ## Slack and Teams channels on a Worker — 11 October 2026
 
