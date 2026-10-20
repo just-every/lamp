@@ -5,7 +5,7 @@ import { appApi, AppDataContext } from "../../../app/client/ui/api";
 export function usePanelRead<T>(path: string, publicationKey = "") {
   const snapshot = useContext(AppDataContext);
   const initial = snapshot[path];
-  const initialState = { path, snapshot, data: initial?.data as T ?? null, error: initial?.error ?? null, loading: !initial };
+  const initialState = { path, snapshot, data: initial?.error ? null : initial?.data as T ?? null, error: initial?.error ?? null, loading: !initial };
   const element = useRef<HTMLElement>(null);
   const [revision, setRevision] = useState(0);
   const [state, setState] = useState<{ path: string; snapshot: typeof snapshot; data: T | null; error: string | null; loading: boolean }>(initialState);

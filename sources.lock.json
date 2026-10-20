@@ -3276,7 +3276,7 @@
       "executable": false
     },
     "src/core/features/communication-performance/ui/use-panel-read.ts": {
-      "sha256": "7704c1a87f14923e7cc742f8ab644a546d6879433ba02dc77d0b37ddfc54a3ed",
+      "sha256": "2eb0ceec2405a42b19ff9f5eaece28cc53181491b9a2a4c1ee39b5f7f44c5ff7",
       "executable": false
     },
     "src/core/features/components/catalogue-csv.ts": {
@@ -5764,7 +5764,7 @@
       "executable": false
     },
     "tests/e2e/publishing-browser.test.mjs": {
-      "sha256": "c7c4413fe8fb423784d86d4b5def0441ab3ce9479162af2fd2c2474a711f561f",
+      "sha256": "cdb5a20b2ec19654fd17917e92c5410628be8808e25f156725babb40a96a9e64",
       "executable": false
     },
     "tests/e2e/publishing-contract.test.mjs": {
