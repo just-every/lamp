@@ -42,7 +42,7 @@ export async function linkedUpdateFlow({ browser, page, origin, pageBase, appFet
   const publishResponse = page.waitForResponse(response => response.request().method() === "POST" && new URL(response.url()).pathname === `/api/app/incidents/${incident.id}/publish`);
   await page.getByRole("button", { name: "Publish update", exact: true }).click();
   assert.equal((await publishResponse).status(), 200, "advisory findings never block publication");
-  await page.getByText("Update published. The fixed recipient set is now queued for delivery.", { exact: true }).waitFor();
+  await page.getByText("Update published.", { exact: true }).waitFor();
   assert.equal((await readIncident(incident.id)).updates[0].customerImpact, UPDATE_LINK_FIELDS.customerImpact);
   await page.setViewportSize(VIEWPORTS[0]);
 
@@ -85,5 +85,5 @@ export async function linkedUpdateFlow({ browser, page, origin, pageBase, appFet
   assert.equal(saved.status, 200, await saved.text());
   const resolved = await appFetch(`/api/app/incidents/${incident.id}/publish`, { method: "POST", body: JSON.stringify({ channels: [] }) });
   assert.equal(resolved.status, 200, await resolved.text());
-  await reader("/history", "history", incident.reference);
+  await reader("/history", "history", incident.title);
 }

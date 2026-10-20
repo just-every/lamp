@@ -1,5 +1,5 @@
-import { Link, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
 
 import type { IncidentsService } from "../service";
 import { IncidentCreatePanel } from "./incident-create-panel";
@@ -14,7 +14,9 @@ type IncidentsResponse = { incidents: Awaited<ReturnType<IncidentsService["list"
 
 export function IncidentsPage() {
   const { data, error, loading, refresh } = useAppData<IncidentsResponse>("/api/app/incidents");
-  const [creating, setCreating] = useState(false);
+  const createRequested = useRouterState({ select: state => state.location.hash === "new" });
+  const [creating, setCreating] = useState(createRequested);
+  useEffect(() => { if (createRequested) setCreating(true); }, [createRequested]);
   const [dismissedEmptyCreation, setDismissedEmptyCreation] = useState(false);
   const navigate = useNavigate();
   if (loading) return <LoadingState />;
@@ -22,23 +24,24 @@ export function IncidentsPage() {
   if (!data) return null;
   const active = data.incidents.filter((incident) => incident.lifecycle !== "Resolved");
   const resolved = data.incidents.filter((incident) => incident.lifecycle === "Resolved");
+  const showCreateForm = creating || (!dismissedEmptyCreation && data.incidents.length === 0);
 
   const create = (incident: IncidentsResponse["incidents"][number]) => {
     refresh();
     void navigate({ to: "/app/incidents/$incidentId", params: { incidentId: incident.id } });
   };
 
-  return <div className="page-stack">
-    <section className="page-title-row"><div><p className="eyebrow">Incident communication desk</p><h1>Incidents</h1><p>Each published customer update is retained as an immutable record.</p></div><Button type="button" onClick={() => { setDismissedEmptyCreation(false); setCreating(true); }}>Create incident</Button></section>
-    {creating || (!dismissedEmptyCreation && data.incidents.length === 0) ? <IncidentCreatePanel onCreated={create} onCancel={() => { setCreating(false); setDismissedEmptyCreation(true); }} /> : null}
+  return <div className="page-stack" id="new">
+    <section className="page-title-row"><div><h1>Incidents</h1><p>Tell customers what’s happening.</p></div>{!showCreateForm && <Button type="button" onClick={() => { setDismissedEmptyCreation(false); setCreating(true); }}>Create incident</Button>}</section>
+    {showCreateForm ? <IncidentCreatePanel onCreated={create} onCancel={() => { setCreating(false); setDismissedEmptyCreation(true); }} /> : null}
     <UpdateDueNotice incidents={active} />
     <section className="data-card incident-list-card">
-      <div className="card-heading"><div><p className="card-kicker">Active</p><h2>Current incidents</h2></div><span className="count-label">{active.length} recorded</span></div>
-      {active.length ? <div className="record-list">{active.map((incident) => <IncidentRow key={incident.id} incident={incident} />)}</div> : <EmptyState>No active incidents are recorded.</EmptyState>}
+      <div className="card-heading"><div><p className="card-kicker">Active</p><h2>Current incidents</h2></div><span className="count-label">{active.length} total</span></div>
+      {active.length ? <div className="record-list">{active.map((incident) => <IncidentRow key={incident.id} incident={incident} />)}</div> : <EmptyState>No active incidents.</EmptyState>}
     </section>
     <section className="data-card incident-list-card">
-      <div className="card-heading"><div><p className="card-kicker">Public record</p><h2>Resolved incidents</h2></div><span className="count-label">{resolved.length} recorded</span></div>
-      {resolved.length ? <div className="record-list">{resolved.map((incident) => <IncidentRow key={incident.id} incident={incident} />)}</div> : <EmptyState>No resolved incidents are recorded.</EmptyState>}
+      <div className="card-heading"><div><h2>Resolved incidents</h2></div><span className="count-label">{resolved.length} total</span></div>
+      {resolved.length ? <div className="record-list">{resolved.map((incident) => <IncidentRow key={incident.id} incident={incident} />)}</div> : <EmptyState>No resolved incidents.</EmptyState>}
     </section>
   </div>;
 }

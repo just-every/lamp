@@ -14,9 +14,9 @@ export function PageHero({ live, pageName, accentColor, markSrc, components }: {
     <div className="page-hero-facts">
       <p className="card-kicker">Your status page</p>
       {origin ? <a id="page-hero-address" className="page-hero-address" href={`${origin}/`} target="_blank" rel="noopener">{new URL(origin).host}<Icon name="external" width={18} height={18} /></a> : <p id="page-hero-address" className="page-hero-address">Loading address…</p>}
-      <p className={`page-hero-live${problem ? " is-failing" : ""}`}><span className="live-dot" />{problem ?? (live?.publishedAt ? `Live · published automatically after every change, last ${relativeTime(live.publishedAt)}` : "Publishing…")}</p>
-      {origin && isLocal(origin) ? <p className="page-hero-note">This address works only on this computer. Deploy Lamp to give customers a public one.</p> : null}
-      <a className="text-link" href="https://github.com/just-every/run-lamp/blob/main/README.md#your-own-domain" target="_blank" rel="noreferrer">Use a custom domain</a>
+      <p className={`page-hero-live${problem ? " is-failing" : ""}`}><span className="live-dot" />{problem ?? (live?.publishedAt ? `Live · last published ${relativeTime(live.publishedAt)}. Changes go live when you save.` : "Publishing…")}</p>
+      {origin && isLocal(origin) ? <p className="page-hero-note">This address works only on this computer. <a className="text-link" href="/docs/deploy">Deploy Lamp</a> to give customers a public one.</p> : null}
+      <a className="text-link" href="/docs/domains">Use a custom domain</a>
     </div>
     <div className="page-hero-preview" aria-hidden="true"><PagePreview pageName={pageName} accentColor={accentColor} markSrc={markSrc} components={components.slice(0, 3)} address={null} /></div>
   </section>;

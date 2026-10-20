@@ -17,7 +17,7 @@ const querySchema = z.object({
 export function registerAvailabilityReportRoutes(app: Hono<AppEnv>, service: AvailabilityReportService) {
   app.get("/api/app/availability-report", async context => {
     const query = querySchema.safeParse(context.req.query());
-    if (!query.success) return context.json({ error: "Choose a component and exactly one UTC month (YYYY-MM) or quarter (YYYY-Q1 to YYYY-Q4), with CSV or PDF format." }, 400);
+    if (!query.success) return context.json({ error: "Choose a component and exactly one page-timezone calendar month (YYYY-MM) or quarter (YYYY-Q1 to YYYY-Q4), with CSV or PDF format." }, 400);
     context.header("Cache-Control", "no-store");
     const report = await service.report(query.data);
     if (!report) return context.json({ error: "Component not found." }, 404);

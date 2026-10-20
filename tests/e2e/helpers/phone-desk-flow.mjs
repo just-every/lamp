@@ -68,11 +68,11 @@ export async function phoneDeskFlow({ page, appUrl, pageUrl, appFetch, signInLin
     await page.getByText('Notification email', { exact: true }).waitFor();
     await inspect('preview');
     await page.getByRole('button', { name: 'Publish update', exact: true }).click();
-    await page.getByText('Update published. The fixed recipient set is now queued for delivery.').waitFor();
+    await page.getByText('Update published.').waitFor();
     const published = (await (await appFetch(`/api/app/incidents/${incidentId}`)).json()).incident;
     assert.equal(published.updates.length, 1);
     assert.equal(published.components[0].componentId, component.id);
-    await page.getByRole('combobox', { name: /^Lifecycle/ }).selectOption('Resolved');
+    await page.getByRole('combobox', { name: /^Status/ }).selectOption('Resolved');
     await audience.fill('Customers making card payments in the US.');
     await impact.fill('Card authorization is restored. Checkouts are completing normally.');
     await page.getByText('Draft saved', { exact: true }).waitFor();
@@ -80,7 +80,7 @@ export async function phoneDeskFlow({ page, appUrl, pageUrl, appFetch, signInLin
     await page.getByLabel('Recovery override reason', { exact: true }).fill(recoveryReason);
     await inspect('resolve');
     await page.getByRole('button', { name: 'Publish update', exact: true }).click();
-    await page.getByText('Update published. The fixed recipient set is now queued for delivery.').waitFor();
+    await page.getByText('Update published.').waitFor();
     const resolved = (await (await appFetch(`/api/app/incidents/${incidentId}`)).json()).incident;
     assert.equal(resolved.lifecycle, 'Resolved');
     assert.ok(resolved.internalNotes.some(note => note.body.includes(recoveryReason)), 'the phone operator records the required private override');

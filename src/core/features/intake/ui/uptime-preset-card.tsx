@@ -23,7 +23,7 @@ export function UptimePresetCard({ sources, onSaved }: { sources: AlertSourceEnd
     finally { setSaving(false); }
   }
   return <section className="data-card preset-card uptime-source-card" aria-labelledby="uptime-title">
-    <div><p className="card-kicker">Signed monitoring evidence</p><h2 id="uptime-title">Connect Uptime</h2><p>Map monitor IDs to components. Confirmed failures create private drafts. Recovery closes only drafts that were never published.</p></div>
+    <div><h2 id="uptime-title">Connect Uptime</h2><p>Map monitor IDs to components. Confirmed failures create private drafts. Recovery closes only drafts that were never published.</p></div>
     <form className="alert-editor-form" onSubmit={save}>
       <label className="form-label">Uptime label<input maxLength={120} value={name} onChange={event => setName(event.target.value)} placeholder="Production Uptime" /></label>
       <div className="form-label"><label htmlFor="uptime-hmac-key">Uptime HMAC key</label><input id="uptime-hmac-key" aria-describedby="uptime-key-help" type="password" autoComplete="new-password" required={!editing} value={secret} onChange={event => setSecret(event.target.value)} /><small id="uptime-key-help">{editing ? "Leave blank to retain the saved secret." : "Use the signing secret from Uptime's JSON webhook destination."}</small></div>

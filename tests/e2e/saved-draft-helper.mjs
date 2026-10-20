@@ -44,7 +44,7 @@ export async function saveAndConfirmDraft({ page, appFetch, incidentId, expected
 
   await page.getByText("Draft saved", { exact: true }).waitFor({ timeout: 10_000 });
   const displayed = {
-    lifecycle: await page.getByLabel("Lifecycle").inputValue(),
+    lifecycle: await page.getByLabel("Status").inputValue(),
     affectedAudience: await page.locator("label", { hasText: "Who is affected" }).locator("textarea").inputValue(),
     customerImpact: await page.locator("label", { hasText: "What is the impact" }).locator("textarea").inputValue(),
     whatStillWorks: await page.locator("label", { hasText: "What still works" }).locator("textarea").inputValue(),

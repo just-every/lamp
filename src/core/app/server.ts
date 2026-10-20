@@ -79,7 +79,7 @@ export function createApp(bindings: AppBindings, execution?: MailExecution) {
   registerBriefRoutes(app, services.briefs);
   registerAiRoutes(app, services.ai);
   registerMaintenanceRoutes(app, services.maintenance);
-  registerSubscriberRoutes(app, services.subscribers, { rateLimiter: publicWriteLimiter, localMail });
+  registerSubscriberRoutes(app, services.subscribers, { rateLimiter: publicWriteLimiter });
   registerPageSettingsRoutes(app, services.pageSettings, (key) => services.publicSnapshots.readArtifact(key));
   registerWebsiteRoutes(app, services.website);
   registerPageExportRoutes(app, services.pageExport);

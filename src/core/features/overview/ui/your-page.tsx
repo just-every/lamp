@@ -36,7 +36,7 @@ export function YourPage() {
     </section>
     <div className="your-page-grid">
       <div className="data-card your-page-preview">
-        <PagePreview size="large" pageName={page.pageName} accentColor={page.accentColor} markSrc={`/api/app/page-settings/brand/favicon?v=${encodeURIComponent(live.publishedAt ?? "")}`} components={visible.map((component) => ({ name: component.name, state: component.publicState }))} address={host} />
+        <PagePreview size="large" pageName={page.pageName} accentColor={page.accentColor} markSrc={`/api/app/page-settings/brand/mark?v=${encodeURIComponent(live.publishedAt ?? "")}`} components={visible.map((component) => ({ name: component.name, state: component.publicState }))} address={host} />
       </div>
       <aside className="your-page-side">
         <section className="data-card" aria-labelledby="checked-title">

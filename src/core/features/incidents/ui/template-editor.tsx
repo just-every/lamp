@@ -35,7 +35,7 @@ export function TemplateEditor({ template, onSaved, onDirty, captureUpdate }: { 
   return <section className="context-section" aria-label="Selected template editor">
     <h3>Edit selected template</h3>
     <dl><div><dt>Template title</dt><dd>{template.title || "No title"}</dd></div><div><dt>Template folder</dt><dd>{template.folder || "No folder"}</dd></div><div><dt>Notification default</dt><dd>{template.shouldSendNotifications === null ? "Use current channel selection" : template.shouldSendNotifications ? "Notify on available channels" : "No notifications"}</dd></div></dl>
-    <label className="form-label">Template lifecycle<select aria-label="Template lifecycle" disabled={saving} value={editing.lifecycle} onChange={event => change("lifecycle", event.target.value)}>{INCIDENT_LIFECYCLES.map(lifecycle => <option key={lifecycle}>{lifecycle}</option>)}</select></label>
+    <label className="form-label">Template status<select aria-label="Template status" disabled={saving} value={editing.lifecycle} onChange={event => change("lifecycle", event.target.value)}>{INCIDENT_LIFECYCLES.map(lifecycle => <option key={lifecycle}>{lifecycle}</option>)}</select></label>
     {(Object.keys(TEMPLATE_WORDING_FIELDS) as TemplateWordingField[]).map(field => {
       const { label, max } = TEMPLATE_WORDING_FIELDS[field];
       return <label key={field} className="form-label">{label}<textarea aria-label={`Template ${label.toLowerCase()}`} value={editing[field]} disabled={saving} onChange={event => change(field, event.target.value)} aria-invalid={editing[field].length > max} /><span className="character-count">{editing[field].length}/{max}</span></label>;

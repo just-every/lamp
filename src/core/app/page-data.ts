@@ -6,8 +6,9 @@ export type AppDataSnapshot = Record<string, { data: AppJson; error: string | nu
 export function operatorPageReads(path: string): string[] {
   const components = "/api/app/components";
   switch (path.replace(/\/$/, "")) {
-    case "/app": return ["/api/app/overview"];
+    case "/app": return ["/api/app/overview", "/api/app/communication-performance"];
     case "/app/page": return ["/api/app/overview", "/api/app/page-settings"];
+    case "/app/move-in": return ["/api/app/website"];
     case "/app/incidents": return ["/api/app/incidents", components];
     case "/app/components": return [components];
     case "/app/maintenance": return ["/api/app/maintenance", components];

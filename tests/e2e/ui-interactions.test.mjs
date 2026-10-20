@@ -1,3 +1,4 @@
+import { stripVTControlCharacters } from "node:util";
 import {appOrigin} from './helpers/hosts.mjs';
 import { assertVisibleTime } from "../helpers/public-meaning.mjs";
 import assert from "node:assert/strict";
@@ -26,7 +27,7 @@ before(async () => {
   });
   worker.stdout.on("data", chunk => { output += chunk; });
   worker.stderr.on("data", chunk => { output += chunk; });
-  await waitForWorker({ origin, child: worker, output: () => output, label: "UI interaction Worker" });
+  await waitForWorker({ origin, timeoutMs: 120_000, isListening: () => stripVTControlCharacters(output).includes(`${origin}/`), child: worker, output: () => output, label: "UI interaction Worker" });
   browser = await chromium.launch({ headless: true, args: ["--use-mock-keychain", "--password-store=basic"] });
   context = await browser.newContext({ timezoneId: "Australia/Brisbane", viewport: { width: 390, height: 844 } });
   await context.addCookies([{ name: sessionCookieName(origin), value: sessionId, url: origin }]);
@@ -42,11 +43,14 @@ after(async () => {
   await Promise.all([statePath, cachePath].filter(Boolean).map(path => rm(path, { recursive: true, force: true })));
 });
 
-test("Component and group dialogs retain keyboard focus and record tables scroll with the keyboard while phone alert receipts stack", async t => {
+test("Component and group dialogs retain keyboard focus and phone subscribers and alert receipts fit while delivery tables scroll with the keyboard", async t => {
   for (const [triggerName, fieldName] of [["Add component", "Component name"], ["Add group", "Group name"]]) {
   t.diagnostic(`${triggerName} contains keyboard focus and restores its trigger`);
     await (async () => {
-    await page.goto(`${origin}/app/components`);
+    await page.goto(`${origin}/app/components`); await operatorHydrated(page);
+    await page.getByRole("heading", { name: "Add component", exact: true }).waitFor();
+    await page.keyboard.press("Escape");
+    await page.getByRole("dialog").waitFor({ state: "detached" });
     const trigger = page.getByRole("button", { name: triggerName, exact: true }).first();
     await trigger.click();
     const dialog = page.getByRole("dialog");
@@ -64,7 +68,18 @@ test("Component and group dialogs retain keyboard focus and record tables scroll
     assert.equal(await trigger.evaluate(node => node === document.activeElement), true, "Escape restores the opening control");
   })(t);
 }
-  for (const [route, label] of [["subscribers", "Subscriber records"], ["deliveries", "Delivery records"]]) {
+  const subscriberDestination = "https://notify.example.test/phone-subscriber";
+  await operatorApi("/api/app/subscribers/webhook", "POST", { destination: subscriberDestination, contactEmail: "phone-subscriber@example.test", componentIds: [] });
+  await page.goto(`${origin}/app/subscribers`); await operatorHydrated(page);
+  const subscriberRow = page.getByRole("row").filter({ hasText: subscriberDestination });
+  await subscriberRow.getByRole("button", { name: "Remove", exact: true }).waitFor();
+  const subscriberGeometry = await subscriberRow.getByRole("cell").evaluateAll(cells => cells.map(cell => { const box = cell.getBoundingClientRect(); return { left: box.left, right: box.right, scroll: cell.scrollWidth, width: cell.clientWidth }; }));
+  assert.equal(subscriberGeometry.length, 6);
+  assert.ok(subscriberGeometry.every(cell => cell.left >= 0 && cell.right <= 390 && cell.scroll <= cell.width), "every subscriber field and the removal action fit without horizontal scrolling");
+  const subscriberState = subscriberRow.locator(".state-pill");
+  assert.ok(await subscriberState.evaluate(node => node.getBoundingClientRect().right <= innerWidth && node.scrollWidth <= node.clientWidth), "the complete subscriber state fits");
+  assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+  for (const [route, label] of [["deliveries", "Delivery records"]]) {
   t.diagnostic(`${label} can be scrolled with the keyboard on narrow screens`);
     await (async () => {
     await page.goto(`${origin}/app/${route}`);
@@ -191,8 +206,8 @@ test("Fresh publication drafts and narrow operator navigation preserve deliberat
     assert.equal((await publicationResponse).ok(), true);
     await page.locator(".composer-heading .publication-message.is-published").waitFor();
     assert.equal(await audienceField(page).inputValue(), ""); assert.equal(await impactField(page).inputValue(), "");
-    assert.equal(await page.getByLabel("Lifecycle").inputValue(), "Identified");
-    assert.notEqual(await audienceField(page).getAttribute("placeholder"), initialPlaceholder);
+    assert.equal(await page.getByLabel("Status").inputValue(), "Identified");
+    assert.equal(await audienceField(page).getAttribute("placeholder"), initialPlaceholder, "The audience prompt stays useful as the lifecycle advances");
     assert.match(await page.locator(".timeline").innerText(), /Requests are failing/);
     assert.equal(await page.getByRole("button", { name: "Publish update", exact: true }).isEnabled(), false);
     await page.locator(".autosave-status").waitFor();
@@ -233,14 +248,17 @@ test("Fresh publication drafts and narrow operator navigation preserve deliberat
   for (const width of [1440, 390, 320]) {
     await page.setViewportSize({ width, height: 844 }); await page.goto(`${origin}/app`);
     const nav = page.getByRole("navigation", { name: "Workspace sections" });
+    if (width <= 900) await page.getByRole("button", { name: "Menu", exact: true }).click();
     const paths = await nav.locator("a").evaluateAll(nodes => nodes.map(node => node.pathname));
     for (const path of paths) {
+      if (width <= 900 && !await nav.isVisible()) await page.getByRole("button", { name: "Menu", exact: true }).click();
       await page.locator(`.operator-navigation a[href="${path}"]`).click();
       await page.waitForURL(`${origin}${path}`); await page.waitForFunction(() => !document.querySelector('.operator-main .app-state[role="status"]'));
       assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true, `${path} at ${width}`);
     }
     await page.goto(`${origin}/app/incidents`);
     await page.getByRole("button", { name: "Create incident", exact: true }).click();
+    if (width <= 900) await page.getByRole("button", { name: "Menu", exact: true }).click();
     const signout = page.getByRole("button", { name: "Sign out", exact: true });
     await signout.scrollIntoViewIfNeeded(); const box = await signout.boundingBox();
     assert.ok(box && box.x >= 0 && box.x + box.width <= width);
@@ -260,7 +278,7 @@ test("Fresh publication drafts and narrow operator navigation preserve deliberat
         await select.selectOption("Degraded performance");
         assert.equal(await select.inputValue(), "Degraded performance");
       }
-      if (name === "Status history") await dialog.getByRole("heading", { name: "Correct a closed interval" }).waitFor();
+      if (name === "Status history") await dialog.getByRole("heading", { name: "Correct a past period" }).waitFor();
       assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
       await page.keyboard.press("Escape");
     }

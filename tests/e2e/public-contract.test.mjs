@@ -370,8 +370,8 @@ test("UPTIME-005 UPTIME-004 COMP-003 UPTIME-001 UPTIME-002 UPTIME-003 — Audite
   assert.equal(audit.reason, "Verified edge logs showed a short outage.");
   assert.deepEqual(JSON.parse(audit.payloadJson), { componentId: "01J00000000000000000000010", state: "Major outage", startsAt: start.toISOString(), endsAt: end.toISOString(), reason: "Verified edge logs showed a short outage." });
   const page = await (await fetch(`${pageUrl}/`)).text();
-  assert.match(page, /90-day record/);
-  const generatedAt = /Snapshot generated <time datetime="([^"]+)"/.exec(page)?.[1];
+  assert.match(page, /90-day uptime record/);
+  const generatedAt = /Updated <time datetime="([^"]+)"/.exec(page)?.[1];
   assert.ok(generatedAt);
   const coverageStart = Math.min(new Date("2026-09-08T00:00:00.000Z").getTime(), start.getTime());
   const coverageMinutes = (new Date(generatedAt).getTime() - coverageStart) / 60_000;
@@ -395,21 +395,25 @@ test("UPTIME-005 UPTIME-004 COMP-003 UPTIME-001 UPTIME-002 UPTIME-003 — Audite
   const uptime = computeUptime(source, componentId, now, "America/Los_Angeles", policies);
   assert.equal(uptime.coverageDays, 90);
   assert.equal(uptime.percentage, "99.97%");
+  assert.equal(uptime.marks.find(mark => mark.day === "2026-11-01").worstDowntimeState, "Degraded performance");
+  assert.match(uptimeMarkup({ name: "API", uptime }, "America/Los_Angeles", new Date(now).toISOString()), /uptime-mark downtime"/);
   assert.equal(uptime.marks.find((mark) => mark.day === "2026-11-01")?.downtimeMinutes, 30, "the 25-hour DST day receives weighted downtime by elapsed minutes");
   const shortSource = { history: [{ componentId, causeType: "standing-claim", changedAt: new Date(now - 2 * 60 * 60_000).toISOString(), createdAt: new Date(now - 2 * 60 * 60_000).toISOString(), newState: "Operational" }], corrections: [] };
   const short = computeUptime(shortSource, componentId, now, "UTC", policies);
   assert.equal(short.coverageDays, 0);
   const shortMarkup = uptimeMarkup({ name: "API", uptime: short }, "UTC", new Date(now).toISOString());
-  assert.equal(shortMarkup.match(/<time datetime="([^"]+)" data-local-time>/)?.[1], shortSource.history[0].changedAt);
-  assert.doesNotMatch(shortMarkup, /%/);
+  assert.match(shortMarkup, /100.00% over 2 hours/);
+  assert.doesNotMatch(shortMarkup, /<time|Tracking since/);
   const newborn = computeUptime({ history: [{ ...shortSource.history[0], changedAt: new Date(now).toISOString() }], corrections: [] }, componentId, now, "UTC", policies);
   assert.equal(newborn.percentage, null, "zero elapsed time has no measured percentage");
   assert.equal(newborn.trackingSince, new Date(now).toISOString());
   const newbornMarkup = uptimeMarkup({ name: "New service", uptime: newborn }, "UTC", new Date(now).toISOString());
-  assert.equal(newbornMarkup.match(/<time datetime="([^"]+)" data-local-time>/)?.[1], newborn.trackingSince);
+  assert.match(newbornMarkup, /No data/);
+  assert.doesNotMatch(newbornMarkup, /<time|Tracking since/);
   assert.doesNotMatch(newbornMarkup, /%/);
   const firstPartial = { history: [{ componentId, causeType: "standing-claim", changedAt: new Date(windowStart).toISOString(), createdAt: new Date(windowStart).toISOString(), newState: "Major outage" }, { componentId, causeType: "standing-claim", changedAt: new Date(windowStart + 60 * 60_000).toISOString(), createdAt: new Date(windowStart + 60 * 60_000).toISOString(), newState: "Operational" }], corrections: [] };
   const firstDay = computeUptime(firstPartial, componentId, now, "UTC", policies);
+  assert.match(uptimeMarkup({ name: "API", uptime: firstDay }, "UTC", new Date(now).toISOString()), /uptime-mark downtime major-outage/);
   assert.equal(firstDay.percentage, "99.95%", "the first hour of the exact trailing window is not discarded");
 })(t);
   t.diagnostic("COMP-003 — a state correction retains the original history fact and appends attributable state history");
@@ -466,11 +470,14 @@ test("PAGE-012 UPTIME-006 SUB-003 — Branding, daily coverage and pending subsc
   await (async () => {
   await updateSettings({ footerCreditEnabled: true });
   const enabled = await (await fetch(`${pageUrl}/`)).text();
-  assert.match(enabled, /<footer>\S[\s\S]*?<\/footer>/);
+  assert.match(enabled.match(/<footer>[\s\S]*?<\/footer>/)?.[0] ?? "", /Powered by Lamp/);
   assert.doesNotMatch(enabled, /runeditrun\.com/);
   await updateSettings({ footerCreditEnabled: false });
   const disabled = await (await fetch(`${pageUrl}/`)).text();
-  assert.match(disabled, /<footer>\s*<\/footer>/);
+  const disabledFooter = disabled.match(/<footer>[\s\S]*?<\/footer>/)?.[0] ?? "";
+  assert.doesNotMatch(disabledFooter, /Powered by Lamp/);
+  assert.match(disabledFooter, /data-lamp-signin/, "hiding the credit keeps the operator entry");
+  assert.match(disabledFooter, /href="\/feed.atom"/, "hiding the credit keeps customer resources");
   await updateSettings({ footerCreditEnabled: true });
 })(t);
   t.diagnostic("UPTIME-006 — daily marks distinguish no data from a day with zero or weighted downtime");
@@ -524,7 +531,7 @@ test("PAGE-012 PAGE-011 PAGE-019 MOVE-009 — Uploaded branding artwork, allow-l
   assert.equal(logo.headers.get("content-disposition"), "attachment");
   const pageHtml = await page.text();
   assert.match(pageHtml, /rel="icon" href="\/assets\/favicon\.svg"/);
-  assert.match(pageHtml, /<img class="brand-logo" src="\/assets\/favicon\.svg" alt="">/, "the configured logo is visible beside the page title through the same snapshot favicon artifact");
+  assert.match(pageHtml, /<img class="brand-logo" src="\/assets\/mark\.svg" alt="">/, "the configured logo is visible beside the page title without the favicon badge");
   assert.doesNotMatch(pageHtml, /&lt;time datetime=/, "shared update output must contain plain display text, never escaped markup");
   assert.match(await favicon.text(), /<circle/);
   const ogSvg = await og.text();
@@ -596,7 +603,7 @@ test("PAGE-013 PAGE-014 PAGE-008 PAGE-009 PAGE-003 — Public isolation, live ti
     let polls = 0;
     await page.route("**/api/public/status", async (route) => {
       polls += 1;
-      await route.fulfill({ contentType: "application/json", body: JSON.stringify({ version: 1, generatedAt: "2026-09-08T12:00:30.000Z", overall: "Major outage", incident: { reference: "INC-123", title: "Live update", lifecycle: "Investigating", publishedAt: "2026-09-08T12:00:30.000Z", summary: "INC-123 · Investigating · Fresh customer update.", message: "Fresh customer update." } }) });
+      await route.fulfill({ contentType: "application/json", body: JSON.stringify({ version: 1, generatedAt: "2026-09-08T12:00:30.000Z", overall: "Major outage", incident: { reference: "INC-123", title: "Live update", lifecycle: "Investigating", publishedAt: "2026-09-08T12:00:30.000Z", summary: "Investigating · Fresh customer update.", message: "Fresh customer update." } }) });
     });
     await page.goto(`${pageUrl}/`);
     const timezoneLabel = page.locator("[data-timezone-label]");
@@ -613,7 +620,11 @@ test("PAGE-013 PAGE-014 PAGE-008 PAGE-009 PAGE-003 — Public isolation, live ti
     assert.equal(await timezoneLabel.textContent(), initialTimezoneLabel);
     assert.equal(await timezoneLabel.getAttribute("data-timezone"), "America/Los_Angeles");
     assert.equal(await page.locator("[data-generated-at] time").getAttribute("datetime"), "2026-09-08T12:00:30.000Z");
-    assertVisibleTime(await page.locator("[data-generated-at] time").textContent(), "2026-09-08T12:00:30.000Z", "America/Los_Angeles");
+    assert.equal(await page.locator("[data-generated-at] time").textContent(), "just now");
+    assertVisibleTime(await page.locator("[data-generated-at] time").getAttribute("title"), "2026-09-08T12:00:30.000Z", "America/Los_Angeles");
+    await page.clock.fastForward(90 * 60_000);
+    await page.waitForFunction(() => document.querySelector("[data-generated-at] time")?.textContent === "1 hour ago");
+    assertVisibleTime(await page.locator("[data-generated-at] time").getAttribute("title"), "2026-09-08T12:00:30.000Z", "America/Los_Angeles");
     await context.close();
   } finally {
     await browser.close();
@@ -703,7 +714,7 @@ test("PAGE-013 PAGE-014 PAGE-008 PAGE-009 PAGE-003 — Public isolation, live ti
     assert.ok(fonts.loaded.includes(fonts.body), `the public copy renders in a face the page loaded itself, not a system substitute: ${JSON.stringify(fonts)}`);
     assert.equal(fonts.brand, fonts.body, "the business name uses the same bundled public face");
     assert.ok(paths.size <= 4, `initial public page made ${paths.size} same-origin subresource requests: ${[...paths].join(", ")}`);
-    for (const path of paths) assert.ok(["/assets/favicon.svg", "/assets/status-page.css", "/assets/status-page.js"].includes(path), `unexpected initial public dependency ${path}`);
+    for (const path of paths) assert.ok(["/assets/mark.svg", "/assets/favicon.svg", "/assets/status-page.css", "/assets/status-page.js"].includes(path), `unexpected initial public dependency ${path}`);
     assert.deepEqual([...thirdPartyRequests], [], `public initial page made third-party requests: ${[...thirdPartyRequests].join(", ")}`);
   } finally {
     await browser.close();

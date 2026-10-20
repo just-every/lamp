@@ -52,7 +52,7 @@ function parsedComponentIds(value: unknown) {
   });
 }
 
-export function registerSubscriberRoutes(app: Hono<AppEnv>, service: SubscribersService, options: { rateLimiter?: PublicWriteRateLimiter; localMail?: boolean } = {}) {
+export function registerSubscriberRoutes(app: Hono<AppEnv>, service: SubscribersService, options: { rateLimiter?: PublicWriteRateLimiter } = {}) {
   app.post("/subscribe", async (context) => {
     const pageName = await service.getPageName();
     const result = (title: string, message: string, status: number) => publicFormResponse(context.req.raw, title, message, status, pageName);
@@ -66,8 +66,8 @@ export function registerSubscriberRoutes(app: Hono<AppEnv>, service: Subscribers
       const componentIds = parsedComponentIds(body.componentId);
       await service.requestEmailSubscription(parsed.data.email, new URL(context.req.url).origin, componentIds);
       // Preserve the same response for active, pending and suppressed requests.
-      if (!context.req.header("Accept")?.includes("text/html")) return result("Check your inbox", options.localMail ? "Email is off locally: this local Lamp sends no email." : "Check your email to confirm or manage this subscription.", 202);
-      return tokenResponse(context.req.raw, renderSubscribeResult({ email: parsed.data.email, components: await service.componentNames(componentIds), local: Boolean(options.localMail) }, pageName), 202);
+      if (!context.req.header("Accept")?.includes("text/html")) return result("Check your inbox", "Check your email to confirm or manage this subscription.", 202);
+      return tokenResponse(context.req.raw, renderSubscribeResult({ email: parsed.data.email, components: await service.componentNames(componentIds) }, pageName), 202);
     } catch (error) {
       if (error instanceof MailUnavailableError) return result("Subscriptions unavailable", "Subscriptions are not configured because this deployment has no mail sender. No confirmation email was sent.", 503);
       throw error;

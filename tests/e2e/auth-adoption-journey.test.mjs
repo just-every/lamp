@@ -27,6 +27,9 @@ async function emailSignIn(context,origin,email,width,key){
  const session=await page.request.get(origin+'/api/app/session');assert.equal(session.status(),200);assert.equal((await session.json()).operator.email,email);return page;
 }
 async function signOut(page,origin){
+ await operatorHydrated(page);
+ const menu=page.getByRole('button',{name:'Menu',exact:true});
+ if(await menu.isVisible()&&!await page.getByRole('button',{name:'Sign out',exact:true}).isVisible())await menu.click();
  const response=page.waitForResponse(response=>new URL(response.url()).pathname==='/api/app/session/signout'&&response.request().method()==='POST');
  await page.getByRole('button',{name:'Sign out',exact:true}).click();
  const signedOut=await response;
@@ -70,13 +73,13 @@ test('SETUP-002 Base setup/dev, one-click sign-in, invite, signout and prior-dat
  // checkout, under the already admitted node_modules asset namespace.
  const env={...inherited,LAMP_VITE_CACHE_DIR:cache,RER_SERVER_JOURNEY:'1',RER_SERVERS_DIR:servers,CI:'true',X_LOCAL_EXPLORER:'false'};
  let child,browser;let output='',verb='dev';
- const stop=async()=>{if(child&&child.exitCode===null){run(root,env,verb,'--stop');await new Promise(done=>child.exitCode!==null?done():child.once('exit',done));}child=undefined;};
+ const stop=async()=>{if(child&&child.exitCode===null){const stopped=new Promise(done=>child.once('close',done));child.kill('SIGTERM');await stopped;}child=undefined;};
  try{
   execFileSync('sh',['-c','git ls-files -z --cached --others --exclude-standard | tar --null -T - -cf - | tar -xf - -C "$1"','copy',root]);
   await symlink(resolve('node_modules'),join(root,'node_modules'),'dir');
   const port=await reservePort(),origin=`http://127.0.0.1:${port}`;
   await setupAndProbe(root,env,port,origin);
-  browser=await chromium.launch();
+  browser=await chromium.launch({headless:true,args:['--use-mock-keychain','--password-store=basic']});
   for(const upgraded of [false,true]){
    if(upgraded){
     // An in-place upgrade of an install made before Base sign-in: its saved
@@ -113,7 +116,7 @@ test('SETUP-002 Base setup/dev, one-click sign-in, invite, signout and prior-dat
    const devSession=await devPage.request.get(origin+'/api/app/session');
    if(devSession.status()!==200){const redaction=createRedaction();redaction.addSecrets([key,...(await readFile(join(root,'.dev.vars'),'utf8')).split('\n').map(line=>line.slice(line.indexOf('=')+1)).filter(Boolean)]);t.diagnostic(redaction.redact((await devSession.text())+'\n'+output));}
    assert.equal(devSession.status(),200);
-   if(!upgraded){await devPage.getByRole('button',{name:"Skip, I'll fill it in"}).click();await devPage.getByRole('button',{name:'Edit page name'}).click();await devPage.getByLabel('Page name',{exact:true}).fill('Auth Journey');await devPage.getByRole('button',{name:'Looks right, open Lamp'}).click();await devPage.waitForURL('**/app');}
+   if(!upgraded){await devPage.getByRole('button',{name:"Skip, I'll fill it in"}).click();await devPage.getByRole('button',{name:'Edit page name'}).click();await devPage.getByLabel('Page name',{exact:true}).fill('Auth Journey');await devPage.getByRole('button',{name:'Open Lamp',exact:true}).click();await devPage.waitForURL('**/app');}
    await devContext.close();
    for(const width of [1440,390]){
     const context=await journeyContext(browser,key);const page=await emailSignIn(context,origin,owner,width,key);await accessible(page);

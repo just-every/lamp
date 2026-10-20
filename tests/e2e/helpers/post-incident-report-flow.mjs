@@ -95,6 +95,7 @@ export async function postIncidentReportFlow({ page, appFetch, appUrl, pageUrl }
   await editor.getByLabel("Cause").fill(report.cause);
   await save();
   await page.reload();
+  await operatorHydrated(page);
   await assertFields();
   await capture(editor, "draft");
 
@@ -106,6 +107,7 @@ export async function postIncidentReportFlow({ page, appFetch, appUrl, pageUrl }
   const published = await publishing;
   assert.equal(published.status(), 200, await published.text());
   await page.reload();
+  await operatorHydrated(page);
   await editor.getByText(/^Published /).waitFor();
   assert.equal(await editor.getByRole("button", { name: "Save report", exact: true }).count(), 0, "published reports are immutable");
   await capture(editor, "published-operator");

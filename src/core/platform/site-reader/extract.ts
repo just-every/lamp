@@ -1,19 +1,12 @@
+import { siteDomain } from "./domain.ts";
 import { cleanText, type HtmlScan, type HtmlTag } from "./html.ts";
 import { cssBrandColours, isBrandColour, toHex } from "./colour.ts";
-import type { SiteComponent } from "./types.ts";
 
 export interface Manifest { name?: string; short_name?: string; description?: string; theme_color?: string; icons?: { src?: string; sizes?: string; type?: string }[] }
 
 const meta = (scan: HtmlScan, key: string) => scan.tags.find((tag) => tag.name === "meta" && [tag.attributes.name, tag.attributes.property].some((value) => value?.toLowerCase() === key))?.attributes.content?.trim() || null;
 const rels = (tag: HtmlTag) => (tag.attributes.rel ?? "").toLowerCase().split(/\s+/);
 const squash = (value: string) => value.toLowerCase().replace(/[^a-z0-9]/g, "");
-
-/** The registrable part of a host name, roughly: getharvest.com, example.co.uk. */
-export function siteDomain(host: string) {
-  const labels = host.toLowerCase().replace(/^www\./, "").split(".");
-  const take = labels.length >= 3 && labels.at(-2)!.length <= 3 && labels.at(-1)!.length === 2 ? 3 : 2;
-  return labels.slice(-take).join(".");
-}
 
 export function siteName(scan: HtmlScan, host: string, manifest: Manifest | null): string | null {
   const label = squash(siteDomain(host).split(".")[0]);
@@ -75,55 +68,9 @@ export function siteFonts(scan: HtmlScan) {
   return [...new Set(fonts.filter(Boolean))].slice(0, 4);
 }
 
-const GENERIC = /^(home|pricing|plans?( and pricing)?|blog|about( us)?|company|careers|jobs|contact( us| sales)?|talk to (sales|us)|sales|(book|request|get|watch) a demo|demo|get started( free| for free)?|start (your )?free trial|start for free|try (it )?(for )?free|free trial|sign ?up( free)?|register|learn more|read more|resources|customers|case studies|(customer )?stories|partners|press|news(room)?|events|webinars|community|help( cent(er|re))?|support|faq|privacy( policy)?|terms( of (service|use))?|legal|cookies?( policy| settings)?|menu|search|close|skip to (main )?content|english|language|products?|features|solutions|platform|overview|explore|enterprise|compare|why .+|see all.*|view all.*|all .+|more|status|system status|log ?out|sign ?out|download|apps?|guides?|templates|integrations? directory|changelog|what'?s new|security|trust|accessibility|sitemap|investors|affiliates?|refer a friend|gift cards?)$/i;
-// Calls to action, sentences and menu chrome are not product areas.
-const CHROME = /^(pricing|sign ?up|get started|try|book|request|start|navigate|go to|back to|skip|open app|download|see|view|learn|read|watch|join|contact|help)\b|\b(overview|home|homepage)$|\bfor\b|\b(is|are|was|our|your|we|you|to the|of the)\b/i;
-const LISTING_PATH = /^\/(integrations?|customers?|blog|stories|case-studies|partners|templates|guides|resources)\/[^/]+/i;
-const PRODUCT_PATH = /^\/(features?|products?|platform|apps?|integrations?|solutions?|tools?|services?)(\/|$)/i;
 const STATUS_HOST = /(^|\.)(statuspage\.io|status\.io|instatus\.com|betteruptime\.com|statuspal\.io|hund\.io|status\.[a-z0-9-]+\.[a-z.]+)$|^status\./i;
 
-/** Product areas from the site's own header and navigation links. */
-export function siteComponents(scan: HtmlScan, base: URL): SiteComponent[] {
-  const domain = siteDomain(base.hostname);
-  type Candidate = SiteComponent & { product: boolean; special: boolean };
-  const candidates: Candidate[] = [];
-  const consider = (anchors: HtmlScan["anchors"]) => {
-    for (const anchor of anchors) {
-      let url: URL;
-      try { url = new URL(anchor.href, base); } catch { continue; }
-      if (!/^https?:$/.test(url.protocol) || !(url.hostname === domain || url.hostname.endsWith(`.${domain}`)) || STATUS_HOST.test(url.hostname)) continue;
-      const text = anchor.text.replace(/[\s›»→↗➔>]+$/u, "").replace(/\s+&\s+/g, " and ").trim();
-      if (/^(log ?in|sign ?in)$/i.test(text)) { candidates.push({ name: "Sign-in", url: url.href, product: false, special: true }); continue; }
-      if (/^(api|developers?|developer docs|api (docs|reference))$/i.test(text) || /^api\./.test(url.hostname)) { candidates.push({ name: "API", url: url.href, product: false, special: true }); continue; }
-      // A listing's entries (one integration, one customer story) stand for the listing itself.
-      const listing = url.hostname === base.hostname ? url.pathname.match(LISTING_PATH)?.[1] : undefined;
-      if (listing) {
-        if (/^integrations?$/i.test(listing)) candidates.push({ name: "Integrations", url: new URL(`/${listing}`, url).href, product: true, special: false });
-        continue;
-      }
-      if (text.length < 2 || text.length > 40 || text.split(" ").length > 5 || GENERIC.test(text) || CHROME.test(text) || /^\d+$/.test(text) || (url.pathname === "/" && url.hostname === base.hostname)) continue;
-      candidates.push({ name: text[0].toUpperCase() + text.slice(1), url: url.href, product: PRODUCT_PATH.test(url.pathname) || url.hostname !== base.hostname, special: false });
-    }
-  };
-  consider(scan.anchors.filter((anchor) => anchor.region === "nav" || anchor.region === "header"));
-  if (candidates.filter((candidate) => !candidate.special).length < 3) consider(scan.anchors.filter((anchor) => anchor.region === "footer" && PRODUCT_PATH.test(safePath(anchor.href, base))));
-  const seen = new Set<string>();
-  const unique = candidates.filter((candidate) => {
-    const key = candidate.name.toLowerCase(), address = candidate.url.replace(/[#?].*$/, "");
-    if (seen.has(key) || seen.has(address)) return false;
-    seen.add(key); seen.add(address);
-    return true;
-  });
-  // A nav with clear product links keeps only those; otherwise every specific link counts.
-  const products = unique.filter((candidate) => candidate.product);
-  const chosen = products.length >= 3 ? unique.filter((candidate) => candidate.product || candidate.special) : unique;
-  const ordered = [...chosen.filter((candidate) => !candidate.special), ...chosen.filter((candidate) => candidate.special)];
-  return ordered.slice(0, 8).map(({ name, url }) => ({ name, url }));
-}
-
-function safePath(href: string, base: URL) {
-  try { return new URL(href, base).pathname; } catch { return ""; }
-}
+export { siteComponents } from "./components.ts";
 
 export function siteStatusPage(scan: HtmlScan, base: URL) {
   for (const anchor of scan.anchors) {

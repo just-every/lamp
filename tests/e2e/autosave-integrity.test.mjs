@@ -1,3 +1,4 @@
+import { stripVTControlCharacters } from "node:util";
 import {appOrigin} from './helpers/hosts.mjs';
 import { withDraftVersion } from "./draft-version-helper.mjs";
 import assert from "node:assert/strict";
@@ -29,7 +30,7 @@ before(async () => {
   });
   worker.stdout.on("data", chunk => { output += chunk; });
   worker.stderr.on("data", chunk => { output += chunk; });
-  await waitForWorker({ origin, child: worker, output: () => output, label: "Autosave integrity Worker" });
+  await waitForWorker({ origin, isListening: () => stripVTControlCharacters(output).includes(`${origin}/`), child: worker, output: () => output, label: "Autosave integrity Worker" });
   browser = await chromium.launch({ headless: true, args: ["--use-mock-keychain", "--password-store=basic"] });
   context = await browser.newContext({ viewport: { width: 1440, height: 1000 } });
   // Loaded verification runners need more than the 30-second default for the
@@ -313,6 +314,8 @@ test("a lost acknowledgement never authorizes overwriting another tab's schedule
 });
 
 
-test("leaving and returning to an incident revokes old save and publication completions", { timeout: 60_000 }, async () => {
+// This journey includes several real navigations and intentionally held responses.
+// Its execution budget is separate from the autosave deadlines asserted inside it.
+test("leaving and returning to an incident revokes old save and publication completions", { timeout: 300_000 }, async () => {
   await assertComposerVisitIsolation({ page, api, openIncident, initial, waitForAutosave });
 });

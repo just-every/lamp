@@ -7,7 +7,6 @@ import { ApiError, appApi, useAppData, AppDataContext } from "./api";
 import type { OperatorSessionView } from "../../loaders";
 import type { EditorConfig } from "../../../../editor/editor-widget";
 import { PageTimezoneContext } from "./timezone";
-import { Button } from "./button";
 import { Icon } from "./icon";
 import { badge } from "../../../../site/lamp/badge";
 import { ClientExtensionProvider } from "../extensions";
@@ -52,12 +51,12 @@ function OperatorWorkspace({ initialSession }: { initialSession: OperatorSession
   }, [pageSettingsRequest.refresh]);
   const operator = sessionRequest.data?.operator ?? initialSession.operator;
   const location = useRouterState({ select: (state) => state.location.href });
-  const navigationRow = useRef<HTMLElement>(null);
-  // On narrow screens the sections are one scrolling row of tabs: keep the current one in view.
-  useEffect(() => {
-    const row = navigationRow.current, active = row?.querySelector<HTMLElement>(".is-active");
-    if (row && active && row.scrollWidth > row.clientWidth) row.scrollLeft = active.offsetLeft - (row.clientWidth - active.offsetWidth) / 2;
-  }, [location]);
+  const movingIn = location.split(/[?#]/)[0] === "/app/move-in";
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuButton = useRef<HTMLButtonElement>(null);
+  const [hydrated, setHydrated] = useState(false);
+  useEffect(() => setHydrated(true), []);
+  useEffect(() => setMenuOpen(false), [location]);
   const [signingOut, setSigningOut] = useState(false);
   const [signOutError, setSignOutError] = useState<string | null>(null);
 
@@ -83,30 +82,33 @@ function OperatorWorkspace({ initialSession }: { initialSession: OperatorSession
     }
   }
 
+  const account = <div className="operator-account"><div className="operator-identity"><span>{operator.displayName}</span><small>{operator.email}</small></div><form action="/api/app/session/signout" method="post" onSubmit={event => { event.preventDefault(); void signOut(); }}><button type="submit" className="button button-secondary header-signout" disabled={signingOut}>{signingOut ? "Signing out…" : "Sign out"}</button></form></div>;
+
   return (
     <PageTimezoneContext.Provider value={pageSettingsRequest.data?.settings.timezone ?? initialSession.timezone}>
     <ClientExtensionProvider operatorId={operator.id}>
     <EditorLauncher authorized={operator.isSetupOperator && !sessionRequest.error} initialConfig={initialSession.data["/api/app/editor-config"]?.error ? undefined : initialSession.data["/api/app/editor-config"]?.data as EditorConfig | undefined} />
-    <div className="operator-shell">
+    <div className="operator-shell" data-hydrated={hydrated || undefined}>
       <aside className="operator-rail" aria-label="Operator navigation">
-        <Brand />
-        <nav ref={navigationRow} aria-label="Workspace sections" className="operator-navigation">
+        <div className="operator-brand-row"><Brand /><button ref={menuButton} type="button" className="button button-secondary operator-menu-button" aria-expanded={menuOpen} aria-controls="operator-navigation-panel" onClick={() => setMenuOpen(open => !open)}>Menu</button></div>
+        <div id="operator-navigation-panel" className={`operator-navigation-panel${menuOpen ? " is-open" : ""}`} onKeyDown={event => { if (event.key === "Escape") { setMenuOpen(false); menuButton.current?.focus(); } }}>
+        <nav aria-label="Workspace sections" className="operator-navigation">
           {navigation.map((item) => (
-            <Link key={item.to} to={item.to} activeOptions={{ exact: item.to === "/app" }} className="operator-nav-link" activeProps={{ className: "operator-nav-link is-active" }}>
+            <Link key={item.to} to={item.to} activeOptions={{ exact: item.to === "/app" }} className={`operator-nav-link${item.to === "/app/settings" && movingIn ? " is-active" : ""}`} aria-current={item.to === "/app/settings" && movingIn ? "page" : undefined} activeProps={{ className: "operator-nav-link is-active" }} onClick={() => setMenuOpen(false)}>
               <Icon name={item.icon} width={20} height={20} />
               <span>{item.label}</span>
             </Link>
           ))}
         </nav>
         <div className="operator-rail-footer">
-          <a href={`${publicOrigin}/history`} className="operator-history-link"><Icon name="external" width={15} height={15} />Public history</a>
-          <p>One status page, one public record.</p>
+          <a href={`${publicOrigin}/`} className="operator-page-link" target="_blank" rel="noopener">View your page <Icon name="external" width={15} height={15} /></a>
+        </div>
         </div>
       </aside>
       <div className="operator-workspace">
-        <header className="operator-header">
-          <p><span className="header-live-dot" />Operator workspace</p>
-          <div className="operator-account"><div className="operator-identity"><span>{operator.displayName}</span><small>{operator.email}</small></div><Button type="button" variant="secondary" className="header-signout" disabled={sessionRequest.loading || signingOut} onClick={signOut}>{signingOut ? "Signing out…" : "Sign out"}</Button></div>
+        <header className={`operator-header${menuOpen ? " is-menu-open" : ""}`}>
+          <p><span className="header-live-dot" />Your status page</p>
+          {account}
         </header>
         <main className="operator-main">{signOutError && <FormError>{signOutError}</FormError>}<Outlet /></main>
       </div>

@@ -9,10 +9,10 @@
 .status-live-update { margin: 24px 0 0; border-top: 1px solid var(--line); padding-top: 18px; color: var(--ink); font-size: 15px; overflow-wrap: anywhere; }
 .status-generated { margin: 6px 0 0; color: var(--ink-3); font-size: 13px; }
 
-.status-banner.degraded-performance #status-live { border-color: rgb(201 138 18 / .32); background: #fffaee; }
-.status-banner.degraded-performance .overall-status-icon { background: #fbedc9; color: var(--amber-ink); }
-.status-banner.partially-unavailable #status-live, .status-banner.major-outage #status-live { border-color: rgb(180 68 50 / .26); background: #fdf3f1; }
-.status-banner.partially-unavailable .overall-status-icon, .status-banner.major-outage .overall-status-icon { background: #f6dfd9; color: var(--down); }
+.status-banner.partially-unavailable #status-live, .status-banner.degraded-performance #status-live { border-color: rgb(201 138 18 / .32); background: #fffaee; }
+.status-banner.partially-unavailable .overall-status-icon, .status-banner.degraded-performance .overall-status-icon { background: #fbedc9; color: var(--amber-ink); }
+.status-banner.major-outage #status-live { border-color: rgb(180 68 50 / .26); background: #fdf3f1; }
+.status-banner.major-outage .overall-status-icon { background: #f6dfd9; color: var(--down); }
 .status-banner.under-maintenance #status-live { border-color: rgb(79 111 168 / .26); background: #f3f6fb; }
 .status-banner.under-maintenance .overall-status-icon { background: #e1e8f4; color: var(--maint); }
 .status-banner.under-maintenance .overall-status-icon svg { stroke-width: 1.9; }

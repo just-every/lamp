@@ -24,12 +24,12 @@ export function IncidentImpactCard({ incidentId }: { incidentId: string }) {
   return <section className="panel" aria-labelledby="incident-impact-title">
     <h2 id="incident-impact-title">Incident impact</h2>
     {impact ? <>
-      <dl className="context-facts"><div><dt>Set impact</dt><dd>{impact.impactOverride === null ? "Use component claims" : impactLabel(impact.impactOverride)}</dd></div><div><dt>Derived impact</dt><dd>{impactLabel(impact.derivedImpact)}</dd></div><div><dt>Public impact</dt><dd>{impactLabel(impact.effectiveImpact)}</dd></div></dl>
-      <p>Impact describes this incident. Component status and uptime follow component claims.</p>
+      <dl className="context-facts"><div><dt>Set impact</dt><dd>{impact.impactOverride === null ? "From components" : impactLabel(impact.impactOverride)}</dd></div><div><dt>Components</dt><dd>{impactLabel(impact.derivedImpact)}</dd></div><div><dt>Public impact</dt><dd>{impactLabel(impact.effectiveImpact)}</dd></div></dl>
+      <p>Impact describes this incident. Component status and uptime stay the same.</p>
       <label htmlFor={`impact-${incidentId}`}>Set public impact</label>{" "}
-      <select id={`impact-${incidentId}`} value={selected} disabled={saving} onChange={event => setChoice(event.target.value as IncidentImpact | "derived")}><option value="derived">Use component claims</option>{INCIDENT_IMPACTS.map(value => <option key={value} value={value}>{impactLabel(value)}</option>)}</select>{" "}
+      <select id={`impact-${incidentId}`} value={selected} disabled={saving} onChange={event => setChoice(event.target.value as IncidentImpact | "derived")}><option value="derived">From components</option>{INCIDENT_IMPACTS.map(value => <option key={value} value={value}>{impactLabel(value)}</option>)}</select>{" "}
       <Button type="button" disabled={saving || selected === (impact.impactOverride ?? "derived")} onClick={() => void save()}>{saving ? "Saving…" : "Save impact"}</Button>
-      <details><summary>Impact history ({impact.history.length})</summary>{impact.history.length ? <ol>{impact.history.map(change => <li key={change.id}>{change.operatorName}: {change.previousOverride === null ? "Component claims" : impactLabel(change.previousOverride)} → {change.impactOverride === null ? "Component claims" : impactLabel(change.impactOverride)} · <time dateTime={change.createdAt}>{new Date(change.createdAt).toLocaleString()}</time></li>)}</ol> : <p>No operator changes.</p>}</details>
+      <details><summary>Impact history ({impact.history.length})</summary>{impact.history.length ? <ol>{impact.history.map(change => <li key={change.id}>{change.operatorName}: {change.previousOverride === null ? "Components" : impactLabel(change.previousOverride)} → {change.impactOverride === null ? "Components" : impactLabel(change.impactOverride)} · <time dateTime={change.createdAt}>{new Date(change.createdAt).toLocaleString()}</time></li>)}</ol> : <p>No operator changes.</p>}</details>
     </> : loading ? <p role="status">Loading incident impact…</p> : null}
     {error || saveError ? <FormError>{saveError ?? error}</FormError> : null}
   </section>;
