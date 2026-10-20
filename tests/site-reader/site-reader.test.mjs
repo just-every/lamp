@@ -154,13 +154,15 @@ test('the site reader reads what a site says about itself, refuses private desti
     ['/services/customer-success-management/', 'Customer success'], ['/services/', 'Professional Services'],
     ['/products/release-overview/', 'Product Releases'], ['/product-releases/', 'Recent changes'],
     ['/products/release_notes/', 'Recent changes'], ['/platform/productUpdates/', 'Recent changes'],
-    ['/products/what%27s-new/', 'What’s New'], ['/learn/orbit/', 'Orbit'], ['/resources/orbit/', 'Orbit'],
+    ['/products/what%27s-new/', 'Recent changes'], ['/learn/orbit/', 'Orbit'], ['/resources/orbit/', 'Orbit'],
+    ['/platform/productChangeLog.html', 'Recent changes'], ['/products/ai/', 'AI at Acme'],
     ['/products/academy/courses/', 'Orbit'], ['/apps/product-training/', 'Orbit'],
     ['/platform/premium-support/', 'Orbit'], ['/products/consulting/', 'Orbit'],
     ['/products/careers/', 'Orbit'], ['/platform/partner/', 'Orbit'], ['/apps/pricing/', 'Orbit'],
     ['/products/legal/', 'Orbit'], ['/legal/privacy/', 'Orbit'],
     ['/advisory/', 'Professional-services'], ['/welcome/', 'Product certification'],
-    ['/changes/', 'Product updates'], ['/courses/', 'Product academy'], ['/assistance/', 'Premium support plans'],
+    ['/changes/', 'Product updates'], ['/courses/', 'Product academy'], ['/assistance/', 'Premium support'],
+    ['/supporting/', 'Premium support plans'],
   ];
   assert.deepEqual((await read(`<nav><div><button>Products</button>
     ${supporting.map(([url, name]) => `<a href="${url}">${name}</a>`).join('')}
