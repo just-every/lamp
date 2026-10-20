@@ -88,12 +88,11 @@ export function renderLampSlackMessage(summary: string, fields: string[]): LampS
       }
     }
   }
-  // Slack uses top-level text for notifications and accessibility. Explicit
-  // <url> links accompany the summary; blocks retain the complete literal text.
+  // Notifications, accessibility and history retain the fields and their link
+  // punctuation together, as the rich-text blocks do.
   let notification = escapeSlackText(summary);
-  const links = new Set(fields.flatMap(field => tokenizeUpdateLinks(field).flatMap(token => token.kind === "https" ? [token.href] : [])));
-  for (const link of links) {
-    const addition = `\n${renderUpdateSlack(link)}`;
+  for (const field of fields.filter(Boolean)) {
+    const addition = `\n\n${renderUpdateSlack(field)}`;
     if (notification.length + addition.length <= 4000) notification += addition;
   }
   const message: LampSlackMessage = {

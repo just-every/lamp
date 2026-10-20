@@ -440,7 +440,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "56297f8b2d306ccdef7ed842f50fb4b0bddbcb216d2f1ef7ce52c576f4cd6b9f",
+      "sha256": "35ff0370ee029e7c3b549b118bc779982391aa3db592383b4e2367898abe5b73",
       "executable": false
     },
     "AGENTS.md": {
@@ -460,7 +460,7 @@
       "executable": false
     },
     "CHANGELOG.md": {
-      "sha256": "62412ac0b162ccb00d8d06e6f524e342b048fd37bebed077305ae2843323e644",
+      "sha256": "613ea17a64ef6c6d21f0034648bf5701ca2f5e591a9685f0111a34155ccc0652",
       "executable": false
     },
     "CLAUDE.md": {
@@ -488,7 +488,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "9720a1d0a58ecb8285fe22d5fd7033ac2a7244074184beb5a8ea7bdcee10f18f",
+      "sha256": "38870cbd4a3dc4fb96026ed60063ac549e799e50a8b56c50c095e3b432b8d687",
       "executable": false
     },
     "DEMO.md": {
@@ -3196,7 +3196,7 @@
       "executable": false
     },
     "src/core/features/channels/slack-message.ts": {
-      "sha256": "3afe2d128061a7789cd3ca7f3060e61bf152d9447d687562fe94e6c551c5fc97",
+      "sha256": "1381e33a3079a9d6322cc78d44289ae33333081f5585d3876e4f04d2d3e17151",
       "executable": false
     },
     "src/core/features/channels/slack.ts": {
@@ -5556,7 +5556,7 @@
       "executable": false
     },
     "tests/e2e/channels-and-presets.test.mjs": {
-      "sha256": "9af4c12c2727b91b26e088ec5dcd12eac8b9fa1169c201cbb841a42083da53d4",
+      "sha256": "88bc5e85abdf67a71dcc3c383b297a711bd5861b0aba2d4d556f48d1e08b133b",
       "executable": false
     },
     "tests/e2e/composer-visit-regression.mjs": {
