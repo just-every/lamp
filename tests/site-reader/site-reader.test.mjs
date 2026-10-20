@@ -53,7 +53,7 @@ test('the site reader reads what a site says about itself, refuses private desti
   assert.equal(Buffer.from(site.icon.dataUrl.split(',')[1], 'base64').toString(), svg);
   assert.equal(site.accent, '#fa5d00');
   assert.deepEqual(site.fonts, ['Besley']);
-  assert.deepEqual(site.components.map(component => component.name), ['Time tracking', 'Invoicing and Payments', 'Reporting']);
+  assert.deepEqual(site.components.map(component => component.name), ['Time tracking', 'Invoicing & Payments', 'Reporting']);
   assert.equal(site.components[0].url, 'https://www.example-harvest.com/features/time-tracking');
   assert.deepEqual(site.statusPage, { url: 'https://www.harveststatus.com/' });
   assert.equal(net.requested.some(url => url.includes('127.0.0.1')), false, 'the page script never ran');
@@ -111,4 +111,57 @@ test('the site reader reads what a site says about itself, refuses private desti
   const empty = await readSite('plain.example.com', network({ 'https://plain.example.com/': { body: '<p>Hello</p>' } }));
   assert.deepEqual({ ...empty.site, url: undefined }, { url: undefined, host: 'plain.example.com', name: null, title: null, description: null, icon: null, colours: [], accent: null, fonts: [], components: [], statusPage: null }, 'nothing the site did not give is filled in');
   }
+});
+
+test('component names follow link structure and product navigation, in site order', async (t) => {
+  const read = async html => {
+    const result = await readSite('example.com', network({ 'https://example.com/': { body: html } }));
+    assert.equal(result.ok, true);
+    return result.site.components;
+  };
+  t.diagnostic('badges, counts and emoji leave the displayed product name; a name beginning with New stays intact');
+  assert.deepEqual((await read(`<nav>
+    <a href="/products/seer">Seer <span class="new-pill">NEW</span></a>
+    <a href="/products/metrics">📊 Metrics BETA</a>
+    <a href="/products/queue">Queue <span>12</span> Soon</a>
+    <a href="/products/search">Search (42)</a>
+    <a href="/products/new-relic">New Relic</a>
+  </nav>`)).map(component => component.name), ['Seer', 'Metrics', 'Queue', 'Search', 'New Relic']);
+
+  t.diagnostic('titles and separate blocks supply names without merging their descriptions, irrespective of the words used');
+  assert.deepEqual((await read(`<header><nav>
+    <a href="/products/analytics"><div><h4>Analytics</h4><p>Podcast analytics software</p></div></a>
+    <a href="/products/orbit"><span class="link-title">Orbit</span><span class="link-description">Everything your team needs</span></a>
+    <a href="/products/relay"><div>Relay</div><div>Send messages across the world</div></a>
+    <a href="/products/time"><span>Time</span> <span>tracking</span><small>Track every hour</small></a>
+    <a href="/products/comet" title="Comet"><p>Keep every project moving</p></a>
+  </nav></header>`)).map(component => component.name), ['Analytics', 'Orbit', 'Relay', 'Time tracking', 'Comet']);
+
+  t.diagnostic('product groups and distinct app hosts beat marketing, account and documentation links');
+  const products = await read(`<header><nav>
+    <a href="/features/time-tracking">Time tracking</a>
+    <div><button>Products</button><ul>
+      <li><a href="/intake">Intake</a></li><li><a href="/plan">Plan</a></li>
+      <li><a href="/products/features">Features and benefits</a></li>
+      <li><a href="/products/pricing">Pricing</a></li><li><a href="/customers/acme">Acme</a></li>
+      <li><a href="/features">Explore features</a></li><li><a href="/about">About us</a></li>
+      <li><a href="/blog">Journal</a></li><li><a href="/careers">Team</a></li>
+      <li><a href="/contact">Get in touch</a></li><li><a href="/legal/terms">Terms</a></li>
+      <li><a href="/sign-in">Sign in</a></li><li><a href="/signup">Join</a></li>
+      <li><a href="/docs">Documentation</a></li><li><a href="https://docs.example.com/">Reference</a></li>
+    </ul></div>
+    <a href="https://console.example.com/">Console</a>
+    <div><button>Company</button><a href="/products/story">Our story</a></div>
+  </nav></header>`);
+  assert.deepEqual(products.map(component => component.name), ['Intake', 'Plan', 'Console']);
+  assert.equal(products.at(-1).url, 'https://console.example.com/');
+  assert.deepEqual(await read('<nav><a href="/products/one">One</a><a href="/pricing">Pricing</a></nav>'), [], 'a lone plausible product does not manufacture a component list');
+
+  t.diagnostic('footer product headings work when the header has too little evidence; repeats merge before the cap');
+  const names = ['Intake', 'Plan', 'Build', 'Observe', 'Relay', 'Orbit', 'Comet', 'Atlas', 'Beacon', 'Stream', 'Vault', 'Studio'];
+  const capped = await read(`<nav><a href="/pricing">Pricing</a></nav><footer><div><h3>Product</h3>
+    ${names.map((name, index) => `<a href="/${name.toLowerCase()}">${name}</a>${index === 0 ? '<a href="/intake?from=footer">Intake NEW</a><a href="/intake#more">Intake overview</a>' : ''}`).join('')}
+    </div><div><h3>Company</h3><a href="/products/office">Office tour</a></div></footer>`);
+  assert.ok(capped.length >= 2 && capped.length < names.length, 'a long product menu is capped');
+  assert.deepEqual(capped.map(component => component.name), names.slice(0, capped.length), 'deduplication and selection preserve source order');
 });

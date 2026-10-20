@@ -1,26 +1,18 @@
-/** A small, tolerant HTML scan: tags, attributes, anchor text and inline
- * styles. It never builds a DOM and never runs anything the page contains. */
+import { LinkText } from "./link-text.ts";
+import { cleanText, decodeEntities } from "./text.ts";
+export { cleanText, decodeEntities } from "./text.ts";
+
+/** A tolerant text scan with a stack for navigation groups and link labels.
+ * No page DOM is created and none of the page's scripts run. */
 export interface HtmlTag { name: string; attributes: Record<string, string> }
-export interface HtmlAnchor { href: string; text: string; region: "nav" | "header" | "footer" | "body" }
+export interface HtmlAnchor { href: string; text: string; name: string; groups: string[]; region: "nav" | "header" | "footer" | "body" }
 export interface HtmlScan { title: string | null; tags: HtmlTag[]; anchors: HtmlAnchor[]; styles: string[] }
 
 const TAG = /<!--[\s\S]*?-->|<(\/?)([a-zA-Z][a-zA-Z0-9-]*)((?:\s+[^\s"'>/=]+(?:\s*=\s*(?:"[^"]*"|'[^']*'|[^\s"'=<>`]+))?)*)\s*\/?>/g;
 const ATTRIBUTE = /([^\s"'>/=]+)(?:\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'=<>`]+)))?/g;
 const RAW_TEXT = new Set(["script", "style", "template", "noscript", "textarea", "svg"]);
-const KEPT = new Set(["meta", "link", "a", "img", "title"]);
-const NAMED: Record<string, string> = { amp: "&", lt: "<", gt: ">", quot: '"', apos: "'", nbsp: " ", ndash: "–", mdash: "—", middot: "·", raquo: "»", laquo: "«", rsquo: "’", lsquo: "‘", rdquo: "”", ldquo: "“", hellip: "…", bull: "•", copy: "©", reg: "®", trade: "™" };
-
-export function decodeEntities(value: string) {
-  return value.replace(/&(#x[0-9a-f]+|#\d+|[a-z]+);/gi, (match, entity: string) => {
-    if (entity[0] === "#") {
-      const code = entity[1].toLowerCase() === "x" ? parseInt(entity.slice(2), 16) : parseInt(entity.slice(1), 10);
-      return Number.isFinite(code) && code > 0 && code < 0x110000 ? String.fromCodePoint(code) : match;
-    }
-    return NAMED[entity.toLowerCase()] ?? match;
-  });
-}
-
-export const cleanText = (value: string) => decodeEntities(value).replace(/\s+/g, " ").trim();
+const KEPT = new Set(["meta", "link", "img"]);
+const VOID = new Set(["area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "param", "source", "track", "wbr"]);
 
 function attributesOf(source: string) {
   const attributes: Record<string, string> = {};
@@ -32,33 +24,26 @@ function attributesOf(source: string) {
 }
 
 export function scanHtml(html: string): HtmlScan {
-  const tags: HtmlTag[] = [];
-  const anchors: HtmlAnchor[] = [];
-  const styles: string[] = [];
-  const regions: string[] = [];
-  let title: string | null = null;
-  let anchor: { href: string; text: string; label: string; region: HtmlAnchor["region"] } | null = null;
-  let titleStart = -1;
+  const tags: HtmlTag[] = [], anchors: HtmlAnchor[] = [], styles: string[] = [];
+  const stack: { tag: string; group: string; label?: string }[] = [];
+  const lower = html.toLowerCase();
+  let title: string | null = null, titleStart = -1;
+  let anchor: { href: string; text: string; label: string; parts: LinkText; region: HtmlAnchor["region"]; groups: string[] } | null = null;
   TAG.lastIndex = 0;
   let previous = 0;
   for (let match = TAG.exec(html); match; match = TAG.exec(html)) {
-    if (anchor) anchor.text += ` ${html.slice(previous, match.index)}`;
+    const text = html.slice(previous, match.index);
+    if (anchor) { anchor.text += ` ${text}`; anchor.parts.text(text); }
+    for (const frame of stack) if (frame.label !== undefined) frame.label += ` ${text}`;
     previous = TAG.lastIndex;
     if (match[0].startsWith("<!--")) continue;
-    const closing = match[1] === "/";
-    const name = match[2].toLowerCase();
+    const closing = match[1] === "/", name = match[2].toLowerCase();
     if (!closing && RAW_TEXT.has(name)) {
-      const end = html.toLowerCase().indexOf(`</${name}`, TAG.lastIndex);
-      const body = html.slice(TAG.lastIndex, end < 0 ? html.length : end);
-      if (name === "style") styles.push(body);
+      const end = lower.indexOf(`</${name}`, TAG.lastIndex);
+      if (name === "style") styles.push(html.slice(TAG.lastIndex, end < 0 ? html.length : end));
       if (name === "svg" && anchor) anchor.label ||= attributesOf(match[3])["aria-label"] ?? "";
       TAG.lastIndex = end < 0 ? html.length : end;
       previous = TAG.lastIndex;
-      continue;
-    }
-    if (name === "nav" || name === "header" || name === "footer") {
-      if (closing) { const at = regions.lastIndexOf(name); if (at >= 0) regions.splice(at); }
-      else regions.push(name);
       continue;
     }
     if (name === "title") {
@@ -66,23 +51,27 @@ export function scanHtml(html: string): HtmlScan {
       else if (titleStart >= 0 && title === null) title = cleanText(html.slice(titleStart, match.index)) || null;
       continue;
     }
-    if (name === "a" && closing) {
-      if (anchor) {
-        const text = cleanText(anchor.text) || cleanText(anchor.label);
-        anchors.push({ href: anchor.href, text, region: anchor.region });
+    if (closing) {
+      if (name === "a" && anchor) {
+        anchors.push({ href: anchor.href, text: cleanText(anchor.text) || cleanText(anchor.label), name: anchor.parts.name(anchor.label), region: anchor.region, groups: anchor.groups });
+        anchor = null;
+      } else anchor?.parts.close(name);
+      const at = stack.findLastIndex(frame => frame.tag === name);
+      if (at >= 0) {
+        const label = stack[at].label;
+        stack.splice(at);
+        if (label && stack.length) stack.at(-1)!.group = cleanText(label);
       }
-      anchor = null;
       continue;
     }
-    if (closing || !KEPT.has(name)) continue;
     const attributes = attributesOf(match[3]);
     if (name === "a") {
-      const region = (["nav", "header", "footer"] as const).find((kind) => regions.includes(kind)) ?? "body";
-      anchor = attributes.href ? { href: attributes.href, text: "", label: attributes["aria-label"] ?? attributes.title ?? "", region } : null;
-      continue;
-    }
-    if (name === "img" && anchor) { anchor.label ||= attributes.alt ?? ""; continue; }
-    tags.push({ name, attributes });
+      const region = (["nav", "header", "footer"] as const).find(kind => stack.some(frame => frame.tag === kind)) ?? "body";
+      anchor = attributes.href ? { href: attributes.href, text: "", label: attributes["aria-label"] ?? attributes.title ?? "", parts: new LinkText(attributes), region, groups: stack.map(frame => frame.group).filter(Boolean) } : null;
+    } else anchor?.parts.open(name, attributes);
+    if (name === "img" && anchor) anchor.label ||= attributes.alt ?? "";
+    else if (KEPT.has(name)) tags.push({ name, attributes });
+    if (!VOID.has(name) && !/\/\s*>$/.test(match[0])) stack.push({ tag: name, group: attributes["aria-label"] ?? "", ...(!anchor && /^(button|h[1-6]|summary)$/.test(name) ? { label: "" } : {}) });
   }
   return { title, tags, anchors, styles };
 }

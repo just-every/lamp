@@ -1,19 +1,12 @@
+import { siteDomain } from "./domain.ts";
 import { cleanText, type HtmlScan, type HtmlTag } from "./html.ts";
 import { cssBrandColours, isBrandColour, toHex } from "./colour.ts";
-import type { SiteComponent } from "./types.ts";
 
 export interface Manifest { name?: string; short_name?: string; description?: string; theme_color?: string; icons?: { src?: string; sizes?: string; type?: string }[] }
 
 const meta = (scan: HtmlScan, key: string) => scan.tags.find((tag) => tag.name === "meta" && [tag.attributes.name, tag.attributes.property].some((value) => value?.toLowerCase() === key))?.attributes.content?.trim() || null;
 const rels = (tag: HtmlTag) => (tag.attributes.rel ?? "").toLowerCase().split(/\s+/);
 const squash = (value: string) => value.toLowerCase().replace(/[^a-z0-9]/g, "");
-
-/** The registrable part of a host name, roughly: getharvest.com, example.co.uk. */
-export function siteDomain(host: string) {
-  const labels = host.toLowerCase().replace(/^www\./, "").split(".");
-  const take = labels.length >= 3 && labels.at(-2)!.length <= 3 && labels.at(-1)!.length === 2 ? 3 : 2;
-  return labels.slice(-take).join(".");
-}
 
 export function siteName(scan: HtmlScan, host: string, manifest: Manifest | null): string | null {
   const label = squash(siteDomain(host).split(".")[0]);
@@ -75,45 +68,9 @@ export function siteFonts(scan: HtmlScan) {
   return [...new Set(fonts.filter(Boolean))].slice(0, 4);
 }
 
-const GENERIC = /^(home|pricing|plans?( and pricing)?|blog|about( us)?|company|careers|jobs|contact( us| sales)?|talk to (sales|us)|sales|(book|request|get|watch) a demo|demo|get started( free| for free)?|start (your )?free trial|start for free|try (it )?(for )?free|free trial|sign ?up( free)?|register|learn more|read more|resources|customers|case studies|(customer )?stories|partners|press|news(room)?|events|webinars|community|help( cent(er|re))?|support|faq|privacy( policy)?|terms( of (service|use))?|legal|cookies?( policy| settings)?|menu|search|close|skip to (main )?content|english|language|products?|features|solutions|platform|overview|explore|enterprise|compare|why .+|see all.*|view all.*|all .+|more|status|system status|log ?out|sign ?out|download|apps?|guides?|templates|integrations? directory|changelog|what'?s new|security|trust|accessibility|sitemap|investors|affiliates?|refer a friend|gift cards?)$/i;
-// Calls to action, sentences and menu chrome are not product areas.
-const CHROME = /^(pricing|sign ?up|get started|try|book|request|start|navigate|go to|back to|skip|open app|download|see|view|learn|read|watch|join|contact|help)\b|\b(overview|home|homepage)$|\bfor\b|\b(is|are|was|our|your|we|you|to the|of the)\b/i;
-const NON_SERVICE_NAME = /^(docs?|documentation|developers?|developer docs|api (docs|reference)|integrations?|now|log[ -]?in|sign[ -]?in|accounts?|dashboard login|e-?commerce|saas|agencies|creators?( and publishers?)?|publishers?|public sector|industries|use cases)$|^(vs\.?|versus|compare|migrat\w*|switch|white[ -]label)\b/i;
-const NON_SERVICE_PATH = /\/(docs?|documentation|developers?|reference|learn|guides?|help|support|blog|news|now|changelog|resources|integrations?|customers?|stories|case-studies|partners|templates|for|use-cases|industries|solutions?|compare|comparisons?|alternatives?|vs|migrat\w*|log-?in|sign-?in|sign-?up|auth|accounts?|pricing|about|company|careers|contact)(\/|$)/i;
-const NON_SERVICE_HOST = /^(docs?|developers?|help|support|learn|accounts?|auth|id|sso|login)\./i;
-const PRODUCT_PATH = /^\/(products?|apps?|tools?|services?)\/[^/]+/i;
-// A feature menu alone is weak evidence: keep only names of usable service areas,
-// rather than benefits such as "Zero downtime deploys" or "Granular routing".
-const SERVICE_NAME = /^(api|dashboard|console|web app|mobile app|website|storage|databases?|compute|cdn|authentication|payments|invoices|invoicing( and payments)?|timesheets|time tracking|reports|reporting|analytics|messaging|email|search|hosting)$/i;
 const STATUS_HOST = /(^|\.)(statuspage\.io|status\.io|instatus\.com|betteruptime\.com|statuspal\.io|hund\.io|status\.[a-z0-9-]+\.[a-z.]+)$|^status\./i;
 
-/** Plausible service areas from the site's own links; ambiguous navigation is omitted. */
-export function siteComponents(scan: HtmlScan, base: URL): SiteComponent[] {
-  const domain = siteDomain(base.hostname);
-  const candidates: SiteComponent[] = [];
-  const consider = (anchors: HtmlScan["anchors"]) => {
-    for (const anchor of anchors) {
-      let url: URL;
-      try { url = new URL(anchor.href, base); } catch { continue; }
-      if (!/^https?:$/.test(url.protocol) || !(url.hostname === domain || url.hostname.endsWith(`.${domain}`)) || STATUS_HOST.test(url.hostname)) continue;
-      const text = anchor.text.replace(/[\s›»→↗➔>]+$/u, "").replace(/\s+&\s+/g, " and ").trim();
-      if (text.length < 2 || text.length > 40 || text.split(" ").length > 5 || GENERIC.test(text) || CHROME.test(text) || NON_SERVICE_NAME.test(text) || /^\d+$/.test(text)) continue;
-      if (NON_SERVICE_PATH.test(url.pathname) || NON_SERVICE_HOST.test(url.hostname) || (url.pathname === "/" && url.hostname === base.hostname)) continue;
-      if (!PRODUCT_PATH.test(url.pathname) && !SERVICE_NAME.test(text)) continue;
-      candidates.push({ name: text[0].toUpperCase() + text.slice(1), url: url.href });
-    }
-  };
-  consider(scan.anchors.filter((anchor) => anchor.region === "nav" || anchor.region === "header"));
-  if (candidates.length < 2) consider(scan.anchors.filter((anchor) => anchor.region === "footer"));
-  const seen = new Set<string>();
-  const unique = candidates.filter((candidate) => {
-    const key = candidate.name.toLowerCase(), address = candidate.url.replace(/[#?].*$/, "");
-    if (seen.has(key) || seen.has(address)) return false;
-    seen.add(key); seen.add(address);
-    return true;
-  });
-  return unique.length >= 2 ? unique.slice(0, 8) : [];
-}
+export { siteComponents } from "./components.ts";
 
 export function siteStatusPage(scan: HtmlScan, base: URL) {
   for (const anchor of scan.anchors) {
