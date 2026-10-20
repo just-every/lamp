@@ -1513,6 +1513,6 @@ owner's browser retains the read and edits until they open Lamp, with publishing
 and subscribe-form progress shown during that action.
 
 The detected status page stays with the website record. Move-in selects a provider
-only from public provider evidence and fills a Statuspage page ID from its public
-summary. This reads migration metadata only: the existing reviewed import and
+only from public provider evidence and fills a page ID from Statuspage's public
+summary or Better Stack's public page JSON. This reads migration metadata only: the existing reviewed import and
 invitation steps remain in force.

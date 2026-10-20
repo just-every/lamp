@@ -47,10 +47,18 @@ export async function readStatusPage(input: string, options: SiteReadOptions = {
         catch { return false; }
       })) detected.source = "statuspage";
     }
-    if (detected.source !== "statuspage") return detected;
-    const summary = await guardedFetch(new URL("/api/v2/summary.json", landing.url), "application/json", 1_000_000, false, context);
+    if (detected.source !== "statuspage" && detected.source !== "betterstack") return detected;
+    const summary = await guardedFetch(new URL(detected.source === "betterstack" ? "/index.json" : "/api/v2/summary.json", landing.url), "application/json", 1_000_000, false, context);
     const value: unknown = JSON.parse(new TextDecoder().decode(summary.bytes));
     if (!value || typeof value !== "object") return detected;
+    if (detected.source === "betterstack") {
+      const data = (value as { data?: { type?: unknown; id?: unknown; attributes?: { custom_domain?: unknown; subdomain?: unknown } } }).data;
+      const domain = data?.attributes?.custom_domain;
+      const subdomain = data?.attributes?.subdomain;
+      const matchesPage = domain === landing.url.hostname || (typeof subdomain === "string" && `${subdomain}.betteruptime.com` === landing.url.hostname);
+      if (data?.type === "status_page" && typeof data.id === "string" && /^\d{1,40}$/.test(data.id) && matchesPage) detected.pageId = data.id;
+      return detected;
+    }
     const body = value as { page?: { id?: unknown }; status?: { indicator?: unknown }; components?: unknown; incidents?: unknown; scheduled_maintenances?: unknown };
     if (typeof body.page?.id === "string" && /^[a-z0-9]{6,32}$/.test(body.page.id)
       && typeof body.status?.indicator === "string" && Array.isArray(body.components)
