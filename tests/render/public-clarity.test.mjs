@@ -26,7 +26,7 @@ try {
       {id:'resolved',reference:'INC-RESOLVED',title:'Earlier checkout delay',lifecycle:'Resolved',openedAt:'2026-10-02T04:00:00.000Z',resolvedAt:'2026-10-02T08:00:00.000Z'},
     ],
     incidentComponents:[
-      {incidentId:'active',componentName:'Checkout API'},
+      {incidentId:'active',componentId:'checkout',componentName:'Checkout API'},
       {incidentId:'resolved',componentName:'Checkout API'},
     ],
     updates:[

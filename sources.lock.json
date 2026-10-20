@@ -6568,7 +6568,7 @@
       "executable": false
     },
     "tests/render/public-clarity.test.mjs": {
-      "sha256": "575aef978bc90a97c882545f5a32e09a583deaf197f873d906ed2e346200dc5d",
+      "sha256": "b4e80a066c8420a011bed3771502b24c4e72ee4bd28d6e10c48bb4a9c122faa2",
       "executable": false
     },
     "tests/render/workflow-render.test.mjs": {
