@@ -57,7 +57,7 @@ export async function guardedFetch(start: URL, accept: string, maxBytes: number,
     }
     if (!response.ok) {
       await response.body?.cancel();
-      throw new SiteReadError("http-error", `That website answered with an error (${response.status}).`);
+      throw new SiteReadError("http-error", "We couldn't read that website.");
     }
     const declared = Number(response.headers.get("Content-Length"));
     if (!truncate && declared > maxBytes) {

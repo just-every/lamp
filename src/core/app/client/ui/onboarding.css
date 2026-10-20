@@ -18,6 +18,7 @@
 .found-edit { min-height: 24px; border: 0; background: none; padding: 0; color: var(--ink-2); font-size: 13px; text-decoration: underline 1px var(--link-line); text-underline-offset: 3px; }
 .found-edit:hover { color: var(--ink); }
 .found-value { color: var(--ink); font-size: 14px; line-height: 1.5; overflow-wrap: anywhere; }
+.found-components { margin: 0; padding: 0; list-style: none; }
 .found-editor { display: grid; gap: 8px; padding-top: 4px; }
 .found-editor .form-label { font-size: 13px; }
 .found-muted { color: var(--ink-3); }

@@ -96,7 +96,7 @@ test('the site reader reads what a site says about itself, refuses private desti
   assert.equal(big.site.name, 'Bigco');
   assert.equal(big.site.icon.url, 'https://big.example.com/ok.png', 'an oversized icon is skipped for the next one');
   assert.deepEqual([big.site.icon.width, big.site.icon.height], [180, 180]);
-  assert.deepEqual(await readSite('gone.example.com', net), { ok: false, reason: 'http-error', message: 'That website answered with an error (410).' });
+  assert.deepEqual(await readSite('gone.example.com', net), { ok: false, reason: 'http-error', message: "We couldn't read that website." });
   assert.equal((await readSite('data.example.com', net)).reason, 'not-html');
   // Node does not hold the process open for AbortSignal.timeout; this timer does, for the read's 50 ms.
   const hold = setTimeout(() => {}, 1000);

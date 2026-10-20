@@ -13,11 +13,11 @@ const mark = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect 
 const home = `<!doctype html><html><head><title>Time tracking for teams | Acme Tracking</title>
 <meta name="description" content="Acme Tracking keeps your team's hours in one place. Start free today.">
 <link rel="icon" type="image/svg+xml" href="/mark.svg"><script>fetch('/ran-a-script')</script></head>
-<body><header><nav><a href="/">Home</a><a href="/features/timesheets">Timesheets</a><a href="/features/invoices">Invoices</a><a href="/features/reports">Reports</a>
+<body><header><nav><a href="/">Home</a><a href="/features/timesheets">Timesheets</a><a href="/features/invoices">Invoices</a><a href="/features/reports">Reports</a><a href="/features/developers">API, CLI, Skills</a>
 <a href="/pricing">Pricing</a><a href="https://app.acme-tracking.com/login">Log in</a></nav></header>
 <footer><a href="https://status.acme-tracking.com/">Status</a></footer></body></html>`;
 
-contract('SETUP-002', 'a fresh owner gives their website first; Lamp fills in the page from it, a site it cannot read leaves calm defaults, and the edited result is what customers see', { timeout: 600_000 }, async () => {
+contract('SETUP-002', 'a fresh owner gives their website first; Lamp fills in the page from it, a site it cannot read leaves calm defaults, and the edited result is what customers see', async () => {
   const requests = [];
   const site = createServer((request, response) => {
     const host = request.headers['x-lamp-site-host'];
@@ -50,7 +50,8 @@ contract('SETUP-002', 'a fresh owner gives their website first; Lamp fills in th
     await website.fill('blocked.example.com');
     await page.getByRole('button', { name: 'Read website', exact: true }).click();
     await page.getByRole('status').filter({ hasText: 'plain defaults' }).waitFor();
-    assert.match(await page.getByRole('status').innerText(), /error \(403\)/);
+    assert.match(await page.getByRole('status').innerText(), /couldn't read that website/);
+    assert.doesNotMatch(await page.getByRole('status').innerText(), /403/);
     assert.equal(await row('page name').innerText(), 'Ingress fixture');
 
     // A site that answers: everything it says is filled in, and only that.
@@ -61,7 +62,9 @@ contract('SETUP-002', 'a fresh owner gives their website first; Lamp fills in th
     assert.equal(await row('tagline').innerText(), "Acme Tracking keeps your team's hours in one place.");
     assert.equal(await row('accent colour').innerText(), '#0F7B6C');
     assert.match(await row('time zone').innerText(), /^America\/New_York/);
-    assert.equal(await row('components').innerText(), 'Timesheets, Invoices, Reports, Sign-in');
+    const foundComponents = ['Timesheets', 'Invoices', 'Reports', 'API, CLI, Skills', 'Sign-in'];
+    assert.deepEqual(await row('components').getByRole('listitem').allTextContents(), foundComponents);
+    assert.equal(await page.locator('[data-found="components"] .found-label').textContent(), `Components (${foundComponents.length} found)`);
     assert.match(await row('status page').innerText(), /status\.acme-tracking\.com/);
     assert.equal(await page.locator('[data-found="logo"] img').evaluate(image => image.complete && image.naturalWidth > 0), true, 'the site\'s own mark is shown');
     for (const width of [390, 1440]) {
@@ -70,8 +73,15 @@ contract('SETUP-002', 'a fresh owner gives their website first; Lamp fills in th
     }
     // Every fact stays editable before opening Lamp.
     await page.getByRole('button', { name: 'Edit components', exact: true }).click();
-    await page.getByLabel('Components', { exact: true }).fill('Timesheets\nInvoices\nSign-in');
+    const components = page.getByLabel('Components', { exact: true });
+    const help = await components.getAttribute('aria-describedby');
+    assert.ok(help, 'the components help is linked as a description');
+    assert.equal(await page.locator(`#${help}`).innerText(), 'One per line.');
+    const keptComponents = ['Timesheets', 'Invoices', 'API, CLI, Skills', 'Sign-in'];
+    await components.fill(`${keptComponents.join('\n')}\n\n`);
     await page.getByRole('button', { name: 'Done editing components', exact: true }).click();
+    assert.deepEqual(await row('components').getByRole('listitem').allTextContents(), keptComponents);
+    assert.equal(await page.locator('[data-found="components"] .found-label').textContent(), `Components (${keptComponents.length} found)`);
     await page.getByRole('button', { name: 'Looks right, open Lamp', exact: true }).click();
     await page.waitForURL('**/app');
     await page.getByRole('region', { name: 'Your public page' }).waitFor();
@@ -80,11 +90,11 @@ contract('SETUP-002', 'a fresh owner gives their website first; Lamp fills in th
     const { settings } = await api('/api/app/page-settings');
     assert.deepEqual([settings.pageName, settings.tagline, settings.accentColor, settings.timezone], ['Acme Tracking Status', "Acme Tracking keeps your team's hours in one place.", '#0F7B6C', 'America/New_York']);
     assert.ok(settings.logoKey, 'the mark became the page logo');
-    assert.deepEqual((await api('/api/app/components')).components.map(component => component.name), ['Timesheets', 'Invoices', 'Sign-in']);
+    assert.deepEqual((await api('/api/app/components')).components.map(component => component.name), keptComponents);
     assert.equal((await api('/api/app/website')).website.url, 'https://www.acme-tracking.com/');
     // Customers see the page as confirmed; the SVG mark is stored and served as a PNG.
     const published = await (await fetch(`${publicOrigin}/`, { headers: devKeyHeaders })).text();
-    for (const text of ['Acme Tracking Status', 'Timesheets', 'Invoices', 'Sign-in']) assert.ok(published.includes(text), text);
+    for (const text of ['Acme Tracking Status', ...keptComponents]) assert.ok(published.includes(text), text);
     assert.equal(published.includes('Reports'), false, 'a removed component is not published');
     const logo = await fetch(`${publicOrigin}/assets/logo`, { headers: devKeyHeaders });
     assert.equal(logo.headers.get('content-type'), 'image/png');

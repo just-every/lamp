@@ -20,6 +20,7 @@ export function FoundCard({ page, browserZone, address, onChange }: { page: Foun
     if (file) onChange({ mark: { src: await readFileAsDataUrl(file), vector: file.type === "image/svg+xml", from: null } });
   }
   const timezones = zones();
+  const components = page.components.map((name) => name.trim()).filter(Boolean);
   return <div className="found-card data-card">
     <div className="found-list">
       <EditableRow label="Page name" name="page name" value={page.pageName} editor={<label className="form-label">Page name<input required maxLength={120} value={page.pageName} onChange={(event) => onChange({ pageName: event.target.value })} /></label>} />
@@ -32,12 +33,12 @@ export function FoundCard({ page, browserZone, address, onChange }: { page: Foun
         editor={<label className="form-label">Accent colour<span className="found-colour-editor"><input type="color" aria-label="Pick accent colour" value={/^#[0-9a-f]{6}$/i.test(page.accentColor) ? page.accentColor : "#000000"} onChange={(event) => onChange({ accentColor: event.target.value.toUpperCase() })} /><input required pattern="#[0-9A-Fa-f]{6}" value={page.accentColor} onChange={(event) => onChange({ accentColor: event.target.value })} /></span></label>} />
       <EditableRow label="Time zone" name="time zone" value={<>{page.timezone}{browserZone === page.timezone ? <span className="found-muted"> (from your browser)</span> : null}</>}
         editor={<label className="form-label">Time zone{timezones.length ? <select value={page.timezone} onChange={(event) => onChange({ timezone: event.target.value })}>{(timezones.includes(page.timezone) ? timezones : [page.timezone, ...timezones]).map((zone) => <option key={zone} value={zone}>{zone}</option>)}</select> : <input required maxLength={100} value={page.timezone} onChange={(event) => onChange({ timezone: event.target.value })} />}</label>} />
-      <EditableRow label={page.components.length ? `Components (${page.components.length} found)` : "Components"} name="components" value={page.components.length ? page.components.join(", ") : <span className="found-muted">None yet; add them any time</span>}
-        editor={<label className="form-label">Components<textarea value={page.components.join("\n")} onChange={(event) => onChange({ components: event.target.value.split("\n").map((name) => name.trimStart()).slice(0, 20) })} /><small>One per line.</small></label>} />
+      <EditableRow label={components.length ? `Components (${components.length} found)` : "Components"} name="components" value={components.length ? <ul className="found-components">{components.map((name, index) => <li key={index}>{name}</li>)}</ul> : <span className="found-muted">None yet; add them any time</span>}
+        editor={<><label className="form-label" htmlFor="first-run-components">Components</label><textarea id="first-run-components" aria-describedby="first-run-components-help" value={page.components.join("\n")} onChange={(event) => onChange({ components: event.target.value.split("\n").map((name) => name.trimStart()).slice(0, 20) })} /><small className="field-hint" id="first-run-components-help">One per line.</small></>} />
       {page.statusPage ? <div className="found-row" data-found="status page"><p className="found-label">Your current status page</p><div className="found-value">{shortUrl(page.statusPage)}<small className="found-muted found-note">Move its history in later from Settings.</small></div></div> : null}
     </div>
     <div className="found-preview">
-      <PagePreview pageName={page.pageName || "Status"} accentColor={page.accentColor} markSrc={page.mark?.src ?? null} components={page.components.filter((name) => name.trim()).map((name) => ({ name: name.trim() }))} address={address} />
+      <PagePreview pageName={page.pageName || "Status"} accentColor={page.accentColor} markSrc={page.mark?.src ?? null} components={components.map((name) => ({ name }))} address={address} />
       <p className="found-caption">Preview of {address}</p>
     </div>
   </div>;
