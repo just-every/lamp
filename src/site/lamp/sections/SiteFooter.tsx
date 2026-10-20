@@ -3,8 +3,8 @@ import { contractUrl, docsUrl, licenceUrl, sourceUrl } from '../repository';
 import { FooterIndex } from './FooterIndex';
 import './footer.css';
 
-// The footer, a sign-off with a map: the lockup of mark 18 and the name over the page's one line, then an index of the
-// page's sections, Docs, GitHub and the licence. On the docs pages the index leads back to the landing page's sections.
+// The footer, a sign-off: the lockup of mark 18 and the name over the page's one line, then Docs, GitHub and the licence.
+// It never links to sections of the page it sits on: on the docs pages only, an index leads back to the landing page's sections.
 export function SiteFooter({ onDocs = false, variant }: { onDocs?: boolean; variant?: 'site' }) {
   return <footer className="lamp-footer">
     <div className="lamp-footer__bar">
@@ -16,7 +16,7 @@ export function SiteFooter({ onDocs = false, variant }: { onDocs?: boolean; vari
         <p className="lamp-footer__tagline">The status page that never leaves your customers in the dark.</p>
       </div>
       <div className="lamp-footer__links">
-        <FooterIndex onDocs={onDocs} />
+        {onDocs && <FooterIndex />}
         <nav className="lamp-footer__nav" aria-label="Footer">
           <a href={docsUrl} aria-current={onDocs ? 'page' : undefined}>Docs</a>
           {variant === 'site' && <a href={contractUrl}>Contract</a>}

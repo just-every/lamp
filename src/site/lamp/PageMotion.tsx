@@ -17,9 +17,6 @@
 // its moving parts at their first frame below the line; `play` runs each part's one short animation once the moment
 // crosses it, after which the attribute is removed, and a focus that enters a waiting or playing moment removes it at
 // once, so nothing that has been seen is hidden again and nothing replays.
-//
-// The footer index glides to its section where motion is welcome, never by CSS scroll-behavior, which would also slow
-// every scroll the page makes itself, and moves focus to the section's headline as a native jump would.
 const script = `(() => {
   const page = document.currentScript.closest('.lamp-home');
   const motion = () => window.matchMedia('(prefers-reduced-motion: no-preference)').matches;
@@ -69,15 +66,6 @@ const script = `(() => {
       node.addEventListener('focusin', end);
     }
   }
-  for (const link of page.querySelectorAll('.lamp-footer__index a[href^="#"]')) link.addEventListener('click', (event) => {
-    const target = document.getElementById(link.hash.slice(1));
-    if (!target || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || !motion()) return;
-    event.preventDefault();
-    target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    history.pushState(null, '', link.hash);
-    const heading = document.getElementById(target.getAttribute('aria-labelledby') ?? '');
-    (heading ?? target).focus({ preventScroll: true });
-  });
 })();`;
 
 export function PageMotion() {

@@ -3,9 +3,9 @@
    frosted glass: paper at 84% over an 18px blur, its hairline only as strong as the backing. It fades in from the first
    pixel of scroll and is whole by the time the lamp's grip reaches the header's bottom edge (--lamp-backing, from
    PageMotion), so the lamp passes up into it, softened, as into a ceiling, and the page scrolls under it.
-   Without backdrop filters it is opaque paper. From 1024px Docs and GitHub sit right of the cord, as in C; from 600px
-   they sit in two equal columns, so the gap between them is centred on the page, where the cord hangs; under 600px
-   the header is one row, the name and Get the code, and Docs and GitHub live in the hero and the footer. */
+   Without backdrop filters it is opaque paper. From 600px the wordmark sits at the left and Docs and GitHub sit at the
+   right, grouped with the way in beside them; under 600px the header is one row, the name and the way in, and Docs and
+   GitHub live in the hero and the footer. */
 .lamp-home .lamp-header { position: fixed; z-index: 3; top: 0; right: 0; left: 0; }
 .lamp-home .lamp-header::before { content: ''; position: absolute; inset: 0; opacity: var(--lamp-backing, 0);
   background: rgb(248 246 240 / .84); box-shadow: 0 1px 0 var(--lamp-line);
@@ -17,9 +17,7 @@
   max-width: 1536px; min-height: 72px; margin: 0 auto; padding: 0 16px; }
 .lamp-home .lamp-brand { display: inline-flex; align-items: center; align-self: flex-start; gap: var(--lamp-mark-gap); margin: var(--lamp-mark-top) auto 0 0;
   font-size: var(--lamp-brand-size); font-weight: 600; line-height: 1; letter-spacing: -.035em; }
-.lamp-home .lamp-nav { display: grid; grid-template-columns: 1fr 1fr; column-gap: 40px; font-size: 15px; font-weight: 450; line-height: 1.25; letter-spacing: -.01em; }
-.lamp-home .lamp-nav a:first-child { justify-self: end; }
-.lamp-home .lamp-nav a:last-child { justify-self: start; }
+.lamp-home .lamp-nav { display: flex; column-gap: 28px; font-size: 15px; font-weight: 450; line-height: 1.25; letter-spacing: -.01em; }
 .lamp-home .lamp-nav a { padding-block: 4px; }
 .lamp-home .lamp-header__cta { height: 40px; padding-inline: 16px; font-size: 14px; }
 @container lamp-page (max-width: 599px) {
@@ -28,13 +26,13 @@
 }
 @container lamp-page (min-width: 600px) {
   .lamp-home .lamp-header__bar { min-height: var(--lamp-header-h); padding: 0 clamp(16px, 5cqw, 32px); }
-  .lamp-home .lamp-nav { position: absolute; top: 50%; left: 50%; font-size: 16px; transform: translate(-50%, -50%); }
+  .lamp-home .lamp-nav { font-size: 16px; }
   .lamp-home .lamp-header__cta { height: 42px; padding-inline: 18px; font-size: 15px; }
 }
 @container lamp-page (min-width: 1024px) {
   .lamp-home .lamp-header__bar { padding: 0 var(--lamp-gutter); }
-  .lamp-home .lamp-nav { display: flex; left: calc(50% + 97 * var(--u)); column-gap: calc(56 * var(--u)); font-size: max(15px, calc(19 * var(--u)));
-    transform: translateY(-50%); }
+  .lamp-home .lamp-header__bar { column-gap: max(28px, calc(44 * var(--u))); }
+  .lamp-home .lamp-nav { column-gap: max(28px, calc(44 * var(--u))); font-size: max(15px, calc(19 * var(--u))); }
   .lamp-home .lamp-header__cta { height: max(40px, calc(49 * var(--u))); padding-inline: max(16px, calc(25 * var(--u))); font-size: max(14px, calc(17.8 * var(--u))); }
 }
 /* Without a script nothing tracks the scroll, so the header stays at the top of the page and scrolls away with it:

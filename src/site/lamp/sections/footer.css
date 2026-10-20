@@ -1,6 +1,6 @@
-/* The footer, a sign-off with a map, on one hairline at the page's gutter: the lockup of mark 18 and the name with the
-   page's one line under it; then the index of the page's sections, and Docs, GitHub and the licence as an outline
-   pill. Stacked under 1024px; from 1024px the sign-off on the left and the links on the right, in two rows. */
+/* The footer, a sign-off, on one hairline at the page's gutter: the lockup of mark 18 and the name with the page's one
+   line under it; then Docs, GitHub and the licence as an outline pill, led on the docs pages by the index of the landing
+   page's sections. Stacked under 1024px; from 1024px the sign-off on the left and the links on the right, in two rows. */
 .lamp-home .lamp-footer { max-width: 1536px; margin: 0 auto; padding: 0 var(--lamp-gutter); }
 .lamp-home .lamp-footer__bar { display: flex; flex-direction: column; gap: 28px; padding: 36px 0 44px; border-top: 1px solid var(--lamp-line); }
 /* The lockup in the logo sheet's proportions (mark.css): a 24px mark, the gap 9/40 of it, the name 38/40 of it. */

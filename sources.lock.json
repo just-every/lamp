@@ -4824,7 +4824,7 @@
       "executable": false
     },
     "src/site/lamp/header.css": {
-      "sha256": "0bbf92711b05f436e1cbd8d54c6dbc23cce549ce68fac03a9e0f93774178e46a",
+      "sha256": "4d1a82ec989823cb3696efe199754f43b7602c61566ff9f53b5630de09652607",
       "executable": false
     },
     "src/site/lamp/intro.css": {
@@ -4868,7 +4868,7 @@
       "executable": false
     },
     "src/site/lamp/PageMotion.tsx": {
-      "sha256": "fbaf00d70aa022b60d70300e45ba63dc9129bc4116eeda8d2236dde3c10b0ca7",
+      "sha256": "afb523beec7ef336b0214d794415477fa7190ee9bcf90556acdba653dd1e04b9",
       "executable": false
     },
     "src/site/lamp/plates/alerts-tile.css": {
@@ -5100,11 +5100,11 @@
       "executable": false
     },
     "src/site/lamp/sections/footer.css": {
-      "sha256": "1462dbddc90949cc26e629633d4c4187d28a9a5fa2926a0c402c8ebd4081ca9b",
+      "sha256": "e7e00cae1acf8c29c3b056b39d1e56ef4d5bdcbd723a98ce2dff2a09a60753ff",
       "executable": false
     },
     "src/site/lamp/sections/FooterIndex.tsx": {
-      "sha256": "660d64169fffbcac42d2211044e3d5b4b39dee20bdc2da762e07164908617c4a",
+      "sha256": "b3c559d01dd5b368f7d4b8509401a672ecb6b539042393431f08d2a844c31d05",
       "executable": false
     },
     "src/site/lamp/sections/glance.css": {
@@ -5168,11 +5168,11 @@
       "executable": false
     },
     "src/site/lamp/sections/SectionText.tsx": {
-      "sha256": "b2b9c1a92a87e79e80d14868ae3f24cb75379e9248846d4bf9286c4cbc069333",
+      "sha256": "8a456c15b86552a61bc62bcef1230bf0b30184cede1da9115e388dbd00e746d9",
       "executable": false
     },
     "src/site/lamp/sections/SiteFooter.tsx": {
-      "sha256": "d04910bdacf789678ce3dd16eb3ada20fb51d4a1b58810aa638e362469bb204d",
+      "sha256": "f15168961d4df74f808e6c1bf5bec4bcf5a817c0406a9c33e96a6e2f38e607ae",
       "executable": false
     },
     "src/site/lamp/sections/static-lamp.css": {
