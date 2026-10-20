@@ -5688,7 +5688,7 @@
       "executable": false
     },
     "tests/e2e/helpers/operator-hydrated.mjs": {
-      "sha256": "4a302c55c2490062e050b5a9b5e88c646e858230e541abc0ac0d80f5f0d1de26",
+      "sha256": "b5765b0adc4044cafd1b752d6aa33ed5a5cb945e6f19f77b3cf4f05d9a7114db",
       "executable": false
     },
     "tests/e2e/helpers/phone-desk-flow.mjs": {
@@ -5796,7 +5796,7 @@
       "executable": false
     },
     "tests/e2e/publishing-browser.test.mjs": {
-      "sha256": "2fdf0595fba216a852623730efdf0747a349a8ed7a30a587ab9c504b38021d9e",
+      "sha256": "5e21608034d23c08b766f5a36422b9a764870e36cdee8453028ecac825d1fdfd",
       "executable": false
     },
     "tests/e2e/publishing-contract.test.mjs": {
@@ -5888,7 +5888,7 @@
       "executable": false
     },
     "tests/e2e/ui-interactions.test.mjs": {
-      "sha256": "c78205a97a8ffdb2b054c556dde201a281c13270b8c16473f742298bf0a011ba",
+      "sha256": "d759405a14ac8c2a569681b1b52e334968ad9deda9e06794482560975713601f",
       "executable": false
     },
     "tests/e2e/update-reminders.test.mjs": {

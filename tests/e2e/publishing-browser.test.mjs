@@ -193,7 +193,7 @@ test("compiled visual edits survive actual operator navigation and reload", asyn
   try {
     const paths = [...new Set(['/app','/app/components','/app/subscribers',...snapshot.edits.map(edit => edit.path)])];
     for (const path of paths) {
-      await page.goto(appUrl + path, { waitUntil: 'networkidle' });
+      await page.goto(appUrl + path, { waitUntil: 'domcontentloaded' });
       await operatorHydrated(page);
       await page.locator('.operator-navigation').waitFor();
       await closeEmptyComponentForm();
@@ -222,7 +222,7 @@ test("compiled visual edits survive actual operator navigation and reload", asyn
       await page.waitForURL(url => url.pathname === next);
       assert.equal(await page.evaluate(() => performance.timeOrigin),stamp,'navigation remains within the running app');
       await closeEmptyComponentForm();
-      await page.locator(`.operator-navigation a[href="${path}"]`).count().then(async count => { if (count === 1) { await page.locator(`.operator-navigation a[href="${path}"]`).click(); await page.waitForURL(url => url.pathname === path); } else await page.goto(appUrl + path, { waitUntil: 'networkidle' }); });
+      await page.locator(`.operator-navigation a[href="${path}"]`).count().then(async count => { if (count === 1) { await page.locator(`.operator-navigation a[href="${path}"]`).click(); await page.waitForURL(url => url.pathname === path); } else await page.goto(appUrl + path, { waitUntil: 'domcontentloaded' }); });
       await check();
       await page.reload(); await page.locator('.operator-navigation').waitFor(); await check();
     }

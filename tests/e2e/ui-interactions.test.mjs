@@ -46,7 +46,7 @@ test("Component and group dialogs retain keyboard focus and phone subscribers an
   for (const [triggerName, fieldName] of [["Add component", "Component name"], ["Add group", "Group name"]]) {
   t.diagnostic(`${triggerName} contains keyboard focus and restores its trigger`);
     await (async () => {
-    await page.goto(`${origin}/app/components`);
+    await page.goto(`${origin}/app/components`); await operatorHydrated(page);
     await page.getByRole("heading", { name: "Add component", exact: true }).waitFor();
     await page.keyboard.press("Escape");
     await page.getByRole("dialog").waitFor({ state: "detached" });
