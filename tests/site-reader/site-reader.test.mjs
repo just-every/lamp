@@ -164,6 +164,12 @@ test('the site reader reads what a site says about itself, refuses private desti
     ['/changes/', 'Product updates'], ['/courses/', 'Product academy'], ['/assistance/', 'Premium support'],
     ['/supporting/', 'Premium support plans'],
   ];
+  for (const [url, name] of supporting) {
+    assert.deepEqual((await read(`<nav><div><button>Products</button>
+      <a href="/products/data-services">Data Services</a><a href="/products/service">Service Hub</a>
+      <a href="${url}">${name}</a>
+    </div></nav>`)).map(component => component.name), ['Data Services', 'Service Hub'], `${url}: supporting pages leave independently of duplicate-label cleanup`);
+  }
   assert.deepEqual((await read(`<nav><div><button>Products</button>
     ${supporting.map(([url, name]) => `<a href="${url}">${name}</a>`).join('')}
     <a href="/products/data-services">Data Services</a><a href="/products/learning-services">Learning Services</a>

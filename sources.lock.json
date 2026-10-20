@@ -6608,7 +6608,7 @@
       "executable": false
     },
     "tests/site-reader/site-reader.test.mjs": {
-      "sha256": "599f52a856d5fb5f69cc6cdcb828d9fe8b08fc611e1e419d631810cce1988357",
+      "sha256": "6dff9abc34533d0863fa1ee856e21174f3b23f40fbd0701eaa9220c3ae24c26b",
       "executable": false
     },
     "tsconfig.json": {
