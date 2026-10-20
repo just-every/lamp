@@ -407,8 +407,12 @@
       "sha256": "29895b43d2a7a7f2735cab2473c5cd93ebfe11da3a5fc3424d1951879acf1ff8",
       "executable": false
     },
+    ".github/workflows/deploy-status.yml": {
+      "sha256": "f305e4298372ac75d46d2833b35d8bcfee8391ba6ac3532c23403ed50c90c260",
+      "executable": false
+    },
     ".github/workflows/deploy.yml": {
-      "sha256": "11d5ca961e653527116a7d8e595c60c793c8faf7d63f40e7e8fd2dfe97ff59c6",
+      "sha256": "dd2a7be4f43c98f5fd3788289218ce03830739e9c40ce25f232bafb251a054a0",
       "executable": false
     },
     ".github/workflows/release.yml": {
@@ -553,6 +557,10 @@
     },
     "docs/install.md": {
       "sha256": "735c2106123227eccc0c8b8488ca362699fbad339a0aeee0bae61dab8724df5f",
+      "executable": false
+    },
+    "docs/lamp-status-operations.md": {
+      "sha256": "31a236fd32ae91d3c7964b6a4996575864a9458a6099c522b13b7129e073a53b",
       "executable": false
     },
     "docs/maintenance.md": {
@@ -2637,6 +2645,26 @@
     },
     "scripts/lamp-site/pixels.mjs": {
       "sha256": "87459ec1aadc69e3a103abc873850c31701cbfd6db5d3a85909e1036c43ef5bc",
+      "executable": false
+    },
+    "scripts/lamp-status/checks.mjs": {
+      "sha256": "b48fdef36b8012fbd66c53fb99a2e49d55a2cd9d28a0a4b992f13317ce28c83c",
+      "executable": false
+    },
+    "scripts/lamp-status/deploy.mjs": {
+      "sha256": "3612344e9aa0fd8c19762bbe95894432f66dcc34abefa9e35736a19a07c02d4d",
+      "executable": false
+    },
+    "scripts/lamp-status/observe.mjs": {
+      "sha256": "60b8f7ac61bf2d0200736b34e8e444345b02ca73e763cbb27ad1b0ba0e58d332",
+      "executable": false
+    },
+    "scripts/lamp-status/session.mjs": {
+      "sha256": "212069083230db35e1bab82a07019f15c7e92f90e68a0350bfdb1b01d65e0af7",
+      "executable": false
+    },
+    "scripts/lamp-status/worker.mjs": {
+      "sha256": "f4821cb08e0bd544b110ac8ecb287b8388d680e6395312566ea65eace40b3aa6",
       "executable": false
     },
     "scripts/local-options.mjs": {

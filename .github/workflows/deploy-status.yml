@@ -1,0 +1,111 @@
+name: Deploy Lamp status
+
+on:
+  workflow_dispatch:
+  workflow_call:
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: lamp-status-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    environment: lamp-status
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version-file: .node-version
+      - name: Install the pinned rer and frozen dependencies
+        run: corepack enable && pnpm install --frozen-lockfile
+        env:
+          COREPACK_ENABLE_DOWNLOAD_PROMPT: '0'
+      - name: Restore this installation's resource ownership
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          previous=$(gh api "repos/$GITHUB_REPOSITORY/actions/artifacts?name=lamp-status-state&per_page=100" \
+            --jq '[.artifacts[] | select(.expired == false)] | max_by(.id).workflow_run.id // empty')
+          if [ -n "$previous" ]; then
+            gh run download "$previous" --repo "$GITHUB_REPOSITORY" --name lamp-status-state --dir .
+          fi
+      - name: Read the authenticated sending domain's DKIM selector
+        env:
+          MAIL_PROVIDER_API_KEY: ${{ secrets.MAIL_PROVIDER_API_KEY }}
+        run: |
+          node --input-type=module <<'NODE'
+          import { appendFile } from 'node:fs/promises';
+          const response = await fetch('https://api.sendgrid.com/v3/whitelabel/domains', {
+            headers: { Authorization: `Bearer ${process.env.MAIL_PROVIDER_API_KEY}` },
+            signal: AbortSignal.timeout(30000),
+          });
+          if (!response.ok) throw new Error(`SendGrid sender authentication lookup failed (HTTP ${response.status}); Sender Authentication Read access is required.`);
+          const domains = await response.json();
+          const domain = domains.find(row => row.domain === 'mail.runeditrun.com' && row.valid);
+          const host = domain?.dns?.dkim1?.host;
+          const suffix = '._domainkey.mail.runeditrun.com';
+          if (!host?.endsWith(suffix)) throw new Error('SendGrid has no valid mail.runeditrun.com DKIM authentication; ask the platform owner to check that domain.');
+          const selector = host.slice(0, -suffix.length);
+          if (!/^[a-z0-9][a-z0-9-]{0,62}$/i.test(selector)) throw new Error('SendGrid returned an invalid DKIM selector.');
+          await appendFile(process.env.GITHUB_ENV, `MAIL_DKIM_SELECTOR=${selector}\n`);
+          console.log('Loaded the authenticated sending domain DKIM selector.');
+          NODE
+      - name: Deploy Lamp with its native Cloudflare deployment
+        run: pnpm exec rer deploy --environment lamp-status
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          LAMP_APP_HOST: status-app.run-lamp.com
+          LAMP_PAGE_HOST: status.run-lamp.com
+          LAMP_PAGE_NAME: Lamp status
+          LAMP_PAGE_TAGLINE: Service updates for Lamp's site, documentation and demo
+          LAMP_PAGE_TIMEZONE: Australia/Brisbane
+          LAMP_ACCENT_COLOR: '#16794c'
+          SETUP_OPERATOR_EMAIL: ${{ vars.SETUP_OPERATOR_EMAIL }}
+          OWNER_DISPLAY_NAME: Lamp operations
+          MAIL_PROVIDER: sendgrid
+          MAIL_FROM_ADDRESS: ${{ vars.MAIL_FROM_ADDRESS }}
+          MAIL_PROVIDER_API_KEY: ${{ secrets.MAIL_PROVIDER_API_KEY }}
+          SETUP_TOKEN: ${{ secrets.SETUP_TOKEN }}
+          SESSION_SECRET: ${{ secrets.SESSION_SECRET }}
+          SUBSCRIBER_TOKEN_SECRET: ${{ secrets.SUBSCRIBER_TOKEN_SECRET }}
+          WEBHOOK_SIGNING_SECRET: ${{ secrets.WEBHOOK_SIGNING_SECRET }}
+      - name: Deploy and exercise real HTTP checks
+        run: node scripts/lamp-status/deploy.mjs
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          SESSION_SECRET: ${{ secrets.SESSION_SECRET }}
+          LAMP_STATUS_MONITOR_TOKEN: ${{ secrets.LAMP_STATUS_MONITOR_TOKEN }}
+          SETUP_OPERATOR_EMAIL: ${{ vars.SETUP_OPERATOR_EMAIL }}
+          MAIL_FROM_ADDRESS: ${{ vars.MAIL_FROM_ADDRESS }}
+      - name: Retain real check results
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: lamp-status-results
+          path: lamp-status-results/
+          if-no-files-found: warn
+          retention-days: 30
+      # These are ownership records, not product-secrets.json or an env file.
+      # Preserve partial provisioning too, so a failed upload can be resumed.
+      - name: Retain resource ownership for the next deploy
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: lamp-status-state
+          path: |
+            .rer/deploy/lamp-status.json
+            .rer/deploy/lamp-status.page.json
+            .seed/deployment/lamp-status.json
+          include-hidden-files: true
+          if-no-files-found: warn
+          retention-days: 90

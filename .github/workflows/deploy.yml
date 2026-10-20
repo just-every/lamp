@@ -1,11 +1,18 @@
 name: Build Lamp independent release
 on:
   workflow_dispatch:
+    inputs:
+      lamp_status:
+        description: Deploy Lamp's own status installation instead of building a release
+        type: boolean
+        default: false
 permissions:
   contents: read
+  actions: read
   id-token: write
 jobs:
   release:
+    if: ${{ !inputs.lamp_status }}
     uses: runeditrun/delivery/.github/workflows/trusted-build.yml@86c8b37399c901bffd9a240dbd1148a65ec83b34
     with:
       installation_id: ${{ vars.RER_INSTALLATION_ID }}
@@ -14,3 +21,6 @@ jobs:
       build_profile: project
       verification_profile: full
       artifact_file: lamp-worker-artifact.json
+  status:
+    if: inputs.lamp_status
+    uses: ./.github/workflows/deploy-status.yml
