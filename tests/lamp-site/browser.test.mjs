@@ -1,3 +1,4 @@
+import { docsSearchFlow } from './docs-search-flow.mjs';
 import assert from "node:assert/strict";
 import { execFileSync, spawn } from "node:child_process";
 import { mkdtemp, readFile, rm } from "node:fs/promises";
@@ -60,7 +61,7 @@ before(async () => {
   execFileSync("pnpm", ["exec", "rer", "build", "--site"], { cwd: process.cwd(), stdio: "pipe" });
   site = await sitePreview(join(process.cwd(), "dist/site"), { ports: [await reservePort({ label: "run site" })] });
   SITE = site.url;
-  browser = await chromium.launch();
+  browser = await chromium.launch({ headless: true, args: ["--use-mock-keychain", "--password-store=basic"] });
   decoder = await browser.newPage();
 });
 
@@ -636,6 +637,7 @@ async function openDocs(path, { width = 1440, height = 900, javaScriptEnabled = 
 }
 
 test("Repository docs remain complete, responsive, private and accessible", async t => {
+  await docsSearchFlow(browser, SITE);
   t.diagnostic("the landing page's Docs links lead to the site's own docs, which read the repository's docs under the same header, link to each other and answer 404 off the list");
   await (async () => {
   const landing = await openPage({ width: 1440, height: 900 });

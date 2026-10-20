@@ -24,3 +24,6 @@ delivery-artifact/
 .rer/demo/
 .rer/demo-host/
 .rer/demo/
+
+# Generated site search corpus, vectors and local Worker.
+.rer/docs-search/

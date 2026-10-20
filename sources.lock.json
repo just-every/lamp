@@ -432,7 +432,7 @@
       "executable": false
     },
     ".gitignore": {
-      "sha256": "13b0111b10a86730b79025709624d0a86d8142a97ad1321375752a6766a6a8fc",
+      "sha256": "21a33a4a2acf1ce1fc85cf563219b1a6f69fe64cb746065a360e6a83e19d4905",
       "executable": false
     },
     ".node-version": {
@@ -6384,7 +6384,11 @@
       "executable": false
     },
     "tests/lamp-site/browser.test.mjs": {
-      "sha256": "84a533dbf43bace1dc152534c131439b4b5b9a3372096ff5a5a9a6a78960c5ea",
+      "sha256": "0b658d980022fa2fcbf42d8d0b8c6fd5fc14f7f4f7004914594a21aa557972d6",
+      "executable": false
+    },
+    "tests/lamp-site/docs-search-flow.mjs": {
+      "sha256": "a5fbdc8c7537f93cf72d608b9c5c76badb3c2f788315f3a704fcb03e3ae59533",
       "executable": false
     },
     "tests/operations-description.test.mjs": {
