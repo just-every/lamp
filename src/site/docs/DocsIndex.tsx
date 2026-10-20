@@ -1,6 +1,6 @@
 import { HydrationUnit } from '../../base/hydration/unit';
 import { DocsLayout } from './DocsLayout';
-import { DocsSidebar } from './DocsNav';
+import { DocsMenu, DocsSidebar } from './DocsNav';
 import { docsLead, docsSections } from './pages';
 
 /**
@@ -13,6 +13,7 @@ export function DocsIndex({ variant }: { variant?: 'site' }) {
     <DocsLayout variant={variant}>
       <DocsSidebar variant={variant} />
       <div id="docs-content" className="docs-content docs-content--index" tabIndex={-1}>
+        {variant === 'site' && <div className="docs-index-search"><DocsMenu label="All docs" variant={variant} /></div>}
         <HydrationUnit>
           <header className="docs-head">
             <p className="docs-eyebrow">Lamp</p>

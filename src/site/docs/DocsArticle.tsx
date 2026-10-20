@@ -22,7 +22,7 @@ export function DocsArticle({ slug, body, variant }: { slug: string; body: DocsB
     <DocsLayout variant={variant}>
       <DocsSidebar current={slug} variant={variant} />
       <div id="docs-content" className="docs-content" tabIndex={-1}>
-        <DocsMenu current={slug} label={page.title} />
+        <DocsMenu current={slug} label={page.title} variant={variant} />
         <HydrationUnit>
           <article className="docs-article" aria-labelledby="docs-title">
             <header className="docs-head">

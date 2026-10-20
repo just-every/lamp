@@ -1,0 +1,10 @@
+/* Base's field inherits the same paper, ink and rules as Lamp's docs. */
+.lamp-docs .docs-search {
+  --paper: var(--lamp-paper);
+  --ink: var(--lamp-ink);
+  --ink-soft: var(--lamp-ink-3);
+  --rule: var(--lamp-line-strong);
+}
+@container lamp-page (min-width: 1024px) {
+  .lamp-home .docs-index-search { display: none; }
+}

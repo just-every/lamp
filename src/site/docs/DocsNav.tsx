@@ -1,3 +1,5 @@
+import { SearchField } from '../../base/site/docs-search/SearchField';
+import './search.css';
 import { HydrationUnit } from '../../base/hydration/unit';
 import { contractUrl } from '../lamp/repository';
 import { docsSections } from './pages';
@@ -27,6 +29,7 @@ export function DocsSidebar({ current, variant }: { current?: string; variant?: 
   return (
     <HydrationUnit>
       <nav className="docs-sidebar" aria-label="Docs">
+        {variant === 'site' && <SearchField id="docs-sidebar-search" />}
         <a className="docs-sidebar-home" href="/docs" aria-current={current ? undefined : 'page'}>All docs</a>
         <DocsNavList current={current} idPrefix="docs-sidebar" />
         {variant === 'site' && <a className="docs-sidebar-home docs-sidebar-contract" href={contractUrl}>Contract</a>}
@@ -36,13 +39,13 @@ export function DocsSidebar({ current, variant }: { current?: string; variant?: 
 }
 
 /** The same navigation on phones and narrow windows: one pill that opens the whole list. */
-export function DocsMenu({ current, label }: { current: string; label: string }) {
+export function DocsMenu({ current, label, variant }: { current?: string; label: string; variant?: 'site' }) {
   return (
     <HydrationUnit>
       <nav className="docs-menu" aria-label="Docs menu">
         <details>
           <summary><span>Docs menu</span><span className="docs-menu-current">{label}</span></summary>
-          <div className="docs-menu-list"><DocsNavList current={current} idPrefix="docs-menu" /></div>
+          <div className="docs-menu-list">{variant === 'site' && <SearchField id="docs-menu-search" />}<DocsNavList current={current} idPrefix="docs-menu" /></div>
         </details>
       </nav>
     </HydrationUnit>

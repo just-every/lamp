@@ -1655,6 +1655,33 @@
       }
     },
     {
+      "path": "src/base/site/docs-search",
+      "originPath": "modules/site/docs-search",
+      "revision": "4b110a1a541269613172bfc1b6c6b7c5225d7b49",
+      "files": {
+        "src/base/site/docs-search/artifacts.mjs": "8c21c7d8183927544050510df2af45f5dd482937aab7b4d6cbebb2f2393caab8",
+        "src/base/site/docs-search/client.ts": "9d1c3d573c5cab0ef24e1a629f58733126cdb56c90190ec7e21cfa33bf882519",
+        "src/base/site/docs-search/index-build.mjs": "44ebca88d3ae194c97348af2b240c3ee980d7d8dd132670aa13813895c67c852",
+        "src/base/site/docs-search/retrieve.ts": "c468569c07b3d5f36ae68a3278c417d74800075fe9f2b1fd9b6c72390c82ec42",
+        "src/base/site/docs-search/search.css": "2bc96258d55d20bd0ccc479b7bb54378c0eb0a75b68984ef87c02e097172ee1b",
+        "src/base/site/docs-search/SearchField.tsx": "f9bbdac81b7072be60f2e8d3d4e184328d48f09524a61d1022a6c9768d3acb15",
+        "src/base/site/docs-search/sections.ts": "41f65966a45f23cb8ec08d43c416ae28a2a9cdad177e15eadaf7c11f78f2dec7",
+        "src/base/site/docs-search/types.ts": "bafe594b0176d8dcaccac66168c26b04f90c88a8e617256b4048df14c2e12647",
+        "src/base/site/docs-search/worker.ts": "611d81f0c93587588a5a80934efc716a0faf99678691df7c8d872c2150f27a71"
+      },
+      "modes": {
+        "src/base/site/docs-search/artifacts.mjs": "100644",
+        "src/base/site/docs-search/client.ts": "100644",
+        "src/base/site/docs-search/index-build.mjs": "100644",
+        "src/base/site/docs-search/retrieve.ts": "100644",
+        "src/base/site/docs-search/search.css": "100644",
+        "src/base/site/docs-search/SearchField.tsx": "100644",
+        "src/base/site/docs-search/sections.ts": "100644",
+        "src/base/site/docs-search/types.ts": "100644",
+        "src/base/site/docs-search/worker.ts": "100644"
+      }
+    },
+    {
       "path": "src/base/static-assets.ts",
       "originPath": "foundation/runtime/static-assets.ts",
       "revision": "052e5ea88c1e7b73cca10c4813524a5f72580af8",

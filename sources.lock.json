@@ -452,7 +452,7 @@
       "executable": false
     },
     "base-copies.json": {
-      "sha256": "aa980f9f2bbbe0f10d134a3b25ae43d3a09737e80f10116b91c2ef589261646b",
+      "sha256": "3e7efb83ab9d179c4a35bdb5c491bf26564377a1bef4b856ca3bc28079d9f471",
       "executable": false
     },
     "BASELINE.md": {
@@ -2592,7 +2592,7 @@
       "executable": false
     },
     "scripts/installer/local.mjs": {
-      "sha256": "87bbd0ea36c492486490314dd6e4b8d95be633045e6b18f04802c9b0eab76c46",
+      "sha256": "6628e3328c57af615998dc856367547758fe8015af1e9ecbcef2b2f2cdf93fc9",
       "executable": false
     },
     "scripts/installer/README.md": {
@@ -2861,6 +2861,42 @@
     },
     "src/base/setup.ts": {
       "sha256": "151782b3a1d0984ef1e2d5938bba013a63a5fb679d7fd76e3c42632d47b5061f",
+      "executable": false
+    },
+    "src/base/site/docs-search/artifacts.mjs": {
+      "sha256": "8c21c7d8183927544050510df2af45f5dd482937aab7b4d6cbebb2f2393caab8",
+      "executable": false
+    },
+    "src/base/site/docs-search/client.ts": {
+      "sha256": "9d1c3d573c5cab0ef24e1a629f58733126cdb56c90190ec7e21cfa33bf882519",
+      "executable": false
+    },
+    "src/base/site/docs-search/index-build.mjs": {
+      "sha256": "44ebca88d3ae194c97348af2b240c3ee980d7d8dd132670aa13813895c67c852",
+      "executable": false
+    },
+    "src/base/site/docs-search/retrieve.ts": {
+      "sha256": "c468569c07b3d5f36ae68a3278c417d74800075fe9f2b1fd9b6c72390c82ec42",
+      "executable": false
+    },
+    "src/base/site/docs-search/search.css": {
+      "sha256": "2bc96258d55d20bd0ccc479b7bb54378c0eb0a75b68984ef87c02e097172ee1b",
+      "executable": false
+    },
+    "src/base/site/docs-search/SearchField.tsx": {
+      "sha256": "f9bbdac81b7072be60f2e8d3d4e184328d48f09524a61d1022a6c9768d3acb15",
+      "executable": false
+    },
+    "src/base/site/docs-search/sections.ts": {
+      "sha256": "41f65966a45f23cb8ec08d43c416ae28a2a9cdad177e15eadaf7c11f78f2dec7",
+      "executable": false
+    },
+    "src/base/site/docs-search/types.ts": {
+      "sha256": "bafe594b0176d8dcaccac66168c26b04f90c88a8e617256b4048df14c2e12647",
+      "executable": false
+    },
+    "src/base/site/docs-search/worker.ts": {
+      "sha256": "611d81f0c93587588a5a80934efc716a0faf99678691df7c8d872c2150f27a71",
       "executable": false
     },
     "src/base/static-assets.ts": {
@@ -4635,6 +4671,10 @@
       "sha256": "283858bbb17346e35c0182562b73ef1f2a024858658b0447f366639fe2b1caf4",
       "executable": false
     },
+    "src/site/docs/build/search.ts": {
+      "sha256": "43381035015c607076b79a4c69aaf48c1485c978ad74a4a210b5d6fe6a4f15f3",
+      "executable": false
+    },
     "src/site/docs/build/site.ts": {
       "sha256": "08426475c5743a099d9b86ed15ecc12cebd5f9daf97f2ba4aeb684dc2d52db89",
       "executable": false
@@ -4648,11 +4688,11 @@
       "executable": false
     },
     "src/site/docs/DocsArticle.tsx": {
-      "sha256": "0375c9a2c9bba8d522c4e09932857397fe21e216ee5e174f285e8e2f53182323",
+      "sha256": "73a9c17cbcb0b65aae605cf128d804da369e1a83c27a939b358157a0dc2b5543",
       "executable": false
     },
     "src/site/docs/DocsIndex.tsx": {
-      "sha256": "65015e91de1db73fffe8f1e6e5ed3c519375d8ef72acb0dddb3dd6787fa53480",
+      "sha256": "4982296beffaf2cbc6a18ebf2e7aec955d1606b1cafaa396fd2f795b06a8817f",
       "executable": false
     },
     "src/site/docs/DocsLayout.tsx": {
@@ -4660,7 +4700,7 @@
       "executable": false
     },
     "src/site/docs/DocsNav.tsx": {
-      "sha256": "5cd4cdd387fb7fc0558375b3e3a4adf9ef75b368f18243e4d4daa921cd41faee",
+      "sha256": "2af555d5f4753c1acb294d25e54e9b9fef2adac491a6a511355649419776d98b",
       "executable": false
     },
     "src/site/docs/DocsNotFound.tsx": {
@@ -4677,6 +4717,10 @@
     },
     "src/site/docs/pages.ts": {
       "sha256": "10bbfc830c98cebb394d451d3f17220f9a763b92d0529414674f41ddc060b176",
+      "executable": false
+    },
+    "src/site/docs/search.css": {
+      "sha256": "17c2d8cb050ca23abfabefc47fd784bcda5a2f8f64c4f415cad9a5ce09eac5fe",
       "executable": false
     },
     "src/site/docs/styles/index.ts": {
@@ -5212,7 +5256,7 @@
       "executable": false
     },
     "src/site/pages.tsx": {
-      "sha256": "53f70f6f081e84d56e62f2339f24ed3e588722f85454c11c50e74367d043ccba",
+      "sha256": "fb469037bcbd99cc3ffc0b1725f9bcb87b2078fb96c77600f79c5abbbaaa91e5",
       "executable": false
     },
     "src/site/run.ts": {

@@ -86,7 +86,9 @@ export const commandAdapter=createCommandAdapter(adapter,{
  publicPages:['/','/docs',...docs.sections.flatMap(section=>section.pages.map(page=>`/docs/${page.slug}`))],
  devIdentity:{entry:'src/server.dev.ts',output:['dist'],emailLinkTest:'tests/e2e/auth-adoption-journey.test.mjs'},verify:['pnpm',['run','verify:app']],deploy:lampDeploy(adapter),
  portability:transfer,generatedOutputs:['src/routeTree.gen.ts'],
- site:{entry:'src/site/pages.tsx',output:'dist/site',declaration:'deploy-site.json',config:'vite.site.config.ts'},
+ site:{entry:'src/site/pages.tsx',output:'dist/site',declaration:'deploy-site.json',config:'vite.site.config.ts',
+  clients:{docsSearch:'src/base/site/docs-search/client.ts'},
+  runtime:{type:'docs-search',module:'docs-search',bindings:['ASSETS','AI'],endpoint:'/docs/search',corpus:'.rer/docs-search/corpus.json'}},
  setup:{manifestFile:'rer-setup.json'},browserModule:'scripts/installer/ui/seed.mjs',
  input:{names:{email:'SETUP_OPERATOR_EMAIL',name:'OWNER_DISPLAY_NAME'},defaults:async()=>({target:'local',OWNER_DISPLAY_NAME:'Owner',LAMP_PAGE_NAME:'Status',LAMP_PAGE_TAGLINE:'Current service status',LAMP_PAGE_TIMEZONE:'UTC'})},
 });
