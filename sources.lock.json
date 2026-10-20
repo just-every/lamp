@@ -5540,7 +5540,7 @@
       "executable": false
     },
     "tests/e2e/autosave-integrity.test.mjs": {
-      "sha256": "3d9fa2e22eb6a91ff0ff2369c0978e2e1b9e71e3600aa110aeb4e1f50a13dcc1",
+      "sha256": "3c5b0416d78ecfb08a4746a553221b7d74d35d9d449accd11d12be4709c4ead2",
       "executable": false
     },
     "tests/e2e/autosave-queue-regression.mjs": {
