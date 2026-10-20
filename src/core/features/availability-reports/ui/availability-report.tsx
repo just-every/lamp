@@ -40,7 +40,7 @@ export function AvailabilityReport({ components }: { components: Array<{ id: str
       <label className="form-label" htmlFor={`${id}-period`}>Period<select id={`${id}-period`} value={kind} onChange={event => setKind(event.target.value)}><option value="month">Month</option><option value="quarter">Quarter</option></select></label>
       {kind === "month" ? <label className="form-label" htmlFor={`${id}-month`}>Month<input id={`${id}-month`} type="month" min="1000-01" max="9998-12" required value={month} onChange={event => setMonth(event.target.value)} /></label> : <>
         <label className="form-label" htmlFor={`${id}-year`}>Year<input id={`${id}-year`} type="number" min="1000" max="9998" required value={year} onChange={event => setYear(event.target.value)} /></label>
-        <label className="form-label" htmlFor={`${id}-quarter`}>Quarter<select id={`${id}-quarter`} value={quarter} onChange={event => setQuarter(event.target.value)}>{[1, 2, 3, 4].map(number => <option key={number} value={number}>Q{number}</option>)}</select></label>
+        <label className="form-label" htmlFor={`${id}-quarter`}>Quarter<select aria-label="Quarter" id={`${id}-quarter`} value={quarter} onChange={event => setQuarter(event.target.value)}>{[1, 2, 3, 4].map(number => <option key={number} value={number}>Q{number}</option>)}</select></label>
       </>}
     </div>
     <div className="availability-report-actions">{(["csv", "pdf"] as const).map(format => <Button key={format} type="button" variant="secondary" disabled={!valid || Boolean(downloading)} onClick={() => download(format)}>{downloading === format ? "Downloading…" : `Download ${format.toUpperCase()}`}</Button>)}</div>

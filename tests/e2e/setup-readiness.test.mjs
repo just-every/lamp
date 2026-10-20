@@ -129,7 +129,7 @@ test('SETUP-001 Lamp publishes and checks the page on its own: Overview shows on
     assert.equal((await api('/api/app/deliveries')).mail.local, true);
     diagnostics.phase = 'component-create';
     await page.goto(`${origin}/app/components`);
-    await page.getByRole('button', { name: 'Add component', exact: true }).click();
+    await page.getByRole('heading', { name: 'Add component', exact: true }).waitFor();
     await page.getByLabel('Component name', { exact: true }).fill('API');
     const createdComponent = page.waitForResponse(response => new URL(response.url()).pathname === '/api/app/components' && response.request().method() === 'POST');
     await page.getByRole('button', { name: 'Create component', exact: true }).click();
