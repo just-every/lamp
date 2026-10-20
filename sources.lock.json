@@ -2116,11 +2116,11 @@
       "executable": false
     },
     "package.json": {
-      "sha256": "7a114b95a08dc68f030aac37a33fc62d3da08a408327ed3d721d38c30347709c",
+      "sha256": "0ea8a6f8579939871a19f9f5222bf4f9ba37f5dceb6052cfb6ec12a6a13d3095",
       "executable": false
     },
     "pnpm-lock.yaml": {
-      "sha256": "8d96efb927bb7f4b1d38435583787d8dbe0b3e96a3454b22ced88f3004acc60d",
+      "sha256": "e0d49739a66caf6082bb359f1bcd004e265476106f230ea8e9033214fc847db5",
       "executable": false
     },
     "public/app-assets/brand/lamp-mark.svg": {
