@@ -24,3 +24,4 @@ jobs:
   status:
     if: inputs.lamp_status
     uses: ./.github/workflows/deploy-status.yml
+    secrets: inherit

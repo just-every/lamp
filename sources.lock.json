@@ -408,11 +408,11 @@
       "executable": false
     },
     ".github/workflows/deploy-status.yml": {
-      "sha256": "f305e4298372ac75d46d2833b35d8bcfee8391ba6ac3532c23403ed50c90c260",
+      "sha256": "f2e4b33c4dec1b257eb3ab49c102c26bfcc7346c9b38d47f5fa3fdc7f197334b",
       "executable": false
     },
     ".github/workflows/deploy.yml": {
-      "sha256": "dd2a7be4f43c98f5fd3788289218ce03830739e9c40ce25f232bafb251a054a0",
+      "sha256": "9a1b003d71c77546a6ad2bbd7a66c696fd6753c0184bae2ff94fe5e349fff5e2",
       "executable": false
     },
     ".github/workflows/release.yml": {

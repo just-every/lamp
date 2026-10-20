@@ -43,6 +43,7 @@ jobs:
         run: |
           node --input-type=module <<'NODE'
           import { appendFile } from 'node:fs/promises';
+          if (!process.env.MAIL_PROVIDER_API_KEY) throw new Error('MAIL_PROVIDER_API_KEY was not supplied to this workflow.');
           const response = await fetch('https://api.sendgrid.com/v3/whitelabel/domains', {
             headers: { Authorization: `Bearer ${process.env.MAIL_PROVIDER_API_KEY}` },
             signal: AbortSignal.timeout(30000),
