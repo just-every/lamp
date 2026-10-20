@@ -8,6 +8,14 @@
       "reason": "Retained native backup the listed release (c5dab715) made with its own rer of a synthetic install, kept byte for byte so the prior-backup test restores that release's own archive. The generic-api-key match is the archive manifest's list of migration file names; no credential.",
       "reviewer": "sd-lamp-rel3",
       "date": "2026-10-20"
+    },
+    {
+      "rule": "secret.assignment",
+      "path": "tests/fixtures/archive/listed-c5dab715.rer",
+      "blob": "e6095f933c56c774de9bbedf5bca1a37ed19c0f9",
+      "reason": "An earlier version of this fixture in branch history: pr-platform-catalogue-pins-24's retained backup of a deleted scratch Lamp install at c5dab715. The generic-api-key and hex-api-key matches are subscriber token_hash SHA-256 digests of that install's random tokens and the archive's migration file list; no credential. Replaced in the tree because Platform's catalogue pin scan refuses the digests.",
+      "reviewer": "sd-lamp-rel3",
+      "date": "2026-10-20"
     }
   ]
 }

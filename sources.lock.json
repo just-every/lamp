@@ -440,7 +440,7 @@
       "executable": false
     },
     ".publish-check/reviewed.json": {
-      "sha256": "2638b1ad97906f070692ae6a7c6e06fbf5c2b6869a63bf842c355b18df61f6cf",
+      "sha256": "d865130c6d8bd9462f4da3fe0f468697443a092d07d010e16d61f5e9b49a2c8a",
       "executable": false
     },
     "ACCEPTANCE.md": {
@@ -5448,7 +5448,7 @@
       "executable": false
     },
     "tests/e2e/deployment-artifact.test.mjs": {
-      "sha256": "acf266886249046171375b47d5396759e9ccbf1b10ea6e5e1d80948192827e2d",
+      "sha256": "e244a0a810fc18df5dee7d63d6b1372ba606273b3702a9dbfe22be6de429f488",
       "executable": false
     },
     "tests/e2e/deployment-secrets.test.mjs": {
