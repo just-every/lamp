@@ -164,6 +164,7 @@ test('the site reader reads what a site says about itself, refuses private desti
     ['/products/seven', 'Success plans'], ['/products/eight', 'Product Academy'],
     ['/products/nine', 'What’s New'], ['/products/ten', 'Product Updates'],
     ['/enterprise/', 'Enterprise Class'], ['/compliance/', 'Regulatory Compliance'],
+    ['/platform/strategy', 'AI at Acme'],
   ].map(([url, label]) => `<a href="${url}">${label}</a>`).join('');
   const operational = '<a href="/products/data">Data Services</a><a href="/products/learning">Learning Services</a><a href="/products/service">Service Hub</a>';
   assert.deepEqual((await read(`<nav><div><button>Products and pricing</button>${operational}${chrome}</div></nav>`)).map(component => component.name), ['Data Services', 'Learning Services', 'Service Hub']);
