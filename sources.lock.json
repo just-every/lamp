@@ -440,7 +440,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "167772f43c28f4cb1ef81713aa44cf9dac7e47ba3f806d97f5acc4e87199558b",
+      "sha256": "e6d07eab43c0ea46dc99476401ceec224249d8a46f91fb911a9e6e13f033bec3",
       "executable": false
     },
     "AGENTS.md": {
@@ -460,7 +460,7 @@
       "executable": false
     },
     "CHANGELOG.md": {
-      "sha256": "1ff764ffc2e2fe2c98557c12bc6816badaf0292c2b16f7723996fb5f3a073fd6",
+      "sha256": "9c70bd9c3beb1cfb9412ad5c5f22c75ca80b883faef203a4473920e469e6a40b",
       "executable": false
     },
     "CLAUDE.md": {
@@ -488,7 +488,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "9962170e2abf8f19e0798fc0d3e67bc5fff41e2b26ef239904480f7d570c2824",
+      "sha256": "0d7001bd3178a3f393b5910228fcc318cbb9d190e4916531575d06d3f31c372c",
       "executable": false
     },
     "DEMO.md": {
@@ -6684,35 +6684,35 @@
       "executable": false
     },
     "visual/intake-009-1440-pagerduty-connected.png": {
-      "sha256": "319fdd03254f8713529a334d85f6f90c622b79d3672d97ef14da847594e7b098",
+      "sha256": "9c63c2cfd3c61622bd7bced38c4dcf69a4d5066ba2385a77ef47a74edec5d7b7",
       "executable": false
     },
     "visual/intake-009-1440-pagerduty-endpoint.png": {
-      "sha256": "ef11a328b333896f6399ff421cf0709f18a363e04ed9b3f57193a6cd7b9b4bd4",
+      "sha256": "5bdcdffee925b66c805928f6524d005af662d96c0df482e2ddcd7b58cc04c984",
       "executable": false
     },
     "visual/intake-009-1440-pagerduty-erasure.png": {
-      "sha256": "8984bca068ea3ad31459ed8978c504ded3251058ebb2ff4f3cd0a23f9266fc64",
+      "sha256": "d669483f68372d350137e2987132bcddaa05a4733eae797614c474058d206ec6",
       "executable": false
     },
     "visual/intake-009-1440-pagerduty-receipts.png": {
-      "sha256": "3a25699d4f8944518ba5843773d67fd9eb08ab457e82c53970654a498d526a96",
+      "sha256": "7765758e3011e572930da30826465c110ca98830df8327a4b8f7025bbcaa2860",
       "executable": false
     },
     "visual/intake-009-390-pagerduty-connected.png": {
-      "sha256": "a1d4bacd2ad0f40d9dab207e17eafb15af03f4b61c7deb7cb2b751bbd3d8d76f",
+      "sha256": "ab8e5a2822c232c7323e7fd88b4c5dc89885144b49dccdb3bff5f35ff1567d2c",
       "executable": false
     },
     "visual/intake-009-390-pagerduty-endpoint.png": {
-      "sha256": "f2f983fded4f168d3bbd3309b321e3715b47f957f4fb414fa0b186a8dd619674",
+      "sha256": "4a41a4af0f3fcb918b63e8743f80ccd7dc2cc33c1b0cbc6a52ba5c257436df62",
       "executable": false
     },
     "visual/intake-009-390-pagerduty-erasure.png": {
-      "sha256": "8cfc90a334bd3355dfcb47b67f983550d1e306ae7762b91900440b4d55bb3acb",
+      "sha256": "a5a325166ee9b92bc87723f95bcb9ae783a5efb503fb6c9cf58b2917a2da57a4",
       "executable": false
     },
     "visual/intake-009-390-pagerduty-receipts.png": {
-      "sha256": "e154d0abaa32a2623202a59d89abfac039e9fa8fe5e18fb20b177995993c0bd5",
+      "sha256": "f1ba35741e2aeea2268c76b22bd69662c6c93f440bfcd7db8000863396260d98",
       "executable": false
     },
     "visual/README.md": {

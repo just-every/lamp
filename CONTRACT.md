@@ -649,7 +649,9 @@ Acceptance: a signed v3 `incident.triggered` fixture creates a draft on the mapp
 
 The optional REST API key and note-author email are sealed with AES-GCM, never displayed and excluded from archives; a restored connection requires reconnection. Without a key no note is sent. The note-author email defaults to the source owner’s Lamp email, which must identify a valid PagerDuty user: PagerDuty requires its `From` header for [creating an incident note](https://docs.pagerduty.com/developer/api/reference/rest/incidents/create-incident-note). Each linked PagerDuty incident receives at most one request per Lamp publication, with the published text and permalink, only to `https://api.pagerduty.com/incidents/:id/notes`; redirects are refused. Failures appear in source receipts and never block publication. Erasing a source removes its credentials and receipts. [Connection instructions](docs/alerts-from-monitoring-tools.md#pagerduty) cover the v3 subscription and optional note connection.
 
-Status: **done** — `src/core/features/intake/`, `tests/e2e/channels-and-presets.test.mjs` ("INTAKE-009 PagerDuty v3 signed events create drafts, brief entries and one note per publication"), `tests/e2e/helpers/pagerduty-flow.mjs`. The named journey covers signed intake, mapping, private brief and recovery behavior, publication notes against a fake PagerDuty REST edge, failure receipts, erasure and archive reconnection. This is local provider-edge proof, not live PagerDuty account acceptance.
+Status: **partial** — `src/core/features/intake/`, `tests/e2e/channels-and-presets.test.mjs` ("INTAKE-009 PagerDuty v3 signed events create drafts, brief entries and one note per publication"), `tests/e2e/helpers/pagerduty-flow.mjs`. The named journey covers signed intake, mapping, private brief and recovery behavior, publication notes against a fake PagerDuty REST edge, failure receipts, erasure and archive reconnection. This is local provider-edge proof, not live PagerDuty account acceptance.
+
+Gap: The required 0042 migration cannot land while RELEASE.json is held by the release lanes: release validation requires its inventory entry. Main integration awaits the release owner; no release record was changed.
 
 #### INTAKE-010 — Prometheus Alertmanager and Grafana Alerting.
 
@@ -1102,8 +1104,8 @@ INTAKE-009 includes the subsequent named API and browser journey below.
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
 | Published | 104 | 0 | 0 | 104 |
-| Target and push further | 20 | 32 | 42 | 94 |
-| All | 124 | 32 | 42 | 198 |
+| Target and push further | 19 | 33 | 42 | 94 |
+| All | 123 | 33 | 42 | 198 |
 
 | Clause | Title | Kind | Status | Evidence | Gap |
 | --- | --- | --- | --- | --- | --- |
@@ -1237,7 +1239,7 @@ INTAKE-009 includes the subsequent named API and browser journey below.
 | `INTAKE-006` | Monitor presets | published | done | `tests/e2e/channels-and-presets.test.mjs` |  |
 | `INTAKE-007` | Preset recovery | published | done | `tests/e2e/channels-and-presets.test.mjs` |  |
 | `INTAKE-008` | Uptime preset | target | done | `src/core/features/intake/uptime.ts`, `src/core/features/intake/service.ts`, `src/core/features/intake/ui/uptime-preset-card.tsx`, `tests/e2e/channels-and-presets.test.mjs`, `tests/e2e/helpers/uptime-preset-flow.mjs` |  |
-| `INTAKE-009` | PagerDuty | target | done | `src/core/features/intake/`, `tests/e2e/channels-and-presets.test.mjs` ("INTAKE-009 PagerDuty v3 signed events create drafts, brief entries and one note per publication"), `tests/e2e/helpers/pagerduty-flow.mjs` |  |
+| `INTAKE-009` | PagerDuty | target | partial | `src/core/features/intake/`, `tests/e2e/channels-and-presets.test.mjs` ("INTAKE-009 PagerDuty v3 signed events create drafts, brief entries and one note per publication"), `tests/e2e/helpers/pagerduty-flow.mjs` | The required 0042 migration cannot land while RELEASE.json is held by the release lanes: release validation requires its inventory entry. Main integration awaits the release owner; no release record was changed. |
 | `INTAKE-010` | Prometheus Alertmanager and Grafana Alerting | target | done | `src/core/features/intake/grouped-alerts.ts`, `src/core/features/intake/grouped-repository.ts`, `src/core/features/intake/ui/grouped-preset-card.tsx`, `tests/e2e/helpers/grouped-alerts-flow.mjs`, `tests/e2e/export-import.test.mjs` | Alertmanager v4 and Grafana v1 default grouped webhooks authenticate with bearer tokens, match exact labels to multiple components and deduplicate groups and alert fingerprints into private incidents. Mixed and partial recoveries retain firing members; complete recovery closes only unpublished drafts. Unmapped alerts show their reason. Worker, archive round-trip and 1440/390 browser journeys prove the saved configuration, receipts and private draft. |
 | `INTAKE-011` | New Relic, Datadog and Pingdom depth | target | partial | `src/core/features/intake/presets.ts`, `tests/e2e/channels-and-presets.test.mjs` | Datadog, UptimeRobot, Better Stack and Pingdom alert presets ship (INTAKE-006). New Relic and metric ingestion do not. |
 | `INTAKE-012` | Oncall | target | missing |  | Not built. |
