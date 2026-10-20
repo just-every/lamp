@@ -1563,3 +1563,9 @@ existing typography, colours and surfaces stay as they are.
 ## Lamp L10 follow-up and L17 names (owner, 20 October 2026)
 
 Operator screens use the owner's words, including folded reports and history controls. Development and demo mail stays silent and shows the same accepted-send success as a real send; stored outcomes and real delivery behavior stay intact. Website component suggestions prefer supported product navigation, strip decorative badges and descriptions, exclude account/community/company navigation, and retain the eight-name cap.
+
+L17 also excludes supporting service, training, consulting and release pages,
+even inside product menus. Product names come from the site's product-menu
+titles before footer categories; a description-styled wrapper must retain the
+title inside it while omitting supporting prose. An honestly short or empty list
+is preferable to filling it with non-product pages.

@@ -148,6 +148,32 @@ test('the site reader reads what a site says about itself, refuses private desti
     <a href="/gallery">Templates and more</a><a href="/product/calendar">Calendar →</a>
   </div></nav>`)).map(component => component.name), ['Acme AI', 'Mail']);
 
+  t.diagnostic('services, training, releases and other supporting pages stay out at any depth, even under Products');
+  const supporting = [
+    ['/services/training/', 'Product Training'], ['/services/onboarding/', 'Personalized onboarding'],
+    ['/services/customer-success-management/', 'Customer success'], ['/services/', 'Professional Services'],
+    ['/products/release-overview/', 'Product Releases'], ['/product-releases/', 'Recent changes'],
+    ['/products/release_notes/', 'Recent changes'], ['/platform/productUpdates/', 'Recent changes'],
+    ['/products/what%27s-new/', 'What’s New'], ['/learn/orbit/', 'Orbit'], ['/resources/orbit/', 'Orbit'],
+    ['/products/academy/courses/', 'Orbit'], ['/apps/product-training/', 'Orbit'],
+    ['/platform/premium-support/', 'Orbit'], ['/products/consulting/', 'Orbit'],
+    ['/products/careers/', 'Orbit'], ['/platform/partner/', 'Orbit'], ['/apps/pricing/', 'Orbit'],
+    ['/products/legal/', 'Orbit'], ['/legal/privacy/', 'Orbit'],
+    ['/advisory/', 'Professional-services'], ['/welcome/', 'Product certification'],
+    ['/changes/', 'Product updates'], ['/courses/', 'Product academy'], ['/assistance/', 'Premium support plans'],
+  ];
+  assert.deepEqual((await read(`<nav><div><button>Products</button>
+    ${supporting.map(([url, name]) => `<a href="${url}">${name}</a>`).join('')}
+    <a href="/products/data-services">Data Services</a><a href="/products/learning-services">Learning Services</a>
+    <a href="/products/service">Service Hub</a><a href="/products/secure-partner-access">Secure Partner Access</a>
+    <a href="/products/customer-service-ops">Customer Service Ops</a>
+    <div><h3>Training</h3><a href="/products/orbit">Orbit</a></div>
+    <div><h3>Consulting</h3><a href="/products/relay">Relay</a></div>
+  </div></nav>`)).map(component => component.name), ['Data Services', 'Learning Services', 'Service Hub', 'Secure Partner Access', 'Customer Service Ops']);
+  assert.deepEqual(await read(`<nav><div><button>Services</button>
+    <a href="/products/orbit">Orbit</a><a href="/products/relay">Relay</a>
+  </div></nav>`), [], 'a services menu cannot fill an otherwise empty list');
+
   t.diagnostic('titles and separate blocks supply names without merging their descriptions, irrespective of the words used');
   assert.deepEqual((await read(`<header><nav>
     <a href="/products/analytics"><div><h4>Analytics</h4><p>Podcast analytics software</p></div></a>
@@ -156,6 +182,13 @@ test('the site reader reads what a site says about itself, refuses private desti
     <a href="/products/time"><span>Time</span> <span>tracking</span><small>Track every hour</small></a>
     <a href="/products/comet" title="Comet"><p>Keep every project moving</p></a>
   </nav></header>`)).map(component => component.name), ['Analytics', 'Orbit', 'Relay', 'Time tracking', 'Comet']);
+
+  assert.deepEqual((await read(`<nav aria-label="Products: Dropdown Content">
+    <a href="/software/orbit"><div class="product-description-container"><div class="product-header"><strong>Orbit</strong></div><span class="product-description">Everything your team needs</span></div></a>
+    <a href="/software/relay"><div class="description-wrapper"><h3>Relay <span class="badge">NEW</span></h3><p>Send messages across the world</p></div></a>
+    <a href="/software/comet"><div class="description"><strong>Comet</strong><span class="description">Keep every project moving</span></div></a>
+    <a href="/software/office">Microsoft <strong>365</strong></a>
+  </nav>`)).map(component => component.name), ['Orbit', 'Relay', 'Comet', 'Microsoft 365'], 'description wrappers retain their structural titles without glued prose or number loss');
 
   t.diagnostic('product groups and distinct app hosts beat marketing, account and documentation links');
   const products = await read(`<header><nav>
@@ -184,6 +217,14 @@ test('the site reader reads what a site says about itself, refuses private desti
     </div><div><h3>Company</h3><a href="/products/office">Office tour</a></div></footer>`);
   assert.ok(capped.length >= 2 && capped.length < names.length, 'a long product menu is capped');
   assert.deepEqual(capped.map(component => component.name), names.slice(0, capped.length), 'deduplication and selection preserve source order');
+
+  const namedMenu = await read(`<header><nav><div><button>Products</button>
+    <a href="/platform/generative-ai/"><h3>Acme Advance</h3><p>Generative AI across operations</p></a>
+    <a href="/platform/generative-ai/">Generative AI</a>
+  </div></nav></header><footer><nav><div><h3>Platform</h3>
+    <a href="/platform/generative-ai/">Generative AI</a><a href="/platform/relay/">Relay</a>
+  </div></nav></footer>`);
+  assert.deepEqual(namedMenu.map(component => component.name), ['Acme Advance', 'Relay'], 'the product menu title beats a URL-spelling label, including a nav inside the footer');
 
   t.diagnostic('over the cap, the areas the site links to and names most are kept, before pages beneath another area, still in site order');
   const catalogue = ['Atlas', 'Beacon', 'Billing', 'Capital', 'Climate', 'Connect', 'Ledger', 'Orbit', 'Payments', 'Radar', 'Terminal'];
