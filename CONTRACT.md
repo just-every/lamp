@@ -247,7 +247,7 @@ Status: **done** — `src/core/features/public-snapshot/feeds.ts`, `tests/e2e/he
 
 Acceptance: a test fetches each badge after a component change and finds the new label within 10 seconds. shields.io's endpoint badge renders `/badge.json`. With the database unavailable, badges are served from the snapshot.
 
-Status: **partial** — `src/core/features/public-snapshot/badges.ts`, `tests/e2e/helpers/public-resources-flow.mjs`, `tests/e2e/snapshot-retained.test.mjs`. Overall and component SVGs and shields endpoint JSON ship, update with the snapshot and serve without the database. The shields.io hosted rendering check has not been run.
+Status: **partial** — `src/core/features/public-snapshot/badges.ts`, `tests/e2e/helpers/public-resources-flow.mjs`, `tests/e2e/snapshot-retained.test.mjs`. Snapshot freshness and database-free badges are covered by the existing journeys. Hosted check, 20 October 2026 UTC: `status.run-lamp.com/badge.json`, `/badge.svg` and the shields.io endpoint render all returned HTTP 200; shields rendered “status: Operational”. Deployment snapshot `01M5D0RNN2BJ23EMTD7MR1WNG3`, generated `2026-10-20T16:02:00.482Z`; no Lamp commit or release version was exposed. Full response bodies and headers are retained outside the distributed source tree under ACCEPTANCE.md’s release evidence boundary. No hosted state was changed. Gap: Hosted public page returns HTTP 503 on initial check and retry; badge endpoints and shields.io rendering passed.
 
 #### PAGE-019 — Embed variants.
 
@@ -447,9 +447,11 @@ Status: **partial** — `migrations/core/0027_update_component_changes.sql`, `sr
 
 Update fields stay plain text (UPDATE-001), with one addition: a bare `https://` URL in any field becomes a link. Nothing else is interpreted. No markup, no link text and no other scheme is accepted, and `http:`, `javascript:` and `data:` URLs stay plain text. On the page, history, permalinks and feeds the link is an `<a>` whose visible text is the URL itself, with `rel="nofollow noopener ugc"`, so a reader always sees where it goes. Following a link is a navigation the reader chooses, so PAGE-013's CSP needs no exception. Notification email carries it as a link in the HTML part and as the URL in the text part, with no click-tracking redirect (NOTIFY-004). Slack posts carry it as `<url>`, Teams Adaptive Cards as a link, SMS as the URL, and webhook bodies as the unchanged text. Trailing punctuation is not part of the link. UPDATE-011's checks flag a URL to an internal hostname or IP address. The release that ships this clause records UPDATE-001 and UPDATE-002 as changed.
 
+NOTIFY-014 and SUB-013 each carry UPDATE-013's SMS-as-the-URL sentence before SMS ships. SUB-015 carries UPDATE-013's Teams Adaptive Cards link sentence before subscriber-owned Teams subscriptions ship. Operator-configured Teams Cards remain proven against Lamp's recorded Workflows fixture; no live Microsoft acceptance is claimed.
+
 Acceptance: an update whose impact statement contains `See https://help.example.com/kb/123.` renders on the page as a link to `https://help.example.com/kb/123` with the full URL as its text and the period outside it, in the email's HTML part as the same link, in the text part as the URL, and in the Slack fixture body as `<https://help.example.com/kb/123>`. `javascript:alert(1)` and `<a href="https://x.test">x</a>` render as literal text. The email's link points directly at the URL.
 
-Status: **partial** — `src/core/shared/update-links.ts`, `tests/e2e/helpers/review-update-flow.mjs`, `tests/e2e/channels-and-presets.test.mjs`. Bare HTTPS links render directly in public pages, history, permalinks, Atom/RSS, email HTML, Slack and Teams. Other schemes and markup remain literal; generic webhooks stay raw. Gap: SMS is not built; Slack/Teams real clients pass recorded network-edge fixtures, but live provider acceptance awaits sandbox credentials.
+Status: **done** — `src/core/shared/update-links.ts`, `src/core/features/channels/slack-message.ts`, `tests/e2e/helpers/review-update-flow.mjs`, `tests/e2e/channels-and-presets.test.mjs`. Bare HTTPS links render directly in page, history, permalinks, feeds, email HTML, Slack and Teams; other schemes and markup stay literal and generic webhooks stay raw. On 20 October 2026 UTC, one production-built local Lamp publication through `hooks.slack.com` was read back from live Slack with `See <https://help.example.com/kb/123>.` in stored text, then exactly that message was deleted and nonce readback was empty. No scope was missing; deletion used the user token after the bot returned `cant_delete_message`. SMS is inherited by NOTIFY-014 and SUB-013; Teams Adaptive Cards retain recorded Workflows-fixture proof, with SUB-015 inheriting the link sentence for subscriber-owned Teams subscriptions. No live Microsoft acceptance is claimed. Provider transcript remains outside the distributed source tree.
 
 ### Scheduled maintenance — target
 
@@ -491,7 +493,11 @@ Status: **partial** — `src/core/features/maintenance/routes.ts`, `src/core/fea
 
 A visitor can subscribe a mobile number in E.164 form. United States and Canada numbers are accepted by default, and other countries only when the owner enables them. Lamp sends one opt-in text naming the page, the message frequency, "Msg & data rates may apply" and the HELP/STOP keywords. The subscription becomes active only when the visitor replies YES, and the consent record (number, time, page, wording) is kept as TCPA evidence. STOP, UNSUBSCRIBE, CANCEL, END and QUIT deactivate it at once and send the single carrier-required confirmation. HELP returns the page name and its support contact. Messages are at most two segments with a permanent link to the update. SMS subscribers choose components like any subscriber (SUB-004). SUB-001's limit of one confirmation per 24 hours per address applies per number.
 
+This clause carries UPDATE-013's SMS-as-the-URL sentence: notification text preserves the URL itself and keeps trailing punctuation outside it before this channel ships.
+
 Acceptance: through a Twilio test account, a US number subscribes, replies YES and receives one notification on publish. Replying STOP deactivates it, and the next publish records the delivery as suppressed. A number that never replied YES receives nothing beyond the opt-in.
+
+Acceptance inheritance: publish `See https://help.example.com/kb/123.` through SMS and retain the URL and its following period as literal text.
 
 Status: **missing**. Released `seed.json → nonGoals` excludes SMS; this clause and NOTIFY-014 replace that exclusion.
 
@@ -569,7 +575,11 @@ Status: **partial** — `src/core/app/mail.ts`, `src/core/features/deliveries/se
 
 SMS notifications go through Twilio or Plivo from the owner's registered 10DLC campaign or verified toll-free number. When both are configured, the other is used if the first fails retryably. Delivery receipts arrive through the provider's signed status callbacks (`X-Twilio-Signature`, Plivo's V3 signature) and record delivered, undelivered or failed (NOTIFY-004). Settings shows the estimated cost of the next publish in USD, from subscriber counts and the provider's rate the owner enters, and a monthly SMS spend cap. A publish that would pass the cap sends the SMS part only after an operator confirms. Every eligible SMS for a publish is accepted by the provider within the time Settings states for the owner's registered throughput (subscriber count divided by the campaign's messages per second, plus 60 seconds), and NOTIFY-018 reports any message that misses it.
 
+This clause carries UPDATE-013's SMS-as-the-URL sentence: notification text preserves the URL itself and keeps trailing punctuation outside it before this channel ships.
+
 Acceptance: through Twilio test credentials, a publish to 3 SMS subscribers records 3 delivered receipts from signed callbacks. An unsigned callback is refused with 401. A publish over the cap queues SMS until confirmed, and the page, email and feeds are not delayed (NOTIFY-009).
+
+Acceptance inheritance: publish `See https://help.example.com/kb/123.` through SMS and retain the URL and its following period as literal text.
 
 Status: **missing**.
 
@@ -1091,7 +1101,7 @@ What Lamp does not do, and how a buyer gets it:
 
 ## Status
 
-Judged from the code and tests at commit `be83d06ae7e83ca661d6b427f0b6855409d0a659` (19 October 2026). Rows changed after that commit name their own journeys under Evidence.
+Judged from the code and tests at commit `d32780261919a73819b6c2484f23c743716c2386` (20 October 2026). Rows changed after that commit name their own journeys under Evidence.
 
 INTAKE-008 and UPTIME-009 include the subsequent named API/browser journeys below.
 
@@ -1100,8 +1110,10 @@ AGENT-004, AGENT-005, INTAKE-008 and UPTIME-009 are proven by their named API an
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
 | Published | 104 | 0 | 0 | 104 |
-| Target and push further | 19 | 33 | 42 | 94 |
-| All | 123 | 33 | 42 | 198 |
+| Target and push further | 20 | 32 | 42 | 94 |
+| All | 124 | 32 | 42 | 198 |
+
+Of 198 clauses, 124 are done, 32 partial and 42 missing (74 non-DONE).
 
 | Clause | Title | Kind | Status | Evidence | Gap |
 | --- | --- | --- | --- | --- | --- |
@@ -1123,7 +1135,7 @@ AGENT-004, AGENT-005, INTAKE-008 and UPTIME-009 are proven by their named API an
 | `PAGE-015` | Served independently of what it reports | target | partial | `src/core/app/host-dispatch.ts`, `src/core/features/page-settings/service.ts`, `tests/e2e/public-contract.test.mjs` | The configured hostname, isolated public-host routing and retained snapshots (PAGE-006) ship. Custom-hostname provisioning, the secondary origin, `/__lamp/serving`, the failover setup check and read-only standby serving do not. |
 | `PAGE-016` | Statuspage-compatible public API | target | partial | `src/core/features/public-snapshot/public-api.ts`, `tests/e2e/helpers/public-resources-flow.mjs`, `tests/e2e/snapshot-retained.test.mjs` | Statuspage v2 responses, stable imported IDs, an unmodified Statuspage embed client, and paginated native timelines and reports ship from retained snapshots. MAINT-009 wording, Verifying and per-window automation switches remain unbuilt; maintenance responses expose existing native lifecycle notices. |
 | `PAGE-017` | RSS and per-component feeds | target | done | `src/core/features/public-snapshot/feeds.ts`, `tests/e2e/helpers/public-resources-flow.mjs` | Ten actual dev Atom/RSS feeds validate with zero W3C errors or warnings; global aliases and component feeds retain event identity and share their snapshot. |
-| `PAGE-018` | Status badges | target | partial | `src/core/features/public-snapshot/badges.ts`, `tests/e2e/helpers/public-resources-flow.mjs`, `tests/e2e/snapshot-retained.test.mjs` | Overall and component SVGs and shields endpoint JSON ship, update with the snapshot and serve without the database. The shields.io hosted rendering check has not been run. |
+| `PAGE-018` | Status badges | target | partial | `src/core/features/public-snapshot/badges.ts`, `tests/e2e/helpers/public-resources-flow.mjs`, `tests/e2e/snapshot-retained.test.mjs`. Snapshot freshness and database-free badges are covered by the existing journeys. Hosted check, 20 October 2026 UTC: `status.run-lamp.com/badge.json`, `/badge.svg` and the shields.io endpoint render all returned HTTP 200; shields rendered “status: Operational”. Deployment snapshot `01M5D0RNN2BJ23EMTD7MR1WNG3`, generated `2026-10-20T16:02:00.482Z`; no Lamp commit or release version was exposed. Full response bodies and headers are retained outside the distributed source tree under ACCEPTANCE.md’s release evidence boundary. No hosted state was changed. | Hosted public page returns HTTP 503 on initial check and retry; badge endpoints and shields.io rendering passed. |
 | `PAGE-019` | Embed variants | target | done | `src/core/features/page-settings/ui/public-resources.tsx`, `tests/e2e/helpers/widget-variants-flow.mjs`, `tests/e2e/helpers/widget-privacy-flow.mjs` | Banner, floating notice and dot are configurable and refresh without cookies, referrers or visitor data; unlisted origins render nothing. |
 | `PAGE-020` | Accessible to the standard US buyers require | target | partial | `tests/e2e/accessibility.test.mjs` | An accessibility suite covers the public and operator documents. There is no VPAT, no release check for one, and no WCAG 2.2 AA conformance claim across every surface. |
 | `PAGE-021` | Public read capacity of the hosted page | target | partial | `src/core/features/public-snapshot/routes.ts`, `tests/e2e/public-contract.test.mjs` | Generation-cached, database-free and unthrottled public reads ship (PAGE-005, PAGE-007, PAGE-008). They are measured only as a local Miniflare floor of 10 requests per second (`seed.json → limits`). There is no hosted load run and no stated hosted rate. |
@@ -1177,7 +1189,7 @@ AGENT-004, AGENT-005, INTAKE-008 and UPTIME-009 are proven by their named API an
 | `UPDATE-010` | Audience variants of one update | target | missing |  | Not built. |
 | `UPDATE-011` | Wording checks before publish | target | done | `src/core/features/incidents/wording-checks.ts`, `tests/e2e/publishing-contract.test.mjs` | Deterministic per-field findings name six rules, respect saved owner terms and length, can be dismissed, and never block publish. |
 | `UPDATE-012` | Component states change with the update | target | partial | `migrations/core/0027_update_component_changes.sql`, `src/core/features/incidents/publication-repository.ts`, `tests/e2e/helpers/review-update-flow.mjs` | Native drafts stage state changes, attachments and releases; review, scheduling and templates keep the choices. One transaction publishes claims, aggregate history, immutable timeline changes and recipients; mail and signed webhooks retain the published changes after later recovery. Gap: management-token and Statuspage write APIs, automation, chat desks, SMS and component-only/Statuspage webhook subscriptions are not built. Overlap history follows aggregate changes; the acceptance sentence asking for no entry when Major changes to Partial needs clarification. |
-| `UPDATE-013` | Links in update text | target | partial | `src/core/shared/update-links.ts`, `tests/e2e/helpers/review-update-flow.mjs`, `tests/e2e/channels-and-presets.test.mjs` | Bare HTTPS links render directly in public pages, history, permalinks, Atom/RSS, email HTML, Slack and Teams. Other schemes and markup remain literal; generic webhooks stay raw. Gap: SMS is not built; Slack/Teams real clients pass recorded network-edge fixtures, but live provider acceptance awaits sandbox credentials. |
+| `UPDATE-013` | Links in update text | target | done | `src/core/shared/update-links.ts`, `src/core/features/channels/slack-message.ts`, `tests/e2e/helpers/review-update-flow.mjs`, `tests/e2e/channels-and-presets.test.mjs`. Bare HTTPS links render directly in page, history, permalinks, feeds, email HTML, Slack and Teams; other schemes and markup stay literal and generic webhooks stay raw. On 20 October 2026 UTC, one production-built local Lamp publication through `hooks.slack.com` was read back from live Slack with `See <https://help.example.com/kb/123>.` in stored text, then exactly that message was deleted and nonce readback was empty. No scope was missing; deletion used the user token after the bot returned `cant_delete_message`. SMS is inherited by NOTIFY-014 and SUB-013; Teams Adaptive Cards retain recorded Workflows-fixture proof, with SUB-015 inheriting the link sentence for subscriber-owned Teams subscriptions. No live Microsoft acceptance is claimed. Provider transcript remains outside the distributed source tree. | |
 | `MAINT-001` | Distinct from incidents | published | done | `tests/e2e/intake-references.test.mjs`, `tests/e2e/publishing-contract.test.mjs`, `tests/reference-storage/references.test.mjs` |  |
 | `MAINT-002` | Automatic transitions | published | done | `tests/e2e/publishing-contract.test.mjs` |  |
 | `MAINT-003` | Component states | published | done | `tests/e2e/publishing-contract.test.mjs` |  |
@@ -1199,7 +1211,7 @@ AGENT-004, AGENT-005, INTAKE-008 and UPTIME-009 are proven by their named API an
 | `SUB-010` | Failing destinations | published | done | `tests/e2e/delivery-contract.test.mjs` |  |
 | `SUB-011` | Operator view | published | done | `tests/e2e/delivery-contract.test.mjs` |  |
 | `SUB-012` | No enumeration | published | done | `tests/e2e/delivery-contract.test.mjs` |  |
-| `SUB-013` | SMS subscribers | target | missing |  | Released `seed.json → nonGoals` excludes SMS; this clause and NOTIFY-014 replace that exclusion. |
+| `SUB-013` | SMS subscribers | target | missing |  | Released `seed.json → nonGoals` excludes SMS; this clause and NOTIFY-014 replace that exclusion. This clause carries UPDATE-013's SMS-as-the-URL sentence before shipping. |
 | `SUB-014` | Self-serve Slack subscriptions | target | partial | `src/core/features/subscribers/service.ts`, `src/core/features/channels/service.ts`, `tests/e2e/delivery-contract.test.mjs` | A subscriber can register a Slack incoming-webhook URL as a webhook subscriber (SUB-009), and operators add Slack channels (NOTIFY-011). Slack app sign-up does not exist. |
 | `SUB-015` | Self-serve Microsoft Teams subscriptions | target | partial | `src/core/features/channels/teams.ts`, `tests/e2e/channels-and-presets.test.mjs` | Operator-configured Teams channels ship (NOTIFY-011, NOTIFY-012). Subscriber-owned Teams subscriptions do not. |
 | `SUB-016` | Preferences on every channel | target | partial | `src/core/features/subscribers/service.ts`, `tests/e2e/delivery-contract.test.mjs` | Component selection on subscriptions ships. Event-kind and impact-threshold preferences do not. |
@@ -1220,7 +1232,7 @@ AGENT-004, AGENT-005, INTAKE-008 and UPTIME-009 are proven by their named API an
 | `NOTIFY-011` | Slack and Teams channels | published | done | `tests/e2e/channels-and-presets.test.mjs` |  |
 | `NOTIFY-012` | Channel posts | published | done | `tests/e2e/channels-and-presets.test.mjs` |  |
 | `NOTIFY-013` | Redundant email delivery | target | partial | `src/core/app/mail.ts`, `src/core/features/deliveries/service.ts`, `src/core/features/deliveries/sendgrid-events.ts`, `tests/e2e/sendgrid-provider.test.mjs` | One selectable provider with durable retries and SendGrid signed events ships. A secondary provider, failover and other providers' events do not. |
-| `NOTIFY-014` | SMS delivery | target | missing |  | Not built. |
+| `NOTIFY-014` | SMS delivery | target | missing |  | Not built. This clause carries UPDATE-013's SMS-as-the-URL sentence before shipping. |
 | `NOTIFY-015` | Reach of each update | target | done | `src/core/features/communication-performance/repository.ts`, `src/core/features/communication-performance/ui/incident-reach.tsx`, `tests/e2e/helpers/communication-performance-flow.mjs` |  |
 | `NOTIFY-016` | Operator alerts beyond email | target | missing |  | Not built. |
 | `NOTIFY-017` | Component status changes reach webhook subscribers | target | missing |  | Released NOTIFY-001 notifies no one for a change outside an incident or maintenance. |
