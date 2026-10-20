@@ -4,8 +4,8 @@ import assert from "node:assert/strict";
 export const UPDATE_LINK_FIELDS = {
   affectedAudience: "Customers using the publishing API.",
   customerImpact: "Customer name withheld: requests will be fixed in 10 minutes. See https://help.example.com/kb/123.",
-  whatStillWorks: "Existing records remain available. See https://help.example.com/data.",
-  details: 'Infrastructure db-prod-3.internal; contact ops@example.test. Literal <a href="https://x.test">x</a>, **markdown**, javascript:alert(1), and http://help.example.com. Guide https://help.example.com/recovery.',
+  whatStillWorks: "Existing records remain available at https://help.example.com/kb/123, and the guide (https://help.example.com/kb/123) explains exports.",
+  details: 'Contact ops@example.test. Literal <a href="https://x.test">x</a>, **markdown**, javascript:alert(1), http://example.com/x and data:text/html,x stay text. Internal https://db-prod-3.internal/x and https://10.0.0.5/x. Guide https://help.example.com/recovery.',
 };
 
 function settingsInput(settings) {
@@ -29,7 +29,7 @@ export function assertUpdateComponentWebhook(payload, { incident, component, ste
   const update = payload.updates.find(item => item.id === stepDownUpdate.id);
   assert.ok(update, "the notification carries the immutable published update");
   assert.deepEqual(update.componentChanges, [expectedChange]);
-  assert.equal(update.customerImpact, UPDATE_LINK_FIELDS.customerImpact, "generic webhook wording remains raw text");
+  for (const [field, text] of Object.entries(UPDATE_LINK_FIELDS)) assert.equal(update[field], text, `generic webhook ${field} stays byte-for-byte raw text`);
 }
 
 /** Route-driven addition to an existing journey; registers no tests or browser processes.

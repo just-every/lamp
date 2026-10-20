@@ -12,6 +12,7 @@ import { insertRealOperatorSession } from "../e2e/real-session-helper.mjs";
 import { pageOrigin } from "../e2e/helpers/hosts.mjs";
 import { startViteWorker, stopViteWorker } from "../e2e/vite-worker.mjs";
 import { sessionCookieName } from "../helpers/session-cookie.mjs";
+import { linkedUpdateFlow } from "./linked-update-flow.mjs";
 
 const requestedPort = Number(process.env.LAMP_COMPOSER_PORT ?? 0);
 let port;
@@ -107,7 +108,7 @@ after(async () => {
   await rm(testDirectory, { recursive: true, force: true });
 });
 
-test("Resolve clears the promise in the native composer and publishes the shared public and email rendering", async () => {
+test("UPDATE-011 UPDATE-013 — Resolve clears the promise in the native composer, linked wording checks are dismissible, and the shared rendering links bare HTTPS URLs on every public page with and without script", async () => {
   const invalidActive = await createIncident("Active update validation", "Composer active validation component");
   await page.goto(`${origin}/app/incidents/${invalidActive.id}`, { waitUntil: "networkidle" });
   await page.getByRole("heading", { name: "Compose public update" }).waitFor();
@@ -198,4 +199,6 @@ test("Resolve clears the promise in the native composer and publishes the shared
   assert.equal(publishedIncident.updates[0].nextUpdateAt, null);
   const publicHtml = await waitForPublicIncident(resolution.reference, "Responses are available again.");
   assert.doesNotMatch(publicHtml, /Next update by|Not yet committed/);
+
+  await linkedUpdateFlow({ browser, page, origin, pageBase: pageOrigin(port), appFetch, createIncident, readIncident });
 });

@@ -440,7 +440,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "35ff0370ee029e7c3b549b118bc779982391aa3db592383b4e2367898abe5b73",
+      "sha256": "edf73afe0b953d65e0f25be0e4bcd4d6f96ff38abe76bae727464aa5726d640e",
       "executable": false
     },
     "AGENTS.md": {
@@ -488,7 +488,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "38870cbd4a3dc4fb96026ed60063ac549e799e50a8b56c50c095e3b432b8d687",
+      "sha256": "e042a7521d4e562310402d1c73d0c3301a1aee3081b803ae6a10814db08e68d9",
       "executable": false
     },
     "DEMO.md": {
@@ -5556,7 +5556,7 @@
       "executable": false
     },
     "tests/e2e/channels-and-presets.test.mjs": {
-      "sha256": "88bc5e85abdf67a71dcc3c383b297a711bd5861b0aba2d4d556f48d1e08b133b",
+      "sha256": "a3bfe0c2d54f686057f3827bed16168a054ff1fd3d0960a96c00b7ad753282c5",
       "executable": false
     },
     "tests/e2e/composer-visit-regression.mjs": {
@@ -5716,7 +5716,7 @@
       "executable": false
     },
     "tests/e2e/helpers/review-update-flow.mjs": {
-      "sha256": "396ddcac7d5a4269e38885f621ecb9bb19e72c165d380974bc931d9a4cd41b62",
+      "sha256": "0051886305a9f949c16cd8eb519ec482e40189f733e1907714662edb1b663b55",
       "executable": false
     },
     "tests/e2e/helpers/snapshot-proxy.mjs": {
@@ -5732,7 +5732,11 @@
       "executable": false
     },
     "tests/e2e/helpers/update-component-flow.mjs": {
-      "sha256": "96aec9197cf522a33d6d147a44b262d1812333f589abaa94068c8c89655719eb",
+      "sha256": "731e9ca27b967e60152dab9b4a0a4f2df7c8d67607ca54e2c497d1860ecff0f4",
+      "executable": false
+    },
+    "tests/e2e/helpers/update-link-evidence.mjs": {
+      "sha256": "cc71fa9232f07a0ef5d6e906d7f3143053ba215d7ea4dd830db1642f122afd27",
       "executable": false
     },
     "tests/e2e/helpers/uptime-preset-flow.mjs": {
@@ -5800,7 +5804,7 @@
       "executable": false
     },
     "tests/e2e/publishing-contract.test.mjs": {
-      "sha256": "7c92f90d851c65cfeab2b0835c540315e7440e85a2b372c17ac737d210299870",
+      "sha256": "7a8e3e9e68c10f31abf78a2e29326385e1c640e66877c11cbcd763c6404205ac",
       "executable": false
     },
     "tests/e2e/queue-outage.test.mjs": {
@@ -6603,8 +6607,12 @@
       "sha256": "4453e156bb96a723c23f345bc7d02093e50d5e3165bf5abbae09375b4266434d",
       "executable": false
     },
+    "tests/resolve-composer/linked-update-flow.mjs": {
+      "sha256": "4326b0eae555bde9b333796881cc13d8aa748e7320f95f77bca276f697f48e25",
+      "executable": false
+    },
     "tests/resolve-composer/resolve-composer.test.mjs": {
-      "sha256": "35324e91a0178d46d800f90b9518b5754cf9496466d50afd35af0141fdc05256",
+      "sha256": "cee92dd16145c3129144e83d06fb94a0733498c6a5ac4a941d623ed836f68c94",
       "executable": false
     },
     "tests/site-reader/site-reader.test.mjs": {
