@@ -69,7 +69,7 @@ export function scanHtml(html: string): HtmlScan {
     if (name === "a" && closing) {
       if (anchor) {
         const text = cleanText(anchor.text) || cleanText(anchor.label);
-        if (text) anchors.push({ href: anchor.href, text, region: anchor.region });
+        anchors.push({ href: anchor.href, text, region: anchor.region });
       }
       anchor = null;
       continue;

@@ -51,7 +51,7 @@ export function PageFinder({ source, apiKey, onChoose }: { source: "betterstack"
 export function SavedResponsesHelp({ source }: { source: Source }) {
   return <div className="setup-guide">
     <p>Only if you already have them: unchanged JSON files saved from the {source === "betterstack" ? "Better Stack" : source === "instatus" ? "Instatus" : source === "sorry" ? "Sorry" : "Statuspage"} API. Most people use the account option above instead. Select all the files together, then choose <strong>Run dry run</strong>.{source === "instatus" && " Enter your Instatus page ID above as well."}</p>
-    <details><summary>Which files</summary><p>{source === "sorry"
+    <details><summary>See required files</summary><p>{source === "sorry"
       ? "sorry-status.json (public) or sorry-page.json (with a key), sorry-components.json, sorry-notices.json and each notice's detail file. Only files saved with a key may include sorry-subscribers.json."
       : source === "instatus"
         ? "instatus-pages.json, instatus-components.json, instatus-incidents.json, instatus-maintenances.json, instatus-subscribers.json, instatus-audience-groups.json, and instatus-maintenance-ID.json for each maintenance. Name later pages -2, -3 and so on."

@@ -13,7 +13,7 @@ export interface SiteRead {
   /** The first colour in `colours` saturated enough to brand buttons and links. */
   accent: string | null;
   fonts: string[];
-  /** Product areas from the site's own navigation, in page order. */
+  /** Plausible service areas from navigation, in page order; empty if fewer than two are found. */
   components: SiteComponent[];
   /** A status page the site links to. */
   statusPage: { url: string } | null;

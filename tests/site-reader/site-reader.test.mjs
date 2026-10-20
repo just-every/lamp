@@ -24,7 +24,12 @@ const page = `<!doctype html><html><head><title>Time Tracking Software | Harvest
 <link href="https://fonts.googleapis.com/css2?family=Besley:wght@400&display=swap" rel="stylesheet">
 <script>document.title = "Injected"; fetch("http://127.0.0.1/");</script>
 </head><body><header><nav><a href="/">Home</a><a href="/features/time-tracking">Time tracking</a><a href="/features/invoicing">Invoicing &amp; Payments</a>
-<a href="/features/reports">Reporting</a><a href="/pricing">Pricing</a><a href="/integrations/slack">Slack</a><a href="https://id.example-harvest.com/login">Log in</a></nav></header>
+<a href="/features/reports">Reporting</a><a href="/pricing">Pricing</a><a href="/integrations/slack">Slack</a><a href="https://id.example-harvest.com/login">Log in</a>
+<a href="/products/ecommerce">Ecommerce</a><a href="/solutions/saas">SaaS</a><a href="/for/agencies">Agencies</a>
+<a href="/for/creators">Creators and publishers</a><a href="/for/public-sector">Public sector</a><a href="/products/white-label">White-label analytics</a>
+<a href="/compare/google-analytics">Vs Google Analytics</a><a href="/migrate/ga4">Migrate from GA4</a>
+<a href="/now">Now</a><a href="/docs">Docs</a><a href="/docs/api">API</a><a href="https://developers.example-harvest.com/">Developers</a>
+<a href="/features/zero-downtime-deploys">Zero Downtime Deploys</a><a href="/features/granular-routing">Granular Routing</a><a href="/features/autoscaling">Autoscaling</a></nav></header>
 <main><a href="/careers">Careers</a></main><footer><a href="https://www.harveststatus.com/">Status</a></footer></body></html>`;
 const svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><rect width="32" height="32" fill="#FA5D00"/><path fill="#fff" d="M8 8h4v16H8z"/></svg>';
 
@@ -48,7 +53,7 @@ test('the site reader reads what a site says about itself, refuses private desti
   assert.equal(Buffer.from(site.icon.dataUrl.split(',')[1], 'base64').toString(), svg);
   assert.equal(site.accent, '#fa5d00');
   assert.deepEqual(site.fonts, ['Besley']);
-  assert.deepEqual(site.components.map(component => component.name), ['Time tracking', 'Invoicing and Payments', 'Reporting', 'Integrations', 'Sign-in']);
+  assert.deepEqual(site.components.map(component => component.name), ['Time tracking', 'Invoicing and Payments', 'Reporting']);
   assert.equal(site.components[0].url, 'https://www.example-harvest.com/features/time-tracking');
   assert.deepEqual(site.statusPage, { url: 'https://www.harveststatus.com/' });
   assert.equal(net.requested.some(url => url.includes('127.0.0.1')), false, 'the page script never ran');

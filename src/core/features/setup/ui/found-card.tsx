@@ -12,6 +12,7 @@ export interface FoundPage {
 
 const zones = () => { try { return Intl.supportedValuesOf("timeZone"); } catch { return []; } };
 const shortUrl = (value: string) => value.replace(/^https?:\/\/(www\.)?/, "").replace(/\/$/, "");
+const markHost = (value: string) => new URL(value).hostname.replace(/^www\./, "");
 
 /** What Lamp found, every fact editable, beside a preview of the page it makes. */
 export function FoundCard({ page, browserZone, address, onChange }: { page: FoundPage; browserZone: string | null; address: string; onChange: (next: Partial<FoundPage>) => void }) {
@@ -26,7 +27,7 @@ export function FoundCard({ page, browserZone, address, onChange }: { page: Foun
       <EditableRow label="Page name" name="page name" value={page.pageName} editor={<label className="form-label">Page name<input required maxLength={120} value={page.pageName} onChange={(event) => onChange({ pageName: event.target.value })} /></label>} />
       <EditableRow label="Tagline" name="tagline" value={page.tagline} editor={<label className="form-label">Tagline<textarea required maxLength={280} value={page.tagline} onChange={(event) => onChange({ tagline: event.target.value })} /></label>} />
       <EditableRow label="Logo and marks" name="logo" value={page.mark
-        ? <span className="found-mark"><img src={page.mark.src} alt="" /><small>{page.mark.from ? <>Found at {shortUrl(page.mark.from)}; favicon and social image are made from it</> : "Favicon and social image are made from it"}</small></span>
+        ? <span className="found-mark"><img src={page.mark.src} alt="" /><small>{page.mark.from ? `From ${markHost(page.mark.from)}` : "Your logo"}</small></span>
         : <span className="found-muted">A letter mark from your page name</span>}
         editor={<div className="found-mark-editor"><label className="form-label">Logo file<input type="file" accept="image/svg+xml,image/png,image/jpeg,image/webp" onChange={chooseMark} /></label>{page.mark ? <button type="button" className="text-link" onClick={() => onChange({ mark: null })}>Use a letter mark</button> : null}</div>} />
       <EditableRow label="Accent colour" name="accent colour" value={<span className="found-colour"><i style={{ background: page.accentColor }} />{page.accentColor.toUpperCase()}</span>}
@@ -34,7 +35,7 @@ export function FoundCard({ page, browserZone, address, onChange }: { page: Foun
       <EditableRow label="Time zone" name="time zone" value={<>{page.timezone}{browserZone === page.timezone ? <span className="found-muted"> (from your browser)</span> : null}</>}
         editor={<label className="form-label">Time zone{timezones.length ? <select value={page.timezone} onChange={(event) => onChange({ timezone: event.target.value })}>{(timezones.includes(page.timezone) ? timezones : [page.timezone, ...timezones]).map((zone) => <option key={zone} value={zone}>{zone}</option>)}</select> : <input required maxLength={100} value={page.timezone} onChange={(event) => onChange({ timezone: event.target.value })} />}</label>} />
       <EditableRow label={components.length ? `Components (${components.length} found)` : "Components"} name="components" value={components.length ? <ul className="found-components">{components.map((name, index) => <li key={index}>{name}</li>)}</ul> : <span className="found-muted">None yet; add them any time</span>}
-        editor={<><label className="form-label" htmlFor="first-run-components">Components</label><textarea id="first-run-components" aria-describedby="first-run-components-help" value={page.components.join("\n")} onChange={(event) => onChange({ components: event.target.value.split("\n").map((name) => name.trimStart()).slice(0, 20) })} /><small className="field-hint" id="first-run-components-help">One per line.</small></>} />
+        editor={<><textarea id="first-run-components" aria-label="Components" rows={Math.max(3, page.components.length)} aria-describedby="first-run-components-help" value={page.components.join("\n")} onChange={(event) => onChange({ components: event.target.value.split("\n").map((name) => name.trimStart()).slice(0, 20) })} /><small className="field-hint" id="first-run-components-help">One per line.</small></>} />
       {page.statusPage ? <div className="found-row" data-found="status page"><p className="found-label">Your current status page</p><div className="found-value">{shortUrl(page.statusPage)}<small className="found-muted found-note">Move its history in later from Settings.</small></div></div> : null}
     </div>
     <div className="found-preview">

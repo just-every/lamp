@@ -45,7 +45,7 @@ test('MOVE-006 MOVE-009 rer setup twice, one-click sign-in, silent imports and b
       await page.getByRole('button',{name:"Skip, I'll fill it in"}).click();
       await page.getByRole('button',{name:'Edit page name'}).click();
       await page.getByLabel('Page name',{exact:true}).fill('Cutover fixture');
-      await page.getByRole('button',{name:'Looks right, open Lamp'}).click();await page.waitForURL('**/app');
+      await page.getByRole('button',{name:'Open Lamp',exact:true}).click();await page.waitForURL('**/app');
     }
     const api=async(path,body)=>{
       const response=body===undefined ? await page.request.get(origin+path) : await page.request.post(origin+path,{headers:{Origin:origin},data:body});
@@ -82,8 +82,10 @@ test('MOVE-006 MOVE-009 rer setup twice, one-click sign-in, silent imports and b
       await page.getByLabel('Saved responses').setInputFiles((await readdir(fixtureDir)).map(name=>join(fixtureDir,name)));
       await page.getByRole('button',{name:'Run dry run',exact:true}).click();
       await page.getByLabel('I reviewed what changes, is skipped or is refused.').check();
+      const submitted=page.waitForResponse(response=>response.url()===origin+'/api/operator/import/apply');
       const applying=page.waitForResponse(response=>/\/api\/app\/statuspage-import\/jobs\/[^/]+$/.test(new URL(response.url()).pathname)&&response.request().method()==='GET');
       await page.getByRole('button',{name:'Import',exact:true}).click();
+      const accepted=await submitted;assert.equal(accepted.status(),200,await accepted.text());
       const result=await (await applying).json();
       assert.equal(result.job.state,'completed');
       await page.goto(origin+`/app/cutover?job=${result.job.id}`);

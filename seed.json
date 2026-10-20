@@ -240,6 +240,16 @@
   ],
   "externals": [
     {
+      "id": "owner-website-reader",
+      "required": false,
+      "why": "SETUP-002, at the owner's request: read the supplied public website, its declared manifest and mark, and its linked public status page to retain migration metadata. Page IDs are read only from an identified Statuspage provider's public /api/v2/summary.json or Better Stack's public /index.json. Public DNS-over-HTTPS at cloudflare-dns.com validates every destination and redirect; private addresses are refused. No source key is used and no public history is imported.",
+      "data": [
+        "Owner-supplied website URL and linked public resource URLs",
+        "Destination hostnames for public DNS resolution"
+      ],
+      "adapters": []
+    },
+    {
       "id": "mail-sender",
       "required": true,
       "why": "Cloudflare Workers cannot deliver email to arbitrary recipients. Subscriber notification is the product's second surface, and SUB-006 and NOTIFY-008 require authenticated bulk sending with List-Unsubscribe support. Managed hosting uses the declared Run Edit Run relay with an installation credential; ordinary hosting uses Resend or SendGrid directly.",
