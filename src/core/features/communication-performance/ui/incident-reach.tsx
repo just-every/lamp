@@ -13,7 +13,7 @@ export function IncidentReach({ incidentId, updateIds }: { incidentId: string; u
   const csv = useCsvDownload(), time = useOperatorTime();
   return <section className="context-section communication-panel" aria-label="Incident reach" ref={element}>
     <div className="card-heading"><h2>Communication and reach</h2><Button variant="secondary" type="button" disabled={!data || csv.downloading} onClick={() => csv.download(`${path}?format=csv`, "incident-reach.csv")}>{csv.downloading ? "Downloading…" : "Download CSV"}</Button></div>
-    <p>Committed delivery records, refreshed every 15 seconds while visible. Counts describe delivery, never reading.</p>
+    <p>Send totals refresh every 15 seconds while visible. Delivery does not mean reading.</p>
     {error || csv.error ? <FormError>{error ?? csv.error}</FormError> : null}
     {error ? <Button variant="secondary" type="button" onClick={refresh}>Refresh counts</Button> : null}
     {loading && !data ? <p role="status">Loading delivery counts…</p> : null}

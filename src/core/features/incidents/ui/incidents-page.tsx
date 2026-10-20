@@ -36,12 +36,12 @@ export function IncidentsPage() {
     {showCreateForm ? <IncidentCreatePanel onCreated={create} onCancel={() => { setCreating(false); setDismissedEmptyCreation(true); }} /> : null}
     <UpdateDueNotice incidents={active} />
     <section className="data-card incident-list-card">
-      <div className="card-heading"><div><p className="card-kicker">Active</p><h2>Current incidents</h2></div><span className="count-label">{active.length} recorded</span></div>
-      {active.length ? <div className="record-list">{active.map((incident) => <IncidentRow key={incident.id} incident={incident} />)}</div> : <EmptyState>No active incidents are recorded.</EmptyState>}
+      <div className="card-heading"><div><p className="card-kicker">Active</p><h2>Current incidents</h2></div><span className="count-label">{active.length} total</span></div>
+      {active.length ? <div className="record-list">{active.map((incident) => <IncidentRow key={incident.id} incident={incident} />)}</div> : <EmptyState>No active incidents.</EmptyState>}
     </section>
     <section className="data-card incident-list-card">
-      <div className="card-heading"><div><p className="card-kicker">Public record</p><h2>Resolved incidents</h2></div><span className="count-label">{resolved.length} recorded</span></div>
-      {resolved.length ? <div className="record-list">{resolved.map((incident) => <IncidentRow key={incident.id} incident={incident} />)}</div> : <EmptyState>No resolved incidents are recorded.</EmptyState>}
+      <div className="card-heading"><div><h2>Resolved incidents</h2></div><span className="count-label">{resolved.length} total</span></div>
+      {resolved.length ? <div className="record-list">{resolved.map((incident) => <IncidentRow key={incident.id} incident={incident} />)}</div> : <EmptyState>No resolved incidents.</EmptyState>}
     </section>
   </div>;
 }

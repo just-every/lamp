@@ -32,8 +32,8 @@ export async function recoveryCheckFlow({ api, post, component, alertSource, dra
   const browser = process.env.LAMP_RECOVERY_SCREENSHOTS ? await openBrowser(origin, devKey, cookie) : null;
   try {
     if (browser) await capture(browser.page, origin, id, 'failing', async page => {
-      await page.getByRole('combobox', { name: /^Lifecycle/ }).selectOption('Monitoring');
-      await page.getByRole('combobox', { name: /^Lifecycle/ }).selectOption('Resolved');
+      await page.getByRole('combobox', { name: /^Status/ }).selectOption('Monitoring');
+      await page.getByRole('combobox', { name: /^Status/ }).selectOption('Resolved');
       const rejected = page.waitForResponse(response => response.url().endsWith(`${path(id)}/publish`) && response.request().method() === 'POST');
       await page.getByRole('button', { name: 'Publish update', exact: true }).click();
       assert.equal((await rejected).status(), 409);

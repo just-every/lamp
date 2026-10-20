@@ -2,16 +2,16 @@ import type { ChannelReach, Commitments, IncidentFact, IncidentPerformance, Perf
 import type { PostmortemDuePolicy } from "../reports/policies";
 
 export const definitions = {
-  cohort: "Incidents opened in the selected page-timezone calendar month, from its first instant inclusive to the next month's first instant exclusive. Their retained updates and delivery outcomes are measured now, including later activity.",
-  firstUpdateLatency: "First accepted alert receipt (not incident opening) to first actual public publication. Native publications use created_at, including backdated updates. Imported source publications use their retained published_at. No accepted alert, no public update, or a publication before the accepted alert means unknown latency.",
-  commitments: "Each native non-retroactive public update with a next-update deadline is one promise. The next actual native public publication, including a correction or backdated publication at its created_at, keeps it only at or before that deadline. Without a successor, future promises remain pending and are excluded from the share; overdue promises are missed. Imported promises are unavailable.",
-  resolution: "Elapsed time from incident opening to current recorded resolution. For a native public resolution, use the later of its retained published_at and actual created_at, so later backdating cannot shorten it. Imported resolution durations retain the source timeline. Unresolved incidents have unknown duration.",
-  reach: "Committed and outcome counts are immutable recipient-ledger rows per email/webhook channel. Distinct delivered subscribers are deduplicated by retained opaque subscriber ID across updates (and incidents for the monthly total). Erasure preserves counts. These are delivery facts, never opens or reads.",
-  providerAccepted: "Successful provider-message attempts, reduced to one first accepted time per delivery. Email acceptance is separate from signed delivered receipts. Webhook delivered means its endpoint acknowledged the request. Accepted and delivered overlap and must not be added.",
-  failureRate: "Bounced + complained + failed delivery rows divided by all committed email/webhook delivery rows. Queued and suppressed rows remain in the denominator. Retries and operator Slack/Teams posts are excluded.",
-  imports: "Imported historical updates have unknown source delivery counts, not zero. Mixed totals show known ledger facts with partial coverage. Native later updates retain their own known counts.",
-  operatorPosts: "Slack/Teams figures count Lamp operator-configured destination posts and provider acceptance, separately from subscriber reach. They do not measure people or signed email delivery.",
-  reportsOwed: "The existing postmortem due policy is evaluated now using retained derived peak_impact, resolution and published-report facts; an operator impact override is not used.",
+  cohort: "Includes incidents opened in the selected month in your page timezone. Figures include later updates and their current delivery results.",
+  firstUpdateLatency: "Time from the first accepted alert to the first public update. Backdated Lamp updates use when they were actually published; imports use the original publication time. Without both times in that order, the delay is unknown.",
+  commitments: "Each Lamp update with a next-update time makes a promise, except backdated updates. Publishing again by that deadline keeps it. Corrections count at their actual publication time. Future promises are pending; overdue promises are missed. Imported promises are unknown.",
+  resolution: "Time from opening to resolution. Backdating a Lamp resolution cannot shorten it: the later of its stated and actual publication time is used. Imports keep the source timeline. Unresolved incidents have no duration yet.",
+  reach: "Send totals count each email or webhook once. Subscriber totals count each person once across updates and, for monthly totals, incidents. Deleting a subscriber keeps anonymous totals. Delivery does not mean an update was read.",
+  providerAccepted: "Accepted means the mail provider took the email; delivered means it confirmed delivery. A webhook is delivered when its endpoint accepts it. Retries count once. Accepted and delivered overlap; do not add them.",
+  failureRate: "Bounced, complained and failed sends divided by all planned email and webhook sends, including queued and skipped sends. Retries and operator Slack or Teams posts are excluded.",
+  imports: "Imported delivery counts are unknown, not zero. Mixed totals include known Lamp sends and show incomplete coverage.",
+  operatorPosts: "Slack and Teams totals count posts and whether the service accepted them. They do not count people or email delivery.",
+  reportsOwed: "Reports due depend on the highest component impact, resolution and whether a report is published. A manual incident impact override does not change this.",
 };
 
 export function commitmentCounts(kept: number, missed: number, pending: number): Commitments {
@@ -61,7 +61,7 @@ export function reachSummary(facts: PerformanceFacts, scopeId: string, updates: 
       const fact = facts.posts.find(row => row.scopeId === scopeId && row.channel === channel);
       return { channel, committed: fact?.committed ?? 0, accepted: fact?.accepted ?? 0, rejected: fact?.rejected ?? 0, uncertain: fact?.uncertain ?? 0, pending: fact?.pending ?? 0 };
     }),
-    deliveryFailure: { failures, denominator, rate: denominator ? failures! / denominator : null, denominatorLabel: "all known committed email/webhook delivery rows (including queued and suppressed)" },
+    deliveryFailure: { failures, denominator, rate: denominator ? failures! / denominator : null, denominatorLabel: "planned email/webhook sends (including queued and skipped)" },
   };
 }
 

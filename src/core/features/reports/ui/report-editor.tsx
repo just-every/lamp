@@ -54,7 +54,7 @@ export function ReportEditor({ incidentId }: { incidentId: string }) {
       const hintId = `report-${incidentId}-${field}-review`;
       return <div key={field}><label className="form-label">{field[0].toUpperCase() + field.slice(1)}
         <textarea aria-label={field[0].toUpperCase() + field.slice(1)} value={report[field]} maxLength={10_000} disabled={busy} placeholder={prompt} aria-describedby={flagged ? hintId : undefined} onChange={(event) => update(field, event.target.value)} />
-      </label>{flagged ? <p id={hintId}><strong>Human input required.</strong> {prompt} Review the cited evidence in the timeline.</p> : null}</div>;
+      </label>{flagged ? <p id={hintId}><strong>Human input required.</strong> {prompt} Check the timeline sources.</p> : null}</div>;
     })}
     {message || error ? <p role="status">{message ?? error}</p> : null}
     <div className="form-actions"><Button type="button" variant="secondary" disabled={busy} onClick={save}>Save report</Button><Button type="button" disabled={busy || dirty || !data?.report} onClick={publish}>Publish report</Button></div>

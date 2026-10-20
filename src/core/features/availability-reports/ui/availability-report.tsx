@@ -34,7 +34,7 @@ export function AvailabilityReport({ components }: { components: Array<{ id: str
   };
   return <section className="data-card availability-report" aria-labelledby={`${id}-heading`}>
     <div className="card-heading"><h2 id={`${id}-heading`}>Availability report</h2></div>
-    <p>Download a component’s claimed availability, weighted downtime, incidents and maintenance for a calendar month or quarter in {timezone}. Current periods cover elapsed tracked time.</p>
+    <p>Download availability, downtime, incidents and maintenance for a month or quarter in {timezone}. Current periods cover time so far.</p>
     <div className="availability-report-fields">
       <label className="form-label" htmlFor={`${id}-component`}>Component<select id={`${id}-component`} value={selected} onChange={event => setComponentId(event.target.value)} disabled={!components.length}>{!components.length && <option value="">No components</option>}{components.map(component => <option key={component.id} value={component.id}>{component.name}</option>)}</select></label>
       <label className="form-label" htmlFor={`${id}-period`}>Period<select id={`${id}-period`} value={kind} onChange={event => setKind(event.target.value)}><option value="month">Month</option><option value="quarter">Quarter</option></select></label>

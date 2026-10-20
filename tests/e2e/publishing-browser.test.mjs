@@ -244,7 +244,7 @@ contract("INCIDENT-001", "AGENT-004 MOBILE-001 — an operator can start empty, 
   await page.setViewportSize({ width: 1440, height: 1000 });
   await page.goto(`${appUrl}/app/incidents`);
   await operatorHydrated(page);
-  await page.getByRole("heading", { name: "Record the situation before communicating it" }).waitFor();
+  await page.getByRole("heading", { name: "Start a private draft" }).waitFor();
   await page.getByLabel("Incident title").fill("Journey API request failures");
   await page.getByLabel("Affected component 1").selectOption({ label: "Journey API" });
   await page.getByLabel("Component status 1").selectOption("Major outage");
@@ -268,7 +268,7 @@ contract("INCIDENT-001", "AGENT-004 MOBILE-001 — an operator can start empty, 
   await waitForPublicIncident(reference, "Requests to Journey API are failing.");
 
   assert.equal(await page.locator("label", { hasText: "Who is affected" }).locator("textarea").inputValue(), "", "publication starts a blank next-update draft");
-  await page.getByLabel("Lifecycle").selectOption("Resolved");
+  await page.getByLabel("Status").selectOption("Resolved");
   await page.locator("label", { hasText: "Who is affected" }).locator("textarea").fill("Journey API customers.");
   await page.locator("label", { hasText: "What is the impact" }).locator("textarea").fill("Journey API requests are restored.");
   await page.waitForTimeout(1_500);
@@ -293,7 +293,7 @@ contract("INCIDENT-004", "operator controls create internal notes, retroactive r
   }, offsetMs);
   await page.goto(`${appUrl}/app/incidents`);
   await page.getByRole("button", { name: "Create incident", exact: true }).click();
-  await page.getByRole("heading", { name: "Record the situation before communicating it" }).waitFor();
+  await page.getByRole("heading", { name: "Start a private draft" }).waitFor();
   await page.getByLabel("Incident title").fill("Historical correction controls");
   await page.getByLabel("Opened at").fill(await localInput(-2 * 60 * 60_000));
   await page.getByLabel("Affected component 1").selectOption(component.id);
@@ -393,7 +393,7 @@ contract("UPDATE-006", "the composer schedules publication separately from its n
   await page.getByText("Schedule or backdate", { exact: true }).click();
   await page.getByLabel("Scheduled publication date and time").fill("2027-09-08T13:30");
   await page.getByRole("button", { name: "Schedule update" }).click();
-  await page.getByText("Update scheduled. It remains private until its recorded publication time.").waitFor();
+  await page.getByText("Update scheduled. It stays private until then.").waitFor();
 });
 
 contract("DRAFT-002", "operators save and reload AI tone instructions while the UI honestly reports an unconfigured provider", async () => {

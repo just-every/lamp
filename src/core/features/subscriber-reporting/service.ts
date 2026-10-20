@@ -2,12 +2,12 @@ import type { SubscriberReportingRepository } from "./repository";
 import type { DailyCount, ReportingRange, SubscriberReportingResponse } from "./types";
 
 export const reportingDefinitions = {
-  current: "Current counts include pending, active and retained deactivated subscribers. Erased destinations (deleted: tombstones) are excluded. Date filters affect the trend only.",
-  components: "Counts cover current visible components. All-component subscriptions count once for each component; selected subscriptions count for each selected visible component. Component counts overlap and must not be summed as subscriber totals.",
-  growth: "Inventory means pending plus active subscribers, not confirmed delivery recipients. Joined and left count entries into and exits from that inventory. Pending confirmation does not change inventory. A channel change leaves the old channel and joins the new one.",
-  tracking: "Daily changes use the UTC database observation day, including imports, undo, expiry and erasure. Tracking starts on the first subscriber change or report read, at the recorded baseline; its first day is partial, and the current day is incomplete. Earlier history is unknown. Imports are never backdated to subscriber creation dates.",
-  baseline: "The baseline records eligible inventory when tracking began. Daily opening inventory is that baseline plus earlier observed net changes; closing inventory adds the day's net change. Technical archives retain these anonymous facts; page-data imports are observed as new changes.",
-  coverage: "Audience and language reporting are unavailable: every subscriber belongs to the one public page in its one language until audience subscribers (AUD-004) and subscriber languages (I18N-001) exist, and those clauses add the breakdowns.",
+  current: "Counts include pending, active and deactivated subscribers, excluding deleted people. Dates filter growth only.",
+  components: "Each subscription counts for every component it follows. These counts overlap; adding them does not give a subscriber total.",
+  growth: "Growth counts pending and active subscribers. Confirming a subscription leaves the count unchanged. Changing channel counts as leaving one and joining another.",
+  tracking: "Changes count on the UTC day they happen here, including imports, undo, expiry and deletion. Tracking starts with the first change or report view. The first day and today are partial. Earlier growth is unknown; imports are not backdated.",
+  baseline: "The starting count is pending and active subscribers when tracking began. Each day starts with the previous day's total and adds joins minus departures. Backups keep these anonymous totals; page imports count as new changes.",
+  coverage: "All subscribers follow this public page in its language. Audience and language breakdowns are unavailable.",
 };
 
 export interface SubscriberReportingService { report(range: ReportingRange): Promise<SubscriberReportingResponse> }

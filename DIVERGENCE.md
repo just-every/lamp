@@ -1559,3 +1559,7 @@ visible on a phone, setup help opens the app's documentation, and embed choices
 preview the actual published status. Ask for identity confirmation only when an
 access change requires it, and keep the last owner’s access protected. The
 existing typography, colours and surfaces stay as they are.
+
+## Lamp L10 follow-up and L17 names (owner, 20 October 2026)
+
+Operator screens use the owner's words, including folded reports and history controls. Development and demo mail stays silent and shows the same accepted-send success as a real send; stored outcomes and real delivery behavior stay intact. Website component suggestions prefer supported product navigation, strip decorative badges and descriptions, exclude account/community/company navigation, and retain the eight-name cap.

@@ -21,9 +21,9 @@ function wrap(value: string): string[] {
 
 export function availabilityPdf(report: AvailabilityReport): Uint8Array<ArrayBuffer> {
   const paragraphs = [
-    "Availability report - claimed", `${report.component.name} (${report.component.id})`, `${report.period} - ${report.timezone}`,
+    "Availability report", `${report.component.name} (${report.component.id})`, `${report.period} - ${report.timezone}`,
     `${report.startsAt} inclusive to ${report.endsAt} exclusive`, `Observed through ${report.observedUntil}; generated ${report.generatedAt}`,
-    `Claimed uptime: ${report.uptime ?? "No data"}`, `Weighted downtime minutes: ${report.downtimeMinutes ?? "No data"}`,
+    `Uptime: ${report.uptime ?? "No data"}`, `Downtime minutes: ${report.downtimeMinutes ?? "No data"}`,
     `Tracking since: ${report.trackingSince ?? "No data"}; ${report.coverageDays} whole days covered`, "", report.method, "",
     `Incidents (${report.incidents.length})`,
     ...report.incidents.flatMap(record => [`${record.reference} | ${record.title} | ${record.state}`, `${record.id} | ${record.startsAt} to ${record.endsAt ?? "ongoing"}`]),

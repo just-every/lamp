@@ -129,13 +129,13 @@ test("maintenance creation, correction and historical incident entry all use the
     await drawer.getByLabel("Ends at", { exact: true }).fill("2020-07-15T10:00");
     await drawer.getByLabel("Reason", { exact: true }).fill("Recorded outage interval");
     const corrected = page.waitForResponse(response => response.url().endsWith(`/components/${component.id}/history-corrections`));
-    await drawer.getByRole("button", { name: "Record correction", exact: true }).click();
+    await drawer.getByRole("button", { name: "Save correction", exact: true }).click();
     assert.equal((await corrected).status(), 204);
     const correction = (await api(`/api/app/components/${component.id}/history`)).corrections[0];
     assert.equal(correction.startsAt, "2020-07-14T23:00:00.000Z"); assert.equal(correction.endsAt, "2020-07-15T00:00:00.000Z");
     await page.goto(`${origin}/app/incidents`);
     await operatorHydrated(page);
-    await page.getByRole("heading", { name: "Record the situation before communicating it", exact: true }).waitFor();
+    await page.getByRole("heading", { name: "Start a private draft", exact: true }).waitFor();
     await page.getByLabel("Incident title", { exact: true }).fill("Historical configured-zone incident");
     await page.getByLabel("Affected component 1", { exact: true }).selectOption(component.id);
     await page.getByLabel("Opened at", { exact: true }).fill("2020-07-15T09:00");

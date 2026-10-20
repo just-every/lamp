@@ -20,8 +20,8 @@ function AuditRecords() {
     if (until) query.set("until", new Date(Date.parse(`${until}T00:00:00Z`) + 86400000).toISOString());
     setSelection(query.size ? `&${query}` : ""); setOffset(0);
   }
-  return <div className="page-stack"><p>Recorded publications, component state changes, corrections, maintenance notices, deletions and erasures. All current operators have equal access. Times below follow the page timezone; date filters use UTC days.</p><form className="settings-grid" onSubmit={apply}>
-    <label className="form-label">Audit actor<select value={actorId} onChange={event => setActor(event.target.value)}><option value="">Every actor</option>{data?.actors.map(actor => <option key={actor.id} value={actor.id}>{actor.name}</option>)}</select></label>
+  return <div className="page-stack"><p>Who published, changed or removed something. Everyone can view this log. Times use your page timezone; date filters use UTC.</p><form className="settings-grid" onSubmit={apply}>
+    <label className="form-label">Operator<select value={actorId} onChange={event => setActor(event.target.value)}><option value="">Everyone</option>{data?.actors.map(actor => <option key={actor.id} value={actor.id}>{actor.name}</option>)}</select></label>
     <label className="form-label">Audit action<select value={action} onChange={event => setAction(event.target.value)}><option value="">Every action</option>{data?.actions.map(value => <option key={value}>{value}</option>)}</select></label>
     <label className="form-label">From date (UTC)<input type="date" value={from} onChange={event => setFrom(event.target.value)} /></label>
     <label className="form-label">Through date (UTC)<input type="date" min={from || undefined} value={until} onChange={event => setUntil(event.target.value)} /></label>

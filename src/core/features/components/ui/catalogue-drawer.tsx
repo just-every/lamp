@@ -49,7 +49,7 @@ function CatalogueWorkspace({ initial, onClose, onSaved }: { initial: CatalogueS
     finally { setBusy(false); }
   }
   return <div className="catalogue-workspace">
-    <p className="drawer-copy">Edit components and groups together, then review the changes before applying them. Removing a group makes its remaining components ungrouped. Published updates keep a removed component's recorded name.</p>
+    <p className="drawer-copy">Edit components and groups together, then review the changes before applying them. Removing a group makes its remaining components ungrouped. Published updates keep a removed component's name.</p>
     <div className="form-actions"><Button variant="secondary" type="button" aria-pressed={mode === "table"} disabled={busy} onClick={() => selectMode("table")}>Edit table</Button><Button variant="secondary" type="button" aria-pressed={mode === "csv"} disabled={busy} onClick={() => selectMode("csv")}>Import CSV</Button></div>
     {mode === "table" ? <CatalogueTables catalogue={catalogue} disabled={busy} onChange={change} /> : <section className="component-editor-form">
       <label className="form-label">CSV file<input type="file" accept=".csv,text/csv" disabled={busy} onChange={async event => { const file = event.target.files?.[0]; if (!file) return; setPreview(null); setError(null); try { setCsv(await file.text()); } catch (cause) { setError((cause as Error).message); } }} /></label>

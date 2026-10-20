@@ -72,7 +72,7 @@ export async function phoneDeskFlow({ page, appUrl, pageUrl, appFetch, signInLin
     const published = (await (await appFetch(`/api/app/incidents/${incidentId}`)).json()).incident;
     assert.equal(published.updates.length, 1);
     assert.equal(published.components[0].componentId, component.id);
-    await page.getByRole('combobox', { name: /^Lifecycle/ }).selectOption('Resolved');
+    await page.getByRole('combobox', { name: /^Status/ }).selectOption('Resolved');
     await audience.fill('Customers making card payments in the US.');
     await impact.fill('Card authorization is restored. Checkouts are completing normally.');
     await page.getByText('Draft saved', { exact: true }).waitFor();

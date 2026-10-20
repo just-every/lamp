@@ -29,9 +29,9 @@ export function OperatorsPanel() {
     event.preventDefault();
     setSaving(true); setMessage(null);
     try {
-      const sent = await appApi<{ email: "sent" | "suppressed" }>("/api/app/operators/invite", { method: "POST", body: JSON.stringify({ email, displayName }) });
+      await appApi<{ email: "sent" | "suppressed" }>("/api/app/operators/invite", { method: "POST", body: JSON.stringify({ email, displayName }) });
       setNeedsConfirmation(false);
-      setEmail(""); setDisplayName(""); setMessage(sent.email === "suppressed" ? "Invitation saved." : "Invitation email sent.");
+      setEmail(""); setDisplayName(""); setMessage("Invitation email sent.");
       invited.refresh();
     } catch (cause) {
       showError(cause, "The invitation could not be sent.");

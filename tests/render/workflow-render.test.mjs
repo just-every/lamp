@@ -81,7 +81,7 @@ test("Operator incident overview and composer preserve timing and review control
   assert.match(timing.body,/without notifying subscribers/);
   assert.match(html,/A communication commitment, not an estimate of service restoration/);
   assert.match(html,/Saving draft/); assert.match(html,/<button[^>]*disabled=""[^>]*>Publish update<\/button>/);
-  assert.match(html,/A different operator can record the required review/);
+  assert.match(html,/Another operator can review before the scheduled update/);
 })(t);
   t.diagnostic("active historical timing stays exposed and names its publication action");
   await (() => {
@@ -106,7 +106,7 @@ test("Maintenance editing and destructive confirmation remain deliberate", async
   t.diagnostic("destructive confirmation retains recorded reason and audit/history warning");
   await (() => {
   const html=render(IncidentOperatorControls,{}, {2:true}, {incident,onChanged:noop,onDeleted:noop});
-  assert.match(html,/Deletion removes it from public history while retaining the operator audit record/);
+  assert.match(html,/Removes it from public history. The audit log keeps who deleted it and why/);
   assert.match(html,/aria-label="Deletion reason"/); assert.match(html,/Confirm deletion/); assert.match(html,/>Cancel<\/button>/);
 })(t);
 });

@@ -205,7 +205,7 @@ test("Fresh publication drafts and narrow operator navigation preserve deliberat
     assert.equal((await publicationResponse).ok(), true);
     await page.locator(".composer-heading .publication-message.is-published").waitFor();
     assert.equal(await audienceField(page).inputValue(), ""); assert.equal(await impactField(page).inputValue(), "");
-    assert.equal(await page.getByLabel("Lifecycle").inputValue(), "Identified");
+    assert.equal(await page.getByLabel("Status").inputValue(), "Identified");
     assert.equal(await audienceField(page).getAttribute("placeholder"), initialPlaceholder, "The audience prompt stays useful as the lifecycle advances");
     assert.match(await page.locator(".timeline").innerText(), /Requests are failing/);
     assert.equal(await page.getByRole("button", { name: "Publish update", exact: true }).isEnabled(), false);

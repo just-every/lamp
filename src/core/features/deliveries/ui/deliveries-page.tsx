@@ -17,7 +17,7 @@ type DeliveriesResponse = {
   mail: { provider: "rer" | "resend" | "sendgrid"; local: boolean; receiptsConfigured: boolean };
 };
 
-const label = (value: string) => value === "email" ? "Email" : value === "webhook" ? "Webhook" : value.charAt(0).toUpperCase() + value.slice(1);
+const label = (value: string) => value === "email" ? "Email" : value === "webhook" ? "Webhook" : value === "suppressed" ? "Skipped" : value.charAt(0).toUpperCase() + value.slice(1);
 
 const MAIL_KINDS = { confirmation: "Confirmation email", "already-subscribed": "Already subscribed", subscribed: "Subscribed notice" } as const;
 
@@ -30,11 +30,11 @@ function SubscriptionMail({ rows, providerName }: { rows: DeliveriesResponse["su
     <p>The latest confirmation and subscription emails, newest first.</p>
     {rows.length === 0 ? <EmptyState>No subscription email has been sent yet.</EmptyState> : <div className="table-scroll" tabIndex={0} role="region" aria-label="Subscription emails">
       <table>
-        <thead><tr><th scope="col">Destination</th><th scope="col">Email</th><th scope="col">Outcome</th><th scope="col">Recorded</th></tr></thead>
+        <thead><tr><th scope="col">Destination</th><th scope="col">Email</th><th scope="col">Outcome</th><th scope="col">Sent</th></tr></thead>
         <tbody>{rows.map((row) => <tr key={row.id}>
           <td><strong>{row.destination}</strong><small>{row.subscriberState} subscriber</small></td>
           <td>{MAIL_KINDS[row.kind]}</td>
-          <td><span className={`state-pill state-${row.outcome}`}>{row.outcome === "accepted" ? `Accepted by ${providerName}` : row.outcome === "suppressed" ? "Not sent (local)" : "Failed"}</span></td>
+          <td><span className={`state-pill state-${row.outcome === "suppressed" ? "accepted" : row.outcome}`}>{row.outcome === "accepted" || row.outcome === "suppressed" ? `Accepted by ${providerName}` : "Failed"}</span></td>
           <td>{formatOperatorTime(row.sentAt)}</td>
         </tr>)}</tbody>
       </table>
@@ -70,8 +70,8 @@ export function DeliveriesPage() {
       <div>
         <strong>Delivery records are read-only.</strong>
         <p>{data.mail.receiptsConfigured
-          ? "Queued email may already be accepted by the provider; only a signed receipt marks it delivered."
-          : `Accepted by ${providerName} is the final email status available here because signed delivery receipts are not configured. Acceptance does not confirm inbox delivery.`} Exports include all matching records. Opens are never tracked.</p>
+          ? "Queued email may already be accepted by the provider; the mail provider confirms delivery."
+          : `Accepted by ${providerName} is the final email status available here because delivery confirmations are not connected. Inbox delivery is unconfirmed.`} Exports include all matching records. Opens are never tracked.</p>
       </div>
     </section>}
     <section className="data-card subscriber-table-card">
@@ -83,17 +83,18 @@ export function DeliveriesPage() {
         <table>
           <thead><tr><th scope="col">Destination</th><th scope="col">Channel</th><th scope="col">Outcome</th><th scope="col">Queued</th><th scope="col">Outcome time</th></tr></thead>
           <tbody>{data.deliveries.map((delivery) => {
-            const acceptedWithoutReceipt = !data.mail.local && delivery.channel === "email" && delivery.outcome === "queued" && Boolean(delivery.providerAcceptedAt) && !data.mail.receiptsConfigured;
+            const localAccepted = data.mail.local && delivery.channel === "email" && delivery.outcome === "suppressed";
+            const acceptedWithoutReceipt = localAccepted || !data.mail.local && delivery.channel === "email" && delivery.outcome === "queued" && Boolean(delivery.providerAcceptedAt) && !data.mail.receiptsConfigured;
             return <tr key={delivery.id}>
               <td><strong>{delivery.destination}</strong><small>{delivery.subscriberState} subscriber</small>{delivery.maintenanceReference ? <small>{delivery.maintenanceReference}: {delivery.maintenanceTitle} · {delivery.maintenanceNoticeKind}</small> : null}{delivery.incidentReference ? <small>{delivery.incidentReference}: {delivery.incidentTitle} · {delivery.incidentLifecycle?.toLowerCase()}</small> : null}</td>
               <td>{label(delivery.channel)}</td>
               <td>
-                <span className={`state-pill state-${acceptedWithoutReceipt ? "accepted" : delivery.outcome}`}>{acceptedWithoutReceipt ? `Accepted by ${providerName}` : delivery.outcome === "suppressed" && data.mail.local ? "Not sent (local)" : label(delivery.outcome)}</span>
-                {!data.mail.local && delivery.providerAcceptedAt ? <small>Provider accepted {formatOperatorTime(delivery.providerAcceptedAt)}{delivery.outcome === "queued" && data.mail.receiptsConfigured ? " · awaiting delivery receipt" : ""}</small> : null}
+                <span className={`state-pill state-${acceptedWithoutReceipt ? "accepted" : delivery.outcome}`}>{acceptedWithoutReceipt ? `Accepted by ${providerName}` : label(delivery.outcome)}</span>
+                {!data.mail.local && delivery.providerAcceptedAt ? <small>Provider accepted {formatOperatorTime(delivery.providerAcceptedAt)}{delivery.outcome === "queued" && data.mail.receiptsConfigured ? " · awaiting confirmation" : ""}</small> : null}
                 {delivery.latestError && (delivery.outcome === "failed" || delivery.outcome === "queued") ? <small>{delivery.latestError}</small> : null}
               </td>
               <td>{formatOperatorTime(delivery.queuedAt)}</td>
-              <td>{formatOperatorTime(acceptedWithoutReceipt ? delivery.providerAcceptedAt : delivery.outcomeAt)}</td>
+              <td>{formatOperatorTime(localAccepted ? delivery.outcomeAt : acceptedWithoutReceipt ? delivery.providerAcceptedAt : delivery.outcomeAt)}</td>
             </tr>;
           })}</tbody>
         </table>

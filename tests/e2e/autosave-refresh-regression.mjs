@@ -83,7 +83,7 @@ export async function assertAutosaveDuringRefresh({ page, api, openIncident, ass
     await page.reload();
     await page.getByText("Draft saved", { exact: true }).waitFor();
     timings.reloadedDraft = {
-      lifecycle: await page.getByLabel("Lifecycle").inputValue(),
+      lifecycle: await page.getByLabel("Status").inputValue(),
       affectedAudience: await field.inputValue(),
       customerImpact: await page.locator("label", { hasText: "What is the impact" }).locator("textarea").inputValue(),
       whatStillWorks: await page.locator("label", { hasText: "What still works" }).locator("textarea").inputValue(),
