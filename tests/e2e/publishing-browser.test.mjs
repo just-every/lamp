@@ -86,7 +86,7 @@ async function startWorker(config = defaultConfigPath) {
   });
   server.stdout.on("data", (chunk) => { serverOutput += chunk; });
   server.stderr.on("data", (chunk) => { serverOutput += chunk; });
-  await waitForWorker({ origin: appUrl, child: server, output: () => `${serverOutput}\nState: ${statePath}`, label: "Publishing browser Worker" });
+  await waitForWorker({ origin: appUrl, isListening: () => serverOutput.includes(`${appUrl}/`), child: server, output: () => `${serverOutput}\nState: ${statePath}`, label: "Publishing browser Worker" });
 }
 
 async function stopWorker() {

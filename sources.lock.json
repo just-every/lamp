@@ -5540,7 +5540,7 @@
       "executable": false
     },
     "tests/e2e/autosave-integrity.test.mjs": {
-      "sha256": "cdb13157a6fe3ea761c43a431876809c297cab6bdeb73c8c67e9c8fd831e352b",
+      "sha256": "98a1478b777efa61e6b86a6a60c788c6e37c85eaaa070d0f52e11d3c8596c0aa",
       "executable": false
     },
     "tests/e2e/autosave-queue-regression.mjs": {
@@ -5776,7 +5776,7 @@
       "executable": false
     },
     "tests/e2e/maintenance-timezone.test.mjs": {
-      "sha256": "40cdd89b773bbdb436f166cc4828256059d903098aea83fd35e28531b2cc4ec6",
+      "sha256": "17eddbc281193d5459a0ba745578a57b6b2b4b9466da56a75521c4f386a59422",
       "executable": false
     },
     "tests/e2e/owned-process-group.mjs": {
@@ -5796,7 +5796,7 @@
       "executable": false
     },
     "tests/e2e/publishing-browser.test.mjs": {
-      "sha256": "552af385b2ce5280130eeee6fcf14b0f9ed1c5a337d769c68aed13c877852a80",
+      "sha256": "2fdf0595fba216a852623730efdf0747a349a8ed7a30a587ab9c504b38021d9e",
       "executable": false
     },
     "tests/e2e/publishing-contract.test.mjs": {
@@ -5888,7 +5888,7 @@
       "executable": false
     },
     "tests/e2e/ui-interactions.test.mjs": {
-      "sha256": "cb600bd424de5a09fe3a45e104f6c7a5f24a087191d3bcdb05244389e0baa242",
+      "sha256": "c78205a97a8ffdb2b054c556dde201a281c13270b8c16473f742298bf0a011ba",
       "executable": false
     },
     "tests/e2e/update-reminders.test.mjs": {

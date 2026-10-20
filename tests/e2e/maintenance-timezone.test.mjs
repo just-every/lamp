@@ -25,7 +25,7 @@ before(async () => {
   });
   worker.stdout.on("data", chunk => { output += chunk; });
   worker.stderr.on("data", chunk => { output += chunk; });
-  await waitForWorker({ origin, child: worker, output: () => output, label: "Maintenance timezone Worker" });
+  await waitForWorker({ origin, isListening: () => output.includes(`${origin}/`), child: worker, output: () => output, label: "Maintenance timezone Worker" });
   browser = await chromium.launch();
 
 });
