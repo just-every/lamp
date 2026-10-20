@@ -1101,7 +1101,7 @@ What Lamp does not do, and how a buyer gets it:
 
 ## Status
 
-Judged from the code and tests at commit `d32780261919a73819b6c2484f23c743716c2386` (20 October 2026). Rows changed after that commit name their own journeys under Evidence.
+Judged from the code and tests at commit `c7dfd7495775eec4b5c6d07206509de19d3651ba` (20 October 2026). Rows changed after that commit name their own journeys under Evidence.
 
 INTAKE-008 and UPTIME-009 include the subsequent named API/browser journeys below.
 
