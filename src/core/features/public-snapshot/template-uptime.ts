@@ -14,7 +14,7 @@ export function uptimeHeatmap(model: PublicSnapshotModel) {
   if (!components.length) return '<p class="template-empty">Component history will appear when public components are added.</p>';
   const rows = components.map(component => {
     const marks = component.uptime.marks.slice(-REPORTING_DAYS).map(mark => {
-      const incident = model.incidents.find(item => item.components.includes(component.name) && dayKey(Date.parse(item.openedAt), model.settings.timezone) <= mark.day && dayKey(Date.parse(item.resolvedAt ?? model.generatedAt), model.settings.timezone) >= mark.day);
+      const incident = model.incidents.find(item => item.components.includes(component.name) && dayKey(Math.min(Date.parse(item.openedAt), ...item.updates.map(update => Date.parse(update.publishedAt))), model.settings.timezone) <= mark.day && dayKey(Date.parse(item.resolvedAt ?? model.generatedAt), model.settings.timezone) >= mark.day);
       const state = mark.downtimeMinutes === null ? "No data" : mark.downtimeMinutes > 0 ? `${mark.worstDowntimeState ?? "Downtime"}; ${mark.downtimeMinutes.toFixed(1)} weighted downtime minutes` : "Available";
       const label = `${component.name}, ${mark.day}: ${state}${incident ? `; ${incident.title}` : ""}`;
       const cls = mark.downtimeMinutes === null ? "no-data" : mark.downtimeMinutes > 0 ? `downtime${mark.worstDowntimeState === "Major outage" ? " major-outage" : ""}` : "good";

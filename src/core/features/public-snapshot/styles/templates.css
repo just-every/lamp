@@ -3,7 +3,7 @@ body[data-template] { background: var(--paper); }
 body[data-template] .page { max-width: 1088px; padding-inline: 48px; }
 body[data-template] .masthead { padding: 42px 0 38px; border-bottom: 1px solid var(--line); }
 body[data-template] .brand-logo { border-radius: 0; background: none; box-shadow: none; object-fit: contain; }
-body[data-template] #status-live { border: 0; border-radius: 0; padding: 68px 0 24px; background: none; box-shadow: none; }
+body[data-template] .status-banner #status-live { border: 0; border-radius: 0; padding: 68px 0 24px; background: none; box-shadow: none; }
 body[data-template] h1 { max-width: 20ch; margin: 18px 0 0; font-size: clamp(36px, 4vw, 54px); font-weight: 500; letter-spacing: -.035em; line-height: 1.12; }
 .template-status-label { display: flex; align-items: center; gap: 9px; margin: 0; color: var(--ink-2); font-size: 14px; }
 .template-status-dot { width: 9px; height: 9px; flex: none; border-radius: 50%; background: var(--ok); }
@@ -26,7 +26,7 @@ body[data-template] .status-utilities a, body[data-template] .subscribe button {
 .template-history-link { margin: 20px 0 0; font-size: 14px; }
 .template-empty { margin: 40px 0; color: var(--ink-2); }
 /* A single aligned history surface puts every component on the same daily axis. */
-body[data-template="uptime"] #status-live { padding-top: 36px; padding-bottom: 0; }
+body[data-template="uptime"] .status-banner #status-live { padding-top: 36px; padding-bottom: 0; }
 body[data-template="uptime"] h1 { max-width: none; margin-top: 10px; font-size: 28px; }
 .uptime-hero { margin: 48px 0 0; }
 .uptime-hero-number { margin: 8px 0 12px; font-size: clamp(62px, 9vw, 112px); line-height: 1; font-weight: 500; letter-spacing: -.065em; font-variant-numeric: tabular-nums; }
@@ -63,7 +63,7 @@ body[data-template="uptime"] h1 { max-width: none; margin-top: 10px; font-size: 
 @media (max-width: 640px) {
   body[data-template] .page { padding-inline: 20px; }
   body[data-template] .masthead { padding: 24px 0; }
-  body[data-template] #status-live { padding: 44px 0 4px; }
+  body[data-template] .status-banner #status-live { padding: 44px 0 4px; }
   body[data-template] h1 { font-size: 38px; }
   body[data-template] .component-health, body[data-template] .history-timeline { margin-top: 36px; }
   body[data-template] .subscribe { padding: 26px 0 0; }

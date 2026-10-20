@@ -3956,7 +3956,7 @@
       "executable": false
     },
     "src/core/features/public-snapshot/styles/templates.css": {
-      "sha256": "373a1c694c7d4b9fd56eb1bdc44344236fe5fea8c1d914b1db29bee48065b810",
+      "sha256": "f6d26361cef4b52817247f4613e95d07e7181d5376ce1bf4bf37acb8f96c2369",
       "executable": false
     },
     "src/core/features/public-snapshot/template-component.ts": {
@@ -3972,7 +3972,7 @@
       "executable": false
     },
     "src/core/features/public-snapshot/template-uptime.ts": {
-      "sha256": "3c790adc3e3f7d844d50789d32f9e5419dc6f1605e940b2b645fccc41a84db97",
+      "sha256": "368b6f6151b81ced7cb62cb7a58cd694f9b597c0456ab2983c21c2748e3d1c26",
       "executable": false
     },
     "src/core/features/public-snapshot/templates.ts": {
