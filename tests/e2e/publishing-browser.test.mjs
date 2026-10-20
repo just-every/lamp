@@ -101,8 +101,8 @@ async function stopWorker() {
 
 async function openAuthenticatedPage(viewport) {
   browserContext = await browser.newContext({ timezoneId: "Australia/Brisbane", ...(viewport ? { viewport } : {}) });
-  // Restarting the Worker cold-builds its client graph before the document loads.
-  browserContext.setDefaultNavigationTimeout(60_000);
+  // Cold client builds leave server-rendered controls disabled until hydration.
+  browserContext.setDefaultTimeout(60_000);
   await browserContext.addCookies([{ name: sessionCookieName(appUrl), value: sessionId, url: appUrl }]);
   page = await browserContext.newPage();
 }
