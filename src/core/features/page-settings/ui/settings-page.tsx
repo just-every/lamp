@@ -68,7 +68,7 @@ export function SettingsPage() {
 
   const live = overview.data?.overview.live ?? null;
   const components = (overview.data?.overview.components ?? []).filter((component) => !component.internal).map((component) => ({ name: component.name, state: component.publicState }));
-  const markSrc = saved.logoKey ? `/api/app/page-settings/brand/logo?v=${encodeURIComponent(saved.updatedAt)}` : `/api/app/page-settings/brand/favicon?v=${encodeURIComponent(saved.updatedAt)}`;
+  const markSrc = saved.logoKey ? `/api/app/page-settings/brand/logo?v=${encodeURIComponent(saved.updatedAt)}` : `/api/app/page-settings/brand/mark?v=${encodeURIComponent(saved.updatedAt)}`;
   const update = <K extends keyof SettingsForm>(field: K, value: SettingsForm[K]) => setSettings((current) => current ? { ...current, [field]: value } : current);
   // A logo change saves on its own; the form keeps any unsaved edits.
   const adoptSaved = (next: PageSettingsView) => { setSaved(next); window.dispatchEvent(new Event("lamp:page-settings-changed")); };

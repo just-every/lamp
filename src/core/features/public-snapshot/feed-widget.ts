@@ -46,7 +46,7 @@ export function updateText(incident: PublicFeedIncident, update: PublicFeedUpdat
 export function updateSummary(incident: PublicFeedIncident, update: PublicFeedUpdate) {
   const impact = update.customerImpact.trim().replace(/\s+/g, " ");
   const compactImpact = impact.length > 160 ? `${impact.slice(0, 157)}…` : impact;
-  return [incident.reference, update.lifecycle, compactImpact].filter(Boolean).join(" · ");
+  return [update.lifecycle, compactImpact || incident.title].filter(Boolean).join(" · ");
 }
 
 export function statusPayload(input: { incidents: Array<PublicFeedIncident & { effectiveImpact: IncidentImpact }>; maintenance: Array<{reference: string; title: string; state: string}>; generatedAt: string; overall: string; settings: { timezone: string } }) {

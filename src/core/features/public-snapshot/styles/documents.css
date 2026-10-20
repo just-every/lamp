@@ -1,8 +1,4 @@
 /* The other public documents: history, an incident's permanent page, a missing incident, and subscriber pages. */
-.breadcrumb { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; margin: 0 0 20px; color: var(--ink-3); font-size: 14px; }
-.breadcrumb a { color: var(--ink-2); }
-.breadcrumb span:last-child { overflow-wrap: anywhere; }
-
 .history { min-width: 0; }
 .history-intro h1, .not-found h1 { margin: 0; font-size: 32px; line-height: 1.15; letter-spacing: -.022em; }
 .history-intro p, .not-found > p { max-width: 62ch; margin: 10px 0 0; color: var(--ink-2); }
@@ -34,8 +30,7 @@
 .incident-summary .text-link { margin: 0; }
 
 /* Subscriber pages, reached from an emailed link: one centred plate under the business's mark. */
-.subscriber-page { width: min(100%, 640px); }
-.subscriber-masthead { padding-bottom: 24px; }
+.subscriber-document { max-width: 592px; margin-inline: auto; }
 .subscriber-document { border: 1px solid var(--line); border-radius: 20px; background: var(--card); box-shadow: var(--shadow-card); padding: 36px 40px; }
 .subscriber-document h1 { margin: 0 0 10px; font-size: 26px; line-height: 1.2; letter-spacing: -.02em; }
 .subscriber-document p { margin: 0 0 12px; color: var(--ink-2); }

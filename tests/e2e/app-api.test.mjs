@@ -182,7 +182,9 @@ test("PAGE-001 PAGE-007 PAGE-010 SUB-001 — Complete public snapshots, validato
   assert.equal(typeof liveStatus.overall, "string");
   assert.match(liveStatus.incident.message, /Customer impact:/);
   assert.match(await history.text(), /No past incidents or maintenance in the last 12 months/);
-  assert.match(await incident.text(), /About this incident/);
+  const incidentHtml = await incident.text();
+  assert.match(incidentHtml, /<h1>Elevated API error rates<\/h1>/);
+  assert.equal((incidentHtml.match(/<dt>Opened<\/dt>/g) ?? []).length, 1, "incident opening metadata appears once");
   assert.match(await script.text(), /setInterval/);
   assert.doesNotMatch(widgetText, /innerHTML/);
   const missing = await fetch(`${pageUrl}/incidents/INC-0000`);

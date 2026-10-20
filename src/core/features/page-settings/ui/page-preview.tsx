@@ -1,3 +1,4 @@
+import { mostSevereState, type ComponentState } from "../../../shared/domain";
 import { accentInk } from "../../../shared/accent-ink";
 import { Icon } from "../../../app/client/ui/icon";
 
@@ -11,7 +12,8 @@ export function PagePreview({ pageName, accentColor, markSrc, components, addres
   pageName: string; accentColor: string; markSrc: string | null; components: PreviewComponent[]; address: string | null; size?: "small" | "large";
 }) {
   const accent = isHex(accentColor) ? accentColor : "#182d24";
-  const affected = components.find((component) => component.state && component.state !== "Operational");
+  const overall = mostSevereState(components.map(component => (component.state ?? "Operational") as ComponentState));
+  const affected = overall !== "Operational";
   return <div className={`page-preview page-preview-${size}`} role="img" aria-label={`Preview of ${pageName}${address ? ` at ${address}` : ""}`}>
     <div className="page-preview-frame"><span /><span /><span />{address ? <small>{address}</small> : null}</div>
     <div className="page-preview-bar" style={{ background: accent, color: accentInk(accent) }}>
@@ -19,13 +21,13 @@ export function PagePreview({ pageName, accentColor, markSrc, components, addres
       <strong>{pageName}</strong>
     </div>
     <div className="page-preview-body">
-      <div className={`page-preview-state${affected ? " is-affected" : ""}`}>
+      <div className={`page-preview-state state-${overall.toLowerCase().replaceAll(" ", "-")}`}>
         <span className="page-preview-check"><Icon name={affected ? "warning" : "check"} width={16} height={16} /></span>
-        <span><strong>{affected ? affected.state : "Operational"}</strong><small>{affected ? "Some systems are affected." : "All systems are running normally."}</small></span>
+        <span><strong>{overall}</strong><small>{affected ? "Some systems are affected." : "All systems are running normally."}</small></span>
       </div>
       {components.length ? <>
         <p className="page-preview-heading">Components</p>
-        <ul>{components.map((component, index) => <li key={`${component.name}-${index}`}><span><i className={`page-preview-dot state-${(component.state ?? "Operational").toLowerCase().replaceAll(" ", "-")}`} />{component.name}</span><small>{component.state ?? "Operational"}</small></li>)}</ul>
+        <ul>{components.map((component, index) => <li key={`${component.name}-${index}`}><span><i className={`page-preview-dot state-${(component.state ?? "Operational").toLowerCase().replaceAll(" ", "-")}`} />{component.name}</span><small className={`state-${(component.state ?? "Operational").toLowerCase().replaceAll(" ", "-")}`}>{component.state ?? "Operational"}</small></li>)}</ul>
       </> : <p className="page-preview-empty">Your components show here.</p>}
     </div>
   </div>;

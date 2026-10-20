@@ -22,8 +22,10 @@ function bundle(generation) {
 }
 function assertInstalledSignIn(html, target = "https://app.example/signin") {
   const actions = html.match(/<a\b[^>]*\bdata-lamp-signin\b[^>]*>/g) ?? [];
-  assert.equal(actions.length, 1, "the public header has exactly one installed sign-in action");
+  assert.equal(actions.length, 1, "the public page has exactly one installed sign-in action");
   assert.equal(actions[0].match(/\bhref="([^"]*)"/)?.[1], target);
+  assert.match(html.match(/<footer\b[^>]*>[\s\S]*?<\/footer>/)?.[0] ?? "", /data-lamp-signin/, "the operator entry belongs in the footer");
+  assert.doesNotMatch(html.match(/<nav\b[^>]*class="status-utilities"[^>]*>[\s\S]*?<\/nav>/)?.[0] ?? "", /data-lamp-signin/);
 }
 test("PAGE-005 PAGE-006 PAGE-007 cold durable replica keeps complete generations through R2 failure without D1 reads", async () => {
   const directory = await mkdtemp(join(tmpdir(), "lamp-retained-"));

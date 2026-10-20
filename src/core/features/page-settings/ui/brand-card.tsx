@@ -54,7 +54,7 @@ export function BrandCard({ settings, accentColor, footerCreditEnabled, onAccent
   return <section className="data-card brand-card" aria-labelledby="brand-title">
     <p className="card-kicker" id="brand-title">Brand</p>
     <div className="brand-marks">
-      <figure><img className="brand-mark-large" src={settings.logoKey ? `/api/app/page-settings/brand/logo?v=${version}` : `/api/app/page-settings/brand/favicon?v=${version}`} alt="Page mark" /></figure>
+      <figure><img className="brand-mark-large" src={settings.logoKey ? `/api/app/page-settings/brand/logo?v=${version}` : `/api/app/page-settings/brand/mark?v=${version}`} alt="Page mark" /></figure>
       <figure><figcaption>Favicon</figcaption><img className="brand-favicon" src={`/api/app/page-settings/brand/favicon?v=${version}`} alt="" /></figure>
       <figure><figcaption>Social image</figcaption><img className="brand-social" src={`/api/app/page-settings/brand/social?v=${version}`} alt="" /></figure>
     </div>

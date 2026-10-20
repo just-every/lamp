@@ -87,8 +87,8 @@ a { color: inherit; text-underline-offset: 3px; text-decoration-thickness: 1px; 
 .state-pill strong { font-weight: 500; }
 .state-pill::before { content: ""; width: 8px; height: 8px; flex: none; border-radius: 50%; background: var(--quiet); }
 .state-operational::before, .state-resolved::before, .state-completed::before, .state-monitoring::before { background: var(--ok); }
-.state-major-outage::before, .state-partially-unavailable::before { background: var(--down); }
-.state-degraded-performance::before, .state-investigating::before, .state-identified::before { background: var(--degraded); }
+.state-major-outage::before { background: var(--down); }
+.state-partially-unavailable::before, .state-degraded-performance::before, .state-investigating::before, .state-identified::before { background: var(--degraded); }
 .state-under-maintenance::before, .state-scheduled::before, .state-in-progress::before { background: var(--maint); }
 .state-cancelled::before { background: var(--quiet); }
 

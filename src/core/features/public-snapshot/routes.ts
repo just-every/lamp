@@ -96,20 +96,35 @@ function installedSignInUrl(context: Context<AppEnv>) {
 function installedSignIn(response: Response, context: Context<AppEnv>) {
   if (!response.headers.get("Content-Type")?.includes("text/html")) return response;
   const target = installedSignInUrl(context);
+  const operatorLink = `<a data-lamp-signin href="${escapeHtml(target)}">Sign in</a>`;
   let signInSeen = false;
   return new HTMLRewriter()
-    .on("nav.status-utilities", {
+    .on("body", {
       element(element) {
-        // Archived generations predate the marker. Wait until the navigation
-        // ends so a link already present in newer or cached HTML is reused.
         element.onEndTag((endTag) => {
           if (signInSeen) return;
-          endTag.before(`<a data-lamp-signin href="${escapeHtml(target)}">Sign in</a>`, { html: true });
+          endTag.before(`<footer>${operatorLink}</footer>`, { html: true });
           signInSeen = true;
         });
       },
     })
-    .on("a[data-lamp-signin]", {
+    .on("nav.status-utilities a", {
+      element(element) {
+        if (element.hasAttribute("data-lamp-signin") || element.getAttribute("href") === "/signin" || element.getAttribute("href") === target) element.remove();
+      },
+    })
+    .on("footer", {
+      element(element) {
+        // Archived generations predate the footer link. Reuse a marked link
+        // when present, or add the operator entry after the customer resources.
+        element.onEndTag((endTag) => {
+          if (signInSeen) return;
+          endTag.before(` ${operatorLink}`, { html: true });
+          signInSeen = true;
+        });
+      },
+    })
+    .on("footer a[data-lamp-signin]", {
       element(element) {
         if (signInSeen) return void element.remove();
         element.setAttribute("href", target);
@@ -163,11 +178,11 @@ export function registerPublicSnapshotRoutes(app: Hono<AppEnv>, service: PublicS
         const servedAt = Date.now();
         // HTML also varies with its serving-time action and full installed URL.
         // Version that transformation so an old validator cannot retain a
-        // header without Sign in after an upgrade of the same stored artifact.
+        // header sign-in link after an upgrade of the same stored artifact.
         const html = object.contentType.includes("text/html") ? new TextDecoder().decode(object.bytes) : "";
         const overrunState = object.contentType.includes("text/html") ? maintenanceOverrunState(html, servedAt) : "";
         const representation = object.contentType.includes("text/html")
-          ? `installed-signin-v1:${installedSignInUrl(context)}${overrunState.includes("1") ? `:maintenance-overrun-v1:${overrunState}` : ""}`
+          ? `installed-signin-footer-v3:${installedSignInUrl(context)}${overrunState.includes("1") ? `:maintenance-overrun-v1:${overrunState}` : ""}`
           : context.env?.LAMP_APP_HOST ?? "";
         const etag = `W/"${encodeURIComponent(object.version)}/${encodeURIComponent(artifact(context))}/${encodeURIComponent(representation)}"`;
         response.headers.set("ETag", etag);
@@ -238,6 +253,7 @@ export function registerPublicSnapshotRoutes(app: Hono<AppEnv>, service: PublicS
   app.get("/assets/status-page.js", serve(() => "assets/status-page.js"));
   app.get("/assets/logo", serve(() => "assets/logo", true));
   app.get("/assets/favicon.svg", serve(() => "assets/favicon.svg"));
+  app.get("/assets/mark.svg", serve(() => "assets/mark.svg"));
   app.get("/assets/og.svg", serve(() => "assets/og.svg"));
   app.get("/api/public/status", serve(() => "status.json"));
 }
