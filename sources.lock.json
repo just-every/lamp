@@ -5504,7 +5504,7 @@
       "executable": false
     },
     "tests/e2e/auth-adoption-journey.test.mjs": {
-      "sha256": "54314d14d69c071bf86d8321a34f66c7673d20585d67b9e7afbc718d37bd518c",
+      "sha256": "7e86e80ac118fb59591027c74018648de1d793705e445ed6c9294c8caa1b3450",
       "executable": false
     },
     "tests/e2e/autosave-integrity.test.mjs": {
@@ -5680,7 +5680,7 @@
       "executable": false
     },
     "tests/e2e/helpers/recovery-check-flow.mjs": {
-      "sha256": "284d96a582e4716765737e57e1baecb9c15df9748b59cae586672cb1167f51e3",
+      "sha256": "8714055a8b63737add0f5824caaa44e0255d67697d0755f461e62c466efaa3a0",
       "executable": false
     },
     "tests/e2e/helpers/review-update-flow.mjs": {
