@@ -9,14 +9,15 @@ const text = (html: string) => decodeHtml(html.replace(/<[^>]*>/g, ' ')).replace
 export function searchPages(pages: DocsPageMeta[], bodies: Record<string, DocsBody>): SearchPage[] {
   return pages.map(page => {
     const html = bodies[page.slug].html;
-    const nodes = [];
+    const nodes: Parameters<typeof headingSections>[0] = [{ type: 'text', value: page.summary }];
+    const paragraphs = (part: string) => part.split(/\n\s*\n|<\/(?:p|pre|ul|ol|table)>/).map(text).filter(Boolean).map(value => ({ type: 'text', value }));
     let offset = 0;
     for (const heading of html.matchAll(/<h([23]) id="([^"]+)">([\s\S]*?)<\/h\1>/g)) {
-      nodes.push({ type: 'text', value: html.slice(offset, heading.index).split(/\n\s*\n|<\/(?:p|pre|ul|ol|table)>/).map(text).filter(Boolean).join('\n\n') });
+      nodes.push(...paragraphs(html.slice(offset, heading.index)));
       nodes.push({ type: 'element', tagName: `h${heading[1]}`, properties: { id: heading[2] }, children: [{ type: 'text', value: text(heading[3]) }] });
       offset = heading.index! + heading[0].length;
     }
-    nodes.push({ type: 'text', value: html.slice(offset).split(/\n\s*\n|<\/(?:p|pre|ul|ol|table)>/).map(text).filter(Boolean).join('\n\n') });
+    nodes.push(...paragraphs(html.slice(offset)));
     return { href: `/docs/${page.slug}`, searchSections: headingSections(nodes, page.title, 'docs-title') };
   });
 }

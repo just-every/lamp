@@ -2116,11 +2116,11 @@
       "executable": false
     },
     "package.json": {
-      "sha256": "87b1191126b7d00b5f543a26d42991b125abb94a41b277974fd0831188523f75",
+      "sha256": "8af33f5180a5dba03cdb649d0177500dbcd7d3da6e7afa6949d717aa67169986",
       "executable": false
     },
     "pnpm-lock.yaml": {
-      "sha256": "8d96efb927bb7f4b1d38435583787d8dbe0b3e96a3454b22ced88f3004acc60d",
+      "sha256": "1dc3cd1b9e1910c20b9da786916fce91b7ca3c20ad8f7b8a27d81b9be0a1a107",
       "executable": false
     },
     "public/app-assets/brand/lamp-mark.svg": {
@@ -4672,7 +4672,7 @@
       "executable": false
     },
     "src/site/docs/build/search.ts": {
-      "sha256": "43381035015c607076b79a4c69aaf48c1485c978ad74a4a210b5d6fe6a4f15f3",
+      "sha256": "27122046460037e39913b57c5b340404c34cdf0439b36fda2309647bd5d519c6",
       "executable": false
     },
     "src/site/docs/build/site.ts": {
@@ -5256,7 +5256,7 @@
       "executable": false
     },
     "src/site/pages.tsx": {
-      "sha256": "fb469037bcbd99cc3ffc0b1725f9bcb87b2078fb96c77600f79c5abbbaaa91e5",
+      "sha256": "be11ba044f5bfadd803d8422e05fe4011efee55beaa25ebd32093d8002ceb140",
       "executable": false
     },
     "src/site/run.ts": {
