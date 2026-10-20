@@ -1,3 +1,4 @@
+import { publicMasthead } from "../public-snapshot/page-chrome";
 import { lampConfig } from "../../../ext/config";
 import { MailUnavailableError, type MailMessage, type MailSender } from "../../platform/mail";
 import { createOpaqueToken, hashOpaqueToken } from "../../platform/security/opaque-tokens";
@@ -38,17 +39,15 @@ const SUBSCRIBER_ICONS = {
 /** One branded card under the business's masthead: the subscribe result and every emailed-link page. */
 export function renderSubscriberTokenPage(title: string, body: string, pageName: string = lampConfig.pageName, icon?: keyof typeof SUBSCRIBER_ICONS) {
   const mark = icon ? `<span class="subscriber-icon">${SUBSCRIBER_ICONS[icon]}</span>` : "";
-  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light"><title>${escapeHtml(title)} · ${escapeHtml(pageName)}</title><link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/status-page.css"></head><body><main class="page subscriber-page"><header class="masthead subscriber-masthead"><a class="brand" href="/"><img class="brand-logo" src="/assets/favicon.svg" alt=""><span>${escapeHtml(pageName)}</span></a><nav class="status-utilities" aria-label="Status page"><a href="/">Back to status</a></nav></header><section class="subscriber-document" aria-labelledby="subscriber-title">${mark}<h1 id="subscriber-title">${escapeHtml(title)}</h1>${body}</section></main></body></html>`;
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light"><title>${escapeHtml(title)} · ${escapeHtml(pageName)}</title><link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/status-page.css"></head><body><main class="page subscriber-page">${publicMasthead(pageName, "subscribe")}<section class="subscriber-document" aria-labelledby="subscriber-title">${mark}<h1 id="subscriber-title">${escapeHtml(title)}</h1>${body}</section></main></body></html>`;
 }
 
 /** What a visitor sees right after the subscribe form. The same for new, pending, active and suppressed addresses. */
-export function renderSubscribeResult(input: { email: string; components: string[]; local: boolean }, pageName: string) {
+export function renderSubscribeResult(input: { email: string; components: string[] }, pageName: string) {
   const email = `<strong class="subscriber-email">${escapeHtml(input.email)}</strong>`;
   const scope = `<div class="subscriber-scope"><p class="subscriber-kicker">You'll hear about</p><p class="subscriber-scope-value">${input.components.length ? input.components.map(escapeHtml).join(", ") : "All components"}</p></div>`;
   const again = `<p><a class="subscriber-again" href="/#subscribe">Wrong address? Subscribe again <span aria-hidden="true">→</span></a></p>`;
-  return input.local
-    ? renderSubscriberTokenPage("Email is off locally", `<p>This local Lamp saved the request for ${email} but sends no email. On your hosted page, a confirmation link goes to that address.</p>${scope}${again}`, pageName, "mail")
-    : renderSubscriberTokenPage("Check your inbox", `<p>We sent ${email} a link to confirm or manage your ${escapeHtml(pageName)} updates.</p>${scope}<p>Confirmation links work for 3 days.</p>${again}`, pageName, "mail");
+  return renderSubscriberTokenPage("Check your inbox", `<p>We sent ${email} a link to confirm or manage your ${escapeHtml(pageName)} updates.</p>${scope}<p>Confirmation links work for 3 days.</p>${again}`, pageName, "mail");
 }
 
 function normalizeEmail(email: string) {

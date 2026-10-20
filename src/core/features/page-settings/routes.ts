@@ -4,7 +4,7 @@ import type { AppEnv } from "../../app/types";
 import { pageSettingsSchema } from "../../shared/schemas";
 import { UnsupportedMailIdentityError, type PageSettingsService } from "./service";
 
-const BRAND_ARTIFACTS = { favicon: "assets/favicon.svg", social: "assets/og.svg", logo: "assets/logo" } as const;
+const BRAND_ARTIFACTS = { mark: "assets/mark.svg", favicon: "assets/favicon.svg", social: "assets/og.svg", logo: "assets/logo" } as const;
 
 export function registerPageSettingsRoutes(app: Hono<AppEnv>, service: PageSettingsService, readArtifact: (key: string) => Promise<{ bytes: ArrayBuffer; contentType: string } | null>) {
   // The published mark, favicon and social image, served on the app host so Settings and Your page can

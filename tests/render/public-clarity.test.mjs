@@ -15,6 +15,7 @@ try {
   const {renderPublicSnapshot} = await vite.ssrLoadModule('/src/core/features/public-snapshot/renderer.ts');
   const instant='2026-10-02T09:24:00.000Z';
   const source={
+    websiteUrl:'https://atlascloud.example/',
     settings:{pageName:'Atlas Cloud Status',tagline:'Current availability for Atlas Cloud.',accentColor:'#16794C',timezone:'America/Los_Angeles',hostname:'status.atlascloud.example',footerCreditEnabled:true,widgetAllowedOrigins:'[]',feedId:'render-feed'},
     components:[{id:'checkout',name:'Checkout API',description:'',note:'',groupName:null,groupOrder:null,displayOrder:1}],
     claims:[{componentId:'checkout',state:'Degraded performance'}],
@@ -29,7 +30,7 @@ try {
       {incidentId:'resolved',componentName:'Checkout API'},
     ],
     updates:[
-      {id:'update',incidentId:'active',lifecycle:'Investigating',affectedAudience:'Customers checking out.',customerImpact:'Checkout requests take longer than usual.',whatStillWorks:'Orders and account access remain available.',details:'',nextUpdateAt:'2026-10-02T10:00:00.000Z',publishedAt:instant},
+      {id:'update',incidentId:'active',componentChanges:[{componentId:'checkout',name:'Checkout API',previousState:'Operational',newState:'Degraded performance',internal:false}],lifecycle:'Investigating',affectedAudience:'Customers checking out.',customerImpact:'Checkout requests take longer than usual.',whatStillWorks:'Orders and account access remain available.',details:'',nextUpdateAt:'2026-10-02T10:00:00.000Z',publishedAt:instant},
       {id:'resolved-update',incidentId:'resolved',lifecycle:'Resolved',affectedAudience:'Customers checking out.',customerImpact:'Checkout requests returned to normal.',whatStillWorks:'Orders and account access remain available.',details:'',nextUpdateAt:null,publishedAt:'2026-10-02T08:00:00.000Z'},
     ],
     maintenance:[],maintenanceComponents:[],reports:[],maintenanceNotices:[],
@@ -64,8 +65,18 @@ test("Initial status navigation, grouped components and disclosed availability m
   const html=artifact('page.html');
   assert.match(html,/<title>Atlas Cloud Status<\/title>/);
   assert.equal(count(html,/href="\/history"/g),1);
-  assert.match(html,/href="#subscribe"/); assert.match(html,/href="\/feed.atom"/);
+  assert.match(html,/href="\/#subscribe"/); assert.match(html,/href="\/feed.atom"/);
   assert.match(html,/INC-ACTIVE/);
+  assert.match(html, /<dd>Checkout API: Degraded performance<\/dd>/);
+  assert.doesNotMatch(html, /Operational →/);
+  const navigation = html.match(/<nav class="status-utilities"[\s\S]*?<\/nav>/)[0].replace(/ aria-current="page"/g, "");
+  for (const page of [artifact('history.html'), artifact('incidents/INC-ACTIVE.html')]) {
+    assert.equal(page.match(/<nav class="status-utilities"[\s\S]*?<\/nav>/)[0].replace(/ aria-current="page"/g, ""), navigation);
+  }
+  assert.doesNotMatch(navigation, /Sign in|Atom/);
+  assert.match(html, /src="\/assets\/mark.svg"/);
+  assert.doesNotMatch(artifact('assets/mark.svg'), /<circle/);
+  assert.match(artifact('assets/favicon.svg'), /<circle/);
 })(t);
   t.diagnostic("each component has one uptime card and ungrouped components have no invented heading");
   await (()=>{
@@ -80,7 +91,9 @@ test("Initial status navigation, grouped components and disclosed availability m
     assert.ok(component);
     assert.match(component[1], /<h4>Checkout API<\/h4>/);
     const uptime = divMarkup(component[1], "uptime");
-    assert.ok(uptime.includes(`<time datetime="${trackingInstant}" data-local-time>`), "the component uptime region contains its tracking instant");
+    assert.doesNotMatch(uptime, /<time|Tracking since|record ending/, "rows keep coverage without repeated dates");
+    assert.ok(page.includes(`<time datetime="${trackingInstant}" data-local-time>`), "one shared history note retains the tracking instant");
+    assert.match(uptime, /uptime-number/);
   }
 })(t);
   t.diagnostic("availability method details use a native disclosure while remaining in initial HTML");
@@ -106,14 +119,17 @@ test("Resolved history, permalink duration and configurable footer", async t => 
   assert.match(html,/<time datetime="2026-10-02T08:00:00\.000Z" data-local-time>/);
   assertResolvedDuration(html, "2026-10-02T04:00:00.000Z", "2026-10-02T08:00:00.000Z");
   const title = html.match(/<title>([^<]+)<\/title>/)?.[1] ?? "";
-  assert.ok(title.includes("INC-RESOLVED") && title.includes("Atlas Cloud Status"));
+  assert.ok(title.includes("Earlier checkout delay") && title.includes("Atlas Cloud Status"));
+  assert.doesNotMatch(html, /timeline-reference|<dt>Reference<|class="breadcrumb"|Incident impact:/);
 })(t);
   t.diagnostic("footer credit setting controls its content");
   await (()=>{
   const html=artifact('page.html');
   assert.match(html,/<footer>\S[\s\S]*?<\/footer>/);
   assert.doesNotMatch(html,/runeditrun\.com/);
-  assert.match(hiddenFooterPage, /<footer>\s*<\/footer>/);
+  assert.doesNotMatch(hiddenFooterPage, /Powered by Lamp/);
+  assert.match(hiddenFooterPage, /<summary>Feeds and badges<\/summary>/);
+  assert.match(hiddenFooterPage, /href="https:\/\/atlascloud.example\/">← atlascloud.example<\/a>/);
 })(t);
   t.diagnostic("history contains resolved incidents and a current-status destination");
   await (()=>{

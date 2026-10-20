@@ -1502,3 +1502,15 @@ The package pin moves to rer 0.2.57 with the configured-provider sign-in patch r
 ## Documented grouped webhook versions — 18 October 2026
 
 Each grouped preset accepts its documented source format: Alertmanager version 4 and Grafana version 1. Missing, numeric, cross-source and unknown versions are refused with an operator-readable reason. Grafana's title names the private draft; its message and other source context stay in the retained private receipt. Neither becomes a public update without operator publication. The unmodified Grafana documentation example exercises the same grouped incident, notice, mapping, deduplication and recovery path as Alertmanager.
+
+## Public page clarity — owner L10, 20 October 2026
+
+Keep the approved public appearance. Customer pages share Status, History and
+Subscribe navigation; operator sign-in and feeds belong in the footer. Show
+one update time and one history-start note, readable component states and
+coverage, without internal incident references or duplicate impact labels.
+Uptime bars distinguish degraded/partial service (amber) from major outage
+(red), based on the worst state during that day, including corrections.
+Page marks show the business artwork cleanly; the favicon keeps its status dot.
+The footer links to the business website already read during setup. Development
+subscription mail remains silently suppressed, with the normal confirmation page.

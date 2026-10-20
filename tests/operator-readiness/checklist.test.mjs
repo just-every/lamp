@@ -46,7 +46,7 @@ test('Lamp checks its own page, subscribe form and sender: real D1 facts, no loc
     registerOverviewRoutes(app, createOverviewService(services.components, services.incidents, services.maintenance, live));
     registerDeliveryRoutes(app, services.deliveries, { localMail: true, mailProvider: 'sendgrid', sendGridWebhookPublicKey: 'test-configured-receipt-key' });
     const subscribers = createSubscribersService(createSubscriberRepository(db), { mail, fromAddress: 'lamp@localhost.invalid', tokenSecret: 'synthetic-test-local-subscription-secret' });
-    registerSubscriberRoutes(app, subscribers, { localMail: true });
+    registerSubscriberRoutes(app, subscribers);
     const operatorGet = (path, signedIn = true) => app.request(`${origin}${path}`, { headers: { ...(signedIn ? { Cookie: cookie } : {}), Host: new URL(origin).host } });
     const status = async () => (await (await operatorGet('/api/app/overview/live')).json()).live;
     assert.equal((await operatorGet('/api/app/overview/live', false)).status, 401);

@@ -148,7 +148,7 @@ function fullDayFixture(timezone, now = Date.now()) {
 
 function componentDowntimeMark(name, day, minutes) {
   const escapedName = name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  return new RegExp(`<article class="component"><div class="component-name"><h4>${escapedName}</h4>(?:(?!</article>)[\\s\\S])*?aria-label="${day}: ${minutes} weighted downtime minutes"(?:(?!</article>)[\\s\\S])*?</article>`);
+  return new RegExp(`<article class="component"><div class="component-name"><h4>${escapedName}</h4>(?:(?!</article>)[\\s\\S])*?aria-label="${day}: Downtime ${minutes} minutes \\(weighted\\)[^"]*"(?:(?!</article>)[\\s\\S])*?</article>`);
 }
 
 async function publicArtifact(path, expected, description) {
@@ -342,7 +342,7 @@ test("UPDATE-001 UPDATE-008 UPDATE-002 UPDATE-003 UPDATE-011 UPDATE-012 UPDATE-0
   const publicationStarted = performance.now();
   for (const path of [`/incidents/${incident.reference}`, "/feed.atom", "/widget.js"]) {
     const { text: body } = await publicArtifact(path, /Regional API customers/, `published update fields on ${path}`);
-    assert.ok(body.includes(incident.reference), "public fields must belong to the just-published incident");
+    assert.ok(body.includes(incident.title), "public fields must belong to the just-published incident");
     assert.match(body, /Regional API customers/);
     assert.match(body, /Regional writes can be delayed/);
     assert.match(body, /Reads remain available/);
@@ -623,7 +623,7 @@ test("INCIDENT-001 INCIDENT-002 INCIDENT-003 INCIDENT-004 INCIDENT-005 INCIDENT-
   assert.equal((await (await appFetch("/api/app/components")).json()).components.find((entry) => entry.id === component.id)?.publicState, "Operational");
   const dateParts = new Intl.DateTimeFormat("en-CA", { timeZone: pageTimezone, year: "numeric", month: "2-digit", day: "2-digit" }).formatToParts(new Date(retroactiveStart));
   const part = (kind) => dateParts.find((entry) => entry.type === kind)?.value;
-  await publicArtifact("/", `${part("year")}-${part("month")}-${part("day")}: ${degradedHourMinutes} weighted downtime minutes`, "retroactive uptime after deleted claim release");
+  await publicArtifact("/", `${part("year")}-${part("month")}-${part("day")}: Downtime ${degradedHourMinutes} minutes (weighted)`, "retroactive uptime after deleted claim release");
 })(t);
   t.diagnostic("INCIDENT-009 — retroactive updates reconstruct historical component state without disturbing a current same-component claim");
   await (async () => {
@@ -632,7 +632,7 @@ test("INCIDENT-001 INCIDENT-002 INCIDENT-003 INCIDENT-004 INCIDENT-005 INCIDENT-
   await expectStatus(initialHistory, 200);
   assert.deepEqual((await initialHistory.json()).history.map((entry) => ({ previousState: entry.previousState, newState: entry.newState, causeType: entry.causeType })), [{ previousState: "Operational", newState: "Operational", causeType: "standing-claim" }]);
   assert.equal(queryD1Sql(testStatePath, `SELECT COUNT(*) AS count FROM component_claim_events WHERE component_id = '${component.id}' AND cause_type = 'standing-claim' AND cause_id IS NULL AND state = 'Operational'`)[0]?.count, 1);
-  await publicArtifact("/", new RegExp(`<h4>${component.name}</h4>[\\s\\S]*?Tracking since <time datetime="[^"]+" data-local-time>`), "healthy component initial tracking time");
+  await publicArtifact("/", new RegExp(`<h4>${component.name}</h4>[\\s\\S]*?<span class="uptime-number">(?:100.00% over [^<]+|No data)</span>`), "healthy component initial coverage");
   const historicalStart = historicalIntervalStart(2, pageTimezone);
   const historicalEnd = new Date(Date.parse(historicalStart) + 60 * 60_000).toISOString();
   const current = await createIncident("Current same-component outage", { components: [{ componentId: component.id, state: "Major outage", relationship: "Primary" }] });
@@ -676,7 +676,7 @@ test("INCIDENT-001 INCIDENT-002 INCIDENT-003 INCIDENT-004 INCIDENT-005 INCIDENT-
   const historicDay = new Intl.DateTimeFormat("en-CA", { timeZone: pageTimezone, year: "numeric", month: "2-digit", day: "2-digit" }).formatToParts(new Date(historicalStart));
   const part = (kind) => historicDay.find((entry) => entry.type === kind)?.value;
   const day = `${part("year")}-${part("month")}-${part("day")}`;
-  const snapshot = await publicArtifact("/", `${day}: ${degradedHourMinutes} weighted downtime minutes`, "retroactive uptime mark");
+  const snapshot = await publicArtifact("/", `${day}: Downtime ${degradedHourMinutes} minutes (weighted)`, "retroactive uptime mark");
   assert.match(snapshot.text, /over 2 whole days/);
   const history = await publicArtifact("/history", incident.reference, "retroactive incident history");
   assert.match(history.text, new RegExp(historicalStart));
@@ -708,7 +708,7 @@ test("INCIDENT-001 INCIDENT-002 INCIDENT-003 INCIDENT-004 INCIDENT-005 INCIDENT-
   const projectionDay = new Intl.DateTimeFormat("en-CA", { timeZone: pageTimezone, year: "numeric", month: "2-digit", day: "2-digit" }).formatToParts(new Date(projectionStart));
   const projectionPart = (kind) => projectionDay.find((entry) => entry.type === kind)?.value;
   const projectionDate = `${projectionPart("year")}-${projectionPart("month")}-${projectionPart("day")}`;
-  await publicArtifact("/", `${projectionDate}: 120 weighted downtime minutes`, "retroactive boundary replay uptime");
+  await publicArtifact("/", `${projectionDate}: Downtime 120 minutes (weighted)`, "retroactive boundary replay uptime");
 
   const chronologicalComponent = await createIsolatedComponent("Retroactive arrival ordering component");
   const chronologyNow = Date.now();
@@ -736,7 +736,7 @@ test("INCIDENT-001 INCIDENT-002 INCIDENT-003 INCIDENT-004 INCIDENT-005 INCIDENT-
   );
   assert.equal(chronologicalHistory.filter((entry) => entry.changedAt === chronologicalLaterPublication).at(-1)?.newState, "Major outage");
   const uninterruptedDate = fullDay.date;
-  await publicArtifact("/", `${uninterruptedDate}: 1440 weighted downtime minutes`, "same-incident replay preserves uptime after the newer boundary");
+  await publicArtifact("/", `${uninterruptedDate}: Downtime 1440 minutes (weighted)`, "same-incident replay preserves uptime after the newer boundary");
 
   const splitComponent = await createIsolatedComponent("Cross-midnight split component");
   const splitStart = localWallClockInstant(8, 23, 30, pageTimezone);

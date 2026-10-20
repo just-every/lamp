@@ -13,15 +13,16 @@
 .uptime { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px 16px; min-width: 0; }
 .uptime-marks { display: grid; grid-row: 1; grid-column: 1 / -1; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 2px; height: 28px; min-width: 0; }
 .uptime-mark { display: block; min-width: 0; border-radius: 2px; background: var(--ok-mark); }
-.uptime-mark.downtime { background: var(--down); }
+.uptime-mark.downtime { background: var(--degraded); }
+.uptime-mark.downtime.major-outage { background: var(--down); }
 .uptime-mark.no-data { background: var(--no-data); }
-.uptime-window { grid-row: 2; grid-column: 1; margin: 0; color: var(--ink-3); font-size: 13px; }
 .uptime-number { grid-row: 2; grid-column: 2; color: var(--ink-2); font-size: 13px; font-weight: 500; text-align: right; font-variant-numeric: tabular-nums; }
 
 .availability-foot { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 10px 24px; margin-top: 14px; color: var(--ink-3); font-size: 13px; }
 .availability-legend { display: flex; flex-wrap: wrap; gap: 6px 18px; }
 .availability-legend span { display: inline-flex; align-items: center; gap: 7px; }
 .availability-legend i { width: 10px; height: 10px; border-radius: 2px; background: var(--ok-mark); }
+.availability-legend .legend-degraded { background: var(--degraded); }
 .availability-legend .legend-downtime { background: var(--down); }
 .availability-legend .legend-no-data { background: var(--no-data); }
 .availability-method { max-width: 100%; line-height: 1.6; }
@@ -34,3 +35,5 @@
 .component-description { flex-basis: 100%; color: var(--ink-2); font-size: 14px; }
 .component-description summary { cursor: pointer; }
 .component-description p { margin: 8px 0 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+
+.availability-since { margin: 8px 0 0; color: var(--ink-3); font-size: 13px; }
