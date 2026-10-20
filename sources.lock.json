@@ -5588,7 +5588,7 @@
       "executable": false
     },
     "tests/e2e/deployment-artifact.test.mjs": {
-      "sha256": "acf266886249046171375b47d5396759e9ccbf1b10ea6e5e1d80948192827e2d",
+      "sha256": "f9b7e24b6e30718a6e41fe80ce53c0fb83de03c33f3e81352334578cc3324bb5",
       "executable": false
     },
     "tests/e2e/deployment-secrets.test.mjs": {
