@@ -1,5 +1,5 @@
-import { Link, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
 
 import type { IncidentsService } from "../service";
 import { IncidentCreatePanel } from "./incident-create-panel";
@@ -14,7 +14,9 @@ type IncidentsResponse = { incidents: Awaited<ReturnType<IncidentsService["list"
 
 export function IncidentsPage() {
   const { data, error, loading, refresh } = useAppData<IncidentsResponse>("/api/app/incidents");
-  const [creating, setCreating] = useState(false);
+  const createRequested = useRouterState({ select: state => state.location.hash === "new" });
+  const [creating, setCreating] = useState(createRequested);
+  useEffect(() => { if (createRequested) setCreating(true); }, [createRequested]);
   const [dismissedEmptyCreation, setDismissedEmptyCreation] = useState(false);
   const navigate = useNavigate();
   if (loading) return <LoadingState />;
@@ -28,7 +30,7 @@ export function IncidentsPage() {
     void navigate({ to: "/app/incidents/$incidentId", params: { incidentId: incident.id } });
   };
 
-  return <div className="page-stack">
+  return <div className="page-stack" id="new">
     <section className="page-title-row"><div><p className="eyebrow">Incident communication desk</p><h1>Incidents</h1><p>Each published customer update is retained as an immutable record.</p></div><Button type="button" onClick={() => { setDismissedEmptyCreation(false); setCreating(true); }}>Create incident</Button></section>
     {creating || (!dismissedEmptyCreation && data.incidents.length === 0) ? <IncidentCreatePanel onCreated={create} onCancel={() => { setCreating(false); setDismissedEmptyCreation(true); }} /> : null}
     <UpdateDueNotice incidents={active} />

@@ -233,14 +233,17 @@ test("Fresh publication drafts and narrow operator navigation preserve deliberat
   for (const width of [1440, 390, 320]) {
     await page.setViewportSize({ width, height: 844 }); await page.goto(`${origin}/app`);
     const nav = page.getByRole("navigation", { name: "Workspace sections" });
+    if (width <= 900) await page.getByRole("button", { name: "Menu", exact: true }).click();
     const paths = await nav.locator("a").evaluateAll(nodes => nodes.map(node => node.pathname));
     for (const path of paths) {
+      if (width <= 900 && !await nav.isVisible()) await page.getByRole("button", { name: "Menu", exact: true }).click();
       await page.locator(`.operator-navigation a[href="${path}"]`).click();
       await page.waitForURL(`${origin}${path}`); await page.waitForFunction(() => !document.querySelector('.operator-main .app-state[role="status"]'));
       assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true, `${path} at ${width}`);
     }
     await page.goto(`${origin}/app/incidents`);
     await page.getByRole("button", { name: "Create incident", exact: true }).click();
+    if (width <= 900) await page.getByRole("button", { name: "Menu", exact: true }).click();
     const signout = page.getByRole("button", { name: "Sign out", exact: true });
     await signout.scrollIntoViewIfNeeded(); const box = await signout.boundingBox();
     assert.ok(box && box.x >= 0 && box.x + box.width <= width);

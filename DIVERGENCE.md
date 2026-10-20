@@ -1540,3 +1540,12 @@ For UPTIME-003, first-day coverage uses elapsed hours and minutes instead of
 zero whole days or a repeated tracking date. Zero elapsed time still says
 No data. Coverage from one whole day onward keeps its whole-day label. The
 existing uptime correction/coverage journey checks these first-day labels.
+
+## Overview and navigation — owner L10, 20 October 2026
+
+Keep the existing operator appearance. On phones, one compact menu exposes every
+section and the live page. Overview gives empty incident and maintenance cards
+a direct create action. A month without incidents shows a short empty state;
+delivery details stay folded until requested. Initial HTML uses the same month,
+font and link arrows as the hydrated page. Sign out and CSV work immediately.
+Background reads update the current view without closing its menu or disclosures.

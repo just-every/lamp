@@ -46,6 +46,7 @@
 .live-dot { display: inline-block; width: 8px; height: 8px; flex: none; margin-right: 10px; border-radius: 50%; background: var(--ok); }
 .live-dot.is-failing, .is-failing > .live-dot { background: var(--degraded); }
 .live-dot.is-pending { background: var(--quiet); }
+.live-fact { display: inline-block; }
 .live-sep { margin: 0 8px; color: var(--quiet); }
 .live-address, .live-link { color: var(--ink); font-weight: 500; text-decoration: underline 1.5px var(--link-line); text-underline-offset: 3px; overflow-wrap: anywhere; }
 .live-address:hover, .live-link:hover { text-decoration-color: var(--ink); }

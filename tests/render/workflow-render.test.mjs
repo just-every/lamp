@@ -17,6 +17,7 @@ const react = {...React, useState(initial) {
   const index = stateIndex++;
   return React.useState(Object.hasOwn(stateSnapshot, index) ? stateSnapshot[index] : initial);
 }};
+const appDataContext = React.createContext({});
 const cache = new Map();
 function load(filename) {
   filename = path.resolve(filename);
@@ -26,7 +27,7 @@ function load(filename) {
   function localRequire(id) {
     if (id === 'react') return react;
     if (id === '@tanstack/react-router') return {Link: ({to, params, children, ...props}) => React.createElement('a', {...props, href: to}, children), useNavigate: () => noop};
-    if (id.endsWith('/ui/api')) return {useAppData: route => ({data: responses[route] ?? null, loading: false, error: null, refresh: noop}), appApi: () => {throw Error('Render tests must not call an API');}};
+    if (id.endsWith('/ui/api')) return {AppDataContext: appDataContext, useAppData: route => ({data: responses[route] ?? null, loading: false, error: null, refresh: noop}), appApi: () => {throw Error('Render tests must not call an API');}};
     if (id.endsWith('/extensions')) return {ClientExtensionSlot: () => null};
     // As Vite does: a stylesheet import has no exports, and a ?url asset import is its URL.
     if (id.endsWith('.css')) return {};
