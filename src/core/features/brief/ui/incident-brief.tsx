@@ -7,6 +7,7 @@ import { FormError, useOperatorTime } from "../../../app/client/ui/states";
  * changes when a saved draft or a publication may have answered a question. */
 export function IncidentBriefPanel({ incidentId, revision }: { incidentId: string; revision: string | null }) {
   const formatOperatorTime = useOperatorTime();
+  const { data: aiStatus } = useAppData<{ configured: boolean }>("/api/app/ai/status");
   const { data, error, refresh } = useAppData<{ brief: IncidentBrief }>(`/api/app/incidents/${incidentId}/brief`);
   const seen = useRef(revision);
   useEffect(() => {
@@ -36,6 +37,6 @@ export function IncidentBriefPanel({ incidentId, revision }: { incidentId: strin
         </ul> : <p>No open questions from the saved incident.</p>}
       </div>
     </div>
-    <details className="brief-disclosure"><summary>Exactly what the assistant is sent</summary><p>Internal notes are never part of it.</p><pre tabIndex={0} aria-label="Assistant input">{JSON.stringify(brief, null, 2)}</pre></details>
+    {aiStatus?.configured && <details className="brief-disclosure"><summary>Exactly what the assistant is sent</summary><p>Internal notes are never part of it.</p><pre tabIndex={0} aria-label="Assistant input">{JSON.stringify(brief, null, 2)}</pre></details>}
   </section>;
 }

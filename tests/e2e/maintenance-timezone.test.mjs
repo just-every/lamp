@@ -134,7 +134,8 @@ test("maintenance creation, correction and historical incident entry all use the
     const correction = (await api(`/api/app/components/${component.id}/history`)).corrections[0];
     assert.equal(correction.startsAt, "2020-07-14T23:00:00.000Z"); assert.equal(correction.endsAt, "2020-07-15T00:00:00.000Z");
     await page.goto(`${origin}/app/incidents`);
-    await page.getByRole("button", { name: "Create incident", exact: true }).click();
+    await operatorHydrated(page);
+    await page.getByRole("heading", { name: "Record the situation before communicating it", exact: true }).waitFor();
     await page.getByLabel("Incident title", { exact: true }).fill("Historical configured-zone incident");
     await page.getByLabel("Affected component 1", { exact: true }).selectOption(component.id);
     await page.getByLabel("Opened at", { exact: true }).fill("2020-07-15T09:00");

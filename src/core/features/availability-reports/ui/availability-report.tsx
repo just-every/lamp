@@ -1,14 +1,17 @@
 import { useId, useState } from "react";
 import { Button } from "../../../app/client/ui/button";
 import { FormError } from "../../../app/client/ui/states";
+import { usePageTimezone } from "../../../app/client/ui/timezone";
+import { pageMonth } from "../../communication-performance/month";
 import "./availability-report.css";
 
 /** Reuses the Components page's current list; no extra page-data request. */
 export function AvailabilityReport({ components }: { components: Array<{ id: string; name: string }> }) {
+  const timezone = usePageTimezone();
   const id = useId(), [componentId, setComponentId] = useState(""), [kind, setKind] = useState("month");
-  const [month, setMonth] = useState(() => new Date().toISOString().slice(0, 7));
-  const [year, setYear] = useState(() => String(new Date().getUTCFullYear()));
-  const [quarter, setQuarter] = useState(() => String(Math.floor(new Date().getUTCMonth() / 3) + 1));
+  const [month, setMonth] = useState(() => pageMonth(new Date().toISOString(), timezone));
+  const [year, setYear] = useState(() => month.slice(0, 4));
+  const [quarter, setQuarter] = useState(() => String(Math.floor((Number(month.slice(5)) - 1) / 3) + 1));
   const [downloading, setDownloading] = useState<string | null>(null), [error, setError] = useState<string | null>(null);
   const selected = components.some(component => component.id === componentId) ? componentId : components[0]?.id ?? "";
   const valid = Boolean(selected) && (kind === "month" ? /^\d{4}-(0[1-9]|1[0-2])$/.test(month) && Number(month.slice(0, 4)) >= 1000 && Number(month.slice(0, 4)) <= 9998 : /^\d{4}$/.test(year) && Number(year) >= 1000 && Number(year) <= 9998);
@@ -31,13 +34,13 @@ export function AvailabilityReport({ components }: { components: Array<{ id: str
   };
   return <section className="data-card availability-report" aria-labelledby={`${id}-heading`}>
     <div className="card-heading"><h2 id={`${id}-heading`}>Availability report</h2></div>
-    <p>Download a component’s claimed availability, weighted downtime, incidents and maintenance for a UTC calendar month or quarter. Current periods cover elapsed tracked time.</p>
+    <p>Download a component’s claimed availability, weighted downtime, incidents and maintenance for a calendar month or quarter in {timezone}. Current periods cover elapsed tracked time.</p>
     <div className="availability-report-fields">
       <label className="form-label" htmlFor={`${id}-component`}>Component<select id={`${id}-component`} value={selected} onChange={event => setComponentId(event.target.value)} disabled={!components.length}>{!components.length && <option value="">No components</option>}{components.map(component => <option key={component.id} value={component.id}>{component.name}</option>)}</select></label>
       <label className="form-label" htmlFor={`${id}-period`}>Period<select id={`${id}-period`} value={kind} onChange={event => setKind(event.target.value)}><option value="month">Month</option><option value="quarter">Quarter</option></select></label>
-      {kind === "month" ? <label className="form-label" htmlFor={`${id}-month`}>UTC month<input id={`${id}-month`} type="month" min="1000-01" max="9998-12" required value={month} onChange={event => setMonth(event.target.value)} /></label> : <>
-        <label className="form-label" htmlFor={`${id}-year`}>UTC year<input id={`${id}-year`} type="number" min="1000" max="9998" required value={year} onChange={event => setYear(event.target.value)} /></label>
-        <label className="form-label" htmlFor={`${id}-quarter`}>UTC quarter<select id={`${id}-quarter`} value={quarter} onChange={event => setQuarter(event.target.value)}>{[1, 2, 3, 4].map(number => <option key={number} value={number}>Q{number}</option>)}</select></label>
+      {kind === "month" ? <label className="form-label" htmlFor={`${id}-month`}>Month<input id={`${id}-month`} type="month" min="1000-01" max="9998-12" required value={month} onChange={event => setMonth(event.target.value)} /></label> : <>
+        <label className="form-label" htmlFor={`${id}-year`}>Year<input id={`${id}-year`} type="number" min="1000" max="9998" required value={year} onChange={event => setYear(event.target.value)} /></label>
+        <label className="form-label" htmlFor={`${id}-quarter`}>Quarter<select aria-label="Quarter" id={`${id}-quarter`} value={quarter} onChange={event => setQuarter(event.target.value)}>{[1, 2, 3, 4].map(number => <option key={number} value={number}>Q{number}</option>)}</select></label>
       </>}
     </div>
     <div className="availability-report-actions">{(["csv", "pdf"] as const).map(format => <Button key={format} type="button" variant="secondary" disabled={!valid || Boolean(downloading)} onClick={() => download(format)}>{downloading === format ? "Downloading…" : `Download ${format.toUpperCase()}`}</Button>)}</div>

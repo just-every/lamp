@@ -42,11 +42,14 @@ after(async () => {
   await Promise.all([statePath, cachePath].filter(Boolean).map(path => rm(path, { recursive: true, force: true })));
 });
 
-test("Component and group dialogs retain keyboard focus and record tables scroll with the keyboard while phone alert receipts stack", async t => {
+test("Component and group dialogs retain keyboard focus and phone subscribers and alert receipts fit while delivery tables scroll with the keyboard", async t => {
   for (const [triggerName, fieldName] of [["Add component", "Component name"], ["Add group", "Group name"]]) {
   t.diagnostic(`${triggerName} contains keyboard focus and restores its trigger`);
     await (async () => {
     await page.goto(`${origin}/app/components`);
+    await page.getByRole("heading", { name: "Add component", exact: true }).waitFor();
+    await page.keyboard.press("Escape");
+    await page.getByRole("dialog").waitFor({ state: "detached" });
     const trigger = page.getByRole("button", { name: triggerName, exact: true }).first();
     await trigger.click();
     const dialog = page.getByRole("dialog");
@@ -64,7 +67,18 @@ test("Component and group dialogs retain keyboard focus and record tables scroll
     assert.equal(await trigger.evaluate(node => node === document.activeElement), true, "Escape restores the opening control");
   })(t);
 }
-  for (const [route, label] of [["subscribers", "Subscriber records"], ["deliveries", "Delivery records"]]) {
+  const subscriberDestination = "https://notify.example.test/phone-subscriber";
+  await operatorApi("/api/app/subscribers/webhook", "POST", { destination: subscriberDestination, contactEmail: "phone-subscriber@example.test", componentIds: [] });
+  await page.goto(`${origin}/app/subscribers`); await operatorHydrated(page);
+  const subscriberRow = page.getByRole("row").filter({ hasText: subscriberDestination });
+  await subscriberRow.getByRole("button", { name: "Remove", exact: true }).waitFor();
+  const subscriberGeometry = await subscriberRow.getByRole("cell").evaluateAll(cells => cells.map(cell => { const box = cell.getBoundingClientRect(); return { left: box.left, right: box.right, scroll: cell.scrollWidth, width: cell.clientWidth }; }));
+  assert.equal(subscriberGeometry.length, 6);
+  assert.ok(subscriberGeometry.every(cell => cell.left >= 0 && cell.right <= 390 && cell.scroll <= cell.width), "every subscriber field and the removal action fit without horizontal scrolling");
+  const subscriberState = subscriberRow.locator(".state-pill");
+  assert.ok(await subscriberState.evaluate(node => node.getBoundingClientRect().right <= innerWidth && node.scrollWidth <= node.clientWidth), "the complete subscriber state fits");
+  assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+  for (const [route, label] of [["deliveries", "Delivery records"]]) {
   t.diagnostic(`${label} can be scrolled with the keyboard on narrow screens`);
     await (async () => {
     await page.goto(`${origin}/app/${route}`);
@@ -192,7 +206,7 @@ test("Fresh publication drafts and narrow operator navigation preserve deliberat
     await page.locator(".composer-heading .publication-message.is-published").waitFor();
     assert.equal(await audienceField(page).inputValue(), ""); assert.equal(await impactField(page).inputValue(), "");
     assert.equal(await page.getByLabel("Lifecycle").inputValue(), "Identified");
-    assert.notEqual(await audienceField(page).getAttribute("placeholder"), initialPlaceholder);
+    assert.equal(await audienceField(page).getAttribute("placeholder"), initialPlaceholder, "The audience prompt stays useful as the lifecycle advances");
     assert.match(await page.locator(".timeline").innerText(), /Requests are failing/);
     assert.equal(await page.getByRole("button", { name: "Publish update", exact: true }).isEnabled(), false);
     await page.locator(".autosave-status").waitFor();

@@ -127,7 +127,6 @@ export function SettingsPage() {
     </>) : null}
     {tab === "channels" ? <>
       <ChannelsCard />
-      <section className="data-card intake-link-card"><p className="card-kicker">Inbound alerts</p><h2>Alert sources</h2><p>Configure a signed HMAC or bearer-token source, its JSON paths, and receipt visibility in the operator workspace.</p><Link className="text-link" to="/app/alerts">Manage alert sources <Icon name="arrow" width={16} height={16} /></Link></section>
     </> : null}
     {tab === "operators" ? <OperatorsPanel /> : null}
     {tab === "data" ? <>

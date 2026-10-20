@@ -44,7 +44,9 @@ export async function availabilityReportFlow({ vite, bindings, appFetch }) {
     if (componentId === component) { await claim(id, "Major outage", start); await claim(id, null, end); }
     return id;
   };
+  const originalPageSettings = await db.prepare("SELECT timezone FROM page_settings WHERE id='default'").first();
   try {
+    await sql("UPDATE page_settings SET timezone='UTC' WHERE id='default'");
     for (const id of [component, empty, short]) await sql("INSERT INTO components(id,group_id,name,description,internal,display_order,note,uptime_start_date,created_at,updated_at) VALUES(?,NULL,?,'',0,1000,'',?,?,?)", id, id === component ? "Availability café 東京 (API)" : id, id === short ? "2024-02-29" : null, stamp, stamp);
     const cross = await incident("cross-boundary", "2024-01-31T23:00:00.000Z", "2024-02-01T01:00:00.000Z", { attach: true });
     const degraded = await incident("degraded", "2024-02-10T00:00:00.000Z", "2024-02-10T02:00:00.000Z");
@@ -118,10 +120,36 @@ export async function availabilityReportFlow({ vite, bindings, appFetch }) {
     const pageSettings = await db.prepare("SELECT timezone FROM page_settings WHERE id='default'").first();
     try {
       await sql("UPDATE page_settings SET timezone='Australia/Brisbane' WHERE id='default'");
+      const localMonth = await report(`${base}&month=2024-02&format=json`);
+      assert.equal(localMonth.timezone, "Australia/Brisbane");
+      assert.equal(localMonth.startsAt, "2024-01-31T14:00:00.000Z"); assert.equal(localMonth.endsAt, "2024-02-29T14:00:00.000Z");
+      assert.equal(localMonth.downtimeMinutes, "202.50", "The full cross-boundary outage belongs to the page's February");
+      assert.deepEqual(new Set(localMonth.incidents.map(row => row.id)), new Set([cross, degraded, major, masked, legacy, releaseOnly, ...overflow]));
+      assert.deepEqual(new Set(localMonth.maintenance.map(row => row.id)), new Set(maintenanceIds.slice(0, 2)));
+      const localBounds = { startsAt: Date.parse(localMonth.startsAt), endsAt: Date.parse(localMonth.endsAt) };
+      const localFigure = computeUptime(snapshot, component, localBounds.endsAt, localMonth.timezone, policies, null, localBounds);
+      assert.equal(localMonth.uptime, localFigure.percentage, "The report and public page use the same local calendar bounds");
+      const localRows = csvRows(await (await get(`${base}&month=2024-02&format=csv`)).text());
+      for (const row of localRows) {
+        assert.equal(row.timezone, localMonth.timezone); assert.equal(row.period_start, localMonth.startsAt); assert.equal(row.period_end_exclusive, localMonth.endsAt);
+      }
+      assert.equal(localRows[0].uptime, localFigure.percentage); assert.equal(localRows[0].weighted_downtime_minutes, localMonth.downtimeMinutes);
+      const localPdf = Buffer.from(await (await get(`${base}&month=2024-02&format=pdf`)).arrayBuffer()).toString("ascii");
+      assert.ok(localPdf.includes(`${localMonth.period} - ${localMonth.timezone}`));
+      assert.ok(localPdf.includes(localMonth.startsAt)); assert.ok(localPdf.includes(localMonth.endsAt));
+      const localQuarter = await report(`${base}&quarter=2024-Q1&format=json`);
+      assert.equal(localQuarter.startsAt, "2023-12-31T14:00:00.000Z"); assert.equal(localQuarter.endsAt, "2024-03-31T14:00:00.000Z");
       await sql("UPDATE components SET uptime_start_date='2024-02-29' WHERE id=?", component);
       const localStartReport = await report(`${base}&month=2024-02&format=json`);
-      const localStartPage = computeUptime(snapshot, component, bounds.endsAt, 'Australia/Brisbane', policies, '2024-02-29', bounds);
-      assert.equal(localStartReport.uptime, localStartPage.percentage, 'Configured uptime start dates retain the page timezone within UTC report bounds');
+      const localStartPage = computeUptime(snapshot, component, localBounds.endsAt, localMonth.timezone, policies, '2024-02-29', localBounds);
+      assert.equal(localStartReport.uptime, localStartPage.percentage, 'Configured uptime start dates retain the page timezone within local calendar report bounds');
+      await sql("UPDATE components SET uptime_start_date=NULL WHERE id=?", component);
+      await sql("UPDATE page_settings SET timezone='America/New_York' WHERE id='default'");
+      const dstMonth = await report(`${base}&month=2024-03&format=json`);
+      assert.equal(dstMonth.startsAt, "2024-03-01T05:00:00.000Z"); assert.equal(dstMonth.endsAt, "2024-04-01T04:00:00.000Z");
+      assert.equal(dstMonth.downtimeMinutes, "0.00"); assert.deepEqual(dstMonth.incidents, []); assert.deepEqual(dstMonth.maintenance, []);
+      const dstQuarter = await report(`${base}&quarter=2024-Q1&format=json`);
+      assert.equal(dstQuarter.startsAt, "2024-01-01T05:00:00.000Z"); assert.equal(dstQuarter.endsAt, "2024-04-01T04:00:00.000Z");
     } finally {
       await sql("UPDATE page_settings SET timezone=? WHERE id='default'", pageSettings.timezone);
       await sql("UPDATE components SET uptime_start_date=NULL WHERE id=?", component);
@@ -142,6 +170,7 @@ export async function availabilityReportFlow({ vite, bindings, appFetch }) {
     assert.equal((await appFetch("/api/app/availability-report?component=missing&month=2024-02")).status, 404);
     assert.equal((await appFetch(`/api/app/availability-report?${base}&month=2024-02`, { headers: { Cookie: "" } })).status, 401, "Operator report refuses an absent session through the real application middleware");
   } finally {
+    await sql("UPDATE page_settings SET timezone=? WHERE id='default'", originalPageSettings.timezone);
     for (const id of [component, empty, short]) {
       await sql("DELETE FROM component_state_corrections WHERE component_id=?", id);
       await sql("DELETE FROM component_state_history WHERE component_id=?", id);
