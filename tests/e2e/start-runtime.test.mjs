@@ -371,6 +371,10 @@ test("DOCS-001 — the built single Worker preserves public docs, Hono/R2, Start
   assert.equal((await request("/docs/not-a-page", appHost, { headers: { "Sec-Fetch-Mode": "navigate" } })).status, 404, "an unlisted docs address is a real 404");
   const mailEventsOnAppHost = await request("/api/intake/mail-events", appHost, { method: "POST", body: "[]" });
   assert.equal(mailEventsOnAppHost.status, 404, "mail events belong only on the page host");
+  // RER's cutover check of a status hostname reads /health there: the page host answers it like the app host.
+  const appHealth = await request("/health", appHost);
+  assert.equal(appHealth.status, 200);
+  const appHealthBody = await appHealth.json();
 
   const clientFiles = (await filesUnder(resolve("dist/client"))).filter((path) => /\.(?:js|mjs|cjs)$/.test(path));
   const clientBundle = (await Promise.all(clientFiles.map((path) => readFile(path, "utf8")))).join("\n");
@@ -387,6 +391,12 @@ test("DOCS-001 — the built single Worker preserves public docs, Hono/R2, Start
   assert.equal((await pageRequest("/signin")).status, 404, "sign-in is app-host-only");
   assert.equal((await pageRequest("/lamp")).status, 404, "the former landing address is app-host-only");
   assert.equal((await pageRequest("/docs")).status, 404, "the docs are app-host-only: the page host's paths are the status snapshot's");
+  const pageHealth = await pageRequest("/health");
+  assert.equal(pageHealth.status, 200, "the page host answers /health like the app host");
+  const pageHealthBody = await pageHealth.json();
+  assert.deepEqual(pageHealthBody.deployment, appHealthBody.deployment, "the page host reports the same deployment identity");
+  assert.deepEqual(Object.keys(pageHealthBody).sort(), Object.keys(appHealthBody).sort(), "the page host adds nothing to the app host's health body");
+  assert.equal((await pageRequest("/health", { method: "POST" })).status, 404, "only the health read is shared");
   const mailEventsOnPageHost = await pageRequest("/api/intake/mail-events", { method: "POST", body: "[]" });
   assert.equal(mailEventsOnPageHost.status, 503, "the unconfigured mail receiver must not be shadowed by generic alert intake");
   const missingPageAsset = await pageRequest("/assets/not-a-real-asset.svg", { headers: { "Sec-Fetch-Mode": "navigate" } });

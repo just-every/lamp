@@ -70,6 +70,9 @@ export function createHostDispatch(bindings: HostDispatchBindings) {
         if (requestHost === appHost) return "app";
         return null;
       }
+      // The page host answers the same /health as the app host: it is one Worker, and the answer holds no
+      // secret (ok, the last check time, and the deployment's source, fingerprint and version ids).
+      if (pathname === "/health" && requestHost === pageHost) return "page";
       if (matches(pathname, pageExactPaths, pagePathPrefixes)) {
         return requestHost === pageHost ? "page" : null;
       }

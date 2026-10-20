@@ -182,7 +182,7 @@
   ],
   "health": {
     "path": "/health",
-    "semantics": "App-host dependency health; local input checks never assert deployed health."
+    "semantics": "Dependency health, answered on the app host and the page host; local input checks never assert deployed health."
   },
   "acceptance": {
     "document": "ACCEPTANCE.md"
