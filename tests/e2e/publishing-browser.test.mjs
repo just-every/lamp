@@ -184,12 +184,19 @@ test("compiled visual edits survive actual operator navigation and reload", asyn
   const snapshot = JSON.parse(readFileSync(resolve('src/editor/visual-edits.json'),'utf8'));
   const errors = [], recordError = error => errors.push(error.message);
   page.on('pageerror',recordError);
+  const closeEmptyComponentForm = async () => {
+    if (new URL(page.url()).pathname !== '/app/components') return;
+    await page.getByRole('heading', { name: 'Add component', exact: true }).waitFor();
+    await page.keyboard.press('Escape');
+    await page.getByRole('dialog').waitFor({ state: 'detached' });
+  };
   try {
     const paths = [...new Set(['/app','/app/components','/app/subscribers',...snapshot.edits.map(edit => edit.path)])];
     for (const path of paths) {
       await page.goto(appUrl + path, { waitUntil: 'networkidle' });
       await operatorHydrated(page);
       await page.locator('.operator-navigation').waitFor();
+      await closeEmptyComponentForm();
       const expected = snapshot.edits.filter(edit => edit.target.navigation || edit.path === path);
       const check = async () => {
         for (const edit of expected) await page.waitForFunction(edit => {
@@ -214,6 +221,7 @@ test("compiled visual edits survive actual operator navigation and reload", asyn
       await page.locator(`.operator-navigation a[href="${next}"]`).click();
       await page.waitForURL(url => url.pathname === next);
       assert.equal(await page.evaluate(() => performance.timeOrigin),stamp,'navigation remains within the running app');
+      await closeEmptyComponentForm();
       await page.locator(`.operator-navigation a[href="${path}"]`).count().then(async count => { if (count === 1) { await page.locator(`.operator-navigation a[href="${path}"]`).click(); await page.waitForURL(url => url.pathname === path); } else await page.goto(appUrl + path, { waitUntil: 'networkidle' }); });
       await check();
       await page.reload(); await page.locator('.operator-navigation').waitFor(); await check();
@@ -226,8 +234,6 @@ test("compiled visual edits survive actual operator navigation and reload", asyn
 contract("INCIDENT-001", "AGENT-004 MOBILE-001 — an operator can start empty, publish and resolve, then run the full alert-to-resolution phone desk", async () => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto(`${appUrl}/app/components`);
-  await page.getByText("No components are configured. Add the first component before creating an incident.").waitFor();
-  await page.getByRole("button", { name: "Add component" }).click();
   await page.getByRole("heading", { name: "Add component" }).waitFor();
   assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "the narrow component drawer must not introduce horizontal page overflow");
   await page.getByLabel("Component name").fill("Journey API");
@@ -258,7 +264,7 @@ contract("INCIDENT-001", "AGENT-004 MOBILE-001 — an operator can start empty, 
   await page.waitForTimeout(1_500);
   await page.getByText("Draft saved", { exact: true }).waitFor({ timeout: 2_000 });
   await page.getByRole("button", { name: "Publish update" }).click();
-  await page.getByText("Update published. The fixed recipient set is now queued for delivery.").waitFor();
+  await page.getByText("Update published.").waitFor();
   await waitForPublicIncident(reference, "Requests to Journey API are failing.");
 
   assert.equal(await page.locator("label", { hasText: "Who is affected" }).locator("textarea").inputValue(), "", "publication starts a blank next-update draft");
@@ -472,7 +478,7 @@ contract("DRAFT-003", "a configured but failing AI provider leaves the ordinary 
   const publish = page.getByRole("button", { name: "Publish update" });
   await assert.equal(await publish.isEnabled(), true);
   await publish.click();
-  await page.getByText("Update published. The fixed recipient set is now queued for delivery.").waitFor();
+  await page.getByText("Update published.").waitFor();
 });
 
 

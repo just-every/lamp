@@ -190,7 +190,7 @@ test("Resolve clears the promise in the native composer and publishes the shared
   assert.equal(publishedUpdate.lifecycle, "Resolved");
   assert.equal(publishedUpdate.nextUpdateAt, null);
   assert.equal(publishedUpdate.customerImpact, resolvedDraft.customerImpact);
-  await page.getByText("Update published. The fixed recipient set is now queued for delivery.", { exact: true }).waitFor();
+  await page.getByText("Update published.", { exact: true }).waitFor();
 
   const publishedIncident = await readIncident(resolution.id);
   assert.equal(publishedIncident.lifecycle, "Resolved");

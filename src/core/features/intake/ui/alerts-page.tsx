@@ -137,7 +137,7 @@ export function AlertsPage() {
   if (error) return <ErrorState onRetry={() => window.location.reload()}>{error}</ErrorState>;
 
   return <div className="page-stack alerts-page">
-    <section className="page-title-row"><div><p className="eyebrow">Inbound alert intake</p><h1>Alerts</h1><p>Configure authenticated alert sources. Accepted, recovered, and rejected receipt records never expose inbound payloads or source credentials.</p></div><Button type="button" onClick={openCreate}><Icon name="plus" width={18} height={18} />Add alert source</Button></section>
+    <section className="page-title-row"><div><h1>Alerts</h1><p>Connect your monitoring tools to report problems here.</p></div><Button type="button" onClick={openCreate}><Icon name="plus" width={18} height={18} />Add alert source</Button></section>
     <section className="capability-note"><Icon name="warning" width={18} height={18} /><div><strong>Source secrets are write-only.</strong><p>Editing a source leaves its existing secret in place until you provide a replacement. The endpoint accepts only the configured authentication method.</p></div></section>
     <PresetCard onCreated={sources.refresh} />
     <UptimePresetCard sources={sourceData.filter(source => source.preset === "uptime")} onSaved={sources.refresh} />

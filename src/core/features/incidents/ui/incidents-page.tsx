@@ -22,6 +22,7 @@ export function IncidentsPage() {
   if (!data) return null;
   const active = data.incidents.filter((incident) => incident.lifecycle !== "Resolved");
   const resolved = data.incidents.filter((incident) => incident.lifecycle === "Resolved");
+  const showCreateForm = creating || (!dismissedEmptyCreation && data.incidents.length === 0);
 
   const create = (incident: IncidentsResponse["incidents"][number]) => {
     refresh();
@@ -29,8 +30,8 @@ export function IncidentsPage() {
   };
 
   return <div className="page-stack">
-    <section className="page-title-row"><div><p className="eyebrow">Incident communication desk</p><h1>Incidents</h1><p>Each published customer update is retained as an immutable record.</p></div><Button type="button" onClick={() => { setDismissedEmptyCreation(false); setCreating(true); }}>Create incident</Button></section>
-    {creating || (!dismissedEmptyCreation && data.incidents.length === 0) ? <IncidentCreatePanel onCreated={create} onCancel={() => { setCreating(false); setDismissedEmptyCreation(true); }} /> : null}
+    <section className="page-title-row"><div><h1>Incidents</h1><p>Tell customers what’s happening.</p></div>{!showCreateForm && <Button type="button" onClick={() => { setDismissedEmptyCreation(false); setCreating(true); }}>Create incident</Button>}</section>
+    {showCreateForm ? <IncidentCreatePanel onCreated={create} onCancel={() => { setCreating(false); setDismissedEmptyCreation(true); }} /> : null}
     <UpdateDueNotice incidents={active} />
     <section className="data-card incident-list-card">
       <div className="card-heading"><div><p className="card-kicker">Active</p><h2>Current incidents</h2></div><span className="count-label">{active.length} recorded</span></div>

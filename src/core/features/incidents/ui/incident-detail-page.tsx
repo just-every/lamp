@@ -277,7 +277,7 @@ function IncidentVisit({ incidentId }: { incidentId: string }) {
       setDraft(next); setSaveState("saved"); setSaveError(null);
       setPreview(null); setPreviewError(null);
       setScheduledPublishAt(null); setHistoricalPublishedAt(null);
-      setPublishState("published"); setPublishMessage(historicalPublishedAt ? "Historical update published. It did not notify subscribers." : "Update published. The fixed recipient set is now queued for delivery."); refresh(); }
+      setPublishState("published"); setPublishMessage(historicalPublishedAt ? "Historical update published. It did not notify subscribers." : "Update published."); refresh(); }
     catch (cause) { if (!isCurrent()) return; setPublishState("error"); setRecoveryRevision(current => current + 1); setPublishMessage(cause instanceof Error ? cause.message : "The update could not be published."); }
   };
   const schedule = async () => {
@@ -305,9 +305,9 @@ function IncidentVisit({ incidentId }: { incidentId: string }) {
       <IncidentBriefPanel incidentId={incident.id} revision={draftSaved ? `${incident.updates.length}:${draftKey}` : null} />
       <AiSuggestionButton key={updateGeneration.current} incidentId={incident.id} onSuggestion={applySuggestion} captureUpdate={captureUpdate} />
       <form inert={publishState === "publishing"} className="impact-form" onSubmit={(event) => event.preventDefault()}>
-        <FieldNumber value="1" label="Who is affected" required count={draft.affectedAudience.length} max={250}><textarea required placeholder={`Who is affected during ${draft.lifecycle.toLowerCase()}?`} value={draft.affectedAudience} maxLength={250} onChange={(event) => updateField("affectedAudience", event.target.value)} /></FieldNumber>
+        <FieldNumber value="1" label="Who is affected" required count={draft.affectedAudience.length} max={250}><textarea required placeholder="Who is affected right now?" value={draft.affectedAudience} maxLength={250} onChange={(event) => updateField("affectedAudience", event.target.value)} /></FieldNumber>
         <WordingFindings findings={wordingFindings.filter(finding => finding.field === "affectedAudience")} /><SuggestionSources field="affectedAudience" applied={appliedSuggestion} />
-        <FieldNumber value="2" label="What is the impact" required count={draft.customerImpact.length} max={250}><textarea required placeholder={`Describe the current impact during ${draft.lifecycle.toLowerCase()}.`} value={draft.customerImpact} maxLength={250} onChange={(event) => updateField("customerImpact", event.target.value)} /></FieldNumber>
+        <FieldNumber value="2" label="What is the impact" required count={draft.customerImpact.length} max={250}><textarea required placeholder="Describe the impact on customers." value={draft.customerImpact} maxLength={250} onChange={(event) => updateField("customerImpact", event.target.value)} /></FieldNumber>
         <WordingFindings findings={wordingFindings.filter(finding => finding.field === "customerImpact")} /><SuggestionSources field="customerImpact" applied={appliedSuggestion} />
         <FieldNumber value="3" label="What still works" count={draft.whatStillWorks.length} max={250}><textarea value={draft.whatStillWorks} maxLength={250} onChange={(event) => updateField("whatStillWorks", event.target.value)} /></FieldNumber>
         <WordingFindings findings={wordingFindings.filter(finding => finding.field === "whatStillWorks")} /><SuggestionSources field="whatStillWorks" applied={appliedSuggestion} />
