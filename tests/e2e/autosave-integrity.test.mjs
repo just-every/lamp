@@ -313,6 +313,8 @@ test("a lost acknowledgement never authorizes overwriting another tab's schedule
 });
 
 
-test("leaving and returning to an incident revokes old save and publication completions", { timeout: 60_000 }, async () => {
+// This journey includes several real navigations and intentionally held responses.
+// Its execution budget is separate from the autosave deadlines asserted inside it.
+test("leaving and returning to an incident revokes old save and publication completions", { timeout: 180_000 }, async () => {
   await assertComposerVisitIsolation({ page, api, openIncident, initial, waitForAutosave });
 });

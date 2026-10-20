@@ -5540,7 +5540,7 @@
       "executable": false
     },
     "tests/e2e/autosave-integrity.test.mjs": {
-      "sha256": "98a1478b777efa61e6b86a6a60c788c6e37c85eaaa070d0f52e11d3c8596c0aa",
+      "sha256": "3d9fa2e22eb6a91ff0ff2369c0978e2e1b9e71e3600aa110aeb4e1f50a13dcc1",
       "executable": false
     },
     "tests/e2e/autosave-queue-regression.mjs": {
@@ -5796,7 +5796,7 @@
       "executable": false
     },
     "tests/e2e/publishing-browser.test.mjs": {
-      "sha256": "5e21608034d23c08b766f5a36422b9a764870e36cdee8453028ecac825d1fdfd",
+      "sha256": "2fcfefdd1d28dc9761f2e9e32c9f1e6e034c9bf370659e0efe86903b8ba37329",
       "executable": false
     },
     "tests/e2e/publishing-contract.test.mjs": {
