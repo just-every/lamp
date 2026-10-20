@@ -4504,7 +4504,7 @@
       "executable": false
     },
     "src/core/platform/site-reader/components.ts": {
-      "sha256": "22c60ee2d79f7ec925ea10f0c2f20a6dea8c460d572df9f5889b4cc85856871d",
+      "sha256": "884cf59c23e38e60c4072bcfd9c00e88145dcdfa6028bf46e9266009f6aa47df",
       "executable": false
     },
     "src/core/platform/site-reader/domain.ts": {
@@ -4520,7 +4520,7 @@
       "executable": false
     },
     "src/core/platform/site-reader/html.ts": {
-      "sha256": "005437a50c56c6822d82b3e8057472102ba8cd1734d9664cb36813816b778453",
+      "sha256": "45daa4124672661ed9e3ebca23fd2c91f57e682bec6a48f0dfc9197194edf2f2",
       "executable": false
     },
     "src/core/platform/site-reader/index.ts": {
@@ -4528,11 +4528,15 @@
       "executable": false
     },
     "src/core/platform/site-reader/link-text.ts": {
-      "sha256": "ea6767c469ead67f3b73d245b6740dbb76b03f1dcc3d20751479c2584d4e0728",
+      "sha256": "f0e43e4d3f0f41ff0ac70ef1f4d7479995d5c24d4aae60ab5cda6ebe08867015",
+      "executable": false
+    },
+    "src/core/platform/site-reader/navigation.ts": {
+      "sha256": "d4c508a8fade583e50fcf1213e14e7555882ced3ad7a8bdbf08c845055937037",
       "executable": false
     },
     "src/core/platform/site-reader/README.md": {
-      "sha256": "af503a3eec8a31b93c8c507a627c2515666533dfd41f5bd7731ef2e4fd35271f",
+      "sha256": "05bd23928f80836230029e8fdcaf258522faa20ca23784dcd31bfc88531f5673",
       "executable": false
     },
     "src/core/platform/site-reader/text.ts": {
@@ -6608,7 +6612,7 @@
       "executable": false
     },
     "tests/site-reader/site-reader.test.mjs": {
-      "sha256": "599be244a2a57b9e1b1af1b13dd13926f153c6c1d9e43bd1372c9b6cec5782bc",
+      "sha256": "9da518bff49b317b706ba59dac7702c173e67d479c8548a0519b8b300f27be0d",
       "executable": false
     },
     "tsconfig.json": {

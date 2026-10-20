@@ -29,18 +29,24 @@ export function cleanComponentName(value: string) {
   return BADGE.test(text) ? "" : text;
 }
 
-const role = (element: Element) => {
+const role = (element: Element): "decoration" | "description" | "title" | "text" => {
   const hint = `${element.attributes.class ?? ""} ${element.attributes["data-slot"] ?? ""}`;
   // Badges, counters and text kept for screen readers only are not part of the shown name.
   if (element.attributes["aria-hidden"] === "true" || "hidden" in element.attributes || /(?:^|[\s_-])(badge|pill|chip|count|counter)(?:$|[\s_-])/i.test(hint) || /(?:^|\s)(sr-only|visually-?hidden|screen-reader-text)(?:$|\s)/i.test(hint)) return "decoration";
-  if (/^(small|p)$/.test(element.tag) || /(?:^|[\s_-])(description|subtitle|summary|caption|detail)(?:$|[\s_-])/i.test(hint)) return "description";
-  if (/^h[1-6]$/.test(element.tag) || /(?:^|[\s_-])(title|name|label)(?:$|[\s_-])/i.test(hint)) return "title";
+  if (/^h[1-6]$/.test(element.tag) || /(?:^|[\s_-])(title|name|label|header)(?:$|[\s_-])/i.test(hint)) return "title";
+  if (/^(small|p)$/.test(element.tag)) return "description";
+  if (/(?:^|[\s_-])(description|subtitle|summary|caption|detail)(?:$|[\s_-])/i.test(hint)) {
+    // A wrapper can contain both the name and a separately marked description.
+    const wrapper = element.children.some(child => typeof child !== "string" && role(child) === "description");
+    return wrapper ? "text" : "description";
+  }
   return "text";
 };
 
 /** The element's text, less trailing segments (a child element or a separate text) that are only a badge word or bracketed count. */
 function shown(element: Element): string {
-  if (["decoration", "description"].includes(role(element))) return "";
+  if (role(element) === "decoration") return "";
+  if (role(element) === "description") return titles(element).join(" ");
   const parts = element.children.map(child => typeof child === "string" ? child : shown(child)).filter(part => plain(part));
   while (parts.length > 1 && TRAILING.test(plain(parts.at(-1)!))) parts.pop();
   return parts.join(" ");
@@ -48,7 +54,7 @@ function shown(element: Element): string {
 const visible = (element: Element) => cleanComponentName(shown(element));
 
 function titles(element: Element): string[] {
-  if (["decoration", "description"].includes(role(element))) return [];
+  if (role(element) === "decoration") return [];
   if (role(element) === "title") return [visible(element)].filter(Boolean);
   return element.children.flatMap(child => typeof child === "string" ? [] : titles(child));
 }

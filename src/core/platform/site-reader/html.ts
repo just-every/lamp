@@ -69,7 +69,7 @@ export function scanHtml(html: string): HtmlScan {
     }
     const attributes = attributesOf(match[3]);
     if (name === "a") {
-      const region = (["nav", "header", "footer"] as const).find(kind => stack.some(frame => frame.tag === kind)) ?? "body";
+      const region = (["footer", "nav", "header"] as const).find(kind => stack.some(frame => frame.tag === kind)) ?? "body";
       anchor = attributes.href ? { href: attributes.href, text: "", label: attributes["aria-label"] ?? attributes.title ?? "", parts: new LinkText(attributes), region, groups: stack.map(frame => frame.group).filter(Boolean), accountNavigation: stack.some(frame => frame.accountNavigation), heading: stack.some(frame => frame.heading) } : null;
     } else anchor?.parts.open(name, attributes);
     if (name === "img" && anchor) anchor.label ||= attributes.alt ?? "";

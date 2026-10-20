@@ -29,7 +29,8 @@ else result.reason;           // "invalid-url" | "refused-address" | "unreachabl
 Nothing is guessed: a field the site does not give is `null` or empty.
 
 Component names use the link's structure: a heading or title/label element wins
-over a description, subtitle, paragraph or small print. Separate block siblings
+over a description, subtitle, paragraph or small print. Description-styled wrappers
+still expose headings and names above a separately marked description. Separate block siblings
 are read as a name followed by supporting text; ordinary inline spans remain
 one name. Badges (NEW, BETA, Soon and counts), emoji and decorative elements are
 removed, as is text kept for screen readers only. A badge leaves only when it stands
@@ -46,13 +47,18 @@ every benefit into a component. Pricing, customer stories, feature/benefit indic
 blog, company, careers, contact, legal, sign-in/up and documentation routes stay
 excluded even inside a product group, as are calls to action (a trailing arrow,
 "Explore …", "… more"), plan and pricing wording ("… plans", "… pricing"),
-"… all products" links, downloads and release notes. Generic links are matched on
+"… all products" links, downloads and release notes. Services, training, academy,
+consulting, onboarding, customer success and support navigation stays out, as do
+release, changelog, what's-new and update pages. Path segments and group/name
+wording are checked at every depth, including compound slugs and punctuation variants.
+Service directories do not establish product evidence. Generic links are matched on
 the link's whole text as well as the cleaned name.
 
 Text that links to three or more addresses, or to two when another link names one
 of them, is boilerplate ("Free and premium plans" on every product card) and leaves
 all of them. When several links share an address, the name kept is the one that
-matches a menu group label a link to it sits under, then the one that spells the
+comes from the product menu in the header/navigation before a footer category,
+then matches a menu group label a link to it sits under, then spells the
 address's last path segment, then a heading, then the first. Merging happens before
 the cap, and the selected links retain their order on the site.
 
