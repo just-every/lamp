@@ -4504,7 +4504,7 @@
       "executable": false
     },
     "src/core/platform/site-reader/components.ts": {
-      "sha256": "dfdd1c928b7dfc8a5aa22468b86b90850a8fe91f8c068ae4665092888051f161",
+      "sha256": "4ec7b1f369627e7670fc4235c4fb20d4c5bc5824775714f5fb76aa9b8ba575d6",
       "executable": false
     },
     "src/core/platform/site-reader/domain.ts": {
@@ -4520,7 +4520,7 @@
       "executable": false
     },
     "src/core/platform/site-reader/html.ts": {
-      "sha256": "45daa4124672661ed9e3ebca23fd2c91f57e682bec6a48f0dfc9197194edf2f2",
+      "sha256": "ad3b352af297d011e2abf11139809f9c881f22602706d700724d4fc11b2e1a74",
       "executable": false
     },
     "src/core/platform/site-reader/index.ts": {

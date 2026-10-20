@@ -29,7 +29,7 @@ const ARROWED = /[→➔➜⟶›»]\s*$/u;
 
 const CAP = 8;
 
-interface Candidate extends SiteComponent { primary: boolean; titled: boolean; menu: boolean; groups: string[] }
+interface Candidate extends SiteComponent { primary: boolean; titleRank: HtmlAnchor["titleRank"]; menu: boolean; groups: string[] }
 
 const destination = (url: string) => url.replace(/[#?].*$/, "").replace(/\/$/, "");
 const key = (name: string) => name.toLowerCase().replace(/\s*&\s*/g, " and ");
@@ -41,7 +41,7 @@ function fit(candidate: Candidate, links: Candidate[]) {
   const slug = words(new URL(candidate.url).pathname.split("/").filter(Boolean).at(-1) ?? "");
   const group = links.some(link => link.groups.some(label => key(cleanComponentName(label)) === name));
   const spelled = slug.length > 0 && slug.every(word => words(candidate.name).includes(word));
-  return 16 * Number(candidate.menu) + 8 * Number(group) + 4 * Number(candidate.titled) + Number(spelled);
+  return 32 * Number(candidate.menu) + 16 * Number(group) + 8 * Number(candidate.titleRank === 2) + 4 * Number(spelled) + Number(candidate.titleRank === 1);
 }
 
 /** Text that links to several addresses is boilerplate and leaves every one of them: at three or more
@@ -122,7 +122,7 @@ export function siteComponents(scan: HtmlScan, base: URL): SiteComponent[] {
     const service = SERVICE_NAME.test(text) || SERVICE_ENDING.test(text);
     const primary = product || service && url.hostname.replace(/^www\./, "") !== base.hostname.replace(/^www\./, "");
     if (!primary && !service) return [];
-    return [{ name: text, url: url.href, primary, titled: anchor.titled, menu: anchor.region !== "footer" && Boolean(productGroup && PRODUCT_GROUP.test(productGroup)), groups: anchor.groups }];
+    return [{ name: text, url: url.href, primary, titleRank: anchor.titleRank, menu: anchor.region !== "footer" && Boolean(productGroup && PRODUCT_GROUP.test(productGroup)), groups: anchor.groups }];
   });
   let candidates = unique(consider(scan.anchors.filter(anchor => anchor.region === "nav" || anchor.region === "header")));
   if (candidates.length < 2) candidates = unique([...candidates, ...consider(scan.anchors.filter(anchor => anchor.region === "footer"))]);
