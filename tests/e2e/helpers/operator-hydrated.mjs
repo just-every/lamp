@@ -1,6 +1,5 @@
-// Operator documents arrive server-rendered with their data, and their buttons
-// stay disabled until React attaches handlers. Text typed or options chosen
-// before then are lost, so a journey waits for the shell's Sign out control.
+// Wait for React handlers before editing server-rendered controls.
+// Sign out is a native form and works before hydration too.
 export function operatorHydrated(page) {
-  return page.locator(".header-signout:enabled").waitFor();
+  return page.locator(".operator-shell[data-hydrated]").waitFor();
 }

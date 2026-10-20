@@ -28,7 +28,11 @@ export function requireOperator(auth: () => OperatorAuth, authorizedRead?: (requ
 export function registerOperatorRoutes(app:Hono<AppEnv>,auth:()=>OperatorAuth,publicPageHost:string,options:{localMail?:boolean}={}) {
   app.onError((error,c) => c.json({error:error instanceof AuthError ? error.code : 'Operation unavailable.'},error instanceof AuthError ? error.status as 400 : 503));
   app.get('/api/app/session',c=>c.json({operator:c.get('operator'),publicPageHost}));
-  app.post('/api/app/session/signout',async c=> {const result=await auth().signOut(c.req.raw);return new Response(null,{status:204,headers:{'Set-Cookie':result.cookie}});});
+  app.post('/api/app/session/signout',async c=> {
+    const result=await auth().signOut(c.req.raw);
+    const form=c.req.header('Content-Type')?.startsWith('application/x-www-form-urlencoded');
+    return new Response(null,{status:form?303:204,headers:{'Set-Cookie':result.cookie,...(form?{Location:'/signin'}:{})}});
+  });
   app.get('/api/app/editor-config',async c=> {
     // Only the active setup operator opens the editor. Base's owner falls back to
     // another owner when the claim operator is inactive or the claim is closed.

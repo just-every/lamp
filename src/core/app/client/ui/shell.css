@@ -1,4 +1,8 @@
-.operator-shell { display: grid; min-height: 100vh; grid-template-columns: 248px minmax(0, 1fr); }
+.operator-shell { display: grid; min-height: 100vh; grid-template-columns: 248px minmax(0, 1fr); background: var(--paper); font: 400 15px/1.55 var(--sans); }
+.operator-shell .text-link::after { content: none; }
+.operator-brand-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.operator-menu-button, .operator-mobile-account { display: none; }
+.operator-navigation-panel { display: flex; flex: 1; flex-direction: column; }
 .operator-rail { position: sticky; top: 0; display: flex; height: 100vh; flex-direction: column; background: var(--paper); padding: 24px 16px 22px; }
 /* The landing's lockup (mark.css): mark 18 beside "Lamp" in 600 at -0.035em. */
 .app-brand { display: inline-flex; align-items: center; gap: 6px; padding: 0 8px; color: var(--ink); font-size: 26px; font-weight: 600; line-height: 1; letter-spacing: -.035em; }
@@ -9,9 +13,8 @@
 .operator-nav-link:hover { background: var(--stage); color: var(--ink); }
 .operator-nav-link.is-active { background: var(--stage); color: var(--ink); font-weight: 600; }
 .operator-rail-footer { margin-top: auto; border-top: 1px solid var(--line); padding: 18px 8px 0; color: var(--ink-3); font-size: 13px; }
-.operator-rail-footer p { margin: 8px 0 0; line-height: 1.5; }
-.operator-history-link, .quiet-link { display: inline-flex; align-items: center; gap: 8px; color: var(--ink); font-weight: 500; text-decoration: underline 1.5px; text-decoration-color: var(--link-line); text-underline-offset: 4px; }
-.operator-history-link:hover, .quiet-link:hover { text-decoration-color: var(--ink); }
+.operator-page-link, .quiet-link { display: inline-flex; align-items: center; gap: 8px; color: var(--ink); font-weight: 500; text-decoration: underline 1.5px; text-decoration-color: var(--link-line); text-underline-offset: 4px; }
+.operator-page-link:hover, .quiet-link:hover { text-decoration-color: var(--ink); }
 .operator-workspace { min-width: 0; border-left: 1px solid var(--line); }
 .operator-header { position: sticky; z-index: 10; top: 0; display: flex; height: 72px; align-items: center; justify-content: space-between; gap: 16px; border-bottom: 1px solid var(--line); background: var(--header-glass); backdrop-filter: blur(18px); padding: 0 40px; }
 .operator-header p { display: inline-flex; align-items: center; gap: 10px; margin: 0; color: var(--ink); font-size: 15px; font-weight: 500; }
@@ -30,6 +33,7 @@
 .signin-pool { top: 140px; left: 50%; width: min(140%, 880px); aspect-ratio: 1.5; translate: -50% 0; }
 
 .page-stack { display: grid; gap: 20px; }
+.overview-empty-action { margin-top: 16px; }
 .page-title-row { display: flex; align-items: end; justify-content: space-between; gap: 20px; min-height: 72px; margin-bottom: 4px; }
 .page-title-row > div > p:not(.eyebrow) { max-width: 62ch; margin: 0; color: var(--ink-2); font-size: 16px; line-height: 1.55; }
 .page-title-row .quiet-link { margin-top: 12px; }

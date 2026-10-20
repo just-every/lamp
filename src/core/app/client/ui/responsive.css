@@ -5,21 +5,22 @@
   .composer-submit { background: var(--card); box-shadow: none; border-top: 1px solid var(--line); padding: 20px 24px 24px; }
 }
 
-/* Under 900px the rail becomes a brand row over a scrolling row of tab pills, then the top bar. */
+/* The phone menu keeps every section visible together, above the current page. */
 @media (max-width: 900px) {
   .operator-shell { width: 100%; min-width: 0; grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); overflow-x: clip; }
   .operator-rail, .operator-workspace, .operator-header, .operator-main { width: 100%; min-width: 0; max-width: 100%; }
   .operator-workspace { border-left: 0; }
-  .operator-rail { position: static; height: auto; border-bottom: 1px solid var(--line); padding: 16px 16px 12px; }
+  .operator-rail { position: static; height: auto; border-bottom: 1px solid var(--line); padding: 10px 16px; }
   .app-brand { width: fit-content; padding: 0; }
-  .operator-navigation { position: relative; display: flex; width: calc(100% + 32px); min-width: 0; gap: 6px; margin: 14px -16px 0; overflow-x: auto; overscroll-behavior-inline: contain; scrollbar-width: none; padding: 2px 16px; }
-  .operator-navigation::-webkit-scrollbar { display: none; }
-  .operator-nav-link { flex: 0 0 auto; min-height: 40px; gap: 8px; border: 1px solid var(--line); border-radius: 999px; padding: 0 14px; font-size: 14px; }
-  .operator-nav-link.is-active { border-color: transparent; }
-  .operator-nav-link svg { width: 16px; height: 16px; }
-  .operator-rail-footer { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 12px; margin-top: 12px; padding: 12px 0 0; font-size: 12px; }
-  .operator-rail-footer p { margin: 0; }
-  .operator-header { position: static; height: 64px; padding: 0 16px; }
+  .operator-menu-button { display: inline-flex; min-height: 44px; }
+  .operator-navigation-panel { display: none; max-height: calc(100dvh - 65px); overflow-y: auto; }
+  .operator-navigation-panel.is-open { display: flex; }
+  .operator-navigation { margin-top: 12px; }
+  .operator-rail-footer { margin-top: 12px; padding: 14px 12px; }
+  .operator-mobile-account { display: block; border-top: 1px solid var(--line); padding: 14px 12px 4px; }
+  .operator-mobile-account .operator-account { justify-content: space-between; flex-wrap: nowrap; }
+  .operator-mobile-account .operator-identity { justify-items: start; }
+  .operator-header { display: none; }
   .operator-main { padding: 24px 16px; }
   .incident-workspace { grid-template-columns: 1fr; grid-template-areas: "heading" "composer" "preview" "actions" "context"; }
   aside.incident-context { border-right: 0; border-top: 1px solid var(--line); }
@@ -30,9 +31,7 @@
 
 @media (max-width: 620px) {
   h1 { font-size: 32px; }
-  .operator-header { height: auto; min-height: 56px; flex-wrap: wrap; gap: 10px; padding-block: 10px; }
-  .operator-header > p { font-size: 14px; gap: 8px; }
-  .operator-account { flex-wrap: wrap; max-width: 100%; gap: 10px; }
+  .operator-account { max-width: 100%; gap: 10px; }
   .operator-identity { min-width: 0; font-size: 13px; overflow-wrap: anywhere; }
   .operator-identity small { display: none; }
   .header-signout { min-height: 36px; padding: 6px 14px; font-size: 13px; }

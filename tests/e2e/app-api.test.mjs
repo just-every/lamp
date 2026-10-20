@@ -116,7 +116,7 @@ test("Host and session admission through real operator routes", async t => {
   const app = await appFetch("/app");
   assert.equal(app.status, 200);
   const appHtml = await app.text();
-  assert.match(appHtml, /Operator workspace/);
+  assert.match(appHtml, /aria-label="Workspace sections"/);
   assert.match(appHtml, /Contract Operator/);
   assert.match(appHtml, /src="\/@id\/virtual:tanstack-start-dev-client-entry"/);
 

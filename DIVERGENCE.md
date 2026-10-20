@@ -1502,3 +1502,12 @@ The package pin moves to rer 0.2.57 with the configured-provider sign-in patch r
 ## Documented grouped webhook versions — 18 October 2026
 
 Each grouped preset accepts its documented source format: Alertmanager version 4 and Grafana version 1. Missing, numeric, cross-source and unknown versions are refused with an operator-readable reason. Grafana's title names the private draft; its message and other source context stay in the retained private receipt. Neither becomes a public update without operator publication. The unmodified Grafana documentation example exercises the same grouped incident, notice, mapping, deduplication and recovery path as Alertmanager.
+
+## Overview and navigation — owner L10, 20 October 2026
+
+Keep the existing operator appearance. On phones, one compact menu exposes every
+section and the live page. Overview gives empty incident and maintenance cards
+a direct create action. A month without incidents shows a short empty state;
+delivery details stay folded until requested. Initial HTML uses the same month,
+font and link arrows as the hydrated page. Sign out and CSV work immediately.
+Background reads update the current view without closing its menu or disclosures.

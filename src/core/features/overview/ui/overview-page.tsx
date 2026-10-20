@@ -40,7 +40,7 @@ export function OverviewPage() {
 
   return <div className="page-stack">
     <section className="page-title-row">
-      <div><p className="eyebrow">Current status</p><h1>Overview</h1></div>
+      <div><h1>Overview</h1></div>
       {components.length === 0 ? <Button asChild><Link to="/app/components">Add component <Icon name="arrow" width={16} height={16} /></Link></Button> : null}
     </section>
 
@@ -54,7 +54,7 @@ export function OverviewPage() {
         <span className={`status-icon${severeImpact(incident.impact) ? " is-down" : ""}`}><Icon name="warning" width={20} height={20} /></span>
         <span><strong>{incident.reference} · {incident.title}</strong><small>Opened {formatOperatorTime(incident.openedAt)}{incident.impact ? ` · ${incident.impact}` : " · No component impact"}{updateDueLabel(incident, committedTime) ? <> · <span className="overdue-note">{updateDueLabel(incident, committedTime)}</span></> : null}</small></span>
         <StatePill state={incident.lifecycle} /><Icon name="arrow" width={18} height={18} />
-      </Link>)}</div> : <EmptyState lamp={components.length === 0}>No active incidents are recorded.</EmptyState>}
+      </Link>)}</div> : <EmptyState lamp={components.length === 0}>No active incidents.<br /><Button asChild className="overview-empty-action"><Link to="/app/incidents" hash="new">Report an incident</Link></Button></EmptyState>}
     </section>
 
     <section className="overview-grid" aria-label="Components and maintenance">
@@ -67,8 +67,7 @@ export function OverviewPage() {
       </article>
       <article className="data-card">
         <h2>Upcoming maintenance</h2>
-        {upcoming.length ? <div className="compact-records">{upcoming.map((item) => <div key={item.id}><strong className="record-ref">{item.reference}</strong><span>{item.title}</span><small>{item.state} · {formatOperatorTime(item.startsAt)}</small></div>)}</div> : <EmptyState icon="maintenance">No upcoming maintenance.</EmptyState>}
-        <Link className="text-link" to="/app/maintenance">View maintenance <Icon name="arrow" width={15} height={15} /></Link>
+        {upcoming.length ? <><div className="compact-records">{upcoming.map((item) => <div key={item.id}><strong className="record-ref">{item.reference}</strong><span>{item.title}</span><small>{item.state} · {formatOperatorTime(item.startsAt)}</small></div>)}</div><Link className="text-link" to="/app/maintenance">View maintenance <Icon name="arrow" width={15} height={15} /></Link></> : <EmptyState icon="maintenance">No upcoming maintenance.<br /><Button asChild className="overview-empty-action"><Link to="/app/maintenance" hash="schedule-maintenance">Schedule maintenance</Link></Button></EmptyState>}
       </article>
     </section>
     <CommunicationPerformance />
