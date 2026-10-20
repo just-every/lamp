@@ -3792,7 +3792,7 @@
       "executable": false
     },
     "src/core/features/public-snapshot/assets.ts": {
-      "sha256": "50b2b04daea55036fe370f1901828456e0c4548ebf0d26e162b937e877d6e2bf",
+      "sha256": "9abe239b02f23fdbe9ad3e49f5ca98cf4163914cb4bce25510b27120a9bf3304",
       "executable": false
     },
     "src/core/features/public-snapshot/badges.ts": {
@@ -3916,7 +3916,7 @@
       "executable": false
     },
     "src/core/features/public-snapshot/service.ts": {
-      "sha256": "41aece41fef59cd3adad93a0d26755577109d771eaf8b0400352026f0a0e56e5",
+      "sha256": "84b1e6eccdfb289f869c665e10db9294ca0efcd346fc592af5e6da6364f4690d",
       "executable": false
     },
     "src/core/features/public-snapshot/styles/components.css": {
@@ -5764,7 +5764,7 @@
       "executable": false
     },
     "tests/e2e/public-contract.test.mjs": {
-      "sha256": "2d9c04da8324ae10da99bb98dcf4c9bf2f15921ff92f933f8c938f7bf2eb8aae",
+      "sha256": "229ad6a4c997e71c9e05342e790e56f35e7d13e47dc5aabab2c851c99bbf0ff6",
       "executable": false
     },
     "tests/e2e/publishing-browser.test.mjs": {

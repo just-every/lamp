@@ -619,6 +619,9 @@ test("PAGE-013 PAGE-014 PAGE-008 PAGE-009 PAGE-003 — Public isolation, live ti
     assert.equal(await page.locator("[data-generated-at] time").getAttribute("datetime"), "2026-09-08T12:00:30.000Z");
     assert.equal(await page.locator("[data-generated-at] time").textContent(), "just now");
     assertVisibleTime(await page.locator("[data-generated-at] time").getAttribute("title"), "2026-09-08T12:00:30.000Z", "America/Los_Angeles");
+    await page.clock.fastForward(90 * 60_000);
+    await page.waitForFunction(() => document.querySelector("[data-generated-at] time")?.textContent === "1 hour ago");
+    assertVisibleTime(await page.locator("[data-generated-at] time").getAttribute("title"), "2026-09-08T12:00:30.000Z", "America/Los_Angeles");
     await context.close();
   } finally {
     await browser.close();
