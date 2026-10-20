@@ -1,3 +1,5 @@
+import { userAgent } from './session.mjs';
+
 export const targets = [
   { name: 'Site', url: 'https://run-lamp.com/' },
   { name: 'Docs', url: 'https://run-lamp.com/docs' },
@@ -11,7 +13,7 @@ export async function probe(url) {
   try {
     const response = await fetch(url, {
       signal: AbortSignal.timeout(20000), redirect: 'follow', cache: 'no-store',
-      headers: { 'User-Agent': 'Lamp-Status/1.0 (+https://status.run-lamp.com)' },
+      headers: { 'User-Agent': userAgent },
     });
     status = response.status;
     await response.body?.cancel();
@@ -27,11 +29,22 @@ function metadata(component, note, internal = component.internal) {
     uptimeStartDate: component.uptimeStartDate, note };
 }
 
+// The page's own time zone, as its operator and visitors read times.
+const checkedAt = new Intl.DateTimeFormat('en-AU', { timeZone: 'Australia/Brisbane', day: 'numeric', month: 'short',
+  hour: 'numeric', minute: '2-digit', second: '2-digit', timeZoneName: 'short' });
+
+function describe(check) {
+  const result = check.error ? check.error.toLowerCase() : `HTTP ${check.status} in ${check.durationMs} ms`;
+  return `Checked automatically every 5 minutes. Last check ${checkedAt.format(new Date(check.observedAt))}: ${result}.`;
+}
+
 export async function recordCheck(api, component, check, { internal = component.internal } = {}) {
-  const { component: claimed } = await api(`/api/app/components/${component.id}/standing-claim`, {
-    method: 'PUT', body: { state: check.state === 'Operational' ? null : check.state },
-  });
-  const note = `Last checked ${check.observedAt} · ${check.error ?? `HTTP ${check.status}`} · ${check.durationMs} ms · every 5 minutes`;
+  // The check owns this component's standing claim; an unchanged claim is not written again.
+  const claim = check.state === 'Operational' ? null : check.state;
+  const claimed = component.standingClaimState === claim ? component : (await api(`/api/app/components/${component.id}/standing-claim`, {
+    method: 'PUT', body: { state: claim },
+  })).component;
+  const note = describe(check);
   const { component: saved } = await api(`/api/app/components/${component.id}`, {
     method: 'PUT', body: metadata(claimed, note, internal),
   });

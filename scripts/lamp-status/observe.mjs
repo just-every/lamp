@@ -16,12 +16,14 @@ export async function observe(api, prove = false) {
   if (prove) {
     const missing = `https://status-app.run-lamp.com/__lamp_check_proof_${crypto.randomUUID()}`;
     const temporary = await createComponent(api, `Check proof ${crypto.randomUUID()}`, missing);
+    // Each step starts from the component as Lamp now holds it, claim included.
+    const current = async () => (await api('/api/app/components')).components.find(row => row.id === temporary.id);
     try {
-      proof.push(await recordCheck(api, temporary, await probe('https://run-lamp.com/')));
+      proof.push(await recordCheck(api, await current(), await probe('https://run-lamp.com/')));
       const failed = await probe(missing);
       if (failed.status !== 404) throw new Error('The throwaway missing-path check did not return 404.');
-      proof.push(await recordCheck(api, temporary, failed));
-      proof.push(await recordCheck(api, temporary, await probe('https://run-lamp.com/')));
+      proof.push(await recordCheck(api, await current(), failed));
+      proof.push(await recordCheck(api, await current(), await probe('https://run-lamp.com/')));
     } finally { await api(`/api/app/components/${temporary.id}`, { method: 'DELETE' }); }
     if ((await api('/api/app/components')).components.some(row => row.id === temporary.id)) {
       throw new Error('The throwaway check component was not removed.');

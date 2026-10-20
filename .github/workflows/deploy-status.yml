@@ -2,7 +2,16 @@ name: Deploy Lamp status
 
 on:
   workflow_dispatch:
+    inputs:
+      outside_secret_change:
+        description: SECRET_NAME=<Worker version id> of a secret written on the Worker outside this workflow, to record before deploying
+        type: string
+        default: ''
   workflow_call:
+    inputs:
+      outside_secret_change:
+        type: string
+        default: ''
 
 permissions:
   contents: read
@@ -37,6 +46,13 @@ jobs:
           if [ -n "$previous" ]; then
             gh run download "$previous" --repo "$GITHUB_REPOSITORY" --name lamp-status-state --dir .
           fi
+      - name: Record a secret change made outside this workflow
+        if: inputs.outside_secret_change != ''
+        run: node scripts/lamp-status/receipt.mjs "$OUTSIDE_SECRET_CHANGE"
+        env:
+          OUTSIDE_SECRET_CHANGE: ${{ inputs.outside_secret_change }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       - name: Read the authenticated sending domain's DKIM selector
         env:
           MAIL_PROVIDER_API_KEY: ${{ secrets.MAIL_PROVIDER_API_KEY }}
@@ -60,7 +76,10 @@ jobs:
           console.log('Loaded the authenticated sending domain DKIM selector.');
           NODE
       - name: Deploy Lamp with its native Cloudflare deployment
-        run: pnpm exec rer deploy --environment lamp-status --owner-name "Lamp operations" --non-interactive
+        run: |
+          # Lamp uploads this secret on every deploy and blanks it when unsupplied; this installation receives relayed mail events.
+          test -n "$RER_MAIL_RELAY_SECRET" || { echo "::error::RER_MAIL_RELAY_SECRET is missing from the lamp-status environment; deploying would switch off relayed mail events."; exit 1; }
+          pnpm exec rer deploy --environment lamp-status --owner-name "Lamp operations" --non-interactive
         env:
           CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -75,6 +94,7 @@ jobs:
           MAIL_PROVIDER: sendgrid
           MAIL_FROM_ADDRESS: ${{ vars.MAIL_FROM_ADDRESS }}
           MAIL_PROVIDER_API_KEY: ${{ secrets.MAIL_PROVIDER_API_KEY }}
+          RER_MAIL_RELAY_SECRET: ${{ secrets.RER_MAIL_RELAY_SECRET }}
           SETUP_TOKEN: ${{ secrets.SETUP_TOKEN }}
           SESSION_SECRET: ${{ secrets.SESSION_SECRET }}
           SUBSCRIBER_TOKEN_SECRET: ${{ secrets.SUBSCRIBER_TOKEN_SECRET }}

@@ -1,10 +1,11 @@
 export const operatorOrigin = 'https://status-app.run-lamp.com';
+export const userAgent = 'Lamp-Status/1.0 (+https://status.run-lamp.com)';
 
 export async function withSession(issueLink, action) {
   const link = await issueLink();
   const response = await fetch(operatorOrigin + '/auth/confirm', {
     method: 'POST', redirect: 'manual', signal: AbortSignal.timeout(30000),
-    headers: { Origin: operatorOrigin, 'Content-Type': 'application/json' },
+    headers: { Origin: operatorOrigin, 'Content-Type': 'application/json', 'User-Agent': userAgent },
     body: JSON.stringify({ token: new URL(link).searchParams.get('token') }),
   });
   await response.body?.cancel();
@@ -13,7 +14,7 @@ export async function withSession(issueLink, action) {
   async function api(path, { method = 'GET', body } = {}) {
     const result = await fetch(operatorOrigin + path, {
       method, redirect: 'error', signal: AbortSignal.timeout(30000),
-      headers: { Cookie: cookie, Origin: operatorOrigin, 'Content-Type': 'application/json' },
+      headers: { Cookie: cookie, Origin: operatorOrigin, 'Content-Type': 'application/json', 'User-Agent': userAgent },
       ...(body ? { body: JSON.stringify(body) } : {}),
     });
     if (!result.ok) throw new Error(`Lamp operator request failed: ${method} ${path} (HTTP ${result.status}).`);

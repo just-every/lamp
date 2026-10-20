@@ -1,13 +1,5 @@
 # Lamp's own status installation
 
-The 20 October deployment is blocked after the native upload: pinned rer 0.2.71
-rejects the custom-domain owner claim with `owner-claim-origin-mismatch`.
-Its deployment inspector reports the derived workers.dev origin instead of
-the custom origin in Lamp's retained ownership receipt. The operator claim,
-setup-token retirement and monitor deployment remain incomplete. Resolve that
-upstream integration defect before advertising this installation or accepting
-an empty page's default operational banner as monitoring evidence.
-
 The `Deploy Lamp status` workflow deploys this edition with its pinned `rer`
 into the RunEditRun Cloudflare account, using only the `lamp-status` GitHub
 environment. The public host is `status.run-lamp.com`; the operator host is
@@ -29,8 +21,9 @@ gh workflow run deploy.yml --repo just-every/run-lamp --ref uip/status -f lamp_s
 ```
 
 The environment must contain `CLOUDFLARE_API_TOKEN`, `MAIL_PROVIDER_API_KEY`,
-`SETUP_TOKEN`, `SESSION_SECRET`, `SUBSCRIBER_TOKEN_SECRET` and
-`WEBHOOK_SIGNING_SECRET` and `LAMP_STATUS_MONITOR_TOKEN`. Generate only the five
+`RER_MAIL_RELAY_SECRET`, `SETUP_TOKEN`, `SESSION_SECRET`,
+`SUBSCRIBER_TOKEN_SECRET`, `WEBHOOK_SIGNING_SECRET` and
+`LAMP_STATUS_MONITOR_TOKEN`. Generate only the five
 setup, signing and monitor values once with a
 cryptographically secure generator and send their values to `gh secret set
 --env lamp-status` on stdin. Never print them or rotate them on redeployment.
@@ -43,6 +36,28 @@ managed mail is off. No production operator address was discoverable
 from the other seeds' deployment documentation, so this installation uses the
 brief's default address for its operator and sender. Their values stay in the
 GitHub environment.
+
+SendGrid's delivery events reach this installation through RunEditRun's signed
+mail-event relay at `https://status.run-lamp.com/api/intake/mail-events`.
+`RER_MAIL_RELAY_SECRET` is the secret that relay signs with. Lamp uploads it on
+every deploy and blanks it when it is not supplied, so the workflow refuses to
+deploy without it. Change it in the environment and in the relay's destination
+registry together, then deploy.
+
+rer claims the owner through the operator origin recorded with the deployment,
+`https://status-app.run-lamp.com`, and then removes the spent setup token from
+the Worker. Later deploys keep that owner.
+
+Change this Worker's secrets through this environment and workflow. A secret
+written with Cloudflare's secrets API deploys a Worker version that the
+ownership record does not name, and the next deploy refuses the Worker as
+replaced. To continue after such a change, confirm who made it, put the same
+value in this environment, and dispatch once with
+`-f outside_secret_change=SECRET_NAME=<version id>` (through the release
+workflow, `-f lamp_status_outside_secret_change=...`). rer's own settle step
+records that version only when it is the recorded version's immediate
+successor, runs the same script and build, holds that secret, and keeps every
+other secret name. Otherwise nothing is recorded and nothing is deployed.
 
 Each run restores the latest `lamp-status-state` artifact before deploying and
 retains updated ownership records even on failure. These records allow rer to

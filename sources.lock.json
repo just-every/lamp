@@ -408,11 +408,11 @@
       "executable": false
     },
     ".github/workflows/deploy-status.yml": {
-      "sha256": "5401c7ff152e287d6bf9f81e1ef3dbadeb1bdca73742bc16998c123d3650774c",
+      "sha256": "69ef2024c9f4a7f928952b6e2f6c34d294f3757006d89dc58a15c45db85a45b1",
       "executable": false
     },
     ".github/workflows/deploy.yml": {
-      "sha256": "9a1b003d71c77546a6ad2bbd7a66c696fd6753c0184bae2ff94fe5e349fff5e2",
+      "sha256": "f45d5230cfa3f84e02360b57c3eb909b730f01205fe7c20f1b30b8d66537837d",
       "executable": false
     },
     ".github/workflows/release.yml": {
@@ -560,7 +560,7 @@
       "executable": false
     },
     "docs/lamp-status-operations.md": {
-      "sha256": "1447dbbe264b05b6cad739c633c500332ecc184f03a1a4de1c7599369665f322",
+      "sha256": "7ee44a883e4dfaa63fb834ef3448acde4c69aec301b91d23816286ee9ac1d2b3",
       "executable": false
     },
     "docs/maintenance.md": {
@@ -2124,11 +2124,11 @@
       "executable": false
     },
     "package.json": {
-      "sha256": "0ea8a6f8579939871a19f9f5222bf4f9ba37f5dceb6052cfb6ec12a6a13d3095",
+      "sha256": "20ccb5f750c84869951e7b9fac484705d3c8f2c24b4c4522dbd035419ed14533",
       "executable": false
     },
     "pnpm-lock.yaml": {
-      "sha256": "e0d49739a66caf6082bb359f1bcd004e265476106f230ea8e9033214fc847db5",
+      "sha256": "e6842c47ed66f14b5d5ef2315be540b7745a0c31350864d63931ace852a3f6bd",
       "executable": false
     },
     "public/app-assets/brand/lamp-mark.svg": {
@@ -2648,7 +2648,7 @@
       "executable": false
     },
     "scripts/lamp-status/checks.mjs": {
-      "sha256": "b48fdef36b8012fbd66c53fb99a2e49d55a2cd9d28a0a4b992f13317ce28c83c",
+      "sha256": "7f19ba4f571bd740efdf226a6a4b6fe2baf123568e41027a96e33577f15490a5",
       "executable": false
     },
     "scripts/lamp-status/deploy.mjs": {
@@ -2656,11 +2656,15 @@
       "executable": false
     },
     "scripts/lamp-status/observe.mjs": {
-      "sha256": "60b8f7ac61bf2d0200736b34e8e444345b02ca73e763cbb27ad1b0ba0e58d332",
+      "sha256": "e01a31e440cd01d8afeebd10085d9af060e9ddbdd9ea096ee7308f6b4d38277c",
+      "executable": false
+    },
+    "scripts/lamp-status/receipt.mjs": {
+      "sha256": "a5a3640af82cd7b144a593cdea45804067ff8aa32424af0fcc540b85db2a186e",
       "executable": false
     },
     "scripts/lamp-status/session.mjs": {
-      "sha256": "212069083230db35e1bab82a07019f15c7e92f90e68a0350bfdb1b01d65e0af7",
+      "sha256": "268bfd23bec253d64f92687099c0dbcbed79f89c9f8c41e125917e93b0876592",
       "executable": false
     },
     "scripts/lamp-status/worker.mjs": {
@@ -5604,7 +5608,7 @@
       "executable": false
     },
     "tests/e2e/deployment-artifact.test.mjs": {
-      "sha256": "22008831b378a86bc6a396db0401b53aac945d1668d1b931996acbadf055c859",
+      "sha256": "6d8a436c401456fb3283c8a0e46dccb2c98098e60bad7876bb9b80a5c6664e73",
       "executable": false
     },
     "tests/e2e/deployment-secrets.test.mjs": {

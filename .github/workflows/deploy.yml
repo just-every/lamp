@@ -6,6 +6,10 @@ on:
         description: Deploy Lamp's own status installation instead of building a release
         type: boolean
         default: false
+      lamp_status_outside_secret_change:
+        description: With lamp_status, SECRET_NAME=<Worker version id> of a secret written on the status Worker outside its workflow, to record first
+        type: string
+        default: ''
 permissions:
   contents: read
   actions: read
@@ -24,4 +28,6 @@ jobs:
   status:
     if: inputs.lamp_status
     uses: ./.github/workflows/deploy-status.yml
+    with:
+      outside_secret_change: ${{ inputs.lamp_status_outside_secret_change }}
     secrets: inherit
