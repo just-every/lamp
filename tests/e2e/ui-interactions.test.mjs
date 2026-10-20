@@ -26,7 +26,7 @@ before(async () => {
   });
   worker.stdout.on("data", chunk => { output += chunk; });
   worker.stderr.on("data", chunk => { output += chunk; });
-  await waitForWorker({ origin, isListening: () => output.includes(`${origin}/`), child: worker, output: () => output, label: "UI interaction Worker" });
+  await waitForWorker({ origin, timeoutMs: 120_000, isListening: () => output.includes(`${origin}/`), child: worker, output: () => output, label: "UI interaction Worker" });
   browser = await chromium.launch({ headless: true, args: ["--use-mock-keychain", "--password-store=basic"] });
   context = await browser.newContext({ timezoneId: "Australia/Brisbane", viewport: { width: 390, height: 844 } });
   await context.addCookies([{ name: sessionCookieName(origin), value: sessionId, url: origin }]);

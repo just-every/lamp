@@ -5888,7 +5888,7 @@
       "executable": false
     },
     "tests/e2e/ui-interactions.test.mjs": {
-      "sha256": "d759405a14ac8c2a569681b1b52e334968ad9deda9e06794482560975713601f",
+      "sha256": "c9f28df26223abf258d57d7d8abef7124ea37bc6a075609a32c71e4aa5f976d2",
       "executable": false
     },
     "tests/e2e/update-reminders.test.mjs": {
