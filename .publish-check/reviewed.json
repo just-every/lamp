@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "findings": [
+    {
+      "rule": "secret.assignment",
+      "path": "tests/fixtures/archive/listed-c5dab715.rer",
+      "blob": "f9f5164bcec59bd5541be78c39921f8957e4c27c",
+      "reason": "Retained native backup the listed release (c5dab715) made with its own rer of a synthetic install, kept byte for byte so the prior-backup test restores that release's own archive. The generic-api-key match is the archive manifest's list of migration file names; no credential.",
+      "reviewer": "sd-lamp-rel3",
+      "date": "2026-10-20"
+    }
+  ]
+}

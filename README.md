@@ -66,11 +66,11 @@ The app host serves Lamp's public documentation at `/docs`. Start with the
 The Run page's start line, `npx -y @runeditrun/rer dev just-every/run-lamp`, clones the default branch, `main`, not a release tag, into a `run-lamp`
 folder and starts it; after that, run `rer dev` from that folder. `main` is Lamp's
 development source and may hold changes not yet in a release; it pins
-`@runeditrun/rer` 0.2.71. The latest tagged release is `v1.9.0`, which pins
-`@runeditrun/rer` 0.2.71 too. To use that release instead, clone the tag and start it:
+`@runeditrun/rer` 0.2.76. The latest tagged release is `v1.10.0`, which pins
+`@runeditrun/rer` 0.2.76 too. To use that release instead, clone the tag and start it:
 
 ```sh
-git clone --branch v1.9.0 https://github.com/just-every/run-lamp.git lamp
+git clone --branch v1.10.0 https://github.com/just-every/run-lamp.git lamp
 cd lamp && rer dev
 ```
 
@@ -111,7 +111,7 @@ You can also export the input names in the calling shell. The
 [input reference](docs/deployment-reference.md) distinguishes required owner
 values from secrets that `rer` generates on a first deploy.
 
-Use `rer` from the project root; the checkout pins `@runeditrun/rer` 0.2.71. Before a
+Use `rer` from the project root; the checkout pins `@runeditrun/rer` 0.2.76. Before a
 command that builds or verifies the checkout,
 stop a running development server with `rer dev --stop` or a production preview
 with `rer preview --stop`.

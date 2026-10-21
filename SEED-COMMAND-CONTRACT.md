@@ -67,7 +67,7 @@ Run from the project root, or use `--cwd PATH`. Every new verb accepts `--help`,
 | `verify` | `--no-queue` | The seed's complete verification command runs; it never calls its own public `verify` alias recursively. Then its production build is served on loopback as `rer deploy` hosts it (see Hosted assets and deploy identity); verify fails, listing each path, when a built file does not answer 200 or `/health` lacks the deploy identity. Then Chromium loads each public page of that served build and verify fails, naming the page, case, section and evidence, when page sections do not hydrate as separate units (see Hydration units). |
 | `reset` | `--yes` | Explicitly confirmed local data, owner, generated settings and installer state removed; no remote effect. |
 | `deploy` | `--environment NAME`, `--owner-name NAME`, `--dry-run`, `--site`, `--no-queue` | With `--site`, the run site on its Base-generated site Worker (assets, plus the www-to-apex 301) with its custom domains (see Installed homepage and run site); with `--dry-run` it builds the site and prints the plan with zero provider requests. Otherwise: Base deploy-kit owner-account deployment plus health (the deploy identity, then one built file must answer 200); dry run validates/builds locally and reads target secret bindings using Cloudflare credentials, with zero provider writes. It uses deploy’s required-secret resolver and reports every missing secret with the same nonzero exit and error in human and JSON modes; missing credentials or an unreadable target secret list also fail. Default environment is `production`. Both refuse with exit 4, before building, a deploy binding, secret or secret source named `RER_DEV_KEY` or any key the adapter declares in `localOnlyKeys`; deploy-kit's owner plan refuses the same. A deploy that is not a dry run also refuses with exit 4, before building, tracked files with uncommitted changes, naming them. |
-| `export` | `--target local\|remote`, `--output FILE`, `--origin URL`, `--session-file FILE`, `--no-queue` | Complete supported installation data of the local copy written to a new owner-only archive, with integrity receipt and explicit exclusions; the closing line says which copy it exported. Default target is local; output is required. `--origin` or `--target remote` names the hosted install, which rer cannot export yet: unless the adapter declares remote portability, export refuses (exit 2) before any effect, saves nothing, and names the `npx wrangler d1 export DATABASE --remote --output exports/DATABASE.sql` command for each database the checkout deployed. A declared `prepareData` hook runs first and the path is checked against the app's served folders after it, so a checkout that never built still completes when its Vite configuration needs a file `prepareData` generates. |
+| `export` | `--target local\|remote`, `--output FILE`, `--origin URL`, `--session-file FILE`, `--no-queue` | Complete supported installation data of the local copy written to a new owner-only archive, with integrity receipt and explicit exclusions; the closing line says which copy it exported. Default target is local; local output is required. A declared `portability.hostedExport` runs the seed's own hosted-export argv for `--target remote` (see the hook below). Otherwise `--origin` or `--target remote` names the hosted install: unless the adapter declares remote portability, export refuses (exit 2) before any effect, saves nothing, and names the `npx wrangler d1 export DATABASE --remote --output exports/DATABASE.sql` command for each database the checkout deployed. A declared `prepareData` hook runs first and the path is checked against the app's served folders after it, so a checkout that never built still completes when its Vite configuration needs a file `prepareData` generates. |
 | `import` | `--target local\|remote`, `--input FILE`, `--journal FILE`, `--origin URL`, `--session-file FILE`, `--yes`, `--legacy-v1`, `--acknowledge-unverified-metadata`, `--output FILE`, `--no-queue` | Archive validated and atomically restored into an empty destination under the product's restore policy; input and confirmation are required. Normal import requires v2; `--journal` (local only) names a later archive of the same installation, whose erasure journal also fences the restore. Backup-only local Workers v1 recovery requires both legacy flags and a new v2 output; it refuses `--journal` rather than ignoring it. See modules/portability/README.md#backup-only-v1-recovery. A declared `prepareData` hook runs first, so a copy that never ran setup or build can import. |
 | `doctor` | none | Read-only tool/version, local configuration and state-placement diagnostics, naming missing inputs and their documented sources, plus `warnings` for leftover Node quarantine copies, mismatched Node/pnpm/workerd pins across running checkouts and a checkout on another volume (warnings never change the exit code). No provider request. |
 | `describe` | none | Describes commands, flags, aliases, effects, pins and state without installing or executing project commands. |
@@ -191,7 +191,7 @@ or select an exact HTTPS issuer for `oidc-provider@1` and complete its private
 approval/link flow. A provider-verified existing mail secret may be retained.
 Local setup and demo are exempt from production mail requirements.
 
-**No built-in routes or private files on the public listener.** For every seed, nothing the local runtime serves under `/cdn-cgi/*` (Wrangler's and the Cloudflare Vite plugin's Local Explorer, the scheduled and email trigger handlers, the R2 and platform proxies) answers on the port a person or proxy reaches, and neither do the checkout's private folders (`.rer`, `.seed`, `.wrangler`, `.dev.vars*`) or export archives (the `exports/` folder and any `*.rer` file). rer starts every runtime with `X_LOCAL_EXPLORER=false`, setup's temporary app runs without trigger handlers (preview's runtime has them only when the project declares Cron Triggers, on the internal port), rer's public listener answers 404 for those paths, and rer's scheduler calls the runtime's internal port. `rer export` refuses an `--output` the dev server would still serve: save archives at a normalized path inside the checkout's `exports/` (`exports/x.rer`, `./exports/x.rer` or an absolute path there), or at an absolute path outside the checkout. Outputs elsewhere in the checkout are refused, including public, source and build folders; so are `..` segments, unsafe symlinks and any path served by the app. Upstream connection failures, including while setup is building its app, answer the same 404 as private-path refusals. All three local runtimes (dev, preview and setup) bind a separate loopback port behind this same proxy. The listener answers only its own hosts: a request whose `Host` is not loopback (`127.0.0.1`, `localhost`, `[::1]`), a `*.localhost` name or the configured origin's host gets a plain `421` (`This local server answers only its own host.`) and never reaches the app, so an auth check that throws on a foreign Host (operator-auth's `getSession` throws `invalid_host`) can no longer answer with a crash page and stack trace. Vite's `/@fs/<absolute path>` answers only a request holding the checkout's dev key (the key gate's `x-rer-dev-key` header or `rer_dev_gate_<port>` cookie); any other `/@fs` request gets 404 whatever the path, so Vite's refusal page, which lists its serving allow list with the checkout and home directory paths, never answers it. Every seed build must use `archiveOutputGuard()` from the shared onboarding `archive-output.mjs` in its Vite plugins: after public assets and bundles are written, it refuses `*.rer` files and portability archive manifests under any filename, including custom output directories. A seed whose own export writes another format declares it: `archiveOutputGuard({ formats: ['runeditrun/pencil-local-data.v1'] })` also refuses any built file whose leading JSON object carries one of those `payload.format` strings; a seed that declares nothing is checked as before. The shared lifecycle also checks `dist/` before setup can start its temporary app. A seed's Vite config limits `server.fs.allow` to the folders the app is built from (`src`, `public`, `node_modules`) so nothing else in the checkout is served.
+**No built-in routes or private files on the public listener.** For every seed, nothing the local runtime serves under `/cdn-cgi/*` (Wrangler's and the Cloudflare Vite plugin's Local Explorer, the scheduled and email trigger handlers, the R2 and platform proxies) answers on the port a person or proxy reaches, and neither do the checkout's private folders (`.rer`, `.seed`, `.wrangler`, `.dev.vars*`) or export archives (the `exports/` folder and any `*.rer` file). rer starts every runtime with `X_LOCAL_EXPLORER=false`, setup's temporary app runs without trigger handlers (preview's runtime has them only when the project declares Cron Triggers, on the internal port), rer's public listener answers 404 for those paths, and rer's scheduler calls the runtime's internal port. `rer export` refuses an `--output` the dev server would still serve: save archives at a normalized path inside the checkout's `exports/` (`exports/x.rer`, `./exports/x.rer` or an absolute path there), or at an absolute path outside the checkout. Outputs elsewhere in the checkout are refused, including public, source and build folders; so are `..` segments, unsafe symlinks and any path served by the app. Upstream connection failures, including while setup is building its app, answer the same 404 as private-path refusals. All three local runtimes (dev, preview and setup) bind a separate loopback port behind this same proxy. The listener answers only its own hosts: a request whose `Host` is not loopback (`127.0.0.1`, `localhost`, `[::1]`), a `*.localhost` name or the configured origin's host gets a plain `421` (`This local server answers only its own host.`) and never reaches the app, so an auth check that throws on a foreign Host (operator-auth's `getSession` throws `invalid_host`) can no longer answer with a crash page and stack trace. Vite's `/@fs/<absolute path>` answers only a request holding the checkout's dev key (the key gate's `x-rer-dev-key` header or `rer_dev_gate_<port>` cookie); any other `/@fs` request gets 404 whatever the path, so Vite's refusal page, which lists its serving allow list with the checkout and home directory paths, never answers it. Every seed build must use `archiveOutputGuard()` from the shared onboarding `archive-output.mjs` in its Vite plugins: after public assets and bundles are written, it refuses `*.rer` files and portability archive manifests under any filename, including custom output directories. A seed whose own export writes another format declares it: `archiveOutputGuard({ formats: ['seed-data.v1'] })` (using the format string written by that seed's export) also refuses any built file whose leading JSON object carries one of those `payload.format` strings; a seed that declares nothing is checked as before. The shared lifecycle also checks `dist/` before setup can start its temporary app. A seed's Vite config limits `server.fs.allow` to the folders the app is built from (`src`, `public`, `node_modules`) so nothing else in the checkout is served.
 
 **The key gate** (a `devIdentity` seed). A tunnel or local reverse proxy makes remote requests look local, so the loopback origin is not a guard. For a `devIdentity` seed, `rer setup` writes a random `RER_DEV_KEY` (32 random bytes) per checkout to `.rer/local/dev-key.env` (directory 0700, file 0600); a repeat setup keeps its bytes, `rer reset --yes` removes it and the next setup makes a new one. Only local runtimes receive it: Vite's dev server, setup's temporary app and preview. Opening `RER_OPEN` trades it for the gate cookie. Dev sign-in, persona switching, `/__dev/personas` and tests' `signInAs` need that cookie (or, for the CLI and test harnesses, the key in an `x-rer-dev-key` header); without it each answers 404, through any proxy. A cookie from before a reset is refused. A runtime without the key binding serves none of them.
 
@@ -261,9 +261,62 @@ The Worker mounts two shared responses before its documents: `setupStateResponse
 
 **Sign-in hint: `login_hint`.** The shared sign-in page (`createSignInHandler`, `modules/operator-auth/signin`) accepts one optional query parameter, `login_hint=<email>`, and uses it to fill in the email field of its email-link form. Only a complete email address is used; anything else is ignored, the form is never submitted for the visitor, and the visitor still presses **Email a sign-in link**. The platform's **Open app** link for a claimed owner, a seed's own links to its sign-in route and the Lobby all use this one name: `/signin?login_hint=owner%40example.com`, with `returnTo` alongside when needed. The Lobby adds it to its **Sign in** link only on an instance served on this computer (a loopback or `*.localhost` origin) with exactly one active owner; a hosted instance's Lobby stays the same page for every visitor and never names its owner.
 
-The **run site** (`run-<seed>.com`) is static: the seed's approved homepage with its primary action reading **Run <Seed>** and linking to `/run`, the Run page at `/run` (step 1 is the installer, `curl -fsSL https://runeditrun.com/install.sh | sh`, which brings its own Node; step 2 is `rer dev <owner>/<repo>` for the seed's own repository, which needs nothing the installer did not put on PATH, with `cd <folder> && rer dev` to start it again; `npx -y @runeditrun/rer dev <owner>/<repo>` is offered only as the one-line alternative for someone who already has Node 22 or later; `foundation/runtime/run-site.ts`), its docs at `/docs/*` when it serves docs, and a `404` page. It never links an instance-only route (`/signin`, `/login`, `/sign-in`, `/setup`, `/app`, `/auth/*`). A seed opts in with the `commandAdapter` option `site: { entry, output, declaration, config }`: `entry` is a module whose `sitePages({ styles })` returns `{ pages: [{ path, html }], assets: [paths under public/] }`. `rer build --site` builds it for Node with the checkout's own Vite (TypeScript, TSX, JSON and CSS imports work, and a React page renders with `renderToStaticMarkup`); the optional `config` names a Vite config holding the plugins the site pages need, such as a docs virtual module or a CSS toolchain (never the app's own `vite.config.ts`, whose Worker plugins do not run in Node). The CSS the entry's modules import compiles to one stylesheet under `/site-assets/`, with the files it references; `styles` lists its site path for each page to link in its head. `output` is the ignored folder `rer build --site` writes (`dist/site` in Base's seeds), with `/` as `index.html`, `/run` as `run.html` and `/docs/a` as `docs/a.html`; `declaration` is the run site deploy declaration, `{"version": 1, "domain": "<apex hostname>"}` (`deploy-site.json`). The build reads no installation data. Before replacing the folder it refuses a site without an index or Run page, with a link that does not resolve on Cloudflare's static assets or reaches an instance-only route, with a page or style that loads from another origin, with server code, Wrangler configuration, migrations, settings or data files, with the dev layer, or with any of the checkout's owner identity, secrets or dev key. `rer dev` builds and serves it as `RER_SITE`; `rer deploy --site` publishes it (see the deploy-kit README, Run site). A Worker that reads `deploy-site.json` in `vite dev` lists it in `server.fs.allow`.
+The **run site** (`run-<seed>.com`) serves rendered public pages, with an optional docs-search runtime: the seed's approved homepage with its primary action reading **Run <Seed>** and linking to `/run`, the Run page at `/run` (step 1 is the installer, `curl -fsSL https://runeditrun.com/install.sh | sh`, which brings its own Node; step 2 is `rer dev <owner>/<repo>` for the seed's own repository, which needs nothing the installer did not put on PATH, with `cd <folder> && rer dev` to start it again; `npx -y @runeditrun/rer dev <owner>/<repo>` is offered only as the one-line alternative for someone who already has Node 22 or later; `foundation/runtime/run-site.ts`), its docs at `/docs/*` when it serves docs, and a `404` page. It never links an instance-only route (`/signin`, `/login`, `/sign-in`, `/setup`, `/app`, `/auth/*`). A seed opts in with the `commandAdapter` option `site: { entry, output, declaration, config }`: `entry` is a module whose `sitePages({ styles })` returns `{ pages: [{ path, html }], assets: [paths under public/] }`. `rer build --site` builds it for Node with the checkout's own Vite (TypeScript, TSX, JSON and CSS imports work, and a React page renders with `renderToStaticMarkup`); the optional `config` names a Vite config holding the plugins the site pages need, such as a docs virtual module or a CSS toolchain (never the app's own `vite.config.ts`, whose Worker plugins do not run in Node). The CSS the entry's modules import compiles to one stylesheet under `/site-assets/`, with the files it references; `styles` lists its site path for each page to link in its head. `output` is the ignored folder `rer build --site` writes (`dist/site` in Base's seeds), with `/` as `index.html`, `/run` as `run.html` and `/docs/a` as `docs/a.html`; `declaration` is the run site deploy declaration, `{"version": 1, "domain": "<apex hostname>"}` (`deploy-site.json`). The build reads no installation data. Before replacing the folder it refuses a site without an index or Run page, with a link that does not resolve on Cloudflare's static assets or reaches an instance-only route, with a page or style that loads from another origin, with server code, Wrangler configuration, migrations, settings or data files, with the dev layer, or with any of the checkout's owner identity, secrets or dev key. `rer dev` builds and serves it as `RER_SITE`; `rer deploy --site` publishes it (see the deploy-kit README, Run site). A Worker that reads `deploy-site.json` in `vite dev` lists it in `server.fs.allow`.
 
-**Deploying the run site from CI.** `rer deploy --site` keeps no state it depends on: it proves the site Worker and its Custom Domains are its own from the provider (the Worker's live version carries its `rer-site:` annotation; each domain's service is that Worker), so a fresh checkout, such as a GitHub Actions runner, deploys over the site it deployed before, and a Worker or domain of the same name it did not make is still refused. The www to apex 301 lives in the Base-generated site Worker. The run-site deploy token (the `run-site` environment's `CLOUDFLARE_API_TOKEN`) carries Workers Scripts: Edit on the account and Zone: Read, DNS: Edit, Workers Routes: Edit and Dynamic URL Redirects: Edit on the run site zones. A seed's `.github/workflows/run-site.yml` runs, after `pnpm install --frozen-lockfile`, `pnpm exec rer deploy --site` with `CLOUDFLARE_ACCOUNT_ID` and `CLOUDFLARE_API_TOKEN` in its environment (vendored mode: `node scripts/rer.mjs deploy --site`); `.rer/deploy/site-production.json` is a receipt for the person and needs no cache. The workflow runs on every push to `main` with no `paths` filter, so a push that changes only `CONTRACT.md` redeploys the site.
+### Optional docs-search runtime
+
+A site with docs may select Base's docs-search module in its command adapter:
+
+```ts
+site: {
+  entry: 'src/site/pages.tsx', output: 'dist/site',
+  declaration: 'deploy-site.json', config: 'vite.site.config.ts',
+  clients: { docsSearch: 'src/site/docs-search/client.ts' },
+  runtime: {
+    type: 'docs-search', module: 'docs-search', bindings: ['ASSETS', 'AI'],
+    endpoint: '/docs/search', corpus: '.rer/docs-search/corpus.json',
+  },
+}
+```
+
+`module: 'docs-search'` selects the Base-owned implementation, not seed
+JavaScript. This optional runtime declares only `ASSETS` and Workers AI (`AI`);
+it does not accept arbitrary application bindings, seed ownership annotations or
+a separate Wrangler deployment. `deploy-site.json` remains the same domain-only
+declaration. Sites without `runtime` keep the assets-only deployment. Search-enabled seeds declare `esbuild` as a devDependency (the maintained seed pins 0.28.2). Both package and vendored runtimes use that checkout's build toolchain.
+
+The entry's one `sitePages({ styles, clients, contract })` render returns
+`{ pages, assets, searchPages }`, where `searchPages` is
+`[{ href, searchSections: [{ anchor, titlePath, text }] }]`. `titlePath` is the
+array of heading titles. Sections come from the same rendered docs and heading
+anchors as the HTML; do not rerender or crawl the published site for the corpus.
+The renderer writes `searchPages` to the declared `corpus` path, an ignored
+staging output outside the public assets. Its parent (`.rer/docs-search` here)
+is also the inferred preparation/cache directory.
+
+Copy the optional UI source from `modules/site/docs-search` to the seed's
+selected source path, render `SearchField`, import `search.css`, and load
+`clients.docsSearch` as a module script on the docs pages that use it. The seed
+supplies `--ink`, `--ink-soft`, `--rule` and `--paper` through its existing theme.
+The island queries the declared same-origin endpoint. Adoption preserves the
+seed's approved page layout and copy.
+
+`rer build --site` and `rer deploy --site --dry-run` render and validate locally
+with no provider requests or embedding calls. The plan identifies runtime type,
+module, bindings, endpoint, fixed model `@cf/baai/bge-base-en-v1.5`, pooling `cls`,
+`corpusHash`, module digest and deployment fingerprint. Vectors are prepared
+only for real deployment; a local build does not provide live semantic search.
+
+A real deploy renders once, prepares the vectors, then publishes the rendered
+assets, `docs-search-vectors.json` and Base-owned query module together in one
+site deployment. Preparation reuses vectors from the inferred local cache and
+`https://<site domain>/docs-search-vectors.json` only when the model, pooling,
+chunk hash and vector dimensions match. A previous-index 404 means first index;
+all other fetch or embedding failures stop before publication. The model and
+pooling belong to the selected module. See the deploy-kit Run site guidance for
+provider permissions and deployment ownership.
+
+**Deploying the run site from CI.** `rer deploy --site` keeps no state it depends on: it proves the site Worker and its Custom Domains are its own from the provider (the Worker's live version carries its `rer-site:` annotation; each domain's service is that Worker), so a fresh checkout, such as a GitHub Actions runner, deploys over the site it deployed before, and a Worker or domain of the same name it did not make is still refused. The www to apex 301 lives in the Base-generated site Worker. The run-site deploy token (the `run-site` environment's `CLOUDFLARE_API_TOKEN`) carries Workers Scripts: Edit on the account and Zone: Read and Workers Routes: Edit on the run site zones. A docs-search runtime additionally requires Workers AI: Read/Edit on the account for embeddings and its AI binding; assets-only sites need no Workers AI permission. A seed's `.github/workflows/run-site.yml` runs, after `pnpm install --frozen-lockfile`, `pnpm exec rer deploy --site` in the `run-site` environment with `CLOUDFLARE_ACCOUNT_ID` from `vars.CLOUDFLARE_ACCOUNT_ID` and `CLOUDFLARE_API_TOKEN` from `secrets.CLOUDFLARE_API_TOKEN` (vendored mode: `node scripts/rer.mjs deploy --site`); `.rer/deploy/site-production.json` is a receipt for the person and needs no cache. The workflow runs on every push to `main` with no `paths` filter, so a push that changes only `CONTRACT.md` redeploys the site.
 
 ## Contract status
 
@@ -277,6 +330,44 @@ A seed's `CONTRACT.md` says what the product is being built towards and how far 
 **The /contract page.** `rer build --site` parses a seed's `CONTRACT.md` and passes it to the site entry as `sitePages({ contract })`; a contract that does not parse stops the build with each problem's line, and no site is written. The entry adds `{ path: '/contract', html: contractPageHtml(identity, run, contract) }` (`src/base/contract-page.ts`) and passes `contract` to `runPageHtml`, `siteHomeHtml` and `siteNotFoundHtml`, whose headers then link Contract; a seed's own pages and docs link `/contract` only when `contract` is given. Without a `CONTRACT.md` there is no `contract`, no page and no link. The page reads the seed's theme, and the status tokens in `onboarding/README.md` ("Seed theme") recolour it.
 
 `rer check` validates a seed's `CONTRACT.md` when it has one: every parse problem is a failing `CONTRACT.status` clause naming its line, and each evidence path that is not in the checkout fails `CONTRACT.evidence.<ID>`, naming the row's line. A seed without `CONTRACT.md` is unaffected. Run `rer check` in the seed after changing the contract.
+
+## Hosted export adapter hook
+
+An adapter may add the optional `portability.hostedExport` argv array beside
+its existing portability implementation:
+
+```js
+portability: {
+ ...localPortability({ database, buckets, policy }),
+ hostedExport: ['node', 'scripts/export.mjs'],
+},
+```
+
+Only `rer export --target remote` selects this hook. rer appends, in order,
+`--remote --environment production --out PATH`, then `--origin URL` when given.
+`--output PATH` maps to `--out PATH`; without it rer chooses
+`exports/hosted-<ISO timestamp>` with colons and dots replaced by hyphens. Paths
+follow the same export destination safety rules as local export. The script
+owns the output format (file or directory), must leave it at PATH on success,
+and must honor any supplied origin when selecting the hosted install. rer
+does not infer that a native export is a `.rer` archive or can be restored by
+the local import implementation.
+
+The declaration is either a relative checkout executable such as
+`['./scripts/export', 'fixed-argument']`, or a bare interpreter followed
+immediately by its relative checkout script, such as the Node example above.
+Arguments are individual nonempty strings; shell strings, interpreter switches
+before the script, absolute executable/script paths, traversal, symlinks and
+non-file scripts are refused by execution and `SC-08.hosted-export` in `rer check`.
+Execution uses the project root, the same caller environment pass-through as a
+seed's own deploy hook, and the shared bounded command runner for admission,
+redacted streaming output and owned-child cleanup. rer reads no hosted secrets
+or local settings for this hook: the seed's script uses its own Wrangler auth.
+The result and normal export summary name the hosted install, output path and
+exit status; the CLI returns the child's exit code. A missing output after exit
+0 fails explicitly. No hook is called for plain export or `--origin` alone.
+Undeclared seeds retain the existing remote-portability path or refusal,
+including its message. SC-01/SC-02 and the `export` package alias stay unchanged.
 
 ## Hosted assets and deploy identity
 
@@ -482,8 +573,8 @@ print one warning line naming the files ("Base's placeholder mark is still in
 `placeholder_mark` under `--json`) and do not fail, so a live run site keeps
 redeploying. `rer release` refuses it unless `--allow-placeholder-mark` is
 given; the receipt then records `placeholderMark: { allowed: true, files }`.
-Base's own projects (`example/foundation`, `runeditrun/default-seed-reference`)
-are exempt. Adopt: when the seed's brand round comes, draw its mark, replace
+Base's foundation and default-seed reference projects are exempt. Adopt: when
+the seed's brand round comes, draw its mark, replace
 `public/brand/mark.svg` and every copy the warning names (favicons, site assets),
 and the warning stops; until then, release with `--allow-placeholder-mark`.
 
@@ -717,7 +808,15 @@ traffic alone do not count. Real application WebSocket data messages do count.
 Private registry: OS home `~/.rer/servers`, with `RER_SERVERS_DIR` override.
 Combined cap: 10 servers per computer by default. Set `RER_SERVER_LIMIT=N`
 (positive integer) to change it. Load is no guard by default; a fleet sets
-`RER_SERVERS_LOAD_THRESHOLD=N` (the 1-minute load) in its own environment. A start needs 15 GiB free on the checkout and temporary volumes; `RER_SERVERS_DISK_FLOOR_GIB=N` (GiB, decimals allowed, default 15) changes that floor: a CI runner may set it lower (for example 4), people should not. Atomic reservations
+`RER_SERVERS_LOAD_THRESHOLD=N` (the 1-minute load) in its own environment.
+The disk floor is twice the measured logical file bytes in installed
+`node_modules` and `.wrangler` (including local D1 state), plus 256 MiB, with a
+1 GiB minimum. Symlinks are not followed or counted twice. It checks the
+checkout, selected temporary directory (`TMPDIR`, then `TMP`/`TEMP`, then the OS
+default), and the actual server registry directory. A not-yet-created path is
+measured on its nearest existing ancestor. A refusal names the requested path
+and exact free and required bytes. `RER_SERVERS_DISK_FLOOR_GIB=N` explicitly
+replaces that estimate (GiB, decimals allowed, 0 disables the floor). Atomic reservations
 precede ports/heavy work and count toward capacity. A start that sets
 `RER_SERVER_LIMIT` is capped by that value, higher or lower, whatever running
 servers recorded; a start that sets nothing is capped by the lowest limit a
