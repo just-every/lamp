@@ -255,6 +255,13 @@ Managed installation whose owner has not signed in and whose tables match the
 archive; Platform has already applied the migrations. Any other table,
 including another `rer_` name, still stops the restore.
 
+A local backup (`rer export`) restores into a database Run Edit Run Managed
+installed with `rer import`, too. rer places it by Platform's ledger: each
+`core-` file by its hash, and the page initializer `setup-initial-page.sql`,
+which Lamp declares as data only (`scripts/installer/local.mjs`). It never
+writes that ledger, and the archive's page settings replace the row the
+initializer wrote. Every other table must be empty.
+
 ```sh
 node scripts/export.mjs --remote --environment production --env-file "$HOME/.config/lamp/production.env" --out /private/backups/lamp-first
 node scripts/export.mjs --persist-to /private/local-state --out /private/backups/lamp-local
@@ -492,7 +499,7 @@ The minute cron sends an empty GET only on the heartbeat interval grid, after sc
 
 ## Shared operator authentication
 
-The checkout pins `@runeditrun/rer` 0.2.73. For hosted owner entry without email,
+The checkout pins `@runeditrun/rer` 0.2.76. For hosted owner entry without email,
 run this from the deploying checkout using the original account and environment:
 
 ```sh

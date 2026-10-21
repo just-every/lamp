@@ -12,8 +12,10 @@ import { ownerMigrationFiles } from "./owner-migrations.mjs";
 // settings. The ledger is installation authority, never owner data: archives
 // never carry it and restore never writes it. Only this exact name is the ledger.
 export const platformLedger = "rer_migrations";
-const pageInitializer = "setup-initial-page.sql";
+export const pageInitializer = "setup-initial-page.sql";
 const delivery = JSON.parse(await readFile(new URL("./delivery/base/packaging.json", import.meta.url), "utf8")).artifact.specInputs;
+// Platform names each delivered migrations/core file with this prefix.
+export const coreMigrationPrefix = delivery.migrationPrefix;
 const ownerPrefix = delivery.extraMigrationDirectories.find((directory) => directory.path === "migrations/ext").prefix;
 
 const byName = (left, right) => (left.name < right.name ? -1 : left.name > right.name ? 1 : 0);

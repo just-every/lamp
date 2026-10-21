@@ -1,13 +1,13 @@
 # Run it locally
 
-Use `rer` from the project root. The checkout pins `@runeditrun/rer` 0.2.73,
+Use `rer` from the project root. The checkout pins `@runeditrun/rer` 0.2.76,
 which every `rer` command here runs whatever `rer` you installed;
 `rer describe` reports the commands and tooling in use. Lamp runs on
 your computer without a Cloudflare account or mail credentials; development mail
 is silently suppressed.
 
 The Run page's one line, `npx -y @runeditrun/rer dev just-every/run-lamp`, installs `rer` and clones `main` (development source, not a release tag) into `run-lamp` and starts it. Without Node, `curl -fsSL https://runeditrun.com/install.sh | sh -s -- dev just-every/run-lamp` does the same with its own Node. The latest
-release tag, `v1.10.0`, pins rer 0.2.73; if you choose the tag, use that
+release tag, `v1.10.0`, pins rer 0.2.76; if you choose the tag, use that
 checkout's own instructions. See [source and tooling versions](README.md#source-and-tooling-versions).
 `rer` selects the project's pinned Node 22.20.0 and pnpm 10.12.4, downloading
 its Node version when needed even if your shell has a newer Node.
@@ -77,6 +77,10 @@ rer import --input exports/lamp.rer --yes
 rer setup
 rer dev
 ```
+
+A backup from an earlier Lamp restores the same way, including one made before
+Lamp 1.8.0: the restore adds the audit entry migration 0033 writes for each
+earlier component state change, as updating that installation in place would.
 
 These `rer export` and `rer import` commands move a local installation. To back
 up the Cloudflare installation this checkout deployed as `production`, run

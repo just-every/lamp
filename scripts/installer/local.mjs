@@ -7,6 +7,7 @@ import {readSettings} from '@runeditrun/rer/adapter-settings';
 import {writePrivateFile} from '@runeditrun/rer/internal/onboarding/private-files.mjs';
 import {commandAdapter as createCommandAdapter} from '@runeditrun/rer/adapter';
 import {localPortability} from '@runeditrun/rer/portability';
+import {coreMigrationPrefix,pageInitializer} from '../platform-ledger.mjs';
 import {nativeOwner} from './bootstrap.mjs';
 import {localSignIn} from './signin.mjs';
 import {lampDeploy} from './deploy.mjs';
@@ -77,7 +78,10 @@ const operatorContinuity=['oa_operators','oa_bootstrap','oa_external_identities'
 // Keep it stable so exports made before the repository rename still restore.
 // rer export --target remote runs Lamp's hosted archive tool for the deployed
 // install (rer adds --remote --environment production --out FILE).
-const transfer={hostedExport:['node','scripts/export.mjs'],...localPortability({database:'DB',buckets:{SNAPSHOTS:'SNAPSHOTS'},policy:{product:'just-every/lamp',buckets:{SNAPSHOTS:{}},replaceableTables:['public_snapshot_work','snapshot_build_control','reference_counters'],includeTables:operatorContinuity,excludeTables:['oa_sessions','oa_tokens','oa_step_up_challenges','oa_credentials','oa_dev_credentials',...importCustody],requiredConfiguration:['SETUP_TOKEN','SESSION_SECRET','SUBSCRIBER_TOKEN_SECRET','WEBHOOK_SIGNING_SECRET']},transient:['move-in import custody (resume and undo stay on the original installation)','operator sessions and one-use sign-in links','queued job deliveries in flight','public snapshot cache (rebuilt from D1 and R2)']})};
+// A RER Managed destination keeps Platform's ledger: core-<file> by hash, plus the
+// per-installation page initializer, which seeds data and has no schema file. Its
+// page_settings row (a random feed id) is a bootstrap row the restore replaces.
+const transfer={hostedExport:['node','scripts/export.mjs'],...localPortability({database:'DB',platformMigrations:{prefix:coreMigrationPrefix,dataOnly:[pageInitializer]},buckets:{SNAPSHOTS:'SNAPSHOTS'},policy:{product:'just-every/lamp',buckets:{SNAPSHOTS:{}},replaceableTables:['public_snapshot_work','snapshot_build_control','reference_counters','page_settings'],includeTables:operatorContinuity,excludeTables:['oa_sessions','oa_tokens','oa_step_up_challenges','oa_credentials','oa_dev_credentials',...importCustody],requiredConfiguration:['SETUP_TOKEN','SESSION_SECRET','SUBSCRIBER_TOKEN_SECRET','WEBHOOK_SIGNING_SECRET']},transient:['move-in import custody (resume and undo stay on the original installation)','operator sessions and one-use sign-in links','queued job deliveries in flight','public snapshot cache (rebuilt from D1 and R2)']})};
 
 // Declare installed documents explicitly: the Lobby at / does not link to all
 // docs. Read the publishing manifest so new pages enter hydration checks too.

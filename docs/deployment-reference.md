@@ -1,7 +1,7 @@
 # Deployment reference
 
 Use `rer deploy` from the project root. The checkout pins
-`@runeditrun/rer` 0.2.73; use `rer describe` and `rer deploy --help` for the installed
+`@runeditrun/rer` 0.2.76; use `rer describe` and `rer deploy --help` for the installed
 command reference. [Deploy to Cloudflare](deploy.md) is the guided setup: it asks
 for each input below in the order `rer deploy --dry-run` lists missing ones, and
 gives the validation, deploy and removal commands. `--env-file` values

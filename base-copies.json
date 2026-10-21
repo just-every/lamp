@@ -1371,9 +1371,9 @@
     {
       "path": "SEED-COMMAND-CONTRACT.md",
       "originPath": "export/SEED-COMMAND-CONTRACT.md",
-      "revision": "fa38858fa0c686bcb78a7d501ab4b5a547233e98",
+      "revision": "91c082876d6560150f3dc012ec57b92bd9895228",
       "files": {
-        "SEED-COMMAND-CONTRACT.md": "2a1d1ceb6f436a1a4ad0f94ce5049628b4ecaae0757e8ba7da454d9c605b17d5"
+        "SEED-COMMAND-CONTRACT.md": "c3fe456bafe528e88cef89284fb943a99d4d103452fb02a81721c982cd931881"
       },
       "modes": {
         "SEED-COMMAND-CONTRACT.md": "100644"

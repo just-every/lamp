@@ -456,7 +456,7 @@
       "executable": false
     },
     "base-copies.json": {
-      "sha256": "8dcbe4c62be20eee903b9e6ff26db337f385d65566e626d9127b5c0149aafa4b",
+      "sha256": "5d1b24f89eedd4b119d5610d41a09da32098fdfbff657bb2505a2c02fe31b030",
       "executable": false
     },
     "BASELINE.md": {
@@ -492,7 +492,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "348a153ba758753ae3538c3a28523380f737ae4eb4d40ff081c0a2238d9ee1a4",
+      "sha256": "7f06021cb360aa193ed22a576f87bc05daa9ef312ad062a0c00db6ffec627f53",
       "executable": false
     },
     "DEMO.md": {
@@ -540,7 +540,7 @@
       "executable": false
     },
     "docs/deployment-reference.md": {
-      "sha256": "8fe2e60b1e52fc8a6e3c7337af237a97379b058ffdeb238991b75e6d3be3d78a",
+      "sha256": "fce4fd67e7221b622a805b7be8993d33d1a5d5a6d1c44f2db49fed8ade8863ef",
       "executable": false
     },
     "docs/domains.md": {
@@ -556,7 +556,7 @@
       "executable": false
     },
     "docs/install.md": {
-      "sha256": "11cf976e0edac954bf50b188ddb3193523a07089e00425e697cbcf322a7af752",
+      "sha256": "d7c0534e567fa3e72e6b0b75dd41307835dbae996a25cd3a60b298dc24c2059a",
       "executable": false
     },
     "docs/maintenance.md": {
@@ -568,7 +568,7 @@
       "executable": false
     },
     "docs/operators-and-sign-in.md": {
-      "sha256": "24677125b98e2076aa7b123f382c58f6e6c493321c021f80106aec51f39dfa33",
+      "sha256": "beddd2a78998d735e688cbf25322dee7151d932b7ff6ead402a3903ade6015e9",
       "executable": false
     },
     "docs/overview.md": {
@@ -600,7 +600,7 @@
       "executable": false
     },
     "HANDOVER.md": {
-      "sha256": "d9ef7f7a98bd7bb93fe957247a6f209738713b526dd08cc1f750c27e1d95feda",
+      "sha256": "330251c5ab70f608643df90959427435ed638b20e987c17ada61b595189f50bc",
       "executable": false
     },
     "hosted-check-managed.json": {
@@ -2120,15 +2120,15 @@
       "executable": false
     },
     "OPERATIONS.md": {
-      "sha256": "47a7fa3e1441afade8fd292a8905ef6a89c08e1a4808f80c173b4d5cbd315863",
+      "sha256": "beeaf711c5f4ec1e68ef0433fbbe125bc915dcc7380e57aea579fc0bfe9baa90",
       "executable": false
     },
     "package.json": {
-      "sha256": "72487f59a43f24d730b40ed66ba32b4aeda64f3166dae320691e22ac7ccf9711",
+      "sha256": "b1739ac6bc1bb54ecfcb2083c521b6d8ce80734f9c25b0d9a40092d5a106a97c",
       "executable": false
     },
     "pnpm-lock.yaml": {
-      "sha256": "1339fd7033b2979dce0f68d3a2b72edbaa669965b1a51ed900e5e6a8e3e61677",
+      "sha256": "03e28984cad311b05e2a7e82ace063014abbda0cfe602142f90f7e906f4f1073",
       "executable": false
     },
     "public/app-assets/brand/lamp-mark.svg": {
@@ -2152,7 +2152,7 @@
       "executable": false
     },
     "README.md": {
-      "sha256": "f8dedddcd6a3d924ce32b07a2fe03263a1c2afe60746612eae7b44d25bdebb49",
+      "sha256": "a555ceb8f6c0e17d9fe3d58d8d7d073e1053cf2b78a76c4504695b8b01e41c97",
       "executable": false
     },
     "release-history/1.0.0.CONTRACT.md": {
@@ -2284,7 +2284,7 @@
       "executable": false
     },
     "RUN-LOCALLY.md": {
-      "sha256": "9b9a24e8fe682ebf5c8555c21ed5b8f2f5b38e5f21346716a3c54a5a06a34ff8",
+      "sha256": "5b9861a25131709897343924895c122cfbe2ae84ebbc97e879218a2359225f38",
       "executable": false
     },
     "schema/dependencies.mjs": {
@@ -2608,7 +2608,7 @@
       "executable": false
     },
     "scripts/installer/local.mjs": {
-      "sha256": "97d6f2fc4f431beadc751e0b17940475b8685b5b50950842e055679795e6a75b",
+      "sha256": "f6b481b4cd647bbb5a82b30eb46f7ba91012921c35e3066238683c98b4ba51ca",
       "executable": false
     },
     "scripts/installer/README.md": {
@@ -2700,7 +2700,7 @@
       "executable": false
     },
     "scripts/platform-ledger.mjs": {
-      "sha256": "06c992cf677a2ec1d832ec49f38984c87f200ae1431bba449ad97a0aebbb1ead",
+      "sha256": "3c7e62d3d782dd8758da11f0a32fd57a8c3b90ca7ce3d3a6424b8d1f7122f0b7",
       "executable": false
     },
     "scripts/project-operations.mjs": {
@@ -2772,7 +2772,7 @@
       "executable": false
     },
     "SEED-COMMAND-CONTRACT.md": {
-      "sha256": "2a1d1ceb6f436a1a4ad0f94ce5049628b4ecaae0757e8ba7da454d9c605b17d5",
+      "sha256": "c3fe456bafe528e88cef89284fb943a99d4d103452fb02a81721c982cd931881",
       "executable": false
     },
     "seed.json": {
@@ -5844,7 +5844,7 @@
       "executable": false
     },
     "tests/e2e/prior-backup.test.mjs": {
-      "sha256": "67de1ea35020fe96774d806ffabf4e3072c0a510748b047558d3c602c0e8757f",
+      "sha256": "81d9f8e08528bd3fed9a9efd4baebf7b8214639bfa3d88d74231a95ee9789cd9",
       "executable": false
     },
     "tests/e2e/public-contract.test.mjs": {
