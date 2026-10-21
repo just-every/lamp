@@ -16,11 +16,11 @@ export function TemplateChoice({ value, showing, regionsAvailable, onChange }: {
   return <section className="data-card" aria-labelledby="template-title">
     <p className="card-kicker" id="template-title">Template</p>
     <p role="status">{showing === "regions" && !regionsAvailable
-      ? "Showing Regions map without a map: no visible component has a region. Add a region to a public component or choose another template."
+      ? "Showing Calm headline: you chose Regions map, and it needs public components in at least two regions."
       : `Showing ${shown.name}: ${showing === "default" ? "it is your saved default" : "you chose it"}.`}</p>
     <label className="form-label">Template<select value={value} onChange={event => onChange(event.target.value as Template)} aria-describedby="template-description template-regions-reason">
-      {templates.map(template => <option key={template.value} value={template.value} disabled={template.value === "regions" && !regionsAvailable}>{template.name}</option>)}
+      {templates.map(template => <option key={template.value} value={template.value} disabled={template.value === "regions" && !regionsAvailable && showing !== "regions"}>{template.name}</option>)}
     </select><small id="template-description">{templates.find(template => template.value === value)?.description} Save settings to publish your choice.</small></label>
-    <p id="template-regions-reason">{regionsAvailable ? "Regions map is available because a visible component has a region." : "Regions map is unavailable because no visible component has a region. Add a region in the component editor to use it."}</p>
+    <p id="template-regions-reason">{regionsAvailable ? "Regions map is available: your public components are in more than one region." : "Regions map needs public components in at least two regions. Give your components a region in the component editor to use it."}</p>
   </section>;
 }

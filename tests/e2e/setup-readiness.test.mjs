@@ -1,4 +1,4 @@
-import { templateChoiceFlow } from './helpers/template-choice-flow.mjs';
+import { regionsMapFlow, regionsUnavailable, templateChoiceFlow } from './helpers/template-choice-flow.mjs';
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { execFileSync, execFile, spawn } from 'node:child_process';
@@ -143,7 +143,11 @@ test('SETUP-001 Lamp publishes and checks the page on its own: Overview shows on
     const { component } = await componentResponse.json();
     assert.equal((await api('/api/app/components')).components.find(item => item.id === component.id)?.name, 'API');
     diagnostics.phase = 'template-regions';
-    await templateChoiceFlow({ page, origin, publicOrigin, api, withRegions: true });
+    // One region is not a map; a second public component in another region makes Regions map available.
+    await regionsUnavailable({ page, origin, api });
+    const { component: website } = await api('/api/app/components', 'POST', { groupId: null, name: 'Website', description: '', region: 'North America', internal: false, displayOrder: 1, note: '' });
+    const dropRegion = () => api(`/api/app/components/${website.id}`, 'PUT', { groupId: null, name: 'Website', description: '', region: null, internal: false, note: '' });
+    await regionsMapFlow({ page, origin, publicOrigin, api, dropRegion });
     diagnostics.phase = 'publish';
     const { incident } = await api('/api/app/incidents','POST',{ title: 'Brief service interruption', components: [{ componentId: component.id, state: 'Degraded performance', relationship: 'Primary' }] });
     const current = (await api(`/api/app/incidents/${incident.id}`)).incident;

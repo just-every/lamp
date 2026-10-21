@@ -1,0 +1,91 @@
+/* Calm headline: one centred sentence, then components and history as type and hairlines. No cards, no boxes. */
+.calm-head { display: flex; align-items: center; justify-content: space-between; gap: 20px 32px; padding-top: 30px; padding-bottom: 30px; }
+.calm-brand { display: flex; align-items: center; min-width: 0; }
+.calm-brand .tpl-brand { flex: none; }
+.calm-brand .tpl-tagline { max-width: 600px; margin-left: 24px; border-left: 1px solid var(--line-strong); padding: 4px 0 4px 24px; }
+.calm-actions { display: flex; flex: none; align-items: center; }
+.calm-actions .tpl-subscribe { width: 272px; }
+.calm-actions .tpl-feeds { margin-left: 22px; border-left: 1px solid var(--line-strong); padding: 4px 0 4px 22px; }
+.tpl-calm .tpl-feeds .icon { display: none; }
+.tpl-calm .tpl-feeds a { text-decoration: underline; }
+
+.calm-status { padding-top: 64px; text-align: center; }
+.calm-sentence { max-width: 21ch; margin: 0 auto; color: var(--ink); font-size: 46px; font-weight: 400; line-height: 1.17; letter-spacing: -.024em; text-wrap: balance; }
+.calm-sentence.size-m { max-width: 28ch; font-size: 37px; }
+.calm-sentence.size-s { max-width: 40ch; font-size: 28px; line-height: 1.25; }
+.calm-status .tpl-updated { justify-content: center; margin-top: 22px; font-size: 16px; }
+
+.calm-body { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 424px); gap: 0 52px; align-items: start; margin-top: 60px; }
+.calm-body > :only-child { grid-column: 1 / -1; }
+.calm-components .tpl-kicker, .calm-history .tpl-kicker { border-bottom: 1px solid var(--line-strong); padding-bottom: 14px; }
+.calm-history { min-height: 100%; border-left: 1px solid var(--line-strong); padding-left: 40px; }
+.calm-body > .calm-history:only-child { border-left: 0; padding-left: 0; }
+.calm-group { margin: 26px 0 0; color: var(--ink-3); font-size: 12px; font-weight: 500; letter-spacing: .12em; text-transform: uppercase; }
+.calm-list { margin: 8px 0 0; padding: 0; list-style: none; }
+.calm-row { display: grid; grid-template-columns: 24px minmax(0, 1.05fr) minmax(0, 1fr) minmax(0, 1.1fr); align-items: center; gap: 0 32px; min-height: 76px; padding: 12px 0; }
+.calm-row .kind-icon { width: 25px; height: 25px; stroke-width: 1.5; }
+.calm-name { min-width: 0; }
+.calm-name :is(h3, h4) { margin: 0; font-size: 17px; font-weight: 400; line-height: 1.35; letter-spacing: -.01em; }
+.calm-state { display: flex; align-items: center; gap: 12px; margin: 0; color: var(--ink); font-size: 14.5px; }
+.calm-uptime { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: end; gap: 0 26px; }
+.calm-uptime p { display: grid; gap: 2px; margin: 0; }
+.calm-caption { color: var(--ink-3); font-size: 9.5px; font-weight: 500; letter-spacing: .16em; text-transform: uppercase; white-space: nowrap; }
+.calm-value { color: var(--ink); font-size: 13px; font-variant-numeric: tabular-nums; }
+.calm-bar { display: flex; height: 3px; margin-bottom: 6px; }
+.calm-bar .day { flex: 1 1 0; min-width: 0; background: var(--ink); }
+.calm-bar .day.degraded { background: var(--amber); }
+.calm-bar .day.partial { background: var(--cell-partial); }
+.calm-bar .day.major { background: var(--down); }
+.calm-bar .day.none { background: var(--no-data); }
+.calm-components .component-extension:empty { display: none; }
+.tpl-calm .tpl-credit { color: var(--ink-2); font-size: 11px; font-weight: 500; letter-spacing: .16em; text-transform: uppercase; }
+
+/* History: one quiet rail per entry, its glyph on top and a small dot for each further word. */
+.calm-history .tl-list { margin-top: 26px; }
+.calm-history .tl + .tl { margin-top: 26px; border-top: 1px solid var(--line-strong); padding-top: 26px; }
+.calm-history .tl-body { position: relative; }
+.calm-history .tl-earlier-word { display: inline; }
+.calm-history .tl-resolved .tl-earlier-word, .calm-history .tl-maint .tl-earlier-word { display: none; }
+.calm-history .tl:has(.tl-thread, .tl-earlier)::before { content: ""; position: absolute; top: 34px; bottom: 6px; left: 13.5px; width: 1px; background: var(--line-strong); }
+.calm-history .tl + .tl:has(.tl-thread, .tl-earlier)::before { top: 60px; }
+.calm-history :is(.tl-next, .tl-earlier > li) { position: relative; }
+.calm-history :is(.tl-next, .tl-earlier > li)::before { content: ""; position: absolute; top: 8px; left: -39px; width: 7px; height: 7px; border-radius: 50%; background: #c7ccc6; }
+.calm-history .tl-open .tl-next::before { background: var(--amber); }
+.calm-history .tl-resolved .tl-earlier > li::before { background: #b9c7bd; }
+
+@media (max-width: 1100px) {
+  .calm-head { flex-wrap: wrap; }
+  .calm-body { grid-template-columns: minmax(0, 1fr); }
+  .calm-history { margin-top: 48px; border-left: 0; padding-left: 0; }
+}
+
+@media (max-width: 640px) {
+  .calm-head { display: grid; gap: 22px; padding-top: 24px; padding-bottom: 6px; }
+  .calm-brand { display: block; }
+  .tpl-calm .tpl-brand { gap: 14px; font-size: 21px; }
+  .tpl-calm .tpl-mark { width: 40px; height: 40px; }
+  .calm-brand .tpl-tagline { max-width: none; margin: 4px 0 0 54px; border: 0; padding: 0; }
+  .calm-actions { display: block; }
+  .calm-actions .tpl-subscribe { width: 100%; }
+  .calm-actions .tpl-feeds { display: none; }
+  .calm-status { padding-top: 40px; }
+  .calm-sentence { font-size: 31px; line-height: 1.2; }
+  .calm-sentence.size-m { font-size: 26px; }
+  .calm-sentence.size-s { font-size: 22px; }
+  .calm-status .tpl-updated { margin-top: 16px; font-size: 14.5px; }
+  .calm-body { margin-top: 34px; border-top: 1px solid var(--line-strong); padding-top: 28px; }
+  .calm-components .tpl-kicker { border-bottom: 0; padding-bottom: 4px; }
+  .calm-row { grid-template-columns: minmax(0, 1fr) 104px; grid-template-areas: "name uptime" "state uptime"; gap: 6px 16px; min-height: 0; border-bottom: 1px solid var(--line-strong); padding: 16px 0; }
+  .calm-row .kind-icon { display: none; }
+  .calm-name { grid-area: name; }
+  .calm-name :is(h3, h4) { font-size: 16.5px; }
+  .calm-state { grid-area: state; gap: 10px; font-size: 14px; }
+  .calm-uptime { grid-area: uptime; grid-template-columns: minmax(0, 1fr); gap: 8px; align-self: center; }
+  .calm-caption { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  .calm-value { font-size: 14px; }
+  .calm-bar { margin-bottom: 0; }
+  .calm-history { margin-top: 44px; }
+  .calm-history .tl { gap: 0 16px; }
+  .calm-history :is(.tl-next, .tl-earlier > li)::before { left: -33px; }
+  .calm-history .tl-title { font-size: 17px; }
+}
