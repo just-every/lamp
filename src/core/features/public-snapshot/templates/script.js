@@ -54,9 +54,10 @@
       const page = await fetch('/', { headers: { Accept: 'text/html' } });
       if (!page.ok) return;
       const next = new DOMParser().parseFromString(await page.text(), 'text/html');
-      const map = (doc) => doc.querySelector('[data-map]')?.getAttribute('data-map') || '';
-      // A new layout or new map positions come with a new stylesheet: load the page again.
-      if (next.body.getAttribute('data-template') !== document.body.getAttribute('data-template') || map(next) !== map(document)) { location.reload(); return; }
+      // What the stylesheet lays out for one snapshot: the Regions map's positions and the heatmap's dates.
+      const laidOut = (doc) => ['data-map', 'data-axis'].map((name) => doc.querySelector(`[${name}]`)?.getAttribute(name) || '').join(' ');
+      // A new layout, new map positions or new dates come with a new stylesheet: load the page again.
+      if (next.body.getAttribute('data-template') !== document.body.getAttribute('data-template') || laidOut(next) !== laidOut(document)) { location.reload(); return; }
       let complete = true;
       for (const part of document.querySelectorAll('[data-live]')) {
         const fresh = next.querySelector(`[data-live="${part.getAttribute('data-live')}"]`);

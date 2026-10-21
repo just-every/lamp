@@ -36,7 +36,8 @@
 /* The track is the container a callout label measures its room against. */
 .hm-scroll { min-width: 0; border-radius: 4px; container-type: inline-size; }
 .hm-track { position: relative; }
-.hm-cells, .hm-callouts, .hm-axis { display: grid; grid-template-columns: repeat(90, minmax(0, 1fr)); column-gap: 2.4px; }
+.hm-cells, .hm-callouts, .hm-axis { display: grid; grid-template-columns: repeat(90, minmax(0, 1fr)); }
+.hm-cells, .hm-callouts { column-gap: 2.4px; }
 .hm-cells { align-items: center; height: var(--row); }
 .hm-cells .cell { aspect-ratio: 1; border-radius: 1.5px; }
 .hm-callouts { position: relative; z-index: 1; height: var(--callouts); }
@@ -48,9 +49,11 @@
 .hm-callout.is-done a { background: var(--ink); color: var(--on-ink); }
 .hm-callout::after { content: ""; position: absolute; top: calc(100% - var(--lane)); left: calc(50% - .5px); width: 1px; height: calc(var(--lane) + var(--reach, 0) * var(--row) + var(--row) / 2); background: currentColor; }
 .hm-callout a:hover { text-decoration: underline; }
+/* The dates sit on the track's 90 day columns without the cells' gaps: each starts at its own day and today's ends
+   at the end of the track. heatmap-axis.ts keeps as many as fit the track's width, by container queries on it. */
 .hm-axis { padding-top: 12px; color: var(--ink-3); font-size: 10.5px; }
-.hm-axis span { grid-row: 1; white-space: nowrap; transform: translateX(-35%); }
-.hm-axis span.last { justify-self: end; transform: none; }
+.hm-axis span { grid-row: 1; white-space: nowrap; }
+.hm-axis span.last { justify-self: end; }
 .hm-notes { display: grid; grid-template-columns: minmax(0, 1fr); gap: 6px; margin: 16px 0 0; border-top: 1px solid var(--line); padding: 12px 0 0; color: var(--ink-2); font-size: 13px; list-style: none; }
 .hm-notes strong { font-weight: 600; }
 .hm-notes .tpl-note, .hm-notes .tpl-about { display: inline; margin: 0 0 0 8px; }
@@ -101,6 +104,11 @@
 @media (min-width: 641px) and (max-width: 1099px) {
   .hm-callout.lane-m0, .hm-callout.lane-m1 { display: block; }
   .hm-callout.lane-m1 { --lane: 31px; }
+  /* Where the track would leave squares under 4.5px, each day stands as a bar, as on phones, so the rows read as days. */
+  @container (width < 619px) {
+    .hm-cells, .hm-callouts { column-gap: 1px; }
+    .hm-cells .cell { aspect-ratio: auto; height: 14px; border-radius: .5px; }
+  }
 }
 
 @media (max-width: 1100px) {
@@ -145,11 +153,10 @@
   .hm-label.tone-major::before { background: var(--down); }
   .hm-label.tone-maint::before { background: var(--maint); }
   .hm-pct { grid-column: 2; grid-row: 2; padding: 0; font-size: 11px; line-height: 1.25; }
-  .hm-cells, .hm-callouts, .hm-axis { column-gap: .5px; }
+  .hm-cells, .hm-callouts { column-gap: .5px; }
   .hm-cells .cell { aspect-ratio: auto; height: 14px; border-radius: .5px; }
   .hm-callout.lane-s0, .hm-callout.lane-s1 { display: block; }
   .hm-callout.lane-s1 { --lane: 31px; }
-  .hm-axis span:not(.wk4) { display: none; }
   /* Incidents in groups under their own titles, unframed, with an ongoing incident's state as a pill. */
   .up-lower { margin-top: 30px; }
   .up-incidents > h2 { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
@@ -199,9 +206,4 @@
   .up-bar { display: flex; gap: 1px; height: 22px; margin-top: 8px; }
   .up-bar .day { flex: 1 1 0; min-width: 0; border-radius: 1px; }
   .up-subscribe { margin-top: 30px; }
-}
-
-@media (max-width: 374px) {
-  .hm-axis span.wk6 { display: block; }
-  .hm-axis span:not(.wk6) { display: none; }
 }
