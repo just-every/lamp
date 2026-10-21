@@ -23,21 +23,22 @@ else result.reason;           // "invalid-url" | "refused-address" | "unreachabl
 | `icon` | Declared SVG icon first, then the largest declared raster (link icons, apple-touch-icon, manifest), then `/favicon.ico` if nothing is declared. Bytes as a `data:` URL, type sniffed from the bytes |
 | `colours`, `accent` | theme-color, the SVG mark's own fills, CSS custom properties named brand/primary/accent, pinned-tab colour, manifest theme_color; `accent` is the first saturated one |
 | `fonts` | Google Fonts links and inline `@font-face` families |
-| `components` | Up to 8 plausible product/app areas from the site's header and every `<nav>`, including a `<nav>` inside the footer (other footer links if these give too few). Product/app menu groups, product subpaths and distinct service subdomains take priority over weaker service-name evidence. Audience, comparison ("vs …", alternatives), migration, account, documentation and marketing navigation are dropped, and so is a catalogue index (the one link at its level whose address holds two or more other areas, such as "Browse all products" at `/products`). Over 8, the areas the header's navigation presents come before those only the footer lists; then the areas the page links to most (counting pages beneath them) and names most in its own text are kept, before pages beneath another area. A page named after the area it sits beneath ("Jira Service Management" beneath "Jira") is an area of its own. Fewer than 2 plausible areas returns an empty list. |
+| `components` | Up to 8 plausible product/app areas from the site's header and every `<nav>`, including a `<nav>` inside the footer (other footer links if these give too few). Product/app menu groups, product subpaths and distinct service subdomains take priority over weaker service-name evidence. Audience, comparison ("vs …", "… vs …", "… alternative", a Compare group), migration, account, documentation and marketing navigation are dropped, and so is a page the header files only under a use-case, audience or comparison group ("What you can do in Acme") even when the footer lists it under Product, and a catalogue index (the one link at its level whose address holds two or more other areas, such as "Browse all products" at `/products`). Over 8, the areas the header's navigation presents come before those only the footer lists; then the areas the page links to most (counting pages beneath them) and names most in its own text are kept, before pages beneath another area. A page named after the area it sits beneath ("Jira Service Management" beneath "Jira") is an area of its own. Fewer than 2 plausible areas returns an empty list. |
 | `statusPage` | A link named Status, or to a known status host |
 
 Nothing is guessed: a field the site does not give is `null` or empty.
 
 Component names use the link's structure: a heading or title/label element wins
 over a description, subtitle, paragraph or small print. A class names its element by
-its last word ("product-header", "card__title"); a word that only begins a class names
+its last word ("product-header", "card__title"), read with and without a BEM modifier
+("card__title--large", "link--label"); a word that only begins a class names
 the block the element belongs to ("header-platform-card__description",
 "title-card-link"), and utility values in brackets ("text-[var(--header-text)]") and
 generated hashes are not words. Description-styled wrappers
 still expose headings and names above a separately marked description. Separate block siblings,
-or siblings that touch with no space between them ("Journeys" then "Understand paths to
-conversion"), are read as a name followed by supporting text, unless a flex row lays them
-side by side; inline spans separated by a space remain one name. Badges (NEW, BETA, Soon and
+the children of a flex column (`flex-col`), or siblings that touch with no space between them
+("Journeys" then "Understand paths to conversion"), are read as a name followed by supporting
+text, unless a flex row lays them side by side; other inline spans separated by a space remain one name. Badges (NEW, BETA, Soon and
 counts), emoji, icon-font glyphs, decorative elements and a list marker before the name
 ("- vs Google Analytics") are removed, as is text kept for screen readers only. A badge leaves only when it stands
 on its own: a trailing badge word or bracketed count in its own element or text,
@@ -61,9 +62,10 @@ release, changelog, what's-new and update pages, trust centres, and compliance p
 ("GDPR Compliance", `/compliance`); an area that pairs compliance with another
 ("Security & Compliance") stays. Comparison, alternative, audience and "why us" pages
 stay out at any depth (`/features/vs-google-analytics`, `/acme-alternative`,
-`/for-agencies`, `/why-acme`), as do "Why …", "Who …" and programme groups. Path segments and group/name
+`/for-agencies`, `/why-acme`), as do Compare, Solutions, Industries, Use cases, "What …",
+"Why …", "Who …", "How …" and programme groups. Path segments and group/name
 wording are checked at every depth, including compound slugs and punctuation variants.
-Service directories do not establish product evidence. Generic links are matched on
+Service directories and a `/tools/` directory (free generators and calculators) do not establish product evidence. Generic links are matched on
 the link's whole text as well as the cleaned name.
 
 Text that links to three or more addresses, or to two when another link names one

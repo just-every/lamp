@@ -33,10 +33,12 @@ export function cleanComponentName(value: string) {
 }
 
 /** The words of each class name. Utility values in brackets ("text-[var(--header-text)]") and generated hashes
- * ("Nav_title__fMMCy", "sc-71cbd675") are not words; "productTitle" and "product-title" are the same two words. */
+ * ("Nav_title__fMMCy", "sc-71cbd675") are not words; "productTitle" and "product-title" are the same two words.
+ * A BEM modifier names a variant, so a class is read with and without it: "card__title--large" and "link--label". */
 const classNames = (element: Element) => `${element.attributes.class ?? ""} ${element.attributes["data-slot"] ?? ""}`.split(/\s+/).filter(Boolean)
-  .map(name => name.replace(/\[[^\]]*\]/g, " ").replace(/__(?=[\w-]*[A-Z0-9])[\w-]{5,8}$/, "").replace(/([a-z])([A-Z])/g, "$1 $2").toLowerCase()
-    .split(/[^a-z0-9]+/).filter(word => word && !/\d/.test(word)));
+  .map(name => name.replace(/\[[^\]]*\]/g, " ").replace(/__(?=[\w-]*[A-Z0-9])[\w-]{5,8}$/, ""))
+  .flatMap(name => [name, name.replace(/(?<=\w)--[\w-]*$/, "")])
+  .map(name => name.replace(/([a-z])([A-Z])/g, "$1 $2").toLowerCase().split(/[^a-z0-9]+/).filter(word => word && !/\d/.test(word)));
 const hidden = (element: Element) => element.attributes["aria-hidden"] === "true" || "hidden" in element.attributes;
 
 const role = (element: Element): "decoration" | "description" | "title" | "text" => {
@@ -72,19 +74,20 @@ function titles(element: Element, inDescription = false): string[] {
 const raw = (child: Element | string): string => typeof child === "string" ? child : child.children.map(raw).join("");
 const shownPart = (child: Element | string) => typeof child === "string" ? cleanComponentName(child) : visible(child);
 
-/** Separate lines express a label followed by supporting text: block siblings, or siblings that touch with no
- * space between them ("Journeys" then "Understand paths to conversion"), which only reads as two lines unless a
- * flex row lays them side by side. Words split by a space, or one word split by markup, stay one line.
- * Returns the first line when there are several. */
+/** Separate lines express a label followed by supporting text: block siblings, the children of a flex column, or
+ * siblings that touch with no space between them ("Journeys" then "Understand paths to conversion"), which only
+ * reads as two lines unless a flex row lays them side by side. Words split by a space, or one word split by markup,
+ * stay one line. Returns the first line when there are several. */
 function firstLine(element: Element): string {
   const parts = element.children.flatMap((child, index) => shownPart(child) ? [index] : []);
   const block = (index: number) => typeof element.children[index] !== "string" && /^(div|p|h[1-6])$/.test((element.children[index] as Element).tag);
   const words = classNames(element).flat();
   const row = words.includes("flex") && !words.some(word => /^(col|column)$/.test(word));
+  const column = (element.attributes.class ?? "").split(/\s+/).some(name => /^flex-col(umn)?$/.test(name));
   const touching = (before: number, after: number) => !row && element.children.slice(before + 1, after).every(between => !raw(between))
     && /[\p{L}\p{N}.!?)]$/u.test(raw(element.children[before])) && /^\p{L}/u.test(raw(element.children[after]))
     && shownPart(element.children[after]).includes(" ");
-  const end = parts.findIndex((index, at) => at > 0 && (block(index) || block(parts[at - 1]) || touching(parts[at - 1], index)));
+  const end = parts.findIndex((index, at) => at > 0 && (column || block(index) || block(parts[at - 1]) || touching(parts[at - 1], index)));
   if (end > 0) {
     const first = element.children.slice(parts[0], parts[end - 1] + 1);
     if (first.length === 1 && typeof first[0] !== "string") return firstLine(first[0]) || visible(first[0]);

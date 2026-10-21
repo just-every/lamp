@@ -317,7 +317,7 @@ test('the site reader reads what a site says about itself, refuses private desti
     <a href="/platform/cloud/">Cloud</a><a href="/digital-operations/">Digital Operations</a><a href="/platform/advance/">Generative AI</a>
     </div></nav></footer>`)).map(component => component.name), [...operations, 'Status Pages'], 'a footer-only page never displaces a header product, whatever its link count');
 
-  t.diagnostic('a class names its element by its last word, without utility values or hashes; touching siblings are separate lines');
+  t.diagnostic('a class names its element by its last word, without utility values or hashes; touching siblings and flex columns are separate lines');
   assert.deepEqual((await read(`<nav aria-label="Products"><div><button>Products</button>
     <a class="header-platform-card__link" href="/products/orbit/"><div class="header-platform-card__content"><h4 class="header-platform-card__title">Orbit</h4><p class="header-platform-card__description">Secure all of your identities.</p></div></a>
     <a href="/products/relay/" class="p-4 hover:bg-[var(--header-button-hover-bg)]"><div><span class="font-bold text-[var(--header-text)]">Relay</span></div><div class="text-sm text-[var(--header-text-muted)]">Themes and experts</div></a>
@@ -330,14 +330,26 @@ test('the site reader reads what a site says about itself, refuses private desti
     <a href="/platform/storage/"><span class="flex items-center gap-1"><span>Acme</span><span>Cloud Storage</span></span></a>
     <a href="/platform/vault/"><span class="font-bwi">&#xf1a3;</span> Secrets Vault</a><a href="/products/orbit">- Orbit</a><a href="/products/relay">• Relay</a>
     </div></nav>`)).map(component => component.name), ['Journeys', 'Analytics', 'Acme Cloud Storage', 'Secrets Vault', 'Orbit', 'Relay'], 'an icon glyph and a list marker are not part of the name');
+  assert.deepEqual((await read(`<nav><div><button>Platform</button>
+    <a href="/products/comet/"><span class="menu-card__title--bold">Comet</span> <span class="menu-card__text">The blueprint for teams</span></a>
+    <a href="/products/beacon/"><span class="nav-link--label">Beacon</span> <span>agents</span></a>
+    <a href="/platform/surveys/"><span class="relative flex min-w-0 flex-col gap-1"><span class="text-14 flex items-center"><span>Surveys </span></span><span class="text-12">Collect feedback from users</span></span></a>
+    <a href="/platform/replay/"><div class="flex flex-col">Session Replay <span>See every visit</span></div></a>
+    </div></nav>`)).map(component => component.name), ['Comet', 'Beacon', 'Surveys', 'Session Replay'], 'a BEM modifier keeps a title a title; the children of a flex column are separate lines');
 
-  t.diagnostic('comparison, alternative, audience and "why" pages, calls to action and compliance pages stay out; a decorative arrow is not a call to action');
+  t.diagnostic('comparison, alternative, audience, "why" and use-case pages, calls to action and compliance pages stay out; a decorative arrow is not a call to action');
   assert.deepEqual(await read(`<nav><a href="/">Home</a><div><button>Why Acme</button>
     <a href="/features/vs-google-analytics">Google Analytics</a><a href="/features/vs-cloudflare-web-analytics">Cloudflare Web Analytics</a>
     <a href="/why-acme/cookieless-analytics">Cookieless analytics</a></div>
     <a href="/vs-matomo">- vs Matomo</a><a href="/compare/acme-vs-segment">Segment Analytics</a><a href="/google-analytics-alternative">Google Analytics</a>
     <a href="/for-ecommerce">- Ecommerce analytics</a><a href="/white-label-web-analytics">- White-label analytics</a>
     <div><button>Who it's for</button><a href="/products/agencies">Agency analytics</a></div></nav>`), [], 'a single-product site with comparison pages stays honestly empty');
+  assert.deepEqual(await read(`<nav><a href="/google-analytics">Acme vs Google Analytics</a><a href="/products/ga">Google Analytics alternative</a>
+    <div><button>Compare</button><a href="/products/mixpanel">Mixpanel</a><a href="/products/heap">Heap</a></div></nav>`), [], 'a comparison named in the link or its group stays out');
+  assert.deepEqual((await read(`<header><nav><div><button>Products</button><a href="/design/"><h3>Acme Design</h3></a>
+    <div><h2>What you can do in Acme</h2><a href="/design-explore/"><p>Design and explore</p></a><a href="/build-ship/">Build and ship products</a></div>
+    </div></nav></header><footer><div><h3>Product</h3><a href="/design/">Acme Design</a><a href="/slides/">Acme Slides</a>
+    <a href="/design-explore/">Design and explore</a><a href="/build-ship/">Build and ship products</a></div></footer>`)).map(component => component.name), ['Acme Design', 'Acme Slides'], 'a use-case page the header files under a question stays out of the footer product list');
   assert.deepEqual((await read(`<header><nav><div><button>Products</button>
     <a href="/websites"><span>Websites</span><span aria-hidden="true">→</span></a><a href="/invoicing"><span>Invoicing</span><span aria-hidden="true">→</span></a>
     <a href="/security-compliance"><h3>Security &amp; Compliance</h3><p>End-to-end data protection</p></a>

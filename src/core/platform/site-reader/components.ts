@@ -7,7 +7,8 @@ import type { SiteComponent } from "./types.ts";
 const GENERIC = /^(home|pricing|plans? and pricing|blog|about( us)?|company|careers|jobs|contact( us| sales)?|talk to (sales|us)|sales|(book|request|get|watch) a demo|demo|get started( free| for free)?|start (your )?free trial|start for free|try (it )?(for )?free|free trial|sign ?up( free)?|register|learn more|read more|resources|customers|case studies|(customer )?stories|partners|press|news(room)?|events|webinars|community|help( cent(er|re))?|support|faq|privacy( policy)?|terms( of (service|use))?|legal|cookies?( policy| settings)?|menu|close|skip to (main )?content|english|language|products?|features?( and benefits)?|benefits|solutions|platform|overview|explore( more| all)?|enterprise|compare|why .+|see all.*|view all.*|all .+|more|status|system status|log ?out|sign ?out|download|apps?|guides?|templates|integrations? directory|changelog|release notes|what['’]?s new|security|trust|accessibility|sitemap|investors|affiliates?|refer a friend|gift cards?)$/i;
 // Calls to action, sentences, plan and pricing wording, catalogue links and menu chrome are not product areas.
 const CHROME = /^(pricing|sign ?up|get started|try|book|request|register|start|navigate|go to|back to|skip|open app|download|see|view|learn|read|watch|join|contact|help|explore|discover)\b|\b(overview|home|homepage|more|plans|pricing|prices)$|\s(now|today)$|\ball (products|services|apps|tools|solutions|features)$|\b(for|at)\b|\b(is|are|was|our|your|we|you|to the|of the)\b/i;
-const NON_SERVICE_NAME = /^(docs?|documentation|developers?|developer docs|api (docs|reference)|integrations?|now|log[ -]?in|sign[ -]?in|accounts?|dashboard login|e-?commerce|saas|agencies|creators?( and publishers?)?|publishers?|public sector|industries|use cases)$|^(vs\.?|versus|compare|migrat\w*|switch|white[ -]label)\b/i;
+// A comparison names the competitor ("vs Matomo", "Acme vs Matomo", "Google Analytics alternative").
+const NON_SERVICE_NAME = /^(docs?|documentation|developers?|developer docs|api (docs|reference)|integrations?|now|log[ -]?in|sign[ -]?in|accounts?|dashboard login|e-?commerce|saas|agencies|creators?( and publishers?)?|publishers?|public sector|industries|use cases)$|^(vs\.?|versus|compare|migrat\w*|switch|white[ -]label)\b|\s(vs\.?|versus)\s|\balternatives?$/i;
 const NON_SERVICE_PATH = /\/(docs?|documentation|developers?|reference|learn|guides?|help|support|blog|news|now|changelog|releases?|release-notes|whats-new|downloads?|explore|resources|integrations?|customers?|stories|case-studies|partners|templates|for|use-cases|industries|enterprise|solutions?|compare|comparisons?|alternatives?|vs|migrat\w*|log-?in|sign-?in|sign-?up|auth|accounts?|pricing|about|company|careers|jobs|contact|legal|privacy|terms|cookies|benefits|press|events|(?:security|trust)(?:-cent(?:er|re))?|compliance)(\/|$)/i;
 const NON_SERVICE_HOST = /^(docs?|developers?|help|support|learn|accounts?|auth|id|sso|login|trust)\./i;
 // A /tools/ directory holds free generators and calculators far more often than products, so it is no product evidence.
@@ -18,7 +19,10 @@ const SERVICE_NAME = /^(api|dashboard|console|web app|mobile app|website|storage
 const STATUS_HOST = /(^|\.)(statuspage\.io|status\.io|instatus\.com|betteruptime\.com|statuspal\.io|hund\.io|status\.[a-z0-9-]+\.[a-z.]+)$|^status\./i;
 
 const PRODUCT_GROUP = /^(products?( and pricing)?|platform|(?:featured )?apps?)$/i;
-const OTHER_GROUP = /^(company|community|social|resources?|developers?|support|solutions?|industries|use cases|integrations?( and custom solutions)?|programs?|why .+|who .+)$/i;
+// Use-case, audience and comparison groups, and labels that ask the reader a question ("Why Acme", "Who it's for",
+// "What you can do in Acme"), hold pages about a market rather than product areas.
+const MARKET_GROUP = /^(solutions?|industries|use cases|compare|comparisons?|alternatives?|(what|why|who|how) .+)$/i;
+const OTHER_GROUP = /^(company|community|social|resources?|developers?|support|integrations?( and custom solutions)?|programs?)$/i;
 // Feature navigation alone needs an operational area, not just a named benefit.
 const SERVICE_ENDING = /\b(hosting|analytics|monitoring|messaging|storage|payments|invoicing|reporting|analysis|builders?|players?|transcription|time tracking)$/i;
 const MARKETING_INDEX = /^\/(features?|benefits)(?:\/|$)$/i;
@@ -30,6 +34,10 @@ const CAP = 8;
 interface Candidate extends SiteComponent { primary: boolean; titleRank: HtmlAnchor["titleRank"]; menu: boolean; groups: string[] }
 
 const inHeader = (anchor: HtmlAnchor) => !anchor.footer && (anchor.region === "nav" || anchor.region === "header");
+/** A menu's accessible name without its role suffix: "Products: Dropdown Content" is "Products". */
+const roleless = (label: string) => label.replace(/\s*[:–—-]\s*(dropdown|menu|navigation)( content)?$/i, "");
+/** The innermost group label that says what a menu holds: products, or pages of another kind. */
+const recognised = (groups: string[]) => groups.findLast(label => PRODUCT_GROUP.test(label) || MARKET_GROUP.test(label) || OTHER_GROUP.test(label) || nonProductLabel(label));
 
 const destination = (url: string) => url.replace(/[#?].*$/, "").replace(/\/$/, "");
 const key = (name: string) => name.toLowerCase().replace(/\s*&\s*/g, " and ");
@@ -115,8 +123,8 @@ export function siteComponents(scan: HtmlScan, base: URL): SiteComponent[] {
     // The link's whole text is checked too, so a cleaned name never hides a generic link ("What's New").
     const whole = anchor.text.replace(/[\s›»→↗➔>]+$/u, "");
     if (ARROWED.test(anchor.text) || GENERIC.test(whole)) return [];
-    const groups = anchor.groups.map(label => label.replace(/\s*[:–—-]\s*(dropdown|menu|navigation)( content)?$/i, ""));
-    const productGroup = groups.findLast(label => PRODUCT_GROUP.test(label) || OTHER_GROUP.test(label) || nonProductLabel(label));
+    const groups = anchor.groups.map(roleless);
+    const productGroup = recognised(groups);
     const roleMenu = groups.some((label, index) => label !== anchor.groups[index]);
     const productMenu = Boolean(productGroup && PRODUCT_GROUP.test(productGroup)) && (!roleMenu || anchor.titleRank > 0 || !anchor.described);
     const product = productMenu || PRODUCT_PATH.test(url.pathname);
@@ -129,14 +137,19 @@ export function siteComponents(scan: HtmlScan, base: URL): SiteComponent[] {
     if (!primary && !service && !plausible) return [];
     return [{ name: text, url: url.href, primary, titleRank: anchor.titleRank, menu: !anchor.footer && productMenu, groups: anchor.groups }];
   });
-  let candidates = unique(consider(scan.anchors.filter(anchor => anchor.region === "nav" || anchor.region === "header")));
-  if (candidates.length < 2) candidates = unique([...candidates, ...consider(scan.anchors.filter(anchor => anchor.region === "footer"))]);
+  const address = (anchor: HtmlAnchor) => { try { return [destination(new URL(anchor.href, base).href)]; } catch { return []; } };
+  const headerAnchors = scan.anchors.filter(inHeader);
+  const header = new Set(consider(headerAnchors, true).map(candidate => destination(candidate.url)));
+  // The header's menus sort pages more finely than a footer's list: a page the header files only under a use-case,
+  // audience or comparison group ("What you can do in Acme") is no product area because the footer lists it under Product.
+  const market = new Set(headerAnchors.filter(anchor => MARKET_GROUP.test(recognised(anchor.groups.map(roleless)) ?? "")).flatMap(address));
+  const filed = (candidate: Candidate) => header.has(destination(candidate.url)) || !market.has(destination(candidate.url));
+  let candidates = unique(consider(scan.anchors.filter(anchor => anchor.region === "nav" || anchor.region === "header"))).filter(filed);
+  if (candidates.length < 2) candidates = unique([...candidates, ...consider(scan.anchors.filter(anchor => anchor.region === "footer"))]).filter(filed);
   const preferred = candidates.filter(candidate => candidate.primary);
   if (preferred.length >= 2) candidates = preferred;
   const indexes = catalogueIndexes(candidates);
   candidates = candidates.filter(candidate => !indexes.has(destination(candidate.url)));
   if (candidates.length < 2) return [];
-  const address = (anchor: HtmlAnchor) => { try { return [destination(new URL(anchor.href, base).href)]; } catch { return []; } };
-  const header = new Set(consider(scan.anchors.filter(inHeader), true).map(candidate => destination(candidate.url)));
   return prominent(candidates, scan.anchors.flatMap(address), header, scan.prose).map(({ name, url }) => ({ name, url }));
 }
