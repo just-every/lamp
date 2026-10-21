@@ -24,6 +24,6 @@ export function registerChannelRoutes(app: Hono<AppEnv>, service: ChannelsServic
   app.delete("/api/app/channels/:id", async (context) => {
     const id = ulidSchema.safeParse(context.req.param("id"));
     if (!id.success) return context.json({ error: "Channel not found." }, 404);
-    return await service.remove(id.data) ? context.json({ removed: true }) : context.json({ error: "Channel not found." }, 404);
+    return await service.remove(id.data, context.get("operator").id) ? context.json({ removed: true }) : context.json({ error: "Channel not found." }, 404);
   });
 }

@@ -96,20 +96,26 @@ export function createIntakeService(
       const source = await repository.findSource(sourceId);
       if (!source) throw new AlertSourceNotFoundError();
       const rawBytes = new Uint8Array(await request.arrayBuffer());
-      const rawBody = new TextDecoder().decode(rawBytes);
       if (source.preset === "pagerduty") {
         if (!source.signingSecret || !await verifyPagerDuty(source.signingSecret, rawBytes, request.headers.get("x-pagerduty-signature"))) throw new UnauthorizedAlertError();
       } else if (source.credentialKind === "hmac-sha256") {
         const timestamp = request.headers.get(source.timestampHeader);
         const signature = request.headers.get(source.signatureHeader);
-        if (!validTimestamp(timestamp) || !signature || !source.signingSecret || !constantTimeEqual(await hmacSha256(source.signingSecret, `${timestamp}.${rawBody}`), signature)) throw new UnauthorizedAlertError();
+        if (!validTimestamp(timestamp) || !signature || !source.signingSecret) throw new UnauthorizedAlertError();
+        // Authenticate the timestamp prefix and received bytes before decoding.
+        // TextDecoder may discard a BOM or replace invalid UTF-8 for JSON parsing.
+        const prefix = new TextEncoder().encode(`${timestamp}.`);
+        const signedBytes = new Uint8Array(prefix.length + rawBytes.length);
+        signedBytes.set(prefix);
+        signedBytes.set(rawBytes, prefix.length);
+        if (!constantTimeEqual(await hmacSha256(source.signingSecret, signedBytes.buffer), signature)) throw new UnauthorizedAlertError();
       } else {
         // Tools that cannot send a header present a preset's token as the endpoint's last path segment.
         const token = request.headers.get("Authorization")?.match(/^Bearer (.+)$/i)?.[1] ?? (source.preset ? pathToken : undefined);
         if (pathToken !== undefined && !source.preset) throw new UnauthorizedAlertError();
         if (!token || !source.bearerTokenHash || !constantTimeEqual(await hashOpaqueToken(token), source.bearerTokenHash)) throw new UnauthorizedAlertError();
       }
-      return { source, rawBody };
+      return { source, rawBody: new TextDecoder().decode(rawBytes) };
     },
     async acceptVerified(request) {
       const { source, rawBody } = request;

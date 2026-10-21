@@ -1,3 +1,4 @@
+import { createUlid } from "../../shared/ids";
 import type { IncidentImpact } from "../../shared/incident-impact";
 import type { IncidentLifecycle } from "../../shared/domain";
 
@@ -21,8 +22,14 @@ export function createChannelRepository(db: D1Database) {
         ...componentIds.map((componentId) => db.prepare("INSERT INTO channel_destination_components (destination_id, component_id) SELECT ?, id FROM components WHERE id = ?").bind(destination.id, componentId)),
       ]);
     },
-    async remove(id: string, removedAt: string) {
-      return (await db.prepare("UPDATE channel_destinations SET removed_at = ?, updated_at = ? WHERE id = ? AND removed_at IS NULL").bind(removedAt, removedAt, id).run()).meta.changes === 1;
+    async remove(id: string, operatorId: string, removedAt: string) {
+      // D1 batches commit atomically: a competing/repeated removal sees no active
+      // row and records nothing. Never copy the sealed URL into the audit log.
+      const results = await db.batch([
+        db.prepare("INSERT INTO audit_entries (id, entity_type, entity_id, action, operator_id, payload_json, created_at, updated_at) SELECT ?, 'channel', id, 'deleted', ?, json_object('kind', kind, 'name', name), ?, ? FROM channel_destinations WHERE id = ? AND removed_at IS NULL").bind(createUlid(), operatorId, removedAt, removedAt, id),
+        db.prepare("UPDATE channel_destinations SET removed_at = ?, updated_at = ? WHERE id = ? AND removed_at IS NULL").bind(removedAt, removedAt, id),
+      ]);
+      return results[1].meta.changes === 1;
     },
     /** Placed in the publish batch: one post per eligible channel, committed with the update. */
     postStatements(input: { updateId: string; componentIds: readonly string[]; queuedAt: string }): D1PreparedStatement[] {
