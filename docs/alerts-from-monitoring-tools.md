@@ -50,3 +50,55 @@ vantages, error category and confirmed failure time. Older envelopes without
 that optional context say it was not supplied. Edit the saved connection's
 mappings in Connect Uptime; a blank secret keeps the existing secret.
 The preset never changes the public page without operator publication.
+
+
+## PagerDuty
+
+Open **Alerts → Connect PagerDuty** at `/app/alerts`. First save the source
+and its component mappings with the signing secret blank. The saved source
+card provides its endpoint. Until you save the subscription's signing secret,
+Lamp refuses every inbound event; the source is not yet connected for webhooks.
+
+Copy that endpoint into a new
+[v3 webhook subscription in PagerDuty](https://docs.pagerduty.com/integrations/webhooks#add-a-v3-webhook-subscription-on-the-generic-webhooks-page),
+subscribing to `incident.triggered`, `incident.acknowledged`,
+`incident.escalated` and `incident.resolved`. Copy the generated signing
+secret from PagerDuty, edit the Lamp source, paste the secret and save.
+The source card then shows the webhook connection as connected. Keep signing
+and the default v3 body enabled.
+
+Add a mapping row for each component using the PagerDuty service ID
+(`service_id`), service name (`service_name`), or both. Values must match
+exactly, including case. When both fields are supplied, both must match;
+every matching row attaches its component to the same private draft. Edit a
+saved connection to change mappings. Once a secret is saved, leaving the signing secret blank while editing keeps
+that saved secret.
+
+Lamp follows [PagerDuty's signature verification](https://docs.pagerduty.com/developer/verifying-webhook-signatures):
+it verifies HMAC-SHA256 hex over the exact raw request body, accepting any
+matching comma-separated `v1` signature through constant-time comparison.
+An invalid signature returns 401 and records nothing. Signed unsupported
+or unmapped events appear in Receipts. Triggered events create private drafts;
+acknowledgments and escalations add their event times to the incident brief
+and its cited report timeline. Repeated events remain linked to the same
+incident. Resolution records recovery and closes a draft only if nothing has
+been published. Published incidents still need an operator's resolution update.
+
+To post what customers were told back to responders, connect a PagerDuty REST
+API key that can create incident notes. **PagerDuty user email** is optional
+in Lamp: it defaults to the Lamp source owner's email. That address must be a
+valid user in the PagerDuty account because the
+[create-note API requires a `From` header](https://docs.pagerduty.com/developer/api/reference/rest/incidents/create-incident-note).
+The key and email are encrypted with AES-GCM, stay hidden after saving, and
+are preserved when the API key field is left blank while editing.
+
+With a connected key, each publication makes at most one note request per
+linked PagerDuty incident containing the published text and permalink. The
+only destination is `https://api.pagerduty.com/incidents/:id/notes`, and Lamp
+refuses redirects. Note failures appear in the source's Receipts and never
+block publication. With no key, no request is sent and signed inbound events
+still work. Archives exclude the sealed note credential; after restore the
+source shows **Reconnect required** until you supply a replacement key.
+**Erase source** permanently removes the source's saved credentials and
+receipts. Local test receipts establish the protocol behavior; connecting
+and checking a real PagerDuty account is installation acceptance.

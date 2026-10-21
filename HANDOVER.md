@@ -155,8 +155,9 @@ establish source integrity; every product and installation obligation remains.
 ## Base components, delivery and the rer CLI
 
 Lamp's Base copies are byte-identical to Base at
-`052e5ea88c1e7b73cca10c4813524a5f72580af8` (`rer-v0.2.71`, the pinned
-`@runeditrun/rer`) and recorded in `base-copies.json`:
+`052e5ea88c1e7b73cca10c4813524a5f72580af8` (`rer-v0.2.71`), apart from
+`SEED-COMMAND-CONTRACT.md` at `91c082876d6560150f3dc012ec57b92bd9895228`
+(`rer-v0.2.76`, the pinned `@runeditrun/rer`), and recorded in `base-copies.json`:
 onboarding (`scripts/base-onboarding/`), the rer CLI (`scripts/base-cli/`), mail
 (`modules/mail/`), the delivery producer (`scripts/delivery/base/`), owner
 migrations, operations and edition authoring. `pnpm run source:copies` checks the

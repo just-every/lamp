@@ -1,12 +1,12 @@
 # Install Lamp
 
-Lamp uses the checkout's pinned `@runeditrun/rer` 0.2.71 and can run locally or
+Lamp uses the checkout's pinned `@runeditrun/rer` 0.2.76 and can run locally or
 in your Cloudflare account. For the local path, run `npx -y @runeditrun/rer dev just-every/run-lamp`, which clones Lamp, installs dependencies, sets up the first owner and starts it; to start it again later, run `cd run-lamp && rer dev`. Without Node, `curl -fsSL https://runeditrun.com/install.sh | sh -s -- dev just-every/run-lamp` brings its own and does the same.
 The [local guide](../RUN-LOCALLY.md) has the details. Local mail is silently
 suppressed and not retained; use a hosted installation to exercise real email delivery.
 
 That start line clones `main`, Lamp's development source, not a release tag. The latest release tag
-is `v1.9.0` (rer 0.2.71); see [source and tooling versions](../README.md#source-and-tooling-versions)
+is `v1.10.0` (rer 0.2.76); see [source and tooling versions](../README.md#source-and-tooling-versions)
 to use it instead. `rer --version` names the `rer` you installed first and the
 version the checkout pins second; inside the checkout, `rer` runs the pinned one.
 

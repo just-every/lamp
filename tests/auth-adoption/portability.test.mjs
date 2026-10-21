@@ -1,38 +1,13 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { execFile } from 'node:child_process';
-import { promisify } from 'node:util';
-import { mkdtemp, mkdir, cp, copyFile, rm, symlink } from 'node:fs/promises';
+import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { join } from 'node:path';
-import { getPlatformProxy } from 'wrangler';
 import { Hono } from 'hono';
 import { authFixture, secret, setupToken } from './runtime.mjs';
 import { load } from '../operator-readiness/runtime.mjs';
-const exec = promisify(execFile);
+import { checkout, command, proxy } from '../helpers/native-transfer.mjs';
 
-async function checkout(root, destination) {
-  await mkdir(destination, { recursive: true });
-  const { stdout } = await exec('git', ['ls-files', '-z'], { cwd: root });
-  for (const path of stdout.split('\0').filter(path => path && !path.includes('/'))) await copyFile(join(root, path), join(destination, path));
-  // Archive safety resolves the installation's Vite config, including its local modules.
-  for (const path of ['scripts', 'migrations', 'src', 'modules', 'management', 'docs']) await cp(join(root, path), join(destination, path), { recursive: true });
-  await symlink(join(root, 'node_modules'), join(destination, 'node_modules'));
-}
-async function command(root, ...args) {
-  // Each copied installation owns its own operation lock. The verifier's
-  // checkout-local token cannot authorize an operation in this other checkout;
-  // retain process custody so the verifier can still clean up its descendants.
-  const { RER_LOCAL_OPERATION, ...environment } = process.env;
-  try { return await exec(process.execPath, ['node_modules/@runeditrun/rer/bin/rer.mjs', ...args, '--json'], { cwd: root, env: { ...environment, CI: 'true', WRANGLER_SEND_METRICS: 'false' }, maxBuffer: 4 * 1024 * 1024, timeout: 120000 }); }
-  catch (error) {
-    // Receipts carry symbolic errors only; never echo private archive or settings.
-    const events = String(error.stdout ?? '').split('\n').flatMap(line => { try { return [JSON.parse(line)]; } catch { return []; } });
-    throw new Error(`Native ${args[0]} failed: ${events.filter(e => e.event === 'error').map(e => e.code + ': ' + e.message).join('; ') || 'child exit ' + error.code}`);
-  }
-}
-const proxy = root => getPlatformProxy({ configPath: join(root, 'wrangler.jsonc'), remoteBindings: false, persist: { path: join(root, '.wrangler/state/v3') } });
-
-test('ACCESS-001 native rer archive restores owner continuity and subscriber authority without restoring sessions or provider approval', async () => {
+test('ACCESS-001 INTAKE-009 native rer archive restores owner continuity and subscriber authority without restoring sessions, provider approval or a sealed PagerDuty key', async () => {
   const root = process.cwd(), directory = await mkdtemp(join(root, '.lamp-auth-portability-'));
   const source = join(directory, 'source'), target = join(directory, 'target');
   let current;
@@ -63,8 +38,11 @@ test('ACCESS-001 native rer archive restores owner continuity and subscriber aut
     await db.prepare("INSERT INTO subscriber_tokens(id,subscriber_id,scope,token_hash,created_at,updated_at) VALUES('portable-token','portable-reader','manage',?,?,?)").bind(await codec.hash(manage), now, now).run();
     const subscriberApp = new Hono(); registerSubscriberRoutes(subscriberApp, subscribers);
     assert.equal((await subscriberApp.fetch(new Request(native.origin + '/manage/' + manage))).status, 200);
+    // A connected PagerDuty source's sealed REST key is a provider credential: it never travels.
+    await db.prepare("INSERT INTO alert_sources(id,name,credential_kind,signing_secret,deduplication_path,title_path,state_path,created_by_operator_id,responder_preset,responder_sealed_credentials,responder_connected,created_at,updated_at) VALUES('portable-pagerduty','Portable PagerDuty','hmac-sha256','portable-signing-secret','event.data.id','event.data.title','event.event_type',?,'pagerduty','portable-sealed-rest-key',1,?,?)").bind(actor.operator.id, now, now).run();
     await current.dispose(); current = null;
     await command(source, 'export', '--output', join(directory, 'installation.rer'));
+    assert.ok(!(await readFile(join(directory, 'installation.rer'))).includes('portable-sealed-rest-key'), 'the archive carries no sealed PagerDuty key');
     await command(target, 'import', '--input', join(directory, 'installation.rer'), '--yes');
     current = await proxy(target);
     const restored = current.env.DB, fresh = authFixture(restored);
@@ -78,6 +56,7 @@ test('ACCESS-001 native rer archive restores owner continuity and subscriber aut
     assert.equal((await restored.prepare('SELECT COUNT(*) n FROM rer_dependency_pending').first()).n, 0);
     assert.equal((await restored.prepare('SELECT needs_relink FROM rer_dependency_link').first()).needs_relink, 1);
     assert.equal((await restored.prepare('SELECT idp_sign_in FROM oa_auth_settings').first()).idp_sign_in, 0);
+    assert.deepEqual({ ...await restored.prepare("SELECT responder_sealed_credentials, responder_connected FROM alert_sources WHERE id='portable-pagerduty'").first() }, { responder_sealed_credentials: null, responder_connected: 1 }, 'the restored PagerDuty source asks to reconnect');
     const restoredApp = new Hono();
     registerSubscriberRoutes(restoredApp, createSubscribersService(createSubscriberRepository(restored), { tokenSecret: 'portable-subscriber-secret' }));
     assert.equal((await restoredApp.fetch(new Request(fresh.origin + '/manage/' + manage))).status, 200);
