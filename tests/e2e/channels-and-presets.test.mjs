@@ -1,3 +1,4 @@
+import { channelDeletionFlow } from "./helpers/channel-deletion-flow.mjs";
 import { pagerDutyBrowserFlow } from "./helpers/pagerduty-browser-flow.mjs";
 import { availabilityReportBrowserFlow } from "./helpers/availability-report-browser-flow.mjs";
 import { uptimePresetFlow } from "./helpers/uptime-preset-flow.mjs";
@@ -163,6 +164,7 @@ test("NOTIFY-011 NOTIFY-012 UPDATE-013 — Private channels deliver the selected
   assert.equal(teamsTest.body.sent, true, "Teams accepts an empty HTTP 202 response");
   assert.equal(sql("SELECT count(*) AS n FROM integration_deliveries")[0].n, 2, "test posts stay outside the durable publication log");
 })(t);
+  await channelDeletionFlow({ api, post, origin, nativeRequest, runtime });
 });
 
 

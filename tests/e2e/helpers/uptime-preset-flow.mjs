@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { intakeByteFlow } from './intake-byte-flow.mjs';
 import { createHmac } from 'node:crypto';
 import { mkdir } from 'node:fs/promises';
 import { chromium } from 'playwright';
@@ -28,6 +29,7 @@ export async function uptimePresetFlow({ api, post, component, origin, publicOri
   assert.equal(source.credentialKind, 'hmac-sha256');
   assert.deepEqual(source.monitorMappings, mappings);
   assert.ok(!(await api('/api/app/intake/sources')).text.includes(secret));
+  await intakeByteFlow({ api, post, publicOrigin, source, payload: envelope('checkout', 'incident:exact-bytes'), secret });
   const down = envelope('checkout', 'incident:checkout-first');
   assert.equal((await send(source, down, { timestamp: new Date(Date.now() - 6 * 60000).toISOString() })).status, 401, 'INTAKE-008 replay outside five minutes');
   assert.equal((await send(source, down, { signingSecret: 'wrong' })).status, 401);
