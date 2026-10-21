@@ -63,6 +63,11 @@ export function stateGlyph(state: ComponentState, className = "state-glyph") {
   return `<svg class="${className} glyph-${state.toLowerCase().replaceAll(" ", "-")}" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="11"/><g fill="none" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">${marks[state]}</g></svg>`;
 }
 
+/** Lamp's own mark, beside "Powered by Lamp" in the footer. Drawn inline, so the credit costs the page no request. */
+export function lampMark() {
+  return '<svg class="lamp-mark" viewBox="0 0 64 64" aria-hidden="true" focusable="false"><path fill="#f4c25c" d="M.25 36A32 32 0 0 0 63.75 36Z"/><path fill="#17231c" d="M.25 36A32 32 0 1 1 63.75 36Z"/><path fill="#fff6df" d="M20 36A12 12 0 0 0 44 36Z"/></svg>';
+}
+
 export function pinIcon() {
   return '<svg class="pin-icon" viewBox="0 0 24 30" aria-hidden="true" focusable="false"><path d="M12 29c-.5 0-8.5-9.4-8.5-16.3a8.5 8.5 0 0 1 17 0C20.5 19.6 12.5 29 12 29Z"/><circle cx="12" cy="12.5" r="3.4"/></svg>';
 }

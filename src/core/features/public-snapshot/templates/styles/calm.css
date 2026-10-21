@@ -60,13 +60,17 @@
 }
 
 @media (max-width: 640px) {
-  .calm-head { display: grid; gap: 22px; padding-top: 24px; padding-bottom: 6px; }
-  .calm-brand { display: block; }
-  .tpl-calm .tpl-brand { gap: 14px; font-size: 21px; }
-  .tpl-calm .tpl-mark { width: 40px; height: 40px; }
-  .calm-brand .tpl-tagline { max-width: none; margin: 4px 0 0 54px; border: 0; padding: 0; }
-  .calm-actions { display: block; }
-  .calm-actions .tpl-subscribe { width: 100%; }
+  /* The brand and the subscribe field share the first line; the tagline sits under the name, cut to two lines. */
+  .calm-head { display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "brand actions" "tagline tagline"; align-items: center; gap: 4px 12px; padding-top: 24px; padding-bottom: 6px; }
+  .calm-brand { display: contents; }
+  .tpl-calm .tpl-brand { grid-area: brand; gap: 10px; font-size: 17px; line-height: 1.25; }
+  .tpl-calm .tpl-mark { width: 34px; height: 34px; }
+  .calm-brand .tpl-tagline { grid-area: tagline; display: -webkit-box; max-width: none; margin: 0 0 0 44px; overflow: hidden; border: 0; padding: 0; font-size: 12.5px; line-height: 1.45; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
+  .calm-actions { grid-area: actions; }
+  .calm-actions .tpl-subscribe { width: auto; border: 0; border-radius: 0; background: none; padding: 0; }
+  .calm-actions .tpl-subscribe input { width: 84px; height: 36px; border-bottom: 1px solid var(--line-strong); border-radius: 0; padding: 0 1px; }
+  .calm-actions .tpl-subscribe::after { content: ""; order: 1; width: 1px; height: 26px; flex: none; margin: 0 8px; background: var(--line-strong); }
+  .calm-actions .tpl-subscribe button { order: 2; height: 36px; padding: 0 12px; }
   .calm-actions .tpl-feeds { display: none; }
   .calm-status { padding-top: 40px; }
   .calm-sentence { font-size: 31px; line-height: 1.2; }
@@ -75,17 +79,41 @@
   .calm-status .tpl-updated { margin-top: 16px; font-size: 14.5px; }
   .calm-body { margin-top: 34px; border-top: 1px solid var(--line-strong); padding-top: 28px; }
   .calm-components .tpl-kicker { border-bottom: 0; padding-bottom: 4px; }
-  .calm-row { grid-template-columns: minmax(0, 1fr) 104px; grid-template-areas: "name uptime" "state uptime"; gap: 6px 16px; min-height: 0; border-bottom: 1px solid var(--line-strong); padding: 16px 0; }
+  /* Name, state and uptime each in their own column; the bars in the accent, paler where a day lost time. */
+  .calm-row { grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) 70px; grid-template-areas: "name state uptime"; gap: 0 14px; min-height: 0; border-bottom: 1px solid var(--line-strong); padding: 16px 0; }
   .calm-row .kind-icon { display: none; }
   .calm-name { grid-area: name; }
-  .calm-name :is(h3, h4) { font-size: 16.5px; }
-  .calm-state { grid-area: state; gap: 10px; font-size: 14px; }
-  .calm-uptime { grid-area: uptime; grid-template-columns: minmax(0, 1fr); gap: 8px; align-self: center; }
+  .calm-name :is(h3, h4) { font-size: 15px; }
+  .calm-state { grid-area: state; gap: 9px; font-size: 13.5px; line-height: 1.3; }
+  .calm-uptime { grid-area: uptime; grid-template-columns: minmax(0, 1fr); gap: 7px; align-self: center; }
   .calm-caption { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
-  .calm-value { font-size: 14px; }
-  .calm-bar { margin-bottom: 0; }
+  .calm-value { font-size: 13.5px; }
+  .calm-bar { height: 4px; margin-bottom: 0; overflow: hidden; border-radius: 2px; }
+  .calm-bar .day { background: var(--accent); }
+  .calm-bar .day:is(.degraded, .partial, .none) { background: var(--no-data); }
+  .calm-bar .day.major { background: var(--down); }
   .calm-history { margin-top: 44px; }
   .calm-history .tl { gap: 0 16px; }
   .calm-history :is(.tl-next, .tl-earlier > li)::before { left: -33px; }
   .calm-history .tl-title { font-size: 17px; }
+  /* A resolved incident keeps its updates behind a chevron. */
+  .calm-history .tl.folds > .tl-body { padding-right: 40px; }
+  .calm-history .tl.folds > .tl-body > :is(.tl-earlier, .tl-more) { display: none; }
+  .calm-history .tl.folds::before { display: none; }
+  .calm-history .tl.folds:has(.tl-fold[open])::before { display: block; }
+  .calm-history .tl-fold { display: block; }
+  .tl-fold > summary { position: absolute; top: -6px; right: -8px; display: grid; width: 40px; height: 40px; place-items: center; border-radius: 50%; color: var(--ink-2); cursor: pointer; list-style: none; }
+  .tl-fold > summary::-webkit-details-marker { display: none; }
+  .tl-chevron { width: 18px; height: 18px; transform: rotate(90deg); }
+  .tl-fold[open] .tl-chevron { transform: rotate(-90deg); }
+}
+
+/* The narrowest phones give the subscribe field a line of its own. */
+@media (max-width: 374px) {
+  .calm-head { grid-template-areas: "brand brand" "tagline tagline" "actions actions"; }
+  .calm-actions { margin-top: 10px; }
+  .calm-actions .tpl-subscribe { flex: 1; }
+  .calm-actions .tpl-subscribe input { flex: 1 1 auto; width: auto; }
+  .calm-row { grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr) 64px; gap: 0 12px; }
+  .calm-state { gap: 7px; font-size: 12.5px; }
 }

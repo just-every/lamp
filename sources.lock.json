@@ -4008,19 +4008,19 @@
       "executable": false
     },
     "src/core/features/public-snapshot/templates/calm.ts": {
-      "sha256": "14c6bc37bd9023e3ca724753bc8d1342042ba8100ef774d3c6fe255df362f024",
+      "sha256": "0a98e61bbef413d2c1e7d0683d4a1e7ffebd07a67b9f97e81f56aaa5b3c3f0ca",
       "executable": false
     },
     "src/core/features/public-snapshot/templates/history-led.ts": {
-      "sha256": "ad62efaf9987ff6a87c4e4932dcfa259a937c23fd35183076425f8c3dcae8a0e",
+      "sha256": "f420826012da35e4444053d357f396a03711c2ad1cdbea36d1617305f8a67a03",
       "executable": false
     },
     "src/core/features/public-snapshot/templates/history.ts": {
-      "sha256": "f83fa4d9689e3d79c72295a85ee5b3521b06f879dac330aae1b5e2cbe042196b",
+      "sha256": "7c284e407abe147ecbdbffc15a9e1537477ced52cb87266a5f8cdc1b529e0d9a",
       "executable": false
     },
     "src/core/features/public-snapshot/templates/icons.ts": {
-      "sha256": "dc9aa56692725aba8f7ad7802e808012d4f89033f4ff8a2cf65e382a7bd21651",
+      "sha256": "4e4c2923c81880f9837589c8daeb0b3d6b9b74be12914f792b97b7c0c9673510",
       "executable": false
     },
     "src/core/features/public-snapshot/templates/index.ts": {
@@ -4028,11 +4028,11 @@
       "executable": false
     },
     "src/core/features/public-snapshot/templates/map-layout.ts": {
-      "sha256": "379d1c9a3a280ff00da9e2367d6f041db0fc0136618752ab48c50f30420cc362",
+      "sha256": "16c77b9ddeaca0dd7291364cf05977690ab361167aae1b2d8519f9e5bab7f19c",
       "executable": false
     },
     "src/core/features/public-snapshot/templates/parts.ts": {
-      "sha256": "c4dfa1b8b5a6cfe6df048ccb643fc90631d97a7cc75130ed6dafb9dbc602c3c2",
+      "sha256": "a8bf4afb01c7ac416d77c0c671cb395819de31443de7771fb31e6c467fb2e114",
       "executable": false
     },
     "src/core/features/public-snapshot/templates/places.ts": {
@@ -4040,7 +4040,7 @@
       "executable": false
     },
     "src/core/features/public-snapshot/templates/regions.ts": {
-      "sha256": "e62aa3e43e873a4a00d491b3c11b98c5c80070d10e91c21a391ad7d497805665",
+      "sha256": "4833df0252e7b7ff6e3184f2ef718dbdd2570a74eb9273565972f1c4eec37eab",
       "executable": false
     },
     "src/core/features/public-snapshot/templates/script.js": {
@@ -4048,19 +4048,23 @@
       "executable": false
     },
     "src/core/features/public-snapshot/templates/styles/calm.css": {
-      "sha256": "507d4888a4117653f12b8fd814b887c6df20975957acde7b8f023246f20e53cd",
+      "sha256": "fd79742c0569eedb037d1cb5422ab29fb676f0e8f97bc958a159cec5f8c99f1d",
       "executable": false
     },
     "src/core/features/public-snapshot/templates/styles/history-led.css": {
-      "sha256": "00070210bfe0aa56116cc20ffe47d10364c688a5f90168af6e0f509386372976",
+      "sha256": "edca2a6709cf6502db70db914e2b00007c6b2606cc80ac3fdf96c24960164bd2",
       "executable": false
     },
     "src/core/features/public-snapshot/templates/styles/regions.css": {
-      "sha256": "5ba6ee1a86b6a92dcfaf8900a5538d47ae9b7b24d900101a1e073f2ccf9b231c",
+      "sha256": "2eaee40ca71f64945d4baad8a72981da39042d81bad4213f1f14ed2c70469d1c",
       "executable": false
     },
     "src/core/features/public-snapshot/templates/styles/shared.css": {
-      "sha256": "9d70a5b8212bca93728840eb80e26d2f9b6d012c9e2b29ddbb4e735c76d0026e",
+      "sha256": "a077b5d59bcef17551b6b0b1b54e20d0924de36e79081976bbf8c233b9fa3f95",
+      "executable": false
+    },
+    "src/core/features/public-snapshot/templates/text-width.ts": {
+      "sha256": "f2a5a1bbc178bfe0c7c80fc3699fe1c692ce110c44286646f121813109b9af7e",
       "executable": false
     },
     "src/core/features/public-snapshot/templates/world.ts": {

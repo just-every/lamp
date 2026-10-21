@@ -62,6 +62,9 @@ body { background: var(--paper); }
 .tl-mark .state-glyph { width: 28px; height: 28px; }
 .tl-body { min-width: 0; }
 .tl-kicker { display: none; }
+/* An ongoing incident's state as a pill, and a resolved incident's updates folded behind a chevron: each layout that
+   wants one shows it. */
+.tl-state, .tl-fold { display: none; }
 .tl-title { margin: 1px 0 0; font-size: 18px; font-weight: 500; line-height: 1.35; letter-spacing: -.01em; }
 .tl-title a { text-decoration: none; }
 .tl-title a:hover { text-decoration: underline; }
@@ -82,7 +85,8 @@ body { background: var(--paper); }
 
 .tpl-foot { margin-top: 40px; padding-bottom: 36px; }
 .tpl-foot-row { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px 24px; border-top: 1px solid var(--line-strong); padding-top: 22px; }
-.tpl-credit { margin: 0; color: var(--ink-2); font-size: 12px; }
+.tpl-credit { display: inline-flex; align-items: center; gap: 12px; margin: 0; color: var(--ink-2); font-size: 12px; }
+.lamp-mark { width: 22px; height: 22px; flex: none; }
 .tpl-foot-meta { display: flex; flex-wrap: wrap; gap: 4px 18px; margin: 0 0 0 auto; color: var(--ink-3); font-size: 12.5px; }
 .tpl-foot-meta a { color: var(--ink-2); }
 .tpl-foot .footer-resources { margin-top: 12px; color: var(--ink-3); font-size: 12.5px; }
