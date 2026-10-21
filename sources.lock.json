@@ -395,6 +395,10 @@
       "sha256": "81654510e50ba42b3a0a5cb582dd7a29a35466473839eae6250479b592b81bd6",
       "executable": false
     },
+    ".github/assets/release/lamp-1.10.0-status-page-1440.png": {
+      "sha256": "3b582223a89f2602b86fd3a9a319faef98c627a6476e8ba8e00d9b2d5b746052",
+      "executable": false
+    },
     ".github/assets/release/lamp-1.5.1-status-page-1440.png": {
       "sha256": "8713e0cdb48f0d7c2d512a867296d8de151ab8b9ea4981876f8559150f1f2537",
       "executable": false
@@ -464,7 +468,7 @@
       "executable": false
     },
     "CHANGELOG.md": {
-      "sha256": "2a70faea11bfe51867c1a93486c057e66c5011102c1eecbe2925f26aa07c74b7",
+      "sha256": "ab0e21f9fbc461ae97d635e4cc88e05741d422894cf9a6b073a1859c54baa37d",
       "executable": false
     },
     "CLAUDE.md": {
@@ -2268,7 +2272,7 @@
       "executable": false
     },
     "RELEASE.json": {
-      "sha256": "a06c31b67db8629b64571bdcd935f5d835f44cd3ef5b39baef795632c0772676",
+      "sha256": "79ac31ed14c8e25e500ba37d7cef267cd07df3c3d569271363a2c33d250733e8",
       "executable": false
     },
     "rer-packaging.json": {
