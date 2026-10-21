@@ -18,7 +18,7 @@ export type Placement = (typeof PLACEMENTS)[number];
 interface Box { left: number; top: number; width: number; height: number }
 
 /** A card's top-left corner from the pin tip, in pixels, for a card of the given size. */
-export function placementOffset(placement: Placement, tier: MapTier, width: number, height: number) {
+function placementOffset(placement: Placement, tier: MapTier, width: number, height: number) {
   const { pin } = tier;
   const right = pin.width / 2 + 4, left = -pin.width / 2 - 4 - width, middle = -pin.head - height / 2;
   switch (placement) {
@@ -51,7 +51,7 @@ function outside(box: Box, width: number, height: number) {
 export interface MapMarker { name: string; state: string; place: readonly [number, number] }
 export interface PlacedTier { tier: MapTier; keyed: boolean; anchors: Array<{ x: number; y: number }>; placements: Placement[] }
 
-export function cardSize(marker: MapMarker, tier: MapTier) {
+function cardSize(marker: MapMarker, tier: MapTier) {
   // Inter's average advance is about 0.6em at weight 600 and 0.56em at 400; err wide so estimates never under-run.
   const name = marker.name.length * tier.card.name * 0.62;
   const state = marker.state.length * tier.card.state * 0.58 + tier.card.state + 6;

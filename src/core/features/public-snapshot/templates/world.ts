@@ -14,7 +14,6 @@ const views = {
 } as const;
 
 export type MapView = keyof typeof views;
-export const MAP_VIEWS: readonly MapView[] = ["wide", "narrow"];
 export const MAP_WIDTH = 1000;
 
 export function mapHeight(view: MapView) {

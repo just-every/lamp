@@ -129,6 +129,6 @@ export function historyLedPage(model: PublicSnapshotModel, parts: TemplateParts)
     ...shown.resolved.map((incident) => resolvedEntry(incident, model)),
   ].join("");
   const incidents = `<section class="up-incidents" aria-labelledby="incidents-title" data-live="history"><h2 id="incidents-title">${shown.maintenance.length ? "Incidents and maintenance" : "Incidents"}</h2>${entries ? `<ol class="tl-list">${entries}</ol>` : ""}${quietLine(shown, "tpl-quiet")}</section>`;
-  const subscribe = `<section id="subscribe" class="up-subscribe" aria-labelledby="subscribe-title"><h2 id="subscribe-title">Subscribe</h2><p>Get notified about incidents and updates from ${escapeHtml(model.settings.pageName)}.</p>${subscribeForm("subscribe-email-card")}${feedLinks()}</section>`;
+  const subscribe = `<section id="subscribe" class="up-subscribe" aria-labelledby="subscribe-title"><h2 id="subscribe-title">Subscribe</h2><p>Get notified about incidents and updates from ${escapeHtml(model.settings.pageName)}.</p>${subscribeForm("subscribe-email-card")}${feedLinks("", "Subscribe by feed")}</section>`;
   return `${band}${parts.slot("status-page.header.after.v1")}${hero}${heatmap(model, parts)}<div class="up-lower wrap">${incidents}${subscribe}</div>`;
 }
