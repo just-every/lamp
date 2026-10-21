@@ -448,7 +448,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "db3c84e049d3a84a1e541251461bbe55d01fdb82f80f71488312859163a0b78a",
+      "sha256": "b1647a3c48883e36f6e3ef8ffbbb7d8fcf46812617bffe8821f622c04e7b8927",
       "executable": false
     },
     "AGENTS.md": {
@@ -496,7 +496,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "0035dcdc43d457bf7f125e08160d491a12ad9953e505eadfd2b3617b7555ff67",
+      "sha256": "3d22315cff64ef1d5b6329c42165882351a97f94689ad8f8b1702f0e02473d3c",
       "executable": false
     },
     "DEMO.md": {
@@ -2128,7 +2128,7 @@
       "executable": false
     },
     "package.json": {
-      "sha256": "b1739ac6bc1bb54ecfcb2083c521b6d8ce80734f9c25b0d9a40092d5a106a97c",
+      "sha256": "96f00c57c45ec9ba4b6e02f7284bb23b396a3f9d6aa7334b258dec8261b715d3",
       "executable": false
     },
     "pnpm-lock.yaml": {
@@ -2173,6 +2173,14 @@
     },
     "release-history/1.1.0.json": {
       "sha256": "54a7c5aace16be71d368ed822471bafd6eb55f1c38799e5aee5dd3a1a8a6f034",
+      "executable": false
+    },
+    "release-history/1.10.0.CONTRACT.md": {
+      "sha256": "a8156b662c7b81bfefabf965fbf72428734da64a8d3723725dc4d10445e0c12c",
+      "executable": false
+    },
+    "release-history/1.10.0.json": {
+      "sha256": "79ac31ed14c8e25e500ba37d7cef267cd07df3c3d569271363a2c33d250733e8",
       "executable": false
     },
     "release-history/1.2.0.CONTRACT.md": {
@@ -2272,7 +2280,7 @@
       "executable": false
     },
     "RELEASE.json": {
-      "sha256": "85da2ad5a211fb43a20ad7dfd6ba6591afca1e40f2a1aa8efd9cf460ff7fd929",
+      "sha256": "7d649a9e2bc25c4541795d6bad98a43576d24b4057da4a5697e3399109336a95",
       "executable": false
     },
     "rer-packaging.json": {
@@ -2788,7 +2796,7 @@
       "executable": false
     },
     "seed.json": {
-      "sha256": "c095605714aa9d72fb3201bb7432f358a1f8cb12361f53aba4c1665bb4ba8661",
+      "sha256": "116a0a3e3d4c8af31fccb3a419bb64f6b54394521ad022913ddbc7c85e390102",
       "executable": false
     },
     "src/base/actor.ts": {
