@@ -38,7 +38,7 @@ export function PresetCard({ onCreated }: { onCreated: () => void }) {
 
   return <section className="data-card preset-card" aria-labelledby="preset-title"><div><p className="card-kicker">Monitor presets</p><h2 id="preset-title">Connect a monitoring tool</h2><p>Alerts become draft incidents on one component; nothing is published until you publish it. A recovery closes a draft that was never published.</p></div>
     <form className="preset-form" onSubmit={save}>
-      <label className="form-label">Tool<select value={preset} onChange={(event) => setPreset(event.target.value as AlertPreset)}>{ALERT_PRESETS.filter(value => value !== "uptime" && !isGroupedPreset(value)).map((value) => <option key={value} value={value}>{presetLabels[value]}</option>)}</select></label>
+      <label className="form-label">Tool<select value={preset} onChange={(event) => setPreset(event.target.value as AlertPreset)}>{ALERT_PRESETS.filter(value => value !== "uptime" && value !== "pagerduty" && !isGroupedPreset(value)).map((value) => <option key={value} value={value}>{presetLabels[value]}</option>)}</select></label>
       <label className="form-label">Component<select required value={componentId} onChange={(event) => setComponentId(event.target.value)}><option value="">Choose a component</option>{components.data?.components.map((component) => <option key={component.id} value={component.id}>{component.name}</option>)}</select></label>
       <label className="form-label">Name<input maxLength={120} placeholder={`${presetLabels[preset]} alerts`} value={name} onChange={(event) => setName(event.target.value)} /></label>
       <Button disabled={saving || !componentId}>{saving ? "Saving…" : "Create preset"}</Button>

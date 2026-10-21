@@ -226,7 +226,7 @@
     }
   ],
   "nonGoals": [
-    "Uptime monitoring, probing, or synthetic checks: Lamp reports state that operators or accepted alerts produce, and running probes would make it a monitoring product with a second, contradictory source of truth behind the public page.",
+    "Uptime monitoring, probing, or synthetic checks: Lamp reports state that operators or accepted alerts produce, and running probes would make it a monitoring product with a second, contradictory source of truth behind the public page. For observability, see [Porthole](https://github.com/just-every/run-porthole).",
     "On-call scheduling, paging, and escalation: the buyer's existing alerting tool already does this, and it is the system that feeds INTAKE-001.",
     "More than one status page per deployment: one business gets one public record, so a second page is a second deployment.",
     "Private or audience-scoped status pages: visitor authentication would be a whole second access surface for a product whose value is being readable by anyone, at any time, with nothing between them and it.",
@@ -367,6 +367,18 @@
       "data": [
         "API key in authenticated Authorization header only",
         "Page ID or public status-page hostname and notice IDs"
+      ],
+      "adapters": []
+    },
+    {
+      "id": "pagerduty-notes",
+      "required": false,
+      "why": "INTAKE-009: when the owner connects a sealed REST API key, each linked publication posts one note to the fixed https://api.pagerduty.com REST host. Redirects are refused. No connected key means no request.",
+      "data": [
+        "The connected API key in the Authorization header only",
+        "PagerDuty user email in the From header",
+        "The published update text and incident permalink",
+        "The linked PagerDuty incident ID"
       ],
       "adapters": []
     }

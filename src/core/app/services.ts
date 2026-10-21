@@ -1,3 +1,4 @@
+import { createResponderService } from "../features/intake/responder-service";
 import { createAvailabilityReportRepository, createAvailabilityReportService } from "../features/availability-reports";
 import { createCommunicationPerformanceRepository, createCommunicationPerformanceService } from "../features/communication-performance";
 import { createIncidentImpactRepository, createIncidentImpactService } from "../features/incident-impact";
@@ -81,9 +82,14 @@ export function createAppServices(bindings: AppBindings, blobs: BlobStore, execu
     publicOrigin: () => notificationOrigin(bindings),
     unavailable: outboundUnavailable(bindings, "Slack and Teams posts"),
   });
+  const responders = createResponderService(bindings.DB, {
+    effectsPaused: bindings.EFFECTS_PAUSED === "1", webhookSecret: bindings.WEBHOOK_SIGNING_SECRET,
+    publicOrigin: () => notificationOrigin(bindings),
+  });
   const incidents = createIncidentsService(createIncidentRepository(bindings.DB), components, publicSnapshots.rebuild, {
     forAttachedComponents: async (input) => incidentCatchupStatements(bindings.DB, input),
     forIncidentUpdate: async (input) => [
+      ...responders.publicationStatements(input),
       ...notificationPublicationStatements(bindings.DB, { eventId: input.updateId, eventType: "incident-update", incidentUpdateId: input.updateId, componentIds: input.componentIds, channels: input.channels.filter((channel): channel is "email" | "webhook" => channel !== "chat" && allowedIncidentChannels.has(channel)), queuedAt: input.queuedAt }),
       ...(input.channels.includes("chat") ? channels.postStatements({ updateId: input.updateId, componentIds: input.componentIds, queuedAt: input.queuedAt }) : []),
     ],
@@ -98,6 +104,7 @@ export function createAppServices(bindings: AppBindings, blobs: BlobStore, execu
     const results = await Promise.allSettled([
       notificationOrigin(bindings).then(origin => deliveries.dispatchEvent(update.id, origin)),
       channels.dispatchPending(),
+      responders.dispatchPublication(update.id).catch(() => { console.error("Lamp could not finish a responder note receipt."); }),
     ]);
     const failure = results.find((result): result is PromiseRejectedResult => result.status === "rejected");
     if (failure) throw failure.reason;
@@ -132,7 +139,7 @@ export function createAppServices(bindings: AppBindings, blobs: BlobStore, execu
   const reports = createReportsService(createReportRepository(bindings.DB), publicSnapshots.rebuild, extensions.postmortemDuePolicy, {
     forIncidentReport: async (input) => notificationPublicationStatements(bindings.DB, { eventId: input.eventId, eventType: "incident-report", incidentReportId: input.eventId, componentIds: input.componentIds, channels: input.channels, queuedAt: input.queuedAt }),
   }, briefs);
-  const intake = createIntakeService(createIntakeRepository(bindings.DB), extensions.alertIntakePolicy, async (incidentId) => deliveries.queueOperatorAlert({ eventId: `intake-draft/${incidentId}`, title: "Lamp alert intake created an incident draft", text: `A configured alert source created draft incident ${incidentId}; review and publish it if customer communication is needed.` }), extensions.events);
+  const intake = createIntakeService(createIntakeRepository(bindings.DB), extensions.alertIntakePolicy, async (incidentId) => deliveries.queueOperatorAlert({ eventId: `intake-draft/${incidentId}`, title: "Lamp alert intake created an incident draft", text: `A configured alert source created draft incident ${incidentId}; review and publish it if customer communication is needed.` }), extensions.events, { webhookSecret: bindings.WEBHOOK_SIGNING_SECRET });
   const aiValues = [bindings.AI_PROVIDER_URL, bindings.AI_PROVIDER_API_KEY, bindings.AI_PROVIDER_MODEL];
   const configuredAiValues = aiValues.filter((value) => Boolean(value)).length;
   if (configuredAiValues > 0 && configuredAiValues !== aiValues.length) {
