@@ -1568,4 +1568,8 @@ L17 also excludes supporting service, training, consulting and release pages,
 even inside product menus. Product names come from the site's product-menu
 titles before footer categories; a description-styled wrapper must retain the
 title inside it while omitting supporting prose. An honestly short or empty list
-is preferable to filling it with non-product pages.
+is preferable to filling it with non-product pages. Competitor comparison,
+alternative, audience and use-case pages, events and calls to action never become
+components, at any path depth or behind a list marker. A footer's own navigation
+still supplies product evidence, while the header's product-menu names and areas
+rank ahead of the footer's.
