@@ -128,7 +128,10 @@ export function recordDays(component: Component) {
   return component.uptime.marks.slice(-REPORTING_DAYS);
 }
 
-export function dayBar(component: Component, className: string) {
+/** A component's daily record as a bar of labelled days. Unlabelled, it only repeats days a reader already has as
+ *  labelled cells elsewhere on the page, and stays hidden from assistive technology. */
+export function dayBar(component: Component, className: string, labelled = true) {
+  if (!labelled) return `<span class="${className}" aria-hidden="true">${recordDays(component).map((mark) => `<span class="day ${dayClass(mark)}"></span>`).join("")}</span>`;
   const days = recordDays(component).map((mark) => {
     const label = escapeHtml(uptimeMarkLabel(mark));
     return `<span class="day ${dayClass(mark)}" role="listitem" aria-label="${label}" title="${label}"></span>`;
