@@ -1,6 +1,7 @@
 import { createUlid, nowIso } from "../../shared/ids";
 import type { PageSettingsInput } from "../../shared/schemas";
 import { parseWidgetAllowedOrigins } from "../../shared/widget-origins";
+import { MIN_MAP_REGIONS, regionCount } from "../../shared/regions";
 import type { BlobStore } from "../../platform/blobs/store";
 
 import type { PageSettingsRepository, StoredPageSettings } from "./repository";
@@ -48,14 +49,18 @@ export function createPageSettingsService(
     return settings;
   }
 
+  async function regionsAvailable() {
+    return regionCount(await repository.visibleRegions()) >= MIN_MAP_REGIONS;
+  }
+
   async function rebuildAndRead() {
     await onPublicDataChanged();
     return readView();
   }
 
   async function readView() {
-    const [settings, regionsAvailable] = await Promise.all([repository.get(), repository.hasVisibleRegion()]);
-    return settings ? toView(settings, mailIdentityEditable, regionsAvailable) : null;
+    const [settings, available] = await Promise.all([repository.get(), regionsAvailable()]);
+    return settings ? toView(settings, mailIdentityEditable, available) : null;
   }
 
   return {
@@ -84,7 +89,9 @@ export function createPageSettingsService(
     async update(settings) {
       const existing = await readRequired();
       const template = settings.template ?? existing.template;
-      if (template === "regions" && !await repository.hasVisibleRegion()) throw new UnavailablePageTemplateError("Regions map is unavailable because no visible component has a region. Add a region to a public component or choose another template.");
+      // Choosing Regions map needs two regions. A page that already chose it keeps that choice while regions change;
+      // the public page then shows Calm headline and Settings says why.
+      if (template === "regions" && existing.template !== "regions" && !await regionsAvailable()) throw new UnavailablePageTemplateError("Regions map needs public components in at least two regions. Add regions in the component editor, or choose another template.");
       if (!mailIdentityEditable && (settings.emailBranding?.displayName || settings.emailBranding?.replyTo)) throw new UnsupportedMailIdentityError("Managed mail controls From and Reply-To. Clear those fields; subject, logo and message wording remain editable.");
       await repository.update({
         pageName: settings.pageName,

@@ -7,7 +7,8 @@ export type StoredPageSettings = typeof pageSettings.$inferSelect;
 
 export interface PageSettingsRepository {
   get(): Promise<StoredPageSettings | null>;
-  hasVisibleRegion(): Promise<boolean>;
+  /** The regions written on components the public page shows, each as stored. */
+  visibleRegions(): Promise<string[]>;
   insertIfMissing(settings: typeof pageSettings.$inferInsert): Promise<void>;
   update(settings: Pick<StoredPageSettings, "pageName" | "tagline" | "accentColor" | "timezone" | "hostname" | "footerCreditEnabled" | "template" | "widgetAllowedOrigins" | "mailFromAddress" | "emailBranding" | "aiToneInstructions" | "wordingBlockedTerms" | "wordingFriendlyLength" | "updatedAt">): Promise<void>;
   updateLogo(input: Pick<StoredPageSettings, "logoKey" | "logoContentType" | "updatedAt">): Promise<void>;
@@ -19,9 +20,9 @@ export function createPageSettingsRepository(binding: D1Database): PageSettingsR
 
   return {
     get,
-    async hasVisibleRegion() {
-      const row = await binding.prepare(`
-        SELECT 1 AS available FROM components AS component
+    async visibleRegions() {
+      const { results } = await binding.prepare(`
+        SELECT DISTINCT trim(component.region) AS region FROM components AS component
         WHERE component.internal = 0 AND length(trim(component.region)) > 0
           AND (component.only_show_if_degraded = 0
             OR EXISTS (SELECT 1 FROM component_standing_claims AS claim
@@ -33,9 +34,8 @@ export function createPageSettingsRepository(binding: D1Database): PageSettingsR
             OR EXISTS (SELECT 1 FROM maintenance_components AS claim
               JOIN maintenance AS window ON window.id = claim.maintenance_id
               WHERE claim.component_id = component.id AND claim.state <> 'Operational' AND window.state = 'In progress'))
-        LIMIT 1
-      `).first<{ available: number }>();
-      return row !== null;
+      `).all<{ region: string }>();
+      return results.map((row) => row.region);
     },
     async insertIfMissing(settings) {
       await database.insert(pageSettings).values(settings).onConflictDoNothing();

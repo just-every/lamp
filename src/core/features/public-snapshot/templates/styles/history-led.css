@@ -1,0 +1,131 @@
+/* Uptime-history-led: a dark band in the page's ink, a big overall figure, then one framed 90-day heatmap. */
+.tpl-uptime { --wrap: 1180px; --gutter: 40px; --label: 236px; --row: 29px; --callouts: 50px; --frame: #fdfcf9; }
+.up-band { background: var(--ink); color: var(--on-ink); }
+.up-band-row { display: flex; align-items: center; justify-content: space-between; gap: 16px 32px; min-height: 78px; padding-block: 12px; }
+.up-brand { display: flex; align-items: center; gap: 4px 60px; min-width: 0; }
+.up-band .tpl-brand { flex: none; color: var(--on-ink); font-size: 26px; }
+.up-band .tpl-tagline { max-width: 56ch; color: rgb(251 250 245 / .86); font-size: 13.5px; }
+.up-actions { display: flex; flex: none; align-items: center; gap: 24px; }
+.up-actions .tpl-subscribe { width: 258px; }
+.up-band-subscribe { display: none; }
+.tpl-feeds.on-dark { gap: 0; }
+.tpl-feeds.on-dark a { color: var(--on-ink); text-decoration: none; }
+.tpl-feeds.on-dark a + a { margin-left: 14px; border-left: 1px solid rgb(251 250 245 / .4); padding-left: 14px; }
+.up-band :focus-visible { outline-color: var(--accent); }
+
+.up-hero { display: flex; align-items: center; gap: 0 40px; padding-top: 34px; padding-bottom: 26px; }
+.up-figure .tpl-kicker { color: var(--ink-2); font-size: 13px; letter-spacing: .03em; }
+.up-number { margin: 4px 0 0; color: var(--ink); font-size: 64px; font-weight: 700; line-height: 1; letter-spacing: -.035em; font-variant-numeric: tabular-nums; }
+.up-situation { display: flex; flex-direction: column; justify-content: center; min-height: 84px; border-left: 1px solid var(--line-strong); padding-left: 40px; }
+.up-situation h1 { max-width: 40ch; margin: 0; font-size: 20px; font-weight: 500; line-height: 1.4; letter-spacing: -.01em; }
+.up-situation .tpl-updated { margin-top: 8px; font-size: 13px; }
+
+.hm-frame { border: 1px solid var(--line-strong); border-radius: 10px; background: var(--frame); padding: 22px 22px 16px; }
+.hm-head { display: grid; grid-template-columns: var(--label) minmax(0, 1fr); align-items: center; gap: 8px 0; }
+.hm-head h2 { margin: 0; font-size: 15px; font-weight: 500; }
+.hm-legend { display: flex; flex-wrap: wrap; gap: 6px 26px; margin: 0; padding: 0; color: var(--ink-2); font-size: 12px; list-style: none; }
+.hm-legend li { display: inline-flex; align-items: center; gap: 8px; }
+.hm-legend .cell { width: 8px; height: 8px; border-radius: 50%; }
+.hm-body { display: grid; grid-template-columns: var(--label) minmax(0, 1fr); }
+.hm-labels { margin: 0; padding: var(--callouts) 0 0; list-style: none; }
+.hm-label { display: grid; grid-template-columns: 16px minmax(0, 1fr) auto; grid-template-rows: auto auto; align-content: center; gap: 0 10px; height: var(--row); }
+.hm-label .state-glyph { grid-row: 1 / 3; width: 16px; height: 16px; }
+.hm-name { min-width: 0; overflow: hidden; color: var(--ink); font-size: 12px; font-weight: 500; line-height: 1.25; text-overflow: ellipsis; white-space: nowrap; }
+.hm-state { grid-column: 2; color: var(--ink-3); font-size: 10.5px; line-height: 1.25; }
+.hm-pct { grid-column: 3; grid-row: 1 / 3; padding-right: 22px; color: var(--ink-2); font-size: 12px; font-variant-numeric: tabular-nums; }
+.hm-scroll { min-width: 0; border-radius: 4px; }
+.hm-track { position: relative; }
+.hm-cells, .hm-callouts, .hm-axis { display: grid; grid-template-columns: repeat(90, minmax(0, 1fr)); column-gap: 2.4px; }
+.hm-cells { align-items: center; height: var(--row); }
+.hm-cells .cell { aspect-ratio: 1; border-radius: 1.5px; }
+.hm-callouts { position: relative; z-index: 1; height: var(--callouts); }
+.hm-callout { --lane: 8px; position: relative; grid-row: 1; height: 100%; color: var(--amber); }
+.hm-callout.lane-1 { --lane: 31px; }
+.hm-callout a { position: absolute; z-index: 2; bottom: var(--lane); left: -6px; border-radius: 4px; background: #f7c45c; padding: 3px 8px; color: var(--ink); font-size: 10.5px; font-weight: 500; line-height: 1.3; text-decoration: none; white-space: nowrap; }
+.hm-callout.flip a { right: -6px; left: auto; }
+.hm-callout.is-done { color: var(--ink); }
+.hm-callout.is-done a { background: var(--ink); color: var(--on-ink); }
+.hm-callout::after { content: ""; position: absolute; top: calc(100% - var(--lane)); left: calc(50% - .5px); width: 1px; height: calc(var(--lane) + var(--reach, 0) * var(--row) + var(--row) / 2); background: currentColor; }
+.hm-callout a:hover { text-decoration: underline; }
+.hm-axis { padding-top: 12px; color: var(--ink-3); font-size: 10.5px; }
+.hm-axis span { grid-row: 1; white-space: nowrap; transform: translateX(-35%); }
+.hm-axis span.last { justify-self: end; transform: none; }
+.hm-notes { display: grid; grid-template-columns: minmax(0, 1fr); gap: 6px; margin: 16px 0 0; border-top: 1px solid var(--line); padding: 12px 0 0; color: var(--ink-2); font-size: 13px; list-style: none; }
+.hm-notes strong { font-weight: 600; }
+.hm-notes .tpl-note, .hm-notes .tpl-about { display: inline; margin: 0 0 0 8px; }
+.hm-method { margin-top: 12px; color: var(--ink-3); font-size: 12px; }
+.hm-method summary { width: fit-content; margin-left: auto; cursor: pointer; }
+.hm-method p { max-width: 80ch; margin: 6px 0 0; }
+
+.up-lower { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 418px); align-items: start; gap: 22px; margin-top: 14px; }
+.up-incidents h2 { margin: 16px 0 14px; font-size: 20px; font-weight: 600; letter-spacing: -.01em; }
+.up-incidents .tl-list { display: grid; gap: 12px; }
+.tpl-uptime .tl { display: block; border: 1px solid var(--line-strong); border-radius: 8px; background: var(--frame); padding: 16px 22px 18px 50px; }
+.tpl-uptime .tl-open { border-color: #ecd394; background: #fdf6e3; }
+.tpl-uptime .tl-maint { border-color: rgb(79 111 168 / .3); background: #f5f7fb; }
+.tpl-uptime .tl-mark { position: absolute; top: 16px; left: 18px; }
+.tpl-uptime .tl-mark .state-glyph { width: 19px; height: 19px; }
+.tpl-uptime .tl-kicker { display: block; margin: 0; color: var(--amber-ink); font-size: 11px; font-weight: 600; line-height: 19px; letter-spacing: .06em; text-transform: uppercase; }
+.tpl-uptime .tl-resolved .tl-kicker { color: var(--ok-ink); }
+.tpl-uptime .tl-maint .tl-kicker { color: #3c5a8f; }
+.tpl-uptime .tl-title { margin-top: 2px; font-size: 15px; font-weight: 600; }
+.tpl-uptime .tpl-meta, .tpl-uptime .maintenance-window { margin-top: 2px; font-size: 12.5px; }
+.tpl-uptime .tpl-said { margin-top: 4px; font-size: 13px; }
+.tpl-uptime .tl-thread { margin-top: 12px; border-left: 1px solid #e3cf9b; padding-left: 14px; }
+.tpl-uptime .tl-next { font-size: 12.5px; }
+.tpl-uptime .tl-earlier { gap: 10px; margin-top: 8px; }
+.tpl-uptime .tl-resolved .tl-earlier { margin-top: 12px; border-left: 1px solid var(--line-strong); padding-left: 14px; }
+.tpl-uptime .tl-earlier .tpl-meta { color: var(--ink-2); font-weight: 500; }
+.tpl-uptime .tl-earlier .tpl-said { margin-top: 0; font-size: 12.5px; }
+.up-subscribe { margin-top: 16px; border: 1px solid var(--line-strong); border-radius: 8px; background: var(--frame); padding: 26px 24px 24px; scroll-margin-top: 24px; }
+.up-subscribe h2 { margin: 0; font-size: 20px; font-weight: 600; letter-spacing: -.01em; }
+.up-subscribe p { max-width: 36ch; margin: 10px 0 0; color: var(--ink-2); font-size: 13.5px; }
+.up-subscribe .tpl-subscribe { margin-top: 22px; }
+.up-subscribe .tpl-subscribe input, .up-subscribe .tpl-subscribe button { height: 38px; }
+.up-subscribe .tpl-subscribe button { background: var(--accent); padding: 0 22px; color: var(--accent-ink); }
+.up-subscribe .tpl-feeds { margin-top: 18px; gap: 0; }
+.up-subscribe .tpl-feeds a { text-decoration: none; }
+.up-subscribe .tpl-feeds a + a { margin-left: 16px; border-left: 1px solid var(--line-strong); padding-left: 16px; }
+
+@media (max-width: 1100px) {
+  .up-band-row { flex-wrap: wrap; }
+  .up-brand { gap: 4px 28px; }
+  .up-lower { grid-template-columns: minmax(0, 1fr); }
+}
+
+@media (max-width: 640px) {
+  .tpl-uptime { --gutter: 20px; --label: 138px; --row: 46px; --callouts: 52px; }
+  .up-band-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "brand actions" "tagline tagline"; align-items: center; gap: 10px 16px; padding-block: 18px; }
+  .up-brand { display: contents; }
+  .up-band .tpl-brand { grid-area: brand; gap: 12px; font-size: 21px; }
+  .up-band .tpl-mark { width: 38px; height: 38px; }
+  .up-band .tpl-tagline { grid-area: tagline; font-size: 13px; }
+  .up-actions { grid-area: actions; }
+  .up-actions .tpl-subscribe, .up-actions .tpl-feeds { display: none; }
+  .up-band-subscribe { display: inline-flex; align-items: center; min-height: 44px; border-radius: 999px; background: var(--accent); padding: 0 20px; color: var(--accent-ink); font-size: 15px; font-weight: 600; text-decoration: none; }
+  .up-hero { display: block; padding-top: 28px; padding-bottom: 20px; }
+  .up-figure .tpl-kicker { font-size: 12px; letter-spacing: .14em; }
+  .up-number { font-size: 58px; }
+  .up-situation { min-height: 0; margin-top: 16px; border-left: 0; padding-left: 0; }
+  .up-situation h1 { font-size: 18px; }
+  .up-situation .tpl-updated { display: grid; gap: 0; font-size: 14px; }
+  .up-situation .tpl-sep { display: none; }
+  .hm-frame { border: 0; border-radius: 0; background: none; padding: 0; }
+  .hm-head { display: block; }
+  .hm-legend { gap: 6px 16px; margin-top: 8px; }
+  .hm-label { grid-template-columns: 14px minmax(0, 1fr); grid-template-rows: auto auto auto; gap: 0 8px; }
+  .hm-label .state-glyph { grid-row: 1 / 4; align-self: start; width: 14px; height: 14px; margin-top: 2px; }
+  .hm-name { font-size: 12.5px; }
+  .hm-state, .hm-pct { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .hm-pct { grid-column: 2; grid-row: 3; padding: 0; font-size: 11px; }
+  .hm-axis span.near-last { display: none; }
+  .hm-scroll { overflow-x: auto; direction: rtl; scrollbar-width: thin; }
+  .hm-track { width: 630px; direction: ltr; }
+  .hm-cells, .hm-callouts, .hm-axis { column-gap: 2px; }
+  .hm-cells .cell { aspect-ratio: auto; height: 14px; border-radius: 1px; }
+  .hm-method summary { margin-left: 0; }
+  .up-lower { margin-top: 32px; }
+  .up-incidents h2 { margin-top: 0; }
+  .tpl-uptime .tl { padding: 16px 16px 16px 44px; }
+  .tpl-uptime .tl-mark { left: 14px; }
+}

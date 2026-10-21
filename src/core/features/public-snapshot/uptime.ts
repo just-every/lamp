@@ -76,6 +76,11 @@ function firstDayCoverage(uptime: Uptime) {
   return [hours ? `${hours} hour${hours === 1 ? "" : "s"}` : "", remainder ? `${remainder} minute${remainder === 1 ? "" : "s"}` : ""].filter(Boolean).join(" ");
 }
 
+/** One day of the daily record as a reader hears it: the same words on every page layout. */
+export function uptimeMarkLabel(mark: Uptime["marks"][number]) {
+  return mark.downtimeMinutes === null ? `${mark.day}: no data` : mark.downtimeMinutes > 0 ? `${mark.day}: Downtime ${mark.downtimeMinutes.toFixed(mark.downtimeMinutes % 1 === 0 ? 0 : 1)} minutes (weighted)${mark.worstDowntimeState ? `; worst state: ${mark.worstDowntimeState}` : ""}` : `${mark.day}: no downtime`;
+}
+
 export function uptimeMarkup(component: { name: string; uptime: Uptime }, _timezone: string, _generatedAt: string) {
   const coverage = component.uptime.percentage === null
     ? "No data"
@@ -85,7 +90,7 @@ export function uptimeMarkup(component: { name: string; uptime: Uptime }, _timez
         ? `${component.uptime.percentage} over ${component.uptime.coverageDays} whole day${component.uptime.coverageDays === 1 ? "" : "s"}`
         : component.uptime.percentage;
   const marks = component.uptime.marks.map((mark) => {
-    const label = mark.downtimeMinutes === null ? `${mark.day}: no data` : mark.downtimeMinutes > 0 ? `${mark.day}: Downtime ${mark.downtimeMinutes.toFixed(mark.downtimeMinutes % 1 === 0 ? 0 : 1)} minutes (weighted)${mark.worstDowntimeState ? `; worst state: ${mark.worstDowntimeState}` : ""}` : `${mark.day}: no downtime`;
+    const label = uptimeMarkLabel(mark);
     const stateClass = mark.worstDowntimeState === "Major outage" ? " major-outage" : "";
     return `<span class="uptime-mark ${mark.downtimeMinutes === null ? "no-data" : mark.downtimeMinutes > 0 ? `downtime${stateClass}` : "good"}" role="listitem" aria-label="${escapeHtml(label)}" title="${escapeHtml(label)}"></span>`;
   }).join("");

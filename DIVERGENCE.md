@@ -1567,11 +1567,14 @@ Operator screens use the owner's words, including folded reports and history con
 
 ## Built-in public page templates — owner L9, 20 October 2026
 
-The original public page remains the default. Settings can publish Calm headline,
-Uptime-history-led, or Regions map using the same business branding and public
-facts. The saved template and why it is showing stay visible in Settings. Regions
-map requires a visible component with an optional region; labels without a known
-broad geographic position stay filterable and are explicitly identified. Removing
-the last region preserves the chosen layout with an unavailable-map explanation,
-never an unannounced switch. Built-in choices do not require AI. Generated house
-style is a later feature and is not offered as an implemented option.
+The original public page remains the default, and its shared stylesheet and script
+stay byte for byte as they were: a chosen template publishes its own
+`assets/template.css` and `assets/template.js`, which only its page links. Settings
+can publish Calm headline, Uptime-history-led, or Regions map, each laid out after
+the owner's L9 study drawing, with the business's own name, accent and mark and the
+same public facts. The saved template and why it is showing stay visible in
+Settings. Regions map needs public components in at least two regions (an optional
+component region); with fewer, the public page quietly shows Calm headline and only
+Settings explains why. Regions without a known map position stay filterable and are
+listed as not on the map. Built-in choices do not require AI. Generated house style
+is a later feature and is not offered as an implemented option.
