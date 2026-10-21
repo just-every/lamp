@@ -2583,6 +2583,10 @@
       "sha256": "c7d85f686c1fdfea5aacaf1d4994c0b3d2584ec146eb92fea759c8e2da2c8678",
       "executable": false
     },
+    "scripts/installer/archive-policy.mjs": {
+      "sha256": "34f2a791f9b1bfeac1359d26913e0fa32610e8db069b7a2be918e01cc7506db5",
+      "executable": false
+    },
     "scripts/installer/BASE-ADOPTION.md": {
       "sha256": "fe48fac4d433dbd4b9cc2323c917b73dd8f778d9f7c8516e2d951c63fd1d42ac",
       "executable": false
@@ -2608,7 +2612,7 @@
       "executable": false
     },
     "scripts/installer/local.mjs": {
-      "sha256": "f6b481b4cd647bbb5a82b30eb46f7ba91012921c35e3066238683c98b4ba51ca",
+      "sha256": "cea3228d5be4d1e02d38c8097a652382a72b6a74145dad4366f720d43f7b9ae2",
       "executable": false
     },
     "scripts/installer/README.md": {
@@ -5444,7 +5448,7 @@
       "executable": false
     },
     "tests/auth-adoption/portability.test.mjs": {
-      "sha256": "3d906fea15804ddd455826f3a63db48547f362a76f5b484c8918006421fb0a14",
+      "sha256": "aa42b5ab34f999af92a7d3d99957d0878eefe7edebd7e0da9f1c81839e53e736",
       "executable": false
     },
     "tests/auth-adoption/runtime.mjs": {

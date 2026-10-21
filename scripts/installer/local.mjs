@@ -64,24 +64,13 @@ export const adapter=localInstaller({
  start:preview,owner:nativeOwner,signIn:localSignIn,
 });
 
-// Base import-kit custody holds source copies and replay authority: resume and
-// undo of a move-in stay on the installation that ran it.
-const importCustody=['sorry_import_releases','ik_door_%','ik_batches','ik_d1_assertions','ik_d1_creation_plans','ik_d1_custody_revisions','ik_d1_custody_states','ik_d1_entries','ik_d1_erased_sources','ik_d1_erased_targets','ik_d1_erasure_journal','ik_d1_erasure_progress','ik_d1_erasure_tally','ik_d1_history','ik_d1_indexed_jobs','ik_d1_native_staging','ik_d1_native_staging_index','ik_d1_native_staging_values','ik_d1_original_chunks','ik_d1_plan_chunks','ik_d1_plan_index','ik_d1_preparation_receipts','ik_d1_preparation_steps','ik_d1_publication_fences','ik_d1_retirements','ik_d1_reversal_fences','ik_d1_reversal_reports','ik_d1_staging','ik_d1_staging_chunks','ik_d1_staging_headers','ik_d1_staging_index','ik_d1_staging_originals','ik_d1_staging_pages','ik_d1_stream_origins','ik_d1_stream_pages','ik_d1_stream_revisions','ik_d1_stream_sources','ik_d1_streams','ik_jobs','ik_original_sets','ik_originals','ik_provenance','ik_sources','ik_stages','ik_targets'];
-
-// Durable Base identity and consumed-claim state must travel with Lamp's product
-// attribution. Base excludes oa_/oc_ by default; keep only durable authority,
-// never sessions, links, credentials or pending setup/dependency approvals.
-// Base still forces restored provider links to re-link and sign-in to remain off.
-const operatorContinuity=['oa_operators','oa_bootstrap','oa_external_identities','oa_invitation_cancellations','oa_domain_rules','oa_auth_settings','oa_auth_audit','oa_identity_providers','oa_logout_events','oc_owner_claims','oc_idp_grants'];
-
-// This is the archive format's product identity, not the repository identifier.
-// Keep it stable so exports made before the repository rename still restore.
+// This is the archive format's product identity, not the repository identifier
+// (scripts/installer/archive-policy.mjs keeps it stable for earlier exports).
 // rer export --target remote runs Lamp's hosted archive tool for the deployed
 // install (rer adds --remote --environment production --out FILE).
 // A RER Managed destination keeps Platform's ledger: core-<file> by hash, plus the
-// per-installation page initializer, which seeds data and has no schema file. Its
-// page_settings row (a random feed id) is a bootstrap row the restore replaces.
-const transfer={hostedExport:['node','scripts/export.mjs'],...localPortability({database:'DB',platformMigrations:{prefix:coreMigrationPrefix,dataOnly:[pageInitializer]},buckets:{SNAPSHOTS:'SNAPSHOTS'},policy:{product:'just-every/lamp',buckets:{SNAPSHOTS:{}},replaceableTables:['public_snapshot_work','snapshot_build_control','reference_counters','page_settings'],includeTables:operatorContinuity,excludeTables:['oa_sessions','oa_tokens','oa_step_up_challenges','oa_credentials','oa_dev_credentials',...importCustody],requiredConfiguration:['SETUP_TOKEN','SESSION_SECRET','SUBSCRIBER_TOKEN_SECRET','WEBHOOK_SIGNING_SECRET']},transient:['move-in import custody (resume and undo stay on the original installation)','operator sessions and one-use sign-in links','queued job deliveries in flight','public snapshot cache (rebuilt from D1 and R2)']})};
+// per-installation page initializer, which seeds data and has no schema file.
+const transfer={hostedExport:['node','scripts/export.mjs'],...localPortability({database:'DB',platformMigrations:{prefix:coreMigrationPrefix,dataOnly:[pageInitializer]},buckets:{SNAPSHOTS:'SNAPSHOTS'},policyModule:new URL('./archive-policy.mjs',import.meta.url),transient:['move-in import custody (resume and undo stay on the original installation)','operator sessions and one-use sign-in links','queued job deliveries in flight','public snapshot cache (rebuilt from D1 and R2)']})};
 
 // Declare installed documents explicitly: the Lobby at / does not link to all
 // docs. Read the publishing manifest so new pages enter hydration checks too.
