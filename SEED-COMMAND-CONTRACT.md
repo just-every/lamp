@@ -67,7 +67,7 @@ Run from the project root, or use `--cwd PATH`. Every new verb accepts `--help`,
 | `verify` | `--no-queue` | The seed's complete verification command runs; it never calls its own public `verify` alias recursively. Then its production build is served on loopback as `rer deploy` hosts it (see Hosted assets and deploy identity); verify fails, listing each path, when a built file does not answer 200 or `/health` lacks the deploy identity. Then Chromium loads each public page of that served build and verify fails, naming the page, case, section and evidence, when page sections do not hydrate as separate units (see Hydration units). |
 | `reset` | `--yes` | Explicitly confirmed local data, owner, generated settings and installer state removed; no remote effect. |
 | `deploy` | `--environment NAME`, `--owner-name NAME`, `--dry-run`, `--site`, `--no-queue` | With `--site`, the run site on its Base-generated site Worker (assets, plus the www-to-apex 301) with its custom domains (see Installed homepage and run site); with `--dry-run` it builds the site and prints the plan with zero provider requests. Otherwise: Base deploy-kit owner-account deployment plus health (the deploy identity, then one built file must answer 200); dry run validates/builds locally and reads target secret bindings using Cloudflare credentials, with zero provider writes. It uses deploy’s required-secret resolver and reports every missing secret with the same nonzero exit and error in human and JSON modes; missing credentials or an unreadable target secret list also fail. Default environment is `production`. Both refuse with exit 4, before building, a deploy binding, secret or secret source named `RER_DEV_KEY` or any key the adapter declares in `localOnlyKeys`; deploy-kit's owner plan refuses the same. A deploy that is not a dry run also refuses with exit 4, before building, tracked files with uncommitted changes, naming them. |
-| `export` | `--target local\|remote`, `--output FILE`, `--origin URL`, `--session-file FILE`, `--no-queue` | Complete supported installation data of the local copy written to a new owner-only archive, with integrity receipt and explicit exclusions; the closing line says which copy it exported. Default target is local; output is required. `--origin` or `--target remote` names the hosted install, which rer cannot export yet: unless the adapter declares remote portability, export refuses (exit 2) before any effect, saves nothing, and names the `npx wrangler d1 export DATABASE --remote --output exports/DATABASE.sql` command for each database the checkout deployed. A declared `prepareData` hook runs first and the path is checked against the app's served folders after it, so a checkout that never built still completes when its Vite configuration needs a file `prepareData` generates. |
+| `export` | `--target local\|remote`, `--output FILE`, `--origin URL`, `--session-file FILE`, `--no-queue` | Complete supported installation data of the local copy written to a new owner-only archive, with integrity receipt and explicit exclusions; the closing line says which copy it exported. Default target is local; local output is required. A declared `portability.hostedExport` runs the seed's own hosted-export argv for `--target remote` (see the hook below). Otherwise `--origin` or `--target remote` names the hosted install: unless the adapter declares remote portability, export refuses (exit 2) before any effect, saves nothing, and names the `npx wrangler d1 export DATABASE --remote --output exports/DATABASE.sql` command for each database the checkout deployed. A declared `prepareData` hook runs first and the path is checked against the app's served folders after it, so a checkout that never built still completes when its Vite configuration needs a file `prepareData` generates. |
 | `import` | `--target local\|remote`, `--input FILE`, `--journal FILE`, `--origin URL`, `--session-file FILE`, `--yes`, `--legacy-v1`, `--acknowledge-unverified-metadata`, `--output FILE`, `--no-queue` | Archive validated and atomically restored into an empty destination under the product's restore policy; input and confirmation are required. Normal import requires v2; `--journal` (local only) names a later archive of the same installation, whose erasure journal also fences the restore. Backup-only local Workers v1 recovery requires both legacy flags and a new v2 output; it refuses `--journal` rather than ignoring it. See modules/portability/README.md#backup-only-v1-recovery. A declared `prepareData` hook runs first, so a copy that never ran setup or build can import. |
 | `doctor` | none | Read-only tool/version, local configuration and state-placement diagnostics, naming missing inputs and their documented sources, plus `warnings` for leftover Node quarantine copies, mismatched Node/pnpm/workerd pins across running checkouts and a checkout on another volume (warnings never change the exit code). No provider request. |
 | `describe` | none | Describes commands, flags, aliases, effects, pins and state without installing or executing project commands. |
@@ -277,6 +277,44 @@ A seed's `CONTRACT.md` says what the product is being built towards and how far 
 **The /contract page.** `rer build --site` parses a seed's `CONTRACT.md` and passes it to the site entry as `sitePages({ contract })`; a contract that does not parse stops the build with each problem's line, and no site is written. The entry adds `{ path: '/contract', html: contractPageHtml(identity, run, contract) }` (`src/base/contract-page.ts`) and passes `contract` to `runPageHtml`, `siteHomeHtml` and `siteNotFoundHtml`, whose headers then link Contract; a seed's own pages and docs link `/contract` only when `contract` is given. Without a `CONTRACT.md` there is no `contract`, no page and no link. The page reads the seed's theme, and the status tokens in `onboarding/README.md` ("Seed theme") recolour it.
 
 `rer check` validates a seed's `CONTRACT.md` when it has one: every parse problem is a failing `CONTRACT.status` clause naming its line, and each evidence path that is not in the checkout fails `CONTRACT.evidence.<ID>`, naming the row's line. A seed without `CONTRACT.md` is unaffected. Run `rer check` in the seed after changing the contract.
+
+## Hosted export adapter hook
+
+An adapter may add the optional `portability.hostedExport` argv array beside
+its existing portability implementation:
+
+```js
+portability: {
+ ...localPortability({ database, buckets, policy }),
+ hostedExport: ['node', 'scripts/export.mjs'],
+},
+```
+
+Only `rer export --target remote` selects this hook. rer appends, in order,
+`--remote --environment production --out PATH`, then `--origin URL` when given.
+`--output PATH` maps to `--out PATH`; without it rer chooses
+`exports/hosted-<ISO timestamp>` with colons and dots replaced by hyphens. Paths
+follow the same export destination safety rules as local export. The script
+owns the output format (file or directory), must leave it at PATH on success,
+and must honor any supplied origin when selecting the hosted install. rer
+does not infer that a native export is a `.rer` archive or can be restored by
+the local import implementation.
+
+The declaration is either a relative checkout executable such as
+`['./scripts/export', 'fixed-argument']`, or a bare interpreter followed
+immediately by its relative checkout script, such as the Node example above.
+Arguments are individual nonempty strings; shell strings, interpreter switches
+before the script, absolute executable/script paths, traversal, symlinks and
+non-file scripts are refused by execution and `SC-08.hosted-export` in `rer check`.
+Execution uses the project root, the same caller environment pass-through as a
+seed's own deploy hook, and the shared bounded command runner for admission,
+redacted streaming output and owned-child cleanup. rer reads no hosted secrets
+or local settings for this hook: the seed's script uses its own Wrangler auth.
+The result and normal export summary name the hosted install, output path and
+exit status; the CLI returns the child's exit code. A missing output after exit
+0 fails explicitly. No hook is called for plain export or `--origin` alone.
+Undeclared seeds retain the existing remote-portability path or refusal,
+including its message. SC-01/SC-02 and the `export` package alias stay unchanged.
 
 ## Hosted assets and deploy identity
 
