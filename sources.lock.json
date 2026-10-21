@@ -6640,7 +6640,7 @@
       "executable": false
     },
     "tests/release/installation-browser.mjs": {
-      "sha256": "485d37da7567e9765fcc7183d4405f1ce555ca9f0d760072c14379d62f98891d",
+      "sha256": "73cf4b42a46c2a9714cf60d745678a58b3079b894e6c26f123323f7afc4d6276",
       "executable": false
     },
     "tests/release/installation-journey.mjs": {

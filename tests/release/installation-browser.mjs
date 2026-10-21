@@ -86,7 +86,8 @@ export async function exerciseOwner({ context, page, origin, expectedOwner }, ev
     await page.getByRole("button", { name: "Skip, I'll fill it in" }).click();
     await page.getByRole("button", { name: "Edit page name" }).click();
     await page.getByLabel("Page name", { exact: true }).fill("Release Journey");
-    await page.getByRole("button", { name: "Looks right, open Lamp" }).click();
+    // A skipped website leaves plain defaults: the first run's button reads "Open Lamp" (SETUP-002).
+    await page.getByRole("button", { name: "Open Lamp", exact: true }).click();
     await page.waitForURL("**/app");
   }
   // Use the real authenticated API and check both rendered surfaces.
