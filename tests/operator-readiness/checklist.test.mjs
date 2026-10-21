@@ -114,6 +114,23 @@ test('Lamp checks its own page, subscribe form and sender: real D1 facts, no loc
     assert.equal((await firstRun(JSON.stringify({ components: ['API', 'Dashboard', 'api'] }))).status, 200);
     assert.deepEqual((await services.components.list()).map(component => component.name), ['API', 'Dashboard']);
     assert.equal(await live.firstRunComplete(), true);
+    // Managed credentials allow submission only. Retained unsupported-check
+    // failures must not turn that capability limit into an owner warning.
+    const { createAppMailTransport } = await load('src/core/app/mail.ts');
+    const managedBindings = { DB: db, MAIL_PROVIDER: 'rer', MAIL_FROM: 'status@example.test', MAIL_RELAY_URL: 'https://relay.example.test/api/managed-mail/send', MAIL_API_KEY: 'test-only-installation-credential' };
+    Object.assign(sender, { local: false, provider: 'rer', mail: createAppMailTransport(managedBindings).sender });
+    const managedKey = await senderEvidenceKey((await settings.get()).mailFromAddress, sender);
+    await repo.record('sender-failed', `${managedKey}\nThis sender needs a supported provider credential for the verification check.`);
+    let hosted = await status();
+    assert.equal(hosted.senderVerificationManaged, true, 'Overview knows this check is managed by the relay');
+    assert.notEqual(hosted.sender.state, 'verified', 'no provider verification is claimed');
+    for (const provider of ['sendgrid', 'resend', 'rer']) {
+      Object.assign(sender, { provider, mail: createAppMailTransport({ ...managedBindings, MAIL_PROVIDER: provider, MAIL_FROM_ADDRESS: 'status@example.test', MAIL_API_KEY: undefined }).sender });
+      hosted = await status();
+      assert.equal(hosted.senderVerificationManaged, false, 'missing configuration never receives the neutral relay notice');
+      assert.equal(hosted.sender.state, 'failed', `${provider} still warns when its credential is missing`);
+      assert.ok(hosted.sender.message);
+    }
     // Sender completion requires provider authentication and refuses errors and unverified domains.
     {
     const { checkSender } = await load('src/core/features/overview/sender-check.ts');

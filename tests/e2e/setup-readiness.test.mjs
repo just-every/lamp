@@ -16,11 +16,19 @@ import { devKey } from '../helpers/dev-key.mjs';
 import { operatorHydrated } from "./helpers/operator-hydrated.mjs";
 const executeFile = promisify(execFile);
 
-test('SETUP-001 Lamp publishes and checks the page on its own: Overview shows one live line at 1440 and 390, its links open finished pages, and the local sender stays honest', { timeout: 180_000 }, async () => {
+test('SETUP-001 Lamp checks its page at 1440 and 390: local mail stays quiet, Managed mail stays neutral, and missing BYO credentials warn', { timeout: 240_000 }, async () => {
   const directory = await mkdtemp(join(process.cwd(), '.lamp-readiness-browser-'));
   const state = join(directory, 'state');
   let cache, worker, browser, page, origin, publicOrigin, output = '';
   const diagnostics = { phase: 'fixture' };
+  async function stopWorker() {
+    if (worker && worker.exitCode === null) {
+      const closed = new Promise(resolve => worker.once('close', resolve));
+      try { process.kill(-worker.pid, 'SIGTERM'); } catch (error) { if (error.code !== 'ESRCH') throw error; }
+      await closed;
+    }
+    worker = undefined;
+  }
   try {
     // Vite exposes in-root optimized modules through root-relative URLs.
     // Keep the private cache inside Lamp's native development-asset boundary.
@@ -190,6 +198,37 @@ test('SETUP-001 Lamp publishes and checks the page on its own: Overview shows on
     const replay = await confirm();
     assert.equal(replay.status, 400); assert.equal(replay.headers.has('set-cookie'), false);
     assert.equal(output.includes(link), false, 'Worker output must not retain the command-line link');
+    // Keep the real installation and session. Restart with hosted mail settings
+    // and no development suppression; no mail or provider request is needed.
+    await stopWorker();
+    for (const provider of ['rer', 'sendgrid', 'resend']) {
+      diagnostics.phase = `hosted-${provider}`;
+      appOrigin(port, { MAIL_PROVIDER: provider, MAIL_FROM: 'status@example.test', MAIL_FROM_ADDRESS: 'status@example.test',
+        MAIL_RELAY_URL: 'https://relay.example.test/api/managed-mail/send', MAIL_API_KEY: 'test-only-installation-credential',
+        SUBSCRIBER_TOKEN_SECRET: 'test-only-readiness-subscriber-secret', WEBHOOK_SIGNING_SECRET: 'test-only-readiness-webhook-secret',
+        LAMP_LOCAL_ORIGIN: origin, EFFECTS_PAUSED: '1' });
+      worker = spawn('pnpm', ['exec','vite','--host','127.0.0.1','--port',String(port),'--strictPort'], { detached: true, stdio: 'pipe', env: { ...process.env, LAMP_WORKERS_STATE_PATH: state, LAMP_VITE_CACHE_DIR: cache, LAMP_DISABLE_INSPECTOR: 'true' } });
+      worker.stdout.on('data', chunk => { output += chunk; }); worker.stderr.on('data', chunk => { output += chunk; });
+      await waitForWorker({ origin, child: worker, output: () => 'Hosted sender Worker output withheld because it may contain private links.', label: 'Hosted sender Worker' });
+      const live = (await api('/api/app/overview/live')).live;
+      assert.deepEqual([live.page?.ok, live.subscribe?.ok], [true, true]);
+      assert.equal(live.senderVerificationManaged, provider === 'rer');
+      if (provider !== 'rer') assert.equal(live.sender.state, 'failed');
+      for (const width of [1440,390]) {
+        await page.setViewportSize({ width, height: 900 }); await page.goto(`${origin}/app`);
+        const strip = page.getByRole('region', { name: 'Your public page' });
+        await strip.getByText(provider === 'rer' ? /Mail sender: Uses the RunEditRun relay/ : `Mail sender: ${live.sender.message}`).waitFor();
+        assert.equal(await strip.evaluate(node => node.classList.contains('is-failing')), provider !== 'rer');
+        assert.equal(await strip.locator('.live-problem').count(), provider === 'rer' ? 0 : 1);
+        if (provider === 'rer') {
+          assert.match(await strip.innerText(), /RunEditRun relay/);
+          assert.notEqual(live.sender.state, 'verified');
+          assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+          if (evidencePath) await page.screenshot({ path: join(resolve(evidencePath), `managed-relay-${width}.png`), fullPage: true });
+        }
+      }
+      await stopWorker();
+    }
   } catch (cause) {
     if (page && !page.isClosed()) {
       diagnostics.expectedSettingsRoute = new URL(page.url()).pathname === '/app/settings';
@@ -218,11 +257,7 @@ test('SETUP-001 Lamp publishes and checks the page on its own: Overview shows on
     throw accessibilityFailure(cause, 'Setup readiness journey', diagnostics);
   } finally {
     await browser?.close();
-    if (worker && worker.exitCode === null) {
-      const closed = new Promise(resolve => worker.once('close', resolve));
-      try { process.kill(-worker.pid, 'SIGTERM'); } catch (error) { if (error.code !== 'ESRCH') throw error; }
-      await closed;
-    }
+    await stopWorker();
     await Promise.all([
       rm(directory, { recursive: true, force: true }),
       cache ? rm(cache, { recursive: true, force: true }) : undefined,
