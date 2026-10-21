@@ -14,11 +14,12 @@ import type { TemplateName } from "./parts";
 const sources: Record<TemplateName, string> = { calm: calmSource, uptime: historyLedSource, regions: regionsSource };
 
 /** One stylesheet per published page: the bundled face, Lamp's public tokens in the business's accent, the shared
- *  template pieces and the chosen layout. The map's marker positions travel here, as the page allows no inline style. */
+ *  template pieces and the chosen layout. The map's marker positions and the heatmap's date thinning travel here, as
+ *  the page allows no inline style. */
 export function templateStyles(template: TemplateName, model: PublicSnapshotModel) {
   const { accentColor } = model.settings;
   const foundation = foundationSource.replace("__LAMP_ACCENT_COLOR__", accentColor).replace("__LAMP_ACCENT_INK__", accentInk(accentColor));
-  const generated = template === "regions" ? regionsMapStyles(model) : template === "uptime" ? historyLedStyles() : "";
+  const generated = template === "regions" ? regionsMapStyles(model) : template === "uptime" ? historyLedStyles(model) : "";
   return `${localPublicPageFonts}${foundation}${sharedSource}${sources[template]}${generated}`;
 }
 

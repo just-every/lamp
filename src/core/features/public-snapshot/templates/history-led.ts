@@ -6,6 +6,7 @@ import { REPORTING_DAYS, dayKey, escapeHtml } from "../format";
 import { uptimeMarkLabel } from "../uptime";
 import { lineIcon, stateGlyph } from "./icons";
 import { maintenanceEntry, openIncidentEntry, resolvedEntry } from "./history";
+import { axisMarkup, axisStyles } from "./heatmap-axis";
 import { textWidth } from "./text-width";
 import { brand, componentNote, dayBar, dayClass, feedLinks, quietLine, records, recordDays, situation, subscribeForm, tagline, toneOf, updatedLine, uptimeCaption, uptimeValue, type Component, type TemplateParts } from "./parts";
 
@@ -22,11 +23,19 @@ const LAYOUTS = [
   { name: "s", column: 1.6 },
 ] as const;
 
-/** Grid columns for the axis and callouts, and each callout's reach down to its component's row. */
-export function historyLedStyles() {
+/** The heatmap's days, oldest first; null when no component is public. */
+function heatmapDays(model: PublicSnapshotModel) {
+  const first = publicComponentOrder(model.visibleComponents)[0];
+  return first ? recordDays(first).map((mark) => mark.day) : null;
+}
+
+/** Grid columns for the axis and callouts, each callout's reach down to its component's row, and the dates the axis
+ *  keeps at each width of the track. */
+export function historyLedStyles(model: PublicSnapshotModel) {
   const columns = Array.from({ length: REPORTING_DAYS }, (_, index) => `.hm-track .d${index + 1}{grid-column-start:${index + 1};--column:${index}}`).join("");
   const reach = Array.from({ length: MAX_REACH + 1 }, (_, index) => `.reach-${index}{--reach:${index}}`).join("");
-  return `${columns}${reach}`;
+  const days = heatmapDays(model);
+  return `${columns}${reach}${days ? axisStyles(days) : ""}`;
 }
 
 function overallUptime(components: Component[]) {
@@ -97,21 +106,10 @@ function callouts(model: PublicSnapshotModel, components: Component[], days: str
   }).join("");
 }
 
-/** A date every week back from today; phones keep every fourth of them, and the narrowest every sixth. */
-function axis(days: string[]) {
-  const labels: string[] = [];
-  for (let index = days.length - 1, week = 0; index >= 0; index -= 7, week += 1) {
-    const shown = new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", timeZone: "UTC" }).format(new Date(`${days[index]}T12:00:00Z`));
-    const classes = [index === days.length - 1 ? "last" : index === days.length - 8 ? "near-last" : "", week % 4 === 0 ? "wk4" : "", week % 6 === 0 ? "wk6" : ""].filter(Boolean);
-    labels.unshift(`<span class="${[`d${index + 1}`, ...classes].join(" ")}">${shown}</span>`);
-  }
-  return `<div class="hm-axis" aria-hidden="true">${labels.join("")}</div>`;
-}
-
 function heatmap(model: PublicSnapshotModel, parts: TemplateParts) {
   const components = publicComponentOrder(model.visibleComponents);
-  if (!components.length) return "";
-  const days = recordDays(components[0]!).map((mark) => mark.day);
+  const days = heatmapDays(model);
+  if (!days) return "";
   const timezone = model.settings.timezone;
   const spans = model.incidents.map((incident) => ({ incident, ...incidentDays(incident, timezone, model.generatedAt) }));
   const seen = new Set<string>();
@@ -129,7 +127,7 @@ function heatmap(model: PublicSnapshotModel, parts: TemplateParts) {
   const legendStates = [["ok", COMPONENT_STATES[0]], ["degraded", "Degraded performance"], ["partial", "Partially unavailable"], ["major", "Major outage"], ["none", "No data"]].filter(([kind]) => kind === "ok" || seen.has(kind!));
   const legend = `<ul class="hm-legend" aria-label="Legend">${legendStates.map(([kind, name]) => `<li><i class="cell ${kind}"></i>${name}</li>`).join("")}</ul>`;
   const notes = components.filter((component) => component.note || component.description).map((component) => `<li><strong>${escapeHtml(component.name)}</strong>${componentNote(component)}</li>`).join("");
-  return `<section class="up-heatmap wrap" aria-labelledby="heatmap-title" data-live="heatmap"><div class="hm-frame"><div class="hm-head"><h2 id="heatmap-title">Components</h2>${legend}</div><div class="hm-body"><ul class="hm-labels">${labels}</ul><div class="hm-scroll" role="group" aria-label="Daily history, last ${REPORTING_DAYS} days"><div class="hm-track"><div class="hm-callouts">${callouts(model, components, days)}</div>${rows}${axis(days)}</div></div></div>${notes ? `<ul class="hm-notes">${notes}</ul>` : ""}<details class="hm-method"><summary>How these figures are calculated</summary><p>Each square is one calendar day in ${escapeHtml(timezone)}. A component's percentage covers the last ${REPORTING_DAYS} days of observed time; the overall figure averages the components, weighted by observed time. Degraded performance counts as ${model.policies.uptimeDowntimeWeight("Degraded performance")} downtime minutes per minute, a partial outage as ${model.policies.uptimeDowntimeWeight("Partially unavailable")} and a major outage as ${model.policies.uptimeDowntimeWeight("Major outage")}.</p></details><div class="component-extension">${parts.slot("status-page.components.after.v1")}</div></div></section>`;
+  return `<section class="up-heatmap wrap" aria-labelledby="heatmap-title" data-live="heatmap"><div class="hm-frame"><div class="hm-head"><h2 id="heatmap-title">Components</h2>${legend}</div><div class="hm-body"><ul class="hm-labels">${labels}</ul><div class="hm-scroll" role="group" aria-label="Daily history, last ${REPORTING_DAYS} days"><div class="hm-track"><div class="hm-callouts">${callouts(model, components, days)}</div>${rows}${axisMarkup(days)}</div></div></div>${notes ? `<ul class="hm-notes">${notes}</ul>` : ""}<details class="hm-method"><summary>How these figures are calculated</summary><p>Each square is one calendar day in ${escapeHtml(timezone)}. A component's percentage covers the last ${REPORTING_DAYS} days of observed time; the overall figure averages the components, weighted by observed time. Degraded performance counts as ${model.policies.uptimeDowntimeWeight("Degraded performance")} downtime minutes per minute, a partial outage as ${model.policies.uptimeDowntimeWeight("Partially unavailable")} and a major outage as ${model.policies.uptimeDowntimeWeight("Major outage")}.</p></details><div class="component-extension">${parts.slot("status-page.components.after.v1")}</div></div></section>`;
 }
 
 /** Incidents and maintenance in groups. Wide screens show them as one run of framed entries, each with its own

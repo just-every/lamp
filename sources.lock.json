@@ -4008,15 +4008,19 @@
       "executable": false
     },
     "src/core/features/public-snapshot/templates/assets.ts": {
-      "sha256": "2e688446456ee045e4b256b79dd4af960a4494a9237beac2dbab97da26004911",
+      "sha256": "3190cc0d7de3abb5556e8089371446d60a0a525f8635af960bae9c7f29290dcd",
       "executable": false
     },
     "src/core/features/public-snapshot/templates/calm.ts": {
       "sha256": "0a98e61bbef413d2c1e7d0683d4a1e7ffebd07a67b9f97e81f56aaa5b3c3f0ca",
       "executable": false
     },
+    "src/core/features/public-snapshot/templates/heatmap-axis.ts": {
+      "sha256": "da2d539a620b83901e5985fbe59b3c75de4752923cc6942e9c67c4dd0340e746",
+      "executable": false
+    },
     "src/core/features/public-snapshot/templates/history-led.ts": {
-      "sha256": "9e495266612191815cbf641fd3e3fdf4e0e7cb3ec4567a7af77eb31df03d146a",
+      "sha256": "e53894ff879060404d62726299609bf502fcba554ff578d22ca76f1f02bcb583",
       "executable": false
     },
     "src/core/features/public-snapshot/templates/history.ts": {
@@ -4048,7 +4052,7 @@
       "executable": false
     },
     "src/core/features/public-snapshot/templates/script.js": {
-      "sha256": "6097af74d88e6580772de9ea1adf6fbe96b19ca6f28d550b4b1a1e9b25ea8ad5",
+      "sha256": "bab2871ae261130d0bcfd06a543f18cbd976b36b973feb4d1130a2109d560e3e",
       "executable": false
     },
     "src/core/features/public-snapshot/templates/styles/calm.css": {
@@ -4056,7 +4060,7 @@
       "executable": false
     },
     "src/core/features/public-snapshot/templates/styles/history-led.css": {
-      "sha256": "edca2a6709cf6502db70db914e2b00007c6b2606cc80ac3fdf96c24960164bd2",
+      "sha256": "5c5da64aa7c788933f8d6cf7aec68ffe3e3117645c497c92259fac225a3c67f5",
       "executable": false
     },
     "src/core/features/public-snapshot/templates/styles/regions.css": {
