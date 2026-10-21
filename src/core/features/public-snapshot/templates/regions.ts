@@ -47,7 +47,9 @@ function regionsMapOf(model: PublicSnapshotModel) {
   const markers = mapMarkers(groups);
   const bands = mapPlan(markers);
   const styles = planStyles(markers, bands);
-  return { groups, markers, keyed: bands.some((band) => band.keyed), styles, signature: fingerprint(`${markers.map((marker) => `${marker.group.key}:${marker.state}`).join("|")}#${styles}`) };
+  // Every region with its state and size, mapped or not, and the layout: the map section is not refreshed in place.
+  const regions = groups.map((group) => `${group.key}:${group.state}:${group.components.length}`).join("|");
+  return { groups, markers, keyed: bands.some((band) => band.keyed), styles, signature: fingerprint(`${regions}#${styles}`) };
 }
 
 /** One layout of the map per snapshot, shared by the page and its stylesheet. */
