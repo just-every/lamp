@@ -18,6 +18,10 @@
 .rg-status-line h1 { margin: 3px 0 0; font-size: 22px; font-weight: 600; line-height: 1.35; letter-spacing: -.012em; }
 .rg-status-line .tpl-updated { margin-top: 2px; font-size: 13.5px; }
 
+/* The map's section is the container its layout is chosen by: templates/map-layout.ts writes, for every band of its
+   width, where each pin sits, which side of it each card takes, or that the band is keyed. Pin and card sizes here
+   are the ones that layout checks. */
+.rg-regions { container: rg-map / inline-size; }
 .rg-map { position: relative; max-width: 1060px; aspect-ratio: 1000 / 315; margin: 14px auto 0; }
 .rg-world { position: absolute; inset: 0; width: 100%; height: 100%; }
 .rg-world path { fill: none; stroke: #cfd2cb; stroke-width: 2.7; stroke-linecap: round; }
@@ -26,68 +30,53 @@
 .pin-icon { display: block; width: 100%; height: 100%; }
 .pin-icon path { fill: currentColor; }
 .pin-icon circle { fill: #fff; }
-.rg-pin b { display: none; position: absolute; top: 2px; left: 0; width: 100%; color: #fff; font-size: 10px; font-weight: 700; line-height: 14px; text-align: center; }
+/* A keyed band's pins are 24 × 30 with their number white in the head, where the hole was. */
+.rg-pin b { display: none; position: absolute; top: 5.5px; left: 0; width: 100%; color: #fff; font-size: 11px; font-weight: 700; line-height: 14px; letter-spacing: -.02em; text-align: center; font-variant-numeric: tabular-nums; }
 .rg-pin.tone-degraded, .rg-pin.tone-partial { color: var(--amber-ink); }
 .rg-pin.tone-major { color: var(--down); }
 .rg-pin.tone-maint { color: var(--maint); }
-.rg-card { position: absolute; z-index: 2; display: grid; gap: 1px; width: max-content; border: 1px solid var(--line); border-radius: 14px; background: #fff; box-shadow: 0 8px 20px -12px rgb(24 45 36 / .35); padding: 6px 14px 7px; color: var(--ink); text-decoration: none; white-space: nowrap; }
-.rg-card strong { font-size: 14px; font-weight: 600; line-height: 1.35; }
+.rg-card { position: absolute; z-index: 2; display: grid; gap: 1px; align-content: start; width: max-content; height: 50px; overflow: hidden; border: 1px solid var(--line); border-radius: 14px; background: #fff; box-shadow: 0 8px 20px -12px rgb(24 45 36 / .35); padding: 6px 14px 7px; color: var(--ink); text-decoration: none; white-space: nowrap; }
+.rg-card strong { overflow: hidden; font-size: 14px; font-weight: 600; line-height: 18px; text-overflow: ellipsis; }
 .rg-card:hover strong { text-decoration: underline; }
 .rg-card[aria-current="true"] { border-color: var(--ink); box-shadow: 0 0 0 1px var(--ink), 0 8px 20px -12px rgb(24 45 36 / .35); }
 .rg-card-state { display: inline-flex; align-items: center; gap: 6px; color: var(--ink-2); font-size: 12.5px; line-height: 1.35; }
+.rg-card .rg-card-state { line-height: 16px; }
 .rg-card-state::before { content: ""; width: 7px; height: 7px; flex: none; border-radius: 50%; background: var(--ok); }
 .rg-card-state.tone-degraded::before { background: var(--degraded); }
 .rg-card-state.tone-partial::before { background: var(--cell-partial); }
 .rg-card-state.tone-major::before { background: var(--down); }
 .rg-card-state.tone-maint::before { background: var(--maint); }
-.rg-key { display: none; }
 .rg-elsewhere { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 18px; margin: 10px 0 0; color: var(--ink-3); font-size: 12.5px; }
 .rg-elsewhere > span { display: inline-flex; align-items: center; gap: 8px; color: var(--ink); }
 
-/* Cards sit beside their pin; the placement names the side, in pixels from the pin tip. */
-@media (min-width: 1100px) {
-  .rg-card.pl-r { transform: translate(13px, calc(-15px - 50%)); }
-  .rg-card.pl-l { transform: translate(calc(-13px - 100%), calc(-15px - 50%)); }
-  .rg-card.pl-t { transform: translate(-50%, calc(-28px - 100%)); }
-  .rg-card.pl-b { transform: translate(-50%, 4px); }
-  .rg-card.pl-ru { transform: translate(13px, calc(-7px - 100%)); }
-  .rg-card.pl-rd { transform: translate(13px, -23px); }
-  .rg-card.pl-lu { transform: translate(calc(-13px - 100%), calc(-7px - 100%)); }
-  .rg-card.pl-ld { transform: translate(calc(-13px - 100%), -23px); }
-  .rg-card.pl-tl { transform: translate(calc(9px - 100%), calc(-28px - 100%)); }
-  .rg-card.pl-tr { transform: translate(-9px, calc(-28px - 100%)); }
-  .rg-card.pl-bl { transform: translate(calc(9px - 100%), 4px); }
-  .rg-card.pl-br { transform: translate(-9px, 4px); }
-  .rg-map.keyed-large .rg-card { display: none; }
-  .rg-map.keyed-large .rg-pin b { display: block; }
-  .rg-map.keyed-large ~ .rg-key { display: flex; }
-}
-@media (min-width: 641px) and (max-width: 1099px) {
-  .rg-card.pm-r { transform: translate(13px, calc(-15px - 50%)); }
-  .rg-card.pm-l { transform: translate(calc(-13px - 100%), calc(-15px - 50%)); }
-  .rg-card.pm-t { transform: translate(-50%, calc(-28px - 100%)); }
-  .rg-card.pm-b { transform: translate(-50%, 4px); }
-  .rg-card.pm-ru { transform: translate(13px, calc(-7px - 100%)); }
-  .rg-card.pm-rd { transform: translate(13px, -23px); }
-  .rg-card.pm-lu { transform: translate(calc(-13px - 100%), calc(-7px - 100%)); }
-  .rg-card.pm-ld { transform: translate(calc(-13px - 100%), -23px); }
-  .rg-card.pm-tl { transform: translate(calc(9px - 100%), calc(-28px - 100%)); }
-  .rg-card.pm-tr { transform: translate(-9px, calc(-28px - 100%)); }
-  .rg-card.pm-bl { transform: translate(calc(9px - 100%), 4px); }
-  .rg-card.pm-br { transform: translate(-9px, 4px); }
-  .rg-map.keyed-medium .rg-card { display: none; }
-  .rg-map.keyed-medium .rg-pin b { display: block; }
-  .rg-map.keyed-medium ~ .rg-key { display: flex; }
-}
-
-.rg-key { flex-wrap: wrap; justify-content: center; gap: 8px; margin: 12px 0 0; padding: 0; list-style: none; }
+/* The key under a keyed map: each pin's number in the pin's own colour, then its region and state. */
+.rg-key { display: none; flex-wrap: wrap; justify-content: center; gap: 8px; margin: 12px 0 0; padding: 0; list-style: none; }
 .rg-key-item { display: inline-flex; align-items: center; gap: 8px; min-height: 36px; border: 1px solid var(--line); border-radius: 999px; background: #fff; padding: 4px 14px 4px 6px; color: var(--ink); text-decoration: none; font-size: 13px; }
-.rg-key-item b { display: grid; width: 22px; height: 22px; place-items: center; border-radius: 50%; background: var(--ink); color: #fff; font-size: 11px; }
+.rg-key-item b { display: grid; width: 22px; height: 22px; flex: none; place-items: center; border-radius: 50%; background: var(--ink); color: #fff; font-size: 11px; font-variant-numeric: tabular-nums; }
+.rg-key-item.tone-degraded b, .rg-key-item.tone-partial b { background: var(--amber-ink); }
+.rg-key-item.tone-major b { background: var(--down); }
+.rg-key-item.tone-maint b { background: var(--maint); }
 .rg-key-item strong { font-weight: 600; }
 .rg-key-item[aria-current="true"] { border-color: var(--ink); }
 
+@container rg-map (width < 620px) {
+  .rg-map { aspect-ratio: 1000 / 500; margin-top: 22px; }
+  .rg-world-wide { display: none; }
+  .rg-world-narrow { display: block; }
+  .rg-world-narrow path { stroke: #c6cbc3; stroke-width: 5.4; }
+  .rg-pin { width: 14px; height: 19px; }
+  .rg-card { gap: 0; height: 40px; border-radius: 10px; padding: 4px 9px 5px; }
+  .rg-card strong { font-size: 12px; line-height: 15px; }
+  .rg-card .rg-card-state { gap: 5px; font-size: 11px; line-height: 14px; }
+  .rg-card .rg-card-state::before { width: 6px; height: 6px; }
+  .rg-key > li { display: flex; flex: 1 1 calc(50% - 4px); min-width: 0; }
+  .rg-key-item { display: grid; flex: 1; grid-template-columns: auto minmax(0, 1fr); gap: 0 8px; border-radius: 12px; padding: 6px 10px 6px 6px; }
+  .rg-key-item b { grid-row: 1 / 3; align-self: center; }
+  .rg-key-item .rg-card-state { font-size: 11.5px; }
+}
+
 .rg-filters { display: flex; flex-wrap: wrap; gap: 10px 16px; border-bottom: 1px solid var(--line-strong); padding: 18px 0 22px; }
-.rg-filters a { display: inline-flex; align-items: center; min-height: 38px; border: 1px solid var(--line-strong); border-radius: 999px; padding: 0 20px; color: var(--ink); font-size: 13.5px; text-decoration: none; }
+.rg-filters a { display: inline-flex; flex: none; align-items: center; min-height: 38px; border: 1px solid var(--line-strong); border-radius: 999px; padding: 0 20px; color: var(--ink); font-size: 13.5px; text-decoration: none; white-space: nowrap; }
 .rg-filters a:hover { border-color: var(--ink); }
 .rg-filters a[aria-current="true"] { border-color: var(--ink); background: var(--ink); color: var(--on-ink); }
 
@@ -112,7 +101,8 @@
 .rg-status.tone-degraded, .rg-status.tone-partial { color: var(--amber-ink); }
 .rg-status.tone-major { color: #9c3626; }
 .rg-status.tone-maint { color: #3c5a8f; }
-.rg-uptime { font-size: 14px; font-variant-numeric: tabular-nums; }
+.rg-uptime { display: grid; font-size: 14px; font-variant-numeric: tabular-nums; }
+.rg-uptime-caption { display: none; }
 .rg-chevron { width: 16px; height: 16px; color: var(--ink-3); }
 .rg-row[open] .rg-chevron { transform: rotate(90deg); }
 .rg-detail { border-bottom: 1px solid var(--line); padding: 12px 0 16px 30px; }
@@ -167,48 +157,25 @@
   .rg-status-line h1 { margin-top: 0; font-size: 19px; }
   .rg-status-line .tpl-updated { display: grid; gap: 0; }
   .rg-status-line .tpl-sep { display: none; }
-  .rg-map { aspect-ratio: 1000 / 500; margin-top: 22px; }
-  .rg-world-wide { display: none; }
-  .rg-world-narrow { display: block; }
-  .rg-world-narrow path { stroke: #c6cbc3; stroke-width: 5.4; }
-  .rg-pin { width: 14px; height: 19px; }
-  .rg-pin b { top: 1px; font-size: 8.5px; line-height: 12px; }
-  .rg-card { gap: 0; border-radius: 10px; padding: 4px 9px 5px; }
-  .rg-card strong { font-size: 12px; }
-  .rg-card-state { gap: 5px; font-size: 11px; }
-  .rg-card-state::before { width: 6px; height: 6px; }
-  .rg-card.pn-r { transform: translate(11px, calc(-12px - 50%)); }
-  .rg-card.pn-l { transform: translate(calc(-11px - 100%), calc(-12px - 50%)); }
-  .rg-card.pn-t { transform: translate(-50%, calc(-23px - 100%)); }
-  .rg-card.pn-b { transform: translate(-50%, 4px); }
-  .rg-card.pn-ru { transform: translate(11px, calc(-4px - 100%)); }
-  .rg-card.pn-rd { transform: translate(11px, -20px); }
-  .rg-card.pn-lu { transform: translate(calc(-11px - 100%), calc(-4px - 100%)); }
-  .rg-card.pn-ld { transform: translate(calc(-11px - 100%), -20px); }
-  .rg-card.pn-tl { transform: translate(calc(7px - 100%), calc(-23px - 100%)); }
-  .rg-card.pn-tr { transform: translate(-7px, calc(-23px - 100%)); }
-  .rg-card.pn-bl { transform: translate(calc(7px - 100%), 4px); }
-  .rg-card.pn-br { transform: translate(-7px, 4px); }
-  .rg-map.keyed-narrow .rg-card { display: none; }
-  .rg-map.keyed-narrow .rg-pin { width: 18px; height: 24px; }
-  .rg-map.keyed-narrow .rg-pin b { display: block; top: 2px; font-size: 10px; line-height: 14px; }
-  .rg-map.keyed-narrow ~ .rg-key { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .rg-key-item { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 0 8px; border-radius: 12px; padding: 6px 10px 6px 6px; }
-  .rg-key-item b { grid-row: 1 / 3; align-self: center; }
-  .rg-key-item .rg-card-state { font-size: 11.5px; }
-  .rg-filters { gap: 10px; border-bottom: 0; padding: 18px 0 0; }
+  /* The region filters stay on one line that scrolls sideways, edge to edge. */
+  .rg-filters { flex-wrap: nowrap; gap: 10px; overflow-x: auto; margin: 0 calc(-1 * var(--gutter)); border-bottom: 0; padding: 18px var(--gutter) 6px; scroll-padding-inline: var(--gutter); scrollbar-width: none; }
+  .rg-filters::-webkit-scrollbar { display: none; }
   .rg-filters a { min-height: 42px; padding: 0 18px; font-size: 14px; }
   .rg-current .tl-open, .rg-current .tl-maint { border: 1px solid #ecd394; border-radius: 12px; background: #fdf6e3; padding: 16px 18px; }
   .rg-current .tl-maint { border-color: rgb(79 111 168 / .3); background: #f5f7fb; }
   .rg-current .tl + .tl { margin-top: 12px; }
   .rg-components h2 { margin: 30px 0 14px; }
   .rg-thead { display: none; }
-  .rg-row summary { grid-template-areas: "icon name uptime chevron" "icon status uptime chevron"; row-gap: 2px; column-gap: 12px; min-height: 66px; padding: 10px 0; }
+  /* Components sit in one white box; a row's hairline below its last line is the box's own edge. */
+  .rg-rows { overflow: hidden; border: 1px solid var(--line-strong); border-radius: 14px; background: var(--card); padding: 0 14px; }
+  .rg-row { margin-bottom: -1px; }
+  .rg-row summary { grid-template-areas: "icon name uptime chevron" "icon status uptime chevron"; row-gap: 2px; column-gap: 12px; min-height: 68px; padding: 12px 0; }
   .rg-row .kind-icon { grid-area: icon; }
   .rg-name { grid-area: name; font-size: 15px; font-weight: 500; }
   .rg-status { grid-area: status; gap: 7px; font-size: 13px; }
   .rg-status .state-glyph { width: 14px; height: 14px; }
-  .rg-uptime { grid-area: uptime; text-align: right; }
+  .rg-uptime { grid-area: uptime; justify-items: end; gap: 1px; text-align: right; }
+  .rg-uptime-caption { display: block; color: var(--ink-3); font-size: 11.5px; }
   .rg-chevron { grid-area: chevron; }
   .rg-detail { padding-left: 40px; }
 }

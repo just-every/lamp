@@ -5,7 +5,7 @@ import { regionKey } from "../../../shared/regions";
 import { escapeHtml } from "../format";
 import { componentIcon, lineIcon, pinIcon, stateGlyph } from "./icons";
 import { maintenanceEntry, openIncidentEntry, resolvedEntry } from "./history";
-import { MAP_TIERS, layoutTier, type MapMarker } from "./map-layout";
+import { mapPlan, planStyles, type MapMarker } from "./map-layout";
 import { regionPlace } from "./places";
 import { MAP_WIDTH, mapHeight, worldDots } from "./world";
 import { brand, componentNote, dayBar, feedLinks, quietLine, records, situation, subscribeForm, tagline, toneOf, updatedLine, uptimeCaption, uptimeValue, type Component, type TemplateParts } from "./parts";
@@ -33,29 +33,46 @@ function mapMarkers(groups: RegionGroup[]): Array<MapMarker & { group: RegionGro
   return groups.flatMap((group) => group.place ? [{ group, name: group.name, state: group.state, place: group.place }] : []).sort((left, right) => left.place[1] - right.place[1]);
 }
 
-/** The marker anchors for every width tier, as stylesheet rules: public pages allow no inline styles (PAGE-013). */
-export function regionsMapStyles(model: PublicSnapshotModel) {
-  const markers = mapMarkers(regionGroups(model.visibleComponents));
-  return MAP_TIERS.map((tier) => {
-    const placed = layoutTier(markers, tier);
-    const rules = placed.anchors.map((anchor, index) => `.rg-map .m${index}{left:${anchor.x.toFixed(2)}%;top:${anchor.y.toFixed(2)}%}`).join("");
-    return tier.name === "large" ? rules : `@media (max-width:${tier.name === "medium" ? 1099 : 640}px){${rules}}`;
-  }).join("");
+// FNV-1a: a short fingerprint of the map, so an open page knows when a newer snapshot moved or relabelled it.
+function fingerprint(text: string) {
+  let hash = 0x811c9dc5;
+  for (let index = 0; index < text.length; index += 1) hash = Math.imul(hash ^ text.charCodeAt(index), 0x01000193);
+  return (hash >>> 0).toString(36);
 }
 
-function regionsMap(groups: RegionGroup[]) {
+const maps = new WeakMap<PublicSnapshotModel, ReturnType<typeof regionsMapOf>>();
+
+function regionsMapOf(model: PublicSnapshotModel) {
+  const groups = regionGroups(model.visibleComponents);
   const markers = mapMarkers(groups);
-  const tiers = MAP_TIERS.map((tier) => layoutTier(markers, tier));
-  const keyed = tiers.filter((tier) => tier.keyed).map((tier) => ` keyed-${tier.tier.name}`).join("");
+  const bands = mapPlan(markers);
+  const styles = planStyles(markers, bands);
+  return { groups, markers, keyed: bands.some((band) => band.keyed), styles, signature: fingerprint(`${markers.map((marker) => `${marker.group.key}:${marker.state}`).join("|")}#${styles}`) };
+}
+
+/** One layout of the map per snapshot, shared by the page and its stylesheet. */
+function regionsMapFor(model: PublicSnapshotModel) {
+  let found = maps.get(model);
+  if (!found) maps.set(model, found = regionsMapOf(model));
+  return found;
+}
+
+/** The map's pin and card positions for every width of its section, as stylesheet rules: public pages allow no
+ *  inline styles (PAGE-013). */
+export function regionsMapStyles(model: PublicSnapshotModel) {
+  return regionsMapFor(model).styles;
+}
+
+function regionsMap(model: PublicSnapshotModel) {
+  const { groups, markers, keyed, signature } = regionsMapFor(model);
   const pins = markers.map((marker, index) => `<span class="rg-pin m${index} tone-${toneOf(marker.group.state)}" aria-hidden="true">${pinIcon()}<b>${index + 1}</b></span>`).join("");
   const label = (marker: (typeof markers)[number], className: string, number = "") => `<a class="${className}" href="#components-title" data-region-choice="${marker.group.key}">${number}<strong>${escapeHtml(marker.name)}</strong> <span class="rg-card-state tone-${toneOf(marker.group.state)}">${escapeHtml(marker.state)}</span><span class="sr-only">, ${plural(marker.group.components.length, "component")}</span></a>`;
-  const cards = markers.map((marker, index) => label(marker, `rg-card m${index} ${tiers.map((tier) => `p${tier.tier.name[0]}-${tier.placements[index]}`).join(" ")}`)).join("");
-  const key = keyed ? `<ol class="rg-key">${markers.map((marker, index) => `<li>${label(marker, "rg-key-item", `<b aria-hidden="true">${index + 1}</b>`)}</li>`).join("")}</ol>` : "";
+  const cards = markers.map((marker, index) => label(marker, `rg-card m${index}`)).join("");
+  const key = keyed ? `<ol class="rg-key">${markers.map((marker, index) => `<li>${label(marker, `rg-key-item tone-${toneOf(marker.group.state)}`, `<b aria-hidden="true">${index + 1}</b>`)}</li>`).join("")}</ol>` : "";
   const unmapped = groups.filter((group) => !group.place);
   const elsewhere = unmapped.length ? `<p class="rg-elsewhere">Not on the map: ${unmapped.map((group) => `<span>${escapeHtml(group.name)} <span class="rg-card-state tone-${toneOf(group.state)}">${escapeHtml(group.state)}</span></span>`).join("")}</p>` : "";
-  const signature = markers.map((marker, index) => `${marker.group.key}:${tiers.map((tier) => tier.placements[index]).join("")}`).join("|");
   const world = (view: "wide" | "narrow") => `<svg class="rg-world rg-world-${view}" viewBox="0 0 ${MAP_WIDTH} ${mapHeight(view).toFixed(2)}" aria-hidden="true" focusable="false"><path d="${worldDots(view)}"/></svg>`;
-  return `<div class="rg-map${keyed}" data-map="${escapeHtml(signature)}">${world("wide")}${world("narrow")}${pins}${cards}</div>${key}${elsewhere}`;
+  return `<div class="rg-map" data-map="${signature}">${world("wide")}${world("narrow")}${pins}${cards}</div>${key}${elsewhere}`;
 }
 
 function filters(groups: RegionGroup[]) {
@@ -66,7 +83,7 @@ function componentRow(component: Component, groups: RegionGroup[]) {
   const key = regionKey(component.region);
   const region = groups.find((group) => group.key === key);
   const tone = toneOf(component.state);
-  return `<details class="rg-row" data-region="${key}"><summary>${componentIcon(component.name)}<span class="rg-name"><span class="rg-name-text">${escapeHtml(component.name)}</span>${region ? "" : '<span class="rg-everywhere">All regions</span>'}</span><span class="rg-status tone-${tone}">${stateGlyph(component.state)}<span>${escapeHtml(component.state)}</span></span><span class="rg-uptime">${escapeHtml(uptimeValue(component.uptime))}</span>${lineIcon("chevron", "rg-chevron")}</summary><div class="rg-detail">${region ? `<p class="tpl-meta">Region: ${escapeHtml(region.name)}</p>` : ""}<p class="tpl-meta">${escapeHtml(uptimeCaption(component.uptime))}: ${escapeHtml(uptimeValue(component.uptime))}</p>${dayBar(component, "rg-bar")}${componentNote(component)}</div></details>`;
+  return `<details class="rg-row" data-region="${key}"><summary>${componentIcon(component.name)}<span class="rg-name"><span class="rg-name-text">${escapeHtml(component.name)}</span>${region ? "" : '<span class="rg-everywhere">All regions</span>'}</span><span class="rg-status tone-${tone}">${stateGlyph(component.state)}<span>${escapeHtml(component.state)}</span></span><span class="rg-uptime"><span>${escapeHtml(uptimeValue(component.uptime))}</span><span class="rg-uptime-caption">${escapeHtml(uptimeCaption(component.uptime))}</span></span>${lineIcon("chevron", "rg-chevron")}</summary><div class="rg-detail">${region ? `<p class="tpl-meta">Region: ${escapeHtml(region.name)}</p>` : ""}<p class="tpl-meta">${escapeHtml(uptimeCaption(component.uptime))}: ${escapeHtml(uptimeValue(component.uptime))}</p>${dayBar(component, "rg-bar")}${componentNote(component)}</div></details>`;
 }
 
 export function regionsPage(model: PublicSnapshotModel, parts: TemplateParts) {
@@ -76,7 +93,7 @@ export function regionsPage(model: PublicSnapshotModel, parts: TemplateParts) {
   const components = publicComponentOrder(model.visibleComponents);
   const head = `<header class="rg-head wrap"><div class="rg-head-row"><div class="rg-brand">${brand(model)}${tagline(model)}</div><div class="rg-actions">${subscribeForm("subscribe-email")}${feedLinks()}</div></div></header>`;
   const status = `<section class="rg-status-line wrap" aria-labelledby="overall-status"><div class="tpl-live tone-${toneOf(model.overall)}" id="status-live" role="status" aria-live="polite" aria-atomic="true" data-live="status"><span class="rg-status-icon">${stateGlyph(model.overall)}</span><div><h1 id="overall-status">${escapeHtml(text)}</h1>${updatedLine(model)}</div></div></section>`;
-  const map = `<section class="rg-regions wrap" aria-labelledby="regions-title"><h2 id="regions-title" class="sr-only">Regions</h2>${regionsMap(groups)}${filters(groups)}</section>`;
+  const map = `<section class="rg-regions wrap" aria-labelledby="regions-title"><h2 id="regions-title" class="sr-only">Regions</h2>${regionsMap(model)}${filters(groups)}</section>`;
   const current = [...history.open.map((incident) => openIncidentEntry(incident, model, parts)), ...history.maintenance.map((item) => maintenanceEntry(item, model))].join("");
   const past = history.resolved.map((incident) => resolvedEntry(incident, model)).join("");
   const table = `<section class="rg-components" aria-labelledby="components-title" data-live="components"><h2 id="components-title">Components</h2><p class="sr-only" data-region-count aria-live="polite">Showing all ${plural(components.length, "component")}</p><div class="rg-thead" aria-hidden="true"><span>Component</span><span>Status</span><span>90-day uptime</span></div><div class="rg-rows">${components.map((component) => componentRow(component, groups)).join("")}</div><div class="component-extension">${parts.slot("status-page.components.after.v1")}</div></section>`;

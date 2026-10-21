@@ -4,7 +4,7 @@ import { mostSevereState, type ComponentState } from "../../../shared/domain";
 import { renderUpdateHtml } from "../../../shared/update-links";
 import { DAY, REPORTING_DAYS, dayKey, escapeHtml, formatTime, timezoneLabel } from "../format";
 import { uptimeMarkLabel, type Uptime } from "../uptime";
-import { lineIcon } from "./icons";
+import { lampMark, lineIcon } from "./icons";
 
 export type TemplateName = "calm" | "uptime" | "regions";
 export type Component = PublicSnapshotModel["visibleComponents"][number];
@@ -21,7 +21,7 @@ export function templateShell(template: TemplateName, model: PublicSnapshotModel
   const title = /\bstatus\s*$/i.test(settings.pageName.trim()) ? settings.pageName : `${settings.pageName} status`;
   const website = model.websiteUrl ? new URL(model.websiteUrl) : null;
   const meta = `<p class="tpl-foot-meta">${website ? `<a href="${escapeHtml(website.href)}">${escapeHtml(website.hostname)}</a>` : ""}<span class="host" data-timezone-label data-timezone="${escapeHtml(settings.timezone)}">Times shown in ${escapeHtml(timezoneLabel(settings.timezone))}</span><a data-lamp-signin href="/signin">Sign in</a></p>`;
-  const credit = settings.footerCreditEnabled ? '<p class="tpl-credit">Powered by Lamp</p>' : "";
+  const credit = settings.footerCreditEnabled ? `<p class="tpl-credit">${template === "calm" ? "" : lampMark()}<span>Powered by <span class="tpl-credit-name">Lamp</span></span></p>` : "";
   const footer = `<footer class="tpl-foot"><div class="wrap">${parts.slot("status-page.footer.before.v1")}<div class="tpl-foot-row">${credit}${meta}</div>${parts.footerResources}</div></footer>`;
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light"><meta name="description" content="${escapeHtml(settings.tagline)}"><meta property="og:title" content="${escapeHtml(`${settings.pageName}: ${overall}`)}"><meta property="og:image" content="${escapeHtml(`${model.origin}/assets/og.svg`)}"><meta property="og:image:alt" content="${escapeHtml(`${settings.pageName}: ${overall}`)}"><title>${escapeHtml(title)}</title><link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/template.css"></head><body data-template="${template}"><main class="tpl tpl-${template}">${body}${footer}</main><script src="/assets/template.js" defer></script></body></html>`;
 }
@@ -36,8 +36,8 @@ export function tagline(model: PublicSnapshotModel) {
 
 /** The subscribe form of SUB-001: a plain POST that works without script. Components are chosen later, on the
  *  management page every confirmation links to (SUB-004). */
-export function subscribeForm(id: string, className = "") {
-  return `<form class="tpl-subscribe${className ? ` ${className}` : ""}" method="post" action="/subscribe"><label class="sr-only" for="${id}">Email address</label><input id="${id}" name="email" type="email" autocomplete="email" required placeholder="Your email address"><button type="submit">Subscribe</button></form>`;
+export function subscribeForm(id: string, className = "", placeholder = "Your email address") {
+  return `<form class="tpl-subscribe${className ? ` ${className}` : ""}" method="post" action="/subscribe"><label class="sr-only" for="${id}">Email address</label><input id="${id}" name="email" type="email" autocomplete="email" required placeholder="${placeholder}"><button type="submit">Subscribe</button></form>`;
 }
 
 export function feedLinks(className = "", label = "Status feeds") {
