@@ -4068,11 +4068,11 @@
       "executable": false
     },
     "src/core/features/public-snapshot/templates/styles/history-led.css": {
-      "sha256": "5c5da64aa7c788933f8d6cf7aec68ffe3e3117645c497c92259fac225a3c67f5",
+      "sha256": "141b9166c579226ac7af796f0b263b11d542159f8e41929b2e16fc7aa39614be",
       "executable": false
     },
     "src/core/features/public-snapshot/templates/styles/regions.css": {
-      "sha256": "2eaee40ca71f64945d4baad8a72981da39042d81bad4213f1f14ed2c70469d1c",
+      "sha256": "1862ceda3dac22a587a117341b53df005c4b608c37dc51d5ec6eee1245b8618b",
       "executable": false
     },
     "src/core/features/public-snapshot/templates/styles/shared.css": {

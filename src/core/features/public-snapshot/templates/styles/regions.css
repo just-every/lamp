@@ -89,9 +89,9 @@
 .rg-components h2 { margin: 32px 0 28px; }
 .rg-thead { display: grid; grid-template-columns: var(--rg-cols); border-bottom: 1px solid var(--line-strong); padding-bottom: 10px; color: var(--ink-3); font-size: 11px; font-weight: 500; letter-spacing: .06em; text-transform: uppercase; }
 .rg-thead span:first-child { grid-column: 1 / 3; }
-.rg-row summary { display: grid; grid-template-columns: var(--rg-cols); align-items: center; min-height: 48px; border-bottom: 1px solid var(--line); padding: 6px 0; cursor: pointer; list-style: none; }
-.rg-row summary::-webkit-details-marker { display: none; }
-.rg-row summary:hover .rg-name-text { text-decoration: underline; }
+.rg-row > summary { display: grid; grid-template-columns: var(--rg-cols); align-items: center; min-height: 48px; border-bottom: 1px solid var(--line); padding: 6px 0; cursor: pointer; list-style: none; }
+.rg-row > summary::-webkit-details-marker { display: none; }
+.rg-row > summary:hover .rg-name-text { text-decoration: underline; }
 .rg-row .kind-icon { width: 20px; height: 20px; }
 .rg-name { min-width: 0; font-size: 14px; }
 .rg-everywhere { display: none; margin-left: 8px; color: var(--ink-3); font-size: 12px; }
@@ -169,7 +169,7 @@
   /* Components sit in one white box; a row's hairline below its last line is the box's own edge. */
   .rg-rows { overflow: hidden; border: 1px solid var(--line-strong); border-radius: 14px; background: var(--card); padding: 0 14px; }
   .rg-row { margin-bottom: -1px; }
-  .rg-row summary { grid-template-areas: "icon name uptime chevron" "icon status uptime chevron"; row-gap: 2px; column-gap: 12px; min-height: 68px; padding: 12px 0; }
+  .rg-row > summary { grid-template-areas: "icon name uptime chevron" "icon status uptime chevron"; row-gap: 2px; column-gap: 12px; min-height: 68px; padding: 12px 0; }
   .rg-row .kind-icon { grid-area: icon; }
   .rg-name { grid-area: name; font-size: 15px; font-weight: 500; }
   .rg-status { grid-area: status; gap: 7px; font-size: 13px; }
