@@ -51,7 +51,7 @@ export function createChannelsService(db: D1Database, options: { effectsPaused?:
       await repository.insert(destination, componentIds, operatorId);
       return view({ ...destination, componentIds });
     },
-    remove: (id: string) => repository.remove(id, nowIso()),
+    remove: (id: string, operatorId: string) => repository.remove(id, operatorId, nowIso()),
     /** Post one plainly labelled test message now, outside the durable update log, and report the provider's answer. */
     async sendTest(id: string): Promise<{ sent: boolean; message: string } | null> {
       if (options.unavailable) return { sent: false, message: options.unavailable };

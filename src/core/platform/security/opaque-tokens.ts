@@ -16,7 +16,7 @@ export async function hashOpaqueToken(value: string) {
   return base64Url(new Uint8Array(digest));
 }
 
-export async function hmacSha256(secret: string, value: string) {
+export async function hmacSha256(secret: string, value: string | ArrayBuffer) {
   const key = await crypto.subtle.importKey(
     "raw",
     encoder.encode(secret),
@@ -24,7 +24,7 @@ export async function hmacSha256(secret: string, value: string) {
     false,
     ["sign"],
   );
-  const signature = await crypto.subtle.sign("HMAC", key, encoder.encode(value));
+  const signature = await crypto.subtle.sign("HMAC", key, typeof value === "string" ? encoder.encode(value) : value);
   return base64Url(new Uint8Array(signature));
 }
 
