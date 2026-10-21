@@ -4579,24 +4579,32 @@
       "sha256": "2c8133935d4778b2847daca2a06fe402b105d578ebcce324a013dca0d0d7e68c",
       "executable": false
     },
+    "src/core/platform/site-reader/groups.ts": {
+      "sha256": "c460171804666c251e301d47efb93462ccdb6fd4781826f40765dbf906b2df92",
+      "executable": false
+    },
     "src/core/platform/site-reader/html.ts": {
-      "sha256": "e1a7b27e561a9504cd83f18a77558bda21ad035e500539aabc378afa543e244e",
+      "sha256": "a0bbfec82b5a982cb2f3fd044cfde025e95204f404c74d1b0684f52b67de96cb",
       "executable": false
     },
     "src/core/platform/site-reader/index.ts": {
-      "sha256": "3d9a448ce69a7f2e65a08a1683b09be097b6c22d7efc246594644f6bc925db32",
+      "sha256": "077b1b7d930b06dfae6320918ec448a015979b5150b41c0696de850764fb2338",
       "executable": false
     },
     "src/core/platform/site-reader/link-text.ts": {
       "sha256": "d5fb8156eb70958eeb3ff5a07a21bcc8cb7e76319984ca9004b3c6c605df4eb6",
       "executable": false
     },
+    "src/core/platform/site-reader/model.ts": {
+      "sha256": "943522d06c7113188e5a6115f2c7f778d3f9d10e391f22d12c4c339555df65bc",
+      "executable": false
+    },
     "src/core/platform/site-reader/outline.ts": {
-      "sha256": "aeae780851a6881e42fb5ed25cc940d84215862fdd6b8d21ade960b570904524",
+      "sha256": "28663f5ef0683950467e0dee9449e51dabecafc31052c00b5d8b3da9f5c63ddf",
       "executable": false
     },
     "src/core/platform/site-reader/products.ts": {
-      "sha256": "82673ffbd9ea63039f2d3190f3803ae6a7f979b1552ee03f0b288d269fd3c74f",
+      "sha256": "45b58df6bd02154ccb571c8c73d1182aed9368ce6ce325932cf208e91d6e89b0",
       "executable": false
     },
     "src/core/platform/site-reader/README.md": {
@@ -4608,7 +4616,7 @@
       "executable": false
     },
     "src/core/platform/site-reader/types.ts": {
-      "sha256": "aca77c161dee55f4e677380c4c4a8f376f867783ead54b04c0cbfce07827b1e1",
+      "sha256": "30af6a098c239d6140c1d64a6a254eb8d8e99cdf64c35dbd14672ea55b8b6774",
       "executable": false
     },
     "src/core/shared/accent-ink.ts": {

@@ -55,10 +55,10 @@ export interface SiteReadOptions {
   maxIconBytes?: number;
   /** Default 5. Every hop is checked again. */
   maxRedirects?: number;
-  /** A Workers AI binding: one call reads the products from the page's navigation. Without it the rules choose. */
+  /** A Workers AI binding: two calls at most read the products from the page's navigation. Without it the rules choose. */
   ai?: AiRunner | null;
-  /** The Workers AI text model; the default is in products.ts. */
+  /** The Workers AI text model; the default is in model.ts. */
   aiModel?: string;
-  /** How long the model may take before the rules choose instead. Default 15 s. */
+  /** How long the model may take, both calls together, before the rules choose instead. Default 20 s. */
   aiTimeoutMs?: number;
 }

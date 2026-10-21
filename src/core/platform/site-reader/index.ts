@@ -3,7 +3,7 @@ import { iconCandidates, siteColours, siteComponents, siteDescription, siteFonts
 import { checkedUrl, dohResolver, guardedFetch, SiteReadError, type GuardedFetchContext } from "./fetch.ts";
 import { scanHtml } from "./html.ts";
 import { navigationOutline } from "./outline.ts";
-import { askForProducts, PRODUCTS_MODEL } from "./products.ts";
+import { askForProducts, PRODUCTS_MODEL } from "./model.ts";
 import type { SiteIcon, SiteRead, SiteReadOptions, SiteReadResult } from "./types.ts";
 
 export type { AiRunner, SiteComponent, SiteIcon, SiteRead, SiteReadFailure, SiteReadOptions, SiteReadResult } from "./types.ts";
@@ -30,7 +30,7 @@ export async function readSite(input: string, options: SiteReadOptions = {}): Pr
     const page = await guardedFetch(start, "text/html,application/xhtml+xml", options.maxHtmlBytes ?? 1_500_000, true, context);
     if (!/html|xml/i.test(page.contentType)) throw new SiteReadError("not-html", "That address isn't a web page.");
     const scan = scanHtml(new TextDecoder().decode(page.bytes));
-    // One model call reads the products while the manifest and icon load.
+    // The model reads the products, in two calls at most, while the manifest and icon load.
     const model = options.aiModel ?? PRODUCTS_MODEL;
     const products = options.ai ? askForProducts(options.ai, navigationOutline(scan, page.url, { name: siteName(scan, page.url.hostname, null), title: scan.title, description: siteDescription(scan, null) }), page.url, { model, timeoutMs: options.aiTimeoutMs }) : null;
     const manifestHref = scan.tags.find((tag) => tag.name === "link" && (tag.attributes.rel ?? "").toLowerCase().split(/\s+/).includes("manifest"))?.attributes.href;

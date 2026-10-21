@@ -2,12 +2,17 @@ import { siteDomain } from "./domain.ts";
 import type { HtmlScan } from "./html.ts";
 import { cleanComponentName } from "./link-text.ts";
 
-/** A link the model may cite: its address and every text the site shows for it, which a name must come from.
- * The heading right above a link counts when the link's own text repeats it ("Current accounts" over "See all current accounts"). */
-export interface OutlineLink { url: string; texts: string[]; position: number }
-/** The page's navigation as one compact text for a model, and the links it cites by `ref` (the address as written there).
- * `brand` is the business's own name, squashed: its site name and its domain's first label. */
-export interface NavigationOutline { text: string; links: Map<string, OutlineLink>; brand: string[] }
+/** A link the model may cite: its address, every text the site shows for it, which a name must come from, and the menu groups
+ * that list it. The heading right above a link counts when the link's own text repeats it ("Current accounts" over "See all
+ * current accounts"). */
+export interface OutlineLink { url: string; texts: string[]; position: number; groups: number[] }
+/** A menu group as the outline shows it: its heading (a menu name, a group heading or a card's title; none for links before
+ * any) and its lines, links indented beneath the link they lie under. */
+export interface OutlineGroup { id: number; footer: boolean; heading: string[]; lines: string[] }
+/** The page's navigation for a model: `context` (its address, name, title, description and headings), its menu groups in
+ * reading order, and the links they cite by `ref` (the address as written there). `brand` is the business's own name,
+ * squashed: its site name and its domain's first label. */
+export interface NavigationOutline { context: string; groups: OutlineGroup[]; links: Map<string, OutlineLink>; brand: string[] }
 
 const STATUS_HOST = /(^|\.)(statuspage\.io|status\.io|instatus\.com|betteruptime\.com|statuspal\.io|hund\.io|status\.[a-z0-9-]+\.[a-z.]+)$|^status\./i;
 // HTML 4's Latin-1 entity names in code point order from U+00A0; text.ts decodes only the common punctuation.
@@ -19,10 +24,12 @@ const MARKER = /^[-–—•·*▪◦‣⁃]\s+/u;
 const LEADING_BADGE = /^(?:new|beta|soon|popular|hot)\s*[!:–—]\s*(?=\S)/i;
 const TRAILING_BADGE = /\s+(?:new|beta|popular|hot)!$/i;
 const LABEL_LIMIT = 120, DESCRIPTION_LIMIT = 90, TEXT_LIMIT = 70;
-// Enough for a large mega-menu and footer while keeping one call small.
-const LINK_LIMIT = 400, CHARACTER_LIMIT = 40_000;
+// Enough for a large mega-menu and footer while keeping one call small. A region's title and a group's id take a few more.
+const LINK_LIMIT = 400, CHARACTER_LIMIT = 40_000, REGION_TITLE = 20, GROUP_ID = 7;
 
 const destination = (url: URL) => `${url.protocol}//${url.hostname.toLowerCase()}${url.pathname.replace(/\/+$/, "")}`;
+/** Whether an address is a parent's own page or lies beneath it. */
+const within = (url: string, parent: string) => url === parent || url.startsWith(`${parent.replace(/\/+$/, "")}/`);
 const shorten = (value: string, limit: number) => value.length <= limit ? value : `${value.slice(0, limit - 1).replace(/\s+\S*$/, "")}…`;
 
 /** Mechanical cleaning only: entities, icon glyphs, list markers, badges and arrows. Words are never judged here. */
@@ -31,18 +38,31 @@ export function cleanLabel(value: string) {
   return cleanComponentName(decoded.replace(INVISIBLE, "").replace(/\s+/g, " ").trim().replace(MARKER, "")).replace(LEADING_BADGE, "").replace(TRAILING_BADGE, "").trim();
 }
 
-type Line = { kind: "text"; text: string } | { kind: "link"; text: string; ref: string; url: string; texts: string[] } | { kind: "repeat" };
+type Line = { kind: "text"; text: string } | { kind: "link"; text: string; ref: string; url: string; texts: string[]; name: string; detail: string } | { kind: "repeat" };
+type LinkLine = Extract<Line, { kind: "link" }>;
 
-/** The header, menus and footer in reading order: each menu's own text, then one line per link the site points at
- * itself (its shown name, its description and its address). Repeated links (a mobile copy of the menu) appear once. */
+const linkText = (line: LinkLine) => `- [${shorten(line.name, LABEL_LIMIT)}](${line.ref})${line.detail ? ` ${shorten(line.detail, DESCRIPTION_LIMIT)}` : ""}`;
+
+/** The header, menus and footer in reading order, as menu groups: each menu's own text, then one line per link the site
+ * points at itself (its shown name, its description and its address). Repeated links (a mobile copy of the menu) appear once. */
 export function navigationOutline(scan: HtmlScan, base: URL, site: { name: string | null; title: string | null; description: string | null }): NavigationOutline {
   const domain = siteDomain(base.hostname);
   const seen = new Set<string>();
   const regions: Record<"menus" | "footer", Line[]> = { menus: [], footer: [] };
+  // Each anchor's line, so a card's tagline after it can describe it.
+  const byAnchor = new Map<number, LinkLine>();
   for (const step of scan.outline) {
     const lines = regions[step.footer ? "footer" : "menus"];
     if (step.text !== undefined) {
       const text = cleanLabel(step.text);
+      if (step.describes !== undefined) {
+        const line = byAnchor.get(step.describes);
+        if (line && text && !line.texts.includes(text) && !line.detail.includes(text)) {
+          line.detail = [line.detail, text].filter(Boolean).join(" · ");
+          line.text = linkText(line);
+        }
+        continue;
+      }
       const last = lines.at(-1);
       if (text && text.length <= TEXT_LIMIT && !(last?.kind === "text" && last.text === text)) lines.push({ kind: "text", text });
       continue;
@@ -72,16 +92,11 @@ export function navigationOutline(scan: HtmlScan, base: URL, site: { name: strin
     const family = members.length > 0 && members.every(member => member.url.startsWith(`${url.href.replace(/[#?].*$/, "").replace(/\/+$/, "")}/`))
       ? repeated.find(heading => new RegExp(`^(?:\\S+\\s+){1,3}${heading.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, "iu").test(label)) : undefined;
     const [name, detail] = family ? [family, [label, description].filter(Boolean).join(" · ")] : [label, description];
-    const line: Line = { kind: "link", ref, url: url.href.replace(/[#?].*$/, ""), texts: [...new Set([...repeated, label, ...shown, cleanLabel(anchor.name), full].filter(Boolean))],
-      text: `- [${shorten(name, LABEL_LIMIT)}](${ref})${detail ? ` ${shorten(detail, DESCRIPTION_LIMIT)}` : ""}` };
+    const line: LinkLine = { kind: "link", ref, url: url.href.replace(/[#?].*$/, ""), texts: [...new Set([...repeated, label, ...shown, cleanLabel(anchor.name), full].filter(Boolean))], name, detail, text: "" };
+    line.text = linkText(line);
+    byAnchor.set(step.anchor!, line);
     if (family) underHeading(lines, line);
-    else {
-      // A link beneath the nearest link above it that is not itself indented (a suite's member, a product's variant, past a
-      // card's tagline) is indented under it.
-      const parent = lines.slice(-12).findLast(above => above.kind === "link" && !above.text.startsWith(" "));
-      if (parent?.kind === "link" && line.url.startsWith(`${parent.url.replace(/\/+$/, "")}/`)) line.text = `  ${line.text}`;
-      lines.push(line);
-    }
+    else lines.push(line);
   }
   const context = [
     `Website: ${base.href}`,
@@ -89,26 +104,62 @@ export function navigationOutline(scan: HtmlScan, base: URL, site: { name: strin
     site.title ? `Title: ${shorten(site.title, 160)}` : "",
     site.description ? `Description: ${shorten(site.description, 300)}` : "",
     scan.headings.length ? `Headings: ${[...new Set(scan.headings.map(cleanLabel).filter(Boolean))].slice(0, 8).map(heading => shorten(heading, 100)).join(" | ")}` : "",
-  ].filter(Boolean);
+  ].filter(Boolean).join("\n");
   for (const lines of Object.values(regions)) cardTitles(lines);
-  const links = new Map<string, OutlineLink>();
-  let text = context.join("\n"), count = 0;
-  for (const [title, lines] of [["Header and menus", regions.menus], ["Footer", regions.footer]] as const) {
+  const links = new Map<string, OutlineLink>(), groups: OutlineGroup[] = [];
+  let length = context.length, count = 0;
+  regions: for (const [footer, lines] of [[false, regions.menus], [true, regions.footer]] as const) {
     const shown = lines.filter((line, index): line is Exclude<Line, { kind: "repeat" }> => line.kind === "link" || line.kind === "text" && heads(lines, index));
     if (!shown.some(line => line.kind === "link")) continue;
-    text += `\n\n${title}:`;
-    for (const line of shown) {
-      if (text.length + line.text.length + 1 > CHARACTER_LIMIT || line.kind === "link" && count >= LINK_LIMIT) break;
-      text += `\n${line.text}`;
-      if (line.kind !== "link") continue;
-      count++;
-      const link = links.get(line.ref) ?? { url: line.url, texts: [], position: links.size };
+    length += REGION_TITLE;
+    // `parent`: the group's last link that is not beneath another, which the links after it may lie beneath.
+    let group: OutlineGroup | null = null, linked = false, parent: string | null = null;
+    for (const [index, line] of shown.entries()) {
+      if (line.kind === "text") {
+        // Text between a family's links, such as a card's tagline, stays in their group; any other text heads a new one.
+        const next = shown.slice(index + 1).find((after): after is LinkLine => after.kind === "link");
+        if (group && linked && !(parent && next && within(next.url, parent))) group = null;
+      }
+      if (!group) {
+        group = { id: groups.length + 1, footer, heading: [], lines: [] };
+        groups.push(group);
+        linked = false; parent = null; length += GROUP_ID;
+      }
+      const indented = line.kind === "link" && parent !== null && within(line.url, parent);
+      const text = indented ? `  ${line.text}` : line.text;
+      if (length + text.length + 1 > CHARACTER_LIMIT || line.kind === "link" && count >= LINK_LIMIT) break regions;
+      length += text.length + 1;
+      group.lines.push(text);
+      if (line.kind === "text") { if (!linked) group.heading.push(text); continue; }
+      count++; linked = true;
+      // The page itself and the pages it lies beneath (the site's home, a language's home) are no family.
+      if (!indented) parent = within(base.href, line.url) ? null : line.url;
+      const link = links.get(line.ref) ?? { url: line.url, texts: [], position: links.size, groups: [] };
       for (const shownText of line.texts) if (!link.texts.includes(shownText)) link.texts.push(shownText);
+      if (!link.groups.includes(group.id)) link.groups.push(group.id);
       links.set(line.ref, link);
     }
   }
+  // A heading the limits left without links heads nothing.
+  if (groups.length && !groups.at(-1)!.lines.some(line => line.trimStart().startsWith("- ["))) groups.pop();
   const squash = (value: string) => value.toLowerCase().replace(/[^\p{L}\p{N}]/gu, "");
-  return { text, links, brand: [...new Set([squash(site.name ?? ""), squash(domain.split(".")[0])].filter(Boolean))] };
+  return { context, groups, links, brand: [...new Set([squash(site.name ?? ""), squash(domain.split(".")[0])].filter(Boolean))] };
+}
+
+/** The navigation as one text: the context, then the header's and the footer's groups, each led by its id ("[G3]") and, when
+ * `note` gives one, a note on it. */
+export function outlineText(outline: NavigationOutline, groups = outline.groups, note: (group: OutlineGroup) => string = () => "") {
+  let text = outline.context;
+  for (const [title, footer] of [["Header and menus", false], ["Footer", true]] as const) {
+    const shown = groups.filter(group => group.footer === footer);
+    if (!shown.length) continue;
+    text += `\n\n${title}:`;
+    for (const group of shown) {
+      const id = `[G${group.id}]${note(group) ? ` (${note(group)})` : ""}`;
+      text += group.heading.length ? `\n${id} ${group.lines.join("\n")}` : `\n${id}\n${group.lines.join("\n")}`;
+    }
+  }
+  return text;
 }
 
 /** A card's title names its one link: a menu text with exactly one link under it (before the next text) is a text of that link,
@@ -124,15 +175,14 @@ function cardTitles(lines: Line[]) {
 function runLinks(lines: Line[]) {
   let start = lines.length;
   while (start > 0 && lines[start - 1].kind !== "text") start--;
-  return lines.slice(start).filter((line): line is Extract<Line, { kind: "link" }> => line.kind === "link");
+  return lines.slice(start).filter((line): line is LinkLine => line.kind === "link");
 }
 
-/** A heading's own link ("See all current accounts") goes right under the heading, with the links before it, its variants,
- * indented beneath it. */
+/** A heading's own link ("See all current accounts") goes right under the heading, before the links listed ahead of it: its
+ * variants, which lie beneath its address. */
 function underHeading(lines: Line[], line: Line) {
   let start = lines.length;
   while (start > 0 && lines[start - 1].kind !== "text") start--;
-  for (const member of lines.slice(start)) if (member.kind === "link") member.text = `  ${member.text}`;
   lines.splice(start, 0, line);
 }
 
