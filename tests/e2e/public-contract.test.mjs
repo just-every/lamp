@@ -687,6 +687,25 @@ test("PAGE-013 PAGE-014 PAGE-008 PAGE-009 PAGE-003 — Public isolation, live ti
   assert.match(html, /Maximum valid public state note for component 001/, "the capacity fixture includes a visible 250-character note");
   const marksPerComponent = [...html.matchAll(/class="uptime-mark /g)].length / 200;
   assert.ok(marksPerComponent >= 90 && marksPerComponent <= 91, "daily marks cover the exact trailing 90-day interval, including its partial boundary day");
+  // Each built-in template publishes the same record within the same budget; Regions map draws 14 regions over it.
+  const regions = ["North America", "Europe", "Tokyo", "Asia-Pacific", "South America", "Africa", "us-east-1", "eu-west-2", "ap-southeast-2", "Middle East", "India", "Canada", "Frankfurt", "Moon Base One"];
+  executeLocalSql(`UPDATE components SET region = CASE CAST(substr(id, 6) AS INTEGER) % ${regions.length} ${regions.map((region, index) => `WHEN ${index} THEN '${region}'`).join(" ")} END WHERE id LIKE 'bulk-%'`);
+  for (const template of ["calm", "uptime", "regions"]) {
+    await updateSettings({ template });
+    let shown = "";
+    const deadline = performance.now() + 10_000;
+    do {
+      shown = await (await fetch(`${pageUrl}/`)).text();
+      if (shown.includes(`data-template="${template}"`)) break;
+      await new Promise(resolve => setTimeout(resolve, 100));
+    } while (performance.now() < deadline);
+    assert.ok(shown.includes(`data-template="${template}"`), `the public page shows ${template}`);
+    const templateBytes = gzipSync(Buffer.from(shown)).byteLength;
+    assert.ok(templateBytes <= 50 * 1024, `PAGE-003 gzip budget exceeded by ${template} at 200 populated components: ${templateBytes} bytes`);
+    assert.match(shown, /Maximum valid public state note for component 001/, `${template} keeps the capacity fixture's visible note`);
+  }
+  executeLocalSql("UPDATE components SET region = NULL WHERE id LIKE 'bulk-%'");
+  await updateSettings({ template: "default" });
 })(t);
   t.diagnostic("PAGE-003 — Chromium renders the public page in its bundled face within the four-request initial asset budget");
   await (async () => {
