@@ -1578,3 +1578,11 @@ component region); with fewer, the public page quietly shows Calm headline and o
 Settings explains why. Regions without a known map position stay filterable and are
 listed as not on the map. Built-in choices do not require AI. Generated house style
 is a later feature and is not offered as an implemented option.
+
+## Managed sender status — 21 October 2026
+
+The RunEditRun relay owns sender identity and exposes mail submission, with no
+provider domain-verification read capability. Overview describes configured
+Managed mail neutrally instead of warning about an unsupported check. Missing
+configuration and direct-provider check failures retain their warnings. This
+Overview presentation makes no verification or subscriber-delivery claim.

@@ -516,7 +516,7 @@
       "executable": false
     },
     "DIVERGENCE.md": {
-      "sha256": "29d713e70f15da3b2a83b77859e4cbccccc3f3556dd0425d266403ea3c6187bc",
+      "sha256": "59b4e02b300e70c84e1bb2d52776472cf8d03304688b203aa23a867a66349b5d",
       "executable": false
     },
     "docs/ai-assistance.md": {
@@ -2359,6 +2359,10 @@
       "sha256": "d6539322367396668e693b092a7d49e319b2d26f5460421ddd68f72be40437c7",
       "executable": false
     },
+    "scripts/check-contract.mjs": {
+      "sha256": "639bad0390f48bf33cb4f2e7b87907067a149e3a471eb143a1a930c46bc75d51",
+      "executable": false
+    },
     "scripts/check-syntax.mjs": {
       "sha256": "7cebfe4facea1f2f4aedab29509303eaf9bef9991f5a0b3459270d9158c81b36",
       "executable": false
@@ -3720,7 +3724,7 @@
       "executable": false
     },
     "src/core/features/overview/live-status.ts": {
-      "sha256": "6de0f6c367bb55418a6cb6bd27adaf26031e784c014c2d4c904194f71036c8d3",
+      "sha256": "4520d7e428c3ca21c5a2646a8945151cf7cb8fe0b967bed814a48c097f49e7ef",
       "executable": false
     },
     "src/core/features/overview/repository.ts": {
@@ -3740,7 +3744,7 @@
       "executable": false
     },
     "src/core/features/overview/ui/live-strip.tsx": {
-      "sha256": "c8bb3d5c40d319ce5a92bbdfb4d58d2aa2b4dfa238c4c41878219d8e735bc30b",
+      "sha256": "8bcbd1a05c6075947054590719e16ab33f9f96f3516c36763518cd95b19b1241",
       "executable": false
     },
     "src/core/features/overview/ui/overview-page.tsx": {
@@ -5980,7 +5984,7 @@
       "executable": false
     },
     "tests/e2e/setup-readiness.test.mjs": {
-      "sha256": "3226265c2536782660f5ca818c70318258323ef3157e623b6c34b68ed8aebb09",
+      "sha256": "e08243a8ad0a564f92f0fe541ca26abb9b4f66cb1175d040b8061caf5370f59c",
       "executable": false
     },
     "tests/e2e/signin-link.test.mjs": {
@@ -6656,7 +6660,7 @@
       "executable": false
     },
     "tests/operator-readiness/checklist.test.mjs": {
-      "sha256": "ec2483955168f7608301c1cc77314f2129d9bc009c3ef7d4686da23c867256a0",
+      "sha256": "89c42b4e73ebafdab402d0cbf5dce20795758fe7c89a75492d0087d88047191d",
       "executable": false
     },
     "tests/operator-readiness/runtime.mjs": {

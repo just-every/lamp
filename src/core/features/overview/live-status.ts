@@ -11,6 +11,8 @@ export interface LiveStatus {
   page: LiveCheck | null;
   subscribe: LiveCheck | null;
   sender: SenderStatus;
+  /** The relay exposes submission, without a provider domain-verification read. */
+  senderVerificationManaged: boolean;
 }
 export interface LiveStatusService {
   /** Current state; checks older than the latest publish or two minutes run first. */
@@ -101,7 +103,8 @@ export function createLiveStatusService(repository: OverviewRepository, settings
       if (stale && publishedAt) { await runChecks(); stored = await storedPageChecks(origin); }
       await checkSenderIfDue();
       const check = (reason: string | null): LiveCheck | null => stored ? { ok: reason === null, checkedAt: stored.checkedAt, reason } : null;
-      return { publicOrigin: origin, publishedAt, page: check(stored?.page ?? null), subscribe: check(stored?.subscribe ?? null), sender: await sender() };
+      return { publicOrigin: origin, publishedAt, page: check(stored?.page ?? null), subscribe: check(stored?.subscribe ?? null), sender: await sender(),
+        senderVerificationManaged: !options.sender.local && options.sender.provider === 'rer' && options.sender.mail.configured };
     },
     runChecks,
     checkSenderIfDue,
