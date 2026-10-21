@@ -3,7 +3,7 @@ import type { NavigationOutline } from "./outline.ts";
 import { PRODUCTS_SCHEMA, productsMessages, validProducts } from "./products.ts";
 import type { AiRunner, SiteComponent } from "./types.ts";
 
-export const PRODUCTS_MODEL = "@cf/google/gemma-4-26b-a4b-it";
+export const PRODUCTS_MODEL = "@cf/qwen/qwen3.8-27b";
 /** Both calls together. */
 export const PRODUCTS_TIMEOUT_MS = 20_000;
 const SEED = 17;

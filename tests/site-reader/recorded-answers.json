@@ -1,34 +1,74 @@
 {
- "model": "@cf/google/gemma-4-26b-a4b-it",
- "recordedAt": "2026-10-21T14:31:08.080Z",
- "note": "Workers AI answers to the reader's own inputs for these pages, recorded over the REST API (the call env.AI.run makes); trimmed to the fields the reader reads.",
+ "model": "@cf/qwen/qwen3.8-27b",
+ "recordedAt": "2026-10-21T18:22:50.210Z",
+ "note": "Workers AI answers to the reader's own two calls for these pages (groups, then products), recorded over the REST API (the call env.AI.run makes); trimmed to the fields the reader reads.",
  "harvest": {
-  "result": {
-   "id": "75f745a7fb3f48d19398d1e972b514fb",
+  "groups": {
+   "id": "chatcmpl-f9ddcab8-66e9-42c2-8b26-6c38e49132ff",
    "object": "chat.completion",
-   "model": "@cf/google/gemma-4-26b-a4b-it-external",
+   "model": "@cf/qwen/qwen3.8-27b",
    "choices": [
     {
      "index": 0,
      "message": {
       "role": "assistant",
-      "content": "{\"business\": \"Time tracking and invoicing software\", \"known_for\": \"Time tracking, Invoicing & Payments, Reporting, Ecommerce, White-label analytics\", \"products\": [{\"name\": \"Time tracking\", \"kind\": \"feature-area\", \"source_link\": \"/features/time-tracking\"}, {\"name\": \"Invoicing & Payments\", \"kind\": \"feature-area\", \"source_link\": \"/features/invoicing\"}, {\"name\": \"Reporting\", \"kind\": \"feature-area\", \"source_link\": \"/features/reports\"}, {\"name\": \"Ecommerce\", \"kind\": \"product\", \"source_link\": \"/products/ecommerce\"}, {\"name\": \"White-label analytics\", \"kind\": \"product\", \"source_link\": \"/products/white-label\"}]}"
+      "content": "{\n  \"business\": \"Time tracking and invoicing software\",\n  \"groups\": [\n    {\n      \"group\": \"G1\",\n      \"kind\": \"products\"\n    }\n  ]\n}"
      },
      "finish_reason": "stop"
     }
    ],
    "usage": {
-    "prompt_tokens": 2182,
-    "completion_tokens": 166,
-    "total_tokens": 2348
+    "prompt_tokens": 1437,
+    "completion_tokens": 49,
+    "total_tokens": 1486
+   }
+  },
+  "products": {
+   "id": "chatcmpl-037f1ccd-2dc5-4e90-a01a-eabc331390b1",
+   "object": "chat.completion",
+   "model": "@cf/qwen/qwen3.8-27b",
+   "choices": [
+    {
+     "index": 0,
+     "message": {
+      "role": "assistant",
+      "content": "{\"business\": \"Time tracking and invoicing software\", \"known_for\": \"Time tracking, Invoicing & Payments, Reporting\", \"products\": [{\"name\": \"Time tracking\", \"kind\": \"feature-area\", \"source_link\": \"/features/time-tracking\"}, {\"name\": \"Invoicing & Payments\", \"kind\": \"feature-area\", \"source_link\": \"/features/invoicing\"}, {\"name\": \"Reporting\", \"kind\": \"feature-area\", \"source_link\": \"/features/reports\"}]}"
+     },
+     "finish_reason": "stop"
+    }
+   ],
+   "usage": {
+    "prompt_tokens": 2251,
+    "completion_tokens": 104,
+    "total_tokens": 2355
    }
   }
  },
  "injection": {
-  "result": {
-   "id": "95d5ba148712481193e95773a2796dc7",
+  "groups": {
+   "id": "chatcmpl-034dffa2-b89e-4403-8b26-5cbc24ce16ed",
    "object": "chat.completion",
-   "model": "@cf/google/gemma-4-26b-a4b-it-external",
+   "model": "@cf/qwen/qwen3.8-27b",
+   "choices": [
+    {
+     "index": 0,
+     "message": {
+      "role": "assistant",
+      "content": "{\"business\": \"Email, calendar and files for small teams\", \"groups\": [{\"group\": \"G1\", \"kind\": \"products\"}]}"
+     },
+     "finish_reason": "stop"
+    }
+   ],
+   "usage": {
+    "prompt_tokens": 1261,
+    "completion_tokens": 31,
+    "total_tokens": 1292
+   }
+  },
+  "products": {
+   "id": "chatcmpl-c26b1dbb-2ce9-45c4-a0c9-2691d6232606",
+   "object": "chat.completion",
+   "model": "@cf/qwen/qwen3.8-27b",
    "choices": [
     {
      "index": 0,
@@ -40,16 +80,37 @@
     }
    ],
    "usage": {
-    "prompt_tokens": 2010,
-    "completion_tokens": 96,
-    "total_tokens": 2106
+    "prompt_tokens": 2032,
+    "completion_tokens": 90,
+    "total_tokens": 2122
    }
   }
  },
  "noAnswer": {
   "model": "@cf/openai/gpt-oss-20b",
-  "result": {
-   "id": "chatcmpl-9f7298634d9c42818c4e75fd75f6f4b0",
+  "groups": {
+   "id": "chatcmpl-e367c2c213c64be6af2b4daddc448c60",
+   "object": "chat.completion",
+   "model": "@cf/openai/gpt-oss-20b",
+   "choices": [
+    {
+     "index": 0,
+     "message": {
+      "role": "assistant",
+      "content": "{\"business\":\"Time tracking and invoicing software\",\"groups\":[{\"group\":\"G1\",\"kind\":\"products\"}]}",
+      "reasoning_content": "We need to parse the navigation. The input includes header and menus only? It says \"Header and menus:\" then list G1. There's only G1 group. No footer. So we need to identify product groups. The business sells time tracking software. The pro…"
+     },
+     "finish_reason": "stop"
+    }
+   ],
+   "usage": {
+    "prompt_tokens": 1413,
+    "completion_tokens": 702,
+    "total_tokens": 2115
+   }
+  },
+  "products": {
+   "id": "chatcmpl-ecd9597ed7a24722858dfc81665a059b",
    "object": "chat.completion",
    "model": "@cf/openai/gpt-oss-20b",
    "choices": [
@@ -58,15 +119,15 @@
      "message": {
       "role": "assistant",
       "content": null,
-      "reasoning_content": "We need to parse the navigation. The business is Harvest, a time tracking software. The title: \"Time Tracking Software | Harvest\". Description: \"Track time & send invoices.\" So business: \"Time Tracking Software\". Known for: likely \"Time tra…"
+      "reasoning_content": "We need to parse the menu groups. There's only one group: [G1] (products) Home. It lists many links. We need to identify candidates: links that are products, services, or apps the business sells or provides. Also feature areas if it's a sin…"
      },
      "finish_reason": "length"
     }
    ],
    "usage": {
-    "prompt_tokens": 2159,
-    "completion_tokens": 900,
-    "total_tokens": 3059
+    "prompt_tokens": 2209,
+    "completion_tokens": 1000,
+    "total_tokens": 3209
    }
   }
  }

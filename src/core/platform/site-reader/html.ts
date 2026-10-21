@@ -9,8 +9,10 @@ export interface HtmlTag { name: string; attributes: Record<string, string> }
 export interface HtmlAnchor { href: string; text: string; name: string; lines: string[]; titled: boolean; groups: string[]; accountNavigation: boolean; region: "nav" | "header" | "footer" | "body" }
 /** One step of the navigation in reading order: a menu's or heading's own text, or a link (its index in `anchors`).
  * `footer` says the step sits in the page footer. `describes`: the text sits inside the element that holds the link before
- * it, and that element ends before the next link starts (a card's tagline), so it describes that link (its index). */
-export interface HtmlOutlineStep { text?: string; anchor?: number; footer: boolean; describes?: number }
+ * it, and that element ends before the next link starts (a card's tagline), so it describes that link (its index).
+ * `note`: the text sits in a paragraph, small print or a description element, so it describes what is around it rather
+ * than titling the links after it. */
+export interface HtmlOutlineStep { text?: string; anchor?: number; footer: boolean; describes?: number; note?: boolean }
 /** `prose` is the page's readable text outside links. `outline` is every header, nav and footer in reading order;
  * `headings` are the page's own h1 and h2 headings outside them. */
 export interface HtmlScan { title: string | null; tags: HtmlTag[]; anchors: HtmlAnchor[]; styles: string[]; prose: string; outline: HtmlOutlineStep[]; headings: string[] }
@@ -23,6 +25,11 @@ const VOID = new Set(["area", "base", "br", "col", "embed", "hr", "img", "input"
 const NAVIGATION = new Set(["nav", "header", "footer"]);
 // Elements too wide to be one link's card: a text inside them describes no particular link.
 const LANDMARKS = new Set(["html", "body", "main", "nav", "header", "footer"]);
+// A title (heading, button, title class) names what follows it; a note (paragraph, small print, description class) describes.
+const TITLE_CLASS = /(?:^|[\s_-])(title|heading)(?:$|[\s_-])/i, NOTE_CLASS = /(?:^|[\s_-])(desc|description|subtitle|summary|caption|detail|tagline|subtext)(?:$|[\s_-])/i;
+const reads = (name: string, attributes: Record<string, string>) => TITLE_CLASS.test(attributes.class ?? "") ? "title" as const
+  : NOTE_CLASS.test(attributes.class ?? "") ? "note" as const
+  : /^(button|h[1-6]|summary)$/.test(name) || attributes.role === "heading" ? "title" as const : /^(p|small)$/.test(name) ? "note" as const : undefined;
 
 function attributesOf(source: string) {
   const attributes: Record<string, string> = {};
@@ -35,7 +42,7 @@ function attributesOf(source: string) {
 
 export function scanHtml(html: string): HtmlScan {
   const tags: HtmlTag[] = [], anchors: HtmlAnchor[] = [], styles: string[] = [], prose: string[] = [], outline: HtmlOutlineStep[] = [], headings: string[] = [];
-  const stack: { id: number; tag: string; group: string; accountNavigation: boolean; heading: boolean; label?: string }[] = [];
+  const stack: { id: number; tag: string; group: string; accountNavigation: boolean; heading: boolean; reads?: "title" | "note"; label?: string }[] = [];
   // The last link and the elements around it, and the texts after it that sit inside one of them (an element id each).
   let frames = 0, last: { anchor: number; around: number[] } | null = null, after: { step: HtmlOutlineStep; holder: number }[] = [];
   const open = (id: number) => stack.some(frame => frame.id === id);
@@ -51,7 +58,7 @@ export function scanHtml(html: string): HtmlScan {
     else {
       prose.push(text);
       if (cleanText(text) && stack.some(frame => NAVIGATION.has(frame.tag))) {
-        const step: HtmlOutlineStep = { text: cleanText(text), footer: stack.some(frame => frame.tag === "footer") };
+        const step: HtmlOutlineStep = { text: cleanText(text), footer: stack.some(frame => frame.tag === "footer"), note: stack.findLast(frame => frame.reads)?.reads === "note" };
         outline.push(step);
         const holder = last?.around.findLast(id => open(id));
         if (holder !== undefined && !LANDMARKS.has(stack.find(frame => frame.id === holder)!.tag)) after.push({ step, holder });
@@ -99,7 +106,7 @@ export function scanHtml(html: string): HtmlScan {
     } else anchor?.parts.open(name, attributes);
     if (name === "img" && anchor) anchor.label ||= attributes.alt ?? "";
     else if (KEPT.has(name)) tags.push({ name, attributes });
-    if (!VOID.has(name) && !/\/\s*>$/.test(match[0])) stack.push({ id: ++frames, tag: name, group: attributes["aria-label"] ?? "", heading: /^h[1-6]$/.test(name) || attributes.role === "heading",
+    if (!VOID.has(name) && !/\/\s*>$/.test(match[0])) stack.push({ id: ++frames, tag: name, group: attributes["aria-label"] ?? "", heading: /^h[1-6]$/.test(name) || attributes.role === "heading", reads: reads(name, attributes),
       accountNavigation: /^(auth|authenticated|isAuthenticated|loggedIn|isLoggedIn|signedIn|isSignedIn)$/i.test(attributes["x-show"] ?? ""),
       ...(!anchor && (/^(button|h[1-6]|summary)$/.test(name) || attributes.role === "heading" || /(?:^|[\s_-])(title|heading)(?:$|[\s_-])/i.test(attributes.class ?? "")) ? { label: "" } : {}) });
   }

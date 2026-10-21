@@ -242,7 +242,7 @@
     {
       "id": "owner-website-reader",
       "required": false,
-      "why": "SETUP-002, at the owner's request: read the supplied public website, its declared manifest and mark, and its linked public status page to retain migration metadata. Page IDs are read only from an identified Statuspage provider's public /api/v2/summary.json or Better Stack's public /index.json. Public DNS-over-HTTPS at cloudflare-dns.com validates every destination and redirect; private addresses are refused. No source key is used and no public history is imported. With the install's own Workers AI binding (AI), one text-model call per setup read receives the page's navigation (menu text, link names and addresses, headings) as data and names the business's products; without it, or without a usable answer, the rule-based reader chooses and setup says so.",
+      "why": "SETUP-002, at the owner's request: read the supplied public website, its declared manifest and mark, and its linked public status page to retain migration metadata. Page IDs are read only from an identified Statuspage provider's public /api/v2/summary.json or Better Stack's public /index.json. Public DNS-over-HTTPS at cloudflare-dns.com validates every destination and redirect; private addresses are refused. No source key is used and no public history is imported. With the install's own Workers AI binding (AI), at most two text-model calls per setup read receive the page's navigation (menu text, link names and addresses, headings) as data: the first names the menu groups that list products, the second names the products in those groups only; without it, or without a usable answer, the rule-based reader chooses and setup says so.",
       "data": [
         "Owner-supplied website URL and linked public resource URLs",
         "Destination hostnames for public DNS resolution",
@@ -491,13 +491,13 @@
       "name": "LAMP_SITE_READER_MODEL",
       "required": false,
       "secret": false,
-      "why": "Optional Workers AI text model id for reading a website's products at setup; the default is in src/core/platform/site-reader/products.ts. Used only with the install's AI binding."
+      "why": "Optional Workers AI text model id for reading a website's products at setup; the default is in src/core/platform/site-reader/model.ts. Used only with the install's AI binding."
     },
     {
       "name": "LAMP_SITE_READER_TIMEOUT_MS",
       "required": false,
       "secret": false,
-      "why": "Optional milliseconds the website's products model may take before the rule-based reader chooses; default 15000."
+      "why": "Optional milliseconds the website's products model may take, both calls together, before the rule-based reader chooses; default 20000."
     },
     {
       "name": "AI_PROVIDER_URL",

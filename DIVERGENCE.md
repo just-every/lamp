@@ -1567,11 +1567,14 @@ Operator screens use the owner's words, including folded reports and history con
 L17 names read by a model (21 October 2026): which menu entries are a business's
 customer-facing products is a judgement, and word rules that fixed one kind of
 junk dropped real products elsewhere. With the install's Workers AI binding, setup
-asks one text model, once per read, for the products in the site's navigation,
-given only as data; rules only clean text and check the answer (every name must be
-text the page shows at an address the page links, at most eight). Without a model,
-or without a usable answer, the rule-based reader chooses as before, and setup says
-so in one line.
+asks a text model, in two calls at most per read, for the products in the site's
+navigation, given only as data: the first sorts the menu groups (products, variants
+of one product, one suite's products, or none) and the second names the products in
+those groups only, because a single call judged those groups differently between
+identical reads. Rules only clean text and check the answer (every name must be
+text the page shows at an address a product group links, at most eight). Without a
+model, or without a usable answer, the rule-based reader chooses as before, and
+setup says so in one line.
 
 ## Managed sender status — 21 October 2026
 

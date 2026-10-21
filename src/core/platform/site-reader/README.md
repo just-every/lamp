@@ -3,9 +3,9 @@
 Reads what a public website says about itself, so a product can prefill a
 business's name, description, mark, colours and first components from one URL.
 Self-contained: no Lamp imports, standard `fetch` only, runs in Workers and Node.
-With a Workers AI binding, one model call reads the business's products from the
-page's navigation; without one, or when the model gives no usable answer, the
-rule-based reader below chooses them.
+With a Workers AI binding, two model calls at most read the business's products
+from the page's navigation; without one, or when the model gives no usable answer,
+the rule-based reader below chooses them.
 
 ```ts
 import { readSite } from "./index.ts";
@@ -36,42 +36,64 @@ Nothing is guessed: a field the site does not give is `null` or empty.
 ## Products from a model
 
 Deciding which menu entries are a business's customer-facing products is a judgement, so with `ai` a
-Workers AI text model makes it, once per read (`products.ts`); rules only clean. The call starts as soon as
-the page is scanned and runs while the manifest and icon load.
+Workers AI text model makes it, in two calls at most per read (`model.ts`); rules only clean and check. The
+calls start as soon as the page is scanned and run while the manifest and icon load.
 
 **Extract** (`outline.ts`). The page's title, description and h1/h2 headings, then its header, every `<nav>`
-and its footer in reading order: each menu's own text (menu buttons, group headings, card titles) and one
-line per link to the site itself or its subdomains, `- [name](address) description`. Cleaning is mechanical:
-entities, icon-font glyphs, list markers, badges and arrows leave; a link laid out in lines (blocks, a flex
-column) is named by its first line and described by the rest; a link to the page itself is menu text; a
-repeated link (a mobile copy of the menu) appears once and leaves no stray headings; status hosts, account
-navigation and other sites are left out. At most 260 links and 24,000 characters.
+and its footer in reading order, as numbered menu groups (`[G3]`): each group is headed by its menu's own
+text (menu buttons, group headings, card titles) and lists one line per link to the site itself or its
+subdomains, `- [name](address) description`. A section's title (a heading, a button, a title class) starts a
+new group, even inside a mega-menu whose links all lie beneath the menu's own page; a note (a paragraph,
+small print, a description class) and a card's tagline stay with the links they describe. A link whose
+address lies beneath the group's last top-level link is indented under it (a suite's members, a product's
+variants). Cleaning is mechanical: entities, icon-font glyphs, list markers, badges and arrows leave; a link
+laid out in lines (blocks, a flex column) is named by its first line and described by the rest; a link to
+the page itself is menu text; a repeated link (a mobile copy of the menu) appears once and leaves no stray
+headings; status hosts, account navigation and other sites are left out. At most 400 links and 40,000
+characters.
 
-**Prompt.** Fixed instructions in the system message say what a product is (what customers sign up for,
-buy or use, which a status page would show), what never is, how to choose eight, and give three synthetic
-examples. The page's extract goes only in the user message, between `<<<NAVIGATION` and `NAVIGATION>>>`,
-as data; nothing from the page reaches the instructions, and text in the page that asks the model to do
-something is data too.
+**Call 1: groups** (`groups.ts`). The whole extract. The model names the groups that list the business's
+products, each with one kind from a closed set: `products`; `variants` (variants of one product, which a
+customer watches as one component: account types, plans, editions, server lines); or `suite` (one suite's
+member products). A group it leaves out lists none (solutions, pricing, resources, the company…).
+Schema: `{ "business": string, "groups": [{ "group": "G3", "kind": "products" | "variants" | "suite" }] }`.
+An id the extract lacks, a kind outside the set or a repeat is dropped. No product group means no component
+list, and no second call.
 
-**Schema** (JSON schema mode, temperature 0, a fixed seed):
-`{ "business": string, "products": [{ "name": string, "kind": "product" | "platform" | "feature-area", "source_link": string }] }`,
-at most 8 products. `business` (what the business sells, in a few words) is asked first so the model judges
-the products against it; it is not shown.
+**Call 2: products** (`products.ts`). Only the groups call 1 named, each led by its kind. The model lists
+the products in them: each link of a group of products, one product for a group of variants (named by the
+group's heading or its overview link), a suite's members rather than its overview page, a product line's
+own products rather than its variants, plans or features; then it removes what is not a product (plans,
+trials, indexes, benefits, audience and comparison pages, programmes, services sold beside the products,
+free tools, the business's own pages) and, with more than eight left, chooses eight, at most two from one
+group while other groups still have products. Schema:
+`{ "business": string, "known_for": string, "products": [{ "name": string, "kind": "product" | "platform" | "feature-area", "source_link": string }] }`,
+at most 8 products. `business` and `known_for` are asked first so the model judges the products against
+them; they are not shown.
+
+**Prompts.** Fixed instructions in each call's system message, with synthetic examples. The page's extract
+goes only in the user message, between `<<<NAVIGATION` and `NAVIGATION>>>`, as data; nothing from the page
+reaches the instructions, and text in the page that asks the model to do something is data too. A group the
+first call leaves out never reaches the second. Both calls use JSON schema mode, temperature 0, a fixed
+seed, the model's thinking pass off and one session-affinity key, so reads share the cached instructions.
 
 **Validation.** Each item is kept only when all of these hold, and is otherwise discarded, never repaired:
 `source_link` is one of the extract's links (matched by address: host without `www.`, path without a
-trailing slash); `name` appears as whole words, ignoring case and spacing, in that link's own text or lines,
-its card's title, or the menu heading its text repeats ("Current accounts" over "See all current accounts"),
-and is returned as the site spells it; 2-60 characters and at most 8 words; `kind` is one of the three. A
-repeated address or name is dropped, at most the first 8 are read, and the kept products follow the page's
-order. One product, or none, means no component list (a single-product site), as with the rules.
+trailing slash) and is listed in a group call 1 named; `name` appears as whole words, ignoring case and
+spacing, in that link's own text or lines, its card's title, the menu heading its text repeats ("Current
+accounts" over "See all current accounts") or, in a group of variants, the group's heading, and is returned
+as the site spells it; 2-60 characters and at most 8 words; `kind` is one of the three. A repeated address
+or name is dropped, at most the first 8 are read, and the kept products follow the page's order. One
+product, or none, means no component list (a single-product site), as with the rules.
 
-**Fallback.** No `ai`, a binding error, no answer within `aiTimeoutMs` (15 s by default), an answer without
-the schema's shape, or two or more items that all fail validation: `components` come from the rule-based
-reader and `componentsReadBy` says `rules` and why. That is the reader below, unchanged, not a stand-in.
+**Fallback.** No `ai`, a binding error in either call, no answer to both within `aiTimeoutMs` (20 s by
+default, one deadline for the two calls), an answer without the schema's shape, a first answer naming only
+groups the page lacks, or two or more products that all fail validation: `components` come from the
+rule-based reader and `componentsReadBy` says `rules` and why. That is the reader below, unchanged, not a
+stand-in.
 
-Options: `ai` (anything with `run(model, inputs)`, such as `env.AI`), `aiModel` (default `PRODUCTS_MODEL`
-in `products.ts`), `aiTimeoutMs`.
+Options: `ai` (anything with `run(model, inputs, options)`, such as `env.AI`), `aiModel` (default
+`PRODUCTS_MODEL` in `model.ts`), `aiTimeoutMs`.
 
 ## Rule-based reader
 
@@ -113,7 +135,7 @@ by JavaScript are unavailable to this reader.
 - Before every request, including every redirect hop (at most 5), the host name is resolved and every address must be public: private, loopback, link-local, CGNAT, documentation, multicast and reserved IPv4/IPv6 ranges (and IPv4 embedded in IPv6) are refused. The default resolver is DNS over HTTPS at cloudflare-dns.com; pass `resolve` to use another.
 - One deadline for the whole read (10 s by default); HTML is read up to 1.5 MB, a manifest up to 100 KB, an icon up to 300 KB.
 - The HTML is scanned as text, retaining a stack of menu groups and each link's text elements: no page DOM, no script runs. Show a returned SVG only through `<img>` (where scripts never run), or rasterise it.
-- The model call fetches nothing: it sends the extract to the binding and gets names and addresses back, and only names the page shows at addresses the page links leave validation.
+- The model calls fetch nothing: they send the extract to the binding and get group ids, names and addresses back, and only names the page shows at addresses the page links leave validation.
 - Limit: the fetch resolves the name again after the check. On Cloudflare Workers outbound requests cannot reach private networks anyway; elsewhere, run behind an egress that refuses them.
 
 ## Options

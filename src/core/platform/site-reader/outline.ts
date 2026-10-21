@@ -38,7 +38,8 @@ export function cleanLabel(value: string) {
   return cleanComponentName(decoded.replace(INVISIBLE, "").replace(/\s+/g, " ").trim().replace(MARKER, "")).replace(LEADING_BADGE, "").replace(TRAILING_BADGE, "").trim();
 }
 
-type Line = { kind: "text"; text: string } | { kind: "link"; text: string; ref: string; url: string; texts: string[]; name: string; detail: string } | { kind: "repeat" };
+// `note`: a text that describes what is around it (a tagline) rather than titling the links after it.
+type Line = { kind: "text"; text: string; note: boolean } | { kind: "link"; text: string; ref: string; url: string; texts: string[]; name: string; detail: string } | { kind: "repeat" };
 type LinkLine = Extract<Line, { kind: "link" }>;
 
 const linkText = (line: LinkLine) => `- [${shorten(line.name, LABEL_LIMIT)}](${line.ref})${line.detail ? ` ${shorten(line.detail, DESCRIPTION_LIMIT)}` : ""}`;
@@ -64,7 +65,7 @@ export function navigationOutline(scan: HtmlScan, base: URL, site: { name: strin
         continue;
       }
       const last = lines.at(-1);
-      if (text && text.length <= TEXT_LIMIT && !(last?.kind === "text" && last.text === text)) lines.push({ kind: "text", text });
+      if (text && text.length <= TEXT_LIMIT && !(last?.kind === "text" && last.text === text)) lines.push({ kind: "text", text, note: Boolean(step.note) });
       continue;
     }
     const headings = menuText(lines);
@@ -76,7 +77,7 @@ export function navigationOutline(scan: HtmlScan, base: URL, site: { name: strin
     const label = (shown.length > 1 ? shown[0] : "") || cleanLabel(anchor.name) || cleanLabel(anchor.text);
     // A link back to this page is a menu button ("Products" at "#"): its text heads the links after it.
     if (url.hostname === base.hostname && url.pathname === base.pathname) {
-      if (label && label.length <= TEXT_LIMIT) lines.push({ kind: "text", text: label });
+      if (label && label.length <= TEXT_LIMIT) lines.push({ kind: "text", text: label, note: false });
       continue;
     }
     if (!/^https?:$/.test(url.protocol) || !(url.hostname === domain || url.hostname.endsWith(`.${domain}`)) || STATUS_HOST.test(url.hostname) || anchor.accountNavigation || !label) continue;
@@ -116,9 +117,10 @@ export function navigationOutline(scan: HtmlScan, base: URL, site: { name: strin
     let group: OutlineGroup | null = null, linked = false, parent: string | null = null;
     for (const [index, line] of shown.entries()) {
       if (line.kind === "text") {
-        // Text between a family's links, such as a card's tagline, stays in their group; any other text heads a new one.
+        // A note between a family's links, such as a card's tagline, stays in their group; a title or any other text heads a
+        // new one, as a mega-menu's section does even when its links lie beneath the menu's own page.
         const next = shown.slice(index + 1).find((after): after is LinkLine => after.kind === "link");
-        if (group && linked && !(parent && next && within(next.url, parent))) group = null;
+        if (group && linked && !(line.note && parent && next && within(next.url, parent))) group = null;
       }
       if (!group) {
         group = { id: groups.length + 1, footer, heading: [], lines: [] };

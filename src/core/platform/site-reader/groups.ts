@@ -8,14 +8,15 @@ const KINDS: GroupKind[] = ["products", "variants", "suite"];
 const INSTRUCTIONS = `You read a business's website navigation, divided into menu groups, and say which groups list the business's products: what its customers sign up for, buy or use, which its status page would show as components because customers notice when they fail.
 
 Input: the page's title, description and headings, then the menu groups of its header and its footer. Each group begins with its id in brackets, such as [G3], then its heading (a menu name, a group heading or a card's title), if it has one, and its links, one per line: "- [text](address) description". An indented link lies beneath the link above it; a plain line inside a group describes the link above it.
+Judge each group by its links: its heading can be the name of the menu it sits in ("Why Notely?", "Explore", "Platform") or a promotion's title, and a group of the business's own product or feature pages lists products whatever its heading says.
 
 Output JSON: {"business": "...", "groups": [{"group": "G3", "kind": "..."}]}
 - business: in at most 12 words, what the business sells.
 - groups: every group that lists at least one of the business's products, in page order, each once, with one kind:
   - "products": the group lists one or more products, services or apps the business sells or provides, even among other links. For a business with one product, a group of that product's features lists its main parts. A group that links the business's own app or console by that name ("Dashboard", "Console", "App"), and a sign-in menu that names several of the business's products, list products.
   - "variants": the group's products are variants of one product, which a customer would watch as one component: account types, plans, editions, sizes, server lines, instance types or locations of the same product.
-  - "suite": the group is one suite, platform or product line, and its links are its member products, each doing a different job, with or without the suite's overview page.
-- Leave out every group that lists none of the business's products: solutions, use cases, industries, teams, roles and company sizes; customers and their stories; comparisons and alternatives; pricing and plans; benefits and reasons to choose the business; resources, documentation, learning, events and blogs; support, community and partners; the company, legal pages, account and sign-in.
+  - "suite": the whole group is one suite, platform or product line: its links are that suite's member products, each doing a different job, with or without the suite's overview page.
+- Leave out every group that lists none of the business's products: solutions, use cases, industries, teams, roles and company sizes; customers and their stories; comparisons and alternatives; pricing and plans; benefits and reasons to choose the business; integrations and connections with other companies' products; resources, documentation, learning, events and blogs; support, community and partners; the company, legal pages, account and sign-in.
 - A business that sells project work done for its clients (software, web or app development, design, data or AI engineering, consulting, marketing), such as an agency, a consultancy or a development studio, has no product groups, even when its menus list those services one by one: answer an empty list.
 
 Example. For this navigation:
