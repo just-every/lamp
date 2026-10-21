@@ -170,7 +170,9 @@ export function createAppServices(bindings: AppBindings, blobs: BlobStore, execu
   }));
 
   const website = createWebsiteService(createWebsiteRepository(bindings.DB), {
-    read: websiteReader(import.meta.env?.DEV && bindings.LAMP_DEV_SITE_ORIGIN?.startsWith("http://127.0.0.1:") ? bindings.LAMP_DEV_SITE_ORIGIN : undefined),
+    // The install's own Workers AI reads the site's products; without it the rule-based reader does, and setup says so.
+    read: websiteReader(import.meta.env?.DEV && bindings.LAMP_DEV_SITE_ORIGIN?.startsWith("http://127.0.0.1:") ? bindings.LAMP_DEV_SITE_ORIGIN : undefined,
+      { ai: bindings.AI ?? null, id: bindings.LAMP_SITE_READER_MODEL || undefined, timeoutMs: Number(bindings.LAMP_SITE_READER_TIMEOUT_MS) || undefined }),
     readStatusPage: statusPageReader(import.meta.env?.DEV && bindings.LAMP_DEV_SITE_ORIGIN?.startsWith("http://127.0.0.1:") ? bindings.LAMP_DEV_SITE_ORIGIN : undefined),
     unavailable: outboundUnavailable(bindings, "Reading your website") ? "Lamp can't read websites on Managed hosting yet. Fill in the rest below." : null,
   });

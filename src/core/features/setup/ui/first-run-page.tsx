@@ -44,7 +44,7 @@ export function FirstRunPage({ publicPageOrigin, ownerId }: { publicPageOrigin: 
       return;
     }
     const site = result.found;
-    setDraft({ website, found: { ...base, pageName: site.pageName, tagline: site.tagline ?? base.tagline, accentColor: site.accentColor ?? base.accentColor, mark: site.mark ? { src: site.mark.dataUrl, vector: isVectorMark(site.mark.contentType), from: site.mark.url } : null, components: site.components.map((component) => component.name), statusPage: site.statusPage }, review: { kind: "read", note: `We read ${site.host}. Change anything now or later in Settings.` } });
+    setDraft({ website, found: { ...base, pageName: site.pageName, tagline: site.tagline ?? base.tagline, accentColor: site.accentColor ?? base.accentColor, mark: site.mark ? { src: site.mark.dataUrl, vector: isVectorMark(site.mark.contentType), from: site.mark.url } : null, components: site.components.map((component) => component.name), basicReader: site.basicReader, statusPage: site.statusPage }, review: { kind: "read", note: `We read ${site.host}. Change anything now or later in Settings.` } });
   }
 
   function skip() {

@@ -56,6 +56,13 @@ export interface AppBindings {
   SUBSCRIBER_TOKEN_SECRET?: string;
   WEBHOOK_SIGNING_SECRET?: string;
   RESEND_WEBHOOK_SECRET?: string;
+  /** The install's Workers AI binding: setup reads the products on the owner's website with it. Absent, the rule-based reader
+   * chooses and setup says so. */
+  AI?: { run(model: string, inputs: Record<string, unknown>, options?: { extraHeaders?: Record<string, string>; signal?: AbortSignal }): Promise<unknown> };
+  /** A Workers AI text model id for reading a website's products; the default is in platform/site-reader/products.ts. */
+  LAMP_SITE_READER_MODEL?: string;
+  /** Milliseconds the model may take before the rule-based reader chooses; the default is in platform/site-reader/products.ts. */
+  LAMP_SITE_READER_TIMEOUT_MS?: string;
   AI_PROVIDER_URL?: string;
   AI_PROVIDER_API_KEY?: string;
   AI_PROVIDER_MODEL?: string;

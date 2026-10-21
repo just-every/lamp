@@ -4,7 +4,7 @@ import { z } from "zod";
 const foundSchema = z.object({
   pageName: z.string(), tagline: z.string(), accentColor: z.string(), timezone: z.string(),
   mark: z.object({ src: z.string(), vector: z.boolean(), from: z.string().nullable() }).nullable(),
-  components: z.array(z.string()), statusPage: z.string().nullable(),
+  components: z.array(z.string()), basicReader: z.boolean().optional(), statusPage: z.string().nullable(),
 });
 const draftSchema = z.object({
   website: z.string(), found: foundSchema.nullable(),

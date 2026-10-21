@@ -11,6 +11,8 @@ export interface WebsitePrefill {
   accentColor: string | null;
   mark: { url: string; contentType: string; dataUrl: string } | null;
   components: { name: string; url: string }[];
+  /** The rule-based reader chose the components: the install has no Workers AI, or the model gave no usable answer. */
+  basicReader: boolean;
   statusPage: string | null;
 }
 
@@ -30,7 +32,7 @@ const siteHost = (input: string) => {
 
 export interface WebsiteService {
   current(): Promise<WebsiteRecord | null>;
-  read(input: string): Promise<WebsiteReadResponse>;
+  read(input: string, options?: { components: boolean }): Promise<WebsiteReadResponse>;
 }
 
 export function prefillFrom(site: SiteRead): WebsitePrefill {
@@ -44,22 +46,25 @@ export function prefillFrom(site: SiteRead): WebsitePrefill {
     accentColor: site.accent?.toUpperCase() ?? null,
     mark: site.icon ? { url: site.icon.url, contentType: site.icon.contentType, dataUrl: site.icon.dataUrl } : null,
     components: site.components,
+    basicReader: site.componentsReadBy.reader === "rules",
     statusPage: site.statusPage?.url ?? null,
   };
 }
 
-export function createWebsiteService(repository: WebsiteRepository, options: { read: (input: string) => Promise<SiteReadResult>; readStatusPage: (url: string) => Promise<WebsiteStatusPage>; unavailable: string | null }): WebsiteService {
+export function createWebsiteService(repository: WebsiteRepository, options: { read: (input: string, components: boolean) => Promise<SiteReadResult>; readStatusPage: (url: string) => Promise<WebsiteStatusPage>; unavailable: string | null }): WebsiteService {
   return {
     current: () => repository.get(),
-    async read(input) {
+    async read(input, { components } = { components: true }) {
       if (options.unavailable) return { found: null, message: options.unavailable, ...hostnamePageName(input) };
-      const result = await options.read(input);
+      const result = await options.read(input, components);
       if (!result.ok) {
         // The owner has moved on from the stored site, so the page must no longer link back to it.
         const current = await repository.get();
         if (current && siteHost(current.url) !== siteHost(input)) await repository.clear();
         return { found: null, message: result.message, ...(result.reason !== "invalid-url" && result.reason !== "refused-address" ? hostnamePageName(input) : {}) };
       }
+      const readBy = result.site.componentsReadBy;
+      if (components && readBy.reader === "rules" && readBy.reason !== "no-model") console.warn(`Lamp read ${result.site.host} with its basic reader: the Workers AI model gave ${readBy.reason === "invalid-answer" ? "no usable answer" : readBy.reason === "timeout" ? "no answer in time" : "an error"}.`);
       const detected = result.site.statusPage;
       const statusPage = detected ? await options.readStatusPage(detected.url).catch(() => ({ url: detected.url, source: null, pageId: null })) : null;
       await repository.record(result.site.url, statusPage);

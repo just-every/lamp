@@ -1564,6 +1564,15 @@ existing typography, colours and surfaces stay as they are.
 
 Operator screens use the owner's words, including folded reports and history controls. Development and demo mail stays silent and shows the same accepted-send success as a real send; stored outcomes and real delivery behavior stay intact. Website component suggestions prefer supported product navigation, strip decorative badges and descriptions, exclude account/community/company navigation, and retain the eight-name cap.
 
+L17 names read by a model (21 October 2026): which menu entries are a business's
+customer-facing products is a judgement, and word rules that fixed one kind of
+junk dropped real products elsewhere. With the install's Workers AI binding, setup
+asks one text model, once per read, for the products in the site's navigation,
+given only as data; rules only clean text and check the answer (every name must be
+text the page shows at an address the page links, at most eight). Without a model,
+or without a usable answer, the rule-based reader chooses as before, and setup says
+so in one line.
+
 ## Managed sender status — 21 October 2026
 
 The RunEditRun relay owns sender identity and exposes mail submission, with no

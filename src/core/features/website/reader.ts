@@ -1,5 +1,5 @@
 import { readSite } from "../../platform/site-reader/index.ts";
-import type { SiteReadOptions } from "../../platform/site-reader/types.ts";
+import type { AiRunner, SiteReadOptions } from "../../platform/site-reader/types.ts";
 import { readStatusPage } from "./status-page-reader";
 
 function readerOptions(devSiteOrigin: string | undefined): SiteReadOptions {
@@ -15,12 +15,12 @@ function readerOptions(devSiteOrigin: string | undefined): SiteReadOptions {
   };
 }
 
-/** The site reader as Lamp runs it. In local Vite development only, a loopback
- * stand-in can play the internet: every request goes to it with the original
- * host in X-Lamp-Site-Host, and every name resolves to a public address. */
-export function websiteReader(devSiteOrigin: string | undefined) {
-  const options = readerOptions(devSiteOrigin);
-  return (input: string) => readSite(input, options);
+/** The site reader as Lamp runs it, with the install's Workers AI binding when it has one. In local Vite development
+ * only, a loopback stand-in can play the internet: every request goes to it with the original host in X-Lamp-Site-Host,
+ * and every name resolves to a public address. */
+export function websiteReader(devSiteOrigin: string | undefined, model: { ai: AiRunner | null; id?: string; timeoutMs?: number } = { ai: null }) {
+  const options: SiteReadOptions = { ...readerOptions(devSiteOrigin), ai: model.ai, aiModel: model.id, aiTimeoutMs: model.timeoutMs };
+  return (input: string, components = true) => readSite(input, components ? options : { ...options, ai: null });
 }
 
 export function statusPageReader(devSiteOrigin: string | undefined) {
