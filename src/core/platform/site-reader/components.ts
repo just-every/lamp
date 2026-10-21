@@ -6,18 +6,19 @@ import type { SiteComponent } from "./types.ts";
 
 const GENERIC = /^(home|pricing|plans? and pricing|blog|about( us)?|company|careers|jobs|contact( us| sales)?|talk to (sales|us)|sales|(book|request|get|watch) a demo|demo|get started( free| for free)?|start (your )?free trial|start for free|try (it )?(for )?free|free trial|sign ?up( free)?|register|learn more|read more|resources|customers|case studies|(customer )?stories|partners|press|news(room)?|events|webinars|community|help( cent(er|re))?|support|faq|privacy( policy)?|terms( of (service|use))?|legal|cookies?( policy| settings)?|menu|close|skip to (main )?content|english|language|products?|features?( and benefits)?|benefits|solutions|platform|overview|explore( more| all)?|enterprise|compare|why .+|see all.*|view all.*|all .+|more|status|system status|log ?out|sign ?out|download|apps?|guides?|templates|integrations? directory|changelog|release notes|what['’]?s new|security|trust|accessibility|sitemap|investors|affiliates?|refer a friend|gift cards?)$/i;
 // Calls to action, sentences, plan and pricing wording, catalogue links and menu chrome are not product areas.
-const CHROME = /^(pricing|sign ?up|get started|try|book|request|start|navigate|go to|back to|skip|open app|download|see|view|learn|read|watch|join|contact|help|explore|discover)\b|\b(overview|home|homepage|more|plans|pricing|prices)$|\ball (products|services|apps|tools|solutions|features)$|\b(for|at)\b|\b(is|are|was|our|your|we|you|to the|of the)\b/i;
+const CHROME = /^(pricing|sign ?up|get started|try|book|request|register|start|navigate|go to|back to|skip|open app|download|see|view|learn|read|watch|join|contact|help|explore|discover)\b|\b(overview|home|homepage|more|plans|pricing|prices)$|\s(now|today)$|\ball (products|services|apps|tools|solutions|features)$|\b(for|at)\b|\b(is|are|was|our|your|we|you|to the|of the)\b/i;
 const NON_SERVICE_NAME = /^(docs?|documentation|developers?|developer docs|api (docs|reference)|integrations?|now|log[ -]?in|sign[ -]?in|accounts?|dashboard login|e-?commerce|saas|agencies|creators?( and publishers?)?|publishers?|public sector|industries|use cases)$|^(vs\.?|versus|compare|migrat\w*|switch|white[ -]label)\b/i;
-const NON_SERVICE_PATH = /\/(docs?|documentation|developers?|reference|learn|guides?|help|support|blog|news|now|changelog|releases?|release-notes|whats-new|downloads?|explore|resources|integrations?|customers?|stories|case-studies|partners|templates|for|use-cases|industries|enterprise|solutions?|compare|comparisons?|alternatives?|vs|migrat\w*|log-?in|sign-?in|sign-?up|auth|accounts?|pricing|about|company|careers|jobs|contact|legal|privacy|terms|cookies|benefits|press|events|security|trust)(\/|$)/i;
-const NON_SERVICE_HOST = /^(docs?|developers?|help|support|learn|accounts?|auth|id|sso|login)\./i;
-const PRODUCT_PATH = /^\/(products?|apps?|tools?)\/[^/]+/i;
+const NON_SERVICE_PATH = /\/(docs?|documentation|developers?|reference|learn|guides?|help|support|blog|news|now|changelog|releases?|release-notes|whats-new|downloads?|explore|resources|integrations?|customers?|stories|case-studies|partners|templates|for|use-cases|industries|enterprise|solutions?|compare|comparisons?|alternatives?|vs|migrat\w*|log-?in|sign-?in|sign-?up|auth|accounts?|pricing|about|company|careers|jobs|contact|legal|privacy|terms|cookies|benefits|press|events|(?:security|trust)(?:-cent(?:er|re))?|compliance)(\/|$)/i;
+const NON_SERVICE_HOST = /^(docs?|developers?|help|support|learn|accounts?|auth|id|sso|login|trust)\./i;
+// A /tools/ directory holds free generators and calculators far more often than products, so it is no product evidence.
+const PRODUCT_PATH = /^\/(products?|apps?)\/[^/]+/i;
 // A feature menu alone is weak evidence: keep only names of usable service areas,
 // rather than benefits such as "Zero downtime deploys" or "Granular routing".
 const SERVICE_NAME = /^(api|dashboard|console|web app|mobile app|website|storage|databases?|compute|cdn|authentication|payments|invoices|invoicing( and payments)?|timesheets|time tracking|reports|reporting|analytics|messaging|email|search|hosting)$/i;
 const STATUS_HOST = /(^|\.)(statuspage\.io|status\.io|instatus\.com|betteruptime\.com|statuspal\.io|hund\.io|status\.[a-z0-9-]+\.[a-z.]+)$|^status\./i;
 
 const PRODUCT_GROUP = /^(products?( and pricing)?|platform|(?:featured )?apps?)$/i;
-const OTHER_GROUP = /^(company|community|social|resources?|developers?|support|solutions?|industries|use cases|integrations?( and custom solutions)?)$/i;
+const OTHER_GROUP = /^(company|community|social|resources?|developers?|support|solutions?|industries|use cases|integrations?( and custom solutions)?|programs?|why .+|who .+)$/i;
 // Feature navigation alone needs an operational area, not just a named benefit.
 const SERVICE_ENDING = /\b(hosting|analytics|monitoring|messaging|storage|payments|invoicing|reporting|analysis|builders?|players?|transcription|time tracking)$/i;
 const MARKETING_INDEX = /^\/(features?|benefits)(?:\/|$)$/i;
@@ -27,6 +28,8 @@ const ARROWED = /[→➔➜⟶›»]\s*$/u;
 const CAP = 8;
 
 interface Candidate extends SiteComponent { primary: boolean; titleRank: HtmlAnchor["titleRank"]; menu: boolean; groups: string[] }
+
+const inHeader = (anchor: HtmlAnchor) => !anchor.footer && (anchor.region === "nav" || anchor.region === "header");
 
 const destination = (url: string) => url.replace(/[#?].*$/, "").replace(/\/$/, "");
 const key = (name: string) => name.toLowerCase().replace(/\s*&\s*/g, " and ");
@@ -78,25 +81,31 @@ function catalogueIndexes(candidates: Candidate[]) {
     && !addresses.some(other => other !== address && parent(other) === parent(address))));
 }
 
-/** Over the cap, keep the site's main areas: the ones it links to (counting the pages beneath them) and
- * names in its own text most often, before any page that sits beneath another area. The chosen areas keep the site's order. */
-function prominent(candidates: Candidate[], links: string[], prose: string) {
+/** Over the cap, keep the site's main areas: the ones its header navigation links to before those only its footer
+ * lists, then the ones it links to (counting the pages beneath them) and names in its own text most often, before
+ * any page that sits beneath another area. The chosen areas keep the site's order. */
+function prominent(candidates: Candidate[], links: string[], header: Set<string>, prose: string) {
   if (candidates.length <= CAP) return candidates;
   const addresses = candidates.map(candidate => destination(candidate.url));
   const mentions = (name: string) => prose.match(new RegExp(`(?<![\\p{L}\\p{N}])${name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?![\\p{L}\\p{N}])`, "gu"))?.length ?? 0;
   return addresses.map((address, index) => ({
     index,
-    nested: addresses.some(other => address.startsWith(`${other}/`)),
+    footerOnly: !header.has(address),
+    // A page the header presents is beneath another area only when the header presents that area too, and a page
+    // named after the area it sits beneath ("Jira Service Management" under "Jira") is an area of its own.
+    nested: addresses.some((other, at) => address.startsWith(`${other}/`) && (header.has(other) || !header.has(address))
+      && !key(candidates[index].name).startsWith(`${key(candidates[at].name)} `)),
     weight: links.filter(link => link === address || link.startsWith(`${address}/`)).length + mentions(candidates[index].name),
   }))
-    .sort((a, b) => Number(a.nested) - Number(b.nested) || b.weight - a.weight || a.index - b.index)
+    .sort((a, b) => Number(a.footerOnly) - Number(b.footerOnly) || Number(a.nested) - Number(b.nested) || b.weight - a.weight || a.index - b.index)
     .slice(0, CAP).sort((a, b) => a.index - b.index).map(({ index }) => candidates[index]);
 }
 
 /** Choose supported product areas, then retain their order on the site. */
 export function siteComponents(scan: HtmlScan, base: URL): SiteComponent[] {
   const domain = siteDomain(base.hostname);
-  const consider = (anchors: HtmlAnchor[]): Candidate[] => anchors.flatMap(anchor => {
+  // `plausible` keeps a link that names an area without product evidence of its own.
+  const consider = (anchors: HtmlAnchor[], plausible = false): Candidate[] => anchors.flatMap(anchor => {
     let url: URL;
     try { url = new URL(anchor.href, base); } catch { return []; }
     if (!/^https?:$/.test(url.protocol) || !(url.hostname === domain || url.hostname.endsWith(`.${domain}`)) || STATUS_HOST.test(url.hostname)) return [];
@@ -117,8 +126,8 @@ export function siteComponents(scan: HtmlScan, base: URL): SiteComponent[] {
     if (productGroup && !PRODUCT_GROUP.test(productGroup)) return [];
     const service = SERVICE_NAME.test(text) || SERVICE_ENDING.test(text);
     const primary = product || service && url.hostname.replace(/^www\./, "") !== base.hostname.replace(/^www\./, "");
-    if (!primary && !service) return [];
-    return [{ name: text, url: url.href, primary, titleRank: anchor.titleRank, menu: anchor.region !== "footer" && productMenu, groups: anchor.groups }];
+    if (!primary && !service && !plausible) return [];
+    return [{ name: text, url: url.href, primary, titleRank: anchor.titleRank, menu: !anchor.footer && productMenu, groups: anchor.groups }];
   });
   let candidates = unique(consider(scan.anchors.filter(anchor => anchor.region === "nav" || anchor.region === "header")));
   if (candidates.length < 2) candidates = unique([...candidates, ...consider(scan.anchors.filter(anchor => anchor.region === "footer"))]);
@@ -127,6 +136,7 @@ export function siteComponents(scan: HtmlScan, base: URL): SiteComponent[] {
   const indexes = catalogueIndexes(candidates);
   candidates = candidates.filter(candidate => !indexes.has(destination(candidate.url)));
   if (candidates.length < 2) return [];
-  const links = scan.anchors.flatMap(anchor => { try { return [destination(new URL(anchor.href, base).href)]; } catch { return []; } });
-  return prominent(candidates, links, scan.prose).map(({ name, url }) => ({ name, url }));
+  const address = (anchor: HtmlAnchor) => { try { return [destination(new URL(anchor.href, base).href)]; } catch { return []; } };
+  const header = new Set(consider(scan.anchors.filter(inHeader), true).map(candidate => destination(candidate.url)));
+  return prominent(candidates, scan.anchors.flatMap(address), header, scan.prose).map(({ name, url }) => ({ name, url }));
 }

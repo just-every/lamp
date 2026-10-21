@@ -302,4 +302,56 @@ test('the site reader reads what a site says about itself, refuses private desti
   const indexed = await read(`<main><p>Evals for Learning. Evals everywhere: Evals, Evals. Droplets.</p></main><nav><a href="/pricing">Pricing</a></nav>
     <footer><div><h3>Products</h3><a href="/products">Catalogue</a>${shelf.map(name => `<a href="/products/${name.toLowerCase()}">${name}</a>${name === 'Learning' ? '<a href="/products/learning/evals">Evals</a>' : ''}`).join('')}</div></footer>`);
   assert.deepEqual(indexed.map(component => component.name), shelf.slice(0, 8), 'neither the index nor a page beneath an area takes a main area\'s place');
+
+  t.diagnostic('a footer <nav> product group is product evidence; over the cap the header\'s areas and names come first');
+  assert.deepEqual((await read(`<header><nav><div><button>Toggle platform menu</button>
+    <a href="/platform/runners/">Agent Runners</a><a href="/platform/database/">Database</a><a href="/platform/functions/">Functions</a>
+    </div><a href="https://app.example.com/">Dashboard</a></nav></header><footer><nav><details><summary><h2>Products</h2></summary>
+    <a href="/platform/runners/">Agent Runners</a><a href="/platform/functions/">Functions</a><a href="/platform/observability/">Observability</a>
+    </details></nav></footer>`)).map(component => component.name), ['Dashboard', 'Agent Runners', 'Functions', 'Observability']);
+  const operations = ['Cloud', 'Incidents', 'Automation', 'Agents', 'Advance', 'Service Ops', 'Insights'];
+  assert.deepEqual((await read(`<main>${'<a href="/digital-operations/">Digital operations</a>'.repeat(6)}</main><header><nav><div><button>Products</button>
+    ${operations.map(name => `<a href="/platform/${name.toLowerCase().replace(' ', '-')}/"><h3>${name}</h3><p>Run every part</p></a>`).join('')}
+    <a href="/platform/service-ops/status-pages/"><h3>Status Pages</h3><p>One source of truth</p></a>
+    </div></nav></header><footer><nav><div><h3>Platform</h3>
+    <a href="/platform/cloud/">Cloud</a><a href="/digital-operations/">Digital Operations</a><a href="/platform/advance/">Generative AI</a>
+    </div></nav></footer>`)).map(component => component.name), [...operations, 'Status Pages'], 'a footer-only page never displaces a header product, whatever its link count');
+
+  t.diagnostic('a class names its element by its last word, without utility values or hashes; touching siblings are separate lines');
+  assert.deepEqual((await read(`<nav aria-label="Products"><div><button>Products</button>
+    <a class="header-platform-card__link" href="/products/orbit/"><div class="header-platform-card__content"><h4 class="header-platform-card__title">Orbit</h4><p class="header-platform-card__description">Secure all of your identities.</p></div></a>
+    <a href="/products/relay/" class="p-4 hover:bg-[var(--header-button-hover-bg)]"><div><span class="font-bold text-[var(--header-text)]">Relay</span></div><div class="text-sm text-[var(--header-text-muted)]">Themes and experts</div></a>
+    <a class="title-card-link" href="/products/comet/"><div class="titleCard-title">Comet</div><div class="titleCard-content">The blueprint for teams</div></a>
+    <a href="/products/beacon/"><h6 class="Nav_nav-subtitle__fMMCy">Beacon</h6><p class="Nav_nav-description__BJJEx">Build agents faster.</p></a>
+    </div></nav>`)).map(component => component.name), ['Orbit', 'Relay', 'Comet', 'Beacon']);
+  assert.deepEqual((await read(`<nav><div><button>Platform</button>
+    <a href="/platform/journeys/"><span class="relative flex flex-col gap-1"><span class="text-14"><span>Journeys</span></span><span class="text-12 text-black/65">Understand paths to conversion</span></span></a>
+    <a href="/product/analytics">Analytics<span>All things video performance.</span></a>
+    <a href="/platform/storage/"><span class="flex items-center gap-1"><span>Acme</span><span>Cloud Storage</span></span></a>
+    <a href="/platform/vault/"><span class="font-bwi">&#xf1a3;</span> Secrets Vault</a><a href="/products/orbit">- Orbit</a><a href="/products/relay">• Relay</a>
+    </div></nav>`)).map(component => component.name), ['Journeys', 'Analytics', 'Acme Cloud Storage', 'Secrets Vault', 'Orbit', 'Relay'], 'an icon glyph and a list marker are not part of the name');
+
+  t.diagnostic('comparison, alternative, audience and "why" pages, calls to action and compliance pages stay out; a decorative arrow is not a call to action');
+  assert.deepEqual(await read(`<nav><a href="/">Home</a><div><button>Why Acme</button>
+    <a href="/features/vs-google-analytics">Google Analytics</a><a href="/features/vs-cloudflare-web-analytics">Cloudflare Web Analytics</a>
+    <a href="/why-acme/cookieless-analytics">Cookieless analytics</a></div>
+    <a href="/vs-matomo">- vs Matomo</a><a href="/compare/acme-vs-segment">Segment Analytics</a><a href="/google-analytics-alternative">Google Analytics</a>
+    <a href="/for-ecommerce">- Ecommerce analytics</a><a href="/white-label-web-analytics">- White-label analytics</a>
+    <div><button>Who it's for</button><a href="/products/agencies">Agency analytics</a></div></nav>`), [], 'a single-product site with comparison pages stays honestly empty');
+  assert.deepEqual((await read(`<header><nav><div><button>Products</button>
+    <a href="/websites"><span>Websites</span><span aria-hidden="true">→</span></a><a href="/invoicing"><span>Invoicing</span><span aria-hidden="true">→</span></a>
+    <a href="/security-compliance"><h3>Security &amp; Compliance</h3><p>End-to-end data protection</p></a>
+    <a href="/gdpr/">GDPR Compliance</a><a href="https://events.example.com/landing">Register now</a><a href="/early-access">Early access</a>
+    <a href="/trust-center/">Security and trust</a><a href="https://trust.example.com/">Trust and safety</a><a href="/calendar">Calendar →</a>
+    </div></nav></header>`)).map(component => component.name), ['Websites', 'Invoicing', 'Security & Compliance']);
+  assert.deepEqual((await read(`<nav><a href="/pricing">Pricing</a></nav><footer>
+    <div><h3>Products <span>Products</span> ↓</h3><a href="/orbit">Orbit</a><a href="/relay">Relay</a></div>
+    <div><h3>Resources <span>Resources</span> ↓</h3><a href="/products/name-generator">Business Name Generator</a><a href="/tools/logo-maker">Logo Maker</a></div>
+    <div><h3>Programs Programs ↓</h3><a href="/products/circle">Circle</a></div></footer>`)).map(component => component.name), ['Orbit', 'Relay'], 'a group label\'s arrow and responsive repeat are ignored; free tools and programmes stay out');
+
+  t.diagnostic('over the cap, a product named after the area it sits beneath is an area of its own, unlike a feature page beneath it');
+  const family = ['Jira', 'Confluence', 'Jira Service Management', 'Rovo', 'Bitbucket', 'Guard', 'Loom', 'Focus', 'Talent', 'Pipelines'];
+  assert.deepEqual((await read(`<header><nav><div><button>Products</button>
+    ${family.map(name => `<a href="/software/${{ 'Jira Service Management': 'jira/service-management', Pipelines: 'bitbucket/pipelines' }[name] ?? name.toLowerCase()}"><h3>${name}</h3><p>Plan and track</p></a>`).join('')}
+    </div></nav></header>`)).map(component => component.name), family.slice(0, 8));
 });

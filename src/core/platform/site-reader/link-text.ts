@@ -14,7 +14,10 @@ const MARKED = new RegExp(String.raw`\s*(?:\((?:${TOKEN})\)|\[(?:${TOKEN})\]|[·
 // ...or shouted after a name in mixed case ("Metrics BETA"). "What's New", "Microsoft 365" and "Build Preview" are names.
 const SHOUTED = /\s+(?:NEW|BETA|ALPHA|SOON|COMING SOON|PREVIEW|UPDATED)$/;
 const EMOJI = /\p{Extended_Pictographic}(?:\uFE0F|\p{Emoji_Modifier}|\u200D\p{Extended_Pictographic})*|\p{Regional_Indicator}{2}|[\u200D\uFE0F\u20E3]/gu;
-const plain = (value: string) => cleanText(cleanText(value).replace(EMOJI, "")).replace(/[\s›»→↗➔>]+$/u, "");
+// Icon fonts draw their glyphs from the private use area; they are pictures, not letters.
+const ICON = /\p{Co}/gu;
+// A list marker the menu writes before each item ("- vs Google Analytics") is not part of the name.
+const plain = (value: string) => cleanText(cleanText(value).replace(EMOJI, "").replace(ICON, "")).replace(/^[-–—•·*▪◦‣⁃]\s+/u, "").replace(/[\s›»→↗➔>]+$/u, "");
 
 /** Only decoration is removed lexically; descriptions are separated by markup. */
 export function cleanComponentName(value: string) {
@@ -29,12 +32,22 @@ export function cleanComponentName(value: string) {
   return BADGE.test(text) ? "" : text;
 }
 
+/** The words of each class name. Utility values in brackets ("text-[var(--header-text)]") and generated hashes
+ * ("Nav_title__fMMCy", "sc-71cbd675") are not words; "productTitle" and "product-title" are the same two words. */
+const classNames = (element: Element) => `${element.attributes.class ?? ""} ${element.attributes["data-slot"] ?? ""}`.split(/\s+/).filter(Boolean)
+  .map(name => name.replace(/\[[^\]]*\]/g, " ").replace(/__(?=[\w-]*[A-Z0-9])[\w-]{5,8}$/, "").replace(/([a-z])([A-Z])/g, "$1 $2").toLowerCase()
+    .split(/[^a-z0-9]+/).filter(word => word && !/\d/.test(word)));
+const hidden = (element: Element) => element.attributes["aria-hidden"] === "true" || "hidden" in element.attributes;
+
 const role = (element: Element): "decoration" | "description" | "title" | "text" => {
-  const hint = `${element.attributes.class ?? ""} ${element.attributes["data-slot"] ?? ""}`;
+  const names = classNames(element);
   // Badges, counters and text kept for screen readers only are not part of the shown name.
-  if (element.attributes["aria-hidden"] === "true" || "hidden" in element.attributes || /(?:^|[\s_-])(badge|pill|chip|count|counter)(?:$|[\s_-])/i.test(hint) || /(?:^|\s)(sr-only|visually-?hidden|screen-reader-text)(?:$|\s)/i.test(hint)) return "decoration";
-  if (/^h[1-6]$/.test(element.tag) || /(?:^|[\s_-])(title|name|label|heading|header)(?:$|[\s_-])/i.test(hint)) return "title";
-  if (/^(small|p)$/.test(element.tag) || /(?:^|[\s_-])(description|subtitle|summary|caption|detail)(?:$|[\s_-])/i.test(hint)) return "description";
+  if (hidden(element) || names.some(words => words.some(word => /^(badge|pill|chip|count|counter)$/.test(word)))
+    || /(?:^|\s)(sr-only|visually-?hidden|screen-reader-text)(?:$|\s)/i.test(element.attributes.class ?? "")) return "decoration";
+  // A class names the element by its last word: "product-header" is a title, while "header-platform-card__link"
+  // and "title-card-link" are links inside a header card or title card, not titles themselves.
+  if (names.some(words => /^(title|name|label|heading|header)$/.test(words.at(-1) ?? "")) || /^h[1-6]$/.test(element.tag)) return "title";
+  if (names.some(words => words.some(word => /^(description|subtitle|summary|caption|details?)$/.test(word))) || /^(small|p)$/.test(element.tag)) return "description";
   return "text";
 };
 
@@ -56,12 +69,29 @@ function titles(element: Element, inDescription = false): string[] {
   return element.children.flatMap(child => typeof child === "string" ? [] : titles(child, inDescription));
 }
 
-// Separate block siblings express a label followed by supporting text.
-function firstBlock(element: Element): string {
-  const blocks = element.children.filter((child): child is Element => typeof child !== "string" && /^(div|p|h[1-6])$/.test(child.tag) && Boolean(visible(child)));
-  if (blocks.length > 1) return firstBlock(blocks[0]) || visible(blocks[0]);
-  if (blocks.length === 1 && !element.children.some(child => typeof child === "string" && cleanComponentName(child))) return firstBlock(blocks[0]);
-  return "";
+const raw = (child: Element | string): string => typeof child === "string" ? child : child.children.map(raw).join("");
+const shownPart = (child: Element | string) => typeof child === "string" ? cleanComponentName(child) : visible(child);
+
+/** Separate lines express a label followed by supporting text: block siblings, or siblings that touch with no
+ * space between them ("Journeys" then "Understand paths to conversion"), which only reads as two lines unless a
+ * flex row lays them side by side. Words split by a space, or one word split by markup, stay one line.
+ * Returns the first line when there are several. */
+function firstLine(element: Element): string {
+  const parts = element.children.flatMap((child, index) => shownPart(child) ? [index] : []);
+  const block = (index: number) => typeof element.children[index] !== "string" && /^(div|p|h[1-6])$/.test((element.children[index] as Element).tag);
+  const words = classNames(element).flat();
+  const row = words.includes("flex") && !words.some(word => /^(col|column)$/.test(word));
+  const touching = (before: number, after: number) => !row && element.children.slice(before + 1, after).every(between => !raw(between))
+    && /[\p{L}\p{N}.!?)]$/u.test(raw(element.children[before])) && /^\p{L}/u.test(raw(element.children[after]))
+    && shownPart(element.children[after]).includes(" ");
+  const end = parts.findIndex((index, at) => at > 0 && (block(index) || block(parts[at - 1]) || touching(parts[at - 1], index)));
+  if (end > 0) {
+    const first = element.children.slice(parts[0], parts[end - 1] + 1);
+    if (first.length === 1 && typeof first[0] !== "string") return firstLine(first[0]) || visible(first[0]);
+    return visible({ tag: "span", attributes: {}, children: first });
+  }
+  const only = parts.length === 1 ? element.children[parts[0]] : undefined;
+  return only && typeof only !== "string" ? firstLine(only) : "";
 }
 
 /** A stack of just this link's text elements, discarded when the link closes. */
@@ -89,11 +119,13 @@ export class LinkText {
   }
   /** Whether the link's name came from a heading or title element inside it. */
   titled() { return Boolean(titles(this.root)[0]); }
-  /** A supporting block supplied a short label rather than an explicit title or plain link name. */
-  described() { return Boolean(firstBlock(this.root)); }
+  /** Whether the link is inside an element hidden from assistive technology, such as a decorative arrow. */
+  hidden() { return this.stack.some(hidden); }
+  /** A supporting line supplied a short label rather than an explicit title or plain link name. */
+  described() { return Boolean(firstLine(this.root)); }
   name(fallback: string) {
     const named = titles(this.root)[0];
     if (named) return named;
-    return firstBlock(this.root) || visible(this.root) || cleanComponentName(this.root.attributes.title ?? fallback);
+    return firstLine(this.root) || visible(this.root) || cleanComponentName(this.root.attributes.title ?? fallback);
   }
 }
