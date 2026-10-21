@@ -1,29 +1,36 @@
 import { siteDomain } from "./domain.ts";
 import type { HtmlAnchor, HtmlScan } from "./html.ts";
 import { cleanComponentName } from "./link-text.ts";
-import { nonProductLabel, nonProductPath } from "./navigation.ts";
+import { nonProductLabel, nonProductPath, professionalWork } from "./navigation.ts";
+import { marketingPage } from "./page-types.ts";
 import type { SiteComponent } from "./types.ts";
 
-const GENERIC = /^(home|pricing|plans? and pricing|blog|about( us)?|company|careers|jobs|contact( us| sales)?|talk to (sales|us)|sales|(book|request|get|watch) a demo|demo|get started( free| for free)?|start (your )?free trial|start for free|try (it )?(for )?free|free trial|sign ?up( free)?|register|learn more|read more|resources|customers|case studies|(customer )?stories|partners|press|news(room)?|events|webinars|community|help( cent(er|re))?|support|faq|privacy( policy)?|terms( of (service|use))?|legal|cookies?( policy| settings)?|menu|close|skip to (main )?content|english|language|products?|features?( and benefits)?|benefits|solutions|platform|overview|explore( more| all)?|enterprise|compare|why .+|see all.*|view all.*|all .+|more|status|system status|log ?out|sign ?out|download|apps?|guides?|templates|integrations? directory|changelog|release notes|what['’]?s new|security|trust|accessibility|sitemap|investors|affiliates?|refer a friend|gift cards?)$/i;
+const GENERIC = /^(home|pricing|plans? and pricing|blog|about( us)?|company|careers|jobs|contact( us| sales)?|talk to (sales|us)|sales|(book|request|get|watch) a demo|demo|get started( free| for free)?|start (your )?free trial|start for free|try (it )?(for )?free|free trial|sign ?up( free)?|register|learn more|read more|resources|customers|case studies|(customer )?stories|partners|press|news(room)?|events|webinars|community|help( cent(er|re))?|support|faq|privacy( policy)?|terms( of (service|use))?|legal|cookies?( policy| settings)?|menu|close|skip to (main )?content|english|language|products?|services|features?( and benefits)?|benefits|solutions|platform|overview|explore( more| all)?|enterprise|compare|why .+|see all.*|view all.*|all .+|more|status|system status|log ?out|sign ?out|download|apps?|guides?|templates|integrations? directory|changelog|release notes|what['’]?s new|security|trust|accessibility|sitemap|investors|affiliates?|refer a friend|gift cards?|sustainability|open source|licen[cs]es|licensing)$/i;
 // Calls to action, sentences, plan and pricing wording, catalogue links and menu chrome are not product areas.
 const CHROME = /^(pricing|sign ?up|get started|try|book|request|register|start|navigate|go to|back to|skip|open app|download|see|view|learn|read|watch|join|contact|help|explore|discover)\b|\b(overview|home|homepage|more|plans|pricing|prices)$|\s(now|today)$|\ball (products|services|apps|tools|solutions|features)$|\b(for|at)\b|\b(is|are|was|our|your|we|you|to the|of the)\b/i;
 // A comparison names the competitor ("vs Matomo", "Acme vs Matomo", "Google Analytics alternative").
-const NON_SERVICE_NAME = /^(docs?|documentation|developers?|developer docs|api (docs|reference)|integrations?|now|log[ -]?in|sign[ -]?in|accounts?|dashboard login|e-?commerce|saas|agencies|creators?( and publishers?)?|publishers?|public sector|industries|use cases)$|^(vs\.?|versus|compare|migrat\w*|switch|white[ -]label)\b|\s(vs\.?|versus)\s|\balternatives?$/i;
-const NON_SERVICE_PATH = /\/(docs?|documentation|developers?|reference|learn|guides?|help|support|blog|news|now|changelog|releases?|release-notes|whats-new|downloads?|explore|resources|integrations?|customers?|stories|case-studies|partners|templates|for|use-cases|industries|enterprise|solutions?|compare|comparisons?|alternatives?|vs|migrat\w*|log-?in|sign-?in|sign-?up|auth|accounts?|pricing|about|company|careers|jobs|contact|legal|privacy|terms|cookies|benefits|press|events|(?:security|trust)(?:-cent(?:er|re))?|compliance)(\/|$)/i;
+const NON_SERVICE_NAME = /^(docs?|documentation|developers?|developer docs|api (docs|reference)|integrations?|now|log[ -]?in|sign[ -]?in|accounts?|my account|account settings|settings|(email )?preferences|profile|newsletters?|(un)?subscribe|dashboard login|e-?commerce|saas|agencies|creators?( and publishers?)?|publishers?|public sector|industries|use cases)$|^(vs\.?|versus|compare|migrat\w*|switch|white[ -]label)\b|\s(vs\.?|versus)\s|\balternatives?$/i;
+const NON_SERVICE_PATH = /\/(docs?|documentation|developers?|reference|learn|guides?|help|support|blog|news|now|changelog|releases?|release-notes|whats-new|downloads?|explore|resources|integrations?|customers?|stories|case-studies|partners|templates|for|use-cases|industries|enterprise|solutions?|compare|comparisons?|alternatives?|vs|migrat\w*|log-?in|sign-?in|sign-?up|auth|accounts?|my-?account|preferences|settings|profile|unsubscribe|pricing|about|company|careers|jobs|contact|legal|privacy|terms|cookies|benefits|press|events|(?:security|trust)(?:-cent(?:er|re))?|compliance)(\/|$)/i;
 const NON_SERVICE_HOST = /^(docs?|developers?|help|support|learn|accounts?|auth|id|sso|login|trust)\./i;
 // A /tools/ directory holds free generators and calculators far more often than products, so it is no product evidence.
-const PRODUCT_PATH = /^\/(products?|apps?)\/[^/]+/i;
+// Hosting and cloud providers file their products under /services/.
+const PRODUCT_PATH = /^\/(products?|apps?|services?)\/[^/]+/i;
 // A feature menu alone is weak evidence: keep only names of usable service areas,
 // rather than benefits such as "Zero downtime deploys" or "Granular routing".
 const SERVICE_NAME = /^(api|dashboard|console|web app|mobile app|website|storage|databases?|compute|cdn|authentication|payments|invoices|invoicing( and payments)?|timesheets|time tracking|reports|reporting|analytics|messaging|email|search|hosting)$/i;
 const STATUS_HOST = /(^|\.)(statuspage\.io|status\.io|instatus\.com|betteruptime\.com|statuspal\.io|hund\.io|status\.[a-z0-9-]+\.[a-z.]+)$|^status\./i;
 
-const PRODUCT_GROUP = /^(products?( and pricing)?|platform|(?:featured )?apps?)$/i;
-// Use-case, industry and comparison groups, and labels that ask the reader a question ("Why Acme", "Who it's for",
-// "What you can do in Acme"), hold pages about a market rather than product areas. Some sites call their product
-// menu "Solutions", so that is only another kind of group.
-const MARKET_GROUP = /^(industries|use cases|compare|comparisons?|alternatives?|(what|why|who|how) .+)$/i;
-const OTHER_GROUP = /^(company|community|social|resources?|developers?|support|solutions?|integrations?( and custom solutions)?|programs?)$/i;
+const PRODUCT_GROUP = /^(products?( and pricing| (and|&) services)?|platform|(?:featured )?apps?)$/i;
+// Hosting and cloud providers often call their products services. A Services menu holds help around the products
+// (consulting, managed services) only when the site also files products under a Products menu that does not hold it.
+const SERVICES_GROUP = /^services$/i;
+// Use-case, industry and comparison groups, labels that sort by audience ("By Use Case", "By Team") and labels that
+// ask the reader a question ("Why Acme", "Who it's for", "What you can do in Acme") hold pages about a market rather
+// than product areas. Some sites call their product menu "Solutions", so that is only another kind of group.
+const MARKET_GROUP = /^(industries|use cases|compare|comparisons?|alternatives?|(what|why|who|how) .+|by (use ?cases?|industry|industries|teams?|roles?|departments?|business( \w+)?|company( \w+)?|size|segments?|needs?|goals?|strategic initiatives?|initiatives?|functions?|personas?|challenges?))$/i;
+const OTHER_GROUP = /^(company|community|social|resources?|developers?|support|solutions?|integrations?( and custom solutions)?|programs?|programmes?|learn(ing)?|education|events)$/i;
+// A product label inside a Features menu ("Features › Platform") names a kind of feature, not a product menu.
+const FEATURE_GROUP = /^(features?|capabilities)$/i;
 // Feature navigation alone needs an operational area, not just a named benefit.
 const SERVICE_ENDING = /\b(hosting|analytics|monitoring|messaging|storage|payments|invoicing|reporting|analysis|builders?|players?|transcription|time tracking)$/i;
 const MARKETING_INDEX = /^\/(features?|benefits)(?:\/|$)$/i;
@@ -32,13 +39,15 @@ const ARROWED = /[→➔➜⟶›»]\s*$/u;
 
 const CAP = 8;
 
-interface Candidate extends SiteComponent { primary: boolean; titleRank: HtmlAnchor["titleRank"]; menu: boolean; groups: string[] }
+/** `services`: the only product evidence is a services directory or Services menu; `professional`: the name or one of
+ * its group labels names work done for a client. */
+interface Candidate extends SiteComponent { primary: boolean; titleRank: HtmlAnchor["titleRank"]; menu: boolean; groups: string[]; services: boolean; professional: boolean }
 
 const inHeader = (anchor: HtmlAnchor) => !anchor.footer && (anchor.region === "nav" || anchor.region === "header");
 /** A menu's accessible name without its role suffix: "Products: Dropdown Content" is "Products". */
 const roleless = (label: string) => label.replace(/\s*[:–—-]\s*(dropdown|menu|navigation)( content)?$/i, "");
 /** The innermost group label that says what a menu holds: products, or pages of another kind. */
-const recognised = (groups: string[]) => groups.findLast(label => PRODUCT_GROUP.test(label) || MARKET_GROUP.test(label) || OTHER_GROUP.test(label) || nonProductLabel(label));
+const recognised = (groups: string[]) => groups.findLast(label => PRODUCT_GROUP.test(label) || SERVICES_GROUP.test(label) || MARKET_GROUP.test(label) || OTHER_GROUP.test(label) || nonProductLabel(label));
 
 const destination = (url: string) => url.replace(/[#?].*$/, "").replace(/\/$/, "");
 const key = (name: string) => name.toLowerCase().replace(/\s*&\s*/g, " and ");
@@ -113,31 +122,45 @@ function prominent(candidates: Candidate[], links: string[], header: Set<string>
 /** Choose supported product areas, then retain their order on the site. */
 export function siteComponents(scan: HtmlScan, base: URL): SiteComponent[] {
   const domain = siteDomain(base.hostname);
+  const productMenus = new Set(scan.anchors.filter(anchor => anchor.region !== "body").flatMap(anchor => anchor.groups.map(roleless)).filter(label => PRODUCT_GROUP.test(label)));
+  const productLabel = (label: string, groups: string[]) => PRODUCT_GROUP.test(label) || SERVICES_GROUP.test(label) && [...productMenus].every(menu => groups.includes(menu));
   // `plausible` keeps a link that names an area without product evidence of its own.
-  const consider = (anchors: HtmlAnchor[], plausible = false): Candidate[] => anchors.flatMap(anchor => {
+  const considered = (anchors: HtmlAnchor[], plausible = false): Candidate[] => anchors.flatMap(anchor => {
     let url: URL;
     try { url = new URL(anchor.href, base); } catch { return []; }
     if (!/^https?:$/.test(url.protocol) || !(url.hostname === domain || url.hostname.endsWith(`.${domain}`)) || STATUS_HOST.test(url.hostname)) return [];
-    if (anchor.accountNavigation) return [];
+    // A name is what the link shows: an icon link named only by its aria-label, title or image alt is no area.
+    if (anchor.accountNavigation || !anchor.shown) return [];
     const text = anchor.name;
-    if (nonProductLabel(text) || nonProductPath(url.pathname) || anchor.groups.some(label => !PRODUCT_GROUP.test(label) && nonProductLabel(label))) return [];
+    const groups = anchor.groups.map(roleless);
+    if (nonProductLabel(text) || nonProductPath(url.pathname) || groups.some(label => !productLabel(label, groups) && nonProductLabel(label))) return [];
     // The link's whole text is checked too, so a cleaned name never hides a generic link ("What's New").
     const whole = anchor.text.replace(/[\s›»→↗➔>]+$/u, "");
     if (ARROWED.test(anchor.text) || GENERIC.test(whole)) return [];
-    const groups = anchor.groups.map(roleless);
     const productGroup = recognised(groups);
     const roleMenu = groups.some((label, index) => label !== anchor.groups[index]);
-    const productMenu = Boolean(productGroup && PRODUCT_GROUP.test(productGroup)) && (!roleMenu || anchor.titleRank > 0 || !anchor.described);
+    const featureMenu = Boolean(productGroup) && groups.slice(0, groups.lastIndexOf(productGroup!)).some(label => FEATURE_GROUP.test(label));
+    const productMenu = Boolean(productGroup && productLabel(productGroup, groups)) && !featureMenu && (!roleMenu || anchor.titleRank > 0 || !anchor.described);
     const product = productMenu || PRODUCT_PATH.test(url.pathname);
     if (/^(plans?|search)$/i.test(text) && !product) return [];
-    if (text.length < 2 || text.length > 40 || text.split(" ").length > 5 || GENERIC.test(text) || CHROME.test(text) || NON_SERVICE_NAME.test(text)) return [];
+    // A link's own description is its text after the name, or the first text after it in its card.
+    const description = anchor.text.startsWith(text) && anchor.text.length > text.length ? anchor.text.slice(text.length).trim() : anchor.description;
+    if (text.length < 2 || text.length > 40 || text.split(" ").length > 5 || GENERIC.test(text) || CHROME.test(text) || NON_SERVICE_NAME.test(text) || marketingPage(text, description)) return [];
     if ((NON_SERVICE_PATH.test(url.pathname) && !(product && /^\/auth\/?$/.test(url.pathname))) || MARKETING_INDEX.test(url.pathname) || NON_SERVICE_HOST.test(url.hostname) || (url.pathname === "/" && url.hostname === base.hostname)) return [];
-    if (productGroup && !PRODUCT_GROUP.test(productGroup)) return [];
+    if (productGroup && !productLabel(productGroup, groups)) return [];
     const service = SERVICE_NAME.test(text) || SERVICE_ENDING.test(text);
-    const primary = product || service && url.hostname.replace(/^www\./, "") !== base.hostname.replace(/^www\./, "");
+    const elsewhere = service && url.hostname.replace(/^www\./, "") !== base.hostname.replace(/^www\./, "");
+    const primary = product || elsewhere;
     if (!primary && !service && !plausible) return [];
-    return [{ name: text, url: url.href, primary, titleRank: anchor.titleRank, menu: !anchor.footer && productMenu, groups: anchor.groups }];
+    const services = (productMenu ? SERVICES_GROUP.test(productGroup!) : /^\/services?\//i.test(url.pathname)) && !elsewhere;
+    return [{ name: text, url: url.href, primary, titleRank: anchor.titleRank, menu: !anchor.footer && productMenu, groups: anchor.groups,
+      services, professional: professionalWork(text) || groups.some(professionalWork) }];
   });
+  // A services directory or menu that mostly names work done for a client (development, design, engineering) is a
+  // consultancy's professional services, all of it; on a hosting site only such an entry itself leaves.
+  const offered = considered(scan.anchors.filter(anchor => anchor.region !== "body")).filter(candidate => candidate.services);
+  const consultancy = 2 * offered.filter(candidate => candidate.professional).length > offered.length;
+  const consider = (anchors: HtmlAnchor[], plausible = false) => considered(anchors, plausible).filter(candidate => !candidate.services || !(consultancy || candidate.professional));
   const address = (anchor: HtmlAnchor) => { try { return [destination(new URL(anchor.href, base).href)]; } catch { return []; } };
   const headerAnchors = scan.anchors.filter(inHeader);
   const header = new Set(consider(headerAnchors, true).map(candidate => destination(candidate.url)));

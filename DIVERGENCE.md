@@ -1573,3 +1573,11 @@ alternative, audience and use-case pages, events and calls to action never becom
 components, at any path depth or behind a list marker. A footer's own navigation
 still supplies product evidence, while the header's product-menu names and areas
 rank ahead of the footer's.
+
+Hosting and cloud providers call their products services, so products filed under
+`/services/` or in a Services menu stay; professional services, consulting and
+training leave by their own words and groups, not by a directory name. A component
+name is text the link shows or a visible card title, never an icon's aria-label.
+Use-case lists labelled by plain text, calls to action, questions, events, demos and
+trials, free tools and calculators, catalogues, programmes and grants, solutions
+pages and analyst reports never become components, even under Products.

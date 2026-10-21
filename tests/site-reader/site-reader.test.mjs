@@ -178,9 +178,25 @@ test('the site reader reads what a site says about itself, refuses private desti
     <div><h3>Training</h3><a href="/products/orbit">Orbit</a></div>
     <div><h3>Consulting</h3><a href="/products/relay">Relay</a></div>
   </div></nav>`)).map(component => component.name), ['Data Services', 'Learning Services', 'Service Hub', 'Secure Partner Access', 'Customer Service Ops']);
-  assert.deepEqual(await read(`<nav><div><button>Services</button>
-    <a href="/products/orbit">Orbit</a><a href="/products/relay">Relay</a>
-  </div></nav>`), [], 'a services menu cannot fill an otherwise empty list');
+
+  t.diagnostic('hosting sites file products under /services/ and in a Services menu; consulting, implementation and a Services column beside Products stay out');
+  const named = async html => (await read(html)).map(component => component.name);
+  assert.deepEqual(await named(`<header><nav><div><button>Products</button>
+    <a href="/services/cloud-servers/">Cloud Servers</a><a href="/services/kubernetes/">Managed Kubernetes</a><a href="/services/object-storage/">Object Storage</a>
+  </div></nav></header>`), ['Cloud Servers', 'Managed Kubernetes', 'Object Storage']);
+  assert.deepEqual(await named(`<header><nav><a href="/services/cloud-servers">Cloud servers</a><a href="/services/dedicated-server">Dedicated servers</a></nav></header>`), ['Cloud servers', 'Dedicated servers']);
+  assert.deepEqual(await named(`<header><nav><div><button>Services</button>
+    <a href="/dns/"><h4>DNS Management</h4><p>Manage DNS entries and zones</p></a><a href="/cloud/load-balancer/"><h4>Load Balancer</h4><p>Automatically distributing traffic</p></a>
+    <a href="/services/consulting/">Cloud Consulting</a><a href="/services/implementation/">Implementation</a><a href="/custom-solutions/">Custom Solutions</a>
+  </div></nav></header>`), ['DNS Management', 'Load Balancer'], 'a Services menu is the product menu of a site without another');
+  assert.deepEqual(await named(`<header><nav><div><button>Platform</button>
+    <div><div><span>Products</span></div><ul><li><a href="/products/deliver">Deliver</a></li><li><a href="/products/secure">Secure</a></li></ul></div>
+    <div><div><span>Services</span></div><ul><li><a href="/services/managed-cdn">Managed CDN</a></li><li><a href="/services/managed-security">Managed Security</a></li></ul></div>
+  </div></nav></header>`), ['Deliver', 'Secure'], 'a Services column beside a Products column is help around the products');
+  assert.deepEqual(await named(`<header><nav><div><button>Services</button>
+    <a href="/services/web-development">Web Development</a><a href="/services/product-design">Product Design</a>
+    <a href="/services/machine-learning">Machine Learning</a><a href="/services/cloud-migration">Cloud Migration</a>
+  </div></nav></header>`), [], "a consultancy's Services menu names work done for clients, not products");
 
   t.diagnostic('services, training, support and release navigation never become products, at any depth or slug spelling');
   const chrome = [
@@ -362,6 +378,36 @@ test('the site reader reads what a site says about itself, refuses private desti
     <div><h3>Products <span>Products</span> ↓</h3><a href="/orbit">Orbit</a><a href="/relay">Relay</a></div>
     <div><h3>Resources <span>Resources</span> ↓</h3><a href="/products/name-generator">Business Name Generator</a><a href="/tools/logo-maker">Logo Maker</a></div>
     <div><h3>Programs Programs ↓</h3><a href="/products/circle">Circle</a></div></footer>`)).map(component => component.name), ['Orbit', 'Relay'], 'a group label\'s arrow and responsive repeat are ignored; free tools and programmes stay out');
+
+  t.diagnostic('a name is what a link shows: an icon named only by aria-label, title or alt is no component, while a visible card title names its overlay link');
+  assert.deepEqual(await read(`<header><nav><a href="/data/" aria-label="Data &amp; Analytics"><div><div><span>Data &amp; Analytics</span></div><span>Future proof your data foundation</span></div></a></nav></header>
+    <footer><a href="/preferences/email/manage" aria-label="Email"><span><svg></svg></span></a><a href="/analytics/" title="Analytics"><img src="/a.png" alt="Analytics"></a></footer>`), []);
+  assert.deepEqual(await named(`<nav><div><button>Product</button>
+    <div><a aria-label="Capture" href="/product/capture"> </a><div><img alt=""></div><div><h3>Capture</h3><p>Bring everything into one place</p></div></div>
+    <div><h3>Agents</h3><a aria-label="Agents" href="/product/agents"></a></div>
+  </div></nav>`), ['Capture', 'Agents']);
+  assert.deepEqual(await named(`<nav><div><button>Products</button>
+    <a href="/orbit"><img alt="orbit icon"><div><p>Orbit</p><p>Content creation and publishing</p></div></a>
+    <a href="/relay"><img alt="relay icon"><div><p>New! Relay</p><p>Social inbox and care</p></div></a>
+    <a href="/collections/teamwork"><div class="product-description-container"><div class="product-header"></div><span class="product-description">Supercharge teamwork</span><div><span>Orbit</span><span>Relay</span></div></div></a>
+  </div></nav>`), ['Orbit', 'Relay'], 'two paragraphs are a name and its description; a leading badge and a marked description are not names');
+
+  t.diagnostic('plain text heading a list labels it like a menu button, so use-case and audience lists stay out');
+  assert.deepEqual(await named(`<nav><ul>
+    <li><span>Product</span><ul><li><a href="/products/engage/">Engage</a></li><li><a href="/products/ai-workflows/">AI Workflows</a></li></ul></li>
+    <li><span>Use Cases</span><ul><li><span>Specialized</span><ul><li><a href="/products/roadmaps/">Roadmapping</a></li><li><a href="/products/research-synthesis/">Research Synthesis</a></li></ul></li></ul></li>
+    <li><p>By Team</p><div><ul><li><a href="/products/design/">Design and UX</a></li></ul></div></li>
+  </ul></nav>`), ['Engage', 'AI Workflows']);
+
+  t.diagnostic('calls to action, questions, events, demos, free tools, catalogues, programmes, solutions and analyst reports are no product areas, even under Products');
+  assert.deepEqual(await named(`<header><nav><div><button>Products</button>
+    <a href="/cdn/">CDN</a><a href="/storage/">Storage</a><a href="/products/reports">Reports</a><a href="/contact-sales/">Get in touch with sales</a>
+    <a href="/launch-week">Launch Week</a><a href="/roi-calculator">ROI Calculator</a><a href="/tools">Free Tools</a>
+    <a href="/products/cloud/free-tier/">What's in the free tier?</a><a href="/products/try.html">Trials and demos</a><a href="/demos">Demos</a>
+    <a href="/methodology">How it works</a><a href="/products/education-grant"><h4>Education Grant</h4><p>Bring our power to your institution</p></a>
+    <a href="/products/erp/grow.html">Midsize business solutions</a><a href="/circle"><h4>Circle</h4><p>The partner program for freelancers and agencies</p></a>
+    <a href="/marketplace">Marketplace</a><div><a href="https://cloud.example.com/reports"><span>Reports</span></a></div><span>Analyst reports and studies by research institutes</span>
+  </div></nav></header>`), ['CDN', 'Storage', 'Reports']);
 
   t.diagnostic('over the cap, a product named after the area it sits beneath is an area of its own, unlike a feature page beneath it');
   const family = ['Jira', 'Confluence', 'Jira Service Management', 'Rovo', 'Bitbucket', 'Guard', 'Loom', 'Focus', 'Talent', 'Pipelines'];

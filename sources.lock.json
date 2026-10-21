@@ -516,7 +516,7 @@
       "executable": false
     },
     "DIVERGENCE.md": {
-      "sha256": "775aaa1a7bb0c1383995777d84eef61dc9b0c092743e193d607f42a816a19b0f",
+      "sha256": "e5e29924db55fbeaa61339091610dea584c5f2407519c6952215bd2b2b2a5324",
       "executable": false
     },
     "docs/ai-assistance.md": {
@@ -4552,7 +4552,7 @@
       "executable": false
     },
     "src/core/platform/site-reader/components.ts": {
-      "sha256": "e01487c2ecd52fd64778a82b62101894dc7d649738df5ab7508c44a27d201e3a",
+      "sha256": "82af8c426960704795c9ae97d66f56dd86d9723c4c7d07cf22848f6ec4680f26",
       "executable": false
     },
     "src/core/platform/site-reader/domain.ts": {
@@ -4568,7 +4568,7 @@
       "executable": false
     },
     "src/core/platform/site-reader/html.ts": {
-      "sha256": "06f2b8ef4242014177cf4907dbce65b3064b424f9cacd041a34a1f2b15a9b83a",
+      "sha256": "e769954ebcd50619d3599fc05d5a7a8015c5b00af960cd485c1e9db52fc9e6de",
       "executable": false
     },
     "src/core/platform/site-reader/index.ts": {
@@ -4576,15 +4576,19 @@
       "executable": false
     },
     "src/core/platform/site-reader/link-text.ts": {
-      "sha256": "d3a3fe8503a7e4f569d5f88f8836ca588831d72e43e0c65e054c11dafed4bff7",
+      "sha256": "adb046b38154b353467fbffa03f72e6752ff663cf39fa96b3e360e13b23565ce",
       "executable": false
     },
     "src/core/platform/site-reader/navigation.ts": {
-      "sha256": "0ff37ec097aa15d6153eb28388a9829e0d1b535a26634b39ef0d9fa573f5d0ae",
+      "sha256": "c76de7877e7ce79876c9f8800b8e3296492fa9e4a3f3cf32dcc782f127a830fa",
+      "executable": false
+    },
+    "src/core/platform/site-reader/page-types.ts": {
+      "sha256": "d307ebc7b187a862efb2bc6d0abe1349e0d7e6b9ece4a135f41c9b393776d918",
       "executable": false
     },
     "src/core/platform/site-reader/README.md": {
-      "sha256": "5baf2482c2ada818c3c38fe9d0f16f4ed633db35b4b26a84bda232f536572f84",
+      "sha256": "783d4186b43ba35e5feaf35206f7d21b3c226f190347cffb2059818063fa6f9d",
       "executable": false
     },
     "src/core/platform/site-reader/text.ts": {
@@ -6696,7 +6700,7 @@
       "executable": false
     },
     "tests/site-reader/site-reader.test.mjs": {
-      "sha256": "2e77c20eb5811d16af7854ecc91d18e33edeba89b11477c1fe6133880107a590",
+      "sha256": "0ff0c169685bd5bba995c1ff4226dfc1f873c02ac2eac770ca0f70713d0756a8",
       "executable": false
     },
     "tsconfig.json": {

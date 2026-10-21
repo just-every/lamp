@@ -13,6 +13,8 @@ const TRAILING = new RegExp(String.raw`^(?:\(\s*(?:${TOKEN})\s*\)|\[\s*(?:${TOKE
 const MARKED = new RegExp(String.raw`\s*(?:\((?:${TOKEN})\)|\[(?:${TOKEN})\]|[·|•]\s*(?:${TOKEN}))$`, "i");
 // ...or shouted after a name in mixed case ("Metrics BETA"). "What's New", "Microsoft 365" and "Build Preview" are names.
 const SHOUTED = /\s+(?:NEW|BETA|ALPHA|SOON|COMING SOON|PREVIEW|UPDATED)$/;
+// A leading badge is set off by punctuation ("New! App Hosting"); "New Horizons" is a name.
+const LEADING = new RegExp(String.raw`^(?:${WORD})\s*[!:–—]\s*(?=\S)`, "i");
 const EMOJI = /\p{Extended_Pictographic}(?:\uFE0F|\p{Emoji_Modifier}|\u200D\p{Extended_Pictographic})*|\p{Regional_Indicator}{2}|[\u200D\uFE0F\u20E3]/gu;
 // Icon fonts draw their glyphs from the private use area; they are pictures, not letters.
 const ICON = /\p{Co}/gu;
@@ -21,7 +23,7 @@ const plain = (value: string) => cleanText(cleanText(value).replace(EMOJI, "").r
 
 /** Only decoration is removed lexically; descriptions are separated by markup. */
 export function cleanComponentName(value: string) {
-  let text = plain(value);
+  let text = plain(value).replace(LEADING, "");
   for (;;) {
     const unmarked = text.replace(MARKED, "").trim();
     const unshouted = text.replace(SHOUTED, "").trim();
@@ -40,6 +42,8 @@ const classNames = (element: Element) => `${element.attributes.class ?? ""} ${el
   .flatMap(name => [name, name.replace(/(?<=\w)--[\w-]*$/, "")])
   .map(name => name.replace(/([a-z])([A-Z])/g, "$1 $2").toLowerCase().split(/[^a-z0-9]+/).filter(word => word && !/\d/.test(word)));
 const hidden = (element: Element) => element.attributes["aria-hidden"] === "true" || "hidden" in element.attributes;
+/** A class that marks its element as supporting text: "product-description", "card__subtitle". */
+const classDescribed = (element: Element) => classNames(element).some(words => words.some(word => /^(description|subtitle|summary|caption|details?)$/.test(word)));
 
 const role = (element: Element): "decoration" | "description" | "title" | "text" => {
   const names = classNames(element);
@@ -49,7 +53,7 @@ const role = (element: Element): "decoration" | "description" | "title" | "text"
   // A class names the element by its last word: "product-header" is a title, while "header-platform-card__link"
   // and "title-card-link" are links inside a header card or title card, not titles themselves.
   if (names.some(words => /^(title|name|label|heading|header)$/.test(words.at(-1) ?? "")) || /^h[1-6]$/.test(element.tag)) return "title";
-  if (names.some(words => words.some(word => /^(description|subtitle|summary|caption|details?)$/.test(word))) || /^(small|p)$/.test(element.tag)) return "description";
+  if (classDescribed(element) || /^(small|p)$/.test(element.tag)) return "description";
   return "text";
 };
 
@@ -72,6 +76,23 @@ function titles(element: Element, inDescription = false): string[] {
 }
 
 const raw = (child: Element | string): string => typeof child === "string" ? child : child.children.map(raw).join("");
+
+/** The text a reader sees as lines, paragraphs included: each block element is a line. Decoration and text a class
+ * marks as a description ("product-description") are left out. */
+function shownLines(element: Element): string[] {
+  const lines = [""];
+  const walk = (node: Element | string) => {
+    if (typeof node === "string") { lines[lines.length - 1] += node; return; }
+    if (role(node) === "decoration" || classDescribed(node)) { lines.push(""); return; }
+    const block = /^(div|p|h[1-6]|li)$/.test(node.tag);
+    if (block) lines.push("");
+    node.children.forEach(walk);
+    if (block) lines.push("");
+  };
+  walk(element);
+  return lines.map(cleanComponentName).filter(Boolean);
+}
+
 const shownPart = (child: Element | string) => typeof child === "string" ? cleanComponentName(child) : visible(child);
 
 /** Separate lines express a label followed by supporting text: block siblings, the children of a flex column, or
@@ -126,9 +147,14 @@ export class LinkText {
   hidden() { return this.stack.some(hidden); }
   /** A supporting line supplied a short label rather than an explicit title or plain link name. */
   described() { return Boolean(firstLine(this.root)); }
-  name(fallback: string) {
-    const named = titles(this.root)[0];
-    if (named) return named;
-    return firstLine(this.root) || visible(this.root) || cleanComponentName(this.root.attributes.title ?? fallback);
+  /** The link's name, and whether the link shows it: a title inside the link, its first line or its shown text, or
+   * its first line when every line is description-styled ("Orbit" over "Content creation and publishing"). A tooltip
+   * (title attribute) names a link that shows only a description. An aria-label or image alt alone is never shown. */
+  name(fallback: string): { name: string; shown: boolean } {
+    const lines = shownLines(this.root);
+    const shown = titles(this.root)[0] || firstLine(this.root) || visible(this.root) || (lines.length > 1 ? lines[0] : "");
+    if (shown) return { name: shown, shown: true };
+    const tooltip = this.root.attributes.title;
+    return { name: cleanComponentName(tooltip ?? fallback), shown: tooltip !== undefined && lines.length > 0 };
   }
 }
