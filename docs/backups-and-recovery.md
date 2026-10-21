@@ -105,6 +105,11 @@ after `rer install`:
 node scripts/export.mjs --remote --environment production --env-file "$LAMP_DEPLOY_ENV" --out "$HOME/lamp-backups/production-$(date +%Y%m%d-%H%M)"
 ```
 
+With `CLOUDFLARE_ACCOUNT_ID` and `CLOUDFLARE_API_TOKEN` exported in the shell,
+`rer export --target remote --output "$HOME/lamp-backups/production-$(date +%Y%m%d-%H%M)"`
+runs the same command for the `production` installation and names the folder
+and exit status when it finishes.
+
 It writes a new folder holding every database table, every stored file with its
 metadata, and a `manifest.json` with checksums and the migrations the data needs.
 The folder must not exist yet or be empty. Keep it private: it holds subscriber

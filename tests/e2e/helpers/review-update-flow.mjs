@@ -62,7 +62,7 @@ export async function reviewUpdateFlow({ vite, bindings }) {
   const rows=(await db.prepare('SELECT id,channel FROM notification_deliveries WHERE incident_update_id=? AND subscriber_id IN (?,?,?)').bind(update.id,...readers).all()).results;
   assert.deepEqual(rows.map(row=>row.channel).sort(),['email','webhook','webhook']);
   const accepted=[],received=[];
-  const mail=new SendGridMailSender({apiKey:'review-flow-sendgrid-key',fromAddress:'status@example.test'},createMailSendRepository(db));
+  const mail=new SendGridMailSender({apiKey:'synthetic-review-flow-sendgrid-key',fromAddress:'status@example.test'},createMailSendRepository(db));
   const delivery=createDeliveriesService(createDeliveryRepository(db),{mail,fromAddress:'status@example.test',subscriberTokenSecret:'review-flow-subscriber-secret',webhookSigningSecret:'review-flow-webhook-secret'});
   // Later changes cannot rewrite the event waiting at the delivery network edge.
   version=await save('Resolved','Major outage');await review(version);assert.equal((await call(`/incidents/${incident.id}/publish`,'POST',{channels:[]},version)).status,200);
