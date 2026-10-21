@@ -147,14 +147,15 @@ function incidentGroups(model: PublicSnapshotModel, parts: TemplateParts, shown:
   ].join("");
 }
 
-/** Phones close with the components as a list, each opening onto its own 90 days. Wide screens have them in the
- *  heatmap's labels instead. */
+/** Phones close with the components as a list, each opening onto its own 90 days drawn larger; the heatmap above
+ *  carries those days' labels, so the bar repeats none of them (PAGE-003's weight). Wide screens have the components
+ *  in the heatmap's labels instead. */
 function componentList(model: PublicSnapshotModel) {
   const components = publicComponentOrder(model.visibleComponents);
   if (!components.length) return "";
   const rows = components.map((component) => {
     const tone = toneOf(component.state);
-    return `<details class="up-row"><summary><span class="up-dot tone-${tone}" aria-hidden="true"></span><span class="up-name">${escapeHtml(component.name)}</span><span class="up-state tone-${tone}">${escapeHtml(component.state)}</span><span class="up-pct">${escapeHtml(uptimeValue(component.uptime))}</span>${lineIcon("chevron", "up-chevron")}</summary><div class="up-detail"><p class="tpl-meta">${escapeHtml(uptimeCaption(component.uptime))}: ${escapeHtml(uptimeValue(component.uptime))}</p>${dayBar(component, "up-bar")}${componentNote(component)}</div></details>`;
+    return `<details class="up-row"><summary><span class="up-dot tone-${tone}" aria-hidden="true"></span><span class="up-name">${escapeHtml(component.name)}</span><span class="up-state tone-${tone}">${escapeHtml(component.state)}</span><span class="up-pct">${escapeHtml(uptimeValue(component.uptime))}</span>${lineIcon("chevron", "up-chevron")}</summary><div class="up-detail"><p class="tpl-meta">${escapeHtml(uptimeCaption(component.uptime))}: ${escapeHtml(uptimeValue(component.uptime))}</p>${dayBar(component, "up-bar", false)}${componentNote(component)}</div></details>`;
   }).join("");
   return `<section class="up-components" aria-labelledby="list-title" data-live="list"><h2 id="list-title">Components</h2><div class="up-rows">${rows}</div></section>`;
 }

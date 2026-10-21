@@ -4012,7 +4012,7 @@
       "executable": false
     },
     "src/core/features/public-snapshot/templates/history-led.ts": {
-      "sha256": "f420826012da35e4444053d357f396a03711c2ad1cdbea36d1617305f8a67a03",
+      "sha256": "9e495266612191815cbf641fd3e3fdf4e0e7cb3ec4567a7af77eb31df03d146a",
       "executable": false
     },
     "src/core/features/public-snapshot/templates/history.ts": {
@@ -4032,7 +4032,7 @@
       "executable": false
     },
     "src/core/features/public-snapshot/templates/parts.ts": {
-      "sha256": "a8bf4afb01c7ac416d77c0c671cb395819de31443de7771fb31e6c467fb2e114",
+      "sha256": "05bc3abb5e5b1ba7dc853ee2f3a8aa87feaa8c9d53322d266702249dfe631a1e",
       "executable": false
     },
     "src/core/features/public-snapshot/templates/places.ts": {
