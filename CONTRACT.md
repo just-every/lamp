@@ -1101,7 +1101,7 @@ What Lamp does not do, and how a buyer gets it:
 
 ## Status
 
-Judged from the code and tests at commit `c7dfd7495775eec4b5c6d07206509de19d3651ba` (20 October 2026). Rows changed after that commit name their own journeys under Evidence.
+Judged from the code and tests at commit `8df1e38f1162b9f691c8788d845e7aa398c6af9e` (21 October 2026). Rows changed after that commit name their own journeys under Evidence.
 
 INTAKE-009 is judged done on 21 October 2026 on the 1.10.0 release candidate, which inventories its migration 0042, from its named API, browser and native archive journeys below.
 
@@ -1109,11 +1109,11 @@ UPDATE-013 is judged done on 21 October 2026 on the 1.10.0 release candidate fro
 
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
-| Published | 104 | 0 | 0 | 104 |
-| Target and push further | 21 | 31 | 42 | 94 |
-| All | 125 | 31 | 42 | 198 |
+| Published | 94 | 10 | 0 | 104 |
+| Target and push further | 19 | 33 | 42 | 94 |
+| All | 113 | 43 | 42 | 198 |
 
-Of 198 clauses, 125 are done, 31 partial and 42 missing (73 non-DONE).
+Of 198 clauses, 113 are done, 43 partial and 42 missing (85 non-DONE).
 
 | Clause | Title | Kind | Status | Evidence | Gap |
 | --- | --- | --- | --- | --- | --- |
@@ -1122,7 +1122,7 @@ Of 198 clauses, 125 are done, 31 partial and 42 missing (73 non-DONE).
 | `PAGE-002` | Readable without script | published | done | `tests/e2e/public-contract.test.mjs` |  |
 | `PAGE-003` | Weight | published | done | `tests/e2e/public-contract.test.mjs` |  |
 | `PAGE-004` | Overall status | published | done | `tests/e2e/public-contract.test.mjs` |  |
-| `PAGE-005` | Snapshot read path | published | done | `tests/e2e/publishing-contract.test.mjs`, `tests/e2e/snapshot-retained.test.mjs` |  |
+| `PAGE-005` | Snapshot read path | published | partial | `src/core/features/public-snapshot/service.ts`, `src/core/features/public-snapshot/routes.ts`, `src/core/features/setup/routes.ts`, `tests/e2e/publishing-contract.test.mjs`, `tests/e2e/snapshot-retained.test.mjs` | Rendered snapshots and retained reads ship, but the public home route queries D1 for setup initialization on the first request per database binding before serving the snapshot. |
 | `PAGE-006` | Serving through a failure | published | done | `tests/e2e/app-api.test.mjs`, `tests/e2e/public-contract.test.mjs`, `tests/e2e/publishing-contract.test.mjs` |  |
 | `PAGE-007` | Publish latency and caching | published | done | `tests/e2e/app-api.test.mjs`, `tests/e2e/public-contract.test.mjs`, `tests/e2e/snapshot-retained.test.mjs` |  |
 | `PAGE-008` | Public read paths are not rate limited | published | done | `tests/e2e/public-contract.test.mjs` |  |
@@ -1145,8 +1145,8 @@ Of 198 clauses, 125 are done, 31 partial and 42 missing (73 non-DONE).
 | `COMP-001` | States and their order | published | done | `tests/e2e/public-contract.test.mjs` |  |
 | `COMP-002` | Grouping and order | published | done | `tests/e2e/public-contract.test.mjs` |  |
 | `COMP-003` | Append-only state history | published | done | `tests/e2e/public-contract.test.mjs` |  |
-| `COMP-004` | State note | published | done | `tests/e2e/public-contract.test.mjs` |  |
-| `COMP-005` | Internal components | published | done | `tests/e2e/public-contract.test.mjs` |  |
+| `COMP-004` | State note | published | partial | `src/core/shared/schemas.ts`, `src/core/features/public-snapshot/renderer.ts`, `tests/e2e/public-contract.test.mjs` | Bounded public notes ship, but componentSchema trims leading and trailing whitespace before persistence, so notes are not shown exactly as entered. |
+| `COMP-005` | Internal components | published | partial | `src/core/features/public-snapshot/repository.ts`, `src/core/features/components/repository.ts`, `tests/e2e/public-contract.test.mjs` | Existing internal components are filtered, but deletion nulls their retained attachment IDs. Snapshot queries include null-ID attachments, exposing a deleted internal component's retained name on incident or maintenance surfaces. |
 | `COMP-006` | Component state is claimed, not set | published | done | `tests/e2e/app-api.test.mjs` |  |
 | `COMP-007` | Deletion | published | done | `tests/e2e/public-contract.test.mjs` |  |
 | `COMP-008` | Monitor claims from measured evidence | target | missing |  | Released COMP-006 names three claimants; the release that ships this clause records COMP-006 as changed. |
@@ -1183,7 +1183,7 @@ Of 198 clauses, 125 are done, 31 partial and 42 missing (73 non-DONE).
 | `UPDATE-004` | Preview | published | done | `tests/e2e/app-api.test.mjs` |  |
 | `UPDATE-005` | Drafts | published | done | `tests/e2e/publishing-browser.test.mjs`, `tests/e2e/publishing-contract.test.mjs` |  |
 | `UPDATE-006` | Scheduled publish | published | done | `tests/e2e/publishing-browser.test.mjs`, `tests/e2e/publishing-contract.test.mjs` |  |
-| `UPDATE-007` | Review | published | done | `tests/e2e/publishing-contract.test.mjs` |  |
+| `UPDATE-007` | Review | published | partial | `src/core/features/incidents/service.ts`, `src/core/features/incidents/repository.ts`, `src/core/features/incidents/publication-repository.ts`, `tests/e2e/publishing-contract.test.mjs`, `tests/e2e/helpers/review-update-flow.mjs` | Independent review gates publication, but reviewer and review time are stored only on the draft. Publication deletes the draft without retaining either on the published update. |
 | `UPDATE-008` | Publish is atomic | published | done | `tests/e2e/delivery-contract.test.mjs`, `tests/e2e/publishing-contract.test.mjs` |  |
 | `UPDATE-009` | Templates | published | done | `tests/e2e/publishing-contract.test.mjs` |  |
 | `UPDATE-010` | Audience variants of one update | target | missing |  | Not built. |
@@ -1239,14 +1239,14 @@ Of 198 clauses, 125 are done, 31 partial and 42 missing (73 non-DONE).
 | `NOTIFY-018` | Delivery time on every channel | target | partial | `src/core/features/deliveries/service.ts`, `tests/e2e/delivery-contract.test.mjs` | NOTIFY-002's 5-minute bound ships and is tested for email at the subscriber limit. No bound is stated or tested for webhooks, Slack, Teams or SMS. |
 | `NOTIFY-019` | Notification email the owner can brand | target | partial | `src/core/shared/email-branding.ts`, `src/core/features/page-settings/ui/email-branding-settings.tsx`, `tests/e2e/helpers/email-branding-worker-flow.mjs`, `tests/e2e/helpers/email-branding-browser-flow.mjs`, `tests/e2e/page-data.test.mjs` | Display name and Reply-To work with SendGrid and Resend. Subject prefixes, uploaded same-host logos, plain-text headers/footers, shared preview, immutable retry envelopes and page-data export/restore ship. Managed mail supports subject/logo/wording but owns From and does not accept Reply-To; Settings and restore refuse unsupported identity settings. Audience-specific settings await AUD-001. Provider transport is proven against network-edge fixtures, not live inbox receipt. |
 | `NOTIFY-020` | Delivery at Statuspage Business and Enterprise scale | target | partial | `src/core/features/deliveries/service.ts`, `tests/e2e/delivery-contract.test.mjs` | Durable queued email delivery ships, with the 5-minute bound qualified only locally at 1,000 subscribers under a 10-per-second fake quota (`seed.json → limits`). There is no hosted run, no qualification above 1,000, no provider batch sending, and no check of the provider account's rate. |
-| `INTAKE-001` | Authenticated requests | published | done | `tests/e2e/intake-references.test.mjs`, `tests/e2e/publishing-contract.test.mjs` |  |
+| `INTAKE-001` | Authenticated requests | published | partial | `src/core/features/intake/service.ts`, `src/core/features/intake/routes.ts`, `tests/e2e/publishing-contract.test.mjs`, `tests/e2e/intake-references.test.mjs` | Credential gates, timestamps and ordinary signed requests ship, but generic and Uptime HMAC verification signs decoded text instead of received bytes. TextDecoder strips a UTF-8 BOM, so adding one does not invalidate the original signature. |
 | `INTAKE-002` | Alerts never publish | published | done | `tests/e2e/publishing-contract.test.mjs` |  |
 | `INTAKE-003` | Deduplication | published | done | `tests/e2e/publishing-contract.test.mjs` |  |
 | `INTAKE-004` | Recovery alerts | published | done | `tests/e2e/publishing-contract.test.mjs` |  |
 | `INTAKE-005` | Payload mapping | published | done | `tests/e2e/app-api.test.mjs`, `tests/e2e/publishing-browser.test.mjs`, `tests/e2e/publishing-contract.test.mjs` |  |
 | `INTAKE-006` | Monitor presets | published | done | `tests/e2e/channels-and-presets.test.mjs` |  |
 | `INTAKE-007` | Preset recovery | published | done | `tests/e2e/channels-and-presets.test.mjs` |  |
-| `INTAKE-008` | Uptime preset | target | done | `src/core/features/intake/uptime.ts`, `src/core/features/intake/service.ts`, `src/core/features/intake/ui/uptime-preset-card.tsx`, `tests/e2e/channels-and-presets.test.mjs`, `tests/e2e/helpers/uptime-preset-flow.mjs` |  |
+| `INTAKE-008` | Uptime preset | target | partial | `src/core/features/intake/uptime.ts`, `src/core/features/intake/service.ts`, `src/core/features/intake/ui/uptime-preset-card.tsx`, `tests/e2e/channels-and-presets.test.mjs`, `tests/e2e/helpers/uptime-preset-flow.mjs` | Signed Uptime mappings, private drafts, brief evidence and recovery ship, but the shared HMAC path verifies decoded text rather than the exact received body bytes; a prepended UTF-8 BOM leaves the original signature valid. |
 | `INTAKE-009` | PagerDuty | target | done | `src/core/features/intake/`, `tests/e2e/channels-and-presets.test.mjs` ("INTAKE-009 PagerDuty v3 signed events create drafts, brief entries and one note per publication"), `tests/e2e/helpers/pagerduty-flow.mjs`, `scripts/installer/archive-policy.mjs`, `tests/auth-adoption/portability.test.mjs` |  |
 | `INTAKE-010` | Prometheus Alertmanager and Grafana Alerting | target | done | `src/core/features/intake/grouped-alerts.ts`, `src/core/features/intake/grouped-repository.ts`, `src/core/features/intake/ui/grouped-preset-card.tsx`, `tests/e2e/helpers/grouped-alerts-flow.mjs`, `tests/e2e/export-import.test.mjs` | Alertmanager v4 and Grafana v1 default grouped webhooks authenticate with bearer tokens, match exact labels to multiple components and deduplicate groups and alert fingerprints into private incidents. Mixed and partial recoveries retain firing members; complete recovery closes only unpublished drafts. Unmapped alerts show their reason. Worker, archive round-trip and 1440/390 browser journeys prove the saved configuration, receipts and private draft. |
 | `INTAKE-011` | New Relic, Datadog and Pingdom depth | target | partial | `src/core/features/intake/presets.ts`, `tests/e2e/channels-and-presets.test.mjs` | Datadog, UptimeRobot, Better Stack and Pingdom alert presets ship (INTAKE-006). New Relic and metric ingestion do not. |
@@ -1258,8 +1258,8 @@ Of 198 clauses, 125 are done, 31 partial and 42 missing (73 non-DONE).
 | `AUTO-003` | Every follow-up obligation is visible | target | partial | `src/core/features/incidents/reminders.ts`, `src/core/features/reports/service.ts`, `tests/e2e/update-reminders.test.mjs` | Due and overdue incidents show on Overview, and owed reports are marked. A unified obligations list does not exist. |
 | `AUTO-004` | Post-incident report follow-up | target | partial | `src/core/features/reports/service.ts`, `tests/e2e/publishing-contract.test.mjs` | Report-due marking ships (HIST-003). Reminders and waivers do not. |
 | `DRAFT-001` | Suggested update | published | done | `tests/e2e/incident-brief.test.mjs` |  |
-| `DRAFT-002` | Inputs | published | done | `tests/e2e/incident-brief.test.mjs`, `tests/e2e/publishing-browser.test.mjs` |  |
-| `DRAFT-004` | Incident brief | published | done | `tests/e2e/incident-brief.test.mjs` |  |
+| `DRAFT-002` | Inputs | published | partial | `src/core/features/brief/repository.ts`, `src/core/features/ai/service.ts`, `tests/e2e/incident-brief.test.mjs`, `tests/e2e/publishing-browser.test.mjs` | Brief-only provider inputs exclude existing internal components and internal notes, but deleting an internal component nulls its attachment ID. The brief treats the missing component's internal flag as false and can send its retained name to the provider. |
+| `DRAFT-004` | Incident brief | published | partial | `src/core/features/brief/build.ts`, `src/core/features/brief/repository.ts`, `tests/e2e/incident-brief.test.mjs` | The model-free brief and computed questions ship, but A/U/C references use array positions. Backdated publications, attachment removal or source erasure can renumber references to surviving facts. |
 | `DRAFT-003` | Absent or failing provider | published | done | `tests/e2e/incident-brief.test.mjs`, `tests/e2e/publishing-browser.test.mjs`, `tests/e2e/publishing-contract.test.mjs` |  |
 | `TEAM-001` | Equal operators | published | done | `tests/auth-adoption/upgrade.test.mjs`, `tests/e2e/delivery-contract.test.mjs` |  |
 | `TEAM-002` | Management | published | done | `tests/auth-adoption/upgrade.test.mjs`, `tests/e2e/delivery-contract.test.mjs` |  |
@@ -1267,8 +1267,8 @@ Of 198 clauses, 125 are done, 31 partial and 42 missing (73 non-DONE).
 | `TEAM-004` | Roles | target | missing |  | Replaces released TEAM-001's "There are no roles" and the `seed.json → nonGoals` roles exclusion when shipped. |
 | `TEAM-005` | Access scoped to pages and audiences | target | missing |  | Not built. |
 | `TEAM-006` | Enforced SSO and SCIM | target | partial | `src/core/platform/auth/config.ts`, `tests/auth-adoption/dependencies.test.mjs` | Optional OIDC sign-in through Base (ACCESS-001) ships, off by default. Enforcement, break-glass and SCIM do not. When shipped, this replaces ACCESS-001's "SCIM and role synchronization remain out of scope". |
-| `TEAM-007` | Audit log view | target | done | `src/core/features/audit-log/`, `migrations/core/0033_audit_log.sql`, `src/core/features/components/deletion-audit.ts`, `tests/e2e/helpers/audit-log-flow.mjs`, `tests/e2e/helpers/catalogue-history-flow.mjs`, `tests/auth-adoption/operator-erasure.test.mjs` | Settings provides actor, action and UTC-date filters, pagination and matching CSV; erased actors retain only their anonymized reference. Publications, corrections, subscriber/operator erasures, component state history, maintenance notices and component/group deletions (one by one or by bulk catalog) are recorded with their actor in the same write. Every operator is an owner under TEAM-001; TEAM-004, AUTO-001 and API-001 carry role-restricted access and their role, rule and token events. |
-| `HIST-001` | Public history | published | done | `tests/e2e/public-contract.test.mjs` |  |
+| `TEAM-007` | Audit log view | target | partial | `src/core/features/audit-log/`, `src/core/features/channels/routes.ts`, `src/core/features/channels/repository.ts`, `tests/e2e/helpers/audit-log-flow.mjs`, `tests/auth-adoption/operator-erasure.test.mjs` | Actor/action/date filtering, pagination, CSV and anonymized audit entries ship, but channel deletion only updates removed_at and updated_at; it records neither the actor nor an audit entry, so not every deletion is covered. |
+| `HIST-001` | Public history | published | partial | `src/core/features/public-snapshot/history.ts`, `tests/e2e/public-contract.test.mjs` | Monthly history includes resolved incidents, completed maintenance, end times, durations, components and updates, but does not render an incident's opening timestamp when it differs from its first published update. |
 | `HIST-002` | Post-incident report | published | done | `tests/e2e/publishing-browser.test.mjs`, `tests/e2e/publishing-contract.test.mjs` |  |
 | `HIST-003` | Report due | published | done | `tests/e2e/publishing-contract.test.mjs` |  |
 | `HIST-004` | Export contents | published | done | `tests/e2e/export-import.test.mjs` |  |
@@ -1289,12 +1289,12 @@ Of 198 clauses, 125 are done, 31 partial and 42 missing (73 non-DONE).
 | `INTEG-002` | Updates posted to the page's social accounts | target | missing |  | Not built. |
 | `MOBILE-001` | The operator desk works on a phone | target | done | `src/core/app/client/ui/responsive.css`, `src/core/features/intake/ui/alerts-page.tsx`, `tests/e2e/helpers/phone-desk-flow.mjs` | Native terminal-link sign-in, signed-alert draft, attachment, autosave/reload, preview, publish, resolution, standing claim and maintenance scheduling pass at 390×844 and 1440 px, with accessibility, overflow and 44 px phone-control checks. |
 | `MOBILE-002` | Installable app with push | target | missing |  | Not built. |
-| `SETUP-001` | Setup readiness | published | done | `tests/e2e/setup-readiness.test.mjs` |  |
+| `SETUP-001` | Setup readiness | published | partial | `src/core/features/overview/live-status.ts`, `src/core/app/services.ts`, `src/core/app/worker-lifecycle.ts`, `src/core/features/setup/routes.ts`, `tests/e2e/setup-readiness.test.mjs` | Origin-bound page/form checks, sender checks, Overview and silent local mail ship. Checks run on stale Overview reads and Cron, not after every publication or immediately on sender changes. The first public home request per database binding also queries D1 for setup initialization. |
 | `SETUP-002` | First-run setup | published | done | `tests/e2e/auth-adoption-journey.test.mjs`, `tests/e2e/website-onboarding.test.mjs` |  |
 | `ACCESS-001` | Owner-terminal sign-in | published | done | `tests/auth-adoption/dependencies.test.mjs`, `tests/auth-adoption/portability.test.mjs`, `tests/auth-adoption/upgrade.test.mjs` |  |
 | `MOVE-001` | Dry run first | published | done | `tests/betterstack/flow.test.mjs`, `tests/e2e/betterstack-browser.test.mjs`, `tests/e2e/instatus-browser.test.mjs` |  |
 | `MOVE-002` | Retroactive and silent | published | done | `tests/auth-adoption/cutover.test.mjs`, `tests/betterstack/flow.test.mjs`, `tests/e2e/sorry-import.test.mjs` |  |
-| `MOVE-003` | One import per source | published | done | `tests/e2e/statuspage-import.test.mjs` |  |
+| `MOVE-003` | One import per source | published | partial | `src/core/features/statuspage-import/door-plan.ts`, `src/core/features/statuspage-import/rows.ts`, `tests/e2e/statuspage-import.test.mjs`, `tests/e2e/sorry-import.test.mjs` | Unchanged imports are idempotent, but owner-directed reviewed catch-ups add or replace source-owned records instead of always changing nothing. Incident and component identities are namespaced by source, without general cross-source deduplication. |
 | `MOVE-004` | Undo | published | done | `tests/e2e/sorry-import.test.mjs`, `tests/e2e/statuspage-import.test.mjs` |  |
 | `MOVE-005` | Old public addresses | published | done | `tests/e2e/sorry-import.test.mjs`, `tests/e2e/statuspage-import.test.mjs` |  |
 | `MOVE-006` | Cutover preview | published | done | `tests/auth-adoption/cutover.test.mjs`, `tests/e2e/cutover-browser.test.mjs`, `tests/e2e/sorry-import.test.mjs` |  |
