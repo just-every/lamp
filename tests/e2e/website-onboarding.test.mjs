@@ -76,6 +76,7 @@ contract('SETUP-002', 'a fresh owner gives their website first; Lamp fills in th
     const foundComponents = ['Timesheets', 'Invoices', 'Reports'];
     assert.deepEqual(await row('components').getByRole('listitem').allTextContents(), foundComponents);
     assert.equal(await page.locator('[data-found="components"] .found-label').textContent(), `Components (${foundComponents.length} found)`);
+    assert.equal(await page.locator('[data-found="components"] .found-note').count(), 1, 'without Workers AI, setup says the rule-based reader chose the components');
     assert.match(await row('status page').innerText(), /status\.acme-tracking\.com/);
     assert.equal(await page.locator('[data-found="logo"] img').evaluate(image => image.complete && image.naturalWidth > 0), true, 'the site\'s own mark is shown');
     for (const width of [390, 1440]) {

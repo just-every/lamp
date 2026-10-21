@@ -71,9 +71,12 @@ export default defineConfig(({ command, isPreview }) => {
             AUTH_ORIGIN: process.env.RER_DEV_ORIGIN || process.env.AUTH_ORIGIN || process.env.LAMP_LOCAL_ORIGIN || config.vars?.AUTH_ORIGIN || '',
             AUTH_LOCAL: 'true', ...localVar('SESSION_SECRET'), ...localVar('SETUP_OPERATOR_EMAIL'),
             ...localVar('RER_DEV_ORIGIN'), ...localVar('RER_DEV_KEY'), ...localVar('RER_DEV_IDENTITY'),
+            ...localVar('LAMP_SITE_READER_MODEL'), ...localVar('LAMP_SITE_READER_TIMEOUT_MS'),
           } } : {};
           const statuspage = Object.keys(standIns).length ? { ...devAuth, vars: { ...config.vars, ...devAuth.vars, ...standIns } } : devAuth;
-          return statuspage;
+          // Workers AI has no local stand-in: local dev reaches the developer's own account only when asked, so `rer dev`
+          // still runs without a Cloudflare account and its website reads use the rule-based reader.
+          return local && process.env.LAMP_DEV_WORKERS_AI === "remote" ? { ...statuspage, ai: { binding: "AI", remote: true } } : statuspage;
         },
         inspectorPort: local ? false : inspectorPort,
         // Keep Vite's Miniflare state beside the Wrangler config so `pnpm dev`'s

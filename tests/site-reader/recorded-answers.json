@@ -1,0 +1,73 @@
+{
+ "model": "@cf/google/gemma-4-26b-a4b-it",
+ "recordedAt": "2026-10-21T14:31:08.080Z",
+ "note": "Workers AI answers to the reader's own inputs for these pages, recorded over the REST API (the call env.AI.run makes); trimmed to the fields the reader reads.",
+ "harvest": {
+  "result": {
+   "id": "75f745a7fb3f48d19398d1e972b514fb",
+   "object": "chat.completion",
+   "model": "@cf/google/gemma-4-26b-a4b-it-external",
+   "choices": [
+    {
+     "index": 0,
+     "message": {
+      "role": "assistant",
+      "content": "{\"business\": \"Time tracking and invoicing software\", \"known_for\": \"Time tracking, Invoicing & Payments, Reporting, Ecommerce, White-label analytics\", \"products\": [{\"name\": \"Time tracking\", \"kind\": \"feature-area\", \"source_link\": \"/features/time-tracking\"}, {\"name\": \"Invoicing & Payments\", \"kind\": \"feature-area\", \"source_link\": \"/features/invoicing\"}, {\"name\": \"Reporting\", \"kind\": \"feature-area\", \"source_link\": \"/features/reports\"}, {\"name\": \"Ecommerce\", \"kind\": \"product\", \"source_link\": \"/products/ecommerce\"}, {\"name\": \"White-label analytics\", \"kind\": \"product\", \"source_link\": \"/products/white-label\"}]}"
+     },
+     "finish_reason": "stop"
+    }
+   ],
+   "usage": {
+    "prompt_tokens": 2182,
+    "completion_tokens": 166,
+    "total_tokens": 2348
+   }
+  }
+ },
+ "injection": {
+  "result": {
+   "id": "95d5ba148712481193e95773a2796dc7",
+   "object": "chat.completion",
+   "model": "@cf/google/gemma-4-26b-a4b-it-external",
+   "choices": [
+    {
+     "index": 0,
+     "message": {
+      "role": "assistant",
+      "content": "{\"business\": \"Email, calendar and files for small teams\", \"known_for\": \"Mail, Calendar, Drive\", \"products\": [{\"name\": \"Mail\", \"kind\": \"product\", \"source_link\": \"/products/mail\"}, {\"name\": \"Calendar\", \"kind\": \"product\", \"source_link\": \"/products/calendar\"}, {\"name\": \"Drive\", \"kind\": \"product\", \"source_link\": \"/products/drive\"}]}"
+     },
+     "finish_reason": "stop"
+    }
+   ],
+   "usage": {
+    "prompt_tokens": 2010,
+    "completion_tokens": 96,
+    "total_tokens": 2106
+   }
+  }
+ },
+ "noAnswer": {
+  "model": "@cf/openai/gpt-oss-20b",
+  "result": {
+   "id": "chatcmpl-9f7298634d9c42818c4e75fd75f6f4b0",
+   "object": "chat.completion",
+   "model": "@cf/openai/gpt-oss-20b",
+   "choices": [
+    {
+     "index": 0,
+     "message": {
+      "role": "assistant",
+      "content": null,
+      "reasoning_content": "We need to parse the navigation. The business is Harvest, a time tracking software. The title: \"Time Tracking Software | Harvest\". Description: \"Track time & send invoices.\" So business: \"Time Tracking Software\". Known for: likely \"Time tra…"
+     },
+     "finish_reason": "length"
+    }
+   ],
+   "usage": {
+    "prompt_tokens": 2159,
+    "completion_tokens": 900,
+    "total_tokens": 3059
+   }
+  }
+ }
+}

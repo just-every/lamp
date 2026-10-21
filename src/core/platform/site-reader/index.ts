@@ -2,9 +2,11 @@ import { svgColours } from "./colour.ts";
 import { iconCandidates, siteColours, siteComponents, siteDescription, siteFonts, siteName, siteStatusPage, type Manifest } from "./extract.ts";
 import { checkedUrl, dohResolver, guardedFetch, SiteReadError, type GuardedFetchContext } from "./fetch.ts";
 import { scanHtml } from "./html.ts";
-import type { SiteIcon, SiteReadOptions, SiteReadResult } from "./types.ts";
+import { navigationOutline } from "./outline.ts";
+import { askForProducts, PRODUCTS_MODEL } from "./products.ts";
+import type { SiteIcon, SiteRead, SiteReadOptions, SiteReadResult } from "./types.ts";
 
-export type { SiteComponent, SiteIcon, SiteRead, SiteReadFailure, SiteReadOptions, SiteReadResult } from "./types.ts";
+export type { AiRunner, SiteComponent, SiteIcon, SiteRead, SiteReadFailure, SiteReadOptions, SiteReadResult } from "./types.ts";
 export { isPublicAddress } from "./address.ts";
 
 /** "example.com", "www.example.com/about" or a full http(s) URL. */
@@ -28,6 +30,9 @@ export async function readSite(input: string, options: SiteReadOptions = {}): Pr
     const page = await guardedFetch(start, "text/html,application/xhtml+xml", options.maxHtmlBytes ?? 1_500_000, true, context);
     if (!/html|xml/i.test(page.contentType)) throw new SiteReadError("not-html", "That address isn't a web page.");
     const scan = scanHtml(new TextDecoder().decode(page.bytes));
+    // One model call reads the products while the manifest and icon load.
+    const model = options.aiModel ?? PRODUCTS_MODEL;
+    const products = options.ai ? askForProducts(options.ai, navigationOutline(scan, page.url, { name: siteName(scan, page.url.hostname, null), title: scan.title, description: siteDescription(scan, null) }), page.url, { model, timeoutMs: options.aiTimeoutMs }) : null;
     const manifestHref = scan.tags.find((tag) => tag.name === "link" && (tag.attributes.rel ?? "").toLowerCase().split(/\s+/).includes("manifest"))?.attributes.href;
     let manifestUrl: URL | null = null;
     let manifest: Manifest | null = null;
@@ -49,6 +54,11 @@ export async function readSite(input: string, options: SiteReadOptions = {}): Pr
       }
     }
     const { colours, accent } = siteColours(scan, icon?.contentType === "image/svg+xml" ? svgColours(new TextDecoder().decode(dataBytes(icon.dataUrl))) : [], manifest);
+    const answer = await products;
+    // Without a model answer, the rule-based reader chooses, and the result says why.
+    const chosen: Pick<SiteRead, "components" | "componentsReadBy"> = answer?.ok
+      ? { components: answer.components, componentsReadBy: { reader: "model", model } }
+      : { components: siteComponents(scan, page.url), componentsReadBy: { reader: "rules", reason: answer?.reason ?? "no-model" } };
     return {
       ok: true,
       site: {
@@ -61,7 +71,7 @@ export async function readSite(input: string, options: SiteReadOptions = {}): Pr
         colours,
         accent,
         fonts: siteFonts(scan),
-        components: siteComponents(scan, page.url),
+        ...chosen,
         statusPage: siteStatusPage(scan, page.url),
       },
     };

@@ -5,16 +5,21 @@ export { cleanText, decodeEntities } from "./text.ts";
 /** A tolerant text scan with a stack for navigation groups and link labels.
  * No page DOM is created and none of the page's scripts run. */
 export interface HtmlTag { name: string; attributes: Record<string, string> }
-/** `titled`: the name is a heading, inside the link or around it. */
-export interface HtmlAnchor { href: string; text: string; name: string; titled: boolean; groups: string[]; accountNavigation: boolean; region: "nav" | "header" | "footer" | "body" }
-/** `prose` is the page's readable text outside links. */
-export interface HtmlScan { title: string | null; tags: HtmlTag[]; anchors: HtmlAnchor[]; styles: string[]; prose: string }
+/** `titled`: the name is a heading, inside the link or around it. `lines`: the shown text as a reader sees it in lines. */
+export interface HtmlAnchor { href: string; text: string; name: string; lines: string[]; titled: boolean; groups: string[]; accountNavigation: boolean; region: "nav" | "header" | "footer" | "body" }
+/** One step of the navigation in reading order: a menu's or heading's own text, or a link (its index in `anchors`).
+ * `footer` says the step sits in the page footer. */
+export interface HtmlOutlineStep { text?: string; anchor?: number; footer: boolean }
+/** `prose` is the page's readable text outside links. `outline` is every header, nav and footer in reading order;
+ * `headings` are the page's own h1 and h2 headings outside them. */
+export interface HtmlScan { title: string | null; tags: HtmlTag[]; anchors: HtmlAnchor[]; styles: string[]; prose: string; outline: HtmlOutlineStep[]; headings: string[] }
 
 const TAG = /<!--[\s\S]*?-->|<(\/?)([a-zA-Z][a-zA-Z0-9-]*)((?:\s+[^\s"'>/=]+(?:\s*=\s*(?:"[^"]*"|'[^']*'|[^\s"'=<>`]+))?)*)\s*\/?>/g;
 const ATTRIBUTE = /([^\s"'>/=]+)(?:\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'=<>`]+)))?/g;
 const RAW_TEXT = new Set(["script", "style", "template", "noscript", "textarea", "svg"]);
 const KEPT = new Set(["meta", "link", "img"]);
 const VOID = new Set(["area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "param", "source", "track", "wbr"]);
+const NAVIGATION = new Set(["nav", "header", "footer"]);
 
 function attributesOf(source: string) {
   const attributes: Record<string, string> = {};
@@ -26,17 +31,20 @@ function attributesOf(source: string) {
 }
 
 export function scanHtml(html: string): HtmlScan {
-  const tags: HtmlTag[] = [], anchors: HtmlAnchor[] = [], styles: string[] = [], prose: string[] = [];
+  const tags: HtmlTag[] = [], anchors: HtmlAnchor[] = [], styles: string[] = [], prose: string[] = [], outline: HtmlOutlineStep[] = [], headings: string[] = [];
   const stack: { tag: string; group: string; accountNavigation: boolean; heading: boolean; label?: string }[] = [];
   const lower = html.toLowerCase();
   let title: string | null = null, titleStart = -1;
-  let anchor: { href: string; text: string; label: string; parts: LinkText; region: HtmlAnchor["region"]; groups: string[]; accountNavigation: boolean; heading: boolean } | null = null;
+  let anchor: { href: string; text: string; label: string; parts: LinkText; region: HtmlAnchor["region"]; footer: boolean; groups: string[]; accountNavigation: boolean; heading: boolean } | null = null;
   TAG.lastIndex = 0;
   let previous = 0;
   for (let match = TAG.exec(html); match; match = TAG.exec(html)) {
     const text = html.slice(previous, match.index);
     if (anchor) { anchor.text += ` ${text}`; anchor.parts.text(text); }
-    else prose.push(text);
+    else {
+      prose.push(text);
+      if (cleanText(text) && stack.some(frame => NAVIGATION.has(frame.tag))) outline.push({ text: cleanText(text), footer: stack.some(frame => frame.tag === "footer") });
+    }
     for (const frame of stack) if (frame.label !== undefined) frame.label += ` ${text}`;
     previous = TAG.lastIndex;
     if (match[0].startsWith("<!--")) continue;
@@ -56,12 +64,14 @@ export function scanHtml(html: string): HtmlScan {
     }
     if (closing) {
       if (name === "a" && anchor) {
-        anchors.push({ href: anchor.href, text: cleanText(anchor.text) || cleanText(anchor.label), name: anchor.parts.name(anchor.label), titled: anchor.heading || anchor.parts.titled(), region: anchor.region, groups: anchor.groups, accountNavigation: anchor.accountNavigation });
+        anchors.push({ href: anchor.href, text: cleanText(anchor.text) || cleanText(anchor.label), name: anchor.parts.name(anchor.label), lines: anchor.parts.lines(), titled: anchor.heading || anchor.parts.titled(), region: anchor.region, groups: anchor.groups, accountNavigation: anchor.accountNavigation });
+        if (anchor.region !== "body") outline.push({ anchor: anchors.length - 1, footer: anchor.footer });
         anchor = null;
       } else anchor?.parts.close(name);
       const at = stack.findLastIndex(frame => frame.tag === name);
       if (at >= 0) {
         const label = stack[at].label;
+        if (label && /^h[12]$/.test(name) && !stack.slice(0, at).some(frame => NAVIGATION.has(frame.tag)) && cleanText(label)) headings.push(cleanText(label));
         stack.splice(at);
         if (label && stack.length) stack.at(-1)!.group = cleanText(label);
       }
@@ -70,7 +80,7 @@ export function scanHtml(html: string): HtmlScan {
     const attributes = attributesOf(match[3]);
     if (name === "a") {
       const region = (["nav", "header", "footer"] as const).find(kind => stack.some(frame => frame.tag === kind)) ?? "body";
-      anchor = attributes.href ? { href: attributes.href, text: "", label: attributes["aria-label"] ?? attributes.title ?? "", parts: new LinkText(attributes), region, groups: stack.map(frame => frame.group).filter(Boolean), accountNavigation: stack.some(frame => frame.accountNavigation), heading: stack.some(frame => frame.heading) } : null;
+      anchor = attributes.href ? { href: attributes.href, text: "", label: attributes["aria-label"] ?? attributes.title ?? "", parts: new LinkText(attributes), region, footer: stack.some(frame => frame.tag === "footer"), groups: stack.map(frame => frame.group).filter(Boolean), accountNavigation: stack.some(frame => frame.accountNavigation), heading: stack.some(frame => frame.heading) } : null;
     } else anchor?.parts.open(name, attributes);
     if (name === "img" && anchor) anchor.label ||= attributes.alt ?? "";
     else if (KEPT.has(name)) tags.push({ name, attributes });
@@ -78,5 +88,5 @@ export function scanHtml(html: string): HtmlScan {
       accountNavigation: /^(auth|authenticated|isAuthenticated|loggedIn|isLoggedIn|signedIn|isSignedIn)$/i.test(attributes["x-show"] ?? ""),
       ...(!anchor && (/^(button|h[1-6]|summary)$/.test(name) || attributes.role === "heading" || /(?:^|[\s_-])(title|heading)(?:$|[\s_-])/i.test(attributes.class ?? "")) ? { label: "" } : {}) });
   }
-  return { title, tags, anchors, styles, prose: cleanText(prose.join(" ")) };
+  return { title, tags, anchors, styles, prose: cleanText(prose.join(" ")), outline, headings };
 }

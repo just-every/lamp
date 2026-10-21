@@ -43,7 +43,7 @@ export function BrandCard({ settings, accentColor, footerCreditEnabled, onAccent
     return "Logo removed. Your page is live.";
   });
   const readWebsite = (input: string) => run(async () => {
-    const result = await appApi<WebsiteReadResponse>("/api/app/website/read", { method: "POST", body: JSON.stringify({ website: input }) });
+    const result = await appApi<WebsiteReadResponse>("/api/app/website/read", { method: "POST", body: JSON.stringify({ website: input, components: false }) });
     website.refresh();
     if (!result.found) return result.message;
     if (result.found.mark) await saveMark(result.found.mark.dataUrl, isVectorMark(result.found.mark.contentType));

@@ -78,6 +78,24 @@ export class LinkText {
   }
   /** Whether the link's name came from a heading or title element inside it. */
   titled() { return Boolean(titles(this.root)[0]); }
+  /** The link's shown text as a reader sees it in lines: each block element, each child of a flex column and each element a
+   * class lays out as a block or names as supporting text ("u-block", "nav__subtext") starts a line. */
+  lines() {
+    const lines = [""];
+    const walk = (node: Element | string, inColumn: boolean) => {
+      if (typeof node === "string") { lines[lines.length - 1] += node; return; }
+      if (role(node) === "decoration") return;
+      const classes = (node.attributes.class ?? "").split(/\s+/);
+      const block = inColumn || /^(div|p|h[1-6]|li|br)$/.test(node.tag)
+        || classes.some(name => /^(?:u-|d-|is-|display-)?block$/.test(name) || /(?:^|[-_])(?:sub-?text|subtitle|description|caption|tagline)(?:$|[-_])/i.test(name));
+      if (block) lines.push("");
+      const column = /(?:^|\s)flex-col(?:umn)?(?:\s|$)/.test(node.attributes.class ?? "");
+      for (const child of node.children) walk(child, column);
+      if (block) lines.push("");
+    };
+    walk(this.root, false);
+    return lines.map(cleanComponentName).filter(Boolean);
+  }
   name(fallback: string) {
     const named = titles(this.root)[0];
     if (named) return named;
