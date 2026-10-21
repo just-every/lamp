@@ -2,7 +2,7 @@ import type { PublicSnapshotModel } from "../renderer";
 import type { PublicIncident, PublicMaintenance } from "../record-markup";
 import { mostSevereState, type ComponentState } from "../../../shared/domain";
 import { renderUpdateHtml } from "../../../shared/update-links";
-import { DAY, REPORTING_DAYS, dayKey, escapeHtml, formatTime, stateClass, timezoneLabel } from "../format";
+import { DAY, REPORTING_DAYS, dayKey, escapeHtml, formatTime, timezoneLabel } from "../format";
 import { uptimeMarkLabel, type Uptime } from "../uptime";
 import { lineIcon } from "./icons";
 
@@ -40,8 +40,8 @@ export function subscribeForm(id: string, className = "") {
   return `<form class="tpl-subscribe${className ? ` ${className}` : ""}" method="post" action="/subscribe"><label class="sr-only" for="${id}">Email address</label><input id="${id}" name="email" type="email" autocomplete="email" required placeholder="Your email address"><button type="submit">Subscribe</button></form>`;
 }
 
-export function feedLinks(className = "") {
-  return `<nav class="tpl-feeds${className ? ` ${className}` : ""}" aria-label="Status feeds"><a href="/feed.rss">${lineIcon("rss")}RSS</a><a href="/feed.atom">${lineIcon("atom")}Atom</a></nav>`;
+export function feedLinks(className = "", label = "Status feeds") {
+  return `<nav class="tpl-feeds${className ? ` ${className}` : ""}" aria-label="${label}"><a href="/feed.rss">${lineIcon("rss")}RSS</a><a href="/feed.atom">${lineIcon("atom")}Atom</a></nav>`;
 }
 
 /** A timestamp in the page's zone with its UTC offset (PAGE-009); the date is left out on the day given. */
@@ -188,8 +188,4 @@ export function maintenanceNotices(item: PublicMaintenance, timezone: string) {
   // The window's own times already say it is planned or under way; later notices say what changed.
   const notices = [...item.notices.filter((notice) => !["scheduled", "reminder", "started"].includes(notice.kind.toLowerCase())), ...(item.importedUpdates ?? []).map((update) => ({ ...update, kind: "Update" }))].sort((left, right) => right.publishedAt.localeCompare(left.publishedAt)).slice(0, 3);
   return notices.map((notice) => `<li><p class="tpl-meta">${escapeHtml(notice.kind.charAt(0).toUpperCase() + notice.kind.slice(1))} · ${when(notice.publishedAt, timezone)}</p>${notice.body ? `<p class="tpl-said">${renderUpdateHtml(notice.body)}</p>` : ""}</li>`).join("");
-}
-
-export function stateText(state: string) {
-  return `<span class="tpl-state-text state-${stateClass(state)}">${escapeHtml(state)}</span>`;
 }

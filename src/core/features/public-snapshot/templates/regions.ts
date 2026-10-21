@@ -47,13 +47,13 @@ function regionsMap(groups: RegionGroup[]) {
   const markers = mapMarkers(groups);
   const tiers = MAP_TIERS.map((tier) => layoutTier(markers, tier));
   const keyed = tiers.filter((tier) => tier.keyed).map((tier) => ` keyed-${tier.tier.name}`).join("");
-  const pins = markers.map((marker, index) => `<span class="rg-pin m${index} tone-${toneOf(marker.state as ComponentState)}" aria-hidden="true">${pinIcon()}<b>${index + 1}</b></span>`).join("");
-  const label = (marker: (typeof markers)[number], className: string, number = "") => `<a class="${className}" href="#components-title" data-region-choice="${marker.group.key}">${number}<strong>${escapeHtml(marker.name)}</strong> <span class="rg-card-state tone-${toneOf(marker.state as ComponentState)}">${escapeHtml(marker.state)}</span><span class="sr-only">, ${plural(marker.group.components.length, "component")}</span></a>`;
+  const pins = markers.map((marker, index) => `<span class="rg-pin m${index} tone-${toneOf(marker.group.state)}" aria-hidden="true">${pinIcon()}<b>${index + 1}</b></span>`).join("");
+  const label = (marker: (typeof markers)[number], className: string, number = "") => `<a class="${className}" href="#components-title" data-region-choice="${marker.group.key}">${number}<strong>${escapeHtml(marker.name)}</strong> <span class="rg-card-state tone-${toneOf(marker.group.state)}">${escapeHtml(marker.state)}</span><span class="sr-only">, ${plural(marker.group.components.length, "component")}</span></a>`;
   const cards = markers.map((marker, index) => label(marker, `rg-card m${index} ${tiers.map((tier) => `p${tier.tier.name[0]}-${tier.placements[index]}`).join(" ")}`)).join("");
   const key = keyed ? `<ol class="rg-key">${markers.map((marker, index) => `<li>${label(marker, "rg-key-item", `<b aria-hidden="true">${index + 1}</b>`)}</li>`).join("")}</ol>` : "";
   const unmapped = groups.filter((group) => !group.place);
   const elsewhere = unmapped.length ? `<p class="rg-elsewhere">Not on the map: ${unmapped.map((group) => `<span>${escapeHtml(group.name)} <span class="rg-card-state tone-${toneOf(group.state)}">${escapeHtml(group.state)}</span></span>`).join("")}</p>` : "";
-  const signature = markers.map((marker) => `${marker.group.key}:${tiers.map((tier) => tier.placements[markers.indexOf(marker)]).join("")}`).join("|");
+  const signature = markers.map((marker, index) => `${marker.group.key}:${tiers.map((tier) => tier.placements[index]).join("")}`).join("|");
   const world = (view: "wide" | "narrow") => `<svg class="rg-world rg-world-${view}" viewBox="0 0 ${MAP_WIDTH} ${mapHeight(view).toFixed(2)}" aria-hidden="true" focusable="false"><path d="${worldDots(view)}"/></svg>`;
   return `<div class="rg-map${keyed}" data-map="${escapeHtml(signature)}">${world("wide")}${world("narrow")}${pins}${cards}</div>${key}${elsewhere}`;
 }

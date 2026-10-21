@@ -3,7 +3,7 @@ import type { PublicIncident, PublicMaintenance } from "../record-markup";
 import { mostSevereState, type ComponentState } from "../../../shared/domain";
 import { escapeHtml } from "../format";
 import { stateGlyph } from "./icons";
-import { earlierText, incidentLink, maintenanceNotices, maintenanceWindow, resolvedSpan, updateText, when, type TemplateParts } from "./parts";
+import { earlierText, incidentLink, maintenanceNotices, maintenanceWindow, resolvedSpan, toneOf, updateText, when, type TemplateParts } from "./parts";
 
 /** Incident and maintenance entries shared by every template. Each carries both a state glyph and a short kicker;
  *  a template's stylesheet decides which of the two it shows. */
@@ -27,7 +27,7 @@ export function openIncidentEntry(incident: PublicIncident, model: PublicSnapsho
   const state = incidentState(incident, model);
   const next = newest.nextUpdateAt ? `<p class="tl-next">Next update by ${when(newest.nextUpdateAt, timezone, newest.publishedAt)}</p>` : "";
   const before = earlier.map((update) => `<li><p class="tpl-meta"><span class="tl-earlier-word">Earlier: </span>${escapeHtml(update.lifecycle)} · ${when(update.publishedAt, timezone, newest.publishedAt)}</p>${earlierText(update)}</li>`).join("");
-  return `<li class="tl tl-open tone-${state === "Major outage" ? "major" : state === "Partially unavailable" ? "partial" : "degraded"}"><span class="tl-mark">${stateGlyph(state)}</span><article class="tl-body" data-incident-impact="${incident.effectiveImpact}"><p class="tl-kicker">Ongoing</p><h3 class="tl-title">${incidentLink(incident)}</h3><p class="tpl-meta">${escapeHtml(newest.lifecycle)} · ${when(newest.publishedAt, timezone)}</p>${updateText(newest)}${next || before ? `<div class="tl-thread">${next}${before ? `<ol class="tl-earlier">${before}</ol>` : ""}</div>` : ""}${allUpdatesLink(incident, MAX_OPEN_UPDATES)}${parts.incidentSlot(incident)}</article></li>`;
+  return `<li class="tl tl-open tone-${toneOf(state)}"><span class="tl-mark">${stateGlyph(state)}</span><article class="tl-body" data-incident-impact="${incident.effectiveImpact}"><p class="tl-kicker">Ongoing</p><h3 class="tl-title">${incidentLink(incident)}</h3><p class="tpl-meta">${escapeHtml(newest.lifecycle)} · ${when(newest.publishedAt, timezone)}</p>${updateText(newest)}${next || before ? `<div class="tl-thread">${next}${before ? `<ol class="tl-earlier">${before}</ol>` : ""}</div>` : ""}${allUpdatesLink(incident, MAX_OPEN_UPDATES)}${parts.incidentSlot(incident)}</article></li>`;
 }
 
 export function maintenanceEntry(item: PublicMaintenance, model: PublicSnapshotModel) {

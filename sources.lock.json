@@ -4012,11 +4012,11 @@
       "executable": false
     },
     "src/core/features/public-snapshot/templates/history-led.ts": {
-      "sha256": "87b64a674b495d107fb85325430173e6038de0d45373122ad20d0110447af558",
+      "sha256": "ad62efaf9987ff6a87c4e4932dcfa259a937c23fd35183076425f8c3dcae8a0e",
       "executable": false
     },
     "src/core/features/public-snapshot/templates/history.ts": {
-      "sha256": "1b25d31d0fd50e3826f8896ec7f1c525e3e49df7c5e89db0baec93f2432a6548",
+      "sha256": "f83fa4d9689e3d79c72295a85ee5b3521b06f879dac330aae1b5e2cbe042196b",
       "executable": false
     },
     "src/core/features/public-snapshot/templates/icons.ts": {
@@ -4028,11 +4028,11 @@
       "executable": false
     },
     "src/core/features/public-snapshot/templates/map-layout.ts": {
-      "sha256": "7345481091104c8a947f79acd3416fcb5419610134fc8569968e540ff5ad96d1",
+      "sha256": "379d1c9a3a280ff00da9e2367d6f041db0fc0136618752ab48c50f30420cc362",
       "executable": false
     },
     "src/core/features/public-snapshot/templates/parts.ts": {
-      "sha256": "a700b8441857e8c43b0ac777e26a772d320af8ef24cdee0ac8d12ccda2b6fe43",
+      "sha256": "c4dfa1b8b5a6cfe6df048ccb643fc90631d97a7cc75130ed6dafb9dbc602c3c2",
       "executable": false
     },
     "src/core/features/public-snapshot/templates/places.ts": {
@@ -4040,7 +4040,7 @@
       "executable": false
     },
     "src/core/features/public-snapshot/templates/regions.ts": {
-      "sha256": "fa051f8516d3919b790f2eb27390b425cc278bf64efa1477e74fe9ac7b6ebbee",
+      "sha256": "e62aa3e43e873a4a00d491b3c11b98c5c80070d10e91c21a391ad7d497805665",
       "executable": false
     },
     "src/core/features/public-snapshot/templates/script.js": {
@@ -4052,7 +4052,7 @@
       "executable": false
     },
     "src/core/features/public-snapshot/templates/styles/history-led.css": {
-      "sha256": "123142e2fedff6521326e4484a86c265a4efbf04d2ff6edd747e27dea66e2fe1",
+      "sha256": "00070210bfe0aa56116cc20ffe47d10364c688a5f90168af6e0f509386372976",
       "executable": false
     },
     "src/core/features/public-snapshot/templates/styles/regions.css": {
@@ -4064,7 +4064,7 @@
       "executable": false
     },
     "src/core/features/public-snapshot/templates/world.ts": {
-      "sha256": "52ca0d7ad6449bc0eb1f5c5954b3426f03fa7a08b9eed0c44ffc755e3f2f62fa",
+      "sha256": "6f8c6962640f5c72bfc0e4df61b187ec70c33745ef984b6b3b582faa00ce1249",
       "executable": false
     },
     "src/core/features/public-snapshot/uptime.ts": {

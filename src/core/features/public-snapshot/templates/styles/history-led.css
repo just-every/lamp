@@ -94,7 +94,7 @@
 }
 
 @media (max-width: 640px) {
-  .tpl-uptime { --gutter: 20px; --label: 138px; --row: 46px; --callouts: 52px; }
+  .tpl-uptime { --gutter: 20px; --label: 150px; --row: 46px; --callouts: 52px; }
   .up-band-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "brand actions" "tagline tagline"; align-items: center; gap: 10px 16px; padding-block: 18px; }
   .up-brand { display: contents; }
   .up-band .tpl-brand { grid-area: brand; gap: 12px; font-size: 21px; }
@@ -113,7 +113,7 @@
   .hm-frame { border: 0; border-radius: 0; background: none; padding: 0; }
   .hm-head { display: block; }
   .hm-legend { gap: 6px 16px; margin-top: 8px; }
-  .hm-label { grid-template-columns: 14px minmax(0, 1fr); grid-template-rows: auto auto auto; gap: 0 8px; }
+  .hm-label { grid-template-columns: 14px minmax(0, 1fr); grid-template-rows: auto auto auto; gap: 0 8px; padding-right: 10px; }
   .hm-label .state-glyph { grid-row: 1 / 4; align-self: start; width: 14px; height: 14px; margin-top: 2px; }
   .hm-name { font-size: 12.5px; }
   .hm-state, .hm-pct { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
