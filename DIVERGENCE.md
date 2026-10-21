@@ -1563,3 +1563,11 @@ existing typography, colours and surfaces stay as they are.
 ## Lamp L10 follow-up and L17 names (owner, 20 October 2026)
 
 Operator screens use the owner's words, including folded reports and history controls. Development and demo mail stays silent and shows the same accepted-send success as a real send; stored outcomes and real delivery behavior stay intact. Website component suggestions prefer supported product navigation, strip decorative badges and descriptions, exclude account/community/company navigation, and retain the eight-name cap.
+
+## Managed sender status — 21 October 2026
+
+The RunEditRun relay owns sender identity and exposes mail submission, with no
+provider domain-verification read capability. Overview describes configured
+Managed mail neutrally instead of warning about an unsupported check. Missing
+configuration and direct-provider check failures retain their warnings. This
+Overview presentation makes no verification or subscriber-delivery claim.
