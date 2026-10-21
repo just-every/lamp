@@ -101,18 +101,18 @@ Products menu or a product path files them (`page-types.ts`):
 |---|---|---|
 | Call to action | a leading verb and its object | "Get in touch with sales", "Schedule a call", "Find a partner" |
 | Question or explainer | a question mark, or a leading what/why/how/who/when/where/which | "What's in the free tier?", "How it works" |
-| Event | launch week, webinar, conference, summit, meetup, hackathon, keynote, roadshow, workshop or livestream, or upcoming/live/virtual/online/community/customer/partner/industry/our events | "Launch Week", "Webinare", "Upcoming events" |
+| Event | launch week, webinar, conference, summit, meetup, hackathon, keynote, roadshow, workshop or livestream, or upcoming/live/virtual/in-person/online/community/customer/partner/industry/our events | "Launch Week", "Webinare", "Upcoming events" |
 | Demo or trial | demo, trial, test drive, product/guided/interactive tour | "Trials and demos", "Demos" |
 | Free tool | a name ending in calculator, generator, checker, converter, estimator, grader, validator or picker (also kalkulator, calculadora, calculateur, calcolatore, калькулятор); "free tools/templates/tier/plan…" | "ROI Calculator", "Free Tools" |
 | Catalogue | a name ending in marketplace, ecosystem, app store or app directory | "Marketplace", "Partner Ecosystem" |
 | Claim or news | a leading "latest", a name ending in news or announcements, a comparative claim ("… faster", "… easier") or "24/7" | "latest innovations", "Research customers faster" |
 | Feature index | a name ending in features or capabilities | "CDN Features", "Platform and Capabilities" |
-| Programme | a name ending in program/programme/programm, a grant, scholarship or fellowship, an accelerator or incubator, or a description that introduces "the/our/a … program" | "Education Grant", "Startup-Programm", "Orbit: The partner program for freelancers" |
+| Programme | a programme people join: "Programs" alone, or a name ending in a partner, affiliate, reseller, referral, ambassador, startup, beta, education, student, nonprofit, developer, creator, expert, champion, community, channel, ISV, alliance or insider program/programme/Programm; a grant, scholarship or fellowship; an accelerator or incubator; or a description that introduces "the/our/a … program" | "Beta program", "Education Grant", "Startup-Programm", "Orbit: The partner program for freelancers" |
 | Solutions page | a name ending in solutions | "Midsize business solutions", "Custom Solutions" |
 | Report | a name ending in the singular "report"; a Reports, Research, Studies, Insights or Library page whose own description names analysts | "Reports: Analystenberichte und Studien" |
 
-A single verb ("Build", "Chat"), a plural "Reports" without such a description, and "Free"
-before a product ("Free CRM") remain names.
+A single verb ("Build", "Chat"), a plural "Reports" without such a description, a product for
+running programmes ("Loyalty programs") and "Free" before a product ("Free CRM") remain names.
 
 Text that links to three or more addresses, or to two when another link names one
 of them, is boilerplate ("Free and premium plans" on every product card) and leaves
