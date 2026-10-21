@@ -19,10 +19,11 @@ const SERVICE_NAME = /^(api|dashboard|console|web app|mobile app|website|storage
 const STATUS_HOST = /(^|\.)(statuspage\.io|status\.io|instatus\.com|betteruptime\.com|statuspal\.io|hund\.io|status\.[a-z0-9-]+\.[a-z.]+)$|^status\./i;
 
 const PRODUCT_GROUP = /^(products?( and pricing)?|platform|(?:featured )?apps?)$/i;
-// Use-case, audience and comparison groups, and labels that ask the reader a question ("Why Acme", "Who it's for",
-// "What you can do in Acme"), hold pages about a market rather than product areas.
-const MARKET_GROUP = /^(solutions?|industries|use cases|compare|comparisons?|alternatives?|(what|why|who|how) .+)$/i;
-const OTHER_GROUP = /^(company|community|social|resources?|developers?|support|integrations?( and custom solutions)?|programs?)$/i;
+// Use-case, industry and comparison groups, and labels that ask the reader a question ("Why Acme", "Who it's for",
+// "What you can do in Acme"), hold pages about a market rather than product areas. Some sites call their product
+// menu "Solutions", so that is only another kind of group.
+const MARKET_GROUP = /^(industries|use cases|compare|comparisons?|alternatives?|(what|why|who|how) .+)$/i;
+const OTHER_GROUP = /^(company|community|social|resources?|developers?|support|solutions?|integrations?( and custom solutions)?|programs?)$/i;
 // Feature navigation alone needs an operational area, not just a named benefit.
 const SERVICE_ENDING = /\b(hosting|analytics|monitoring|messaging|storage|payments|invoicing|reporting|analysis|builders?|players?|transcription|time tracking)$/i;
 const MARKETING_INDEX = /^\/(features?|benefits)(?:\/|$)$/i;
@@ -141,7 +142,7 @@ export function siteComponents(scan: HtmlScan, base: URL): SiteComponent[] {
   const headerAnchors = scan.anchors.filter(inHeader);
   const header = new Set(consider(headerAnchors, true).map(candidate => destination(candidate.url)));
   // The header's menus sort pages more finely than a footer's list: a page the header files only under a use-case,
-  // audience or comparison group ("What you can do in Acme") is no product area because the footer lists it under Product.
+  // industry, audience or comparison group ("What you can do in Acme") is no product area because the footer lists it under Product.
   const market = new Set(headerAnchors.filter(anchor => MARKET_GROUP.test(recognised(anchor.groups.map(roleless)) ?? "")).flatMap(address));
   const filed = (candidate: Candidate) => header.has(destination(candidate.url)) || !market.has(destination(candidate.url));
   let candidates = unique(consider(scan.anchors.filter(anchor => anchor.region === "nav" || anchor.region === "header"))).filter(filed);

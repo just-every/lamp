@@ -4552,7 +4552,7 @@
       "executable": false
     },
     "src/core/platform/site-reader/components.ts": {
-      "sha256": "7dc2b7167789d2f599025c3b52b98ff800b29f6c54354573c323b3f5d59c5897",
+      "sha256": "e01487c2ecd52fd64778a82b62101894dc7d649738df5ab7508c44a27d201e3a",
       "executable": false
     },
     "src/core/platform/site-reader/domain.ts": {
@@ -6696,7 +6696,7 @@
       "executable": false
     },
     "tests/site-reader/site-reader.test.mjs": {
-      "sha256": "0e2fba165f52bcbcb22d7368397501ce667f48b17a473a894b78a6a5294e2cfd",
+      "sha256": "2e77c20eb5811d16af7854ecc91d18e33edeba89b11477c1fe6133880107a590",
       "executable": false
     },
     "tsconfig.json": {

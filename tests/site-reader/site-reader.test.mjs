@@ -350,6 +350,8 @@ test('the site reader reads what a site says about itself, refuses private desti
     <div><h2>What you can do in Acme</h2><a href="/design-explore/"><p>Design and explore</p></a><a href="/build-ship/">Build and ship products</a></div>
     </div></nav></header><footer><div><h3>Product</h3><a href="/design/">Acme Design</a><a href="/slides/">Acme Slides</a>
     <a href="/design-explore/">Design and explore</a><a href="/build-ship/">Build and ship products</a></div></footer>`)).map(component => component.name), ['Acme Design', 'Acme Slides'], 'a use-case page the header files under a question stays out of the footer product list');
+  assert.deepEqual((await read(`<header><nav><div><button>Solutions</button><a href="/incidents/">Incident Response</a><a href="/on-call/">On-call</a></div></nav></header>
+    <footer><div><h3>Products</h3><a href="/incidents/">Incident Response</a><a href="/on-call/">On-call</a></div></footer>`)).map(component => component.name), ['Incident Response', 'On-call'], 'a product menu the header calls Solutions still lets the footer list its products');
   assert.deepEqual((await read(`<header><nav><div><button>Products</button>
     <a href="/websites"><span>Websites</span><span aria-hidden="true">→</span></a><a href="/invoicing"><span>Invoicing</span><span aria-hidden="true">→</span></a>
     <a href="/security-compliance"><h3>Security &amp; Compliance</h3><p>End-to-end data protection</p></a>
