@@ -38,8 +38,9 @@ export function cleanLabel(value: string) {
   return cleanComponentName(decoded.replace(INVISIBLE, "").replace(/\s+/g, " ").trim().replace(MARKER, "")).replace(LEADING_BADGE, "").replace(TRAILING_BADGE, "").trim();
 }
 
-// `note`: a text that describes what is around it (a tagline) rather than titling the links after it.
-type Line = { kind: "text"; text: string; note: boolean } | { kind: "link"; text: string; ref: string; url: string; texts: string[]; name: string; detail: string } | { kind: "repeat" };
+// `note`: a text that describes what is around it (a tagline) rather than titling the links after it. `end`: a named section
+// of the menus ends.
+type Line = { kind: "text"; text: string; note: boolean } | { kind: "link"; text: string; ref: string; url: string; texts: string[]; name: string; detail: string } | { kind: "end"; text: string } | { kind: "repeat" };
 type LinkLine = Extract<Line, { kind: "link" }>;
 
 const linkText = (line: LinkLine) => `- [${shorten(line.name, LABEL_LIMIT)}](${line.ref})${line.detail ? ` ${shorten(line.detail, DESCRIPTION_LIMIT)}` : ""}`;
@@ -54,6 +55,11 @@ export function navigationOutline(scan: HtmlScan, base: URL, site: { name: strin
   const byAnchor = new Map<number, LinkLine>();
   for (const step of scan.outline) {
     const lines = regions[step.footer ? "footer" : "menus"];
+    if (step.ends !== undefined) {
+      const text = cleanLabel(step.ends);
+      if (text) lines.push({ kind: "end", text });
+      continue;
+    }
     if (step.text !== undefined) {
       const text = cleanLabel(step.text);
       if (step.describes !== undefined) {
@@ -110,12 +116,14 @@ export function navigationOutline(scan: HtmlScan, base: URL, site: { name: strin
   const links = new Map<string, OutlineLink>(), groups: OutlineGroup[] = [];
   let length = context.length, count = 0;
   regions: for (const [footer, lines] of [[false, regions.menus], [true, regions.footer]] as const) {
-    const shown = lines.filter((line, index): line is Exclude<Line, { kind: "repeat" }> => line.kind === "link" || line.kind === "text" && heads(lines, index));
+    const shown = lines.filter((line, index): line is Exclude<Line, { kind: "repeat" }> => line.kind === "link" || line.kind === "end" || line.kind === "text" && heads(lines, index));
     if (!shown.some(line => line.kind === "link")) continue;
     length += REGION_TITLE;
     // `parent`: the group's last link that is not beneath another, which the links after it may lie beneath.
     let group: OutlineGroup | null = null, linked = false, parent: string | null = null;
     for (const [index, line] of shown.entries()) {
+      // The section that headed the group has ended: the links after it start a new one.
+      if (line.kind === "end") { if (group && linked && group.heading.includes(line.text)) group = null; continue; }
       if (line.kind === "text") {
         // A note between a family's links, such as a card's tagline, stays in their group; a title or any other text heads a
         // new one, as a mega-menu's section does even when its links lie beneath the menu's own page.
@@ -169,7 +177,7 @@ export function outlineText(outline: NavigationOutline, groups = outline.groups,
 function cardTitles(lines: Line[]) {
   lines.forEach((line, index) => {
     const next = lines[index + 1], after = lines[index + 2];
-    if (line.kind === "text" && next?.kind === "link" && (!after || after.kind === "text") && !next.texts.includes(line.text)) next.texts.push(line.text);
+    if (line.kind === "text" && next?.kind === "link" && (!after || after.kind === "text" || after.kind === "end") && !next.texts.includes(line.text)) next.texts.push(line.text);
   });
 }
 
@@ -203,6 +211,6 @@ function heads(lines: Line[], index: number) {
   let at = index + 1;
   while (lines[at]?.kind === "text") at++;
   if (at - index > 3) return false;
-  for (; at < lines.length && lines[at].kind !== "text"; at++) if (lines[at].kind === "link") return true;
+  for (; at < lines.length && lines[at].kind !== "text" && lines[at].kind !== "end"; at++) if (lines[at].kind === "link") return true;
   return false;
 }

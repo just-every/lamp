@@ -11,8 +11,9 @@ export interface HtmlAnchor { href: string; text: string; name: string; lines: s
  * `footer` says the step sits in the page footer. `describes`: the text sits inside the element that holds the link before
  * it, and that element ends before the next link starts (a card's tagline), so it describes that link (its index).
  * `note`: the text sits in a paragraph, small print or a description element, so it describes what is around it rather
- * than titling the links after it. */
-export interface HtmlOutlineStep { text?: string; anchor?: number; footer: boolean; describes?: number; note?: boolean }
+ * than titling the links after it. `ends`: a section of the navigation (an element a heading, button or aria-label names) ends
+here; its name. */
+export interface HtmlOutlineStep { text?: string; anchor?: number; footer: boolean; describes?: number; note?: boolean; ends?: string }
 /** `prose` is the page's readable text outside links. `outline` is every header, nav and footer in reading order;
  * `headings` are the page's own h1 and h2 headings outside them. */
 export interface HtmlScan { title: string | null; tags: HtmlTag[]; anchors: HtmlAnchor[]; styles: string[]; prose: string; outline: HtmlOutlineStep[]; headings: string[] }
@@ -42,7 +43,8 @@ function attributesOf(source: string) {
 
 export function scanHtml(html: string): HtmlScan {
   const tags: HtmlTag[] = [], anchors: HtmlAnchor[] = [], styles: string[] = [], prose: string[] = [], outline: HtmlOutlineStep[] = [], headings: string[] = [];
-  const stack: { id: number; tag: string; group: string; accountNavigation: boolean; heading: boolean; reads?: "title" | "note"; label?: string }[] = [];
+  // `links`: how many links the page had when the element opened.
+  const stack: { id: number; tag: string; group: string; accountNavigation: boolean; heading: boolean; links: number; reads?: "title" | "note"; label?: string }[] = [];
   // The last link and the elements around it, and the texts after it that sit inside one of them (an element id each).
   let frames = 0, last: { anchor: number; around: number[] } | null = null, after: { step: HtmlOutlineStep; holder: number }[] = [];
   const open = (id: number) => stack.some(frame => frame.id === id);
@@ -91,6 +93,9 @@ export function scanHtml(html: string): HtmlScan {
       if (at >= 0) {
         const label = stack[at].label;
         if (label && /^h[12]$/.test(name) && !stack.slice(0, at).some(frame => NAVIGATION.has(frame.tag)) && cleanText(label)) headings.push(cleanText(label));
+        // A named section of the navigation that holds links ends with its element, so the links after it are not taken for
+        // its own.
+        if (stack.some(frame => NAVIGATION.has(frame.tag))) for (const frame of stack.slice(at).reverse()) if (frame.group && anchors.length > frame.links) outline.push({ ends: frame.group, footer: stack.some(frame => frame.tag === "footer") });
         stack.splice(at);
         if (label && stack.length) stack.at(-1)!.group = cleanText(label);
         if (name === "a" && last?.anchor === anchors.length - 1 && !last.around.length) last.around = stack.map(frame => frame.id);
@@ -106,7 +111,7 @@ export function scanHtml(html: string): HtmlScan {
     } else anchor?.parts.open(name, attributes);
     if (name === "img" && anchor) anchor.label ||= attributes.alt ?? "";
     else if (KEPT.has(name)) tags.push({ name, attributes });
-    if (!VOID.has(name) && !/\/\s*>$/.test(match[0])) stack.push({ id: ++frames, tag: name, group: attributes["aria-label"] ?? "", heading: /^h[1-6]$/.test(name) || attributes.role === "heading", reads: reads(name, attributes),
+    if (!VOID.has(name) && !/\/\s*>$/.test(match[0])) stack.push({ id: ++frames, tag: name, group: attributes["aria-label"] ?? "", heading: /^h[1-6]$/.test(name) || attributes.role === "heading", links: anchors.length, reads: reads(name, attributes),
       accountNavigation: /^(auth|authenticated|isAuthenticated|loggedIn|isLoggedIn|signedIn|isSignedIn)$/i.test(attributes["x-show"] ?? ""),
       ...(!anchor && (/^(button|h[1-6]|summary)$/.test(name) || attributes.role === "heading" || /(?:^|[\s_-])(title|heading)(?:$|[\s_-])/i.test(attributes.class ?? "")) ? { label: "" } : {}) });
   }

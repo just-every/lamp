@@ -1,52 +1,10 @@
 {
  "model": "@cf/qwen/qwen3.8-27b",
- "recordedAt": "2026-10-21T18:22:50.210Z",
+ "recordedAt": "2026-10-21T19:02:39.204Z",
  "note": "Workers AI answers to the reader's own two calls for these pages (groups, then products), recorded over the REST API (the call env.AI.run makes); trimmed to the fields the reader reads.",
- "harvest": {
-  "groups": {
-   "id": "chatcmpl-f9ddcab8-66e9-42c2-8b26-6c38e49132ff",
-   "object": "chat.completion",
-   "model": "@cf/qwen/qwen3.8-27b",
-   "choices": [
-    {
-     "index": 0,
-     "message": {
-      "role": "assistant",
-      "content": "{\n  \"business\": \"Time tracking and invoicing software\",\n  \"groups\": [\n    {\n      \"group\": \"G1\",\n      \"kind\": \"products\"\n    }\n  ]\n}"
-     },
-     "finish_reason": "stop"
-    }
-   ],
-   "usage": {
-    "prompt_tokens": 1437,
-    "completion_tokens": 49,
-    "total_tokens": 1486
-   }
-  },
-  "products": {
-   "id": "chatcmpl-037f1ccd-2dc5-4e90-a01a-eabc331390b1",
-   "object": "chat.completion",
-   "model": "@cf/qwen/qwen3.8-27b",
-   "choices": [
-    {
-     "index": 0,
-     "message": {
-      "role": "assistant",
-      "content": "{\"business\": \"Time tracking and invoicing software\", \"known_for\": \"Time tracking, Invoicing & Payments, Reporting\", \"products\": [{\"name\": \"Time tracking\", \"kind\": \"feature-area\", \"source_link\": \"/features/time-tracking\"}, {\"name\": \"Invoicing & Payments\", \"kind\": \"feature-area\", \"source_link\": \"/features/invoicing\"}, {\"name\": \"Reporting\", \"kind\": \"feature-area\", \"source_link\": \"/features/reports\"}]}"
-     },
-     "finish_reason": "stop"
-    }
-   ],
-   "usage": {
-    "prompt_tokens": 2251,
-    "completion_tokens": 104,
-    "total_tokens": 2355
-   }
-  }
- },
  "injection": {
   "groups": {
-   "id": "chatcmpl-034dffa2-b89e-4403-8b26-5cbc24ce16ed",
+   "id": "chatcmpl-dbdfb620-25ed-4ade-ae99-06731654c973",
    "object": "chat.completion",
    "model": "@cf/qwen/qwen3.8-27b",
    "choices": [
@@ -60,13 +18,13 @@
     }
    ],
    "usage": {
-    "prompt_tokens": 1261,
+    "prompt_tokens": 1279,
     "completion_tokens": 31,
-    "total_tokens": 1292
+    "total_tokens": 1310
    }
   },
   "products": {
-   "id": "chatcmpl-c26b1dbb-2ce9-45c4-a0c9-2691d6232606",
+   "id": "chatcmpl-49da6c96-8f5f-4046-9606-758d464bb7a2",
    "object": "chat.completion",
    "model": "@cf/qwen/qwen3.8-27b",
    "choices": [
@@ -80,16 +38,16 @@
     }
    ],
    "usage": {
-    "prompt_tokens": 2032,
+    "prompt_tokens": 1970,
     "completion_tokens": 90,
-    "total_tokens": 2122
+    "total_tokens": 2060
    }
   }
  },
  "noAnswer": {
   "model": "@cf/openai/gpt-oss-20b",
   "groups": {
-   "id": "chatcmpl-e367c2c213c64be6af2b4daddc448c60",
+   "id": "chatcmpl-6e0134d38e534b3c9eb8cfa598127c0d",
    "object": "chat.completion",
    "model": "@cf/openai/gpt-oss-20b",
    "choices": [
@@ -98,19 +56,19 @@
      "message": {
       "role": "assistant",
       "content": "{\"business\":\"Time tracking and invoicing software\",\"groups\":[{\"group\":\"G1\",\"kind\":\"products\"}]}",
-      "reasoning_content": "We need to parse the navigation. The input includes header and menus only? It says \"Header and menus:\" then list G1. There's only G1 group. No footer. So we need to identify product groups. The business sells time tracking software. The pro…"
+      "reasoning_content": "We need to parse the navigation. The input includes header and menus only? It says \"Header and menus:\" then list groups. There's only G1. No footer. So we need to identify groups that list business's products. The business sells time tracki…"
      },
      "finish_reason": "stop"
     }
    ],
    "usage": {
-    "prompt_tokens": 1413,
-    "completion_tokens": 702,
-    "total_tokens": 2115
+    "prompt_tokens": 1431,
+    "completion_tokens": 476,
+    "total_tokens": 1907
    }
   },
   "products": {
-   "id": "chatcmpl-ecd9597ed7a24722858dfc81665a059b",
+   "id": "chatcmpl-bc61e1e30ca24e928ad036362b96e0ce",
    "object": "chat.completion",
    "model": "@cf/openai/gpt-oss-20b",
    "choices": [
@@ -119,15 +77,15 @@
      "message": {
       "role": "assistant",
       "content": null,
-      "reasoning_content": "We need to parse the menu groups. There's only one group: [G1] (products) Home. It lists many links. We need to identify candidates: links that are products, services, or apps the business sells or provides. Also feature areas if it's a sin…"
+      "reasoning_content": "We need to parse the menu groups. Only one group: [G1] (products) Home. It lists many links. We need to identify candidates: links that are products, variants, or suite members. The group is labeled (products). So we consider each link as a…"
      },
      "finish_reason": "length"
     }
    ],
    "usage": {
-    "prompt_tokens": 2209,
+    "prompt_tokens": 2148,
     "completion_tokens": 1000,
-    "total_tokens": 3209
+    "total_tokens": 3148
    }
   }
  }

@@ -43,8 +43,9 @@ calls start as soon as the page is scanned and run while the manifest and icon l
 and its footer in reading order, as numbered menu groups (`[G3]`): each group is headed by its menu's own
 text (menu buttons, group headings, card titles) and lists one line per link to the site itself or its
 subdomains, `- [name](address) description`. A section's title (a heading, a button, a title class) starts a
-new group, even inside a mega-menu whose links all lie beneath the menu's own page; a note (a paragraph,
-small print, a description class) and a card's tagline stay with the links they describe. A link whose
+new group, even inside a mega-menu whose links all lie beneath the menu's own page, and the group ends where
+the section's element ends; a note (a paragraph, small print, a description class) and a card's tagline stay
+with the links they describe. A link whose
 address lies beneath the group's last top-level link is indented under it (a suite's members, a product's
 variants). Cleaning is mechanical: entities, icon-font glyphs, list markers, badges and arrows leave; a link
 laid out in lines (blocks, a flex column) is named by its first line and described by the rest; a link to
@@ -62,11 +63,11 @@ list, and no second call.
 
 **Call 2: products** (`products.ts`). Only the groups call 1 named, each led by its kind. The model lists
 the products in them: each link of a group of products, one product for a group of variants (named by the
-group's heading or its overview link), a suite's members rather than its overview page, a product line's
-own products rather than its variants, plans or features; then it removes what is not a product (plans,
+group's heading or its overview link), a suite's members rather than its overview page, and a product line's
+member products in its place unless they are its variants; then it removes what is not a product (plans,
 trials, indexes, benefits, audience and comparison pages, programmes, services sold beside the products,
-free tools, the business's own pages) and, with more than eight left, chooses eight, at most two from one
-group while other groups still have products. Schema:
+free tools, the business's own pages) and, with more than eight left, chooses eight: the flagships first,
+then the others in page order, at most two from one group while other groups still have products. Schema:
 `{ "business": string, "known_for": string, "products": [{ "name": string, "kind": "product" | "platform" | "feature-area", "source_link": string }] }`,
 at most 8 products. `business` and `known_for` are asked first so the model judges the products against
 them; they are not shown.

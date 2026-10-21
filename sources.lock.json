@@ -4580,11 +4580,11 @@
       "executable": false
     },
     "src/core/platform/site-reader/groups.ts": {
-      "sha256": "f912c89ac3f13507975ba49bacdef8a2faedb967bbde6335626ed8560b3dd48d",
+      "sha256": "3a4d84786d2a66d476460c17503142a296a807db19634a1dfd30686b57ccb308",
       "executable": false
     },
     "src/core/platform/site-reader/html.ts": {
-      "sha256": "f1e3e8ea19bacc0cf665479536a3310f61b874ebe5b97b1f1908085941d4b9c7",
+      "sha256": "eebdd71e64eb7ee9c4ca60030cf8d929d45142acf3b367e19dea58d54c906ef2",
       "executable": false
     },
     "src/core/platform/site-reader/index.ts": {
@@ -4600,15 +4600,15 @@
       "executable": false
     },
     "src/core/platform/site-reader/outline.ts": {
-      "sha256": "6baef01b9282b7468310b301724618aea08e00d5d7d6759708bb48749bbba813",
+      "sha256": "005a100ba4450e25d40a4add6fd7d2eb0084eb4b63661ffc311048f0aa4031c2",
       "executable": false
     },
     "src/core/platform/site-reader/products.ts": {
-      "sha256": "9f2158cd37fd1d46f1e64e65b4f4ad8b98bcfa1490ca81d2985615dffb024abd",
+      "sha256": "45b58df6bd02154ccb571c8c73d1182aed9368ce6ce325932cf208e91d6e89b0",
       "executable": false
     },
     "src/core/platform/site-reader/README.md": {
-      "sha256": "2f1842f6356725e30ffe8368db36372d4dd8d3d0ae015774ae793905e3774418",
+      "sha256": "6dc48c848bfc0a985cbb5bcf9aa7201beb3e32caa68897a45d2b6554be95213e",
       "executable": false
     },
     "src/core/platform/site-reader/text.ts": {
@@ -6728,11 +6728,11 @@
       "executable": false
     },
     "tests/site-reader/recorded-answers.json": {
-      "sha256": "a0d5c7ca44f6c7c617d2e8a82d4fb11fe32f00b85bc143e27dd17206139e3f3a",
+      "sha256": "6ffcf3697cd7db9ef5288e36dbd07d3574a3716c498f29146b8e72ef18829f34",
       "executable": false
     },
     "tests/site-reader/site-reader.test.mjs": {
-      "sha256": "8782cad9852ee5a1753dc77ad30a1c0e87cc3f891a61e2540d64fed186d2b0b4",
+      "sha256": "c4f284f9d7d7b26a7ec7a7ff8378683a2521a73c411cb998c0390d125320346b",
       "executable": false
     },
     "tsconfig.json": {

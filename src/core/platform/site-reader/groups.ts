@@ -8,7 +8,7 @@ const KINDS: GroupKind[] = ["products", "variants", "suite"];
 const INSTRUCTIONS = `You read a business's website navigation, divided into menu groups, and say which groups list the business's products: what its customers sign up for, buy or use, which its status page would show as components because customers notice when they fail.
 
 Input: the page's title, description and headings, then the menu groups of its header and its footer. Each group begins with its id in brackets, such as [G3], then its heading (a menu name, a group heading or a card's title), if it has one, and its links, one per line: "- [text](address) description". An indented link lies beneath the link above it; a plain line inside a group describes the link above it.
-Judge each group by its links: its heading can be the name of the menu it sits in ("Why Notely?", "Explore", "Platform") or a promotion's title, and a group of the business's own product or feature pages lists products whatever its heading says.
+Judge each group by its links: its heading can be the name of the menu it sits in ("Why Notely?", "Explore", "Platform") or a promotion's title, and a group of the business's own product or feature pages lists products whatever its heading says; pages that praise the business, announce its news or tell its story are not product pages.
 
 Output JSON: {"business": "...", "groups": [{"group": "G3", "kind": "..."}]}
 - business: in at most 12 words, what the business sells.
