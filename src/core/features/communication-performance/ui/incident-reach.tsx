@@ -9,10 +9,11 @@ import "./performance.css";
 
 const plural = (count: number, one: string, many: string) => `${count.toLocaleString()} ${count === 1 ? one : many}`;
 
-/** One line naming what was sent, or null while nothing has been sent for the incident. */
+/** One line naming what was sent, or null while nothing has been sent for the incident. Planned sends do not count:
+ * a subscriber is counted once the provider accepted or delivered the message, a post once the destination accepted it. */
 function sentLine(reach: ReachSummary) {
-  const sent = (channel: "email" | "webhook") => { const found = reach.channels.find(item => item.channel === channel); return found ? found.distinctCommitted ?? found.committed ?? 0 : 0; };
-  const posts = reach.operatorPosts.reduce((total, post) => total + post.committed, 0);
+  const sent = (channel: "email" | "webhook") => { const found = reach.channels.find(item => item.channel === channel); return found ? Math.max(found.distinctProviderAccepted ?? 0, found.distinctDelivered ?? 0) : 0; };
+  const posts = reach.operatorPosts.reduce((total, post) => total + post.accepted, 0);
   const parts = [
     ...(sent("email") ? [`Emailed ${plural(sent("email"), "subscriber", "subscribers")}`] : []),
     ...(sent("webhook") ? [`Sent to ${plural(sent("webhook"), "webhook", "webhooks")}`] : []),

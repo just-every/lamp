@@ -6,7 +6,7 @@ import type { ComponentsService } from "../../components";
 import type { IncidentView } from "../service";
 import { useAppData } from "../../../app/client/ui/api";
 import { FormError } from "../../../app/client/ui/states";
-import { NEW_CLAIM_STATES, type NewClaim, type NewClaimState } from "./use-new-incident";
+import type { NewClaim } from "./use-new-incident";
 
 type ComponentsResponse = { components: Awaited<ReturnType<ComponentsService["list"]>> };
 type Relationship = "Primary" | "Dependent";
@@ -42,7 +42,7 @@ export function NewIncidentComponents({ claims, onChange }: { claims: NewClaim[]
   if (components && !components.length) return <p className="component-chips-empty">Add a public component first. <Link className="quiet-link" to="/app/components">Components</Link></p>;
   const name = (id: string) => components?.find(component => component.id === id)?.name ?? "Component";
   return <div className="component-chips">
-    {claims.map(claim => <ComponentChip key={claim.componentId} name={name(claim.componentId)} state={claim.state} states={NEW_CLAIM_STATES} onState={(state) => onChange(claims.map(item => item.componentId === claim.componentId ? { ...item, state: state as NewClaimState } : item))} onRemove={() => onChange(claims.filter(item => item.componentId !== claim.componentId))} />)}
+    {claims.map(claim => <ComponentChip key={claim.componentId} name={name(claim.componentId)} state={claim.state} states={INCIDENT_CLAIM_STATES} onState={(state) => onChange(claims.map(item => item.componentId === claim.componentId ? { ...item, state } : item))} onRemove={() => onChange(claims.filter(item => item.componentId !== claim.componentId))} />)}
     <AddComponent options={(components ?? []).filter(component => !claims.some(claim => claim.componentId === component.id))} onAdd={(componentId) => onChange([...claims, { componentId, state: "Major outage", relationship: "Primary" }])} />
   </div>;
 }

@@ -16,7 +16,7 @@ export async function phoneDeskFlow({ page, appUrl, pageUrl, appFetch, signInLin
     const axe = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa']).analyze();
     assert.deepEqual(axe.violations.filter(v => ['serious', 'critical'].includes(v.impact)).map(v => ({ id: v.id, nodes: v.nodes.map(n => n.target) })), [], `${name} accessibility`);
     if (controls && layout.viewport === 390) {
-      const small = await page.evaluate(() => [...document.querySelectorAll('.operator-shell button, .operator-shell select, .operator-shell summary, .operator-shell .operator-nav-link, .operator-shell .back-link, .operator-shell .text-link, .operator-shell .checkbox-label')].flatMap(node => {
+      const small = await page.evaluate(() => [...document.querySelectorAll('.operator-shell button, .operator-shell select, .operator-shell summary, .operator-shell .operator-nav-link, .operator-shell .back-link, .operator-shell .text-link, .operator-shell .checkbox-label, .operator-shell input[type="date"], .operator-shell input[type="time"], .operator-shell input[type="datetime-local"]')].flatMap(node => {
         const box = node.getBoundingClientRect();
         return box.width && box.height && (box.height < 44 || box.width < 44) ? [{ text: node.textContent.trim().slice(0, 70), width: box.width, height: box.height }] : [];
       }));

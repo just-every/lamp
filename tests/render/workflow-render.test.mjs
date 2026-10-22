@@ -46,6 +46,7 @@ const {OverviewPage} = load(feature('overview/ui/overview-page.tsx'));
 const {IncidentDetailPage} = load(feature('incidents/ui/incident-detail-page.tsx'));
 const {IncidentOperatorControls} = load(feature('incidents/ui/incident-operator-controls.tsx'));
 const {IncidentPreview} = load(feature('incidents/ui/incident-preview.tsx'));
+const {IncidentReach} = load(feature('communication-performance/ui/incident-reach.tsx'));
 const {MaintenancePage} = load(feature('maintenance/ui/maintenance-page.tsx'));
 function render(Component, data, state = {}, props = {}) {
   responses=data; stateSnapshot=state; stateIndex=0;
@@ -91,6 +92,17 @@ test("Operator incident overview and composer preserve timing and review control
   const scheduled=render(IncidentDetailPage,incidentData,{6:preview,9:{mode:'schedule',at:null}},{incidentId:incident.id});
   assert.match(scheduled,/aria-label="Scheduled publication date and time"/); assert.match(scheduled,/Stays private until then/); assert.match(scheduled,/<button[^>]*disabled=""[^>]*>Schedule update<\/button>/);
 })(t);
+  t.diagnostic("reach and delivery details appear only once the provider accepted or delivered a send, not for planned or suppressed ones");
+  await (() => {
+  const channel = counts => ({channel:'email',coverage:'known',committed:null,distinctCommitted:null,providerAccepted:null,distinctProviderAccepted:null,delivered:null,distinctDelivered:null,queued:0,bounced:0,complained:0,suppressed:0,failed:0,firstProviderAcceptedAt:null,...counts});
+  const reach = (channels, operatorPosts = []) => { const summary = {channels,unknownDeliveryUpdates:0,operatorPosts,deliveryFailure:{failures:0,denominator:0,rate:null,denominatorLabel:'sends'}}; return {incidentId:incident.id,timezone:'Australia/Brisbane',measuredAt:'2026-10-02T01:05:00Z',definitions:{},incident:{...summary,incidentId:incident.id,reference:incident.reference,title:incident.title,openedAt:incident.openedAt,resolvedAt:null,firstAcceptedAlertAt:null,firstPublicUpdateAt:null,firstUpdateLatencyMs:null,resolutionDurationMs:null,commitments:{kept:0,missed:0,pending:0,evaluated:0,keptRate:null},reportOwed:false,retainedImport:false},updates:[]}; };
+  const path = `/api/app/incidents/${incident.id}/reach`;
+  const reachOf = data => renderToStaticMarkup(React.createElement(appDataContext.Provider, {value: {[path]: {data}}}, React.createElement(PageTimezoneContext.Provider, {value: 'Australia/Brisbane'}, React.createElement(IncidentReach, {incidentId: incident.id, updateIds: []}))));
+  const suppressed = reachOf(reach([channel({committed:1,distinctCommitted:1,providerAccepted:0,distinctProviderAccepted:0,delivered:0,distinctDelivered:0,suppressed:1})], [{channel:'slack',committed:1,accepted:0,rejected:1,uncertain:0,pending:0}]));
+  assert.doesNotMatch(suppressed, /Emailed|Slack|reach-line|Delivery details/);
+  const sent = reachOf(reach([channel({committed:2,distinctCommitted:2,providerAccepted:1,distinctProviderAccepted:1,delivered:1,distinctDelivered:1,suppressed:1})]));
+  assert.match(sent, /Emailed 1 subscriber</); assert.match(sent, /Delivery details/);
+})();
   t.diagnostic("the email view renders the notification as the renderer produced it");
   await (() => {
   const html=render(IncidentPreview,{},{0:'email'},{preview,error:null});

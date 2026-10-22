@@ -177,7 +177,7 @@ select.add-component { width: auto; min-height: 38px; border-style: dashed; bord
   .composer-footer .button { width: 100%; }
   .more-options-toggle { margin-right: 0; }
   .publish-hint { margin-left: auto; }
-  .next-update-choices input[type="datetime-local"] { max-width: none; flex-basis: 100%; }
+  .next-update-choices input[type="datetime-local"] { max-width: none; min-height: 44px; flex-basis: 100%; }
   .template-form { flex-direction: column; align-items: stretch; }
   .template-form .form-label { flex-basis: auto; }
 }

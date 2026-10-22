@@ -10,12 +10,13 @@ import { appApi, useAppData } from "../../../app/client/ui/api";
 import type { Channel, PublishTiming } from "./publish-options";
 
 declare module "@tanstack/react-router" {
-  interface HistoryState { incidentNotice?: { text: string; error: boolean } }
+  interface HistoryState { incidentNotice?: IncidentNotice }
 }
 
-export type NewClaimState = Exclude<IncidentClaimState, "Operational">;
-export const NEW_CLAIM_STATES = INCIDENT_CLAIM_STATES.filter((state): state is NewClaimState => state !== "Operational");
-export type NewClaim = { componentId: string; state: NewClaimState; relationship: "Primary" | "Dependent" };
+/** What the incident page opens with after the new-incident screen. `publication` carries the operator's notification and timing
+ * choices when the update stayed private (saved as a draft, or refused), so a retry offers what they chose. */
+export type IncidentNotice = { text: string; error: boolean; publication?: { channels: Channel[]; timing: PublishTiming } };
+export type NewClaim = { componentId: string; state: IncidentClaimState; relationship: "Primary" | "Dependent" };
 export interface NewIncident { title: string; claims: NewClaim[]; update: IncidentFirstUpdateInput; openedAt: string | null; channels: Channel[]; timing: PublishTiming }
 type Created = Awaited<ReturnType<IncidentsService["create"]>>;
 
@@ -65,7 +66,11 @@ export function useNewIncident() {
     return () => { controller.abort(); window.clearTimeout(timeout); };
   }, [previewBody]);
 
-  const setUpdate = <K extends keyof IncidentFirstUpdateInput>(field: K, value: IncidentFirstUpdateInput[K]) => setForm(current => ({ ...current, update: { ...current.update, [field]: value, ...(field === "lifecycle" && value === "Resolved" ? { nextUpdateAt: null } : {}) } }));
+  const setUpdate = <K extends keyof IncidentFirstUpdateInput>(field: K, value: IncidentFirstUpdateInput[K]) => {
+    // Resolving removes the next-update field, so its error goes with it (UPDATE-001).
+    if (field === "lifecycle" && value === "Resolved") setTimeErrors(current => ({ ...current, nextUpdate: null }));
+    setForm(current => ({ ...current, update: { ...current.update, [field]: value, ...(field === "lifecycle" && value === "Resolved" ? { nextUpdateAt: null } : {}) } }));
+  };
   const setChannels = (channels: Channel[]) => { touchedChannels.current = true; setForm(current => ({ ...current, channels })); };
   const { update } = form;
   const resolved = update.lifecycle === "Resolved";
@@ -73,7 +78,8 @@ export function useNewIncident() {
 
   // UPDATE-009: a template fills the form and attaches its components with their states; nothing publishes.
   const applyTemplate = (template: IncidentTemplate) => {
-    const claims = template.components.flatMap(component => component.componentId && (NEW_CLAIM_STATES as readonly string[]).includes(component.state) ? [{ componentId: component.componentId, state: component.state as NewClaimState, relationship: component.relationship }] : []);
+    const claims = template.components.flatMap(component => component.componentId && (INCIDENT_CLAIM_STATES as readonly string[]).includes(component.state) ? [{ componentId: component.componentId, state: component.state as IncidentClaimState, relationship: component.relationship }] : []);
+    if (template.lifecycle === "Resolved") setTimeErrors(current => ({ ...current, nextUpdate: null }));
     if (template.shouldSendNotifications !== null) touchedChannels.current = true;
     setForm(current => ({
       ...current,
@@ -100,7 +106,7 @@ export function useNewIncident() {
   const saveDraft = async () => {
     if (!savable) return;
     const incident = await create();
-    if (incident) await navigate({ to: "/app/incidents/$incidentId", params: { incidentId: incident.id }, state: (current) => ({ ...current, incidentNotice: { text: "Saved as a private draft.", error: false } }) });
+    if (incident) await navigate({ to: "/app/incidents/$incidentId", params: { incidentId: incident.id }, state: (current) => ({ ...current, incidentNotice: { text: "Saved as a private draft.", error: false, publication: { channels: form.channels, timing: form.timing } } }) });
   };
 
   const publish = async () => {
@@ -111,7 +117,7 @@ export function useNewIncident() {
     if (!incident) return;
     // A refused publication leaves the update as the incident's saved draft, to fix there.
     const version = `${incident.draft?.id ?? "-"}:0`;
-    let notice: { text: string; error: boolean };
+    let notice: IncidentNotice;
     try {
       if (timing.mode === "schedule") {
         await appApi(`/api/app/incidents/${incident.id}/draft/schedule`, { method: "POST", headers: { "If-Match": version }, body: JSON.stringify({ publishAt: timing.at, channels: form.channels }) });
@@ -120,7 +126,7 @@ export function useNewIncident() {
         await appApi(`/api/app/incidents/${incident.id}/publish`, { method: "POST", headers: { "If-Match": version }, body: JSON.stringify({ channels: form.channels, ...(timing.mode === "backdate" ? { publishedAt: timing.at } : {}) }) });
         notice = { text: timing.mode === "backdate" ? "Historical update published. It did not notify subscribers." : "Update published.", error: false };
       }
-    } catch (cause) { notice = { text: `Not published: ${cause instanceof Error ? cause.message : "the update could not be published."}`, error: true }; }
+    } catch (cause) { notice = { text: `Not published: ${cause instanceof Error ? cause.message : "the update could not be published."}`, error: true, publication: { channels: form.channels, timing } }; }
     await navigate({ to: "/app/incidents/$incidentId", params: { incidentId: incident.id }, state: (current) => ({ ...current, incidentNotice: notice }) });
   };
 

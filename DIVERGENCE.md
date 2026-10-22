@@ -1597,11 +1597,12 @@ list): what is happening (title and impact), who is affected (component chips wi
 the claimed state, and the audience), the next-update time and Publish, beside the
 renderer's preview with a Page and Email switch. Publish creates the incident with
 that update as its saved draft and publishes it; a refused publication leaves the
-saved draft on the incident page with the reason. Everything else is under More
+saved draft on the incident page with the reason and with the notification and
+timing choices the operator made (as does Save as private draft). Everything else is under More
 options (starting status, what still works, details, opening time, channels,
 schedule or backdate, relationships, templates, Save as private draft). An open
 incident keeps the same plate: status choice, the same fields, the preview, the
-timeline, reach only once something was sent, the brief closed to one line unless
+timeline, reach only once the provider accepted or delivered a send, the brief closed to one line unless
 alerts brought facts, and notes, review, correction, public impact and deletion under
 Private actions. The design was chosen from four 12ui options by a fresh Opus pass
 (evidence/uip-lamp-l12-incident). UPDATE-001, -004, -005 (autosave of an existing

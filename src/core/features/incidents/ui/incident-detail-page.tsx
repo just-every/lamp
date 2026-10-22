@@ -69,8 +69,9 @@ function IncidentVisit({ incidentId }: { incidentId: string }) {
   const [saveError, setSaveError] = useState<string | null>(null);
   const [preview, setPreview] = useState<RenderedIncidentUpdate | null>(data?.preview ?? null);
   const [previewError, setPreviewError] = useState<string | null>(null);
-  const [channels, setChannels] = useState<Channel[]>(["email"]);
-  const [timing, setTiming] = useState<PublishTiming>({ mode: "now", at: null });
+  // A refused or private-saved update arrives with the notification and timing choices the operator made.
+  const [channels, setChannels] = useState<Channel[]>(arrival?.publication?.channels ?? ["email"]);
+  const [timing, setTiming] = useState<PublishTiming>(arrival?.publication?.timing ?? { mode: "now", at: null });
   const [publishState, setPublishState] = useState<"idle" | "publishing" | "scheduled" | "published" | "error">(arrival ? (arrival.error ? "error" : "published") : "idle");
   const [publishMessage, setPublishMessage] = useState<string | null>(arrival?.text ?? null);
   const [overrideReason, setOverrideReason] = useState("");
@@ -106,7 +107,7 @@ function IncidentVisit({ incidentId }: { incidentId: string }) {
     if (!data?.incident || !loadedIncidentId || hydratedIncident.current === loadedIncidentId) return;
     const initial = draftFromIncident(data.incident);
     hydratedIncident.current = data.incident.id;
-    if (data.hasChatChannels) setChannels(["email", "chat"]);
+    if (data.hasChatChannels && !arrival?.publication) setChannels(["email", "chat"]);
     version.current = `${data.incident.draft?.id ?? "-"}:${data.incident.updates.length}`;
     hydratingDraft.current = true;
     pendingDraft.current = null;
