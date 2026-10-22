@@ -10,7 +10,11 @@ const envelope = z.object({ schemaVersion: z.literal(2), id: z.string().min(1), 
   incidentContext: z.object({ confirmedStartedAt: z.number().int().min(0).max(8640000000000000), originalReason: z.string(), failedLocations: z.array(z.object({ probe: z.string(), name: z.string(), reason: z.string() })) }).passthrough().optional(),
 }).passthrough();
 
+// Uptime's Send test and alert drills carry no monitor: they show the address works, and open no draft.
+const test = z.object({ schemaVersion: z.literal(2), kind: z.literal("test") }).passthrough();
+
 export function readUptime(payload: unknown): PresetReading {
+  if (test.safeParse(payload).success) return { refused: "An Uptime test. Only Uptime's alerts open drafts." };
   const parsed = envelope.safeParse(payload);
   if (!parsed.success) return { refused: "Not Uptime's default signed JSON incident envelope (schema 2)." };
   const event = parsed.data;

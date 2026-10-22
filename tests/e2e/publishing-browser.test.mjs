@@ -3,7 +3,6 @@ import { requestHeaders } from "../helpers/request-headers.mjs";
 import { withDraftVersion } from "./draft-version-helper.mjs";
 import assert from "node:assert/strict";
 import { execFileSync, spawn } from "node:child_process";
-import { createHmac } from "node:crypto";
 import { readFileSync, writeFileSync } from "node:fs";
 import { mkdir, mkdtemp, rm } from "node:fs/promises";
 import { createServer as createHttpServer } from "node:http";
@@ -511,50 +510,6 @@ contract("DRAFT-002", "Settings autosaves survive navigation and reload, keep fe
   }
   const restored = await appFetch("/api/app/page-settings", { method: "PUT", body: JSON.stringify(originalSettings) });
   assert.equal(restored.status, 200, "restore the shared Settings fixture for the remaining browser journeys");
-});
-
-contract("INTAKE-005", "operators configure a real authenticated source and inspect accepted and rejected redacted receipts", async () => {
-  const signingSecret = "browser-alert-source-secret";
-  await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto(`${appUrl}/app/alerts`);
-  await page.getByRole("button", { name: "Add alert source" }).click();
-  assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "the narrow source editor must not introduce horizontal page overflow");
-  await page.getByLabel("Source name").fill("Browser alert source");
-  await page.getByLabel("Signing secret").fill(signingSecret);
-  await page.getByLabel("Deduplication JSON path").fill("$.event.id");
-  await page.getByLabel("Title JSON path").fill("$.event.title");
-  await page.getByLabel("State JSON path").fill("$.event.state");
-  await page.getByRole("button", { name: "Create source" }).click();
-  await page.getByText("Alert source created. Send alerts to the endpoint below.", { exact: true }).waitFor();
-  assert.doesNotMatch(await page.locator("body").innerText(), new RegExp(signingSecret));
-
-  await page.getByLabel("Source name").fill("Browser alert source — primary");
-  await page.getByRole("button", { name: "Save source" }).click();
-  await page.getByText("Alert source updated. Existing secrets remain hidden.", { exact: true }).waitFor();
-  const sourceCard = page.locator(".alert-source-card").filter({ has: page.getByRole("heading", { name: "Browser alert source — primary", exact: true }) });
-  const endpoint = await sourceCard.locator("code").first().textContent();
-  assert.ok(endpoint?.startsWith(`${pageUrl}/api/intake/`), "the configured source must show its real intake endpoint");
-
-  async function sendAlert(payload) {
-    const body = JSON.stringify(payload);
-    const timestamp = new Date().toISOString();
-    const signature = createHmac("sha256", signingSecret).update(`${timestamp}.${body}`).digest("base64url");
-    return fetch(endpoint, { method: "POST", headers: { "Content-Type": "application/json", "x-lamp-timestamp": timestamp, "x-lamp-signature": signature }, body });
-  }
-
-  const accepted = await sendAlert({ event: { id: "browser-alert-accepted", title: "Browser intake acceptance", state: "firing" } });
-  assert.equal(accepted.status, 202, await accepted.text());
-  const rejected = await sendAlert({ event: { title: "Browser intake rejection", state: "firing" } });
-  assert.equal(rejected.status, 400, await rejected.text());
-
-  await page.reload();
-  await page.locator(".alert-source-card").getByRole("heading", { name: "Browser alert source — primary", exact: true }).waitFor();
-  const ownReceipts = page.locator(".receipt-card tr").filter({ hasText: "Browser alert source — primary" });
-  await ownReceipts.getByText("Accepted", { exact: true }).waitFor();
-  await ownReceipts.getByText("Rejected", { exact: true }).waitFor();
-  const receiptText = await page.locator(".receipt-card").innerText();
-  assert.match(receiptText, /deduplication path/i);
-  assert.doesNotMatch(receiptText, /browser-alert-source-secret|browser-alert-accepted/);
 });
 
 contract("DRAFT-003", "a configured but failing AI provider leaves the ordinary publish control usable", async () => {

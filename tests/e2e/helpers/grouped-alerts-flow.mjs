@@ -102,21 +102,19 @@ export async function groupedAlertsFlow({ api, post, component, sql, origin, pub
       await page.setViewportSize({ width, height: width === 390 ? 844 : 1000 });
       await page.goto(`${origin}/app/alerts`);
       await operatorHydrated(page);
-      await page.getByLabel('Grouped tool').selectOption('grafana');
-      await page.getByLabel('Connection name').fill(`US production ${width}`);
-      await page.getByLabel('Mapped component 1').selectOption(targets[0].id);
-      await page.getByLabel('Label matchers 1').fill('team="blue", zone="us-1"');
-      await page.getByRole('button', { name: 'Add component mapping', exact: true }).click();
-      await page.getByLabel('Mapped component 2').selectOption(targets[1].id);
-      await page.getByLabel('Label matchers 2').fill('team="blue", zone="eu-1"');
+      await page.getByRole('button', { name: 'Grafana', exact: true }).click();
+      await page.getByLabel('Component 1').selectOption(targets[0].id);
+      await page.getByLabel('Labels 1', { exact: true }).fill('team="blue", zone="us-1"');
+      await page.getByRole('button', { name: 'Add a component', exact: true }).click();
+      await page.getByLabel('Component 2').selectOption(targets[1].id);
+      await page.getByLabel('Labels 2', { exact: true }).fill('team="blue", zone="eu-1"');
       await inspect('grouped-mappings');
-      await page.getByRole('button', { name: 'Create grouped source', exact: true }).click();
-      await page.getByText('Grouped source saved. Alerts remain private until publication.').waitFor();
-      const endpointUrl = await page.getByLabel('Grouped endpoint', { exact: true }).inputValue();
-      const token = await page.getByLabel('Grouped token', { exact: true }).inputValue();
+      await page.getByRole('button', { name: 'Connect Grafana Alerting', exact: true }).click();
+      // The address carries Lamp's key, so the contact point needs no Authorization header.
+      const address = await page.getByLabel('Grafana Alerting address', { exact: true }).inputValue();
       await inspect('grouped-configured');
-      const payload = structuredClone(grafanaPayload);
-      const response = await send({ endpointUrl, token }, payload);
+      const posted = await fetch(address, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(structuredClone(grafanaPayload)) });
+      const response = { status: posted.status, body: await posted.json() };
       assert.equal(response.status, 202);
       await page.reload();
       await operatorHydrated(page);
@@ -135,12 +133,12 @@ export async function groupedAlertsFlow({ api, post, component, sql, origin, pub
       assert.ok(!publicText.includes(result.reference), 'inbound group has no public story before operator publication');
       async function inspect(name) {
         assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), `${width} ${name} overflow`);
-        assert.deepEqual(await page.locator('.grouped-source-card button').evaluateAll(nodes => nodes.filter(node => node.scrollWidth > node.clientWidth + 1).map(node => node.textContent)), [], 'mapping controls keep their full labels');
+        assert.deepEqual(await page.locator('.tool-form button').evaluateAll(nodes => nodes.filter(node => node.scrollWidth > node.clientWidth + 1).map(node => node.textContent)), [], 'mapping controls keep their full labels');
         const axe = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa']).analyze();
         assert.deepEqual(axe.violations.filter(row => ['serious', 'critical'].includes(row.impact)).map(row => row.id), [], `${width} ${name} accessibility`);
         if (process.env.LAMP_SCREENSHOTS) {
           const path = `${process.env.LAMP_SCREENSHOTS}/${width}-${name}.png`;
-          if (name === 'grouped-mappings' || name === 'grouped-configured') await page.locator('section[aria-labelledby=grouped-title]').screenshot({ path });
+          if (name === 'grouped-mappings' || name === 'grouped-configured') await page.locator('.tool-form').screenshot({ path });
           else if (name === 'grouped-receipt') { await receipt.scrollIntoViewIfNeeded(); await page.screenshot({ path }); }
           else await page.screenshot({ path, fullPage: true });
         }

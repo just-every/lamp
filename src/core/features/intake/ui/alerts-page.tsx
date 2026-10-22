@@ -1,170 +1,48 @@
-import { Link } from "@tanstack/react-router";
-import { useState, type FormEvent } from "react";
+import { useEffect, useState } from "react";
 
-import type { AlertSourceEndpointView, IntakeService } from "../service";
-import { appApi, useAppData } from "../../../app/client/ui/api";
-import { Button } from "../../../app/client/ui/button";
-import { Icon } from "../../../app/client/ui/icon";
-import { LoadingState, useOperatorTime } from "../../../app/client/ui/states";
-import { EmptyState, ErrorState } from "../../../app/client/ui/lit-states";
-import { GroupedPresetCard } from "./grouped-preset-card";
-import { isGroupedPreset } from "../grouped-alerts";
-import { UptimePresetCard } from "./uptime-preset-card";
-import { PresetCard } from "./preset-card";
-import { PagerDutyPresetCard } from "./pagerduty-preset-card";
-import { presetLabels } from "../presets";
+import { useAppData } from "../../../app/client/ui/api";
+import { LoadingState } from "../../../app/client/ui/states";
+import { ErrorState } from "../../../app/client/ui/lit-states";
+import { ConnectedTools } from "./connected-tools";
+import { ReceiptsCard, type Receipt } from "./receipts-card";
+import { ToolForm } from "./tool-form";
+import { ToolPicker } from "./tool-picker";
+import { toolOf, type ComponentOption, type Source, type ToolId } from "./tools";
 
-type SourcesResponse = { sources: Source[] };
-type ReceiptsResponse = { receipts: Awaited<ReturnType<IntakeService["listReceipts"]>> };
-type Source = AlertSourceEndpointView;
-type SourceForm = {
-  name: string;
-  credentialKind: "hmac-sha256" | "bearer-token";
-  credential: string;
-  timestampHeader: string;
-  signatureHeader: string;
-  deduplicationPath: string;
-  titlePath: string;
-  statePath: string;
-  recoveredValue: string;
-};
+type Open = { kind: "new"; tool: ToolId } | { kind: "edit"; sourceId: string; created?: Source };
 
-const EMPTY_SOURCE: SourceForm = {
-  name: "",
-  credentialKind: "hmac-sha256",
-  credential: "",
-  timestampHeader: "x-lamp-timestamp",
-  signatureHeader: "x-lamp-signature",
-  deduplicationPath: "$.alert.id",
-  titlePath: "$.alert.title",
-  statePath: "$.alert.state",
-  recoveredValue: "recovered",
-};
-
-function sourceForm(source: Source): SourceForm {
-  return {
-    name: source.name,
-    credentialKind: source.credentialKind,
-    credential: "",
-    timestampHeader: source.timestampHeader,
-    signatureHeader: source.signatureHeader,
-    deduplicationPath: source.deduplicationPath,
-    titlePath: source.titlePath,
-    statePath: source.statePath,
-    recoveredValue: source.recoveredValue,
-  };
-}
-
-function receiptLabel(receipt: ReceiptsResponse["receipts"][number]) {
-  if (receipt.direction === "note") return receipt.state === "invalid" ? "Note failed" : "Note sent";
-  const state = receipt.state;
-  return state === "firing" ? "Accepted" : state === "recovered" ? "Recovered" : "Rejected";
-}
-
-function receiptClass(state: ReceiptsResponse["receipts"][number]["state"]) {
-  return state === "firing" ? "state-active" : state === "recovered" ? "state-monitoring" : "state-failed";
-}
-
+/** Alerts: connected tools as compact rows, then the "Connect a tool" picker or the one open form, then what arrived. */
 export function AlertsPage() {
-  const formatOperatorTime = useOperatorTime();
-  const sources = useAppData<SourcesResponse>("/api/app/intake/sources");
-  const receipts = useAppData<ReceiptsResponse>("/api/app/intake/receipts?limit=100");
-  const [editing, setEditing] = useState<Source | null>(null);
-  const [creating, setCreating] = useState(false);
-  const [form, setForm] = useState<SourceForm>(EMPTY_SOURCE);
-  const [saving, setSaving] = useState(false);
-  const [message, setMessage] = useState<string | null>(null);
+  const sources = useAppData<{ sources: Source[] }>("/api/app/intake/sources");
+  const receipts = useAppData<{ receipts: Receipt[] }>("/api/app/intake/receipts?limit=100");
+  const components = useAppData<{ components: ComponentOption[] }>("/api/app/components");
+  const [open, setOpen] = useState<Open | null>(null);
+  const { refresh: refreshSources } = sources;
+  const { refresh: refreshReceipts } = receipts;
+  // Back from the tool's own settings, what arrived meanwhile shows in place: nothing closes or moves.
+  useEffect(() => {
+    const again = () => { if (document.visibilityState === "visible") { refreshSources(); refreshReceipts(); } };
+    window.addEventListener("focus", again);
+    document.addEventListener("visibilitychange", again);
+    return () => { window.removeEventListener("focus", again); document.removeEventListener("visibilitychange", again); };
+  }, [refreshSources, refreshReceipts]);
 
-  const sourceData = sources.data?.sources ?? [];
-  const receiptData = receipts.data?.receipts ?? [];
-  // A refresh keeps the page (and a just-created preset's one-time token) on screen.
-  const loading = (sources.loading && !sources.data) || (receipts.loading && !receipts.data);
-  const error = sources.error ?? receipts.error;
+  if ((sources.loading && !sources.data) || (receipts.loading && !receipts.data)) return <LoadingState>Loading alerts…</LoadingState>;
+  if (!sources.data || !receipts.data) return <ErrorState onRetry={() => window.location.reload()}>{sources.error ?? receipts.error ?? "Alerts could not be loaded."}</ErrorState>;
 
-  function openCreate() {
-    setCreating(true);
-    setEditing(null);
-    setForm(EMPTY_SOURCE);
-    setMessage(null);
-  }
-
-  function openEdit(source: Source) {
-    setCreating(false);
-    setEditing(source);
-    setForm(sourceForm(source));
-    setMessage(null);
-  }
-
-  function closeEditor() {
-    setCreating(false);
-    setEditing(null);
-    setForm(EMPTY_SOURCE);
-  }
-
-  function update<K extends keyof SourceForm>(field: K, value: SourceForm[K]) {
-    setForm((current) => ({ ...current, [field]: value }));
-  }
-
-  async function save(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setSaving(true);
-    setMessage(null);
-    const body = {
-      name: form.name,
-      credentialKind: form.credentialKind,
-      ...(form.credential.trim() ? form.credentialKind === "hmac-sha256" ? { signingSecret: form.credential } : { bearerToken: form.credential } : {}),
-      timestampHeader: form.timestampHeader,
-      signatureHeader: form.signatureHeader,
-      deduplicationPath: form.deduplicationPath,
-      titlePath: form.titlePath,
-      statePath: form.statePath,
-      recoveredValue: form.recoveredValue,
-    };
-    try {
-      const result = editing
-        ? await appApi<{ source: Source }>(`/api/app/intake/sources/${editing.id}`, { method: "PUT", body: JSON.stringify(body) })
-        : await appApi<{ source: Source }>("/api/app/intake/sources", { method: "POST", body: JSON.stringify(body) });
-      setEditing(result.source);
-      setCreating(false);
-      setForm(sourceForm(result.source));
-      setMessage(editing ? "Alert source updated. Existing secrets remain hidden." : "Alert source created. Send alerts to the endpoint below.");
-      sources.refresh();
-    } catch (cause) {
-      setMessage(cause instanceof Error ? cause.message : "The alert source could not be saved.");
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  if (loading) return <LoadingState>Loading alerts…</LoadingState>;
-  if (error) return <ErrorState onRetry={() => window.location.reload()}>{error}</ErrorState>;
+  const connected = sources.data.sources;
+  const arrived = receipts.data.receipts;
+  const componentList = components.data?.components ?? [];
+  const editing = open?.kind === "edit" ? connected.find(source => source.id === open.sourceId) ?? open.created ?? null : null;
+  const refresh = () => { refreshSources(); refreshReceipts(); };
+  const close = () => setOpen(null);
 
   return <div className="page-stack alerts-page">
-    <section className="page-title-row"><div><h1>Alerts</h1><p>Connect your monitoring tools to report problems here.</p></div><Button type="button" onClick={openCreate}><Icon name="plus" width={18} height={18} />Add alert source</Button></section>
-    <section className="capability-note"><Icon name="warning" width={18} height={18} /><div><strong>Saved secrets stay hidden.</strong><p>Leave the secret blank to keep it. Use the selected key or token to send alerts.</p></div></section>
-    <PresetCard onCreated={sources.refresh} />
-    <PagerDutyPresetCard sources={sourceData.filter(source => source.preset === "pagerduty")} onSaved={() => { sources.refresh(); receipts.refresh(); }} />
-    <UptimePresetCard sources={sourceData.filter(source => source.preset === "uptime")} onSaved={sources.refresh} />
-    <GroupedPresetCard sources={sourceData.filter(source => isGroupedPreset(source.preset))} onSaved={sources.refresh} />
-    {(creating || editing) && <SourceEditor source={editing} form={form} saving={saving} message={message} onChange={update} onSubmit={save} onClose={closeEditor} />}
-    {message && !(creating || editing) && <p className="save-message" role="status">{message}</p>}
-    {(sourceData.some(source => source.preset !== "pagerduty") || sourceData.length === 0) && <section className="alert-source-grid" aria-label="Configured alert sources">
-      {sourceData.length ? sourceData.filter(source => source.preset !== "pagerduty").map((source) => <AlertSourceCard key={source.id} source={source} onEdit={source.preset ? undefined : () => openEdit(source)} />) : <EmptyState>Add a source to receive alerts.</EmptyState>}
-    </section>}
-    <section className="data-card receipt-card"><div className="card-heading"><div><h2>Alerts and responder notes</h2><p className="card-support">The latest 100.</p></div><span className="count-label">{receiptData.length} total</span></div><div className="table-scroll" tabIndex={0} role="region" aria-label="Recent alerts"><table><thead><tr><th scope="col">Received</th><th scope="col">Source</th><th scope="col">Result</th><th scope="col">Incident</th><th scope="col">Reason</th></tr></thead><tbody>{receiptData.map((receipt) => <tr key={receipt.id}><td data-label="Received">{formatOperatorTime(receipt.receivedAt)}</td><td data-label="Source"><strong>{receipt.sourceName}</strong></td><td data-label="Result"><span className={`state-pill ${receiptClass(receipt.state)}`}>{receiptLabel(receipt)}</span></td><td data-label="Incident">{receipt.incidentId ? <Link className="text-link" to="/app/incidents/$incidentId" params={{ incidentId: receipt.incidentId }}>Open draft</Link> : "—"}</td><td data-label="Reason">{receipt.error ?? (receipt.direction === "note" ? "Publication note sent to PagerDuty." : "Received.")}</td></tr>)}{receiptData.length === 0 && <tr><td colSpan={5} className="receipt-empty"><p>No alerts received yet.</p></td></tr>}</tbody></table></div></section>
+    <section className="page-title-row"><div><h1>Alerts</h1><p>Alerts from your tools open private drafts. Nothing is public until you publish.</p></div></section>
+    {connected.length > 0 && <ConnectedTools sources={connected} components={componentList} editing={editing?.id ?? null} onEdit={source => setOpen({ kind: "edit", sourceId: source.id })} onRemoved={source => { if (editing?.id === source.id) close(); refresh(); }} />}
+    {open?.kind === "new" ? <ToolForm key={`new:${open.tool}`} tool={open.tool} source={null} components={componentList} onConnected={created => { if (created) setOpen({ kind: "edit", sourceId: created.id, created }); refresh(); }} onSaved={refresh} onClose={close} />
+      : editing ? <ToolForm key={`edit:${editing.id}`} tool={toolOf(editing)} source={editing} components={componentList} onConnected={refresh} onSaved={refresh} onClose={close} />
+      : <ToolPicker onPick={tool => setOpen({ kind: "new", tool })} />}
+    {arrived.length > 0 && <ReceiptsCard receipts={arrived} />}
   </div>;
-}
-
-function AlertSourceCard({ source, onEdit }: { source: Source; onEdit?: () => void }) {
-  const endpoint = source.endpointUrl;
-  return <article className="data-card alert-source-card"><div className="card-heading"><div><p className="card-kicker">{source.preset ? `${presetLabels[source.preset]} preset` : "Authenticated source"}</p><h2>{source.name}</h2></div><span className="state-pill state-active">Configured</span></div><dl className="alert-source-facts"><div><dt>Authentication</dt><dd>{source.credentialKind === "hmac-sha256" ? "HMAC-SHA256 signed request" : "Bearer token"}</dd></div><div><dt>Endpoint</dt><dd><code>{endpoint}</code></dd></div>{source.preset === "uptime" ? <div><dt>Monitor mappings</dt><dd>{source.monitorMappings?.length ?? 0} monitors. Edit in Connect Uptime above.</dd></div> : isGroupedPreset(source.preset) ? <div><dt>Component mappings</dt><dd>{source.labelMatchers?.length ?? 0} exact label rules. Edit mappings in Grouped monitoring alerts above.</dd></div> : <><div><dt>Deduplication path</dt><dd><code>{source.deduplicationPath}</code></dd></div><div><dt>Title path</dt><dd><code>{source.titlePath}</code></dd></div><div><dt>State path</dt><dd><code>{source.statePath}</code></dd></div></>}</dl><div className="form-actions">{onEdit ? <Button type="button" variant="secondary" onClick={onEdit}>Edit source</Button> : null}</div></article>;
-}
-
-function SourceEditor({ source, form, saving, message, onChange, onSubmit, onClose }: { source: Source | null; form: SourceForm; saving: boolean; message: string | null; onChange: <K extends keyof SourceForm>(field: K, value: SourceForm[K]) => void; onSubmit: (event: FormEvent<HTMLFormElement>) => Promise<void>; onClose: () => void }) {
-  const isHmac = form.credentialKind === "hmac-sha256";
-  const credentialLabel = isHmac ? "Signing secret" : "Bearer token";
-  const credentialHelp = source && source.credentialKind === form.credentialKind
-    ? `Leave blank to retain the existing ${credentialLabel.toLowerCase()}.`
-    : `A ${credentialLabel.toLowerCase()} is required for this authentication method.`;
-  return <section className="data-card alert-editor"><div className="card-heading"><div><p className="card-kicker">{source ? "Edit source" : "New source"}</p><h2>{source ? source.name : "Configure alert source"}</h2><p className="card-support">Choose how alerts create a private incident draft.</p></div><Button type="button" variant="secondary" className="table-action" onClick={onClose}>Close</Button></div><form className="alert-editor-form" onSubmit={onSubmit}><label className="form-label">Source name<input required maxLength={120} value={form.name} onChange={(event) => onChange("name", event.target.value)} /></label><label className="form-label">Authentication<select value={form.credentialKind} onChange={(event) => onChange("credentialKind", event.target.value as SourceForm["credentialKind"])}><option value="hmac-sha256">HMAC-SHA256 signature</option><option value="bearer-token">Bearer token</option></select></label><label className="form-label">{credentialLabel}<input type="password" autoComplete="new-password" value={form.credential} placeholder={source ? "Leave unchanged" : "Required"} onChange={(event) => onChange("credential", event.target.value)} /><small>{credentialHelp}</small></label>{isHmac && <><label className="form-label">Timestamp header<input required maxLength={120} value={form.timestampHeader} onChange={(event) => onChange("timestampHeader", event.target.value)} /></label><label className="form-label">Signature header<input required maxLength={120} value={form.signatureHeader} onChange={(event) => onChange("signatureHeader", event.target.value)} /></label></>}<label className="form-label">Deduplication JSON path<input required maxLength={250} value={form.deduplicationPath} onChange={(event) => onChange("deduplicationPath", event.target.value)} /></label><label className="form-label">Title JSON path<input required maxLength={250} value={form.titlePath} onChange={(event) => onChange("titlePath", event.target.value)} /></label><label className="form-label">State JSON path<input required maxLength={250} value={form.statePath} onChange={(event) => onChange("statePath", event.target.value)} /></label><label className="form-label">Recovery value<input required maxLength={100} value={form.recoveredValue} onChange={(event) => onChange("recoveredValue", event.target.value)} /></label>{message && <p className="save-message full-width" role="status">{message}</p>}<div className="form-actions full-width"><Button type="button" variant="secondary" onClick={onClose}>Cancel</Button><Button disabled={saving}>{saving ? "Saving…" : source ? "Save source" : "Create source"}</Button></div></form></section>;
 }

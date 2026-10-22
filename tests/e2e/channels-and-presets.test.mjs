@@ -2,6 +2,8 @@ import { channelDeletionFlow } from "./helpers/channel-deletion-flow.mjs";
 import { pagerDutyBrowserFlow } from "./helpers/pagerduty-browser-flow.mjs";
 import { availabilityReportBrowserFlow } from "./helpers/availability-report-browser-flow.mjs";
 import { uptimePresetFlow } from "./helpers/uptime-preset-flow.mjs";
+import { uptimePairingFlow } from "./helpers/uptime-pairing-flow.mjs";
+import { webhookSourceBrowserFlow } from "./helpers/webhook-source-browser-flow.mjs";
 import { groupedAlertsFlow } from "./helpers/grouped-alerts-flow.mjs";
 import { pagerDutyFlow } from "./helpers/pagerduty-flow.mjs";
 import { UPDATE_LINK_FIELDS } from "./helpers/update-component-flow.mjs";
@@ -177,7 +179,11 @@ const payloads = {
 };
 const sources = {};
 
-test("INTAKE-009 PagerDuty v3 signed events create drafts, brief entries and one note per publication · INTAKE-006 INTAKE-007", async t => {
+test("INTAKE-008 — the owner connects Uptime from the Alerts picker with nothing to type and pairs it by picking the monitors its events name", async () => {
+  await uptimePairingFlow({ api, component, origin, cookie });
+});
+
+test("INTAKE-009 PagerDuty v3 signed events create drafts, brief entries and one note per publication · INTAKE-005 INTAKE-006 INTAKE-007", async t => {
   t.diagnostic("INTAKE-006 — each monitor preset turns its tool's alert into a draft on its component, and refuses other payloads and bad credentials");
   await (async () => {
   for (const preset of Object.keys(payloads)) {
@@ -229,10 +235,12 @@ test("INTAKE-009 PagerDuty v3 signed events create drafts, brief entries and one
   assert.ok(shop.id);
 })(t);
   t.diagnostic("INTAKE-008 — Uptime signed envelopes map monitors, retain evidence and close only private drafts");
-  await uptimePresetFlow({ api, post, component, origin, publicOrigin, cookie });
+  await uptimePresetFlow({ api, post, component, publicOrigin });
   await groupedAlertsFlow({ api, post, component, sql, origin, publicOrigin, cookie });
   t.diagnostic("UPTIME-009 — authenticated month/quarter downloads in the native operator browser at 1440 and 390");
   await availabilityReportBrowserFlow({ api, post, component, origin, cookie });
+  t.diagnostic("INTAKE-005 — another tool connects with its own secret and JSON paths; its receipts are redacted");
+  await webhookSourceBrowserFlow({ origin, cookie });
   t.diagnostic("INTAKE-009 — signed PagerDuty evidence stays private until publication; responder notes survive replay, rejection and restore safely");
   await pagerDutyBrowserFlow({ api, component, origin, cookie });
   await pagerDutyFlow({ runtime, t });

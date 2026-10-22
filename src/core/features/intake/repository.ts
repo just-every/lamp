@@ -33,10 +33,13 @@ export interface AlertSourceRow {
 export interface AlertReceiptRow { id: string; sourceId: string; requestHash: string; deduplicationKey: string | null; incidentId: string | null; state: "firing" | "recovered" | "invalid"; receivedAt: string; recoveredAt: string | null; payloadJson: string; error: string | null; createdAt: string; updatedAt: string; }
 export interface AlertReceiptView extends Omit<AlertReceiptRow, "requestHash" | "payloadJson"> { sourceName: string; direction?: "inbound" | "note"; }
 export interface AlertReceiptWriteResult { receipt: AlertReceiptRow; incidentCreated: boolean; replayed: boolean; }
+/** What has arrived through each source: its last delivery, and each Uptime monitor its own events named. */
+export interface AlertSourceActivity { deliveries: Array<{ sourceId: string; lastReceivedAt: string }>; monitors: Array<{ sourceId: string; monitorId: string; monitorName: string; lastSeenAt: string }>; }
 
 export interface IntakeRepository {
   allocateIncidentReference(): Promise<AllocatedReference>;
   listSources(): Promise<AlertSourceRow[]>;
+  listActivity(): Promise<AlertSourceActivity>;
   listReceipts(limit: number): Promise<AlertReceiptView[]>;
   deleteSource(sourceId: string, operatorId: string, at: string): Promise<boolean>;
   operatorEmail(operatorId: string): Promise<string | null>;
@@ -69,6 +72,23 @@ export function createIntakeRepository(binding: D1Database): IntakeRepository {
   return {
     async allocateIncidentReference() { return allocateReference(binding, "INC"); },
     async listSources() { return (await binding.prepare(`SELECT ${sourceFields} FROM alert_sources ORDER BY name`).all<Record<string, unknown>>()).results.map(sourceRow); },
+    async listActivity() {
+      const [deliveries, monitors] = await binding.batch<Record<string, unknown>>([
+        binding.prepare("SELECT source_id AS sourceId, MAX(received_at) AS lastReceivedAt FROM alert_receipts GROUP BY source_id"),
+        // Only authenticated deliveries are recorded, so these names come from the paired Uptime; the latest name wins.
+        binding.prepare(`SELECT sourceId, monitorId, monitorName, MAX(receivedAt) AS lastSeenAt FROM (
+            SELECT r.source_id AS sourceId, r.received_at AS receivedAt,
+              CASE WHEN json_valid(r.payload_json) THEN json_extract(r.payload_json, '$.monitorId') END AS monitorId,
+              CASE WHEN json_valid(r.payload_json) THEN json_extract(r.payload_json, '$.monitorName') END AS monitorName
+            FROM alert_receipts r INNER JOIN alert_sources s ON s.id = r.source_id WHERE s.uptime_preset = 'uptime')
+          WHERE typeof(monitorId) = 'text' AND length(monitorId) BETWEEN 1 AND 200 AND monitorId = trim(monitorId) AND typeof(monitorName) = 'text' AND length(trim(monitorName)) > 0
+          GROUP BY sourceId, monitorId ORDER BY monitorName`),
+      ]);
+      return {
+        deliveries: deliveries.results.map(row => ({ sourceId: String(row.sourceId), lastReceivedAt: String(row.lastReceivedAt) })),
+        monitors: monitors.results.map(row => ({ sourceId: String(row.sourceId), monitorId: String(row.monitorId), monitorName: String(row.monitorName).trim().slice(0, 200), lastSeenAt: String(row.lastSeenAt) })),
+      };
+    },
     async listReceipts(limit) {
       const values = await binding.prepare(`SELECT ${receiptFields}, alert_sources.name AS sourceName FROM alert_receipts INNER JOIN alert_sources ON alert_sources.id = alert_receipts.source_id ORDER BY alert_receipts.received_at DESC LIMIT ?`).bind(limit).all<Record<string, unknown>>();
       const outbound = await binding.prepare(`SELECT p.id, p.source_id AS sourceId, s.name AS sourceName, p.external_id AS deduplicationKey, u.incident_id AS incidentId, CASE WHEN p.state = 'sent' THEN 'firing' ELSE 'invalid' END AS state, p.created_at AS receivedAt, p.error FROM alert_responder_posts p JOIN alert_sources s ON s.id = p.source_id JOIN incident_updates u ON u.id = p.incident_update_id WHERE p.state IN ('sent','failed') ORDER BY p.created_at DESC LIMIT ?`).bind(limit).all<Record<string, unknown>>();
