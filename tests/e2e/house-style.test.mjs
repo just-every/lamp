@@ -284,13 +284,17 @@ async function withoutHouseStyle() {
     await until(async () => (await footReason()) === 'failed', 'the page to say the make failed');
     await saysWhy(page, 'failed', 'failed');
 
-    // Make again draws two more; the day's budget then refuses the next, which the page names as its own reason.
+    // Make again until the day's pictures are spent; the budget then refuses the next, which the page names as its own
+    // reason, and a refused make draws nothing.
+    for (let left = failed.picturesLeft; left > 0; left = (await houseStyle(install)).picturesLeft) {
+      const drawn = ai.count('picture');
+      await (await templateCard(page)).card.getByRole('button', { name: 'Make again', exact: true }).click();
+      await until(async () => ai.count('picture') > drawn && (await houseStyle(install)).record.state === 'failed', 'Make again to fail its check too');
+    }
+    const spent = ai.count('picture');
     await (await templateCard(page)).card.getByRole('button', { name: 'Make again', exact: true }).click();
-    await until(async () => ai.count('picture') === 4 && (await houseStyle(install)).record.state === 'failed', 'Make again to fail its check too');
-    const { card } = await templateCard(page);
-    await card.getByRole('button', { name: 'Make again', exact: true }).click();
-    await until(async () => (await houseStyle(install)).record.state === 'refused', 'the budget to refuse a fifth picture');
-    assert.equal(ai.count('picture'), 4, 'a refused make draws nothing');
+    await until(async () => (await houseStyle(install)).record.state === 'refused', 'the budget to refuse the next picture');
+    assert.equal(ai.count('picture'), spent, 'a refused make draws nothing');
     await until(async () => (await footReason()) === 'refused', 'the page to say the budget refused it');
     await saysWhy(page, 'refused', 'refused');
 
@@ -302,12 +306,12 @@ async function withoutHouseStyle() {
     await saysWhy(page, 'not-connected', 'not-connected');
 
     // A fresh install without the binding: Setup saves Calm headline, and the page says House style isn't connected.
-    execFileSync('pnpm', ['exec', 'wrangler', 'd1', 'execute', 'DB', '--local', '--persist-to', install.runtime.state, '--config', 'wrangler.jsonc', '--command', "DELETE FROM setup_readiness WHERE step='first-run'; UPDATE page_settings SET template='default'"], { env: install.runtime.env, stdio: 'pipe' });
+    execFileSync('pnpm', ['exec', 'wrangler', 'd1', 'execute', 'DB', '--local', '--persist-to', install.runtime.state, '--config', 'wrangler.jsonc', '--command', "DELETE FROM setup_readiness WHERE step='first-run'; UPDATE page_settings SET template='default', house_style=0"], { env: install.runtime.env, stdio: 'pipe' });
     await runSetup(install.context);
     assert.equal((await install.api('/api/app/page-settings')).settings.template, 'calm', 'a fresh install without the binding saves Calm headline');
     await until(async () => (await footReason()) === 'not-connected', 'the fresh page to say it is not connected');
     await saysWhy(page, 'not-connected', 'fresh-not-connected');
-    assert.equal(ai.count('picture'), 4, 'nothing was drawn without the binding');
+    assert.equal(ai.count('picture'), spent, 'nothing was drawn without the binding');
     assert.deepEqual([...new Set(reasons)], ['failed', 'refused', 'not-connected'], 'three distinct kinds');
   } finally {
     await install?.close();

@@ -5,6 +5,7 @@ import { createWebsiteRepository } from "../website/repository";
 import { and, asc, desc, eq, isNull, ne, or, sql } from "drizzle-orm";
 
 import { createDatabase } from "../../platform/db/client";
+import { pageSettingsRecord, type PageSettingsRecord } from "../../shared/page-template";
 import {
   componentGroups,
   componentStandingClaims,
@@ -41,7 +42,7 @@ export interface PublicSnapshotSource {
   incidentImpacts?: Record<string, typeof componentStandingClaims.$inferSelect.state>;
   importedNamespaces?: string[];
   importedPublicRecords?: ImportedPublicRecord[];
-  settings: typeof pageSettings.$inferSelect;
+  settings: PageSettingsRecord;
   components: Array<{
     id: string;
     name: string;
@@ -77,8 +78,9 @@ export function createSnapshotRepository(binding: D1Database, publicOrigin?: str
 
   return {
     async load() {
-      const settings = await database.select().from(pageSettings).where(eq(pageSettings.id, "default")).get();
-      if (!settings) return null;
+      const stored = await database.select().from(pageSettings).where(eq(pageSettings.id, "default")).get();
+      if (!stored) return null;
+      const settings = pageSettingsRecord(stored);
 
       const [componentRows, standingClaims, incidentClaims, maintenanceClaims, history, corrections, incidentRows, attachedComponents, updates, maintenanceRows, attachedMaintenanceComponents, reports, maintenanceNotices, importedPublicRecords, importedNamespaces, importedMaintenanceUpdates, publicApiIds, incidentImpactRows] = await Promise.all([
         database

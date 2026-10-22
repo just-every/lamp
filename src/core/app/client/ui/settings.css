@@ -49,6 +49,8 @@
 .template-house-facts > div { display: grid; grid-template-columns: 84px minmax(0, 1fr); gap: 2px 12px; }
 .template-house-facts dt { color: var(--ink-3); font-size: 13px; }
 .template-house-facts dd { min-width: 0; margin: 0; overflow-wrap: anywhere; }
+/* Without a picture yet, the facts take the card's width, not the picture's column. */
+.template-house-title + .template-house-facts { grid-column: 1 / -1; }
 .template-house-reason { display: block; margin-top: 2px; color: var(--ink-2); font-size: 13px; }
 .template-house-palette { display: flex; flex-wrap: wrap; gap: 6px 14px; margin: 0; padding: 0; list-style: none; font-size: 13px; }
 .template-house-palette li { display: inline-flex; align-items: center; gap: 6px; }

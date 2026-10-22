@@ -53,7 +53,7 @@ export function HouseStyleCard({ view, chosen, onChanged }: { view: HouseStyleVi
     </dl>
     {chosen && view.connected ? <div className="template-house-actions">
       <Button type="button" variant="secondary" onClick={makeAgain} disabled={asking || state === "making"}>{state === "making" ? "Making…" : "Make again"}</Button>
-      <small>{view.picturesLeft} picture{view.picturesLeft === 1 ? "" : "s"} left today. Your page keeps its house style until a new one is ready.</small>
+      <small>{view.picturesLeft} picture{view.picturesLeft === 1 ? "" : "s"} left today.{made ? " Your page keeps its house style until a new one is ready." : ""}</small>
     </div> : null}
     {message ? <p className="save-message" role="alert">{message}</p> : null}
   </div>;

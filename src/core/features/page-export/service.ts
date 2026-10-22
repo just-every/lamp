@@ -105,7 +105,7 @@ export function createPageExportService(repository: PageExportRepository, blobs:
         accentColor: settings.accent_color,
         timezone: settings.timezone,
         footerCreditEnabled: settings.footer_credit_enabled === 1,
-        template: settings.template,
+        template: settings.house_style ? "house" : settings.template,
         widgetAllowedOrigins: parseWidgetAllowedOrigins(settings.widget_allowed_origins),
         aiToneInstructions: settings.ai_tone_instructions,
         emailBranding: emailBrandingSchema.parse(JSON.parse(settings.email_branding)),
