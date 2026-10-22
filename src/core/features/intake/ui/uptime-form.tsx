@@ -66,7 +66,7 @@ function EditUptime({ source, components, onSaved, onClose }: { source: Source; 
   return <section className="data-card tool-form" aria-labelledby="tool-form-title">
     <ToolHeading title={source.name} does={monitors.length ? "Pick a component for each monitor you want on your page." : toolDoes("uptime")} close={{ label: "Close", onClick: onClose }} />
     {monitors.length ? <>
-      <SaveNote phase={autosave.phase} error={autosave.error} retry={autosave.retry} />
+      <SaveNote phase={autosave.phase} error={autosave.error} retry={autosave.retry} held={autosave.held} />
       <ul className="monitor-picks" aria-label="Uptime monitors">{monitors.map(monitor => <li key={monitor.monitorId}>
         <label className="form-label">{monitor.monitorName}<select aria-label={monitor.monitorName} value={mappings.get(monitor.monitorId) ?? ""} onChange={event => pick(monitor.monitorId, event.target.value)}><ComponentOptions components={components} empty="Not on your page" /></select></label>
       </li>)}</ul>

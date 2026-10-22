@@ -65,7 +65,7 @@ function EditPreset({ tool, source, components, onSaved, onClose }: { tool: Sing
   }
   return <section className="data-card tool-form" aria-labelledby="tool-form-title">
     <ToolHeading title={source.name} does={toolDoes(tool)} close={{ label: "Close", onClick: onClose }} />
-    <SaveNote phase={autosave.phase} error={autosave.error} retry={autosave.retry} />
+    <SaveNote phase={autosave.phase} error={autosave.error} retry={autosave.retry} held={autosave.held} />
     <div className="tool-fields"><label className="form-label">Component<select required value={componentId} onChange={event => { setComponentId(event.target.value); autosave.save(body(source, tool, event.target.value), true); }}><ComponentOptions components={components} empty="Choose a component" required /></select></label></div>
     {address ? <ShownOnce fields={setupFields(tool, address)} onDone={() => setAddress(null)}>{SETUP[tool]}</ShownOnce> : <NewKey what="address" replace={newAddress} />}
   </section>;

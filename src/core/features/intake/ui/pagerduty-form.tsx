@@ -64,7 +64,7 @@ function EditPagerDuty({ source, components, onSaved, onClose }: { source: Sourc
       <CopyField label="PagerDuty address" value={source.endpointUrl} copy="Copy address" />
       <SecretField label="PagerDuty signing secret" action="Save secret" save={value => write({ signingSecret: value })} />
     </div> : <p className="tool-note">Signing secret saved. <Button type="button" variant="secondary" className="table-action" onClick={() => setReplacing(true)}>Replace secret</Button></p>}
-    <SaveNote phase={autosave.phase} error={autosave.error} retry={autosave.retry} />
+    <SaveNote phase={autosave.phase} error={autosave.error} retry={autosave.retry} held={autosave.held} />
     <div className="tool-fields"><ServiceRows rows={rows} components={components} onChange={change} /></div>
     <details className="tool-more" open={source.responderConnection === "reconnect" || undefined}>
       <summary>{source.responderConnection === "connected" ? "Updates go back to PagerDuty as notes" : source.responderConnection === "reconnect" ? "Notes back to PagerDuty need a new key" : "Send your updates back to PagerDuty"}</summary>

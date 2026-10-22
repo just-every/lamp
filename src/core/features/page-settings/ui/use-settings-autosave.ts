@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 
 import { appApi } from "../../../app/client/ui/api";
+import { leaveWhenSaved } from "../../../app/client/ui/leave-guard";
 import { pageSettingsSchema } from "../../../shared/schemas";
 import type { PageSettingsView } from "../service";
 import { toSettingsForm, type ConfirmedField, type SettingsForm } from "./settings-form";
@@ -159,21 +160,10 @@ export function useSettingsAutosave(initial: PageSettingsView | undefined, onSav
   }
 
   /** Whether the owner may leave Settings now. Leaving waits for pending edits to save; a refused save keeps them here. */
-  async function leave() {
+  function leave() {
     const q = queue.current;
-    const revision = q.revision, attempt = ++q.leaving;
-    if (q.completed !== revision && q.stopped !== revision) {
-      q.dueAt = 0; schedule();
-      await new Promise<void>(resolve => {
-        const check = () => { if (q.completed >= revision || q.stopped >= revision) { q.answered.delete(check); resolve(); } };
-        q.answered.add(check); check();
-      });
-      // A newer edit or a later leave decides instead; a refused save stays in view with its reason and Retry.
-      if (attempt !== q.leaving || revision !== q.revision || q.stopped === revision) return false;
-    }
-    q.released = unconfirmed(q) ? window.confirm("Unconfirmed changes are not live. Leave Settings?")
-      : q.stopped === revision ? window.confirm("Some changes could not be saved. Leave Settings?") : true;
-    return q.released;
+    return leaveWhenSaved(q, () => { q.dueAt = 0; schedule(); }, "Some changes could not be saved. Leave Settings?",
+      () => unconfirmed(q) ? "Unconfirmed changes are not live. Leave Settings?" : null);
   }
 
   const pending = (field: ConfirmedField) => !same(settings?.[field], queue.current.target?.[field]);

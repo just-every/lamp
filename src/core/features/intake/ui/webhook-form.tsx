@@ -76,7 +76,7 @@ function EditWebhook({ source, onSaved, onClose }: { source: Source; onSaved: ()
   }
   return <section className="data-card tool-form" aria-labelledby="tool-form-title">
     <ToolHeading title={source.name} does={toolDoes("webhook")} close={{ label: "Close", onClick: onClose }} />
-    <SaveNote phase={autosave.phase} error={autosave.error} retry={autosave.retry} />
+    <SaveNote phase={autosave.phase} error={autosave.error} retry={autosave.retry} held={autosave.held} />
     <div className="tool-fields">
       <label className="form-label">Name<input required maxLength={120} value={fields.name} onChange={event => set("name", event.target.value)} /></label>
       <PayloadFields fields={fields} hmac={hmac} set={set} />

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link, getRouteApi, useBlocker } from "@tanstack/react-router";
+import { Link, getRouteApi } from "@tanstack/react-router";
 
 import type { PageSettingsService } from "../service";
 import type { OverviewService } from "../../overview/service";
@@ -41,13 +41,8 @@ export function SettingsPage() {
   const [brandStatus, setBrandStatus] = useState<string | null>(null);
   const [ready, setReady] = useState(false);
   useEffect(() => setReady(true), []);
-  useBlocker({
-    // Leaving waits for pending edits to save; a refused save keeps the owner here with its reason and Retry.
-    shouldBlockFn: async ({ next }) => next.pathname !== "/app/settings" && !await autosave.leave(),
-    enableBeforeUnload: autosave.unsaved,
-  });
-  // Signing out waits the same way, before the session ends.
-  useLeaveGuard(autosave.leave);
+  // Leaving Settings or signing out waits for pending edits to save; a refused save keeps the owner here with its reason and Retry.
+  useLeaveGuard(autosave.leave, autosave.unsaved);
   if (loading && !data) return <LoadingState />;
   if (error && !settings) return <ErrorState onRetry={() => window.location.reload()}>{error}</ErrorState>;
   if (!settings || !saved) return null;

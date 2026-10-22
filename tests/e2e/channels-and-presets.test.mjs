@@ -240,7 +240,7 @@ test("INTAKE-009 PagerDuty v3 signed events create drafts, brief entries and one
   t.diagnostic("UPTIME-009 — authenticated month/quarter downloads in the native operator browser at 1440 and 390");
   await availabilityReportBrowserFlow({ api, post, component, origin, cookie });
   t.diagnostic("INTAKE-005 — another tool connects with its own secret and JSON paths; its receipts are redacted");
-  await webhookSourceBrowserFlow({ origin, cookie });
+  await webhookSourceBrowserFlow({ origin, cookie, api, post });
   t.diagnostic("INTAKE-009 — signed PagerDuty evidence stays private until publication; responder notes survive replay, rejection and restore safely");
   await pagerDutyBrowserFlow({ api, component, origin, cookie });
   await pagerDutyFlow({ runtime, t });

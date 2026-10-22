@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 
 import { useAppData } from "../../../app/client/ui/api";
+import { mayLeave } from "../../../app/client/ui/leave-guard";
 import { LoadingState } from "../../../app/client/ui/states";
 import { ErrorState } from "../../../app/client/ui/lit-states";
 import { ConnectedTools } from "./connected-tools";
@@ -35,13 +36,14 @@ export function AlertsPage() {
   const componentList = components.data?.components ?? [];
   const editing = open?.kind === "edit" ? connected.find(source => source.id === open.sourceId) ?? open.created ?? null : null;
   const refresh = () => { refreshSources(); refreshReceipts(); };
-  const close = () => setOpen(null);
+  // The open form closes, or another opens, once its pending choices are saved; a refused save keeps it open with its reason and Retry.
+  const switchTo = async (next: Open | null) => { if (await mayLeave()) setOpen(next); };
 
   return <div className="page-stack alerts-page">
     <section className="page-title-row"><div><h1>Alerts</h1><p>Alerts from your tools open private drafts. Nothing is public until you publish.</p></div></section>
-    {connected.length > 0 && <ConnectedTools sources={connected} components={componentList} editing={editing?.id ?? null} onEdit={source => setOpen({ kind: "edit", sourceId: source.id })} onRemoved={source => { if (editing?.id === source.id) close(); refresh(); }} />}
-    {open?.kind === "new" ? <ToolForm key={`new:${open.tool}`} tool={open.tool} source={null} components={componentList} names={connected.map(source => source.name)} onConnected={created => { if (created) setOpen({ kind: "edit", sourceId: created.id, created }); refresh(); }} onSaved={refresh} onClose={close} />
-      : editing ? <ToolForm key={`edit:${editing.id}`} tool={toolOf(editing)} source={editing} components={componentList} names={connected.map(source => source.name)} onConnected={refresh} onSaved={refresh} onClose={close} />
+    {connected.length > 0 && <ConnectedTools sources={connected} components={componentList} editing={editing?.id ?? null} onEdit={source => { if (editing?.id !== source.id) void switchTo({ kind: "edit", sourceId: source.id }); }} onRemoved={source => { if (editing?.id === source.id) setOpen(null); refresh(); }} />}
+    {open?.kind === "new" ? <ToolForm key={`new:${open.tool}`} tool={open.tool} source={null} components={componentList} names={connected.map(source => source.name)} onConnected={created => { if (created) setOpen({ kind: "edit", sourceId: created.id, created }); refresh(); }} onSaved={refresh} onClose={() => void switchTo(null)} />
+      : editing ? <ToolForm key={`edit:${editing.id}`} tool={toolOf(editing)} source={editing} components={componentList} names={connected.map(source => source.name)} onConnected={refresh} onSaved={refresh} onClose={() => void switchTo(null)} />
       : <ToolPicker onPick={tool => setOpen({ kind: "new", tool })} />}
     {arrived.length > 0 && <ReceiptsCard receipts={arrived} />}
   </div>;

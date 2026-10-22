@@ -16,9 +16,12 @@ export function ToolHeading({ title, does, close }: { title: string; does: strin
   </div>;
 }
 
-/** The quiet state of a connected tool's choices, as in Settings. */
-export function SaveNote({ phase, error, retry }: { phase: SavePhase; error: string | null; retry: () => void }) {
-  return <div className="tool-save-state">
+/** The quiet state of a connected tool's choices, pinned in view as Settings' is. A leave held by a refused save brings it
+ * into view wherever the owner was on the page. */
+export function SaveNote({ phase, error, retry, held }: { phase: SavePhase; error: string | null; retry: () => void; held: number }) {
+  const state = useRef<HTMLDivElement>(null);
+  useEffect(() => { if (held) state.current?.scrollIntoView({ block: "nearest" }); }, [held]);
+  return <div className="settings-save-state tool-save-state" ref={state}>
     <p className="settings-save-note" role="status" aria-live="polite">
       {phase === "saved" && <Icon name="check" width={16} height={16} />}
       {phase === "error" ? "Not saved" : phase === "saving" ? "Saving…" : phase === "waiting" ? "Waiting to save…" : "Saved"}

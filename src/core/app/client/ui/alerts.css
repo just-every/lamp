@@ -26,6 +26,8 @@
 .tool-fields .form-actions, .tool-form > .form-actions, .tool-secret .form-actions, .shown-once .form-actions, .tool-confirm .form-actions { margin-top: 0; }
 .tool-note { margin: 0; color: var(--ink-2); font-size: 14px; }
 .tool-note .button { margin-left: 8px; }
+/* Its save state is pinned under the header as Settings' is (.settings-save-state), on the form's white. */
+.tool-form .tool-save-state { margin: -8px 0; background: var(--card); }
 .tool-save-state .save-message { margin-top: 8px; }
 .tool-step, .tool-secret { display: grid; gap: 12px; }
 .tool-step > p { margin: 0; color: var(--ink-2); }
