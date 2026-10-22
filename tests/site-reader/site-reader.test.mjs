@@ -240,6 +240,12 @@ test('the site reader reads what a site says about itself, refuses private desti
     'https://status.val.town/': poweredBy('https://betterstack.com/uptime'),
     'https://status.val.town/index.json': json(valtown['public-index.json']),
     'https://status.val.town/feed': xml(valtown['public-feed.rss']),
+    // A linked "status page" that is a marketing page: the common subdomain is tried next and answers.
+    'https://market.example/': { body: home('Market', 'https://market.example/status-page') },
+    'https://market.example/status-page': { body: '<!doctype html><title>Status page software</title><main><p>Keep customers informed.</p></main>' },
+    'https://status.market.example/': poweredBy('https://www.atlassian.com/software/statuspage'),
+    'https://status.market.example/api/v2/summary.json': json(convex['public-summary.json']),
+    'https://status.market.example/api/v2/incidents.json': json(convex['public-incidents.json']),
     // Nothing to take: status.<domain> on a private address, a linked page no vendor's feeds answer for, a page without components.
     'https://private.example/': { body: home('Private') },
     'https://other.example/': { body: home('Other', 'https://status.other.example/') },
@@ -259,6 +265,8 @@ test('the site reader reads what a site says about itself, refuses private desti
   assert.deepEqual([linked.existingPage.host, linked.existingPage.source, linked.existingPage.pastIncidents], ['status.convex.dev', 'statuspage', 50]);
   assert.deepEqual(linked.existingPage.groups.map(group => group.name), ['Live Traffic', 'Development Services'], 'the page\'s own groups, in its order');
   assert.deepEqual(listed(linked), ['Live Traffic / Free & Starter', 'Live Traffic / Professional', 'Live Traffic / Business', 'Development Services / Free & Starter', 'Development Services / Professional', 'Development Services / Business', 'convex.dev website', 'AI Gateway']);
+  const marketing = await found('market.example');
+  assert.deepEqual([marketing.statusPage, stored.statusPage.url, marketing.existingPage.source, marketing.existingPage.components.length], ['https://status.market.example/', 'https://status.market.example/', 'statuspage', 8], 'a marketing link does not stop the search: the status subdomain\'s feeds are taken');
   const guessed = await found('zed.example');
   assert.equal(guessed.statusPage, 'https://status.zed.example/', 'a page at status.<domain> is found without a link');
   assert.deepEqual([guessed.existingPage.source, guessed.existingPage.pastIncidents], ['instatus', 16]);

@@ -12,7 +12,7 @@ export interface OverviewService {
     maintenance: Awaited<ReturnType<MaintenanceService["list"]>>;
   }>;
   /** First run: add the groups and components the owner kept, skipping any a group (or the ungrouped list) already
-   * holds by name, then store completion. */
+   * holds by name, then store completion. Groups that share a name stay separate groups. */
   finishFirstRun(operatorId: string, layout: { components: string[]; groups?: Array<{ name: string; components: string[] }> }): Promise<void>;
 }
 
@@ -51,11 +51,14 @@ export function createOverviewService(
         }
       };
       const named = groups.map(({ id, name }) => ({ id, name }));
+      const claimed = new Set<string>();
       for (const group of layout.groups ?? []) {
         if (!group.components.some((name) => name.trim())) continue;
-        // A group of that name already here (one an import brought) takes the rest of its components.
-        let target = named.find((candidate) => candidate.name.trim().toLowerCase() === group.name.trim().toLowerCase());
+        // A group of that name an import brought takes the rest of its components, once: another group of the same
+        // name is a group of its own, never the same one.
+        let target = named.find((candidate) => !claimed.has(candidate.id) && candidate.name.trim().toLowerCase() === group.name.trim().toLowerCase());
         if (!target) { target = await componentsService.createGroup({ name: group.name.trim(), displayOrder: groupOrder++ }); named.push(target); }
+        claimed.add(target.id);
         await add(group.components, target.id);
       }
       await add(layout.components, null);

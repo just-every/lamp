@@ -7,11 +7,13 @@ type Raw = Record<string, unknown>;
 const text = (value: unknown) => typeof value === "string" ? value : "";
 const attributes = (row: Raw) => object(row.attributes);
 const number = (value: unknown) => typeof value === "number" ? value : Number.MAX_SAFE_INTEGER;
+const DEFAULT_SECTION = /^current status by service$/i;
 const STATES: Record<string, StatusFeedState> = { operational: "operational", resolved: "operational", degraded: "degraded_performance", downtime: "major_outage", maintenance: "under_maintenance" };
 
 /** Better Stack's /index.json: the page, its sections and the resources it shows in them. A named section is a group;
- * resources in an unnamed one are ungrouped, and so are a page's whose only section holds them all: every Better Stack
- * resource sits in a section, so one section ("Current status by service") is the page's list, not a grouping. */
+ * resources in an unnamed one are ungrouped, and so are a page's whose only section is Better Stack's default one:
+ * every resource sits in a section, so that one ("Current status by service") is the page's list, not a grouping. A
+ * sole section the page's owner named themselves is their own group. */
 export function betterstackIndex(value: unknown) {
   const body = object(value), page = object(body.data);
   if (page.type !== "status_page" || typeof page.id !== "string" || !Array.isArray(body.included)) throw new Error("Not a Better Stack status page.");
@@ -19,7 +21,7 @@ export function betterstackIndex(value: unknown) {
   const of = (type: string) => included.filter((row) => row.type === type && typeof row.id === "string");
   const sections = of("status_page_section").sort((a, b) => number(attributes(a).position) - number(attributes(b).position));
   const sectionOrder = new Map(sections.map((section, index) => [String(section.id), index]));
-  const groups: StatusFeedGroup[] = sections.length < 2 ? [] : sections.filter((section) => pageComponentName(text(attributes(section).name))).map((section) => ({ id: String(section.id), name: pageComponentName(text(attributes(section).name)), raw: section }));
+  const groups: StatusFeedGroup[] = sections.filter((section) => pageComponentName(text(attributes(section).name)) && (sections.length > 1 || !DEFAULT_SECTION.test(text(attributes(section).name).trim()))).map((section) => ({ id: String(section.id), name: pageComponentName(text(attributes(section).name)), raw: section }));
   const resources = of("status_page_resource").filter((row) => pageComponentName(text(attributes(row).public_name)))
     .sort((a, b) => (sectionOrder.get(String(attributes(a).status_page_section_id)) ?? -1) - (sectionOrder.get(String(attributes(b).status_page_section_id)) ?? -1) || number(attributes(a).position) - number(attributes(b).position));
   const components: StatusFeedComponent[] = resources.map((row) => {

@@ -6,10 +6,10 @@ import type { FoundExisting, FoundPage } from "./found-card";
  * order. A line that still reads as the page named a component is that component; a renamed line keeps the
  * component that stood in its place; any other line is a new component of the owner's own. */
 export function keptComponents(page: FoundPage, existing: FoundExisting) {
-  const sections = [...page.groups.map((group) => ({ group: group.name as string | null, names: group.components })), { group: null, names: page.components }];
+  const sections = [...page.groups.map((group) => ({ group: group.id as string | null, names: group.components })), { group: null, names: page.components }];
   return sections.flatMap(({ group, names }) => {
     const lines = names.map((name) => name.trim()).filter(Boolean);
-    const source = existing.components.filter((component) => component.group === group);
+    const source = existing.components.filter((component) => component.groupId === group);
     const used = new Set<string>();
     const matched = lines.map((name) => {
       const same = source.find((component) => !used.has(component.id) && component.name === name);

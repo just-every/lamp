@@ -49,8 +49,8 @@ export function FirstRunPage({ publicPageOrigin, ownerId }: { publicPageOrigin: 
     // The business's own status page lists its real components: they take the place of the navigation's.
     const page = site.existingPage;
     const components = page
-      ? { components: page.components.filter((component) => !component.groupId).map((component) => component.name), groups: page.groups.map((group) => ({ name: group.name, components: page.components.filter((component) => component.groupId === group.id).map((component) => component.name) })),
-        existing: { url: page.url, host: page.host, source: page.source, pastIncidents: page.pastIncidents, components: page.components.map((component) => ({ id: component.id, name: component.name, group: page.groups.find((group) => group.id === component.groupId)?.name ?? null })) } }
+      ? { components: page.components.filter((component) => !component.groupId).map((component) => component.name), groups: page.groups.map((group) => ({ id: group.id, name: group.name, components: page.components.filter((component) => component.groupId === group.id).map((component) => component.name) })),
+        existing: { url: page.url, host: page.host, source: page.source, pastIncidents: page.pastIncidents, components: page.components.map((component) => ({ id: component.id, name: component.name, groupId: component.groupId })) } }
       : { components: site.components.map((component) => component.name), groups: [], existing: null };
     setDraft({ website, found: { ...base, pageName: site.pageName, tagline: site.tagline ?? base.tagline, accentColor: site.accentColor ?? base.accentColor, mark: site.mark ? { src: site.mark.dataUrl, vector: isVectorMark(site.mark.contentType), from: site.mark.url } : null, ...components, history: false, statusPage: site.statusPage }, review: { kind: "read", note: `We read ${site.host}. Change anything now or later in Settings.` } });
   }

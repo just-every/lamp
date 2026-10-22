@@ -68,14 +68,22 @@ export function createWebsiteService(repository: WebsiteRepository, options: { r
         return { found: null, message: result.message, ...(result.reason !== "invalid-url" && result.reason !== "refused-address" ? hostnamePageName(input) : {}) };
       }
       const linked = result.site.statusPage;
-      // A site that links to no status page may still run one at status.<its domain>; only a page whose own
-      // feeds answer as a Statuspage, Instatus or Better Stack page counts as found there.
-      const address = linked?.url ?? `https://status.${siteDomain(result.site.host)}/`;
-      const read = await options.readStatusPage(address).catch(() => null);
-      const statusPage = linked ? read?.page ?? { url: linked.url, source: null, pageId: null } : read?.feeds ? read.page : null;
+      // The link a site gives for its status page may be a marketing page, so the common subdomain of its host is
+      // tried as well, one candidate after another until one's own feeds answer as a Statuspage, Instatus or Better
+      // Stack page with components. Only such a page, or the site's own link, counts as found.
+      const host = result.site.host.replace(/^www\./, "");
+      const candidates = [...new Set([linked?.url, `https://status.${siteDomain(host)}/`, `https://status.${host}/`].filter((address): address is string => Boolean(address)))];
+      let recognised: StatusPageRead | null = null;
+      let linkedRead: StatusPageRead | null = null;
+      for (const address of candidates) {
+        const read = await options.readStatusPage(address).catch(() => null);
+        if (address === linked?.url) linkedRead = read;
+        if (read?.feeds?.components.length) { recognised = read; break; }
+      }
+      const statusPage = recognised ? recognised.page : linked ? linkedRead?.page ?? { url: linked.url, source: null, pageId: null } : null;
       await repository.record(result.site.url, statusPage);
       const prefill = prefillFrom(result.site);
-      return { found: { ...prefill, statusPage: prefill.statusPage ?? statusPage?.url ?? null, existingPage: existingPageFrom(read?.feeds ?? null) } };
+      return { found: { ...prefill, statusPage: (recognised && recognised !== linkedRead ? recognised.page.url : prefill.statusPage) ?? statusPage?.url ?? null, existingPage: existingPageFrom(recognised?.feeds ?? linkedRead?.feeds ?? null) } };
     },
   };
 }

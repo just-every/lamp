@@ -136,7 +136,13 @@ function mapIncident(incident: SourceIncident, components: Map<string, { id: str
   const updates = [...incident.incident_updates].sort((a, b) => at(a).localeCompare(at(b)) || a.id.localeCompare(b.id));
   if (!updates.length) return { kind: "incident", sourceId: incident.id, accounting: [{ kind: "incident", sourceId: incident.id, name, outcome: "rejected", reason: "No published updates to carry." }] };
   const id = identify(`incident:${incident.id}`, incident.created_at);
-  const claimEndsAt = sourceEndedAt ? iso(sourceEndedAt) : null;
+  // The source's resolved state outranks the order of its update times: an update stamped after the resolution
+  // cannot reopen the incident, so the resolution ends its component claims and its lifecycle stays Resolved.
+  const resolvedUpdates = updates.filter((update) => lifecycles[update.status] === "Resolved");
+  const lastLifecycle = updates.reduce<IncidentLifecycle>((current, update) => lifecycles[update.status] ?? current, "Investigating");
+  const reopenedByLateUpdate = incident.status === "resolved" && lastLifecycle !== "Resolved";
+  const sourceResolvedAt = reopenedByLateUpdate ? iso(incident.resolved_at ?? (resolvedUpdates.length ? at(resolvedUpdates[resolvedUpdates.length - 1]) : at(updates[updates.length - 1]))) : null;
+  const claimEndsAt = sourceEndedAt ? iso(sourceEndedAt) : sourceResolvedAt;
   const notes = new Set<string>();
   const current = new Map<string, ComponentState>();
   const peak: ComponentState[] = [];
@@ -170,6 +176,7 @@ function mapIncident(incident: SourceIncident, components: Map<string, { id: str
     const names = stated.length ? stated : listedNames;
     rows.push({ id: identify(`incident-update:${update.id}`, publishedAt), incident_id: id, lifecycle, affected_audience: clip(names.length ? `Customers using ${names.join(", ")}` : "All customers", 250), customer_impact: impact, what_still_works: "", details, next_update_at: null, published_at: publishedAt, author_operator_id: operatorId, corrects_update_id: null, is_retroactive: 1, created_at: asOf, updated_at: asOf });
   }
+  if (reopenedByLateUpdate) { lifecycle = "Resolved"; resolvedAt = sourceResolvedAt; }
   if (claimEndsAt) for (const code of current.keys()) claims.push({ componentId: components.get(code)!.id, causeType: "incident", causeId: id, state: null, changedAt: claimEndsAt });
   if (independentImpact && incident.components?.some(component => !current.has(component.id))) notes.add("a listed component has no explicit state in the saved updates; no component claim was invented from the incident impact");
   const firstPublished = at(updates[0]);

@@ -19,6 +19,13 @@ const home = `<!doctype html><html><head><title>Time tracking for teams | Acme T
 <footer><a href="https://status.acme-tracking.com/">Status</a></footer></body></html>`;
 // The business's own status page answers with a real Statuspage capture (status.convex.dev, tests/fixtures/status-feeds).
 const feeds = Object.fromEntries(readdirSync('tests/fixtures/status-feeds/statuspage-convex').map(name => [name, readFileSync(`tests/fixtures/status-feeds/statuspage-convex/${name}`, 'utf8')]));
+// One resolved incident's first update is stamped after its resolution; the page still shows it resolved, so Lamp does too.
+{
+  const list = JSON.parse(feeds['public-incidents.json']);
+  const late = list.incidents.find(incident => incident.id === '66l0hf26745b').incident_updates.find(update => update.id === 'sy2qcwx43kwp');
+  late.display_at = '2026-10-20T15:27:29.041Z';
+  feeds['public-incidents.json'] = JSON.stringify(list);
+}
 const noComponents = JSON.stringify({ page: { id: 'acmetracking01' }, status: { indicator: 'none' }, components: [], incidents: [], scheduled_maintenances: [] });
 
 contract('SETUP-002', 'a fresh owner gives their website first; Lamp fills in the page from it, or from the status page it already runs, a site it cannot read leaves calm defaults, and the edited result is what customers see', async () => {
@@ -139,6 +146,7 @@ contract('SETUP-002', 'a fresh owner gives their website first; Lamp fills in th
     assert.equal(incidents.length, expected.length);
     assert.ok(expected.length > 40 && incidents.every(incident => incident.lifecycle === 'Resolved' && incident.resolvedAt), 'all of it resolved, none of it active');
     assert.equal((await api('/api/app/overview')).overview.activeIncidents.length, 0);
+    assert.ok(components.every(component => component.publicState === 'Operational'), 'no component is left degraded by history');
     assert.deepEqual((await api('/api/app/deliveries')).deliveries, [], 'no one was notified');
     const newest = incidents.find(incident => incident.title === 'Elevated Error Rate for Deploying Node Actions');
     assert.deepEqual(newest.updates.map(update => update.publishedAt).sort(), source.find(incident => incident.name === newest.title).incident_updates.map(update => new Date(update.display_at).toISOString()).sort(), 'each update at its own time');

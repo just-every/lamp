@@ -9,13 +9,13 @@ export interface FoundMark { src: string; vector: boolean; from: string | null }
 /** The status page the business already runs, as its public feeds listed it when setup read it. */
 export interface FoundExisting {
   url: string; host: string; source: "statuspage" | "instatus" | "betterstack";
-  components: Array<{ id: string; name: string; group: string | null }>; pastIncidents: number;
+  components: Array<{ id: string; name: string; groupId: string | null }>; pastIncidents: number;
 }
 export interface FoundPage {
   pageName: string; tagline: string; accentColor: string; timezone: string;
   mark: FoundMark | null; statusPage: string | null;
-  /** Components outside any group, and the page's own groups with theirs. */
-  components: string[]; groups: Array<{ name: string; components: string[] }>;
+  /** Components outside any group, and the page's own groups with theirs; a group keeps the page's own ID, as two groups may share a name. */
+  components: string[]; groups: Array<{ id: string; name: string; components: string[] }>;
   existing: FoundExisting | null;
   /** The owner chose to bring the existing page's past incidents across as resolved history. */
   history: boolean;
