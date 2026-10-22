@@ -1586,3 +1586,7 @@ provider domain-verification read capability. Overview describes configured
 Managed mail neutrally instead of warning about an unsupported check. Missing
 configuration and direct-provider check failures retain their warnings. This
 Overview presentation makes no verification or subscriber-delivery claim.
+
+## Settings publish as they change — 22 October 2026 (owner L8/L15)
+
+Settings text saves after a short pause; selections and toggles publish immediately. Writes are serialized and never replace an editable draft with an earlier response. A failed save keeps the entered value and offers a retry. Sender email and allowed widget websites publish only after their inline Confirm. Embed tag choices are retained across reload and portable exports. Add channel, Invite operator, uploads, imports and erasure remain explicit actions.

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 import { appApi, useAppData } from "../../../app/client/ui/api";
 import { Button } from "../../../app/client/ui/button";
@@ -18,31 +18,44 @@ export function ImportDoorSetting() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const queue = useRef({ sending: false, revision: 0, completed: 0, enabled: false });
   const settings = saved ?? resource.data;
   const revokedKids = settings?.keys.filter(key => key.revoked).map(key => key.kid) ?? [];
   const canRevoke = settings?.keys.some(key => key.kid === selectedKid && !key.revoked);
 
   async function save(enabled: boolean, revokeKid?: string) {
-    if (!settings || busy) return;
-    setBusy(true); setError(null); setMessage(null);
+    if (!settings) return;
+    const q = queue.current;
+    q.enabled = enabled; q.revision++;
     setSaved({ ...settings, enabled });
+    setError(null); setMessage(null);
+    if (q.sending) return;
+    q.sending = true; setBusy(true);
     try {
-      const next = await appApi<ImportDoorSettings>(settingsPath, {
-        method: "PUT",
-        body: JSON.stringify({ enabled, ...(revokeKid ? { revokedKids: [...revokedKids, revokeKid] } : {}) }),
-      });
-      setSaved(next);
-      if (revokeKid) setSelectedKid("");
-      setMessage(revokeKid ? `Grant key ${revokeKid} was permanently revoked.` : `Business imports ${next.enabled ? "enabled" : "disabled"}.`);
-    } catch (cause) {
-      setSaved(settings);
-      setError(cause instanceof Error ? cause.message : "Business import settings could not be saved.");
-    } finally { setBusy(false); }
+      while (q.completed !== q.revision) {
+        const revision = q.revision;
+        try {
+          const next = await appApi<ImportDoorSettings>(settingsPath, {
+            method: "PUT",
+            body: JSON.stringify({ enabled: q.enabled, ...(revokeKid ? { revokedKids: [...revokedKids, revokeKid] } : {}) }),
+          });
+          q.completed = revision;
+          setSaved({ ...next, enabled: q.enabled });
+          if (revokeKid) setSelectedKid("");
+          setMessage(revokeKid ? `Grant key ${revokeKid} was permanently revoked.` : "Saved · live");
+          revokeKid = undefined;
+        } catch (cause) {
+          if (q.revision !== revision) continue;
+          setError(`Business imports could not be saved: ${cause instanceof Error ? cause.message : "The server could not be reached."} Your choice is kept here.`);
+          break;
+        }
+      }
+    } finally { q.sending = false; setBusy(false); }
   }
 
   return <details><summary>Business imports · {resource.loading ? 'Checking…' : settings?.enabled ? 'On' : 'Off'}</summary><div className="setup-guide" aria-busy={busy || resource.loading}>
     <label className="checkbox-label">
-      <input type="checkbox" checked={settings?.enabled ?? false} disabled={busy || resource.loading || Boolean(resource.error) || !settings?.configured} onChange={event => void save(event.target.checked)} />
+      <input type="checkbox" checked={settings?.enabled ?? false} disabled={resource.loading || Boolean(resource.error) || !settings?.configured} onChange={event => void save(event.target.checked)} />
       Allow Business imports
     </label>
     <small className="field-note">Allow imports included with a Business plan. Changes take effect immediately.</small>
@@ -60,7 +73,8 @@ export function ImportDoorSetting() {
     </>}
     {revokedKids.length > 0 && <small className="field-note">Permanently revoked: {revokedKids.join(", ")}</small>}
     {(resource.error || error) && <p role="alert">{resource.error || error}</p>}
+    {error && <Button type="button" variant="secondary" disabled={busy} onClick={() => void save(settings?.enabled ?? false)}>Retry</Button>}
     {resource.error && <Button type="button" variant="secondary" onClick={resource.refresh}>Retry Business import settings</Button>}
-    {message && <p role="status">{message}</p>}
+    {busy ? <p role="status">Saving…</p> : message && <p role="status">{message}</p>}
   </div></details>;
 }

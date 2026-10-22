@@ -405,17 +405,32 @@ contract("DRAFT-002", "operators save and reload AI tone instructions while the 
   await operatorHydrated(page);
   await page.getByText("No provider configured", { exact: true }).waitFor();
   const toneField = page.getByLabel("Tone instructions");
-  await toneField.fill(tone);
-  await page.getByRole("link", { name: "Page", exact: true }).click();
-  await page.getByRole("link", { name: "Writing", exact: true }).click();
-  assert.equal(await toneField.inputValue(), tone, "switching Settings tabs keeps the unsaved draft");
-  const warning = page.waitForEvent("dialog");
-  const leave = page.getByRole("link", { name: "Overview", exact: true }).click();
-  await (await warning).dismiss(); await leave;
-  assert.equal(new URL(page.url()).pathname, "/app/settings", "cancelling navigation keeps Settings open");
-  assert.equal(await toneField.inputValue(), tone, "cancelling navigation keeps the edit");
-  await page.getByRole("button", { name: "Save settings" }).click();
-  await page.getByText("Saved and live.", { exact: true }).waitFor();
+  // Keep the native write awaiting acknowledgement while exercising the unsaved-edit guard.
+  let releaseSave;
+  const heldSave = new Promise(resolve => { releaseSave = resolve; });
+  const holdSettings = async route => {
+    if (route.request().method() === "PUT") await heldSave;
+    await route.continue();
+  };
+  await page.route("**/api/app/page-settings", holdSettings);
+  try {
+    const saved = page.waitForResponse(response => new URL(response.url()).pathname === "/api/app/page-settings" && response.request().method() === "PUT" && response.request().postDataJSON().aiToneInstructions === tone);
+    await toneField.fill(tone);
+    await page.getByRole("link", { name: "Page", exact: true }).click();
+    await page.getByRole("link", { name: "Writing", exact: true }).click();
+    assert.equal(await toneField.inputValue(), tone, "switching Settings tabs keeps the unsaved draft");
+    const warning = page.waitForEvent("dialog");
+    const leave = page.getByRole("link", { name: "Overview", exact: true }).click();
+    await (await warning).dismiss(); await leave;
+    assert.equal(new URL(page.url()).pathname, "/app/settings", "cancelling navigation keeps Settings open");
+    assert.equal(await toneField.inputValue(), tone, "cancelling navigation keeps the edit");
+    releaseSave();
+    assert.equal((await saved).status(), 200);
+    await page.getByRole("status").filter({ hasText: /^Saved · live$/ }).waitFor();
+  } finally {
+    releaseSave();
+    await page.unroute("**/api/app/page-settings", holdSettings);
+  }
   await page.reload();
   await operatorHydrated(page);
   await page.getByText("No provider configured", { exact: true }).waitFor();

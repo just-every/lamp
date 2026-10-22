@@ -14,6 +14,7 @@ import { accessibilityFailure, observeAuditPage } from './subscriber-audit-helpe
 import { sessionCookieName } from '../helpers/session-cookie.mjs';
 import { devKey } from '../helpers/dev-key.mjs';
 import { operatorHydrated } from "./helpers/operator-hydrated.mjs";
+import { settingsSenderConfirmFlow } from './helpers/settings-sender-confirm-flow.mjs';
 const executeFile = promisify(execFile);
 
 test('SETUP-001 Lamp checks its page at 1440 and 390: local mail stays quiet, Managed mail stays neutral, and missing BYO credentials warn', { timeout: 240_000 }, async () => {
@@ -119,15 +120,15 @@ test('SETUP-001 Lamp checks its page at 1440 and 390: local mail stays quiet, Ma
     diagnostics.phase = 'settings-save';
     await page.goto(`${origin}/app/settings`);
     await operatorHydrated(page);
+    const savedSettings = page.waitForResponse(response => new URL(response.url()).pathname === '/api/app/page-settings' && response.request().method() === 'PUT' && response.request().postDataJSON().timezone === 'Australia/Brisbane');
     await page.getByLabel('Page name', { exact: true }).fill('Customer status');
     // The native label wraps a populated textarea; its text includes the
     // initial textarea contents. Select that label's actual editable control.
     await page.locator('label').filter({ hasText: /^Tagline/ }).locator('textarea').fill('Current service availability');
     await page.locator('label').filter({ hasText: /^Time zone/ }).locator('select').selectOption('Australia/Brisbane');
-    const savedSettings = page.waitForResponse(response => new URL(response.url()).pathname === '/api/app/page-settings' && response.request().method() === 'PUT');
-    await page.getByRole('button', { name: 'Save settings', exact: true }).click();
     diagnostics.phase = 'settings-save-response';
     assert.equal((await savedSettings).status(), 200);
+    await page.getByRole('status').filter({ hasText: /^Saved · live$/ }).waitFor();
     const saved = (await api('/api/app/page-settings')).settings;
     assert.equal(saved.pageName, 'Customer status');
     assert.equal(saved.tagline, 'Current service availability');
@@ -139,6 +140,8 @@ test('SETUP-001 Lamp checks its page at 1440 and 390: local mail stays quiet, Ma
     await page.getByRole('heading', { name: 'Notification email', exact: true }).waitFor();
     assert.equal(await page.locator('.sender-status').count(), 0, 'local mail stays quiet');
     assert.equal((await api('/api/app/deliveries')).mail.local, true);
+    diagnostics.phase = 'settings-sender-confirm';
+    await settingsSenderConfirmFlow({ page, api });
     diagnostics.phase = 'component-create';
     await page.goto(`${origin}/app/components`);
     await page.getByRole('heading', { name: 'Add component', exact: true }).waitFor();
