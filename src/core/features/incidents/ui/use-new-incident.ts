@@ -13,8 +13,9 @@ declare module "@tanstack/react-router" {
   interface HistoryState { incidentNotice?: IncidentNotice }
 }
 
-/** What the incident page opens with after the new-incident screen. `publication` carries the operator's notification and timing
- * choices when the update stayed private (saved as a draft, or refused), so a retry offers what they chose. */
+/** What the incident page opens with after the new-incident screen, on that visit only. `publication` carries the operator's
+ * notification and timing choices when the update stayed private (saved as a draft, or refused), so a retry offers what they
+ * chose. A scheduled update needs none: the server holds its time and channels, and the incident page starts from them. */
 export type IncidentNotice = { text: string; error: boolean; publication?: { channels: Channel[]; timing: PublishTiming } };
 export type NewClaim = { componentId: string; state: IncidentClaimState; relationship: "Primary" | "Dependent" };
 export interface NewIncident { title: string; claims: NewClaim[]; update: IncidentFirstUpdateInput; openedAt: string | null; channels: Channel[]; timing: PublishTiming }

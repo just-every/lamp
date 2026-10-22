@@ -184,6 +184,13 @@ async function waitForPublicIncident(reference, expectedText) {
   throw new Error(`The public snapshot did not contain ${expectedText} for ${reference}.`);
 }
 
+// A date and time input value `offsetMs` from now in the page's Los Angeles zone.
+const localInput = (offsetMs) => page.evaluate((offset) => {
+  const parts = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Los_Angeles", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).formatToParts(new Date(Date.now() + offset));
+  const part = (kind) => parts.find(entry => entry.type === kind).value;
+  return `${part("year")}-${part("month")}-${part("day")}T${part("hour")}:${part("minute")}`;
+}, offsetMs);
+
 test("compiled visual edits survive actual operator navigation and reload", async () => {
   const snapshot = JSON.parse(readFileSync(resolve('src/editor/visual-edits.json'),'utf8'));
   const errors = [], recordError = error => errors.push(error.message);
@@ -291,11 +298,6 @@ contract("INCIDENT-004", "operator controls create internal notes, retroactive r
   const componentResponse = await appFetch("/api/app/components", { method: "POST", body: JSON.stringify({ groupId: null, name: "Journey API", description: "Customer API used for the empty-product incident journey.", internal: false, displayOrder: 1, note: "" }) });
   assert.equal(componentResponse.status, 201);
   const { component } = await componentResponse.json();
-  const localInput = (offsetMs) => page.evaluate((offset) => {
-    const parts = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Los_Angeles", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).formatToParts(new Date(Date.now() + offset));
-    const part = (kind) => parts.find(entry => entry.type === kind).value;
-    return `${part("year")}-${part("month")}-${part("day")}T${part("hour")}:${part("minute")}`;
-  }, offsetMs);
   const form = newIncidentForm(page);
   const freshForm = async (title) => {
     // The screen remembers an unpublished form for the tab; each case starts from an empty one.
@@ -449,7 +451,7 @@ contract("UPDATE-005", "composer autosaves a changed draft in under two seconds 
   assert.equal(await page.getByRole("button", { name: "Suggest update" }).count(), 0, "the absent provider must not expose an AI control");
 });
 
-contract("UPDATE-006", "the composer schedules publication separately from its next-update commitment", async () => {
+contract("UPDATE-006", "the composer schedules publication separately from its next-update commitment", async (t) => {
   const incident = await createBrowserIncident();
   await page.goto(`${appUrl}/app/incidents/${incident.id}`);
   await operatorHydrated(page);
@@ -471,6 +473,72 @@ contract("UPDATE-006", "the composer schedules publication separately from its n
   await page.getByLabel("Scheduled publication date and time").fill("2027-09-08T13:30");
   await page.getByRole("button", { name: "Schedule update" }).click();
   await page.getByText("Update scheduled. It stays private until then.").waitFor();
+
+  // What the incident page offers for a stored schedule: its channels, its time and Schedule update.
+  const controls = page.getByRole("region", { name: "Publication controls" });
+  const time = controls.getByLabel("Scheduled publication date and time");
+  const shown = async () => {
+    await composer.moreOptions();
+    const channels = [];
+    for (const [channel, name] of [["email", "Email"], ["webhook", "Webhook"], ["chat", "Slack and Teams"]]) if (await controls.getByRole("checkbox", { name, exact: true }).isChecked()) channels.push(channel);
+    return { channels: channels.sort(), mode: await controls.locator('input[name="publish-timing"]:checked').evaluate(node => node.parentElement.textContent), at: await time.count() ? await time.inputValue() : null, scheduleUpdate: await page.getByRole("button", { name: "Schedule update", exact: true }).count() === 1 };
+  };
+  const stored = async (id) => (await (await appFetch(`/api/app/incidents/${id}`)).json()).incident.draft;
+  const reopen = async () => { await page.reload(); await operatorHydrated(page); await page.getByRole("heading", { name: "First update", exact: true }).waitFor(); };
+  t.diagnostic("a reload opens the schedule the server holds");
+  await reopen();
+  assert.deepEqual(await shown(), { channels: [...(await stored(incident.id)).scheduledChannels].sort(), mode: "Schedule", at: "2027-09-08T13:30", scheduleUpdate: true });
+
+  const form = newIncidentForm(page);
+  const scheduleNew = async (title, at) => {
+    await page.goto(`${appUrl}/app/incidents/new`);
+    await page.evaluate(() => sessionStorage.removeItem("lamp.new-incident"));
+    await page.reload();
+    await operatorHydrated(page);
+    await form.title.fill(title);
+    await form.impact.fill("Uploads are delayed.");
+    await page.getByLabel("Add component", { exact: true }).selectOption(incident.components[0].componentId);
+    await form.audience.fill("Customers uploading files.");
+    await form.nextUpdate.fill(await localInput(4 * 60 * 60_000));
+    await form.moreOptions();
+    for (const [name, checked] of [["Email", false], ["Webhook", true], ["Slack and Teams", false]]) await controls.getByRole("checkbox", { name, exact: true }).setChecked(checked);
+    await controls.getByRole("radio", { name: "Schedule", exact: true }).check();
+    await time.fill(at);
+    await page.getByRole("button", { name: "Schedule", exact: true }).click();
+  };
+  t.diagnostic("a refused schedule from the new-incident screen, retried on the incident page, reloads as stored and without the refusal");
+  const retried = await localInput(2 * 60 * 60_000);
+  await scheduleNew("Refused, then scheduled", await localInput(-30 * 60_000));
+  await page.getByText(/Not published: .*future/).waitFor();
+  await composer.moreOptions();
+  await time.fill(retried);
+  await page.getByRole("button", { name: "Schedule update", exact: true }).click();
+  await page.getByText("Update scheduled. It stays private until then.").waitFor();
+  await reopen();
+  assert.equal(await page.locator(".publication-message").count(), 0, "a reload never replays the refusal");
+  assert.deepEqual(await shown(), { channels: ["webhook"], mode: "Schedule", at: retried, scheduleUpdate: true });
+
+  t.diagnostic("a webhook-only schedule from the new-incident screen opens as stored, and moving only its time keeps webhook-only");
+  const scheduledAt = await localInput(90 * 60_000), movedAt = await localInput(150 * 60_000);
+  await scheduleNew("Scheduled from the new screen", scheduledAt);
+  await page.getByText("Update scheduled. It stays private until then.").waitFor();
+  const scheduledId = new URL(page.url()).pathname.split("/").at(-1);
+  assert.deepEqual(await shown(), { channels: ["webhook"], mode: "Schedule", at: scheduledAt, scheduleUpdate: true });
+  await time.fill(movedAt);
+  const moved = page.waitForResponse(response => response.url().endsWith("/draft/schedule") && response.request().method() === "POST");
+  await page.getByRole("button", { name: "Schedule update", exact: true }).click();
+  assert.equal((await moved).status(), 202);
+  const movedDraft = await stored(scheduledId);
+  assert.deepEqual(movedDraft.scheduledChannels, ["webhook"], "moving the time neither drops webhooks nor adds email subscribers");
+  assert.ok(Math.abs(Date.parse(movedDraft.scheduledPublishAt) - (Date.now() + 150 * 60_000)) < 3 * 60_000, movedDraft.scheduledPublishAt);
+
+  t.diagnostic("an edit clears the stored schedule, and the page stops saying the update is scheduled");
+  await composer.impact.fill("Uploads are delayed for some customers.");
+  await page.getByText("Update scheduled. It stays private until then.").waitFor({ state: "detached" });
+  const edited = await stored(scheduledId);
+  assert.equal(edited.customerImpact, "Uploads are delayed for some customers.");
+  assert.equal(edited.scheduledPublishAt, null);
+  assert.deepEqual(await shown(), { channels: ["webhook"], mode: "Schedule", at: movedAt, scheduleUpdate: true }, "the choices stay for one-click rescheduling");
 });
 
 contract("DRAFT-002", "operators save and reload AI tone instructions while the UI honestly reports an unconfigured provider", async () => {

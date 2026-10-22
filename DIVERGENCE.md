@@ -1598,7 +1598,12 @@ the claimed state, and the audience), the next-update time and Publish, beside t
 renderer's preview with a Page and Email switch. Publish creates the incident with
 that update as its saved draft and publishes it; a refused publication leaves the
 saved draft on the incident page with the reason and with the notification and
-timing choices the operator made (as does Save as private draft). Everything else is under More
+timing choices the operator made (as does Save as private draft). A scheduled update
+opens the incident page as the server holds it, with its time and channels, so moving
+only the time keeps who is notified. Whatever the new screen reports on arrival
+(published, scheduled, refused or saved) shows once: a reload or a return to the page
+does not replay it. Any draft edit clears a stored schedule, and the page then says so instead of
+still claiming the update is scheduled. Everything else is under More
 options (starting status, what still works, details, opening time, channels,
 schedule or backdate, relationships, templates, Save as private draft). An open
 incident keeps the same plate: status choice, the same fields, the preview, the

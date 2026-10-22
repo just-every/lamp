@@ -35,6 +35,8 @@ import { PublicationControls, publishHint, type Channel, type PublishTiming } fr
 
 type IncidentResponse = { wordingChecks?: { blockedTerms: string[]; friendlyLength: number }; incident: Awaited<ReturnType<IncidentsService["get"]>>; hasChatChannels: boolean; previewError?: string | null; preview?: RenderedIncidentUpdate | null };
 type PreviewResponse = { preview: RenderedIncidentUpdate };
+// A draft write clears the stored schedule on the server, so the page stops saying the update is scheduled.
+const SCHEDULE_CLEARED = "Your edit cancelled the schedule.";
 
 export function IncidentDetailPage({ incidentId }: { incidentId: string }) {
   // Every editing visit owns its data loader, draft queue and child controls.
@@ -55,8 +57,15 @@ function IncidentVisit({ incidentId }: { incidentId: string }) {
   const initialPreviewTimezone = useRef(timezone);
   const { data, error, loading, refresh } = useAppData<IncidentResponse>(`/api/app/incidents/${incidentId}`);
   const navigate = useNavigate();
-  // What the new-incident screen reports after it created this incident and published (or failed to).
-  const arrival = useRouterState({ select: state => state.location.state.incidentNotice });
+  // What the new-incident screen reports after it created this incident and published (or failed to). It belongs to
+  // this visit: read once here, then dropped from the history entry, so a reload or a return never replays it.
+  const notice = useRouterState({ select: state => state.location.state.incidentNotice });
+  const arrival = useRef(notice).current;
+  useEffect(() => {
+    const { incidentNotice, ...entry } = window.history.state ?? {};
+    // The native replace: the router's patched one counts as a navigation and reloads the page's data.
+    if (incidentNotice) History.prototype.replaceState.call(window.history, entry, "");
+  }, []);
   // A same-incident refresh must not restart the draft deadline (UPDATE-005).
   const loadedIncidentId = data?.incident?.id === incidentId ? incidentId : undefined;
   const [publishedIncident, setPublishedIncident] = useState<IncidentResponse["incident"]>(null);
@@ -86,6 +95,8 @@ function IncidentVisit({ incidentId }: { incidentId: string }) {
   const failedKey = useRef<string | null>(null);
   const hydratedIncident = useRef<string | null>(null);
   const hydratingDraft = useRef(false);
+  // Whether the server holds a schedule for the acknowledged draft. Every draft write clears it.
+  const heldSchedule = useRef(false);
   const wordingFindings = useMemo(() => data?.wordingChecks ? checkUpdateWording({ affectedAudience: draft.affectedAudience, customerImpact: draft.customerImpact, whatStillWorks: draft.whatStillWorks, details: draft.details }, data.wordingChecks) : [], [draft.affectedAudience, draft.customerImpact, draft.whatStillWorks, draft.details, data?.wordingChecks]);
   const draftKey = useMemo(() => JSON.stringify(draft), [draft]);
   const latestDraftKey = useRef(draftKey);
@@ -107,7 +118,11 @@ function IncidentVisit({ incidentId }: { incidentId: string }) {
     if (!data?.incident || !loadedIncidentId || hydratedIncident.current === loadedIncidentId) return;
     const initial = draftFromIncident(data.incident);
     hydratedIncident.current = data.incident.id;
-    if (data.hasChatChannels && !arrival?.publication) setChannels(["email", "chat"]);
+    // A scheduled draft opens as the server holds it: its time and its channels (UPDATE-006, NOTIFY-007).
+    const scheduled = data.incident.draft?.scheduledPublishAt ? data.incident.draft : null;
+    heldSchedule.current = Boolean(scheduled);
+    if (scheduled) { setChannels(scheduled.scheduledChannels); setTiming({ mode: "schedule", at: scheduled.scheduledPublishAt }); }
+    else if (data.hasChatChannels && !arrival?.publication) setChannels(["email", "chat"]);
     version.current = `${data.incident.draft?.id ?? "-"}:${data.incident.updates.length}`;
     hydratingDraft.current = true;
     pendingDraft.current = null;
@@ -160,6 +175,7 @@ function IncidentVisit({ incidentId }: { incidentId: string }) {
           version.current = `${response.draft.id}:${version.current.split(":")[1]}`;
           savedKey.current = draftKey;
           setSaveState(latestDraftKey.current === draftKey ? "saved" : "saving");
+          if (heldSchedule.current) { heldSchedule.current = false; setPublishState("idle"); setPublishMessage(SCHEDULE_CLEARED); }
         })
         .catch(async (cause: unknown) => {
           if (!isCurrent()) return;
@@ -226,6 +242,7 @@ function IncidentVisit({ incidentId }: { incidentId: string }) {
   };
   const applyDraft = (next: IncidentDraftInput, storedId?: string) => {
     if (storedId) { version.current = `${storedId}:${incident.updates.length}`; savedKey.current = JSON.stringify(normalizeResolvedDraft(next)); untouchedDraft.current = false; }
+    if (storedId && heldSchedule.current) { heldSchedule.current = false; setPublishState("idle"); setPublishMessage(SCHEDULE_CLEARED); }
     setDraft(normalizeResolvedDraft(next));
   };
   // UPDATE-009 on the server: the template replaces the saved draft under its acknowledged version.
@@ -272,7 +289,7 @@ function IncidentVisit({ incidentId }: { incidentId: string }) {
       pristineKey.current = JSON.stringify(next);
       savedKey.current = response.incident.draft ? pristineKey.current : null;
       untouchedDraft.current = !response.incident.draft;
-      pendingDraft.current = null; failedKey.current = null;
+      pendingDraft.current = null; failedKey.current = null; heldSchedule.current = false;
       hydratingDraft.current = true;
       setDraft(next); setSaveState("saved"); setSaveError(null);
       setPreview(null); setPreviewError(null);
@@ -284,7 +301,7 @@ function IncidentVisit({ incidentId }: { incidentId: string }) {
     if (!draftSaved || !publishable || hasTimeError || !timing.at) return;
     const isCurrent = captureUpdate();
     setPublishState("publishing"); setPublishMessage(null);
-    try { const response = await appApi<{ draft: { id: string } }>(`/api/app/incidents/${incident.id}/draft/schedule`, { method: "POST", headers: { "If-Match": version.current }, body: JSON.stringify({ publishAt: timing.at, channels }) }); if (!isCurrent()) return; version.current = `${response.draft.id}:${incident.updates.length}`; setPublishState("scheduled"); setPublishMessage("Update scheduled. It stays private until then."); }
+    try { const response = await appApi<{ draft: { id: string } }>(`/api/app/incidents/${incident.id}/draft/schedule`, { method: "POST", headers: { "If-Match": version.current }, body: JSON.stringify({ publishAt: timing.at, channels }) }); if (!isCurrent()) return; version.current = `${response.draft.id}:${incident.updates.length}`; heldSchedule.current = true; setPublishState("scheduled"); setPublishMessage("Update scheduled. It stays private until then."); }
     catch (cause) { if (!isCurrent()) return; setPublishState("error"); setPublishMessage(cause instanceof Error ? cause.message : "The update could not be scheduled."); }
   };
   const findings = (field: SuggestedFieldName) => <><WordingFindings findings={wordingFindings.filter(finding => finding.field === field)} /><SuggestionSources field={field} applied={appliedSuggestion} /></>;
