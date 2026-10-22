@@ -1,0 +1,394 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<feed xml:lang="en-US" xmlns="http://www.w3.org/2005/Atom">
+  <id>tag:status.zed.dev,2005:/history</id>
+  <link rel="alternate" type="text/html" href="https://status.zed.dev"/>
+  <link rel="self" type="application/atom+xml" href="https://status.zed.dev/history.atom"/>
+  <title>Zed Status - Incident history</title>
+  <updated>2026-04-20T04:10:00.000+00:00</updated>
+  <author>
+    <name>Zed</name>
+  </author>
+  
+<entry>
+  <id>tag:status.zed.dev,2005:Incident/cmo6zfb1b02yglojlrxpyfavv</id>
+  <published>2026-04-20T04:10:00.000+00:00</published>
+  <updated>2026-04-20T09:59:06.249+00:00</updated>
+  <link rel="alternate" type="text/html" href="https://status.zed.dev/incident/cmo6zfb1b02yglojlrxpyfavv"/>
+  <title>Issues with installing and downloading extensions</title>
+
+  <content type="html">
+  <![CDATA[
+    <p><strong>Type:</strong> Incident</p>
+    <p><strong>Duration:</strong> 5 hours and 49 minutes</p>
+    <p><strong>Affected Components:</strong> Extension Registry</p>
+    <p><small>Apr <var data-var='date'> 20</var>, <var data-var='time'>09:59:06</var> GMT+0</small><br /><strong>Resolved</strong> -
+  This incident has been resolved..</p>
+<p><small>Apr <var data-var='date'> 20</var>, <var data-var='time'>09:56:19</var> GMT+0</small><br /><strong>Monitoring</strong> -
+  We have rolled out the fix and are monitoring the rollout..</p>
+<p><small>Apr <var data-var='date'> 20</var>, <var data-var='time'>09:35:04</var> GMT+0</small><br /><strong>Identified</strong> -
+  We have identified a potential fix for the issue..</p>
+<p><small>Apr <var data-var='date'> 20</var>, <var data-var='time'>08:45:01</var> GMT+0</small><br /><strong>Investigating</strong> -
+  We are continuing to investigate the issue..</p>
+<p><small>Apr <var data-var='date'> 20</var>, <var data-var='time'>04:10:00</var> GMT+0</small><br /><strong>Investigating</strong> -
+  We are aware of an incident that causes extension installation and updates to fail and are investigating..</p>
+
+        ]]>
+  </content>
+</entry>
+
+<entry>
+  <id>tag:status.zed.dev,2005:Incident/cmns5lqw005uv1u1zn8sg1ujm</id>
+  <published>2026-04-09T23:23:00.000+00:00</published>
+  <updated>2026-04-10T02:01:24.475+00:00</updated>
+  <link rel="alternate" type="text/html" href="https://status.zed.dev/incident/cmns5lqw005uv1u1zn8sg1ujm"/>
+  <title>Issue with Claude models from Zed.dev</title>
+
+  <content type="html">
+  <![CDATA[
+    <p><strong>Type:</strong> Incident</p>
+    <p><strong>Duration:</strong> 2 hours and 38 minutes</p>
+    <p><strong>Affected Components:</strong> Agent</p>
+    <p><small>Apr <var data-var='date'> 10</var>, <var data-var='time'>02:01:24</var> GMT+0</small><br /><strong>Resolved</strong> -
+  This incident has been resolved upstream..</p>
+<p><small>Apr <var data-var='date'> 9</var>, <var data-var='time'>23:23:00</var> GMT+0</small><br /><strong>Identified</strong> -
+  All requests for Claude models with the default profiles are currently failing with &quot;&#039;web\_search&#039; is reserved for server tools and cannot be used as a custom tool name&quot;  
+  
+This can be worked around by disabling the web\_search tool in your current profile, switching to API key access, or using an alternative model family..</p>
+
+        ]]>
+  </content>
+</entry>
+
+<entry>
+  <id>tag:status.zed.dev,2005:Incident/cmi4jhlds00ywmko063y496se</id>
+  <published>2025-11-18T11:30:00.000+00:00</published>
+  <updated>2025-11-18T18:52:35.044+00:00</updated>
+  <link rel="alternate" type="text/html" href="https://status.zed.dev/incident/cmi4jhlds00ywmko063y496se"/>
+  <title>Connection issues to Zed</title>
+
+  <content type="html">
+  <![CDATA[
+    <p><strong>Type:</strong> Incident</p>
+    <p><strong>Duration:</strong> 7 hours and 23 minutes</p>
+    <p><strong>Affected Components:</strong> Agent, Edit Prediction, Collaboration</p>
+    <p><small>Nov <var data-var='date'> 18</var>, <var data-var='time'>18:52:35</var> GMT+0</small><br /><strong>Resolved</strong> -
+  This incident has been resolved..</p>
+<p><small>Nov <var data-var='date'> 18</var>, <var data-var='time'>14:58:13</var> GMT+0</small><br /><strong>Monitoring</strong> -
+  The Cloudflare outage seems to have been resolved and our services are back to being operational. 
+
+We&#039;re continuing to monitor our backend, but the incident should be resolved now..</p>
+<p><small>Nov <var data-var='date'> 18</var>, <var data-var='time'>11:30:00</var> GMT+0</small><br /><strong>Identified</strong> -
+  We&#039;re experiencing errors in our Cloudflare-powered services, but there isn&#039;t much we can do about it. The Cloudflare team is already working on a fix..</p>
+
+        ]]>
+  </content>
+</entry>
+
+<entry>
+  <id>tag:status.zed.dev,2005:Incident/cmh0d69xo00pqr0eotri8tq57</id>
+  <published>2025-10-21T09:30:37.304+00:00</published>
+  <updated>2025-10-21T09:53:37.481+00:00</updated>
+  <link rel="alternate" type="text/html" href="https://status.zed.dev/incident/cmh0d69xo00pqr0eotri8tq57"/>
+  <title>Edit Prediction timeouts</title>
+
+  <content type="html">
+  <![CDATA[
+    <p><strong>Type:</strong> Incident</p>
+    <p><strong>Duration:</strong> 23 minutes</p>
+    <p><strong>Affected Components:</strong> Edit Prediction</p>
+    <p><small>Oct <var data-var='date'> 21</var>, <var data-var='time'>09:53:37</var> GMT+0</small><br /><strong>Resolved</strong> -
+  This incident has been resolved..</p>
+<p><small>Oct <var data-var='date'> 21</var>, <var data-var='time'>09:36:37</var> GMT+0</small><br /><strong>Monitoring</strong> -
+  We implemented a fix and are currently monitoring the result..</p>
+<p><small>Oct <var data-var='date'> 21</var>, <var data-var='time'>09:30:37</var> GMT+0</small><br /><strong>Identified</strong> -
+  We&#039;ve identified the issue and are working with our inference provider Baseten to fix it..</p>
+
+        ]]>
+  </content>
+</entry>
+
+<entry>
+  <id>tag:status.zed.dev,2005:Incident/cmfs9qxif01spl1jzy5n30s73</id>
+  <published>2025-09-20T12:14:00.000+00:00</published>
+  <updated>2025-09-20T13:02:42.236+00:00</updated>
+  <link rel="alternate" type="text/html" href="https://status.zed.dev/incident/cmfs9qxif01spl1jzy5n30s73"/>
+  <title>Elevated Edit Prediction error rate</title>
+
+  <content type="html">
+  <![CDATA[
+    <p><strong>Type:</strong> Incident</p>
+    <p><strong>Duration:</strong> 49 minutes</p>
+    <p><strong>Affected Components:</strong> Edit Prediction</p>
+    <p><small>Sep <var data-var='date'> 20</var>, <var data-var='time'>13:02:42</var> GMT+0</small><br /><strong>Resolved</strong> -
+  This incident has been resolved..</p>
+<p><small>Sep <var data-var='date'> 20</var>, <var data-var='time'>12:59:17</var> GMT+0</small><br /><strong>Monitoring</strong> -
+  We are seeing recovery in Edit Predictions and are continuing to monitor the situation..</p>
+<p><small>Sep <var data-var='date'> 20</var>, <var data-var='time'>12:49:00</var> GMT+0</small><br /><strong>Identified</strong> -
+  We&#039;ve identified the issue and are working with our upstream provider on a resolution..</p>
+<p><small>Sep <var data-var='date'> 20</var>, <var data-var='time'>12:14:00</var> GMT+0</small><br /><strong>Investigating</strong> -
+  We are seeing elevated errors for Edit Predictions. We are currently investigating the issue..</p>
+
+        ]]>
+  </content>
+</entry>
+
+<entry>
+  <id>tag:status.zed.dev,2005:Incident/cmdrhatsb00hg10s7firlorzm</id>
+  <published>2025-07-31T14:17:05.778+00:00</published>
+  <updated>2025-07-31T17:22:50.561+00:00</updated>
+  <link rel="alternate" type="text/html" href="https://status.zed.dev/incident/cmdrhatsb00hg10s7firlorzm"/>
+  <title>Sign-in issues</title>
+
+  <content type="html">
+  <![CDATA[
+    <p><strong>Type:</strong> Incident</p>
+    <p><strong>Duration:</strong> 3 hours and 6 minutes</p>
+    <p><strong>Affected Components:</strong> Edit Prediction, Agent, Collaboration</p>
+    <p><small>Jul <var data-var='date'> 31</var>, <var data-var='time'>17:22:50</var> GMT+0</small><br /><strong>Resolved</strong> -
+  This incident has been resolved..</p>
+<p><small>Jul <var data-var='date'> 31</var>, <var data-var='time'>15:45:07</var> GMT+0</small><br /><strong>Monitoring</strong> -
+  We implemented a fix and are currently monitoring the result..</p>
+<p><small>Jul <var data-var='date'> 31</var>, <var data-var='time'>14:31:56</var> GMT+0</small><br /><strong>Identified</strong> -
+  We are continuing to work on a fix for this incident..</p>
+<p><small>Jul <var data-var='date'> 31</var>, <var data-var='time'>14:17:05</var> GMT+0</small><br /><strong>Investigating</strong> -
+  We are aware of some users having issues signing in. We are currently investigating the issue..</p>
+
+        ]]>
+  </content>
+</entry>
+
+<entry>
+  <id>tag:status.zed.dev,2005:Incident/cmdpywclx001gakykihd7i4ls</id>
+  <published>2025-07-30T12:00:00.000+00:00</published>
+  <updated>2025-07-30T14:59:42.216+00:00</updated>
+  <link rel="alternate" type="text/html" href="https://status.zed.dev/incident/cmdpywclx001gakykihd7i4ls"/>
+  <title>Sign-in Issues</title>
+
+  <content type="html">
+  <![CDATA[
+    <p><strong>Type:</strong> Incident</p>
+    <p><strong>Duration:</strong> 3 hours</p>
+    <p><strong>Affected Components:</strong> Edit Prediction, Agent, Collaboration</p>
+    <p><small>Jul <var data-var='date'> 30</var>, <var data-var='time'>14:59:42</var> GMT+0</small><br /><strong>Resolved</strong> -
+  This incident has been resolved..</p>
+<p><small>Jul <var data-var='date'> 30</var>, <var data-var='time'>13:23:38</var> GMT+0</small><br /><strong>Monitoring</strong> -
+  We implemented a fix and are currently monitoring the result..</p>
+<p><small>Jul <var data-var='date'> 30</var>, <var data-var='time'>13:22:12</var> GMT+0</small><br /><strong>Identified</strong> -
+  We are continuing to work on a fix for this incident..</p>
+<p><small>Jul <var data-var='date'> 30</var>, <var data-var='time'>12:00:00</var> GMT+0</small><br /><strong>Investigating</strong> -
+  We are aware of some users having issues signing in. We are currently investigating the issue..</p>
+
+        ]]>
+  </content>
+</entry>
+
+<entry>
+  <id>tag:status.zed.dev,2005:Incident/cmdonpd7d001i3hsg2n9zcm5w</id>
+  <published>2025-07-29T13:15:00.000+00:00</published>
+  <updated>2025-07-29T13:45:00.000+00:00</updated>
+  <link rel="alternate" type="text/html" href="https://status.zed.dev/incident/cmdonpd7d001i3hsg2n9zcm5w"/>
+  <title>Sign-In failures</title>
+
+  <content type="html">
+  <![CDATA[
+    <p><strong>Type:</strong> Incident</p>
+    <p><strong>Duration:</strong> 30 minutes</p>
+    <p><strong>Affected Components:</strong> Edit Prediction, Agent, Collaboration</p>
+    <p><small>Jul <var data-var='date'> 29</var>, <var data-var='time'>13:45:00</var> GMT+0</small><br /><strong>Resolved</strong> -
+  This incident has been resolved..</p>
+<p><small>Jul <var data-var='date'> 29</var>, <var data-var='time'>13:15:00</var> GMT+0</small><br /><strong>Monitoring</strong> -
+  Users signing into Zed between 9:15-9:45ET may seen error messages and required multiple attempts to successfully sign in. We apologize for the inconvenience and are working to prevent this from occurring in the future..</p>
+
+        ]]>
+  </content>
+</entry>
+
+<entry>
+  <id>tag:status.zed.dev,2005:Incident/cmdex9f8900j7oeedyp7gx6ye</id>
+  <published>2025-07-22T19:22:52.643+00:00</published>
+  <updated>2025-07-22T19:26:31.213+00:00</updated>
+  <link rel="alternate" type="text/html" href="https://status.zed.dev/incident/cmdex9f8900j7oeedyp7gx6ye"/>
+  <title>Edit Prediction timeouts</title>
+
+  <content type="html">
+  <![CDATA[
+    <p><strong>Type:</strong> Incident</p>
+    <p><strong>Duration:</strong> 4 minutes</p>
+    <p><strong>Affected Components:</strong> Edit Prediction</p>
+    <p><small>Jul <var data-var='date'> 22</var>, <var data-var='time'>19:26:31</var> GMT+0</small><br /><strong>Resolved</strong> -
+  This incident has been resolved..</p>
+<p><small>Jul <var data-var='date'> 22</var>, <var data-var='time'>19:25:22</var> GMT+0</small><br /><strong>Monitoring</strong> -
+  Our upstream provider has implemented a fix and we are currently monitoring the result..</p>
+<p><small>Jul <var data-var='date'> 22</var>, <var data-var='time'>19:23:36</var> GMT+0</small><br /><strong>Identified</strong> -
+  We are working with our upstream provider on remediating the issue..</p>
+<p><small>Jul <var data-var='date'> 22</var>, <var data-var='time'>19:22:52</var> GMT+0</small><br /><strong>Investigating</strong> -
+  We are currently investigating this incident..</p>
+
+        ]]>
+  </content>
+</entry>
+
+<entry>
+  <id>tag:status.zed.dev,2005:Incident/cmclztrck0005hpzlbhwxkina</id>
+  <published>2025-07-02T13:29:22.783+00:00</published>
+  <updated>2025-07-02T15:20:46.149+00:00</updated>
+  <link rel="alternate" type="text/html" href="https://status.zed.dev/incident/cmclztrck0005hpzlbhwxkina"/>
+  <title>Connection issues to Zed</title>
+
+  <content type="html">
+  <![CDATA[
+    <p><strong>Type:</strong> Incident</p>
+    <p><strong>Duration:</strong> 1 hour and 51 minutes</p>
+    <p><strong>Affected Components:</strong> Edit Prediction, Agent, Collaboration</p>
+    <p><small>Jul <var data-var='date'> 2</var>, <var data-var='time'>15:20:46</var> GMT+0</small><br /><strong>Resolved</strong> -
+  This incident has been resolved..</p>
+<p><small>Jul <var data-var='date'> 2</var>, <var data-var='time'>15:11:04</var> GMT+0</small><br /><strong>Monitoring</strong> -
+  We implemented a fix and are currently monitoring the result..</p>
+<p><small>Jul <var data-var='date'> 2</var>, <var data-var='time'>13:29:22</var> GMT+0</small><br /><strong>Investigating</strong> -
+  We are currently investigating this incident..</p>
+
+        ]]>
+  </content>
+</entry>
+
+<entry>
+  <id>tag:status.zed.dev,2005:Incident/cmbtpazni000e5gn9vr7hpnj7</id>
+  <published>2025-06-12T18:17:17.940+00:00</published>
+  <updated>2025-06-12T21:10:58.041+00:00</updated>
+  <link rel="alternate" type="text/html" href="https://status.zed.dev/incident/cmbtpazni000e5gn9vr7hpnj7"/>
+  <title>Elevated error rate for Edit Prediction</title>
+
+  <content type="html">
+  <![CDATA[
+    <p><strong>Type:</strong> Incident</p>
+    <p><strong>Duration:</strong> 2 hours and 54 minutes</p>
+    <p><strong>Affected Components:</strong> Edit Prediction</p>
+    <p><small>Jun <var data-var='date'> 12</var>, <var data-var='time'>21:10:58</var> GMT+0</small><br /><strong>Resolved</strong> -
+  This incident has been resolved..</p>
+<p><small>Jun <var data-var='date'> 12</var>, <var data-var='time'>19:09:02</var> GMT+0</small><br /><strong>Monitoring</strong> -
+  We are starting to see recovery for Edit Prediction. We are continuing to monitor the situation..</p>
+<p><small>Jun <var data-var='date'> 12</var>, <var data-var='time'>18:35:26</var> GMT+0</small><br /><strong>Identified</strong> -
+  One of our upstream providers is having issues. We are continuing to investigate and pursue potential remediation steps..</p>
+<p><small>Jun <var data-var='date'> 12</var>, <var data-var='time'>18:17:17</var> GMT+0</small><br /><strong>Investigating</strong> -
+  We are currently investigating this incident..</p>
+
+        ]]>
+  </content>
+</entry>
+
+<entry>
+  <id>tag:status.zed.dev,2005:Incident/cmbpvmdjt0003fazk7dapelh2</id>
+  <published>2025-06-10T02:03:01.952+00:00</published>
+  <updated>2025-06-10T02:30:22.239+00:00</updated>
+  <link rel="alternate" type="text/html" href="https://status.zed.dev/incident/cmbpvmdjt0003fazk7dapelh2"/>
+  <title>Deploying mitigations</title>
+
+  <content type="html">
+  <![CDATA[
+    <p><strong>Type:</strong> Incident</p>
+    <p><strong>Duration:</strong> 27 minutes</p>
+    <p><strong>Affected Components:</strong> Collaboration</p>
+    <p><small>Jun <var data-var='date'> 10</var>, <var data-var='time'>02:30:22</var> GMT+0</small><br /><strong>Resolved</strong> -
+  Mitigation performed better than expected, closing this out until next time!.</p>
+<p><small>Jun <var data-var='date'> 10</var>, <var data-var='time'>02:03:01</var> GMT+0</small><br /><strong>Monitoring</strong> -
+  We are currently testing a deploy that _should_ resolve some of the issues we saw earlier today. This may cause between 5 and 30m of downtime over the next hour..</p>
+
+        ]]>
+  </content>
+</entry>
+
+<entry>
+  <id>tag:status.zed.dev,2005:Incident/cmbpfyf6w0019bgzwe6h4bgpa</id>
+  <published>2025-06-09T18:44:29.884+00:00</published>
+  <updated>2025-06-09T19:40:08.522+00:00</updated>
+  <link rel="alternate" type="text/html" href="https://status.zed.dev/incident/cmbpfyf6w0019bgzwe6h4bgpa"/>
+  <title>Zed Server Unresponsive</title>
+
+  <content type="html">
+  <![CDATA[
+    <p><strong>Type:</strong> Incident</p>
+    <p><strong>Duration:</strong> 56 minutes</p>
+    <p><strong>Affected Components:</strong> Collaboration, Edit Prediction, Agent</p>
+    <p><small>Jun <var data-var='date'> 9</var>, <var data-var='time'>19:40:08</var> GMT+0</small><br /><strong>Resolved</strong> -
+  This incident has been resolved..</p>
+<p><small>Jun <var data-var='date'> 9</var>, <var data-var='time'>18:44:29</var> GMT+0</small><br /><strong>Identified</strong> -
+  We&#039;ve identified the problem and are investigating a fix..</p>
+
+        ]]>
+  </content>
+</entry>
+
+<entry>
+  <id>tag:status.zed.dev,2005:Incident/cmaw994s9000pnmd5jvi6xylu</id>
+  <published>2025-05-20T08:31:33.529+00:00</published>
+  <updated>2025-05-20T12:44:25.723+00:00</updated>
+  <link rel="alternate" type="text/html" href="https://status.zed.dev/incident/cmaw994s9000pnmd5jvi6xylu"/>
+  <title>Intermittent Timeouts</title>
+
+  <content type="html">
+  <![CDATA[
+    <p><strong>Type:</strong> Incident</p>
+    <p><strong>Duration:</strong> 4 hours and 13 minutes</p>
+    <p><strong>Affected Components:</strong> Edit Prediction, Agent</p>
+    <p><small>May <var data-var='date'> 20</var>, <var data-var='time'>12:44:25</var> GMT+0</small><br /><strong>Resolved</strong> -
+  This incident has been resolved..</p>
+<p><small>May <var data-var='date'> 20</var>, <var data-var='time'>12:39:53</var> GMT+0</small><br /><strong>Monitoring</strong> -
+  We implemented a fix and are currently monitoring the result..</p>
+<p><small>May <var data-var='date'> 20</var>, <var data-var='time'>08:31:33</var> GMT+0</small><br /><strong>Investigating</strong> -
+  We are currently investigating an incident that&#039;s causing the agent and edit prediction queries to timeout..</p>
+
+        ]]>
+  </content>
+</entry>
+
+<entry>
+  <id>tag:status.zed.dev,2005:Incident/cm895pssm001bpj7k2kmyoh32</id>
+  <published>2025-03-14T18:55:00.000+00:00</published>
+  <updated>2025-03-14T19:25:45.522+00:00</updated>
+  <link rel="alternate" type="text/html" href="https://status.zed.dev/incident/cm895pssm001bpj7k2kmyoh32"/>
+  <title>Edit Prediction Errors</title>
+
+  <content type="html">
+  <![CDATA[
+    <p><strong>Type:</strong> Incident</p>
+    <p><strong>Duration:</strong> 31 minutes</p>
+    <p><strong>Affected Components:</strong> Edit Prediction</p>
+    <p><small>Mar <var data-var='date'> 14</var>, <var data-var='time'>19:25:45</var> GMT+0</small><br /><strong>Resolved</strong> -
+  This incident has been resolved..</p>
+<p><small>Mar <var data-var='date'> 14</var>, <var data-var='time'>19:19:00</var> GMT+0</small><br /><strong>Monitoring</strong> -
+  We implemented a fix and are currently monitoring the result..</p>
+<p><small>Mar <var data-var='date'> 14</var>, <var data-var='time'>19:11:00</var> GMT+0</small><br /><strong>Identified</strong> -
+  We are working with our upstream provider to remediate the issue..</p>
+<p><small>Mar <var data-var='date'> 14</var>, <var data-var='time'>18:55:00</var> GMT+0</small><br /><strong>Investigating</strong> -
+  We are currently investigating this incident..</p>
+
+        ]]>
+  </content>
+</entry>
+
+<entry>
+  <id>tag:status.zed.dev,2005:Incident/cm75brgx800041140tpg4cgs1</id>
+  <published>2025-02-14T21:44:00.000+00:00</published>
+  <updated>2025-02-14T22:23:51.233+00:00</updated>
+  <link rel="alternate" type="text/html" href="https://status.zed.dev/incident/cm75brgx800041140tpg4cgs1"/>
+  <title>Edit Prediction Timeouts</title>
+
+  <content type="html">
+  <![CDATA[
+    <p><strong>Type:</strong> Incident</p>
+    <p><strong>Duration:</strong> 11 minutes</p>
+    <p><strong>Affected Components:</strong> Edit Prediction</p>
+    <p><small>Feb <var data-var='date'> 14</var>, <var data-var='time'>22:23:51</var> GMT+0</small><br /><strong>Resolved</strong> -
+  This incident has been resolved..</p>
+<p><small>Feb <var data-var='date'> 14</var>, <var data-var='time'>22:20:51</var> GMT+0</small><br /><strong>Monitoring</strong> -
+  We are seeing recovery across our services and are continuing to monitor the situation..</p>
+<p><small>Feb <var data-var='date'> 14</var>, <var data-var='time'>21:46:00</var> GMT+0</small><br /><strong>Identified</strong> -
+  We are working with our upstream model provider to remediate the issue..</p>
+<p><small>Feb <var data-var='date'> 14</var>, <var data-var='time'>21:44:00</var> GMT+0</small><br /><strong>Investigating</strong> -
+  We are currently investigating a spike in timeouts for edit predictions..</p>
+
+        ]]>
+  </content>
+</entry>
+
+</feed>

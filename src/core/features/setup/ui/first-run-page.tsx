@@ -10,6 +10,8 @@ import { LitPage } from "../../../app/client/ui/lit-page";
 import { LoadingState } from "../../../app/client/ui/states";
 import { isVectorMark, markToPng, uploadMark } from "../../../app/client/ui/mark-image";
 import { FoundCard, type FoundPage } from "./found-card";
+import { foundLayout } from "./found-components";
+import { bringHistory } from "./bring-history";
 import { useSetupDraft } from "./setup-draft";
 
 type SettingsResponse = { settings: Awaited<ReturnType<PageSettingsService["get"]>> };
@@ -23,13 +25,13 @@ export function FirstRunPage({ publicPageOrigin, ownerId }: { publicPageOrigin: 
   const [reading, setReading] = useState(false);
   const [browserZone, setBrowserZone] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
-  const [progress, setProgress] = useState<"publishing" | "checking" | "opening" | null>(null);
+  const [progress, setProgress] = useState<"publishing" | "history" | "checking" | "opening" | null>(null);
   const saving = progress !== null;
   useEffect(() => { setBrowserZone(Intl.DateTimeFormat().resolvedOptions().timeZone || null); }, []);
   if ((loading && !data) || !ready) return <LoadingState />;
   if (error || !data?.settings) return <ErrorState onRetry={() => window.location.reload()}>{error ?? "Your page settings could not be loaded."}</ErrorState>;
   const settings = data.settings;
-  const plain = (): FoundPage => ({ pageName: settings.pageName, tagline: settings.tagline, accentColor: settings.accentColor.toUpperCase(), timezone: browserZone ?? settings.timezone, mark: null, components: [], statusPage: null });
+  const plain = (): FoundPage => ({ pageName: settings.pageName, tagline: settings.tagline, accentColor: settings.accentColor.toUpperCase(), timezone: browserZone ?? settings.timezone, mark: null, components: [], groups: [], statusPage: null, existing: null, history: false });
   const address = new URL(publicPageOrigin).host;
 
   async function read(event: FormEvent) {
@@ -44,7 +46,13 @@ export function FirstRunPage({ publicPageOrigin, ownerId }: { publicPageOrigin: 
       return;
     }
     const site = result.found;
-    setDraft({ website, found: { ...base, pageName: site.pageName, tagline: site.tagline ?? base.tagline, accentColor: site.accentColor ?? base.accentColor, mark: site.mark ? { src: site.mark.dataUrl, vector: isVectorMark(site.mark.contentType), from: site.mark.url } : null, components: site.components.map((component) => component.name), statusPage: site.statusPage }, review: { kind: "read", note: `We read ${site.host}. Change anything now or later in Settings.` } });
+    // The business's own status page lists its real components: they take the place of the navigation's.
+    const page = site.existingPage;
+    const components = page
+      ? { components: page.components.filter((component) => !component.groupId).map((component) => component.name), groups: page.groups.map((group) => ({ name: group.name, components: page.components.filter((component) => component.groupId === group.id).map((component) => component.name) })),
+        existing: { url: page.url, host: page.host, source: page.source, pastIncidents: page.pastIncidents, components: page.components.map((component) => ({ id: component.id, name: component.name, group: page.groups.find((group) => group.id === component.groupId)?.name ?? null })) } }
+      : { components: site.components.map((component) => component.name), groups: [], existing: null };
+    setDraft({ website, found: { ...base, pageName: site.pageName, tagline: site.tagline ?? base.tagline, accentColor: site.accentColor ?? base.accentColor, mark: site.mark ? { src: site.mark.dataUrl, vector: isVectorMark(site.mark.contentType), from: site.mark.url } : null, ...components, history: false, statusPage: site.statusPage }, review: { kind: "read", note: `We read ${site.host}. Change anything now or later in Settings.` } });
   }
 
   function skip() {
@@ -64,7 +72,12 @@ export function FirstRunPage({ publicPageOrigin, ownerId }: { publicPageOrigin: 
         const png = await markToPng(found.mark.src, found.mark.vector).catch(() => null);
         if (png) await uploadMark(png);
       }
-      await appApi("/api/app/overview/first-run", { method: "POST", body: JSON.stringify({ components: found.components.map((name) => name.trim()).filter(Boolean) }) });
+      if (found.existing && found.history) {
+        setProgress("history");
+        await bringHistory(found, found.existing);
+      }
+      // Whatever the history brought already stands; first run adds the rest.
+      await appApi("/api/app/overview/first-run", { method: "POST", body: JSON.stringify(foundLayout(found)) });
       setProgress("checking");
       await appApi("/api/app/overview/live");
       setProgress("opening");
@@ -93,7 +106,7 @@ export function FirstRunPage({ publicPageOrigin, ownerId }: { publicPageOrigin: 
       {message && <p className="save-message" role="alert">{message}</p>}
       <div className="first-run-finish">
         <Button type="button" onClick={finish} disabled={saving || reading || !found.pageName.trim() || !found.tagline.trim() || !/^#[0-9a-f]{6}$/i.test(found.accentColor)}>{saving ? "Opening Lamp…" : review.kind === "read" ? "Looks right, open Lamp" : "Open Lamp"}</Button>
-        {progress ? <ol className="first-run-progress" role="status" aria-label="Opening your page"><li>{progress === "publishing" ? "Publishing your page…" : "Page published"}</li><li>{progress === "publishing" ? "Then checking the subscribe form" : progress === "checking" ? "Checking the subscribe form…" : "Opening your workspace…"}</li></ol> : <p>Your public page publishes as soon as you open Lamp.</p>}
+        {progress ? <ol className="first-run-progress" role="status" aria-label="Opening your page"><li>{progress === "publishing" ? "Publishing your page…" : "Page published"}</li>{found.existing && found.history ? <li>{progress === "publishing" ? "Then bringing in its incident history" : progress === "history" ? "Bringing in its incident history…" : "Incident history brought in"}</li> : null}<li>{progress === "publishing" || progress === "history" ? "Then checking the subscribe form" : progress === "checking" ? "Checking the subscribe form…" : "Opening your workspace…"}</li></ol> : <p>Your public page publishes as soon as you open Lamp.</p>}
       </div>
     </> : null}
   </div></LitPage>;

@@ -1,6 +1,9 @@
 import assert from 'node:assert/strict';
+import { readdirSync, readFileSync } from 'node:fs';
 import { test } from 'node:test';
 import { isPublicAddress, readSite } from '../../src/core/platform/site-reader/index.ts';
+import { createWebsiteService } from '../../src/core/features/website/service.ts';
+import { readStatusPage } from '../../src/core/features/website/status-page-reader.ts';
 
 // The internet stops here: a fake DNS and a fake transport answer for named hosts.
 function network(routes, addresses = {}) {
@@ -209,4 +212,68 @@ test('the site reader reads what a site says about itself, refuses private desti
   const indexed = await read(`<main><p>Evals for Learning. Evals everywhere: Evals, Evals. Droplets.</p></main><nav><a href="/pricing">Pricing</a></nav>
     <footer><div><h3>Products</h3><a href="/products">Catalogue</a>${shelf.map(name => `<a href="/products/${name.toLowerCase()}">${name}</a>${name === 'Learning' ? '<a href="/products/learning/evals">Evals</a>' : ''}`).join('')}</div></footer>`);
   assert.deepEqual(indexed.map(component => component.name), shelf.slice(0, 8), 'neither the index nor a page beneath an area takes a main area\'s place');
+
+  t.diagnostic('the status page a business already runs, linked or at status.<its domain>, gives its own components, groups and past incidents from its public feeds (real Statuspage, Instatus and Better Stack captures) through the same guard; anything else changes nothing');
+  {
+  const feeds = folder => Object.fromEntries(readdirSync(`tests/fixtures/status-feeds/${folder}`).filter(name => name.startsWith('public-')).map(name => [name, readFileSync(`tests/fixtures/status-feeds/${folder}/${name}`, 'utf8')]));
+  const json = text => ({ body: text, headers: { 'Content-Type': 'application/json' } });
+  const xml = text => ({ body: text, headers: { 'Content-Type': 'application/xml' } });
+  const poweredBy = href => ({ body: `<!doctype html><title>Status</title><main><p>All systems operational</p></main><footer><a href="${href}">Powered by</a></footer>` });
+  const home = (name, status) => `<!doctype html><title>Home | ${name}</title><nav><a href="/products/one">One</a><a href="/products/two">Two</a></nav>${status ? `<footer><a href="${status}">Status</a></footer>` : ''}`;
+  const [convex, zed, polar, valtown] = ['statuspage-convex', 'instatus-zed', 'betterstack-polar', 'betterstack-valtown'].map(feeds);
+  const net = network({
+    'https://convex.example/': { body: home('Convex', 'https://status.convex.dev/') },
+    'https://status.convex.dev/': poweredBy('https://www.atlassian.com/software/statuspage'),
+    'https://status.convex.dev/api/v2/summary.json': json(convex['public-summary.json']),
+    'https://status.convex.dev/api/v2/incidents.json': json(convex['public-incidents.json']),
+    // No link: the page answers at status.<domain>.
+    'https://zed.example/': { body: home('Zed') },
+    'https://status.zed.example/': poweredBy('https://instatus.com'),
+    'https://status.zed.example/summary.json': json(zed['public-summary.json']),
+    'https://status.zed.example/v2/components.json': json(zed['public-components.json']),
+    'https://status.zed.example/history.atom': xml(zed['public-history.atom']),
+    'https://polar.example/': { body: home('Polar', 'https://status.polar.sh/') },
+    'https://status.polar.sh/': poweredBy('https://betterstack.com/uptime'),
+    'https://status.polar.sh/index.json': json(polar['public-index.json']),
+    'https://status.polar.sh/feed': xml(polar['public-feed.rss']),
+    'https://valtown.example/': { body: home('Val Town', 'https://status.val.town/') },
+    'https://status.val.town/': poweredBy('https://betterstack.com/uptime'),
+    'https://status.val.town/index.json': json(valtown['public-index.json']),
+    'https://status.val.town/feed': xml(valtown['public-feed.rss']),
+    // Nothing to take: status.<domain> on a private address, a linked page no vendor's feeds answer for, a page without components.
+    'https://private.example/': { body: home('Private') },
+    'https://other.example/': { body: home('Other', 'https://status.other.example/') },
+    'https://status.other.example/': { body: '<!doctype html><title>Our status</title><p>All good</p>' },
+    'https://empty.example/': { body: home('Empty', 'https://status.empty.example/') },
+    'https://status.empty.example/': poweredBy('https://www.atlassian.com/software/statuspage'),
+    'https://status.empty.example/api/v2/summary.json': json(JSON.stringify({ page: { id: 'emptypage01', name: 'Empty' }, status: { indicator: 'none' }, components: [], incidents: [], scheduled_maintenances: [] })),
+  }, { 'status.private.example': ['10.0.0.5'] });
+  let stored = null;
+  const service = createWebsiteService({ get: async () => stored, record: async (url, statusPage) => { stored = { url, statusPage }; }, clear: async () => { stored = null; } },
+    { read: input => readSite(input, net), readStatusPage: url => readStatusPage(url, net), unavailable: null });
+  const found = async input => (await service.read(input)).found;
+  const listed = ({ existingPage: page }) => page.components.map(component => component.groupId ? `${page.groups.find(group => group.id === component.groupId).name} / ${component.name}` : component.name);
+  const linked = await found('convex.example');
+  assert.deepEqual(linked.components.map(component => component.name), ['One', 'Two'], 'the navigation is read as before');
+  assert.deepEqual(stored.statusPage, { url: 'https://status.convex.dev/', source: 'statuspage', pageId: 'jx5n2jz8hhnj' }, 'Move in keeps its prefill');
+  assert.deepEqual([linked.existingPage.host, linked.existingPage.source, linked.existingPage.pastIncidents], ['status.convex.dev', 'statuspage', 50]);
+  assert.deepEqual(linked.existingPage.groups.map(group => group.name), ['Live Traffic', 'Development Services'], 'the page\'s own groups, in its order');
+  assert.deepEqual(listed(linked), ['Live Traffic / Free & Starter', 'Live Traffic / Professional', 'Live Traffic / Business', 'Development Services / Free & Starter', 'Development Services / Professional', 'Development Services / Business', 'convex.dev website', 'AI Gateway']);
+  const guessed = await found('zed.example');
+  assert.equal(guessed.statusPage, 'https://status.zed.example/', 'a page at status.<domain> is found without a link');
+  assert.deepEqual([guessed.existingPage.source, guessed.existingPage.pastIncidents], ['instatus', 16]);
+  assert.deepEqual(listed(guessed), ['Agent', 'Zed / Collaboration', 'Zed / Edit Prediction', 'Zed / Extension Registry', 'Delta / Delta Cloud Services']);
+  const sections = await found('polar.example');
+  assert.deepEqual([sections.existingPage.source, sections.existingPage.groups.map(group => group.name), sections.existingPage.components.length, sections.existingPage.pastIncidents], ['betterstack', ['Production', 'Sandbox'], 12, 11]);
+  const lone = await found('valtown.example');
+  assert.deepEqual(listed(lone), ['Scheduled Vals', 'Val Town Website', 'HTTP Val', 'HTTP (Preview)'], 'a lone section is the page\'s list, and a vendor\'s names keep their words');
+  assert.equal(lone.existingPage.pastIncidents, 77);
+  for (const input of ['private.example', 'other.example', 'empty.example']) {
+    const quiet = await found(input);
+    assert.deepEqual([quiet.existingPage, quiet.components.map(component => component.name)], [null, ['One', 'Two']], `${input}: the navigation's components stand, with no error`);
+  }
+  assert.equal((await found('private.example')).statusPage, null, 'a private status.<domain> is neither requested nor shown');
+  assert.equal(net.requested.some(url => url.includes('status.private.example')), false);
+  assert.equal((await found('other.example')).statusPage, 'https://status.other.example/', 'a linked page stays linked');
+  }
 });

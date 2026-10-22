@@ -1,5 +1,8 @@
 import { normaliseWebsite, isPublicAddress, type SiteRead, type SiteReadResult } from "../../platform/site-reader/index.ts";
-import type { WebsiteRecord, WebsiteRepository, WebsiteStatusPage } from "./repository";
+import { siteDomain } from "../../platform/site-reader/domain.ts";
+import type { WebsiteRecord, WebsiteRepository } from "./repository";
+import { existingPageFrom, type ExistingStatusPage } from "./existing-page.ts";
+import type { StatusPageRead } from "./status-page-reader";
 
 /** What Lamp fills in from a website. Only what the site gave; the owner edits any of it. */
 export interface WebsitePrefill {
@@ -12,6 +15,9 @@ export interface WebsitePrefill {
   mark: { url: string; contentType: string; dataUrl: string } | null;
   components: { name: string; url: string }[];
   statusPage: string | null;
+  /** The status page the business already runs, as its own public feeds describe it: its components and groups
+   * take the place of the ones read from the site's navigation. */
+  existingPage: ExistingStatusPage | null;
 }
 
 export type WebsiteReadResponse = { found: WebsitePrefill } | { found: null; message: string; pageName?: string };
@@ -45,10 +51,11 @@ export function prefillFrom(site: SiteRead): WebsitePrefill {
     mark: site.icon ? { url: site.icon.url, contentType: site.icon.contentType, dataUrl: site.icon.dataUrl } : null,
     components: site.components,
     statusPage: site.statusPage?.url ?? null,
+    existingPage: null,
   };
 }
 
-export function createWebsiteService(repository: WebsiteRepository, options: { read: (input: string) => Promise<SiteReadResult>; readStatusPage: (url: string) => Promise<WebsiteStatusPage>; unavailable: string | null }): WebsiteService {
+export function createWebsiteService(repository: WebsiteRepository, options: { read: (input: string) => Promise<SiteReadResult>; readStatusPage: (url: string) => Promise<StatusPageRead>; unavailable: string | null }): WebsiteService {
   return {
     current: () => repository.get(),
     async read(input) {
@@ -60,10 +67,15 @@ export function createWebsiteService(repository: WebsiteRepository, options: { r
         if (current && siteHost(current.url) !== siteHost(input)) await repository.clear();
         return { found: null, message: result.message, ...(result.reason !== "invalid-url" && result.reason !== "refused-address" ? hostnamePageName(input) : {}) };
       }
-      const detected = result.site.statusPage;
-      const statusPage = detected ? await options.readStatusPage(detected.url).catch(() => ({ url: detected.url, source: null, pageId: null })) : null;
+      const linked = result.site.statusPage;
+      // A site that links to no status page may still run one at status.<its domain>; only a page whose own
+      // feeds answer as a Statuspage, Instatus or Better Stack page counts as found there.
+      const address = linked?.url ?? `https://status.${siteDomain(result.site.host)}/`;
+      const read = await options.readStatusPage(address).catch(() => null);
+      const statusPage = linked ? read?.page ?? { url: linked.url, source: null, pageId: null } : read?.feeds ? read.page : null;
       await repository.record(result.site.url, statusPage);
-      return { found: prefillFrom(result.site) };
+      const prefill = prefillFrom(result.site);
+      return { found: { ...prefill, statusPage: prefill.statusPage ?? statusPage?.url ?? null, existingPage: existingPageFrom(read?.feeds ?? null) } };
     },
   };
 }

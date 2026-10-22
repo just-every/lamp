@@ -7,6 +7,15 @@ mark, accent color and first components from it, with the time zone from your
 browser. Check the card, change anything, and open Lamp. If Lamp cannot read the
 site, or you skip it, the page starts with plain defaults.
 
+If your site links to a status page you run on Statuspage, Instatus or Better
+Stack, or one answers at `status.<your domain>`, the card takes that page's own
+components and groups from its public feeds instead of guessing them from your
+site's menus, and says where they came from. Edit them as one list per group.
+**Bring its incident history too**, off unless you choose it, imports the page's
+past incidents with their updates and times as resolved history through
+[Move in](moving-in.md#from-setup-without-a-key). No one is notified. Subscribers
+need the page's API key; move them in later from Settings → Move in.
+
 Lamp reads only public addresses, follows at most five redirects, and runs
 nothing from the site. Settings → Page can read the site again later.
 

@@ -14,6 +14,8 @@ import { nowIso } from "../../shared/ids";
 import { planMoveIn, reportFromPlan, type MoveInReport } from "./planning";
 import type { Snapshot } from "./rows";
 import { importSources, isImportSource, sourceAdapter, type SourceInput } from "./adapters";
+import type { SavedFile } from "./source";
+import type { StatusFeedVendor } from "../../platform/status-feeds/index.ts";
 import { statuspageTargets } from "./targets";
 import { doorMapping, moveInPlan, readDoorExport } from './door-plan';
 import { approvalCaption } from '../../../../modules/import-kit/src/door/failures';
@@ -63,7 +65,7 @@ const artifactIdentity = (plan: ImportPlan | { artifacts: Array<{ name: string; 
   return canonicalJson(artifacts.map((artifact) => ({ name: artifact.name, sha256: artifact.sha256 })).sort((a, b) => a.name.localeCompare(b.name)));
 };
 
-export function createStatuspageImportService(db: D1Database, hooks: MoveInHooks, options: { apiOrigin?: string } = {}) {
+export function createStatuspageImportService(db: D1Database, hooks: MoveInHooks, options: { apiOrigin?: string; capturePublicFeeds?: (source: StatusFeedVendor, publicUrl: string) => Promise<SavedFile[]> } = {}) {
   /** An import Move in made before the door (the operator's own, by its source
    * namespace) or a door import of a listed source, under the session's authority. */
   async function jobOf(id: string, actor: MoveInActor) {
@@ -249,6 +251,11 @@ export function createStatuspageImportService(db: D1Database, hooks: MoveInHooks
     async fetchSource(input: SourceInput, actor: MoveInActor) {
       await assertAuthority(importContext(db, actor));
       if (input.source === "sorry" && input.publicUrl) return fetchSorryPublicResponses({ publicUrl: input.publicUrl });
+      // A Statuspage, Instatus or Better Stack page's own public feeds, read keyless through the website reader's guard.
+      if (input.publicUrl && (input.source === "statuspage" || input.source === "instatus" || input.source === "betterstack")) {
+        if (!options.capturePublicFeeds) throw new Error("Lamp can't read public status pages here.");
+        return options.capturePublicFeeds(input.source, input.publicUrl).catch(() => { throw new Error("That status page's public feeds could not be read."); });
+      }
       if (!input.pageId || !input.apiKey) throw new Error(`Choose saved ${sourceAdapter(input.source).label} responses, or enter a page ID and API key.`);
       return sourceAdapter(input.source).fetch({ pageId: input.pageId, apiKey: input.apiKey }, options.apiOrigin);
     },

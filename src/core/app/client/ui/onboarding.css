@@ -23,6 +23,12 @@
 .found-edit:hover { color: var(--ink); }
 .found-value { color: var(--ink); font-size: 14px; line-height: 1.5; overflow-wrap: anywhere; }
 .found-components { margin: 0; padding: 0; list-style: none; }
+/* A found status page keeps its own groups, and offers to bring its incident history too. */
+.found-groups, .found-groups-editor { display: grid; gap: 8px; }
+.found-group-editor { display: grid; gap: 4px; }
+.found-group { margin: 0; color: var(--ink-2); font-size: 13px; font-weight: 600; }
+.found-history { display: flex; align-items: flex-start; gap: 10px; min-height: 44px; margin-top: 8px; color: var(--ink); font-weight: 500; cursor: pointer; }
+.found-history input { margin-top: 3px; }
 .found-editor { display: grid; gap: 8px; padding-top: 4px; }
 .found-editor .form-label { font-size: 13px; }
 .found-muted { color: var(--ink-3); }

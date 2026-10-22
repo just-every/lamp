@@ -76,7 +76,9 @@ export function mapSource(data: SourceData, snapshot: Snapshot, operatorId: stri
   const components = new Map<string, { id: string; name: string; created: string }>();
   const componentAccounting = new Map<string, Accounting[]>();
   [...data.components].sort((a, b) => a.position - b.position || a.id.localeCompare(b.id)).forEach((component) => {
-    components.set(component.id, { id: identify(`component:${component.id}`, component.created_at), name: clip(component.name, 120), created: iso(component.created_at) });
+    // A public feed may not say when a component began: its identity stays stable, and Lamp's record of it begins with this import.
+    const begins = data.publicFeed === true && !component.created_at;
+    components.set(component.id, { id: identify(`component:${component.id}`, begins ? "1970-01-01T00:00:00.000Z" : component.created_at), name: clip(component.name, 120), created: iso(begins ? asOf : component.created_at) });
     const notes: string[] = [];
     if (component.group_id && !groupIds.has(component.group_id)) notes.push("its group was not in the saved responses, so it is ungrouped");
     if (namespace === "statuspage" && component.status && component.status !== "operational") notes.push(`its current '${component.status}' status is set by open incidents and maintenance here, not carried as a manual status`);
@@ -98,7 +100,7 @@ export function mapSource(data: SourceData, snapshot: Snapshot, operatorId: stri
   const nextIncident = references("INC"), nextMaintenance = references("SCH");
 
   for (const incident of [...data.incidents].sort((a, b) => a.created_at.localeCompare(b.created_at) || a.id.localeCompare(b.id))) {
-    const mapped = mapIncident(incident, components, claims, operatorId, asOf, nextIncident, identify, ["betterstack", "sorry"].includes(namespace) ? incident.resolved_at : undefined, namespace === "sorry" && incident.impact === "none", namespace === "statuspage");
+    const mapped = mapIncident(incident, components, claims, operatorId, asOf, nextIncident, identify, ["betterstack", "sorry"].includes(namespace) ? incident.resolved_at : undefined, (namespace === "sorry" && incident.impact === "none") || data.publicFeed === true, namespace === "statuspage" || data.publicFeed === true, data.publicFeed === true);
     attachPostmortem(mapped, incident, operatorId, asOf, identify);
     results.push(mapped);
   }
@@ -129,7 +131,7 @@ export function mapSource(data: SourceData, snapshot: Snapshot, operatorId: stri
   return [...results, ...componentResults, ...templates, ...subscriberResults].sort((a, b) => order.indexOf(a.kind) - order.indexOf(b.kind));
 }
 
-function mapIncident(incident: SourceIncident, components: Map<string, { id: string; name: string }>, claims: Claim[], operatorId: string, asOf: string, reference: (id: string) => string, identify: typeof stableId, sourceEndedAt?: string | null, allowUnattached = false, independentImpact = false): Mapped {
+function mapIncident(incident: SourceIncident, components: Map<string, { id: string; name: string }>, claims: Claim[], operatorId: string, asOf: string, reference: (id: string) => string, identify: typeof stableId, sourceEndedAt?: string | null, allowUnattached = false, independentImpact = false, namesListed = false): Mapped {
   const name = incident.name;
   const updates = [...incident.incident_updates].sort((a, b) => at(a).localeCompare(at(b)) || a.id.localeCompare(b.id));
   if (!updates.length) return { kind: "incident", sourceId: incident.id, accounting: [{ kind: "incident", sourceId: incident.id, name, outcome: "rejected", reason: "No published updates to carry." }] };
@@ -140,6 +142,8 @@ function mapIncident(incident: SourceIncident, components: Map<string, { id: str
   const peak: ComponentState[] = [];
   // Statuspage impact is the recorded incident severity, not component evidence.
   for (const listed of independentImpact ? [] : incident.components ?? []) if (components.has(listed.id)) current.set(listed.id, impactStates[incident.impact ?? "minor"] ?? "Degraded performance");
+  // A public feed's incident names its components even where no update states theirs.
+  const listedNames = namesListed ? (incident.components ?? []).flatMap((entry) => components.has(entry.id) ? [components.get(entry.id)!.name] : []) : [];
   const rows: Row[] = [];
   let lifecycle: IncidentLifecycle = "Investigating";
   let resolvedAt: string | null = null;
@@ -162,7 +166,8 @@ function mapIncident(incident: SourceIncident, components: Map<string, { id: str
     const impact = clip(body, 250);
     const details = points.length > 250 ? clip(points.slice(249).join(""), 500) : "";
     if (points.length > 749) notes.add("long update text was shortened to Lamp's update fields");
-    const names = [...current.keys()].map((code) => components.get(code)!.name);
+    const stated = [...current.keys()].map((code) => components.get(code)!.name);
+    const names = stated.length ? stated : listedNames;
     rows.push({ id: identify(`incident-update:${update.id}`, publishedAt), incident_id: id, lifecycle, affected_audience: clip(names.length ? `Customers using ${names.join(", ")}` : "All customers", 250), customer_impact: impact, what_still_works: "", details, next_update_at: null, published_at: publishedAt, author_operator_id: operatorId, corrects_update_id: null, is_retroactive: 1, created_at: asOf, updated_at: asOf });
   }
   if (claimEndsAt) for (const code of current.keys()) claims.push({ componentId: components.get(code)!.id, causeType: "incident", causeId: id, state: null, changedAt: claimEndsAt });

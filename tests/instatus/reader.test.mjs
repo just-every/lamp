@@ -7,7 +7,7 @@ import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 const require = createRequire(import.meta.url);
 const { build } = createRequire(require.resolve('wrangler'))('esbuild');
-let scratch, reader, fetchSource;
+let scratch, reader, fetchSource, adapters, mapSource;
 const files = async (family) => Promise.all((await readdir(`tests/fixtures/instatus/${family}`)).map(async name => ({ name, text: await readFile(`tests/fixtures/instatus/${family}/${name}`, 'utf8') })));
 const options = { pageId: 'synthpage01', publicAccessAcknowledged: true };
 const edit = (source, name, mutate) => source.map(file => file.name === name ? { ...file, text: JSON.stringify(mutate(JSON.parse(file.text))) } : file);
@@ -18,6 +18,9 @@ before(async () => {
   for (const entry of ['normalize', 'api']) await build({ entryPoints: [`src/core/features/statuspage-import/instatus/${entry}.ts`], outfile: join(scratch, `${entry}.mjs`), bundle: true, platform: 'node', format: 'esm', logLevel: 'silent' });
   reader = (await import(pathToFileURL(join(scratch, 'normalize.mjs')))).readInstatusResponses;
   fetchSource = (await import(pathToFileURL(join(scratch, 'api.mjs')))).fetchInstatusResponses;
+  for (const entry of ['adapters', 'rows']) await build({ entryPoints: [`src/core/features/statuspage-import/${entry}.ts`], outfile: join(scratch, `${entry}.mjs`), bundle: true, platform: 'node', format: 'esm', logLevel: 'silent' });
+  adapters = (await import(pathToFileURL(join(scratch, 'adapters.mjs')))).sourceAdapters;
+  mapSource = (await import(pathToFileURL(join(scratch, 'rows.mjs')))).mapSource;
 });
 after(async () => { if (scratch) await rm(scratch, { recursive: true, force: true }); });
 
@@ -115,6 +118,21 @@ test("Saved Instatus import preserves history and refuses unsafe or ambiguous so
   const retained = checked.records.find(row => row.kind === 'maintenance').payload;
   for (const response of [retained.list, retained.detail]) assert.deepEqual(response.updates[0].providerMetadata, { note: 'unknown fields retained' });
 })(t);
+  t.diagnostic("a keyless capture of a real Instatus page's public feeds (Zed) brings its past incidents as resolved, silent history that names their components and invents no state");
+  await (async () => {
+  const folder = 'tests/fixtures/status-feeds/instatus-zed';
+  const capture = await Promise.all((await readdir(folder)).filter(name => name.startsWith('public-')).map(async name => ({ name, text: await readFile(join(folder, name), 'utf8') })));
+  const read = await adapters.instatus.read(capture, { publicUrl: 'https://status.zed.dev/' });
+  assert.deepEqual([read.data.groups.map(group => group.name), read.data.components.map(component => component.name), read.data.incidents.length, read.data.maintenance.length, read.data.subscribers.length], [['Zed', 'Delta'], ['Agent', 'Collaboration', 'Edit Prediction', 'Extension Registry', 'Delta Cloud Services'], 16, 0, 0]);
+  const mapped = mapSource(read.data, { maxGroupOrder: -1, maxComponentOrder: -1, lastReference: { INC: 0, SCH: 0 }, allocated: new Set(), references: new Map(), orders: new Map(), destinations: new Map() }, 'operator', '2026-10-22T10:00:00.000Z', 'instatus');
+  const incidents = mapped.filter(row => row.kind === 'incident').map(row => row.value.tables);
+  assert.ok(incidents.every(tables => tables.incidents[0].lifecycle === 'Resolved' && tables.incident_components.length === 0 && tables.incident_updates.every(update => update.is_retroactive === 1)), 'resolved history; the feed states no component state, so none is claimed');
+  const extensions = incidents.find(tables => tables.incidents[0].title === 'Issues with installing and downloading extensions');
+  assert.deepEqual(extensions.incident_updates.map(update => [update.lifecycle, update.published_at]), [['Investigating', '2026-04-20T04:10:00.000Z'], ['Investigating', '2026-04-20T08:45:01.000Z'], ['Identified', '2026-04-20T09:35:04.000Z'], ['Monitoring', '2026-04-20T09:56:19.000Z'], ['Resolved', '2026-04-20T09:59:06.000Z']], 'each update at its own time, the year read from the entry');
+  assert.deepEqual([extensions.incident_updates[0].affected_audience, extensions.incident_updates.at(-1).customer_impact], ['Customers using Extension Registry', 'This incident has been resolved.']);
+  assert.deepEqual(read.publicAddresses['incident:cmo6zfb1b02yglojlrxpyfavv'], ['https://status.zed.dev/incident/cmo6zfb1b02yglojlrxpyfavv']);
+  await assert.rejects(async () => adapters.instatus.read(capture.filter(file => file.name !== 'public-history.atom'), { publicUrl: 'https://status.zed.dev/' }), /history did not answer/);
+  })();
 });
 
 
