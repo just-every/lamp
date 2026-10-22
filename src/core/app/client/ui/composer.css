@@ -167,6 +167,12 @@ select.add-component { width: auto; min-height: 38px; border-style: dashed; bord
   /* Phone touch targets are at least 44 px (MOBILE-001). */
   .choice-pill { min-height: 44px; }
   .chip-remove { width: 44px; height: 44px; }
+  /* A component chip wraps so its whole name and state stay readable: name first, its state beneath. */
+  .component-chip { width: 100%; flex-wrap: wrap; row-gap: 0; border-radius: 22px; padding: 2px 0 2px 12px; }
+  .component-chip-name { flex: 1 1 calc(100% - 80px); overflow: visible; white-space: normal; }
+  .chip-remove { order: 2; }
+  .component-chip-now { order: 3; }
+  .component-chip select { order: 4; flex: 1 1 140px; min-height: 44px; border-left: 0; padding-left: 0; }
   .composer-footer { justify-content: space-between; }
   .composer-footer .button { width: 100%; }
   .more-options-toggle { margin-right: 0; }

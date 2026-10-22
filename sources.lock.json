@@ -2960,7 +2960,7 @@
       "executable": false
     },
     "src/core/app/client/ui/composer.css": {
-      "sha256": "ccb187424e8f464d60d2527b8aee963f0e4e000535a37d0a171d06792e4441af",
+      "sha256": "10e798e46d3e7f12b142445aea0b25497a4626777f139f584e3c9537775e8749",
       "executable": false
     },
     "src/core/app/client/ui/copy-button.tsx": {
@@ -6096,7 +6096,7 @@
       "executable": false
     },
     "tests/e2e/ui-interactions.test.mjs": {
-      "sha256": "adfbd57df7662861eb8eb530f8ae0ebf4a683dd48cec1fdeef25a9926983bf38",
+      "sha256": "bd956fd679cc4d0c723df4b2d24376ecd81b9c8481374f89f9799a05941fdc6c",
       "executable": false
     },
     "tests/e2e/update-reminders.test.mjs": {
