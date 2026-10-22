@@ -56,17 +56,17 @@ export function parseStatusFeeds(vendor: StatusFeedVendor, input: string, files:
     const summary = statuspageSummary(json("public-summary.json"));
     const history = json("public-incidents.json");
     const known = new Set(summary.components.map((component) => component.id));
-    return { ...page, pageId: summary.pageId, name: summary.name, groups: summary.groups, components: summary.components, incidents: history === null ? [] : statuspageIncidents(history, known) };
+    return { ...page, pageId: summary.pageId, name: summary.name, address: summary.address, homepage: null, groups: summary.groups, components: summary.components, incidents: history === null ? [] : statuspageIncidents(history, known) };
   }
   if (vendor === "instatus") {
     const summary = instatusSummary(json("public-summary.json"));
     const { groups, components } = instatusComponents(json("public-components.json"));
     const atom = file("public-history.atom");
-    return { ...page, pageId: null, name: summary.name, groups, components, incidents: atom === null ? [] : instatusIncidents(atom, components, summary.active) };
+    return { ...page, pageId: null, name: summary.name, address: summary.address, homepage: null, groups, components, incidents: atom === null ? [] : instatusIncidents(atom, components, summary.active) };
   }
   const index = betterstackIndex(json("public-index.json"));
   // Its ID names the page only when the page says this is its address.
-  return { ...page, pageId: index.hosts.includes(url.hostname) ? index.pageId : null, name: index.name, groups: index.groups, components: index.components, incidents: betterstackIncidents(index, file("public-feed.rss")) };
+  return { ...page, pageId: index.hosts.includes(url.hostname) ? index.pageId : null, name: index.name, address: index.address, homepage: index.homepage, groups: index.groups, components: index.components, incidents: betterstackIncidents(index, file("public-feed.rss")) };
 }
 
 /** A page's public feeds, read and understood; null when they do not answer as that vendor's page does. */

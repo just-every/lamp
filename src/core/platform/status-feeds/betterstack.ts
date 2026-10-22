@@ -31,7 +31,8 @@ export function betterstackIndex(value: unknown) {
   const about = attributes(page);
   // The page's own addresses: its custom domain, or its Better Stack subdomain.
   const hosts = [about.custom_domain, typeof about.subdomain === "string" ? `${about.subdomain}.betteruptime.com` : null].filter((host): host is string => typeof host === "string" && host.length > 0);
-  return { pageId: /^\d{1,40}$/.test(page.id) ? page.id : null, hosts, name: text(about.company_name).trim() || null, groups, components, included };
+  const domain = text(about.custom_domain).trim();
+  return { pageId: /^\d{1,40}$/.test(page.id) ? page.id : null, hosts, name: text(about.company_name).trim() || null, address: domain ? `https://${domain}/` : null, homepage: text(about.company_url).trim() || null, groups, components, included };
 }
 
 /** Better Stack's history: the reports /index.json shows (with each update's resource states), and older ones from its

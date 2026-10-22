@@ -8,7 +8,7 @@ browser. Check the card, change anything, and open Lamp. If Lamp cannot read the
 site, or you skip it, the page starts with plain defaults.
 
 If your site links to a status page you run on Statuspage, Instatus or Better
-Stack, or one answers at `status.<your domain>`, the card takes that page's own
+Stack, or one that names your site answers at `status.<your domain>`, the card takes that page's own
 components and groups from its public feeds instead of guessing them from your
 site's menus, and says where they came from. Edit them as one list per group.
 **Bring its incident history too**, off unless you choose it, imports the page's

@@ -28,6 +28,12 @@ else result.reason;           // "invalid-url" | "refused-address" | "unreachabl
 
 Nothing is guessed: a field the site does not give is `null` or empty.
 
+A site's own domain (`siteDomain` in `domain.ts`) is its registrable domain by the
+[Public Suffix List](https://publicsuffix.org/list/): example.co.uk, and
+astro-paper.netlify.app rather than netlify.app, since every netlify.app site is a
+site of its own. The list's rules are bundled in `public-suffix-list.ts`; refresh
+them from the maintained list with `node scripts/public-suffix-list.mjs`.
+
 Component names use the link's structure: a heading or title/label element wins
 over a description, subtitle, paragraph or small print. Separate block siblings
 are read as a name followed by supporting text; ordinary inline spans remain

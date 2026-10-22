@@ -1,5 +1,5 @@
 import { checkedUrl, dohResolver, guardedFetch, type GuardedFetchContext } from "../../platform/site-reader/fetch.ts";
-import { scanHtml } from "../../platform/site-reader/html.ts";
+import { decodeEntities, scanHtml } from "../../platform/site-reader/html.ts";
 import type { SiteReadOptions } from "../../platform/site-reader/types.ts";
 import { readStatusFeeds, type StatusFeedPage } from "../../platform/status-feeds/index.ts";
 import type { WebsiteStatusPage } from "./repository";
@@ -14,8 +14,12 @@ function providerHost(host: string): WebsiteStatusPage["source"] {
 }
 
 /** The page found, and for a Statuspage, Instatus or Better Stack page what its own public feeds say: its
- * components, groups and past incidents. */
-export interface StatusPageRead { page: WebsiteStatusPage; feeds: StatusFeedPage | null }
+ * components, groups and past incidents. `homepage` is where its logo links, the business's own site as a Statuspage
+ * or Instatus page gives it. */
+export interface StatusPageRead { page: WebsiteStatusPage; feeds: StatusFeedPage | null; homepage: string | null }
+
+// The link around a page's logo: Statuspage's logo container, Instatus's header logo.
+const LOGO_LINK = /\bclass\s*=\s*["'][^"']*\b(?:logo-container|large-header__logo)\b[^"']*["'][^>]*>\s*<a\b[^>]*?\bhref\s*=\s*["']([^"']+)["']/i;
 
 /** Public discovery only. It never authenticates and imports nothing; Move in imports. */
 export async function readStatusPage(input: string, options: SiteReadOptions = {}): Promise<StatusPageRead> {
@@ -28,7 +32,7 @@ export async function readStatusPage(input: string, options: SiteReadOptions = {
     signal: AbortSignal.timeout(budget),
     maxRedirects: options.maxRedirects ?? 5,
   };
-  let feeds: StatusFeedPage | null = null;
+  let feeds: StatusFeedPage | null = null, homepage: string | null = null;
   try {
     const landing = await guardedFetch(checkedUrl(input), "text/html,application/xhtml+xml", 1_500_000, true, context);
     detected.url = landing.url.href;
@@ -53,6 +57,13 @@ export async function readStatusPage(input: string, options: SiteReadOptions = {
         try { const asset = new URL(href, landing.url); return asset.hostname === "dka575ofm4ao0.cloudfront.net" && asset.pathname.startsWith("/assets/"); }
         catch { return false; }
       })) detected.source = "statuspage";
+      const logo = html.match(LOGO_LINK)?.[1];
+      if (logo) {
+        try {
+          const target = new URL(decodeEntities(logo), landing.url);
+          if (/^https?:$/.test(target.protocol)) homepage = target.href;
+        } catch { /* An invalid logo link names no site. */ }
+      }
     }
     const source = detected.source;
     if (source === "statuspage" || source === "instatus" || source === "betterstack") {
@@ -61,5 +72,5 @@ export async function readStatusPage(input: string, options: SiteReadOptions = {
       detected.pageId = feeds?.pageId ?? null;
     }
   } catch { /* Keep the linked address when the optional public metadata cannot be read. */ }
-  return { page: detected, feeds };
+  return { page: detected, feeds, homepage };
 }

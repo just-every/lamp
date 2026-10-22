@@ -55,6 +55,10 @@ export interface StatusFeedPage {
   /** Statuspage's page ID or Better Stack's status page ID; Instatus publishes none. */
   pageId: string | null;
   name: string | null;
+  /** The address the page gives as its own: Statuspage's and Instatus's page URL, Better Stack's custom domain. */
+  address: string | null;
+  /** The business's own site, as the page's feeds give it: Better Stack's company URL. */
+  homepage: string | null;
   /** In page order. */
   groups: StatusFeedGroup[];
   /** In page order, each group's components in their own order. */

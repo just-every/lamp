@@ -213,12 +213,17 @@ test('the site reader reads what a site says about itself, refuses private desti
     <footer><div><h3>Products</h3><a href="/products">Catalogue</a>${shelf.map(name => `<a href="/products/${name.toLowerCase()}">${name}</a>${name === 'Learning' ? '<a href="/products/learning/evals">Evals</a>' : ''}`).join('')}</div></footer>`);
   assert.deepEqual(indexed.map(component => component.name), shelf.slice(0, 8), 'neither the index nor a page beneath an area takes a main area\'s place');
 
-  t.diagnostic('the status page a business already runs, linked or at status.<its domain>, gives its own components, groups and past incidents from its public feeds (real Statuspage, Instatus and Better Stack captures) through the same guard; anything else changes nothing');
+  t.diagnostic('the status page a business already runs, linked or at status.<its domain>, gives its own components, groups and past incidents from its public feeds (real Statuspage, Instatus and Better Stack captures) through the same guard; a page found only at status.<its domain> must name the site, a site on a shared suffix (netlify.app) is a domain of its own, and anything else changes nothing');
   {
   const feeds = folder => Object.fromEntries(readdirSync(`tests/fixtures/status-feeds/${folder}`).filter(name => name.startsWith('public-')).map(name => [name, readFileSync(`tests/fixtures/status-feeds/${folder}/${name}`, 'utf8')]));
   const json = text => ({ body: text, headers: { 'Content-Type': 'application/json' } });
   const xml = text => ({ body: text, headers: { 'Content-Type': 'application/xml' } });
-  const poweredBy = href => ({ body: `<!doctype html><title>Status</title><main><p>All systems operational</p></main><footer><a href="${href}">Powered by</a></footer>` });
+  const poweredBy = (href, logo = '') => ({ body: `<!doctype html><title>Status</title>${logo}<main><p>All systems operational</p></main><footer><a href="${href}">Powered by</a></footer>` });
+  // Where the page's logo links, as Statuspage and Instatus pages mark it up.
+  const statuspageLogo = href => `<div class="masthead has-logo"><div class="logo-container"><a href="${href}"><img alt="Logo"></a></div></div>`;
+  const instatusLogo = href => `<header><div class="z-20 large-header__logo"><a class="flex w-full h-full" href="${href}"><img alt="Logo"></a></div></header>`;
+  // A real capture as another page would give it: its own address, homepage or name in place of the captured page's.
+  const restated = (text, change) => { const body = JSON.parse(text); change(body); return JSON.stringify(body); };
   const home = (name, status) => `<!doctype html><title>Home | ${name}</title><nav><a href="/products/one">One</a><a href="/products/two">Two</a></nav>${status ? `<footer><a href="${status}">Status</a></footer>` : ''}`;
   const [convex, zed, polar, valtown] = ['statuspage-convex', 'instatus-zed', 'betterstack-polar', 'betterstack-valtown'].map(feeds);
   const net = network({
@@ -240,12 +245,30 @@ test('the site reader reads what a site says about itself, refuses private desti
     'https://status.val.town/': poweredBy('https://betterstack.com/uptime'),
     'https://status.val.town/index.json': json(valtown['public-index.json']),
     'https://status.val.town/feed': xml(valtown['public-feed.rss']),
-    // A linked "status page" that is a marketing page: the common subdomain is tried next and answers.
+    // A linked "status page" that is a marketing page: the common subdomain is tried next and answers, naming the site
+    // by where its logo links.
     'https://market.example/': { body: home('Market', 'https://market.example/status-page') },
     'https://market.example/status-page': { body: '<!doctype html><title>Status page software</title><main><p>Keep customers informed.</p></main>' },
-    'https://status.market.example/': poweredBy('https://www.atlassian.com/software/statuspage'),
+    'https://status.market.example/': poweredBy('https://www.atlassian.com/software/statuspage', statuspageLogo('https://market.example/')),
     'https://status.market.example/api/v2/summary.json': json(convex['public-summary.json']),
     'https://status.market.example/api/v2/incidents.json': json(convex['public-incidents.json']),
+    // As Better Stack's own page does: no company URL, named only by the custom domain it gives as its own.
+    'https://stack.example/': { body: home('Stack', 'https://stack.example/status-page') },
+    'https://status.stack.example/': poweredBy('https://betterstack.com/'),
+    'https://status.stack.example/index.json': json(restated(polar['public-index.json'], body => Object.assign(body.data.attributes, { company_name: 'Acme Uptime', company_url: '', custom_domain: 'status.stack.example' }))),
+    'https://status.stack.example/feed': xml(polar['public-feed.rss']),
+    // A site on a shared suffix: status.netlify.app is Netlify's own page, never this site's status.<its domain>.
+    'https://astro-paper.netlify.app/': { body: home('AstroPaper') },
+    'https://status.netlify.app/': { status: 301, headers: { Location: 'https://www.netlifystatus.com/' } },
+    'https://www.netlifystatus.com/': poweredBy('https://www.atlassian.com/software/statuspage', statuspageLogo('https://www.netlify.com')),
+    'https://www.netlifystatus.com/api/v2/summary.json': json(restated(convex['public-summary.json'], body => Object.assign(body.page, { id: '83dz7syz0j3x', name: 'Netlify', url: 'https://www.netlifystatus.com' }))),
+    'https://www.netlifystatus.com/api/v2/incidents.json': json(convex['public-incidents.json']),
+    // Instatus gives each customer's page a subdomain of its own domain: status.instatus.com is another business's page.
+    'https://instatus.com/': { body: `${home('Instatus')}<footer><a href="https://dashboard.instatus.com/login">Log in</a></footer>` },
+    'https://dashboard.instatus.com/login': { body: '<!doctype html><title>Log in</title><form><input name="email"></form>' },
+    'https://status.instatus.com/': poweredBy('https://instatus.com', instatusLogo('/')),
+    'https://status.instatus.com/summary.json': json(JSON.stringify({ page: { name: 'Corner Music Shop', url: 'https://status.instatus.com', status: 'UP' } })),
+    'https://status.instatus.com/v2/components.json': json(JSON.stringify({ components: [{ id: 'cmswebsite01', name: 'Website', status: 'OPERATIONAL' }] })),
     // Nothing to take: status.<domain> on a private address, a linked page no vendor's feeds answer for, a page without components.
     'https://private.example/': { body: home('Private') },
     'https://other.example/': { body: home('Other', 'https://status.other.example/') },
@@ -266,9 +289,11 @@ test('the site reader reads what a site says about itself, refuses private desti
   assert.deepEqual(linked.existingPage.groups.map(group => group.name), ['Live Traffic', 'Development Services'], 'the page\'s own groups, in its order');
   assert.deepEqual(listed(linked), ['Live Traffic / Free & Starter', 'Live Traffic / Professional', 'Live Traffic / Business', 'Development Services / Free & Starter', 'Development Services / Professional', 'Development Services / Business', 'convex.dev website', 'AI Gateway']);
   const marketing = await found('market.example');
-  assert.deepEqual([marketing.statusPage, stored.statusPage.url, marketing.existingPage.source, marketing.existingPage.components.length], ['https://status.market.example/', 'https://status.market.example/', 'statuspage', 8], 'a marketing link does not stop the search: the status subdomain\'s feeds are taken');
+  assert.deepEqual([marketing.statusPage, stored.statusPage.url, marketing.existingPage.source, marketing.existingPage.components.length], ['https://status.market.example/', 'https://status.market.example/', 'statuspage', 8], 'a marketing link does not stop the search: the status subdomain\'s feeds are taken, its logo linking to the site');
+  const ownDomain = await found('stack.example');
+  assert.deepEqual([ownDomain.statusPage, ownDomain.existingPage?.source, ownDomain.existingPage?.components.length], ['https://status.stack.example/', 'betterstack', 12], 'a page whose own custom domain is on the site\'s domain names the site');
   const guessed = await found('zed.example');
-  assert.equal(guessed.statusPage, 'https://status.zed.example/', 'a page at status.<domain> is found without a link');
+  assert.equal(guessed.statusPage, 'https://status.zed.example/', 'a page at status.<domain> named for the domain ("Zed") is found without a link');
   assert.deepEqual([guessed.existingPage.source, guessed.existingPage.pastIncidents], ['instatus', 16]);
   assert.deepEqual(listed(guessed), ['Agent', 'Zed / Collaboration', 'Zed / Edit Prediction', 'Zed / Extension Registry', 'Delta / Delta Cloud Services']);
   const sections = await found('polar.example');
@@ -276,6 +301,11 @@ test('the site reader reads what a site says about itself, refuses private desti
   const lone = await found('valtown.example');
   assert.deepEqual(listed(lone), ['Scheduled Vals', 'Val Town Website', 'HTTP Val', 'HTTP (Preview)'], 'a lone section is the page\'s list, and a vendor\'s names keep their words');
   assert.equal(lone.existingPage.pastIncidents, 77);
+  const shared = await found('astro-paper.netlify.app');
+  assert.deepEqual([shared.existingPage, shared.statusPage, shared.components.map(component => component.name)], [null, null, ['One', 'Two']], 'a netlify.app site does not take Netlify\'s own page');
+  assert.equal(net.requested.some(url => /status\.netlify\.app|netlifystatus/.test(url)), false, 'status.netlify.app is not the site\'s status.<domain>');
+  const vendorSite = await found('instatus.com');
+  assert.deepEqual([vendorSite.existingPage, vendorSite.statusPage], [null, 'https://dashboard.instatus.com/login'], 'another business\'s page at status.instatus.com, which names no part of the site, is not taken; the site\'s own link stays as before');
   for (const input of ['private.example', 'other.example', 'empty.example']) {
     const quiet = await found(input);
     assert.deepEqual([quiet.existingPage, quiet.components.map(component => component.name)], [null, ['One', 'Two']], `${input}: the navigation's components stand, with no error`);

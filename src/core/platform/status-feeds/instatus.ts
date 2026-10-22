@@ -9,12 +9,12 @@ const LIFECYCLES = new Set(["investigating", "identified", "monitoring", "resolv
 // "Apr <var data-var='date'> 20</var>, <var data-var='time'>09:59:06</var> GMT+0</small><br /><strong>Resolved</strong> - "
 const UPDATE = /<small>\s*([A-Za-z]{3,9})\.?\s*(?:<var[^>]*>)?\s*(\d{1,2})\s*(?:<\/var>)?\s*,\s*(?:<var[^>]*>)?\s*(\d{1,2}:\d{2}(?::\d{2})?)\s*(?:<\/var>)?\s*(GMT[^<]*)?<\/small>\s*(?:<br\s*\/?>)?\s*<strong>([^<]+)<\/strong>\s*-\s*/gi;
 
-/** Instatus's /summary.json: the page's name, and what is open on it now. */
+/** Instatus's /summary.json: the page's name and address, and what is open on it now. */
 export function instatusSummary(value: unknown) {
   const body = object(value), page = object(body.page);
   if (typeof page.name !== "string" || typeof page.url !== "string") throw new Error("Not an Instatus summary.");
   const open = [...(Array.isArray(body.activeIncidents) ? body.activeIncidents : []), ...(Array.isArray(body.activeMaintenances) ? body.activeMaintenances : [])];
-  return { name: page.name.trim() || null, active: new Set(open.map((row) => String(object(row).id))) };
+  return { name: page.name.trim() || null, address: page.url.trim() || null, active: new Set(open.map((row) => String(object(row).id))) };
 }
 
 /** Instatus's /v2/components.json, in page order. A component the others name as their group is that group. */

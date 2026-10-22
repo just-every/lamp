@@ -552,7 +552,7 @@
       "executable": false
     },
     "docs/first-run.md": {
-      "sha256": "b3867e489ece8a7cd6099e394c1ddb48af13143d0ef5d76330bb1ae8bd5fbd61",
+      "sha256": "bbac808fd36d03d4291b67891d832ccd06d58beaf58bbac4cfe763d8ed80792a",
       "executable": false
     },
     "docs/incidents-and-updates.md": {
@@ -568,7 +568,7 @@
       "executable": false
     },
     "docs/moving-in.md": {
-      "sha256": "1e699717520d691717f6b8235d958f0bf3665e8607455f038476f4e5a3ca3482",
+      "sha256": "ca9d3f4be4006c49c350881310d308162e210fecbf3a7bd0fe2dd89fe77c42a3",
       "executable": false
     },
     "docs/operators-and-sign-in.md": {
@@ -4472,11 +4472,11 @@
       "executable": false
     },
     "src/core/features/website/service.ts": {
-      "sha256": "1f27bfb1a778c564831124e231e99c074582403dff11e5d0b0565b99ba4d2270",
+      "sha256": "84e07ba0de1b1f9f4a7fd3138ddf0816921a0fff6cc94bb3ac5ab58d5ff1ffe8",
       "executable": false
     },
     "src/core/features/website/status-page-reader.ts": {
-      "sha256": "70f843c83cc8583e49781951c8a6f73d92ce1fd052d0a7519aa94a9ba72852e7",
+      "sha256": "a1dc9f4d6a0c1bf2de007b6fb6bd4724ac2cb8f32dbd5a517b7754d705c346c1",
       "executable": false
     },
     "src/core/platform/ai/demo.ts": {
@@ -4664,7 +4664,7 @@
       "executable": false
     },
     "src/core/platform/site-reader/domain.ts": {
-      "sha256": "ab21dae03f626d8f9519d29b734a4ecc912e2b18a5b49f726ec446dbad162e2c",
+      "sha256": "9c2bc6178b09a255c313ec99eb88a62eb219562859cbaf71da8e198689fc3d34",
       "executable": false
     },
     "src/core/platform/site-reader/extract.ts": {
@@ -4688,7 +4688,7 @@
       "executable": false
     },
     "src/core/platform/site-reader/README.md": {
-      "sha256": "af503a3eec8a31b93c8c507a627c2515666533dfd41f5bd7731ef2e4fd35271f",
+      "sha256": "3b3669cb5d47945c08e72cb92dbfd2e77474f13257bbf98482e981e62a7b1159",
       "executable": false
     },
     "src/core/platform/site-reader/text.ts": {
@@ -4700,15 +4700,15 @@
       "executable": false
     },
     "src/core/platform/status-feeds/betterstack.ts": {
-      "sha256": "e36c523d668f849189d830ad502e4d15e55fab25d27fe691c3838eb658c2f6f2",
+      "sha256": "aa8388fd9a4cec61ab05f0dbfd5ec233294e5c5a125965598f82609605268ca5",
       "executable": false
     },
     "src/core/platform/status-feeds/index.ts": {
-      "sha256": "fb5a64914ffa646b5ff34bc34a1ae9ad1d89d061c05c89938d6ac074113a4cb9",
+      "sha256": "245e20388d15bc6549eb79f0d3bec3b9c0c36f50cb90445952df4da995ea6185",
       "executable": false
     },
     "src/core/platform/status-feeds/instatus.ts": {
-      "sha256": "a6ec117a841bad706f2ad8e318b79d840954813c9a9a2b906ae4e7fa4e78906a",
+      "sha256": "9083cd6200b1a6371efe60ebaa615b5350f1ca339875e4a605f7fc972e10fc7a",
       "executable": false
     },
     "src/core/platform/status-feeds/names.ts": {
@@ -4716,15 +4716,15 @@
       "executable": false
     },
     "src/core/platform/status-feeds/README.md": {
-      "sha256": "e6df6ae49c75a8a1494b0a54955edde04edb54212d9a5377003506a901c70ce0",
+      "sha256": "0dd2f567a5931bc1965d5209d11f36ecf8859ad19c1bb960c4074f77b235ff09",
       "executable": false
     },
     "src/core/platform/status-feeds/statuspage.ts": {
-      "sha256": "9f849fefdbb57870754571f4048796e9fe4435836414b4aca5b574bafc64808a",
+      "sha256": "e432d3e4458d838c93e323d707002092d483be631128077c88d56cab97884ab8",
       "executable": false
     },
     "src/core/platform/status-feeds/types.ts": {
-      "sha256": "8471da1a1b561ba3c31a0ae46e64f2ecd71fd43b0ca65e7b9055ccfd458c8fc8",
+      "sha256": "e9dc5b1a12df54ff8b19344cee798fa955e21489bce93be137a475c7c42da903",
       "executable": false
     },
     "src/core/platform/status-feeds/xml.ts": {
@@ -6888,7 +6888,7 @@
       "executable": false
     },
     "tests/site-reader/site-reader.test.mjs": {
-      "sha256": "13c7349b0fa09402729ee5074b9eb3f9533210278207ff67ec1589f788b6469b",
+      "sha256": "bc9646540ee3544821d4c68c8083bbf6466c2d68493c71f8b1efa8b113a0f4be",
       "executable": false
     },
     "tsconfig.json": {

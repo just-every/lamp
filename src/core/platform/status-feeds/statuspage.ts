@@ -33,7 +33,7 @@ export function statuspageSummary(value: unknown) {
     groups.push({ id, name: pageComponentName(text(row.name)), raw: row });
     components.push(...members.map((member) => component(member, id)));
   }
-  return { pageId: page.id, name: text(page.name).trim() || null, groups, components };
+  return { pageId: page.id, name: text(page.name).trim() || null, address: text(page.url).trim() || null, groups, components };
 }
 
 /** Statuspage's /api/v2/incidents.json (its 50 newest incidents): the resolved ones, with every update and the

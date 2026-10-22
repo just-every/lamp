@@ -25,7 +25,9 @@ if (read) read.page;   // StatusFeedPage; read.files are the responses, unchange
 page and all maintenance are left out. A Better Stack report no longer on the page is
 over. `components` lists only what the page names; states appear only where the feed
 states them. A page ID is the page's own (Statuspage's, or Better Stack's when the page
-says this is its address).
+says this is its address). `address` is the address the page gives as its own (its
+page URL, or Better Stack's custom domain) and `homepage` the business's site where the
+feeds give it (Better Stack's company URL), so a reader can tell whose page it is.
 
 Component names are the page's own. The site reader's cleaning takes off decoration
 (spacing, emoji, entities) but never a word: "HTTP (Preview)" stays whole.

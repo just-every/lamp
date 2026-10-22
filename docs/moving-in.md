@@ -56,7 +56,7 @@ Imports made before the door keep their own read, Continue and Undo.
 ## From setup, without a key
 
 When setup finds the Statuspage, Instatus or Better Stack page your site links to
-(or one at `status.<your domain>`), **Bring its incident history too** reads that
+(or one at `status.<your domain>` that names your site), **Bring its incident history too** reads that
 page's public feeds once more, keyless, and imports them through the same door:
 Statuspage's `/api/v2/summary.json` and `/api/v2/incidents.json` (its 50 newest
 incidents), Instatus's `/summary.json`, `/v2/components.json` and `/history.atom`,

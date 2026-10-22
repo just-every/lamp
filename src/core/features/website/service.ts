@@ -2,6 +2,7 @@ import { normaliseWebsite, isPublicAddress, type SiteRead, type SiteReadResult }
 import { siteDomain } from "../../platform/site-reader/domain.ts";
 import type { WebsiteRecord, WebsiteRepository } from "./repository";
 import { existingPageFrom, type ExistingStatusPage } from "./existing-page.ts";
+import { namesSite } from "./names-site.ts";
 import type { StatusPageRead } from "./status-page-reader";
 
 /** What Lamp fills in from a website. Only what the site gave; the owner edits any of it. */
@@ -70,15 +71,17 @@ export function createWebsiteService(repository: WebsiteRepository, options: { r
       const linked = result.site.statusPage;
       // The link a site gives for its status page may be a marketing page, so the common subdomain of its host is
       // tried as well, one candidate after another until one's own feeds answer as a Statuspage, Instatus or Better
-      // Stack page with components. Only such a page, or the site's own link, counts as found.
+      // Stack page with components. Only such a page, or the site's own link, counts as found. A page found only at a
+      // subdomain must name the site too: another business's page can answer there (a customer's at status.instatus.com).
       const host = result.site.host.replace(/^www\./, "");
       const candidates = [...new Set([linked?.url, `https://status.${siteDomain(host)}/`, `https://status.${host}/`].filter((address): address is string => Boolean(address)))];
       let recognised: StatusPageRead | null = null;
       let linkedRead: StatusPageRead | null = null;
       for (const address of candidates) {
         const read = await options.readStatusPage(address).catch(() => null);
-        if (address === linked?.url) linkedRead = read;
-        if (read?.feeds?.components.length) { recognised = read; break; }
+        const isLinked = address === linked?.url;
+        if (isLinked) linkedRead = read;
+        if (read?.feeds?.components.length && (isLinked || namesSite(read, host))) { recognised = read; break; }
       }
       const statusPage = recognised ? recognised.page : linked ? linkedRead?.page ?? { url: linked.url, source: null, pageId: null } : null;
       await repository.record(result.site.url, statusPage);
