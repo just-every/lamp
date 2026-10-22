@@ -516,7 +516,7 @@
       "executable": false
     },
     "DIVERGENCE.md": {
-      "sha256": "fb2c5b35acc177b484dfa8c84bd196a6deb1867e11c9b9690755fb11faf3fd99",
+      "sha256": "bb12997354b88c39b8a92878c46079c683401274ad8c57fb40080f01f0931b87",
       "executable": false
     },
     "docs/ai-assistance.md": {
@@ -2936,7 +2936,7 @@
       "executable": false
     },
     "src/core/app/client/ui/api.ts": {
-      "sha256": "3db9051d9fbaf226080ad85dc1365a3a1e46821e5e12672dd087a147ef187443",
+      "sha256": "043f95959808e570132e6fc517c604ab938f93805b4fc1f4df76f3d2fa852e4c",
       "executable": false
     },
     "src/core/app/client/ui/app-head.ts": {
@@ -3740,7 +3740,7 @@
       "executable": false
     },
     "src/core/features/intake/ui/use-source-autosave.ts": {
-      "sha256": "f51165c0978361d5db9a511d8df7e8b8ef3e788d5615701cf2e9c03239e360f7",
+      "sha256": "ffea8c6a9340911f78b6b62023a04680b59d2476d60e1a910237ac80f637f94c",
       "executable": false
     },
     "src/core/features/intake/ui/webhook-form.tsx": {
@@ -6016,7 +6016,7 @@
       "executable": false
     },
     "tests/e2e/helpers/webhook-source-browser-flow.mjs": {
-      "sha256": "4f1c70606cf452ad7ae4e25443422bef7a484666d1a405bf36d03ee3e6f00c22",
+      "sha256": "5f7b3d38f5a9175577f22fa2249df9aba843d49c08175e3a3b089450f19dfffc",
       "executable": false
     },
     "tests/e2e/helpers/widget-privacy-flow.mjs": {

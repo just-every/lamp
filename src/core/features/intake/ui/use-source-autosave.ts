@@ -7,7 +7,8 @@ export type SavePhase = "saved" | "waiting" | "saving" | "error";
 
 /** A connected tool's choices save as they change: typing after a short pause, choices at once.
  * One write at a time, always the newest choices. As in Settings, closing the form, leaving Alerts and signing out wait
- * for them; a refused write keeps the owner on the form and brings its reason and Retry into view (`held`). */
+ * for them; a refused write keeps the owner on the form and brings its reason and Retry into view (`held`). A form that
+ * goes anyway (its tool removed) still sends what is pending. */
 export function useSourceAutosave(sourceId: string, onSaved: () => void) {
   const [phase, setPhase] = useState<SavePhase>("saved");
   const [error, setError] = useState<string | null>(null);
@@ -27,6 +28,7 @@ export function useSourceAutosave(sourceId: string, onSaved: () => void) {
     try {
       await appApi(`/api/app/intake/sources/${sourceId}`, { method: "PUT", body: q.body, keepalive });
       q.completed = revision;
+      // A closed form's last write still refreshes the tool's row.
       notify.current();
       if (q.mounted) { setError(null); setPhase(q.revision === revision ? "saved" : "waiting"); }
     } catch (cause) {
@@ -36,7 +38,7 @@ export function useSourceAutosave(sourceId: string, onSaved: () => void) {
     } finally {
       q.sending = false;
       for (const check of [...q.answered]) check();
-      if (q.mounted && pending()) q.timer = setTimeout(() => void flush(), 0);
+      if (pending()) q.timer = setTimeout(() => void flush(), 0);
     }
   }
 
@@ -51,8 +53,7 @@ export function useSourceAutosave(sourceId: string, onSaved: () => void) {
       void appApi(`/api/app/intake/sources/${sourceId}`, { method: "PUT", body: q.body, keepalive: true }).catch(() => undefined);
     };
     window.addEventListener("pagehide", unload);
-    // The form closes only once its choices are answered or let go (`leave`), or with its removed tool.
-    return () => { window.removeEventListener("pagehide", unload); q.mounted = false; clearTimeout(q.timer); };
+    return () => { window.removeEventListener("pagehide", unload); q.mounted = false; void flush(); };
   }, [sourceId]);
 
   /** Whether the owner may leave the form now: its newest choices save first, and a refused save holds them on it. */
