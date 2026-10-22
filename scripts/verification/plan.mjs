@@ -8,6 +8,7 @@ export const verificationPlan = {
   demo: ['test:demo'],
   storage: ['test:reference-storage', 'test:public-snapshots', 'test:resolve-composer', 'test:workflow-render', 'test:site-reader'],
   ingress: ['test:dev-ingress', 'test:website-onboarding'],
+  'house-style': ['test:house-style'],
   publishing: ['test:publishing'],
   api: ['test:api'],
   portability: ['test:export-import'],
@@ -59,6 +60,8 @@ const ciDurationSeconds = {
   demo: 135,
   source: 125,
   ingress: 120,
+  // Estimated for its first CI run: three native installs, the browser journeys and the measured contrast.
+  'house-style': 420,
   artifact: 93,
   api: 78,
   'imports-sorry': 74,

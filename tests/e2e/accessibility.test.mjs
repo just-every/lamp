@@ -18,6 +18,7 @@ import { accessibilityFailure, analyzeScriptFreePage, newScriptFreePage, observe
 import { baseline } from "../baseline/e2e-baseline/case.mjs";
 import { isolatedWranglerConfig } from "../helpers/wrangler-config.mjs";
 import { sessionCookieName } from "../helpers/session-cookie.mjs";
+import { startFakeWorkersAi } from "./helpers/fake-workers-ai.mjs";
 
 const WCAG_22_AA_TAGS = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"];
 const wranglerConfig = resolve("wrangler.jsonc");
@@ -40,6 +41,7 @@ let incidentReference;
 let manageToken;
 let unsubscribeToken;
 let confirmTokens = [];
+let workersAi;
 
 async function appFetch(path, init = {}) {
   init = await withDraftVersion(path, init, appFetch);
@@ -75,6 +77,22 @@ async function currentSettings() {
   const response = await appFetch("/api/app/page-settings");
   assert.equal(response.status, 200);
   return (await response.json()).settings;
+}
+
+// The house style needs a made picture: Workers AI is faked at its network edge, and the page waits for the make.
+async function showTemplate(template) {
+  const current = await currentSettings();
+  const response = await appFetch("/api/app/page-settings", {
+    method: "PUT",
+    body: JSON.stringify({ pageName: current.pageName, tagline: current.tagline, accentColor: current.accentColor, timezone: current.timezone, hostname: current.hostname, footerCreditEnabled: current.footerCreditEnabled, mailFromAddress: current.mailFromAddress, template }),
+  });
+  assert.equal(response.status, 200);
+  const shows = template === "default" ? /<main class="page root-page">/ : new RegExp(`<body data-template="${template}">`);
+  for (let attempt = 0; attempt < 240; attempt += 1) {
+    if (shows.test(await (await fetch(`${pageUrl}/`)).text())) return;
+    await new Promise((resolve) => setTimeout(resolve, 250));
+  }
+  throw new Error(`The public page did not show the ${template} template.`);
 }
 
 async function allowWidgetAt(origin) {
@@ -139,6 +157,7 @@ async function startWorker() {
       LAMP_WORKERS_STATE_PATH: statePath,
       LAMP_VITE_CACHE_DIR: viteCachePath,
       LAMP_WRANGLER_CONFIG: configPath,
+      LAMP_DEV_WORKERS_AI_ORIGIN: workersAi.origin,
     },
   });
   worker.stdout.resume();
@@ -161,6 +180,7 @@ before(async () => {
     cwd: process.cwd(),
     stdio: "pipe",
   });
+  workersAi = await startFakeWorkersAi({ subject: { object: "ceramic table lamp", light: "a warm glow through its shade", placement: "standing", base: "its round flat foot", why: "It stands for a page that is lit and working." }, seen: "Table lamp" });
   await startWorker();
 
   const neutralPublicPage = await fetch(`${pageUrl}/`);
@@ -239,6 +259,7 @@ after(async () => {
   await context?.close();
   await browser?.close();
   if (embedServer) await new Promise((resolve) => embedServer.close(resolve));
+  await workersAi?.close();
   if (worker?.pid && worker.exitCode === null) {
     const stopped = new Promise((resolve) => worker.once("exit", resolve));
     try { process.kill(-worker.pid, "SIGTERM"); } catch { /* Worker already exited. */ }
@@ -283,15 +304,18 @@ async function auditRoute(origin, path, surface, readySelector, options = {}) {
   }
 }
 
-baseline("BASE-PUBLIC-003", "Axe WCAG 2.2 AA passes real local public, operator, and widget surfaces", async () => {
-  for (const [path, surface, selector] of [
+baseline("BASE-PUBLIC-003", "Axe WCAG 2.2 AA passes real local public, house style, operator and widget surfaces, which stay styled, script-free and within mobile width", async () => {
+  for (const [path, surface, selector, template] of [
     ["/", "Public status page", "main.root-page"],
     [`/incidents/${incidentReference}`, "Permanent public incident page", "main.page"],
     ["/history", "Public incident history", "main.page"],
     [`/manage/${manageToken}`, "Subscriber management page", "main"],
     [`/unsubscribe/${unsubscribeToken}`, "Subscriber unsubscribe page", "form"],
+    ["/", "House style public page", "main.tpl-house", "house"],
   ]) {
+    if (template) await showTemplate(template);
     await auditRoute(pageUrl, path, surface, selector);
+    if (template) await showTemplate("default");
   }
 
   await auditRoute(appUrl, "/signin", "Unauthenticated sign-in page", "main", { anonymous: true });
@@ -317,9 +341,7 @@ baseline("BASE-PUBLIC-003", "Axe WCAG 2.2 AA passes real local public, operator,
   } finally {
     await widgetPage.close();
   }
-});
 
-baseline("BASE-PUBLIC-003", "public and subscriber pages stay styled, script-free, accessible, and within mobile width", async () => {
   const viewports = [
     { width: 1440, height: 900 },
     { width: 390, height: 844 },

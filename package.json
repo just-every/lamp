@@ -47,6 +47,7 @@
     "test:dev-ingress": "node --test --test-concurrency=1 tests/dev-ingress/*.test.mjs",
     "test:website-onboarding": "node --test --test-concurrency=1 tests/e2e/website-onboarding.test.mjs",
     "test:site-reader": "node --test --test-concurrency=1 tests/site-reader/*.test.mjs",
+    "test:house-style": "node --test --test-concurrency=1 tests/e2e/house-style.test.mjs",
     "source:copies": "node scripts/edition-authoring/cli.mjs verify-base --offline",
     "signin-link": "node scripts/signin-link.mjs",
     "test:operator-readiness": "pnpm run test:operator-readiness:upgrade && pnpm run test:operator-readiness:authority",

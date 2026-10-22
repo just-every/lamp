@@ -49,14 +49,19 @@ export async function regionsUnavailable({ page, origin, api }) {
   assert.match(refused.body.error, NEEDS_TWO_REGIONS);
 }
 
-/** Calm headline and Uptime-history-led publish on save and survive a reload of Settings; Default returns. */
+/** Calm headline, Uptime-history-led and House style publish on save and survive a reload of Settings; Default
+ *  returns. This install has no Workers AI binding, so House style shows Calm headline, and the page's foot and the
+ *  Template card both name that reason. */
 export async function templateChoiceFlow({ page, origin, publicOrigin, api }) {
   await regionsUnavailable({ page, origin, api });
-  for (const template of ['calm', 'uptime', 'default']) {
+  for (const [template, shows] of [['calm', 'calm'], ['uptime', 'uptime'], ['house', 'calm'], ['default', 'default']]) {
     await choose(page, origin, api, template);
-    await (await visit(page, publicOrigin, template)).close();
-    const { select } = await templateCard(page, origin);
+    const visitor = await visit(page, publicOrigin, shows);
+    if (template === 'house') assert.equal(await visitor.locator('[data-house-style]').getAttribute('data-reason'), 'not-connected', 'the page says why it shows Calm headline');
+    await visitor.close();
+    const { card, select } = await templateCard(page, origin);
     assert.equal(await select.inputValue(), template, 'the selected template survives reload');
+    if (template === 'house') await card.locator('[role="status"][data-reason="not-connected"]').waitFor();
   }
 }
 

@@ -2136,7 +2136,7 @@
       "executable": false
     },
     "package.json": {
-      "sha256": "ef93c7bbf842a9a8108f5aa257d51232f145320ef045706ae3f6dae643932eaf",
+      "sha256": "df266f66d897527dbaf0b394d61edbb7112cd2a3be4cb986c45c3f01f415d139",
       "executable": false
     },
     "pnpm-lock.yaml": {
@@ -2784,7 +2784,7 @@
       "executable": false
     },
     "scripts/verification/plan.mjs": {
-      "sha256": "e67aa3e9c002c6370c25efb911e9cf16072a712288d96ce4dab970fcc5bfc794",
+      "sha256": "bb0aa891393874a93beb48d3ff554f78915ae0d16305be7ce0ddc84e03db7762",
       "executable": false
     },
     "scripts/verification/run.mjs": {
@@ -5756,7 +5756,7 @@
       "executable": false
     },
     "tests/e2e/accessibility.test.mjs": {
-      "sha256": "f07b195d3e23cfb2a1f4b056909c33cd2cfe499de44e20cdfa7451fc796ae90b",
+      "sha256": "99432126601f03bfbdf66cbafead045c500ce9f7fab31abbdaa7d05dd8049a86",
       "executable": false
     },
     "tests/e2e/app-api.test.mjs": {
@@ -5887,6 +5887,10 @@
       "sha256": "9cd748ec4093d6e4aac93e31932ed4efd352b74a55d168384217b80ac50b8388",
       "executable": false
     },
+    "tests/e2e/helpers/fake-workers-ai.mjs": {
+      "sha256": "289352b59e1bcd940b83369dd6a731f97ad44c4871ccb9e02416c2da33db7280",
+      "executable": false
+    },
     "tests/e2e/helpers/grouped-alerts-flow.mjs": {
       "sha256": "304d132381000720ba0a125c9f2c45258fa7ab91d837c5519e7f16c5cc60cd81",
       "executable": false
@@ -5976,7 +5980,11 @@
       "executable": false
     },
     "tests/e2e/helpers/template-choice-flow.mjs": {
-      "sha256": "1cc89af3526ee36ea9a31dde0fb2d90c3ebb8b6321a172a7d301a384b69fd6f2",
+      "sha256": "fcb441c1085c27a16f802c0b12b6084f108c276bff42f45c317a10d36ec83fed",
+      "executable": false
+    },
+    "tests/e2e/helpers/text-contrast.mjs": {
+      "sha256": "b363e857bd6e5cc3b9a1275aa2d014b9f71b699ddd226036fdb19a9de988ec32",
       "executable": false
     },
     "tests/e2e/helpers/update-component-flow.mjs": {
@@ -5997,6 +6005,10 @@
     },
     "tests/e2e/helpers/widget-variants-flow.mjs": {
       "sha256": "c7bbc026e93844e9763b2d23f1562db290b46bc682bcc81eb693b6fb41733c9f",
+      "executable": false
+    },
+    "tests/e2e/house-style.test.mjs": {
+      "sha256": "1d240c15ce70f24372e028118d4ad865d5995d17163b9e244b531f1fdc394370",
       "executable": false
     },
     "tests/e2e/incident-brief.test.mjs": {
@@ -6068,7 +6080,7 @@
       "executable": false
     },
     "tests/e2e/real-session-helper.mjs": {
-      "sha256": "1ee5def8eb0608f998a703972e91f4f1d215aacab4edcf11d053993b98375ef6",
+      "sha256": "b2a73f0119507be9dd90a24ae4c9b32b1c47094790e899d7e9cef50c6917c854",
       "executable": false
     },
     "tests/e2e/rer-mail.test.mjs": {
