@@ -12,7 +12,7 @@ import { and, desc, eq, isNull } from "drizzle-orm";
 
 import { createDatabase } from "../../platform/db/client";
 import type { ComponentState } from "../../shared/domain";
-import { allocateReference } from "../../shared/references/repository";
+import { allocateReference, peekReference } from "../../shared/references/repository";
 import type { ComponentClaimEventInput, ComponentStateHistoryInput } from "../components";
 import {
   incidentComponents,
@@ -79,6 +79,7 @@ export interface IncidentRepository {
   listInternalNotes(incidentId: string): Promise<Array<typeof incidentInternalNotes.$inferSelect>>;
   addInternalNote(input: typeof incidentInternalNotes.$inferInsert): Promise<void>;
   create(input: Omit<typeof incidents.$inferInsert, "reference">, components: Array<typeof incidentComponents.$inferInsert>, draft: typeof incidentDrafts.$inferInsert): Promise<string>;
+  nextReference(): Promise<string>;
   upsertDraft(input: typeof incidentDrafts.$inferInsert, expectedVersion: string): Promise<void>;
   scheduleDraft(incidentId: string, scheduledPublishAt: string | null, channels: Array<UpdateChannel>, updatedAt: string, expectedDraftId?: string, replacementDraftId?: string): Promise<boolean>;
   reviewDraft(incidentId: string, reviewerOperatorId: string, reviewedAt: string, expectedVersion: string): Promise<boolean>;
@@ -160,10 +161,11 @@ export function createIncidentRepository(binding: D1Database): IncidentRepositor
       await binding.batch([
         binding.prepare(`INSERT INTO incidents (id,reference,title,lifecycle,opened_at,resolved_at,created_by_operator_id,deleted_at,deletion_reason,created_at,updated_at) VALUES (?,?,?,'Investigating',?,NULL,?,NULL,NULL,?,?)`).bind(input.id, reference, input.title, input.openedAt, input.createdByOperatorId, input.createdAt, input.updatedAt),
         ...attached.map((component) => binding.prepare(`INSERT INTO incident_components (id,incident_id,component_id,component_name,state,relationship,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?)`).bind(component.id, component.incidentId, component.componentId, component.componentName, component.state, component.relationship, component.createdAt, component.updatedAt)),
-        binding.prepare(`INSERT INTO incident_drafts (id,incident_id,lifecycle,affected_audience,customer_impact,what_still_works,details,next_update_at,author_operator_id,created_at,updated_at) VALUES (?,?,'Investigating','','','','',NULL,?,?,?)`).bind(draft.id, draft.incidentId, draft.authorOperatorId, draft.createdAt, draft.updatedAt),
+        binding.prepare(`INSERT INTO incident_drafts (id,incident_id,lifecycle,affected_audience,customer_impact,what_still_works,details,next_update_at,author_operator_id,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?)`).bind(draft.id, draft.incidentId, draft.lifecycle, draft.affectedAudience, draft.customerImpact, draft.whatStillWorks, draft.details, draft.nextUpdateAt ?? null, draft.authorOperatorId, draft.createdAt, draft.updatedAt),
       ]);
       return reference;
     },
+    nextReference: () => peekReference(binding, "INC"),
     async upsertDraft(input, expectedVersion) {
       const [draftId, count] = expectedVersion.split(":");
       const row = await binding.prepare(`INSERT INTO incident_drafts (id,incident_id,lifecycle,affected_audience,customer_impact,what_still_works,details,next_update_at,author_operator_id,created_at,updated_at,component_changes_json)

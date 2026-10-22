@@ -26,6 +26,7 @@ import { phoneDeskFlow } from "./helpers/phone-desk-flow.mjs";
 import { subscriberReportingBrowserFlow } from "./helpers/subscriber-reporting-browser-flow.mjs";
 import { auditLogFlow } from "./helpers/audit-log-flow.mjs";
 import { operatorHydrated } from "./helpers/operator-hydrated.mjs";
+import { incidentComposer, newIncidentForm } from "./helpers/incident-composer.mjs";
 
 let appUrl = "";
 let pageUrl = "";
@@ -247,36 +248,37 @@ contract("INCIDENT-001", "AGENT-004 MOBILE-001 — an operator can start empty, 
   await page.setViewportSize({ width: 1440, height: 1000 });
   await page.goto(`${appUrl}/app/incidents`);
   await operatorHydrated(page);
-  await page.getByRole("heading", { name: "Start a private draft" }).waitFor();
-  await page.getByLabel("Incident title").fill("Journey API request failures");
-  await page.getByLabel("Affected component 1").selectOption({ label: "Journey API" });
-  await page.getByLabel("Component status 1").selectOption("Major outage");
-  await page.getByRole("button", { name: "Create incident draft" }).click();
-  await page.getByRole("heading", { name: "Compose public update" }).waitFor();
-
-  const reference = await page.locator(".incident-context .eyebrow").textContent();
-  assert.match(reference ?? "", /^INC-\d+$/);
-  await page.locator("label", { hasText: "Who is affected" }).locator("textarea").fill("Journey API customers.");
-  await page.locator("label", { hasText: "What is the impact" }).locator("textarea").fill("Requests to Journey API are failing.");
-  await page.locator("label", { hasText: "What still works" }).locator("textarea").fill("The dashboard remains available.");
-  await page.getByLabel("Next update date and time").fill("2027-09-08T14:00");
-  await page.locator("label", { hasText: "Additional details" }).locator("textarea").fill("Operators are restoring request capacity.");
+  // An empty list opens the new-incident screen: what is happening, who is affected, the next update and Publish.
+  await page.getByRole("heading", { name: "New incident", exact: true }).waitFor();
+  const form = newIncidentForm(page);
+  await form.title.fill("Journey API request failures");
+  await form.impact.fill("Requests to Journey API are failing.");
+  await form.addComponent("Journey API");
+  await form.componentState("Journey API", "Major outage");
+  await form.audience.fill("Journey API customers.");
+  await form.nextUpdate.fill("2027-09-08T14:00");
+  await form.moreOptions();
+  await page.getByLabel("What still works", { exact: true }).fill("The dashboard remains available.");
+  await page.getByLabel("Details", { exact: true }).fill("Operators are restoring request capacity.");
   await page.getByText("Public page", { exact: true }).waitFor();
-  await page.getByText("Email preview", { exact: true }).click();
+  await page.getByRole("button", { name: "Email", exact: true }).click();
   await page.getByText("Notification email", { exact: true }).waitFor();
-  await page.waitForTimeout(1_500);
-  await page.getByText("Draft saved", { exact: true }).waitFor({ timeout: 2_000 });
-  await page.getByRole("button", { name: "Publish update" }).click();
+  await page.getByText("Operators are restoring request capacity.", { exact: true }).waitFor();
+  await form.publish.click();
   await page.getByText("Update published.").waitFor();
+  const reference = await page.locator(".incident-heading .eyebrow").textContent();
+  assert.match(reference ?? "", /^INC-\d+$/);
   await waitForPublicIncident(reference, "Requests to Journey API are failing.");
+  await waitForPublicIncident(reference, "The dashboard remains available.");
 
-  assert.equal(await page.locator("label", { hasText: "Who is affected" }).locator("textarea").inputValue(), "", "publication starts a blank next-update draft");
-  await page.getByLabel("Status").selectOption("Resolved");
-  await page.locator("label", { hasText: "Who is affected" }).locator("textarea").fill("Journey API customers.");
-  await page.locator("label", { hasText: "What is the impact" }).locator("textarea").fill("Journey API requests are restored.");
+  const composer = incidentComposer(page);
+  assert.equal(await composer.audience.inputValue(), "", "publication starts a blank next-update draft");
+  await composer.setStatus("Resolved");
+  await composer.audience.fill("Journey API customers.");
+  await composer.impact.fill("Journey API requests are restored.");
   await page.waitForTimeout(1_500);
   await page.getByText("Draft saved", { exact: true }).waitFor({ timeout: 2000 });
-  await page.getByRole("button", { name: "Publish update" }).click();
+  await composer.publish.click();
   await waitForPublicIncident(reference, "Resolved");
   await page.goto(`${pageUrl}/incidents/${reference}`);
   await page.getByText("Journey API request failures", { exact: true }).waitFor();
@@ -294,46 +296,47 @@ contract("INCIDENT-004", "operator controls create internal notes, retroactive r
     const part = (kind) => parts.find(entry => entry.type === kind).value;
     return `${part("year")}-${part("month")}-${part("day")}T${part("hour")}:${part("minute")}`;
   }, offsetMs);
-  await page.goto(`${appUrl}/app/incidents`);
-  await page.getByRole("button", { name: "Create incident", exact: true }).click();
-  await page.getByRole("heading", { name: "Start a private draft" }).waitFor();
-  await page.getByLabel("Incident title").fill("Historical correction controls");
-  await page.getByLabel("Opened at").fill(await localInput(-2 * 60 * 60_000));
-  await page.getByLabel("Affected component 1").selectOption(component.id);
-  assert.equal(await page.getByLabel("Affected component 1").locator("option:checked").textContent(), "Journey API");
-  await page.getByRole("button", { name: "Create incident draft" }).click();
-  await page.getByRole("heading", { name: "Compose public update" }).waitFor();
-
-  const incidentId = new URL(page.url()).pathname.split("/").at(-1);
-  assert.ok(incidentId, "creating an incident must navigate to its operator record");
-  await page.getByLabel("Internal note").fill("PRIVATE-OPERATOR-CONTEXT");
-  await page.getByRole("button", { name: "Save internal note" }).click();
-  await page.getByText("Internal note saved.", { exact: true }).waitFor();
+  await page.goto(`${appUrl}/app/incidents/new`);
+  await operatorHydrated(page);
+  const form = newIncidentForm(page);
+  await form.title.fill("Historical correction controls");
+  await form.impact.fill("An earlier condition delayed requests.");
+  await form.addComponent("Journey API");
+  assert.equal(await page.locator(".component-chip-name").textContent(), "Journey API");
+  await form.audience.fill("Historical API customers.");
   const nextUpdateLocal = await localInput(60 * 60_000);
-  await saveAndConfirmDraft({ page, appFetch, incidentId, t,
-    expected: { lifecycle: "Investigating", affectedAudience: "Historical API customers.", customerImpact: "An earlier condition delayed requests.", whatStillWorks: "", details: "", nextUpdateAt: new Date(`${nextUpdateLocal}:00-07:00`).toISOString() },
-    edit: async () => {
-      await page.locator("label", { hasText: "Who is affected" }).locator("textarea").fill("Historical API customers.");
-      await page.locator("label", { hasText: "What is the impact" }).locator("textarea").fill("An earlier condition delayed requests.");
-      await page.getByLabel("Next update date and time").fill(nextUpdateLocal);
-    },
-  });
-  await page.getByText("Schedule or backdate", { exact: true }).click();
-  await page.getByLabel("Historical publication date and time").fill(await localInput(-2 * 60_000));
+  await form.nextUpdate.fill(nextUpdateLocal);
+  await form.moreOptions();
+  await page.getByLabel("Opened at", { exact: true }).fill(await localInput(-2 * 60 * 60_000));
+  const controls = page.getByRole("region", { name: "Publication controls" });
+  await controls.getByRole("radio", { name: "Backdate", exact: true }).check();
+  await controls.getByLabel("Historical publication date and time").fill(await localInput(-2 * 60_000));
   await page.getByRole("button", { name: "Publish historical update" }).click();
   await page.getByText("Historical update published. It did not notify subscribers.", { exact: true }).waitFor();
+  const incidentId = new URL(page.url()).pathname.split("/").at(-1);
+  assert.ok(incidentId && incidentId !== "new", "publishing a new incident must navigate to its operator record");
   const historical = await appFetch(`/api/app/incidents/${incidentId}`);
   const record = (await historical.json()).incident;
   assert.equal(record.updates.length, 1);
-  assert.equal(record.internalNotes[0].body, "PRIVATE-OPERATOR-CONTEXT");
+  assert.equal(record.updates[0].isRetroactive, true);
+  assert.equal(record.updates[0].nextUpdateAt, new Date(`${nextUpdateLocal}:00-07:00`).toISOString());
+  assert.ok(Date.parse(record.openedAt) < Date.now() - 60 * 60_000, "the incident keeps its earlier opening time");
+
+  const composer = incidentComposer(page);
+  await composer.privateActions();
+  await page.getByLabel("Internal note").fill("PRIVATE-OPERATOR-CONTEXT");
+  await page.getByRole("button", { name: "Save internal note" }).click();
+  await page.getByText("Internal note saved.", { exact: true }).waitFor();
+  assert.equal((await (await appFetch(`/api/app/incidents/${incidentId}`)).json()).incident.internalNotes[0].body, "PRIVATE-OPERATOR-CONTEXT");
 
   await page.reload();
   await operatorHydrated(page);
-  await page.getByRole("heading", { name: "Compose public update" }).waitFor();
+  await page.getByRole("heading", { name: "Update draft", exact: true }).waitFor();
   await saveAndConfirmDraft({ page, appFetch, incidentId, t,
     expected: { lifecycle: "Identified", affectedAudience: "Correction audience.", customerImpact: "", whatStillWorks: "", details: "", nextUpdateAt: null },
-    edit: () => page.locator("label", { hasText: "Who is affected" }).locator("textarea").fill("Correction audience."),
+    edit: () => composer.audience.fill("Correction audience."),
   });
+  await composer.privateActions();
   await page.getByRole("button", { name: "Mark correction" }).click();
   await page.getByText("The draft will publish as a correction.", { exact: true }).waitFor();
   await page.getByRole("button", { name: "Review saved draft" }).click();
@@ -356,21 +359,23 @@ contract("UPDATE-005", "composer autosaves a changed draft in under two seconds 
   autosaveIncidentId = incident.id;
   await page.goto(`${appUrl}/app/incidents/${incident.id}`);
   await operatorHydrated(page);
-  await page.getByRole("heading", { name: "Compose public update" }).waitFor();
-  await page.locator("label", { hasText: "Who is affected" }).locator("textarea").fill("Browser contract customers.");
-  await page.locator("label", { hasText: "What is the impact" }).locator("textarea").fill("Requests can fail during this condition.");
-  await page.getByLabel("Next update date and time").fill("2027-09-08T13:41");
+  await page.getByRole("heading", { name: "First update", exact: true }).waitFor();
+  const composer = incidentComposer(page);
+  await composer.audience.fill("Browser contract customers.");
+  await composer.impact.fill("Requests can fail during this condition.");
+  await composer.nextUpdate.fill("2027-09-08T13:41");
+  await composer.moreOptions();
   const details = "BROWSER-AUTOSAVE-EXACT-VALUE";
   const changedAt = Date.now();
-  await page.locator("label", { hasText: "Additional details" }).locator("textarea").fill(details);
+  await composer.details.fill(details);
   await page.getByText("Draft saved", { exact: true }).waitFor({ timeout: 2000 });
   assert.ok(Date.now() - changedAt < 2000, "the operator draft did not save within two seconds");
   await page.reload();
   await operatorHydrated(page);
-  await page.getByRole("heading", { name: "Compose public update" }).waitFor();
-  await assert.equal(await page.locator("label", { hasText: "Additional details" }).locator("textarea").inputValue(), details);
-  assert.equal(await page.getByLabel("Next update date and time").inputValue(), "2027-09-08T13:41", "the datetime control presents the saved instant in the operator's configured local time");
-  await page.getByLabel("Next update date and time").fill("2027-09-08T13:42");
+  await page.getByRole("heading", { name: "First update", exact: true }).waitFor();
+  await assert.equal(await composer.details.inputValue(), details);
+  assert.equal(await composer.nextUpdate.inputValue(), "2027-09-08T13:41", "the datetime control presents the saved instant in the operator's configured local time");
+  await composer.nextUpdate.fill("2027-09-08T13:42");
   await page.getByText("Draft saved", { exact: true }).waitFor({ timeout: 2000 });
   const stored = await appFetch(`/api/app/incidents/${incident.id}`);
   assert.equal((await stored.json()).incident.draft.nextUpdateAt, "2027-09-08T20:42:00.000Z", "editing the page’s Los Angeles time preserves its UTC instant despite a Brisbane browser");
@@ -381,10 +386,11 @@ contract("UPDATE-006", "the composer schedules publication separately from its n
   const incident = await createBrowserIncident();
   await page.goto(`${appUrl}/app/incidents/${incident.id}`);
   await operatorHydrated(page);
-  await page.getByRole("heading", { name: "Compose public update" }).waitFor();
-  await page.locator("label", { hasText: "Who is affected" }).locator("textarea").fill("Scheduled browser customers.");
-  await page.locator("label", { hasText: "What is the impact" }).locator("textarea").fill("A scheduled update has a distinct publication time.");
-  await page.getByLabel("Next update date and time").fill("2027-09-08T14:00");
+  await page.getByRole("heading", { name: "First update", exact: true }).waitFor();
+  const composer = incidentComposer(page);
+  await composer.audience.fill("Scheduled browser customers.");
+  await composer.impact.fill("A scheduled update has a distinct publication time.");
+  await composer.nextUpdate.fill("2027-09-08T14:00");
   // Scheduling publishes the stored draft, so wait for the server to hold all three
   // edits (UPDATE-005 keeps the strict two-second autosave gate).
   for (const deadline = Date.now() + 15_000; ; await new Promise(resolve => setTimeout(resolve, 200))) {
@@ -393,7 +399,8 @@ contract("UPDATE-006", "the composer schedules publication separately from its n
     assert.ok(Date.now() < deadline, `the composer never stored the scheduled draft: ${JSON.stringify(draft)}`);
   }
   await page.getByText("Draft saved", { exact: true }).waitFor();
-  await page.getByText("Schedule or backdate", { exact: true }).click();
+  await composer.moreOptions();
+  await page.getByRole("radio", { name: "Schedule", exact: true }).check();
   await page.getByLabel("Scheduled publication date and time").fill("2027-09-08T13:30");
   await page.getByRole("button", { name: "Schedule update" }).click();
   await page.getByText("Update scheduled. It stays private until then.").waitFor();
@@ -506,8 +513,9 @@ contract("UPDATE-002", "NOTIFY-019 — composer controls and saved notification 
       await page.setViewportSize({ width, height: 900 });
       await page.goto(`${appUrl}/app/incidents/${incident.id}`);
       await operatorHydrated(page);
+      await incidentComposer(page).moreOptions();
       const controls = page.getByRole("region", { name: "Publication controls" });
-      await controls.getByText("Schedule or backdate", { exact: true }).click();
+      await controls.getByRole("radio", { name: "Backdate", exact: true }).check();
       const timestamp = controls.getByLabel("Historical publication date and time");
       await timestamp.scrollIntoViewIfNeeded();
       await timestamp.fill("2026-01-02T10:30");

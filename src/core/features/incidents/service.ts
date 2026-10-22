@@ -6,7 +6,7 @@ import type { IncidentComponentChoice, IncidentClaimState, PublishedIncidentComp
 import type { UpdateChannel } from "../../shared/domain";
 import { mostSevereState, type ComponentState } from "../../shared/domain";
 import { createUlid, nowIso } from "../../shared/ids";
-import type { IncidentDraftInput } from "../../shared/schemas";
+import type { IncidentDraftInput, IncidentFirstUpdateInput } from "../../shared/schemas";
 import type { LampEventDispatcher } from "../../api/extensions";
 import type { ComponentClaimEventInput, ComponentsService, ComponentStateHistoryInput } from "../components";
 import { renderIncidentUpdate, type RenderedIncidentUpdate } from "./renderer";
@@ -57,7 +57,9 @@ export interface IncidentsService extends IncidentTemplateService {
   recoveryCheck(incidentId: string): Promise<RecoveryCheck | null>;
   saveDraft(incidentId: string, input: IncidentDraftInput, operatorId: string, expectedVersion: string, requestedId?: string): Promise<StoredIncidentDraft | null>;
   preview(incidentId: string, input: IncidentDraftInput): Promise<RenderedIncidentUpdate | null>;
-  create(input: { title: string; openedAt?: string; components: Array<{ componentId: string; state: ComponentState; relationship: "Primary" | "Dependent" }> }, operatorId: string): Promise<IncidentView>;
+  /** The first update of an incident that is not created yet, as it would publish. */
+  previewNew(input: { title: string; components: Array<{ componentId: string; state: IncidentClaimState }>; update: IncidentFirstUpdateInput }): Promise<RenderedIncidentUpdate>;
+  create(input: { title: string; openedAt?: string; components: Array<{ componentId: string; state: ComponentState; relationship: "Primary" | "Dependent" }>; update?: IncidentFirstUpdateInput }, operatorId: string): Promise<IncidentView>;
   publish(incidentId: string, operatorId: string, input: { channels: Array<UpdateChannel>; publishedAt?: string; componentStates?: Record<string, IncidentClaimState>; expectedVersion: string; overrideReason?: string }): Promise<StoredIncidentUpdate | null>;
   schedule(incidentId: string, operatorId: string, publishAt: string, channels: Array<UpdateChannel>, expectedVersion: string): Promise<PublishingDraft | null>;
   review(incidentId: string, operatorId: string, expectedVersion: string): Promise<boolean>;
@@ -288,6 +290,17 @@ export function createIncidentsService(
       if (runtime.formatPreviewEmail) rendered.email = await runtime.formatPreviewEmail(rendered.email);
       return rendered;
     },
+    async previewNew({ title, components, update }) {
+      const matched = await Promise.all(components.map(async (claim) => ({ claim, component: await componentsService.get(claim.componentId) })));
+      if (matched.some((item) => !item.component)) throw new Error("One or more attached components no longer exist.");
+      // Every attachment is new, so each one changes from Operational unless it is released on publication.
+      const componentChanges = matched.map(({ claim, component }) => ({ componentId: component!.id, name: component!.name, previousState: "Operational" as const, newState: update.lifecycle === "Resolved" ? "Operational" as const : claim.state, internal: component!.internal }))
+        .filter((change) => change.previousState !== change.newState);
+      const nextUpdateDisplay = update.nextUpdateAt ? await runtime.formatPreviewTimestamp?.(update.nextUpdateAt) : null;
+      const rendered = renderIncidentUpdate({ incidentReference: await repository.nextReference(), incidentTitle: title, ...update, componentChanges, nextUpdateDisplay });
+      if (runtime.formatPreviewEmail) rendered.email = await runtime.formatPreviewEmail(rendered.email);
+      return rendered;
+    },
     async create(input, operatorId) {
       if (!input.title.trim() || input.title.length > 250) throw new Error("Incident title is required and must be at most 250 characters.");
       if (!input.components.length) throw new Error("Attach at least one component to an incident.");
@@ -295,7 +308,9 @@ export function createIncidentsService(
       if (matched.some((item) => !item.component)) throw new Error("One or more attached components no longer exist.");
       const timestamp = nowIso(); const openedAt = input.openedAt ?? timestamp; const id = createUlid();
       const components = matched.map(({ claim, component }) => ({ id: createUlid(), incidentId: id, componentId: claim.componentId, componentName: component!.name, state: claim.state, relationship: claim.relationship, createdAt: timestamp, updatedAt: timestamp }));
-      const reference = await repository.create({ id, title: input.title.trim(), lifecycle: "Investigating", openedAt, resolvedAt: null, createdByOperatorId: operatorId, deletedAt: null, deletionReason: null, createdAt: timestamp, updatedAt: timestamp }, components, { id: createUlid(), incidentId: id, lifecycle: "Investigating", affectedAudience: "", customerImpact: "", whatStillWorks: "", details: "", nextUpdateAt: null, authorOperatorId: operatorId, createdAt: timestamp, updatedAt: timestamp });
+      // The first update written beside the title becomes the incident's saved draft; publication still checks it (UPDATE-001).
+      const update = input.update ?? { lifecycle: "Investigating", affectedAudience: "", customerImpact: "", whatStillWorks: "", details: "", nextUpdateAt: null };
+      const reference = await repository.create({ id, title: input.title.trim(), lifecycle: "Investigating", openedAt, resolvedAt: null, createdByOperatorId: operatorId, deletedAt: null, deletionReason: null, createdAt: timestamp, updatedAt: timestamp }, components, { id: createUlid(), incidentId: id, ...update, nextUpdateAt: update.lifecycle === "Resolved" ? null : update.nextUpdateAt, authorOperatorId: operatorId, createdAt: timestamp, updatedAt: timestamp });
       await runtime.events?.incidentOpened({ incidentId: id, reference, openedAt });
       return (await this.get(id))!;
     },

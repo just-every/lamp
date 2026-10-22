@@ -3,6 +3,7 @@ import { createHmac } from 'node:crypto';
 import { mkdir } from 'node:fs/promises';
 import { AxeBuilder } from '@axe-core/playwright';
 import { operatorHydrated } from './operator-hydrated.mjs';
+import { incidentComposer } from './incident-composer.mjs';
 
 export async function phoneDeskFlow({ page, appUrl, pageUrl, appFetch, signInLink }) {
   page.setDefaultTimeout(15_000);
@@ -49,12 +50,13 @@ export async function phoneDeskFlow({ page, appUrl, pageUrl, appFetch, signInLin
     await operatorHydrated(page);
     await inspect('alerts');
     await page.locator(`a[href="/app/incidents/${incidentId}"]`).click();
-    await page.getByRole('heading', { name: 'Compose public update' }).waitFor();
+    await page.getByRole('heading', { name: 'First update' }).waitFor();
     await operatorHydrated(page);
-    await page.getByRole('combobox', { name: /^Attach with this update/ }).selectOption(component.id);
-    await page.getByRole('button', { name: 'Attach with this update', exact: true }).click();
-    const audience = page.locator('label', { hasText: 'Who is affected' }).locator('textarea');
-    const impact = page.locator('label', { hasText: 'What is the impact' }).locator('textarea');
+    // Choosing a component from "+ Add component" stages it with this update.
+    await page.getByLabel('Add component', { exact: true }).selectOption(component.id);
+    const composer = incidentComposer(page);
+    const audience = composer.audience;
+    const impact = composer.impact;
     await audience.fill('Customers making card payments in the US.');
     await impact.fill('Some checkouts fail during authorization. Retrying may succeed.');
     await page.getByLabel('Next update date and time').fill('2027-09-08T14:00');
@@ -64,7 +66,7 @@ export async function phoneDeskFlow({ page, appUrl, pageUrl, appFetch, signInLin
     assert.equal(await impact.inputValue(), 'Some checkouts fail during authorization. Retrying may succeed.');
     await page.getByLabel(`${component.name} state with this update`).waitFor();
     await inspect('composer');
-    await page.getByText('Email preview', { exact: true }).click();
+    await page.getByRole('button', { name: 'Email', exact: true }).click();
     await page.getByText('Notification email', { exact: true }).waitFor();
     await inspect('preview');
     await page.getByRole('button', { name: 'Publish update', exact: true }).click();
@@ -72,7 +74,7 @@ export async function phoneDeskFlow({ page, appUrl, pageUrl, appFetch, signInLin
     const published = (await (await appFetch(`/api/app/incidents/${incidentId}`)).json()).incident;
     assert.equal(published.updates.length, 1);
     assert.equal(published.components[0].componentId, component.id);
-    await page.getByRole('combobox', { name: /^Status/ }).selectOption('Resolved');
+    await composer.setStatus('Resolved');
     await audience.fill('Customers making card payments in the US.');
     await impact.fill('Card authorization is restored. Checkouts are completing normally.');
     await page.getByText('Draft saved', { exact: true }).waitFor();

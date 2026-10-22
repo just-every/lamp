@@ -94,7 +94,9 @@ The composer keeps the customer-facing fields and publish action primary, omits
 obvious field explanations and the implementation banner, and offers email
 preview and schedule/backdate controls through named disclosures. A configured
 historical timestamp remains exposed and the action says “Publish historical
-update”; clearing optional timing restores current-time publication. Channel
+update”; clearing optional timing restores current-time publication. (The
+composer layout was replaced on 22 October 2026; see “Incident page in one
+screen”.) Channel
 selection, autosave failure/retry, review, privacy and historical-notification
 rules are unchanged. Successful publication refreshes the operator lifecycle and
 timeline and opens a fresh empty draft for the next update (UPDATE-005 amendment). Maintenance date editing opens on demand, with explicit
@@ -1586,3 +1588,23 @@ provider domain-verification read capability. Overview describes configured
 Managed mail neutrally instead of warning about an unsupported check. Missing
 configuration and direct-provider check failures retain their warnings. This
 Overview presentation makes no verification or subscriber-delivery claim.
+
+## Incident page in one screen — owner L12, 22 October 2026
+
+The owner found the incident page one 2,500 px screen asking for everything at once.
+A new incident is now one screen (`/app/incidents/new`, shown in place of an empty
+list): what is happening (title and impact), who is affected (component chips with
+the claimed state, and the audience), the next-update time and Publish, beside the
+renderer's preview with a Page and Email switch. Publish creates the incident with
+that update as its saved draft and publishes it; a refused publication leaves the
+saved draft on the incident page with the reason. Everything else is under More
+options (starting status, what still works, details, opening time, channels,
+schedule or backdate, relationships, templates, Save as private draft). An open
+incident keeps the same plate: status choice, the same fields, the preview, the
+timeline, reach only once something was sent, the brief closed to one line unless
+alerts brought facts, and notes, review, correction, public impact and deletion under
+Private actions. The design was chosen from four 12ui options by a fresh Opus pass
+(evidence/uip-lamp-l12-incident). UPDATE-001, -004, -005 (autosave of an existing
+incident's draft, an empty draft after publication), -006, -007, -009, NOTIFY-007,
+INCIDENT-001, -009 and DRAFT-004 are unchanged; the preview of an incident not yet
+created uses the same renderer with the next reference.

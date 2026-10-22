@@ -1,12 +1,14 @@
 import assert from "node:assert/strict";
 import { configuredDateTimeInput } from "./saved-draft-helper.mjs";
+import { incidentComposer } from "./helpers/incident-composer.mjs";
 
 // Delay only delivery of a real native GET, so a private-note refresh overlaps
 // the draft debounce without changing either response bytes or write behavior.
 export async function assertAutosaveDuringRefresh({ page, api, openIncident, assertPrivateUnsaved, initial }, t) {
   const incident = await openIncident();
   const endpoint = `/api/app/incidents/${incident.id}`;
-  const field = page.locator(".impact-field textarea").first();
+  const composer = incidentComposer(page);
+  const field = composer.audience;
   const audience = "Latest audience while the private note refresh is pending";
   const note = "Native internal note overlapping an unsaved draft";
   const timings = {};
@@ -32,7 +34,7 @@ export async function assertAutosaveDuringRefresh({ page, api, openIncident, ass
   page.on("response", recordResponse);
   await page.evaluate(() => {
     window.autosaveRefreshProbe = {};
-    document.querySelector(".impact-field textarea").addEventListener("input", () => {
+    document.querySelector('[aria-label="Who is affected"]').addEventListener("input", () => {
       window.autosaveRefreshProbe.finalEdit = Date.now();
     }, { once: true });
     const observer = new MutationObserver(() => {
@@ -56,6 +58,7 @@ export async function assertAutosaveDuringRefresh({ page, api, openIncident, ass
     await route.fulfill({ response });
   });
   try {
+    await composer.privateActions();
     await page.getByLabel("Internal note").fill(note);
     await page.getByRole("button", { name: "Save internal note", exact: true }).click();
     await entered;
@@ -83,12 +86,12 @@ export async function assertAutosaveDuringRefresh({ page, api, openIncident, ass
     await page.reload();
     await page.getByText("Draft saved", { exact: true }).waitFor();
     timings.reloadedDraft = {
-      lifecycle: await page.getByLabel("Status").inputValue(),
+      lifecycle: await composer.status(),
       affectedAudience: await field.inputValue(),
-      customerImpact: await page.locator("label", { hasText: "What is the impact" }).locator("textarea").inputValue(),
-      whatStillWorks: await page.locator("label", { hasText: "What still works" }).locator("textarea").inputValue(),
-      details: await page.locator("label", { hasText: "Additional details" }).locator("textarea").inputValue(),
-      nextUpdateAt: await page.getByLabel("Next update date and time").inputValue(),
+      customerImpact: await composer.impact.inputValue(),
+      whatStillWorks: await composer.stillWorks.inputValue(),
+      details: await composer.details.inputValue(),
+      nextUpdateAt: await composer.nextUpdate.inputValue(),
     };
     t.diagnostic(JSON.stringify({ ...timings, elapsedToSaved: timings.saved - timings.finalEdit, deadlinePassed: !deadlineError }));
     const { settings } = await api("/api/app/page-settings");

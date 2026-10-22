@@ -6,7 +6,7 @@ import type { AppEnv } from "../../app/types";
 import { INCIDENT_CLAIM_STATES } from "../../shared/incident-component-changes";
 import { COMPONENT_STATES, INCIDENT_LIFECYCLES } from "../../shared/domain";
 import { ulidSchema } from "../../shared/ids";
-import { incidentDraftSchema } from "../../shared/schemas";
+import { incidentDraftSchema, incidentFirstUpdateSchema } from "../../shared/schemas";
 import { InvalidIncidentUpdateError, type IncidentsService } from "./service";
 import { RecoveryCheckError } from "../brief/recovery-check";
 import { draftFromIncident } from "./draft";
@@ -20,7 +20,8 @@ const componentChangeSchema = z.discriminatedUnion("action", [
   attachedComponentSchema.extend({ action: z.literal("attach") }).strict(),
   z.object({ action: z.literal("detach"), componentId: ulidSchema }).strict(),
 ]);
-const createIncidentSchema = z.object({ title: z.string().trim().min(1).max(250), openedAt: z.iso.datetime().optional(), components: z.array(z.object({ componentId: ulidSchema, state: z.enum(COMPONENT_STATES), relationship: z.enum(["Primary", "Dependent"]).default("Primary") }).strict()).min(1).max(100) }).strict();
+const createIncidentSchema = z.object({ title: z.string().trim().min(1).max(250), openedAt: z.iso.datetime().optional(), components: z.array(z.object({ componentId: ulidSchema, state: z.enum(COMPONENT_STATES), relationship: z.enum(["Primary", "Dependent"]).default("Primary") }).strict()).min(1).max(100), update: incidentFirstUpdateSchema.optional() }).strict();
+const newIncidentPreviewSchema = z.object({ title: z.string().trim().max(250), components: z.array(z.object({ componentId: ulidSchema, state: z.enum(INCIDENT_CLAIM_STATES) }).strict()).max(100), update: incidentFirstUpdateSchema }).strict();
 const correctionSchema = z.object({ updateId: ulidSchema }).strict();
 const internalNoteSchema = z.object({ body: z.string().trim().min(1).max(5_000) }).strict();
 
@@ -56,6 +57,12 @@ export function registerIncidentRoutes(app: Hono<AppEnv>, service: IncidentsServ
     if (!input.success) return context.json({ error: "An incident title and one or more affected components are required." }, 400);
     try { return context.json({ incident: await service.create(input.data, context.get("operator").id) }, 201); }
     catch (cause) { return context.json({ error: cause instanceof Error ? cause.message : "Incident could not be created." }, 409); }
+  });
+  app.post("/api/app/incidents/preview", async (context) => {
+    const input = newIncidentPreviewSchema.safeParse(await context.req.json().catch(() => null));
+    if (!input.success) return context.json({ error: "Invalid new incident.", issues: input.error.issues }, 400);
+    try { return context.json({ preview: await service.previewNew(input.data) }); }
+    catch (cause) { return context.json({ error: cause instanceof Error ? cause.message : "The new incident could not be previewed." }, 409); }
   });
   app.get("/api/app/incidents", async (context) => {
     const parsed = incidentQuerySchema.safeParse(context.req.query());

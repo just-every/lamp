@@ -2,7 +2,7 @@ import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 
 import type { IncidentsService } from "../service";
-import { IncidentCreatePanel } from "./incident-create-panel";
+import { NewIncidentPage } from "./new-incident-page";
 import { Button } from "../../../app/client/ui/button";
 import { Icon } from "../../../app/client/ui/icon";
 import { LoadingState, useOperatorTime } from "../../../app/client/ui/states";
@@ -13,27 +13,22 @@ import { UpdateDueNotice, updateDueLabel, useCommittedTime } from "./update-due-
 type IncidentsResponse = { incidents: Awaited<ReturnType<IncidentsService["list"]>> };
 
 export function IncidentsPage() {
-  const { data, error, loading, refresh } = useAppData<IncidentsResponse>("/api/app/incidents");
+  const { data, error, loading } = useAppData<IncidentsResponse>("/api/app/incidents");
   const createRequested = useRouterState({ select: state => state.location.hash === "new" });
-  const [creating, setCreating] = useState(createRequested);
-  useEffect(() => { if (createRequested) setCreating(true); }, [createRequested]);
-  const [dismissedEmptyCreation, setDismissedEmptyCreation] = useState(false);
   const navigate = useNavigate();
+  // Older links ask for the create form with #new; it is its own screen now.
+  useEffect(() => { if (createRequested) void navigate({ to: "/app/incidents/new", replace: true }); }, [createRequested, navigate]);
+  const [dismissedEmptyCreation, setDismissedEmptyCreation] = useState(false);
   if (loading) return <LoadingState />;
   if (error) return <ErrorState onRetry={() => window.location.reload()}>{error}</ErrorState>;
   if (!data) return null;
+  // An empty list opens the create form, not an empty table.
+  if (!data.incidents.length && !dismissedEmptyCreation && !createRequested) return <NewIncidentPage onClose={() => setDismissedEmptyCreation(true)} />;
   const active = data.incidents.filter((incident) => incident.lifecycle !== "Resolved");
   const resolved = data.incidents.filter((incident) => incident.lifecycle === "Resolved");
-  const showCreateForm = creating || (!dismissedEmptyCreation && data.incidents.length === 0);
 
-  const create = (incident: IncidentsResponse["incidents"][number]) => {
-    refresh();
-    void navigate({ to: "/app/incidents/$incidentId", params: { incidentId: incident.id } });
-  };
-
-  return <div className="page-stack" id="new">
-    <section className="page-title-row"><div><h1>Incidents</h1><p>Tell customers what’s happening.</p></div>{!showCreateForm && <Button type="button" onClick={() => { setDismissedEmptyCreation(false); setCreating(true); }}>Create incident</Button>}</section>
-    {showCreateForm ? <IncidentCreatePanel onCreated={create} onCancel={() => { setCreating(false); setDismissedEmptyCreation(true); }} /> : null}
+  return <div className="page-stack">
+    <section className="page-title-row"><div><h1>Incidents</h1><p>Tell customers what’s happening.</p></div><Button asChild><Link to="/app/incidents/new">New incident</Link></Button></section>
     <UpdateDueNotice incidents={active} />
     <section className="data-card incident-list-card">
       <div className="card-heading"><div><p className="card-kicker">Active</p><h2>Current incidents</h2></div><span className="count-label">{active.length} total</span></div>
@@ -53,7 +48,7 @@ function IncidentRow({ incident }: { incident: IncidentsResponse["incidents"][nu
   return <Link className={`incident-list-row${incident.overdue ? " live-block" : ""}`} to="/app/incidents/$incidentId" params={{ incidentId: incident.id }}>
     <span className="record-ref">{incident.reference}</span>
     <span className="incident-row-content"><strong>{incident.title}</strong><small>Opened {formatOperatorTime(incident.openedAt)}{incident.impact ? ` · ${incident.impact}` : " · No component impact"}</small></span>
-    <span className="incident-row-state"><span className={`state-pill state-${incident.lifecycle.toLowerCase()}`}>{incident.lifecycle}</span>{dueLabel && <small className="overdue-note">{dueLabel}</small>}</span>
+    <span className="incident-row-state"><span className={`state-pill state-${incident.lifecycle.toLowerCase()}`}>{incident.updates.length ? incident.lifecycle : "Not published"}</span>{dueLabel && <small className="overdue-note">{dueLabel}</small>}</span>
     <Icon className="row-chevron" name="arrow" width={18} height={18} />
   </Link>;
 }

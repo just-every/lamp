@@ -5,26 +5,7 @@
 .incident-row-state { display: grid; justify-items: end; gap: 4px; }
 .incident-row-state small { font-size: 12px; }
 
-/* The open "New incident" panel is the operator's live work: the amber block. */
-.incident-create-panel { display: grid; gap: 20px; background: var(--amber-wash); box-shadow: inset 3px 0 0 var(--amber), var(--shadow-card); }
-.incident-create-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; border-bottom: 1px solid var(--line); padding-bottom: 18px; }
-.incident-create-heading h2 { margin: 0 0 6px; }
-.incident-create-heading p:not(.card-kicker) { max-width: 62ch; margin: 0; color: var(--ink-2); font-size: 14px; }
-.incident-create-form { display: grid; gap: 20px; }
-.incident-create-form .form-label > span { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
-.incident-create-form .form-label > span small { font-size: 12px; }
-.incident-component-claims { display: grid; gap: 10px; margin: 0; border: 0; border-top: 1px solid var(--line); padding: 18px 0 0; }
-.incident-component-claims legend { padding: 0; color: var(--ink); font-size: 14px; font-weight: 600; }
-.incident-component-claims > p { margin: 0 0 4px; color: var(--ink-3); font-size: 13px; }
-.incident-claim-row { display: grid; grid-template-columns: minmax(170px, 1.25fr) minmax(150px, 1fr) minmax(120px, .75fr) auto; align-items: center; gap: 10px; }
-/* "Remove" reads as a text link; it stays disabled while it is the only claim. */
-.claim-remove-button { min-height: 44px; border: 0; background: none; padding: 0 8px; color: var(--ink); font-size: 14px; text-decoration: underline 1.5px; text-decoration-color: var(--link-line); text-underline-offset: 4px; }
-.claim-remove-button:hover:not(:disabled) { border: 0; text-decoration-color: var(--ink); }
-.incident-create-actions { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 10px; border-top: 1px solid var(--line); padding-top: 18px; }
-.incident-create-empty { display: flex; align-items: center; justify-content: space-between; gap: 16px; border: 1px solid var(--line); border-radius: 12px; background: var(--card); padding: 16px 20px; }
-.incident-create-empty p { margin: 0; color: var(--ink-2); }
-
-/* Private actions on the incident detail page: each a label with its pill. */
+/* Private actions on the incident page (behind "⋯"): each a label with its pill. */
 .incident-operator-controls { display: grid; gap: 14px; margin-top: 24px; border-top: 1px solid var(--line); padding-top: 20px; }
 .incident-operator-heading h2 { margin: 0; font-size: 17px; }
 .incident-operator-heading .card-kicker { margin-bottom: 4px; }
@@ -45,17 +26,8 @@
 .incident-delete-form { display: grid; gap: 10px; }
 .incident-delete-form > div { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
 .incident-action-message { margin: 0; color: var(--ink-2); font-size: 13px; font-weight: 500; }
-.historical-publication-control { display: grid; flex-basis: 100%; width: 100%; min-width: 0; gap: 6px; border-top: 1px solid var(--line); padding-top: 12px; }
-.historical-publication-control > span { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 10px; }
 
 @media (max-width: 760px) {
-  .incident-create-heading, .incident-create-empty { align-items: stretch; flex-direction: column; }
-  .incident-create-heading > .button, .incident-create-empty > .button { width: 100%; }
-  .incident-claim-row { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
-  .incident-claim-row > .form-label:first-child { grid-column: 1 / -1; }
-  .incident-claim-row .claim-remove-button { grid-column: 1 / -1; justify-self: start; min-height: 32px; padding: 0; }
-  .incident-create-actions { align-items: stretch; flex-direction: column-reverse; }
-  .incident-create-actions .button { width: 100%; }
   .incident-correction-controls { grid-template-columns: minmax(0, 1fr); }
   .incident-correction-controls .button, .incident-delete-form .button { width: 100%; }
   .incident-delete-form > div { display: grid; grid-template-columns: minmax(0, 1fr); }

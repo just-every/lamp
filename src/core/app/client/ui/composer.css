@@ -1,92 +1,99 @@
-/* The incident workspace: one wide white plate. The composer column (the draft being written) takes the amber block;
-   the context column and the preview stay white. */
-.incident-workspace { display: grid; min-height: calc(100vh - 152px); grid-template-columns: minmax(200px, .8fr) minmax(380px, 1.5fr) minmax(260px, 1fr); grid-template-rows: auto 1fr auto; grid-template-areas: "heading heading heading" "context composer preview" "context actions preview"; border: 1px solid var(--line); border-radius: 12px; background: var(--card); box-shadow: var(--shadow-card); overflow: hidden; }
-aside.incident-context, .composer-panel, .preview-panel { min-width: 0; padding: 24px; }
-aside.incident-context { grid-area: context; border-right: 1px solid var(--line); }
-.composer-panel { grid-area: composer; background: var(--amber-wash); box-shadow: inset 3px 0 0 var(--amber); }
-.composer-submit { grid-area: actions; min-width: 0; margin-top: 0; background: var(--amber-wash); box-shadow: inset 3px 0 0 var(--amber); padding: 0 24px 24px; }
-.preview-panel { grid-area: preview; border-left: 1px solid var(--line); }
-
-/* Header: back link, reference, title, facts under a hairline. */
-.incident-workspace-heading { grid-area: heading; border-bottom: 1px solid var(--line); padding: 24px 28px; }
-.back-link { display: inline-flex; margin-bottom: 16px; color: var(--ink); font-weight: 500; }
+/* The incident page, new or open: a short heading, then one plate with the update being written (the amber block)
+   beside its preview, and the record of what already happened under the preview. Preview and record stay white.
+   Reading order is fields, preview, Publish, record (UPDATE-004: the preview comes before Publish). */
+.incident-page { display: grid; gap: 20px; min-width: 0; }
+.incident-heading { display: grid; min-width: 0; }
+.incident-heading h1 { margin: 0; font-size: 32px; overflow-wrap: anywhere; }
+.back-link { display: inline-flex; width: fit-content; margin-bottom: 12px; color: var(--ink); font-weight: 500; }
 .back-link:hover { text-decoration: underline 1.5px; text-underline-offset: 4px; }
-.incident-workspace-heading h1 { margin-bottom: 0; }
-.context-facts { display: grid; gap: 10px; margin: 20px 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); padding: 14px 0; }
-.context-facts div { display: flex; justify-content: space-between; gap: 12px; }
-.context-facts span { color: var(--ink-3); font-size: 13px; }
-.context-facts strong { font-size: 14px; font-weight: 600; text-align: right; }
-.incident-workspace-heading .context-facts { grid-template-columns: repeat(3, max-content); gap: 0; margin: 16px 0 0; border-bottom: 0; padding: 14px 0 0; }
-.incident-workspace-heading .context-facts div { flex-direction: column; gap: 2px; padding-right: 40px; }
-.incident-workspace-heading .context-facts div + div { border-left: 1px solid var(--line); padding-left: 24px; }
-.incident-workspace-heading .context-facts strong { text-align: left; font-size: 15px; }
+.incident-title-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+.incident-heading .eyebrow { margin-bottom: 6px; }
+.incident-facts { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 24px; margin: 10px 0 0; color: var(--ink-2); font-size: 14px; }
+.incident-facts strong { color: var(--ink); font-weight: 600; }
+.incident-facts .overdue-note { color: var(--down); font-weight: 500; }
 
-/* Context column. */
-.context-section { margin-top: 24px; }
-.context-section:first-child { margin-top: 0; }
-.context-section h2 { margin-bottom: 12px; font-size: 17px; }
-.context-section > p { color: var(--ink-3); font-size: 13px; }
-.component-fact { display: grid; gap: 2px; margin-top: 8px; border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; }
-.component-fact strong { font-size: 14px; }
-.component-fact span { color: var(--ink-3); font-size: 13px; }
-/* The landing's plate timeline: a 7px ink ring on a 1px rail. */
-.timeline { position: relative; display: grid; gap: 16px; margin: 0; padding: 0 0 0 22px; list-style: none; }
-.timeline::before { content: ''; position: absolute; top: 8px; bottom: 8px; left: 4px; width: 1px; background: var(--line-strong); }
-.timeline li { position: relative; color: var(--ink); }
-.timeline li::before { content: ''; position: absolute; top: 5px; left: -22px; width: 7px; height: 7px; border: 1.5px solid var(--ink); border-radius: 50%; background: var(--card); }
-.timeline li strong { font-weight: 600; }
-.timeline li span { display: block; color: var(--ink-3); font-size: 11px; font-variant-numeric: tabular-nums; }
-.timeline li p { margin: 2px 0 0; color: var(--ink-2); font-size: 13px; }
-.internal-note { border-left: 2px solid var(--line-strong); padding-left: 10px; }
+.incident-compose { display: grid; min-width: 0; grid-template-columns: minmax(0, 1.4fr) minmax(280px, 1fr); grid-template-rows: auto 1fr; grid-template-areas: "composer side" "publish side"; border: 1px solid var(--line); border-radius: 12px; background: var(--card); box-shadow: var(--shadow-card); overflow: hidden; }
+.composer-panel, .composer-publish { min-width: 0; background: var(--amber-wash); box-shadow: inset 3px 0 0 var(--amber); }
+.composer-panel { grid-area: composer; padding: 24px 28px 4px; }
+.composer-publish { grid-area: publish; padding: 0 28px 24px; }
+.incident-side { grid-area: side; min-width: 0; border-left: 1px solid var(--line); }
+.preview-panel { min-width: 0; padding: 24px; }
+.incident-record { min-width: 0; margin: 0; border-top: 1px solid var(--line); padding: 20px 24px 24px; }
+.incident-extras { display: grid; gap: 16px; min-width: 0; }
 
-/* Composer. */
-.composer-heading, .preview-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
-.composer-heading { margin-bottom: 20px; }
-.composer-heading h2 { font-size: 24px; }
-.autosave-status { display: inline-flex; align-items: center; gap: 8px; flex: none; margin: 2px 0; color: var(--ink-3); font-size: 13px; }
+/* The update: plain questions over their fields. */
+.composer-heading, .preview-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.composer-heading { margin-bottom: 16px; }
+.composer-heading .eyebrow, .preview-heading .eyebrow { margin: 0; }
+.autosave-status { display: inline-flex; align-items: center; gap: 8px; flex: none; margin: 0; color: var(--ink-3); font-size: 13px; }
 .autosave-status::before { content: ''; width: 8px; height: 8px; border-radius: 50%; background: var(--quiet); }
 .autosave-status.is-saved::before { background: var(--ok); }
 .autosave-status.is-saving::before { background: var(--maint); }
 .autosave-status.is-error { color: var(--down); }
 .autosave-status.is-error::before { background: var(--down); }
-.publication-message { margin: 8px 0 0; color: var(--ink-2); font-size: 13px; font-weight: 500; }
+.publication-message { margin: 0 0 16px; color: var(--ink-2); font-size: 14px; font-weight: 500; }
 .publication-message.is-error { color: var(--down); }
 .ai-suggestion { display: flex; align-items: center; gap: 10px; margin: 0 0 16px; }
 .ai-suggestion span { color: var(--ink-3); font-size: 13px; }
-.impact-form { display: grid; gap: 18px; }
-.impact-field { display: grid; gap: 6px; min-width: 0; margin: 0; border: 0; padding: 0; }
-.impact-field .field-label, .impact-field legend { display: flex; align-items: center; gap: 10px; padding: 0; color: var(--ink); font-size: 14px; font-weight: 500; }
-.impact-field .field-label b, .impact-field legend span { display: inline-grid; width: 22px; height: 22px; flex: none; place-items: center; border: 1px solid var(--line-strong); border-radius: 50%; background: var(--card); color: var(--ink-3); font-size: 11px; font-weight: 500; font-variant-numeric: tabular-nums; }
-.impact-field em, .impact-field legend b[aria-hidden] { color: var(--down); font-style: normal; font-weight: 500; }
-.impact-field > p, .impact-field small { margin: 0; color: var(--ink-3); font-size: 13px; }
-.impact-field textarea { min-height: 76px; }
+.impact-form { display: grid; gap: 20px; }
+.impact-field, .next-update-field, .option-group { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; min-width: 0; margin: 0; border: 0; padding: 0; }
+.impact-field > legend, .impact-field > .field-label, .next-update-field > legend { margin-bottom: 8px; padding: 0; color: var(--ink); font-size: 15px; font-weight: 600; }
+.impact-field > .field-label { margin-bottom: 0; }
+.impact-field textarea { min-height: 68px; }
+.next-update-field small, .resolution-note { margin: 0; color: var(--ink-3); font-size: 13px; }
 .character-count { justify-self: end; color: var(--ink-3); font-size: 12px; font-variant-numeric: tabular-nums; }
-.time-warning { color: var(--amber-ink); font-weight: 500; }
-.date-row { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
-.date-row .form-label { min-width: 0; }
-.lifecycle-control { display: grid; grid-template-columns: auto minmax(0, 260px); align-items: center; gap: 16px; color: var(--ink); font-size: 14px; font-weight: 500; }
-/* Quiet disclosure rows. */
-.draft-tools { margin-top: 16px; border-top: 1px solid var(--line); padding-top: 4px; }
-.draft-tools summary { display: list-item; min-height: 44px; align-content: center; cursor: pointer; color: var(--ink); font-size: 14px; font-weight: 500; }
-.template-controls { display: grid; gap: 10px; margin: 8px 0 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--card); padding: 16px; }
-.template-controls strong { color: var(--ink); font-size: 14px; font-weight: 500; }
-.template-controls p { margin: 4px 0 0; color: var(--ink-3); font-size: 13px; }
+.time-warning { margin: 0; color: var(--amber-ink); font-size: 13px; font-weight: 500; }
+
+/* Choices are pills; the chosen one is the ink pill. */
+.status-choice, .choice-row, .next-update-choices { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.status-choice { margin: 0; border: 0; padding: 0; }
+.choice-pill { position: relative; display: inline-flex; min-height: 36px; align-items: center; justify-content: center; border: 1px solid var(--line-strong); border-radius: 999px; background: var(--card); color: var(--ink); padding: 6px 14px; font-size: 14px; font-weight: 500; line-height: 1.2; cursor: pointer; }
+.choice-pill:hover { border-color: var(--ink-3); }
+.choice-pill:has(input:checked), .choice-pill[aria-pressed="true"] { border-color: var(--pill); background: var(--pill); color: var(--on-ink); }
+.choice-pill input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; border-radius: inherit; opacity: 0; cursor: pointer; }
+.choice-pill:has(input:focus-visible) { outline: 3px solid var(--ink); outline-offset: 2px; }
+.next-update-choices input[type="datetime-local"] { width: auto; flex: 1 1 200px; max-width: 240px; min-height: 36px; padding-block: 6px; }
+
+/* Affected components: one chip each, the claimed state chosen inside it; "+ Add component" beside them. */
+.component-chips { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.component-chip { display: inline-flex; max-width: 100%; min-height: 38px; align-items: center; gap: 8px; border: 1px solid var(--line-strong); border-radius: 999px; background: var(--card); padding: 0 6px 0 12px; }
+.component-chip.is-changed { border-color: var(--amber); }
+.component-chip-name { min-width: 0; flex: 0 1 auto; overflow: hidden; color: var(--ink); font-size: 14px; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
+.component-chip select { width: auto; min-width: 0; flex: 0 1 auto; min-height: 30px; border: 0; border-left: 1px solid var(--line); border-radius: 0; background-color: transparent; color: var(--ink-2); padding: 4px 32px 4px 10px; font-size: 14px; background-position: right 16px center, right 10px center; }
+.component-chip select:focus { box-shadow: none; }
+.component-chip select:focus-visible { outline: 3px solid var(--ink); outline-offset: 2px; }
+.chip-remove { display: inline-grid; width: 28px; height: 28px; place-items: center; border: 0; border-radius: 50%; background: none; color: var(--ink-3); font-size: 18px; line-height: 1; }
+.chip-remove:hover { background: var(--stage); color: var(--ink); }
+select.add-component { width: auto; min-height: 38px; border-style: dashed; border-radius: 999px; background-color: transparent; color: var(--ink-2); padding: 6px 38px 6px 14px; font-size: 14px; font-weight: 500; }
+.component-chips-empty { margin: 0; color: var(--ink-2); font-size: 14px; }
+
+/* Publish row: More options on the left, who hears about it and the button on the right. */
+.composer-footer { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 12px 16px; margin-top: 16px; border-top: 1px solid var(--line); padding-top: 16px; }
+.more-options-toggle { display: inline-flex; min-height: 40px; align-items: center; gap: 6px; margin-right: auto; border: 0; background: none; color: var(--ink-2); padding: 0; font-size: 14px; font-weight: 500; }
+.more-options-toggle::after { content: ''; width: 6px; height: 6px; margin-top: -3px; border-right: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor; transform: rotate(45deg); }
+.more-options-toggle[aria-expanded="true"]::after { margin-top: 3px; transform: rotate(-135deg); }
+.more-options-toggle:hover { color: var(--ink); }
+.publish-hint { color: var(--ink-3); font-size: 13px; }
+.more-options { display: grid; gap: 20px; margin-top: 16px; border-top: 1px solid var(--line); padding-top: 20px; }
+.more-options[hidden] { display: none; }
+.option-group > legend, .template-controls h3 { margin-bottom: 8px; padding: 0; color: var(--ink); font-size: 14px; font-weight: 600; }
+.option-text { gap: 8px; }
+.option-text textarea { min-height: 68px; }
+.publication-controls { display: grid; gap: 20px; min-width: 0; }
+.channel-checks { display: flex; flex-wrap: wrap; gap: 8px; }
+.channel-checks .checkbox-label { min-height: 40px; border: 1px solid var(--line); border-radius: 10px; background: var(--card); padding: 8px 12px; }
+.publish-timing .form-label { max-width: 320px; }
+.relationship-rows { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 10px; }
+.template-controls { display: grid; gap: 10px; }
+.template-controls h3 { margin: 0; }
+.template-controls p { margin: 0; color: var(--ink-3); font-size: 13px; }
 .template-form { display: flex; flex-wrap: wrap; align-items: end; gap: 10px; }
 .template-form .form-label { min-width: 0; flex: 1 1 150px; font-size: 13px; }
-/* Delivery channels: a white inset plate with landing ticks. */
-.publication-controls { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 14px 16px; margin-top: 16px; border: 1px solid var(--line); border-radius: 12px; background: var(--card); padding: 16px; }
-.publication-controls > div:first-child { flex: 1 1 auto; min-width: 0; }
-.publication-controls strong { color: var(--ink); font-size: 14px; font-weight: 500; }
-.publication-controls p { max-width: 420px; margin: 4px 0 0; color: var(--ink-3); font-size: 13px; }
-.channel-checks { display: flex; flex-wrap: wrap; gap: 8px; }
-.channel-checks .checkbox-label { min-height: 40px; border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px; font-size: 14px; }
-.publication-timing { width: 100%; margin-top: 0; }
-.publication-timing-fields { display: grid; gap: 12px; margin-top: 8px; }
-.publication-timing-fields > p { margin: 0; color: var(--ink-3); font-size: 13px; }
-.scheduled-publication-control { flex: 1 1 100%; width: 100%; }
-.composer-submit { justify-content: flex-end; }
 
-/* Preview: the customer's view drawn as a landing plate. */
+/* The preview: Page or Email, drawn as the customer's plate. */
+.preview-switch { display: inline-flex; border: 1px solid var(--line-strong); border-radius: 999px; background: var(--card-tint); padding: 3px; }
+.preview-switch button { min-height: 30px; border: 0; border-radius: 999px; background: none; color: var(--ink-2); padding: 4px 14px; font-size: 13px; font-weight: 500; }
+.preview-switch button[aria-pressed="true"] { background: var(--card); box-shadow: 0 1px 2px rgb(24 45 36 / .12); color: var(--ink); }
 .preview-card { box-sizing: border-box; display: block; width: 100%; min-width: 0; margin-top: 16px; overflow: hidden; overflow-wrap: anywhere; border: 1px solid var(--line); border-radius: 12px; background: var(--card); box-shadow: var(--shadow-card); padding: 0 20px 20px; }
 .preview-card .preview-type { margin: 0 -20px 16px; border-bottom: 1px solid var(--line); background: var(--card-tint); padding: 11px 20px; font-size: 11px; }
 .preview-card h3 { margin-top: 14px; font-size: 18px; letter-spacing: -.012em; overflow-wrap: anywhere; }
@@ -94,11 +101,31 @@ aside.incident-context { grid-area: context; border-right: 1px solid var(--line)
 .preview-card dl div { display: grid; gap: 4px; }
 .preview-card dt { color: var(--ink-3); font-size: 11px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; }
 .preview-card dd { margin: 0; color: var(--ink); font-size: 14px; white-space: pre-wrap; overflow-wrap: anywhere; }
-.preview-panel .draft-tools { margin-top: 20px; }
+.email-preview-logo { display: block; width: 160px; max-width: 100%; height: auto; margin-top: 16px; }
 
-/* The incident brief (DRAFT-004): what is known and still open, on a tinted plate. */
-.incident-brief { margin: 16px 0 4px; border: 1px solid var(--line); border-radius: 12px; background: var(--card-tint); padding: 16px; }
-.incident-brief h2 { margin: 0 0 8px; font-size: 15px; }
+/* The record: the published timeline, its reach once something was sent, the brief. Impact facts read as rows. */
+.context-facts { display: grid; gap: 8px; margin: 12px 0; }
+.context-facts div { display: flex; justify-content: space-between; gap: 12px; }
+.context-facts dt { color: var(--ink-3); font-size: 13px; }
+.context-facts dd { margin: 0; color: var(--ink); font-size: 14px; font-weight: 600; text-align: right; }
+.context-section h2 { margin-bottom: 12px; font-size: 17px; }
+.context-section > p { color: var(--ink-3); font-size: 13px; }
+/* The landing's plate timeline: a 7px ink ring on a 1px rail. */
+.timeline { position: relative; display: grid; gap: 16px; margin: 0; padding: 0 0 0 22px; list-style: none; }
+.timeline::before { content: ''; position: absolute; top: 8px; bottom: 8px; left: 4px; width: 1px; background: var(--line-strong); }
+.timeline li { position: relative; color: var(--ink); }
+.timeline li::before { content: ''; position: absolute; top: 5px; left: -22px; width: 7px; height: 7px; border: 1.5px solid var(--ink); border-radius: 50%; background: var(--card); }
+.timeline li strong { font-weight: 600; }
+.timeline li span { display: block; color: var(--ink-3); font-size: 12px; font-variant-numeric: tabular-nums; }
+.timeline li p { margin: 2px 0 0; color: var(--ink-2); font-size: 13px; }
+.reach-line { margin: 12px 0 0; color: var(--ink-3); font-size: 13px; }
+
+/* The incident brief (DRAFT-004): closed to a line unless alerts brought facts, on a tinted plate. */
+.incident-brief { border: 1px solid var(--line); border-radius: 12px; background: var(--card-tint); padding: 4px 16px; }
+.incident-brief[open] { padding-bottom: 16px; }
+.incident-brief > summary { display: flex; min-height: 44px; align-items: center; gap: 10px; cursor: pointer; }
+.incident-brief > summary h2 { margin: 0; font-size: 15px; }
+.incident-brief > summary span { color: var(--ink-3); font-size: 13px; }
 .incident-brief h3 { margin: 0 0 6px; color: var(--ink); font-size: 13px; font-weight: 600; }
 .incident-brief p { margin: 0; color: var(--ink-3); font-size: 13px; }
 .brief-columns { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; }
@@ -117,6 +144,31 @@ aside.incident-context { grid-area: context; border-right: 1px solid var(--line)
 .field-sources a { color: var(--ink); text-decoration: underline 1.5px; text-decoration-color: var(--link-line); text-underline-offset: 3px; }
 .field-sources b { font-weight: 600; }
 .field-sources.is-unsourced { border-left: 2px solid var(--amber); padding-left: 8px; color: var(--amber-ink); }
-.next-update-prompt { margin: 0; color: var(--ink); font-size: 13px; font-weight: 600; }
 
-.email-preview-logo { display: block; width: 160px; max-width: 100%; height: auto; margin-top: 16px; }
+/* The incident's own tools close the page: notes, review, correction, public impact, deletion. */
+.incident-actions { display: grid; gap: 12px; }
+.incident-actions .more-options-toggle { justify-self: start; }
+.incident-actions-panel { display: grid; gap: 20px; border: 1px solid var(--line); border-radius: 12px; background: var(--card); box-shadow: var(--shadow-card); padding: 20px 24px; }
+.incident-actions-panel[hidden] { display: none; }
+.incident-actions-panel .incident-operator-controls { margin-top: 0; border-top: 0; padding-top: 0; }
+
+@media (max-width: 1180px) {
+  .incident-compose { grid-template-columns: minmax(0, 1fr); grid-template-rows: none; grid-template-areas: "composer" "side" "publish"; }
+  .incident-side { border-top: 1px solid var(--line); border-left: 0; }
+  .composer-panel { padding-bottom: 24px; }
+  .composer-publish { background: var(--card); box-shadow: none; }
+  .composer-publish .composer-footer { margin-top: 0; }
+}
+
+@media (max-width: 620px) {
+  .incident-heading h1 { font-size: 26px; }
+  .composer-panel, .preview-panel, .incident-record { padding: 20px 16px; }
+  .composer-publish { padding: 0 16px 20px; }
+  .composer-footer { justify-content: space-between; }
+  .composer-footer .button { width: 100%; }
+  .more-options-toggle { margin-right: 0; }
+  .publish-hint { margin-left: auto; }
+  .next-update-choices input[type="datetime-local"] { max-width: none; flex-basis: 100%; }
+  .template-form { flex-direction: column; align-items: stretch; }
+  .template-form .form-label { flex-basis: auto; }
+}

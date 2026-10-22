@@ -26,7 +26,7 @@ function load(filename) {
   const code = ts.transpileModule(fs.readFileSync(filename, 'utf8'), {compilerOptions: {jsx: ts.JsxEmit.ReactJSX, module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022}}).outputText;
   function localRequire(id) {
     if (id === 'react') return react;
-    if (id === '@tanstack/react-router') return {Link: ({to, params, children, ...props}) => React.createElement('a', {...props, href: to}, children), useNavigate: () => noop};
+    if (id === '@tanstack/react-router') return {Link: ({to, params, children, ...props}) => React.createElement('a', {...props, href: to}, children), useNavigate: () => noop, useRouterState: ({select}) => select({location: {state: {}, hash: ''}})};
     if (id.endsWith('/ui/api')) return {AppDataContext: appDataContext, useAppData: route => ({data: responses[route] ?? null, loading: false, error: null, refresh: noop}), appApi: () => {throw Error('Render tests must not call an API');}};
     if (id.endsWith('/extensions')) return {ClientExtensionSlot: () => null};
     // As Vite does: a stylesheet import has no exports, and a ?url asset import is its URL.
@@ -45,6 +45,7 @@ const feature = name => `src/core/features/${name}`;
 const {OverviewPage} = load(feature('overview/ui/overview-page.tsx'));
 const {IncidentDetailPage} = load(feature('incidents/ui/incident-detail-page.tsx'));
 const {IncidentOperatorControls} = load(feature('incidents/ui/incident-operator-controls.tsx'));
+const {IncidentPreview} = load(feature('incidents/ui/incident-preview.tsx'));
 const {MaintenancePage} = load(feature('maintenance/ui/maintenance-page.tsx'));
 function render(Component, data, state = {}, props = {}) {
   responses=data; stateSnapshot=state; stateIndex=0;
@@ -72,22 +73,28 @@ test("Operator incident overview and composer preserve timing and review control
   assert.match(notice,/INC-RENDER/); assert.equal(notice.split('href="/app/incidents/').length-1,1,'one action opens the incident composer');
   assert.match(html,/Components and history/);
 })(t);
-  t.diagnostic("composer renders closed named email and timing disclosures with safeguards");
+  t.diagnostic("composer shows the page preview and keeps publication timing and private actions closed, with safeguards");
   await (() => {
-  const html=render(IncidentDetailPage,incidentData,{7:preview},{incidentId:incident.id});
-  const email=details(html,'Email preview'), timing=details(html,'Schedule or backdate');
-  assert.doesNotMatch(email.attributes,/\bopen\b/); assert.match(email.body,/Notification email/);
-  assert.doesNotMatch(timing.attributes,/\bopen\b/); assert.match(timing.body,/Scheduled publication date and time/); assert.match(timing.body,/Historical publication date and time/);
-  assert.match(timing.body,/without notifying subscribers/);
-  assert.match(html,/A communication commitment, not an estimate of service restoration/);
+  // State 6 is the rendered preview and state 9 the publication timing of the incident visit.
+  const html=render(IncidentDetailPage,incidentData,{6:preview},{incidentId:incident.id});
+  assert.match(html,/Public page/); assert.match(html,/aria-pressed="false"[^>]*>Email<\/button>/);
+  assert.match(html,/id="more-options" class="more-options" hidden=""/); assert.match(html,/aria-label="Publication controls"/);
+  assert.match(html,/<legend>Notify<\/legend>/); assert.match(html,/<legend>Publish<\/legend>/); assert.doesNotMatch(html,/Historical publication date and time|Scheduled publication date and time/);
+  assert.match(html,/<legend>Next update<\/legend>/); assert.doesNotMatch(html,/estimate/i);
   assert.match(html,/Saving draft/); assert.match(html,/<button[^>]*disabled=""[^>]*>Publish update<\/button>/);
-  assert.match(html,/Another operator can review before the scheduled update/);
+  assert.match(html,/id="incident-actions" class="incident-actions-panel" hidden=""/); assert.match(html,/Another operator can review before the scheduled update/);
 })(t);
-  t.diagnostic("active historical timing stays exposed and names its publication action");
+  t.diagnostic("a chosen publication time names its action and what it does to subscribers");
   await (() => {
-  const html=render(IncidentDetailPage,incidentData,{7:preview,11:'2026-10-01T01:00:00Z'},{incidentId:incident.id});
-  assert.match(details(html,'Schedule or backdate').attributes,/\bopen=""/);
-  assert.match(html,/Publish historical update/); assert.match(html,/Use current time/);
+  const backdated=render(IncidentDetailPage,incidentData,{6:preview,9:{mode:'backdate',at:'2026-10-01T01:00:00Z'}},{incidentId:incident.id});
+  assert.match(backdated,/aria-label="Historical publication date and time"/); assert.match(backdated,/Notifies no one/); assert.match(backdated,/>Publish historical update<\/button>/);
+  const scheduled=render(IncidentDetailPage,incidentData,{6:preview,9:{mode:'schedule',at:null}},{incidentId:incident.id});
+  assert.match(scheduled,/aria-label="Scheduled publication date and time"/); assert.match(scheduled,/Stays private until then/); assert.match(scheduled,/<button[^>]*disabled=""[^>]*>Schedule update<\/button>/);
+})(t);
+  t.diagnostic("the email view renders the notification as the renderer produced it");
+  await (() => {
+  const html=render(IncidentPreview,{},{0:'email'},{preview,error:null});
+  assert.match(html,/Notification email/); assert.match(html,/aria-pressed="true"[^>]*>Email<\/button>/); assert.match(html,/Checkout is delayed/);
 })(t);
 });
 
