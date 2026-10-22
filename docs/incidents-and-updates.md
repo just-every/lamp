@@ -1,22 +1,32 @@
 # Incidents and updates
 
-Open **Incidents** and choose **Create incident** if the draft form is not
-already open. Enter the title and attach at least one component, then choose
-**Create incident draft**. In the composer, write a public update for the people
-affected. Lamp keeps each published
+Open **Incidents** and choose **New incident** (an empty list opens it for you).
+One screen asks what is happening (a title and the impact), who is affected (the
+components and the people), and when the next update is; **Publish** creates the
+incident and publishes its first update together. Lamp keeps each published
 update on the incident timeline; a correction is a new update that names the
 one it corrects.
 
 ## Compose and publish
 
-The update asks who is affected and what the impact is. You can add what still
-works and details. For an active incident, set the next-update time as your
-communication commitment. A resolved update has no next-update promise.
+Each update asks what is happening and who is affected. For an active incident,
+set the next-update time as your communication commitment: 15 min, 30 min,
+1 hour or 2 hours fill the time field, or type a time. A resolved update has no
+next-update promise.
 
-Review the preview before publishing. It shows the public page and email
+**More options** holds the rest: the status a new incident starts with, what
+still works, details, the opening time of an earlier incident, which subscriber
+channels to notify, scheduling or backdating the update, Primary or Dependent
+relationships, templates, and **Save as private draft** for an incident you are
+not ready to publish. The note beside Publish says who it notifies.
+
+Review the preview before publishing; **Page** and **Email** show both
 renderings. An unpublished draft stays private. A future scheduled update also
 stays private until its scheduled publication time. Each published update sets
-the incident lifecycle: Investigating, Identified, Monitoring or Resolved.
+the incident lifecycle: Investigating, Identified, Monitoring or Resolved; on an
+open incident, choose it above the fields. Delivery figures appear once
+something was sent. Internal notes, review, corrections, the public impact and
+deletion are under **Private actions** at the end of the incident page.
 
 To reopen an incident resolved in error, publish an update that sets it to
 Investigating. The resolution and reopening updates both remain in history. You
@@ -26,11 +36,10 @@ retroactive updates.
 
 ## Change affected components
 
-Use **Component states with this update** in the composer. Each attached
-component shows this incident's current claim and the state the next update will
-set. Choose **Attach with this update** to include another public component,
-with its state and Primary or Dependent relationship. Internal components stay
-out of that picker.
+Each attached component is a chip under **Who's affected?** showing the state
+the next update will set; change it in the chip. Choose **+ Add component** to
+include another public component; set Primary or Dependent under More options.
+Internal components stay out of that picker.
 
 Saving keeps these choices private in the versioned draft. Preview shows the
 changes; review and scheduling retain them. Publishing commits the wording and
@@ -38,8 +47,8 @@ states together, so Major outage can step directly to Degraded performance.
 Other incidents, standing claims and maintenance still determine the resulting
 public state. A conflicting attachment change requires a fresh review.
 
-Choose **Release … with this update** or Operational to stop claiming an outage
-while retaining the attachment and its subscribers. Resolved releases every
+Choose Operational in a chip to stop claiming an outage while retaining the
+attachment and its subscribers. Resolved releases every
 claim. Customers receive one notification per selected channel, containing the
 wording and the component changes.
 
@@ -60,8 +69,9 @@ the help links and every populated field.
 
 The incident page shows a brief of accepted alerts, published updates, attached
 public components and their claimed states, plus open questions from the saved
-incident. The brief is built without a model. Expand its disclosure to see the
-exact information a suggestion request would send.
+incident; it is one line until you open it, and open from the start when alerts
+brought facts. The brief is built without a model. Expand its disclosure to see
+the exact information a suggestion request would send.
 
 When an AI provider is configured, choose **Suggest update** in the composer.
 That action fills only text fields, cites the brief items it uses, leaves your

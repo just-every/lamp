@@ -27,6 +27,7 @@ import { Route as DocsIndexRouteImport } from './routes/docs.index'
 import { Route as DocsSlugRouteImport } from './routes/docs.$slug'
 import { Route as AppIncidentsIndexRouteImport } from './routes/app.incidents.index'
 import { Route as AppIncidentsIncidentIdRouteImport } from './routes/app.incidents.$incidentId'
+import { Route as AppIncidentsNewRouteImport } from './routes/app.incidents.new'
 
 const AppRoute = AppRouteImport.update({
   id: '/app',
@@ -118,6 +119,11 @@ const AppIncidentsIncidentIdRoute = AppIncidentsIncidentIdRouteImport.update({
   path: '/$incidentId',
   getParentRoute: () => AppIncidentsRoute,
 } as any)
+const AppIncidentsNewRoute = AppIncidentsNewRouteImport.update({
+  id: '/new',
+  path: '/new',
+  getParentRoute: () => AppIncidentsRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/app': typeof AppRouteWithChildren
@@ -137,6 +143,7 @@ export interface FileRoutesByFullPath {
   '/app/': typeof AppIndexRoute
   '/docs/': typeof DocsIndexRoute
   '/app/incidents/$incidentId': typeof AppIncidentsIncidentIdRoute
+  '/app/incidents/new': typeof AppIncidentsNewRoute
   '/app/incidents/': typeof AppIncidentsIndexRoute
 }
 export interface FileRoutesByTo {
@@ -154,6 +161,7 @@ export interface FileRoutesByTo {
   '/app': typeof AppIndexRoute
   '/docs': typeof DocsIndexRoute
   '/app/incidents/$incidentId': typeof AppIncidentsIncidentIdRoute
+  '/app/incidents/new': typeof AppIncidentsNewRoute
   '/app/incidents': typeof AppIncidentsIndexRoute
 }
 export interface FileRoutesById {
@@ -175,6 +183,7 @@ export interface FileRoutesById {
   '/app/': typeof AppIndexRoute
   '/docs/': typeof DocsIndexRoute
   '/app/incidents/$incidentId': typeof AppIncidentsIncidentIdRoute
+  '/app/incidents/new': typeof AppIncidentsNewRoute
   '/app/incidents/': typeof AppIncidentsIndexRoute
 }
 export interface FileRouteTypes {
@@ -197,6 +206,7 @@ export interface FileRouteTypes {
     | '/app/'
     | '/docs/'
     | '/app/incidents/$incidentId'
+    | '/app/incidents/new'
     | '/app/incidents/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -214,6 +224,7 @@ export interface FileRouteTypes {
     | '/app'
     | '/docs'
     | '/app/incidents/$incidentId'
+    | '/app/incidents/new'
     | '/app/incidents'
   id:
     | '__root__'
@@ -234,6 +245,7 @@ export interface FileRouteTypes {
     | '/app/'
     | '/docs/'
     | '/app/incidents/$incidentId'
+    | '/app/incidents/new'
     | '/app/incidents/'
   fileRoutesById: FileRoutesById
 }
@@ -371,16 +383,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppIncidentsIncidentIdRouteImport
       parentRoute: typeof AppIncidentsRoute
     }
+    '/app/incidents/new': {
+      id: '/app/incidents/new'
+      path: '/new'
+      fullPath: '/app/incidents/new'
+      preLoaderRoute: typeof AppIncidentsNewRouteImport
+      parentRoute: typeof AppIncidentsRoute
+    }
   }
 }
 
 interface AppIncidentsRouteChildren {
   AppIncidentsIncidentIdRoute: typeof AppIncidentsIncidentIdRoute
+  AppIncidentsNewRoute: typeof AppIncidentsNewRoute
   AppIncidentsIndexRoute: typeof AppIncidentsIndexRoute
 }
 
 const AppIncidentsRouteChildren: AppIncidentsRouteChildren = {
   AppIncidentsIncidentIdRoute: AppIncidentsIncidentIdRoute,
+  AppIncidentsNewRoute: AppIncidentsNewRoute,
   AppIncidentsIndexRoute: AppIncidentsIndexRoute,
 }
 

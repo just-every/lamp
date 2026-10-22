@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { incidentComposer } from "./helpers/incident-composer.mjs";
 
 function deferred() {
   let resolve;
@@ -120,14 +121,14 @@ export async function assertComposerVisitIsolation({ page, api, openIncident, in
     await traverse(-2, a.id);
     await page.locator(".autosave-status.is-empty").waitFor();
     await field.fill("The next update has a new audience");
-    await page.getByLabel(/What is the impact/).fill("Recovery is progressing.");
+    await incidentComposer(page).impact.fill("Recovery is progressing.");
     await page.getByLabel("Next update date and time").fill("2027-09-08T16:00");
     await saved();
     oldPublication.release();
     await waitForAutosave(oldPublication.finished, "the obsolete publication read");
     await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
     assert.equal(await field.inputValue(), "The next update has a new audience");
-    assert.equal(await page.getByLabel(/What is the impact/).inputValue(), "Recovery is progressing.");
+    assert.equal(await incidentComposer(page).impact.inputValue(), "Recovery is progressing.");
     await field.fill("The new publication draft remains editable");
     await saved();
     assert.equal((await read(a.id)).draft.affectedAudience, "The new publication draft remains editable");
@@ -159,7 +160,9 @@ async function assertConsumedUpdateNoteIsolation({ page, read, incidentId, held,
   page.on("request", recordRequest);
   try {
     const before = await read(incidentId);
+    const composer = incidentComposer(page);
     const oldNote = await holdResponse(page, `${endpoint}/internal-notes`, held, 201);
+    await composer.privateActions();
     await note.fill("Operator context saved before publication");
     await page.getByRole("button", { name: "Save internal note", exact: true }).click();
     await waitForAutosave(oldNote.entered, "the committed private note");
@@ -181,11 +184,12 @@ async function assertConsumedUpdateNoteIsolation({ page, read, incidentId, held,
     assert.equal(await page.locator(".timeline li").count(), afterPublish.updates.length);
 
     await field.fill("Current audience after the private action's update was consumed");
-    await page.getByLabel(/What is the impact/).fill("Recovery continues for the current audience.");
+    await composer.impact.fill("Recovery continues for the current audience.");
     await page.getByLabel("Next update date and time").fill("2027-09-08T17:00");
     await saved();
     const current = await read(incidentId);
     await note.fill("Pending context for the next public update");
+    await composer.moreOptions();
     await page.getByRole("checkbox", { name: "Webhook", exact: true }).check();
     const statuses = page.locator(".incident-operator-controls [role=status], .incident-operator-controls [role=alert], .publication-message, .autosave-status");
     const priorStatus = await statuses.allTextContents();
@@ -196,8 +200,8 @@ async function assertConsumedUpdateNoteIsolation({ page, read, incidentId, held,
     assert.equal(await page.evaluate(() => performance.timeOrigin), documentStarted);
     assert.equal(await note.inputValue(), "Pending context for the next public update");
     assert.equal(await field.inputValue(), current.draft.affectedAudience);
-    assert.equal(await page.getByLabel(/What is the impact/).inputValue(), current.draft.customerImpact);
-    assert.equal(await page.getByLabel("Status").inputValue(), current.draft.lifecycle);
+    assert.equal(await composer.impact.inputValue(), current.draft.customerImpact);
+    assert.equal(await composer.status(), current.draft.lifecycle);
     assert.equal(await page.getByLabel("Next update date and time").inputValue(), "2027-09-08T17:00");
     assert.equal(await page.getByRole("checkbox", { name: "Email", exact: true }).isChecked(), true);
     assert.equal(await page.getByRole("checkbox", { name: "Webhook", exact: true }).isChecked(), true);

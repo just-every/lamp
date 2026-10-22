@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { isDeepStrictEqual } from "node:util";
+import { incidentComposer } from "./helpers/incident-composer.mjs";
 
 // A datetime-local control contains a wall-clock value, not an ISO instant.
 // Compare it with the saved instant expressed in the configured page zone.
@@ -43,17 +44,18 @@ export async function saveAndConfirmDraft({ page, appFetch, incidentId, expected
   assert.deepEqual(incident.draft.componentChanges, [], "the stored draft must retain the unchanged component choices");
 
   await page.getByText("Draft saved", { exact: true }).waitFor({ timeout: 10_000 });
+  const composer = incidentComposer(page);
   const displayed = {
-    lifecycle: await page.getByLabel("Status").inputValue(),
-    affectedAudience: await page.locator("label", { hasText: "Who is affected" }).locator("textarea").inputValue(),
-    customerImpact: await page.locator("label", { hasText: "What is the impact" }).locator("textarea").inputValue(),
-    whatStillWorks: await page.locator("label", { hasText: "What still works" }).locator("textarea").inputValue(),
-    details: await page.locator("label", { hasText: "Additional details" }).locator("textarea").inputValue(),
-    nextUpdateAt: await page.getByLabel("Next update date and time").count() ? await page.getByLabel("Next update date and time").inputValue() : "",
+    lifecycle: await composer.status(),
+    affectedAudience: await composer.audience.inputValue(),
+    customerImpact: await composer.impact.inputValue(),
+    whatStillWorks: await composer.stillWorks.inputValue(),
+    details: await composer.details.inputValue(),
+    nextUpdateAt: await composer.nextUpdate.count() ? await composer.nextUpdate.inputValue() : "",
   };
   const { settings } = await (await appFetch("/api/app/page-settings")).json();
   assert.deepEqual(displayed, { ...expected, nextUpdateAt: configuredDateTimeInput(expected.nextUpdateAt, settings.timezone) }, "Saved must describe the current displayed draft in the configured page zone");
   const publishable = Boolean(expected.affectedAudience.trim() && expected.customerImpact.trim() && (expected.lifecycle === "Resolved" || expected.nextUpdateAt) && incident.components.some(component => component.componentId));
-  assert.equal(await page.getByRole("button", { name: "Publish update", exact: true }).isEnabled(), publishable, "Only a complete acknowledged draft may publish");
+  assert.equal(await composer.publish.isEnabled(), publishable, "Only a complete acknowledged draft may publish");
   t.diagnostic(JSON.stringify({ phase: "durable draft confirmed", incidentId, startedAt, acknowledgedAt, confirmedAt: Date.now(), expected }));
 }

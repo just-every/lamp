@@ -94,7 +94,9 @@ The composer keeps the customer-facing fields and publish action primary, omits
 obvious field explanations and the implementation banner, and offers email
 preview and schedule/backdate controls through named disclosures. A configured
 historical timestamp remains exposed and the action says “Publish historical
-update”; clearing optional timing restores current-time publication. Channel
+update”; clearing optional timing restores current-time publication. (The
+composer layout was replaced on 22 October 2026; see “Incident page in one
+screen”.) Channel
 selection, autosave failure/retry, review, privacy and historical-notification
 rules are unchanged. Successful publication refreshes the operator lifecycle and
 timeline and opens a fresh empty draft for the next update (UPDATE-005 amendment). Maintenance date editing opens on demand, with explicit
@@ -1592,6 +1594,32 @@ Overview presentation makes no verification or subscriber-delivery claim.
 Settings text saves after a short pause; selections and toggles publish immediately. Writes are serialized and never replace an editable draft with an earlier response. A failed save keeps the entered value and offers a retry. Sender email and allowed widget websites publish only after their inline Confirm. Embed tag choices are retained across reload and portable exports. Add channel, Invite operator, uploads, imports and erasure remain explicit actions.
 
 Leaving Settings or signing out waits for pending edits to save; a refused save keeps the owner on Settings with its reason and Retry. Reloading or closing sends pending edits as the page unloads, past any unanswered write, as keepalive requests within the browser's 64 KiB allowance; ordinary writes and Retry are plain requests. Save status and refusal reasons stay pinned in view while editing.
+
+## Incident page in one screen — owner L12, 22 October 2026
+
+The owner found the incident page one 2,500 px screen asking for everything at once.
+A new incident is now one screen (`/app/incidents/new`, shown in place of an empty
+list): what is happening (title and impact), who is affected (component chips with
+the claimed state, and the audience), the next-update time and Publish, beside the
+renderer's preview with a Page and Email switch. Publish creates the incident with
+that update as its saved draft and publishes it; a refused publication leaves the
+saved draft on the incident page with the reason and with the notification and
+timing choices the operator made (as does Save as private draft). A scheduled update
+opens the incident page as the server holds it, with its time and channels, so moving
+only the time keeps who is notified. Whatever the new screen reports on arrival
+(published, scheduled, refused or saved) shows once: a reload or a return to the page
+does not replay it. Any draft edit clears a stored schedule, and the page then says so instead of
+still claiming the update is scheduled. Everything else is under More
+options (starting status, what still works, details, opening time, channels,
+schedule or backdate, relationships, templates, Save as private draft). An open
+incident keeps the same plate: status choice, the same fields, the preview, the
+timeline, reach only once the provider accepted or delivered a send, the brief closed to one line unless
+alerts brought facts, and notes, review, correction, public impact and deletion under
+Private actions. The design was chosen from four 12ui options by a fresh Opus pass
+(evidence/uip-lamp-l12-incident). UPDATE-001, -004, -005 (autosave of an existing
+incident's draft, an empty draft after publication), -006, -007, -009, NOTIFY-007,
+INCIDENT-001, -009 and DRAFT-004 are unchanged; the preview of an incident not yet
+created uses the same renderer with the next reference.
 
 ## Alerts connect one tool at a time — 23 October 2026 (owner L13)
 

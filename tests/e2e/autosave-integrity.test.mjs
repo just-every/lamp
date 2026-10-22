@@ -14,6 +14,7 @@ import { assertAutosaveDuringRefresh } from "./autosave-refresh-regression.mjs";
 import { assertQueuedAutosaveDeadline } from "./autosave-queue-regression.mjs";
 import { assertComposerVisitIsolation } from "./composer-visit-regression.mjs";
 import { sessionCookieName } from "../helpers/session-cookie.mjs";
+import { incidentComposer } from "./helpers/incident-composer.mjs";
 
 let worker, browser, context, page, statePath, cachePath, origin;
 let output = "";
@@ -81,8 +82,8 @@ async function waitForAutosave(promise, phase) {
   } finally { clearTimeout(timeout); }
 }
 async function assertPrivateUnsaved() {
-  assert.equal(await page.getByRole("button", { name: "Publish update", exact: true }).isEnabled(), false);
-  assert.equal(await page.getByRole("button", { name: "Schedule update", exact: true, includeHidden: true }).isEnabled(), false);
+  // One control publishes now, schedules or backdates, by the choice under More options; while unsaved it is disabled.
+  assert.equal(await page.getByRole("button", { name: /^(Publish update|Schedule update|Publish historical update)$/ }).isEnabled(), false);
   await page.locator(".autosave-status").waitFor();
   assert.equal(await page.locator(".autosave-status.is-saved").count(), 0);
 }
@@ -92,7 +93,7 @@ test("Serialized autosave preserves the latest displayed bytes across delayed an
   t.diagnostic(`serialized autosave preserves latest displayed bytes with ${mode}`);
     await (async () => {
     const incident = await openIncident();
-    const field = page.locator(".impact-field textarea").first();
+    const field = incidentComposer(page).audience;
     const entered = deferred(), release = deferred(), secondEntered = deferred(), releaseSecond = deferred();
     let requests = 0;
     const endpoint = `**/api/app/incidents/${incident.id}/draft`;
@@ -136,7 +137,8 @@ test("Serialized autosave preserves the latest displayed bytes across delayed an
       await page.locator(".autosave-status.is-saved").waitFor();
       assert.equal(await field.inputValue(), latest);
       if (mode === "delayed request") {
-        await page.getByText("Schedule or backdate", { exact: true }).click();
+        await incidentComposer(page).moreOptions();
+        await page.getByRole("radio", { name: "Schedule", exact: true }).check();
         await page.getByLabel("Scheduled publication date and time").fill("2027-09-08T13:30");
         const scheduleResponse = page.waitForResponse(response => response.url().endsWith(`/incidents/${incident.id}/draft/schedule`) && response.request().method() === "POST");
         await page.getByRole("button", { name: "Schedule update", exact: true }).click();
@@ -169,7 +171,7 @@ test("Autosave failure, revert, template and manual retry retain the actual disp
   t.diagnostic("a failed current save stays unsaved; reverting repairs uncertain server state");
   await (async () => {
   const incident = await openIncident();
-  const field = page.locator(".impact-field textarea").first();
+  const field = incidentComposer(page).audience;
   const endpoint = `**/api/app/incidents/${incident.id}/draft`;
   // Keep the route installed for the whole case: a one-shot route is removed
   // while the composer's follow-up read is in flight, and Playwright can then
@@ -195,7 +197,7 @@ test("Autosave failure, revert, template and manual retry retain the actual disp
   t.diagnostic("reverting before debounce restores saved status without a redundant write");
   await (async () => {
   const incident = await openIncident();
-  const field = page.locator(".impact-field textarea").first();
+  const field = incidentComposer(page).audience;
   const requests = [];
   const record = request => { if (request.method() === "PUT" && request.url().endsWith(`/incidents/${incident.id}/draft`)) requests.push(request); };
   page.on("request", record);
@@ -211,8 +213,8 @@ test("Autosave failure, revert, template and manual retry retain the actual disp
   t.diagnostic("an applied native template becomes the displayed and saved draft");
   await (async () => {
   const incident = await openIncident();
-  const field = page.locator(".impact-field textarea").first();
-  await page.locator("summary", { hasText: "Update templates" }).click();
+  const field = incidentComposer(page).audience;
+  await incidentComposer(page).moreOptions();
   await page.getByLabel("Template name", { exact: true }).fill("Autosave template integrity");
   await page.getByRole("button", { name: "Save template", exact: true }).click();
   await page.getByText("Template saved.", { exact: true }).waitFor();
@@ -228,7 +230,7 @@ test("Autosave failure, revert, template and manual retry retain the actual disp
   t.diagnostic("manual retry saves the retained draft after a transient transport failure");
   await (async () => {
   const incident = await openIncident();
-  const field = page.locator(".impact-field textarea").first();
+  const field = incidentComposer(page).audience;
   let requests = 0;
   const endpoint = `**/api/app/incidents/${incident.id}/draft`;
   await page.route(endpoint, async route => {
@@ -250,7 +252,10 @@ test("Autosave failure, revert, template and manual retry retain the actual disp
     assert.equal(requests, 2);
     assert.equal((await api(`/api/app/incidents/${incident.id}`)).incident.draft.affectedAudience, "Retain these edits for manual retry");
     assert.equal(await page.getByRole("button", { name: "Publish update", exact: true }).isEnabled(), true);
-    assert.equal(await page.getByRole("button", { name: "Schedule update", exact: true, includeHidden: true }).isEnabled(), true);
+    await incidentComposer(page).moreOptions();
+    await page.getByRole("radio", { name: "Schedule", exact: true }).check();
+    await page.getByLabel("Scheduled publication date and time").fill("2027-09-08T13:30");
+    assert.equal(await page.getByRole("button", { name: "Schedule update", exact: true }).isEnabled(), true);
   } finally { await page.unrouteAll({ behavior: "wait" }); }
 })(t);
 });
@@ -290,11 +295,12 @@ test("a lost acknowledgement never authorizes overwriting another tab's schedule
     await route.abort();
   });
   try {
-    await page.locator(".impact-field textarea").first().fill("Shared wording with a later scheduled transition");
+    await incidentComposer(page).audience.fill("Shared wording with a later scheduled transition");
     await waitForAutosave(entered.promise, "the write awaiting its lost acknowledgement");
     await other.goto(`${origin}/app/incidents/${incident.id}`);
     await other.locator(".autosave-status.is-saved").waitFor();
-    await other.getByText("Schedule or backdate", { exact: true }).click();
+    await incidentComposer(other).moreOptions();
+    await other.getByRole("radio", { name: "Schedule", exact: true }).check();
     await other.getByLabel("Scheduled publication date and time").fill("2027-09-08T13:30");
     const scheduleResponse = other.waitForResponse(response => response.url().endsWith(`/incidents/${incident.id}/draft/schedule`) && response.request().method() === "POST");
     await other.getByRole("button", { name: "Schedule update", exact: true }).click();
