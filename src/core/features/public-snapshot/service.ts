@@ -5,7 +5,7 @@ import type { BlobObject, BlobStore } from "../../platform/blobs/store";
 import type { LampServerSlots } from "../../api/extensions";
 
 import { readGenerationArtifact } from "./generation-cache";
-import { renderPublicSnapshot } from "./renderer";
+import { renderPublicSnapshot, type PublicHouseStyle } from "./renderer";
 import type { SnapshotRepository } from "./repository";
 import { defaultPublicSnapshotPolicies, type PublicSnapshotPolicies } from "./policies";
 import { defaultPublicSnapshotEvents, type PublicSnapshotEvents } from "./events";
@@ -15,7 +15,7 @@ const STALE_MARKER_KEY = "snapshots/stale.json";
 const STALE_BUILD_MS = 5 * 60_000;
 const RETRY_LEASE_MS = 2 * 60_000;
 const LOGO_CONTENT_TYPES = new Set(["image/png", "image/jpeg", "image/webp"]);
-export const PUBLIC_SNAPSHOT_RENDERER_VERSION = "lamp-public-snapshot-v19";
+export const PUBLIC_SNAPSHOT_RENDERER_VERSION = "lamp-public-snapshot-v20";
 
 interface SnapshotPointer {
   version: string;
@@ -75,6 +75,8 @@ export function createPublicSnapshotService(
   events: PublicSnapshotEvents = defaultPublicSnapshotEvents,
   slots: LampServerSlots = {},
   retained?: RetainedSnapshotCache,
+  /** The page's stored house style and its cut-out; every generation publishes the cut-out as assets/moment. */
+  houseStyle: () => Promise<PublicHouseStyle & { picture: ArrayBuffer | null }> = async () => ({ connected: false, record: null, picture: null }),
 ): PublicSnapshotService {
   let rebuildTail: Promise<void> = Promise.resolve();
 
@@ -157,10 +159,12 @@ export function createPublicSnapshotService(
         if (source.settings.logoKey && !logo) throw new Error("Configured logo object is missing from object storage.");
         const logoContentType = logo?.contentType ?? source.settings.logoContentType;
         if (logo && !logoContentType) throw new Error("Configured logo content type is missing.");
+        // Made once per brand and kept in R2: a generation only links the stored picture, never makes one.
+        const { picture: moment, ...house } = await houseStyle();
         const version = createUlid();
-        const rendered = renderPublicSnapshot(source, new Date().toISOString(), policies, { logoDataUrl: logo && logoContentType ? logoDataUrl({ ...logo, contentType: logoContentType }) : null }, slots);
+        const rendered = renderPublicSnapshot(source, new Date().toISOString(), policies, { logoDataUrl: logo && logoContentType ? logoDataUrl({ ...logo, contentType: logoContentType }) : null }, slots, house);
         const bundle = encodeRetainedBundle({ version, generatedAt: rendered.generatedAt, generation, artifacts: rendered.artifacts });
-        return { version, rendered, bundle, logo, logoContentType };
+        return { version, rendered, bundle, logo, logoContentType, moment };
       }
       let prepared: Awaited<ReturnType<typeof prepare>> | null = null;
       while (attempts < 3) {
@@ -168,11 +172,12 @@ export function createPublicSnapshotService(
         try {
         // Retry storage/replica/pointer delivery with identical generation bytes.
         prepared ??= await prepare();
-        const { version, rendered, bundle, logo, logoContentType } = prepared;
+        const { version, rendered, bundle, logo, logoContentType, moment } = prepared;
         await Promise.all(rendered.artifacts.map((artifact) => blobs.putText(`snapshots/${version}/${artifact.key}`, artifact.body, artifact.contentType)));
         if (logo) {
           await blobs.putBytes(`snapshots/${version}/assets/logo`, logo.bytes, logoContentType ?? "application/octet-stream");
         }
+        if (moment) await blobs.putBytes(`snapshots/${version}/assets/moment`, moment, "image/jpeg");
         // Artifacts are complete before the conditional pointer change. A
         // superseded build deliberately leaves its revision pending: a later
         // cron pass rereads D1 rather than assuming the winner saw this write.

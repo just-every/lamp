@@ -28,6 +28,8 @@ export interface PageSettingsService {
   update(settings: PageSettingsInput): Promise<PageSettingsView | null>;
   uploadLogo(input: { bytes: ArrayBuffer; contentType: string }): Promise<PageSettingsView | null>;
   removeLogo(): Promise<PageSettingsView | null>;
+  /** Setup's choice for a fresh install: kept only by a page that has never chosen a template. */
+  adoptStarterTemplate(template: "house" | "calm"): Promise<void>;
 }
 
 function toView(settings: StoredPageSettings, mailIdentityEditable: boolean, regionsAvailable: boolean): PageSettingsView {
@@ -125,6 +127,11 @@ export function createPageSettingsService(
       await readRequired();
       await repository.updateLogo({ logoKey: null, logoContentType: null, updatedAt: nowIso() });
       return rebuildAndRead();
+    },
+    async adoptStarterTemplate(template) {
+      if ((await readRequired()).template !== "default") return;
+      await repository.updateTemplate({ template, updatedAt: nowIso() });
+      await onPublicDataChanged();
     },
   };
 }

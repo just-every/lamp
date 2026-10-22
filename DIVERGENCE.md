@@ -1576,8 +1576,25 @@ same public facts. The saved template and why it is showing stay visible in
 Settings. Regions map needs public components in at least two regions (an optional
 component region); with fewer, the public page quietly shows Calm headline and only
 Settings explains why. Regions without a known map position stay filterable and are
-listed as not on the map. Built-in choices do not require AI. Generated house style
-is a later feature and is not offered as an implemented option.
+listed as not on the map. Built-in choices do not require AI; House style (below) does.
+
+## House style for every account — owner L18, 22 October 2026
+
+The owner asked for study 12's house style on every account. House style is a fifth
+template value: the business's own object, lit, over one sentence of status, in a
+palette made from its site's accent and colours, made once from the site read with
+the install's own Workers AI binding and stored in the install's R2, never per visit.
+It is made again only when the brand (name, tagline, accent, website), the style
+version or the model changes, or when the owner asks in Settings. Until one is made,
+and whenever it can't be, the page shows Calm headline and its foot names the reason
+(being made, couldn't be made, today's budget used, or not connected); Settings'
+Template card says the same, where the owner can act. A re-make that fails keeps the
+stored house style. Setup on a fresh install saves House style where the install has
+the binding and Calm headline where it hasn't; existing installs keep the template
+they saved. Base grants an app Worker no `ai` binding until its AI consumer contract
+ships, so until then every install is not connected. Only three models are called (one
+image, one text and one vision model), at most two pictures per make and four a day
+per install.
 
 ## Managed sender status — 21 October 2026
 

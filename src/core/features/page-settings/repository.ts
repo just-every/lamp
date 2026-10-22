@@ -12,6 +12,7 @@ export interface PageSettingsRepository {
   insertIfMissing(settings: typeof pageSettings.$inferInsert): Promise<void>;
   update(settings: Pick<StoredPageSettings, "pageName" | "tagline" | "accentColor" | "timezone" | "hostname" | "footerCreditEnabled" | "template" | "widgetAllowedOrigins" | "mailFromAddress" | "emailBranding" | "aiToneInstructions" | "wordingBlockedTerms" | "wordingFriendlyLength" | "updatedAt">): Promise<void>;
   updateLogo(input: Pick<StoredPageSettings, "logoKey" | "logoContentType" | "updatedAt">): Promise<void>;
+  updateTemplate(input: Pick<StoredPageSettings, "template" | "updatedAt">): Promise<void>;
 }
 
 export function createPageSettingsRepository(binding: D1Database): PageSettingsRepository {
@@ -44,6 +45,9 @@ export function createPageSettingsRepository(binding: D1Database): PageSettingsR
       await database.update(pageSettings).set(settings).where(eq(pageSettings.id, "default"));
     },
     async updateLogo(input) {
+      await database.update(pageSettings).set(input).where(eq(pageSettings.id, "default"));
+    },
+    async updateTemplate(input) {
       await database.update(pageSettings).set(input).where(eq(pageSettings.id, "default"));
     },
   };

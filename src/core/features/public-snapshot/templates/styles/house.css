@@ -1,0 +1,105 @@
+/* House style (owner L18, study 12): the business's own object, lit, over one calm sentence, in the account's palette
+   (house-styles.ts sets it as Lamp's public tokens). The object is drawn on white and multiplied onto the stone band;
+   the light under it is drawn here, the same for every account, and warms to amber whenever the page is not all
+   clear. State colours stay semantic. */
+.tpl-house { --amber-light: #f4c463; position: relative; }
+.tpl-house h1, .tpl-house h2, .tpl-house h3, .tpl-house h4 { color: var(--ink); }
+
+/* Masthead over the band, so the light and a hanging object's cord reach the top. */
+.house-head { position: absolute; z-index: 3; top: 0; left: 0; right: 0; display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 30px 48px 0; }
+.house-brand { min-width: 0; }
+.house-brand .tpl-brand { gap: 12px; font-size: 20px; font-weight: 650; letter-spacing: -.015em; }
+.house-brand .tpl-mark { width: 32px; height: 32px; }
+.house-nav { display: flex; flex: none; align-items: center; gap: 6px; }
+.house-nav a { border-radius: 999px; padding: 9px 14px; color: var(--ink); font-size: 14px; font-weight: 500; text-decoration: none; }
+.house-nav a:hover { background: color-mix(in srgb, var(--ink) 7%, transparent); }
+.house-nav .house-subscribe-link { background: var(--ink); color: var(--on-ink); padding-inline: 20px; font-weight: 600; }
+.house-nav .house-subscribe-link:hover { background: var(--ink); filter: brightness(1.25); }
+
+/* The moment: stone, the house light, the object, the sentence and the components. */
+.house-band { position: relative; padding-inline: 24px; }
+.house-moment { isolation: isolate; overflow: hidden; background: var(--stone); padding-bottom: 76px; }
+.house-light { position: absolute; z-index: 0; inset: 0; pointer-events: none; background: radial-gradient(ellipse 400px 290px at 50% var(--light-y), color-mix(in srgb, var(--light) 80%, transparent), color-mix(in srgb, var(--light) 34%, transparent) 46%, transparent 74%); }
+.house-light:not(.tone-ok) { background: radial-gradient(ellipse 430px 300px at 50% var(--light-y), color-mix(in srgb, var(--amber-light) 86%, transparent), color-mix(in srgb, var(--amber-light) 38%, transparent) 44%, transparent 74%); }
+/* No z-index on the figure: the picture multiplies onto the band's own stacking context, its stone and light. */
+.house-figure { position: relative; width: var(--mw); margin: 0 auto; padding-top: var(--drop); }
+.house-picture { display: block; width: var(--mw); height: var(--mh); mix-blend-mode: multiply; }
+.house-cord { position: absolute; top: 0; left: calc(var(--cord-x) * 100%); width: 2px; height: calc(var(--drop) + 2px); margin-left: -1px; background: var(--ink); }
+.house-status { position: relative; z-index: 1; max-width: 880px; margin: 26px auto 0; text-align: center; }
+.house-sentence { margin: 0; font-size: 46px; font-weight: 650; line-height: 1.12; letter-spacing: -.024em; text-wrap: balance; }
+.house-sentence.size-m { font-size: 37px; }
+.house-sentence.size-s { font-size: 28px; line-height: 1.25; }
+.house-status .tpl-updated { justify-content: center; margin-top: 14px; font-size: 14px; }
+
+/* Sections: a heading column and the record, as study 12 draws them. */
+.house-section { display: grid; grid-template-columns: 210px minmax(0, 1fr); column-gap: 40px; max-width: 980px; margin: 0 auto; }
+.house-section > h2 { margin: 0; font-size: 24px; font-weight: 650; line-height: 1.25; letter-spacing: -.015em; }
+.house-components { position: relative; z-index: 1; margin-top: 64px; }
+.house-rows { min-width: 0; }
+.house-group { margin: 14px 0 2px; color: var(--ink-3); font-size: 12px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; }
+.house-list { margin: 0; padding: 0; list-style: none; }
+.house-row { display: grid; grid-template-columns: 22px minmax(120px, 1.2fr) minmax(196px, 1.15fr) 72px minmax(150px, 1.6fr); align-items: center; column-gap: 16px; min-width: 0; padding: 8px 0; font-size: 14px; }
+.house-row .kind-icon { width: 20px; height: 20px; stroke-width: 1.5; }
+.house-name { min-width: 0; }
+.house-name :is(h3, h4) { margin: 0; font-size: 14px; font-weight: 500; line-height: 1.4; letter-spacing: 0; overflow-wrap: anywhere; }
+.house-state { display: flex; align-items: center; gap: 9px; margin: 0; color: var(--ink); }
+.house-state .state-glyph { width: 16px; height: 16px; }
+.house-uptime { margin: 0; color: var(--ink-3); font-size: 13px; font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
+.house-caption { display: block; font-size: 11px; letter-spacing: .02em; }
+/* The 90 days as one thin bar; a day with downtime is its own amber or red segment. */
+.house-bar { display: flex; align-items: stretch; height: 8px; min-width: 0; overflow: hidden; border-radius: 4px; }
+.house-bar .day { flex: 1 1 0; min-width: 0; }
+.house-bar .day.ok { background: color-mix(in srgb, var(--ink) 72%, transparent); }
+.house-rows .component-extension:empty { display: none; }
+
+/* The lighter band: history, then subscribing. */
+.house-paper { background: var(--paper); padding-top: 56px; padding-bottom: 8px; }
+.house-timeline { min-width: 0; }
+.house-timeline .tl { grid-template-columns: 16px minmax(0, 1fr); gap: 0 14px; }
+.house-timeline .tl + .tl { margin-top: 20px; border-top: 1px solid var(--line); padding-top: 18px; }
+.house-timeline .tl-mark .state-glyph { width: 16px; height: 16px; margin-top: 2px; }
+.house-timeline .tl-kicker { display: block; margin: 0 0 2px; color: var(--ink-3); font-size: 13px; font-weight: 500; }
+.house-timeline .tl-title { font-size: 15px; font-weight: 600; line-height: 1.4; letter-spacing: 0; }
+.house-timeline .tpl-said { margin-top: 4px; color: var(--ink); font-size: 14px; }
+.house-timeline .tpl-quiet { margin-top: 20px; }
+.house-subscribe { margin-top: 40px; border-top: 1px solid var(--line); padding-top: 32px; padding-bottom: 8px; }
+.house-subscribe > h2 { align-self: center; }
+.house-subscribe-row { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 22px; min-width: 0; }
+.house-form { width: min(100%, 420px); }
+.tpl-house .tpl-foot .wrap { max-width: 1028px; padding-inline: 24px; }
+
+@media (max-width: 640px) {
+  .house-head { position: static; gap: 10px; background: var(--stone); padding: 18px 16px 0; }
+  .house-brand .tpl-brand { gap: 9px; font-size: 17px; }
+  .house-brand .tpl-mark { width: 28px; height: 28px; }
+  .house-nav { gap: 0; }
+  .house-nav a { padding: 8px 10px; }
+  .house-nav .house-subscribe-link { padding-inline: 15px; }
+  .house-band { padding-inline: 16px; }
+  .house-moment { padding-bottom: 44px; }
+  .house-light { background: radial-gradient(ellipse 230px 210px at 50% var(--light-y-sm), color-mix(in srgb, var(--light) 80%, transparent), color-mix(in srgb, var(--light) 34%, transparent) 46%, transparent 74%); }
+  .house-light:not(.tone-ok) { background: radial-gradient(ellipse 260px 230px at 50% var(--light-y-sm), color-mix(in srgb, var(--amber-light) 92%, transparent), color-mix(in srgb, var(--amber-light) 46%, transparent) 44%, transparent 76%); }
+  .house-figure { width: var(--mw-sm); padding-top: var(--drop-sm); }
+  .house-picture { width: var(--mw-sm); height: var(--mh-sm); }
+  .house-cord { height: calc(var(--drop-sm) + 2px); }
+  .house-status { margin-top: 18px; }
+  .house-sentence { font-size: 30px; line-height: 1.16; }
+  .house-sentence.size-m { font-size: 26px; }
+  .house-sentence.size-s { font-size: 22px; line-height: 1.25; }
+  .house-status .tpl-updated { margin-top: 10px; font-size: 13px; }
+  .house-section { grid-template-columns: minmax(0, 1fr); }
+  .house-section > h2 { margin-bottom: 8px; font-size: 12px; letter-spacing: .16em; text-transform: uppercase; }
+  .house-components { margin-top: 40px; }
+  /* Every component's 90 days run the row's full width, whatever its state says (L18 rule 6). */
+  .house-row { grid-template-columns: 22px minmax(0, 1fr) auto; row-gap: 8px; padding: 10px 0; border-top: 1px solid var(--line); }
+  .house-row .kind-icon { grid-column: 1; grid-row: 1; }
+  .house-name { grid-column: 2; grid-row: 1; }
+  .house-state { grid-column: 3; grid-row: 1; justify-self: end; font-size: 13px; }
+  .house-bar { grid-column: 1 / -1; grid-row: 2; height: 7px; }
+  .house-uptime { grid-column: 1 / -1; grid-row: 3; }
+  .house-caption { display: inline; margin-right: 6px; }
+  .house-paper { padding-top: 40px; padding-bottom: 4px; }
+  .house-subscribe { margin-top: 32px; padding-top: 24px; }
+  .house-form { width: 100%; }
+  .tpl-house .tpl-foot .wrap { padding-inline: 16px; }
+}

@@ -277,6 +277,18 @@
       ]
     },
     {
+      "id": "workers-ai-house-style",
+      "required": false,
+      "why": "House style (owner L18): the install's own Workers AI binding chooses one object for the business, draws it in Lamp's house manner, and names the picture to check it, once per brand change or on the owner's Make again, never per visit. Only three models are called, at most two pictures per make and four a day. Absent, the page shows Calm headline and says it isn't connected.",
+      "data": [
+        "Page name, tagline, accent colour and website",
+        "What the site reader found on that website: its name, title, description, colours and product areas",
+        "Public component names",
+        "The drawn picture, to be named by the check"
+      ],
+      "adapters": []
+    },
+    {
       "id": "subscriber-webhooks",
       "required": false,
       "why": "SUB-009. The destinations are chosen by the buyer's subscribers, so they cannot be enumerated as named hosts at publish time; this entry is declared as a class of destinations, not one named service, which satisfies BASE-DATA-004 without a supersession because the payload carries no personal data, every request is signed, and every delivery is in the log.",

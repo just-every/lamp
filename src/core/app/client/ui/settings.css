@@ -40,6 +40,24 @@
 .embed-preview-status .page-preview-dot { width: 8px; height: 8px; flex: none; border-radius: 50%; }
 .embed-preview-status p { flex: 1 1 100%; margin: 2px 0 0; border-top: 1px solid var(--line); padding-top: 10px; white-space: pre-line; }
 .embed-preview-dot { justify-self: start; border: 0; padding: 4px 0; }
+/* House style in the Template card: its picture on its own stone, then what it is and how it was made. */
+.template-house { display: grid; grid-template-columns: 168px minmax(0, 1fr); align-items: start; gap: 14px 22px; border-top: 1px solid var(--line); padding-top: 16px; }
+.template-house-title { grid-column: 1 / -1; margin: 0; color: var(--ink); font-size: 15px; font-weight: 600; }
+.template-house-picture { display: grid; place-items: center; aspect-ratio: 1; margin: 0; border-radius: 12px; overflow: hidden; }
+.template-house-picture img { width: 72%; height: auto; mix-blend-mode: multiply; }
+.template-house-facts { display: grid; gap: 10px; min-width: 0; margin: 0; font-size: 14px; }
+.template-house-facts > div { display: grid; grid-template-columns: 84px minmax(0, 1fr); gap: 2px 12px; }
+.template-house-facts dt { color: var(--ink-3); font-size: 13px; }
+.template-house-facts dd { min-width: 0; margin: 0; overflow-wrap: anywhere; }
+.template-house-reason { display: block; margin-top: 2px; color: var(--ink-2); font-size: 13px; }
+.template-house-palette { display: flex; flex-wrap: wrap; gap: 6px 14px; margin: 0; padding: 0; list-style: none; font-size: 13px; }
+.template-house-palette li { display: inline-flex; align-items: center; gap: 6px; }
+.template-house-palette i { width: 14px; height: 14px; flex: none; border: 1px solid var(--line-strong); border-radius: 4px; }
+.template-house-actions { display: flex; flex-wrap: wrap; grid-column: 1 / -1; align-items: center; gap: 8px 14px; }
+.template-house-actions small { color: var(--ink-3); font-size: 13px; }
+.template-house > .save-message { grid-column: 1 / -1; margin: 0; }
 @media (max-width: 600px) {
   .settings-tabs { flex-wrap: wrap; gap: 0 22px; overflow: visible; }
+  .template-house { grid-template-columns: minmax(0, 1fr); }
+  .template-house-picture { width: min(100%, 220px); }
 }

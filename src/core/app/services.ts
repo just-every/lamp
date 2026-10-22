@@ -36,14 +36,24 @@ import { createAppMailTransport, type MailExecution } from "./mail";
 import { createOpenAiCompatibleProvider } from "../platform/ai";
 import { createDemoAiProvider } from "../platform/ai/demo";
 import { createServerExtensionMount } from "./extensions/server";
+import { createHouseStyleRepository, createHouseStyleService, houseStyleAi, type HouseStyleService } from "../features/house-style";
 
 export function createAppServices(bindings: AppBindings, blobs: BlobStore, execution?: MailExecution) {
   const extensions = createServerExtensionMount();
   const { sender: mail, local } = createAppMailTransport(bindings, extensions.adapters["mail.sender.v1"], execution);
   const snapshotOrigin = bindings.LAMP_LOCAL_ORIGIN ? publicPageOrigin(bindings.LAMP_LOCAL_ORIGIN, bindings.LAMP_PAGE_HOST) : undefined;
-  const publicSnapshots = createPublicSnapshotService(createSnapshotRepository(bindings.DB, snapshotOrigin), blobs, extensions.publicSnapshotPolicies, extensions.publicSnapshotEvents, extensions.slots, createRetainedSnapshotCache(bindings));
+  // The house style (owner L18) is made with the install's Workers AI binding, once per brand and out of any request;
+  // without the binding the install isn't connected, and says so.
+  const houseStyleRunner = houseStyleAi(bindings.AI, import.meta.env?.DEV ? bindings.LAMP_DEV_WORKERS_AI_ORIGIN : undefined);
+  let houseStyle: HouseStyleService | undefined;
+  const publicSnapshots = createPublicSnapshotService(createSnapshotRepository(bindings.DB, snapshotOrigin), blobs, extensions.publicSnapshotPolicies, extensions.publicSnapshotEvents, extensions.slots, createRetainedSnapshotCache(bindings), () => houseStyle!.forPage());
   const incidentImpact = createIncidentImpactService(createIncidentImpactRepository(bindings.DB), publicSnapshots.rebuild);
-  const pageSettings = createPageSettingsService(createPageSettingsRepository(bindings.DB), publicSnapshots.rebuild, blobs, bindings.MAIL_FROM_ADDRESS, bindings.MAIL_PROVIDER !== "rer");
+  // A saved brand asks for its house style first, so the page it publishes already says when one is being made.
+  const queueHouseStyle = async () => {
+    try { await houseStyle!.queueIfChanged(); }
+    catch (cause) { console.error("Lamp could not queue its house style; the scheduled run checks again.", cause); }
+  };
+  const pageSettings = createPageSettingsService(createPageSettingsRepository(bindings.DB), async () => { await queueHouseStyle(); await publicSnapshots.rebuild(); }, blobs, bindings.MAIL_FROM_ADDRESS, bindings.MAIL_PROVIDER !== "rer");
   const configuredFromAddress = async () => (await pageSettings.get())?.mailFromAddress ?? bindings.MAIL_FROM_ADDRESS;
   const configuredPageName = async () => {
     const settings = await pageSettings.get();
@@ -167,12 +177,33 @@ export function createAppServices(bindings: AppBindings, blobs: BlobStore, execu
     publishedAt: () => publicSnapshots.publishedAt(),
     // A demo's mail transport is local, but its sender reads as a configured one's.
     sender: { local: local && bindings.RER_DEMO !== '1', demo: bindings.RER_DEMO === '1', provider: bindings.MAIL_PROVIDER ?? "resend", apiKey: bindings.MAIL_PROVIDER_API_KEY, mail },
-  }));
+  }), async () => {
+    // A fresh install's Setup saves House style where the install can make one, and Calm headline where it can't.
+    await pageSettings.adoptStarterTemplate(houseStyleRunner ? "house" : "calm");
+  });
 
+  const devSiteOrigin = import.meta.env?.DEV && bindings.LAMP_DEV_SITE_ORIGIN?.startsWith("http://127.0.0.1:") ? bindings.LAMP_DEV_SITE_ORIGIN : undefined;
+  const readingUnavailable = outboundUnavailable(bindings, "Reading your website");
   const website = createWebsiteService(createWebsiteRepository(bindings.DB), {
-    read: websiteReader(import.meta.env?.DEV && bindings.LAMP_DEV_SITE_ORIGIN?.startsWith("http://127.0.0.1:") ? bindings.LAMP_DEV_SITE_ORIGIN : undefined),
-    readStatusPage: statusPageReader(import.meta.env?.DEV && bindings.LAMP_DEV_SITE_ORIGIN?.startsWith("http://127.0.0.1:") ? bindings.LAMP_DEV_SITE_ORIGIN : undefined),
-    unavailable: outboundUnavailable(bindings, "Reading your website") ? "Lamp can't read websites on Managed hosting yet. Fill in the rest below." : null,
+    read: websiteReader(devSiteOrigin),
+    readStatusPage: statusPageReader(devSiteOrigin),
+    unavailable: readingUnavailable ? "Lamp can't read websites on Managed hosting yet. Fill in the rest below." : null,
+    // The website is part of the brand a house style is made from.
+    changed: queueHouseStyle,
+  });
+
+  houseStyle = createHouseStyleService({
+    ai: houseStyleRunner,
+    repository: createHouseStyleRepository(blobs),
+    wanted: async () => (await pageSettings.get())?.template === "house" && await overview.live.firstRunComplete(),
+    inputs: async () => {
+      const settings = await pageSettings.get();
+      return settings ? { pageName: settings.pageName, tagline: settings.tagline, accentColor: settings.accentColor, website: (await website.current())?.url ?? null } : null;
+    },
+    readSite: readingUnavailable ? null : websiteReader(devSiteOrigin),
+    componentNames: async () => (await components.list()).filter((component) => !component.internal).map((component) => component.name),
+    rebuild: () => publicSnapshots.rebuild(true),
+    enqueue: async (leaseId) => { await bindings.JOBS.send({ type: "house-style", leaseId }); },
   });
 
   // Imported subscribers each get one confirmation invite; past incidents notify no one.
@@ -191,7 +222,7 @@ export function createAppServices(bindings: AppBindings, blobs: BlobStore, execu
     sendConfirmation: async (subscriberId) => subscribers.inviteImported(subscriberId, await importPublicOrigin(), (await pageSettings.get())?.pageName ?? "This status page", async () => true),
   });
 
-  return { auth, operators, availabilityReports, communicationPerformance, incidentImpact, pageSettings, pageExport, components, componentCatalogue, incidents, maintenance, subscribers, deliveries, reports, intake, briefs, ai, overview, website, updateReminders, publicSnapshots, statuspageImport, channels };
+  return { auth, operators, availabilityReports, communicationPerformance, incidentImpact, pageSettings, pageExport, components, componentCatalogue, incidents, maintenance, subscribers, deliveries, reports, intake, briefs, ai, overview, website, houseStyle, updateReminders, publicSnapshots, statuspageImport, channels };
 }
 
 export type AppServices = ReturnType<typeof createAppServices>;

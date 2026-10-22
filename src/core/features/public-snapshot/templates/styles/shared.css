@@ -89,6 +89,7 @@ body { background: var(--paper); }
 .lamp-mark { width: 22px; height: 22px; flex: none; }
 .tpl-foot-meta { display: flex; flex-wrap: wrap; gap: 4px 18px; margin: 0 0 0 auto; color: var(--ink-3); font-size: 12.5px; }
 .tpl-foot-meta a { color: var(--ink-2); }
+.tpl-style-note { margin: 12px 0 0; color: var(--ink-3); font-size: 12.5px; line-height: 1.5; overflow-wrap: anywhere; }
 .tpl-foot .footer-resources { margin-top: 12px; color: var(--ink-3); font-size: 12.5px; }
 .tpl-foot .footer-resources summary { width: fit-content; cursor: pointer; }
 .tpl-foot .footer-resources ul { margin: 6px 0 0; padding-left: 18px; }

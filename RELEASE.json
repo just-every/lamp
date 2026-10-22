@@ -20,8 +20,12 @@
     {
       "id": "0043_page_templates.sql",
       "buyerSteps": "Apply after 0042. Adds the saved built-in page template (default preserves the existing page) and an optional region on components. Additive; no existing data changes or configuration inputs."
+    },
+    {
+      "id": "0044_house_style_template.sql",
+      "buyerSteps": "Apply after 0043. Lets a page save House style as its template; it rebuilds page_settings with its index and snapshot triggers, and every existing page keeps the template it saved. No configuration inputs."
     }
   ],
   "breaking": false,
-  "agentUpdateInstructions": "One additive migration since 1.10.0, 0043_page_templates.sql, applies on deploy: it adds a saved page template, set to default (the existing page) for every existing page, and an optional component region. No extension-point change, and stored data stays compatible. Back up data and owner source first, update the checkout, run pnpm install --frozen-lockfile (the checkout pins rer 0.2.76 with no rer patch) and rer deploy as before. PAGE-009 and UPTIME-003 now state the relative generation label and first-day coverage labels that the 1.10.0 public page already shows. Run rer verify and pnpm run validate:release before adopting."
+  "agentUpdateInstructions": "Two migrations since 1.10.0 apply on deploy: 0043_page_templates.sql adds a saved page template, set to default (the existing page) for every existing page, and an optional component region; 0044_house_style_template.sql rebuilds page_settings so a page can save House style, keeping every saved template. No extension-point change, and stored data stays compatible. House style is made with an install's Workers AI binding, which Base does not yet grant an app Worker: until it does, a page that chooses House style shows Calm headline and says it is not connected, and Setup on a fresh install saves Calm headline. Back up data and owner source first, update the checkout, run pnpm install --frozen-lockfile (the checkout pins rer 0.2.76 with no rer patch) and rer deploy as before. PAGE-009 and UPTIME-003 now state the relative generation label and first-day coverage labels that the 1.10.0 public page already shows. Run rer verify and pnpm run validate:release before adopting."
 }

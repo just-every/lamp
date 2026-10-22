@@ -39,6 +39,7 @@ import { registerImportDoor } from '../features/statuspage-import/door';
 import { registerRerCutoverStatus } from '../features/statuspage-import/rer-cutover-status';
 import { registerChannelRoutes } from "../features/channels";
 import { registerPageExportRoutes } from "../features/page-export";
+import { registerHouseStyleRoutes } from "../features/house-style";
 
 export type { AppBindings } from "./types";
 
@@ -82,6 +83,7 @@ export function createApp(bindings: AppBindings, execution?: MailExecution) {
   registerSubscriberRoutes(app, services.subscribers, { rateLimiter: publicWriteLimiter });
   registerPageSettingsRoutes(app, services.pageSettings, (key) => services.publicSnapshots.readArtifact(key));
   registerWebsiteRoutes(app, services.website);
+  registerHouseStyleRoutes(app, services.houseStyle);
   registerPageExportRoutes(app, services.pageExport);
   registerStatuspageImportRoutes(app, services.statuspageImport);
   registerImportDoor(app, bindings, services.statuspageImport,()=>services.publicSnapshots.rebuild(true), services.auth);

@@ -48,7 +48,7 @@ export function prefillFrom(site: SiteRead): WebsitePrefill {
   };
 }
 
-export function createWebsiteService(repository: WebsiteRepository, options: { read: (input: string) => Promise<SiteReadResult>; readStatusPage: (url: string) => Promise<WebsiteStatusPage>; unavailable: string | null }): WebsiteService {
+export function createWebsiteService(repository: WebsiteRepository, options: { read: (input: string) => Promise<SiteReadResult>; readStatusPage: (url: string) => Promise<WebsiteStatusPage>; unavailable: string | null; changed?: () => Promise<void> }): WebsiteService {
   return {
     current: () => repository.get(),
     async read(input) {
@@ -57,12 +57,13 @@ export function createWebsiteService(repository: WebsiteRepository, options: { r
       if (!result.ok) {
         // The owner has moved on from the stored site, so the page must no longer link back to it.
         const current = await repository.get();
-        if (current && siteHost(current.url) !== siteHost(input)) await repository.clear();
+        if (current && siteHost(current.url) !== siteHost(input)) { await repository.clear(); await options.changed?.(); }
         return { found: null, message: result.message, ...(result.reason !== "invalid-url" && result.reason !== "refused-address" ? hostnamePageName(input) : {}) };
       }
       const detected = result.site.statusPage;
       const statusPage = detected ? await options.readStatusPage(detected.url).catch(() => ({ url: detected.url, source: null, pageId: null })) : null;
       await repository.record(result.site.url, statusPage);
+      await options.changed?.();
       return { found: prefillFrom(result.site) };
     },
   };

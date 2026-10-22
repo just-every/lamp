@@ -56,6 +56,9 @@ export interface AppBindings {
   SUBSCRIBER_TOKEN_SECRET?: string;
   WEBHOOK_SIGNING_SECRET?: string;
   RESEND_WEBHOOK_SECRET?: string;
+  /** The install's Workers AI binding, which makes the page's house style. Base grants an app Worker none until its AI
+   *  consumer contract ships; absent, the install isn't connected and Settings says so. */
+  AI?: { run(model: string, inputs: Record<string, unknown>): Promise<unknown> };
   AI_PROVIDER_URL?: string;
   AI_PROVIDER_API_KEY?: string;
   AI_PROVIDER_MODEL?: string;
@@ -65,6 +68,8 @@ export interface AppBindings {
   LAMP_DEV_SITE_ORIGIN?: string;
   /** Local Vite development only: a loopback receiver standing in for Slack and Teams. */
   LAMP_DEV_CHANNEL_RECEIVER?: string;
+  /** Local Vite development only: a loopback stand-in for the Workers AI binding's run door. */
+  LAMP_DEV_WORKERS_AI_ORIGIN?: string;
 }
 
 export interface AppVariables {

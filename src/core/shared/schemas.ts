@@ -24,7 +24,7 @@ export const pageSettingsSchema = z.object({
   timezone: nonEmptyText(100),
   hostname: nonEmptyText(253),
   footerCreditEnabled: z.boolean(),
-  template: z.enum(["default", "calm", "uptime", "regions"]).optional(),
+  template: z.enum(["default", "calm", "uptime", "regions", "house"]).optional(),
   widgetAllowedOrigins: z.array(widgetOriginSchema).max(100).optional(),
   mailFromAddress: z.email().optional(),
   emailBranding: emailBrandingSchema.optional(),

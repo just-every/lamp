@@ -107,6 +107,7 @@
     "clsx": "^2.1.1",
     "drizzle-orm": "0.45.2",
     "hono": "4.13.7",
+    "jpeg-js": "0.4.4",
     "react": "19.2.8",
     "react-dom": "19.2.8",
     "tailwind-merge": "^3.6.0",

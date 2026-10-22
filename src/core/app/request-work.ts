@@ -6,10 +6,11 @@ import type { AppBindings } from "./types";
 // A new Worker can serve traffic for many minutes before Cloudflare starts its
 // Cron. Lamp does not wait for it. An operator write sends the mail it just
 // committed, as incident publication does. While Cron has recorded no run for
-// three minutes, ordinary requests also run due maintenance transitions and
-// pending mail. Every step keeps the claims Cron uses (guarded transitions,
-// one notice per kind, outbox and delivery claims), so requests and a later
-// Cron never send a notice twice.
+// three minutes, ordinary requests also run due maintenance transitions, pending
+// mail and a house style whose queued job never started. Every step keeps the
+// claims Cron uses (guarded transitions, one notice per kind, outbox and delivery
+// claims, the house style's lease), so requests and a later Cron never send a
+// notice twice or make a picture twice.
 const READ_INTERVAL_MS = 20_000;
 const CRON_QUIET_MS = 3 * 60_000;
 export const CRON_EVIDENCE_STEP = "scheduler";
@@ -25,8 +26,10 @@ export async function runDueWorkWhileCronQuiet(services: ReturnType<typeof creat
   try {
     await services.maintenance.runDue();
   } finally {
-    // A failed transition or snapshot rebuild must not strand committed mail.
-    await dispatchMail(services, bindings);
+    // A failed transition or snapshot rebuild must not strand committed mail, nor a house style waiting for its job.
+    const results = await Promise.allSettled([dispatchMail(services, bindings), services.houseStyle.ensureCurrent()]);
+    const failed = results.find((result): result is PromiseRejectedResult => result.status === "rejected");
+    if (failed) throw failed.reason;
   }
 }
 

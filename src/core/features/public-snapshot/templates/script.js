@@ -54,9 +54,10 @@
       const page = await fetch('/', { headers: { Accept: 'text/html' } });
       if (!page.ok) return;
       const next = new DOMParser().parseFromString(await page.text(), 'text/html');
-      // What the stylesheet lays out for one snapshot: the Regions map's positions and the heatmap's dates.
-      const laidOut = (doc) => ['data-map', 'data-axis'].map((name) => doc.querySelector(`[${name}]`)?.getAttribute(name) || '').join(' ');
-      // A new layout, new map positions or new dates come with a new stylesheet: load the page again.
+      // What the stylesheet lays out for one snapshot: the Regions map's positions, the heatmap's dates and the house
+      // style's picture.
+      const laidOut = (doc) => ['data-map', 'data-axis', 'data-moment'].map((name) => doc.querySelector(`[${name}]`)?.getAttribute(name) || '').join(' ');
+      // A new layout, new map positions, new dates or a new picture come with a new stylesheet: load the page again.
       if (next.body.getAttribute('data-template') !== document.body.getAttribute('data-template') || laidOut(next) !== laidOut(document)) { location.reload(); return; }
       let complete = true;
       for (const part of document.querySelectorAll('[data-live]')) {

@@ -20,6 +20,8 @@ export function createOverviewService(
   incidentsService: IncidentsService,
   maintenanceService: MaintenanceService,
   live: LiveStatusService,
+  /** Runs once, when an install's first run is stored: Setup's starter template follows from it. */
+  afterFirstRun: () => Promise<void> = async () => {},
 ): OverviewService {
   return {
     live,
@@ -38,6 +40,7 @@ export function createOverviewService(
       };
     },
     async finishFirstRun(operatorId, componentNames) {
+      const fresh = !(await live.firstRunComplete());
       const existing = await componentsService.list();
       const taken = new Set(existing.map((component) => component.name.trim().toLowerCase()));
       let displayOrder = existing.length;
@@ -47,6 +50,7 @@ export function createOverviewService(
         await componentsService.create({ groupId: null, name, description: "", internal: false, displayOrder: displayOrder++, note: "" }, operatorId);
       }
       await live.completeFirstRun();
+      if (fresh) await afterFirstRun();
     },
   };
 }

@@ -24,11 +24,19 @@ import { publicComponentResources } from "./component-address";
 import { incidentMarkup, maintenanceMarkup, resolvedMarkup, statePill, type PublicIncident, type PublicMaintenance } from "./record-markup";
 import { DAY, REPORTING_DAYS, durationText, escapeHtml, stateClass, timestamp, timezoneLabel } from "./format";
 import { computeUptime, type Uptime, uptimeMarkup } from "./uptime";
+import { houseStyleShowing } from "../house-style/showing.ts";
+import type { HouseStyleRecord } from "../house-style/repository.ts";
 
 export interface SnapshotArtifact {
   key: string;
   body: string;
   contentType: string;
+}
+
+/** The page's stored house style and whether this install can make one; the renderer never makes one. */
+export interface PublicHouseStyle {
+  connected: boolean;
+  record: HouseStyleRecord | null;
 }
 
 export interface RenderedSnapshot {
@@ -51,7 +59,7 @@ interface PublicComponent {
   uptime: Uptime;
 }
 
-function toPublicModel(source: PublicSnapshotSource, generatedAt: string, policies: PublicSnapshotPolicies) {
+function toPublicModel(source: PublicSnapshotSource, generatedAt: string, policies: PublicSnapshotPolicies, houseStyle: PublicHouseStyle) {
   const claims = new Map<string, ComponentState[]>();
   for (const claim of source.claims) claims.set(claim.componentId, [...(claims.get(claim.componentId) ?? []), claim.state]);
   const now = new Date(generatedAt).getTime();
@@ -85,7 +93,8 @@ function toPublicModel(source: PublicSnapshotSource, generatedAt: string, polici
   const maintenance: PublicMaintenance[] = source.maintenance
     .map((item) => ({ ...item, components: attachedByMaintenance.get(item.id) ?? [], notices: noticesByMaintenance.get(item.id) ?? [], importedUpdates: (source.importedMaintenanceUpdates ?? []).filter(update => update.maintenanceId === item.id) }))
     .filter((item) => attachedMaintenanceIds.has(item.id));
-  return { websiteUrl: source.websiteUrl, origin: source.publicOrigin ?? `https://${source.settings.hostname}`, settings: source.settings, components, visibleComponents, incidents, maintenance, generatedAt, policies, overall: policies.pageStatusRollup(components.map((component) => component.state)) };
+  const house = { ...houseStyle, showing: houseStyleShowing(source.settings.template ?? "default", houseStyle.connected, houseStyle.record) };
+  return { websiteUrl: source.websiteUrl, origin: source.publicOrigin ?? `https://${source.settings.hostname}`, settings: source.settings, components, visibleComponents, incidents, maintenance, generatedAt, policies, house, overall: policies.pageStatusRollup(components.map((component) => component.state)) };
 }
 
 export type PublicSnapshotModel = ReturnType<typeof toPublicModel>;
@@ -232,8 +241,10 @@ function renderHistory(model: ReturnType<typeof toPublicModel>, slots: LampServe
   return pageShell(`${month ?? "History"} · ${model.settings.pageName}`, `${renderHistoryContent(model, month)}`, model, slots, "history");
 }
 
-export function renderPublicSnapshot(source: PublicSnapshotSource, generatedAt = new Date().toISOString(), policies: PublicSnapshotPolicies = defaultPublicSnapshotPolicies, branding: { logoDataUrl: string | null } = { logoDataUrl: null }, slots: LampServerSlots = {}): RenderedSnapshot {
-  const model = toPublicModel(source, generatedAt, policies);
+/** A page showing its house style links its stored picture as assets/moment; the snapshot publishes those bytes
+ *  beside the rendered artifacts. */
+export function renderPublicSnapshot(source: PublicSnapshotSource, generatedAt = new Date().toISOString(), policies: PublicSnapshotPolicies = defaultPublicSnapshotPolicies, branding: { logoDataUrl: string | null } = { logoDataUrl: null }, slots: LampServerSlots = {}, houseStyle: PublicHouseStyle = { connected: false, record: null }): RenderedSnapshot {
+  const model = toPublicModel(source, generatedAt, policies, houseStyle);
   const feeds = renderFeeds(model, source);
   const artifacts: SnapshotArtifact[] = [
     { key: "page.html", body: renderPage(model, slots), contentType: "text/html; charset=utf-8" },

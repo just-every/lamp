@@ -15,7 +15,7 @@ export interface StoredPageSettingsRow {
   accent_color: string;
   timezone: string;
   footer_credit_enabled: number;
-  template: "default" | "calm" | "uptime" | "regions";
+  template: "default" | "calm" | "uptime" | "regions" | "house";
   widget_allowed_origins: string;
   ai_tone_instructions: string;
   email_branding: string;

@@ -11,8 +11,8 @@ let localSnapshotBootstrapFinished = false;
 
 function isLampJob(value: unknown): value is LampJob {
   if (typeof value !== "object" || value === null) return false;
-  const candidate = value as { type?: unknown; eventId?: unknown };
-  return candidate.type === "health-probe" || (candidate.type === "delivery-dispatch" && typeof candidate.eventId === "string");
+  const candidate = value as { type?: unknown; eventId?: unknown; leaseId?: unknown };
+  return candidate.type === "health-probe" || (candidate.type === "delivery-dispatch" && typeof candidate.eventId === "string") || (candidate.type === "house-style" && typeof candidate.leaseId === "string");
 }
 
 export async function ensureDevelopmentSnapshot(runtime: ReturnType<typeof createApp>) {
@@ -47,6 +47,8 @@ export async function runScheduled(bindings: AppBindings, executionContext: Exec
       // Lamp checks its own public page, subscribe form and sender; Overview shows the result.
       runtime.services.overview.live.runChecks(),
       runtime.services.overview.live.checkSenderIfDue(),
+      // A brand change queues its house style at once; this run takes over a make whose job was lost.
+      runtime.services.houseStyle.ensureCurrent(),
     ]);
     // Every failed step is reported, not only the first.
     const failures = [...changes, ...deliveries].filter((result): result is PromiseRejectedResult => result.status === "rejected").map((result) => result.reason);
@@ -65,6 +67,16 @@ export async function runQueue(batch: MessageBatch<unknown>, bindings: AppBindin
     }
     if (message.body.type === "health-probe") {
       message.ack();
+      continue;
+    }
+    if (message.body.type === "house-style") {
+      try {
+        await runtime.services.houseStyle.runQueued(message.body.leaseId);
+        message.ack();
+      } catch (cause) {
+        message.retry();
+        throw cause;
+      }
       continue;
     }
     if (bindings.EFFECTS_PAUSED === "1") {
