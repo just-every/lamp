@@ -4496,7 +4496,7 @@
       "executable": false
     },
     "src/core/features/website/names-site.ts": {
-      "sha256": "a55f22aac54e69133e9956d134ca5aaf926dfd89284b37357b753721c95e0b1c",
+      "sha256": "ffa7e980682fcec28539c02924e8998ea3016fb0c4d14e930f26da9816b87a96",
       "executable": false
     },
     "src/core/features/website/reader.ts": {
@@ -4512,7 +4512,7 @@
       "executable": false
     },
     "src/core/features/website/service.ts": {
-      "sha256": "84e07ba0de1b1f9f4a7fd3138ddf0816921a0fff6cc94bb3ac5ab58d5ff1ffe8",
+      "sha256": "7419cca02cf36c81f3d2b7364975d54be9761c7c41507e3d82a61bc1e3fdbb13",
       "executable": false
     },
     "src/core/features/website/status-page-reader.ts": {
@@ -6940,7 +6940,7 @@
       "executable": false
     },
     "tests/site-reader/site-reader.test.mjs": {
-      "sha256": "bc9646540ee3544821d4c68c8083bbf6466c2d68493c71f8b1efa8b113a0f4be",
+      "sha256": "b5efa863a9654503030db29cf1ac23192e740a804879ab1edfe834b8b786dd58",
       "executable": false
     },
     "tsconfig.json": {

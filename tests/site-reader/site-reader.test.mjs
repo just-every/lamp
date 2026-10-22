@@ -213,7 +213,7 @@ test('the site reader reads what a site says about itself, refuses private desti
     <footer><div><h3>Products</h3><a href="/products">Catalogue</a>${shelf.map(name => `<a href="/products/${name.toLowerCase()}">${name}</a>${name === 'Learning' ? '<a href="/products/learning/evals">Evals</a>' : ''}`).join('')}</div></footer>`);
   assert.deepEqual(indexed.map(component => component.name), shelf.slice(0, 8), 'neither the index nor a page beneath an area takes a main area\'s place');
 
-  t.diagnostic('the status page a business already runs, linked or at status.<its domain>, gives its own components, groups and past incidents from its public feeds (real Statuspage, Instatus and Better Stack captures) through the same guard; a page found only at status.<its domain> must name the site, a site on a shared suffix (netlify.app) is a domain of its own, and anything else changes nothing');
+  t.diagnostic('the status page a business already runs, linked or at status.<its domain>, gives its own components, groups and past incidents from its public feeds (real Statuspage, Instatus and Better Stack captures) through the same guard; a page found only at status.<its domain> must name the site, a site on a shared suffix (netlify.app) is a domain of its own, a site below its domain (writer.substack.com) takes the page there only when it names the site\'s own host, and anything else changes nothing');
   {
   const feeds = folder => Object.fromEntries(readdirSync(`tests/fixtures/status-feeds/${folder}`).filter(name => name.startsWith('public-')).map(name => [name, readFileSync(`tests/fixtures/status-feeds/${folder}/${name}`, 'utf8')]));
   const json = text => ({ body: text, headers: { 'Content-Type': 'application/json' } });
@@ -269,6 +269,18 @@ test('the site reader reads what a site says about itself, refuses private desti
     'https://status.instatus.com/': poweredBy('https://instatus.com', instatusLogo('/')),
     'https://status.instatus.com/summary.json': json(JSON.stringify({ page: { name: 'Corner Music Shop', url: 'https://status.instatus.com', status: 'UP' } })),
     'https://status.instatus.com/v2/components.json': json(JSON.stringify({ components: [{ id: 'cmswebsite01', name: 'Website', status: 'OPERATIONAL' }] })),
+    // A newsletter on a platform the Public Suffix List does not list shares substack.com with Substack: status.substack.com
+    // is Substack's own page, named for Substack by its address, logo and name, and never for the newsletter.
+    'https://writer.substack.com/': { body: home('Writer') },
+    'https://status.substack.com/': { status: 301, headers: { Location: 'https://substack.statuspage.io/' } },
+    'https://substack.statuspage.io/': poweredBy('https://www.atlassian.com/software/statuspage', statuspageLogo('https://substack.com/')),
+    'https://substack.statuspage.io/api/v2/summary.json': json(restated(convex['public-summary.json'], body => Object.assign(body.page, { id: '3fzngjd16vw0', name: 'Substack', url: 'https://substack.statuspage.io' }))),
+    'https://substack.statuspage.io/api/v2/incidents.json': json(convex['public-incidents.json']),
+    // A shop below its business's domain: the page at status.<domain> names the shop itself by where its logo links.
+    'https://shop.acme.example/': { body: home('Acme Shop') },
+    'https://status.acme.example/': poweredBy('https://www.atlassian.com/software/statuspage', statuspageLogo('https://shop.acme.example/')),
+    'https://status.acme.example/api/v2/summary.json': json(convex['public-summary.json']),
+    'https://status.acme.example/api/v2/incidents.json': json(convex['public-incidents.json']),
     // Nothing to take: status.<domain> on a private address, a linked page no vendor's feeds answer for, a page without components.
     'https://private.example/': { body: home('Private') },
     'https://other.example/': { body: home('Other', 'https://status.other.example/') },
@@ -306,6 +318,10 @@ test('the site reader reads what a site says about itself, refuses private desti
   assert.equal(net.requested.some(url => /status\.netlify\.app|netlifystatus/.test(url)), false, 'status.netlify.app is not the site\'s status.<domain>');
   const vendorSite = await found('instatus.com');
   assert.deepEqual([vendorSite.existingPage, vendorSite.statusPage], [null, 'https://dashboard.instatus.com/login'], 'another business\'s page at status.instatus.com, which names no part of the site, is not taken; the site\'s own link stays as before');
+  const newsletter = await found('writer.substack.com');
+  assert.deepEqual([newsletter.existingPage, newsletter.statusPage, newsletter.components.map(component => component.name)], [null, null, ['One', 'Two']], 'a newsletter at writer.substack.com does not take Substack\'s own page, which names substack.com and not the newsletter');
+  const shop = await found('shop.acme.example');
+  assert.deepEqual([shop.statusPage, shop.existingPage?.components.length], ['https://status.acme.example/', 8], 'a site below its domain takes the page at status.<domain> that names the site\'s own host');
   for (const input of ['private.example', 'other.example', 'empty.example']) {
     const quiet = await found(input);
     assert.deepEqual([quiet.existingPage, quiet.components.map(component => component.name)], [null, ['One', 'Two']], `${input}: the navigation's components stand, with no error`);

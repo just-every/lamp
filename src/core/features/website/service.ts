@@ -72,7 +72,8 @@ export function createWebsiteService(repository: WebsiteRepository, options: { r
       // The link a site gives for its status page may be a marketing page, so the common subdomain of its host is
       // tried as well, one candidate after another until one's own feeds answer as a Statuspage, Instatus or Better
       // Stack page with components. Only such a page, or the site's own link, counts as found. A page found only at a
-      // subdomain must name the site too: another business's page can answer there (a customer's at status.instatus.com).
+      // subdomain must name the site too: another business's page can answer there (a customer's at status.instatus.com),
+      // and a platform's own page answers at status.<domain> for every site beneath it (status.substack.com).
       const host = result.site.host.replace(/^www\./, "");
       const candidates = [...new Set([linked?.url, `https://status.${siteDomain(host)}/`, `https://status.${host}/`].filter((address): address is string => Boolean(address)))];
       let recognised: StatusPageRead | null = null;
@@ -81,7 +82,7 @@ export function createWebsiteService(repository: WebsiteRepository, options: { r
         const read = await options.readStatusPage(address).catch(() => null);
         const isLinked = address === linked?.url;
         if (isLinked) linkedRead = read;
-        if (read?.feeds?.components.length && (isLinked || namesSite(read, host))) { recognised = read; break; }
+        if (read?.feeds?.components.length && (isLinked || namesSite(read, host, address))) { recognised = read; break; }
       }
       const statusPage = recognised ? recognised.page : linked ? linkedRead?.page ?? { url: linked.url, source: null, pageId: null } : null;
       await repository.record(result.site.url, statusPage);
