@@ -399,7 +399,7 @@ contract("UPDATE-006", "the composer schedules publication separately from its n
   await page.getByText("Update scheduled. It stays private until then.").waitFor();
 });
 
-contract("DRAFT-002", "operators save and reload AI tone instructions while the UI honestly reports an unconfigured provider", async () => {
+contract("DRAFT-002", "Settings autosaves survive navigation and reload, keep feedback visible, and report unconfigured AI", async () => {
   const tone = "Lead with customer impact, use concise factual language, and name the next update commitment.";
   await page.goto(`${appUrl}/app/settings#writing`);
   await operatorHydrated(page);
@@ -435,6 +435,67 @@ contract("DRAFT-002", "operators save and reload AI tone instructions while the 
   await operatorHydrated(page);
   await page.getByText("No provider configured", { exact: true }).waitFor();
   assert.equal(await page.getByLabel("Tone instructions").inputValue(), tone);
+
+  const storedSettings = async () => (await (await appFetch("/api/app/page-settings")).json()).settings;
+  const eventuallyStored = async (key, value) => {
+    for (const deadline = Date.now() + 15_000; ; await page.waitForTimeout(100)) {
+      if ((await storedSettings())[key] === value) return;
+      assert.ok(Date.now() < deadline, `${key} reaches the server after leaving Settings`);
+    }
+  };
+  const inView = async locator => {
+    const box = await locator.boundingBox();
+    assert.ok(box && box.y >= 0 && box.y + box.height <= page.viewportSize().height, "save feedback is in the viewport");
+  };
+  for (const width of [1440, 390]) {
+    await page.setViewportSize({ width, height: width === 390 ? 844 : 900 });
+    await page.goto(`${appUrl}/app/settings#page`); await operatorHydrated(page);
+    // Open the phone rail first so the edit and navigation both fit inside the debounce pause.
+    if (width === 390) await page.getByRole("button", { name: "Menu", exact: true }).click();
+    const name = `Northstar status ${width}`;
+    await page.getByLabel("Page name", { exact: true }).fill(name);
+    const leaving = page.waitForEvent("dialog");
+    const navigation = page.locator(".operator-navigation").getByRole("link", { name: "Overview", exact: true }).click();
+    await (await leaving).accept(); await navigation; await page.waitForURL(url => url.pathname === "/app");
+    await eventuallyStored("pageName", name);
+    await page.goto(`${appUrl}/app/settings#page`); await operatorHydrated(page);
+    const reloadedName = `${name} after reload`;
+    await page.getByLabel("Page name", { exact: true }).fill(reloadedName);
+    const unloading = page.waitForEvent("dialog"); const reload = page.reload();
+    await (await unloading).accept(); await reload; await operatorHydrated(page);
+    await eventuallyStored("pageName", reloadedName);
+    assert.equal(await page.getByLabel("Page name", { exact: true }).inputValue(), reloadedName);
+
+    for (const [tab, label, value] of [
+      ["page", "Page name", `${name} published`],
+      ["notifications", "Sender display name", `Northstar operations ${width}`],
+      ["writing", "Tone instructions", `${tone} Viewport ${width}.`],
+      ["embeds", "Background colour", width === 390 ? "#fafbfc" : "#fcfbfa"],
+    ]) {
+      await page.goto(`${appUrl}/app/settings#${tab}`); await operatorHydrated(page);
+      await page.getByLabel(label, { exact: tab !== "writing" }).fill(value);
+      await page.locator(".settings-save-note").filter({ hasText: /^Saved · live$/ }).waitFor();
+      await inView(page.locator(".settings-save-state"));
+    }
+    await page.goto(`${appUrl}/app/settings#page`); await operatorHydrated(page);
+    const tagline = page.locator("label").filter({ hasText: /^Tagline/ }).locator("textarea");
+    const nextTagline = `Current service availability for Northstar customers. ${width}`;
+    const refusal = async route => route.request().method() === "PUT"
+      ? route.fulfill({ status: 503, contentType: "application/json", body: JSON.stringify({ error: "Publishing is temporarily unavailable. Please try again." }) })
+      : route.continue();
+    await page.route("**/api/app/page-settings", refusal);
+    try {
+      await tagline.fill(nextTagline);
+      const retry = page.getByRole("button", { name: "Retry", exact: true });
+      await retry.waitFor({ state: "attached" });
+      assert.equal(await tagline.inputValue(), nextTagline, "a refused save retains the entered value");
+      await inView(page.locator(".settings-save-state")); await inView(retry);
+      assert.match(await page.locator(".settings-save-state [role=alert]").innerText(), /Publishing is temporarily unavailable/);
+    } finally { await page.unroute("**/api/app/page-settings", refusal); }
+    await page.getByRole("button", { name: "Retry", exact: true }).click();
+    await page.locator(".settings-save-note").filter({ hasText: /^Saved · live$/ }).waitFor();
+    await eventuallyStored("tagline", nextTagline);
+  }
 });
 
 contract("INTAKE-005", "operators configure a real authenticated source and inspect accepted and rejected redacted receipts", async () => {

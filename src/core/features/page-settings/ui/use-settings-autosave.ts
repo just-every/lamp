@@ -35,33 +35,45 @@ export function useSettingsAutosave(initial: PageSettingsView | undefined, onSav
   }, [initial]);
   useEffect(() => {
     queue.current.mounted = true;
-    return () => { queue.current.mounted = false; clearTimeout(queue.current.timer); };
+    const flushBeforeLeave = () => { queue.current.dueAt = 0; void flush(); };
+    window.addEventListener("beforeunload", flushBeforeLeave);
+    window.addEventListener("pagehide", flushBeforeLeave);
+    return () => {
+      window.removeEventListener("beforeunload", flushBeforeLeave);
+      window.removeEventListener("pagehide", flushBeforeLeave);
+      queue.current.mounted = false;
+      clearTimeout(queue.current.timer);
+      flushBeforeLeave();
+    };
   }, []);
 
   function schedule() {
     const q = queue.current;
     clearTimeout(q.timer);
-    if (q.mounted && !q.sending && q.revision !== q.completed && q.revision !== q.stopped) {
-      q.timer = setTimeout(() => void flush(), Math.max(0, q.dueAt - Date.now()));
+    if (!q.sending && q.revision !== q.completed && q.revision !== q.stopped) {
+      q.timer = setTimeout(() => void flush(), q.mounted ? Math.max(0, q.dueAt - Date.now()) : 0);
     }
   }
 
   async function flush() {
     const q = queue.current;
-    if (!q.mounted || q.sending || !q.target || q.completed === q.revision) return;
+    if (q.sending || !q.target || q.completed === q.revision || q.stopped === q.revision) return;
     const revision = q.revision;
     const request = q.target;
     const parsed = pageSettingsSchema.safeParse(request);
     if (!parsed.success) {
       const issue = parsed.error.issues[0]!;
       q.stopped = revision;
-      setError(`${fieldNames[String(issue.path[0])] ?? "Settings"} could not be saved: ${issue.message}`);
-      setPhase("error");
+      if (q.mounted) {
+        setError(`${fieldNames[String(issue.path[0])] ?? "Settings"} could not be saved: ${issue.message}`);
+        setPhase("error");
+      }
       return;
     }
-    q.sending = true; setPhase("saving"); setError(null);
+    q.sending = true;
+    if (q.mounted) { setPhase("saving"); setError(null); }
     try {
-      const response = await appApi<{ settings: PageSettingsView }>("/api/app/page-settings", { method: "PUT", body: JSON.stringify(parsed.data) });
+      const response = await appApi<{ settings: PageSettingsView }>("/api/app/page-settings", { method: "PUT", body: JSON.stringify(parsed.data), keepalive: true });
       if (!response.settings) throw new Error("The server did not return the saved settings.");
       q.completed = revision;
       if (q.mounted) {
@@ -110,6 +122,14 @@ export function useSettingsAutosave(initial: PageSettingsView | undefined, onSav
   const dirty = phase !== "saved" || pending("mailFromAddress") || pending("widgetAllowedOrigins");
   return {
     settings, saved, phase, error, dirty, update, confirm, pending,
+    prepareToLeave: () => {
+      const q = queue.current;
+      q.dueAt = 0;
+      void flush();
+      if (!same(q.draft?.mailFromAddress, q.target?.mailFromAddress) || !same(q.draft?.widgetAllowedOrigins, q.target?.widgetAllowedOrigins)) return "Unconfirmed changes are not live. Leave Settings?";
+      if (q.stopped === q.revision) return "Some changes could not be saved. Leave Settings?";
+      return q.completed !== q.revision ? "Changes are still saving. Leave Settings?" : null;
+    },
     retry: () => enqueue(true),
     // Logo operations publish separately and must leave any typing in progress alone.
     adoptSaved: (next: PageSettingsView) => { setSaved(next); notify.current(); },

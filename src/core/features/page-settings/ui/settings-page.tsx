@@ -41,7 +41,11 @@ export function SettingsPage() {
   const [ready, setReady] = useState(false);
   useEffect(() => setReady(true), []);
   useBlocker({
-    shouldBlockFn: ({ next }) => autosave.dirty && next.pathname !== "/app/settings" && !window.confirm("Some changes are still saving or need confirmation. Leave Settings?"),
+    shouldBlockFn: ({ next }) => {
+      if (next.pathname === "/app/settings") return false;
+      const warning = autosave.prepareToLeave();
+      return Boolean(warning && !window.confirm(warning));
+    },
     enableBeforeUnload: autosave.dirty,
   });
   if (loading && !data) return <LoadingState />;
@@ -56,12 +60,12 @@ export function SettingsPage() {
   return <div className="page-stack settings-page" inert={!ready}>
     <section className="page-title-row"><h1>Settings</h1></section>
     <SettingsTabs current={tab} />
+    {configuration && <SettingsSaveState phase={autosave.phase} error={autosave.error} retry={autosave.retry} />}
     <div className={configuration ? "settings-form page-stack" : "page-stack"}>
       {tab === "page" && <PageSettingsTab settings={settings} saved={saved} live={live} markSrc={markSrc} components={components} update={update} adoptSaved={autosave.adoptSaved} busy={brandBusy} setBusy={setBrandBusy} setStatus={setBrandStatus} />}
       {tab === "notifications" && <NotificationSettingsTab settings={settings} live={live} identityEditable={saved.mailIdentityEditable} update={update} needsConfirm={autosave.pending("mailFromAddress")} confirm={() => autosave.confirm("mailFromAddress")} />}
       {tab === "writing" && <WritingSettingsTab settings={settings} aiStatus={aiStatus} update={update} />}
       {tab === "embeds" && <PublicResources publicOrigin={publicOrigin} allowedOrigins={settings.widgetAllowedOrigins} onOriginsChange={value => update("widgetAllowedOrigins", value)} appearance={settings.widgetAppearance} onAppearanceChange={(value, immediate) => update("widgetAppearance", value, immediate)} needsConfirm={autosave.pending("widgetAllowedOrigins")} onConfirm={() => autosave.confirm("widgetAllowedOrigins")} />}
-      {configuration && <SettingsSaveState phase={autosave.phase} error={autosave.error} retry={autosave.retry} />}
       {tab === "page" && brandStatus && <p className="save-message" role="status">{brandStatus}</p>}
       {tab === "channels" && <ChannelsCard />}
       {tab === "operators" && <OperatorsPanel />}

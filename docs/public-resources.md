@@ -1,6 +1,6 @@
 # Feeds, APIs, badges and embeds
 
-Settings → Public resources and embeds links to your public API, feeds and badge and builds a tag for a banner, floating incident notice or compact status dot. Add the embedding site's full origin to Widget host origins and save settings first. Unlisted origins render nothing. Position, background, text color and hiding a healthy state are choices carried in your copied tag. The floating notice is visible only during an unresolved incident or in-progress maintenance. Embeds refresh from the same public host every 30 seconds.
+Settings → Embeds links to your public API, feeds and badge and builds a tag for a banner, floating incident notice or compact status dot. Add the embedding site's full origin to Allowed websites, then choose Confirm. Unlisted origins render nothing. Position, background, text color and hiding a healthy state are choices carried in your copied tag. The floating notice is visible only during an unresolved incident or in-progress maintenance. Embeds refresh from the same public host every 30 seconds.
 
 ## Feed readers and badges
 
