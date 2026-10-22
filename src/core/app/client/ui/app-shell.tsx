@@ -12,6 +12,7 @@ import { badge } from "../../../../site/lamp/badge";
 import { ClientExtensionProvider } from "../extensions";
 import { FormError } from "./states";
 import { useVisitSnapshot } from "./visit-snapshot";
+import { mayLeave } from "./leave-guard";
 
 type NavigationItem = {
   to: "/app" | "/app/page" | "/app/incidents" | "/app/components" | "/app/maintenance" | "/app/subscribers" | "/app/deliveries" | "/app/alerts" | "/app/settings";
@@ -70,6 +71,12 @@ function OperatorWorkspace({ initialSession }: { initialSession: OperatorSession
   async function signOut() {
     setSigningOut(true);
     setSignOutError(null);
+    // Unsaved Settings edits save while the session still holds; a refused save keeps the operator there to see why.
+    if (!await mayLeave()) {
+      setSigningOut(false);
+      setMenuOpen(false);
+      return;
+    }
     try {
       await appApi<void>("/api/app/session/signout", { method: "POST" });
       window.location.assign("/signin");

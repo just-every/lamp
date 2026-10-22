@@ -1589,6 +1589,12 @@ Managed mail neutrally instead of warning about an unsupported check. Missing
 configuration and direct-provider check failures retain their warnings. This
 Overview presentation makes no verification or subscriber-delivery claim.
 
+## Settings publish as they change — 22 October 2026 (owner L8/L15)
+
+Settings text saves after a short pause; selections and toggles publish immediately. Writes are serialized and never replace an editable draft with an earlier response. A failed save keeps the entered value and offers a retry. Sender email and allowed widget websites publish only after their inline Confirm. Embed tag choices are retained across reload and portable exports. Add channel, Invite operator, uploads, imports and erasure remain explicit actions.
+
+Leaving Settings or signing out waits for pending edits to save; a refused save keeps the owner on Settings with its reason and Retry. Reloading or closing sends pending edits as the page unloads, past any unanswered write, as keepalive requests within the browser's 64 KiB allowance; ordinary writes and Retry are plain requests. Save status and refusal reasons stay pinned in view while editing.
+
 ## Incident page in one screen — owner L12, 22 October 2026
 
 The owner found the incident page one 2,500 px screen asking for everything at once.

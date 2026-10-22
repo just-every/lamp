@@ -1,6 +1,7 @@
 import { createUlid, nowIso } from "../../shared/ids";
 import type { PageSettingsInput } from "../../shared/schemas";
 import { parseWidgetAllowedOrigins } from "../../shared/widget-origins";
+import { defaultWidgetAppearance, widgetAppearanceSchema, type WidgetAppearance } from "../../shared/widget-appearance";
 import { MIN_MAP_REGIONS, regionCount } from "../../shared/regions";
 import type { BlobStore } from "../../platform/blobs/store";
 
@@ -14,10 +15,11 @@ export class UnavailablePageTemplateError extends Error {}
 const MAX_LOGO_BYTES = 2 * 1024 * 1024;
 const LOGO_CONTENT_TYPES = new Set(["image/png", "image/jpeg", "image/webp"]);
 
-export type PageSettingsView = Omit<StoredPageSettings, "widgetAllowedOrigins" | "wordingBlockedTerms" | "emailBranding"> & {
+export type PageSettingsView = Omit<StoredPageSettings, "widgetAllowedOrigins" | "widgetAppearance" | "wordingBlockedTerms" | "emailBranding"> & {
   emailBranding: EmailBranding;
   mailIdentityEditable: boolean;
   widgetAllowedOrigins: string[];
+  widgetAppearance: WidgetAppearance;
   wordingBlockedTerms: string[];
   regionsAvailable: boolean;
 };
@@ -33,7 +35,7 @@ export interface PageSettingsService {
 function toView(settings: StoredPageSettings, mailIdentityEditable: boolean, regionsAvailable: boolean): PageSettingsView {
   const wordingBlockedTerms: unknown = JSON.parse(settings.wordingBlockedTerms);
   if (!Array.isArray(wordingBlockedTerms) || wordingBlockedTerms.some(term => typeof term !== "string")) throw new Error("Wording check terms are invalid.");
-  return { ...settings, emailBranding: emailBrandingSchema.parse(JSON.parse(settings.emailBranding)), mailIdentityEditable, regionsAvailable, wordingBlockedTerms, widgetAllowedOrigins: parseWidgetAllowedOrigins(settings.widgetAllowedOrigins) };
+  return { ...settings, emailBranding: emailBrandingSchema.parse(JSON.parse(settings.emailBranding)), widgetAppearance: widgetAppearanceSchema.parse(JSON.parse(settings.widgetAppearance)), mailIdentityEditable, regionsAvailable, wordingBlockedTerms, widgetAllowedOrigins: parseWidgetAllowedOrigins(settings.widgetAllowedOrigins) };
 }
 
 export function createPageSettingsService(
@@ -77,6 +79,7 @@ export function createPageSettingsService(
         template: settings.template ?? "default",
         emailBranding: JSON.stringify(settings.emailBranding ?? {}),
         widgetAllowedOrigins: JSON.stringify(settings.widgetAllowedOrigins ?? []),
+        widgetAppearance: JSON.stringify(settings.widgetAppearance ?? defaultWidgetAppearance),
         mailFromAddress,
         aiToneInstructions: settings.aiToneInstructions ?? "",
         wordingBlockedTerms: JSON.stringify(settings.wordingBlockedTerms ?? []),
@@ -102,6 +105,7 @@ export function createPageSettingsService(
         footerCreditEnabled: settings.footerCreditEnabled,
         template,
         widgetAllowedOrigins: JSON.stringify(settings.widgetAllowedOrigins ?? parseWidgetAllowedOrigins(existing.widgetAllowedOrigins)),
+        widgetAppearance: settings.widgetAppearance ? JSON.stringify(settings.widgetAppearance) : existing.widgetAppearance,
         mailFromAddress: settings.mailFromAddress ?? existing.mailFromAddress,
         emailBranding: settings.emailBranding ? JSON.stringify(settings.emailBranding) : existing.emailBranding,
         aiToneInstructions: settings.aiToneInstructions ?? existing.aiToneInstructions,

@@ -1,4 +1,5 @@
 import { index, integer, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
+import { defaultWidgetAppearance } from "./widget-appearance";
 
 import type {
   ComponentState,
@@ -36,6 +37,7 @@ export const pageSettings = sqliteTable("page_settings", {
   logoKey: text("logo_key"),
   logoContentType: text("logo_content_type"),
   widgetAllowedOrigins: text("widget_allowed_origins").notNull().default("[]"),
+  widgetAppearance: text("widget_appearance").notNull().default(JSON.stringify(defaultWidgetAppearance)),
   mailFromAddress: text("mail_from_address").notNull().default(""),
   emailBranding: text("email_branding").notNull().default("{}"),
   aiToneInstructions: text("ai_tone_instructions").notNull().default(""),
