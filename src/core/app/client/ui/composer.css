@@ -150,7 +150,6 @@ select.add-component { width: auto; min-height: 38px; border-style: dashed; bord
 .incident-actions .more-options-toggle { justify-self: start; }
 .incident-actions-panel { display: grid; gap: 20px; border: 1px solid var(--line); border-radius: 12px; background: var(--card); box-shadow: var(--shadow-card); padding: 20px 24px; }
 .incident-actions-panel[hidden] { display: none; }
-.incident-actions-panel .incident-operator-controls { margin-top: 0; border-top: 0; padding-top: 0; }
 
 @media (max-width: 1180px) {
   .incident-compose { grid-template-columns: minmax(0, 1fr); grid-template-rows: none; grid-template-areas: "composer" "side" "publish"; }

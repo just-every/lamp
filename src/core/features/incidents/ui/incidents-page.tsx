@@ -48,7 +48,7 @@ function IncidentRow({ incident }: { incident: IncidentsResponse["incidents"][nu
   return <Link className={`incident-list-row${incident.overdue ? " live-block" : ""}`} to="/app/incidents/$incidentId" params={{ incidentId: incident.id }}>
     <span className="record-ref">{incident.reference}</span>
     <span className="incident-row-content"><strong>{incident.title}</strong><small>Opened {formatOperatorTime(incident.openedAt)}{incident.impact ? ` · ${incident.impact}` : " · No component impact"}</small></span>
-    <span className="incident-row-state"><span className={`state-pill state-${incident.lifecycle.toLowerCase()}`}>{incident.updates.length ? incident.lifecycle : "Not published"}</span>{dueLabel && <small className="overdue-note">{dueLabel}</small>}</span>
+    <span className="incident-row-state"><span className={`state-pill${incident.updates.length ? ` state-${incident.lifecycle.toLowerCase()}` : ""}`}>{incident.updates.length ? incident.lifecycle : "Not published"}</span>{dueLabel && <small className="overdue-note">{dueLabel}</small>}</span>
     <Icon className="row-chevron" name="arrow" width={18} height={18} />
   </Link>;
 }

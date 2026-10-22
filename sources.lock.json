@@ -2960,7 +2960,7 @@
       "executable": false
     },
     "src/core/app/client/ui/composer.css": {
-      "sha256": "1d5f1f9f871abc0b15124a642ed930c50e5bf660a7dc103b90880a2eb4343203",
+      "sha256": "1e3aff1473520028f59942259a3f13b953b7fadfe8923c240f253a2400aa4641",
       "executable": false
     },
     "src/core/app/client/ui/copy-button.tsx": {
@@ -2976,7 +2976,7 @@
       "executable": false
     },
     "src/core/app/client/ui/incidents.css": {
-      "sha256": "8388885af12cc7a67811e201bd05b4fced70b8b39c55a36f65fc87977d5bed3e",
+      "sha256": "1c913b77ec038ab806d6c4277cf04939a5429511d6be34a57dac28812e22052f",
       "executable": false
     },
     "src/core/app/client/ui/intake.css": {
@@ -3564,7 +3564,7 @@
       "executable": false
     },
     "src/core/features/incidents/ui/incident-operator-controls.tsx": {
-      "sha256": "a88ebc7c3ff3dae1b8f31cdcff4bdba36c6b198c6287fba5069cb52caff85a6a",
+      "sha256": "a372c4a5af63dbaffb79ebf385a6424e46ac6ccea374682eb26ee2d71e51274e",
       "executable": false
     },
     "src/core/features/incidents/ui/incident-preview.tsx": {
@@ -3576,7 +3576,7 @@
       "executable": false
     },
     "src/core/features/incidents/ui/incidents-page.tsx": {
-      "sha256": "3acf1bb5e1ee915b1b904ca1681f7ce03a2e9cd02095c98c88db41af22ea194b",
+      "sha256": "7e27405cc14325bfc650db936a7dd51653acc7d4fa3d84748115a4e9cd730b7a",
       "executable": false
     },
     "src/core/features/incidents/ui/new-incident-page.tsx": {

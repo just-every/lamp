@@ -5,10 +5,8 @@
 .incident-row-state { display: grid; justify-items: end; gap: 4px; }
 .incident-row-state small { font-size: 12px; }
 
-/* Private actions on the incident page (behind "⋯"): each a label with its pill. */
-.incident-operator-controls { display: grid; gap: 14px; margin-top: 24px; border-top: 1px solid var(--line); padding-top: 20px; }
-.incident-operator-heading h2 { margin: 0; font-size: 17px; }
-.incident-operator-heading .card-kicker { margin-bottom: 4px; }
+/* Private actions, closed at the end of the incident page: each a label with its pill. */
+.incident-operator-controls { display: grid; gap: 14px; }
 .incident-note-form { display: grid; gap: 10px; }
 .incident-note-form textarea { min-height: 76px; }
 .incident-note-form .button { justify-self: end; }
