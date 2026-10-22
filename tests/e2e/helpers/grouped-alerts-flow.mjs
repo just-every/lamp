@@ -124,7 +124,7 @@ export async function groupedAlertsFlow({ api, post, component, sql, origin, pub
       await receipt.waitFor();
       await inspect('grouped-receipt');
       await receipt.getByRole('link', { name: 'Open draft' }).click();
-      await page.getByRole('heading', { name: 'Compose public update' }).waitFor();
+      await page.getByRole('heading', { name: 'First update' }).waitFor();
       await operatorHydrated(page);
       const result = (await api(`/api/app/incidents/${response.body.incidentId}`)).body.incident;
       assert.deepEqual(result.components.map(row => row.componentId).sort(), targets.map(row => row.id).sort());

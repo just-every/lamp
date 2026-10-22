@@ -13,6 +13,7 @@ import { pageOrigin } from "../e2e/helpers/hosts.mjs";
 import { startViteWorker, stopViteWorker } from "../e2e/vite-worker.mjs";
 import { sessionCookieName } from "../helpers/session-cookie.mjs";
 import { linkedUpdateFlow } from "./linked-update-flow.mjs";
+import { incidentComposer } from "../e2e/helpers/incident-composer.mjs";
 
 const requestedPort = Number(process.env.LAMP_COMPOSER_PORT ?? 0);
 let port;
@@ -76,9 +77,11 @@ async function createIncident(title, componentName) {
 }
 
 async function fillUpdate({ audience, impact, details }) {
-  await page.getByLabel(/Who is affected/).fill(audience);
-  await page.getByLabel(/What is the impact/).fill(impact);
-  await page.getByLabel(/Additional details/).fill(details);
+  const composer = incidentComposer(page);
+  await composer.audience.fill(audience);
+  await composer.impact.fill(impact);
+  await composer.moreOptions();
+  await composer.details.fill(details);
 }
 
 async function waitForSavedDraft() {
@@ -111,7 +114,7 @@ after(async () => {
 test("UPDATE-011 UPDATE-013 — Resolve clears the promise in the native composer, linked wording checks are dismissible, and the shared rendering links bare HTTPS URLs on every public page with and without script", async () => {
   const invalidActive = await createIncident("Active update validation", "Composer active validation component");
   await page.goto(`${origin}/app/incidents/${invalidActive.id}`, { waitUntil: "networkidle" });
-  await page.getByRole("heading", { name: "Compose public update" }).waitFor();
+  await page.getByRole("heading", { name: "First update" }).waitFor();
   await fillUpdate({ audience: "Customers using the API", impact: "Requests are failing.", details: "Operators are investigating." });
   await waitForDraft(invalidActive.id, (draft) => draft.customerImpact === "Requests are failing.");
   await waitForSavedDraft();
@@ -131,14 +134,15 @@ test("UPDATE-011 UPDATE-013 — Resolve clears the promise in the native compose
   const resolution = await createIncident("Native Resolve action", "Composer Resolve component");
   await page.setViewportSize({ width: 1440, height: 1000 });
   await page.goto(`${origin}/app/incidents/${resolution.id}`, { waitUntil: "networkidle" });
-  await page.getByRole("heading", { name: "Compose public update" }).waitFor();
+  await page.getByRole("heading", { name: "First update" }).waitFor();
   await fillUpdate({ audience: "Customers using the status API", impact: "Responses are available again.", details: "The service has recovered." });
   await page.getByLabel("Next update date and time").fill("2027-10-06T14:00");
   await waitForDraft(resolution.id, (draft) => draft.nextUpdateAt !== null && draft.customerImpact === "Responses are available again.");
   await waitForSavedDraft();
   assert.equal(await page.getByLabel("Next update date and time").count(), 1);
   assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "the composer fits at 1440 pixels");
-  const resolveButton = page.getByRole("button", { name: "Resolve incident", exact: true });
+  // Resolving is the last status choice beside the fields, not a separate button.
+  const resolveButton = page.locator(".status-choice .choice-pill", { hasText: /^Resolved$/ });
   let resolveBounds = await resolveButton.boundingBox();
   assert.ok(resolveBounds && resolveBounds.x >= 0 && resolveBounds.x + resolveBounds.width <= 1440, "the Resolve action is reachable at 1440 pixels");
 
@@ -148,7 +152,8 @@ test("UPDATE-011 UPDATE-013 — Resolve clears the promise in the native compose
   assert.ok(resolveBounds && resolveBounds.x >= 0 && resolveBounds.x + resolveBounds.width <= 390, "the Resolve action is reachable at 390 pixels");
   await resolveButton.click();
   assert.equal(await page.getByLabel("Next update date and time").count(), 0, "a resolved draft removes the next-update input");
-  await page.getByText("This update closes the incident without a future update commitment.", { exact: true }).waitFor();
+  assert.equal(await incidentComposer(page).status(), "Resolved");
+  await page.getByText("Resolving closes the incident. No next update.", { exact: true }).waitFor();
   const resolvedDraft = await waitForDraft(resolution.id, (draft) => draft.lifecycle === "Resolved" && draft.nextUpdateAt === null);
   await waitForSavedDraft();
 
@@ -176,9 +181,8 @@ test("UPDATE-011 UPDATE-013 — Resolve clears the promise in the native compose
   assert.equal(await page.getByLabel("Next update date and time").count(), 0);
   assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "the resolved composer fits at 390 pixels");
 
-  const emailDisclosure = page.locator(".email-preview");
-  await emailDisclosure.locator("summary").click();
-  const emailCard = emailDisclosure.locator(".preview-card");
+  await page.getByRole("button", { name: "Email", exact: true }).click();
+  const emailCard = page.locator(".preview-panel .preview-card", { has: page.locator(".preview-type", { hasText: "Notification email" }) });
   assert.equal(await emailCard.locator("h3").innerText(), preview.email.subject);
   assert.deepEqual(await emailCard.locator("dd").allTextContents(), [...[preview.email.from, preview.email.replyTo].filter(Boolean), ...preview.email.plainText.split("\n\n").slice(1)]);
   assert.doesNotMatch(await emailCard.innerText(), /Next update by|Not yet committed/);

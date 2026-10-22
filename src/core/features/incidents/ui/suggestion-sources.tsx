@@ -16,9 +16,10 @@ function describe(ref: string, brief: IncidentBrief, formatTime: (iso: string | 
   return brief.whatWeDoNotKnowYet.find((item) => item.ref === ref)?.question ?? ref;
 }
 
-// The brief keeps each item at #brief-<ref>; opening a source expands it there.
+// The brief keeps each item at #brief-<ref>; opening a source expands the brief and the item there.
 function openSource(ref: string) {
   const item = document.getElementById(`brief-${ref}`);
+  item?.closest("details.incident-brief")?.setAttribute("open", "");
   item?.querySelector("details")?.setAttribute("open", "");
   item?.scrollIntoView({ block: "center", behavior: "smooth" });
 }

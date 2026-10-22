@@ -1,10 +1,3 @@
-@media (max-width: 1180px) {
-  .incident-workspace { grid-template-columns: minmax(220px, .8fr) minmax(390px, 1.35fr); grid-template-areas: "heading heading" "context composer" "context preview" "context actions"; grid-template-rows: auto auto auto auto; }
-  /* Stacked, only the composer keeps the amber: the preview and the Resolve/Publish row after it stay white. */
-  .preview-panel { border-top: 1px solid var(--line); border-left: 0; }
-  .composer-submit { background: var(--card); box-shadow: none; border-top: 1px solid var(--line); padding: 20px 24px 24px; }
-}
-
 /* The phone menu keeps every section visible together, above the current page. */
 @media (max-width: 900px) {
   .operator-shell { width: 100%; min-width: 0; grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); overflow-x: clip; }
@@ -23,8 +16,6 @@
   .operator-header .operator-account { width: 100%; justify-content: space-between; }
   .operator-header .operator-identity { justify-items: start; }
   .operator-main { padding: 24px 16px; }
-  .incident-workspace { grid-template-columns: 1fr; grid-template-areas: "heading" "composer" "preview" "actions" "context"; }
-  aside.incident-context { border-right: 0; border-top: 1px solid var(--line); }
   .settings-workspace, .alert-source-grid, .maintenance-workspace { grid-template-columns: 1fr; }
   .maintenance-schedule-card { position: static; }
   .subscriber-webhook-card, .subscriber-webhook-form, .operators-invite-form { grid-template-columns: 1fr; }
@@ -42,7 +33,6 @@
   .overview-grid, .settings-grid, .alert-editor-form, .row-window { grid-template-columns: minmax(0, 1fr); }
   .data-card { padding: 16px; }
   .subscriber-table-card, .component-group-card { padding: 0; }
-  .incident-create-panel { padding: 16px; }
   .app-state-empty { padding: 24px 8px; }
   .app-state-error { min-height: calc(100vh - 200px); border-radius: 16px; padding: 0 16px 40px; }
   .error-lamp { --lamp-static-w: 200px; }
@@ -60,21 +50,6 @@
   .incident-row-state { grid-area: state; display: flex; flex-wrap: wrap; align-items: center; justify-items: start; gap: 8px; }
   .incident-list-row .row-chevron { grid-area: chevron; }
   .compact-records > div { grid-template-columns: 56px minmax(0, 1fr); }
-  .incident-workspace-heading { padding: 20px 16px; }
-  .incident-workspace-heading .context-facts { grid-template-columns: 1fr; gap: 0; }
-  .incident-workspace-heading .context-facts div { flex-direction: row; justify-content: space-between; border-bottom: 1px solid var(--line); padding: 10px 0; }
-  .incident-workspace-heading .context-facts div + div { border-left: 0; padding-left: 0; }
-  .incident-workspace-heading .context-facts div:last-child { border-bottom: 0; }
-  .incident-workspace-heading .context-facts strong { text-align: right; }
-  .composer-panel, aside.incident-context, .preview-panel { padding: 20px 16px; }
-  .composer-submit { padding: 16px; }
-  .composer-actions { flex-direction: column; }
-  .composer-actions .button { width: 100%; }
-  .lifecycle-control { grid-template-columns: 1fr; gap: 6px; }
-  .publication-controls { flex-direction: column; }
-  .template-form { flex-direction: column; align-items: stretch; }
-  .template-form .form-label { flex-basis: auto; }
-  .composer-heading { flex-wrap: wrap; }
   .list-controls { align-items: stretch; flex-direction: column; }
   .list-pagination { align-items: stretch; flex-direction: column; }
   .list-pagination > div { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -92,7 +67,7 @@
   .operator-shell :is(.icon-button, .copy-button) { min-width: 44px; }
   .operator-shell :is(.back-link, .text-link) { align-items: center; }
   .operator-shell .checkbox-label { padding-block: 10px; }
-  .operator-shell :is(.component-fact, .incident-workspace-heading, .maintenance-row) { overflow-wrap: anywhere; }
+  .operator-shell .maintenance-row { overflow-wrap: anywhere; }
   .operator-shell .brief-columns { grid-template-columns: minmax(0, 1fr); }
   .signin-page :is(button, .button) { min-height: 44px; }
 }

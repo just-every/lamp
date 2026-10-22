@@ -1,11 +1,12 @@
 import assert from "node:assert/strict";
+import { incidentComposer } from "./helpers/incident-composer.mjs";
 
 // Hold only an acknowledgement from a real native PUT. The latest edit must
 // keep its original debounce while the earlier write retains serialization.
 export async function assertQueuedAutosaveDeadline({ page, api, openIncident, assertPrivateUnsaved, initial }, t) {
   const incident = await openIncident();
   const endpoint = `/api/app/incidents/${incident.id}/draft`;
-  const field = page.locator(".impact-field textarea").first();
+  const field = incidentComposer(page).audience;
   const earlier = "Earlier audience awaiting its native acknowledgement";
   const latest = "Latest audience edited while the earlier save is pending";
   const writes = [];
@@ -42,7 +43,7 @@ export async function assertQueuedAutosaveDeadline({ page, api, openIncident, as
     await field.fill("Intermediate audience coalesced into the latest edit");
     await page.evaluate(() => {
       window.queuedAutosaveProbe = {};
-      document.querySelector(".impact-field textarea").addEventListener("input", () => {
+      document.querySelector('[aria-label="Who is affected"]').addEventListener("input", () => {
         window.queuedAutosaveProbe.finalEdit = Date.now();
       }, { once: true });
       const observer = new MutationObserver(() => {

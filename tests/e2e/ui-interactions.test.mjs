@@ -12,6 +12,7 @@ import { insertRealOperatorSession } from "./real-session-helper.mjs";
 import { reservePort, waitForWorker } from "./worker-startup.mjs";
 import { sessionCookieName } from "../helpers/session-cookie.mjs";
 import { operatorHydrated } from "./helpers/operator-hydrated.mjs";
+import { incidentComposer } from "./helpers/incident-composer.mjs";
 
 let worker, browser, context, page, statePath, cachePath, origin;
 let output = "";
@@ -128,8 +129,8 @@ test("Subscriber erasure requires confirmation and offers no repeated removal", 
   assert.equal(saved.state, "deactivated");
 });
 
-const audienceField = target => target.locator("label.impact-field", { hasText: "Who is affected" }).locator("textarea");
-const impactField = target => target.locator("label.impact-field", { hasText: "What is the impact" }).locator("textarea");
+const audienceField = target => incidentComposer(target).audience;
+const impactField = target => incidentComposer(target).impact;
 
 test("Fresh publication drafts and narrow operator navigation preserve deliberate sign-out", async t => {
   t.diagnostic("each publication opens a fresh unsaved draft, and stale tabs cannot replace its next update");
@@ -146,7 +147,7 @@ test("Fresh publication drafts and narrow operator navigation preserve deliberat
   const previewTime = page.locator(".preview-card").first().locator("dt", { hasText: "Next update by" }).locator("xpath=following-sibling::dd[1]");
   await previewTime.waitFor();
   assertVisibleTime(await previewTime.textContent(), "2027-10-10T22:00:00.000Z", "America/Los_Angeles");
-  await page.getByText("Update templates", { exact: true }).first().click();
+  await incidentComposer(page).moreOptions();
   await page.getByLabel("Template name", { exact: true }).fill("Operator journey template");
   const templateResponse = page.waitForResponse(response => response.url().endsWith("/api/app/incident-templates") && response.request().method() === "POST");
   await page.getByRole("button", { name: "Save template", exact: true }).click();
@@ -168,10 +169,10 @@ test("Fresh publication drafts and narrow operator navigation preserve deliberat
 
   await page.getByLabel("Next update date and time").fill("2026-11-01T01:30");
   await page.locator(".composer-panel").getByRole("alert").waitFor();
-  await page.getByText("Schedule or backdate", { exact: true }).click();
+  await page.getByRole("radio", { name: "Schedule", exact: true }).check();
   await page.getByLabel("Scheduled publication date and time").fill("2027-10-10T14:00");
-  assert.equal(await page.getByRole("button", { name: "Publish update", exact: true }).isEnabled(), false, "editing a valid schedule cannot clear an invalid commitment");
-  await page.getByRole("button", { name: "Use current time", exact: true }).click();
+  assert.equal(await page.getByRole("button", { name: "Schedule update", exact: true }).isEnabled(), false, "editing a valid schedule cannot clear an invalid commitment");
+  await page.getByRole("radio", { name: "Now", exact: true }).check();
   assert.equal(await page.getByRole("button", { name: "Publish update", exact: true }).isEnabled(), false);
   await page.getByLabel("Next update date and time").fill("2027-10-10T15:00");
   await page.locator(".autosave-status.is-saved").waitFor();
@@ -181,17 +182,16 @@ test("Fresh publication drafts and narrow operator navigation preserve deliberat
     await operatorHydrated(stale);
     for (const width of [1440, 390]) {
       await page.setViewportSize({ width, height: 844 });
-      const preview = page.getByRole("button", { name: "Preview", exact: true });
       const publish = page.getByRole("button", { name: "Publish update", exact: true });
-      assert.equal(await preview.evaluate(node => Boolean(node.compareDocumentPosition([...document.querySelectorAll("button")].find(item => item.textContent === "Publish update")) & Node.DOCUMENT_POSITION_FOLLOWING)), true);
-      const a = await preview.boundingBox(), b = await publish.boundingBox();
-      assert.ok(a.y < b.y || (a.y === b.y && a.x < b.x));
-      await preview.click(); await page.locator(".preview-panel").waitFor();
-      const email = page.locator(".email-preview"); if (!await email.evaluate(node => node.open)) await email.locator("summary").click();
-      for (const card of await page.locator(".preview-card").all()) {
-        assert.equal(await card.evaluate(node => node.scrollWidth <= node.clientWidth), true);
-        assert.equal(await card.evaluate(node => Boolean(node.compareDocumentPosition([...document.querySelectorAll("button")].find(item => item.textContent === "Publish update")) & Node.DOCUMENT_POSITION_FOLLOWING)), true, "Preview content precedes Publish in reading order");
-        if (width === 390) { const c = await card.boundingBox(), publishBox = await publish.boundingBox(); assert.ok(c.y + c.height <= publishBox.y, "The complete preview comes before Publish on mobile"); }
+      // The preview sits beside the fields at 1440 and under them at 390; either way it precedes Publish (UPDATE-004).
+      for (const view of ["Email", "Page"]) {
+        await page.getByRole("button", { name: view, exact: true }).click();
+        await page.locator(".preview-card .preview-type", { hasText: view === "Email" ? "Notification email" : "Public page" }).waitFor();
+        for (const card of await page.locator(".preview-card").all()) {
+          assert.equal(await card.evaluate(node => node.scrollWidth <= node.clientWidth), true);
+          assert.equal(await card.evaluate(node => Boolean(node.compareDocumentPosition([...document.querySelectorAll("button")].find(item => item.textContent === "Publish update")) & Node.DOCUMENT_POSITION_FOLLOWING)), true, "Preview content precedes Publish in reading order");
+          if (width === 390) { const c = await card.boundingBox(), publishBox = await publish.boundingBox(); assert.ok(c.y + c.height <= publishBox.y, "The complete preview comes before Publish on mobile"); }
+        }
       }
       assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
       if (process.env.LAMP_OPERATOR_SCREENSHOTS) {
@@ -204,9 +204,9 @@ test("Fresh publication drafts and narrow operator navigation preserve deliberat
     const publicationResponse = page.waitForResponse(response => response.url().endsWith(`/incidents/${incident.id}/publish`) && response.request().method() === "POST");
     await page.getByRole("button", { name: "Publish update", exact: true }).click();
     assert.equal((await publicationResponse).ok(), true);
-    await page.locator(".composer-heading .publication-message.is-published").waitFor();
+    await page.locator(".composer-panel .publication-message.is-published").waitFor();
     assert.equal(await audienceField(page).inputValue(), ""); assert.equal(await impactField(page).inputValue(), "");
-    assert.equal(await page.getByLabel("Status").inputValue(), "Identified");
+    assert.equal(await incidentComposer(page).status(), "Identified");
     assert.equal(await audienceField(page).getAttribute("placeholder"), initialPlaceholder, "The audience prompt stays useful as the lifecycle advances");
     assert.match(await page.locator(".timeline").innerText(), /Requests are failing/);
     assert.equal(await page.getByRole("button", { name: "Publish update", exact: true }).isEnabled(), false);
@@ -219,7 +219,7 @@ test("Fresh publication drafts and narrow operator navigation preserve deliberat
     await page.reload(); await page.locator(".autosave-status.is-saved").waitFor();
     await operatorHydrated(page);
     assert.equal(await audienceField(page).inputValue(), "Next update audience");
-    await stale.getByText("Update templates", { exact: true }).first().click();
+    await incidentComposer(stale).moreOptions();
     await stale.getByLabel("Saved update template").selectOption({ label: "Operator journey template" });
     const staleTemplate = stale.waitForResponse(response => response.url().includes(`/incidents/${incident.id}/templates/`) && response.url().endsWith("/apply"));
     await stale.getByRole("button", { name: "Apply template", exact: true }).click();
@@ -228,11 +228,12 @@ test("Fresh publication drafts and narrow operator navigation preserve deliberat
     const stalePublish = stale.waitForResponse(response => response.url().endsWith(`/incidents/${incident.id}/publish`) && response.request().method() === "POST");
     await stale.getByRole("button", { name: "Publish update", exact: true }).click();
     assert.equal((await stalePublish).status(), 409);
-    await stale.getByText("Schedule or backdate", { exact: true }).click();
+    await stale.getByRole("radio", { name: "Schedule", exact: true }).check();
     await stale.getByLabel("Scheduled publication date and time").fill("2027-10-10T14:00");
     const staleSchedule = stale.waitForResponse(response => response.url().endsWith(`/incidents/${incident.id}/draft/schedule`));
     await stale.getByRole("button", { name: "Schedule update", exact: true }).click();
     assert.equal((await staleSchedule).status(), 409);
+    await stale.getByRole("radio", { name: "Now", exact: true }).check();
     await audienceField(stale).fill("Stale published wording"); await stale.locator(".autosave-status.is-error").waitFor();
     assert.equal((await operatorApi(`/api/app/incidents/${incident.id}`)).incident.draft.affectedAudience, "Next update audience");
     assert.equal(await stale.getByRole("button", { name: "Publish update", exact: true }).isEnabled(), false);
@@ -257,7 +258,12 @@ test("Fresh publication drafts and narrow operator navigation preserve deliberat
       assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true, `${path} at ${width}`);
     }
     await page.goto(`${origin}/app/incidents`);
-    await page.getByRole("button", { name: "Create incident", exact: true }).click();
+    await operatorHydrated(page);
+    await page.getByRole("link", { name: "New incident", exact: true }).click();
+    await page.waitForURL(`${origin}/app/incidents/new`);
+    // The route change closes the phone menu; open it only once the new screen is in place and hydrated.
+    await page.getByRole("heading", { name: "New incident", exact: true }).waitFor();
+    await operatorHydrated(page);
     if (width <= 900) await page.getByRole("button", { name: "Menu", exact: true }).click();
     const signout = page.getByRole("button", { name: "Sign out", exact: true });
     await signout.scrollIntoViewIfNeeded(); const box = await signout.boundingBox();

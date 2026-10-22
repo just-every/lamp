@@ -4,7 +4,8 @@ import { useAppData } from "../../../app/client/ui/api";
 import { FormError, useOperatorTime } from "../../../app/client/ui/states";
 
 /** The brief is built on the server from saved incident state; `revision`
- * changes when a saved draft or a publication may have answered a question. */
+ * changes when a saved draft or a publication may have answered a question.
+ * It opens by itself when alerts brought facts the composer does not show. */
 export function IncidentBriefPanel({ incidentId, revision }: { incidentId: string; revision: string | null }) {
   const formatOperatorTime = useOperatorTime();
   const { data: aiStatus } = useAppData<{ configured: boolean }>("/api/app/ai/status");
@@ -19,8 +20,9 @@ export function IncidentBriefPanel({ incidentId, revision }: { incidentId: strin
   if (!data) return null;
   const { brief } = data;
   const { alerts, updates, components } = brief.whatWeKnow;
-  return <section className="incident-brief" aria-labelledby="brief-title">
-    <h2 id="brief-title">Brief</h2>
+  const questions = brief.whatWeDoNotKnowYet.length;
+  return <details className="incident-brief" open={alerts.length > 0 || undefined}>
+    <summary><h2 id="brief-title">Brief</h2>{questions ? <span>{questions} open {questions === 1 ? "question" : "questions"}</span> : null}</summary>
     <div className="brief-columns">
       <div>
         <h3>What we know</h3>
@@ -38,5 +40,5 @@ export function IncidentBriefPanel({ incidentId, revision }: { incidentId: strin
       </div>
     </div>
     {aiStatus?.configured && <details className="brief-disclosure"><summary>Exactly what the assistant is sent</summary><p>Internal notes are never part of it.</p><pre tabIndex={0} aria-label="Assistant input">{JSON.stringify(brief, null, 2)}</pre></details>}
-  </section>;
+  </details>;
 }

@@ -80,6 +80,8 @@ export const incidentDraftSchema = z.object({
     relationship: z.enum(["Primary", "Dependent"]).optional(),
   }).strict()).max(200).refine((changes) => new Set(changes.map(change => change.componentId)).size === changes.length, "A component may appear only once.").optional(),
 }).strict();
+/** The update fields written on the new-incident screen, before the incident (and so any staged component change) exists. */
+export const incidentFirstUpdateSchema = incidentDraftSchema.omit({ componentChanges: true });
 
 export type ComponentStandingClaimInput = z.infer<typeof componentStandingClaimSchema>;
 export type PageSettingsInput = z.input<typeof pageSettingsSchema>;
@@ -89,3 +91,4 @@ export type ComponentGroupUpdateInput = z.infer<typeof componentGroupUpdateSchem
 export type ComponentGroupInput = z.infer<typeof componentGroupSchema>;
 export type ComponentHistoryCorrectionInput = z.infer<typeof componentHistoryCorrectionSchema>;
 export type IncidentDraftInput = z.infer<typeof incidentDraftSchema>;
+export type IncidentFirstUpdateInput = z.infer<typeof incidentFirstUpdateSchema>;

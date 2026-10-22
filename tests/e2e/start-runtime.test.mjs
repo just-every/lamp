@@ -214,7 +214,7 @@ async function browserNavigationProof() {
     const directDetailErrors = [];
     directDetail.on("pageerror", (error) => directDetailErrors.push(error.message));
     await directDetail.goto(`${appOrigin}/app/incidents/01J00000000000000000000020`, { waitUntil: "networkidle" });
-    await directDetail.getByRole("heading", { name: "Compose public update", exact: true }).waitFor();
+    await directDetail.getByRole("heading", { name: "Update draft", exact: true }).waitFor();
     await directDetail.getByText("Elevated API error rates", { exact: true }).waitFor();
     assert.deepEqual(directDetailErrors, [], "a direct incident-detail document must hydrate its actual composer without errors");
     await directDetail.close();
@@ -227,7 +227,7 @@ async function browserNavigationProof() {
     await page.getByRole("heading", { name: "Incidents", exact: true }).waitFor();
     await page.getByRole("link", { name: /INC-4821/ }).click();
     await page.waitForURL("**/app/incidents/01J00000000000000000000020");
-    await page.getByRole("heading", { name: "Compose public update", exact: true }).waitFor();
+    await page.getByRole("heading", { name: "Update draft", exact: true }).waitFor();
     await page.waitForLoadState("networkidle");
     const after = await page.evaluate(() => performance.timeOrigin);
 

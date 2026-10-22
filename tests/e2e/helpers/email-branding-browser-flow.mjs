@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { mkdir } from 'node:fs/promises';
 import { AxeBuilder } from '@axe-core/playwright';
 import { operatorHydrated } from './operator-hydrated.mjs';
+import { incidentComposer } from './incident-composer.mjs';
 
 export async function emailBrandingBrowserFlow({ page, appUrl, pageUrl, appFetch }) {
   page.setDefaultTimeout(15_000);
@@ -60,12 +61,12 @@ export async function emailBrandingBrowserFlow({ page, appUrl, pageUrl, appFetch
     await page.reload(); await operatorHydrated(page);
     assert.equal(await page.getByLabel('Subject prefix', { exact: true }).inputValue(), '[Acme status]', 'the reload keeps the Notifications tab');
     await page.goto(`${appUrl}/app/incidents/${incident.id}`); await operatorHydrated(page);
-    await page.locator('label', { hasText: 'Who is affected' }).locator('textarea').fill('Customers paying by card in the US.');
-    await page.locator('label', { hasText: 'What is the impact' }).locator('textarea').fill('Authorizations may take longer than usual.');
+    await incidentComposer(page).audience.fill('Customers paying by card in the US.');
+    await incidentComposer(page).impact.fill('Authorizations may take longer than usual.');
     await page.getByLabel('Next update date and time').fill('2027-09-08T14:00');
     await page.getByText('Draft saved', { exact: true }).waitFor();
-    await page.getByText('Email preview', { exact: true }).click();
-    const preview = page.locator('.email-preview');
+    await page.getByRole('button', { name: 'Email', exact: true }).click();
+    const preview = page.locator('.preview-panel');
     await preview.getByText('support@acme.example', { exact: true }).waitFor();
     await preview.getByText('Service updates from Acme.', { exact: true }).waitFor();
     await preview.getByText('Acme, 100 Market Street, San Francisco, CA 94105', { exact: true }).waitFor();
@@ -74,6 +75,6 @@ export async function emailBrandingBrowserFlow({ page, appUrl, pageUrl, appFetch
     assert.equal(await image.getAttribute('src'), `${pageUrl}/assets/logo`);
     assert.equal(await image.getAttribute('alt'), 'Atlas Cloud Status');
     await image.evaluate(element => element.decode());
-    await inspect('preview', '.email-preview .preview-card');
+    await inspect('preview', '.preview-panel .preview-card');
   }
 }

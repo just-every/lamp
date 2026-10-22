@@ -65,8 +65,7 @@ export function IncidentOperatorControls({ incident, captureVisit, captureUpdate
     }
   };
 
-  return <section className="incident-operator-controls" aria-labelledby="incident-operator-actions-title">
-    <div className="incident-operator-heading"><div><h2 id="incident-operator-actions-title">Private actions</h2></div></div>
+  return <section className="incident-operator-controls" aria-label="Private actions">
     <form className="incident-note-form" onSubmit={saveNote}>
       <label className="form-label">Internal note<textarea aria-label="Internal note" value={note} maxLength={5_000} onChange={(event) => { noteRevision.current += 1; setNote(event.target.value); }} placeholder="Context for operators only" /></label>
       <Button type="submit" variant="secondary">Save internal note</Button>

@@ -43,3 +43,30 @@ export async function allocateReference(
   }
   return reference;
 }
+
+/** The reference the next allocation would take, read for a preview only: it
+ * reserves nothing, so a concurrent creation may take it first. */
+export async function peekReference(
+  database: D1Database,
+  namespace: ReferenceNamespace,
+): Promise<AllocatedReference> {
+  if (namespace !== "INC" && namespace !== "SCH") throw new Error("Unknown reference namespace");
+  const row = await database.prepare(`
+    WITH RECURSIVE candidate(number) AS (
+      SELECT last_number + 1 FROM reference_counters WHERE namespace = ?
+      UNION ALL
+      SELECT number + 1 FROM candidate
+      WHERE number < 9007199254740991 AND EXISTS (
+        SELECT 1 FROM reference_allocations
+        WHERE namespace = ? AND reference = ? || '-' || number
+      )
+    )
+    SELECT ? || '-' || MIN(number) AS reference FROM candidate
+    WHERE NOT EXISTS (
+      SELECT 1 FROM reference_allocations
+      WHERE namespace = ? AND reference = ? || '-' || number
+    )
+  `).bind(namespace, namespace, namespace, namespace, namespace, namespace).first<{ reference: AllocatedReference | null }>();
+  if (!row?.reference) throw new Error(`Could not read the next ${namespace} reference`);
+  return row.reference;
+}

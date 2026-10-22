@@ -3,6 +3,7 @@ import { join } from "node:path";
 
 import { UPDATE_LINK_FIELDS } from "../e2e/helpers/update-component-flow.mjs";
 import { LINKED_URL, assertPublicCsp } from "../e2e/helpers/update-link-evidence.mjs";
+import { incidentComposer } from "../e2e/helpers/incident-composer.mjs";
 
 const VIEWPORTS = [{ width: 1440, height: 1000 }, { width: 390, height: 844 }];
 const LITERALS = ['<a href="https://x.test">x</a>', "**markdown**", "javascript:alert(1)", "http://example.com/x", "data:text/html,x"];
@@ -14,12 +15,14 @@ export async function linkedUpdateFlow({ browser, page, origin, pageBase, appFet
   const incident = await createIncident("Help centre article for API recovery", "Composer linked update component");
   await page.setViewportSize(VIEWPORTS[0]);
   await page.goto(`${origin}/app/incidents/${incident.id}`, { waitUntil: "networkidle" });
-  await page.getByRole("heading", { name: "Compose public update" }).waitFor();
-  await page.getByLabel(/Who is affected/).fill(UPDATE_LINK_FIELDS.affectedAudience);
-  await page.getByLabel(/What is the impact/).fill(UPDATE_LINK_FIELDS.customerImpact);
-  await page.getByLabel(/What still works/).fill(UPDATE_LINK_FIELDS.whatStillWorks);
-  await page.getByLabel(/Additional details/).fill(UPDATE_LINK_FIELDS.details);
-  await page.getByLabel("Next update date and time").fill("2027-10-06T14:00");
+  await page.getByRole("heading", { name: "First update" }).waitFor();
+  const composer = incidentComposer(page);
+  await composer.audience.fill(UPDATE_LINK_FIELDS.affectedAudience);
+  await composer.impact.fill(UPDATE_LINK_FIELDS.customerImpact);
+  await composer.moreOptions();
+  await composer.stillWorks.fill(UPDATE_LINK_FIELDS.whatStillWorks);
+  await composer.details.fill(UPDATE_LINK_FIELDS.details);
+  await composer.nextUpdate.fill("2027-10-06T14:00");
 
   // Each internal URL produces its own finding, naming its rule.
   const internalHost = page.getByRole("button", { name: /^Dismiss wording check: Internal hostname:/ });
