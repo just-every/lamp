@@ -17,11 +17,14 @@ function usePublicComponents() {
   return { components: data?.components.filter(component => !component.internal) ?? null, error };
 }
 
-/** One chip per affected component: its name and the state it claims, chosen in place. */
-function ComponentChip({ name, state, states, disabled, changed, onState, onRemove }: { name: string; state: IncidentClaimState; states: readonly IncidentClaimState[]; disabled?: boolean; changed?: boolean; onState: (state: IncidentClaimState) => void; onRemove?: () => void }) {
+/** One chip per affected component: its name and the state it claims, chosen in place. When this update
+ * changes an attached claim, the chip also names the claim it has now (UPDATE-012). */
+function ComponentChip({ name, state, states, now, disabled, onState, onRemove }: { name: string; state: IncidentClaimState; states: readonly IncidentClaimState[]; now?: IncidentClaimState; disabled?: boolean; onState: (state: IncidentClaimState) => void; onRemove?: () => void }) {
+  const changed = now !== undefined && now !== state;
   return <span className={`component-chip${changed ? " is-changed" : ""}`}>
     <span className={`fact-dot state-${slug(state)}`} aria-hidden="true" />
     <span className="component-chip-name">{name}</span>
+    {changed ? <span className="component-chip-now">{now} →</span> : null}
     <select aria-label={`${name} state with this update`} disabled={disabled} value={state} onChange={(event) => onState(event.target.value as IncidentClaimState)}>{states.map(value => <option key={value}>{value}</option>)}</select>
     {onRemove ? <button type="button" className="chip-remove" aria-label={`Remove ${name}`} onClick={onRemove}>×</button> : null}
   </span>;
@@ -44,13 +47,13 @@ export function NewIncidentComponents({ claims, onChange }: { claims: NewClaim[]
   </div>;
 }
 
-type DraftRow = { componentId: string; name: string; current: IncidentClaimState; relationship: Relationship; attached: boolean };
+type DraftRow = { componentId: string; name: string; relationship: Relationship; attached: boolean };
 
 function draftRows(incident: IncidentView, draft: IncidentDraftInput, components: ComponentsResponse["components"] | null): DraftRow[] {
   const choices = draft.componentChanges ?? [];
   return [
-    ...incident.components.flatMap(row => row.componentId ? [{ componentId: row.componentId, name: row.componentName, current: (row.publishedAt && incident.lifecycle !== "Resolved" ? row.state : "Operational") as IncidentClaimState, relationship: row.relationship, attached: true }] : []),
-    ...choices.filter(choice => !incident.components.some(row => row.componentId === choice.componentId)).map(choice => ({ componentId: choice.componentId, name: components?.find(component => component.id === choice.componentId)?.name ?? incident.draft?.componentChanges.find(component => component.componentId === choice.componentId)?.componentName ?? choice.componentId, current: "Operational" as const, relationship: choice.relationship ?? "Primary" as const, attached: false })),
+    ...incident.components.flatMap(row => row.componentId ? [{ componentId: row.componentId, name: row.componentName, relationship: row.relationship, attached: true }] : []),
+    ...choices.filter(choice => !incident.components.some(row => row.componentId === choice.componentId)).map(choice => ({ componentId: choice.componentId, name: components?.find(component => component.id === choice.componentId)?.name ?? incident.draft?.componentChanges.find(component => component.componentId === choice.componentId)?.componentName ?? choice.componentId, relationship: choice.relationship ?? "Primary" as const, attached: false })),
   ];
 }
 
@@ -70,7 +73,7 @@ export function DraftComponentChips({ incident, draft, onChange }: { incident: I
     onChange(attached && state === attached.state && relationship === attached.relationship ? others : [...others, { componentId: row.componentId, state, relationship }]);
   };
   return <div className="component-chips">
-    {rows.map(row => <ComponentChip key={row.componentId} name={row.name} state={resolved ? "Operational" : claimed(row)} states={INCIDENT_CLAIM_STATES} disabled={resolved} changed={Boolean(staged(row))} onState={(state) => choose(row, state)} onRemove={!row.attached ? () => onChange(choices.filter(choice => choice.componentId !== row.componentId)) : undefined} />)}
+    {rows.map(row => <ComponentChip key={row.componentId} name={row.name} state={resolved ? "Operational" : claimed(row)} states={INCIDENT_CLAIM_STATES} now={row.attached ? incident.components.find(component => component.componentId === row.componentId)?.state as IncidentClaimState : undefined} disabled={resolved} onState={(state) => choose(row, state)} onRemove={!row.attached ? () => onChange(choices.filter(choice => choice.componentId !== row.componentId)) : undefined} />)}
     {resolved ? null : <AddComponent options={(components ?? []).filter(component => !rows.some(row => row.componentId === component.id))} onAdd={(componentId) => onChange([...choices, { componentId, state: "Major outage", relationship: "Primary" }])} />}
     {error ? <FormError>{error}</FormError> : null}
   </div>;

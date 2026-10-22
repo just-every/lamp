@@ -58,11 +58,12 @@
 .component-chips { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 .component-chip { display: inline-flex; max-width: 100%; min-height: 38px; align-items: center; gap: 8px; border: 1px solid var(--line-strong); border-radius: 999px; background: var(--card); padding: 0 6px 0 12px; }
 .component-chip.is-changed { border-color: var(--amber); }
+.component-chip-now { flex: none; color: var(--ink-3); font-size: 13px; white-space: nowrap; }
 .component-chip-name { min-width: 0; flex: 0 1 auto; overflow: hidden; color: var(--ink); font-size: 14px; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
 .component-chip select { width: auto; min-width: 0; flex: 0 1 auto; min-height: 30px; border: 0; border-left: 1px solid var(--line); border-radius: 0; background-color: transparent; color: var(--ink-2); padding: 4px 32px 4px 10px; font-size: 14px; background-position: right 16px center, right 10px center; }
 .component-chip select:focus { box-shadow: none; }
 .component-chip select:focus-visible { outline: 3px solid var(--ink); outline-offset: 2px; }
-.chip-remove { display: inline-grid; width: 28px; height: 28px; place-items: center; border: 0; border-radius: 50%; background: none; color: var(--ink-3); font-size: 18px; line-height: 1; }
+.chip-remove { display: inline-grid; flex: none; width: 28px; height: 28px; place-items: center; border: 0; border-radius: 50%; background: none; color: var(--ink-3); font-size: 18px; line-height: 1; }
 .chip-remove:hover { background: var(--stage); color: var(--ink); }
 select.add-component { width: auto; min-height: 38px; border-style: dashed; border-radius: 999px; background-color: transparent; color: var(--ink-2); padding: 6px 38px 6px 14px; font-size: 14px; font-weight: 500; }
 .component-chips-empty { margin: 0; color: var(--ink-2); font-size: 14px; }
@@ -163,6 +164,9 @@ select.add-component { width: auto; min-height: 38px; border-style: dashed; bord
   .incident-heading h1 { font-size: 26px; }
   .composer-panel, .preview-panel, .incident-record { padding: 20px 16px; }
   .composer-publish { padding: 0 16px 20px; }
+  /* Phone touch targets are at least 44 px (MOBILE-001). */
+  .choice-pill { min-height: 44px; }
+  .chip-remove { width: 44px; height: 44px; }
   .composer-footer { justify-content: space-between; }
   .composer-footer .button { width: 100%; }
   .more-options-toggle { margin-right: 0; }

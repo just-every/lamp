@@ -2960,7 +2960,7 @@
       "executable": false
     },
     "src/core/app/client/ui/composer.css": {
-      "sha256": "1e3aff1473520028f59942259a3f13b953b7fadfe8923c240f253a2400aa4641",
+      "sha256": "ccb187424e8f464d60d2527b8aee963f0e4e000535a37d0a171d06792e4441af",
       "executable": false
     },
     "src/core/app/client/ui/copy-button.tsx": {
@@ -3544,7 +3544,7 @@
       "executable": false
     },
     "src/core/features/incidents/ui/affected-components.tsx": {
-      "sha256": "0c26cbeca13316fc5a520a7273bc25285b14294b5d9bb74acb4488ec9cbde25b",
+      "sha256": "645c677ccb534cf9752e317de84641b768ebe72a37746931de282be9c3bd8f2c",
       "executable": false
     },
     "src/core/features/incidents/ui/incident-composer-tools.tsx": {
