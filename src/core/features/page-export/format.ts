@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { emailBrandingSchema } from "../../shared/email-branding";
+import { widgetAppearanceSchema } from "../../shared/widget-appearance";
 
 /**
  * The owner's page data file, `lamp-page-data` version 1 (docs/backups-and-recovery.md).
@@ -78,6 +79,8 @@ export const pageDataFileSchema = z.object({
     // Keep absent in parsed older files so their signed content stays unchanged.
     template: z.enum(["default", "calm", "uptime", "regions"]).optional(),
     widgetAllowedOrigins: z.array(z.string()).max(50),
+    // Preserve older signed files as-is; restore supplies the original embed defaults.
+    widgetAppearance: widgetAppearanceSchema.optional(),
     aiToneInstructions: z.string(),
     emailBranding: emailBrandingSchema.optional(),
     feedId: z.string(),

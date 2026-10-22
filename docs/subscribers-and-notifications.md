@@ -162,7 +162,7 @@ Upload a PNG, JPEG or WebP under Brand mark and select Use the uploaded page log
 in email; the HTML part loads it from your public status host, and the text part
 carries no image reference. Other image URLs are not accepted.
 
-Save Settings, then open an incident's Email preview to check the saved name,
+Changes save automatically. Open an incident's Email preview to check the name,
 reply-to, subject, logo and wording. An email already submitted for delivery keeps
 its original branding during retries, even if you change Settings afterwards.
 

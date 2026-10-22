@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { emailBrandingSchema } from "./email-branding";
+import { widgetAppearanceSchema } from "./widget-appearance";
 
 import { COMPONENT_STATES, INCIDENT_LIFECYCLES } from "./domain";
 import { INCIDENT_CLAIM_STATES } from "./incident-component-changes";
@@ -26,6 +27,7 @@ export const pageSettingsSchema = z.object({
   footerCreditEnabled: z.boolean(),
   template: z.enum(["default", "calm", "uptime", "regions"]).optional(),
   widgetAllowedOrigins: z.array(widgetOriginSchema).max(100).optional(),
+  widgetAppearance: widgetAppearanceSchema.optional(),
   mailFromAddress: z.email().optional(),
   emailBranding: emailBrandingSchema.optional(),
   aiToneInstructions: optionalText(2_000).default(""),

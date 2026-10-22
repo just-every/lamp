@@ -37,6 +37,13 @@ export async function emailBrandingBrowserFlow({ page, appUrl, pageUrl, appFetch
     assert.equal((await uploaded).status(), 200);
     await page.getByText('Logo saved and live.', { exact: true }).waitFor();
     await page.getByRole('link', { name: 'Notifications', exact: true }).click();
+    const expectedBranding = { displayName: 'Acme status', replyTo: 'support@acme.example', subjectPrefix: '[Acme status]', header: 'Service updates from Acme.', footer: 'Acme, 100 Market Street, San Francisco, CA 94105', usePageLogo: true };
+    const before = await appFetch('/api/app/page-settings');
+    assert.equal(before.status, 200);
+    const previousBranding = (await before.json()).settings.emailBranding;
+    // The phone pass deliberately repeats the same values: unchanged fields need no write.
+    const changed = Object.entries(expectedBranding).some(([key, value]) => previousBranding[key] !== value);
+    const saved = changed ? page.waitForResponse(response => new URL(response.url()).pathname === '/api/app/page-settings' && response.request().method() === 'PUT' && Object.entries(expectedBranding).every(([key, value]) => response.request().postDataJSON().emailBranding[key] === value)) : null;
     await page.getByLabel('Sender display name', { exact: true }).fill('Acme status');
     await page.getByLabel('Reply-to address', { exact: true }).fill('support@acme.example');
     await page.getByLabel('Subject prefix', { exact: true }).fill('[Acme status]');
@@ -44,10 +51,12 @@ export async function emailBrandingBrowserFlow({ page, appUrl, pageUrl, appFetch
     await page.getByRole('textbox', { name: /^Email footer/ }).fill('Acme, 100 Market Street, San Francisco, CA 94105');
     await page.getByRole('checkbox', { name: 'Use the uploaded page logo in email' }).check();
     await inspect('settings', '.email-branding-settings');
-    const saved = page.waitForResponse(response => new URL(response.url()).pathname === '/api/app/page-settings' && response.request().method() === 'PUT');
-    await page.getByRole('button', { name: 'Save settings', exact: true }).click();
-    assert.equal((await saved).status(), 200);
-    await page.getByText('Saved and live.', { exact: true }).waitFor();
+    if (saved) assert.equal((await saved).status(), 200);
+    await page.getByRole('status').filter({ hasText: /^Saved · live$/ }).waitFor();
+    const persisted = await appFetch('/api/app/page-settings');
+    assert.equal(persisted.status, 200);
+    const savedBranding = (await persisted.json()).settings.emailBranding;
+    for (const [key, value] of Object.entries(expectedBranding)) assert.equal(savedBranding[key], value, `autosave keeps email branding ${key}`);
     await page.reload(); await operatorHydrated(page);
     assert.equal(await page.getByLabel('Subject prefix', { exact: true }).inputValue(), '[Acme status]', 'the reload keeps the Notifications tab');
     await page.goto(`${appUrl}/app/incidents/${incident.id}`); await operatorHydrated(page);

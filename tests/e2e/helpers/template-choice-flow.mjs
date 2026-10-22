@@ -11,10 +11,10 @@ async function templateCard(page, origin) {
 
 async function choose(page, origin, api, template) {
   const { select } = await templateCard(page, origin);
-  await select.selectOption(template);
   const saved = page.waitForResponse(response => new URL(response.url()).pathname === '/api/app/page-settings' && response.request().method() === 'PUT');
-  await page.getByRole('button', { name: 'Save settings', exact: true }).click();
+  await select.selectOption(template);
   assert.equal((await saved).status(), 200);
+  await page.getByRole('status').filter({ hasText: /^Saved · live$/ }).waitFor();
   assert.equal((await api('/api/app/page-settings')).settings.template, template);
 }
 

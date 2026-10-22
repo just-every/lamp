@@ -30,7 +30,7 @@ const SENDER_FAILED_STEP = 'sender-failed';
 const PAGE_CHECK_MAX_AGE_MS = 2 * 60_000;
 const SENDER_CHECK_MAX_AGE_MS = 24 * 60 * 60_000;
 const NOT_ANSWERING = 'Your public page is not answering. Check the deployment address in Settings.';
-const NO_FORM = 'Your public page has no subscribe form. Save Settings once to republish it.';
+const NO_FORM = 'No subscribe form found. Check your public address in Settings.';
 
 export function createLiveStatusService(repository: OverviewRepository, settings: PageSettingsService, options: {
   publicOrigin: () => Promise<string>;
@@ -111,7 +111,7 @@ export function createLiveStatusService(repository: OverviewRepository, settings
     // First-run setup at /setup is stored once and never cleared by a setup rerun.
     async firstRunComplete() { return (await repository.evidence()).some(row => row.step === 'first-run'); },
     async completeFirstRun() {
-      if (!(await settings.get())?.pageName.trim()) throw new Error('Save your page name first.');
+      if (!(await settings.get())?.pageName.trim()) throw new Error('Enter your page name first.');
       await repository.record('first-run', 'complete');
     },
   };

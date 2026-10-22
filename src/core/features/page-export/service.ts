@@ -1,6 +1,7 @@
 import { emailBrandingSchema } from "../../shared/email-branding";
 import { createUlid, nowIso } from "../../shared/ids";
 import { parseWidgetAllowedOrigins } from "../../shared/widget-origins";
+import { defaultWidgetAppearance, widgetAppearanceSchema } from "../../shared/widget-appearance";
 import type { BlobStore } from "../../platform/blobs/store";
 import { isMailPreparationError } from "../../platform/mail/sender";
 import { AUTHOR_COLUMNS, HELD_RESTORE_DAYS, HELD_RESTORE_REASON, OWNER_RECORD_TABLES, PAGE_DATA_CONTENTS, PAGE_DATA_FORMAT, PAGE_DATA_TABLES, PAGE_DATA_VERSION, SUBSCRIBER_CONSENT_COLUMN, pageDataFileSchema, type PageDataFile, type PageDataRow, type PageDataTable } from "./format";
@@ -107,6 +108,7 @@ export function createPageExportService(repository: PageExportRepository, blobs:
         footerCreditEnabled: settings.footer_credit_enabled === 1,
         template: settings.template,
         widgetAllowedOrigins: parseWidgetAllowedOrigins(settings.widget_allowed_origins),
+        widgetAppearance: widgetAppearanceSchema.parse(JSON.parse(settings.widget_appearance)),
         aiToneInstructions: settings.ai_tone_instructions,
         emailBranding: emailBrandingSchema.parse(JSON.parse(settings.email_branding)),
         feedId: settings.feed_id,
@@ -229,6 +231,7 @@ export function createPageExportService(repository: PageExportRepository, blobs:
             footerCreditEnabled: file.page.footerCreditEnabled,
             template: file.page.template ?? "default",
             widgetAllowedOrigins: JSON.stringify(file.page.widgetAllowedOrigins),
+            widgetAppearance: JSON.stringify(file.page.widgetAppearance ?? defaultWidgetAppearance),
             aiToneInstructions: file.page.aiToneInstructions,
             emailBranding: JSON.stringify(file.page.emailBranding ?? {}),
             feedId: file.page.feedId,
