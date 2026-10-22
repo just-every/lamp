@@ -2,7 +2,7 @@ import { RecoveryCheckPanel } from "./recovery-check";
 import { IncidentImpactCard } from "../../incident-impact/ui";
 import { TemplateControls } from "./template-controls";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
 
 import { createUlid } from "../../../shared/ids";
 import type { UpdateChannel } from "../../../shared/domain";
@@ -51,6 +51,7 @@ function IncidentVisit({ incidentId }: { incidentId: string }) {
     return () => isVisitCurrent() && updateGeneration.current === generation;
   }, [captureVisit]);
   const timezone = usePageTimezone();
+  const impactId = useId();
   const initialPreviewTimezone = useRef(timezone);
   const { data, error, loading, refresh } = useAppData<IncidentResponse>(`/api/app/incidents/${incidentId}`);
   const navigate = useNavigate();
@@ -301,7 +302,8 @@ function IncidentVisit({ incidentId }: { incidentId: string }) {
         <AiSuggestionButton key={updateGeneration.current} incidentId={incident.id} onSuggestion={applySuggestion} captureUpdate={captureUpdate} />
         <form inert={publishState === "publishing"} className="impact-form" onSubmit={(event) => event.preventDefault()}>
           <StatusChoice value={draft.lifecycle} onChange={changeLifecycle} />
-          <label className="impact-field"><span className="field-label">What’s happening?</span><textarea required rows={2} placeholder="What customers see now" value={draft.customerImpact} maxLength={250} onChange={(event) => updateField("customerImpact", event.target.value)} /></label>
+          {/* A separate label keeps the field's name to its question; a wrapping label would also read the text. */}
+          <div className="impact-field"><label className="field-label" htmlFor={impactId}>What’s happening?</label><textarea id={impactId} required rows={2} placeholder="What customers see now" value={draft.customerImpact} maxLength={250} onChange={(event) => updateField("customerImpact", event.target.value)} /></div>
           {findings("customerImpact")}
           <fieldset className="impact-field">
             <legend>Who’s affected?</legend>

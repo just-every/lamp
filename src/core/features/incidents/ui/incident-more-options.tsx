@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from "react";
+import { useId, useState, type ReactNode } from "react";
 
 /** "More options": everything an update can carry beyond the first screen, closed until asked for.
  * It stays mounted while closed, so nothing typed in it is lost. */
@@ -13,9 +13,10 @@ export function MoreOptions({ label = "More options", children, footer }: { labe
   </>;
 }
 
-/** An optional text an update may carry, with a count once it nears its limit. */
+/** An optional text an update may carry, with a count once it nears its limit. Its label names the field alone. */
 export function OptionalText({ label, value, max, onChange, children }: { label: string; value: string; max: number; onChange: (value: string) => void; children?: ReactNode }) {
-  return <label className="form-label option-text">{label}<textarea value={value} maxLength={max} rows={2} onChange={(event) => onChange(event.target.value)} />{value.length > max * 0.8 ? <span className="character-count">{value.length}/{max}</span> : null}{children}</label>;
+  const id = useId();
+  return <div className="form-label option-text"><label htmlFor={id}>{label}</label><textarea id={id} value={value} maxLength={max} rows={2} onChange={(event) => onChange(event.target.value)} />{value.length > max * 0.8 ? <span className="character-count">{value.length}/{max}</span> : null}{children}</div>;
 }
 
 /** The incident's own private tools (notes, review, correction, public impact, deletion), closed at the end of the record. */

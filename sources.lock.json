@@ -3552,7 +3552,7 @@
       "executable": false
     },
     "src/core/features/incidents/ui/incident-detail-page.tsx": {
-      "sha256": "0efbd0832d23714e5a4643a8d2ed2d70dec779532a55ec3f1c473e45131d183a",
+      "sha256": "802ff0f7046134893c7f62376c936c1bd2d3b71e8f36e41dcde34059c4853473",
       "executable": false
     },
     "src/core/features/incidents/ui/incident-header.tsx": {
@@ -3560,7 +3560,7 @@
       "executable": false
     },
     "src/core/features/incidents/ui/incident-more-options.tsx": {
-      "sha256": "36c2e05dfb251e454a09d4fac00d7fb108ea1fd0f3a29e4e01526464dafe30f1",
+      "sha256": "1568353d06219696a5db9b20a4bc9334863e6af189797deb90533c3ad369f442",
       "executable": false
     },
     "src/core/features/incidents/ui/incident-operator-controls.tsx": {
