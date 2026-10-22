@@ -6004,7 +6004,7 @@
       "executable": false
     },
     "tests/e2e/publishing-browser.test.mjs": {
-      "sha256": "26ea5b37fba6859acc17b020e638e8eda8a1ef46a564f41362b3421b55e842f1",
+      "sha256": "d1b55f5949284bc7aac9e650e9dcb009aa7b6ccefbe38836edd77d49c3fa5c08",
       "executable": false
     },
     "tests/e2e/publishing-contract.test.mjs": {

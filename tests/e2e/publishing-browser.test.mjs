@@ -443,6 +443,7 @@ contract("DRAFT-002", "Settings autosaves survive navigation and reload, keep fe
       assert.ok(Date.now() < deadline, `${key} reaches the server after leaving Settings`);
     }
   };
+  const { id, logoKey, logoContentType, feedId, createdAt, updatedAt, mailIdentityEditable, regionsAvailable, ...originalSettings } = await storedSettings();
   const inView = async locator => {
     const box = await locator.boundingBox();
     assert.ok(box && box.y >= 0 && box.y + box.height <= page.viewportSize().height, "save feedback is in the viewport");
@@ -496,6 +497,8 @@ contract("DRAFT-002", "Settings autosaves survive navigation and reload, keep fe
     await page.locator(".settings-save-note").filter({ hasText: /^Saved · live$/ }).waitFor();
     await eventuallyStored("tagline", nextTagline);
   }
+  const restored = await appFetch("/api/app/page-settings", { method: "PUT", body: JSON.stringify(originalSettings) });
+  assert.equal(restored.status, 200, "restore the shared Settings fixture for the remaining browser journeys");
 });
 
 contract("INTAKE-005", "operators configure a real authenticated source and inspect accepted and rejected redacted receipts", async () => {
