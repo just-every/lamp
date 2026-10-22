@@ -258,10 +258,12 @@ test("Fresh publication drafts and narrow operator navigation preserve deliberat
       assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true, `${path} at ${width}`);
     }
     await page.goto(`${origin}/app/incidents`);
+    await operatorHydrated(page);
     await page.getByRole("link", { name: "New incident", exact: true }).click();
     await page.waitForURL(`${origin}/app/incidents/new`);
-    // The route change closes the phone menu; open it only once the new screen is in place.
+    // The route change closes the phone menu; open it only once the new screen is in place and hydrated.
     await page.getByRole("heading", { name: "New incident", exact: true }).waitFor();
+    await operatorHydrated(page);
     if (width <= 900) await page.getByRole("button", { name: "Menu", exact: true }).click();
     const signout = page.getByRole("button", { name: "Sign out", exact: true });
     await signout.scrollIntoViewIfNeeded(); const box = await signout.boundingBox();
