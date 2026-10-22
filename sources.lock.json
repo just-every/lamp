@@ -516,7 +516,7 @@
       "executable": false
     },
     "DIVERGENCE.md": {
-      "sha256": "991f955093702dcf2c5f19d5331f129817a4d0d0c1ff057a2cd511a2b6461579",
+      "sha256": "67fa557b3e11101c44dcbaa659152c01a53f23a04a6feca64cf38f1f4c0f6e8f",
       "executable": false
     },
     "docs/ai-assistance.md": {
@@ -2944,7 +2944,7 @@
       "executable": false
     },
     "src/core/app/client/ui/app-shell.tsx": {
-      "sha256": "1e166f65c5fc127918dcb012442bc1c0d68ec45c7d64ed5fbe3772923a589362",
+      "sha256": "81e10d822ef9f453711ec2cacc6cfa4e15a8192da3e0790ec75fd0446ab08931",
       "executable": false
     },
     "src/core/app/client/ui/button.tsx": {
@@ -2985,6 +2985,10 @@
     },
     "src/core/app/client/ui/intake.css": {
       "sha256": "44d3b18b530da794d67d5485c1d311326809e7388cb1f90b23e30373983b9a20",
+      "executable": false
+    },
+    "src/core/app/client/ui/leave-guard.ts": {
+      "sha256": "6187310bba5ec9707d9213ef636ce047c93ab2046b8b3e5acc9000076b8683a2",
       "executable": false
     },
     "src/core/app/client/ui/lit-page.tsx": {
@@ -3860,7 +3864,7 @@
       "executable": false
     },
     "src/core/features/page-settings/ui/settings-page.tsx": {
-      "sha256": "558f0d612a25ff140847672af2b3312c3aa5f0372eae56ffba7cf8367697bb01",
+      "sha256": "0965c1d825fcead8ecb7daed5d8f7ba47b0b87a748fbd869204fa5fe016b9745",
       "executable": false
     },
     "src/core/features/page-settings/ui/settings-save-state.tsx": {
@@ -3876,7 +3880,7 @@
       "executable": false
     },
     "src/core/features/page-settings/ui/use-settings-autosave.ts": {
-      "sha256": "602abdc18423f9448d1d933e96ec752fcec423c1f9ee4935212491adac36d17e",
+      "sha256": "7fee606c803627fd7b853d0220cd1a76eefeb46cae86ddccae56bc26a53f5899",
       "executable": false
     },
     "src/core/features/page-settings/ui/wording-settings.tsx": {
@@ -4376,7 +4380,7 @@
       "executable": false
     },
     "src/core/features/statuspage-import/ui/cutover-page.tsx": {
-      "sha256": "4ef4ff15c560486d060ee7f6d1d2994a440b69ed3c2cb810797ceab4edfc8b9e",
+      "sha256": "6d143ba0cfeb955f3a53590adcfa68e7453951e4547865c322c180ce0a3d15af",
       "executable": false
     },
     "src/core/features/statuspage-import/ui/door-client.ts": {
@@ -6004,7 +6008,7 @@
       "executable": false
     },
     "tests/e2e/publishing-browser.test.mjs": {
-      "sha256": "d1b55f5949284bc7aac9e650e9dcb009aa7b6ccefbe38836edd77d49c3fa5c08",
+      "sha256": "9ffbd912fac2cdaecd5e13944ca2b66d5d9cb7881a4769f3436540b3cf6dce2f",
       "executable": false
     },
     "tests/e2e/publishing-contract.test.mjs": {

@@ -419,19 +419,20 @@ contract("DRAFT-002", "Settings autosaves survive navigation and reload, keep fe
     await page.getByRole("link", { name: "Page", exact: true }).click();
     await page.getByRole("link", { name: "Writing", exact: true }).click();
     assert.equal(await toneField.inputValue(), tone, "switching Settings tabs keeps the unsaved draft");
-    const warning = page.waitForEvent("dialog");
-    const leave = page.getByRole("link", { name: "Overview", exact: true }).click();
-    await (await warning).dismiss(); await leave;
-    assert.equal(new URL(page.url()).pathname, "/app/settings", "cancelling navigation keeps Settings open");
-    assert.equal(await toneField.inputValue(), tone, "cancelling navigation keeps the edit");
+    // Leaving waits on Settings, without a prompt, until the write is answered.
+    await page.getByRole("link", { name: "Overview", exact: true }).click();
+    await page.locator(".settings-save-note").filter({ hasText: /^Saving…$/ }).waitFor();
+    await page.waitForTimeout(500);
+    assert.equal(new URL(page.url()).pathname, "/app/settings", "leaving waits while the write is unanswered");
+    assert.equal(await toneField.inputValue(), tone, "waiting keeps the edit");
     releaseSave();
     assert.equal((await saved).status(), 200);
-    await page.getByRole("status").filter({ hasText: /^Saved · live$/ }).waitFor();
+    await page.waitForURL(url => url.pathname === "/app");
   } finally {
     releaseSave();
     await page.unroute("**/api/app/page-settings", holdSettings);
   }
-  await page.reload();
+  await page.goto(`${appUrl}/app/settings#writing`);
   await operatorHydrated(page);
   await page.getByText("No provider configured", { exact: true }).waitFor();
   assert.equal(await page.getByLabel("Tone instructions").inputValue(), tone);
@@ -455,10 +456,9 @@ contract("DRAFT-002", "Settings autosaves survive navigation and reload, keep fe
     if (width === 390) await page.getByRole("button", { name: "Menu", exact: true }).click();
     const name = `Northstar status ${width}`;
     await page.getByLabel("Page name", { exact: true }).fill(name);
-    const leaving = page.waitForEvent("dialog");
-    const navigation = page.locator(".operator-navigation").getByRole("link", { name: "Overview", exact: true }).click();
-    await (await leaving).accept(); await navigation; await page.waitForURL(url => url.pathname === "/app");
-    await eventuallyStored("pageName", name);
+    await page.locator(".operator-navigation").getByRole("link", { name: "Overview", exact: true }).click();
+    await page.waitForURL(url => url.pathname === "/app");
+    assert.equal((await storedSettings()).pageName, name, "the edit is stored before Settings closes");
     await page.goto(`${appUrl}/app/settings#page`); await operatorHydrated(page);
     const reloadedName = `${name} after reload`;
     await page.getByLabel("Page name", { exact: true }).fill(reloadedName);
@@ -481,9 +481,12 @@ contract("DRAFT-002", "Settings autosaves survive navigation and reload, keep fe
     await page.goto(`${appUrl}/app/settings#page`); await operatorHydrated(page);
     const tagline = page.locator("label").filter({ hasText: /^Tagline/ }).locator("textarea");
     const nextTagline = `Current service availability for Northstar customers. ${width}`;
-    const refusal = async route => route.request().method() === "PUT"
-      ? route.fulfill({ status: 503, contentType: "application/json", body: JSON.stringify({ error: "Publishing is temporarily unavailable. Please try again." }) })
-      : route.continue();
+    const refusal = async route => {
+      if (route.request().method() !== "PUT") return route.continue();
+      // The refusal comes late, so leaving below always meets its write still unanswered.
+      await new Promise(resolve => setTimeout(resolve, 1_000));
+      await route.fulfill({ status: 503, contentType: "application/json", body: JSON.stringify({ error: "Publishing is temporarily unavailable. Please try again." }) });
+    };
     await page.route("**/api/app/page-settings", refusal);
     try {
       await tagline.fill(nextTagline);
@@ -492,10 +495,19 @@ contract("DRAFT-002", "Settings autosaves survive navigation and reload, keep fe
       assert.equal(await tagline.inputValue(), nextTagline, "a refused save retains the entered value");
       await inView(page.locator(".settings-save-state")); await inView(retry);
       assert.match(await page.locator(".settings-save-state [role=alert]").innerText(), /Publishing is temporarily unavailable/);
+      // A newer edit refused while leaving keeps Settings open, with the value, the reason and Retry.
+      if (width === 390) await page.getByRole("button", { name: "Menu", exact: true }).click();
+      await tagline.fill(`${nextTagline} today`);
+      await page.locator(".operator-navigation").getByRole("link", { name: "Overview", exact: true }).click();
+      await retry.waitFor();
+      assert.equal(new URL(page.url()).pathname, "/app/settings", "a save refused while leaving keeps Settings open");
+      assert.equal(await tagline.inputValue(), `${nextTagline} today`);
+      await inView(retry);
+      assert.match(await page.locator(".settings-save-state [role=alert]").innerText(), /Publishing is temporarily unavailable/);
     } finally { await page.unroute("**/api/app/page-settings", refusal); }
     await page.getByRole("button", { name: "Retry", exact: true }).click();
     await page.locator(".settings-save-note").filter({ hasText: /^Saved · live$/ }).waitFor();
-    await eventuallyStored("tagline", nextTagline);
+    await eventuallyStored("tagline", `${nextTagline} today`);
   }
   const restored = await appFetch("/api/app/page-settings", { method: "PUT", body: JSON.stringify(originalSettings) });
   assert.equal(restored.status, 200, "restore the shared Settings fixture for the remaining browser journeys");

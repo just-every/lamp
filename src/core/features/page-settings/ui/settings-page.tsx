@@ -6,6 +6,7 @@ import type { OverviewService } from "../../overview/service";
 import { AuditLog } from "../../audit-log/ui/audit-log";
 import { useAppData } from "../../../app/client/ui/api";
 import { Icon } from "../../../app/client/ui/icon";
+import { useLeaveGuard } from "../../../app/client/ui/leave-guard";
 import { LoadingState } from "../../../app/client/ui/states";
 import { ErrorState } from "../../../app/client/ui/lit-states";
 import { ChannelsCard } from "../../channels/ui/channels-card";
@@ -41,13 +42,12 @@ export function SettingsPage() {
   const [ready, setReady] = useState(false);
   useEffect(() => setReady(true), []);
   useBlocker({
-    shouldBlockFn: ({ next }) => {
-      if (next.pathname === "/app/settings") return false;
-      const warning = autosave.prepareToLeave();
-      return Boolean(warning && !window.confirm(warning));
-    },
-    enableBeforeUnload: autosave.dirty,
+    // Leaving waits for pending edits to save; a refused save keeps the owner here with its reason and Retry.
+    shouldBlockFn: async ({ next }) => next.pathname !== "/app/settings" && !await autosave.leave(),
+    enableBeforeUnload: autosave.unsaved,
   });
+  // Signing out waits the same way, before the session ends.
+  useLeaveGuard(autosave.leave);
   if (loading && !data) return <LoadingState />;
   if (error && !settings) return <ErrorState onRetry={() => window.location.reload()}>{error}</ErrorState>;
   if (!settings || !saved) return null;
