@@ -3592,7 +3592,7 @@
       "executable": false
     },
     "src/core/features/incidents/ui/recovery-check.tsx": {
-      "sha256": "92091790046ba087d77e86fae279f548f6ee2964a940a19a18a8d39d59d7b787",
+      "sha256": "f37a1ed68e409c12392db392b83450f971016fae668d50e4c7fb4243e358e41d",
       "executable": false
     },
     "src/core/features/incidents/ui/status-choice.tsx": {
@@ -3620,7 +3620,7 @@
       "executable": false
     },
     "src/core/features/incidents/ui/use-new-incident.ts": {
-      "sha256": "daa3959c104c840f7a97a1423978839f34d092a250a375a171fd96f499908b9a",
+      "sha256": "2c30d88bc7bd243ed57ace7870595a60936c14596cd12a53175809fea63d1e14",
       "executable": false
     },
     "src/core/features/incidents/ui/wording-findings.tsx": {
@@ -6096,7 +6096,7 @@
       "executable": false
     },
     "tests/e2e/ui-interactions.test.mjs": {
-      "sha256": "eabd1c6d452be7b85d5d5641f08df75302a04db3c36a5bdaa7f54737f8e7deda",
+      "sha256": "adfbd57df7662861eb8eb530f8ae0ebf4a683dd48cec1fdeef25a9926983bf38",
       "executable": false
     },
     "tests/e2e/update-reminders.test.mjs": {

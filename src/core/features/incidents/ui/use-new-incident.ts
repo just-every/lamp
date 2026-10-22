@@ -22,7 +22,8 @@ type Created = Awaited<ReturnType<IncidentsService["create"]>>;
 const STORAGE_KEY = "lamp.new-incident";
 const blank: NewIncident = { title: "", claims: [], update: { lifecycle: "Investigating", affectedAudience: "", customerImpact: "", whatStillWorks: "", details: "", nextUpdateAt: null }, openedAt: null, channels: ["email"], timing: { mode: "now", at: null } };
 
-// Nothing exists on the server until Publish, so the tab keeps what was typed across a reload.
+// Nothing exists on the server until Publish, so the tab keeps what was typed across a reload;
+// leaving the screen in the app discards it, so the next new incident starts empty.
 function restore(): NewIncident | null {
   try {
     const saved = JSON.parse(window.sessionStorage.getItem(STORAGE_KEY) ?? "null") as Partial<NewIncident> | null;
@@ -49,6 +50,7 @@ export function useNewIncident() {
 
   useEffect(() => { const saved = restore(); if (saved) { touchedChannels.current = true; setForm(saved); } setRestored(true); }, []);
   useEffect(() => { if (restored && !publishing) remember(form); }, [form, restored, publishing]);
+  useEffect(() => () => remember(null), []);
   // Slack and Teams join the default selection once a chat channel exists, as on the incident composer.
   useEffect(() => { if (hasChat && !touchedChannels.current) setForm(current => current.channels.includes("chat") ? current : { ...current, channels: [...current.channels, "chat"] }); }, [hasChat]);
 
