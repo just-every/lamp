@@ -40,8 +40,8 @@ export function AlertsPage() {
   return <div className="page-stack alerts-page">
     <section className="page-title-row"><div><h1>Alerts</h1><p>Alerts from your tools open private drafts. Nothing is public until you publish.</p></div></section>
     {connected.length > 0 && <ConnectedTools sources={connected} components={componentList} editing={editing?.id ?? null} onEdit={source => setOpen({ kind: "edit", sourceId: source.id })} onRemoved={source => { if (editing?.id === source.id) close(); refresh(); }} />}
-    {open?.kind === "new" ? <ToolForm key={`new:${open.tool}`} tool={open.tool} source={null} components={componentList} onConnected={created => { if (created) setOpen({ kind: "edit", sourceId: created.id, created }); refresh(); }} onSaved={refresh} onClose={close} />
-      : editing ? <ToolForm key={`edit:${editing.id}`} tool={toolOf(editing)} source={editing} components={componentList} onConnected={refresh} onSaved={refresh} onClose={close} />
+    {open?.kind === "new" ? <ToolForm key={`new:${open.tool}`} tool={open.tool} source={null} components={componentList} names={connected.map(source => source.name)} onConnected={created => { if (created) setOpen({ kind: "edit", sourceId: created.id, created }); refresh(); }} onSaved={refresh} onClose={close} />
+      : editing ? <ToolForm key={`edit:${editing.id}`} tool={toolOf(editing)} source={editing} components={componentList} names={connected.map(source => source.name)} onConnected={refresh} onSaved={refresh} onClose={close} />
       : <ToolPicker onPick={tool => setOpen({ kind: "new", tool })} />}
     {arrived.length > 0 && <ReceiptsCard receipts={arrived} />}
   </div>;

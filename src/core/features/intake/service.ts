@@ -103,7 +103,12 @@ export function createIntakeService(
       const timestamp = nowIso();
       // An endpoint awaiting PagerDuty's generated secret stores empty text; authentication refuses it.
       const source: AlertSourceRow = { id: sourceId, responderSealedCredentials: sealed, responderConnected: Boolean(sealed || (existing?.preset === input.preset && existing?.responderConnected)), name: input.name.trim(), credentialKind: input.credentialKind, signingSecret: input.credentialKind === "hmac-sha256" ? (input.signingSecret ?? existing?.signingSecret ?? (input.preset === "pagerduty" ? "" : null)) : null, bearerTokenHash: input.credentialKind === "bearer-token" ? (input.bearerToken ? await hashOpaqueToken(input.bearerToken) : existing?.bearerTokenHash ?? null) : null, timestampHeader: (input.timestampHeader ?? existing?.timestampHeader ?? "x-lamp-timestamp").toLowerCase(), signatureHeader: (input.signatureHeader ?? existing?.signatureHeader ?? "x-lamp-signature").toLowerCase(), deduplicationPath: input.deduplicationPath, titlePath: input.titlePath, statePath: input.statePath, recoveredValue: input.recoveredValue ?? existing?.recoveredValue ?? "recovered", monitorMappings: input.preset === "uptime" ? input.monitorMappings ?? [] : [], labelMatchers: (isGroupedPreset(input.preset) || input.preset === "pagerduty") ? input.labelMatchers : [], preset: input.preset ?? null, componentId: input.preset ? input.componentId ?? null : null, createdByOperatorId: existing?.createdByOperatorId ?? operatorId, createdAt: existing?.createdAt ?? timestamp, updatedAt: timestamp };
-      await repository.upsertSource(source);
+      try { await repository.upsertSource(source); }
+      catch (cause) {
+        // Source names are unique (alert_sources.name); say so instead of passing on the storage error.
+        if (cause instanceof Error && cause.message.includes("UNIQUE constraint failed: alert_sources.name")) throw new Error("Another connected tool already has this name.");
+        throw cause;
+      }
       return generated ? { ...sourceView(source), token: generated } : sourceView(source);
     },
     async authenticate(sourceId, request, pathToken) {

@@ -19,6 +19,13 @@ export const TOOLS: Array<{ id: ToolId; pick: string; does: string }> = [
 ];
 
 export const toolLabel = (tool: ToolId) => tool === "webhook" ? "Another tool" : presetLabels[tool];
+/** Source names are unique: a second connection of the same tool is numbered. */
+export function freeName(base: string, taken: string[]) {
+  if (!taken.includes(base)) return base;
+  let number = 2;
+  while (taken.includes(`${base} ${number}`)) number += 1;
+  return `${base} ${number}`;
+}
 export const toolDoes = (tool: ToolId) => TOOLS.find(row => row.id === tool)!.does;
 export const toolOf = (source: Source): ToolId => source.preset ?? "webhook";
 

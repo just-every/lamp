@@ -19,11 +19,11 @@ function matchersOf(rows: Row[]): LabelMatcher[] | null {
 const body = (name: string, labelMatchers: LabelMatcher[]) => ({ name, preset: "pagerduty", credentialKind: "hmac-sha256", labelMatchers });
 
 /** PagerDuty: map its services, then paste the signing secret PagerDuty makes for the subscription. Notes back are optional. */
-export function PagerDutyForm({ source, components, onConnected, onSaved, onClose }: { source: Source | null; components: ComponentOption[]; onConnected: (source: Source) => void; onSaved: () => void; onClose: () => void }) {
-  return source ? <EditPagerDuty source={source} components={components} onSaved={onSaved} onClose={onClose} /> : <ConnectPagerDuty components={components} onConnected={onConnected} onClose={onClose} />;
+export function PagerDutyForm({ source, components, name, onConnected, onSaved, onClose }: { source: Source | null; components: ComponentOption[]; name: string; onConnected: (source: Source) => void; onSaved: () => void; onClose: () => void }) {
+  return source ? <EditPagerDuty source={source} components={components} onSaved={onSaved} onClose={onClose} /> : <ConnectPagerDuty name={name} components={components} onConnected={onConnected} onClose={onClose} />;
 }
 
-function ConnectPagerDuty({ components, onConnected, onClose }: { components: ComponentOption[]; onConnected: (source: Source) => void; onClose: () => void }) {
+function ConnectPagerDuty({ name, components, onConnected, onClose }: { name: string; components: ComponentOption[]; onConnected: (source: Source) => void; onClose: () => void }) {
   const [rows, setRows] = useState<Row[]>([emptyRow()]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -32,7 +32,7 @@ function ConnectPagerDuty({ components, onConnected, onClose }: { components: Co
     event.preventDefault();
     if (!matchers) return;
     setBusy(true); setError(null);
-    try { onConnected((await appApi<{ source: Source }>("/api/app/intake/sources", { method: "POST", body: JSON.stringify(body("PagerDuty", matchers)) })).source); }
+    try { onConnected((await appApi<{ source: Source }>("/api/app/intake/sources", { method: "POST", body: JSON.stringify(body(name, matchers)) })).source); }
     catch (cause) { setError(cause instanceof Error ? cause.message : "PagerDuty could not be connected."); setBusy(false); }
   }
   return <section className="data-card tool-form" aria-labelledby="tool-form-title">

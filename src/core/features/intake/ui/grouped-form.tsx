@@ -26,11 +26,11 @@ function matchersOf(rows: Row[]): LabelMatcher[] | null {
 const body = (name: string, tool: GroupedPreset, labelMatchers: LabelMatcher[]) => ({ name, preset: tool, credentialKind: "bearer-token", labelMatchers });
 
 /** Alertmanager and Grafana: each component is matched by exact alert labels; Lamp makes the key. */
-export function GroupedForm({ tool, source, components, onConnected, onSaved, onClose }: { tool: GroupedPreset; source: Source | null; components: ComponentOption[]; onConnected: () => void; onSaved: () => void; onClose: () => void }) {
-  return source ? <EditGrouped tool={tool} source={source} components={components} onSaved={onSaved} onClose={onClose} /> : <ConnectGrouped tool={tool} components={components} onConnected={onConnected} onClose={onClose} />;
+export function GroupedForm({ tool, source, components, name, onConnected, onSaved, onClose }: { tool: GroupedPreset; source: Source | null; components: ComponentOption[]; name: string; onConnected: () => void; onSaved: () => void; onClose: () => void }) {
+  return source ? <EditGrouped tool={tool} source={source} components={components} onSaved={onSaved} onClose={onClose} /> : <ConnectGrouped tool={tool} name={name} components={components} onConnected={onConnected} onClose={onClose} />;
 }
 
-function ConnectGrouped({ tool, components, onConnected, onClose }: { tool: GroupedPreset; components: ComponentOption[]; onConnected: () => void; onClose: () => void }) {
+function ConnectGrouped({ tool, name, components, onConnected, onClose }: { tool: GroupedPreset; name: string; components: ComponentOption[]; onConnected: () => void; onClose: () => void }) {
   const [rows, setRows] = useState<Row[]>([emptyRow()]);
   const [address, setAddress] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -40,7 +40,7 @@ function ConnectGrouped({ tool, components, onConnected, onClose }: { tool: Grou
     if (!matchers) return;
     setBusy(true); setError(null);
     try {
-      const { source } = await appApi<{ source: Source }>("/api/app/intake/sources", { method: "POST", body: JSON.stringify(body(toolLabel(tool), tool, matchers)) });
+      const { source } = await appApi<{ source: Source }>("/api/app/intake/sources", { method: "POST", body: JSON.stringify(body(name, tool, matchers)) });
       setAddress(keyedAddress(source, source.token!)); onConnected();
     } catch (cause) { setError(cause instanceof Error ? cause.message : `${toolLabel(tool)} could not be connected.`); }
     finally { setBusy(false); }

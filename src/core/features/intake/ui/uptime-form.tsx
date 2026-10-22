@@ -21,18 +21,18 @@ function monitorsOf(source: Source) {
 }
 
 /** Uptime pairs by picking: Lamp makes the address Uptime posts to, and each monitor Uptime names gets a component here. */
-export function UptimeForm({ source, components, onConnected, onSaved, onClose }: { source: Source | null; components: ComponentOption[]; onConnected: () => void; onSaved: () => void; onClose: () => void }) {
-  return source ? <EditUptime source={source} components={components} onSaved={onSaved} onClose={onClose} /> : <ConnectUptime onConnected={onConnected} onClose={onClose} />;
+export function UptimeForm({ source, components, name, onConnected, onSaved, onClose }: { source: Source | null; components: ComponentOption[]; name: string; onConnected: () => void; onSaved: () => void; onClose: () => void }) {
+  return source ? <EditUptime source={source} components={components} onSaved={onSaved} onClose={onClose} /> : <ConnectUptime name={name} onConnected={onConnected} onClose={onClose} />;
 }
 
-function ConnectUptime({ onConnected, onClose }: { onConnected: () => void; onClose: () => void }) {
+function ConnectUptime({ name, onConnected, onClose }: { name: string; onConnected: () => void; onClose: () => void }) {
   const [address, setAddress] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   async function connect() {
     setBusy(true); setError(null);
     try {
-      const { source } = await appApi<{ source: Source }>("/api/app/intake/sources", { method: "POST", body: JSON.stringify({ name: "Uptime", preset: "uptime", credentialKind: "bearer-token" }) });
+      const { source } = await appApi<{ source: Source }>("/api/app/intake/sources", { method: "POST", body: JSON.stringify({ name, preset: "uptime", credentialKind: "bearer-token" }) });
       setAddress(keyedAddress(source, source.token!)); onConnected();
     } catch (cause) { setError(cause instanceof Error ? cause.message : "Uptime could not be connected."); }
     finally { setBusy(false); }
