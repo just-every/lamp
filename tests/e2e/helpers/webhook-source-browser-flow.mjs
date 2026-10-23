@@ -79,11 +79,21 @@ export async function webhookSourceBrowserFlow({ origin, cookie, api, post }) {
     finally { await context.setOffline(false); }
     await retry.click(); await state.getByText('Saved', { exact: true }).waitFor();
     assert.equal((await api('/api/app/intake/sources')).body.sources.find(source => endpoint.includes(`/api/intake/${source.id}`)).name, offline, 'online again, Retry stores the name');
-    // Offline, Alerts' own link (a move that stays on the page) keeps the open form, the typed name, the reason and Retry.
+    // Offline, Alerts' own link (a move that stays on the page, taking the owner to its top as any link does) keeps the
+    // open form with the typed name, the reason and Retry, and the server keeps the saved name.
     const ownLink = 'Browser alert source — own link';
     await savedName(); await context.setOffline(true);
-    try { await name.fill(ownLink); await menu('Alerts'); await held("Alerts' own link offline", ownLink); }
-    finally { await context.setOffline(false); }
+    try {
+      await name.fill(ownLink); await menu('Alerts');
+      await Promise.race([settled(retry.waitFor()), settled(form.waitFor({ state: 'detached' }))]);
+      // Still offline once the page settles, so a reload over Alerts would fail here.
+      await page.waitForTimeout(500);
+      assert.equal(new URL(page.url()).pathname, '/app/alerts', "Alerts' own link offline: the owner stays on Alerts");
+      assert.equal(await form.count(), 1, "Alerts' own link offline: the form stays open");
+      assert.equal(await name.inputValue(), ownLink, "Alerts' own link offline: the typed name stays");
+      assert.ok(await state.getByRole('alert').isVisible() && await retry.isVisible(), "Alerts' own link offline: the reason and Retry show");
+      assert.equal((await api('/api/app/intake/sources')).body.sources.find(source => endpoint.includes(`/api/intake/${source.id}`)).name, 'Browser alert source — primary', "Alerts' own link offline: the server keeps the saved name");
+    } finally { await context.setOffline(false); }
     await retry.click(); await state.getByText('Saved', { exact: true }).waitFor();
     assert.equal((await api('/api/app/intake/sources')).body.sources.find(source => endpoint.includes(`/api/intake/${source.id}`)).name, ownLink, "online again, Retry stores the name typed before Alerts' own link");
     await savedName(); await close(); await form.waitFor({ state: 'detached' });

@@ -6076,7 +6076,7 @@
       "executable": false
     },
     "tests/e2e/helpers/webhook-source-browser-flow.mjs": {
-      "sha256": "795eb7fb0cca01786efac7725706ec4287fdf75ef31986fc6efee9c4b01396e5",
+      "sha256": "37d49cc2a518c8742e28b417301fdbb55c0652d4d78b6a184a4025a146026934",
       "executable": false
     },
     "tests/e2e/helpers/widget-privacy-flow.mjs": {
