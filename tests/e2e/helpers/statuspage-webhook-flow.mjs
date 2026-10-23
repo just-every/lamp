@@ -1,6 +1,8 @@
+import { createHmac } from "node:crypto";
+import { componentNotificationFlow } from "./component-notification-flow.mjs";
 import assert from "node:assert/strict";
 import { openSubscriberManagementFixture, eventuallySubscriber, pageOrigin } from "./subscriber-management-fixture.mjs";
-import { receiveStatuspageWebhook, expectStatuspageIncident } from "./statuspage-webhook-receiver.mjs";
+import { receiveStatuspageWebhook, expectStatuspageIncident, expectStatuspageComponentChange } from "./statuspage-webhook-receiver.mjs";
 import { statuspageWebhookMaintenance } from "./statuspage-webhook-maintenance.mjs";
 import { webhookFormatBrowserFlow } from "./webhook-format-browser-flow.mjs";
 
@@ -11,15 +13,36 @@ const signingSecret = "synthetic-lamp-webhook-1".repeat(4);
  * returns 204 only after field-by-field acceptance of the actual wire bytes. */
 export async function statuspageWebhookFlow() {
   await webhookFormatBrowserFlow();
-  const accepted = [], receiverErrors = [];
+  const accepted = [], lampAccepted = [], receiverErrors = [];
   const contact = "synthetic-lamp-statuspage-contact@example.test";
   let fixture;
   const webhookReceiver = async record => {
     try {
+      const value = JSON.parse(record.rawBody);
+      if (typeof value.event === "string") {
+        const timestamp = record.headers["webhook-timestamp"], deliveryId = record.headers["webhook-id"];
+        const expected = createHmac("sha256", signingSecret).update(`${deliveryId}.${timestamp}.${record.rawBody}`).digest("base64url");
+        assert.ok(record.headers["webhook-signature"].split(/\s+/).includes(`v1=${expected}`), "Lamp component and incident carriers authenticate the complete wire bytes");
+        assert.ok(!lampAccepted.some(previous => previous.deliveryId === deliveryId));
+        lampAccepted.push({ body: value, deliveryId });
+        return new Response(null, { status: 204 });
+      }
       const received = receiveStatuspageWebhook(record, signingSecret);
       const statusResponse = await fixture.raw(`${pageOrigin}/api/v2/status.json`);
       assert.equal(statusResponse.status, 200);
       const state = await statusResponse.json();
+      if (received.body.component_update) {
+        const response = await fixture.raw(`${pageOrigin}/api/v2/components.json`);
+        assert.equal(response.status, 200);
+        const component = (await response.json()).components.find(row => row.id === received.body.component.id);
+        assert.ok(component, "the component body uses the same stable public API ID");
+        expectStatuspageComponentChange(received.body, { component, oldStatus: received.body.component_update.old_status, newStatus: component.status });
+        assert.deepEqual(received.body.component, { id: component.id, name: component.name, status: component.status, created_at: component.created_at });
+        assert.deepEqual(received.body.page, { id: state.page.id, status_indicator: state.status.indicator, status_description: state.status.description });
+        assert.ok(!accepted.some(previous => previous.deliveryId === received.deliveryId));
+        accepted.push(received);
+        return new Response(null, { status: 204 });
+      }
       const maintenance = received.body.incident?.impact === "maintenance";
       const recordsResponse = await fixture.raw(`${pageOrigin}/api/v2/${maintenance ? "scheduled-maintenances" : "incidents"}.json`);
       assert.equal(recordsResponse.status, 200);
@@ -58,7 +81,7 @@ export async function statuspageWebhookFlow() {
     assert.equal(manage.status, 200);
     const html = await manage.text();
     assert.match(html, /name="webhookFormat"/);
-    const changeFormat = (format, url = manageUrl) => raw(url, { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded", Origin: new URL(url).origin }, body: new URLSearchParams({ componentId: component.id, webhookFormat: format }).toString() });
+    const changeFormat = (format, url = manageUrl) => raw(url, { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded", Origin: new URL(url).origin }, body: new URLSearchParams({ componentId: component.id, webhookFormat: format, preferencesPresent: "1", eventKind: "incidents" }).toString() });
     assert.equal((await changeFormat("invalid-statuspage-format")).status, 400);
     assert.equal((await changeFormat("lamp")).status, 200);
     assert.equal((await fixture.list()).find(row => row.id === added.body.subscriber.id).webhookFormat, "lamp");
@@ -94,7 +117,11 @@ export async function statuspageWebhookFlow() {
       await eventuallySubscriber(async () => (await api(`/api/app/deliveries?incidentUpdateId=${published.body.update.id}&channel=webhook&limit=100`)).body.deliveries,
         rows => rows.length === 1 && rows[0].outcome === "delivered", "receiver acceptance is recorded as actual webhook delivery");
     }
+    const preferences = new URLSearchParams({ componentId: component.id, webhookFormat: "statuspage", preferencesPresent: "1" });
+    preferences.append("eventKind", "incidents"); preferences.append("eventKind", "maintenance");
+    assert.equal((await raw(manageUrl, { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded", Origin: new URL(manageUrl).origin }, body: preferences.toString() })).status, 200);
     await statuspageWebhookMaintenance({ fixture, component, accepted, receiverErrors });
+    await componentNotificationFlow({ fixture, component, subscriber: added.body.subscriber, manageUrl, accepted, lampAccepted, receiverErrors });
     const unsubscribe = accepted[0].body.meta.unsubscribe;
     const stopped = await raw(unsubscribe, { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded", Origin: new URL(unsubscribe).origin }, body: "List-Unsubscribe=One-Click" });
     assert.equal(stopped.status, 200, await stopped.clone().text());
@@ -102,7 +129,5 @@ export async function statuspageWebhookFlow() {
     assert.equal((await changeFormat("lamp")).status, 404);
     assert.equal((await fixture.list()).find(row => row.id === added.body.subscriber.id).state, "deactivated");
     assert.equal(receiverErrors.length, 0);
-    // Standalone component changes have no carrier yet. The frozen component
-    // validator is deliberately not exercised using a fabricated delivery.
   } finally { await fixture.close(); }
 }
