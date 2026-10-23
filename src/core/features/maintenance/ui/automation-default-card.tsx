@@ -17,7 +17,7 @@ export function MaintenanceAutomationCard() {
   const choices = draft ?? resource.data?.automation;
   useLeaveGuard(async () => {
     if (pending.current) return await pending.current;
-    return !failed.current;
+    return !failed.current || window.confirm("Leave without saving maintenance automation?");
   }, () => pending.current !== null || failed.current);
 
   function save(value: MaintenanceAutomation) {
