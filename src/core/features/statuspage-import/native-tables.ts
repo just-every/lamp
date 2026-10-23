@@ -27,4 +27,6 @@ export const sealedDefaults: Record<string, Row> = {
   // migration defaults are not an operator edit; real published changes are.
   incident_updates: { component_changes_json: "[]", component_snapshot_json: "[]" },
   incidents: { impact_override: null },
+  incident_components: { detached_internal: 0 },
+  maintenance_components: { detached_internal: 0 },
 };

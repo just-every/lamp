@@ -4444,7 +4444,7 @@
       "executable": false
     },
     "src/core/features/statuspage-import/native-tables.ts": {
-      "sha256": "8214f154838dbfd231ec6432037e43f2f790d5e58822482792d3fed14a29e2fa",
+      "sha256": "8802d61362be7e81a5b6969e83df3a14b231f1d63a69b4056d418fd17f2648a7",
       "executable": false
     },
     "src/core/features/statuspage-import/operating-notes.ts": {
@@ -5980,7 +5980,7 @@
       "executable": false
     },
     "tests/e2e/delivery-contract.test.mjs": {
-      "sha256": "ecd911640c26cb6a6cd248fe42baabacb96a39e12daf0249fbf97de3c32971fc",
+      "sha256": "fdc3f433603ee696a12a9a241d5c78f0fd164d13a999575c8cd188a06327e6cd",
       "executable": false
     },
     "tests/e2e/deployment-artifact.test.mjs": {
@@ -6276,7 +6276,7 @@
       "executable": false
     },
     "tests/e2e/public-contract.test.mjs": {
-      "sha256": "4a5b8a151e22ac4cad5f39ef881875fc8a876668aa560297995434b437375dc6",
+      "sha256": "45edf5baf7b0cf2dbc611178fdb8202284ab46e69974bbff9401fdaea0c0d2d9",
       "executable": false
     },
     "tests/e2e/publishing-browser.test.mjs": {
@@ -6340,7 +6340,7 @@
       "executable": false
     },
     "tests/e2e/sorry-import.test.mjs": {
-      "sha256": "227c74c47cc7e007a59d371200d0922de5d46c6177ffbc9c7438bdcdccd723c8",
+      "sha256": "aee6a3d1f541adc2e4a72e3cbb4392ca62b49f358ac1e0f660ddbe7bdf46d211",
       "executable": false
     },
     "tests/e2e/start-runtime.test.mjs": {
