@@ -6132,7 +6132,7 @@
       "executable": false
     },
     "tests/e2e/helpers/follow-ups-runtime.mjs": {
-      "sha256": "9a5717386a13b1199b46b19fff75a03726da925d83cfac6cf39744dc310a37b4",
+      "sha256": "e3adeebac7237597d02aa0b8006dd093aadedc0570ef7902dde41ad491403b30",
       "executable": false
     },
     "tests/e2e/helpers/follow-ups-worker.ts": {
@@ -6244,7 +6244,7 @@
       "executable": false
     },
     "tests/e2e/helpers/subscriber-management-fixture.mjs": {
-      "sha256": "4ccc5d4f9c769c88f823c192afce15e4f2cd538ef5cd5e65e8565111f5e96ad7",
+      "sha256": "66e13cf9d087af854043e935c292775735ad42fc96ce0318392567e814ed4be8",
       "executable": false
     },
     "tests/e2e/helpers/subscriber-reporting-browser-flow.mjs": {

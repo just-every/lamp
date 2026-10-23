@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { createHmac } from "node:crypto";
 import { openFollowUpsRuntime, eventuallyFollowUp, pageOrigin } from "./follow-ups-runtime.mjs";
 
 export { eventuallyFollowUp as eventuallySubscriber, pageOrigin };
@@ -34,7 +35,8 @@ export const subscriberCsv = (headers, rows) => [headers, ...rows].map(row => ro
 /** Reuse the proven real Worker/auth/provider boundary from AUTO-003. Tests may
  * read migrated storage to prove a dry run wrote nothing; all mutations use HTTP. */
 export async function openSubscriberManagementFixture() {
-  const fixture = await openFollowUpsRuntime();
+  const receiptKey = Buffer.from("synthetic-lamp-subscriber-receipts");
+  const fixture = await openFollowUpsRuntime({ resendWebhookSecret: `whsec_${receiptKey.toString("base64url")}` });
   const db = await fixture.runtime.getD1Database("DB");
   const createComponent = async (name, internal = false) => {
     const response = await fixture.post("/api/app/components", { groupId: null, name, description: "", internal, displayOrder: 1, note: "" });
@@ -66,6 +68,24 @@ export async function openSubscriberManagementFixture() {
     assert.equal(draft.status, 200, draft.text);
     const published = await fixture.post(`/api/app/incidents/${incident.id}/publish`, { channels: ["email", "webhook"] });
     assert.equal(published.status, 200, published.text);
+    // Provider acceptance and recipient delivery are separate facts. The fake
+    // Resend edge returns its real accepted ID, then supplies a signed delivery
+    // event through the ordinary public webhook before we assert delivery.
+    const accepted = await eventuallyFollowUp(async () => {
+      const response = await fixture.api(`/api/app/deliveries?incidentUpdateId=${published.body.update.id}&limit=100`);
+      assert.equal(response.status, 200, response.text);
+      return response.body.deliveries;
+    }, rows => rows.every(row => row.outcome === "delivered" || row.channel === "email" && row.providerAcceptedAt), "real provider acceptance is recorded");
+    for (const delivery of accepted.filter(row => row.channel === "email")) {
+      const receipt = fixture.mailReceipts.find(row => row.idempotencyKey === `notification/${delivery.id}`);
+      assert.ok(receipt, "the provider edge recorded the exact delivery's acceptance ID");
+      const id = `synthetic-lamp-receipt-${delivery.id}`;
+      const timestamp = String(Math.floor(Date.now() / 1000));
+      const body = JSON.stringify({ type: "email.delivered", data: { email_id: receipt.id } });
+      const signature = createHmac("sha256", receiptKey).update(`${id}.${timestamp}.${body}`).digest("base64url");
+      const event = await fixture.raw("/api/intake/mail-events", { method: "POST", headers: { "Content-Type": "application/json", "svix-id": id, "svix-timestamp": timestamp, "svix-signature": `v1,${signature}` }, body });
+      assert.equal(event.status, 200, "the real adapter accepts the provider's signed delivery receipt");
+    }
     // Await actual publication dispatch through its public delivery record,
     // including the empty recipient set in the out-of-scope case.
     await eventuallyFollowUp(async () => {
