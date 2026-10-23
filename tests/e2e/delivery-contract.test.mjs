@@ -1,5 +1,6 @@
 import { subscriberReportingFlow } from "./helpers/subscriber-reporting-flow.mjs";
 import { subscriberAddFlow } from "./helpers/subscriber-add-flow.mjs";
+import { statuspageWebhookFlow } from "./helpers/statuspage-webhook-flow.mjs";
 import {authFixture} from '../auth-adoption/runtime.mjs';
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
@@ -642,7 +643,8 @@ test("TEAM-002 TEAM-003 BASE-ACCESS-003 — Owner erasure, subscriber erasure an
 
 
 
-test("SUB-009 SUB-010 SUB-011 — Signed webhook delivery, provider receipts and bounce suppression", async t => {
+test("SUB-018 SUB-009 SUB-010 SUB-011 — Statuspage receiver compatibility, signed webhook delivery, provider receipts and bounce suppression", async t => {
+  await statuspageWebhookFlow();
   t.diagnostic("SUB-009 — an actual D1 webhook subscription signs its complete event, rejects SSRF, and treats redirects as failures");
   await (async () => {
   const db = platform.env.DB;

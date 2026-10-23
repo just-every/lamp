@@ -54,7 +54,7 @@ export function createSubscriberIntakeService(repository:SubscriberRepository,ho
       if(existing)return {subscriber:await hooks.view(existing.id),created:false,confirmationSent:false};
       await hooks.ensureConfigured();
       const id=createUlid(),now=new Date().toISOString();
-      const inserted=await repository.intake.insert([{row:1,id,channel:input.channel,destination,contactEmail:input.channel==="webhook"?input.contactEmail:null,componentIds:input.componentIds,tokenHash:await hashOpaqueToken(createOpaqueToken())}],operatorId,"operator",null,{created:1,skipped:0,refused:0},now);
+      const inserted=await repository.intake.insert([{row:1,id,channel:input.channel,destination,contactEmail:input.channel==="webhook"?input.contactEmail:null,componentIds:input.componentIds,...(input.channel==="webhook"?{webhookFormat:input.webhookFormat}:{}),tokenHash:await hashOpaqueToken(createOpaqueToken())}],operatorId,"operator",null,{created:1,skipped:0,refused:0},now);
       if(!inserted.length){const winner=await repository.findSubscriberByDestination(destination);if(!winner)throw new SubscriberIntakeError("The subscriber changed. Try again.",409);return {subscriber:await hooks.view(winner.id),created:false,confirmationSent:false};}
       const confirmationSent=await hooks.sendConfirmation(id,origin,operatorId,false);
       return {subscriber:await hooks.view(id),created:true,confirmationSent};

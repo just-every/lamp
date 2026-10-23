@@ -22,13 +22,14 @@ export function createIntakeConfirmationSender(repository:SubscriberRepository,o
     const mail=options.mail(),from=await options.from(),pageName=await options.pageName();
     const confirm=await options.issue(subscriberId,"confirm",deadline);
     const unsubscribe=await options.issue(subscriberId,"unsubscribe",null);
+    const manage=await options.issue(subscriberId,"manage",null);
     const emailHash=await hashOpaqueToken(`confirmation-address:${recipient.trim().toLowerCase()}`);
     const now=new Date().toISOString();
     if(!await repository.intake.claimInvitation(subscriberId,emailHash,now,actor,ownerOnly))return false;
     try {
       await options.send(mail,subscriberId,{
         from,to:recipient,subject:`Confirm your ${pageName} subscription`,
-        text:`${pageName}\n\nConfirm this subscription before ${deadline}: ${new URL(`/confirm-subscription/${encodeURIComponent(confirm.token)}`,origin).href}\n\nIf you do nothing, you will receive no status notifications. Unsubscribe: ${new URL(`/unsubscribe/${encodeURIComponent(unsubscribe.token)}`,origin).href}\nReturn to status: ${new URL("/",origin).href}`,
+        text:`${pageName}\n\nConfirm this subscription before ${deadline}: ${new URL(`/confirm-subscription/${encodeURIComponent(confirm.token)}`,origin).href}\n\nIf you do nothing, you will receive no status notifications. Manage this subscription after confirming: ${new URL(`/manage/${encodeURIComponent(manage.token)}`,origin).href}\nUnsubscribe: ${new URL(`/unsubscribe/${encodeURIComponent(unsubscribe.token)}`,origin).href}\nReturn to status: ${new URL("/",origin).href}`,
         headers:{"Auto-Submitted":"auto-generated"},idempotencyKey:`subscriber-confirmation/${subscriberId}/${subscriber.createdAt}`,
       });
     } catch(cause) {

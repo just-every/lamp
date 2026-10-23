@@ -28,8 +28,8 @@ export function createSubscriberIntakeRepository(db:D1Database) {
         AND (SELECT COUNT(*) FROM components WHERE internal=0 AND id IN (SELECT value FROM json_each(?)))=json_array_length(?)
         THEN 1 ELSE json('Subscriber intake changed.') END`).bind(operatorId,JSON.stringify(components),JSON.stringify(components))];
       const resultPositions:number[]=[];
-      for(let start=0;start<rows.length;start+=25) {
-        const json=JSON.stringify(rows.slice(start,start+25));
+      for(let start=0;start<rows.length;start+=50) {
+        const json=JSON.stringify(rows.slice(start,start+50));
         resultPositions.push(statements.length);
         statements.push(db.prepare(`INSERT INTO subscribers(id,channel,destination,contact_email,state,selection_mode,token_hash,created_by_operator_id,created_at,updated_at)
           SELECT json_extract(r.value,'$.id'),json_extract(r.value,'$.channel'),json_extract(r.value,'$.destination'),json_extract(r.value,'$.contactEmail'),
@@ -37,6 +37,9 @@ export function createSubscriberIntakeRepository(db:D1Database) {
           FROM json_each(?) r WHERE 1 ON CONFLICT(destination) DO NOTHING RETURNING id`).bind(operatorId,now,now,json));
         statements.push(db.prepare(`INSERT INTO subscriber_intake(subscriber_id,batch_id,source,operator_id,created_at)
           SELECT s.id,?,?,?,? FROM json_each(?) r JOIN subscribers s ON s.id=json_extract(r.value,'$.id')`).bind(batchId,source,operatorId,now,json));
+        statements.push(db.prepare(`UPDATE subscribers SET webhook_format=COALESCE(
+          (SELECT json_extract(r.value,'$.webhookFormat') FROM json_each(?) r WHERE json_extract(r.value,'$.id')=subscribers.id),'lamp')
+          WHERE channel='webhook' AND id IN (SELECT json_extract(r.value,'$.id') FROM json_each(?) r)`).bind(json,json));
         statements.push(db.prepare(`INSERT INTO subscriber_components(id,subscriber_id,component_id,created_at,updated_at)
           SELECT upper(substr(hex(randomblob(16)),1,26)),s.id,c.value,?,? FROM json_each(?) r
           JOIN subscribers s ON s.id=json_extract(r.value,'$.id') CROSS JOIN json_each(r.value,'$.componentIds') c`).bind(now,now,json));

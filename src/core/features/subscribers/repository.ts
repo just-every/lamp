@@ -10,6 +10,7 @@ import { createSubscriberTransitions, type SubscriberTransitions } from "./trans
 import { retireSubscriberCustody, subjectsInCustody } from "../statuspage-import/custody";
 import type { D1Sql } from "../../../../modules/import-kit/src/d1/index.ts";
 import { createSubscriberIntakeRepository, type SubscriberIntakeRepository } from "./intake.repository";
+import { createWebhookFormatRepository } from "./webhook-format.repository";
 
 export type StoredSubscriber = typeof subscribers.$inferSelect;
 export type StoredSubscriberComponent = typeof subscriberComponents.$inferSelect;
@@ -18,6 +19,7 @@ export type SubscriptionMailKind = "confirmation" | "already-subscribed" | "subs
 
 export interface SubscriberRepository extends SubscriberTransitions {
   intake: SubscriberIntakeRepository;
+  formats: ReturnType<typeof createWebhookFormatRepository>;
   listSubscribers(limit: number, offset?: number): Promise<StoredSubscriber[]>;
   listComponents(subscriberId: string): Promise<StoredSubscriberComponent[]>;
   listVisibleComponents(): Promise<Array<{ id: string; name: string }>>;
@@ -44,6 +46,7 @@ export function createSubscriberRepository(binding: D1Database): SubscriberRepos
   const database = createDatabase(binding);
   return {
     intake: createSubscriberIntakeRepository(binding),
+    formats: createWebhookFormatRepository(binding),
     ...createSubscriberTransitions(binding),
     async listSubscribers(limit, offset = 0) {
       return database.select().from(subscribers).orderBy(asc(subscribers.createdAt)).limit(limit).offset(offset).all();
