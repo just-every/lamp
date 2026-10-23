@@ -27,7 +27,7 @@ export function AddSubscriber({ onChanged }: { onChanged: () => void }) {
   return <section className="data-card" aria-label="Add subscriber">
     <h2>Add subscriber</h2><p>Your add sends one confirmation invitation. The subscription stays pending until the recipient confirms.</p>
     <form className="incident-note-form" onSubmit={submit}>
-      <label className="form-label">Channel<select value={channel} disabled={pending} onChange={event => { setChannel(event.target.value as "email" | "webhook"); setResult(null); }}><option value="email">Email</option><option value="webhook">Webhook</option></select></label>
+      <label className="form-label">Channel<select aria-label="Channel" value={channel} disabled={pending} onChange={event => { setChannel(event.target.value as "email" | "webhook"); setResult(null); }}><option value="email">Email</option><option value="webhook">Webhook</option></select></label>
       {channel === "webhook" ? <label className="form-label">Endpoint URL<input type="url" required disabled={pending} value={destination} onChange={event => setDestination(event.target.value)} /></label> : null}
       <label className="form-label">{channel === "email" ? "Email address" : "Contact email"}<input type="email" required disabled={pending} value={email} onChange={event => setEmail(event.target.value)} /></label>
       {channel === "webhook" ? <WebhookFormatChoice value={webhookFormat} onChange={setWebhookFormat} disabled={pending} /> : null}

@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { openSubscriberManagementFixture, eventuallySubscriber, pageOrigin } from "./subscriber-management-fixture.mjs";
 import { receiveStatuspageWebhook, expectStatuspageIncident } from "./statuspage-webhook-receiver.mjs";
 import { statuspageWebhookMaintenance } from "./statuspage-webhook-maintenance.mjs";
+import { webhookFormatBrowserFlow } from "./webhook-format-browser-flow.mjs";
 
 const LINKED_IMPACT = "See https://help.example.com/kb/123.";
 const signingSecret = "synthetic-lamp-webhook-1".repeat(4);
@@ -9,6 +10,7 @@ const signingSecret = "synthetic-lamp-webhook-1".repeat(4);
 /** The frozen independent receiver runs at the paid network boundary and
  * returns 204 only after field-by-field acceptance of the actual wire bytes. */
 export async function statuspageWebhookFlow() {
+  await webhookFormatBrowserFlow();
   const accepted = [], receiverErrors = [];
   const contact = "synthetic-lamp-statuspage-contact@example.test";
   let fixture;
@@ -51,6 +53,7 @@ export async function statuspageWebhookFlow() {
     const message = fixture.messagesFor(contact)[0];
     const manageUrl = message.text.match(/https?:\/\/\S+\/manage\/\S+/)?.[0];
     assert.ok(manageUrl, "the real confirmation message supplies the subscriber's scoped management link");
+
     const manage = await raw(manageUrl);
     assert.equal(manage.status, 200);
     const html = await manage.text();

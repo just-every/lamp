@@ -34,9 +34,9 @@ export const subscriberCsv = (headers, rows) => [headers, ...rows].map(row => ro
 
 /** Reuse the proven real Worker/auth/provider boundary from AUTO-003. Tests may
  * read migrated storage to prove a dry run wrote nothing; all mutations use HTTP. */
-export async function openSubscriberManagementFixture({ webhookReceiver } = {}) {
+export async function openSubscriberManagementFixture({ webhookReceiver, pageHost } = {}) {
   const receiptKey = Buffer.from("synthetic-lamp-subscriber-receipts");
-  const fixture = await openFollowUpsRuntime({ resendWebhookSecret: `whsec_${receiptKey.toString("base64url")}`, webhookReceiver });
+  const fixture = await openFollowUpsRuntime({ resendWebhookSecret: `whsec_${receiptKey.toString("base64url")}`, webhookReceiver, pageHost });
   const db = await fixture.runtime.getD1Database("DB");
   const createComponent = async (name, internal = false) => {
     const response = await fixture.post("/api/app/components", { groupId: null, name, description: "", internal, displayOrder: 1, note: "" });

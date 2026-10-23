@@ -27,7 +27,7 @@ export async function eventuallyFollowUp(read, predicate, description) {
 
 /** Disposable migrated Worker. Only the email/webhook network edges are fake;
  * Queue outage injection is the existing queue-outage.worker.ts boundary. */
-export async function openFollowUpsRuntime({ resendWebhookSecret, webhookReceiver } = {}) {
+export async function openFollowUpsRuntime({ resendWebhookSecret, webhookReceiver, pageHost = "status.example.test" } = {}) {
   const state = await mkdtemp(join(tmpdir(), "lamp-follow-ups-"));
   const messages = [], webhookRequests = [], channelRequests = [], mailReceipts = [];
   let runtime, webhookOutage = true, cookie;
@@ -47,7 +47,7 @@ export async function openFollowUpsRuntime({ resendWebhookSecret, webhookReceive
       name: "lamp-follow-ups-test", modules: true, script: built.outputFiles[0].text,
       port: appPort, inspectorPort: 0, compatibilityDate: "2026-09-08", compatibilityFlags: ["nodejs_compat"],
       bindings: {
-        LAMP_PAGE_HOST: "status.example.test", LAMP_APP_HOST: "127.0.0.1",
+        LAMP_PAGE_HOST: pageHost, LAMP_APP_HOST: "127.0.0.1",
         AUTH_ORIGIN: appOrigin, AUTH_LOCAL: "true", SETUP_OPERATOR_EMAIL: "synthetic-lamp-owner@example.test",
         SESSION_SECRET: "synthetic-lamp-session-1".repeat(4), SETUP_TOKEN: "synthetic-lamp-setup-1".repeat(4),
         SUBSCRIBER_TOKEN_SECRET: "synthetic-lamp-subscriber-1".repeat(4),
@@ -94,7 +94,7 @@ export async function openFollowUpsRuntime({ resendWebhookSecret, webhookReceive
     // below is created through an ordinary operator or public HTTP request.
     await execute(`INSERT INTO oa_operators(id,email,display_name,role,status,created_at) VALUES ('01J00000000000000000000091','synthetic-lamp-owner@example.test','Synthetic Lamp owner','owner','active',${Date.now()});
       INSERT INTO oa_bootstrap(singleton,claim_id,claimed_at) VALUES(1,'01J00000000000000000000091',${Date.now()});
-      INSERT INTO page_settings(id,page_name,tagline,accent_color,timezone,hostname,feed_id,mail_from_address,created_at,updated_at) VALUES('default','Synthetic Lamp follow-ups','Durable obligation fixture','#16794C','UTC','status.example.test','synthetic-lamp-feed-1','synthetic-lamp-sender@example.test','2026-10-01','2026-10-01');
+      INSERT INTO page_settings(id,page_name,tagline,accent_color,timezone,hostname,feed_id,mail_from_address,created_at,updated_at) VALUES('default','Synthetic Lamp follow-ups','Durable obligation fixture','#16794C','UTC','${pageHost}','synthetic-lamp-feed-1','synthetic-lamp-sender@example.test','2026-10-01','2026-10-01');
       INSERT INTO setup_readiness(step,evidence_key,checked_at) VALUES('first-run','complete','2026-10-01');`);
     const raw = (path, init = {}) => {
       const url = new URL(path, appOrigin), headers = new Headers(init.headers);

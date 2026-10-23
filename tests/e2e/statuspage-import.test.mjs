@@ -6,6 +6,7 @@ import { after, before } from "node:test";
 
 import { continuityFiles, assertContinuityCounts, postmortemTemplateImportFlow } from "./helpers/postmortem-template-import-flow.mjs";
 import { subscriberCsvFlow } from "./helpers/subscriber-csv-flow.mjs";
+import { subscriberIntakeBrowserFlow } from "./helpers/subscriber-intake-browser-flow.mjs";
 
 import { contract } from "../contract.mjs";
 
@@ -128,6 +129,17 @@ contract("MOVE-001", "MOVE-011 — a dry run reports every record and writes not
 });
 
 contract("MOVE-002", "SUB-017 imports keep history silent, CSV dry runs write nothing, and pending subscribers receive only explicit owner invitations", async t => {
+  // Public removal retains anonymised delivery history. Give the visual intake
+  // proof its own real installation so it cannot change the later undo fixture.
+  await runtime.stop();
+  let visualRuntime;
+  try {
+    visualRuntime = await openNativeRuntime(); await visualRuntime.start(); await visualRuntime.seedOperator();
+    const visualCookie = (await signInAs({ origin, key: devKey })).header;
+    const request = (path, init = {}) => nativeRequest(path, { cookie: visualCookie, ...init });
+    const visualApi = async (path, json) => { const response = await request(path, json ? { method: 'POST', json } : {}); return { status: response.status, body: await response.json() }; };
+    await subscriberIntakeBrowserFlow({ origin, cookie: visualCookie, api: visualApi, request });
+  } finally { await visualRuntime?.close(); await runtime.start(); }
   await subscriberCsvFlow();
   const before = await counts();
   const mailBefore = await notificationActivity(runtime);
