@@ -5,7 +5,6 @@ import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { unstable_splitSqlQuery } from "wrangler";
 import { withDraftVersion } from "../draft-version-helper.mjs";
-import { reservePort } from "../worker-startup.mjs";
 
 const require = createRequire(import.meta.url);
 const wranglerRequire = createRequire(require.resolve("wrangler"));
@@ -44,7 +43,7 @@ export async function openFollowUpsRuntime() {
     });
     runtime = new Miniflare(convertV4MiniflareOptions({
       name: "lamp-follow-ups-test", modules: true, script: built.outputFiles[0].text,
-      port: await reservePort({ label: "follow-ups Worker" }), compatibilityDate: "2026-09-08", compatibilityFlags: ["nodejs_compat"],
+      port: 0, inspectorPort: 0, compatibilityDate: "2026-09-08", compatibilityFlags: ["nodejs_compat"],
       bindings: {
         LAMP_PAGE_HOST: "status.example.test", LAMP_APP_HOST: "app.example.test",
         AUTH_ORIGIN: appOrigin, SETUP_OPERATOR_EMAIL: "synthetic-lamp-owner@example.test",
