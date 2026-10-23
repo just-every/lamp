@@ -3,9 +3,13 @@ import type { PublicSnapshotModel, SnapshotArtifact } from "./renderer";
 import { publicComponentResources } from "./component-address";
 import { escapeXml, REPORTING_DAYS } from "./format";
 
-import colors from "./state-colors.json";
-
-const STATE_COLORS: Record<ComponentState, string> = colors;
+const STATE_COLORS: Record<ComponentState, string> = {
+  Operational: "#19865a",
+  "Degraded performance": "#c98a12",
+  "Partially unavailable": "#b44432",
+  "Major outage": "#b44432",
+  "Under maintenance": "#4f6fa8",
+};
 
 function badge(label: string, message: string, color: string): string {
   const left = Math.max(42, Array.from(label).length * 7 + 12);

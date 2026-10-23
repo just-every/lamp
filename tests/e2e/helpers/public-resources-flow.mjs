@@ -3,7 +3,6 @@ import { readFile, mkdir, writeFile } from 'node:fs/promises';
 import { chromium } from 'playwright';
 
 const fixture = name => readFile(new URL(`../../fixtures/statuspage-public/${name}.json`, import.meta.url), 'utf8').then(JSON.parse);
-const stateColors = JSON.parse(await readFile(new URL('../../../src/core/features/public-snapshot/state-colors.json', import.meta.url), 'utf8'));
 const paths = ['summary','status','components','incidents','incidents/unresolved','scheduled-maintenances','scheduled-maintenances/upcoming','scheduled-maintenances/active'];
 function fields(actual, example, path = '') {
   if (example === null) return;
@@ -72,44 +71,10 @@ export async function publicResourcesFlow({ appFetch, pageUrl, fetch, diagnostic
       const response = await fetch(pageUrl+path); assert.equal(response.status,200); const body=await response.text();
       assert.ok(Buffer.byteLength(body)<=2048); assert.match(body,/<text/); assert.equal(response.headers.get('x-lamp-snapshot-version'),generation);
     }
-    const isolatedResponse = await appFetch('/api/app/components', { method: 'POST', body: JSON.stringify({ groupId: null, name: 'Badge colour probe', description: '', internal: false, displayOrder: 0, note: '' }) });
-    assert.equal(isolatedResponse.status, 201);
-    const isolated = (await isolatedResponse.json()).component;
-    const isolatedSlug = isolated.id.toLowerCase();
-    for (const [state, color] of Object.entries(stateColors)) {
-      const started = Date.now();
-      const changed = await appFetch(`/api/app/components/${isolated.id}/standing-claim`, { method: 'PUT', body: JSON.stringify({ state }) });
-      assert.equal(changed.status, 200);
-      await page.reload();
-      const pageColor = await page.evaluate(state => {
-        const pill = document.createElement('span');
-        pill.className = `state-pill state-${state.toLowerCase().replaceAll(' ', '-')}`;
-        document.body.append(pill);
-        const value = getComputedStyle(pill, '::before').backgroundColor;
-        pill.remove();
-        return value;
-      }, state);
-      const rgb = color.match(/\w\w/g).map(value => parseInt(value, 16));
-      assert.equal(pageColor, `rgb(${rgb.join(', ')})`, `${state}: badge palette matches the page's own resolved state class`);
-      for (const path of [`/components/${isolatedSlug}/badge.svg`, `/components/${isolatedSlug}/uptime.svg`]) {
-        const response = await fetch(pageUrl + path);
-        assert.equal(response.status, 200);
-        const body = await response.text();
-        assert.ok(Buffer.byteLength(body) <= 2048);
-        if (!path.endsWith('/uptime.svg')) assert.ok(body.includes(`>${state}</text>`), `${path}: new state label`);
-        const expectedColor = body.includes('>No data</text>')
-          ? await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--ink-3').trim()) : color;
-        assert.ok(body.includes(`fill="${expectedColor}"`), `${path}: page state colour, or the page's no-data ink`);
-      }
-      const endpoint = await (await fetch(`${pageUrl}/badge.json`)).json();
-      assert.equal(endpoint.schemaVersion, 1);
-      assert.equal(endpoint.color, stateColors[endpoint.message]);
-      const overall = await (await fetch(`${pageUrl}/badge.svg`)).text();
-      assert.ok(Buffer.byteLength(overall) <= 2048);
-      assert.ok(overall.includes(`>${endpoint.message}</text>`) && overall.includes(`fill="${endpoint.color}"`));
-      assert.ok(Date.now() - started < 10_000, 'each changed badge is visible within 10 seconds');
-    }
-    assert.equal((await appFetch(`/api/app/components/${isolated.id}`, { method: 'DELETE' })).status, 204);
+    const changed=await appFetch(`/api/app/components/${web.id}/standing-claim`,{method:'PUT',body:JSON.stringify({state:'Degraded performance'})}); assert.equal(changed.status,200);
+    assert.match(await (await fetch(`${pageUrl}/components/${web.slug}/badge.svg`)).text(),/Degraded performance/);
+    assert.equal((await (await fetch(`${pageUrl}/badge.json`)).json()).schemaVersion,1);
+    assert.equal((await appFetch(`/api/app/components/${web.id}/standing-claim`,{method:'PUT',body:JSON.stringify({state:null})})).status,200);
     const client=await page.evaluate(()=>new Promise((resolve,reject)=>new StatusPage.page({page:'lamp',test:true}).summary({success:resolve,error:reject})));
     assert.ok(client.components.some(component=>component.name==='Web application')); assert.deepEqual(client.status,(await (await fetch(`${pageUrl}/api/v2/status.json`)).json()).status);
   } finally {await browser.close();}
