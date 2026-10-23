@@ -33,8 +33,8 @@ export function createSlackSubscriptionsService(db: D1Database, options: {
   return {
     pageName: options.pageName,
     async start(origin: string, componentIds: string[], eventKinds: string[], minimumImpact: "Partially unavailable" | null) {
-      if (options.unavailable || !options.clientId || !options.clientSecret || !options.webhookSecret || !options.signingSecret || !tokens) throw new Error("Slack subscriptions are not configured.");
       await limits.assertAvailable("slack");
+      if (options.unavailable || !options.clientId || !options.clientSecret || !options.webhookSecret || !options.signingSecret || !tokens) throw new Error("Slack subscriptions are not configured.");
       const state = `${createUlid()}.${crypto.randomUUID()}`, now = nowIso();
       const valid = new Set((await subscribers.listVisibleComponents()).map(c=>c.id));
       await chat.saveOAuthState(await hashOpaqueToken(state), [...new Set(componentIds)].filter(id=>valid.has(id)), eventKinds,minimumImpact,now,new Date(Date.now()+10*60*1000).toISOString());
@@ -60,7 +60,12 @@ export function createSlackSubscriptionsService(db: D1Database, options: {
       const existing = await chat.findDestination(destination);
       await limits.assertAvailable("slack");
       const id=existing?.id ?? createUlid();
+      try {
       if(existing?.state!=="active")await chat.create({id,kind:"slack",name:data.incoming_webhook.channel,sealedUrl:await sealUrl(url,id,sealingSecrets(options.webhookSecret)),host:"hooks.slack.com",destination,componentIds:JSON.parse(saved.componentIdsJson),eventKinds:JSON.parse(saved.eventKindsJson),minimumImpact:saved.minimumImpact,state:"active",teamId:data.team.id,channelId:data.incoming_webhook.channel_id,now:nowIso()});
+      } catch(cause) {
+        if(cause instanceof Error && cause.message.includes("over the subscriber limit"))throw new SubscriberLimitError();
+        throw cause;
+      }
       await options.limitsChanged?.();
       const tokenId=createUlid(),candidate=await tokens.encode({id:tokenId,scope:"manage"});
       const stored=await subscribers.ensureToken(id,"manage",{id:tokenId,tokenHash:await tokens.hash(candidate),expiresAt:null},nowIso());
