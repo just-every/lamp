@@ -40,13 +40,16 @@ export function createUpdateReminders(binding: D1Database, policy: UpdateDuePoli
         const kinds: UpdateReminderKind[] = instant > due ? ["overdue"] : instant >= due - lead ? ["due-soon"] : [];
         if (instant >= due + escalationPolicy.overdueMinutes() * 60_000) kinds.push("escalation");
         for (const kind of kinds) {
-          const recorded = await binding.prepare(`SELECT 1 AS sent FROM incident_update_reminders WHERE update_id = ? AND kind = ?`).bind(commitment.updateId, kind).first();
+          const recorded = kind === "escalation"
+            ? await binding.prepare(`SELECT 1 AS sent FROM incident_update_escalations WHERE update_id = ?`).bind(commitment.updateId).first()
+            : await binding.prepare(`SELECT 1 AS sent FROM incident_update_reminders WHERE update_id = ? AND kind = ?`).bind(commitment.updateId, kind).first();
           if (recorded) continue;
           // Each event freezes its recipient set in the durable idempotent queue.
           const recipients = kind === "escalation" ? undefined : await createCommunicationOwnerRepository(binding).recipients(commitment.incidentId);
           const event = { kind, ...commitment, recipients, draftId };
           await send(event);
-          await binding.prepare(`INSERT OR IGNORE INTO incident_update_reminders (update_id, kind, recorded_at) VALUES (?, ?, ?)`).bind(commitment.updateId, kind, now).run();
+          if (kind === "escalation") await binding.prepare(`INSERT OR IGNORE INTO incident_update_escalations (update_id, recorded_at) VALUES (?, ?)`).bind(commitment.updateId, now).run();
+          else await binding.prepare(`INSERT OR IGNORE INTO incident_update_reminders (update_id, kind, recorded_at) VALUES (?, ?, ?)`).bind(commitment.updateId, kind, now).run();
           sent.push(event);
         }
       }
