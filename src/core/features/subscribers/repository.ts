@@ -9,6 +9,7 @@ import { subscriberExpiryAudit } from "../statuspage-import/expiry-audit";
 import { createSubscriberTransitions, type SubscriberTransitions } from "./transitions.repository";
 import { retireSubscriberCustody, subjectsInCustody } from "../statuspage-import/custody";
 import type { D1Sql } from "../../../../modules/import-kit/src/d1/index.ts";
+import { createSubscriberIntakeRepository, type SubscriberIntakeRepository } from "./intake.repository";
 
 export type StoredSubscriber = typeof subscribers.$inferSelect;
 export type StoredSubscriberComponent = typeof subscriberComponents.$inferSelect;
@@ -16,6 +17,7 @@ export type StoredSubscriberToken = typeof subscriberTokens.$inferSelect;
 export type SubscriptionMailKind = "confirmation" | "already-subscribed" | "subscribed";
 
 export interface SubscriberRepository extends SubscriberTransitions {
+  intake: SubscriberIntakeRepository;
   listSubscribers(limit: number, offset?: number): Promise<StoredSubscriber[]>;
   listComponents(subscriberId: string): Promise<StoredSubscriberComponent[]>;
   listVisibleComponents(): Promise<Array<{ id: string; name: string }>>;
@@ -41,6 +43,7 @@ export interface SubscriberRepository extends SubscriberTransitions {
 export function createSubscriberRepository(binding: D1Database): SubscriberRepository {
   const database = createDatabase(binding);
   return {
+    intake: createSubscriberIntakeRepository(binding),
     ...createSubscriberTransitions(binding),
     async listSubscribers(limit, offset = 0) {
       return database.select().from(subscribers).orderBy(asc(subscribers.createdAt)).limit(limit).offset(offset).all();

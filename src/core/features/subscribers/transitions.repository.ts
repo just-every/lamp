@@ -49,6 +49,7 @@ export function createSubscriberTransitions(binding: D1Database): SubscriberTran
       return transition(permission, "confirm", "pending", [
         binding.prepare("UPDATE subscribers SET state = 'active', deactivation_reason = NULL, deactivated_at = NULL, updated_at = ? WHERE id = ?")
           .bind(now, permission.subscriberId),
+        binding.prepare("UPDATE subscriber_intake SET confirmed_at=? WHERE subscriber_id=?").bind(now,permission.subscriberId),
         binding.prepare("UPDATE subscriber_tokens SET revoked_at = ?, updated_at = ? WHERE subscriber_id = ? AND scope = 'confirm' AND revoked_at IS NULL")
           .bind(now, now, permission.subscriberId),
       ]);

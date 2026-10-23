@@ -1,4 +1,5 @@
 import { subscriberReportingFlow } from "./helpers/subscriber-reporting-flow.mjs";
+import { subscriberAddFlow } from "./helpers/subscriber-add-flow.mjs";
 import {authFixture} from '../auth-adoption/runtime.mjs';
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
@@ -207,7 +208,8 @@ test("HIST-007 SUB-001 SUB-005 UPDATE-008 SUB-002 SUB-003 — Concurrent subscri
 
 
 
-test("SUB-004 SUB-006 SUB-007 SUB-005 PAGE-013 SUB-012 SUB-008 — Scoped subscriber preferences, private management and opt-out", async t => {
+test("SUB-017 SUB-004 SUB-006 SUB-007 SUB-005 PAGE-013 SUB-012 SUB-008 — Attributed operator additions, confirmed component scope, private management and opt-out", async t => {
+  await subscriberAddFlow();
   t.diagnostic("SUB-004 — actual D1 recipient selection follows visible components and matching selected components only");
   await (async () => {
   const db = platform.env.DB;

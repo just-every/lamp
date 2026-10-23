@@ -7,6 +7,7 @@ import { requestNetworkSubject, type PublicWriteRateLimiter } from "../../platfo
 import { ulidSchema } from "../../shared/ids";
 import { applyPublicIsolationHeaders } from "../public-snapshot/headers";
 import { renderSubscribeResult, renderSubscriberManagementPage, renderSubscriberTokenPage, type SubscribersService } from "./service";
+import { registerSubscriberIntakeRoutes } from "./intake-routes";
 
 const subscriberQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(100).default(100),
@@ -53,6 +54,7 @@ function parsedComponentIds(value: unknown) {
 }
 
 export function registerSubscriberRoutes(app: Hono<AppEnv>, service: SubscribersService, options: { rateLimiter?: PublicWriteRateLimiter } = {}) {
+  registerSubscriberIntakeRoutes(app,service);
   app.post("/subscribe", async (context) => {
     const pageName = await service.getPageName();
     const result = (title: string, message: string, status: number) => publicFormResponse(context.req.raw, title, message, status, pageName);
@@ -78,7 +80,7 @@ export function registerSubscriberRoutes(app: Hono<AppEnv>, service: Subscribers
     const limited = await allowedTokenRequest(context, options.rateLimiter, "subscription-confirm", context.req.param("token") ?? "", pageName);
     if (limited) return limited;
     const confirmed = await service.confirm(context.req.param("token") ?? "");
-    return tokenResponse(context.req.raw, confirmed ? renderSubscriberTokenPage("Subscription confirmed", `<p>You'll get ${escapeHtml(pageName)} updates by email. Every email has a link to change or stop them.</p><p><a href="/">See current status</a></p>`, pageName, "done") : renderSubscriberTokenPage("Subscription unavailable", "<p>This confirmation link is invalid or has expired.</p>", pageName), confirmed ? 200 : 404);
+    return tokenResponse(context.req.raw, confirmed ? renderSubscriberTokenPage("Subscription confirmed", `<p>You'll get ${escapeHtml(pageName)} updates through this subscription.</p><p><a href="/">See current status</a></p>`, pageName, "done") : renderSubscriberTokenPage("Subscription unavailable", "<p>This confirmation link is invalid or has expired.</p>", pageName), confirmed ? 200 : 404);
   });
   app.get("/manage/:token", async (context) => {
     const pageName = await service.getPageName();
