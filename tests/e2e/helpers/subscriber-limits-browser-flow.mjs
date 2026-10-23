@@ -75,18 +75,30 @@ export async function subscriberLimitsBrowserFlow({runtime,origin,publicOrigin,c
         await followups.getByRole("link",{name:/All channels subscriptions are full/u}).waitFor();
         await prove(page,width,"follow-ups-capacity-full",errors);
       } finally {await context.close();}
-      const publicContext=await browser.newContext({viewport:{width,height:960},javaScriptEnabled:false}),publicPage=await publicContext.newPage();
-      try {
-        await publicPage.goto(publicOrigin);
-        await publicPage.getByLabel("Email address",{exact:true}).fill(`synthetic-lamp-full-browser-${width}@example.test`);
-        const denied=publicPage.waitForResponse(response=>new URL(response.url()).pathname==="/subscribe"&&response.request().method()==="POST");
-        await publicPage.getByRole("button",{name:"Subscribe",exact:true}).click();
-        assert.equal((await denied).status(),409);
-        await publicPage.getByText(/cannot take new subscriptions on that channel right now/u).waitFor();
-        await publicPage.getByRole("link",{name:"Atom feed",exact:true}).waitFor();
-        await publicPage.getByRole("link",{name:"RSS feed",exact:true}).waitFor();
-        await prove(publicPage,width,"subscribe-capacity-full",[]);
-      } finally {await publicContext.close();}
+      let scriptFreeHtml;
+      for(const javaScriptEnabled of [false,true]) {
+        const publicContext=await browser.newContext({viewport:{width,height:960},javaScriptEnabled}),publicPage=await publicContext.newPage();
+        const publicErrors=watch(publicPage);
+        try {
+          await publicPage.goto(publicOrigin);
+          await publicPage.getByLabel("Email address",{exact:true}).fill(`synthetic-lamp-full-browser-${width}@example.test`);
+          const denied=publicPage.waitForResponse(response=>new URL(response.url()).pathname==="/subscribe"&&response.request().method()==="POST");
+          await publicPage.getByRole("button",{name:"Subscribe",exact:true}).click();
+          const response=await denied;assert.equal(response.status(),409);
+          const html=await response.text();
+          await publicPage.getByText(/cannot take new subscriptions on that channel right now/u).waitFor();
+          await publicPage.getByRole("link",{name:"Atom feed",exact:true}).waitFor();
+          await publicPage.getByRole("link",{name:"RSS feed",exact:true}).waitFor();
+          if(javaScriptEnabled) {
+            assert.equal(html,scriptFreeHtml,"the accessibility probe uses the identical server-generated script-free refusal document");
+            await prove(publicPage,width,"subscribe-capacity-full",publicErrors);
+          } else {
+            scriptFreeHtml=html;
+            assert.equal(await publicPage.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true,`script-free refusal fits ${width}`);
+            if(process.env.LAMP_BROWSER_EVIDENCE){await mkdir(process.env.LAMP_BROWSER_EVIDENCE,{recursive:true});await publicPage.screenshot({path:join(process.env.LAMP_BROWSER_EVIDENCE,`subscribe-capacity-full-no-script-${width}.png`),fullPage:true});}
+          }
+        } finally {await publicContext.close();}
+      }
     }
   } finally {await browser.close();}
 }

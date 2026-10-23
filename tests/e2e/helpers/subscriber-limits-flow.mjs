@@ -66,6 +66,14 @@ export async function subscriberLimitsFlow() {
     assert.ok(report.some(row=>row.channel==="email"&&row.count===25_000));
     let followUps=(await fixture.api("/api/app/overview/follow-ups")).body.followUps;
     assert.ok(followUps.some(row=>row.id==="subscriber-limit:all"&&row.link==="/app/subscribers"),"full capacity remains a Follow-up");
+    const fullPreview=await moveIn.preview({files:subscriberLimitSourceFiles(1)});
+    assert.equal(fullPreview.status,200,JSON.stringify(fullPreview.body));
+    assert.equal(fullPreview.body.report.counts.subscriber.rejected,1);
+    assert.equal(fullPreview.body.report.items.find(row=>row.kind==="subscriber").reason,"over the subscriber limit");
+    assert.ok(fullPreview.body.report.limits.some(text=>text.includes("over the 25,000 limit by 1")));
+    const fullState=await fixture.databaseState(),fullMail=fixture.messages.length;
+    const fullApply=await moveIn.apply(fullPreview.body);assert.equal(fullApply.status,409,JSON.stringify(fullApply.body));
+    await fixture.assertUnchanged(fullState);assert.equal(fixture.messages.length,fullMail);
     // A setup adjustment supplies the separate 100-free-slot import fixture.
     await db.prepare("UPDATE subscribers SET state='deactivated',deactivation_reason='synthetic fixture capacity setup' WHERE id IN (SELECT id FROM subscribers WHERE id LIKE '01JLIMIT%' ORDER BY id LIMIT 100)").run();
     assert.equal(await count(),24_900);
@@ -76,14 +84,18 @@ export async function subscriberLimitsFlow() {
     assert.ok(preview.body.report.limits.some(text=>text.includes("over the 25,000 limit by 200")),JSON.stringify({limits:preview.body.report.limits,counts:preview.body.report.counts,subscribers:preview.body.report.items.filter(row=>row.kind==="subscriber").slice(0,2)}));
     assert.equal(preview.body.report.counts.subscriber.rejected,200);
     assert.equal(preview.body.report.items.filter(row=>row.kind==="subscriber"&&row.outcome==="rejected"&&row.reason==="over the subscriber limit").length,200);
+    const importState=await fixture.databaseState(),importMail=fixture.messages.length;
     const rejected=await moveIn.apply(preview.body);assert.equal(rejected.status,409,JSON.stringify(rejected.body));assert.equal(await count(),beforeImport,"an over-limit apply creates no prefix of the import");
+    await fixture.assertUnchanged(importState);assert.equal(fixture.messages.length,importMail);
     const narrowed=await moveIn.preview({files:files.filter(file=>file.name!=="subscribers.json")});assert.equal(narrowed.status,200,JSON.stringify(narrowed.body));assert.deepEqual(narrowed.body.report.limits,[]);
     const applied=await moveIn.apply(narrowed.body);assert.equal(applied.status,200,JSON.stringify(applied.body));assert.equal(applied.body.job.state,"completed");assert.equal(await count(),beforeImport,"leaving out the email channel makes a fresh import fit");
     const csv="email\r\n"+Array.from({length:300},(_,index)=>`synthetic-lamp-limit-csv-${index}@example.test\r\n`).join("");
     const csvPreview=await fixture.post("/api/app/subscribers/import/preview",{csv});assert.equal(csvPreview.status,200,csvPreview.text);
     assert.ok(csvPreview.body.limits.some(text=>text.includes("over the 25,000 limit by 200")));assert.equal(csvPreview.body.counts.refused,200);
     assert.equal(csvPreview.body.rows.filter(row=>row.reason==="over the subscriber limit").length,200);
+    const csvState=await fixture.databaseState(),csvMail=fixture.messages.length;
     const csvDenied=await fixture.post("/api/app/subscribers/import/apply",{csv,reviewedFingerprint:csvPreview.body.fingerprint});assert.equal(csvDenied.status,409,csvDenied.text);assert.equal(await count(),beforeImport);
+    await fixture.assertUnchanged(csvState);assert.equal(fixture.messages.length,csvMail);
     const fitting="email\r\nsynthetic-lamp-limit-csv-fit@example.test\r\n";
     const fittingPreview=await fixture.post("/api/app/subscribers/import/preview",{csv:fitting});assert.equal(fittingPreview.status,200,fittingPreview.text);assert.deepEqual(fittingPreview.body.limits,[]);
     const fittingApply=await fixture.post("/api/app/subscribers/import/apply",{csv:fitting,reviewedFingerprint:fittingPreview.body.fingerprint});assert.equal(fittingApply.status,200,fittingApply.text);assert.equal(fittingApply.body.counts.created,1);
