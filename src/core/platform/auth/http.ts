@@ -10,10 +10,8 @@ import type { AppServices } from '../../app/services';
 export async function authResponse(request:Request,env:AppBindings,services:AppServices):Promise<Response> {
   try {
     const auth=services.auth(),config=authConfig(env),url=new URL(request.url);
-    if (url.pathname === '/signin' && ['GET', 'HEAD'].includes(request.method)) {
-      const session = await auth.getSession(request);
-      if (session?.operator.role === 'owner') return new Response(null, { status: 303, headers: { ...securityHeaders(), Location: '/app' } });
-    }
+    const signedIn = await signedInOwnerRedirect(request, auth);
+    if (signedIn) return signedIn;
     // A host-configured key set selects native signed claims. Claims never choose their own authority.
     const trust = ownerClaimConfig(env);
     let response = trust ? await createOwnerClaimHandler({ db: env.DB, authConfig: config,
@@ -57,4 +55,12 @@ async function ownerSignInRefused(response:Response):Promise<Response> {
   const body=(response.headers.get('content-type')??'').includes('json')?await response.json().catch(()=>null) as {error?:unknown}|null:null;
   const notice=typeof body?.error==='string'&&/^[a-z_]+$/.test(body.error)?body.error:'invalid_or_expired';
   return new Response(null,{status:303,headers:{...securityHeaders(),Location:`/signin?notice=${notice}`}});
+}
+
+export async function signedInOwnerRedirect(request: Request, auth: ReturnType<AppServices['auth']>): Promise<Response | null> {
+  if (new URL(request.url).pathname !== '/signin' || !['GET', 'HEAD'].includes(request.method)) return null;
+  const session = await auth.getSession(request);
+  return session?.operator.role === 'owner'
+    ? new Response(null, { status: 303, headers: { ...securityHeaders(), Location: '/app' } })
+    : null;
 }
