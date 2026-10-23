@@ -1,3 +1,4 @@
+import { createSubscriberPreferencesRepository } from "./preferences.repository";
 import { and, asc, eq, gt, isNull, sql } from "drizzle-orm";
 
 import { createDatabase } from "../../platform/db/client";
@@ -10,6 +11,8 @@ import { createSubscriberTransitions, type SubscriberTransitions } from "./trans
 import { retireSubscriberCustody, subjectsInCustody } from "../statuspage-import/custody";
 import type { D1Sql } from "../../../../modules/import-kit/src/d1/index.ts";
 import { createSubscriberIntakeRepository, type SubscriberIntakeRepository } from "./intake.repository";
+import { createSubscriberLimitRepository } from "./limits.repository";
+import { SubscriberLimitError } from "./limits";
 import { createWebhookFormatRepository } from "./webhook-format.repository";
 
 export type StoredSubscriber = typeof subscribers.$inferSelect;
@@ -18,7 +21,9 @@ export type StoredSubscriberToken = typeof subscriberTokens.$inferSelect;
 export type SubscriptionMailKind = "confirmation" | "already-subscribed" | "subscribed";
 
 export interface SubscriberRepository extends SubscriberTransitions {
+  preferences: ReturnType<typeof createSubscriberPreferencesRepository>;
   intake: SubscriberIntakeRepository;
+  limits: ReturnType<typeof createSubscriberLimitRepository>;
   formats: ReturnType<typeof createWebhookFormatRepository>;
   listSubscribers(limit: number, offset?: number): Promise<StoredSubscriber[]>;
   listComponents(subscriberId: string): Promise<StoredSubscriberComponent[]>;
@@ -45,7 +50,9 @@ export interface SubscriberRepository extends SubscriberTransitions {
 export function createSubscriberRepository(binding: D1Database): SubscriberRepository {
   const database = createDatabase(binding);
   return {
+    preferences: createSubscriberPreferencesRepository(binding),
     intake: createSubscriberIntakeRepository(binding),
+    limits: createSubscriberLimitRepository(binding),
     formats: createWebhookFormatRepository(binding),
     ...createSubscriberTransitions(binding),
     async listSubscribers(limit, offset = 0) {
@@ -79,14 +86,14 @@ export function createSubscriberRepository(binding: D1Database): SubscriberRepos
         .where(and(eq(subscriberTokens.tokenHash, tokenHash), eq(subscriberTokens.scope, scope), isNull(subscriberTokens.revokedAt), isNull(subscriberTokens.expiresAt))).get()) ?? null;
     },
     async createPendingSubscriber(input) {
-      await database.insert(subscribers).values(input).onConflictDoUpdate({
+      try { await database.insert(subscribers).values(input).onConflictDoUpdate({
         target: subscribers.destination,
         set: { state: input.state, selectionMode: input.selectionMode, deactivationReason: null, deactivatedAt: null,
           // A fresh opt-in starts a fresh pending lifetime. Ordinary repeated
           // requests and import invitations retain their original deadline.
           createdAt: sql`CASE WHEN ${subscribers.state} = 'deactivated' THEN ${input.createdAt} ELSE ${subscribers.createdAt} END`,
           updatedAt: input.updatedAt },
-      });
+      }); } catch(cause) {if(cause instanceof Error && cause.message.includes("over the subscriber limit"))throw new SubscriberLimitError();throw cause;}
     },
     async updateSelection(subscriberId, componentIds, now) {
       const statements: D1PreparedStatement[] = [binding.prepare("DELETE FROM subscriber_components WHERE subscriber_id = ?").bind(subscriberId)];
@@ -190,6 +197,8 @@ export function createSubscriberRepository(binding: D1Database): SubscriberRepos
       const native: D1Sql[] = [
         ...removeRecipients,
         ...redactions,
+        { sql: "DELETE FROM subscriber_chat_destinations WHERE subscriber_id = ?", params: [subscriberId] },
+        { sql: "DELETE FROM channel_destinations WHERE id = ? AND created_by_operator_id IS NULL", params: [subscriberId] },
         { sql: "UPDATE subscribers SET destination = ?, contact_email = NULL, state = 'deactivated', deactivation_reason = 'deleted by operator', deactivated_at = ?, updated_at = ? WHERE id = ?", params: [`deleted:${subscriberId}`, now, now, subscriberId] },
         { sql: "UPDATE subscriber_tokens SET revoked_at = ?, updated_at = ? WHERE subscriber_id = ? AND revoked_at IS NULL", params: [now, now, subscriberId] },
       ];
@@ -219,6 +228,7 @@ export function createSubscriberRepository(binding: D1Database): SubscriberRepos
       const audit = subscriberExpiryAudit(predicate, at);
       await binding.batch([
         binding.prepare(audit.sql).bind(...audit.params ?? []),
+        binding.prepare(`DELETE FROM channel_destinations WHERE created_by_operator_id IS NULL AND id IN (SELECT id FROM subscribers WHERE ${predicate.sql})`).bind(...predicate.params),
         binding.prepare(`DELETE FROM subscribers WHERE ${predicate.sql}`).bind(...predicate.params),
       ]);
       for (const subject of held.slice(0, custodyErasures)) {

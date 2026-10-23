@@ -515,7 +515,7 @@ The public page offers "Get updates in Slack". The visitor installs Lamp's Slack
 
 Acceptance: a recorded OAuth exchange against Slack's sandbox creates an active Slack subscription that receives the next publish. A recorded `app_uninstalled` event deactivates it, and the next publish skips it. The sandbox subscription's post for `See https://help.example.com/kb/123.` carries `See <https://help.example.com/kb/123>.`
 
-Status: **partial** — `src/core/features/subscribers/service.ts`, `src/core/features/channels/service.ts`, `tests/e2e/delivery-contract.test.mjs`. A subscriber can register a Slack incoming-webhook URL as a webhook subscriber (SUB-009), and operators add Slack channels (NOTIFY-011). Slack app sign-up does not exist.
+Status: **done** — Recorded provider-edge proof: `tests/e2e/channels-and-presets.test.mjs` (Private channels deliver the selected publication once with literal text and punctuated links), `tests/e2e/helpers/self-serve-chat-flow.mjs` (`selfServeChatFlow`) and `tests/e2e/slack-subscriptions-helper.mjs`. OAuth v2 grants only incoming-webhook; the active selected-component subscription receives the next publish with `See <https://help.example.com/kb/123>.`; signed app_uninstalled and tokens_revoked and channel_is_archived deactivate it and later publishes skip it. Callback success is proven at 1440/390 with axe, overflow and hydration checks. The exchange uses a recorded Slack response at the network edge; no live sandbox call was made from this run; ct judges recorded.
 
 #### SUB-015 — Self-serve Microsoft Teams subscriptions.
 
@@ -1122,10 +1122,10 @@ AGENT-002 is judged done on 23 October 2026 from its named native Worker and 144
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
 | Published | 104 | 0 | 0 | 104 |
-| Target and push further | 25 | 29 | 41 | 95 |
-| All | 129 | 29 | 41 | 199 |
+| Target and push further | 26 | 28 | 41 | 95 |
+| All | 130 | 28 | 41 | 199 |
 
-Of 199 clauses, 129 are done, 29 partial and 41 missing (70 non-DONE).
+Of 199 clauses, 130 are done, 28 partial and 41 missing (69 non-DONE).
 
 | Clause | Title | Kind | Status | Evidence | Gap |
 | --- | --- | --- | --- | --- | --- |
@@ -1225,7 +1225,7 @@ Of 199 clauses, 129 are done, 29 partial and 41 missing (70 non-DONE).
 | `SUB-011` | Operator view | published | done | `tests/e2e/delivery-contract.test.mjs` |  |
 | `SUB-012` | No enumeration | published | done | `tests/e2e/delivery-contract.test.mjs` |  |
 | `SUB-013` | SMS subscribers | target | missing |  | Released `seed.json → nonGoals` excludes SMS; this clause and NOTIFY-014 replace that exclusion. Carries UPDATE-013's links, inherited unchanged in its clause text and acceptance. |
-| `SUB-014` | Self-serve Slack subscriptions | target | partial | `src/core/features/subscribers/service.ts`, `src/core/features/channels/service.ts`, `tests/e2e/delivery-contract.test.mjs` | A subscriber can register a Slack incoming-webhook URL as a webhook subscriber (SUB-009), and operators add Slack channels (NOTIFY-011). Slack app sign-up does not exist. Carries UPDATE-013's links in its clause text and acceptance. |
+| `SUB-014` | Self-serve Slack subscriptions | target | done | Recorded provider-edge proof: `tests/e2e/channels-and-presets.test.mjs` (Private channels deliver the selected publication once with literal text and punctuated links), `tests/e2e/helpers/self-serve-chat-flow.mjs` (`selfServeChatFlow`) and `tests/e2e/slack-subscriptions-helper.mjs`. OAuth v2 grants only incoming-webhook; the active selected-component subscription receives the next publish with `See <https://help.example.com/kb/123>.`; signed app_uninstalled and tokens_revoked and channel_is_archived deactivate it and later publishes skip it. Callback success is proven at 1440/390 with axe, overflow and hydration checks. The exchange uses a recorded Slack response at the network edge; no live sandbox call was made from this run; ct judges recorded. |  |
 | `SUB-015` | Self-serve Microsoft Teams subscriptions | target | partial | `src/core/features/channels/teams.ts`, `tests/e2e/channels-and-presets.test.mjs` | Operator-configured Teams channels ship (NOTIFY-011, NOTIFY-012). Subscriber-owned Teams subscriptions do not. Carries UPDATE-013's links in its clause text and acceptance. |
 | `SUB-016` | Preferences on every channel | target | partial | `src/core/features/subscribers/service.ts`, `tests/e2e/delivery-contract.test.mjs` | Component selection on subscriptions ships. Event-kind and impact-threshold preferences do not. |
 | `SUB-017` | Subscriber import and export | target | done | `tests/e2e/statuspage-import.test.mjs` (imports keep history silent, CSV dry runs write nothing, and pending subscribers receive only explicit owner invitations), `tests/e2e/helpers/subscriber-csv-flow.mjs`, `tests/e2e/delivery-contract.test.mjs` (Attributed operator additions, confirmed component scope, private management and opt-out), `tests/e2e/helpers/subscriber-add-flow.mjs`, `tests/e2e/helpers/subscriber-intake-browser-flow.mjs`. Public operator CSV preview writes nothing and reports 97 created plus three reasoned refusals from 100 rows; apply creates 97 pending subscriptions without mail. Explicit invitations send 50, then 47, then zero, and CSV export retains 97 rows with channel, state, selections and consent time. The Add subscriber public door sends one confirmation; after confirmation its two selected components receive updates and a third does not. The private list and audit record the adding operator. At 1440/390 native browser journeys prove Add, attribution, dry run, apply, explicit idempotent invitations and CSV export. Phone, multi-language and over-limit obligations are carried by SUB-013, I18N-001 and SUB-020 after the approved carves; API-001 inherits its future door. |  |

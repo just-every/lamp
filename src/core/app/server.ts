@@ -1,3 +1,5 @@
+import { createSlackSubscriptionsService, registerSlackSubscriptionRoutes } from "../features/subscribers/slack-subscriptions";
+import { registerTeamsSubscriptionRoutes } from "../features/subscribers/teams-routes";
 import { registerChatDeskRoutes } from "../features/chat-desk";
 import { registerAvailabilityReportRoutes } from "../features/availability-reports";
 import { createSubscriberReportingRepository, createSubscriberReportingService, registerSubscriberReportingRoutes } from "../features/subscriber-reporting";
@@ -54,6 +56,10 @@ export function createApp(bindings: AppBindings, execution?: MailExecution) {
     return services.publicSnapshots.hasCurrentSnapshot();
   });
   const publicWriteLimiter = createPublicWriteRateLimiter(bindings.DB);
+  registerSlackSubscriptionRoutes(app,createSlackSubscriptionsService(bindings.DB,{
+    clientId:bindings.SLACK_CLIENT_ID,clientSecret:bindings.SLACK_CLIENT_SECRET,signingSecret:bindings.SLACK_SIGNING_SECRET,
+    webhookSecret:bindings.WEBHOOK_SIGNING_SECRET,tokenSecret:bindings.SUBSCRIBER_TOKEN_SECRET,pageName:()=>services.subscribers.getPageName(),limitsChanged:()=>services.subscribers.checkLimits(),
+  }),publicWriteLimiter);
   // Local development says its mail is suppressed; a demo completes sends as
   // mocked success, so its pages read as a configured installation's.
   const localMail = isLocalMailExecution(bindings) && bindings.RER_DEMO !== '1';
@@ -81,6 +87,7 @@ export function createApp(bindings: AppBindings, execution?: MailExecution) {
   registerAiRoutes(app, services.ai);
   registerMaintenanceRoutes(app, services.maintenance);
   registerSubscriberRoutes(app, services.subscribers, { rateLimiter: publicWriteLimiter });
+  registerTeamsSubscriptionRoutes(app, services.teamsSubscriptions, services.subscribers, publicWriteLimiter);
   registerPageSettingsRoutes(app, services.pageSettings, (key) => services.publicSnapshots.readArtifact(key));
   registerWebsiteRoutes(app, services.website);
   registerPageExportRoutes(app, services.pageExport);

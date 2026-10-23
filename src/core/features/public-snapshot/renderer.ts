@@ -1,4 +1,5 @@
 import { renderMaintenanceCalendar } from "./maintenance-calendar";
+import { renderPreferenceFields } from "../subscribers/preferences";
 import { publicMasthead } from "./page-chrome";
 import { effectiveTemplate, renderTemplatePage, templateArtifacts } from "./templates/index";
 import { publicUpdate } from "./public-update";
@@ -155,11 +156,15 @@ function componentHealthMarkup(model: ReturnType<typeof toPublicModel>) {
   return `<section class="component-health" aria-labelledby="components-title"><header class="section-heading"><h2 id="components-title">Components</h2><p>Uptime over the last ${REPORTING_DAYS} days</p></header><div class="availability-charts">${charts}</div>${since}<div class="availability-foot"><aside class="availability-legend" aria-label="Availability legend"><span><i class="legend-good"></i>Available</span><span><i class="legend-degraded"></i>Degraded</span><span><i class="legend-downtime"></i>Downtime</span><span><i class="legend-no-data"></i>No data</span></aside><details class="availability-method"><summary>How availability is calculated</summary>${method}</details></div></section>`;
 }
 
-// The optional component choice (SUB-004) is a native disclosure, so it works without script (PAGE-002).
+// Native disclosures keep all subscription choices usable without script (PAGE-002).
 function subscriptionMarkup(components: PublicComponent[]) {
   const choices = groupComponentsByHeading(components).flatMap(([, values]) => values).map((component) => `<label><input type="checkbox" name="componentId" value="${escapeHtml(component.id)}"> ${escapeHtml(component.name)}</label>`).join("");
   const picker = choices ? `<details class="subscribe-components"><summary>Choose components</summary><fieldset><legend>Send me updates only about</legend><p>Leave every box clear to follow every component, including ones added later.</p>${choices}</fieldset></details>` : "";
-  return `<section id="subscribe" class="subscribe" aria-labelledby="subscribe-title"><div class="subscribe-copy"><h2 id="subscribe-title">Subscribe to status updates</h2><p>Confirm your email address to receive future incident and maintenance updates.</p></div><form method="post" action="/subscribe"><label for="email">Email address</label><div class="subscribe-row"><input id="email" name="email" type="email" autocomplete="email" required><button type="submit">Subscribe</button></div>${picker}</form></section>`;
+  const preferences = () => `<details class="subscribe-components"><summary>Choose updates</summary>${renderPreferenceFields()}</details>`;
+  const email = `<form method="post" action="/subscribe"><label for="email">Email address</label><div class="subscribe-row"><input id="email" name="email" type="email" autocomplete="email" required><button type="submit">Subscribe</button></div>${picker}${preferences()}</form>`;
+  const slack = `<details class="subscribe-channel"><summary>Get updates in Slack</summary><form method="post" action="/subscribe/slack">${picker}${preferences()}<button type="submit">Get updates in Slack</button></form></details>`;
+  const teams = `<details class="subscribe-channel"><summary>Get updates in Teams</summary><form method="post" action="/subscribe/teams"><label for="teams-url">Teams Workflows webhook URL</label><input id="teams-url" name="url" type="url" autocomplete="off" required>${picker}${preferences()}<button type="submit">Send verification card</button></form></details>`;
+  return `<section id="subscribe" class="subscribe" aria-labelledby="subscribe-title"><div class="subscribe-copy"><h2 id="subscribe-title">Subscribe to status updates</h2><p>Choose email, Slack or Teams for future updates.</p></div><div class="subscribe-options">${email}${slack}${teams}</div></section>`;
 }
 
 function timelineEntry(kind: "incident" | "maintenance" | "resolved", body: string) {
