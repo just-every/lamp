@@ -4,6 +4,8 @@
 
 **Slack and Teams incident desk.** Signed chat actions can open a private draft, stage component states, use the common preview and explicitly publish as a linked operator. One-time identity linking expires after ten minutes. The Settings panel is prepared but not mounted; live workspace installation has not been checked.
 
+Maintenance reschedule notices now bind their retained recipient IDs before the channel filter, preserving the original recipient set across a changed window.
+
 **Statuspage-format webhooks (SUB-018, partial).** Webhook subscriptions choose Lamp (the default) or Statuspage through the operator doors and recipient management link. One shared mapper supplies public API and webhook statuses, stable IDs, incident history and maintenance notice fields. Both formats retain the same exact-body signature scheme; update text remains plain and unchanged. Standalone component-change notifications, imported webhook subscriptions and MAINT-009's future in-window updates remain with their carriers. The public subscribe chooser awaits the owner UI pass.
 
 **Subscriber import and export (SUB-017, partial).** Operators can dry-run a bounded CSV without writing or sending mail, create pending email and webhook subscriptions, and export subscription state, component selection and recorded consent. An owner explicitly sends each imported confirmation invitation at most once. Add subscriber sends one confirmation and records the adding operator privately in the directory and audit log. SMS, additional languages and per-channel limit enforcement remain with SUB-013, I18N-001 and SUB-020.
