@@ -6,6 +6,7 @@ import { publicUpdate } from "../public-snapshot/public-update";
 import type { PageStatusRollupPolicy } from "../public-snapshot/policies";
 import type { PublicSnapshotSource } from "../public-snapshot/repository";
 import type { DispatchableDelivery } from "./repository";
+import { statuspageStates } from "../../shared/statuspage-mapping";
 import { statuspagePublicId } from "../../shared/statuspage-mapping";
 
 function projection(source:PublicSnapshotSource,origin:string,rollup:PageStatusRollupPolicy):StatuspageProjectionModel {
@@ -30,13 +31,22 @@ function projection(source:PublicSnapshotSource,origin:string,rollup:PageStatusR
 
 export function statuspageWebhookBody(source:PublicSnapshotSource,delivery:DispatchableDelivery,origin:string,unsubscribeToken:string,rollup:PageStatusRollupPolicy) {
   const records=projectStatuspageRecords(projection(source,origin,rollup),source);
+  const envelope = {
+    meta:{unsubscribe:new URL(`/unsubscribe/${encodeURIComponent(unsubscribeToken)}`,origin).href,documentation:"https://github.com/just-every/run-lamp/blob/main/docs/subscribers-and-notifications.md"},
+    page:{id:records.page.id,status_indicator:records.status.indicator,status_description:records.status.description},
+  };
+  if (delivery.componentEventId && delivery.componentId && delivery.componentName && delivery.componentCreatedAt && delivery.previousComponentState && delivery.newComponentState && delivery.componentChangedAt) {
+    const componentId = statuspagePublicId(delivery.componentId, source.publicApiIds);
+    return { ...envelope,
+      component_update: { id: statuspagePublicId(delivery.componentEventId, source.publicApiIds), component_id: componentId, created_at: delivery.componentChangedAt, old_status: statuspageStates[delivery.previousComponentState], new_status: statuspageStates[delivery.newComponentState], claimant_kind: delivery.componentClaimantKind },
+      component: { id: componentId, name: delivery.componentName, status: statuspageStates[delivery.newComponentState], created_at: delivery.componentCreatedAt },
+    };
+  }
   const incident=delivery.maintenanceId
     ? records.maintenance.find(item=>item.id===statuspagePublicId(delivery.maintenanceId!,source.publicApiIds))
     : records.incidents.find(item=>item.id===statuspagePublicId(delivery.statuspageIncidentId??delivery.incidentId??"",source.publicApiIds));
   if(!incident)throw new Error("The notification has no public Statuspage record.");
   return {
-    meta:{unsubscribe:new URL(`/unsubscribe/${encodeURIComponent(unsubscribeToken)}`,origin).href,documentation:"https://github.com/just-every/run-lamp/blob/main/docs/subscribers-and-notifications.md"},
-    page:{id:records.page.id,status_indicator:records.status.indicator,status_description:records.status.description},
-    incident,
+    ...envelope, incident,
   };
 }

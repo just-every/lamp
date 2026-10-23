@@ -195,7 +195,9 @@ export function createDeliveriesService(
       const { manage, unsubscribe } = links;
       const manageUrl = new URL(`/manage/${encodeURIComponent(manage)}`, origin).toString();
       const unsubscribeUrl = new URL(`/unsubscribe/${encodeURIComponent(unsubscribe)}`, origin).toString();
-      const rendered = delivery.incidentReportId && delivery.incidentReference && delivery.incidentTitle
+      const rendered = delivery.componentEventId
+        ? { email: { subject: `${delivery.componentName}: ${delivery.newComponentState}`, plainText: `${delivery.componentName}: ${delivery.previousComponentState} → ${delivery.newComponentState}\n\nChanged: ${displayNotificationTime(delivery.componentChangedAt!, delivery.timezone)}\nClaimant: ${delivery.componentClaimantKind}` } }
+        : delivery.incidentReportId && delivery.incidentReference && delivery.incidentTitle
         ? { email: { subject: `[${delivery.incidentReference}] Post-incident report`, plainText: [`${delivery.incidentReference}: ${delivery.incidentTitle}`, ...(delivery.incidentImpact === null ? [] : [`Incident impact: ${impactLabel(delivery.incidentImpact)}`]), ...[["Summary", delivery.reportSummary], ["Timeline", delivery.reportTimeline], ["Cause", delivery.reportCause], ["Remediation", delivery.reportRemediation]].flatMap(([label, value]) => value?.trim() ? [`${label}: ${value}`] : [])].join("\n\n") } }
         : delivery.incidentUpdateId !== null && delivery.incidentReference !== null && delivery.incidentTitle !== null && delivery.lifecycle !== null && delivery.affectedAudience !== null && delivery.customerImpact !== null
           ? renderNotificationUpdate({ incidentImpact: delivery.incidentImpact, incidentReference: delivery.incidentReference, incidentTitle: delivery.incidentTitle, lifecycle: delivery.lifecycle, affectedAudience: delivery.affectedAudience, customerImpact: delivery.customerImpact, whatStillWorks: delivery.whatStillWorks ?? "", details: delivery.details ?? "", nextUpdateAt: delivery.nextUpdateAt, componentChanges: parsePublishedComponentChanges(delivery.componentChangesJson), nextUpdateDisplay: delivery.nextUpdateAt ? displayNotificationTime(delivery.nextUpdateAt, delivery.timezone) : null })
@@ -245,7 +247,9 @@ export function createDeliveriesService(
     const slack = !statuspage && new URL(delivery.destination).hostname === "hooks.slack.com";
     const destination = slack ? await resolveSlackWebhook(async () => delivery.destination, delivery.subscriberId) : delivery.destination;
     const incidentEvent = !statuspage && !slack && delivery.incidentId && delivery.incidentUpdateId ? await repository.getIncidentWebhookPayload(delivery.incidentId, delivery.incidentUpdateId, delivery.notificationEventId) : null;
-    const event = incidentEvent
+    const event = delivery.componentEventId
+      ? { event: "component.changed", deliveryId: delivery.id, component: { id: delivery.componentId, name: delivery.componentName, previousState: delivery.previousComponentState, state: delivery.newComponentState, changedAt: delivery.componentChangedAt, claimantKind: delivery.componentClaimantKind } }
+      : incidentEvent
       ? { event: "incident.update.published", deliveryId: delivery.id, ...incidentEvent, incident: { ...incidentEvent.incident, impact: delivery.incidentImpact } }
       : { event: delivery.maintenanceId ? "maintenance.notice.published" : "incident.report.published", deliveryId: delivery.id, incident: delivery.incidentReference ? { reference: delivery.incidentReference, title: delivery.incidentTitle, impact: delivery.incidentImpact } : null, maintenance: delivery.maintenanceId ? { id: delivery.maintenanceId, reference: delivery.maintenanceReference, title: delivery.maintenanceTitle, state: delivery.maintenanceState, notice: delivery.maintenanceNoticeKind } : null };
     let payload:unknown;
