@@ -43,7 +43,7 @@ export async function openFollowUpsRuntime() {
     });
     runtime = new Miniflare(convertV4MiniflareOptions({
       name: "lamp-follow-ups-test", modules: true, script: built.outputFiles[0].text,
-      port: 0, inspectorPort: 0, compatibilityDate: "2026-09-08", compatibilityFlags: ["nodejs_compat"],
+      port: 0, compatibilityDate: "2026-09-08", compatibilityFlags: ["nodejs_compat"],
       bindings: {
         LAMP_PAGE_HOST: "status.example.test", LAMP_APP_HOST: "app.example.test",
         AUTH_ORIGIN: appOrigin, SETUP_OPERATOR_EMAIL: "synthetic-lamp-owner@example.test",
