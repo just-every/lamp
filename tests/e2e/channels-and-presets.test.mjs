@@ -1,3 +1,4 @@
+import { chatLinksBrowserFlow } from "./helpers/chat-links-browser-flow.mjs";
 import { channelDeletionFlow } from "./helpers/channel-deletion-flow.mjs";
 import { pagerDutyBrowserFlow } from "./helpers/pagerduty-browser-flow.mjs";
 import { availabilityReportBrowserFlow } from "./helpers/availability-report-browser-flow.mjs";
@@ -36,6 +37,7 @@ let cookie;
 let runtime;
 let receiver;
 const received = [];
+const chatSigningSecret = randomBytes(32).toString('hex');
 let slackReply = { status: 200, body: "ok" };
 
 async function api(path, init = {}) {
@@ -65,7 +67,7 @@ before(async () => {
   runtime.env.LAMP_DEV_CHANNEL_RECEIVER = `http://127.0.0.1:${receiver.address().port}`;
   const configPath = join(runtime.directory, "wrangler.json");
   await writeFile(configPath, localWranglerConfig(config => ({
-    ...config, vars: { ...config.vars, WEBHOOK_SIGNING_SECRET: randomBytes(32).toString("hex") },
+    ...config, vars: { ...config.vars, WEBHOOK_SIGNING_SECRET: randomBytes(32).toString("hex"), SLACK_SIGNING_SECRET: chatSigningSecret },
   })), { mode: 0o600 });
   runtime.env.LAMP_WRANGLER_CONFIG = configPath;
   await runtime.start();
@@ -244,4 +246,5 @@ test("INTAKE-009 PagerDuty v3 signed events create drafts, brief entries and one
   t.diagnostic("INTAKE-009 — signed PagerDuty evidence stays private until publication; responder notes survive replay, rejection and restore safely");
   await pagerDutyBrowserFlow({ api, component, origin, cookie });
   await pagerDutyFlow({ runtime, t });
+  await chatLinksBrowserFlow({ origin, cookie, signingSecret: chatSigningSecret, diagnostic: text => t.diagnostic(text) });
 });

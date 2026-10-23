@@ -35,3 +35,6 @@
 .cutover-page li { margin: 8px 0; }
 .channel-actions { display: inline-flex; flex-wrap: wrap; gap: 8px; }
 .channel-list li > .setup-result { flex-basis: 100%; }
+
+.chat-links-card code { overflow-wrap: anywhere; }
+.chat-links-card > .button { margin: 8px 8px 0 0; }
