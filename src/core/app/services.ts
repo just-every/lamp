@@ -1,3 +1,4 @@
+import { createCommunicationOwnerRepository } from "../features/incidents/communication-owner.repository";
 import { createResponderService } from "../features/intake/responder-service";
 import { createAvailabilityReportRepository, createAvailabilityReportService } from "../features/availability-reports";
 import { createCommunicationPerformanceRepository, createCommunicationPerformanceService } from "../features/communication-performance";
@@ -139,7 +140,12 @@ export function createAppServices(bindings: AppBindings, blobs: BlobStore, execu
   const briefs = createBriefService(createBriefRepository(bindings.DB));
   const reports = createReportsService(createReportRepository(bindings.DB), publicSnapshots.rebuild, extensions.postmortemDuePolicy, {
     forIncidentReport: async (input) => notificationPublicationStatements(bindings.DB, { eventId: input.eventId, eventType: "incident-report", incidentReportId: input.eventId, componentIds: input.componentIds, channels: input.channels, queuedAt: input.queuedAt }),
-  }, briefs);
+  }, briefs, async ({ incidentId, reference, title, week }) => deliveries.queueOperatorAlert({
+    eventId: `report-reminder/${incidentId}/${week}`,
+    recipients: await createCommunicationOwnerRepository(bindings.DB).recipients(incidentId),
+    title: `Lamp report follow-up: ${reference}`,
+    text: `${reference} ${title} is owing a post-incident report. Write or waive it here: ${authOrigin(bindings)}/app/incidents/${incidentId}#post-incident-report`,
+  }));
   const intake = createIntakeService(createIntakeRepository(bindings.DB), extensions.alertIntakePolicy, async (incidentId) => deliveries.queueOperatorAlert({ eventId: `intake-draft/${incidentId}`, title: "Lamp alert intake created an incident draft", text: `A configured alert source created draft incident ${incidentId}; review and publish it if customer communication is needed.` }), extensions.events, { webhookSecret: bindings.WEBHOOK_SIGNING_SECRET });
   const aiValues = [bindings.AI_PROVIDER_URL, bindings.AI_PROVIDER_API_KEY, bindings.AI_PROVIDER_MODEL];
   const configuredAiValues = aiValues.filter((value) => Boolean(value)).length;

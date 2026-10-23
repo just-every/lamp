@@ -1047,7 +1047,7 @@ test("MAINT-002 MAINT-001 MAINT-003 MAINT-004 MAINT-005 MAINT-006 — Scheduled 
 
 
 
-test("DRAFT-003 AGENT-005 HIST-002 HIST-003 — Unavailable AI and post-incident reporting", async t => {
+test("DRAFT-003 AGENT-005 HIST-002 HIST-003 AUTO-004 — Unavailable AI, reports and reasoned follow-up", async t => {
   t.diagnostic("DRAFT-003 — without a provider the suggestion route is unavailable while normal publication remains available");
   await (async () => {
   const status = await appFetch("/api/app/ai/status");
@@ -1137,6 +1137,31 @@ test("DRAFT-003 AGENT-005 HIST-002 HIST-003 — Unavailable AI and post-incident
   const owing = await appFetch("/api/app/reports/owing");
   assert.equal((await owing.json()).incidentIds.includes(incident.id), false);
   assert.equal((await (await appFetch("/api/app/reports/owing")).json()).incidentIds.includes(owingIncident.id), true);
+  const DAY=86400000;
+  const tick=async time=>{ const response=await fetch(`${appUrl}/cdn-cgi/handler/scheduled?cron=${encodeURIComponent("* * * * *")}&time=${time}`); assert.equal(response.status,200,await response.text()); };
+  const reminders=()=>queryD1Sql(testStatePath,"SELECT payload_json FROM notification_outbox WHERE kind='operator-alert'").map(row=>JSON.parse(row.payload_json)).filter(row=>row.title===`Lamp report follow-up: ${owingIncident.reference}`);
+  await tick(Date.parse(past)+7*DAY); await tick(Date.parse(past)+7*DAY);
+  assert.equal(reminders().length,1,"day seven queues one reminder despite a repeated tick");
+  const owner=(await (await appFetch('/api/app/session')).json()).operator;
+  assert.deepEqual(reminders()[0].recipients,[owner.email]);
+  assert.ok(reminders()[0].text.includes(`/app/incidents/${owingIncident.id}#post-incident-report`));
+  assert.ok(!reminders()[0].text.includes('A connection pool was exhausted.'));
+  await tick(Date.parse(past)+14*DAY); assert.equal(reminders().length,2,"day fourteen queues the next weekly reminder");
+  const waiver=`/api/app/incidents/${owingIncident.id}/report/waive`;
+  await expectStatus(await appFetch(waiver,{method:'POST',body:JSON.stringify({reason:'  '})}),400);
+  assert.equal((await (await appFetch(`/api/app/incidents/${owingIncident.id}/report`)).json()).waiver,null);
+  const reason='Synthetic Lamp report covered by a customer review.';
+  await expectStatus(await appFetch(waiver,{method:'POST',body:JSON.stringify({reason})}),200);
+  await tick(Date.parse(past)+21*DAY); assert.equal(reminders().length,2,"waiver stops later reminders");
+  assert.equal((await (await appFetch('/api/app/reports/owing')).json()).incidentIds.includes(owingIncident.id),false);
+  const audited=(await (await appFetch('/api/app/audit-log?action=report.waived&limit=100')).json()).entries.filter(row=>row.entityId===owingIncident.id);
+  assert.equal(audited.length,1); assert.equal(audited[0].reason,reason); assert.equal(audited[0].actorId,owner.id);
+  await expectStatus(await appFetch(`/api/app/incidents/${owingIncident.id}/report`,{method:'PUT',body:JSON.stringify(report)}),200);
+  await expectStatus(await appFetch(`/api/app/incidents/${owingIncident.id}/report/publish`,{method:'POST',body:JSON.stringify({channels:[]})}),200);
+  await tick(Date.parse(past)+28*DAY); assert.equal(reminders().length,2,"a waived report can still be published");
+  const publishedReminders=()=>queryD1Sql(testStatePath,"SELECT payload_json FROM notification_outbox WHERE kind='operator-alert'").map(row=>JSON.parse(row.payload_json)).filter(row=>row.title===`Lamp report follow-up: ${incident.reference}`);
+  assert.equal(publishedReminders().length,0,"a published report sends no weekly reminder");
+
 })(t);
   t.diagnostic("HIST-003 — a major incident remains report-due after seven days even if its current component claim is later lowered");
   await (async () => {

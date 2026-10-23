@@ -99,3 +99,7 @@ Partially unavailable or Major outage and has no report.
 ## Communication owner
 
 Every unresolved incident starts with the operator who opened it as its communication owner. In the private incident composer, **Take over communication** assigns it to you, or **Reassign owner** chooses another active operator; each change is recorded in the audit log. The owner receives the due and overdue email. An incident whose owner is inactive is marked **Unowned** on Overview and all active operators receive its reminder. Ten minutes after the original commitment, `incident.escalation.v1` sends one escalation to every active operator; every operator has publish rights until TEAM-004 roles ship. Ownership never appears on the public page, feeds or subscriber messages. Push, operator chat and Oncall responder delivery are not available yet (MOBILE-002, NOTIFY-016 and INTAKE-012).
+
+### Owed reports
+
+When a major incident owes a report, Lamp emails its communication owner on the due day and once each following week. If no active owner remains, every active operator receives the reminder. The email names the incident and links its report editor, without report content. Publish a report to stop reminders, or use **Waive report reminder** with a non-empty reason; the waiver is recorded in the audit log and removes the incident from the owing list. You can still write and publish a report after waiving it. Operator-chat reminders remain unbuilt under NOTIFY-016.

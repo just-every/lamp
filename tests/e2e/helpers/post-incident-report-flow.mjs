@@ -1,3 +1,4 @@
+import { AxeBuilder } from "@axe-core/playwright";
 import assert from "node:assert/strict";
 import { createHmac } from "node:crypto";
 import { mkdir } from "node:fs/promises";
@@ -34,6 +35,30 @@ export async function postIncidentReportFlow({ page, appFetch, appUrl, pageUrl }
   await api(`/api/app/incidents/${incident.id}/draft`, "PUT", { ...update, lifecycle: "Resolved", customerImpact: "Payment processing has recovered. Timed-out requests can be retried safely.", details: "We verified recovery after restoring database capacity.", nextUpdateAt: null });
   await api(`/api/app/incidents/${incident.id}/publish`, "POST", { channels: [], overrideReason: "Operator verified payment recovery; proceed before the monitor hold expires." });
   const endpoint = `/api/app/incidents/${incident.id}/report`;
+  // AUTO-004: the waiver is a reasoned private control, and never blocks a later report.
+  const originalViewport=page.viewportSize();
+  const hydration=[];
+  const onConsole=message=>{if(/hydration|did not match|server rendered/i.test(message.text())) hydration.push(message.text());};
+  const onError=error=>{if(/hydration|did not match|server rendered/i.test(error.message)) hydration.push(error.message);};
+  page.on("console",onConsole); page.on("pageerror",onError);
+  for (const width of [1440,390]) {
+    await page.setViewportSize({width,height:1000});
+    await page.goto(`${appUrl}/app/incidents/${incident.id}`); await operatorHydrated(page);
+    const waiver=page.getByRole("region",{name:"Report follow-up",exact:true});
+    await waiver.getByLabel("Reason to waive the report",{exact:true}).fill("Synthetic Lamp report covered by the customer review.");
+    assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true,`${width}px waiver has no overflow`);
+    const axe=await new AxeBuilder({page}).include('[aria-label="Report follow-up"]').withTags(["wcag2a","wcag2aa","wcag21aa","wcag22aa"]).analyze();
+    assert.deepEqual(axe.violations.filter(row=>["serious","critical"].includes(row.impact)).map(row=>row.id),[]);
+    if (width===390) {
+      await page.getByLabel("Summary",{exact:true}).fill("Synthetic Lamp unsaved report work.");
+      await waiver.getByRole("button",{name:"Waive report reminder",exact:true}).click();
+      await waiver.getByText(/Report reminder waived:/).waitFor();
+      await expect(page.getByLabel("Summary",{exact:true})).toHaveValue("Synthetic Lamp unsaved report work.");
+    }
+  }
+  assert.deepEqual(hydration,[]); page.off("console",onConsole); page.off("pageerror",onError);
+  await page.setViewportSize(originalViewport);
+
   const report = {
     summary: "",
     timeline: "",

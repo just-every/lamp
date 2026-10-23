@@ -1,3 +1,5 @@
+import { createUlid } from "../../shared/ids";
+
 export interface IncidentReportRow {
   id: string;
   incidentId: string;
@@ -17,7 +19,11 @@ export interface ReportRepository {
   upsert(input: IncidentReportRow): Promise<void>;
   publish(incidentId: string, report: IncidentReportRow, publishedAt: string, operatorId: string, notificationStatements: D1PreparedStatement[]): Promise<boolean>;
   listComponentIds(incidentId: string): Promise<string[]>;
-  listResolvedWithoutPublishedReport(): Promise<Array<{ id: string; lifecycle: string; resolvedAt: string | null; impact: string | null }>>;
+  listResolvedWithoutPublishedReport(): Promise<Array<{ id: string; reference: string; title: string; lifecycle: string; resolvedAt: string | null; impact: string | null }>>;
+  waiver(incidentId: string): Promise<{ reason: string; operatorId: string; createdAt: string } | null>;
+  waive(incidentId: string, reason: string, operatorId: string, at: string): Promise<boolean>;
+  reminderSent(incidentId: string, week: number): Promise<boolean>;
+  recordReminder(incidentId: string, week: number, at: string): Promise<void>;
 }
 
 function row(result: Record<string, unknown> | null): IncidentReportRow | null {
@@ -72,11 +78,25 @@ export function createReportRepository(binding: D1Database): ReportRepository {
       }
       return Boolean(await binding.prepare(`SELECT 1 AS published FROM incident_reports WHERE id = ? AND incident_id = ? AND published_at = ?`).bind(reportId, incidentId, publishedAt).first<{ published: number }>());
     },
+    async waiver(incidentId) { return binding.prepare("SELECT reason,operator_id AS operatorId,created_at AS createdAt FROM report_waivers WHERE incident_id=?").bind(incidentId).first<{ reason: string; operatorId: string; createdAt: string }>(); },
+    async waive(incidentId, reason, operatorId, at) {
+      const [changed] = await binding.batch([
+        binding.prepare(`INSERT INTO report_waivers(incident_id,reason,operator_id,created_at)
+          SELECT id,?,?,? FROM incidents WHERE id=? AND lifecycle='Resolved' AND deleted_at IS NULL
+          AND NOT EXISTS(SELECT 1 FROM incident_reports WHERE incident_id=incidents.id AND published_at IS NOT NULL)
+          ON CONFLICT(incident_id) DO NOTHING RETURNING incident_id`).bind(reason,operatorId,at,incidentId),
+        binding.prepare(`INSERT INTO audit_entries(id,entity_type,entity_id,action,operator_id,reason,payload_json,created_at,updated_at)
+          SELECT ?,'incident-report',?,'report.waived',?,?,'{}',?,? WHERE changes()=1`).bind(createUlid(),incidentId,operatorId,reason,at,at),
+      ]);
+      return changed.results.length===1;
+    },
+    async reminderSent(incidentId, week) { return Boolean(await binding.prepare("SELECT 1 FROM report_reminders WHERE incident_id=? AND week=?").bind(incidentId,week).first()); },
+    async recordReminder(incidentId, week, at) { await binding.prepare("INSERT OR IGNORE INTO report_reminders(incident_id,week,recorded_at) VALUES(?,?,?)").bind(incidentId,week,at).run(); },
     async listComponentIds(incidentId) { return (await binding.prepare(`SELECT component_id AS componentId FROM incident_components WHERE incident_id = ? AND component_id IS NOT NULL`).bind(incidentId).all<{ componentId: string }>()).results.map((row) => row.componentId); },
     async listResolvedWithoutPublishedReport() {
-      const result = await binding.prepare(`SELECT incidents.id, incidents.lifecycle, incidents.resolved_at AS resolvedAt, incidents.peak_impact AS impact
+      const result = await binding.prepare(`SELECT incidents.id, incidents.reference, incidents.title, incidents.lifecycle, incidents.resolved_at AS resolvedAt, incidents.peak_impact AS impact
         FROM incidents LEFT JOIN incident_reports ON incident_reports.incident_id = incidents.id AND incident_reports.published_at IS NOT NULL
-        WHERE incidents.lifecycle = 'Resolved' AND incidents.deleted_at IS NULL AND incident_reports.id IS NULL`).all<{ id: string; lifecycle: string; resolvedAt: string | null; impact: string | null }>();
+        WHERE incidents.lifecycle = 'Resolved' AND incidents.deleted_at IS NULL AND incident_reports.id IS NULL AND NOT EXISTS(SELECT 1 FROM report_waivers WHERE incident_id=incidents.id)`).all<{ id: string; reference: string; title: string; lifecycle: string; resolvedAt: string | null; impact: string | null }>();
       return result.results;
     },
   };
