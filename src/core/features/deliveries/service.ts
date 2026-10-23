@@ -14,6 +14,8 @@ import { hmacSha256 } from "../../platform/security/opaque-tokens";
 import { SubscriberTokenCodec } from "../subscribers/tokens";
 import { defaultDeliveryEvents, type DeliveryEvents } from "./events";
 import type { DeliveryRepository, DeliveryRow, DispatchableDelivery, PendingProviderEvent, SubscriptionMailRow } from "./repository";
+import { statuspageWebhookBody } from "./statuspage-webhook";
+import { createServerExtensionMount } from "../../app/extensions/server";
 
 const RETRY_DELAYS_MS = [60_000, 5 * 60_000, 15 * 60_000, 20 * 60_000, 20 * 60_000];
 const RESEND_IDEMPOTENCY_WINDOW_MS = 24 * 60 * 60 * 1000;
@@ -30,7 +32,7 @@ export interface DeliveriesService {
   dispatchEvent(eventId: string, origin: string): Promise<void>;
   dispatchDelivery(deliveryId: string, origin: string): Promise<void>;
   handleProviderEvent(input: { id: string; providerMessageId: string | null; type: "delivered" | "bounced" | "complained"; hardBounce?: boolean }): Promise<void>;
-  queueOperatorAlert(input: { eventId: string; title: string; text: string }): Promise<void>;
+  queueOperatorAlert(input: { eventId: string; title: string; text: string; recipients?: string[] }): Promise<void>;
 }
 
 function retryAt(attempt: number) {
@@ -89,6 +91,7 @@ export function createDeliveriesService(
 ): DeliveriesService {
   const tokens = options.subscriberTokenSecret ? new SubscriberTokenCodec(options.subscriberTokenSecret) : null;
   const events = options.events ?? defaultDeliveryEvents;
+  const pageRollup=createServerExtensionMount().publicSnapshotPolicies.pageStatusRollup;
 
   async function emitAfterCommit(callback: () => Promise<void>) {
     try {
@@ -124,7 +127,7 @@ export function createDeliveriesService(
     });
   }
 
-  async function queueOperatorAlert(input: { eventId: string; title: string; text: string }) {
+  async function queueOperatorAlert(input: { eventId: string; title: string; text: string; recipients?: string[] }) {
     await queueMailAlert(input);
   }
 
@@ -238,13 +241,22 @@ export function createDeliveriesService(
     const secrets = (Array.isArray(options.webhookSigningSecret) ? options.webhookSigningSecret : [options.webhookSigningSecret]).filter((value): value is string => Boolean(value));
     if (!secrets.length) throw new Error("WEBHOOK_SIGNING_SECRET is required for webhook subscriptions.");
     if (!isSafeWebhookDestination(delivery.destination)) throw new Error("Webhook delivery destination is not a public HTTPS URL.");
-    const slack = new URL(delivery.destination).hostname === "hooks.slack.com";
+    const statuspage=delivery.webhookFormat==="statuspage";
+    const slack = !statuspage && new URL(delivery.destination).hostname === "hooks.slack.com";
     const destination = slack ? await resolveSlackWebhook(async () => delivery.destination, delivery.subscriberId) : delivery.destination;
-    const incidentEvent = !slack && delivery.incidentId && delivery.incidentUpdateId ? await repository.getIncidentWebhookPayload(delivery.incidentId, delivery.incidentUpdateId, delivery.notificationEventId) : null;
+    const incidentEvent = !statuspage && !slack && delivery.incidentId && delivery.incidentUpdateId ? await repository.getIncidentWebhookPayload(delivery.incidentId, delivery.incidentUpdateId, delivery.notificationEventId) : null;
     const event = incidentEvent
       ? { event: "incident.update.published", deliveryId: delivery.id, ...incidentEvent, incident: { ...incidentEvent.incident, impact: delivery.incidentImpact } }
       : { event: delivery.maintenanceId ? "maintenance.notice.published" : "incident.report.published", deliveryId: delivery.id, incident: delivery.incidentReference ? { reference: delivery.incidentReference, title: delivery.incidentTitle, impact: delivery.incidentImpact } : null, maintenance: delivery.maintenanceId ? { id: delivery.maintenanceId, reference: delivery.maintenanceReference, title: delivery.maintenanceTitle, state: delivery.maintenanceState, notice: delivery.maintenanceNoticeKind } : null };
-    const body = JSON.stringify(slack ? renderSubscriberSlackMessage(delivery, origin) : event);
+    let payload:unknown;
+    if(statuspage) {
+      const links=await stableTokens(delivery.subscriberId);
+      if(!links){await repository.markOutcome(delivery.id,"suppressed",nowIso(),nowIso());return;}
+      const source=await repository.statuspage.load(origin);
+      if(!source)throw permanentDeliveryError("Page settings are required for Statuspage-format notifications.");
+      payload=statuspageWebhookBody(source,delivery,origin,links.unsubscribe,pageRollup);
+    } else payload=slack ? renderSubscriberSlackMessage(delivery,origin) : event;
+    const body = JSON.stringify(payload);
     const timestamp = String(Math.floor(Date.now() / 1000));
     const signature = (await Promise.all(secrets.map(async (secret) => `v1=${await hmacSha256(secret, `${delivery.id}.${timestamp}.${body}`)}`))).join(" ");
     const controller = new AbortController();

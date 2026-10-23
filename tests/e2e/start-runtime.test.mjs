@@ -183,7 +183,7 @@ async function rebuildPublicSnapshot() {
 async function browserNavigationProof() {
   const browser = await chromium.launch({
     headless: true,
-    args: [`--host-resolver-rules=MAP ${appHost} 127.0.0.1`],
+    args: ["--use-mock-keychain", "--password-store=basic", `--host-resolver-rules=MAP ${appHost} 127.0.0.1`],
   });
   try {
     const context = await browser.newContext();
@@ -277,7 +277,7 @@ after(async () => {
 
 // Shared sign-in is a native form and works before any application JavaScript.
 test("sign-in submits with JavaScript disabled", { timeout: 30_000 }, async () => {
-  const browser = await chromium.launch({headless:true});
+  const browser = await chromium.launch({ headless: true, args: ["--use-mock-keychain", "--password-store=basic"] });
   try {
     const page=await browser.newPage({javaScriptEnabled:false});
     await page.goto(`${appOrigin}/signin`);
@@ -290,7 +290,7 @@ test("sign-in submits with JavaScript disabled", { timeout: 30_000 }, async () =
   } finally {await browser.close();}
 });
 
-test("DOCS-001 — the built single Worker preserves public docs, Hono/R2, Start auth, dispatch, 404s, and client navigation", { timeout: 120_000 }, async () => {
+test("DOCS-001 PAGE-020 — the built single Worker preserves public docs, Hono/R2, Start auth, dispatch, 404s, and client navigation", { timeout: 120_000 }, async () => {
   const signIn = await request("/signin", appHost, { headers: { "Sec-Fetch-Mode": "navigate" } });
   const signInHtml = await signIn.text();
   assert.equal(signIn.status, 200);
@@ -368,6 +368,11 @@ test("DOCS-001 — the built single Worker preserves public docs, Hono/R2, Start
   const docsPage = await request("/docs/moving-in", appHost, { headers: { "Sec-Fetch-Mode": "navigate" } });
   assert.equal(docsPage.status, 200, "a docs page is rendered by the built Worker");
   assert.match(await docsPage.text(), /class="docs-prose"/, "from the repository's Markdown compiled into the build");
+  const vpat = await request("/docs/accessibility/vpat", appHost, { headers: { "Sec-Fetch-Mode": "navigate" } });
+  assert.equal(vpat.status, 200, "PAGE-020: nested VPAT document is public on the app host");
+  const vpatHtml = await vpat.text();
+  const { version } = JSON.parse(await readFile(new URL("../../package.json", import.meta.url), "utf8"));
+  for (const text of [version, "Chapter 3 Functional Performance Criteria", "Chapter 5 Software", "Chapter 6 Support Documentation"]) assert.ok(vpatHtml.includes(text), text);
   assert.equal((await request("/docs/not-a-page", appHost, { headers: { "Sec-Fetch-Mode": "navigate" } })).status, 404, "an unlisted docs address is a real 404");
   const mailEventsOnAppHost = await request("/api/intake/mail-events", appHost, { method: "POST", body: "[]" });
   assert.equal(mailEventsOnAppHost.status, 404, "mail events belong only on the page host");
@@ -438,7 +443,7 @@ test("vite dev serves Start's client entry and stylesheet through the app host",
       probe: ({ signal }) => request("/health", appHost, { signal }, devPort),
     });
 
-    const browser = await chromium.launch({ headless: true, args: [`--host-resolver-rules=MAP ${appHost} 127.0.0.1`] });
+    const browser = await chromium.launch({ headless: true, args: ["--use-mock-keychain", "--password-store=basic", `--host-resolver-rules=MAP ${appHost} 127.0.0.1`] });
     try {
       const context = await browser.newContext({ viewport: { width: 1280, height: 800 } });
       await context.addCookies([{ name: sessionCookieName(devOrigin), value: devSessionId, url: devOrigin, httpOnly: true, sameSite: "Lax" }]);

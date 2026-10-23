@@ -14,7 +14,14 @@ export function registerReportRoutes(app: Hono<AppEnv>, service: ReportsService)
     const incidentId = ulidSchema.safeParse(context.req.param("incidentId"));
     if (!incidentId.success) return context.json({ error: "Invalid incident identifier." }, 400);
     const report = await service.get(incidentId.data);
-    return context.json({ report, review: report ? reportReview(report) : null });
+    return context.json({ waiver: await service.waiver(incidentId.data), report, review: report ? reportReview(report) : null });
+  });
+  app.post("/api/app/incidents/:incidentId/report/waive", async context => {
+    const id=ulidSchema.safeParse(context.req.param("incidentId"));
+    const input=z.object({reason:z.string().trim().min(1).max(1000)}).strict().safeParse(await context.req.json().catch(()=>null));
+    if (!id.success || !input.success) return context.json({error:"A non-empty waiver reason is required."},400);
+    const changed=await service.waive(id.data,input.data.reason,context.get("operator").id);
+    return changed ? context.json({waiver:await service.waiver(id.data)}) : context.json({error:"A resolved incident without a published report or waiver is required."},409);
   });
   app.post("/api/app/incidents/:incidentId/report/draft", async (context) => {
     const incidentId = ulidSchema.safeParse(context.req.param("incidentId"));

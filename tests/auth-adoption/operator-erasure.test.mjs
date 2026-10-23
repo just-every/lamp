@@ -15,6 +15,24 @@ async function assertErased(r, id) {
 }
 
 test("Invitation cancellation and complete identity erasure preserve subscriber authority", async t => {
+  t.diagnostic("TEAM-007: repeated and competing erasures of a subscriber tombstone record only one successful deletion");
+  await (async () => {
+    const r = await lampRuntime(t, { registerRoutes: ({ app, db, modules }) => {
+      modules.registerSubscriberRoutes(app, modules.createSubscribersService(modules.createSubscriberRepository(db), { tokenSecret: 'synthetic-lamp-erasure' }));
+      modules.registerAuditLogRoutes(app, modules.createAuditLogRepository(db));
+    } });
+    const created = await r.call('/api/app/subscribers/webhook', { method: 'POST', cookie: r.cookie, body: { destination: 'https://hooks.example.test/synthetic-lamp-erasure', contactEmail: 'synthetic-lamp-erasure@example.test', componentIds: [] } });
+    assert.equal(created.status, 201);
+    const { subscriber } = await created.json();
+    for (const response of await Promise.all([1, 2].map(() => r.call(`/api/app/subscribers/${subscriber.id}`, { method: 'DELETE', cookie: r.cookie })))) assert.equal(response.status, 204);
+    assert.equal((await r.call(`/api/app/subscribers/${subscriber.id}`, { method: 'DELETE', cookie: r.cookie })).status, 204);
+    const path = `/api/app/audit-log?actorId=${r.owner.id}&action=deleted`;
+    const entries = (await (await r.call(path, { cookie: r.cookie })).json()).entries.filter(row => row.entityId === subscriber.id);
+    assert.equal(entries.length, 1);
+    assert.equal(entries[0].actorName, r.owner.displayName);
+    const csv = await (await r.call(`${path}&format=csv`, { cookie: r.cookie })).text();
+    assert.equal(csv.split(entries[0].id).length - 1, 1);
+  })();
   t.diagnostic("pending invitations appear in Settings routes and erasure cancels every invitation without granting authority");
   await (async t => {
   const r = await lampRuntime(t);

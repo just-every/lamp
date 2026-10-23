@@ -29,3 +29,7 @@ Lamp computes this from component state history, and the page states the method.
 
 The public page, feed and widget show published information. Internal components
 and incident notes are not included in those public surfaces.
+
+## Accessibility evaluation
+
+Read the [Accessibility Conformance Report (VPAT)](accessibility/vpat.md) for the current release, measured surfaces and evaluation limits. It is also served on the operator app host at `/docs/accessibility/vpat`, without sign-in. This report does not claim conformance for private pages, email clients or surfaces that have not been evaluated.

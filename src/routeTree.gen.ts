@@ -24,6 +24,7 @@ import { Route as AppPageRouteImport } from './routes/app.page'
 import { Route as AppSettingsRouteImport } from './routes/app.settings'
 import { Route as AppSubscribersRouteImport } from './routes/app.subscribers'
 import { Route as DocsIndexRouteImport } from './routes/docs.index'
+import { Route as DocsSplatRouteImport } from './routes/docs.$'
 import { Route as DocsSlugRouteImport } from './routes/docs.$slug'
 import { Route as AppIncidentsIndexRouteImport } from './routes/app.incidents.index'
 import { Route as AppIncidentsIncidentIdRouteImport } from './routes/app.incidents.$incidentId'
@@ -104,6 +105,11 @@ const DocsIndexRoute = DocsIndexRouteImport.update({
   path: '/',
   getParentRoute: () => DocsRoute,
 } as any)
+const DocsSplatRoute = DocsSplatRouteImport.update({
+  id: '/$',
+  path: '/$',
+  getParentRoute: () => DocsRoute,
+} as any)
 const DocsSlugRoute = DocsSlugRouteImport.update({
   id: '/$slug',
   path: '/$slug',
@@ -139,6 +145,7 @@ export interface FileRoutesByFullPath {
   '/app/page': typeof AppPageRoute
   '/app/settings': typeof AppSettingsRoute
   '/app/subscribers': typeof AppSubscribersRoute
+  '/docs/$': typeof DocsSplatRoute
   '/docs/$slug': typeof DocsSlugRoute
   '/app/': typeof AppIndexRoute
   '/docs/': typeof DocsIndexRoute
@@ -157,6 +164,7 @@ export interface FileRoutesByTo {
   '/app/page': typeof AppPageRoute
   '/app/settings': typeof AppSettingsRoute
   '/app/subscribers': typeof AppSubscribersRoute
+  '/docs/$': typeof DocsSplatRoute
   '/docs/$slug': typeof DocsSlugRoute
   '/app': typeof AppIndexRoute
   '/docs': typeof DocsIndexRoute
@@ -179,6 +187,7 @@ export interface FileRoutesById {
   '/app/page': typeof AppPageRoute
   '/app/settings': typeof AppSettingsRoute
   '/app/subscribers': typeof AppSubscribersRoute
+  '/docs/$': typeof DocsSplatRoute
   '/docs/$slug': typeof DocsSlugRoute
   '/app/': typeof AppIndexRoute
   '/docs/': typeof DocsIndexRoute
@@ -202,6 +211,7 @@ export interface FileRouteTypes {
     | '/app/page'
     | '/app/settings'
     | '/app/subscribers'
+    | '/docs/$'
     | '/docs/$slug'
     | '/app/'
     | '/docs/'
@@ -220,6 +230,7 @@ export interface FileRouteTypes {
     | '/app/page'
     | '/app/settings'
     | '/app/subscribers'
+    | '/docs/$'
     | '/docs/$slug'
     | '/app'
     | '/docs'
@@ -241,6 +252,7 @@ export interface FileRouteTypes {
     | '/app/page'
     | '/app/settings'
     | '/app/subscribers'
+    | '/docs/$'
     | '/docs/$slug'
     | '/app/'
     | '/docs/'
@@ -362,6 +374,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DocsIndexRouteImport
       parentRoute: typeof DocsRoute
     }
+    '/docs/$': {
+      id: '/docs/$'
+      path: '/$'
+      fullPath: '/docs/$'
+      preLoaderRoute: typeof DocsSplatRouteImport
+      parentRoute: typeof DocsRoute
+    }
     '/docs/$slug': {
       id: '/docs/$slug'
       path: '/$slug'
@@ -440,11 +459,13 @@ const AppRouteChildren: AppRouteChildren = {
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
 
 interface DocsRouteChildren {
+  DocsSplatRoute: typeof DocsSplatRoute
   DocsSlugRoute: typeof DocsSlugRoute
   DocsIndexRoute: typeof DocsIndexRoute
 }
 
 const DocsRouteChildren: DocsRouteChildren = {
+  DocsSplatRoute: DocsSplatRoute,
   DocsSlugRoute: DocsSlugRoute,
   DocsIndexRoute: DocsIndexRoute,
 }

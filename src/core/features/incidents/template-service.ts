@@ -34,7 +34,7 @@ export function createIncidentTemplateService(repository: IncidentRepository, co
       if (!saved) throw new Error("Incident template could not be saved.");
       return saved;
     },
-    async updateTemplate(templateId, input, _operatorId) {
+    async updateTemplate(templateId, input, operatorId) {
       const edit = templateUpdateSchema.parse(input);
       const existing = await repository.findTemplate(templateId);
       if (!existing) return null;
@@ -48,7 +48,7 @@ export function createIncidentTemplateService(repository: IncidentRepository, co
       });
       const timestamp = new Date(Math.max(Date.now(), Date.parse(existing.updatedAt) + 1)).toISOString();
       const components = edit.components === undefined ? undefined : await componentRecords(edit.components, templateId, timestamp);
-      await repository.updateTemplate({ ...existing, ...edit, ...fields, fieldsToShorten: [], updatedAt: timestamp }, components);
+      await repository.updateTemplate({ ...existing, ...edit, ...fields, fieldsToShorten: [], updatedAt: timestamp }, components, operatorId);
       return repository.findTemplate(templateId);
     },
     async applyTemplate(incidentId, templateId, operatorId, expectedVersion) {

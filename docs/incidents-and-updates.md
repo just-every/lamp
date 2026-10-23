@@ -95,3 +95,21 @@ After resolving an incident, attach its post-incident report from the incident
 page. The report holds a summary, timeline, cause and remediation. The operator
 app marks a report as due 7 days after resolution when the incident reached
 Partially unavailable or Major outage and has no report.
+
+## Communication owner
+
+Every unresolved incident starts with the operator who opened it as its communication owner. In the private incident composer, **Take over communication** assigns it to you, or **Reassign owner** chooses another active operator; each change is recorded in the audit log. The owner receives the due and overdue email. An incident whose owner is inactive is marked **Unowned** on Overview and all active operators receive its reminder. Ten minutes after the original commitment, `incident.escalation.v1` sends one escalation to every active operator; every operator has publish rights until TEAM-004 roles ship. Ownership never appears on the public page, feeds or subscriber messages. Push, operator chat and Oncall responder delivery are not available yet (MOBILE-002, NOTIFY-016 and INTAKE-012).
+
+### Owed reports
+
+When a major incident owes a report, Lamp emails its communication owner on the due day and once each following week. If no active owner remains, every active operator receives the reminder. The email names the incident and links its report editor, without report content. Publish a report to stop reminders, or use **Waive report reminder** with a non-empty reason; the waiver is recorded in the audit log and removes the incident from the owing list. You can still write and publish a report after waiving it. Operator-chat reminders remain unbuilt under NOTIFY-016.
+
+## Maintenance automation
+
+Each maintenance has **Auto-start maintenance** and **Auto-complete maintenance** switches, both on by default. Turning auto-start off leaves the window Scheduled at its start and sends one operator start-due email; **Start maintenance** publishes its one In progress notice. Turning auto-complete off leaves work In progress at its end, without a Completed notice. From fifteen minutes after the original end it shows **Running longer than planned** and raises one operator overrun email. **Complete maintenance** publishes one Completed notice and releases the maintenance claims. Date-only rescheduling preserves your choices, and you can change auto-complete while work is running without moving its end. Existing windows retain both switches on. The page-wide default setting and operator push are not available yet; this slice does not add MAINT-009 wording, Verifying or imported-message mapping.
+
+## Follow-ups
+
+Overview's **Follow-ups** lists commitments, scheduled publications, maintenance work and reminders, reports owed, imported invitations approaching expiry and notifications awaiting retry. Each item shows its owner, due time, what ends it and any failure, with a link to the work. Completing the work removes it. A failed item can be dismissed with a non-empty reason recorded in the audit log; a later failure appears again. **Retry notification dispatch** explicitly queues another attempt for an unfinished dispatch, and a queue failure remains visible. Accepted deliveries are not reopened. This list is private to operators. Vendor-feed staleness, secondary-origin lag and SMS spend-cap holds remain unavailable under DEP-001, PAGE-015 and NOTIFY-014.
+
+Imported historical incidents remain silent. An owed report can appear in Follow-ups, while automatic report reminders begin only after a live published update on that incident.
