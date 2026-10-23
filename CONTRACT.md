@@ -399,7 +399,7 @@ The Lamp Slack app and Teams app let a linked operator open a draft incident (`/
 
 Acceptance: a recorded Slack interaction payload opens a draft, a second publishes it after preview, and the incident appears on the page attributed to the linked operator. A payload from an unlinked Slack user is refused and creates nothing, and a payload with a wrong signature returns 401. Recorded Bot Framework activity fixtures, signed with a test key served from a fake OpenID metadata edge, do the same in Teams: a message-extension invoke opens a draft, an `Action.Execute` attaches two components with their states, the next returns the preview card that UPDATE-004's renderer produced, and a Publish invoke publishes it, attributed to the linked operator. A later `Action.Execute` that sets one attached component from Major outage to Degraded performance publishes that change with the update, writing one history entry, as UPDATE-012 states. An activity from an unlinked Entra ID user is refused and creates nothing, and one whose token has the wrong audience or an invalid signature returns 401.
 
-Status: **missing**.
+Status: **partial** — `tests/e2e/app-api.test.mjs`:210 (INCIDENT-012 matrix), `tests/chat-desk/flow.mjs`:49 (Slack and Teams signed requests, private drafts, shared previews, attributed publication and one component-history change), `tests/chat-desk/runtime.mjs`:57 (populated prior-schema upgrade), `tests/e2e/export-import.test.mjs`:59 (chat-link archive round trip). Gap: The operator-app link door is built but its Settings control remains unmounted. No live Slack workspace or Teams tenant was used. Until TEAM-004, linked active operators act as owners under TEAM-001. Transient chat_link_codes, chat_previews and chat_requests need archive-policy exclusion by the owning writer; the conservative transfer instruction is to wait ten minutes for their authority to expire. Default ADOPTED: stays PARTIAL.
 
 #### INCIDENT-013 — Impact set by the operator.
 
@@ -1114,10 +1114,10 @@ AGENT-002 is judged done on 23 October 2026 from its named native Worker and 144
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
 | Published | 104 | 0 | 0 | 104 |
-| Target and push further | 22 | 30 | 42 | 94 |
-| All | 126 | 30 | 42 | 198 |
+| Target and push further | 22 | 31 | 41 | 94 |
+| All | 126 | 31 | 41 | 198 |
 
-Of 198 clauses, 126 are done, 30 partial and 42 missing (72 non-DONE).
+Of 198 clauses, 126 are done, 31 partial and 41 missing (72 non-DONE).
 
 | Clause | Title | Kind | Status | Evidence | Gap |
 | --- | --- | --- | --- | --- | --- |
@@ -1179,7 +1179,7 @@ Of 198 clauses, 126 are done, 30 partial and 42 missing (72 non-DONE).
 | `INCIDENT-008` | Internal notes | published | done | `tests/e2e/publishing-contract.test.mjs` |  |
 | `INCIDENT-010` | Update due | published | done | `tests/e2e/update-reminders.test.mjs` |  |
 | `INCIDENT-011` | A named communication owner | target | partial | `src/core/features/incidents/communication-owner.repository.ts`:7, `src/core/features/incidents/reminders.ts`:24, `tests/e2e/update-reminders.test.mjs`:79, `tests/e2e/helpers/communication-owner-flow.mjs`:7 | An unresolved incident defaults to its opener as communication owner; private take-over and active-operator reassignment doors write an attributed audit entry atomically and refuse resolved incidents. Owner-only due/overdue email, one escalation per commitment at ten minutes overdue, and unowned fallback to every active operator ship; every operator has publish rights until TEAM-004. Overview and the composer show ownership privately, with takeover/reassignment and unowned journeys at 1440/390. The registered reminder journey covers owner movement, escalation, unowned fallback, audit JSON/CSV and public/email-renderer privacy. Gap: push (MOBILE-002), the operator chat channel (NOTIFY-016), and Oncall's current on-call responder (INTAKE-012) remain unbuilt. The seed policy inventory registration is held by uip; the policy is replaceable through the typed extension mount without editing that held file. |
-| `INCIDENT-012` | Run the incident from Slack or Teams | target | missing |  | Not built. |
+| `INCIDENT-012` | Run the incident from Slack or Teams | target | partial | `tests/e2e/app-api.test.mjs`:210 (INCIDENT-012 matrix), `tests/chat-desk/flow.mjs`:49 (Slack and Teams signed requests, private drafts, shared previews, attributed publication and one component-history change), `tests/chat-desk/runtime.mjs`:57 (populated prior-schema upgrade), `tests/e2e/export-import.test.mjs`:59 (chat-link archive round trip). | The operator-app link door is built but its Settings control remains unmounted. No live Slack workspace or Teams tenant was used. Until TEAM-004, linked active operators act as owners under TEAM-001. Transient chat_link_codes, chat_previews and chat_requests need archive-policy exclusion by the owning writer; the conservative transfer instruction is to wait ten minutes for their authority to expire. Default ADOPTED: stays PARTIAL. |
 | `INCIDENT-013` | Impact set by the operator | target | done | `src/core/features/incident-impact/`, `migrations/core/0031_incident_impact.sql`, `tests/e2e/helpers/incident-impact-flow.mjs` | Operators set or clear an attributed impact independently of claims; public snapshots, APIs and committed notifications carry it while component states and uptime remain claim-derived. |
 | `UPDATE-001` | Template | published | done | `tests/e2e/publishing-contract.test.mjs`, `tests/reference-storage/incident-publishing.test.mjs`, `tests/reference-storage/migration.test.mjs`. Changed in 1.10.0 with UPDATE-013: a bare https:// URL in any field becomes a link, nothing else is interpreted; RELEASE.json records the change. |  |
 | `UPDATE-002` | One rendering | published | done | `tests/e2e/publishing-browser.test.mjs`, `tests/e2e/publishing-contract.test.mjs`. Changed in 1.10.0 with UPDATE-013: every surface renders the same links from the shared renderer; RELEASE.json records the change. |  |
