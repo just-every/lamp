@@ -23,7 +23,15 @@ try {
   // Create files in reverse order; the second depends on the first and core schema.
   await writeFile(join(temporary, 'migrations/ext/0002_owner.sql'), "INSERT INTO owner_notes VALUES (2, 'second');");
   await writeFile(join(temporary, 'migrations/ext/0001_owner.sql'), "CREATE TABLE owner_notes (id INTEGER PRIMARY KEY, value TEXT NOT NULL); INSERT INTO owner_notes SELECT 1, 'preserved' WHERE EXISTS (SELECT 1 FROM d1_migrations);");
+  const addedCore = ['0053_subscriber_intake.sql', '0054_subscriber_webhook_formats.sql', '0055_maintenance_automation_defaults.sql'];
+  for (const name of addedCore) await rm(join(temporary, 'migrations/core', name));
   run('node', ['scripts/migrate-local.mjs']);
+  query("INSERT INTO subscribers(id,channel,destination,contact_email,state,selection_mode,token_hash,created_at,updated_at) VALUES('synthetic-lamp-1','webhook','https://receiver.example.test/synthetic-lamp-1','synthetic-lamp-1@example.test','active','all','synthetic-lamp-1','2026-10-23','2026-10-23')");
+  for (const name of addedCore) await cp(join(root, 'migrations/core', name), join(temporary, 'migrations/core', name));
+  run('node', ['scripts/migrate-local.mjs']);
+  assert.deepEqual(query("SELECT id,state,destination,created_by_operator_id,webhook_format FROM subscribers WHERE id='synthetic-lamp-1'"), [{id:'synthetic-lamp-1',state:'active',destination:'https://receiver.example.test/synthetic-lamp-1',created_by_operator_id:null,webhook_format:'lamp'}]);
+  assert.equal(query('SELECT COUNT(*) n FROM subscriber_intake')[0].n, 0);
+  assert.equal(query('SELECT COUNT(*) n FROM maintenance_automation_defaults')[0].n, 0);
   assert.deepEqual(query('SELECT * FROM owner_notes ORDER BY id'), [{ id: 1, value: 'preserved' }, { id: 2, value: 'second' }]);
   const originalLedger = query(`SELECT * FROM ${ledger} ORDER BY id`);
   const coreLedger = query('SELECT * FROM d1_migrations ORDER BY id');
