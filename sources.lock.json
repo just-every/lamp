@@ -448,7 +448,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "4abfbf7b13fa7a188b562ba49d2b02e4328b915b44e90c9a1f0b0a6959f01a05",
+      "sha256": "ea879da82e1e3c30bbf8c3293f6f8c4f1ce59f9a9fbdd45e5dd199a46e862670",
       "executable": false
     },
     "AGENTS.md": {
@@ -496,7 +496,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "a0df6b4a37793a55fe792fcf57b3ecac583b073a237c82b023535db8b30fdbb0",
+      "sha256": "6f5deda5c4001e5afa937655b1315131b6f636510c1944a88ea3a3fae27f7dba",
       "executable": false
     },
     "DEMO.md": {
@@ -532,7 +532,7 @@
       "executable": false
     },
     "docs/CLAIMS.md": {
-      "sha256": "52ce0b4ea8bf2854badfa7e6b5ff3926bd52d51aa0d3678ba0116d9247a5f0b4",
+      "sha256": "c69deba2bc5d7855f1f3c281294c0c93b031428a87c4a97f18ebd6bf0cdfee74",
       "executable": false
     },
     "docs/components-and-groups.md": {
@@ -5656,7 +5656,7 @@
       "executable": false
     },
     "tests/auth-adoption/cutover.test.mjs": {
-      "sha256": "1f24990eb78b669246564df5828327e7892b5c7cec7776b70f4d3c85e9aabd27",
+      "sha256": "0587fcf21e1e5e41b2be42dac46aedb6f39891cf2ae7d7e4cdc305981319a4e9",
       "executable": false
     },
     "tests/auth-adoption/dependencies.test.mjs": {
@@ -5908,7 +5908,7 @@
       "executable": false
     },
     "tests/e2e/helpers/catalogue-history-flow.mjs": {
-      "sha256": "ba2bd0979b1fe672de81275a6e7d2b45e004971ae1033d652fde36787e367ed4",
+      "sha256": "bbd49e9d6a174abded25b70ba8790be5e18b365e9836a8f006d0b555b32175bd",
       "executable": false
     },
     "tests/e2e/helpers/channel-deletion-flow.mjs": {

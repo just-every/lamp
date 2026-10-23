@@ -173,9 +173,14 @@ export async function catalogueHistoryFlow({ appFetch, fetch, pageUrl, queryLoca
     const catchup = moved(await moveIn.apply(moved(await moveIn.preview({ files: catchupFiles }))));
     assert.equal(catchup.job.state, "completed"); importJobs.push(catchup.door);
     const replacements = await api(`/api/app/audit-log?action=replaced&from=${encodeURIComponent(replacementSince)}&limit=100`);
-    assert.ok(replacements.entries.some(entry => entry.entityType === "component" && entry.actorId), "catch-up replacements enter the operator audit view");
+    const replacedComponent = (await current()).catalogue.components.find(component => component.description === "Synthetic Lamp catch-up replacement audit evidence.");
+    assert.ok(replacedComponent);
+    const replaced = replacements.entries.filter(entry => entry.entityType === "component" && entry.entityId === replacedComponent.id);
+    assert.equal(replaced.length, 1, "one catch-up replacement enters the operator audit view");
+    assert.equal(replaced[0].actorId, operator.id);
     const replacementCsv = await (await appFetch(`/api/app/audit-log?format=csv&action=replaced&from=${encodeURIComponent(replacementSince)}`)).text();
     for (const entry of replacements.entries) assert.ok(replacementCsv.includes(`"${entry.id}"`));
+    assert.equal(replacementCsv.trimEnd().split("\r\n").length - 1, replacements.entries.length);
     const importedIncident = (await api("/api/app/incidents")).incidents.find(incident => incident.title === "Elevated API errors" && incident.openedAt.startsWith(`${year}-`));
     assert.ok(importedIncident, "the import's actual native incident is available");
     boundaryId = randomUUID();
@@ -217,6 +222,7 @@ export async function catalogueHistoryFlow({ appFetch, fetch, pageUrl, queryLoca
       const rows = await api(`/api/app/audit-log?action=deleted&from=${encodeURIComponent(undoSince)}&limit=100`);
       const csv = await (await appFetch(`/api/app/audit-log?format=csv&action=deleted&from=${encodeURIComponent(undoSince)}`)).text();
       for (const entry of rows.entries) { assert.ok(entry.actorId); assert.ok(csv.includes(`"${entry.id}"`)); }
+      assert.equal(csv.trimEnd().split("\r\n").length - 1, rows.entries.length);
       // The original imports remove native records; the catch-up reverses its
       // replacement instead and is covered by the replaced action above.
       if (importJob !== importJobs[0]) assert.ok(rows.entries.length, "undo removals enter the operator audit view and CSV");

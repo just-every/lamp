@@ -152,7 +152,9 @@ test("MOVE-002 MOVE-006 TEAM-007 — Imported invitation expiry audit, revoked a
   assert.equal(expiredAudit[0].operator_id, null, 'the scheduler is the System actor');
   assert.equal(expiredAudit[0].payload_json, '{}', 'expiry retains no address');
   const sorryFiles = readdirSync('tests/fixtures/sorry/authenticated').map(name => ({ name, text: readFileSync(`tests/fixtures/sorry/authenticated/${name}`, 'utf8') }));
-  const sorry = await moveIn(r, r.cookie).apply(await moveIn(r, r.cookie).preview({ source: 'sorry', publicAccessAcknowledged: true, files: sorryFiles }));
+  const sorryReview = await moveIn(r, r.cookie).preview({ source: 'sorry', publicAccessAcknowledged: true, files: sorryFiles });
+  assert.equal(sorryReview.status, 200, JSON.stringify(sorryReview.body));
+  const sorry = await moveIn(r, r.cookie).apply(sorryReview.body);
   assert.equal(sorry.status, 200, JSON.stringify(sorry.body));
   const held = (await r.db.prepare("SELECT id FROM subscribers WHERE deactivation_reason='held for Sorry cutover'").all()).results;
   assert.ok(held.length, 'real Sorry import supplies held subscribers');
