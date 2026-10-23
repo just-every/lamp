@@ -39,7 +39,7 @@
     },
     {
       "id": "0045_incident_communication_owner.sql",
-      "buyerSteps": "Apply after 0044. Adds private communication-owner assignments and preserves all existing update-reminder records while extending their checked kind set with escalation. Existing incidents default to their opener; no input or version changes."
+      "buyerSteps": "Apply after 0044. Adds private communication-owner assignments and a separate escalation-receipt table, preserving issued update-reminder records and their existing checked kinds. Existing incidents default to their opener; no input or version changes."
     },
     {
       "id": "0046_report_followups.sql",
