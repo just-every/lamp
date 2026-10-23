@@ -47,7 +47,7 @@ export async function operationsBrowserFlow({ api, component, origin, cookie, ru
         await page.goto(`${origin}/app/alerts`); await operatorHydrated(page);
         const tool = preset === 'jsm' ? 'JSM' : 'Opsgenie', name = `Production API ${tool} ${width}`;
         await editor.getByLabel('Operations tool', { exact: true }).selectOption(preset);
-        await editor.getByLabel('Connection name', { exact: true }).fill(name);
+        await editor.getByLabel('Responder source name', { exact: true }).fill(name);
         await editor.getByLabel('Component 1', { exact: true }).selectOption(target.id);
         await editor.getByLabel('Alert tag 1', { exact: true }).fill('component:api');
         await editor.getByLabel('Close alert on resolve', { exact: true }).check();

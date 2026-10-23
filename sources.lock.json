@@ -3728,7 +3728,7 @@
       "executable": false
     },
     "src/core/features/intake/ui/operations-preset-card.tsx": {
-      "sha256": "cafed0e15d8e3039536ef6e100e3e3934050265f394611326dcb7fecc8d63e69",
+      "sha256": "a11b4db42673822d48808b107813fb06ef040f01b76d24732dedbfe50a29d9c0",
       "executable": false
     },
     "src/core/features/intake/ui/operations-source-card.tsx": {
@@ -6048,7 +6048,7 @@
       "executable": false
     },
     "tests/e2e/helpers/operations-browser-flow.mjs": {
-      "sha256": "c3b470a5542b852ec3db76710cc472db0aefd73a5b0cef77c091aa8d296206b9",
+      "sha256": "e386fe93d6b35ccd99a94b7b24a16b816723e374a6b5dc95ad8a8b70c841c1bd",
       "executable": false
     },
     "tests/e2e/helpers/operations-edge.mjs": {
