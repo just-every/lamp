@@ -6364,7 +6364,7 @@
       "executable": false
     },
     "tests/e2e/helpers/subscriber-management-fixture.mjs": {
-      "sha256": "66e13cf9d087af854043e935c292775735ad42fc96ce0318392567e814ed4be8",
+      "sha256": "9bda0a16cc7fce99a55fe3402e361f1d76ecf16379b313f6f85d5e036b36a7e4",
       "executable": false
     },
     "tests/e2e/helpers/subscriber-reporting-browser-flow.mjs": {

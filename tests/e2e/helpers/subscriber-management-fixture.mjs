@@ -83,7 +83,7 @@ export async function openSubscriberManagementFixture() {
       const timestamp = String(Math.floor(Date.now() / 1000));
       const body = JSON.stringify({ type: "email.delivered", data: { email_id: receipt.id } });
       const signature = createHmac("sha256", receiptKey).update(`${id}.${timestamp}.${body}`).digest("base64url");
-      const event = await fixture.raw("/api/intake/mail-events", { method: "POST", headers: { "Content-Type": "application/json", "svix-id": id, "svix-timestamp": timestamp, "svix-signature": `v1,${signature}` }, body });
+      const event = await fixture.raw(`${pageOrigin}/api/intake/mail-events`, { method: "POST", headers: { "Content-Type": "application/json", "svix-id": id, "svix-timestamp": timestamp, "svix-signature": `v1,${signature}` }, body });
       assert.equal(event.status, 200, "the real adapter accepts the provider's signed delivery receipt");
     }
     // Await actual publication dispatch through its public delivery record,
