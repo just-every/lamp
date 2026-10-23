@@ -1,3 +1,4 @@
+import { chatPreferencesFlow } from './chat-preferences-flow.mjs';
 import assert from 'node:assert/strict';
 import { randomBytes } from 'node:crypto';
 import { openFollowUpsRuntime, appOrigin, eventuallyFollowUp } from './follow-ups-runtime.mjs';
@@ -27,8 +28,9 @@ export async function selfServeChatFlow(t){
   try{
     t.diagnostic('SUB-014 SUB-015 recorded Slack OAuth and Teams Workflows public subscriptions; no live provider call');
     const component=(await runtime.post('/api/app/components',{groupId:null,name:'Self-serve subscriptions',description:'',internal:false,displayOrder:0,note:''})).body.component;
-    const id=await prepareSlackSubscription({componentId:component.id,publicOrigin,sql});
-    await prepareTeamsSubscription({componentId:component.id,publicOrigin,received,sql});
+    let slackManageUrl,teamsManageUrl;
+    const id=await prepareSlackSubscription({componentId:component.id,publicOrigin,sql,onManage:url=>{slackManageUrl=url;}});
+    await prepareTeamsSubscription({componentId:component.id,publicOrigin,received,sql,onManage:url=>{teamsManageUrl=url;}});
     const incident=await runtime.post('/api/app/incidents',{title:'Self-serve channel incident',components:[{componentId:component.id,state:'Partially unavailable',relationship:'Primary'}]});
     assert.equal(incident.status,201,incident.text);
     const incidentId=incident.body.incident.id;
@@ -43,6 +45,7 @@ export async function selfServeChatFlow(t){
     await publish(draft.details);
     await eventuallyFollowUp(()=>received.filter(x=>x.path===new URL(RECORDED_SLACK_WEBHOOK).pathname).length,n=>n===1,'active Slack receives the next publication');
     verifySlackPublication({received});verifyTeamsPublication({received});
+    await chatPreferencesFlow({runtime,publicOrigin,received,publish,component,manageUrls:[slackManageUrl,teamsManageUrl]});
     await removeSlackSubscription({publicOrigin,signingSecret,id,sql});
     const before=received.filter(x=>x.path===new URL(RECORDED_SLACK_WEBHOOK).pathname).length;
     await publish('Second publish after app uninstall.');

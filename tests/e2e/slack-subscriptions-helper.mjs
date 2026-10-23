@@ -9,7 +9,7 @@ export const RECORDED_SLACK_WEBHOOK='https://hooks.slack.com/services/synthetic-
 export const RECORDED_SLACK_TEAM='synthetic-lamp-team';
 export const recordedSlackOAuth={ok:true,scope:'incoming-webhook',team:{id:RECORDED_SLACK_TEAM},incoming_webhook:{channel:'#synthetic-lamp',channel_id:'synthetic-lamp-channel',url:RECORDED_SLACK_WEBHOOK}};
 
-export async function prepareSlackSubscription({componentId,publicOrigin,sql,widths=[1440,390]}){
+export async function prepareSlackSubscription({componentId,publicOrigin,sql,widths=[1440,390],onManage}){
   const browser=await chromium.launch({headless:true,args:['--use-mock-keychain','--password-store=basic']});
   try{
     for(const width of widths){
@@ -23,6 +23,7 @@ export async function prepareSlackSubscription({componentId,publicOrigin,sql,wid
       const callback=new URL('/subscribe/slack/callback',publicOrigin);callback.searchParams.set('state',location.searchParams.get('state'));callback.searchParams.set('code','synthetic-lamp-oauth-code');
       const response=await page.goto(callback.href);assert.equal(response.status(),200,await page.textContent('body'));
       await page.getByRole('link',{name:'Manage subscription'}).waitFor();
+      if(onManage)await onManage(new URL(await page.getByRole('link',{name:'Manage subscription'}).getAttribute('href'),publicOrigin).href);
       assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
       assert.deepEqual((await new AxeBuilder({page}).analyze()).violations.filter(v=>['serious','critical'].includes(v.impact)),[]);
       assert.deepEqual(errors,[]);
