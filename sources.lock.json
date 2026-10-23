@@ -5908,7 +5908,7 @@
       "executable": false
     },
     "tests/e2e/helpers/catalogue-history-flow.mjs": {
-      "sha256": "bbd49e9d6a174abded25b70ba8790be5e18b365e9836a8f006d0b555b32175bd",
+      "sha256": "83544bc13fd5651f19c2454faf5278c07b9f7c3b5901c68ea4a744d2b7e732d6",
       "executable": false
     },
     "tests/e2e/helpers/channel-deletion-flow.mjs": {
