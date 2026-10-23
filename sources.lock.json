@@ -4632,7 +4632,7 @@
       "executable": false
     },
     "src/core/features/subscribers/service.ts": {
-      "sha256": "19cbbcf28293fbeff5d58b041337bd4be6c47335584ffbb54e8855b288e96875",
+      "sha256": "417007fcbd5b52309f353fbac85c626246f65303659ab19e9556a1ecc251806f",
       "executable": false
     },
     "src/core/features/subscribers/tokens.ts": {
@@ -5980,7 +5980,7 @@
       "executable": false
     },
     "tests/e2e/delivery-contract.test.mjs": {
-      "sha256": "f95120f9a164260db8753d2c5580cd212c649fb390784e57e703d04d9d70d121",
+      "sha256": "ecd911640c26cb6a6cd248fe42baabacb96a39e12daf0249fbf97de3c32971fc",
       "executable": false
     },
     "tests/e2e/deployment-artifact.test.mjs": {

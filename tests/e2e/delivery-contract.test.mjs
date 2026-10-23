@@ -494,6 +494,30 @@ test("SUB-004 SUB-006 SUB-007 SUB-005 PAGE-013 SUB-012 SUB-008 — Scoped subscr
 })(t);
 });
 
+test("SUB-012 — An active address receives at most one already-subscribed email a day however often it is submitted", async () => {
+  const { Hono } = await import("hono");
+  const mail = new CapturingMail();
+  const service = createSubscribersService(createSubscriberRepository(platform.env.DB), { mail, fromAddress: "lamp@example.test", tokenSecret: randomBytes(32).toString("hex") });
+  const app = new Hono(); registerSubscriberRoutes(app, service);
+  const submit = async (email) => {
+    const response = await app.request("https://status.example.test/subscribe", { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: new URLSearchParams({ email }) });
+    return [response.status, await response.text()];
+  };
+  const neutral = await submit("repeat-newcomer@example.test");
+  const addresses = ["repeat-reader-one@example.test", "repeat-reader-two@example.test"];
+  for (const email of addresses) {
+    await submit(email);
+    assert.equal(await service.confirm(new URL(mail.messages.at(-1).text.match(/https:\/\/[^\s]+\/confirm-subscription\/[^\s]+/)[0]).pathname.split("/").at(-1)), true);
+  }
+  const confirmed = mail.messages.length;
+  for (let round = 0; round < 3; round += 1) {
+    for (const email of addresses) assert.deepEqual(await submit(email), neutral, "every submission keeps the neutral form response");
+  }
+  const management = mail.messages.slice(confirmed);
+  assert.deepEqual(management.map((message) => message.to).sort(), addresses, "each active address receives one management email");
+  for (const message of management) assert.match(message.text, /Manage this subscription/);
+});
+
 
 
 
