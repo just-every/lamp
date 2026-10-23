@@ -1,3 +1,4 @@
+import { createUlid } from "../../shared/ids";
 import { createIncidentTemplateRepository } from "./template-repository";
 import type { IncidentTemplateRecord, IncidentTemplateComponentRecord } from "./template-repository";
 export type { IncidentTemplateRecord, IncidentTemplateComponentRecord } from "./template-repository";
@@ -65,7 +66,7 @@ export interface IncidentPublishRecord {
 export interface IncidentRepository {
   previewComponentChange(incidentId: string, componentId: string): Promise<{ remainingStates: ComponentState[]; emailRecipients: number; webhookRecipients: number }>;
   attachComponent(claim: AttachedIncidentComponent, recipients: D1PreparedStatement[]): Promise<void>;
-  detachComponent(incidentId: string, componentId: string, timestamp: string, eventId: string): Promise<void>;
+  detachComponent(incidentId: string, componentId: string, timestamp: string, eventId: string, operatorId: string): Promise<void>;
   listIncidents(): Promise<StoredIncident[]>;
   listRelations(): ReturnType<typeof listIncidentRelations>;
   findIncident(incidentId: string): Promise<StoredIncident | null>;
@@ -89,7 +90,7 @@ export interface IncidentRepository {
   softDelete(incidentId: string, reason: string, operatorId: string, deletedAt: string, auditId: string, claimEvents: ComponentClaimEventInput[]): Promise<boolean>;
   listTemplates(): Promise<Array<IncidentTemplateRecord & { components: IncidentTemplateComponentRecord[] }>>;
   saveTemplate(input: IncidentTemplateRecord, components: IncidentTemplateComponentRecord[]): Promise<void>;
-  updateTemplate(input: IncidentTemplateRecord, components?: IncidentTemplateComponentRecord[]): Promise<void>;
+  updateTemplate(input: IncidentTemplateRecord, components: IncidentTemplateComponentRecord[] | undefined, operatorId: string): Promise<void>;
   findTemplate(templateId: string): Promise<(IncidentTemplateRecord & { components: IncidentTemplateComponentRecord[] }) | null>;
   applyTemplate(incidentId: string, draft: StoredIncidentDraft, expectedVersion: string): Promise<void>;
 }
@@ -112,12 +113,15 @@ export function createIncidentRepository(binding: D1Database): IncidentRepositor
         ...attachClaimStatements(binding, claim), ...recipients,
       ]);
     },
-    async detachComponent(incidentId, componentId, timestamp, eventId) {
+    async detachComponent(incidentId, componentId, timestamp, eventId, operatorId) {
       await writeClaimBatch(binding, [
         activeIncidentGuard(binding, incidentId),
         binding.prepare(`SELECT CASE WHEN EXISTS (SELECT 1 FROM incident_components WHERE incident_id = ? AND component_id = ?) THEN 1 ELSE json('Component is not attached') END`).bind(incidentId,componentId),
         binding.prepare(`INSERT INTO component_claim_events (id,component_id,cause_type,cause_id,state,changed_at,created_at,updated_at)
           SELECT ?,component_id,'incident',incident_id,NULL,?,?,? FROM incident_components WHERE incident_id = ? AND component_id = ? AND published_at IS NOT NULL`).bind(eventId,timestamp,timestamp,timestamp,incidentId,componentId),
+        binding.prepare(`INSERT INTO audit_entries (id,entity_type,entity_id,action,operator_id,payload_json,created_at,updated_at)
+          SELECT ?, 'incident-component', id, 'deleted', ?, json_object('incidentId', incident_id, 'componentId', component_id), ?, ? FROM incident_components WHERE incident_id = ? AND component_id = ?`)
+          .bind(createUlid(), operatorId, timestamp, timestamp, incidentId, componentId),
         binding.prepare(`DELETE FROM incident_components WHERE incident_id = ? AND component_id = ?`).bind(incidentId,componentId),
       ]);
     },

@@ -26,6 +26,18 @@ export async function auditLogFlow({ page, appUrl, appFetch }) {
   await request(`/api/app/components/${retired.id}`, "DELETE", undefined, 204);
   await request(`/api/app/component-groups/${group.id}`, "DELETE", undefined, 204);
   await request(`/api/app/components/${retired.id}`, "DELETE", undefined, 404);
+  // A stronger standing claim keeps the aggregate state unchanged while the
+  // published incident attachment disappears.
+  await request(`/api/app/components/${component.id}/standing-claim`, "PUT", { state: "Major outage" });
+  const beforeDetach = (await request("/api/app/components")).components.find(row => row.id === component.id).publicState;
+  assert.equal(beforeDetach, "Major outage");
+  await request(`/api/app/incidents/${incident.id}/components/${component.id}`, "DELETE");
+  assert.equal((await request("/api/app/components")).components.find(row => row.id === component.id).publicState, beforeDetach);
+  await request(`/api/app/incidents/${incident.id}/components/${component.id}`, "DELETE", undefined, 400);
+  const templateInput = { name: "synthetic-lamp-audit-template", lifecycle: "Investigating", affectedAudience: "API customers", customerImpact: "Requests are delayed.", whatStillWorks: "", details: "", nextUpdateOffsetMinutes: 60, components: [{ componentId: component.id, state: "Partially unavailable", relationship: "Primary" }] };
+  const template = (await request("/api/app/incident-templates", "POST", templateInput, 201)).template;
+  await request("/api/app/incident-templates", "POST", templateInput, 201);
+  await request(`/api/app/incident-templates/${template.id}`, "PUT", { components: templateInput.components });
   const data = await request(`/api/app/audit-log?from=${encodeURIComponent(since)}&limit=100`);
   const published = data.entries.find(row => row.entityId === publication.update.id && row.action === "published");
   assert.ok(published?.actorId && published.actorName === "Contract Operator");
@@ -37,6 +49,16 @@ export async function auditLogFlow({ page, appUrl, appFetch }) {
     const deleted = data.entries.filter(row => row.entityId === entityId && row.action === "deleted");
     assert.equal(deleted.length, 1, `${entityType} deletion is recorded once, and a repeated delete records nothing`);
     assert.equal(deleted[0].entityType, entityType); assert.equal(deleted[0].actorId, published.actorId); assert.equal(deleted[0].actorName, "Contract Operator");
+  }
+  for (const [entityType, action, count] of [["incident-component", "deleted", 1], ["incident-template-components", "replaced", 2]]) {
+    const entries = data.entries.filter(row => row.entityType === entityType && row.action === action);
+    assert.equal(entries.length, count, `${entityType}: exactly one attributed entry per change`);
+    assert.ok(entries.every(row => row.actorId === published.actorId));
+    const selected = await request(`/api/app/audit-log?action=${action}&actorId=${published.actorId}&from=${encodeURIComponent(since)}&limit=100`);
+    const response = await appFetch(`/api/app/audit-log?format=csv&action=${action}&actorId=${published.actorId}&from=${encodeURIComponent(since)}`);
+    const text = await response.text();
+    for (const entry of selected.entries) assert.ok(text.includes(`"${entry.id}"`));
+    assert.equal(text.trimEnd().split("\r\n").length - 1, selected.entries.length);
   }
   assert.ok(data.entries.every(row => Number.isFinite(Date.parse(row.createdAt))));
   assert.ok(!JSON.stringify(data).includes("audit-private@example.test"));

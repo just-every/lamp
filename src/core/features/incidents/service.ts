@@ -239,7 +239,7 @@ export function createIncidentsService(
       await onPublicDataChanged();
     },
     async detachComponent(incidentId, componentId, operatorId) {
-      await repository.detachComponent(incidentId, componentId, nowIso(), createUlid());
+      await repository.detachComponent(incidentId, componentId, nowIso(), createUlid(), operatorId);
       await componentsService.recomputePublicState(componentId, { type: "incident", id: incidentId, operatorId });
       await onPublicDataChanged();
     },

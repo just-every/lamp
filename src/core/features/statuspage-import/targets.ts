@@ -2,6 +2,7 @@ import type { D1Database, D1Sql, D1TargetAdapter, D1UndoDependency, D1UndoEffect
 import { insertJsonRows } from "../../../../modules/import-kit/src/d1/sets.ts";
 import { entityTables, type EntityKind, type NativeValue, type Row } from "./rows";
 import { allMarkers, markerTable, markerWhere, sealedDefaults, tablesOf } from "./native-tables";
+import { createUlid, nowIso } from "../../shared/ids";
 import { matchesAll } from "./target-digest";
 
 const kinds = Object.keys(entityTables) as EntityKind[];
@@ -179,3 +180,21 @@ function ownsRow(effect: D1UndoEffect, table: string, rowId: string) {
 }
 
 export const importedKinds = kinds;
+
+/** Bind native import replacement/removal facts to the operator performing the
+ * action, rather than the principal who originally created its retained job. */
+export function attributedStatuspageTargets(operatorId: string): D1TargetAdapter {
+  function audit(kind: string, id: string, action: "replaced" | "deleted"): D1Sql {
+    const [owner] = Object.keys(tablesOf(kind));
+    const at = nowIso();
+    return {
+      sql: `INSERT INTO audit_entries(id,entity_type,entity_id,action,operator_id,payload_json,created_at,updated_at) SELECT ?,?,?,?,?,'{}',?,? FROM ${owner} WHERE id=?`,
+      params: [createUlid(), kind, id, action, operatorId, at, at, id],
+    };
+  }
+  return {
+    ...statuspageTargets,
+    write(row) { return [audit(row.targetKind, row.targetId, "replaced"), ...statuspageTargets.write(row)]; },
+    remove(destination, kind, id) { return [audit(kind, id, "deleted"), ...statuspageTargets.remove(destination, kind, id)]; },
+  };
+}
