@@ -1,3 +1,4 @@
+import { createSubscriberLimitRepository } from "../subscribers/limits.repository";
 import { fetchSorryPublicResponses } from "./sorry";
 import { releaseSorrySubscribers, type SorryReleaseApproval } from "./sorry-release.repository";
 import { readCutover } from "./cutover.repository";
@@ -106,6 +107,7 @@ export function createStatuspageImportService(db: D1Database, hooks: MoveInHooks
     await assertAuthority(context);
     const last = Object.fromEntries(counters.results.map((row) => [row.namespace, Number(row.last_number)]));
     return {
+      subscriberCounts: await createSubscriberLimitRepository(db).counts(),
       maxGroupOrder: Number(groups.results[0].value), maxComponentOrder: Number(components.results[0].value),
       lastReference: { INC: last.INC ?? 0, SCH: last.SCH ?? 0 },
       allocated: new Set(allocated.results.map((row) => String(row.reference))),

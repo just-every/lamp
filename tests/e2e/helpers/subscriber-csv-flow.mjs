@@ -1,3 +1,4 @@
+import { subscriberLimitsFlow } from "./subscriber-limits-flow.mjs";
 import assert from "node:assert/strict";
 import { openSubscriberManagementFixture, subscriberCsv, subscriberCsvRows, pageOrigin } from "./subscriber-management-fixture.mjs";
 
@@ -136,4 +137,5 @@ export async function subscriberCsvFlow() {
     await fixture.assertUnchanged(invalidBefore);
     assert.equal(fixture.messages.length, invalidMail, "refused input never sends confirmation mail");
   } finally { await fixture.close(); }
+  await subscriberLimitsFlow();
 }

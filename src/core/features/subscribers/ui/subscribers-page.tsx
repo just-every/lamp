@@ -1,3 +1,4 @@
+import type { SubscriberCapacity } from "../limits";
 import { useState } from "react";
 
 import type { SubscribersService } from "../service";
@@ -13,7 +14,7 @@ import { AddSubscriber } from "./add-subscriber";
 import { SubscriberImportExport } from "./subscriber-import-export";
 import { WebhookFormatLabel } from "./webhook-format";
 
-type SubscribersResponse = { subscribers: Awaited<ReturnType<SubscribersService["list"]>>; limit: number; offset: number; hasMore: boolean };
+type SubscribersResponse = { capacity:SubscriberCapacity[]; subscribers: Awaited<ReturnType<SubscribersService["list"]>>; limit: number; offset: number; hasMore: boolean };
 
 export function SubscribersPage() {
   const formatOperatorTime = useOperatorTime();
@@ -38,6 +39,7 @@ export function SubscribersPage() {
   if (!data) return null;
   return <div className="page-stack">
     <section className="page-title-row"><div><h1>Subscribers</h1><p>People and services that get your updates.</p></div></section>
+    <section className="data-card" aria-label="Subscriber capacity"><h2>Capacity</h2><dl className="subscriber-capacity">{data.capacity.map(item=><div key={item.channel}><dt>{item.channel === "all" ? "All channels" : item.channel === "slack-and-teams" ? "Slack and Teams together" : item.channel === "slack" ? "Slack" : item.channel === "teams" ? "Teams" : item.channel === "email" ? "Email" : "Webhooks"}</dt><dd>{item.count.toLocaleString()} / {item.limit.toLocaleString()}{item.count>=item.limit ? " · Full" : ""}</dd></div>)}</dl><p>Pending and active subscriptions count. Email, webhooks, Slack and Teams share the all-channel limit; Slack and Teams also share their channel limit.</p></section>
     {mutationError && <FormError>{mutationError}</FormError>}
     <AddSubscriber onChanged={changed} />
     <section className="data-card subscriber-table-card subscriber-directory-card">
@@ -45,7 +47,7 @@ export function SubscribersPage() {
         <table role="table">
           <thead role="rowgroup"><tr role="row"><th scope="col">Destination</th><th scope="col">Channel</th><th scope="col">State</th><th scope="col">Selection</th><th scope="col">Joined</th><th scope="col"><span className="sr-only">Actions</span></th></tr></thead>
           <tbody role="rowgroup">{data.subscribers.map((subscriber) => <tr role="row" key={subscriber.id}>
-            <td role="cell" data-label="Destination" className="subscriber-destination"><strong>{subscriber.destination}</strong>{subscriber.contactEmail && <small>Contact {subscriber.contactEmail}</small>}<ClientExtensionSlot id="subscriber.detail.after.v1" context={{ subscriber: { id: subscriber.id, channel: subscriber.channel, state: subscriber.state, destination: subscriber.destination } }} /></td>
+            <td role="cell" data-label="Destination" className="subscriber-destination"><strong>{subscriber.channel === "slack" ? "Slack channel" : subscriber.channel === "teams" ? "Teams channel" : subscriber.destination}</strong>{subscriber.contactEmail && <small>Contact {subscriber.contactEmail}</small>}<ClientExtensionSlot id="subscriber.detail.after.v1" context={{ subscriber: { id: subscriber.id, channel: subscriber.channel, state: subscriber.state, destination: subscriber.destination } }} /></td>
             <td role="cell" data-label="Channel"><div>{subscriber.channel}<WebhookFormatLabel channel={subscriber.channel} format={subscriber.webhookFormat} /></div></td>
             <td role="cell" data-label="State"><div><span className={`state-pill state-${subscriber.state}`}>{subscriber.state}</span>{subscriber.deactivationReason && <small>{subscriber.deactivationReason}{subscriber.deactivatedAt ? ` · ${formatOperatorTime(subscriber.deactivatedAt)}` : ""}</small>}</div></td>
             <td role="cell" data-label="Selection">{subscriber.selectionMode === "all" ? "All components" : `${subscriber.componentSelections.length} selected component${subscriber.componentSelections.length === 1 ? "" : "s"}`}</td>

@@ -72,9 +72,9 @@ function timeless(plan: ImportPlan) {
 }
 
 /** The review instant and page fingerprint a saved door plan was prepared with. */
-export function reviewedPage(plan: ImportPlan): { asOf?: string; page?: string } {
+export function reviewedPage(plan: ImportPlan): { asOf?: string; page?: string; overSubscriberLimit?:boolean } {
   const raw = (plan.entries.find(entry=>entry.source.kind==='metadata')?.source.payload as {raw?:{asOf?:string;page?:string}} | undefined)?.raw;
-  return {asOf:raw?.asOf,page:raw?.page};
+  return {asOf:raw?.asOf,page:raw?.page,overSubscriberLimit:plan.entries.some(entry=>entry.rejection==="over the subscriber limit")};
 }
 
 export async function readDoorExport(bytes: Uint8Array) {

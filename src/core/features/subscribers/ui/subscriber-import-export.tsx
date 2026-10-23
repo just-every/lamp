@@ -4,7 +4,7 @@ import { Button } from "../../../app/client/ui/button";
 import { FormError } from "../../../app/client/ui/states";
 
 type Counts = { created: number; skipped: number; refused: number };
-type Preview = { fingerprint: string; counts: Counts; rows: { row: number; outcome: string; reason: string | null }[] };
+type Preview = { limits:string[]; fingerprint: string; counts: Counts; rows: { row: number; outcome: string; reason: string | null }[] };
 type Batch = { batchId: string; counts: Counts };
 
 export function SubscriberImportExport({ onChanged }: { onChanged: () => void }) {
@@ -47,9 +47,9 @@ export function SubscriberImportExport({ onChanged }: { onChanged: () => void })
       <label className="form-label">CSV contents<textarea rows={6} required disabled={pending} value={csv} onChange={event => reset(event.target.value)} /></label>
       <Button variant="secondary" type="submit" disabled={pending || !csv.trim()}>{pending ? "Working…" : "Dry run CSV"}</Button>
     </form>
-    {preview ? <div><h3>Dry run</h3><p>{preview.counts.created} would be created; {preview.counts.skipped} skipped; {preview.counts.refused} refused.</p>
+    {preview ? <div><h3>Dry run</h3>{preview.limits.length ? <div role="status"><ul>{preview.limits.map(summary=><li key={summary}>{summary}</li>)}</ul><p>Remove excess rows and run a fresh dry run before applying.</p></div> : null}<p>{preview.counts.created} would be created; {preview.counts.skipped} skipped; {preview.counts.refused} refused.</p>
       {preview.rows.some(row => row.reason) ? <details><summary>Row decisions</summary><ul>{preview.rows.filter(row => row.reason).map(row => <li key={row.row}>Row {row.row}: {row.outcome} — {row.reason}</li>)}</ul></details> : null}
-      <Button type="button" disabled={pending || preview.counts.created === 0} onClick={apply}>Create pending subscriptions</Button></div> : null}
+      <Button type="button" disabled={pending || preview.counts.created === 0 || preview.limits.length > 0} onClick={apply}>Create pending subscriptions</Button></div> : null}
     {batch ? <div><h3>Confirmation invitations</h3><p>Send up to 50 invitations per action. This explicitly authorizes sending; creating the pending subscriptions sent none.</p><Button type="button" variant="secondary" disabled={pending} onClick={invite}>Send invitations</Button></div> : null}
     {error ? <FormError>{error}</FormError> : null}{result ? <p role="status">{result}</p> : null}
   </section>;
