@@ -24,7 +24,7 @@ export interface Snapshot {
   /** Each template name, with its template when an active import created it. */
   templateNames?: Map<string, string | null>;
 }
-export interface Mapped { kind: EntityKind; sourceId: string; value?: NativeValue; accounting: Accounting[] }
+export interface Mapped { kind: EntityKind; sourceId: string; value?: NativeValue; accounting: Accounting[]; subscriberCapacity?: { overLimit: boolean; summaries: string[] } }
 
 /** Each native table group an imported entity owns, keyed by its owning column. */
 export const entityTables: Record<EntityKind, Record<string, string>> = {
@@ -136,9 +136,7 @@ export function mapSource(data: SourceData, snapshot: Snapshot, operatorId: stri
       delete item.row.value;
       item.row.accounting=[{...item.row.accounting[0],outcome:"rejected",reason:"over the subscriber limit"}];
     }
-    // Attach the aggregate excess to the first subscriber's accounting without
-    // hiding the field-by-field refusal reason on every excess row.
-    if(capacity.summaries.length && subscriberResults.length) subscriberResults[0].accounting[0].reason += ` ${capacity.summaries.join("; ")}.`;
+    if(subscriberResults.length) subscriberResults[0].subscriberCapacity={overLimit:capacity.refused.size>0,summaries:capacity.summaries};
   }
   const templates = mapTemplates(data, components, snapshot, operatorId, asOf, identify);
   const order: EntityKind[] = ["group", "component", "incident", "maintenance", "template", "subscriber"];
