@@ -236,6 +236,6 @@ test("INTAKE-009 INTAKE-014 responder webhooks create private drafts, brief entr
   await availabilityReportBrowserFlow({ api, post, component, origin, cookie });
   t.diagnostic("INTAKE-009 — signed PagerDuty evidence stays private until publication; responder notes survive replay, rejection and restore safely");
   await pagerDutyBrowserFlow({ api, component, origin, cookie });
-  await operationsBrowserFlow({ api, component, origin, cookie, runtime, signIn: async () => { cookie = (await signInAs({ origin, key: devKey })).header; return cookie; } });
   await responderFlow({ runtime, t });
+  await operationsBrowserFlow({ api, component, origin, cookie, runtime, signIn: async () => { cookie = (await signInAs({ origin, key: devKey })).header; return cookie; } });
 });

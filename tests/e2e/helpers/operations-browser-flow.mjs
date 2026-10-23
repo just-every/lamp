@@ -40,7 +40,12 @@ export async function operationsBrowserFlow({ api, component, origin, cookie, ru
         await editor.getByLabel('Atlassian account email', { exact: true }).fill('operator@example.test');
         await editor.getByLabel('Atlassian API token', { exact: true }).fill('synthetic-lamp-12');
       } else await editor.getByLabel('Opsgenie API key', { exact: true }).fill('synthetic-lamp-14');
+      const saving = page.waitForResponse(response => response.url().endsWith(`/api/app/intake/sources/${source.id}`) && response.request().method() === 'PUT');
       await editor.getByRole('button', { name: `Save and connect ${tool}`, exact: true }).click();
+      const response = await saving;
+      const saved = await response.json();
+      assert.equal(response.status(), 200, JSON.stringify(saved));
+      assert.equal(saved.source.responderConnection, 'connected', 'the saved responder credential is connected');
       await card.getByText('Connected', { exact: true }).waitFor();
       await capture(width, `${preset}-connected`, card);
     }

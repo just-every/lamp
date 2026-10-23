@@ -5860,7 +5860,7 @@
       "executable": false
     },
     "tests/e2e/channels-and-presets.test.mjs": {
-      "sha256": "f8fef7df29b621d66ff5a8f9237fa1923311e920d64efbda6e3c060766125f5c",
+      "sha256": "51bc0ad49873eba139376106e38dc1e1b6dd76b9dfd940b64df37dbd9e505172",
       "executable": false
     },
     "tests/e2e/composer-visit-regression.mjs": {
@@ -6048,7 +6048,7 @@
       "executable": false
     },
     "tests/e2e/helpers/operations-browser-flow.mjs": {
-      "sha256": "9f990d28003d9d33fb9ff267b44fb39eb8ad0bdcb1f540cc074d5834d4ab17e5",
+      "sha256": "36711b94b481891de4304ff84d382ca08f2d0f1e3aaf8a0a2a5a7fbc799d94f4",
       "executable": false
     },
     "tests/e2e/helpers/operations-edge.mjs": {
