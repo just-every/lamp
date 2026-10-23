@@ -1,0 +1,1 @@
+{"type":"invoke","name":"adaptiveCard/action","channelId":"msteams","serviceUrl":"https://smba.trafficmanager.net/teams/","from":{"aadObjectId":"synthetic-lamp-3"},"channelData":{"tenant":{"id":"synthetic-lamp-4"}},"value":{"action":{"type":"Action.Execute","verb":"lamp","data":{}}}}

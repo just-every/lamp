@@ -207,7 +207,7 @@ test("PAGE-001 PAGE-007 PAGE-010 SUB-001 — Complete public snapshots, validato
 
 
 
-test("COMP-006 UPDATE-004 PAGE-012 — Component claims, saved drafts, settings and operator records", async t => {
+test("COMP-006 UPDATE-004 PAGE-012 INCIDENT-012 — Component claims, saved drafts, settings and operator records", async t => {
   t.diagnostic("COMP-006 — standing claims derive a component's public state");
   await (async () => {
   const claim = await appFetch("/api/app/components/01J00000000000000000000011/standing-claim", {
@@ -278,6 +278,7 @@ test("COMP-006 UPDATE-004 PAGE-012 — Component claims, saved drafts, settings 
   await appFetch(`/api/app/components/${component.id}/standing-claim`, { method: "PUT", body: JSON.stringify({ state: null }) });
   assert.equal((await appFetch(`/api/app/components/${component.id}`, { method: "DELETE" })).status, 204);
 })(t);
+  for (const flow of [() => import('../chat-desk/flow.mjs').then(({ chatDeskFlow }) => chatDeskFlow({ t, server, appUrl, env: { ...process.env, LAMP_DISABLE_INSPECTOR: 'true', LAMP_WORKERS_STATE_PATH: testStatePath, LAMP_VITE_CACHE_DIR: testViteCachePath } }))]) server = await flow();
   t.diagnostic("UPDATE-004 — draft save and preview share the incident renderer");
   await (async () => {
   const draft = {

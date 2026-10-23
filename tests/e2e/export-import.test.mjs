@@ -52,6 +52,7 @@ async function populate(env) {
     env.DB.prepare("INSERT INTO alert_group_members (source_id,incident_id,group_key,fingerprint,state,received_at,recovered_at) VALUES (?,?,?,?,?,?,?)").bind("group-source-export","incident-export","service-group","alert-fingerprint","resolved","2026-09-08T00:15:00.000Z","2026-09-08T00:15:00.000Z"),
     env.DB.prepare("INSERT INTO audit_entries (id, entity_type, entity_id, action, operator_id, reason, payload_json, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)").bind("audit-export", "component-state-history", "history-export", "corrected", "operator-export", "Verified export", '{"before":"Operational","after":"Major outage"}', "2026-09-08T00:00:00.000Z", "2026-09-08T00:00:00.000Z"),
   ]);
+  for (const transport of ['slack', 'teams']) await env.DB.prepare("INSERT INTO chat_links(id,operator_id,transport,tenant,subject,created_at) VALUES(?,?,?,?,?,?)").bind(`synthetic-lamp-${transport}`,'operator-export',transport,'synthetic-lamp-1','synthetic-lamp-2','2026-10-23').run();
   await env.SNAPSHOTS.put("branding/original.png", logo, { httpMetadata: { contentType: "image/png", contentDisposition: "attachment; filename=brand.png", cacheControl: "public, max-age=60" }, customMetadata: { owner: "portable-brand" } });
 }
 
