@@ -8,7 +8,7 @@ export async function statuspageWebhookMaintenance({ fixture, component, accepte
   const before = accepted.length;
   const startsAt = new Date(Date.now() + 2 * 3_600_000).toISOString();
   const endsAt = new Date(Date.now() + 3 * 3_600_000).toISOString();
-  const created = await post("/api/app/maintenance", { title: "Synthetic Lamp compatible maintenance", startsAt, endsAt, componentIds: [component.id], autoStart: false, autoComplete: false });
+  const created = await post("/api/app/maintenance", { affectedAudience: "Customers using the scheduled service.", customerImpact: "Requests may be interrupted during this maintenance window.", title: "Synthetic Lamp compatible maintenance", startsAt, endsAt, componentIds: [component.id], autoStart: false, autoComplete: false });
   assert.equal(created.status, 201, created.text);
   const maintenance = created.body.maintenance;
   const deliver = async (count, status) => {

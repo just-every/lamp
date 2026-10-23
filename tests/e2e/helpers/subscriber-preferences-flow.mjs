@@ -76,7 +76,7 @@ export async function subscriberPreferencesFlow() {
     assert.equal(fixture.webhookRequests.length, hooksBeforeIncident);
 
     const startsAt = new Date(Date.now() + 2 * 3_600_000).toISOString();
-    const window = await post("/api/app/maintenance", { title: "Synthetic Lamp preference maintenance", startsAt, endsAt: new Date(Date.parse(startsAt) + 3_600_000).toISOString(), componentIds: [component.id], autoStart: false, autoComplete: false });
+    const window = await post("/api/app/maintenance", { affectedAudience: "Customers using the scheduled service.", customerImpact: "Requests may be interrupted during this maintenance window.", title: "Synthetic Lamp preference maintenance", startsAt, endsAt: new Date(Date.parse(startsAt) + 3_600_000).toISOString(), componentIds: [component.id], autoStart: false, autoComplete: false });
     assert.equal(window.status, 201, window.text);
     const drainMaintenance = async () => {
       const followUps = await api("/api/app/overview/follow-ups");

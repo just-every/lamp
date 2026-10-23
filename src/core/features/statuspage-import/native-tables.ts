@@ -31,5 +31,6 @@ export const sealedDefaults: Record<string, Row> = {
   incident_updates: { component_changes_json: "[]", component_snapshot_json: "[]" },
   incidents: { impact_override: null },
   incident_components: { detached_internal: 0 },
+  maintenance: { affected_audience: null, customer_impact: null },
   maintenance_components: { detached_internal: 0 },
 };

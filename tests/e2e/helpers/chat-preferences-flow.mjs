@@ -28,7 +28,7 @@ export async function chatPreferencesFlow({runtime,publicOrigin,received,publish
   };
   const create=async(hours,title)=>{
     const startsAt=new Date(Date.now()+hours*3600000).toISOString(),endsAt=new Date(Date.parse(startsAt)+3600000).toISOString();
-    const result=await runtime.post('/api/app/maintenance',{title,startsAt,endsAt,componentIds:[component.id],autoStart:false,autoComplete:false});
+    const result=await runtime.post('/api/app/maintenance',{ affectedAudience: "Customers using the scheduled service.", customerImpact: "Requests may be interrupted during this maintenance window.",title,startsAt,endsAt,componentIds:[component.id],autoStart:false,autoComplete:false});
     assert.equal(result.status,201,result.text);return result.body.maintenance;
   };
   await manage(component.id,['maintenance']);
