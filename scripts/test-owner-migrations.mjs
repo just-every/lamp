@@ -23,15 +23,31 @@ try {
   // Create files in reverse order; the second depends on the first and core schema.
   await writeFile(join(temporary, 'migrations/ext/0002_owner.sql'), "INSERT INTO owner_notes VALUES (2, 'second');");
   await writeFile(join(temporary, 'migrations/ext/0001_owner.sql'), "CREATE TABLE owner_notes (id INTEGER PRIMARY KEY, value TEXT NOT NULL); INSERT INTO owner_notes SELECT 1, 'preserved' WHERE EXISTS (SELECT 1 FROM d1_migrations);");
-  const addedCore = ['0053_subscriber_intake.sql', '0054_subscriber_webhook_formats.sql', '0055_maintenance_automation_defaults.sql'];
+  const addedCore = ['0053_subscriber_intake.sql', '0054_subscriber_webhook_formats.sql', '0055_maintenance_automation_defaults.sql', '0056_subscriber_channels_preferences.sql','0057_component_deliveries.sql'];
   for (const name of addedCore) await rm(join(temporary, 'migrations/core', name));
   run('node', ['scripts/migrate-local.mjs']);
   query("INSERT INTO subscribers(id,channel,destination,contact_email,state,selection_mode,token_hash,created_at,updated_at) VALUES('synthetic-lamp-1','webhook','https://receiver.example.test/synthetic-lamp-1','synthetic-lamp-1@example.test','active','all','synthetic-lamp-1','2026-10-23','2026-10-23')");
-  for (const name of addedCore) await cp(join(root, 'migrations/core', name), join(temporary, 'migrations/core', name));
+  for (const name of addedCore.slice(0,3)) await cp(join(root, 'migrations/core', name), join(temporary, 'migrations/core', name));
   run('node', ['scripts/migrate-local.mjs']);
   assert.deepEqual(query("SELECT id,state,destination,created_by_operator_id,webhook_format FROM subscribers WHERE id='synthetic-lamp-1'"), [{id:'synthetic-lamp-1',state:'active',destination:'https://receiver.example.test/synthetic-lamp-1',created_by_operator_id:null,webhook_format:'lamp'}]);
   assert.equal(query('SELECT COUNT(*) n FROM subscriber_intake')[0].n, 0);
   assert.equal(query('SELECT COUNT(*) n FROM maintenance_automation_defaults')[0].n, 0);
+  query("INSERT INTO operators(id,email,display_name,is_setup_operator,created_at,updated_at) VALUES('synthetic-lamp-owner','synthetic-lamp-owner@example.test','Synthetic owner',1,'2026-10-23','2026-10-23'); INSERT INTO subscriber_tokens(id,subscriber_id,scope,token_hash,created_at,updated_at) VALUES('synthetic-lamp-token','synthetic-lamp-1','manage','synthetic-lamp-token','2026-10-23','2026-10-23'); INSERT INTO subscriber_intake(subscriber_id,source,operator_id,created_at) VALUES('synthetic-lamp-1','operator','synthetic-lamp-owner','2026-10-23'); INSERT INTO channel_destinations(id,kind,name,sealed_url,host,selection_mode,created_by_operator_id,created_at,updated_at) VALUES('synthetic-lamp-channel','slack','Synthetic','synthetic-sealed','hooks.slack.com','all','synthetic-lamp-owner','2026-10-23','2026-10-23')");
+  query("INSERT INTO maintenance(id,reference,title,state,starts_at,ends_at,created_by_operator_id,created_at,updated_at) VALUES('synthetic-lamp-maintenance','SCH-100','Upgrade fixture','Scheduled','2026-10-24','2026-10-25','synthetic-lamp-owner','2026-10-23','2026-10-23'); INSERT INTO notification_deliveries(id,subscriber_id,maintenance_id,channel,outcome,queued_at,created_at,updated_at) VALUES('synthetic-lamp-delivery','synthetic-lamp-1','synthetic-lamp-maintenance','webhook','delivered','2026-10-23','2026-10-23','2026-10-23'); INSERT INTO notification_delivery_attempts(id,delivery_id,attempt_number,attempted_at,provider_message_id,created_at) VALUES('synthetic-lamp-attempt','synthetic-lamp-delivery',1,'2026-10-23','synthetic-lamp-provider-message','2026-10-23'); INSERT INTO mail_provider_webhook_events(id,provider_event_id,provider_message_id,event_type,received_at,created_at,delivery_id) VALUES('synthetic-lamp-provider-event','synthetic-lamp-provider-event','synthetic-lamp-provider-message','delivered','2026-10-23','2026-10-23','synthetic-lamp-delivery')");
+  const preservedUpgrade = Object.fromEntries(['subscribers','subscriber_tokens','subscriber_intake','channel_destinations','notification_deliveries','notification_delivery_attempts','mail_provider_webhook_events','subscriber_reporting_daily'].map(table=>[table,query(`SELECT * FROM ${table}`)]));
+  for(const name of addedCore.slice(3))await cp(join(root, 'migrations/core',name),join(temporary,'migrations/core',name));
+  run('node', ['scripts/migrate-local.mjs']);
+  assert.deepEqual(query('PRAGMA foreign_key_check'),[]);
+  for(const [table,rows] of Object.entries(preservedUpgrade)) {
+    const columns=Object.keys(rows[0] ?? {}).map(name=>`"${name}"`).join(',');
+    if(columns)assert.deepEqual(query(`SELECT ${columns} FROM ${table}`),rows,`upgrade preserves ${table}`);
+  }
+
+  assert.equal(query("SELECT count(*) AS n FROM subscriber_tokens WHERE id='synthetic-lamp-token'")[0].n,1);
+  assert.equal(query("SELECT count(*) AS n FROM subscriber_intake WHERE subscriber_id='synthetic-lamp-1'")[0].n,1);
+  assert.equal(query("SELECT count(*) AS n FROM channel_destinations WHERE id='synthetic-lamp-channel'")[0].n,1);
+  assert.deepEqual(JSON.parse(query("SELECT event_kinds_json FROM subscribers WHERE id='synthetic-lamp-1'")[0].event_kinds_json),['incidents','maintenance','components']);
+
   assert.deepEqual(query('SELECT * FROM owner_notes ORDER BY id'), [{ id: 1, value: 'preserved' }, { id: 2, value: 'second' }]);
   const originalLedger = query(`SELECT * FROM ${ledger} ORDER BY id`);
   const coreLedger = query('SELECT * FROM d1_migrations ORDER BY id');

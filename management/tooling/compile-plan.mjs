@@ -60,7 +60,7 @@ export async function lampPlan({ installationId, environment, variables, root = 
     migrations: sqlMigrations, compatibilityDate: date, compatibilityFlags: flags,
     durableObjects: [{ binding: 'SNAPSHOT_CACHE', className: 'SnapshotCache' }],
     durableObjectMigrations: [{ tag: 'snapshot-cache-v1', newSqliteClasses: ['SnapshotCache'] }],
-    publicVariables, secretNames, healthPath: '/health',
+    publicVariables, secretNames, optionalSecretNames: ["SLACK_SIGNING_SECRET", "SLACK_CLIENT_ID", "SLACK_CLIENT_SECRET"], healthPath: '/health',
     recovery: 'Preserve source and database backup before migration. Restore into fresh installation resources and verify owner workflows before switching traffic.',
     schedules: environment === 'production' ? ['* * * * *'] : [],
     queueConsumers: environment === 'production' ? [{ binding: 'JOBS', maxBatchSize: 10, maxBatchTimeout: 5, maxRetries: 5 }] : [],
