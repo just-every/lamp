@@ -5,12 +5,14 @@ import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { unstable_splitSqlQuery } from "wrangler";
 import { withDraftVersion } from "../draft-version-helper.mjs";
+import { reservePort } from "../worker-startup.mjs";
 
 const require = createRequire(import.meta.url);
 const wranglerRequire = createRequire(require.resolve("wrangler"));
 const { Miniflare, convertV4MiniflareOptions } = wranglerRequire("miniflare");
 const { build } = wranglerRequire("esbuild");
-export const appOrigin = "https://app.example.test";
+const appPort = await reservePort({ label: "follow-ups Worker" });
+export const appOrigin = `http://127.0.0.1:${appPort}`;
 export const pageOrigin = "https://status.example.test";
 
 export async function eventuallyFollowUp(read, predicate, description) {
@@ -43,10 +45,10 @@ export async function openFollowUpsRuntime() {
     });
     runtime = new Miniflare(convertV4MiniflareOptions({
       name: "lamp-follow-ups-test", modules: true, script: built.outputFiles[0].text,
-      port: 0, inspectorPort: 0, compatibilityDate: "2026-09-08", compatibilityFlags: ["nodejs_compat"],
+      port: appPort, inspectorPort: 0, compatibilityDate: "2026-09-08", compatibilityFlags: ["nodejs_compat"],
       bindings: {
-        LAMP_PAGE_HOST: "status.example.test", LAMP_APP_HOST: "app.example.test",
-        AUTH_ORIGIN: appOrigin, SETUP_OPERATOR_EMAIL: "synthetic-lamp-owner@example.test",
+        LAMP_PAGE_HOST: "status.example.test", LAMP_APP_HOST: "127.0.0.1",
+        AUTH_ORIGIN: appOrigin, AUTH_LOCAL: "true", SETUP_OPERATOR_EMAIL: "synthetic-lamp-owner@example.test",
         SESSION_SECRET: "synthetic-lamp-session-1".repeat(4), SETUP_TOKEN: "synthetic-lamp-setup-1".repeat(4),
         SUBSCRIBER_TOKEN_SECRET: "synthetic-lamp-subscriber-1".repeat(4),
         WEBHOOK_SIGNING_SECRET: "synthetic-lamp-webhook-1".repeat(4),
