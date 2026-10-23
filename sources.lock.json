@@ -5656,7 +5656,7 @@
       "executable": false
     },
     "tests/auth-adoption/cutover.test.mjs": {
-      "sha256": "0587fcf21e1e5e41b2be42dac46aedb6f39891cf2ae7d7e4cdc305981319a4e9",
+      "sha256": "5ac6d7a1c83d079a2ff1d0220b368a73f01328360017d36aae0faba2bfd257e5",
       "executable": false
     },
     "tests/auth-adoption/dependencies.test.mjs": {
