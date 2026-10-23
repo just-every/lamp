@@ -19,6 +19,7 @@ export async function followUpsImport(fixture) {
   });
   const files = Object.entries({
     "page.json": { id: "synthetic-lamp-source-page-1", name: "Synthetic Lamp source", viewers_must_be_team_members: false, ip_restrictions: null },
+    "page-access-groups.json": [],
     "component-groups.json": [],
     "components.json": [{ id: componentId, name: "Synthetic Lamp imported API", group: false, group_id: null, position: 1, status: "operational", created_at: old }],
     "incidents.json": [sourceIncident(1), sourceIncident(2)],

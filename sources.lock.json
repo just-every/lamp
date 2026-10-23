@@ -6072,7 +6072,7 @@
       "executable": false
     },
     "tests/e2e/helpers/follow-ups-import.mjs": {
-      "sha256": "1b2d4b6bc59477402d2e8d2a09e2ebe26484a20d96c5e8cc9f6b0b4eb9f16f3b",
+      "sha256": "9ad973983267ed5e2367616b804591d773a3e3b52d01848dcdb4aeb1c1d1b011",
       "executable": false
     },
     "tests/e2e/helpers/follow-ups-notification-flow.mjs": {
