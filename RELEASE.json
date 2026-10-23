@@ -76,6 +76,14 @@
     {
       "id": "0055_maintenance_automation_defaults.sql",
       "buyerSteps": "Apply after 0054. Adds page-level auto-start and auto-complete defaults, initially both on. Existing maintenance windows retain their own choices; changing Settings affects only new windows."
+    },
+    {
+      "id": "0056_subscriber_channels_preferences.sql",
+      "buyerSteps": "Apply after 0055. Preserves existing subscribers, selections, tokens, attribution and channel posts while adding self-serve Slack and Teams kinds, sealed chat destinations, expiring OAuth state, event preferences and incident thresholds, immutable component notification facts and atomic subscriber capacity guards. Existing webhooks opt into component changes; other subscriptions retain incidents and maintenance. Optional Slack OAuth credentials are configured only by an owner enabling that door."
+    },
+    {
+      "id": "0057_component_deliveries.sql",
+      "buyerSteps": "Apply after 0056. Preserves delivery, attempt and provider receipt identifiers while allowing a delivery to reference its immutable component change event. Existing incident and maintenance deliveries retain their content and authority."
     }
   ],
   "breaking": false,
