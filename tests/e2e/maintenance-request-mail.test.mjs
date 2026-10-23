@@ -131,10 +131,19 @@ test('MAINT-009 MAINT-005 NOTIFY-005 — required maintenance wording reaches sc
       db.prepare("INSERT INTO maintenance(id,reference,title,state,starts_at,ends_at,created_by_operator_id,created_at,updated_at) VALUES('synthetic-lamp-legacy-wording','SCH-940058','Synthetic Lamp title-only upgrade','Scheduled',?,?,'01J00000000000000000000001',?,?)").bind(legacyStarts, legacyEnds, legacyStarts, legacyStarts),
       db.prepare("INSERT INTO maintenance_components(id,maintenance_id,component_id,component_name,state,created_at,updated_at) VALUES('synthetic-lamp-legacy-wording-component','synthetic-lamp-legacy-wording','01J00000000000000000000011','Legacy API','Under maintenance',?,?)").bind(legacyStarts, legacyStarts),
     ]);
-    const legacyEdited = await call('/api/app/maintenance/synthetic-lamp-legacy-wording/window', { startsAt: legacyStarts, endsAt: new Date(Date.parse(legacyEnds) + 3600_000).toISOString() }, 'PUT');
+    const legacyEdited = await call('/api/app/maintenance/synthetic-lamp-legacy-wording/window', { startsAt: legacyStarts, endsAt: new Date(Date.parse(legacyEnds) + 3600_000).toISOString(), autoStart: false }, 'PUT');
     assert.equal(legacyEdited.status, 200, await legacyEdited.clone().text());
     const legacy = (await legacyEdited.json()).maintenance;
     assert.equal(legacy.affectedAudience, null); assert.equal(legacy.customerImpact, null);
+    assert.equal(legacy.notices[0].body, `${legacy.reference}: ${legacy.title}`);
+    assert.equal((await db.prepare('SELECT count(*) AS n FROM notification_deliveries WHERE maintenance_id=?').bind(legacy.id).first()).n, 0, 'a legacy window with no previous recipient set sends no reschedule email');
+    assert.equal(messages.length, 6);
+    // Starting it now is a real owner action with today's eligible recipients;
+    // the old window's historical recipient set is never fabricated.
+    const legacyStarted = await call(`/api/app/maintenance/${legacy.id}/start`, {});
+    assert.equal(legacyStarted.status, 200, await legacyStarted.clone().text());
+    const runningLegacy = (await legacyStarted.json()).maintenance;
+    assert.ok(runningLegacy.notices.every(notice => notice.body === `${legacy.reference}: ${legacy.title}`));
     await settle(7);
     const legacyPlain = messages.at(-1).content.find(part => part.type === 'text/plain')?.value;
     assert.ok(legacyPlain?.includes(legacy.title));
