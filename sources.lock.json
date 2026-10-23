@@ -448,7 +448,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "c9c32e90c40ef4f4f05922e45d738ab7695e5cad412bbdd99b0a7bd1e88665dd",
+      "sha256": "24f78720fc6707ca2add203e113ee32ad183fa98c794badddcdac00f328cfc71",
       "executable": false
     },
     "AGENTS.md": {
@@ -468,7 +468,7 @@
       "executable": false
     },
     "CHANGELOG.md": {
-      "sha256": "2e32b973a6b91f0248d79a5a3c4815db1e0c27a31a177d9d8bc62538e0c05b12",
+      "sha256": "132dd458f66e6c0d887266f1996c50a87ad9f981bf97fdb09539a2ff89a75b61",
       "executable": false
     },
     "CLAUDE.md": {
@@ -496,7 +496,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "e1374e6d2555a401c5602f5684d67ae53f9f3b4e3dbc0871dc67caa1755a6f3e",
+      "sha256": "93aad3259cb5b3ed50dc168f2c2ea1e2ec27d2496063f42f7da374238c0da827",
       "executable": false
     },
     "DEMO.md": {
@@ -596,7 +596,7 @@
       "executable": false
     },
     "docs/subscribers-and-notifications.md": {
-      "sha256": "4587f7104beb60f0c67dd34382720104928e389fc5b29d7de66800c6bda41e7a",
+      "sha256": "dd0ceb452cf84cb5d884a7ac36c7cd42d134bb90e5810a4b7186099b7c0c6913",
       "executable": false
     },
     "docs/updating.md": {
@@ -2312,7 +2312,7 @@
       "executable": false
     },
     "RELEASE.json": {
-      "sha256": "a0de5f6ae33953baebcacafb63636f37c3859d1fe0f0d7cdcefa19dfa99c2533",
+      "sha256": "1772c36574f699f82f6bff78ac31958ec1abd421f5fbf61f9c4904a338a56886",
       "executable": false
     },
     "rer-packaging.json": {
@@ -3828,7 +3828,7 @@
       "executable": false
     },
     "src/core/features/overview/follow-ups/import.repository.ts": {
-      "sha256": "7924d2be0393fcba4ec3452b9e337fd8a38a14b3356a63cb7c042dd337baac8a",
+      "sha256": "635d06e2448dc7cf285d69edd571797e0392b9e38db8a9da5ae5f0f306bbaecf",
       "executable": false
     },
     "src/core/features/overview/follow-ups/incident.repository.ts": {
@@ -4620,15 +4620,15 @@
       "executable": false
     },
     "src/core/features/subscribers/repository.ts": {
-      "sha256": "302428d6aaf4a89f4692d08dc353ba069324d50cb9845ea1fa59281d9ca5afad",
+      "sha256": "c7bee636ef9925648e2d552e45c04f0e18887b49b93bb0f0a2c1d34eef768b03",
       "executable": false
     },
     "src/core/features/subscribers/routes.ts": {
-      "sha256": "cd6f1dec86348cdd99c94feb33a813a45e2838fc2e104aff401de70cd9233268",
+      "sha256": "c56c49021a1fa3fa3fc7023df70ea3440db83030b9df7e4383e0a2c98c84f5f1",
       "executable": false
     },
     "src/core/features/subscribers/service.ts": {
-      "sha256": "19cbbcf28293fbeff5d58b041337bd4be6c47335584ffbb54e8855b288e96875",
+      "sha256": "0c5bc6cfc2ab9e258fe95ff817f5da9cce4cc6be70ebb1ac03ec9ee61d82ca54",
       "executable": false
     },
     "src/core/features/subscribers/tokens.ts": {
@@ -4636,11 +4636,11 @@
       "executable": false
     },
     "src/core/features/subscribers/transitions.repository.ts": {
-      "sha256": "36961e3a03ecaf638a516b420b5afc3b5413323a024eb6f8daf7fb1897e121b4",
+      "sha256": "1820959a3df58e492daa39ceee3327162ab9a22c2ddec600cce4376e20c3850a",
       "executable": false
     },
     "src/core/features/subscribers/ui/subscribers-page.tsx": {
-      "sha256": "67fb67ea1f3344d80f351359eb31379a1325edabc61eb150b13065f5583d2725",
+      "sha256": "090f4e6aa678f4fae49c97ed0908a40655959f3e8247f18ca27419936f601dad",
       "executable": false
     },
     "src/core/features/website/existing-page.ts": {
@@ -5976,7 +5976,7 @@
       "executable": false
     },
     "tests/e2e/delivery-contract.test.mjs": {
-      "sha256": "f95120f9a164260db8753d2c5580cd212c649fb390784e57e703d04d9d70d121",
+      "sha256": "610f534d1d34542180f5c2b3c029b8815c1299703050e2bddba4358a666bcdab",
       "executable": false
     },
     "tests/e2e/deployment-artifact.test.mjs": {
@@ -6344,7 +6344,7 @@
       "executable": false
     },
     "tests/e2e/statuspage-import.test.mjs": {
-      "sha256": "9431138da70d14c77977903a1198e9cdbbcc9ed80e3e482ce7eca003f285f461",
+      "sha256": "70435fc5d3ef8354a1070b9cd2fb349d70b50adeb6a6a188a7e9970738b6355c",
       "executable": false
     },
     "tests/e2e/subscriber-audit-helper.mjs": {
