@@ -6,7 +6,7 @@ import { createAuditLogRepository } from '../audit-log/repository';
 import { createChatLinksRepository } from './links.repository';
 import { createChatLinksService } from './links.service';
 import { createDesk } from './desk';
-const configuration = z.object({ SLACK_SIGNING_SECRET: z.string().min(1).optional(), BOT_FRAMEWORK_APP_ID: z.string().min(1).optional() });
+const configuration = z.object({ SLACK_SIGNING_SECRET: z.string().optional(), BOT_FRAMEWORK_APP_ID: z.string().optional() });
 export function createChatDeskService(bindings: AppBindings, incidents: IncidentsService, components: ComponentsService, settings: () => Promise<{ blockedTerms: string[]; friendlyLength: number }>) {
   const repository = createChatLinksRepository(bindings.DB);
   const audit = (operator: string, action: string, entity: string) => createAuditLogRepository(bindings.DB).chatDesk(operator, action, entity);
