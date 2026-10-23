@@ -20,7 +20,7 @@ export default {
   // bootstrap row the restore replaces.
   replaceableTables: ['public_snapshot_work', 'snapshot_build_control', 'reference_counters', 'page_settings'],
   includeTables: operatorContinuity,
-  excludeTables: ['oa_sessions', 'oa_tokens', 'oa_step_up_challenges', 'oa_credentials', 'oa_dev_credentials', ...importCustody],
+  excludeTables: ['chat_link_codes', 'chat_previews', 'chat_requests', 'oa_sessions', 'oa_tokens', 'oa_step_up_challenges', 'oa_credentials', 'oa_dev_credentials', ...importCustody],
   requiredConfiguration: ['SETUP_TOKEN', 'SESSION_SECRET', 'SUBSCRIBER_TOKEN_SECRET', 'WEBHOOK_SIGNING_SECRET'],
   // A PagerDuty source's sealed REST key never travels, as in the hosted archive
   // (scripts/export.mjs): the column stays, so earlier archives still restore, and

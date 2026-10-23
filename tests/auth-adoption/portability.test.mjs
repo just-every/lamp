@@ -3,6 +3,7 @@ import { test } from 'node:test';
 import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { join } from 'node:path';
 import { Hono } from 'hono';
+import { fileRecords } from '@runeditrun/rer/internal/modules/portability/files.mjs';
 import { authFixture, secret, setupToken } from './runtime.mjs';
 import { load } from '../operator-readiness/runtime.mjs';
 import { checkout, command, proxy } from '../helpers/native-transfer.mjs';
@@ -38,11 +39,27 @@ test('ACCESS-001 INTAKE-009 native rer archive restores owner continuity and sub
     await db.prepare("INSERT INTO subscriber_tokens(id,subscriber_id,scope,token_hash,created_at,updated_at) VALUES('portable-token','portable-reader','manage',?,?,?)").bind(await codec.hash(manage), now, now).run();
     const subscriberApp = new Hono(); registerSubscriberRoutes(subscriberApp, subscribers);
     assert.equal((await subscriberApp.fetch(new Request(native.origin + '/manage/' + manage))).status, 200);
+    const { createChatLinksRepository } = await load('src/core/features/chat-desk/links.repository.ts');
+    const { createChatLinksService } = await load('src/core/features/chat-desk/links.service.ts');
+    const links = createChatLinksService(createChatLinksRepository(db), async () => {});
+    await db.prepare('INSERT OR IGNORE INTO operators(id,email,display_name,is_setup_operator,created_at,updated_at) VALUES(?,?,?,1,?,?)').bind(actor.operator.id, 'owner@example.test', 'Owner', now, now).run();
+    const linked = await links.mint(actor.operator.id);
+    await links.link(linked.code, { transport: 'slack', tenant: 'synthetic-lamp-1', subject: 'synthetic-lamp-2' });
+    const pendingChat = await links.mint(actor.operator.id);
+    await db.prepare("INSERT INTO incidents(id,reference,title,lifecycle,opened_at,created_by_operator_id,created_at,updated_at) VALUES('synthetic-lamp-1','INC-9001','synthetic-lamp-1','Investigating',?,?,?,?)").bind(now,actor.operator.id,now,now).run();
+    await db.prepare("INSERT INTO chat_previews(hash,operator_id,incident_id,version,expires_at) VALUES('synthetic-lamp-preview',?,'synthetic-lamp-1','synthetic-lamp-1',?)").bind(actor.operator.id, Date.now()+600000).run();
+    await db.prepare("INSERT INTO chat_requests(hash,expires_at) VALUES('synthetic-lamp-request',?)").bind(Date.now()+600000).run();
     // A connected PagerDuty source's sealed REST key is a provider credential: it never travels.
     await db.prepare("INSERT INTO alert_sources(id,name,credential_kind,signing_secret,deduplication_path,title_path,state_path,created_by_operator_id,responder_preset,responder_sealed_credentials,responder_connected,created_at,updated_at) VALUES('portable-pagerduty','Portable PagerDuty','hmac-sha256','portable-signing-secret','event.data.id','event.data.title','event.event_type',?,'pagerduty','portable-sealed-rest-key',1,?,?)").bind(actor.operator.id, now, now).run();
     await current.dispose(); current = null;
     await command(source, 'export', '--output', join(directory, 'installation.rer'));
     assert.ok(!(await readFile(join(directory, 'installation.rer'))).includes('portable-sealed-rest-key'), 'the archive carries no sealed PagerDuty key');
+    for await (const record of fileRecords(join(directory, 'installation.rer'))) {
+      if (record.kind !== 'manifest') continue;
+      for (const name of ['chat_link_codes','chat_previews','chat_requests']) assert.equal(record.tables.some(table => table.name === name), false, `${name} is not exported`);
+      assert.equal(record.tables.find(table => table.name === 'chat_links')?.count, 1);
+    }
+
     await command(target, 'import', '--input', join(directory, 'installation.rer'), '--yes');
     current = await proxy(target);
     const restored = current.env.DB, fresh = authFixture(restored);
@@ -54,6 +71,11 @@ test('ACCESS-001 INTAKE-009 native rer archive restores owner continuity and sub
     assert.equal((await restored.prepare("SELECT operator_id FROM audit_entries WHERE id='portable-audit'").first()).operator_id, actor.operator.id);
     assert.equal((await restored.prepare('SELECT completed FROM oc_owner_claims').first()).completed, 1);
     assert.equal((await restored.prepare('SELECT COUNT(*) n FROM rer_dependency_pending').first()).n, 0);
+    for (const table of ['chat_link_codes','chat_previews','chat_requests']) assert.equal((await restored.prepare(`SELECT COUNT(*) n FROM ${table}`).first()).n, 0, `${table} authority never travels`);
+    const restoredLinks = createChatLinksService(createChatLinksRepository(restored), async () => {});
+    assert.equal((await restoredLinks.list(actor.operator.id)).length, 1, 'durable chat links survive restore');
+    await assert.rejects(restoredLinks.link(pendingChat.code, { transport: 'slack', tenant: 'synthetic-lamp-1', subject: 'synthetic-lamp-3' }), /invalid, used or expired/);
+
     assert.equal((await restored.prepare('SELECT needs_relink FROM rer_dependency_link').first()).needs_relink, 1);
     assert.equal((await restored.prepare('SELECT idp_sign_in FROM oa_auth_settings').first()).idp_sign_in, 0);
     assert.deepEqual({ ...await restored.prepare("SELECT responder_sealed_credentials, responder_connected FROM alert_sources WHERE id='portable-pagerduty'").first() }, { responder_sealed_credentials: null, responder_connected: 1 }, 'the restored PagerDuty source asks to reconnect');
