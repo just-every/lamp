@@ -1,3 +1,4 @@
+import { SubscriberLimitError } from "./limits";
 import type { Hono, Context } from "hono";
 import { bodyLimit } from "hono/body-limit";
 import { z } from "zod";
@@ -13,6 +14,7 @@ const apply=preview.extend({reviewedFingerprint:z.string().min(1).max(256)}).str
 const empty=z.object({}).strict();
 
 function failure(context:Context<AppEnv>,cause:unknown) {
+  if(cause instanceof SubscriberLimitError)return context.json({error:cause.message},409);
   if(cause instanceof SubscriberIntakeError)return context.json({error:cause.message},cause.status);
   if(cause instanceof MailUnavailableError)return context.json({error:"Confirmation mail is not configured."},503);
   // Raw transport exceptions can carry a destination. Never return or log it.

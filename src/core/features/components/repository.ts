@@ -1,3 +1,4 @@
+import { componentNotificationStatements } from "../deliveries/component-notifications.repository";
 import { currentStateHistoryStatement } from "./state-history-repository";
 import { deletionAudit } from "./deletion-audit";
 import { and, desc, eq, isNull, lte, ne, sql } from "drizzle-orm";
@@ -269,7 +270,11 @@ export function createComponentRepository(binding: D1Database): ComponentReposit
       });
     },
     async appendCurrentStateHistory(input) {
-      return currentStateHistoryStatement(binding, input).first<{ previousState: ComponentState; newState: ComponentState }>();
+      const [history] = await binding.batch<{ previousState: ComponentState; newState: ComponentState }>([
+        currentStateHistoryStatement(binding, input),
+        ...componentNotificationStatements(binding, input.id, input.createdAt),
+      ]);
+      return history.results[0] ?? null;
     },
     async findStateAt(componentId, instant) {
       const state = await database

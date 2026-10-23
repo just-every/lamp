@@ -1,3 +1,4 @@
+import { eventPreferenceSql, incidentThresholdSql } from "./subscriber-eligibility";
 import type { DeliveryChannel } from "../../shared/domain";
 import { createUlid } from "../../shared/ids";
 
@@ -47,6 +48,8 @@ export function notificationPublicationStatements(binding: D1Database, input: No
       : "0";
     const usePrevious = input.recipientScope === "previous";
     const previousPlaceholders = input.previousEventIds?.length ? input.previousEventIds.map(() => "?").join(", ") : "NULL";
+    const eventPreference = eventPreferenceSql(input.eventType === "maintenance-notice" ? "maintenance" : "incidents");
+    const threshold = input.eventType === "maintenance-notice" ? "1" : incidentThresholdSql(input.incidentUpdateId ? "(SELECT incident_id FROM incident_updates WHERE id = ?)" : "(SELECT incident_id FROM incident_reports WHERE id = ?)");
     const source = usePrevious
       ? `notification_deliveries previous JOIN subscribers s ON s.id = previous.subscriber_id WHERE previous.notification_event_id IN (${previousPlaceholders}) AND previous.channel = ? AND s.state = 'active'`
       : `subscribers s WHERE s.state = 'active' AND s.channel = ? AND (${selection})`;
@@ -54,7 +57,7 @@ export function notificationPublicationStatements(binding: D1Database, input: No
       INSERT OR IGNORE INTO notification_deliveries
         (id, subscriber_id, incident_update_id, incident_report_id, maintenance_id, channel, outcome, queued_at, outcome_at, created_at, updated_at, notification_event_id, notification_event_type)
       SELECT upper(substr(hex(randomblob(16)), 1, 26)), s.id, ?, ?, ?, ?, 'queued', ?, NULL, ?, ?, ?, ?
-      FROM ${source}${requiresPublishedNotice ? " AND EXISTS (SELECT 1 FROM maintenance_notices published_notice WHERE published_notice.id = ?)" : ""}
+      FROM ${source} AND ${eventPreference} AND ${threshold}${requiresPublishedNotice ? " AND EXISTS (SELECT 1 FROM maintenance_notices published_notice WHERE published_notice.id = ?)" : ""}
     `;
     statements.push(binding.prepare(query).bind(
       input.incidentUpdateId ?? null,
@@ -67,6 +70,7 @@ export function notificationPublicationStatements(binding: D1Database, input: No
       input.eventId,
       input.eventType,
       ...(usePrevious ? [...(input.previousEventIds ?? []), channel] : [channel, ...input.componentIds, ...input.componentIds]),
+      ...(input.eventType === "maintenance-notice" ? [] : [input.incidentUpdateId ?? input.incidentReportId ?? null]),
       ...(requiresPublishedNotice ? [input.eventId] : []),
     ));
   }

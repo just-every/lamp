@@ -66,7 +66,7 @@ export async function planMoveIn(read: ReadSource, snapshot: Snapshot, context: 
 
 export type CountKind = EntityKind | "postmortem";
 export type Counts = Record<CountKind, { read: number; imported: number; changed: number; skipped: number; rejected: number; "kept-private": number }>;
-export interface MoveInReport { state: string; asOf: string; fingerprint: string; counts: Counts; items: Accounting[]; cutover: CutoverPreview; unavailableAddresses: string[] }
+export interface MoveInReport { limits:string[]; state: string; asOf: string; fingerprint: string; counts: Counts; items: Accounting[]; cutover: CutoverPreview; unavailableAddresses: string[] }
 
 /** The dry-run report, rebuilt from the reviewed plan so a saved job reports exactly what it applied. */
 export function reportFromPlan(plan: ImportPlan, state = "dry run"): MoveInReport {
@@ -79,5 +79,6 @@ export function reportFromPlan(plan: ImportPlan, state = "dry run"): MoveInRepor
   const metadata = plan.entries.find((entry) => entry.source.kind === "metadata")?.source.payload as { raw?: { asOf?: string } } | undefined;
   const candidates = plan.entries.filter((entry) => !entry.erased && ["incident", "maintenance"].includes(entry.source.kind)).flatMap((entry) => entry.effects.map((effect) => ({ namespace: entry.source.namespace, sourceId: entry.source.sourceId, targetId: effect.targetId, targetKind: effect.targetKind, target: `${effect.targetKind}:${effect.targetId}`, publicAddresses: (entry.source.payload as { publicAddresses?: string[] }).publicAddresses, shortlink: (entry.source.payload as { raw?: { shortlink?: unknown } }).raw?.shortlink })));
   const { unavailable: unavailableAddresses } = resolvePublicAddresses(candidates);
-  return { cutover: cutoverFromPlan(plan, metadata?.raw?.asOf ?? ""), unavailableAddresses, state, asOf: metadata?.raw?.asOf ?? "", fingerprint: plan.fingerprint, counts, items };
+  const limits=[...new Set(items.map(item=>item.reason.match(/(?:email|webhook|slack|teams|all channels) would reach [\d,]+, over the [\d,]+ limit by [\d,]+/u)?.[0]).filter((item):item is string=>Boolean(item)))];
+  return { limits, cutover: cutoverFromPlan(plan, metadata?.raw?.asOf ?? ""), unavailableAddresses, state, asOf: metadata?.raw?.asOf ?? "", fingerprint: plan.fingerprint, counts, items };
 }

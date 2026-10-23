@@ -1,3 +1,4 @@
+import type { ComponentState } from "../../shared/domain";
 import type { IncidentImpact } from "../../shared/incident-impact";
 import { parsePublishedComponentChanges, type PublishedIncidentComponentChange } from "../../shared/incident-component-changes";
 import { and, asc, eq, isNull, lte, sql } from "drizzle-orm";
@@ -15,6 +16,14 @@ export type DeliveryRow = typeof notificationDeliveries.$inferSelect & { destina
 export interface SubscriptionMailRow { id: string; destination: string; subscriberState: "pending" | "active" | "deactivated"; kind: "confirmation" | "already-subscribed" | "subscribed"; outcome: "accepted" | "suppressed" | "failed"; sentAt: string }
 
 export interface DispatchableDelivery {
+  componentEventId: string | null;
+  componentId: string | null;
+  componentName: string | null;
+  componentCreatedAt: string | null;
+  previousComponentState: ComponentState | null;
+  newComponentState: ComponentState | null;
+  componentChangedAt: string | null;
+  componentClaimantKind: string | null;
   webhookFormat:WebhookFormat;
   statuspageIncidentId:string|null;
   id: string;
@@ -107,7 +116,8 @@ export function createDeliveryRepository(binding: D1Database): DeliveryRepositor
   const database = createDatabase(binding);
   function deliveryStatement(deliveryId: string) {
     return binding.prepare(`
-        SELECT d.id, d.notification_event_id AS notificationEventId, d.subscriber_id AS subscriberId, d.channel, s.state AS subscriberState, s.destination, s.contact_email AS contactEmail,
+        SELECT component_event.id AS componentEventId, component_event.component_id AS componentId, component_event.component_name AS componentName, component_event.component_created_at AS componentCreatedAt, component_event.previous_state AS previousComponentState, component_event.new_state AS newComponentState, component_event.changed_at AS componentChangedAt, component_event.claimant_kind AS componentClaimantKind,
+          d.id, d.notification_event_id AS notificationEventId, d.subscriber_id AS subscriberId, d.channel, s.state AS subscriberState, s.destination, s.contact_email AS contactEmail,
           COALESCE(s.webhook_format,'lamp') AS webhookFormat,COALESCE(i.id,reportIncident.id) AS statuspageIncidentId,
           d.incident_update_id AS incidentUpdateId, d.incident_report_id AS incidentReportId, d.maintenance_id AS maintenanceId,
           d.incident_impact AS incidentImpact, i.id AS incidentId, CASE WHEN u.id IS NOT NULL AND u.id = (SELECT first_update.id FROM incident_updates first_update WHERE first_update.incident_id = i.id ORDER BY first_update.published_at ASC, first_update.id ASC LIMIT 1) THEN 1 ELSE 0 END AS isFirstIncidentUpdate,
@@ -118,6 +128,7 @@ export function createDeliveryRepository(binding: D1Database): DeliveryRepositor
           notice.kind AS maintenanceNoticeKind, notice.body AS maintenanceNoticeBody, settings.timezone, d.mail_payload_json AS mailPayloadJson
         FROM notification_deliveries d
         JOIN subscribers s ON s.id = d.subscriber_id
+        LEFT JOIN component_notification_events component_event ON component_event.id = d.notification_event_id
         LEFT JOIN incident_updates u ON u.id = d.incident_update_id
         LEFT JOIN incidents i ON i.id = u.incident_id
         LEFT JOIN incident_reports report ON report.id = d.incident_report_id

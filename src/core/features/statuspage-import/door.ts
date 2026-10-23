@@ -117,7 +117,9 @@ export function registerImportDoor(app: Hono<AppEnv>, bindings: AppBindings, ser
       if (existing && !existing.started) planId = existing.id;
     }
     const saved = planId ? await repository.planSnapshot(key, planId) : null;
-    const asOf = saved ? reviewedPage(saved.plan).asOf : undefined;
+    const review = saved ? reviewedPage(saved.plan) : undefined;
+    if(action === "apply" && review?.overSubscriberLimit)throw new DoorError("This import is over the subscriber limit. Leave out subscribers or channels and run a fresh dry run.",409);
+    const asOf = review?.asOf;
     if (asOf && expired(asOf)) throw new DoorError(EXPIRED, 409, action === 'plan' ? { planId } : undefined);
   };
 
@@ -253,6 +255,7 @@ export function registerImportDoor(app: Hono<AppEnv>, bindings: AppBindings, ser
     const starts = action === 'apply' && typeof input?.planId === 'string' ? await repository.unstarted(key, name, input.planId) : null;
     if (starts) {
       const reviewed = await reviewOf(starts.id);
+      if(reviewed.overSubscriberLimit)return c.json({error:"This import is over the subscriber limit. Leave out subscribers or channels and run a fresh dry run."},409);
       if (reviewed.asOf && expired(reviewed.asOf)) return c.json({ error: EXPIRED }, 409);
       let current: boolean;
       try { current = await stillPlans(reviewed, await repository.bundleBytes(key, name, starts.bundle_sha256)); }
