@@ -96,7 +96,9 @@ export async function openSubscriberManagementFixture() {
     return { incident, update: published.body.update };
   };
   const databaseState = async () => {
-    const tables = (await db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name").all()).results;
+    // D1 owns _cf_* tables and refuses reads of their storage. Snapshot every
+    // application table, including the audit and intake sidecars, not D1 internals.
+    const tables = (await db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' AND name NOT GLOB '_cf_*' ORDER BY name").all()).results;
     const result = new Map();
     for (const { name } of tables) {
       const identifier = `"${name.replaceAll('"', '""')}"`;
