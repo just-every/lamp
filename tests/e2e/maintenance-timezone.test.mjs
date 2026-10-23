@@ -1,5 +1,6 @@
 import { stripVTControlCharacters } from "node:util";
-import {appOrigin, pageOrigin} from './helpers/hosts.mjs';
+import {appHost, appOrigin, pageOrigin} from './helpers/hosts.mjs';
+import { devKey } from '../helpers/dev-key.mjs';
 import { accessibilitySubscriptionFlow } from './helpers/accessibility-subscription-flow.mjs';
 import assert from "node:assert/strict";
 import { execFileSync, spawn } from "node:child_process";
@@ -19,7 +20,11 @@ let output = "";
 const subscriberTokenSecret = "synthetic-lamp-020-subscriber-token-secret";
 before(async () => {
   const port = await reservePort({ label: "Maintenance timezone Worker" });
-  origin = appOrigin(port, { SUBSCRIBER_TOKEN_SECRET: subscriberTokenSecret });
+  // Exercise the shipped silent development-mail transport. Its local key
+  // stays in this isolated Worker fixture; the real operator session remains
+  // the authority because development identity is disabled.
+  origin = appOrigin(port, { SUBSCRIBER_TOKEN_SECRET: subscriberTokenSecret,
+    RER_DEV_KEY: devKey, RER_DEV_ORIGIN: `http://${appHost}:${port}`, RER_DEV_IDENTITY: "off" });
   statePath = await mkdtemp(join(tmpdir(), "lamp-maintenance-timezone-d1-"));
   cachePath = await mkdtemp(join(tmpdir(), "lamp-maintenance-timezone-vite-"));
   execFileSync("pnpm", ["exec", "wrangler", "d1", "migrations", "apply", "DB", "--local", "--config", "wrangler.jsonc", "--persist-to", statePath], { stdio: "pipe" });

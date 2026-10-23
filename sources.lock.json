@@ -6148,7 +6148,7 @@
       "executable": false
     },
     "tests/e2e/maintenance-timezone.test.mjs": {
-      "sha256": "92aaa33a1623219e4bcf7e3c032053f07b412b556c0d3374f2edec114f7ef3bb",
+      "sha256": "262b4022b2c40751440a04b25e9808b335ef604ff2b173e546d29a1456656413",
       "executable": false
     },
     "tests/e2e/owned-process-group.mjs": {
