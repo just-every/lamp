@@ -112,9 +112,14 @@ contract("INCIDENT-010", "INCIDENT-011 AGENT-002 owner reminders, cited automati
   const ownerDue = (await envelopes()).filter(row => row.message.subject.includes(incident.reference) && /update due at/i.test(row.message.subject));
   assert.deepEqual(ownerDue.map(row => row.message.to).sort(), [operator, replacement.operator.email].sort());
   await trigger(secondCommitment + minutes(1));
-  const publicStatus = await (await fetch(`${publicOrigin}/api/public/status`)).text();
-  assert.ok(publicStatus.includes(new Date(secondCommitment).toISOString()), "the public snapshot keeps the original commitment");
-  assert.ok(!publicStatus.includes("Still working on it") && !publicStatus.includes("agentPreparation"), "unpublished agent text and attribution stay private");
+  const commitmentResponse = await fetch(`${publicOrigin}/incidents/${incident.reference}`);
+  assert.equal(commitmentResponse.status, 200);
+  const publicIncident = await commitmentResponse.text();
+  assert.ok(publicIncident.includes(new Date(secondCommitment).toISOString()), "the public permalink keeps the original commitment");
+  const statusResponse = await fetch(`${publicOrigin}/api/public/status`);
+  assert.equal(statusResponse.status, 200);
+  const publicStatus = await statusResponse.text();
+  for (const text of [publicIncident, publicStatus]) assert.ok(!text.includes("Still working on it") && !text.includes("agentPreparation"), "unpublished agent text and attribution stay private");
   const ownerOverdue = (await envelopes()).filter(row => row.message.subject.includes(incident.reference) && /overdue/i.test(row.message.subject));
   assert.deepEqual(ownerOverdue.map(row => row.message.to), [replacement.operator.email]);
   await trigger(secondCommitment + minutes(10)); await trigger(secondCommitment + minutes(20));

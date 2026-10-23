@@ -6256,7 +6256,7 @@
       "executable": false
     },
     "tests/e2e/update-reminders.test.mjs": {
-      "sha256": "9861842e07e2a0f7b48aa72cc05eb4082ffb6cbec9b44339587af34c9a06fd25",
+      "sha256": "962030a361482a2f55f3f1ed4c458beef8ba744d515c9370557df50b470b656b",
       "executable": false
     },
     "tests/e2e/vite-worker-process.mjs": {
