@@ -165,7 +165,7 @@ until its acceptance below passes through the public door it names.
 | MOVE-005 | Old public addresses | done | `tests/e2e/sorry-import.test.mjs:14`, `tests/e2e/statuspage-import.test.mjs:168` |
 | MOVE-006 | Cutover preview | done | `tests/auth-adoption/cutover.test.mjs:104`, `tests/auth-adoption/cutover.test.mjs:26`, `tests/e2e/cutover-browser.test.mjs:25`, `tests/e2e/sorry-import.test.mjs:14` |
 
-### Target and push further clauses (94: 21 done, 31 partial, 42 missing)
+### Target and push further clauses (94: 22 done, 30 partial, 42 missing)
 
 | Clause | Title | Status | Acceptance evidence | Current evidence |
 |---|---|---|---|---|
