@@ -1,5 +1,6 @@
 import { stripVTControlCharacters } from "node:util";
-import {appOrigin} from './helpers/hosts.mjs';
+import {appOrigin, pageOrigin} from './helpers/hosts.mjs';
+import { accessibilitySubscriptionFlow } from './helpers/accessibility-subscription-flow.mjs';
 import assert from "node:assert/strict";
 import { execFileSync, spawn } from "node:child_process";
 import { mkdtemp, rm } from "node:fs/promises";
@@ -15,9 +16,10 @@ import { newIncidentForm } from "./helpers/incident-composer.mjs";
 
 let worker, browser, context, page, statePath, cachePath, origin, sessionId;
 let output = "";
+const subscriberTokenSecret = "synthetic-lamp-020-subscriber-token-secret";
 before(async () => {
   const port = await reservePort({ label: "Maintenance timezone Worker" });
-  origin = appOrigin(port);
+  origin = appOrigin(port, { SUBSCRIBER_TOKEN_SECRET: subscriberTokenSecret });
   statePath = await mkdtemp(join(tmpdir(), "lamp-maintenance-timezone-d1-"));
   cachePath = await mkdtemp(join(tmpdir(), "lamp-maintenance-timezone-vite-"));
   execFileSync("pnpm", ["exec", "wrangler", "d1", "migrations", "apply", "DB", "--local", "--config", "wrangler.jsonc", "--persist-to", statePath], { stdio: "pipe" });
@@ -28,7 +30,7 @@ before(async () => {
   worker.stdout.on("data", chunk => { output += chunk; });
   worker.stderr.on("data", chunk => { output += chunk; });
   await waitForWorker({ origin, isListening: () => stripVTControlCharacters(output).includes(`${origin}/`), child: worker, output: () => output, label: "Maintenance timezone Worker" });
-  browser = await chromium.launch();
+  browser = await chromium.launch({ headless: true, args: ["--use-mock-keychain", "--password-store=basic"] });
 
 });
 after(async () => {
@@ -102,7 +104,7 @@ test("Native maintenance editing preserves instants across configured zones and 
 }
 });
 
-test("maintenance creation, correction and historical incident entry all use the configured page zone", async () => {
+test("PAGE-020 — maintenance creation and correction use the page zone; public maintenance and keyboard subscription journeys are accessible", async t => {
   context = await browser.newContext({ timezoneId: "America/Los_Angeles" });
   await context.addCookies([{ name: sessionCookieName(origin), value: sessionId, url: origin }]);
   page = await context.newPage();
@@ -148,7 +150,8 @@ test("maintenance creation, correction and historical incident entry all use the
     await page.getByLabel("Opened at", { exact: true }).fill("2020-07-15T09:00");
     const opened = page.waitForResponse(response => response.url().endsWith("/api/app/incidents") && response.request().method() === "POST");
     await form.publish.click();
-    assert.equal((await (await opened).json()).incident.openedAt, "2020-07-14T23:00:00.000Z");
+    const historicalIncident = (await (await opened).json()).incident;
+    assert.equal(historicalIncident.openedAt, "2020-07-14T23:00:00.000Z");
     await page.waitForURL(url => /^\/app\/incidents\/[0-9A-Z]{26}$/.test(url.pathname));
     await configure("America/New_York");
     await page.goto(`${origin}/app/maintenance`);
@@ -164,5 +167,13 @@ test("maintenance creation, correction and historical incident entry all use the
     await page.locator('.page-stack > [role="alert"]:has(+ .maintenance-workspace)').waitFor();
     assert.equal(await create.getByRole("alert").isVisible(), true);
     assert.equal((await api("/api/app/maintenance")).maintenance.find(item => item.id === window.id).startsAt, window.startsAt);
+    await api("/api/app/components", "POST", { groupId: null, name: "synthetic-lamp-020-other", description: "Second keyboard selection choice.", internal: false, displayOrder: 201, note: "" });
+    await accessibilitySubscriptionFlow({ page, appUrl: origin, pageUrl: pageOrigin(new URL(origin).port), incident: historicalIncident, maintenance: window, tokenSecret: subscriberTokenSecret,
+      tokenRows: async address => {
+        const sql = `SELECT t.id,t.scope FROM subscriber_tokens t JOIN subscribers s ON s.id=t.subscriber_id WHERE s.destination='${address.replaceAll("'", "''")}' AND t.revoked_at IS NULL`;
+        const result = execFileSync("pnpm", ["exec", "wrangler", "d1", "execute", "DB", "--local", "--config", process.env.LAMP_WRANGLER_CONFIG, "--persist-to", statePath, "--json", "--command", sql], { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] });
+        return JSON.parse(result)[0].results;
+      }, diagnostic: text => t.diagnostic(text),
+    });
   } finally { await context.close(); }
 });

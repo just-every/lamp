@@ -448,7 +448,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "dad4b1e33aeee5f59ec2964495391f7fe6591b4b3e718f7fbc563cef33da2e03",
+      "sha256": "7b59845c4f981c853ceb3e1ab61a11c094efc1c81a5f8f214ce274b9cc1433da",
       "executable": false
     },
     "AGENTS.md": {
@@ -496,7 +496,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "1d6070b5d376cd287be6d66c2eec4ea3aa5817d933f70c63101c1d7d024a997e",
+      "sha256": "a87ea50f3143a00971cfff9b9f7463b03a603168510c323b6300570d4a3ba081",
       "executable": false
     },
     "DEMO.md": {
@@ -5068,7 +5068,7 @@
       "executable": false
     },
     "src/routeTree.gen.ts": {
-      "sha256": "456d74c6284cbd1bf79f104d4d668202f0743c594ca1c185e0fd4d8da4c27dd5",
+      "sha256": "dcaf184f438b93b338e89f32396fcf691967f8f630aea4e83e129ed2bea61e18",
       "executable": false
     },
     "src/server.dev.ts": {
@@ -5947,6 +5947,10 @@
       "sha256": "03c8d7007bb28e3a4cea16c1d1d32d29f2178e30272dd96a08029d0acb0b4da6",
       "executable": false
     },
+    "tests/e2e/helpers/accessibility-subscription-flow.mjs": {
+      "sha256": "478ad9f2cd662724b2239d600f0bd1b48eb4ef9be4b2b47557fa3bbea1266ee1",
+      "executable": false
+    },
     "tests/e2e/helpers/audit-log-flow.mjs": {
       "sha256": "a6ca0ab50971477c502c61f35d416489c8b320a461e0f8a47f5ccf639b93ca88",
       "executable": false
@@ -6144,7 +6148,7 @@
       "executable": false
     },
     "tests/e2e/maintenance-timezone.test.mjs": {
-      "sha256": "587fee4fe6e58f5579118c66436008d0aea499cb8207b381be73f40acdb7366c",
+      "sha256": "92aaa33a1623219e4bcf7e3c032053f07b412b556c0d3374f2edec114f7ef3bb",
       "executable": false
     },
     "tests/e2e/owned-process-group.mjs": {
