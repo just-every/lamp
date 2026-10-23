@@ -3728,7 +3728,7 @@
       "executable": false
     },
     "src/core/features/intake/ui/operations-preset-card.tsx": {
-      "sha256": "7c9cd52d3b21acc650722d7a1cd39b6a3e7d7eb05959ae8ec37dc9657e946015",
+      "sha256": "795437cecc4a83d8730d9cc2998c4a39911121f7cb3b8fe8c3d498e34cf3c18e",
       "executable": false
     },
     "src/core/features/intake/ui/operations-source-card.tsx": {
@@ -6048,15 +6048,15 @@
       "executable": false
     },
     "tests/e2e/helpers/operations-browser-flow.mjs": {
-      "sha256": "36711b94b481891de4304ff84d382ca08f2d0f1e3aaf8a0a2a5a7fbc799d94f4",
+      "sha256": "a7aaa59b4adf23141524f9aa92054c212e6228ada30ff721efe7b67126471710",
       "executable": false
     },
     "tests/e2e/helpers/operations-edge.mjs": {
-      "sha256": "3abf656521dbac245667f762eb365f4f76965769c0b9fdb3d47a5836b14d62cf",
+      "sha256": "243b9be21b4309004837989b0440aa13a93bc013a30a9abbd34b0595bded817d",
       "executable": false
     },
     "tests/e2e/helpers/operations-flow.mjs": {
-      "sha256": "ad22f6124c776cdf7d410461db071e1de6bb740cb699e3f536d5927da4c3fcb2",
+      "sha256": "ac20b4c09ef8c7b00eb33b6a362eadd61648a5e00e65a239f6c3ddfd1a9395af",
       "executable": false
     },
     "tests/e2e/helpers/operator-hydrated.mjs": {
