@@ -132,7 +132,9 @@ contract("INCIDENT-010", "INCIDENT-011 owner reminders, takeover, escalation and
   const csv = await csvResponse.text();
   for (const entry of ownershipAudit.entries) assert.ok(csv.includes(entry.id));
   for (const path of ["/", `/incidents/${incident.reference}`, "/feed.atom", "/api/public/status"]) {
-    const publicText = await (await fetch(`${publicOrigin}${path}`)).text();
+    const publicResponse = await fetch(`${publicOrigin}${path}`);
+    assert.equal(publicResponse.status, 200, `${path} is a real public surface`);
+    const publicText = await publicResponse.text();
     for (const identity of [owner, replacement.operator, departing.operator]) assert.ok(!publicText.includes(identity.displayName), `${path} never exposes the communication owner`);
     assert.doesNotMatch(publicText, /"(?:owner|unowned)"/);
   }
