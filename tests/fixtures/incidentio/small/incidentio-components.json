@@ -1,0 +1,13 @@
+{
+  "status_page_components": [
+    {
+      "id": "synthetic-lamp-2",
+      "name": "Synthetic service",
+      "description": "Synthetic component",
+      "management_meta": {
+        "annotations": {},
+        "managed_by": "dashboard"
+      }
+    }
+  ]
+}

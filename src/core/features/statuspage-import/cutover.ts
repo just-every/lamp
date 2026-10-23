@@ -14,6 +14,7 @@ export interface CutoverPreview {
   invitations: { eligible: number; claimed: number; expired: number; deadline: string | null; heldUntil?: string | null };
 }
 export function sourceReaderGaps(namespace: string) {
+  if (namespace === "incidentio") return ["incident.io’s documented API does not expose subscriber export. Invite those subscribers to subscribe on your new Lamp page. Original planned maintenance windows and public incident addresses are not exposed by its documented reads; these were not invented."];
   if (namespace === 'statusio') return ["Status.io public JSON readers are not served by Lamp. Update them to /api/public/status. The documented API supplies no old public incident addresses, so no addresses were invented. Subscriber response fields are undocumented; move subscriptions separately through the new page."];
   if (namespace === 'sorry') return ["Sorry public JSON readers under /api/v1/ are not served by Lamp. Update them to /api/public/status. Sorry feeds are not a complete history export; use Lamp’s /feed.atom after moving."];
   if (namespace === 'instatus') return ["Instatus public JSON /summary.json, /v3/summary.json and /v3/components.json are not served by Lamp. Update API readers to Lamp's native /api/public/status format."];

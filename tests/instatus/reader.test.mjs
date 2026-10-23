@@ -8,7 +8,7 @@ import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 const require = createRequire(import.meta.url);
 const { build } = createRequire(require.resolve('wrangler'))('esbuild');
-let scratch, reader, fetchSource, adapters, mapSource;
+let scratch, reader, fetchSource, adapters, mapSource, findPages;
 const files = async (family) => Promise.all((await readdir(`tests/fixtures/instatus/${family}`)).map(async name => ({ name, text: await readFile(`tests/fixtures/instatus/${family}/${name}`, 'utf8') })));
 const options = { pageId: 'synthpage01', publicAccessAcknowledged: true };
 const edit = (source, name, mutate) => source.map(file => file.name === name ? { ...file, text: JSON.stringify(mutate(JSON.parse(file.text))) } : file);
@@ -19,13 +19,14 @@ before(async () => {
   for (const entry of ['normalize', 'api']) await build({ entryPoints: [`src/core/features/statuspage-import/instatus/${entry}.ts`], outfile: join(scratch, `${entry}.mjs`), bundle: true, platform: 'node', format: 'esm', logLevel: 'silent' });
   reader = (await import(pathToFileURL(join(scratch, 'normalize.mjs')))).readInstatusResponses;
   fetchSource = (await import(pathToFileURL(join(scratch, 'api.mjs')))).fetchInstatusResponses;
-  for (const entry of ['adapters', 'rows']) await build({ entryPoints: [`src/core/features/statuspage-import/${entry}.ts`], outfile: join(scratch, `${entry}.mjs`), bundle: true, platform: 'node', format: 'esm', logLevel: 'silent' });
+  for (const entry of ['adapters', 'rows', 'page-finder']) await build({ entryPoints: [`src/core/features/statuspage-import/${entry}.ts`], outfile: join(scratch, `${entry}.mjs`), bundle: true, platform: 'node', format: 'esm', logLevel: 'silent' });
   adapters = (await import(pathToFileURL(join(scratch, 'adapters.mjs')))).sourceAdapters;
   mapSource = (await import(pathToFileURL(join(scratch, 'rows.mjs')))).mapSource;
+  findPages = (await import(pathToFileURL(join(scratch, 'page-finder.mjs')))).findSourcePages;
 });
 after(async () => { if (scratch) await rm(scratch, { recursive: true, force: true }); });
 
-test("Saved Instatus and Status.io imports preserve history and refuses unsafe or ambiguous source authority", async t => {
+test("Saved Instatus, Status.io and incident.io imports preserve history and refuse unsafe or ambiguous source authority", async t => {
   await proveProviderReaders(adapters, mapSource);
   t.diagnostic("saved Instatus collections preserve full history, visual groups and explicit email consent");
   await (async () => {
@@ -142,7 +143,7 @@ test("Saved Instatus and Status.io imports preserve history and refuses unsafe o
 
 
 test('API key path requests fixed-origin GETs with complete pagination and refuses redirects or reflection', async () => {
-  await proveProviderFetches(adapters);
+  await proveProviderFetches(adapters, findPages);
   const source = await files('large'), calls = [], key = 'synthetic-instatus-key-0001';
   const fetcher = async (url, init) => {
     calls.push({ url: String(url), init });

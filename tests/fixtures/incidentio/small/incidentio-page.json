@@ -1,0 +1,8 @@
+{
+  "status_page": {
+    "id": "synthetic-lamp-1",
+    "name": "Synthetic page",
+    "description": "Synthetic history",
+    "public_url": "https://status.example.invalid"
+  }
+}

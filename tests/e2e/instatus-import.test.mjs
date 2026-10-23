@@ -46,7 +46,7 @@ before(async () => {
 });
 after(async () => { await runtime?.close(); });
 
-test('MOVE-001/002/003/004/005/007 Instatus and Status.io owner routes reviews, fences, imports silently, preserves history and conditionally undoes', async () => {
+test('MOVE-001/002/003/004/005/007/008 Instatus, Status.io and incident.io owner routes review, fences, imports silently, preserves history and conditionally undoes', async () => {
   await providerImportFlow({ moveIn, get, counts, runtime, notificationActivity, assertNoNewNotifications });
   const initial = await counts(), mailBefore = await notificationActivity(runtime);
   const small = fixtures('small'), large = fixtures('large');

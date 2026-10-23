@@ -1,0 +1,37 @@
+{
+  "status_page_maintenances": [
+    {
+      "id": "synthetic-lamp-5",
+      "status_page_id": "synthetic-lamp-1",
+      "name": "Synthetic maintenance",
+      "published_at": "2024-01-01T12:00:00Z",
+      "maintenance_status": "maintenance_complete",
+      "automate_maintenance_status": true,
+      "updates": [
+        {
+          "id": "synthetic-lamp-8",
+          "status_page_maintenance_id": "synthetic-lamp-5",
+          "published_at": "2024-01-01T13:00:00Z",
+          "message": "Synthetic work completed.",
+          "maintenance_status": "maintenance_complete",
+          "component_statuses": [
+            {
+              "component_id": "synthetic-lamp-2",
+              "component_status": "operational"
+            }
+          ]
+        }
+      ],
+      "component_maintenance_periods": [
+        {
+          "component_id": "synthetic-lamp-2",
+          "start_at": "2024-01-01T12:00:00Z",
+          "end_at": "2024-01-01T13:00:00Z"
+        }
+      ]
+    }
+  ],
+  "pagination_meta": {
+    "page_size": 100
+  }
+}

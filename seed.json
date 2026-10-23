@@ -391,6 +391,16 @@
         "Selected status page ID and maintenance IDs"
       ],
       "adapters": []
+    },
+    {
+      "id": "incidentio-api",
+      "required": false,
+      "why": "At the owner's request, GET reads from the fixed https://api.incident.io origin only: selected status page, structure, components, incidents and maintenance, and a page list for selection. Opaque cursor pagination is bounded. Redirects are refused. The Bearer key is used only for the read and never stored. Saved responses make no request.",
+      "data": [
+        "API key in the Authorization header only",
+        "Selected status page ID and opaque pagination cursors"
+      ],
+      "adapters": []
     }
   ],
   "env": [

@@ -1,7 +1,8 @@
+import { findIncidentioPages } from './incidentio/api';
 import { API_ROOT } from "./betterstack/schema";
 
 export interface SourcePage { id: string; name: string; address: string | null }
-type Finder = "betterstack" | "instatus" | "sorry";
+type Finder = "betterstack" | "instatus" | "sorry" | "incidentio";
 
 const MAX_PAGES = 200;
 const label = (source: Finder) => source === "betterstack" ? "Better Stack" : source === "sorry" ? "Sorry" : "Instatus";
@@ -9,6 +10,7 @@ const label = (source: Finder) => source === "betterstack" ? "Better Stack" : so
 /** Lists the status pages a token can read, so the owner can pick one instead of hunting for its ID.
  * Fixed-origin GETs only; the key is never stored, returned or forwarded on a redirect. */
 export async function findSourcePages(input: { source: Finder; apiKey: string; fetcher?: typeof fetch }): Promise<SourcePage[]> {
+  if (input.source === "incidentio") return findIncidentioPages(input);
   const fetcher = input.fetcher ?? fetch;
   const valid = input.source === "betterstack" ? /^[\x21-\x7e]{16,200}$/u : /^[A-Za-z0-9._-]{16,256}$/u;
   const keyName = input.source === "instatus" ? "API key" : "API token";
