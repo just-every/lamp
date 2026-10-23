@@ -12,6 +12,7 @@ import { createSubscriberIntakeService } from "./intake.service";
 import { createIntakeConfirmationSender } from "./intake-confirmation";
 import type { AddedBy } from "./intake.repository";
 import type { WebhookFormat } from "./webhook-format";
+import { renderWebhookFormatField } from "./ui/webhook-format-field";
 
 const CONFIRMATION_WINDOW_MS = 24 * 60 * 60 * 1000;
 const PENDING_WINDOW_MS = 72 * 60 * 60 * 1000;
@@ -320,7 +321,7 @@ export function createSubscribersService(
 export function renderSubscriberManagementPage(input: { unsubscribeToken: string; subscriber: SubscriberView; components: Array<{ id: string; name: string }> }, pageName: string = lampConfig.pageName) {
   const selected = new Set(input.subscriber.componentSelections.map((selection) => selection.componentId));
   const checks = input.components.map((component) => `<label><input type="checkbox" name="componentId" value="${escapeHtml(component.id)}"${input.subscriber.selectionMode === "all" || selected.has(component.id) ? " checked" : ""}> ${escapeHtml(component.name)}</label>`).join("");
-  const format=input.subscriber.channel==="webhook"?`<label>Webhook format<select name="webhookFormat"><option value="lamp"${input.subscriber.webhookFormat==="lamp"?" selected":""}>Lamp</option><option value="statuspage"${input.subscriber.webhookFormat==="statuspage"?" selected":""}>Statuspage</option></select></label>`:"";
+  const format = input.subscriber.channel === "webhook" ? renderWebhookFormatField(input.subscriber.webhookFormat) : "";
   const selection = checks || format ? `<form method="post">${checks?`<fieldset><legend>Components</legend><p>Clear every selection to follow all current and future visible components.</p>${checks}</fieldset>`:""}${format}<button type="submit">Save selection</button></form>` : "";
   return renderSubscriberTokenPage("Manage subscription", `<p>Channel: ${escapeHtml(input.subscriber.channel)}</p>${selection}<form method="post" action="/unsubscribe/${encodeURIComponent(input.unsubscribeToken)}"><input type="hidden" name="action" value="unsubscribe"><button type="submit">Unsubscribe</button></form>`, pageName);
 }
