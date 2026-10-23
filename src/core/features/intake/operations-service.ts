@@ -8,10 +8,10 @@ import type { IntakeResult } from "./service";
 export async function acceptOperations(input: { repository: IntakeRepository; source: AlertSourceRow; requestHash: string; rawBody: string; parsed: unknown; timestamp: string; policy: AlertIntakePolicy; onDraftCreated: (incidentId: string) => Promise<void>; events?: Pick<LampEventDispatcher, "alertAccepted"> }): Promise<IntakeResult> {
   const { repository, source, requestHash, rawBody, parsed, timestamp, policy, events, onDraftCreated } = input;
   const reading = readOperations(parsed);
-  const existingId = "refused" in reading ? null : await repository.findOpenIncident(source.id, reading.key);
+  const existingId = "refused" in reading ? null : await (reading.action === "Create" ? repository.findOpenIncident(source.id, reading.key) : repository.findLinkedIncident(source.id, reading.key));
   const componentIds = "refused" in reading ? [] : operationsComponents(reading, source.labelMatchers ?? []);
   const reason = "refused" in reading ? reading.refused : reading.action === "Create" && !componentIds.length
-    ? "Unmapped responder alert. Add a tag or entity component matcher." : !existingId && reading.action !== "Create" ? "No open incident is linked to this alertId." : null;
+    ? "Unmapped responder alert. Add a tag or entity component matcher." : !existingId && reading.action !== "Create" && !reading.recovered ? "No incident is linked to this alertId." : null;
   // AddNote's body lives only in internal notes. Even the retained intake receipt
   // contains no note text, and the brief repository excludes this action entirely.
   const payloadJson = !("refused" in reading) && reading.action === "AddNote"

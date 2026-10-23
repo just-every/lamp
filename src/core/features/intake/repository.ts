@@ -46,6 +46,7 @@ export interface IntakeRepository {
   upsertSource(source: AlertSourceRow): Promise<void>;
   findReceipt(sourceId: string, requestHash: string): Promise<AlertReceiptRow | null>;
   findOpenIncident(sourceId: string, deduplicationKey: string): Promise<string | null>;
+  findLinkedIncident(sourceId: string, deduplicationKey: string): Promise<string | null>;
   recordInvalid(receipt: AlertReceiptRow): Promise<void>;
   recordReceipt(receipt: AlertReceiptRow, incident: { id: string; reference: string; title: string; operatorId: string; timestamp: string; component?: { id: string; state: ComponentState } } | null, group?: GroupedReading, componentIds?: string[], internalNote?: { body: string; operatorId: string }): Promise<AlertReceiptWriteResult>;
   markRecovered(sourceId: string, deduplicationKey: string, recoveredAt: string): Promise<void>;
@@ -97,6 +98,10 @@ export function createIntakeRepository(binding: D1Database): IntakeRepository {
         .bind(source.id, source.name, source.credentialKind, source.signingSecret, source.bearerTokenHash, source.timestampHeader, source.signatureHeader, source.deduplicationPath, source.titlePath, source.statePath, source.recoveredValue, isOperationsPreset(source.preset) || source.preset === "pagerduty" || source.preset === "uptime" || source.preset === "alertmanager" || source.preset === "grafana" ? null : source.preset, source.componentId, source.createdByOperatorId, source.createdAt, source.updatedAt, source.preset === "alertmanager" || source.preset === "grafana" ? source.preset : null, JSON.stringify(source.labelMatchers ?? []), source.preset === "uptime" ? "uptime" : null, JSON.stringify(source.monitorMappings ?? []), source.preset === "pagerduty" ? source.preset : null, source.responderSealedCredentials ?? null, source.responderConnected ? 1 : 0, isOperationsPreset(source.preset) ? source.preset : null, source.closeAlertOnResolve ? 1 : 0).run();
     },
     async findReceipt(sourceId, requestHash) { const value = await binding.prepare(`SELECT ${receiptFields} FROM alert_receipts WHERE source_id = ? AND request_hash = ?`).bind(sourceId, requestHash).first<Record<string, unknown>>(); return value ? receiptRow(value) : null; },
+    async findLinkedIncident(sourceId, deduplicationKey) {
+      const row = await binding.prepare(`SELECT r.incident_id AS incidentId FROM alert_receipts r JOIN incidents i ON i.id = r.incident_id WHERE r.source_id = ? AND r.deduplication_key = ? AND i.deleted_at IS NULL ORDER BY r.received_at DESC, r.id DESC LIMIT 1`).bind(sourceId, deduplicationKey).first<{ incidentId: string }>();
+      return row?.incidentId ?? null;
+    },
     async findOpenIncident(sourceId, deduplicationKey) {
       const row = await binding.prepare(`SELECT alert_receipts.incident_id AS incidentId FROM alert_receipts INNER JOIN incidents ON incidents.id = alert_receipts.incident_id WHERE alert_receipts.source_id = ? AND alert_receipts.deduplication_key = ? AND incidents.lifecycle <> 'Resolved' AND incidents.deleted_at IS NULL ORDER BY alert_receipts.received_at DESC LIMIT 1`).bind(sourceId, deduplicationKey).first<{ incidentId: string }>();
       return row?.incidentId ?? null;

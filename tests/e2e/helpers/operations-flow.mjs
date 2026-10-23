@@ -103,7 +103,7 @@ export async function operationsFlow({ api, post, put, worker, db, edge, publicO
     assert.equal((await send(await fixture(preset, 'Close'))).status, 202);
     assert.equal((await incident(id)).lifecycle, 'Monitoring', 'published recovery is evidence only');
     assert.equal(calls('close').length, 0, 'incoming Close never calls the provider');
-    states.push({ preset, input, source, token, id, privateNote, calls, publish, receipts, incident });
+    states.push({ preset, input, source, token, id, privateNote, calls, publish, receipts, incident, send });
   }
   return {
     assertArchive(text) {
@@ -116,7 +116,7 @@ export async function operationsFlow({ api, post, put, worker, db, edge, publicO
     },
     async restored() {
       for (const state of states) {
-        const { preset, input, source, id, privateNote, calls, publish, receipts, incident } = state;
+        const { preset, input, source, id, privateNote, calls, publish, receipts, incident, send } = state;
         assert.equal((await api('/api/app/intake/sources')).body.sources.find(row => row.id === source.id).responderConnection, 'reconnect');
         await publish('Restored operators are checking the API.');
         assert.equal(calls('notes').length, 3, 'restored sources send nothing until reconnected');
@@ -125,6 +125,11 @@ export async function operationsFlow({ api, post, put, worker, db, edge, publicO
         await publish('The API has recovered.', 'Resolved');
         assert.equal(calls('notes').length, 4);
         assert.equal(calls('close').length, 1, 'opt-in Resolved publication closes exactly once');
+        const close = await fixture(preset, 'Close');
+        const echoed = await send({ ...close, alert: { ...close.alert, username: 'Responder after Lamp resolution' } });
+        assert.equal(echoed.status, 202, 'a provider Close echoed after the resolved publication remains recovery evidence');
+        assert.equal(echoed.body.incidentId, id);
+        assert.equal((await incident(id)).lifecycle, 'Resolved');
         assert.equal((await post(`/api/app/incidents/${id}/publish`, { channels: [] })).status, 409, 'another publication requires a saved draft');
         assert.equal(calls('notes').length, 4); assert.equal(calls('close').length, 1);
         const report = await post(`/api/app/incidents/${id}/report/draft`, {});
