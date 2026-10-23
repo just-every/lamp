@@ -49,7 +49,8 @@ export function registerChatDeskRoutes(app: Hono<AppEnv>, service: ReturnType<ty
       if (!await service.repository.claimRequest(requestKey, Date.now())) return c.json({ error: 'This chat action was already received. Open the current incident to see its result.' }, 409);
       const result = await service.act(action.data, operator);
       if (transport === 'slack' && 'replyUrl' in input && input.replyUrl) await postResponse(input.replyUrl, slackResult(result));
-      return c.json(transport === 'slack' ? { ...slackResult(result), result } : { ...teamsCard(result), result });
+      const card = teamsCard(result);
+      return c.json(transport === 'slack' ? { ...slackResult(result), result } : 'extension' in input && input.extension ? { task: { type: 'continue', value: { title: 'Incident draft', card: { contentType: card.type, content: card.value } } }, result } : { ...card, result });
     } catch (error) {
       return c.json({ error: error instanceof Error ? error.message : 'The chat action could not be completed.' }, 409);
     }

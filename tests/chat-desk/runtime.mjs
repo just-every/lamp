@@ -25,7 +25,7 @@ export async function runtime(t, keys, { configured = true } = {}) {
     bindings: { LAMP_APP_HOST: 'app.example.test', LAMP_PAGE_HOST: 'status.example.test', AUTH_ORIGIN: origin,
       SESSION_SECRET: sessionSecret, SETUP_OPERATOR_EMAIL: 'operator@example.test', MAIL_FROM_ADDRESS: 'lamp@example.test',
       SUBSCRIBER_TOKEN_SECRET: randomBytes(32).toString('hex'), WEBHOOK_SIGNING_SECRET: randomBytes(32).toString('hex'),
-      ...(configured ? { SLACK_SIGNING_SECRET: signingSecret, BOT_FRAMEWORK_APP_ID: appId } : {}) },
+      ...(configured ? { SLACK_SIGNING_SECRET: signingSecret, BOT_FRAMEWORK_APP_ID: appId } : { SLACK_SIGNING_SECRET: '', BOT_FRAMEWORK_APP_ID: '' }) },
     d1Databases: ['DB'], r2Buckets: ['SNAPSHOTS'], durableObjects: { SNAPSHOT_CACHE: { className: 'SnapshotCache', useSQLite: true } }, queueProducers: { JOBS: 'lamp-chat-jobs' },
     resourcePersistencePath: join(directory, 'state'),
     outboundService: async request => {
@@ -48,6 +48,8 @@ export async function runtime(t, keys, { configured = true } = {}) {
       db.prepare("INSERT INTO operators(id,email,display_name,is_setup_operator,created_at,updated_at) VALUES(?,'operator@example.test','Synthetic operator',1,'2026-10-23','2026-10-23')").bind(operator),
       db.prepare("INSERT INTO oa_operators(id,email,display_name,role,status,created_at) VALUES(?,'operator@example.test','Synthetic operator','owner','active',?)").bind(operator, Date.now()),
       db.prepare('INSERT INTO oa_bootstrap(singleton,claim_id,claimed_at) VALUES(1,?,?)').bind(operator, Date.now()),
+      db.prepare("INSERT INTO operators(id,email,display_name,is_setup_operator,created_at,updated_at) VALUES('01J00000000000000000000002','second@example.test','Synthetic second operator',0,'2026-10-23','2026-10-23')"),
+      db.prepare("INSERT INTO oa_operators(id,email,display_name,role,status,created_at) VALUES('01J00000000000000000000002','second@example.test','Synthetic second operator','owner','active',?)").bind(Date.now()),
       db.prepare("INSERT INTO page_settings(id,page_name,tagline,accent_color,timezone,hostname,feed_id,mail_from_address,created_at,updated_at) VALUES('default','Synthetic Lamp','','#16794c','UTC','status.example.test','synthetic-lamp-5','lamp@example.test','2026-10-23','2026-10-23')"),
       db.prepare("INSERT INTO setup_readiness(step,evidence_key,checked_at) VALUES('first-run','complete','2026-10-23')"),
     ]);

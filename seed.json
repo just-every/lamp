@@ -386,7 +386,9 @@
       "id": "bot-framework-keys",
       "required": false,
       "why": "Slack and Teams incident commands: bounded credential-free GET requests to https://login.botframework.com/v1/.well-known/openidconfiguration and its same-origin signing keys verify Bot Framework activity tokens. Redirects are refused. No user data or token is sent.",
-      "data": [],
+      "data": [
+        "Public OpenID metadata and RSA verification keys; no token or user data is sent"
+      ],
       "adapters": []
     }
   ],

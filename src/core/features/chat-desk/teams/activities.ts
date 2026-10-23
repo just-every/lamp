@@ -19,7 +19,7 @@ export function teamsActivity(body: unknown, claims: Record<string, unknown>) {
   if (activity.name === 'composeExtension/submitAction' && value.commandId === 'incident') {
     const parameters = z.array(z.object({ name: z.string(), value: z.unknown() })).parse(value.parameters);
     const data = Object.fromEntries(parameters.map(parameter => [parameter.name, parameter.value]));
-    return { identity, action: typeof data.components === 'string' ? formAction({ action: 'open' }, data) : { ...data, action: 'open' }, link: undefined };
+    return { identity, extension: true, action: typeof data.components === 'string' ? formAction({ action: 'open' }, data) : { ...data, action: 'open' }, link: undefined };
   }
   throw new Error('Choose a Lamp incident command or card action.');
 }

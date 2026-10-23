@@ -22,13 +22,15 @@ export async function chatDeskFlow({ t, server, appUrl, env }) {
   let r;
   try {
     r = await runtime(t, [jwk]);
+    assert.equal((await r.worker.dispatchFetch(origin + '/api/app/chat-links')).status, 401, 'chat-link management requires an operator session');
     const slack = async (action, options = {}) => {
       const payload = structuredClone(slackFixture); payload.user.id = options.unlinked ? 'synthetic-lamp-99' : payload.user.id;
       payload.actions[0].value = JSON.stringify(action);
+      if (options.badResponse) payload.response_url = 'https://untrusted.example.test/response';
       const raw = options.code ? new URLSearchParams({ command: '/lamp', team_id: payload.team.id, user_id: payload.user.id, text: `link ${options.code}` }).toString() : new URLSearchParams({ payload: JSON.stringify(payload) }).toString();
       const timestamp = String(Math.floor(Date.now() / 1000) - (options.stale ? 301 : 0));
       const signature = `v0=${createHmac('sha256', r.signingSecret).update(`v0:${timestamp}:${raw}`).digest('hex')}`;
-      return response(await r.worker.dispatchFetch(origin + '/api/chat/slack', { method: 'POST', body: raw, headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-Slack-Request-Timestamp': timestamp, 'X-Slack-Signature': options.invalid ? `v0=${'0'.repeat(64)}` : signature } }));
+      return response(await r.worker.dispatchFetch(origin + '/api/chat/slack', { method: 'POST', body: options.tampered ? `${raw}&changed=1` : raw, headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-Slack-Request-Timestamp': timestamp, 'X-Slack-Signature': options.invalid ? `v0=${'0'.repeat(64)}` : signature } }));
     };
     const teams = async (action, options = {}) => {
       const body = structuredClone(teamsFixture);
@@ -49,11 +51,13 @@ export async function chatDeskFlow({ t, server, appUrl, env }) {
       const open = { action: 'open', title: `synthetic-lamp-${name}`, components: [{ componentId: componentIds[0], state: 'Major outage', relationship: 'Primary' }], update: update() };
       const before = await count('incidents');
       assert.equal((await send(open, { unlinked: true })).status, 403); assert.equal(await count('incidents'), before);
-      for (const options of [{ invalid: true }, { stale: true }, ...(name === 'Teams' ? [{ wrongAudience: true }] : [])]) { assert.equal((await send(open, options)).status, 401); assert.equal(await count('incidents'), before); }
+      for (const options of [{ invalid: true }, { stale: true }, ...(name === 'Teams' ? [{ wrongAudience: true }] : [{ tampered: true }])]) { assert.equal((await send(open, options)).status, 401); assert.equal(await count('incidents'), before); }
+      if (name === 'Slack') { assert.equal((await send(open, { badResponse: true })).status, 409); assert.equal(await count('incidents'), before); }
       let minted = await r.call('/api/app/chat-links', {}); assert.equal(minted.status, 201);
       assert.equal((await send(null, { code: minted.body.code })).status, 200);
       assert.equal((await send(null, { code: minted.body.code })).status, 409, 'a link code is single use');
       const opened = await send(open, { extension: name === 'Teams' }); assert.equal(opened.status, 200, JSON.stringify(opened.body));
+      if (name === 'Teams') assert.equal(opened.body.task.value.card.content.type, 'AdaptiveCard');
       let result = opened.body.result, id = result.incidentId;
       assert.equal((await r.call(`/api/app/incidents/${id}`)).body.incident.updates.length, 0);
       assert.equal((await send(open, { extension: name === 'Teams' })).status, 409, 'replayed open creates no second draft');
@@ -73,12 +77,12 @@ export async function chatDeskFlow({ t, server, appUrl, env }) {
       const snapshot = await r.db.prepare('SELECT author_operator_id FROM incident_updates WHERE id=?').bind(published.body.result.updateId).first(); assert.equal(snapshot.author_operator_id, r.operator);
       if (name === 'Teams') {
         const current = (await r.call(`/api/app/incidents/${id}`)).body.incident;
-        const historyBefore = await r.db.prepare('SELECT count(*) AS n FROM component_state_history WHERE component_id=?').bind(componentIds[1]).first();
+        const historyBefore = (await r.call(`/api/app/components/${componentIds[1]}/history`)).body.history;
         const saved = await send({ action: 'save', incidentId: id, version: `-:${current.updates.length}`, update: { ...update(), lifecycle: 'Monitoring', componentChanges: [{ componentId: componentIds[1], state: 'Degraded performance' }] } });
         assert.equal(saved.status, 200, JSON.stringify(saved.body));
         const preview = await send({ action: 'preview', incidentId: id, version: saved.body.result.version }); assert.equal(preview.status, 200);
         assert.equal((await send(preview.body.result.publish)).status, 200);
-        const historyAfter = await r.db.prepare('SELECT count(*) AS n FROM component_state_history WHERE component_id=?').bind(componentIds[1]).first(); assert.equal(historyAfter.n, historyBefore.n + 1);
+        const historyAfter = (await r.call(`/api/app/components/${componentIds[1]}/history`)).body.history; assert.equal(historyAfter.length, historyBefore.length + 1); assert.equal(historyAfter[0].operatorId, r.operator);
         assert.equal((await r.call('/api/app/components')).body.components.find(component => component.id === componentIds[1]).publicState, 'Degraded performance');
       }
     }
@@ -91,6 +95,12 @@ export async function chatDeskFlow({ t, server, appUrl, env }) {
     assert.equal((await r.db.prepare("SELECT count(*) AS n FROM audit_entries WHERE action='chat-desk'").first()).n, 7, 'two links, two removals and three explicit publications are audited');
     assert.equal(r.replies.length, 3, 'Slack draft, preview and publication replies use the declared response endpoint');
     assert.equal(r.requests.length, 2, 'Bot Framework metadata and keys are cached between verified activities');
+    const revokeCode = (await r.call('/api/app/chat-links', {})).body.code;
+    assert.equal((await slack(null, { code: revokeCode })).status, 200);
+    const revoked = await r.call(`/api/app/operators/${r.operator}/revoke-access`, {}); assert.equal(revoked.status, 204, JSON.stringify(revoked.body));
+    assert.equal(await count('chat_links'), 0, 'revoking an operator removes chat identities');
+    assert.equal(await count('chat_link_codes'), 0, 'revoking an operator removes pending link authority');
+    assert.equal(await count('chat_previews'), 0, 'revoking an operator removes pending preview authority');
     await r.close(); r = await runtime(t, [jwk], { configured: false });
     for (const endpoint of ['slack', 'teams']) assert.equal((await r.worker.dispatchFetch(`${origin}/api/chat/${endpoint}`, { method: 'POST', body: '{}' })).status, 503);
     assert.equal(await count('incidents'), 0);
