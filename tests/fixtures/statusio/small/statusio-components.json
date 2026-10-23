@@ -1,0 +1,23 @@
+{
+  "status": {
+    "error": "no",
+    "message": "OK"
+  },
+  "result": [
+    {
+      "__v": 0,
+      "_id": "synthetic-lamp-2",
+      "name": "Synthetic service",
+      "position": 1,
+      "statuspage": "synthetic-lamp-1",
+      "containers": [
+        {
+          "__v": 0,
+          "_id": "synthetic-lamp-3",
+          "name": "Synthetic region",
+          "location": "synthetic location"
+        }
+      ]
+    }
+  ]
+}

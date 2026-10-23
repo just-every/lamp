@@ -1,0 +1,75 @@
+{
+  "status": {
+    "error": "no",
+    "message": "OK"
+  },
+  "result": {
+    "active_incidents": [],
+    "resolved_incidents": [
+      {
+        "__v": 0,
+        "_id": "synthetic-lamp-4",
+        "name": "Synthetic incident",
+        "statuspage": "synthetic-lamp-1",
+        "kind": "incident",
+        "datetime_open": "2024-01-01T12:00:00Z",
+        "components_affected": [
+          {
+            "_id": "synthetic-lamp-2",
+            "name": "Synthetic service"
+          }
+        ],
+        "containers_affected": [
+          {
+            "_id": "synthetic-lamp-3",
+            "name": "Synthetic region"
+          }
+        ],
+        "infrastructure_affected": [
+          {
+            "component": {
+              "_id": "synthetic-lamp-2"
+            },
+            "container": {
+              "_id": "synthetic-lamp-3"
+            }
+          }
+        ],
+        "messages": [
+          {
+            "__v": 0,
+            "_id": "synthetic-lamp-4-1",
+            "components": [
+              "synthetic-lamp-2"
+            ],
+            "containers": [
+              "synthetic-lamp-3"
+            ],
+            "datetime": "2024-01-01T12:00:00Z",
+            "details": "Synthetic service was unavailable.",
+            "incident": "synthetic-lamp-4",
+            "state": 100,
+            "status": 500,
+            "statuspage": "synthetic-lamp-1"
+          },
+          {
+            "__v": 0,
+            "_id": "synthetic-lamp-4-2",
+            "components": [
+              "synthetic-lamp-2"
+            ],
+            "containers": [
+              "synthetic-lamp-3"
+            ],
+            "datetime": "2024-01-01T12:30:00Z",
+            "details": "Synthetic service recovered.",
+            "incident": "synthetic-lamp-4",
+            "state": 400,
+            "status": 100,
+            "statuspage": "synthetic-lamp-1"
+          }
+        ]
+      }
+    ]
+  }
+}

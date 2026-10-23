@@ -1,0 +1,10 @@
+{
+  "status": {
+    "error": "no",
+    "message": "OK"
+  },
+  "result": {
+    "ipv4": "",
+    "ipv6": ""
+  }
+}

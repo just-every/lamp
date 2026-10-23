@@ -1,0 +1,13 @@
+{
+  "status": {
+    "error": "no",
+    "message": "OK"
+  },
+  "result": {
+    "active_maintenances": [],
+    "resolved_maintenances": [
+      "synthetic-lamp-5"
+    ],
+    "upcoming_maintenances": []
+  }
+}

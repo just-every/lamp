@@ -1,3 +1,4 @@
+import { proveProviderReaders, proveProviderFetches } from './provider-readers.mjs';
 import assert from 'node:assert/strict';
 import { after, before, test } from 'node:test';
 import { createRequire } from 'node:module';
@@ -24,7 +25,8 @@ before(async () => {
 });
 after(async () => { if (scratch) await rm(scratch, { recursive: true, force: true }); });
 
-test("Saved Instatus import preserves history and refuses unsafe or ambiguous source authority", async t => {
+test("Saved Instatus and Status.io imports preserve history and refuses unsafe or ambiguous source authority", async t => {
+  await proveProviderReaders(adapters, mapSource);
   t.diagnostic("saved Instatus collections preserve full history, visual groups and explicit email consent");
   await (async () => {
   for (const family of ['small', 'large']) {
@@ -140,6 +142,7 @@ test("Saved Instatus import preserves history and refuses unsafe or ambiguous so
 
 
 test('API key path requests fixed-origin GETs with complete pagination and refuses redirects or reflection', async () => {
+  await proveProviderFetches(adapters);
   const source = await files('large'), calls = [], key = 'synthetic-instatus-key-0001';
   const fetcher = async (url, init) => {
     calls.push({ url: String(url), init });

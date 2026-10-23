@@ -643,3 +643,13 @@ and explicitly confirm that it is live and the watch window has closed before
 **Send invitations**. That separate owner action starts the existing 72-hour
 confirmation window. Unreleased held subscribers expire after 30 days. Undo
 cannot recall an invitation already sent. Imported history never queues notices.
+
+## Status.io
+
+Choose Status.io in Move in. Enter the status page ID, API ID and API key, or select saved responses. The API ID and key are used only for the read and never saved. Confirm that the page and all history are public and unrestricted. Private, password-protected, IP-restricted or audience pages cannot become public here. An empty IP list alone does not prove public access.
+
+Save the unchanged API response envelopes as `statusio-components.json`, `statusio-summary.json`, `statusio-incidents.json`, `statusio-maintenances.json`, `statusio-acl.json` and `statusio-maintenance-ID.json` for each maintenance. The component list and summary identify each component and container pair; Lamp keeps these as groups with separate components for their containers. Component creation times are unavailable, so their records begin with the import while incident messages keep their original times.
+
+The reader uses the documented, deprecated incident list below its 100-record cap. It refuses 100 or more records because history may have been truncated. The newer incident responses and pagination have no published response shapes. Security-event states are refused rather than changed to an outage. Maintenance keeps the planned window and original messages. Imports queue no notifications or invitations, and undo uses the same reviewed import.
+
+The published API reference supplies no subscriber response fields, old public incident addresses, postmortem text or customer incident templates. These are not guessed or imported. Move subscribers separately through your new subscribe page; SMS is not available. Update old incident links and JSON readers yourself before retiring the old page.

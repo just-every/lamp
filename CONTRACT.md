@@ -921,7 +921,7 @@ An owner gives Settings → Move in a Status.io API ID and key (read with GET re
 
 Acceptance: a saved Status.io fixture dry-runs with counts and reasons, applies silently with original times, redirects its old incident paths, and undoes cleanly. Post-incident text and templates in the fixture dry-run, import and undo under MOVE-011's rules.
 
-Status: **missing**.
+Status: **partial**.
 
 #### MOVE-008 — From incident.io Status Pages.
 
@@ -1112,10 +1112,10 @@ UPDATE-013 is judged done on 21 October 2026 on the 1.10.0 release candidate fro
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
 | Published | 104 | 0 | 0 | 104 |
-| Target and push further | 20 | 32 | 42 | 94 |
-| All | 124 | 32 | 42 | 198 |
+| Target and push further | 20 | 33 | 41 | 94 |
+| All | 124 | 33 | 41 | 198 |
 
-Of 198 clauses, 124 are done, 32 partial and 42 missing (74 non-DONE).
+Of 198 clauses, 124 are done, 33 partial and 41 missing (74 non-DONE).
 
 | Clause | Title | Kind | Status | Evidence | Gap |
 | --- | --- | --- | --- | --- | --- |
@@ -1300,7 +1300,7 @@ Of 198 clauses, 124 are done, 32 partial and 42 missing (74 non-DONE).
 | `MOVE-004` | Undo | published | done | `tests/e2e/sorry-import.test.mjs`, `tests/e2e/statuspage-import.test.mjs` |  |
 | `MOVE-005` | Old public addresses | published | done | `tests/e2e/sorry-import.test.mjs`, `tests/e2e/statuspage-import.test.mjs` |  |
 | `MOVE-006` | Cutover preview | published | done | `tests/auth-adoption/cutover.test.mjs`, `tests/e2e/cutover-browser.test.mjs`, `tests/e2e/sorry-import.test.mjs` |  |
-| `MOVE-007` | From Status.io | target | missing |  | Not built. |
+| `MOVE-007` | From Status.io | target | partial | `src/core/features/statuspage-import/statusio/normalize.ts`:10, `tests/instatus/provider-readers.mjs`:12, `tests/e2e/helpers/provider-import-flow.mjs`:8 | Documented component/container pairs, bounded legacy incident history and maintenance windows dry-run, apply silently, repeat and undo through the owner door with original message times. Fixed-origin GET headers, redirects, credential reflection and private/IP-restricted refusal are tested at a local provider edge. Gap: modern incident pagination and subscriber response fields are undocumented; no email, SMS or webhook subscriber is imported (MOVE-010 and SUB-013 remain unbuilt), so the requested SMS dry-run row is also unproven. The published API has no post-incident text, customer template or old public-address fields: those acceptance sentences remain unproven. Component creation times are unavailable; records begin at import. No Status.io account was used; the fetch path is proved against a local fake origin. Default ADOPTED: unsupported or restricted data is refused; stays PARTIAL. |
 | `MOVE-008` | From incident.io Status Pages | target | missing |  | Not built. |
 | `MOVE-009` | Statuspage consumers keep working at cutover | target | done | `src/core/features/statuspage-import/public-paths.mjs`, `src/core/features/public-snapshot/import-aliases.ts`, `src/core/features/statuspage-import/operating-notes.ts`, `tests/e2e/statuspage-import.test.mjs`, `tests/e2e/cutover-browser.test.mjs`, `tests/e2e/public-contract.test.mjs` | History and Atom aliases, Statuspage /api/v2 read endpoints, RSS and the `/embed/script.js` floating notice are served after import, and Cutover lists them as served. Cutover's Operating Lamp after Statuspage guide carries the correction-update, component-state and degraded-only notes at 1440 and 390 px. Webhook bodies (SUB-018, MOVE-010) and automation addresses (INTAKE-013) are those clauses' to ship; Cutover names them unavailable until then. |
 | `MOVE-010` | Every subscriber channel moves | target | missing |  | Released imports carry email subscribers only (`src/core/features/statuspage-import/`). |
