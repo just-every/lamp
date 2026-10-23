@@ -88,7 +88,11 @@ export async function openFollowUpsRuntime() {
       INSERT INTO oa_bootstrap(singleton,claim_id,claimed_at) VALUES(1,'01J00000000000000000000091',${Date.now()});
       INSERT INTO page_settings(id,page_name,tagline,accent_color,timezone,hostname,feed_id,mail_from_address,created_at,updated_at) VALUES('default','Synthetic Lamp follow-ups','Durable obligation fixture','#16794C','UTC','status.example.test','synthetic-lamp-feed-1','synthetic-lamp-sender@example.test','2026-10-01','2026-10-01');
       INSERT INTO setup_readiness(step,evidence_key,checked_at) VALUES('first-run','complete','2026-10-01');`);
-    const raw = (path, init = {}) => runtime.dispatchFetch(new URL(path, appOrigin).href, { redirect: "manual", ...init });
+    const raw = (path, init = {}) => {
+      const url = new URL(path, appOrigin), headers = new Headers(init.headers);
+      headers.set("Host", url.host);
+      return runtime.dispatchFetch(url.href, { redirect: "manual", ...init, headers });
+    };
     const request = async (path, init = {}) => {
       init = await withDraftVersion(path, init, read => raw(read, { headers: { Cookie: cookie ?? "" } }));
       const headers = new Headers(init.headers);
