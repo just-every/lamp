@@ -17,7 +17,7 @@ export async function communicationOwnerFlow({ page, appUrl, incident, unownedIn
       // Leave the fixture unowned until both widths have checked Overview.
       await page.goto(`${appUrl}/app`); await operatorHydrated(page);
       const row = page.getByRole("link").filter({ hasText: `${unownedIncident.reference} · ${unownedIncident.title}` });
-      await row.getByText("Unowned", { exact: false }).waitFor();
+      await row.getByText("· Unowned", { exact: true }).waitFor();
       await page.goto(`${appUrl}/app/incidents/${unownedIncident.id}`); await operatorHydrated(page);
       const unowned = page.getByRole("region", { name: "Communication owner", exact: true });
       await unowned.getByText("Unowned — an active operator needs to take over.", { exact: true }).waitFor();

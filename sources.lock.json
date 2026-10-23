@@ -5932,7 +5932,7 @@
       "executable": false
     },
     "tests/e2e/helpers/communication-owner-flow.mjs": {
-      "sha256": "053f4de324d23eb1ea599487272a3dd2c32663695d1f5162f266955f6e380bc9",
+      "sha256": "b0847f3b1d88b8274e2bef46b1f1873b75c001c7a40008186116e1c83c37957e",
       "executable": false
     },
     "tests/e2e/helpers/communication-performance-flow.mjs": {
