@@ -72,7 +72,7 @@ test("MAINT-009 — Native maintenance editing preserves zones and daylight savi
       const { pageName, tagline, accentColor, hostname, footerCreditEnabled, widgetAllowedOrigins, mailFromAddress } = settings;
       await api("/api/app/page-settings", "PUT", { pageName, tagline, accentColor, hostname, footerCreditEnabled, widgetAllowedOrigins, mailFromAddress, timezone: scenario.zone });
       const { component } = await api("/api/app/components", "POST", { groupId: null, name: `Timezone ${scenario.start} ${scenario.zone}`, description: "", internal: false, displayOrder: 1, note: "" });
-      const { maintenance } = await api("/api/app/maintenance", "POST", { title: "Timezone window", startsAt: scenario.start, endsAt: scenario.end, componentIds: [component.id] });
+      const { maintenance } = await api("/api/app/maintenance", "POST", { affectedAudience: "Customers using the scheduled service.", customerImpact: "Requests may be interrupted during this maintenance window.", title: "Timezone window", startsAt: scenario.start, endsAt: scenario.end, componentIds: [component.id] });
       await page.goto(`${origin}/app/maintenance`);
       await operatorHydrated(page);
       const row = page.locator(".maintenance-row").filter({ hasText: maintenance.reference });
@@ -125,6 +125,8 @@ test("PAGE-020 — maintenance creation and correction use the page zone; public
     await operatorHydrated(page);
     const create = page.locator(".maintenance-schedule-card");
     await create.getByLabel("Title", { exact: true }).fill("Configured-zone window");
+    await create.getByLabel("Affected audience", { exact: true }).fill("Customers using the configured-zone service.");
+    await create.getByLabel("Customer impact", { exact: true }).fill("Requests may be interrupted during the configured window.");
     await create.getByLabel("Configured-zone service", { exact: true }).check();
     await create.getByLabel("Starts", { exact: true }).fill("2027-07-15T09:00");
     await create.getByLabel("Ends", { exact: true }).fill("2027-07-15T10:00");

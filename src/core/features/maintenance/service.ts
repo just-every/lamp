@@ -1,3 +1,4 @@
+import { renderMaintenanceWording } from "../../shared/update-renderer";
 import { defaultMaintenanceAutomation, type MaintenanceAutomation } from "./automation.repository";
 import { createUlid, nowIso } from "../../shared/ids";
 import type { LampEventDispatcher } from "../../api/extensions";
@@ -11,7 +12,7 @@ export interface MaintenanceNotificationStatements {
   forMaintenanceNotice(input: { eventId: string; maintenanceId: string; componentIds: string[]; kind: MaintenanceNotice["kind"]; queuedAt: string; recipientScope: "eligible" | "previous"; previousEventIds: string[] }): Promise<D1PreparedStatement[]>;
 }
 
-export interface MaintenanceInput extends Partial<MaintenanceAutomation> { title: string; startsAt: string; endsAt: string; componentIds: string[]; }
+export interface MaintenanceInput extends Partial<MaintenanceAutomation> { affectedAudience: string; customerImpact: string; title: string; startsAt: string; endsAt: string; componentIds: string[]; }
 
 export interface MaintenanceOverrunAlertEvent {
   maintenanceId: string;
@@ -26,12 +27,19 @@ export interface MaintenanceService {
   saveAutomationDefault(value: MaintenanceAutomation): Promise<MaintenanceAutomation>;
   create(input: MaintenanceInput, operatorId: string): Promise<MaintenanceView>;
   start(maintenanceId: string, operatorId: string): Promise<MaintenanceView | null>;
-  reschedule(maintenanceId: string, input: Pick<MaintenanceInput, "startsAt" | "endsAt" | "autoStart" | "autoComplete">, operatorId: string): Promise<MaintenanceView | null>;
+  reschedule(maintenanceId: string, input: Pick<MaintenanceInput, "startsAt" | "endsAt" | "autoStart" | "autoComplete"> & Partial<Pick<MaintenanceInput, "affectedAudience" | "customerImpact">>, operatorId: string): Promise<MaintenanceView | null>;
   cancel(maintenanceId: string, operatorId: string): Promise<MaintenanceView | null>;
   complete(maintenanceId: string, operatorId: string): Promise<MaintenanceView | null>;
   finishCompletion(maintenanceId: string, operatorId: string): Promise<void>;
   runDue(now?: string): Promise<{ started: string[]; completed: string[]; reminded: string[] }>;
   refreshPublic(): Promise<void>;
+}
+
+function maintenanceWording(input: { affectedAudience?: string; customerImpact?: string }) {
+  if (typeof input.affectedAudience !== "string" || typeof input.customerImpact !== "string") throw new Error("Who is affected and customer impact are required for maintenance.");
+  const affectedAudience = input.affectedAudience.trim(), customerImpact = input.customerImpact.trim();
+  if (!affectedAudience || !customerImpact || affectedAudience.length > 250 || customerImpact.length > 250) throw new Error("Who is affected and customer impact must each contain 1 to 250 characters.");
+  return { affectedAudience, customerImpact };
 }
 
 function assertWindow(startsAt: string, endsAt: string) {
@@ -67,7 +75,7 @@ export function createMaintenanceService(
   };
   const prepareNotice = async (record: StoredMaintenance, components: StoredMaintenanceComponent[], kind: MaintenanceNotice["kind"], operatorId: string | null, recipientScope: "eligible" | "previous") => {
     if (!notificationStatements) throw new Error("Maintenance notification transaction wiring is required.");
-    const timestamp = nowIso(); const notice: MaintenanceNotice = { id: createUlid(), maintenanceId: record.id, kind, body: `${record.reference}: ${record.title}`, publishedAt: timestamp, authorOperatorId: operatorId, createdAt: timestamp, updatedAt: timestamp };
+    const timestamp = nowIso(); const notice: MaintenanceNotice = { id: createUlid(), maintenanceId: record.id, kind, body: renderMaintenanceWording(record), publishedAt: timestamp, authorOperatorId: operatorId, createdAt: timestamp, updatedAt: timestamp };
     const previousEventIds = recipientScope === "previous" ? (await repository.listNotices(record.id)).map((prior) => prior.id) : [];
     const statements = await notificationStatements.forMaintenanceNotice({ eventId: notice.id, maintenanceId: record.id, componentIds: components.flatMap((component) => component.componentId ? [component.componentId] : []), kind, queuedAt: timestamp, recipientScope, previousEventIds });
     return { notice, statements };
@@ -98,15 +106,16 @@ export function createMaintenanceService(
     async create(input, operatorId) {
       if (!input.title.trim() || input.title.length > 250) throw new Error("Maintenance title is required and must be at most 250 characters.");
       assertWindow(input.startsAt, input.endsAt);
+      const wording = maintenanceWording(input);
       if (!input.componentIds.length) throw new Error("Attach at least one component to maintenance.");
       if (!notificationStatements) throw new Error("Maintenance notification transaction wiring is required.");
       const components = await Promise.all(input.componentIds.map((id) => componentsService.get(id)));
       if (components.some((component) => !component)) throw new Error("One or more attached components no longer exist.");
       const timestamp = nowIso(); const maintenanceId = createUlid();
       const reference = await repository.allocateMaintenanceReference();
-      const record: StoredMaintenance = { id: maintenanceId, reference, title: input.title.trim(), state: "Scheduled", startsAt: input.startsAt, endsAt: input.endsAt, completedAt: null, createdByOperatorId: operatorId, createdAt: timestamp, updatedAt: timestamp };
+      const record: StoredMaintenance = { id: maintenanceId, reference, title: input.title.trim(), ...wording, state: "Scheduled", startsAt: input.startsAt, endsAt: input.endsAt, completedAt: null, createdByOperatorId: operatorId, createdAt: timestamp, updatedAt: timestamp };
       const attached = components.map((component) => ({ id: createUlid(), maintenanceId, componentId: component!.id, componentName: component!.name, state: "Under maintenance" as const, createdAt: timestamp, updatedAt: timestamp }));
-      const notice: MaintenanceNotice = { id: createUlid(), maintenanceId, kind: "scheduled", body: `${record.reference}: ${record.title}`, publishedAt: timestamp, authorOperatorId: operatorId, createdAt: timestamp, updatedAt: timestamp };
+      const notice: MaintenanceNotice = { id: createUlid(), maintenanceId, kind: "scheduled", body: renderMaintenanceWording(record), publishedAt: timestamp, authorOperatorId: operatorId, createdAt: timestamp, updatedAt: timestamp };
       const statements = await notificationStatements.forMaintenanceNotice({ eventId: notice.id, maintenanceId, componentIds: attached.flatMap((component) => component.componentId ? [component.componentId] : []), kind: notice.kind, queuedAt: timestamp, recipientScope: "eligible", previousEventIds: [] });
       const defaults = await repository.automation.getDefault();
       await repository.create(record, attached, notice, statements, { autoStart: input.autoStart ?? defaults.autoStart, autoComplete: input.autoComplete ?? defaults.autoComplete });
@@ -117,15 +126,16 @@ export function createMaintenanceService(
       assertWindow(input.startsAt, input.endsAt);
       const record = await repository.find(maintenanceId); if (!record) return null;
       const timestamp = nowIso(); const components = await repository.listComponents(maintenanceId);
-      const changed = { ...record, startsAt: input.startsAt, endsAt: input.endsAt, updatedAt: timestamp };
+      const wording = input.affectedAudience === undefined && input.customerImpact === undefined ? undefined : maintenanceWording(input);
+      const changed = { ...record, ...wording, startsAt: input.startsAt, endsAt: input.endsAt, updatedAt: timestamp };
       const { notice, statements } = await prepareNotice(changed, components, "rescheduled", operatorId, "previous");
       if (record.state === "Scheduled") {
-        if (!(await repository.updateWindowWithNotice(maintenanceId, input.startsAt, input.endsAt, timestamp, notice, statements, { autoStart: input.autoStart, autoComplete: input.autoComplete }))) throw new Error("Only scheduled maintenance can be rescheduled.");
+        if (!(await repository.updateWindowWithNotice(maintenanceId, input.startsAt, input.endsAt, timestamp, notice, statements, { autoStart: input.autoStart, autoComplete: input.autoComplete }, wording))) throw new Error("Only scheduled maintenance can be rescheduled.");
       } else if (record.state === "In progress") {
         if (input.startsAt !== record.startsAt) throw new Error("The start time cannot change after maintenance has started.");
         const hasSwitch = input.autoStart !== undefined || input.autoComplete !== undefined;
         if (Date.parse(input.endsAt) < Date.parse(record.endsAt) || (!hasSwitch && input.endsAt === record.endsAt)) throw new Error("An in-progress maintenance window can only be extended to a later end time, or keep its time while changing automation.");
-        if (!(await repository.extendInProgressWithNotice(maintenanceId, record.startsAt, record.endsAt, input.endsAt, timestamp, notice, statements, input.autoStart === undefined && input.autoComplete === undefined ? undefined : { autoStart: input.autoStart, autoComplete: input.autoComplete }))) throw new Error("The maintenance window changed before it could be extended.");
+        if (!(await repository.extendInProgressWithNotice(maintenanceId, record.startsAt, record.endsAt, input.endsAt, timestamp, notice, statements, input.autoStart === undefined && input.autoComplete === undefined ? undefined : { autoStart: input.autoStart, autoComplete: input.autoComplete }, wording))) throw new Error("The maintenance window changed before it could be extended.");
       } else {
         throw new Error("Only scheduled maintenance can be rescheduled or in-progress maintenance can be extended.");
       }

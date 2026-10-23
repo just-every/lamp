@@ -358,6 +358,12 @@
     },
     {
       "binding": "DB",
+      "name": "core-0058_maintenance_wording.sql",
+      "sha256": "3b3b4345a25dde84c39892c2c38dbaac7d4c46531aa790a344669029e38acdf0",
+      "sql": "-- Existing native and imported windows retain title-only notices. New native\n-- scheduling validates the required pair; no historical wording is invented.\nALTER TABLE maintenance ADD COLUMN affected_audience TEXT\n  CHECK(affected_audience IS NULL OR length(trim(affected_audience)) BETWEEN 1 AND 250);\nALTER TABLE maintenance ADD COLUMN customer_impact TEXT\n  CHECK(customer_impact IS NULL OR length(trim(customer_impact)) BETWEEN 1 AND 250)\n  CHECK((affected_audience IS NULL) = (customer_impact IS NULL));\n"
+    },
+    {
+      "binding": "DB",
       "name": "setup-initial-page.sql",
       "sha256": "11f3684dd73e42d0d0b5764ba5e5810b3e756a4692850a3e6370298946b33287",
       "sql": "INSERT INTO page_settings (id, page_name, tagline, accent_color, timezone, hostname, feed_id, footer_credit_enabled, widget_allowed_origins, mail_from_address, created_at, updated_at) SELECT 'default', 'RER_RECIPE_NAME', 'RER_RECIPE_TAGLINE', '#112233', 'Australia/Brisbane', 'page.recipe.invalid', lower(hex(randomblob(16))), 1, '[]', 'mail@recipe.invalid', 'RER_RECIPE_TIMESTAMP', 'RER_RECIPE_TIMESTAMP' WHERE NOT EXISTS (SELECT 1 FROM page_settings WHERE id = 'default');"

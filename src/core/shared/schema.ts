@@ -202,6 +202,8 @@ export const maintenance = sqliteTable("maintenance", {
   id: text().primaryKey(),
   reference: text().notNull().unique(),
   title: text().notNull(),
+  affectedAudience: text("affected_audience"),
+  customerImpact: text("customer_impact"),
   state: text({ enum: ["Scheduled", "In progress", "Completed", "Cancelled"] }).$type<MaintenanceState>().notNull(),
   startsAt: text("starts_at").notNull(),
   endsAt: text("ends_at").notNull(),

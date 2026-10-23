@@ -102,7 +102,7 @@ export async function componentNotificationFlow({ fixture, component, subscriber
   const lampPreferences = new URLSearchParams({ componentId: component.id, webhookFormat: "lamp", preferencesPresent: "1", eventKind: "components" });
   assert.equal((await raw(lampManageUrl, { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded", Origin: new URL(lampManageUrl).origin }, body: lampPreferences.toString() })).status, 200);
   await choose(["incidents", "maintenance", "components"]);
-  const maintenance = await post("/api/app/maintenance", { title: "Synthetic Lamp component claimant", startsAt: new Date(Date.now() + 3_600_000).toISOString(), endsAt: new Date(Date.now() + 7_200_000).toISOString(), componentIds: [component.id], autoStart: false, autoComplete: false });
+  const maintenance = await post("/api/app/maintenance", { affectedAudience: "Customers using the scheduled service.", customerImpact: "Requests may be interrupted during this maintenance window.", title: "Synthetic Lamp component claimant", startsAt: new Date(Date.now() + 3_600_000).toISOString(), endsAt: new Date(Date.now() + 7_200_000).toISOString(), componentIds: [component.id], autoStart: false, autoComplete: false });
   assert.equal(maintenance.status, 201, maintenance.text);
   await flush(4, 2);
   assert.equal((await post(`/api/app/maintenance/${maintenance.body.maintenance.id}/start`)).status, 200);
