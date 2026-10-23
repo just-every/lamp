@@ -2,6 +2,8 @@
 
 ## 1.11.0 (unreleased)
 
+**Accessibility reporting (PAGE-020, partial).** This release includes a VPAT® 2.5 Rev 508 report at `/docs/accessibility/vpat` on the app host. The release validator requires its version and Section 508/WCAG conformance tables. The report distinguishes measured browser journeys from unmeasured criteria and surfaces; private pages remain with AUD-002. The public-footer link awaits the owner UI pass.
+
 **The next-update promise (AGENT-002).** Within the update-due lead, Lamp prepares one private “Still working on it” draft when no saved draft exists. Preparation uses the existing brief without a model: it restates the latest published impact and cites newer accepted evidence, or says that nothing has changed. A private composer panel keeps the complete cited evidence. The owner’s due email links to that draft; unowned incidents retain the all-operator reminder rule. Preparation never publishes, replaces an operator draft, changes the promised time or queues subscriber notices. An unpublished draft leaves the commitment overdue.
 
 **Report follow-up (AUTO-004, partial).** Owed reports remind the communication owner by email on the due day and once each following week; an unowned report reminds every active operator. Publishing a report or waiving it with a reason stops reminders. Waivers are recorded atomically in the audit log, remove the report from the owing list and still allow a report to be written later. Operator-chat reminders remain with NOTIFY-016.

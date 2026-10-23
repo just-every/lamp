@@ -137,6 +137,12 @@
           "title": "Changelog",
           "source": "CHANGELOG.md",
           "summary": "Read what changed in Lamp releases and their upgrade notes."
+        },
+        {
+          "slug": "accessibility/vpat",
+          "title": "Accessibility (VPAT)",
+          "source": "docs/accessibility/vpat.md",
+          "summary": "Measured accessibility coverage and remaining evaluation limits for this release."
         }
       ]
     }

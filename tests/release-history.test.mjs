@@ -19,7 +19,7 @@ const record = (version, previousVersion, contractChanges, migrations) => ({
   agentUpdateInstructions: "Preserve existing owner data and apply the listed migrations.",
 });
 
-test("release CLI validates a three-release delta chain and rejects missing history, migrations and guarantees", async () => {
+test("release CLI validates release history and PAGE-020 VPAT inventory, tables and version", async () => {
   const directory = await mkdtemp(join(root, ".release-history-test-"));
   const env = {};
   const seed = JSON.parse(await readFile(join(root, "seed.json"), "utf8"));
@@ -37,7 +37,9 @@ test("release CLI validates a three-release delta chain and rejects missing hist
   };
   const baseline = async () => {
     await rm(directory, { recursive: true, force: true });
-    for (const path of ["schema", "release-history", "migrations/core"]) await mkdir(join(directory, path), { recursive: true });
+    for (const path of ["schema", "release-history", "migrations/core", "docs/accessibility"]) await mkdir(join(directory, path), { recursive: true });
+    const requiredTables = ["Chapter 3 Functional Performance Criteria", "WCAG 2.x Level A", "WCAG 2.x Level AA", "Chapter 5 Software", "Chapter 6 Support Documentation"];
+    await writeFile(join(directory, "docs/accessibility/vpat.md"), "# Fixture Accessibility Conformance Report\n\nProduct version: 2.2.0\n\n" + requiredTables.map(heading => `## ${heading}\n\n| Criterion | Conformance Level | Remarks and Explanations |\n| --- | --- | --- |\n| Fixture criterion | Partially Supports | Fixture evaluation has limited coverage. |\n`).join("\n"));
     for (const [name, text] of schemas) await writeFile(join(directory, `schema/${name}.schema.json`), text);
     await json("seed.json", { ...seed, version: "2.2.0" });
     await json("package.json", { version: "2.2.0" });
@@ -57,6 +59,10 @@ test("release CLI validates a three-release delta chain and rejects missing hist
   };
   const firstRelease = () => json("RELEASE.json", record("2.2.0", undefined, releaseContractChanges(currentContract), ["0001_initial.sql", "0002_confirmations.sql", "0003_audit.sql"]));
   const scenarios = [
+    ["missing PAGE-020 VPAT", () => rm(join(directory, "docs/accessibility/vpat.md"))],
+    ["wrong PAGE-020 VPAT version", () => rewrite("docs/accessibility/vpat.md", "Product version: 2.2.0", "Product version: 2.1.0")],
+    ...["Chapter 3 Functional Performance Criteria", "WCAG 2.x Level A", "WCAG 2.x Level AA", "Chapter 5 Software", "Chapter 6 Support Documentation"].map(heading => [`missing ${heading} table`, () => rewrite("docs/accessibility/vpat.md", `## ${heading}\n`, `## Missing table\n`)]),
+
     ["missing old migration", () => rm(join(directory, "migrations/core/0001_initial.sql"))],
     ["missing current migration declaration", () => modify("RELEASE.json", (r) => { r.migrations = []; })],
     ["missing ancestor record", () => rm(join(directory, "release-history/2.0.0.json"))],
