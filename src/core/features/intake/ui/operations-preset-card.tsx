@@ -27,6 +27,8 @@ export function OperationsPresetCard({ sources, onSaved }: { sources: AlertSourc
   const [apiToken, setApiToken] = useState("");
   const [host, setHost] = useState("https://api.opsgenie.com");
   const [apiKey, setApiKey] = useState("");
+  const [savedSources, setSavedSources] = useState<AlertSourceEndpointView[]>([]);
+  const sourceData = [...new Map([...sources, ...savedSources].map(source => [source.id, source])).values()];
   const [saved, setSaved] = useState<AlertSourceEndpointView | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -73,7 +75,10 @@ export function OperationsPresetCard({ sources, onSaved }: { sources: AlertSourc
         method: editing ? "PUT" : "POST",
         body: JSON.stringify({ name: name.trim() || `${tool} alerts`, preset, credentialKind: "bearer-token", labelMatchers, closeAlertOnResolve, ...(token.trim() ? { bearerToken: token } : {}), ...(operationsCredentials ? { operationsCredentials } : {}) }),
       });
-      setSaved(result.source); setEditing(result.source.id); setToken(""); setConnecting(false); clearCredentials(); onSaved();
+      setSaved(result.source); setEditing(result.source.id); setToken(""); setConnecting(false); clearCredentials();
+      // Keep the canonical save response here: refreshing the parent unmounts
+      // this form and would discard the one-time generated authorization header.
+      setSavedSources(current => [...current.filter(source => source.id !== result.source.id), result.source]);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : `The ${tool} source could not be saved.`);
     } finally { setSaving(false); }
@@ -121,6 +126,6 @@ export function OperationsPresetCard({ sources, onSaved }: { sources: AlertSourc
       {saved.token && <><p><strong>Copy this authorization header now. The generated token is shown only once.</strong></p><label className="form-label">{tool} authorization header<input readOnly autoComplete="off" value={`Authorization: Bearer ${saved.token}`} onFocus={event => event.target.select()} /></label></>}
     </div>}
     <div className="preset-created"><p>In the tool's outgoing Webhook integration, enable Create, Acknowledge, AddNote, Escalate, and Close. Send the alert payload with its alertId and configured tags or entity. Set the custom header name to <code>Authorization</code> and its value to <code>Bearer</code> followed by a space and your token.</p><p>Alerts stay private until an operator publishes. Close records recovery; an already published incident still needs an operator's resolution update. API credentials are optional and only enable outbound publication notes and the selected close behavior.</p></div>
-    {sources.filter(source => isOperationsPreset(source.preset)).map(source => <OperationsSourceCard key={source.id} source={source} disabled={saving} onEdit={() => edit(source)} onReconnect={() => edit(source, true)} onErased={() => { if (editing === source.id) reset(); onSaved(); }} />)}
+    {sourceData.filter(source => isOperationsPreset(source.preset)).map(source => <OperationsSourceCard key={source.id} source={source} disabled={saving} onEdit={() => edit(source)} onReconnect={() => edit(source, true)} onErased={() => { setSavedSources(current => current.filter(row => row.id !== source.id)); if (editing === source.id) reset(); onSaved(); }} />)}
   </section>;
 }

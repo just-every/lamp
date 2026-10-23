@@ -64,6 +64,8 @@ export async function operationsBrowserFlow({ api, component, origin, cookie, ru
         await card.getByText('Not connected', { exact: true }).waitFor();
         const source = (await api('/api/app/intake/sources')).body.sources.find(row => row.name === name);
         assert.ok(source && source.webhookConnected);
+        const header = await editor.getByLabel(`${tool} authorization header`, { exact: true }).inputValue();
+        assert.ok(header.startsWith('Authorization: Bearer ') && header.length > 'Authorization: Bearer '.length, 'the owner can copy the generated inbound credential once');
         await capture(width, `${preset}-disconnected`, card);
         await connect(preset, source, width);
         sources.push({ preset, source, width });
