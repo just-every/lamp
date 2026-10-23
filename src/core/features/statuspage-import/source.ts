@@ -7,7 +7,7 @@ import type { SourceArtifact, SourceRecord } from "../../../../modules/import-ki
  * from https://api.statuspage.io/v1, named `<resource>.json` or
  * `<resource>-<page>.json`. The API-key path saves exactly these files. */
 export const namespace = "statuspage";
-export const importLimits = { maxBytes: 8 * 1024 * 1024, maxRecords: 5000, maxRecordBytes: 512 * 1024, files: 200 };
+export const importLimits = { maxBytes: 8 * 1024 * 1024, maxRecords: 30_000, maxSubscriberRecords:25_000, maxOtherRecords:5_000, maxCsvRows:5_000, maxRecordBytes: 512 * 1024, files: 200 };
 export const resources = ["component-groups", "components", "incidents", "incidents-scheduled", "subscribers", "incident-templates", "incident-template-groups"] as const;
 export type Resource = (typeof resources)[number];
 export type SavedFile = { name: string; text: string };
@@ -130,7 +130,8 @@ export async function readSavedResponses(files: SavedFile[]): Promise<ReadSource
       }
     }
   }
-  if (records.length > importLimits.maxRecords) throw new Error(`Import limit: ${importLimits.maxRecords} source records.`);
+  if(data.subscribers.length>importLimits.maxSubscriberRecords)throw new Error(`Import limit: ${importLimits.maxSubscriberRecords} subscriber records.`);
+  if(records.length-data.subscribers.length>importLimits.maxOtherRecords)throw new Error(`Import limit: ${importLimits.maxOtherRecords} other source records.`);
   return { records, artifacts, data, origins };
 }
 

@@ -12,7 +12,7 @@ function records(csv:string):string[][] {
     row.push(field);
     if(new TextEncoder().encode(input.slice(recordStart,end)).byteLength>importLimits.maxRecordBytes) throw new SubscriberIntakeError("A CSV record exceeds 512 KiB.");
     rows.push(row);row=[];field="";closed=false;
-    if(rows.length>importLimits.maxRecords+1) throw new SubscriberIntakeError("The CSV exceeds 5000 subscriber rows.");
+    if(rows.length>importLimits.maxCsvRows+1) throw new SubscriberIntakeError("The CSV exceeds 5000 subscriber rows.");
   };
   for(let index=0;index<input.length;index++) {
     const char=input[index]!;
