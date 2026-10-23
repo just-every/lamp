@@ -1,4 +1,5 @@
 import { preparedDraftFlow } from "./helpers/prepared-draft-flow.mjs";
+import { followUpsFlow } from "./helpers/follow-ups-flow.mjs";
 import { chromium } from "playwright";
 import { communicationOwnerFlow } from "./helpers/communication-owner-flow.mjs";
 import { execFileSync } from 'node:child_process';
@@ -66,7 +67,7 @@ before(async () => {
 
 after(async () => { await runtime?.close(); });
 
-contract("INCIDENT-010", "INCIDENT-011 AGENT-002 owner reminders, cited automatic drafts, takeover, escalation and unowned incidents follow the original commitment", async () => {
+contract("INCIDENT-010", "INCIDENT-011 AGENT-002 AUTO-003 owner reminders, durable follow-ups, reasoned failure dismissal and Queue recovery follow the original commitment", async () => {
   const committed = Date.now() + minutes(60);
   const incident = await openIncident("Sign-in latency", new Date(committed).toISOString());
   const owner = (await api("/api/app/session")).body.operator;
@@ -170,6 +171,7 @@ contract("INCIDENT-010", "INCIDENT-011 AGENT-002 owner reminders, cited automati
   await trigger(committed + minutes(115));
   await trigger(committed + minutes(125));
   assert.deepEqual(await reminders(incident.reference), { dueSoon: 1, overdue: 0 });
+  await followUpsFlow();
 });
 
 contract("INCIDENT-010", "AGENT-002 an existing operator draft remains untouched while its original commitment becomes overdue", async () => {

@@ -2,6 +2,7 @@ import { CommunicationPerformance } from "../../communication-performance/ui/com
 import { Link } from "@tanstack/react-router";
 
 import { LiveStrip } from "./live-strip";
+import { FollowUps } from "./follow-ups";
 import { IncidentOwnerLabel } from "./incident-owner-label";
 import type { OverviewService } from "../service";
 import { ClientExtensionSlot } from "../../../app/client/extensions";
@@ -71,6 +72,7 @@ export function OverviewPage() {
         {upcoming.length ? <><div className="compact-records">{upcoming.map((item) => <div key={item.id}><strong className="record-ref">{item.reference}</strong><span>{item.title}</span><small>{item.state} · {formatOperatorTime(item.startsAt)}</small></div>)}</div><Link className="text-link" to="/app/maintenance">View maintenance <Icon name="arrow" width={15} height={15} /></Link></> : <EmptyState icon="maintenance">No upcoming maintenance.<br /><Button asChild className="overview-empty-action"><Link to="/app/maintenance" hash="schedule-maintenance">Schedule maintenance</Link></Button></EmptyState>}
       </article>
     </section>
+    <FollowUps />
     <CommunicationPerformance />
     <ClientExtensionSlot id="overview.dashboard.after.v1" context={{}} />
   </div>;
