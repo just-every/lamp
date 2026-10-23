@@ -6140,7 +6140,7 @@
       "executable": false
     },
     "tests/e2e/publishing-browser.test.mjs": {
-      "sha256": "c142f11633b08c41c98fdfa277953e3ec9cb778f8086fccb20d3f9770b8b9234",
+      "sha256": "656aa596617a6cae29a4d94bd77931fe69f03f9ed3658879e282b2e1e906318f",
       "executable": false
     },
     "tests/e2e/publishing-contract.test.mjs": {

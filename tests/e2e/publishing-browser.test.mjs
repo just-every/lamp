@@ -665,7 +665,10 @@ contract("DRAFT-002", "Settings autosaves survive navigation and reload, keep fe
       await page.getByLabel("Page name", { exact: true }).fill(offlineName);
       await page.evaluate(() => history.back());
       await page.getByRole("button", { name: "Retry", exact: true }).waitFor();
-      assert.equal(new URL(page.url()).pathname, "/app/settings", "a Back refused offline keeps Settings open");
+      // Still offline once the page settles, so a reload over Settings would fail here.
+      await page.waitForTimeout(500);
+      assert.equal(await page.locator(".settings-page").count(), 1, "a Back refused offline keeps Settings open");
+      assert.equal(new URL(page.url()).pathname, "/app/settings", "a Back refused offline keeps Settings at its address");
       assert.equal(await page.getByLabel("Page name", { exact: true }).inputValue(), offlineName);
       await inView(page.locator(".settings-save-state [role=alert]")); await inView(page.getByRole("button", { name: "Retry", exact: true }));
     } finally { await page.context().setOffline(false); }
