@@ -4672,7 +4672,7 @@
       "executable": false
     },
     "src/core/features/subscribers/service.ts": {
-      "sha256": "a6ebb46a350e404e3cc8d2a179f4dae004eec0af172986e2596b2dbdf09f2034",
+      "sha256": "b7d5fd4f637893e990aac316f83dbb922b899de765c2601f9a43cbf48ccc2856",
       "executable": false
     },
     "src/core/features/subscribers/tokens.ts": {
@@ -4697,6 +4697,10 @@
     },
     "src/core/features/subscribers/ui/subscribers-page.tsx": {
       "sha256": "6354331f7341b0b2e098b0e0dd1a0656e544c13103a89028f686914da949b801",
+      "executable": false
+    },
+    "src/core/features/subscribers/ui/webhook-format-field.ts": {
+      "sha256": "2cf6371596cdf4ea81448ae6b7da53465cf44bb1e9ba5d7b118cc5f22c8b3d56",
       "executable": false
     },
     "src/core/features/subscribers/ui/webhook-format.tsx": {
