@@ -17,7 +17,7 @@ export function AddSubscriber({ onChanged }: { onChanged: () => void }) {
     try {
       const input = channel === "email" ? { channel, email, componentIds } : { channel, destination, contactEmail: email, componentIds };
       const response = await appApi<{ created: boolean; confirmationSent: boolean }>("/api/app/subscribers", { method: "POST", body: JSON.stringify(input) });
-      setResult(response.created ? "Subscriber added as pending. One confirmation invitation was sent." : response.confirmationSent ? "One confirmation invitation was sent to the pending subscriber." : "This subscriber already exists. Their subscription was preserved and no invitation was sent.");
+      setResult(response.created ? response.confirmationSent ? "Subscriber added as pending. One confirmation invitation was sent." : "Subscriber added as pending. A recent confirmation to this contact prevented another invitation." : response.confirmationSent ? "One confirmation invitation was sent to the pending subscriber." : "This subscriber already exists. Their subscription was preserved and no invitation was sent.");
       setEmail(""); setDestination(""); setComponentIds([]); onChanged();
     } catch (cause) { setError(cause instanceof Error ? cause.message : "The subscriber could not be added."); }
     finally { setPending(false); }

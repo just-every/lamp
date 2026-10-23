@@ -48,7 +48,7 @@ export function SubscribersPage() {
             <td role="cell" data-label="Channel">{subscriber.channel}</td>
             <td role="cell" data-label="State"><div><span className={`state-pill state-${subscriber.state}`}>{subscriber.state}</span>{subscriber.deactivationReason && <small>{subscriber.deactivationReason}{subscriber.deactivatedAt ? ` · ${formatOperatorTime(subscriber.deactivatedAt)}` : ""}</small>}</div></td>
             <td role="cell" data-label="Selection">{subscriber.selectionMode === "all" ? "All components" : `${subscriber.componentSelections.length} selected component${subscriber.componentSelections.length === 1 ? "" : "s"}`}</td>
-            <td role="cell" data-label="Joined">{formatOperatorTime(subscriber.createdAt)}{subscriber.addedBy ? <small>Added by {subscriber.addedBy.displayName}</small> : null}</td>
+            <td role="cell" data-label="Joined"><div>{formatOperatorTime(subscriber.createdAt)}{subscriber.addedBy ? <small>Added by {subscriber.addedBy.displayName}</small> : null}</div></td>
             <td role="cell" className="subscriber-actions">{subscriber.deactivationReason !== "deleted by operator" && <Button type="button" variant="secondary" className="table-action" disabled={saving} onClick={() => removeSubscriber(subscriber.id, subscriber.destination)}>Remove</Button>}</td>
           </tr>)}</tbody>
         </table>
