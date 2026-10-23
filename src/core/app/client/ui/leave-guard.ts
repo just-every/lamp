@@ -17,8 +17,8 @@ export function useLeaveGuard(leave: () => Promise<boolean>, unsaved: () => bool
 }
 
 /** The browser history the router hears, told only when the page moves to another entry. A Back held by the guard above
- * is undone by TanStack's history, which still notifies with the same entry; hearing it, the router would reload /app
- * over the held page (offline, its error page in place of the form) and restore an older scroll over the refusal. */
+ * is undone by TanStack's history, which still notifies with the same entry; hearing it, the router would load that
+ * entry again and restore an older scroll over the refusal. */
 export function leaveGuardHistory(): RouterHistory {
   const history = createBrowserHistory();
   const subscribe = history.subscribe;
