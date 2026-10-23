@@ -1,3 +1,4 @@
+import { formatTime } from "../public-snapshot/format";
 import { createChatSubscriptionRepository } from "../subscribers/chat.repository";
 import { createChatEventRepository } from "./subscriber-events.repository";
 import { parsePublishedComponentChanges } from "../../shared/incident-component-changes";
@@ -107,8 +108,8 @@ export function createChannelsService(db: D1Database, options: { effectsPaused?:
       }
       for(const event of await chatEvents.pending(limit)){
         const fields=event.kind==='component'
-          ? [`${event.componentName}: ${event.previousState} → ${event.newState}`,`Changed: ${event.changedAt}`,`Claimant: ${event.claimantKind}`]
-          : [`${event.reference}: ${event.title}`,`Maintenance: ${event.noticeKind}`,event.noticeBody ?? '',`Published: ${event.publishedAt}`];
+          ? [`${event.componentName}: ${event.previousState} → ${event.newState}`,`Changed: ${formatTime(event.changedAt!,event.timezone)} (${event.changedAt})`,`Claimant: ${event.claimantKind}`]
+          : [`${event.reference}: ${event.title}`,`Maintenance: ${event.noticeKind}`,event.noticeBody ?? '',`Published: ${formatTime(event.publishedAt!,event.timezone)} (${event.publishedAt})`];
         await delivery.enqueue({id:event.id,tenant:NAMESPACE,destinationId:event.subscriberId,event:event.kind==='component'?'component.changed':'maintenance.notice',
           protocol:event.channelKind==='slack'?SLACK_WEBHOOK_PROTOCOL:TEAMS_WEBHOOK_PROTOCOL,
           body:event.channelKind==='slack'?JSON.stringify(renderLampSlackMessage(fields[0]!,fields)):teamsTestCard(fields.join('\n\n'))});

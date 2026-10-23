@@ -22,7 +22,7 @@ async function proveScreen(page, name, errors) {
   }
 }
 
-export async function prepareTeamsSubscription({ componentId, publicOrigin, received, sql }) {
+export async function prepareTeamsSubscription({ componentId, publicOrigin, received, sql, onManage }) {
   const refused = await fetch(`${publicOrigin}/subscribe/teams`, {
     method: 'POST', headers: { 'content-type': 'application/x-www-form-urlencoded', accept: 'text/html', 'CF-Connecting-IP': '192.0.2.15' },
     body: new URLSearchParams({ url: 'https://help.example.com/teams-webhook', componentId }),
@@ -63,6 +63,7 @@ export async function prepareTeamsSubscription({ componentId, publicOrigin, rece
     await page.getByRole('button', { name: 'Confirm subscription', exact: true }).click();
     assert.equal((await activated).status(), 200);
     await page.getByRole('heading', { name: 'Subscription confirmed', exact: true }).waitFor();
+    if(onManage)await onManage(new URL(await page.getByRole('link',{name:'Manage this subscription',exact:true}).getAttribute('href'),publicOrigin).href);
     await proveScreen(page, 'confirmed', errors);
     assert.equal((await sql("SELECT state FROM subscribers WHERE channel='teams'")).at(-1).state, 'active', 'the channel visitor confirms before activation');
     const stored = JSON.stringify(await sql("SELECT destination, sealed_url FROM subscribers JOIN subscriber_chat_destinations ON subscriber_id=subscribers.id WHERE subscribers.channel='teams'"));
