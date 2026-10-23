@@ -61,5 +61,5 @@ function MaintenanceRow({ item, refresh, onError }: { item: NonNullable<Maintena
 }
 
 function MaintenanceWordingFields({ affectedAudience, customerImpact, onAudience, onImpact, disabled, required }: { affectedAudience: string; customerImpact: string; onAudience: (value: string) => void; onImpact: (value: string) => void; disabled: boolean; required: boolean }) {
-  return <><label className="form-label">Affected audience<textarea required={required} maxLength={250} rows={2} disabled={disabled} value={affectedAudience} onChange={event => onAudience(event.target.value)} /></label><label className="form-label">Customer impact<textarea required={required} maxLength={250} rows={2} disabled={disabled} value={customerImpact} onChange={event => onImpact(event.target.value)} /></label></>;
+  return <><label className="form-label">Affected audience<textarea aria-label="Affected audience" required={required} maxLength={250} rows={2} disabled={disabled} value={affectedAudience} onChange={event => onAudience(event.target.value)} /></label><label className="form-label">Customer impact<textarea aria-label="Customer impact" required={required} maxLength={250} rows={2} disabled={disabled} value={customerImpact} onChange={event => onImpact(event.target.value)} /></label></>;
 }
