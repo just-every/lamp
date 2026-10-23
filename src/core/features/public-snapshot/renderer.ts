@@ -1,3 +1,4 @@
+import { renderMaintenanceCalendar } from "./maintenance-calendar";
 import { publicMasthead } from "./page-chrome";
 import { effectiveTemplate, renderTemplatePage, templateArtifacts } from "./templates/index";
 import { publicUpdate } from "./public-update";
@@ -117,7 +118,7 @@ function footerResources(model: PublicSnapshotModel) {
     const resources = publicComponentResources(component);
     return `<li>${escapeHtml(component.name)}: <a href="${resources.atom}">Atom</a> · <a href="${resources.rss}">RSS</a> · <a href="${resources.badge}">Status badge</a> · <a href="${resources.uptime}">Uptime badge</a></li>`;
   }).join("");
-  return `<details class="footer-resources"><summary>Feeds and badges</summary><p><a href="/feed.atom">Atom feed</a> · <a href="/feed.rss">RSS feed</a> · <a href="/badge.svg">Status badge</a></p>${components ? `<ul>${components}</ul>` : ""}</details>`;
+  return `<details class="footer-resources"><summary>Feeds and badges</summary><p><a href="/feed.atom">Atom feed</a> · <a href="/feed.rss">RSS feed</a> · <a href="/maintenance.ics">Maintenance calendar</a> · <a data-lamp-vpat href="/docs/accessibility/vpat">Accessibility (VPAT)</a> · <a href="/badge.svg">Status badge</a></p>${components ? `<ul>${components}</ul>` : ""}</details>`;
 }
 
 function pageShell(title: string, body: string, model: ReturnType<typeof toPublicModel>, slots: LampServerSlots, current: "root" | "history" | "other") {
@@ -238,6 +239,7 @@ export function renderPublicSnapshot(source: PublicSnapshotSource, generatedAt =
   const artifacts: SnapshotArtifact[] = [
     { key: "page.html", body: renderPage(model, slots), contentType: "text/html; charset=utf-8" },
     ...feeds,
+    { key: "maintenance.ics", body: renderMaintenanceCalendar(model), contentType: "text/calendar; charset=utf-8" },
     ...renderBadges(model),
     ...renderPublicApi(model, source),
     { key: "widget.js", body: renderWidget(statusPayload(model), model.settings), contentType: "application/javascript; charset=utf-8" },

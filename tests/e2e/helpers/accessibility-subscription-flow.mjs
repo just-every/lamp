@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { createHmac } from "node:crypto";
+import { mkdir } from "node:fs/promises";
 import { AxeBuilder } from "@axe-core/playwright";
 import { expect } from "@playwright/test";
 
@@ -26,6 +27,29 @@ async function tabTo(page, target, label) {
     if (await target.evaluate(node => document.activeElement === node)) { await assertVisibleFocus(target, label); return; }
   }
   assert.fail(`${label}: ordinary Tab order did not reach the control`);
+}
+
+/** Public footer links remain usable at the caller's desktop or phone width. */
+export async function footerAccessibilityResourcesFlow({ page, appUrl, pageUrl, width }) {
+  const resources = page.locator('footer details.footer-resources');
+  await resources.locator('summary').click();
+  const calendar = resources.getByRole('link', { name: 'Maintenance calendar', exact: true });
+  await expect(calendar).toHaveAttribute('href', '/maintenance.ics');
+  const calendarResponse = await page.request.get(new URL(await calendar.getAttribute('href'), pageUrl).href);
+  assert.equal(calendarResponse.status(), 200);
+  assert.match(calendarResponse.headers()['content-type'], /^text\/calendar/);
+  const vpat = resources.getByRole('link', { name: 'Accessibility (VPAT)', exact: true });
+  await expect(vpat).toHaveAttribute('href', `${appUrl}/docs/accessibility/vpat`);
+  if (process.env.LAMP_SCREENSHOTS) {
+    await mkdir(process.env.LAMP_SCREENSHOTS, { recursive: true });
+    await resources.scrollIntoViewIfNeeded();
+    await page.locator('footer').screenshot({ path: `${process.env.LAMP_SCREENSHOTS}/${width}-public-footer.png` });
+  }
+  await vpat.click();
+  await page.waitForURL(`${appUrl}/docs/accessibility/vpat`);
+  await page.getByRole('heading', { level: 1 }).first().waitFor();
+  await audit(page, `${width}px VPAT reached from the public footer`);
+  await page.goto(`${pageUrl}/`);
 }
 
 /** Real public HTML forms, driven only with Tab, text keys, Space and Enter.
@@ -60,6 +84,7 @@ export async function accessibilitySubscriptionFlow({ page, appUrl, pageUrl, inc
       await audit(page, `${width}px public maintenance permalink`);
 
       await page.goto(`${pageUrl}/`);
+      await footerAccessibilityResourcesFlow({ page, appUrl, pageUrl, width });
       const form = page.locator('form[action="/subscribe"]').first();
       const email = form.getByRole("textbox", { name: "Email address", exact: true });
       await email.waitFor();

@@ -124,6 +124,9 @@ function installedSignIn(response: Response, context: Context<AppEnv>) {
         });
       },
     })
+    .on("footer a[data-lamp-vpat]", {
+      element(element) { element.setAttribute("href", new URL("/docs/accessibility/vpat", target).href); },
+    })
     .on("footer a[data-lamp-signin]", {
       element(element) {
         if (signInSeen) return void element.remove();
@@ -235,6 +238,7 @@ export function registerPublicSnapshotRoutes(app: Hono<AppEnv>, service: PublicS
   app.get("/history/:month", serve(context => /^\d{4}-(?:0[1-9]|1[0-2])$/.test(context.req.param("month") ?? "") ? `history/${context.req.param("month")}.html` : "history/invalid.html", false, "not-found.html"));
   app.get("/history", serve(() => "history.html"));
   app.get("/incidents/:reference", serve((context) => `incidents/${encodeURIComponent(context.req.param("reference") ?? "")}.html`, false, "not-found.html"));
+  app.get("/maintenance.ics", serve(() => "maintenance.ics"));
   app.get("/feed.atom", serve(() => "feed.atom"));
   app.get("/feed.rss", serve(() => "feed.rss"));
   app.get("/history.atom", serve(() => "history.atom"));

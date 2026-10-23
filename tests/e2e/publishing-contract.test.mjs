@@ -1,3 +1,4 @@
+import { maintenanceCalendarFlow } from "./helpers/maintenance-calendar-flow.mjs";
 import { availabilityReportFlow } from "./helpers/availability-report-flow.mjs";
 import { communicationPerformanceFlow } from "./helpers/communication-performance-flow.mjs";
 import { incidentImpactFlow } from "./helpers/incident-impact-flow.mjs";
@@ -257,7 +258,7 @@ before(async () => {
   execFileSync("pnpm", ["exec", "wrangler", "d1", "migrations", "apply", "DB", "--local", "--config", "wrangler.jsonc", "--persist-to", testStatePath], { cwd: process.cwd(), stdio: "pipe" });
   // Configure this fixture before the Worker builds its initial public snapshot.
   sessionId = await insertRealOperatorSession({ persistTo: testStatePath });
-  server = spawn("pnpm", ["exec", "vite", "--configLoader", "native", "--host", "0.0.0.0", "--port", String(testPort), "--strictPort"], { cwd: process.cwd(), stdio: "pipe", detached: true, env: { ...process.env, LAMP_WORKERS_STATE_PATH: testStatePath, LAMP_VITE_CACHE_DIR: testViteCachePath, LAMP_DISABLE_INSPECTOR: "true" } });
+  server = spawn(process.execPath, [fileURLToPath(new URL("../../node_modules/vite/bin/vite.js", import.meta.url)), "--configLoader", "native", "--host", "0.0.0.0", "--port", String(testPort), "--strictPort"], { cwd: process.cwd(), stdio: "pipe", detached: true, env: { ...process.env, LAMP_WORKERS_STATE_PATH: testStatePath, LAMP_VITE_CACHE_DIR: testViteCachePath, LAMP_DISABLE_INSPECTOR: "true" } });
   server.stdout.on("data", (chunk) => { serverOutput += chunk; });
   server.stderr.on("data", (chunk) => { serverOutput += chunk; });
   await waitForWorker({ origin: appUrl, child: server, output: () => `${serverOutput}\nState: ${testStatePath}`, label: "Publishing-contract Worker" });
@@ -864,7 +865,7 @@ test("INTAKE-001 INTAKE-002 INTAKE-003 INTAKE-004 INTAKE-005 — Authenticated m
 
 
 
-test("MAINT-009 MAINT-002 MAINT-001 MAINT-003 MAINT-004 MAINT-005 MAINT-006 — Per-window automation, scheduled transitions, notices, extension and cancellation", async t => {
+test("MAINT-007 MAINT-009 MAINT-002 MAINT-001 MAINT-003 MAINT-004 MAINT-005 MAINT-006 — Per-window automation, scheduled transitions, notices, extension and cancellation", async t => {
   t.diagnostic("MAINT-002 — the Worker scheduled event starts and completes a recorded maintenance without an operator mutation");
   await (async () => {
   const componentId = "01J00000000000000000000011";
@@ -1083,6 +1084,7 @@ test("MAINT-009 MAINT-002 MAINT-001 MAINT-003 MAINT-004 MAINT-005 MAINT-006 — 
   const withReminder = (await (await appFetch("/api/app/maintenance")).json()).maintenance.find((record) => record.id === maintenance.id);
   assert.equal(withReminder.notices.some((notice) => notice.kind === "reminder"), true);
 })(t);
+  await maintenanceCalendarFlow({ appFetch, pageUrl, eventually, componentId: "01J00000000000000000000011" });
   t.diagnostic("MAINT-006 — rescheduling and cancellation create notices and retain a cancelled maintenance record");
   await (async () => {
   const created = await appFetch("/api/app/maintenance", { method: "POST", body: JSON.stringify({ title: "Reschedule and cancel", startsAt: new Date(Date.now() + 3 * 60 * 60_000).toISOString(), endsAt: new Date(Date.now() + 4 * 60 * 60_000).toISOString(), componentIds: ["01J00000000000000000000011"] }) });

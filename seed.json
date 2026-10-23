@@ -609,6 +609,7 @@
       "/maintenance/",
       "/history.atom",
       "/feed.atom",
+      "/maintenance.ics",
       "/widget.js",
       "/api/public/status",
       "/assets/",
