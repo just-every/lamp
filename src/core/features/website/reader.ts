@@ -1,5 +1,6 @@
 import { readSite } from "../../platform/site-reader/index.ts";
 import type { SiteReadOptions } from "../../platform/site-reader/types.ts";
+import { captureStatusFeeds, type StatusFeedVendor } from "../../platform/status-feeds/index.ts";
 import { readStatusPage } from "./status-page-reader";
 
 function readerOptions(devSiteOrigin: string | undefined): SiteReadOptions {
@@ -26,4 +27,10 @@ export function websiteReader(devSiteOrigin: string | undefined) {
 export function statusPageReader(devSiteOrigin: string | undefined) {
   const options = readerOptions(devSiteOrigin);
   return (url: string) => readStatusPage(url, options);
+}
+
+/** A found status page's public feeds as they are, for Move in to bring its history across: the same guard and stand-in. */
+export function statusFeedCapture(devSiteOrigin: string | undefined) {
+  const options = readerOptions(devSiteOrigin);
+  return (vendor: StatusFeedVendor, url: string) => captureStatusFeeds(url, vendor, options);
 }

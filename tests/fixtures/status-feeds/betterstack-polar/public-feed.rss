@@ -1,0 +1,253 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Status updates | Polar</title>
+    <description>Incidents and maintenance reported on status page for Polar</description>
+    <link>https://status.polar.sh/</link>
+    <image>
+      <url>https://d1lppblt9t2x15.cloudfront.net/logos/b5bc7443cdbf8e3be0707b7a9f40a50e.png</url>
+      <title>Status updates | Polar</title>
+      <link>https://status.polar.sh/</link>
+    </image>
+    <language>en</language>
+    <atom:link rel="self" type="application/rss+xml" href="https://status.polar.sh/feed"/>
+    <item>
+      <title>Maintenance: Database maintenance</title>
+      <link>https://status.polar.sh/maintenance/1094801</link>
+      <pubDate>Thu, 22 Oct 2026 04:14:46 -0000</pubDate>
+      <guid isPermaLink="false">https://status.polar.sh/incident/1094801#ef278d082cbd7684ffef1cfdc0bdf80d8cfa76cf38e125fe223615d144683369</guid>
+      <category>Maintenance</category>
+      <description>Maintenance completed</description>
+    </item>
+    <item>
+      <title>Maintenance: Database maintenance</title>
+      <link>https://status.polar.sh/maintenance/1094801</link>
+      <pubDate>Thu, 22 Oct 2026 04:14:46 -0000</pubDate>
+      <guid isPermaLink="false">https://status.polar.sh/incident/1094801#156533224f7e39f75256359d191d41ee36b307494cd4e14ab0c99255d2f4b2d9</guid>
+      <category>Maintenance</category>
+      <description>Maintenance is completed and everything is up and running again.</description>
+    </item>
+    <item>
+      <title>Maintenance: Database maintenance</title>
+      <link>https://status.polar.sh/maintenance/1094801</link>
+      <pubDate>Mon, 19 Oct 2026 16:16:45 -0000</pubDate>
+      <guid isPermaLink="false">https://status.polar.sh/incident/1094801#f8309a1d0af75eb30663ba273b74b66a0ce6ca93da155a62b69e25a9705ad4d2</guid>
+      <category>Maintenance</category>
+      <description>Polar will be completely unavailable for a few minutes while the work is carried out. What to expect during the maintenance window:
+
+ - Checkouts: New checkouts can't be created during maintenance. Customers attempting to check out will need to try again once service is restored.
+ - Event ingestion: Events sent during this window won't be ingested. Please make sure any failed ingestion requests are retried once we're back up.
+ - Background processes: Subscription renewals, dunning, and other scheduled jobs will resume automatically once everything is up and running</description>
+    </item>
+    <item>
+      <title>Event ingestion degraded </title>
+      <link>https://status.polar.sh/incident/1089148</link>
+      <pubDate>Tue, 13 Oct 2026 14:33:42 -0000</pubDate>
+      <guid isPermaLink="false">https://status.polar.sh/incident/1089148#523370df2be06441adfe86f694c1e1d5c1b21d55a253800c235eca87578fab2b</guid>
+      <category>Incident</category>
+      <description>The issue is resolved and all resources are operating properly</description>
+    </item>
+    <item>
+      <title>Event ingestion degraded </title>
+      <link>https://status.polar.sh/incident/1089148</link>
+      <pubDate>Tue, 13 Oct 2026 14:29:00 -0000</pubDate>
+      <guid isPermaLink="false">https://status.polar.sh/incident/1089148#81776d71dec053e08445bef50861e4ec624cea9c1e0e3400cc6d25457d90ca7d</guid>
+      <category>Incident</category>
+      <description>We are currently seeing degrading of event ingestions. The team is investigating.</description>
+    </item>
+    <item>
+      <title>API is unreachable</title>
+      <link>https://status.polar.sh/incident/933127</link>
+      <pubDate>Wed, 24 Jun 2026 08:00:00 -0000</pubDate>
+      <guid isPermaLink="false">https://status.polar.sh/incident/933127#a4d8686f2fa8e7b0422b96187a495371db88f7071884686f52b61a90cd3e1bfb</guid>
+      <category>Incident</category>
+      <description>Root cause was a FastAPI + OpenTelemetry incompatibility on the latest 0.137 version. We're investigating how this slipped through our rigorous deployment checks.</description>
+    </item>
+    <item>
+      <title>API is unreachable</title>
+      <link>https://status.polar.sh/incident/933127</link>
+      <pubDate>Wed, 24 Jun 2026 07:36:00 -0000</pubDate>
+      <guid isPermaLink="false">https://status.polar.sh/incident/933127#e4dd804075bff43ee427d7af6609b18ab27fdd2f02333a6ef65fdc531ecac575</guid>
+      <category>Incident</category>
+      <description>Everything is back to normal</description>
+    </item>
+    <item>
+      <title>API is unreachable</title>
+      <link>https://status.polar.sh/incident/933127</link>
+      <pubDate>Wed, 24 Jun 2026 07:13:00 -0000</pubDate>
+      <guid isPermaLink="false">https://status.polar.sh/incident/933127#aaa550109e0f6ddfdae0083573c7c76b5712d4e526dd51f15e73015fa75e5a36</guid>
+      <category>Incident</category>
+      <description>Our API is currently unreachable, a fix is underway.</description>
+    </item>
+    <item>
+      <title>Dashboard can be slower</title>
+      <link>https://status.polar.sh/incident/922075</link>
+      <pubDate>Fri, 12 Jun 2026 16:30:00 -0000</pubDate>
+      <guid isPermaLink="false">https://status.polar.sh/incident/922075#38ee4f173787bd6f2303ef878de4f58a58e51499d54abd1fc93a2979055090c3</guid>
+      <category>Incident</category>
+      <description>Everything is back to normal.</description>
+    </item>
+    <item>
+      <title>Our database is currently unavailable</title>
+      <link>https://status.polar.sh/incident/922011</link>
+      <pubDate>Fri, 12 Jun 2026 16:30:00 -0000</pubDate>
+      <guid isPermaLink="false">https://status.polar.sh/incident/922011#d07975bb107a518a4d99166418ffd1a68c376f14fbfd57ba7ceb099be81177a1</guid>
+      <category>Incident</category>
+      <description>Our deepest apologies for the downtime today between 13:17 and 14:18 UTC. 
+
+Tens of thousands of businesses trust Polar with their billing, and an incident like this should not happen. We'll publish a full post-mortem in the coming days and take actions to make sure it does not happen again. In the meantime, here's exactly what happened.
+
+We rotate secrets frequently as a security policy. Today we rotated our database credentials – but a flaw in our config, where the credentials were tied to the database's Terraform resource, caused Terraform to trigger a full resource replacement. Our production database was replaced. It took us an hour to restore and bring everything back.
+
+Was any data lost? No. We run point-in-time recovery with remote backups, hosted on Render with enterprise support. We immediately began a PIT recovery, replaying WAL up to the moment before the Terraform change applied. Recovery completed at 14:16 UTC; we confirmed full data integrity and brought infrastructure back online at 14:18 UTC.
+
+A few edge cases we're reconciling now – none involve lost data:
+
+ - Our API stayed up for ~50s after the latest point in time recovery point and kept accepting event ingestion (which we double-write into Tinybird). A few hundred events landed there; we're going to replay them.
+ - We received 3 Stripe webhooks for in-flight transactions as we went down. We're resolving these and reaching out to the affected customers directly.
+ - After restore, our webhook worker was properly restarted to point to the recovered database. That's fixed; it's catching up now, so webhook delivery is delayed but recovering.
+
+Polar is fully operational. The only residual effect was delayed webhook delivery while the worker catched up, which it has now. No action is required on your end.
+
+Our post-mortem will detail the full timeline and the guardrails we're adding so this class of failure can't recur, and we’re truly sorry it happened in the first place.</description>
+    </item>
+    <item>
+      <title>Dashboard can be slower</title>
+      <link>https://status.polar.sh/incident/922075</link>
+      <pubDate>Fri, 12 Jun 2026 14:26:00 -0000</pubDate>
+      <guid isPermaLink="false">https://status.polar.sh/incident/922075#b4f23e59dda6f0bbb262ad52aa23bbcaf6c41943d4056e33782f8d5f6310024d</guid>
+      <category>Incident</category>
+      <description>Some parts of the merchant dashboard may be slower or fail to load as a consequence of our recent database issues.
+
+We've noticed that this is leading to slower processing and webhook delivery too.
+
+We're working to resolve this soon.</description>
+    </item>
+    <item>
+      <title>Our database is currently unavailable</title>
+      <link>https://status.polar.sh/incident/922011</link>
+      <pubDate>Fri, 12 Jun 2026 14:17:00 -0000</pubDate>
+      <guid isPermaLink="false">https://status.polar.sh/incident/922011#87ae78b50550ddfffc14819a3a7e49e26e799c753a4c4b98b4ae785d5be60414</guid>
+      <category>Incident</category>
+      <description>Everything should be back to normal.</description>
+    </item>
+    <item>
+      <title>Our database is currently unavailable</title>
+      <link>https://status.polar.sh/incident/922011</link>
+      <pubDate>Fri, 12 Jun 2026 13:25:00 -0000</pubDate>
+      <guid isPermaLink="false">https://status.polar.sh/incident/922011#fd42d35d34912db1c43e11b2dfa277e5a85fc07084c619e8bf40efe403137624</guid>
+      <category>Incident</category>
+      <description>We're having trouble connecting to our database. We're investigating the issue.</description>
+    </item>
+    <item>
+      <title>All services are unavailable</title>
+      <link>https://status.polar.sh/incident/889817</link>
+      <pubDate>Thu, 07 May 2026 02:45:00 -0000</pubDate>
+      <guid isPermaLink="false">https://status.polar.sh/incident/889817#77248d46a3e709c7af047f40603bd989ea62c08b161ec84529f60050826a7746</guid>
+      <category>Incident</category>
+      <description>Everything is up and running again.</description>
+    </item>
+    <item>
+      <title>All services are unavailable</title>
+      <link>https://status.polar.sh/incident/889817</link>
+      <pubDate>Thu, 07 May 2026 02:35:00 -0000</pubDate>
+      <guid isPermaLink="false">https://status.polar.sh/incident/889817#dd2ed4d1a81426f87397d5605fc2cf979298407db2b921901b49f28aca6c7a57</guid>
+      <category>Incident</category>
+      <description>The upstream issue with our database provider has been resolved. We're now working with them to bring everything back up.</description>
+    </item>
+    <item>
+      <title>All services are unavailable</title>
+      <link>https://status.polar.sh/incident/889817</link>
+      <pubDate>Thu, 07 May 2026 02:22:00 -0000</pubDate>
+      <guid isPermaLink="false">https://status.polar.sh/incident/889817#1c9add33981fd7218b7f4120bc2a04480540894f9e06038ec0f22edf0be3f93a</guid>
+      <category>Incident</category>
+      <description>Our database provider has notified us that they've identified the root cause and are implementing a fix</description>
+    </item>
+    <item>
+      <title>All services are unavailable</title>
+      <link>https://status.polar.sh/incident/889817</link>
+      <pubDate>Thu, 07 May 2026 02:10:00 -0000</pubDate>
+      <guid isPermaLink="false">https://status.polar.sh/incident/889817#421a9255f928ffcedaa9d33665cb774263ba3f88e620a41ea4bd65416c5a872a</guid>
+      <category>Incident</category>
+      <description>Due to issues with our database provider, all services are currently unavailable. We're working with them to get this resolved as quickly as possible. We're sorry for the inconvenience.</description>
+    </item>
+    <item>
+      <title>Login on the sandbox dashboard is temporarily suspended</title>
+      <link>https://status.polar.sh/incident/883023</link>
+      <pubDate>Wed, 29 Apr 2026 08:16:00 -0000</pubDate>
+      <guid isPermaLink="false">https://status.polar.sh/incident/883023#bbc6cc1bb527fe070a141e13c024d121b58666ef32fb5a75f9a3d4096a484a59</guid>
+      <category>Incident</category>
+      <description>Login is working correctly in the sandbox again.</description>
+    </item>
+    <item>
+      <title>Certain tasks are delayed in their processing</title>
+      <link>https://status.polar.sh/incident/878916</link>
+      <pubDate>Fri, 24 Apr 2026 13:07:00 -0000</pubDate>
+      <guid isPermaLink="false">https://status.polar.sh/incident/878916#46ee41bf4922b5bfbcde4aacc5695e0cf0daff6785d3fc986a79c001d4e00684</guid>
+      <category>Incident</category>
+      <description>Tasks are being processed timely again.</description>
+    </item>
+    <item>
+      <title>Ingested events are not showing up</title>
+      <link>https://status.polar.sh/incident/878320</link>
+      <pubDate>Thu, 23 Apr 2026 17:31:00 -0000</pubDate>
+      <guid isPermaLink="false">https://status.polar.sh/incident/878320#5abbf8b228c5c3c9bff8eb36f726fb7eef38c84af2b9353fc66f7a9e9b8887d2</guid>
+      <category>Incident</category>
+      <description>System events are now showing up again.</description>
+    </item>
+    <item>
+      <title>Timeouts on the events ingestion</title>
+      <link>https://status.polar.sh/incident/877148</link>
+      <pubDate>Wed, 22 Apr 2026 09:52:00 -0000</pubDate>
+      <guid isPermaLink="false">https://status.polar.sh/incident/877148#03957e669b9941198d02567d501161aed961099d9fdaf6fafaf09a265945ec20</guid>
+      <category>Incident</category>
+      <description>Event ingestion working as expected again</description>
+    </item>
+    <item>
+      <title>Issue in tax calculations for some jurisdictions</title>
+      <link>https://status.polar.sh/incident/872049</link>
+      <pubDate>Wed, 15 Apr 2026 13:00:00 -0000</pubDate>
+      <guid isPermaLink="false">https://status.polar.sh/incident/872049#14525dd178269ada242c2426dfa6ffb600b4d83db708862e9e55e4b55c3fcf50</guid>
+      <category>Incident</category>
+      <description>Checkout links are functional but are returning 0 tax rate.</description>
+    </item>
+    <item>
+      <title>Degraded performance</title>
+      <link>https://status.polar.sh/incident/746927</link>
+      <pubDate>Mon, 20 Oct 2025 12:16:00 -0000</pubDate>
+      <guid isPermaLink="false">https://status.polar.sh/incident/746927#3bb347904ce0632fd7ca1cf71f3547de130e1b4889d5e19c712c91a612d30dcf</guid>
+      <category>Incident</category>
+      <description>Downstream issues appear to have been resolved or mitigated. We're still monitoring the issue until AWS &amp; Vercel declare the issue fully resolved on their end.</description>
+    </item>
+    <item>
+      <title>Degraded performance</title>
+      <link>https://status.polar.sh/incident/746927</link>
+      <pubDate>Mon, 20 Oct 2025 08:16:00 -0000</pubDate>
+      <guid isPermaLink="false">https://status.polar.sh/incident/746927#f02b475ff84feca826188f8f575771035510dd0e88a8d67c18225696db3e3437</guid>
+      <category>Incident</category>
+      <description>We're seeing degraded performance of our dashboard &amp; checkout flows due to issues at our downstream hosting providers (Vercel &amp; AWS).
+
+Webhooks and payment processing are not affected.</description>
+    </item>
+    <item>
+      <title>Maintenance: Database maintenance</title>
+      <link>https://status.polar.sh/maintenance/713970</link>
+      <pubDate>Thu, 28 Aug 2025 06:28:01 -0000</pubDate>
+      <guid isPermaLink="false">https://status.polar.sh/incident/713970#0418249e14c250dfb873fc1636a51ebb40a789abfc41cd3b6da095367ee43f1b</guid>
+      <category>Maintenance</category>
+      <description>We wanted to let you know that **Polar will undergo scheduled maintenance on Thursday, September 11th, 2025, at [07:00 AM UTC](https://www.inyourowntime.zone/2025-09-11_07.00_UTC)**.
+
+The maintenance window will last approximately **5 minutes**, during which the platform may be temporarily unavailable.
+
+This short downtime will allow us to improve the resiliency and performance of Polar as we continue to grow and serve you better.</description>
+    </item>
+    <item>
+      <title>Maintenance: Database Maintenance</title>
+      <link>https://status.polar.sh/maintenance/516068</link>
+      <pubDate>Thu, 20 Feb 2025 10:00:00 -0000</pubDate>
+      <guid isPermaLink="false">https://status.polar.sh/incident/516068#45afa6499f61e0432c8a7e7824fdc5080c02fe5c1c3bc78619eb99bda1cac83a</guid>
+      <category>Maintenance</category>
+      <description>Our underlying cloud hosting provider performed storage maintenance for all of their databases. Downtime lasted 2min during this maintenance window.</description>
+    </item>
+  </channel>
+</rss>

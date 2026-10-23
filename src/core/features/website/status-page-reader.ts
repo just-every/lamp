@@ -1,6 +1,7 @@
 import { checkedUrl, dohResolver, guardedFetch, type GuardedFetchContext } from "../../platform/site-reader/fetch.ts";
-import { scanHtml } from "../../platform/site-reader/html.ts";
+import { decodeEntities, scanHtml } from "../../platform/site-reader/html.ts";
 import type { SiteReadOptions } from "../../platform/site-reader/types.ts";
+import { readStatusFeeds, type StatusFeedPage } from "../../platform/status-feeds/index.ts";
 import type { WebsiteStatusPage } from "./repository";
 
 function providerHost(host: string): WebsiteStatusPage["source"] {
@@ -12,18 +13,28 @@ function providerHost(host: string): WebsiteStatusPage["source"] {
   return null;
 }
 
-/** Optional public discovery only. It never authenticates or imports page content. */
-export async function readStatusPage(input: string, options: SiteReadOptions = {}): Promise<WebsiteStatusPage> {
+/** The page found, and for a Statuspage, Instatus or Better Stack page what its own public feeds say: its
+ * components, groups and past incidents. `homepage` is where its logo links, the business's own site as a Statuspage
+ * or Instatus page gives it. */
+export interface StatusPageRead { page: WebsiteStatusPage; feeds: StatusFeedPage | null; homepage: string | null }
+
+// The link around a page's logo: Statuspage's logo container, Instatus's header logo.
+const LOGO_LINK = /\bclass\s*=\s*["'][^"']*\b(?:logo-container|large-header__logo)\b[^"']*["'][^>]*>\s*<a\b[^>]*?\bhref\s*=\s*["']([^"']+)["']/i;
+
+/** Public discovery only. It never authenticates and imports nothing; Move in imports. */
+export async function readStatusPage(input: string, options: SiteReadOptions = {}): Promise<StatusPageRead> {
   const detected: WebsiteStatusPage = { url: input, source: null, pageId: null };
   const transport = options.fetch ?? fetch;
+  const budget = options.timeoutMs ?? 8000, deadline = Date.now() + budget;
   const context: GuardedFetchContext = {
     fetch: (url, init) => transport(url, init),
     resolve: options.resolve ?? dohResolver(),
-    signal: AbortSignal.timeout(options.timeoutMs ?? 6000),
+    signal: AbortSignal.timeout(budget),
     maxRedirects: options.maxRedirects ?? 5,
   };
+  let feeds: StatusFeedPage | null = null, homepage: string | null = null;
   try {
-    const landing = await guardedFetch(checkedUrl(input), "text/html,application/xhtml+xml", 500_000, false, context);
+    const landing = await guardedFetch(checkedUrl(input), "text/html,application/xhtml+xml", 1_500_000, true, context);
     detected.url = landing.url.href;
     detected.source = providerHost(landing.url.hostname);
     if (/html|xml/i.test(landing.contentType)) {
@@ -46,25 +57,20 @@ export async function readStatusPage(input: string, options: SiteReadOptions = {
         try { const asset = new URL(href, landing.url); return asset.hostname === "dka575ofm4ao0.cloudfront.net" && asset.pathname.startsWith("/assets/"); }
         catch { return false; }
       })) detected.source = "statuspage";
+      const logo = html.match(LOGO_LINK)?.[1];
+      if (logo) {
+        try {
+          const target = new URL(decodeEntities(logo), landing.url);
+          if (/^https?:$/.test(target.protocol)) homepage = target.href;
+        } catch { /* An invalid logo link names no site. */ }
+      }
     }
-    if (detected.source !== "statuspage" && detected.source !== "betterstack") return detected;
-    const summary = await guardedFetch(new URL(detected.source === "betterstack" ? "/index.json" : "/api/v2/summary.json", landing.url), "application/json", 1_000_000, false, context);
-    const value: unknown = JSON.parse(new TextDecoder().decode(summary.bytes));
-    if (!value || typeof value !== "object") return detected;
-    if (detected.source === "betterstack") {
-      const data = (value as { data?: { type?: unknown; id?: unknown; attributes?: { custom_domain?: unknown; subdomain?: unknown } } }).data;
-      const domain = data?.attributes?.custom_domain;
-      const subdomain = data?.attributes?.subdomain;
-      const matchesPage = domain === landing.url.hostname || (typeof subdomain === "string" && `${subdomain}.betteruptime.com` === landing.url.hostname);
-      if (data?.type === "status_page" && typeof data.id === "string" && /^\d{1,40}$/.test(data.id) && matchesPage) detected.pageId = data.id;
-      return detected;
-    }
-    const body = value as { page?: { id?: unknown }; status?: { indicator?: unknown }; components?: unknown; incidents?: unknown; scheduled_maintenances?: unknown };
-    if (typeof body.page?.id === "string" && /^[a-z0-9]{6,32}$/.test(body.page.id)
-      && typeof body.status?.indicator === "string" && Array.isArray(body.components)
-      && Array.isArray(body.incidents) && Array.isArray(body.scheduled_maintenances)) {
-      detected.pageId = body.page.id;
+    const source = detected.source;
+    if (source === "statuspage" || source === "instatus" || source === "betterstack") {
+      const read = await readStatusFeeds(landing.url.href, source, { ...options, fetch: context.fetch, resolve: context.resolve, timeoutMs: Math.max(1, deadline - Date.now()) });
+      feeds = read?.page ?? null;
+      detected.pageId = feeds?.pageId ?? null;
     }
   } catch { /* Keep the linked address when the optional public metadata cannot be read. */ }
-  return detected;
+  return { page: detected, feeds, homepage };
 }

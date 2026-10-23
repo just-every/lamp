@@ -242,7 +242,7 @@
     {
       "id": "owner-website-reader",
       "required": false,
-      "why": "SETUP-002, at the owner's request: read the supplied public website, its declared manifest and mark, and its linked public status page to retain migration metadata. Page IDs are read only from an identified Statuspage provider's public /api/v2/summary.json or Better Stack's public /index.json. Public DNS-over-HTTPS at cloudflare-dns.com validates every destination and redirect; private addresses are refused. No source key is used and no public history is imported.",
+      "why": "SETUP-002, at the owner's request: read the supplied public website, its declared manifest and mark, and its public status page, the one it links to or one answering at status.<its domain>. An identified Statuspage, Instatus or Better Stack page's own public feeds (Statuspage /api/v2/summary.json and /api/v2/incidents.json; Instatus /summary.json, /v2/components.json and /history.atom; Better Stack /index.json and /feed) give its components, groups, page ID and past incidents; only when the owner chooses Bring its incident history too are they read once more and imported through Move in, as MOVE-002's silent history. Public DNS-over-HTTPS at cloudflare-dns.com validates every destination and redirect; private addresses are refused. No source key is used.",
       "data": [
         "Owner-supplied website URL and linked public resource URLs",
         "Destination hostnames for public DNS resolution"

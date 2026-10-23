@@ -1,6 +1,7 @@
 export { readBetterStack } from '../../src/core/features/statuspage-import/betterstack/read';
 export { fetchBetterStack } from '../../src/core/features/statuspage-import/betterstack/fetch';
 export { mapSource } from '../../src/core/features/statuspage-import/rows';
+export { sourceAdapters } from '../../src/core/features/statuspage-import/adapters';
 export { createSnapshotRepository } from '../../src/core/features/public-snapshot/repository';
 export { renderPublicSnapshot } from '../../src/core/features/public-snapshot/renderer';
 export { createPageSettingsRepository } from '../../src/core/features/page-settings/repository';

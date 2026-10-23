@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { readdirSync, readFileSync } from 'node:fs';
 import { load } from '../operator-readiness/runtime.mjs';
-const { readBetterStack, fetchBetterStack, mapSource } = await load('tests/betterstack/reader-adapter.ts');
+const { readBetterStack, fetchBetterStack, mapSource, sourceAdapters } = await load('tests/betterstack/reader-adapter.ts');
 export const fixture = family => readdirSync(`tests/fixtures/betterstack/${family}`).map(name => ({name,text:readFileSync(`tests/fixtures/betterstack/${family}/${name}`,'utf8')}));
 const edit = (files,name,change) => { const file=files.find(file=>file.name===name);const raw=JSON.parse(file.text);change(raw);file.text=JSON.stringify(raw);return files; };
 
@@ -97,4 +97,28 @@ test("Better Stack source history remains complete and fixed-origin requests fai
   for(const next of ['https://evil.example/sections?page=2','https://incidents.betterstack.com/api/v2/status-pages/999/sections?page=2','https://incidents.betterstack.com/api/v2/status-pages/32001/status-reports/foreign/status-updates?page=2']) await assert.rejects(()=>fetchBetterStack({pageId:'32001',apiKey:'synthetic-token-only',fetcher:async input=>new Response(new URL(input).pathname.endsWith('/32001')?pageText:JSON.stringify({data:[],pagination:{next}}))}),/fixed API origin/);
 
 })(t);
+  t.diagnostic("a keyless capture of a real Better Stack page's public feeds (Polar, Val Town) brings its past reports as resolved, silent history, with only the components the owner kept");
+  await (async()=>{
+  const feeds=folder=>readdirSync(`tests/fixtures/status-feeds/${folder}`).filter(name=>name.startsWith('public-')).map(name=>({name,text:readFileSync(`tests/fixtures/status-feeds/${folder}/${name}`,'utf8')}));
+  const snapshot=()=>({maxGroupOrder:-1,maxComponentOrder:-1,lastReference:{INC:0,SCH:0},allocated:new Set(),references:new Map(),orders:new Map(),destinations:new Map()});
+  const asOf='2026-10-22T10:00:00.000Z';
+  const polar=await sourceAdapters.betterstack.read(feeds('betterstack-polar'),{publicUrl:'https://status.polar.sh/'});
+  assert.deepEqual([polar.data.groups.map(group=>group.name),polar.data.components.length,polar.data.incidents.length,polar.data.maintenance.length,polar.data.subscribers.length],[['Production','Sandbox'],12,11,0,0],'no key and no acknowledgement: the public page shows only what is public, and no subscriber');
+  const mapped=mapSource(polar.data,snapshot(),'operator',asOf,'betterstack');
+  const incidents=mapped.filter(row=>row.kind==='incident').map(row=>row.value.tables);
+  assert.ok(incidents.every(tables=>tables.incidents[0].lifecycle==='Resolved'&&tables.incidents[0].resolved_at&&tables.incident_updates.every(update=>update.is_retroactive===1)),'resolved history, never active');
+  assert.deepEqual(incidents.filter(tables=>tables.incident_components.length).map(tables=>tables.incidents[0].title),['Event ingestion degraded'],'only a report the page still shows states its resources\' states');
+  assert.ok(mapped.every(row=>Object.keys(row.value?.tables??{}).every(table=>!/subscriber|deliver|notification/.test(table))),'nothing is queued for anyone');
+  assert.equal(mapped.filter(row=>row.kind==='component'&&row.value.tables.components[0].created_at===asOf).length,11,'a component no feed dates begins with the import');
+  assert.deepEqual(polar.publicAddresses['incident:1089148'],['https://status.polar.sh/incident/1089148'],'a report\'s old address is the one its feed gives');
+  const valtown=await sourceAdapters.betterstack.read(feeds('betterstack-valtown'),{publicUrl:'https://status.val.town/',components:[{id:'8415197',name:'Website'},{id:'8444611',name:'HTTP (Preview)'}]});
+  assert.deepEqual([valtown.data.groups,valtown.data.components.map(component=>component.name)],[[],['Website','HTTP (Preview)']],'one section is no group; the owner\'s choice and names stand');
+  assert.deepEqual([valtown.data.incidents.length,valtown.accounting.filter(row=>row.outcome==='skipped'&&/left out/.test(row.reason)).length],[56,21],'reports about the components left out stay out');
+  assert.ok(valtown.accounting.every(row=>valtown.origins.has(`${row.kind}:${row.sourceId}`)&&valtown.records.some(record=>record.kind===row.kind&&record.sourceId===row.sourceId)),'each report left out keeps its source record, for the dry run to name');
+  const named=mapSource(valtown.data,snapshot(),'operator',asOf,'betterstack').find(row=>row.kind==='incident'&&row.sourceId==='427245');
+  assert.deepEqual([named.value.tables.incidents[0].title,named.value.tables.incident_components.length,named.value.tables.incident_updates[0].affected_audience],['Val Town Website is down',0,'Customers using Website'],'a feed-only report names its resource from its title, without inventing a state');
+  await assert.rejects(async()=>sourceAdapters.betterstack.read(feeds('betterstack-polar').filter(file=>file.name!=='public-feed.rss'),{publicUrl:'https://status.polar.sh/'}),/history did not answer/);
+  await assert.rejects(async()=>sourceAdapters.betterstack.read([{name:'public-index.json',text:'{"data":{"type":"other"}}'},{name:'public-feed.rss',text:'<rss></rss>'}],{publicUrl:'https://status.polar.sh/'}),/not Better Stack public feeds/);
+  await assert.rejects(async()=>sourceAdapters.betterstack.read(feeds('betterstack-polar'),{}),/public status page/);
+  })();
 });

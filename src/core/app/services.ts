@@ -17,7 +17,7 @@ import { createIntakeRepository, createIntakeService } from "../features/intake"
 import { createMaintenanceRepository, createMaintenanceService } from "../features/maintenance";
 import { createOverviewRepository } from "../features/overview/repository";
 import { createLiveStatusService } from "../features/overview/live-status";
-import { createWebsiteRepository, createWebsiteService, websiteReader, statusPageReader } from "../features/website";
+import { createWebsiteRepository, createWebsiteService, websiteReader, statusPageReader, statusFeedCapture } from "../features/website";
 import { notificationOrigin } from "./mail";
 import { outboundUnavailable } from "./hosting";
 import { createOverviewService } from "../features/overview";
@@ -169,10 +169,12 @@ export function createAppServices(bindings: AppBindings, blobs: BlobStore, execu
     sender: { local: local && bindings.RER_DEMO !== '1', demo: bindings.RER_DEMO === '1', provider: bindings.MAIL_PROVIDER ?? "resend", apiKey: bindings.MAIL_PROVIDER_API_KEY, mail },
   }));
 
+  const devSiteOrigin = import.meta.env?.DEV && bindings.LAMP_DEV_SITE_ORIGIN?.startsWith("http://127.0.0.1:") ? bindings.LAMP_DEV_SITE_ORIGIN : undefined;
+  const readingUnavailable = outboundUnavailable(bindings, "Reading your website");
   const website = createWebsiteService(createWebsiteRepository(bindings.DB), {
-    read: websiteReader(import.meta.env?.DEV && bindings.LAMP_DEV_SITE_ORIGIN?.startsWith("http://127.0.0.1:") ? bindings.LAMP_DEV_SITE_ORIGIN : undefined),
-    readStatusPage: statusPageReader(import.meta.env?.DEV && bindings.LAMP_DEV_SITE_ORIGIN?.startsWith("http://127.0.0.1:") ? bindings.LAMP_DEV_SITE_ORIGIN : undefined),
-    unavailable: outboundUnavailable(bindings, "Reading your website") ? "Lamp can't read websites on Managed hosting yet. Fill in the rest below." : null,
+    read: websiteReader(devSiteOrigin),
+    readStatusPage: statusPageReader(devSiteOrigin),
+    unavailable: readingUnavailable ? "Lamp can't read websites on Managed hosting yet. Fill in the rest below." : null,
   });
 
   // Imported subscribers each get one confirmation invite; past incidents notify no one.
@@ -181,7 +183,11 @@ export function createAppServices(bindings: AppBindings, blobs: BlobStore, execu
     publicOrigin: importPublicOrigin,
     inviteSubscriber: async (subscriberId, claimSend) => subscribers.inviteImported(subscriberId, await importPublicOrigin(), (await pageSettings.get())?.pageName ?? "This status page", claimSend),
     publicDataChanged: () => publicSnapshots.rebuild(true),
-  }, { apiOrigin: import.meta.env?.DEV && bindings.LAMP_DEV_STATUSPAGE_ORIGIN?.startsWith("http://127.0.0.1:") ? bindings.LAMP_DEV_STATUSPAGE_ORIGIN : undefined });
+  }, {
+    apiOrigin: import.meta.env?.DEV && bindings.LAMP_DEV_STATUSPAGE_ORIGIN?.startsWith("http://127.0.0.1:") ? bindings.LAMP_DEV_STATUSPAGE_ORIGIN : undefined,
+    // The status page setup found, read keyless with the website reader's guard, where reading websites is allowed.
+    capturePublicFeeds: readingUnavailable ? undefined : statusFeedCapture(devSiteOrigin),
+  });
 
   // Subscribers a restore could not vouch for get the same one confirmation as a move-in import's.
   const pageExport = createPageExportService(createPageExportRepository(bindings.DB), blobs, {

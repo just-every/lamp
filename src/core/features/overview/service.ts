@@ -11,8 +11,9 @@ export interface OverviewService {
     activeIncidents: Awaited<ReturnType<IncidentsService["list"]>>;
     maintenance: Awaited<ReturnType<MaintenanceService["list"]>>;
   }>;
-  /** First run: add the components the owner kept, skipping names that already exist, then store completion. */
-  finishFirstRun(operatorId: string, componentNames: string[]): Promise<void>;
+  /** First run: add the groups and components the owner kept, skipping any a group (or the ungrouped list) already
+   * holds by name, then store completion. Groups that share a name stay separate groups. */
+  finishFirstRun(operatorId: string, layout: { components: string[]; groups?: Array<{ name: string; components: string[] }> }): Promise<void>;
 }
 
 export function createOverviewService(
@@ -37,15 +38,30 @@ export function createOverviewService(
         maintenance,
       };
     },
-    async finishFirstRun(operatorId, componentNames) {
-      const existing = await componentsService.list();
-      const taken = new Set(existing.map((component) => component.name.trim().toLowerCase()));
-      let displayOrder = existing.length;
-      for (const name of componentNames.map((value) => value.trim()).filter(Boolean)) {
-        if (taken.has(name.toLowerCase())) continue;
-        taken.add(name.toLowerCase());
-        await componentsService.create({ groupId: null, name, description: "", internal: false, displayOrder: displayOrder++, note: "" }, operatorId);
+    async finishFirstRun(operatorId, layout) {
+      const [existing, groups] = await Promise.all([componentsService.list(), componentsService.listGroups()]);
+      const key = (groupId: string | null, name: string) => `${groupId ?? ""}\n${name.trim().toLowerCase()}`;
+      const taken = new Set(existing.map((component) => key(component.groupId, component.name)));
+      let displayOrder = existing.length, groupOrder = Math.max(-1, ...groups.map((group) => group.displayOrder)) + 1;
+      const add = async (names: string[], groupId: string | null) => {
+        for (const name of names.map((value) => value.trim()).filter(Boolean)) {
+          if (taken.has(key(groupId, name))) continue;
+          taken.add(key(groupId, name));
+          await componentsService.create({ groupId, name, description: "", internal: false, displayOrder: displayOrder++, note: "" }, operatorId);
+        }
+      };
+      const named = groups.map(({ id, name }) => ({ id, name }));
+      const claimed = new Set<string>();
+      for (const group of layout.groups ?? []) {
+        if (!group.components.some((name) => name.trim())) continue;
+        // A group of that name an import brought takes the rest of its components, once: another group of the same
+        // name is a group of its own, never the same one.
+        let target = named.find((candidate) => !claimed.has(candidate.id) && candidate.name.trim().toLowerCase() === group.name.trim().toLowerCase());
+        if (!target) { target = await componentsService.createGroup({ name: group.name.trim(), displayOrder: groupOrder++ }); named.push(target); }
+        claimed.add(target.id);
+        await add(group.components, target.id);
       }
+      await add(layout.components, null);
       await live.completeFirstRun();
     },
   };

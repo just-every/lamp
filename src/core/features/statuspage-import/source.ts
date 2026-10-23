@@ -45,7 +45,13 @@ export type SourceIncident = Omit<z.infer<z.ZodObject<typeof shapes.incident>>, 
 export type SourceSubscriber = z.infer<z.ZodObject<typeof shapes.subscriber>>;
 export type SourceTemplate = z.infer<z.ZodObject<typeof shapes.template>>;
 export type SourceTemplateGroup = z.infer<z.ZodObject<typeof shapes.templateGroup>>;
-export interface SourceData { templates?: SourceTemplate[]; templateGroups?: SourceTemplateGroup[]; groups: SourceGroup[]; components: SourceComponent[]; incidents: SourceIncident[]; maintenance: SourceIncident[]; subscribers: SourceSubscriber[] }
+export interface SourceData {
+  templates?: SourceTemplate[]; templateGroups?: SourceTemplateGroup[]; groups: SourceGroup[]; components: SourceComponent[]; incidents: SourceIncident[]; maintenance: SourceIncident[]; subscribers: SourceSubscriber[];
+  /** Read from the page's public feeds: an incident's listed components state nothing themselves, so only an update's
+   * explicit states make claims, and an incident with none stays history that names its listed components. A component
+   * with an empty created_at began, as far as Lamp knows, with the import. */
+  publicFeed?: true;
+}
 export interface ReadSource { namespace?: string; accounting?: import("./rows").Accounting[]; publicAddresses?: Record<string, string[]>; sourceInfo?: { label: string; pageId: string; publicUrl: string }; records: SourceRecord[]; artifacts: SourceArtifact[]; data: SourceData; origins: Map<string, SourceArtifact> }
 
 const fileName = /^(component-groups|components|incidents-scheduled|incidents|subscribers|incident-templates|incident-template-groups)(?:-(\d{1,3}))?\.json$/u;

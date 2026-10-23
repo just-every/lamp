@@ -113,6 +113,10 @@ test('Lamp checks its own page, subscribe form and sender: real D1 facts, no loc
     // First run keeps the owner's components once each and stores completion.
     assert.equal((await firstRun(JSON.stringify({ components: ['API', 'Dashboard', 'api'] }))).status, 200);
     assert.deepEqual((await services.components.list()).map(component => component.name), ['API', 'Dashboard']);
+    // Two groups of the page a business already runs may share a name: each stays its own group, with its own components.
+    assert.equal((await firstRun(JSON.stringify({ components: [], groups: [{ name: 'Shared', components: ['One', 'Two'] }, { name: 'Shared', components: ['One', 'Three'] }] }))).status, 200);
+    const shared = (await services.components.list()).filter(component => component.groupName === 'Shared');
+    assert.deepEqual([new Set(shared.map(component => component.groupId)).size, shared.map(component => component.name).sort()], [2, ['One', 'One', 'Three', 'Two']]);
     assert.equal(await live.firstRunComplete(), true);
     // Managed credentials allow submission only. Retained unsupported-check
     // failures must not turn that capability limit into an owner warning.

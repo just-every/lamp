@@ -1,5 +1,9 @@
 import { normaliseWebsite, isPublicAddress, type SiteRead, type SiteReadResult } from "../../platform/site-reader/index.ts";
-import type { WebsiteRecord, WebsiteRepository, WebsiteStatusPage } from "./repository";
+import { siteDomain } from "../../platform/site-reader/domain.ts";
+import type { WebsiteRecord, WebsiteRepository } from "./repository";
+import { existingPageFrom, type ExistingStatusPage } from "./existing-page.ts";
+import { namesSite } from "./names-site.ts";
+import type { StatusPageRead } from "./status-page-reader";
 
 /** What Lamp fills in from a website. Only what the site gave; the owner edits any of it. */
 export interface WebsitePrefill {
@@ -12,6 +16,9 @@ export interface WebsitePrefill {
   mark: { url: string; contentType: string; dataUrl: string } | null;
   components: { name: string; url: string }[];
   statusPage: string | null;
+  /** The status page the business already runs, as its own public feeds describe it: its components and groups
+   * take the place of the ones read from the site's navigation. */
+  existingPage: ExistingStatusPage | null;
 }
 
 export type WebsiteReadResponse = { found: WebsitePrefill } | { found: null; message: string; pageName?: string };
@@ -45,10 +52,11 @@ export function prefillFrom(site: SiteRead): WebsitePrefill {
     mark: site.icon ? { url: site.icon.url, contentType: site.icon.contentType, dataUrl: site.icon.dataUrl } : null,
     components: site.components,
     statusPage: site.statusPage?.url ?? null,
+    existingPage: null,
   };
 }
 
-export function createWebsiteService(repository: WebsiteRepository, options: { read: (input: string) => Promise<SiteReadResult>; readStatusPage: (url: string) => Promise<WebsiteStatusPage>; unavailable: string | null }): WebsiteService {
+export function createWebsiteService(repository: WebsiteRepository, options: { read: (input: string) => Promise<SiteReadResult>; readStatusPage: (url: string) => Promise<StatusPageRead>; unavailable: string | null }): WebsiteService {
   return {
     current: () => repository.get(),
     async read(input) {
@@ -60,10 +68,26 @@ export function createWebsiteService(repository: WebsiteRepository, options: { r
         if (current && siteHost(current.url) !== siteHost(input)) await repository.clear();
         return { found: null, message: result.message, ...(result.reason !== "invalid-url" && result.reason !== "refused-address" ? hostnamePageName(input) : {}) };
       }
-      const detected = result.site.statusPage;
-      const statusPage = detected ? await options.readStatusPage(detected.url).catch(() => ({ url: detected.url, source: null, pageId: null })) : null;
+      const linked = result.site.statusPage;
+      // The link a site gives for its status page may be a marketing page, so the common subdomain of its host is
+      // tried as well, one candidate after another until one's own feeds answer as a Statuspage, Instatus or Better
+      // Stack page with components. Only such a page, or the site's own link, counts as found. A page found only at a
+      // subdomain must name the site too: another business's page can answer there (a customer's at status.instatus.com),
+      // and a platform's own page answers at status.<domain> for every site beneath it (status.substack.com).
+      const host = result.site.host.replace(/^www\./, "");
+      const candidates = [...new Set([linked?.url, `https://status.${siteDomain(host)}/`, `https://status.${host}/`].filter((address): address is string => Boolean(address)))];
+      let recognised: StatusPageRead | null = null;
+      let linkedRead: StatusPageRead | null = null;
+      for (const address of candidates) {
+        const read = await options.readStatusPage(address).catch(() => null);
+        const isLinked = address === linked?.url;
+        if (isLinked) linkedRead = read;
+        if (read?.feeds?.components.length && (isLinked || namesSite(read, host, address))) { recognised = read; break; }
+      }
+      const statusPage = recognised ? recognised.page : linked ? linkedRead?.page ?? { url: linked.url, source: null, pageId: null } : null;
       await repository.record(result.site.url, statusPage);
-      return { found: prefillFrom(result.site) };
+      const prefill = prefillFrom(result.site);
+      return { found: { ...prefill, statusPage: (recognised && recognised !== linkedRead ? recognised.page.url : prefill.statusPage) ?? statusPage?.url ?? null, existingPage: existingPageFrom(recognised?.feeds ?? linkedRead?.feeds ?? null) } };
     },
   };
 }

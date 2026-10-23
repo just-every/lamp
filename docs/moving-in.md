@@ -53,6 +53,22 @@ and changes nothing. **Your imports** lists your imports ("approved by") and Bus
 ("approved via Business by") together; undo the newest import of a source first.
 Imports made before the door keep their own read, Continue and Undo.
 
+## From setup, without a key
+
+When setup finds the Statuspage, Instatus or Better Stack page your site links to
+(or one at `status.<your domain>` that names your site), **Bring its incident history too** reads that
+page's public feeds once more, keyless, and imports them through the same door:
+Statuspage's `/api/v2/summary.json` and `/api/v2/incidents.json` (its 50 newest
+incidents), Instatus's `/summary.json`, `/v2/components.json` and `/history.atom`,
+and Better Stack's `/index.json` and `/feed`. The envelope's `files` are those
+responses, and `components` lists the components you kept at setup, by the page's
+own IDs, with your names. Only resolved incidents come, each update at its original
+time; nothing still open on the page, no maintenance and no subscribers. Component
+states come only where the feeds state them (Statuspage updates, and the reports a
+Better Stack page still shows); any other incident is history that names the
+components it lists, without changing their history. An incident about components
+you left out stays out. **Your imports** lists the import, and Undo removes it.
+
 Deleting a subscriber, and the expiry of an unconfirmed or held one, also erases
 that address from import custody: its imported record becomes an erased entry,
 and the door's retained uploads and plan snapshots, which hold whole exports, are
