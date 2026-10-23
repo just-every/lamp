@@ -7,15 +7,22 @@ import { defaultSubscriberEvents, type SubscriberEvents } from "./events";
 import { defaultSubscriberConfirmationPolicy, type SubscriberConfirmationPolicy } from "./policies";
 import type { StoredSubscriber, StoredSubscriberComponent, SubscriberRepository, SubscriptionMailKind } from "./repository";
 import { SubscriberTokenCodec, type SubscriberTokenScope } from "./tokens";
+import { hasSafeWebhookDestination, normalizeEmail } from "./destination";
+import { createSubscriberIntakeService } from "./intake.service";
+import { createIntakeConfirmationSender } from "./intake-confirmation";
+import type { AddedBy } from "./intake.repository";
+import type { WebhookFormat } from "./webhook-format";
+import { renderWebhookFormatField } from "./ui/webhook-format-field";
 
 const CONFIRMATION_WINDOW_MS = 24 * 60 * 60 * 1000;
 const PENDING_WINDOW_MS = 72 * 60 * 60 * 1000;
 /** Each import custody erasure is its own bounded D1 batch; a scheduled run takes a few. */
 const CUSTODY_ERASURES_PER_RUN = 3;
 
-export type SubscriberView = StoredSubscriber & { componentSelections: StoredSubscriberComponent[] };
+export type SubscriberView = StoredSubscriber & { componentSelections: StoredSubscriberComponent[]; addedBy: AddedBy | null;webhookFormat:WebhookFormat|null };
 
 export interface SubscribersService {
+  intake: ReturnType<typeof createSubscriberIntakeService>;
   getPageName(): Promise<string>;
   /** Names of the visible components among these ids, in display order. */
   componentNames(componentIds: string[]): Promise<string[]>;
@@ -23,9 +30,9 @@ export interface SubscribersService {
   requestEmailSubscription(email: string, origin: string, componentIds?: string[]): Promise<void>;
   confirm(token: string): Promise<boolean>;
   getManagedSubscription(token: string): Promise<{ unsubscribeToken: string; subscriber: SubscriberView; components: Array<{ id: string; name: string }> } | null>;
-  updateManagedSelection(token: string, componentIds: string[]): Promise<boolean>;
+  updateManagedSelection(token: string, componentIds: string[],webhookFormat?:WebhookFormat): Promise<boolean>;
   unsubscribe(token: string): Promise<boolean>;
-  createWebhookSubscription(input: { destination: string; contactEmail: string; componentIds: string[] }): Promise<SubscriberView>;
+  createWebhookSubscription(input: { destination: string; contactEmail: string; componentIds: string[];webhookFormat?:WebhookFormat }): Promise<SubscriberView>;
   deleteSubscriber(subscriberId: string, operatorId: string): Promise<boolean>;
   expirePending(): Promise<void>;
   inviteImported(subscriberId: string, origin: string, pageName: string, claimSend: () => Promise<boolean>): Promise<boolean>;
@@ -50,24 +57,8 @@ export function renderSubscribeResult(input: { email: string; components: string
   return renderSubscriberTokenPage("Check your inbox", `<p>We sent ${email} a link to confirm or manage your ${escapeHtml(pageName)} updates.</p>${scope}<p>Confirmation links work for 3 days.</p>${again}`, pageName, "mail");
 }
 
-function normalizeEmail(email: string) {
-  return email.trim().toLowerCase();
-}
-
 function escapeHtml(value: string) {
   return value.replace(/[&<>"']/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[character] ?? character);
-}
-
-function hasSafeWebhookDestination(value: string) {
-  try {
-    const url = new URL(value);
-    const hostname = url.hostname.toLowerCase();
-    if (url.protocol !== "https:" || url.username || url.password || url.port || hostname === "localhost" || hostname.endsWith(".localhost")) return false;
-    if (/^(?:127\.|0\.|10\.|192\.168\.|169\.254\.|172\.(?:1[6-9]|2\d|3[0-1])\.)/.test(hostname) || hostname === "::1") return false;
-    return true;
-  } catch {
-    return false;
-  }
 }
 
 export function createSubscribersService(
@@ -127,10 +118,23 @@ export function createSubscribersService(
   }
 
   async function view(subscriber: StoredSubscriber): Promise<SubscriberView> {
-    return { ...subscriber, componentSelections: await repository.listComponents(subscriber.id) };
+    const [componentSelections,addedBy,webhookFormat]=await Promise.all([repository.listComponents(subscriber.id),repository.intake.addedBy(subscriber.id),subscriber.channel==="webhook"?repository.formats.get(subscriber.id):Promise.resolve(null)]);
+    return { ...subscriber, componentSelections, addedBy,webhookFormat };
   }
 
+  const pageName=async()=>options.pageName?options.pageName():lampConfig.pageName;
+  const sendIntakeConfirmation=createIntakeConfirmationSender(repository,{
+    mail:()=>requiredMailAndTokens().mail,from:configuredFromAddress,pageName,issue:issuedToken,
+    send:(mail,subscriberId,message)=>sendSubscriptionMail(mail,subscriberId,"confirmation",message),
+  });
+  const intake=createSubscriberIntakeService(repository,{
+    view:async id=>{const row=await repository.findSubscriber(id);if(!row)throw new Error("Subscriber no longer exists.");return view(row);},
+    ensureConfigured:async()=>{requiredMailAndTokens();await configuredFromAddress();},
+    sendConfirmation:sendIntakeConfirmation,
+  });
+
   return {
+    intake,
     async getPageName() { return options.pageName ? options.pageName() : lampConfig.pageName; },
     async componentNames(componentIds) {
       const wanted = new Set(componentIds);
@@ -168,6 +172,13 @@ export function createSubscribersService(
       }
       if (!subscriber) throw new Error("Subscriber was not stored.");
       if (opened) await repository.updateSelection(subscriber.id, await visibleSelection(componentIds), timestamp);
+      if (subscriber.state === "pending" && await repository.intake.has(subscriber.id)) {
+        // CSV's first invitation belongs to the owner's explicit action. A
+        // repeated public request must not bypass that claim. An unsubscribe
+        // followed by a fresh public opt-in starts its own new lifetime.
+        if (opened) await sendIntakeConfirmation(subscriber.id,origin,null,false);
+        return;
+      }
 
       // An established subscriber gets the same neutral form response plus a
       // management-only email. This is not a confirmation message and does
@@ -226,10 +237,10 @@ export function createSubscribersService(
       const unsubscribeToken = authorizedId === id ? candidate : await tokens.encode({ id: authorizedId, scope: "unsubscribe" });
       return { unsubscribeToken, subscriber: await view(matched.subscriber), components: await repository.listVisibleComponents() };
     },
-    async updateManagedSelection(token, componentIds) {
+    async updateManagedSelection(token, componentIds,webhookFormat) {
       const matched = await fromToken(token, "manage");
-      if (!matched || matched.subscriber.state !== "active") return false;
-      return repository.updateManagedSelection({ subscriberId: matched.subscriber.id, tokenHash: matched.token.tokenHash }, await visibleSelection(componentIds), nowIso());
+      if (!matched || matched.subscriber.state !== "active" || (webhookFormat && matched.subscriber.channel!=="webhook")) return false;
+      return repository.updateManagedSelection({ subscriberId: matched.subscriber.id, tokenHash: matched.token.tokenHash }, await visibleSelection(componentIds), nowIso(),webhookFormat);
     },
     async unsubscribe(token) {
       const matched = await fromToken(token, "unsubscribe");
@@ -255,6 +266,7 @@ export function createSubscribersService(
       const subscriber = await repository.findSubscriberByDestination(input.destination);
       if (!subscriber) throw new Error("Webhook subscriber was not stored.");
       if (input.componentIds.length) await repository.updateSelection(subscriber.id, input.componentIds, timestamp);
+      if (input.webhookFormat) await repository.formats.set(subscriber.id,input.webhookFormat);
       return view(subscriber);
     },
     async deleteSubscriber(subscriberId, operatorId) {
@@ -301,7 +313,7 @@ export function createSubscribersService(
 export function renderSubscriberManagementPage(input: { unsubscribeToken: string; subscriber: SubscriberView; components: Array<{ id: string; name: string }> }, pageName: string = lampConfig.pageName) {
   const selected = new Set(input.subscriber.componentSelections.map((selection) => selection.componentId));
   const checks = input.components.map((component) => `<label><input type="checkbox" name="componentId" value="${escapeHtml(component.id)}"${input.subscriber.selectionMode === "all" || selected.has(component.id) ? " checked" : ""}> ${escapeHtml(component.name)}</label>`).join("");
-  // With no visible components there is nothing to choose between, so the selection form is left out.
-  const selection = checks ? `<form method="post"><fieldset><legend>Components</legend><p>Clear every selection to follow all current and future visible components.</p>${checks}</fieldset><button type="submit">Save selection</button></form>` : "";
+  const format = input.subscriber.channel === "webhook" ? renderWebhookFormatField(input.subscriber.webhookFormat) : "";
+  const selection = checks || format ? `<form method="post">${checks?`<fieldset><legend>Components</legend><p>Clear every selection to follow all current and future visible components.</p>${checks}</fieldset>`:""}${format}<button type="submit">Save selection</button></form>` : "";
   return renderSubscriberTokenPage("Manage subscription", `<p>Channel: ${escapeHtml(input.subscriber.channel)}</p>${selection}<form method="post" action="/unsubscribe/${encodeURIComponent(input.unsubscribeToken)}"><input type="hidden" name="action" value="unsubscribe"><button type="submit">Unsubscribe</button></form>`, pageName);
 }

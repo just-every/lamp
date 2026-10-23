@@ -7,13 +7,16 @@ import { requestNetworkSubject, type PublicWriteRateLimiter } from "../../platfo
 import { ulidSchema } from "../../shared/ids";
 import { applyPublicIsolationHeaders } from "../public-snapshot/headers";
 import { renderSubscribeResult, renderSubscriberManagementPage, renderSubscriberTokenPage, type SubscribersService } from "./service";
+import { registerSubscriberIntakeRoutes } from "./intake-routes";
+import { webhookFormatSchema } from "./webhook-format";
 
 const subscriberQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(100).default(100),
   offset: z.coerce.number().int().min(0).max(1_000_000_000).default(0),
 }).strict();
 const emailSchema = z.object({ email: z.email() }).strict();
-const webhookSchema = z.object({ destination: z.url(), contactEmail: z.email(), componentIds: z.array(ulidSchema).max(200).default([]) }).strict();
+const webhookSchema = z.object({ destination: z.url(), contactEmail: z.email(), componentIds: z.array(ulidSchema).max(200).default([]),webhookFormat:webhookFormatSchema.optional() }).strict();
+const managementSchema=z.object({componentId:z.union([ulidSchema,z.array(ulidSchema).max(200)]).optional(),webhookFormat:webhookFormatSchema.optional()}).strict();
 
 const escapeHtml = (value: string) => value.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;");
 
@@ -53,6 +56,7 @@ function parsedComponentIds(value: unknown) {
 }
 
 export function registerSubscriberRoutes(app: Hono<AppEnv>, service: SubscribersService, options: { rateLimiter?: PublicWriteRateLimiter } = {}) {
+  registerSubscriberIntakeRoutes(app,service);
   app.post("/subscribe", async (context) => {
     const pageName = await service.getPageName();
     const result = (title: string, message: string, status: number) => publicFormResponse(context.req.raw, title, message, status, pageName);
@@ -78,7 +82,7 @@ export function registerSubscriberRoutes(app: Hono<AppEnv>, service: Subscribers
     const limited = await allowedTokenRequest(context, options.rateLimiter, "subscription-confirm", context.req.param("token") ?? "", pageName);
     if (limited) return limited;
     const confirmed = await service.confirm(context.req.param("token") ?? "");
-    return tokenResponse(context.req.raw, confirmed ? renderSubscriberTokenPage("Subscription confirmed", `<p>You'll get ${escapeHtml(pageName)} updates by email. Every email has a link to change or stop them.</p><p><a href="/">See current status</a></p>`, pageName, "done") : renderSubscriberTokenPage("Subscription unavailable", "<p>This confirmation link is invalid or has expired.</p>", pageName), confirmed ? 200 : 404);
+    return tokenResponse(context.req.raw, confirmed ? renderSubscriberTokenPage("Subscription confirmed", `<p>You'll get ${escapeHtml(pageName)} updates through this subscription.</p><p><a href="/">See current status</a></p>`, pageName, "done") : renderSubscriberTokenPage("Subscription unavailable", "<p>This confirmation link is invalid or has expired.</p>", pageName), confirmed ? 200 : 404);
   });
   app.get("/manage/:token", async (context) => {
     const pageName = await service.getPageName();
@@ -93,7 +97,9 @@ export function registerSubscriberRoutes(app: Hono<AppEnv>, service: Subscribers
     const token = context.req.param("token") ?? "";
     const limited = await allowedTokenRequest(context, options.rateLimiter, "subscription-manage", token, pageName);
     if (limited) return limited;
-    const updated = await service.updateManagedSelection(token, parsedComponentIds((await context.req.parseBody({ all: true })).componentId));
+    const parsed=managementSchema.safeParse(await context.req.parseBody({all:true}));
+    if(!parsed.success)return tokenResponse(context.req.raw,renderSubscriberTokenPage("Subscription unavailable","<p>Choose valid components and a supported webhook format.</p>",pageName),400);
+    const updated = await service.updateManagedSelection(token, parsedComponentIds(parsed.data.componentId),parsed.data.webhookFormat);
     return updated ? tokenResponse(context.req.raw, renderSubscriberTokenPage("Subscription updated", "<p>Your selection is saved.</p><p><a href=\"/\">See current status</a></p>", pageName, "done")) : tokenResponse(context.req.raw, renderSubscriberTokenPage("Subscription unavailable", "<p>This subscription link is invalid or no longer active.</p>", pageName), 404);
   });
   app.get("/unsubscribe/:token", async (context) => {

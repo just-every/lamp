@@ -1,6 +1,7 @@
-import type { UpdateDuePolicy } from "./policies";
+import { defaultIncidentEscalationPolicy, type IncidentEscalationPolicy, type UpdateDuePolicy } from "./policies";
+import { createCommunicationOwnerRepository } from "./communication-owner.repository";
 
-export type UpdateReminderKind = "due-soon" | "overdue";
+export type UpdateReminderKind = "due-soon" | "overdue" | "escalation";
 
 export interface UpdateReminderEvent {
   kind: UpdateReminderKind;
@@ -9,6 +10,8 @@ export interface UpdateReminderEvent {
   title: string;
   updateId: string;
   nextUpdateAt: string;
+  recipients?: string[];
+  draftId?: string | null;
 }
 
 /** An open incident's latest published commitment that may still need a reminder. */
@@ -19,7 +22,7 @@ export interface UpdateReminders {
   remindDue(now: string): Promise<UpdateReminderEvent[]>;
 }
 
-export function createUpdateReminders(binding: D1Database, policy: UpdateDuePolicy, send: (event: UpdateReminderEvent) => Promise<void>): UpdateReminders {
+export function createUpdateReminders(binding: D1Database, policy: UpdateDuePolicy, send: (event: UpdateReminderEvent) => Promise<void>, escalationPolicy: IncidentEscalationPolicy = defaultIncidentEscalationPolicy, prepareDraft?: (commitment: OpenCommitment, now: string) => Promise<string | null>): UpdateReminders {
   return {
     async remindDue(now) {
       // Only an incident's newest update carries its live commitment. A resolved
@@ -27,23 +30,28 @@ export function createUpdateReminders(binding: D1Database, policy: UpdateDuePoli
       const open = await binding.prepare(`SELECT i.id AS incidentId, i.reference, i.title, u.id AS updateId, u.next_update_at AS nextUpdateAt
         FROM incidents i
         JOIN incident_updates u ON u.id = (SELECT id FROM incident_updates WHERE incident_id = i.id ORDER BY published_at DESC, id DESC LIMIT 1)
-        WHERE i.deleted_at IS NULL AND i.lifecycle <> 'Resolved' AND u.lifecycle <> 'Resolved' AND u.is_retroactive = 0 AND u.next_update_at IS NOT NULL
-          AND NOT EXISTS (SELECT 1 FROM incident_update_reminders r WHERE r.update_id = u.id AND r.kind = 'overdue')`).all<OpenCommitment>();
+        WHERE i.deleted_at IS NULL AND i.lifecycle <> 'Resolved' AND u.lifecycle <> 'Resolved' AND u.is_retroactive = 0 AND u.next_update_at IS NOT NULL`).all<OpenCommitment>();
       const instant = Date.parse(now);
       const lead = policy.leadMinutes() * 60_000;
       const sent: UpdateReminderEvent[] = [];
       for (const commitment of open.results) {
         const due = Date.parse(commitment.nextUpdateAt);
-        const kind: UpdateReminderKind | null = instant > due ? "overdue" : instant >= due - lead ? "due-soon" : null;
-        if (!kind) continue;
-        const recorded = await binding.prepare(`SELECT 1 AS sent FROM incident_update_reminders WHERE update_id = ? AND kind = ?`).bind(commitment.updateId, kind).first();
-        if (recorded) continue;
-        // The alert queue is idempotent per event, so a run interrupted between
-        // these two writes repeats the queueing harmlessly and records it next time.
-        const event = { kind, ...commitment };
-        await send(event);
-        await binding.prepare(`INSERT OR IGNORE INTO incident_update_reminders (update_id, kind, recorded_at) VALUES (?, ?, ?)`).bind(commitment.updateId, kind, now).run();
-        sent.push(event);
+        const draftId = instant >= due - lead && instant <= due ? await prepareDraft?.(commitment, now) : null;
+        const kinds: UpdateReminderKind[] = instant > due ? ["overdue"] : instant >= due - lead ? ["due-soon"] : [];
+        if (instant >= due + escalationPolicy.overdueMinutes() * 60_000) kinds.push("escalation");
+        for (const kind of kinds) {
+          const recorded = kind === "escalation"
+            ? await binding.prepare(`SELECT 1 AS sent FROM incident_update_escalations WHERE update_id = ?`).bind(commitment.updateId).first()
+            : await binding.prepare(`SELECT 1 AS sent FROM incident_update_reminders WHERE update_id = ? AND kind = ?`).bind(commitment.updateId, kind).first();
+          if (recorded) continue;
+          // Each event freezes its recipient set in the durable idempotent queue.
+          const recipients = kind === "escalation" ? undefined : await createCommunicationOwnerRepository(binding).recipients(commitment.incidentId);
+          const event = { kind, ...commitment, recipients, draftId };
+          await send(event);
+          if (kind === "escalation") await binding.prepare(`INSERT OR IGNORE INTO incident_update_escalations (update_id, recorded_at) VALUES (?, ?)`).bind(commitment.updateId, now).run();
+          else await binding.prepare(`INSERT OR IGNORE INTO incident_update_reminders (update_id, kind, recorded_at) VALUES (?, ?, ?)`).bind(commitment.updateId, kind, now).run();
+          sent.push(event);
+        }
       }
       return sent;
     },

@@ -39,6 +39,7 @@ export async function runScheduled(bindings: AppBindings, executionContext: Exec
       runtime.services.incidents.publishDue(),
       runtime.services.maintenance.runDue(),
       runtime.services.updateReminders.remindDue(new Date(scheduledAt).toISOString()),
+      runtime.services.reports.remindDue(new Date(scheduledAt).toISOString()),
     ]);
     const deliveries = await Promise.allSettled([
       notificationOrigin(bindings).then((origin) => runtime.services.deliveries.dispatchDue(origin)),

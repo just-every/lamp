@@ -1,4 +1,5 @@
 import type { D1ImportContext, ImportPlan } from '../../../../modules/import-kit/src/d1/index.ts';
+import { subscriberExpiryAudit } from './expiry-audit';
 import { nowIso } from '../../shared/ids';
 import { HELD_SORRY_DAYS } from './held-sorry';
 import { retireSubscriberCustody, subjectsInCustody } from './custody';
@@ -38,11 +39,17 @@ export async function expireHeldSorrySubscribers(db: D1Database, now = Date.now(
   const expired = (await db.prepare(`SELECT id,destination FROM subscribers WHERE ${held} AND created_at < ?`).bind(cutoff).all<{ id: string; destination: string }>()).results;
   if (!expired.length) return;
   const custody = await subjectsInCustody(db, expired.map(row => ({ id: row.id, values: [row.destination] })));
-  await db.prepare(`DELETE FROM subscribers WHERE ${held} AND created_at < ? AND id NOT IN (SELECT value FROM json_each(?))`).bind(cutoff, JSON.stringify(custody.map(subject => subject.id))).run();
+  const at = new Date(now).toISOString();
+  const predicate = { sql: `${held} AND created_at < ? AND id NOT IN (SELECT value FROM json_each(?))`, params: [cutoff, JSON.stringify(custody.map(subject => subject.id))] };
+  const audit = subscriberExpiryAudit(predicate, at);
+  await db.batch([
+    db.prepare(audit.sql).bind(...audit.params ?? []),
+    db.prepare(`DELETE FROM subscribers WHERE ${predicate.sql}`).bind(...predicate.params),
+  ]);
   for (const subject of custody.slice(0, CUSTODY_ERASURES_PER_RUN)) {
     const deletion = { sql: `DELETE FROM subscribers WHERE id=? AND ${held} AND created_at < ?`, params: [subject.id, cutoff] };
     // Admitted while the row is still held past its deadline, and after its deletion.
     const marker = { sql: "DELETE FROM statuspage_import_targets WHERE kind='subscriber' AND id=?", params: [subject.id] };
-    await retireSubscriberCustody(db, subject, [marker], [deletion], { principalId: 'lamp:held-expiry', authority: { sql: `NOT EXISTS(SELECT 1 FROM subscribers WHERE id=? AND NOT (${held} AND created_at < ?))`, params: [subject.id, cutoff] } });
+    await retireSubscriberCustody(db, subject, [marker], [subscriberExpiryAudit({ sql: `id=? AND ${held} AND created_at < ?`, params: [subject.id, cutoff] }, at), deletion], { principalId: 'lamp:held-expiry', authority: { sql: `NOT EXISTS(SELECT 1 FROM subscribers WHERE id=? AND NOT (${held} AND created_at < ?))`, params: [subject.id, cutoff] } });
   }
 }

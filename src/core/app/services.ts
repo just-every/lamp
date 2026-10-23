@@ -1,3 +1,6 @@
+import { createPromiseDraftRepository } from "../features/incidents/promise-draft.repository";
+import { createPromiseDraftPreparer } from "../features/incidents/promise-draft.service";
+import { createCommunicationOwnerRepository } from "../features/incidents/communication-owner.repository";
 import { createResponderService } from "../features/intake/responder-service";
 import { createAvailabilityReportRepository, createAvailabilityReportService } from "../features/availability-reports";
 import { createCommunicationPerformanceRepository, createCommunicationPerformanceService } from "../features/communication-performance";
@@ -109,19 +112,22 @@ export function createAppServices(bindings: AppBindings, blobs: BlobStore, execu
     const failure = results.find((result): result is PromiseRejectedResult => result.status === "rejected");
     if (failure) throw failure.reason;
   } });
+  const briefs = createBriefService(createBriefRepository(bindings.DB));
   // INCIDENT-010 and NOTIFY-006: one operator email per committed time and kind, sent by the scheduled trigger.
-  const updateReminders = createUpdateReminders(bindings.DB, extensions.updateDuePolicy, async ({ kind, incidentId, reference, title, updateId, nextUpdateAt }) => {
+  const updateReminders = createUpdateReminders(bindings.DB, extensions.updateDuePolicy, async ({ kind, incidentId, reference, title, updateId, nextUpdateAt, recipients, draftId }) => {
     const committed = await formatPreviewTimestamp(nextUpdateAt);
-    const link = `${authOrigin(bindings)}/app/incidents/${incidentId}`;
+    const link = `${authOrigin(bindings)}/app/incidents/${incidentId}${draftId ? "#prepared-draft" : ""}`;
     await deliveries.queueOperatorAlert(kind === "due-soon"
-      ? { eventId: `incident-due-soon/${updateId}`, title: `Lamp update due at ${committed}: ${reference}`, text: `${reference} ${title}: the next update you committed to customers is due at ${committed}. Nothing reaches customers until an operator publishes it. Write it here: ${link}` }
-      : { eventId: `incident-overdue/${updateId}`, title: `Lamp incident is overdue for an update: ${reference}`, text: `${reference} ${title} passed its next-update commitment of ${committed} with no newer update. The public page still shows that time. Write the update here: ${link}` });
-  });
+      ? { eventId: `incident-due-soon/${updateId}`, recipients, title: `Lamp update due at ${committed}: ${reference}`, text: `${reference} ${title}: the next update you committed to customers is due at ${committed}. Nothing reaches customers until an operator publishes it. Write it here: ${link}` }
+      : kind === "escalation" ? { eventId: `incident-escalation/${updateId}`, title: `Lamp communication escalation: ${reference}`, text: `${reference} ${title} is at least ${extensions.incidentEscalationPolicy.overdueMinutes()} minutes past its next-update commitment of ${committed}. Every active operator can publish until TEAM-004 roles ship. Write the update here: ${link}` }
+      : { eventId: `incident-overdue/${updateId}`, recipients, title: `Lamp incident is overdue for an update: ${reference}`, text: `${reference} ${title} passed its next-update commitment of ${committed} with no newer update. The public page still shows that time. Write the update here: ${link}` });
+  }, extensions.incidentEscalationPolicy, createPromiseDraftPreparer(createPromiseDraftRepository(bindings.DB), briefs));
   const maintenance = createMaintenanceService(createMaintenanceRepository(bindings.DB), components, publicSnapshots.rebuild, {
     forMaintenanceNotice: async (input) => notificationPublicationStatements(bindings.DB, { eventId: input.eventId, eventType: "maintenance-notice", maintenanceId: input.maintenanceId, componentIds: input.componentIds, channels: ["email", "webhook"], queuedAt: input.queuedAt, recipientScope: input.recipientScope, previousEventIds: input.previousEventIds }),
   }, extensions.maintenanceRemindersPolicy,
   async ({ maintenanceId, endsAt }) => deliveries.queueOperatorAlert({ eventId: `maintenance-overrun/${maintenanceId}/${endsAt}`, title: "Lamp maintenance is running longer than planned", text: `Maintenance ${maintenanceId} is still in progress more than fifteen minutes after its scheduled end.` }),
-  extensions.events);
+  extensions.events,
+  async ({ maintenanceId, startsAt }) => deliveries.queueOperatorAlert({ eventId: `maintenance-start-due/${maintenanceId}/${new Date(startsAt).toISOString()}`, title: "Lamp maintenance start is due", text: `Maintenance ${maintenanceId} has reached its planned start and has auto-start off. An operator must start it in Maintenance.` }));
   const subscribers = createSubscribersService(createSubscriberRepository(bindings.DB), {
     mail,
     pageName: configuredPageName,
@@ -135,10 +141,14 @@ export function createAppServices(bindings: AppBindings, blobs: BlobStore, execu
   });
   const availabilityReports = createAvailabilityReportService(createAvailabilityReportRepository(bindings.DB), extensions.publicSnapshotPolicies);
   const communicationPerformance = createCommunicationPerformanceService(createCommunicationPerformanceRepository(bindings.DB), extensions.postmortemDuePolicy);
-  const briefs = createBriefService(createBriefRepository(bindings.DB));
   const reports = createReportsService(createReportRepository(bindings.DB), publicSnapshots.rebuild, extensions.postmortemDuePolicy, {
     forIncidentReport: async (input) => notificationPublicationStatements(bindings.DB, { eventId: input.eventId, eventType: "incident-report", incidentReportId: input.eventId, componentIds: input.componentIds, channels: input.channels, queuedAt: input.queuedAt }),
-  }, briefs);
+  }, briefs, async ({ incidentId, reference, title, week }) => deliveries.queueOperatorAlert({
+    eventId: `report-reminder/${incidentId}/${week}`,
+    recipients: await createCommunicationOwnerRepository(bindings.DB).recipients(incidentId),
+    title: `Lamp report follow-up: ${reference}`,
+    text: `${reference} ${title} is owing a post-incident report. Write or waive it here: ${authOrigin(bindings)}/app/incidents/${incidentId}#post-incident-report`,
+  }));
   const intake = createIntakeService(createIntakeRepository(bindings.DB), extensions.alertIntakePolicy, async (incidentId) => deliveries.queueOperatorAlert({ eventId: `intake-draft/${incidentId}`, title: "Lamp alert intake created an incident draft", text: `A configured alert source created draft incident ${incidentId}; review and publish it if customer communication is needed.` }), extensions.events, { webhookSecret: bindings.WEBHOOK_SIGNING_SECRET });
   const aiValues = [bindings.AI_PROVIDER_URL, bindings.AI_PROVIDER_API_KEY, bindings.AI_PROVIDER_MODEL];
   const configuredAiValues = aiValues.filter((value) => Boolean(value)).length;

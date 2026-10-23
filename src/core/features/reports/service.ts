@@ -5,6 +5,8 @@ import type { ComponentState } from "../../shared/domain";
 import { defaultPostmortemDuePolicy, type PostmortemDuePolicy } from "./policies";
 import type { IncidentReportRow, ReportRepository } from "./repository";
 
+const REPORT_REMINDER_WEEK_MS = 7 * 24 * 60 * 60_000;
+
 export interface ReportInput { summary: string; timeline: string; cause: string; remediation: string; }
 export interface ReportsNotificationStatements { forIncidentReport(input: { eventId: string; incidentId: string; componentIds: string[]; channels: Array<"email" | "webhook">; queuedAt: string }): Promise<D1PreparedStatement[]>; }
 export interface ReportsService {
@@ -13,6 +15,9 @@ export interface ReportsService {
   save(incidentId: string, input: ReportInput, operatorId: string): Promise<IncidentReportRow>;
   publish(incidentId: string, operatorId: string, channels: Array<"email" | "webhook">): Promise<IncidentReportRow | null>;
   owing(now?: string): Promise<string[]>;
+  waiver(incidentId: string): ReturnType<ReportRepository["waiver"]>;
+  waive(incidentId: string, reason: string, operatorId: string): Promise<boolean>;
+  remindDue(now: string): Promise<number>;
 }
 
 function assertReport(input: ReportInput, complete = false) {
@@ -26,7 +31,7 @@ function assertReport(input: ReportInput, complete = false) {
   }
 }
 
-export function createReportsService(repository: ReportRepository, onPublicDataChanged: () => Promise<void>, duePolicy: PostmortemDuePolicy = defaultPostmortemDuePolicy, notificationStatements: ReportsNotificationStatements | null = null, briefs: BriefService | null = null): ReportsService {
+export function createReportsService(repository: ReportRepository, onPublicDataChanged: () => Promise<void>, duePolicy: PostmortemDuePolicy = defaultPostmortemDuePolicy, notificationStatements: ReportsNotificationStatements | null = null, briefs: BriefService | null = null, remind: ((input: { incidentId: string; reference: string; title: string; week: number }) => Promise<void>) | null = null): ReportsService {
   return {
     async draft(incidentId, operatorId) {
       if (!briefs) throw new Error("Post-incident report drafting requires incident brief wiring.");
@@ -39,6 +44,23 @@ export function createReportsService(repository: ReportRepository, onPublicDataC
       const report: IncidentReportRow = { id: createUlid(), incidentId, ...input, publishedAt: null, authorOperatorId: operatorId, createdAt: timestamp, updatedAt: timestamp };
       if (!(await repository.createDraft(report))) throw new ReportDraftError("A report already exists or the incident is no longer resolved. Reload before editing.", 409);
       return { report, review: reportReview(report, [...brief.whatWeKnow.alerts, ...brief.whatWeKnow.updates].map((item) => item.ref)) };
+    },
+    waiver: incidentId => repository.waiver(incidentId),
+    async waive(incidentId, reason, operatorId) {
+      if (!reason.trim()) throw new ReportInputError("A waiver reason is required.");
+      return repository.waive(incidentId, reason.trim(), operatorId, nowIso());
+    },
+    async remindDue(now) {
+      if (!remind) throw new Error("Report follow-up requires operator reminder wiring.");
+      let sent=0;
+      for (const incident of await repository.listResolvedWithoutPublishedReport()) {
+        if (!incident.reminderEligible || !duePolicy.isDue({ resolvedAt: incident.resolvedAt, impact: incident.impact as ComponentState | null, hasPublishedReport: false, now }) || !incident.resolvedAt) continue;
+        const week = Math.floor((Date.parse(now) - Date.parse(incident.resolvedAt) - REPORT_REMINDER_WEEK_MS) / REPORT_REMINDER_WEEK_MS);
+        if (week<0 || await repository.reminderSent(incident.id,week)) continue;
+        await remind({ incidentId:incident.id,reference:incident.reference,title:incident.title,week });
+        await repository.recordReminder(incident.id,week,now); sent++;
+      }
+      return sent;
     },
     get: (incidentId) => repository.find(incidentId),
     async save(incidentId, input, operatorId) {

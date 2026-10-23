@@ -83,7 +83,7 @@ after(async () => {
 
 let alertIncident;
 
-test("AGENT-004 DRAFT-004 DRAFT-002 DRAFT-001 — Private incident brief constrains AI suggestions without changing published state", async t => {
+test("AGENT-002 AGENT-004 DRAFT-004 DRAFT-002 DRAFT-001 — Private incident brief constrains AI suggestions without changing published state", async t => {
   t.diagnostic("DRAFT-004 — an alert's draft shows a brief of what is known and what is not, with no internal note in it");
   await (async () => {
   const checkout = await component("Checkout");
@@ -162,6 +162,53 @@ test("AGENT-004 DRAFT-004 DRAFT-002 DRAFT-001 — Private incident brief constra
   assert.deepEqual(incidentAfter.draft, incidentBefore.draft, "the saved draft changes only when the operator edits it");
   assert.deepEqual(await surfaces(), publicBefore, "page, feed and widget are byte-identical");
 })(t);
+  t.diagnostic("AGENT-002 — deterministic drafts cite changed evidence without a model or any public publication");
+  await (async () => {
+    const checkout = await component("Synthetic Lamp promised-update evidence");
+    const send = await alertSource("Synthetic Lamp promise source", checkout.id);
+    const accepted = await send(datadog.down);
+    assert.equal(accepted.status, 202);
+    const id = (await accepted.json()).incidentId;
+    const commitment = Date.now() + 30 * 60_000;
+    assert.equal((await api(`/api/app/incidents/${id}/draft`, { method: "PUT", body: JSON.stringify(draft({ nextUpdateAt: new Date(commitment).toISOString() })) })).status, 200);
+    assert.equal((await post(`/api/app/incidents/${id}/publish`, { channels: [] })).status, 200);
+    assert.equal((await send(datadog.up)).status, 202);
+    const known = await brief(id);
+    const latest = known.whatWeKnow.updates.at(-1);
+    const changed = known.whatWeKnow.alerts.filter(item => Date.parse(item.receivedAt) > Date.parse(latest.publishedAt));
+    assert.ok(changed.length, "a real accepted recovery is newer than the last publication");
+    const modelRequestsBefore = providerRequests.length;
+    const subscriberQueue = () => {
+      const output = execFileSync('pnpm', ['exec', 'wrangler', 'd1', 'execute', 'DB', '--local', '--persist-to', runtime.state, '--config', runtime.env.LAMP_WRANGLER_CONFIG, '--json', '--command', "SELECT id,aggregate_id FROM notification_outbox WHERE kind='delivery-dispatch' ORDER BY id"], { env: runtime.env, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
+      return JSON.parse(output)[0].results;
+    };
+    const subscriberQueueBefore = subscriberQueue();
+    const publicBefore = await surfaces();
+    const updatesBefore = (await api(`/api/app/incidents/${id}`)).body.incident.updates;
+    const trigger = async () => {
+      const response = await fetch(`${publicOrigin.replace("localhost", "127.0.0.1")}/cdn-cgi/handler/scheduled?cron=${encodeURIComponent("* * * * *")}&time=${commitment - 10 * 60_000}`);
+      assert.equal(response.status, 200, await response.text());
+    };
+    await trigger();
+    const prepared = (await api(`/api/app/incidents/${id}`)).body.incident.draft;
+    assert.equal(prepared.customerImpact, latest.customerImpact);
+    assert.match(prepared.details, /Still working on it/);
+    assert.equal(prepared.nextUpdateAt, latest.nextUpdateAt);
+    assert.equal(prepared.agentPreparation.noEvidenceChange, false);
+    assert.deepEqual(prepared.agentPreparation.evidence.map(item => item.ref), changed.map(item => item.ref));
+    const refs = new Set([...known.whatWeKnow.alerts, ...known.whatWeKnow.updates, ...known.whatWeKnow.components].map(item => item.ref));
+    for (const ref of prepared.agentPreparation.citations) assert.ok(refs.has(ref));
+    for (const item of prepared.agentPreparation.evidence) {
+      assert.ok(item.text.includes("recovered"));
+      assert.ok(!item.text.includes(CANARY));
+    }
+    await trigger();
+    assert.deepEqual((await api(`/api/app/incidents/${id}`)).body.incident.draft, prepared, "the repeated trigger preserves the single saved draft");
+    assert.equal(providerRequests.length, modelRequestsBefore, "automatic preparation makes no model request");
+    assert.deepEqual(subscriberQueue(), subscriberQueueBefore, "automatic preparation queues no subscriber event");
+    assert.deepEqual((await api(`/api/app/incidents/${id}`)).body.incident.updates, updatesBefore, "preparation never publishes");
+    assert.deepEqual(await surfaces(), publicBefore, "preparation changes no public page, feed, API or widget bytes");
+  })();
   t.diagnostic("AGENT-004 — pre-close evidence, hold, re-fire, grouped members and private audited override");
   await recoveryCheckFlow({ api, post, component, alertSource, draft, origin, publicOrigin, devKey, cookie,
     sql: command => execFileSync('pnpm', ['exec', 'wrangler', 'd1', 'execute', 'DB', '--local', '--persist-to', runtime.state, '--config', runtime.env.LAMP_WRANGLER_CONFIG, '--command', command], { env: runtime.env, stdio: 'pipe' }),

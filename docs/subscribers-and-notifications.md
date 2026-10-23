@@ -29,9 +29,40 @@ in 24 hours.
 
 ## Add webhooks or team channels
 
-Add a webhook endpoint with a contact email. Each notification is signed and
+Open **Subscribers → Add subscriber** to add an email address or a webhook
+endpoint with its contact email and selected components. The add sends one
+confirmation invitation; the subscription stays pending until the recipient
+confirms. The list identifies the operator who added it. Each notification is signed and
 contains the incident, its published updates and the affected component state
 changes. The delivery log records outcomes; it does not track opens.
+
+Webhook endpoints choose **Lamp** or **Statuspage** as their body format. Lamp
+is the default. Both formats use the same signature headers and delivery rules.
+Statuspage bodies share the public API's status values and stable IDs, contain
+the complete published incident update history, and preserve plain update text
+and bare URLs. The recipient can change the format from their emailed management
+link. CSV webhook rows can set optional `webhook_format` to `lamp` or `statuspage`.
+Standalone component-change notifications remain with NOTIFY-017; the future
+Statuspage webhook importer remains with MOVE-010. Maintenance carries the
+existing notices; MAINT-009's unbuilt in-window wording remains a gap. The public
+subscribe form's format chooser awaits the owner UI pass.
+
+## Import and export subscribers
+
+In **Subscribers → Import and export**, choose or paste a CSV and run its dry
+run. This writes nothing and sends no mail. Review the created, skipped and
+refused counts and each refusal reason, then create the pending subscriptions.
+An owner must explicitly choose **Send invitations** to send up to 50
+confirmation invitations per action; an invitation already sent is not repeated.
+The columns are `email`, `phone`, `webhook_url`, `contact_email`, `components`
+and `language`. Component IDs are separated by semicolons; an empty selection
+follows all visible components. Existing subscriptions are skipped without
+changing their state or selection. Files are limited to 8 MiB and 5,000 rows.
+Phone rows are refused because SMS subscriptions are unavailable, and language
+accepts only English (`en`). The future per-channel subscriber-limit enforcement
+remains with SUB-020. **Export subscribers as CSV** includes channel, state,
+components and the recorded confirmation time; unconfirmed rows have no consent
+time. Spreadsheet formula-leading cells are neutralised on export.
 
 An incoming webhook is a private address created by Slack or Teams for posting
 messages to one channel. Slack and Teams posts need an outbound connection,

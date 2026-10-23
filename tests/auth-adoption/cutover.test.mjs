@@ -4,6 +4,7 @@ import { readFileSync, readdirSync } from 'node:fs';
 import { Hono } from 'hono';
 import { lampRuntime, moveIn, preview, suspendedBody } from './lamp-runtime.mjs';
 import { secret } from './runtime.mjs';
+import { load } from '../operator-readiness/runtime.mjs';
 import { holdConfirmationWrite } from './cutover-race-helper.mjs';
 import { exerciseMailPreparation } from './cutover-mail-helper.mjs';
 
@@ -120,10 +121,10 @@ test("MOVE-012 MOVE-006 MOVE-002 — Owner-approved cutover invitations and prep
 
 
 
-test("MOVE-002 MOVE-006 — Imported invitation expiry, revoked authority and public subscription races", async t => {
+test("MOVE-002 MOVE-006 TEAM-007 — Imported invitation expiry audit, revoked authority and public subscription races", async t => {
   t.diagnostic("MOVE-002 — delayed invitations retain the original expiry and undo rows; expired pending subscribers are not sent mail");
   await (async t => {
-  const r = await lampRuntime(t);
+  const r = await lampRuntime(t, { registerRoutes: ({ app, db, modules }) => modules.registerAuditLogRoutes(app, modules.createAuditLogRepository(db)) });
   const result = await apply(r, fixture('small'));
   const rows = (await r.db.prepare("SELECT id,created_at,updated_at FROM subscribers ORDER BY id").all()).results;
   const delayed = new Date(Date.now() - 48*60*60*1000).toISOString();
@@ -144,6 +145,37 @@ test("MOVE-002 MOVE-006 — Imported invitation expiry, revoked authority and pu
   assert.equal(token.expires_at, deadline);
   assert.deepEqual((await r.db.prepare('SELECT * FROM subscribers ORDER BY id').all()).results, before);
   assert.deepEqual((await r.db.prepare('SELECT * FROM ik_provenance ORDER BY ordinal').all()).results, journal);
+  const service = r.modules.createSubscribersService(r.modules.createSubscriberRepository(r.db), { tokenSecret: secret });
+  await service.expirePending(); await service.expirePending();
+  const expiredAudit = (await r.db.prepare("SELECT * FROM audit_entries WHERE entity_id=? AND action='expired'").bind(rows[1].id).all()).results;
+  assert.equal(expiredAudit.length, 1, 'imported pending expiry records exactly one audit event');
+  assert.equal(expiredAudit[0].operator_id, null, 'the scheduler is the System actor');
+  assert.equal(expiredAudit[0].payload_json, '{}', 'expiry retains no address');
+  const sorryFiles = readdirSync('tests/fixtures/sorry/authenticated').map(name => ({ name, text: readFileSync(`tests/fixtures/sorry/authenticated/${name}`, 'utf8') }));
+  const sorryReview = await moveIn(r, r.cookie).preview({ source: 'sorry', publicAccessAcknowledged: true, files: sorryFiles });
+  assert.equal(sorryReview.status, 200, JSON.stringify(sorryReview.body));
+  const sorry = await moveIn(r, r.cookie).apply(sorryReview.body);
+  assert.equal(sorry.status, 200, JSON.stringify(sorry.body));
+  const held = (await r.db.prepare("SELECT id FROM subscribers WHERE deactivation_reason='held for Sorry cutover'").all()).results;
+  assert.ok(held.length, 'real Sorry import supplies held subscribers');
+  const { expireHeldSorrySubscribers } = await load('src/core/features/statuspage-import/sorry-release.repository.ts');
+  const future = Date.now() + 91 * 86400000;
+  await expireHeldSorrySubscribers(r.db, future); await expireHeldSorrySubscribers(r.db, future);
+  for (const row of held) {
+    const audit = (await r.db.prepare("SELECT * FROM audit_entries WHERE entity_id=? AND action='expired'").bind(row.id).all()).results;
+    assert.equal(audit.length, 1, 'held Sorry expiry records exactly one System audit event');
+    assert.equal(audit[0].operator_id, null); assert.equal(audit[0].payload_json, '{}');
+  }
+  const auditResponse = await r.call('/api/app/audit-log?action=expired&limit=100', { cookie: r.cookie });
+  assert.equal(auditResponse.status, 200);
+  const expiryEntries = (await auditResponse.json()).entries;
+  for (const id of [rows[1].id, ...held.map(row => row.id)]) {
+    const entries = expiryEntries.filter(entry => entry.entityId === id);
+    assert.equal(entries.length, 1); assert.equal(entries[0].actorName, 'System');
+  }
+  const expiryCsv = await (await r.call('/api/app/audit-log?action=expired&format=csv', { cookie: r.cookie })).text();
+  for (const entry of expiryEntries) assert.ok(expiryCsv.includes(`"${entry.id}"`));
+  assert.equal(expiryCsv.trimEnd().split('\r\n').length - 1, expiryEntries.length);
 })(t);
   t.diagnostic("MOVE-006 — owner revocation before an invitation action sends nothing; saved large previews cap rows without losing the count");
   await (async t => {

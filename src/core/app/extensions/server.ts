@@ -4,7 +4,7 @@ import { lampServerExtensions } from "../../../ext/index.server";
 import type { LampEventDispatcher, LampEventListener, LampEventMap, LampServerExtensions } from "../../api/extensions";
 import { defaultComponentEvents, type ComponentStatusChangedEvent } from "../../features/components";
 import { defaultNotificationEventsPolicy } from "../../features/deliveries";
-import { defaultUpdateDuePolicy, defaultUpdateReviewPolicy } from "../../features/incidents";
+import { defaultUpdateDuePolicy, defaultUpdateReviewPolicy, defaultIncidentEscalationPolicy } from "../../features/incidents";
 import { defaultAlertIntakePolicy } from "../../features/intake";
 import { defaultMaintenanceRemindersPolicy } from "../../features/maintenance";
 import { defaultPublicSnapshotEvents, defaultPublicSnapshotPolicies, type SnapshotPublishedEvent } from "../../features/public-snapshot";
@@ -43,6 +43,7 @@ export function createServerExtensionMount(config: LampServerExtensions = lampSe
     },
     updateReviewPolicy: policies["update.review.v1"] ?? defaultUpdateReviewPolicy,
     updateDuePolicy: policies["incident.update-due.v1"] ?? defaultUpdateDuePolicy,
+    incidentEscalationPolicy: policies["incident.escalation.v1"] ?? defaultIncidentEscalationPolicy,
     maintenanceRemindersPolicy: policies["maintenance.reminders.v1"] ?? defaultMaintenanceRemindersPolicy,
     subscriberConfirmationPolicy: policies["subscriber.confirmation.v1"] ?? defaultSubscriberConfirmationPolicy,
     notificationEventsPolicy: policies["notification.events.v1"] ?? defaultNotificationEventsPolicy,

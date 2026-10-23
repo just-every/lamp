@@ -1,3 +1,4 @@
+import { createUlid } from "../../shared/ids";
 import type { ComponentState, IncidentLifecycle } from "../../shared/domain";
 import { TEMPLATE_WORDING_FIELDS, templateFieldsToShorten, type TemplateWording, type TemplateWordingField } from "./template-fields";
 
@@ -66,14 +67,19 @@ export function createIncidentTemplateRepository(binding: D1Database) {
     async saveTemplate(input: IncidentTemplateRecord, components: IncidentTemplateComponentRecord[]) {
       await binding.batch([
         binding.prepare(`INSERT INTO incident_templates (id,name,title,folder,should_send_notifications,lifecycle,affected_audience,customer_impact,what_still_works,details,next_update_offset_minutes,created_by_operator_id,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT(name) DO UPDATE SET lifecycle=excluded.lifecycle,affected_audience=excluded.affected_audience,customer_impact=excluded.customer_impact,what_still_works=excluded.what_still_works,details=excluded.details,next_update_offset_minutes=excluded.next_update_offset_minutes,imported_fields_json=NULL,updated_at=excluded.updated_at`).bind(input.id, input.name, input.title, input.folder, input.shouldSendNotifications === null ? null : Number(input.shouldSendNotifications), input.lifecycle, input.affectedAudience, input.customerImpact, input.whatStillWorks, input.details, input.nextUpdateOffsetMinutes, input.createdByOperatorId, input.createdAt, input.updatedAt),
+        binding.prepare(`INSERT INTO audit_entries (id,entity_type,entity_id,action,operator_id,payload_json,created_at,updated_at)
+          SELECT ?, 'incident-template-components', id, 'replaced', ?, '{}', ?, ? FROM incident_templates WHERE name = ? AND EXISTS (SELECT 1 FROM incident_template_components WHERE template_id = incident_templates.id)`)
+          .bind(createUlid(), input.createdByOperatorId, input.updatedAt, input.updatedAt, input.name),
         binding.prepare(`DELETE FROM incident_template_components WHERE template_id = (SELECT id FROM incident_templates WHERE name = ?)`).bind(input.name),
         ...components.map(component => binding.prepare(`INSERT INTO incident_template_components (id,template_id,component_id,component_name,state,relationship,created_at,updated_at) SELECT ?,id,?,?,?,?,?,? FROM incident_templates WHERE name = ?`).bind(component.id, component.componentId, component.componentName, component.state, component.relationship, component.createdAt, component.updatedAt, input.name)),
       ]);
     },
-    async updateTemplate(input: IncidentTemplateRecord, components?: IncidentTemplateComponentRecord[]) {
+    async updateTemplate(input: IncidentTemplateRecord, components: IncidentTemplateComponentRecord[] | undefined, operatorId: string) {
       await binding.batch([
         binding.prepare(`UPDATE incident_templates SET name=?,title=?,folder=?,should_send_notifications=?,lifecycle=?,affected_audience=?,customer_impact=?,what_still_works=?,details=?,next_update_offset_minutes=?,imported_fields_json=NULL,updated_at=? WHERE id=?`).bind(input.name, input.title, input.folder, input.shouldSendNotifications === null ? null : Number(input.shouldSendNotifications), input.lifecycle, input.affectedAudience, input.customerImpact, input.whatStillWorks, input.details, input.nextUpdateOffsetMinutes, input.updatedAt, input.id),
-        ...(components === undefined ? [] : [binding.prepare(`DELETE FROM incident_template_components WHERE template_id = ?`).bind(input.id), ...componentStatements(input.id, components)]),
+        ...(components === undefined ? [] : [binding.prepare(`INSERT INTO audit_entries (id,entity_type,entity_id,action,operator_id,payload_json,created_at,updated_at)
+          SELECT ?, 'incident-template-components', id, 'replaced', ?, '{}', ?, ? FROM incident_templates WHERE id = ? AND EXISTS (SELECT 1 FROM incident_template_components WHERE template_id = incident_templates.id)`)
+          .bind(createUlid(), operatorId, input.updatedAt, input.updatedAt, input.id), binding.prepare(`DELETE FROM incident_template_components WHERE template_id = ?`).bind(input.id), ...componentStatements(input.id, components)]),
       ]);
     },
   };

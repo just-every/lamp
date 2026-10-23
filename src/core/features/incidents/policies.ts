@@ -17,3 +17,7 @@ export interface UpdateDuePolicy {
 export const defaultUpdateDuePolicy: UpdateDuePolicy = {
   leadMinutes: () => 10,
 };
+
+/** incident.escalation.v1: communicator escalation after the original commitment. */
+export interface IncidentEscalationPolicy { overdueMinutes(): number }
+export const defaultIncidentEscalationPolicy: IncidentEscalationPolicy = { overdueMinutes: () => 10 };
