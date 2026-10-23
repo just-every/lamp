@@ -6,7 +6,7 @@
 .website-field { display: flex; gap: 10px; }
 .website-field input { flex: 1; }
 .website-note { margin: 0; color: var(--ink-2); font-size: 14px; }
-.website-warning { border-left: 3px solid var(--degraded); padding: 8px 12px; background: var(--card-tint); color: var(--ink); }
+.website-warning { border: 1px solid var(--degraded); border-radius: 10px; padding: 10px 14px; background: var(--card-tint); color: var(--ink); }
 .first-run-details { min-width: 0; border: 0; padding: 0; margin: 0; }
 .first-run-progress { display: grid; gap: 4px; margin: 0; padding: 0; list-style: none; color: var(--ink-2); font-size: 13px; }
 .found-preview .page-preview-bar strong { overflow: visible; text-overflow: clip; white-space: normal; overflow-wrap: anywhere; }
@@ -44,4 +44,3 @@
 .found-preview { display: grid; align-content: start; gap: 8px; border-left: 1px solid var(--line); padding-left: 24px; }
 .found-caption { margin: 0; color: var(--ink-3); font-size: 12px; }
 .first-run-finish { display: grid; justify-items: center; gap: 8px; margin-top: 6px; text-align: center; }
-.first-run-finish p { margin: 0; color: var(--ink-3); font-size: 13px; }

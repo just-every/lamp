@@ -3008,7 +3008,7 @@
       "executable": false
     },
     "src/core/app/client/ui/onboarding.css": {
-      "sha256": "19b84d66530f08bb96e1a97090d73f7dc2546f54608432466fb38b5d5e0e33b9",
+      "sha256": "dc74aa907a60f3e2c724abcf786b460b00853d929dd06c183857b72aff4c27b1",
       "executable": false
     },
     "src/core/app/client/ui/page-live.css": {
@@ -4208,11 +4208,11 @@
       "executable": false
     },
     "src/core/features/setup/ui/first-run-page.tsx": {
-      "sha256": "5aad62abd667fe5e666e0f998a33c1dbd5c1ef1f88545ca43e631fc3d21f2ede",
+      "sha256": "a604a0ef30853e834e45759fc49a476b81d7972997f5cce955c6b61c8533826b",
       "executable": false
     },
     "src/core/features/setup/ui/found-card.tsx": {
-      "sha256": "5a756f0cb98054dd7bd731413d88146ba5740b4038cd98b2e9ae97d470641cdd",
+      "sha256": "0f84fb09fe5e614b5234f45ca38b5c0cc437fb80ea5a2cf7ddff56952d6bf999",
       "executable": false
     },
     "src/core/features/setup/ui/found-components.tsx": {
@@ -4220,7 +4220,7 @@
       "executable": false
     },
     "src/core/features/setup/ui/setup-draft.ts": {
-      "sha256": "c6cb17368704ec9f4436745cede0b30a07d16410179fee724efc5bfbab29481a",
+      "sha256": "76900f7dce358612d080f3aea514e6094ae4d1ecbaa931681e896b3a0e0157ea",
       "executable": false
     },
     "src/core/features/statuspage-import/adapters.ts": {
@@ -6212,7 +6212,7 @@
       "executable": false
     },
     "tests/e2e/website-onboarding.test.mjs": {
-      "sha256": "6d395db33baca7a74240e4ac6df5dcdb7dad14e25dee975cf1d622e7df18d5ff",
+      "sha256": "2a70c8bf43e04a9a9e669fa7ccf7a17dc3c618d915a82b9160778a254e4ed95e",
       "executable": false
     },
     "tests/e2e/worker-startup.mjs": {

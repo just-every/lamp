@@ -94,7 +94,7 @@ contract('SETUP-002', 'a fresh owner gives their website first; Lamp fills in th
     assert.equal(await row('page name').innerText(), 'Acme Tracking Status');
     assert.equal(await row('tagline').innerText(), "Acme Tracking keeps your team's hours in one place.");
     assert.equal(await row('accent colour').innerText(), '#0F7B6C');
-    assert.match(await row('time zone').innerText(), /^America\/New_York/);
+    assert.equal(await page.locator('[data-found="time zone"]').count(), 0, 'setup does not ask for the time zone: the page takes the browser\'s');
     // Its real components replace the navigation's guesses, labelled with where they came from, in its own groups.
     assert.equal(await label('components').textContent(), 'Components (8 from status.acme-tracking.com)');
     const groups = async () => page.locator('[data-found="components"] .found-groups > div').evaluateAll(blocks => blocks.map(block => [block.querySelector('.found-group').textContent, [...block.querySelectorAll('li')].map(item => item.textContent)]));
