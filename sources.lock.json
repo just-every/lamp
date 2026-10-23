@@ -4272,7 +4272,7 @@
       "executable": false
     },
     "src/core/features/statuspage-import/door.ts": {
-      "sha256": "20f788e8d83fc8c24b9987adbc5cf47da53019d1dc8a114ea6e9680df719492e",
+      "sha256": "567a6a65ff3fc3b543b5b3da142248ce73a3ccc2c672217b9e55673880a5df8c",
       "executable": false
     },
     "src/core/features/statuspage-import/expiry-audit.ts": {
