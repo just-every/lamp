@@ -23,9 +23,9 @@ export const allMarkers = ["SELECT kind,id,revision FROM statuspage_import_targe
  * owner edit: a native value equal to its default reads as absent. */
 export const sealedDefaults: Record<string, Row> = {
   components: { only_show_if_degraded: 0, uptime_start_date: null, region: null },
-  // Additive subscriber intake/format migrations leave sealed imports unchanged.
-  // A real operator attribution or explicit format choice remains an edit.
-  subscribers: { created_by_operator_id: null, webhook_format: "lamp" },
+  // Additive subscriber intake, format and preference defaults leave sealed imports unchanged.
+  // A real attribution, non-default format or preference choice remains an edit.
+  subscribers: { created_by_operator_id: null, webhook_format: "lamp", event_kinds_json: '["incidents","maintenance"]', minimum_impact: null },
   // Existing import journals predate per-update component snapshots. Empty
   // migration defaults are not an operator edit; real published changes are.
   incident_updates: { component_changes_json: "[]", component_snapshot_json: "[]" },
