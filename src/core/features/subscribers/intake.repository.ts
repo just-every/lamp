@@ -1,3 +1,4 @@
+import { SubscriberLimitError } from "./limits";
 import { createUlid } from "../../shared/ids";
 import type { IntakeCounts, IntakeRow } from "./intake-schema";
 
@@ -31,9 +32,9 @@ export function createSubscriberIntakeRepository(db:D1Database) {
       for(let start=0;start<rows.length;start+=50) {
         const json=JSON.stringify(rows.slice(start,start+50));
         resultPositions.push(statements.length);
-        statements.push(db.prepare(`INSERT INTO subscribers(id,channel,destination,contact_email,state,selection_mode,token_hash,created_by_operator_id,created_at,updated_at)
+        statements.push(db.prepare(`INSERT INTO subscribers(id,channel,destination,contact_email,state,selection_mode,token_hash,created_by_operator_id,event_kinds_json,minimum_impact,created_at,updated_at)
           SELECT json_extract(r.value,'$.id'),json_extract(r.value,'$.channel'),json_extract(r.value,'$.destination'),json_extract(r.value,'$.contactEmail'),
-            'pending',CASE WHEN json_array_length(r.value,'$.componentIds')=0 THEN 'all' ELSE 'selected' END,json_extract(r.value,'$.tokenHash'),?,?,?
+            'pending',CASE WHEN json_array_length(r.value,'$.componentIds')=0 THEN 'all' ELSE 'selected' END,json_extract(r.value,'$.tokenHash'),?,COALESCE(json_extract(r.value,'$.eventKinds'),CASE WHEN json_extract(r.value,'$.channel')='webhook' THEN '["incidents","maintenance","components"]' ELSE '["incidents","maintenance"]' END),json_extract(r.value,'$.minimumImpact'),?,?
           FROM json_each(?) r WHERE 1 ON CONFLICT(destination) DO NOTHING RETURNING id`).bind(operatorId,now,now,json));
         statements.push(db.prepare(`INSERT INTO subscriber_intake(subscriber_id,batch_id,source,operator_id,created_at)
           SELECT s.id,?,?,?,? FROM json_each(?) r JOIN subscribers s ON s.id=json_extract(r.value,'$.id')`).bind(batchId,source,operatorId,now,json));
@@ -51,7 +52,9 @@ export function createSubscriberIntakeRepository(db:D1Database) {
       if(batchId)statements.push(db.prepare(`INSERT INTO audit_entries(id,entity_type,entity_id,action,operator_id,payload_json,created_at,updated_at)
         SELECT ?,'subscriber-import',?,'subscriber.import-applied',?,json_object('created',COUNT(*),'skipped',?-COUNT(*),'refused',?),?,?
         FROM subscriber_intake WHERE batch_id=?`).bind(batchId,batchId,operatorId,counts.created+counts.skipped,counts.refused,now,now,batchId));
-      const results=await db.batch<{id:string}>(statements);
+      let results:D1Result<{id:string}>[];
+      try{results=await db.batch<{id:string}>(statements);}
+      catch(cause){if(cause instanceof Error&&cause.message.includes("over the subscriber limit"))throw new SubscriberLimitError();throw cause;}
       return resultPositions.flatMap(index=>results[index]!.results.map(row=>row.id));
     },
     async batchExists(batchId:string):Promise<boolean> {
