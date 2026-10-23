@@ -6,6 +6,8 @@ import { createDatabase } from "../../platform/db/client";
 import { maintenance, notificationDeliveries, operators, subscribers } from "../../shared/schema";
 import { notificationOutbox } from "./schema";
 import { createUlid } from "../../shared/ids";
+import { createStatuspageWebhookRepository } from "./statuspage-webhook.repository";
+import type { WebhookFormat } from "../subscribers/webhook-format";
 
 export type DeliveryRow = typeof notificationDeliveries.$inferSelect & { destination: string; subscriberState: "pending" | "active" | "deactivated"; providerAcceptedAt: string | null; latestError: string | null; localCaptureId: string | null; localCapturedAt: string | null; maintenanceReference: string | null; maintenanceTitle: string | null; maintenanceNoticeKind: string | null; incidentReference: string | null; incidentTitle: string | null; incidentLifecycle: string | null };
 
@@ -13,6 +15,8 @@ export type DeliveryRow = typeof notificationDeliveries.$inferSelect & { destina
 export interface SubscriptionMailRow { id: string; destination: string; subscriberState: "pending" | "active" | "deactivated"; kind: "confirmation" | "already-subscribed" | "subscribed"; outcome: "accepted" | "suppressed" | "failed"; sentAt: string }
 
 export interface DispatchableDelivery {
+  webhookFormat:WebhookFormat;
+  statuspageIncidentId:string|null;
   id: string;
   notificationEventId: string | null;
   subscriberId: string;
@@ -65,6 +69,7 @@ export interface PendingProviderEvent {
 export type NotificationTokenCandidates = Record<"manage" | "unsubscribe", { id: string; tokenHash: string }>;
 
 export interface DeliveryRepository {
+  statuspage:ReturnType<typeof createStatuspageWebhookRepository>;
   hasMailSendClaim(providerMessageId: string): Promise<boolean>;
   listDeliveries(input: { limit?: number; offset?: number; channel?: "email" | "webhook"; outcome?: DeliveryRow["outcome"]; incidentUpdateId?: string }): Promise<DeliveryRow[]>;
   listSubscriptionMail(limit: number): Promise<SubscriptionMailRow[]>;
@@ -103,6 +108,7 @@ export function createDeliveryRepository(binding: D1Database): DeliveryRepositor
   function deliveryStatement(deliveryId: string) {
     return binding.prepare(`
         SELECT d.id, d.notification_event_id AS notificationEventId, d.subscriber_id AS subscriberId, d.channel, s.state AS subscriberState, s.destination, s.contact_email AS contactEmail,
+          COALESCE(s.webhook_format,'lamp') AS webhookFormat,COALESCE(i.id,reportIncident.id) AS statuspageIncidentId,
           d.incident_update_id AS incidentUpdateId, d.incident_report_id AS incidentReportId, d.maintenance_id AS maintenanceId,
           d.incident_impact AS incidentImpact, i.id AS incidentId, CASE WHEN u.id IS NOT NULL AND u.id = (SELECT first_update.id FROM incident_updates first_update WHERE first_update.incident_id = i.id ORDER BY first_update.published_at ASC, first_update.id ASC LIMIT 1) THEN 1 ELSE 0 END AS isFirstIncidentUpdate,
           COALESCE(i.reference, reportIncident.reference) AS incidentReference, COALESCE(i.title, reportIncident.title) AS incidentTitle, u.lifecycle, u.affected_audience AS affectedAudience,
@@ -140,6 +146,7 @@ export function createDeliveryRepository(binding: D1Database): DeliveryRepositor
     return binding.prepare("SELECT id, event_type AS eventType, hard_bounce AS hardBounce FROM mail_provider_webhook_events WHERE provider_message_id = ? AND applied_at IS NULL ORDER BY received_at ASC, id ASC").bind(providerMessageId);
   }
   return {
+    statuspage:createStatuspageWebhookRepository(binding),
     async listDeliveries(input) {
       const conditions = [];
       if (input.channel) conditions.push(eq(notificationDeliveries.channel, input.channel));

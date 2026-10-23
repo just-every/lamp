@@ -11,13 +11,14 @@ import { hasSafeWebhookDestination, normalizeEmail } from "./destination";
 import { createSubscriberIntakeService } from "./intake.service";
 import { createIntakeConfirmationSender } from "./intake-confirmation";
 import type { AddedBy } from "./intake.repository";
+import type { WebhookFormat } from "./webhook-format";
 
 const CONFIRMATION_WINDOW_MS = 24 * 60 * 60 * 1000;
 const PENDING_WINDOW_MS = 72 * 60 * 60 * 1000;
 /** Each import custody erasure is its own bounded D1 batch; a scheduled run takes a few. */
 const CUSTODY_ERASURES_PER_RUN = 3;
 
-export type SubscriberView = StoredSubscriber & { componentSelections: StoredSubscriberComponent[]; addedBy: AddedBy | null };
+export type SubscriberView = StoredSubscriber & { componentSelections: StoredSubscriberComponent[]; addedBy: AddedBy | null;webhookFormat:WebhookFormat|null };
 
 export interface SubscribersService {
   intake: ReturnType<typeof createSubscriberIntakeService>;
@@ -28,9 +29,9 @@ export interface SubscribersService {
   requestEmailSubscription(email: string, origin: string, componentIds?: string[]): Promise<void>;
   confirm(token: string): Promise<boolean>;
   getManagedSubscription(token: string): Promise<{ unsubscribeToken: string; subscriber: SubscriberView; components: Array<{ id: string; name: string }> } | null>;
-  updateManagedSelection(token: string, componentIds: string[]): Promise<boolean>;
+  updateManagedSelection(token: string, componentIds: string[],webhookFormat?:WebhookFormat): Promise<boolean>;
   unsubscribe(token: string): Promise<boolean>;
-  createWebhookSubscription(input: { destination: string; contactEmail: string; componentIds: string[] }): Promise<SubscriberView>;
+  createWebhookSubscription(input: { destination: string; contactEmail: string; componentIds: string[];webhookFormat?:WebhookFormat }): Promise<SubscriberView>;
   deleteSubscriber(subscriberId: string, operatorId: string): Promise<boolean>;
   expirePending(): Promise<void>;
   inviteImported(subscriberId: string, origin: string, pageName: string, claimSend: () => Promise<boolean>): Promise<boolean>;
@@ -116,8 +117,8 @@ export function createSubscribersService(
   }
 
   async function view(subscriber: StoredSubscriber): Promise<SubscriberView> {
-    const [componentSelections,addedBy]=await Promise.all([repository.listComponents(subscriber.id),repository.intake.addedBy(subscriber.id)]);
-    return { ...subscriber, componentSelections, addedBy };
+    const [componentSelections,addedBy,webhookFormat]=await Promise.all([repository.listComponents(subscriber.id),repository.intake.addedBy(subscriber.id),subscriber.channel==="webhook"?repository.formats.get(subscriber.id):Promise.resolve(null)]);
+    return { ...subscriber, componentSelections, addedBy,webhookFormat };
   }
 
   const pageName=async()=>options.pageName?options.pageName():lampConfig.pageName;
@@ -235,10 +236,10 @@ export function createSubscribersService(
       const unsubscribeToken = authorizedId === id ? candidate : await tokens.encode({ id: authorizedId, scope: "unsubscribe" });
       return { unsubscribeToken, subscriber: await view(matched.subscriber), components: await repository.listVisibleComponents() };
     },
-    async updateManagedSelection(token, componentIds) {
+    async updateManagedSelection(token, componentIds,webhookFormat) {
       const matched = await fromToken(token, "manage");
-      if (!matched || matched.subscriber.state !== "active") return false;
-      return repository.updateManagedSelection({ subscriberId: matched.subscriber.id, tokenHash: matched.token.tokenHash }, await visibleSelection(componentIds), nowIso());
+      if (!matched || matched.subscriber.state !== "active" || (webhookFormat && matched.subscriber.channel!=="webhook")) return false;
+      return repository.updateManagedSelection({ subscriberId: matched.subscriber.id, tokenHash: matched.token.tokenHash }, await visibleSelection(componentIds), nowIso(),webhookFormat);
     },
     async unsubscribe(token) {
       const matched = await fromToken(token, "unsubscribe");
@@ -264,6 +265,7 @@ export function createSubscribersService(
       const subscriber = await repository.findSubscriberByDestination(input.destination);
       if (!subscriber) throw new Error("Webhook subscriber was not stored.");
       if (input.componentIds.length) await repository.updateSelection(subscriber.id, input.componentIds, timestamp);
+      if (input.webhookFormat) await repository.formats.set(subscriber.id,input.webhookFormat);
       return view(subscriber);
     },
     async deleteSubscriber(subscriberId, operatorId) {
@@ -310,7 +312,7 @@ export function createSubscribersService(
 export function renderSubscriberManagementPage(input: { unsubscribeToken: string; subscriber: SubscriberView; components: Array<{ id: string; name: string }> }, pageName: string = lampConfig.pageName) {
   const selected = new Set(input.subscriber.componentSelections.map((selection) => selection.componentId));
   const checks = input.components.map((component) => `<label><input type="checkbox" name="componentId" value="${escapeHtml(component.id)}"${input.subscriber.selectionMode === "all" || selected.has(component.id) ? " checked" : ""}> ${escapeHtml(component.name)}</label>`).join("");
-  // With no visible components there is nothing to choose between, so the selection form is left out.
-  const selection = checks ? `<form method="post"><fieldset><legend>Components</legend><p>Clear every selection to follow all current and future visible components.</p>${checks}</fieldset><button type="submit">Save selection</button></form>` : "";
+  const format=input.subscriber.channel==="webhook"?`<label>Webhook format<select name="webhookFormat"><option value="lamp"${input.subscriber.webhookFormat==="lamp"?" selected":""}>Lamp</option><option value="statuspage"${input.subscriber.webhookFormat==="statuspage"?" selected":""}>Statuspage</option></select></label>`:"";
+  const selection = checks || format ? `<form method="post">${checks?`<fieldset><legend>Components</legend><p>Clear every selection to follow all current and future visible components.</p>${checks}</fieldset>`:""}${format}<button type="submit">Save selection</button></form>` : "";
   return renderSubscriberTokenPage("Manage subscription", `<p>Channel: ${escapeHtml(input.subscriber.channel)}</p>${selection}<form method="post" action="/unsubscribe/${encodeURIComponent(input.unsubscribeToken)}"><input type="hidden" name="action" value="unsubscribe"><button type="submit">Unsubscribe</button></form>`, pageName);
 }

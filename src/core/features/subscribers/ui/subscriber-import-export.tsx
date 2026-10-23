@@ -41,6 +41,7 @@ export function SubscriberImportExport({ onChanged }: { onChanged: () => void })
     <h2>Import and export</h2><p><a className="text-link" href="/api/app/subscribers.csv" download>Export subscribers as CSV</a></p>
     <p>Review a CSV before creating pending subscriptions. Only an owner can send the imported subscribers their confirmation invitations.</p>
     <p>Columns: email, phone, webhook_url, contact_email, components, language. Separate component IDs with semicolons; leave components blank for all visible components. Language must be English (en). Phone rows are refused.</p>
+    <p>For webhook rows, optional webhook_format chooses lamp or statuspage. An omitted format uses Lamp.</p>
     <form className="incident-note-form" onSubmit={dryRun}>
       <label className="form-label">CSV file<input type="file" accept=".csv,text/csv" disabled={pending} onChange={event => void selectFile(event.target.files?.[0])} /></label>
       <label className="form-label">CSV contents<textarea rows={6} required disabled={pending} value={csv} onChange={event => reset(event.target.value)} /></label>

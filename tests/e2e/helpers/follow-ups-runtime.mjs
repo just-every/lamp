@@ -27,7 +27,7 @@ export async function eventuallyFollowUp(read, predicate, description) {
 
 /** Disposable migrated Worker. Only the email/webhook network edges are fake;
  * Queue outage injection is the existing queue-outage.worker.ts boundary. */
-export async function openFollowUpsRuntime({ resendWebhookSecret } = {}) {
+export async function openFollowUpsRuntime({ resendWebhookSecret, webhookReceiver } = {}) {
   const state = await mkdtemp(join(tmpdir(), "lamp-follow-ups-"));
   const messages = [], webhookRequests = [], channelRequests = [], mailReceipts = [];
   let runtime, webhookOutage = true, cookie;
@@ -74,8 +74,11 @@ export async function openFollowUpsRuntime({ resendWebhookSecret } = {}) {
           return Response.json({ id });
         }
         if (url.origin === "https://receiver.example.test" && url.pathname === "/synthetic-lamp-1") {
-          webhookRequests.push({ body: await request.json(), headers: Object.fromEntries(request.headers) });
-          return new Response(null, { status: webhookOutage ? 500 : 204 });
+          const rawBody = await request.text();
+          const captured = { rawBody, body: JSON.parse(rawBody), headers: Object.fromEntries(request.headers) };
+          webhookRequests.push(captured);
+          if (webhookOutage) return new Response(null, { status: 500 });
+          return webhookReceiver ? await webhookReceiver(captured) : new Response(null, { status: 204 });
         }
         if (url.origin === "https://hooks.slack.com" && url.pathname === "/services/synthetic-lamp-1/synthetic-lamp-2/synthetic-lamp-3") {
           channelRequests.push(await request.json());

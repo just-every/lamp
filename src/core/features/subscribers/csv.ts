@@ -1,7 +1,8 @@
 import { importLimits } from "../statuspage-import/source";
 import { SubscriberIntakeError, subscriberAddSchema, type IntakeDecision, type IntakeRow } from "./intake-schema";
+import { webhookFormatSchema } from "./webhook-format";
 
-const headersAllowed=new Set(["email","phone","webhook_url","contact_email","components","language"]);
+const headersAllowed=new Set(["email","phone","webhook_url","contact_email","components","language","webhook_format"]);
 
 function records(csv:string):string[][] {
   if(new TextEncoder().encode(csv).byteLength>importLimits.maxBytes) throw new SubscriberIntakeError("The CSV exceeds 8 MiB.",413);
@@ -30,7 +31,7 @@ function records(csv:string):string[][] {
 
 export function parseSubscriberCsv(csv:string):{valid:IntakeRow[];decisions:IntakeDecision[]} {
   const rows=records(csv),headers=rows.shift()?.map(value=>value.trim().toLowerCase().replaceAll(" ","_"))??[];
-  if(!headers.some(value=>["email","phone","webhook_url"].includes(value))||new Set(headers).size!==headers.length||headers.some(value=>!headersAllowed.has(value)))throw new SubscriberIntakeError("Use unique CSV headers: email, phone, webhook_url, contact_email, components, language.");
+  if(!headers.some(value=>["email","phone","webhook_url"].includes(value))||new Set(headers).size!==headers.length||headers.some(value=>!headersAllowed.has(value)))throw new SubscriberIntakeError("Use unique CSV headers: email, phone, webhook_url, contact_email, components, language, webhook_format.");
   if(!rows.length)throw new SubscriberIntakeError("Choose a CSV containing subscriber rows.");
   const valid:IntakeRow[]=[],decisions:IntakeDecision[]=[],seen=new Set<string>();
   rows.forEach((cells,index)=>{
@@ -41,13 +42,15 @@ export function parseSubscriberCsv(csv:string):{valid:IntakeRow[];decisions:Inta
     if(value.phone){refuse("SMS subscribers are not available (SUB-013)");return;}
     if(value.language&&value.language!=="en"){refuse("Only English (en) is available (I18N-001).");return;}
     if(Boolean(value.email)===Boolean(value.webhook_url)){refuse("Choose exactly one email address or webhook URL.");return;}
+    if(value.email&&value.webhook_format){refuse("Webhook format applies only to webhook subscribers.");return;}
+    if(value.webhook_format&&!webhookFormatSchema.safeParse(value.webhook_format).success){refuse("Choose Lamp or Statuspage as the webhook format.");return;}
     const componentIds=value.components?value.components.split(/[;,]/u).map(id=>id.trim()).filter(Boolean):[];
-    const parsed=subscriberAddSchema.safeParse(value.email?{channel:"email",email:value.email,componentIds}:{channel:"webhook",destination:value.webhook_url,contactEmail:value.contact_email??"",componentIds});
+    const parsed=subscriberAddSchema.safeParse(value.email?{channel:"email",email:value.email,componentIds}:{channel:"webhook",destination:value.webhook_url,contactEmail:value.contact_email??"",componentIds,...(value.webhook_format?{webhookFormat:value.webhook_format}:{})});
     if(!parsed.success){refuse("The destination, contact address or component identifiers are invalid.");return;}
     const item=parsed.data,destination=item.channel==="email"?item.email:item.destination;
     if(seen.has(destination)){decisions.push({row,outcome:"skipped",reason:"This destination occurs earlier in the file."});return;}
     seen.add(destination);
-    valid.push({row,channel:item.channel,destination,contactEmail:item.channel==="webhook"?item.contactEmail:null,componentIds:item.componentIds});
+    valid.push({row,channel:item.channel,destination,contactEmail:item.channel==="webhook"?item.contactEmail:null,componentIds:item.componentIds,...(item.channel==="webhook"?{webhookFormat:item.webhookFormat}:{})});
     decisions.push({row,outcome:"created",reason:null});
   });
   return {valid,decisions};

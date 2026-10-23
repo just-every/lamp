@@ -36,6 +36,17 @@ confirms. The list identifies the operator who added it. Each notification is si
 contains the incident, its published updates and the affected component state
 changes. The delivery log records outcomes; it does not track opens.
 
+Webhook endpoints choose **Lamp** or **Statuspage** as their body format. Lamp
+is the default. Both formats use the same signature headers and delivery rules.
+Statuspage bodies share the public API's status values and stable IDs, contain
+the complete published incident update history, and preserve plain update text
+and bare URLs. The recipient can change the format from their emailed management
+link. CSV webhook rows can set optional `webhook_format` to `lamp` or `statuspage`.
+Standalone component-change notifications remain with NOTIFY-017; the future
+Statuspage webhook importer remains with MOVE-010. Maintenance carries the
+existing notices; MAINT-009's unbuilt in-window wording remains a gap. The public
+subscribe form's format chooser awaits the owner UI pass.
+
 ## Import and export subscribers
 
 In **Subscribers → Import and export**, choose or paste a CSV and run its dry
