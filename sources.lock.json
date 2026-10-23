@@ -2992,7 +2992,7 @@
       "executable": false
     },
     "src/core/app/client/ui/leave-guard.ts": {
-      "sha256": "b3c4a19ac7b26df6afd6a2e09ee3958406be10d83d9ee15c510083d62d34d218",
+      "sha256": "b20714d513a00756ecf5a373c09daaa6214ed235fe85fdc0eb46cc697e7beb84",
       "executable": false
     },
     "src/core/app/client/ui/lit-page.tsx": {
@@ -4956,7 +4956,7 @@
       "executable": false
     },
     "src/router.tsx": {
-      "sha256": "4422d32837cacfdc25185902e9cfd01c281f269b1a5511fe4c663e3f42f18de9",
+      "sha256": "021fd4c76a2d06552bdc47aa960dc746623338961adc60204f55bbd75f3bd2b1",
       "executable": false
     },
     "src/routes/__root.tsx": {

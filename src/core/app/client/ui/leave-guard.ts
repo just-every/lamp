@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { useBlocker } from "@tanstack/react-router";
+import { createBrowserHistory, useBlocker, type RouterHistory } from "@tanstack/react-router";
 
 // A page holding unsaved work answers before the operator leaves it or signs out; false keeps them where they are.
 const guards = new Set<{ current: () => Promise<boolean> }>();
@@ -14,6 +14,23 @@ export function useLeaveGuard(leave: () => Promise<boolean>, unsaved: () => bool
     return () => { guards.delete(latest); };
   }, []);
   useBlocker({ shouldBlockFn: async ({ current, next }) => next.pathname !== current.pathname && !await leave(), enableBeforeUnload: unsaved });
+}
+
+/** The browser history the router hears, told only when the page moves to another entry. A Back held by the guard above
+ * is undone by TanStack's history, which still notifies with the same entry; hearing it, the router would reload /app
+ * over the held page (offline, its error page in place of the form) and restore an older scroll over the refusal. */
+export function leaveGuardHistory(): RouterHistory {
+  const history = createBrowserHistory();
+  const subscribe = history.subscribe;
+  history.subscribe = listener => {
+    let heard = history.location;
+    return subscribe(change => {
+      const moved = change.location.href !== heard.href || change.location.state.__TSR_key !== heard.state.__TSR_key;
+      heard = change.location;
+      if (moved) listener(change);
+    });
+  };
+  return history;
 }
 
 export async function mayLeave() {
