@@ -1,6 +1,8 @@
+import { reportReminderEligibleSql } from "../../reports/reminder-eligibility";
+
 export const reportCandidatesSql = `
 SELECT i.id,i.reference,i.title,i.resolved_at,o.id AS owner_id,o.display_name AS owner_name,
-  EXISTS(SELECT 1 FROM incident_updates u WHERE u.incident_id=i.id AND u.is_retroactive=0) AS has_live_update,
+  ${reportReminderEligibleSql("i")} AS reminder_eligible,
   strftime('%Y-%m-%dT%H:%M:%fZ',i.resolved_at,'+7 days') AS due_at,
   MAX(0,CAST((julianday(c.now)-julianday(i.resolved_at)-7)/7 AS INTEGER)) AS current_week
 FROM incidents i
@@ -31,4 +33,4 @@ SELECT 'report-reminder:' || r.id,'report-reminder',r.reference || ': report rem
   json_array(r.id,r.resolved_at,r.current_week+CASE WHEN sent.incident_id IS NULL THEN 0 ELSE 1 END,julianday(r.due_at)<=julianday(c.now) AND sent.incident_id IS NULL)
 FROM follow_up_reports r CROSS JOIN follow_up_clock c
 LEFT JOIN report_reminders sent ON sent.incident_id=r.id AND sent.week=r.current_week
-WHERE r.has_live_update=1`;
+WHERE r.reminder_eligible=1`;

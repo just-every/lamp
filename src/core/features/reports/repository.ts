@@ -1,3 +1,4 @@
+import { reportReminderEligibleSql } from "./reminder-eligibility";
 import { createUlid } from "../../shared/ids";
 
 export interface IncidentReportRow {
@@ -19,7 +20,7 @@ export interface ReportRepository {
   upsert(input: IncidentReportRow): Promise<void>;
   publish(incidentId: string, report: IncidentReportRow, publishedAt: string, operatorId: string, notificationStatements: D1PreparedStatement[]): Promise<boolean>;
   listComponentIds(incidentId: string): Promise<string[]>;
-  listResolvedWithoutPublishedReport(): Promise<Array<{ id: string; reference: string; title: string; lifecycle: string; resolvedAt: string | null; impact: string | null; hasLiveUpdate: number }>>;
+  listResolvedWithoutPublishedReport(): Promise<Array<{ id: string; reference: string; title: string; lifecycle: string; resolvedAt: string | null; impact: string | null; reminderEligible: number }>>;
   waiver(incidentId: string): Promise<{ reason: string; operatorId: string; createdAt: string } | null>;
   waive(incidentId: string, reason: string, operatorId: string, at: string): Promise<boolean>;
   reminderSent(incidentId: string, week: number): Promise<boolean>;
@@ -95,9 +96,9 @@ export function createReportRepository(binding: D1Database): ReportRepository {
     async listComponentIds(incidentId) { return (await binding.prepare(`SELECT component_id AS componentId FROM incident_components WHERE incident_id = ? AND component_id IS NOT NULL`).bind(incidentId).all<{ componentId: string }>()).results.map((row) => row.componentId); },
     async listResolvedWithoutPublishedReport() {
       const result = await binding.prepare(`SELECT incidents.id, incidents.reference, incidents.title, incidents.lifecycle, incidents.resolved_at AS resolvedAt, incidents.peak_impact AS impact,
-        EXISTS(SELECT 1 FROM incident_updates u WHERE u.incident_id=incidents.id AND u.is_retroactive=0) AS hasLiveUpdate
+        ${reportReminderEligibleSql("incidents")} AS reminderEligible
         FROM incidents LEFT JOIN incident_reports ON incident_reports.incident_id = incidents.id AND incident_reports.published_at IS NOT NULL
-        WHERE incidents.lifecycle = 'Resolved' AND incidents.deleted_at IS NULL AND incident_reports.id IS NULL AND NOT EXISTS(SELECT 1 FROM report_waivers WHERE incident_id=incidents.id)`).all<{ id: string; reference: string; title: string; lifecycle: string; resolvedAt: string | null; impact: string | null; hasLiveUpdate: number }>();
+        WHERE incidents.lifecycle = 'Resolved' AND incidents.deleted_at IS NULL AND incident_reports.id IS NULL AND NOT EXISTS(SELECT 1 FROM report_waivers WHERE incident_id=incidents.id)`).all<{ id: string; reference: string; title: string; lifecycle: string; resolvedAt: string | null; impact: string | null; reminderEligible: number }>();
       return result.results;
     },
   };

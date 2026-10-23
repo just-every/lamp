@@ -54,7 +54,7 @@ export function createReportsService(repository: ReportRepository, onPublicDataC
       if (!remind) throw new Error("Report follow-up requires operator reminder wiring.");
       let sent=0;
       for (const incident of await repository.listResolvedWithoutPublishedReport()) {
-        if (!incident.hasLiveUpdate || !duePolicy.isDue({ resolvedAt: incident.resolvedAt, impact: incident.impact as ComponentState | null, hasPublishedReport: false, now }) || !incident.resolvedAt) continue;
+        if (!incident.reminderEligible || !duePolicy.isDue({ resolvedAt: incident.resolvedAt, impact: incident.impact as ComponentState | null, hasPublishedReport: false, now }) || !incident.resolvedAt) continue;
         const week = Math.floor((Date.parse(now) - Date.parse(incident.resolvedAt) - REPORT_REMINDER_WEEK_MS) / REPORT_REMINDER_WEEK_MS);
         if (week<0 || await repository.reminderSent(incident.id,week)) continue;
         await remind({ incidentId:incident.id,reference:incident.reference,title:incident.title,week });

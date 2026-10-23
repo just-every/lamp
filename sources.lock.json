@@ -3848,7 +3848,7 @@
       "executable": false
     },
     "src/core/features/overview/follow-ups/report.repository.ts": {
-      "sha256": "77e3d4bef1e398535d9c909a68d8a957e50ed5e054d9f6cc305886b94061d1a0",
+      "sha256": "df4af8a9743057268e1861db130d94cbb620b85375a1845c960841d9f600acc2",
       "executable": false
     },
     "src/core/features/overview/follow-ups/repository.ts": {
@@ -4291,8 +4291,12 @@
       "sha256": "736ee3fad25fd5d72aa24d5c05646e4a74ea3c0dfee372ea5cbcc3da20f42d7f",
       "executable": false
     },
+    "src/core/features/reports/reminder-eligibility.ts": {
+      "sha256": "e3fc3bae2635401cf2bf611956d62664f4583bb9e7fd1b8da04f611c68633709",
+      "executable": false
+    },
     "src/core/features/reports/repository.ts": {
-      "sha256": "eeb4822a82a934f52deccf3bcf1a541627ce0e8b24ca10d183167e0810ea700b",
+      "sha256": "76ea73842f0a423c71d4433c65f1f14bbaf1a7add28abe80da5364a44284f171",
       "executable": false
     },
     "src/core/features/reports/routes.ts": {
@@ -4300,7 +4304,7 @@
       "executable": false
     },
     "src/core/features/reports/service.ts": {
-      "sha256": "93e6b89d3545c751f9d335746d45536b36a27a56b9d59250aede440297685487",
+      "sha256": "6a8dfc95995a2c5bde07400741429d5c7b5bc832ece308c5e7e7087f5e33281b",
       "executable": false
     },
     "src/core/features/reports/ui/report-editor.tsx": {
