@@ -74,7 +74,7 @@ export function registerIncidentRoutes(app: Hono<AppEnv>, service: IncidentsServ
     app.on(method === "take-over" ? "POST" : "PUT", `/api/app/incidents/:incidentId/owner${method === "take-over" ? "/take-over" : ""}`, async (context) => {
       const id = incidentIdFrom(context);
       const actor = context.get("operator").id;
-      const input = method === "take-over" ? { success: true as const, data: { operatorId: actor } } : z.object({ operatorId: ulidSchema }).strict().safeParse(await context.req.json().catch(() => null));
+      const input = method === "take-over" ? { success: true as const, data: { operatorId: actor } } : z.object({ operatorId: z.union([z.uuid(), ulidSchema]) }).strict().safeParse(await context.req.json().catch(() => null));
       if (!id.success || !input.success) return context.json({ error: "Choose an active operator." }, 400);
       const result = await service.communicationOwners.assign(id.data, input.data.operatorId, actor);
       if (result === "resolved") return context.json({ error: "A resolved incident cannot change communication owner." }, 409);
