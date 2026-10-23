@@ -134,4 +134,24 @@ async function subscriberChannelLimitsFlow() {
     const report=(await fixture.api("/api/app/subscribers?limit=1")).body.capacity;
     const combined=report.find(row=>row.channel==="slack-and-teams");assert.equal(combined.count,combined.limit);
   } finally {await fixture.close();}
+  // Missing subscriber signing material is normal deployment configuration.
+  // Capacity still determines admission for a valid destination; invalid hosts
+  // remain invalid even when the selected channel has no available capacity.
+  const unconfigured=await openSubscriberManagementFixture({extraBindings:{SUBSCRIBER_TOKEN_SECRET:""}});
+  try {
+    const db=await unconfigured.runtime.getD1Database("DB");
+    await seedSubscriberLimitFixture(db,1,1_000,"teams");
+    const subscriptionTables=new Set(["subscribers","subscriber_tokens","subscriber_components","subscriber_chat_destinations","channel_destinations","channel_destination_components"]);
+    const subscriptionState=async()=>new Map([...await unconfigured.databaseState()].filter(([table])=>subscriptionTables.has(table)));
+    const before=await subscriptionState(),mail=unconfigured.messages.length;
+    for(const [url,status] of [
+      ["https://synthetic-lamp.environment.api.powerplatform.com/powerautomate/automations/direct/workflows/synthetic-lamp-1/triggers/manual/paths/invoke?sig=synthetic-lamp-1",409],
+      ["https://receiver.example.test/synthetic-lamp-not-microsoft",400],
+    ]) {
+      const response=await unconfigured.raw(pageOrigin+"/subscribe/teams",{method:"POST",headers:{"Content-Type":"application/x-www-form-urlencoded","Accept":"text/html"},body:new URLSearchParams({url})});
+      assert.equal(response.status,status,await response.text());
+      assert.deepEqual(await subscriptionState(),before,"refused requests leave subscriber rows, tokens and sealed channel mappings unchanged");
+      assert.equal(unconfigured.messages.length,mail,"capacity and host refusals send no mail when Teams is unconfigured");
+    }
+  } finally {await unconfigured.close();}
 }
