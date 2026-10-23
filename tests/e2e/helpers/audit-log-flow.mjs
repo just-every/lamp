@@ -33,7 +33,7 @@ export async function auditLogFlow({ page, appUrl, appFetch }) {
   assert.equal(beforeDetach, "Major outage");
   await request(`/api/app/incidents/${incident.id}/components/${component.id}`, "DELETE");
   assert.equal((await request("/api/app/components")).components.find(row => row.id === component.id).publicState, beforeDetach);
-  await request(`/api/app/incidents/${incident.id}/components/${component.id}`, "DELETE", undefined, 400);
+  await request(`/api/app/incidents/${incident.id}/components/${component.id}`, "DELETE", undefined, 409);
   const templateInput = { name: "synthetic-lamp-audit-template", lifecycle: "Investigating", affectedAudience: "API customers", customerImpact: "Requests are delayed.", whatStillWorks: "", details: "", nextUpdateOffsetMinutes: 60, components: [{ componentId: component.id, state: "Partially unavailable", relationship: "Primary" }] };
   const template = (await request("/api/app/incident-templates", "POST", templateInput, 201)).template;
   await request("/api/app/incident-templates", "POST", templateInput, 201);
