@@ -3988,7 +3988,7 @@
       "executable": false
     },
     "src/core/features/public-snapshot/badges.ts": {
-      "sha256": "01dd3b6147652823785546512595193a9c084849e5743c5b40b1543e13cf1a17",
+      "sha256": "00351f390228e92bbfb2720bdbd020821ac2df08dd474826f8bb0f329f855296",
       "executable": false
     },
     "src/core/features/public-snapshot/branding.ts": {
@@ -4109,6 +4109,10 @@
     },
     "src/core/features/public-snapshot/service.ts": {
       "sha256": "84b1e6eccdfb289f869c665e10db9294ca0efcd346fc592af5e6da6364f4690d",
+      "executable": false
+    },
+    "src/core/features/public-snapshot/state-colors.json": {
+      "sha256": "faef96fe964c0c509c993713f9c9a12b7332a0b3cdf29eba7bb94325794374ce",
       "executable": false
     },
     "src/core/features/public-snapshot/styles/components.css": {
@@ -6084,7 +6088,7 @@
       "executable": false
     },
     "tests/e2e/helpers/public-resources-flow.mjs": {
-      "sha256": "eedf70d125dee7010409165f9ff93cd2090c01bf7e4bf1ba529cf142625c5724",
+      "sha256": "a23d419150be0323a0048abb8757a7db3b4808e7d7f0a18828ffc8ef848d3798",
       "executable": false
     },
     "tests/e2e/helpers/recovery-check-flow.mjs": {
