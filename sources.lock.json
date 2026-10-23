@@ -496,7 +496,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "d4c96e0a16b934a9a1b67daef285e08a38caf3622d8c6c00709778d149afd844",
+      "sha256": "a489af5f6b715e5ba261e28ba179024e67a1d2be7cfd246c9b9593edeb5520f9",
       "executable": false
     },
     "DEMO.md": {
@@ -4904,7 +4904,7 @@
       "executable": false
     },
     "src/core/platform/auth/http.ts": {
-      "sha256": "2536416da35d887566f97ac4dff7efeea7ff05e792910c06e02c8a8c099b14c8",
+      "sha256": "8e50d9d29c8279f312c1c40558fe6dd60b4739dbe47a1c778618df99ff088174",
       "executable": false
     },
     "src/core/platform/auth/identity-provider-guides.ts": {
@@ -5352,7 +5352,7 @@
       "executable": false
     },
     "src/server.dev.ts": {
-      "sha256": "bcef6119617f26a40580914d6791e0dd8899e7a533319074962df9511dced901",
+      "sha256": "119b05f8280c2c0c56b237b25cdbf1a4bac91e0004e36f0e720ec69ea2b93c08",
       "executable": false
     },
     "src/server.ts": {
