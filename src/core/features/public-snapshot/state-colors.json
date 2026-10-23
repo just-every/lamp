@@ -1,0 +1,7 @@
+{
+  "Operational": "#19865a",
+  "Degraded performance": "#c98a12",
+  "Partially unavailable": "#c98a12",
+  "Major outage": "#b44432",
+  "Under maintenance": "#4f6fa8"
+}
