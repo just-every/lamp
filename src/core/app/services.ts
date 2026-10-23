@@ -65,6 +65,7 @@ export function createAppServices(bindings: AppBindings, blobs: BlobStore, execu
   const components = createComponentsService(createComponentRepository(bindings.DB), publicSnapshots.rebuild, extensions.componentEvents);
   const componentCatalogue = createCatalogueService(createCatalogueRepository(bindings.DB), publicSnapshots.rebuild);
   const deliveries = createDeliveriesService(createDeliveryRepository(bindings.DB), {
+    pageStatusRollup: extensions.publicSnapshotPolicies.pageStatusRollup,
     effectsPaused: bindings.EFFECTS_PAUSED === "1",
     mail,
     pageName: configuredPageName,

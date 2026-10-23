@@ -46,7 +46,14 @@ let failingAiServer;
 let autosaveIncidentId;
 let originalVisualSource;
 
+function configWithLocalMail(config) {
+  return { ...config, vars: { ...config.vars,
+    RER_DEV_KEY: "test-only-publishing-browser-dev-key", RER_DEV_ORIGIN: appUrl, RER_DEV_IDENTITY: "off",
+  } };
+}
+
 function configWithAiProvider(config) {
+  config = configWithLocalMail(config);
   return { ...config, vars: { ...config.vars, AI_PROVIDER_URL: `http://127.0.0.1:${aiPort}/v1`, AI_PROVIDER_API_KEY: "browser-test-key", AI_PROVIDER_MODEL: "browser-test-model" } };
 }
 
@@ -139,7 +146,9 @@ before(async () => {
   statePath = await mkdtemp(join(tmpdir(), "lamp-publishing-browser-d1-"));
   viteCachePath = await mkdtemp(join(tmpdir(), "lamp-publishing-browser-vite-"));
   // The fixture config lives in its own directory so a checkout's `.dev.vars` (for example its AI provider) cannot override it.
-  fixtureConfig = isolatedWranglerConfig();
+  // The add-subscriber door prepares a confirmation. Use the shipped silent
+  // local transport, while the real operator session remains the authority.
+  fixtureConfig = isolatedWranglerConfig(configWithLocalMail);
   configPath = fixtureConfig.path;
   execFileSync("pnpm", ["exec", "wrangler", "d1", "migrations", "apply", "DB", "--local", "--config", defaultConfigPath, "--persist-to", statePath], { cwd: process.cwd(), stdio: "pipe" });
   if (process.env.RER_VISUAL_HEADING_PROBE === '1') {

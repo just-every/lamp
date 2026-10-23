@@ -448,7 +448,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "3f117ae82f65a160a5d1979e5a926fd072c96fd7369a25f9f6244eb2b4483ec0",
+      "sha256": "5a5701a38c31c5648efb85192ffaf2f4cfad42708992d26ca399fd8c14eda7b3",
       "executable": false
     },
     "AGENTS.md": {
@@ -496,7 +496,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "61529a20f7cb7597dabcd2ffb576738777904e9ffa01acfa563a3ff753803b13",
+      "sha256": "85e6d920275cd0a22661b28b2cf42fbeaef3a8b5e1d2dfb9aa6dd68fe9c768e7",
       "executable": false
     },
     "DEMO.md": {
@@ -3168,7 +3168,7 @@
       "executable": false
     },
     "src/core/app/services.ts": {
-      "sha256": "e9140e9c3a533033a13138395ef2795585759adf92c09cd6afdc13a857148cb9",
+      "sha256": "193e8c382a9bf53091bdcfa92263c932b3cca968d13ae01bc6d5ad8714ce3b6c",
       "executable": false
     },
     "src/core/app/types.ts": {
@@ -3556,7 +3556,7 @@
       "executable": false
     },
     "src/core/features/deliveries/service.ts": {
-      "sha256": "3697cab1a3d22479903d00bf93959090d54777155ca6a3fbadb1b29a30677f08",
+      "sha256": "ffcc18e6fd134b7944cf69fb62da1854b1e0106b26555954402a1619ee8340e4",
       "executable": false
     },
     "src/core/features/deliveries/slack-message.ts": {
@@ -6440,7 +6440,7 @@
       "executable": false
     },
     "tests/e2e/helpers/subscriber-reporting-browser-flow.mjs": {
-      "sha256": "406b3915a52db9cb67f3e0f411d3de3721091839a33546f704bb449b6af50b80",
+      "sha256": "2339f7446b174d8b6131ba6fd98fbfc9b7c2caa06b8a82318a34bab6620e56a1",
       "executable": false
     },
     "tests/e2e/helpers/subscriber-reporting-flow.mjs": {
@@ -6536,7 +6536,7 @@
       "executable": false
     },
     "tests/e2e/publishing-browser.test.mjs": {
-      "sha256": "d1bf775b0c329c9aaf0a2e4510bd90266eb8407925c83988fc0eb9805374bb7b",
+      "sha256": "c0bb4a7029b0e577f9cf7f9376ac615f2a0fa792c188d2c5b05b6ef33d0c2792",
       "executable": false
     },
     "tests/e2e/publishing-contract.test.mjs": {
@@ -7312,7 +7312,7 @@
       "executable": false
     },
     "tests/public-snapshots/public-snapshots.test.mjs": {
-      "sha256": "b20647e9a435b1b4449a1a5d2cc21f391b6b17355acb652aaea55eb39bad4c9d",
+      "sha256": "cecd35ffb22834deb7fe58be125bf0ad7c758192768a0aea51a66b9f55649a77",
       "executable": false
     },
     "tests/reference-storage/capture-receipts.test.mjs": {
@@ -7408,7 +7408,7 @@
       "executable": false
     },
     "tests/render/workflow-render.test.mjs": {
-      "sha256": "217fc04de9e5f02cbad0038149970a991bd39f09f85389aecd832235070f0741",
+      "sha256": "a88c9d674c3d822b36a4b1b785bf6e35429326d60076c35166d778bc58584a44",
       "executable": false
     },
     "tests/resolve-composer/linked-update-flow.mjs": {

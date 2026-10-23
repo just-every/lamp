@@ -15,7 +15,7 @@ import { SubscriberTokenCodec } from "../subscribers/tokens";
 import { defaultDeliveryEvents, type DeliveryEvents } from "./events";
 import type { DeliveryRepository, DeliveryRow, DispatchableDelivery, PendingProviderEvent, SubscriptionMailRow } from "./repository";
 import { statuspageWebhookBody } from "./statuspage-webhook";
-import { createServerExtensionMount } from "../../app/extensions/server";
+import { defaultPageStatusRollup, type PageStatusRollupPolicy } from "../public-snapshot/policies";
 
 const RETRY_DELAYS_MS = [60_000, 5 * 60_000, 15 * 60_000, 20 * 60_000, 20 * 60_000];
 const RESEND_IDEMPOTENCY_WINDOW_MS = 24 * 60 * 60 * 1000;
@@ -87,11 +87,11 @@ function renderMaintenanceNotice(delivery: DispatchableDelivery) {
 
 export function createDeliveriesService(
   repository: DeliveryRepository,
-  options: { emailBranding?: () => Promise<{ branding: EmailBranding; hasLogo: boolean }>; pageName?: () => Promise<string>; effectsPaused?: boolean; mail?: MailSender; fromAddress?: string | (() => Promise<string>); subscriberTokenSecret?: string; webhookSigningSecret?: string | string[]; events?: DeliveryEvents } = {},
+  options: { pageStatusRollup?: PageStatusRollupPolicy; emailBranding?: () => Promise<{ branding: EmailBranding; hasLogo: boolean }>; pageName?: () => Promise<string>; effectsPaused?: boolean; mail?: MailSender; fromAddress?: string | (() => Promise<string>); subscriberTokenSecret?: string; webhookSigningSecret?: string | string[]; events?: DeliveryEvents } = {},
 ): DeliveriesService {
   const tokens = options.subscriberTokenSecret ? new SubscriberTokenCodec(options.subscriberTokenSecret) : null;
   const events = options.events ?? defaultDeliveryEvents;
-  const pageRollup=createServerExtensionMount().publicSnapshotPolicies.pageStatusRollup;
+  const pageRollup = options.pageStatusRollup ?? defaultPageStatusRollup;
 
   async function emitAfterCommit(callback: () => Promise<void>) {
     try {
