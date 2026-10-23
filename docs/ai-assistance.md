@@ -61,3 +61,7 @@ Configure all three values together or omit all three. To disconnect, remove
 all three and redeploy (or restart local development). An edition using a custom
 `ai.provider.v1` adapter must use that adapter's configuration instead; Lamp
 refuses to combine it with these values.
+
+## Before a promised update
+
+Ten minutes before a committed next-update time by default (`incident.update-due.v1`), Lamp prepares a private **Still working on it** draft if no saved draft exists. It is prepared without a model, key or network request: Lamp uses the same incident brief you can inspect, restates the latest published impact, and cites evidence recorded since that update, or says plainly that nothing has changed. **Prepared by Lamp** in the composer links each citation to its brief entry and retains the complete evidence list. The communication owner’s due email links to the draft; an unowned incident reminds every active operator. Your own saved draft is never overwritten, and a committed time gets at most one automatic preparation. You review, edit and publish; preparation neither changes the public commitment nor sends anything to subscribers. Leaving it unpublished lets the original commitment become overdue as before.

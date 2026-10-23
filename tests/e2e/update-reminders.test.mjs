@@ -1,3 +1,4 @@
+import { preparedDraftFlow } from "./helpers/prepared-draft-flow.mjs";
 import { chromium } from "playwright";
 import { communicationOwnerFlow } from "./helpers/communication-owner-flow.mjs";
 import { execFileSync } from 'node:child_process';
@@ -65,7 +66,7 @@ before(async () => {
 
 after(async () => { await runtime?.close(); });
 
-contract("INCIDENT-010", "INCIDENT-011 owner reminders, takeover, escalation and unowned incidents follow the original commitment", async () => {
+contract("INCIDENT-010", "INCIDENT-011 AGENT-002 owner reminders, cited automatic drafts, takeover, escalation and unowned incidents follow the original commitment", async () => {
   const committed = Date.now() + minutes(60);
   const incident = await openIncident("Sign-in latency", new Date(committed).toISOString());
   const owner = (await api("/api/app/session")).body.operator;
@@ -83,11 +84,21 @@ contract("INCIDENT-010", "INCIDENT-011 owner reminders, takeover, escalation and
   assert.equal((await nativeRequest(`/api/app/incidents/${incident.id}/owner/take-over`, { method: "POST" })).status, 401);
   await trigger(committed - minutes(30));
   assert.deepEqual(await reminders(incident.reference), { dueSoon: 0, overdue: 0 }, "nothing before the lead");
+  assert.equal((await api(`/api/app/incidents/${incident.id}`)).body.incident.draft, null, "no agent draft before the lead");
   for (let run = 0; run < 3; run += 1) await trigger(committed - minutes(5));
   assert.deepEqual(await reminders(incident.reference), { dueSoon: 1, overdue: 0 }, "exactly one due-soon email however many times the trigger runs");
   assert.deepEqual((await envelopes()).filter(row => row.message.subject.includes(incident.reference)).map(row => row.message.to), [operator], "due reminder goes only to the communication owner");
+  const prepared = (await api(`/api/app/incidents/${incident.id}`)).body.incident.draft;
+  assert.ok(prepared?.agentPreparation, "the due trigger saved a private agent-prepared draft");
+  assert.equal(prepared.nextUpdateAt, new Date(committed).toISOString());
+  assert.equal(prepared.customerImpact, "Sign-in is slow.");
+  assert.match(prepared.details, /Still working on it/);
+  assert.match(prepared.details, /Nothing has changed in the recorded evidence/);
+  assert.deepEqual(prepared.agentPreparation.citations, ["U1"]);
+  await trigger(committed - minutes(5));
+  assert.deepEqual((await api(`/api/app/incidents/${incident.id}`)).body.incident.draft, prepared, "repeated ticks never replace or duplicate the agent draft");
   const email = (await envelopes()).find((row) => row.message.subject.includes(incident.reference));
-  assert.match(email.message.text, new RegExp(`/app/incidents/${incident.id}`), "it links to the incident's composer");
+  assert.match(email.message.text, new RegExp(`/app/incidents/${incident.id}#prepared-draft`), "it links to the prepared draft in the incident composer");
 
   // A newer update replaces the commitment: the old time passing sends nothing.
   await publishUpdate(incident.id, { lifecycle: "Monitoring", nextUpdateAt: new Date(committed + minutes(120)).toISOString() });
@@ -101,6 +112,9 @@ contract("INCIDENT-010", "INCIDENT-011 owner reminders, takeover, escalation and
   const ownerDue = (await envelopes()).filter(row => row.message.subject.includes(incident.reference) && /update due at/i.test(row.message.subject));
   assert.deepEqual(ownerDue.map(row => row.message.to).sort(), [operator, replacement.operator.email].sort());
   await trigger(secondCommitment + minutes(1));
+  const publicStatus = await (await fetch(`${publicOrigin}/api/public/status`)).text();
+  assert.ok(publicStatus.includes(new Date(secondCommitment).toISOString()), "the public snapshot keeps the original commitment");
+  assert.ok(!publicStatus.includes("Still working on it") && !publicStatus.includes("agentPreparation"), "unpublished agent text and attribution stay private");
   const ownerOverdue = (await envelopes()).filter(row => row.message.subject.includes(incident.reference) && /overdue/i.test(row.message.subject));
   assert.deepEqual(ownerOverdue.map(row => row.message.to), [replacement.operator.email]);
   await trigger(secondCommitment + minutes(10)); await trigger(secondCommitment + minutes(20));
@@ -121,6 +135,7 @@ contract("INCIDENT-010", "INCIDENT-011 owner reminders, takeover, escalation and
     const entered = await signInAs({ origin, key: devKey });
     await context.addCookies(entered.cookies.map(value => ({ ...value, url: origin })));
     const page = await context.newPage();
+    await preparedDraftFlow({ page, appUrl: origin, incident, draft: (await api(`/api/app/incidents/${incident.id}`)).body.incident.draft });
     await communicationOwnerFlow({ page, appUrl: origin, incident, unownedIncident, previousOwner: replacement.operator, currentOwner: owner, request: async (path, method, body) => {
       const response = await api(path, { method, body: JSON.stringify(body) });
       assert.equal(response.status, 200, response.text); return response.body;
@@ -152,23 +167,42 @@ contract("INCIDENT-010", "INCIDENT-011 owner reminders, takeover, escalation and
   assert.deepEqual(await reminders(incident.reference), { dueSoon: 1, overdue: 0 });
 });
 
-contract("INCIDENT-010", "an incident inside the lead shows as due to operators and never on the public page", async () => {
+contract("INCIDENT-010", "AGENT-002 an existing operator draft remains untouched while its original commitment becomes overdue", async () => {
   const committed = new Date(Date.now() + minutes(5)).toISOString();
   const incident = await openIncident("Upload delays", committed);
   const listed = (await api("/api/app/incidents")).body.incidents.find((row) => row.id === incident.id);
   assert.equal(listed.updateDue, true);
   assert.equal(listed.updateDueAt, committed);
   assert.equal((await api("/api/app/overview")).body.overview.activeIncidents.find((row) => row.id === incident.id).updateDue, true);
+  const operatorInput = { lifecycle: "Monitoring", affectedAudience: "Customers using uploads", customerImpact: "Operator-written impact must remain.", whatStillWorks: "Downloads remain available.", details: "Operator-written draft must remain.", nextUpdateAt: committed };
+  assert.equal((await api(`/api/app/incidents/${incident.id}/draft`, { method: "PUT", body: JSON.stringify(operatorInput) })).status, 200);
+  const operatorDraft = (await api(`/api/app/incidents/${incident.id}`)).body.incident.draft;
+  await trigger(Date.parse(committed) - minutes(1)); await trigger(Date.parse(committed) - minutes(1));
+  assert.deepEqual((await api(`/api/app/incidents/${incident.id}`)).body.incident.draft, operatorDraft, "an existing operator draft is never overwritten or attributed to Lamp");
+  assert.equal(operatorDraft.agentPreparation, null);
   const page = await (await fetch(`${publicOrigin}/incidents/${incident.reference}`)).text();
   assert.match(page, /Upload delays/);
   assert.doesNotMatch(page, /\b(overdue|update due)\b/i);
 });
 
-contract("NOTIFY-006", "an overdue commitment sends one operator email from the scheduled trigger with no operator page open", async () => {
-  const committed = Date.now() + minutes(30);
+contract("NOTIFY-006", "AGENT-002 an unpublished automatic draft leaves the commitment overdue and sends one overdue reminder", async () => {
+  const committed = Date.now() - minutes(1);
   const incident = await openIncident("Search errors", new Date(committed).toISOString());
+  await trigger(committed - minutes(10));
+  const prepared = (await api(`/api/app/incidents/${incident.id}`)).body.incident.draft;
+  assert.ok(prepared.agentPreparation);
   await trigger(committed + minutes(1));
   await trigger(committed + minutes(2));
   await trigger(committed + minutes(30));
-  assert.deepEqual(await reminders(incident.reference), { dueSoon: 0, overdue: 1 });
+  assert.deepEqual(await reminders(incident.reference), { dueSoon: 1, overdue: 1 });
+  const overdue = (await api(`/api/app/incidents/${incident.id}`)).body.incident;
+  assert.equal(overdue.overdue, true, "an unpublished agent draft leaves the promise overdue under INCIDENT-006");
+  assert.equal(overdue.updates[0].nextUpdateAt, new Date(committed).toISOString());
+  assert.equal(overdue.draft.id, prepared.id);
+  for (const path of ["/", `/incidents/${incident.reference}`, "/feed.atom", "/api/public/status"]) {
+    const text = await (await fetch(`${publicOrigin}${path}`)).text();
+    assert.ok(!text.includes("Still working on it") && !text.includes("agentPreparation"), `${path} has no private draft`);
+  }
+  const publicIncident = await (await fetch(`${publicOrigin}/incidents/${incident.reference}`)).text();
+  assert.ok(publicIncident.includes(new Date(committed).toISOString()), "the public permalink still shows the original committed instant");
 });

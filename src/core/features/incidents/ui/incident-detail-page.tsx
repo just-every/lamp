@@ -25,6 +25,7 @@ import type { CheckedSuggestion } from "../../ai/service";
 import { useIncidentVisit } from "./use-incident-visit";
 import { blankDraft, draftFromIncident, normalizeResolvedDraft } from "../draft";
 import { IncidentHeader } from "./incident-header";
+import { PreparedDraft } from "./prepared-draft";
 import { CommunicationOwnerControl } from "./communication-owner";
 import { IncidentExtras, IncidentTimeline } from "./incident-record";
 import { IncidentPreview } from "./incident-preview";
@@ -316,6 +317,7 @@ function IncidentVisit({ incidentId }: { incidentId: string }) {
     <div className="incident-compose">
       <section className="composer-panel" aria-labelledby="composer-title" inert={publishState === "publishing"}>
         <div className="composer-heading"><h2 id="composer-title" className="eyebrow">{incident.updates.length ? "Update draft" : "First update"}</h2><p role="status" aria-live="polite" className={`autosave-status is-${visibleSaveState}`}>{saveLabel}</p></div>
+        <PreparedDraft preparation={incident.draft?.agentPreparation ?? null} />
         {publishMessage ? <p role="status" className={`publication-message is-${publishState}`}>{publishMessage}</p> : null}
         {saveError && <FormError>{saveError}</FormError>}
         {visibleSaveState === "error" && <Button type="button" variant="secondary" onClick={() => { failedKey.current = null; setSaveError(null); setSaveState("saving"); setDraftRevision((current) => current + 1); }}>Retry save</Button>}

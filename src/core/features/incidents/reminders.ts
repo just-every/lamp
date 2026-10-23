@@ -11,6 +11,7 @@ export interface UpdateReminderEvent {
   updateId: string;
   nextUpdateAt: string;
   recipients?: string[];
+  draftId?: string | null;
 }
 
 /** An open incident's latest published commitment that may still need a reminder. */
@@ -21,7 +22,7 @@ export interface UpdateReminders {
   remindDue(now: string): Promise<UpdateReminderEvent[]>;
 }
 
-export function createUpdateReminders(binding: D1Database, policy: UpdateDuePolicy, send: (event: UpdateReminderEvent) => Promise<void>, escalationPolicy: IncidentEscalationPolicy = defaultIncidentEscalationPolicy): UpdateReminders {
+export function createUpdateReminders(binding: D1Database, policy: UpdateDuePolicy, send: (event: UpdateReminderEvent) => Promise<void>, escalationPolicy: IncidentEscalationPolicy = defaultIncidentEscalationPolicy, prepareDraft?: (commitment: OpenCommitment, now: string) => Promise<string | null>): UpdateReminders {
   return {
     async remindDue(now) {
       // Only an incident's newest update carries its live commitment. A resolved
@@ -35,6 +36,7 @@ export function createUpdateReminders(binding: D1Database, policy: UpdateDuePoli
       const sent: UpdateReminderEvent[] = [];
       for (const commitment of open.results) {
         const due = Date.parse(commitment.nextUpdateAt);
+        const draftId = instant >= due - lead && instant <= due ? await prepareDraft?.(commitment, now) : null;
         const kinds: UpdateReminderKind[] = instant > due ? ["overdue"] : instant >= due - lead ? ["due-soon"] : [];
         if (instant >= due + escalationPolicy.overdueMinutes() * 60_000) kinds.push("escalation");
         for (const kind of kinds) {
@@ -42,7 +44,7 @@ export function createUpdateReminders(binding: D1Database, policy: UpdateDuePoli
           if (recorded) continue;
           // Each event freezes its recipient set in the durable idempotent queue.
           const recipients = kind === "escalation" ? undefined : await createCommunicationOwnerRepository(binding).recipients(commitment.incidentId);
-          const event = { kind, ...commitment, recipients };
+          const event = { kind, ...commitment, recipients, draftId };
           await send(event);
           await binding.prepare(`INSERT OR IGNORE INTO incident_update_reminders (update_id, kind, recorded_at) VALUES (?, ?, ?)`).bind(commitment.updateId, kind, now).run();
           sent.push(event);
