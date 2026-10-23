@@ -6020,7 +6020,7 @@
       "executable": false
     },
     "tests/e2e/helpers/post-incident-report-flow.mjs": {
-      "sha256": "9b5e436fe62e71b6bcb18e6676844282811bd974e1c86cc78a810259a7d30b25",
+      "sha256": "86b9f5839ad74f7944a03a69cb8aa6886476d3ae9ffebb622b4d92a72d8af798",
       "executable": false
     },
     "tests/e2e/helpers/postmortem-template-import-flow.mjs": {
@@ -6140,7 +6140,7 @@
       "executable": false
     },
     "tests/e2e/publishing-contract.test.mjs": {
-      "sha256": "3cdb1fdfee6974e22b13786e48f383fe22f1785f56a1cb04f0a0b937b0f052a2",
+      "sha256": "468941893b66c696647cb71fadd25831663891802142252199a10e00080e3f92",
       "executable": false
     },
     "tests/e2e/queue-outage.test.mjs": {

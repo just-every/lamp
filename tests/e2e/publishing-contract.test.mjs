@@ -1138,7 +1138,7 @@ test("DRAFT-003 AGENT-005 HIST-002 HIST-003 AUTO-004 — Unavailable AI, reports
   assert.equal((await owing.json()).incidentIds.includes(incident.id), false);
   assert.equal((await (await appFetch("/api/app/reports/owing")).json()).incidentIds.includes(owingIncident.id), true);
   const DAY=86400000;
-  const tick=async time=>{ const response=await fetch(`${appUrl}/cdn-cgi/handler/scheduled?cron=${encodeURIComponent("* * * * *")}&time=${time}`); assert.equal(response.status,200,await response.text()); };
+  const tick=async time=>{ const response=await fetch(`${appUrl}/cdn-cgi/handler/scheduled?cron=${encodeURIComponent("* * * * *")}&time=${time}`, {headers:{Connection:"close"}}); assert.equal(response.status,200,await response.text()); };
   const reminders=()=>queryD1Sql(testStatePath,"SELECT payload_json FROM notification_outbox WHERE kind='operator-alert'").map(row=>JSON.parse(row.payload_json)).filter(row=>row.title===`Lamp report follow-up: ${owingIncident.reference}`);
   await tick(Date.parse(past)+7*DAY); await tick(Date.parse(past)+7*DAY);
   assert.equal(reminders().length,1,"day seven queues one reminder despite a repeated tick");

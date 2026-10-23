@@ -81,7 +81,7 @@ export async function postIncidentReportFlow({ page, appFetch, appUrl, pageUrl }
     await editor.getByRole("button", { name: "Save report", exact: true }).click();
     const response = await saved;
     assert.equal(response.status(), 200, await response.text());
-    await editor.getByRole("status").waitFor();
+    await editor.getByRole("status").filter({ hasText: /^Report saved\.$/ }).waitFor();
   };
   const assertFields = async () => {
     for (const [field, value] of Object.entries(report)) {
