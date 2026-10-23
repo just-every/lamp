@@ -97,7 +97,9 @@ export async function publicResourcesFlow({ appFetch, pageUrl, fetch, diagnostic
         const body = await response.text();
         assert.ok(Buffer.byteLength(body) <= 2048);
         if (!path.endsWith('/uptime.svg')) assert.ok(body.includes(`>${state}</text>`), `${path}: new state label`);
-        if (!body.includes('>No data</text>')) assert.ok(body.includes(`fill="${color}"`), `${path}: page state colour`);
+        const expectedColor = body.includes('>No data</text>')
+          ? await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--ink-3').trim()) : color;
+        assert.ok(body.includes(`fill="${expectedColor}"`), `${path}: page state colour, or the page's no-data ink`);
       }
       const endpoint = await (await fetch(`${pageUrl}/badge.json`)).json();
       assert.equal(endpoint.schemaVersion, 1);

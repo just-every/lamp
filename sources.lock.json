@@ -6004,7 +6004,7 @@
       "executable": false
     },
     "tests/e2e/helpers/public-resources-flow.mjs": {
-      "sha256": "a23d419150be0323a0048abb8757a7db3b4808e7d7f0a18828ffc8ef848d3798",
+      "sha256": "af5bcfe162a5f57ea6d35e2adf4000563e4b6f866d5b24f41ddf175c010fd7b9",
       "executable": false
     },
     "tests/e2e/helpers/recovery-check-flow.mjs": {
