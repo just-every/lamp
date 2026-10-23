@@ -59,5 +59,7 @@ export async function maintenanceCalendarFlow({ appFetch, pageUrl, eventually, c
   const barrier = await create({ title: "synthetic-lamp-007-barrier", startsAt, endsAt, componentIds: [componentId, privateComponent.id] });
   calendar = await eventually(read, value => value.events.some(event => event.getFirstPropertyValue("uid") === `lamp-maintenance-${barrier.id}@lamp`), "privacy proof generation");
   assert.ok(!calendar.body.includes(hidden.id)); assert.ok(!calendar.body.includes(hidden.title));
-  assert.ok(!calendar.body.includes(privateComponent.name)); assert.ok(!calendar.body.includes(privateComponent.id));
+  const decodedText = calendar.events.flatMap(event => [event.getFirstPropertyValue("summary"), event.getFirstPropertyValue("description")]).join("\n");
+  assert.ok(!decodedText.includes(privateComponent.name), "unfolded event text excludes internal component names");
+  assert.ok(!decodedText.includes(privateComponent.id), "unfolded event text excludes internal component ids");
 }

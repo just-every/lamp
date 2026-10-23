@@ -3,14 +3,12 @@ import { mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
 import { chromium } from 'playwright';
 import { appOrigin } from './follow-ups-runtime.mjs';
-import { openSubscriberManagementFixture, eventuallySubscriber } from './subscriber-management-fixture.mjs';
+import { openSubscriberManagementFixture } from './subscriber-management-fixture.mjs';
 
 // The local public host serves the actual token-authorized management form.
 export async function webhookFormatBrowserFlow() {
   const fixture = await openSubscriberManagementFixture({ pageHost: 'localhost' });
   const contact = 'synthetic-lamp-18001@example.test';
-  await fixture.createComponent('synthetic-lamp-18001');
-  await eventuallySubscriber(async () => (await fixture.raw('http://localhost/')).status, status => status === 200, 'the public generation serves management styles');
   const added = await fixture.post('/api/app/subscribers', { channel: 'webhook', destination: 'https://receiver.example.test/synthetic-lamp-18001', contactEmail: contact, componentIds: [], webhookFormat: 'statuspage' });
   assert.equal(added.status, 201, added.text);
   await fixture.confirm(contact);

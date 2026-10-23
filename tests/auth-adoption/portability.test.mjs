@@ -74,6 +74,7 @@ test('ACCESS-001 INTAKE-009 native rer archive restores owner continuity and sub
     for (const table of ['chat_link_codes','chat_previews','chat_requests']) assert.equal((await restored.prepare(`SELECT COUNT(*) n FROM ${table}`).first()).n, 0, `${table} authority never travels`);
     const restoredLinks = createChatLinksService(createChatLinksRepository(restored), async () => {});
     assert.equal((await restoredLinks.list(actor.operator.id)).length, 1, 'durable chat links survive restore');
+    assert.ok(Date.now() < Date.parse(pendingChat.expiresAt), 'restore rejects the pending chat code before its ten-minute expiry');
     await assert.rejects(restoredLinks.link(pendingChat.code, { transport: 'slack', tenant: 'synthetic-lamp-1', subject: 'synthetic-lamp-3' }), /invalid, used or expired/);
 
     assert.equal((await restored.prepare('SELECT needs_relink FROM rer_dependency_link').first()).needs_relink, 1);
