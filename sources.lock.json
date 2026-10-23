@@ -6272,7 +6272,7 @@
       "executable": false
     },
     "tests/e2e/helpers/statuspage-webhook-maintenance.mjs": {
-      "sha256": "c2be0e4a3a3c975878820a864a4925a346a921765f6e8c45e8b25f5587466133",
+      "sha256": "4d5daffd91955a619f9c66b0358787cc469b6518adb3c3b88af96024caaaf708",
       "executable": false
     },
     "tests/e2e/helpers/statuspage-webhook-receiver.mjs": {
