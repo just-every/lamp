@@ -1,5 +1,5 @@
 import { createUlid } from "../../../shared/ids";
-import { followUpsQuery } from "./query.repository";
+import { followUpsQueryFor } from "./query.repository";
 
 export interface DispatchRetryClaim { id: string; eventId: string; attempts: number; lockedAt: string }
 const CLAIM_MS = 5 * 60_000;
@@ -7,6 +7,8 @@ const CLAIM_MS = 5 * 60_000;
 export function createFollowUpRetryRepository(db: D1Database) {
   return {
     async claim(id: string, occurrence: string, operatorId: string, now: string): Promise<DispatchRetryClaim | null> {
+      const followUpsQuery = followUpsQueryFor(id);
+      if (!followUpsQuery || !id.startsWith("notification-dispatch:")) return null;
       const reclaimBefore = new Date(Date.parse(now) - CLAIM_MS).toISOString();
       const auditId = createUlid();
       const [claimed] = await db.batch<DispatchRetryClaim>([
