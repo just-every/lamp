@@ -1,0 +1,25 @@
+{
+  "action": "AddNote",
+  "alert": {
+    "alertId": "synthetic-lamp-1",
+    "message": "Production API responder alert",
+    "alias": "synthetic-lamp-2",
+    "tinyId": "synthetic-lamp-3",
+    "entity": "production-api",
+    "source": "synthetic-lamp-4",
+    "username": "API responder",
+    "userId": "synthetic-lamp-5",
+    "tags": [
+      "component:api"
+    ],
+    "createdAt": 1792717200000,
+    "updatedAt": 1792717260000000000,
+    "note": "Private responder diagnosis: synthetic-lamp-9. Never send this to a model or public surface."
+  },
+  "source": {
+    "name": "web",
+    "type": "API"
+  },
+  "integrationId": "synthetic-lamp-6",
+  "integrationName": "Lamp responder webhook"
+}

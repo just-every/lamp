@@ -1,4 +1,5 @@
 import type { ComponentState, IncidentLifecycle } from "../../shared/domain";
+import { isOperationsPreset, operationsEvidence } from "../intake/operations";
 import { pagerDutyEvidence } from "../intake/pagerduty";
 import { uptimeEvidence } from "../intake/uptime";
 import { alertTitle } from "../intake/alert-title";
@@ -24,7 +25,7 @@ function parsePayload(text: string): unknown {
 export function buildIncidentBrief(facts: BriefFacts, now: Date): IncidentBrief {
   const alerts = facts.alerts.map((alert, index): BriefAlert => {
     const payload = parsePayload(alert.payloadJson);
-    return { ref: `A${index + 1}`, receivedAt: alert.receivedAt, source: alert.source, state: alert.state, title: alertTitle(alert, payload), ...(alert.preset === "uptime" ? { evidenceSummary: uptimeEvidence(payload) } : alert.preset === "pagerduty" ? { evidenceSummary: pagerDutyEvidence(payload) } : {}), payload };
+    return { ref: `A${index + 1}`, receivedAt: alert.receivedAt, source: alert.source, state: alert.state, title: alertTitle(alert, payload), ...(alert.preset === "uptime" ? { evidenceSummary: uptimeEvidence(payload) } : alert.preset === "pagerduty" ? { evidenceSummary: pagerDutyEvidence(payload) } : isOperationsPreset(alert.preset) ? { evidenceSummary: operationsEvidence(payload, alert.receivedAt) } : {}), payload };
   });
   const updates = facts.updates.map((update, index): BriefUpdate => ({ ref: `U${index + 1}`, ...update }));
   const components = facts.components.map((component, index): BriefComponent => ({ ref: `C${index + 1}`, ...component }));

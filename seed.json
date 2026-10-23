@@ -381,6 +381,17 @@
         "The linked PagerDuty incident ID"
       ],
       "adapters": []
+    },
+    {
+      "id": "operations-responder-notes",
+      "required": false,
+      "why": "INTAKE-014: an owner-connected JSM site (*.atlassian.net, public tenant discovery without credentials) selects its cloud ID for the fixed api.atlassian.com Operations REST API. Opsgenie uses api.opsgenie.com or api.eu.opsgenie.com only. A linked publication sends its public text and permalink as one note; optional close-on-resolve closes the alert. Credentials are sealed, excluded from archives, never in a URL, and redirects are refused.",
+      "data": [
+        "The connected API credential in the Authorization header only",
+        "JSM account email in HTTP Basic authentication",
+        "The published update text, incident permalink and linked alert ID"
+      ],
+      "adapters": []
     }
   ],
   "env": [

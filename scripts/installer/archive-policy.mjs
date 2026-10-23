@@ -22,7 +22,7 @@ export default {
   includeTables: operatorContinuity,
   excludeTables: ['oa_sessions', 'oa_tokens', 'oa_step_up_challenges', 'oa_credentials', 'oa_dev_credentials', ...importCustody],
   requiredConfiguration: ['SETUP_TOKEN', 'SESSION_SECRET', 'SUBSCRIBER_TOKEN_SECRET', 'WEBHOOK_SIGNING_SECRET'],
-  // A PagerDuty source's sealed REST key never travels, as in the hosted archive
+  // A PagerDuty, JSM or Opsgenie source's sealed API credential never travels, as in the hosted archive
   // (scripts/export.mjs): the column stays, so earlier archives still restore, and
   // the restored source asks the owner to reconnect.
   exportRow: (table, row) => table === 'alert_sources' && row.responder_sealed_credentials != null ? { ...row, responder_sealed_credentials: null } : row,

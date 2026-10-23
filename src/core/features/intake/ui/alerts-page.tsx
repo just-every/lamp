@@ -11,6 +11,7 @@ import { GroupedPresetCard } from "./grouped-preset-card";
 import { isGroupedPreset } from "../grouped-alerts";
 import { UptimePresetCard } from "./uptime-preset-card";
 import { PresetCard } from "./preset-card";
+import { OperationsPresetCard } from "./operations-preset-card";
 import { PagerDutyPresetCard } from "./pagerduty-preset-card";
 import { presetLabels } from "../presets";
 
@@ -144,6 +145,7 @@ export function AlertsPage() {
     <section className="capability-note"><Icon name="warning" width={18} height={18} /><div><strong>Saved secrets stay hidden.</strong><p>Leave the secret blank to keep it. Use the selected key or token to send alerts.</p></div></section>
     <PresetCard onCreated={sources.refresh} />
     <PagerDutyPresetCard sources={sourceData.filter(source => source.preset === "pagerduty")} onSaved={() => { sources.refresh(); receipts.refresh(); }} />
+    <OperationsPresetCard sources={sourceData.filter(source => source.preset === "jsm" || source.preset === "opsgenie")} onSaved={() => { sources.refresh(); receipts.refresh(); }} />
     <UptimePresetCard sources={sourceData.filter(source => source.preset === "uptime")} onSaved={sources.refresh} />
     <GroupedPresetCard sources={sourceData.filter(source => isGroupedPreset(source.preset))} onSaved={sources.refresh} />
     {(creating || editing) && <SourceEditor source={editing} form={form} saving={saving} message={message} onChange={update} onSubmit={save} onClose={closeEditor} />}

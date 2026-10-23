@@ -1,3 +1,6 @@
+import { acceptOperations } from "./operations-service";
+import { isOperationsPreset } from "./operations";
+import { validateOperationsCredentials, type OperationsCredentials } from "./operations-credentials";
 import { acceptPagerDuty } from "./pagerduty-service";
 import { verifyPagerDuty } from "./pagerduty";
 import { sealUrl, sealingSecrets } from "../channels/sealing";
@@ -12,7 +15,7 @@ import { readPreset, type AlertPreset } from "./presets";
 import { defaultAlertIntakePolicy, type AlertIntakePolicy } from "./policies";
 import type { AlertReceiptRow, AlertReceiptView, AlertSourceRow, IntakeRepository } from "./repository";
 
-export interface AlertSourceInput { name: string; preset?: AlertPreset; pagerDutyApiKey?: string; pagerDutyFromEmail?: string; monitorMappings?: MonitorMapping[]; labelMatchers?: LabelMatcher[]; componentId?: string; credentialKind: AlertSourceRow["credentialKind"]; signingSecret?: string; bearerToken?: string; timestampHeader?: string; signatureHeader?: string; deduplicationPath: string; titlePath: string; statePath: string; recoveredValue?: string; }
+export interface AlertSourceInput { name: string; preset?: AlertPreset; operationsCredentials?: OperationsCredentials; closeAlertOnResolve?: boolean; pagerDutyApiKey?: string; pagerDutyFromEmail?: string; monitorMappings?: MonitorMapping[]; labelMatchers?: LabelMatcher[]; componentId?: string; credentialKind: AlertSourceRow["credentialKind"]; signingSecret?: string; bearerToken?: string; timestampHeader?: string; signatureHeader?: string; deduplicationPath: string; titlePath: string; statePath: string; recoveredValue?: string; }
 export type AlertSourceView = Omit<AlertSourceRow, "signingSecret" | "bearerTokenHash" | "responderSealedCredentials" | "responderConnected"> & { webhookConnected: boolean; responderConnection: "connected" | "reconnect" | "not-connected"; endpointPath: string; /** Shown once, when Lamp generated a preset's token. */ token?: string };
 /** The operator API's view: `endpointUrl` is on the public page host, the only host that routes `/api/intake/*`. */
 export type AlertSourceEndpointView = AlertSourceView & { endpointUrl: string };
@@ -69,7 +72,7 @@ export function createIntakeService(
       // A preset reads its tool's own payload, so its paths only describe that shape.
       let generated: string | undefined;
       if (input.preset) {
-        if (input.preset === "uptime" ? !input.monitorMappings?.length : (isGroupedPreset(input.preset) || input.preset === "pagerduty") ? !input.labelMatchers?.length : !input.componentId) throw new Error("A monitor preset needs its component or label-to-component mappings.");
+        if (input.preset === "uptime" ? !input.monitorMappings?.length : (isGroupedPreset(input.preset) || input.preset === "pagerduty" || isOperationsPreset(input.preset)) ? !input.labelMatchers?.length : !input.componentId) throw new Error("A monitor preset needs its component or label-to-component mappings.");
         if (input.preset === "uptime" && new Set(input.monitorMappings!.map(row => row.monitorId)).size !== input.monitorMappings!.length) throw new Error("Map each Uptime monitor only once.");
         if (input.preset !== "uptime" && input.preset !== "pagerduty" && !input.bearerToken && !existing?.bearerTokenHash) generated = createOpaqueToken();
         input = { ...input, credentialKind: (input.preset === "uptime" || input.preset === "pagerduty") ? "hmac-sha256" : "bearer-token", bearerToken: input.bearerToken ?? generated, ...(input.preset === "pagerduty" ? { timestampHeader: "unused", signatureHeader: "x-pagerduty-signature" } : {}), ...(input.preset === "uptime" ? { timestampHeader: "x-lamp-timestamp", signatureHeader: "x-lamp-signature" } : {}), deduplicationPath: `preset:${input.preset}`, titlePath: `preset:${input.preset}`, statePath: `preset:${input.preset}` };
@@ -79,6 +82,8 @@ export function createIntakeService(
       if (input.credentialKind === "bearer-token" && !input.bearerToken && (!existing || existing.credentialKind !== "bearer-token" || !existing.bearerTokenHash)) throw new Error("A bearer source requires a bearer token.");
       if (input.preset === "pagerduty" && input.labelMatchers?.some(row => Object.keys(row.labels).some(key => key !== "service_id" && key !== "service_name"))) throw new Error("PagerDuty matchers use service_id or service_name.");
       if (input.pagerDutyApiKey && input.preset !== "pagerduty") throw new Error("A PagerDuty API key needs a PagerDuty preset.");
+      if (isOperationsPreset(input.preset) && input.labelMatchers?.some(row => Object.keys(row.labels).some(key => key !== "tag" && key !== "entity"))) throw new Error("JSM and Opsgenie matchers use tag or entity; affected-service mapping is not available.");
+      if (input.operationsCredentials && !isOperationsPreset(input.preset)) throw new Error("Responder credentials need a JSM or Opsgenie preset.");
       const sourceId = existing?.id ?? createUlid();
       let sealed = existing?.preset === input.preset ? existing?.responderSealedCredentials ?? null : null;
       if (input.pagerDutyApiKey) {
@@ -86,9 +91,10 @@ export function createIntakeService(
         if (!fromEmail) throw new Error("Provide a PagerDuty user email for note authorship.");
         sealed = await sealUrl(JSON.stringify({ apiKey: input.pagerDutyApiKey, fromEmail }), sourceId, sealingSecrets(options.webhookSecret));
       }
+      if (input.operationsCredentials) sealed = await sealUrl(JSON.stringify(validateOperationsCredentials(input.preset, input.operationsCredentials)), sourceId, sealingSecrets(options.webhookSecret));
       const timestamp = nowIso();
       // An endpoint awaiting PagerDuty's generated secret stores empty text; authentication refuses it.
-      const source: AlertSourceRow = { id: sourceId, responderSealedCredentials: sealed, responderConnected: Boolean(sealed || (existing?.preset === input.preset && existing?.responderConnected)), name: input.name.trim(), credentialKind: input.credentialKind, signingSecret: input.credentialKind === "hmac-sha256" ? (input.signingSecret ?? existing?.signingSecret ?? (input.preset === "pagerduty" ? "" : null)) : null, bearerTokenHash: input.credentialKind === "bearer-token" ? (input.bearerToken ? await hashOpaqueToken(input.bearerToken) : existing?.bearerTokenHash ?? null) : null, timestampHeader: (input.timestampHeader ?? existing?.timestampHeader ?? "x-lamp-timestamp").toLowerCase(), signatureHeader: (input.signatureHeader ?? existing?.signatureHeader ?? "x-lamp-signature").toLowerCase(), deduplicationPath: input.deduplicationPath, titlePath: input.titlePath, statePath: input.statePath, recoveredValue: input.recoveredValue ?? existing?.recoveredValue ?? "recovered", monitorMappings: input.preset === "uptime" ? input.monitorMappings : [], labelMatchers: (isGroupedPreset(input.preset) || input.preset === "pagerduty") ? input.labelMatchers : [], preset: input.preset ?? null, componentId: input.preset ? input.componentId ?? null : null, createdByOperatorId: existing?.createdByOperatorId ?? operatorId, createdAt: existing?.createdAt ?? timestamp, updatedAt: timestamp };
+      const source: AlertSourceRow = { id: sourceId, closeAlertOnResolve: isOperationsPreset(input.preset) && (input.closeAlertOnResolve ?? existing?.closeAlertOnResolve ?? false), responderSealedCredentials: sealed, responderConnected: Boolean(sealed || (existing?.preset === input.preset && existing?.responderConnected)), name: input.name.trim(), credentialKind: input.credentialKind, signingSecret: input.credentialKind === "hmac-sha256" ? (input.signingSecret ?? existing?.signingSecret ?? (input.preset === "pagerduty" ? "" : null)) : null, bearerTokenHash: input.credentialKind === "bearer-token" ? (input.bearerToken ? await hashOpaqueToken(input.bearerToken) : existing?.bearerTokenHash ?? null) : null, timestampHeader: (input.timestampHeader ?? existing?.timestampHeader ?? "x-lamp-timestamp").toLowerCase(), signatureHeader: (input.signatureHeader ?? existing?.signatureHeader ?? "x-lamp-signature").toLowerCase(), deduplicationPath: input.deduplicationPath, titlePath: input.titlePath, statePath: input.statePath, recoveredValue: input.recoveredValue ?? existing?.recoveredValue ?? "recovered", monitorMappings: input.preset === "uptime" ? input.monitorMappings : [], labelMatchers: (isGroupedPreset(input.preset) || input.preset === "pagerduty" || isOperationsPreset(input.preset)) ? input.labelMatchers : [], preset: input.preset ?? null, componentId: input.preset ? input.componentId ?? null : null, createdByOperatorId: existing?.createdByOperatorId ?? operatorId, createdAt: existing?.createdAt ?? timestamp, updatedAt: timestamp };
       await repository.upsertSource(source);
       return generated ? { ...sourceView(source), token: generated } : sourceView(source);
     },
@@ -111,6 +117,7 @@ export function createIntakeService(
         if (!constantTimeEqual(await hmacSha256(source.signingSecret, signedBytes.buffer), signature)) throw new UnauthorizedAlertError();
       } else {
         // Tools that cannot send a header present a preset's token as the endpoint's last path segment.
+        if (isOperationsPreset(source.preset) && pathToken !== undefined) throw new UnauthorizedAlertError();
         const token = request.headers.get("Authorization")?.match(/^Bearer (.+)$/i)?.[1] ?? (source.preset ? pathToken : undefined);
         if (pathToken !== undefined && !source.preset) throw new UnauthorizedAlertError();
         if (!token || !source.bearerTokenHash || !constantTimeEqual(await hashOpaqueToken(token), source.bearerTokenHash)) throw new UnauthorizedAlertError();
@@ -131,6 +138,7 @@ export function createIntakeService(
         await repository.recordInvalid(receipt);
         return { status: 400, receiptId: receipt.id, incidentId: null, replayed: false };
       }
+      if (isOperationsPreset(source.preset)) return acceptOperations({ repository, source, requestHash, rawBody, parsed, timestamp, policy, onDraftCreated, events });
       if (source.preset === "pagerduty") return acceptPagerDuty({ repository, source, requestHash, rawBody, parsed, timestamp, policy, onDraftCreated, events });
       if (isGroupedPreset(source.preset)) return acceptGroupedAlert({ repository, source, preset: source.preset, requestHash, rawBody, parsed, timestamp, policy, onDraftCreated, events });
       if (source.preset) return acceptPreset(source, requestHash, rawBody, parsed, timestamp);

@@ -1,0 +1,19 @@
+{
+  "action": "Escalate",
+  "alert": {
+    "alertId": "synthetic-lamp-1"
+  },
+  "integrationId": "synthetic-lamp-6",
+  "integrationName": "Lamp responder webhook",
+  "escalationId": "synthetic-lamp-10",
+  "escalationName": "API escalation",
+  "escalationNotify": {
+    "name": "API responders",
+    "id": "synthetic-lamp-11",
+    "entity": "team",
+    "type": "default"
+  },
+  "headers": {},
+  "escalationTime": 0,
+  "repeatCount": 0
+}

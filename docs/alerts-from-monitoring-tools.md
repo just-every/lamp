@@ -102,3 +102,48 @@ source shows **Reconnect required** until you supply a replacement key.
 **Erase source** permanently removes the source's saved credentials and
 receipts. Local test receipts establish the protocol behavior; connecting
 and checking a real PagerDuty account is installation acceptance.
+
+## Jira Service Management Operations and Opsgenie
+
+In Alerts, open **Connect JSM and Opsgenie**. The owner chooses the tool, names
+the source and adds exact tag or entity matchers for its components. A tag such as
+`component:api` matches one item in `alert.tags`; entity matches `alert.entity`.
+Every matching component is attached. Both fields in one rule must match; separate
+rules can attach several components. Unmapped alerts appear against their source.
+JSM affected-service mapping is not available: the documented outgoing Webhook
+shape does not define its field. Provider responder roles are also not supplied;
+briefs explicitly show receipt time and the supplied responder or escalation target.
+
+Create the endpoint and copy the generated token once, or enter your own token.
+In the provider's outgoing Webhook integration, select Create, Acknowledge,
+AddNote, Escalate and Close. Use the endpoint with the custom header
+`Authorization: Bearer <token>`. Tokens in URLs are refused for these presets.
+JSM's outgoing Webhook integration requires its Premium or Enterprise plan.
+
+Create creates or updates a private draft; it never publishes or claims component
+state. Acknowledge and Escalate enter the brief and its cited report timeline.
+AddNote enters Internal notes only: it is excluded from alert payload storage,
+briefs, model prompts and public pages. Close records recovery and only resolves a
+draft that has never been published. Automatic rules remain AUTO-001's carrier.
+
+Outbound notes are optional. Select **Connect JSM outbound notes** and provide the
+HTTPS Atlassian site (`https://name.atlassian.net`), account email and API token,
+or connect an Opsgenie API key and choose the US or EU API region. Saving these
+credentials makes no provider request. Credentials are sealed, never displayed,
+and excluded from both archive formats. After restore, the card says **Reconnect
+required**; supply the credentials again. Erase source removes the connection,
+credentials and intake/outbound receipts while keeping operator publications.
+
+JSM resolves its site's cloud ID through `/_edge/tenant_info`, without sending the
+credential there, then uses HTTP Basic authentication at the fixed
+`api.atlassian.com/jsm/ops/api/{cloudId}/v1/alerts/{id}/notes` endpoint. Opsgenie uses
+`Authorization: GenieKey` at `api.opsgenie.com` or `api.eu.opsgenie.com`, under
+`/v2/alerts/{id}/notes`. A publication sends exactly one note containing its public
+text and permalink. Enable **Close alert on resolve** to send one additional
+`POST .../alerts/{id}/close` on the operator's Resolved publication. JSM's close
+has no body; Opsgenie's close sends an empty JSON object. Redirects are refused.
+Failures appear in source receipts and never block publication; requests are
+claimed once, without retrying ambiguous provider outcomes.
+
+These connections are proven against recorded-form documentation fixtures and
+fake provider API edges. No live provider account acceptance is claimed.

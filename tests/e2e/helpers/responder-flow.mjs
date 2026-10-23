@@ -1,3 +1,5 @@
+import { operationsFlow } from './operations-flow.mjs';
+import { operationsEdge } from './operations-edge.mjs';
 import assert from 'node:assert/strict';
 import { execFile } from 'node:child_process';
 import { createHmac } from 'node:crypto';
@@ -32,11 +34,12 @@ function event(type, id, { incidentId = 'PDINC1', serviceId = 'PAPI123', at = '2
 
 // Full application routes in workerd; only the fixed PagerDuty HTTP edge is fake.
 // Pause native Vite while this fixture owns a Worker, then resume it for teardown.
-export async function pagerDutyFlow({ runtime: nativeRuntime, t }) {
+export async function responderFlow({ runtime: nativeRuntime, t }) {
   await nativeRuntime.stop();
   const directory = await mkdtemp(join(tmpdir(), 'lamp-pagerduty-'));
   let worker;
   const notes = [], requests = [];
+  const edge = operationsEdge();
   let providerStatus = 201;
   try {
     const env = fixtureProcessEnv();
@@ -60,6 +63,7 @@ export async function pagerDutyFlow({ runtime: nativeRuntime, t }) {
       durableObjects: { SNAPSHOT_CACHE: { className: 'SnapshotCache', useSQLite: true } }, queueProducers: { JOBS: 'lamp-pagerduty-proof-jobs' },
       resourcePersistencePath: join(state, 'v3'),
       outboundService: async request => {
+        if (new URL(request.url).hostname !== 'api.pagerduty.com') return edge.fetch(request);
         requests.push(request.url);
         assert.equal(request.url, 'https://api.pagerduty.com/incidents/PDINC1/notes', 'credentials only reach the fixed PagerDuty note endpoint');
         assert.equal(request.method, 'POST');
@@ -243,16 +247,20 @@ export async function pagerDutyFlow({ runtime: nativeRuntime, t }) {
     assert.equal(notes.length, 4);
 
     t.diagnostic("PagerDuty: export and restore without credentials.");
+    let operationsDb = await worker.getD1Database('DB');
+    const operations = await operationsFlow({ api, post, put, worker: () => worker, db: () => operationsDb, edge, publicOrigin, t });
     await worker.dispose(); worker = undefined;
     const archive = join(directory, 'archive'), restoredState = join(directory, 'restored');
     const runArchive = (script, args) => execute(process.execPath, [resolve('scripts', script), '--config', configPath, ...args], { env, maxBuffer: 4 * 1024 * 1024 });
     await runArchive('export.mjs', ['--persist-to', sourceState, '--out', archive]);
     const archived = await readFile(join(archive, 'entities.json'), 'utf8');
+    operations.assertArchive(archived);
     assert.ok(!archived.includes(apiKey), 'archive contains no REST key');
     const archivedSource = JSON.parse(archived).tables.find(table => table.name === 'alert_sources').rows.find(row => row.id === source.id);
     assert.equal(archivedSource.responder_sealed_credentials, null, 'archive also strips the sealed REST credential');
     await runArchive('import.mjs', ['--persist-to', restoredState, '--from', archive]);
     worker = openWorker(restoredState);
+    operationsDb = await worker.getD1Database('DB');
     const restoredSource = (await api('/api/app/intake/sources')).body.sources.find(row => row.id === source.id);
     assert.equal(restoredSource.responderConnection, 'reconnect');
     assert.deepEqual(restoredSource.labelMatchers, input.labelMatchers);
@@ -300,6 +308,7 @@ export async function pagerDutyFlow({ runtime: nativeRuntime, t }) {
     const restoredDb = await worker.getD1Database('DB');
     assert.equal((await restoredDb.prepare('SELECT count(*) AS n FROM alert_sources WHERE id=?').bind(source.id).first()).n, 0);
     assert.equal((await restoredDb.prepare('SELECT count(*) AS n FROM alert_responder_posts WHERE source_id=?').bind(source.id).first()).n, 0, 'erasure removes outbound source records too');
+    await operations.restored();
     t.diagnostic('PagerDuty workerd proof: signed mapping, private recovery, timed brief, one note per publication, visible HTTP 403, credential-free restore/reconnect, and source erasure.');
   } catch (error) {
     console.error("PagerDuty journey failed:", error);
