@@ -75,7 +75,17 @@ export async function followUpsFlow() {
     const overrun = await maintenance("Synthetic Lamp manual completion due", iso(Date.now() - 2 * hour), iso(Date.now() - hour), false, false);
     assert.equal((await post(`/api/app/maintenance/${overrun.id}/start`)).status, 200);
     const imported = await followUpsImport(fixture);
+    const reports = [];
+    for (let number = 1; number <= 2; number++) {
+      const reportIncident = await createIncident(`Synthetic Lamp native report ${number}`);
+      await publish(reportIncident.id, { lifecycle: "Resolved" });
+      reports.push((await api(`/api/app/incidents/${reportIncident.id}`)).body.incident);
+    }
     const rows = await read();
+    for (const historical of imported.reports) {
+      assert.ok(find(rows, "report", historical), "silent imported history can still owe an operator report");
+      assert.equal(find(rows, "report-reminder", historical), undefined, "MOVE-002 historical imports create no automatic reminder obligation");
+    }
     const promise = rows.find(row => row.id === `next-update:${update.id}`);
     assert.equal(promise?.dueAt, committed);
     assert.deepEqual(promise.owner, { id: owner.id, displayName: owner.displayName });
@@ -98,9 +108,9 @@ export async function followUpsFlow() {
     assert.equal(runningEnd?.dueAt, overrun.endsAt);
     assert.equal(overrunEntry?.dueAt, iso(Date.parse(overrun.endsAt) + 15 * 60_000));
     assert.equal(overrunEntry.failure.state, "failed");
-    for (const report of imported.reports) {
-      assert.equal(find(rows, "report", report)?.dueAt, iso(Date.parse(imported.resolved) + 7 * 24 * hour));
-      assert.equal(find(rows, "report-reminder", report)?.dueAt, iso(Date.parse(imported.resolved) + 7 * 24 * hour));
+    for (const report of reports) {
+      assert.equal(find(rows, "report", report)?.dueAt, iso(Date.parse(report.resolvedAt) + 7 * 24 * hour));
+      assert.equal(find(rows, "report-reminder", report)?.dueAt, iso(Date.parse(report.resolvedAt) + 7 * 24 * hour));
     }
     const invitation = find(rows, "imported-invitation", imported.subscriber);
     assert.equal(invitation?.dueAt, iso(Date.parse(imported.subscriber.createdAt) + 72 * hour));
@@ -119,13 +129,13 @@ export async function followUpsFlow() {
     assert.equal((await post(`/api/app/maintenance/${startDue.id}/complete`)).status, 200);
     assert.equal((await post(`/api/app/maintenance/${overrun.id}/complete`)).status, 200);
     await expectAbsent([runningEnd.id, overrunEntry.id, `maintenance-end:${startDue.id}`]);
-    const [waived, written] = imported.reports;
+    const [waived, written] = reports;
     assert.equal((await post(`/api/app/incidents/${waived.id}/report/waive`, { reason: "Synthetic Lamp report is covered by the combined investigation" })).status, 200);
     const savedReport = await api(`/api/app/incidents/${written.id}/report`, { method: "PUT", body: JSON.stringify({ summary: "Requests failed and recovered.", timeline: "The historical incident was resolved.", cause: "An operator traced a configuration fault.", remediation: "The operator corrected the configuration and verified recovery." }) });
     assert.equal(savedReport.status, 200, savedReport.text);
     const publishedReport = await post(`/api/app/incidents/${written.id}/report/publish`, { channels: [] });
     assert.equal(publishedReport.status, 200, publishedReport.text);
-    await expectAbsent(imported.reports.flatMap(report => [`report:${report.id}`, `report-reminder:${report.id}`]));
+    await expectAbsent(reports.flatMap(report => [`report:${report.id}`, `report-reminder:${report.id}`]));
     const invited = await post(`/api/app/statuspage-import/jobs/${imported.jobId}/send-invitations`);
     assert.equal(invited.status, 200, invited.text);
     const invitationMail = fixture.messages.find(message => message.to.includes(imported.subscriber.destination));

@@ -2,6 +2,8 @@
 
 ## 1.11.0 (unreleased)
 
+Report follow-up preserves MOVE-002 silence across upgrade: retroactive-only imported incidents do not enqueue automatic report reminders. Their owed report remains visible, and a live published update enables the ordinary reminder carrier.
+
 **Follow-ups (AUTO-003, partial).** Overview brings the existing incident, publication, maintenance, report, invitation and notification obligations into one private list with owners, due times, stop conditions and failures. Reasoned dismissals are audited and apply only to the current occurrence, so later failures return. Operators can explicitly retry an unfinished notification dispatch through the queue; a rejected handoff remains a visible failure. Vendor-feed, secondary-origin and SMS-cap entries remain with their unbuilt carriers.
 
 Status badges now use the public page’s amber for Partially unavailable, retaining their labels, 2KB SVG limit and generation caching. Existing public-door journeys cover all states and database-free reads (PAGE-018).

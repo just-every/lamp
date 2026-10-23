@@ -448,7 +448,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "d676b157dff7c91272966599db7ab1da4633d90b7b53443af367e5c366ceccf1",
+      "sha256": "48bb6087821626f1ae711a0709450e65a454ffbb7ed7c7b5bda45b31775105e2",
       "executable": false
     },
     "AGENTS.md": {
@@ -468,7 +468,7 @@
       "executable": false
     },
     "CHANGELOG.md": {
-      "sha256": "7373287f74becd84d5b9cf93ffcd8b82ec9fe8a96bc3c895dfbf319770918e59",
+      "sha256": "2e32b973a6b91f0248d79a5a3c4815db1e0c27a31a177d9d8bc62538e0c05b12",
       "executable": false
     },
     "CLAUDE.md": {
@@ -496,7 +496,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "6c8b8a276538d41b65693aa68c56d4379d3a213de6faf6bb06f113dad5629376",
+      "sha256": "14bfc47d5f85f47d83f24b98175e62be7b5fa35e5b8717a38c758cdffcbfc364",
       "executable": false
     },
     "DEMO.md": {
@@ -560,7 +560,7 @@
       "executable": false
     },
     "docs/incidents-and-updates.md": {
-      "sha256": "d5eaf92a12138681f78275a5656e95273a94be9b2853938377048596e9176ddb",
+      "sha256": "7ca4a4e420b7ff12b36ea91507facd36d4d31f0496575767c832a9856b657383",
       "executable": false
     },
     "docs/install.md": {
@@ -3848,7 +3848,7 @@
       "executable": false
     },
     "src/core/features/overview/follow-ups/report.repository.ts": {
-      "sha256": "2abe3585c9b9898102fc08babc31475d3c458ae35a17f6b2b1ad04de644c387d",
+      "sha256": "77e3d4bef1e398535d9c909a68d8a957e50ed5e054d9f6cc305886b94061d1a0",
       "executable": false
     },
     "src/core/features/overview/follow-ups/repository.ts": {
@@ -4292,7 +4292,7 @@
       "executable": false
     },
     "src/core/features/reports/repository.ts": {
-      "sha256": "a05134849c9b18980e80695db48878c1a65d1426bd3940ebcc2fd602d45dbe4f",
+      "sha256": "eeb4822a82a934f52deccf3bcf1a541627ce0e8b24ca10d183167e0810ea700b",
       "executable": false
     },
     "src/core/features/reports/routes.ts": {
@@ -4300,7 +4300,7 @@
       "executable": false
     },
     "src/core/features/reports/service.ts": {
-      "sha256": "1d4f6b3f48fbd82b2ab5db8c1ec506e1b87fabde2f5769b2d0e7d9da6cd738f9",
+      "sha256": "93e6b89d3545c751f9d335746d45536b36a27a56b9d59250aede440297685487",
       "executable": false
     },
     "src/core/features/reports/ui/report-editor.tsx": {
@@ -6068,7 +6068,7 @@
       "executable": false
     },
     "tests/e2e/helpers/follow-ups-flow.mjs": {
-      "sha256": "dda92c568549a32b35b309e1a8469e822476403957a1d5d575a400f5d937e4b5",
+      "sha256": "ef37356ef18ad69eb0884dd3f6119be4f232233deab6d9d9e2ececa848bf6d2f",
       "executable": false
     },
     "tests/e2e/helpers/follow-ups-import.mjs": {
