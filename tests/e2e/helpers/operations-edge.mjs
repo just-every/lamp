@@ -4,7 +4,7 @@ export const operationCredentials = {
   opsgenie: { host: 'https://api.eu.opsgenie.com', apiKey: 'synthetic-lamp-14' },
 };
 export function operationsEdge() {
-  const requests = [], statuses = { jsm: 202, opsgenie: 202 };
+  const requests = [], statuses = { jsm: 200, opsgenie: 202 };
   return {
     requests, statuses,
     async fetch(request) {
@@ -26,7 +26,7 @@ export function operationsEdge() {
       if (url.pathname.endsWith('/notes')) assert.equal(typeof body.note, 'string');
       else assert.deepEqual(body, preset === 'jsm' ? null : {});
       requests.push({ preset, path: url.pathname, body });
-      return Response.json({ requestId: 'synthetic-lamp-15' }, { status: statuses[preset],
+      return Response.json({ requestId: 'synthetic-lamp-15' }, { status: preset === 'jsm' && url.pathname.endsWith('/close') && statuses.jsm === 200 ? 202 : statuses[preset],
         ...(statuses[preset] === 302 ? { headers: { Location: 'https://redirect.example.test/forbidden' } } : {}) });
     },
   };

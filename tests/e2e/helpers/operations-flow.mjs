@@ -89,7 +89,7 @@ export async function operationsFlow({ api, post, put, worker, db, edge, publicO
     await publish('API requests are failing.', 'Investigating');
     assert.equal(calls('notes').length, 1);
     for (const text of ['API requests are failing.', 'API customers.', 'Dashboard works.', 'Responders are checking API requests.', `${publicOrigin}/incidents/${initial.reference}`]) assert.ok(calls('notes')[0].body.note.includes(text));
-    assert.equal((await post(`/api/app/incidents/${id}/publish`, { channels: [] })).status, 200);
+    assert.equal((await post(`/api/app/incidents/${id}/publish`, { channels: [] })).status, 409, 'another publication requires a saved draft');
     assert.equal(calls('notes').length, 1, 'repeated publish adds no note');
     edge.statuses[preset] = 403;
     await publish('API recovery is being checked.');
@@ -121,11 +121,11 @@ export async function operationsFlow({ api, post, put, worker, db, edge, publicO
         await publish('Restored operators are checking the API.');
         assert.equal(calls('notes').length, 3, 'restored sources send nothing until reconnected');
         assert.equal((await put(`/api/app/intake/sources/${source.id}`, { ...input, operationsCredentials: operationCredentials[preset] })).status, 200);
-        edge.statuses[preset] = 202;
+        edge.statuses[preset] = preset === 'jsm' ? 200 : 202;
         await publish('The API has recovered.', 'Resolved');
         assert.equal(calls('notes').length, 4);
         assert.equal(calls('close').length, 1, 'opt-in Resolved publication closes exactly once');
-        assert.equal((await post(`/api/app/incidents/${id}/publish`, { channels: [] })).status, 200);
+        assert.equal((await post(`/api/app/incidents/${id}/publish`, { channels: [] })).status, 409, 'another publication requires a saved draft');
         assert.equal(calls('notes').length, 4); assert.equal(calls('close').length, 1);
         const report = await post(`/api/app/incidents/${id}/report/draft`, {});
         assert.equal(report.status, 200, report.text);
