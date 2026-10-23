@@ -329,6 +329,53 @@ test("COMP-001 COMP-004 COMP-005 COMP-007 PAGE-004 — Component states, private
 })(t);
 });
 
+test("COMP-005 COMP-007 — Deleting a private component keeps it and the records only it covered off every public surface", async () => {
+  const groupId = "01J00000000000000000000002", operator = "01J00000000000000000000001";
+  const at = hoursAgo => new Date(Date.now() - hoursAgo * 3_600_000).toISOString();
+  const [opened, resolved, starts, ends] = [at(6), at(5), at(4), at(3)];
+  const component = async (name, internal) => {
+    const response = await appFetch("/api/app/components", { method: "POST", body: JSON.stringify({ groupId, name, description: "", internal, displayOrder: 93, note: "" }) });
+    assert.equal(response.status, 201);
+    return (await response.json()).component;
+  };
+  const deleteThrough = {
+    single: async id => assert.equal((await appFetch(`/api/app/components/${id}`, { method: "DELETE" })).status, 204),
+    catalogue: async id => {
+      const current = await (await appFetch("/api/app/components/bulk")).json();
+      const catalogue = { ...current.catalogue, components: current.catalogue.components.filter(item => item.id !== id) };
+      const review = await (await appFetch("/api/app/components/bulk/preview", { method: "POST", body: JSON.stringify({ catalogue, revision: current.revision }) })).json();
+      assert.equal((await appFetch("/api/app/components/bulk/apply", { method: "POST", body: JSON.stringify({ catalogue: review.catalogue, revision: review.revision, reviewToken: review.reviewToken }) })).status, 200);
+    },
+  };
+  const doors = Object.keys(deleteThrough);
+  const shared = await component("Retained public probe", false);
+  const hidden = {};
+  try {
+    for (const [index, door] of doors.entries()) {
+      hidden[door] = await component(`Private ${door} probe`, true);
+      const link = (id, incident, attached) => `('${door}-${id}','${door}-${incident}','${attached.id}','${attached.name}','Major outage','Primary','${opened}','${opened}','${opened}')`;
+      const update = incident => `('${door}-${incident}-update','${door}-${incident}','Resolved','${incident} ${door} readers','${incident} ${door} wording','','','${resolved}','${resolved}','${operator}','${resolved}','${resolved}')`;
+      executeLocalSql(`INSERT INTO incidents (id,reference,title,lifecycle,opened_at,resolved_at,created_by_operator_id,created_at,updated_at) VALUES ('${door}-Private','INC-772${index}','Private ${door} incident','Resolved','${opened}','${resolved}','${operator}','${opened}','${resolved}'),('${door}-Mixed','INC-773${index}','Mixed ${door} incident','Resolved','${opened}','${resolved}','${operator}','${opened}','${resolved}'); INSERT INTO incident_updates (id,incident_id,lifecycle,affected_audience,customer_impact,what_still_works,details,next_update_at,published_at,author_operator_id,created_at,updated_at) VALUES ${update("Private")},${update("Mixed")}; INSERT INTO incident_components (id,incident_id,component_id,component_name,state,relationship,published_at,created_at,updated_at) VALUES ${link("private-link", "Private", hidden[door])},${link("mixed-private-link", "Mixed", hidden[door])},${link("mixed-public-link", "Mixed", shared)}; INSERT INTO maintenance (id,reference,title,state,starts_at,ends_at,completed_at,created_by_operator_id,created_at,updated_at) VALUES ('${door}-window','SCH-772${index}','Private ${door} window','Completed','${starts}','${ends}','${ends}','${operator}','${starts}','${ends}'); INSERT INTO maintenance_components (id,maintenance_id,component_id,component_name,state,created_at,updated_at) VALUES ('${door}-window-link','${door}-window','${hidden[door].id}','${hidden[door].name}','Under maintenance','${starts}','${starts}')`);
+    }
+    // An unchanged save republishes the snapshot with the records above.
+    assert.equal((await appFetch(`/api/app/components/${shared.id}`, { method: "PUT", body: JSON.stringify({ groupId, name: shared.name, description: "", internal: false, displayOrder: 93, note: "" }) })).status, 200);
+    const surfaces = ["/", "/history", "/feed.atom", "/feed.rss", "/history.atom", "/history.rss", "/widget.js", "/embed/script.js", "/api/public/status", "/api/v2/summary.json", "/api/v2/incidents.json", "/api/v2/scheduled-maintenances.json", "/api/public/v1/incidents", "/api/public/v1/maintenance",
+      ...doors.flatMap((door, index) => [`/incidents/INC-772${index}`, `/incidents/INC-773${index}`, `/maintenance/SCH-772${index}`])];
+    const assertPublicSurfaces = async stage => {
+      for (const path of surfaces) assert.doesNotMatch(await (await fetch(`${pageUrl}${path}`)).text(), /Private (?:single|catalogue) (?:probe|incident|window|readers|wording)/, `${stage}: ${path}`);
+      const history = await (await fetch(`${pageUrl}/history`)).text();
+      for (const door of doors) assert.match(history, new RegExp(`Mixed ${door} incident`), `${stage}: the public record stays in history`);
+      assert.match(history, /affected Retained public probe/, `${stage}: the public component stays named`);
+    };
+    await assertPublicSurfaces("while the private components exist");
+    for (const door of doors) await deleteThrough[door](hidden[door].id);
+    await assertPublicSurfaces("after the private components are deleted");
+  } finally {
+    executeLocalSql(`DELETE FROM incidents WHERE id IN (${doors.flatMap(door => [`'${door}-Private'`, `'${door}-Mixed'`]).join(",")}); DELETE FROM maintenance WHERE id IN (${doors.map(door => `'${door}-window'`).join(",")})`);
+    for (const { id } of [...Object.values(hidden), shared]) await appFetch(`/api/app/components/${id}`, { method: "DELETE" });
+  }
+});
+
 
 
 

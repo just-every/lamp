@@ -468,7 +468,7 @@
       "executable": false
     },
     "CHANGELOG.md": {
-      "sha256": "2e32b973a6b91f0248d79a5a3c4815db1e0c27a31a177d9d8bc62538e0c05b12",
+      "sha256": "c072ad6a1e555e9f177615898d89c1df0139f79fe185cf85010cdda1f451aa4b",
       "executable": false
     },
     "CLAUDE.md": {
@@ -861,6 +861,10 @@
     },
     "migrations/core/0049_follow_up_dismissals.sql": {
       "sha256": "2b1894b08e2edbff9f11fe4b6f68e82f0af4ff023e782c14a2480021c073b034",
+      "executable": false
+    },
+    "migrations/core/0050_detached_component_visibility.sql": {
+      "sha256": "639f2ef1d36e296be638b0d7af371e51d3facbdf49e41f36d1c1e11eec536700",
       "executable": false
     },
     "migrations/README.md": {
@@ -2312,7 +2316,7 @@
       "executable": false
     },
     "RELEASE.json": {
-      "sha256": "a0de5f6ae33953baebcacafb63636f37c3859d1fe0f0d7cdcefa19dfa99c2533",
+      "sha256": "2d9b558b0ed479f77d8a5cac4290d805d2f5fead3c5400b4e84e129dae671162",
       "executable": false
     },
     "rer-packaging.json": {
@@ -4156,7 +4160,7 @@
       "executable": false
     },
     "src/core/features/public-snapshot/repository.ts": {
-      "sha256": "76c5eeefb38c088bc0a7b098bd073ef12d919e33580d2be6ccc924c9476e0449",
+      "sha256": "2052079df46b89521e76a7c37f71457cb6ef38a04ca9bbb51c15c4ef54ce1d19",
       "executable": false
     },
     "src/core/features/public-snapshot/routes.ts": {
@@ -6272,7 +6276,7 @@
       "executable": false
     },
     "tests/e2e/public-contract.test.mjs": {
-      "sha256": "92126a1fa458e2e24c66c8065aa6681df25931e5d9eddfedc4f2ae49a67c26be",
+      "sha256": "4a5b8a151e22ac4cad5f39ef881875fc8a876668aa560297995434b437375dc6",
       "executable": false
     },
     "tests/e2e/publishing-browser.test.mjs": {
