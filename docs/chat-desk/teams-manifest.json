@@ -1,0 +1,12 @@
+{
+  "$schema": "https://developer.microsoft.com/en-us/json-schemas/teams/v1.17/MicrosoftTeams.schema.json",
+  "manifestVersion": "1.17", "version": "1.0.0", "id": "00000000-0000-4000-8000-000000000001",
+  "packageName": "example.lamp",
+  "developer": { "name": "Lamp installation owner", "websiteUrl": "https://app.example.test", "privacyUrl": "https://app.example.test/privacy", "termsOfUseUrl": "https://app.example.test/terms" },
+  "name": { "short": "Lamp" },
+  "description": { "short": "Your status page incident desk", "full": "Link an operator, open a draft, preview and explicitly publish an incident update." },
+  "icons": { "outline": "outline.png", "color": "color.png" }, "accentColor": "#16794C",
+  "bots": [{ "botId": "00000000-0000-4000-8000-000000000001", "scopes": ["personal"], "supportsFiles": false, "isNotificationOnly": false }],
+  "composeExtensions": [{ "botId": "00000000-0000-4000-8000-000000000001", "commands": [{ "id": "incident", "type": "action", "title": "Open incident", "description": "Open a private incident draft", "fetchTask": true, "context": ["commandBox", "compose"] }] }],
+  "validDomains": ["app.example.test"]
+}

@@ -1,0 +1,5 @@
+{
+  "display_information": { "name": "Lamp", "description": "Open, preview and publish status page incident updates." },
+  "features": { "slash_commands": [{ "command": "/lamp", "description": "Link your identity or open an incident draft", "usage_hint": "link CODE or incident", "url": "https://app.example.test/api/chat/slack", "should_escape": false }] },
+  "settings": { "interactivity": { "is_enabled": true, "request_url": "https://app.example.test/api/chat/slack" }, "org_deploy_enabled": false, "socket_mode_enabled": false }
+}

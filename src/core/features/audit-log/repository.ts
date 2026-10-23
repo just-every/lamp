@@ -1,3 +1,4 @@
+import { createUlid, nowIso } from '../../shared/ids';
 export interface AuditFilter { actorId?: string; action?: string; from?: string; until?: string }
 export interface AuditEntry { id: string; entityType: string; entityId: string; action: string; actorId: string | null; actorName: string; reason: string | null; createdAt: string }
 
@@ -20,6 +21,10 @@ export function createAuditLogRepository(db: D1Database) {
     return { sql, values };
   }
   return {
+    async chatDesk(operator: string, event: string, entity: string) {
+      const at = nowIso();
+      await db.prepare("INSERT INTO audit_entries(id,entity_type,entity_id,action,operator_id,payload_json,created_at,updated_at) VALUES(?,'chat-desk',?,'chat-desk',?,?,?,?)").bind(createUlid(),entity,operator,JSON.stringify({event}),at,at).run();
+    },
     async list(filter: AuditFilter, limit = 50, offset = 0) {
       const { sql, values } = query(filter);
       return (await db.prepare(`${sql} LIMIT ? OFFSET ?`).bind(...values, limit + 1, offset).all<AuditEntry>()).results;

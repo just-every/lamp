@@ -1,3 +1,4 @@
+import { registerChatDeskRoutes } from "../features/chat-desk";
 import { registerAvailabilityReportRoutes } from "../features/availability-reports";
 import { createSubscriberReportingRepository, createSubscriberReportingService, registerSubscriberReportingRoutes } from "../features/subscriber-reporting";
 import { registerCommunicationPerformanceRoutes } from "../features/communication-performance";
@@ -87,6 +88,7 @@ export function createApp(bindings: AppBindings, execution?: MailExecution) {
   registerImportDoor(app, bindings, services.statuspageImport,()=>services.publicSnapshots.rebuild(true), services.auth);
   registerRerCutoverStatus(app, bindings);
   registerChannelRoutes(app, services.channels);
+  registerChatDeskRoutes(app, services.chatDesk, services.components);
 
   async function readOperator(path: string, source: Request, authority: OperatorReadSession) {
     const request = new Request(new URL(path, source.url), { headers: source.headers });
