@@ -27,7 +27,7 @@ export async function eventuallyFollowUp(read, predicate, description) {
 
 /** Disposable migrated Worker. Only the email/webhook network edges are fake;
  * Queue outage injection is the existing queue-outage.worker.ts boundary. */
-export async function openFollowUpsRuntime({ resendWebhookSecret, webhookReceiver, pageHost = "status.example.test" } = {}) {
+export async function openFollowUpsRuntime({ resendWebhookSecret, webhookReceiver, pageHost = "status.example.test", extraBindings = {}, providerEdge } = {}) {
   const state = await mkdtemp(join(tmpdir(), "lamp-follow-ups-"));
   const messages = [], webhookRequests = [], channelRequests = [], mailReceipts = [];
   let runtime, webhookOutage = true, cookie;
@@ -55,6 +55,7 @@ export async function openFollowUpsRuntime({ resendWebhookSecret, webhookReceive
         MAIL_PROVIDER: "resend", MAIL_PROVIDER_API_KEY: "synthetic-lamp-mail-1",
         MAIL_FROM_ADDRESS: "synthetic-lamp-sender@example.test",
         ...(resendWebhookSecret ? { RESEND_WEBHOOK_SECRET: resendWebhookSecret } : {}),
+        ...extraBindings,
       },
       d1Databases: ["DB"], r2Buckets: ["SNAPSHOTS"],
       durableObjects: { SNAPSHOT_CACHE: { className: "SnapshotCache", useSQLite: true } },
@@ -62,6 +63,8 @@ export async function openFollowUpsRuntime({ resendWebhookSecret, webhookReceive
       queueConsumers: { "lamp-follow-ups-jobs": { maxBatchTimeout: 0 } },
       resourcePersistencePath: join(state, "storage"),
       outboundService: async request => {
+        const intercepted = await providerEdge?.(request);
+        if (intercepted) return intercepted;
         const url = new URL(request.url);
         if (url.origin === "https://api.resend.com" && url.pathname === "/emails") {
           const message = await request.json();
@@ -73,7 +76,7 @@ export async function openFollowUpsRuntime({ resendWebhookSecret, webhookReceive
           mailReceipts.push({ id, idempotencyKey: request.headers.get("Idempotency-Key") });
           return Response.json({ id });
         }
-        if (url.origin === "https://receiver.example.test" && url.pathname === "/synthetic-lamp-1") {
+        if (url.origin === "https://receiver.example.test" && ["/synthetic-lamp-1", "/synthetic-lamp-components"].includes(url.pathname)) {
           const rawBody = await request.text();
           const captured = { rawBody, body: JSON.parse(rawBody), headers: Object.fromEntries(request.headers) };
           webhookRequests.push(captured);
@@ -123,7 +126,7 @@ export async function openFollowUpsRuntime({ resendWebhookSecret, webhookReceive
     assert.equal(confirmed.status, 303, await confirmed.clone().text());
     cookie = confirmed.headers.get("set-cookie").split(";")[0];
     return {
-      runtime, api, post, request, raw, messages, mailReceipts, webhookRequests, channelRequests,
+      runtime, db, execute, appOrigin, publicOrigin: pageHost === "localhost" ? `http://localhost:${appPort}` : `https://${pageHost}`, api, post, request, raw, messages, mailReceipts, webhookRequests, channelRequests,
       recoverWebhook() { webhookOutage = false; },
       async close() { try { await runtime.dispose(); } finally { await rm(state, { recursive: true, force: true }); } },
     };

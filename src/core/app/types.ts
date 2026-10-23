@@ -53,6 +53,9 @@ export interface AppBindings {
   MAIL_API_KEY?: string;
   SENDGRID_WEBHOOK_PUBLIC_KEY?: string;
   RER_MAIL_RELAY_SECRET?: string;
+  SLACK_CLIENT_ID?: string;
+  SLACK_CLIENT_SECRET?: string;
+  SLACK_SIGNING_SECRET?: string;
   SUBSCRIBER_TOKEN_SECRET?: string;
   WEBHOOK_SIGNING_SECRET?: string;
   RESEND_WEBHOOK_SECRET?: string;

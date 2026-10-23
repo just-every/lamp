@@ -1,3 +1,4 @@
+import { selfServeChatFlow } from "./helpers/self-serve-chat-flow.mjs";
 import { chatLinksBrowserFlow } from "./helpers/chat-links-browser-flow.mjs";
 import { channelDeletionFlow } from "./helpers/channel-deletion-flow.mjs";
 import { pagerDutyBrowserFlow } from "./helpers/pagerduty-browser-flow.mjs";
@@ -85,6 +86,7 @@ test("NOTIFY-011 NOTIFY-012 UPDATE-013 — Private channels deliver the selected
   t.diagnostic("NOTIFY-011 — a Slack or Teams webhook URL is stored encrypted and never shown again");
   await (async () => {
   const api_ = await component("Payments API");
+
   const created = await post("/api/app/channels", { kind: "slack", name: "#payments", url: SLACK_A, componentIds: [api_.id] });
   assert.equal(created.status, 201, created.text);
   assert.equal(created.body.channel.host, "hooks.slack.com");
@@ -104,7 +106,7 @@ test("NOTIFY-011 NOTIFY-012 UPDATE-013 — Private channels deliver the selected
   const incident = await post("/api/app/incidents", { title: "Card payments failing", components: [{ componentId: payments.id, state: "Partially unavailable", relationship: "Primary" }] });
   assert.equal(incident.status, 201, incident.text);
   const id = incident.body.incident.id;
-  const draft = { lifecycle: "Investigating", ...UPDATE_LINK_FIELDS, nextUpdateAt: new Date(Date.now() + 3_600_000).toISOString() };
+  const draft = { lifecycle: "Investigating", ...UPDATE_LINK_FIELDS, details: `${UPDATE_LINK_FIELDS.details} See https://help.example.com/kb/123.`, nextUpdateAt: new Date(Date.now() + 3_600_000).toISOString() };
   assert.equal((await api(`/api/app/incidents/${id}/draft`, { method: "PUT", body: JSON.stringify(draft) })).status, 200);
   assert.equal((await api(`/api/app/incidents/${id}/impact`, { method: "PUT", body: JSON.stringify({ impactOverride: "major" }) })).status, 200);
   const published = await post(`/api/app/incidents/${id}/publish`, { channels: ["chat"] });
@@ -169,6 +171,8 @@ test("NOTIFY-011 NOTIFY-012 UPDATE-013 — Private channels deliver the selected
   assert.equal(sql("SELECT count(*) AS n FROM integration_deliveries")[0].n, 2, "test posts stay outside the durable publication log");
 })(t);
   await channelDeletionFlow({ api, post, origin, nativeRequest, runtime });
+  await runtime.stop();
+  try { await selfServeChatFlow(t); } finally { await runtime.start(); }
 });
 
 

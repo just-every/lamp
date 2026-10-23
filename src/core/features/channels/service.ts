@@ -1,3 +1,5 @@
+import { createChatSubscriptionRepository } from "../subscribers/chat.repository";
+import { createChatEventRepository } from "./subscriber-events.repository";
 import { parsePublishedComponentChanges } from "../../shared/incident-component-changes";
 import { DeliveryService } from "../../../../modules/integrations/core/delivery.ts";
 import { D1SqlDatabase } from "../../../../modules/integrations/core/database.ts";
@@ -20,13 +22,26 @@ export type ChannelView = Omit<ChannelDestination, "sealedUrl">;
  * update and channel, retried on its policy, never sent twice once accepted. */
 export function createChannelsService(db: D1Database, options: { effectsPaused?: boolean; webhookSecret?: string; developmentReceiver?: string; publicOrigin: () => Promise<string>; unavailable?: string | null }) {
   const repository = createChannelRepository(db);
+  const chatSubscribers=createChatSubscriptionRepository(db);
+  const chatEvents=createChatEventRepository(db);
+  const resolvedIds=new Map<string,string>();
   const integrations = new IntegrationsRepository(new D1SqlDatabase(db as never), NAMESPACE);
   const resolve = async (destinationId: string) => {
     const destination = await repository.find(destinationId);
-    if (!destination) throw new Error("Channel unavailable");
-    return openUrl(destination.sealedUrl, destination.id, sealingSecrets(options.webhookSecret));
+    if (!destination || !await chatEvents.active(destinationId)) throw new Error("Channel unavailable");
+    const url=await openUrl(destination.sealedUrl, destination.id, sealingSecrets(options.webhookSecret));
+    resolvedIds.set(url,destinationId);
+    return url;
   };
-  const transport = createChannelTransport({ developmentReceiver: options.developmentReceiver });
+  const providerTransport = createChannelTransport({ developmentReceiver: options.developmentReceiver });
+  const transport: typeof providerTransport = { async send(request) {
+    const response=await providerTransport.send(request);
+    if(response.body==="channel_is_archived" && response.status>=400 && response.status<500){
+      const id=resolvedIds.get(request.url);
+      if(id)await chatSubscribers.deactivateArchived(id,nowIso());
+    }
+    return response;
+  } };
   const delivery = new DeliveryService({
     repository: integrations, transport,
     protocols: [createLampSlackProtocol(resolve), createTeamsProtocol(resolve)],
@@ -73,6 +88,7 @@ export function createChannelsService(db: D1Database, options: { effectsPaused?:
       }
     },
     postStatements: repository.postStatements.bind(repository),
+    maintenanceStatements: chatEvents.maintenanceStatements,
     log: (limit = 100) => repository.log(limit),
     /** Queue each committed post once, then send whatever is due. */
     async dispatchPending(limit = 25) {
@@ -89,7 +105,22 @@ export function createChannelsService(db: D1Database, options: { effectsPaused?:
           console.error(`Lamp could not queue channel post ${post.id}.`);
         }
       }
-      return delivery.dispatchDue(limit);
+      for(const event of await chatEvents.pending(limit)){
+        const fields=event.kind==='component'
+          ? [`${event.componentName}: ${event.previousState} → ${event.newState}`,`Changed: ${event.changedAt}`,`Claimant: ${event.claimantKind}`]
+          : [`${event.reference}: ${event.title}`,`Maintenance: ${event.noticeKind}`,event.noticeBody ?? '',`Published: ${event.publishedAt}`];
+        await delivery.enqueue({id:event.id,tenant:NAMESPACE,destinationId:event.subscriberId,event:event.kind==='component'?'component.changed':'maintenance.notice',
+          protocol:event.channelKind==='slack'?SLACK_WEBHOOK_PROTOCOL:TEAMS_WEBHOOK_PROTOCOL,
+          body:event.channelKind==='slack'?JSON.stringify(renderLampSlackMessage(fields[0]!,fields)):teamsTestCard(fields.join('\n\n'))});
+      }
+      const result=[];
+      // Re-evaluate subscriber authority after every terminal receipt, before a
+      // later queued message can send to the same now-failing destination.
+      for(const id of await integrations.due(Date.now(),limit)){
+        result.push(await delivery.dispatch(id));
+        await chatSubscribers.deactivateFailing(nowIso());
+      }
+      return result;
     },
   };
 }

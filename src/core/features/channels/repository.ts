@@ -1,3 +1,4 @@
+import { incidentThresholdSql } from "../deliveries/subscriber-eligibility";
 import { createUlid } from "../../shared/ids";
 import type { IncidentImpact } from "../../shared/incident-impact";
 import type { IncidentLifecycle } from "../../shared/domain";
@@ -37,15 +38,15 @@ export function createChannelRepository(db: D1Database) {
       const placeholders = input.componentIds.map(() => "?").join(", ");
       return [db.prepare(`INSERT OR IGNORE INTO channel_posts (id, incident_update_id, destination_id, queued_at)
         SELECT ? || '.' || d.id, ?, d.id, ? FROM channel_destinations d
-        WHERE d.removed_at IS NULL AND (
-          (d.selection_mode = 'all' AND EXISTS (SELECT 1 FROM components c WHERE c.id IN (${placeholders}) AND c.internal = 0))
-          OR (d.selection_mode = 'selected' AND EXISTS (SELECT 1 FROM channel_destination_components s JOIN components c ON c.id = s.component_id WHERE s.destination_id = d.id AND s.component_id IN (${placeholders}) AND c.internal = 0)))`)
-        .bind(input.updateId, input.updateId, input.queuedAt, ...input.componentIds, ...input.componentIds)];
+        WHERE d.removed_at IS NULL AND (d.created_by_operator_id IS NOT NULL OR EXISTS(SELECT 1 FROM subscribers own WHERE own.id=d.id AND own.state='active')) AND NOT EXISTS (SELECT 1 FROM subscribers cs WHERE cs.id=d.id AND (cs.state<>'active' OR NOT EXISTS(SELECT 1 FROM json_each(cs.event_kinds_json) WHERE value='incidents') OR NOT ${incidentThresholdSql("(SELECT incident_id FROM incident_updates WHERE id = ?)", "cs")})) AND (
+          (COALESCE((SELECT cs.selection_mode FROM subscribers cs WHERE cs.id=d.id),d.selection_mode) = 'all' AND EXISTS (SELECT 1 FROM components c WHERE c.id IN (${placeholders}) AND c.internal = 0))
+          OR (COALESCE((SELECT cs.selection_mode FROM subscribers cs WHERE cs.id=d.id),d.selection_mode) = 'selected' AND (EXISTS (SELECT 1 FROM channel_destination_components s JOIN components c ON c.id = s.component_id WHERE s.destination_id = d.id AND NOT EXISTS(SELECT 1 FROM subscribers cs WHERE cs.id=d.id) AND s.component_id IN (${placeholders}) AND c.internal = 0) OR EXISTS(SELECT 1 FROM subscriber_components s JOIN components c ON c.id=s.component_id WHERE s.subscriber_id=d.id AND s.component_id IN (${placeholders}) AND c.internal=0))))`)
+        .bind(input.updateId, input.updateId, input.queuedAt,input.updateId, ...input.componentIds, ...input.componentIds,...input.componentIds)];
     },
     async pending(limit: number): Promise<PendingPost[]> {
       return (await db.prepare(`SELECT p.id, p.incident_impact AS incidentImpact, p.destination_id AS destinationId, d.kind, p.incident_update_id AS incidentUpdateId, i.reference, i.title, u.lifecycle, u.customer_impact AS customerImpact, u.affected_audience AS affectedAudience, u.published_at AS publishedAt, u.component_changes_json AS componentChangesJson, u.what_still_works AS whatStillWorks, u.details, u.next_update_at AS nextUpdateAt, settings.timezone
         FROM channel_posts p JOIN channel_destinations d ON d.id = p.destination_id JOIN incident_updates u ON u.id = p.incident_update_id JOIN incidents i ON i.id = u.incident_id JOIN page_settings settings ON settings.id = 'default'
-        WHERE d.removed_at IS NULL AND i.deleted_at IS NULL AND NOT EXISTS (SELECT 1 FROM integration_deliveries x WHERE x.namespace = 'lamp-channels' AND x.id = p.id)
+        WHERE d.removed_at IS NULL AND (d.created_by_operator_id IS NOT NULL OR EXISTS(SELECT 1 FROM subscribers own WHERE own.id=d.id AND own.state='active')) AND NOT EXISTS(SELECT 1 FROM subscribers cs WHERE cs.id=d.id AND cs.state<>'active') AND i.deleted_at IS NULL AND NOT EXISTS (SELECT 1 FROM integration_deliveries x WHERE x.namespace = 'lamp-channels' AND x.id = p.id)
         ORDER BY p.queued_at, p.id LIMIT ?`).bind(limit).all<PendingPost>()).results;
     },
     async log(limit: number) {
