@@ -2,6 +2,8 @@
 
 ## 1.11.0 (unreleased)
 
+Status badges now use the public page’s amber for Partially unavailable, retaining their labels, 2KB SVG limit and generation caching. Existing public-door journeys cover all states and database-free reads (PAGE-018).
+
 **Maintenance automation per window (MAINT-009, partial).** A window can turn auto-start or auto-complete off; both default on and existing windows retain their behavior. An opted-out start stays Scheduled and sends one operator start-due email until an operator starts it. An opted-out completion stays In progress, keeps its original end and overrun label, raises one overrun alert after fifteen minutes, and sends no Completed notice until an operator completes it. Date-only rescheduling preserves off switches. This slice adds no changed entry for MAINT-001, MAINT-002, MAINT-004 or MAINT-005: their existing-window behavior is unchanged. The remaining MAINT-009 wording, in-window updates, Verifying, import mapping, public API and automation doors, page-wide defaults and operator push remain unbuilt.
 
 **Accessibility reporting (PAGE-020, partial).** This release includes a VPAT® 2.5 Rev 508 report at `/docs/accessibility/vpat` on the app host. The release validator requires its version and Section 508/WCAG conformance tables. The report distinguishes measured browser journeys from unmeasured criteria and surfaces; private pages remain with AUD-002. The public-footer link awaits the owner UI pass.

@@ -448,7 +448,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "5f12d76df916ddf6e3693dda12f20a451d03473ae2f96c61b4a278f9def0f54e",
+      "sha256": "c36395b61aecb79d54b15f7267a6ecff3aa53a89e46b02dc97df387225314c2f",
       "executable": false
     },
     "AGENTS.md": {
@@ -468,7 +468,7 @@
       "executable": false
     },
     "CHANGELOG.md": {
-      "sha256": "0f794e0f4445a042621664e078e60a675d15589f9f47a20d4a18da13ea7513c8",
+      "sha256": "12a86db08eb38712bb4f64c652cbd4c1ece5a043c89748f67437c374a7ec00af",
       "executable": false
     },
     "CLAUDE.md": {
@@ -496,7 +496,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "1cd89355e4f7798ed237b1727adb5cd24cc2e0372b5459aa3210a2911ff1934e",
+      "sha256": "843415f51913692ed4322b3a5a218d5f019683ff4ed9e5b223711add9b21511d",
       "executable": false
     },
     "DEMO.md": {
@@ -6188,7 +6188,7 @@
       "executable": false
     },
     "tests/e2e/public-contract.test.mjs": {
-      "sha256": "92126a1fa458e2e24c66c8065aa6681df25931e5d9eddfedc4f2ae49a67c26be",
+      "sha256": "d9deecf3ca03ee630137695ca682f78fd6f330cc45400f2c8fc802aee630eb10",
       "executable": false
     },
     "tests/e2e/publishing-browser.test.mjs": {
