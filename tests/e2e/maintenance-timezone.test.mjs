@@ -2,6 +2,7 @@ import { stripVTControlCharacters } from "node:util";
 import {appHost, appOrigin, pageOrigin} from './helpers/hosts.mjs';
 import { devKey } from '../helpers/dev-key.mjs';
 import { accessibilitySubscriptionFlow } from './helpers/accessibility-subscription-flow.mjs';
+import { maintenanceAutomationFlow } from './helpers/maintenance-automation-flow.mjs';
 import assert from "node:assert/strict";
 import { execFileSync, spawn } from "node:child_process";
 import { mkdtemp, rm } from "node:fs/promises";
@@ -54,7 +55,7 @@ async function api(path, method = "GET", body) {
   return response.json();
 }
 
-test("Native maintenance editing preserves instants across configured zones and daylight saving", async t => {
+test("MAINT-009 — Native maintenance editing preserves zones and daylight saving and persists window automation choices", async t => {
   for (const scenario of [
   { zone: "Australia/Brisbane", start: "2027-07-15T12:33:35.597Z", end: "2027-07-15T14:33:42.123Z", localStart: "2027-07-15T22:33", localEnd: "2027-07-16T00:33", edit: "2027-07-15T23:00", expected: "2027-07-15T13:00:00.000Z" },
   { zone: "America/New_York", start: "2027-07-15T12:33:35.597Z", end: "2027-07-15T14:33:42.123Z", localStart: "2027-07-15T08:33", localEnd: "2027-07-15T10:33", edit: "2027-07-15T09:00", expected: "2027-07-15T13:00:00.000Z" },
@@ -104,6 +105,7 @@ test("Native maintenance editing preserves instants across configured zones and 
       const expectedEnd = new Date(Date.parse(scenario.end) + (45 - 33) * 60000).toISOString().replace(/:\d{2}\.\d{3}Z$/, ":00.000Z");
       await saveAndCheck(scenario.expected, expectedEnd);
       await saveAndCheck(scenario.expected, expectedEnd);
+      if (scenario.zone === "Australia/Brisbane") await maintenanceAutomationFlow({ page, origin, component, api, diagnostic: text => t.diagnostic(text) });
     } finally { await context.close(); }
   })(t);
 }

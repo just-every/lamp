@@ -126,7 +126,8 @@ export function createAppServices(bindings: AppBindings, blobs: BlobStore, execu
     forMaintenanceNotice: async (input) => notificationPublicationStatements(bindings.DB, { eventId: input.eventId, eventType: "maintenance-notice", maintenanceId: input.maintenanceId, componentIds: input.componentIds, channels: ["email", "webhook"], queuedAt: input.queuedAt, recipientScope: input.recipientScope, previousEventIds: input.previousEventIds }),
   }, extensions.maintenanceRemindersPolicy,
   async ({ maintenanceId, endsAt }) => deliveries.queueOperatorAlert({ eventId: `maintenance-overrun/${maintenanceId}/${endsAt}`, title: "Lamp maintenance is running longer than planned", text: `Maintenance ${maintenanceId} is still in progress more than fifteen minutes after its scheduled end.` }),
-  extensions.events);
+  extensions.events,
+  async ({ maintenanceId, startsAt }) => deliveries.queueOperatorAlert({ eventId: `maintenance-start-due/${maintenanceId}/${new Date(startsAt).toISOString()}`, title: "Lamp maintenance start is due", text: `Maintenance ${maintenanceId} has reached its planned start and has auto-start off. An operator must start it in Maintenance.` }));
   const subscribers = createSubscribersService(createSubscriberRepository(bindings.DB), {
     mail,
     pageName: configuredPageName,

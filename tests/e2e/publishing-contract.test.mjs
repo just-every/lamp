@@ -864,7 +864,7 @@ test("INTAKE-001 INTAKE-002 INTAKE-003 INTAKE-004 INTAKE-005 — Authenticated m
 
 
 
-test("MAINT-002 MAINT-001 MAINT-003 MAINT-004 MAINT-005 MAINT-006 — Scheduled maintenance transitions, notices, extension and cancellation", async t => {
+test("MAINT-009 MAINT-002 MAINT-001 MAINT-003 MAINT-004 MAINT-005 MAINT-006 — Per-window automation, scheduled transitions, notices, extension and cancellation", async t => {
   t.diagnostic("MAINT-002 — the Worker scheduled event starts and completes a recorded maintenance without an operator mutation");
   await (async () => {
   const componentId = "01J00000000000000000000011";
@@ -888,6 +888,64 @@ test("MAINT-002 MAINT-001 MAINT-003 MAINT-004 MAINT-005 MAINT-006 — Scheduled 
   assert.equal((await fetch(`${pageUrl}/cdn-cgi/local/scheduled`)).status, 200);
   assert.equal((await eventually((record) => record?.state === "Completed"))?.state, "Completed");
 })(t);
+  t.diagnostic("MAINT-009 — per-window switches preserve manual starts and overruns without duplicate notices");
+  await (async () => {
+    const component = await createIsolatedComponent("Synthetic Lamp automation window");
+    const now = Date.now();
+    const minute = 60_000;
+    const trigger = async time => {
+      const response = await fetch(`${appUrl}/cdn-cgi/handler/scheduled?cron=${encodeURIComponent("* * * * *")}&time=${time}`);
+      await expectStatus(response,200);
+    };
+    const read = async id => (await (await appFetch("/api/app/maintenance")).json()).maintenance.find(item => item.id === id);
+    const notices = (id,kind) => queryD1Sql(testStatePath,`SELECT COUNT(*) AS count FROM maintenance_notices WHERE maintenance_id='${id}' AND kind='${kind}'`)[0].count;
+    const alerts = event => queryD1Sql(testStatePath,`SELECT COUNT(*) AS count FROM notification_outbox WHERE kind='operator-alert' AND aggregate_id='${event}'`)[0].count;
+    const create = async input => (await (await expectStatus(await appFetch("/api/app/maintenance",{method:"POST",body:JSON.stringify({...input,componentIds:[component.id]})}),201)).json()).maintenance;
+
+    const held = await create({title:"Synthetic Lamp manual completion",startsAt:new Date(now-40*minute).toISOString(),endsAt:new Date(now-20*minute).toISOString(),autoStart:true,autoComplete:false});
+    assert.equal(held.autoStart,true);assert.equal(held.autoComplete,false);
+    await trigger(Date.parse(held.startsAt)+5*minute);
+    await trigger(Date.parse(held.endsAt)+20*minute);await trigger(Date.parse(held.endsAt)+20*minute);
+    const overrun = await read(held.id);
+    assert.equal(overrun.state,"In progress");assert.equal(overrun.overrunning,true);
+    assert.equal(overrun.endsAt,held.endsAt);assert.equal(notices(held.id,"completed"),0);
+    assert.equal(alerts(`maintenance-overrun/${held.id}/${held.endsAt}`),1,"one overrun alert at the injected +20 minute instant");
+    const { text: permalink } = await publicArtifact(`/maintenance/${held.reference}`,"Running longer than planned","manual completion overrun label");
+    assert.ok(permalink.includes(held.endsAt),"overrun label retains the original end instant");
+    await expectStatus(await appFetch(`/api/app/maintenance/${held.id}/complete`,{method:"POST"}),200);
+    await expectStatus(await appFetch(`/api/app/maintenance/${held.id}/complete`,{method:"POST"}),409);
+    assert.equal(notices(held.id,"completed"),1,"operator completion publishes exactly one Completed notice");
+
+    const manual = await create({title:"Synthetic Lamp manual start",startsAt:new Date(now-5*minute).toISOString(),endsAt:new Date(now+60*minute).toISOString(),autoStart:false,autoComplete:false});
+    const changedEnd = new Date(Date.parse(manual.endsAt)+minute).toISOString();
+    await expectStatus(await appFetch(`/api/app/maintenance/${manual.id}/window`,{method:"PUT",body:JSON.stringify({startsAt:manual.startsAt,endsAt:changedEnd})}),200);
+    assert.equal((await read(manual.id)).autoStart,false,"date-only reschedule preserves an off switch");
+    assert.equal((await read(manual.id)).autoComplete,false);
+    await trigger(Date.parse(manual.startsAt)+5*minute);await trigger(Date.parse(manual.startsAt)+5*minute);
+    assert.equal((await read(manual.id)).state,"Scheduled");assert.equal(notices(manual.id,"started"),0);
+    assert.equal(alerts(`maintenance-start-due/${manual.id}/${new Date(manual.startsAt).toISOString()}`),1,"one start-due alert however many ticks run");
+    await expectStatus(await appFetch(`/api/app/maintenance/${manual.id}/start`,{method:"POST"}),200);
+    await expectStatus(await appFetch(`/api/app/maintenance/${manual.id}/start`,{method:"POST"}),409);
+    assert.equal((await read(manual.id)).state,"In progress");assert.equal(notices(manual.id,"started"),1);
+    await expectStatus(await appFetch(`/api/app/maintenance/${manual.id}/window`,{method:"PUT",body:JSON.stringify({startsAt:manual.startsAt,endsAt:changedEnd,autoComplete:true})}),200);
+    assert.equal((await read(manual.id)).autoStart,false);assert.equal((await read(manual.id)).autoComplete,true,"an in-progress window accepts its automation switch without extending the end");
+    await expectStatus(await appFetch(`/api/app/maintenance/${manual.id}/complete`,{method:"POST"}),200);
+
+    const defaults = await create({title:"Synthetic Lamp default automation",startsAt:new Date(now+60*minute).toISOString(),endsAt:new Date(now+120*minute).toISOString()});
+    assert.equal(defaults.autoStart,true);assert.equal(defaults.autoComplete,true);
+    await expectStatus(await appFetch(`/api/app/maintenance/${defaults.id}/start`,{method:"POST"}),409);
+    await expectStatus(await appFetch(`/api/app/maintenance/${defaults.id}/cancel`,{method:"POST"}),200);
+    // Storage at the upgrade edge: a pre-0048 native window has no sidecar row.
+    // Its operator actions still run through the same route and scheduled door.
+    const operator = (await (await appFetch("/api/app/session")).json()).operator;
+    const legacyId="synthetic-lamp-maint-legacy";
+    const legacyStart=new Date(now-40*minute).toISOString(),legacyEnd=new Date(now-20*minute).toISOString();
+    executeFixtureSql(`INSERT INTO maintenance(id,reference,title,state,starts_at,ends_at,completed_at,created_by_operator_id,created_at,updated_at) VALUES('${legacyId}','SCH-940048','Synthetic Lamp pre-change window','Scheduled','${legacyStart}','${legacyEnd}',NULL,'${operator.id}','${legacyStart}','${legacyStart}'); INSERT INTO maintenance_components(id,maintenance_id,component_id,component_name,state,created_at,updated_at) VALUES('synthetic-lamp-maint-legacy-component','${legacyId}','${component.id}','${component.name}','Under maintenance','${legacyStart}','${legacyStart}');`);
+    assert.equal((await read(legacyId)).autoStart,true);assert.equal((await read(legacyId)).autoComplete,true);
+    await trigger(now);assert.equal((await read(legacyId)).state,"In progress");
+    await trigger(now);assert.equal((await read(legacyId)).state,"Completed");
+    assert.equal(notices(legacyId,"started"),1);assert.equal(notices(legacyId,"completed"),1,"a pre-change window retains its automatic lifecycle");
+  })();
   t.diagnostic("MAINT-001 — scheduled maintenance has its own SCH reference and operator list");
   await (async () => {
   const created = await appFetch("/api/app/maintenance", { method: "POST", body: JSON.stringify({ title: "Distinct maintenance", startsAt: new Date(Date.now() + 2 * 60 * 60_000).toISOString(), endsAt: new Date(Date.now() + 3 * 60 * 60_000).toISOString(), componentIds: ["01J00000000000000000000011"] }) });
@@ -937,6 +995,10 @@ test("MAINT-002 MAINT-001 MAINT-003 MAINT-004 MAINT-005 MAINT-006 — Scheduled 
   assert.equal(await repository.transitionWithNotice("maintenance-guard", "In progress", "Completed", staleCompletion.publishedAt, staleCompletion.publishedAt, staleCompletion, [], dueWindow), false, "a due transition cannot complete a window extended after it was read");
   assert.equal(database.prepare("SELECT COUNT(*) AS count FROM maintenance_notices").get().count, 1);
   assert.equal(database.prepare("SELECT COUNT(*) AS count FROM audit_entries").get().count, 1);
+  database.exec("CREATE TABLE maintenance_automation(maintenance_id TEXT PRIMARY KEY,auto_start INTEGER,auto_complete INTEGER); INSERT INTO maintenance_automation VALUES('maintenance-guard',1,0)");
+  const currentWindow={startsAt:dueWindow.startsAt,endsAt:"2026-09-08T01:00:00.000Z",autoComplete:true};
+  assert.equal(await repository.transitionWithNotice("maintenance-guard","In progress","Completed",staleCompletion.publishedAt,staleCompletion.publishedAt,{...staleCompletion,id:"notice-switch-race"},[],currentWindow),false,"a cron completion cannot ignore an auto-complete switch disabled after it read the window");
+  assert.equal(database.prepare("SELECT COUNT(*) AS count FROM maintenance_notices").get().count,1);
   database.close();
 })(t);
   t.diagnostic("MAINT-004 — an overrun is public after its recorded end, and operators can extend or complete it");
