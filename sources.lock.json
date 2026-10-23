@@ -6076,7 +6076,7 @@
       "executable": false
     },
     "tests/e2e/helpers/webhook-source-browser-flow.mjs": {
-      "sha256": "585f4167db8a06e705780bd526625c225ca054edad39da04526f0f3e01854968",
+      "sha256": "795eb7fb0cca01786efac7725706ec4287fdf75ef31986fc6efee9c4b01396e5",
       "executable": false
     },
     "tests/e2e/helpers/widget-privacy-flow.mjs": {
@@ -6140,7 +6140,7 @@
       "executable": false
     },
     "tests/e2e/publishing-browser.test.mjs": {
-      "sha256": "656aa596617a6cae29a4d94bd77931fe69f03f9ed3658879e282b2e1e906318f",
+      "sha256": "d1bf775b0c329c9aaf0a2e4510bd90266eb8407925c83988fc0eb9805374bb7b",
       "executable": false
     },
     "tests/e2e/publishing-contract.test.mjs": {

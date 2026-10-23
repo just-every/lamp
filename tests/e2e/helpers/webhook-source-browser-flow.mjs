@@ -79,6 +79,13 @@ export async function webhookSourceBrowserFlow({ origin, cookie, api, post }) {
     finally { await context.setOffline(false); }
     await retry.click(); await state.getByText('Saved', { exact: true }).waitFor();
     assert.equal((await api('/api/app/intake/sources')).body.sources.find(source => endpoint.includes(`/api/intake/${source.id}`)).name, offline, 'online again, Retry stores the name');
+    // Offline, Alerts' own link (a move that stays on the page) keeps the open form, the typed name, the reason and Retry.
+    const ownLink = 'Browser alert source — own link';
+    await savedName(); await context.setOffline(true);
+    try { await name.fill(ownLink); await menu('Alerts'); await held("Alerts' own link offline", ownLink); }
+    finally { await context.setOffline(false); }
+    await retry.click(); await state.getByText('Saved', { exact: true }).waitFor();
+    assert.equal((await api('/api/app/intake/sources')).body.sources.find(source => endpoint.includes(`/api/intake/${source.id}`)).name, ownLink, "online again, Retry stores the name typed before Alerts' own link");
     await savedName(); await close(); await form.waitFor({ state: 'detached' });
     assert.equal((await api(`/api/app/intake/sources/${taken.id}`, { method: 'DELETE' })).status, 200);
 

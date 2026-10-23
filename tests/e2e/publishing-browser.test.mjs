@@ -650,31 +650,60 @@ contract("DRAFT-002", "Settings autosaves survive navigation and reload, keep fe
     await page.locator(".settings-save-note").filter({ hasText: /^Saved · live$/ }).waitFor();
     await eventuallyStored("tagline", `${nextTagline} today`);
 
-    // Back, with Settings reached in the app and the save refused offline, keeps Settings open with the value, the
-    // reason and Retry (nothing reloads over it); online again, Retry publishes it. Each screen is shown in full first,
-    // so going offline catches nothing still loading.
-    for (const [link, shown] of [["Overview", page.getByRole("region", { name: "Active incidents" })], ["Settings", page.locator(".settings-page:not([inert])")]]) {
-      if (width === 390) await page.getByRole("button", { name: "Menu", exact: true }).click();
-      await page.locator(".operator-navigation").getByRole("link", { name: link, exact: true }).click();
-      await shown.waitFor();
-    }
-    await page.locator(".settings-save-note").filter({ hasText: /^Saved · live$/ }).waitFor();
-    const offlineName = `${name} kept offline`;
-    await page.context().setOffline(true);
-    try {
-      await page.getByLabel("Page name", { exact: true }).fill(offlineName);
-      await page.evaluate(() => history.back());
-      await page.getByRole("button", { name: "Retry", exact: true }).waitFor();
-      // Still offline once the page settles, so a reload over Settings would fail here.
+    // Offline, with the Page name refused, Settings stays open with the value, the reason and Retry, and nothing reloads
+    // over it: through a Back held on its way to Overview, then through Back and Forward between Settings' tabs (entries
+    // of one page). Online again, Retry publishes it. Settings is reached in the app, and before going offline each
+    // screen is shown in full and the router's loads (its /_serverFn/ requests) have settled, so no load still in
+    // flight can stand in for a reload.
+    const loads = new Set();
+    const started = request => { if (new URL(request.url()).pathname.startsWith("/_serverFn/")) loads.add(request); };
+    const ended = request => loads.delete(request);
+    const settled = async () => { for (let quiet = 0; quiet < 5; quiet = loads.size ? 0 : quiet + 1) await page.waitForTimeout(100); };
+    const pageName = page.getByLabel("Page name", { exact: true });
+    const retry = page.getByRole("button", { name: "Retry", exact: true });
+    const savedLive = page.locator(".settings-save-note").filter({ hasText: /^Saved · live$/ });
+    // Still offline once the page settles, so a reload over Settings would fail here.
+    const keptOffline = async (how, address) => {
       await page.waitForTimeout(500);
-      assert.equal(await page.locator(".settings-page").count(), 1, "a Back refused offline keeps Settings open");
-      assert.equal(new URL(page.url()).pathname, "/app/settings", "a Back refused offline keeps Settings at its address");
-      assert.equal(await page.getByLabel("Page name", { exact: true }).inputValue(), offlineName);
-      await inView(page.locator(".settings-save-state [role=alert]")); await inView(page.getByRole("button", { name: "Retry", exact: true }));
-    } finally { await page.context().setOffline(false); }
-    await page.getByRole("button", { name: "Retry", exact: true }).click();
-    await page.locator(".settings-save-note").filter({ hasText: /^Saved · live$/ }).waitFor();
-    await eventuallyStored("pageName", offlineName);
+      assert.equal(await page.locator(".settings-page").count(), 1, `${how} keeps Settings open`);
+      assert.equal(new URL(page.url()).pathname + new URL(page.url()).hash, address, `${how} keeps Settings at its address`);
+      await inView(page.locator(".settings-save-state [role=alert]")); await inView(retry);
+    };
+    page.on("request", started); page.on("requestfinished", ended); page.on("requestfailed", ended);
+    try {
+      for (const [link, shown] of [["Overview", page.getByRole("region", { name: "Active incidents" })], ["Settings", page.locator(".settings-page:not([inert])")]]) {
+        if (width === 390) await page.getByRole("button", { name: "Menu", exact: true }).click();
+        await page.locator(".operator-navigation").getByRole("link", { name: link, exact: true }).click();
+        await shown.waitFor(); await settled();
+      }
+      await savedLive.waitFor();
+      const offlineName = `${name} kept offline`;
+      await page.context().setOffline(true);
+      try {
+        await pageName.fill(offlineName);
+        await page.evaluate(() => history.back());
+        await retry.waitFor();
+        await keptOffline("a Back refused offline", "/app/settings");
+        assert.equal(await pageName.inputValue(), offlineName);
+      } finally { await page.context().setOffline(false); }
+      await retry.click(); await savedLive.waitFor();
+      await eventuallyStored("pageName", offlineName);
+
+      for (const tab of ["Writing", "Page"]) { await page.locator(".settings-tabs").getByRole("link", { name: tab, exact: true }).click(); await settled(); }
+      await savedLive.waitFor();
+      const tabsName = `${name} kept between tabs`;
+      await page.context().setOffline(true);
+      try {
+        await pageName.fill(tabsName); await retry.waitFor();
+        await page.evaluate(() => history.back());
+        await keptOffline("Back to the Writing tab offline", "/app/settings#writing");
+        await page.evaluate(() => history.forward());
+        await keptOffline("Forward to the Page tab offline", "/app/settings#page");
+        assert.equal(await pageName.inputValue(), tabsName, "Back and Forward between tabs offline keep the typed name");
+      } finally { await page.context().setOffline(false); }
+      await retry.click(); await savedLive.waitFor();
+      await eventuallyStored("pageName", tabsName);
+    } finally { page.off("request", started); page.off("requestfinished", ended); page.off("requestfailed", ended); }
   }
   const restored = await appFetch("/api/app/page-settings", { method: "PUT", body: JSON.stringify(originalSettings) });
   assert.equal(restored.status, 200, "restore the shared Settings fixture for the remaining browser journeys");
