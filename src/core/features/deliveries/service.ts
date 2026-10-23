@@ -30,7 +30,7 @@ export interface DeliveriesService {
   dispatchEvent(eventId: string, origin: string): Promise<void>;
   dispatchDelivery(deliveryId: string, origin: string): Promise<void>;
   handleProviderEvent(input: { id: string; providerMessageId: string | null; type: "delivered" | "bounced" | "complained"; hardBounce?: boolean }): Promise<void>;
-  queueOperatorAlert(input: { eventId: string; title: string; text: string }): Promise<void>;
+  queueOperatorAlert(input: { eventId: string; title: string; text: string; recipients?: string[] }): Promise<void>;
 }
 
 function retryAt(attempt: number) {
@@ -124,7 +124,7 @@ export function createDeliveriesService(
     });
   }
 
-  async function queueOperatorAlert(input: { eventId: string; title: string; text: string }) {
+  async function queueOperatorAlert(input: { eventId: string; title: string; text: string; recipients?: string[] }) {
     await queueMailAlert(input);
   }
 

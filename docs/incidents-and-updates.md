@@ -95,3 +95,7 @@ After resolving an incident, attach its post-incident report from the incident
 page. The report holds a summary, timeline, cause and remediation. The operator
 app marks a report as due 7 days after resolution when the incident reached
 Partially unavailable or Major outage and has no report.
+
+## Communication owner
+
+Every unresolved incident starts with the operator who opened it as its communication owner. In the private incident composer, **Take over communication** assigns it to you, or **Reassign owner** chooses another active operator; each change is recorded in the audit log. The owner receives the due and overdue email. An incident whose owner is inactive is marked **Unowned** on Overview and all active operators receive its reminder. Ten minutes after the original commitment, `incident.escalation.v1` sends one escalation to every active operator; every operator has publish rights until TEAM-004 roles ship. Ownership never appears on the public page, feeds or subscriber messages. Push, operator chat and Oncall responder delivery are not available yet (MOBILE-002, NOTIFY-016 and INTAKE-012).

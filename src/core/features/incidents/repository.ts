@@ -1,3 +1,4 @@
+import { createCommunicationOwnerRepository } from "./communication-owner.repository";
 import { createUlid } from "../../shared/ids";
 import { createIncidentTemplateRepository } from "./template-repository";
 import type { IncidentTemplateRecord, IncidentTemplateComponentRecord } from "./template-repository";
@@ -64,6 +65,7 @@ export interface IncidentPublishRecord {
 }
 
 export interface IncidentRepository {
+  communicationOwners: ReturnType<typeof createCommunicationOwnerRepository>;
   previewComponentChange(incidentId: string, componentId: string): Promise<{ remainingStates: ComponentState[]; emailRecipients: number; webhookRecipients: number }>;
   attachComponent(claim: AttachedIncidentComponent, recipients: D1PreparedStatement[]): Promise<void>;
   detachComponent(incidentId: string, componentId: string, timestamp: string, eventId: string, operatorId: string): Promise<void>;
@@ -104,6 +106,7 @@ export function createIncidentRepository(binding: D1Database): IncidentRepositor
   const asPublishingDraft = publishingDraft;
 
   return {
+    communicationOwners: createCommunicationOwnerRepository(binding),
     loadRecoverySnapshot: (incidentId) => loadRecoverySnapshot(binding, incidentId),
     listRelations: () => listIncidentRelations(binding),
     previewComponentChange: (incidentId, componentId) => previewComponentChange(binding, incidentId, componentId),

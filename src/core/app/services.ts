@@ -110,13 +110,14 @@ export function createAppServices(bindings: AppBindings, blobs: BlobStore, execu
     if (failure) throw failure.reason;
   } });
   // INCIDENT-010 and NOTIFY-006: one operator email per committed time and kind, sent by the scheduled trigger.
-  const updateReminders = createUpdateReminders(bindings.DB, extensions.updateDuePolicy, async ({ kind, incidentId, reference, title, updateId, nextUpdateAt }) => {
+  const updateReminders = createUpdateReminders(bindings.DB, extensions.updateDuePolicy, async ({ kind, incidentId, reference, title, updateId, nextUpdateAt, recipients }) => {
     const committed = await formatPreviewTimestamp(nextUpdateAt);
     const link = `${authOrigin(bindings)}/app/incidents/${incidentId}`;
     await deliveries.queueOperatorAlert(kind === "due-soon"
-      ? { eventId: `incident-due-soon/${updateId}`, title: `Lamp update due at ${committed}: ${reference}`, text: `${reference} ${title}: the next update you committed to customers is due at ${committed}. Nothing reaches customers until an operator publishes it. Write it here: ${link}` }
-      : { eventId: `incident-overdue/${updateId}`, title: `Lamp incident is overdue for an update: ${reference}`, text: `${reference} ${title} passed its next-update commitment of ${committed} with no newer update. The public page still shows that time. Write the update here: ${link}` });
-  });
+      ? { eventId: `incident-due-soon/${updateId}`, recipients, title: `Lamp update due at ${committed}: ${reference}`, text: `${reference} ${title}: the next update you committed to customers is due at ${committed}. Nothing reaches customers until an operator publishes it. Write it here: ${link}` }
+      : kind === "escalation" ? { eventId: `incident-escalation/${updateId}`, title: `Lamp communication escalation: ${reference}`, text: `${reference} ${title} is at least ${extensions.incidentEscalationPolicy.overdueMinutes()} minutes past its next-update commitment of ${committed}. Every active operator can publish until TEAM-004 roles ship. Write the update here: ${link}` }
+      : { eventId: `incident-overdue/${updateId}`, recipients, title: `Lamp incident is overdue for an update: ${reference}`, text: `${reference} ${title} passed its next-update commitment of ${committed} with no newer update. The public page still shows that time. Write the update here: ${link}` });
+  }, extensions.incidentEscalationPolicy);
   const maintenance = createMaintenanceService(createMaintenanceRepository(bindings.DB), components, publicSnapshots.rebuild, {
     forMaintenanceNotice: async (input) => notificationPublicationStatements(bindings.DB, { eventId: input.eventId, eventType: "maintenance-notice", maintenanceId: input.maintenanceId, componentIds: input.componentIds, channels: ["email", "webhook"], queuedAt: input.queuedAt, recipientScope: input.recipientScope, previousEventIds: input.previousEventIds }),
   }, extensions.maintenanceRemindersPolicy,

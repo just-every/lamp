@@ -25,6 +25,7 @@ import type { CheckedSuggestion } from "../../ai/service";
 import { useIncidentVisit } from "./use-incident-visit";
 import { blankDraft, draftFromIncident, normalizeResolvedDraft } from "../draft";
 import { IncidentHeader } from "./incident-header";
+import { CommunicationOwnerControl } from "./communication-owner";
 import { IncidentExtras, IncidentTimeline } from "./incident-record";
 import { IncidentPreview } from "./incident-preview";
 import { StatusChoice } from "./status-choice";
@@ -311,6 +312,7 @@ function IncidentVisit({ incidentId }: { incidentId: string }) {
 
   return <div className="incident-page">
     <IncidentHeader incident={incident} />
+    <CommunicationOwnerControl key={incident.id} incidentId={incident.id} lifecycle={incident.lifecycle} owner={incident.owner} unowned={incident.unowned} captureVisit={captureVisit} onChanged={refresh} />
     <div className="incident-compose">
       <section className="composer-panel" aria-labelledby="composer-title" inert={publishState === "publishing"}>
         <div className="composer-heading"><h2 id="composer-title" className="eyebrow">{incident.updates.length ? "Update draft" : "First update"}</h2><p role="status" aria-live="polite" className={`autosave-status is-${visibleSaveState}`}>{saveLabel}</p></div>

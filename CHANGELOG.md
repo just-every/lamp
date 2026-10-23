@@ -2,9 +2,11 @@
 
 ## 1.11.0 (unreleased)
 
+**Named incident communication (INCIDENT-011, partial).** An unresolved incident starts with its opener as communication owner. Operators can take over or reassign it to another active operator, with an atomic audit entry. Due and overdue emails go to that owner; an unowned incident is flagged on Overview and reminds every active operator. Ten minutes after the original commitment, one escalation reaches every active operator (all have publish rights until TEAM-004). Ownership is private and cannot be changed on a resolved incident. Push, operator chat and Oncall responder delivery remain with MOBILE-002, NOTIFY-016 and INTAKE-012.
+
 **Built-in page layouts.** Settings → Page can publish one of three layouts without AI, each laid out after the owner's L9 studies: Calm headline (one sentence, then components and history in hairline columns), Uptime-history-led (the overall uptime over one 90-day heatmap with incident callouts) and Regions map (a dotted world with a labelled pin per region, region filters and a components table). Default keeps the existing page and its stylesheet and script byte for byte; a layout publishes its own. Components take an optional region in the component editor. Regions map needs public components in at least two regions; until then the public page shows Calm headline and Settings says why.
 
-Migrations: `0043_page_templates.sql` adds the saved page layout (`page_settings.template`, `default` for every existing page) and an optional `components.region`; `0044_widget_appearance.sql` adds the saved embed tag choices (`page_settings.widget_appearance`, the original embed defaults for every existing page). Both are additive; no existing row changes.
+Migrations: `0043_page_templates.sql` adds the saved page layout (`page_settings.template`, `default` for every existing page) and an optional `components.region`; `0044_widget_appearance.sql` adds the saved embed tag choices (`page_settings.widget_appearance`, the original embed defaults for every existing page). `0045_incident_communication_owner.sql` adds private communication-owner assignments and extends the reminder kinds with escalation while preserving every existing reminder. Existing incidents default to their opener.
 
 ## 1.10.0
 
