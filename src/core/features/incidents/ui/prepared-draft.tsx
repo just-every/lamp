@@ -18,6 +18,6 @@ export function PreparedDraft({ preparation }: { preparation: PublishingDraft["a
       <p>Evidence recorded since the last published update:</p>
       <ul>{preparation.evidence.map(item => <li key={item.ref} style={{ whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}>{item.text} <a href={`#brief-${item.ref}`} onClick={event => { event.preventDefault(); revealSource(item.ref); }}>[{item.ref}]</a></li>)}</ul>
     </>}
-    <p className="field-sources">Sources: {preparation.citations.map((ref, index) => <span key={ref}>{index ? ", " : ""}<a href={`#brief-${ref}`} onClick={event => { event.preventDefault(); revealSource(ref); }}>[{ref}]</a></span>)}</p>
+    <p>Sources: {preparation.citations.map((ref, index) => <span key={ref}>{index ? ", " : ""}<a href={`#brief-${ref}`} onClick={event => { event.preventDefault(); revealSource(ref); }}>[{ref}]</a></span>)}</p>
   </section>;
 }
