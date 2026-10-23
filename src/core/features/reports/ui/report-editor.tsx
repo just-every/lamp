@@ -1,3 +1,4 @@
+import { ReportWaiver } from "./report-waiver";
 import { useEffect, useState } from "react";
 import { appApi, useAppData } from "../../../app/client/ui/api";
 import { Button } from "../../../app/client/ui/button";
@@ -10,12 +11,12 @@ const emptyReport: Report = { summary: "", timeline: "", cause: "", remediation:
 export function ReportEditor({ incidentId }: { incidentId: string }) {
   const formatOperatorTime = useOperatorTime();
   const endpoint = `/api/app/incidents/${incidentId}/report`;
-  const { data, refresh, loading, error } = useAppData<{ report: Report | null; review: ReportReview | null }>(endpoint);
+  const { data, refresh, loading, error } = useAppData<{ report: Report | null; review: ReportReview | null; waiver: {reason:string}|null }>(endpoint);
   const [report, setReport] = useState<Report>(emptyReport);
   const [dirty, setDirty] = useState(false);
   const [pending, setPending] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
-  useEffect(() => { if (data) { setReport(data.report ?? emptyReport); setDirty(false); } }, [data]);
+  useEffect(() => { if (data && !dirty) setReport(data.report ?? emptyReport); }, [data]);
   if (report.publishedAt) return <section className="context-section"><h2>Post-incident report</h2><p>Published {formatOperatorTime(report.publishedAt)}.</p></section>;
   const review = reportReview(report);
   const busy = pending || loading || !data;
@@ -43,6 +44,7 @@ export function ReportEditor({ incidentId }: { incidentId: string }) {
     finally { setPending(false); }
   };
   return <section className="context-section report-editor">
+    <ReportWaiver incidentId={incidentId} waiver={data?.waiver ?? null} onChanged={refresh} />
     <h2>Post-incident report</h2><p>Publish one factual report when this incident is complete.</p>
     <Button type="button" variant="secondary" disabled={busy || Boolean(data?.report) || dirty} onClick={draft}>Draft report</Button>
     <p>{data?.report || dirty ? "Keep editing your report. Drafting never replaces existing work." : "Draft a private report from the incident's alerts and published updates."}</p>

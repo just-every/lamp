@@ -461,7 +461,7 @@ test("SUB-004 SUB-006 SUB-007 SUB-005 PAGE-013 SUB-012 SUB-008 — Scoped subscr
   const { createPublicWriteRateLimiter } = await vite.ssrLoadModule("/src/core/platform/security/rate-limiter.ts");
   await exerciseSubscriberIsolation({ db: platform.env.DB, createSubscriberRepository, createSubscribersService, registerSubscriberRoutes, createPublicWriteRateLimiter, createMail: () => new CapturingMail() });
 })(t);
-  t.diagnostic("SUB-012 — a known active address gets the same neutral form response and a management-only email");
+  t.diagnostic("SUB-012 — a known active address gets the same neutral form response and one management-only email a day, however often it is submitted");
   await (async () => {
   const { Hono } = await import("hono");
   const mail = new CapturingMail();
@@ -472,10 +472,22 @@ test("SUB-004 SUB-006 SUB-007 SUB-005 PAGE-013 SUB-012 SUB-008 — Scoped subscr
   const confirmation = new URL(mail.messages[0].text.match(/https:\/\/[^\s]+/)?.[0]).pathname.split("/").at(-1);
   await service.confirm(confirmation);
   const repeat = await submit("known-reader@example.test");
+  const firstText = await first.text();
   assert.equal(first.status, repeat.status);
-  assert.equal(await first.text(), await repeat.text());
+  assert.equal(firstText, await repeat.text());
   assert.match(mail.messages.at(-1).text, /Manage this subscription/);
   assert.doesNotMatch(mail.messages.at(-1).text, /confirm-subscription/);
+  // Each active address has its own allowance, so a second one still gets its email.
+  await submit("known-reader-two@example.test");
+  await service.confirm(new URL(mail.messages.at(-1).text.match(/https:\/\/[^\s]+\/confirm-subscription\/[^\s]+/)[0]).pathname.split("/").at(-1));
+  const sent = mail.messages.length;
+  for (let round = 0; round < 3; round += 1) {
+    for (const email of ["known-reader@example.test", "known-reader-two@example.test"]) {
+      const response = await submit(email);
+      assert.deepEqual([response.status, await response.text()], [first.status, firstText], "every submission keeps the neutral form response");
+    }
+  }
+  assert.deepEqual(mail.messages.slice(sent).map((message) => message.to), ["known-reader-two@example.test"], "no address receives a second management email that day");
 })(t);
   t.diagnostic("SUB-008 — a delivery committed before a real D1 unsubscribe is durably recorded as suppressed");
   await (async () => {

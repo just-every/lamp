@@ -171,8 +171,16 @@ export function createSubscribersService(
 
       // An established subscriber gets the same neutral form response plus a
       // management-only email. This is not a confirmation message and does
-      // not consume the confirmation anti-bomb allowance.
+      // not consume the confirmation anti-bomb allowance. It has its own: one
+      // per subscription in the same 24 hours, reserved before sending. A
+      // re-opened subscription has a new created_at, so it starts a new one.
       if (subscriber.state === "active" && wasActive) {
+        const allowed = await repository.recordConfirmationSendIfAllowed(
+          await hashOpaqueToken(`management-subscription:${subscriber.id}:${subscriber.createdAt}`),
+          new Date(Date.now() - CONFIRMATION_WINDOW_MS).toISOString(),
+          timestamp,
+        );
+        if (!allowed) return;
         const manage = await issuedToken(subscriber.id, "manage", null);
         const manageUrl = new URL(`/manage/${encodeURIComponent(manage.token)}`, origin).toString();
         await sendSubscriptionMail(mail, subscriber.id, "already-subscribed", {

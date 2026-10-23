@@ -44,7 +44,7 @@ export async function catalogueHistoryFlow({ appFetch, fetch, pageUrl, queryLoca
   });
   const moved = response => { assert.equal(response.status, 200, JSON.stringify(response.body)); return response.body; };
   const newComponents = new Set(), newGroups = new Set();
-  let conditionalIncident, boundaryId, originalTimezone;
+  let conditionalIncident, boundaryId, originalTimezone, auditOperatorId, catchupComponentId;
   const importJobs = [];
   async function api(path, method = "GET", input, status = 200) {
     const response = await appFetch(path, { method, ...(input === undefined ? {} : { body: JSON.stringify(input) }) });
@@ -137,7 +137,7 @@ export async function catalogueHistoryFlow({ appFetch, fetch, pageUrl, queryLoca
     diagnostic("COMP-009 — the selected uptime start date excludes earlier measured downtime");
     await updateSettings({ timezone: "America/Los_Angeles" });
     const operator = (await queryLocalSql("SELECT id FROM operators WHERE deactivated_at IS NULL ORDER BY created_at,id LIMIT 1"))[0];
-    assert.ok(operator);
+    assert.ok(operator); auditOperatorId = operator.id;
     const oldOutage = new Date(Date.now() - 15 * DAY).toISOString(), oldRecovery = new Date(Date.now() - 10 * DAY).toISOString();
     await executeLocalSql(`INSERT INTO component_state_history (id,component_id,previous_state,new_state,cause_type,operator_id,changed_at,created_at,updated_at) VALUES (${quote(randomUUID())},${quote(uptime.id)},'Operational','Major outage','standing-claim',${quote(operator.id)},${quote(oldOutage)},${quote(oldOutage)},${quote(oldOutage)}),(${quote(randomUUID())},${quote(uptime.id)},'Major outage','Operational','standing-claim',${quote(operator.id)},${quote(oldRecovery)},${quote(oldRecovery)},${quote(oldRecovery)})`);
     uptime = (await current()).catalogue.components.find(component => component.id === uptime.id);
@@ -161,6 +161,26 @@ export async function catalogueHistoryFlow({ appFetch, fetch, pageUrl, queryLoca
     const statuspageImport = moved(await moveIn.apply(moved(await moveIn.preview({ files: statuspageFiles }))));
     importJobs.push(statuspageImport.door);
     assert.equal(statuspageImport.job.state, "completed");
+    // A real catch-up replaces a previously imported component, with one
+    // operator-attributed audit entry in the same write as that replacement.
+    const catchupFiles = statuspageFiles.map(file => {
+      if (file.name !== "components.json") return file;
+      const rows = JSON.parse(file.text);
+      rows[0].description = "Synthetic Lamp catch-up replacement audit evidence.";
+      return { ...file, text: JSON.stringify(rows) };
+    });
+    const replacementSince = new Date().toISOString();
+    const catchup = moved(await moveIn.apply(moved(await moveIn.preview({ files: catchupFiles }))));
+    assert.equal(catchup.job.state, "completed"); importJobs.push(catchup.door);
+    const replacements = await api(`/api/app/audit-log?action=replaced&from=${encodeURIComponent(replacementSince)}&limit=100`);
+    const replacedComponent = (await current()).catalogue.components.find(component => component.description === "Synthetic Lamp catch-up replacement audit evidence.");
+    assert.ok(replacedComponent); catchupComponentId = replacedComponent.id;
+    const replaced = replacements.entries.filter(entry => entry.entityType === "component" && entry.entityId === replacedComponent.id);
+    assert.equal(replaced.length, 1, "one catch-up replacement enters the operator audit view");
+    assert.equal(replaced[0].actorId, operator.id);
+    const replacementCsv = await (await appFetch(`/api/app/audit-log?format=csv&action=replaced&from=${encodeURIComponent(replacementSince)}`)).text();
+    for (const entry of replacements.entries) assert.ok(replacementCsv.includes(`"${entry.id}"`));
+    assert.equal(replacementCsv.trimEnd().split("\r\n").length - 1, replacements.entries.length);
     const importedIncident = (await api("/api/app/incidents")).incidents.find(incident => incident.title === "Elevated API errors" && incident.openedAt.startsWith(`${year}-`));
     assert.ok(importedIncident, "the import's actual native incident is available");
     boundaryId = randomUUID();
@@ -195,8 +215,43 @@ export async function catalogueHistoryFlow({ appFetch, fetch, pageUrl, queryLoca
     assert.equal((await read(`/history/${year}-13`)).status, 404, "invalid new month paths never become Sorry aliases");
   } finally {
     if (boundaryId) await executeLocalSql(`DELETE FROM incidents WHERE id=${quote(boundaryId)}`);
-    for (const importJob of importJobs.reverse()) assert.equal(moved(await moveIn.undo(importJob)).job.state, "undone");
+    async function importEntities() {
+      const [catalogue, incidents, maintenance, templates] = await Promise.all([
+        current(), api("/api/app/incidents"), api("/api/app/maintenance"), api("/api/app/incident-templates"),
+      ]);
+      return [
+        ...catalogue.catalogue.components.map(row => ({ kind: "component", id: row.id })),
+        ...catalogue.catalogue.groups.map(row => ({ kind: "group", id: row.id })),
+        ...incidents.incidents.map(row => ({ kind: "incident", id: row.id })),
+        ...maintenance.maintenance.map(row => ({ kind: "maintenance", id: row.id })),
+        ...templates.templates.map(row => ({ kind: "template", id: row.id })),
+      ];
+    }
+    let removedByUndo = 0;
+    for (const importJob of importJobs.reverse()) {
+      const before = await importEntities();
+      const undoSince = new Date().toISOString();
+      const undo = moved(await moveIn.undo(importJob));
+      assert.equal(undo.job.state, "undone");
+      const after = new Set((await importEntities()).map(row => `${row.kind}:${row.id}`));
+      const removed = before.filter(row => !after.has(`${row.kind}:${row.id}`));
+      removedByUndo += removed.length;
+      // A catch-up supersedes its original source provenance. Undo can retain
+      // those superseded records, so assert facts for the records actually
+      // removed through the public door rather than assuming every job deletes.
+      const rows = await api(`/api/app/audit-log?action=deleted&from=${encodeURIComponent(undoSince)}&limit=100`);
+      const csv = await (await appFetch(`/api/app/audit-log?format=csv&action=deleted&from=${encodeURIComponent(undoSince)}`)).text();
+      for (const entry of rows.entries) { assert.ok(entry.actorId); assert.ok(csv.includes(`"${entry.id}"`)); }
+      assert.equal(csv.trimEnd().split("\r\n").length - 1, rows.entries.length);
+      for (const entity of removed) {
+        const entries = rows.entries.filter(row => row.entityType === entity.kind && row.entityId === entity.id);
+        assert.equal(entries.length, 1, `undo records one attributed deletion for ${entity.kind} ${entity.id}`);
+        assert.equal(entries[0].actorId, auditOperatorId);
+      }
+    }
+    assert.ok(removedByUndo > 0, "the real import undo journey removes native records and proves their audit entries");
     if (conditionalIncident) await api(`/api/app/incidents/${conditionalIncident.id}`, "DELETE", { reason: "Catalogue journey fixture cleanup." });
+    if (catchupComponentId && (await current()).catalogue.components.some(component => component.id === catchupComponentId)) newComponents.add(catchupComponentId);
     if (newComponents.size || newGroups.size) {
       const latest = await current();
       const catalogue = { components: latest.catalogue.components.filter(component => !newComponents.has(component.id)), groups: latest.catalogue.groups.filter(group => !newGroups.has(group.id)) };

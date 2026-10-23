@@ -109,6 +109,12 @@
           "title": "Feeds, APIs, badges and embeds",
           "source": "docs/public-resources.md",
           "summary": "Connect status readers, dashboards and your website to published snapshots."
+        },
+        {
+          "slug": "chat-desk",
+          "title": "Slack and Teams incident desk",
+          "source": "docs/chat-desk.md",
+          "summary": "Link your chat identity and prepare signed incident commands."
         }
       ]
     },
@@ -137,6 +143,12 @@
           "title": "Changelog",
           "source": "CHANGELOG.md",
           "summary": "Read what changed in Lamp releases and their upgrade notes."
+        },
+        {
+          "slug": "accessibility/vpat",
+          "title": "Accessibility (VPAT)",
+          "source": "docs/accessibility/vpat.md",
+          "summary": "Measured accessibility coverage and remaining evaluation limits for this release."
         }
       ]
     }

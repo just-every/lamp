@@ -1,3 +1,4 @@
+import { automationStatement, createMaintenanceAutomationRepository, type MaintenanceAutomation } from "./automation.repository";
 import { asc, eq } from "drizzle-orm";
 
 import { createDatabase } from "../../platform/db/client";
@@ -18,16 +19,17 @@ export interface MaintenanceCollectionDetails {
 }
 
 export interface MaintenanceRepository {
+  automation: ReturnType<typeof createMaintenanceAutomationRepository>;
   listCollectionDetails(): Promise<MaintenanceCollectionDetails>;
   listImportedUpdates(maintenanceId: string): Promise<ImportedMaintenanceUpdate[]>;
   allocateMaintenanceReference(): Promise<AllocatedReference>;
   listMaintenance(): Promise<StoredMaintenance[]>;
   listComponents(maintenanceId: string): Promise<StoredMaintenanceComponent[]>;
   find(maintenanceId: string): Promise<StoredMaintenance | null>;
-  create(input: typeof maintenance.$inferInsert, components: Array<typeof maintenanceComponents.$inferInsert>, notice: MaintenanceNotice, notificationStatements: D1PreparedStatement[]): Promise<void>;
-  updateWindowWithNotice(maintenanceId: string, startsAt: string, endsAt: string, updatedAt: string, notice: MaintenanceNotice, notificationStatements: D1PreparedStatement[]): Promise<boolean>;
-  extendInProgressWithNotice(maintenanceId: string, startsAt: string, previousEndsAt: string, endsAt: string, updatedAt: string, notice: MaintenanceNotice, notificationStatements: D1PreparedStatement[]): Promise<boolean>;
-  transitionWithNotice(maintenanceId: string, from: "Scheduled" | "In progress", to: "In progress" | "Completed", completedAt: string | null, updatedAt: string, notice: MaintenanceNotice, notificationStatements: D1PreparedStatement[], expectedWindow?: Pick<StoredMaintenance, "startsAt" | "endsAt">): Promise<boolean>;
+  create(input: typeof maintenance.$inferInsert, components: Array<typeof maintenanceComponents.$inferInsert>, notice: MaintenanceNotice, notificationStatements: D1PreparedStatement[], automation?: Partial<MaintenanceAutomation>): Promise<void>;
+  updateWindowWithNotice(maintenanceId: string, startsAt: string, endsAt: string, updatedAt: string, notice: MaintenanceNotice, notificationStatements: D1PreparedStatement[], automation?: Partial<MaintenanceAutomation>): Promise<boolean>;
+  extendInProgressWithNotice(maintenanceId: string, startsAt: string, previousEndsAt: string, endsAt: string, updatedAt: string, notice: MaintenanceNotice, notificationStatements: D1PreparedStatement[], automation?: Partial<MaintenanceAutomation>): Promise<boolean>;
+  transitionWithNotice(maintenanceId: string, from: "Scheduled" | "In progress", to: "In progress" | "Completed", completedAt: string | null, updatedAt: string, notice: MaintenanceNotice, notificationStatements: D1PreparedStatement[], expectedWindow?: Pick<StoredMaintenance, "startsAt" | "endsAt"> & Partial<MaintenanceAutomation>): Promise<boolean>;
   cancelWithNotice(maintenanceId: string, updatedAt: string, notice: MaintenanceNotice, notificationStatements: D1PreparedStatement[]): Promise<boolean>;
   listDue(now: string): Promise<StoredMaintenance[]>;
   listReminderDue(now: string): Promise<StoredMaintenance[]>;
@@ -39,7 +41,7 @@ export function createMaintenanceRepository(binding: D1Database): MaintenanceRep
   const database = createDatabase(binding);
   const noticeStatement = (notice: MaintenanceNotice) => binding.prepare(`INSERT OR IGNORE INTO maintenance_notices (id,maintenance_id,kind,body,published_at,author_operator_id,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?)`)
     .bind(notice.id, notice.maintenanceId, notice.kind, notice.body, notice.publishedAt, notice.authorOperatorId, notice.createdAt, notice.updatedAt);
-  const writeMutationWithNotice = async (mutation: D1PreparedStatement, notice: MaintenanceNotice, notificationStatements: D1PreparedStatement[]) => {
+  const writeMutationWithNotice = async (mutation: D1PreparedStatement, notice: MaintenanceNotice, notificationStatements: D1PreparedStatement[], automation?: Partial<MaintenanceAutomation>) => {
     const auditId = createUlid();
     const guard = binding.prepare(`INSERT INTO audit_entries (id, entity_type, entity_id, action, operator_id, reason, payload_json, created_at, updated_at)
       SELECT ?, 'maintenance', ?, 'notice-published', ?, NULL, '{}', ?, ?
@@ -53,12 +55,14 @@ export function createMaintenanceRepository(binding: D1Database): MaintenanceRep
       mutation,
       guard,
       guardedNotice,
+      ...(automation ? [automationStatement(binding,notice.maintenanceId,automation,notice.id)] : []),
       ...notificationStatements,
     ]);
     return results[1]?.meta.changes === 1;
   };
 
   return {
+    automation: createMaintenanceAutomationRepository(binding),
     async allocateMaintenanceReference() { return allocateReference(binding, "SCH"); },
     async listMaintenance() {
       return database.select().from(maintenance).orderBy(asc(maintenance.startsAt)).all();
@@ -78,34 +82,38 @@ export function createMaintenanceRepository(binding: D1Database): MaintenanceRep
       const item = await database.select().from(maintenance).where(eq(maintenance.id, maintenanceId)).get();
       return item ?? null;
     },
-    async create(input, attached, notice, notificationStatements) {
+    async create(input, attached, notice, notificationStatements, automation = {}) {
       await binding.batch([
         binding.prepare(`INSERT INTO maintenance (id,reference,title,state,starts_at,ends_at,completed_at,created_by_operator_id,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?)`).bind(input.id, input.reference, input.title, input.state, input.startsAt, input.endsAt, input.completedAt, input.createdByOperatorId, input.createdAt, input.updatedAt),
         ...attached.map((component) => binding.prepare(`INSERT INTO maintenance_components (id,maintenance_id,component_id,component_name,state,created_at,updated_at) VALUES (?,?,?,?,?,?,?)`).bind(component.id, component.maintenanceId, component.componentId, component.componentName, component.state, component.createdAt, component.updatedAt)),
         binding.prepare(`INSERT INTO maintenance_notices (id,maintenance_id,kind,body,published_at,author_operator_id,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?)`).bind(notice.id, notice.maintenanceId, notice.kind, notice.body, notice.publishedAt, notice.authorOperatorId, notice.createdAt, notice.updatedAt),
         binding.prepare("INSERT INTO audit_entries (id, entity_type, entity_id, action, operator_id, payload_json, created_at, updated_at) VALUES (?, 'maintenance', ?, 'notice-published', ?, ?, ?, ?)").bind(`${notice.id}-audit`, input.id, notice.authorOperatorId, JSON.stringify({ kind: notice.kind }), notice.createdAt, notice.updatedAt),
+        automationStatement(binding,input.id,automation,notice.id),
         ...notificationStatements,
       ]);
     },
-    async updateWindowWithNotice(maintenanceId, startsAt, endsAt, updatedAt, notice, notificationStatements) {
+    async updateWindowWithNotice(maintenanceId, startsAt, endsAt, updatedAt, notice, notificationStatements, automation) {
       return writeMutationWithNotice(
         binding.prepare(`UPDATE maintenance SET starts_at = ?, ends_at = ?, updated_at = ? WHERE id = ? AND state = 'Scheduled'`).bind(startsAt, endsAt, updatedAt, maintenanceId),
         notice,
         notificationStatements,
+        automation,
       );
     },
-    async extendInProgressWithNotice(maintenanceId, startsAt, previousEndsAt, endsAt, updatedAt, notice, notificationStatements) {
+    async extendInProgressWithNotice(maintenanceId, startsAt, previousEndsAt, endsAt, updatedAt, notice, notificationStatements, automation) {
       return writeMutationWithNotice(
-        binding.prepare(`UPDATE maintenance SET ends_at = ?, updated_at = ? WHERE id = ? AND state = 'In progress' AND starts_at = ? AND ends_at = ? AND julianday(ends_at) < julianday(?)`).bind(endsAt, updatedAt, maintenanceId, startsAt, previousEndsAt, endsAt),
+        binding.prepare(`UPDATE maintenance SET ends_at = ?, updated_at = ? WHERE id = ? AND state = 'In progress' AND starts_at = ? AND ends_at = ? AND julianday(ends_at) ${automation ? '<=' : '<'} julianday(?)`).bind(endsAt, updatedAt, maintenanceId, startsAt, previousEndsAt, endsAt),
         notice,
         notificationStatements,
+        automation,
       );
     },
     async transitionWithNotice(maintenanceId, from, to, completedAt, updatedAt, notice, notificationStatements, expectedWindow) {
       const windowGuard = expectedWindow ? " AND starts_at = ? AND ends_at = ?" : "";
+      const automationGuard = [expectedWindow?.autoStart === undefined ? "" : ` AND COALESCE((SELECT auto_start FROM maintenance_automation WHERE maintenance_id=maintenance.id),1)=${Number(expectedWindow.autoStart)}`,expectedWindow?.autoComplete === undefined ? "" : ` AND COALESCE((SELECT auto_complete FROM maintenance_automation WHERE maintenance_id=maintenance.id),1)=${Number(expectedWindow.autoComplete)}`].join("");
       const values = [to, completedAt, updatedAt, maintenanceId, from, ...(expectedWindow ? [expectedWindow.startsAt, expectedWindow.endsAt] : [])];
       return writeMutationWithNotice(
-        binding.prepare(`UPDATE maintenance SET state = ?, completed_at = ?, updated_at = ? WHERE id = ? AND state = ?${windowGuard}`).bind(...values),
+        binding.prepare(`UPDATE maintenance SET state = ?, completed_at = ?, updated_at = ? WHERE id = ? AND state = ?${windowGuard}${automationGuard}`).bind(...values),
         notice,
         notificationStatements,
       );

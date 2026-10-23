@@ -4,8 +4,8 @@ import { z } from "zod";
 import type { AppEnv } from "../../app/types";
 import type { MaintenanceService } from "./service";
 
-const maintenanceSchema = z.object({ title: z.string().trim().min(1).max(250), startsAt: z.iso.datetime(), endsAt: z.iso.datetime(), componentIds: z.array(z.string().min(1)).min(1).max(100) }).strict();
-const windowSchema = maintenanceSchema.pick({ startsAt: true, endsAt: true });
+const maintenanceSchema = z.object({ title: z.string().trim().min(1).max(250), startsAt: z.iso.datetime(), endsAt: z.iso.datetime(), componentIds: z.array(z.string().min(1)).min(1).max(100), autoStart: z.boolean().optional(), autoComplete: z.boolean().optional() }).strict();
+const windowSchema = maintenanceSchema.pick({ startsAt: true, endsAt: true, autoStart: true, autoComplete: true });
 
 export function registerMaintenanceRoutes(app: Hono<AppEnv>, service: MaintenanceService) {
   app.get("/api/app/maintenance", async (context) => context.json({ maintenance: await service.list() }));
@@ -36,6 +36,12 @@ export function registerMaintenanceRoutes(app: Hono<AppEnv>, service: Maintenanc
       return maintenance ? context.json({ maintenance }) : context.json({ error: "Maintenance not found." }, 404);
     }
     catch (cause) { return context.json({ error: cause instanceof Error ? cause.message : "Maintenance could not be cancelled." }, 409); }
+  });
+  app.post("/api/app/maintenance/:maintenanceId/start", async context => {
+    try {
+      const maintenance = await service.start(context.req.param("maintenanceId"),context.get("operator").id);
+      return maintenance ? context.json({maintenance}) : context.json({error:"Maintenance not found."},404);
+    } catch (cause) { return context.json({error:cause instanceof Error ? cause.message : "Maintenance could not be started."},409); }
   });
   app.post("/api/app/maintenance/:maintenanceId/complete", async (context) => {
     try {
