@@ -859,6 +859,10 @@
       "sha256": "815d736e5c9a214a04353fa082d744a57d13e991aef08d9c470c6e8aec366e42",
       "executable": false
     },
+    "migrations/core/0049_follow_up_dismissals.sql": {
+      "sha256": "2b1894b08e2edbff9f11fe4b6f68e82f0af4ff023e782c14a2480021c073b034",
+      "executable": false
+    },
     "migrations/README.md": {
       "sha256": "8aa6d22bcfab1ec1d279f128961286b0654cbc3f7c327da1aeb535793dd874e9",
       "executable": false
@@ -3819,6 +3823,54 @@
       "sha256": "a7f95b20cf98ff2f5b786f46a4d7cab59dbb2d8e7e1870ebe17da7af40a24662",
       "executable": false
     },
+    "src/core/features/overview/follow-ups/channel.repository.ts": {
+      "sha256": "53754944c555de7c73a0e5e06f25945230c65df59d312a0b1b02608c21c4af86",
+      "executable": false
+    },
+    "src/core/features/overview/follow-ups/import.repository.ts": {
+      "sha256": "7924d2be0393fcba4ec3452b9e337fd8a38a14b3356a63cb7c042dd337baac8a",
+      "executable": false
+    },
+    "src/core/features/overview/follow-ups/incident.repository.ts": {
+      "sha256": "e37133578387b2b9f3b6ba95f2cc3699b67f981bea22f1c03d11cbbd358e1cdb",
+      "executable": false
+    },
+    "src/core/features/overview/follow-ups/maintenance.repository.ts": {
+      "sha256": "7e33c61f5c81bdb76333e6717b3919601b2eb517e5cb0225b5165d229c646b80",
+      "executable": false
+    },
+    "src/core/features/overview/follow-ups/notification.repository.ts": {
+      "sha256": "416c9fc7691bd10bb215de4b26c07d31961da8870e3a0cf524d156a60c64bb8b",
+      "executable": false
+    },
+    "src/core/features/overview/follow-ups/query.repository.ts": {
+      "sha256": "ab0cd6c9f10131b581263e1151eab3be73b38e16074ec4a8211e0773c33a34e5",
+      "executable": false
+    },
+    "src/core/features/overview/follow-ups/report.repository.ts": {
+      "sha256": "2abe3585c9b9898102fc08babc31475d3c458ae35a17f6b2b1ad04de644c387d",
+      "executable": false
+    },
+    "src/core/features/overview/follow-ups/repository.ts": {
+      "sha256": "7de42e2471fc064b7d180f5bf1e3d4fca8beb8316ee67186dd9f520e05983689",
+      "executable": false
+    },
+    "src/core/features/overview/follow-ups/retry.repository.ts": {
+      "sha256": "b3f07b76da928bd0f679cd4de1523438c482758d265728f8ded03ef820131761",
+      "executable": false
+    },
+    "src/core/features/overview/follow-ups/routes.ts": {
+      "sha256": "7e3f8c7576e832cc3898d8b2b725e82c0d8cd3f4575549e2b8dc06b2e8b68276",
+      "executable": false
+    },
+    "src/core/features/overview/follow-ups/service.ts": {
+      "sha256": "d9e1242dfd5b02247f2754ca544e23dc6e5d980e5de491991aa111cfa5237d0c",
+      "executable": false
+    },
+    "src/core/features/overview/follow-ups/types.ts": {
+      "sha256": "a79a26043f9cfa3017b965f8e437f604593768555a134b8fde10b0bbe0182d33",
+      "executable": false
+    },
     "src/core/features/overview/index.ts": {
       "sha256": "1977428def8ddc8a96301a980c2381fa65aba606073eb715481af83bf1bfb3fb",
       "executable": false
@@ -3841,6 +3893,10 @@
     },
     "src/core/features/overview/service.ts": {
       "sha256": "05dc4f92a60d5d26908a5e84d8e207d896d59de146e4ce4eb00c835f3d9a9b51",
+      "executable": false
+    },
+    "src/core/features/overview/ui/follow-ups.tsx": {
+      "sha256": "8d77efa12b461beb77835660bb5358080aefbde202770b6bd6dd729e4b1ce884",
       "executable": false
     },
     "src/core/features/overview/ui/incident-owner-label.tsx": {
@@ -6009,6 +6065,30 @@
     },
     "tests/e2e/helpers/email-branding-worker-flow.mjs": {
       "sha256": "9cd748ec4093d6e4aac93e31932ed4efd352b74a55d168384217b80ac50b8388",
+      "executable": false
+    },
+    "tests/e2e/helpers/follow-ups-flow.mjs": {
+      "sha256": "dda92c568549a32b35b309e1a8469e822476403957a1d5d575a400f5d937e4b5",
+      "executable": false
+    },
+    "tests/e2e/helpers/follow-ups-import.mjs": {
+      "sha256": "1b2d4b6bc59477402d2e8d2a09e2ebe26484a20d96c5e8cc9f6b0b4eb9f16f3b",
+      "executable": false
+    },
+    "tests/e2e/helpers/follow-ups-notification-flow.mjs": {
+      "sha256": "b602d5686c0374844b14f32f20ad2a7484c8f3401c355216f0ee1144020f8343",
+      "executable": false
+    },
+    "tests/e2e/helpers/follow-ups-queue-flow.mjs": {
+      "sha256": "19d4d18362d1a6eb8d9546729f28302a71c478105a745cdba4a903a368ebbde5",
+      "executable": false
+    },
+    "tests/e2e/helpers/follow-ups-runtime.mjs": {
+      "sha256": "d9e4143239aff72f444782cde84022b92f540add7abb016a7da6fac5c61293d0",
+      "executable": false
+    },
+    "tests/e2e/helpers/follow-ups-worker.ts": {
+      "sha256": "a9009c8f423c4fb5b5223fd87fbe4157569b1075c112d86f84f3aec535f5647e",
       "executable": false
     },
     "tests/e2e/helpers/grouped-alerts-flow.mjs": {
