@@ -44,7 +44,7 @@ export async function catalogueHistoryFlow({ appFetch, fetch, pageUrl, queryLoca
   });
   const moved = response => { assert.equal(response.status, 200, JSON.stringify(response.body)); return response.body; };
   const newComponents = new Set(), newGroups = new Set();
-  let conditionalIncident, boundaryId, originalTimezone, auditOperatorId;
+  let conditionalIncident, boundaryId, originalTimezone, auditOperatorId, catchupComponentId;
   const importJobs = [];
   async function api(path, method = "GET", input, status = 200) {
     const response = await appFetch(path, { method, ...(input === undefined ? {} : { body: JSON.stringify(input) }) });
@@ -174,7 +174,7 @@ export async function catalogueHistoryFlow({ appFetch, fetch, pageUrl, queryLoca
     assert.equal(catchup.job.state, "completed"); importJobs.push(catchup.door);
     const replacements = await api(`/api/app/audit-log?action=replaced&from=${encodeURIComponent(replacementSince)}&limit=100`);
     const replacedComponent = (await current()).catalogue.components.find(component => component.description === "Synthetic Lamp catch-up replacement audit evidence.");
-    assert.ok(replacedComponent);
+    assert.ok(replacedComponent); catchupComponentId = replacedComponent.id;
     const replaced = replacements.entries.filter(entry => entry.entityType === "component" && entry.entityId === replacedComponent.id);
     assert.equal(replaced.length, 1, "one catch-up replacement enters the operator audit view");
     assert.equal(replaced[0].actorId, operator.id);
@@ -251,6 +251,7 @@ export async function catalogueHistoryFlow({ appFetch, fetch, pageUrl, queryLoca
     }
     assert.ok(removedByUndo > 0, "the real import undo journey removes native records and proves their audit entries");
     if (conditionalIncident) await api(`/api/app/incidents/${conditionalIncident.id}`, "DELETE", { reason: "Catalogue journey fixture cleanup." });
+    if (catchupComponentId && (await current()).catalogue.components.some(component => component.id === catchupComponentId)) newComponents.add(catchupComponentId);
     if (newComponents.size || newGroups.size) {
       const latest = await current();
       const catalogue = { components: latest.catalogue.components.filter(component => !newComponents.has(component.id)), groups: latest.catalogue.groups.filter(group => !newGroups.has(group.id)) };

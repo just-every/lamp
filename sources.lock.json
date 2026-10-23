@@ -5976,7 +5976,7 @@
       "executable": false
     },
     "tests/e2e/helpers/catalogue-history-flow.mjs": {
-      "sha256": "83544bc13fd5651f19c2454faf5278c07b9f7c3b5901c68ea4a744d2b7e732d6",
+      "sha256": "23111afb9164b019a447d208ddbfe9c5de471bff88adc0655761b61986ce5991",
       "executable": false
     },
     "tests/e2e/helpers/channel-deletion-flow.mjs": {
