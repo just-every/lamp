@@ -66,8 +66,7 @@ export function notificationPublicationStatements(binding: D1Database, input: No
       input.queuedAt,
       input.eventId,
       input.eventType,
-      channel,
-      ...(usePrevious ? (input.previousEventIds ?? []) : [...input.componentIds, ...input.componentIds]),
+      ...(usePrevious ? [...(input.previousEventIds ?? []), channel] : [channel, ...input.componentIds, ...input.componentIds]),
       ...(requiresPublishedNotice ? [input.eventId] : []),
     ));
   }
