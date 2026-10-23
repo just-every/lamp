@@ -3632,7 +3632,7 @@
       "executable": false
     },
     "src/core/features/incidents/ui/prepared-draft.tsx": {
-      "sha256": "517e6ce6b71b7ed0184482ab044a28a367341605f803bb106204a2dbb9367219",
+      "sha256": "70f212805117c4c14f42bed8a602774aeb9c503f662823cda369482df9f374f0",
       "executable": false
     },
     "src/core/features/incidents/ui/publish-options.tsx": {

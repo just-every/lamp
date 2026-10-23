@@ -4,6 +4,7 @@ function revealSource(ref: string) {
   const item = document.getElementById(`brief-${ref}`);
   item?.closest("details.incident-brief")?.setAttribute("open", "");
   item?.querySelector("details")?.setAttribute("open", "");
+  item?.scrollIntoView({ block: "center" });
 }
 
 /** Agent provenance is private composer context, separate from public update
@@ -15,8 +16,8 @@ export function PreparedDraft({ preparation }: { preparation: PublishingDraft["a
     <p>Review this private draft before publishing. Your committed next-update time has not changed.</p>
     {preparation.noEvidenceChange ? <p>No new evidence has been recorded since the last published update.</p> : <>
       <p>Evidence recorded since the last published update:</p>
-      <ul>{preparation.evidence.map(item => <li key={item.ref} style={{ whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}>{item.text} <a href={`#brief-${item.ref}`} onClick={() => revealSource(item.ref)}>[{item.ref}]</a></li>)}</ul>
+      <ul>{preparation.evidence.map(item => <li key={item.ref} style={{ whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}>{item.text} <a href={`#brief-${item.ref}`} onClick={event => { event.preventDefault(); revealSource(item.ref); }}>[{item.ref}]</a></li>)}</ul>
     </>}
-    <p className="field-sources">Sources: {preparation.citations.map((ref, index) => <span key={ref}>{index ? ", " : ""}<a href={`#brief-${ref}`} onClick={() => revealSource(ref)}>[{ref}]</a></span>)}</p>
+    <p className="field-sources">Sources: {preparation.citations.map((ref, index) => <span key={ref}>{index ? ", " : ""}<a href={`#brief-${ref}`} onClick={event => { event.preventDefault(); revealSource(ref); }}>[{ref}]</a></span>)}</p>
   </section>;
 }
