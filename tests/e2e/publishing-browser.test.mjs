@@ -651,18 +651,18 @@ contract("DRAFT-002", "Settings autosaves survive navigation and reload, keep fe
     await eventuallyStored("tagline", `${nextTagline} today`);
 
     // Back, with Settings reached in the app and the save refused offline, keeps Settings open with the value, the
-    // reason and Retry (nothing reloads over it); online again, Retry publishes it.
-    for (const [link, to] of [["Overview", "/app"], ["Settings", "/app/settings"]]) {
+    // reason and Retry (nothing reloads over it); online again, Retry publishes it. Each screen is shown in full first,
+    // so going offline catches nothing still loading.
+    for (const [link, shown] of [["Overview", page.getByRole("region", { name: "Active incidents" })], ["Settings", page.locator(".settings-page:not([inert])")]]) {
       if (width === 390) await page.getByRole("button", { name: "Menu", exact: true }).click();
       await page.locator(".operator-navigation").getByRole("link", { name: link, exact: true }).click();
-      await page.waitForURL(url => url.pathname === to);
+      await shown.waitFor();
     }
-    await page.locator(".settings-page:not([inert])").waitFor();
     await page.locator(".settings-save-note").filter({ hasText: /^Saved · live$/ }).waitFor();
     const offlineName = `${name} kept offline`;
-    await page.getByLabel("Page name", { exact: true }).fill(offlineName);
     await page.context().setOffline(true);
     try {
+      await page.getByLabel("Page name", { exact: true }).fill(offlineName);
       await page.evaluate(() => history.back());
       await page.getByRole("button", { name: "Retry", exact: true }).waitFor();
       assert.equal(new URL(page.url()).pathname, "/app/settings", "a Back refused offline keeps Settings open");

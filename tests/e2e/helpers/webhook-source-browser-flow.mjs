@@ -53,9 +53,10 @@ export async function webhookSourceBrowserFlow({ origin, cookie, api, post }) {
       assert.equal(new URL(page.url()).pathname, '/app/alerts', `${how}: the owner stays on Alerts`);
       assert.equal(await form.count(), 1, `${how}: the form stays open`);
       assert.equal(await name.inputValue(), typed, `${how}: the typed name stays`);
-      // The reason and Retry come into view wherever the owner was on the page.
+      // The reason and Retry come into view wherever the owner was on the page, and stay once the page settles.
       const onScreen = () => { const parts = [...document.querySelectorAll('.tool-form .tool-save-state :is([role="alert"], button)')]; return parts.length === 2 && parts.every(part => { const box = part.getBoundingClientRect(); return box.top >= 0 && box.bottom <= innerHeight; }); };
       await settled(page.waitForFunction(onScreen, null, { timeout: 5_000 }));
+      await page.waitForTimeout(500);
       assert.ok(await page.evaluate(onScreen), `${how}: the refusal's reason and Retry are on screen`);
       assert.equal((await api('/api/app/intake/sources')).body.sources.find(source => endpoint.includes(`/api/intake/${source.id}`)).name, 'Browser alert source — primary', `${how}: the server keeps the saved name`);
     }
@@ -65,15 +66,16 @@ export async function webhookSourceBrowserFlow({ origin, cookie, api, post }) {
     assert.equal(await asked, 'confirm', 'leaving again with the refusal standing asks once');
     await held('the link again, kept');
     await savedName(); await name.fill(taken.name); await close(); await held('Close');
-    // Alerts reached in the app, so Back stays in it. A held Back leaves the page alone: with the name at the bottom of
-    // the screen the refusal that grows below it stays in view, and offline nothing reloads over the form.
-    await savedName(); await menu('Overview'); await page.waitForURL(url => url.pathname === '/app');
+    // Alerts reached in the app (Overview shown in full first), so Back stays in it. A held Back leaves the page alone:
+    // the refusal, brought into view from below the open phone Menu, stays there, and offline nothing reloads over the form.
+    await savedName(); await menu('Overview'); await page.getByRole('region', { name: 'Active incidents' }).waitFor();
     await menu('Alerts'); await page.getByRole('button', { name: 'Edit Browser alert source — primary', exact: true }).click();
-    const low = () => name.evaluate(field => scrollBy(0, field.getBoundingClientRect().bottom - innerHeight + 4));
-    await low(); await name.fill(taken.name); await page.evaluate(() => history.back()); await held('Back');
+    const menuButton = page.getByRole('button', { name: 'Menu', exact: true });
+    await name.fill(taken.name); await menuButton.click(); await page.evaluate(() => history.back()); await held('Back');
+    await menuButton.click();
     const offline = 'Browser alert source — offline';
-    await savedName(); await low(); await name.fill(offline); await context.setOffline(true);
-    try { await page.evaluate(() => history.back()); await held('Back offline', offline); }
+    await savedName(); await context.setOffline(true);
+    try { await name.fill(offline); await page.evaluate(() => history.back()); await held('Back offline', offline); }
     finally { await context.setOffline(false); }
     await retry.click(); await state.getByText('Saved', { exact: true }).waitFor();
     assert.equal((await api('/api/app/intake/sources')).body.sources.find(source => endpoint.includes(`/api/intake/${source.id}`)).name, offline, 'online again, Retry stores the name');
