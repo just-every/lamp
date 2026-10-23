@@ -21,12 +21,15 @@ export async function operationsBrowserFlow({ api, component, origin, cookie, ru
     page.on('console', message => { if (/hydration|did not match|server rendered/i.test(message.text())) hydration.push(message.text()); });
     if (process.env.LAMP_SCREENSHOTS) await mkdir(process.env.LAMP_SCREENSHOTS, { recursive: true });
     const editor = page.locator('section[aria-labelledby="operations-title"]');
-    async function capture(width, name) {
+    async function capture(width, name, card) {
       assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false, `${name}: no horizontal overflow`);
       const axe = await new AxeBuilder({ page }).include('[aria-labelledby="operations-title"]').analyze();
       assert.deepEqual(axe.violations.filter(row => ['serious', 'critical'].includes(row.impact)).map(row => row.id), [], `${name}: no serious axe finding`);
       assert.deepEqual(hydration, []);
-      if (process.env.LAMP_SCREENSHOTS) await editor.screenshot({ path: `${process.env.LAMP_SCREENSHOTS}/${width}-operations-${name}.png` });
+      if (process.env.LAMP_SCREENSHOTS) {
+        await editor.locator('form').screenshot({ path: `${process.env.LAMP_SCREENSHOTS}/${width}-operations-${name}-form.png` });
+        if (card) await card.screenshot({ path: `${process.env.LAMP_SCREENSHOTS}/${width}-operations-${name}-source.png` });
+      }
     }
     async function connect(preset, source, width) {
       const tool = preset === 'jsm' ? 'JSM' : 'Opsgenie';
@@ -39,7 +42,7 @@ export async function operationsBrowserFlow({ api, component, origin, cookie, ru
       } else await editor.getByLabel('Opsgenie API key', { exact: true }).fill('synthetic-lamp-14');
       await editor.getByRole('button', { name: `Save and connect ${tool}`, exact: true }).click();
       await card.getByText('Connected', { exact: true }).waitFor();
-      await capture(width, `${preset}-connected`);
+      await capture(width, `${preset}-connected`, card);
     }
     for (const width of [1440, 390]) {
       await page.setViewportSize({ width, height: width === 390 ? 844 : 1000 });
@@ -56,7 +59,7 @@ export async function operationsBrowserFlow({ api, component, origin, cookie, ru
         await card.getByText('Not connected', { exact: true }).waitFor();
         const source = (await api('/api/app/intake/sources')).body.sources.find(row => row.name === name);
         assert.ok(source && source.webhookConnected);
-        await capture(width, `${preset}-disconnected`);
+        await capture(width, `${preset}-disconnected`, card);
         await connect(preset, source, width);
         sources.push({ preset, source, width });
       }
@@ -75,7 +78,7 @@ export async function operationsBrowserFlow({ api, component, origin, cookie, ru
       const tool = preset === 'jsm' ? 'JSM' : 'Opsgenie';
       const card = page.getByRole('article', { name: `${tool} source ${source.name}`, exact: true });
       await card.getByText('Reconnect required', { exact: true }).waitFor();
-      await capture(width, `${preset}-restore-reconnect`);
+      await capture(width, `${preset}-restore-reconnect`, card);
       await connect(preset, { ...source, responderConnection: 'reconnect' }, width);
       await card.getByRole('button', { name: 'Erase source', exact: true }).click();
       await card.getByRole('button', { name: 'Permanently erase source', exact: true }).click();
