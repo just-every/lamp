@@ -27,9 +27,9 @@ export async function eventuallyFollowUp(read, predicate, description) {
 
 /** Disposable migrated Worker. Only the email/webhook network edges are fake;
  * Queue outage injection is the existing queue-outage.worker.ts boundary. */
-export async function openFollowUpsRuntime() {
+export async function openFollowUpsRuntime({ resendWebhookSecret } = {}) {
   const state = await mkdtemp(join(tmpdir(), "lamp-follow-ups-"));
-  const messages = [], webhookRequests = [], channelRequests = [];
+  const messages = [], webhookRequests = [], channelRequests = [], mailReceipts = [];
   let runtime, webhookOutage = true, cookie;
   try {
     const built = await build({
@@ -54,6 +54,7 @@ export async function openFollowUpsRuntime() {
         WEBHOOK_SIGNING_SECRET: "synthetic-lamp-webhook-1".repeat(4),
         MAIL_PROVIDER: "resend", MAIL_PROVIDER_API_KEY: "synthetic-lamp-mail-1",
         MAIL_FROM_ADDRESS: "synthetic-lamp-sender@example.test",
+        ...(resendWebhookSecret ? { RESEND_WEBHOOK_SECRET: resendWebhookSecret } : {}),
       },
       d1Databases: ["DB"], r2Buckets: ["SNAPSHOTS"],
       durableObjects: { SNAPSHOT_CACHE: { className: "SnapshotCache", useSQLite: true } },
@@ -68,7 +69,9 @@ export async function openFollowUpsRuntime() {
           if (message.to.includes("synthetic-lamp-rejected@example.test") && !message.text.includes("/confirm-subscription/")) {
             return Response.json({ message: "Synthetic Lamp provider rejected this notification" }, { status: 400 });
           }
-          return Response.json({ id: `synthetic-lamp-mail-${messages.length}` });
+          const id = `synthetic-lamp-mail-${messages.length}`;
+          mailReceipts.push({ id, idempotencyKey: request.headers.get("Idempotency-Key") });
+          return Response.json({ id });
         }
         if (url.origin === "https://receiver.example.test" && url.pathname === "/synthetic-lamp-1") {
           webhookRequests.push({ body: await request.json(), headers: Object.fromEntries(request.headers) });
@@ -117,7 +120,7 @@ export async function openFollowUpsRuntime() {
     assert.equal(confirmed.status, 303, await confirmed.clone().text());
     cookie = confirmed.headers.get("set-cookie").split(";")[0];
     return {
-      runtime, api, post, request, raw, messages, webhookRequests, channelRequests,
+      runtime, api, post, request, raw, messages, mailReceipts, webhookRequests, channelRequests,
       recoverWebhook() { webhookOutage = false; },
       async close() { try { await runtime.dispose(); } finally { await rm(state, { recursive: true, force: true }); } },
     };
