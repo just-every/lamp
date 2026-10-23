@@ -9,6 +9,7 @@ import { Icon } from "../../../app/client/ui/icon";
 import { useLeaveGuard } from "../../../app/client/ui/leave-guard";
 import { LoadingState } from "../../../app/client/ui/states";
 import { ErrorState } from "../../../app/client/ui/lit-states";
+import { ChatLinksPanel } from "../../chat-desk/ui/chat-links-panel";
 import { ChannelsCard } from "../../channels/ui/channels-card";
 import { OperatorsPanel } from "../../operators/ui/operators-panel";
 import { ImportDoorSetting } from "./import-door-setting";
@@ -59,10 +60,10 @@ export function SettingsPage() {
     <div className={configuration ? "settings-form page-stack" : "page-stack"}>
       {tab === "page" && <PageSettingsTab settings={settings} saved={saved} live={live} markSrc={markSrc} components={components} update={update} adoptSaved={autosave.adoptSaved} busy={brandBusy} setBusy={setBrandBusy} setStatus={setBrandStatus} />}
       {tab === "notifications" && <NotificationSettingsTab settings={settings} live={live} identityEditable={saved.mailIdentityEditable} update={update} needsConfirm={autosave.pending("mailFromAddress")} confirm={() => autosave.confirm("mailFromAddress")} />}
-      {tab === "writing" && <WritingSettingsTab settings={settings} aiStatus={aiStatus} update={update} />}
+      <div hidden={tab !== "writing"}><div className="settings-form page-stack"><WritingSettingsTab settings={settings} aiStatus={aiStatus} update={update} /></div></div>
       {tab === "embeds" && <PublicResources publicOrigin={publicOrigin} allowedOrigins={settings.widgetAllowedOrigins} onOriginsChange={value => update("widgetAllowedOrigins", value)} appearance={settings.widgetAppearance} onAppearanceChange={(value, immediate) => update("widgetAppearance", value, immediate)} needsConfirm={autosave.pending("widgetAllowedOrigins")} onConfirm={() => autosave.confirm("widgetAllowedOrigins")} />}
       {tab === "page" && brandStatus && <p className="save-message" role="status">{brandStatus}</p>}
-      {tab === "channels" && <ChannelsCard />}
+      {tab === "channels" && <><ChannelsCard /><ChatLinksPanel /></>}
       {tab === "operators" && <OperatorsPanel />}
       {tab === "data" && <>
         <section className="data-card intake-link-card"><p className="card-kicker">Moving here</p><h2>Move in</h2><p>Bring components, incident history, maintenance and subscribers, with a dry run first and undo after.</p><ImportDoorSetting /><Link className="text-link" to="/app/move-in">Start a move-in <Icon name="arrow" width={16} height={16} /></Link><a className="text-link" href="/app/cutover">Cutover preview</a></section>

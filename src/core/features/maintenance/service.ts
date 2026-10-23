@@ -22,6 +22,8 @@ export type MaintenanceRuntimeEvents = Pick<LampEventDispatcher, "maintenanceSch
 
 export interface MaintenanceService {
   list(): Promise<MaintenanceView[]>;
+  getAutomationDefault(): Promise<MaintenanceAutomation>;
+  saveAutomationDefault(value: MaintenanceAutomation): Promise<MaintenanceAutomation>;
   create(input: MaintenanceInput, operatorId: string): Promise<MaintenanceView>;
   start(maintenanceId: string, operatorId: string): Promise<MaintenanceView | null>;
   reschedule(maintenanceId: string, input: Pick<MaintenanceInput, "startsAt" | "endsAt" | "autoStart" | "autoComplete">, operatorId: string): Promise<MaintenanceView | null>;
@@ -75,6 +77,8 @@ export function createMaintenanceService(
     return repository.writeNotice(notice, statements);
   };
   return {
+    getAutomationDefault: () => repository.automation.getDefault(),
+    saveAutomationDefault: value => repository.automation.saveDefault(value),
     async list() {
       const [records, details, automation] = await Promise.all([repository.listMaintenance(), repository.listCollectionDetails(), repository.automation.list()]);
       const components = groupByMaintenance(details.components);
@@ -104,7 +108,8 @@ export function createMaintenanceService(
       const attached = components.map((component) => ({ id: createUlid(), maintenanceId, componentId: component!.id, componentName: component!.name, state: "Under maintenance" as const, createdAt: timestamp, updatedAt: timestamp }));
       const notice: MaintenanceNotice = { id: createUlid(), maintenanceId, kind: "scheduled", body: `${record.reference}: ${record.title}`, publishedAt: timestamp, authorOperatorId: operatorId, createdAt: timestamp, updatedAt: timestamp };
       const statements = await notificationStatements.forMaintenanceNotice({ eventId: notice.id, maintenanceId, componentIds: attached.flatMap((component) => component.componentId ? [component.componentId] : []), kind: notice.kind, queuedAt: timestamp, recipientScope: "eligible", previousEventIds: [] });
-      await repository.create(record, attached, notice, statements, { autoStart: input.autoStart, autoComplete: input.autoComplete });
+      const defaults = await repository.automation.getDefault();
+      await repository.create(record, attached, notice, statements, { autoStart: input.autoStart ?? defaults.autoStart, autoComplete: input.autoComplete ?? defaults.autoComplete });
       await events?.maintenanceScheduled({ maintenanceId, reference: record.reference, state: "Scheduled", occurredAt: timestamp });
       return view(record);
     },
