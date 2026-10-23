@@ -5,9 +5,11 @@ import { componentGroups, components, subscriberComponents, subscribers } from "
 import { publicComponentOrder } from "../../shared/component-order";
 import { subscriberTokens } from "../deliveries/schema";
 import { createUlid } from "../../shared/ids";
+import { subscriberExpiryAudit } from "../statuspage-import/expiry-audit";
 import { createSubscriberTransitions, type SubscriberTransitions } from "./transitions.repository";
 import { retireSubscriberCustody, subjectsInCustody } from "../statuspage-import/custody";
 import type { D1Sql } from "../../../../modules/import-kit/src/d1/index.ts";
+import { createSubscriberIntakeRepository, type SubscriberIntakeRepository } from "./intake.repository";
 
 export type StoredSubscriber = typeof subscribers.$inferSelect;
 export type StoredSubscriberComponent = typeof subscriberComponents.$inferSelect;
@@ -15,6 +17,7 @@ export type StoredSubscriberToken = typeof subscriberTokens.$inferSelect;
 export type SubscriptionMailKind = "confirmation" | "already-subscribed" | "subscribed";
 
 export interface SubscriberRepository extends SubscriberTransitions {
+  intake: SubscriberIntakeRepository;
   listSubscribers(limit: number, offset?: number): Promise<StoredSubscriber[]>;
   listComponents(subscriberId: string): Promise<StoredSubscriberComponent[]>;
   listVisibleComponents(): Promise<Array<{ id: string; name: string }>>;
@@ -40,6 +43,7 @@ export interface SubscriberRepository extends SubscriberTransitions {
 export function createSubscriberRepository(binding: D1Database): SubscriberRepository {
   const database = createDatabase(binding);
   return {
+    intake: createSubscriberIntakeRepository(binding),
     ...createSubscriberTransitions(binding),
     async listSubscribers(limit, offset = 0) {
       return database.select().from(subscribers).orderBy(asc(subscribers.createdAt)).limit(limit).offset(offset).all();
@@ -157,7 +161,7 @@ export function createSubscriberRepository(binding: D1Database): SubscriberRepos
       // Keep the opaque core identifier and the responsible operator, but no
       // personally identifying destination or contact address in the audit.
       const subscriber = await database.select({ destination: subscribers.destination, contactEmail: subscribers.contactEmail }).from(subscribers).where(eq(subscribers.id, subscriberId)).get();
-      if (!subscriber) return;
+      if (!subscriber || subscriber.destination === `deleted:${subscriberId}`) return;
       const replacement = `deleted:${subscriberId}`;
       const personalValues = [...new Set([subscriber.destination, subscriber.contactEmail].filter((value): value is string => Boolean(value)))];
       const removeRecipients = personalValues.map((value): D1Sql => ({
@@ -192,7 +196,7 @@ export function createSubscriberRepository(binding: D1Database): SubscriberRepos
         { sql: "DELETE FROM subscriber_components WHERE subscriber_id = ?", params: [subscriberId] },
         { sql: "DELETE FROM statuspage_import_targets WHERE kind = 'subscriber' AND id = ?", params: [subscriberId] },
       ];
-      const audit: D1Sql = { sql: "INSERT INTO audit_entries (id, entity_type, entity_id, action, operator_id, payload_json, created_at, updated_at) VALUES (?, 'subscriber', ?, 'deleted', ?, '{}', ?, ?)", params: [createUlid(), subscriberId, operatorId, now, now] };
+      const audit: D1Sql = { sql: "INSERT INTO audit_entries (id, entity_type, entity_id, action, operator_id, payload_json, created_at, updated_at) SELECT ?, 'subscriber', ?, 'deleted', ?, '{}', ?, ? WHERE NOT EXISTS (SELECT 1 FROM audit_entries WHERE entity_type = 'subscriber' AND entity_id = ? AND action = 'deleted')", params: [createUlid(), subscriberId, operatorId, now, now, subscriberId] };
       // An import's retained copies of this subscriber go in the same batch.
       const subject = { id: subscriberId, values: personalValues };
       if ((await subjectsInCustody(binding, [subject])).length) {
@@ -207,12 +211,18 @@ export function createSubscriberRepository(binding: D1Database): SubscriberRepos
       // An unconfirmed subscriber an import holds leaves import custody with
       // its row; the rest are ordinary deletions.
       const held = await subjectsInCustody(binding, expired.map((row) => ({ id: row.id, values: [row.destination, row.contact_email ?? ""].filter(Boolean) })));
-      await binding.prepare("DELETE FROM subscribers WHERE state = 'pending' AND created_at < ? AND id NOT IN (SELECT value FROM json_each(?))").bind(cutoff, JSON.stringify(held.map((subject) => subject.id))).run();
+      const predicate = { sql: "state = 'pending' AND created_at < ? AND id NOT IN (SELECT value FROM json_each(?))", params: [cutoff, JSON.stringify(held.map((subject) => subject.id))] };
+      const at = new Date().toISOString();
+      const audit = subscriberExpiryAudit(predicate, at);
+      await binding.batch([
+        binding.prepare(audit.sql).bind(...audit.params ?? []),
+        binding.prepare(`DELETE FROM subscribers WHERE ${predicate.sql}`).bind(...predicate.params),
+      ]);
       for (const subject of held.slice(0, custodyErasures)) {
         const deletion: D1Sql = { sql: "DELETE FROM subscribers WHERE id = ? AND state = 'pending' AND created_at < ?", params: [subject.id, cutoff] };
         // Admitted while the row is still expired and unconfirmed, and after its deletion.
         const marker: D1Sql = { sql: "DELETE FROM statuspage_import_targets WHERE kind = 'subscriber' AND id = ?", params: [subject.id] };
-        await retireSubscriberCustody(binding, subject, [marker], [deletion], { principalId: "lamp:pending-expiry", authority: { sql: "NOT EXISTS(SELECT 1 FROM subscribers WHERE id = ? AND (state <> 'pending' OR created_at >= ?))", params: [subject.id, cutoff] } });
+        await retireSubscriberCustody(binding, subject, [marker], [subscriberExpiryAudit({ sql: "id = ? AND state = 'pending' AND created_at < ?", params: [subject.id, cutoff] }, at), deletion], { principalId: "lamp:pending-expiry", authority: { sql: "NOT EXISTS(SELECT 1 FROM subscribers WHERE id = ? AND (state <> 'pending' OR created_at >= ?))", params: [subject.id, cutoff] } });
       }
     },
     async recordConfirmationSendIfAllowed(emailHash, cutoff, now) {

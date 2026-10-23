@@ -16,7 +16,7 @@ import type { Snapshot } from "./rows";
 import { importSources, isImportSource, sourceAdapter, type SourceInput } from "./adapters";
 import type { SavedFile } from "./source";
 import type { StatusFeedVendor } from "../../platform/status-feeds/index.ts";
-import { statuspageTargets } from "./targets";
+import { attributedStatuspageTargets } from "./targets";
 import { doorMapping, moveInPlan, readDoorExport } from './door-plan';
 import { approvalCaption } from '../../../../modules/import-kit/src/door/failures';
 
@@ -39,7 +39,7 @@ export interface MoveInHooks {
 function importContext(db: D1Database, actor: MoveInActor, namespace = "statuspage", principalId = actor.operator.id): D1ImportContext {
   return {
     destination: DESTINATION, namespace, mappingVersion: "1",
-    storage: { database: db as never, targets: statuspageTargets },
+    storage: { database: db as never, targets: attributedStatuspageTargets(actor.operator.id) },
     batchSize: 4, maxBatches: 3, reversalPolicy: "preserve-conflicts",
     authorization: {
       principalId,
@@ -54,7 +54,7 @@ function importContext(db: D1Database, actor: MoveInActor, namespace = "statuspa
 function doorPreparationContext(db: D1Database, principalId: string, namespace: string, authority: D1Sql): D1ImportContext {
   return {
     destination: DESTINATION, namespace, mappingVersion: "1",
-    storage: { database: db as never, targets: statuspageTargets },
+    storage: { database: db as never, targets: attributedStatuspageTargets(principalId) },
     authorization: { principalId, predicate: () => authority },
   };
 }

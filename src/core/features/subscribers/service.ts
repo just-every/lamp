@@ -7,15 +7,20 @@ import { defaultSubscriberEvents, type SubscriberEvents } from "./events";
 import { defaultSubscriberConfirmationPolicy, type SubscriberConfirmationPolicy } from "./policies";
 import type { StoredSubscriber, StoredSubscriberComponent, SubscriberRepository, SubscriptionMailKind } from "./repository";
 import { SubscriberTokenCodec, type SubscriberTokenScope } from "./tokens";
+import { hasSafeWebhookDestination, normalizeEmail } from "./destination";
+import { createSubscriberIntakeService } from "./intake.service";
+import { createIntakeConfirmationSender } from "./intake-confirmation";
+import type { AddedBy } from "./intake.repository";
 
 const CONFIRMATION_WINDOW_MS = 24 * 60 * 60 * 1000;
 const PENDING_WINDOW_MS = 72 * 60 * 60 * 1000;
 /** Each import custody erasure is its own bounded D1 batch; a scheduled run takes a few. */
 const CUSTODY_ERASURES_PER_RUN = 3;
 
-export type SubscriberView = StoredSubscriber & { componentSelections: StoredSubscriberComponent[] };
+export type SubscriberView = StoredSubscriber & { componentSelections: StoredSubscriberComponent[]; addedBy: AddedBy | null };
 
 export interface SubscribersService {
+  intake: ReturnType<typeof createSubscriberIntakeService>;
   getPageName(): Promise<string>;
   /** Names of the visible components among these ids, in display order. */
   componentNames(componentIds: string[]): Promise<string[]>;
@@ -50,24 +55,8 @@ export function renderSubscribeResult(input: { email: string; components: string
   return renderSubscriberTokenPage("Check your inbox", `<p>We sent ${email} a link to confirm or manage your ${escapeHtml(pageName)} updates.</p>${scope}<p>Confirmation links work for 3 days.</p>${again}`, pageName, "mail");
 }
 
-function normalizeEmail(email: string) {
-  return email.trim().toLowerCase();
-}
-
 function escapeHtml(value: string) {
   return value.replace(/[&<>"']/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[character] ?? character);
-}
-
-function hasSafeWebhookDestination(value: string) {
-  try {
-    const url = new URL(value);
-    const hostname = url.hostname.toLowerCase();
-    if (url.protocol !== "https:" || url.username || url.password || url.port || hostname === "localhost" || hostname.endsWith(".localhost")) return false;
-    if (/^(?:127\.|0\.|10\.|192\.168\.|169\.254\.|172\.(?:1[6-9]|2\d|3[0-1])\.)/.test(hostname) || hostname === "::1") return false;
-    return true;
-  } catch {
-    return false;
-  }
 }
 
 export function createSubscribersService(
@@ -127,10 +116,23 @@ export function createSubscribersService(
   }
 
   async function view(subscriber: StoredSubscriber): Promise<SubscriberView> {
-    return { ...subscriber, componentSelections: await repository.listComponents(subscriber.id) };
+    const [componentSelections,addedBy]=await Promise.all([repository.listComponents(subscriber.id),repository.intake.addedBy(subscriber.id)]);
+    return { ...subscriber, componentSelections, addedBy };
   }
 
+  const pageName=async()=>options.pageName?options.pageName():lampConfig.pageName;
+  const sendIntakeConfirmation=createIntakeConfirmationSender(repository,{
+    mail:()=>requiredMailAndTokens().mail,from:configuredFromAddress,pageName,issue:issuedToken,
+    send:(mail,subscriberId,message)=>sendSubscriptionMail(mail,subscriberId,"confirmation",message),
+  });
+  const intake=createSubscriberIntakeService(repository,{
+    view:async id=>{const row=await repository.findSubscriber(id);if(!row)throw new Error("Subscriber no longer exists.");return view(row);},
+    ensureConfigured:async()=>{requiredMailAndTokens();await configuredFromAddress();},
+    sendConfirmation:sendIntakeConfirmation,
+  });
+
   return {
+    intake,
     async getPageName() { return options.pageName ? options.pageName() : lampConfig.pageName; },
     async componentNames(componentIds) {
       const wanted = new Set(componentIds);
@@ -168,6 +170,13 @@ export function createSubscribersService(
       }
       if (!subscriber) throw new Error("Subscriber was not stored.");
       if (opened) await repository.updateSelection(subscriber.id, await visibleSelection(componentIds), timestamp);
+      if (subscriber.state === "pending" && await repository.intake.has(subscriber.id)) {
+        // CSV's first invitation belongs to the owner's explicit action. A
+        // repeated public request must not bypass that claim. An unsubscribe
+        // followed by a fresh public opt-in starts its own new lifetime.
+        if (opened) await sendIntakeConfirmation(subscriber.id,origin,null,false);
+        return;
+      }
 
       // An established subscriber gets the same neutral form response plus a
       // management-only email. This is not a confirmation message and does

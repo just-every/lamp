@@ -27,7 +27,7 @@ function assertInstalledSignIn(html, target = "https://app.example/signin") {
   assert.match(html.match(/<footer\b[^>]*>[\s\S]*?<\/footer>/)?.[0] ?? "", /data-lamp-signin/, "the operator entry belongs in the footer");
   assert.doesNotMatch(html.match(/<nav\b[^>]*class="status-utilities"[^>]*>[\s\S]*?<\/nav>/)?.[0] ?? "", /data-lamp-signin/);
 }
-test("PAGE-005 PAGE-006 PAGE-007 cold durable replica keeps complete generations through R2 failure without D1 reads", async () => {
+test("PAGE-005 PAGE-006 PAGE-007 PAGE-018 complete generations and badges survive R2 and D1 failure", async () => {
   const directory = await mkdtemp(join(tmpdir(), "lamp-retained-"));
   const output = join(directory, "worker.js");
   await build({ entryPoints: ["tests/e2e/snapshot-retained.worker.ts"], outfile: output, bundle: true, format: "esm", platform: "browser", external: ["cloudflare:workers"], plugins: [{ name: "vite-assets", setup(builder) {

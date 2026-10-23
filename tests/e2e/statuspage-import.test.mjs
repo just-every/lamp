@@ -5,6 +5,7 @@ import { join } from "node:path";
 import { after, before } from "node:test";
 
 import { continuityFiles, assertContinuityCounts, postmortemTemplateImportFlow } from "./helpers/postmortem-template-import-flow.mjs";
+import { subscriberCsvFlow } from "./helpers/subscriber-csv-flow.mjs";
 
 import { contract } from "../contract.mjs";
 
@@ -126,7 +127,8 @@ contract("MOVE-001", "MOVE-011 — a dry run reports every record and writes not
   await assertNoNewNotifications(runtime, mailBefore, "postmortem/template preview, apply, repeat and undo send nothing");
 });
 
-contract("MOVE-002", "an import is retroactive: history keeps its times, nobody is notified of it, and subscribers are invited only by the owner", async t => {
+contract("MOVE-002", "SUB-017 imports keep history silent, CSV dry runs write nothing, and pending subscribers receive only explicit owner invitations", async t => {
+  await subscriberCsvFlow();
   const before = await counts();
   const mailBefore = await notificationActivity(runtime);
   const files = fixtures("large");

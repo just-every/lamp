@@ -9,7 +9,7 @@ import type { DocsPageMeta } from '../types.ts';
 // problem is listed at once.
 
 export const manifestPath = 'docs/site.json';
-const slugPattern = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+const slugPattern = /^[a-z0-9]+(?:-[a-z0-9]+)*(?:\/[a-z0-9]+(?:-[a-z0-9]+)*)*$/;
 const text = (value: unknown) => (typeof value === 'string' ? value.trim() : '');
 
 export type ManifestPage = DocsPageMeta & { include?: string[] };
@@ -31,7 +31,7 @@ export function readManifest(root: string): Manifest {
       pages: entries.map((page, p) => {
         const where = `page ${p + 1} of "${title}"`;
         const slug = text(page.slug), pageTitle = text(page.title), source = text(page.source), summary = text(page.summary);
-        if (!slugPattern.test(slug)) problems.push(`${where}: slug "${slug}" must be lowercase words joined by hyphens`);
+        if (!slugPattern.test(slug)) problems.push(`${where}: slug "${slug}" must be lowercase words joined by hyphens, optionally in slash-separated segments`);
         if (slugs.has(slug)) problems.push(`${where}: slug "${slug}" is used twice`);
         slugs.add(slug);
         if (!pageTitle) problems.push(`${where}: no title`);
