@@ -18,6 +18,7 @@ export async function operationsBrowserFlow({ api, component, origin, cookie, ru
     const context = await browser.newContext();
     await addCookie(context, cookie, origin);
     const page = await context.newPage();
+    page.on('pageerror', error => { if (/hydration|did not match|server rendered/i.test(error.message)) hydration.push(error.message); });
     page.on('console', message => { if (/hydration|did not match|server rendered/i.test(message.text())) hydration.push(message.text()); });
     if (process.env.LAMP_SCREENSHOTS) await mkdir(process.env.LAMP_SCREENSHOTS, { recursive: true });
     const editor = page.locator('section[aria-labelledby="operations-title"]');
@@ -27,6 +28,8 @@ export async function operationsBrowserFlow({ api, component, origin, cookie, ru
       assert.deepEqual(axe.violations.filter(row => ['serious', 'critical'].includes(row.impact)).map(row => row.id), [], `${name}: no serious axe finding`);
       assert.deepEqual(hydration, []);
       if (process.env.LAMP_SCREENSHOTS) {
+        await editor.locator('form > label').nth(0).screenshot({ path: `${process.env.LAMP_SCREENSHOTS}/${width}-operations-${name}-tool.png` });
+        await editor.locator('form > label').nth(1).screenshot({ path: `${process.env.LAMP_SCREENSHOTS}/${width}-operations-${name}-name.png` });
         await editor.locator('form').screenshot({ path: `${process.env.LAMP_SCREENSHOTS}/${width}-operations-${name}-form.png` });
         if (card) await card.screenshot({ path: `${process.env.LAMP_SCREENSHOTS}/${width}-operations-${name}-source.png` });
       }
@@ -40,6 +43,7 @@ export async function operationsBrowserFlow({ api, component, origin, cookie, ru
         await editor.getByLabel('Atlassian account email', { exact: true }).fill('operator@example.test');
         await editor.getByLabel('Atlassian API token', { exact: true }).fill('synthetic-lamp-12');
       } else await editor.getByLabel('Opsgenie API key', { exact: true }).fill('synthetic-lamp-14');
+      await capture(width, `${preset}-credentials`, card);
       const saving = page.waitForResponse(response => response.url().endsWith(`/api/app/intake/sources/${source.id}`) && response.request().method() === 'PUT');
       await editor.getByRole('button', { name: `Save and connect ${tool}`, exact: true }).click();
       const response = await saving;

@@ -6048,7 +6048,7 @@
       "executable": false
     },
     "tests/e2e/helpers/operations-browser-flow.mjs": {
-      "sha256": "a7aaa59b4adf23141524f9aa92054c212e6228ada30ff721efe7b67126471710",
+      "sha256": "f6418f1cd7c8a5b603641b5f10be2e1b4b40d43c6647eca07bbc5daa755329e1",
       "executable": false
     },
     "tests/e2e/helpers/operations-edge.mjs": {
