@@ -39,7 +39,7 @@ test('disposable demo opens signed in, mocks effects and leaves owner state inta
     assert.equal(setup.status, 0, 'ordinary setup succeeds');
     await appendFile(join(root, '.dev.vars'), '\nAI_PROVIDER_URL=https://ai.example.invalid/v1\nAI_PROVIDER_MODEL=demo-test\nAI_PROVIDER_API_KEY=uncredentialed-test-value\n');
     const before = await digestTree(join(root, '.wrangler/state'));
-    browser = await chromium.launch();
+    browser = await chromium.launch({ headless: true, args: ['--use-mock-keychain', '--password-store=basic'] });
     for (const first of [true, false]) {
       let output = '';
       child = spawn(process.execPath, ['node_modules/@runeditrun/rer/bin/rer.mjs', 'demo'], { cwd: root, env, stdio: ['ignore', 'pipe', 'pipe'] });

@@ -60,7 +60,7 @@ before(async () => {
   execFileSync("pnpm", ["exec", "rer", "build", "--site"], { cwd: process.cwd(), stdio: "pipe" });
   site = await sitePreview(join(process.cwd(), "dist/site"), { ports: [await reservePort({ label: "run site" })] });
   SITE = site.url;
-  browser = await chromium.launch();
+  browser = await chromium.launch({ headless: true, args: ['--use-mock-keychain', '--password-store=basic'] });
   decoder = await browser.newPage();
 });
 

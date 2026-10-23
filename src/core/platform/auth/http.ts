@@ -9,7 +9,11 @@ import type { AppBindings } from '../../app/types';
 import type { AppServices } from '../../app/services';
 export async function authResponse(request:Request,env:AppBindings,services:AppServices):Promise<Response> {
   try {
-    const auth=services.auth(),config=authConfig(env);
+    const auth=services.auth(),config=authConfig(env),url=new URL(request.url);
+    if (url.pathname === '/signin' && ['GET', 'HEAD'].includes(request.method)) {
+      const session = await auth.getSession(request);
+      if (session?.operator.role === 'owner') return new Response(null, { status: 303, headers: { ...securityHeaders(), Location: '/app' } });
+    }
     // A host-configured key set selects native signed claims. Claims never choose their own authority.
     const trust = ownerClaimConfig(env);
     let response = trust ? await createOwnerClaimHandler({ db: env.DB, authConfig: config,
@@ -24,7 +28,6 @@ export async function authResponse(request:Request,env:AppBindings,services:AppS
         setup:async()=> env.SETUP_TOKEN&&!await services.operators.initialized()?{instructions:'Use the setup token from your installation to claim the first owner.'}:null,
       })(request) ?? await createAuthHandler(auth)(request) ?? new Response('Not found',{status:404});
     }
-    const url = new URL(request.url);
     // A claim's answer (the first claim, or already claimed) and every sign-in
     // that starts a session open a Business-provisioned install's door when no
     // owner choice is recorded yet. The claim already committed, so a failure

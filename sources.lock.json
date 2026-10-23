@@ -4904,7 +4904,7 @@
       "executable": false
     },
     "src/core/platform/auth/http.ts": {
-      "sha256": "db64c98528412f1648aef1067a6a1b2d42e1b2c8b53066b55a87d4a27286feb3",
+      "sha256": "2536416da35d887566f97ac4dff7efeea7ff05e792910c06e02c8a8c099b14c8",
       "executable": false
     },
     "src/core/platform/auth/identity-provider-guides.ts": {
@@ -6092,7 +6092,7 @@
       "executable": false
     },
     "tests/demo/journey.test.mjs": {
-      "sha256": "ef149c4fcbae4aa373d97f978dc85d8716cb077738a5e55a41de98052226fc16",
+      "sha256": "3d517fd0e48afa3b06f0f4b8a6db5d937d9cf56b5c8f64ea41dc809715272173",
       "executable": false
     },
     "tests/demo/owner-claim.test.mjs": {
@@ -6152,7 +6152,7 @@
       "executable": false
     },
     "tests/e2e/auth-adoption-journey.test.mjs": {
-      "sha256": "6b08f26a299a4698e2251b244d5f496d65238b2c3dacc160042e460cc6173ac0",
+      "sha256": "02a16c372f370645a382f5f67f9a63f6fc6b13245f01cadf3b0858564a3df764",
       "executable": false
     },
     "tests/e2e/autosave-integrity.test.mjs": {
@@ -7292,7 +7292,7 @@
       "executable": false
     },
     "tests/lamp-site/browser.test.mjs": {
-      "sha256": "84a533dbf43bace1dc152534c131439b4b5b9a3372096ff5a5a9a6a78960c5ea",
+      "sha256": "9681f409ab80a507a72cbcc9f95486b78ec0a92bfef8a891d028d243f69b08ae",
       "executable": false
     },
     "tests/operations-description.test.mjs": {
