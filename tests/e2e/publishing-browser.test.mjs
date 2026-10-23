@@ -649,6 +649,29 @@ contract("DRAFT-002", "Settings autosaves survive navigation and reload, keep fe
     await page.getByRole("button", { name: "Retry", exact: true }).click();
     await page.locator(".settings-save-note").filter({ hasText: /^Saved · live$/ }).waitFor();
     await eventuallyStored("tagline", `${nextTagline} today`);
+
+    // Back, with Settings reached in the app and the save refused offline, keeps Settings open with the value, the
+    // reason and Retry (nothing reloads over it); online again, Retry publishes it.
+    for (const [link, to] of [["Overview", "/app"], ["Settings", "/app/settings"]]) {
+      if (width === 390) await page.getByRole("button", { name: "Menu", exact: true }).click();
+      await page.locator(".operator-navigation").getByRole("link", { name: link, exact: true }).click();
+      await page.waitForURL(url => url.pathname === to);
+    }
+    await page.locator(".settings-page:not([inert])").waitFor();
+    await page.locator(".settings-save-note").filter({ hasText: /^Saved · live$/ }).waitFor();
+    const offlineName = `${name} kept offline`;
+    await page.getByLabel("Page name", { exact: true }).fill(offlineName);
+    await page.context().setOffline(true);
+    try {
+      await page.evaluate(() => history.back());
+      await page.getByRole("button", { name: "Retry", exact: true }).waitFor();
+      assert.equal(new URL(page.url()).pathname, "/app/settings", "a Back refused offline keeps Settings open");
+      assert.equal(await page.getByLabel("Page name", { exact: true }).inputValue(), offlineName);
+      await inView(page.locator(".settings-save-state [role=alert]")); await inView(page.getByRole("button", { name: "Retry", exact: true }));
+    } finally { await page.context().setOffline(false); }
+    await page.getByRole("button", { name: "Retry", exact: true }).click();
+    await page.locator(".settings-save-note").filter({ hasText: /^Saved · live$/ }).waitFor();
+    await eventuallyStored("pageName", offlineName);
   }
   const restored = await appFetch("/api/app/page-settings", { method: "PUT", body: JSON.stringify(originalSettings) });
   assert.equal(restored.status, 200, "restore the shared Settings fixture for the remaining browser journeys");
