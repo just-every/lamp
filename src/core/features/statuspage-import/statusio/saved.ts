@@ -33,7 +33,7 @@ export async function readStatusioFiles(files: SavedFile[], pageId: string) {
     function count(raw: unknown) {
       if (Array.isArray(raw)) { for (const child of raw) count(child); return; }
       if (!raw || typeof raw !== "object") return;
-      if (++records > limits.maxRecords || new TextEncoder().encode(canonicalJson(raw as Json)).length > limits.maxRecordBytes) throw new Error("Status.io record count or record size limit exceeded.");
+      if (++records > limits.maxRecords || (("id" in raw || "_id" in raw) && new TextEncoder().encode(canonicalJson(raw as Json)).length > limits.maxRecordBytes)) throw new Error("Status.io record count or record size limit exceeded.");
       for (const child of Object.values(raw)) count(child);
     }
     count(value);
