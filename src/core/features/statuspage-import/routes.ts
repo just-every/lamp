@@ -7,8 +7,9 @@ import type { StatuspageImportService } from "./service";
 import { importLimits } from "./source";
 import { findSourcePages } from "./page-finder";
 import { importSources } from "./adapters";
+import { fetchStatusioResponses } from "./statusio/api";
 
-const fetchSchema = z.object({ source: z.enum(importSources).optional(), pageId: z.string().max(40).optional(), apiKey: z.string().max(200).optional(), publicAccessAcknowledged: z.boolean().optional(), publicUrl: z.string().url().max(2048).optional() }).strict();
+const fetchSchema = z.object({ source: z.enum(importSources).optional(), pageId: z.string().max(64).optional(), apiId: z.string().max(256).optional(), apiKey: z.string().max(256).optional(), publicAccessAcknowledged: z.boolean().optional(), publicUrl: z.string().url().max(2048).optional() }).strict();
 const jobId = z.string().min(1).max(100);
 
 /** Lamp's own refusal wording for the owner. Kit codes name an integrity
@@ -28,12 +29,12 @@ export function registerStatuspageImportRoutes(app: Hono<AppEnv>, service: Statu
   app.post("/api/app/statuspage-import/fetch", async (context) => {
     const parsed = fetchSchema.safeParse(await context.req.json().catch(() => null));
     if (!parsed.success) return context.json({ error: "Choose saved source responses, or enter a page ID and API key." }, 400);
-    try { return context.json({ files: await service.fetchSource(parsed.data, context.get("operatorSession")) }); }
+    try { return context.json({ files: parsed.data.source === "statusio" ? await fetchStatusioResponses({ pageId: parsed.data.pageId ?? "", apiId: parsed.data.apiId ?? "", apiKey: parsed.data.apiKey ?? "" }) : await service.fetchSource(parsed.data, context.get("operatorSession")) }); }
     catch (cause) { return context.json({ error: refused(cause) }, 400); }
   });
   app.post("/api/app/statuspage-import/pages", async (context) => {
-    const parsed = z.object({ source: z.enum(["betterstack", "instatus", "sorry"]), apiKey: z.string().max(256) }).strict().safeParse(await context.req.json().catch(() => null));
-    if (!parsed.success) return context.json({ error: "Choose Better Stack, Instatus or Sorry and paste its API key." }, 400);
+    const parsed = z.object({ source: z.enum(["betterstack", "instatus", "sorry", "incidentio"]), apiKey: z.string().max(256) }).strict().safeParse(await context.req.json().catch(() => null));
+    if (!parsed.success) return context.json({ error: "Choose a source and paste its API key." }, 400);
     try { return context.json({ pages: await findSourcePages(parsed.data) }); }
     catch (cause) { return context.json({ error: cause instanceof Error ? cause.message : "Your status pages could not be listed." }, 400); }
   });

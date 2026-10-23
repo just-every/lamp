@@ -1,3 +1,4 @@
+import { providerImportFlow } from './helpers/provider-import-flow.mjs';
 import assert from 'node:assert/strict';
 import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -45,7 +46,8 @@ before(async () => {
 });
 after(async () => { await runtime?.close(); });
 
-test('MOVE-001/002/003/004/005 Instatus owner route reviews, fences, imports silently, preserves history and conditionally undoes', async () => {
+test('MOVE-001/002/003/004/005/007/008 Instatus, Status.io and incident.io owner routes review, fences, imports silently, preserves history and conditionally undoes', async () => {
+  await providerImportFlow({ moveIn, get, counts, runtime, notificationActivity, assertNoNewNotifications });
   const initial = await counts(), mailBefore = await notificationActivity(runtime);
   const small = fixtures('small'), large = fixtures('large');
   const guest = await nativeRequest('/api/operator/import/uploads', { method: 'POST', json: {}, headers: { 'X-Import-Source': 'instatus' } });

@@ -4,12 +4,14 @@ import { appApi } from "../../../app/client/ui/api";
 import { Button } from "../../../app/client/ui/button";
 import type { SourcePage } from "../page-finder";
 
-type Source = "statuspage" | "betterstack" | "instatus" | "sorry";
+type Source = "statuspage" | "betterstack" | "instatus" | "sorry" | "statusio" | "incidentio";
 
 const external = { target: "_blank", rel: "noreferrer" } as const;
 
 /** Where each source's key and page ID live, in the order the owner fills the fields. */
 export function AccountHelp({ source }: { source: Source }) {
+  if (source === "incidentio") return <ol className="setup-guide"><li>In incident.io, create an API key that can read your status pages. Paste it below and choose <strong>Find my pages</strong>, then <strong>Use this page</strong>.</li><li>Confirm that the page and supplied history are public and unrestricted. Customer pages, hidden components and sub-pages cannot move into this public page.</li><li>Run the dry run. The documented API does not export subscribers or original planned maintenance windows. Public postmortems and customer templates are not exposed.</li></ol>;
+  if (source === "statusio") return <ol className="setup-guide"><li>In your Status.io dashboard, open API settings and copy the API ID and API key. The status page ID is separate from the API ID.</li><li>Enter all three below and confirm that the page and history are public and unrestricted.</li><li>Run the dry run. The documented legacy incident response is accepted only below its 100-record cap. Subscriber exports, postmortems, templates and old incident addresses are unavailable in this reader.</li></ol>;
   if (source === "betterstack") return <ol className="setup-guide">
     <li>Open <a href="https://betterstack.com/settings/api-tokens/0" {...external}>Better Stack API tokens</a>. Under <strong>Team-based tokens</strong>, select your team and copy a token from <strong>Uptime API tokens</strong> (or create one).</li>
     <li>Paste it below and choose <strong>Find my pages</strong>, then <strong>Use this page</strong> beside your status page. That fills the page ID.</li>
@@ -29,7 +31,7 @@ export function AccountHelp({ source }: { source: Source }) {
 }
 
 /** Better Stack, Instatus and Sorry: list the pages the key can read and fill the chosen page ID. */
-export function PageFinder({ source, apiKey, onChoose }: { source: "betterstack" | "instatus" | "sorry"; apiKey: string; onChoose: (id: string) => void }) {
+export function PageFinder({ source, apiKey, onChoose }: { source: "betterstack" | "instatus" | "sorry" | "incidentio"; apiKey: string; onChoose: (id: string) => void }) {
   const [pages, setPages] = useState<SourcePage[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -50,8 +52,12 @@ export function PageFinder({ source, apiKey, onChoose }: { source: "betterstack"
 
 export function SavedResponsesHelp({ source }: { source: Source }) {
   return <div className="setup-guide">
-    <p>Only if you already have them: unchanged JSON files saved from the {source === "betterstack" ? "Better Stack" : source === "instatus" ? "Instatus" : source === "sorry" ? "Sorry" : "Statuspage"} API. Most people use the account option above instead. Select all the files together, then choose <strong>Run dry run</strong>.{source === "instatus" && " Enter your Instatus page ID above as well."}</p>
-    <details><summary>See required files</summary><p>{source === "sorry"
+    <p>Only if you already have them: unchanged JSON files saved from the {source === "incidentio" ? "incident.io" : source === "statusio" ? "Status.io" : source === "betterstack" ? "Better Stack" : source === "instatus" ? "Instatus" : source === "sorry" ? "Sorry" : "Statuspage"} API. Most people use the account option above instead. Select all the files together, then choose <strong>Run dry run</strong>.{source === "instatus" && " Enter your Instatus page ID above as well."}</p>
+    <details><summary>See required files</summary><p>{source === "incidentio"
+      ? "incidentio-page.json, incidentio-structure.json, incidentio-components.json, incidentio-incidents.json and incidentio-maintenances.json. Save every cursor page consecutively with -2, -3 and so on, until the response has no next cursor. Enter the page ID above."
+      : source === "statusio"
+      ? "statusio-components.json, statusio-summary.json, statusio-incidents.json (the legacy list), statusio-maintenances.json, statusio-acl.json and statusio-maintenance-ID.json for every enumerated maintenance. Enter the status page ID above."
+      : source === "sorry"
       ? "sorry-status.json (public) or sorry-page.json (with a key), sorry-components.json, sorry-notices.json and each notice's detail file. Only files saved with a key may include sorry-subscribers.json."
       : source === "instatus"
         ? "instatus-pages.json, instatus-components.json, instatus-incidents.json, instatus-maintenances.json, instatus-subscribers.json, instatus-audience-groups.json, and instatus-maintenance-ID.json for each maintenance. Name later pages -2, -3 and so on."

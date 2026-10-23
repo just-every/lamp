@@ -1,0 +1,51 @@
+{
+  "status_page_incidents": [
+    {
+      "id": "synthetic-lamp-4",
+      "status_page_id": "synthetic-lamp-1",
+      "name": "Synthetic incident",
+      "published_at": "2024-01-01T12:00:00Z",
+      "incident_status": "resolved",
+      "updates": [
+        {
+          "id": "synthetic-lamp-6",
+          "status_page_incident_id": "synthetic-lamp-4",
+          "published_at": "2024-01-01T12:00:00Z",
+          "message": "Synthetic service was unavailable.",
+          "incident_status": "investigating",
+          "component_statuses": [
+            {
+              "component_id": "synthetic-lamp-2",
+              "component_status": "full_outage"
+            }
+          ]
+        },
+        {
+          "id": "synthetic-lamp-7",
+          "status_page_incident_id": "synthetic-lamp-4",
+          "published_at": "2024-01-01T12:30:00Z",
+          "message": "Synthetic service recovered.",
+          "incident_status": "resolved",
+          "component_statuses": [
+            {
+              "component_id": "synthetic-lamp-2",
+              "component_status": "operational"
+            }
+          ]
+        }
+      ],
+      "component_impacts": [
+        {
+          "component_id": "synthetic-lamp-2",
+          "component_status": "full_outage",
+          "start_at": "2024-01-01T12:00:00Z",
+          "end_at": "2024-01-01T12:30:00Z"
+        }
+      ]
+    }
+  ],
+  "pagination_meta": {
+    "page_size": 100,
+    "after": "synthetic-lamp-20"
+  }
+}

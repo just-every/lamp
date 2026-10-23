@@ -643,3 +643,23 @@ and explicitly confirm that it is live and the watch window has closed before
 **Send invitations**. That separate owner action starts the existing 72-hour
 confirmation window. Unreleased held subscribers expire after 30 days. Undo
 cannot recall an invitation already sent. Imported history never queues notices.
+
+## Status.io
+
+Choose Status.io in Move in. Enter the status page ID, API ID and API key, or select saved responses. The API ID and key are used only for the read and never saved. Confirm that the page and all history are public and unrestricted. Private, password-protected, IP-restricted or audience pages cannot become public here. An empty IP list alone does not prove public access.
+
+Save the unchanged API response envelopes as `statusio-components.json`, `statusio-summary.json`, `statusio-incidents.json`, `statusio-maintenances.json`, `statusio-acl.json` and `statusio-maintenance-ID.json` for each maintenance. The component list and summary identify each component and container pair; Lamp keeps these as groups with separate components for their containers. Component creation times are unavailable, so their records begin with the import while incident messages keep their original times.
+
+The reader uses the documented, deprecated incident list below its 100-record cap. It refuses 100 or more records because history may have been truncated. The newer incident responses and pagination have no published response shapes. Security-event states are refused rather than changed to an outage. Maintenance keeps the planned window and original messages. Imports queue no notifications or invitations, and undo uses the same reviewed import.
+
+The published API reference supplies no subscriber response fields, old public incident addresses, postmortem text or customer incident templates. These are not guessed or imported. Move subscribers separately through your new subscribe page; SMS is not available. Update old incident links and JSON readers yourself before retiring the old page.
+
+## incident.io
+
+Choose incident.io in Move in. Paste an API key that can read status pages and choose Find my pages, or enter the page ID and select saved API responses. The key is used for GET reads only and never saved. Confirm that the page and all supplied history are public and unrestricted. The API does not identify customer-page access restrictions, so a public URL alone is not proof of public access. Known private sources, hidden components and sub-pages are refused.
+
+Save the unchanged responses as `incidentio-page.json`, `incidentio-structure.json`, `incidentio-components.json`, `incidentio-incidents.json` and `incidentio-maintenances.json`. Save every history cursor page consecutively with `-2`, `-3` and so on, ending only when the response has no next cursor. The selected page structure controls which components and groups move; components from other pages do not. Incident updates keep their messages and publication times, imports send nothing, and repeat and undo use the reviewed import. Components have no source creation time or standalone current state in these reads: their catalogue records begin at import, with explicit incident history supplying claims.
+
+The documented maintenance read returns actual component periods, not the original planned window. The dry run names these maintenance records as not moved; an in-progress maintenance refuses the import because its current public state cannot be preserved. No schedule is guessed. The API supplies no old public incident addresses and no customer-published postmortems or customer incident templates. Internal response reports and templates are not imported or made public.
+
+The documented API does not expose subscriber export. Cutover links to your new subscribe page: invite subscribers to subscribe and confirm there. Lamp does not contact them automatically. Update old links and readers before retiring the old page.

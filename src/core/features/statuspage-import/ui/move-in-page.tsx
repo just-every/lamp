@@ -34,11 +34,12 @@ function ReportItems({ report }: { report: MoveInReport }) {
 export function MoveInPage() {
   const jobs = useAppData<{ jobs: Job[] }>("/api/app/statuspage-import/jobs");
   const website = useAppData<{ website: WebsiteRecord | null }>("/api/app/website");
-  const [source, setSource] = useState<"statuspage" | "betterstack" | "instatus" | "sorry">(website.data?.website?.statusPage?.source ?? "statuspage");
-  const sourceLabel = source === "sorry" ? "Sorry" : source === "instatus" ? "Instatus" : source === "betterstack" ? "Better Stack" : "Statuspage";
+  const [source, setSource] = useState<"statuspage" | "betterstack" | "instatus" | "sorry" | "statusio" | "incidentio">(website.data?.website?.statusPage?.source ?? "statuspage");
+  const sourceLabel = source === "incidentio" ? "incident.io" : source === "statusio" ? "Status.io" : source === "sorry" ? "Sorry" : source === "instatus" ? "Instatus" : source === "betterstack" ? "Better Stack" : "Statuspage";
   const [publicAccessAcknowledged, setPublicAccessAcknowledged] = useState(false);
   const [publicUrl, setPublicUrl] = useState("");
   const [pageId, setPageId] = useState(website.data?.website?.statusPage?.pageId ?? "");
+  const [apiId, setApiId] = useState("");
   const [apiKey, setApiKey] = useState("");
   const [files, setFiles] = useState<SavedFile[]>([]);
   const fileInput = useRef<HTMLInputElement>(null);
@@ -85,11 +86,11 @@ export function MoveInPage() {
     event.preventDefault(); setResult(null); setAcknowledged(false);
     void run(async (): Promise<Preview> => {
       // A key or public page is read once, into saved responses; the import door plans those.
-      const fetched = files.length ? null : (await appApi<{ files: SavedFile[] }>("/api/app/statuspage-import/fetch", { method: "POST", body: JSON.stringify({ source, publicAccessAcknowledged, pageId, ...(source === "sorry" && publicUrl ? { publicUrl } : {}), apiKey }) })).files;
+      const fetched = files.length ? null : (await appApi<{ files: SavedFile[] }>("/api/app/statuspage-import/fetch", { method: "POST", body: JSON.stringify({ source, publicAccessAcknowledged, pageId, ...(source === "sorry" && publicUrl ? { publicUrl } : {}), ...(source === "statusio" ? { apiId } : {}), apiKey }) })).files;
       const planned = await moveInDoor(source).plan<Omit<Preview, "files">>({ source, files: fetched ?? files, pageId, publicAccessAcknowledged, ...(source === "sorry" && publicUrl ? { publicUrl } : {}) });
       return { ...planned, ...(fetched ? { files: fetched } : {}) };
     }, (next) => {
-      setPreview(next); rememberCutover(next.report.cutover); setApiKey("");
+      setPreview(next); rememberCutover(next.report.cutover); setApiKey(""); setApiId("");
       if (next.files) setFiles(next.files);
     });
   }
@@ -112,10 +113,11 @@ export function MoveInPage() {
   return <div className="page-stack move-in-page">
     <section className="page-title-row"><div><a className="text-link" href="/app/settings#data">← Your data</a><h1>Move in from {sourceLabel}</h1><p>Bring your components, history and subscribers. Review a dry run before importing. Past incidents send no notifications; subscribers wait for your invitation. {source === "sorry" && `Public pages supply history only. Subscribers need an API key and wait up to ${HELD_SORRY_DAYS} days for an invitation after cutover.`}</p>{detected && <p>Moving from <a className="text-link" href={detected.url} target="_blank" rel="noreferrer">{new URL(detected.url).host}</a></p>}</div></section>
     <section className="data-card"><form className="move-in-form" onSubmit={dryRun}>
-      <label className="form-label">Source<select value={source} disabled={busy || !hydrated} onChange={event => { detectionApplied.current = true; setSource(event.target.value as typeof source); setPreview(null); setResult(null); setFiles([]); setPageId(""); setPublicUrl(""); setApiKey(""); setAcknowledged(false); setPublicAccessAcknowledged(false); setError(null); clearCutover(); }}><option value="statuspage">Statuspage</option><option value="betterstack">Better Stack</option><option value="instatus">Instatus</option><option value="sorry">Sorry</option></select></label>
+      <label className="form-label">Source<select value={source} disabled={busy || !hydrated} onChange={event => { detectionApplied.current = true; setSource(event.target.value as typeof source); setPreview(null); setResult(null); setFiles([]); setPageId(""); setPublicUrl(""); setApiKey(""); setApiId(""); setAcknowledged(false); setPublicAccessAcknowledged(false); setError(null); clearCutover(); }}><option value="statuspage">Statuspage</option><option value="betterstack">Better Stack</option><option value="instatus">Instatus</option><option value="sorry">Sorry</option><option value="statusio">Status.io</option><option value="incidentio">incident.io</option></select></label>
       <fieldset><legend>From your {sourceLabel} account</legend><AccountHelp source={source} />
-        {source === "betterstack" || source === "instatus" || source === "sorry" ? <>
-          <label className="form-label">{source === "instatus" ? "API key" : "API token"}<input type="password" value={apiKey} autoComplete="off" onChange={(event) => setApiKey(event.target.value.trim())} /></label>
+        {source === "statusio" && <label className="form-label">Status.io API ID<input type="password" value={apiId} autoComplete="off" onChange={event => setApiId(event.target.value.trim())} /></label>}
+        {source === "betterstack" || source === "instatus" || source === "sorry" || source === "incidentio" ? <>
+          <label className="form-label">{source === "instatus" || source === "incidentio" ? "API key" : "API token"}<input type="password" value={apiKey} autoComplete="off" onChange={(event) => setApiKey(event.target.value.trim())} /></label>
           <PageFinder key={source} source={source} apiKey={apiKey} onChoose={setPageId} />
           <label className="form-label">{sourceLabel} page ID<input value={pageId} autoComplete="off" onChange={(event) => { detectionApplied.current = true; setPageId(event.target.value.trim()); }} /></label>
         </> : <>
@@ -128,8 +130,10 @@ export function MoveInPage() {
         <label className="form-label">Saved responses<input ref={fileInput} key={source} type="file" multiple accept="application/json,.json" onChange={(event) => void chooseFiles(event.target.files)} /></label>{files.length > 0 && <p>{files.length} file{files.length === 1 ? "" : "s"} selected.</p>}</fieldset>
       {source === "betterstack" && <label className="checkbox-label"><input type="checkbox" checked={publicAccessAcknowledged} onChange={event => { setPublicAccessAcknowledged(event.target.checked); setPreview(null); }} /> This Better Stack page is public, with no password, IP allow-list or visitor sign-in. Lamp cannot carry those restrictions over.</label>}
       {source === "instatus" && <label className="checkbox-label"><input type="checkbox" checked={publicAccessAcknowledged} onChange={event => { setPublicAccessAcknowledged(event.target.checked); setPreview(null); }} /> This Instatus page and its history are public, with no private, allow-list or audience restrictions. Lamp cannot carry those restrictions over.</label>}
+      {source === "incidentio" && <label className="checkbox-label"><input type="checkbox" checked={publicAccessAcknowledged} onChange={event => { setPublicAccessAcknowledged(event.target.checked); setPreview(null); }} /> This incident.io page and its history are public and unrestricted, with no customer or audience restrictions. Lamp cannot preserve private-page access rules.</label>}
+      {source === "statusio" && <label className="checkbox-label"><input type="checkbox" checked={publicAccessAcknowledged} onChange={event => { setPublicAccessAcknowledged(event.target.checked); setPreview(null); }} /> This Status.io page and its history are published and unrestricted, with no password, IP or audience restrictions. Lamp cannot preserve private-page access rules.</label>}
       {source === "sorry" && <label className="checkbox-label"><input type="checkbox" checked={publicAccessAcknowledged} onChange={event => { setPublicAccessAcknowledged(event.target.checked); setPreview(null); }} /> This Sorry page and supplied history are published and unrestricted. Lamp cannot preserve private-page access rules.</label>}
-      <Button disabled={busy || (source === "instatus" && !pageId) || (source !== "statuspage" && !publicAccessAcknowledged) || (!files.length && !(source === "sorry" && publicUrl) && (!pageId || !apiKey))}>{busy && !preview ? "Reading…" : "Run dry run"}</Button>
+      <Button disabled={busy || (source === "instatus" && !pageId) || (source !== "statuspage" && !publicAccessAcknowledged) || (!files.length && !(source === "sorry" && publicUrl) && (!pageId || !apiKey || (source === "statusio" && !apiId)))}>{busy && !preview ? "Reading…" : "Run dry run"}</Button>
     </form></section>
     {error && <FormError>{error}</FormError>}
     {preview && !result && <section className="data-card" aria-labelledby="move-in-dry-run"><h2 id="move-in-dry-run">{preview.report.state === "already imported" ? "Already imported" : "Dry run"}</h2>

@@ -1,0 +1,27 @@
+{
+  "current_structure": {
+    "items": [
+      {
+        "group": {
+          "id": "synthetic-lamp-3",
+          "name": "Synthetic group",
+          "hidden": false,
+          "display_aggregated_uptime": true,
+          "components": [
+            {
+              "component_id": "synthetic-lamp-2",
+              "name": "Synthetic service",
+              "hidden": false,
+              "display_uptime": true
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "display_uptime_mode": "chart_and_percentage",
+  "management_meta": {
+    "annotations": {},
+    "managed_by": "dashboard"
+  }
+}

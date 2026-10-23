@@ -1,0 +1,26 @@
+{
+  "status": {
+    "error": "no",
+    "message": "OK"
+  },
+  "result": {
+    "status": [
+      {
+        "id": "synthetic-lamp-2",
+        "name": "Synthetic service",
+        "updated": "2024-01-01T12:30:00Z",
+        "status": "Operational",
+        "status_code": 100,
+        "containers": [
+          {
+            "id": "synthetic-lamp-3",
+            "name": "Synthetic region",
+            "updated": "2024-01-01T12:30:00Z",
+            "status": "Operational",
+            "status_code": 100
+          }
+        ]
+      }
+    ]
+  }
+}

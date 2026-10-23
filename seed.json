@@ -381,6 +381,26 @@
         "The linked PagerDuty incident ID"
       ],
       "adapters": []
+    },
+    {
+      "id": "statusio-api",
+      "required": false,
+      "why": "At the owner's request, GET reads from the fixed https://api.status.io/v2 origin only: components, summary, the documented legacy incident list, maintenance enumeration and details, and IP access lists. Redirects are refused. The API ID and key are used only for the read and never stored. Saved responses make no request.",
+      "data": [
+        "API ID and key in x-api-id and x-api-key headers only",
+        "Selected status page ID and maintenance IDs"
+      ],
+      "adapters": []
+    },
+    {
+      "id": "incidentio-api",
+      "required": false,
+      "why": "At the owner's request, GET reads from the fixed https://api.incident.io origin only: selected status page, structure, components, incidents and maintenance, and a page list for selection. Opaque cursor pagination is bounded. Redirects are refused. The Bearer key is used only for the read and never stored. Saved responses make no request.",
+      "data": [
+        "API key in the Authorization header only",
+        "Selected status page ID and opaque pagination cursors"
+      ],
+      "adapters": []
     }
   ],
   "env": [
