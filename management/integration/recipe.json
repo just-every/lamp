@@ -364,6 +364,42 @@
     },
     {
       "binding": "DB",
+      "name": "core-0059_mail_failover.sql",
+      "sha256": "759d1226ccb9d4bd9427d41e84139f36486433d98dd9d985d55b7315549e7292",
+      "sql": "-- Additive routing metadata: no subscriber addresses or message bodies.\n-- A selected secondary never changes back for an already attempted message.\nCREATE TABLE mail_provider_routes (\n  message_key TEXT PRIMARY KEY,\n  notification_delivery_id TEXT,\n  envelope_hash TEXT NOT NULL,\n  configuration_hash TEXT NOT NULL,\n  primary_provider TEXT NOT NULL,\n  secondary_provider TEXT NOT NULL,\n  selected_provider TEXT NOT NULL,\n  first_retryable_failure_at TEXT,\n  ambiguous_failure INTEGER NOT NULL DEFAULT 0 CHECK (ambiguous_failure IN (0,1)),\n  state TEXT NOT NULL DEFAULT 'ready' CHECK (state IN ('ready','sending','accepted')),\n  claimed_at TEXT,\n  provider_message_id TEXT,\n  accepting_provider TEXT,\n  created_at TEXT NOT NULL,\n  updated_at TEXT NOT NULL\n);\nCREATE INDEX mail_provider_routes_delivery_idx ON mail_provider_routes(notification_delivery_id);\n\n-- Secondary delivery stays off until an owner selects the configured provider.\nCREATE TABLE mail_provider_settings (\n  id TEXT PRIMARY KEY CHECK (id = 'default'),\n  secondary_provider TEXT,\n  updated_at TEXT NOT NULL\n);\n"
+    },
+    {
+      "binding": "DB",
+      "name": "core-0060_operator_channel_alerts.sql",
+      "sha256": "a23e27d8e4a9d4f789de92a0da57be1c34478dfa4d401054b111ba1669efc105",
+      "sql": "-- Existing publication channels remain unchanged until an owner opts in.\nALTER TABLE channel_destinations ADD COLUMN operator_alerts INTEGER NOT NULL DEFAULT 0 CHECK(operator_alerts IN (0,1));\n"
+    },
+    {
+      "binding": "DB",
+      "name": "core-0061_vendor_alert_presets.sql",
+      "sha256": "2752d2b0a2b4888cb33a17d8def7e611df15754f135178c84581d484236dd3f2",
+      "sql": "-- Additive: preserve all older backup tables, receipts and sealed connections.\nALTER TABLE alert_sources ADD COLUMN vendor_preset TEXT CHECK (vendor_preset IN ('jsm','opsgenie','newrelic'));\nALTER TABLE alert_sources ADD COLUMN close_alert_on_resolve INTEGER NOT NULL DEFAULT 0 CHECK (close_alert_on_resolve IN (0,1));\n"
+    },
+    {
+      "binding": "DB",
+      "name": "core-0062_public_metrics.sql",
+      "sha256": "be71b9018d953dd9a6b9c83a54a2d576a3b08dd00e3da011922f4bc6f861383b",
+      "sql": "-- Aggregate-only public performance series. Existing tables and backups remain additive.\nCREATE TABLE public_metrics (\n  id TEXT PRIMARY KEY NOT NULL,\n  component_id TEXT NOT NULL REFERENCES components(id) ON DELETE CASCADE,\n  source_id TEXT REFERENCES alert_sources(id) ON DELETE CASCADE,\n  name TEXT NOT NULL, unit TEXT NOT NULL,\n  provider TEXT NOT NULL CHECK(provider IN ('push','uptime','datadog','newrelic','pingdom','prometheus')),\n  query TEXT NOT NULL DEFAULT '', endpoint TEXT, account_id TEXT, region TEXT,\n  sealed_credentials TEXT,\n  last_reported_at INTEGER, stale INTEGER NOT NULL DEFAULT 0 CHECK(stale IN (0,1)),\n  pull_after INTEGER NOT NULL DEFAULT 0, pull_lease_until INTEGER,\n  error TEXT, change_id TEXT, version INTEGER NOT NULL DEFAULT 1,\n  created_at TEXT NOT NULL, updated_at TEXT NOT NULL\n);\nCREATE TABLE metric_points (\n  metric_id TEXT NOT NULL REFERENCES public_metrics(id) ON DELETE CASCADE,\n  resolution INTEGER NOT NULL CHECK(resolution IN (60,3600,86400)),\n  bucket INTEGER NOT NULL CHECK(bucket % (resolution * 1000) = 0),\n  value_sum REAL NOT NULL, samples INTEGER NOT NULL CHECK(samples > 0),\n  last_at INTEGER NOT NULL,\n  PRIMARY KEY(metric_id,resolution,bucket)\n);\nCREATE INDEX metric_points_retention ON metric_points(resolution,bucket);\nCREATE TRIGGER public_metrics_limit BEFORE INSERT ON public_metrics WHEN (SELECT count(*) FROM public_metrics) >= 10 BEGIN SELECT RAISE(ABORT,'A page can show at most 10 public metrics.'); END;\nCREATE TRIGGER public_metrics_dirty_insert AFTER INSERT ON public_metrics BEGIN UPDATE public_snapshot_work SET requested_revision=requested_revision+1 WHERE id='default'; END;\nCREATE TRIGGER public_metrics_dirty_update AFTER UPDATE ON public_metrics WHEN NEW.name<>OLD.name OR NEW.unit<>OLD.unit OR NEW.component_id<>OLD.component_id OR NEW.last_reported_at IS NOT OLD.last_reported_at OR NEW.stale<>OLD.stale BEGIN UPDATE public_snapshot_work SET requested_revision=requested_revision+1 WHERE id='default'; END;\nCREATE TRIGGER public_metrics_dirty_delete AFTER DELETE ON public_metrics BEGIN UPDATE public_snapshot_work SET requested_revision=requested_revision+1 WHERE id='default'; END;\nCREATE TRIGGER metric_points_dirty_insert AFTER INSERT ON metric_points BEGIN UPDATE public_snapshot_work SET requested_revision=requested_revision+1 WHERE id='default'; END;\nCREATE TRIGGER metric_points_dirty_update AFTER UPDATE ON metric_points BEGIN UPDATE public_snapshot_work SET requested_revision=requested_revision+1 WHERE id='default'; END;\n"
+    },
+    {
+      "binding": "DB",
+      "name": "core-0063_management_metric_tokens.sql",
+      "sha256": "348e84e92af43feb1a733a864ae38f8a4836a8fbb532db819736c455e4504d70",
+      "sql": "-- Product scope metadata is durable; Base oa_credentials remains the sole\n-- hashed bearer authority and is excluded from native archives. A restored row\n-- therefore cannot authorize a request until a new token is explicitly issued.\nCREATE TABLE management_tokens (\n  id TEXT PRIMARY KEY NOT NULL,\n  name TEXT NOT NULL,\n  scope TEXT CHECK(scope IS NULL OR scope='metrics:write'),\n  issuer_id TEXT NOT NULL,\n  expires_at INTEGER NOT NULL,\n  last_used_at INTEGER,\n  revoked_at INTEGER,\n  created_at TEXT NOT NULL\n);\n"
+    },
+    {
+      "binding": "DB",
+      "name": "core-0064_management_read_tokens.sql",
+      "sha256": "a33d62dcbd955d2d43148b8beff63ac8506a6b04f2ce30d593ef4eef01f8a72d",
+      "sql": "-- Existing tokens retain their exact scopes; read access is explicit and opt-in.\nALTER TABLE management_tokens ADD COLUMN read_scope INTEGER NOT NULL DEFAULT 0 CHECK(read_scope IN (0,1));\n"
+    },
+    {
+      "binding": "DB",
       "name": "setup-initial-page.sql",
       "sha256": "11f3684dd73e42d0d0b5764ba5e5810b3e756a4692850a3e6370298946b33287",
       "sql": "INSERT INTO page_settings (id, page_name, tagline, accent_color, timezone, hostname, feed_id, footer_credit_enabled, widget_allowed_origins, mail_from_address, created_at, updated_at) SELECT 'default', 'RER_RECIPE_NAME', 'RER_RECIPE_TAGLINE', '#112233', 'Australia/Brisbane', 'page.recipe.invalid', lower(hex(randomblob(16))), 1, '[]', 'mail@recipe.invalid', 'RER_RECIPE_TIMESTAMP', 'RER_RECIPE_TIMESTAMP' WHERE NOT EXISTS (SELECT 1 FROM page_settings WHERE id = 'default');"
@@ -406,7 +442,8 @@
   "optionalSecretNames": [
     "SLACK_SIGNING_SECRET",
     "SLACK_CLIENT_ID",
-    "SLACK_CLIENT_SECRET"
+    "SLACK_CLIENT_SECRET",
+    "POSTMARK_ACCOUNT_API_KEY"
   ],
   "healthPath": "/health",
   "recovery": "Preserve source and database backup before migration. Restore into fresh installation resources and verify owner workflows before switching traffic.",
