@@ -19,6 +19,25 @@ export async function metricsFlow({t}) {
     const points=Array.from({length:61},(_,index)=>({at:minute-(61-index)*60_000,value:100+index})).filter((_,index)=>index<20||index>=40);
     const mint=async scopes=>{const result=await post("/api/app/management-tokens",{name:"synthetic-lamp-56",scopes,expiresInSeconds:3600});assert.equal(result.status,201,result.text);assert.equal(result.body.credential.lastUsedAt,null);return result.body;};
     const writer=await mint(["metrics:write"]),unscoped=await mint([]);
+    const reader=await mint(["read"]);
+    const readComponents=token=>raw(fixture.appOrigin+"/api/v1/components",{headers:{Authorization:`Bearer ${token}`}});
+    const beforeRead=(await api("/api/app/management-tokens")).body.tokens;
+    assert.equal((await readComponents(unscoped.token)).status,403,"a token without read scope cannot list components");
+    assert.equal((await readComponents(writer.token)).status,403,"metrics:write does not imply read");
+    assert.deepEqual((await api("/api/app/management-tokens")).body.tokens,beforeRead,"refusals do not change last-used metadata");
+    const readResult=await readComponents(reader.token);
+    assert.equal(readResult.status,200);assert.equal(readResult.headers.get("cache-control"),"no-store");
+    assert.deepEqual(await readResult.json(),(await api("/api/app/components")).body,"the read bearer returns the same components and groups as the operator door, without a cookie");
+    const readMetadata=(await api("/api/app/management-tokens")).body.tokens.find(token=>token.id===reader.credential.id);
+    assert.deepEqual(readMetadata.scopes,["read"]);assert.ok(readMetadata.lastUsedAt>=reader.credential.expiresAt-3600_000);
+    const storedRead=await fixture.db.prepare("SELECT token_hash FROM oa_credentials WHERE id=?").bind(reader.credential.id).first();
+    assert.ok(storedRead.token_hash&&!storedRead.token_hash.includes(reader.token));
+    assert.ok(!(await api("/api/app/management-tokens")).text.includes(reader.token),"the read bearer is shown once");
+    assert.equal((await post(`/api/app/management-tokens/${reader.credential.id}/revoke`,{})).status,200);
+    const afterReadRevoke=(await api("/api/app/management-tokens")).body.tokens;
+    assert.equal((await readComponents(reader.token)).status,401,"revocation immediately refuses the read bearer");
+    assert.deepEqual((await api("/api/app/management-tokens")).body.tokens,afterReadRevoke);
+
     const tokenPush=(token,submitted=points)=>raw(fixture.appOrigin+`/api/v1/metrics/${push.id}/points`,{method:"POST",headers:{"Content-Type":"application/json",Authorization:`Bearer ${token}`},body:JSON.stringify({points:submitted})});
     const tokenState=async()=>({points:(await fixture.db.prepare("SELECT * FROM metric_points ORDER BY metric_id,resolution,bucket").all()).results,audit:(await fixture.db.prepare("SELECT * FROM audit_entries ORDER BY id").all()).results,tokens:(await api("/api/app/management-tokens")).body.tokens});
     const beforeScope=await tokenState();

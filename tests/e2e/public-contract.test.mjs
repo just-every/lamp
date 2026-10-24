@@ -648,32 +648,51 @@ test("PAGE-013 PAGE-014 PAGE-008 PAGE-009 PAGE-003 — Public isolation, live ti
   try {
     const context = await browser.newContext({ timezoneId: "America/New_York" });
     const page = await context.newPage();
-    await page.clock.install({ time: new Date("2026-09-08T12:00:00.000Z") });
-    let polls = 0;
-    await page.route("**/api/public/status", async (route) => {
-      polls += 1;
-      await route.fulfill({ contentType: "application/json", body: JSON.stringify({ version: 1, generatedAt: "2026-09-08T12:00:30.000Z", overall: "Major outage", incident: { reference: "INC-123", title: "Live update", lifecycle: "Investigating", publishedAt: "2026-09-08T12:00:30.000Z", summary: "Investigating · Fresh customer update.", message: "Fresh customer update." } }) });
-    });
-    await page.goto(`${pageUrl}/`);
-    const timezoneLabel = page.locator("[data-timezone-label]");
-    const initialTimezoneLabel = await timezoneLabel.textContent();
-    assert.ok(initialTimezoneLabel.trim());
-    assert.equal(await timezoneLabel.getAttribute("data-timezone"), "America/Los_Angeles");
-    await page.clock.fastForward(30_000);
-    await page.waitForFunction(() => document.querySelector("[data-overall]")?.textContent === "Major outage");
-    assert.equal(polls, 1, "the script polls once at its 30-second cadence");
-    const live = page.locator("#status-live");
-    assert.equal(await live.getAttribute("aria-live"), "polite");
-    assert.equal(await live.getAttribute("aria-atomic"), "true");
-    assert.match(await live.innerText(), /Major outage[\s\S]*Fresh customer update/);
-    assert.equal(await timezoneLabel.textContent(), initialTimezoneLabel);
-    assert.equal(await timezoneLabel.getAttribute("data-timezone"), "America/Los_Angeles");
-    assert.equal(await page.locator("[data-generated-at] time").getAttribute("datetime"), "2026-09-08T12:00:30.000Z");
-    assert.equal(await page.locator("[data-generated-at] time").textContent(), "just now");
-    assertVisibleTime(await page.locator("[data-generated-at] time").getAttribute("title"), "2026-09-08T12:00:30.000Z", "America/Los_Angeles");
-    await page.clock.fastForward(90 * 60_000);
-    await page.waitForFunction(() => document.querySelector("[data-generated-at] time")?.textContent === "1 hour ago");
-    assertVisibleTime(await page.locator("[data-generated-at] time").getAttribute("title"), "2026-09-08T12:00:30.000Z", "America/Los_Angeles");
+    for (const width of [1440,390]) {
+      await page.setViewportSize({width,height:1000});
+      await page.goto(`${pageUrl}/`);
+      await page.clock.install();
+      const live=page.locator("#status-live");
+      assert.equal(await live.getAttribute("role"),"status","the live region exists on first load");
+      assert.equal(await live.getAttribute("aria-live"),"polite");
+      assert.equal(await live.getAttribute("aria-atomic"),"true");
+      const timezoneLabel=page.locator("[data-timezone-label]");
+      const initialTimezoneLabel=await timezoneLabel.textContent();
+      await page.evaluate(()=>{
+        window.liveChanges=[];
+        new MutationObserver(()=>window.liveChanges.push(document.querySelector('#status-live').textContent)).observe(document.querySelector('#status-live'),{subtree:true,childList:true,characterData:true});
+      });
+      const made=await appFetch("/api/app/incidents",{method:"POST",body:JSON.stringify({title:"synthetic-lamp-64",components:[{componentId:"01J00000000000000000000010",state:"Major outage",relationship:"Primary"}]})});
+      assert.equal(made.status,201);const incident=(await made.json()).incident;
+      for (const [lifecycle,impact] of [["Investigating","Requests are unavailable."],["Monitoring","Requests are recovering."],["Resolved","Requests are restored."]]) {
+        assert.equal((await appFetch(`/api/app/incidents/${incident.id}/draft`,{method:"PUT",body:JSON.stringify({lifecycle,affectedAudience:"Customers",customerImpact:impact,whatStillWorks:"The status page is available.",details:"",nextUpdateAt:null})})).status,200);
+        assert.equal((await appFetch(`/api/app/incidents/${incident.id}/publish`,{method:"POST",body:JSON.stringify({channels:[]})})).status,200);
+        // Wait for the real snapshot's readiness, then advance only this browser's polling clock.
+        let status;
+        const deadline=performance.now()+10_000;
+        do {
+          status=await (await fetch(`${pageUrl}/api/public/status`)).json();
+          if(lifecycle==="Resolved"?status.incident?.reference!==incident.reference:status.incident?.summary===`${lifecycle} · ${impact}`)break;
+          await new Promise(resolve=>setTimeout(resolve,100));
+        } while(performance.now()<deadline);
+        assert.ok(lifecycle==="Resolved"?status.incident?.reference!==incident.reference:status.incident?.summary===`${lifecycle} · ${impact}`,"publication reaches the real status response");
+        const response=page.waitForResponse(response=>response.url()===`${pageUrl}/api/public/status`&&response.status()===200);
+        await page.clock.fastForward(30_000);await response;
+        await page.waitForFunction(expected=>document.querySelector('[data-newest-update]')?.textContent===expected,status.incident?status.incident.summary:"There are no open incidents.");
+        const announcement=await live.innerText();
+        assert.ok(announcement.includes(status.overall));
+        assert.ok(announcement.includes(status.incident?status.incident.summary:"There are no open incidents."));
+        assert.ok(!announcement.includes(incident.id),"announcements contain no internal incident id");
+        assert.ok((await page.evaluate(()=>window.liveChanges.length))>0,"the persistent polite region receives changed text after publication");
+        await page.evaluate(()=>{window.liveChanges=[];});
+        const unchanged=page.waitForResponse(response=>response.url()===`${pageUrl}/api/public/status`&&response.status()===200);
+        await page.clock.fastForward(30_000);await unchanged;
+        await page.waitForFunction(()=>document.querySelector('[data-generated-at] time')?.textContent.length>0);
+        assert.deepEqual(await page.evaluate(()=>window.liveChanges),[],"an unchanged poll and relative timestamp render do not repeat the announcement");
+        assert.equal(await timezoneLabel.textContent(),initialTimezoneLabel);
+      }
+      await page.clock.uninstall();
+    }
     await context.close();
   } finally {
     await browser.close();
