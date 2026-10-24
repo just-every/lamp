@@ -660,7 +660,7 @@
       "executable": false
     },
     "management/integration/recipe.json": {
-      "sha256": "95b6a5ded9da19081130df98b84a1faeb51c7b103dd594f992848aee906f8605",
+      "sha256": "6647b46d8b1b96087363c0789d116c32f9f22368db022cd5e904ed353416e8ba",
       "executable": false
     },
     "management/integration/revision.ts": {
@@ -900,7 +900,7 @@
       "executable": false
     },
     "migrations/core/0057_component_deliveries.sql": {
-      "sha256": "d36d14f1ce05b7f0822a1491b8d8caab365e486530e3a9d90ae70c0c2929e935",
+      "sha256": "49a467d023cc7952b21daa5bc2dc8d184ac6958e85260ffc202f96dfe732911b",
       "executable": false
     },
     "migrations/core/0058_maintenance_wording.sql": {
@@ -2836,7 +2836,7 @@
       "executable": false
     },
     "scripts/test-owner-migrations.mjs": {
-      "sha256": "8d9cc2ca33785acddeefd01760370563db740acae80963e7ef76d8ee869ad731",
+      "sha256": "f6552602a0b89ec9bf52d103e4c7cd1b3455eded8daf562ab07de76a58e81465",
       "executable": false
     },
     "scripts/validate-release.mjs": {
@@ -3560,7 +3560,7 @@
       "executable": false
     },
     "src/core/features/deliveries/repository.ts": {
-      "sha256": "155252d3609430a966d403cae7b6d5e106b028c994a39e9627994c171630ee51",
+      "sha256": "da0239359b43486acc2141a88c190dd485c7f2dfd6c4a63b958f91d102c4bd7e",
       "executable": false
     },
     "src/core/features/deliveries/routes.ts": {
@@ -4608,7 +4608,7 @@
       "executable": false
     },
     "src/core/features/statuspage-import/native-tables.ts": {
-      "sha256": "99e67da0e4bafc5ba2078d5b1bbc46ec4f1365d2896cb51ed56c28297d74dba9",
+      "sha256": "b9503dd5962eb045af142ef9138c588bb0575f2c33bbc3c66a75b2395c0b2979",
       "executable": false
     },
     "src/core/features/statuspage-import/operating-notes.ts": {
@@ -6248,7 +6248,7 @@
       "executable": false
     },
     "tests/e2e/delivery-contract.test.mjs": {
-      "sha256": "b7ee502be6d5b518aabf32e356d03774aafc443877e087bf38e971767b1a8d83",
+      "sha256": "fc823f406d0c498c509b79b0566312061c8956720f5bf6104c2347ab20c7d4e6",
       "executable": false
     },
     "tests/e2e/deployment-artifact.test.mjs": {
@@ -6336,7 +6336,7 @@
       "executable": false
     },
     "tests/e2e/helpers/component-notification-flow.mjs": {
-      "sha256": "692ded014ea4b646d2a4f006e0d3490113e7af317b97792193336f5501b4194d",
+      "sha256": "2ecc7c71c692e3653b7731656112a9d70657856d9a60d3dd0bf510fcfb091e63",
       "executable": false
     },
     "tests/e2e/helpers/cutover-status-flow.mjs": {

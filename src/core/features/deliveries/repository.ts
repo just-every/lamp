@@ -145,6 +145,9 @@ export function createDeliveryRepository(binding: D1Database): DeliveryRepositor
   function updateStatements(fragment: string, values: (string | number | null)[]) {
     return deliveryTables.map(table => binding.prepare(`UPDATE ${table} AS d ${fragment}`).bind(...values));
   }
+  function deliveryAuthority(deliveryId: string) {
+    return binding.prepare("SELECT CASE WHEN EXISTS(SELECT 1 FROM notification_delivery_records WHERE id=?) THEN 1 ELSE json('Unknown delivery.') END").bind(deliveryId);
+  }
   function claimStatements(deliveryId: string, now: string, reclaimBefore: string) {
     return updateStatements(`SET dispatch_locked_at = ? WHERE id = ? AND outcome = 'queued'
       AND (dispatch_locked_at IS NULL OR dispatch_locked_at < ?)
@@ -216,13 +219,14 @@ export function createDeliveryRepository(binding: D1Database): DeliveryRepositor
       return Boolean(await binding.prepare("SELECT id FROM mail_send_ledger WHERE id = ?").bind(providerMessageId).first());
     },
     async recordAttempt(input) {
-      await binding.batch(attemptTables.map((table,index) => binding.prepare(`INSERT INTO ${table}
+      await binding.batch([deliveryAuthority(input.deliveryId), ...attemptTables.map((table,index) => binding.prepare(`INSERT INTO ${table}
         (id,delivery_id,attempt_number,attempted_at,provider_message_id,error,created_at,local_capture_id)
         SELECT ?,?,?,?,?,?,?,? WHERE EXISTS(SELECT 1 FROM ${deliveryTables[index]} WHERE id=?) ON CONFLICT DO NOTHING`)
-        .bind(input.id,input.deliveryId,input.attemptNumber,input.attemptedAt,input.providerMessageId,input.error,input.createdAt,input.localCaptureId ?? null,input.deliveryId)));
+        .bind(input.id,input.deliveryId,input.attemptNumber,input.attemptedAt,input.providerMessageId,input.error,input.createdAt,input.localCaptureId ?? null,input.deliveryId))]);
     },
     async recordAcceptedEmailAttempt(input) {
       const results = await binding.batch<Omit<PendingProviderEvent,"hardBounce"> & {hardBounce:number}>([
+        deliveryAuthority(input.deliveryId),
         ...attemptTables.map((table,index) => binding.prepare(`INSERT INTO ${table}
           (id,delivery_id,attempt_number,attempted_at,provider_message_id,error,created_at,local_capture_id)
           SELECT ?,?,(SELECT COUNT(*)+1 FROM ${table} WHERE delivery_id=?),?,?,NULL,?,NULL
@@ -230,7 +234,7 @@ export function createDeliveryRepository(binding: D1Database): DeliveryRepositor
           .bind(input.id,input.deliveryId,input.deliveryId,input.attemptedAt,input.providerMessageId,input.createdAt,input.deliveryId)),
         pendingEventsStatement(input.providerMessageId),
       ]);
-      return results[2].results.map(event => ({...event,hardBounce:Boolean(event.hardBounce)}));
+      return results[3].results.map(event => ({...event,hardBounce:Boolean(event.hardBounce)}));
     },
     async markOutcome(deliveryId, outcome, outcomeAt, updatedAt) {
       await binding.batch(updateStatements("SET outcome=?,outcome_at=?,updated_at=? WHERE id=?",[outcome,outcomeAt,updatedAt,deliveryId]));
@@ -330,8 +334,9 @@ export function createDeliveryRepository(binding: D1Database): DeliveryRepositor
       return result.meta.changes === 1;
     },
     async completeProviderEvent(eventId, deliveryId, now) {
-      await binding.prepare("UPDATE mail_provider_webhook_events SET applied_at = ?, delivery_id = (SELECT id FROM notification_deliveries WHERE id=?), component_delivery_id = (SELECT id FROM component_notification_deliveries WHERE id=?), claimed_at = NULL WHERE id = ? AND applied_at IS NULL")
-        .bind(now, deliveryId, deliveryId, eventId).run();
+      await binding.batch([deliveryAuthority(deliveryId),
+        binding.prepare("UPDATE mail_provider_webhook_events SET applied_at = ?, delivery_id = (SELECT id FROM notification_deliveries WHERE id=?), component_delivery_id = (SELECT id FROM component_notification_deliveries WHERE id=?), claimed_at = NULL WHERE id = ? AND applied_at IS NULL")
+          .bind(now, deliveryId, deliveryId, eventId)]);
     },
     async countConsecutiveOutcomes(subscriberId, channel, outcomes, limit) {
       // Outstanding newer work says nothing about the outcome sequence. Count

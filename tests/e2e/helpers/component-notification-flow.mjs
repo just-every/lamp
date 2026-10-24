@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
-import { eventuallySubscriber } from "./subscriber-management-fixture.mjs";
+import { createHmac } from "node:crypto";
+import { eventuallySubscriber, pageOrigin } from "./subscriber-management-fixture.mjs";
 
 /** Extend the existing real Statuspage receiver journey, never fabricate bodies. */
 export async function componentNotificationFlow({ fixture, component, subscriber, manageUrl, accepted, lampAccepted, receiverErrors }) {
@@ -67,8 +68,34 @@ export async function componentNotificationFlow({ fixture, component, subscriber
   const correction = await post(`/api/app/components/${component.id}/history-corrections`, { state: "Operational", startsAt: new Date(Date.now() - 120_000).toISOString(), endsAt: new Date(Date.now() - 60_000).toISOString(), reason: "Synthetic historical correction" });
   assert.equal(correction.status, 204, correction.text);
   await flush(1, 1);
+  const componentEmail = "synthetic-lamp-opted-component@example.test";
+  const optedEmail = await post("/api/app/subscribers", { channel: "email", email: componentEmail, componentIds: [component.id], eventKinds: ["components"] });
+  assert.equal(optedEmail.status,201,optedEmail.text);
+  await fixture.confirm(componentEmail);
+  const emailBeforeChange=fixture.messagesFor(componentEmail).length;
   assert.equal((await claim(null)).status, 200);
   await flush(2, 2);
+  const emailDeliveries=async()=>{
+    const response=await api("/api/app/deliveries?limit=100");assert.equal(response.status,200,response.text);
+    return response.body.deliveries.filter(row=>row.subscriberId===optedEmail.body.subscriber.id);
+  };
+  const [emailDelivery]=await eventuallySubscriber(emailDeliveries,rows=>rows.length===1 && Boolean(rows[0].providerAcceptedAt),"an explicitly selected component email crosses the real mail adapter once");
+  assert.equal(fixture.messagesFor(componentEmail).length,emailBeforeChange+1);
+  assert.ok(fixture.messagesFor(componentEmail).at(-1).text.includes(component.name));
+  const receipt=fixture.mailReceipts.find(row=>row.idempotencyKey===`notification/${emailDelivery.id}`);assert.ok(receipt);
+  const receiptId=`synthetic-lamp-component-receipt-${emailDelivery.id}`,timestamp=String(Math.floor(Date.now()/1000));
+  const receiptBody=JSON.stringify({type:"email.delivered",data:{email_id:receipt.id}});
+  const signature=createHmac("sha256",Buffer.from("synthetic-lamp-subscriber-receipts")).update(`${receiptId}.${timestamp}.${receiptBody}`).digest("base64url");
+  for(let replay=0;replay<2;replay++){
+    const response=await raw(`${pageOrigin}/api/intake/mail-events`,{method:"POST",headers:{"Content-Type":"application/json","svix-id":receiptId,"svix-timestamp":timestamp,"svix-signature":`v1,${signature}`},body:receiptBody});
+    assert.equal(response.status,200,"a signed component receipt and its replay retain the same delivery authority");
+  }
+  await eventuallySubscriber(emailDeliveries,rows=>rows.length===1 && rows[0].outcome==="delivered","the signed receipt reaches the component delivery's retained outcome");
+  assert.equal((await fixture.db.prepare("SELECT COUNT(*) n FROM component_delivery_attempts WHERE delivery_id=?").bind(emailDelivery.id).first()).n,1,"receipt replay does not resend component mail");
+  assert.deepEqual(await fixture.db.prepare("SELECT delivery_id,component_delivery_id FROM mail_provider_webhook_events WHERE provider_event_id=?").bind(receiptId).first(),{delivery_id:null,component_delivery_id:emailDelivery.id});
+  assert.equal((await api(`/api/app/subscribers/${optedEmail.body.subscriber.id}`,{method:"DELETE"})).status,204);
+  const erasedComponent=await fixture.db.prepare("SELECT outcome,mail_payload_json FROM component_notification_deliveries WHERE id=?").bind(emailDelivery.id).first();
+  assert.equal(erasedComponent.outcome,"delivered");assert.ok(!erasedComponent.mail_payload_json.includes(componentEmail),"erasure scrubs the component partition's frozen recipient while retaining its outcome");
 
   // Only component events were selected. An incident first publish and its
   // resolution each emit one old-to-new body without an incident carrier.
