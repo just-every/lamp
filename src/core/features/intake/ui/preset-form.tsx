@@ -1,3 +1,4 @@
+import { MetricsPanel } from "../../metrics/ui/metrics-panel";
 import { useState } from "react";
 
 import { appApi } from "../../../app/client/ui/api";
@@ -70,5 +71,6 @@ function EditPreset({ tool, source, components, onSaved, onClose }: { tool: Sing
     <SaveNote phase={autosave.phase} error={autosave.error} retry={autosave.retry} held={autosave.held} />
     <div className="tool-fields"><label className="form-label">Component<select required value={componentId} onChange={event => { setComponentId(event.target.value); autosave.save(body(source, tool, event.target.value), true); }}><ComponentOptions components={components} empty="Choose a component" required /></select></label></div>
     {address ? <ShownOnce fields={setupFields(tool, address)} onDone={() => setAddress(null)}>{SETUP[tool]}</ShownOnce> : <NewKey what="address" replace={newAddress} />}
+    {componentId&&(["datadog","newrelic","pingdom"] as string[]).includes(tool)&&<MetricsPanel key={componentId} componentId={componentId} sourceId={source.id} provider={tool as "datadog"|"newrelic"|"pingdom"} />}
   </section>;
 }

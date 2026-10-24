@@ -1,3 +1,4 @@
+import { registerMetricsRoutes } from "../features/metrics/routes";
 import { createSlackSubscriptionsService, registerSlackSubscriptionRoutes } from "../features/subscribers/slack-subscriptions";
 import { registerTeamsSubscriptionRoutes } from "../features/subscribers/teams-routes";
 import { registerChatDeskRoutes } from "../features/chat-desk";
@@ -73,7 +74,8 @@ export function createApp(bindings: AppBindings, execution?: MailExecution) {
   // Register the reserved mail-events endpoint before /api/intake/:sourceId.
   registerDeliveryRoutes(app, services.deliveries, { resendWebhookSecret: bindings.RESEND_WEBHOOK_SECRET, relaySecret: bindings.RER_MAIL_RELAY_SECRET, sendGridWebhookPublicKey: bindings.SENDGRID_WEBHOOK_PUBLIC_KEY, mailgunSigningKey: bindings.MAILGUN_WEBHOOK_SIGNING_KEY, sesEventTopicArn: bindings.SES_EVENT_TOPIC_ARN, postmarkWebhookSecret: bindings.POSTMARK_WEBHOOK_SECRET, secondaryMailProvider: bindings.MAIL_SECONDARY_PROVIDER, mailProvider: bindings.MAIL_PROVIDER, localMail });
   registerMailSettings(app,bindings);
-  registerIntakeRoutes(app, services.intake, { publicPageHost: bindings.LAMP_PAGE_HOST, rateLimiter: publicWriteLimiter });
+  registerMetricsRoutes(app, services.metrics);
+  registerIntakeRoutes(app, services.intake, { publicPageHost: bindings.LAMP_PAGE_HOST, onUptimeTiming: services.metrics.acceptUptime, rateLimiter: publicWriteLimiter });
   registerOperatorRoutes(app, services.auth, bindings.LAMP_PAGE_HOST, { localMail });
   registerOverviewRoutes(app, services.overview);
   registerAuditLogRoutes(app, createAuditLogRepository(bindings.DB));

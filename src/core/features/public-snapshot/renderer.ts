@@ -1,3 +1,4 @@
+import { publicMetricsSection } from "../metrics/public-chart";
 import { renderMaintenanceCalendar } from "./maintenance-calendar";
 import { renderPreferenceFields } from "../subscribers/preferences";
 import { publicMasthead } from "./page-chrome";
@@ -87,7 +88,7 @@ function toPublicModel(source: PublicSnapshotSource, generatedAt: string, polici
   const maintenance: PublicMaintenance[] = source.maintenance
     .map((item) => ({ ...item, components: attachedByMaintenance.get(item.id) ?? [], notices: noticesByMaintenance.get(item.id) ?? [], importedUpdates: (source.importedMaintenanceUpdates ?? []).filter(update => update.maintenanceId === item.id) }))
     .filter((item) => attachedMaintenanceIds.has(item.id));
-  return { websiteUrl: source.websiteUrl, origin: source.publicOrigin ?? `https://${source.settings.hostname}`, settings: source.settings, components, visibleComponents, incidents, maintenance, generatedAt, policies, overall: policies.pageStatusRollup(components.map((component) => component.state)) };
+  return { metrics: source.metrics ?? [], websiteUrl: source.websiteUrl, origin: source.publicOrigin ?? `https://${source.settings.hostname}`, settings: source.settings, components, visibleComponents, incidents, maintenance, generatedAt, policies, overall: policies.pageStatusRollup(components.map((component) => component.state)) };
 }
 
 export type PublicSnapshotModel = ReturnType<typeof toPublicModel>;
@@ -242,7 +243,7 @@ export function renderPublicSnapshot(source: PublicSnapshotSource, generatedAt =
   const model = toPublicModel(source, generatedAt, policies);
   const feeds = renderFeeds(model, source);
   const artifacts: SnapshotArtifact[] = [
-    { key: "page.html", body: renderPage(model, slots), contentType: "text/html; charset=utf-8" },
+    { key: "page.html", body: renderPage(model, slots).replace("<footer", publicMetricsSection(model.metrics, model.visibleComponents, model.generatedAt, model.settings.timezone) + "<footer"), contentType: "text/html; charset=utf-8" },
     ...feeds,
     { key: "maintenance.ics", body: renderMaintenanceCalendar(model), contentType: "text/calendar; charset=utf-8" },
     ...renderBadges(model),

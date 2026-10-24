@@ -1,3 +1,5 @@
+import { createMetricsRepository } from "../metrics/repository";
+import type { PublicMetric } from "../metrics/types";
 import { readImportedNamespaces, readImportedPublicRecords } from "../statuspage-import/alias-repository";
 import type { ImportedPublicRecord } from "../statuspage-import/public-addresses";
 import { loadPublicApiIds } from "./api-identity-repository";
@@ -35,6 +37,7 @@ export interface SnapshotRepository {
 }
 
 export interface PublicSnapshotSource {
+  metrics?: PublicMetric[];
   websiteUrl?: string | null;
   publicOrigin?: string;
   publicApiIds?: Record<string, string>;
@@ -163,7 +166,7 @@ export function createSnapshotRepository(binding: D1Database, publicOrigin?: str
         maintenance: maintenanceRows,
         maintenanceComponents: attachedMaintenanceComponents,
         reports,
-        maintenanceNotices, importedMaintenanceUpdates,
+        maintenanceNotices, importedMaintenanceUpdates, metrics: await createMetricsRepository(binding).publicSeries(),
       };
     },
     async startBuild(input) {

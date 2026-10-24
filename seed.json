@@ -411,6 +411,16 @@
         "Published update text, incident permalink and linked alert ID"
       ],
       "adapters": []
+    },
+    {
+      "id": "public-metric-queries",
+      "required": false,
+      "why": "UPTIME-008 and INTAKE-011: after an Owner or Admin connects a read-only key, query Datadog, New Relic, Pingdom or an owner-supplied public HTTPS Prometheus-compatible endpoint. Requests read aggregate values only, refuse redirects and private destinations, and never send subscriber or incident data. Query keys are sealed and excluded from archives.",
+      "data": [
+        "Owner-configured metric query, account or check ID and time window",
+        "Owner-supplied read-only provider key"
+      ],
+      "adapters": []
     }
   ],
   "env": [

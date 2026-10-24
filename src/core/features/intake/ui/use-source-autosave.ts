@@ -9,7 +9,7 @@ export type SavePhase = "saved" | "waiting" | "saving" | "error";
  * One write at a time, always the newest choices. As in Settings, closing the form, leaving Alerts and signing out wait
  * for them; a refused write keeps the owner on the form and brings its reason and Retry into view (`held`). A form that
  * goes anyway (its tool removed) still sends what is pending. */
-export function useSourceAutosave(sourceId: string, onSaved: () => void) {
+export function useSourceAutosave(sourceId: string, onSaved: () => void, resourcePath = "/api/app/intake/sources") {
   const [phase, setPhase] = useState<SavePhase>("saved");
   const [error, setError] = useState<string | null>(null);
   const [held, setHeld] = useState(0);
@@ -26,7 +26,7 @@ export function useSourceAutosave(sourceId: string, onSaved: () => void) {
     q.sending = true;
     if (q.mounted) setPhase("saving");
     try {
-      await appApi(`/api/app/intake/sources/${sourceId}`, { method: "PUT", body: q.body, keepalive });
+      await appApi(`${resourcePath}/${sourceId}`, { method: "PUT", body: q.body, keepalive });
       q.completed = revision;
       // A closed form's last write still refreshes the tool's row.
       notify.current();
@@ -50,11 +50,11 @@ export function useSourceAutosave(sourceId: string, onSaved: () => void) {
       if (!q.sending) { void flush(true); return; }
       if (q.unloadSent === q.revision || !pending()) return;
       q.unloadSent = q.revision;
-      void appApi(`/api/app/intake/sources/${sourceId}`, { method: "PUT", body: q.body, keepalive: true }).catch(() => undefined);
+      void appApi(`${resourcePath}/${sourceId}`, { method: "PUT", body: q.body, keepalive: true }).catch(() => undefined);
     };
     window.addEventListener("pagehide", unload);
     return () => { window.removeEventListener("pagehide", unload); q.mounted = false; void flush(); };
-  }, [sourceId]);
+  }, [sourceId, resourcePath]);
 
   /** Whether the owner may leave the form now: its newest choices save first, and a refused save holds them on it. */
   async function leave() {

@@ -16,7 +16,7 @@ function withEndpointUrl(source: AlertSourceView, requestUrl: string, publicPage
   return { ...source, endpointUrl: `${publicPageOrigin(requestUrl, publicPageHost)}${source.endpointPath}` };
 }
 
-export function registerIntakeRoutes(app: Hono<AppEnv>, service: IntakeService, options: { publicPageHost: string; rateLimiter?: PublicWriteRateLimiter }) {
+export function registerIntakeRoutes(app: Hono<AppEnv>, service: IntakeService, options: { publicPageHost: string; onUptimeTiming?: (sourceId:string,rawBody:string)=>Promise<void>; rateLimiter?: PublicWriteRateLimiter }) {
   const endpointView = (source: AlertSourceView, requestUrl: string) => withEndpointUrl(source, requestUrl, options.publicPageHost);
   app.get("/api/app/intake/sources", async (context) => context.json({ sources: (await service.listSources()).map((source) => endpointView(source, context.req.url)) }));
   app.get("/api/app/intake/receipts", async (context) => {
@@ -37,6 +37,7 @@ export function registerIntakeRoutes(app: Hono<AppEnv>, service: IntakeService, 
       const verified = await service.authenticate(context.req.param("sourceId"), context.req.raw, context.req.param("token"));
       if (options.rateLimiter && !(await options.rateLimiter.allow({ scope: "intake", subject: verified.source.id, limit: 120 }))) return context.json({ error: "Too many intake requests." }, 429);
       const accepted = await service.acceptVerified(verified);
+      if(verified.source.preset==="uptime" && accepted.status===202) await options.onUptimeTiming?.(verified.source.id,verified.rawBody);
       return context.json(accepted, accepted.status);
     } catch (cause) { if (cause instanceof UnauthorizedAlertError) return context.json({ error: "Invalid alert credential." }, 401); if (cause instanceof AlertSourceNotFoundError) return context.json({ error: "Alert source not found." }, 404); if (cause instanceof SyntaxError) return context.json({ error: "Alert payload must be JSON." }, 400); return context.json({ error: cause instanceof Error ? cause.message : "The alert could not be accepted." }, 500); }
   });
