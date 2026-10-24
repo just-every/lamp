@@ -86,7 +86,7 @@ test('ACCESS-001 INTAKE-009 native rer archive restores owner continuity and sub
     const signingSecret = 'synthetic-lamp-transfer-signing-1';
     const transferredApp = createApp({ ...current.env, AUTH_ORIGIN: fresh.origin,
       LAMP_APP_HOST: new URL(fresh.origin).host, LAMP_PAGE_HOST: 'status.example.test',
-      SESSION_SECRET: secret, SLACK_SIGNING_SECRET: signingSecret,
+      SESSION_SECRET: secret, SETUP_OPERATOR_EMAIL: session.operator.email, SLACK_SIGNING_SECRET: signingSecret,
       SUBSCRIBER_TOKEN_SECRET: 'portable-subscriber-secret', MAIL_FROM_ADDRESS: 'lamp@example.test' });
     t.mock.timers.enable({ apis: ['Date'], now: afterTransfer });
     try {

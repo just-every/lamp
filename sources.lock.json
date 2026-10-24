@@ -6144,7 +6144,7 @@
       "executable": false
     },
     "tests/auth-adoption/portability.test.mjs": {
-      "sha256": "580c0fa46e37c08c806b0fdff463c2effcd2e0f27608dbc630aaad437a73ab09",
+      "sha256": "e9b8986b3cce6559a0c3e7e2b1491bd23535e480723c302f472d04c86949f111",
       "executable": false
     },
     "tests/auth-adoption/runtime.mjs": {
