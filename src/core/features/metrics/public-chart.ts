@@ -18,7 +18,7 @@ function chart(metric:PublicMetric,component:string,generatedAt:string,zone:stri
   const chunks=segments(points), latest=points.at(-1);
   const title=`${component} · ${metric.name}`;
   const source={push:"the management API",uptime:"Uptime event timings",datadog:"Datadog",newrelic:"New Relic",pingdom:"Pingdom",prometheus:"Prometheus"}[metric.source];
-  const summary=latest?`${number(latest.value)} ${metric.unit}. Last 24 hours: ${number(Math.min(...points.map(p=>p.value)))} to ${number(Math.max(...points.map(p=>p.value)))} ${metric.unit}. Minute averages from ${source}.`:`No data in the last 24 hours. Source: ${source}.`;
+  const summary=latest?`${number(latest.value)} ${metric.unit}. Last 24 hours: ${number(Math.min(...points.map(p=>p.value)))} to ${number(Math.max(...points.map(p=>p.value)))} ${metric.unit}. ${metric.source==="uptime"?"Latest response time per minute":"Minute averages"} from ${source}.`:`No data in the last 24 hours. Source: ${source}.`;
   const gaps:string[]=[];
   for(let i=Math.max(1,chunks.length-3);i<chunks.length;i++) {
     const stopped=chunks[i-1].at(-1)!.at, resumed=chunks[i][0].at;

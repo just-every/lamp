@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useId, useState } from "react";
 
 import { appApi } from "../../../app/client/ui/api";
 import { Button } from "../../../app/client/ui/button";
@@ -57,6 +57,7 @@ function ConnectPreset({ tool, name, components, onConnected, onClose }: { tool:
 }
 
 function EditPreset({ tool, source, components, onSaved, onClose }: { tool: SingleTool; source: Source; components: ComponentOption[]; onSaved: () => void; onClose: () => void }) {
+  const entityLabel = useId();
   const autosave = useSourceAutosave(source.id, onSaved);
   const [componentId, setComponentId] = useState(source.componentId ?? "");
   const [entities, setEntities] = useState((source.labelMatchers ?? []).map(row => row.labels.entity_name).join("\n"));
@@ -70,7 +71,7 @@ function EditPreset({ tool, source, components, onSaved, onClose }: { tool: Sing
     <ToolHeading title={source.name} does={toolDoes(tool)} close={{ label: "Close", onClick: onClose }} />
     <SaveNote phase={autosave.phase} error={autosave.error} retry={autosave.retry} held={autosave.held} />
     <div className="tool-fields"><label className="form-label">Component<select required value={componentId} onChange={event => { setComponentId(event.target.value); autosave.save(body(source, tool, event.target.value, entities), true); }}><ComponentOptions components={components} empty="Choose a component" required /></select></label></div>
-    {tool === "newrelic" && <div className="tool-fields"><label className="form-label">Entity names<textarea maxLength={3000} value={entities} onChange={event => { setEntities(event.target.value); autosave.save(body(source, tool, componentId, event.target.value)); }} /></label><p className="tool-note">One exact entity name per line. Leave empty to attach all workflow issues to this component.</p></div>}
+    {tool === "newrelic" && <div className="tool-fields"><label className="form-label"><span id={entityLabel}>Entity names</span><textarea aria-labelledby={entityLabel} maxLength={3000} value={entities} onChange={event => { setEntities(event.target.value); autosave.save(body(source, tool, componentId, event.target.value)); }} /></label><p className="tool-note">One exact entity name per line. Leave empty to attach all workflow issues to this component.</p></div>}
     {address ? <ShownOnce fields={setupFields(tool, address)} onDone={() => setAddress(null)}>{SETUP[tool]}</ShownOnce> : <NewKey what="address" replace={newAddress} />}
   </section>;
 }

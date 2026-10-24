@@ -6,9 +6,11 @@ import { operatorHydrated } from "./operator-hydrated.mjs";
 export async function metricsBrowserFlow({api,post,component,origin,cookie}) {
   const target=await component("synthetic-lamp-60");
   const browser=await chromium.launch({headless:true,args:["--use-mock-keychain","--password-store=basic"]});
+  let proofPage,proofErrors=[];
   try {
     const context=await browser.newContext();await context.addCookies(cookie.split("; ").map(pair=>({name:pair.slice(0,pair.indexOf("=")),value:pair.slice(pair.indexOf("=")+1),url:origin})));
     const page=await context.newPage(),errors=[];page.on("pageerror",error=>errors.push(error.message));page.on("console",message=>{if(message.type()==="error"&&/hydrat|did not match|server rendered/i.test(message.text()))errors.push(message.text());});
+    proofPage=page;proofErrors=errors;
     if(process.env.LAMP_SCREENSHOTS)await mkdir(process.env.LAMP_SCREENSHOTS,{recursive:true});
     const list=async()=>{const result=await api(`/api/app/metrics?componentId=${target.id}`);assert.equal(result.status,200,result.text);return result.body.metrics;};
     async function openComponent(){await page.goto(origin+"/app/components");await operatorHydrated(page);await page.locator("article.component-row").filter({has:page.getByText(target.name,{exact:true})}).getByRole("button",{name:"Edit component",exact:true}).click();return page.getByRole("dialog",{name:target.name,exact:true});}
@@ -44,5 +46,12 @@ export async function metricsBrowserFlow({api,post,component,origin,cookie}) {
       const axe=await new AxeBuilder({page}).withTags(["wcag2a","wcag2aa","wcag21a","wcag21aa","wcag22aa"]).analyze();assert.deepEqual(axe.violations.filter(v=>["serious","critical"].includes(v.impact)).map(v=>({id:v.id,nodes:v.nodes.map(n=>n.target)})),[],`${name}: no serious axe finding`);
       if(process.env.LAMP_SCREENSHOTS)await scope.screenshot({path:`${process.env.LAMP_SCREENSHOTS}/${page.viewportSize().width}-metrics-${name}.png`});
     }
+  }catch(cause){
+    if(proofPage&&!proofPage.isClosed()){
+      console.error("Metric setup page errors:",proofErrors);
+      console.error("Metric setup visible dialog:",await proofPage.evaluate(()=>Array.from(document.querySelectorAll("dialog[open]")).map(dialog=>dialog.innerText)));
+      if(process.env.LAMP_SCREENSHOTS)await proofPage.screenshot({path:`${process.env.LAMP_SCREENSHOTS}/${proofPage.viewportSize().width}-metrics-failure.png`,fullPage:true});
+    }
+    throw cause;
   }finally{await browser.close();}
 }
