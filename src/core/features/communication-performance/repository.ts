@@ -35,11 +35,11 @@ export function createCommunicationPerformanceRepository(db: D1Database): Commun
         // retried delivery never multiplies committed, outcome or reach counts.
         db.prepare(`${cohort}, accepted AS (
           SELECT a.delivery_id,MIN(a.attempted_at) AS acceptedAt FROM cohort i
-          JOIN incident_updates u ON u.incident_id = i.id JOIN notification_deliveries d ON d.incident_update_id = u.id
-          JOIN notification_delivery_attempts a ON a.delivery_id = d.id
+          JOIN incident_updates u ON u.incident_id = i.id JOIN notification_delivery_records d ON d.incident_update_id = u.id
+          JOIN notification_attempt_records a ON a.delivery_id = d.id
           WHERE a.provider_message_id IS NOT NULL AND a.error IS NULL AND julianday(a.attempted_at) <= julianday(?) GROUP BY a.delivery_id
         ), facts AS (
-          SELECT d.*,u.incident_id,a.acceptedAt FROM notification_deliveries d
+          SELECT d.*,u.incident_id,a.acceptedAt FROM notification_delivery_records d
           JOIN incident_updates u ON u.id = d.incident_update_id JOIN cohort i ON i.id = u.incident_id
           LEFT JOIN accepted a ON a.delivery_id = d.id WHERE julianday(d.created_at) <= julianday(?)
         ), scopes AS (
@@ -54,8 +54,8 @@ export function createCommunicationPerformanceRepository(db: D1Database): Commun
           FROM scopes GROUP BY scopeId,channel`).bind(...parameters, scope.measuredAt, scope.measuredAt),
         db.prepare(`${cohort}, facts AS (
           SELECT p.incident_update_id AS updateId,u.incident_id AS incidentId,d.kind,COALESCE(x.state,'queued') AS state
-          FROM cohort i JOIN incident_updates u ON u.incident_id = i.id JOIN channel_posts p ON p.incident_update_id = u.id
-          JOIN channel_destinations d ON d.id = p.destination_id
+          FROM cohort i JOIN incident_updates u ON u.incident_id = i.id JOIN delivery_channel_posts p ON p.incident_update_id = u.id
+          JOIN delivery_channel_destinations d ON d.id = p.destination_id
           LEFT JOIN integration_deliveries x ON x.namespace = 'lamp-channels' AND x.id = p.id WHERE julianday(p.queued_at) <= julianday(?)
         ), scopes AS (
           SELECT 'update:' || updateId AS scopeId,* FROM facts UNION ALL SELECT 'incident:' || incidentId AS scopeId,* FROM facts UNION ALL SELECT 'month' AS scopeId,* FROM facts

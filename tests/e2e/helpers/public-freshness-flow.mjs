@@ -22,7 +22,7 @@ export async function publicFreshnessFlow({ appFetch, appUrl, pageUrl, diagnosti
   const publish = () => mutate(`/api/app/incidents/${incident.id}/publish`, "POST", { channels: [] });
   await draft("Investigating", "Initial customer impact.");
   await publish();
-  const { maintenance } = await mutate("/api/app/maintenance", "POST", {
+  const { maintenance } = await mutate("/api/app/maintenance", "POST", { affectedAudience: "Customers using the scheduled service.", customerImpact: "Requests may be interrupted during this maintenance window.",
     title: "Cache freshness maintenance", componentIds: [component.id],
     startsAt: new Date(Date.now() + 3600000).toISOString(), endsAt: new Date(Date.now() + 7200000).toISOString(),
   }, 201);

@@ -202,6 +202,8 @@ export const maintenance = sqliteTable("maintenance", {
   id: text().primaryKey(),
   reference: text().notNull().unique(),
   title: text().notNull(),
+  affectedAudience: text("affected_audience"),
+  customerImpact: text("customer_impact"),
   state: text({ enum: ["Scheduled", "In progress", "Completed", "Cancelled"] }).$type<MaintenanceState>().notNull(),
   startsAt: text("starts_at").notNull(),
   endsAt: text("ends_at").notNull(),
@@ -219,9 +221,11 @@ export const maintenanceComponents = sqliteTable("maintenance_components", {
   ...timestamps,
 }, (table) => [index("maintenance_components_maintenance_id_idx").on(table.maintenanceId)]);
 
-export const subscribers = sqliteTable("subscribers", {
+const subscribersColumns = () => ({
   id: text().primaryKey(),
-  channel: text({ enum: ["email", "webhook"] }).$type<DeliveryChannel>().notNull(),
+  channel: text({ enum: ["email", "webhook", "slack", "teams"] }).$type<DeliveryChannel | "slack" | "teams">().notNull(),
+  eventKindsJson: text("event_kinds_json").notNull().default('["incidents","maintenance","components"]'),
+  minimumImpact: text("minimum_impact", { enum: ["Partially unavailable"] }),
   destination: text().notNull().unique(),
   contactEmail: text("contact_email"),
   state: text({ enum: ["pending", "active", "deactivated"] }).$type<SubscriberState>().notNull(),
@@ -230,7 +234,9 @@ export const subscribers = sqliteTable("subscribers", {
   deactivationReason: text("deactivation_reason"),
   deactivatedAt: text("deactivated_at"),
   ...timestamps,
-}, (table) => [index("subscribers_state_idx").on(table.state)]);
+});
+export const subscriberDirectory = sqliteTable("subscriber_directory", subscribersColumns());
+export const subscribers = sqliteTable("subscribers", subscribersColumns(), (table) => [index("subscribers_state_idx").on(table.state)]);
 
 export const subscriberComponents = sqliteTable("subscriber_components", {
   id: text().primaryKey(),
@@ -239,7 +245,7 @@ export const subscriberComponents = sqliteTable("subscriber_components", {
   ...timestamps,
 }, (table) => [uniqueIndex("subscriber_components_subscriber_component_idx").on(table.subscriberId, table.componentId)]);
 
-export const notificationDeliveries = sqliteTable("notification_deliveries", {
+const notificationDeliveriesColumns = () => ({
   id: text().primaryKey(),
   subscriberId: text("subscriber_id").notNull().references(() => subscribers.id),
   incidentUpdateId: text("incident_update_id").references(() => incidentUpdates.id),
@@ -249,7 +255,9 @@ export const notificationDeliveries = sqliteTable("notification_deliveries", {
   queuedAt: text("queued_at").notNull(),
   outcomeAt: text("outcome_at"),
   ...timestamps,
-}, (table) => [
+});
+export const deliveryRecords = sqliteTable("notification_delivery_records", notificationDeliveriesColumns());
+export const notificationDeliveries = sqliteTable("notification_deliveries", notificationDeliveriesColumns(), (table) => [
   index("notification_deliveries_subscriber_idx").on(table.subscriberId, table.queuedAt),
   index("notification_deliveries_update_idx").on(table.incidentUpdateId, table.queuedAt),
 ]);

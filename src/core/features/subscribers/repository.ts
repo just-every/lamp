@@ -1,7 +1,8 @@
+import { createSubscriberPreferencesRepository } from "./preferences.repository";
 import { and, asc, eq, gt, isNull, sql } from "drizzle-orm";
 
 import { createDatabase } from "../../platform/db/client";
-import { componentGroups, components, subscriberComponents, subscribers } from "../../shared/schema";
+import { componentGroups, components, subscriberComponents, subscribers, subscriberDirectory } from "../../shared/schema";
 import { publicComponentOrder } from "../../shared/component-order";
 import { subscriberTokens } from "../deliveries/schema";
 import { createUlid } from "../../shared/ids";
@@ -10,6 +11,8 @@ import { createSubscriberTransitions, type SubscriberTransitions } from "./trans
 import { retireSubscriberCustody, subjectsInCustody } from "../statuspage-import/custody";
 import type { D1Sql } from "../../../../modules/import-kit/src/d1/index.ts";
 import { createSubscriberIntakeRepository, type SubscriberIntakeRepository } from "./intake.repository";
+import { createSubscriberLimitRepository } from "./limits.repository";
+import { SubscriberLimitError } from "./limits";
 import { createWebhookFormatRepository } from "./webhook-format.repository";
 
 export type StoredSubscriber = typeof subscribers.$inferSelect;
@@ -18,7 +21,9 @@ export type StoredSubscriberToken = typeof subscriberTokens.$inferSelect;
 export type SubscriptionMailKind = "confirmation" | "already-subscribed" | "subscribed";
 
 export interface SubscriberRepository extends SubscriberTransitions {
+  preferences: ReturnType<typeof createSubscriberPreferencesRepository>;
   intake: SubscriberIntakeRepository;
+  limits: ReturnType<typeof createSubscriberLimitRepository>;
   formats: ReturnType<typeof createWebhookFormatRepository>;
   listSubscribers(limit: number, offset?: number): Promise<StoredSubscriber[]>;
   listComponents(subscriberId: string): Promise<StoredSubscriberComponent[]>;
@@ -45,11 +50,13 @@ export interface SubscriberRepository extends SubscriberTransitions {
 export function createSubscriberRepository(binding: D1Database): SubscriberRepository {
   const database = createDatabase(binding);
   return {
+    preferences: createSubscriberPreferencesRepository(binding),
     intake: createSubscriberIntakeRepository(binding),
+    limits: createSubscriberLimitRepository(binding),
     formats: createWebhookFormatRepository(binding),
     ...createSubscriberTransitions(binding),
     async listSubscribers(limit, offset = 0) {
-      return database.select().from(subscribers).orderBy(asc(subscribers.createdAt)).limit(limit).offset(offset).all();
+      return database.select().from(subscriberDirectory).orderBy(asc(subscriberDirectory.createdAt)).limit(limit).offset(offset).all();
     },
     async listComponents(subscriberId) {
       return database.select().from(subscriberComponents).where(eq(subscriberComponents.subscriberId, subscriberId)).all();
@@ -63,30 +70,30 @@ export function createSubscriberRepository(binding: D1Database): SubscriberRepos
       return publicComponentOrder(rows).map(({ id, name }) => ({ id, name }));
     },
     async findSubscriber(subscriberId) {
-      return (await database.select().from(subscribers).where(eq(subscribers.id, subscriberId)).get()) ?? null;
+      return (await database.select().from(subscriberDirectory).where(eq(subscriberDirectory.id, subscriberId)).get()) ?? null;
     },
     async findSubscriberByDestination(destination) {
-      return (await database.select().from(subscribers).where(eq(subscribers.destination, destination)).get()) ?? null;
+      return (await database.select().from(subscriberDirectory).where(eq(subscriberDirectory.destination, destination)).get()) ?? null;
     },
     async findSubscriberByToken(tokenHash, scope, now) {
-      const row = await database.select({ subscriber: subscribers, token: subscriberTokens }).from(subscriberTokens)
-        .innerJoin(subscribers, eq(subscriberTokens.subscriberId, subscribers.id))
+      const row = await database.select({ subscriber: subscriberDirectory, token: subscriberTokens }).from(subscriberTokens)
+        .innerJoin(subscriberDirectory, eq(subscriberTokens.subscriberId, subscriberDirectory.id))
         .where(and(eq(subscriberTokens.tokenHash, tokenHash), eq(subscriberTokens.scope, scope), isNull(subscriberTokens.revokedAt), gt(subscriberTokens.expiresAt, now))).get();
       // Non-expiring manage and unsubscribe tokens have a NULL expires_at.
       if (row) return row;
-      return (await database.select({ subscriber: subscribers, token: subscriberTokens }).from(subscriberTokens)
-        .innerJoin(subscribers, eq(subscriberTokens.subscriberId, subscribers.id))
+      return (await database.select({ subscriber: subscriberDirectory, token: subscriberTokens }).from(subscriberTokens)
+        .innerJoin(subscriberDirectory, eq(subscriberTokens.subscriberId, subscriberDirectory.id))
         .where(and(eq(subscriberTokens.tokenHash, tokenHash), eq(subscriberTokens.scope, scope), isNull(subscriberTokens.revokedAt), isNull(subscriberTokens.expiresAt))).get()) ?? null;
     },
     async createPendingSubscriber(input) {
-      await database.insert(subscribers).values(input).onConflictDoUpdate({
+      try { await database.insert(subscribers).values(input).onConflictDoUpdate({
         target: subscribers.destination,
         set: { state: input.state, selectionMode: input.selectionMode, deactivationReason: null, deactivatedAt: null,
           // A fresh opt-in starts a fresh pending lifetime. Ordinary repeated
           // requests and import invitations retain their original deadline.
           createdAt: sql`CASE WHEN ${subscribers.state} = 'deactivated' THEN ${input.createdAt} ELSE ${subscribers.createdAt} END`,
           updatedAt: input.updatedAt },
-      });
+      }); } catch(cause) {if(cause instanceof Error && cause.message.includes("over the subscriber limit"))throw new SubscriberLimitError();throw cause;}
     },
     async updateSelection(subscriberId, componentIds, now) {
       const statements: D1PreparedStatement[] = [binding.prepare("DELETE FROM subscriber_components WHERE subscriber_id = ?").bind(subscriberId)];
@@ -128,7 +135,7 @@ export function createSubscriberRepository(binding: D1Database): SubscriberRepos
       // after the same subscriber row has opted out and joined again.
       const authorized = `EXISTS (
         SELECT 1 FROM subscriber_tokens AS permission
-        JOIN subscribers ON subscribers.id = permission.subscriber_id
+        JOIN subscriber_directory AS subscribers ON subscribers.id = permission.subscriber_id
         WHERE subscribers.id = ? AND subscribers.state = 'active'
           AND permission.token_hash = ? AND permission.scope = 'manage'
           AND permission.revoked_at IS NULL
@@ -183,13 +190,14 @@ export function createSubscriberRepository(binding: D1Database): SubscriberRepos
       // cannot outlive an operator-initiated subscriber deletion. Only this
       // subscriber's own envelopes are rewritten; alert text never carries an
       // address, and another person's address may contain this one.
-      const redactions = personalValues.map((value): D1Sql => ({
-        sql: "UPDATE notification_deliveries SET mail_payload_json = replace(mail_payload_json, ?, ?) WHERE subscriber_id = ? AND mail_payload_json IS NOT NULL",
+      const redactions = personalValues.flatMap((value) => ["notification_deliveries", "component_notification_deliveries"].map((table): D1Sql => ({
+        sql: `UPDATE ${table} SET mail_payload_json = replace(mail_payload_json, ?, ?) WHERE subscriber_id = ? AND mail_payload_json IS NOT NULL`,
         params: [value, replacement, subscriberId],
-      }));
+      })));
       const native: D1Sql[] = [
         ...removeRecipients,
         ...redactions,
+        { sql: "DELETE FROM subscriber_chat_destinations WHERE subscriber_id = ?", params: [subscriberId] },
         { sql: "UPDATE subscribers SET destination = ?, contact_email = NULL, state = 'deactivated', deactivation_reason = 'deleted by operator', deactivated_at = ?, updated_at = ? WHERE id = ?", params: [`deleted:${subscriberId}`, now, now, subscriberId] },
         { sql: "UPDATE subscriber_tokens SET revoked_at = ?, updated_at = ? WHERE subscriber_id = ? AND revoked_at IS NULL", params: [now, now, subscriberId] },
       ];
@@ -209,7 +217,7 @@ export function createSubscriberRepository(binding: D1Database): SubscriberRepos
       await binding.batch([...native, audit].map((statement) => binding.prepare(statement.sql).bind(...statement.params ?? [])));
     },
     async deleteExpiredPending(cutoff, custodyErasures) {
-      const expired = (await binding.prepare("SELECT id, destination, contact_email FROM subscribers WHERE state = 'pending' AND created_at < ?").bind(cutoff).all<{ id: string; destination: string; contact_email: string | null }>()).results;
+      const expired = (await binding.prepare("SELECT id, destination, contact_email FROM subscriber_directory AS subscribers WHERE state = 'pending' AND created_at < ?").bind(cutoff).all<{ id: string; destination: string; contact_email: string | null }>()).results;
       if (!expired.length) return;
       // An unconfirmed subscriber an import holds leaves import custody with
       // its row; the rest are ordinary deletions.
@@ -225,7 +233,7 @@ export function createSubscriberRepository(binding: D1Database): SubscriberRepos
         const deletion: D1Sql = { sql: "DELETE FROM subscribers WHERE id = ? AND state = 'pending' AND created_at < ?", params: [subject.id, cutoff] };
         // Admitted while the row is still expired and unconfirmed, and after its deletion.
         const marker: D1Sql = { sql: "DELETE FROM statuspage_import_targets WHERE kind = 'subscriber' AND id = ?", params: [subject.id] };
-        await retireSubscriberCustody(binding, subject, [marker], [subscriberExpiryAudit({ sql: "id = ? AND state = 'pending' AND created_at < ?", params: [subject.id, cutoff] }, at), deletion], { principalId: "lamp:pending-expiry", authority: { sql: "NOT EXISTS(SELECT 1 FROM subscribers WHERE id = ? AND (state <> 'pending' OR created_at >= ?))", params: [subject.id, cutoff] } });
+        await retireSubscriberCustody(binding, subject, [marker], [subscriberExpiryAudit({ sql: "id = ? AND state = 'pending' AND created_at < ?", params: [subject.id, cutoff] }, at), deletion], { principalId: "lamp:pending-expiry", authority: { sql: "NOT EXISTS(SELECT 1 FROM subscriber_directory AS subscribers WHERE id = ? AND (state <> 'pending' OR created_at >= ?))", params: [subject.id, cutoff] } });
       }
     },
     async recordConfirmationSendIfAllowed(emailHash, cutoff, now) {

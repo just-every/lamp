@@ -637,6 +637,8 @@ test("PAGE-013 PAGE-014 PAGE-008 PAGE-009 PAGE-003 — Public isolation, live ti
     assert.equal(response.headers.get("content-security-policy"), `default-src ${origin}; script-src ${origin}; style-src ${origin}; font-src 'self' data:; img-src ${origin}; connect-src ${origin}; form-action ${origin}; base-uri ${origin}; frame-ancestors 'none'; object-src 'none'`);
     assert.equal(response.headers.get("x-content-type-options"), "nosniff");
     assert.equal(response.headers.get("referrer-policy"), "strict-origin-when-cross-origin");
+    // Complete each real response before starting the next connection.
+    await response.arrayBuffer();
   }
 })(t);
   t.diagnostic("PAGE-014 — browser polling updates status in place without changing the configured timezone");
