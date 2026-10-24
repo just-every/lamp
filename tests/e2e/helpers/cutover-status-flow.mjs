@@ -2,7 +2,6 @@ import assert from 'node:assert/strict';
 import { createHash, createHmac, generateKeyPairSync, randomUUID, sign } from 'node:crypto';
 import { readdirSync, readFileSync } from 'node:fs';
 import { nativeRequest, openNativeRuntime, origin, operator, publicOrigin } from '../../dev-ingress/runtime.mjs';
-import { appOrigin } from './hosts.mjs';
 import { signInAs } from '@runeditrun/rer/internal/modules/operator-auth/dev/sign-in-as.mjs';
 import { devKey } from '../../helpers/dev-key.mjs';
 import { moveInDoor } from '../../helpers/import-notifications.mjs';
@@ -35,7 +34,6 @@ export async function cutoverStatusFlow() {
     return { ...JSON.parse(response.text), text: response.text };
   };
   const runtime = await openNativeRuntime({ fixtureVars: trust });
-  const port = new URL(origin).port;
   try {
     await runtime.start(); await runtime.seedOperator();
     const cookie = (await signInAs({ origin, key: devKey })).header;
@@ -135,8 +133,12 @@ export async function cutoverStatusFlow() {
 
     // Self-hosted, without Run Edit Run's trust, the route does not exist.
     await runtime.stop();
-    appOrigin(port, {});
-    await runtime.start();
+    await runtime.start({ fixtureVars: {} });
     assert.equal((await read(grant())).status, 404);
+    assert.equal((await read(undefined)).status, 404, 'no trust, unsigned');
+    await runtime.stop();
+    await runtime.start();
+    assert.equal((await read(grant())).status, 404, 'trust removal survives restart');
+    assert.equal((await read(undefined)).status, 404, 'no trust after restart, unsigned');
   } finally { await runtime.close(); }
 }

@@ -56,7 +56,10 @@ export async function openNativeRuntime({ fixtureVars = {} } = {}) {
       // the local Wrangler sender; an empty stored sender disables sign-in mail.
       execFileSync('pnpm', ['exec', 'wrangler', 'd1', 'execute', 'DB', '--local', '--persist-to', state, '--config', 'wrangler.jsonc', '--command', `INSERT INTO oa_operators (id,email,display_name,role,status,created_at) VALUES ('01J00000000000000000000091','${operator}','Ingress test operator','owner','active',${Date.now()}); INSERT INTO oa_bootstrap (singleton,claim_id,claimed_at) VALUES (1,'01J00000000000000000000091',${Date.now()}); INSERT INTO page_settings (id,page_name,tagline,accent_color,timezone,hostname,feed_id,mail_from_address,created_at,updated_at) VALUES ('default','Ingress fixture','Local native mail test','#123456','UTC','${new URL(fixturePublicOrigin).hostname}',lower(hex(randomblob(16))),'lamp@localhost.invalid','2026-10-06','2026-10-06'); INSERT INTO setup_readiness (step,evidence_key,checked_at) VALUES ('first-run','complete','2026-10-06')`], { env, stdio: 'pipe' });
     },
-    async start() {
+    async start(options = {}) {
+      // Configuration changes belong to this runtime and survive later restarts.
+      // In particular, removing owner-claim trust must not restore the old ring.
+      if (Object.hasOwn(options, 'fixtureVars')) fixtureVars = options.fixtureVars;
       activate();
       const outputStart = output.length;
       child = spawn('pnpm', ['run', 'dev:app', '--port', String(fixturePort), '--strictPort'], { env, detached: true, stdio: ['ignore', 'pipe', 'pipe'] });
