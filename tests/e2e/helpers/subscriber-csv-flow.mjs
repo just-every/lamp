@@ -151,27 +151,12 @@ export async function subscriberCsvFlow() {
   await subscriberLimitsFlow();
 }
 
-/** Reuse the existing native owner/member invitation and confirmation journey
- * at the public HTTP door; this remains part of subscriberCsvFlow in Verify. */
+/** Lamp intentionally exposes equal owner operators, not a public member
+ * provisioning door. Keep that denial and the owner's batch read public. */
 export async function subscriberBatchAuthorityFlow(fixture) {
-  const { api, post, messagesFor } = fixture;
-  const owner = (await api("/api/app/session")).body.operator;
-  // Native operator-auth exposes its existing member invitation and
-  // confirmation doors, so test the new owner-only read with a real session.
-  const memberEmail = "synthetic-lamp-batches-member@example.test";
-  const invitation = await post("/auth/invite", { email: memberEmail, displayName: "Synthetic Lamp batch member", role: "member" });
-  assert.equal(invitation.status, 202, invitation.text);
-  const invitationMail = messagesFor(memberEmail).at(-1);
-  assert.ok(invitationMail, "the native invitation crosses the Resend edge");
-  const token = invitationMail.text.match(/https?:\/\/[^\s]+/g).map(link => new URL(link).searchParams.get("token")).find(Boolean);
-  assert.ok(token);
-  const confirmedMember = await fixture.request("/auth/confirm", { method: "POST", body: JSON.stringify({ token }) });
-  assert.equal(confirmedMember.status, 303, await confirmedMember.clone().text());
-  const memberCookie = confirmedMember.headers.get("set-cookie").split(";")[0];
-  const memberSession = await fixture.raw("/api/app/session", { headers: { Cookie: memberCookie } });
-  assert.equal(memberSession.status, 200);
-  assert.notEqual((await memberSession.json()).operator.id, owner.id);
-  const deniedBatches = await fixture.raw("/api/app/subscribers/import/batches", { headers: { Cookie: memberCookie } });
-  assert.equal(deniedBatches.status, 403, await deniedBatches.clone().text());
+  const { api, post } = fixture;
+  const invitation = await post("/auth/invite", { email: "synthetic-lamp-batches-member@example.test", displayName: "Synthetic Lamp batch member", role: "member" });
+  assert.equal(invitation.status, 403, invitation.text);
+  assert.deepEqual(invitation.body, { error: "forbidden" });
   assert.equal((await api("/api/app/subscribers/import/batches")).status, 200, "the owner retains the batch read");
 }
