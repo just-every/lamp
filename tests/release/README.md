@@ -18,6 +18,11 @@ entity graph and blob bytes before exercising sessions, publishing, subscription
 import history and a supported full archive restore. Only the outgoing mail
 provider is simulated; other network requests fail closed. The application,
 Worker runtime, SQL, R2, queues, session/token authority and renderers are real.
+Each runtime open lets Miniflare bind port 0. Native HTTP requests use that
+listener while Miniflare’s proxy transport restores the stable logical Host
+and installation origin before application admission. Upgrade and restore
+exercise the original session cookie unchanged; no runtime reuses a port
+reserved when the helper was imported.
 Initial deployed page settings and an uncertain provider receipt are explicit
 test fixtures; ordinary product records and credentials use application doors.
 For v1.4.0 and later, import apply/resume is checked to send no mail, and the
