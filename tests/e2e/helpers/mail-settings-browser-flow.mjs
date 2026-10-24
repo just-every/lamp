@@ -1,11 +1,11 @@
 import assert from 'node:assert/strict';
-import { execFileSync } from 'node:child_process';
 import { createRequire } from 'node:module';
 import { mkdir,readdir } from 'node:fs/promises';
 import { dirname,resolve,join } from 'node:path';
 import { chromium } from 'playwright';
 import AxeBuilder from '@axe-core/playwright';
 import { expect } from '@playwright/test';
+import { readBuiltWorkerArtifact } from '../../../scripts/build-output.mjs';
 import { reservePort } from '../worker-startup.mjs';
 import { withDraftVersion } from '../draft-version-helper.mjs';
 import { operatorHydrated } from './operator-hydrated.mjs';
@@ -18,7 +18,7 @@ const {unstable_getMiniflareWorkerOptions}=require('wrangler');
 /** Built production Worker and assets, with fake responses only at mail's
  * external network edge. Sign-in, preferences, publish and log reads are real. */
 export async function mailSettingsBrowserFlow(t){
-  execFileSync('pnpm',['run','build:app'],{stdio:'pipe'});
+  await readBuiltWorkerArtifact();
   const port=await reservePort({label:'mail settings browser'}),origin=`http://127.0.0.1:${port}`,pageOrigin=`http://localhost:${port}`;
   const options=unstable_getMiniflareWorkerOptions(resolve('dist/server/wrangler.json'));
   const {modulesRules,...workerOptions}=options.workerOptions;

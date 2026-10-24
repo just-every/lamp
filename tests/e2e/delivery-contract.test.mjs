@@ -31,13 +31,15 @@ let platform;
 let statePath;
 
 before(async () => {
-  vite = await createServer({ configFile: false, appType: "custom", server: { middlewareMode: true } });
+  // Build before opening the middleware ModuleRunner: both own optimizer state.
+  execFileSync("pnpm",["run","build:app"],{stdio:"pipe"});
+  statePath = await mkdtemp(join(tmpdir(), "lamp-delivery-d1-"));
+  vite=await createServer({configFile:false,appType:"custom",cacheDir:join(statePath,"vite-cache"),server:{middlewareMode:true}});
   ({ createSubscribersService } = await vite.ssrLoadModule("/src/core/features/subscribers/service.ts"));
   ({ registerSubscriberRoutes } = await vite.ssrLoadModule("/src/core/features/subscribers/routes.ts"));
   ({ createSubscriberRepository } = await vite.ssrLoadModule("/src/core/features/subscribers/repository.ts"));
   ({ createDeliveryRepository, createDeliveriesService, notificationPublicationStatements } = await vite.ssrLoadModule("/src/core/features/deliveries/index.ts"));
   ({ registerDeliveryRoutes } = await vite.ssrLoadModule("/src/core/features/deliveries/routes.ts"));
-  statePath = await mkdtemp(join(tmpdir(), "lamp-delivery-d1-"));
   execFileSync("pnpm", ["exec", "wrangler", "d1", "migrations", "apply", "DB", "--local", "--persist-to", statePath, "--config", "wrangler.jsonc"], { stdio: "pipe" });
   // `wrangler d1 migrations apply --persist-to` stores Miniflare state under
   // `v3`; getPlatformProxy hands its path straight to Miniflare. Point it at
