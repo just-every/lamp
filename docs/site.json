@@ -10,6 +10,12 @@
           "summary": "What Lamp covers and links to the owner tasks."
         },
         {
+          "slug": "getting-started",
+          "title": "Getting started",
+          "source": "docs/getting-started.md",
+          "summary": "Start Lamp on your own computer with one line."
+        },
+        {
           "slug": "install",
           "title": "Install Lamp",
           "source": "docs/install.md",

@@ -1,5 +1,7 @@
 # Deploy to Cloudflare
 
+**Or let Run Edit Run host it.** [Run Edit Run](https://app.runeditrun.com/?product=lamp&plan=assisted) can set Lamp up on your own Cloudflare account and keep it updated; sign-ups are by request for now.
+
 - **Free:** you run Lamp's open source yourself in your own Cloudflare account,
   with no Run Edit Run charge. This page is that path, step by step.
 - **Assisted:** Run Edit Run installs and maintains Lamp for you, while it stays
