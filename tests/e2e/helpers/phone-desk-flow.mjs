@@ -100,7 +100,7 @@ export async function phoneDeskFlow({ page, appUrl, pageUrl, appFetch, signInLin
     await page.goto(`${appUrl}/app/maintenance`);
     await operatorHydrated(page);
     await page.getByLabel('Title', { exact: true }).fill(`Payments database index rollout ${width}`);
-    await page.getByLabel('Who is affected', { exact: true }).fill('Customers using the payments service.');
+    await page.getByLabel('Affected audience', { exact: true }).fill('Customers using the payments service.');
     await page.getByLabel('Customer impact', { exact: true }).fill('Payment requests may be interrupted during the window.');
     await page.getByRole('checkbox', { name: component.name, exact: true }).check();
     await page.getByLabel('Starts', { exact: true }).fill('2027-09-09T02:00');
