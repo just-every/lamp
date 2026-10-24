@@ -651,8 +651,8 @@ test("PAGE-013 PAGE-014 PAGE-008 PAGE-009 PAGE-003 — Public isolation, live ti
     const page = await context.newPage();
     for (const width of [1440,390]) {
       await page.setViewportSize({width,height:1000});
-      await page.goto(`${pageUrl}/`);
       await page.clock.install();
+      await page.goto(`${pageUrl}/`);
       const live=page.locator("#status-live");
       assert.equal(await live.getAttribute("role"),"status","the live region exists on first load");
       assert.equal(await live.getAttribute("aria-live"),"polite");
