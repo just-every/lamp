@@ -80,6 +80,8 @@ export async function subscriberAddFlow() {
     assert.ok(delivered.every(message => !message.text.includes(thirdPublication.incident.reference)));
     const notice = await post("/api/app/maintenance", { title: "synthetic-lamp-020", affectedAudience: "Customers using the selected API.", customerImpact: "Requests may be interrupted during maintenance. " + "Wrapping maintenance wording. ".repeat(6), startsAt: new Date(Date.now() + 3_600_000).toISOString(), endsAt: new Date(Date.now() + 7_200_000).toISOString(), componentIds: [first.id], autoStart: false });
     assert.equal(notice.status, 201, notice.text);
+    const scheduled = await (await fixture.runtime.getWorker()).scheduled({ cron: "* * * * *" });
+    assert.equal(scheduled.outcome, "ok", "the ordinary scheduled handler dispatches the committed maintenance notice");
     const maintenanceMail = await eventuallySubscriber(async () => messagesFor(email).find(message => message.text.includes("synthetic-lamp-020")), Boolean, "the real maintenance notice reaches Resend");
     await auditSubscriberEmails([["confirmation", messagesFor(email)[0]], ["incident update", delivered.find(message => message.text.includes(firstPublication.incident.reference))], ["maintenance notice", maintenanceMail]]);
     const audit = await api("/api/app/audit-log?action=subscriber.added&limit=100");
