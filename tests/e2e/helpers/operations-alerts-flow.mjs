@@ -165,10 +165,13 @@ export async function operationsAlertsFlow({ t }) {
       assert.equal((await api(`/api/app/incidents/${pending.body.incidentId}`)).body.incident.lifecycle, "Resolved");
     }
     const target = await component("synthetic-lamp-newrelic-1");
-    const sourceResponse = await post("/api/app/intake/sources", { name: "synthetic-lamp-newrelic-1", preset: "newrelic", credentialKind: "bearer-token", componentId: target.id }); assert.equal(sourceResponse.status, 201, sourceResponse.text);
+    const sourceResponse = await post("/api/app/intake/sources", { name: "synthetic-lamp-newrelic-1", preset: "newrelic", credentialKind: "bearer-token", componentId: target.id, labelMatchers: [{ componentId: target.id, labels: { entity_name: "synthetic-lamp-51" } }] }); assert.equal(sourceResponse.status, 201, sourceResponse.text);
     const source = sourceResponse.body.source;
     const issue = JSON.parse(await readFile(new URL("../../fixtures/operations/newrelic-workflow.json", import.meta.url), "utf8"));
     const send = payload => raw(publicOrigin + source.endpointPath, { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${source.token}` }, body: JSON.stringify(payload) });
+    const beforeUnmapped = (await fixture.db.prepare("SELECT count(*) n FROM incidents").first()).n;
+    assert.equal((await send({ ...issue, issueId: "synthetic-lamp-52", entityNames: ["synthetic-lamp-53"] })).status, 400, "unmapped New Relic entities do not claim the source's component");
+    assert.equal((await fixture.db.prepare("SELECT count(*) n FROM incidents").first()).n, beforeUnmapped, "unmapped entity creates no draft incident");
     const opened = await send(issue); assert.equal(opened.status, 202); const id = (await opened.json()).incidentId;
     assert.deepEqual((await api(`/api/app/incidents/${id}`)).body.incident.components.map(row => row.componentId), [target.id]);
     assert.equal((await send({ ...issue, state: "CLOSED" })).status, 202);
