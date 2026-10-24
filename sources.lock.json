@@ -3304,7 +3304,7 @@
       "executable": false
     },
     "src/core/features/brief/ui/incident-brief.tsx": {
-      "sha256": "1118ec5869d34f49a46197277c624a6b3bb5d458fd7cac2f1263cd46a3fb5354",
+      "sha256": "b83623ec203eb6f45ccb444b823e03fa030da752d2dad2c8684ec1f0a3ce50c7",
       "executable": false
     },
     "src/core/features/channels/index.ts": {
@@ -6540,7 +6540,7 @@
       "executable": false
     },
     "tests/e2e/helpers/post-incident-report-flow.mjs": {
-      "sha256": "b8872b584401192c06a2885a8d54ba8fd38eb662d80a736a8baf134269bee86f",
+      "sha256": "469d3494af7015bd1718c66d50c25a5ea0811dbab40ca6d042a2376e33687fbf",
       "executable": false
     },
     "tests/e2e/helpers/postmortem-template-import-flow.mjs": {

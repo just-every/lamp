@@ -73,9 +73,9 @@ export async function postIncidentReportFlow({ page, appFetch, appUrl, pageUrl }
       await target.scrollIntoViewIfNeeded();
       assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true, `${state} fits ${width}px`);
       const axe = await new AxeBuilder({ page }).include("main").withTags(["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa"]).analyze();
-      assert.deepEqual(axe.violations.filter(row => ["serious", "critical"].includes(row.impact)).map(row => row.id), [], `${state} axe ${width}px`);
-      assert.deepEqual(hydration, [], `${state} hydration ${width}px`);
       if (process.env.LAMP_REPORT_SCREENSHOTS) await page.screenshot({ path: join(process.env.LAMP_REPORT_SCREENSHOTS, `saved-report-${state}-${width}.png`), fullPage: true });
+      assert.deepEqual(axe.violations.filter(row => ["serious", "critical"].includes(row.impact)).map(row => ({ id: row.id, nodes: row.nodes.map(node => ({ target: node.target, html: node.html, failureSummary: node.failureSummary })) })), [], `${state} axe ${width}px`);
+      assert.deepEqual(hydration, [], `${state} hydration ${width}px`);
     }
   };
   const save = async () => {
