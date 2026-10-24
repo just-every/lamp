@@ -448,7 +448,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "e83dab46e7cfd7e64bd966e22056994fb6c1101564d9335d9759a1e65476f5f6",
+      "sha256": "47ada0dae7b617bee8d723de9a12b24b9452cb2218fdaa4d8e7ff1b41a807d5b",
       "executable": false
     },
     "AGENTS.md": {
@@ -496,7 +496,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "fe5dc88b219d581fe2f72e76611d4bbd67d08b3a2f0c6f0f024f09d97392145a",
+      "sha256": "004a4d2f49fc1afb7f227c0b66ea52d2eee67e16ee6f3982aaf1cefd491b4e88",
       "executable": false
     },
     "DEMO.md": {
@@ -3948,7 +3948,7 @@
       "executable": false
     },
     "src/core/features/intake/ui/tool-picker.tsx": {
-      "sha256": "fcd0718f8cd89b3a0ffe7597ac4cb074474950b0dca883387ae91c59986978a9",
+      "sha256": "ae1535efd65d6837b5c9a1ee5660196abf5f1052ae2529aa76c6b7855b86ab1c",
       "executable": false
     },
     "src/core/features/intake/ui/tools.ts": {
@@ -6504,7 +6504,7 @@
       "executable": false
     },
     "tests/e2e/helpers/maintenance-calendar-flow.mjs": {
-      "sha256": "0e6c4a734f4ce9f0c4eb69882e8eae59cd60610f584c8cacf0d2c092da00cf58",
+      "sha256": "9701379777cf1511cbe793a11afdb81356f14feda88c0f82e2429fb2af240e9f",
       "executable": false
     },
     "tests/e2e/helpers/managed-install.mjs": {
@@ -6512,11 +6512,11 @@
       "executable": false
     },
     "tests/e2e/helpers/operations-alerts-browser-flow.mjs": {
-      "sha256": "0be68dab9a889a0e8d2b8739d488bb424716b1755bba8975076e1d5acd257190",
+      "sha256": "901d2e468d5de327ba4c30de22aa57e1778dff98368ba38596ebcb0a180bf41e",
       "executable": false
     },
     "tests/e2e/helpers/operations-alerts-flow.mjs": {
-      "sha256": "f7b4a73b60767c13e70822cd6e9e6612968a4ee506a5c175f88110ab3f6bbde2",
+      "sha256": "4ba58f531d1ac23f6d452ed5549f0137c967605ed47ac56055eeaa498a2116ae",
       "executable": false
     },
     "tests/e2e/helpers/operator-alerts-flow.mjs": {
