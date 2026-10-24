@@ -6,7 +6,9 @@ export function teamsCard(result: Result) {
   const preview = 'preview' in result ? result.preview : undefined;
   const card = { type: 'AdaptiveCard', version: '1.5', body: [
     { type: 'TextBlock', text: preview?.public.heading ?? ('message' in result ? result.message : 'Incident draft'), wrap: true, weight: 'Bolder' },
+    ...(preview ? [{ type: 'TextBlock', text: `Status: ${preview.public.lifecycle}`, wrap: true }] : []),
     ...(preview?.public.fields.map(field => ({ type: 'TextBlock', text: `${field.label}: ${field.value}`, wrap: true })) ?? []),
+    ...(preview ? [{ type: 'TextBlock', text: `Email subject: ${preview.email.subject}`, wrap: true }, { type: 'TextBlock', text: preview.email.plainText, wrap: true }] : []),
     ...('findings' in result ? (result.findings ?? []).map(finding => ({ type: 'TextBlock', text: finding.message, wrap: true })) : []),
     ...('editor' in result && result.editor ? editorInputs(result.editor) : []),
   ], actions: 'publish' in result && result.publish ? [{ type: 'Action.Execute', title: 'Publish update', associatedInputs: 'none', verb: 'lamp', data: result.publish }]

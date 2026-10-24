@@ -3,9 +3,9 @@ import type { ComponentView } from '../../components/service';
 import type { createDesk } from '../desk';
 type Result = Awaited<ReturnType<ReturnType<typeof createDesk>>>;
 export function slackResult(result: Result) {
-  const text = 'preview' in result && result.preview ? [result.preview.public.heading, ...result.preview.public.fields.map(field => `${field.label}: ${field.value}`), ...result.findings.map(finding => finding.message)].join('\n') : result.message ?? 'Draft updated.';
+  const text = 'preview' in result && result.preview ? [result.preview.public.heading, `Status: ${result.preview.public.lifecycle}`, ...result.preview.public.fields.map(field => `${field.label}: ${field.value}`), `Email subject: ${result.preview.email.subject}`, result.preview.email.plainText, ...result.findings.map(finding => finding.message)].join('\n') : result.message ?? 'Draft updated.';
   return { response_type: 'ephemeral', text, blocks: [
-    { type: 'section', text: { type: 'plain_text', text: text.slice(0, 3000) } },
+    ...Array.from({ length: Math.ceil(text.length / 3000) }, (_, index) => ({ type: 'section', text: { type: 'plain_text', text: text.slice(index * 3000, (index + 1) * 3000) } })),
     ...('editor' in result && result.editor ? editorBlocks(result) : []),
     ...('publish' in result && result.publish ? [{ type: 'actions', elements: [{ type: 'button', text: { type: 'plain_text', text: 'Publish update' }, action_id: 'lamp', value: JSON.stringify(result.publish) }] }] : []),
     ...('version' in result && result.version && !('publish' in result) ? [{ type: 'actions', elements: [{ type: 'button', text: { type: 'plain_text', text: 'Preview update' }, action_id: 'lamp', value: JSON.stringify({ action: 'preview', incidentId: result.incidentId, version: result.version }) }] }] : []),
