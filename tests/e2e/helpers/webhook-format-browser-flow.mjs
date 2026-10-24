@@ -3,7 +3,6 @@ import { mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
 import { chromium } from 'playwright';
 import { AxeBuilder } from '@axe-core/playwright';
-import { appOrigin } from './follow-ups-runtime.mjs';
 import { openSubscriberManagementFixture } from './subscriber-management-fixture.mjs';
 
 // The local public host serves the actual token-authorized management form.
@@ -16,8 +15,7 @@ export async function webhookFormatBrowserFlow() {
   const manageUrl = fixture.messagesFor(contact)[0].text.match(/https?:\/\/\S+\/manage\/\S+/)?.[0];
   assert.ok(manageUrl); const subscriberId = added.body.subscriber.id;
   await fixture.createComponent('Synthetic subscription component');
-  const port = new URL(appOrigin).port;
-  const publicOrigin = `http://localhost:${port}`;
+  const { publicOrigin } = fixture;
   const browser = await chromium.launch({ headless: true, args: ['--use-mock-keychain', '--password-store=basic'] });
   try {
     for (const width of [1440, 390]) {
@@ -49,7 +47,7 @@ export async function webhookFormatBrowserFlow() {
         const publicAxe = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa']).analyze();
         assert.deepEqual(publicAxe.violations.filter(row => ['serious', 'critical'].includes(row.impact)).map(row => row.id), [], `public subscription controls axe ${width}`);
         if (process.env.LAMP_BROWSER_EVIDENCE) { await mkdir(process.env.LAMP_BROWSER_EVIDENCE, { recursive: true }); await page.screenshot({ path: join(process.env.LAMP_BROWSER_EVIDENCE, `public-subscriptions-${width}.png`), fullPage: true }); }
-        const url = `http://localhost:${port}${new URL(manageUrl).pathname}`;
+        const url = `${publicOrigin}${new URL(manageUrl).pathname}`;
         const response = await page.goto(url); assert.equal(response.status(), 200);
         await page.getByRole('heading', { name: 'Manage subscription', exact: true }).waitFor();
         for (const value of ['lamp', 'statuspage']) {

@@ -1,7 +1,7 @@
 import { chatPreferencesFlow } from './chat-preferences-flow.mjs';
 import assert from 'node:assert/strict';
 import { randomBytes } from 'node:crypto';
-import { openFollowUpsRuntime, appOrigin, eventuallyFollowUp } from './follow-ups-runtime.mjs';
+import { openFollowUpsRuntime, eventuallyFollowUp } from './follow-ups-runtime.mjs';
 import { recordedSlackOAuth, RECORDED_SLACK_WEBHOOK, prepareSlackSubscription,verifySlackPublication,removeSlackSubscription } from '../slack-subscriptions-helper.mjs';
 import { subscriberTeamsUrl, prepareTeamsSubscription,verifyTeamsPublication } from '../teams-subscriptions-helper.mjs';
 
@@ -23,7 +23,7 @@ export async function selfServeChatFlow(t){
       return url.hostname==='hooks.slack.com'?new Response(slackReply.body,{status:slackReply.status}):new Response(null,{status:teamsStatus});
     }
   }});
-  const publicOrigin=appOrigin.replace('127.0.0.1','localhost');
+  const { publicOrigin }=runtime;
   const sql=async query=>(await runtime.db.prepare(query).all()).results;
   try{
     t.diagnostic('SUB-014 SUB-015 synthetic Slack OAuth and Teams Workflows public subscriptions; no live provider call');

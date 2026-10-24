@@ -9,19 +9,22 @@ import { reservePort, waitForWorker } from '../e2e/worker-startup.mjs';
 import { stopProcessGroup } from './shutdown.mjs';
 import { devKey, devKeyHeaders } from '../helpers/dev-key.mjs';
 
-export const port = Number(process.env.LAMP_DEV_INGRESS_PORT ?? await reservePort({ label: 'dev ingress' }));
+export let port;
 // The operator app host; the public status page answers on its own page host.
-export const origin = appOrigin(port);
-export const publicOrigin = pageOrigin(port);
+export let origin;
+export let publicOrigin;
 export const operator = 'operator@ingress.example.test';
 export const subscriber = 'subscriber@ingress.example.test';
 
-export async function openNativeRuntime() {
+export async function openNativeRuntime({ fixtureVars = {} } = {}) {
   const directory = await mkdtemp(resolve('.lamp-native-ingress-'));
   const state = join(directory, 'state');
   // The app host serves development modules under /node_modules/. Each run
   // owns only this unique cache, including when node_modules is a shared link.
   const cache = resolve('node_modules/.vite', basename(directory));
+  port = Number(process.env.LAMP_DEV_INGRESS_PORT ?? await reservePort({ label: 'dev ingress' }));
+  origin = appOrigin(port, fixtureVars);
+  publicOrigin = pageOrigin(port);
   const env = { ...process.env, LAMP_WORKERS_STATE_PATH: state, LAMP_VITE_CACHE_DIR: cache, RER_DEV_KEY: devKey, RER_DEV_ORIGIN: origin, RER_DEV_IDENTITY: "on", AUTH_ORIGIN: origin, AUTH_LOCAL: "true", SETUP_OPERATOR_EMAIL: operator, SESSION_SECRET: "test-session-secret-".repeat(4) };
   delete env.LAMP_DISABLE_INSPECTOR;
   let child;

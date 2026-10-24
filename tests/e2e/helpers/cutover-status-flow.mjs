@@ -19,7 +19,6 @@ export async function cutoverStatusFlow() {
   const stranger = generateKeyPairSync('ec', { namedCurve: 'P-256' }).privateKey;
   const kid = 'synthetic-business', installationId = randomUUID(), issuer = 'https://business.example.test';
   const trust = { RER_OWNER_CLAIM_PUBLIC_KEYS: JSON.stringify({ [kid]: publicKey.export({ format: 'jwk' }) }), RER_OWNER_CLAIM_ISSUER: issuer, RER_OWNER_CLAIM_INSTALLATION_ID: installationId };
-  const port = new URL(origin).port;
   const grant = (fields = {}, { key = privateKey, typ = 'rer-import-grant+jwt' } = {}) => {
     const iat = Math.floor(Date.now() / 1000);
     const input = `${json64({ alg: 'ES256', typ, kid })}.${json64({ v: 1, iss: issuer, aud: origin, installationId, email: operator, jti: randomUUID(), iat, exp: iat + 300, action: 'cutover-status', ...fields })}`;
@@ -35,8 +34,8 @@ export async function cutoverStatusFlow() {
     assert.equal(response.status, 200, response.text);
     return { ...JSON.parse(response.text), text: response.text };
   };
-  appOrigin(port, trust);
-  const runtime = await openNativeRuntime();
+  const runtime = await openNativeRuntime({ fixtureVars: trust });
+  const port = new URL(origin).port;
   try {
     await runtime.start(); await runtime.seedOperator();
     const cookie = (await signInAs({ origin, key: devKey })).header;

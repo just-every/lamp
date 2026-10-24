@@ -11,8 +11,6 @@ const require = createRequire(import.meta.url);
 const wranglerRequire = createRequire(require.resolve("wrangler"));
 const { Miniflare, convertV4MiniflareOptions } = wranglerRequire("miniflare");
 const { build } = wranglerRequire("esbuild");
-const appPort = await reservePort({ label: "follow-ups Worker" });
-export const appOrigin = `http://127.0.0.1:${appPort}`;
 export const pageOrigin = "https://status.example.test";
 
 export async function eventuallyFollowUp(read, predicate, description) {
@@ -43,6 +41,9 @@ export async function openFollowUpsRuntime({ resendWebhookSecret, webhookReceive
         builder.onLoad({ filter: /.*/, namespace: "inline" }, async args => ({ contents: `export default ${JSON.stringify("data:application/octet-stream;base64," + (await readFile(args.path)).toString("base64"))}`, loader: "js" }));
       } }],
     });
+    // Allocate for this open after bundling, never across fixture lifetimes.
+    const appPort = await reservePort({ label: "follow-ups Worker" });
+    const appOrigin = `http://127.0.0.1:${appPort}`;
     runtime = new Miniflare(convertV4MiniflareOptions({
       name: "lamp-follow-ups-test", modules: true, script: built.outputFiles[0].text,
       port: appPort, inspectorPort: 0, compatibilityDate: "2026-09-08", compatibilityFlags: ["nodejs_compat"],

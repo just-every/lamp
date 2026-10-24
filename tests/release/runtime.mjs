@@ -5,17 +5,17 @@ import { createRequire } from "node:module";
 import { readFile, readdir, writeFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { unstable_splitSqlQuery } from "wrangler";
-import { reservePort } from "../e2e/worker-startup.mjs";
-const port = await reservePort({ label: "release upgrade" });
 const require = createRequire(import.meta.url);
 const { Miniflare, convertV4MiniflareOptions } = createRequire(
   require.resolve("wrangler"),
 )("miniflare");
-export const app = `http://127.0.0.1:${port}`,
-  page = "https://status.upgrade.test";
+// The installation origin survives upgrades; only its test transport changes.
+export const app = "http://127.0.0.1", page = "https://status.upgrade.test";
 export const owner = "owner@upgrade.example.test";
+// Miniflare restores the logical Host before the application checks its origin.
+const transportKey = randomBytes(32).toString("hex");
 export const bindings = {
-  LAMP_APP_HOST: new URL(app).hostname,
+  LAMP_APP_HOST: "127.0.0.1",
   LAMP_PAGE_HOST: new URL(page).hostname,
   AUTH_ORIGIN: app,
   AUTH_LOCAL: "true",
@@ -94,7 +94,8 @@ export async function runtime(source, state, mail) {
     convertV4MiniflareOptions({
       name: "lamp-release-upgrade",
       modules,
-      port,
+      port: 0,
+      unsafeProxySharedSecret: transportKey,
       inspectorPort: 0,
       compatibilityDate: cfg.compatibility_date,
       compatibilityFlags: cfg.compatibility_flags,
@@ -178,13 +179,15 @@ export async function inventory(mf) {
   return { tables, objects };
 }
 export function client(mf, cookie = "") {
-  const request = (path, { json, form, ...init } = {}) =>
-    fetch(app + path, {
+  const request = async (path, { json, form, ...init } = {}) =>
+    fetch(new URL(path, await mf.ready), {
       redirect: "manual",
       ...init,
       headers: {
         Host: new URL(app).host,
         Origin: app,
+        "MF-Proxy-Shared-Secret": transportKey,
+        "MF-Original-URL": new URL(path, app).href,
         ...(cookie ? { Cookie: cookie } : {}),
         ...(json ? { "Content-Type": "application/json" } : {}),
         ...(form
