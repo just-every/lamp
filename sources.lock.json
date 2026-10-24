@@ -436,7 +436,7 @@
       "executable": false
     },
     ".gitignore": {
-      "sha256": "13b0111b10a86730b79025709624d0a86d8142a97ad1321375752a6766a6a8fc",
+      "sha256": "9dd2476e182fcfadf71cf0cfa96ecce6e0583f280832adf7fc7ea723a3327bc7",
       "executable": false
     },
     ".node-version": {
@@ -448,7 +448,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "e2766956ff4dee06f9d2bb04d8830b147e91e18aa71b0c48b5ffee043108cc05",
+      "sha256": "b11980c699459a59fa2a0596a63777eaa624adf01613bf97b45005aff263fe0a",
       "executable": false
     },
     "AGENTS.md": {
@@ -496,7 +496,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "c7e898901c2053005d66fe5d40f32d7a3b54c8ac4218e0c9ad5048bb4a87b94b",
+      "sha256": "8e992d401580744593bb8dc540c00bda061848d109382e471a7851c30609d227",
       "executable": false
     },
     "DEMO.md": {
@@ -520,7 +520,7 @@
       "executable": false
     },
     "docs/accessibility/vpat.md": {
-      "sha256": "35c20da1de9a49c262d5438eefb2049c057a61195b5edf7731abdd2fd027a349",
+      "sha256": "d366fbdbd7cbaef51377fb1d9e66824b7cc590963dd6aa4cce69177e1308efd6",
       "executable": false
     },
     "docs/ai-assistance.md": {
@@ -2376,11 +2376,11 @@
       "executable": false
     },
     "rer-project.json": {
-      "sha256": "95e8135984c0168084969f24a0f8b4f55a23b6c4f885b220cc5fac5673860899",
+      "sha256": "b367362d79b9edf21e3a673ecd550fe38d2d81194108439ab672b373318b96bf",
       "executable": false
     },
     "rer-setup.json": {
-      "sha256": "fe4888d896696e537bbe01e8f6124bed6a28df40735fc6f04bdd0a59007a126f",
+      "sha256": "7b28aaf58e4fcd66db06a0e595e3c46661d50e3abb02af8608db2c3fd857e287",
       "executable": false
     },
     "RUN-LOCALLY.md": {
@@ -3600,7 +3600,7 @@
       "executable": false
     },
     "src/core/features/deliveries/service.ts": {
-      "sha256": "8cf4cb5f4f2b7aa48f97dd0909f515bb8cd39237bdb8f3b9e3165f4b8af6f550",
+      "sha256": "367057cef222c747c0e7c48955ffcd6aea6664982baea268240ef20336743c2d",
       "executable": false
     },
     "src/core/features/deliveries/ses-events.ts": {
@@ -4316,7 +4316,7 @@
       "executable": false
     },
     "src/core/features/public-snapshot/maintenance-calendar.ts": {
-      "sha256": "e0dab99f53d2be69a3ea3d4dd3f8fbe7ec516a2a27cd686d5929f83dd09e2e54",
+      "sha256": "ebdedb68df88c108a813a8bbbfaad8ccdec5dd89d0e9ebb7d33397af5b5c837f",
       "executable": false
     },
     "src/core/features/public-snapshot/native-api.ts": {
@@ -4876,7 +4876,7 @@
       "executable": false
     },
     "src/core/features/subscribers/service.ts": {
-      "sha256": "fef26b900cb5c7ddca31debd02b4c31d0cfac5fed41416dcfef878cb4356ac5b",
+      "sha256": "eefd9abd3d7886f33cafe9c2b5f99b8208d61184e7a9025ec30af5f57e08877a",
       "executable": false
     },
     "src/core/features/subscribers/slack-subscriptions.ts": {
@@ -5256,7 +5256,7 @@
       "executable": false
     },
     "src/core/shared/email-branding.ts": {
-      "sha256": "df0602b855580cdf1068a9c00b8badeecd3c95d914355dfe8974dea39c27cea1",
+      "sha256": "7fe08d0af2003046baf02c1775738abae8c236a9a0e2e9eda847e32279dc4da8",
       "executable": false
     },
     "src/core/shared/ids.ts": {
@@ -6488,7 +6488,7 @@
       "executable": false
     },
     "tests/e2e/helpers/maintenance-calendar-flow.mjs": {
-      "sha256": "2a3c512a169ed0b1c0a452f36ef3b0f06d926f13eb8e38b1cfbf82c9e8ae4517",
+      "sha256": "0e6c4a734f4ce9f0c4eb69882e8eae59cd60610f584c8cacf0d2c092da00cf58",
       "executable": false
     },
     "tests/e2e/helpers/managed-install.mjs": {
@@ -6568,7 +6568,7 @@
       "executable": false
     },
     "tests/e2e/helpers/subscriber-add-flow.mjs": {
-      "sha256": "14344222b555a702af3a2e749a5c69a827d4b3cf9a4ef7ecf4ab2746800235b3",
+      "sha256": "6c61b6f5e35cb89b77568404a56222037076d867e8444a155a970420dc5130b7",
       "executable": false
     },
     "tests/e2e/helpers/subscriber-csv-flow.mjs": {
@@ -6696,7 +6696,7 @@
       "executable": false
     },
     "tests/e2e/publishing-contract.test.mjs": {
-      "sha256": "cd68e95c6bdee5f3fc72ea7b07afe5e1ba1a9341aac5a1051d36eaa0caee3a1a",
+      "sha256": "b707794ea5c3de211861cca44082d58826e4e746a1614cccceca3e43fcb89ba7",
       "executable": false
     },
     "tests/e2e/queue-outage.test.mjs": {
