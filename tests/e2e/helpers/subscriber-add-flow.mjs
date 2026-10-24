@@ -78,7 +78,7 @@ export async function subscriberAddFlow() {
     assert.ok(delivered.some(message => message.text.includes(firstPublication.incident.reference)));
     assert.ok(delivered.some(message => message.text.includes(secondPublication.incident.reference)));
     assert.ok(delivered.every(message => !message.text.includes(thirdPublication.incident.reference)));
-    const notice = await post("/api/app/maintenance", { title: "synthetic-lamp-020", affectedAudience: "Customers using the selected API.", customerImpact: "Requests may be interrupted during maintenance.", details: "synthetic-lamp-020 " + "Wrapping maintenance wording. ".repeat(12), startsAt: new Date(Date.now() + 3_600_000).toISOString(), endsAt: new Date(Date.now() + 7_200_000).toISOString(), componentIds: [first.id], autoStart: false });
+    const notice = await post("/api/app/maintenance", { title: "synthetic-lamp-020", affectedAudience: "Customers using the selected API.", customerImpact: "Requests may be interrupted during maintenance. " + "Wrapping maintenance wording. ".repeat(6), startsAt: new Date(Date.now() + 3_600_000).toISOString(), endsAt: new Date(Date.now() + 7_200_000).toISOString(), componentIds: [first.id], autoStart: false });
     assert.equal(notice.status, 201, notice.text);
     const maintenanceMail = await eventuallySubscriber(async () => messagesFor(email).find(message => message.text.includes("synthetic-lamp-020")), Boolean, "the real maintenance notice reaches Resend");
     await auditSubscriberEmails([["confirmation", messagesFor(email)[0]], ["incident update", delivered.find(message => message.text.includes(firstPublication.incident.reference))], ["maintenance notice", maintenanceMail]]);
