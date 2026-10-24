@@ -84,17 +84,18 @@ test('ACCESS-001 INTAKE-009 native rer archive restores owner continuity and sub
     const afterTransfer = Date.parse(pendingChat.expiresAt) + 1;
     const { createApp } = await load('src/core/app/server.ts');
     const signingSecret = 'synthetic-lamp-transfer-signing-1';
-    const transferredApp = createApp({ ...current.env, AUTH_ORIGIN: fresh.origin,
+    const transferredBindings = { ...current.env, AUTH_ORIGIN: fresh.origin,
       LAMP_APP_HOST: new URL(fresh.origin).host, LAMP_PAGE_HOST: 'status.example.test',
       SESSION_SECRET: secret, SETUP_OPERATOR_EMAIL: session.operator.email, SLACK_SIGNING_SECRET: signingSecret,
-      SUBSCRIBER_TOKEN_SECRET: 'portable-subscriber-secret', MAIL_FROM_ADDRESS: 'lamp@example.test' });
+      SUBSCRIBER_TOKEN_SECRET: 'portable-subscriber-secret', MAIL_FROM_ADDRESS: 'lamp@example.test' };
+    const transferredApp = createApp(transferredBindings);
     t.mock.timers.enable({ apis: ['Date'], now: afterTransfer });
     try {
       const raw = new URLSearchParams({ command: '/lamp', team_id: 'synthetic-lamp-1', user_id: 'synthetic-lamp-3', text: `link ${pendingChat.code}` }).toString();
       const timestamp = String(Math.floor(Date.now() / 1000));
       const signature = 'v0=' + createHmac('sha256', signingSecret).update(`v0:${timestamp}:${raw}`).digest('hex');
       const refused = await transferredApp.app.fetch(new Request(fresh.origin + '/api/chat/slack', { method: 'POST', body: raw,
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-Slack-Request-Timestamp': timestamp, 'X-Slack-Signature': signature } }));
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-Slack-Request-Timestamp': timestamp, 'X-Slack-Signature': signature } }), transferredBindings);
       assert.equal(refused.status, 409, await refused.clone().text());
       assert.match(await refused.text(), /invalid, used or expired/);
       assert.equal((await restoredLinks.list(actor.operator.id)).length, 1, 'the ten-minute transfer wait preserves only the durable chat identity');
@@ -105,7 +106,7 @@ test('ACCESS-001 INTAKE-009 native rer archive restores owner continuity and sub
     assert.equal((await restored.prepare('SELECT idp_sign_in FROM oa_auth_settings').first()).idp_sign_in, 0);
     assert.deepEqual({ ...await restored.prepare("SELECT responder_sealed_credentials, responder_connected FROM alert_sources WHERE id='portable-pagerduty'").first() }, { responder_sealed_credentials: null, responder_connected: 1 }, 'the restored PagerDuty source asks to reconnect');
     for (const preset of ['jsm','opsgenie']) assert.deepEqual({ ...await restored.prepare('SELECT vendor_preset,responder_sealed_credentials,responder_connected,close_alert_on_resolve FROM alert_sources WHERE id=?').bind(`synthetic-lamp-${preset}`).first() }, { vendor_preset:preset,responder_sealed_credentials:null,responder_connected:1,close_alert_on_resolve:1 }, `${preset} restored connection retains settings and requires reconnect`);
-    const sourceListing = await transferredApp.app.fetch(new Request(fresh.origin + '/api/app/intake/sources', { headers: { Cookie: cookie } }));
+    const sourceListing = await transferredApp.app.fetch(new Request(fresh.origin + '/api/app/intake/sources', { headers: { Cookie: cookie } }), transferredBindings);
     assert.equal(sourceListing.status, 200, await sourceListing.clone().text());
     const restoredSources = (await sourceListing.json()).sources;
     for (const preset of ['jsm','opsgenie']) {

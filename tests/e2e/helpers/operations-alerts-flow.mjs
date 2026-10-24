@@ -42,6 +42,13 @@ export async function operationsAlertsFlow({ t }) {
         const response = await raw(publicOrigin + path, { method: "POST", headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) }, body: JSON.stringify(payload) });
         const body = await response.json(); return { status: response.status, body };
       };
+      const reader = `synthetic-lamp-${preset}-reader@example.test`;
+      const addedReader = await post("/api/app/subscribers", { channel: "email", email: reader, componentIds: [apiComponent.id] });
+      assert.equal(addedReader.status, 201, addedReader.text);
+      const confirmation = fixture.messages.find(message => message.to.includes(reader) && message.text.includes("/confirm-subscription/"));
+      assert.ok(confirmation);
+      const confirmationUrl = confirmation.text.match(/https?:\/\/\S+\/confirm-subscription\/\S+/)[0];
+      assert.equal((await raw(confirmationUrl)).status, 200, "an actual active subscriber witnesses private-only late events");
       const partialMatch = { ...recorded, alert: { ...recorded.alert, alertId: `synthetic-lamp-${preset}-partial`, entity: "synthetic-lamp-other" } };
       const partial = await send(partialMatch); assert.equal(partial.status, 202);
       assert.ok(!(await api(`/api/app/incidents/${partial.body.incidentId}`)).body.incident.components.some(row => row.componentId === compoundComponent.id), "one label alone cannot satisfy a compound matcher");
@@ -100,6 +107,29 @@ export async function operationsAlertsFlow({ t }) {
         for (const field of [incident.reference, incident.title, "Resolved", "synthetic-lamp-1 API customers", "synthetic-lamp-1 requests interrupted", "synthetic-lamp-1 dashboard remains available", "synthetic-lamp-1 update", `${publicOrigin}/incidents/${incident.reference}`]) assert.ok(post.body.note.includes(field), "resolved note and close retain every public update field");
         assert.ok(!post.body.note.includes("Next update:"), "resolved posts carry no old next-update promise");
       }
+      const publicPaths = ["/", "/history", `/incidents/${incident.reference}`, "/feed.atom", "/feed.rss", "/api/public/status", "/widget.js", "/api/v2/summary.json"];
+      await eventuallyFollowUp(async () => (await raw(publicOrigin + `/incidents/${incident.reference}`)).text(), text => text.includes("Resolved"), "resolved public generation before late responder evidence");
+      const publicBeforeLate = new Map();
+      for (const path of publicPaths) { const response = await raw(publicOrigin + path); assert.equal(response.status, 200, path); publicBeforeLate.set(path, await response.text()); }
+      const lateNote = `synthetic-lamp-${preset}-late-private-note`;
+      const mailBeforeLate = fixture.messages.length, postsBeforeLate = outbound.length;
+      for (const [index, action] of ["AddNote", "Acknowledge", "Escalate"].entries()) {
+        const late = await send({ ...recorded, action, timestamp: `2026-10-24T01:${String(7 + index).padStart(2, "0")}:00.000Z`, ...(action === "AddNote" ? { alert: { ...recorded.alert, note: lateNote } } : {}) });
+        assert.equal(late.status, 202); assert.equal(late.body.incidentId, id, "late responder evidence stays linked to its resolved incident");
+      }
+      const afterLate = (await api(`/api/app/incidents/${id}`)).body.incident;
+      assert.equal(afterLate.lifecycle, "Resolved"); assert.equal(afterLate.updates.length, 2, "late actions neither reopen nor publish");
+      assert.ok(afterLate.internalNotes.some(note => note.body === lateNote));
+      const lateBrief = (await api(`/api/app/incidents/${id}/brief`)).body.brief;
+      assert.ok(!JSON.stringify(lateBrief).includes(lateNote), "late AddNote stays out of model input too");
+      for (const action of ["Acknowledge", "Escalate"]) assert.ok(lateBrief.whatWeKnow.alerts.some(row => row.payload?.action === action && row.payload.timestamp === `2026-10-24T01:${action === "Acknowledge" ? "08" : "09"}:00.000Z`));
+      assert.equal(fixture.messages.length, mailBeforeLate, "late actions send no subscriber or operator mail");
+      assert.equal(outbound.length, postsBeforeLate, "late actions send no provider notes or closes");
+      for (const [path, before] of publicBeforeLate) {
+        const after = await (await raw(publicOrigin + path)).text();
+        assert.equal(after, before, `${path}: late actions change no public artifact`);
+        for (const note of [privateNote, lateNote]) assert.ok(!after.includes(note), `${path} excludes responder notes`);
+      }
       const reportDraft = await post(`/api/app/incidents/${id}/report/draft`, {});
       assert.equal(reportDraft.status, 200, reportDraft.text);
       const reportBrief = (await api(`/api/app/incidents/${id}/brief`)).body.brief;
@@ -111,7 +141,7 @@ export async function operationsAlertsFlow({ t }) {
         assert.ok(citedLine.includes(evidence.payload.timestamp));
         assert.ok(citedLine.includes(action)); assert.ok(citedLine.includes("Primary responder"));
       }
-      assert.ok(!JSON.stringify(reportDraft.body).includes(privateNote), "cited report drafts never include responder notes");
+      for (const note of [privateNote, lateNote]) assert.ok(!JSON.stringify(reportDraft.body).includes(note), "cited report drafts never include responder notes");
       assert.ok(!reportDraft.body.review.limitations.some(line => /Jira Service Management|Opsgenie/.test(line)), "connected vendor timeline evidence is not reported missing");
       await raw(`${fixture.appOrigin}/cdn-cgi/handler/scheduled?cron=${encodeURIComponent("* * * * *")}&time=${Date.now()}`);
       assert.equal(outbound.length, before + 3, "scheduled replay cannot repeat notes or close");

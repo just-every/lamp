@@ -48,6 +48,7 @@ export interface IntakeRepository {
   upsertSource(source: AlertSourceRow): Promise<void>;
   findReceipt(sourceId: string, requestHash: string): Promise<AlertReceiptRow | null>;
   findOpenIncident(sourceId: string, deduplicationKey: string): Promise<string | null>;
+  findLatestLinkedIncident(sourceId: string, deduplicationKey: string): Promise<string | null>;
   recordInvalid(receipt: AlertReceiptRow): Promise<void>;
   recordReceipt(receipt: AlertReceiptRow, incident: { id: string; reference: string; title: string; operatorId: string; timestamp: string; component?: { id: string; state: ComponentState } } | null, group?: GroupedReading, componentIds?: string[], note?: { body: string; operatorId: string }, draftTitle?: string): Promise<AlertReceiptWriteResult>;
   markRecovered(sourceId: string, deduplicationKey: string, recoveredAt: string): Promise<void>;
@@ -118,6 +119,13 @@ export function createIntakeRepository(binding: D1Database): IntakeRepository {
     async findReceipt(sourceId, requestHash) { const value = await binding.prepare(`SELECT ${receiptFields} FROM alert_receipts WHERE source_id = ? AND request_hash = ?`).bind(sourceId, requestHash).first<Record<string, unknown>>(); return value ? receiptRow(value) : null; },
     async findOpenIncident(sourceId, deduplicationKey) {
       const row = await binding.prepare(`SELECT alert_receipts.incident_id AS incidentId FROM alert_receipts INNER JOIN incidents ON incidents.id = alert_receipts.incident_id WHERE alert_receipts.source_id = ? AND alert_receipts.deduplication_key = ? AND incidents.lifecycle <> 'Resolved' AND incidents.deleted_at IS NULL ORDER BY alert_receipts.received_at DESC LIMIT 1`).bind(sourceId, deduplicationKey).first<{ incidentId: string }>();
+      return row?.incidentId ?? null;
+    },
+    async findLatestLinkedIncident(sourceId, deduplicationKey) {
+      const row = await binding.prepare(`SELECT r.incident_id AS incidentId FROM alert_receipts r
+        JOIN incidents i ON i.id = r.incident_id WHERE r.source_id = ? AND r.deduplication_key = ?
+        AND i.deleted_at IS NULL ORDER BY r.received_at DESC,r.id DESC LIMIT 1`)
+        .bind(sourceId, deduplicationKey).first<{ incidentId: string }>();
       return row?.incidentId ?? null;
     },
     async recordInvalid(receipt) { await binding.prepare(`INSERT INTO alert_receipts (id,source_id,request_hash,deduplication_key,incident_id,state,received_at,recovered_at,payload_json,error,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`).bind(receipt.id, receipt.sourceId, receipt.requestHash, receipt.deduplicationKey, receipt.incidentId, receipt.state, receipt.receivedAt, receipt.recoveredAt, receipt.payloadJson, receipt.error, receipt.createdAt, receipt.updatedAt).run(); },

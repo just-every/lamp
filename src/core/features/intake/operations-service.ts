@@ -15,7 +15,7 @@ export async function acceptOperationsAlert(input: { repository: IntakeRepositor
     await repository.recordInvalid(base);
     return { status: 400, receiptId: base.id, incidentId: null, replayed: false };
   }
-  const existingId = await repository.findOpenIncident(source.id, reading.key);
+  const existingId = reading.action === "Create" ? await repository.findOpenIncident(source.id, reading.key) : await repository.findLatestLinkedIncident(source.id, reading.key);
   const create = reading.action === "Create" && !existingId && policy.createsDraft({ sourceId: source.id, deduplicationKey: reading.key, recovered: false });
   const incident = create ? { id: createUlid(), reference: await repository.allocateIncidentReference(), title: reading.title, operatorId: source.createdByOperatorId, timestamp } : null;
   const receipt: AlertReceiptRow = { ...base, deduplicationKey: reading.key, incidentId: existingId ?? incident?.id ?? null, state: reading.recovered ? "recovered" : "firing", recoveredAt: reading.recovered ? timestamp : null };
