@@ -17,7 +17,7 @@ export async function operationsAlertsFlow({ t }) {
       const isJsm = url.host === "api.atlassian.com";
       assert.equal(request.headers.get("authorization"), isJsm ? `Basic ${Buffer.from("synthetic-lamp-1@example.test:synthetic-lamp-key-1").toString("base64")}` : "GenieKey synthetic-lamp-key-2");
       assert.match(url.pathname, isJsm ? /^\/jsm\/ops\/api\/00000000-0000-4000-8000-000000000001\/v1\/alerts\/synthetic-lamp-1\/(notes|close)$/ : /^\/v2\/alerts\/synthetic-lamp-2\/(notes|close)$/);
-      outbound.push({ url: url.href, body: await request.json() });
+      outbound.push({ provider: isJsm ? "jsm" : "opsgenie", endpoint: url.pathname.split("/").at(-1), alertId: url.pathname.split("/").at(-2), url: url.href, body: await request.json() });
       return Response.json({ requestId: `synthetic-lamp-${outbound.length}` }, { status: 202 });
     }
   } });
@@ -53,8 +53,12 @@ export async function operationsAlertsFlow({ t }) {
       const partial = await send(partialMatch); assert.equal(partial.status, 202);
       assert.ok(!(await api(`/api/app/incidents/${partial.body.incidentId}`)).body.incident.components.some(row => row.componentId === compoundComponent.id), "one label alone cannot satisfy a compound matcher");
       const receiptsBefore = (await api("/api/app/intake/receipts")).body.receipts.length;
+      const unchangedTables = async () => Object.fromEntries(await Promise.all(["incidents", "incident_drafts", "incident_updates", "audit_entries", "alert_receipts"].map(async table => [table, (await fixture.db.prepare(`SELECT * FROM ${table} ORDER BY id`).all()).results])));
+      const beforeRefusal = await unchangedTables();
       assert.equal((await send(recorded, "wrong-synthetic-lamp-token")).status, 401);
+      assert.deepEqual(await unchangedTables(), beforeRefusal, `${preset}: wrong-token 401 changes no incident, draft, update, audit entry or receipt`);
       assert.equal((await send(recorded, null, `${source.endpointPath}/${source.token}`)).status, 401, "operations requires the custom bearer header");
+      assert.deepEqual(await unchangedTables(), beforeRefusal, `${preset}: a token in the wrong door also changes no tables`);
       assert.equal((await api("/api/app/intake/receipts")).body.receipts.length, receiptsBefore, "wrong token records nothing");
       const created = await send(recorded); assert.equal(created.status, 202);
       const id = created.body.incidentId;
@@ -96,6 +100,10 @@ export async function operationsAlertsFlow({ t }) {
       const before = outbound.length;
       const identified = await update("Identified");
       await eventuallyFollowUp(() => outbound.length, count => count === before + 1, "one vendor note for publication");
+      const identifiedRequests = outbound.slice(before);
+      assert.equal(identifiedRequests.filter(call => call.provider === preset && call.endpoint === "notes").length, 1, `${preset}: non-Resolved publication sends exactly one notes request`);
+      assert.equal(identifiedRequests.filter(call => call.provider === preset && call.endpoint === "close").length, 0, `${preset}: non-Resolved publication sends zero close requests`);
+      assert.ok(identifiedRequests.every(call => call.provider === preset && call.alertId === recorded.alert.alertId), `${preset}: notes target the linked provider and alert id`);
       assert.ok(outbound.at(-1).body.note.includes(incident.reference)); assert.ok(outbound.at(-1).body.note.includes("synthetic-lamp-1 requests interrupted")); assert.ok(outbound.at(-1).body.note.includes(`${publicOrigin}/incidents/${incident.reference}`));
       for (const field of [incident.title, "Identified", "synthetic-lamp-1 API customers", "synthetic-lamp-1 requests interrupted", "synthetic-lamp-1 dashboard remains available", "synthetic-lamp-1 update", identified.nextUpdateAt]) assert.ok(outbound.at(-1).body.note.includes(field), `vendor note retains the published ${field}`);
       assert.ok(!JSON.stringify(outbound).includes(privateNote));
@@ -103,6 +111,10 @@ export async function operationsAlertsFlow({ t }) {
       assert.equal((await api(`/api/app/incidents/${id}`)).body.incident.lifecycle, "Identified", "provider Close leaves a published incident with operators");
       await update("Resolved");
       await eventuallyFollowUp(() => outbound.length, count => count === before + 3, "resolved publication adds one note and one close");
+      const resolvedRequests = outbound.slice(before + 1);
+      assert.equal(resolvedRequests.filter(call => call.provider === preset && call.endpoint === "notes").length, 1, `${preset}: Resolved publication sends exactly one notes request, counted separately`);
+      assert.equal(resolvedRequests.filter(call => call.provider === preset && call.endpoint === "close").length, 1, `${preset}: opted-in Resolved publication sends exactly one close request`);
+      assert.ok(resolvedRequests.every(call => call.provider === preset && call.alertId === recorded.alert.alertId), `${preset}: close and notes target the linked provider and alert id`);
       for (const post of outbound.slice(before + 1, before + 3)) {
         for (const field of [incident.reference, incident.title, "Resolved", "synthetic-lamp-1 API customers", "synthetic-lamp-1 requests interrupted", "synthetic-lamp-1 dashboard remains available", "synthetic-lamp-1 update", `${publicOrigin}/incidents/${incident.reference}`]) assert.ok(post.body.note.includes(field), "resolved note and close retain every public update field");
         assert.ok(!post.body.note.includes("Next update:"), "resolved posts carry no old next-update promise");

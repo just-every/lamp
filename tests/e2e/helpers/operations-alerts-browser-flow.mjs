@@ -19,7 +19,25 @@ export async function operationsAlertsBrowserFlow({ origin, cookie, component, a
       await page.setViewportSize({ width, height: width === 390 ? 844 : 1000 });
       for (const [tool, label] of [["jsm", "Jira Service Management"], ["opsgenie", "Opsgenie"]]) {
         await page.goto(`${origin}/app/alerts`); await operatorHydrated(page);
-        await page.getByRole("button", { name: tool === "jsm" ? "JSM Operations" : label, exact: true }).click();
+        const pickerButton = page.getByRole("button", { name: tool === "jsm" ? "JSM Operations" : label, exact: true });
+        if (tool === "jsm") {
+          await pickerButton.waitFor({ state: "visible" });
+          await pickerButton.scrollIntoViewIfNeeded();
+          const bounds = await pickerButton.evaluate(button => {
+            const text = button.querySelector("span");
+            return [button, text].map(element => {
+              const box = element.getBoundingClientRect();
+              return { text: element.textContent, scrollWidth: element.scrollWidth, clientWidth: element.clientWidth, left: box.left, right: box.right, top: box.top, bottom: box.bottom, viewportWidth: innerWidth, viewportHeight: innerHeight };
+            });
+          });
+          for (const [index, box] of bounds.entries()) {
+            assert.equal(box.text, "JSM Operations", `${width}: full picker label on ${index === 0 ? "button" : "text"}`);
+            assert.ok(box.clientWidth > 0 && box.scrollWidth <= box.clientWidth + 1, `${width}: picker ${index === 0 ? "button" : "text"} is unclipped before clicking`);
+            assert.ok(box.left >= 0 && box.right <= box.viewportWidth && box.top >= 0 && box.bottom <= box.viewportHeight, `${width}: picker button and text stay inside the viewport`);
+          }
+          if (process.env.LAMP_SCREENSHOTS) await page.screenshot({ path: `${process.env.LAMP_SCREENSHOTS}/${width}-jsm-picker.png`, fullPage: true });
+        }
+        await pickerButton.click();
         const editor = page.locator("section.tool-form");
         await editor.getByLabel("Component 1", { exact: true }).selectOption(target.id);
         await editor.getByLabel("Tag 1", { exact: true }).fill("component:api");

@@ -5,6 +5,6 @@ import { TOOLS, type ToolId } from "./tools";
 export function ToolPicker({ onPick }: { onPick: (tool: ToolId) => void }) {
   return <section className="data-card tool-picker" aria-labelledby="tool-picker-title">
     <h2 id="tool-picker-title">Connect a tool</h2>
-    <ul className="tool-choices">{TOOLS.map(tool => <li key={tool.id}><Button type="button" variant="secondary" onClick={() => onPick(tool.id)}>{tool.pick}</Button></li>)}</ul>
+    <ul className="tool-choices">{TOOLS.map(tool => <li key={tool.id}><Button type="button" variant="secondary" onClick={() => onPick(tool.id)}><span>{tool.pick}</span></Button></li>)}</ul>
   </section>;
 }
