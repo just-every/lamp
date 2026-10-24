@@ -7412,7 +7412,7 @@
       "executable": false
     },
     "tests/reference-storage/capture-receipts.test.mjs": {
-      "sha256": "9b3fddfe6dd12f5696c7f1d83e1e22c337eea0b75096cae81986148ed1dcb108",
+      "sha256": "7596c67a165eed45f5ea9db703186c6b380f43ce833cc8311e53261d736a2d94",
       "executable": false
     },
     "tests/reference-storage/group-cleanup.test.mjs": {
