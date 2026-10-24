@@ -20,7 +20,7 @@ export async function subscriberIntakeBrowserFlow({ origin, cookie, api, request
       page.on('console',message=>{if(/hydration|did not match|server rendered/i.test(message.text()))hydrationErrors.push(message.text());});
       page.on('pageerror',error=>{if(/hydration|did not match|server rendered/i.test(error.message))hydrationErrors.push(error.message);});
       const label = `synthetic-lamp-${width}`;
-      const csvEmail = `${label}-csv@example.test`, addedEmail = `${label}-add@example.test`, webhook = `https://receiver.example.test/${label}`;
+      const csvEmail = `${label}-csv@example.test`, secondCsvEmail = `${label}-csv-2@example.test`, addedEmail = `${label}-add@example.test`, webhook = `https://receiver.example.test/${label}`;
       try {
         for (const n of [1, 2, 3]) {
           const result = await api('/api/app/components', { groupId: null, name: `${label}-${n}`, description: '', internal: false, displayOrder: n, note: '' });
@@ -65,14 +65,38 @@ export async function subscriberIntakeBrowserFlow({ origin, cookie, api, request
         assert.equal((await api('/api/app/subscribers?limit=100')).body.subscribers.some(row => row.destination === csvEmail), false, 'the visible dry run writes nothing');
         const applied = page.waitForResponse(response => new URL(response.url()).pathname.endsWith('/subscribers/import/apply'));
         await section.getByRole('button', { name: 'Create pending subscriptions', exact: true }).click();
-        assert.equal((await applied).status(), 200);
+        const appliedResponse = await applied; assert.equal(appliedResponse.status(), 200);
+        const firstBatch = (await appliedResponse.json()).batchId;
         await section.getByRole('status').filter({ hasText: '1 pending subscriptions created. No invitations have been sent.' }).waitFor();
         await page.getByRole('row').filter({ hasText: csvEmail }).getByText('pending', { exact: true }).waitFor();
-        for (const sent of [1, 0]) {
-          const invitation = page.waitForResponse(response => new URL(response.url()).pathname.endsWith('/send-invitations'));
-          await section.getByRole('button', { name: 'Send invitations', exact: true }).click();
-          const response = await invitation; assert.equal(response.status(), 200); assert.deepEqual(await response.json(), { sent, remaining: 0 });
+        // A second native import must not strand the first batch, including after reload.
+        await section.getByLabel('CSV contents', { exact: true }).fill(`email,components,language\r\n${secondCsvEmail},${components[0].id},en\r\n`);
+        const nextPreview = page.waitForResponse(response => new URL(response.url()).pathname.endsWith('/subscribers/import/preview'));
+        await section.getByRole('button', { name: 'Dry run CSV', exact: true }).click();
+        assert.equal((await nextPreview).status(), 200);
+        const nextApplied = page.waitForResponse(response => new URL(response.url()).pathname.endsWith('/subscribers/import/apply'));
+        await section.getByRole('button', { name: 'Create pending subscriptions', exact: true }).click();
+        const nextResponse = await nextApplied; assert.equal(nextResponse.status(), 200);
+        const secondBatch = (await nextResponse.json()).batchId;
+        await page.reload(); await operatorHydrated(page);
+        const batches = section.getByRole('combobox', { name: 'Import batch', exact: true });
+        await batches.waitFor();
+        for (const id of [firstBatch, secondBatch]) {
+          const option = batches.locator(`option[value="${id}"]`);
+          assert.match(await option.textContent(), /1 remaining$/);
         }
+        if (process.env.LAMP_BROWSER_EVIDENCE) { await mkdir(process.env.LAMP_BROWSER_EVIDENCE, { recursive: true }); await page.screenshot({ path: join(process.env.LAMP_BROWSER_EVIDENCE, `subscriber-batches-reloaded-${width}.png`), fullPage: true }); }
+        for (const id of [firstBatch, secondBatch]) {
+          await batches.selectOption(id);
+          await section.getByText('1 invitation remaining.', { exact: true }).waitFor();
+          const invitation = page.waitForResponse(response => new URL(response.url()).pathname === `/api/app/subscribers/import/${id}/send-invitations`);
+          await section.getByRole('button', { name: 'Send invitations', exact: true }).click();
+          const response = await invitation; assert.equal(response.status(), 200); assert.deepEqual(await response.json(), { sent: 1, remaining: 0 });
+          await section.getByText('0 invitations remaining.', { exact: true }).waitFor();
+          assert.equal(await section.getByRole('button', { name: 'Send invitations', exact: true }).isDisabled(), true, 'completed batches cannot request another send from the form');
+        }
+        await page.reload(); await operatorHydrated(page);
+        for (const id of [firstBatch, secondBatch]) assert.match(await batches.locator(`option[value="${id}"]`).textContent(), /0 remaining$/);
         const downloaded = page.waitForEvent('download');
         await section.getByRole('link', { name: 'Export subscribers as CSV', exact: true }).click();
         const download = await downloaded, chunks = [];

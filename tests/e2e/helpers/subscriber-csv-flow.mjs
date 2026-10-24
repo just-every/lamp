@@ -25,6 +25,8 @@ export async function subscriberCsvFlow() {
     ]);
     assert.equal((await fixture.raw(previewPath, { method: "POST", body: JSON.stringify({ csv }) })).status, 401);
     assert.equal((await fixture.raw("/api/app/subscribers.csv")).status, 401);
+    assert.equal((await fixture.raw("/api/app/subscribers/import/batches")).status, 401);
+    assert.equal((await fixture.raw(pageOrigin + "/api/app/subscribers/import/batches")).status, 404);
     assert.equal((await fixture.raw(pageOrigin + "/api/app/subscribers.csv")).status, 404);
     const before = await fixture.databaseState(), mailBefore = fixture.messages.length;
     const preview = await post(previewPath, { csv });
@@ -45,6 +47,13 @@ export async function subscriberCsvFlow() {
     assert.equal(applied.status, 200, applied.text);
     assert.deepEqual(applied.body.counts, { created: 97, skipped: 0, refused: 3 });
     assert.equal(applied.body.subscriberIds.length, 97);
+    const batches = async () => {
+      const result = await api("/api/app/subscribers/import/batches");
+      assert.equal(result.status, 200, result.text);
+      assert.ok(result.body.batches.every(row => Object.keys(row).sort().join(",") === "batchId,createdAt,remaining"), "batch summaries contain no subscriber destinations or tokens");
+      return result.body.batches;
+    };
+    assert.deepEqual((await batches()).map(row => [row.batchId, row.remaining]), [[applied.body.batchId, 97]]);
     assert.equal(new Set(applied.body.subscriberIds).size, 97);
     const pending = await list();
     assert.equal(pending.length, 97);
@@ -97,6 +106,7 @@ export async function subscriberCsvFlow() {
       const sent = await post(sendPath);
       assert.equal(sent.status, 200, sent.text);
       assert.deepEqual(sent.body, expected);
+      assert.equal((await batches()).find(row => row.batchId === applied.body.batchId).remaining, expected.remaining, "reloading a batch summary keeps the authoritative remaining invitations");
     }
     assert.equal(fixture.messages.length, mailBefore + 97);
     for (const email of [...emails, contact]) {

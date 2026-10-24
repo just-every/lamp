@@ -1,20 +1,24 @@
 import { useState, type FormEvent } from "react";
-import { appApi } from "../../../app/client/ui/api";
+import { appApi, useAppData } from "../../../app/client/ui/api";
 import { Button } from "../../../app/client/ui/button";
-import { FormError } from "../../../app/client/ui/states";
+import { FormError, useOperatorTime } from "../../../app/client/ui/states";
 
 type Counts = { created: number; skipped: number; refused: number };
 type Preview = { limits:string[]; fingerprint: string; counts: Counts; rows: { row: number; outcome: string; reason: string | null }[] };
-type Batch = { batchId: string; counts: Counts };
+type Batch = { batchId: string; createdAt: string; remaining: number };
+type AppliedBatch = { batchId: string; counts: Counts };
 
 export function SubscriberImportExport({ onChanged }: { onChanged: () => void }) {
   const [csv, setCsv] = useState("");
   const [preview, setPreview] = useState<Preview | null>(null);
-  const [batch, setBatch] = useState<Batch | null>(null);
+  const batches = useAppData<{ batches: Batch[] }>("/api/app/subscribers/import/batches");
+  const formatOperatorTime = useOperatorTime();
+  const [batchId, setBatchId] = useState<string | null>(null);
+  const batch = batchId ? batches.data?.batches.find(item => item.batchId === batchId) : batches.data?.batches[0];
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<string | null>(null);
-  function reset(text: string) { setCsv(text); setPreview(null); setBatch(null); setError(null); setResult(null); }
+  function reset(text: string) { setCsv(text); setPreview(null); setError(null); setResult(null); }
   async function action(operation: () => Promise<void>) {
     setPending(true); setError(null);
     try { await operation(); } catch (cause) { setError(cause instanceof Error ? cause.message : "The subscriber operation failed."); }
@@ -27,15 +31,15 @@ export function SubscriberImportExport({ onChanged }: { onChanged: () => void })
   }
   function dryRun(event: FormEvent) {
     event.preventDefault();
-    void action(async () => { setPreview(await appApi<Preview>("/api/app/subscribers/import/preview", { method: "POST", body: JSON.stringify({ csv }) })); setBatch(null); setResult("Dry run complete. Nothing was written and no invitations were sent."); });
+    void action(async () => { setPreview(await appApi<Preview>("/api/app/subscribers/import/preview", { method: "POST", body: JSON.stringify({ csv }) })); setResult("Dry run complete. Nothing was written and no invitations were sent."); });
   }
   function apply() {
     if (!preview) return;
-    void action(async () => { const next = await appApi<Batch>("/api/app/subscribers/import/apply", { method: "POST", body: JSON.stringify({ csv, reviewedFingerprint: preview.fingerprint }) }); setBatch(next); setPreview(null); setResult(`${next.counts.created} pending subscriptions created. No invitations have been sent.`); onChanged(); });
+    void action(async () => { const next = await appApi<AppliedBatch>("/api/app/subscribers/import/apply", { method: "POST", body: JSON.stringify({ csv, reviewedFingerprint: preview.fingerprint }) }); setBatchId(next.batchId); batches.refresh(); setPreview(null); setResult(`${next.counts.created} pending subscriptions created. No invitations have been sent.`); onChanged(); });
   }
   function invite() {
     if (!batch) return;
-    void action(async () => { const response = await appApi<{ sent: number; remaining: number }>(`/api/app/subscribers/import/${batch.batchId}/send-invitations`, { method: "POST", body: "{}" }); setResult(`${response.sent} invitation${response.sent === 1 ? "" : "s"} sent. ${response.remaining} remaining. Previously sent invitations are not repeated.`); onChanged(); });
+    void action(async () => { const response = await appApi<{ sent: number; remaining: number }>(`/api/app/subscribers/import/${batch.batchId}/send-invitations`, { method: "POST", body: "{}" }); setResult(`${response.sent} invitation${response.sent === 1 ? "" : "s"} sent. ${response.remaining} remaining. Previously sent invitations are not repeated.`); batches.refresh(); onChanged(); });
   }
   return <section className="data-card" aria-label="Import and export subscribers">
     <h2>Import and export</h2><p><a className="text-link" href="/api/app/subscribers.csv" download>Export subscribers as CSV</a></p>
@@ -50,7 +54,12 @@ export function SubscriberImportExport({ onChanged }: { onChanged: () => void })
     {preview ? <div><h3>Dry run</h3>{preview.limits.length ? <div role="status"><ul>{preview.limits.map(summary=><li key={summary}>{summary}</li>)}</ul><p>Remove excess rows and run a fresh dry run before applying.</p></div> : null}<p>{preview.counts.created} would be created; {preview.counts.skipped} skipped; {preview.counts.refused} refused.</p>
       {preview.rows.some(row => row.reason) ? <details><summary>Row decisions</summary><ul>{preview.rows.filter(row => row.reason).map(row => <li key={row.row}>Row {row.row}: {row.outcome} — {row.reason}</li>)}</ul></details> : null}
       <Button type="button" disabled={pending || preview.counts.created === 0 || preview.limits.length > 0} onClick={apply}>Create pending subscriptions</Button></div> : null}
-    {batch ? <div><h3>Confirmation invitations</h3><p>Send up to 50 invitations per action. This explicitly authorizes sending; creating the pending subscriptions sent none.</p><Button type="button" variant="secondary" disabled={pending} onClick={invite}>Send invitations</Button></div> : null}
+    {batch ? <div><h3>Confirmation invitations</h3>
+      <label className="form-label">Import batch<select value={batch.batchId} disabled={pending} onChange={event => { setBatchId(event.target.value); setResult(null); }}>{batches.data?.batches.map(item => <option key={item.batchId} value={item.batchId}>{formatOperatorTime(item.createdAt)} · {item.batchId.slice(-6)} · {item.remaining} remaining</option>)}</select></label>
+      <p>{batch.remaining} invitation{batch.remaining === 1 ? "" : "s"} remaining.</p>
+      <p>Send up to 50 invitations per action. This explicitly authorizes sending; creating the pending subscriptions sent none.</p><Button type="button" variant="secondary" disabled={pending || batch.remaining === 0 || batches.loading} onClick={invite}>Send invitations</Button></div> : null}
+    {batches.loading && !batches.data ? <p role="status">Loading import batches…</p> : null}
+    {batches.error ? <FormError>{batches.error}</FormError> : null}
     {error ? <FormError>{error}</FormError> : null}{result ? <p role="status">{result}</p> : null}
   </section>;
 }

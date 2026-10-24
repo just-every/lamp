@@ -57,6 +57,16 @@ export function createSubscriberIntakeRepository(db:D1Database) {
       catch(cause){if(cause instanceof Error&&cause.message.includes("over the subscriber limit"))throw new SubscriberLimitError();throw cause;}
       return resultPositions.flatMap(index=>results[index]!.results.map(row=>row.id));
     },
+    async batches():Promise<{batchId:string;createdAt:string;remaining:number}[]> {
+      return (await db.prepare(`SELECT b.entity_id AS batchId,b.created_at AS createdAt,COUNT(s.id) AS remaining
+        FROM audit_entries b LEFT JOIN subscriber_intake a ON a.batch_id=b.entity_id
+        LEFT JOIN subscriber_directory s ON s.id=a.subscriber_id AND s.state='pending'
+          AND (a.invitation_claimed_at IS NULL OR a.invitation_claimed_at<s.created_at)
+          AND julianday(s.created_at,'+72 hours')>julianday('now')
+        WHERE b.entity_type='subscriber-import' AND b.action='subscriber.import-applied'
+        GROUP BY b.entity_id,b.created_at ORDER BY b.created_at DESC,b.entity_id DESC`)
+        .all<{batchId:string;createdAt:string;remaining:number}>()).results;
+    },
     async batchExists(batchId:string):Promise<boolean> {
       return Boolean(await db.prepare("SELECT 1 FROM audit_entries WHERE entity_type='subscriber-import' AND entity_id=? AND action='subscriber.import-applied'").bind(batchId).first());
     },

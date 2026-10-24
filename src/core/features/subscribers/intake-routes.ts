@@ -29,6 +29,10 @@ export function registerSubscriberIntakeRoutes(app:Hono<AppEnv>,service:Subscrib
     if(context.req.header("Sec-Fetch-Site")==="cross-site")return context.json({error:"Cross-site subscriber intake is not accepted."},403);
     await next();
   });
+  app.get("/api/app/subscribers/import/batches",async context=>{
+    if(!empty.safeParse(context.req.query()).success)return context.json({error:"Invalid subscriber import query."},400);
+    try{return context.json({batches:await service.intake.batches(context.get("operator").id)});}catch(cause){return failure(context,cause);}
+  });
   app.post("/api/app/subscribers/import/preview",async context=>{
     const parsed=preview.safeParse(await context.req.json().catch(()=>null));
     if(!parsed.success)return context.json({error:"Choose a CSV file."},400);

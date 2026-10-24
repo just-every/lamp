@@ -31,6 +31,10 @@ export function createSubscriberIntakeService(repository:SubscriberRepository,ho
     return {accepted:accepted.filter(row=>!capacity.refused.has(row)),preview:{fingerprint,counts,rows:parsed.decisions,limits:capacity.summaries} satisfies IntakePreview};
   }
   return {
+    async batches(operatorId:string) {
+      if(!await repository.intake.operatorAllowed(operatorId,true))throw new SubscriberIntakeError("Only the active owner can read import invitation batches.",403);
+      return repository.intake.batches();
+    },
     async preview(csv:string):Promise<IntakePreview> {return (await plan(csv)).preview;},
     async apply(csv:string,reviewedFingerprint:string,operatorId:string):Promise<IntakeApply> {
       const planned=await plan(csv);
