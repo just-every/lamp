@@ -141,7 +141,6 @@ export function createDeliveryRepository(binding: D1Database): DeliveryRepositor
   }
 
   const deliveryTables = ["notification_deliveries", "component_notification_deliveries"] as const;
-  const attemptTables = ["notification_delivery_attempts", "component_delivery_attempts"] as const;
   function updateStatements(fragment: string, values: (string | number | null)[]) {
     return deliveryTables.map(table => binding.prepare(`UPDATE ${table} AS d ${fragment}`).bind(...values));
   }
@@ -219,22 +218,20 @@ export function createDeliveryRepository(binding: D1Database): DeliveryRepositor
       return Boolean(await binding.prepare("SELECT id FROM mail_send_ledger WHERE id = ?").bind(providerMessageId).first());
     },
     async recordAttempt(input) {
-      await binding.batch([deliveryAuthority(input.deliveryId), ...attemptTables.map((table,index) => binding.prepare(`INSERT INTO ${table}
+      await binding.prepare(`INSERT INTO notification_attempt_records
         (id,delivery_id,attempt_number,attempted_at,provider_message_id,error,created_at,local_capture_id)
-        SELECT ?,?,?,?,?,?,?,? WHERE EXISTS(SELECT 1 FROM ${deliveryTables[index]} WHERE id=?) ON CONFLICT DO NOTHING`)
-        .bind(input.id,input.deliveryId,input.attemptNumber,input.attemptedAt,input.providerMessageId,input.error,input.createdAt,input.localCaptureId ?? null,input.deliveryId))]);
+        VALUES(?,?,?,?,?,?,?,?)`)
+        .bind(input.id,input.deliveryId,input.attemptNumber,input.attemptedAt,input.providerMessageId,input.error,input.createdAt,input.localCaptureId ?? null).run();
     },
     async recordAcceptedEmailAttempt(input) {
-      const results = await binding.batch<Omit<PendingProviderEvent,"hardBounce"> & {hardBounce:number}>([
-        deliveryAuthority(input.deliveryId),
-        ...attemptTables.map((table,index) => binding.prepare(`INSERT INTO ${table}
+      const [,pending] = await binding.batch<Omit<PendingProviderEvent,"hardBounce"> & {hardBounce:number}>([
+        binding.prepare(`INSERT INTO notification_attempt_records
           (id,delivery_id,attempt_number,attempted_at,provider_message_id,error,created_at,local_capture_id)
-          SELECT ?,?,(SELECT COUNT(*)+1 FROM ${table} WHERE delivery_id=?),?,?,NULL,?,NULL
-          WHERE EXISTS(SELECT 1 FROM ${deliveryTables[index]} WHERE id=?) ON CONFLICT DO NOTHING`)
-          .bind(input.id,input.deliveryId,input.deliveryId,input.attemptedAt,input.providerMessageId,input.createdAt,input.deliveryId)),
+          SELECT ?,?,COUNT(*)+1,?,?,NULL,?,NULL FROM notification_attempt_records WHERE delivery_id=?`)
+          .bind(input.id,input.deliveryId,input.attemptedAt,input.providerMessageId,input.createdAt,input.deliveryId),
         pendingEventsStatement(input.providerMessageId),
       ]);
-      return results[3].results.map(event => ({...event,hardBounce:Boolean(event.hardBounce)}));
+      return pending.results.map(event => ({...event,hardBounce:Boolean(event.hardBounce)}));
     },
     async markOutcome(deliveryId, outcome, outcomeAt, updatedAt) {
       await binding.batch(updateStatements("SET outcome=?,outcome_at=?,updated_at=? WHERE id=?",[outcome,outcomeAt,updatedAt,deliveryId]));
@@ -247,11 +244,11 @@ export function createDeliveryRepository(binding: D1Database): DeliveryRepositor
       return results.reduce((sum,row)=>sum+row.meta.changes,0)===1;
     },
     async freezeMailPayload(deliveryId, payloadJson) {
-      const results=await binding.batch<{payloadJson:string|null}>([
-        ...updateStatements("SET mail_payload_json=? WHERE id=? AND mail_payload_json IS NULL",[payloadJson,deliveryId]),
+      const [,stored]=await binding.batch<{payloadJson:string|null}>([
+        binding.prepare("UPDATE notification_delivery_records SET mail_payload_json=? WHERE id=? AND mail_payload_json IS NULL").bind(payloadJson,deliveryId),
         binding.prepare("SELECT mail_payload_json AS payloadJson FROM notification_delivery_records WHERE id=?").bind(deliveryId),
       ]);
-      const row=results[2].results[0];
+      const row=stored.results[0];
       if(!row?.payloadJson)throw new Error("Delivery envelope could not be frozen.");
       return row.payloadJson;
     },
