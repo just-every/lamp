@@ -95,7 +95,10 @@ export function registerSlackSubscriptionRoutes(app:Hono<AppEnv>,service:ReturnT
       const ids=z.array(ulidSchema).max(200).parse(values(body.componentId));
       const preferences=formPreferences(body) ?? defaultPreferences("slack");
       const started=await service.start(new URL(c.req.url).origin,ids,preferences.eventKinds,preferences.minimumImpact);
-      c.header("Cache-Control","no-store");return c.redirect(started.url,303);
+      // The public page permits only same-origin form actions. A local
+      // continuation keeps that isolation intact; ordinary navigation to the
+      // visitor-approved OAuth provider needs no form-action exception.
+      return html(renderSubscriberTokenPage("Continue to Slack",`<p>Choose your Slack workspace and channel to receive updates.</p><p><a href="${escapeHtml(started.url)}" rel="noreferrer">Continue to Slack</a></p>`,pageName));
     }catch(error){if(error instanceof z.ZodError)return html(renderSubscriberTokenPage("Subscription unavailable","<p>Choose valid components and update preferences.</p>",pageName),400);if(error instanceof SubscriberLimitError)return html(renderSubscriberTokenPage("Subscriptions full",`<p>${error.message}</p><p><a href="/feed.atom">Atom feed</a> · <a href="/feed.rss">RSS feed</a></p>`,pageName),409);return html(renderSubscriberTokenPage("Slack unavailable","<p>Slack subscriptions are not configured for this page.</p>",pageName),503);}
   });
   app.get("/subscribe/slack/callback",async c=>{

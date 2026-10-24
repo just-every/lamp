@@ -28,12 +28,19 @@ export async function prepareSlackSubscription({componentId,publicOrigin,sql,wid
       const started=page.waitForResponse(response=>response.url()===`${publicOrigin}/subscribe/slack`&&response.request().method()==='POST');
       await form.getByRole('button',{name:'Get updates in Slack',exact:true}).click();
       const start=await started;
-      assert.equal(start.status(),303);
+      assert.equal(start.status(),200);
       assert.equal(start.headers()['set-cookie'],undefined,'the public Slack door stores no visitor cookie');
       assert.equal(start.request().headers().cookie,undefined);
-      const location=new URL(start.headers().location);
+      const continuation=page.getByRole('link',{name:'Continue to Slack',exact:true});
+      await continuation.waitFor();
+      assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
+      assert.deepEqual((await new AxeBuilder({page}).analyze()).violations.filter(v=>['serious','critical'].includes(v.impact)),[]);
+      if(process.env.LAMP_BROWSER_EVIDENCE){await mkdir(process.env.LAMP_BROWSER_EVIDENCE,{recursive:true});await page.screenshot({path:join(process.env.LAMP_BROWSER_EVIDENCE,`slack-continuation-${width}.png`),fullPage:true});}
+      const location=new URL(await continuation.getAttribute('href'));
       assert.equal(location.origin,'https://slack.com');assert.equal(location.pathname,'/oauth/v2/authorize');
       assert.equal(location.searchParams.get('scope'),'incoming-webhook');
+      await continuation.click();
+      assert.equal(page.url(),location.href,'the public control reaches the synthetic Slack authorization edge');
       const callback=new URL('/subscribe/slack/callback',publicOrigin);callback.searchParams.set('state',location.searchParams.get('state'));callback.searchParams.set('code','synthetic-lamp-oauth-code');
       const response=await page.goto(callback.href);assert.equal(response.status(),200,await page.textContent('body'));
       assert.equal(response.headers()['set-cookie'],undefined,'the callback stores no visitor cookie');
