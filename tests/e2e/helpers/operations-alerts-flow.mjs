@@ -167,6 +167,7 @@ export async function operationsAlertsFlow({ t }) {
     const target = await component("synthetic-lamp-newrelic-1");
     const sourceResponse = await post("/api/app/intake/sources", { name: "synthetic-lamp-newrelic-1", preset: "newrelic", credentialKind: "bearer-token", componentId: target.id, labelMatchers: [{ componentId: target.id, labels: { entity_name: "synthetic-lamp-51" } }] }); assert.equal(sourceResponse.status, 201, sourceResponse.text);
     const source = sourceResponse.body.source;
+    assert.deepEqual(source.labelMatchers,[{componentId:target.id,labels:{entity_name:"synthetic-lamp-51"}}],"the source keeps its entity mapping");
     const issue = JSON.parse(await readFile(new URL("../../fixtures/operations/newrelic-workflow.json", import.meta.url), "utf8"));
     const send = payload => raw(publicOrigin + source.endpointPath, { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${source.token}` }, body: JSON.stringify(payload) });
     const beforeUnmapped = (await fixture.db.prepare("SELECT count(*) n FROM incidents").first()).n;

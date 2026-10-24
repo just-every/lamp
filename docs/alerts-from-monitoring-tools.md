@@ -117,9 +117,10 @@ deduplication path returns 400 and is listed under Recent alerts.
 ## Public performance charts
 
 In a component's settings, use **Public performance metrics** to add a management-API
-series or a Prometheus query. Datadog, New Relic and Pingdom charts live in the
-connected tool's existing Alerts form, below its webhook choices. Uptime offers
-charts under each paired monitor. A page can show ten metrics in total.
+series or a Prometheus query, or choose a connected Datadog, New Relic or Pingdom
+preset or a paired Uptime monitor. Connect those presets in Alerts first, then
+choose them in the component's metric feed list. A page can show ten metrics in
+total.
 
 Give each chart a public name and unit. For a pull feed, save a read-only key with
 **Save read-only key**. Datadog also needs an application key scoped to metric
@@ -130,7 +131,8 @@ Prometheus takes a public HTTPS endpoint and one numeric range-query series.
 Provider redirects and private destinations are refused. Keys are sealed, never
 shown again, and excluded from backups; reconnect them after a restore.
 
-New Relic's workflow template includes `entityNames` from `entitiesData.names`.
+New Relic's workflow template includes `entityNames` from the documented
+[`entitiesData.names` workflow variable](https://docs.newrelic.com/docs/alerts/get-notified/custom-variables-alert-event-workflows/).
 Its **Entity names** choice maps the listed names to the source's selected
 component. Leave it empty to attach all workflow issues to that component.
 

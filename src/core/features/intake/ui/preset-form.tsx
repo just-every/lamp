@@ -1,4 +1,3 @@
-import { MetricsPanel } from "../../metrics/ui/metrics-panel";
 import { useState } from "react";
 
 import { appApi } from "../../../app/client/ui/api";
@@ -73,6 +72,5 @@ function EditPreset({ tool, source, components, onSaved, onClose }: { tool: Sing
     <div className="tool-fields"><label className="form-label">Component<select required value={componentId} onChange={event => { setComponentId(event.target.value); autosave.save(body(source, tool, event.target.value, entities), true); }}><ComponentOptions components={components} empty="Choose a component" required /></select></label></div>
     {tool === "newrelic" && <div className="tool-fields"><label className="form-label">Entity names<textarea maxLength={3000} value={entities} onChange={event => { setEntities(event.target.value); autosave.save(body(source, tool, componentId, event.target.value)); }} /></label><p className="tool-note">One exact entity name per line. Leave empty to attach all workflow issues to this component.</p></div>}
     {address ? <ShownOnce fields={setupFields(tool, address)} onDone={() => setAddress(null)}>{SETUP[tool]}</ShownOnce> : <NewKey what="address" replace={newAddress} />}
-    {componentId&&(["datadog","newrelic","pingdom"] as string[]).includes(tool)&&<MetricsPanel key={componentId} componentId={componentId} sourceId={source.id} provider={tool as "datadog"|"newrelic"|"pingdom"} />}
   </section>;
 }

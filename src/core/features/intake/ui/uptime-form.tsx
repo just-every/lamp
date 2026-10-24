@@ -1,4 +1,3 @@
-import { MetricsPanel } from "../../metrics/ui/metrics-panel";
 import { useState } from "react";
 
 import { appApi } from "../../../app/client/ui/api";
@@ -70,7 +69,6 @@ function EditUptime({ source, components, onSaved, onClose }: { source: Source; 
       <SaveNote phase={autosave.phase} error={autosave.error} retry={autosave.retry} held={autosave.held} />
       <ul className="monitor-picks" aria-label="Uptime monitors">{monitors.map(monitor => <li key={monitor.monitorId}>
         <label className="form-label">{monitor.monitorName}<select aria-label={monitor.monitorName} value={mappings.get(monitor.monitorId) ?? ""} onChange={event => pick(monitor.monitorId, event.target.value)}><ComponentOptions components={components} empty="Not on your page" /></select></label>
-        {mappings.get(monitor.monitorId)&&<MetricsPanel key={`${monitor.monitorId}/${mappings.get(monitor.monitorId)}`} componentId={mappings.get(monitor.monitorId)!} sourceId={source.id} provider="uptime" monitorId={monitor.monitorId} />}
       </li>)}</ul>
     </> : <p className="tool-note">Monitors appear here after Uptime's first alert.</p>}
     {address ? <ShownOnce fields={[{ label: "Uptime address", value: address, copy: "Copy address" }]} onDone={() => setAddress(null)}>{SETUP}</ShownOnce>
