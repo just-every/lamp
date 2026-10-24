@@ -6236,7 +6236,7 @@
       "executable": false
     },
     "tests/dev-ingress/runtime.mjs": {
-      "sha256": "9ff65ef6c555da81499a9bd9fd7172be4bf4e0ae668eea93af8964616d33f0b2",
+      "sha256": "6e12d0a49fe925b7e64e274decc28ad79bf674e9f058b111de4f3f53f9fc998f",
       "executable": false
     },
     "tests/dev-ingress/security.test.mjs": {

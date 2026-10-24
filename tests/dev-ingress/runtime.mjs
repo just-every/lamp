@@ -22,10 +22,17 @@ export async function openNativeRuntime({ fixtureVars = {} } = {}) {
   // The app host serves development modules under /node_modules/. Each run
   // owns only this unique cache, including when node_modules is a shared link.
   const cache = resolve('node_modules/.vite', basename(directory));
-  port = Number(process.env.LAMP_DEV_INGRESS_PORT ?? await reservePort({ label: 'dev ingress' }));
-  origin = appOrigin(port, fixtureVars);
-  publicOrigin = pageOrigin(port);
-  const env = { ...process.env, LAMP_WORKERS_STATE_PATH: state, LAMP_VITE_CACHE_DIR: cache, RER_DEV_KEY: devKey, RER_DEV_ORIGIN: origin, RER_DEV_IDENTITY: "on", AUTH_ORIGIN: origin, AUTH_LOCAL: "true", SETUP_OPERATOR_EMAIL: operator, SESSION_SECRET: "test-session-secret-".repeat(4) };
+  const fixturePort = Number(process.env.LAMP_DEV_INGRESS_PORT ?? await reservePort({ label: 'dev ingress' }));
+  const fixturePublicOrigin = pageOrigin(fixturePort);
+  // Pausing one fixture to visit another must not replace its transport context.
+  function activate() {
+    port = fixturePort;
+    origin = appOrigin(fixturePort, fixtureVars);
+    publicOrigin = fixturePublicOrigin;
+  }
+  activate();
+  const fixtureOrigin = origin;
+  const env = { ...process.env, LAMP_WORKERS_STATE_PATH: state, LAMP_VITE_CACHE_DIR: cache, RER_DEV_KEY: devKey, RER_DEV_ORIGIN: fixtureOrigin, RER_DEV_IDENTITY: "on", AUTH_ORIGIN: fixtureOrigin, AUTH_LOCAL: "true", SETUP_OPERATOR_EMAIL: operator, SESSION_SECRET: "test-session-secret-".repeat(4) };
   delete env.LAMP_DISABLE_INSPECTOR;
   let child;
   let output = '';
@@ -34,10 +41,10 @@ export async function openNativeRuntime({ fixtureVars = {} } = {}) {
     await stopProcessGroup(child);
     child = undefined;
     // The entire pnpm/Vite/workerd group owns this port. Do not leave a listener.
-    await assert.rejects(fetch(`${origin}/health`, { signal: AbortSignal.timeout(1000) }));
+    await assert.rejects(fetch(`${fixtureOrigin}/health`, { signal: AbortSignal.timeout(1000) }));
   }
   return {
-    directory, state, env,
+    directory, state, env, port: fixturePort, origin: fixtureOrigin, publicOrigin: fixturePublicOrigin,
     get output() { return output; },
     async seedOperator() {
       // pnpm dev has already applied the real migrations before it listens.
@@ -47,14 +54,15 @@ export async function openNativeRuntime({ fixtureVars = {} } = {}) {
       // backfills for existing rows; Atom is part of the first public snapshot.
       // Setup also persists the selected sender. Keep this fixture aligned with
       // the local Wrangler sender; an empty stored sender disables sign-in mail.
-      execFileSync('pnpm', ['exec', 'wrangler', 'd1', 'execute', 'DB', '--local', '--persist-to', state, '--config', 'wrangler.jsonc', '--command', `INSERT INTO oa_operators (id,email,display_name,role,status,created_at) VALUES ('01J00000000000000000000091','${operator}','Ingress test operator','owner','active',${Date.now()}); INSERT INTO oa_bootstrap (singleton,claim_id,claimed_at) VALUES (1,'01J00000000000000000000091',${Date.now()}); INSERT INTO page_settings (id,page_name,tagline,accent_color,timezone,hostname,feed_id,mail_from_address,created_at,updated_at) VALUES ('default','Ingress fixture','Local native mail test','#123456','UTC','${new URL(publicOrigin).hostname}',lower(hex(randomblob(16))),'lamp@localhost.invalid','2026-10-06','2026-10-06'); INSERT INTO setup_readiness (step,evidence_key,checked_at) VALUES ('first-run','complete','2026-10-06')`], { env, stdio: 'pipe' });
+      execFileSync('pnpm', ['exec', 'wrangler', 'd1', 'execute', 'DB', '--local', '--persist-to', state, '--config', 'wrangler.jsonc', '--command', `INSERT INTO oa_operators (id,email,display_name,role,status,created_at) VALUES ('01J00000000000000000000091','${operator}','Ingress test operator','owner','active',${Date.now()}); INSERT INTO oa_bootstrap (singleton,claim_id,claimed_at) VALUES (1,'01J00000000000000000000091',${Date.now()}); INSERT INTO page_settings (id,page_name,tagline,accent_color,timezone,hostname,feed_id,mail_from_address,created_at,updated_at) VALUES ('default','Ingress fixture','Local native mail test','#123456','UTC','${new URL(fixturePublicOrigin).hostname}',lower(hex(randomblob(16))),'lamp@localhost.invalid','2026-10-06','2026-10-06'); INSERT INTO setup_readiness (step,evidence_key,checked_at) VALUES ('first-run','complete','2026-10-06')`], { env, stdio: 'pipe' });
     },
     async start() {
+      activate();
       const outputStart = output.length;
-      child = spawn('pnpm', ['run', 'dev:app', '--port', String(port), '--strictPort'], { env, detached: true, stdio: ['ignore', 'pipe', 'pipe'] });
+      child = spawn('pnpm', ['run', 'dev:app', '--port', String(fixturePort), '--strictPort'], { env, detached: true, stdio: ['ignore', 'pipe', 'pipe'] });
       child.stdout.on('data', data => { output += data; });
       child.stderr.on('data', data => { output += data; });
-      await waitForWorker({ origin, child, output: () => output, timeoutMs: 180_000, isListening: () => output.slice(outputStart).includes(`http://127.0.0.1:${port}/`), probe: ({ signal }) => fetch(`${origin}/health?format=json`, { signal, headers: devKeyHeaders }) });
+      await waitForWorker({ origin: fixtureOrigin, child, output: () => output, timeoutMs: 180_000, isListening: () => output.slice(outputStart).includes(`http://127.0.0.1:${fixturePort}/`), probe: ({ signal }) => fetch(`${fixtureOrigin}/health?format=json`, { signal, headers: devKeyHeaders }) });
     },
     stop,
     async close() { try { await stop(); } finally { await rm(cache, { recursive: true, force: true }); await rm(directory, { recursive: true, force: true }); } },
