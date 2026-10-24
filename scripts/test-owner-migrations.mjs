@@ -23,7 +23,7 @@ try {
   // Create files in reverse order; the second depends on the first and core schema.
   await writeFile(join(temporary, 'migrations/ext/0002_owner.sql'), "INSERT INTO owner_notes VALUES (2, 'second');");
   await writeFile(join(temporary, 'migrations/ext/0001_owner.sql'), "CREATE TABLE owner_notes (id INTEGER PRIMARY KEY, value TEXT NOT NULL); INSERT INTO owner_notes SELECT 1, 'preserved' WHERE EXISTS (SELECT 1 FROM d1_migrations);");
-  const addedCore = ['0053_subscriber_intake.sql', '0054_subscriber_webhook_formats.sql', '0055_maintenance_automation_defaults.sql', '0056_subscriber_channels_preferences.sql','0057_component_deliveries.sql','0058_maintenance_wording.sql'];
+  const addedCore = ['0053_subscriber_intake.sql', '0054_subscriber_webhook_formats.sql', '0055_maintenance_automation_defaults.sql', '0056_subscriber_channels_preferences.sql','0057_component_deliveries.sql','0058_maintenance_wording.sql','0059_mail_failover.sql','0060_operator_channel_alerts.sql'];
   for (const name of addedCore) await rm(join(temporary, 'migrations/core', name));
   run('node', ['scripts/migrate-local.mjs']);
   query("INSERT INTO subscribers(id,channel,destination,contact_email,state,selection_mode,token_hash,created_at,updated_at) VALUES('synthetic-lamp-1','webhook','https://receiver.example.test/synthetic-lamp-1','synthetic-lamp-1@example.test','active','all','synthetic-lamp-1','2026-10-23','2026-10-23')");
@@ -54,6 +54,8 @@ try {
   for(const name of addedCore.slice(3))await cp(join(root, 'migrations/core',name),join(temporary,'migrations/core',name));
   run('node', ['scripts/migrate-local.mjs']);
   assert.deepEqual(query('PRAGMA foreign_key_check'),[]);
+  assert.deepEqual(query("SELECT operator_alerts FROM channel_destinations WHERE id='synthetic-lamp-channel'"),[{operator_alerts:0}], 'existing publication channels do not opt into private alerts during upgrade');
+  for(const table of ['mail_provider_routes','mail_provider_settings'])assert.equal(query(`SELECT COUNT(*) AS n FROM ${table}`)[0].n,0, `${table} starts empty on the populated 0055 upgrade`);
   for(const [table,rows] of Object.entries(preservedUpgrade)) {
     const columns=Object.keys(rows[0] ?? {}).map(name=>`"${name}"`).join(',');
     if(columns)assert.deepEqual(query(`SELECT ${columns} FROM ${table}`),rows,`upgrade preserves ${table}`);
