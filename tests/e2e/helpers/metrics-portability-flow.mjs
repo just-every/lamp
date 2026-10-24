@@ -1,20 +1,21 @@
 import assert from "node:assert/strict";
 import { load } from "../../operator-readiness/runtime.mjs";
-export async function preparePortableMetrics({env,native,cookie,sessionSecret}) {
-  await env.DB.prepare(`INSERT OR IGNORE INTO page_settings(id,page_name,tagline,accent_color,timezone,hostname,feed_id,mail_from_address,created_at,updated_at) VALUES('default','synthetic-lamp-90','Portable performance history','#16794c','UTC','status.example.test','synthetic-lamp-91','synthetic-lamp-92@example.test','2026-10-24','2026-10-24')`).run();
-  const {createApp}=await load("src/core/app/server.ts");
-  const bindings={...env,AUTH_ORIGIN:native.origin,LAMP_APP_HOST:new URL(native.origin).host,LAMP_PAGE_HOST:"status.example.test",SESSION_SECRET:sessionSecret,WEBHOOK_SIGNING_SECRET:"synthetic-lamp-93",SUBSCRIBER_TOKEN_SECRET:"synthetic-lamp-94",MAIL_FROM_ADDRESS:"synthetic-lamp-92@example.test"};
-  const runtime=createApp(bindings);
-  async function post(path,body) {
-    const response=await runtime.app.fetch(new Request(native.origin+path,{method:"POST",headers:{Cookie:cookie,Origin:native.origin,"Content-Type":"application/json"},body:JSON.stringify(body)}),bindings);
-    assert.ok([200,201].includes(response.status),await response.clone().text());return response.json();
-  }
-  const component=(await post("/api/app/components",{name:"synthetic-lamp-95",groupId:null,description:"Portable metrics",internal:false,displayOrder:0,note:""})).component;
-  const source=(await post("/api/app/intake/sources",{name:"synthetic-lamp-96",preset:"datadog",componentId:component.id,credentialKind:"bearer-token"})).source;
-  const push=(await post("/api/app/metrics",{name:"synthetic-lamp-97",unit:"ms",provider:"push",componentId:component.id})).metric;
-  const point={at:Math.floor(Date.now()/60_000)*60_000-60_000,value:42};await post(`/api/app/metrics/${push.id}/points`,{points:[point]});
-  const pull=(await post("/api/app/metrics",{name:"synthetic-lamp-98",unit:"ms",provider:"datadog",componentId:component.id,sourceId:source.id,query:"avg:synthetic.metric{*}",credentials:{key:"synthetic-lamp-99",applicationKey:"synthetic-lamp-100"}})).metric;
-  const sealed=(await env.DB.prepare("SELECT sealed_credentials FROM public_metrics WHERE id=?").bind(pull.id).first()).sealed_credentials;assert.ok(sealed);
+export async function preparePortableMetrics({env,native,cookie}) {
+  // The native archive command is this flow's public door. Seed its source
+  // installation, as for responder keys above; metric ingestion is exercised
+  // through the real Worker in metricsFlow. The binding proxy has no Worker DO.
+  const actor=await native.auth.getSession(native.request("/auth/session",{cookie}));assert.ok(actor);
+  const [{createUlid},{sealUrl}]=await Promise.all([load("src/core/shared/ids.ts"),load("src/core/features/channels/sealing.ts")]);
+  const componentId=createUlid(),sourceId=createUlid(),push={id:createUlid(),name:"synthetic-lamp-97"},pull={id:createUlid()};
+  const now=new Date().toISOString(),point={at:Math.floor(Date.now()/60_000)*60_000-60_000,value:42};
+  const sealed=await sealUrl(JSON.stringify({key:"synthetic-lamp-99",applicationKey:"synthetic-lamp-100"}),pull.id,["synthetic-lamp-93"]);
+  await env.DB.batch([
+    env.DB.prepare("INSERT INTO components(id,name,display_order,created_at,updated_at) VALUES(?,'synthetic-lamp-95',0,?,?)").bind(componentId,now,now),
+    env.DB.prepare("INSERT INTO alert_sources(id,name,credential_kind,bearer_token_hash,deduplication_path,title_path,state_path,created_by_operator_id,preset,component_id,created_at,updated_at) VALUES(?,'synthetic-lamp-96','bearer-token','synthetic-lamp-94','id','title','state',?,'datadog',?,?,?)").bind(sourceId,actor.operator.id,componentId,now,now),
+    env.DB.prepare("INSERT INTO public_metrics(id,component_id,name,unit,provider,last_reported_at,created_at,updated_at) VALUES(?,?,'synthetic-lamp-97','ms','push',?,?,?)").bind(push.id,componentId,point.at,now,now),
+    env.DB.prepare("INSERT INTO public_metrics(id,component_id,source_id,name,unit,provider,query,sealed_credentials,created_at,updated_at) VALUES(?,?,?,'synthetic-lamp-98','ms','datadog','avg:synthetic.metric{*}',?,?,?)").bind(pull.id,componentId,sourceId,sealed,now,now),
+    env.DB.prepare("INSERT INTO metric_points(metric_id,resolution,bucket,value_sum,samples,last_at) VALUES(?,60,?,42,1,?)").bind(push.id,point.at,point.at),
+  ]);
   return {push,pull,point,sealed};
 }
 export async function assertPortableMetrics({expected,app,bindings,origin,cookie,db}) {
