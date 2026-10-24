@@ -1,6 +1,41 @@
 import assert from "node:assert/strict";
 import ICAL from "ical.js";
 
+// Validate required wire properties independently of the permissive parser.
+export function validateMaintenanceCalendar(body) {
+  assert.ok(body.endsWith("\r\n"));
+  assert.ok(!/[\r\n]/.test(body.replaceAll("\r\n", "")), "calendar uses CRLF exclusively");
+  assert.ok(body.split("\r\n").every(line => Buffer.byteLength(line) <= 75), "folded lines are at most 75 octets");
+  const unfolded = body.replaceAll("\r\n ", "");
+  assert.match(unfolded, /^BEGIN:VCALENDAR\r\n/);
+  assert.match(unfolded, /\r\nEND:VCALENDAR\r\n$/);
+  assert.equal((unfolded.match(/^VERSION:2\.0$/gm) ?? []).length, 1);
+  assert.match(unfolded, /(?:^|\r\n)PRODID:[^\r\n]+\r\n/);
+  const components = [...unfolded.matchAll(/BEGIN:(VEVENT|VTIMEZONE)\r\n([\s\S]*?)END:\1\r\n/g)];
+  assert.ok(components.length >= 1, "RFC 5545 requires a component even with no maintenance");
+  for (const [, kind, content] of components) if (kind === "VEVENT") {
+    assert.match(content, /(?:^|\r\n)UID:[^\r\n]+\r\n/);
+    assert.match(content, /(?:^|\r\n)DTSTAMP:\d{8}T\d{6}Z\r\n/);
+  }
+  const parsed = new ICAL.Component(ICAL.parse(body));
+  assert.equal(parsed.name, "vcalendar");
+  assert.equal(parsed.getFirstPropertyValue("version"), "2.0");
+  const events = parsed.getAllSubcomponents("vevent");
+  for (const event of events) {
+    const parsedEvent = new ICAL.Event(event);
+    assert.ok(parsedEvent.uid); assert.ok(parsedEvent.startDate); assert.ok(parsedEvent.endDate);
+    assert.ok(event.getFirstPropertyValue("dtstamp"));
+  }
+  return events;
+}
+
+export async function emptyMaintenanceCalendarFlow(pageUrl) {
+  const response = await fetch(`${pageUrl}/maintenance.ics`);
+  assert.equal(response.status, 200);
+  assert.match(response.headers.get("content-type"), /^text\/calendar/);
+  assert.equal(validateMaintenanceCalendar(await response.text()).length, 0, "before any maintenance the calendar has no events");
+}
+
 // Public management and retained-read doors, using Mozilla's published RFC 5545
 // parser rather than accepting a hand-written string as a calendar.
 export async function maintenanceCalendarFlow({ appFetch, pageUrl, eventually, componentId }) {
@@ -18,17 +53,7 @@ export async function maintenanceCalendarFlow({ appFetch, pageUrl, eventually, c
     const response = await fetch(`${pageUrl}/maintenance.ics`), body = await response.text();
     assert.equal(response.status, 200);
     assert.match(response.headers.get("content-type"), /^text\/calendar/);
-    assert.ok(body.endsWith("\r\n"));
-    assert.ok(!body.replaceAll("\r\n", "").includes("\n"), "calendar uses CRLF exclusively");
-    assert.ok(body.split("\r\n").every(line => Buffer.byteLength(line) <= 75), "folded content lines are at most 75 octets");
-    const parsed = new ICAL.Component(ICAL.parse(body));
-    assert.equal(parsed.name, "vcalendar");
-    assert.equal(parsed.getFirstPropertyValue("version"), "2.0");
-    const events = parsed.getAllSubcomponents("vevent");
-    for (const event of events) {
-      const parsedEvent = new ICAL.Event(event);
-      assert.ok(parsedEvent.uid); assert.ok(parsedEvent.startDate); assert.ok(parsedEvent.endDate);
-    }
+    const events = validateMaintenanceCalendar(body);
     return { body, events, event: events.find(event => event.getFirstPropertyValue("uid") === uid) };
   }
   let calendar = await eventually(read, value => Boolean(value.event), "the scheduled RFC 5545 event");

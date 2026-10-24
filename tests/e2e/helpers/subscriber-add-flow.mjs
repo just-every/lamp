@@ -1,5 +1,32 @@
+import { chromium } from "playwright";
+import { AxeBuilder } from "@axe-core/playwright";
+import { eventuallySubscriber } from "./subscriber-management-fixture.mjs";
 import assert from "node:assert/strict";
 import { openSubscriberManagementFixture, subscriberCsvRows, pageOrigin } from "./subscriber-management-fixture.mjs";
+
+async function auditSubscriberEmails(messages) {
+  const browser = await chromium.launch({ headless: true, args: ["--use-mock-keychain", "--password-store=basic"] });
+  try {
+    const context = await browser.newContext();
+    // Captured provider HTML is rendered without contacting its authored links.
+    await context.route("**/*", route => route.abort());
+    const page = await context.newPage();
+    const hydrationErrors = [];
+    page.on("pageerror", error => { if (/hydration|did not match|server rendered/i.test(error.message)) hydrationErrors.push(error.message); });
+    for (const [kind, message] of messages) for (const width of [1440, 390]) {
+      assert.match(message.html, /^<!doctype html><html lang="en">/i, `${kind}: complete English document`);
+      assert.match(message.html, /<body[ >]/); assert.match(message.html, /<\/body><\/html>$/);
+      assert.ok(!/<pre[ >]/i.test(message.html), `${kind}: prose wraps without pre`);
+      await page.setViewportSize({ width, height: width === 390 ? 844 : 1000 });
+      await page.setContent(message.html);
+      await page.getByRole("heading", { level: 1 }).waitFor();
+      assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), `${kind} ${width}: no horizontal overflow`);
+      const audit = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"]).analyze();
+      assert.deepEqual(audit.violations.filter(row => ["serious", "critical"].includes(row.impact)).map(row => row.id), [], `${kind} ${width}: PAGE-020 axe audit`);
+    }
+    assert.deepEqual(hydrationErrors, []);
+  } finally { await browser.close(); }
+}
 
 /** Operator adds exercise the same public confirmation and real publication
  * doors as self-service consent, with recipient selection observed at Resend. */
@@ -51,6 +78,10 @@ export async function subscriberAddFlow() {
     assert.ok(delivered.some(message => message.text.includes(firstPublication.incident.reference)));
     assert.ok(delivered.some(message => message.text.includes(secondPublication.incident.reference)));
     assert.ok(delivered.every(message => !message.text.includes(thirdPublication.incident.reference)));
+    const notice = await post("/api/app/maintenance", { title: "synthetic-lamp-020", affectedAudience: "Customers using the selected API.", customerImpact: "Requests may be interrupted during maintenance.", details: "synthetic-lamp-020 " + "Wrapping maintenance wording. ".repeat(12), startsAt: new Date(Date.now() + 3_600_000).toISOString(), endsAt: new Date(Date.now() + 7_200_000).toISOString(), componentIds: [first.id], autoStart: false });
+    assert.equal(notice.status, 201, notice.text);
+    const maintenanceMail = await eventuallySubscriber(async () => messagesFor(email).find(message => message.text.includes("synthetic-lamp-020")), Boolean, "the real maintenance notice reaches Resend");
+    await auditSubscriberEmails([["confirmation", messagesFor(email)[0]], ["incident update", delivered.find(message => message.text.includes(firstPublication.incident.reference))], ["maintenance notice", maintenanceMail]]);
     const audit = await api("/api/app/audit-log?action=subscriber.added&limit=100");
     assert.equal(audit.status, 200, audit.text);
     assert.equal(audit.body.entries.filter(entry => entry.entityId === id && entry.actorId === owner.id).length, 1);

@@ -1,3 +1,5 @@
+import { renderEmailDocument } from "../../shared/email-branding";
+import { renderUpdateHtml } from "../../shared/update-links";
 import { defaultPreferences, storedPreferences, renderPreferenceFields, type SubscriberPreferences } from "./preferences";
 import type { SubscriberCapacity } from "./limits";
 import { publicMasthead } from "../public-snapshot/page-chrome";
@@ -115,7 +117,7 @@ export function createSubscribersService(
   async function sendSubscriptionMail(mail: MailSender, subscriberId: string, kind: SubscriptionMailKind, message: MailMessage) {
     let outcome: "accepted" | "suppressed" | "failed" = "failed";
     try {
-      outcome = (await mail.send(message))?.disposition === "suppressed" ? "suppressed" : "accepted";
+      outcome = (await mail.send({ ...message, html: renderEmailDocument(message.subject, `<h1>${escapeHtml(message.subject)}</h1><div style="white-space:pre-wrap;overflow-wrap:anywhere">${renderUpdateHtml(message.text)}</div>`) }))?.disposition === "suppressed" ? "suppressed" : "accepted";
     } finally {
       await repository.recordSubscriptionMail(subscriberId, kind, outcome, nowIso());
     }

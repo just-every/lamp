@@ -4,8 +4,8 @@ VPAT® Version 2.5 Rev, Revised Section 508 Edition (April 2025).
 
 Product name: Lamp
 Product version: 1.11.0
-Evaluation date: 23 October 2026 (UTC; 2026-10-23)
-Report date: 23 October 2026
+Evaluation date: 24 October 2026 (UTC; 2026-10-24)
+Report date: 24 October 2026
 
 ## Product description
 
@@ -17,15 +17,17 @@ Contact for accessibility questions or defects: [Lamp repository issues](https:/
 
 This is a limited evaluation report, not a declaration that Lamp meets every WCAG 2.2 AA criterion. No criterion is marked Supports before criterion-specific evidence has been measured in this round. The conservative Partially Supports entries below flag incomplete evaluation; they do not assert that an automated pass proves a complete criterion. This reporting limitation is stated explicitly because the ITI template reserves Not Evaluated for Level AAA, and this report contains only A and AA tables.
 
-Public status, history, incident permalink, subscription management and maintenance permalink are the intended browser scope. Private pages are Not Applicable to this release surface because AUD-002 has not shipped: there is no private-page implementation to evaluate. This does not waive PAGE-020's future private-page obligation. Subscriber emails, email client combinations, all operator screens, translated content, every page layout, owner-customized themes and all error/empty/hover states are not fully measured. No overall conformance claim covers those surfaces.
+Public status, history, incident permalink, subscription management and maintenance permalink are the intended browser scope. Private pages are Not Applicable to this release surface because AUD-002 has not shipped: there is no private-page implementation to evaluate. This does not waive PAGE-020's future private-page obligation. Subscriber confirmation, incident-update and maintenance-notice HTML emails are also in the measured browser scope. Email client combinations, all operator screens, translated content, every page layout, owner-customized themes and all error/empty/hover states are not fully measured. No overall conformance claim covers those surfaces.
 
-The public footer's Accessibility (VPAT) link is not yet present; that composition is held by the owner UI pass. The report itself is public on the app host at `/docs/accessibility/vpat`.
+The public footer's Accessibility (VPAT) link opens this report on the app host. The report itself is public on the app host at `/docs/accessibility/vpat`.
 
 ## Evaluation methods used
 
 The report structure follows the [ITI VPAT® 2.5 Rev 508 public template](https://www.itic.org/dotAsset/c9497d16-4684-480c-bae2-99256283731c.docx), read on 23 October 2026, and the [ITI instructions](https://www.itic.org/policy/accessibility/vpat).
 
 Measured on 23 October 2026 in the existing PAGE-020 case of `tests/e2e/maintenance-timezone.test.mjs`, using `tests/e2e/helpers/accessibility-subscription-flow.mjs`: axe-core 4.12.1 with WCAG 2 A/AA, 2.1 A/AA and 2.2 AA tags found no serious or critical findings at 1440 and 390 pixels on the public status page, history, incident permalink, maintenance permalink, this VPAT, subscription result, confirmation, management and saved-selection pages. Each page had no horizontal overflow; the journey found no hydration mismatch. Keyboard-only Tab, text entry, Space and Enter subscribed and changed component selections, with visible focus, explicit email-to-submit and checkbox-to-checkbox order, and persisted selection assertions. The existing held accessibility suite was not rerun in this round; these measurements extend a free registered maintenance case without changing the held suite. `tests/e2e/start-runtime.test.mjs` separately confirmed the built app-host GET returns this nested document. `tests/release-history.test.mjs` and `tests/docs/docs-site.test.mjs` passed the release refusal and nested-manifest fixtures.
+
+Measured on 24 October 2026 in `tests/e2e/delivery-contract.test.mjs` (Attributed operator additions, confirmed component scope, private management and opt-out), loading `tests/e2e/helpers/subscriber-add-flow.mjs` in push Verify’s delivery shard: actual confirmation, incident-update and maintenance-notice HTML captured at the Resend network edge are complete English documents with wrapping prose and no preformatted body. Each HTML part is loaded with `page.setContent` at 1440 and 390 pixels; axe-core WCAG 2/2.1/2.2 A/AA checks require no serious or critical finding, and each has no horizontal overflow. This browser rendering does not establish email-client compatibility.
 
 Automated testing cannot establish complete WCAG conformance. No human screen-reader session was run; a live-region attribute assertion is not an assertion that a screen reader announces it. No zoom, alternative input device, speech recognition, braille display or email-client compatibility evaluation is claimed.
 

@@ -24,3 +24,6 @@ delivery-artifact/
 .rer/demo/
 .rer/demo-host/
 .rer/demo/
+
+# Private owner hosting settings.
+.env*

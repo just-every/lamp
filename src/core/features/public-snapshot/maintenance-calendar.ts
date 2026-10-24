@@ -26,7 +26,10 @@ function instant(value: string) {
  */
 export function renderMaintenanceCalendar(model: PublicSnapshotModel) {
   const lines = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Lamp//Maintenance calendar//EN", "CALSCALE:GREGORIAN", "METHOD:PUBLISH"];
-  for (const item of model.maintenance.filter(item => ["Scheduled", "In progress", "Cancelled"].includes(item.state))) {
+  const maintenance = model.maintenance.filter(item => ["Scheduled", "In progress", "Cancelled"].includes(item.state));
+  // RFC 5545 requires at least one component, even before any window exists.
+  if (!maintenance.length) lines.push("BEGIN:VTIMEZONE", "TZID:Etc/UTC", "BEGIN:STANDARD", "DTSTART:19700101T000000", "TZOFFSETFROM:+0000", "TZOFFSETTO:+0000", "TZNAME:UTC", "END:STANDARD", "END:VTIMEZONE");
+  for (const item of maintenance) {
     const revisions = item.notices.filter(notice => ["rescheduled", "cancelled"].includes(notice.kind)).length;
     lines.push("BEGIN:VEVENT", `UID:lamp-maintenance-${item.id}@lamp`, `DTSTAMP:${instant(model.generatedAt)}`, `DTSTART:${instant(item.startsAt)}`, `DTEND:${instant(item.endsAt)}`, `SEQUENCE:${revisions}`, `STATUS:${item.state === "Cancelled" ? "CANCELLED" : "CONFIRMED"}`, `SUMMARY:${text(item.title)}`, `DESCRIPTION:${text([item.title, ...item.components].join("\n"))}`, `URL:${model.origin}/maintenance/${encodeURIComponent(item.reference)}`, "END:VEVENT");
   }

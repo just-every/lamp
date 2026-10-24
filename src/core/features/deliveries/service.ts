@@ -55,9 +55,7 @@ function isSafeWebhookDestination(destination: string) {
   } catch { return false; }
 }
 
-function htmlText(value: string) {
-  return value.replace(/[&<>"']/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[character] ?? character);
-}
+
 
 function permanentDeliveryError(message: string) {
   const error = new Error(message) as Error & { retryable?: boolean };
@@ -214,11 +212,11 @@ export function createDeliveriesService(
       const pageName = options.pageName ? await options.pageName() : lampConfig.pageName;
       const statusUrl = new URL("/", origin).href;
       const brand = options.emailBranding ? await options.emailBranding() : { branding: defaultEmailBranding, hasLogo: false };
-      const branded = brandEmail(rendered.email, { ...brand, pageName, fromAddress, origin });
+      const branded = brandEmail(rendered.email, { ...brand, pageName, fromAddress, origin, subscriptionLinks: { manageUrl, unsubscribeUrl } });
       const candidate: FrozenMailPayload = {
         frozenAt: nowIso(), from: branded.from, ...(branded.replyTo ? { replyTo: branded.replyTo } : {}), to: delivery.destination, subject: branded.subject,
         text: `${branded.plainText}\n\nManage this subscription: ${manageUrl}\nUnsubscribe: ${unsubscribeUrl}\nReturn to status: ${statusUrl}`,
-        html: `<main>${branded.html}<p><a href="${htmlText(manageUrl)}">Manage subscription</a> · <a href="${htmlText(unsubscribeUrl)}">Unsubscribe</a></p></main>`,
+        html: branded.html,
         headers: {
           "List-Unsubscribe": `<mailto:${fromAddress}?subject=unsubscribe>, <${unsubscribeUrl}>`, "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
           "List-Id": `<${host}>`, "List-Archive": `${origin}/history`, "List-Help": manageUrl, "Auto-Submitted": "auto-generated",

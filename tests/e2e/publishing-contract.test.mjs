@@ -1,4 +1,4 @@
-import { maintenanceCalendarFlow } from "./helpers/maintenance-calendar-flow.mjs";
+import { maintenanceCalendarFlow, emptyMaintenanceCalendarFlow } from "./helpers/maintenance-calendar-flow.mjs";
 import { availabilityReportFlow } from "./helpers/availability-report-flow.mjs";
 import { communicationPerformanceFlow } from "./helpers/communication-performance-flow.mjs";
 import { incidentImpactFlow } from "./helpers/incident-impact-flow.mjs";
@@ -270,6 +270,7 @@ before(async () => {
   const identity = await (await fetch(`${pageUrl}/`)).text();
   assert.match(identity, /id="overall-status" data-overall/, "test listener did not serve Lamp's public snapshot");
   assert.match(identity, /data-generated-at/, "public snapshot must expose its generation time independently of owner branding");
+  await emptyMaintenanceCalendarFlow(pageUrl);
   pageTimezone = (await (await appFetch("/api/app/page-settings")).json()).settings.timezone;
   executeFixtureSql(`INSERT INTO components (id,group_id,name,description,internal,display_order,note,created_at,updated_at) VALUES ('01J00000000000000000000011',NULL,'Contract API','A test-owned public component.',0,1,'','2026-09-08T00:00:00.000Z','2026-09-08T00:00:00.000Z'); INSERT INTO subscribers (id,channel,destination,contact_email,state,selection_mode,token_hash,deactivation_reason,deactivated_at,created_at,updated_at) VALUES ('01J00000000000000000000070','email','contract-subscriber@example.test',NULL,'active','all','contract-token-hash',NULL,NULL,'2026-09-08T00:00:00.000Z','2026-09-08T00:00:00.000Z')`);
 });

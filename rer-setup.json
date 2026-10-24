@@ -28,7 +28,7 @@
       "kind": "text",
       "required": true,
       "group": "page",
-      "help": "Enter 1–120 characters."
+      "help": "Enter 1\u2013120 characters."
     },
     {
       "name": "LAMP_PAGE_TAGLINE",
@@ -36,7 +36,7 @@
       "kind": "text",
       "required": true,
       "group": "page",
-      "help": "Enter 1–280 characters."
+      "help": "Enter 1\u2013280 characters."
     },
     {
       "name": "LAMP_PAGE_TIMEZONE",
@@ -59,7 +59,7 @@
       "kind": "text",
       "required": true,
       "group": "owner",
-      "help": "Enter 1–120 characters."
+      "help": "Enter 1\u2013120 characters."
     },
     {
       "name": "LAMP_HOSTING",
@@ -249,7 +249,8 @@
       "when": {
         "field": "MAIL_FROM_ADDRESS",
         "nonEmpty": true
-      }
+      },
+      "help": "Online only. Enter the private key for your selected mail provider and verified sender."
     },
     {
       "name": "SETUP_TOKEN",
@@ -294,6 +295,42 @@
       "required": false,
       "default": "",
       "help": "Optional Auth install. Leave empty to use email links."
+    },
+    {
+      "name": "AI_PROVIDER_API_KEY",
+      "label": "AI provider API key",
+      "help": "Optional private key for the AI provider configured in Hosting & connections.",
+      "kind": "secret",
+      "input": "managed",
+      "required": false,
+      "ownerVisible": false
+    },
+    {
+      "name": "RER_MAIL_RELAY_SECRET",
+      "label": "Managed mail relay secret",
+      "help": "Optional private signing secret supplied for the Run Edit Run mail relay.",
+      "kind": "secret",
+      "input": "managed",
+      "required": false,
+      "ownerVisible": false
+    },
+    {
+      "name": "AUTH_PROVIDERS",
+      "label": "Sign-in provider configuration",
+      "help": "Optional private provider configuration for operator single sign-on.",
+      "kind": "secret",
+      "input": "managed",
+      "required": false,
+      "ownerVisible": false
+    },
+    {
+      "name": "OIDC_TRANSACTION_SECRET",
+      "label": "Sign-in transaction secret",
+      "help": "Optional private secret protecting single sign-on transactions when an identity provider is connected.",
+      "kind": "secret",
+      "input": "managed",
+      "required": false,
+      "ownerVisible": false
     }
   ],
   "steps": [
