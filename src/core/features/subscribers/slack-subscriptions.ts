@@ -95,15 +95,12 @@ export function registerSlackSubscriptionRoutes(app:Hono<AppEnv>,service:ReturnT
       const ids=z.array(ulidSchema).max(200).parse(values(body.componentId));
       const preferences=formPreferences(body) ?? defaultPreferences("slack");
       const started=await service.start(new URL(c.req.url).origin,ids,preferences.eventKinds,preferences.minimumImpact);
-      c.header("Set-Cookie",`lamp_slack_state=${encodeURIComponent(started.state)}; HttpOnly; Secure; SameSite=Lax; Path=/subscribe/slack; Max-Age=600`);
       c.header("Cache-Control","no-store");return c.redirect(started.url,303);
     }catch(error){if(error instanceof z.ZodError)return html(renderSubscriberTokenPage("Subscription unavailable","<p>Choose valid components and update preferences.</p>",pageName),400);if(error instanceof SubscriberLimitError)return html(renderSubscriberTokenPage("Subscriptions full",`<p>${error.message}</p><p><a href="/feed.atom">Atom feed</a> · <a href="/feed.rss">RSS feed</a></p>`,pageName),409);return html(renderSubscriberTokenPage("Slack unavailable","<p>Slack subscriptions are not configured for this page.</p>",pageName),503);}
   });
   app.get("/subscribe/slack/callback",async c=>{
     const pageName=await service.pageName(),state=c.req.query("state")??"";
-    const cookie=(c.req.header("Cookie")??"").split(";").map(v=>v.trim()).find(v=>v.startsWith("lamp_slack_state="))?.slice("lamp_slack_state=".length);
-    c.header("Set-Cookie","lamp_slack_state=; HttpOnly; Secure; SameSite=Lax; Path=/subscribe/slack; Max-Age=0");
-    if(!state||cookie!==encodeURIComponent(state))return html(renderSubscriberTokenPage("Subscription unavailable","<p>The Slack installation request could not be verified.</p>",pageName),400);
+    if(!state)return html(renderSubscriberTokenPage("Subscription unavailable","<p>The Slack installation request could not be verified.</p>",pageName),400);
     try{const token=await service.callback(new URL(c.req.url).origin,c.req.query("code")??"",state);return html(renderSubscriberTokenPage("Slack subscription active",`<p>Your channel will receive the selected updates.</p><p><a href="/manage/${escapeHtml(token)}">Manage subscription</a></p>`,pageName),200);}
     catch(error){if(error instanceof SubscriberLimitError)return html(renderSubscriberTokenPage("Subscriptions full",`<p>${error.message}</p><p><a href="/feed.atom">Atom feed</a> · <a href="/feed.rss">RSS feed</a></p>`,pageName),409);return html(renderSubscriberTokenPage("Subscription unavailable","<p>Slack did not confirm the installation. Start again from the subscribe form.</p>",pageName),400);}
   });

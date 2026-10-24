@@ -6,7 +6,7 @@ import { recordedSlackOAuth, RECORDED_SLACK_WEBHOOK, prepareSlackSubscription,ve
 import { subscriberTeamsUrl, prepareTeamsSubscription,verifyTeamsPublication } from '../teams-subscriptions-helper.mjs';
 
 /** Complete public and authenticated application doors, with only the Slack
- * OAuth/webhook and Teams Workflows network edges replaced by recorded replies. */
+ * OAuth/webhook and Teams Workflows network edges replaced by synthetic replies. */
 export async function selfServeChatFlow(t){
   const received=[],signingSecret=randomBytes(32).toString('hex');
   let slackReply={status:200,body:'ok'},teamsStatus=202;
@@ -26,7 +26,7 @@ export async function selfServeChatFlow(t){
   const publicOrigin=appOrigin.replace('127.0.0.1','localhost');
   const sql=async query=>(await runtime.db.prepare(query).all()).results;
   try{
-    t.diagnostic('SUB-014 SUB-015 recorded Slack OAuth and Teams Workflows public subscriptions; no live provider call');
+    t.diagnostic('SUB-014 SUB-015 synthetic Slack OAuth and Teams Workflows public subscriptions; no live provider call');
     const component=(await runtime.post('/api/app/components',{groupId:null,name:'Self-serve subscriptions',description:'',internal:false,displayOrder:0,note:''})).body.component;
     let slackManageUrl,teamsManageUrl;
     const id=await prepareSlackSubscription({componentId:component.id,publicOrigin,sql,onManage:url=>{slackManageUrl=url;}});
@@ -52,6 +52,9 @@ export async function selfServeChatFlow(t){
     assert.equal(received.filter(x=>x.path===new URL(RECORDED_SLACK_WEBHOOK).pathname).length,before,'uninstalled Slack receives no next publish');
     await prepareSlackSubscription({componentId:component.id,publicOrigin,sql,widths:[1440]});
     await removeSlackSubscription({publicOrigin,signingSecret,id,sql,eventType:'tokens_revoked'});
+    const revokedCount=received.filter(x=>x.path===new URL(RECORDED_SLACK_WEBHOOK).pathname).length;
+    await publish('Publish after Slack tokens were revoked.');
+    assert.equal(received.filter(x=>x.path===new URL(RECORDED_SLACK_WEBHOOK).pathname).length,revokedCount,'revoked Slack receives no next publish before reinstalling');
     await prepareSlackSubscription({componentId:component.id,publicOrigin,sql,widths:[1440]});
     slackReply={status:400,body:'channel_is_archived'};
     await publish('Third publish to an archived channel.');

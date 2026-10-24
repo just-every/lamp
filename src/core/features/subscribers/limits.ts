@@ -46,6 +46,6 @@ export function subscriberLimitAlerts(counts:SubscriberCounts) {
     {channel:"Slack and Teams",key:"chat",count:counts.slack+counts.teams,limit:subscriberLimits.chat}];
   return buckets.flatMap(bucket=>[80,100].filter(percent=>bucket.count>=bucket.limit*percent/100).map(percent=>({
     eventId:`subscriber-limit/${bucket.key}/${percent}`,title:`Lamp ${bucket.channel} subscriptions reached ${percent}%`,
-    text:`${bucket.channel} subscriptions reached ${percent}% of their ${bucket.limit.toLocaleString("en-US")} limit. Review Settings → Subscribers.`,
+    text:`${bucket.channel} subscriptions reached ${percent}% of their ${bucket.limit.toLocaleString("en-US")} limit. Review Subscribers at /app/subscribers.`,
   })));
 }

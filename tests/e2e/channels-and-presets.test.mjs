@@ -82,7 +82,7 @@ after(async () => {
   await new Promise((resolve) => receiver?.close(resolve));
 });
 
-test("NOTIFY-011 NOTIFY-012 UPDATE-013 — Private channels deliver the selected publication once with literal text and punctuated links", async t => {
+test("SUB-014 NOTIFY-011 NOTIFY-012 UPDATE-013 — Private channels deliver the selected publication once with literal text and punctuated links", async t => {
   t.diagnostic("NOTIFY-011 — a Slack or Teams webhook URL is stored encrypted and never shown again");
   await (async () => {
   const api_ = await component("Payments API");

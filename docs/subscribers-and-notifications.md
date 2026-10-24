@@ -59,8 +59,10 @@ and `language`. Component IDs are separated by semicolons; an empty selection
 follows all visible components. Existing subscriptions are skipped without
 changing their state or selection. Files are limited to 8 MiB and 5,000 rows.
 Phone rows are refused because SMS subscriptions are unavailable, and language
-accepts only English (`en`). The future per-channel subscriber-limit enforcement
-remains with SUB-020. **Export subscribers as CSV** includes channel, state,
+accepts only English (`en`). SUB-020 enforces 25,000 subscriptions across all channels, including at most
+2,500 webhook endpoints and 1,000 Slack and Teams subscriptions together. Pending
+and active subscriptions count; deactivated and deleted ones do not. An over-limit
+dry run names and refuses the excess, and apply writes nothing until the file fits. **Export subscribers as CSV** includes channel, state,
 components and the recorded confirmation time; unconfirmed rows have no consent
 time. Spreadsheet formula-leading cells are neutralised on export.
 
