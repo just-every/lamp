@@ -667,7 +667,7 @@ test("PAGE-013 PAGE-014 PAGE-008 PAGE-009 PAGE-003 — Public isolation, live ti
       const made=await appFetch("/api/app/incidents",{method:"POST",body:JSON.stringify({title:"synthetic-lamp-64",components:[{componentId:"01J00000000000000000000010",state:"Major outage",relationship:"Primary"}]})});
       assert.equal(made.status,201);const incident=(await made.json()).incident;
       for (const [lifecycle,impact] of [["Investigating","Requests are unavailable."],["Monitoring","Requests are recovering."],["Resolved","Requests are restored."]]) {
-        assert.equal((await appFetch(`/api/app/incidents/${incident.id}/draft`,{method:"PUT",body:JSON.stringify({lifecycle,affectedAudience:"Customers",customerImpact:impact,whatStillWorks:"The status page is available.",details:"",nextUpdateAt:null})})).status,200);
+        assert.equal((await appFetch(`/api/app/incidents/${incident.id}/draft`,{method:"PUT",body:JSON.stringify({lifecycle,affectedAudience:"Customers",customerImpact:impact,whatStillWorks:"The status page is available.",details:"",nextUpdateAt:lifecycle==="Resolved"?null:new Date(Date.now()+3600_000).toISOString()})})).status,200);
         assert.equal((await appFetch(`/api/app/incidents/${incident.id}/publish`,{method:"POST",body:JSON.stringify({channels:[]})})).status,200);
         // Wait for the real snapshot's readiness, then advance only this browser's polling clock.
         let status;
