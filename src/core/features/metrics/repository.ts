@@ -1,3 +1,4 @@
+import { tokenFence, type TokenAuthority } from "../management-api/repository";
 import { createUlid, nowIso } from "../../shared/ids";
 import { retentionStatements } from "./retention";
 import type { AggregatePoint, MetricDefinition, PublicMetric } from "./types";
@@ -32,17 +33,26 @@ export function createMetricsRepository(db: D1Database) {
       const result=await db.batch([audit(id,actor,"metric.deleted"),db.prepare("DELETE FROM public_metrics WHERE id=?").bind(id)]);
       return Boolean(result[1].meta.changes);
     },
-    async write(id: string, points: AggregatePoint[], now: number, version: number) {
-      if (!points.length) return;
-      const latest=Math.max(...points.map(point=>point.at));
-      // One bounded JSON parameter keeps a full day inside D1's statement limits.
-      await db.batch([
+    async write(id: string, points: AggregatePoint[], now: number, version: number, authority?: TokenAuthority) {
+      if (!points.length) return false;
+      const latest=Math.max(...points.map(point=>point.at)),receipt=createUlid(),at=nowIso();
+      const fence=authority?tokenFence(authority):null;
+      // A transaction-local audit receipt witnesses both current token authority
+      // and metric version; every token mutation repeats that exact receipt.
+      const guard=authority?" AND EXISTS(SELECT 1 FROM audit_entries WHERE id=?)":"";
+      const guardParams=authority?[receipt]:[];
+      const result=await db.batch([
+        ...(authority&&fence?[db.prepare(`INSERT INTO audit_entries(id,entity_type,entity_id,action,operator_id,payload_json,created_at,updated_at)
+          SELECT ?,'metric',id,'metric.points-pushed',?,?,?,? FROM public_metrics WHERE id=? AND version=? AND ${fence.sql}`)
+          .bind(receipt,authority.personId,JSON.stringify({tokenId:authority.id}),at,at,id,version,...fence.params)]:[]),
         db.prepare(`INSERT INTO metric_points(metric_id,resolution,bucket,value_sum,samples,last_at)
           SELECT ?,60,json_extract(value,'$.at'),json_extract(value,'$.value'),1,json_extract(value,'$.at') FROM json_each(?)
-          WHERE EXISTS(SELECT 1 FROM public_metrics WHERE id=? AND version=?)
-          ON CONFLICT(metric_id,resolution,bucket) DO UPDATE SET value_sum=excluded.value_sum,samples=1,last_at=excluded.last_at WHERE metric_points.value_sum IS NOT excluded.value_sum OR metric_points.samples<>1 OR metric_points.last_at<>excluded.last_at`).bind(id,JSON.stringify(points),id,version),
-        db.prepare(`UPDATE public_metrics SET last_reported_at=MAX(COALESCE(last_reported_at,0),?),stale=CASE WHEN MAX(COALESCE(last_reported_at,0),?)<? THEN 1 ELSE 0 END,error=NULL WHERE id=? AND version=?`).bind(latest,latest,now-120_000,id,version),
+          WHERE EXISTS(SELECT 1 FROM public_metrics WHERE id=? AND version=?)${guard}
+          ON CONFLICT(metric_id,resolution,bucket) DO UPDATE SET value_sum=excluded.value_sum,samples=1,last_at=excluded.last_at WHERE metric_points.value_sum IS NOT excluded.value_sum OR metric_points.samples<>1 OR metric_points.last_at<>excluded.last_at`).bind(id,JSON.stringify(points),id,version,...guardParams),
+        db.prepare(`UPDATE public_metrics SET last_reported_at=MAX(COALESCE(last_reported_at,0),?),stale=CASE WHEN MAX(COALESCE(last_reported_at,0),?)<? THEN 1 ELSE 0 END,error=NULL WHERE id=? AND version=?${guard}`).bind(latest,latest,now-120_000,id,version,...guardParams),
+        ...(authority?[db.prepare("UPDATE management_tokens SET last_used_at=? WHERE id=? AND EXISTS(SELECT 1 FROM audit_entries WHERE id=?)").bind(now,authority.id,receipt)]:[]),
       ]);
+      return authority?Boolean(result[0].meta.changes):true;
     },
     async due(now: number) { return (await db.prepare(`SELECT ${columns} FROM public_metrics WHERE provider NOT IN ('push','uptime') AND sealed_credentials IS NOT NULL AND pull_after<=? AND (pull_lease_until IS NULL OR pull_lease_until<=?) ORDER BY pull_after,id LIMIT 10`).bind(now,now).all<StoredMetric>()).results; },
     async claim(row: StoredMetric, now: number) { const result=await db.prepare("UPDATE public_metrics SET pull_lease_until=?,pull_after=? WHERE id=? AND version=? AND (pull_lease_until IS NULL OR pull_lease_until<=?)").bind(now+60_000,now+60_000,row.id,row.version,now).run(); return Boolean(result.meta.changes); },

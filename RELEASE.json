@@ -159,6 +159,10 @@
     {
       "id": "0062_public_metrics.sql",
       "buyerSteps": "Apply after 0061. Adds public metric definitions and aggregate-only minute/day, hourly/30-day and daily/90-day buckets. Read-only provider keys are sealed and excluded from archives; restored pull sources require reconnecting."
+    },
+    {
+      "id": "0063_management_metric_tokens.sql",
+      "buyerSteps": "Apply after 0062. Adds scoped management-token metadata for metrics:write only. Base stores bearer credentials as hashes and omits their authority from native archives; restored metadata is inert. Existing sessions, metrics, aggregates and previously applied tables remain unchanged."
     }
   ],
   "breaking": false,

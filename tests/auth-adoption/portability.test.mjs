@@ -57,7 +57,7 @@ test('ACCESS-001 INTAKE-009 native rer archive restores owner continuity and sub
     const portableMetrics=await preparePortableMetrics({env:current.env,native,cookie:oldCookie});
     await current.dispose(); current = null;
     await command(source, 'export', '--output', join(directory, 'installation.rer'));
-    for(const value of [portableMetrics.sealed,'synthetic-lamp-99','synthetic-lamp-100']) assert.ok(!(await readFile(join(directory,'installation.rer'))).includes(value),'metric query keys and ciphertext never travel');
+    for(const value of [portableMetrics.sealed,'synthetic-lamp-99','synthetic-lamp-100',portableMetrics.management.token,portableMetrics.hash]) assert.ok(!(await readFile(join(directory,'installation.rer'))).includes(value),'metric query keys and ciphertext never travel');
     assert.ok(!(await readFile(join(directory, 'installation.rer'))).includes('portable-sealed-rest-key'), 'the archive carries no sealed PagerDuty key');
     for (const preset of ['jsm','opsgenie']) assert.ok(!(await readFile(join(directory, 'installation.rer'))).includes(`synthetic-lamp-${preset}-sealed-key`), `${preset} ciphertext never travels`);
     for await (const record of fileRecords(join(directory, 'installation.rer'))) {

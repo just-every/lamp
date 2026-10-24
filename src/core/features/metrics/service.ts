@@ -1,3 +1,4 @@
+import { TokenAuthorityError, type TokenAuthority } from "../management-api/repository";
 import { readUptimeTiming } from "./uptime-timings";
 import { createUlid } from "../../shared/ids";
 import { openUrl, sealUrl, sealingSecrets } from "../channels/sealing";
@@ -66,10 +67,12 @@ export function createMetricsService(db: D1Database, changed:()=>Promise<void>, 
       await changed(); return view((await repository.get(id))!);
     },
     async remove(id:string,actor:string) { const removed=await repository.remove(id,actor); if(removed) await changed(); return removed; },
-    async push(id:string,points:AggregatePoint[]) {
+    async push(id:string,points:AggregatePoint[],authority?:TokenAuthority) {
       const row=await repository.get(id); if(!row) return false;
       if(row.provider!=="push") throw Error("This metric accepts points only from its connected read-only provider.");
-      const now=Date.now();await repository.write(id,checkedPoints(points,now),now,row.version);await repository.maintain(now);await changed();return true;
+      const now=Date.now();
+      if(!await repository.write(id,checkedPoints(points,now),now,row.version,authority))throw new TokenAuthorityError("Management token authority changed.");
+      await repository.maintain(now);await changed();return true;
     },
     async acceptUptime(sourceId:string,rawBody:string) {
       const timing=readUptimeTiming(JSON.parse(rawBody));
