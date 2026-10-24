@@ -1,3 +1,5 @@
+// Wrangler setup can outlast idle HTTP connections; use the shared fixture transport.
+import { fixtureFetch as fetch } from "../public-snapshots/fixture-fetch.mjs";
 import assert from "node:assert/strict";
 import { execFileSync, spawn } from "node:child_process";
 import { createHmac } from "node:crypto";
