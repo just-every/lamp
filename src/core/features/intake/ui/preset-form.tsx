@@ -27,7 +27,7 @@ function setupFields(tool: SingleTool, address: string): Copyable[] {
   if (tool === "uptimerobot") fields.push({ label: "UptimeRobot JSON body", value: uptimeRobotPayloadTemplate, copy: "Copy body", multiline: true });
   return fields;
 }
-const body = (source: Pick<Source, "name">, tool: SingleTool, componentId: string) => ({ name: source.name, preset: tool, componentId, credentialKind: "bearer-token" });
+const body = (source: Pick<Source, "name">, tool: SingleTool, componentId: string, entities = "") => ({ name: source.name, preset: tool, componentId, credentialKind: "bearer-token", ...(tool === "newrelic" ? { labelMatchers: [...new Set(entities.split("\n").map(name => name.trim()).filter(Boolean))].map(entity_name => ({ componentId, labels: { entity_name } })) } : {}) });
 
 /** Datadog, UptimeRobot, Better Stack and Pingdom: one component, chosen once; Lamp makes the key. */
 export function PresetForm({ tool, source, components, name, onConnected, onSaved, onClose }: { tool: SingleTool; source: Source | null; components: ComponentOption[]; name: string; onConnected: () => void; onSaved: () => void; onClose: () => void }) {
@@ -60,16 +60,18 @@ function ConnectPreset({ tool, name, components, onConnected, onClose }: { tool:
 function EditPreset({ tool, source, components, onSaved, onClose }: { tool: SingleTool; source: Source; components: ComponentOption[]; onSaved: () => void; onClose: () => void }) {
   const autosave = useSourceAutosave(source.id, onSaved);
   const [componentId, setComponentId] = useState(source.componentId ?? "");
+  const [entities, setEntities] = useState((source.labelMatchers ?? []).map(row => row.labels.entity_name).join("\n"));
   const [address, setAddress] = useState<string | null>(null);
   async function newAddress() {
     const token = createOpaqueToken();
-    await appApi(`/api/app/intake/sources/${source.id}`, { method: "PUT", body: JSON.stringify({ ...body(source, tool, componentId), bearerToken: token }) });
+    await appApi(`/api/app/intake/sources/${source.id}`, { method: "PUT", body: JSON.stringify({ ...body(source, tool, componentId, entities), bearerToken: token }) });
     setAddress(keyedAddress(source, token)); onSaved();
   }
   return <section className="data-card tool-form" aria-labelledby="tool-form-title">
     <ToolHeading title={source.name} does={toolDoes(tool)} close={{ label: "Close", onClick: onClose }} />
     <SaveNote phase={autosave.phase} error={autosave.error} retry={autosave.retry} held={autosave.held} />
-    <div className="tool-fields"><label className="form-label">Component<select required value={componentId} onChange={event => { setComponentId(event.target.value); autosave.save(body(source, tool, event.target.value), true); }}><ComponentOptions components={components} empty="Choose a component" required /></select></label></div>
+    <div className="tool-fields"><label className="form-label">Component<select required value={componentId} onChange={event => { setComponentId(event.target.value); autosave.save(body(source, tool, event.target.value, entities), true); }}><ComponentOptions components={components} empty="Choose a component" required /></select></label></div>
+    {tool === "newrelic" && <div className="tool-fields"><label className="form-label">Entity names<textarea maxLength={3000} value={entities} onChange={event => { setEntities(event.target.value); autosave.save(body(source, tool, componentId, event.target.value)); }} /></label><p className="tool-note">One exact entity name per line. Leave empty to attach all workflow issues to this component.</p></div>}
     {address ? <ShownOnce fields={setupFields(tool, address)} onDone={() => setAddress(null)}>{SETUP[tool]}</ShownOnce> : <NewKey what="address" replace={newAddress} />}
     {componentId&&(["datadog","newrelic","pingdom"] as string[]).includes(tool)&&<MetricsPanel key={componentId} componentId={componentId} sourceId={source.id} provider={tool as "datadog"|"newrelic"|"pingdom"} />}
   </section>;

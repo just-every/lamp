@@ -17,7 +17,8 @@ function chart(metric:PublicMetric,component:string,generatedAt:string,zone:stri
   const points=metric.points.filter(point=>point.at>=start&&point.at<=now);
   const chunks=segments(points), latest=points.at(-1);
   const title=`${component} · ${metric.name}`;
-  const summary=latest?`${number(latest.value)} ${metric.unit}. Last 24 hours: ${number(Math.min(...points.map(p=>p.value)))} to ${number(Math.max(...points.map(p=>p.value)))} ${metric.unit}. Minute averages from ${metric.source}.`:`No data in the last 24 hours. Source: ${metric.source}.`;
+  const source={push:"the management API",uptime:"Uptime event timings",datadog:"Datadog",newrelic:"New Relic",pingdom:"Pingdom",prometheus:"Prometheus"}[metric.source];
+  const summary=latest?`${number(latest.value)} ${metric.unit}. Last 24 hours: ${number(Math.min(...points.map(p=>p.value)))} to ${number(Math.max(...points.map(p=>p.value)))} ${metric.unit}. Minute averages from ${source}.`:`No data in the last 24 hours. Source: ${source}.`;
   const gaps:string[]=[];
   for(let i=Math.max(1,chunks.length-3);i<chunks.length;i++) {
     const stopped=chunks[i-1].at(-1)!.at, resumed=chunks[i][0].at;
@@ -32,8 +33,8 @@ function chart(metric:PublicMetric,component:string,generatedAt:string,zone:stri
   if(points.length) {
     const low=Math.min(...points.map(p=>p.value)),high=Math.max(...points.map(p=>p.value));
     const x=(at:number)=>8+584*(at-start)/DAY, y=(value:number)=>high===low?70:128-116*(value-low)/(high-low);
-    // At most 180 representatives per chart, while keeping both ends of every
-    // contiguous run. Stored minute aggregates remain available through the API.
+    // At most 180 representatives per chart, with each contiguous run
+    // still drawn separately. Stored minute aggregates remain available through the API.
     const stride=Math.max(1,Math.ceil(points.length/180));
     let position=0;
     const paths=chunks.map(chunk=>{

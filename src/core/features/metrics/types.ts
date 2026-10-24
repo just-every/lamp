@@ -16,6 +16,6 @@ export interface MetricDefinition {
   lastReportedAt: number | null; error: string | null;
 }
 export interface PublicMetric {
-  id: string; componentId: string; name: string; unit: string; source: string;
+  id: string; componentId: string; name: string; unit: string; source: MetricDefinition["provider"];
   lastReportedAt: number | null; points: AggregatePoint[];
 }

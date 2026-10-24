@@ -13,7 +13,7 @@ export async function metricsFlow({t}) {
   const componentId=made.body.component.id;
   const create=async input=>{const result=await post("/api/app/metrics",{componentId,name:"synthetic-lamp-24",unit:"ms",...input});assert.equal(result.status,201,result.text);return result.body.metric;};
   const page=async()=>{const response=await raw(publicOrigin+"/");assert.equal(response.status,200);return response.text();};
-  const tick=async at=>{await raw(`${fixture.appOrigin}/cdn-cgi/handler/scheduled?cron=${encodeURIComponent("* * * * *")}&time=${at}`);};
+  const tick=async at=>{const result=await (await fixture.runtime.getWorker()).scheduled({cron:"* * * * *",scheduledTime:at});assert.equal(result.outcome,"ok");};
   try {
     const push=await create({provider:"push"});
     const points=Array.from({length:61},(_,index)=>({at:minute-(61-index)*60_000,value:100+index})).filter((_,index)=>index<20||index>=40);
@@ -22,11 +22,18 @@ export async function metricsFlow({t}) {
     assert.match(html,/No data for 20 minutes/);const article=html.match(new RegExp(`<article[^>]*data-metric="${push.id}"[\\s\\S]*?</article>`))[0];
     assert.equal((article.match(/<path /g)??[]).length,2,"the twenty-minute gap splits the SVG into two unconnected paths");
     assert.ok(article.includes(new Date(points[19].at).toISOString()),"the gap names when reporting stopped");
+    const stopped=await create({provider:"push",name:"synthetic-lamp-54"});
+    const stoppedAt=minute-21*60_000;
+    assert.equal((await post(`/api/app/metrics/${stopped.id}/points`,{points:[{at:stoppedAt-60_000,value:10},{at:stoppedAt,value:12}]})).status,200);
+    const stoppedArticle=(await page()).match(new RegExp(`<article[^>]*data-metric="${stopped.id}"[\\s\\S]*?</article>`))[0];
+    assert.match(stoppedArticle,/No data since the source stopped reporting/);
+    assert.ok(stoppedArticle.includes(new Date(stoppedAt).toISOString()),"a stopped source names the last reported instant");
+    assert.equal((await fixture.db.prepare("SELECT count(*) n FROM metric_points WHERE metric_id=?").bind(stopped.id).first()).n,2,"a trailing reporting gap creates no interpolated points");
     const before=(await fixture.db.prepare("SELECT * FROM metric_points ORDER BY metric_id,resolution,bucket").all()).results;
     assert.equal((await raw(fixture.appOrigin+`/api/app/metrics/${push.id}/points`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({points:[{at:minute,value:999}]})})).status,401);
     assert.deepEqual((await fixture.db.prepare("SELECT * FROM metric_points ORDER BY metric_id,resolution,bucket").all()).results,before,"an unauthenticated push changes no series");
     const feeds=[];
-    for(const [provider,key,query,value] of [["datadog","synthetic-lamp-26","avg:synthetic.metric{*}",42],["newrelic","synthetic-lamp-28","SELECT average(duration) AS value FROM Transaction",87],["pingdom","synthetic-lamp-29","123",60],["prometheus","synthetic-lamp-30","avg(synthetic_latency)",12.5]]) {
+    for(const [provider,key,query,value] of [["datadog","synthetic-lamp-26","avg:synthetic.metric{*}",42],["newrelic","synthetic-lamp-28","SELECT average(duration) * 1000 AS value FROM Transaction",87],["pingdom","synthetic-lamp-29","123",60],["prometheus","synthetic-lamp-50","avg(synthetic_latency)",12.5]]) {
       let sourceId=null;
       if(provider!=="prometheus") {
         const source=await post("/api/app/intake/sources",{name:`synthetic-lamp-${31+feeds.length}`,preset:provider,componentId,credentialKind:"bearer-token"});assert.equal(source.status,201,source.text);sourceId=source.body.source.id;
@@ -68,13 +75,20 @@ async function auditPublicCharts(origin) {
     if(process.env.LAMP_SCREENSHOTS)await mkdir(process.env.LAMP_SCREENSHOTS,{recursive:true});
     for(const width of [1440,390]) {
       await page.setViewportSize({width,height:width===390?844:1000});await page.goto(origin);
-      assert.equal(await page.locator("[data-metric-chart]").count(),6,"all populated charts are inline with script disabled");
+      assert.equal(await page.locator("[data-metric-chart]").count(),7,"all populated charts are inline with script disabled");
       assert.ok(await page.getByText("No data for 20 minutes.",{exact:false}).count());
       assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),`${width}: charts do not overflow`);
-      const axe=await new AxeBuilder({page}).withTags(["wcag2a","wcag2aa","wcag21a","wcag21aa","wcag22aa"]).analyze();
-      assert.deepEqual(axe.violations.filter(v=>["serious","critical"].includes(v.impact)).map(v=>({id:v.id,nodes:v.nodes.map(n=>n.target)})),[],`${width}: public charts have no serious axe finding`);
       if(process.env.LAMP_SCREENSHOTS)await page.getByRole("region",{name:"Performance",exact:true}).screenshot({path:`${process.env.LAMP_SCREENSHOTS}/${width}-public-metrics.png`});
     }
     await context.close();
+    const audited=await browser.newContext(),active=await audited.newPage(),errors=[];
+    active.on("pageerror",error=>errors.push(error.message));
+    active.on("console",message=>{if(message.type()==="error"&&/hydrat|did not match|server rendered/i.test(message.text()))errors.push(message.text());});
+    for(const width of [1440,390]) {
+      await active.setViewportSize({width,height:width===390?844:1000});await active.goto(origin);
+      const axe=await new AxeBuilder({page:active}).withTags(["wcag2a","wcag2aa","wcag21a","wcag21aa","wcag22aa"]).analyze();
+      assert.deepEqual(axe.violations.filter(v=>["serious","critical"].includes(v.impact)).map(v=>({id:v.id,nodes:v.nodes.map(n=>n.target)})),[],`${width}: public charts have no serious axe finding`);
+    }
+    assert.deepEqual(errors,[],"public charts have no hydration mismatch or script error");await audited.close();
   }finally{await browser.close();}
 }

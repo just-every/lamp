@@ -13,7 +13,7 @@ import type { ComponentState } from "../../shared/domain";
  * Pingdom state change webhook (pingdom.com state change webhooks). */
 export const ALERT_PRESETS = ["pagerduty", "uptime", "datadog", "uptimerobot", "betterstack", "pingdom", ...GROUPED_PRESETS, ...VENDOR_PRESETS] as const;
 export type AlertPreset = (typeof ALERT_PRESETS)[number];
-export type PresetReading = { key: string; title: string; recovered: boolean; state: ComponentState; monitorId?: string } | { refused: string };
+export type PresetReading = { key: string; title: string; recovered: boolean; state: ComponentState; monitorId?: string; entityNames?: string[] } | { refused: string };
 
 const text = z.string().max(2000);
 const id = z.union([z.string().min(1).max(200), z.number().int()]).transform(String);
@@ -29,8 +29,8 @@ const title = (value: string | null | undefined, fallback: string) => (value ?? 
 export function readPreset(preset: AlertPreset, payload: unknown): PresetReading {
   if (isOperationsPreset(preset)) return readOperationsAlert(payload);
   if (preset === "newrelic") {
-    const parsed = z.object({ issueId: id, title: text, state: z.enum(["ACTIVATED", "CLOSED"]) }).safeParse(payload);
-    return parsed.success ? { key: parsed.data.issueId, title: title(parsed.data.title, "New Relic issue"), recovered: parsed.data.state === "CLOSED", state: "Major outage" } : { refused: "Expected the New Relic workflow webhook template with issueId, title and state." };
+    const parsed = z.object({ issueId: id, title: text, state: z.enum(["ACTIVATED", "CLOSED"]), entityNames: z.array(z.string().min(1).max(500)).max(200).default([]) }).safeParse(payload);
+    return parsed.success ? { key: parsed.data.issueId, title: title(parsed.data.title, "New Relic issue"), recovered: parsed.data.state === "CLOSED", state: "Major outage", entityNames: parsed.data.entityNames } : { refused: "Expected the New Relic workflow webhook template with issueId, title and state." };
   }
   if (preset === "pagerduty") return readPagerDuty(payload);
   if (preset === "uptime") return readUptime(payload);
@@ -67,4 +67,4 @@ export const uptimeRobotPayloadTemplate = JSON.stringify({ monitorID: "*monitorI
 export const presetLabels: Record<AlertPreset, string> = { jsm: "Jira Service Management", opsgenie: "Opsgenie", newrelic: "New Relic", pagerduty: "PagerDuty", uptime: "Uptime", datadog: "Datadog", uptimerobot: "UptimeRobot", betterstack: "Better Stack", pingdom: "Pingdom", alertmanager: "Prometheus Alertmanager", grafana: "Grafana Alerting" };
 
 /** New Relic workflow webhook custom payload; New Relic expands its template values. */
-export const newRelicPayloadTemplate = '{\n  "issueId": {{json issueId}},\n  "title": {{json issueTitle}},\n  "state": {{json state}}\n}';
+export const newRelicPayloadTemplate = '{\n  "issueId": {{json issueId}},\n  "title": {{json issueTitle}},\n  "state": {{json state}},\n  "entityNames": {{json entitiesData.names}}\n}';

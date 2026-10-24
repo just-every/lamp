@@ -1,3 +1,5 @@
+import { metricsFlow } from "./helpers/metrics-flow.mjs";
+import { metricsBrowserFlow } from "./helpers/metrics-browser-flow.mjs";
 import { operationsAlertsBrowserFlow } from "./helpers/operations-alerts-browser-flow.mjs";
 import { operationsAlertsFlow } from "./helpers/operations-alerts-flow.mjs";
 import { selfServeChatFlow } from "./helpers/self-serve-chat-flow.mjs";
@@ -254,5 +256,7 @@ test("INTAKE-014 INTAKE-011 INTAKE-009 PagerDuty v3 signed events create drafts,
   await pagerDutyBrowserFlow({ api, component, origin, cookie });
   await pagerDutyFlow({ runtime, t });
   await operationsAlertsFlow({ t });
+  await metricsBrowserFlow({ api, post, component, origin, cookie });
+  await metricsFlow({ t });
   await chatLinksBrowserFlow({ origin, cookie, signingSecret: chatSigningSecret, diagnostic: text => t.diagnostic(text) });
 });

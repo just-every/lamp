@@ -113,3 +113,36 @@ base64url) and an ISO time in the timestamp header, within five minutes. **Paylo
 deduplication key, title and state, and the state value that means recovered;
 Lamp's own alert shape fills them by default. A request whose payload lacks the
 deduplication path returns 400 and is listed under Recent alerts.
+
+## Public performance charts
+
+In a component's settings, use **Public performance metrics** to add a management-API
+series or a Prometheus query. Datadog, New Relic and Pingdom charts live in the
+connected tool's existing Alerts form, below its webhook choices. Uptime offers
+charts under each paired monitor. A page can show ten metrics in total.
+
+Give each chart a public name and unit. For a pull feed, save a read-only key with
+**Save read-only key**. Datadog also needs an application key scoped to metric
+queries. New Relic takes an account ID and a query such as
+`SELECT average(duration) AS value FROM Transaction`; Lamp supplies the time range
+and minute interval. Pingdom takes its numeric check ID and reports milliseconds.
+Prometheus takes a public HTTPS endpoint and one numeric range-query series.
+Provider redirects and private destinations are refused. Keys are sealed, never
+shown again, and excluded from backups; reconnect them after a restore.
+
+New Relic's workflow template includes `entityNames` from `entitiesData.names`.
+Its **Entity names** choice maps the listed names to the source's selected
+component. Leave it empty to attach all workflow issues to that component.
+
+A pushed series uses the displayed `/api/app/metrics/<id>/points` address with an
+operator session and the same-origin protections as the operator management API.
+Token authentication remains API-001's obligation. POST
+`{"points":[{"at":1792800000000,"value":42}]}` with `at` at the start of a UTC
+minute in epoch milliseconds. Each value is that minute's aggregate, and replacing
+a minute is idempotent. Only the last day's minute aggregates are accepted.
+
+Lamp keeps minute aggregates for one day, hourly aggregates for thirty days and
+daily aggregates for ninety days. Charts are inline SVG and readable without
+script. Missing minutes split the line; a stopped source states when it last
+reported. Uptime contributes only response times its verified events actually
+carry, never inferred samples between incidents.

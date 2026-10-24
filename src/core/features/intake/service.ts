@@ -49,6 +49,8 @@ export function createIntakeService(
     const monitorId = "refused" in reading ? undefined : reading.monitorId;
     const mappedComponentId = !("refused" in reading) && source.preset === "uptime" ? source.monitorMappings?.find(row => row.monitorId === monitorId)?.componentId : source.componentId;
     if (!("refused" in reading) && source.preset === "uptime" && !mappedComponentId) reading = { refused: "Monitor not picked yet. Pick its component under Uptime." };
+    const entityNames="refused" in reading?[]:reading.entityNames??[];
+    if (!("refused" in reading) && source.preset === "newrelic" && source.labelMatchers?.length && !source.labelMatchers.some(row => entityNames.includes(row.labels.entity_name))) reading = { refused: "New Relic entity not mapped to this component." };
     if ("refused" in reading) {
       const receipt: AlertReceiptRow = { id: createUlid(), sourceId: source.id, requestHash, deduplicationKey: null, incidentId: null, state: "invalid", receivedAt: timestamp, recoveredAt: null, payloadJson: rawBody, error: reading.refused, createdAt: timestamp, updatedAt: timestamp };
       await repository.recordInvalid(receipt);
@@ -94,6 +96,7 @@ export function createIntakeService(
       if (input.preset !== "pagerduty" && input.credentialKind === "hmac-sha256" && !input.signingSecret && (!existing || existing.credentialKind !== "hmac-sha256" || !existing.signingSecret)) throw new Error("An HMAC source requires a signing secret.");
       if (input.credentialKind === "bearer-token" && !input.bearerToken && (!existing || existing.credentialKind !== "bearer-token" || !existing.bearerTokenHash)) throw new Error("A bearer source requires a bearer token.");
       if (input.preset === "pagerduty" && input.labelMatchers?.some(row => Object.keys(row.labels).some(key => key !== "service_id" && key !== "service_name"))) throw new Error("PagerDuty matchers use service_id or service_name.");
+      if (input.preset === "newrelic" && input.labelMatchers?.some(row => row.componentId !== input.componentId || Object.keys(row.labels).some(key => key !== "entity_name") || !row.labels.entity_name?.trim())) throw new Error("New Relic entity names map to this source's selected component.");
       if (input.pagerDutyApiKey && input.preset !== "pagerduty") throw new Error("A PagerDuty API key needs a PagerDuty preset.");
       if (isOperationsPreset(input.preset) && input.labelMatchers?.some(row => Object.keys(row.labels).some(key => !["tag", "entity", "affected_service"].includes(key)))) throw new Error("Matchers use tag, entity or affected_service.");
       if (isOperationsPreset(input.preset) && input.labelMatchers?.some(row => Object.values(row.labels).some(value => !value.trim()))) throw new Error("Matcher values cannot be blank.");
