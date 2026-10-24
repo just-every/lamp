@@ -82,18 +82,24 @@ export async function operationsAlertsFlow({ t }) {
       assert.ok(!brief.whatWeKnow.alerts.some(row => row.payload?.action === "AddNote"));
       assert.ok((await api(`/api/app/incidents/${id}`)).body.incident.internalNotes.some(note => note.body === privateNote), "AddNote is an internal operator note");
       const update = async lifecycle => {
-        const draft = await api(`/api/app/incidents/${id}/draft`, { method: "PUT", body: JSON.stringify({ lifecycle, affectedAudience: "synthetic-lamp-1 API customers", customerImpact: "synthetic-lamp-1 requests interrupted", whatStillWorks: "", details: "synthetic-lamp-1 update", nextUpdateAt: lifecycle === "Resolved" ? null : new Date(Date.now() + 3600000).toISOString() }) }); assert.equal(draft.status, 200, draft.text);
-        const published = await post(`/api/app/incidents/${id}/publish`, { channels: [], ...(lifecycle === "Resolved" ? { overrideReason: "synthetic-lamp-1 operator verified recovery" } : {}) }); assert.equal(published.status, 200, published.text); return published;
+        const nextUpdateAt = lifecycle === "Resolved" ? null : new Date(Date.now() + 3600000).toISOString();
+        const draft = await api(`/api/app/incidents/${id}/draft`, { method: "PUT", body: JSON.stringify({ lifecycle, affectedAudience: "synthetic-lamp-1 API customers", customerImpact: "synthetic-lamp-1 requests interrupted", whatStillWorks: "synthetic-lamp-1 dashboard remains available", details: "synthetic-lamp-1 update", nextUpdateAt }) }); assert.equal(draft.status, 200, draft.text);
+        const published = await post(`/api/app/incidents/${id}/publish`, { channels: [], ...(lifecycle === "Resolved" ? { overrideReason: "synthetic-lamp-1 operator verified recovery" } : {}) }); assert.equal(published.status, 200, published.text); return { ...published, nextUpdateAt };
       };
       const before = outbound.length;
-      await update("Identified");
+      const identified = await update("Identified");
       await eventuallyFollowUp(() => outbound.length, count => count === before + 1, "one vendor note for publication");
       assert.ok(outbound.at(-1).body.note.includes(incident.reference)); assert.ok(outbound.at(-1).body.note.includes("synthetic-lamp-1 requests interrupted")); assert.ok(outbound.at(-1).body.note.includes(`${publicOrigin}/incidents/${incident.reference}`));
+      for (const field of [incident.title, "Identified", "synthetic-lamp-1 API customers", "synthetic-lamp-1 requests interrupted", "synthetic-lamp-1 dashboard remains available", "synthetic-lamp-1 update", identified.nextUpdateAt]) assert.ok(outbound.at(-1).body.note.includes(field), `vendor note retains the published ${field}`);
       assert.ok(!JSON.stringify(outbound).includes(privateNote));
       const closed = await send({ ...recorded, action: "Close", timestamp: "2026-10-24T01:06:00.000Z" }); assert.equal(closed.status, 202); assert.equal(closed.body.incidentId, id);
       assert.equal((await api(`/api/app/incidents/${id}`)).body.incident.lifecycle, "Identified", "provider Close leaves a published incident with operators");
       await update("Resolved");
       await eventuallyFollowUp(() => outbound.length, count => count === before + 3, "resolved publication adds one note and one close");
+      for (const post of outbound.slice(before + 1, before + 3)) {
+        for (const field of [incident.reference, incident.title, "Resolved", "synthetic-lamp-1 API customers", "synthetic-lamp-1 requests interrupted", "synthetic-lamp-1 dashboard remains available", "synthetic-lamp-1 update", `${publicOrigin}/incidents/${incident.reference}`]) assert.ok(post.body.note.includes(field), "resolved note and close retain every public update field");
+        assert.ok(!post.body.note.includes("Next update:"), "resolved posts carry no old next-update promise");
+      }
       const reportDraft = await post(`/api/app/incidents/${id}/report/draft`, {});
       assert.equal(reportDraft.status, 200, reportDraft.text);
       const reportBrief = (await api(`/api/app/incidents/${id}/brief`)).body.brief;
