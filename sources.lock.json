@@ -448,7 +448,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "ba9e928c59dca7f5771bba021379470a75e699248d86f9ceee7d3579fe11edbd",
+      "sha256": "70e8fd4cc664f177f92ee847dbb1dbb07222700e1dde5de84d7e61fd1d2cc1df",
       "executable": false
     },
     "AGENTS.md": {
@@ -496,7 +496,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "91d83d33932ba032a9563641bff264c537040c7d6ed50da9868858ca773c81fe",
+      "sha256": "9a40384b59aa8f26435a35c57e7ad7736857f5b5b1294ce825c9694e5854cf6b",
       "executable": false
     },
     "DEMO.md": {
@@ -4852,7 +4852,7 @@
       "executable": false
     },
     "src/core/features/subscribers/slack-subscriptions.ts": {
-      "sha256": "df56d3bb9dd5ed6e33a55c4c5c972b90827a457a1e6b0d599a60a3de613e1ca5",
+      "sha256": "6c78150966380e9a00b742fcbedeac6f1a11422e23a22e4c1c861a01d15da7b8",
       "executable": false
     },
     "src/core/features/subscribers/teams-routes.ts": {
@@ -6668,7 +6668,7 @@
       "executable": false
     },
     "tests/e2e/slack-subscriptions-helper.mjs": {
-      "sha256": "4607dac4ab178fc909a9b1c138ac76d892527dffe6309ede51816f54cf93f95f",
+      "sha256": "9fb82c47409105e5000228d9bd2f3a58114bcda0603139a56a02f8b95df9546e",
       "executable": false
     },
     "tests/e2e/snapshot-cache-runtime.mjs": {
