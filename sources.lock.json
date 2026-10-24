@@ -448,7 +448,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "b697bbb1f4f8adc1f603d62f48224f15774b3d1a3656051df78cf3f6c40d2c4c",
+      "sha256": "e83dab46e7cfd7e64bd966e22056994fb6c1101564d9335d9759a1e65476f5f6",
       "executable": false
     },
     "AGENTS.md": {
@@ -496,7 +496,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "a92a70641023e13816d57d7c4639b9a58c80b76aa62bc60c59bc7d7cfa2dd5c7",
+      "sha256": "fe5dc88b219d581fe2f72e76611d4bbd67d08b3a2f0c6f0f024f09d97392145a",
       "executable": false
     },
     "DEMO.md": {
@@ -3396,7 +3396,7 @@
       "executable": false
     },
     "src/core/features/chat-desk/slack/blocks.ts": {
-      "sha256": "fa923b36fd26ace64ceb3dc94e732bb036ba32b3c38ca67e8ffaa72d1ee4908b",
+      "sha256": "b2181535fcf80e15cfe3a3d7d940381ee4e76b4e208e23a2d99374f92f3dd308",
       "executable": false
     },
     "src/core/features/chat-desk/slack/response.ts": {
@@ -3412,7 +3412,7 @@
       "executable": false
     },
     "src/core/features/chat-desk/teams/cards.ts": {
-      "sha256": "566f40d75ecbb922ccd6944076d3cc63a9d6109f4d0246c6de3c7662a386111b",
+      "sha256": "217345c063f3146eb46e73571a23379441845c780abdc2d51827ba2b88f3d5d8",
       "executable": false
     },
     "src/core/features/chat-desk/teams/verify.ts": {
@@ -3952,7 +3952,7 @@
       "executable": false
     },
     "src/core/features/intake/ui/tools.ts": {
-      "sha256": "66b70eb727f64579732800bf447ad17b2e3d90d2a1fe40f0bb070d121bb1431c",
+      "sha256": "92b33f84cba5f82ad54fa7f365262cf9806dcd2cfac46c03ca5839fa91ef7b0c",
       "executable": false
     },
     "src/core/features/intake/ui/uptime-form.tsx": {
@@ -6188,7 +6188,7 @@
       "executable": false
     },
     "tests/chat-desk/flow.mjs": {
-      "sha256": "756b4da5c45f0b8c38b6a871f5ba02d3c9e61746bbb357770a341e5f06da5345",
+      "sha256": "8fa20379841c875dee636c8aa9c0594f3245c8532a99ca5ec3c4a8e932ad9727",
       "executable": false
     },
     "tests/chat-desk/runtime.mjs": {
@@ -6512,7 +6512,7 @@
       "executable": false
     },
     "tests/e2e/helpers/operations-alerts-browser-flow.mjs": {
-      "sha256": "436ae6994cd7059b25a0150aea40caf876a978020b44889e552f0bc43b243d38",
+      "sha256": "0be68dab9a889a0e8d2b8739d488bb424716b1755bba8975076e1d5acd257190",
       "executable": false
     },
     "tests/e2e/helpers/operations-alerts-flow.mjs": {
