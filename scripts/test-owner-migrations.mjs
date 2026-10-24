@@ -71,7 +71,7 @@ try {
     assert.deepEqual(query(`SELECT ${columns} FROM ${view}`),rows,`the current product reads every retained 0055 ${table} row exactly once`);
   }
   assert.deepEqual(query("SELECT channel,event_kinds_json,minimum_impact FROM subscriber_directory WHERE id='synthetic-lamp-upgrade-email'"),[{channel:'email',event_kinds_json:'["incidents","maintenance"]',minimum_impact:null}], 'an older email subscriber does not silently opt into component notifications');
-  assert.deepEqual(query('SELECT name FROM d1_migrations ORDER BY id').slice(0,55),priorCoreLedger,'all main-applied migration identities stay in their original order');
+  assert.deepEqual(query('SELECT name FROM d1_migrations ORDER BY id').slice(0,priorCoreLedger.length),priorCoreLedger,'all main-applied migration identities stay in their original order');
 
   assert.deepEqual(query('SELECT * FROM owner_notes ORDER BY id'), [{ id: 1, value: 'preserved' }, { id: 2, value: 'second' }]);
   const originalLedger = query(`SELECT * FROM ${ledger} ORDER BY id`);
