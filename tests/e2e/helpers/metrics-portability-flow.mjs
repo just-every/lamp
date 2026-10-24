@@ -22,7 +22,7 @@ export async function preparePortableMetrics({env,native,cookie}) {
     ...aggregates.map(row=>env.DB.prepare("INSERT INTO metric_points(metric_id,resolution,bucket,value_sum,samples,last_at) VALUES(?,?,?,?,?,?)").bind(push.id,row.resolution,row.bucket,row.value_sum,row.samples,row.bucket)),
   ]);
   const management=await native.auth.mintCredential(native.request("/api/app/management-tokens",{method:"POST",cookie}),{expiresInSeconds:3600});
-  await env.DB.prepare("INSERT INTO management_tokens(id,name,scope,issuer_id,expires_at,created_at) VALUES(?,'synthetic-lamp-101','metrics:write',?,?,?)").bind(management.id,actor.operator.id,management.expiresAt,now).run();
+  await env.DB.prepare("INSERT INTO management_tokens(id,name,scope,read_scope,issuer_id,expires_at,created_at) VALUES(?,'synthetic-lamp-101','metrics:write',1,?,?,?)").bind(management.id,actor.operator.id,management.expiresAt,now).run();
   const hash=(await env.DB.prepare("SELECT token_hash FROM oa_credentials WHERE id=?").bind(management.id).first()).token_hash;
   return {push,pull,point,sealed,aggregates,management,hash};
 }
@@ -31,10 +31,12 @@ export async function assertPortableMetrics({expected,app,bindings,origin,cookie
   assert.equal(metrics.find(metric=>metric.id===expected.push.id).name,expected.push.name);assert.equal(metrics.find(metric=>metric.id===expected.pull.id).connected,false,"a restored metric query requires reconnecting its read-only key");
   for(const value of [expected.sealed,"synthetic-lamp-99","synthetic-lamp-100"])assert.ok(!text.includes(value));
   assert.equal((await db.prepare("SELECT sealed_credentials FROM public_metrics WHERE id=?").bind(expected.pull.id).first()).sealed_credentials,null);
-  const metadata=await db.prepare("SELECT id,name,scope FROM management_tokens WHERE id=?").bind(expected.management.id).first();
-  assert.deepEqual({...metadata},{id:expected.management.id,name:"synthetic-lamp-101",scope:"metrics:write"},"management-token metadata survives without bearer authority");
+  const metadata=await db.prepare("SELECT id,name,scope,read_scope FROM management_tokens WHERE id=?").bind(expected.management.id).first();
+  assert.deepEqual({...metadata},{id:expected.management.id,name:"synthetic-lamp-101",scope:"metrics:write",read_scope:1},"management-token metadata survives without bearer authority");
   assert.equal((await db.prepare("SELECT count(*) n FROM oa_credentials WHERE id=?").bind(expected.management.id).first()).n,0,"native archives omit management credential hashes");
   const refused=await app.fetch(new Request(origin+`/api/v1/metrics/${expected.push.id}/points`,{method:"POST",headers:{"Content-Type":"application/json",Authorization:`Bearer ${expected.management.token}`},body:JSON.stringify({points:[{at:expected.point.at,value:999}]})}),bindings);
   assert.equal(refused.status,401,"restored token metadata cannot authorize the old bearer");
+  const readRefused=await app.fetch(new Request(origin+"/api/v1/components",{headers:{Authorization:`Bearer ${expected.management.token}`}}),bindings);
+  assert.equal(readRefused.status,401,"restored read metadata cannot authorize the old bearer");
   assert.deepEqual((await db.prepare("SELECT resolution,bucket,value_sum,samples FROM metric_points WHERE metric_id=? ORDER BY resolution,bucket").bind(expected.push.id).all()).results.map(row=>({...row})),expected.aggregates,"minute, hourly and daily sums and sample counts survive the native archive");
 }

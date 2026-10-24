@@ -13,7 +13,12 @@ import {authFixture,secret,setupToken} from './runtime.mjs';
 async function migrateAfterDependencyApproval(db){
  const directory='migrations/core';
  const migrations=(await readdir(directory)).filter(name=>/^\d{4}_.+\.sql$/.test(name)&&Number(name.slice(0,4))>20).sort();
- for(const migration of migrations)await executeSql(db,await readFile(join(directory,migration),'utf8'));
+ for(const migration of migrations){
+  if(migration.startsWith('0064_'))await db.prepare("INSERT INTO management_tokens(id,name,scope,issuer_id,expires_at,created_at,last_used_at) VALUES('synthetic-lamp-65','synthetic-lamp-66','metrics:write','synthetic-lamp-67',9999999999999,'2026-10-24',123)").run();
+  await executeSql(db,await readFile(join(directory,migration),'utf8'));
+  if(migration.startsWith('0064_'))assert.deepEqual({...await db.prepare("SELECT name,scope,issuer_id,expires_at,last_used_at,read_scope FROM management_tokens WHERE id='synthetic-lamp-65'").first()},{name:'synthetic-lamp-66',scope:'metrics:write',issuer_id:'synthetic-lamp-67',expires_at:9999999999999,last_used_at:123,read_scope:0},'populated 0063 metadata survives upgrade with no implicit read authority');
+ }
+
 }
 
 test('ACCESS-001 TEAM-001 TEAM-002 upgrade preserves identities, history and subscriber authority and destroys legacy credentials',async()=>{

@@ -14,6 +14,7 @@ import { join, resolve } from "node:path";
 import { after, before, test } from "node:test";
 import { gzipSync } from "node:zlib";
 import { chromium } from "playwright";
+import AxeBuilder from "@axe-core/playwright";
 import { createServer as createViteServer } from "vite";
 
 import { insertRealOperatorSession } from "./real-session-helper.mjs";
@@ -659,7 +660,8 @@ test("PAGE-013 PAGE-014 PAGE-008 PAGE-009 PAGE-003 — Public isolation, live ti
       const timezoneLabel=page.locator("[data-timezone-label]");
       const initialTimezoneLabel=await timezoneLabel.textContent();
       await page.evaluate(()=>{
-        window.liveChanges=[];
+        window.liveChanges=[];window.statusRenders=0;
+        new MutationObserver(()=>window.statusRenders++).observe(document.querySelector('[data-generated-at]'),{childList:true});
         new MutationObserver(()=>window.liveChanges.push(document.querySelector('#status-live').textContent)).observe(document.querySelector('#status-live'),{subtree:true,childList:true,characterData:true});
       });
       const made=await appFetch("/api/app/incidents",{method:"POST",body:JSON.stringify({title:"synthetic-lamp-64",components:[{componentId:"01J00000000000000000000010",state:"Major outage",relationship:"Primary"}]})});
@@ -685,12 +687,16 @@ test("PAGE-013 PAGE-014 PAGE-008 PAGE-009 PAGE-003 — Public isolation, live ti
         assert.ok(!announcement.includes(incident.id),"announcements contain no internal incident id");
         assert.ok((await page.evaluate(()=>window.liveChanges.length))>0,"the persistent polite region receives changed text after publication");
         await page.evaluate(()=>{window.liveChanges=[];});
+        const renderCount=await page.evaluate(()=>window.statusRenders);
         const unchanged=page.waitForResponse(response=>response.url()===`${pageUrl}/api/public/status`&&response.status()===200);
         await page.clock.fastForward(30_000);await unchanged;
-        await page.waitForFunction(()=>document.querySelector('[data-generated-at] time')?.textContent.length>0);
+        await page.waitForFunction(count=>window.statusRenders>count,renderCount);
         assert.deepEqual(await page.evaluate(()=>window.liveChanges),[],"an unchanged poll and relative timestamp render do not repeat the announcement");
         assert.equal(await timezoneLabel.textContent(),initialTimezoneLabel);
       }
+      const audit=await new AxeBuilder({page}).withTags(["wcag2a","wcag2aa","wcag21aa","wcag22aa"]).analyze();
+      assert.deepEqual(audit.violations.filter(item=>["serious","critical"].includes(item.impact)),[],`${width} live page accessibility`);
+      assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false,`${width} live page has no horizontal overflow`);
       await page.clock.uninstall();
     }
     await context.close();
