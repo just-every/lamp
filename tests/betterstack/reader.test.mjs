@@ -24,7 +24,7 @@ test("Better Stack source history remains complete and fixed-origin requests fai
       raw.data.reverse();
     });
     const read=await readBetterStack(files,{publicAccessAcknowledged:true});
-    const mapped=mapSource(read.data,{maxGroupOrder:0,maxComponentOrder:0,lastReference:{INC:0,SCH:0},allocated:new Set(),references:new Map(),orders:new Map(),destinations:new Map()},'operator','2025-02-01T00:00:00Z','betterstack');
+    const mapped=mapSource(read.data,{subscriberCounts:{total:0,email:0,webhook:0,slack:0,teams:0},maxGroupOrder:0,maxComponentOrder:0,lastReference:{INC:0,SCH:0},allocated:new Set(),references:new Map(),orders:new Map(),destinations:new Map()},'operator','2025-02-01T00:00:00Z','betterstack');
     const tables=mapped.find(row=>row.kind==='incident'&&row.sourceId===report.id).value.tables;
     assert.equal(tables.incidents[0].lifecycle,'Resolved');
     assert.equal(tables.incidents[0].resolved_at,new Date(report.attributes.ends_at).toISOString());
@@ -100,7 +100,7 @@ test("Better Stack source history remains complete and fixed-origin requests fai
   t.diagnostic("a keyless capture of a real Better Stack page's public feeds (Polar, Val Town) brings its past reports as resolved, silent history, with only the components the owner kept");
   await (async()=>{
   const feeds=folder=>readdirSync(`tests/fixtures/status-feeds/${folder}`).filter(name=>name.startsWith('public-')).map(name=>({name,text:readFileSync(`tests/fixtures/status-feeds/${folder}/${name}`,'utf8')}));
-  const snapshot=()=>({maxGroupOrder:-1,maxComponentOrder:-1,lastReference:{INC:0,SCH:0},allocated:new Set(),references:new Map(),orders:new Map(),destinations:new Map()});
+  const snapshot=()=>({subscriberCounts:{total:0,email:0,webhook:0,slack:0,teams:0},maxGroupOrder:-1,maxComponentOrder:-1,lastReference:{INC:0,SCH:0},allocated:new Set(),references:new Map(),orders:new Map(),destinations:new Map()});
   const asOf='2026-10-22T10:00:00.000Z';
   const polar=await sourceAdapters.betterstack.read(feeds('betterstack-polar'),{publicUrl:'https://status.polar.sh/'});
   assert.deepEqual([polar.data.groups.map(group=>group.name),polar.data.components.length,polar.data.incidents.length,polar.data.maintenance.length,polar.data.subscribers.length],[['Production','Sandbox'],12,11,0,0],'no key and no acknowledgement: the public page shows only what is public, and no subscriber');

@@ -1,3 +1,4 @@
+import { componentNotificationStatements } from "../deliveries/component-notifications.repository";
 import { COMPONENT_STATE_SEVERITY } from "../../shared/domain";
 import { createUlid } from "../../shared/ids";
 import { currentStateHistoryStatement } from "../components/state-history-repository";
@@ -8,6 +9,7 @@ import type { IncidentPublishRecord } from "./repository";
 /** Update, claims, aggregate history and recipient selection share one D1 commit. */
 export async function publishIncidentDraft(binding: D1Database, input: IncidentPublishRecord, recipients: D1PreparedStatement[]) {
   const statements = [publicationComponentsGuard(binding, input.incidentId, input.baselineComponents)];
+  const notificationHistoryIds: string[] = [];
   if (input.recovery) statements.push(recoverySnapshotGuard(binding, input.incidentId, input.recovery.snapshot));
   for (const change of input.stagedChanges) {
     statements.push(change.attachmentId === null
@@ -45,10 +47,14 @@ export async function publishIncidentDraft(binding: D1Database, input: IncidentP
     for (const entry of input.historyEntries) statements.push(binding.prepare(`INSERT INTO component_state_history (id,component_id,previous_state,new_state,cause_type,cause_id,operator_id,changed_at,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?)`)
       .bind(entry.id,entry.componentId,entry.previousState,entry.newState,entry.cause.type,entry.cause.id,entry.cause.operatorId,entry.changedAt,entry.createdAt,entry.updatedAt));
   } else {
-    for (const component of input.components) if (component.componentId) statements.push(currentStateHistoryStatement(binding, {
-      id: createUlid(), componentId: component.componentId, cause: { type: "incident", id: input.incidentId, operatorId: input.authorOperatorId },
-      changedAt: input.publishedAt, createdAt: input.createdAt, updatedAt: input.updatedAt,
-    }));
+    for (const component of input.components) if (component.componentId) {
+      const historyId = createUlid();
+      notificationHistoryIds.push(historyId);
+      statements.push(currentStateHistoryStatement(binding, {
+        id: historyId, componentId: component.componentId, cause: { type: "incident", id: input.incidentId, operatorId: input.authorOperatorId },
+        changedAt: input.publishedAt, createdAt: input.createdAt, updatedAt: input.updatedAt,
+      }));
+    }
   }
   if (input.recovery?.overrideReason) statements.push(
     binding.prepare(`INSERT INTO incident_internal_notes (id,incident_id,body,author_operator_id,created_at,updated_at) VALUES (?,?,?,?,?,?)`)
@@ -59,6 +65,7 @@ export async function publishIncidentDraft(binding: D1Database, input: IncidentP
     binding.prepare(`INSERT INTO audit_entries (id,entity_type,entity_id,action,operator_id,reason,payload_json,created_at,updated_at) VALUES (?,'incident-update',?,'published',?,?,?,?,?)`)
       .bind(`${input.id}-audit`,input.id,input.authorOperatorId,input.recovery?.overrideReason ?? null,JSON.stringify({ incidentId: input.incidentId, publishedAt: input.publishedAt, correctsUpdateId: input.correctsUpdateId, componentChanges: input.componentChanges, recovery: input.recovery?.result }),input.createdAt,input.updatedAt),
     ...recipients,
+    ...notificationHistoryIds.flatMap(historyId => componentNotificationStatements(binding, historyId, input.createdAt)),
   );
   await binding.batch(statements);
 }

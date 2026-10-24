@@ -25,6 +25,8 @@ contract('HIST-004', 'a backup made before migration 0033 restores through rer i
   const archived = name => items.filter(item => item.kind === 'row' && item.table === name).map(item => Object.fromEntries(Object.entries(item.row).map(([column, value]) => [column, cell(value)])));
   const history = archived('component_state_history');
   assert.ok(history.length > 1, 'the backup holds state history');
+  assert.ok(archived('subscribers').length > 0, 'the unchanged older backup holds subscription identity and scope');
+  assert.ok(archived('notification_deliveries').length > 0, 'the unchanged older backup holds retained delivery outcomes');
   try {
     // Native: rer applies the migrations under Wrangler's ledger. Managed: Platform's
     // runner already applied them under rer_migrations, and Lamp's page initializer
@@ -49,6 +51,15 @@ contract('HIST-004', 'a backup made before migration 0033 restores through rer i
           const actual = (await db.prepare(`SELECT ${columns.map(quote).join(',')} FROM ${quote(table.name)}`).all()).results.map(row => key(columns, row)).sort();
           assert.deepEqual(actual, expected, `${destination}: every archived value: ${table.name}`);
         }
+        // The current product's logical reads expose the archived history once,
+        // after the supported bridge has restored the original physical rows.
+        for (const [table, view] of [['subscribers','subscriber_directory'],['notification_deliveries','notification_delivery_records']]) {
+          const columns=manifest.tables.find(item=>item.name===table).columns.map(column=>column.name);
+          const actual=(await db.prepare(`SELECT ${columns.map(quote).join(',')} FROM ${quote(view)}`).all()).results.map(row=>key(columns,row)).sort();
+          assert.deepEqual(actual,archived(table).map(row=>key(columns,row)).sort(),`${destination}: current product reads every archived ${table} value exactly once`);
+        }
+        const preferences=(await db.prepare('SELECT id,event_kinds_json,minimum_impact FROM subscriber_directory ORDER BY id').all()).results;
+        assert.deepEqual(preferences,archived('subscribers').map(row=>({id:row.id,event_kinds_json:JSON.stringify(row.channel==='webhook'?['incidents','maintenance','components']:['incidents','maintenance']),minimum_impact:null})).sort((a,b)=>a.id.localeCompare(b.id)),`${destination}: older subscriptions retain the channel defaults without invented consent`);
         // The restored installation keeps auditing state changes.
         const [last] = history;
         await db.prepare('INSERT INTO component_state_history (id, component_id, previous_state, new_state, cause_type, cause_id, operator_id, supersedes_history_id, changed_at, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, NULL, ?, ?, ?)')

@@ -1,3 +1,4 @@
+import { subscriberLimitFollowUpsSql } from "./subscriber-limit.repository";
 import { incidentFollowUpsSql } from "./incident.repository";
 import { maintenanceFollowUpsSql } from "./maintenance.repository";
 import { reportCandidatesSql, reportFollowUpsSql } from "./report.repository";
@@ -17,7 +18,8 @@ const report = query(reportFollowUpsSql);
 const invitation = query(importFollowUpsSql);
 const notification = query(notificationFollowUpsSql);
 const channel = query(channelFollowUpsSql);
-export const followUpsQueries = [incident, maintenance, report, invitation, notification, channel];
+const subscriberLimit=query(subscriberLimitFollowUpsSql);
+export const followUpsQueries = [incident, maintenance, report, invitation, notification, channel, subscriberLimit];
 const queriesByKind: Record<string, string> = {
   "next-update": incident, "scheduled-publication": incident,
   "maintenance-start": maintenance, "maintenance-end": maintenance,
@@ -25,6 +27,7 @@ const queriesByKind: Record<string, string> = {
   report, "report-reminder": report, "imported-invitation": invitation,
   "notification-dispatch": notification, "notification-delivery": notification,
   "channel-notification": channel,
+  "subscriber-limit": subscriberLimit,
 };
 
 /** Mutations project only the current carrier, then match its full bound id. */

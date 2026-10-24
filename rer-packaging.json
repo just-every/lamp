@@ -96,7 +96,10 @@
         "AUTH_PROVIDERS",
         "OIDC_TRANSACTION_SECRET",
         "MAIL_API_KEY",
-        "MAIL_PROVIDER_API_KEY"
+        "MAIL_PROVIDER_API_KEY",
+        "SLACK_SIGNING_SECRET",
+        "SLACK_CLIENT_ID",
+        "SLACK_CLIENT_SECRET"
       ],
       "migrationPrefix": "core-",
       "recovery": "Retain source and database backup before migration. Preserve applied migration history. Restore into fresh installation resources and verify owner workflows before switching traffic.",

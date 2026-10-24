@@ -1,3 +1,5 @@
+import { defaultPreferences, storedPreferences, renderPreferenceFields, type SubscriberPreferences } from "./preferences";
+import type { SubscriberCapacity } from "./limits";
 import { publicMasthead } from "../public-snapshot/page-chrome";
 import { lampConfig } from "../../../ext/config";
 import { MailUnavailableError, type MailMessage, type MailSender } from "../../platform/mail";
@@ -19,20 +21,22 @@ const PENDING_WINDOW_MS = 72 * 60 * 60 * 1000;
 /** Each import custody erasure is its own bounded D1 batch; a scheduled run takes a few. */
 const CUSTODY_ERASURES_PER_RUN = 3;
 
-export type SubscriberView = StoredSubscriber & { componentSelections: StoredSubscriberComponent[]; addedBy: AddedBy | null;webhookFormat:WebhookFormat|null };
+export type SubscriberView = StoredSubscriber & { componentSelections: StoredSubscriberComponent[]; addedBy: AddedBy | null;webhookFormat:WebhookFormat|null; preferences: SubscriberPreferences };
 
 export interface SubscribersService {
   intake: ReturnType<typeof createSubscriberIntakeService>;
   getPageName(): Promise<string>;
+  getLimits(): Promise<SubscriberCapacity[]>;
+  checkLimits(): Promise<void>;
   /** Names of the visible components among these ids, in display order. */
   componentNames(componentIds: string[]): Promise<string[]>;
   list(limit?: number, offset?: number): Promise<SubscriberView[]>;
-  requestEmailSubscription(email: string, origin: string, componentIds?: string[]): Promise<void>;
+  requestEmailSubscription(email: string, origin: string, componentIds?: string[], preferences?: SubscriberPreferences): Promise<void>;
   confirm(token: string): Promise<boolean>;
   getManagedSubscription(token: string): Promise<{ unsubscribeToken: string; subscriber: SubscriberView; components: Array<{ id: string; name: string }> } | null>;
-  updateManagedSelection(token: string, componentIds: string[],webhookFormat?:WebhookFormat): Promise<boolean>;
+  updateManagedSelection(token: string, componentIds: string[],webhookFormat?:WebhookFormat, preferences?: SubscriberPreferences): Promise<boolean>;
   unsubscribe(token: string): Promise<boolean>;
-  createWebhookSubscription(input: { destination: string; contactEmail: string; componentIds: string[];webhookFormat?:WebhookFormat }): Promise<SubscriberView>;
+  createWebhookSubscription(input: { destination: string; contactEmail: string; componentIds: string[];webhookFormat?:WebhookFormat; preferences?: SubscriberPreferences }): Promise<SubscriberView>;
   deleteSubscriber(subscriberId: string, operatorId: string): Promise<boolean>;
   expirePending(): Promise<void>;
   inviteImported(subscriberId: string, origin: string, pageName: string, claimSend: () => Promise<boolean>): Promise<boolean>;
@@ -63,7 +67,7 @@ function escapeHtml(value: string) {
 
 export function createSubscribersService(
   repository: SubscriberRepository,
-  options: { pageName?: () => Promise<string>; mail?: MailSender; fromAddress?: string | (() => Promise<string>); tokenSecret?: string; confirmationPolicy?: SubscriberConfirmationPolicy; events?: SubscriberEvents } = {},
+  options: { onLimitAlert?: (alert:{eventId:string;title:string;text:string})=>Promise<void>; pageName?: () => Promise<string>; mail?: MailSender; fromAddress?: string | (() => Promise<string>); tokenSecret?: string; confirmationPolicy?: SubscriberConfirmationPolicy; events?: SubscriberEvents } = {},
 ): SubscribersService {
   const policy = options.confirmationPolicy ?? defaultSubscriberConfirmationPolicy;
   const tokens = options.tokenSecret ? new SubscriberTokenCodec(options.tokenSecret) : null;
@@ -119,7 +123,11 @@ export function createSubscribersService(
 
   async function view(subscriber: StoredSubscriber): Promise<SubscriberView> {
     const [componentSelections,addedBy,webhookFormat]=await Promise.all([repository.listComponents(subscriber.id),repository.intake.addedBy(subscriber.id),subscriber.channel==="webhook"?repository.formats.get(subscriber.id):Promise.resolve(null)]);
-    return { ...subscriber, componentSelections, addedBy,webhookFormat };
+    return { ...subscriber, componentSelections, addedBy,webhookFormat, preferences: storedPreferences(subscriber) };
+  }
+
+  async function checkLimits() {
+    if(options.onLimitAlert) for(const alert of await repository.limits.alerts()) await options.onLimitAlert(alert);
   }
 
   const pageName=async()=>options.pageName?options.pageName():lampConfig.pageName;
@@ -131,10 +139,13 @@ export function createSubscribersService(
     view:async id=>{const row=await repository.findSubscriber(id);if(!row)throw new Error("Subscriber no longer exists.");return view(row);},
     ensureConfigured:async()=>{requiredMailAndTokens();await configuredFromAddress();},
     sendConfirmation:sendIntakeConfirmation,
+    checkLimits,
   });
 
   return {
     intake,
+    getLimits:()=>repository.limits.report(),
+    checkLimits,
     async getPageName() { return options.pageName ? options.pageName() : lampConfig.pageName; },
     async componentNames(componentIds) {
       const wanted = new Set(componentIds);
@@ -143,7 +154,8 @@ export function createSubscribersService(
     async list(limit = 100, offset = 0) {
       return Promise.all((await repository.listSubscribers(limit, offset)).map(view));
     },
-    async requestEmailSubscription(rawEmail, origin, componentIds = []) {
+    async requestEmailSubscription(rawEmail, origin, componentIds = [], preferences) {
+      await repository.limits.assertAvailable("email");
       const { mail } = requiredMailAndTokens();
       const fromAddress = await configuredFromAddress();
       const pageName = await this.getPageName();
@@ -171,7 +183,11 @@ export function createSubscribersService(
         subscriber = await repository.findSubscriber(subscriber.id);
       }
       if (!subscriber) throw new Error("Subscriber was not stored.");
-      if (opened) await repository.updateSelection(subscriber.id, await visibleSelection(componentIds), timestamp);
+      if (opened) {
+        await repository.updateSelection(subscriber.id, await visibleSelection(componentIds), timestamp);
+        await repository.preferences.set(subscriber.id, preferences ?? defaultPreferences("email"));
+      }
+      await this.checkLimits();
       if (subscriber.state === "pending" && await repository.intake.has(subscriber.id)) {
         // CSV's first invitation belongs to the owner's explicit action. A
         // repeated public request must not bypass that claim. An unsubscribe
@@ -245,10 +261,10 @@ export function createSubscribersService(
       const unsubscribeToken = authorizedId === id ? candidate : await tokens.encode({ id: authorizedId, scope: "unsubscribe" });
       return { unsubscribeToken, subscriber: await view(matched.subscriber), components: await repository.listVisibleComponents() };
     },
-    async updateManagedSelection(token, componentIds,webhookFormat) {
+    async updateManagedSelection(token, componentIds,webhookFormat, preferences) {
       const matched = await fromToken(token, "manage");
       if (!matched || matched.subscriber.state !== "active" || (webhookFormat && matched.subscriber.channel!=="webhook")) return false;
-      return repository.updateManagedSelection({ subscriberId: matched.subscriber.id, tokenHash: matched.token.tokenHash }, await visibleSelection(componentIds), nowIso(),webhookFormat);
+      return repository.updateManagedSelection({ subscriberId: matched.subscriber.id, tokenHash: matched.token.tokenHash }, await visibleSelection(componentIds), nowIso(),webhookFormat, preferences);
     },
     async unsubscribe(token) {
       const matched = await fromToken(token, "unsubscribe");
@@ -263,6 +279,7 @@ export function createSubscribersService(
       return true;
     },
     async createWebhookSubscription(input) {
+      await repository.limits.assertAvailable("webhook");
       if (!hasSafeWebhookDestination(input.destination)) throw new Error("Webhook destinations must be public HTTPS URLs without credentials or a port.");
       const contactEmail = normalizeEmail(input.contactEmail);
       const timestamp = nowIso();
@@ -275,7 +292,11 @@ export function createSubscribersService(
       if (!subscriber) throw new Error("Webhook subscriber was not stored.");
       if (input.componentIds.length) await repository.updateSelection(subscriber.id, input.componentIds, timestamp);
       if (input.webhookFormat) await repository.formats.set(subscriber.id,input.webhookFormat);
-      return view(subscriber);
+      await repository.preferences.set(subscriber.id, input.preferences ?? defaultPreferences("webhook"));
+      await this.checkLimits();
+      const stored = await repository.findSubscriber(subscriber.id);
+      if (!stored) throw new Error("Webhook subscriber no longer exists.");
+      return view(stored);
     },
     async deleteSubscriber(subscriberId, operatorId) {
       const subscriber = await repository.findSubscriber(subscriberId);
@@ -314,6 +335,7 @@ export function createSubscribersService(
     },
     async expirePending() {
       await repository.deleteExpiredPending(new Date(Date.now() - PENDING_WINDOW_MS).toISOString(), CUSTODY_ERASURES_PER_RUN);
+      await checkLimits();
     },
   };
 }
@@ -322,6 +344,6 @@ export function renderSubscriberManagementPage(input: { unsubscribeToken: string
   const selected = new Set(input.subscriber.componentSelections.map((selection) => selection.componentId));
   const checks = input.components.map((component) => `<label><input type="checkbox" name="componentId" value="${escapeHtml(component.id)}"${input.subscriber.selectionMode === "all" || selected.has(component.id) ? " checked" : ""}> ${escapeHtml(component.name)}</label>`).join("");
   const format = input.subscriber.channel === "webhook" ? renderWebhookFormatField(input.subscriber.webhookFormat) : "";
-  const selection = checks || format ? `<form method="post">${checks?`<fieldset><legend>Components</legend><p>Clear every selection to follow all current and future visible components.</p>${checks}</fieldset>`:""}${format}<button type="submit">Save selection</button></form>` : "";
+  const selection = checks || format || input.subscriber.preferences ? `<form method="post">${checks?`<fieldset><legend>Components</legend><p>Clear every selection to follow all current and future visible components.</p>${checks}</fieldset>`:""}${format}${renderPreferenceFields(input.subscriber.preferences)}<button type="submit">Save selection</button></form>` : "";
   return renderSubscriberTokenPage("Manage subscription", `<p>Channel: ${escapeHtml(input.subscriber.channel)}</p>${selection}<form method="post" action="/unsubscribe/${encodeURIComponent(input.unsubscribeToken)}"><input type="hidden" name="action" value="unsubscribe"><button type="submit">Unsubscribe</button></form>`, pageName);
 }

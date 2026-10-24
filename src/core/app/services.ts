@@ -1,3 +1,4 @@
+import { createTeamsSubscriptionsService } from "../features/subscribers/teams-subscriptions";
 import { createPromiseDraftRepository } from "../features/incidents/promise-draft.repository";
 import { createPromiseDraftPreparer } from "../features/incidents/promise-draft.service";
 import { createCommunicationOwnerRepository } from "../features/incidents/communication-owner.repository";
@@ -125,12 +126,16 @@ export function createAppServices(bindings: AppBindings, blobs: BlobStore, execu
       : { eventId: `incident-overdue/${updateId}`, recipients, title: `Lamp incident is overdue for an update: ${reference}`, text: `${reference} ${title} passed its next-update commitment of ${committed} with no newer update. The public page still shows that time. Write the update here: ${link}` });
   }, extensions.incidentEscalationPolicy, createPromiseDraftPreparer(createPromiseDraftRepository(bindings.DB), briefs));
   const maintenance = createMaintenanceService(createMaintenanceRepository(bindings.DB), components, publicSnapshots.rebuild, {
-    forMaintenanceNotice: async (input) => notificationPublicationStatements(bindings.DB, { eventId: input.eventId, eventType: "maintenance-notice", maintenanceId: input.maintenanceId, componentIds: input.componentIds, channels: ["email", "webhook"], queuedAt: input.queuedAt, recipientScope: input.recipientScope, previousEventIds: input.previousEventIds }),
+    forMaintenanceNotice: async (input) => [
+      ...notificationPublicationStatements(bindings.DB, { eventId: input.eventId, eventType: "maintenance-notice", maintenanceId: input.maintenanceId, componentIds: input.componentIds, channels: ["email", "webhook"], queuedAt: input.queuedAt, recipientScope: input.recipientScope, previousEventIds: input.previousEventIds }),
+      ...channels.maintenanceStatements(input),
+    ],
   }, extensions.maintenanceRemindersPolicy,
   async ({ maintenanceId, endsAt }) => deliveries.queueOperatorAlert({ eventId: `maintenance-overrun/${maintenanceId}/${endsAt}`, title: "Lamp maintenance is running longer than planned", text: `Maintenance ${maintenanceId} is still in progress more than fifteen minutes after its scheduled end.` }),
   extensions.events,
   async ({ maintenanceId, startsAt }) => deliveries.queueOperatorAlert({ eventId: `maintenance-start-due/${maintenanceId}/${new Date(startsAt).toISOString()}`, title: "Lamp maintenance start is due", text: `Maintenance ${maintenanceId} has reached its planned start and has auto-start off. An operator must start it in Maintenance.` }));
   const subscribers = createSubscribersService(createSubscriberRepository(bindings.DB), {
+    onLimitAlert: alert=>deliveries.queueOperatorAlert(alert),
     mail,
     pageName: configuredPageName,
     fromAddress: configuredFromAddress,
@@ -140,6 +145,11 @@ export function createAppServices(bindings: AppBindings, blobs: BlobStore, execu
       subscriberConfirmed: extensions.events.subscriberConfirmed,
       subscriberDeactivated: extensions.events.subscriberDeactivated,
     },
+  });
+  const teamsSubscriptions = createTeamsSubscriptionsService(bindings.DB, {
+    webhookSecret: bindings.WEBHOOK_SIGNING_SECRET, tokenSecret: bindings.SUBSCRIBER_TOKEN_SECRET,
+    pageName: configuredPageName, limitsChanged: () => subscribers.checkLimits(),
+    unavailable: outboundUnavailable(bindings, "Teams subscriptions"),
   });
   const availabilityReports = createAvailabilityReportService(createAvailabilityReportRepository(bindings.DB), extensions.publicSnapshotPolicies);
   const communicationPerformance = createCommunicationPerformanceService(createCommunicationPerformanceRepository(bindings.DB), extensions.postmortemDuePolicy);
@@ -210,7 +220,7 @@ export function createAppServices(bindings: AppBindings, blobs: BlobStore, execu
   });
 
   const chatDesk = createChatDeskService(bindings, incidents, components, async () => { const settings = await pageSettings.get(); if (!settings) throw new Error("Page settings are not configured."); return { blockedTerms: settings.wordingBlockedTerms, friendlyLength: settings.wordingFriendlyLength }; });
-  return { chatDesk, auth, operators, availabilityReports, communicationPerformance, incidentImpact, pageSettings, pageExport, components, componentCatalogue, incidents, maintenance, subscribers, deliveries, reports, intake, briefs, ai, overview, website, updateReminders, publicSnapshots, statuspageImport, channels };
+  return { teamsSubscriptions, chatDesk, auth, operators, availabilityReports, communicationPerformance, incidentImpact, pageSettings, pageExport, components, componentCatalogue, incidents, maintenance, subscribers, deliveries, reports, intake, briefs, ai, overview, website, updateReminders, publicSnapshots, statuspageImport, channels };
 }
 
 export type AppServices = ReturnType<typeof createAppServices>;

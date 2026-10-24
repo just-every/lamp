@@ -10,13 +10,13 @@ SELECT 'notification-dispatch:' || n.id AS id,'notification-dispatch' AS kind,
   json_array(n.id,n.attempts,n.available_at,n.failed_at,n.last_error IS NOT NULL,n.updated_at) AS occurrence
 FROM notification_outbox n
 WHERE n.completed_at IS NULL AND (n.kind='operator-alert' OR EXISTS(
-  SELECT 1 FROM notification_deliveries d JOIN subscribers s ON s.id=d.subscriber_id
+  SELECT 1 FROM notification_delivery_records d JOIN subscriber_directory s ON s.id=d.subscriber_id
   WHERE d.notification_event_id=n.aggregate_id AND d.outcome='queued' AND s.state='active'
-    AND NOT EXISTS(SELECT 1 FROM notification_delivery_attempts accepted WHERE accepted.delivery_id=d.id AND (accepted.provider_message_id IS NOT NULL OR accepted.local_capture_id IS NOT NULL))))
+    AND NOT EXISTS(SELECT 1 FROM notification_attempt_records accepted WHERE accepted.delivery_id=d.id AND (accepted.provider_message_id IS NOT NULL OR accepted.local_capture_id IS NOT NULL))))
 UNION ALL
 SELECT 'notification-delivery:' || d.id,'notification-delivery','Failed ' || d.channel || ' notification',
   NULL,NULL,COALESCE(d.outcome_at,d.updated_at),
   'Resolve the failed notification or dismiss it with a reason.',
   'Notification delivery failed.',COALESCE(d.outcome_at,d.updated_at),'/app/deliveries',
-  json_array(d.id,d.outcome_at,d.updated_at,(SELECT COUNT(*) FROM notification_delivery_attempts a WHERE a.delivery_id=d.id))
-FROM notification_deliveries d WHERE d.outcome='failed'`;
+  json_array(d.id,d.outcome_at,d.updated_at,(SELECT COUNT(*) FROM notification_attempt_records a WHERE a.delivery_id=d.id))
+FROM notification_delivery_records d WHERE d.outcome='failed'`;

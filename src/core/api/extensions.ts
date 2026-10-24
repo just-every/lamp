@@ -137,7 +137,7 @@ export interface ComponentRowSlotContext extends OperatorSlotContext {
 }
 
 export interface SubscriberDetailSlotContext extends OperatorSlotContext {
-  subscriber: Readonly<{ id: string; channel: "email" | "webhook"; state: string; destination: string }>;
+  subscriber: Readonly<{ id: string; channel: "email" | "webhook" | "slack" | "teams"; state: string; destination: string }>;
 }
 
 export interface LampClientSlotContexts {

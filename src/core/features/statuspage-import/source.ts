@@ -3,11 +3,11 @@ import { readVisibility, visibilityFiles } from "./visibility";
 import { readFileSource } from "../../../../modules/import-kit/src/readers/index.ts";
 import type { SourceArtifact, SourceRecord } from "../../../../modules/import-kit/src/types.ts";
 
-/** Saved Statuspage API responses: each file is one unchanged JSON array page
- * from https://api.statuspage.io/v1, named `<resource>.json` or
- * `<resource>-<page>.json`. The API-key path saves exactly these files. */
+/** Saved Statuspage API responses: a resource array or one of its JSON pages,
+ * named `<resource>.json` or `<resource>-<page>.json`. The API reader combines
+ * subscriber pages into one array so Enterprise lists fit the file bound. */
 export const namespace = "statuspage";
-export const importLimits = { maxBytes: 8 * 1024 * 1024, maxRecords: 5000, maxRecordBytes: 512 * 1024, files: 200 };
+export const importLimits = { maxBytes: 8 * 1024 * 1024, maxRecords: 30_000, maxSubscriberRecords:25_000, maxOtherRecords:5_000, maxCsvRows:5_000, maxRecordBytes: 512 * 1024, files: 200 };
 export const resources = ["component-groups", "components", "incidents", "incidents-scheduled", "subscribers", "incident-templates", "incident-template-groups"] as const;
 export type Resource = (typeof resources)[number];
 export type SavedFile = { name: string; text: string };
@@ -130,7 +130,8 @@ export async function readSavedResponses(files: SavedFile[]): Promise<ReadSource
       }
     }
   }
-  if (records.length > importLimits.maxRecords) throw new Error(`Import limit: ${importLimits.maxRecords} source records.`);
+  if(data.subscribers.length>importLimits.maxSubscriberRecords)throw new Error(`Import limit: ${importLimits.maxSubscriberRecords} subscriber records.`);
+  if(records.length-data.subscribers.length>importLimits.maxOtherRecords)throw new Error(`Import limit: ${importLimits.maxOtherRecords} other source records.`);
   return { records, artifacts, data, origins };
 }
 
@@ -142,10 +143,12 @@ export async function fetchSavedResponses(input: { pageId: string; apiKey: strin
   const origin = input.origin ?? "https://api.statuspage.io";
   const fetcher = input.fetcher ?? fetch;
   const files: SavedFile[] = [];
+  let bytes=0;
+  const bounded=(body:string)=>{bytes+=new TextEncoder().encode(body).byteLength;if(bytes>importLimits.maxBytes)throw new Error("Saved responses exceed the 8 MiB total limit.");return body;};
   for (const [name, path] of [["page.json", ""], ["page-access-groups.json", "/page_access_groups"]]) {
     const response = await fetcher(new URL(`/v1/pages/${input.pageId}${path}`, origin), { method: "GET", redirect: "manual", headers: { Authorization: `OAuth ${input.apiKey}`, Accept: "application/json" }, signal: AbortSignal.timeout(20_000) });
     if (!response.ok) throw new Error("Statuspage visibility could not be read. Check the key and page ID; the import was refused.");
-    files.push({ name, text: await response.text() });
+    files.push({ name, text: bounded(await response.text()) });
   }
   await readVisibility(files);
   const perPage = 100;
@@ -153,19 +156,24 @@ export async function fetchSavedResponses(input: { pageId: string; apiKey: strin
   // The management API exposes templates but no documented template-group read.
   // Group names can accompany saved responses or an embedded source group.
   for (const resource of resources.filter((resource) => resource !== "incident-template-groups")) {
-    for (let page = 1; page <= 50; page += 1) {
+    const subscribers:unknown[]=[];
+    const maxPages=Math.floor((resource==="subscribers"?importLimits.maxSubscriberRecords:importLimits.maxOtherRecords)/perPage)+1;
+    for (let page = 1; page <= maxPages; page += 1) {
       const url = new URL(`/v1/pages/${input.pageId}/${paths[resource]}`, origin);
       url.searchParams.set("page", String(page));
       url.searchParams.set(resource === "incidents" || resource === "subscribers" ? "limit" : "per_page", String(perPage));
       const response = await fetcher(url, { method: "GET", redirect: "manual", headers: { Authorization: `OAuth ${input.apiKey}`, Accept: "application/json" }, signal: AbortSignal.timeout(20_000) });
       if (response.status === 401 || response.status === 403) throw new Error("Statuspage refused the API key. Check the key and the page ID.");
       if (!response.ok) throw new Error(`Statuspage answered ${response.status} for ${resource}.`);
-      const body = await response.text();
+      const body = bounded(await response.text());
       const rows = JSON.parse(body) as unknown;
       if (!Array.isArray(rows)) throw new Error(`Statuspage returned an undocumented ${resource} response.`);
-      files.push({ name: page === 1 ? `${resource}.json` : `${resource}-${page}.json`, text: body });
+      if(resource==="subscribers")subscribers.push(...rows);
+      else files.push({ name: page === 1 ? `${resource}.json` : `${resource}-${page}.json`, text: body });
       if (rows.length < perPage) break;
+      if(page===maxPages)throw new Error(`Statuspage ${resource} exceeds the import limit; nothing was truncated.`);
     }
+    if(resource==="subscribers")files.push({name:"subscribers.json",text:JSON.stringify(subscribers)});
   }
   return files;
 }

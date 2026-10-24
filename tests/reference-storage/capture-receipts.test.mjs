@@ -26,6 +26,9 @@ test('NOTIFY-004 NOTIFY-005 capture migration preserves prior delivery evidence 
     assert.deepEqual(await schemaObjects(db), objects);
     assert.deepEqual((await db.prepare('PRAGMA foreign_key_list(notification_delivery_attempts)').all()).results, keys);
     assert.deepEqual((await db.prepare('PRAGMA foreign_key_check').all()).results, []);
+    // Keep the 0014 preservation checks isolated, then upgrade this populated
+    // store before exercising the current repository's delivery views.
+    await migrate(db, name => name > '0014_local_capture_receipts.sql');
     await db.prepare(`INSERT INTO notification_deliveries
       (id,subscriber_id,incident_update_id,channel,outcome,queued_at,notification_event_id,created_at,updated_at)
       VALUES ('local','subscriber','resolved','email','queued','2026-01-03','local-event','2026-01-03','2026-01-03')`).run();

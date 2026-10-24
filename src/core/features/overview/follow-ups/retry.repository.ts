@@ -17,10 +17,10 @@ export function createFollowUpRetryRepository(db: D1Database) {
             AND (n.locked_at IS NULL OR n.locked_at<?)
             AND EXISTS(SELECT 1 FROM oa_operators WHERE id=? AND status='active')
             AND EXISTS(SELECT 1 FROM follow_ups f WHERE f.id=? AND f.occurrence=? AND f.id='notification-dispatch:' || n.id)
-            AND EXISTS(SELECT 1 FROM notification_deliveries d JOIN subscribers s ON s.id=d.subscriber_id
+            AND EXISTS(SELECT 1 FROM notification_delivery_records d JOIN subscriber_directory s ON s.id=d.subscriber_id
               WHERE d.notification_event_id=n.aggregate_id AND d.outcome='queued' AND s.state='active'
                 AND (d.dispatch_locked_at IS NULL OR d.dispatch_locked_at<?)
-                AND NOT EXISTS(SELECT 1 FROM notification_delivery_attempts a WHERE a.delivery_id=d.id
+                AND NOT EXISTS(SELECT 1 FROM notification_attempt_records a WHERE a.delivery_id=d.id
                   AND (a.provider_message_id IS NOT NULL OR a.local_capture_id IS NOT NULL)))
           RETURNING id,aggregate_id AS eventId,attempts,locked_at AS lockedAt`)
           .bind(now,now,now,reclaimBefore,operatorId,id,occurrence,reclaimBefore),

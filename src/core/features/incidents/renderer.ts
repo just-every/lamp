@@ -35,10 +35,17 @@ export function componentChangeLines(changes: PublishedIncidentComponentChange[]
   return changes.filter(change => !change.internal && change.previousState !== change.newState).map(change => `${change.name}: ${change.previousState} → ${change.newState}`);
 }
 
-export function renderIncidentUpdate(input: IncidentUpdateRenderInput): RenderedIncidentUpdate {
-  const fields = [
+/** UPDATE-002 uses the same plain wording fields for incident and maintenance notices. */
+export function renderImpactWording(input: Pick<IncidentUpdateRenderInput, "affectedAudience" | "customerImpact">) {
+  return [
     { label: "Who is affected", value: input.affectedAudience },
     { label: "Customer impact", value: input.customerImpact },
+  ];
+}
+
+export function renderIncidentUpdate(input: IncidentUpdateRenderInput): RenderedIncidentUpdate {
+  const fields = [
+    ...renderImpactWording(input),
     { label: "What still works", value: input.whatStillWorks },
     ...(input.lifecycle === "Resolved" ? [] : [{ label: "Next update by", value: input.nextUpdateDisplay ?? input.nextUpdateAt ?? "Not yet committed", instant: input.nextUpdateAt ?? undefined }]),
     { label: "Additional details", value: input.details },

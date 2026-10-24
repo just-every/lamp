@@ -1,20 +1,29 @@
+import type { ComponentState } from "../../shared/domain";
 import type { IncidentImpact } from "../../shared/incident-impact";
 import { parsePublishedComponentChanges, type PublishedIncidentComponentChange } from "../../shared/incident-component-changes";
 import { and, asc, eq, isNull, lte, sql } from "drizzle-orm";
 
 import { createDatabase } from "../../platform/db/client";
-import { maintenance, notificationDeliveries, operators, subscribers } from "../../shared/schema";
+import { maintenance, deliveryRecords, operators, subscribers } from "../../shared/schema";
 import { notificationOutbox } from "./schema";
 import { createUlid } from "../../shared/ids";
 import { createStatuspageWebhookRepository } from "./statuspage-webhook.repository";
 import type { WebhookFormat } from "../subscribers/webhook-format";
 
-export type DeliveryRow = typeof notificationDeliveries.$inferSelect & { destination: string; subscriberState: "pending" | "active" | "deactivated"; providerAcceptedAt: string | null; latestError: string | null; localCaptureId: string | null; localCapturedAt: string | null; maintenanceReference: string | null; maintenanceTitle: string | null; maintenanceNoticeKind: string | null; incidentReference: string | null; incidentTitle: string | null; incidentLifecycle: string | null };
+export type DeliveryRow = typeof deliveryRecords.$inferSelect & { destination: string; subscriberState: "pending" | "active" | "deactivated"; providerAcceptedAt: string | null; latestError: string | null; localCaptureId: string | null; localCapturedAt: string | null; maintenanceReference: string | null; maintenanceTitle: string | null; maintenanceNoticeKind: string | null; incidentReference: string | null; incidentTitle: string | null; incidentLifecycle: string | null };
 
 /** A confirmation or other subscription email, sent outside notification deliveries (subscribers/service.ts). */
 export interface SubscriptionMailRow { id: string; destination: string; subscriberState: "pending" | "active" | "deactivated"; kind: "confirmation" | "already-subscribed" | "subscribed"; outcome: "accepted" | "suppressed" | "failed"; sentAt: string }
 
 export interface DispatchableDelivery {
+  componentEventId: string | null;
+  componentId: string | null;
+  componentName: string | null;
+  componentCreatedAt: string | null;
+  previousComponentState: ComponentState | null;
+  newComponentState: ComponentState | null;
+  componentChangedAt: string | null;
+  componentClaimantKind: string | null;
   webhookFormat:WebhookFormat;
   statuspageIncidentId:string|null;
   id: string;
@@ -107,7 +116,8 @@ export function createDeliveryRepository(binding: D1Database): DeliveryRepositor
   const database = createDatabase(binding);
   function deliveryStatement(deliveryId: string) {
     return binding.prepare(`
-        SELECT d.id, d.notification_event_id AS notificationEventId, d.subscriber_id AS subscriberId, d.channel, s.state AS subscriberState, s.destination, s.contact_email AS contactEmail,
+        SELECT component_event.id AS componentEventId, component_event.component_id AS componentId, component_event.component_name AS componentName, component_event.component_created_at AS componentCreatedAt, component_event.previous_state AS previousComponentState, component_event.new_state AS newComponentState, component_event.changed_at AS componentChangedAt, component_event.claimant_kind AS componentClaimantKind,
+          d.id, d.notification_event_id AS notificationEventId, d.subscriber_id AS subscriberId, d.channel, s.state AS subscriberState, s.destination, s.contact_email AS contactEmail,
           COALESCE(s.webhook_format,'lamp') AS webhookFormat,COALESCE(i.id,reportIncident.id) AS statuspageIncidentId,
           d.incident_update_id AS incidentUpdateId, d.incident_report_id AS incidentReportId, d.maintenance_id AS maintenanceId,
           d.incident_impact AS incidentImpact, i.id AS incidentId, CASE WHEN u.id IS NOT NULL AND u.id = (SELECT first_update.id FROM incident_updates first_update WHERE first_update.incident_id = i.id ORDER BY first_update.published_at ASC, first_update.id ASC LIMIT 1) THEN 1 ELSE 0 END AS isFirstIncidentUpdate,
@@ -116,8 +126,9 @@ export function createDeliveryRepository(binding: D1Database): DeliveryRepositor
           report.summary AS reportSummary, report.timeline AS reportTimeline, report.cause AS reportCause, report.remediation AS reportRemediation,
           maintenance.reference AS maintenanceReference, maintenance.title AS maintenanceTitle, maintenance.state AS maintenanceState, maintenance.starts_at AS maintenanceStartsAt, maintenance.ends_at AS maintenanceEndsAt,
           notice.kind AS maintenanceNoticeKind, notice.body AS maintenanceNoticeBody, settings.timezone, d.mail_payload_json AS mailPayloadJson
-        FROM notification_deliveries d
-        JOIN subscribers s ON s.id = d.subscriber_id
+        FROM notification_delivery_records d
+        JOIN subscriber_directory s ON s.id = d.subscriber_id
+        LEFT JOIN component_notification_events component_event ON component_event.id = d.notification_event_id
         LEFT JOIN incident_updates u ON u.id = d.incident_update_id
         LEFT JOIN incidents i ON i.id = u.incident_id
         LEFT JOIN incident_reports report ON report.id = d.incident_report_id
@@ -129,17 +140,18 @@ export function createDeliveryRepository(binding: D1Database): DeliveryRepositor
       `).bind(deliveryId);
   }
 
-  function claimStatement(deliveryId: string, now: string, reclaimBefore: string) {
-    return binding.prepare(`
-        UPDATE notification_deliveries
-        SET dispatch_locked_at = ?
-        WHERE id = ? AND outcome = 'queued'
-          AND (dispatch_locked_at IS NULL OR dispatch_locked_at < ?)
-          AND NOT EXISTS (
-            SELECT 1 FROM notification_delivery_attempts
-            WHERE delivery_id = notification_deliveries.id AND (provider_message_id IS NOT NULL OR local_capture_id IS NOT NULL)
-          )
-      `).bind(now, deliveryId, reclaimBefore);
+  const deliveryTables = ["notification_deliveries", "component_notification_deliveries"] as const;
+  function updateStatements(fragment: string, values: (string | number | null)[]) {
+    return deliveryTables.map(table => binding.prepare(`UPDATE ${table} AS d ${fragment}`).bind(...values));
+  }
+  function deliveryAuthority(deliveryId: string) {
+    return binding.prepare("SELECT CASE WHEN EXISTS(SELECT 1 FROM notification_delivery_records WHERE id=?) THEN 1 ELSE json('Unknown delivery.') END").bind(deliveryId);
+  }
+  function claimStatements(deliveryId: string, now: string, reclaimBefore: string) {
+    return updateStatements(`SET dispatch_locked_at = ? WHERE id = ? AND outcome = 'queued'
+      AND (dispatch_locked_at IS NULL OR dispatch_locked_at < ?)
+      AND NOT EXISTS (SELECT 1 FROM notification_attempt_records a WHERE a.delivery_id=d.id
+        AND (a.provider_message_id IS NOT NULL OR a.local_capture_id IS NOT NULL))`, [now,deliveryId,reclaimBefore]);
   }
 
   function pendingEventsStatement(providerMessageId: string) {
@@ -149,28 +161,28 @@ export function createDeliveryRepository(binding: D1Database): DeliveryRepositor
     statuspage:createStatuspageWebhookRepository(binding),
     async listDeliveries(input) {
       const conditions = [];
-      if (input.channel) conditions.push(eq(notificationDeliveries.channel, input.channel));
-      if (input.outcome) conditions.push(eq(notificationDeliveries.outcome, input.outcome));
-      if (input.incidentUpdateId) conditions.push(eq(notificationDeliveries.incidentUpdateId, input.incidentUpdateId));
+      if (input.channel) conditions.push(eq(deliveryRecords.channel, input.channel));
+      if (input.outcome) conditions.push(eq(deliveryRecords.outcome, input.outcome));
+      if (input.incidentUpdateId) conditions.push(eq(deliveryRecords.incidentUpdateId, input.incidentUpdateId));
       const query = database.select({
-        id: notificationDeliveries.id, subscriberId: notificationDeliveries.subscriberId, incidentUpdateId: notificationDeliveries.incidentUpdateId, maintenanceId: notificationDeliveries.maintenanceId,
-        channel: notificationDeliveries.channel, outcome: notificationDeliveries.outcome, queuedAt: notificationDeliveries.queuedAt, outcomeAt: notificationDeliveries.outcomeAt,
-        createdAt: notificationDeliveries.createdAt, updatedAt: notificationDeliveries.updatedAt, destination: subscribers.destination, subscriberState: subscribers.state,
+        id: deliveryRecords.id, subscriberId: deliveryRecords.subscriberId, incidentUpdateId: deliveryRecords.incidentUpdateId, maintenanceId: deliveryRecords.maintenanceId,
+        channel: deliveryRecords.channel, outcome: deliveryRecords.outcome, queuedAt: deliveryRecords.queuedAt, outcomeAt: deliveryRecords.outcomeAt,
+        createdAt: deliveryRecords.createdAt, updatedAt: deliveryRecords.updatedAt, destination: subscribers.destination, subscriberState: subscribers.state,
         maintenanceReference: maintenance.reference, maintenanceTitle: maintenance.title,
-        maintenanceNoticeKind: sql<string | null>`(SELECT kind FROM maintenance_notices WHERE id = notification_deliveries.notification_event_id)`,
-        incidentReference: sql<string | null>`(SELECT i.reference FROM incident_updates u JOIN incidents i ON i.id = u.incident_id WHERE u.id = notification_deliveries.incident_update_id)`,
-        incidentTitle: sql<string | null>`(SELECT i.title FROM incident_updates u JOIN incidents i ON i.id = u.incident_id WHERE u.id = notification_deliveries.incident_update_id)`,
-        incidentLifecycle: sql<string | null>`(SELECT lifecycle FROM incident_updates WHERE id = notification_deliveries.incident_update_id)`,
-        providerAcceptedAt: sql<string | null>`(SELECT attempted_at FROM notification_delivery_attempts WHERE delivery_id = ${notificationDeliveries.id} AND provider_message_id IS NOT NULL AND error IS NULL ORDER BY attempted_at LIMIT 1)`,
-        localCaptureId: sql<string | null>`(SELECT local_capture_id FROM notification_delivery_attempts WHERE delivery_id = ${notificationDeliveries.id} AND local_capture_id IS NOT NULL ORDER BY attempted_at LIMIT 1)`,
-        localCapturedAt: sql<string | null>`(SELECT attempted_at FROM notification_delivery_attempts WHERE delivery_id = ${notificationDeliveries.id} AND local_capture_id IS NOT NULL ORDER BY attempted_at LIMIT 1)`,
-        latestError: sql<string | null>`(SELECT error FROM notification_delivery_attempts WHERE delivery_id = ${notificationDeliveries.id} ORDER BY attempted_at DESC, attempt_number DESC LIMIT 1)`,
-      }).from(notificationDeliveries).innerJoin(subscribers, eq(notificationDeliveries.subscriberId, subscribers.id)).leftJoin(maintenance, eq(notificationDeliveries.maintenanceId, maintenance.id)).where(conditions.length ? and(...conditions) : undefined).orderBy(asc(notificationDeliveries.queuedAt));
+        maintenanceNoticeKind: sql<string | null>`(SELECT kind FROM maintenance_notices WHERE id = notification_delivery_records.notification_event_id)`,
+        incidentReference: sql<string | null>`(SELECT i.reference FROM incident_updates u JOIN incidents i ON i.id = u.incident_id WHERE u.id = notification_delivery_records.incident_update_id)`,
+        incidentTitle: sql<string | null>`(SELECT i.title FROM incident_updates u JOIN incidents i ON i.id = u.incident_id WHERE u.id = notification_delivery_records.incident_update_id)`,
+        incidentLifecycle: sql<string | null>`(SELECT lifecycle FROM incident_updates WHERE id = notification_delivery_records.incident_update_id)`,
+        providerAcceptedAt: sql<string | null>`(SELECT attempted_at FROM notification_attempt_records AS notification_delivery_attempts WHERE delivery_id = ${deliveryRecords.id} AND provider_message_id IS NOT NULL AND error IS NULL ORDER BY attempted_at LIMIT 1)`,
+        localCaptureId: sql<string | null>`(SELECT local_capture_id FROM notification_attempt_records AS notification_delivery_attempts WHERE delivery_id = ${deliveryRecords.id} AND local_capture_id IS NOT NULL ORDER BY attempted_at LIMIT 1)`,
+        localCapturedAt: sql<string | null>`(SELECT attempted_at FROM notification_attempt_records AS notification_delivery_attempts WHERE delivery_id = ${deliveryRecords.id} AND local_capture_id IS NOT NULL ORDER BY attempted_at LIMIT 1)`,
+        latestError: sql<string | null>`(SELECT error FROM notification_attempt_records AS notification_delivery_attempts WHERE delivery_id = ${deliveryRecords.id} ORDER BY attempted_at DESC, attempt_number DESC LIMIT 1)`,
+      }).from(deliveryRecords).innerJoin(subscribers, eq(deliveryRecords.subscriberId, subscribers.id)).leftJoin(maintenance, eq(deliveryRecords.maintenanceId, maintenance.id)).where(conditions.length ? and(...conditions) : undefined).orderBy(asc(deliveryRecords.queuedAt));
       return input.limit === undefined ? query.all() : query.limit(input.limit).offset(input.offset ?? 0).all();
     },
     async listSubscriptionMail(limit) {
       const result = await binding.prepare(`SELECT a.id, s.destination, s.state AS subscriberState, json_extract(a.payload_json, '$.kind') AS kind, json_extract(a.payload_json, '$.outcome') AS outcome, a.created_at AS sentAt
-        FROM audit_entries a JOIN subscribers s ON s.id = a.entity_id
+        FROM audit_entries a JOIN subscriber_directory s ON s.id = a.entity_id
         WHERE a.entity_type = 'subscriber' AND a.action = 'subscription-mail' ORDER BY a.created_at DESC, a.id DESC LIMIT ?`).bind(limit).all<SubscriptionMailRow>();
       return result.results;
     },
@@ -179,73 +191,65 @@ export function createDeliveryRepository(binding: D1Database): DeliveryRepositor
       return result ?? null;
     },
     async claimAndGetDelivery(deliveryId, now, reclaimBefore) {
-      const [claim, rows] = await binding.batch<DispatchableDelivery>([
-        claimStatement(deliveryId, now, reclaimBefore),
+      const [historical, component, rows] = await binding.batch<DispatchableDelivery>([
+        ...claimStatements(deliveryId, now, reclaimBefore),
         deliveryStatement(deliveryId),
       ]);
-      const claimed = claim.meta.changes === 1;
+      const claimed = historical.meta.changes + component.meta.changes === 1;
       return { claimed, delivery: claimed ? rows.results[0] ?? null : null };
     },
     async claimDelivery(deliveryId, now, reclaimBefore) {
-      const result = await claimStatement(deliveryId, now, reclaimBefore).run();
-      return result.meta.changes === 1;
+      const results = await binding.batch(claimStatements(deliveryId, now, reclaimBefore));
+      return results.reduce((sum,row) => sum + row.meta.changes,0) === 1;
     },
     async releaseDeliveryClaim(deliveryId) {
-      await binding.prepare("UPDATE notification_deliveries SET dispatch_locked_at = NULL WHERE id = ?").bind(deliveryId).run();
+      await binding.batch(updateStatements("SET dispatch_locked_at = NULL WHERE id = ?",[deliveryId]));
     },
     async listQueuedDeliveryIdsForEvent(eventId) {
-      const result = await binding.prepare(`SELECT id FROM notification_deliveries WHERE notification_event_id = ? AND outcome = 'queued'
-        AND NOT EXISTS (SELECT 1 FROM notification_delivery_attempts WHERE delivery_id = notification_deliveries.id AND local_capture_id IS NOT NULL)`).bind(eventId).all<{ id: string }>();
+      const result = await binding.prepare(`SELECT id FROM notification_delivery_records AS notification_deliveries WHERE notification_event_id = ? AND outcome = 'queued'
+        AND NOT EXISTS (SELECT 1 FROM notification_attempt_records AS notification_delivery_attempts WHERE delivery_id = notification_deliveries.id AND local_capture_id IS NOT NULL)`).bind(eventId).all<{ id: string }>();
       return result.results.map((row) => row.id);
     },
     async getAttemptCount(deliveryId) {
-      const result = await binding.prepare("SELECT COUNT(*) AS count FROM notification_delivery_attempts WHERE delivery_id = ?").bind(deliveryId).first<{ count: number }>();
+      const result = await binding.prepare("SELECT COUNT(*) AS count FROM notification_attempt_records AS notification_delivery_attempts WHERE delivery_id = ?").bind(deliveryId).first<{ count: number }>();
       return result?.count ?? 0;
     },
     async hasMailSendClaim(providerMessageId) {
       return Boolean(await binding.prepare("SELECT id FROM mail_send_ledger WHERE id = ?").bind(providerMessageId).first());
     },
     async recordAttempt(input) {
-      await binding.prepare(`INSERT INTO notification_delivery_attempts
-        (id, delivery_id, attempt_number, attempted_at, provider_message_id, error, created_at, local_capture_id)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT DO NOTHING`)
-        .bind(input.id, input.deliveryId, input.attemptNumber, input.attemptedAt, input.providerMessageId, input.error, input.createdAt, input.localCaptureId ?? null).run();
+      await binding.prepare(`INSERT INTO notification_attempt_records
+        (id,delivery_id,attempt_number,attempted_at,provider_message_id,error,created_at,local_capture_id)
+        VALUES(?,?,?,?,?,?,?,?)`)
+        .bind(input.id,input.deliveryId,input.attemptNumber,input.attemptedAt,input.providerMessageId,input.error,input.createdAt,input.localCaptureId ?? null).run();
     },
     async recordAcceptedEmailAttempt(input) {
-      // Acceptance is durable before callbacks can resolve this provider ID.
-      // COUNT + 1 is the existing numbering rule, evaluated inside the write.
-      const [, pending] = await binding.batch<Omit<PendingProviderEvent, "hardBounce"> & { hardBounce: number }>([
-        binding.prepare(`INSERT INTO notification_delivery_attempts
-          (id, delivery_id, attempt_number, attempted_at, provider_message_id, error, created_at, local_capture_id)
-          SELECT ?, ?, COUNT(*) + 1, ?, ?, NULL, ?, NULL
-          FROM notification_delivery_attempts WHERE delivery_id = ? ON CONFLICT DO NOTHING`)
-          .bind(input.id, input.deliveryId, input.attemptedAt, input.providerMessageId, input.createdAt, input.deliveryId),
+      const [,pending] = await binding.batch<Omit<PendingProviderEvent,"hardBounce"> & {hardBounce:number}>([
+        binding.prepare(`INSERT INTO notification_attempt_records
+          (id,delivery_id,attempt_number,attempted_at,provider_message_id,error,created_at,local_capture_id)
+          SELECT ?,?,COUNT(*)+1,?,?,NULL,?,NULL FROM notification_attempt_records WHERE delivery_id=?`)
+          .bind(input.id,input.deliveryId,input.attemptedAt,input.providerMessageId,input.createdAt,input.deliveryId),
         pendingEventsStatement(input.providerMessageId),
       ]);
-      return pending.results.map((event) => ({ ...event, hardBounce: Boolean(event.hardBounce) }));
+      return pending.results.map(event => ({...event,hardBounce:Boolean(event.hardBounce)}));
     },
     async markOutcome(deliveryId, outcome, outcomeAt, updatedAt) {
-      await database.update(notificationDeliveries).set({ outcome, outcomeAt, updatedAt }).where(eq(notificationDeliveries.id, deliveryId));
+      await binding.batch(updateStatements("SET outcome=?,outcome_at=?,updated_at=? WHERE id=?",[outcome,outcomeAt,updatedAt,deliveryId]));
     },
     async markProviderOutcome(deliveryId, outcome, now) {
-      const transition = outcome === "delivered"
-        ? "outcome IN ('queued', 'failed')"
-        : outcome === "bounced"
-          ? "outcome IN ('queued', 'delivered', 'failed')"
-          : "outcome IN ('queued', 'delivered', 'bounced', 'failed')";
-      const result = await binding.prepare(`UPDATE notification_deliveries SET outcome = ?, outcome_at = ?, updated_at = ? WHERE id = ? AND ${transition}
-        AND NOT EXISTS (SELECT 1 FROM notification_delivery_attempts WHERE delivery_id = notification_deliveries.id AND local_capture_id IS NOT NULL)`)
-        .bind(outcome, now, now, deliveryId).run();
-      return result.meta.changes === 1;
+      const transition = outcome === "delivered" ? "outcome IN ('queued','failed')"
+        : outcome === "bounced" ? "outcome IN ('queued','delivered','failed')" : "outcome IN ('queued','delivered','bounced','failed')";
+      const results=await binding.batch(updateStatements(`SET outcome=?,outcome_at=?,updated_at=? WHERE id=? AND ${transition}
+        AND NOT EXISTS(SELECT 1 FROM notification_attempt_records a WHERE a.delivery_id=d.id AND a.local_capture_id IS NOT NULL)`,[outcome,now,now,deliveryId]));
+      return results.reduce((sum,row)=>sum+row.meta.changes,0)===1;
     },
     async freezeMailPayload(deliveryId, payloadJson) {
-      // Read the authoritative first winner in the same ordered transaction.
-      const [, stored] = await binding.batch<{ payloadJson: string | null }>([
-        binding.prepare("UPDATE notification_deliveries SET mail_payload_json = ? WHERE id = ? AND mail_payload_json IS NULL").bind(payloadJson, deliveryId),
-        binding.prepare("SELECT mail_payload_json AS payloadJson FROM notification_deliveries WHERE id = ?").bind(deliveryId),
+      const [,stored]=await binding.batch<{payloadJson:string|null}>([
+        binding.prepare("UPDATE notification_delivery_records SET mail_payload_json=? WHERE id=? AND mail_payload_json IS NULL").bind(payloadJson,deliveryId),
+        binding.prepare("SELECT mail_payload_json AS payloadJson FROM notification_delivery_records WHERE id=?").bind(deliveryId),
       ]);
-      const row = stored.results[0];
-      if (!row?.payloadJson) throw new Error("Delivery envelope could not be frozen.");
+      const row=stored.results[0];
+      if(!row?.payloadJson)throw new Error("Delivery envelope could not be frozen.");
       return row.payloadJson;
     },
     async ensureNotificationTokens(subscriberId, candidates, now) {
@@ -254,7 +258,7 @@ export function createDeliveryRepository(binding: D1Database): DeliveryRepositor
       // never reused, and an inactive/deleted subscriber gets no new links.
       const insert = (scope: "manage" | "unsubscribe") => binding.prepare(`
         INSERT INTO subscriber_tokens (id, subscriber_id, scope, token_hash, expires_at, revoked_at, created_at, updated_at)
-        SELECT ?, id, ?, ?, NULL, NULL, ?, ? FROM subscribers
+        SELECT ?, id, ?, ?, NULL, NULL, ?, ? FROM subscriber_directory AS subscribers
         WHERE id = ? AND state = 'active'
           AND NOT EXISTS (SELECT 1 FROM subscriber_tokens WHERE subscriber_id = ? AND scope = ? AND revoked_at IS NULL)
       `).bind(candidates[scope].id, scope, candidates[scope].tokenHash, now, now, subscriberId, subscriberId, scope);
@@ -263,7 +267,7 @@ export function createDeliveryRepository(binding: D1Database): DeliveryRepositor
         binding.prepare(`SELECT state,
           (SELECT id FROM subscriber_tokens WHERE subscriber_id = subscribers.id AND scope = 'manage' AND revoked_at IS NULL ORDER BY created_at DESC LIMIT 1) AS manage,
           (SELECT id FROM subscriber_tokens WHERE subscriber_id = subscribers.id AND scope = 'unsubscribe' AND revoked_at IS NULL ORDER BY created_at DESC LIMIT 1) AS unsubscribe
-          FROM subscribers WHERE id = ?`).bind(subscriberId),
+          FROM subscriber_directory AS subscribers WHERE id = ?`).bind(subscriberId),
       ]);
       const row = stored.results[0];
       if (!row || row.state !== "active") return null;
@@ -284,9 +288,9 @@ export function createDeliveryRepository(binding: D1Database): DeliveryRepositor
     async completeOutboxForEvent(eventId, now) {
       await binding.prepare(`UPDATE notification_outbox SET completed_at = ?, locked_at = NULL, updated_at = ?
         WHERE kind = 'delivery-dispatch' AND aggregate_id = ? AND completed_at IS NULL
-          AND NOT EXISTS (SELECT 1 FROM notification_deliveries d
+          AND NOT EXISTS (SELECT 1 FROM notification_delivery_records d
             WHERE d.notification_event_id = ? AND d.outcome = 'queued'
-              AND NOT EXISTS (SELECT 1 FROM notification_delivery_attempts a
+              AND NOT EXISTS (SELECT 1 FROM notification_attempt_records a
                 WHERE a.delivery_id = d.id AND (a.provider_message_id IS NOT NULL OR a.local_capture_id IS NOT NULL)))`)
         .bind(now, now, eventId, eventId).run();
     },
@@ -304,8 +308,8 @@ export function createDeliveryRepository(binding: D1Database): DeliveryRepositor
       return result.meta.changes === 1;
     },
     async findDeliveryByProviderMessageId(providerMessageId) {
-      return (await binding.prepare(`SELECT a.delivery_id AS id, d.subscriber_id AS subscriberId, d.channel FROM notification_delivery_attempts a JOIN notification_deliveries d ON d.id = a.delivery_id WHERE a.provider_message_id = ?
-        AND NOT EXISTS (SELECT 1 FROM notification_delivery_attempts captured WHERE captured.delivery_id = d.id AND captured.local_capture_id IS NOT NULL)
+      return (await binding.prepare(`SELECT a.delivery_id AS id, d.subscriber_id AS subscriberId, d.channel FROM notification_attempt_records a JOIN notification_delivery_records d ON d.id = a.delivery_id WHERE a.provider_message_id = ?
+        AND NOT EXISTS (SELECT 1 FROM notification_attempt_records captured WHERE captured.delivery_id = d.id AND captured.local_capture_id IS NOT NULL)
         ORDER BY a.attempted_at DESC LIMIT 1`).bind(providerMessageId).first<{ id: string; subscriberId: string; channel: "email" | "webhook" }>()) ?? null;
     },
     async listPendingProviderEvents(providerMessageId) {
@@ -315,9 +319,9 @@ export function createDeliveryRepository(binding: D1Database): DeliveryRepositor
     async listPendingProviderMessageIds(limit) {
       const result = await binding.prepare(`SELECT DISTINCT event.provider_message_id AS providerMessageId
         FROM mail_provider_webhook_events event
-        JOIN notification_delivery_attempts attempt ON attempt.provider_message_id = event.provider_message_id
+        JOIN notification_attempt_records attempt ON attempt.provider_message_id = event.provider_message_id
         WHERE event.applied_at IS NULL AND event.provider_message_id IS NOT NULL
-          AND NOT EXISTS (SELECT 1 FROM notification_delivery_attempts captured WHERE captured.delivery_id = attempt.delivery_id AND captured.local_capture_id IS NOT NULL)
+          AND NOT EXISTS (SELECT 1 FROM notification_attempt_records captured WHERE captured.delivery_id = attempt.delivery_id AND captured.local_capture_id IS NOT NULL)
         ORDER BY event.received_at ASC LIMIT ?`).bind(limit).all<{ providerMessageId: string }>();
       return result.results.map((event) => event.providerMessageId);
     },
@@ -327,14 +331,15 @@ export function createDeliveryRepository(binding: D1Database): DeliveryRepositor
       return result.meta.changes === 1;
     },
     async completeProviderEvent(eventId, deliveryId, now) {
-      await binding.prepare("UPDATE mail_provider_webhook_events SET applied_at = ?, delivery_id = ?, claimed_at = NULL WHERE id = ? AND applied_at IS NULL")
-        .bind(now, deliveryId, eventId).run();
+      await binding.batch([deliveryAuthority(deliveryId),
+        binding.prepare("UPDATE mail_provider_webhook_events SET applied_at = ?, delivery_id = (SELECT id FROM notification_deliveries WHERE id=?), component_delivery_id = (SELECT id FROM component_notification_deliveries WHERE id=?), claimed_at = NULL WHERE id = ? AND applied_at IS NULL")
+          .bind(now, deliveryId, deliveryId, eventId)]);
     },
     async countConsecutiveOutcomes(subscriberId, channel, outcomes, limit) {
       // Outstanding newer work says nothing about the outcome sequence. Count
       // completed deliveries only, otherwise a queued backlog permanently
       // breaks the five-bounce / ten-webhook-failure safety thresholds.
-      const rows = await binding.prepare("SELECT outcome FROM notification_deliveries WHERE subscriber_id = ? AND channel = ? AND outcome <> 'queued' ORDER BY outcome_at DESC, queued_at DESC LIMIT ?").bind(subscriberId, channel, limit).all<{ outcome: string }>();
+      const rows = await binding.prepare("SELECT outcome FROM notification_delivery_records AS notification_deliveries WHERE subscriber_id = ? AND channel = ? AND outcome <> 'queued' ORDER BY outcome_at DESC, queued_at DESC LIMIT ?").bind(subscriberId, channel, limit).all<{ outcome: string }>();
       let count = 0;
       for (const row of rows.results) { if (!outcomes.includes(row.outcome)) break; count += 1; }
       return count;

@@ -100,7 +100,7 @@ export async function cutoverStatusFlow() {
     const alert = await fetch(`${publicOrigin}/api/intake/${sourceId}`, { method: 'POST', body, headers: { 'Content-Type': 'application/json', 'x-lamp-timestamp': timestamp, 'x-lamp-signature': createHmac('sha256', signingSecret).update(`${timestamp}.${body}`).digest('base64url') } });
     assert.ok(alert.ok, await alert.text());
     const component = (await owner('/api/app/components')).body.components[0].id, hour = 60 * 60 * 1000;
-    const window = await owner('/api/app/maintenance', { title: 'Database upgrade', startsAt: new Date(Date.now() + 2 * hour).toISOString(), endsAt: new Date(Date.now() + 3 * hour).toISOString(), componentIds: [component] });
+    const window = await owner('/api/app/maintenance', { affectedAudience: "Customers using the scheduled service.", customerImpact: "Requests may be interrupted during this maintenance window.", title: 'Database upgrade', startsAt: new Date(Date.now() + 2 * hour).toISOString(), endsAt: new Date(Date.now() + 3 * hour).toISOString(), componentIds: [component] });
     assert.equal(window.status, 201, JSON.stringify(window.body));
     const now = await list(), afterSwitch = await status(switched);
     assert.deepEqual(afterSwitch.intake, { sources: [{ id: sourceId, kind: 'custom', receipts_since: 1 }] });

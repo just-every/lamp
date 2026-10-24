@@ -10,7 +10,7 @@ SELECT 'channel-notification:' || p.id AS id,'channel-notification' AS kind,
     strftime('%Y-%m-%dT%H:%M:%fZ',COALESCE((SELECT MAX(a.finished_at) FROM integration_attempts a WHERE a.namespace=x.namespace AND a.delivery_id=x.id),x.next_at)/1000.0,'unixepoch') END AS failure_at,
   '/app/deliveries' AS link,
   json_array(p.id,x.state,x.attempts,x.next_at) AS occurrence
-FROM channel_posts p JOIN channel_destinations d ON d.id=p.destination_id
+FROM delivery_channel_posts p JOIN delivery_channel_destinations d ON d.id=p.destination_id
 JOIN incident_updates u ON u.id=p.incident_update_id JOIN incidents i ON i.id=u.incident_id
 LEFT JOIN oa_operators o ON o.id=d.created_by_operator_id AND o.status='active'
 LEFT JOIN integration_deliveries x ON x.namespace='lamp-channels' AND x.id=p.id

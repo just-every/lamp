@@ -1,3 +1,4 @@
+import { subscriberPreferencesFlow } from "./helpers/subscriber-preferences-flow.mjs";
 import { subscriberReportingFlow } from "./helpers/subscriber-reporting-flow.mjs";
 import { subscriberAddFlow } from "./helpers/subscriber-add-flow.mjs";
 import { statuspageWebhookFlow } from "./helpers/statuspage-webhook-flow.mjs";
@@ -209,8 +210,9 @@ test("HIST-007 SUB-001 SUB-005 UPDATE-008 SUB-002 SUB-003 — Concurrent subscri
 
 
 
-test("SUB-017 SUB-004 SUB-006 SUB-007 SUB-005 PAGE-013 SUB-012 SUB-008 — Attributed operator additions, confirmed component scope, private management and opt-out", async t => {
+test("SUB-016 SUB-017 SUB-004 SUB-006 SUB-007 SUB-005 PAGE-013 SUB-012 SUB-008 — Attributed operator additions, confirmed component scope, private management and opt-out", async t => {
   await subscriberAddFlow();
+  await subscriberPreferencesFlow();
   t.diagnostic("SUB-004 — actual D1 recipient selection follows visible components and matching selected components only");
   await (async () => {
   const db = platform.env.DB;
@@ -1036,7 +1038,7 @@ test("NOTIFY-004 SUB-011 NOTIFY-002 — Delivery queues and complete subscriber/
   await (async () => {
   const { Hono } = await import("hono");
   const db = platform.env.DB;
-  const existing = await db.prepare("SELECT COUNT(*) AS count FROM notification_deliveries").first();
+  const existing = await db.prepare("SELECT COUNT(*) AS count FROM notification_delivery_records").first();
   const statements = [];
   for (let index = 0; index < 101; index += 1) {
     const timestamp = `2099-01-01T00:01:00.${String(index).padStart(3, "0")}Z`;
@@ -1095,7 +1097,7 @@ test("NOTIFY-004 SUB-011 NOTIFY-002 — Delivery queues and complete subscriber/
     channels: ["email"],
     queuedAt: now,
   }));
-  const captured = await db.prepare("SELECT COUNT(*) AS count FROM notification_deliveries WHERE notification_event_id = ?").bind(eventId).first();
+  const captured = await db.prepare("SELECT COUNT(*) AS count FROM notification_delivery_records WHERE notification_event_id = ?").bind(eventId).first();
   assert.equal(captured.count, subscriberLimit);
   const mail = new DefaultResendRateModelMail();
   const deliveries = createDeliveriesService(createDeliveryRepository(db), { mail, fromAddress: "lamp@example.test", subscriberTokenSecret: "synthetic-fanout-limit-secret" });

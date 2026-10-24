@@ -25,6 +25,61 @@
       "summary": "Cutover preview and supported sources: Statuspage, Instatus and Better Stack also accept setup's keyless public-feed captures, retaining resolved history, update times, explicitly supplied component states and old incident links.",
       "was": "Cutover preview: Settings \u2192 Cutover is available after a dry run and for saved imports. It shows up to the first 25 old incident and maintenance addresses with proposed or surviving native permalinks, unavailable addresses and source-host limits, source feed answers, unsupported JSON/RSS/widget consumers, and eligible invitations with their original expiry deadline. Once the owner selects a public origin, each Opens check uses a credentialless browser request that follows the redirect and verifies the final native address and successful HTML response; failures remain explicit. The ordered guide covers import, preview, explicit invitations, hostname/custom-domain instructions, rechecking and keeping the source through the confirmation window. It claims neither DNS validation nor inbox delivery. Instatus accepts its documented saved management REST response families with a separate owner acknowledgment that the page and supplied history are published and unrestricted. Known protected or unpublished source records cannot become public. Visual Component parents are groups; audience groups are refused access restrictions. Only confirmed, approved email-only subscriptions with resolved preferences become pending. Exact supplied public-summary incident/maintenance URLs are joined by source ID; missing URLs are not invented. Maintenance ends use explicit timestamps or documented duration minutes under completed/autoEnd semantics, with every update retained silently. Sorry general notices may have no affected component and are carried as resolved informational history without outage claims; canceled maintenance stays canceled. Sorry additionally accepts keyless public JSON captures, including paginated components and notices plus full detail for every notice. Partial public previews name uncaptured details and cannot be applied. Subscribers come only from the authenticated API; eligible email rows are held inert without mail or confirmation expiry. A held row neither released nor undone is deleted with its address 30 days after the reviewed dry run, and Cutover states that date. After the hostname is live and the watch window closes, an explicit owner invitation action names the configured public origin, records that approval, and releases held rows into pending with a 72-hour window starting at release. Undo cannot recall mail or remove a released row as if it were still unchanged. Sorry numeric notice IDs and supplied notice paths redirect to surviving Lamp incidents or maintenance; `/notices`, `/history` and `/history/YYYY/month` (English month names) redirect to Lamp\u2019s `/history/` while a Sorry import is retained.",
       "now": "Cutover preview: Settings \u2192 Cutover is available after a dry run and for saved imports. It shows up to the first 25 old incident and maintenance addresses with proposed or surviving native permalinks, unavailable addresses and source-host limits, source feed answers, unsupported JSON/RSS/widget consumers, and eligible invitations with their original expiry deadline. Once the owner selects a public origin, each Opens check uses a credentialless browser request that follows the redirect and verifies the final native address and successful HTML response; failures remain explicit. The ordered guide covers import, preview, explicit invitations, hostname/custom-domain instructions, rechecking and keeping the source through the confirmation window. It claims neither DNS validation nor inbox delivery. Instatus accepts its documented saved management REST response families with a separate owner acknowledgment that the page and supplied history are published and unrestricted. Known protected or unpublished source records cannot become public. Visual Component parents are groups; audience groups are refused access restrictions. Only confirmed, approved email-only subscriptions with resolved preferences become pending. Exact supplied public-summary incident/maintenance URLs are joined by source ID; missing URLs are not invented. Maintenance ends use explicit timestamps or documented duration minutes under completed/autoEnd semantics, with every update retained silently. Statuspage, Instatus and Better Stack also accept the keyless capture of their public feeds that setup reads (SETUP-002): resolved incidents only, each update at its time, component states only where the feeds state them (an incident without any is history naming its listed components), and each feed's own incident links as its old addresses. Sorry general notices may have no affected component and are carried as resolved informational history without outage claims; canceled maintenance stays canceled. Sorry additionally accepts keyless public JSON captures, including paginated components and notices plus full detail for every notice. Partial public previews name uncaptured details and cannot be applied. Subscribers come only from the authenticated API; eligible email rows are held inert without mail or confirmation expiry. A held row neither released nor undone is deleted with its address 30 days after the reviewed dry run, and Cutover states that date. After the hostname is live and the watch window closes, an explicit owner invitation action names the configured public origin, records that approval, and releases held rows into pending with a 72-hour window starting at release. Undo cannot recall mail or remove a released row as if it were still unchanged. Sorry numeric notice IDs and supplied notice paths redirect to surviving Lamp incidents or maintenance; `/notices`, `/history` and `/history/YYYY/month` (English month names) redirect to Lamp\u2019s `/history/` while a Sorry import is retained."
+    },
+    "NOTIFY-001": {
+      "change": "changed",
+      "summary": "Selected subscriptions receive committed public component status changes with claimant kind; incident carriers are deduplicated under NOTIFY-017.",
+      "was": "What notifies subscribers: *Policy: `notification.events.v1`; default: an incident notifies on its first published update, on every subsequent published update, and on the update that resolves it; a scheduled maintenance notifies per MAINT-005; a component state change made outside an incident or maintenance notifies no one.*",
+      "now": "What notifies subscribers: *Policy: `notification.events.v1`; default: an incident notifies on its first published update, on every subsequent published update, and on the update that resolves it; a scheduled maintenance notifies per MAINT-005; a component state change made outside an incident or maintenance notifies subscriptions that selected component status changes under NOTIFY-017; webhook subscriptions select those changes by default (SUB-016).*",
+      "migrationIds": [
+        "0056_subscriber_channels_preferences.sql",
+        "0057_component_deliveries.sql"
+      ]
+    },
+    "MOVE-001": {
+      "change": "changed",
+      "summary": "Move-in dry runs report per-channel subscriber excess; over-limit applies write nothing until a fresh narrowed dry run fits.",
+      "was": "Dry run first: An owner moving from Statuspage, Better Stack, Instatus or Sorry gives Settings \u2192 Move in either an API key with its page ID (read once with GET requests to the source's fixed API origin, never stored) or the source's saved API responses. A dry run counts every component, component group, incident with its updates, scheduled maintenance and subscriber as imported, changed, skipped or refused, names each reason, and writes nothing. An import applies only the reviewed dry run: if the source or this page changed since, it is refused and a fresh dry run is required.",
+      "now": "Dry run first: An owner moving from Statuspage, Better Stack, Instatus or Sorry gives Settings \u2192 Move in either an API key with its page ID (read once with GET requests to the source's fixed API origin, never stored) or the source's saved API responses. A dry run counts every component, component group, incident with its updates, scheduled maintenance and subscriber as imported, changed, skipped or refused, names each reason, and writes nothing. An import applies only the reviewed dry run: if the source or this page changed since, it is refused and a fresh dry run is required. SUB-020 adds per-channel capacity accounting: a dry run names the excess and refuses excess subscriber rows; an over-limit apply writes nothing until a fresh, narrowed dry run fits.",
+      "migrationIds": [
+        "0056_subscriber_channels_preferences.sql"
+      ]
+    },
+    "MAINT-001": {
+      "change": "changed",
+      "summary": "New native windows also carry MAINT-009 required affected-audience and customer-impact wording, frozen into each notice. Pre-release windows remain title-only; lifecycle timing and overrun behavior are unchanged.",
+      "was": "Distinct from incidents: A scheduled maintenance has a start time, an end time, and attached components. It has a reference of the form `SCH-` followed by digits, and is listed separately from incidents wherever both appear. New maintenance references use a durable, increasing `SCH-n` allocation sequence independent of incidents and legacy timestamp-sized references. Existing references remain unchanged; deletion, restart and failed creation never permit reuse, and failures may leave gaps.",
+      "now": "Distinct from incidents: A scheduled maintenance has a start time, an end time, and attached components. It has a reference of the form `SCH-` followed by digits, and is listed separately from incidents wherever both appear. New maintenance references use a durable, increasing `SCH-n` allocation sequence independent of incidents and legacy timestamp-sized references. Existing references remain unchanged; deletion, restart and failed creation never permit reuse, and failures may leave gaps. New native windows also carry MAINT-009 required affected-audience and customer-impact wording, frozen into each notice. Pre-release windows remain title-only; lifecycle timing and overrun behavior are unchanged.",
+      "migrationIds": [
+        "0058_maintenance_wording.sql"
+      ]
+    },
+    "MAINT-002": {
+      "change": "changed",
+      "summary": "New native windows also carry MAINT-009 required affected-audience and customer-impact wording, frozen into each notice. Pre-release windows remain title-only; lifecycle timing and overrun behavior are unchanged.",
+      "was": "Automatic transitions: A scheduled maintenance moves from Scheduled to In progress within 240 seconds of its start time, and from In progress to Completed within 240 seconds of its end time, with no operator action. The 240-second bound is a declared promise based on one local stress observation with 20 updates and 20 maintenance starts due in the same cron minute on a single workerd process on a shared runner; it is not a p95 over independent runs or a hosted Cron guarantee.",
+      "now": "Automatic transitions: A scheduled maintenance moves from Scheduled to In progress within 240 seconds of its start time, and from In progress to Completed within 240 seconds of its end time, with no operator action. The 240-second bound is a declared promise based on one local stress observation with 20 updates and 20 maintenance starts due in the same cron minute on a single workerd process on a shared runner; it is not a p95 over independent runs or a hosted Cron guarantee. New native windows also carry MAINT-009 required affected-audience and customer-impact wording, frozen into each notice. Pre-release windows remain title-only; lifecycle timing and overrun behavior are unchanged.",
+      "migrationIds": [
+        "0058_maintenance_wording.sql"
+      ]
+    },
+    "MAINT-004": {
+      "change": "changed",
+      "summary": "New native windows also carry MAINT-009 required affected-audience and customer-impact wording, frozen into each notice. Pre-release windows remain title-only; lifecycle timing and overrun behavior are unchanged.",
+      "was": "Overrun: A maintenance still In progress 15 minutes after its end time is shown on the public page as running longer than planned, beside its original end time, until an operator completes it or extends the window.",
+      "now": "Overrun: A maintenance still In progress 15 minutes after its end time is shown on the public page as running longer than planned, beside its original end time, until an operator completes it or extends the window. New native windows also carry MAINT-009 required affected-audience and customer-impact wording, frozen into each notice. Pre-release windows remain title-only; lifecycle timing and overrun behavior are unchanged.",
+      "migrationIds": [
+        "0058_maintenance_wording.sql"
+      ]
+    },
+    "MAINT-005": {
+      "change": "changed",
+      "summary": "New native windows also carry MAINT-009 required affected-audience and customer-impact wording, frozen into each notice. Pre-release windows remain title-only; lifecycle timing and overrun behavior are unchanged.",
+      "was": "Reminders: *Policy: `maintenance.reminders.v1`; default: subscribers are notified when the maintenance is scheduled, 24 hours before the start time, when it moves to In progress, and when it moves to Completed.*",
+      "now": "Reminders: *Policy: `maintenance.reminders.v1`; default: subscribers are notified when the maintenance is scheduled, 24 hours before the start time, when it moves to In progress, and when it moves to Completed.* New native windows also carry MAINT-009 required affected-audience and customer-impact wording, frozen into each notice. Pre-release windows remain title-only; lifecycle timing and overrun behavior are unchanged.",
+      "migrationIds": [
+        "0058_maintenance_wording.sql"
+      ]
     }
   },
   "extensionPointChanges": [],
@@ -76,6 +131,18 @@
     {
       "id": "0055_maintenance_automation_defaults.sql",
       "buyerSteps": "Apply after 0054. Adds page-level auto-start and auto-complete defaults, initially both on. Existing maintenance windows retain their own choices; changing Settings affects only new windows."
+    },
+    {
+      "id": "0056_subscriber_channels_preferences.sql",
+      "buyerSteps": "Apply after 0055. Preserves existing subscribers, selections, tokens, attribution and channel posts while adding self-serve Slack and Teams kinds, sealed chat destinations, expiring OAuth state, event preferences and incident thresholds, immutable component notification facts and atomic subscriber capacity guards. Existing webhooks opt into component changes; other subscriptions retain incidents and maintenance. Optional Slack OAuth credentials are configured only by an owner enabling that door. Uses only appended subscriber fields, additive subscriber-owned channel records and shared logical read projections; no backed-up table is rebuilt."
+    },
+    {
+      "id": "0057_component_deliveries.sql",
+      "buyerSteps": "Apply after 0056. Adds a component-only delivery/attempt partition and shared delivery/receipt queries. Existing incident and maintenance deliveries, attempts and provider mappings retain their exact tables, identifiers, outcomes and authority; older technical backups restore through the pinned bridge without a table rebuild."
+    },
+    {
+      "id": "0058_maintenance_wording.sql",
+      "buyerSteps": "Apply after 0057. Adds nullable maintenance affected-audience and customer-impact wording. Existing native and imported windows stay title-only without backfill; new native scheduling requires both statements, and each notice freezes its wording for notification delivery."
     }
   ],
   "breaking": false,
