@@ -7,10 +7,10 @@ import { moveInDoor } from "../../helpers/import-notifications.mjs";
 export async function seedSubscriberLimitFixture(db,start,count,channel="email") {
   const now=new Date().toISOString();
   await db.prepare(`WITH RECURSIVE sequence(n) AS (SELECT ? UNION ALL SELECT n+1 FROM sequence WHERE n<?)
-    INSERT INTO subscribers(id,channel,destination,contact_email,state,selection_mode,token_hash,created_at,updated_at)
-    SELECT '01JLIMIT' || printf('%018d',n),?,CASE WHEN ?='email' THEN 'synthetic-lamp-limit-' || n || '@example.test'
+    INSERT INTO subscribers(id,channel,chat_kind,destination,contact_email,state,selection_mode,token_hash,created_at,updated_at)
+    SELECT '01JLIMIT' || printf('%018d',n),?,?,CASE WHEN ?='email' THEN 'synthetic-lamp-limit-' || n || '@example.test'
       ELSE 'https://receiver.example.test/synthetic-lamp-limit-' || n END,NULL,'active','all','synthetic-lamp-limit-token-' || n,?,? FROM sequence`)
-    .bind(start,start+count-1,channel,channel,now,now).run();
+    .bind(start,start+count-1,channel === "slack" || channel === "teams" ? "webhook" : channel,channel === "slack" || channel === "teams" ? channel : null,channel,now,now).run();
 }
 export const subscriberLimitSourceFiles=(count)=>[
   {name:"page.json",text:JSON.stringify({id:"synthetic-lamp-limit-page",name:"Synthetic Lamp source",viewers_must_be_team_members:false,ip_restrictions:null})},

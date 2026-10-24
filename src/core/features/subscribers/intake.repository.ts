@@ -12,12 +12,12 @@ export function createSubscriberIntakeRepository(db:D1Database) {
       return Boolean(await db.prepare("SELECT 1 FROM oa_operators WHERE id=? AND status='active' AND (?=0 OR role='owner')").bind(operatorId,Number(owner)).first());
     },
     async destinations():Promise<Set<string>> {
-      return new Set((await db.prepare("SELECT destination FROM subscribers").all<{destination:string}>()).results.map(row=>row.destination));
+      return new Set((await db.prepare("SELECT destination FROM subscriber_directory AS subscribers").all<{destination:string}>()).results.map(row=>row.destination));
     },
     async addedBy(subscriberId:string):Promise<AddedBy|null> {
       return db.prepare(`SELECT s.created_by_operator_id AS id,CASE WHEN o.id IS NULL OR o.email='deleted-' || lower(o.id) || '@operator.invalid'
         THEN 'Erased operator · ' || s.created_by_operator_id ELSE o.display_name END AS displayName
-        FROM subscribers s LEFT JOIN oa_operators o ON o.id=s.created_by_operator_id WHERE s.id=? AND s.created_by_operator_id IS NOT NULL`).bind(subscriberId).first<AddedBy>();
+        FROM subscriber_directory s LEFT JOIN oa_operators o ON o.id=s.created_by_operator_id WHERE s.id=? AND s.created_by_operator_id IS NOT NULL`).bind(subscriberId).first<AddedBy>();
     },
     async has(subscriberId:string):Promise<boolean> {
       return Boolean(await db.prepare("SELECT 1 FROM subscriber_intake WHERE subscriber_id=?").bind(subscriberId).first());
@@ -32,21 +32,21 @@ export function createSubscriberIntakeRepository(db:D1Database) {
       for(let start=0;start<rows.length;start+=50) {
         const json=JSON.stringify(rows.slice(start,start+50));
         resultPositions.push(statements.length);
-        statements.push(db.prepare(`INSERT INTO subscribers(id,channel,destination,contact_email,state,selection_mode,token_hash,created_by_operator_id,event_kinds_json,minimum_impact,created_at,updated_at)
+        statements.push(db.prepare(`INSERT INTO subscribers(id,channel,destination,contact_email,state,selection_mode,token_hash,created_by_operator_id,event_kinds_json,minimum_impact,preferences_set,created_at,updated_at)
           SELECT json_extract(r.value,'$.id'),json_extract(r.value,'$.channel'),json_extract(r.value,'$.destination'),json_extract(r.value,'$.contactEmail'),
-            'pending',CASE WHEN json_array_length(r.value,'$.componentIds')=0 THEN 'all' ELSE 'selected' END,json_extract(r.value,'$.tokenHash'),?,COALESCE(json_extract(r.value,'$.eventKinds'),CASE WHEN json_extract(r.value,'$.channel')='webhook' THEN '["incidents","maintenance","components"]' ELSE '["incidents","maintenance"]' END),json_extract(r.value,'$.minimumImpact'),?,?
+            'pending',CASE WHEN json_array_length(r.value,'$.componentIds')=0 THEN 'all' ELSE 'selected' END,json_extract(r.value,'$.tokenHash'),?,COALESCE(json_extract(r.value,'$.eventKinds'),CASE WHEN json_extract(r.value,'$.channel')='webhook' THEN '["incidents","maintenance","components"]' ELSE '["incidents","maintenance"]' END),json_extract(r.value,'$.minimumImpact'),1,?,?
           FROM json_each(?) r WHERE 1 ON CONFLICT(destination) DO NOTHING RETURNING id`).bind(operatorId,now,now,json));
         statements.push(db.prepare(`INSERT INTO subscriber_intake(subscriber_id,batch_id,source,operator_id,created_at)
-          SELECT s.id,?,?,?,? FROM json_each(?) r JOIN subscribers s ON s.id=json_extract(r.value,'$.id')`).bind(batchId,source,operatorId,now,json));
+          SELECT s.id,?,?,?,? FROM json_each(?) r JOIN subscriber_directory s ON s.id=json_extract(r.value,'$.id')`).bind(batchId,source,operatorId,now,json));
         statements.push(db.prepare(`UPDATE subscribers SET webhook_format=COALESCE(
           (SELECT json_extract(r.value,'$.webhookFormat') FROM json_each(?) r WHERE json_extract(r.value,'$.id')=subscribers.id),'lamp')
           WHERE channel='webhook' AND id IN (SELECT json_extract(r.value,'$.id') FROM json_each(?) r)`).bind(json,json));
         statements.push(db.prepare(`INSERT INTO subscriber_components(id,subscriber_id,component_id,created_at,updated_at)
           SELECT upper(substr(hex(randomblob(16)),1,26)),s.id,c.value,?,? FROM json_each(?) r
-          JOIN subscribers s ON s.id=json_extract(r.value,'$.id') CROSS JOIN json_each(r.value,'$.componentIds') c`).bind(now,now,json));
+          JOIN subscriber_directory s ON s.id=json_extract(r.value,'$.id') CROSS JOIN json_each(r.value,'$.componentIds') c`).bind(now,now,json));
         statements.push(db.prepare(`INSERT INTO audit_entries(id,entity_type,entity_id,action,operator_id,payload_json,created_at,updated_at)
           SELECT ? || '/' || s.id,'subscriber',s.id,?,?,json_object('channel',s.channel),?,?
-          FROM json_each(?) r JOIN subscribers s ON s.id=json_extract(r.value,'$.id')`)
+          FROM json_each(?) r JOIN subscriber_directory s ON s.id=json_extract(r.value,'$.id')`)
           .bind(createUlid(),source==="csv"?"subscriber.imported":"subscriber.added",operatorId,now,now,json));
       }
       if(batchId)statements.push(db.prepare(`INSERT INTO audit_entries(id,entity_type,entity_id,action,operator_id,payload_json,created_at,updated_at)
@@ -61,18 +61,18 @@ export function createSubscriberIntakeRepository(db:D1Database) {
       return Boolean(await db.prepare("SELECT 1 FROM audit_entries WHERE entity_type='subscriber-import' AND entity_id=? AND action='subscriber.import-applied'").bind(batchId).first());
     },
     async pending(batchId:string):Promise<string[]> {
-      return (await db.prepare(`SELECT s.id FROM subscriber_intake a JOIN subscribers s ON s.id=a.subscriber_id
+      return (await db.prepare(`SELECT s.id FROM subscriber_intake a JOIN subscriber_directory s ON s.id=a.subscriber_id
         WHERE a.batch_id=? AND (a.invitation_claimed_at IS NULL OR a.invitation_claimed_at<s.created_at) AND s.state='pending'
           AND julianday(s.created_at,'+72 hours')>julianday('now') ORDER BY s.id LIMIT 50`).bind(batchId).all<{id:string}>()).results.map(row=>row.id);
     },
     async remaining(batchId:string):Promise<number> {
-      return Number((await db.prepare(`SELECT COUNT(*) AS count FROM subscriber_intake a JOIN subscribers s ON s.id=a.subscriber_id
+      return Number((await db.prepare(`SELECT COUNT(*) AS count FROM subscriber_intake a JOIN subscriber_directory s ON s.id=a.subscriber_id
         WHERE a.batch_id=? AND (a.invitation_claimed_at IS NULL OR a.invitation_claimed_at<s.created_at) AND s.state='pending'
           AND julianday(s.created_at,'+72 hours')>julianday('now')`).bind(batchId).first<{count:number}>())?.count??0);
     },
     async claimInvitation(subscriberId:string,emailHash:string,now:string,operatorId:string|null,ownerOnly:boolean):Promise<boolean> {
       const cutoff=new Date(Date.parse(now)-24*60*60_000).toISOString();
-      const allowed=`EXISTS(SELECT 1 FROM subscriber_intake a JOIN subscribers s ON s.id=a.subscriber_id
+      const allowed=`EXISTS(SELECT 1 FROM subscriber_intake a JOIN subscriber_directory s ON s.id=a.subscriber_id
         WHERE s.id=? AND s.state='pending' AND (a.invitation_claimed_at IS NULL OR a.invitation_claimed_at<s.created_at) AND julianday(s.created_at,'+72 hours')>julianday('now'))
         AND (? IS NULL OR EXISTS(SELECT 1 FROM oa_operators WHERE id=? AND status='active' AND (?=0 OR role='owner')))`;
       const [slot]=await db.batch([
@@ -100,7 +100,7 @@ export function createSubscriberIntakeRepository(db:D1Database) {
         CASE WHEN a.subscriber_id IS NOT NULL THEN CASE WHEN a.confirmed_at>=s.created_at THEN a.confirmed_at END
           ELSE (SELECT MAX(t.revoked_at) FROM subscriber_tokens t WHERE t.subscriber_id=s.id AND t.scope='confirm'
           AND t.revoked_at IS NOT NULL AND (s.deactivated_at IS NULL OR t.revoked_at<s.deactivated_at)) END AS consentAt
-        FROM subscribers s LEFT JOIN subscriber_intake a ON a.subscriber_id=s.id
+        FROM subscriber_directory s LEFT JOIN subscriber_intake a ON a.subscriber_id=s.id
         WHERE s.destination<>'deleted:' || s.id ORDER BY s.created_at,s.id`).all<SubscriberExportRow>()).results;
     },
   };

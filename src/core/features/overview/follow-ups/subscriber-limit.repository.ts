@@ -11,9 +11,9 @@ SELECT 'subscriber-limit:' || bucket AS id,'subscriber-limit' AS kind,
   bucket AS occurrence
 FROM (
   SELECT 'all' AS bucket,'All channels' AS label,COUNT(*) AS count,${subscriberLimits.total} AS capacity
-  FROM subscribers WHERE state IN ('pending','active')
+  FROM subscriber_directory AS subscribers WHERE state IN ('pending','active')
   UNION ALL SELECT 'webhook','Webhook',COUNT(*),${subscriberLimits.webhook}
-  FROM subscribers WHERE state IN ('pending','active') AND channel='webhook'
+  FROM subscriber_directory AS subscribers WHERE state IN ('pending','active') AND channel='webhook'
   UNION ALL SELECT 'chat','Slack and Teams',COUNT(*),${subscriberLimits.chat}
-  FROM subscribers WHERE state IN ('pending','active') AND channel IN ('slack','teams')
+  FROM subscriber_directory AS subscribers WHERE state IN ('pending','active') AND channel IN ('slack','teams')
 ) WHERE count>=capacity`;

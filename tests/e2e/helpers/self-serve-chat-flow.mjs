@@ -39,7 +39,7 @@ export async function selfServeChatFlow(t){
       const written=await runtime.api(`/api/app/incidents/${incidentId}/draft`,{method:'PUT',body:JSON.stringify({...draft,details})});assert.equal(written.status,200,written.text);
       const published=await runtime.post(`/api/app/incidents/${incidentId}/publish`,{channels:['chat']});assert.equal(published.status,200,published.text);
       const updateId=published.body.update.id;
-      await eventuallyFollowUp(async()=> (await sql(`SELECT count(*) AS n FROM channel_posts p LEFT JOIN integration_deliveries d ON d.id=p.id AND d.namespace='lamp-channels' WHERE p.incident_update_id='${updateId}' AND (d.state IS NULL OR d.state IN ('queued','sending'))`))[0].n,n=>n===0,'committed chat recipients have terminal provider receipts');
+      await eventuallyFollowUp(async()=> (await sql(`SELECT count(*) AS n FROM delivery_channel_posts p LEFT JOIN integration_deliveries d ON d.id=p.id AND d.namespace='lamp-channels' WHERE p.incident_update_id='${updateId}' AND (d.state IS NULL OR d.state IN ('queued','sending'))`))[0].n,n=>n===0,'committed chat recipients have terminal provider receipts');
 
     };
     await publish(draft.details);
@@ -55,10 +55,10 @@ export async function selfServeChatFlow(t){
     await prepareSlackSubscription({componentId:component.id,publicOrigin,sql,widths:[1440]});
     slackReply={status:400,body:'channel_is_archived'};
     await publish('Third publish to an archived channel.');
-    const archiveState=await sql(`SELECT state,deactivation_reason FROM subscribers WHERE id='${id}'`);
+    const archiveState=await sql(`SELECT state,deactivation_reason FROM subscriber_directory AS subscribers WHERE id='${id}'`);
     const archiveProof=archiveState[0]?.deactivation_reason==='channel_is_archived'?undefined:JSON.stringify({
       received:received.filter(x=>x.path===new URL(RECORDED_SLACK_WEBHOOK).pathname).map(x=>JSON.parse(x.body).text),
-      posts:await sql(`SELECT id,incident_update_id FROM channel_posts WHERE destination_id='${id}'`),
+      posts:await sql(`SELECT id,incident_update_id FROM delivery_channel_posts AS channel_posts WHERE destination_id='${id}'`),
       deliveries:await sql(`SELECT id,state,attempts,next_at FROM integration_deliveries WHERE json_extract(envelope,'$.destinationId')='${id}'`),
       attempts:await sql(`SELECT delivery_id,number,outcome FROM integration_attempts WHERE delivery_id IN (SELECT id FROM integration_deliveries WHERE json_extract(envelope,'$.destinationId')='${id}')`),
     });
@@ -70,15 +70,15 @@ export async function selfServeChatFlow(t){
     teamsStatus=400;
     for(let failure=1;failure<=10;failure++){
       await publish(`Teams destination refusal ${failure}.`);
-      if(failure===10)await eventuallyFollowUp(async()=> (await sql("SELECT state FROM subscribers WHERE channel='teams'"))[0].state,state=>state==='deactivated','terminal failure receipts deactivate the subscription');
-      assert.equal((await sql("SELECT state FROM subscribers WHERE channel='teams'"))[0].state,failure<10?'active':'deactivated','consecutive refused publications deactivate the failing subscription');
+      if(failure===10)await eventuallyFollowUp(async()=> (await sql("SELECT state FROM subscriber_directory AS subscribers WHERE channel='teams'"))[0].state,state=>state==='deactivated','terminal failure receipts deactivate the subscription');
+      assert.equal((await sql("SELECT state FROM subscriber_directory AS subscribers WHERE channel='teams'"))[0].state,failure<10?'active':'deactivated','consecutive refused publications deactivate the failing subscription');
     }
     const failedTeams=received.filter(x=>x.path.startsWith(new URL(subscriberTeamsUrl).pathname)).length;
     await publish('Publication after Teams destination deactivation.');
     assert.equal(received.filter(x=>x.path.startsWith(new URL(subscriberTeamsUrl).pathname)).length,failedTeams,'deactivated Teams receives no next publish');
     const erased=await runtime.api(`/api/app/subscribers/${id}`,{method:'DELETE'});assert.equal(erased.status,204,erased.text);
     assert.deepEqual(await sql(`SELECT * FROM subscriber_chat_destinations WHERE subscriber_id='${id}'`),[],'subscriber deletion erases sealed URL and team mapping');
-    assert.deepEqual(await sql(`SELECT * FROM channel_destinations WHERE id='${id}'`),[],'no channel copy retains the bearer URL');
+    assert.deepEqual(await sql(`SELECT * FROM delivery_channel_destinations AS channel_destinations WHERE id='${id}'`),[],'no channel copy retains the bearer URL');
 
   }finally{await runtime.close();}
 }

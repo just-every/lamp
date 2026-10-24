@@ -54,10 +54,10 @@ export async function prepareTeamsSubscription({ componentId, publicOrigin, rece
     const verification = JSON.parse(cards[0].body);
     assert.equal(verification.attachments[0].contentType, 'application/vnd.microsoft.card.adaptive');
     const confirmation = verification.attachments[0].content.actions.find(action => action.title === 'Confirm subscription').url;
-    assert.equal((await sql("SELECT state FROM subscribers WHERE channel='teams'")).at(-1).state, 'pending', 'receiving the card alone never activates');
+    assert.equal((await sql("SELECT state FROM subscriber_directory AS subscribers WHERE channel='teams'")).at(-1).state, 'pending', 'receiving the card alone never activates');
     assert.equal((await page.goto(confirmation)).status(), 200);
     await page.getByRole('heading', { name: 'Confirm Teams subscription', exact: true }).waitFor();
-    assert.equal((await sql("SELECT state FROM subscribers WHERE channel='teams'")).at(-1).state, 'pending', 'opening the channel link still asks for confirmation');
+    assert.equal((await sql("SELECT state FROM subscriber_directory AS subscribers WHERE channel='teams'")).at(-1).state, 'pending', 'opening the channel link still asks for confirmation');
     await proveScreen(page, 'confirm', errors);
     const activated = page.waitForResponse(response => response.url() === confirmation && response.request().method() === 'POST');
     await page.getByRole('button', { name: 'Confirm subscription', exact: true }).click();
@@ -65,8 +65,8 @@ export async function prepareTeamsSubscription({ componentId, publicOrigin, rece
     await page.getByRole('heading', { name: 'Subscription confirmed', exact: true }).waitFor();
     if(onManage)await onManage(new URL(await page.getByRole('link',{name:'Manage this subscription',exact:true}).getAttribute('href'),publicOrigin).href);
     await proveScreen(page, 'confirmed', errors);
-    assert.equal((await sql("SELECT state FROM subscribers WHERE channel='teams'")).at(-1).state, 'active', 'the channel visitor confirms before activation');
-    const stored = JSON.stringify(await sql("SELECT destination, sealed_url FROM subscribers JOIN subscriber_chat_destinations ON subscriber_id=subscribers.id WHERE subscribers.channel='teams'"));
+    assert.equal((await sql("SELECT state FROM subscriber_directory AS subscribers WHERE channel='teams'")).at(-1).state, 'active', 'the channel visitor confirms before activation');
+    const stored = JSON.stringify(await sql("SELECT destination, sealed_url FROM subscriber_directory AS subscribers JOIN subscriber_chat_destinations ON subscriber_id=subscribers.id WHERE subscribers.channel='teams'"));
     assert.ok(!stored.includes(subscriberTeamsUrl) && !stored.includes('sig=synthetic-lamp-1'), 'the bearer URL is sealed, never in subscriber destination');
     await context.close();
   } finally { await browser.close(); }

@@ -5,7 +5,7 @@ export function createSubscriberLimitRepository(db:D1Database) {
     const row=await db.prepare(`SELECT COUNT(*) AS total,
       COALESCE(SUM(channel='email'),0) AS email,COALESCE(SUM(channel='webhook'),0) AS webhook,
       COALESCE(SUM(channel='slack'),0) AS slack,COALESCE(SUM(channel='teams'),0) AS teams
-      FROM subscribers WHERE state IN ('pending','active')`).first<SubscriberCounts>();
+      FROM subscriber_directory AS subscribers WHERE state IN ('pending','active')`).first<SubscriberCounts>();
     if(!row)throw new Error("Subscriber counts could not be read.");
     return row;
   }
