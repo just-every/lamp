@@ -28,7 +28,7 @@ export function createSubscriberTransitions(binding: D1Database): SubscriberTran
     const allowedState = state === "subscribed" ? "subscribers.state IN ('pending', 'active')" : "subscribers.state = ?";
     const guard = binding.prepare(`SELECT CASE WHEN EXISTS (
       SELECT 1 FROM subscriber_tokens AS permission
-      JOIN subscribers ON subscribers.id = permission.subscriber_id
+      JOIN subscriber_directory AS subscribers ON subscribers.id = permission.subscriber_id
       WHERE subscribers.id = ? AND permission.token_hash = ?
         AND permission.scope = ? AND permission.revoked_at IS NULL
         AND (permission.expires_at IS NULL OR permission.expires_at > strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
@@ -63,7 +63,7 @@ export function createSubscriberTransitions(binding: D1Database): SubscriberTran
           .bind(createUlid(), permission.subscriberId, componentId, now, now)),
         binding.prepare("UPDATE subscribers SET selection_mode = ?, updated_at = ? WHERE id = ?")
           .bind(componentIds.length ? "selected" : "all", now, permission.subscriberId),
-        ...(preferences ? [binding.prepare("UPDATE subscribers SET event_kinds_json = ?, minimum_impact = ? WHERE id = ?").bind(JSON.stringify(preferences.eventKinds), preferences.minimumImpact, permission.subscriberId)] : []),
+        ...(preferences ? [binding.prepare("UPDATE subscribers SET preferences_set = 1, event_kinds_json = ?, minimum_impact = ? WHERE id = ?").bind(JSON.stringify(preferences.eventKinds), preferences.minimumImpact, permission.subscriberId)] : []),
         ...(webhookFormat?[binding.prepare("UPDATE subscribers SET webhook_format=? WHERE id=? AND channel='webhook'").bind(webhookFormat,permission.subscriberId)]:[]),
       ]);
     },

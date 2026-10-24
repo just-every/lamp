@@ -31,7 +31,7 @@ export async function prepareSlackSubscription({componentId,publicOrigin,sql,wid
       await context.close();
     }
   }finally{await browser.close();}
-  const row=(await sql("SELECT s.id,s.channel,s.state,s.destination,d.sealed_url,t.slack_team_id FROM subscribers s JOIN subscriber_chat_destinations t ON t.subscriber_id=s.id JOIN channel_destinations d ON d.id=s.id WHERE s.channel='slack'"))[0];
+  const row=(await sql("SELECT s.id,s.channel,s.state,s.destination,d.sealed_url,t.slack_team_id FROM subscriber_directory s JOIN subscriber_chat_destinations t ON t.subscriber_id=s.id JOIN delivery_channel_destinations d ON d.id=s.id WHERE s.channel='slack'"))[0];
   assert.equal(row.channel,'slack');assert.equal(row.state,'active');assert.equal(row.slack_team_id,RECORDED_SLACK_TEAM);
   assert.doesNotMatch(JSON.stringify(row),/synthetic-lamp-3/,'webhook is only stored encrypted');
   return row.id;
@@ -46,5 +46,5 @@ export async function removeSlackSubscription({publicOrigin,signingSecret,id,sql
   const signature='v0='+createHmac('sha256',signingSecret).update(`v0:${timestamp}:${raw}`).digest('hex');
   const response=await fetch(`${publicOrigin}/subscribe/slack/events`,{method:'POST',headers:{'content-type':'application/json','x-slack-request-timestamp':timestamp,'x-slack-signature':signature},body:raw});
   assert.equal(response.status,200,await response.text());
-  assert.deepEqual(await sql(`SELECT state,deactivation_reason FROM subscribers WHERE id='${id}'`),[{state:'deactivated',deactivation_reason:eventType}]);
+  assert.deepEqual(await sql(`SELECT state,deactivation_reason FROM subscriber_directory AS subscribers WHERE id='${id}'`),[{state:'deactivated',deactivation_reason:eventType}]);
 }

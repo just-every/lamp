@@ -51,8 +51,8 @@ export function notificationPublicationStatements(binding: D1Database, input: No
     const eventPreference = eventPreferenceSql(input.eventType === "maintenance-notice" ? "maintenance" : "incidents");
     const threshold = input.eventType === "maintenance-notice" ? "1" : incidentThresholdSql(input.incidentUpdateId ? "(SELECT incident_id FROM incident_updates WHERE id = ?)" : "(SELECT incident_id FROM incident_reports WHERE id = ?)");
     const source = usePrevious
-      ? `notification_deliveries previous JOIN subscribers s ON s.id = previous.subscriber_id WHERE previous.notification_event_id IN (${previousPlaceholders}) AND previous.channel = ? AND s.state = 'active'`
-      : `subscribers s WHERE s.state = 'active' AND s.channel = ? AND (${selection})`;
+      ? `notification_deliveries previous JOIN subscriber_directory s ON s.id = previous.subscriber_id WHERE previous.notification_event_id IN (${previousPlaceholders}) AND previous.channel = ? AND s.state = 'active'`
+      : `subscriber_directory s WHERE s.state = 'active' AND s.channel = ? AND (${selection})`;
     const query = `
       INSERT OR IGNORE INTO notification_deliveries
         (id, subscriber_id, incident_update_id, incident_report_id, maintenance_id, channel, outcome, queued_at, outcome_at, created_at, updated_at, notification_event_id, notification_event_type)

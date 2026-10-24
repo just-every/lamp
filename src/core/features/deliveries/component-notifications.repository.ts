@@ -12,14 +12,14 @@ export function componentNotificationStatements(binding: D1Database, eventId: st
           WHERE h.id = ? AND c.internal = 0 AND h.previous_state <> h.new_state AND h.cause_type <> 'correction'
             AND NOT EXISTS (SELECT 1 FROM incident_updates u WHERE u.incident_id = h.cause_id AND u.published_at = h.changed_at AND u.created_at = h.created_at AND u.is_retroactive = 1)`)
           .bind(eventId),
-        binding.prepare(`INSERT INTO notification_deliveries
+        binding.prepare(`INSERT INTO component_notification_deliveries
           (id,subscriber_id,channel,outcome,queued_at,created_at,updated_at,notification_event_id,notification_event_type,component_event_id)
           SELECT upper(substr(hex(randomblob(16)),1,26)),s.id,s.channel,'queued',?,?,?,?, 'component-change',e.id
-          FROM component_notification_events e JOIN subscribers s ON s.state = 'active' AND s.channel IN ('email','webhook')
+          FROM component_notification_events e JOIN subscriber_directory s ON s.state = 'active' AND s.channel IN ('email','webhook')
           WHERE e.id = ? AND ${eventPreferenceSql("components")}
             AND (s.selection_mode = 'all' OR EXISTS (SELECT 1 FROM subscriber_components sc WHERE sc.subscriber_id = s.id AND sc.component_id = e.component_id))
             AND (COALESCE(s.webhook_format,'lamp') = 'statuspage' OR NOT EXISTS (
-              SELECT 1 FROM notification_deliveries carried JOIN incident_updates u ON u.id = carried.incident_update_id
+              SELECT 1 FROM notification_delivery_records carried JOIN incident_updates u ON u.id = carried.incident_update_id
               JOIN component_state_history h ON h.id = e.id
               WHERE carried.subscriber_id = s.id AND u.incident_id = h.cause_id AND h.cause_type = 'incident'
                 AND u.published_at = h.changed_at AND u.created_at = h.created_at))
@@ -27,16 +27,16 @@ export function componentNotificationStatements(binding: D1Database, eventId: st
           .bind(now, now, now, eventId, eventId),
         binding.prepare(`INSERT OR IGNORE INTO channel_subscriber_events(id,subscriber_id,event_id,kind,queued_at)
           SELECT e.id || '.' || s.id,s.id,e.id,'component',e.changed_at FROM component_notification_events e
-          JOIN subscribers s ON s.channel IN ('slack','teams') AND s.state='active'
+          JOIN subscriber_directory s ON s.channel IN ('slack','teams') AND s.state='active'
           WHERE e.id = ? AND ${eventPreferenceSql("components")}
             AND (s.selection_mode='all' OR EXISTS(SELECT 1 FROM subscriber_components sc WHERE sc.subscriber_id=s.id AND sc.component_id=e.component_id))
-            AND NOT EXISTS(SELECT 1 FROM channel_posts p JOIN incident_updates u ON u.id=p.incident_update_id JOIN component_state_history h ON h.id=e.id
+            AND NOT EXISTS(SELECT 1 FROM delivery_channel_posts p JOIN incident_updates u ON u.id=p.incident_update_id JOIN component_state_history h ON h.id=e.id
               WHERE p.destination_id=s.id AND u.incident_id=h.cause_id AND h.cause_type='incident' AND u.published_at=h.changed_at AND u.created_at=h.created_at)`)
           .bind(eventId),
         binding.prepare(`INSERT OR IGNORE INTO notification_outbox
           (id,kind,aggregate_id,payload_json,available_at,attempts,created_at,updated_at)
           SELECT ?,'delivery-dispatch',?,json_object('eventId',?,'eventType','component-change'),?,0,?,?
-          WHERE EXISTS (SELECT 1 FROM notification_deliveries WHERE notification_event_id = ?)`)
+          WHERE EXISTS (SELECT 1 FROM notification_delivery_records AS notification_deliveries WHERE notification_event_id = ?)`)
           .bind(createUlid(), eventId, eventId, now, now, now, eventId),
   ];
 }
