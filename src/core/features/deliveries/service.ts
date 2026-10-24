@@ -40,6 +40,12 @@ function retryAt(attempt: number) {
   return new Date(Date.now() + delay).toISOString();
 }
 
+function pendingMailFailover(error:unknown) {
+  if(!error||typeof error!=='object'||!('mailFailoverAt'in error)||typeof error.mailFailoverAt!=='string')return null;
+  const deadline=Date.parse(error.mailFailoverAt);
+  return Number.isFinite(deadline)&&deadline>Date.now()?deadline:null;
+}
+
 function isSafeWebhookDestination(destination: string) {
   try {
     const url = new URL(destination);
@@ -87,7 +93,7 @@ function renderMaintenanceNotice(delivery: DispatchableDelivery) {
 
 export function createDeliveriesService(
   repository: DeliveryRepository,
-  options: { pageStatusRollup?: PageStatusRollupPolicy; emailBranding?: () => Promise<{ branding: EmailBranding; hasLogo: boolean }>; pageName?: () => Promise<string>; effectsPaused?: boolean; mail?: MailSender; fromAddress?: string | (() => Promise<string>); subscriberTokenSecret?: string; webhookSigningSecret?: string | string[]; events?: DeliveryEvents } = {},
+  options: { operatorChatAlert?: (input: { eventId: string; title: string; text: string }) => Promise<void>; pageStatusRollup?: PageStatusRollupPolicy; emailBranding?: () => Promise<{ branding: EmailBranding; hasLogo: boolean }>; pageName?: () => Promise<string>; effectsPaused?: boolean; mail?: MailSender; fromAddress?: string | (() => Promise<string>); subscriberTokenSecret?: string; webhookSigningSecret?: string | string[]; events?: DeliveryEvents } = {},
 ): DeliveriesService {
   const tokens = options.subscriberTokenSecret ? new SubscriberTokenCodec(options.subscriberTokenSecret) : null;
   const events = options.events ?? defaultDeliveryEvents;
@@ -129,6 +135,7 @@ export function createDeliveriesService(
 
   async function queueOperatorAlert(input: { eventId: string; title: string; text: string; recipients?: string[] }) {
     await queueMailAlert(input);
+    await options.operatorChatAlert?.(input);
   }
 
   async function stableTokens(subscriberId: string) {
@@ -155,7 +162,7 @@ export function createDeliveriesService(
     const providerMessageId = error && typeof error === "object" && "providerMessageId" in error && typeof error.providerMessageId === "string" ? error.providerMessageId : null;
     await repository.recordAttempt({ id: createUlid(), deliveryId: delivery.id, attemptNumber: attempt, attemptedAt: timestamp, providerMessageId, error: description, createdAt: timestamp });
     const retryable = !(error && typeof error === "object" && "retryable" in error) || (error as { retryable?: boolean }).retryable !== false;
-    if (!retryable || attempt > RETRY_DELAYS_MS.length) {
+    if (!retryable || attempt > RETRY_DELAYS_MS.length && !pendingMailFailover(error)) {
       await repository.markOutcome(delivery.id, "failed", timestamp, timestamp);
       if (providerMessageId && await applyPendingProviderEvents(providerMessageId)) return;
       await emitAfterCommit(() => events.notificationFailed({ deliveryId: delivery.id, subscriberId: delivery.subscriberId, notificationEventId: delivery.notificationEventId ?? delivery.id, failedAt: timestamp }));
@@ -215,7 +222,7 @@ export function createDeliveriesService(
         headers: {
           "List-Unsubscribe": `<mailto:${fromAddress}?subject=unsubscribe>, <${unsubscribeUrl}>`, "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
           "List-Id": `<${host}>`, "List-Archive": `${origin}/history`, "List-Help": manageUrl, "Auto-Submitted": "auto-generated",
-          ...(delivery.incidentId ? { "Message-ID": delivery.isFirstIncidentUpdate ? `<lamp-${delivery.incidentId}@${host}>` : `<lamp-notification-${delivery.id}@${host}>` } : {}),
+          "Message-ID": delivery.incidentId && delivery.isFirstIncidentUpdate ? `<lamp-${delivery.incidentId}@${host}>` : `<lamp-notification-${delivery.id}@${host}>`,
           ...(delivery.incidentId && !delivery.isFirstIncidentUpdate ? { "In-Reply-To": `<lamp-${delivery.incidentId}@${host}>`, References: `<lamp-${delivery.incidentId}@${host}>` } : {}),
         },
         idempotencyKey: `notification/${delivery.id}`,
@@ -358,7 +365,8 @@ export function createDeliveriesService(
           await this.dispatchEvent(payload.eventId, origin);
         } catch (error) {
           const attempts = job.attempts + 1;
-          await repository.retryOutbox(job.id, { attempts, availableAt: retryAt(attempts), error: error instanceof Error ? error.message : "Notification dispatch failed.", now: nowIso(), failed: attempts > RETRY_DELAYS_MS.length });
+          const failoverAt=pendingMailFailover(error),plannedAt=Date.parse(retryAt(attempts));
+          await repository.retryOutbox(job.id, { attempts, availableAt: new Date(failoverAt===null?plannedAt:Math.min(plannedAt,failoverAt)).toISOString(), error: error instanceof Error ? error.message : "Notification dispatch failed.", now: nowIso(), failed: attempts > RETRY_DELAYS_MS.length && failoverAt===null });
         }
       }
       for (const providerMessageId of await repository.listPendingProviderMessageIds(limit)) {
@@ -396,7 +404,7 @@ export function createDeliveriesService(
       if (!input.providerMessageId) return;
       // The shared provider account may deliver another application's events.
       // Our durable claim predates the send, including early signed receipts.
-      if (input.id.startsWith("sendgrid/") && !await repository.hasMailSendClaim(input.providerMessageId)) return;
+      if ((input.id.startsWith("sendgrid/") || input.id.startsWith("mailgun/") || input.id.startsWith("ses/") || input.id.startsWith("postmark/")) && !await repository.hasMailSendClaim(input.providerMessageId)) return;
       await repository.isProviderWebhookNew({ providerEventId: input.id, providerMessageId: input.providerMessageId, eventType: input.type, hardBounce: Boolean(input.hardBounce), now });
       // Even a duplicate callback can resume a record whose previous Worker
       // invocation crashed while it held the durable callback lease.

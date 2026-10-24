@@ -1,3 +1,5 @@
+import { mailSettingsBrowserFlow } from "./helpers/mail-settings-browser-flow.mjs";
+import { mailFailoverFlow } from "./helpers/mail-failover-flow.mjs";
 import { subscriberPreferencesFlow } from "./helpers/subscriber-preferences-flow.mjs";
 import { subscriberReportingFlow } from "./helpers/subscriber-reporting-flow.mjs";
 import { subscriberAddFlow } from "./helpers/subscriber-add-flow.mjs";
@@ -523,7 +525,7 @@ test("SUB-016 SUB-017 SUB-004 SUB-006 SUB-007 SUB-005 PAGE-013 SUB-012 SUB-008 �
 
 
 
-test("NOTIFY-002 NOTIFY-004 NOTIFY-005 NOTIFY-007 NOTIFY-008 NOTIFY-010 — Durable email capture, delivery records and frozen headers", async t => {
+test("NOTIFY-013 NOTIFY-002 NOTIFY-004 NOTIFY-005 NOTIFY-007 NOTIFY-008 NOTIFY-010 — Durable email capture, delivery records and frozen headers", async t => {
   t.diagnostic("NOTIFY-002 — a queued D1 email notification is accepted by the configured mail adapter and persists its provider attempt");
   await (async () => {
   const db = platform.env.DB;
@@ -542,6 +544,8 @@ test("NOTIFY-002 NOTIFY-004 NOTIFY-005 NOTIFY-007 NOTIFY-008 NOTIFY-010 — Dura
   assert.equal((await db.prepare("SELECT incident_impact AS impact FROM notification_deliveries WHERE id = ?").bind("01J00000000000000000000044").first()).impact, "major", "queued impact survives a later clear");
   assert.equal((await db.prepare("SELECT provider_message_id AS id FROM notification_delivery_attempts WHERE delivery_id = ?").bind("01J00000000000000000000044").first()).id, "mail-1");
 })(t);
+  for(const secondaryProvider of ['mailgun','ses','postmark'])await mailFailoverFlow({t,vite,platform,secondaryProvider});
+  await mailSettingsBrowserFlow(t);
   t.diagnostic("NOTIFY-004 — the actual delivery log exposes only contract outcomes and exports filterable CSV");
   await (async () => {
   const { Hono } = await import("hono");

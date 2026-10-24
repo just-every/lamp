@@ -65,7 +65,16 @@ export function createAppServices(bindings: AppBindings, blobs: BlobStore, execu
   const auth = () => authority ??= createLampAuth(bindings, mail);
   const components = createComponentsService(createComponentRepository(bindings.DB), publicSnapshots.rebuild, extensions.componentEvents);
   const componentCatalogue = createCatalogueService(createCatalogueRepository(bindings.DB), publicSnapshots.rebuild);
+  // Slack and Teams channels: webhook URLs sealed with WEBHOOK_SIGNING_SECRET; local dev may name a loopback receiver.
+  const channels = createChannelsService(bindings.DB, {
+    effectsPaused: bindings.EFFECTS_PAUSED === "1",
+    webhookSecret: bindings.WEBHOOK_SIGNING_SECRET,
+    developmentReceiver: import.meta.env?.DEV && bindings.LAMP_DEV_CHANNEL_RECEIVER?.startsWith("http://127.0.0.1:") ? bindings.LAMP_DEV_CHANNEL_RECEIVER : undefined,
+    publicOrigin: () => notificationOrigin(bindings),
+    unavailable: outboundUnavailable(bindings, "Slack and Teams posts"),
+  });
   const deliveries = createDeliveriesService(createDeliveryRepository(bindings.DB), {
+    operatorChatAlert: input => channels.queueOperatorAlert({ ...input, appOrigin: authOrigin(bindings) }),
     pageStatusRollup: extensions.publicSnapshotPolicies.pageStatusRollup,
     effectsPaused: bindings.EFFECTS_PAUSED === "1",
     mail,
@@ -80,14 +89,6 @@ export function createAppServices(bindings: AppBindings, blobs: BlobStore, execu
     },
   });
   const allowedIncidentChannels = new Set(extensions.notificationEventsPolicy.channelsForIncidentUpdate());
-  // Slack and Teams channels: webhook URLs sealed with WEBHOOK_SIGNING_SECRET; local dev may name a loopback receiver.
-  const channels = createChannelsService(bindings.DB, {
-    effectsPaused: bindings.EFFECTS_PAUSED === "1",
-    webhookSecret: bindings.WEBHOOK_SIGNING_SECRET,
-    developmentReceiver: import.meta.env?.DEV && bindings.LAMP_DEV_CHANNEL_RECEIVER?.startsWith("http://127.0.0.1:") ? bindings.LAMP_DEV_CHANNEL_RECEIVER : undefined,
-    publicOrigin: () => notificationOrigin(bindings),
-    unavailable: outboundUnavailable(bindings, "Slack and Teams posts"),
-  });
   const responders = createResponderService(bindings.DB, {
     effectsPaused: bindings.EFFECTS_PAUSED === "1", webhookSecret: bindings.WEBHOOK_SIGNING_SECRET,
     publicOrigin: () => notificationOrigin(bindings),
@@ -188,7 +189,7 @@ export function createAppServices(bindings: AppBindings, blobs: BlobStore, execu
     },
     publishedAt: () => publicSnapshots.publishedAt(),
     // A demo's mail transport is local, but its sender reads as a configured one's.
-    sender: { local: local && bindings.RER_DEMO !== '1', demo: bindings.RER_DEMO === '1', provider: bindings.MAIL_PROVIDER ?? "resend", apiKey: bindings.MAIL_PROVIDER_API_KEY, mail },
+    sender: { local: local && bindings.RER_DEMO !== '1', demo: bindings.RER_DEMO === '1', provider: bindings.MAIL_PROVIDER || "resend", apiKey: bindings.MAIL_PROVIDER_API_KEY, mailgunRegion: bindings.MAILGUN_REGION, sesRegion: bindings.SES_REGION, postmarkAccountApiKey: bindings.POSTMARK_ACCOUNT_API_KEY, mail },
   }));
 
   const devSiteOrigin = import.meta.env?.DEV && bindings.LAMP_DEV_SITE_ORIGIN?.startsWith("http://127.0.0.1:") ? bindings.LAMP_DEV_SITE_ORIGIN : undefined;

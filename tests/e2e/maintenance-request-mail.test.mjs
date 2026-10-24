@@ -116,6 +116,11 @@ test('MAINT-009 MAINT-005 NOTIFY-005 — required maintenance wording reaches sc
     assert.deepEqual(rows.map(row => row.maintenanceNoticeKind).sort(), ['reminder', 'rescheduled', 'scheduled', 'scheduled', 'started', 'started']);
     assert.ok(rows.every(row => row.providerAcceptedAt && [maintenance.reference, reminderWindow.reference].includes(row.maintenanceReference)));
     assert.equal((await db.prepare('SELECT count(*) AS n FROM notification_outbox WHERE completed_at IS NULL').first()).n, 0);
+    const wireMessageIds=messages.map(message=>message.headers['Message-ID']);
+    assert.ok(wireMessageIds.every(id=>/^<lamp-notification-[0-9A-HJKMNP-TV-Z]{26}@status\.example\.test>$/.test(id)),'every non-incident notice carries its stable notification Message-ID at the provider edge');
+    assert.equal(new Set(wireMessageIds).size,6,'each of the six distinct notices has its own Message-ID');
+    const frozenMessageIds=(await db.prepare("SELECT json_extract(mail_payload_json,'$.headers.Message-ID') AS id FROM notification_delivery_records WHERE maintenance_id IS NOT NULL").all()).results.map(row=>row.id);
+    assert.deepEqual(frozenMessageIds.sort(),wireMessageIds.sort(),'the provider receives exactly the Message-IDs frozen in durable notification envelopes');
     for (const message of messages) {
       const plain = message.content.find(part => part.type === 'text/plain')?.value;
       const html = message.content.find(part => part.type === 'text/html')?.value;

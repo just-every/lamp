@@ -143,6 +143,14 @@
     {
       "id": "0058_maintenance_wording.sql",
       "buyerSteps": "Apply after 0057. Adds nullable maintenance affected-audience and customer-impact wording. Existing native and imported windows stay title-only without backfill; new native scheduling requires both statements, and each notice freezes its wording for notification delivery."
+    },
+    {
+      "id": "0059_mail_failover.sql",
+      "buyerSteps": "Apply after 0058. Adds private mail-provider routing and default-off secondary-selection sidecars keyed to existing idempotency keys. Existing mail history and send claims remain unchanged. Connect an optional secondary through the deployment generators, then explicitly select it under Settings \u2192 Notifications. Recorded acceptance stays with its accepting provider; unconfirmed submissions cannot cross providers or bypass routing after a configuration change."
+    },
+    {
+      "id": "0060_operator_channel_alerts.sql",
+      "buyerSteps": "Apply after 0059. Adds a default-off operator-alert choice to existing operator channel destinations. Existing channels remain publication-only until an owner explicitly enables operator alerts in Settings. Subscriber channel destinations cannot opt into private operator alerts."
     }
   ],
   "breaking": false,

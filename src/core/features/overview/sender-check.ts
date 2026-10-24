@@ -1,3 +1,4 @@
+import { verifySesDomain } from '../../platform/mail/ses';
 import type { MailSender } from '../../platform/mail';
 import { hashOpaqueToken } from '../../platform/security/opaque-tokens';
 
@@ -5,14 +6,21 @@ export interface SenderCheckOptions {
   local: boolean;
   provider: string;
   apiKey?: string;
+  sesRegion?: string;
+  postmarkAccountApiKey?: string;
+  mailgunRegion?: "us" | "eu";
   mail: MailSender;
   fetcher?: typeof fetch;
   /** A disposable demo: the provider read is a Base demoEffect answering as verified. */
   demo?: boolean;
 }
 export const LOCAL_SENDER_NOTICE = 'Local mail is suppressed; check the sender on a hosted installation.';
-export async function senderEvidenceKey(from: string, options: Pick<SenderCheckOptions, 'local' | 'provider' | 'apiKey'>) {
-  return hashOpaqueToken(JSON.stringify([from, options.local ? 'local' : options.provider, options.local ? '' : options.apiKey ?? '']));
+export async function senderEvidenceKey(from: string, options: Pick<SenderCheckOptions, 'local' | 'provider' | 'apiKey' | 'mailgunRegion' | 'sesRegion' | 'postmarkAccountApiKey'>) {
+  const identity=[from,options.local?'local':options.provider,options.local?'':options.apiKey??''];
+  if(!options.local&&options.provider==='mailgun')identity.push(options.mailgunRegion??'us');
+  if(!options.local&&options.provider==='ses')identity.push(options.sesRegion??'');
+  if(!options.local&&options.provider==='postmark')identity.push(options.postmarkAccountApiKey??'');
+  return hashOpaqueToken(JSON.stringify(identity));
 }
 
 interface SendGridDnsRecord {
@@ -61,7 +69,8 @@ const SENDER_VERIFIED = 'Sender domain verified by your mail provider. This chec
 
 async function verifyWithProvider(from: string, options: SenderCheckOptions): Promise<string> {
   if (!options.mail.configured) throw new Error('Configure your mail sender before checking it.');
-  if (!options.apiKey || !['sendgrid', 'resend'].includes(options.provider)) throw new Error('This sender needs a supported provider credential for the verification check.');
+  if (!options.apiKey || !['sendgrid', 'resend', 'mailgun', 'ses', 'postmark'].includes(options.provider)) throw new Error('This sender needs a supported provider credential for the verification check.');
+  if(options.provider==='postmark'&&!options.postmarkAccountApiKey)throw new Error('Connect a Postmark account key in hosting settings to check sender authentication; a sending server token cannot read domains.');
   const domain = from.split('@')[1]?.toLowerCase();
   const fetcher = options.fetcher ?? fetch;
   let pages = 0;
@@ -69,14 +78,27 @@ async function verifyWithProvider(from: string, options: SenderCheckOptions): Pr
   const signal = AbortSignal.timeout(8000);
   async function read(url: string) {
     if (Date.now() >= deadline || signal.aborted || (options.provider !== 'sendgrid' && ++pages > 100)) throw new Error('Provider domain listing did not complete.');
-    const response = await fetcher(url, { headers: { Authorization: `Bearer ${options.apiKey}` }, redirect: 'manual', signal });
+    const response = await fetcher(url, { headers: options.provider === "postmark" ? { "X-Postmark-Account-Token": options.postmarkAccountApiKey!, Accept: "application/json" } : { Authorization: options.provider === "mailgun" ? `Basic ${btoa(`api:${options.apiKey}`)}` : `Bearer ${options.apiKey}` }, redirect: 'manual', signal });
     if (!response.ok) throw new Error('The mail check could not read provider domain authentication. Give the configured key read access to domains and check again.');
     return response.json() as Promise<unknown>;
   }
   let verified = false;
   const sendGridMatches: SendGridDomain[] = [];
   try {
-    if (options.provider === 'sendgrid') {
+    if (options.provider === 'ses') {
+      verified = await verifySesDomain({apiKey:options.apiKey,region:options.sesRegion ?? ''},domain ?? '');
+    } else if (options.provider === 'postmark') {
+      for(let offset=0;!verified;offset+=100){
+        const result=await read(`https://api.postmarkapp.com/domains?count=100&offset=${offset}`) as {Domains?:{Name?:string;DKIMVerified?:boolean}[]};
+        if(!Array.isArray(result.Domains))throw new Error('Invalid Postmark domain page.');
+        verified=result.Domains.some(row=>row.Name?.toLowerCase()===domain&&row.DKIMVerified===true);
+        if(result.Domains.length<100)break;
+      }
+    } else if (options.provider === 'mailgun') {
+      const result = await read(`https://${options.mailgunRegion === 'eu' ? 'api.eu.mailgun.net' : 'api.mailgun.net'}/v4/domains/${encodeURIComponent(domain ?? '')}`) as { domain?: { name?: string; state?: string }; sending_dns_records?: { valid?: string }[] };
+      verified = result.domain?.name?.toLowerCase() === domain && result.domain?.state === 'active'
+        && Boolean(result.sending_dns_records?.length) && result.sending_dns_records!.every(record => record.valid === 'valid');
+    } else if (options.provider === 'sendgrid') {
       const limit = 100;
       const seen = new Set<string>();
       for (let offset = 0; !verified;) {

@@ -14,7 +14,7 @@ test('deployment secrets remain private and are removed after success or failure
     const action = withDeploymentSecrets(config, [], async file => {
       path = file;
       assert.equal((await stat(file)).mode & 0o777, 0o600);
-      assert.deepEqual(JSON.parse(await readFile(file, 'utf8')), { SESSION_SECRET:config.sessionSecret,SETUP_TOKEN:config.setupToken,AUTH_PROVIDERS:"",MAIL_PROVIDER_API_KEY: config.mailProviderApiKey, MAIL_API_KEY: "", SUBSCRIBER_TOKEN_SECRET: config.subscriberTokenSecret, WEBHOOK_SIGNING_SECRET: config.webhookSigningSecret, RER_MAIL_RELAY_SECRET: "", RESEND_WEBHOOK_SECRET: "", AI_PROVIDER_API_KEY: "" });
+      assert.deepEqual(JSON.parse(await readFile(file, 'utf8')), { SESSION_SECRET:config.sessionSecret,SETUP_TOKEN:config.setupToken,AUTH_PROVIDERS:"",MAIL_PROVIDER_API_KEY: config.mailProviderApiKey, MAIL_API_KEY: "", SUBSCRIBER_TOKEN_SECRET: config.subscriberTokenSecret, WEBHOOK_SIGNING_SECRET: config.webhookSigningSecret, RER_MAIL_RELAY_SECRET: "", RESEND_WEBHOOK_SECRET: "", MAIL_SECONDARY_API_KEY: "", MAILGUN_WEBHOOK_SIGNING_KEY: "", POSTMARK_WEBHOOK_SECRET: "", POSTMARK_ACCOUNT_API_KEY: "", AI_PROVIDER_API_KEY: "" });
       if (fail) throw new Error('test failure');
     });
     if (fail) await assert.rejects(action, /test failure/); else await action;

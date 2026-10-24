@@ -21,6 +21,7 @@ import { createQueueDispatcher } from "../platform/jobs";
 import { createPublicWriteRateLimiter } from "../platform/security/rate-limiter";
 import { registerComponentRoutes } from "../features/components";
 import { registerCatalogueRoutes } from "../features/components/catalogue-routes";
+import { registerMailSettings } from "../features/deliveries/mail-settings";
 import { registerDeliveryRoutes } from "../features/deliveries";
 import { createHealthRepository } from "../features/health/repository";
 import { registerHealthRoutes } from "../features/health/routes";
@@ -70,7 +71,8 @@ export function createApp(bindings: AppBindings, execution?: MailExecution) {
   registerPublicSnapshotRoutes(app, services.publicSnapshots);
   app.use("/api/app/*", requireOperator(services.auth, request => authorizedReads.get(request)));
   // Register the reserved mail-events endpoint before /api/intake/:sourceId.
-  registerDeliveryRoutes(app, services.deliveries, { resendWebhookSecret: bindings.RESEND_WEBHOOK_SECRET, relaySecret: bindings.RER_MAIL_RELAY_SECRET, sendGridWebhookPublicKey: bindings.SENDGRID_WEBHOOK_PUBLIC_KEY, mailProvider: bindings.MAIL_PROVIDER, localMail });
+  registerDeliveryRoutes(app, services.deliveries, { resendWebhookSecret: bindings.RESEND_WEBHOOK_SECRET, relaySecret: bindings.RER_MAIL_RELAY_SECRET, sendGridWebhookPublicKey: bindings.SENDGRID_WEBHOOK_PUBLIC_KEY, mailgunSigningKey: bindings.MAILGUN_WEBHOOK_SIGNING_KEY, sesEventTopicArn: bindings.SES_EVENT_TOPIC_ARN, postmarkWebhookSecret: bindings.POSTMARK_WEBHOOK_SECRET, secondaryMailProvider: bindings.MAIL_SECONDARY_PROVIDER, mailProvider: bindings.MAIL_PROVIDER, localMail });
+  registerMailSettings(app,bindings);
   registerIntakeRoutes(app, services.intake, { publicPageHost: bindings.LAMP_PAGE_HOST, rateLimiter: publicWriteLimiter });
   registerOperatorRoutes(app, services.auth, bindings.LAMP_PAGE_HOST, { localMail });
   registerOverviewRoutes(app, services.overview);

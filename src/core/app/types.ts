@@ -47,7 +47,16 @@ export interface AppBindings {
   LAMP_APP_HOST: string;
   MAIL_FROM_ADDRESS: string;
   MAIL_PROVIDER_API_KEY?: string;
-  MAIL_PROVIDER?: "rer" | "resend" | "sendgrid";
+  MAIL_PROVIDER?: "rer" | "resend" | "sendgrid" | "mailgun" | "ses" | "postmark";
+  MAIL_SECONDARY_PROVIDER?: "resend" | "sendgrid" | "mailgun" | "ses" | "postmark";
+  MAIL_SECONDARY_API_KEY?: string;
+  SES_REGION?: string;
+  SES_CONFIGURATION_SET?: string;
+  POSTMARK_ACCOUNT_API_KEY?: string;
+  SES_EVENT_TOPIC_ARN?: string;
+  POSTMARK_WEBHOOK_SECRET?: string;
+  MAILGUN_REGION?: "us" | "eu";
+  MAILGUN_WEBHOOK_SIGNING_KEY?: string;
   MAIL_FROM?: string;
   MAIL_RELAY_URL?: string;
   MAIL_API_KEY?: string;

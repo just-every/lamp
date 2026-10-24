@@ -7,7 +7,7 @@ import { prepareAppMailBindings } from './core/app/mail';
 /** Base invokes this only in a disposable demo after establishing its owner. */
 export async function seedDemo(env: AppBindings, context: { ownerEmail: string; now: Date }): Promise<void> {
   // The evidence Lamp's own sender check records for this demo's sender; the page checks run themselves.
-  const sender = await senderEvidenceKey(env.MAIL_FROM_ADDRESS, { local: false, provider: env.MAIL_PROVIDER ?? 'resend', apiKey: env.MAIL_PROVIDER_API_KEY });
+  const sender = await senderEvidenceKey(env.MAIL_FROM_ADDRESS, { local: false, provider: env.MAIL_PROVIDER || 'resend', apiKey: env.MAIL_PROVIDER_API_KEY });
   const readiness = { sender };
   await seedDemoRecords(env.DB, { ...context, pageHost: env.LAMP_PAGE_HOST, from: env.MAIL_FROM_ADDRESS, readiness });
   // Build real retained public HTML/feed/widget artifacts in this demo's R2.

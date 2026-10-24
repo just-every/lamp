@@ -4,7 +4,7 @@ import type { IncidentImpact } from "../../shared/incident-impact";
 import type { IncidentLifecycle } from "../../shared/domain";
 
 export type ChannelKind = "slack" | "teams";
-export interface ChannelDestination { id: string; kind: ChannelKind; name: string; sealedUrl: string; host: string; selectionMode: "all" | "selected"; createdAt: string; componentIds: string[] }
+export interface ChannelDestination { id: string; kind: ChannelKind; name: string; sealedUrl: string; host: string; selectionMode: "all" | "selected"; createdAt: string; operatorAlerts: boolean; operatorManaged?: boolean; componentIds: string[] }
 export interface PendingPost { incidentImpact: IncidentImpact | null; componentChangesJson: string; id: string; destinationId: string; kind: ChannelKind; incidentUpdateId: string; reference: string; title: string; lifecycle: IncidentLifecycle; customerImpact: string; affectedAudience: string; whatStillWorks: string; details: string; nextUpdateAt: string | null; timezone: string; publishedAt: string }
 
 /** Slack and Teams channels a page posts its incident updates to, and the
@@ -12,16 +12,30 @@ export interface PendingPost { incidentImpact: IncidentImpact | null; componentC
 export function createChannelRepository(db: D1Database) {
   return {
     async list(): Promise<ChannelDestination[]> {
-      const rows = (await db.prepare("SELECT id, kind, name, sealed_url AS sealedUrl, host, selection_mode AS selectionMode, created_at AS createdAt FROM delivery_channel_destinations AS channel_destinations WHERE removed_at IS NULL ORDER BY created_at, id").all<Omit<ChannelDestination, "componentIds">>()).results;
+      const rows = (await db.prepare("SELECT d.id, d.kind, d.name, d.sealed_url AS sealedUrl, d.host, d.selection_mode AS selectionMode, d.created_at AS createdAt, COALESCE(o.operator_alerts,0) AS operatorAlerts, o.id IS NOT NULL AS operatorManaged FROM delivery_channel_destinations d LEFT JOIN channel_destinations o ON o.id=d.id WHERE d.removed_at IS NULL ORDER BY d.created_at, d.id").all<Omit<ChannelDestination, "componentIds">>()).results;
       const selections = (await db.prepare("SELECT destination_id AS destinationId, component_id AS componentId FROM channel_destination_components").all<{ destinationId: string; componentId: string }>()).results;
-      return rows.map((row) => ({ ...row, componentIds: selections.filter((selection) => selection.destinationId === row.id).map((selection) => selection.componentId) }));
+      return rows.map((row) => ({ ...row, operatorAlerts: Boolean(row.operatorAlerts), operatorManaged: Boolean(row.operatorManaged), componentIds: selections.filter((selection) => selection.destinationId === row.id).map((selection) => selection.componentId) }));
+    },
+    /** Only operator-configured channels receive private operator alerts. */
+    async operatorDestinations() {
+      return (await db.prepare("SELECT id, kind FROM channel_destinations WHERE created_by_operator_id IS NOT NULL AND operator_alerts=1 AND removed_at IS NULL ORDER BY id").all<{id:string;kind:ChannelKind}>()).results;
+    },
+    async operatorAlertsEnabled(id: string) {
+      return Boolean(await db.prepare("SELECT 1 FROM channel_destinations WHERE id=? AND operator_alerts=1 AND removed_at IS NULL").bind(id).first());
     },
     async find(id: string) { return (await this.list()).find((row) => row.id === id) ?? null; },
     async insert(destination: Omit<ChannelDestination, "componentIds">, componentIds: string[], operatorId: string) {
       await db.batch([
-        db.prepare("INSERT INTO channel_destinations (id, kind, name, sealed_url, host, selection_mode, created_by_operator_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)").bind(destination.id, destination.kind, destination.name, destination.sealedUrl, destination.host, destination.selectionMode, operatorId, destination.createdAt, destination.createdAt),
+        db.prepare("INSERT INTO channel_destinations (id, kind, name, sealed_url, host, selection_mode, operator_alerts, created_by_operator_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)").bind(destination.id, destination.kind, destination.name, destination.sealedUrl, destination.host, destination.selectionMode, destination.operatorAlerts ? 1 : 0, operatorId, destination.createdAt, destination.createdAt),
         ...componentIds.map((componentId) => db.prepare("INSERT INTO channel_destination_components (destination_id, component_id) SELECT ?, id FROM components WHERE id = ?").bind(destination.id, componentId)),
       ]);
+    },
+    async setOperatorAlerts(id: string, enabled: boolean, operatorId: string, now: string) {
+      const result=await db.batch([
+        db.prepare("INSERT INTO audit_entries(id,entity_type,entity_id,action,operator_id,payload_json,created_at,updated_at) SELECT ?,'channel',id,'operator-alerts-changed',?,json_object('operatorAlerts',?),?,? FROM channel_destinations WHERE id=? AND removed_at IS NULL AND operator_alerts<>?").bind(createUlid(),operatorId,enabled ? 1 : 0,now,now,id,enabled ? 1 : 0),
+        db.prepare("UPDATE channel_destinations SET operator_alerts=?,updated_at=? WHERE id=? AND removed_at IS NULL").bind(enabled ? 1 : 0,now,id),
+      ]);
+      return result[1].meta.changes === 1;
     },
     async remove(id: string, operatorId: string, removedAt: string) {
       // D1 batches commit atomically: a competing/repeated removal sees no active

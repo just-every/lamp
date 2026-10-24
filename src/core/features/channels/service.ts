@@ -1,3 +1,5 @@
+import type { DeliveryProtocol } from "../../../../modules/integrations/core/types.ts";
+import { hashOpaqueToken } from "../../platform/security/opaque-tokens";
 import { formatTime } from "../public-snapshot/format";
 import { createChatSubscriptionRepository } from "../subscribers/chat.repository";
 import { createChatEventRepository } from "./subscriber-events.repository";
@@ -43,9 +45,16 @@ export function createChannelsService(db: D1Database, options: { effectsPaused?:
     }
     return response;
   } };
+  const alertConsent = (protocol: DeliveryProtocol): DeliveryProtocol => ({
+    ...protocol,
+    async prepare(envelope, now) {
+      if (envelope.event === "operator.alert" && !await repository.operatorAlertsEnabled(envelope.destinationId)) throw new Error("Operator alerts are disabled for this channel.");
+      return protocol.prepare(envelope,now);
+    },
+  });
   const delivery = new DeliveryService({
     repository: integrations, transport,
-    protocols: [createLampSlackProtocol(resolve), createTeamsProtocol(resolve)],
+    protocols: [alertConsent(createLampSlackProtocol(resolve)), alertConsent(createTeamsProtocol(resolve))],
   });
   const view = ({ sealedUrl: _sealed, ...channel }: ChannelDestination): ChannelView => channel;
 
@@ -53,7 +62,7 @@ export function createChannelsService(db: D1Database, options: { effectsPaused?:
     unavailable: options.unavailable ?? null,
     async list() { return (await repository.list()).map(view); },
     /** The URL is checked, sealed and never returned or logged again. */
-    async add(input: { kind: ChannelKind; name: string; url: string; componentIds: string[] }, operatorId: string): Promise<ChannelView> {
+    async add(input: { kind: ChannelKind; name: string; url: string; componentIds: string[]; operatorAlerts?: boolean }, operatorId: string): Promise<ChannelView> {
       if (options.unavailable) throw new Error(options.unavailable);
       const name = input.name.trim().slice(0, 120);
       if (!name) throw new Error("Name the channel.");
@@ -63,10 +72,11 @@ export function createChannelsService(db: D1Database, options: { effectsPaused?:
       else if (url.protocol !== "https:" || !isChannelHost("teams", url.hostname) || url.username || url.password) throw new Error("Paste the Teams channel's incoming webhook URL (a Workflows webhook or *.webhook.office.com address).");
       const id = createUlid(), createdAt = nowIso();
       const componentIds = [...new Set(input.componentIds)];
-      const destination = { id, kind: input.kind, name, sealedUrl: await sealUrl(url.href, id, sealingSecrets(options.webhookSecret)), host: url.hostname, selectionMode: componentIds.length ? "selected" as const : "all" as const, createdAt };
+      const destination = { id, kind: input.kind, name, sealedUrl: await sealUrl(url.href, id, sealingSecrets(options.webhookSecret)), host: url.hostname, operatorAlerts: input.operatorAlerts ?? false, operatorManaged: true, selectionMode: componentIds.length ? "selected" as const : "all" as const, createdAt };
       await repository.insert(destination, componentIds, operatorId);
       return view({ ...destination, componentIds });
     },
+    setOperatorAlerts: (id: string, enabled: boolean, operatorId: string) => repository.setOperatorAlerts(id,enabled,operatorId,nowIso()),
     remove: (id: string, operatorId: string) => repository.remove(id, operatorId, nowIso()),
     /** Post one plainly labelled test message now, outside the durable update log, and report the provider's answer. */
     async sendTest(id: string): Promise<{ sent: boolean; message: string } | null> {
@@ -86,6 +96,26 @@ export function createChannelsService(db: D1Database, options: { effectsPaused?:
           : { sent: false, message: `${provider} refused the test post (HTTP ${response.status}${providerError}). Create a new webhook URL, remove this channel and add it again.` };
       } catch {
         return { sent: false, message: `Lamp could not reach ${provider}. Check the webhook URL and try again.` };
+      }
+    },
+    /** Only explicitly opted-in operator channels receive private operational alerts, never subscriber destinations.
+     * The event and destination form the durable idempotency key, independent of retries. */
+    async queueOperatorAlert(input: { eventId: string; title: string; text: string; appOrigin: string }) {
+      if (options.effectsPaused || options.unavailable) return;
+      const failure = input.eventId.startsWith("delivery-failed/");
+      // Provider failures can contain a destination, subscriber id or arbitrary provider text.
+      // Keep that detail only in the private delivery log, never in a channel message.
+      const text = failure ? "A subscriber notification could not be delivered. Review the private delivery log." : input.text;
+      const path = input.eventId.startsWith("subscriber-limit/") ? "/app/subscribers" : failure ? "/app/deliveries" : "/app";
+      const link = new URL(path,input.appOrigin).href;
+      const fields = [input.title,text,link];
+      for (const destination of await repository.operatorDestinations()) {
+        const id = `operator-alert.${await hashOpaqueToken(input.eventId)}.${destination.id}`;
+        if (await delivery.get(id)) continue;
+        await delivery.enqueue({ id, tenant: NAMESPACE, destinationId: destination.id, event: "operator.alert",
+          protocol: destination.kind === "slack" ? SLACK_WEBHOOK_PROTOCOL : TEAMS_WEBHOOK_PROTOCOL,
+          body: destination.kind === "slack" ? JSON.stringify(renderLampSlackMessage(input.title,fields)) : teamsTestCard(fields.join("\n\n")),
+        });
       }
     },
     postStatements: repository.postStatements.bind(repository),

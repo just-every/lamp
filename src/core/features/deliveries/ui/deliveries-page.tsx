@@ -14,10 +14,13 @@ type DeliveriesResponse = {
   limit: number;
   offset: number;
   hasMore: boolean;
-  mail: { provider: "rer" | "resend" | "sendgrid"; local: boolean; receiptsConfigured: boolean };
+  mail: { provider: "rer" | "resend" | "sendgrid" | "mailgun" | "ses" | "postmark"; secondaryProvider:string|null; receiptProviders:Record<string,boolean>; local: boolean; receiptsConfigured: boolean };
 };
 
 const label = (value: string) => value === "email" ? "Email" : value === "webhook" ? "Webhook" : value === "suppressed" ? "Skipped" : value.charAt(0).toUpperCase() + value.slice(1);
+
+const providerNames:Record<string,string>={sendgrid:'SendGrid',resend:'Resend',mailgun:'Mailgun',ses:'Amazon SES',postmark:'Postmark',rer:'RER'};
+const providerLabel=(value:string)=>providerNames[value]??value;
 
 const MAIL_KINDS = { confirmation: "Confirmation email", "already-subscribed": "Already subscribed", subscribed: "Subscribed notice" } as const;
 
@@ -58,7 +61,10 @@ export function DeliveriesPage() {
   if (channel) csvSearch.set("channel", channel);
   if (outcome) csvSearch.set("outcome", outcome);
   const csvHref = `/api/app/deliveries.csv?${csvSearch.toString()}`;
-  const providerName = data.mail.provider === "rer" ? "RER" : data.mail.provider === "sendgrid" ? "SendGrid" : "Resend";
+  const providerName = data.mail.provider === "rer" ? "RER" : data.mail.provider === "sendgrid" ? "SendGrid" : data.mail.provider === "mailgun" ? "Mailgun" : data.mail.provider === "ses" ? "Amazon SES" : data.mail.provider === "postmark" ? "Postmark" : "Resend";
+  const receiptNames=Object.entries(data.mail.receiptProviders).filter(([,enabled])=>enabled).map(([provider])=>providerLabel(provider));
+  const acceptanceOnly=Object.entries(data.mail.receiptProviders).filter(([,enabled])=>!enabled).map(([provider])=>providerLabel(provider));
+  const hasReceipts=receiptNames.length>0;
   function resetFilters(next: () => void) { next(); setOffset(0); }
   return <div className="page-stack">
     <section className="page-title-row">
@@ -69,28 +75,27 @@ export function DeliveriesPage() {
       <Icon name="warning" width={18} height={18} />
       <div>
         <strong>Delivery records are read-only.</strong>
-        <p>{data.mail.receiptsConfigured
-          ? "Queued email may already be accepted by the provider; the mail provider confirms delivery."
-          : `Accepted by ${providerName} is the final email status available here because delivery confirmations are not connected. Inbox delivery is unconfirmed.`} Exports include all matching records. Opens are never tracked.</p>
+        <p>{receiptNames.length?`Delivery confirmations are connected for ${receiptNames.join(", ")}.`:"Delivery confirmations are not connected."} {acceptanceOnly.length?`${acceptanceOnly.join(", ")} can report acceptance only. `:""}Each email record names its accepting provider. Inbox delivery stays unconfirmed until its provider reports it. Exports include all matching records. Opens are never tracked.</p>
       </div>
     </section>}
     <section className="data-card subscriber-table-card">
       <div className="list-controls">
         <label>Channel<select value={channel} onChange={(event) => resetFilters(() => setChannel(event.target.value as DeliveryChannel | ""))}><option value="">All channels</option>{DELIVERY_CHANNELS.map((value) => <option key={value} value={value}>{label(value)}</option>)}</select></label>
-        <label>Outcome<select value={outcome} onChange={(event) => resetFilters(() => setOutcome(event.target.value as DeliveryOutcome | ""))}><option value="">All outcomes</option>{DELIVERY_OUTCOMES.map((value) => <option key={value} value={value}>{value === "queued" && channel !== "webhook" && !data.mail.local && !data.mail.receiptsConfigured ? "Queued / accepted" : label(value)}</option>)}</select></label>
+        <label>Outcome<select value={outcome} onChange={(event) => resetFilters(() => setOutcome(event.target.value as DeliveryOutcome | ""))}><option value="">All outcomes</option>{DELIVERY_OUTCOMES.map((value) => <option key={value} value={value}>{value === "queued" && channel !== "webhook" && !data.mail.local && !hasReceipts ? "Queued / accepted" : label(value)}</option>)}</select></label>
       </div>
       <div className="table-scroll" tabIndex={0} role="region" aria-label="Delivery records">
         <table>
           <thead><tr><th scope="col">Destination</th><th scope="col">Channel</th><th scope="col">Outcome</th><th scope="col">Queued</th><th scope="col">Outcome time</th></tr></thead>
           <tbody>{data.deliveries.map((delivery) => {
             const localAccepted = data.mail.local && delivery.channel === "email" && delivery.outcome === "suppressed";
-            const acceptedWithoutReceipt = localAccepted || !data.mail.local && delivery.channel === "email" && delivery.outcome === "queued" && Boolean(delivery.providerAcceptedAt) && !data.mail.receiptsConfigured;
+            const rowReceiptsConfigured=data.mail.receiptProviders[delivery.acceptingProvider??data.mail.provider]??false;
+            const acceptedWithoutReceipt = localAccepted || !data.mail.local && delivery.channel === "email" && delivery.outcome === "queued" && Boolean(delivery.providerAcceptedAt) && !rowReceiptsConfigured;
             return <tr key={delivery.id}>
               <td><strong>{delivery.destination}</strong><small>{delivery.subscriberState} subscriber</small>{delivery.maintenanceReference ? <small>{delivery.maintenanceReference}: {delivery.maintenanceTitle} · {delivery.maintenanceNoticeKind}</small> : null}{delivery.incidentReference ? <small>{delivery.incidentReference}: {delivery.incidentTitle} · {delivery.incidentLifecycle?.toLowerCase()}</small> : null}</td>
               <td>{label(delivery.channel)}</td>
               <td>
-                <span className={`state-pill state-${acceptedWithoutReceipt ? "accepted" : delivery.outcome}`}>{acceptedWithoutReceipt ? `Accepted by ${providerName}` : label(delivery.outcome)}</span>
-                {!data.mail.local && delivery.providerAcceptedAt ? <small>Provider accepted {formatOperatorTime(delivery.providerAcceptedAt)}{delivery.outcome === "queued" && data.mail.receiptsConfigured ? " · awaiting confirmation" : ""}</small> : null}
+                <span className={`state-pill state-${acceptedWithoutReceipt ? "accepted" : delivery.outcome}`}>{acceptedWithoutReceipt ? `Accepted by ${delivery.acceptingProvider ? providerLabel(delivery.acceptingProvider) : providerName}` : label(delivery.outcome)}</span>
+                {!data.mail.local && delivery.providerAcceptedAt ? <small>{delivery.acceptingProvider ? `${providerLabel(delivery.acceptingProvider)} accepted` : "Provider accepted"} {formatOperatorTime(delivery.providerAcceptedAt)}{delivery.outcome === "queued" && rowReceiptsConfigured ? " · awaiting confirmation" : ""}</small> : null}
                 {delivery.latestError && (delivery.outcome === "failed" || delivery.outcome === "queued") ? <small>{delivery.latestError}</small> : null}
               </td>
               <td>{formatOperatorTime(delivery.queuedAt)}</td>

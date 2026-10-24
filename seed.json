@@ -252,7 +252,7 @@
     {
       "id": "mail-sender",
       "required": true,
-      "why": "Cloudflare Workers cannot deliver email to arbitrary recipients. Subscriber notification is the product's second surface, and SUB-006 and NOTIFY-008 require authenticated bulk sending with List-Unsubscribe support. Managed hosting uses the declared Run Edit Run relay with an installation credential; ordinary hosting uses Resend or SendGrid directly.",
+      "why": "Cloudflare Workers cannot deliver email to arbitrary recipients. Subscriber notification is the product's second surface, and SUB-006 and NOTIFY-008 require authenticated bulk sending with List-Unsubscribe support. Managed hosting uses the declared Run Edit Run relay with an installation credential; ordinary hosting uses Resend, SendGrid, Mailgun, Amazon SES or Postmark directly. An explicitly configured secondary receives the same frozen envelope after five minutes of retryable primary rejections; an uncertain primary submission never switches providers.",
       "data": [
         "Subscriber email address",
         "The published update's fields",
@@ -455,13 +455,13 @@
       "name": "MAIL_PROVIDER_API_KEY",
       "required": false,
       "secret": true,
-      "why": "Required for ordinary Resend or SendGrid mail only. mail.sender.v1."
+      "why": "Required for ordinary Resend, SendGrid, Mailgun, SES or Postmark mail only. mail.sender.v1."
     },
     {
       "name": "MAIL_PROVIDER",
       "required": false,
       "secret": false,
-      "why": "Select rer for managed relay mail, resend (default), or sendgrid for mail.sender.v1. Hosted mail must be configured."
+      "why": "Select rer for managed relay mail, resend (default), sendgrid, mailgun, ses or postmark for mail.sender.v1. SES credentials use JSON containing accessKeyId, secretAccessKey and optional sessionToken. Hosted mail must be configured."
     },
     {
       "name": "SENDGRID_WEBHOOK_PUBLIC_KEY",
@@ -473,13 +473,13 @@
       "name": "MAIL_FROM_ADDRESS",
       "required": false,
       "secret": false,
-      "why": "Required for ordinary Resend or SendGrid mail only. NOTIFY-008."
+      "why": "Required for ordinary Resend, SendGrid, Mailgun, SES or Postmark mail only. NOTIFY-008."
     },
     {
       "name": "MAIL_DKIM_SELECTOR",
       "required": false,
       "secret": false,
-      "why": "Required for ordinary Resend or SendGrid mail only. NOTIFY-010 DNS preflight identifies the provider-published DKIM selector for MAIL_FROM_ADDRESS."
+      "why": "Required for ordinary Resend, SendGrid, Mailgun, SES or Postmark mail only. NOTIFY-010 DNS preflight identifies the provider-published DKIM selector for MAIL_FROM_ADDRESS."
     },
     {
       "name": "RESEND_WEBHOOK_SECRET",
@@ -618,6 +618,60 @@
       "required": false,
       "secret": true,
       "why": "Reserved bot registration password. Incoming invoke responses use no outbound Bot Framework call and never read this password."
+    },
+    {
+      "name": "MAIL_SECONDARY_PROVIDER",
+      "required": false,
+      "secret": false,
+      "why": "Optional secondary direct provider: resend, sendgrid, mailgun, ses or postmark, different from the primary. Configure with MAIL_SECONDARY_API_KEY. Explicit retryable rejections for five minutes permit failover; ambiguous submissions never switch providers."
+    },
+    {
+      "name": "MAIL_SECONDARY_API_KEY",
+      "required": false,
+      "secret": true,
+      "why": "Optional secondary provider credential; required with MAIL_SECONDARY_PROVIDER."
+    },
+    {
+      "name": "MAILGUN_REGION",
+      "required": false,
+      "secret": false,
+      "why": "Mailgun API region: us (default) or eu. Both primary and secondary Mailgun use this selection."
+    },
+    {
+      "name": "MAILGUN_WEBHOOK_SIGNING_KEY",
+      "required": false,
+      "secret": true,
+      "why": "Dedicated Mailgun HTTP webhook signing key. Signed delivery, bounce and complaint callbacks are refused when omitted."
+    },
+    {
+      "name": "SES_REGION",
+      "required": false,
+      "secret": false,
+      "why": "AWS region for the SES v2 sending identity and SigV4 requests; required for a selected SES provider."
+    },
+    {
+      "name": "SES_CONFIGURATION_SET",
+      "required": false,
+      "secret": false,
+      "why": "SES configuration set whose SNS event destination publishes delivery, bounce and complaint events; required for a selected SES provider."
+    },
+    {
+      "name": "SES_EVENT_TOPIC_ARN",
+      "required": false,
+      "secret": false,
+      "why": "Exact SNS topic trusted for native SES events. Only SHA-256-signed SNS Notifications from its regional HTTPS certificate endpoint are accepted."
+    },
+    {
+      "name": "POSTMARK_WEBHOOK_SECRET",
+      "required": false,
+      "secret": true,
+      "why": "Postmark HTTPS Basic-auth password for webhook user lamp. Postmark does not provide a native payload signature; this authentication is not claimed as signed-event proof."
+    },
+    {
+      "name": "POSTMARK_ACCOUNT_API_KEY",
+      "required": false,
+      "secret": true,
+      "why": "Optional Postmark account-level token used only to read sender-domain DKIM verification. Sending uses the separate server token in the selected provider key."
     }
   ],
   "deploy": {

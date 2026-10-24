@@ -10,7 +10,7 @@ import { createUlid } from "../../shared/ids";
 import { createStatuspageWebhookRepository } from "./statuspage-webhook.repository";
 import type { WebhookFormat } from "../subscribers/webhook-format";
 
-export type DeliveryRow = typeof deliveryRecords.$inferSelect & { destination: string; subscriberState: "pending" | "active" | "deactivated"; providerAcceptedAt: string | null; latestError: string | null; localCaptureId: string | null; localCapturedAt: string | null; maintenanceReference: string | null; maintenanceTitle: string | null; maintenanceNoticeKind: string | null; incidentReference: string | null; incidentTitle: string | null; incidentLifecycle: string | null };
+export type DeliveryRow = typeof deliveryRecords.$inferSelect & { destination: string; subscriberState: "pending" | "active" | "deactivated"; providerAcceptedAt: string | null; acceptingProvider: string | null; latestError: string | null; localCaptureId: string | null; localCapturedAt: string | null; maintenanceReference: string | null; maintenanceTitle: string | null; maintenanceNoticeKind: string | null; incidentReference: string | null; incidentTitle: string | null; incidentLifecycle: string | null };
 
 /** A confirmation or other subscription email, sent outside notification deliveries (subscribers/service.ts). */
 export interface SubscriptionMailRow { id: string; destination: string; subscriberState: "pending" | "active" | "deactivated"; kind: "confirmation" | "already-subscribed" | "subscribed"; outcome: "accepted" | "suppressed" | "failed"; sentAt: string }
@@ -174,6 +174,7 @@ export function createDeliveryRepository(binding: D1Database): DeliveryRepositor
         incidentTitle: sql<string | null>`(SELECT i.title FROM incident_updates u JOIN incidents i ON i.id = u.incident_id WHERE u.id = notification_delivery_records.incident_update_id)`,
         incidentLifecycle: sql<string | null>`(SELECT lifecycle FROM incident_updates WHERE id = notification_delivery_records.incident_update_id)`,
         providerAcceptedAt: sql<string | null>`(SELECT attempted_at FROM notification_attempt_records AS notification_delivery_attempts WHERE delivery_id = ${deliveryRecords.id} AND provider_message_id IS NOT NULL AND error IS NULL ORDER BY attempted_at LIMIT 1)`,
+        acceptingProvider: sql<string | null>`(SELECT accepting_provider FROM mail_provider_routes WHERE notification_delivery_id = ${deliveryRecords.id})`,
         localCaptureId: sql<string | null>`(SELECT local_capture_id FROM notification_attempt_records AS notification_delivery_attempts WHERE delivery_id = ${deliveryRecords.id} AND local_capture_id IS NOT NULL ORDER BY attempted_at LIMIT 1)`,
         localCapturedAt: sql<string | null>`(SELECT attempted_at FROM notification_attempt_records AS notification_delivery_attempts WHERE delivery_id = ${deliveryRecords.id} AND local_capture_id IS NOT NULL ORDER BY attempted_at LIMIT 1)`,
         latestError: sql<string | null>`(SELECT error FROM notification_attempt_records AS notification_delivery_attempts WHERE delivery_id = ${deliveryRecords.id} ORDER BY attempted_at DESC, attempt_number DESC LIMIT 1)`,

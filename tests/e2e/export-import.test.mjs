@@ -52,6 +52,12 @@ async function populate(env) {
     env.DB.prepare("INSERT INTO alert_group_members (source_id,incident_id,group_key,fingerprint,state,received_at,recovered_at) VALUES (?,?,?,?,?,?,?)").bind("group-source-export","incident-export","service-group","alert-fingerprint","resolved","2026-09-08T00:15:00.000Z","2026-09-08T00:15:00.000Z"),
     env.DB.prepare("INSERT INTO audit_entries (id, entity_type, entity_id, action, operator_id, reason, payload_json, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)").bind("audit-export", "component-state-history", "history-export", "corrected", "operator-export", "Verified export", '{"before":"Operational","after":"Major outage"}', "2026-09-08T00:00:00.000Z", "2026-09-08T00:00:00.000Z"),
   ]);
+  // Synthetic retained delivery history, not provider-acceptance evidence. The
+  // public failover journey separately proves how these durable facts arise.
+  await env.DB.batch([
+    env.DB.prepare("INSERT INTO mail_provider_routes(message_key,notification_delivery_id,envelope_hash,configuration_hash,primary_provider,secondary_provider,selected_provider,first_retryable_failure_at,state,provider_message_id,accepting_provider,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,'accepted',?,?,?,?)").bind(createHash('sha256').update('synthetic-lamp-route-1').digest('hex'),'delivery-export',createHash('sha256').update('synthetic-lamp-envelope-1').digest('hex'),createHash('sha256').update('synthetic-lamp-configuration-1').digest('hex'),'resend','mailgun','mailgun','2026-09-08T00:10:00.000Z','synthetic-lamp-provider-receipt-1','mailgun','2026-09-08T00:10:00.000Z','2026-09-08T00:15:01.000Z'),
+    env.DB.prepare("INSERT INTO mail_provider_settings(id,secondary_provider,updated_at) VALUES('default','mailgun','2026-09-08T00:00:00.000Z')"),
+  ]);
   // Retained chat consent and both notification carrier kinds travel through
   // the same technical archive. These chat recipients have already opted out;
   // current active-channel behavior is exercised by the subscription journey.
@@ -85,6 +91,8 @@ async function populate(env) {
 }
 
 async function assertSubscriberDeliveryHistory(db) {
+  assert.deepEqual((await db.prepare("SELECT notification_delivery_id,primary_provider,secondary_provider,selected_provider,state,provider_message_id,accepting_provider FROM mail_provider_routes ORDER BY message_key").all()).results,[{notification_delivery_id:'delivery-export',primary_provider:'resend',secondary_provider:'mailgun',selected_provider:'mailgun',state:'accepted',provider_message_id:'synthetic-lamp-provider-receipt-1',accepting_provider:'mailgun'}],'accepted provider routing survives restore without changing its replay decision');
+  assert.deepEqual((await db.prepare("SELECT id,secondary_provider FROM mail_provider_settings").all()).results,[{id:'default',secondary_provider:'mailgun'}],'the owner-selected secondary travels with the archive');
   assert.deepEqual((await db.prepare("SELECT id,channel,state,selection_mode,event_kinds_json FROM subscriber_directory WHERE id IN ('synthetic-lamp-1701','synthetic-lamp-1702') ORDER BY id").all()).results,[
     {id:'synthetic-lamp-1701',channel:'slack',state:'deactivated',selection_mode:'selected',event_kinds_json:'["maintenance","components"]'},
     {id:'synthetic-lamp-1702',channel:'teams',state:'deactivated',selection_mode:'selected',event_kinds_json:'["maintenance","components"]'},
@@ -166,7 +174,7 @@ contract("HIST-004", "export restores every JSON entity, settings and audit entr
       }
       assert.deepEqual(restored, entities.tables);
       await assertSubscriberDeliveryHistory(target.env.DB);
-      for (const name of ["subscriber_chat_destinations","subscriber_channel_posts","subscriber_tokens","channel_subscriber_events","component_notification_events","component_notification_deliveries","component_delivery_attempts","notification_delivery_attempts","mail_provider_webhook_events"]) assert.ok(entities.tables.find(table=>table.name===name)?.rows.length,`${name} must be represented by populated portable history`);
+      for (const name of ["subscriber_chat_destinations","subscriber_channel_posts","subscriber_tokens","channel_subscriber_events","component_notification_events","component_notification_deliveries","component_delivery_attempts","notification_delivery_attempts","mail_provider_webhook_events","mail_provider_routes","mail_provider_settings"]) assert.ok(entities.tables.find(table=>table.name===name)?.rows.length,`${name} must be represented by populated portable history`);
       assert.ok(entities.tables.find((table) => table.name === "page_settings")?.rows.length, "settings must be JSON entities in the archive");
       assert.ok(entities.tables.find((table) => table.name === "audit_entries")?.rows.length, "audit entries must be JSON entities in the archive");
       for (const name of ["components", "component_state_history", "incidents", "incident_updates", "incident_reports", "maintenance", "maintenance_notices", "subscribers", "notification_deliveries"]) {
