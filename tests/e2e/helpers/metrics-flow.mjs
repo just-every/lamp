@@ -22,6 +22,7 @@ export async function metricsFlow({t}) {
     assert.match(html,/No data for 20 minutes/);const article=html.match(new RegExp(`<article[^>]*data-metric="${push.id}"[\\s\\S]*?</article>`))[0];
     assert.equal((article.match(/<path /g)??[]).length,2,"the twenty-minute gap splits the SVG into two unconnected paths");
     assert.ok(article.includes(new Date(points[19].at).toISOString()),"the gap names when reporting stopped");
+    assert.ok(article.includes(new Date(points[20].at).toISOString()),"the gap names the instant reporting resumed");
     const stopped=await create({provider:"push",name:"synthetic-lamp-54"});
     const stoppedAt=minute-21*60_000;
     assert.equal((await post(`/api/app/metrics/${stopped.id}/points`,{points:[{at:stoppedAt-60_000,value:10},{at:stoppedAt,value:12}]})).status,200);
@@ -63,8 +64,41 @@ export async function metricsFlow({t}) {
     await tick(minute+26*3600_000);
     const hourly=(await fixture.db.prepare("SELECT resolution,SUM(value_sum) total,SUM(samples) samples FROM metric_points WHERE metric_id=? GROUP BY resolution").bind(push.id).all()).results;
     assert.deepEqual(hourly.map(row=>row.resolution),[3600]);assert.equal(hourly[0].samples,points.length);assert.equal(hourly[0].total,points.reduce((sum,p)=>sum+p.value,0),"hourly rollups retain weighted sums and coverage");
-    await tick(minute+32*86400_000);assert.deepEqual((await fixture.db.prepare("SELECT DISTINCT resolution FROM metric_points WHERE metric_id=?").bind(push.id).all()).results.map(row=>row.resolution),[86400]);
+    await tick(minute+32*86400_000);
+    const daily=(await fixture.db.prepare("SELECT resolution,SUM(value_sum) total,SUM(samples) samples FROM metric_points WHERE metric_id=? GROUP BY resolution").bind(push.id).all()).results;
+    assert.deepEqual(daily.map(row=>row.resolution),[86400]);
+    assert.equal(daily[0].samples,points.length,"daily rollups retain the uneven hourly sample counts");
+    assert.equal(daily[0].total,points.reduce((sum,p)=>sum+p.value,0),"daily rollups preserve sums rather than averaging hourly means");
     await tick(minute+92*86400_000);assert.equal((await fixture.db.prepare("SELECT count(*) n FROM metric_points WHERE metric_id=?").bind(push.id).first()).n,0,"aggregates expire after ninety days");
+    // Historical aggregates are fixture state; maintenance is exercised through
+    // the same real scheduled Worker door as the minute-to-hour-to-day journey.
+    const boundary=await create({provider:"push",name:"synthetic-lamp-55"});
+    const day=86400_000,hour=3600_000;
+    const boundaryNow=Math.floor((minute+100*day)/day)*day+12*hour;
+    const minuteCutoff=boundaryNow-day,hourCutoff=boundaryNow-30*day,dayCutoff=Math.floor((boundaryNow-90*day)/day)*day;
+    const seeded=[
+      {resolution:60,bucket:minuteCutoff+60_000,total:11,samples:1},
+      {resolution:60,bucket:minuteCutoff-60_000,total:17,samples:1},
+      {resolution:3600,bucket:hourCutoff+hour,total:21,samples:2},
+      {resolution:3600,bucket:hourCutoff-hour,total:30,samples:2},
+      {resolution:3600,bucket:hourCutoff-2*hour,total:90,samples:3},
+      {resolution:86400,bucket:dayCutoff+day,total:77,samples:7},
+      {resolution:86400,bucket:dayCutoff-day,total:88,samples:8},
+    ];
+    await fixture.db.batch(seeded.map(row=>fixture.db.prepare("INSERT INTO metric_points(metric_id,resolution,bucket,value_sum,samples,last_at) VALUES(?,?,?,?,?,?)").bind(boundary.id,row.resolution,row.bucket,row.total,row.samples,row.bucket)));
+    await tick(boundaryNow);
+    const retained=(await fixture.db.prepare("SELECT resolution,bucket,value_sum,samples FROM metric_points WHERE metric_id=? ORDER BY resolution,bucket").bind(boundary.id).all()).results;
+    const at=(resolution,bucket)=>retained.find(row=>row.resolution===resolution&&row.bucket===bucket);
+    assert.deepEqual(at(60,minuteCutoff+60_000),{resolution:60,bucket:minuteCutoff+60_000,value_sum:11,samples:1},"a minute just inside the last-day boundary remains minute resolution");
+    assert.equal(at(60,minuteCutoff-60_000),undefined,"a minute just outside the last-day boundary is absent at minute resolution");
+    assert.deepEqual(at(3600,Math.floor((minuteCutoff-60_000)/hour)*hour),{resolution:3600,bucket:Math.floor((minuteCutoff-60_000)/hour)*hour,value_sum:17,samples:1},"the expired minute rolls into its hour without loss");
+    assert.deepEqual(at(3600,hourCutoff+hour),{resolution:3600,bucket:hourCutoff+hour,value_sum:21,samples:2},"an hour just inside thirty days remains hourly");
+    assert.equal(at(3600,hourCutoff-hour),undefined,"an hour just outside thirty days is absent at hourly resolution");
+    const rolledDay=Math.floor((hourCutoff-hour)/day)*day;
+    assert.deepEqual(at(86400,rolledDay),{resolution:86400,bucket:rolledDay,value_sum:120,samples:5},"unequal hourly sample counts combine into a weighted daily sum and count");
+    assert.deepEqual(at(86400,dayCutoff+day),{resolution:86400,bucket:dayCutoff+day,value_sum:77,samples:7},"a day just inside ninety days remains daily");
+    assert.equal(at(86400,dayCutoff-day),undefined,"a day just outside ninety days expires");
+    assert.equal(retained.length,5,"only the expected retained and rolled aggregates remain");
     t.diagnostic("UPTIME-008/INTAKE-011: next-snapshot pushes, four real provider adapters at fake edges, twenty-minute disconnected gap, verified Uptime timings and aggregate retention passed.");
   } finally {await fixture.close();}
 }
@@ -86,6 +120,7 @@ async function auditPublicCharts(origin) {
     active.on("console",message=>{if(message.type()==="error"&&/hydrat|did not match|server rendered/i.test(message.text()))errors.push(message.text());});
     for(const width of [1440,390]) {
       await active.setViewportSize({width,height:width===390?844:1000});await active.goto(origin);
+      assert.ok(await active.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),`${width}: script-enabled charts do not overflow`);
       const axe=await new AxeBuilder({page:active}).withTags(["wcag2a","wcag2aa","wcag21a","wcag21aa","wcag22aa"]).analyze();
       assert.deepEqual(axe.violations.filter(v=>["serious","critical"].includes(v.impact)).map(v=>({id:v.id,nodes:v.nodes.map(n=>n.target)})),[],`${width}: public charts have no serious axe finding`);
     }
