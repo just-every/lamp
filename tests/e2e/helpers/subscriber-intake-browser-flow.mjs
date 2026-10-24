@@ -57,7 +57,7 @@ export async function subscriberIntakeBrowserFlow({ origin, cookie, api, request
 
         const section = page.getByRole('region', { name: 'Import and export subscribers' });
         const csv = `email,components,language\r\n${csvEmail},${components[0].id},en\r\ninvalid-email,${components[0].id},en\r\n`;
-        await section.getByLabel('CSV contents', { exact: true }).fill(csv);
+        await section.getByRole('textbox', { name: 'CSV contents', exact: true }).fill(csv);
         const previewResponse = page.waitForResponse(response => new URL(response.url()).pathname.endsWith('/subscribers/import/preview'));
         await section.getByRole('button', { name: 'Dry run CSV', exact: true }).click();
         assert.equal((await previewResponse).status(), 200);
@@ -70,7 +70,7 @@ export async function subscriberIntakeBrowserFlow({ origin, cookie, api, request
         await section.getByRole('status').filter({ hasText: '1 pending subscriptions created. No invitations have been sent.' }).waitFor();
         await page.getByRole('row').filter({ hasText: csvEmail }).getByText('pending', { exact: true }).waitFor();
         // A second native import must not strand the first batch, including after reload.
-        await section.getByLabel('CSV contents', { exact: true }).fill(`email,components,language\r\n${secondCsvEmail},${components[0].id},en\r\n`);
+        await section.getByRole('textbox', { name: 'CSV contents', exact: true }).fill(`email,components,language\r\n${secondCsvEmail},${components[0].id},en\r\n`);
         const nextPreview = page.waitForResponse(response => new URL(response.url()).pathname.endsWith('/subscribers/import/preview'));
         await section.getByRole('button', { name: 'Dry run CSV', exact: true }).click();
         assert.equal((await nextPreview).status(), 200);

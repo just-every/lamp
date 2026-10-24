@@ -146,6 +146,32 @@ export async function subscriberCsvFlow() {
     assert.equal(recordLimit.status, 400, recordLimit.text);
     await fixture.assertUnchanged(invalidBefore);
     assert.equal(fixture.messages.length, invalidMail, "refused input never sends confirmation mail");
+    await subscriberBatchAuthorityFlow(fixture);
   } finally { await fixture.close(); }
   await subscriberLimitsFlow();
+}
+
+/** Reuse the existing native owner/member invitation and confirmation journey
+ * at the public HTTP door; this remains part of subscriberCsvFlow in Verify. */
+export async function subscriberBatchAuthorityFlow(fixture) {
+  const { api, post, messagesFor } = fixture;
+  const owner = (await api("/api/app/session")).body.operator;
+  // Native operator-auth exposes its existing member invitation and
+  // confirmation doors, so test the new owner-only read with a real session.
+  const memberEmail = "synthetic-lamp-batches-member@example.test";
+  const invitation = await post("/auth/invite", { email: memberEmail, displayName: "Synthetic Lamp batch member", role: "member" });
+  assert.equal(invitation.status, 202, invitation.text);
+  const invitationMail = messagesFor(memberEmail).at(-1);
+  assert.ok(invitationMail, "the native invitation crosses the Resend edge");
+  const token = invitationMail.text.match(/https?:\/\/[^\s]+/g).map(link => new URL(link).searchParams.get("token")).find(Boolean);
+  assert.ok(token);
+  const confirmedMember = await fixture.request("/auth/confirm", { method: "POST", body: JSON.stringify({ token }) });
+  assert.equal(confirmedMember.status, 303, await confirmedMember.clone().text());
+  const memberCookie = confirmedMember.headers.get("set-cookie").split(";")[0];
+  const memberSession = await fixture.raw("/api/app/session", { headers: { Cookie: memberCookie } });
+  assert.equal(memberSession.status, 200);
+  assert.notEqual((await memberSession.json()).operator.id, owner.id);
+  const deniedBatches = await fixture.raw("/api/app/subscribers/import/batches", { headers: { Cookie: memberCookie } });
+  assert.equal(deniedBatches.status, 403, await deniedBatches.clone().text());
+  assert.equal((await api("/api/app/subscribers/import/batches")).status, 200, "the owner retains the batch read");
 }
