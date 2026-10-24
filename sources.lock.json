@@ -496,7 +496,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "24819267fc763929229a782dbffa9827f264674ea9401db51f9b1ca3263121ea",
+      "sha256": "c7e898901c2053005d66fe5d40f32d7a3b54c8ac4218e0c9ad5048bb4a87b94b",
       "executable": false
     },
     "DEMO.md": {
@@ -6236,7 +6236,7 @@
       "executable": false
     },
     "tests/dev-ingress/runtime.mjs": {
-      "sha256": "6e12d0a49fe925b7e64e274decc28ad79bf674e9f058b111de4f3f53f9fc998f",
+      "sha256": "5c334399de14ccea48be9bebb6b0201f6db5c515f725668d26d46879ed7c4744",
       "executable": false
     },
     "tests/dev-ingress/security.test.mjs": {
@@ -6396,7 +6396,7 @@
       "executable": false
     },
     "tests/e2e/helpers/cutover-status-flow.mjs": {
-      "sha256": "e67eb105df28dbbb589f7e998529533de3065640222b9770d42fe6bcf1496d73",
+      "sha256": "19e3c8a967ca22d382707adfac06dcbece45a1b56f9eb5e4fab46811fc540a4a",
       "executable": false
     },
     "tests/e2e/helpers/dispatch-token-fixture.mjs": {
