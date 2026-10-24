@@ -448,7 +448,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "a2742d6969d244c3ee4204dcaffe8578b906ed27b8a8de836765eb9170ae6781",
+      "sha256": "a1652305279f132cb2df352dd645547826cdbee909bde70f387e36f3b5809755",
       "executable": false
     },
     "AGENTS.md": {
@@ -496,7 +496,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "04c789d9c295c2d30381e91224e3f063d2c8cf811b2ff19cce8dea0aea50f156",
+      "sha256": "34f499749dbd80dc01fee47b8e438df0b05816ec7956469653cf2db661217c65",
       "executable": false
     },
     "DEMO.md": {
@@ -6444,7 +6444,7 @@
       "executable": false
     },
     "tests/e2e/helpers/phone-desk-flow.mjs": {
-      "sha256": "526fa85bbc4bcc4d68cac2bc82fac478137147216f1ff0524dcbe6022132cb15",
+      "sha256": "98e8cc9514b129c832b965fa7dc3a199430ed13a8ddd9d24f314c8780d337719",
       "executable": false
     },
     "tests/e2e/helpers/post-incident-report-flow.mjs": {
@@ -6588,7 +6588,7 @@
       "executable": false
     },
     "tests/e2e/intake-references.test.mjs": {
-      "sha256": "a02ba56b07ba79437ddedd56786cf86b6ba66f29e645b7518798f3a4e0f14aaa",
+      "sha256": "32d389d8c7628872d8da429039d363689e4f2dc26fe4618134de9ef7e8a62914",
       "executable": false
     },
     "tests/e2e/maintenance-request-mail.test.mjs": {
@@ -6620,7 +6620,7 @@
       "executable": false
     },
     "tests/e2e/public-contract.test.mjs": {
-      "sha256": "45edf5baf7b0cf2dbc611178fdb8202284ab46e69974bbff9401fdaea0c0d2d9",
+      "sha256": "458fd4a83093afeea7fd97e9a466365f5fe7cfb924a74a0c47d7ef2243922b13",
       "executable": false
     },
     "tests/e2e/publishing-browser.test.mjs": {
