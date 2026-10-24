@@ -38,3 +38,23 @@ CREATE VIEW notification_delivery_records AS SELECT d.*,NULL AS component_event_
  UNION ALL SELECT * FROM component_notification_deliveries;
 CREATE VIEW notification_attempt_records AS SELECT * FROM notification_delivery_attempts
  UNION ALL SELECT * FROM component_delivery_attempts;
+
+-- Keep the public persistence transaction shapes: one conditional freeze write
+-- plus its authoritative read, and one accepted-attempt write plus callback read.
+-- Trigger writes are atomic with those reads and choose exactly one partition.
+CREATE TRIGGER notification_delivery_records_freeze
+INSTEAD OF UPDATE OF mail_payload_json ON notification_delivery_records
+WHEN OLD.mail_payload_json IS NULL BEGIN
+ UPDATE notification_deliveries SET mail_payload_json=NEW.mail_payload_json WHERE id=OLD.id AND mail_payload_json IS NULL;
+ UPDATE component_notification_deliveries SET mail_payload_json=NEW.mail_payload_json WHERE id=OLD.id AND mail_payload_json IS NULL;
+END;
+CREATE TRIGGER notification_attempt_records_insert
+INSTEAD OF INSERT ON notification_attempt_records BEGIN
+ SELECT RAISE(ABORT,'Unknown delivery.') WHERE NOT EXISTS(SELECT 1 FROM notification_delivery_records WHERE id=NEW.delivery_id);
+ INSERT INTO notification_delivery_attempts(id,delivery_id,attempt_number,attempted_at,provider_message_id,error,created_at,local_capture_id)
+ SELECT NEW.id,NEW.delivery_id,NEW.attempt_number,NEW.attempted_at,NEW.provider_message_id,NEW.error,NEW.created_at,NEW.local_capture_id
+ WHERE EXISTS(SELECT 1 FROM notification_deliveries WHERE id=NEW.delivery_id) ON CONFLICT DO NOTHING;
+ INSERT INTO component_delivery_attempts(id,delivery_id,attempt_number,attempted_at,provider_message_id,error,created_at,local_capture_id)
+ SELECT NEW.id,NEW.delivery_id,NEW.attempt_number,NEW.attempted_at,NEW.provider_message_id,NEW.error,NEW.created_at,NEW.local_capture_id
+ WHERE EXISTS(SELECT 1 FROM component_notification_deliveries WHERE id=NEW.delivery_id) ON CONFLICT DO NOTHING;
+END;

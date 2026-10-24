@@ -660,7 +660,7 @@
       "executable": false
     },
     "management/integration/recipe.json": {
-      "sha256": "6647b46d8b1b96087363c0789d116c32f9f22368db022cd5e904ed353416e8ba",
+      "sha256": "7e81d9434d083615fb82bfc7e6d6401cfde3178cec8c0cdeefb89817fdbd3e50",
       "executable": false
     },
     "management/integration/revision.ts": {
@@ -900,7 +900,7 @@
       "executable": false
     },
     "migrations/core/0057_component_deliveries.sql": {
-      "sha256": "49a467d023cc7952b21daa5bc2dc8d184ac6958e85260ffc202f96dfe732911b",
+      "sha256": "2b2eff2cd22117a0627cb3bc02c120481a44852a80a30e50f46329f1c310add4",
       "executable": false
     },
     "migrations/core/0058_maintenance_wording.sql": {
@@ -3560,7 +3560,7 @@
       "executable": false
     },
     "src/core/features/deliveries/repository.ts": {
-      "sha256": "da0239359b43486acc2141a88c190dd485c7f2dfd6c4a63b958f91d102c4bd7e",
+      "sha256": "d031b27432aa260da4107f9dc51afc0ba5bae2c379d63d19a5c48ebddd3288ce",
       "executable": false
     },
     "src/core/features/deliveries/routes.ts": {
