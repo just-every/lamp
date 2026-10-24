@@ -7552,7 +7552,7 @@
       "executable": false
     },
     "tests/release/README.md": {
-      "sha256": "a9e4e300de2f5bab662c628b19e21f5432c2f7e61d1ed24010d9310bb638d974",
+      "sha256": "216511767944b9d6071ff108fb766dfa350fba0aa941ede8d909f2b118cfae19",
       "executable": false
     },
     "tests/release/runtime.mjs": {

@@ -22,7 +22,8 @@ Each runtime open lets Miniflare bind port 0. Native HTTP requests use that
 listener while Miniflare’s proxy transport restores the stable logical Host
 and installation origin before application admission. Upgrade and restore
 exercise the original session cookie unchanged; no runtime reuses a port
-reserved when the helper was imported.
+reserved when the helper was imported. Other native journeys keep each opened
+fixture’s transport bindings when pausing and resuming around another fixture.
 Initial deployed page settings and an uncertain provider receipt are explicit
 test fixtures; ordinary product records and credentials use application doors.
 For v1.4.0 and later, import apply/resume is checked to send no mail, and the
