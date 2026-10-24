@@ -1,11 +1,12 @@
 import { stripVTControlCharacters } from "node:util";
-import {appOrigin} from './helpers/hosts.mjs';
+import { secret } from '../auth-adoption/runtime.mjs';
+import { fixtureProcessEnv, isolatedWorkerEnvArgs } from '../helpers/worker-environment.mjs';
 import { withDraftVersion } from "./draft-version-helper.mjs";
 import assert from "node:assert/strict";
 import { execFileSync, spawn } from "node:child_process";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import { after, before, test } from "node:test";
 import { chromium } from "playwright";
 import { insertRealOperatorSession } from "./real-session-helper.mjs";
@@ -16,22 +17,31 @@ import { assertComposerVisitIsolation } from "./composer-visit-regression.mjs";
 import { sessionCookieName } from "../helpers/session-cookie.mjs";
 import { incidentComposer } from "./helpers/incident-composer.mjs";
 
-let worker, browser, context, page, statePath, cachePath, origin;
+let worker, browser, context, page, statePath, origin;
 let output = "";
 before(async () => {
+  // Exercise the deployable Worker. Cold Vite dependency discovery is not
+  // serving the installation and must not consume its 30-second startup gate.
+  // Build once before launch; every autosave assertion below is unchanged.
+  execFileSync("pnpm", ["run", "build:app"], { stdio: "pipe", env: fixtureProcessEnv() });
+  const artifactPath = resolve("dist/server/wrangler.json");
   statePath = await mkdtemp(join(tmpdir(), "lamp-autosave-integrity-d1-"));
-  cachePath = await mkdtemp(join(tmpdir(), "lamp-autosave-integrity-vite-"));
-  execFileSync("pnpm", ["exec", "wrangler", "d1", "migrations", "apply", "DB", "--local", "--config", "wrangler.jsonc", "--persist-to", statePath], { stdio: "pipe" });
-  const sessionId = await insertRealOperatorSession({ persistTo: statePath });
+  execFileSync("pnpm", ["exec", "wrangler", "d1", "migrations", "apply", "DB", "--local", "--config", artifactPath, "--persist-to", statePath], { stdio: "pipe", env: fixtureProcessEnv() });
+  const sessionId = await insertRealOperatorSession({ persistTo: statePath, configPath: artifactPath });
   // Reserve after Wrangler finishes: its emulator also allocates local ports.
   const port = await reservePort({ label: "Autosave integrity Worker" });
-  origin = appOrigin(port);
-  worker = spawn("pnpm", ["exec", "vite", "--host", "127.0.0.1", "--port", String(port), "--strictPort"], {
-    detached: true, stdio: "pipe", env: { ...process.env, LAMP_WORKERS_STATE_PATH: statePath, LAMP_VITE_CACHE_DIR: cachePath, LAMP_DISABLE_INSPECTOR: "true" },
+  origin = `http://127.0.0.1:${port}`;
+  worker = spawn("pnpm", ["exec", "wrangler", "dev", "--local", "--config", artifactPath,
+    ...isolatedWorkerEnvArgs(statePath), "--persist-to", statePath,
+    "--show-interactive-dev-session=false", "--ip", "127.0.0.1", "--port", String(port), "--inspector-port", "0",
+    "--local-upstream", `127.0.0.1:${port}`, "--var", "LAMP_APP_HOST:127.0.0.1", "--var", "LAMP_PAGE_HOST:localhost",
+    "--var", `AUTH_ORIGIN:${origin}`, "--var", `LAMP_LOCAL_ORIGIN:${origin}`, "--var", "AUTH_LOCAL:true",
+    "--var", `SESSION_SECRET:${secret}`, "--var", "SETUP_OPERATOR_EMAIL:operator@example.test"], {
+    detached: true, stdio: "pipe", env: fixtureProcessEnv(),
   });
   worker.stdout.on("data", chunk => { output += chunk; });
   worker.stderr.on("data", chunk => { output += chunk; });
-  await waitForWorker({ origin, isListening: () => stripVTControlCharacters(output).includes(`${origin}/`), child: worker, output: () => output, label: "Autosave integrity Worker" });
+  await waitForWorker({ origin, isListening: () => stripVTControlCharacters(output).includes(`Ready on ${origin}`), child: worker, output: () => output, label: "Autosave integrity Worker" });
   browser = await chromium.launch({ headless: true, args: ["--use-mock-keychain", "--password-store=basic"] });
   context = await browser.newContext({ viewport: { width: 1440, height: 1000 } });
   // Loaded verification runners need more than the 30-second default for the
@@ -47,7 +57,7 @@ after(async () => {
     try { process.kill(-worker.pid, "SIGTERM"); } catch (error) { if (error.code !== "ESRCH") throw error; }
     await closed;
   }
-  await Promise.all([statePath, cachePath].filter(Boolean).map(path => rm(path, { recursive: true, force: true })));
+  if (statePath) await rm(statePath, { recursive: true, force: true });
 });
 
 async function api(path, method = "GET", body) {
@@ -62,7 +72,7 @@ async function openIncident() {
   const { incident } = await api("/api/app/incidents", "POST", { title: "Autosave integrity", components: [{ componentId: component.id, state: "Major outage", relationship: "Primary" }] });
   await api(`/api/app/incidents/${incident.id}/draft`, "PUT", initial);
   await page.goto(`${origin}/app/incidents/${incident.id}`);
-  // Development can mount the visit twice; act only on the settled visit.
+  // Act only on the settled, hydrated visit.
   await page.waitForLoadState("networkidle");
   await page.locator(".autosave-status.is-saved").waitFor();
   return incident;
