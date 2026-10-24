@@ -49,7 +49,7 @@ try {
     INSERT INTO channel_posts(id,incident_update_id,destination_id,queued_at) VALUES('synthetic-lamp-upgrade-post','synthetic-lamp-upgrade-update','synthetic-lamp-channel','2026-10-23');
     UPDATE notification_deliveries SET notification_event_id='synthetic-lamp-maintenance',notification_event_type='maintenance-notice',mail_payload_json='{"subject":"Retained subject","text":"Retained original wording"}',outcome_at='2026-10-23T01:00:00Z' WHERE id='synthetic-lamp-delivery';`);
   const priorCoreLedger = query('SELECT name FROM d1_migrations ORDER BY id');
-  assert.equal(priorCoreLedger.length,55,'the populated source is exactly the main-applied 0055 schema');
+  assert.deepEqual(priorCoreLedger.map(row=>row.name).sort(),(await readdir(join(temporary,'migrations/core'))).filter(name=>name.endsWith('.sql')).sort(),'the populated source has exactly every main-applied migration through 0055');
   const preservedUpgrade = Object.fromEntries(['subscribers','subscriber_components','subscriber_tokens','subscriber_intake','channel_destinations','channel_destination_components','channel_posts','notification_deliveries','notification_delivery_attempts','mail_provider_webhook_events','subscriber_reporting_baseline','subscriber_reporting_daily','maintenance','maintenance_notices','incidents','incident_updates'].map(table=>[table,query(`SELECT * FROM ${table}`)]));
   for(const name of addedCore.slice(3))await cp(join(root, 'migrations/core',name),join(temporary,'migrations/core',name));
   run('node', ['scripts/migrate-local.mjs']);
