@@ -649,9 +649,9 @@ test("PAGE-013 PAGE-014 PAGE-008 PAGE-009 PAGE-003 — Public isolation, live ti
   try {
     const context = await browser.newContext({ timezoneId: "America/New_York" });
     const page = await context.newPage();
+    await page.clock.install();
     for (const width of [1440,390]) {
       await page.setViewportSize({width,height:1000});
-      await page.clock.install();
       await page.goto(`${pageUrl}/`);
       const live=page.locator("#status-live");
       assert.equal(await live.getAttribute("role"),"status","the live region exists on first load");
@@ -697,7 +697,6 @@ test("PAGE-013 PAGE-014 PAGE-008 PAGE-009 PAGE-003 — Public isolation, live ti
       const audit=await new AxeBuilder({page}).withTags(["wcag2a","wcag2aa","wcag21aa","wcag22aa"]).analyze();
       assert.deepEqual(audit.violations.filter(item=>["serious","critical"].includes(item.impact)),[],`${width} live page accessibility`);
       assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false,`${width} live page has no horizontal overflow`);
-      await page.clock.uninstall();
     }
     await context.close();
   } finally {
