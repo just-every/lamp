@@ -16,9 +16,7 @@ function token(audience, { invalid = false, stale = false } = {}) {
   return `${body}.${(invalid ? randomBytes(256) : sign('RSA-SHA256', Buffer.from(body), keyPair.privateKey)).toString('base64url')}`;
 }
 async function response(response) { return { status: response.status, body: await response.json() }; }
-export async function chatDeskFlow({ t, server, appUrl, env }) {
-  const spawnArgs = server.spawnargs.slice(1), spawnFile = server.spawnfile;
-  await stop(server);
+export async function chatDeskNativeFlow(t) {
   let r;
   try {
     r = await runtime(t, [jwk]);
@@ -97,18 +95,34 @@ export async function chatDeskFlow({ t, server, appUrl, env }) {
     assert.equal(r.requests.length, 2, 'Bot Framework metadata and keys are cached between verified activities');
     const revokeCode = (await r.call('/api/app/chat-links', {})).body.code;
     assert.equal((await slack(null, { code: revokeCode })).status, 200);
+    const revokeTeamsCode = (await r.call('/api/app/chat-links', {})).body.code;
+    assert.equal((await teams(null, { code: revokeTeamsCode })).status, 200);
+    assert.equal(await count('chat_links'), 2, 'both signed chat identities belong to the operator before authority is revoked');
     const revoked = await r.call(`/api/app/operators/${r.operator}/revoke-access`, {}); assert.equal(revoked.status, 204, JSON.stringify(revoked.body));
     assert.equal(await count('chat_links'), 0, 'revoking an operator removes chat identities');
     assert.equal(await count('chat_link_codes'), 0, 'revoking an operator removes pending link authority');
     assert.equal(await count('chat_previews'), 0, 'revoking an operator removes pending preview authority');
+    const refusedCounts = await Promise.all(['incidents','incident_updates','incident_drafts','audit_entries'].map(count));
+    for (const [name, send] of [['Slack', slack], ['Teams', teams]]) {
+      const refused = await send({ action: 'open', title: `synthetic-lamp-revoked-${name}`, components: [{ componentId: componentIds[0], state: 'Major outage', relationship: 'Primary' }], update: update() });
+      assert.equal(refused.status, 403, `${name}'s signed door refuses the formerly linked actor after operator authority is revoked`);
+      assert.deepEqual(await Promise.all(['incidents','incident_updates','incident_drafts','audit_entries'].map(count)), refusedCounts, `${name}'s refused actor creates no incident, update, draft or audit entry`);
+    }
     await r.close(); r = await runtime(t, [jwk], { configured: false });
     for (const endpoint of ['slack', 'teams']) assert.equal((await r.worker.dispatchFetch(`${origin}/api/chat/${endpoint}`, { method: 'POST', body: '{}' })).status, 503);
     assert.equal(await count('incidents'), 0);
   } finally {
     await r?.close();
   }
+}
+
+export async function chatDeskFlow({ t, server, appUrl, env }) {
+  const spawnArgs = server.spawnargs.slice(1), spawnFile = server.spawnfile;
+  await stop(server);
+  await chatDeskNativeFlow(t);
   const restarted = spawn(spawnFile, spawnArgs, { cwd: process.cwd(), detached: true, stdio: 'pipe', env });
   let output = ''; restarted.stdout.on('data', chunk => output += chunk); restarted.stderr.on('data', chunk => output += chunk);
-  await waitForWorker({ origin: appUrl, child: restarted, output: () => output, label: 'API Worker after chat proof' });
+  try { await waitForWorker({ origin: appUrl, child: restarted, output: () => output, label: 'API Worker after chat proof' }); }
+  catch (error) { await stop(restarted); throw error; }
   return restarted;
 }

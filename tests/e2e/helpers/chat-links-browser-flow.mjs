@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { createHmac } from 'node:crypto';
 import { mkdir } from 'node:fs/promises';
 import { chromium } from 'playwright';
+import AxeBuilder from '@axe-core/playwright';
 import { expect } from '@playwright/test';
 import { operatorHydrated } from './operator-hydrated.mjs';
 
@@ -12,6 +13,7 @@ export async function chatLinksBrowserFlow({ origin, cookie, signingSecret, diag
     const context = await browser.newContext();
     await context.addCookies(cookie.split('; ').map(pair => ({ name: pair.slice(0, pair.indexOf('=')), value: pair.slice(pair.indexOf('=') + 1), url: origin })));
     const page = await context.newPage();
+    const pageErrors = []; page.on('pageerror', error => pageErrors.push(error.message));
     if (process.env.LAMP_SCREENSHOTS) await mkdir(process.env.LAMP_SCREENSHOTS, { recursive: true });
     for (const width of [1440, 390]) {
       await page.setViewportSize({ width, height: width === 390 ? 844 : 1000 });
@@ -33,6 +35,8 @@ export async function chatLinksBrowserFlow({ origin, cookie, signingSecret, diag
       await expect(link).toBeVisible();
       await panel.getByRole('button', { name: 'Hide link code', exact: true }).click();
       assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), `${width}px Chat links does not overflow`);
+      assert.deepEqual((await new AxeBuilder({ page }).analyze()).violations.filter(violation => ['serious', 'critical'].includes(violation.impact)), [], `${width}px Settings has no serious accessibility findings`);
+      assert.deepEqual(pageErrors, [], `${width}px Settings has no hydration or page errors`);
       if (process.env.LAMP_SCREENSHOTS) await panel.screenshot({ path: `${process.env.LAMP_SCREENSHOTS}/${width}-chat-linked.png` });
       await link.getByRole('button', { name: 'Remove chat link', exact: true }).click();
       await expect(link).toHaveCount(0);

@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { createHmac } from 'node:crypto';
 import { test } from 'node:test';
 import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { join } from 'node:path';
@@ -8,7 +9,7 @@ import { authFixture, secret, setupToken } from './runtime.mjs';
 import { load } from '../operator-readiness/runtime.mjs';
 import { checkout, command, proxy } from '../helpers/native-transfer.mjs';
 
-test('ACCESS-001 INTAKE-009 native rer archive restores owner continuity and subscriber authority without restoring sessions, provider approval or a sealed PagerDuty key', async () => {
+test('ACCESS-001 INTAKE-009 native rer archive restores owner continuity and subscriber authority without restoring sessions, provider approval or a sealed PagerDuty key', async t => {
   const root = process.cwd(), directory = await mkdtemp(join(root, '.lamp-auth-portability-'));
   const source = join(directory, 'source'), target = join(directory, 'target');
   let current;
@@ -76,6 +77,27 @@ test('ACCESS-001 INTAKE-009 native rer archive restores owner continuity and sub
     assert.equal((await restoredLinks.list(actor.operator.id)).length, 1, 'durable chat links survive restore');
     assert.ok(Date.now() < Date.parse(pendingChat.expiresAt), 'restore rejects the pending chat code before its ten-minute expiry');
     await assert.rejects(restoredLinks.link(pendingChat.code, { transport: 'slack', tenant: 'synthetic-lamp-1', subject: 'synthetic-lamp-3' }), /invalid, used or expired/);
+    // Advance only this test's clock: the imported archive has no temporary
+    // link authority either before or after the original ten-minute lifetime.
+    const afterTransfer = Date.parse(pendingChat.expiresAt) + 1;
+    const { createApp } = await load('src/core/app/server.ts');
+    const signingSecret = 'synthetic-lamp-transfer-signing-1';
+    const transferredApp = createApp({ ...current.env, AUTH_ORIGIN: fresh.origin,
+      LAMP_APP_HOST: new URL(fresh.origin).host, LAMP_PAGE_HOST: 'status.example.test',
+      SESSION_SECRET: secret, SLACK_SIGNING_SECRET: signingSecret,
+      SUBSCRIBER_TOKEN_SECRET: 'portable-subscriber-secret', MAIL_FROM_ADDRESS: 'lamp@example.test' });
+    t.mock.timers.enable({ apis: ['Date'], now: afterTransfer });
+    try {
+      const raw = new URLSearchParams({ command: '/lamp', team_id: 'synthetic-lamp-1', user_id: 'synthetic-lamp-3', text: `link ${pendingChat.code}` }).toString();
+      const timestamp = String(Math.floor(Date.now() / 1000));
+      const signature = 'v0=' + createHmac('sha256', signingSecret).update(`v0:${timestamp}:${raw}`).digest('hex');
+      const refused = await transferredApp.app.fetch(new Request(fresh.origin + '/api/chat/slack', { method: 'POST', body: raw,
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-Slack-Request-Timestamp': timestamp, 'X-Slack-Signature': signature } }));
+      assert.equal(refused.status, 409, await refused.clone().text());
+      assert.match(await refused.text(), /invalid, used or expired/);
+      assert.equal((await restoredLinks.list(actor.operator.id)).length, 1, 'the ten-minute transfer wait preserves only the durable chat identity');
+      for (const table of ['chat_link_codes','chat_previews','chat_requests']) assert.equal((await restored.prepare(`SELECT COUNT(*) n FROM ${table}`).first()).n, 0, `${table} authority stays absent after the signed post-transfer door`);
+    } finally { t.mock.timers.reset(); }
 
     assert.equal((await restored.prepare('SELECT needs_relink FROM rer_dependency_link').first()).needs_relink, 1);
     assert.equal((await restored.prepare('SELECT idp_sign_in FROM oa_auth_settings').first()).idp_sign_in, 0);
