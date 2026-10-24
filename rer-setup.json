@@ -28,7 +28,7 @@
       "kind": "text",
       "required": true,
       "group": "page",
-      "help": "Enter 1\u2013120 characters."
+      "help": "Enter 1–120 characters."
     },
     {
       "name": "LAMP_PAGE_TAGLINE",
@@ -36,7 +36,7 @@
       "kind": "text",
       "required": true,
       "group": "page",
-      "help": "Enter 1\u2013280 characters."
+      "help": "Enter 1–280 characters."
     },
     {
       "name": "LAMP_PAGE_TIMEZONE",
@@ -59,7 +59,7 @@
       "kind": "text",
       "required": true,
       "group": "owner",
-      "help": "Enter 1\u2013120 characters."
+      "help": "Enter 1–120 characters."
     },
     {
       "name": "LAMP_HOSTING",
