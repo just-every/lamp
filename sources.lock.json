@@ -4496,7 +4496,7 @@
       "executable": false
     },
     "src/core/features/reports/draft.ts": {
-      "sha256": "c92eb5846ea42a42247a31fd8eb5edb8a34f5ddcdf03e9eace7c9562bb567d58",
+      "sha256": "d725430ea1e666e0011d43710d04cc9293f23b8c94afd183600fd4441ecb8ccc",
       "executable": false
     },
     "src/core/features/reports/index.ts": {
@@ -6516,7 +6516,7 @@
       "executable": false
     },
     "tests/e2e/helpers/operations-alerts-flow.mjs": {
-      "sha256": "2cdacb63cc58d9cf442d3e0618d45d548b722cc36429b65aa5a2da5e2f7927a4",
+      "sha256": "d1735284df1b5af6ff44b94819d2d318558d7671346b611f1a4ea803bf59b91e",
       "executable": false
     },
     "tests/e2e/helpers/operator-alerts-flow.mjs": {
@@ -6540,7 +6540,7 @@
       "executable": false
     },
     "tests/e2e/helpers/post-incident-report-flow.mjs": {
-      "sha256": "86b9f5839ad74f7944a03a69cb8aa6886476d3ae9ffebb622b4d92a72d8af798",
+      "sha256": "b8872b584401192c06a2885a8d54ba8fd38eb662d80a736a8baf134269bee86f",
       "executable": false
     },
     "tests/e2e/helpers/postmortem-template-import-flow.mjs": {

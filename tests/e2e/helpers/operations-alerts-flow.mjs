@@ -94,6 +94,19 @@ export async function operationsAlertsFlow({ t }) {
       assert.equal((await api(`/api/app/incidents/${id}`)).body.incident.lifecycle, "Identified", "provider Close leaves a published incident with operators");
       await update("Resolved");
       await eventuallyFollowUp(() => outbound.length, count => count === before + 3, "resolved publication adds one note and one close");
+      const reportDraft = await post(`/api/app/incidents/${id}/report/draft`, {});
+      assert.equal(reportDraft.status, 200, reportDraft.text);
+      const reportBrief = (await api(`/api/app/incidents/${id}/brief`)).body.brief;
+      for (const action of ["Acknowledge", "Escalate"]) {
+        const evidence = reportBrief.whatWeKnow.alerts.find(row => row.payload?.action === action);
+        assert.ok(evidence);
+        const citedLine = reportDraft.body.report.timeline.split("\n").find(line => line.includes(`[${evidence.ref}]`));
+        assert.ok(citedLine, `${preset} report timeline cites ${action}`);
+        assert.ok(citedLine.includes(evidence.payload.timestamp));
+        assert.ok(citedLine.includes(action)); assert.ok(citedLine.includes("Primary responder"));
+      }
+      assert.ok(!JSON.stringify(reportDraft.body).includes(privateNote), "cited report drafts never include responder notes");
+      assert.ok(!reportDraft.body.review.limitations.some(line => /Jira Service Management|Opsgenie/.test(line)), "connected vendor timeline evidence is not reported missing");
       await raw(`${fixture.appOrigin}/cdn-cgi/handler/scheduled?cron=${encodeURIComponent("* * * * *")}&time=${Date.now()}`);
       assert.equal(outbound.length, before + 3, "scheduled replay cannot repeat notes or close");
       for (const path of ["/", `/incidents/${incident.reference}`, "/feed.atom", "/feed.rss", "/api/v2/summary.json"]) assert.ok(!(await (await raw(publicOrigin + path)).text()).includes(privateNote), `${path} excludes responder notes`);

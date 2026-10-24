@@ -56,7 +56,7 @@ export async function postIncidentReportFlow({ page, appFetch, appUrl, pageUrl }
       await expect(page.getByLabel("Summary",{exact:true})).toHaveValue("Synthetic Lamp unsaved report work.");
     }
   }
-  assert.deepEqual(hydration,[]); page.off("console",onConsole); page.off("pageerror",onError);
+  assert.deepEqual(hydration,[]);
   await page.setViewportSize(originalViewport);
 
   const report = {
@@ -67,13 +67,15 @@ export async function postIncidentReportFlow({ page, appFetch, appUrl, pageUrl }
   };
   const editor = page.locator("section").filter({ has: page.getByRole("heading", { name: "Post-incident report", exact: true }) });
   const capture = async (target, state) => {
-    if (!process.env.LAMP_REPORT_SCREENSHOTS) return;
-    await mkdir(process.env.LAMP_REPORT_SCREENSHOTS, { recursive: true });
+    if (process.env.LAMP_REPORT_SCREENSHOTS) await mkdir(process.env.LAMP_REPORT_SCREENSHOTS, { recursive: true });
     for (const width of [1440, 390]) {
       await page.setViewportSize({ width, height: 1000 });
       await target.scrollIntoViewIfNeeded();
       assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true, `${state} fits ${width}px`);
-      await page.screenshot({ path: join(process.env.LAMP_REPORT_SCREENSHOTS, `saved-report-${state}-${width}.png`), fullPage: true });
+      const axe = await new AxeBuilder({ page }).include("main").withTags(["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa"]).analyze();
+      assert.deepEqual(axe.violations.filter(row => ["serious", "critical"].includes(row.impact)).map(row => row.id), [], `${state} axe ${width}px`);
+      assert.deepEqual(hydration, [], `${state} hydration ${width}px`);
+      if (process.env.LAMP_REPORT_SCREENSHOTS) await page.screenshot({ path: join(process.env.LAMP_REPORT_SCREENSHOTS, `saved-report-${state}-${width}.png`), fullPage: true });
     }
   };
   const save = async () => {
@@ -141,4 +143,5 @@ export async function postIncidentReportFlow({ page, appFetch, appUrl, pageUrl }
   await page.getByText(report.summary, { exact: true }).waitFor();
   for (const value of Object.values(report)) assert.ok((await page.locator("body").innerText()).includes(value));
   await capture(page.locator("body"), "published");
+  page.off("console", onConsole); page.off("pageerror", onError);
 }
