@@ -9,7 +9,7 @@ export type ComponentOption = { id: string; name: string };
 export const TOOLS: Array<{ id: ToolId; pick: string; does: string }> = [
   { id: "uptime", pick: "Uptime", does: "Uptime's alerts open drafts on the components you pick." },
   { id: "pagerduty", pick: "PagerDuty", does: "PagerDuty incidents open drafts on the services you map." },
-  { id: "jsm", pick: "Jira Service Management", does: "Operations alerts open drafts on the components you map." },
+  { id: "jsm", pick: "JSM Operations", does: "Operations alerts open drafts on the components you map." },
   { id: "opsgenie", pick: "Opsgenie", does: "Opsgenie alerts open drafts on the components you map." },
   { id: "newrelic", pick: "New Relic", does: "Workflow alerts open drafts on one component." },
   { id: "datadog", pick: "Datadog", does: "Datadog monitor alerts open drafts on one component." },

@@ -19,7 +19,7 @@ export async function operationsAlertsBrowserFlow({ origin, cookie, component, a
       await page.setViewportSize({ width, height: width === 390 ? 844 : 1000 });
       for (const [tool, label] of [["jsm", "Jira Service Management"], ["opsgenie", "Opsgenie"]]) {
         await page.goto(`${origin}/app/alerts`); await operatorHydrated(page);
-        await page.getByRole("button", { name: label, exact: true }).click();
+        await page.getByRole("button", { name: tool === "jsm" ? "JSM Operations" : label, exact: true }).click();
         const editor = page.locator("section.tool-form");
         await editor.getByLabel("Component 1", { exact: true }).selectOption(target.id);
         await editor.getByLabel("Tag 1", { exact: true }).fill("component:api");
