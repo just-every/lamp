@@ -58,7 +58,7 @@ until its acceptance below passes through the public door it names.
 
 ### Released clauses (104, all done)
 
-| Clause | Title | Status | Acceptance evidence |
+| Clause | Title | Status | Tagged journeys |
 |---|---|---|---|
 | DOCS-001 | Public owner documentation | done | `tests/e2e/start-runtime.test.mjs:283` |
 | PAGE-001 | Contents | done | `tests/e2e/app-api.test.mjs:134` |
