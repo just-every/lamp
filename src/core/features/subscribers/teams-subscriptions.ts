@@ -35,13 +35,13 @@ export function createTeamsSubscriptionsService(db: D1Database, options: {
   }
   return {
     async subscribe(input: { url: string; componentIds: string[]; preferences?: SubscriberPreferences }, origin: string) {
-      if (options.unavailable) throw new Error(options.unavailable);
-      if (!tokens) throw new Error("Teams subscriptions are not configured.");
       let url: URL;
       try { url = validateDestination(input.url.trim()); } catch { throw new Error("Paste a Microsoft Teams Workflows webhook URL."); }
       if (!isChannelHost("teams", url.hostname)) throw new Error("Paste a Microsoft Teams Workflows webhook URL.");
-      const pageName = await options.pageName();
       await createSubscriberLimitRepository(db).assertAvailable("teams");
+      if (options.unavailable) throw new Error(options.unavailable);
+      if (!tokens) throw new Error("Teams subscriptions are not configured.");
+      const pageName = await options.pageName();
       const destination = `teams:${await hashOpaqueToken(url.href)}`;
       const existing = await subscribers.findSubscriberByDestination(destination);
       // Repeated public submissions do not change an established subscription.

@@ -20,7 +20,7 @@ export async function auditLogFlow({ page, appUrl, appFetch }) {
   const publication = await request(`/api/app/incidents/${incident.id}/publish`, "POST", { channels: [] });
   const subscriber = (await request("/api/app/subscribers/webhook", "POST", { destination: "https://hooks.example.test/audit-journey", contactEmail: "audit-private@example.test", componentIds: [] }, 201)).subscriber;
   await request(`/api/app/subscribers/${subscriber.id}`, "DELETE", undefined, 204);
-  const maintenance = (await request("/api/app/maintenance", "POST", { title: "Database capacity upgrade audit", startsAt: new Date(Date.now() + 86400000).toISOString(), endsAt: new Date(Date.now() + 90000000).toISOString(), componentIds: [component.id] }, 201)).maintenance;
+  const maintenance = (await request("/api/app/maintenance", "POST", { affectedAudience: "Customers using the scheduled service.", customerImpact: "Requests may be interrupted during this maintenance window.", title: "Database capacity upgrade audit", startsAt: new Date(Date.now() + 86400000).toISOString(), endsAt: new Date(Date.now() + 90000000).toISOString(), componentIds: [component.id] }, 201)).maintenance;
   const group = (await request("/api/app/component-groups", "POST", { name: "Retired audit group", displayOrder: 9101 }, 201)).group;
   const retired = (await request("/api/app/components", "POST", { groupId: group.id, name: "Retired audit component", description: "Removed by the audit journey.", internal: false, displayOrder: 1002, note: "" }, 201)).component;
   await request(`/api/app/components/${retired.id}`, "DELETE", undefined, 204);

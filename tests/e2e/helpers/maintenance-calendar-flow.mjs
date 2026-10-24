@@ -12,7 +12,7 @@ export async function maintenanceCalendarFlow({ appFetch, pageUrl, eventually, c
     assert.equal(response.status, 201, await response.clone().text());
     return (await response.json()).maintenance;
   }
-  const item = await create({ title, startsAt, endsAt, componentIds: [componentId], autoStart: false });
+  const item = await create({ affectedAudience: "Customers using the scheduled service.", customerImpact: "Requests may be interrupted during this maintenance window.", title, startsAt, endsAt, componentIds: [componentId], autoStart: false });
   const uid = `lamp-maintenance-${item.id}@lamp`;
   async function read() {
     const response = await fetch(`${pageUrl}/maintenance.ics`), body = await response.text();
@@ -47,16 +47,16 @@ export async function maintenanceCalendarFlow({ appFetch, pageUrl, eventually, c
   assert.equal((await appFetch(`/api/app/maintenance/${item.id}/complete`, { method: "POST" })).status, 200);
   await eventually(read, value => !value.event, "completed event leaves the active calendar");
   // Cancel a separate scheduled window; active windows cannot be canceled.
-  const cancelled = await create({ title: "synthetic-lamp-008", startsAt, endsAt, componentIds: [componentId] });
+  const cancelled = await create({ affectedAudience: "Customers using the scheduled service.", customerImpact: "Requests may be interrupted during this maintenance window.", title: "synthetic-lamp-008", startsAt, endsAt, componentIds: [componentId] });
   assert.equal((await appFetch(`/api/app/maintenance/${cancelled.id}/cancel`, { method: "POST" })).status, 200);
   calendar = await eventually(read, value => value.events.some(event => event.getFirstPropertyValue("uid") === `lamp-maintenance-${cancelled.id}@lamp` && event.getFirstPropertyValue("status") === "CANCELLED"), "canceled event status");
   const privateResponse = await appFetch("/api/app/components", { method: "POST", body: JSON.stringify({ groupId: null, name: "synthetic-lamp-007-private", description: "", internal: true, displayOrder: 1000, note: "" }) });
   assert.equal(privateResponse.status, 201);
   const privateComponent = (await privateResponse.json()).component;
-  const hidden = await create({ title: "synthetic-lamp-007-hidden-window", startsAt, endsAt, componentIds: [privateComponent.id] });
+  const hidden = await create({ affectedAudience: "Customers using the scheduled service.", customerImpact: "Requests may be interrupted during this maintenance window.", title: "synthetic-lamp-007-hidden-window", startsAt, endsAt, componentIds: [privateComponent.id] });
   // Wait for a known public change after the hidden window, so a prior snapshot
   // cannot make the privacy assertion pass merely because publication is pending.
-  const barrier = await create({ title: "synthetic-lamp-007-barrier", startsAt, endsAt, componentIds: [componentId, privateComponent.id] });
+  const barrier = await create({ affectedAudience: "Customers using the scheduled service.", customerImpact: "Requests may be interrupted during this maintenance window.", title: "synthetic-lamp-007-barrier", startsAt, endsAt, componentIds: [componentId, privateComponent.id] });
   calendar = await eventually(read, value => value.events.some(event => event.getFirstPropertyValue("uid") === `lamp-maintenance-${barrier.id}@lamp`), "privacy proof generation");
   assert.ok(!calendar.body.includes(hidden.id)); assert.ok(!calendar.body.includes(hidden.title));
   const decodedText = calendar.events.flatMap(event => [event.getFirstPropertyValue("summary"), event.getFirstPropertyValue("description")]).join("\n");

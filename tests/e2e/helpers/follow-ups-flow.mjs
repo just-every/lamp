@@ -66,7 +66,7 @@ export async function followUpsFlow() {
     const scheduled = await post(`/api/app/incidents/${scheduledIncident.id}/draft/schedule`, { publishAt: scheduledAt, channels: [] });
     assert.equal(scheduled.status, 202, scheduled.text);
     const maintenance = async (title, startsAt, endsAt, autoStart, autoComplete) => {
-      const created = await post("/api/app/maintenance", { title, startsAt, endsAt, autoStart, autoComplete, componentIds: [component.id] });
+      const created = await post("/api/app/maintenance", { affectedAudience: "Customers using the scheduled service.", customerImpact: "Requests may be interrupted during this maintenance window.", title, startsAt, endsAt, autoStart, autoComplete, componentIds: [component.id] });
       assert.equal(created.status, 201, created.text);
       return created.body.maintenance;
     };
