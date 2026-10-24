@@ -1,3 +1,4 @@
+import { isOperationsPreset, operationsBriefPayload, operationsEvidence } from "../intake/vendor-alerts";
 import type { ComponentState, IncidentLifecycle } from "../../shared/domain";
 import { pagerDutyEvidence } from "../intake/pagerduty";
 import { uptimeEvidence } from "../intake/uptime";
@@ -23,8 +24,9 @@ function parsePayload(text: string): unknown {
 
 export function buildIncidentBrief(facts: BriefFacts, now: Date): IncidentBrief {
   const alerts = facts.alerts.map((alert, index): BriefAlert => {
-    const payload = parsePayload(alert.payloadJson);
-    return { ref: `A${index + 1}`, receivedAt: alert.receivedAt, source: alert.source, state: alert.state, title: alertTitle(alert, payload), ...(alert.preset === "uptime" ? { evidenceSummary: uptimeEvidence(payload) } : alert.preset === "pagerduty" ? { evidenceSummary: pagerDutyEvidence(payload) } : {}), payload };
+    const raw = parsePayload(alert.payloadJson);
+    const payload = isOperationsPreset(alert.preset) ? operationsBriefPayload(raw, alert.receivedAt) : raw;
+    return { ref: `A${index + 1}`, receivedAt: alert.receivedAt, source: alert.source, state: alert.state, title: alertTitle(alert, payload), ...(isOperationsPreset(alert.preset) ? { evidenceSummary: operationsEvidence(alert.preset, payload, alert.receivedAt) } : alert.preset === "uptime" ? { evidenceSummary: uptimeEvidence(payload) } : alert.preset === "pagerduty" ? { evidenceSummary: pagerDutyEvidence(payload) } : {}), payload };
   });
   const updates = facts.updates.map((update, index): BriefUpdate => ({ ref: `U${index + 1}`, ...update }));
   const components = facts.components.map((component, index): BriefComponent => ({ ref: `C${index + 1}`, ...component }));

@@ -363,7 +363,7 @@
     {
       "id": "sorry-api",
       "required": false,
-      "why": "MOVE-001 only, at the owner\u2019s request: authenticated GET reads from https://api.sorryapp.com/v1/pages or keyless GET reads from the selected public Sorry HTTPS page. Redirects are refused; pagination stays on the selected collection. Keys are used only for the read and never stored. Saved responses make no network request.",
+      "why": "MOVE-001 only, at the owner’s request: authenticated GET reads from https://api.sorryapp.com/v1/pages or keyless GET reads from the selected public Sorry HTTPS page. Redirects are refused; pagination stays on the selected collection. Keys are used only for the read and never stored. Saved responses make no network request.",
       "data": [
         "API key in authenticated Authorization header only",
         "Page ID or public status-page hostname and notice IDs"
@@ -398,6 +398,17 @@
       "data": [
         "OAuth code, client identifier, client secret and exact callback URL",
         "Slack team and selected channel identifiers; public notification fields"
+      ],
+      "adapters": []
+    },
+    {
+      "id": "operations-alerts",
+      "required": false,
+      "why": "INTAKE-014: explicit JSM connection reads cloudId without credentials from its validated HTTPS *.atlassian.net/_edge/tenant_info. Published linked updates send notes and optional resolve-close only to fixed https://api.atlassian.com/jsm/ops/api or https://api.opsgenie.com/v2/alerts; redirects are refused.",
+      "data": [
+        "Connected provider key in Authorization header only",
+        "Connected Atlassian account email in Basic Authorization only",
+        "Published update text, incident permalink and linked alert ID"
       ],
       "adapters": []
     }

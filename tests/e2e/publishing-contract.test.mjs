@@ -1,3 +1,4 @@
+import { reportRemindersFlow } from "./helpers/report-reminders-flow.mjs";
 import { maintenanceCalendarFlow, emptyMaintenanceCalendarFlow } from "./helpers/maintenance-calendar-flow.mjs";
 import { availabilityReportFlow } from "./helpers/availability-report-flow.mjs";
 import { communicationPerformanceFlow } from "./helpers/communication-performance-flow.mjs";
@@ -1113,6 +1114,7 @@ test("MAINT-007 MAINT-009 MAINT-002 MAINT-001 MAINT-003 MAINT-004 MAINT-005 MAIN
 
 
 test("DRAFT-003 AGENT-005 HIST-002 HIST-003 AUTO-004 — Unavailable AI, reports and reasoned follow-up", async t => {
+  await reportRemindersFlow();
   t.diagnostic("DRAFT-003 — without a provider the suggestion route is unavailable while normal publication remains available");
   await (async () => {
   const status = await appFetch("/api/app/ai/status");

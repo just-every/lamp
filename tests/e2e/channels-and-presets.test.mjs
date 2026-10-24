@@ -1,3 +1,5 @@
+import { operationsAlertsBrowserFlow } from "./helpers/operations-alerts-browser-flow.mjs";
+import { operationsAlertsFlow } from "./helpers/operations-alerts-flow.mjs";
 import { selfServeChatFlow } from "./helpers/self-serve-chat-flow.mjs";
 import { chatLinksBrowserFlow } from "./helpers/chat-links-browser-flow.mjs";
 import { channelDeletionFlow } from "./helpers/channel-deletion-flow.mjs";
@@ -189,7 +191,7 @@ test("INTAKE-008 — the owner connects Uptime from the Alerts picker with nothi
   await uptimePairingFlow({ api, component, origin, cookie });
 });
 
-test("INTAKE-009 PagerDuty v3 signed events create drafts, brief entries and one note per publication · INTAKE-005 INTAKE-006 INTAKE-007", async t => {
+test("INTAKE-014 INTAKE-011 INTAKE-009 PagerDuty v3 signed events create drafts, brief entries and one note per publication · INTAKE-005 INTAKE-006 INTAKE-007", async t => {
   t.diagnostic("INTAKE-006 — each monitor preset turns its tool's alert into a draft on its component, and refuses other payloads and bad credentials");
   await (async () => {
   for (const preset of Object.keys(payloads)) {
@@ -248,7 +250,9 @@ test("INTAKE-009 PagerDuty v3 signed events create drafts, brief entries and one
   t.diagnostic("INTAKE-005 — another tool connects with its own secret and JSON paths; its receipts are redacted");
   await webhookSourceBrowserFlow({ origin, cookie, api, post });
   t.diagnostic("INTAKE-009 — signed PagerDuty evidence stays private until publication; responder notes survive replay, rejection and restore safely");
+  await operationsAlertsBrowserFlow({ api, component, origin, cookie });
   await pagerDutyBrowserFlow({ api, component, origin, cookie });
   await pagerDutyFlow({ runtime, t });
+  await operationsAlertsFlow({ t });
   await chatLinksBrowserFlow({ origin, cookie, signingSecret: chatSigningSecret, diagnostic: text => t.diagnostic(text) });
 });

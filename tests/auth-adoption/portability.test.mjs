@@ -9,7 +9,7 @@ import { authFixture, secret, setupToken } from './runtime.mjs';
 import { load } from '../operator-readiness/runtime.mjs';
 import { checkout, command, proxy } from '../helpers/native-transfer.mjs';
 
-test('ACCESS-001 INTAKE-009 native rer archive restores owner continuity and subscriber authority without restoring sessions, provider approval or a sealed PagerDuty key', async t => {
+test('ACCESS-001 INTAKE-009 native rer archive restores owner continuity and subscriber authority without restoring sessions, provider approval or sealed responder keys · INTAKE-014', async t => {
   const root = process.cwd(), directory = await mkdtemp(join(root, '.lamp-auth-portability-'));
   const source = join(directory, 'source'), target = join(directory, 'target');
   let current;
@@ -52,9 +52,11 @@ test('ACCESS-001 INTAKE-009 native rer archive restores owner continuity and sub
     await db.prepare("INSERT INTO chat_requests(hash,expires_at) VALUES('synthetic-lamp-request',?)").bind(Date.now()+600000).run();
     // A connected PagerDuty source's sealed REST key is a provider credential: it never travels.
     await db.prepare("INSERT INTO alert_sources(id,name,credential_kind,signing_secret,deduplication_path,title_path,state_path,created_by_operator_id,responder_preset,responder_sealed_credentials,responder_connected,created_at,updated_at) VALUES('portable-pagerduty','Portable PagerDuty','hmac-sha256','portable-signing-secret','event.data.id','event.data.title','event.event_type',?,'pagerduty','portable-sealed-rest-key',1,?,?)").bind(actor.operator.id, now, now).run();
+    for (const preset of ['jsm','opsgenie']) await db.prepare("INSERT INTO alert_sources(id,name,credential_kind,bearer_token_hash,deduplication_path,title_path,state_path,created_by_operator_id,vendor_preset,responder_sealed_credentials,responder_connected,close_alert_on_resolve,created_at,updated_at) VALUES(?,?,'bearer-token','synthetic-lamp-token-hash','preset:operations','preset:operations','preset:operations',?,?,?,1,1,?,?)").bind(`synthetic-lamp-${preset}`,`synthetic-lamp-${preset}`,actor.operator.id,preset,`synthetic-lamp-${preset}-sealed-key`,now,now).run();
     await current.dispose(); current = null;
     await command(source, 'export', '--output', join(directory, 'installation.rer'));
     assert.ok(!(await readFile(join(directory, 'installation.rer'))).includes('portable-sealed-rest-key'), 'the archive carries no sealed PagerDuty key');
+    for (const preset of ['jsm','opsgenie']) assert.ok(!(await readFile(join(directory, 'installation.rer'))).includes(`synthetic-lamp-${preset}-sealed-key`), `${preset} ciphertext never travels`);
     for await (const record of fileRecords(join(directory, 'installation.rer'))) {
       if (record.kind !== 'manifest') continue;
       for (const name of ['chat_link_codes','chat_previews','chat_requests']) assert.equal(record.tables.some(table => table.name === name), false, `${name} is not exported`);
@@ -102,6 +104,16 @@ test('ACCESS-001 INTAKE-009 native rer archive restores owner continuity and sub
     assert.equal((await restored.prepare('SELECT needs_relink FROM rer_dependency_link').first()).needs_relink, 1);
     assert.equal((await restored.prepare('SELECT idp_sign_in FROM oa_auth_settings').first()).idp_sign_in, 0);
     assert.deepEqual({ ...await restored.prepare("SELECT responder_sealed_credentials, responder_connected FROM alert_sources WHERE id='portable-pagerduty'").first() }, { responder_sealed_credentials: null, responder_connected: 1 }, 'the restored PagerDuty source asks to reconnect');
+    for (const preset of ['jsm','opsgenie']) assert.deepEqual({ ...await restored.prepare('SELECT vendor_preset,responder_sealed_credentials,responder_connected,close_alert_on_resolve FROM alert_sources WHERE id=?').bind(`synthetic-lamp-${preset}`).first() }, { vendor_preset:preset,responder_sealed_credentials:null,responder_connected:1,close_alert_on_resolve:1 }, `${preset} restored connection retains settings and requires reconnect`);
+    const sourceListing = await transferredApp.app.fetch(new Request(fresh.origin + '/api/app/intake/sources', { headers: { Cookie: cookie } }));
+    assert.equal(sourceListing.status, 200, await sourceListing.clone().text());
+    const restoredSources = (await sourceListing.json()).sources;
+    for (const preset of ['jsm','opsgenie']) {
+      const source = restoredSources.find(row => row.preset === preset);
+      assert.ok(source); assert.equal(source.responderConnection, 'reconnect');
+      assert.equal(source.closeAlertOnResolve, true);
+      assert.ok(!JSON.stringify(source).includes('sealed-key'));
+    }
     const restoredApp = new Hono();
     registerSubscriberRoutes(restoredApp, createSubscribersService(createSubscriberRepository(restored), { tokenSecret: 'portable-subscriber-secret' }));
     assert.equal((await restoredApp.fetch(new Request(fresh.origin + '/manage/' + manage))).status, 200);

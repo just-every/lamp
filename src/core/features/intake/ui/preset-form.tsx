@@ -4,15 +4,16 @@ import { appApi } from "../../../app/client/ui/api";
 import { Button } from "../../../app/client/ui/button";
 import { FormError } from "../../../app/client/ui/states";
 import { createOpaqueToken } from "../../../platform/security/opaque-tokens";
-import { datadogPayloadTemplate, uptimeRobotPayloadTemplate } from "../presets";
+import { datadogPayloadTemplate, uptimeRobotPayloadTemplate, newRelicPayloadTemplate } from "../presets";
 import { ComponentOptions, NewKey, SaveNote, ShownOnce, ToolHeading, type Copyable } from "./tool-parts";
 import { keyedAddress, toolDoes, toolLabel, type ComponentOption, type Source } from "./tools";
 import { useSourceAutosave } from "./use-source-autosave";
 
-export type SingleTool = "datadog" | "uptimerobot" | "betterstack" | "pingdom";
+export type SingleTool = "newrelic" | "datadog" | "uptimerobot" | "betterstack" | "pingdom";
 
 // Each tool takes Lamp's key in the address, so the address is the one thing to paste (with the body the tool must send).
 const SETUP: Record<SingleTool, string> = {
+  newrelic: "In New Relic, add a workflow webhook destination with this address and custom payload. Notify on activated and closed issues.",
   datadog: "In Datadog's Webhooks integration, add a webhook with this address and payload, then mention @webhook-<its name> in your monitor.",
   uptimerobot: "In UptimeRobot, add a Webhook with this address as URL to Notify, tick Send as JSON and paste the body. Then add it to each monitor's alert contacts.",
   betterstack: "In Better Stack, add an incident webhook with this address.",
@@ -20,6 +21,7 @@ const SETUP: Record<SingleTool, string> = {
 };
 function setupFields(tool: SingleTool, address: string): Copyable[] {
   const fields: Copyable[] = [{ label: `${toolLabel(tool)} address`, value: address, copy: "Copy address" }];
+  if (tool === "newrelic") fields.push({ label: "New Relic workflow template", value: newRelicPayloadTemplate, copy: "Copy template", multiline: true });
   if (tool === "datadog") fields.push({ label: "Datadog payload", value: datadogPayloadTemplate, copy: "Copy payload", multiline: true });
   if (tool === "uptimerobot") fields.push({ label: "UptimeRobot JSON body", value: uptimeRobotPayloadTemplate, copy: "Copy body", multiline: true });
   return fields;
