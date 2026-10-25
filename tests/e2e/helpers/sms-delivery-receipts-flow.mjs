@@ -3,7 +3,7 @@ import { smsBindings, smsSignature } from './sms-subscriber-flow.mjs';
 import { subscriberCsvRows } from './subscriber-management-fixture.mjs';
 
 /** Public publish/callback/log doors; only the Twilio HTTP edge is replaced. */
-export async function smsDeliveryReceiptsFlow({ api, post, raw, db, flush, messages, pageOrigin }) {
+export async function smsDeliveryReceiptsFlow({ api, post, raw, request = raw, db, flush, messages, pageOrigin }) {
   const created = await post('/api/app/components', { groupId: null, name: 'synthetic-lamp-501', description: '', internal: false, displayOrder: 0, note: '' });
   assert.equal(created.status, 201, created.text);
   const phones = ['+12025550171', '+12025550172', '+12025550173'];
@@ -63,7 +63,7 @@ export async function smsDeliveryReceiptsFlow({ api, post, raw, db, flush, messa
     assert.equal(row.providerOutcome, 'delivered');
   }
   assert.equal((await log('&outcome=failed')).length, 0);
-  const csv = await raw(`/api/app/deliveries.csv?channel=sms&outcome=delivered&incidentUpdateId=${updateId}`);
+  const csv = await request(`/api/app/deliveries.csv?channel=sms&outcome=delivered&incidentUpdateId=${updateId}`);
   assert.equal(csv.status, 200);
   const exported = subscriberCsvRows(await csv.text());
   assert.equal(exported.length, 3);
