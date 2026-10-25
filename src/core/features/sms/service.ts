@@ -5,7 +5,7 @@ import { SubscriberTokenCodec } from "../subscribers/tokens";
 import { defaultPreferences,type SubscriberPreferences } from "../subscribers/preferences";
 import { createSmsRepository } from "./repository";
 import { validateSmsPhone } from "./phone";
-import { renderSmsMessage } from "./message";
+import { assertSmsWithinTwoSegments, renderSmsMessage } from "./message";
 import { sendTwilio,twilioConfigured,type TwilioConfig } from "./twilio";
 
 export function createSmsService(db:D1Database,options:TwilioConfig & {tokenSecret?:string;effectsPaused?:boolean;unavailable?:string|null;pageName:()=>Promise<string>;supportContact:()=>Promise<string|undefined>;publicOrigin:()=>Promise<string>}) {
@@ -20,7 +20,14 @@ export function createSmsService(db:D1Database,options:TwilioConfig & {tokenSecr
   async function validatePhone(phone:string) { validateSmsPhone(phone,(await settings()).countries); }
   async function send(to:string,body:string,statusCallback?:string) {
     ensureConfigured();
+    assertSmsWithinTwoSegments(body);
     return sendTwilio(options,{to,body,statusCallback});
+  }
+  const optInWording=(name:string)=>`${name}: Status updates vary with incidents and maintenance. Msg & data rates may apply. Reply YES to subscribe. HELP for help; STOP to cancel.`;
+  const helpWording=(name:string,supportContact:string)=>`${name}: Status updates vary with incidents and maintenance. Support: ${supportContact}. Reply STOP to cancel.`;
+  async function controlWordingFits(name:string) {
+    assertSmsWithinTwoSegments(optInWording(name));
+    assertSmsWithinTwoSegments(helpWording(name,(await settings()).supportContact));
   }
   async function manageToken(id:string) {
     if(!tokens)throw new Error("SMS management tokens are not configured.");
@@ -34,7 +41,8 @@ export function createSmsService(db:D1Database,options:TwilioConfig & {tokenSecr
     const pending=await repository.pending(id);
     if(!pending || Date.now()-Date.parse(pending.createdAt)>72*60*60*1000)return false;
     const pageName=await options.pageName();
-    const wording=`${pageName}: Status updates vary with incidents and maintenance. Msg & data rates may apply. Reply YES to subscribe. HELP for help; STOP to cancel.`;
+    const wording=optInWording(pageName);
+    await controlWordingFits(pageName);
     const now=nowIso();
     const allowance=await hashOpaqueToken(`sms-confirmation:${pending.destination}`);
     const allowed=await subscribers.intake.has(id)
@@ -49,11 +57,17 @@ export function createSmsService(db:D1Database,options:TwilioConfig & {tokenSecr
   }
   return {
     configured,settings,validatePhone,invite,operatorAllowed:repository.operatorAllowed,
-    updateSettings:repository.updateSettings,
+    async updateSettings(countries:string[],supportContact:string,operatorId:string,now:string) {
+      const name=await options.pageName();
+      assertSmsWithinTwoSegments(optInWording(name));
+      assertSmsWithinTwoSegments(helpWording(name,supportContact));
+      await repository.updateSettings(countries,supportContact,operatorId,now);
+    },
     publicationStatements:repository.publicationStatements,
     deliveries:repository.deliveries,
     async subscribe(input:{phone:string;componentIds:string[];preferences?:SubscriberPreferences},origin:string,operatorId?:string) {
       await validatePhone(input.phone);ensureConfigured();
+      await controlWordingFits(await options.pageName());
       if(operatorId&&!await repository.operatorAllowed(operatorId))throw new Error("Only the owner or an admin can add SMS subscribers.");
       await subscribers.limits.assertAvailable('sms');
       const existing=await subscribers.findSubscriberByDestination(input.phone);
@@ -73,14 +87,14 @@ export function createSmsService(db:D1Database,options:TwilioConfig & {tokenSecr
       if(!id)return;
       const name=await options.pageName();
       if(['STOP','UNSUBSCRIBE','CANCEL','END','QUIT'].includes(body)) {
-        if(await repository.stop(id,nowIso()))await send(number,`${name}: You are unsubscribed. No more status messages will be sent. Reply YES only after subscribing again on the status page.`);
+        if(await repository.stop(id,nowIso()))await send(number,'You are unsubscribed. No more status messages will be sent. Subscribe again on the status page to opt in.');
       } else if(body==='YES') {
         if(await repository.activate(id,nowIso())) {
           const token=await manageToken(id);
           await send(number,renderSmsMessage(`${name}: You are subscribed. Reply STOP to cancel or HELP for help. Manage preferences:`,new URL(`/manage/${encodeURIComponent(token)}`,origin).href));
         }
       } else if(body==='HELP') {
-        await send(number,`${name}: Status updates vary with incidents and maintenance. Support: ${(await settings()).supportContact}. Reply STOP to cancel.`);
+        await send(number,helpWording(name,(await settings()).supportContact));
       }
     },
     async dispatchPending() {

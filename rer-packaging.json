@@ -108,7 +108,11 @@
         "MAIL_SECONDARY_API_KEY",
         "MAILGUN_WEBHOOK_SIGNING_KEY",
         "POSTMARK_WEBHOOK_SECRET",
-        "POSTMARK_ACCOUNT_API_KEY"
+        "POSTMARK_ACCOUNT_API_KEY",
+        "TWILIO_ACCOUNT_SID",
+        "TWILIO_AUTH_TOKEN",
+        "TWILIO_FROM_NUMBER",
+        "TWILIO_MESSAGING_SERVICE"
       ],
       "migrationPrefix": "core-",
       "recovery": "Retain source and database backup before migration. Preserve applied migration history. Restore into fresh installation resources and verify owner workflows before switching traffic.",

@@ -42,7 +42,8 @@ export function registerSmsRoutes(app:Hono<AppEnv>,service:SmsService,pageName:(
     if(!await service.operatorAllowed(context.get('operator').id))return context.json({error:'Only the owner or an admin can configure SMS.'},403);
     const parsed=settingsSchema.safeParse(await context.req.json().catch(()=>null));
     if(!parsed.success)return context.json({error:'Choose supported countries and a support contact.',issues:parsed.error.issues},400);
-    await service.updateSettings(parsed.data.countries,parsed.data.supportContact,context.get('operator').id,new Date().toISOString());
+    try { await service.updateSettings(parsed.data.countries,parsed.data.supportContact,context.get('operator').id,new Date().toISOString()); }
+    catch(cause) { return context.json({error:cause instanceof Error?cause.message:'SMS settings could not be saved.'},400); }
     return context.json({settings:await service.settings(),configured:service.configured()});
   });
   app.get('/api/app/sms/deliveries',async context=>{

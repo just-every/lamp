@@ -22,7 +22,7 @@ export async function sendTwilio(config: TwilioConfig, input: {to:string;body:st
   else form.set("From",config.fromNumber!);
   if (input.statusCallback) form.set("StatusCallback",input.statusCallback);
   const response = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${encodeURIComponent(config.accountSid!)}/Messages.json`, {
-    method:"POST", redirect:"error", headers:{"Content-Type":"application/x-www-form-urlencoded",Authorization:`Basic ${btoa(`${config.accountSid}:${config.authToken}`)}`}, body:form.toString(),
+    method:"POST", redirect:"manual", headers:{"Content-Type":"application/x-www-form-urlencoded",Authorization:`Basic ${btoa(`${config.accountSid}:${config.authToken}`)}`}, body:form.toString(),
   });
   if (!response.ok) throw new Error(`Twilio refused the SMS (HTTP ${response.status}).`);
   const result = await response.json() as {sid?:unknown};

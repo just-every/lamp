@@ -8,13 +8,13 @@ import { keptSecrets, replacedSecrets, signingSecrets, withDeploymentSecrets } f
 import { database, load } from '../operator-readiness/runtime.mjs';
 
 test('deployment secrets remain private and are removed after success or failure', async () => {
-  const config = { sessionSecret:'synthetic-session-secret',setupToken:'synthetic-setup-token',mailProviderApiKey: 'test-provider-secret', subscriberTokenSecret: 'test-token-secret', webhookSigningSecret: 'test-signing-secret' };
+  const config = { sessionSecret:'synthetic-session-secret',setupToken:'synthetic-setup-token',mailProviderApiKey: 'test-provider-secret', subscriberTokenSecret: 'test-token-secret', webhookSigningSecret: 'test-signing-secret',twilioAccountSid:'synthetic-lamp-1',twilioAuthToken:'synthetic-lamp-2',twilioFromNumber:'+12025550100',twilioMessagingService:'synthetic-lamp-3' };
   for (const fail of [false, true]) {
     let path;
     const action = withDeploymentSecrets(config, [], async file => {
       path = file;
       assert.equal((await stat(file)).mode & 0o777, 0o600);
-      assert.deepEqual(JSON.parse(await readFile(file, 'utf8')), { SESSION_SECRET:config.sessionSecret,SETUP_TOKEN:config.setupToken,AUTH_PROVIDERS:"",MAIL_PROVIDER_API_KEY: config.mailProviderApiKey, MAIL_API_KEY: "", SUBSCRIBER_TOKEN_SECRET: config.subscriberTokenSecret, WEBHOOK_SIGNING_SECRET: config.webhookSigningSecret, RER_MAIL_RELAY_SECRET: "", RESEND_WEBHOOK_SECRET: "", MAIL_SECONDARY_API_KEY: "", MAILGUN_WEBHOOK_SIGNING_KEY: "", POSTMARK_WEBHOOK_SECRET: "", POSTMARK_ACCOUNT_API_KEY: "", AI_PROVIDER_API_KEY: "" });
+      assert.deepEqual(JSON.parse(await readFile(file, 'utf8')), { SESSION_SECRET:config.sessionSecret,SETUP_TOKEN:config.setupToken,AUTH_PROVIDERS:"",MAIL_PROVIDER_API_KEY: config.mailProviderApiKey, MAIL_API_KEY: "", SUBSCRIBER_TOKEN_SECRET: config.subscriberTokenSecret, WEBHOOK_SIGNING_SECRET: config.webhookSigningSecret, RER_MAIL_RELAY_SECRET: "", RESEND_WEBHOOK_SECRET: "", MAIL_SECONDARY_API_KEY: "", MAILGUN_WEBHOOK_SIGNING_KEY: "", POSTMARK_WEBHOOK_SECRET: "", POSTMARK_ACCOUNT_API_KEY: "", AI_PROVIDER_API_KEY: "", TWILIO_ACCOUNT_SID:config.twilioAccountSid,TWILIO_AUTH_TOKEN:config.twilioAuthToken,TWILIO_FROM_NUMBER:config.twilioFromNumber,TWILIO_MESSAGING_SERVICE:config.twilioMessagingService });
       if (fail) throw new Error('test failure');
     });
     if (fail) await assert.rejects(action, /test failure/); else await action;
@@ -94,9 +94,13 @@ test('a redeploy as the guide says keeps subscriber links and operator sessions,
   const required = { mailProviderApiKey: 'required-mail', subscriberTokenSecret: 'required-token', webhookSigningSecret: 'required-signing' };
   const existing = { OWNER_PRIVATE_KEY: 'owner-value' };
   const apply = async config => withDeploymentSecrets(config, [], async file => Object.assign(existing, JSON.parse(await readFile(file, 'utf8'))));
-  await apply({ ...required, mailApiKey: 'old-managed-mail', relaySecret: 'old-relay', resendWebhookSecret: 'old-resend', aiProviderApiKey: 'old-ai' });
+  await apply({ ...required, mailApiKey: 'old-managed-mail', relaySecret: 'old-relay', resendWebhookSecret: 'old-resend', aiProviderApiKey: 'old-ai',twilioAccountSid:'synthetic-lamp-1',twilioAuthToken:'synthetic-lamp-2',twilioFromNumber:'+12025550100',twilioMessagingService:'synthetic-lamp-3' });
   assert.equal(existing.RER_MAIL_RELAY_SECRET, 'old-relay');
+  assert.equal(existing.TWILIO_ACCOUNT_SID,'synthetic-lamp-1');
+  assert.equal(existing.TWILIO_AUTH_TOKEN,'synthetic-lamp-2');
+  assert.equal(existing.TWILIO_FROM_NUMBER,'+12025550100');
+  assert.equal(existing.TWILIO_MESSAGING_SERVICE,'synthetic-lamp-3');
   await apply(required);
   assert.equal(existing.OWNER_PRIVATE_KEY, 'owner-value');
-  for (const name of ['MAIL_API_KEY', 'RER_MAIL_RELAY_SECRET', 'RESEND_WEBHOOK_SECRET', 'AI_PROVIDER_API_KEY']) assert.equal(existing[name], '');
+  for (const name of ['MAIL_API_KEY', 'RER_MAIL_RELAY_SECRET', 'RESEND_WEBHOOK_SECRET', 'AI_PROVIDER_API_KEY','TWILIO_ACCOUNT_SID','TWILIO_AUTH_TOKEN','TWILIO_FROM_NUMBER','TWILIO_MESSAGING_SERVICE']) assert.equal(existing[name], '');
 });

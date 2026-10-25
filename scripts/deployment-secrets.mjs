@@ -56,6 +56,10 @@ export async function withDeploymentSecrets(config, kept, action) {
     POSTMARK_WEBHOOK_SECRET: config.postmarkWebhookSecret ?? "",
     POSTMARK_ACCOUNT_API_KEY: config.postmarkAccountApiKey ?? "",
     AI_PROVIDER_API_KEY: config.aiProviderApiKey ?? "",
+    TWILIO_ACCOUNT_SID: config.twilioAccountSid ?? "",
+    TWILIO_AUTH_TOKEN: config.twilioAuthToken ?? "",
+    TWILIO_FROM_NUMBER: config.twilioFromNumber ?? "",
+    TWILIO_MESSAGING_SERVICE: config.twilioMessagingService ?? "",
   };
   for (const name of kept) delete values[name];
   try {
