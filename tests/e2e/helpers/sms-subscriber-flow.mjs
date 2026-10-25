@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { createHmac } from 'node:crypto';
-import { openSubscriberManagementFixture, eventuallySubscriber, pageOrigin, subscriberCsv } from './subscriber-management-fixture.mjs';
+import { openSubscriberManagementFixture, eventuallySubscriber, pageOrigin, subscriberCsv, subscriberCsvRows } from './subscriber-management-fixture.mjs';
 
 export const smsBindings = {
   TWILIO_ACCOUNT_SID: 'synthetic-lamp-1',
@@ -194,6 +194,30 @@ export async function smsSubscriberFlow() {
     assert.equal(added.body.subscriber.state, 'pending');
     assert.deepEqual(added.body.subscriber.componentSelections.map(row => row.componentId), [component.id]);
     assert.equal(messagesFor('+12025550103').length, 1, 'operator Add sends one opt-in');
+    const owner = (await api('/api/app/session')).body.operator;
+    assert.deepEqual(added.body.subscriber.addedBy, { id: owner.id, displayName: owner.displayName }, 'SMS Add retains its operator attribution');
+    const repeatedAdd = await post('/api/app/subscribers', { channel: 'sms', phone: '+12025550103', componentIds: [other.id] });
+    assert.equal(repeatedAdd.status, 200, repeatedAdd.text);
+    assert.equal(repeatedAdd.body.created, false);
+    assert.equal(repeatedAdd.body.confirmationSent, false);
+    assert.deepEqual(repeatedAdd.body.subscriber.componentSelections.map(row => row.componentId), [component.id], 'repeated Add preserves existing choices');
+    assert.equal(messagesFor('+12025550103').length, 1, 'repeated Add sends no second opt-in');
+    const addAudit = await api('/api/app/audit-log?action=subscriber.added&limit=100');
+    assert.equal(addAudit.status, 200, addAudit.text);
+    assert.equal(addAudit.body.entries.filter(entry => entry.entityId === added.body.subscriber.id && entry.actorId === owner.id).length, 1, 'SMS Add has one attributed audit entry');
+    assert.ok(!addAudit.text.includes('+12025550103'), 'the attributed audit copies no phone number');
+    const addedConfirmedAfter = Date.now();
+    assert.equal((await inbound('+12025550103', 'YES')).status, 200);
+    const addedConfirmedBefore = Date.now();
+    const exported = await fixture.request('/api/app/subscribers.csv');
+    assert.equal(exported.status, 200);
+    const exportedPhone = subscriberCsvRows(await exported.text()).find(row => row.destination === "'+12025550103");
+    assert.ok(exportedPhone, 'CSV neutralizes the formula-leading E.164 destination');
+    assert.equal(exportedPhone.channel, 'sms');
+    assert.equal(exportedPhone.state, 'active');
+    assert.equal(exportedPhone.components, component.id);
+    assert.ok(Date.parse(exportedPhone.consent_at) >= addedConfirmedAfter && Date.parse(exportedPhone.consent_at) <= addedConfirmedBefore, 'SMS CSV records the actual signed YES consent instant');
+
     const csv = subscriberCsv(['email', 'phone', 'webhook_url', 'contact_email', 'components', 'language'], [
       ['synthetic-lamp-307@example.test', '', '', '', component.id, 'en'],
       ['', '+12025550104', '', '', component.id, 'en'],

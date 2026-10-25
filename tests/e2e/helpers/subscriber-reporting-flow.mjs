@@ -53,7 +53,7 @@ export async function subscriberReportingFlow({ vite, bindings }) {
   const ids = [...imported];
   try {
     for (const format of ['', '?format=csv']) assert.equal((await app.fetch(fixture.request(`/api/app/subscriber-reporting${format}`))).status, 401);
-    for (const invalid of ['month=2026-13', 'from=2026-02-30&to=2026-03-02', 'from=2020-01-01&to=2026-01-01', 'from=2026-01-01', 'month=2026-01&from=2026-01-01&to=2026-02-01', 'channel=sms', 'limit=1']) assert.equal((await request(`/api/app/subscriber-reporting?${invalid}`)).status, 400);
+    for (const invalid of ['month=2026-13', 'from=2026-02-30&to=2026-03-02', 'from=2020-01-01&to=2026-01-01', 'from=2026-01-01', 'month=2026-01&from=2026-01-01&to=2026-02-01', 'channel=voice', 'limit=1']) assert.equal((await request(`/api/app/subscriber-reporting?${invalid}`)).status, 400);
     const before = await read(), beforeChanges = changes(before), beforeList = await list();
     await db.prepare("INSERT INTO components(id,name,description,internal,display_order,note,created_at,updated_at) VALUES(?, '=SUM(1,2)', '', 0, 1, '', ?, ?)").bind(component, now, now).run();
     // Native import writes carry old creation dates; observation stays today.
