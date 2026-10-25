@@ -1,13 +1,16 @@
 import { mkdir } from 'node:fs/promises';
+import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import assert from 'node:assert/strict';
 import { createHmac } from 'node:crypto';
 import { chromium } from 'playwright';
 import AxeBuilder from '@axe-core/playwright';
 
-export const RECORDED_SLACK_WEBHOOK='https://hooks.slack.com/services/synthetic-lamp-1/synthetic-lamp-2/synthetic-lamp-3';
-export const RECORDED_SLACK_TEAM='synthetic-lamp-team';
-export const recordedSlackOAuth={ok:true,scope:'incoming-webhook',team:{id:RECORDED_SLACK_TEAM},incoming_webhook:{channel:'#synthetic-lamp',channel_id:'synthetic-lamp-channel',url:RECORDED_SLACK_WEBHOOK}};
+export const recordedSlackExchange=JSON.parse(readFileSync(new URL('../fixtures/slack-subscriptions/oauth-exchange.json',import.meta.url),'utf8'));
+export const recordedSlackEvents=JSON.parse(readFileSync(new URL('../fixtures/slack-subscriptions/events.json',import.meta.url),'utf8'));
+export const recordedSlackOAuth=recordedSlackExchange.response;
+export const RECORDED_SLACK_WEBHOOK=recordedSlackOAuth.incoming_webhook.url;
+export const RECORDED_SLACK_TEAM=recordedSlackOAuth.team.id;
 
 export async function prepareSlackSubscription({componentId,publicOrigin,sql,widths=[1440,390],onManage}){
   const browser=await chromium.launch({headless:true,args:['--use-mock-keychain','--password-store=basic']});
@@ -41,7 +44,7 @@ export async function prepareSlackSubscription({componentId,publicOrigin,sql,wid
       assert.equal(location.searchParams.get('scope'),'incoming-webhook');
       await continuation.click();
       assert.equal(page.url(),location.href,'the public control reaches the synthetic Slack authorization edge');
-      const callback=new URL('/subscribe/slack/callback',publicOrigin);callback.searchParams.set('state',location.searchParams.get('state'));callback.searchParams.set('code','synthetic-lamp-oauth-code');
+      const callback=new URL('/subscribe/slack/callback',publicOrigin);callback.searchParams.set('state',location.searchParams.get('state'));callback.searchParams.set('code',recordedSlackExchange.request.code);
       const response=await page.goto(callback.href);assert.equal(response.status(),200,await page.textContent('body'));
       assert.equal(response.headers()['set-cookie'],undefined,'the callback stores no visitor cookie');
       assert.equal(response.request().headers().cookie,undefined,'hashed OAuth state works without a cookie');
@@ -66,7 +69,10 @@ export function verifySlackPublication({received}){
   assert.match(JSON.parse(delivered[0].body).text,/See <https:\/\/help\.example\.com\/kb\/123>\./);
 }
 export async function removeSlackSubscription({publicOrigin,signingSecret,id,sql,eventType='app_uninstalled'}){
-  const raw=JSON.stringify({type:'event_callback',team_id:RECORDED_SLACK_TEAM,event:{type:eventType}}),timestamp=String(Math.floor(Date.now()/1000));
+  assert.ok(Object.hasOwn(recordedSlackEvents.payloads,eventType),'the signed event has a recorded provider-edge payload');
+  const envelope=recordedSlackEvents.payloads[eventType];
+  assert.equal(envelope.team_id,RECORDED_SLACK_TEAM);
+  const raw=JSON.stringify(envelope),timestamp=String(Math.floor(Date.now()/1000));
   const signature='v0='+createHmac('sha256',signingSecret).update(`v0:${timestamp}:${raw}`).digest('hex');
   const response=await fetch(`${publicOrigin}/subscribe/slack/events`,{method:'POST',headers:{'content-type':'application/json','x-slack-request-timestamp':timestamp,'x-slack-signature':signature},body:raw});
   assert.equal(response.status,200,await response.text());

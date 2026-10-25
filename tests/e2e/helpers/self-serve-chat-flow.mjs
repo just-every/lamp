@@ -1,21 +1,21 @@
 import { chatPreferencesFlow } from './chat-preferences-flow.mjs';
 import assert from 'node:assert/strict';
-import { randomBytes } from 'node:crypto';
 import { openFollowUpsRuntime, eventuallyFollowUp } from './follow-ups-runtime.mjs';
-import { recordedSlackOAuth, RECORDED_SLACK_WEBHOOK, prepareSlackSubscription,verifySlackPublication,removeSlackSubscription } from '../slack-subscriptions-helper.mjs';
+import { recordedSlackExchange, recordedSlackEvents, recordedSlackOAuth, RECORDED_SLACK_WEBHOOK, prepareSlackSubscription,verifySlackPublication,removeSlackSubscription } from '../slack-subscriptions-helper.mjs';
 import { subscriberTeamsUrl, prepareTeamsSubscription,verifyTeamsPublication } from '../teams-subscriptions-helper.mjs';
 
 /** Complete public and authenticated application doors, with only the Slack
  * OAuth/webhook and Teams Workflows network edges replaced by synthetic replies. */
 export async function selfServeChatFlow(t){
-  const received=[],signingSecret=randomBytes(32).toString('hex');
+  const received=[],signingSecret=recordedSlackEvents.signingSecret;
   let slackReply={status:200,body:'ok'},teamsStatus=202;
-  const runtime=await openFollowUpsRuntime({pageHost:'localhost',extraBindings:{SLACK_CLIENT_ID:'synthetic-lamp-client',SLACK_CLIENT_SECRET:'synthetic-lamp-client-secret',SLACK_SIGNING_SECRET:signingSecret},providerEdge:async request=>{
-    if(request.url==='https://slack.com/api/oauth.v2.access'){
-      assert.equal(request.method,'POST');
+  const runtime=await openFollowUpsRuntime({pageHost:'localhost',extraBindings:{SLACK_CLIENT_ID:recordedSlackExchange.request.client_id,SLACK_CLIENT_SECRET:recordedSlackExchange.request.client_secret,SLACK_SIGNING_SECRET:signingSecret},providerEdge:async request=>{
+    if(request.url===recordedSlackExchange.request.url){
+      assert.equal(request.method,recordedSlackExchange.request.method);
+      assert.equal(request.headers.get('content-type'),'application/x-www-form-urlencoded');
       const exchange=new URLSearchParams(await request.text());
-      assert.equal(exchange.get('client_id'),'synthetic-lamp-client');assert.equal(exchange.get('client_secret'),'synthetic-lamp-client-secret');assert.equal(exchange.get('code'),'synthetic-lamp-oauth-code');
-      assert.equal(new URL(exchange.get('redirect_uri')).pathname,'/subscribe/slack/callback');
+      for(const field of ['client_id','client_secret','code'])assert.equal(exchange.get(field),recordedSlackExchange.request[field]);
+      assert.equal(new URL(exchange.get('redirect_uri')).pathname,recordedSlackExchange.request.redirectPath);
       return Response.json(recordedSlackOAuth);
     }
     if(request.url===RECORDED_SLACK_WEBHOOK||request.url===subscriberTeamsUrl){

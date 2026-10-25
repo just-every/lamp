@@ -1,0 +1,30 @@
+{
+  "source": "synthetic Slack network-edge recording",
+  "signingSecret": "synthetic-lamp-76",
+  "payloads": {
+    "app_uninstalled": {
+      "type": "event_callback",
+      "team_id": "synthetic-lamp-70",
+      "api_app_id": "synthetic-lamp-78",
+      "event_id": "synthetic-lamp-77",
+      "event": {
+        "type": "app_uninstalled"
+      }
+    },
+    "tokens_revoked": {
+      "type": "event_callback",
+      "team_id": "synthetic-lamp-70",
+      "api_app_id": "synthetic-lamp-78",
+      "event_id": "synthetic-lamp-81",
+      "event": {
+        "type": "tokens_revoked",
+        "tokens": {
+          "oauth": [],
+          "bot": [
+            "synthetic-lamp-82"
+          ]
+        }
+      }
+    }
+  }
+}
