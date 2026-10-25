@@ -47,8 +47,8 @@ function regionsMapOf(model: PublicSnapshotModel) {
   const markers = mapMarkers(groups);
   const bands = mapPlan(markers);
   const styles = planStyles(markers, bands);
-  // Every region with its state and size, mapped or not, and the layout: the map section is not refreshed in place.
-  const regions = groups.map((group) => `${group.key}:${group.state}:${group.components.length}`).join("|");
+  // Region membership and geometry determine the stylesheet. State labels refresh in place.
+  const regions = groups.map((group) => `${group.key}:${group.components.length}`).join("|");
   return { groups, markers, keyed: bands.some((band) => band.keyed), styles, signature: fingerprint(`${regions}#${styles}`) };
 }
 
@@ -95,7 +95,7 @@ export function regionsPage(model: PublicSnapshotModel, parts: TemplateParts) {
   const components = publicComponentOrder(model.visibleComponents);
   const head = `<header class="rg-head wrap"><div class="rg-head-row"><div class="rg-brand">${brand(model)}${tagline(model)}</div><div class="rg-actions">${subscribeForm("subscribe-email")}${feedLinks()}</div></div></header>`;
   const status = `<section class="rg-status-line wrap" aria-labelledby="overall-status"><div class="tpl-live"><span class="rg-status-icon tone-${toneOf(model.overall)}" data-live="status-icon">${stateGlyph(model.overall)}</span><div><div id="status-live" role="status" aria-live="polite" aria-atomic="true" data-live="status"><h1 id="overall-status">${escapeHtml(text)}</h1><span class="sr-only">${escapeHtml(model.overall)}</span></div>${updatedLine(model)}</div></div></section>`;
-  const map = `<section class="rg-regions wrap" aria-labelledby="regions-title"><h2 id="regions-title" class="sr-only">Regions</h2>${regionsMap(model)}${filters(groups)}</section>`;
+  const map = `<section class="rg-regions wrap" aria-labelledby="regions-title" data-live="map"><h2 id="regions-title" class="sr-only">Regions</h2>${regionsMap(model)}${filters(groups)}</section>`;
   const current = [...history.open.map((incident) => openIncidentEntry(incident, model, parts)), ...history.maintenance.map((item) => maintenanceEntry(item, model))].join("");
   const past = history.resolved.map((incident) => resolvedEntry(incident, model)).join("");
   const table = `<section class="rg-components" aria-labelledby="components-title" data-live="components"><h2 id="components-title">Components</h2><p class="sr-only" data-region-count aria-live="polite">Showing all ${plural(components.length, "component")}</p><div class="rg-thead" aria-hidden="true"><span>Component</span><span>Status</span><span>90-day uptime</span></div><div class="rg-rows">${components.map((component) => componentRow(component, groups)).join("")}</div><div class="component-extension">${parts.slot("status-page.components.after.v1")}</div></section>`;

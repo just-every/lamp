@@ -4536,7 +4536,7 @@
       "executable": false
     },
     "src/core/features/public-snapshot/templates/map-layout.ts": {
-      "sha256": "16c77b9ddeaca0dd7291364cf05977690ab361167aae1b2d8519f9e5bab7f19c",
+      "sha256": "b6417d90985c9b49f04306b8a9ca1f87c63cc730fb27ee6dd98417b411753ad5",
       "executable": false
     },
     "src/core/features/public-snapshot/templates/parts.ts": {
@@ -4548,7 +4548,7 @@
       "executable": false
     },
     "src/core/features/public-snapshot/templates/regions.ts": {
-      "sha256": "15863639e1e3ebb6ad2949c2e9906b3693cdc67d54d0525f1e419ff3972ca326",
+      "sha256": "356a1ae31dc9f0ef7df180c00fdcc5ce14543ba1ec126790346a3ccb3e6a5807",
       "executable": false
     },
     "src/core/features/public-snapshot/templates/script.js": {
