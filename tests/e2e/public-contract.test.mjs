@@ -650,6 +650,8 @@ test("PAGE-013 PAGE-014 PAGE-008 PAGE-009 PAGE-003 — Public isolation, live ti
     const context = await browser.newContext({ timezoneId: "America/New_York" });
     const page = await context.newPage();
     await page.clock.install();
+    let polls=0;
+    page.on("request",request=>{if(request.url()===`${pageUrl}/api/public/status`)polls++;});
     for (const width of [1440,390]) {
       await page.setViewportSize({width,height:1000});
       await page.goto(`${pageUrl}/`);
@@ -659,6 +661,7 @@ test("PAGE-013 PAGE-014 PAGE-008 PAGE-009 PAGE-003 — Public isolation, live ti
       assert.equal(await live.getAttribute("aria-atomic"),"true");
       const timezoneLabel=page.locator("[data-timezone-label]");
       const initialTimezoneLabel=await timezoneLabel.textContent();
+      assert.equal(await timezoneLabel.getAttribute("data-timezone"),"America/Los_Angeles");
       await page.evaluate(()=>{
         window.liveChanges=[];window.statusRenders=0;
         new MutationObserver(()=>window.statusRenders++).observe(document.querySelector('[data-generated-at]'),{childList:true});
@@ -679,8 +682,12 @@ test("PAGE-013 PAGE-014 PAGE-008 PAGE-009 PAGE-003 — Public isolation, live ti
         } while(performance.now()<deadline);
         assert.ok(lifecycle==="Resolved"?status.incident?.reference!==incident.reference:status.incident?.summary===`${lifecycle} · ${impact}`,"publication reaches the real status response");
         const response=page.waitForResponse(response=>response.url()===`${pageUrl}/api/public/status`&&response.status()===200);
-        await page.clock.fastForward(30_000);await response;
+        const beforePoll=polls;
+        await page.clock.fastForward(30_000);const polled=await (await response).json();
+        assert.equal(polls-beforePoll,1,"the script polls once at its 30-second cadence");
         await page.waitForFunction(expected=>document.querySelector('[data-newest-update]')?.textContent===expected,status.incident?status.incident.summary:"There are no open incidents.");
+        await page.waitForFunction(at=>document.querySelector("[data-generated-at] time")?.getAttribute("datetime")===at,polled.generatedAt);
+        assertVisibleTime(await page.locator("[data-generated-at] time").getAttribute("title"),polled.generatedAt,"America/Los_Angeles");
         const announcement=await live.innerText();
         assert.ok(announcement.includes(status.overall));
         assert.ok(announcement.includes(status.incident?status.incident.summary:"There are no open incidents."));
@@ -698,6 +705,9 @@ test("PAGE-013 PAGE-014 PAGE-008 PAGE-009 PAGE-003 — Public isolation, live ti
       assert.deepEqual(audit.violations.filter(item=>["serious","critical"].includes(item.impact)),[],`${width} live page accessibility`);
       assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false,`${width} live page has no horizontal overflow`);
     }
+    await page.clock.fastForward(90*60_000);
+    await page.waitForFunction(()=>document.querySelector("[data-generated-at] time")?.textContent==="1 hour ago");
+    assertVisibleTime(await page.locator("[data-generated-at] time").getAttribute("title"),await page.locator("[data-generated-at] time").getAttribute("datetime"),"America/Los_Angeles");
     await context.close();
   } finally {
     await browser.close();
