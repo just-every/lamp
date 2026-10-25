@@ -4,8 +4,8 @@ VPAT® Version 2.5 Rev, Revised Section 508 Edition (April 2025).
 
 Product name: Lamp
 Product version: 1.11.0
-Evaluation date: 24 October 2026 (UTC; 2026-10-24)
-Report date: 24 October 2026
+Evaluation date: 25 October 2026 (UTC; 2026-10-25)
+Report date: 25 October 2026
 
 ## Product description
 
@@ -48,6 +48,8 @@ Partially Supports: some functionality does not meet the criterion. In this repo
 Does Not Support: the majority of functionality does not meet the criterion.
 
 Not Applicable: the criterion is not relevant to the product or surface, with the reason stated.
+
+The existing public live-status journey in `tests/e2e/public-contract.test.mjs` additionally evaluates the default, Calm headline, Uptime-history-led and Regions map layouts at 1440 and 390 pixels. Published incident text and resolution update a persistent polite, atomic status region; unchanged refreshes and relative timestamps do not mutate its announcement, and generation clocks remain outside it. Axe and horizontal-overflow checks cover each layout. This is browser delivery evidence, not a measurement of actual screen-reader announcements or complete WCAG criterion conformance.
 
 ## Chapter 3 Functional Performance Criteria
 
