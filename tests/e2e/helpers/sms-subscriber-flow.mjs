@@ -77,11 +77,16 @@ export async function smsSubscriberFlow() {
     assert.equal(settings.body.configured, true);
     assert.deepEqual(settings.body.settings.countries, ['US', 'CA']);
     const beforeInvalid = await fixture.databaseState();
+    const rateBefore = await db.prepare('SELECT COALESCE(SUM(request_count),0) AS count FROM request_rate_windows').first();
     for (const invalid of ['2025550101', '+442055550101', '+12425550106']) {
       const refused = await subscribe(invalid, component.id);
       assert.equal(refused.status, 400, await refused.text());
     }
-    await fixture.assertUnchanged(beforeInvalid);
+    const afterInvalid = await fixture.databaseState();
+    assert.deepEqual([...afterInvalid.keys()], [...beforeInvalid.keys()]);
+    for (const [table, value] of beforeInvalid) if (table !== 'request_rate_windows') assert.equal(afterInvalid.get(table), value, `invalid SMS subscription changed ${table}`);
+    const rateAfter = await db.prepare('SELECT COALESCE(SUM(request_count),0) AS count FROM request_rate_windows').first();
+    assert.equal(rateAfter.count, rateBefore.count + 3, 'all three refused public requests count against their rate limits');
     assert.equal(messages.length, 0, 'invalid and disabled-country numbers send nothing');
     const enabled = await api('/api/app/sms/settings', { method: 'PUT', body: JSON.stringify({ countries: ['US', 'CA', 'GB'], supportContact: 'https://help.example.com' }) });
     assert.equal(enabled.status, 200, enabled.text);
@@ -155,7 +160,10 @@ export async function smsSubscriberFlow() {
     await flush();
     assert.equal(messagesFor(phone).length, beforeReport + 1, 'report SMS sends once through the real publication door');
     assert.ok(messagesFor(phone).at(-1).Body.includes('See https://help.example.com/kb/123.'), 'report SMS carries the complete URL with period outside');
-    assert.ok(messagesFor(phone).at(-1).Body.includes(`/incidents/${first.incident.reference}/postmortem`), 'report SMS retains its permanent report link');
+    assert.ok(messagesFor(phone).at(-1).Body.includes(`/incidents/${first.incident.reference}`), 'report SMS retains its permanent report link');
+    const reportPage = await raw(`${pageOrigin}/incidents/${first.incident.reference}`);
+    assert.equal(reportPage.status, 200);
+    assert.ok((await reportPage.text()).includes('Report: See'), 'the report SMS link reaches its published report');
 
     const management = messagesFor(phone).map(message => message.Body).join('\n').match(/https?:\/\/\S+\/manage\/\S+/)?.[0];
     assert.ok(management, 'YES acknowledgement supplies a session-free management capability');
@@ -208,6 +216,13 @@ export async function smsSubscriberFlow() {
       assert.equal((await inbound(target, keyword, { sid })).status, 200);
       assert.equal(messagesFor(target).length, before + 1, `${keyword} replay sends no duplicate confirmation`);
     }
+    const smsList = (await fixture.list()).filter(row => row.channel === 'sms');
+    const smsReport = await api('/api/app/subscriber-reporting?channel=sms');
+    assert.equal(smsReport.status, 200, smsReport.text);
+    assert.equal(smsReport.body.total, smsList.length, 'SMS reporting equals the operator subscriber list');
+    const webhookReport = await api('/api/app/subscriber-reporting?channel=webhook');
+    assert.equal(webhookReport.status, 200, webhookReport.text);
+    assert.equal(webhookReport.body.total, 0, 'SMS backing storage does not inflate webhook counts');
     const beforeSuppressed = messagesFor(phone).length;
     // STOP revoked management authority, so the former maintenance-only choice
     // cannot be edited with the stale subscriber capability.

@@ -8,7 +8,11 @@ export function createSubscriberReportingRepository(db: D1Database): SubscriberR
       // An empty installation keeps deterministic migration seeds until this
       // first observation; subscriber mutations start tracking in their trigger.
       await db.prepare("UPDATE subscriber_reporting_tracking SET started_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now') WHERE id = 1 AND started_at = ''").run();
-      const channels = range.channel ? [range.channel] : ["email", "webhook"];
+      // Existing email/webhook reports retain their empty-installation shape.
+      // Once SMS has inventory or recorded growth, its own partition joins the
+      // same report rather than appearing as ordinary webhook traffic.
+      const sms=Boolean(await db.prepare("SELECT 1 FROM sms_reporting_daily UNION ALL SELECT 1 FROM subscribers WHERE sms_kind=1 LIMIT 1").first());
+      const channels = range.channel ? [range.channel] : ["email", "webhook", ...(sms ? ["sms"] : [])];
       const placeholders = channels.map(() => "?").join(",");
       const current = `s.destination NOT LIKE 'deleted:%' AND s.channel IN (${placeholders})`;
       // A single D1 batch gives the live counts and durable trend one read snapshot.

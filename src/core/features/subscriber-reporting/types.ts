@@ -1,4 +1,4 @@
-export type ReportingChannel = "email" | "webhook";
+export type ReportingChannel = "email" | "webhook" | "sms";
 export type ReportingState = "pending" | "active" | "deactivated";
 export interface ReportingRange { from: string; to: string; channel?: ReportingChannel }
 export interface CurrentCount { channel: ReportingChannel; state: ReportingState; count: number }
