@@ -1,3 +1,4 @@
+import { smsDeliveryReceiptsFlow } from './sms-delivery-receipts-flow.mjs';
 import assert from 'node:assert/strict';
 import { mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
@@ -6,7 +7,7 @@ import { expect } from '@playwright/test';
 import { operatorHydrated } from './operator-hydrated.mjs';
 
 /** Existing built-Worker fixture, real browser/forms/auth, synthetic Twilio edge. */
-export async function smsBrowserFlow({ page, origin, pageOrigin, api, post, messages }) {
+export async function smsBrowserFlow({ page, origin, pageOrigin, api, post, raw, db, flush, messages }) {
   const errors = [];
   page.on('pageerror', error => { if (/hydration|did not match|server rendered/i.test(error.message)) errors.push(error.message); });
   page.on('console', message => { if (/hydration|did not match|server rendered/i.test(message.text())) errors.push(message.text()); });
@@ -80,5 +81,18 @@ export async function smsBrowserFlow({ page, origin, pageOrigin, api, post, mess
     await controls.getByRole('checkbox', { name: 'SMS', exact: true }).check();
     await expect(controls.getByRole('checkbox', { name: 'SMS', exact: true })).toBeChecked();
     await audit('composer', width);
+  }
+  const receipts = await smsDeliveryReceiptsFlow({ api, post, raw, db, flush, messages, pageOrigin });
+  for (const width of [1440, 390]) {
+    await page.setViewportSize({ width, height: width === 390 ? 844 : 1000 });
+    await page.goto(`${origin}/app/deliveries`); await operatorHydrated(page);
+    await page.getByLabel('Channel', { exact: true }).selectOption('sms');
+    await page.getByLabel('Outcome', { exact: true }).selectOption('delivered');
+    for (const phone of receipts.phones) await expect(page.getByRole('row').filter({ hasText: phone })).toContainText('SMS');
+    await expect(page.getByRole('row').filter({ hasText: receipts.phones[0] })).toContainText('Delivered');
+    await audit('delivery-log', width);
+    await page.getByLabel('Outcome', { exact: true }).selectOption('failed');
+    await expect(page.getByRole('row').filter({ hasText: 'Failed (undelivered)' })).toHaveCount(1);
+    await audit('delivery-log-failed', width);
   }
 }

@@ -13,7 +13,7 @@ import { type MailMessage, type MailSender } from "../../platform/mail";
 import { hmacSha256 } from "../../platform/security/opaque-tokens";
 import { SubscriberTokenCodec } from "../subscribers/tokens";
 import { defaultDeliveryEvents, type DeliveryEvents } from "./events";
-import type { DeliveryRepository, DeliveryRow, DispatchableDelivery, PendingProviderEvent, SubscriptionMailRow } from "./repository";
+import type { DeliveryRepository, DeliveryLogChannel, DeliveryRow, DispatchableDelivery, PendingProviderEvent, SubscriptionMailRow } from "./repository";
 import { statuspageWebhookBody } from "./statuspage-webhook";
 import { defaultPageStatusRollup, type PageStatusRollupPolicy } from "../public-snapshot/policies";
 
@@ -25,8 +25,8 @@ const PROVIDER_CALLBACK_CLAIM_MS = 5 * 60 * 1000;
 type FrozenMailPayload = MailMessage & { frozenAt: string };
 
 export interface DeliveriesService {
-  list(filter?: { channel?: DeliveryChannel; outcome?: DeliveryOutcome; incidentUpdateId?: string; limit?: number; offset?: number }): Promise<DeliveryRow[]>;
-  export(filter?: { channel?: DeliveryChannel; outcome?: DeliveryOutcome; incidentUpdateId?: string }): Promise<DeliveryRow[]>;
+  list(filter?: { channel?: DeliveryLogChannel; outcome?: DeliveryOutcome; incidentUpdateId?: string; limit?: number; offset?: number }): Promise<DeliveryRow[]>;
+  export(filter?: { channel?: DeliveryLogChannel; outcome?: DeliveryOutcome; incidentUpdateId?: string }): Promise<DeliveryRow[]>;
   listSubscriptionMail(limit?: number): Promise<SubscriptionMailRow[]>;
   dispatchDue(origin: string, limit?: number): Promise<void>;
   dispatchEvent(eventId: string, origin: string): Promise<void>;

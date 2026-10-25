@@ -12,7 +12,7 @@ import { ulidSchema } from "../../shared/ids";
 import type { DeliveriesService } from "./service";
 
 const deliveriesQuerySchema = z.object({
-  channel: z.enum(DELIVERY_CHANNELS).optional(),
+  channel: z.enum([...DELIVERY_CHANNELS, "sms"]).optional(),
   outcome: z.enum(DELIVERY_OUTCOMES).optional(),
   incidentUpdateId: ulidSchema.optional(),
   limit: z.coerce.number().int().min(1).max(100).default(100),

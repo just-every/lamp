@@ -10,7 +10,8 @@ import { createUlid } from "../../shared/ids";
 import { createStatuspageWebhookRepository } from "./statuspage-webhook.repository";
 import type { WebhookFormat } from "../subscribers/webhook-format";
 
-export type DeliveryRow = typeof deliveryRecords.$inferSelect & { destination: string; subscriberState: "pending" | "active" | "deactivated"; providerAcceptedAt: string | null; acceptingProvider: string | null; latestError: string | null; localCaptureId: string | null; localCapturedAt: string | null; maintenanceReference: string | null; maintenanceTitle: string | null; maintenanceNoticeKind: string | null; incidentReference: string | null; incidentTitle: string | null; incidentLifecycle: string | null };
+export type DeliveryLogChannel = "email" | "webhook" | "sms";
+export type DeliveryRow = Omit<typeof deliveryRecords.$inferSelect, "channel"> & { channel: DeliveryLogChannel; providerOutcome?: string; destination: string; subscriberState: "pending" | "active" | "deactivated"; providerAcceptedAt: string | null; acceptingProvider: string | null; latestError: string | null; localCaptureId: string | null; localCapturedAt: string | null; maintenanceReference: string | null; maintenanceTitle: string | null; maintenanceNoticeKind: string | null; incidentReference: string | null; incidentTitle: string | null; incidentLifecycle: string | null };
 
 /** A confirmation or other subscription email, sent outside notification deliveries (subscribers/service.ts). */
 export interface SubscriptionMailRow { id: string; destination: string; subscriberState: "pending" | "active" | "deactivated"; kind: "confirmation" | "already-subscribed" | "subscribed"; outcome: "accepted" | "suppressed" | "failed"; sentAt: string }
@@ -80,7 +81,7 @@ export type NotificationTokenCandidates = Record<"manage" | "unsubscribe", { id:
 export interface DeliveryRepository {
   statuspage:ReturnType<typeof createStatuspageWebhookRepository>;
   hasMailSendClaim(providerMessageId: string): Promise<boolean>;
-  listDeliveries(input: { limit?: number; offset?: number; channel?: "email" | "webhook"; outcome?: DeliveryRow["outcome"]; incidentUpdateId?: string }): Promise<DeliveryRow[]>;
+  listDeliveries(input: { limit?: number; offset?: number; channel?: DeliveryLogChannel; outcome?: DeliveryRow["outcome"]; incidentUpdateId?: string }): Promise<DeliveryRow[]>;
   listSubscriptionMail(limit: number): Promise<SubscriptionMailRow[]>;
   getDelivery(deliveryId: string): Promise<DispatchableDelivery | null>;
   claimAndGetDelivery(deliveryId: string, now: string, reclaimBefore: string): Promise<{ claimed: boolean; delivery: DispatchableDelivery | null }>;
@@ -161,7 +162,7 @@ export function createDeliveryRepository(binding: D1Database): DeliveryRepositor
     statuspage:createStatuspageWebhookRepository(binding),
     async listDeliveries(input) {
       const conditions = [];
-      if (input.channel) conditions.push(eq(deliveryRecords.channel, input.channel));
+      if (input.channel && input.channel !== "sms") conditions.push(eq(deliveryRecords.channel, input.channel));
       if (input.outcome) conditions.push(eq(deliveryRecords.outcome, input.outcome));
       if (input.incidentUpdateId) conditions.push(eq(deliveryRecords.incidentUpdateId, input.incidentUpdateId));
       const query = database.select({
@@ -178,8 +179,34 @@ export function createDeliveryRepository(binding: D1Database): DeliveryRepositor
         localCaptureId: sql<string | null>`(SELECT local_capture_id FROM notification_attempt_records AS notification_delivery_attempts WHERE delivery_id = ${deliveryRecords.id} AND local_capture_id IS NOT NULL ORDER BY attempted_at LIMIT 1)`,
         localCapturedAt: sql<string | null>`(SELECT attempted_at FROM notification_attempt_records AS notification_delivery_attempts WHERE delivery_id = ${deliveryRecords.id} AND local_capture_id IS NOT NULL ORDER BY attempted_at LIMIT 1)`,
         latestError: sql<string | null>`(SELECT error FROM notification_attempt_records AS notification_delivery_attempts WHERE delivery_id = ${deliveryRecords.id} ORDER BY attempted_at DESC, attempt_number DESC LIMIT 1)`,
-      }).from(deliveryRecords).innerJoin(subscribers, eq(deliveryRecords.subscriberId, subscribers.id)).leftJoin(maintenance, eq(deliveryRecords.maintenanceId, maintenance.id)).where(conditions.length ? and(...conditions) : undefined).orderBy(asc(deliveryRecords.queuedAt));
-      return input.limit === undefined ? query.all() : query.limit(input.limit).offset(input.offset ?? 0).all();
+      }).from(deliveryRecords).innerJoin(subscribers, eq(deliveryRecords.subscriberId, subscribers.id)).leftJoin(maintenance, eq(deliveryRecords.maintenanceId, maintenance.id)).where(conditions.length ? and(...conditions) : undefined).orderBy(asc(deliveryRecords.queuedAt), asc(deliveryRecords.id));
+      // Fetch each channel's ordered prefix, then page the merged log. This
+      // preserves one pagination/filter contract without changing stored history.
+      const prefix = input.limit === undefined ? undefined : (input.offset ?? 0) + input.limit;
+      const ordinary = input.channel === "sms" ? [] : await (prefix === undefined ? query.all() : query.limit(prefix).all());
+      const sms = input.channel && input.channel !== "sms" ? [] : (await binding.prepare(`
+        SELECT d.id,d.subscriber_id AS subscriberId,d.incident_update_id AS incidentUpdateId,d.maintenance_id AS maintenanceId,
+          'sms' AS channel,CASE WHEN d.outcome IN ('sending','sent') THEN 'queued' WHEN d.outcome='undelivered' THEN 'failed' ELSE d.outcome END AS outcome,
+          d.outcome AS providerOutcome,d.queued_at AS queuedAt,
+          CASE WHEN d.outcome IN ('sending','sent','queued') THEN NULL ELSE d.outcome_at END AS outcomeAt,
+          d.queued_at AS createdAt,COALESCE(d.outcome_at,d.queued_at) AS updatedAt,s.destination,s.state AS subscriberState,
+          NULL AS providerAcceptedAt,
+          CASE WHEN d.provider_message_id IS NOT NULL THEN 'twilio' ELSE NULL END AS acceptingProvider,
+          NULL AS latestError,NULL AS localCaptureId,NULL AS localCapturedAt,
+          m.reference AS maintenanceReference,m.title AS maintenanceTitle,n.kind AS maintenanceNoticeKind,
+          i.reference AS incidentReference,i.title AS incidentTitle,u.lifecycle AS incidentLifecycle
+        FROM sms_deliveries d JOIN subscriber_directory s ON s.id=d.subscriber_id
+        LEFT JOIN incident_updates u ON u.id=d.incident_update_id
+        LEFT JOIN incident_reports r ON r.id=d.incident_report_id
+        LEFT JOIN incidents i ON i.id=COALESCE(u.incident_id,r.incident_id)
+        LEFT JOIN maintenance m ON m.id=d.maintenance_id LEFT JOIN maintenance_notices n ON n.id=d.event_id
+        WHERE (? IS NULL OR d.incident_update_id=?)
+          AND (? IS NULL OR CASE WHEN d.outcome IN ('sending','sent') THEN 'queued' WHEN d.outcome='undelivered' THEN 'failed' ELSE d.outcome END=?)
+        ORDER BY d.queued_at,d.id LIMIT ?
+      `).bind(input.incidentUpdateId ?? null,input.incidentUpdateId ?? null,input.outcome ?? null,input.outcome ?? null,prefix ?? -1).all<DeliveryRow>()).results;
+      const rows: DeliveryRow[] = [...ordinary,...sms];
+      rows.sort((a,b) => a.queuedAt.localeCompare(b.queuedAt) || a.id.localeCompare(b.id));
+      return input.limit === undefined ? rows : rows.slice(input.offset ?? 0,(input.offset ?? 0)+input.limit);
     },
     async listSubscriptionMail(limit) {
       const result = await binding.prepare(`SELECT a.id, s.destination, s.state AS subscriberState, json_extract(a.payload_json, '$.kind') AS kind, json_extract(a.payload_json, '$.outcome') AS outcome, a.created_at AS sentAt

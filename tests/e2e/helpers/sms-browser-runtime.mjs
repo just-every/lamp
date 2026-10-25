@@ -69,7 +69,7 @@ export async function smsBrowserRuntime(){
     const context=await browser.newContext();
     await context.addCookies([{name:cookie.slice(0,cookie.indexOf('=')),value:cookie.slice(cookie.indexOf('=')+1),url:origin}]);
     const page=await context.newPage();
-    await smsBrowserFlow({page,origin,pageOrigin,api,post,messages:smsMessages});
+    await smsBrowserFlow({page,origin,pageOrigin,api,post,raw,db:env.DB,flush:async()=>{ const result=await (await runtime.getWorker()).scheduled({cron:"* * * * *"}); assert.equal(result.outcome,"ok"); },messages:smsMessages});
     await context.close();
   }finally{await browser?.close();await runtime?.dispose();}
 }

@@ -1,6 +1,7 @@
 import { useState } from "react";
 
-import { DELIVERY_CHANNELS, DELIVERY_OUTCOMES, type DeliveryChannel, type DeliveryOutcome } from "../../../shared/domain";
+import { DELIVERY_CHANNELS, DELIVERY_OUTCOMES, type DeliveryOutcome } from "../../../shared/domain";
+import type { DeliveryLogChannel } from "../repository";
 import type { DeliveriesService } from "../service";
 import { useAppData } from "../../../app/client/ui/api";
 import { Icon } from "../../../app/client/ui/icon";
@@ -17,9 +18,9 @@ type DeliveriesResponse = {
   mail: { provider: "rer" | "resend" | "sendgrid" | "mailgun" | "ses" | "postmark"; secondaryProvider:string|null; receiptProviders:Record<string,boolean>; local: boolean; receiptsConfigured: boolean };
 };
 
-const label = (value: string) => value === "email" ? "Email" : value === "webhook" ? "Webhook" : value === "suppressed" ? "Skipped" : value.charAt(0).toUpperCase() + value.slice(1);
+const label = (value: string) => value === "sms" ? "SMS" : value === "email" ? "Email" : value === "webhook" ? "Webhook" : value === "suppressed" ? "Skipped" : value.charAt(0).toUpperCase() + value.slice(1);
 
-const providerNames:Record<string,string>={sendgrid:'SendGrid',resend:'Resend',mailgun:'Mailgun',ses:'Amazon SES',postmark:'Postmark',rer:'RER'};
+const providerNames:Record<string,string>={sendgrid:'SendGrid',resend:'Resend',mailgun:'Mailgun',ses:'Amazon SES',postmark:'Postmark',rer:'RER',twilio:'Twilio'};
 const providerLabel=(value:string)=>providerNames[value]??value;
 
 const MAIL_KINDS = { confirmation: "Confirmation email", "already-subscribed": "Already subscribed", subscribed: "Subscribed notice" } as const;
@@ -47,7 +48,7 @@ function SubscriptionMail({ rows, providerName }: { rows: DeliveriesResponse["su
 
 export function DeliveriesPage() {
   const formatOperatorTime = useOperatorTime();
-  const [channel, setChannel] = useState<DeliveryChannel | "">("");
+  const [channel, setChannel] = useState<DeliveryLogChannel | "">("");
   const [outcome, setOutcome] = useState<DeliveryOutcome | "">("");
   const [offset, setOffset] = useState(0);
   const search = new URLSearchParams({ limit: "100", offset: String(offset) });
@@ -80,7 +81,7 @@ export function DeliveriesPage() {
     </section>}
     <section className="data-card subscriber-table-card">
       <div className="list-controls">
-        <label>Channel<select value={channel} onChange={(event) => resetFilters(() => setChannel(event.target.value as DeliveryChannel | ""))}><option value="">All channels</option>{DELIVERY_CHANNELS.map((value) => <option key={value} value={value}>{label(value)}</option>)}</select></label>
+        <label>Channel<select value={channel} onChange={(event) => resetFilters(() => setChannel(event.target.value as DeliveryLogChannel | ""))}><option value="">All channels</option>{[...DELIVERY_CHANNELS, "sms"].map((value) => <option key={value} value={value}>{label(value)}</option>)}</select></label>
         <label>Outcome<select value={outcome} onChange={(event) => resetFilters(() => setOutcome(event.target.value as DeliveryOutcome | ""))}><option value="">All outcomes</option>{DELIVERY_OUTCOMES.map((value) => <option key={value} value={value}>{value === "queued" && channel !== "webhook" && !data.mail.local && !hasReceipts ? "Queued / accepted" : label(value)}</option>)}</select></label>
       </div>
       <div className="table-scroll" tabIndex={0} role="region" aria-label="Delivery records">
@@ -94,7 +95,7 @@ export function DeliveriesPage() {
               <td><strong>{delivery.destination}</strong><small>{delivery.subscriberState} subscriber</small>{delivery.maintenanceReference ? <small>{delivery.maintenanceReference}: {delivery.maintenanceTitle} · {delivery.maintenanceNoticeKind}</small> : null}{delivery.incidentReference ? <small>{delivery.incidentReference}: {delivery.incidentTitle} · {delivery.incidentLifecycle?.toLowerCase()}</small> : null}</td>
               <td>{label(delivery.channel)}</td>
               <td>
-                <span className={`state-pill state-${acceptedWithoutReceipt ? "accepted" : delivery.outcome}`}>{acceptedWithoutReceipt ? `Accepted by ${delivery.acceptingProvider ? providerLabel(delivery.acceptingProvider) : providerName}` : label(delivery.outcome)}</span>
+                <span className={`state-pill state-${acceptedWithoutReceipt ? "accepted" : delivery.outcome}`}>{acceptedWithoutReceipt ? `Accepted by ${delivery.acceptingProvider ? providerLabel(delivery.acceptingProvider) : providerName}` : delivery.providerOutcome === "undelivered" ? "Failed (undelivered)" : label(delivery.outcome)}</span>
                 {!data.mail.local && delivery.providerAcceptedAt ? <small>{delivery.acceptingProvider ? `${providerLabel(delivery.acceptingProvider)} accepted` : "Provider accepted"} {formatOperatorTime(delivery.providerAcceptedAt)}{delivery.outcome === "queued" && rowReceiptsConfigured ? " · awaiting confirmation" : ""}</small> : null}
                 {delivery.latestError && (delivery.outcome === "failed" || delivery.outcome === "queued") ? <small>{delivery.latestError}</small> : null}
               </td>
