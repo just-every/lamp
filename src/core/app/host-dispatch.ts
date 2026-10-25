@@ -13,6 +13,8 @@ const pageExactPaths = new Set([
   "/feed.rss", "/history.atom", "/history.rss", "/badge.svg", "/badge.json", "/embed/script.js", "/api/public/v1",
   "/widget.js",
   "/api/public/status",
+  "/api/public/sms/inbound",
+  "/api/public/sms/status",
   "/subscribe",
   "/unsubscribe",
 ]);
