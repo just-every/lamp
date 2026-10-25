@@ -351,7 +351,9 @@
       "kind": "secret",
       "required": false,
       "group": "sms",
-      "help": "Authenticates outbound SMS and verifies signed replies and delivery callbacks."
+      "help": "Authenticates outbound SMS and verifies signed replies and delivery callbacks.",
+      "input": "entered",
+      "ownerVisible": true
     },
     {
       "name": "TWILIO_FROM_NUMBER",

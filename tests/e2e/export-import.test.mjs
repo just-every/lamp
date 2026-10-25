@@ -96,12 +96,14 @@ async function populate(env) {
     env.DB.prepare("INSERT INTO sms_consents(id,subscriber_id,number,page_name,wording,consented_at) VALUES('synthetic-lamp-1814','synthetic-lamp-1810','+12025550110','Export status','synthetic-lamp-1813',?)").bind(confirmed),
     env.DB.prepare("INSERT INTO sms_inbound_events(message_sid,subscriber_id,received_at) VALUES('synthetic-lamp-1815','synthetic-lamp-1810',?)").bind(confirmed),
     env.DB.prepare("INSERT INTO sms_deliveries(id,subscriber_id,event_id,kind,incident_update_id,outcome,provider_message_id,queued_at,outcome_at) VALUES('synthetic-lamp-1816','synthetic-lamp-1810','update-export','incident-update','update-export','delivered','synthetic-lamp-1817',?,?)").bind(stamp,confirmed),
+    env.DB.prepare("INSERT INTO sms_reporting_daily(day,joined,left_count) VALUES('2026-09-08',1,1)"),
     env.DB.prepare("UPDATE sms_settings SET countries_json='[\"US\",\"CA\",\"GB\"]',support_contact='support@example.test' WHERE id=1"),
   ]);
   await env.SNAPSHOTS.put("branding/original.png", logo, { httpMetadata: { contentType: "image/png", contentDisposition: "attachment; filename=brand.png", cacheControl: "public, max-age=60" }, customMetadata: { owner: "portable-brand" } });
 }
 
 async function assertSubscriberDeliveryHistory(db) {
+  assert.deepEqual((await db.prepare("SELECT day,joined,left_count FROM sms_reporting_daily ORDER BY day").all()).results,[{day:'2026-09-08',joined:1,left_count:1}],'anonymous SMS inventory history survives restore');
   assert.deepEqual({...await db.prepare("SELECT channel,destination,state,selection_mode,event_kinds_json FROM subscriber_directory WHERE id='synthetic-lamp-1810'").first()},{channel:'sms',destination:'+12025550110',state:'deactivated',selection_mode:'selected',event_kinds_json:'["maintenance"]'},'SMS channel identity, STOP and preferences survive restore');
   assert.deepEqual({...await db.prepare("SELECT number,page_name,wording,consented_at FROM sms_consents WHERE subscriber_id='synthetic-lamp-1810'").first()},{number:'+12025550110',page_name:'Export status',wording:'synthetic-lamp-1813',consented_at:'2026-09-08T00:01:00.000Z'},'the exact consent receipt survives restore');
   assert.deepEqual({...await db.prepare("SELECT event_id,outcome,provider_message_id FROM sms_deliveries WHERE id='synthetic-lamp-1816'").first()},{event_id:'update-export',outcome:'delivered',provider_message_id:'synthetic-lamp-1817'},'the original SMS provider receipt prevents resending on restore');
@@ -191,7 +193,7 @@ contract("HIST-004", "export restores every JSON entity, settings and audit entr
       }
       assert.deepEqual(restored, entities.tables);
       await assertSubscriberDeliveryHistory(target.env.DB);
-      for (const name of ["sms_subscriptions","sms_settings","sms_consents","sms_inbound_events","sms_deliveries","subscriber_chat_destinations","subscriber_channel_posts","subscriber_tokens","channel_subscriber_events","component_notification_events","component_notification_deliveries","component_delivery_attempts","notification_delivery_attempts","mail_provider_webhook_events","mail_provider_routes","mail_provider_settings"]) assert.ok(entities.tables.find(table=>table.name===name)?.rows.length,`${name} must be represented by populated portable history`);
+      for (const name of ["sms_subscriptions","sms_settings","sms_consents","sms_inbound_events","sms_deliveries","sms_reporting_daily","subscriber_chat_destinations","subscriber_channel_posts","subscriber_tokens","channel_subscriber_events","component_notification_events","component_notification_deliveries","component_delivery_attempts","notification_delivery_attempts","mail_provider_webhook_events","mail_provider_routes","mail_provider_settings"]) assert.ok(entities.tables.find(table=>table.name===name)?.rows.length,`${name} must be represented by populated portable history`);
       assert.ok(entities.tables.find((table) => table.name === "page_settings")?.rows.length, "settings must be JSON entities in the archive");
       assert.ok(entities.tables.find((table) => table.name === "audit_entries")?.rows.length, "audit entries must be JSON entities in the archive");
       for (const name of ["components", "component_state_history", "incidents", "incident_updates", "incident_reports", "maintenance", "maintenance_notices", "subscribers", "notification_deliveries"]) {

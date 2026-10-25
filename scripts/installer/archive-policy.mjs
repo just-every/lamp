@@ -14,7 +14,8 @@ const operatorContinuity=['oa_operators','oa_bootstrap','oa_external_identities'
 // SMS tables are durable product data and use the default export policy:
 // sms_settings keeps owner country/support choices; sms_subscriptions and
 // sms_consents keep exact opt-in wording/time/number; sms_inbound_events keeps
-// signed-reply replay receipts; sms_deliveries keeps outcomes and provider IDs.
+// signed-reply replay receipts; sms_deliveries keeps outcomes and provider IDs;
+// sms_reporting_daily exports anonymous daily joined/left totals.
 // None stores provider credentials. Subscriber erasure removes consent/reply
 // data and provider identity before these records can enter a later archive.
 export default {

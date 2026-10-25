@@ -39,7 +39,7 @@ async function migrateAfterDependencyApproval(db){
    for(const {table,columns,rows} of beforeSms)assert.deepEqual((await db.prepare(`SELECT ${columns} FROM ${table} ORDER BY rowid`).all()).results,rows,`${table}: populated 0064 authority and delivery history survive the additive SMS upgrade`);
    assert.equal((await db.prepare('SELECT COUNT(*) AS n FROM subscribers WHERE sms_kind<>0').first()).n,0,'no incumbent subscription silently becomes SMS');
    assert.deepEqual({...await db.prepare('SELECT countries_json,support_contact FROM sms_settings WHERE id=1').first()},{countries_json:'["US","CA"]',support_contact:''});
-   for(const table of ['sms_subscriptions','sms_consents','sms_inbound_events','sms_deliveries'])assert.equal((await db.prepare(`SELECT COUNT(*) AS n FROM ${table}`).first()).n,0,'SMS upgrade does not manufacture consent, replies or outbound work');
+   for(const table of ['sms_subscriptions','sms_consents','sms_inbound_events','sms_deliveries','sms_reporting_daily'])assert.equal((await db.prepare(`SELECT COUNT(*) AS n FROM ${table}`).first()).n,0,'SMS upgrade does not manufacture consent, replies or outbound work');
   }
   if(migration.startsWith('0064_'))assert.deepEqual({...await db.prepare("SELECT name,scope,issuer_id,expires_at,last_used_at,read_scope FROM management_tokens WHERE id='synthetic-lamp-65'").first()},{name:'synthetic-lamp-66',scope:'metrics:write',issuer_id:'synthetic-lamp-67',expires_at:9999999999999,last_used_at:123,read_scope:0},'populated 0063 metadata survives upgrade with no implicit read authority');
  }

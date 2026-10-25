@@ -29,7 +29,8 @@ WHEN NEW.destination LIKE 'deleted:%' BEGIN
  DELETE FROM sms_subscriptions WHERE subscriber_id=NEW.id;
  DELETE FROM sms_consents WHERE subscriber_id=NEW.id;
  DELETE FROM sms_inbound_events WHERE subscriber_id=NEW.id;
- UPDATE sms_deliveries SET provider_message_id=NULL,outcome=CASE WHEN outcome IN ('queued','sending') THEN 'suppressed' ELSE outcome END WHERE subscriber_id=NEW.id;
+ UPDATE sms_deliveries SET provider_message_id=NULL WHERE subscriber_id=NEW.id;
+ UPDATE sms_deliveries SET outcome='suppressed' WHERE subscriber_id=NEW.id AND outcome IN ('queued','sending');
 END;
 DROP VIEW subscriber_directory;
 CREATE VIEW subscriber_directory AS SELECT id, CASE WHEN sms_kind=1 THEN 'sms' ELSE COALESCE(chat_kind,channel) END AS channel,

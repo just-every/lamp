@@ -90,8 +90,8 @@ export function createSmsService(db:D1Database,options:TwilioConfig & {tokenSecr
       const origin=await options.publicOrigin(),pageName=await options.pageName();
       for(const delivery of pending) {
         if(!await repository.claim(delivery.id,nowIso())||delivery.subscriberState!=='active')continue;
-        const link=new URL(delivery.kind==='maintenance-notice'?`/maintenance/${delivery.maintenanceReference}`:delivery.kind==='incident-report'?`/incidents/${delivery.reference}/postmortem`:`/incidents/${delivery.reference}`,origin).href;
-        const text=delivery.kind==='maintenance-notice'?`${pageName}: ${delivery.body??''}`:delivery.kind==='incident-report'?`${pageName}: ${delivery.title??''}. ${delivery.reportSummary??''} ${delivery.reportCause??''} ${delivery.reportRemediation??''}`:`${pageName}: ${delivery.title??''}. ${delivery.wording??''}`;
+        const link=new URL(delivery.kind==='maintenance-notice'?`/maintenance/${delivery.maintenanceReference}`:`/incidents/${delivery.reference}`,origin).href;
+        const text=delivery.kind==='maintenance-notice'?`${pageName}: ${delivery.body??''}`:delivery.kind==='incident-report'?`${pageName}: ${delivery.title??''}. ${delivery.reportSummary??''} ${delivery.reportTimeline??''} ${delivery.reportCause??''} ${delivery.reportRemediation??''}`:`${pageName}: ${delivery.title??''}. ${delivery.wording??''}`;
         try {
           const sid=await send(delivery.destination,renderSmsMessage(text,link),new URL('/api/public/sms/status',origin).href);
           await repository.accepted(delivery.id,sid,nowIso());

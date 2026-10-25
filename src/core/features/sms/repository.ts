@@ -1,7 +1,7 @@
 import { createUlid } from "../../shared/ids";
 import { eventPreferenceSql, incidentThresholdSql } from "../deliveries/subscriber-eligibility";
 import type { SubscriberPreferences } from "../subscribers/preferences";
-export interface SmsDelivery { id:string;subscriberId:string;destination:string;eventId:string;kind:"incident-update"|"maintenance-notice"|"incident-report";incidentUpdateId:string|null;outcome:string;providerMessageId:string|null;queuedAt:string;outcomeAt:string|null;subscriberState:string;reference:string|null;title:string|null;wording:string|null;body:string|null;maintenanceReference:string|null;reportSummary:string|null;reportCause:string|null;reportRemediation:string|null }
+export interface SmsDelivery { id:string;subscriberId:string;destination:string;eventId:string;kind:"incident-update"|"maintenance-notice"|"incident-report";incidentUpdateId:string|null;outcome:string;providerMessageId:string|null;queuedAt:string;outcomeAt:string|null;subscriberState:string;reference:string|null;title:string|null;wording:string|null;body:string|null;maintenanceReference:string|null;reportSummary:string|null;reportTimeline:string|null;reportCause:string|null;reportRemediation:string|null }
 export function createSmsRepository(db:D1Database) {
   return {
     async operatorAllowed(id:string,ownerOnly=false) {
@@ -82,7 +82,7 @@ export function createSmsRepository(db:D1Database) {
       return (await db.prepare(`SELECT d.id,d.subscriber_id AS subscriberId,s.destination,d.event_id AS eventId,d.kind,d.incident_update_id AS incidentUpdateId,
         d.outcome,d.provider_message_id AS providerMessageId,d.queued_at AS queuedAt,d.outcome_at AS outcomeAt,s.state AS subscriberState,
         i.reference,i.title,CASE WHEN u.id IS NULL THEN NULL ELSE u.lifecycle||': '||u.affected_audience||' '||u.customer_impact||' '||COALESCE(u.what_still_works,'')||' '||COALESCE(u.details,'') END AS wording,
-        n.body,m.reference AS maintenanceReference,r.summary AS reportSummary,r.cause AS reportCause,r.remediation AS reportRemediation
+        n.body,m.reference AS maintenanceReference,r.summary AS reportSummary,r.timeline AS reportTimeline,r.cause AS reportCause,r.remediation AS reportRemediation
         FROM sms_deliveries d JOIN subscriber_directory s ON s.id=d.subscriber_id
         LEFT JOIN incident_updates u ON u.id=d.incident_update_id LEFT JOIN incidents i ON i.id=COALESCE(u.incident_id,(SELECT incident_id FROM incident_reports WHERE id=d.incident_report_id))
         LEFT JOIN maintenance_notices n ON n.id=d.event_id AND d.kind='maintenance-notice' LEFT JOIN maintenance m ON m.id=d.maintenance_id

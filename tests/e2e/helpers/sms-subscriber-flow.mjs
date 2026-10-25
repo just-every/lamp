@@ -77,7 +77,7 @@ export async function smsSubscriberFlow() {
     assert.equal(settings.body.configured, true);
     assert.deepEqual(settings.body.settings.countries, ['US', 'CA']);
     const beforeInvalid = await fixture.databaseState();
-    for (const invalid of ['2025550101', '+442055550101']) {
+    for (const invalid of ['2025550101', '+442055550101', '+12425550106']) {
       const refused = await subscribe(invalid, component.id);
       assert.equal(refused.status, 400, await refused.text());
     }
@@ -88,6 +88,9 @@ export async function smsSubscriberFlow() {
     const gb = await subscribe('+442055550101', component.id);
     assert.equal(gb.status, 202, await gb.text());
     assert.equal(messagesFor('+442055550101').length, 1, 'owner-enabled country is admitted');
+    const canadian = await subscribe('+14165550109', component.id);
+    assert.equal(canadian.status, 202, await canadian.text());
+    assert.equal(messagesFor('+14165550109').length, 1, 'Canada is admitted by default');
     const optedIn = await subscribe(phone, component.id);
     assert.equal(optedIn.status, 202, await optedIn.text());
     const repeated = await subscribe(phone, component.id);
@@ -139,6 +142,20 @@ export async function smsSubscriberFlow() {
     await publish(component, 'http://example.test javascript:alert(1) data:text/html,x');
     const literal = messagesFor(phone).at(-1).Body;
     for (const text of ['http://example.test', 'javascript:alert(1)', 'data:text/html,x']) assert.ok(literal.includes(text), 'non-HTTPS schemes stay literal');
+
+    const resolution = await api(`/api/app/incidents/${first.incident.id}/draft`, { method: 'PUT', body: JSON.stringify({ lifecycle: 'Resolved', affectedAudience: 'Synthetic Lamp readers', customerImpact: 'Requests have recovered.', whatStillWorks: '', details: 'Operators verified recovery.', nextUpdateAt: null }) });
+    assert.equal(resolution.status, 200, resolution.text);
+    const resolved = await post(`/api/app/incidents/${first.incident.id}/publish`, { channels: [] });
+    assert.equal(resolved.status, 200, resolved.text);
+    const savedReport = await api(`/api/app/incidents/${first.incident.id}/report`, { method: 'PUT', body: JSON.stringify({ summary: 'Report: See https://help.example.com/kb/123.', timeline: 'Operators published the incident and verified recovery.', cause: 'A synthetic queue exhausted its configured capacity.', remediation: 'Operators restored capacity and added a review.' }) });
+    assert.equal(savedReport.status, 200, savedReport.text);
+    const beforeReport = messagesFor(phone).length;
+    const report = await post(`/api/app/incidents/${first.incident.id}/report/publish`, { channels: ['sms'] });
+    assert.equal(report.status, 200, report.text);
+    await flush();
+    assert.equal(messagesFor(phone).length, beforeReport + 1, 'report SMS sends once through the real publication door');
+    assert.ok(messagesFor(phone).at(-1).Body.includes('See https://help.example.com/kb/123.'), 'report SMS carries the complete URL with period outside');
+    assert.ok(messagesFor(phone).at(-1).Body.includes(`/incidents/${first.incident.reference}/postmortem`), 'report SMS retains its permanent report link');
 
     const management = messagesFor(phone).map(message => message.Body).join('\n').match(/https?:\/\/\S+\/manage\/\S+/)?.[0];
     assert.ok(management, 'YES acknowledgement supplies a session-free management capability');
