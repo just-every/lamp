@@ -448,7 +448,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "f769c79b34c884a3fc66f5bf2800262cf901295afdd6faa3d6676ff23aa4052b",
+      "sha256": "3c18e3f3e2e01e771c6dc1c82a20ffca43a93dd5bc3be7e00dbf13335d9f22e3",
       "executable": false
     },
     "AGENTS.md": {
@@ -496,7 +496,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "284af270cb8278d0fbd28f65075ceaff5a1e79bfe32efc87f793d1e281fa7962",
+      "sha256": "2e4925da2fc8c76652caba3c0fb4e44ef2fc52e42f201e5442879560d2f33271",
       "executable": false
     },
     "DEMO.md": {
@@ -6688,7 +6688,7 @@
       "executable": false
     },
     "tests/e2e/helpers/self-serve-chat-flow.mjs": {
-      "sha256": "5eae0ad3f7e22193fc1e253be2fa53c83d7fbe6aa17b4b31ab84aedee7f8fb28",
+      "sha256": "01ff3141a9b0bfe1fc9cdd3dc2a0f44f16f8f370ab1a1760b0f3a650c79e25cb",
       "executable": false
     },
     "tests/e2e/helpers/settings-sender-confirm-flow.mjs": {
@@ -6880,7 +6880,7 @@
       "executable": false
     },
     "tests/e2e/slack-subscriptions-helper.mjs": {
-      "sha256": "9fb82c47409105e5000228d9bd2f3a58114bcda0603139a56a02f8b95df9546e",
+      "sha256": "04ee5a379a7992c78756b900e2b2bc758bc4f627d00c442fb5d1fbebcc974bed",
       "executable": false
     },
     "tests/e2e/snapshot-cache-runtime.mjs": {
@@ -7361,6 +7361,14 @@
     },
     "tests/fixtures/pagerduty/worker.ts": {
       "sha256": "5fea513f5f06fd092fc7b6c4cb640546fb48e483c459be4b5ebd988b2a00b8e2",
+      "executable": false
+    },
+    "tests/fixtures/slack-subscriptions/events.json": {
+      "sha256": "50bfc68c90dfd40285375e545090c5628405538696e6ef66275ab1bcf1f57339",
+      "executable": false
+    },
+    "tests/fixtures/slack-subscriptions/oauth-exchange.json": {
+      "sha256": "da578e788b51a6866412fe3cebdd102b291b43756989a619ab63cdd5f038c59d",
       "executable": false
     },
     "tests/fixtures/sorry/authenticated/sorry-components.json": {
