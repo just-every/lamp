@@ -81,8 +81,8 @@ export function DeliveriesPage() {
     </section>}
     <section className="data-card subscriber-table-card">
       <div className="list-controls">
-        <label>Channel<select value={channel} onChange={(event) => resetFilters(() => setChannel(event.target.value as DeliveryLogChannel | ""))}><option value="">All channels</option>{[...DELIVERY_CHANNELS, "sms"].map((value) => <option key={value} value={value}>{label(value)}</option>)}</select></label>
-        <label>Outcome<select value={outcome} onChange={(event) => resetFilters(() => setOutcome(event.target.value as DeliveryOutcome | ""))}><option value="">All outcomes</option>{DELIVERY_OUTCOMES.map((value) => <option key={value} value={value}>{value === "queued" && channel !== "webhook" && !data.mail.local && !hasReceipts ? "Queued / accepted" : label(value)}</option>)}</select></label>
+        <label>Channel<select aria-label="Channel" value={channel} onChange={(event) => resetFilters(() => setChannel(event.target.value as DeliveryLogChannel | ""))}><option value="">All channels</option>{[...DELIVERY_CHANNELS, "sms"].map((value) => <option key={value} value={value}>{label(value)}</option>)}</select></label>
+        <label>Outcome<select aria-label="Outcome" value={outcome} onChange={(event) => resetFilters(() => setOutcome(event.target.value as DeliveryOutcome | ""))}><option value="">All outcomes</option>{DELIVERY_OUTCOMES.map((value) => <option key={value} value={value}>{value === "queued" && channel !== "webhook" && !data.mail.local && !hasReceipts ? "Queued / accepted" : label(value)}</option>)}</select></label>
       </div>
       <div className="table-scroll" tabIndex={0} role="region" aria-label="Delivery records">
         <table>
