@@ -496,7 +496,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "d2db006d672947cf4d0dfbecf5f37a4de344700cb5570212e5eb12845888e5b8",
+      "sha256": "c5d617ee319d24987061c22e3f90d66fedd49b08c704285926ff1987d016429a",
       "executable": false
     },
     "DEMO.md": {
@@ -6736,7 +6736,7 @@
       "executable": false
     },
     "tests/e2e/helpers/sms-delivery-receipts-flow.mjs": {
-      "sha256": "91c303b98d7e9dd5173a545ea800d1a84329b2919c678de9c2d3e81c25044bbb",
+      "sha256": "4714c44fd10f17f70590edb54204d3dcfb3428c421815788a4080f115d77c35b",
       "executable": false
     },
     "tests/e2e/helpers/sms-subscriber-flow.mjs": {
