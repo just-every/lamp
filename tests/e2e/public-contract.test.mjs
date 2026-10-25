@@ -654,7 +654,9 @@ test("PAGE-013 PAGE-014 PAGE-008 PAGE-009 PAGE-003 — Public isolation, live ti
     page.on("request",request=>{if(request.url()===`${pageUrl}/api/public/status`)polls++;});
     for (const width of [1440,390]) {
       await page.setViewportSize({width,height:1000});
+      await page.clock.setSystemTime(new Date());
       await page.goto(`${pageUrl}/`);
+      assert.equal(await page.locator("[data-generated-at] time").textContent(),"just now");
       const live=page.locator("#status-live");
       assert.equal(await live.getAttribute("role"),"status","the live region exists on first load");
       assert.equal(await live.getAttribute("aria-live"),"polite");
