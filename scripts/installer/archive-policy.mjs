@@ -11,6 +11,12 @@ const importCustody=['sorry_import_releases','ik_door_%','ik_batches','ik_d1_ass
 // Base still forces restored provider links to re-link and sign-in to remain off.
 const operatorContinuity=['oa_operators','oa_bootstrap','oa_external_identities','oa_invitation_cancellations','oa_domain_rules','oa_auth_settings','oa_auth_audit','oa_identity_providers','oa_logout_events','oc_owner_claims','oc_idp_grants'];
 
+// SMS tables are durable product data and use the default export policy:
+// sms_settings keeps owner country/support choices; sms_subscriptions and
+// sms_consents keep exact opt-in wording/time/number; sms_inbound_events keeps
+// signed-reply replay receipts; sms_deliveries keeps outcomes and provider IDs.
+// None stores provider credentials. Subscriber erasure removes consent/reply
+// data and provider identity before these records can enter a later archive.
 export default {
   // The archive format's product identity, not the repository identifier: keep it
   // stable so exports made before the repository rename still restore.
@@ -18,7 +24,7 @@ export default {
   buckets: { SNAPSHOTS: {} },
   // A RER Managed page initializer's page_settings row (a random feed id) is a
   // bootstrap row the restore replaces.
-  replaceableTables: ['public_snapshot_work', 'snapshot_build_control', 'reference_counters', 'page_settings'],
+  replaceableTables: ['public_snapshot_work', 'snapshot_build_control', 'reference_counters', 'page_settings', 'sms_settings'],
   includeTables: operatorContinuity,
   excludeTables: ['subscriber_oauth_states', 'chat_link_codes', 'chat_previews', 'chat_requests', 'oa_sessions', 'oa_tokens', 'oa_step_up_challenges', 'oa_credentials', 'oa_dev_credentials', ...importCustody],
   requiredConfiguration: ['SETUP_TOKEN', 'SESSION_SECRET', 'SUBSCRIBER_TOKEN_SECRET', 'WEBHOOK_SIGNING_SECRET'],

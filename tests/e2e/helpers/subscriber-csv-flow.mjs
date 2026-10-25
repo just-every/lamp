@@ -125,7 +125,7 @@ export async function subscriberCsvFlow() {
     assert.ok(!(await api("/api/app/overview/follow-ups")).body.followUps.some(row => row.kind === "imported-invitation" && row.id.endsWith(`:${confirmedWebhook.id}`)), "confirmation removes the native CSV obligation");
 
     const invalidCsv = subscriberCsv(headers, [
-      ["", "+12025550123", "", "", component.id, "en"],
+      ["", "2025550123", "", "", component.id, "en"],
       ["synthetic-lamp-spanish@example.test", "", "", "", component.id, "es"],
       ["synthetic-lamp-internal@example.test", "", "", "", internal.id, "en"],
       ["", "", "https://receiver.example.test/synthetic-lamp-2", "not-an-email", component.id, "en"],
@@ -135,7 +135,7 @@ export async function subscriberCsvFlow() {
     assert.equal(invalid.status, 200, invalid.text);
     assert.deepEqual(invalid.body.counts, { created: 0, skipped: 0, refused: 4 });
     assert.ok(invalid.body.rows.every(row => row.outcome === "refused" && row.reason));
-    assert.equal(invalid.body.rows[0].reason, "SMS subscribers are not available (SUB-013)");
+    assert.equal(invalid.body.rows[0].reason, "The destination, contact address or component identifiers are invalid.");
     await fixture.assertUnchanged(invalidBefore);
     assert.equal(fixture.messages.length, invalidMail);
     const rowLimit = await post(previewPath, { csv: "email\r\n" + Array.from({ length: 5001 }, (_, index) => `synthetic-lamp-limit-${index}@example.test\r\n`).join("") });

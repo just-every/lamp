@@ -1,3 +1,4 @@
+import { createSmsService } from "../features/sms/service";
 import { createMetricsService } from "../features/metrics/service";
 import { createTeamsSubscriptionsService } from "../features/subscribers/teams-subscriptions";
 import { createPromiseDraftRepository } from "../features/incidents/promise-draft.repository";
@@ -90,6 +91,11 @@ export function createAppServices(bindings: AppBindings, blobs: BlobStore, execu
       notificationFailed: extensions.events.notificationFailed,
     },
   });
+  const sms = createSmsService(bindings.DB, {
+    accountSid:bindings.TWILIO_ACCOUNT_SID,authToken:bindings.TWILIO_AUTH_TOKEN,fromNumber:bindings.TWILIO_FROM_NUMBER,messagingService:bindings.TWILIO_MESSAGING_SERVICE,
+    tokenSecret:bindings.SUBSCRIBER_TOKEN_SECRET,effectsPaused:bindings.EFFECTS_PAUSED === "1",unavailable:outboundUnavailable(bindings,"SMS messages"),
+    pageName:configuredPageName,supportContact:configuredFromAddress,publicOrigin:()=>notificationOrigin(bindings),
+  });
   const allowedIncidentChannels = new Set(extensions.notificationEventsPolicy.channelsForIncidentUpdate());
   const responders = createResponderService(bindings.DB, {
     effectsPaused: bindings.EFFECTS_PAUSED === "1", webhookSecret: bindings.WEBHOOK_SIGNING_SECRET,
@@ -99,7 +105,8 @@ export function createAppServices(bindings: AppBindings, blobs: BlobStore, execu
     forAttachedComponents: async (input) => incidentCatchupStatements(bindings.DB, input),
     forIncidentUpdate: async (input) => [
       ...responders.publicationStatements(input),
-      ...notificationPublicationStatements(bindings.DB, { eventId: input.updateId, eventType: "incident-update", incidentUpdateId: input.updateId, componentIds: input.componentIds, channels: input.channels.filter((channel): channel is "email" | "webhook" => channel !== "chat" && allowedIncidentChannels.has(channel)), queuedAt: input.queuedAt }),
+      ...(input.channels.includes("sms") ? sms.publicationStatements({eventId:input.updateId,kind:"incident-update",incidentUpdateId:input.updateId,componentIds:input.componentIds,queuedAt:input.queuedAt}) : []),
+      ...notificationPublicationStatements(bindings.DB, { eventId: input.updateId, eventType: "incident-update", incidentUpdateId: input.updateId, componentIds: input.componentIds, channels: input.channels.filter((channel): channel is "email" | "webhook" => (channel === "email" || channel === "webhook") && allowedIncidentChannels.has(channel)), queuedAt: input.queuedAt }),
       ...(input.channels.includes("chat") ? channels.postStatements({ updateId: input.updateId, componentIds: input.componentIds, queuedAt: input.queuedAt }) : []),
     ],
   }, extensions.updateReviewPolicy,
@@ -113,6 +120,7 @@ export function createAppServices(bindings: AppBindings, blobs: BlobStore, execu
     const results = await Promise.allSettled([
       notificationOrigin(bindings).then(origin => deliveries.dispatchEvent(update.id, origin)),
       channels.dispatchPending(),
+      sms.dispatchPending(),
       responders.dispatchPublication(update.id).catch(() => { console.error("Lamp could not finish a responder note receipt."); }),
     ]);
     const failure = results.find((result): result is PromiseRejectedResult => result.status === "rejected");
@@ -132,12 +140,14 @@ export function createAppServices(bindings: AppBindings, blobs: BlobStore, execu
     forMaintenanceNotice: async (input) => [
       ...notificationPublicationStatements(bindings.DB, { eventId: input.eventId, eventType: "maintenance-notice", maintenanceId: input.maintenanceId, componentIds: input.componentIds, channels: ["email", "webhook"], queuedAt: input.queuedAt, recipientScope: input.recipientScope, previousEventIds: input.previousEventIds }),
       ...channels.maintenanceStatements(input),
+      ...sms.publicationStatements({...input,kind:"maintenance-notice"}),
     ],
   }, extensions.maintenanceRemindersPolicy,
   async ({ maintenanceId, endsAt }) => deliveries.queueOperatorAlert({ eventId: `maintenance-overrun/${maintenanceId}/${endsAt}`, title: "Lamp maintenance is running longer than planned", text: `Maintenance ${maintenanceId} is still in progress more than fifteen minutes after its scheduled end.` }),
   extensions.events,
   async ({ maintenanceId, startsAt }) => deliveries.queueOperatorAlert({ eventId: `maintenance-start-due/${maintenanceId}/${new Date(startsAt).toISOString()}`, title: "Lamp maintenance start is due", text: `Maintenance ${maintenanceId} has reached its planned start and has auto-start off. An operator must start it in Maintenance.` }));
   const subscribers = createSubscribersService(createSubscriberRepository(bindings.DB), {
+    sms,
     onLimitAlert: alert=>deliveries.queueOperatorAlert(alert),
     mail,
     pageName: configuredPageName,
@@ -157,7 +167,10 @@ export function createAppServices(bindings: AppBindings, blobs: BlobStore, execu
   const availabilityReports = createAvailabilityReportService(createAvailabilityReportRepository(bindings.DB), extensions.publicSnapshotPolicies);
   const communicationPerformance = createCommunicationPerformanceService(createCommunicationPerformanceRepository(bindings.DB), extensions.postmortemDuePolicy);
   const reports = createReportsService(createReportRepository(bindings.DB), publicSnapshots.rebuild, extensions.postmortemDuePolicy, {
-    forIncidentReport: async (input) => notificationPublicationStatements(bindings.DB, { eventId: input.eventId, eventType: "incident-report", incidentReportId: input.eventId, componentIds: input.componentIds, channels: input.channels, queuedAt: input.queuedAt }),
+    forIncidentReport: async (input) => [
+      ...notificationPublicationStatements(bindings.DB, { eventId: input.eventId, eventType: "incident-report", incidentReportId: input.eventId, componentIds: input.componentIds, channels: input.channels.filter((channel):channel is "email"|"webhook"=>channel!=="sms"), queuedAt: input.queuedAt }),
+      ...(input.channels.includes("sms") ? sms.publicationStatements({eventId:input.eventId,kind:"incident-report",incidentReportId:input.eventId,componentIds:input.componentIds,queuedAt:input.queuedAt}) : []),
+    ],
   }, briefs, async ({ incidentId, reference, title, week }) => deliveries.queueOperatorAlert({
     eventId: `report-reminder/${incidentId}/${week}`,
     recipients: await createCommunicationOwnerRepository(bindings.DB).recipients(incidentId),
@@ -223,7 +236,7 @@ export function createAppServices(bindings: AppBindings, blobs: BlobStore, execu
   });
 
   const chatDesk = createChatDeskService(bindings, incidents, components, async () => { const settings = await pageSettings.get(); if (!settings) throw new Error("Page settings are not configured."); return { blockedTerms: settings.wordingBlockedTerms, friendlyLength: settings.wordingFriendlyLength }; });
-  return { metrics, teamsSubscriptions, chatDesk, auth, operators, availabilityReports, communicationPerformance, incidentImpact, pageSettings, pageExport, components, componentCatalogue, incidents, maintenance, subscribers, deliveries, reports, intake, briefs, ai, overview, website, updateReminders, publicSnapshots, statuspageImport, channels };
+  return { sms, metrics, teamsSubscriptions, chatDesk, auth, operators, availabilityReports, communicationPerformance, incidentImpact, pageSettings, pageExport, components, componentCatalogue, incidents, maintenance, subscribers, deliveries, reports, intake, briefs, ai, overview, website, updateReminders, publicSnapshots, statuspageImport, channels };
 }
 
 export type AppServices = ReturnType<typeof createAppServices>;

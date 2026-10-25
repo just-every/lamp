@@ -164,8 +164,9 @@ function subscriptionMarkup(components: PublicComponent[]) {
   const preferences = () => `<details class="subscribe-components"><summary>Choose updates</summary>${renderPreferenceFields()}</details>`;
   const email = `<form method="post" action="/subscribe"><label for="email">Email address</label><div class="subscribe-row"><input id="email" name="email" type="email" autocomplete="email" required><button type="submit">Subscribe</button></div>${picker}${preferences()}</form>`;
   const slack = `<details class="subscribe-channel"><summary>Get updates in Slack</summary><form method="post" action="/subscribe/slack">${picker}${preferences()}<button type="submit">Get updates in Slack</button></form></details>`;
+  const sms = `<details class="subscribe-channel"><summary>Get updates by SMS</summary><form method="post" action="/subscribe/sms"><label for="sms-phone">Mobile number</label><input id="sms-phone" name="phone" type="tel" autocomplete="tel" placeholder="+12025550100" required>${picker}${preferences()}<button type="submit">Send opt-in text</button></form></details>`;
   const teams = `<details class="subscribe-channel"><summary>Get updates in Teams</summary><form method="post" action="/subscribe/teams"><label for="teams-url">Teams Workflows webhook URL</label><input id="teams-url" name="url" type="url" autocomplete="off" required>${picker}${preferences()}<button type="submit">Send verification card</button></form></details>`;
-  return `<section id="subscribe" class="subscribe" aria-labelledby="subscribe-title"><div class="subscribe-copy"><h2 id="subscribe-title">Subscribe to status updates</h2><p>Choose email, Slack or Teams for future updates.</p></div><div class="subscribe-options">${email}${slack}${teams}</div></section>`;
+  return `<section id="subscribe" class="subscribe" aria-labelledby="subscribe-title"><div class="subscribe-copy"><h2 id="subscribe-title">Subscribe to status updates</h2><p>Choose email, SMS, Slack or Teams for future updates.</p></div><div class="subscribe-options">${email}${sms}${slack}${teams}</div></section>`;
 }
 
 function timelineEntry(kind: "incident" | "maintenance" | "resolved", body: string) {

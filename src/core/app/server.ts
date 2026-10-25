@@ -1,3 +1,4 @@
+import { registerSmsRoutes } from "../features/sms/routes";
 import { createManagementApiService } from "../features/management-api/service";
 import { registerManagementApiRoutes } from "../features/management-api/routes";
 import { registerMetricsRoutes } from "../features/metrics/routes";
@@ -94,6 +95,7 @@ export function createApp(bindings: AppBindings, execution?: MailExecution) {
   registerAiRoutes(app, services.ai);
   registerMaintenanceRoutes(app, services.maintenance);
   registerSubscriberRoutes(app, services.subscribers, { rateLimiter: publicWriteLimiter });
+  registerSmsRoutes(app,services.sms,()=>services.subscribers.getPageName(),bindings.TWILIO_AUTH_TOKEN,publicWriteLimiter);
   registerTeamsSubscriptionRoutes(app, services.teamsSubscriptions, services.subscribers, publicWriteLimiter);
   registerPageSettingsRoutes(app, services.pageSettings, (key) => services.publicSnapshots.readArtifact(key));
   registerWebsiteRoutes(app, services.website);

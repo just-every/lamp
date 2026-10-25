@@ -421,6 +421,17 @@
         "Owner-supplied read-only provider key"
       ],
       "adapters": []
+    },
+    {
+      "id": "sms-twilio",
+      "required": false,
+      "why": "SUB-013 and NOTIFY-014: an owner-configured Twilio account sends opt-in, keyword replies and approved status publications. SMS stays off without provider configuration; signed callbacks record consent and delivery without tracking.",
+      "data": [
+        "Subscriber phone number",
+        "Page name and consent wording",
+        "Published update text and permanent link"
+      ],
+      "adapters": []
     }
   ],
   "env": [
@@ -693,6 +704,30 @@
       "required": false,
       "secret": true,
       "why": "Optional Postmark account-level token used only to read sender-domain DKIM verification. Sending uses the separate server token in the selected provider key."
+    },
+    {
+      "name": "TWILIO_ACCOUNT_SID",
+      "required": false,
+      "secret": false,
+      "why": "Twilio account identifier for the owner-configured SMS sender; absent keeps SMS off."
+    },
+    {
+      "name": "TWILIO_AUTH_TOKEN",
+      "required": false,
+      "secret": true,
+      "why": "Twilio authentication token for sending SMS and verifying signed inbound replies and delivery callbacks."
+    },
+    {
+      "name": "TWILIO_FROM_NUMBER",
+      "required": false,
+      "secret": false,
+      "why": "Twilio registered E.164 sending number, used when no messaging service is configured."
+    },
+    {
+      "name": "TWILIO_MESSAGING_SERVICE",
+      "required": false,
+      "secret": false,
+      "why": "Twilio Messaging Service identifier used instead of a sending number when configured."
     }
   ],
   "deploy": {

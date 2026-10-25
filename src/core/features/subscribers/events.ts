@@ -1,7 +1,7 @@
 /** Stable event seams for subscriber lifecycle facts. */
 export interface SubscriberLifecycleEvent {
   subscriberId: string;
-  channel: "email" | "webhook" | "slack" | "teams";
+  channel: "email" | "webhook" | "slack" | "teams" | "sms";
   occurredAt: string;
   reason?: string;
 }

@@ -4,9 +4,17 @@ import { createUlid } from "../../shared/ids";
 import { parseSubscriberCsv, subscriberCsvCell } from "./csv";
 import { SubscriberIntakeError, type IntakeApply, type IntakeCounts, type IntakePreview, type SubscriberAddInput } from "./intake-schema";
 import type { SubscriberRepository } from "./repository";
+import type { SubscriberPreferences } from "./preferences";
 import type { SubscriberView } from "./service";
 
+export interface SmsIntake {
+  validatePhone(phone:string):Promise<void>;
+  subscribe(input:{phone:string;componentIds:string[];preferences?:SubscriberPreferences},origin:string,operatorId?:string):Promise<{subscriberId:string;created:boolean;confirmationSent:boolean}>;
+  invite(subscriberId:string,origin:string,actor:string|null,ownerOnly:boolean):Promise<boolean>;
+}
+
 export function createSubscriberIntakeService(repository:SubscriberRepository,hooks:{
+  sms?:SmsIntake;
   checkLimits:()=>Promise<void>;
   view:(id:string)=>Promise<SubscriberView>;
   ensureConfigured:()=>Promise<void>;
@@ -19,6 +27,10 @@ export function createSubscriberIntakeService(repository:SubscriberRepository,ho
     const accepted=[] as typeof parsed.valid;
     for(const item of parsed.valid) {
       const decision=parsed.decisions.find(row=>row.row===item.row)!;
+      if(item.channel==="sms") {
+        try {if(!hooks.sms)throw new Error("SMS is not configured.");await hooks.sms.validatePhone(item.destination);}
+        catch(cause){decision.outcome="refused";decision.reason=cause instanceof Error?cause.message:"This phone number is not accepted.";continue;}
+      }
       if(item.componentIds.some(id=>!visible.has(id))){decision.outcome="refused";decision.reason="A selected component is unknown or internal.";}
       else if(destinations.has(item.destination)){decision.outcome="skipped";decision.reason="This destination already has a subscription.";}
       else accepted.push(item);
@@ -52,11 +64,19 @@ export function createSubscriberIntakeService(repository:SubscriberRepository,ho
       if(!await repository.intake.operatorAllowed(operatorId,true))throw new SubscriberIntakeError("Only the active owner can send import invitations.",403);
       if(!await repository.intake.batchExists(batchId))throw new SubscriberIntakeError("This subscriber import does not exist.",409);
       let sent=0;
-      for(const id of await repository.intake.pending(batchId))if(await hooks.sendConfirmation(id,origin,operatorId,true))sent++;
+      for(const id of await repository.intake.pending(batchId)) {
+        const row=await repository.findSubscriber(id);
+        if(row?.channel==="sms" ? await hooks.sms?.invite(id,origin,operatorId,true) : await hooks.sendConfirmation(id,origin,operatorId,true))sent++;
+      }
       return {sent,remaining:await repository.intake.remaining(batchId)};
     },
     async add(input:SubscriberAddInput,operatorId:string,origin:string):Promise<{subscriber:SubscriberView;created:boolean;confirmationSent:boolean}> {
       if(!await repository.intake.operatorAllowed(operatorId))throw new SubscriberIntakeError("The operator no longer has access.",403);
+      if(input.channel==="sms") {
+        if(!hooks.sms)throw new SubscriberIntakeError("SMS is not configured.",503);
+        const result=await hooks.sms.subscribe({phone:input.phone,componentIds:input.componentIds,preferences:input.eventKinds===undefined&&input.minimumImpact===undefined?undefined:{eventKinds:input.eventKinds??["incidents","maintenance"],minimumImpact:input.minimumImpact??null}},origin,operatorId);
+        return {...result,subscriber:await hooks.view(result.subscriberId)};
+      }
       const destination=input.channel==="email"?input.email:input.destination;
       const visible=new Set((await repository.listVisibleComponents()).map(row=>row.id));
       if(input.componentIds.some(id=>!visible.has(id)))throw new SubscriberIntakeError("A selected component is unknown or internal.");

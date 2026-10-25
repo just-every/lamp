@@ -39,15 +39,14 @@ export function parseSubscriberCsv(csv:string):{valid:IntakeRow[];decisions:Inta
     const refuse=(reason:string)=>decisions.push({row,outcome:"refused",reason});
     if(cells.length!==headers.length){refuse("The number of cells does not match the header.");return;}
     const value=Object.fromEntries(headers.map((header,column)=>[header,cells[column]!.trim()]));
-    if(value.phone){refuse("SMS subscribers are not available (SUB-013)");return;}
     if(value.language&&value.language!=="en"){refuse("Only English (en) is available (I18N-001).");return;}
-    if(Boolean(value.email)===Boolean(value.webhook_url)){refuse("Choose exactly one email address or webhook URL.");return;}
-    if(value.email&&value.webhook_format){refuse("Webhook format applies only to webhook subscribers.");return;}
+    if([value.email,value.phone,value.webhook_url].filter(Boolean).length!==1){refuse("Choose exactly one email address, phone number or webhook URL.");return;}
+    if((value.email||value.phone)&&value.webhook_format){refuse("Webhook format applies only to webhook subscribers.");return;}
     if(value.webhook_format&&!webhookFormatSchema.safeParse(value.webhook_format).success){refuse("Choose Lamp or Statuspage as the webhook format.");return;}
     const componentIds=value.components?value.components.split(/[;,]/u).map(id=>id.trim()).filter(Boolean):[];
-    const parsed=subscriberAddSchema.safeParse(value.email?{channel:"email",email:value.email,componentIds}:{channel:"webhook",destination:value.webhook_url,contactEmail:value.contact_email??"",componentIds,...(value.webhook_format?{webhookFormat:value.webhook_format}:{})});
+    const parsed=subscriberAddSchema.safeParse(value.phone?{channel:"sms",phone:value.phone,componentIds}:value.email?{channel:"email",email:value.email,componentIds}:{channel:"webhook",destination:value.webhook_url,contactEmail:value.contact_email??"",componentIds,...(value.webhook_format?{webhookFormat:value.webhook_format}:{})});
     if(!parsed.success){refuse("The destination, contact address or component identifiers are invalid.");return;}
-    const item=parsed.data,destination=item.channel==="email"?item.email:item.destination;
+    const item=parsed.data,destination=item.channel==="email"?item.email:item.channel==="sms"?item.phone:item.destination;
     if(seen.has(destination)){decisions.push({row,outcome:"skipped",reason:"This destination occurs earlier in the file."});return;}
     seen.add(destination);
     valid.push({row,channel:item.channel,destination,contactEmail:item.channel==="webhook"?item.contactEmail:null,componentIds:item.componentIds,...(item.channel==="webhook"?{webhookFormat:item.webhookFormat}:{})});

@@ -4,6 +4,7 @@ import { Button } from "../../../app/client/ui/button";
 import { SenderStatusLine } from "./sender-status";
 import { MailDeliverySettings } from "./mail-delivery-settings";
 import { EmailBrandingSettings } from "./email-branding-settings";
+import { SmsSettings } from "./sms-settings";
 
 export function NotificationSettingsTab({ settings, live, identityEditable, update, needsConfirm, confirm }: {
   settings: SettingsForm; live: LiveStatus | null; identityEditable: boolean;
@@ -18,6 +19,7 @@ export function NotificationSettingsTab({ settings, live, identityEditable, upda
       <SenderStatusLine sender={live?.sender ?? null} />
     </section>
     <MailDeliverySettings />
+    <SmsSettings />
     <EmailBrandingSettings value={settings.emailBranding} onChange={(value, immediate) => update("emailBranding", value, immediate)} identityEditable={identityEditable} />
   </>;
 }

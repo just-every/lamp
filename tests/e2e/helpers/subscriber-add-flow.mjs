@@ -121,7 +121,7 @@ export async function subscriberAddFlow() {
       { channel: "email", email: "synthetic-lamp-internal-add@example.test", componentIds: [internal.id] },
       { channel: "webhook", destination: "https://receiver.example.test/synthetic-lamp-2", contactEmail: "not-an-email", componentIds: [first.id] },
       { channel: "webhook", destination: "http://127.0.0.1/synthetic-lamp-1", contactEmail: "synthetic-lamp-unsafe@example.test", componentIds: [first.id] },
-      { channel: "sms", phone: "+12025550123", componentIds: [first.id] },
+      { channel: "sms", phone: "2025550123", componentIds: [first.id] },
     ]) {
       const invalid = await post("/api/app/subscribers", input);
       assert.equal(invalid.status, 400, invalid.text);

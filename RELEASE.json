@@ -167,6 +167,10 @@
     {
       "id": "0064_management_read_tokens.sql",
       "buyerSteps": "Apply after 0063. Add opt-in read scope to existing management-token metadata; all existing tokens default to no read access."
+    },
+    {
+      "id": "0065_sms_subscriptions.sql",
+      "buyerSteps": "Apply after 0064. Adds default-off Twilio SMS subscriptions, country settings, signed-reply consent and delivery history using additive subscriber fields and subscriber-owned tables. Existing subscriber identities, preferences, notification history and older backups remain intact. Configure your registered Twilio sender explicitly before SMS sends; restored product data carries no provider credential."
     }
   ],
   "breaking": false,

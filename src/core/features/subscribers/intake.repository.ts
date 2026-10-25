@@ -32,10 +32,12 @@ export function createSubscriberIntakeRepository(db:D1Database) {
       for(let start=0;start<rows.length;start+=50) {
         const json=JSON.stringify(rows.slice(start,start+50));
         resultPositions.push(statements.length);
-        statements.push(db.prepare(`INSERT INTO subscribers(id,channel,destination,contact_email,state,selection_mode,token_hash,created_by_operator_id,event_kinds_json,minimum_impact,preferences_set,created_at,updated_at)
-          SELECT json_extract(r.value,'$.id'),json_extract(r.value,'$.channel'),json_extract(r.value,'$.destination'),json_extract(r.value,'$.contactEmail'),
+        statements.push(db.prepare(`INSERT INTO subscribers(id,channel,sms_kind,destination,contact_email,state,selection_mode,token_hash,created_by_operator_id,event_kinds_json,minimum_impact,preferences_set,created_at,updated_at)
+          SELECT json_extract(r.value,'$.id'),CASE WHEN json_extract(r.value,'$.channel')='sms' THEN 'webhook' ELSE json_extract(r.value,'$.channel') END,CASE WHEN json_extract(r.value,'$.channel')='sms' THEN 1 ELSE 0 END,json_extract(r.value,'$.destination'),json_extract(r.value,'$.contactEmail'),
             'pending',CASE WHEN json_array_length(r.value,'$.componentIds')=0 THEN 'all' ELSE 'selected' END,json_extract(r.value,'$.tokenHash'),?,COALESCE(json_extract(r.value,'$.eventKinds'),CASE WHEN json_extract(r.value,'$.channel')='webhook' THEN '["incidents","maintenance","components"]' ELSE '["incidents","maintenance"]' END),json_extract(r.value,'$.minimumImpact'),1,?,?
           FROM json_each(?) r WHERE 1 ON CONFLICT(destination) DO NOTHING RETURNING id`).bind(operatorId,now,now,json));
+        statements.push(db.prepare(`INSERT INTO sms_subscriptions(subscriber_id)
+          SELECT s.id FROM json_each(?) r JOIN subscribers s ON s.id=json_extract(r.value,'$.id') WHERE s.sms_kind=1`).bind(json));
         statements.push(db.prepare(`INSERT INTO subscriber_intake(subscriber_id,batch_id,source,operator_id,created_at)
           SELECT s.id,?,?,?,? FROM json_each(?) r JOIN subscriber_directory s ON s.id=json_extract(r.value,'$.id')`).bind(batchId,source,operatorId,now,json));
         statements.push(db.prepare(`UPDATE subscribers SET webhook_format=COALESCE(

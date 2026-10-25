@@ -1,3 +1,5 @@
+import { smsBrowserRuntime } from "./helpers/sms-browser-runtime.mjs";
+import { smsSubscriberFlow } from "./helpers/sms-subscriber-flow.mjs";
 import { mailSettingsBrowserFlow } from "./helpers/mail-settings-browser-flow.mjs";
 import { mailFailoverFlow } from "./helpers/mail-failover-flow.mjs";
 import { subscriberPreferencesFlow } from "./helpers/subscriber-preferences-flow.mjs";
@@ -215,6 +217,8 @@ test("HIST-007 SUB-001 SUB-005 UPDATE-008 SUB-002 SUB-003 — Concurrent subscri
 
 
 test("SUB-016 SUB-017 SUB-004 SUB-006 SUB-007 SUB-005 PAGE-013 SUB-012 SUB-008 — Attributed operator additions, confirmed component scope, private management and opt-out", async t => {
+  await smsSubscriberFlow();
+  await smsBrowserRuntime();
   await subscriberAddFlow();
   await subscriberPreferencesFlow();
   t.diagnostic("SUB-004 — actual D1 recipient selection follows visible components and matching selected components only");

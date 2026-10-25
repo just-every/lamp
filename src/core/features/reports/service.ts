@@ -8,12 +8,12 @@ import type { IncidentReportRow, ReportRepository } from "./repository";
 const REPORT_REMINDER_WEEK_MS = 7 * 24 * 60 * 60_000;
 
 export interface ReportInput { summary: string; timeline: string; cause: string; remediation: string; }
-export interface ReportsNotificationStatements { forIncidentReport(input: { eventId: string; incidentId: string; componentIds: string[]; channels: Array<"email" | "webhook">; queuedAt: string }): Promise<D1PreparedStatement[]>; }
+export interface ReportsNotificationStatements { forIncidentReport(input: { eventId: string; incidentId: string; componentIds: string[]; channels: Array<"email" | "webhook" | "sms">; queuedAt: string }): Promise<D1PreparedStatement[]>; }
 export interface ReportsService {
   draft(incidentId: string, operatorId: string): Promise<{ report: IncidentReportRow; review: ReportReview }>;
   get(incidentId: string): Promise<IncidentReportRow | null>;
   save(incidentId: string, input: ReportInput, operatorId: string): Promise<IncidentReportRow>;
-  publish(incidentId: string, operatorId: string, channels: Array<"email" | "webhook">): Promise<IncidentReportRow | null>;
+  publish(incidentId: string, operatorId: string, channels: Array<"email" | "webhook" | "sms">): Promise<IncidentReportRow | null>;
   owing(now?: string): Promise<string[]>;
   waiver(incidentId: string): ReturnType<ReportRepository["waiver"]>;
   waive(incidentId: string, reason: string, operatorId: string): Promise<boolean>;

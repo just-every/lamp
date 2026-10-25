@@ -1,7 +1,7 @@
 import { FormError } from "../../../app/client/ui/states";
 import { fromPageDateTime, toPageDateTime } from "../../../app/client/ui/timezone";
 
-export type Channel = "email" | "webhook" | "chat";
+export type Channel = "email" | "webhook" | "chat" | "sms";
 /** When the update publishes: now, later (UPDATE-006, private until then) or at a past time (INCIDENT-009, notifies no one). */
 export type PublishTiming = { mode: "now" | "schedule" | "backdate"; at: string | null };
 
@@ -11,7 +11,7 @@ export function publishHint(channels: Channel[], timing: PublishTiming) {
   return channels.includes("email") ? "Emails subscribers" : "Notifies subscribers";
 }
 
-const CHANNELS: Array<{ value: Channel; label: string }> = [{ value: "email", label: "Email" }, { value: "webhook", label: "Webhook" }, { value: "chat", label: "Slack and Teams" }];
+const CHANNELS: Array<{ value: Channel; label: string }> = [{ value: "email", label: "Email" }, { value: "sms", label: "SMS" }, { value: "webhook", label: "Webhook" }, { value: "chat", label: "Slack and Teams" }];
 
 /** Who is notified and when the update publishes, together under More options. */
 export function PublicationControls({ channels, onChannels, timing, timezone, error, onTiming, onError }: { channels: Channel[]; onChannels: (channels: Channel[]) => void; timing: PublishTiming; timezone: string; error: string | null; onTiming: (timing: PublishTiming) => void; onError: (message: string | null) => void }) {

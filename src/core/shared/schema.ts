@@ -223,7 +223,7 @@ export const maintenanceComponents = sqliteTable("maintenance_components", {
 
 const subscribersColumns = () => ({
   id: text().primaryKey(),
-  channel: text({ enum: ["email", "webhook", "slack", "teams"] }).$type<DeliveryChannel | "slack" | "teams">().notNull(),
+  channel: text({ enum: ["email", "webhook", "slack", "teams", "sms"] }).$type<DeliveryChannel | "slack" | "teams" | "sms">().notNull(),
   eventKindsJson: text("event_kinds_json").notNull().default('["incidents","maintenance","components"]'),
   minimumImpact: text("minimum_impact", { enum: ["Partially unavailable"] }),
   destination: text().notNull().unique(),

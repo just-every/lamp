@@ -57,7 +57,7 @@ export function registerSubscriberIntakeRoutes(app:Hono<AppEnv>,service:Subscrib
   app.post("/api/app/subscribers",bodyLimit({maxSize:16_384,onError:context=>context.json({error:"Subscriber input is too large."},413)}),async context=>{
     if(context.req.header("Sec-Fetch-Site")==="cross-site")return context.json({error:"Cross-site subscriber intake is not accepted."},403);
     const parsed=subscriberAddSchema.safeParse(await context.req.json().catch(()=>null));
-    if(!parsed.success)return context.json({error:"Choose a valid email or public webhook, contact address and components."},400);
+    if(!parsed.success)return context.json({error:"Choose a valid email, phone number or public webhook, contact address and components."},400);
     if(context.env.EFFECTS_PAUSED==="1")return context.json({error:"Outbound effects are paused."},409);
     try{const result=await service.intake.add(parsed.data,context.get("operator").id,await notificationOrigin(context.env));return context.json(result,result.created?201:200);}catch(cause){return failure(context,cause);}
   });

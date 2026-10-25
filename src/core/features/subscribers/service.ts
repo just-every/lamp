@@ -12,7 +12,7 @@ import { defaultSubscriberConfirmationPolicy, type SubscriberConfirmationPolicy 
 import type { StoredSubscriber, StoredSubscriberComponent, SubscriberRepository, SubscriptionMailKind } from "./repository";
 import { SubscriberTokenCodec, type SubscriberTokenScope } from "./tokens";
 import { hasSafeWebhookDestination, normalizeEmail } from "./destination";
-import { createSubscriberIntakeService } from "./intake.service";
+import { createSubscriberIntakeService, type SmsIntake } from "./intake.service";
 import { createIntakeConfirmationSender } from "./intake-confirmation";
 import type { AddedBy } from "./intake.repository";
 import type { WebhookFormat } from "./webhook-format";
@@ -69,7 +69,7 @@ function escapeHtml(value: string) {
 
 export function createSubscribersService(
   repository: SubscriberRepository,
-  options: { onLimitAlert?: (alert:{eventId:string;title:string;text:string})=>Promise<void>; pageName?: () => Promise<string>; mail?: MailSender; fromAddress?: string | (() => Promise<string>); tokenSecret?: string; confirmationPolicy?: SubscriberConfirmationPolicy; events?: SubscriberEvents } = {},
+  options: { sms?: SmsIntake; onLimitAlert?: (alert:{eventId:string;title:string;text:string})=>Promise<void>; pageName?: () => Promise<string>; mail?: MailSender; fromAddress?: string | (() => Promise<string>); tokenSecret?: string; confirmationPolicy?: SubscriberConfirmationPolicy; events?: SubscriberEvents } = {},
 ): SubscribersService {
   const policy = options.confirmationPolicy ?? defaultSubscriberConfirmationPolicy;
   const tokens = options.tokenSecret ? new SubscriberTokenCodec(options.tokenSecret) : null;
@@ -137,7 +137,7 @@ export function createSubscribersService(
     mail:()=>requiredMailAndTokens().mail,from:configuredFromAddress,pageName,issue:issuedToken,
     send:(mail,subscriberId,message)=>sendSubscriptionMail(mail,subscriberId,"confirmation",message),
   });
-  const intake=createSubscriberIntakeService(repository,{
+  const intake=createSubscriberIntakeService(repository,{sms:options.sms,
     view:async id=>{const row=await repository.findSubscriber(id);if(!row)throw new Error("Subscriber no longer exists.");return view(row);},
     ensureConfigured:async()=>{requiredMailAndTokens();await configuredFromAddress();},
     sendConfirmation:sendIntakeConfirmation,

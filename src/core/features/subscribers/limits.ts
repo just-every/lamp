@@ -1,5 +1,5 @@
-export type SubscriberChannel = "email" | "webhook" | "slack" | "teams";
-export interface SubscriberCounts { total:number;email:number;webhook:number;slack:number;teams:number }
+export type SubscriberChannel = "email" | "webhook" | "slack" | "teams" | "sms";
+export interface SubscriberCounts { total:number;email:number;webhook:number;slack:number;teams:number;sms:number }
 export interface SubscriberCapacity { channel:"all"|SubscriberChannel|"slack-and-teams";count:number;limit:number }
 export const subscriberLimits = { total:25_000,webhook:2_500,chat:1_000 } as const;
 export class SubscriberLimitError extends Error {
@@ -10,6 +10,7 @@ export function subscriberCapacity(counts:SubscriberCounts):SubscriberCapacity[]
   return [
     {channel:"all",count:counts.total,limit:subscriberLimits.total},
     {channel:"email",count:counts.email,limit:subscriberLimits.total},
+    {channel:"sms",count:counts.sms,limit:subscriberLimits.total},
     {channel:"webhook",count:counts.webhook,limit:subscriberLimits.webhook},
     {channel:"slack",count:counts.slack,limit:subscriberLimits.chat},
     {channel:"teams",count:counts.teams,limit:subscriberLimits.chat},
@@ -28,8 +29,8 @@ export function planSubscriberCapacity<T extends {channel:SubscriberChannel}>(co
   const summaries:string[]=[];
   const format=(value:number)=>value.toLocaleString("en-US");
   for(const channel of [...new Set(rows.map(row=>row.channel))]) {
-    const limit=channel==="webhook"?subscriberLimits.webhook:channel==="email"?subscriberLimits.total:subscriberLimits.chat;
-    const projected=channel==="slack"||channel==="teams"?requested.slack+requested.teams:channel==="email"?requested.total:requested.webhook;
+    const limit=channel==="webhook"?subscriberLimits.webhook:(channel==="email"||channel==="sms")?subscriberLimits.total:subscriberLimits.chat;
+    const projected=channel==="slack"||channel==="teams"?requested.slack+requested.teams:(channel==="email"||channel==="sms")?requested.total:requested.webhook;
     if(projected>limit)summaries.push(`${channel} would reach ${format(projected)}, over the ${format(limit)} limit by ${format(projected-limit)}`);
   }
   if(requested.total>subscriberLimits.total&&!rows.some(row=>row.channel==="email"))summaries.push(`all channels would reach ${format(requested.total)}, over the ${format(subscriberLimits.total)} limit by ${format(requested.total-subscriberLimits.total)}`);

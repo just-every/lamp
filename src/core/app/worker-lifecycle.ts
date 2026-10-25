@@ -46,6 +46,7 @@ export async function runScheduled(bindings: AppBindings, executionContext: Exec
       notificationOrigin(bindings).then((origin) => runtime.services.deliveries.dispatchDue(origin)),
       runtime.services.publicSnapshots.retryPendingBuild(),
       runtime.services.channels.dispatchPending(),
+      runtime.services.sms.dispatchPending(),
       // Lamp checks its own public page, subscribe form and sender; Overview shows the result.
       runtime.services.overview.live.runChecks(),
       runtime.services.overview.live.checkSenderIfDue(),

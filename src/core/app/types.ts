@@ -62,6 +62,10 @@ export interface AppBindings {
   MAIL_API_KEY?: string;
   SENDGRID_WEBHOOK_PUBLIC_KEY?: string;
   RER_MAIL_RELAY_SECRET?: string;
+  TWILIO_ACCOUNT_SID?: string;
+  TWILIO_AUTH_TOKEN?: string;
+  TWILIO_FROM_NUMBER?: string;
+  TWILIO_MESSAGING_SERVICE?: string;
   SLACK_CLIENT_ID?: string;
   SLACK_CLIENT_SECRET?: string;
   SLACK_SIGNING_SECRET?: string;

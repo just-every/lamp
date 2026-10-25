@@ -19,6 +19,11 @@
       "id": "mail",
       "label": "Online mail settings",
       "help": "For Online hosting, configure a mail provider before Start. Run Edit Run supplies managed mail settings; ordinary providers use your verified sender and provider key. Local sign-in is one click and requires no mail."
+    },
+    {
+      "id": "sms",
+      "label": "Optional SMS settings",
+      "help": "Connect your registered Twilio sender to enable SMS subscriptions; local trials need no SMS account."
     }
   ],
   "fields": [
@@ -331,6 +336,38 @@
       "input": "managed",
       "required": false,
       "ownerVisible": false
+    },
+    {
+      "name": "TWILIO_ACCOUNT_SID",
+      "label": "Twilio account ID",
+      "kind": "text",
+      "required": false,
+      "group": "sms",
+      "help": "Account identifier for your registered Twilio sender."
+    },
+    {
+      "name": "TWILIO_AUTH_TOKEN",
+      "label": "Twilio authentication token",
+      "kind": "secret",
+      "required": false,
+      "group": "sms",
+      "help": "Authenticates outbound SMS and verifies signed replies and delivery callbacks."
+    },
+    {
+      "name": "TWILIO_FROM_NUMBER",
+      "label": "Twilio sending number",
+      "kind": "text",
+      "required": false,
+      "group": "sms",
+      "help": "Registered E.164 sending number, used without a Messaging Service."
+    },
+    {
+      "name": "TWILIO_MESSAGING_SERVICE",
+      "label": "Twilio Messaging Service",
+      "kind": "text",
+      "required": false,
+      "group": "sms",
+      "help": "Optional Messaging Service identifier used instead of the sending number."
     }
   ],
   "steps": [

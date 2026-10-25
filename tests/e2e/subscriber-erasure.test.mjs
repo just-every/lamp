@@ -26,6 +26,33 @@ test('real D1 erasure removes only the erased subscriber and leaves other people
    db.prepare("INSERT INTO notification_outbox(id,kind,aggregate_id,payload_json,available_at,created_at,updated_at) VALUES(?,'operator-alert','erasure-test',?,?,?,?)").bind('01J000000000000000000000E03',JSON.stringify(alert),now,now,now),
    db.prepare("INSERT INTO notification_outbox(id,kind,aggregate_id,payload_json,available_at,created_at,updated_at) VALUES(?,'operator-alert',?,?,?,?,?)").bind('01J000000000000000000000E04','webhook-deactivated/'+id,JSON.stringify(own),now,now,now),
   ]);
+  // The same erasure operation must remove SMS personal authority while an
+  // unrelated subscriber keeps exact consent and pending delivery work.
+  const smsId='synthetic-lamp-1820',otherSmsId='synthetic-lamp-1821';
+  for(const [subscriberId,phone] of [[smsId,'+12025550120'],[otherSmsId,'+12025550121']]) {
+   await db.batch([
+    db.prepare("INSERT INTO subscribers(id,channel,sms_kind,destination,state,selection_mode,token_hash,created_at,updated_at) VALUES(?,'webhook',1,?,'active','all',?,?,?)").bind(subscriberId,phone,subscriberId+'-hash',now,now),
+    db.prepare("INSERT INTO sms_subscriptions(subscriber_id,page_name,opt_in_wording,pending_since) VALUES(?,'synthetic-lamp-1822','synthetic-lamp-1823',?)").bind(subscriberId,now),
+    db.prepare("INSERT INTO sms_consents(id,subscriber_id,number,page_name,wording,consented_at) VALUES(?,?,?,'synthetic-lamp-1822','synthetic-lamp-1823',?)").bind(subscriberId+'-consent',subscriberId,phone,now),
+    db.prepare("INSERT INTO sms_inbound_events(message_sid,subscriber_id,received_at) VALUES(?,?,?)").bind(subscriberId+'-reply',subscriberId,now),
+    db.prepare("INSERT INTO subscriber_tokens(id,subscriber_id,scope,token_hash,created_at,updated_at) VALUES(?,?,'manage',?,?,?)").bind(subscriberId+'-token',subscriberId,subscriberId+'-manage-hash',now,now),
+    db.prepare("INSERT INTO sms_deliveries(id,subscriber_id,event_id,kind,outcome,provider_message_id,queued_at) VALUES(?,?,'synthetic-lamp-1824','incident-update','queued',?,?)").bind(subscriberId+'-delivery',subscriberId,subscriberId+'-provider',now),
+   ]);
+  }
+  const otherBefore={};
+  for(const table of ['subscribers','subscriber_tokens','sms_subscriptions','sms_consents','sms_inbound_events','sms_deliveries']) {
+   const key=table==='subscribers'?'id':'subscriber_id';
+   otherBefore[table]=(await db.prepare(`SELECT * FROM ${table} WHERE ${key}=?`).bind(otherSmsId).all()).results;
+  }
+  await createSubscriberRepository(db).anonymizeAndDeactivate(smsId,operator,now);
+  assert.deepEqual({...await db.prepare('SELECT destination,state FROM subscribers WHERE id=?').bind(smsId).first()},{destination:'deleted:'+smsId,state:'deactivated'});
+  for(const table of ['sms_subscriptions','sms_consents','sms_inbound_events'])assert.equal((await db.prepare(`SELECT COUNT(*) AS n FROM ${table} WHERE subscriber_id=?`).bind(smsId).first()).n,0,`${table} no longer retains erased SMS authority`);
+  assert.deepEqual({...await db.prepare('SELECT provider_message_id,outcome FROM sms_deliveries WHERE subscriber_id=?').bind(smsId).first()},{provider_message_id:null,outcome:'suppressed'});
+  assert.equal((await db.prepare('SELECT COUNT(*) AS n FROM subscriber_tokens WHERE subscriber_id=? AND revoked_at IS NULL').bind(smsId).first()).n,0,'erased SMS management authority is revoked');
+  for(const [table,rows] of Object.entries(otherBefore)) {
+   const key=table==='subscribers'?'id':'subscriber_id';
+   assert.deepEqual((await db.prepare(`SELECT * FROM ${table} WHERE ${key}=?`).bind(otherSmsId).all()).results,rows,`${table} preserves the other SMS recipient exactly`);
+  }
   await createSubscriberRepository(db).anonymizeAndDeactivate(id,operator,now);
   const subscriber=await db.prepare('SELECT destination,contact_email,state FROM subscribers WHERE id=?').bind(id).first();
   assert.deepEqual(subscriber,{destination:'deleted:'+id,contact_email:null,state:'deactivated'});
