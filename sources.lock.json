@@ -496,7 +496,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "0541087d6d621abe8cc48af2bcbfae1e56d07d5c0e066dc7c216b6e6d417e781",
+      "sha256": "7e12bd48a4aa38eea77540dc8dd68bde735c72d86fd801b981fa48c591b9363b",
       "executable": false
     },
     "DEMO.md": {
@@ -2868,7 +2868,7 @@
       "executable": false
     },
     "scripts/test-owner-migrations.mjs": {
-      "sha256": "860e92eb7146ce87edbbe35767ac9aefa79f7dc8d370f6b6f0e05d57817f9fe0",
+      "sha256": "e34080f0e50276a3801348463b786c190aa5d2f53664734a9a0942835914e622",
       "executable": false
     },
     "scripts/validate-release.mjs": {
@@ -4784,7 +4784,7 @@
       "executable": false
     },
     "src/core/features/statuspage-import/native-tables.ts": {
-      "sha256": "b9503dd5962eb045af142ef9138c588bb0575f2c33bbc3c66a75b2395c0b2979",
+      "sha256": "0d18a047fe17a0a4681ec1a2b3a579c7e3e630c2143b74b096b2808b054fba94",
       "executable": false
     },
     "src/core/features/statuspage-import/operating-notes.ts": {
