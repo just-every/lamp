@@ -448,7 +448,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "53adc07f23ff3c31062a9f00101a4598731d5db9dd36978fbceb46f31a1a06c9",
+      "sha256": "08cc2dd382dbba7e9f8fc9a2b805a4883d5f118d9fc3c229097cf9e7080a2872",
       "executable": false
     },
     "AGENTS.md": {
@@ -496,7 +496,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "7e12bd48a4aa38eea77540dc8dd68bde735c72d86fd801b981fa48c591b9363b",
+      "sha256": "d2db006d672947cf4d0dfbecf5f37a4de344700cb5570212e5eb12845888e5b8",
       "executable": false
     },
     "DEMO.md": {
@@ -3604,11 +3604,11 @@
       "executable": false
     },
     "src/core/features/deliveries/repository.ts": {
-      "sha256": "64785ccb469084e308e1790c1ce8ad01bc35a8783b201d0f8f2eb435e695ba30",
+      "sha256": "dd1442c17932f50c00916a20a6a97859606d0a1456b456c1583f616091e0456f",
       "executable": false
     },
     "src/core/features/deliveries/routes.ts": {
-      "sha256": "60058d03e409af41691045835c8a58bd9aad22e352bfec549372d2898ae74be1",
+      "sha256": "2726839c9e8f5f29998f5203ead9ca0cc1d0565a2ca8d2c3688d152f71190f93",
       "executable": false
     },
     "src/core/features/deliveries/schema.ts": {
@@ -3620,7 +3620,7 @@
       "executable": false
     },
     "src/core/features/deliveries/service.ts": {
-      "sha256": "367057cef222c747c0e7c48955ffcd6aea6664982baea268240ef20336743c2d",
+      "sha256": "59597a5a283ea7f88c0dd86b1bbe1bc0a7b097c214f4f48c704ccf38acd6792d",
       "executable": false
     },
     "src/core/features/deliveries/ses-events.ts": {
@@ -3644,7 +3644,7 @@
       "executable": false
     },
     "src/core/features/deliveries/ui/deliveries-page.tsx": {
-      "sha256": "d5a55ca718316f1300788356ea2399e3b251db69d62bf6717a9c86bd92df251a",
+      "sha256": "e36d42d0b182677dcb40cf460c37d73a1a4bf37ef068550756a8629bf69e4c58",
       "executable": false
     },
     "src/core/features/demo/repository.ts": {
@@ -6728,15 +6728,19 @@
       "executable": false
     },
     "tests/e2e/helpers/sms-browser-flow.mjs": {
-      "sha256": "d783896abf2f1d51e21afe07d9741c0153c58221de4e47cfee1081abe5f4805c",
+      "sha256": "ef11789549839f160fd9f8e580e4469f50c3c004ea6780f1a856a80b2ee1b374",
       "executable": false
     },
     "tests/e2e/helpers/sms-browser-runtime.mjs": {
-      "sha256": "f76cd0a4f3e576bb31767bc6eea2428d20dc73c16f6294dd47be9fca732b17bd",
+      "sha256": "069ed3de2c938fc7e32689b2424616792308cf2661ddd25712f6ee141aab9f29",
+      "executable": false
+    },
+    "tests/e2e/helpers/sms-delivery-receipts-flow.mjs": {
+      "sha256": "91c303b98d7e9dd5173a545ea800d1a84329b2919c678de9c2d3e81c25044bbb",
       "executable": false
     },
     "tests/e2e/helpers/sms-subscriber-flow.mjs": {
-      "sha256": "a65d3067454e55c6d3c3235792c42accc95426b7ca3bdadff7383d34ad135913",
+      "sha256": "f8b7a53d4361f912292e64fc812deba51e6fe296ab6d69826f9f235becfce227",
       "executable": false
     },
     "tests/e2e/helpers/snapshot-proxy.mjs": {
