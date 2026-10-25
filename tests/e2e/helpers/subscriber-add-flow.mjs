@@ -132,6 +132,17 @@ export async function subscriberAddFlow() {
     await fixture.assertUnchanged(beforeInvalid);
     assert.equal(fixture.messages.length, mailBeforeInvalid, "refused operator additions write no subscription and send no mail");
 
+    const smsSettings = await api("/api/app/sms/settings");
+    assert.equal(smsSettings.status, 200, smsSettings.text);
+    assert.equal(smsSettings.body.configured, false, "SMS is off in a deployment without Twilio configuration");
+    const subscribersBeforeUnconfiguredSms = await list();
+    const unconfiguredSms = await fixture.raw(pageOrigin + "/subscribe/sms", { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded", Origin: pageOrigin }, body: new URLSearchParams({ phone: "+12025550171", componentId: first.id }).toString() });
+    assert.equal(unconfiguredSms.status, 503);
+    assert.match(await unconfiguredSms.text(), /SMS sending is not configured/);
+    assert.deepEqual(await list(), subscribersBeforeUnconfiguredSms, "an unconfigured public SMS request creates no subscription");
+    assert.equal(fixture.messages.length, mailBeforeInvalid, "unconfigured SMS sends no confirmation through another provider");
+
+
     assert.equal((await api(`/api/app/subscribers/${id}`, { method: "DELETE" })).status, 204);
     assert.equal((await api(`/api/app/subscribers/${webhook.body.subscriber.id}`, { method: "DELETE" })).status, 204);
     const erasedExport = await fixture.request("/api/app/subscribers.csv");
