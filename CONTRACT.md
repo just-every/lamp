@@ -1111,7 +1111,7 @@ What Lamp does not do, and how a buyer gets it:
 
 ## Status
 
-Judged from the code and tests at commit `070c682f717f4e6dc38a0a9a5e1bb45f36cbcfd4` (25 October 2026). Rows changed after that commit name their own journeys under Evidence.
+Judged from the code and tests at commit `620a80ea56b1aa096408ac22655feafe0b310ec4` (25 October 2026). Rows changed after that commit name their own journeys under Evidence.
 
 INTAKE-009 is judged done on 21 October 2026 on the 1.10.0 release candidate, which inventories its migration 0042, from its named API, browser and native archive journeys below.
 

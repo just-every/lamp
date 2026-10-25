@@ -496,7 +496,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "1e1d42f9f64f48aa431ee287666e3c6d3325fb4e77e3a763d6a5682d6b0745b1",
+      "sha256": "8548be14b7452adbf0022f9ce3e8a31051288f50c289f696d9dfb83162137e7c",
       "executable": false
     },
     "DEMO.md": {
@@ -6728,7 +6728,7 @@
       "executable": false
     },
     "tests/e2e/helpers/sms-browser-flow.mjs": {
-      "sha256": "ef11789549839f160fd9f8e580e4469f50c3c004ea6780f1a856a80b2ee1b374",
+      "sha256": "d70f50f8e09f05ae86fc8340564cb625fd4d45ed46214d6549271387fc4739c0",
       "executable": false
     },
     "tests/e2e/helpers/sms-browser-runtime.mjs": {
