@@ -87,7 +87,10 @@ export async function smsBrowserFlow({ page, origin, pageOrigin, api, post, raw,
     await page.setViewportSize({ width, height: width === 390 ? 844 : 1000 });
     await page.goto(`${origin}/app/deliveries`); await operatorHydrated(page);
     await page.getByLabel('Channel', { exact: true }).selectOption('sms');
+    const filtered = page.waitForResponse(response => { const url = new URL(response.url()); return url.pathname === '/api/app/deliveries' && url.searchParams.get('channel') === 'sms' && url.searchParams.get('outcome') === 'delivered'; });
     await page.getByLabel('Outcome', { exact: true }).selectOption('delivered');
+    assert.equal((await filtered).status(), 200);
+    await expect(page.getByRole('region', { name: 'Delivery records', exact: true }).getByRole('row')).toHaveCount(4);
     for (const phone of receipts.phones) await expect(page.getByRole('row').filter({ hasText: phone })).toContainText('SMS');
     await expect(page.getByRole('row').filter({ hasText: receipts.phones[0] })).toContainText('Delivered');
     await audit('delivery-log', width);
