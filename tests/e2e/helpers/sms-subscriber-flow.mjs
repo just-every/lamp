@@ -65,7 +65,7 @@ export async function smsSubscriberFlow() {
       const response = await raw(`${pageOrigin}/incidents/${incident.reference}`);
       assert.equal(response.status, 200);
       return response.text();
-    }, html => html.includes(impact), 'the exact incident update is present on its permanent public page');
+    }, html => html.replace(/<[^>]*>/g, '').includes(impact), 'the exact incident update text is present on its permanent public page');
     return { incident, update: result.body.update };
   };
   try {
