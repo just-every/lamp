@@ -105,7 +105,7 @@ export function sentenceSize(text: string) {
 
 /** The overall state as one labelled state (PAGE-004) and the instant the content was generated (PAGE-014). */
 export function updatedLine(model: PublicSnapshotModel, className = "tpl-updated") {
-  return `<p class="${className}"><span class="tpl-state tone-${toneOf(model.overall)}">${escapeHtml(model.overall)}</span><span class="tpl-sep" aria-hidden="true">·</span><span data-generated-at>Updated ${when(model.generatedAt, model.settings.timezone)}</span></p>`;
+  return `<p class="${className}"><span class="tpl-state tone-${toneOf(model.overall)}" data-live="overall">${escapeHtml(model.overall)}</span><span class="tpl-sep" aria-hidden="true">·</span><span data-generated-at data-live="generation">Updated ${when(model.generatedAt, model.settings.timezone)}</span></p>`;
 }
 
 export function uptimeCaption(uptime: Uptime) {

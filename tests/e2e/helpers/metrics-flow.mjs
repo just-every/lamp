@@ -21,13 +21,19 @@ export async function metricsFlow({t}) {
     const writer=await mint(["metrics:write"]),unscoped=await mint([]);
     const reader=await mint(["read"]);
     const readComponents=token=>raw(fixture.appOrigin+"/api/v1/components",{headers:{Authorization:`Bearer ${token}`}});
+    const readMetrics=token=>raw(fixture.appOrigin+"/api/v1/metrics",{headers:{Authorization:`Bearer ${token}`}});
     const beforeRead=(await api("/api/app/management-tokens")).body.tokens;
     assert.equal((await readComponents(unscoped.token)).status,403,"a token without read scope cannot list components");
     assert.equal((await readComponents(writer.token)).status,403,"metrics:write does not imply read");
+    assert.equal((await readMetrics(unscoped.token)).status,403,"a token without read scope cannot list metrics");
+    assert.equal((await readMetrics(writer.token)).status,403,"metrics:write does not grant metric reads");
     assert.deepEqual((await api("/api/app/management-tokens")).body.tokens,beforeRead,"refusals do not change last-used metadata");
     const readResult=await readComponents(reader.token);
     assert.equal(readResult.status,200);assert.equal(readResult.headers.get("cache-control"),"no-store");
     assert.deepEqual(await readResult.json(),(await api("/api/app/components")).body,"the read bearer returns the same components and groups as the operator door, without a cookie");
+    const metricRead=await readMetrics(reader.token);
+    assert.equal(metricRead.status,200);assert.equal(metricRead.headers.get("cache-control"),"no-store");
+    assert.deepEqual(await metricRead.json(),(await api("/api/app/metrics")).body,"the read bearer returns sanitized metric definitions through the management door without a cookie");
     const readMetadata=(await api("/api/app/management-tokens")).body.tokens.find(token=>token.id===reader.credential.id);
     assert.deepEqual(readMetadata.scopes,["read"]);assert.ok(readMetadata.lastUsedAt>=reader.credential.expiresAt-3600_000);
     const storedRead=await fixture.db.prepare("SELECT token_hash FROM oa_credentials WHERE id=?").bind(reader.credential.id).first();
@@ -36,6 +42,7 @@ export async function metricsFlow({t}) {
     assert.equal((await post(`/api/app/management-tokens/${reader.credential.id}/revoke`,{})).status,200);
     const afterReadRevoke=(await api("/api/app/management-tokens")).body.tokens;
     assert.equal((await readComponents(reader.token)).status,401,"revocation immediately refuses the read bearer");
+    assert.equal((await readMetrics(reader.token)).status,401,"revocation immediately refuses metric reads");
     assert.deepEqual((await api("/api/app/management-tokens")).body.tokens,afterReadRevoke);
 
     const tokenPush=(token,submitted=points)=>raw(fixture.appOrigin+`/api/v1/metrics/${push.id}/points`,{method:"POST",headers:{"Content-Type":"application/json",Authorization:`Bearer ${token}`},body:JSON.stringify({points:submitted})});
@@ -72,6 +79,7 @@ export async function metricsFlow({t}) {
     const before=(await fixture.db.prepare("SELECT * FROM metric_points ORDER BY metric_id,resolution,bucket").all()).results;
     assert.equal((await raw(fixture.appOrigin+`/api/app/metrics/${push.id}/points`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({points:[{at:minute,value:999}]})})).status,401);
     assert.deepEqual((await fixture.db.prepare("SELECT * FROM metric_points ORDER BY metric_id,resolution,bucket").all()).results,before,"an unauthenticated push changes no series");
+    const metricReader=await mint(["read"]);
     const feeds=[];
     for(const [provider,key,query,value] of [["datadog","synthetic-lamp-26","avg:synthetic.metric{*}",42],["newrelic","synthetic-lamp-28","SELECT average(duration) * 1000 AS value FROM Transaction",87],["pingdom","synthetic-lamp-29","123",60],["prometheus","synthetic-lamp-50","avg(synthetic_latency)",12.5]]) {
       let sourceId=null;
@@ -82,6 +90,10 @@ export async function metricsFlow({t}) {
       const listed=(await api("/api/app/metrics")).text;
       for(const secret of [key,"synthetic-lamp-27"])assert.ok(!listed.includes(secret),"read-only keys are never returned");
       const sealed=(await fixture.db.prepare("SELECT sealed_credentials FROM public_metrics WHERE id=?").bind(metric.id).first()).sealed_credentials;assert.ok(sealed&&!sealed.includes(key),"only sealed credentials are stored");
+      const metricListing=await readMetrics(metricReader.token);assert.equal(metricListing.status,200);
+      const metricListingText=await metricListing.text();
+      assert.deepEqual(JSON.parse(metricListingText),(await api("/api/app/metrics")).body);
+      for(const secret of [key,"synthetic-lamp-27",sealed])assert.ok(!metricListingText.includes(secret),"management metric reads return neither plaintext nor sealed provider credentials");
       feeds.push({metric,provider,value});
     }
     await tick(Date.now());

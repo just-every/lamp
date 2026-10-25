@@ -94,7 +94,7 @@ export function regionsPage(model: PublicSnapshotModel, parts: TemplateParts) {
   const text = situation(model);
   const components = publicComponentOrder(model.visibleComponents);
   const head = `<header class="rg-head wrap"><div class="rg-head-row"><div class="rg-brand">${brand(model)}${tagline(model)}</div><div class="rg-actions">${subscribeForm("subscribe-email")}${feedLinks()}</div></div></header>`;
-  const status = `<section class="rg-status-line wrap" aria-labelledby="overall-status"><div class="tpl-live tone-${toneOf(model.overall)}" id="status-live" role="status" aria-live="polite" aria-atomic="true" data-live="status"><span class="rg-status-icon">${stateGlyph(model.overall)}</span><div><h1 id="overall-status">${escapeHtml(text)}</h1>${updatedLine(model)}</div></div></section>`;
+  const status = `<section class="rg-status-line wrap" aria-labelledby="overall-status"><div class="tpl-live"><span class="rg-status-icon tone-${toneOf(model.overall)}" data-live="status-icon">${stateGlyph(model.overall)}</span><div><div id="status-live" role="status" aria-live="polite" aria-atomic="true" data-live="status"><h1 id="overall-status">${escapeHtml(text)}</h1><span class="sr-only">${escapeHtml(model.overall)}</span></div>${updatedLine(model)}</div></div></section>`;
   const map = `<section class="rg-regions wrap" aria-labelledby="regions-title"><h2 id="regions-title" class="sr-only">Regions</h2>${regionsMap(model)}${filters(groups)}</section>`;
   const current = [...history.open.map((incident) => openIncidentEntry(incident, model, parts)), ...history.maintenance.map((item) => maintenanceEntry(item, model))].join("");
   const past = history.resolved.map((incident) => resolvedEntry(incident, model)).join("");

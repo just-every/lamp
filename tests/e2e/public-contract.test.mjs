@@ -652,11 +652,20 @@ test("PAGE-013 PAGE-014 PAGE-008 PAGE-009 PAGE-003 — Public isolation, live ti
     await page.clock.install();
     let polls=0;
     page.on("request",request=>{if(request.url()===`${pageUrl}/api/public/status`)polls++;});
-    for (const width of [1440,390]) {
+    const originalComponents=(await (await appFetch("/api/app/components")).json()).components;
+    for(const [id,region] of [["01J00000000000000000000010","US East"],["01J00000000000000000000020","Europe"]]) {
+      const {name,groupId,description,internal,displayOrder,note}=originalComponents.find(component=>component.id===id);
+      assert.equal((await appFetch(`/api/app/components/${id}`,{method:"PUT",body:JSON.stringify({name,groupId,description,internal,displayOrder,note,region})})).status,200);
+    }
+    for (const template of ["default","calm","uptime","regions"]) {
+      await updateSettings({template});
+      for (const width of [1440,390]) {
       await page.setViewportSize({width,height:1000});
       await page.clock.setSystemTime(new Date());
       await page.goto(`${pageUrl}/`);
       assert.equal(await page.locator("[data-generated-at] time").textContent(),"just now");
+      if(template!=="default")assert.equal(await page.locator("body").getAttribute("data-template"),template);
+      assert.equal(await page.locator("#status-live [data-generated-at]").count(),0,"generation clocks are outside announcements");
       const live=page.locator("#status-live");
       assert.equal(await live.getAttribute("role"),"status","the live region exists on first load");
       assert.equal(await live.getAttribute("aria-live"),"polite");
@@ -666,7 +675,7 @@ test("PAGE-013 PAGE-014 PAGE-008 PAGE-009 PAGE-003 — Public isolation, live ti
       assert.equal(await timezoneLabel.getAttribute("data-timezone"),"America/Los_Angeles");
       await page.evaluate(()=>{
         window.liveChanges=[];window.statusRenders=0;
-        new MutationObserver(()=>window.statusRenders++).observe(document.querySelector('[data-generated-at]'),{childList:true});
+        new MutationObserver(()=>window.statusRenders++).observe(document.querySelector('[data-generated-at]'),{subtree:true,childList:true});
         new MutationObserver(()=>window.liveChanges.push(document.querySelector('#status-live').textContent)).observe(document.querySelector('#status-live'),{subtree:true,childList:true,characterData:true});
       });
       const made=await appFetch("/api/app/incidents",{method:"POST",body:JSON.stringify({title:"synthetic-lamp-64",components:[{componentId:"01J00000000000000000000010",state:"Major outage",relationship:"Primary"}]})});
@@ -687,12 +696,15 @@ test("PAGE-013 PAGE-014 PAGE-008 PAGE-009 PAGE-003 — Public isolation, live ti
         const beforePoll=polls;
         await page.clock.fastForward(30_000);const polled=await (await response).json();
         assert.equal(polls-beforePoll,1,"the script polls once at its 30-second cadence");
-        await page.waitForFunction(expected=>document.querySelector('[data-newest-update]')?.textContent===expected,status.incident?status.incident.summary:"There are no open incidents.");
+        const expected=template==="default"?(status.incident?status.incident.summary:"There are no open incidents."):(lifecycle==="Resolved"?null:impact);
+        if(expected)await page.waitForFunction(text=>document.querySelector('#status-live')?.textContent.includes(text),expected);
         await page.waitForFunction(at=>document.querySelector("[data-generated-at] time")?.getAttribute("datetime")===at,polled.generatedAt);
         assertVisibleTime(await page.locator("[data-generated-at] time").getAttribute("title"),polled.generatedAt,"America/Los_Angeles");
         const announcement=await live.innerText();
         assert.ok(announcement.includes(status.overall));
-        assert.ok(announcement.includes(status.incident?status.incident.summary:"There are no open incidents."));
+        if(template==="default")assert.ok(announcement.includes(status.incident?status.incident.summary:"There are no open incidents."));
+        else if(lifecycle!=="Resolved")assert.ok(announcement.includes(impact));
+        else assert.ok(!announcement.includes("Requests are recovering."));
         assert.ok(!announcement.includes(incident.id),"announcements contain no internal incident id");
         assert.ok((await page.evaluate(()=>window.liveChanges.length))>0,"the persistent polite region receives changed text after publication");
         await page.evaluate(()=>{window.liveChanges=[];});
@@ -704,9 +716,12 @@ test("PAGE-013 PAGE-014 PAGE-008 PAGE-009 PAGE-003 — Public isolation, live ti
         assert.equal(await timezoneLabel.textContent(),initialTimezoneLabel);
       }
       const audit=await new AxeBuilder({page}).withTags(["wcag2a","wcag2aa","wcag21aa","wcag22aa"]).analyze();
-      assert.deepEqual(audit.violations.filter(item=>["serious","critical"].includes(item.impact)),[],`${width} live page accessibility`);
-      assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false,`${width} live page has no horizontal overflow`);
+      assert.deepEqual(audit.violations.filter(item=>["serious","critical"].includes(item.impact)),[],`${template} ${width} live page accessibility`);
+      assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false,`${template} ${width} live page has no horizontal overflow`);
+      if(process.env.LAMP_SCREENSHOTS)await page.screenshot({path:`${process.env.LAMP_SCREENSHOTS}/page020-${template}-${width}.png`,fullPage:true});
     }
+    }
+    await updateSettings({template:"default"});
     await page.clock.fastForward(90*60_000);
     await page.waitForFunction(()=>document.querySelector("[data-generated-at] time")?.textContent==="1 hour ago");
     assertVisibleTime(await page.locator("[data-generated-at] time").getAttribute("title"),await page.locator("[data-generated-at] time").getAttribute("datetime"),"America/Los_Angeles");

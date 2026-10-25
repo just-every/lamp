@@ -31,7 +31,7 @@ export function registerManagementApiRoutes(app:Hono<AppEnv>,service:ManagementA
     if(!id.success || !z.object({}).strict().safeParse(await c.req.json().catch(()=>null)).success)return c.json({error:"Supply a valid token ID and an empty revoke request."},400);
     return await service.revoke(id.data,c.get("operator").id,c.get("operatorSession").operator.version)?c.json({revoked:true}):c.json({error:"Active management token not found."},404);
   });
-  app.get("/api/v1/components",async c=>{
+  for (const resource of ["components","metrics"] as const) app.get(`/api/v1/${resource}`,async c=>{
     c.header("Cache-Control","no-store");
     const authenticated=await service.authenticate(c.req.raw);
     if(!authenticated)return c.json({error:"A valid management token is required."},401);
@@ -40,9 +40,11 @@ export function registerManagementApiRoutes(app:Hono<AppEnv>,service:ManagementA
       c.header("Retry-After",String(60-Math.floor(Date.now()/1000)%60));
       return c.json({error:"This token's minute request limit was reached."},429);
     }
-    const [rows,groups]=await Promise.all([components.list(),components.listGroups()]);
+    const body=resource === "components"
+      ? await Promise.all([components.list(),components.listGroups()]).then(([rows,groups])=>({components:rows,groups}))
+      : {metrics:await metrics.list()};
     if(!await service.recordRead(authenticated.authority))return c.json({error:"A valid management token is required."},401);
-    return c.json({components:rows,groups});
+    return c.json(body);
   });
   app.post("/api/v1/metrics/:id/points",async c=>{
     c.header("Cache-Control","no-store");
