@@ -7,6 +7,8 @@ import { expect } from "@playwright/test";
 const tags = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"];
 
 async function audit(page, label) {
+  // Native form results can show their heading before the shared stylesheet loads.
+  await page.waitForLoadState("load");
   assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), `${label}: no horizontal overflow`);
   const result = await new AxeBuilder({ page }).withTags(tags).analyze();
   assert.deepEqual(result.violations.filter(row => ["serious", "critical"].includes(row.impact)).map(row => ({ id: row.id, nodes: row.nodes.map(node => node.target) })), [], `${label}: no serious or critical axe finding`);
