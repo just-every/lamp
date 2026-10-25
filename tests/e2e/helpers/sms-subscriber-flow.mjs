@@ -76,6 +76,11 @@ export async function smsSubscriberFlow() {
     assert.equal(settings.status, 200, settings.text);
     assert.equal(settings.body.configured, true);
     assert.deepEqual(settings.body.settings.countries, ['US', 'CA']);
+    const beforeLongControl = await fixture.databaseState();
+    const longSupport = await api('/api/app/sms/settings', { method: 'PUT', body: JSON.stringify({ countries: ['US', 'CA'], supportContact: '界'.repeat(120) }) });
+    assert.equal(longSupport.status, 400, longSupport.text);
+    await fixture.assertUnchanged(beforeLongControl);
+    assert.equal(messages.length, 0, 'over-two-segment mandatory control wording is refused without sending');
     const beforeInvalid = await fixture.databaseState();
     const rateBefore = await db.prepare('SELECT COALESCE(SUM(request_count),0) AS count FROM request_rate_windows').first();
     for (const invalid of ['2025550101', '+442055550101', '+12425550106']) {
