@@ -21,12 +21,22 @@ export function createSmsRepository(db:D1Database) {
     async subscribe(input:{id:string;phone:string;componentIds:string[];preferences:SubscriberPreferences;now:string;operatorId?:string}) {
       const nonce=createUlid();
       await db.batch([
+        db.prepare(`SELECT CASE WHEN (? IS NULL OR EXISTS(SELECT 1 FROM oa_operators WHERE id=? AND status='active' AND role IN ('owner','admin')))
+          AND (SELECT COUNT(*) FROM components WHERE internal=0 AND id IN (SELECT value FROM json_each(?)))=json_array_length(?)
+          THEN 1 ELSE json('SMS subscriber authority or components changed.') END`).bind(input.operatorId??null,input.operatorId??null,JSON.stringify(input.componentIds),JSON.stringify(input.componentIds)),
         db.prepare(`INSERT INTO subscribers(id,channel,sms_kind,destination,state,selection_mode,token_hash,event_kinds_json,minimum_impact,preferences_set,created_at,updated_at,created_by_operator_id)
           VALUES(?,'webhook',1,?,'pending',?,?,?,?,1,?,?,?) ON CONFLICT(destination) DO UPDATE SET state='pending',selection_mode=excluded.selection_mode,
           deactivation_reason=NULL,deactivated_at=NULL,token_hash=excluded.token_hash,event_kinds_json=excluded.event_kinds_json,minimum_impact=excluded.minimum_impact,
           preferences_set=1,created_at=excluded.created_at,updated_at=excluded.updated_at WHERE subscribers.state='deactivated' AND subscribers.sms_kind=1`)
           .bind(input.id,input.phone,input.componentIds.length?'selected':'all',nonce,JSON.stringify(input.preferences.eventKinds),input.preferences.minimumImpact,input.now,input.now,input.operatorId??null),
         db.prepare("INSERT OR IGNORE INTO sms_subscriptions(subscriber_id) SELECT id FROM subscribers WHERE id=? AND token_hash=?").bind(input.id,nonce),
+        ...(input.operatorId ? [
+          db.prepare(`INSERT OR IGNORE INTO subscriber_intake(subscriber_id,source,operator_id,created_at)
+            SELECT id,'operator',?,? FROM subscribers WHERE id=? AND token_hash=?`).bind(input.operatorId,input.now,input.id,nonce),
+          db.prepare(`INSERT INTO audit_entries(id,entity_type,entity_id,action,operator_id,payload_json,created_at,updated_at)
+            SELECT ?,'subscriber',id,'subscriber.added',?,json_object('channel','sms'),?,? FROM subscribers WHERE id=? AND token_hash=?`)
+            .bind(createUlid(),input.operatorId,input.now,input.now,input.id,nonce),
+        ] : []),
         db.prepare("DELETE FROM subscriber_components WHERE subscriber_id=? AND EXISTS(SELECT 1 FROM subscribers WHERE id=? AND token_hash=?)").bind(input.id,input.id,nonce),
         ...input.componentIds.map(id=>db.prepare(`INSERT OR IGNORE INTO subscriber_components(id,subscriber_id,component_id,created_at,updated_at)
           SELECT ?,?,id,?,? FROM components WHERE id=? AND internal=0 AND EXISTS(SELECT 1 FROM subscribers WHERE id=? AND token_hash=?)`).bind(createUlid(),input.id,input.now,input.now,id,input.id,nonce)),
@@ -52,6 +62,7 @@ export function createSmsRepository(db:D1Database) {
           WHERE s.id=? AND s.state='pending' AND x.pending_since<>'' AND x.opt_in_wording<>'' AND x.pending_since>?
             AND s.created_at>?`).bind(consent,now,id,new Date(Date.parse(now)-72*60*60*1000).toISOString(),new Date(Date.parse(now)-72*60*60*1000).toISOString()),
         db.prepare("UPDATE subscribers SET state='active',updated_at=? WHERE id=? AND state='pending' AND EXISTS(SELECT 1 FROM sms_consents WHERE id=?) RETURNING id").bind(now,id,consent),
+        db.prepare("UPDATE subscriber_intake SET confirmed_at=? WHERE subscriber_id=? AND EXISTS(SELECT 1 FROM sms_consents WHERE id=?)").bind(now,id,consent),
       ]);
       return result[1].results.length>0;
     },

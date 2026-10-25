@@ -109,7 +109,8 @@ export function createSubscriberIntakeRepository(db:D1Database) {
     async exportRows():Promise<SubscriberExportRow[]> {
       return (await db.prepare(`SELECT s.channel,s.destination,s.contact_email AS contactEmail,s.state,
         COALESCE((SELECT group_concat(component_id,';') FROM (SELECT component_id FROM subscriber_components WHERE subscriber_id=s.id ORDER BY component_id)),'') AS components,
-        CASE WHEN a.subscriber_id IS NOT NULL THEN CASE WHEN a.confirmed_at>=s.created_at THEN a.confirmed_at END
+        CASE WHEN s.channel='sms' THEN (SELECT MAX(consent.consented_at) FROM sms_consents consent WHERE consent.subscriber_id=s.id AND consent.consented_at>=s.created_at)
+          WHEN a.subscriber_id IS NOT NULL THEN CASE WHEN a.confirmed_at>=s.created_at THEN a.confirmed_at END
           ELSE (SELECT MAX(t.revoked_at) FROM subscriber_tokens t WHERE t.subscriber_id=s.id AND t.scope='confirm'
           AND t.revoked_at IS NOT NULL AND (s.deactivated_at IS NULL OR t.revoked_at<s.deactivated_at)) END AS consentAt
         FROM subscriber_directory s LEFT JOIN subscriber_intake a ON a.subscriber_id=s.id
