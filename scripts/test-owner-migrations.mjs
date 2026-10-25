@@ -23,11 +23,16 @@ try {
   // Create files in reverse order; the second depends on the first and core schema.
   await writeFile(join(temporary, 'migrations/ext/0002_owner.sql'), "INSERT INTO owner_notes VALUES (2, 'second');");
   await writeFile(join(temporary, 'migrations/ext/0001_owner.sql'), "CREATE TABLE owner_notes (id INTEGER PRIMARY KEY, value TEXT NOT NULL); INSERT INTO owner_notes SELECT 1, 'preserved' WHERE EXISTS (SELECT 1 FROM d1_migrations);");
-  const addedCore = ['0053_subscriber_intake.sql', '0054_subscriber_webhook_formats.sql', '0055_maintenance_automation_defaults.sql', '0056_subscriber_channels_preferences.sql','0057_component_deliveries.sql','0058_maintenance_wording.sql','0059_mail_failover.sql','0060_operator_channel_alerts.sql'];
+  // Withhold every later migration, including new additions: an upgrade
+  // fixture must never apply 0065 against an artificial schema missing 0056.
+  const addedCore = (await readdir(join(root, 'migrations/core')))
+    .filter(name => /^\d{4}_.+\.sql$/.test(name) && Number(name.slice(0, 4)) > 52).sort();
+  const through0055 = addedCore.filter(name => Number(name.slice(0, 4)) <= 55);
+  const after0055 = addedCore.filter(name => Number(name.slice(0, 4)) > 55);
   for (const name of addedCore) await rm(join(temporary, 'migrations/core', name));
   run('node', ['scripts/migrate-local.mjs']);
   query("INSERT INTO subscribers(id,channel,destination,contact_email,state,selection_mode,token_hash,created_at,updated_at) VALUES('synthetic-lamp-1','webhook','https://receiver.example.test/synthetic-lamp-1','synthetic-lamp-1@example.test','active','all','synthetic-lamp-1','2026-10-23','2026-10-23')");
-  for (const name of addedCore.slice(0,3)) await cp(join(root, 'migrations/core', name), join(temporary, 'migrations/core', name));
+  for (const name of through0055) await cp(join(root, 'migrations/core', name), join(temporary, 'migrations/core', name));
   run('node', ['scripts/migrate-local.mjs']);
   assert.deepEqual(query("SELECT id,state,destination,created_by_operator_id,webhook_format FROM subscribers WHERE id='synthetic-lamp-1'"), [{id:'synthetic-lamp-1',state:'active',destination:'https://receiver.example.test/synthetic-lamp-1',created_by_operator_id:null,webhook_format:'lamp'}]);
   assert.equal(query('SELECT COUNT(*) n FROM subscriber_intake')[0].n, 0);
@@ -49,9 +54,11 @@ try {
     INSERT INTO channel_posts(id,incident_update_id,destination_id,queued_at) VALUES('synthetic-lamp-upgrade-post','synthetic-lamp-upgrade-update','synthetic-lamp-channel','2026-10-23');
     UPDATE notification_deliveries SET notification_event_id='synthetic-lamp-maintenance',notification_event_type='maintenance-notice',mail_payload_json='{"subject":"Retained subject","text":"Retained original wording"}',outcome_at='2026-10-23T01:00:00Z' WHERE id='synthetic-lamp-delivery';`);
   const priorCoreLedger = query('SELECT name FROM d1_migrations ORDER BY id');
+  assert.equal(priorCoreLedger.every(row => Number(row.name.slice(0, 4)) <= 55), true, 'the populated 0055 source ledger carries no later migration');
+  assert.equal(priorCoreLedger.at(-1).name, through0055.at(-1), 'the source upgrade boundary is exactly 0055');
   assert.deepEqual(priorCoreLedger.map(row=>row.name).sort(),(await readdir(join(temporary,'migrations/core'))).filter(name=>name.endsWith('.sql')).sort(),'the populated source has exactly every main-applied migration through 0055');
   const preservedUpgrade = Object.fromEntries(['subscribers','subscriber_components','subscriber_tokens','subscriber_intake','channel_destinations','channel_destination_components','channel_posts','notification_deliveries','notification_delivery_attempts','mail_provider_webhook_events','subscriber_reporting_baseline','subscriber_reporting_daily','maintenance','maintenance_notices','incidents','incident_updates'].map(table=>[table,query(`SELECT * FROM ${table}`)]));
-  for(const name of addedCore.slice(3))await cp(join(root, 'migrations/core',name),join(temporary,'migrations/core',name));
+  for(const name of after0055)await cp(join(root, 'migrations/core',name),join(temporary,'migrations/core',name));
   run('node', ['scripts/migrate-local.mjs']);
   assert.deepEqual(query('PRAGMA foreign_key_check'),[]);
   assert.deepEqual(query("SELECT operator_alerts FROM channel_destinations WHERE id='synthetic-lamp-channel'"),[{operator_alerts:0}], 'existing publication channels do not opt into private alerts during upgrade');
