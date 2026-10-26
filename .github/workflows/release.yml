@@ -4,7 +4,7 @@ on:
   push:
     tags: ['v*']
   schedule:
-    - cron: '23 16 * * *'
+    - cron: '23 4 * * 1,4'
   workflow_dispatch:
 
 permissions:
@@ -23,7 +23,6 @@ jobs:
       matrix:
         journey: [upgrade, installer, readme]
     env:
-      PATH: /usr/local/bin:/usr/bin:/bin
       PLAYWRIGHT_SKIP_BROWSER_GC: '1'
     defaults:
       run:
@@ -33,13 +32,17 @@ jobs:
         with:
           fetch-depth: 0
           persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version-file: package.json
       - name: Cache shared pnpm store and Chromium
         uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e2684
         with:
           path: |
             ~/.local/share/pnpm/store
             ~/.cache/ms-playwright
-          key: lamp-linux-${{ runner.arch }}-${{ hashFiles('scripts/agent-bootstrap.sh', 'pnpm-lock.yaml', 'package.json') }}
+            ${{ runner.temp }}/rer-apt/archives
+          key: lamp-linux-${{ runner.arch }}-${{ hashFiles('scripts/ci/bootstrap.sh', 'pnpm-lock.yaml', 'package.json') }}
       - name: Reserve disk for fresh native installations
         run: |
           free_kib() { df -Pk "$GITHUB_WORKSPACE" | awk 'END { print $4 }'; }
@@ -49,8 +52,18 @@ jobs:
           done
       - name: Prepare release evidence
         run: mkdir -p "$RUNNER_TEMP/lamp-release"
-      - name: Install pinned tools, dependencies and browser
-        run: nice -n 15 bash scripts/agent-bootstrap.sh 2>&1 | tee "$RUNNER_TEMP/lamp-release/bootstrap.log"
+      - name: Install pinned tools and dependencies
+        env:
+          LAMP_CI_XML: 'true'
+        run: nice -n 15 bash scripts/ci/bootstrap.sh 2>&1 | tee "$RUNNER_TEMP/lamp-release/bootstrap.log"
+      - name: Install Chromium
+        run: |
+          set -euo pipefail
+          pnpm exec playwright install chromium
+          pnpm exec node scripts/chromium-probe.mjs || {
+            sudo env "PATH=$PATH" "APT_ARCHIVES=$RUNNER_TEMP/rer-apt/archives" python3 scripts/install-chromium-deps.py
+            pnpm exec node scripts/chromium-probe.mjs
+          }
       - name: Upgrade from the declared previous release tag
         if: matrix.journey == 'upgrade'
         run: |

@@ -416,7 +416,7 @@
       "executable": false
     },
     ".github/workflows/release.yml": {
-      "sha256": "f906c48c2eac81be7e70f19b5bb4df0453e41e94a79e6a0478d8600a2e9bb65e",
+      "sha256": "b6e92d29c658ac925146e2850091374b84fba53aa46b0e088bb9f1dd427e23a4",
       "executable": false
     },
     ".github/workflows/rer-managed.yml": {
@@ -432,7 +432,7 @@
       "executable": false
     },
     ".github/workflows/verify.yml": {
-      "sha256": "8d3f9b4653e3bc87366fc160669a4172c865369171fe08e862974ede6256f40c",
+      "sha256": "597cf9938c6950e43be71b1d2aaf0d94ecd3a606541182ca13e6209f33e16826",
       "executable": false
     },
     ".gitignore": {
@@ -2479,6 +2479,18 @@
       "sha256": "7cebfe4facea1f2f4aedab29509303eaf9bef9991f5a0b3459270d9158c81b36",
       "executable": false
     },
+    "scripts/chromium-probe.mjs": {
+      "sha256": "3519d41e8701bf46a54c0d90833e6116355b139ba9076636473020ec8fcbd7ff",
+      "executable": false
+    },
+    "scripts/ci/bootstrap.sh": {
+      "sha256": "6a5ad30bb57623368af27e19dbb3f622b86defe5aad5f3190635dfc1c61491b4",
+      "executable": false
+    },
+    "scripts/ci/verify-reuse.sh": {
+      "sha256": "b74a093228337ac4ac2c22dcdd99972377d0a52f25113a55ad94aad38a939798",
+      "executable": false
+    },
     "scripts/create-release-candidate.mjs": {
       "sha256": "5c20ac3b65343e84309fbe25f9de90542b7b16a65b140f98bdc801a773e0680c",
       "executable": false
@@ -2701,6 +2713,10 @@
     },
     "scripts/independent-build-setup.sh": {
       "sha256": "369ed95e63f9b6ad3fecc270966547b4e42df34b1f3845006e514b6267ea1cbd",
+      "executable": false
+    },
+    "scripts/install-chromium-deps.py": {
+      "sha256": "197ca15f22a4efbc08a62e9309254fe3b8e7e83ff0c9f4e72bacf9b5d6dca4da",
       "executable": false
     },
     "scripts/install.mjs": {
