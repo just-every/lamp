@@ -20,7 +20,7 @@ export async function preparePortableAudit(db) {
 /** Run the real scheduled Worker on the native import's persisted D1/R2 files. */
 export async function assertPortableAudit({ target, expected, origin, cookie, bindings }) {
   const built = await build({
-    entryPoints: ["tests/e2e/helpers/follow-ups-worker.ts"], bundle: true, format: "esm", platform: "browser", write: false,
+    entryPoints: ["tests/e2e/helpers/audit-portability-worker.ts"], bundle: true, format: "esm", platform: "browser", write: false,
     external: ["cloudflare:workers", "node:*"], define: { "import.meta.env.DEV": "false" },
     plugins: [{ name: "assets", setup(builder) {
       builder.onResolve({ filter: /\?(inline|raw)$/ }, args => ({ path: resolve(args.resolveDir, args.path.split("?")[0]), namespace: args.path.endsWith("?raw") ? "raw" : "inline" }));
