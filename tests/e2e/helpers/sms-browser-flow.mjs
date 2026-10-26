@@ -96,7 +96,7 @@ export async function smsBrowserFlow({ page, origin, pageOrigin, api, post, raw,
     await expect(records).toHaveCount(deliveries.length);
     const shown = await records.evaluateAll(rows => rows.map(row => {
       const pill = row.querySelector('.state-pill');
-      return { destination: row.querySelector('td strong')?.textContent, state: [...pill.classList].find(name => name.startsWith('state-') && name !== 'state-pill'), providerOutcome: pill.dataset.providerOutcome ?? null, words: pill.textContent };
+      return { destination: row.querySelector('td strong')?.textContent, state: [...pill.classList].find(name => name.startsWith('state-') && name !== 'state-pill'), providerOutcome: pill.dataset.providerOutcome ?? null, words: pill.closest('td').textContent };
     }));
     assert.deepEqual(shown.map(({ words, ...row }) => row), deliveries.map(row => ({ destination: row.destination, state: `state-${row.outcome}`, providerOutcome: row.providerOutcome ?? null })), `${value}: each row shows its record's outcome`);
     return { deliveries, shown };

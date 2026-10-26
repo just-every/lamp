@@ -106,7 +106,8 @@ export function DeliveriesPage() {
               <td><strong>{delivery.destination}</strong><small>{delivery.subscriberState} subscriber</small>{delivery.maintenanceReference ? <small>{delivery.maintenanceReference}: {delivery.maintenanceTitle} · {delivery.maintenanceNoticeKind}</small> : null}{delivery.incidentReference ? <small>{delivery.incidentReference}: {delivery.incidentTitle} · {delivery.incidentLifecycle?.toLowerCase()}</small> : null}</td>
               <td>{label(delivery.channel)}</td>
               <td>
-                <span className={`state-pill state-${acceptedWithoutReceipt ? "accepted" : delivery.outcome}`} data-provider-outcome={delivery.providerOutcome ?? undefined}>{acceptedWithoutReceipt ? `Accepted by ${delivery.acceptingProvider ? providerLabel(delivery.acceptingProvider) : providerName}` : delivery.providerOutcome === "undelivered" ? "Undelivered" : label(delivery.outcome)}</span>
+                <span className={`state-pill state-${acceptedWithoutReceipt ? "accepted" : delivery.outcome}`} data-provider-outcome={delivery.providerOutcome ?? undefined}>{acceptedWithoutReceipt ? `Accepted by ${delivery.acceptingProvider ? providerLabel(delivery.acceptingProvider) : providerName}` : label(delivery.outcome)}</span>
+                {delivery.providerOutcome === "undelivered" ? <small>Carrier could not deliver</small> : null}
                 {!data.mail.local && delivery.providerAcceptedAt ? <small>{delivery.acceptingProvider ? `${providerLabel(delivery.acceptingProvider)} accepted` : "Provider accepted"} {formatOperatorTime(delivery.providerAcceptedAt)}{delivery.outcome === "queued" && rowReceiptsConfigured ? " · awaiting confirmation" : ""}</small> : null}
                 {delivery.latestError && (delivery.outcome === "failed" || delivery.outcome === "queued") ? <small>{delivery.latestError}</small> : null}
               </td>
