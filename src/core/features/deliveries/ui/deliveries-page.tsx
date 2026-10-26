@@ -90,7 +90,7 @@ export function DeliveriesPage() {
       <Icon name="warning" width={18} height={18} />
       <div>{receiptNote(data.mail, data.sms.configured)}</div>
     </section>}
-    <section className="data-card subscriber-table-card subscriber-directory-card">
+    <section className="data-card subscriber-table-card subscriber-directory-card delivery-records-card">
       <div className="list-controls">
         <label>Channel<select aria-label="Channel" value={channel} onChange={(event) => resetFilters(() => setChannel(event.target.value as DeliveryLogChannel | ""))}><option value="">All channels</option>{[...DELIVERY_CHANNELS, "sms"].map((value) => <option key={value} value={value}>{label(value)}</option>)}</select></label>
         <label>Outcome<select aria-label="Outcome" value={outcome} onChange={(event) => resetFilters(() => setOutcome(event.target.value as DeliveryOutcome | ""))}><option value="">All outcomes</option>{DELIVERY_OUTCOMES.map((value) => <option key={value} value={value}>{value === "queued" && channel !== "webhook" && !data.mail.local && !hasReceipts ? "Queued / accepted" : label(value)}</option>)}</select></label>

@@ -3120,7 +3120,7 @@
       "executable": false
     },
     "src/core/app/client/ui/records.css": {
-      "sha256": "740f6fcac9d5985c56e351100b34d8636fc4c9eca83edfca438c22a6ca688d44",
+      "sha256": "9e1747fa93ebbe05a4c1a1308163a127ca5d06a9a197123b5e39404a5e4a9839",
       "executable": false
     },
     "src/core/app/client/ui/relative-time.ts": {
@@ -3644,7 +3644,7 @@
       "executable": false
     },
     "src/core/features/deliveries/ui/deliveries-page.tsx": {
-      "sha256": "1458cacc1340c304452505101a0d91d4159e5e6e480672b4836d2c9ada036bcf",
+      "sha256": "6d9aca4c7bb164f86b567791d43f302f81113866f3c581ce216c08978a23f212",
       "executable": false
     },
     "src/core/features/demo/repository.ts": {
