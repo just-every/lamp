@@ -49,8 +49,10 @@ export async function assertPortableAudit({ target, expected, origin, cookie, bi
     const before = (await (await api("action=expired&limit=100")).json()).entries;
     assert.equal(before.filter(row => row.entityId === expected.id).length, 0);
     const scheduled = await worker.getWorker();
-    await scheduled.scheduled({ scheduledTime: Date.now(), cron: "* * * * *" });
-    await scheduled.scheduled({ scheduledTime: Date.now(), cron: "* * * * *" });
+    for (const delivery of [1, 2]) {
+      const result = await scheduled.scheduled({ scheduledTime: Date.now(), cron: "* * * * *" });
+      assert.equal(result.outcome, "ok", `restored installation Cron delivery ${delivery} completes`);
+    }
     assert.equal(await db.prepare("SELECT id FROM subscribers WHERE id=?").bind(expected.id).first(), null);
     assert.equal(await db.prepare("SELECT id FROM subscriber_tokens WHERE subscriber_id=?").bind(expected.id).first(), null);
     assert.equal((await db.prepare("SELECT state FROM subscribers WHERE id='portable-reader'").first()).state, "active");

@@ -6508,7 +6508,7 @@
       "executable": false
     },
     "tests/e2e/helpers/audit-portability-flow.mjs": {
-      "sha256": "9fb0d609c0adb7c01b3997ed343b6dcd0a5b2ed008d5106d8845d0c4ce922b36",
+      "sha256": "cc602a17d67e19d80931d5fabd66e954a648e41f55c3aafe330e5432f99b3d90",
       "executable": false
     },
     "tests/e2e/helpers/availability-report-browser-flow.mjs": {
