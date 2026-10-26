@@ -83,19 +83,36 @@ export async function smsBrowserFlow({ page, origin, pageOrigin, api, post, raw,
     await audit('composer', width);
   }
   const receipts = await smsDeliveryReceiptsFlow({ api, post, raw, db, flush, messages, pageOrigin });
+  // Each filter's own response is the record: the page shows its rows in order,
+  // by phone, with the pill's state and provider outcome taken from that row.
+  const records = page.getByRole('region', { name: 'Delivery records', exact: true }).locator('tbody tr');
+  const filter = async (name, value) => {
+    const read = page.waitForResponse(response => { const url = new URL(response.url()); return url.pathname === '/api/app/deliveries' && url.searchParams.get(name.toLowerCase()) === value; });
+    await page.getByLabel(name, { exact: true }).selectOption(value);
+    const response = await read;
+    assert.equal(response.status(), 200);
+    const { deliveries } = await response.json();
+    assert.ok(deliveries.every(row => row.channel === 'sms'), `${value}: the sms filter's response holds texts only`);
+    await expect(records).toHaveCount(deliveries.length);
+    const shown = await records.evaluateAll(rows => rows.map(row => {
+      const pill = row.querySelector('.state-pill');
+      return { destination: row.querySelector('td strong')?.textContent, state: [...pill.classList].find(name => name.startsWith('state-') && name !== 'state-pill'), providerOutcome: pill.dataset.providerOutcome ?? null, words: pill.textContent };
+    }));
+    assert.deepEqual(shown.map(({ words, ...row }) => row), deliveries.map(row => ({ destination: row.destination, state: `state-${row.outcome}`, providerOutcome: row.providerOutcome ?? null })), `${value}: each row shows its record's outcome`);
+    return { deliveries, shown };
+  };
   for (const width of [1440, 390]) {
     await page.setViewportSize({ width, height: width === 390 ? 844 : 1000 });
     await page.goto(`${origin}/app/deliveries`); await operatorHydrated(page);
-    await page.getByLabel('Channel', { exact: true }).selectOption('sms');
-    const filtered = page.waitForResponse(response => { const url = new URL(response.url()); return url.pathname === '/api/app/deliveries' && url.searchParams.get('channel') === 'sms' && url.searchParams.get('outcome') === 'delivered'; });
-    await page.getByLabel('Outcome', { exact: true }).selectOption('delivered');
-    assert.equal((await filtered).status(), 200);
-    await expect(page.getByRole('region', { name: 'Delivery records', exact: true }).getByRole('row')).toHaveCount(4);
-    for (const phone of receipts.phones) await expect(page.getByRole('row').filter({ hasText: phone })).toContainText('SMS');
-    await expect(page.getByRole('row').filter({ hasText: receipts.phones[0] })).toContainText('Delivered');
+    await filter('Channel', 'sms');
+    const delivered = await filter('Outcome', 'delivered');
+    assert.deepEqual(delivered.deliveries.map(row => row.destination).sort(), [...receipts.phones].sort(), 'three delivered texts, one per phone');
+    assert.ok(delivered.deliveries.every(row => row.outcome === 'delivered' && row.providerOutcome === 'delivered'));
     await audit('delivery-log', width);
-    await page.getByLabel('Outcome', { exact: true }).selectOption('failed');
-    await expect(page.getByRole('row').filter({ hasText: 'Failed (undelivered)' })).toHaveCount(1);
+    const failed = await filter('Outcome', 'failed');
+    assert.deepEqual(failed.deliveries.map(row => `${row.outcome}:${row.providerOutcome}`).sort(), ['failed:failed', 'failed:undelivered'], 'two failed texts, exactly one undelivered');
+    const words = outcome => failed.shown[failed.deliveries.findIndex(row => row.providerOutcome === outcome)].words;
+    assert.notEqual(words('undelivered'), words('failed'), 'the page tells an undelivered text from a failed one');
     await audit('delivery-log-failed', width);
   }
 }
