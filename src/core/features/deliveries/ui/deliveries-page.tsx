@@ -16,12 +16,28 @@ type DeliveriesResponse = {
   offset: number;
   hasMore: boolean;
   mail: { provider: "rer" | "resend" | "sendgrid" | "mailgun" | "ses" | "postmark"; secondaryProvider:string|null; receiptProviders:Record<string,boolean>; local: boolean; receiptsConfigured: boolean };
+  sms: { configured: boolean };
 };
 
 const label = (value: string) => value === "sms" ? "SMS" : value === "email" ? "Email" : value === "webhook" ? "Webhook" : value === "suppressed" ? "Skipped" : value.charAt(0).toUpperCase() + value.slice(1);
 
 const providerNames:Record<string,string>={sendgrid:'SendGrid',resend:'Resend',mailgun:'Mailgun',ses:'Amazon SES',postmark:'Postmark',rer:'RER',twilio:'Twilio'};
 const providerLabel=(value:string)=>providerNames[value]??value;
+const nameList=(names:string[])=>names.length>1?`${names.slice(0,-1).join(", ")} and ${names.at(-1)}`:names[0]??"";
+
+// One line, true for every channel the log holds: texts are named only when
+// Twilio is configured, and each mail provider by whether its receipts are on.
+function receiptNote(mail:DeliveriesResponse["mail"],smsConfigured:boolean) {
+  const providers=Object.entries(mail.receiptProviders);
+  const confirming=providers.filter(([,enabled])=>enabled).map(([provider])=>providerLabel(provider));
+  const acceptanceOnly=providers.filter(([,enabled])=>!enabled).map(([provider])=>providerLabel(provider));
+  const parts=[
+    smsConfigured?`${providerLabel("twilio")} confirms texts`:"",
+    confirming.length?`${nameList(confirming)} confirm${confirming.length>1?"":"s"} emails`:"",
+    acceptanceOnly.length?`${nameList(acceptanceOnly)} report${acceptanceOnly.length>1?"":"s"} acceptance only`:"",
+  ].filter(Boolean);
+  return `${[parts.join("; "),"Opens are never tracked"].filter(Boolean).join(". ")}.`;
+}
 
 const MAIL_KINDS = { confirmation: "Confirmation email", "already-subscribed": "Already subscribed", subscribed: "Subscribed notice" } as const;
 
@@ -63,9 +79,7 @@ export function DeliveriesPage() {
   if (outcome) csvSearch.set("outcome", outcome);
   const csvHref = `/api/app/deliveries.csv?${csvSearch.toString()}`;
   const providerName = data.mail.provider === "rer" ? "RER" : data.mail.provider === "sendgrid" ? "SendGrid" : data.mail.provider === "mailgun" ? "Mailgun" : data.mail.provider === "ses" ? "Amazon SES" : data.mail.provider === "postmark" ? "Postmark" : "Resend";
-  const receiptNames=Object.entries(data.mail.receiptProviders).filter(([,enabled])=>enabled).map(([provider])=>providerLabel(provider));
-  const acceptanceOnly=Object.entries(data.mail.receiptProviders).filter(([,enabled])=>!enabled).map(([provider])=>providerLabel(provider));
-  const hasReceipts=receiptNames.length>0;
+  const hasReceipts=Object.values(data.mail.receiptProviders).some(Boolean);
   function resetFilters(next: () => void) { next(); setOffset(0); }
   return <div className="page-stack">
     <section className="page-title-row">
@@ -74,10 +88,7 @@ export function DeliveriesPage() {
     </section>
     {!data.mail.local && <section className="capability-note">
       <Icon name="warning" width={18} height={18} />
-      <div>
-        <strong>Delivery records are read-only.</strong>
-        <p>{receiptNames.length?`Delivery confirmations are connected for ${receiptNames.join(", ")}.`:"Delivery confirmations are not connected."} {acceptanceOnly.length?`${acceptanceOnly.join(", ")} can report acceptance only. `:""}Each email record names its accepting provider. Inbox delivery stays unconfirmed until its provider reports it. Exports include all matching records. Opens are never tracked.</p>
-      </div>
+      <div>{receiptNote(data.mail, data.sms.configured)}</div>
     </section>}
     <section className="data-card subscriber-table-card">
       <div className="list-controls">
@@ -95,7 +106,7 @@ export function DeliveriesPage() {
               <td><strong>{delivery.destination}</strong><small>{delivery.subscriberState} subscriber</small>{delivery.maintenanceReference ? <small>{delivery.maintenanceReference}: {delivery.maintenanceTitle} · {delivery.maintenanceNoticeKind}</small> : null}{delivery.incidentReference ? <small>{delivery.incidentReference}: {delivery.incidentTitle} · {delivery.incidentLifecycle?.toLowerCase()}</small> : null}</td>
               <td>{label(delivery.channel)}</td>
               <td>
-                <span className={`state-pill state-${acceptedWithoutReceipt ? "accepted" : delivery.outcome}`}>{acceptedWithoutReceipt ? `Accepted by ${delivery.acceptingProvider ? providerLabel(delivery.acceptingProvider) : providerName}` : delivery.providerOutcome === "undelivered" ? "Failed (undelivered)" : label(delivery.outcome)}</span>
+                <span className={`state-pill state-${acceptedWithoutReceipt ? "accepted" : delivery.outcome}`} data-provider-outcome={delivery.providerOutcome ?? undefined}>{acceptedWithoutReceipt ? `Accepted by ${delivery.acceptingProvider ? providerLabel(delivery.acceptingProvider) : providerName}` : delivery.providerOutcome === "undelivered" ? "Undelivered" : label(delivery.outcome)}</span>
                 {!data.mail.local && delivery.providerAcceptedAt ? <small>{delivery.acceptingProvider ? `${providerLabel(delivery.acceptingProvider)} accepted` : "Provider accepted"} {formatOperatorTime(delivery.providerAcceptedAt)}{delivery.outcome === "queued" && rowReceiptsConfigured ? " · awaiting confirmation" : ""}</small> : null}
                 {delivery.latestError && (delivery.outcome === "failed" || delivery.outcome === "queued") ? <small>{delivery.latestError}</small> : null}
               </td>

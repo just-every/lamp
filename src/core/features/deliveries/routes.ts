@@ -31,7 +31,7 @@ function isHardResendBounce(bounceType: string | undefined) {
   return normalized === "permanent" || normalized === "hard";
 }
 
-export function registerDeliveryRoutes(app: Hono<AppEnv>, service: DeliveriesService, options: { resendWebhookSecret?: string; sendGridWebhookPublicKey?: string; relaySecret?: string; mailProvider?: "rer" | "resend" | "sendgrid" | "mailgun" | "ses" | "postmark"; secondaryMailProvider?: "resend" | "sendgrid" | "mailgun" | "ses" | "postmark"; mailgunSigningKey?: string; sesEventTopicArn?: string; postmarkWebhookSecret?: string; localMail?: boolean } = {}) {
+export function registerDeliveryRoutes(app: Hono<AppEnv>, service: DeliveriesService, options: { resendWebhookSecret?: string; sendGridWebhookPublicKey?: string; relaySecret?: string; mailProvider?: "rer" | "resend" | "sendgrid" | "mailgun" | "ses" | "postmark"; secondaryMailProvider?: "resend" | "sendgrid" | "mailgun" | "ses" | "postmark"; mailgunSigningKey?: string; sesEventTopicArn?: string; postmarkWebhookSecret?: string; localMail?: boolean; smsConfigured?: () => boolean } = {}) {
   const mailProvider = options.mailProvider || "resend";
   const configuredProviders=[mailProvider,...(options.secondaryMailProvider?[options.secondaryMailProvider]:[])];
   const receiptProviders=Object.fromEntries(configuredProviders.map(provider=>[provider,!options.localMail&&(provider==='sendgrid'
@@ -49,6 +49,7 @@ export function registerDeliveryRoutes(app: Hono<AppEnv>, service: DeliveriesSer
       deliveries: rows.slice(0, parsed.data.limit),
       subscriptionMail: await service.listSubscriptionMail(),
       mail: { provider: mailProvider, secondaryProvider: options.secondaryMailProvider ?? null, local: options.localMail === true, receiptProviders, receiptsConfigured },
+      sms: { configured: options.smsConfigured?.() ?? false },
       limit: parsed.data.limit,
       offset: parsed.data.offset,
       hasMore: rows.length > parsed.data.limit,
