@@ -496,7 +496,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "1ab1aba31b715f8eb889b8b077d30a818865890c1794b611b911d3c427f1e24b",
+      "sha256": "67d79fd97cbeb57ae568a589ce05d65ee0780847ed9add8f9b1b169f435ce145",
       "executable": false
     },
     "DEMO.md": {
@@ -3644,7 +3644,7 @@
       "executable": false
     },
     "src/core/features/deliveries/ui/deliveries-page.tsx": {
-      "sha256": "9ed99d1be518432e2a4efb755c21f054bdd43d5df7d93a1a5729096ea6340f61",
+      "sha256": "1458cacc1340c304452505101a0d91d4159e5e6e480672b4836d2c9ada036bcf",
       "executable": false
     },
     "src/core/features/demo/repository.ts": {
@@ -6984,7 +6984,7 @@
       "executable": false
     },
     "tests/e2e/ui-interactions.test.mjs": {
-      "sha256": "bd956fd679cc4d0c723df4b2d24376ecd81b9c8481374f89f9799a05941fdc6c",
+      "sha256": "3cd543970e71e0b280c43ec22079653fa0b956776b51f6678b5c138b451ae4eb",
       "executable": false
     },
     "tests/e2e/update-reminders.test.mjs": {
