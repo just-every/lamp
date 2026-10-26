@@ -90,29 +90,29 @@ export function DeliveriesPage() {
       <Icon name="warning" width={18} height={18} />
       <div>{receiptNote(data.mail, data.sms.configured)}</div>
     </section>}
-    <section className="data-card subscriber-table-card">
+    <section className="data-card subscriber-table-card subscriber-directory-card">
       <div className="list-controls">
         <label>Channel<select aria-label="Channel" value={channel} onChange={(event) => resetFilters(() => setChannel(event.target.value as DeliveryLogChannel | ""))}><option value="">All channels</option>{[...DELIVERY_CHANNELS, "sms"].map((value) => <option key={value} value={value}>{label(value)}</option>)}</select></label>
         <label>Outcome<select aria-label="Outcome" value={outcome} onChange={(event) => resetFilters(() => setOutcome(event.target.value as DeliveryOutcome | ""))}><option value="">All outcomes</option>{DELIVERY_OUTCOMES.map((value) => <option key={value} value={value}>{value === "queued" && channel !== "webhook" && !data.mail.local && !hasReceipts ? "Queued / accepted" : label(value)}</option>)}</select></label>
       </div>
       <div className="table-scroll" tabIndex={0} role="region" aria-label="Delivery records">
-        <table>
-          <thead><tr><th scope="col">Destination</th><th scope="col">Channel</th><th scope="col">Outcome</th><th scope="col">Queued</th><th scope="col">Outcome time</th></tr></thead>
-          <tbody>{data.deliveries.map((delivery) => {
+        <table role="table">
+          <thead role="rowgroup"><tr role="row"><th scope="col">Destination</th><th scope="col">Channel</th><th scope="col">Outcome</th><th scope="col">Queued</th><th scope="col">Outcome time</th></tr></thead>
+          <tbody role="rowgroup">{data.deliveries.map((delivery) => {
             const localAccepted = data.mail.local && delivery.channel === "email" && delivery.outcome === "suppressed";
             const rowReceiptsConfigured=data.mail.receiptProviders[delivery.acceptingProvider??data.mail.provider]??false;
             const acceptedWithoutReceipt = localAccepted || !data.mail.local && delivery.channel === "email" && delivery.outcome === "queued" && Boolean(delivery.providerAcceptedAt) && !rowReceiptsConfigured;
-            return <tr key={delivery.id}>
-              <td><strong>{delivery.destination}</strong><small>{delivery.subscriberState} subscriber</small>{delivery.maintenanceReference ? <small>{delivery.maintenanceReference}: {delivery.maintenanceTitle} · {delivery.maintenanceNoticeKind}</small> : null}{delivery.incidentReference ? <small>{delivery.incidentReference}: {delivery.incidentTitle} · {delivery.incidentLifecycle?.toLowerCase()}</small> : null}</td>
-              <td>{label(delivery.channel)}</td>
-              <td>
+            return <tr role="row" key={delivery.id}>
+              <td role="cell" data-label="Destination" className="subscriber-destination"><strong>{delivery.destination}</strong><small>{delivery.subscriberState} subscriber</small>{delivery.maintenanceReference ? <small>{delivery.maintenanceReference}: {delivery.maintenanceTitle} · {delivery.maintenanceNoticeKind}</small> : null}{delivery.incidentReference ? <small>{delivery.incidentReference}: {delivery.incidentTitle} · {delivery.incidentLifecycle?.toLowerCase()}</small> : null}</td>
+              <td role="cell" data-label="Channel">{label(delivery.channel)}</td>
+              <td role="cell" data-label="Outcome"><div>
                 <span className={`state-pill state-${acceptedWithoutReceipt ? "accepted" : delivery.outcome}`} data-provider-outcome={delivery.providerOutcome ?? undefined}>{acceptedWithoutReceipt ? `Accepted by ${delivery.acceptingProvider ? providerLabel(delivery.acceptingProvider) : providerName}` : label(delivery.outcome)}</span>
                 {delivery.providerOutcome === "undelivered" ? <small>Undelivered by carrier</small> : null}
                 {!data.mail.local && delivery.providerAcceptedAt ? <small>{delivery.acceptingProvider ? `${providerLabel(delivery.acceptingProvider)} accepted` : "Provider accepted"} {formatOperatorTime(delivery.providerAcceptedAt)}{delivery.outcome === "queued" && rowReceiptsConfigured ? " · awaiting confirmation" : ""}</small> : null}
                 {delivery.latestError && (delivery.outcome === "failed" || delivery.outcome === "queued") ? <small>{delivery.latestError}</small> : null}
-              </td>
-              <td>{formatOperatorTime(delivery.queuedAt)}</td>
-              <td>{formatOperatorTime(localAccepted ? delivery.outcomeAt : acceptedWithoutReceipt ? delivery.providerAcceptedAt : delivery.outcomeAt)}</td>
+              </div></td>
+              <td role="cell" data-label="Queued">{formatOperatorTime(delivery.queuedAt)}</td>
+              <td role="cell" data-label="Outcome time">{formatOperatorTime(localAccepted ? delivery.outcomeAt : acceptedWithoutReceipt ? delivery.providerAcceptedAt : delivery.outcomeAt)}</td>
             </tr>;
           })}</tbody>
         </table>
