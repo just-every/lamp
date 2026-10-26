@@ -496,7 +496,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "399864ed6db4fd01ef3fd8e04fc28458f2b09620167aae484010a5bdf52a6c50",
+      "sha256": "1ab1aba31b715f8eb889b8b077d30a818865890c1794b611b911d3c427f1e24b",
       "executable": false
     },
     "DEMO.md": {
@@ -3644,7 +3644,7 @@
       "executable": false
     },
     "src/core/features/deliveries/ui/deliveries-page.tsx": {
-      "sha256": "84c120eecc2f1019fe9cb34d179910e63c3a6a74678f7828ccad5a6a147bf759",
+      "sha256": "9ed99d1be518432e2a4efb755c21f054bdd43d5df7d93a1a5729096ea6340f61",
       "executable": false
     },
     "src/core/features/demo/repository.ts": {

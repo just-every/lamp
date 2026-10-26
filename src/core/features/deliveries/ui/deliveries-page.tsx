@@ -107,7 +107,7 @@ export function DeliveriesPage() {
               <td>{label(delivery.channel)}</td>
               <td>
                 <span className={`state-pill state-${acceptedWithoutReceipt ? "accepted" : delivery.outcome}`} data-provider-outcome={delivery.providerOutcome ?? undefined}>{acceptedWithoutReceipt ? `Accepted by ${delivery.acceptingProvider ? providerLabel(delivery.acceptingProvider) : providerName}` : label(delivery.outcome)}</span>
-                {delivery.providerOutcome === "undelivered" ? <small>Carrier could not deliver</small> : null}
+                {delivery.providerOutcome === "undelivered" ? <small>Undelivered by carrier</small> : null}
                 {!data.mail.local && delivery.providerAcceptedAt ? <small>{delivery.acceptingProvider ? `${providerLabel(delivery.acceptingProvider)} accepted` : "Provider accepted"} {formatOperatorTime(delivery.providerAcceptedAt)}{delivery.outcome === "queued" && rowReceiptsConfigured ? " · awaiting confirmation" : ""}</small> : null}
                 {delivery.latestError && (delivery.outcome === "failed" || delivery.outcome === "queued") ? <small>{delivery.latestError}</small> : null}
               </td>
