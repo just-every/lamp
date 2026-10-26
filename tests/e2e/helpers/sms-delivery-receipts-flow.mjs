@@ -70,9 +70,10 @@ export async function smsDeliveryReceiptsFlow({ api, post, raw, request = raw, d
   for (const row of delivered) {
     const record = exported.find(record => record.destination === `'${row.destination}`);
     assert.ok(record);
-    for (const key of ['channel', 'outcome', 'incidentUpdateId', 'queuedAt', 'outcomeAt']) assert.equal(record[key], row[key]);
+    for (const key of ['channel', 'outcome', 'incidentUpdateId', 'queuedAt', 'outcomeAt', 'providerOutcome']) assert.equal(record[key], row[key], `delivered export ${key}`);
   }
   // Fresh publications exercise each terminal failure without overwriting a delivered receipt.
+  const failed = [];
   for (const outcome of ['undelivered', 'failed']) {
     const next = await api(`/api/app/incidents/${incident.id}/draft`, { method: 'PUT', body: JSON.stringify({ lifecycle: 'Monitoring', affectedAudience: 'Synthetic readers', customerImpact: `synthetic-lamp-${outcome}`, whatStillWorks: '', details: '', nextUpdateAt: new Date(Date.now() + 3600000).toISOString() }) });
     assert.equal(next.status, 200, next.text);
@@ -87,6 +88,20 @@ export async function smsDeliveryReceiptsFlow({ api, post, raw, request = raw, d
     assert.equal(failures.body.deliveries.length, 1);
     assert.equal(failures.body.deliveries[0].providerOutcome, outcome);
     assert.ok(failures.body.deliveries[0].outcomeAt);
+    failed.push(failures.body.deliveries[0]);
+  }
+  // The SMS + Failed export keeps what the log tells apart: each failure is
+  // matched to its API row by destination and queued time.
+  const failedLog = await api('/api/app/deliveries?channel=sms&outcome=failed');
+  assert.equal(failedLog.status, 200, failedLog.text);
+  const failedCsv = await request('/api/app/deliveries.csv?channel=sms&outcome=failed');
+  assert.equal(failedCsv.status, 200);
+  const failedExport = subscriberCsvRows(await failedCsv.text());
+  assert.equal(failedExport.length, failedLog.body.deliveries.length, 'the export holds exactly the failed texts the log lists');
+  for (const row of failed) {
+    const records = failedExport.filter(record => record.destination === `'${row.destination}` && record.queuedAt === row.queuedAt);
+    assert.equal(records.length, 1, `${row.providerOutcome} text exports once`);
+    for (const key of ['channel', 'outcome', 'incidentUpdateId', 'outcomeAt', 'providerOutcome']) assert.equal(records[0][key], row[key], `${row.providerOutcome} export ${key}`);
   }
   return { phones, incident, updateId };
 }

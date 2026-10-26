@@ -11,7 +11,7 @@ import { createStatuspageWebhookRepository } from "./statuspage-webhook.reposito
 import type { WebhookFormat } from "../subscribers/webhook-format";
 
 export type DeliveryLogChannel = "email" | "webhook" | "sms";
-export type DeliveryRow = Omit<typeof deliveryRecords.$inferSelect, "channel"> & { channel: DeliveryLogChannel; providerOutcome?: string; destination: string; subscriberState: "pending" | "active" | "deactivated"; providerAcceptedAt: string | null; acceptingProvider: string | null; latestError: string | null; localCaptureId: string | null; localCapturedAt: string | null; maintenanceReference: string | null; maintenanceTitle: string | null; maintenanceNoticeKind: string | null; incidentReference: string | null; incidentTitle: string | null; incidentLifecycle: string | null };
+export type DeliveryRow = Omit<typeof deliveryRecords.$inferSelect, "channel"> & { channel: DeliveryLogChannel; providerOutcome?: "delivered" | "undelivered" | "failed" | null; destination: string; subscriberState: "pending" | "active" | "deactivated"; providerAcceptedAt: string | null; acceptingProvider: string | null; latestError: string | null; localCaptureId: string | null; localCapturedAt: string | null; maintenanceReference: string | null; maintenanceTitle: string | null; maintenanceNoticeKind: string | null; incidentReference: string | null; incidentTitle: string | null; incidentLifecycle: string | null };
 
 /** A confirmation or other subscription email, sent outside notification deliveries (subscribers/service.ts). */
 export interface SubscriptionMailRow { id: string; destination: string; subscriberState: "pending" | "active" | "deactivated"; kind: "confirmation" | "already-subscribed" | "subscribed"; outcome: "accepted" | "suppressed" | "failed"; sentAt: string }
@@ -187,7 +187,7 @@ export function createDeliveryRepository(binding: D1Database): DeliveryRepositor
       const sms = input.channel && input.channel !== "sms" ? [] : (await binding.prepare(`
         SELECT d.id,d.subscriber_id AS subscriberId,d.incident_update_id AS incidentUpdateId,d.maintenance_id AS maintenanceId,
           'sms' AS channel,CASE WHEN d.outcome IN ('sending','sent') THEN 'queued' WHEN d.outcome='undelivered' THEN 'failed' ELSE d.outcome END AS outcome,
-          d.outcome AS providerOutcome,d.queued_at AS queuedAt,
+          CASE WHEN d.outcome IN ('delivered','undelivered','failed') THEN d.outcome END AS providerOutcome,d.queued_at AS queuedAt,
           CASE WHEN d.outcome IN ('sending','sent','queued') THEN NULL ELSE d.outcome_at END AS outcomeAt,
           d.queued_at AS createdAt,COALESCE(d.outcome_at,d.queued_at) AS updatedAt,s.destination,s.state AS subscriberState,
           NULL AS providerAcceptedAt,

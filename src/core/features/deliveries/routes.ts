@@ -58,7 +58,7 @@ export function registerDeliveryRoutes(app: Hono<AppEnv>, service: DeliveriesSer
     const parsed = deliveriesQuerySchema.safeParse(context.req.query());
     if (!parsed.success) return context.json({ error: "Invalid subscriber query.", issues: parsed.error.issues }, 400);
     const rows = await service.export(parsed.data);
-    const csv = ["destination,channel,outcome,incidentUpdateId,queuedAt,outcomeAt,providerAcceptedAt,acceptingProvider,maintenanceReference,maintenanceTitle,maintenanceNoticeKind", ...rows.map((row) => [row.destination, row.channel, row.outcome, row.incidentUpdateId ?? null, row.queuedAt, row.outcomeAt, row.providerAcceptedAt, row.acceptingProvider, row.maintenanceReference, row.maintenanceTitle, row.maintenanceNoticeKind].map(csvCell).join(","))].join("\n");
+    const csv = ["destination,channel,outcome,incidentUpdateId,queuedAt,outcomeAt,providerAcceptedAt,acceptingProvider,maintenanceReference,maintenanceTitle,maintenanceNoticeKind,providerOutcome", ...rows.map((row) => [row.destination, row.channel, row.outcome, row.incidentUpdateId ?? null, row.queuedAt, row.outcomeAt, row.providerAcceptedAt, row.acceptingProvider, row.maintenanceReference, row.maintenanceTitle, row.maintenanceNoticeKind, row.providerOutcome ?? null].map(csvCell).join(","))].join("\n");
     return new Response(csv, { headers: { "Content-Type": "text/csv; charset=utf-8", "Content-Disposition": "attachment; filename=lamp-deliveries.csv", "Cache-Control": "no-store" } });
   });
   for (const provider of [mailProvider, options.secondaryMailProvider].filter((value, index, values) => value && values.indexOf(value) === index)) {
