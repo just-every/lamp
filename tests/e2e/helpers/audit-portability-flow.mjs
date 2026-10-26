@@ -10,6 +10,11 @@ const { Miniflare, convertV4MiniflareOptions } = wrangler("miniflare"), { build 
 export async function preparePortableAudit(db) {
   const createdAt = new Date(Date.now() - 73 * 3600000).toISOString();
   const id = "01J00000000000000000000211", destination = "synthetic-lamp-211@example.test";
+  // Earlier identity-only transfer cases never ran the whole Cron. Its real
+  // snapshot work also needs a configured page in the source installation.
+  await db.prepare(`INSERT INTO page_settings(id,page_name,tagline,accent_color,timezone,hostname,feed_id,mail_from_address,created_at,updated_at)
+    VALUES('default','Synthetic Lamp transfer','','#16794c','UTC','status.example.test','synthetic-lamp-216','lamp@example.test',?,?)
+    ON CONFLICT(id) DO NOTHING`).bind(createdAt, createdAt).run();
   await db.prepare("INSERT INTO subscribers(id,channel,destination,contact_email,state,selection_mode,token_hash,created_at,updated_at) VALUES(?,'email',?,?,'pending','all','synthetic-lamp-212',?,?)")
     .bind(id, destination, destination, createdAt, createdAt).run();
   await db.prepare("INSERT INTO subscriber_tokens(id,subscriber_id,scope,token_hash,created_at,updated_at) VALUES('synthetic-lamp-213',?,'confirm','synthetic-lamp-214',?,?)")

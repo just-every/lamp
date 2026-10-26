@@ -15,6 +15,11 @@ export default {
   },
   queue: runQueue,
   scheduled(controller: ScheduledController, bindings: AppBindings, context: ExecutionContext) {
-    return runScheduled(bindings, context, controller.scheduledTime);
+    const observed = Object.create(context) as ExecutionContext;
+    observed.waitUntil = promise => context.waitUntil(promise.catch(cause => {
+      console.error("Restored Cron failed:", cause instanceof Error ? cause.message : "Unknown failure");
+      throw cause;
+    }));
+    return runScheduled(bindings, observed, controller.scheduledTime);
   },
 };

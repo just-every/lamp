@@ -212,10 +212,8 @@ test("COMP-006 UPDATE-004 PAGE-012 INCIDENT-012 — Component claims, saved draf
   await auditMutationsFlow({ appFetch, uploadLogo: async () => {
     const body = new FormData();
     body.set("logo", new Blob([Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Y9Zl1sAAAAASUVORK5CYII=", "base64")], { type: "image/png" }), "synthetic-lamp-203.png");
-    const response = await fetch(`${appUrl}/api/app/page-settings/logo`, { method: "POST", body,
+    return fetch(`${appUrl}/api/app/page-settings/logo`, { method: "POST", body,
       headers: { Cookie: `${sessionCookieName(appUrl)}=${sessionId}`, Origin: appUrl } });
-    assert.equal(response.status, 200, await response.clone().text());
-    return (await response.json()).settings;
   } });
   t.diagnostic("COMP-006 — standing claims derive a component's public state");
   await (async () => {

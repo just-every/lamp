@@ -30,8 +30,13 @@ export async function auditMutationsFlow({ appFetch, uploadLogo }) {
     "clearing a masked claim creates no aggregate-state transition");
 
   await request("/api/app/page-settings/logo", "DELETE");
-  const first = await uploadLogo();
-  const replacement = await uploadLogo();
+  const upload = async () => {
+    const response = await uploadLogo();
+    assert.equal(response.status, 200, await response.clone().text());
+    return (await response.json()).settings;
+  };
+  const first = await upload();
+  const replacement = await upload();
   assert.ok(first.logoKey && replacement.logoKey && first.logoKey !== replacement.logoKey);
   const removals = await Promise.all([request("/api/app/page-settings/logo", "DELETE"), request("/api/app/page-settings/logo", "DELETE")]);
   assert.ok(removals.every(row => row.settings.logoKey === null));

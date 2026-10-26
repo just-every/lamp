@@ -6408,7 +6408,7 @@
       "executable": false
     },
     "tests/e2e/app-api.test.mjs": {
-      "sha256": "a369bcac20ce6d06f8ad0bae03c1d66e93f0fa3ecb16aedadcab9ef0e278a1b7",
+      "sha256": "9159bea5d0a92b8b791607633ab88ed1b118f286ee128dac57a54962107be71d",
       "executable": false
     },
     "tests/e2e/auth-adoption-journey.test.mjs": {
@@ -6504,15 +6504,15 @@
       "executable": false
     },
     "tests/e2e/helpers/audit-mutations-flow.mjs": {
-      "sha256": "a4f32d4a0f654c4cadba4293f300febb4889f07d715c2048ff73b0484dd592e7",
+      "sha256": "2c573aa89fc8c212da3565cd56d12023d1791b6111dfd3a2ef9e9af69d00a352",
       "executable": false
     },
     "tests/e2e/helpers/audit-portability-flow.mjs": {
-      "sha256": "ed4bcc0c03784acc901c60a9e683b45cbc5fd229a33807c287219bcfcf3c207c",
+      "sha256": "9d64f8026aa1a432f63ab0a1a69086b6386ba31202c502a53524b0288d806339",
       "executable": false
     },
     "tests/e2e/helpers/audit-portability-worker.ts": {
-      "sha256": "079c5df23c6caba37912dbd82e586f45e99709dc228c1720e811c80261f0291f",
+      "sha256": "b4d026b5ff5f97736ad8a22ae3b49614b9f444ead1a2d84d58d80721645eb2d0",
       "executable": false
     },
     "tests/e2e/helpers/availability-report-browser-flow.mjs": {
