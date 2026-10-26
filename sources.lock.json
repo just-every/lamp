@@ -496,7 +496,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "c2fed76e1bfe2fdc6cdfe7cef400ac76bdeccedf88d98f252592d0f15cc476fc",
+      "sha256": "27812d55ebedac59f5b7e5e5f58dba63f592585073c7cc038572b7c4bc942e89",
       "executable": false
     },
     "DEMO.md": {
@@ -3208,7 +3208,7 @@
       "executable": false
     },
     "src/core/app/server.ts": {
-      "sha256": "756f3fdd5c5c81b5613b02b25abe2c561f2f3221c8af899a2f6f891c382a6b2a",
+      "sha256": "6d8f2b3739ffa55e550b9cbb820ce42acdf6aee2ad2bacf6469d944d80c51b32",
       "executable": false
     },
     "src/core/app/services.ts": {
@@ -3604,11 +3604,11 @@
       "executable": false
     },
     "src/core/features/deliveries/repository.ts": {
-      "sha256": "dd1442c17932f50c00916a20a6a97859606d0a1456b456c1583f616091e0456f",
+      "sha256": "71427fdb2d5aeb8db32f429dccc6e33bf2b76fbdeaf30ea261ef0a201ffa0713",
       "executable": false
     },
     "src/core/features/deliveries/routes.ts": {
-      "sha256": "2726839c9e8f5f29998f5203ead9ca0cc1d0565a2ca8d2c3688d152f71190f93",
+      "sha256": "8494e457eac8c744b6878e21422c211919b5003a2fb41320fb3b495291e53186",
       "executable": false
     },
     "src/core/features/deliveries/schema.ts": {
@@ -3644,7 +3644,7 @@
       "executable": false
     },
     "src/core/features/deliveries/ui/deliveries-page.tsx": {
-      "sha256": "d5965144f288574a6bcd868d0a0dfd038411c4f7704f46a749371c493268c814",
+      "sha256": "f2a98c3dc5be5e0f1b413cd5fe37724ab906d8e8e648ffbf4a3ad8950b087ff3",
       "executable": false
     },
     "src/core/features/demo/repository.ts": {
@@ -6728,7 +6728,7 @@
       "executable": false
     },
     "tests/e2e/helpers/sms-browser-flow.mjs": {
-      "sha256": "d70f50f8e09f05ae86fc8340564cb625fd4d45ed46214d6549271387fc4739c0",
+      "sha256": "1a82e90b23010638c80a033cfd787e5df2a6fb3e9a295071aa89fed61433381a",
       "executable": false
     },
     "tests/e2e/helpers/sms-browser-runtime.mjs": {
@@ -6736,7 +6736,7 @@
       "executable": false
     },
     "tests/e2e/helpers/sms-delivery-receipts-flow.mjs": {
-      "sha256": "4714c44fd10f17f70590edb54204d3dcfb3428c421815788a4080f115d77c35b",
+      "sha256": "2b81e25d9e688a30430d314d3394f074a5861bd442c38008760eccfaafd8d020",
       "executable": false
     },
     "tests/e2e/helpers/sms-subscriber-flow.mjs": {
