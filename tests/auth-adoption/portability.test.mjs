@@ -1,4 +1,5 @@
 import { preparePortableMetrics, assertPortableMetrics } from "../e2e/helpers/metrics-portability-flow.mjs";
+import { preparePortableAudit, assertPortableAudit } from "../e2e/helpers/audit-portability-flow.mjs";
 import assert from 'node:assert/strict';
 import { createHmac } from 'node:crypto';
 import { test } from 'node:test';
@@ -55,6 +56,7 @@ test('ACCESS-001 INTAKE-009 native rer archive restores owner continuity and sub
     await db.prepare("INSERT INTO alert_sources(id,name,credential_kind,signing_secret,deduplication_path,title_path,state_path,created_by_operator_id,responder_preset,responder_sealed_credentials,responder_connected,created_at,updated_at) VALUES('portable-pagerduty','Portable PagerDuty','hmac-sha256','portable-signing-secret','event.data.id','event.data.title','event.event_type',?,'pagerduty','portable-sealed-rest-key',1,?,?)").bind(actor.operator.id, now, now).run();
     for (const preset of ['jsm','opsgenie']) await db.prepare("INSERT INTO alert_sources(id,name,credential_kind,bearer_token_hash,deduplication_path,title_path,state_path,created_by_operator_id,vendor_preset,responder_sealed_credentials,responder_connected,close_alert_on_resolve,created_at,updated_at) VALUES(?,?,'bearer-token','synthetic-lamp-token-hash','preset:operations','preset:operations','preset:operations',?,?,?,1,1,?,?)").bind(`synthetic-lamp-${preset}`,`synthetic-lamp-${preset}`,actor.operator.id,preset,`synthetic-lamp-${preset}-sealed-key`,now,now).run();
     const portableMetrics=await preparePortableMetrics({env:current.env,native,cookie:oldCookie});
+    const portableAudit = await preparePortableAudit(db);
     await current.dispose(); current = null;
     await command(source, 'export', '--output', join(directory, 'installation.rer'));
     for(const value of [portableMetrics.sealed,'synthetic-lamp-99','synthetic-lamp-100',portableMetrics.management.token,portableMetrics.hash]) assert.ok(!(await readFile(join(directory,'installation.rer'))).includes(value),'metric query keys and ciphertext never travel');
@@ -124,5 +126,12 @@ test('ACCESS-001 INTAKE-009 native rer archive restores owner continuity and sub
     assert.equal((await restoredApp.fetch(new Request(fresh.origin + '/manage/' + manage))).status, 200);
     assert.equal((await restored.prepare("SELECT status FROM oa_operators WHERE email='pending@example.test'").first()).status, 'invited');
     assert.equal((await restored.prepare('SELECT COUNT(*) n FROM oa_tokens').first()).n, 1, 'only the newly consumed sign-in link exists after restore');
+    await current.dispose(); current = null;
+    await assertPortableAudit({ target, expected: portableAudit, origin: fresh.origin, cookie, bindings: {
+      AUTH_ORIGIN: fresh.origin, LAMP_APP_HOST: new URL(fresh.origin).host, LAMP_PAGE_HOST: 'status.example.test',
+      SESSION_SECRET: secret, SETUP_OPERATOR_EMAIL: session.operator.email,
+      SUBSCRIBER_TOKEN_SECRET: 'portable-subscriber-secret', WEBHOOK_SIGNING_SECRET: 'synthetic-lamp-215',
+      MAIL_FROM_ADDRESS: 'lamp@example.test',
+    } });
   } finally { await current?.dispose(); await rm(directory, { recursive: true, force: true }); }
 });

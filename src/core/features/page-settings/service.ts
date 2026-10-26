@@ -28,8 +28,8 @@ export interface PageSettingsService {
   get(): Promise<PageSettingsView | null>;
   ensureInitial(settings: PageSettingsInput): Promise<void>;
   update(settings: PageSettingsInput): Promise<PageSettingsView | null>;
-  uploadLogo(input: { bytes: ArrayBuffer; contentType: string }): Promise<PageSettingsView | null>;
-  removeLogo(): Promise<PageSettingsView | null>;
+  uploadLogo(input: { bytes: ArrayBuffer; contentType: string }, operatorId: string): Promise<PageSettingsView | null>;
+  removeLogo(operatorId: string): Promise<PageSettingsView | null>;
 }
 
 function toView(settings: StoredPageSettings, mailIdentityEditable: boolean, regionsAvailable: boolean): PageSettingsView {
@@ -115,19 +115,19 @@ export function createPageSettingsService(
       });
       return rebuildAndRead();
     },
-    async uploadLogo(input) {
+    async uploadLogo(input, operatorId) {
       if (!blobs) throw new Error("Logo storage is not configured.");
       if (!LOGO_CONTENT_TYPES.has(input.contentType)) throw new Error("Logo must be a PNG, JPEG, or WebP image.");
       if (input.bytes.byteLength === 0 || input.bytes.byteLength > MAX_LOGO_BYTES) throw new Error("Logo must be between 1 byte and 2 MB.");
       await readRequired();
       const key = `branding/logos/${createUlid()}`;
       await blobs.putBytes(key, input.bytes, input.contentType);
-      await repository.updateLogo({ logoKey: key, logoContentType: input.contentType, updatedAt: nowIso() });
+      await repository.updateLogo({ logoKey: key, logoContentType: input.contentType, updatedAt: nowIso() }, operatorId);
       return rebuildAndRead();
     },
-    async removeLogo() {
+    async removeLogo(operatorId) {
       await readRequired();
-      await repository.updateLogo({ logoKey: null, logoContentType: null, updatedAt: nowIso() });
+      await repository.updateLogo({ logoKey: null, logoContentType: null, updatedAt: nowIso() }, operatorId);
       return rebuildAndRead();
     },
   };
