@@ -448,7 +448,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "06ae3db238bb484c9217cc5367cbf9403273f63d543cfd6a37c7d611cfb85c1b",
+      "sha256": "be24000b75c1616eb08ccbf7e1c17bf057d9c0527af843526ebd131812665aa4",
       "executable": false
     },
     "AGENTS.md": {
@@ -496,7 +496,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "807f6606ea4756eff314f7afc7e92aafb5514a9ea271cd74cf367c89da812033",
+      "sha256": "f96f9d4bd328b76506a09215d0328966602e3e87a78c757a3ae2c4aaef9be71a",
       "executable": false
     },
     "DEMO.md": {
@@ -3320,7 +3320,7 @@
       "executable": false
     },
     "src/core/features/brief/recovery-check.ts": {
-      "sha256": "de12394defd283ecb7ec757656e2567607e5997c063427e6b2f051b2c887b5d1",
+      "sha256": "a9743e9e68e6fb684a25b05dd512a4708379d89bb24ec02118b6093648b44ebf",
       "executable": false
     },
     "src/core/features/brief/repository.ts": {
@@ -3844,7 +3844,7 @@
       "executable": false
     },
     "src/core/features/incidents/ui/recovery-check.tsx": {
-      "sha256": "d12c321151f3d9d537eede2bbe3ce76d58092ca2588ca65e332c2e7e6f26883c",
+      "sha256": "a557a80803bac3c553b2fe6ca695021080317c2a8ad136a6cdfac4d539622ce3",
       "executable": false
     },
     "src/core/features/incidents/ui/status-choice.tsx": {
@@ -4308,7 +4308,7 @@
       "executable": false
     },
     "src/core/features/page-settings/ui/notification-settings-tab.tsx": {
-      "sha256": "ec64759683b8679f8c0711cf400ad7cb6d2dc62cb1edfacf7cf83181238d8032",
+      "sha256": "88f8ef895e3d308840e544225fb056f341b3c04bcaf29c1f87e82a9807603c4b",
       "executable": false
     },
     "src/core/features/page-settings/ui/page-hero.tsx": {
@@ -4336,7 +4336,7 @@
       "executable": false
     },
     "src/core/features/page-settings/ui/settings-page.tsx": {
-      "sha256": "af204ff68e7ef6fe2d207cedec9b998d3db8be213936677df4f18cf66d4434f3",
+      "sha256": "1ec6717c2e75b8a46ab618de37810aba562079bdec3f75769cd50c57d5a87c17",
       "executable": false
     },
     "src/core/features/page-settings/ui/settings-save-state.tsx": {
@@ -4356,7 +4356,7 @@
       "executable": false
     },
     "src/core/features/page-settings/ui/traffic-alert-settings.tsx": {
-      "sha256": "29f531c312827d2ff98fdfe8804e970e4b72371a1b04c63345255cdfdde383e4",
+      "sha256": "9115e546f7429368e328bf25c9ff5422f106fadad6eb96f6b6a809f5cff0ade2",
       "executable": false
     },
     "src/core/features/page-settings/ui/use-settings-autosave.ts": {
@@ -4500,7 +4500,7 @@
       "executable": false
     },
     "src/core/features/public-snapshot/routes.ts": {
-      "sha256": "0e8f619afd1df380d6c1bb30f1b74bbc1b0cfda48a08b984766d6337cca012b0",
+      "sha256": "a1bde24fe8e6b6c953e1c6ad12ea6708e0df1cd99a5979ad498989a17e5615ce",
       "executable": false
     },
     "src/core/features/public-snapshot/service.ts": {
@@ -5104,11 +5104,15 @@
       "executable": false
     },
     "src/core/features/traffic-alerts/service.ts": {
-      "sha256": "867cdcbcb2f763f1ed04ad4f2c8d77cbf4ddb9af981a9ba80163a65a6d922320",
+      "sha256": "04af50c11cac023450fc2a00b51e54fc8709e901fcc1ff289f43068b828d1010",
       "executable": false
     },
     "src/core/features/traffic-alerts/storage.ts": {
-      "sha256": "ed91cfd395cc8fa09024cde2f23ceb47fc937a15c3ef28f1d58ae388a1094be6",
+      "sha256": "8fdd7205fabd8b6b6d8a530ccb874595ebbaf54d9840433f23598e2d82954c34",
+      "executable": false
+    },
+    "src/core/features/traffic-alerts/surfaces.ts": {
+      "sha256": "fde5b95a67e691d3097736441d339775871583a0a2044e27adb8a3d726b8b1c2",
       "executable": false
     },
     "src/core/features/website/existing-page.ts": {
@@ -6836,11 +6840,15 @@
       "executable": false
     },
     "tests/e2e/helpers/traffic-alerts-flow.mjs": {
-      "sha256": "65f49e743f3a00ac3f80b813bda043f333e6cd79f5ad140cc7376f6dc8106b95",
+      "sha256": "17a9b0eab86f4f0950bbe9dfd8a558115b54260c1814cc75a2c244810623df9c",
       "executable": false
     },
     "tests/e2e/helpers/traffic-alerts-runtime.mjs": {
       "sha256": "5bb2bd7409371dbc383800032c0699367def3ceed0b47e2b05dac282e0d8b091",
+      "executable": false
+    },
+    "tests/e2e/helpers/traffic-resolution-flow.mjs": {
+      "sha256": "2828af0b711cf37703a1a666571638eb5833388e462bdc3501da932f84bea239",
       "executable": false
     },
     "tests/e2e/helpers/update-component-flow.mjs": {
