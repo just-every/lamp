@@ -1,9 +1,8 @@
+import type { TrafficSurface } from './surfaces';
 /** HIST-006 uses the already-declared R2 bucket, never D1 or visitor data.
  * Each Worker isolate owns an aggregate shard. Coalescing and pacing keep each
  * object below R2's one-write/second limit without delaying public responses.
  * A waitUntil increment resolves only once its cumulative count is persisted. */
-export const TRAFFIC_SURFACES = ['page', 'history', 'incident', 'maintenance', 'feed', 'widget', 'status', 'asset', 'badge', 'component', 'public-api'] as const;
-export type TrafficSurface = typeof TRAFFIC_SURFACES[number];
 export interface Counter { surface: TrafficSurface; minute: number; count: number }
 export interface TrafficSettings { multiple: number }
 export interface TrafficSignal { surface: TrafficSurface; minute: number; count: number; baseline: number | null }

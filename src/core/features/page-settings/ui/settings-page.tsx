@@ -19,6 +19,7 @@ import { SettingsTabs, useSettingsTab } from "./settings-tabs";
 import { PublicResources } from "./public-resources";
 import { PageSettingsTab } from "./page-settings-tab";
 import { NotificationSettingsTab } from "./notification-settings-tab";
+import type { TrafficSavePhase } from "./traffic-alert-settings";
 import { WritingSettingsTab } from "./writing-settings-tab";
 import { SettingsSaveState } from "./settings-save-state";
 import { useSettingsAutosave } from "./use-settings-autosave";
@@ -42,6 +43,13 @@ export function SettingsPage() {
   const [brandStatus, setBrandStatus] = useState<string | null>(null);
   const [ready, setReady] = useState(false);
   useEffect(() => setReady(true), []);
+  // Notifications mounts on its first visit and then stays, so an unsaved traffic edit survives tab changes.
+  const [notificationsOpened, setNotificationsOpened] = useState(false);
+  if (tab === "notifications" && !notificationsOpened) setNotificationsOpened(true);
+  const [trafficPhase, setTrafficPhase] = useState<TrafficSavePhase>("saved");
+  // The tab's one save note reads "Saved · live" only once every write on it has landed.
+  const phases = [autosave.phase, trafficPhase];
+  const phase = (["error", "saving", "waiting"] as const).find(candidate => phases.includes(candidate)) ?? "saved";
   // Leaving Settings or signing out waits for pending edits to save; a refused save keeps the owner here with its reason and Retry.
   useLeaveGuard(autosave.leave, autosave.unsaved);
   if (loading && !data) return <LoadingState />;
@@ -56,10 +64,10 @@ export function SettingsPage() {
   return <div className="page-stack settings-page" inert={!ready}>
     <section className="page-title-row"><h1>Settings</h1></section>
     <SettingsTabs current={tab} />
-    {configuration && <SettingsSaveState phase={autosave.phase} error={autosave.error} retry={autosave.retry} />}
+    {configuration && <SettingsSaveState phase={phase} error={autosave.error} retry={autosave.retry} />}
     <div className={configuration ? "settings-form page-stack" : "page-stack"}>
       {tab === "page" && <PageSettingsTab settings={settings} saved={saved} live={live} markSrc={markSrc} components={components} update={update} adoptSaved={autosave.adoptSaved} busy={brandBusy} setBusy={setBrandBusy} setStatus={setBrandStatus} />}
-      <div hidden={tab !== "notifications"}><NotificationSettingsTab settings={settings} live={live} identityEditable={saved.mailIdentityEditable} update={update} needsConfirm={autosave.pending("mailFromAddress")} confirm={() => autosave.confirm("mailFromAddress")} /></div>
+      {notificationsOpened && <div hidden={tab !== "notifications"}><div className="settings-form page-stack"><NotificationSettingsTab settings={settings} live={live} identityEditable={saved.mailIdentityEditable} update={update} needsConfirm={autosave.pending("mailFromAddress")} confirm={() => autosave.confirm("mailFromAddress")} onTrafficPhase={setTrafficPhase} /></div></div>}
       <div hidden={tab !== "writing"}><div className="settings-form page-stack"><WritingSettingsTab settings={settings} aiStatus={aiStatus} update={update} /></div></div>
       {tab === "embeds" && <PublicResources publicOrigin={publicOrigin} allowedOrigins={settings.widgetAllowedOrigins} onOriginsChange={value => update("widgetAllowedOrigins", value)} appearance={settings.widgetAppearance} onAppearanceChange={(value, immediate) => update("widgetAppearance", value, immediate)} needsConfirm={autosave.pending("widgetAllowedOrigins")} onConfirm={() => autosave.confirm("widgetAllowedOrigins")} />}
       {tab === "page" && brandStatus && <p className="save-message" role="status">{brandStatus}</p>}

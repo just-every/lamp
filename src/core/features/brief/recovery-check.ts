@@ -30,6 +30,8 @@ export interface RecoveryCheck {
   checkedAt: string;
   holdMinutes: 5;
   items: Array<{
+    /** Traffic rows describe one minute against its usual level; other rows are reported monitor evidence. */
+    kind?: "traffic";
     source: string;
     key: string;
     state: "firing" | "holding" | "recovered";
@@ -37,6 +39,8 @@ export interface RecoveryCheck {
     recoveredAt: string | null;
   }>;
   notTracked: string[];
+  /** Public surfaces whose usual traffic level is still unknown; each is not tracked, never passing. */
+  trafficLearning?: string[];
 }
 
 export class RecoveryCheckError extends Error {

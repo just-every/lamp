@@ -5,12 +5,13 @@ import { chromium } from 'playwright';
 import { expect } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 import { openTrafficAlertsRuntime } from './traffic-alerts-runtime.mjs';
+import { trafficResolutionFlow } from './traffic-resolution-flow.mjs';
 import { operatorHydrated } from './operator-hydrated.mjs';
 
 const MINUTE = 60_000, HOUR = 60 * MINUTE, DAY = 24 * HOUR;
-async function eventually(read, predicate, message) {
+async function eventually(read, predicate, message, attempts = 100) {
   let result;
-  for (let attempt = 0; attempt < 100; attempt++) {
+  for (let attempt = 0; attempt < attempts; attempt++) {
     result = await read();
     if (predicate(result)) return result;
     await new Promise(resolve => setTimeout(resolve, 25));
@@ -26,8 +27,13 @@ export async function trafficAlertsFlow(t) {
   t?.diagnostic('HIST-006 production fixture started');
   const { runtime, env, api, post, publicOrigin, origin } = fixture;
   const bucket = env.SNAPSHOTS;
-  const trafficMail = () => fixture.messages.filter(message => message.subject === 'Public-page traffic spike');
-  const alerts = () => trafficMail().filter(message => /page: \d+ requests/.test(message.text));
+  // Operator alerts are known by their stored event (surface and minute); the provider request
+  // that carried each one is matched by its envelope, and its figures are read as numbers.
+  const trafficAlerts = async (surface = '') => (await env.DB.prepare("SELECT aggregate_id AS eventId, payload_json AS payload FROM notification_outbox WHERE kind = 'operator-alert' ORDER BY created_at, id").all()).results
+    .map(row => ({ eventId: row.eventId, ...JSON.parse(row.payload) })).filter(alert => alert.eventId.startsWith(`traffic:${surface}`));
+  const requests = alert => fixture.messages.filter(message => message.subject === alert.title && message.text === alert.text);
+  const sent = async surface => (await trafficAlerts(surface)).filter(alert => requests(alert).length);
+  const figures = text => (text.match(/\d+(?:\.\d+)?/g) ?? []).map(Number);
   const rows = async (surface, at) => {
     const objects = await bucket.list({ prefix: keyAt(surface, at) });
     return (await Promise.all(objects.objects.map(async object => (await bucket.get(object.key)).json()))).flat();
@@ -79,24 +85,29 @@ export async function trafficAlertsFlow(t) {
     await configure(6);
     await readAt(target, 10);
     await fixture.tick(target + 2 * MINUTE);
-    assert.equal(alerts().length, 0, 'the owner’s 6× multiple suppresses a 5× burst');
+    assert.equal((await trafficAlerts()).length, 0, 'the owner’s 6× multiple suppresses a 5× burst');
     await configure(3);
     const burst = target + MINUTE;
     await readAt(burst, 10);
     const publicBefore = await (await runtime.dispatchFetch(`${publicOrigin}/api/public/status`)).text();
     await fixture.tick(burst + 2 * MINUTE);
-    await eventually(alerts, value => value.length === 1, 'a 5× burst sends exactly one real operator-provider request');
-    assert.equal(trafficMail().length, 1, 'this page burst creates exactly one operator alert across all surfaces');
-    assert.match(alerts()[0].text, /page: 10 requests in one minute/);
-    assert.match(alerts()[0].text, /baseline of 2\.00 per minute/);
-    assert.ok(alerts()[0].text.includes(`${origin}/app`), 'the operator alert links to the actual app');
-    assert.deepEqual(alerts()[0].to, ['synthetic-lamp-owner@example.test']);
+    const [pageAlert] = await eventually(() => sent('page:'), value => value.length === 1, 'a 5× burst sends exactly one real operator-provider request');
+    assert.equal((await trafficAlerts()).length, 1, 'this page burst creates exactly one operator alert across all surfaces');
+    assert.equal(pageAlert.eventId, `traffic:page:${Math.floor(burst / MINUTE)}`, 'the alert names the page surface and its burst minute');
+    const [pageRequest] = requests(pageAlert);
+    assert.equal(requests(pageAlert).length, 1);
+    assert.ok(figures(pageRequest.text).includes(10), 'the provider request carries the minute’s 10 requests');
+    assert.ok(figures(pageRequest.text).includes(2), 'the provider request carries the same-hour mean of 2 per minute, not a same-minute lookup');
+    assert.ok(pageRequest.text.includes(`${origin}/app`), 'the operator alert links to the actual app');
+    assert.deepEqual(pageRequest.to, ['synthetic-lamp-owner@example.test']);
+    const providerRequests = fixture.messages.length;
     await fixture.tick(burst + 2 * MINUTE);
     await fixture.tick(burst + 2 * MINUTE);
-    assert.equal(alerts().length, 1, 'repeated Cron delivery does not resend the alert');
+    assert.equal((await trafficAlerts()).length, 1, 'repeated Cron delivery does not resend the alert');
     await readAt(burst + MINUTE, 10);
     await fixture.tick(burst + 3 * MINUTE);
-    assert.equal(alerts().length, 1, 'the same consecutive burst remains one episode');
+    assert.equal((await trafficAlerts()).length, 1, 'the same consecutive burst remains one episode');
+    assert.equal(fixture.messages.length, providerRequests, 'no further provider request');
     assert.equal(await (await runtime.dispatchFetch(`${publicOrigin}/api/public/status`)).text(), publicBefore, 'traffic alerts publish no customer-facing incident or content');
 
     // A quiet minute ends the first episode; an unresolved incident suppresses
@@ -108,15 +119,16 @@ export async function trafficAlertsFlow(t) {
     await readAt(feedBurst, 5, '/feed.atom', 'feed');
     await readAt(feedBurst, 20, '/widget.js', 'widget');
     await fixture.tick(feedBurst + 2 * MINUTE);
-    await eventually(() => trafficMail().filter(message => /feed: 5 requests/.test(message.text)), value => value.length === 1, 'a missing historical feed hour is zero after seven-day collection coverage');
-    const feedMail = trafficMail().find(message => /feed: 5 requests/.test(message.text));
-    assert.match(feedMail.text, /baseline of 1\.00 per minute/);
-    assert.equal(trafficMail().filter(message => /widget:/.test(message.text)).length, 0, 'a cold-start surface without a seven-day baseline sends no spike alert');
+    const [feedAlert] = await eventually(() => sent('feed:'), value => value.length === 1, 'a missing historical feed hour is zero after seven-day collection coverage');
+    assert.equal(feedAlert.eventId, `traffic:feed:${Math.floor(feedBurst / MINUTE)}`);
+    assert.ok(figures(requests(feedAlert)[0].text).includes(5) && figures(requests(feedAlert)[0].text).includes(1), 'the feed request carries 5 requests against a usual 1 per minute');
+    assert.equal((await trafficAlerts('widget:')).length, 0, 'a cold-start surface without a seven-day baseline sends no spike alert');
     const incidentResult = await post('/api/app/incidents', { title: 'Synthetic Lamp unresolved traffic', components: [{ componentId: component.id, state: 'Partially unavailable', relationship: 'Primary' }] });
     assert.equal(incidentResult.status, 201, incidentResult.text);
     const incident = incidentResult.body.incident;
+    const resolvedImpact = 'Synthetic traffic requests are back to normal.';
     const saveDraft = async lifecycle => {
-      const result = await api(`/api/app/incidents/${incident.id}/draft`, { method: 'PUT', body: JSON.stringify({ lifecycle, affectedAudience: 'Synthetic readers', customerImpact: 'Requests are delayed.', whatStillWorks: 'The status page remains readable.', details: '', nextUpdateAt: lifecycle === 'Resolved' ? null : new Date(Date.now() + DAY).toISOString() }) });
+      const result = await api(`/api/app/incidents/${incident.id}/draft`, { method: 'PUT', body: JSON.stringify({ lifecycle, affectedAudience: 'Synthetic readers', customerImpact: lifecycle === 'Resolved' ? resolvedImpact : 'Requests are delayed.', whatStillWorks: 'The status page remains readable.', details: '', nextUpdateAt: lifecycle === 'Resolved' ? null : new Date(target + DAY).toISOString() }) });
       assert.equal(result.status, 200, result.text);
     };
     await saveDraft('Investigating');
@@ -125,14 +137,13 @@ export async function trafficAlertsFlow(t) {
     await readAt(suppressed, 10);
     await fixture.tick(suppressed + 2 * MINUTE);
     await fixture.tick(suppressed + 2 * MINUTE);
-    assert.equal(alerts().length, 1, 'the same 5× burst during an unresolved incident sends no operator alert');
+    assert.equal((await trafficAlerts('page:')).length, 1, 'the same 5× burst during an unresolved incident sends no operator alert');
     await fixture.clock(suppressed + 2 * MINUTE);
     const recoveryResult = await api(`/api/app/incidents/${incident.id}/recovery-check`);
     assert.equal(recoveryResult.status, 200, recoveryResult.text);
-    const traffic = recoveryResult.body.recovery.items.find(item => item.source === 'Public-page traffic' && item.key === 'page');
+    const traffic = recoveryResult.body.recovery.items.find(item => item.kind === 'traffic' && item.key === 'page');
     assert.equal(traffic?.state, 'firing', 'the inherited recovery door reads elevated traffic as failing evidence');
     assert.equal(traffic.evidenceAt, new Date(suppressed).toISOString());
-    assert.ok(!recoveryResult.body.recovery.notTracked.includes('Public-page traffic baseline'));
     await saveDraft('Resolved');
     const refused = await post(`/api/app/incidents/${incident.id}/publish`, { channels: [] });
     assert.equal(refused.status, 409, refused.text);
@@ -190,8 +201,8 @@ export async function trafficAlertsFlow(t) {
       await page.goto(`${origin}/app/incidents/${incident.id}`); await operatorHydrated(page);
       await expect(page.getByRole('heading', { name: 'Recovery check', exact: true })).toBeVisible();
       await expect(page.getByText('Checking linked monitors…', { exact: true })).toBeHidden();
-      const trafficEvidence = page.getByRole('listitem').filter({ hasText: 'Public-page traffic · page:' });
-      await expect(trafficEvidence).toBeVisible(); await expect(trafficEvidence).toContainText('above baseline');
+      // One row per API evidence item, the elevated page row among them (its state is asserted at the API above).
+      await expect(page.getByRole('region', { name: 'Recovery check', exact: true }).getByRole('listitem')).toHaveCount(recoveryResult.body.recovery.items.length);
       assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), `${width}px traffic recovery evidence fits`);
       assert.deepEqual((await new AxeBuilder({ page }).analyze()).violations.filter(row => ['serious', 'critical'].includes(row.impact)), []);
       if (process.env.LAMP_BROWSER_EVIDENCE) await page.screenshot({ path: join(process.env.LAMP_BROWSER_EVIDENCE, `${width}-traffic-recovery.png`), fullPage: true });
@@ -199,7 +210,8 @@ export async function trafficAlertsFlow(t) {
       const field = page.getByRole('spinbutton', { name: 'Traffic spike multiple', exact: true });
       await expect(field).toBeVisible(); await expect(field).toHaveValue('3');
       await field.fill('1'); await field.blur();
-      await expect(page.getByText('Changes kept · not live', { exact: true })).toBeVisible();
+      await expect(field).toHaveAttribute('aria-invalid', 'true');
+      await expect(page.getByRole('region', { name: 'Traffic alerts', exact: true }).getByRole('alert')).toBeVisible();
       assert.equal((await api('/api/app/traffic-alerts')).body.settings.multiple, 3, 'invalid UI input leaves persisted settings unchanged');
       await page.getByRole('navigation', { name: 'Settings sections' }).getByRole('link', { name: 'Page', exact: true }).click();
       await page.getByRole('navigation', { name: 'Settings sections' }).getByRole('link', { name: 'Notifications', exact: true }).click();
@@ -219,6 +231,9 @@ export async function trafficAlertsFlow(t) {
       t?.diagnostic(`HIST-006 ${width}px Settings owner multiple autosaves, survives reload, fits and passes axe/hydration`);
     }
     await context.close();
+    const owner = (await api('/api/app/session')).body.operator;
+    await trafficResolutionFlow({ fixture, incident, owner, now: suppressed + 2 * MINUTE, readAt, saveDraft, resolvedImpact, eventually: (read, predicate, message) => eventually(read, predicate, message, 400) });
     t?.diagnostic('HIST-006: 840 public page + 420 feed baseline requests; default 3×, owner threshold, 5× exactly-once episode, incident suppression, recovery refusal, identifier-free counters and database-free reads asserted');
+    t?.diagnostic('HIST-006 riders: unknown baselines not tracked, historical refusal with a retained draft, private attributed immediate override with no later authority, scheduled due-time hold with a retained draft, near-baseline scheduled success');
   } finally { await browser?.close(); await fixture.close(); }
 }

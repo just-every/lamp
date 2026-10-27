@@ -2,7 +2,8 @@ import { aliasArtifactKey, isImportAliasPath, isLampPermalink } from "../statusp
 import { isSorryHistoryMonthPath } from "../statuspage-import/public-paths.mjs";
 import type { Context, Hono } from "hono";
 
-import { createTrafficStorage, type TrafficSurface } from "../traffic-alerts/storage";
+import { createTrafficStorage } from "../traffic-alerts/storage";
+import type { TrafficSurface } from "../traffic-alerts/surfaces";
 import type { AppEnv } from "../../app/types";
 import { escapeHtml } from "./format";
 import { applyPublicIsolationHeaders } from "./headers";
