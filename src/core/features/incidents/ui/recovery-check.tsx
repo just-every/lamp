@@ -19,7 +19,7 @@ export function RecoveryCheckPanel({ incidentId, overrideReason, onOverrideReaso
     {check && <>
       <p role="status">{check.passed ? "Tracked recovery checks pass." : "Recovery needs your review before publishing Resolved."} Checked {time(check.checkedAt)}.</p>
       {check.items.length ? <ul>{check.items.map(item => <li key={`${item.source}:${item.key}`}>
-        <strong>{item.source}</strong> · {item.key}: {item.state === "firing" ? "still firing" : item.state === "holding" ? `reported recovery has not held for ${check.holdMinutes} minutes` : "reported recovery held"}. Reported {time(item.evidenceAt)}{item.recoveredAt ? `; recovered ${time(item.recoveredAt)}` : ""}.
+        <strong>{item.source}</strong> · {item.key}: {item.source === "Public-page traffic" ? item.state === "firing" ? "above baseline" : "near baseline" : item.state === "firing" ? "still firing" : item.state === "holding" ? `reported recovery has not held for ${check.holdMinutes} minutes` : "reported recovery held"}. Reported {time(item.evidenceAt)}{item.recoveredAt ? `; recovered ${time(item.recoveredAt)}` : ""}.
       </li>)}</ul> : null}
       <p>Not tracked: {check.notTracked.join(", ")}.</p>
       {(!check.passed || overrideReason) && <label className="form-label">Recovery override reason

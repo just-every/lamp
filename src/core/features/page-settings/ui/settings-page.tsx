@@ -59,7 +59,7 @@ export function SettingsPage() {
     {configuration && <SettingsSaveState phase={autosave.phase} error={autosave.error} retry={autosave.retry} />}
     <div className={configuration ? "settings-form page-stack" : "page-stack"}>
       {tab === "page" && <PageSettingsTab settings={settings} saved={saved} live={live} markSrc={markSrc} components={components} update={update} adoptSaved={autosave.adoptSaved} busy={brandBusy} setBusy={setBrandBusy} setStatus={setBrandStatus} />}
-      {tab === "notifications" && <NotificationSettingsTab settings={settings} live={live} identityEditable={saved.mailIdentityEditable} update={update} needsConfirm={autosave.pending("mailFromAddress")} confirm={() => autosave.confirm("mailFromAddress")} />}
+      <div hidden={tab !== "notifications"}><NotificationSettingsTab settings={settings} live={live} identityEditable={saved.mailIdentityEditable} update={update} needsConfirm={autosave.pending("mailFromAddress")} confirm={() => autosave.confirm("mailFromAddress")} /></div>
       <div hidden={tab !== "writing"}><div className="settings-form page-stack"><WritingSettingsTab settings={settings} aiStatus={aiStatus} update={update} /></div></div>
       {tab === "embeds" && <PublicResources publicOrigin={publicOrigin} allowedOrigins={settings.widgetAllowedOrigins} onOriginsChange={value => update("widgetAllowedOrigins", value)} appearance={settings.widgetAppearance} onAppearanceChange={(value, immediate) => update("widgetAppearance", value, immediate)} needsConfirm={autosave.pending("widgetAllowedOrigins")} onConfirm={() => autosave.confirm("widgetAllowedOrigins")} />}
       {tab === "page" && brandStatus && <p className="save-message" role="status">{brandStatus}</p>}

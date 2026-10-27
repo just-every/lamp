@@ -41,7 +41,7 @@ export interface RecoveryCheck {
 
 export class RecoveryCheckError extends Error {
   constructor(public readonly recovery: RecoveryCheck) {
-    super("A monitor still reports a problem or recovered less than five minutes ago. Give a reason to publish Resolved now.");
+    super("A recovery check still reports a problem or a monitor recovered less than five minutes ago. Give a reason to publish Resolved now.");
   }
 }
 

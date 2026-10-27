@@ -34,6 +34,7 @@ export async function runScheduled(bindings: AppBindings, executionContext: Exec
     // so the mail they queue goes out in this same run.
     const changes = await Promise.allSettled([
       runtime.services.metrics.runDue(scheduledAt),
+      runtime.services.trafficAlerts.run(scheduledAt),
       runtime.services.subscribers.expirePending(),
       expireHeldSorrySubscribers(bindings.DB, scheduledAt),
       runtime.services.pageExport.expireHeld(scheduledAt),

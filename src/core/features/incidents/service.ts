@@ -79,6 +79,7 @@ export interface IncidentPublicationStatements {
 }
 
 export interface IncidentRuntimeHooks {
+  trafficRecovery?: (check: RecoveryCheck) => Promise<RecoveryCheck>;
   events?: Pick<LampEventDispatcher, "incidentOpened" | "incidentUpdatePublished" | "incidentResolved">;
   /** After publication: dispatch its durable subscriber and channel notifications. */
   afterPublished?: (update: StoredIncidentUpdate) => Promise<void>;
@@ -151,7 +152,8 @@ export function createIncidentsService(
     if (draft.lifecycle === "Resolved") {
       const evidence = await repository.loadRecoverySnapshot(incidentId);
       if (!evidence) return null;
-      const result = checkRecovery(evidence.evidence, timestamp);
+      const monitorCheck = checkRecovery(evidence.evidence, timestamp);
+      const result = runtime.trafficRecovery ? await runtime.trafficRecovery(monitorCheck) : monitorCheck;
       const reason = input.overrideReason?.trim();
       if (reason && reason.length > 1_000) throw new InvalidIncidentUpdateError("An override reason must contain at most 1,000 characters.");
       // Scheduling never grants a future override. Cron evaluates the evidence
@@ -209,7 +211,9 @@ export function createIncidentsService(
     communicationOwners: repository.communicationOwners,
     async recoveryCheck(incidentId) {
       const snapshot = await repository.loadRecoverySnapshot(incidentId);
-      return snapshot ? checkRecovery(snapshot.evidence, nowIso()) : null;
+      if (!snapshot) return null;
+      const check = checkRecovery(snapshot.evidence, nowIso());
+      return runtime.trafficRecovery ? runtime.trafficRecovery(check) : check;
     },
     async previewComponentChange(incidentId, change) {
       const [incident, component, attached, updates] = await Promise.all([

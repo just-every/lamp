@@ -2,6 +2,7 @@ import { aliasArtifactKey, isImportAliasPath, isLampPermalink } from "../statusp
 import { isSorryHistoryMonthPath } from "../statuspage-import/public-paths.mjs";
 import type { Context, Hono } from "hono";
 
+import { createTrafficStorage, type TrafficSurface } from "../traffic-alerts/storage";
 import type { AppEnv } from "../../app/types";
 import { escapeHtml } from "./format";
 import { applyPublicIsolationHeaders } from "./headers";
@@ -160,6 +161,11 @@ function currentMaintenanceOverruns(response: Response, now: number) {
 
 export function registerPublicSnapshotRoutes(app: Hono<AppEnv>, service: PublicSnapshotService) {
   const serve = (artifact: (context: Context<AppEnv>) => string, download = false, missingArtifact?: string) => async (context: Context<AppEnv>) => {
+    // Only the fixed surface crosses this boundary: never the request, path,
+    // query, cookie, address or user agent. Counting cannot delay public bytes.
+    const key = artifact(context);
+    const surface: TrafficSurface = key === 'page.html' ? 'page' : key.startsWith('history/') || key === 'history.html' || key.startsWith('aliases/') ? 'history' : key.startsWith('incidents/') ? 'incident' : key.startsWith('maintenance/') || key === 'maintenance.ics' ? 'maintenance' : key.startsWith('feed.') || key.startsWith('history.') ? 'feed' : key === 'widget.js' || key === 'embed/script.js' ? 'widget' : key === 'status.json' ? 'status' : key.startsWith('assets/') ? 'asset' : key.startsWith('badge.') ? 'badge' : key.startsWith('components/') ? 'component' : 'public-api';
+    context.executionCtx.waitUntil(createTrafficStorage(context.env.SNAPSHOTS).increment(surface, Date.now()));
     const cache = await caches.open("lamp-public-snapshot-fallback").catch(() => null);
     const cacheUrl = new URL(context.req.url);
     cacheUrl.search = ""; // Public artifacts do not vary by query parameters.

@@ -1,3 +1,6 @@
+import { createTrafficStorage } from "../features/traffic-alerts/storage";
+import { createTrafficIncidentRepository } from "../features/traffic-alerts/repository";
+import { createTrafficAlerts } from "../features/traffic-alerts/service";
 import { createSmsService } from "../features/sms/service";
 import { createMetricsService } from "../features/metrics/service";
 import { createTeamsSubscriptionsService } from "../features/subscribers/teams-subscriptions";
@@ -96,6 +99,8 @@ export function createAppServices(bindings: AppBindings, blobs: BlobStore, execu
     tokenSecret:bindings.SUBSCRIBER_TOKEN_SECRET,effectsPaused:bindings.EFFECTS_PAUSED === "1",unavailable:outboundUnavailable(bindings,"SMS messages"),
     pageName:configuredPageName,supportContact:configuredFromAddress,publicOrigin:()=>notificationOrigin(bindings),
   });
+  const trafficStorage = createTrafficStorage(bindings.SNAPSHOTS);
+  const trafficAlerts = createTrafficAlerts(trafficStorage, createTrafficIncidentRepository(bindings.DB).unresolved, input => deliveries.queueOperatorAlert({ ...input, text: `${input.text}\n${new URL("/app", authOrigin(bindings)).href}` }));
   const allowedIncidentChannels = new Set(extensions.notificationEventsPolicy.channelsForIncidentUpdate());
   const responders = createResponderService(bindings.DB, {
     effectsPaused: bindings.EFFECTS_PAUSED === "1", webhookSecret: bindings.WEBHOOK_SIGNING_SECRET,
@@ -112,7 +117,7 @@ export function createAppServices(bindings: AppBindings, blobs: BlobStore, execu
   }, extensions.updateReviewPolicy,
   async ({ incidentId, draftId, scheduledPublishAt }) => deliveries.queueOperatorAlert({ eventId: `scheduled-review/${draftId}/${scheduledPublishAt}`, title: "Lamp held a scheduled incident update for review", text: `Scheduled update for incident ${incidentId} requires review by another operator before it can publish.` }),
   extensions.updateDuePolicy,
-  { events: extensions.events, formatPreviewTimestamp, formatPreviewEmail: async (email) => {
+  { trafficRecovery: trafficAlerts.recovery, events: extensions.events, formatPreviewTimestamp, formatPreviewEmail: async (email) => {
     const settings = await pageSettings.get();
     if (!settings) throw new Error("Page settings are not configured.");
     return brandEmail(email, { branding: settings.emailBranding, pageName: settings.pageName, fromAddress: settings.mailFromAddress, origin: publicPageOrigin(authOrigin(bindings), bindings.LAMP_PAGE_HOST), hasLogo: Boolean(settings.logoKey) });
@@ -236,7 +241,7 @@ export function createAppServices(bindings: AppBindings, blobs: BlobStore, execu
   });
 
   const chatDesk = createChatDeskService(bindings, incidents, components, async () => { const settings = await pageSettings.get(); if (!settings) throw new Error("Page settings are not configured."); return { blockedTerms: settings.wordingBlockedTerms, friendlyLength: settings.wordingFriendlyLength }; });
-  return { sms, metrics, teamsSubscriptions, chatDesk, auth, operators, availabilityReports, communicationPerformance, incidentImpact, pageSettings, pageExport, components, componentCatalogue, incidents, maintenance, subscribers, deliveries, reports, intake, briefs, ai, overview, website, updateReminders, publicSnapshots, statuspageImport, channels };
+  return { trafficStorage, trafficAlerts, sms, metrics, teamsSubscriptions, chatDesk, auth, operators, availabilityReports, communicationPerformance, incidentImpact, pageSettings, pageExport, components, componentCatalogue, incidents, maintenance, subscribers, deliveries, reports, intake, briefs, ai, overview, website, updateReminders, publicSnapshots, statuspageImport, channels };
 }
 
 export type AppServices = ReturnType<typeof createAppServices>;

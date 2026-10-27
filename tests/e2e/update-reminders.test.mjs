@@ -1,3 +1,4 @@
+import { trafficAlertsFlow } from "./helpers/traffic-alerts-flow.mjs";
 import { operatorAlertsFlow } from "./helpers/operator-alerts-flow.mjs";
 import { preparedDraftFlow } from "./helpers/prepared-draft-flow.mjs";
 import { followUpsFlow } from "./helpers/follow-ups-flow.mjs";
@@ -68,7 +69,7 @@ before(async () => {
 
 after(async () => { await runtime?.close(); });
 
-contract("INCIDENT-010", "INCIDENT-011 NOTIFY-016 AGENT-002 AUTO-003 owner reminders, durable follow-ups, reasoned failure dismissal and Queue recovery follow the original commitment", async () => {
+contract("INCIDENT-010", "INCIDENT-011 NOTIFY-016 AGENT-002 AUTO-003 HIST-006 owner reminders, durable follow-ups, reasoned failure dismissal and Queue recovery follow the original commitment", async (t) => {
   const committed = Date.now() + minutes(60);
   const incident = await openIncident("Sign-in latency", new Date(committed).toISOString());
   const owner = (await api("/api/app/session")).body.operator;
@@ -136,7 +137,7 @@ contract("INCIDENT-010", "INCIDENT-011 NOTIFY-016 AGENT-002 AUTO-003 owner remin
   const unownedDue = (await envelopes()).filter(row => row.message.subject.includes(unownedIncident.reference));
   assert.deepEqual(unownedDue.map(row => row.message.to).sort(), [operator, replacement.operator.email].sort(), "unowned due reminder reaches every active operator once");
   assert.equal((await api(`/api/app/incidents/${incident.id}/owner`, { method: "PUT", body: JSON.stringify({ operatorId: departing.operator.id }) })).status, 404);
-  const browser = await chromium.launch({ headless: true, args: ["--use-mock-keychain", "--password-store=basic"] });
+  const browser = await chromium.launch({ executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH || undefined, headless: true, args: ["--no-sandbox", "--use-mock-keychain", "--password-store=basic"] });
   try {
     const context = await browser.newContext();
     const entered = await signInAs({ origin, key: devKey });
@@ -174,6 +175,7 @@ contract("INCIDENT-010", "INCIDENT-011 NOTIFY-016 AGENT-002 AUTO-003 owner remin
   assert.deepEqual(await reminders(incident.reference), { dueSoon: 1, overdue: 0 });
   await followUpsFlow();
   await operatorAlertsFlow();
+  await trafficAlertsFlow(t);
 });
 
 contract("INCIDENT-010", "AGENT-002 an existing operator draft remains untouched while its original commitment becomes overdue", async () => {

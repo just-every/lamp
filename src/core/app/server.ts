@@ -1,3 +1,4 @@
+import { registerTrafficAlertRoutes } from "../features/traffic-alerts/routes";
 import { registerSmsRoutes } from "../features/sms/routes";
 import { createManagementApiService } from "../features/management-api/service";
 import { registerManagementApiRoutes } from "../features/management-api/routes";
@@ -77,6 +78,7 @@ export function createApp(bindings: AppBindings, execution?: MailExecution) {
   // Register the reserved mail-events endpoint before /api/intake/:sourceId.
   registerDeliveryRoutes(app, services.deliveries, { resendWebhookSecret: bindings.RESEND_WEBHOOK_SECRET, relaySecret: bindings.RER_MAIL_RELAY_SECRET, sendGridWebhookPublicKey: bindings.SENDGRID_WEBHOOK_PUBLIC_KEY, mailgunSigningKey: bindings.MAILGUN_WEBHOOK_SIGNING_KEY, sesEventTopicArn: bindings.SES_EVENT_TOPIC_ARN, postmarkWebhookSecret: bindings.POSTMARK_WEBHOOK_SECRET, secondaryMailProvider: bindings.MAIL_SECONDARY_PROVIDER, mailProvider: bindings.MAIL_PROVIDER, localMail, smsConfigured: services.sms.configured });
   registerMailSettings(app,bindings);
+  registerTrafficAlertRoutes(app, services.trafficStorage);
   registerMetricsRoutes(app, services.metrics);
   registerManagementApiRoutes(app, createManagementApiService(bindings.DB, services.auth), services.metrics, publicWriteLimiter, services.components);
   registerIntakeRoutes(app, services.intake, { publicPageHost: bindings.LAMP_PAGE_HOST, onUptimeTiming: services.metrics.acceptUptime, rateLimiter: publicWriteLimiter });
