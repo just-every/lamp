@@ -49,6 +49,8 @@ export async function trafficResolutionFlow({ fixture, incident, owner, now, rea
   assert.ok(!resolvedPage.includes(reason), 'the override reason is never public');
 
   // The override authorizes that publication only: the reopened incident's next resolution is checked again.
+  // Reopening follows the override within the same elevated minute, so its update is the latest one.
+  await fixture.clock(now + 30_000);
   await saveDraft('Monitoring');
   assert.equal((await post(`${path}/publish`, { channels: [] })).status, 200);
   await saveDraft('Resolved');

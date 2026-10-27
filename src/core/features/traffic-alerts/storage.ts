@@ -16,11 +16,21 @@ const writers = new Map<string, Writer>();
 const controls = new Map<string, { last: number; running: boolean }>();
 const pause = (ms: number) => new Promise<void>(resolve => setTimeout(resolve, ms));
 
+/** Waits for this isolate's write to `key`, so a read right after a paced write sees it. */
+async function settled(key: string) {
+  const deadline = performance.now() + 25_000;
+  while (controls.get(key)?.running) {
+    if (performance.now() >= deadline) throw new Error('Traffic configuration persistence timed out.');
+    await pause(25);
+  }
+}
+
 async function controlWrite<T>(key: string, write: () => Promise<T>): Promise<T> {
   const control = controls.get(key) ?? { last: -Infinity, running: false };
   controls.set(key, control);
   // Each timer/promise belongs to its own request. Sharing a promise across
   // Worker request contexts can cancel its continuations when its owner exits.
+  // The check and the claim stay in one turn, so two writers never interleave.
   const deadline = performance.now() + 25_000;
   while (control.running) {
     if (performance.now() >= deadline) throw new Error('Traffic configuration persistence timed out.');
@@ -114,6 +124,8 @@ export function createTrafficStorage(bucket: R2Bucket) {
       return persist(bucket, key, writer, surface, ++writer.version);
     },
     async settings(): Promise<TrafficSettings> {
+      // A reload right after Settings sent its last edit on the way out reads that edit, not the value before it.
+      await settled('traffic/settings.json');
       return (await read<TrafficSettings>('traffic/settings.json')).value ?? { multiple: 3 };
     },
     async configure(settings: TrafficSettings) {
