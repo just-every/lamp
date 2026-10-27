@@ -44,7 +44,7 @@ export function TrafficAlertSettings() {
     <p className="card-kicker" id="traffic-alert-title">Traffic alerts</p>
     {data.data ? <>
       <label className="form-label">Traffic spike multiple<input aria-label="Traffic spike multiple" type="number" min="1.1" max="100" step="0.1" value={value ?? String(data.data.settings.multiple)} onChange={event => edit(event.target.value)} onBlur={() => void flush()} /></label>
-      <SettingsSaveState phase={phase} error={error} retry={() => { queue.current.stopped = -1; void flush(); }} />
+      {phase !== 'saved' && <SettingsSaveState phase={phase} error={error} retry={() => { queue.current.stopped = -1; void flush(); }} />}
     </> : <p role="status">{data.error ?? 'Loading traffic alerts…'}</p>}
   </section>;
 }

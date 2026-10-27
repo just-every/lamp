@@ -60,6 +60,9 @@ async function publishUpdate(incidentId, overrides) {
 const minutes = (count) => count * 60_000;
 
 before(async () => {
+  // This existing journey also exercises the real production Worker. Build its
+  // artifact before starting the native development server; CI shards are isolated.
+  execFileSync('pnpm', ['run', 'build:app'], { cwd: process.cwd(), stdio: 'inherit' });
   runtime = await openNativeRuntime();
   await runtime.start();
   await runtime.seedOperator();

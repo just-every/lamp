@@ -4356,7 +4356,7 @@
       "executable": false
     },
     "src/core/features/page-settings/ui/traffic-alert-settings.tsx": {
-      "sha256": "1d0effe5258dbe9ad69041df271bc2fe0921768fa3324f0706fb933b274dc0ca",
+      "sha256": "29f531c312827d2ff98fdfe8804e970e4b72371a1b04c63345255cdfdde383e4",
       "executable": false
     },
     "src/core/features/page-settings/ui/use-settings-autosave.ts": {
@@ -7032,7 +7032,7 @@
       "executable": false
     },
     "tests/e2e/update-reminders.test.mjs": {
-      "sha256": "a37ea05f6417398b50f738730a90d79f779a0cc7482888da3ec0aa7814974ede",
+      "sha256": "dd06bc8e1c0e36e11347db267fa775857b1fee0e3c5c7b390ee1268a08924068",
       "executable": false
     },
     "tests/e2e/vite-worker-process.mjs": {
