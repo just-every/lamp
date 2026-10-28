@@ -5,7 +5,7 @@ import { createIncidentFollowSettingsRepository } from "./incident-follow-settin
 
 const settingsSchema = z.object({ includeReport: z.boolean() }).strict();
 
-export function registerIncidentFollowSettingsRoutes(app: Hono<AppEnv>, binding: D1Database) {
+export function registerIncidentFollowSettingsRoutes(app: Hono<AppEnv>, binding: D1Database,onChanged:()=>Promise<unknown>) {
   const repository = createIncidentFollowSettingsRepository(binding);
   app.get("/api/app/incident-follow-settings", async context => {
     context.header("Cache-Control", "private, no-store");
@@ -15,6 +15,7 @@ export function registerIncidentFollowSettingsRoutes(app: Hono<AppEnv>, binding:
     const input = settingsSchema.safeParse(await context.req.json().catch(() => null));
     if (!input.success) return context.json({ error: "Choose whether incident subscriptions include the post-incident report.", issues: input.error.issues }, 400);
     if (!await repository.set(input.data.includeReport, context.get("operator").id, new Date().toISOString())) return context.json({ error: "Only an active owner or admin can configure incident subscriptions." }, 403);
+    await onChanged();
     context.header("Cache-Control", "private, no-store");
     return context.json(await repository.get());
   });

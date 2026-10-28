@@ -96,6 +96,9 @@ export async function incidentFollowBrowserFlow({ page: operatorPage, origin, pa
     assert.deepEqual([...thirdParty], [], "the initial form loads no third-party resource");
     const email = "synthetic-lamp-follow-browser@example.test";
     await form.getByLabel("Email address", { exact: true }).fill(email);
+    const ownReportChoice=form.getByRole("checkbox",{name:"Include the post-incident report",exact:true});
+    assert.equal(await ownReportChoice.isChecked(),true,"the form starts with the configured report default");
+    await ownReportChoice.uncheck();
     await capture(page, "permalink", "#incident-follow");
     const accepted = page.waitForResponse(response => new URL(response.url()).pathname === "/subscribe/incident" && response.request().method() === "POST");
     await form.getByRole("button", { name: "Get incident updates", exact: true }).click();
@@ -112,6 +115,8 @@ export async function incidentFollowBrowserFlow({ page: operatorPage, origin, pa
     await page.getByText(`Following ${incident.reference}`, { exact: true }).waitFor();
     assert.equal(await page.locator('input[name="componentId"]').count(), 0, "the incident token cannot expand its scope to components");
     await capture(page, "management");
+    const savedFollower=(await api(`/api/app/incidents/${incident.id}/subscribers`)).body.subscribers.find(row=>row.destination===email);
+    assert.equal(savedFollower.incident.includeReport,false,"the visitor's report choice overrides the owner default");
     await operatorPage.goto(`${origin}/app/incidents/${incident.id}`);
     await operatorHydrated(operatorPage);
     const incidentSection = operatorPage.locator('section[aria-labelledby="incident-subscribers-title"]');

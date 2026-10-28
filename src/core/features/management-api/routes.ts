@@ -6,10 +6,13 @@ import { pointsSchema } from "../metrics/schema";
 import type { ComponentsService } from "../components/service";
 import type { MetricsService } from "../metrics/service";
 import type { PublicWriteRateLimiter } from "../../platform/security/rate-limiter";
+import { registerIncidentSubscriptionApiRoutes, statuspageCompatibilityPageId } from "./incident-subscription-routes";
+import type { IncidentSubscriptionApiService } from "./incident-subscription-routes";
 import { TokenAuthorityError } from "./repository";
 import type { ManagementApiService } from "./service";
-const createSchema=z.object({name:z.string().trim().min(1).max(80),scopes:z.array(z.enum(["read","metrics:write"])).max(2).refine(scopes=>new Set(scopes).size===scopes.length).default([]),expiresInSeconds:z.number().int().min(1).max(365*86400).default(86400)}).strict();
-export function registerManagementApiRoutes(app:Hono<AppEnv>,service:ManagementApiService,metrics:MetricsService,limiter:PublicWriteRateLimiter,components:ComponentsService) {
+const createSchema=z.object({name:z.string().trim().min(1).max(80),scopes:z.array(z.enum(["read","metrics:write","subscribers:write"])).max(3).refine(scopes=>new Set(scopes).size===scopes.length).default([]),expiresInSeconds:z.number().int().min(1).max(365*86400).default(86400)}).strict();
+export function registerManagementApiRoutes(app:Hono<AppEnv>,service:ManagementApiService,metrics:MetricsService,limiter:PublicWriteRateLimiter,components:ComponentsService,subscribers?:IncidentSubscriptionApiService) {
+  if(subscribers)registerIncidentSubscriptionApiRoutes(app,service,subscribers,limiter);
   app.use("/api/app/management-tokens",async(c,next)=>{
     c.header("Cache-Control","no-store");
     if(!await service.isManager(c.get("operator").id))return c.json({error:"Only an Owner or Admin can manage tokens."},403);
@@ -20,10 +23,10 @@ export function registerManagementApiRoutes(app:Hono<AppEnv>,service:ManagementA
     if(!await service.isManager(c.get("operator").id))return c.json({error:"Only an Owner or Admin can manage tokens."},403);
     await next();
   });
-  app.get("/api/app/management-tokens",async c=>c.json({tokens:await service.list()}));
+  app.get("/api/app/management-tokens",async c=>c.json({tokens:await service.list(),compatibility:{pageId:statuspageCompatibilityPageId}}));
   app.post("/api/app/management-tokens",async c=>{
     const input=createSchema.safeParse(await c.req.json().catch(()=>null));
-    if(!input.success)return c.json({error:"Supply a name, read and/or metrics:write scopes, and an expiry of 1 second to 365 days."},400);
+    if(!input.success)return c.json({error:"Supply a name, read, metrics:write or subscribers:write scopes, and an expiry of 1 second to 365 days."},400);
     return c.json(await service.create(c.req.raw,input.data,c.get("operator").id,c.get("operatorSession").operator.version),201);
   });
   app.post("/api/app/management-tokens/:id/revoke",async c=>{

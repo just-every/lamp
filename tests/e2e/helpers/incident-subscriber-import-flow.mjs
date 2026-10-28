@@ -51,8 +51,8 @@ export async function incidentSubscriberImportFlow({ t, runtime, api, moveIn, im
   assert.equal((await api(`/api/app/statuspage-import/jobs/${result.job.id}/send-invitations`, {})).status, 200);
   invited.messages = runtime.messages.slice(mailBefore).map(message => ({ message: { ...message, to: message.to[0] } }));
   assert.equal(invited.invited.status, 200, JSON.stringify(invited.invited.body));
-  assert.equal(invited.invited.body.invites.sent, 2, "only the owner's explicit action sends one invitation per pending subscription");
-  assert.equal(invited.messages.length, 2, "repeating the action sends nothing twice");
+  assert.equal(invited.invited.body.invites.sent, 1, "the owner action sends at most one confirmation to a shared address per day");
+  assert.equal(invited.messages.length, 1, "repeating the action sends nothing twice");
   assert.ok(invited.messages.every(row => row.message.to === "synthetic-lamp-import-follower@example.test"));
   const activityAfterInvitations = await notificationActivity(runtime);
   const undone = await moveIn.undo(result.door);

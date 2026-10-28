@@ -8,10 +8,11 @@ import { SubscriberLimitError } from "./limits";
 import { IncidentSubscriptionUnavailableError } from "./incident.repository";
 import { renderSubscriberTokenPage, type SubscribersService } from "./service";
 
+const includeReport=z.preprocess(value=>value===undefined?undefined:Array.isArray(value)?value.includes("1"):value==="1",z.boolean().optional());
 const incidentFollowSchema=z.discriminatedUnion("channel",[
-  z.object({incidentId:ulidSchema,channel:z.literal("email"),email:z.email()}).strict(),
-  z.object({incidentId:ulidSchema,channel:z.literal("webhook"),destination:z.url(),contactEmail:z.email()}).strict(),
-  z.object({incidentId:ulidSchema,channel:z.literal("sms"),phone:z.string().regex(/^\+[1-9]\d{6,14}$/)}).strict(),
+  z.object({incidentId:ulidSchema,channel:z.literal("email"),email:z.email(),includeReport}).strict(),
+  z.object({incidentId:ulidSchema,channel:z.literal("webhook"),destination:z.url(),contactEmail:z.email(),includeReport}).strict(),
+  z.object({incidentId:ulidSchema,channel:z.literal("sms"),phone:z.string().regex(/^\+[1-9]\d{6,14}$/),includeReport}).strict(),
 ]);
 const listSchema=z.object({limit:z.coerce.number().int().min(1).max(100).default(100),offset:z.coerce.number().int().min(0).max(1_000_000_000).default(0)}).strict();
 const escapeHtml=(value:string)=>value.replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"})[c]??c);

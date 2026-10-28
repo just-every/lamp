@@ -1,3 +1,4 @@
+import type { SubscriberWriteAuthority } from "../subscribers/incident-authority";
 import { createUlid,nowIso } from "../../shared/ids";
 import { hashOpaqueToken } from "../../platform/security/opaque-tokens";
 import { createSubscriberRepository } from "../subscribers/repository";
@@ -80,16 +81,16 @@ export function createSmsService(db:D1Database,options:TwilioConfig & {tokenSecr
       const confirmationSent=await invite(id,origin,operatorId);
       return {subscriberId:id,created:!existing,confirmationSent};
     },
-    async subscribeIncident(input:{incidentId:string;phone:string},origin:string) {
+    async subscribeIncident(input:{incidentId:string;phone:string;includeReport?:boolean},origin:string,authority?:SubscriberWriteAuthority,operatorId?:string) {
       await validatePhone(input.phone);ensureConfigured();
       await controlWordingFits(await options.pageName());
       await subscribers.limits.assertAvailable('sms');
       const existing=await subscribers.incidents.find(input.incidentId,'sms',input.phone);
       if(existing?.state==='active')return {subscriberId:existing.id,created:false,confirmationSent:false};
       const row=existing&&existing.state!=='deactivated'?existing:await subscribers.incidents.create({
-        id:createUlid(),incidentId:input.incidentId,destination:input.phone,channel:'sms',requiresConfirmation:true,
+        id:createUlid(),incidentId:input.incidentId,destination:input.phone,channel:'sms',requiresConfirmation:true,includeReport:input.includeReport,operatorId,
         tokenHash:await hashOpaqueToken(createUlid()),now:nowIso(),
-      });
+      },authority);
       const confirmationSent=await invite(row.id,origin);
       return {subscriberId:row.id,created:!existing,confirmationSent};
     },
