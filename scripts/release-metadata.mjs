@@ -4,17 +4,30 @@ import { join } from "node:path";
 import { validate } from "../schema/json-schema.mjs";
 import { clauseIdSource, parseContract } from "../src/base/seed-contract.mjs";
 
-// Legacy releases publish their bold-bullet guarantees, even where a later
-// judged Status row has not adopted their release membership. Supply a structural
-// envelope to the shared parser without changing snapshots or inferring status.
-// Standard-format contracts use the parser's authoritative published kind.
+// Retained snapshots can mix legacy bullets and heading guarantees without the
+// current product/status envelope. Keep their release membership, then let the
+// shared parser read every guarantee from a structural envelope.
 const legacyClause = new RegExp(`^-\\s+\\*\\*(${clauseIdSource})\\s+[—–-]\\s+(.+?)\\*\\*`, "gm");
+const headingPrefix = new RegExp(`^#### (${clauseIdSource})\\b.*$`, "gm");
+const headingClause = new RegExp(`^#### (${clauseIdSource})\\s+[—–-]\\s+(.+?)\\s*$`);
 
-function releaseContract(contract) {
-  if (/^## Published clauses\s*$/m.test(contract)) return parseContract(contract);
-  const definitions = [...contract.matchAll(legacyClause)];
+function releaseContract(contract, releasedIds) {
+  if (/^## Product target\b/m.test(contract) && /^## Status\s*$/m.test(contract)
+      && /^## Published clauses\s*$/m.test(contract)) return parseContract(contract);
+  const declared = new Set(releasedIds);
+  const bullets = [...contract.matchAll(legacyClause)];
+  assert.equal(bullets.length, [...contract.matchAll(/^- \*\*/gm)].length, "Malformed contract clause heading.");
+  const headings = [...contract.matchAll(headingPrefix)].filter(candidate => {
+    const section = [...contract.slice(0, candidate.index).matchAll(/^## (.+)$/gm)].at(-1)?.[1] ?? "";
+    return /^(?:Published|Released) clauses\b/.test(section) || declared.has(candidate[1]);
+  }).map(candidate => {
+    const match = headingClause.exec(candidate[0]);
+    assert.ok(match, `Malformed released clause heading ${candidate[1]}.`);
+    match.index = candidate.index;
+    return match;
+  });
+  const definitions = [...bullets, ...headings].sort((left, right) => left.index - right.index);
   assert.ok(definitions.length, "CONTRACT.md must contain guarantees in the documented clause format.");
-  assert.equal(definitions.length, [...contract.matchAll(/^- \*\*/gm)].length, "Malformed contract clause heading.");
   const guarantees = definitions.map(match => {
     const rest = contract.slice(match.index + match[0].length).split(/\n(?=- \*\*|#{1,6} )/, 1)[0];
     return match[0] + rest;
@@ -638,10 +651,13 @@ export async function coreMigrationIds(directory = "migrations/core") {
   return (await readdir(directory)).filter((name) => name.endsWith(".sql")).sort();
 }
 
-export function contractClauses(contract) {
-  const clauses = releaseContract(contract).clauses.filter(({ kind }) => kind === "published");
+export function contractClauses(contract, releasedIds = []) {
+  const declared = new Set(releasedIds);
+  const clauses = releaseContract(contract, declared).clauses.filter(({ id, kind }) => kind === "published" || declared.has(id));
   assert.ok(clauses.length, "CONTRACT.md must contain published guarantees.");
   return clauses.map(({ id, title, text }) => {
+    text = text.replace(/^\*(?:Tier|From|Cites|Rules|Register):\*.*?(?=\*\*Requirement\.\*\*)/, "")
+      .replace(/^\s*\*\*Requirement\.\*\*\s*/, "");
     const body = text.replace(/\s+/g, " ").trim();
     assert.ok(body, `${id} has no guarantee body.`);
     return { id, title, body };
@@ -660,9 +676,9 @@ export function clauseMigrationIds(id, { historical = false } = {}) {
   return migrationByArea[id.split("-", 1)[0]] ?? [];
 }
 
-export function releaseContractChanges(contract) {
+export function releaseContractChanges(contract, releasedIds = []) {
   const historical = !/^## Published clauses\s*$/m.test(contract);
-  return Object.fromEntries(contractClauses(contract).map((clause) => {
+  return Object.fromEntries(contractClauses(contract, releasedIds).map((clause) => {
     const migrationIds = clauseMigrationIds(clause.id, { historical });
     return [clause.id, {
       change: "added",
@@ -753,9 +769,10 @@ export function assertReleaseContractInventory(release, contract, history = []) 
   const published = new Set();
   for (const entry of [...history, { release, contract }]) {
     const record = entry.release;
-    const current = new Map(contractClauses(entry.contract).map((clause) => [clause.id, clause]));
+    const releasedIds = new Set([...published, ...Object.keys(record.contractChanges)]);
+    const current = new Map(contractClauses(entry.contract, releasedIds).map((clause) => [clause.id, clause]));
     if (!record.previousVersion) {
-      assert.deepEqual(record.contractChanges, releaseContractChanges(entry.contract), "The first release must record every current guarantee.");
+      assert.deepEqual(record.contractChanges, releaseContractChanges(entry.contract, releasedIds), "The first release must record every current guarantee.");
     } else {
       for (const [id, clause] of current) {
         const before = previous.get(id);

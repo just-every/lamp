@@ -1,4 +1,4 @@
-Old reference: `726c1bae791647c6df2879ba1975d91b210830ac`.
+Old reference: `0c54dbcd4352babe9163e1600b6b7c3e0c8d760e`.
 | Clause | Point | Outcome | Asserting test | Result |
 | --- | --- | --- | --- | --- |
 | DOCS-001 | 1 | The unauthenticated documentation index returns HTTP 200 | `tests/e2e/start-runtime.test.mjs:367` | asserted |
@@ -26,15 +26,15 @@ Old reference: `726c1bae791647c6df2879ba1975d91b210830ac`.
 | PAGE-002 | 1 | All PAGE-001 content is reconciled in initial HTML | none | none |
 | PAGE-002 | 2 | Every status, update and timestamp is readable with scripting disabled | none | none |
 | PAGE-002 | 2 | The public subscription form successfully submits without scripting | none | none |
-| PAGE-002 | 3 | The configured time-zone label survives live updates | `tests/e2e/public-contract.test.mjs:716` | asserted |
+| PAGE-002 | 3 | The configured time-zone label survives live updates | `tests/e2e/public-contract.test.mjs:751` | asserted |
 | PAGE-002 | 3 | Public timestamp text remains in the configured zone | none | none |
 | PAGE-002 | 3 | Operator entry uses the configured zone | none | none |
 | PAGE-002 | 3 | Timeline timestamps use the configured zone | none | none |
 | PAGE-002 | 3 | Preview timestamps use the configured zone | none | none |
-| PAGE-003 | 1 | Gzip size stays within 50 KiB at 200 populated components | `tests/e2e/public-contract.test.mjs:789` | asserted |
-| PAGE-003 | 2 | Initial loading makes at most four subresource requests | `tests/e2e/public-contract.test.mjs:840` | asserted |
-| PAGE-003 | 2 | Each initial subresource is an allowed stylesheet, font, logo or script | `tests/e2e/public-contract.test.mjs:841` | asserted |
-| PAGE-003 | 2 | No third-party requests occur | `tests/e2e/public-contract.test.mjs:842` | asserted |
+| PAGE-003 | 1 | Gzip size stays within 50 KiB at 200 populated components | `tests/e2e/public-contract.test.mjs:824` | asserted |
+| PAGE-003 | 2 | Initial loading makes at most four subresource requests | `tests/e2e/public-contract.test.mjs:876` | asserted |
+| PAGE-003 | 2 | Each initial subresource is an allowed stylesheet, font, logo or script | `tests/e2e/public-contract.test.mjs:877` | asserted |
+| PAGE-003 | 2 | No third-party requests occur | `tests/e2e/public-contract.test.mjs:878` | asserted |
 | PAGE-004 | 1 | The supplied rollup selects the most severe visible component state | none | none |
 | PAGE-004 | 2 | The rollup label appears at the top of the page | `tests/e2e/public-contract.test.mjs:375` | asserted |
 | PAGE-004 | 3 | The all-operational fixture displays Operational | `tests/e2e/public-contract.test.mjs:232` | asserted |
@@ -64,8 +64,8 @@ Old reference: `726c1bae791647c6df2879ba1975d91b210830ac`.
 | PAGE-006 | 2 | Page is unavailable only before first publication | none | none |
 | PAGE-006 | 2 | Atom feed is unavailable only before first publication | none | none |
 | PAGE-006 | 2 | Widget is unavailable only before first publication | none | none |
-| PAGE-006 | 3 | Stale page content is labeled Last known state | `tests/e2e/public-contract.test.mjs:915` | asserted |
-| PAGE-006 | 3 | The generation instant is visible in stale page content | `tests/e2e/public-contract.test.mjs:918` | asserted |
+| PAGE-006 | 3 | Stale page content is labeled Last known state | `tests/e2e/public-contract.test.mjs:951` | asserted |
+| PAGE-006 | 3 | The generation instant is visible in stale page content | `tests/e2e/public-contract.test.mjs:954` | asserted |
 | PAGE-006 | 3 | The retained failure body contains Partially unavailable | `tests/e2e/app-api.test.mjs:607` | asserted |
 | PAGE-006 | 3 | The same nonempty failure body contains no invented all-clear text | `tests/e2e/app-api.test.mjs:608` | asserted |
 | PAGE-007 | 1 | A generation validator exists | `tests/e2e/app-api.test.mjs:155` | asserted |
@@ -93,36 +93,36 @@ Old reference: `726c1bae791647c6df2879ba1975d91b210830ac`.
 | PAGE-007 | 2 | Maintenance transition reaches widget within ten seconds | none | none |
 | PAGE-007 | 2 | Maintenance transition reaches public JSON within ten seconds | none | none |
 | PAGE-007 | 3 | Origin-failure retention lasts exactly the promised one-hour window | none | none |
-| PAGE-008 | 1 | Repeated same-address public status reads all succeed | `tests/e2e/public-contract.test.mjs:736` | asserted |
-| PAGE-008 | 1 | Repeated reads never return a rate-limit refusal | `tests/e2e/public-contract.test.mjs:737` | asserted |
+| PAGE-008 | 1 | Repeated same-address public status reads all succeed | `tests/e2e/public-contract.test.mjs:771` | asserted |
+| PAGE-008 | 1 | Repeated reads never return a rate-limit refusal | `tests/e2e/public-contract.test.mjs:772` | asserted |
 | PAGE-008 | 2 | Healthy generation validation performs no database query | none | none |
 | PAGE-008 | 2 | Artifact caching reduces object-byte reads | none | none |
 | PAGE-009 | 1 | Initial public timestamp text uses the configured zone and exact instant | none | none |
-| PAGE-009 | 1 | Scripted public timestamp retains the exact instant | `tests/e2e/public-contract.test.mjs:769` | asserted |
+| PAGE-009 | 1 | Scripted public timestamp retains the exact instant | `tests/e2e/public-contract.test.mjs:804` | asserted |
 | PAGE-009 | 1 | Scripted public timestamp uses the configured zone and offset | none | none |
 | PAGE-009 | 1 | Notification timestamps use the configured zone and offset | none | none |
-| PAGE-009 | 2 | The initial scripted generation label is relative | `tests/e2e/public-contract.test.mjs:666` | asserted |
+| PAGE-009 | 2 | The initial scripted generation label is relative | `tests/e2e/public-contract.test.mjs:701` | asserted |
 | PAGE-009 | 2 | The generation tooltip preserves the absolute instant and configured zone | none | none |
 | PAGE-009 | 2 | The relative label’s later refresh is asserted rather than only awaited | none | none |
 | PAGE-009 | 3 | Initial public HTML retains absolute timestamps | none | none |
 | PAGE-009 | 3 | Script-disabled generation text remains absolute | none | none |
 | PAGE-009 | 3 | Maintenance, feed and notification text remains absolute | none | none |
-| PAGE-010 | 1 | The feed declares the Atom namespace | `tests/e2e/public-contract.test.mjs:886` | asserted |
+| PAGE-010 | 1 | The feed declares the Atom namespace | `tests/e2e/public-contract.test.mjs:922` | asserted |
 | PAGE-010 | 1 | Full Atom 1.0 validation is asserted | none | none |
-| PAGE-010 | 2 | Published incident-update identity appears | `tests/e2e/public-contract.test.mjs:878` | asserted |
-| PAGE-010 | 2 | Completed-maintenance identity appears | `tests/e2e/public-contract.test.mjs:879` | asserted |
-| PAGE-010 | 2 | Scheduled notice appears | `tests/e2e/public-contract.test.mjs:880` | asserted |
-| PAGE-010 | 2 | Rescheduled notice appears | `tests/e2e/public-contract.test.mjs:880` | asserted |
-| PAGE-010 | 2 | Started notice appears | `tests/e2e/public-contract.test.mjs:880` | asserted |
-| PAGE-010 | 2 | Cancelled notice appears | `tests/e2e/public-contract.test.mjs:880` | asserted |
-| PAGE-010 | 2 | Older-than-twelve-month updates are excluded | `tests/e2e/public-contract.test.mjs:881` | asserted |
-| PAGE-010 | 2 | Feed events are newest first | `tests/e2e/public-contract.test.mjs:882` | asserted |
+| PAGE-010 | 2 | Published incident-update identity appears | `tests/e2e/public-contract.test.mjs:914` | asserted |
+| PAGE-010 | 2 | Completed-maintenance identity appears | `tests/e2e/public-contract.test.mjs:915` | asserted |
+| PAGE-010 | 2 | Scheduled notice appears | `tests/e2e/public-contract.test.mjs:916` | asserted |
+| PAGE-010 | 2 | Rescheduled notice appears | `tests/e2e/public-contract.test.mjs:916` | asserted |
+| PAGE-010 | 2 | Started notice appears | `tests/e2e/public-contract.test.mjs:916` | asserted |
+| PAGE-010 | 2 | Cancelled notice appears | `tests/e2e/public-contract.test.mjs:916` | asserted |
+| PAGE-010 | 2 | Older-than-twelve-month updates are excluded | `tests/e2e/public-contract.test.mjs:917` | asserted |
+| PAGE-010 | 2 | Feed events are newest first | `tests/e2e/public-contract.test.mjs:918` | asserted |
 | PAGE-010 | 2 | Exactly one entry exists for each included event | none | none |
-| PAGE-010 | 3 | An event identity survives hostname change | `tests/e2e/public-contract.test.mjs:899` | asserted |
+| PAGE-010 | 3 | An event identity survives hostname change | `tests/e2e/public-contract.test.mjs:935` | asserted |
 | PAGE-010 | 3 | Event identities are never reused | none | none |
 | PAGE-011 | 1 | The banner content asserts both overall state and unresolved incident | none | none |
-| PAGE-011 | 2 | The widget is at most ten KiB gzipped | `tests/e2e/public-contract.test.mjs:603` | asserted |
-| PAGE-011 | 2 | The nonempty widget source contains neither XMLHttpRequest nor importScripts | `tests/e2e/public-contract.test.mjs:604` | asserted |
+| PAGE-011 | 2 | The widget is at most ten KiB gzipped | `tests/e2e/public-contract.test.mjs:638` | asserted |
+| PAGE-011 | 2 | The nonempty widget source contains neither XMLHttpRequest nor importScripts | `tests/e2e/public-contract.test.mjs:639` | asserted |
 | PAGE-011 | 2 | The widget performs no other foreign-origin or alternate network load | none | none |
 | PAGE-011 | 2 | Every widget load is observed to stay on the installation origin | none | none |
 | PAGE-012 | 1 | Changing the page name reaches the public page | `tests/e2e/app-api.test.mjs:330` | asserted |
@@ -134,30 +134,30 @@ Old reference: `726c1bae791647c6df2879ba1975d91b210830ac`.
 | PAGE-012 | 2 | Enabled credit displays Powered by Lamp | `tests/e2e/public-contract.test.mjs:521` | asserted |
 | PAGE-012 | 2 | Disabling credit removes it | `tests/e2e/public-contract.test.mjs:526` | asserted |
 | PAGE-012 | 2 | Disabling credit has no network effect | none | none |
-| PAGE-012 | 3 | The first-party logo response declares PNG content | `tests/e2e/public-contract.test.mjs:578` | asserted |
-| PAGE-012 | 3 | The public page embeds its branding mark from an own-origin address | `tests/e2e/public-contract.test.mjs:582` | asserted |
+| PAGE-012 | 3 | The first-party logo response declares PNG content | `tests/e2e/public-contract.test.mjs:613` | asserted |
+| PAGE-012 | 3 | The public page embeds its branding mark from an own-origin address | `tests/e2e/public-contract.test.mjs:617` | asserted |
 | PAGE-012 | 3 | The direct first-party logo response bytes are read back as the configured logo | none | none |
-| PAGE-012 | 4 | The favicon contains the configured logo pixel | `tests/e2e/public-contract.test.mjs:597` | asserted |
-| PAGE-012 | 4 | The Open Graph image contains the configured logo pixel | `tests/e2e/public-contract.test.mjs:597` | asserted |
-| PAGE-012 | 4 | The favicon contains the Operational state-marker pixel | `tests/e2e/public-contract.test.mjs:598` | asserted |
-| PAGE-012 | 4 | The Open Graph image contains the Operational state-marker pixel | `tests/e2e/public-contract.test.mjs:598` | asserted |
-| PAGE-012 | 4 | The state mark matches the Operational state | `tests/e2e/public-contract.test.mjs:598` | asserted |
+| PAGE-012 | 4 | The favicon contains the configured logo pixel | `tests/e2e/public-contract.test.mjs:632` | asserted |
+| PAGE-012 | 4 | The Open Graph image contains the configured logo pixel | `tests/e2e/public-contract.test.mjs:632` | asserted |
+| PAGE-012 | 4 | The favicon contains the Operational state-marker pixel | `tests/e2e/public-contract.test.mjs:633` | asserted |
+| PAGE-012 | 4 | The Open Graph image contains the Operational state-marker pixel | `tests/e2e/public-contract.test.mjs:633` | asserted |
+| PAGE-012 | 4 | The state mark matches the Operational state | `tests/e2e/public-contract.test.mjs:633` | asserted |
 | PAGE-012 | 4 | Open Graph title states the current overall status | none | none |
-| PAGE-013 | 1 | The default-src directive names the own origin in the exact complete CSP | `tests/e2e/public-contract.test.mjs:639` | asserted |
-| PAGE-013 | 1 | The script-src directive names the own origin in the exact complete CSP | `tests/e2e/public-contract.test.mjs:639` | asserted |
-| PAGE-013 | 1 | The style-src directive names the own origin in the exact complete CSP | `tests/e2e/public-contract.test.mjs:639` | asserted |
-| PAGE-013 | 1 | The img-src directive names the own origin in the exact complete CSP | `tests/e2e/public-contract.test.mjs:639` | asserted |
-| PAGE-013 | 1 | The connect-src directive names the own origin in the exact complete CSP | `tests/e2e/public-contract.test.mjs:639` | asserted |
-| PAGE-013 | 1 | The form-action directive names the own origin in the exact complete CSP | `tests/e2e/public-contract.test.mjs:639` | asserted |
-| PAGE-013 | 1 | The base-uri directive names the own origin in the exact complete CSP | `tests/e2e/public-contract.test.mjs:639` | asserted |
-| PAGE-013 | 1 | Framing is refused | `tests/e2e/public-contract.test.mjs:639` | asserted |
-| PAGE-013 | 1 | Content-type sniffing is disabled | `tests/e2e/public-contract.test.mjs:640` | asserted |
-| PAGE-013 | 1 | The documented referrer policy is present | `tests/e2e/public-contract.test.mjs:641` | asserted |
+| PAGE-013 | 1 | The default-src directive names the own origin in the exact complete CSP | `tests/e2e/public-contract.test.mjs:674` | asserted |
+| PAGE-013 | 1 | The script-src directive names the own origin in the exact complete CSP | `tests/e2e/public-contract.test.mjs:674` | asserted |
+| PAGE-013 | 1 | The style-src directive names the own origin in the exact complete CSP | `tests/e2e/public-contract.test.mjs:674` | asserted |
+| PAGE-013 | 1 | The img-src directive names the own origin in the exact complete CSP | `tests/e2e/public-contract.test.mjs:674` | asserted |
+| PAGE-013 | 1 | The connect-src directive names the own origin in the exact complete CSP | `tests/e2e/public-contract.test.mjs:674` | asserted |
+| PAGE-013 | 1 | The form-action directive names the own origin in the exact complete CSP | `tests/e2e/public-contract.test.mjs:674` | asserted |
+| PAGE-013 | 1 | The base-uri directive names the own origin in the exact complete CSP | `tests/e2e/public-contract.test.mjs:674` | asserted |
+| PAGE-013 | 1 | Framing is refused | `tests/e2e/public-contract.test.mjs:674` | asserted |
+| PAGE-013 | 1 | Content-type sniffing is disabled | `tests/e2e/public-contract.test.mjs:675` | asserted |
+| PAGE-013 | 1 | The documented referrer policy is present | `tests/e2e/public-contract.test.mjs:676` | asserted |
 | PAGE-013 | 2 | A populated public page is checked for absence of CAPTCHA | none | none |
 | PAGE-013 | 2 | A populated public page is checked for absence of consent banner | none | none |
-| PAGE-014 | 1 | The page polls once at its thirty-second cadence | `tests/e2e/public-contract.test.mjs:698` | asserted |
-| PAGE-014 | 1 | The changed overall status reaches the in-place region | `tests/e2e/public-contract.test.mjs:704` | asserted |
-| PAGE-014 | 1 | The newest update reaches the in-place region | `tests/e2e/public-contract.test.mjs:705` | asserted |
+| PAGE-014 | 1 | The page polls once at its thirty-second cadence | `tests/e2e/public-contract.test.mjs:733` | asserted |
+| PAGE-014 | 1 | The changed overall status reaches the in-place region | `tests/e2e/public-contract.test.mjs:739` | asserted |
+| PAGE-014 | 1 | The newest update reaches the in-place region | `tests/e2e/public-contract.test.mjs:740` | asserted |
 | PAGE-014 | 2 | The refresh response has exactly the fixed field set | none | none |
 | PAGE-014 | 2 | The refresh response size does not grow with component count | none | none |
 | PAGE-014 | 3 | Initial HTML shows a generation instant | `tests/e2e/public-contract.test.mjs:234` | asserted |
@@ -318,7 +318,7 @@ Old reference: `726c1bae791647c6df2879ba1975d91b210830ac`.
 | UPTIME-005 | 1 | Initial HTML identifies the ninety-day window | `tests/e2e/public-contract.test.mjs:421` | asserted |
 | UPTIME-005 | 1 | Every state’s selected weight is asserted | none | none |
 | UPTIME-005 | 2 | Every published incident’s component claim affects the displayed uptime | none | none |
-| UPTIME-006 | 1 | The aggregate mark count divided by two hundred lies between ninety and ninety-one | `tests/e2e/public-contract.test.mjs:792` | asserted |
+| UPTIME-006 | 1 | The aggregate mark count divided by two hundred lies between ninety and ninety-one | `tests/e2e/public-contract.test.mjs:827` | asserted |
 | UPTIME-006 | 1 | The complete trailing daily-record length is reconciled for every component separately | none | none |
 | UPTIME-006 | 2 | A day’s sixty downtime minutes are retained | `tests/e2e/public-contract.test.mjs:543` | asserted |
 | UPTIME-006 | 2 | The rendered downtime-day label contains its exact minute count | none | none |
@@ -352,9 +352,9 @@ Old reference: `726c1bae791647c6df2879ba1975d91b210830ac`.
 | UPTIME-008 | 5 | The gap is labeled with the resumed instant | `tests/e2e/helpers/metrics-flow.mjs:67` | asserted |
 | UPTIME-008 | 5 | A stopped source’s timestamp is shown | `tests/e2e/helpers/metrics-flow.mjs:77` | asserted |
 | UPTIME-008 | 5 | No interpolated points are created | `tests/e2e/helpers/metrics-flow.mjs:78` | asserted |
-| UPTIME-008 | 6 | Ten charts appear at component capacity | `tests/e2e/public-contract.test.mjs:786` | asserted |
-| UPTIME-008 | 6 | Ten charts remain within fifty KiB | `tests/e2e/public-contract.test.mjs:789` | asserted |
-| UPTIME-008 | 6 | Initial requests remain within four assets | `tests/e2e/public-contract.test.mjs:840` | asserted |
+| UPTIME-008 | 6 | Ten charts appear at component capacity | `tests/e2e/public-contract.test.mjs:821` | asserted |
+| UPTIME-008 | 6 | Ten charts remain within fifty KiB | `tests/e2e/public-contract.test.mjs:824` | asserted |
+| UPTIME-008 | 6 | Initial requests remain within four assets | `tests/e2e/public-contract.test.mjs:876` | asserted |
 | UPTIME-009 | 1 | CSV is an attached CSV document | `tests/e2e/helpers/availability-report-flow.mjs:105` | asserted |
 | UPTIME-009 | 1 | PDF is an attached PDF document | `tests/e2e/helpers/availability-report-flow.mjs:158` | asserted |
 | UPTIME-009 | 1 | The CSV summary contains the computed uptime | `tests/e2e/helpers/availability-report-flow.mjs:106` | asserted |
@@ -1430,14 +1430,14 @@ Old reference: `726c1bae791647c6df2879ba1975d91b210830ac`.
 | TEAM-003 | 1 | Subscriber deletion actor | `tests/e2e/delivery-contract.test.mjs:640` | asserted |
 | TEAM-003 | 2 | Name shown privately | none | none |
 | TEAM-003 | 2 | Name absent from populated public surfaces | none | none |
-| HIST-001 | 1 | Resolved incident listed | `tests/e2e/public-contract.test.mjs:873` | asserted |
-| HIST-001 | 1 | Completed maintenance listed | `tests/e2e/public-contract.test.mjs:874` | asserted |
-| HIST-001 | 1 | Older record excluded | `tests/e2e/public-contract.test.mjs:877` | asserted |
+| HIST-001 | 1 | Resolved incident listed | `tests/e2e/public-contract.test.mjs:909` | asserted |
+| HIST-001 | 1 | Completed maintenance listed | `tests/e2e/public-contract.test.mjs:910` | asserted |
+| HIST-001 | 1 | Older record excluded | `tests/e2e/public-contract.test.mjs:913` | asserted |
 | HIST-001 | 1 | Month grouping asserted | none | none |
-| HIST-001 | 2 | The public incident displays the expected elapsed duration | `tests/e2e/public-contract.test.mjs:872` | asserted |
-| HIST-001 | 2 | The public incident contains its resolution instant | `tests/e2e/public-contract.test.mjs:871` | asserted |
+| HIST-001 | 2 | The public incident displays the expected elapsed duration | `tests/e2e/public-contract.test.mjs:908` | asserted |
+| HIST-001 | 2 | The public incident contains its resolution instant | `tests/e2e/public-contract.test.mjs:907` | asserted |
 | HIST-001 | 2 | The public history displays the incident’s opening instant | none | none |
-| HIST-001 | 2 | Affected component | `tests/e2e/public-contract.test.mjs:875` | asserted |
+| HIST-001 | 2 | Affected component | `tests/e2e/public-contract.test.mjs:911` | asserted |
 | HIST-001 | 2 | Maintenance start/end/duration | none | none |
 | HIST-001 | 2 | Every published update included | none | none |
 | HIST-002 | 1 | The saved report retains summary | `tests/e2e/publishing-contract.test.mjs:1183` | asserted |
@@ -1993,3 +1993,84 @@ Old reference: `726c1bae791647c6df2879ba1975d91b210830ac`.
 | AGENT-005 | 6 | The complete persisted report state is unchanged after the refused edit | none | none |
 | AGENT-005 | 6 | Public incident page has published cause | `tests/e2e/publishing-contract.test.mjs:1193` | asserted |
 | PAGE-013 | 3 | The public page writes no visitor data to browser storage | none | none |
+| INTEG-002 | 1 | X account connection persists a nonempty account identifier | `tests/e2e/helpers/social-posts-flow.mjs:87` | asserted |
+| INTEG-002 | 1 | X connects through the owner’s own developer application and API tier | none | none |
+| INTEG-002 | 1 | Bluesky account connection persists a nonempty account identifier | `tests/e2e/helpers/social-posts-flow.mjs:87` | asserted |
+| INTEG-002 | 1 | Bluesky exchanges the supplied app password with its configured service | `tests/e2e/helpers/social-posts-flow.mjs:24` | asserted |
+| INTEG-002 | 1 | Mastodon account connection persists a nonempty account identifier | `tests/e2e/helpers/social-posts-flow.mjs:87` | asserted |
+| INTEG-002 | 1 | Mastodon posting authenticates with the supplied posting token | `tests/e2e/helpers/social-posts-flow.mjs:29` | asserted |
+| INTEG-002 | 1 | The owner bears the network’s API charges | none | none |
+| INTEG-002 | 2 | A fresh installation leaves post by default disabled | `tests/e2e/helpers/social-posts-flow.mjs:80` | asserted |
+| INTEG-002 | 2 | A new incident starts with social selected after the owner enables post by default | `tests/e2e/helpers/social-browser-flow.mjs:66` | asserted |
+| INTEG-002 | 2 | A new update starts with social selected while post by default remains enabled | `tests/e2e/helpers/social-browser-flow.mjs:84` | asserted |
+| INTEG-002 | 2 | A new update starts with social unselected after the owner disables post by default | `tests/e2e/helpers/social-browser-flow.mjs:95` | asserted |
+| INTEG-002 | 2 | The next update resets to the owner’s disabled default after explicit per-update selection | `tests/e2e/helpers/social-browser-flow.mjs:105` | asserted |
+| INTEG-002 | 2 | X sends no post for the explicitly deselected update | `tests/e2e/helpers/social-posts-flow.mjs:171` | asserted |
+| INTEG-002 | 2 | Bluesky sends no post for the explicitly deselected update | `tests/e2e/helpers/social-posts-flow.mjs:171` | asserted |
+| INTEG-002 | 2 | Mastodon sends no post for the explicitly deselected update | `tests/e2e/helpers/social-posts-flow.mjs:171` | asserted |
+| INTEG-002 | 3 | X receives exactly one post for the selected first update | `tests/e2e/helpers/social-posts-flow.mjs:124` | asserted |
+| INTEG-002 | 3 | X post retains the owner’s prefix | `tests/e2e/helpers/social-posts-flow.mjs:127` | asserted |
+| INTEG-002 | 3 | X post retains the update lifecycle | `tests/e2e/helpers/social-posts-flow.mjs:128` | asserted |
+| INTEG-002 | 3 | X post retains the customer-impact statement | `tests/e2e/helpers/social-posts-flow.mjs:131` | asserted |
+| INTEG-002 | 3 | X post retains the complete incident permalink | `tests/e2e/helpers/social-posts-flow.mjs:129` | asserted |
+| INTEG-002 | 3 | X post fits the network’s character limit | `tests/e2e/helpers/social-posts-flow.mjs:130` | asserted |
+| INTEG-002 | 3 | X shortened impact is a prefix of the owner’s statement | `tests/e2e/helpers/social-posts-flow.mjs:133` | asserted |
+| INTEG-002 | 3 | X shortening ends at a word boundary | `tests/e2e/helpers/social-posts-flow.mjs:134` | asserted |
+| INTEG-002 | 3 | Bluesky receives exactly one post for the selected first update | `tests/e2e/helpers/social-posts-flow.mjs:124` | asserted |
+| INTEG-002 | 3 | Bluesky post retains the owner’s prefix | `tests/e2e/helpers/social-posts-flow.mjs:127` | asserted |
+| INTEG-002 | 3 | Bluesky post retains the update lifecycle | `tests/e2e/helpers/social-posts-flow.mjs:128` | asserted |
+| INTEG-002 | 3 | Bluesky post retains the customer-impact statement | `tests/e2e/helpers/social-posts-flow.mjs:131` | asserted |
+| INTEG-002 | 3 | Bluesky post retains the complete incident permalink | `tests/e2e/helpers/social-posts-flow.mjs:129` | asserted |
+| INTEG-002 | 3 | Bluesky post fits the network’s character limit | `tests/e2e/helpers/social-posts-flow.mjs:130` | asserted |
+| INTEG-002 | 3 | Bluesky shortened impact is a prefix of the owner’s statement | `tests/e2e/helpers/social-posts-flow.mjs:133` | asserted |
+| INTEG-002 | 3 | Bluesky shortening ends at a word boundary | `tests/e2e/helpers/social-posts-flow.mjs:134` | asserted |
+| INTEG-002 | 3 | Mastodon receives exactly one post for the selected first update | `tests/e2e/helpers/social-posts-flow.mjs:124` | asserted |
+| INTEG-002 | 3 | Mastodon post retains the owner’s prefix | `tests/e2e/helpers/social-posts-flow.mjs:127` | asserted |
+| INTEG-002 | 3 | Mastodon post retains the update lifecycle | `tests/e2e/helpers/social-posts-flow.mjs:128` | asserted |
+| INTEG-002 | 3 | Mastodon post retains the customer-impact statement | `tests/e2e/helpers/social-posts-flow.mjs:131` | asserted |
+| INTEG-002 | 3 | Mastodon post retains the complete incident permalink | `tests/e2e/helpers/social-posts-flow.mjs:129` | asserted |
+| INTEG-002 | 3 | Mastodon post fits the network’s character limit | `tests/e2e/helpers/social-posts-flow.mjs:130` | asserted |
+| INTEG-002 | 3 | Mastodon shortened impact is a prefix of the owner’s statement | `tests/e2e/helpers/social-posts-flow.mjs:133` | asserted |
+| INTEG-002 | 3 | Mastodon shortening ends at a word boundary | `tests/e2e/helpers/social-posts-flow.mjs:134` | asserted |
+| INTEG-002 | 4 | The second X update replies to the first X post identifier | `tests/e2e/helpers/social-posts-flow.mjs:147` | asserted |
+| INTEG-002 | 4 | The second Mastodon update replies to the first Mastodon post identifier | `tests/e2e/helpers/social-posts-flow.mjs:148` | asserted |
+| INTEG-002 | 4 | The second Bluesky update replies to the first Bluesky post identifier | `tests/e2e/helpers/social-posts-flow.mjs:149` | asserted |
+| INTEG-002 | 4 | A later Mastodon update resumes this incident’s preceding post after another incident publishes | `tests/e2e/helpers/social-posts-flow.mjs:286` | asserted |
+| INTEG-002 | 4 | A later Bluesky update resumes this incident’s preceding post after another incident publishes | `tests/e2e/helpers/social-posts-flow.mjs:284` | asserted |
+| INTEG-002 | 4 | Unselected maintenance creates no social recipient row | `tests/e2e/helpers/social-posts-flow.mjs:197` | asserted |
+| INTEG-002 | 4 | X receives the selected maintenance notice once | `tests/e2e/helpers/social-posts-flow.mjs:200` | asserted |
+| INTEG-002 | 4 | Bluesky receives the selected maintenance notice once | `tests/e2e/helpers/social-posts-flow.mjs:200` | asserted |
+| INTEG-002 | 4 | Mastodon receives the selected maintenance notice once | `tests/e2e/helpers/social-posts-flow.mjs:200` | asserted |
+| INTEG-002 | 5 | X has no duplicate after publication retry and queue redelivery | `tests/e2e/helpers/social-posts-flow.mjs:161` | asserted |
+| INTEG-002 | 5 | Bluesky has no duplicate after publication retry and queue redelivery | `tests/e2e/helpers/social-posts-flow.mjs:161` | asserted |
+| INTEG-002 | 5 | Mastodon has no duplicate after publication retry and queue redelivery | `tests/e2e/helpers/social-posts-flow.mjs:161` | asserted |
+| INTEG-002 | 5 | A failed X send produces exactly five retries | `tests/e2e/helpers/social-posts-flow.mjs:242` | asserted |
+| INTEG-002 | 5 | Social retry intervals back off exponentially across the promised one-hour schedule | none | none |
+| INTEG-002 | 5 | The social log records a delivered outcome for each network | `tests/e2e/helpers/social-posts-flow.mjs:137` | asserted |
+| INTEG-002 | 5 | The social log records a parseable successful outcome time | `tests/e2e/helpers/social-posts-flow.mjs:138` | asserted |
+| INTEG-002 | 5 | The social log records each successful attempt’s completion time | `tests/e2e/helpers/social-posts-flow.mjs:139` | asserted |
+| INTEG-002 | 5 | The social log records a terminal failed outcome | `tests/e2e/helpers/social-posts-flow.mjs:235` | asserted |
+| INTEG-002 | 5 | The social log records a parseable terminal outcome time | `tests/e2e/helpers/social-posts-flow.mjs:236` | asserted |
+| INTEG-002 | 5 | Every actual X send has one numbered attempt record | `tests/e2e/helpers/social-posts-flow.mjs:244` | asserted |
+| INTEG-002 | 5 | Each failed X attempt records its completion time | `tests/e2e/helpers/social-posts-flow.mjs:239` | asserted |
+| INTEG-002 | 5 | Every failed X attempt retains its safe HTTP outcome | `tests/e2e/helpers/social-posts-flow.mjs:240` | asserted |
+| INTEG-002 | 5 | The social log records the precise recipient account identity | none | none |
+| INTEG-002 | 5 | The social log records queue time | none | none |
+| INTEG-002 | 5 | The social delivery log supports channel filtering | none | none |
+| INTEG-002 | 5 | The social delivery log supports outcome filtering | none | none |
+| INTEG-002 | 5 | The social delivery log supports update filtering | none | none |
+| INTEG-002 | 5 | The complete social delivery CSV matches its selected filters | none | none |
+| INTEG-002 | 5 | Social posts have no tracking pixel | none | none |
+| INTEG-002 | 5 | Social posts have no tracked link | none | none |
+| INTEG-002 | 5 | Terminal social failure produces one operator email alert | `tests/e2e/helpers/social-posts-flow.mjs:248` | asserted |
+| INTEG-002 | 5 | The successful social log contains a nonempty provider post identifier | `tests/e2e/helpers/social-posts-flow.mjs:137` | asserted |
+| INTEG-002 | 5 | The social log’s post identifier equals the identifier returned by the network | none | none |
+| INTEG-002 | 6 | The X fixture receives one initial send and five retries | `tests/e2e/helpers/social-posts-flow.mjs:242` | asserted |
+| INTEG-002 | 6 | The X fixture’s final outcome is failed | `tests/e2e/helpers/social-posts-flow.mjs:235` | asserted |
+| INTEG-002 | 6 | Subscriber email arrives while X remains queued for retry | `tests/e2e/helpers/social-posts-flow.mjs:219` | asserted |
+| INTEG-002 | 6 | The public page contains the update before X retry exhaustion | `tests/e2e/helpers/social-posts-flow.mjs:221` | asserted |
+| INTEG-002 | 6 | Retroactive publication creates no social recipient rows | `tests/e2e/helpers/social-posts-flow.mjs:176` | asserted |
+| INTEG-002 | 6 | Imported history creates no social recipient rows | `tests/e2e/helpers/social-posts-flow.mjs:190` | asserted |
+| INTEG-002 | 6 | X receives no retroactive or imported post | `tests/e2e/helpers/social-posts-flow.mjs:191` | asserted |
+| INTEG-002 | 6 | Bluesky receives no retroactive or imported post | `tests/e2e/helpers/social-posts-flow.mjs:191` | asserted |
+| INTEG-002 | 6 | Mastodon receives no retroactive or imported post | `tests/e2e/helpers/social-posts-flow.mjs:191` | asserted |

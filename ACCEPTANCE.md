@@ -8,12 +8,12 @@ The primary journey: An operator sets up the page and components, accepts eviden
 
 | Tier | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
-| Core | 11 | 173 | 52 | 236 |
+| Core | 12 | 173 | 51 | 236 |
 | Agent surface | 0 | 0 | 5 | 5 |
 | Later | 0 | 0 | 0 | 0 |
-| Full target | 11 | 173 | 57 | 241 |
+| Full target | 12 | 173 | 56 | 241 |
 
-Judged from the code and tests at commit `9e1301e331992add4badf8b5e9ded34bc88d1f26` (26 October 2026). Field proof register: 19 rows; 0 passed, 0 failed, 19 not run.
+Judged from the code and tests at commit `c1b49c71fa58c8bb6b876074dba3b1cab8407a27` (28 October 2026). Field proof register: 19 rows; 0 passed, 0 failed, 19 not run.
 
 ## Core
 
@@ -3300,7 +3300,7 @@ Core · target · **missing**
 
 #### INTEG-002 — Updates posted to the page's social accounts
 
-Core · target · **missing** · Cites BASE-SECRET-001, BASE-DATA-004
+Core · target · **partial** · Cites BASE-ACCESS-002, BASE-ACCESS-004, BASE-SECRET-001, BASE-PUBLIC-003, BASE-OPS-003, BASE-DATA-004
 
 **Requirement.** Operators can distribute selected incident updates and maintenance notices to the page's own X, Bluesky and Mastodon accounts as threaded posts.
 
@@ -3312,14 +3312,14 @@ Core · target · **missing** · Cites BASE-SECRET-001, BASE-DATA-004
 5. Posts follow NOTIFY-005 duplicate protection, NOTIFY-003 retry, NOTIFY-004 outcome logging and NOTIFY-006 operator failure alerts; the log retains the network post identity.
 6. A failing X fixture retries and records failure without delaying the page or email, and retroactive updates and imports post nothing.
 
-**Evidence.** Acceptance 1: `tests/e2e/channels-and-presets.test.mjs` (INTEG-002 SUB-014 NOTIFY-011 NOTIFY-012 UPDATE-013 — Private channels deliver the selected publication once with literal text and punctuated links), loading `tests/e2e/helpers/social-posts-flow.mjs` (socialPostsFlow); Acceptance 2: `tests/e2e/channels-and-presets.test.mjs` (INTEG-002 SUB-014 NOTIFY-011 NOTIFY-012 UPDATE-013 — Private channels deliver the selected publication once with literal text and punctuated links), loading `tests/e2e/helpers/social-posts-flow.mjs` (socialPostsFlow); Acceptance 3: `tests/e2e/channels-and-presets.test.mjs` (INTEG-002 SUB-014 NOTIFY-011 NOTIFY-012 UPDATE-013 — Private channels deliver the selected publication once with literal text and punctuated links), loading `tests/e2e/helpers/social-posts-flow.mjs` (socialPostsFlow); Acceptance 4: `tests/e2e/channels-and-presets.test.mjs` (INTEG-002 SUB-014 NOTIFY-011 NOTIFY-012 UPDATE-013 — Private channels deliver the selected publication once with literal text and punctuated links), loading `tests/e2e/helpers/social-posts-flow.mjs` (socialPostsFlow); `tests/e2e/helpers/social-browser-flow.mjs` (socialBrowserFlow), loaded by the same registration, proves controls and 1440/390 observations.
-**Gap.** The source main records this social-posting implementation as a DONE proposal pending ct judgment; this rewrite retains its missing status until that judgment. Recorded-provider and browser proof is supplied by the cited source files.
+**Evidence.** Acceptance 1: `tests/e2e/channels-and-presets.test.mjs` (INTEG-002 SUB-014 NOTIFY-011 NOTIFY-012 UPDATE-013 — Private channels deliver the selected publication once with literal text and punctuated links), loading `tests/e2e/helpers/social-posts-flow.mjs` (socialPostsFlow); Acceptance 2: `tests/e2e/channels-and-presets.test.mjs` (INTEG-002 SUB-014 NOTIFY-011 NOTIFY-012 UPDATE-013 — Private channels deliver the selected publication once with literal text and punctuated links), loading `tests/e2e/helpers/social-posts-flow.mjs` (socialPostsFlow); Acceptance 3: `tests/e2e/channels-and-presets.test.mjs` (INTEG-002 SUB-014 NOTIFY-011 NOTIFY-012 UPDATE-013 — Private channels deliver the selected publication once with literal text and punctuated links), loading `tests/e2e/helpers/social-posts-flow.mjs` (socialPostsFlow); Acceptance 4: `tests/e2e/channels-and-presets.test.mjs` (INTEG-002 SUB-014 NOTIFY-011 NOTIFY-012 UPDATE-013 — Private channels deliver the selected publication once with literal text and punctuated links), loading `tests/e2e/helpers/social-posts-flow.mjs` (socialPostsFlow); `tests/e2e/helpers/social-browser-flow.mjs` (socialBrowserFlow), loaded by the same registration, proves controls and 1440/390 observations. Inherited authority and secrecy: the same socialPostsFlow asserts anonymous and revoked-session refusal, fresh-member refusal for connect, default and removal, encrypted storage, hidden credentials, and queued retry and replay refusal after disconnection. Only recorded provider edges are claimed.
+**Gap.** Cited evidence asserts persisted token connections, Bluesky app-password exchange, Mastodon bearer posting, owner defaults/deselection, bounded prefixed content, threading, selected maintenance, duplicate suppression, five retries, terminal outcomes/operator alert, failure isolation and import/retroactive silence. Unasserted: X ownership of developer application and API tier; owner network API charges; exponential retry intervals across the exact promised hour; precise recipient account identity and queue time in social log; channel, outcome and update filters; complete filtered CSV; absence of tracking pixels and tracked links; exact equality between logged post identity and provider-returned identifier.
 
 ### Mobile — target
 
 #### MOBILE-001 — The operator desk works on a phone
 
-Core · target · **partial** · Cites BASE-ACCESSIBILITY-001
+Core · target · **done** · Cites BASE-ACCESSIBILITY-001
 
 **Requirement.** The complete operator incident journey works at phone and desktop widths, retaining UPDATE-005 draft behavior and private accepted-alert evidence until publication.
 
@@ -3332,7 +3332,7 @@ Core · target · **partial** · Cites BASE-ACCESSIBILITY-001
 6. Every journey screen fits without horizontal scrolling, and phone touch controls measure at least 44 by 44 pixels.
 
 **Evidence.** `src/core/app/client/ui/responsive.css`, `src/core/features/intake/ui/alerts-page.tsx`, `tests/e2e/helpers/phone-desk-flow.mjs`
-**Gap.** Native signed-alert, draft reload, publication and resolution assertions exist. The cited phone helper only waits on the visible standing-claim label and maintenance heading; it does not read back either persisted result. It also reads only the impact field after reload, rather than every saved draft field. Unasserted outcomes: The native terminal link signs in at both widths; Every other saved draft field survives reload; Email preview contains the expected complete notification; Publication has its complete visible result; Resolution has its complete visible result; Standing claim persisted and visible result; Scheduled maintenance persisted and visible result.
+**Gap.** Native terminal-link sign-in, signed-alert draft, attachment, autosave/reload, preview, publish, resolution, standing claim and maintenance scheduling pass at 390×844 and 1440 px, with accessibility, overflow and 44 px phone-control checks.
 
 #### MOBILE-002 — Installable app with push
 

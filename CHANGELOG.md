@@ -1281,3 +1281,9 @@ The retained 1.11.0 snapshots remain unchanged. Edition 1.11.1 carries the accep
 ## 2026-10-28 — Unified import door implementation record
 
 Evidence: `tests/e2e/sorry-import.test.mjs`, including `tests/e2e/helpers/import-door-flow.mjs`, is the seeded-page/held-subscriber public journey. Existing [Verify run 40637046257](https://github.com/just-every/run-lamp/actions/runs/40637046257) at `f27975c13c0bcbac7dc20a399a3092449cfed545` executed [imports-sorry job 122646353995](https://github.com/just-every/run-lamp/actions/runs/40637046257/job/122646353995) successfully (one test passed, zero failed). That execution used synthetic local test-install data and synthetic trust; it is neither a hosted test-page acceptance nor a signed real-export receipt.
+
+## 28 October 2026 — Cleanup reconciled with accepted social-account judgment
+
+Judged from the code and tests at commit `c1b49c71fa58c8bb6b876074dba3b1cab8407a27` (28 October 2026). The enclosing candidate replays these journeys in Verify; its product source and tests are unchanged from this proof revision.
+
+Main `0c54dbcd4352babe9163e1600b6b7c3e0c8d760e` records INTEG-002 as done. Its six converted acceptance points are audited against that main revision’s cited evidence; any unasserted outcome remains a named partial gap. The earlier proposal receipts above remain historical.

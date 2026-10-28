@@ -436,7 +436,7 @@
       "executable": false
     },
     ".gitignore": {
-      "sha256": "9dd2476e182fcfadf71cf0cfa96ecce6e0583f280832adf7fc7ea723a3327bc7",
+      "sha256": "83d9d7fef269226da357ec8fdb96004a5e0e1d6f1b7dbf7e4ca060ed1b51e7b5",
       "executable": false
     },
     ".node-version": {
@@ -448,7 +448,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "d7def91e856b457209832b720f8384b7ca95321d1954947818888c6abb79aace",
+      "sha256": "f6df5745c6fd4947da459b21719ce8cbdb1488b7b1960c5dc9d6d8978dca567a",
       "executable": false
     },
     "AGENTS.md": {
@@ -468,7 +468,7 @@
       "executable": false
     },
     "CHANGELOG.md": {
-      "sha256": "a8e8ba6ca5524dec91069cc8b2207e7e288943be317e76ecdb4d0d47cc5db6b2",
+      "sha256": "714f9971f468d6749c340b8e0b218d261159d5acc4f148879a394bb09fa50f46",
       "executable": false
     },
     "CLAUDE.md": {
@@ -496,7 +496,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "6f5d302ed690db6659b68e8c56eaa30dec6e6d846cd27ad762afc6ac4399eae1",
+      "sha256": "9b34e6621bc1e364b33df31d97d1934e36e46b938832fb1962d79659fa6f8a80",
       "executable": false
     },
     "DEMO.md": {
@@ -548,7 +548,7 @@
       "executable": false
     },
     "docs/CLAIMS.md": {
-      "sha256": "3628de5270f64dc27aa58c987beb405cee7f3f4883c9b3f8b63de14451445049",
+      "sha256": "25f61cd6cd755908d28929d7232c21812a2d621c5d6ded7bd96f195e50923463",
       "executable": false
     },
     "docs/components-and-groups.md": {
@@ -556,7 +556,7 @@
       "executable": false
     },
     "docs/contract/COVERAGE.json": {
-      "sha256": "8e64f42be6e4e1ad11e7ac2038053f0b95f202d37a1589a3db5e22861c297685",
+      "sha256": "b90a807a75ca229826544521dcdc9a87c9c78df4e421cb7481348a6e9eba35bf",
       "executable": false
     },
     "docs/contract/delivery-details.md": {
@@ -568,11 +568,11 @@
       "executable": false
     },
     "docs/contract/DONE-AUDIT.md": {
-      "sha256": "f0f563070f17c75aa2ea74cd7f809d7f018811133900394450eaee45c8cf7daf",
+      "sha256": "3c329d2acc3e574715c6ccefcf827065a71259d14985f0a26aa02b725e3e48de",
       "executable": false
     },
     "docs/contract/ID-MAP.json": {
-      "sha256": "2193ea7e0ab7342d21146b4c46c4785ca3c907b557a04a873634dd7594b9061b",
+      "sha256": "2ffb735150f7a8dcb12bfc1c4644339be9e0fed84a924130298b2064ed06d8d1",
       "executable": false
     },
     "docs/contract/intake-details.md": {
@@ -580,7 +580,7 @@
       "executable": false
     },
     "docs/contract/operations-details.md": {
-      "sha256": "608217b5a43546ab4dc3bf00f0a66a9d4b233d35400a4a6ffaef0087e2b1f819",
+      "sha256": "17ebb9ec1620c90762ab2610f0ac7bc8b7f2cedbb146843ef13b1fe80fe9508f",
       "executable": false
     },
     "docs/contract/public-details.md": {
@@ -2912,7 +2912,7 @@
       "executable": false
     },
     "scripts/release-metadata.mjs": {
-      "sha256": "c5bd06f3e1a92ec2fa6d174c641601f2f26d34ede1f67e251128a4008df3ee76",
+      "sha256": "58e870e58aa281fddf66ebb34c70281cf32e517353ceba4f13536682fcf9de89",
       "executable": false
     },
     "scripts/remove-deployment.mjs": {
@@ -2964,7 +2964,7 @@
       "executable": false
     },
     "scripts/verification/run.mjs": {
-      "sha256": "2016d0f99f1b0d01491b8299173e1aa7094af636c1a5ba596c37d979fee02594",
+      "sha256": "c3fad301f1ab0cf4b3bb53c9da425665a96297113f6afdf70f3222e5ddd303e6",
       "executable": false
     },
     "scripts/verification/visual-heading.mjs": {
@@ -4336,7 +4336,7 @@
       "executable": false
     },
     "src/core/features/page-settings/routes.ts": {
-      "sha256": "ac63363aa6a04ad04923697f3329a4c62718132dacc2726030a3369e61258d47",
+      "sha256": "9c0ee91860f30b5c89e6517e661e3894440ad937a4d7dfa5c1b4fe57dc0818bb",
       "executable": false
     },
     "src/core/features/page-settings/service.ts": {
@@ -4584,7 +4584,7 @@
       "executable": false
     },
     "src/core/features/public-snapshot/styles/record.css": {
-      "sha256": "166d6fade7fd3cef5e52c14ee0c9fcb1f72f0e3c806194d0f199a00e0920ffa0",
+      "sha256": "f5a048890abc3e17fccabd85df6419ab1da956d746521ec41ebafc56d839188f",
       "executable": false
     },
     "src/core/features/public-snapshot/styles/responsive.css": {
@@ -4632,7 +4632,7 @@
       "executable": false
     },
     "src/core/features/public-snapshot/templates/places.ts": {
-      "sha256": "b931e859149735fc4bc7fc3c8a4900b519b4de97057a88116cf4be536069dd25",
+      "sha256": "8cadb612a58f0719f90baabf0a90959ddd9638083c1859fd9037f8bbc32303ed",
       "executable": false
     },
     "src/core/features/public-snapshot/templates/regions.ts": {
@@ -6708,7 +6708,7 @@
       "executable": false
     },
     "tests/e2e/helpers/follow-ups-runtime.mjs": {
-      "sha256": "671b5fadb60cda0708ec746240e027ff83df78024fabe30a4dd62fd4d1f77ade",
+      "sha256": "fc8b4a0214514ccd005986e627037f8a1733944ae98fc1c11609ee83b3e7e159",
       "executable": false
     },
     "tests/e2e/helpers/follow-ups-worker.ts": {
@@ -6888,11 +6888,11 @@
       "executable": false
     },
     "tests/e2e/helpers/social-browser-flow.mjs": {
-      "sha256": "2bb788a0eb1299c20749178c5ba7869da776bf02bb65c0828f896fb8e5e9b7b5",
+      "sha256": "2182d27e7524cf212087aecc4466dd45748e4e3789dce97d5f5a32dc233e6181",
       "executable": false
     },
     "tests/e2e/helpers/social-posts-flow.mjs": {
-      "sha256": "9ea48c3f3252177f9444a03b5ea4b96a754ff87643dac55fd8ea5e1147ef22cc",
+      "sha256": "cba52e3ebfc88541d5ff5e467b25eedaa2b6960f9460dba227acedaa225a734e",
       "executable": false
     },
     "tests/e2e/helpers/statuspage-webhook-flow.mjs": {
@@ -7040,7 +7040,7 @@
       "executable": false
     },
     "tests/e2e/public-contract.test.mjs": {
-      "sha256": "5580b080a67c041ab2d5b65a212715a7c5807571947054e54be5d9c03f5bb524",
+      "sha256": "5bdb1fcab01a5bc77ee4b68535a11c4599df5095060ea5aca410a1b5a8ee5cd2",
       "executable": false
     },
     "tests/e2e/publishing-browser.test.mjs": {
@@ -7904,7 +7904,7 @@
       "executable": false
     },
     "tests/release-history.test.mjs": {
-      "sha256": "3cf82f2ee33991e1c3166dee51b145b23e95b3d841e9aee228c2936cda877138",
+      "sha256": "890b65febc209751e8848d8bff325ae3cf1882233e0de2d34c4b0c2c05f81b93",
       "executable": false
     },
     "tests/release/installation-browser.mjs": {

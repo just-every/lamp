@@ -31,9 +31,9 @@ The primary journey: An operator sets up the page and components, accepts eviden
 | Base duty | Duty | Delta clauses | Base journey |
 | --- | --- | --- | --- |
 | BASE-ACCESS-001 | Sign-in | ACCESS-001 | not run |
-| BASE-ACCESS-002 | Sessions | INCIDENT-008, AUD-002, ACCESS-001 | not run |
+| BASE-ACCESS-002 | Sessions | INCIDENT-008, AUD-002, ACCESS-001, INTEG-002 | not run |
 | BASE-ACCESS-003 | Public endpoints | PAGE-008, SUB-006 | not run |
-| BASE-ACCESS-004 | Server-side authorisation | INCIDENT-014, TEAM-001 | not run |
+| BASE-ACCESS-004 | Server-side authorisation | INCIDENT-014, TEAM-001, INTEG-002 | not run |
 | BASE-INPUT-001 | Validation | INCIDENT-007, INCIDENT-012, UPDATE-001, INTAKE-001, INTAKE-005, INTAKE-006, INTAKE-008, INTAKE-009, INTAKE-010, INTAKE-011, INTAKE-013, INTAKE-017, INTAKE-014, HIST-009, API-002, SETUP-002 | not run |
 | BASE-INPUT-002 | HTML | THEME-002, THEME-003, UPDATE-001, SUB-009, SUB-021, SUB-015, NOTIFY-017 | not run |
 | BASE-INPUT-003 | Uploads | THEME-001 | not run |
@@ -46,10 +46,10 @@ The primary journey: An operator sets up the page and components, accepts eviden
 | BASE-DATA-005 | Independence | none | not run |
 | BASE-PUBLIC-001 | Privacy | PAGE-003, PAGE-013, THEME-001, THEME-003, SUB-001, SUB-005, SUB-006, NOTIFY-019, HIST-006, HIST-008 | not run |
 | BASE-PUBLIC-002 | Origins | PAGE-011, PAGE-019 | not run |
-| BASE-PUBLIC-003 | Accessibility | PAGE-020 | not run |
+| BASE-PUBLIC-003 | Accessibility | PAGE-020, INTEG-002 | not run |
 | BASE-OPS-001 | Health | PAGE-006 | not run |
 | BASE-OPS-002 | Migrations | none | not run |
-| BASE-OPS-003 | Idempotency | UPDATE-008, SUB-009, NOTIFY-005, NOTIFY-012, NOTIFY-013, NOTIFY-014, NOTIFY-017, NOTIFY-020, NOTIFY-023, INTAKE-003, INTAKE-008, INTAKE-009, INTAKE-015, INTAKE-010, INTAKE-012, INTAKE-017, INTAKE-018, INTAKE-014, INTAKE-019, AUTO-004, HIST-006, API-003, API-006, MOVE-003 | not run |
+| BASE-OPS-003 | Idempotency | UPDATE-008, SUB-009, NOTIFY-005, NOTIFY-012, NOTIFY-013, NOTIFY-014, NOTIFY-017, NOTIFY-020, NOTIFY-023, INTAKE-003, INTAKE-008, INTAKE-009, INTAKE-015, INTAKE-010, INTAKE-012, INTAKE-017, INTAKE-018, INTAKE-014, INTAKE-019, AUTO-004, HIST-006, API-003, API-006, MOVE-003, INTEG-002 | not run |
 | BASE-OPS-004 | Failure is visible | PAGE-005, PAGE-022, PAGE-021, UPDATE-008, NOTIFY-003, NOTIFY-006, NOTIFY-009, NOTIFY-018, NOTIFY-024, INTAKE-015, AUTO-003, DRAFT-003, API-003 | not run |
 | BASE-OPS-005 | Audit | INCIDENT-007, INCIDENT-011, INCIDENT-012, INCIDENT-013, SUB-017, AUTO-001, AUTO-002, AUTO-003, AUTO-004, TEAM-003, TEAM-004, TEAM-006, TEAM-007, HIST-010 | not run |
 | BASE-ROLE-001 | Roles through every door | INCIDENT-008, INCIDENT-012, INCIDENT-014, TEAM-004, TEAM-005, TEAM-006, AUD-001, AUD-003, AUD-004, AUD-005, API-001, API-002, MOBILE-002, MOVE-012 | not run |
@@ -2613,7 +2613,7 @@ The primary journey: An operator sets up the page and components, accepts eviden
 
 #### INTEG-002 — Updates posted to the page's social accounts
 
-*Tier:* Core · *Cites:* BASE-SECRET-001, BASE-DATA-004
+*Tier:* Core · *Cites:* BASE-ACCESS-002, BASE-ACCESS-004, BASE-SECRET-001, BASE-PUBLIC-003, BASE-OPS-003, BASE-DATA-004
 
 **Requirement.** Operators can distribute selected incident updates and maintenance notices to the page's own X, Bluesky and Mastodon accounts as threaded posts.
 
@@ -3091,13 +3091,13 @@ Lamp is US-first: USD, TCPA and CTIA SMS consent with 10DLC or toll-free registr
 
 ## Status
 
-Judged from the code and tests at commit `9e1301e331992add4badf8b5e9ded34bc88d1f26` (26 October 2026).
+Judged from the code and tests at commit `c1b49c71fa58c8bb6b876074dba3b1cab8407a27` (28 October 2026).
 
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
 | Published | 6 | 100 | 0 | 106 |
-| Target and push further | 5 | 73 | 57 | 135 |
-| All | 11 | 173 | 57 | 241 |
+| Target and push further | 6 | 73 | 56 | 135 |
+| All | 12 | 173 | 56 | 241 |
 
 | Clause | Title | Kind | Status | Evidence | Gap |
 | --- | --- | --- | --- | --- | --- |
@@ -3305,8 +3305,8 @@ Judged from the code and tests at commit `9e1301e331992add4badf8b5e9ded34bc88d1f
 | `API-005` | Configuration file planning | target | missing |  | Not built. |
 | `API-006` | Deployment workflow actions | target | missing |  | Not built. |
 | `INTEG-001` | Incident context in the support desk | target | missing |  | Not built. |
-| `INTEG-002` | Updates posted to the page's social accounts | target | missing | Acceptance 1: `tests/e2e/channels-and-presets.test.mjs` (INTEG-002 SUB-014 NOTIFY-011 NOTIFY-012 UPDATE-013 — Private channels deliver the selected publication once with literal text and punctuated links), loading `tests/e2e/helpers/social-posts-flow.mjs` (socialPostsFlow); Acceptance 2: `tests/e2e/channels-and-presets.test.mjs` (INTEG-002 SUB-014 NOTIFY-011 NOTIFY-012 UPDATE-013 — Private channels deliver the selected publication once with literal text and punctuated links), loading `tests/e2e/helpers/social-posts-flow.mjs` (socialPostsFlow); Acceptance 3: `tests/e2e/channels-and-presets.test.mjs` (INTEG-002 SUB-014 NOTIFY-011 NOTIFY-012 UPDATE-013 — Private channels deliver the selected publication once with literal text and punctuated links), loading `tests/e2e/helpers/social-posts-flow.mjs` (socialPostsFlow); Acceptance 4: `tests/e2e/channels-and-presets.test.mjs` (INTEG-002 SUB-014 NOTIFY-011 NOTIFY-012 UPDATE-013 — Private channels deliver the selected publication once with literal text and punctuated links), loading `tests/e2e/helpers/social-posts-flow.mjs` (socialPostsFlow); `tests/e2e/helpers/social-browser-flow.mjs` (socialBrowserFlow), loaded by the same registration, proves controls and 1440/390 observations. | The source main records this social-posting implementation as a DONE proposal pending ct judgment; this rewrite retains its missing status until that judgment. Recorded-provider and browser proof is supplied by the cited source files. |
-| `MOBILE-001` | The operator desk works on a phone | target | partial | `src/core/app/client/ui/responsive.css`, `src/core/features/intake/ui/alerts-page.tsx`, `tests/e2e/helpers/phone-desk-flow.mjs` | Native signed-alert, draft reload, publication and resolution assertions exist. The cited phone helper only waits on the visible standing-claim label and maintenance heading; it does not read back either persisted result. It also reads only the impact field after reload, rather than every saved draft field. Unasserted outcomes: The native terminal link signs in at both widths; Every other saved draft field survives reload; Email preview contains the expected complete notification; Publication has its complete visible result; Resolution has its complete visible result; Standing claim persisted and visible result; Scheduled maintenance persisted and visible result. |
+| `INTEG-002` | Updates posted to the page's social accounts | target | partial | Acceptance 1: `tests/e2e/channels-and-presets.test.mjs` (INTEG-002 SUB-014 NOTIFY-011 NOTIFY-012 UPDATE-013 — Private channels deliver the selected publication once with literal text and punctuated links), loading `tests/e2e/helpers/social-posts-flow.mjs` (socialPostsFlow); Acceptance 2: `tests/e2e/channels-and-presets.test.mjs` (INTEG-002 SUB-014 NOTIFY-011 NOTIFY-012 UPDATE-013 — Private channels deliver the selected publication once with literal text and punctuated links), loading `tests/e2e/helpers/social-posts-flow.mjs` (socialPostsFlow); Acceptance 3: `tests/e2e/channels-and-presets.test.mjs` (INTEG-002 SUB-014 NOTIFY-011 NOTIFY-012 UPDATE-013 — Private channels deliver the selected publication once with literal text and punctuated links), loading `tests/e2e/helpers/social-posts-flow.mjs` (socialPostsFlow); Acceptance 4: `tests/e2e/channels-and-presets.test.mjs` (INTEG-002 SUB-014 NOTIFY-011 NOTIFY-012 UPDATE-013 — Private channels deliver the selected publication once with literal text and punctuated links), loading `tests/e2e/helpers/social-posts-flow.mjs` (socialPostsFlow); `tests/e2e/helpers/social-browser-flow.mjs` (socialBrowserFlow), loaded by the same registration, proves controls and 1440/390 observations. Inherited authority and secrecy: the same socialPostsFlow asserts anonymous and revoked-session refusal, fresh-member refusal for connect, default and removal, encrypted storage, hidden credentials, and queued retry and replay refusal after disconnection. Only recorded provider edges are claimed. | Cited evidence asserts persisted token connections, Bluesky app-password exchange, Mastodon bearer posting, owner defaults/deselection, bounded prefixed content, threading, selected maintenance, duplicate suppression, five retries, terminal outcomes/operator alert, failure isolation and import/retroactive silence. Unasserted: X ownership of developer application and API tier; owner network API charges; exponential retry intervals across the exact promised hour; precise recipient account identity and queue time in social log; channel, outcome and update filters; complete filtered CSV; absence of tracking pixels and tracked links; exact equality between logged post identity and provider-returned identifier.
+| `MOBILE-001` | The operator desk works on a phone | target | done | `src/core/app/client/ui/responsive.css`, `src/core/features/intake/ui/alerts-page.tsx`, `tests/e2e/helpers/phone-desk-flow.mjs` | Native terminal-link sign-in, signed-alert draft, attachment, autosave/reload, preview, publish, resolution, standing claim and maintenance scheduling pass at 390×844 and 1440 px, with accessibility, overflow and 44 px phone-control checks. |
 | `MOBILE-002` | Installable app with push | target | missing |  | Not built. |
 | `SETUP-001` | Setup readiness | published | partial | `tests/e2e/setup-readiness.test.mjs` | Old cited evidence asserts Form check is at or after publication; Overview shows the public address; Publication time is present; Checked page/form wording is visible. Unasserted: Lamp actually reads the rendered public page after publication; Lamp actually inspects the rendered subscription form after publication; Every change republishes; Each minute scheduled check repeats; Changing the hosted sender authenticates against its provider; Sender check repeats daily; Page/form check times are displayed; Review page opens the preview and checks; Change address opens Settings; Failure has one corrective action; Results belong to the address actually checked after address changes; A custom domain is optional; Local outgoing mail is suppressed; No captured-mail inbox exists; Automatic one-click local owner entry needs no email; A subscriber publication records a suppressed outcome; Suppressed outcome is visible in Notifications; Suppressed outcome is not provider acknowledgement; Public reading makes no database query. |
 | `SETUP-002` | First-run setup | published | partial | `tests/e2e/auth-adoption-journey.test.mjs`, `tests/e2e/website-onboarding.test.mjs` | Old cited evidence asserts No website script request occurs; Reload makes no second site read; Observed page name is stored; Observed tagline is stored. Unasserted: Every operator document gates incomplete first run; Signed-out setup returns through sign-in to setup; Every redirect refuses private/loopback destinations; Instatus and Better Stack linked/subdomain source selection; History imports no maintenance; History imports no subscriber; Omitted website leaves editable plain defaults; A status feed with no components changes none; Completion durably persists; All settings remain editable after completion; Every pre-existing operator installation is migration-complete; Completed setup redirects to app. |
