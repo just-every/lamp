@@ -26,6 +26,16 @@ export async function themeTemplateFlow({ appFetch, pageUrl, updateSettings, sna
         assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), `${template} fits ${width}`);
         const group = page.locator("details.theme-component-group").first();
         assert.equal(await group.getAttribute("open"), null);
+        await expect(group).toBeVisible();
+        const contents = group.locator(":scope > :not(summary)").first();
+        await expect(contents).toBeHidden();
+        await group.locator(":scope > summary").click();
+        await expect(contents).toBeVisible();
+        const record = page.getByRole("list", { name: "14-day uptime record for API gateway", exact: true });
+        await expect(record.getByRole("listitem")).toHaveCount(14);
+        await expect(page.getByRole("list", { name: "14-day uptime record for Web application", exact: true }).getByRole("listitem")).toHaveCount(0);
+        await page.screenshot({ path: `test-results/theme-001/${template}-expanded-${width}.png`, fullPage: true });
+        await group.locator(":scope > summary").click();
       }
     }
     await page.close();
