@@ -4404,7 +4404,7 @@
       "executable": false
     },
     "src/core/features/page-settings/ui/use-settings-autosave.ts": {
-      "sha256": "3f406fb9fcb49d15b949f440299112498cd8145a9bc6d355112f44f95edf0689",
+      "sha256": "417e51566c572bdd64e79075810ed80040db6a2484ffbac72962b371d6f15289",
       "executable": false
     },
     "src/core/features/page-settings/ui/wording-settings.tsx": {

@@ -107,11 +107,6 @@ export function useSettingsAutosave(initial: PageSettingsView | undefined, onSav
           if (same(target[key], request[key])) Object.assign(target, { [key]: normalized[key] });
         }
         q.target = target;
-        // Show the sanitized markup once this exact theme edit has saved, without overwriting newer typing.
-        if (q.draft && same(q.draft.theme, request.theme)) {
-          q.draft = { ...q.draft, theme: normalized.theme };
-          setSettings(q.draft);
-        }
         setRemovals(response.removals ?? []);
         setSaved(response.settings);
         setPhase(q.revision === revision ? "saved" : "waiting");
