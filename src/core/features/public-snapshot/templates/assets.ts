@@ -21,7 +21,7 @@ export function templateStyles(template: TemplateName, model: PublicSnapshotMode
   const { accentColor } = model.settings;
   const foundation = foundationSource.replace("__LAMP_ACCENT_COLOR__", accentColor).replace("__LAMP_ACCENT_INK__", accentInk(accentColor));
   const generated = template === "regions" ? regionsMapStyles(model) : template === "uptime" ? historyLedStyles(model) : "";
-  return `${localPublicPageFonts}${foundation}${sharedSource}${sources[template]}${generated}${publicThemeStyles(model.theme, model.origin)}`;
+  return `${localPublicPageFonts}${foundation}${sharedSource}${sources[template]}${generated}${publicThemeStyles(model.theme, model.origin, model.renderedHistoryDays, model.ownerFontDataUrl)}`;
 }
 
 export const templateScript = script;

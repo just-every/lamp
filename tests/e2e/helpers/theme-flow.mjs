@@ -18,10 +18,14 @@ export async function themeFlow({ appFetch, fetch, appUrl, pageUrl, sessionId, c
     return body;
   }
   async function snapshot() {
-    const [response, stylesheet] = await Promise.all([fetch(pageUrl + '/'), fetch(pageUrl + '/assets/status-page.css')]);
-    assert.equal(response.status, 200);
-    assert.equal(stylesheet.status, 200);
-    return { html: await response.text(), css: await stylesheet.text(), generation: response.headers.get('x-lamp-snapshot-version') };
+    // Consume both large responses as their headers arrive. A closed local
+    // connection must not hold an unread font-bearing stylesheet behind HTML.
+    const [document, stylesheet] = await Promise.all(['/', '/assets/status-page.css'].map(async path => {
+      const response = await fetch(pageUrl + path);
+      assert.equal(response.status, 200);
+      return { text: await response.text(), generation: response.headers.get('x-lamp-snapshot-version') };
+    }));
+    return { html: document.text, css: stylesheet.text, generation: document.generation };
   }
   async function unchanged(action, description) {
     const beforeSettings = await currentSettings();
@@ -48,6 +52,12 @@ export async function themeFlow({ appFetch, fetch, appUrl, pageUrl, sessionId, c
     const fontBytes = await readFile(new URL('../../../src/core/features/public-snapshot/fonts/inter-latin.woff2', import.meta.url));
     const headerImage = await upload('image', imageBytes, 'image/png', 'theme-header.png');
     const fontAsset = await upload('font', fontBytes, 'font/woff2', 'theme-font.woff2');
+    const fakeFont = Buffer.alloc(48); fakeFont.write('wOF2'); fakeFont.writeUInt32BE(48, 8);
+    for (const [bytes, kind, type, name] of [[fakeFont, 'font', 'font/woff2', 'signature-only.woff2'], [fontBytes.subarray(0, -1), 'font', 'font/woff2', 'truncated.woff2'], [Buffer.from('not an image'), 'image', 'image/png', 'wrong-bytes.png']]) await unchanged(async () => {
+      const form = new FormData(); form.set('kind', kind); form.set('asset', new Blob([bytes], { type }), name);
+      const refused = await fetch(appUrl + '/api/app/page-settings/theme-assets', { method: 'POST', body: form, headers });
+      assert.equal(refused.status, 400, await refused.text());
+    }, `invalid upload ${name}`);
     const theme = themeFixture({
       font: 'uploaded', fontAsset, headerImage,
       headerLinks: [{ label: 'Customer home', href: 'https://www.atlascloud.example/' }, { label: 'Service history', href: '/history' }],
@@ -73,7 +83,8 @@ export async function themeFlow({ appFetch, fetch, appUrl, pageUrl, sessionId, c
     assert.doesNotMatch(published.html, /<details\b[^>]*class="[^"]*theme-component-group[^"]*"[^>]*\bopen(?:[\s=>])/, 'configured groups start collapsed without script');
     const row = new RegExp(`<article\\b[^>]*data-component-id="${theme.hiddenUptimeComponents[0]}"[^>]*>[\\s\\S]*?<\\/article>`).exec(published.html)?.[0];
     assert.ok(row, 'the component remains public');
-    assert.doesNotMatch(row, /class="uptime-mark |class="uptime-number"/, 'its uptime bar is omitted without hiding its state');
+    assert.doesNotMatch(row, /class="uptime-mark |class="uptime-marks"/, 'its uptime bar is omitted without hiding its state');
+    assert.match(row, /class="uptime-number"/, 'hiding a bar preserves the component uptime figure required by PAGE-001');
     assert.match(row, /Web application/);
     assert.match(published.html, /last 14 days/);
     for (const [path, bytes, contentType] of [[headerImage, imageBytes, 'image/png'], [fontAsset, fontBytes, 'font/woff2']]) {
@@ -84,19 +95,25 @@ export async function themeFlow({ appFetch, fetch, appUrl, pageUrl, sessionId, c
     }
     assert.ok(gzipSync(Buffer.from(published.html)).byteLength <= 50 * 1024, 'custom CSS retains the PAGE-003 initial HTML budget');
     const origin = new URL(pageUrl).origin;
-    assert.equal((await fetch(pageUrl + '/')).headers.get('content-security-policy'), `default-src ${origin}; script-src ${origin}; style-src ${origin}; font-src 'self' data:; img-src ${origin}; connect-src ${origin}; form-action ${origin}; base-uri ${origin}; frame-ancestors 'none'; object-src 'none'`);
+    const isolatedPage = await fetch(pageUrl + '/');
+    assert.equal(isolatedPage.headers.get('content-security-policy'), `default-src ${origin}; script-src ${origin}; style-src ${origin}; font-src 'self' data:; img-src ${origin}; connect-src ${origin}; form-action ${origin}; base-uri ${origin}; frame-ancestors 'none'; object-src 'none'`);
+    await isolatedPage.arrayBuffer();
     await save({ ...theme, css: `.owner-header { background-image: url("${headerImage}"); }` });
     assert.ok((await snapshot()).css.includes(headerImage), 'valid CSS can use an image uploaded to the page origin');
+    const portable = await save({ ...theme, css: `.owner-header { background-image: url("${pageUrl}${headerImage}?version=1#header"); }`, headerHtml: `<img src="${pageUrl}${headerImage}" alt="Owned absolute image">` });
+    assert.deepEqual(portable.removals, [], 'an absolute own-origin uploaded image is accepted');
+    assert.equal(portable.settings.theme.headerHtml, `<img src="${headerImage}" alt="Owned absolute image">`);
+    assert.ok(portable.settings.theme.css.includes(`${headerImage}?version=1#header`) && !portable.settings.theme.css.includes(pageUrl), 'same-origin CSS URLs become portable paths with query and fragment retained');
 
     diagnostic('THEME-001 — invalid CSS names its offending construct and cannot mutate publication');
     for (const [css, offending] of [
       ['@import "https://outside.example/theme.css";', /@import/i],
       ['@\\69mport "https://outside.example/theme.css";', /@import/i],
       ['.brand { background: url(https://outside.example/image.png); }', /url\(\)|url\(|external|origin/i],
-      ['.brand { background: u\\72l(//outside.example/image.png); }', /url\(\)|url\(|external|origin/i],
+      ['.brand { background: u\\72l("https://outside.example/image.png"); }', /url\(\)|url\(|external|origin/i],
       ['.brand { width: expression(alert(1)); }', /expression/i],
       ['.brand { behavior: url(/asset.htc); }', /behavior/i],
-      ['.brand { color: red;', /syntax|css|parse/i],
+      ['.brand { color: red; } }', /syntax|css|parse/i],
     ]) await unchanged(async () => {
       const body = await save({ ...theme, css }, 400);
       assert.match(JSON.stringify(body), offending);
@@ -131,10 +148,14 @@ export async function themeFlow({ appFetch, fetch, appUrl, pageUrl, sessionId, c
     await unchanged(async () => {
       const signedOut = await fetch(appUrl + '/api/app/page-settings', { method: 'PUT', headers: { Origin: appUrl, 'Content-Type': 'application/json' }, body: JSON.stringify({ ...input, theme }) });
       assert.equal(signedOut.status, 401);
+      await signedOut.arrayBuffer();
       const crossOrigin = await appFetch('/api/app/page-settings', { method: 'PUT', headers: { Origin: 'https://outside.example' }, body: JSON.stringify({ ...input, theme }) });
       assert.equal(crossOrigin.status, 403);
+      await crossOrigin.arrayBuffer();
       const form = new FormData(); form.set('kind', 'image'); form.set('asset', new Blob([imageBytes], { type: 'image/png' }), 'refused.png');
-      assert.equal((await fetch(appUrl + '/api/app/page-settings/theme-assets', { method: 'POST', body: form, headers: { Origin: appUrl } })).status, 401);
+      const refusedUpload = await fetch(appUrl + '/api/app/page-settings/theme-assets', { method: 'POST', body: form, headers: { Origin: appUrl } });
+      assert.equal(refusedUpload.status, 401);
+      await refusedUpload.arrayBuffer();
     }, 'unauthorized save/upload');
 
     await save(theme);

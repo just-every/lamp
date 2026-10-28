@@ -9,7 +9,7 @@ import { brand, componentNote, dayBar, feedLinks, quietLine, records, sentenceSi
 /** Calm headline: one quiet sentence answers the question; components and history sit underneath as type and
  *  hairlines, with no cards or boxes. */
 function componentRow(component: Component, heading: "h3" | "h4") {
-  return `<li class="calm-row"${component.historyDays ? ` data-component-id="${escapeHtml(component.id)}"` : ""}>${componentIcon(component.name)}<div class="calm-name"><${heading}>${escapeHtml(component.name)}</${heading}>${componentNote(component)}</div><p class="calm-state tone-${toneOf(component.state)}">${stateGlyph(component.state)}<span>${escapeHtml(component.state)}</span></p>${component.uptimeHidden ? "" : `<div class="calm-uptime"><p><span class="calm-caption">${escapeHtml(uptimeCaption(component.uptime))}</span><span class="calm-value">${escapeHtml(uptimeValue(component.uptime))}</span></p>${dayBar(component, "calm-bar")}</div>`}</li>`;
+  return `<li class="calm-row"${component.historyDays !== undefined ? ` data-component-id="${escapeHtml(component.id)}"` : ""}>${componentIcon(component.name)}<div class="calm-name"><${heading}>${escapeHtml(component.name)}</${heading}>${componentNote(component)}</div><p class="calm-state tone-${toneOf(component.state)}">${stateGlyph(component.state)}<span>${escapeHtml(component.state)}</span></p><div class="calm-uptime"><p><span class="calm-caption">${escapeHtml(uptimeCaption(component.uptime))}</span><span class="calm-value">${escapeHtml(uptimeValue(component.uptime))}</span></p>${dayBar(component, "calm-bar")}</div></li>`;
 }
 
 function components(model: PublicSnapshotModel, parts: TemplateParts) {

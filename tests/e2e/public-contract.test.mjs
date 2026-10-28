@@ -632,6 +632,10 @@ test("PAGE-012 PAGE-011 PAGE-019 MOVE-009 — Uploaded branding artwork, allow-l
 
 
 test("THEME-001 PAGE-013 PAGE-014 PAGE-008 PAGE-009 PAGE-003 — Public isolation, Settings theme, live timezone refresh and initial asset budget", async t => {
+  // The touched journey also runs on its own: publish the existing settings and
+  // logo through their real doors before inspecting every snapshot artifact.
+  await uploadTestLogo();
+  await updateSettings({ tagline: (await currentSettings()).tagline });
   t.diagnostic("PAGE-013 — every public snapshot response carries the restrictive same-origin security headers");
   await (async () => {
   const origin = new URL(pageUrl).origin;

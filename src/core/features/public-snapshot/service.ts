@@ -1,4 +1,5 @@
-import { themeAssetsSchema } from "../../shared/page-theme";
+import { referencedThemeAssetPaths } from "../page-settings/theme-validation";
+import { pageThemeSchema, themeAssetsSchema } from "../../shared/page-theme";
 import type { RetainedSnapshotCache } from "../../platform/blobs/retained";
 import { encodeRetainedBundle, readRetainedArtifact } from "../../platform/blobs/retained-bundle";
 import { createUlid, nowIso } from "../../shared/ids";
@@ -163,13 +164,22 @@ export function createPublicSnapshotService(
         const logoContentType = logo?.contentType ?? source.settings.logoContentType;
         if (logo && !logoContentType) throw new Error("Configured logo content type is missing.");
         const version = createUlid();
-        const rendered = renderPublicSnapshot(source, new Date().toISOString(), policies, { logoDataUrl: logo && logoContentType ? logoDataUrl({ ...logo, contentType: logoContentType }) : null }, slots);
-        const themeAssets = await Promise.all(themeAssetsSchema.parse(JSON.parse(source.settings.themeAssets ?? "[]")).map(async asset => {
+        const rawTheme = JSON.parse(source.settings.theme ?? "null");
+        const theme = rawTheme === null ? null : pageThemeSchema.parse(rawTheme);
+        const referencedPaths = new Set([...referencedThemeAssetPaths(theme, source.publicOrigin ?? `https://${source.settings.hostname}`)].filter(path => path.startsWith("/assets/theme/")));
+        const manifest = themeAssetsSchema.parse(JSON.parse(source.settings.themeAssets ?? "[]"));
+        for (const path of referencedPaths) if (!manifest.some(asset => asset.path === path)) throw new Error(`Configured theme asset is missing from the page manifest: ${path}`);
+        const themeAssets = await Promise.all(manifest.filter(asset => referencedPaths.has(asset.path)).map(async asset => {
           const object = await blobs.getBytes(asset.key);
           if (!object) throw new Error(`Configured theme asset is missing from object storage: ${asset.path}`);
           if (object.contentType !== asset.contentType) throw new Error(`Configured theme asset content type does not match: ${asset.path}`);
           return { key: asset.path.slice(1), bytes: object.bytes, contentType: asset.contentType };
         }));
+        const ownerFont = theme?.font === "uploaded" ? themeAssets.find(asset => `/${asset.key}` === theme.fontAsset) : null;
+        const rendered = renderPublicSnapshot(source, new Date().toISOString(), policies, {
+          logoDataUrl: logo && logoContentType ? logoDataUrl({ ...logo, contentType: logoContentType }) : null,
+          ownerFontDataUrl: ownerFont ? `data:font/woff2;base64,${bytesBase64(ownerFont.bytes)}` : null,
+        }, slots);
         const bundle = encodeRetainedBundle({ version, generatedAt: rendered.generatedAt, generation, artifacts: [
           ...rendered.artifacts,
           ...themeAssets.map(asset => ({ key: asset.key, body: bytesBase64(asset.bytes), contentType: asset.contentType, encoding: "base64" as const })),

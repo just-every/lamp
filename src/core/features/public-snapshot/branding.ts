@@ -20,7 +20,7 @@ function stateColor(state: ComponentState) {
 
 const INK = "#182d24";
 
-export function renderBrandSvg(model: BrandSnapshot, kind: "favicon" | "og" | "mark") {
+function brandSvgParts(model: BrandSnapshot, kind: "favicon" | "og" | "mark") {
   const { settings, overall } = model;
   const square = kind !== "og";
   const width = square ? 128 : 1200;
@@ -34,5 +34,17 @@ export function renderBrandSvg(model: BrandSnapshot, kind: "favicon" | "og" | "m
   const cx = kind === "favicon" ? 101 : 1090;
   const cy = kind === "favicon" ? 27 : 110;
   const status = kind === "mark" ? "" : `<circle cx="${cx}" cy="${cy}" r="${radius}" fill="${model.theme?.palette.states[overall] ?? stateColor(overall)}" stroke="white" stroke-width="${kind === "favicon" ? 7 : 14}"/>`;
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" role="img" aria-label="${escapeXml(kind === "mark" ? settings.pageName : `${settings.pageName}: ${overall}`)}">${mark}${status}${label}</svg>`;
+  return { width, height, label: kind === "mark" ? settings.pageName : `${settings.pageName}: ${overall}`, content: `${mark}${status}${label}` };
+}
+
+export function renderBrandSvg(model: BrandSnapshot, kind: "favicon" | "og" | "mark") {
+  const { width, height, label, content } = brandSvgParts(model, kind);
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" role="img" aria-label="${escapeXml(label)}">${content}</svg>`;
+}
+
+/** One themed image resource serves both unchanged brand views, leaving room for the owner's header image. */
+export function renderThemeBrandSvg(model: BrandSnapshot) {
+  const mark = brandSvgParts(model, "mark");
+  const favicon = brandSvgParts(model, "favicon");
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128" role="img" aria-label="${escapeXml(mark.label)}"><view id="favicon" viewBox="128 0 128 128"/><svg x="0" y="0" width="128" height="128" viewBox="0 0 128 128">${mark.content}</svg><svg x="128" y="0" width="128" height="128" viewBox="0 0 128 128">${favicon.content}</svg></svg>`;
 }
