@@ -4876,7 +4876,7 @@
       "executable": false
     },
     "src/core/features/statuspage-import/native-tables.ts": {
-      "sha256": "0d18a047fe17a0a4681ec1a2b3a579c7e3e630c2143b74b096b2808b054fba94",
+      "sha256": "b2e1fb96267fb2d82f20565f4bfd448cccb72328492a28e584af1159afb1a61d",
       "executable": false
     },
     "src/core/features/statuspage-import/operating-notes.ts": {
