@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { load } from '../operator-readiness/runtime.mjs';
-import { lampRuntime } from '../auth-adoption/lamp-runtime.mjs';
+import { lampRuntime } from './runtime.mjs';
 import { openSnapshotCacheRuntime } from '../e2e/snapshot-cache-runtime.mjs';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { join } from 'node:path';

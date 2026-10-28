@@ -1,5 +1,6 @@
+import { finishIncidentSubscriptionStatements } from "../subscribers/incident-lifecycle.repository";
 import { createUlid } from "../../shared/ids";
-import { eventPreferenceSql, incidentThresholdSql } from "../deliveries/subscriber-eligibility";
+import { eventPreferenceSql, incidentThresholdSql, ordinarySubscriptionSql, incidentFollowRecipientSql, incidentFinalDeliverySql, incidentDispatchAllowedSql } from "../deliveries/subscriber-eligibility";
 import type { SubscriberPreferences } from "../subscribers/preferences";
 export interface SmsDelivery { id:string;subscriberId:string;destination:string;eventId:string;kind:"incident-update"|"maintenance-notice"|"incident-report";incidentUpdateId:string|null;outcome:string;providerMessageId:string|null;queuedAt:string;outcomeAt:string|null;subscriberState:string;reference:string|null;title:string|null;wording:string|null;body:string|null;maintenanceReference:string|null;reportSummary:string|null;reportTimeline:string|null;reportCause:string|null;reportRemediation:string|null;agentLabel?:string|null }
 export function createSmsRepository(db:D1Database) {
@@ -52,13 +53,14 @@ export function createSmsRepository(db:D1Database) {
     async inbound(messageSid:string,number:string,now:string) {
       const row=await db.prepare(`INSERT OR IGNORE INTO sms_inbound_events(message_sid,subscriber_id,received_at)
         SELECT ?,id,? FROM subscriber_directory WHERE destination=? AND channel='sms' RETURNING subscriber_id AS subscriberId`).bind(messageSid,now,number).first<{subscriberId:string}>();
-      return row?.subscriberId??null;
+      if(!row)return [];
+      return (await db.prepare("SELECT id FROM subscriber_directory WHERE destination=? AND channel='sms' ORDER BY id").bind(number).all<{id:string}>()).results.map(row=>row.id);
     },
     async activate(id:string,now:string) {
       const consent=createUlid();
       const result=await db.batch([
         db.prepare(`INSERT INTO sms_consents(id,subscriber_id,number,page_name,wording,consented_at)
-          SELECT ?,s.id,s.destination,x.page_name,x.opt_in_wording,? FROM subscribers s JOIN sms_subscriptions x ON x.subscriber_id=s.id
+          SELECT ?,s.id,s.destination,x.page_name,x.opt_in_wording,? FROM subscriber_directory s JOIN sms_subscriptions x ON x.subscriber_id=s.id
           WHERE s.id=? AND s.state='pending' AND x.pending_since<>'' AND x.opt_in_wording<>'' AND x.pending_since>?
             AND s.created_at>?`).bind(consent,now,id,new Date(Date.parse(now)-72*60*60*1000).toISOString(),new Date(Date.parse(now)-72*60*60*1000).toISOString()),
         db.prepare("UPDATE subscribers SET state='active',updated_at=? WHERE id=? AND state='pending' AND EXISTS(SELECT 1 FROM sms_consents WHERE id=?) RETURNING id").bind(now,id,consent),
@@ -70,28 +72,32 @@ export function createSmsRepository(db:D1Database) {
       const result=await db.batch([
         db.prepare("UPDATE subscribers SET state='deactivated',deactivation_reason='SMS STOP',deactivated_at=?,updated_at=? WHERE id=? AND state<>'deactivated' RETURNING id").bind(now,now,id),
         db.prepare("UPDATE subscriber_tokens SET revoked_at=?,updated_at=? WHERE subscriber_id=? AND revoked_at IS NULL").bind(now,now,id),
+        db.prepare("UPDATE incident_subscriptions SET ended_at=COALESCE(ended_at,?),final_event_id=NULL WHERE subscriber_id=?").bind(now,id),
         db.prepare("UPDATE sms_deliveries SET outcome='suppressed',outcome_at=? WHERE subscriber_id=? AND outcome='queued'").bind(now,id),
       ]);
       return result[0].results.length>0;
     },
-    publicationStatements(input:{eventId:string;kind:SmsDelivery['kind'];incidentUpdateId?:string;maintenanceId?:string;incidentReportId?:string;componentIds:readonly string[];queuedAt:string;recipientScope?:'eligible'|'previous';previousEventIds?:readonly string[]}) {
+    publicationStatements(input:{eventId:string;kind:SmsDelivery['kind'];incidentUpdateId?:string;maintenanceId?:string;incidentReportId?:string;componentIds:readonly string[];queuedAt:string;recipientScope?:'eligible'|'previous';previousEventIds?:readonly string[];ordinaryEnabled?:boolean}) {
       const slots=input.componentIds.length?input.componentIds.map(()=>'?').join(','):'NULL';
       const previous=input.recipientScope==='previous';
       const previousIds=input.previousEventIds??[];
       const eligible=previous?`EXISTS(SELECT 1 FROM sms_deliveries d WHERE d.subscriber_id=s.id AND d.kind='maintenance-notice' AND d.event_id IN (${previousIds.length?previousIds.map(()=>'?').join(','):'NULL'}))`:
         `(s.selection_mode='all' OR EXISTS(SELECT 1 FROM subscriber_components sc WHERE sc.subscriber_id=s.id AND sc.component_id IN (${slots}))) AND EXISTS(SELECT 1 FROM components c WHERE c.id IN (${slots}) AND c.internal=0)`;
-      const threshold=input.kind==='maintenance-notice'?'1':incidentThresholdSql(input.incidentUpdateId?'(SELECT incident_id FROM incident_updates WHERE id=?)':'(SELECT incident_id FROM incident_reports WHERE id=?)');
-      return [db.prepare(`INSERT OR IGNORE INTO sms_deliveries(id,subscriber_id,event_id,kind,incident_update_id,maintenance_id,incident_report_id,outcome,queued_at,outcome_at)
+      const threshold=input.kind==='maintenance-notice'?'1':incidentThresholdSql('(SELECT incident_id FROM follow_event)');
+      const follow=input.kind==='maintenance-notice'?'0':incidentFollowRecipientSql('(SELECT incident_id FROM follow_event)','(SELECT event_at FROM follow_event)',input.kind==='incident-report');
+      return [db.prepare(`WITH follow_event AS (SELECT ${input.kind==='maintenance-notice'?'NULL':`(SELECT incident_id FROM ${input.kind==='incident-update'?'incident_updates':'incident_reports'} WHERE id=?)`} AS incident_id,? AS event_at${input.kind==='incident-update'?`,EXISTS(SELECT 1 FROM incident_updates live_update WHERE live_update.id=? AND live_update.is_retroactive=0) AS live`:''})
+        INSERT OR IGNORE INTO sms_deliveries(id,subscriber_id,event_id,kind,incident_update_id,maintenance_id,incident_report_id,outcome,queued_at,outcome_at)
         SELECT ?||'.'||s.id,s.id,?,?,?,?,?,CASE WHEN s.state='active' THEN 'queued' ELSE 'suppressed' END,?,CASE WHEN s.state='active' THEN NULL ELSE ? END
-        FROM subscriber_directory s WHERE s.channel='sms' AND s.state IN ('active','deactivated') AND ${eligible}
-          AND ${eventPreferenceSql(input.kind==='maintenance-notice'?'maintenance':'incidents')} AND ${threshold}
+        FROM subscriber_directory s WHERE s.channel='sms' AND s.state IN ('active','deactivated') AND s.destination NOT LIKE 'deleted:%' AND ((${ordinarySubscriptionSql()} AND ${input.ordinaryEnabled===false?'0':'1'} AND ${eligible}
+          AND ${eventPreferenceSql(input.kind==='maintenance-notice'?'maintenance':'incidents')} AND ${threshold}) OR (${follow}${input.kind==='incident-update'?' AND (SELECT live FROM follow_event)':''}))
           ${input.kind==='maintenance-notice'?'AND EXISTS(SELECT 1 FROM maintenance_notices WHERE id=?)':''}`)
-        .bind(input.eventId,input.eventId,input.kind,input.incidentUpdateId??null,input.maintenanceId??null,input.incidentReportId??null,input.queuedAt,input.queuedAt,
-          ...(previous?previousIds:[...input.componentIds,...input.componentIds]),...(input.kind==='maintenance-notice'?[input.eventId]:[input.incidentUpdateId??input.incidentReportId??null]))];
+        .bind(...(input.kind==='maintenance-notice'?[]:[input.incidentUpdateId??input.incidentReportId??null]),input.queuedAt,...(input.kind==='incident-update'?[input.incidentUpdateId??null]:[]),input.eventId,input.eventId,input.kind,input.incidentUpdateId??null,input.maintenanceId??null,input.incidentReportId??null,input.queuedAt,input.queuedAt,
+          ...(previous?previousIds:[...input.componentIds,...input.componentIds]),...(input.kind==='maintenance-notice'?[input.eventId]:[]))];
     },
     async deliveries(updateId?:string,limit=100,pending=false,id?:string) {
       return (await db.prepare(`SELECT d.id,d.subscriber_id AS subscriberId,s.destination,d.event_id AS eventId,d.kind,d.incident_update_id AS incidentUpdateId,
-        d.outcome,d.provider_message_id AS providerMessageId,d.queued_at AS queuedAt,d.outcome_at AS outcomeAt,s.state AS subscriberState,
+        d.outcome,d.provider_message_id AS providerMessageId,d.queued_at AS queuedAt,d.outcome_at AS outcomeAt,CASE WHEN ${incidentFinalDeliverySql("d.event_id")} THEN 'active'
+          WHEN ${incidentDispatchAllowedSql("d.event_id", "COALESCE(u.incident_id,r.incident_id)")} THEN s.state ELSE 'deactivated' END AS subscriberState,
         i.reference,i.title,CASE WHEN u.id IS NULL THEN NULL ELSE u.lifecycle||': '||u.affected_audience||' '||u.customer_impact||' '||COALESCE(u.what_still_works,'')||' '||COALESCE(u.details,'') END AS wording,
         n.body,m.reference AS maintenanceReference,r.summary AS reportSummary,r.timeline AS reportTimeline,r.cause AS reportCause,r.remediation AS reportRemediation,
         (SELECT attribution.agent_name || ' for ' || CASE WHEN sponsor.id IS NULL OR sponsor.email='deleted-' || lower(sponsor.id) || '@operator.invalid'
@@ -112,16 +118,29 @@ export function createSmsRepository(db:D1Database) {
       return ids.map(row=>row.id);
     },
     async claim(id:string,now:string) {
+      const incident="COALESCE((SELECT incident_id FROM incident_updates WHERE id=sms_deliveries.incident_update_id),(SELECT incident_id FROM incident_reports WHERE id=sms_deliveries.incident_report_id))";
+      const allowed=`EXISTS(SELECT 1 FROM subscriber_directory s WHERE s.id=sms_deliveries.subscriber_id
+        AND ((s.state='active' AND ${incidentDispatchAllowedSql("sms_deliveries.event_id",incident)}) OR ${incidentFinalDeliverySql("sms_deliveries.event_id")}))`;
       const result=await db.batch([
-        db.prepare("UPDATE sms_deliveries SET outcome='suppressed',outcome_at=? WHERE id=? AND outcome='queued' AND NOT EXISTS(SELECT 1 FROM subscribers s WHERE s.id=sms_deliveries.subscriber_id AND s.state='active')").bind(now,id),
-        db.prepare("UPDATE sms_deliveries SET outcome='sending',outcome_at=? WHERE id=? AND outcome='queued' AND EXISTS(SELECT 1 FROM subscribers s WHERE s.id=sms_deliveries.subscriber_id AND s.state='active') RETURNING id").bind(now,id),
+        db.prepare(`UPDATE sms_deliveries SET outcome='suppressed',outcome_at=? WHERE id=? AND outcome='queued' AND NOT ${allowed}`).bind(now,id),
+        db.prepare(`UPDATE sms_deliveries SET outcome='sending',outcome_at=? WHERE id=? AND outcome='queued' AND ${allowed} RETURNING id`).bind(now,id),
       ]);
       return result[1].results.length===1;
     },
     async accepted(id:string,sid:string,now:string) { await db.prepare("UPDATE sms_deliveries SET outcome='sent',provider_message_id=?,outcome_at=? WHERE id=? AND outcome='sending'").bind(sid,now,id).run(); },
     async failed(id:string,now:string) { await db.prepare("UPDATE sms_deliveries SET outcome='failed',outcome_at=? WHERE id=? AND outcome='sending'").bind(now,id).run(); },
     async status(sid:string,status:string,now:string) {
-      await db.prepare("UPDATE sms_deliveries SET outcome=?,outcome_at=? WHERE provider_message_id=? AND outcome IN ('sending','sent')").bind(status,now,sid).run();
+      await db.batch([
+        db.prepare("UPDATE sms_deliveries SET outcome=?,outcome_at=? WHERE provider_message_id=? AND outcome IN ('sending','sent')").bind(status,now,sid),
+        ...(status==='delivered'?[
+          db.prepare(`UPDATE incident_subscriptions SET resolution_delivered_at=COALESCE(resolution_delivered_at,?),
+            resolution_at=COALESCE(resolution_at,(SELECT u.published_at FROM sms_deliveries d JOIN incident_updates u ON u.id=d.incident_update_id WHERE d.provider_message_id=?)),
+            ended_at=CASE WHEN include_report=0 THEN COALESCE(ended_at,?) ELSE ended_at END
+            WHERE ended_at IS NULL AND subscriber_id IN(SELECT d.subscriber_id FROM sms_deliveries d JOIN incident_updates u ON u.id=d.incident_update_id
+              WHERE d.provider_message_id=? AND d.outcome='delivered' AND u.lifecycle='Resolved' AND u.incident_id=incident_subscriptions.incident_id)`).bind(now,sid,now,sid),
+          ...finishIncidentSubscriptionStatements(db,now),
+        ]:[]),
+      ]);
     },
   };
 }

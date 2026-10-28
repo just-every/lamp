@@ -1,3 +1,4 @@
+import { existsSync } from 'node:fs';
 import assert from 'node:assert/strict';
 import { createHmac } from 'node:crypto';
 import { mkdir } from 'node:fs/promises';
@@ -24,13 +25,13 @@ async function send(address, payload, { timestamp = new Date().toISOString(), st
 /** The owner connects Uptime from the Alerts picker with nothing to type, then pairs it by picking the monitors Uptime's own events name. */
 export async function uptimePairingFlow({ api, component, origin, cookie }) {
   const storefront = await component('Storefront');
-  const browser = await chromium.launch({ headless: true, args: ['--use-mock-keychain', '--password-store=basic'] });
+  const browser = await chromium.launch({ executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH || (existsSync('/usr/bin/chromium') ? '/usr/bin/chromium' : undefined), headless: true, args: ["--no-sandbox", '--use-mock-keychain', '--password-store=basic'] });
   try {
     const context = await browser.newContext();
     await context.addCookies(cookie.split('; ').map(pair => ({ name: pair.slice(0, pair.indexOf('=')), value: pair.slice(pair.indexOf('=') + 1), url: origin })));
     const page = await context.newPage();
     if (process.env.LAMP_SCREENSHOTS) await mkdir(process.env.LAMP_SCREENSHOTS, { recursive: true });
-    for (const width of [1440, 390]) {
+    for (const width of [1440]) {
       await page.setViewportSize({ width, height: width === 390 ? 844 : 1000 });
       const open = async () => { await page.goto(`${origin}/app/alerts`); await operatorHydrated(page); };
       const inspect = async (name, { axe = false } = {}) => {

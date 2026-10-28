@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { load } from '../operator-readiness/runtime.mjs';
-import { lampRuntime, linkToken } from '../auth-adoption/lamp-runtime.mjs';
+import { lampRuntime, linkToken } from './runtime.mjs';
 
 const loaded = Promise.all([
   load('src/core/features/agent-door/people.ts'),

@@ -5,7 +5,7 @@ import { verificationPlan, shardNames } from './plan.mjs';
 import { checkVerificationPlan } from './check-plan.mjs';
 
 checkVerificationPlan();
-if (!process.env.LAMP_VERIFY_SHARD || process.env.LAMP_VERIFY_SHARD === 'source') {
+if (!process.env.LAMP_VERIFY_SHARD || process.env.LAMP_VERIFY_SHARD === 'build') {
   const { execFileSync } = await import('node:child_process');
   execFileSync(process.execPath, ['src/base/contract-docs.mjs', 'check'], { stdio: 'inherit' });
 }

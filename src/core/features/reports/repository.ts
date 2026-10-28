@@ -1,6 +1,7 @@
 import { readIncidentAgentAttributions } from '../agent-door/incident-attribution.repository';
 import type { NativeAttribution } from '../agent-door/provenance.repository';
 import { agentAttributionStatements } from '../agent-door/provenance.repository';
+import { incidentReportEndStatements } from "../subscribers/incident-lifecycle.repository";
 import { reportReminderEligibleSql } from "./reminder-eligibility";
 import { createUlid } from "../../shared/ids";
 
@@ -85,6 +86,7 @@ export function createReportRepository(binding: D1Database): ReportRepository {
           guard,
           ...agentAttributionStatements(binding,{entityType:'incident-report',entityId:reportId,operatorId,at:publishedAt,publication:true}),
           ...notificationStatements,
+          ...incidentReportEndStatements(binding,incidentId,reportId,publishedAt),
         ]);
       } catch {
         return false;

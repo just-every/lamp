@@ -618,8 +618,8 @@ correctly. An omitted list or one sponsor runs no extra phase or points.
 ## Provision verification webhook secrets
 
 A seed that creates its own random installation HMAC keys can declare
-`verification.network.secretSource: "tests/read-webhook-secrets.mjs"` alongside
-its existing network module and origins. The contained test-only module
+`verification.network.secretSource` as the path `tests/read-webhook-secrets.mjs`
+alongside its existing network module and origins. The contained test-only module
 exports `async function ({database})`, reads the fresh installation's own state
 and returns a nonempty map of uppercase binding names to string values. The
 isolated receiver receives that map as `env.secrets` in its `fetch(request,env)`.
@@ -789,7 +789,7 @@ The static surface validator checks every clause ID named by tools and
 There is no fixed shared set of `AGENT-*` or `SURFACE-*` IDs: those remain the
 seed's own specialist jobs and deltas. The sync never creates or changes them.
 
-A directory copy of `modules/agent-door` delivers `CLAUSES.md` automatically
+A directory copy of `modules/agent-door/` delivers `CLAUSES.md` automatically
 through the existing `record-base` and `refresh-base` workflow above, including
 its digest in `base-copies.json`. If the edition instead records individual
 module files, copy and record this additional file from the same immutable

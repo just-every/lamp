@@ -1,4 +1,5 @@
 import { createLampAgentDoor } from '../features/agent-door/index.server';
+import { registerIncidentFollowSettingsRoutes } from "../features/subscribers/incident-follow-settings.routes";
 import { registerTrafficAlertRoutes } from "../features/traffic-alerts/routes";
 import { registerSmsRoutes } from "../features/sms/routes";
 import { createManagementApiService } from "../features/management-api/service";
@@ -99,6 +100,7 @@ export function createApp(bindings: AppBindings, execution?: MailExecution) {
   registerAiRoutes(app, services.ai);
   registerMaintenanceRoutes(app, services.maintenance);
   registerSubscriberRoutes(app, services.subscribers, { rateLimiter: publicWriteLimiter });
+  registerIncidentFollowSettingsRoutes(app,bindings.DB);
   registerSmsRoutes(app,services.sms,()=>services.subscribers.getPageName(),bindings.TWILIO_AUTH_TOKEN,publicWriteLimiter);
   registerTeamsSubscriptionRoutes(app, services.teamsSubscriptions, services.subscribers, publicWriteLimiter);
   registerPageSettingsRoutes(app, services.pageSettings, (key) => services.publicSnapshots.readArtifact(key));

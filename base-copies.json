@@ -142,10 +142,10 @@
     {
       "path": "modules/agent-door",
       "originPath": "modules/agent-door",
-      "revision": "e1b4265eb0d839a67dae3c36a04f83fa48c9d480",
+      "revision": "f96363bf919ea3e7ed1837daba6894810a50e4a6",
       "files": {
         "modules/agent-door/admission.ts": "c67ee28a1ae61b963619ffc64807baaa37b618aec41d6a2d90f1852f5beebf9e",
-        "modules/agent-door/ADOPTING.md": "32226371c21871a96294e5fb7b4b0669e0ee48c576b56db0d91ca649db1d0d12",
+        "modules/agent-door/ADOPTING.md": "4c2308559c5d989c2547805aeb4a42b1cb06939942e79a44b6a36c0b9a71c0be",
         "modules/agent-door/approval-execution.ts": "184b7fd7f016fb58121746873f4bf8fab621c4d09a1a00e61cf53eedad2fc3b3",
         "modules/agent-door/approvals.ts": "45757936fac519de054ca754fd45ea3e6def75f18f1e71cb6a651e6451bf767c",
         "modules/agent-door/audit.ts": "dba2eec2f97a5580af7b2b0a997617ef0aed8bcd4a36467914aeeb7b439b94ed",
@@ -387,7 +387,7 @@
     {
       "path": "modules/business-settings",
       "originPath": "modules/business-settings",
-      "revision": "e1b4265eb0d839a67dae3c36a04f83fa48c9d480",
+      "revision": "f96363bf919ea3e7ed1837daba6894810a50e4a6",
       "files": {
         "modules/business-settings/ADOPTING.md": "5d7383182eb0ca92ce53b51d93f0199412366873ba7281cc0610857f76e77884",
         "modules/business-settings/apply.ts": "037784c7d783c36577d351c9a6bddab5780393e192883ec08616a4d480e9df48",
@@ -1301,7 +1301,7 @@
     {
       "path": "modules/operator-auth",
       "originPath": "modules/operator-auth",
-      "revision": "e1b4265eb0d839a67dae3c36a04f83fa48c9d480",
+      "revision": "f96363bf919ea3e7ed1837daba6894810a50e4a6",
       "files": {
         "modules/operator-auth/accounts/adapter.mjs": "989fca51e86ecc80cb150661b6d6cb8b6a57f82a85eb408d1fa6286a8372a3aa",
         "modules/operator-auth/accounts/admin.mjs": "654cebd373d88d11cd089b8de71b8b75b4acafbedc65484d1ef02f4cea043560",

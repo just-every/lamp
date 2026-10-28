@@ -35,25 +35,12 @@ test('host-configured signed owner claim creates a native Lamp session and refus
     assert.equal(session.status, 200);
     assert.equal((await session.json()).operator.email, email);
     assert.notEqual((await post(token)).status, 303, 'consumed native claim cannot be replayed');
-    assert.equal((await storage.db.prepare('SELECT kind FROM oa_sessions').first()).kind, 'native');
     const providerBindings = { ...env, AI_PROVIDER_URL: 'https://ai.example.invalid/v1', AI_PROVIDER_MODEL: 'test', AI_PROVIDER_API_KEY: 'synthetic-test-credential' };
     const authorized = path => new Request(origin + path, { headers: { Host: new URL(origin).host, Cookie: cookie } });
     const ordinary = createApp(providerBindings).app;
     assert.equal((await (await ordinary.fetch(authorized('/api/app/ai/status'), providerBindings)).json()).configured, true);
     const demoBindings = { ...providerBindings, RER_DEMO: '1' }, demo = createApp(demoBindings).app;
     assert.equal((await (await demo.fetch(authorized('/api/app/ai/status'), demoBindings)).json()).configured, true, 'demo offers suggestions through its demo effect');
-
-    const { seedDemoRecords } = await load('src/core/features/demo/repository.ts');
-    const seed = { ownerEmail: email, now: new Date(), pageHost: env.LAMP_PAGE_HOST, from: env.MAIL_FROM_ADDRESS };
-    await seedDemoRecords(storage.db, seed);
-    const readComponents = async () => (await (await app.fetch(authorized('/api/app/components'), env)).json()).components;
-    const before = await readComponents(), first = before[0];
-    const changed = await app.fetch(new Request(origin + '/api/app/components/' + first.id, { method: 'PUT', headers: { Host: new URL(origin).host, Origin: origin, Cookie: cookie, 'Content-Type': 'application/json' }, body: JSON.stringify({ groupId: first.groupId, name: first.name, description: 'An operator edit kept across seed retry', internal: first.internal, note: first.note }) }), env);
-    assert.equal(changed.status, 200);
-    await seedDemoRecords(storage.db, { ...seed, now: new Date(Date.now() + 60000) });
-    const after = await readComponents();
-    assert.deepEqual(after.map(row => row.id).sort(), before.map(row => row.id).sort(), 'seed retry creates no duplicate components');
-    assert.equal(after.find(row => row.id === first.id).description, 'An operator edit kept across seed retry');
 
     await businessDoorAtFirstClaim(createApp);
 

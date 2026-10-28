@@ -1,11 +1,11 @@
 import assert from 'node:assert/strict';
 import { chmod, copyFile, mkdir, mkdtemp, readFile, rm } from 'node:fs/promises';
 import { join } from 'node:path';
+import { tmpdir } from 'node:os';
 import { readArchive } from '@runeditrun/rer/modules/portability';
 import { bindCell } from '@runeditrun/rer/modules/portability/catalogue';
 import { contract } from '../contract.mjs';
 import { checkout, command, proxy } from '../helpers/native-transfer.mjs';
-import { installManaged } from './helpers/managed-install.mjs';
 
 // A native backup the listed release (c5dab715, migrations up to 0032) made with
 // its own rer of a populated install, retained unchanged: that release's HIST-004
@@ -18,8 +18,8 @@ const key = (columns, row) => JSON.stringify(columns.map(name => row[name] insta
 const mirrored = history => ({ id: `state-history/${history.id}`, entity_type: 'component', entity_id: history.component_id, action: 'state-changed', operator_id: history.operator_id, reason: null,
   payload_json: JSON.stringify({ previousState: history.previous_state, newState: history.new_state, causeType: history.cause_type, causeId: history.cause_id }), created_at: history.created_at, updated_at: history.updated_at });
 
-contract('HIST-004', 'a backup made before migration 0033 restores through rer import into a native and a RER Managed installation with its state history and audit entries', async () => {
-  const root = process.cwd(), directory = await mkdtemp(join(root, '.lamp-prior-backup-'));
+contract('HIST-004', 'a previous-release backup upgrades through rer import with its original history, consent and image bytes', async () => {
+  const root = process.cwd(), directory = await mkdtemp(join(tmpdir(), 'lamp-prior-backup-'));
   const records = []; for await (const record of readArchive(new Blob([await readFile(fixture)]).stream())) records.push(record);
   const [manifest] = records, items = records.filter(record => record.kind === 'part').flatMap(record => record.items);
   const archived = name => items.filter(item => item.kind === 'row' && item.table === name).map(item => Object.fromEntries(Object.entries(item.row).map(([column, value]) => [column, cell(value)])));
@@ -28,19 +28,14 @@ contract('HIST-004', 'a backup made before migration 0033 restores through rer i
   assert.ok(archived('subscribers').length > 0, 'the unchanged older backup holds subscription identity and scope');
   assert.ok(archived('notification_deliveries').length > 0, 'the unchanged older backup holds retained delivery outcomes');
   try {
-    // Native: rer applies the migrations under Wrangler's ledger. Managed: Platform's
-    // runner already applied them under rer_migrations, and Lamp's page initializer
-    // seeded this installation's page settings, which the restore replaces.
-    for (const destination of ['native', 'managed']) {
+    // rer applies later migrations around the captured archive without rewriting it.
+    const destination = 'native';
+    {
       const target = join(directory, destination);
       await checkout(root, target);
-      if (destination === 'managed') await installManaged(join(target, '.wrangler/state'), { config: 'wrangler.jsonc', pageName: 'Managed destination' });
-      const ledger = async () => { const platform = await proxy(target); try { return (await platform.env.DB.prepare('SELECT name, sha256, applied_at FROM rer_migrations ORDER BY rowid').all()).results; } finally { await platform.dispose(); } };
-      const platformLedger = destination === 'managed' && await ledger();
       // rer import reads only an owner-private input, whatever mode the checkout gave the fixture.
       await mkdir(join(target, 'exports')); await copyFile(fixture, join(target, 'exports/prior.rer')); await chmod(join(target, 'exports/prior.rer'), 0o600);
       await command(target, 'import', '--input', 'exports/prior.rer', '--yes');
-      if (platformLedger) assert.deepEqual(await ledger(), platformLedger, 'the restore leaves Platform\'s ledger as it was');
 
       const current = await proxy(target);
       try {

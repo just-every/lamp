@@ -1,17 +1,19 @@
+import { incidentResolutionAcceptanceStatements, incidentResolutionReceiptStatements } from "../subscribers/incident-lifecycle.repository";
+import { incidentDispatchAllowedSql, incidentFinalDeliverySql } from "./subscriber-eligibility";
 import type { ComponentState } from "../../shared/domain";
 import type { IncidentImpact } from "../../shared/incident-impact";
 import { parsePublishedComponentChanges, type PublishedIncidentComponentChange } from "../../shared/incident-component-changes";
 import { and, asc, eq, isNull, lte, sql } from "drizzle-orm";
 
 import { createDatabase } from "../../platform/db/client";
-import { maintenance, deliveryRecords, operators, subscribers } from "../../shared/schema";
+import { maintenance, deliveryRecords, operators, subscriberDirectory as subscribers } from "../../shared/schema";
 import { notificationOutbox } from "./schema";
 import { createUlid } from "../../shared/ids";
 import { createStatuspageWebhookRepository } from "./statuspage-webhook.repository";
 import type { WebhookFormat } from "../subscribers/webhook-format";
 
 export type DeliveryLogChannel = "email" | "webhook" | "sms";
-export type DeliveryRow = Omit<typeof deliveryRecords.$inferSelect, "channel"> & { agentLabel?: string | null; channel: DeliveryLogChannel; providerOutcome?: "delivered" | "undelivered" | "failed" | null; destination: string; subscriberState: "pending" | "active" | "deactivated"; providerAcceptedAt: string | null; acceptingProvider: string | null; latestError: string | null; localCaptureId: string | null; localCapturedAt: string | null; maintenanceReference: string | null; maintenanceTitle: string | null; maintenanceNoticeKind: string | null; incidentReference: string | null; incidentTitle: string | null; incidentLifecycle: string | null };
+export type DeliveryRow = Omit<typeof deliveryRecords.$inferSelect, "channel"> & { agentLabel?: string | null; incidentReportId: string | null; channel: DeliveryLogChannel; providerOutcome?: "delivered" | "undelivered" | "failed" | null; destination: string; subscriberState: "pending" | "active" | "deactivated"; providerAcceptedAt: string | null; acceptingProvider: string | null; latestError: string | null; localCaptureId: string | null; localCapturedAt: string | null; maintenanceReference: string | null; maintenanceTitle: string | null; maintenanceNoticeKind: string | null; incidentReference: string | null; incidentTitle: string | null; incidentLifecycle: string | null };
 
 /** A confirmation or other subscription email, sent outside notification deliveries (subscribers/service.ts). */
 export interface SubscriptionMailRow { id: string; destination: string; subscriberState: "pending" | "active" | "deactivated"; kind: "confirmation" | "already-subscribed" | "subscribed"; outcome: "accepted" | "suppressed" | "failed"; sentAt: string }
@@ -116,12 +118,13 @@ export interface DeliveryRepository {
   getIncidentWebhookPayload(incidentId: string, updateId: string, eventId: string | null): Promise<IncidentWebhookPayload | null>;
 }
 
-export function createDeliveryRepository(binding: D1Database): DeliveryRepository {
+export function createDeliveryRepository(binding: D1Database, mailReceipts?: { provider: string; receipts: string[] }): DeliveryRepository {
   const database = createDatabase(binding);
   function deliveryStatement(deliveryId: string) {
     return binding.prepare(`
         SELECT component_event.id AS componentEventId, component_event.component_id AS componentId, component_event.component_name AS componentName, component_event.component_created_at AS componentCreatedAt, component_event.previous_state AS previousComponentState, component_event.new_state AS newComponentState, component_event.changed_at AS componentChangedAt, component_event.claimant_kind AS componentClaimantKind,
-          d.id, d.notification_event_id AS notificationEventId, d.subscriber_id AS subscriberId, d.channel, s.state AS subscriberState, s.destination, s.contact_email AS contactEmail,
+          d.id, d.notification_event_id AS notificationEventId, d.subscriber_id AS subscriberId, d.channel, CASE WHEN ${incidentFinalDeliverySql("d.notification_event_id")} THEN 'active'
+            WHEN ${incidentDispatchAllowedSql("d.notification_event_id", "COALESCE(i.id,reportIncident.id)")} THEN s.state ELSE 'deactivated' END AS subscriberState, s.destination, s.contact_email AS contactEmail,
           COALESCE(s.webhook_format,'lamp') AS webhookFormat,COALESCE(i.id,reportIncident.id) AS statuspageIncidentId,
           d.incident_update_id AS incidentUpdateId, d.incident_report_id AS incidentReportId, d.maintenance_id AS maintenanceId,
           d.incident_impact AS incidentImpact, i.id AS incidentId, CASE WHEN u.id IS NOT NULL AND u.id = (SELECT first_update.id FROM incident_updates first_update WHERE first_update.incident_id = i.id ORDER BY first_update.published_at ASC, first_update.id ASC LIMIT 1) THEN 1 ELSE 0 END AS isFirstIncidentUpdate,
@@ -155,7 +158,7 @@ export function createDeliveryRepository(binding: D1Database): DeliveryRepositor
       `).bind(deliveryId);
   }
 
-  const deliveryTables = ["notification_deliveries", "component_notification_deliveries"] as const;
+  const deliveryTables = ["notification_deliveries", "component_notification_deliveries", "report_notification_deliveries"] as const;
   function updateStatements(fragment: string, values: (string | number | null)[]) {
     return deliveryTables.map(table => binding.prepare(`UPDATE ${table} AS d ${fragment}`).bind(...values));
   }
@@ -182,7 +185,7 @@ export function createDeliveryRepository(binding: D1Database): DeliveryRepositor
       if (input.outcome) conditions.push(eq(deliveryRecords.outcome, input.outcome));
       if (input.incidentUpdateId) conditions.push(eq(deliveryRecords.incidentUpdateId, input.incidentUpdateId));
       const query = database.select({
-        id: deliveryRecords.id, subscriberId: deliveryRecords.subscriberId, incidentUpdateId: deliveryRecords.incidentUpdateId, maintenanceId: deliveryRecords.maintenanceId,
+        id: deliveryRecords.id, subscriberId: deliveryRecords.subscriberId, incidentUpdateId: deliveryRecords.incidentUpdateId, incidentReportId: sql<string | null>`notification_delivery_records.incident_report_id`, maintenanceId: deliveryRecords.maintenanceId,
         channel: deliveryRecords.channel, outcome: deliveryRecords.outcome, queuedAt: deliveryRecords.queuedAt, outcomeAt: deliveryRecords.outcomeAt,
         createdAt: deliveryRecords.createdAt, updatedAt: deliveryRecords.updatedAt, destination: subscribers.destination, subscriberState: subscribers.state,
         maintenanceReference: maintenance.reference, maintenanceTitle: maintenance.title,
@@ -191,8 +194,8 @@ export function createDeliveryRepository(binding: D1Database): DeliveryRepositor
           WHERE p.entity_id=COALESCE(notification_delivery_records.notification_event_id,notification_delivery_records.incident_update_id,notification_delivery_records.incident_report_id)
             AND p.entity_type IN ('incident-update','incident-report','maintenance-notice','component-state','component-state-history') ORDER BY p.created_at DESC LIMIT 1)`,
         maintenanceNoticeKind: sql<string | null>`(SELECT kind FROM maintenance_notices WHERE id = notification_delivery_records.notification_event_id)`,
-        incidentReference: sql<string | null>`(SELECT i.reference FROM incident_updates u JOIN incidents i ON i.id = u.incident_id WHERE u.id = notification_delivery_records.incident_update_id)`,
-        incidentTitle: sql<string | null>`(SELECT i.title FROM incident_updates u JOIN incidents i ON i.id = u.incident_id WHERE u.id = notification_delivery_records.incident_update_id)`,
+        incidentReference: sql<string | null>`(SELECT i.reference FROM incidents i WHERE i.id=COALESCE((SELECT incident_id FROM incident_updates WHERE id=notification_delivery_records.incident_update_id),(SELECT incident_id FROM incident_reports WHERE id=notification_delivery_records.incident_report_id)))`,
+        incidentTitle: sql<string | null>`(SELECT i.title FROM incidents i WHERE i.id=COALESCE((SELECT incident_id FROM incident_updates WHERE id=notification_delivery_records.incident_update_id),(SELECT incident_id FROM incident_reports WHERE id=notification_delivery_records.incident_report_id)))`,
         incidentLifecycle: sql<string | null>`(SELECT lifecycle FROM incident_updates WHERE id = notification_delivery_records.incident_update_id)`,
         providerAcceptedAt: sql<string | null>`(SELECT attempted_at FROM notification_attempt_records AS notification_delivery_attempts WHERE delivery_id = ${deliveryRecords.id} AND provider_message_id IS NOT NULL AND error IS NULL ORDER BY attempted_at LIMIT 1)`,
         acceptingProvider: sql<string | null>`(SELECT accepting_provider FROM mail_provider_routes WHERE notification_delivery_id = ${deliveryRecords.id})`,
@@ -205,7 +208,7 @@ export function createDeliveryRepository(binding: D1Database): DeliveryRepositor
       const prefix = input.limit === undefined ? undefined : (input.offset ?? 0) + input.limit;
       const ordinary = input.channel === "sms" ? [] : await (prefix === undefined ? query.all() : query.limit(prefix).all());
       const sms = input.channel && input.channel !== "sms" ? [] : (await binding.prepare(`
-        SELECT d.id,d.subscriber_id AS subscriberId,d.incident_update_id AS incidentUpdateId,d.maintenance_id AS maintenanceId,
+        SELECT d.id,d.subscriber_id AS subscriberId,d.incident_update_id AS incidentUpdateId,d.incident_report_id AS incidentReportId,d.maintenance_id AS maintenanceId,
           'sms' AS channel,CASE WHEN d.outcome IN ('sending','sent') THEN 'queued' WHEN d.outcome='undelivered' THEN 'failed' ELSE d.outcome END AS outcome,
           CASE WHEN d.outcome IN ('delivered','undelivered','failed') THEN d.outcome END AS providerOutcome,d.queued_at AS queuedAt,
           CASE WHEN d.outcome IN ('sending','sent','queued') THEN NULL ELSE d.outcome_at END AS outcomeAt,
@@ -242,12 +245,12 @@ export function createDeliveryRepository(binding: D1Database): DeliveryRepositor
       return result ?? null;
     },
     async claimAndGetDelivery(deliveryId, now, reclaimBefore) {
-      const [historical, component, rows] = await binding.batch<DispatchableDelivery>([
+      const results = await binding.batch<DispatchableDelivery>([
         ...claimStatements(deliveryId, now, reclaimBefore),
         deliveryStatement(deliveryId),
       ]);
-      const claimed = historical.meta.changes + component.meta.changes === 1;
-      return { claimed, delivery: claimed ? rows.results[0] ?? null : null };
+      const claimed = results.slice(0,deliveryTables.length).reduce((sum,row)=>sum+row.meta.changes,0) === 1;
+      return { claimed, delivery: claimed ? results[deliveryTables.length].results[0] ?? null : null };
     },
     async claimDelivery(deliveryId, now, reclaimBefore) {
       const results = await binding.batch(claimStatements(deliveryId, now, reclaimBefore));
@@ -281,18 +284,20 @@ export function createDeliveryRepository(binding: D1Database): DeliveryRepositor
           SELECT ?,?,COUNT(*)+1,?,?,NULL,?,NULL FROM notification_attempt_records WHERE delivery_id=?`)
           .bind(input.id,input.deliveryId,input.attemptedAt,input.providerMessageId,input.createdAt,input.deliveryId),
         pendingEventsStatement(input.providerMessageId),
+        ...(mailReceipts ? incidentResolutionAcceptanceStatements(binding,input.deliveryId,input.attemptedAt,mailReceipts) : []),
       ]);
       return pending.results.map(event => ({...event,hardBounce:Boolean(event.hardBounce)}));
     },
     async markOutcome(deliveryId, outcome, outcomeAt, updatedAt) {
-      await binding.batch(updateStatements("SET outcome=?,outcome_at=?,updated_at=? WHERE id=?",[outcome,outcomeAt,updatedAt,deliveryId]));
+      await binding.batch([...updateStatements("SET outcome=?,outcome_at=?,updated_at=? WHERE id=?",[outcome,outcomeAt,updatedAt,deliveryId]), ...(outcome === "delivered" ? incidentResolutionReceiptStatements(binding,deliveryId,updatedAt) : [])]);
     },
     async markProviderOutcome(deliveryId, outcome, now) {
       const transition = outcome === "delivered" ? "outcome IN ('queued','failed')"
         : outcome === "bounced" ? "outcome IN ('queued','delivered','failed')" : "outcome IN ('queued','delivered','bounced','failed')";
-      const results=await binding.batch(updateStatements(`SET outcome=?,outcome_at=?,updated_at=? WHERE id=? AND ${transition}
-        AND NOT EXISTS(SELECT 1 FROM notification_attempt_records a WHERE a.delivery_id=d.id AND a.local_capture_id IS NOT NULL)`,[outcome,now,now,deliveryId]));
-      return results.reduce((sum,row)=>sum+row.meta.changes,0)===1;
+      const results=await binding.batch([...updateStatements(`SET outcome=?,outcome_at=?,updated_at=? WHERE id=? AND ${transition}
+        AND NOT EXISTS(SELECT 1 FROM notification_attempt_records a WHERE a.delivery_id=d.id AND a.local_capture_id IS NOT NULL)`,[outcome,now,now,deliveryId]),
+        ...(outcome === "delivered" ? incidentResolutionReceiptStatements(binding,deliveryId,now) : [])]);
+      return results.slice(0,deliveryTables.length).reduce((sum,row)=>sum+row.meta.changes,0)===1;
     },
     async freezeMailPayload(deliveryId, payloadJson) {
       const [,stored]=await binding.batch<{payloadJson:string|null}>([
@@ -307,17 +312,21 @@ export function createDeliveryRepository(binding: D1Database): DeliveryRepositor
       // Both scopes and their authoritative winners share one transaction. A
       // concurrent delivery reuses the committed tokens; a revoked token is
       // never reused, and an inactive/deleted subscriber gets no new links.
+      const terminalReport = `EXISTS(SELECT 1 FROM notification_delivery_records terminal WHERE terminal.subscriber_id=subscribers.id
+        AND terminal.outcome='queued' AND ${incidentFinalDeliverySql("terminal.notification_event_id", "subscribers")})`;
+      const notificationAllowed = `(state='active' OR ${terminalReport})`;
+      const tokenAvailable = `(revoked_at IS NULL OR ${terminalReport})`;
       const insert = (scope: "manage" | "unsubscribe") => binding.prepare(`
         INSERT INTO subscriber_tokens (id, subscriber_id, scope, token_hash, expires_at, revoked_at, created_at, updated_at)
-        SELECT ?, id, ?, ?, NULL, NULL, ?, ? FROM subscriber_directory AS subscribers
-        WHERE id = ? AND state = 'active'
-          AND NOT EXISTS (SELECT 1 FROM subscriber_tokens WHERE subscriber_id = ? AND scope = ? AND revoked_at IS NULL)
-      `).bind(candidates[scope].id, scope, candidates[scope].tokenHash, now, now, subscriberId, subscriberId, scope);
+        SELECT ?, id, ?, ?, NULL, CASE WHEN state='active' THEN NULL ELSE ? END, ?, ? FROM subscriber_directory AS subscribers
+        WHERE id = ? AND ${notificationAllowed}
+          AND NOT EXISTS (SELECT 1 FROM subscriber_tokens WHERE subscriber_id = ? AND scope = ? AND ${tokenAvailable})
+      `).bind(candidates[scope].id, scope, candidates[scope].tokenHash, now, now, now, subscriberId, subscriberId, scope);
       const [, , stored] = await binding.batch<{ state: string; manage: string | null; unsubscribe: string | null }>([
         insert("manage"), insert("unsubscribe"),
-        binding.prepare(`SELECT state,
-          (SELECT id FROM subscriber_tokens WHERE subscriber_id = subscribers.id AND scope = 'manage' AND revoked_at IS NULL ORDER BY created_at DESC LIMIT 1) AS manage,
-          (SELECT id FROM subscriber_tokens WHERE subscriber_id = subscribers.id AND scope = 'unsubscribe' AND revoked_at IS NULL ORDER BY created_at DESC LIMIT 1) AS unsubscribe
+        binding.prepare(`SELECT CASE WHEN ${notificationAllowed} THEN 'active' ELSE state END AS state,
+          (SELECT id FROM subscriber_tokens WHERE subscriber_id = subscribers.id AND scope = 'manage' AND ${tokenAvailable} ORDER BY created_at DESC,id DESC LIMIT 1) AS manage,
+          (SELECT id FROM subscriber_tokens WHERE subscriber_id = subscribers.id AND scope = 'unsubscribe' AND ${tokenAvailable} ORDER BY created_at DESC,id DESC LIMIT 1) AS unsubscribe
           FROM subscriber_directory AS subscribers WHERE id = ?`).bind(subscriberId),
       ]);
       const row = stored.results[0];
@@ -383,8 +392,8 @@ export function createDeliveryRepository(binding: D1Database): DeliveryRepositor
     },
     async completeProviderEvent(eventId, deliveryId, now) {
       await binding.batch([deliveryAuthority(deliveryId),
-        binding.prepare("UPDATE mail_provider_webhook_events SET applied_at = ?, delivery_id = (SELECT id FROM notification_deliveries WHERE id=?), component_delivery_id = (SELECT id FROM component_notification_deliveries WHERE id=?), claimed_at = NULL WHERE id = ? AND applied_at IS NULL")
-          .bind(now, deliveryId, deliveryId, eventId)]);
+        binding.prepare("UPDATE mail_provider_webhook_events SET applied_at = ?, delivery_id = (SELECT id FROM notification_deliveries WHERE id=?), component_delivery_id = (SELECT id FROM component_notification_deliveries WHERE id=?), report_delivery_id = (SELECT id FROM report_notification_deliveries WHERE id=?), claimed_at = NULL WHERE id = ? AND applied_at IS NULL")
+          .bind(now, deliveryId, deliveryId, deliveryId, eventId)]);
     },
     async countConsecutiveOutcomes(subscriberId, channel, outcomes, limit) {
       // Outstanding newer work says nothing about the outcome sequence. Count

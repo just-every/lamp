@@ -28,3 +28,6 @@ delivery-artifact/
 
 # Private owner hosting settings.
 .env*
+
+# Disposable local Worker and browser fixtures.
+/.lamp-*/
