@@ -2086,8 +2086,8 @@
       }
     },
     {
-      "id": "correction",
-      "tool": "lamp.updates.correct",
+      "id": "correction-save",
+      "tool": "lamp.drafts.save",
       "args": {
         "id": {
           "$from": "incident",
@@ -2097,9 +2097,13 @@
           "$from": "incident-publish",
           "pointer": "/version"
         },
-        "updateId": {
-          "$from": "incident-publish",
-          "pointer": "/update/id"
+        "draft": {
+          "lifecycle": "Resolved",
+          "affectedAudience": "Customers using the API",
+          "customerImpact": "The synthetic API incident is closed with the native recorded recovery override.",
+          "whatStillWorks": "Dashboard access remains available.",
+          "details": "Corrected public wording based on native evidence.",
+          "nextUpdateAt": null
         }
       },
       "expect": [
@@ -2119,24 +2123,20 @@
       }
     },
     {
-      "id": "correction-save",
-      "tool": "lamp.drafts.save",
+      "id": "correction",
+      "tool": "lamp.updates.correct",
       "args": {
         "id": {
           "$from": "incident",
           "pointer": "/incident/id"
         },
         "version": {
-          "$from": "correction",
+          "$from": "correction-save",
           "pointer": "/version"
         },
-        "draft": {
-          "lifecycle": "Investigating",
-          "affectedAudience": "Customers using the API",
-          "customerImpact": "Some API requests fail.",
-          "whatStillWorks": "Dashboard access remains available.",
-          "details": "Corrected public wording based on native evidence.",
-          "nextUpdateAt": null
+        "updateId": {
+          "$from": "incident-publish",
+          "pointer": "/update/id"
         }
       },
       "expect": [
@@ -2164,10 +2164,11 @@
           "pointer": "/incident/id"
         },
         "version": {
-          "$from": "correction-save",
+          "$from": "correction",
           "pointer": "/version"
         },
-        "channels": []
+        "channels": [],
+        "overrideReason": "This controlled fixture has no connected independent recovery monitor; closure is explicitly authorized with this retained native override."
       },
       "expect": [
         {
@@ -2452,7 +2453,10 @@
           "pointer": "/template/id"
         },
         "template": {
-          "name": "Edited conformance template"
+          "name": {
+            "$from": "template-create",
+            "pointer": "/template/id"
+          }
         }
       },
       "expect": [

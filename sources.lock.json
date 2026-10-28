@@ -452,7 +452,7 @@
       "executable": false
     },
     "agent-surface.json": {
-      "sha256": "7322178ac1ed75d8baf281be22ba338c57218a6ed542efc0460c42707757175e",
+      "sha256": "3c336b817cf21b576e2382d73166e9737da3ea4ee2385afeea7402cce26c935f",
       "executable": false
     },
     "AGENTS.md": {
@@ -7812,7 +7812,7 @@
       "executable": false
     },
     "tests/agent-door/pending.mjs": {
-      "sha256": "4d20faf88161b71d4cdcb86ef6f3c008da134edc557f71896f61da410175c4b5",
+      "sha256": "7eface524d762dceecadd459982f963c3b2994dbf344644377c63ffc370ef4ac",
       "executable": false
     },
     "tests/agent-door/proof.mjs": {
@@ -7828,7 +7828,7 @@
       "executable": false
     },
     "tests/agent-door/specialist.mjs": {
-      "sha256": "b8db0e854159a51e05946771b32c2474ebc6ebd82b1ba3ed1aa7326556751df2",
+      "sha256": "472bf3e33bf19fbe957d48c4dc7db4e877abf4d47cf8bbc7d0e8541881248326",
       "executable": false
     },
     "tests/artifact-payload.mjs": {

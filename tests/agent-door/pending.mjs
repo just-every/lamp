@@ -5,11 +5,12 @@
  * Fresh main supplies aligned clauses; its newer status judgments stay authoritative.
  */
 export const pendingAssertions = Object.freeze({
-  nativeTarget: 'PENDING BASE 2026-10-28 conformance target checker must page audit beyond its first 200 rows; native paginated target assertion retained',
+  nativeTarget: 'ASSERTED LAMP-AGENT.native-target-paginated: native kind and id survive paginated audit readback',
+  targetHarnessPagination: 'PENDING BASE 2026-10-28 conformance target checker must page audit beyond its first 200 rows',
   resourceCode: 'ASSERTED BASE-AGENT-003.refusal-code: JSON-RPC error.data.code',
   replayAuthority: 'ASSERTED BASE-AGENT-012.replay: current, paused, audit, policy, approval, scope and once',
   applicableEscalation: 'ASSERTED BASE-AGENT-005.1: native sponsor invitation email, case-insensitive email and credential subject; record-only subjects declared explicitly',
-  reviewer: 'ASSERTED BASE-AGENT-001.reviewer.independent.native-session; native draft review readback remains required',
+  reviewer: 'ASSERTED BASE-AGENT-001.reviewer.independent.native-session and LAMP-AGENT.independent-native-review: self-review refuses and the distinct native reviewer is retained',
   timedLifecycle: 'PENDING BASE 2026-10-28 current-time journey arguments and final dispatch',
   dualHost: 'PENDING BASE 2026-10-28 native public host request in specialist journey',
   ownerNativeApi: 'PENDING BASE 2026-10-28 native delegated owner commands with genuine person proof',

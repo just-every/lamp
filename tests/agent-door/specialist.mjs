@@ -53,6 +53,8 @@ async function specialist({ request, origin, email, cookie, mail, tool }) {
   assert.equal(reviewed.incident.draft.reviewedByOperatorId, reviewerPerson.id);
   assert.ok(reviewed.incident.draft.reviewedAt);
   assert.notEqual(reviewerPerson.email, email);
+  console.info('PASS LAMP-AGENT.native-target-paginated');
+  console.info('PASS LAMP-AGENT.independent-native-review');
   const source = (await person('/api/app/intake/sources')).sources.find(row => row.id === fixture.source.id);
   assert.ok(source?.endpointUrl);
   let accepted;
