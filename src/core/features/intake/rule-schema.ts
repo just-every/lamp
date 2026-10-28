@@ -21,6 +21,7 @@ export interface RuleRun {
   releasedAt: string | null; createdAt: string; updatedAt: string;
 }
 export interface RuleAutomationPublication {
+  sourceId: string; sourceVersion: string;
   runId: string; ruleId: string; phase: "firing" | "recovery"; receiptId: string;
   ruleVersion: string; templateId: string; templateVersion: string; attribution: string;
 }

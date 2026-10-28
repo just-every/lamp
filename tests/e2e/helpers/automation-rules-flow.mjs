@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { openFollowUpsRuntime, eventuallyFollowUp } from "./follow-ups-runtime.mjs";
 import { groupedPayload } from "./grouped-alerts-flow.mjs";
+import { automationRetryFlow } from "./automation-retry-flow.mjs";
 
 const ownerId = "01J00000000000000000000091";
 const wording = {
@@ -132,6 +133,7 @@ export async function automationRulesFlow({ t }) {
     const claimRun = await runFor(firing.body.incidentId, claimRule.id);
     assert.ok(claimRun);
     assert.equal((await incident(claimRun.incidentId)).updates.length, 0);
+    assert.equal((await db.prepare("SELECT count(*) AS n FROM notification_outbox WHERE kind='operator-alert' AND aggregate_id=?").bind(`intake-draft/${firing.body.incidentId}`).first()).n, 0, "a claim rule also suppresses the owner draft-review notification");
     assert.deepEqual(await deliveries(), beforeClaimDeliveries, "claim captures neither incident nor component-change subscriber deliveries");
     assert.equal(subscriberMail(email).length, beforeClaimMail);
     assert.equal(fixture.webhookRequests.length, beforeClaimWebhooks);
@@ -147,6 +149,18 @@ export async function automationRulesFlow({ t }) {
     assert.equal(subscriberMail(email).length, beforeClaimMail);
     assert.equal(fixture.webhookRequests.length, beforeClaimWebhooks);
     t.diagnostic(`AUTO-001 measured claim to public state: ${elapsed.toFixed(1)}ms.`);
+    for (const number of [1, 2, 3]) {
+      const key = `concurrent-claim-${number}`;
+      assert.equal((await send(monitored, pingdom(key))).status, 202);
+      const racing = await Promise.all([
+        send(monitored, pingdom(key, false, { revision: 1 })),
+        send(monitored, pingdom(key, true, { revision: 1 })),
+      ]);
+      assert.ok(racing.every(result => result.status === 202), JSON.stringify(racing));
+      assert.equal((await send(monitored, pingdom(key, true, { revision: 2 }))).status, 202);
+      assert.equal(await publicState(target.id), "Operational", "a final recovery cannot leave a stale concurrent firing claim");
+    }
+    assert.deepEqual(await deliveries(), beforeClaimDeliveries, "concurrent claim/recovery produces no subscriber delivery");
 
     const isolatedBefore = await snapshot();
     const isolated = await send(independent, pingdom("different-source"));
@@ -246,6 +260,22 @@ export async function automationRulesFlow({ t }) {
     assert.equal(afterDelete.length, ruleAudit.length + 1, "deletion adds its audit row in the same operation");
     assert.ok(afterDelete.some(entry => /delet/i.test(entry.action) && entry.actorId === ownerId && Number.isFinite(Date.parse(entry.createdAt))));
     assert.ok(!(await api("/api/app/intake/rules")).body.rules.some(row => row.id === publishRule.id));
+    t.diagnostic("AUTO-001 erasure: deleting a source releases its active rule claim with append-only history, no publication and a retained audit entry.");
+    const eraseRule = await saveRule(independent, target, { name: "Synthetic Lamp erased claim", mode: "claim", state: "Major outage", templateId: null });
+    const beforeErasureDeliveries = await deliveries();
+    const claimedForErasure = await send(independent, pingdom("erasure-cycle"));
+    assert.equal(claimedForErasure.status, 202, JSON.stringify(claimedForErasure.body));
+    assert.equal(await publicState(target.id), "Major outage");
+    const erased = await api(`/api/app/intake/sources/${independent.id}`, { method: "DELETE" });
+    assert.equal(erased.status, 200, erased.text);
+    assert.equal(await publicState(target.id), "Operational", "source erasure cannot strand a public automatic claim");
+    assert.deepEqual(await deliveries(), beforeErasureDeliveries, "source erasure neither publishes an update nor sends a subscriber notification");
+    const transitions = (await db.prepare("SELECT previous_state,new_state FROM component_state_history WHERE component_id=? ORDER BY changed_at DESC,created_at DESC,id DESC LIMIT 1").bind(target.id).all()).results;
+    assert.deepEqual(transitions, [{ previous_state: "Major outage", new_state: "Operational" }]);
+    const erasedRuleAudit = (await api("/api/app/audit-log?action=deleted&limit=100")).body.entries.find(row => row.entityId === eraseRule.id);
+    assert.equal(erasedRuleAudit?.actorId, ownerId);
+    assert.ok(Number.isFinite(Date.parse(erasedRuleAudit.createdAt)));
+    await automationRetryFlow({ fixture, target, wording, resolvedWording, saveRule, send, pingdom, incident, publicState, subscriberMail, email, t });
   } finally {
     await fixture.close();
   }

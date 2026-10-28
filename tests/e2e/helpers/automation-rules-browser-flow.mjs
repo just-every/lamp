@@ -63,7 +63,7 @@ export async function automationRulesBrowserFlow({ origin, publicOrigin, cookie,
     const proof = process.env.LAMP_AUTO_SCREENSHOTS;
     if (proof) await mkdir(proof, { recursive: true });
     if (proof) await captureBoth("rule-controls", () => rules.screenshot.bind(rules));
-    await page.goto(`${origin}/app/settings`); await operatorHydrated(page);
+    await page.goto(`${origin}/app/settings#audit-log`); await operatorHydrated(page);
     const auditPanel = page.locator("#audit-log");
     await auditPanel.getByRole("button", { name: "Open audit log", exact: true }).click();
     // The audit API supplies the exact row id; the native view supplies the actor

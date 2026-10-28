@@ -52,3 +52,19 @@ CREATE TRIGGER alert_rules_release_before_delete BEFORE DELETE ON alert_rules BE
     WHERE id IN (SELECT incident_id FROM alert_rule_runs WHERE rule_id=OLD.id AND released_at IS NULL);
   UPDATE alert_rule_runs SET released_at=strftime('%Y-%m-%dT%H:%M:%fZ','now'),updated_at=strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE rule_id=OLD.id AND released_at IS NULL;
 END;
+
+-- Receipt admission and retry intent commit together. The ordinary synchronous
+-- path meets the 30-second claim promise; Cron recovers interrupted work.
+CREATE TABLE alert_rule_work (
+  receipt_id TEXT PRIMARY KEY NOT NULL REFERENCES alert_receipts(id) ON DELETE CASCADE,
+  source_version TEXT NOT NULL,
+  completed_at TEXT,
+  attempts INTEGER NOT NULL DEFAULT 0,
+  next_attempt_at INTEGER NOT NULL DEFAULT 0,
+  last_error TEXT
+);
+CREATE TRIGGER alert_rules_receipt_work AFTER INSERT ON alert_receipts
+WHEN NEW.state<>'invalid' AND EXISTS(SELECT 1 FROM alert_rules WHERE source_id=NEW.source_id AND mode<>'draft') BEGIN
+  INSERT INTO alert_rule_work(receipt_id,source_version)
+    SELECT NEW.id,updated_at FROM alert_sources WHERE id=NEW.source_id;
+END;

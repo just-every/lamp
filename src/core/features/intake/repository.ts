@@ -1,5 +1,6 @@
 import type { MonitorMapping } from "./uptime";
 import { currentStateHistoryStatement } from "../components/state-history-repository";
+import { activeRuleRunsGuard } from "./rule-repository";
 import { createUlid } from "../../shared/ids";
 import { groupedReceiptStatements } from "./grouped-repository";
 import type { GroupedReading, LabelMatcher } from "./grouped-alerts";
@@ -32,19 +33,18 @@ export interface AlertSourceRow {
   updatedAt: string;
 }
 
-export interface AlertReceiptRow { id: string; sourceId: string; requestHash: string; deduplicationKey: string | null; incidentId: string | null; state: "firing" | "recovered" | "invalid"; receivedAt: string; recoveredAt: string | null; payloadJson: string; error: string | null; createdAt: string; updatedAt: string; }
-export interface AlertReceiptView extends Omit<AlertReceiptRow, "requestHash" | "payloadJson"> { sourceName: string; direction?: "inbound" | "note"; }
+export interface AlertReceiptRow { sourceVersion?: string; id: string; sourceId: string; requestHash: string; deduplicationKey: string | null; incidentId: string | null; state: "firing" | "recovered" | "invalid"; receivedAt: string; recoveredAt: string | null; payloadJson: string; error: string | null; createdAt: string; updatedAt: string; }
+export interface AlertReceiptView extends Omit<AlertReceiptRow, "requestHash" | "payloadJson" | "sourceVersion"> { sourceName: string; direction?: "inbound" | "note"; }
 export interface AlertReceiptWriteResult { receipt: AlertReceiptRow; incidentCreated: boolean; replayed: boolean; }
 /** What has arrived through each source: its last delivery, and each Uptime monitor its own events named. */
 export interface AlertSourceActivity { deliveries: Array<{ sourceId: string; lastReceivedAt: string }>; monitors: Array<{ sourceId: string; monitorId: string; monitorName: string; lastSeenAt: string }>; }
 
 export interface IntakeRepository {
-  hasActiveRuleRuns(sourceId: string): Promise<boolean>;
   allocateIncidentReference(): Promise<AllocatedReference>;
   listSources(): Promise<AlertSourceRow[]>;
   listActivity(): Promise<AlertSourceActivity>;
   listReceipts(limit: number): Promise<AlertReceiptView[]>;
-  deleteSource(sourceId: string, operatorId: string, at: string): Promise<boolean>;
+  deleteSource(sourceId: string, operatorId: string, at: string): Promise<{deleted:boolean;publicChanged:boolean}>;
   operatorEmail(operatorId: string): Promise<string | null>;
   findSource(sourceId: string): Promise<AlertSourceRow | null>;
   upsertSource(source: AlertSourceRow): Promise<void>;
@@ -98,19 +98,17 @@ export function createIntakeRepository(binding: D1Database): IntakeRepository {
       const outbound = await binding.prepare(`SELECT p.id, p.source_id AS sourceId, s.name AS sourceName, p.external_id AS deduplicationKey, u.incident_id AS incidentId, CASE WHEN p.state = 'sent' THEN 'firing' ELSE 'invalid' END AS state, p.created_at AS receivedAt, p.error FROM alert_responder_posts p JOIN alert_sources s ON s.id = p.source_id JOIN incident_updates u ON u.id = p.incident_update_id WHERE p.state IN ('sent','failed') ORDER BY p.created_at DESC LIMIT ?`).bind(limit).all<Record<string, unknown>>();
       return [...values.results.map(receiptViewRow), ...outbound.results.map(value => ({ ...receiptViewRow({ ...value, recoveredAt: null, createdAt: value.receivedAt, updatedAt: value.receivedAt }), direction: "note" as const }))].sort((a, b) => b.receivedAt.localeCompare(a.receivedAt)).slice(0, limit);
     },
-    async hasActiveRuleRuns(sourceId) {
-      return Boolean(await binding.prepare("SELECT 1 FROM alert_rule_runs run JOIN alert_rules rule ON rule.id=run.rule_id WHERE rule.source_id=? AND run.released_at IS NULL LIMIT 1").bind(sourceId).first());
-    },
     async deleteSource(sourceId, operatorId, at) {
       const auditId = createUlid();
       const runs = (await binding.prepare("SELECT run.incident_id AS incidentId,rule.component_id AS componentId FROM alert_rule_runs run JOIN alert_rules rule ON rule.id=run.rule_id WHERE rule.source_id=? AND run.released_at IS NULL").bind(sourceId).all<{incidentId:string;componentId:string}>()).results;
       const result = await binding.batch<{ id: string }>([
+        activeRuleRunsGuard(binding,'source',sourceId,runs.map(run=>run.incidentId)),
         binding.prepare("INSERT INTO audit_entries(id,entity_type,entity_id,action,operator_id,payload_json,created_at,updated_at) SELECT ?, 'alert-source', id, 'erased', ?, '{}', ?, ? FROM alert_sources WHERE id = ?").bind(auditId, operatorId, at, at, sourceId),
         binding.prepare("UPDATE alert_rules SET approved_by_operator_id=? WHERE source_id=?").bind(operatorId,sourceId),
         binding.prepare("DELETE FROM alert_sources WHERE id = ? AND EXISTS (SELECT 1 FROM audit_entries WHERE id = ?) RETURNING id").bind(sourceId, auditId),
         ...runs.map(run=>currentStateHistoryStatement(binding,{id:createUlid(),componentId:run.componentId,cause:{type:'incident',id:run.incidentId,operatorId},changedAt:at,createdAt:at,updatedAt:at})),
       ]);
-      return result[2].results.some(row => row.id === sourceId);
+      return { deleted:result[3].results.some(row => row.id === sourceId),publicChanged:runs.length>0 };
     },
     async operatorEmail(operatorId) { return (await binding.prepare("SELECT email FROM operators WHERE id = ?").bind(operatorId).first<{ email: string }>())?.email ?? null; },
     async findSource(sourceId) { const value = await binding.prepare(`SELECT ${sourceFields} FROM alert_sources WHERE id = ?`).bind(sourceId).first<Record<string, unknown>>(); return value ? sourceRow(value) : null; },
@@ -191,6 +189,10 @@ export function createIntakeRepository(binding: D1Database): IntakeRepository {
         SELECT ?,incident_id,?,?,?,? FROM alert_receipts WHERE id = ? AND incident_id IS NOT NULL`)
         .bind(createUlid(), note.body, note.operatorId, receipt.receivedAt, receipt.receivedAt, receipt.id));
       if (group) statements.push(...groupedReceiptStatements(binding, receipt, group));
+      if (receipt.sourceVersion) statements.push(binding.prepare(`SELECT CASE WHEN
+        NOT EXISTS(SELECT 1 FROM alert_rules WHERE source_id=? AND mode<>'draft')
+        OR EXISTS(SELECT 1 FROM alert_sources WHERE id=? AND updated_at=?)
+        THEN 1 ELSE json('Alert source changed') END`).bind(receipt.sourceId,receipt.sourceId,receipt.sourceVersion));
       let incidentCreated = false;
       try {
         const results = await binding.batch(statements);

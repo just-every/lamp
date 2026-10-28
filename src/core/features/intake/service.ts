@@ -52,14 +52,14 @@ export function createIntakeService(
     const entityNames="refused" in reading?[]:reading.entityNames??[];
     if (!("refused" in reading) && source.preset === "newrelic" && source.labelMatchers?.length && !source.labelMatchers.some(row => entityNames.includes(row.labels.entity_name))) reading = { refused: "New Relic entity not mapped to this component." };
     if ("refused" in reading) {
-      const receipt: AlertReceiptRow = { id: createUlid(), sourceId: source.id, requestHash, deduplicationKey: null, incidentId: null, state: "invalid", receivedAt: timestamp, recoveredAt: null, payloadJson: rawBody, error: reading.refused, createdAt: timestamp, updatedAt: timestamp };
+      const receipt: AlertReceiptRow = { sourceVersion: source.updatedAt, id: createUlid(), sourceId: source.id, requestHash, deduplicationKey: null, incidentId: null, state: "invalid", receivedAt: timestamp, recoveredAt: null, payloadJson: rawBody, error: reading.refused, createdAt: timestamp, updatedAt: timestamp };
       await repository.recordInvalid(receipt);
       return { status: 400, receiptId: receipt.id, incidentId: null, replayed: false };
     }
     const existingIncidentId = await repository.findOpenIncident(source.id, reading.key);
     const createsDraft = !reading.recovered && !existingIncidentId && policy.createsDraft({ sourceId: source.id, deduplicationKey: reading.key, recovered: false });
     const incident = createsDraft ? { id: createUlid(), reference: await repository.allocateIncidentReference(), title: reading.title, operatorId: source.createdByOperatorId, timestamp, ...(mappedComponentId ? { component: { id: mappedComponentId, state: reading.state } } : {}) } : null;
-    const receipt: AlertReceiptRow = { id: createUlid(), sourceId: source.id, requestHash, deduplicationKey: reading.key, incidentId: existingIncidentId ?? incident?.id ?? null, state: reading.recovered ? "recovered" : "firing", receivedAt: timestamp, recoveredAt: reading.recovered ? timestamp : null, payloadJson: rawBody, error: null, createdAt: timestamp, updatedAt: timestamp };
+    const receipt: AlertReceiptRow = { sourceVersion: source.updatedAt, id: createUlid(), sourceId: source.id, requestHash, deduplicationKey: reading.key, incidentId: existingIncidentId ?? incident?.id ?? null, state: reading.recovered ? "recovered" : "firing", receivedAt: timestamp, recoveredAt: reading.recovered ? timestamp : null, payloadJson: rawBody, error: null, createdAt: timestamp, updatedAt: timestamp };
     const recorded = await repository.recordReceipt(receipt, incident);
     if (recorded.replayed) return { status: 202, receiptId: recorded.receipt.id, incidentId: recorded.receipt.incidentId, replayed: true };
     if (reading.recovered) {
@@ -73,10 +73,9 @@ export function createIntakeService(
 
   return {
     async deleteSource(sourceId, operatorId) {
-      const changesClaims=await repository.hasActiveRuleRuns(sourceId);
-      const deleted=await repository.deleteSource(sourceId,operatorId,nowIso());
-      if(deleted && changesClaims)await options.onSourceDeleted?.();
-      return deleted;
+      const result=await repository.deleteSource(sourceId,operatorId,nowIso());
+      if(result.deleted && result.publicChanged)await options.onSourceDeleted?.();
+      return result.deleted;
     },
     async listSources() {
       const [sources, activity] = await Promise.all([repository.listSources(), repository.listActivity()]);
@@ -127,7 +126,7 @@ export function createIntakeService(
         if (input.preset === "jsm" && !input.atlassianEmail) throw new Error("JSM needs the Atlassian account email.");
         sealed = await sealUrl(JSON.stringify(credentials), sourceId, sealingSecrets(options.webhookSecret));
       }
-      const timestamp = nowIso();
+      const timestamp = new Date(Math.max(Date.now(),existing ? Date.parse(existing.updatedAt)+1:0)).toISOString();
       // An endpoint awaiting PagerDuty's generated secret stores empty text; authentication refuses it.
       const source: AlertSourceRow = { id: sourceId, closeAlertOnResolve: input.closeAlertOnResolve ?? existing?.closeAlertOnResolve ?? false, responderSealedCredentials: sealed, responderConnected: Boolean(sealed || (existing?.preset === input.preset && existing?.responderConnected)), name: input.name.trim(), credentialKind: input.credentialKind, signingSecret: input.credentialKind === "hmac-sha256" ? (input.signingSecret ?? existing?.signingSecret ?? (input.preset === "pagerduty" ? "" : null)) : null, bearerTokenHash: input.credentialKind === "bearer-token" ? (input.bearerToken ? await hashOpaqueToken(input.bearerToken) : existing?.bearerTokenHash ?? null) : null, timestampHeader: (input.timestampHeader ?? existing?.timestampHeader ?? "x-lamp-timestamp").toLowerCase(), signatureHeader: (input.signatureHeader ?? existing?.signatureHeader ?? "x-lamp-signature").toLowerCase(), deduplicationPath: input.deduplicationPath, titlePath: input.titlePath, statePath: input.statePath, recoveredValue: input.recoveredValue ?? existing?.recoveredValue ?? "recovered", monitorMappings: input.preset === "uptime" ? input.monitorMappings ?? [] : [], labelMatchers: (isGroupedPreset(input.preset) || input.preset === "pagerduty" || input.preset === "newrelic" || isOperationsPreset(input.preset)) ? input.labelMatchers : [], preset: input.preset ?? null, componentId: input.preset ? input.componentId ?? null : null, createdByOperatorId: existing?.createdByOperatorId ?? operatorId, createdAt: existing?.createdAt ?? timestamp, updatedAt: timestamp };
       try { await repository.upsertSource(source); }
@@ -176,7 +175,7 @@ export function createIntakeService(
       let parsed: unknown;
       try { parsed = JSON.parse(rawBody) as unknown; }
       catch {
-        const receipt: AlertReceiptRow = { id: createUlid(), sourceId, requestHash, deduplicationKey: null, incidentId: null, state: "invalid", receivedAt: timestamp, recoveredAt: null, payloadJson: rawBody, error: "Alert payload must be JSON.", createdAt: timestamp, updatedAt: timestamp };
+        const receipt: AlertReceiptRow = { sourceVersion: source.updatedAt, id: createUlid(), sourceId, requestHash, deduplicationKey: null, incidentId: null, state: "invalid", receivedAt: timestamp, recoveredAt: null, payloadJson: rawBody, error: "Alert payload must be JSON.", createdAt: timestamp, updatedAt: timestamp };
         await repository.recordInvalid(receipt);
         return { status: 400, receiptId: receipt.id, incidentId: null, replayed: false };
       }
@@ -186,14 +185,14 @@ export function createIntakeService(
       if (source.preset) return acceptPreset(source, requestHash, rawBody, parsed, timestamp);
       const deduplicationValue = readPath(parsed, source.deduplicationPath);
       if (typeof deduplicationValue !== "string" || !deduplicationValue.trim()) {
-        const receipt: AlertReceiptRow = { id: createUlid(), sourceId, requestHash, deduplicationKey: null, incidentId: null, state: "invalid", receivedAt: timestamp, recoveredAt: null, payloadJson: rawBody, error: "The configured deduplication path did not produce a string.", createdAt: timestamp, updatedAt: timestamp };
+        const receipt: AlertReceiptRow = { sourceVersion: source.updatedAt, id: createUlid(), sourceId, requestHash, deduplicationKey: null, incidentId: null, state: "invalid", receivedAt: timestamp, recoveredAt: null, payloadJson: rawBody, error: "The configured deduplication path did not produce a string.", createdAt: timestamp, updatedAt: timestamp };
         await repository.recordInvalid(receipt); return { status: 400, receiptId: receipt.id, incidentId: null, replayed: false };
       }
       const key = deduplicationValue.trim(); const state = readPath(parsed, source.statePath); const recovered = state === source.recoveredValue;
       const existingIncidentId = await repository.findOpenIncident(sourceId, key);
       const createsDraft = !recovered && !existingIncidentId && policy.createsDraft({ sourceId, deduplicationKey: key, recovered });
       const incident = createsDraft ? { id: createUlid(), reference: await repository.allocateIncidentReference(), title: typeof readPath(parsed, source.titlePath) === "string" ? String(readPath(parsed, source.titlePath)).trim().slice(0, 250) || "Alert requiring review" : "Alert requiring review", operatorId: source.createdByOperatorId, timestamp } : null;
-      const receipt: AlertReceiptRow = { id: createUlid(), sourceId, requestHash, deduplicationKey: key, incidentId: existingIncidentId ?? incident?.id ?? null, state: recovered ? "recovered" : "firing", receivedAt: timestamp, recoveredAt: recovered ? timestamp : null, payloadJson: rawBody, error: null, createdAt: timestamp, updatedAt: timestamp };
+      const receipt: AlertReceiptRow = { sourceVersion: source.updatedAt, id: createUlid(), sourceId, requestHash, deduplicationKey: key, incidentId: existingIncidentId ?? incident?.id ?? null, state: recovered ? "recovered" : "firing", receivedAt: timestamp, recoveredAt: recovered ? timestamp : null, payloadJson: rawBody, error: null, createdAt: timestamp, updatedAt: timestamp };
       const recorded = await repository.recordReceipt(receipt, incident);
       if (recorded.replayed) return { status: 202, receiptId: recorded.receipt.id, incidentId: recorded.receipt.incidentId, replayed: true };
       if (recovered) await repository.markRecovered(sourceId, key, timestamp);
