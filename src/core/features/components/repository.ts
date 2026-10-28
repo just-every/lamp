@@ -4,6 +4,7 @@ import { deletionAudit } from "./deletion-audit";
 import { and, desc, eq, isNull, lte, ne, sql } from "drizzle-orm";
 
 import { createDatabase } from "../../platform/db/client";
+import { createUlid } from "../../shared/ids";
 import {
   componentGroups,
   componentClaimEvents,
@@ -327,13 +328,19 @@ export function createComponentRepository(binding: D1Database): ComponentReposit
         .bind(input.id, input.historyId, input.operatorId, input.reason, input.payloadJson, input.createdAt, input.updatedAt).run();
     },
     async replaceStandingClaim(input) {
+      const audit = input.state === null
+        ? binding.prepare(`INSERT INTO audit_entries (id, entity_type, entity_id, action, operator_id, payload_json, created_at, updated_at)
+            SELECT ?, 'component-standing-claim', component_id, 'deleted', ?, json_object('state', state), ?, ?
+            FROM component_standing_claims WHERE component_id = ?`)
+          .bind(createUlid(), input.operatorId, input.updatedAt, input.updatedAt, input.componentId)
+        : null;
       const claim = input.state
         ? binding.prepare(`INSERT INTO component_standing_claims (id, component_id, state, operator_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?) ON CONFLICT(component_id) DO UPDATE SET state = excluded.state, operator_id = excluded.operator_id, updated_at = excluded.updated_at`)
           .bind(input.id, input.componentId, input.state, input.operatorId, input.createdAt, input.updatedAt)
         : binding.prepare(`DELETE FROM component_standing_claims WHERE component_id = ?`).bind(input.componentId);
       const event = binding.prepare(`INSERT INTO component_claim_events (id, component_id, cause_type, cause_id, state, changed_at, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`)
         .bind(input.event.id, input.event.componentId, input.event.causeType, input.event.causeId, input.event.state, input.event.changedAt, input.event.createdAt, input.event.updatedAt);
-      await binding.batch([claim, event]);
+      await binding.batch([...(audit ? [audit] : []), claim, event]);
     },
     async insertGroup(input) {
       await database.insert(componentGroups).values(input);

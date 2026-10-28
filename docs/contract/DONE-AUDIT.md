@@ -1,4 +1,4 @@
-Old reference: `6a32c3b82820ad064b745223c9e23dc3ee93bbf9`.
+Old reference: `726c1bae791647c6df2879ba1975d91b210830ac`.
 | Clause | Point | Outcome | Asserting test | Result |
 | --- | --- | --- | --- | --- |
 | DOCS-001 | 1 | The unauthenticated documentation index returns HTTP 200 | `tests/e2e/start-runtime.test.mjs:367` | asserted |
@@ -6,7 +6,7 @@ Old reference: `6a32c3b82820ad064b745223c9e23dc3ee93bbf9`.
 | DOCS-001 | 1 | A representative selected VPAT page contains its released version and required chapter text | `tests/e2e/start-runtime.test.mjs:375` | asserted |
 | DOCS-001 | 2 | The selected VPAT page renders the version and chapter text held in its repository Markdown | `tests/e2e/start-runtime.test.mjs:375` | asserted |
 | DOCS-001 | 2 | The status-page host does not serve documentation | `tests/e2e/start-runtime.test.mjs:398` | asserted |
-| PAGE-001 | 1 | Overall status appears | `tests/e2e/app-api.test.mjs:141` | asserted |
+| PAGE-001 | 1 | Overall status appears | `tests/e2e/app-api.test.mjs:142` | asserted |
 | PAGE-001 | 1 | Every visible component is present | none | none |
 | PAGE-001 | 1 | Each visible component’s current state is present | none | none |
 | PAGE-001 | 1 | Each visible component’s exact note is present | none | none |
@@ -15,7 +15,7 @@ Old reference: `6a32c3b82820ad064b745223c9e23dc3ee93bbf9`.
 | PAGE-001 | 2 | Each incident links its complete permanent timeline | none | none |
 | PAGE-001 | 3 | All in-progress maintenance appears | none | none |
 | PAGE-001 | 3 | The 14-day scheduled-maintenance inclusion boundary is asserted | none | none |
-| PAGE-001 | 4 | The total daily-mark count is between six times ninety and six times ninety-one | `tests/e2e/app-api.test.mjs:146` | asserted |
+| PAGE-001 | 4 | The total daily-mark count is between six times ninety and six times ninety-one | `tests/e2e/app-api.test.mjs:147` | asserted |
 | PAGE-001 | 4 | Daily-mark coverage is reconciled separately for every visible component | none | none |
 | PAGE-001 | 4 | Each visible component uptime figure is asserted | none | none |
 | PAGE-002 | 1 | Initial HTML contains the overall Operational label | `tests/e2e/public-contract.test.mjs:232` | asserted |
@@ -51,7 +51,7 @@ Old reference: `6a32c3b82820ad064b745223c9e23dc3ee93bbf9`.
 | PAGE-005 | 3 | The old publication selector version remains after unrecoverable replica failure | `tests/e2e/snapshot-retained.test.mjs:112` | asserted |
 | PAGE-005 | 3 | The old replica version remains after unrecoverable replica failure | `tests/e2e/snapshot-retained.test.mjs:113` | asserted |
 | PAGE-005 | 3 | The old publication body is read back while the unrecoverable replica failure is in force | none | none |
-| PAGE-006 | 1 | The page body still contains Partially unavailable after database removal | `tests/e2e/app-api.test.mjs:590` | asserted |
+| PAGE-006 | 1 | The page body still contains Partially unavailable after database removal | `tests/e2e/app-api.test.mjs:597` | asserted |
 | PAGE-006 | 1 | The Atom feed survives database outage | none | none |
 | PAGE-006 | 1 | The widget survives database outage | none | none |
 | PAGE-006 | 1 | Page content survives queue outage | none | none |
@@ -66,10 +66,10 @@ Old reference: `6a32c3b82820ad064b745223c9e23dc3ee93bbf9`.
 | PAGE-006 | 2 | Widget is unavailable only before first publication | none | none |
 | PAGE-006 | 3 | Stale page content is labeled Last known state | `tests/e2e/public-contract.test.mjs:915` | asserted |
 | PAGE-006 | 3 | The generation instant is visible in stale page content | `tests/e2e/public-contract.test.mjs:918` | asserted |
-| PAGE-006 | 3 | The retained failure body contains Partially unavailable | `tests/e2e/app-api.test.mjs:600` | asserted |
-| PAGE-006 | 3 | The same nonempty failure body contains no invented all-clear text | `tests/e2e/app-api.test.mjs:601` | asserted |
-| PAGE-007 | 1 | A generation validator exists | `tests/e2e/app-api.test.mjs:154` | asserted |
-| PAGE-007 | 1 | An unchanged generation returns a not-modified response | `tests/e2e/app-api.test.mjs:156` | asserted |
+| PAGE-006 | 3 | The retained failure body contains Partially unavailable | `tests/e2e/app-api.test.mjs:607` | asserted |
+| PAGE-006 | 3 | The same nonempty failure body contains no invented all-clear text | `tests/e2e/app-api.test.mjs:608` | asserted |
+| PAGE-007 | 1 | A generation validator exists | `tests/e2e/app-api.test.mjs:155` | asserted |
+| PAGE-007 | 1 | An unchanged generation returns a not-modified response | `tests/e2e/app-api.test.mjs:157` | asserted |
 | PAGE-007 | 1 | Advancing a generation makes all earlier healthy cache entries ineligible | none | none |
 | PAGE-007 | 2 | Update publication reaches public page within ten seconds | none | none |
 | PAGE-007 | 2 | Update publication reaches history within ten seconds | none | none |
@@ -125,12 +125,12 @@ Old reference: `6a32c3b82820ad064b745223c9e23dc3ee93bbf9`.
 | PAGE-011 | 2 | The nonempty widget source contains neither XMLHttpRequest nor importScripts | `tests/e2e/public-contract.test.mjs:604` | asserted |
 | PAGE-011 | 2 | The widget performs no other foreign-origin or alternate network load | none | none |
 | PAGE-011 | 2 | Every widget load is observed to stay on the installation origin | none | none |
-| PAGE-012 | 1 | Changing the page name reaches the public page | `tests/e2e/app-api.test.mjs:323` | asserted |
+| PAGE-012 | 1 | Changing the page name reaches the public page | `tests/e2e/app-api.test.mjs:330` | asserted |
 | PAGE-012 | 1 | Logo is changed and read back | none | none |
 | PAGE-012 | 1 | Accent color is changed and read back | none | none |
 | PAGE-012 | 1 | Time zone is changed and read back | none | none |
 | PAGE-012 | 1 | Hostname is changed and read back | none | none |
-| PAGE-012 | 2 | Footer credit begins enabled | `tests/e2e/app-api.test.mjs:307` | asserted |
+| PAGE-012 | 2 | Footer credit begins enabled | `tests/e2e/app-api.test.mjs:314` | asserted |
 | PAGE-012 | 2 | Enabled credit displays Powered by Lamp | `tests/e2e/public-contract.test.mjs:521` | asserted |
 | PAGE-012 | 2 | Disabling credit removes it | `tests/e2e/public-contract.test.mjs:526` | asserted |
 | PAGE-012 | 2 | Disabling credit has no network effect | none | none |
@@ -224,11 +224,11 @@ Old reference: `6a32c3b82820ad064b745223c9e23dc3ee93bbf9`.
 | COMP-005 | 1 | The populated internal-component fixture is absent from the widget | `tests/e2e/public-contract.test.mjs:306` | asserted |
 | COMP-005 | 1 | Internal components are absent from every uptime figure | none | none |
 | COMP-005 | 2 | An internal severe claim leaves the public overall state unchanged | none | none |
-| COMP-006 | 1 | An operator standing claim determines the component state | `tests/e2e/app-api.test.mjs:218` | asserted |
-| COMP-006 | 1 | An incident attachment chooses an independent state | `tests/e2e/app-api.test.mjs:271` | asserted |
+| COMP-006 | 1 | An operator standing claim determines the component state | `tests/e2e/app-api.test.mjs:225` | asserted |
+| COMP-006 | 1 | An incident attachment chooses an independent state | `tests/e2e/app-api.test.mjs:278` | asserted |
 | COMP-006 | 1 | In-progress maintenance contributes its chosen claim | none | none |
-| COMP-006 | 2 | Clearing a standing claim reveals a remaining claim | `tests/e2e/app-api.test.mjs:226` | asserted |
-| COMP-006 | 2 | Detaching an incident reveals the next-most-severe claim | `tests/e2e/app-api.test.mjs:262` | asserted |
+| COMP-006 | 2 | Clearing a standing claim reveals a remaining claim | `tests/e2e/app-api.test.mjs:233` | asserted |
+| COMP-006 | 2 | Detaching an incident reveals the next-most-severe claim | `tests/e2e/app-api.test.mjs:269` | asserted |
 | COMP-006 | 2 | No claims gives Operational | none | none |
 | COMP-006 | 3 | Incident resolution recomputes public state within ten seconds | none | none |
 | COMP-006 | 3 | Maintenance completion recomputes public state within ten seconds | none | none |
@@ -580,8 +580,8 @@ Old reference: `6a32c3b82820ad064b745223c9e23dc3ee93bbf9`.
 | UPDATE-003 | 1 | published lifecycle | `tests/e2e/publishing-contract.test.mjs:364` | asserted |
 | UPDATE-003 | 2 | end time | `tests/e2e/publishing-contract.test.mjs:365` | asserted |
 | UPDATE-003 | 3 | component recomputation | `tests/e2e/publishing-contract.test.mjs:367` | asserted |
-| UPDATE-004 | 1 | public preview customer impact | `tests/e2e/app-api.test.mjs:299` | asserted |
-| UPDATE-004 | 2 | email preview customer impact | `tests/e2e/app-api.test.mjs:300` | asserted |
+| UPDATE-004 | 1 | public preview customer impact | `tests/e2e/app-api.test.mjs:306` | asserted |
+| UPDATE-004 | 2 | email preview customer impact | `tests/e2e/app-api.test.mjs:307` | asserted |
 | UPDATE-005 | 1 | page excludes populated draft | `tests/e2e/publishing-contract.test.mjs:406` | asserted |
 | UPDATE-005 | 1 | Atom excludes populated draft | `tests/e2e/publishing-contract.test.mjs:406` | asserted |
 | UPDATE-005 | 1 | widget excludes populated draft | `tests/e2e/publishing-contract.test.mjs:406` | asserted |
@@ -787,7 +787,7 @@ Old reference: `6a32c3b82820ad064b745223c9e23dc3ee93bbf9`.
 | SUB-001 | 2 | 24-hour expiry of confirmation allowance | none | none |
 | SUB-001 | 3 | unsubscribe restores the allowance immediately | none | none |
 | SUB-001 | 4 | absence of other notifications while pending | none | none |
-| SUB-001 | 5 | standard script-free form | `tests/e2e/app-api.test.mjs:144` | asserted |
+| SUB-001 | 5 | standard script-free form | `tests/e2e/app-api.test.mjs:145` | asserted |
 | SUB-001 | 5 | cross-site refusal asserted in tests/e2e/subscriber-isolation-helper.mjs outside the old Evidence set | none | none |
 | SUB-001 | 5 | no form token or ambient session requirement | none | none |
 | SUB-002 | 1 | pending before confirmation | `tests/e2e/delivery-contract.test.mjs:190` | asserted |
@@ -1119,7 +1119,7 @@ Old reference: `6a32c3b82820ad064b745223c9e23dc3ee93bbf9`.
 | INTAKE-004 | 2 | Every public surface unchanged | none | none |
 | INTAKE-005 | 1 | Configured key path controls acceptance | `tests/e2e/publishing-contract.test.mjs:855` | asserted |
 | INTAKE-005 | 1 | Configured title read back | none | none |
-| INTAKE-005 | 1 | Configured generic firing state is read back | `tests/e2e/app-api.test.mjs:492` | asserted |
+| INTAKE-005 | 1 | Configured generic firing state is read back | `tests/e2e/app-api.test.mjs:499` | asserted |
 | INTAKE-005 | 1 | Configured generic recovered state is read back | none | none |
 | INTAKE-005 | 2 | Missing key returns 400 | `tests/e2e/publishing-contract.test.mjs:853` | asserted |
 | INTAKE-005 | 2 | Visible rejected mapping reason | `tests/e2e/helpers/webhook-source-browser-flow.mjs:119` | asserted |

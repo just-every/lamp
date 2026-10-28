@@ -2,7 +2,7 @@
   "schema": 1,
   "seed": "contract-md-lamp",
   "old": {
-    "commit": "6a32c3b82820ad064b745223c9e23dc3ee93bbf9",
+    "commit": "726c1bae791647c6df2879ba1975d91b210830ac",
     "files": [
       "CONTRACT.md",
       "ACCEPTANCE.md",
