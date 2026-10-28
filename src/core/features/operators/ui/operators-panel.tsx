@@ -127,7 +127,7 @@ export function OperatorsPanel() {
 
 function OperatorRow({ operator, saving, lastOwner = false, onRoleChange, onRevoke, onErase }: { operator: StoredOperator | StoredFormerOperator; saving: boolean; lastOwner?: boolean; onRoleChange?: (role: StoredOperator["role"]) => Promise<boolean>; onRevoke?: () => void; onErase?: () => void }) {
   return <div className="operator-row">
-    <span><strong>{operator.displayName}</strong><small>{operator.email} · {operatorRoleLabels[operator.role]}</small></span>
+    <span><strong>{operator.displayName}</strong><small><span>{operator.email}</span> · {operatorRoleLabels[operator.role]}</small></span>
     <div className="operator-actions">
       {onRoleChange && <OperatorRoleSelect operator={operator} disabled={saving} lastOwner={lastOwner} onChange={onRoleChange} />}
       {onRevoke && <Button type="button" variant="secondary" className="table-action" disabled={saving} onClick={onRevoke}>Remove access</Button>}
