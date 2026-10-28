@@ -86,11 +86,16 @@ export function notificationPublicationStatements(binding: D1Database, input: No
     SET resolution_at=COALESCE(resolution_at,(SELECT published_at FROM incident_updates WHERE id=?))
     WHERE ended_at IS NULL AND incident_id=(SELECT incident_id FROM incident_updates WHERE id=? AND lifecycle='Resolved' AND is_retroactive=0)`)
     .bind(input.incidentUpdateId??null,input.incidentUpdateId??null));
+  // A page-silent publication can still serve an incident follow. It creates
+  // dispatch work only when recipient capture actually found such a follow;
+  // historical imports and silent owner corrections otherwise stay silent.
   const outbox = requiresPublishedNotice
     ? binding.prepare("INSERT OR IGNORE INTO notification_outbox (id, kind, aggregate_id, payload_json, available_at, attempts, locked_at, completed_at, failed_at, last_error, created_at, updated_at) SELECT ?, 'delivery-dispatch', ?, ?, ?, 0, NULL, NULL, NULL, NULL, ?, ? WHERE EXISTS (SELECT 1 FROM maintenance_notices published_notice WHERE published_notice.id = ?)")
       .bind(createUlid(), input.eventId, JSON.stringify({ eventId: input.eventId, eventType: input.eventType }), input.queuedAt, input.queuedAt, input.queuedAt, input.eventId)
-    : binding.prepare("INSERT OR IGNORE INTO notification_outbox (id, kind, aggregate_id, payload_json, available_at, attempts, locked_at, completed_at, failed_at, last_error, created_at, updated_at) VALUES (?, 'delivery-dispatch', ?, ?, ?, 0, NULL, NULL, NULL, NULL, ?, ?)")
-      .bind(createUlid(), input.eventId, JSON.stringify({ eventId: input.eventId, eventType: input.eventType }), input.queuedAt, input.queuedAt, input.queuedAt);
+    : binding.prepare(`INSERT OR IGNORE INTO notification_outbox (id, kind, aggregate_id, payload_json, available_at, attempts, locked_at, completed_at, failed_at, last_error, created_at, updated_at)
+        SELECT ?, 'delivery-dispatch', ?, ?, ?, 0, NULL, NULL, NULL, NULL, ?, ?
+        WHERE ?=1 OR EXISTS(SELECT 1 FROM notification_delivery_records captured WHERE captured.notification_event_id=?)`)
+      .bind(createUlid(), input.eventId, JSON.stringify({ eventId: input.eventId, eventType: input.eventType }), input.queuedAt, input.queuedAt, input.queuedAt, Number(input.channels.length>0), input.eventId);
   statements.push(outbox);
   return statements;
 }

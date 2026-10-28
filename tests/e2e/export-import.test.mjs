@@ -17,7 +17,7 @@ const configPath = "wrangler.jsonc";
 const logo = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Y9Jm4kAAAAASUVORK5CYII=", "base64");
 
 function run(args) {
-  execFileSync("pnpm", args, { cwd: process.cwd(), stdio: "pipe", ...(args.includes("migrations") ? { maxBuffer: 8 * 1024 * 1024 } : {}) });
+  execFileSync("pnpm", args, { cwd: process.cwd(), stdio: "pipe", ...(args.some(arg => arg === "migrations" || arg === "import:cloudflare" || arg.endsWith("scripts/import.mjs")) ? { maxBuffer: 8 * 1024 * 1024 } : {}) });
 }
 
 function platformFor(statePath) {
@@ -328,7 +328,7 @@ test("owner sidecar migrations apply once and survive export/import/export", asy
   const targetState = join(sandbox, "target");
   const archive = join(sandbox, "archive");
   const config = resolve(configPath);
-  const execute = (args) => execFileSync("pnpm", args, { cwd: sandbox, stdio: "pipe", ...(args.includes("migrations") ? { maxBuffer: 8 * 1024 * 1024 } : {}) });
+  const execute = (args) => execFileSync("pnpm", args, { cwd: sandbox, stdio: "pipe", ...(args.some(arg => arg === "migrations" || arg === "import:cloudflare" || arg.endsWith("scripts/import.mjs")) ? { maxBuffer: 8 * 1024 * 1024 } : {}) });
   try {
     await mkdir(join(sandbox, "migrations", "ext"), { recursive: true });
     await symlink(join(original, "migrations", "core"), join(sandbox, "migrations", "core"));

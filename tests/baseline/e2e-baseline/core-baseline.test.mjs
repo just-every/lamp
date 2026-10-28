@@ -228,7 +228,7 @@ baseline("BASE-DATA-001", "real D1 and R2 export-import-export preserves the arc
   try {
     fixture.r2Object("baseline/attachment.txt", "baseline attachment", "text/plain; charset=utf-8");
     execFileSync("pnpm", ["run", "export:cloudflare", "--", "--out", archive, "--persist-to", fixture.statePath], { stdio: "pipe" });
-    execFileSync("pnpm", ["run", "import:cloudflare", "--", "--from", archive, "--persist-to", target], { stdio: "pipe" });
+    execFileSync("pnpm", ["run", "import:cloudflare", "--", "--from", archive, "--persist-to", target], { stdio: "pipe", maxBuffer: 8 * 1024 * 1024 });
     execFileSync("pnpm", ["run", "export:cloudflare", "--", "--out", restored, "--persist-to", target], { stdio: "pipe" });
     assert.deepEqual(JSON.parse(await readFile(join(restored, "entities.json"), "utf8")), JSON.parse(await readFile(join(archive, "entities.json"), "utf8")));
     const manifest = JSON.parse(await readFile(join(restored, "manifest.json"), "utf8"));
