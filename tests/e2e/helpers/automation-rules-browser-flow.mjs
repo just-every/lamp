@@ -29,6 +29,9 @@ export async function automationRulesBrowserFlow({ origin, publicOrigin, cookie,
     page.on("pageerror", error => errors.push(error.message));
     page.on("console", message => { if (message.type() === "error" && /hydrat|did not match|server rendered/i.test(message.text())) errors.push(message.text()); });
     await page.goto(`${origin}/app/alerts`); await operatorHydrated(page);
+    await page.getByRole("link", { name: "Manage alert rules in Settings", exact: true }).click();
+    await operatorHydrated(page);
+    await page.getByRole("heading", { name: "Settings", exact: true }).waitFor();
     const rules = page.getByRole("region", { name: "Alert rules", exact: true });
     await rules.getByLabel("Rule source", { exact: true }).selectOption(source.id);
     await rules.getByLabel("Rule component", { exact: true }).selectOption(target.id);
@@ -98,7 +101,7 @@ export async function automationRulesBrowserFlow({ origin, publicOrigin, cookie,
     assert.equal(broken.status, 200, broken.text);
     const degraded = await fetch(source.endpointUrl, { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${source.token}` }, body: JSON.stringify({ ...alert, alert_cycle_key: "prepared-api-broken-cycle" }) });
     assert.equal(degraded.status, 202, await degraded.clone().text());
-    await page.goto(`${origin}/app/alerts`); await operatorHydrated(page);
+    await page.goto(`${origin}/app/settings#alerts`); await operatorHydrated(page);
     const attention = page.getByRole("region", { name: "Alert rules", exact: true });
     await attention.getByText(/Draft only:.*Resolved/).first().waitFor();
     assert.ok((await attention.innerText()).includes("Needs attention"), "a broken template visibly degrades the rule to draft");

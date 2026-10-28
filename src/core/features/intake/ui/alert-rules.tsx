@@ -3,7 +3,8 @@ import { useEffect, useRef, useState, type FormEvent } from "react";
 import { appApi, useAppData } from "../../../app/client/ui/api";
 import { Button } from "../../../app/client/ui/button";
 import { useLeaveGuard } from "../../../app/client/ui/leave-guard";
-import { FormError, useOperatorTime } from "../../../app/client/ui/states";
+import { FormError, LoadingState, useOperatorTime } from "../../../app/client/ui/states";
+import { ErrorState } from "../../../app/client/ui/lit-states";
 import { COMPONENT_STATES, type ComponentState } from "../../../shared/domain";
 import type { IncidentTemplate } from "../../incidents/template-repository";
 import { TemplateEditor } from "../../incidents/ui/template-editor";
@@ -14,6 +15,17 @@ type RuleMode = RuleView["mode"];
 type Fields = { name: string; mode: RuleMode; state: ComponentState; templateId: string };
 const defaults = (): Fields => ({ name: "", mode: "draft", state: "Degraded performance", templateId: "" });
 const modeLabel = (mode: RuleMode) => mode === "claim-and-publish" ? "Claim and publish" : mode === "claim" ? "Claim" : "Draft";
+
+export function AlertRulesSettings() {
+  const sources = useAppData<{ sources: Source[] }>("/api/app/intake/sources");
+  const components = useAppData<{ components: ComponentOption[] }>("/api/app/components");
+  if ((sources.loading && !sources.data) || (components.loading && !components.data)) return <LoadingState>Loading alert rules…</LoadingState>;
+  if (!sources.data || !components.data) return <ErrorState onRetry={() => { sources.refresh(); components.refresh(); }}>{sources.error ?? components.error ?? "Alert rule settings could not be loaded."}</ErrorState>;
+  return <>
+    <p><a className="text-link" href="/app/alerts">Manage alert sources</a></p>
+    <AlertRules sources={sources.data.sources} components={components.data.components} />
+  </>;
+}
 
 /** AUTO-001: one owner-approved rule for one component and source. A new pair remains draft-only until saved. */
 export function AlertRules({ sources, components }: { sources: Source[]; components: ComponentOption[] }) {

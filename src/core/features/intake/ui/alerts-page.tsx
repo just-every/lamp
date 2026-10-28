@@ -5,7 +5,6 @@ import { mayLeave } from "../../../app/client/ui/leave-guard";
 import { LoadingState } from "../../../app/client/ui/states";
 import { ErrorState } from "../../../app/client/ui/lit-states";
 import { ConnectedTools } from "./connected-tools";
-import { AlertRules } from "./alert-rules";
 import { ReceiptsCard, type Receipt } from "./receipts-card";
 import { ToolForm } from "./tool-form";
 import { ToolPicker } from "./tool-picker";
@@ -46,7 +45,7 @@ export function AlertsPage() {
     {open?.kind === "new" ? <ToolForm key={`new:${open.tool}`} tool={open.tool} source={null} components={componentList} names={connected.map(source => source.name)} onConnected={created => { if (created) setOpen({ kind: "edit", sourceId: created.id, created }); refresh(); }} onSaved={refresh} onClose={() => void switchTo(null)} />
       : editing ? <ToolForm key={`edit:${editing.id}`} tool={toolOf(editing)} source={editing} components={componentList} names={connected.map(source => source.name)} onConnected={refresh} onSaved={refresh} onClose={() => void switchTo(null)} />
       : <ToolPicker onPick={tool => setOpen({ kind: "new", tool })} />}
-    {connected.length > 0 && <AlertRules sources={connected} components={componentList} />}
+    <p><a className="text-link" href="/app/settings#alerts">Manage alert rules in Settings</a></p>
     {arrived.length > 0 && <ReceiptsCard receipts={arrived} />}
   </div>;
 }
