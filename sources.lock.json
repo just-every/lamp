@@ -4384,7 +4384,7 @@
       "executable": false
     },
     "src/core/features/page-settings/ui/theme-assets.tsx": {
-      "sha256": "ae7457eabf3c344aac91ba3d5e4d17abc4e8aa19035e1f29f408b3a8b9090925",
+      "sha256": "a4537b32e4fc703a2b9d594a540bf3107273f84634c62e819f84399aca08c71d",
       "executable": false
     },
     "src/core/features/page-settings/ui/theme-links.tsx": {
@@ -6940,7 +6940,7 @@
       "executable": false
     },
     "tests/e2e/helpers/theme-browser-flow.mjs": {
-      "sha256": "8ea1dd9eeca5bd99ff3c2b3d655afb1ecf6e643872741067e6d404df6bf7a26d",
+      "sha256": "0921fc7cb3c1922e7cc889ecdffa91b6647c6feea5f18a9b67bc60f188561dfe",
       "executable": false
     },
     "tests/e2e/helpers/theme-fixture.mjs": {

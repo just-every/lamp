@@ -42,9 +42,13 @@ export async function themeBrowserFlow({ appUrl, pageUrl, sessionId, cookieName,
     await page.getByRole("combobox", { name: /^Page font/ }).selectOption("mono");
     await page.getByLabel(/^Upload font/).setInputFiles({ name: "synthetic-lamp-1.woff2", mimeType: "font/woff2", buffer: font });
     await page.getByRole("button", { name: "Upload font", exact: true }).click();
+    await expect(page.getByRole("status").filter({ hasText: "Font uploaded." })).toBeVisible();
+    await expect(page.getByRole("combobox", { name: /^Page font/ })).toHaveValue("uploaded");
     await expect.poll(async () => (await currentSettings()).theme.font).toBe("uploaded");
     await page.getByLabel(/^Upload header image/).setInputFiles({ name: "synthetic-lamp-2.png", mimeType: "image/png", buffer: image });
     await page.getByRole("button", { name: "Upload header image", exact: true }).click();
+    await expect(page.getByRole("status").filter({ hasText: "Header image uploaded." })).toBeVisible();
+    await expect(page.getByLabel("Show the uploaded header image")).toBeChecked();
     await expect.poll(async () => (await currentSettings()).theme.headerImage).toBe(true);
     await open("Header and footer links");
     await page.getByRole("button", { name: "Add header link", exact: true }).click();

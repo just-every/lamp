@@ -26,7 +26,13 @@ export function ThemeAsset({ kind, present, busy, setBusy, onSettings }: {
       });
       const result = await response.json().catch(() => null) as { settings?: PageSettingsView; error?: string } | null;
       if (!response.ok || !result?.settings) throw new Error(result?.error ?? `The ${name} could not be ${remove ? "removed" : "uploaded"}.`);
-      onSettings(result.settings, kind);
+      // A previous autosave can finish while the snapshot is being rebuilt.
+      // The successful asset action still selects its own font or image; enqueue
+      // that selection after the older save instead of adopting its stale flag.
+      const selection = kind === "font"
+        ? { font: remove ? "default" as const : "uploaded" as const }
+        : { headerImage: !remove };
+      onSettings({ ...result.settings, theme: { ...result.settings.theme, ...selection } }, kind);
       setFile(null);
       if (input.current) input.current.value = "";
       setMessage(`${kind === "font" ? "Font" : "Header image"} ${remove ? "removed" : "uploaded"}.`);
