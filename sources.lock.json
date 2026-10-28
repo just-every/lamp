@@ -6416,7 +6416,7 @@
       "executable": false
     },
     "tests/auth-adoption/portability.test.mjs": {
-      "sha256": "e1ae3a7c6ccd4aa25594c7c3bbe2560d0652e01f3389e11665281b3da9f65837",
+      "sha256": "59b288957581f215981e3334144927b990ab12b0201716c05fab2531fb2ee51a",
       "executable": false
     },
     "tests/auth-adoption/runtime.mjs": {
@@ -6492,7 +6492,7 @@
       "executable": false
     },
     "tests/e2e/delivery-contract.test.mjs": {
-      "sha256": "e42e22100ccc07e4b40e125bbc6c87b307213240341b557ec6424e026ef3eb8c",
+      "sha256": "4574a9e0937918b7aeb9a1c960f9f8d4cb81dee36239ecf39de0212e0c284aff",
       "executable": false
     },
     "tests/e2e/draft-version-helper.mjs": {
@@ -6563,8 +6563,44 @@
       "sha256": "84a12f0c3c00dc994f5f6d6573296debb0d2814991aedcefe9e8b6dfcbb020e8",
       "executable": false
     },
+    "tests/e2e/helpers/imported-incident-live-flow.mjs": {
+      "sha256": "bb9adde3e9582068b53e9425bbd449b9c52097dff92253f05feab168c5f6d8d9",
+      "executable": false
+    },
     "tests/e2e/helpers/incident-composer.mjs": {
       "sha256": "8194c53c2743157a38f150e5ce247f3e288862dcf9aad71155aaae1b22091775",
+      "executable": false
+    },
+    "tests/e2e/helpers/incident-follow-browser-flow.mjs": {
+      "sha256": "417a625a1d5a8f51e1f8ed11d1af9b0fd42b53fcd4176207aaee0075a2d5964a",
+      "executable": false
+    },
+    "tests/e2e/helpers/incident-follow-consent-flow.mjs": {
+      "sha256": "185000a980d5631d79ec54c1856de92c6889aa00b482448b222c870f81d983eb",
+      "executable": false
+    },
+    "tests/e2e/helpers/incident-follow-fixture.mjs": {
+      "sha256": "b7a9aec6273fd3d46cdda901755f19174f777c7437400474f1216103645d575a",
+      "executable": false
+    },
+    "tests/e2e/helpers/incident-follow-flow.mjs": {
+      "sha256": "90a57e4b084e4570d6ff6d546570809a5d38ebcb37f957f7a8af8341cb6a753d",
+      "executable": false
+    },
+    "tests/e2e/helpers/incident-follow-lifecycle-flow.mjs": {
+      "sha256": "fd3d352db27cf929a78378a52f5ccb73a16eb524a89cc946e0c3d963a4958cef",
+      "executable": false
+    },
+    "tests/e2e/helpers/incident-follow-sms-flow.mjs": {
+      "sha256": "772b5c9d99613063d67632f2a7881dc38c185c18a36a4ca0189b12bfdf83f14e",
+      "executable": false
+    },
+    "tests/e2e/helpers/incident-subscriber-import-flow.mjs": {
+      "sha256": "a4a00e161f4b7e98b12f1784c7d168a9248d99755c44dff5156f12b32440cc11",
+      "executable": false
+    },
+    "tests/e2e/helpers/incident-subscriber-portability-flow.mjs": {
+      "sha256": "888b01604a66d90ce19f3dfd577ed46794710c79a7f5982bd23bd9131c2529b0",
       "executable": false
     },
     "tests/e2e/helpers/intake-byte-flow.mjs": {
@@ -6580,7 +6616,7 @@
       "executable": false
     },
     "tests/e2e/helpers/mail-settings-browser-flow.mjs": {
-      "sha256": "85166716036851f7d86fe7fda53624627606133fc2e7ae68a1788fee939e5479",
+      "sha256": "771d66bbc08bf21c11f3ad49c064961cc8c65224f9288021a1d000fde32385bc",
       "executable": false
     },
     "tests/e2e/helpers/metrics-flow.mjs": {
@@ -6628,7 +6664,7 @@
       "executable": false
     },
     "tests/e2e/helpers/sms-subscriber-flow.mjs": {
-      "sha256": "f8b7a53d4361f912292e64fc812deba51e6fe296ab6d69826f9f235becfce227",
+      "sha256": "c4fb13202f552797337f582d96124bc59abd2fd6771b356554e3dd176ef73999",
       "executable": false
     },
     "tests/e2e/helpers/social-browser-flow.mjs": {
@@ -6724,7 +6760,7 @@
       "executable": false
     },
     "tests/e2e/maintenance-timezone.test.mjs": {
-      "sha256": "14f2a09399821a1517a956f25d814180a940b8a6c18fe53e2baa2f8f478de1cc",
+      "sha256": "fbefd5997ff22c602a48d1caa247febd4a5089c4d1a2e15c9158efe53fd717fd",
       "executable": false
     },
     "tests/e2e/owned-process-group.mjs": {
@@ -6740,11 +6776,11 @@
       "executable": false
     },
     "tests/e2e/public-contract.test.mjs": {
-      "sha256": "1391c5f0849e23ac2e7fb0cfe2dbcfd0b6a61533b998db622f737acc6e82c10b",
+      "sha256": "557db20daa11329ed06917d1fa3342aacdd0484f35c5097b2f5a2ecc481f4865",
       "executable": false
     },
     "tests/e2e/publishing-browser.test.mjs": {
-      "sha256": "2eca209b97891f746fde5adc49b953d61c57b3c3c99e5cba2d924cd964959a58",
+      "sha256": "07c646e2d7afa52919b4ad455eb5c18a8fb29d6ae3294b1cdf4c296f12e5fe13",
       "executable": false
     },
     "tests/e2e/publishing-contract.test.mjs": {
@@ -6796,7 +6832,7 @@
       "executable": false
     },
     "tests/e2e/statuspage-import.test.mjs": {
-      "sha256": "06162f6ad17a83d41077d1fe46c4b90e881cbda8e9e2b986a6537425198bef22",
+      "sha256": "5f1fb651ebd3fba6058df36bbf7408fd776fd21bd4af5c354ba30b7a09428dc7",
       "executable": false
     },
     "tests/e2e/subscriber-audit-helper.mjs": {
