@@ -37,6 +37,7 @@ export interface SnapshotRepository {
 }
 
 export interface PublicSnapshotSource {
+  smsEnabled?: boolean;
   metrics?: PublicMetric[];
   websiteUrl?: string | null;
   publicOrigin?: string;
@@ -75,7 +76,7 @@ export interface PublicSnapshotSource {
   maintenanceNotices: Array<{ id: string; maintenanceId: string; kind: string; body: string; publishedAt: string }>;
 }
 
-export function createSnapshotRepository(binding: D1Database, publicOrigin?: string): SnapshotRepository {
+export function createSnapshotRepository(binding: D1Database, publicOrigin?: string, smsEnabled = false): SnapshotRepository {
   const database = createDatabase(binding);
 
   return {
@@ -151,6 +152,7 @@ export function createSnapshotRepository(binding: D1Database, publicOrigin?: str
       const website = await createWebsiteRepository(binding).get();
       return {
         websiteUrl: website?.url ?? null,
+        smsEnabled,
         publicOrigin,
         publicApiIds, incidentImpacts: Object.fromEntries(incidentImpactRows.filter(row => row.impact !== null).map(row => [row.id, row.impact!])),
         importedPublicRecords, importedNamespaces,

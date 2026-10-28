@@ -24,7 +24,7 @@ test('ACCESS-001 terminal command issues an ordinary private 20-minute Base link
  };
  try{
   await writeFile(config,JSON.stringify({name:'lamp-terminal-test',main:resolve('src/server.ts'),compatibility_date:'2026-09-08',d1_databases:[{binding:'DB',database_name:'test',database_id:'00000000-0000-0000-0000-000000000000',migrations_dir:resolve('migrations/core')}]}));
-  await run('pnpm',['exec','wrangler','d1','migrations','apply','DB','--local','--config',config,'--persist-to',state],{env});
+  await run('pnpm',['exec','wrangler','d1','migrations','apply','DB','--local','--config',config,'--persist-to',state],{env,maxBuffer:8*1024*1024});
   await open();
   await db.prepare("INSERT INTO oa_operators(id,email,display_name,role,status,created_at) VALUES ('terminal-owner','owner@example.test','Owner','owner','active',?),('inactive','inactive@example.test','Former','owner','inactive',?),('erased','deleted-erased@operator.invalid','Erased operator','owner','inactive',?)").bind(Date.now(),Date.now(),Date.now()).run();
   const before=Date.now();const result=await cli('owner@example.test');

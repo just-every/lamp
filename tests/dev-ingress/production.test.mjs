@@ -27,7 +27,7 @@ test('emitted production excludes development ingress and rejects runtime dev bi
     const config = join(directory, 'wrangler.json');
     await writeFile(config, JSON.stringify(production));
     const state = join(directory, 'state');
-    execFileSync('pnpm', ['exec', 'wrangler', 'd1', 'migrations', 'apply', 'DB', '--local', '--persist-to', state, '--config', 'wrangler.jsonc'], { stdio: 'pipe' });
+    execFileSync('pnpm', ['exec', 'wrangler', 'd1', 'migrations', 'apply', 'DB', '--local', '--persist-to', state, '--config', 'wrangler.jsonc'], { maxBuffer: 8 * 1024 * 1024, stdio: 'pipe' });
     seedMailOperators(state);
     child = spawn('pnpm', ['exec', 'wrangler', 'dev', '--config', config, '--local', '--port', String(port), '--inspector-port', '0', '--persist-to', state], { detached: true, stdio: ['ignore', 'pipe', 'pipe'] });
     child.stdout.on('data', data => { output += data; });

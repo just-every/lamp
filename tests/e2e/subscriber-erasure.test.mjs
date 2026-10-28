@@ -11,7 +11,7 @@ test('real D1 erasure removes only the erased subscriber and leaves other people
  const state=await mkdtemp(join(tmpdir(),'lamp-erasure-'));
  const vite=await createServer({configFile:false,appType:'custom',server:{middlewareMode:true}});let platform;
  try{
-  execFileSync('pnpm',['exec','wrangler','d1','migrations','apply','DB','--local','--persist-to',state,'--config','wrangler.jsonc'],{stdio:'pipe'});
+  execFileSync('pnpm',['exec','wrangler','d1','migrations','apply','DB','--local','--persist-to',state,'--config','wrangler.jsonc'],{maxBuffer: 8 * 1024 * 1024, stdio:'pipe'});
   platform=await getPlatformProxy({configPath:'wrangler.jsonc',remoteBindings:false,persist:{path:join(state,'v3')}});
   const db=platform.env.DB,{createSubscriberRepository}=await vite.ssrLoadModule('/src/core/features/subscribers/repository.ts');
   const id='01J000000000000000000000E01',operator='01J000000000000000000000E02',now=new Date().toISOString();

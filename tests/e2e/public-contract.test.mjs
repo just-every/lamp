@@ -629,7 +629,7 @@ test("PAGE-012 PAGE-011 PAGE-019 MOVE-009 — Uploaded branding artwork, allow-l
 
 
 
-test("PAGE-013 PAGE-014 PAGE-008 PAGE-009 PAGE-003 — Public isolation, live timezone refresh and initial asset budget", async t => {
+test("SUB-019 PAGE-013 PAGE-014 PAGE-008 PAGE-009 PAGE-003 — Public isolation, live timezone refresh and initial asset budget", async t => {
   t.diagnostic("PAGE-013 — every public snapshot response carries the restrictive same-origin security headers");
   await (async () => {
   const origin = new URL(pageUrl).origin;
@@ -840,6 +840,34 @@ test("PAGE-013 PAGE-014 PAGE-008 PAGE-009 PAGE-003 — Public isolation, live ti
     assert.ok(paths.size <= 4, `initial public page made ${paths.size} same-origin subresource requests: ${[...paths].join(", ")}`);
     for (const path of paths) assert.ok(["/assets/mark.svg", "/assets/favicon.svg", "/assets/status-page.css", "/assets/status-page.js"].includes(path), `unexpected initial public dependency ${path}`);
     assert.deepEqual([...thirdPartyRequests], [], `public initial page made third-party requests: ${[...thirdPartyRequests].join(", ")}`);
+    const incidents = (await (await appFetch("/api/app/incidents")).json()).incidents;
+    const incident = incidents.find(row => row.updates.length > 0);
+    assert.ok(incident, "the native public journey has a published incident permalink");
+    const permalink = `${pageUrl}/incidents/${incident.reference}`;
+    const incidentResponse = await fetch(permalink);
+    assert.equal(incidentResponse.status, 200);
+    const incidentHtml = await incidentResponse.text();
+    assert.match(incidentHtml, /Get updates on this incident/);
+    assert.match(incidentHtml, /action="\/subscribe\/incident"/);
+    assert.ok(incidentHtml.includes(`name="incidentId" value="${incident.id}"`), "SUB-019 binds its initial HTML form to this incident");
+    const incidentGzip = gzipSync(Buffer.from(incidentHtml)).byteLength;
+    t.diagnostic(`SUB-019 PAGE-003: incident permalink with follow form: ${incidentGzip} bytes gzipped`);
+    assert.ok(incidentGzip <= 50 * 1024, `incident permalink exceeds PAGE-003: ${incidentGzip}`);
+    paths.clear(); thirdPartyRequests.clear();
+    await page.goto(permalink, { waitUntil: "networkidle" });
+    await page.getByRole("heading", { name: "Get updates on this incident", exact: true }).waitFor();
+    assert.ok(paths.size <= 4, `incident follow form made ${paths.size} initial same-origin asset requests: ${[...paths].join(", ")}`);
+    assert.deepEqual([...thirdPartyRequests], [], "the incident follow form makes no third-party request");
+    const noScript = await browser.newContext({ javaScriptEnabled: false, viewport: { width: 1440, height: 1000 } });
+    try {
+      const staticPage = await noScript.newPage();
+      await staticPage.goto(permalink);
+      const form = staticPage.locator('#incident-follow form').filter({ has: staticPage.getByRole("button", { name: "Get incident updates", exact: true }) });
+      assert.equal(await form.getAttribute("method"), "post");
+      assert.equal(await form.getByLabel("Email address", { exact: true }).count(), 1, "SUB-019's form is usable in the initial document without script");
+      assert.ok(await staticPage.evaluate(() => document.documentElement.scrollWidth <= innerWidth), "the script-free incident form fits its native public document");
+    } finally { await noScript.close(); }
+
   } finally {
     await browser.close();
   }

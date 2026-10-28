@@ -1,3 +1,4 @@
+import { incidentFollowBrowserFlow } from "./incident-follow-browser-flow.mjs";
 import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
 import { readdir } from 'node:fs/promises';
@@ -65,10 +66,12 @@ export async function smsBrowserRuntime(){
     const raw=(path,init={})=>runtime.dispatchFetch(new URL(path,origin).href,{redirect:'manual',...init,headers:{Origin:origin,Cookie:cookie,...init.headers}});
     const api=async(path,init={})=>{init=await withDraftVersion(path,init,read=>raw(read));const response=await raw(path,{...init,headers:{...(init.body?{'Content-Type':'application/json'}:{}),...init.headers}});const text=await response.text();return {status:response.status,body:text?JSON.parse(text):null,text};};
     const post=(path,body)=>api(path,{method:'POST',body:JSON.stringify(body)});
-    browser=await chromium.launch({headless:true,args:['--use-mock-keychain','--password-store=basic']});
+    const executablePath=process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH;
+    browser=await chromium.launch({headless:true,...(executablePath?{executablePath}:{}),args:['--use-mock-keychain','--password-store=basic',...(executablePath?['--no-sandbox']:[])]});
     const context=await browser.newContext();
     await context.addCookies([{name:cookie.slice(0,cookie.indexOf('=')),value:cookie.slice(cookie.indexOf('=')+1),url:origin}]);
     const page=await context.newPage();
+    await incidentFollowBrowserFlow({page,origin,pageOrigin,api,post,raw,messages});
     await smsBrowserFlow({page,origin,pageOrigin,api,post,raw,db:env.DB,flush:async()=>{ const result=await (await runtime.getWorker()).scheduled({cron:"* * * * *"}); assert.equal(result.outcome,"ok"); },messages:smsMessages});
     await context.close();
   }finally{await browser?.close();await runtime?.dispose();}
