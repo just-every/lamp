@@ -47,6 +47,14 @@ export async function incidentSubscriptionApiFlow() {
     assert.equal((await call(`${compat}/${compatible.id}`,writer.token,"DELETE",undefined,true)).status,204);
     assert.equal((await call(`${path}/${native.subscriberId}`,writer.token,"DELETE")).status,204);
     const emptied=await call(path,reader.token);assert.deepEqual((await emptied.json()).subscribers,[]);
+    const erasedState=await state();
+    assert.ok(!JSON.stringify(erasedState).includes(address("native-incident")),"deletion retains no native subscriber address in product records");
+    const captured=messages.find(message=>message.to.includes(address("native-incident"))&&message.text.includes("/confirm-subscription/"));
+    assert.ok(captured,"the journey captured a real issued confirmation before erasure");
+    const capturedLinks=[...captured.text.matchAll(/https?:\/\/\S+\/(?:confirm-subscription|manage)\/\S+/g)].map(match=>match[0]);
+    assert.ok(capturedLinks.length>=2);
+    for(const link of capturedLinks)assert.equal((await raw(link)).status,404,"erasure revokes captured confirmation and management authority");
+    assert.deepEqual(await state(),erasedState,"replaying captured authority cannot resurrect an erased incident follower");
     assert.equal((await post(`/api/app/management-tokens/${writer.credential.id}/revoke`,{})).status,200);
     const revoked=await state();
     assert.equal((await call(compat,writer.token,"POST",{subscriber:{email:address("revoked")}},true)).status,401);
