@@ -6940,7 +6940,7 @@
       "executable": false
     },
     "tests/e2e/helpers/theme-browser-flow.mjs": {
-      "sha256": "d31342ce4e9788f633d336fe7b524a59ab870edc5514619e413b0d9aac0b1f27",
+      "sha256": "9efaaea929a95a599f60f534cc0b5490d48be40011933e24f720a0d1697dcb1e",
       "executable": false
     },
     "tests/e2e/helpers/theme-fixture.mjs": {

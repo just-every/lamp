@@ -6,10 +6,17 @@ export async function themeBrowserFlow({ appUrl, pageUrl, sessionId, cookieName,
   const browser = await chromium.launch({ headless: true, args: ["--use-mock-keychain", "--password-store=basic"] });
   const directory = "test-results/theme-001";
   await mkdir(directory, { recursive: true });
+  let activePage;
+  const clientErrors = [];
   try {
     const context = await browser.newContext({ viewport: { width: 1440, height: 1000 } });
     await context.addCookies([{ name: cookieName, value: sessionId, url: appUrl }]);
     const page = await context.newPage();
+    activePage = page;
+    page.on("pageerror", error => clientErrors.push(error.message));
+    page.on("response", response => {
+      if (response.status() >= 400 && ["script", "stylesheet"].includes(response.request().resourceType())) clientErrors.push(`${response.status()} ${new URL(response.url()).pathname}`);
+    });
     try {
       await page.goto(`${appUrl}/app/settings`, { waitUntil: "domcontentloaded", timeout: 90_000 });
     } catch (cause) {
@@ -17,6 +24,10 @@ export async function themeBrowserFlow({ appUrl, pageUrl, sessionId, cookieName,
       throw cause;
     }
     await expect(page.getByRole("heading", { name: "Theme", exact: true })).toBeVisible();
+    await page.waitForFunction(() => {
+      const form = document.querySelector(".settings-page");
+      return form && !form.inert;
+    }, null, { timeout: 30_000 });
     const open = async title => { const detail = page.locator("details").filter({ has: page.locator(":scope > summary", { hasText: title }) }).first(); if (!await detail.getAttribute("open")) await detail.locator(":scope > summary").click(); };
     await open("Colours");
     await page.getByLabel("Use a custom colour palette").check();
@@ -95,5 +106,8 @@ export async function themeBrowserFlow({ appUrl, pageUrl, sessionId, cookieName,
     await expect(literal.locator(".theme-footer")).toContainText("Always here to help.");
     await noScript.close();
     await context.close();
+  } catch (cause) {
+    await activePage?.screenshot({ path: `${directory}/settings-failed.png`, fullPage: true }).catch(() => {});
+    throw new Error(`${cause.message}\nClient diagnostics: ${clientErrors.join("; ") || "none"}`, { cause });
   } finally { await browser.close(); }
 }
