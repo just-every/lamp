@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { load } from '../operator-readiness/runtime.mjs';
-import { lampRuntime, linkToken } from '../auth-adoption/lamp-runtime.mjs';
+const linkToken = message => new URL(message.text.match(/https?:\/\/[^\s]+/)[0]).searchParams.get('token');
 
 const loaded = Promise.all([
   load('src/core/features/agent-door/people.ts'),
@@ -11,10 +11,22 @@ const loaded = Promise.all([
 /** Additional assertions within the single shared-door registration. Native
  * accounts, sessions, signed settings and persistence are real; only mail is
  * captured at the transport edge. No fixture SQL creates authority. */
-export async function runNativeIdentityProofFlow(t) {
-  const r = await lampRuntime(t), [peopleModule, settingsModule, proofModule] = await loaded;
-  const mail = {configured: true, async send(message) { r.messages.push(message); return {providerMessageId: `identity-edge-${r.messages.length}`}; }};
-  const services = {auth: () => r.auth, mail};
+export async function runNativeIdentityProofFlow({services, bindings, cookie, messages, request, call}) {
+  const [peopleModule, settingsModule, proofModule] = await loaded;
+  const session = await call('/api/app/session', {cookie});
+  assert.equal(session.status, 200);
+  const {operator: owner} = await session.json();
+  const r = {bindings, cookie, messages, request, owner, auth: services.auth(),
+    async invite(email) {
+      const invited = await call('/api/app/operators/invite', {method: 'POST', cookie,
+        body: {email, displayName: 'Replacement address owner'}});
+      assert.equal(invited.status, 202);
+      const accepted = await call('/auth/confirm', {method: 'POST', body: {token: linkToken(messages.at(-1))}});
+      assert.equal(accepted.status, 303);
+      const invitedCookie = accepted.headers.get('set-cookie').split(';', 1)[0];
+      const current = await (await call('/api/app/session', {cookie: invitedCookie})).json();
+      return {...current.operator, cookie: invitedCookie};
+    }};
   const keyPair = await crypto.subtle.generateKey({name: 'ECDSA', namedCurve: 'P-256'}, true, ['sign', 'verify']);
   const publicKey = await crypto.subtle.exportKey('jwk', keyPair.publicKey);
   const origin = new URL(r.bindings.AUTH_ORIGIN).origin;
@@ -39,7 +51,7 @@ export async function runNativeIdentityProofFlow(t) {
   };
   await apply([{id: 'business-teammate', email: 'mapped-teammate@example.test', name: 'Mapped teammate', role: 'admin', invite: 1}]);
   const invitation = linkToken(r.messages.at(-1));
-  const accepted = await r.authHandle(r.request('/auth/confirm', {method: 'POST', body: {token: invitation}}));
+  const accepted = await call('/auth/confirm', {method: 'POST', body: {token: invitation}});
   assert.equal(accepted.status, 303, 'The normal native invitation must create the teammate session');
   const teammateCookie = accepted.headers.get('set-cookie').split(';', 1)[0];
   const people = peopleModule.createPeopleAdapter(services, r.bindings);
@@ -80,6 +92,8 @@ export async function runNativeIdentityProofFlow(t) {
   assert.equal((await proofs.handle(crossSite)).status, 403);
   await r.auth.setOperatorStatus(r.request('/auth/operator/status', {method: 'POST', cookie: r.cookie}), mapped.id, 'inactive');
   assert.equal(await people.sponsor({sub: 'business-teammate'}), null, 'Revoked native admission immediately stops sponsorship');
+  assert.equal((await call(`/api/app/operators/${replacement.id}`, {method: 'DELETE', cookie: r.cookie})).status, 204,
+    'The temporary replacement account is erased through its native lifecycle');
   await r.auth.signOut(r.request('/auth/signout', {method: 'POST', cookie: r.cookie}));
   assert.equal(await verify(), false, 'Revoking the real native proof session stops held execution');
 }

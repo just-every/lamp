@@ -52,6 +52,11 @@
       "binding": "AI_PROVIDER_API_KEY",
       "environment": "AI_PROVIDER_API_KEY",
       "verifyStandIn": "synthetic-lamp-agent-provider-key"
+    },
+    {
+      "binding": "INSTALLATION_KEY",
+      "environment": "INSTALLATION_KEY",
+      "verifyStandIn": "1212121212121212121212121212121212121212121212121212121212121212"
     }
   ]
 }
