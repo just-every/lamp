@@ -6,6 +6,7 @@ export const SETTINGS_TABS = [
   { id: "writing", label: "Writing" },
   { id: "embeds", label: "Embeds and feeds" },
   { id: "channels", label: "Slack and Teams" },
+  { id: "alerts", label: "Alert rules" },
   { id: "operators", label: "Operators" },
   { id: "data", label: "Your data" },
 ] as const;

@@ -11,7 +11,7 @@ export async function acceptGroupedAlert({ repository, source, preset, requestHa
   const reading = readGroupedAlerts(preset, parsed, source.labelMatchers ?? []);
   const error = "refused" in reading ? reading.refused : reading.alerts.every(alert => !alert.componentIds.length) ? "Unmapped alert group: no alert labels match a configured component." : null;
   if (error || "refused" in reading) {
-    const receipt: AlertReceiptRow = { id: createUlid(), sourceId: source.id, requestHash, deduplicationKey: null, incidentId: null, state: "invalid", receivedAt: timestamp, recoveredAt: null, payloadJson: rawBody, error, createdAt: timestamp, updatedAt: timestamp };
+    const receipt: AlertReceiptRow = { sourceVersion: source.updatedAt, id: createUlid(), sourceId: source.id, requestHash, deduplicationKey: null, incidentId: null, state: "invalid", receivedAt: timestamp, recoveredAt: null, payloadJson: rawBody, error, createdAt: timestamp, updatedAt: timestamp };
     await repository.recordInvalid(receipt);
     return { status: 400, receiptId: receipt.id, incidentId: null, replayed: false };
   }
@@ -20,7 +20,7 @@ export async function acceptGroupedAlert({ repository, source, preset, requestHa
   const creates = !recovered && !existingId && policy.createsDraft({ sourceId: source.id, deduplicationKey: reading.key, recovered });
   const incident = creates ? { id: createUlid(), reference: await repository.allocateIncidentReference(), title: reading.title || "Alert group requiring review", operatorId: source.createdByOperatorId, timestamp } : null;
   const unmapped = reading.alerts.filter(alert => !alert.componentIds.length).map(alert => alert.fingerprint);
-  const receipt: AlertReceiptRow = { id: createUlid(), sourceId: source.id, requestHash, deduplicationKey: reading.key, incidentId: existingId ?? incident?.id ?? null, state: recovered ? "recovered" : "firing", receivedAt: timestamp, recoveredAt: recovered ? timestamp : null, payloadJson: rawBody, error: unmapped.length ? `Unmapped alert fingerprints: ${unmapped.join(", ")}` : null, createdAt: timestamp, updatedAt: timestamp };
+  const receipt: AlertReceiptRow = { sourceVersion: source.updatedAt, id: createUlid(), sourceId: source.id, requestHash, deduplicationKey: reading.key, incidentId: existingId ?? incident?.id ?? null, state: recovered ? "recovered" : "firing", receivedAt: timestamp, recoveredAt: recovered ? timestamp : null, payloadJson: rawBody, error: unmapped.length ? `Unmapped alert fingerprints: ${unmapped.join(", ")}` : null, createdAt: timestamp, updatedAt: timestamp };
   const recorded = await repository.recordReceipt(receipt, incident, reading);
   if (!recorded.replayed && recorded.receipt.incidentId) {
     if (recorded.receipt.state === "recovered") await repository.markRecovered(source.id, reading.key, timestamp);
