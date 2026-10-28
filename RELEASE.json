@@ -943,6 +943,14 @@
     {
       "id": "0068_incident_report_deliveries.sql",
       "buyerSteps": "Apply after 0067. Adds report-only delivery and attempt carriers under the existing logical notification views, preserving every incident/maintenance/component delivery row, foreign key and old archive. Report publication now captures and dispatches its report recipients without bypassing confirmation or terminal subscription lifetimes. No provider credential or owner action is required."
+    },
+    {
+      "id": "0069_incident_management_consent.sql",
+      "buyerSteps": "Apply after 0068. Adds a default-off incident subscriber write scope to management tokens and the shared confirmation address key for imported invitations. Existing tokens gain no write authority. Imported incident and page followers share the existing daily confirmation allowance."
+    },
+    {
+      "id": "0070_incident_subscriber_read_scope.sql",
+      "buyerSteps": "Apply after 0069. Adds a default-off private subscriber read scope. Existing public-data read tokens retain their current access and gain no access to subscriber addresses. An active owner or admin explicitly issues the new scope when an integration needs incident subscriber lists."
     }
   ],
   "breaking": false,
