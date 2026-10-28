@@ -49,7 +49,7 @@ export function createAgentDoor(options: AgentDoorOptions): AgentDoor {
       if (revoked(await policyState(rt), { agent: principal.agent })) return { outcome: 'refused', code: 'unauthenticated', decision: null }
       const capacity = await admit(rt, principal)
       if (capacity !== null) return { outcome: 'refused', code: capacity === 'revoked' ? 'unauthenticated' : 'rate_limited', decision: null }
-      return (await callTool(rt, name, args, principal, 'embedded', undefined, undefined, undefined, proofReference)).result
+      return (await callTool(rt, name, args, principal, 'embedded', undefined, undefined, undefined, proofReference, who.operationId)).result
     },
     async emit(event) {
       await appendEvents(rt, [{ type: event.type, uri: event.uri, actor: { kind: 'person', person: { id: event.person.id, name: event.person.name } }, data: event.data }])

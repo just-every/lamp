@@ -3,6 +3,7 @@ import { isDeepStrictEqual } from 'node:util';
 import { classIds, subset, errorCode, APPROVAL } from './protocol.mjs';
 import { grantSet } from './narrowing.mjs';
 import { schemaErrors } from './schema.mjs';
+import { checkTarget } from './target.mjs';
 
 export function checkClasses(c, step, answer, phase) {
  const actual = answer.decision?.classes;
@@ -53,6 +54,7 @@ export async function runJourney(c, phase, { held = false, injections = false, r
    }
    let answer = await c.tool(step.tool, args, proof);
    checkClasses(c, step, answer, phase);
+   await checkTarget(c, step, outputs, answer, phase);
    const expectedDisposition = held ? needsApproval ? 'approval' : 'review' : 'autonomous';
    c.add(`BASE-AGENT-007.1.${phase}.${step.id}`, answer.decision?.disposition === expectedDisposition && answer.decision.revision === c.revision && answer.decision.classes.every(item => item.do === (held ? item.class === 'standard' ? 'review' : 'approval' : 'autonomous')), `${step.tool} must receive ${expectedDisposition} under revision ${c.revision}.`);
    if (needsApproval) {
@@ -62,6 +64,7 @@ export async function runJourney(c, phase, { held = false, injections = false, r
     c.add(`BASE-AGENT-007.5.no-effect.${step.id}`, isDeepStrictEqual(before, after), `${step.tool} changed native state before approval.`);
     if (!approval?.id) continue;
     const approved = await c.decideApproval(answer);
+    await checkTarget(c, step, outputs, answer, phase, true);
     c.add(`BASE-AGENT-008.5.approver.${step.id}`, approved.ok, `Signed-in sponsor approval returned HTTP ${approved.status}.`);
     answer = await c.tool(step.tool, args, { ...proof, requestState: answer.result.requestState });
     checkClasses(c, step, answer, `${phase}.approved`);

@@ -10,7 +10,7 @@ const result = (answer, label) => {
   return answer.result.structuredContent;
 };
 /** Specialist work uses the production MCP, intake, person and import doors. */
-export default async function specialist({ request, origin, email, cookie, mail, tool }) {
+async function specialist({ request, origin, email, cookie, mail, tool }) {
   const person = async (path, method = 'GET', body) => {
     const response = await request(new URL(path, origin).href, { method, headers: { Origin: origin, Cookie: cookie, 'Content-Type': 'application/json' }, ...(body === undefined ? {} : { body: JSON.stringify(body) }) });
     assert.ok(response.ok, `Native person ${method} ${path}: HTTP ${response.status}`);
@@ -18,6 +18,41 @@ export default async function specialist({ request, origin, email, cookie, mail,
   };
   const call = async (name, args = {}) => result(await tool(name, { ...args, idempotency_key: randomUUID() }), name);
   const fixture = nativeFixture();
+  // The preparer cannot perform its own native review. The independent person
+  // signs in through the production invitation lifecycle declared to the runner.
+  const reviewDraft = await call('lamp.incidents.create', {
+    title: 'Independently reviewed native draft',
+    components: [{componentId: fixture.componentId, state: 'Degraded performance', relationship: 'Primary'}],
+    update: {lifecycle: 'Investigating', affectedAudience: 'API customers', customerImpact: 'Some requests fail.', whatStillWorks: 'Dashboard remains available.', details: 'Independent native review.', nextUpdateAt: null},
+  });
+  const auditKey = randomUUID();
+  result(await tool('lamp.incidents.note', {id: reviewDraft.incident.id, body: 'Native audit target proof', idempotency_key: auditKey}), 'Native target note');
+  let auditCursor = null, targetAudit;
+  for (let page = 0; page < 100; page++) {
+    const audit = await person('/agents/api/audit' + (auditCursor ? '?after=' + encodeURIComponent(auditCursor) : ''));
+    assert.equal(audit.differs_from_policy, 0);
+    targetAudit = audit.rows.find(row => row.idempotency_key === auditKey);
+    if (targetAudit || !audit.cursor || audit.cursor === auditCursor) break;
+    auditCursor = audit.cursor;
+  }
+  assert.deepEqual(targetAudit?.resource, {kind: 'incident', id: reviewDraft.incident.id}, 'The actual native target survives paginated audit readback');
+  assert.ok(targetAudit.label.includes(' for '));
+  const reviewPath = new URL('/api/app/incidents/' + reviewDraft.incident.id + '/draft/review', origin).href;
+  const review = actorCookie => request(reviewPath, {method: 'POST', headers: {Origin: origin, Cookie: actorCookie, 'If-Match': reviewDraft.version}});
+  const selfReview = await review(cookie);
+  assert.equal(selfReview.status, 409, 'The agent sponsor cannot be the independent native reviewer');
+  await selfReview.body?.cancel();
+  assert.ok(fixture.reviewer?.cookie && fixture.reviewer.cookie !== cookie);
+  const independent = await review(fixture.reviewer.cookie);
+  assert.equal(independent.status, 200, 'The real independent reviewer can review the exact saved native draft');
+  await independent.body?.cancel();
+  const reviewed = await call('lamp.incidents.read', {id: reviewDraft.incident.id});
+  const reviewerSession = await request(new URL('/api/app/session', origin).href, {headers: {Cookie: fixture.reviewer.cookie}});
+  assert.equal(reviewerSession.status, 200);
+  const reviewerPerson = (await reviewerSession.json()).operator;
+  assert.equal(reviewed.incident.draft.reviewedByOperatorId, reviewerPerson.id);
+  assert.ok(reviewed.incident.draft.reviewedAt);
+  assert.notEqual(reviewerPerson.email, email);
   const source = (await person('/api/app/intake/sources')).sources.find(row => row.id === fixture.source.id);
   assert.ok(source?.endpointUrl);
   let accepted;
@@ -91,4 +126,12 @@ export default async function specialist({ request, origin, email, cookie, mail,
   await new Promise(resolve => setTimeout(resolve, Math.max(0, Date.parse(publishAt) - Date.now())));
   await call('lamp.updates.dispatch', { id: scheduledIncident.incident.id, version: scheduled.version });
   assert.equal((await call('lamp.incidents.read', { id: scheduledIncident.incident.id })).incident.updates.length, 1);
+}
+
+export default async function nativeJourney(args) {
+  try { await specialist(args); }
+  catch (error) {
+    if (error instanceof assert.AssertionError) console.error('Lamp specialist assertion: ' + error.message.split('\n')[0]);
+    throw error;
+  }
 }

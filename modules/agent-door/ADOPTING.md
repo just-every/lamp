@@ -230,40 +230,89 @@ the same policy, approval, review and audit path as tools. A resource read must 
 access. Mark device, screen, connector, import-door and installation operations
 as outside the tool registry when they require another supported door.
 
-## Durable invocation consent
+## Durable invocation consent and operation identity
 
-Persist the originating `ctx.consent` alongside the native sponsor id, agent
-attribution, scopes, client id, tool, arguments and idempotency key when preparing scheduled or
-durable work. The trusted worker later calls the public door with that saved
-identity:
+Every tool callback receives this admission metadata on `ToolContext`:
 
 ```ts
-const result = await door.invoke(job.tool, job.args, {
-  person: { id: job.sponsorId }, agent: job.agent, consent: job.consent,
-  scopes: job.scopes, clientId: job.clientId,
-})
+readonly consent?: string             // originating Business consent record id
+readonly scopes: readonly string[]    // effective grant recorded at admission
+readonly operationId: string          // door-issued original decision/audit id
+readonly idempotencyKey: string | null // original key; null for reads
+readonly clientId?: string
+readonly person: Readonly<Person>      // native sponsor, including id
+readonly agent: Readonly<Agent>        // originating agent, including id
+readonly approvers: readonly Readonly<{ id: string; name: string }>[]
 ```
 
-`invoke` re-reads the native person; saved role or email is unnecessary. Consent
-is optional for work that originated independently of Business consent. Work
-prepared under a consent must retain that exact id rather than omit or replace
-it at execution. The door puts it on the Principal and `ToolContext`, re-reads
-current signed revocations at worker admission and fences execution reservation
-against revocation. A revoked consent returns
-`{outcome: 'refused', code: 'consent_revoked'}` without calling the native effect.
-Both successful and refused invocation audit rows include `consent`, agent,
-sponsor, tool, time, policy revision and outcome. The edition owns its scheduler
-and native transaction boundaries; retain that result with the job.
+The context and its copied identity, scope, actor, proof and approver objects are
+frozen at runtime and read-only in TypeScript. `db` remains the native service
+capability, and `emit` still records effects. Mutation of a context cannot edit
+the door's principal or a later callback. A tool returning a native queued-effect
+handle should include `ctx.operationId` in that handle. Its audit row carries the
+same `operation_id`, plus `consent`, `scopes`, `client_id` and `idempotency_key`.
+Approved execution retains the original operation id and key, while its own
+execution audit still has a distinct `id` and original `decision_id`.
 
-The shared `runAgentDoorConformance` journey accepts an optional
-`invoke(name,args,who)` callback wired to that same trusted worker door. `who`
-carries `{person: {id}, agent, consent}`. The module's journey uses it to run
-serialized job input, prove a native effect and consent-attributed audit, then
-revoke the consent before admitting saved work and prove `consent_revoked`,
-a complete refusal audit and an unchanged native witness. Supply this callback
-in the edition's integrated module journey; no production test route is needed.
-The HTTP-only CLI journey checks signed consent revocation and audit attribution
-separately, without claiming to run the edition's scheduler.
+Persist the originating context alongside the native queue item. For example,
+a preparation tool records the following identity before returning its handle:
+
+```ts
+const identity = {
+  person: { id: ctx.person.id }, agent: ctx.agent, consent: ctx.consent,
+  scopes: ctx.scopes, clientId: ctx.clientId, operationId: ctx.operationId,
+}
+// Persist identity, ctx.idempotencyKey and native job arguments atomically.
+```
+
+The trusted worker re-enters a registered native execution tool through the
+public door, using exactly those saved values and the same public key:
+
+```ts
+const result = await door.invoke('example.queue.execute', {
+  id: job.id, idempotency_key: job.idempotencyKey,
+}, job.identity)
+```
+
+`invoke` accepts `operationId` only at the trusted worker boundary; MCP arguments
+cannot supply it. The door checks it against the retained completed admission,
+including the exact sponsor, agent (id, name and specialist), consent, client,
+granted scope set and key. The execution context restores recorded scope order
+and agent metadata from that admission.
+Missing, incomplete or mismatched admissions return `operation_mismatch` without
+running the tool. It does not reconstruct scopes from the registry. The door
+re-reads the current native person, current grants and signed policy. A removed
+admission scope returns `insufficient_scope` and requires fresh preparation;
+revoked consent still returns `consent_revoked` with no effect. Keep the same
+checks in the native effect transaction when concurrent edits need a fence.
+
+Each continuation tool has its own once-only claim under the original operation
+and public key, so replay returns its one recorded result rather than the
+preparation handle. Reusing that continuation with changed arguments returns
+`idempotency_conflict`. Public keys may not contain NUL, which separates these
+internal claims from ordinary keys. The existing calls table stores the claims;
+no new schema migration is needed. Keep the originating audit, approvals and
+idempotency records for as long as the queue may execute or replay them.
+Approver ids come from the retained approved execution and are re-resolved to
+active native people; a seed cannot supply them.
+
+For independently prepared scheduled work with no earlier tool admission, omit
+`operationId` and supply its original native sponsor, agent, explicit scopes,
+client id and consent to `invoke`. This makes a fresh door admission. Consent is
+optional only for work originating independently of Business consent. Never drop
+or replace an originating consent at execution. Older pending approvals retain
+their original decision id as operation identity; older queue handles without a
+recorded admission snapshot require fresh preparation.
+
+The shared `runAgentDoorConformance` journey can take an optional
+`invoke(name,args,who)` callback wired to the same trusted worker door. Its
+existing consent checks remain unchanged. Base's public-door fixture additionally
+proves native queue persistence, one-effect replay, execution-time revocation,
+immutable identity, scope narrowing and named approver continuity. These module
+proofs do not establish a seed's integrated queue behavior. Client-data custody
+and erasure remain outside this adoption proof until retained fields and fences
+are agreed. This change does not promote those claims or supply seed-side
+`BASE-AGENT-010` contract citations.
 
 ## Keep runtime and CLI evidence separate
 
@@ -324,6 +373,8 @@ Seeds with a native initializer or a different owner binding declare this in
 ```
 
 All keys are optional. Email defaults to `synthetic-base-1@example.com`;
+
+All four keys are optional. Email defaults to `synthetic-base-1@example.com`;
 the manifest's email and token fields are always bound too. The initializer is
 a contained seed module default-exporting an async function receiving
 `{request, origin, email, sub, displayName, token, claim, returnTo}`. `claim` is
@@ -502,3 +553,293 @@ corresponding relative paths or retain the seed's supported native adapters.
 The fresh-copy journey records and refreshes door, settings and prerequisites
 through the exported authoring CLI, then typechecks the entire copy under strict
 TypeScript without excluding any copied files.
+
+## Current admission on replay
+
+Idempotency keys retain outcomes, not authority. Every retry rechecks the current
+credential, sponsor, agent and consent revocation, scope, pause, native
+classification and policy before returning saved content. A refusal has its own
+audit row and never includes the saved result. A new approval or review
+requirement returns `approval_required` or `review_required`; an old approval
+cannot authorize a newer policy revision. Accepted replay does not execute or
+count the native effect again. Record revision preconditions guard first
+execution; they do not reject a successful replay merely because that execution
+advanced the record revision.
+
+For an explicit current-authority proof, declare
+`verification.replayAdmission: {prepare:['create']}`. Preparation names existing
+journey steps and must end with an idempotent write. Its public-door phase
+proves identical once-only replay, pause and changed-policy refusal, a newly
+required approval, current scope and the refused replay's complete audit.
+
+## Verify multiple sponsors
+
+Keep `verification.owner` for the first owner's existing bindings and lifecycle.
+Optionally declare `verification.sponsors` as a nonempty list of principals with
+unique stable `label` values and distinct canonical emails:
+
+```json
+{
+  "sponsors": [
+    { "label": "owner" },
+    { "label": "member", "email": "synthetic-member@example.com", "role": "member", "initializer": "tests/initialize-member.mjs" }
+  ],
+  "crossSponsor": {
+    "prepare": ["create"],
+    "read": { "tool": "example.records.read", "args": { "id": { "$from": "create", "pointer": "/id" } } },
+    "change": { "tool": "example.records.update", "args": { "id": { "$from": "create", "pointer": "/id" }, "value": "Edited" } }
+  }
+}
+```
+
+These keys live under `verification`. The first principal inherits `owner` and
+runs all existing phases. Each later principal requires its own contained
+initializer and receives `{label,email,sub,displayName,claim,owner,request,
+origin,database,returnTo}`. Its fresh signed claim uses the same disposable
+installation ring; `owner` carries the first principal's native session for
+normal invitations. A signed Business settings roster binds each subject with
+its declared `admin` or `member` role (default `member`). Complete the seed's
+native member lifecycle and return its final 303 session response. Never create
+accounts or sessions through direct SQL.
+
+`database(binding)` exposes read-only SELECT statements against declared
+**disposable verification** D1 databases, for test-owned mailbox or native
+installation state. It has no production bindings or served endpoint. All
+account creation and record effects still go through production doors. A seed
+with another identity lifecycle uses its initializer and supplied signed claim.
+
+`crossSponsor.prepare` names journey steps that create private native records.
+The `read` and `change` fixtures use those outputs. Each additional sponsor must
+successfully act on its own records, fail to read or change the first sponsor's
+records, and fail to read or approve the first sponsor's private approval using
+both its session and agent credential. Audits must attribute both principals
+correctly. An omitted list or one sponsor runs no extra phase or points.
+
+## Provision verification webhook secrets
+
+A seed that creates its own random installation HMAC keys can declare
+`verification.network.secretSource: "tests/read-webhook-secrets.mjs"` alongside
+its existing network module and origins. The contained test-only module
+exports `async function ({database})`, reads the fresh installation's own state
+and returns a nonempty map of uppercase binding names to string values. The
+isolated receiver receives that map as `env.secrets` in its `fetch(request,env)`.
+It still has no application bindings, Node capabilities or outbound network.
+Provisioning occurs after native initialization and Business binding, before
+journey effects. Values and accessor failures are never printed. No accessor
+is bundled into the app or mounted as a production route.
+
+For callbacks into the seed, also declare:
+
+```json
+{ "webhooks": { "module": "tests/inbound-webhook.mjs", "prepare": ["create"] } }
+```
+
+This is another key under `verification`. Its contained module default-exports
+an async builder receiving `{origin,outputs,secrets}` and returns
+`{valid: Request, invalid: Request}`. Sign the seed's exact native payload with
+its per-run key and with a wrong key, respectively. Both requests must POST to
+the disposable installation origin. The verifier requires a 401 or 403 with no
+native change for the invalid signature, then a successful response and a
+retained native effect for the valid signature. Native signature validation,
+replay checks and state commits remain in the seed.
+
+## Security changes with no authority subject
+
+A security tool changing only a record may explicitly declare `authority:
+'none'` instead of an authority callback. Declare the same `inputSchema` and
+`effect: {kind:'record', justification:'...specific native record change...'}`
+in its runtime definition and `agent-surface.json` tool. Validation requires a
+mutating security tool, no access class, a nonempty justification, and a closed
+recursive schema containing only typed record inputs. Open or opaque objects,
+references and schema composition are refused. Person, user, owner, sponsor,
+agent, role, scope, grant, credential, permission, consent and token fields,
+including nested and camel-case variants, are refused.
+
+The registry publishes this class and record effect; conformance matches them
+to the runtime schema. Normal policy, approval, execution and audit still apply.
+Undeclared arguments return `undeclared_arguments` instead of being ignored.
+Every success, pending execution and refusal records `authority: 'none'` in its
+audit row. The extra conformance phase probes widening arguments, unchanged
+native state, audit attribution and a rejected authority-bearing declaration.
+A tool that can change someone's authority retains its callback and
+`self_escalation` fixture. Narrowing callbacks continue returning
+`{subject, widens:false}`; this record class does not replace narrowing checks.
+## Native independent reviewers in verification
+
+An owner initializer that needs a second person during fixture preparation can
+declare that person's native lifecycle separately:
+
+```json
+{
+  "verification": {
+    "owner": { "initializer": "tests/initialize-owner.mjs" },
+    "reviewers": [
+      { "label": "quality", "email": "synthetic-quality@example.invalid", "initializer": "tests/initialize-reviewer.mjs" }
+    ]
+  }
+}
+```
+
+The owner initializer receives `reviewers.initialize(label, {cookie})`. Pass its
+real native owner session. The declared reviewer initializer receives
+`{request, origin, label, email, owner: {email,cookie}, returnTo, mail}`. Use the
+same-origin `request` to invite the reviewer, consume their invitation through
+the native confirmation handler, and return its final 303 `Response` with the
+reviewer's session cookie. `initialize` returns `{email,cookie}` to the owner
+initializer, which then performs the native independent review. No agent token,
+signer, database writer or production test route is supplied. Native roles,
+independence, expiry, one-use proofs and step-up checks remain authoritative.
+This test session grants no authority to a queued agent job.
+
+`mail.read({limit, maxAgeMs, after})` returns only this declared reviewer's
+accepted Resend, SendGrid or Cloudflare mail submissions as
+`{id,at,subject,text,html}`. The provider edge remains isolated. Rejected or
+oversized submissions and undeclared recipients are unavailable. Capture is
+limited to twenty messages, 64 KiB per submission and five minutes of age;
+defaults are ten messages and five minutes. No headers or provider credentials
+are exposed. Each initializer runs at most once, there are at most eight unique
+reviewers distinct from the owner, and capture is destroyed when verification
+closes. The harness requires every declared reviewer lifecycle to complete;
+its fixed failure diagnostic never prints mail, proofs or initializer errors.
+Keep lifecycle modules in test tooling outside the production graph.
+
+## Client custody boundary
+
+The door retains idempotent outcomes, pending approval arguments, review
+summaries, trace text, audit and events. Native client erasure must account for
+these stores; a native record deletion alone cannot remove retained content or
+prevent replay. No generic client-scoped erasure adapter is supplied yet.
+Keep a native custody exception closed when these stores contain client data.
+An adoption must establish the native mapping from retained artifacts to
+clients, the permitted redaction of retained decision evidence, and the atomic
+fence against pending execution and concurrent capture before enabling it.
+The existing evidence-retention requirement still applies.
+
+## Resolve native targets for audit and approval
+
+A record tool declares `target(args, ctx)` alongside `classify`, `summary` and
+`revision`. Return `{ kind: 'invoice', id: nativeRecord.id }`, or `null` if the
+call has no native record target. Resolve through the native service; arguments
+and returned resource links do not establish identity. The resolver receives the
+current sponsor, agent/client and narrowed scopes. It must enforce native
+visibility and return only audit-safe, policy-redacted identifiers. Do not put
+credentials, private record content or unauthorized existence signals in them.
+The door validates an exact nonempty string `kind`/`id` pair and refuses malformed
+answers as `target_invalid`; a resolver is attribution, never an authorization
+grant. Keep native access checks inside classification and execution too.
+
+Tool audit rows store that pair in `resource`; undeclared or absent targets stay
+`null`. Resource reads retain their requested URI in `resource`. Pending approval
+summaries also contain the server-resolved pair as `summary.nativeTarget`, bound
+to `summary_sha256`. Approval execution resolves again under the current native
+principal; a changed target refuses `approval_evidence_changed` before effects.
+Read-only record tools may declare the same resolver.
+
+A journey step may declare `target: {kind, id}` to check the native identity in
+its audit, pending summary and execution audit. The `id` may use a prior-result
+`$from` reference. Supply the expected redacted native identity independently of
+the proposed arguments; a wrong pair must fail conformance.
+
+## Keep refusal attribution and classification
+
+For schema-valid, resolvable calls, policy-unset, unavailable and paused refusals
+retain the native target and computed classes/facts. Their rules use a null rule
+id and the stopping disposition (`unset`, `unavailable` or `paused`): no policy
+rule authorized an effect. Classification and target hooks are read-only and
+must work without an adopted policy. If native authorization or missing state
+causes a `ToolRefusal`, the audit retains `classification_refusal` with that
+code, without inventing facts or bypassing the policy refusal. Invalid arguments
+and principals lacking the tool scope do not resolve native targets.
+
+## Return resource refusal machine codes
+
+Every resource refusal carries its named code in JSON-RPC `error.data.code`,
+including `resource_unavailable`, `tool_not_found`, `insufficient_scope`, policy
+refusals and `approval_required`. Missing and hidden native records both return
+`resource_unavailable` with no content or distinct existence signal. The code is
+the same one produced by the tool pipeline; no seed response hook is needed.
+
+## Declare sponsor escalation per native surface
+
+An access/security surface tool may declare `sponsorEscalation: false` only when
+its native authority resolver cannot widen the admitted sponsor. Examples are
+record visibility changes with no standing authority subject, and admin-only
+teammate edits whose sponsor already has full native authority. This declaration
+replaces only an inapplicable sponsor-escalation fixture. Every declared class
+still needs ordinary journey coverage, including real native widening/narrowing
+changes where supported, with policy, approval, audit and native guards intact.
+A missing or true declaration still requires the escalation fixture. It never
+disables the runtime's self-widening refusal. Checked `widens: false` tools still
+need their narrowing schema and grant-subset witness; this flag cannot waive
+those checks. Owner-to-admin is a native demotion, never a widening operation.
+
+## Contract clauses
+
+[`CLAUSES.md`](CLAUSES.md) is the single canonical source for
+`BASE-AGENT-001` through `BASE-AGENT-013`: transport, tools, resources,
+identity, authority, classes, policy, attribution, audit, events, limits and
+Pause, idempotency, and the manifest and conformance journey. Its requirement
+text and numbered acceptance points preserve the shared duties previously
+printed in `export/BASELINE.md`. Copying a duty never proves its implementation.
+The baseline keeps the implementation coverage and outstanding gaps separately.
+
+The static surface validator checks every clause ID named by tools and
+`notTools` against the seed contract. The built-in `events.list` tool cites
+`BASE-AGENT-010`; conformance point prefixes cover all thirteen shared duties.
+There is no fixed shared set of `AGENT-*` or `SURFACE-*` IDs: those remain the
+seed's own specialist jobs and deltas. The sync never creates or changes them.
+
+A directory copy of `modules/agent-door` delivers `CLAUSES.md` automatically
+through the existing `record-base` and `refresh-base` workflow above, including
+its digest in `base-copies.json`. If the edition instead records individual
+module files, copy and record this additional file from the same immutable
+commit (replace the destination with the edition's actual module path):
+
+```sh
+git -C /absolute/base-checkout archive FULL_BASE_COMMIT modules/agent-door/CLAUSES.md | tar -x -C src/base
+node node_modules/@runeditrun/rer/edition-authoring/cli.mjs record-base src/base/modules/agent-door/CLAUSES.md modules/agent-door/CLAUSES.md FULL_BASE_COMMIT --base /absolute/base-checkout
+```
+
+Do not add a singleton record under an existing directory record. The CLI also
+ships this canonical file in its portable source inventory for editions that
+have not copied the runtime yet. When a module copy is recorded, the command
+uses that copy and verifies its recorded digest. An older runtime record
+without the clause file uses the CLI-delivered source, so a contract sync does
+not require moving the runtime ahead of its own adoption work. The CLI and runtime remain separate pins.
+
+From the runnable seed root, using a CLI containing this command:
+
+```sh
+rer door clauses --check
+rer door clauses --write
+rer door clauses --check
+```
+
+If the seed's pinned CLI predates the command, use the selected Base checkout
+directly, without changing that pin or the runtime copy:
+
+```sh
+node /absolute/base-checkout/bin/rer.mjs door clauses --write --cwd /absolute/seed
+node /absolute/base-checkout/bin/rer.mjs door clauses --check --cwd /absolute/seed
+```
+
+`--cwd DIR` selects a different seed root. `--check` is read-only, exits 1 and
+names every missing or stale shared clause, and checks the generated documents
+when all clauses are current. `--write` inserts missing clauses in
+`### Agent surface (Base-delivered)` under Target clauses, before the seed's
+last `### Agent surface` area, and updates existing shared definitions in place.
+It preserves all other contract bytes except the generator-owned summary rows.
+Existing shared Status, Evidence and Gap cells stay verbatim; canonical title
+updates change only the Title cell. New clauses have status `missing`, with a
+gap requiring judgment through this seed's own doors. The judged revision and
+date stay unchanged, and a second write produces no diff.
+
+The command runs the seed's `Lander-Regenerate` contract-docs `write` command
+from `AGENTS.md`, followed by the corresponding `check`, retaining any declared
+arguments. Without that declaration it uses
+`node src/base/contract-docs.mjs write`, then `check`. Restore or copy the real
+contract generator before syncing; legacy contracts must first be converted to
+the standard level-four clause and Status table shape. Review the contract,
+`ACCEPTANCE.md` and `docs/CLAIMS.md` together, run touched seed checks, then run
+the edition's documented source-lock command **last**, followed by its source
+check. Locking and committing remain explicit edition-authoring steps.

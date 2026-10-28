@@ -2,13 +2,15 @@ import assert from 'node:assert/strict';
 import { prepareNativeFixtures } from './owner-fixtures.mjs';
 
 /** Drive Lamp's production first-owner lifecycle; no fixture SQL or alternate auth. */
-export default async function initializeOwner({ request, origin, token, displayName, email, mail }) {
+async function initializeOwner({ request, origin, token, displayName, email, mail, reviewers }) {
   const bootstrap = await request(new URL('/auth/bootstrap', origin).href, {
     method: 'POST', redirect: 'manual',
     headers: { Origin: origin, 'Content-Type': 'application/json' },
     body: JSON.stringify({ token, displayName, returnTo: '/setup' }),
   });
-  assert.equal(bootstrap.status, 303, 'Native owner claim must create a normal person session');
+  const refused = bootstrap.status === 303 ? null : await bootstrap.clone().json().catch(() => null);
+  const code = typeof refused?.error === 'string' && /^[a-z_]+$/.test(refused.error) ? refused.error : 'unavailable';
+  assert.equal(bootstrap.status, 303, 'Native owner claim must create a normal person session (HTTP ' + bootstrap.status + ', ' + code + ')');
   const cookie = bootstrap.headers.getSetCookie().map(value => value.split(';', 1)[0]).join('; ');
   assert.ok(cookie, 'Native owner claim must retain its session cookie');
   const read = async path => {
@@ -34,5 +36,16 @@ export default async function initializeOwner({ request, origin, token, displayN
   assert.equal(complete.status, 200, 'First-run uses the ordinary native component lifecycle');
   await complete.body?.cancel();
   await prepareNativeFixtures({ request, origin, cookie, email, token, mail });
+  const reviewer = await reviewers.initialize('independent', {cookie});
+  const {nativeFixture} = await import('./fixture-state.mjs');
+  nativeFixture().reviewer = reviewer;
   return bootstrap;
+}
+
+export default async function owner(args) {
+  try { return await initializeOwner(args); }
+  catch (error) {
+    if (error instanceof assert.AssertionError) console.error('Lamp native owner fixture: ' + error.message.split('\n')[0]);
+    throw error;
+  }
 }

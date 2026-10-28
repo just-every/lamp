@@ -63,7 +63,7 @@ function checked<S extends z.ZodObject>(schema: S, args: Record<string, unknown>
 }
 /** Recheck current native admission before reading, classification and execution. */
 function define<S extends z.ZodObject>(definition: Definition<S>, allowed: (id: string) => Promise<boolean>): ToolDefinition {
-  const {input, resource, ...metadata} = definition;
+  const {input, resource, run: _run, classify: _classify, summary: _summary, revision: _revision, authority: _authority, ...metadata} = definition;
   const admit = async (ctx: ToolContext) => {if (!await allowed(ctx.person.id)) throw new ToolRefusal('unauthenticated');};
   return {
     ...metadata, untrusted:true,

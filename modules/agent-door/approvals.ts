@@ -7,7 +7,7 @@ import { matchingRefs, preparedBy } from './people.ts'
 import { executeApproval } from './approval-execution.ts'
 
 export interface SavedApproval {
-  decision_id: string; revision: number | null; tool: string; args: Record<string, unknown>; digest: string; key: string | null
+  decision_id: string; revision: number | null; tool: string; args: Record<string, unknown>; digest: string; key: string | null; claimKey?: string | null
   classes: ClassAndFacts[]; principal: Principal; approvers: string[]; expires_at: string; door: ToolContext['door']; evidence: Evidence
   result: CallResult; expected_revision?: string | number; summary: ApprovalDisplaySummary; summary_sha256: string
 }

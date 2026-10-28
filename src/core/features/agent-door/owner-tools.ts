@@ -18,12 +18,12 @@ const grantInput = z.object({enabled: z.boolean(), revokedKids: z.array(z.string
 const output = {type: 'object', additionalProperties: true};
 
 /** 2026-10-28: retained assertions for missing Base owner-proof native commands.
- * Base 7ce44fa... delegated.mjs refuses every native owner invitation/target,
+ * Base e1b4265... delegated.mjs refuses every native owner invitation/target,
  * exports no status/erase/credential command, and accepts no native proof.
  * These named operations remain in the registry and journey until that API
  * supports Lamp's genuine equal-owner model. No fabricated session fills it. */
 export const pendingOwnerNativeApi = {
-  date: '2026-10-28', base: '7ce44fa5b70b68b21d270ba54760dae28b4a37a7',
+  date: '2026-10-28', base: 'e1b4265eb0d839a67dae3c36a04f83fa48c9d480',
   code: 'native_owner_agent_api_unavailable',
   source: 'modules/operator-auth/accounts/delegated.mjs',
   required: 'Owner invitation/status/erasure and credential commands accepting current native email proof without minting a session',

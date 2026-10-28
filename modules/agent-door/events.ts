@@ -54,5 +54,5 @@ export const eventsTool = (rt: Runtime): ToolDefinition => ({
   inputSchema: { type: 'object', properties: { after: { type: 'string' }, limit: { type: 'integer', minimum: 1, maximum: 200 } }, additionalProperties: false },
   outputSchema: { type: 'object', properties: { events: { type: 'array', items: { type: 'object' } }, cursor: { type: ['string', 'null'] } }, required: ['events', 'cursor'], additionalProperties: false },
   classes: ['standard'], clauses: ['BASE-AGENT-010'], classify: () => [{ class: 'standard', facts: { measure: 1 } }],
-  async run(args, ctx) { return { result: await listEvents(rt, { person: ctx.person, agent: ctx.agent, scopes: ctx.scopes, clientId: ctx.clientId }, args.after as string | undefined, Number(args.limit ?? 100)) } },
+  async run(args, ctx) { return { result: await listEvents(rt, { person: ctx.person, agent: ctx.agent, scopes: [...ctx.scopes], clientId: ctx.clientId }, args.after as string | undefined, Number(args.limit ?? 100)) } },
 })

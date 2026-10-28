@@ -118,5 +118,19 @@ export function createIncidentTools(services: AppServices, bindings: AppBindings
         nativeTool('lamp.templates.apply', 'Apply a template to the exact saved incident version', idSchema.extend({ version: versionSchema, templateId: ulidSchema }).strict(), false, ['UPDATE-009'], ['standard'], standard, async (a, ctx) => { await checkVersion(a.id, a.version); const applied = await services.incidents.applyTemplate(a.id, a.templateId, ctx.person.id, a.version); if (!applied)
             throw new ToolRefusal('not_found'); changed(ctx, a.id, 'incident.template.applied'); return { result: { ...applied, version: incidentVersion(await incident(a.id)) }, resources: [resource(a.id)] }; }, { summary: async (a) => ({ target: { id: String(a.id), name: (await incident(String(a.id))).title }, items: [`Private template ${a.templateId}`, `Draft ${a.version}`] }), revisionType: 'string', revision }),
     ];
-    return tools;
+    return tools.map(tool => ({
+      ...tool,
+      async target(args, ctx) {
+        if (typeof args.id !== 'string') return null;
+        if (tool.name.startsWith('lamp.components.')) {
+          const component = await componentFor(args.id, ctx);
+          return {kind: 'component', id: component.id};
+        }
+        if (/^lamp\.(incidents|drafts|recovery|impact|updates|reports)\./.test(tool.name)) {
+          const value = await incident(args.id);
+          return {kind: 'incident', id: value.id};
+        }
+        return null;
+      },
+    }));
 }
