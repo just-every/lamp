@@ -9,6 +9,7 @@ const escapeRegex = value => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 /** Runs in the existing public isolation/weight registration, without registering another case. */
 export async function themeFlow({ appFetch, fetch, appUrl, pageUrl, sessionId, currentSettings, updateSettings, diagnostic = () => {} }) {
   const initial = await currentSettings();
+  assert.equal("themeAssets" in initial, false, 'private asset manifests are not editable Settings fields');
   const input = settingsInput(initial);
   const headers = { Cookie: `${sessionCookieName(appUrl)}=${sessionId}`, Origin: appUrl, Accept: 'application/json' };
   async function save(theme, expected = 200) {

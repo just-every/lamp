@@ -20,7 +20,6 @@ const LOGO_CONTENT_TYPES = new Set(["image/png", "image/jpeg", "image/webp"]);
 
 export type PageSettingsView = Omit<StoredPageSettings, "widgetAllowedOrigins" | "widgetAppearance" | "wordingBlockedTerms" | "emailBranding" | "theme" | "themeAssets"> & {
   theme: PageTheme | null;
-  themeAssets: ThemeAsset[];
   emailBranding: EmailBranding;
   mailIdentityEditable: boolean;
   widgetAllowedOrigins: string[];
@@ -42,7 +41,8 @@ function toView(settings: StoredPageSettings, mailIdentityEditable: boolean, reg
   const wordingBlockedTerms: unknown = JSON.parse(settings.wordingBlockedTerms);
   if (!Array.isArray(wordingBlockedTerms) || wordingBlockedTerms.some(term => typeof term !== "string")) throw new Error("Wording check terms are invalid.");
   const rawTheme: unknown = JSON.parse(settings.theme);
-  return { ...settings, theme: rawTheme === null ? null : pageThemeSchema.parse(rawTheme), themeAssets: themeAssetsSchema.parse(JSON.parse(settings.themeAssets)), emailBranding: emailBrandingSchema.parse(JSON.parse(settings.emailBranding)), widgetAppearance: widgetAppearanceSchema.parse(JSON.parse(settings.widgetAppearance)), mailIdentityEditable, regionsAvailable, wordingBlockedTerms, widgetAllowedOrigins: parseWidgetAllowedOrigins(settings.widgetAllowedOrigins) };
+  const { themeAssets: _privateAssets, ...view } = settings;
+  return { ...view, theme: rawTheme === null ? null : pageThemeSchema.parse(rawTheme), emailBranding: emailBrandingSchema.parse(JSON.parse(settings.emailBranding)), widgetAppearance: widgetAppearanceSchema.parse(JSON.parse(settings.widgetAppearance)), mailIdentityEditable, regionsAvailable, wordingBlockedTerms, widgetAllowedOrigins: parseWidgetAllowedOrigins(settings.widgetAllowedOrigins) };
 }
 
 export function createPageSettingsService(

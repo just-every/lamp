@@ -4296,7 +4296,7 @@
       "executable": false
     },
     "src/core/features/page-settings/service.ts": {
-      "sha256": "0b9a00e6177b6ee270b0b8f18cc25d171b568b8d0a01f3fb61aea0b14cec1f78",
+      "sha256": "b3e88e6d14eb8140009eb5b67b20b619b217a7330fd86b198f05bc04bb7b1cc4",
       "executable": false
     },
     "src/core/features/page-settings/theme-assets.ts": {
@@ -6952,7 +6952,7 @@
       "executable": false
     },
     "tests/e2e/helpers/theme-flow.mjs": {
-      "sha256": "e9b79bd55710d97860f0a74bbad59ab3c155a12767c29275392a69864ea69b38",
+      "sha256": "b51e8267f4fceb51e1d3416e1df29f4327d8725bd1db7f8c27b6617adf812239",
       "executable": false
     },
     "tests/e2e/helpers/traffic-alerts-flow.mjs": {
