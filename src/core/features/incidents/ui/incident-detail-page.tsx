@@ -334,6 +334,7 @@ function IncidentVisit({ incidentId }: { incidentId: string }) {
     <CommunicationOwnerControl key={incident.id} incidentId={incident.id} lifecycle={incident.lifecycle} owner={incident.owner} unowned={incident.unowned} captureVisit={captureVisit} onChanged={refresh} />
     <div className="incident-compose">
       <section className="composer-panel" aria-labelledby="composer-title" inert={publishState === "publishing"}>
+        {incident.draft?.agentAttribution ? <p style={{overflowWrap:"anywhere"}}>Prepared by {incident.draft.agentAttribution.label}.</p> : null}
         <div className="composer-heading"><h2 id="composer-title" className="eyebrow">{incident.updates.length ? "Update draft" : "First update"}</h2><p role="status" aria-live="polite" className={`autosave-status is-${visibleSaveState}`}>{saveLabel}</p></div>
         <PreparedDraft preparation={incident.draft?.agentPreparation ?? null} />
         {publishMessage ? <p role="status" className={`publication-message is-${publishState}`}>{publishMessage}</p> : null}

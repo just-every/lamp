@@ -739,6 +739,18 @@
       "required": false,
       "secret": false,
       "why": "Twilio Messaging Service identifier used instead of a sending number when configured."
+    },
+    {
+      "name": "RER_BUSINESS_TRUST",
+      "required": false,
+      "secret": false,
+      "why": "Public signed Business settings trust for this installation; separate from the existing owner-claim ring."
+    },
+    {
+      "name": "AUTH_ALLOW_LIST",
+      "required": false,
+      "secret": false,
+      "why": "Optional native operator email admission list, shared by person sessions and the agent door."
     }
   ],
   "deploy": {

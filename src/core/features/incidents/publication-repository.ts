@@ -1,3 +1,4 @@
+import { agentAttributionStatements } from '../agent-door/provenance.repository';
 import { componentNotificationStatements } from "../deliveries/component-notifications.repository";
 import { COMPONENT_STATE_SEVERITY } from "../../shared/domain";
 import { createUlid } from "../../shared/ids";
@@ -50,6 +51,7 @@ export async function publishIncidentDraft(binding: D1Database, input: IncidentP
     for (const component of input.components) if (component.componentId) {
       const historyId = createUlid();
       notificationHistoryIds.push(historyId);
+      statements.push(...agentAttributionStatements(binding,{entityType:'component-state',entityId:historyId,operatorId:input.authorOperatorId,at:input.createdAt}));
       statements.push(currentStateHistoryStatement(binding, {
         id: historyId, componentId: component.componentId, cause: { type: "incident", id: input.incidentId, operatorId: input.authorOperatorId },
         changedAt: input.publishedAt, createdAt: input.createdAt, updatedAt: input.updatedAt,
@@ -63,7 +65,8 @@ export async function publishIncidentDraft(binding: D1Database, input: IncidentP
   statements.push(
     binding.prepare(`DELETE FROM incident_drafts WHERE id = ?`).bind(input.id),
     binding.prepare(`INSERT INTO audit_entries (id,entity_type,entity_id,action,operator_id,reason,payload_json,created_at,updated_at) VALUES (?,'incident-update',?,'published',?,?,?,?,?)`)
-      .bind(`${input.id}-audit`,input.id,input.authorOperatorId,input.recovery?.overrideReason ?? null,JSON.stringify({ incidentId: input.incidentId, publishedAt: input.publishedAt, correctsUpdateId: input.correctsUpdateId, componentChanges: input.componentChanges, recovery: input.recovery?.result }),input.createdAt,input.updatedAt),
+      .bind(`${input.id}-audit`,input.id,input.authorOperatorId,input.recovery?.overrideReason ?? null,JSON.stringify({ incidentId: input.incidentId, publishedAt: input.publishedAt, correctsUpdateId: input.correctsUpdateId, componentChanges: input.componentChanges, recovery: input.recovery?.result, nativeReviewer: input.nativeReviewer }),input.createdAt,input.updatedAt),
+    ...agentAttributionStatements(binding,{entityType:'incident-update',entityId:input.id,operatorId:input.authorOperatorId,at:input.createdAt}),
     ...recipients,
     ...notificationHistoryIds.flatMap(historyId => componentNotificationStatements(binding, historyId, input.createdAt)),
   );

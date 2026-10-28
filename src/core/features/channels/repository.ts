@@ -1,3 +1,4 @@
+import { agentAttributionStatements } from '../agent-door/provenance.repository';
 import { incidentThresholdSql } from "../deliveries/subscriber-eligibility";
 import { createUlid } from "../../shared/ids";
 import type { IncidentImpact } from "../../shared/incident-impact";
@@ -31,9 +32,11 @@ export function createChannelRepository(db: D1Database) {
       ]);
     },
     async setOperatorAlerts(id: string, enabled: boolean, operatorId: string, now: string) {
+      const auditId=createUlid();
       const result=await db.batch([
-        db.prepare("INSERT INTO audit_entries(id,entity_type,entity_id,action,operator_id,payload_json,created_at,updated_at) SELECT ?,'channel',id,'operator-alerts-changed',?,json_object('operatorAlerts',?),?,? FROM channel_destinations WHERE id=? AND removed_at IS NULL AND operator_alerts<>?").bind(createUlid(),operatorId,enabled ? 1 : 0,now,now,id,enabled ? 1 : 0),
+        db.prepare("INSERT INTO audit_entries(id,entity_type,entity_id,action,operator_id,payload_json,created_at,updated_at) SELECT ?,'channel',id,'operator-alerts-changed',?,json_object('operatorAlerts',?),?,? FROM channel_destinations WHERE id=? AND removed_at IS NULL AND operator_alerts<>?").bind(auditId,operatorId,enabled ? 1 : 0,now,now,id,enabled ? 1 : 0),
         db.prepare("UPDATE channel_destinations SET operator_alerts=?,updated_at=? WHERE id=? AND removed_at IS NULL").bind(enabled ? 1 : 0,now,id),
+        ...agentAttributionStatements(db,{entityType:'channel',entityId:id,operatorId,at:now,guard:{sql:'EXISTS(SELECT 1 FROM audit_entries WHERE id=?)',params:[auditId]}}),
       ]);
       return result[1].meta.changes === 1;
     },

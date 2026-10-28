@@ -3,6 +3,8 @@ import { eq } from "drizzle-orm";
 import { createDatabase } from "../../platform/db/client";
 import { pageSettings } from "../../shared/schema";
 import { createUlid } from "../../shared/ids";
+import { currentAgentActor } from '../agent-door/actor';
+import { agentAttributionStatements } from '../agent-door/provenance.repository';
 
 export type StoredPageSettings = typeof pageSettings.$inferSelect;
 
@@ -42,7 +44,15 @@ export function createPageSettingsRepository(binding: D1Database): PageSettingsR
       await database.insert(pageSettings).values(settings).onConflictDoNothing();
     },
     async update(settings) {
-      await database.update(pageSettings).set(settings).where(eq(pageSettings.id, "default"));
+      const query = database.update(pageSettings).set(settings).where(eq(pageSettings.id, "default")).toSQL();
+      const actor = currentAgentActor();
+      await binding.batch([binding.prepare(query.sql).bind(...query.params), ...(actor ? [
+        binding.prepare(`INSERT INTO audit_entries(id,entity_type,entity_id,action,operator_id,payload_json,created_at,updated_at)
+          SELECT ?,'page-settings',id,'updated',?,'{}',?,? FROM page_settings WHERE id='default' AND updated_at=?`)
+          .bind(createUlid(),actor.sponsor.id,settings.updatedAt,settings.updatedAt,settings.updatedAt),
+        ...agentAttributionStatements(binding,{entityType:'page-settings',entityId:'default',operatorId:actor.sponsor.id,at:settings.updatedAt,
+          guard:{sql:"EXISTS(SELECT 1 FROM page_settings WHERE id='default' AND updated_at=?)",params:[settings.updatedAt]}}),
+      ] : [])]);
     },
     async updateLogo(input, operatorId) {
       // Select the logo being destroyed inside the same transaction as its

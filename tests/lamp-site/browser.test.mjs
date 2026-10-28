@@ -47,7 +47,7 @@ before(async () => {
   // config therefore lives in a directory of its own, so a checkout's local secrets and origin (written by `rer setup`) cannot steer this Worker.
   fixtureConfig = isolatedWranglerConfig((config) => ({ ...config, vars: { ...config.vars, MAIL_PROVIDER_API_KEY: "test-only-signin-presentation-no-delivery" } }));
   wranglerConfig = fixtureConfig.path;
-  execFileSync("pnpm", ["exec", "wrangler", "d1", "migrations", "apply", "DB", "--local", "--config", wranglerConfig, "--persist-to", statePath], { cwd: process.cwd(), stdio: "pipe" });
+  execFileSync("pnpm", ["exec", "wrangler", "d1", "migrations", "apply", "DB", "--local", "--config", wranglerConfig, "--persist-to", statePath], { maxBuffer: 8 * 1024 * 1024, cwd: process.cwd(), stdio: "pipe" });
   worker = spawn("pnpm", ["exec", "vite", "--host", "127.0.0.1", "--port", String(port), "--strictPort"], {
     cwd: process.cwd(),
     detached: true,

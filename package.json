@@ -97,7 +97,8 @@
     "test:move-in:cutover:contract": "node --test --test-concurrency=1 tests/auth-adoption/cutover.test.mjs",
     "test:move-in:cutover:browser": "node --test --test-concurrency=1 tests/e2e/cutover-browser.test.mjs",
     "test:operator-readiness:upgrade": "node --test --test-concurrency=1 tests/operator-readiness/checklist.test.mjs tests/auth-adoption/upgrade.test.mjs tests/auth-adoption/dependencies.test.mjs",
-    "test:operator-readiness:authority": "node --test --test-concurrency=1 tests/auth-adoption/portability.test.mjs tests/auth-adoption/operator-erasure.test.mjs tests/auth-adoption/import-authority.test.mjs tests/e2e/signin-link.test.mjs tests/e2e/setup-readiness.test.mjs"
+    "test:operator-readiness:authority": "node --test --test-concurrency=1 tests/auth-adoption/portability.test.mjs tests/auth-adoption/operator-erasure.test.mjs tests/auth-adoption/import-authority.test.mjs tests/e2e/signin-link.test.mjs tests/e2e/setup-readiness.test.mjs",
+    "test:agent-door": "node --test --test-concurrency=1 tests/agent-door/core-flow.test.mjs"
   },
   "dependencies": {
     "@radix-ui/react-slot": "^1.3.3",

@@ -1,7 +1,11 @@
+import { readIncidentAgentAttributions } from '../agent-door/incident-attribution.repository';
+import type { NativeAttribution } from '../agent-door/provenance.repository';
+import { agentAttributionStatements } from '../agent-door/provenance.repository';
 import { reportReminderEligibleSql } from "./reminder-eligibility";
 import { createUlid } from "../../shared/ids";
 
 export interface IncidentReportRow {
+  agentAttribution?: NativeAttribution | null;
   id: string;
   incidentId: string;
   summary: string;
@@ -39,22 +43,29 @@ function row(result: Record<string, unknown> | null): IncidentReportRow | null {
 export function createReportRepository(binding: D1Database): ReportRepository {
   return {
     async find(incidentId) {
-      return row(await binding.prepare(`SELECT id, incident_id AS incidentId, summary, timeline, cause, remediation, published_at AS publishedAt, author_operator_id AS authorOperatorId, created_at AS createdAt, updated_at AS updatedAt FROM incident_reports WHERE incident_id = ?`).bind(incidentId).first());
+      const value=row(await binding.prepare(`SELECT id, incident_id AS incidentId, summary, timeline, cause, remediation, published_at AS publishedAt, author_operator_id AS authorOperatorId, created_at AS createdAt, updated_at AS updatedAt FROM incident_reports WHERE incident_id = ?`).bind(incidentId).first());
+      if(!value)return null;
+      const provenance=await readIncidentAgentAttributions(binding,[value.id]);
+      return {...value,agentAttribution:provenance.get(`incident-report:${value.id}`)??null};
     },
     async createDraft(input) {
-      const result = await binding.prepare(`INSERT INTO incident_reports (id, incident_id, summary, timeline, cause, remediation, published_at, author_operator_id, created_at, updated_at)
+      const [result] = await binding.batch([binding.prepare(`INSERT INTO incident_reports (id, incident_id, summary, timeline, cause, remediation, published_at, author_operator_id, created_at, updated_at)
         SELECT ?, ?, ?, ?, ?, ?, NULL, ?, ?, ?
         WHERE EXISTS (SELECT 1 FROM incidents WHERE id = ? AND lifecycle = 'Resolved' AND deleted_at IS NULL)
         ON CONFLICT(incident_id) DO NOTHING`)
-        .bind(input.id, input.incidentId, input.summary, input.timeline, input.cause, input.remediation, input.authorOperatorId, input.createdAt, input.updatedAt, input.incidentId).run();
+        .bind(input.id, input.incidentId, input.summary, input.timeline, input.cause, input.remediation, input.authorOperatorId, input.createdAt, input.updatedAt, input.incidentId),
+        ...agentAttributionStatements(binding,{entityType:'incident-report',entityId:input.id,operatorId:input.authorOperatorId,at:input.createdAt,exists:{sql:'EXISTS(SELECT 1 FROM incident_reports WHERE id=? AND created_at=?)',params:[input.id,input.createdAt]}}),
+      ]);
       return result.meta.changes === 1;
     },
     async upsert(input) {
-      await binding.prepare(`INSERT INTO incident_reports (id, incident_id, summary, timeline, cause, remediation, published_at, author_operator_id, created_at, updated_at)
+      await binding.batch([binding.prepare(`INSERT INTO incident_reports (id, incident_id, summary, timeline, cause, remediation, published_at, author_operator_id, created_at, updated_at)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON CONFLICT(incident_id) DO UPDATE SET summary = excluded.summary, timeline = excluded.timeline, cause = excluded.cause, remediation = excluded.remediation, author_operator_id = excluded.author_operator_id, updated_at = excluded.updated_at
         WHERE incident_reports.published_at IS NULL`)
-        .bind(input.id, input.incidentId, input.summary, input.timeline, input.cause, input.remediation, input.publishedAt, input.authorOperatorId, input.createdAt, input.updatedAt).run();
+        .bind(input.id, input.incidentId, input.summary, input.timeline, input.cause, input.remediation, input.publishedAt, input.authorOperatorId, input.createdAt, input.updatedAt),
+        ...agentAttributionStatements(binding,{entityType:'incident-report',entityId:input.id,operatorId:input.authorOperatorId,at:input.updatedAt,exists:{sql:'EXISTS(SELECT 1 FROM incident_reports WHERE id=? AND updated_at=? AND published_at IS NULL)',params:[input.id,input.updatedAt]}}),
+      ]);
     },
     async publish(incidentId, report, publishedAt, operatorId, notificationStatements) {
       const reportId = report.id;
@@ -72,6 +83,7 @@ export function createReportRepository(binding: D1Database): ReportRepository {
           binding.prepare(`UPDATE incident_reports SET published_at = ?, author_operator_id = ?, updated_at = ? WHERE incident_id = ? AND id = ? AND published_at IS NULL AND EXISTS (SELECT 1 FROM incidents WHERE incidents.id = ? AND incidents.lifecycle = 'Resolved' AND incidents.deleted_at IS NULL) AND summary = ? AND timeline = ? AND cause = ? AND remediation = ?`)
             .bind(publishedAt, operatorId, publishedAt, incidentId, reportId, incidentId, report.summary, report.timeline, report.cause, report.remediation),
           guard,
+          ...agentAttributionStatements(binding,{entityType:'incident-report',entityId:reportId,operatorId,at:publishedAt,publication:true}),
           ...notificationStatements,
         ]);
       } catch {
@@ -88,6 +100,7 @@ export function createReportRepository(binding: D1Database): ReportRepository {
           ON CONFLICT(incident_id) DO NOTHING RETURNING incident_id`).bind(reason,operatorId,at,incidentId),
         binding.prepare(`INSERT INTO audit_entries(id,entity_type,entity_id,action,operator_id,reason,payload_json,created_at,updated_at)
           SELECT ?,'incident-report',?,'report.waived',?,?,'{}',?,? WHERE changes()=1`).bind(createUlid(),incidentId,operatorId,reason,at,at),
+        ...agentAttributionStatements(binding,{entityType:'incident-report',entityId:incidentId,operatorId,at,exists:{sql:'EXISTS(SELECT 1 FROM report_waivers WHERE incident_id=? AND created_at=? AND operator_id=?)',params:[incidentId,at,operatorId]}}),
       ]);
       return changed.results.length===1;
     },
