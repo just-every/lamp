@@ -2956,7 +2956,7 @@
       "executable": false
     },
     "scripts/verification/plan.mjs": {
-      "sha256": "3cca390bf49f7191a215a3799a034c97a6b3f5f8afd37af2a4c8594bd0e3e64d",
+      "sha256": "50a1195f05a1a17216dd9a5216af063710ec9407f9ae68ebef6c875f462893c1",
       "executable": false
     },
     "scripts/verification/run.mjs": {
@@ -6368,7 +6368,7 @@
       "executable": false
     },
     "tests/auth-adoption/portability.test.mjs": {
-      "sha256": "9d9e2a4cc2a191a3a72526df8908fc88126e84c9795477774399b2f4f59ee2f8",
+      "sha256": "e1ae3a7c6ccd4aa25594c7c3bbe2560d0652e01f3389e11665281b3da9f65837",
       "executable": false
     },
     "tests/auth-adoption/runtime.mjs": {

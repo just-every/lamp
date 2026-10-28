@@ -7,9 +7,9 @@ export const verificationPlan = {
   imports: ['test:imports', 'test:mail', 'test:site'],
   composer: ['test:composer', 'test:public'],
   delivery: ['test:channels'],
-  public: ['test:baseline', 'test:delivery'],
+  public: ['test:delivery'],
   runtime: ['test:runtime', 'test:publishing'],
-  demo: ['test:demo'],
+  demo: ['test:demo', 'test:baseline'],
 };
 export const shardNames = Object.keys(verificationPlan);
 // The separate build job contributes its own commit-bound completion record.
