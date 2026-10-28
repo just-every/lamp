@@ -16,7 +16,8 @@ export function registerPageSettingsRoutes(app: Hono<AppEnv>, service: PageSetti
   // The published mark, favicon and social image, served on the app host so Settings and Your page can
   // show them wherever the page host lives. Images only: nothing in them can run here.
   app.get("/api/app/page-settings/brand/:kind", async (context) => {
-    const key = BRAND_ARTIFACTS[context.req.param("kind") as keyof typeof BRAND_ARTIFACTS];
+    const kind = context.req.param("kind");
+    const key = Object.hasOwn(BRAND_ARTIFACTS, kind) ? BRAND_ARTIFACTS[kind as keyof typeof BRAND_ARTIFACTS] : undefined;
     const artifact = key ? await readArtifact(key) : null;
     if (!artifact || !/^image\//.test(artifact.contentType)) return context.json({ error: "Not published yet." }, 404);
     return new Response(artifact.bytes, { headers: { "Content-Type": artifact.contentType, "Content-Security-Policy": "default-src 'none'; style-src 'unsafe-inline'; sandbox", "X-Content-Type-Options": "nosniff", "Cache-Control": "private, max-age=60" } });
