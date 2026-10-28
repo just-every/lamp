@@ -1,5 +1,6 @@
 import { createIncidentSubscriptionService, type IncidentFollowInput } from "./incident.service";
 import type { IncidentSubscription } from "./incident.repository";
+import { currentAgentActor } from '../agent-door/actor';
 import { renderEmailDocument } from "../../shared/email-branding";
 import { renderUpdateHtml } from "../../shared/update-links";
 import { defaultPreferences, storedPreferences, renderPreferenceFields, type SubscriberPreferences } from "./preferences";
@@ -120,6 +121,8 @@ export function createSubscribersService(
   // Subscription mail goes straight to the provider, outside notification
   // deliveries; its outcome is recorded so Deliveries can show it.
   async function sendSubscriptionMail(mail: MailSender, subscriberId: string, kind: SubscriptionMailKind, message: MailMessage) {
+    const actor = currentAgentActor();
+    if (actor) message = { ...message, text: `${message.text}\n\nPrepared by ${actor.label}.` };
     let outcome: "accepted" | "suppressed" | "failed" = "failed";
     try {
       outcome = (await mail.send({ ...message, html: renderEmailDocument(message.subject, `<h1>${escapeHtml(message.subject)}</h1><div style="white-space:pre-wrap;overflow-wrap:anywhere">${renderUpdateHtml(message.text)}</div>`) }))?.disposition === "suppressed" ? "suppressed" : "accepted";

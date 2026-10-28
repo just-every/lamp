@@ -1,3 +1,4 @@
+import { runNativeIdentityProofFlow } from '../agent-door/identity-proof-flow.mjs';
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { mkdtemp, rm } from 'node:fs/promises';
@@ -10,7 +11,7 @@ import { linkEdge } from '../fixtures/base/provider-edge.mjs';
 
 // Real Lamp Hono routes and D1 transactions; only the external provider's network
 // is substituted. The copied Base edge validates signed client assertions.
-test('ACCESS-001 ACCESS-002 TEAM-001 TEAM-002 TEAM-003 TEAM-007 native identity setup, provider approval, invitations and erasure keep access recoverable', async () => {
+test('ACCESS-001 ACCESS-002 TEAM-001 TEAM-002 TEAM-003 TEAM-007 native identity setup, provider approval, invitations and erasure keep access recoverable', async t => {
   const dir = await mkdtemp(join(process.cwd(), '.lamp-dependency-'));
   const storage = await database(dir);
   const cache = await openSnapshotCacheRuntime(dir);
@@ -138,4 +139,5 @@ test('ACCESS-001 ACCESS-002 TEAM-001 TEAM-002 TEAM-003 TEAM-007 native identity 
     await storage.runtime.dispose();
     await rm(dir, { recursive: true, force: true });
   }
+  await runNativeIdentityProofFlow(t);
 });

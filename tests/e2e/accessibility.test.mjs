@@ -160,7 +160,7 @@ before(async () => {
   // A checkout's `.dev.vars` would override the fixture's subscriber token secret and make every token this test signs fail verification.
   fixtureConfig = isolatedWranglerConfig(config => ({ ...config, main: resolve("dist/server/index.js"), assets: { directory: resolve("dist/client"), binding: "ASSETS", run_worker_first: true }, vars: { ...config.vars, SUBSCRIBER_TOKEN_SECRET: subscriberTokenSecret } }));
   configPath = fixtureConfig.path;
-  execFileSync("pnpm", ["exec", "wrangler", "d1", "migrations", "apply", "DB", "--local", "--config", configPath, "--persist-to", statePath], {
+  execFileSync("pnpm", ["exec", "wrangler", "d1", "migrations", "apply", "DB", "--local", "--config", configPath, "--persist-to", statePath], { maxBuffer: 8 * 1024 * 1024,
     cwd: process.cwd(),
     maxBuffer: 8 * 1024 * 1024,
     stdio: "pipe",

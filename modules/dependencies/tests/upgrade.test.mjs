@@ -1,0 +1,36 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {DatabaseSync} from '../../container/adapters/d1-sqlite.mjs';
+import {randomBytes} from 'node:crypto';
+import {readFile} from 'node:fs/promises';
+import {createOperatorAuth,createAuthHandler} from '../../operator-auth/index.mjs';
+import {database} from '../../operator-auth/identity/oidc/tests/runtime.mjs';
+import {hashToken} from '../../operator-auth/crypto.mjs';
+
+test('auth-3 store upgrade preserves old people, invitations, bindings and native sessions while provider sign-in defaults off',async t=>{
+ const sqlite=new DatabaseSync(':memory:');t.after(()=>sqlite.close());
+ const applyMigration=async path=>sqlite.exec(await readFile(new URL(path,import.meta.url),'utf8'));
+ await applyMigration('../../../default-seed/migrations/core/0002_operator_auth.sql');
+ await applyMigration('../../../default-seed/migrations/core/0003_invitation_cancellation.sql');
+ await applyMigration('../../../default-seed/migrations/core/0007_dev_sessions.sql');
+ await applyMigration('../../../default-seed/migrations/core/0008_identity_providers.sql');
+ await applyMigration('../../../default-seed/migrations/core/0009_domain_rules_step_up.sql');
+ const secret=crypto.randomUUID();
+ const token=randomBytes(32).toString('base64url');
+ const now=Date.now();
+ sqlite.exec("INSERT INTO oa_operators VALUES('owner','owner@example.com','Owner','owner','active',4,1);INSERT INTO oa_operators VALUES('invitee','staff@example.com','Staff','member','invited',1,2);INSERT INTO oa_bootstrap VALUES(1,'owner',1);INSERT INTO oa_external_identities VALUES('https://old.example','old-subject','owner');");
+ sqlite.prepare("INSERT INTO oa_sessions(id,token_hash,operator_id,operator_version,kind,created_at,expires_at) VALUES('native',?,'owner',4,'native',?,?)").run(await hashToken(secret,'session',token),now,now+86400000);
+ sqlite.prepare("INSERT INTO oa_tokens(id,token_hash,kind,operator_id,operator_version,issuer_id,issuer_version,return_to,created_at,expires_at) VALUES('invite','invitation-hash','invite','invitee',1,'owner',4,'/app',?,?)").run(now,now+3600000);
+ const tables=sqlite.prepare("SELECT name FROM sqlite_master WHERE type='table'").all().map(r=>r.name),snapshot=()=>Object.fromEntries(tables.map(name=>[name,sqlite.prepare('SELECT * FROM '+name).all()]));
+ const before=snapshot();
+ for(const path of ['operator-auth/accounts/schema/provider-control.sql','dependencies/schema/dependencies.sql','operator-auth/accounts/schema/dependency-setup.sql','dependencies/schema/approval-attempt.sql','dependencies/schema/keys-sealed.sql','owner-claim/schema/owner-claim.sql','owner-claim/schema/idp.sql'])sqlite.exec(await readFile(new URL('../../'+path,import.meta.url),'utf8'));
+ assert.deepEqual(snapshot(),before);
+ const auth=createOperatorAuth({db:database(sqlite),clock:()=>now,clientIp:()=> '192.0.2.1',config:{origin:'https://app.example',OWNER_EMAIL:'owner@example.com',SESSION_SECRET:secret,dependencies:true}}),handler=createAuthHandler(auth);
+ const request=(path,method='GET')=>new Request('https://app.example'+path,{method,headers:{Origin:'https://app.example',Cookie:'__Host-operator_session='+token,'Content-Type':'application/json'},...(method==='POST'?{body:'{}'}:{})});
+ assert.equal((await handler(request('/auth/session'))).status,200);
+ const settings=await (await handler(request('/auth/settings/identity'))).json();
+ assert.equal(settings.idpSignIn,false);assert.equal(settings.providerSetup.canEnable,false);
+ assert.equal(settings.providerSetup.providers[0].state,'unlinked');
+ assert.equal((await handler(request('/auth/oidc/auth/start','POST'))).status,403);
+ assert.deepEqual(snapshot(),before);
+});
