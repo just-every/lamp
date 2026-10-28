@@ -5,6 +5,7 @@ import { renderIncidentUpdate } from "../incidents/renderer";
 import { formatTime } from "./format";
 
 export interface PublicFeedUpdate {
+  agentAction?: import("../incidents/agent-action").PublicAgentAction | null;
   componentChanges?: PublishedIncidentComponentChange[];
   id: string;
   lifecycle: string;
@@ -26,6 +27,7 @@ export interface PublicFeedIncident {
 
 export function renderedUpdate(incident: PublicFeedIncident, update: PublicFeedUpdate, timezone: string) {
   return renderIncidentUpdate({
+    agentAction: update.agentAction,
     incidentReference: incident.reference,
     incidentTitle: incident.title,
     lifecycle: update.lifecycle as "Investigating" | "Identified" | "Monitoring" | "Resolved",

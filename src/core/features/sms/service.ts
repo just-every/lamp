@@ -1,3 +1,5 @@
+import { agentActionLines, parseAgentAction } from "../incidents/agent-action";
+import type { AgentAction } from "../incidents/agent-action";
 import { createUlid,nowIso } from "../../shared/ids";
 import { hashOpaqueToken } from "../../platform/security/opaque-tokens";
 import { createSubscriberRepository } from "../subscribers/repository";
@@ -35,18 +37,19 @@ export function createSmsService(db:D1Database,options:TwilioConfig & {tokenSecr
     const stored=await subscribers.ensureToken(id,'manage',{id:tokenId,tokenHash:await tokens.hash(candidate),expiresAt:null},nowIso());
     return stored===tokenId?candidate:tokens.encode({id:stored,scope:'manage'});
   }
-  async function invite(id:string,_origin:string,actor?:string|null,ownerOnly=false) {
+  async function invite(id:string,_origin:string,actor?:string|null,ownerOnly=false,action?:AgentAction) {
     ensureConfigured();
     if(actor&&!await repository.operatorAllowed(actor,ownerOnly))throw new Error("Only the owner or an admin can invite SMS subscribers.");
     const pending=await repository.pending(id);
     if(!pending || Date.now()-Date.parse(pending.createdAt)>72*60*60*1000)return false;
     const pageName=await options.pageName();
-    const wording=optInWording(pageName);
+    const wording=optInWording(pageName)+(action ? ` Requested by ${action.label}.` : "");
+    assertSmsWithinTwoSegments(wording);
     await controlWordingFits(pageName);
     const now=nowIso();
     const allowance=await hashOpaqueToken(`sms-confirmation:${pending.destination}`);
     const allowed=await subscribers.intake.has(id)
-      ? await subscribers.intake.claimInvitation(id,allowance,now,actor??null,ownerOnly)
+      ? await subscribers.intake.claimInvitation(id,allowance,now,actor??null,ownerOnly,action)
       : await subscribers.recordConfirmationSendIfAllowed(allowance,new Date(Date.now()-24*60*60*1000).toISOString(),now);
     if(!allowed)return false;
     // Keep the exact wording before submitting it to the provider. An uncertain
@@ -54,6 +57,24 @@ export function createSmsService(db:D1Database,options:TwilioConfig & {tokenSecr
     await repository.rememberOptIn(id,pageName,wording,now);
     await send(pending.destination,wording);
     return true;
+  }
+  let agentAdmission:((id:string,action:AgentAction,generation:string)=>Promise<boolean>)|undefined;
+  async function dispatchDeliveries(targetId?:string,admitted=false) {
+      if(!configured())return;
+      const pending=await repository.deliveries(undefined,100,true,targetId);
+      if(!pending.length)return;
+      const origin=await options.publicOrigin(),pageName=await options.pageName();
+      for(const delivery of pending) {
+        const saved=parseAgentAction(delivery.agentActionJson);
+        if(saved&&!admitted){if(agentAdmission)await agentAdmission(delivery.id,saved,'0');continue;}
+        if(!await repository.claim(delivery.id,nowIso())||delivery.subscriberState!=='active')continue;
+        const link=new URL(delivery.kind==='maintenance-notice'?`/maintenance/${delivery.maintenanceReference}`:`/incidents/${delivery.reference}`,origin).href;
+        const text=delivery.kind==='maintenance-notice'?`${pageName}: ${delivery.body??''}`:delivery.kind==='incident-report'?`${pageName}: ${delivery.title??''}. ${delivery.reportSummary??''} ${delivery.reportTimeline??''} ${delivery.reportCause??''} ${delivery.reportRemediation??''}`:`${pageName}: ${delivery.title??''}. ${delivery.wording??''}`;
+        try {
+          const sid=await send(delivery.destination,renderSmsMessage([text,...agentActionLines(parseAgentAction(delivery.agentActionJson))].join(" "),link),new URL('/api/public/sms/status',origin).href);
+          await repository.accepted(delivery.id,sid,nowIso());
+        } catch(cause) { await repository.failed(delivery.id,nowIso()); throw cause; }
+      }
   }
   return {
     configured,settings,validatePhone,invite,operatorAllowed:repository.operatorAllowed,
@@ -65,7 +86,7 @@ export function createSmsService(db:D1Database,options:TwilioConfig & {tokenSecr
     },
     publicationStatements:repository.publicationStatements,
     deliveries:repository.deliveries,
-    async subscribe(input:{phone:string;componentIds:string[];preferences?:SubscriberPreferences},origin:string,operatorId?:string) {
+    async subscribe(input:{phone:string;componentIds:string[];preferences?:SubscriberPreferences},origin:string,operatorId?:string,action?:AgentAction) {
       await validatePhone(input.phone);ensureConfigured();
       await controlWordingFits(await options.pageName());
       if(operatorId&&!await repository.operatorAllowed(operatorId))throw new Error("Only the owner or an admin can add SMS subscribers.");
@@ -77,7 +98,7 @@ export function createSmsService(db:D1Database,options:TwilioConfig & {tokenSecr
       if(input.componentIds.some(id=>!valid.has(id)))throw new Error("A selected component is unknown or internal.");
       const id=existing?.id??createUlid();
       await repository.subscribe({id,phone:input.phone,componentIds:[...new Set(input.componentIds)],preferences:input.preferences??defaultPreferences('sms'),now:nowIso(),operatorId});
-      const confirmationSent=await invite(id,origin,operatorId);
+      const confirmationSent=await invite(id,origin,operatorId,false,action);
       return {subscriberId:id,created:!existing,confirmationSent};
     },
     async inbound(params:URLSearchParams,origin:string) {
@@ -97,21 +118,9 @@ export function createSmsService(db:D1Database,options:TwilioConfig & {tokenSecr
         await send(number,helpWording(name,(await settings()).supportContact));
       }
     },
-    async dispatchPending() {
-      if(!configured())return;
-      const pending=await repository.deliveries(undefined,100,true);
-      if(!pending.length)return;
-      const origin=await options.publicOrigin(),pageName=await options.pageName();
-      for(const delivery of pending) {
-        if(!await repository.claim(delivery.id,nowIso())||delivery.subscriberState!=='active')continue;
-        const link=new URL(delivery.kind==='maintenance-notice'?`/maintenance/${delivery.maintenanceReference}`:`/incidents/${delivery.reference}`,origin).href;
-        const text=delivery.kind==='maintenance-notice'?`${pageName}: ${delivery.body??''}`:delivery.kind==='incident-report'?`${pageName}: ${delivery.title??''}. ${delivery.reportSummary??''} ${delivery.reportTimeline??''} ${delivery.reportCause??''} ${delivery.reportRemediation??''}`:`${pageName}: ${delivery.title??''}. ${delivery.wording??''}`;
-        try {
-          const sid=await send(delivery.destination,renderSmsMessage(text,link),new URL('/api/public/sms/status',origin).href);
-          await repository.accepted(delivery.id,sid,nowIso());
-        } catch(cause) { await repository.failed(delivery.id,nowIso()); throw cause; }
-      }
-    },
+    setAgentAdmission(admit:(id:string,action:AgentAction,generation:string)=>Promise<boolean>){agentAdmission=admit;},
+    dispatchPending:()=>dispatchDeliveries(),
+    dispatchAdmittedDelivery:(id:string)=>dispatchDeliveries(id,true),
     async status(params:URLSearchParams) {
       const sid=params.get('MessageSid'),status=params.get('MessageStatus');
       if(sid&&status&&['delivered','undelivered','failed'].includes(status))await repository.status(sid,status,nowIso());

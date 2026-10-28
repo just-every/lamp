@@ -1,3 +1,4 @@
+import { agentActionLines, parseAgentAction } from "../incidents/agent-action";
 import { renderNotificationUpdate } from "../../shared/update-renderer";
 import { impactLabel } from "../../shared/incident-impact";
 import { renderLampSlackMessage } from "../channels/slack-message";
@@ -11,6 +12,7 @@ export function renderSubscriberSlackMessage(delivery: DispatchableDelivery, ori
   if (delivery.incidentUpdateId) {
     if (delivery.incidentReference === null || delivery.incidentTitle === null || delivery.lifecycle === null || delivery.affectedAudience === null || delivery.customerImpact === null) throw new Error("Slack incident update content is unavailable.");
     const update = renderNotificationUpdate({
+      agentAction: parseAgentAction(delivery.agentActionJson),
       incidentImpact: delivery.incidentImpact,
       incidentReference: delivery.incidentReference, incidentTitle: delivery.incidentTitle, lifecycle: delivery.lifecycle,
       affectedAudience: delivery.affectedAudience, customerImpact: delivery.customerImpact,
@@ -31,6 +33,7 @@ export function renderSubscriberSlackMessage(delivery: DispatchableDelivery, ori
       `${delivery.incidentReference}: ${delivery.incidentTitle}`,
       ...(delivery.incidentImpact === null ? [] : [`Incident impact: ${impactLabel(delivery.incidentImpact)}`]),
       ...fields.flatMap(([label, value]) => value ? [`${label}: ${value}`] : []),
+      ...agentActionLines(parseAgentAction(delivery.agentActionJson)),
       new URL(`/incidents/${encodeURIComponent(delivery.incidentReference)}`, origin).href,
     ]);
   }

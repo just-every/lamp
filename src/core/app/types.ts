@@ -11,6 +11,7 @@ export interface AppBindings {
   RER_DEMO_EXPIRES?: string;
   OWNER_EMAIL?: string;
   RER_OWNER_CLAIM_PUBLIC_KEYS?: string;
+  RER_BUSINESS_TRUST?: string;
   RER_OWNER_CLAIM_ISSUER?: string;
   RER_OWNER_CLAIM_INSTALLATION_ID?: string;
   /** The app origin RER's door trust names; absent means Lamp's own origin. */

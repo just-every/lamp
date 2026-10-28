@@ -162,6 +162,7 @@ export const incidentUpdates = sqliteTable("incident_updates", {
   correctsUpdateId: text("corrects_update_id").references((): ReturnType<typeof text> => incidentUpdates.id),
   componentChanges: text("component_changes_json", { mode: "json" }).$type<import("./incident-component-changes").PublishedIncidentComponentChange[]>().notNull().default([]),
   componentSnapshot: text("component_snapshot_json", { mode: "json" }).$type<import("./incident-component-changes").PublishedIncidentComponentChange[]>().notNull().default([]),
+  agentAction: text("agent_action_json", { mode: "json" }).$type<import("../features/incidents/agent-action").AgentAction | null>(),
   ...timestamps,
 }, (table) => [index("incident_updates_incident_published_idx").on(table.incidentId, table.publishedAt)]);
 

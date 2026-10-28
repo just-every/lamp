@@ -1,3 +1,4 @@
+import type { AgentAction } from "../incidents/agent-action";
 import { planSubscriberCapacity } from "./limits";
 import { createOpaqueToken, hashOpaqueToken } from "../../platform/security/opaque-tokens";
 import { createUlid } from "../../shared/ids";
@@ -9,8 +10,8 @@ import type { SubscriberView } from "./service";
 
 export interface SmsIntake {
   validatePhone(phone:string):Promise<void>;
-  subscribe(input:{phone:string;componentIds:string[];preferences?:SubscriberPreferences},origin:string,operatorId?:string):Promise<{subscriberId:string;created:boolean;confirmationSent:boolean}>;
-  invite(subscriberId:string,origin:string,actor:string|null,ownerOnly:boolean):Promise<boolean>;
+  subscribe(input:{phone:string;componentIds:string[];preferences?:SubscriberPreferences},origin:string,operatorId?:string,action?:AgentAction):Promise<{subscriberId:string;created:boolean;confirmationSent:boolean}>;
+  invite(subscriberId:string,origin:string,actor:string|null,ownerOnly:boolean,action?:AgentAction):Promise<boolean>;
 }
 
 export function createSubscriberIntakeService(repository:SubscriberRepository,hooks:{
@@ -18,7 +19,7 @@ export function createSubscriberIntakeService(repository:SubscriberRepository,ho
   checkLimits:()=>Promise<void>;
   view:(id:string)=>Promise<SubscriberView>;
   ensureConfigured:()=>Promise<void>;
-  sendConfirmation:(id:string,origin:string,actor:string|null,ownerOnly:boolean)=>Promise<boolean>;
+  sendConfirmation:(id:string,origin:string,actor:string|null,ownerOnly:boolean,action?:AgentAction)=>Promise<boolean>;
 }) {
   async function plan(csv:string) {
     const parsed=parseSubscriberCsv(csv);
@@ -60,21 +61,21 @@ export function createSubscriberIntakeService(repository:SubscriberRepository,ho
       await hooks.checkLimits();
       return {batchId,counts:{...planned.preview.counts,created:subscriberIds.length,skipped:planned.preview.counts.skipped+rows.length-subscriberIds.length},subscriberIds};
     },
-    async sendInvitations(batchId:string,operatorId:string,origin:string):Promise<{sent:number;remaining:number}> {
+    async sendInvitations(batchId:string,operatorId:string,origin:string,action?:AgentAction):Promise<{sent:number;remaining:number}> {
       if(!await repository.intake.operatorAllowed(operatorId,true))throw new SubscriberIntakeError("Only the active owner can send import invitations.",403);
       if(!await repository.intake.batchExists(batchId))throw new SubscriberIntakeError("This subscriber import does not exist.",409);
       let sent=0;
       for(const id of await repository.intake.pending(batchId)) {
         const row=await repository.findSubscriber(id);
-        if(row?.channel==="sms" ? await hooks.sms?.invite(id,origin,operatorId,true) : await hooks.sendConfirmation(id,origin,operatorId,true))sent++;
+        if(row?.channel==="sms" ? await hooks.sms?.invite(id,origin,operatorId,true,action) : await hooks.sendConfirmation(id,origin,operatorId,true,action))sent++;
       }
       return {sent,remaining:await repository.intake.remaining(batchId)};
     },
-    async add(input:SubscriberAddInput,operatorId:string,origin:string):Promise<{subscriber:SubscriberView;created:boolean;confirmationSent:boolean}> {
+    async add(input:SubscriberAddInput,operatorId:string,origin:string,action?:AgentAction):Promise<{subscriber:SubscriberView;created:boolean;confirmationSent:boolean}> {
       if(!await repository.intake.operatorAllowed(operatorId))throw new SubscriberIntakeError("The operator no longer has access.",403);
       if(input.channel==="sms") {
         if(!hooks.sms)throw new SubscriberIntakeError("SMS is not configured.",503);
-        const result=await hooks.sms.subscribe({phone:input.phone,componentIds:input.componentIds,preferences:input.eventKinds===undefined&&input.minimumImpact===undefined?undefined:{eventKinds:input.eventKinds??["incidents","maintenance"],minimumImpact:input.minimumImpact??null}},origin,operatorId);
+        const result=await hooks.sms.subscribe({phone:input.phone,componentIds:input.componentIds,preferences:input.eventKinds===undefined&&input.minimumImpact===undefined?undefined:{eventKinds:input.eventKinds??["incidents","maintenance"],minimumImpact:input.minimumImpact??null}},origin,operatorId,action);
         return {...result,subscriber:await hooks.view(result.subscriberId)};
       }
       const destination=input.channel==="email"?input.email:input.destination;
@@ -88,7 +89,7 @@ export function createSubscriberIntakeService(repository:SubscriberRepository,ho
       const inserted=await repository.intake.insert([{row:1,id,channel:input.channel,destination,contactEmail:input.channel==="webhook"?input.contactEmail:null,componentIds:input.componentIds,eventKinds:input.eventKinds,minimumImpact:input.minimumImpact,...(input.channel==="webhook"?{webhookFormat:input.webhookFormat}:{}),tokenHash:await hashOpaqueToken(createOpaqueToken())}],operatorId,"operator",null,{created:1,skipped:0,refused:0},now);
       if(!inserted.length){const winner=await repository.findSubscriberByDestination(destination);if(!winner)throw new SubscriberIntakeError("The subscriber changed. Try again.",409);return {subscriber:await hooks.view(winner.id),created:false,confirmationSent:false};}
       await hooks.checkLimits();
-      const confirmationSent=await hooks.sendConfirmation(id,origin,operatorId,false);
+      const confirmationSent=await hooks.sendConfirmation(id,origin,operatorId,false,action);
       return {subscriber:await hooks.view(id),created:true,confirmationSent};
     },
     async exportCsv():Promise<string> {

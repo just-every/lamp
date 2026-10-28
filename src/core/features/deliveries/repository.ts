@@ -1,3 +1,5 @@
+import type { PublicAgentAction } from "../incidents/agent-action";
+import { publicAgentAction, parseAgentAction } from "../incidents/agent-action";
 import type { ComponentState } from "../../shared/domain";
 import type { IncidentImpact } from "../../shared/incident-impact";
 import { parsePublishedComponentChanges, type PublishedIncidentComponentChange } from "../../shared/incident-component-changes";
@@ -17,6 +19,7 @@ export type DeliveryRow = Omit<typeof deliveryRecords.$inferSelect, "channel"> &
 export interface SubscriptionMailRow { id: string; destination: string; subscriberState: "pending" | "active" | "deactivated"; kind: "confirmation" | "already-subscribed" | "subscribed"; outcome: "accepted" | "suppressed" | "failed"; sentAt: string }
 
 export interface DispatchableDelivery {
+  agentActionJson?: string | null;
   componentEventId: string | null;
   componentId: string | null;
   componentName: string | null;
@@ -66,7 +69,7 @@ export interface DispatchableDelivery {
 
 export interface IncidentWebhookPayload {
   incident: { reference: string; title: string };
-  updates: Array<{ id: string; lifecycle: string; affectedAudience: string; customerImpact: string; whatStillWorks: string; details: string; nextUpdateAt: string | null; publishedAt: string; componentChanges: PublishedIncidentComponentChange[] }>;
+  updates: Array<{ agentAction?: PublicAgentAction; id: string; lifecycle: string; affectedAudience: string; customerImpact: string; whatStillWorks: string; details: string; nextUpdateAt: string | null; publishedAt: string; componentChanges: PublishedIncidentComponentChange[] }>;
   components: Array<{ id: string | null; name: string; previousState: string; newState: string }>;
 }
 
@@ -123,7 +126,7 @@ export function createDeliveryRepository(binding: D1Database): DeliveryRepositor
           d.incident_update_id AS incidentUpdateId, d.incident_report_id AS incidentReportId, d.maintenance_id AS maintenanceId,
           d.incident_impact AS incidentImpact, i.id AS incidentId, CASE WHEN u.id IS NOT NULL AND u.id = (SELECT first_update.id FROM incident_updates first_update WHERE first_update.incident_id = i.id ORDER BY first_update.published_at ASC, first_update.id ASC LIMIT 1) THEN 1 ELSE 0 END AS isFirstIncidentUpdate,
           COALESCE(i.reference, reportIncident.reference) AS incidentReference, COALESCE(i.title, reportIncident.title) AS incidentTitle, u.lifecycle, u.affected_audience AS affectedAudience,
-          u.customer_impact AS customerImpact, u.what_still_works AS whatStillWorks, u.details, u.next_update_at AS nextUpdateAt, u.component_changes_json AS componentChangesJson,
+          COALESCE((SELECT agent_action_json FROM notification_outbox WHERE aggregate_id=d.notification_event_id AND kind='delivery-dispatch' ORDER BY created_at DESC,id DESC LIMIT 1),u.agent_action_json, report.agent_action_json,notice.agent_action_json) AS agentActionJson, u.customer_impact AS customerImpact, u.what_still_works AS whatStillWorks, u.details, u.next_update_at AS nextUpdateAt, u.component_changes_json AS componentChangesJson,
           report.summary AS reportSummary, report.timeline AS reportTimeline, report.cause AS reportCause, report.remediation AS reportRemediation,
           maintenance.reference AS maintenanceReference, maintenance.title AS maintenanceTitle, maintenance.state AS maintenanceState, maintenance.starts_at AS maintenanceStartsAt, maintenance.ends_at AS maintenanceEndsAt,
           notice.kind AS maintenanceNoticeKind, notice.body AS maintenanceNoticeBody, settings.timezone, d.mail_payload_json AS mailPayloadJson
@@ -383,9 +386,9 @@ export function createDeliveryRepository(binding: D1Database): DeliveryRepositor
       const incident = await binding.prepare("SELECT reference, title FROM incidents WHERE id = ?").bind(incidentId).first<{ reference: string; title: string }>();
       if (!incident) return null;
       const [updates, snapshot] = await Promise.all([
-        binding.prepare(`SELECT id, lifecycle, affected_audience AS affectedAudience, customer_impact AS customerImpact, what_still_works AS whatStillWorks, details, next_update_at AS nextUpdateAt, published_at AS publishedAt, component_changes_json AS componentChangesJson
+        binding.prepare(`SELECT id, lifecycle, affected_audience AS affectedAudience, customer_impact AS customerImpact, what_still_works AS whatStillWorks, details, next_update_at AS nextUpdateAt, published_at AS publishedAt, component_changes_json AS componentChangesJson, agent_action_json AS agentActionJson
           FROM incident_updates WHERE incident_id = ? ORDER BY published_at ASC, id ASC`)
-          .bind(incidentId).all<Omit<IncidentWebhookPayload["updates"][number], "componentChanges"> & { componentChangesJson: string }>(),
+          .bind(incidentId).all<Omit<IncidentWebhookPayload["updates"][number], "componentChanges"> & { componentChangesJson: string; agentActionJson: string | null }>(),
         binding.prepare("SELECT component_snapshot_json AS snapshot FROM incident_updates WHERE id = ? AND incident_id = ?").bind(updateId,incidentId).first<{ snapshot: string }>(),
       ]);
       if (!snapshot) return null;
@@ -399,7 +402,7 @@ export function createDeliveryRepository(binding: D1Database): DeliveryRepositor
           .bind(incidentId,incidentId,incidentId).all<IncidentWebhookPayload["components"][number]>() : null;
       return {
         incident,
-        updates: updates.results.map(({ componentChangesJson, ...row }) => ({ ...row, componentChanges: parsePublishedComponentChanges(componentChangesJson).filter(change => !change.internal) })),
+        updates: updates.results.map(({ componentChangesJson, agentActionJson, ...row }) => ({ ...row, ...(agentActionJson ? { agentAction: publicAgentAction(parseAgentAction(agentActionJson)) } : {}), componentChanges: parsePublishedComponentChanges(componentChangesJson).filter(change => !change.internal) })),
         components: attachmentEvent ? attachmentEvent.results : parsePublishedComponentChanges(snapshot.snapshot).filter(change => !change.internal).map(change => ({ id: change.componentId, name: change.name, previousState: change.previousState, newState: change.newState })),
       };
     },

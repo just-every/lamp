@@ -107,6 +107,10 @@ export default withDemo({
     }
 
     const runtime = createApp(await prepareAppMailBindings(bindings, request), request);
+    if (surface === 'app') {
+      const agentResponse = await runtime.agent.settings.handle(request) ?? await runtime.agent.door.handle(request);
+      if (agentResponse) return agentResponse;
+    }
     if (surface === "app" && (url.pathname === "/signin" || url.pathname.startsWith("/auth/") || url.pathname.startsWith("/.well-known/rer-"))) {
       return authResponse(request, bindings, runtime.services);
     }

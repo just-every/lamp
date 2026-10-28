@@ -7,6 +7,7 @@ import type { PublishedIncidentComponentChange } from "../../shared/incident-com
 import { renderLampSlackMessage } from "./slack-message";
 
 export interface ChannelPostData {
+  agentAction?: import("../incidents/agent-action").AgentAction | null;
   incidentImpact: IncidentImpact | null;
   reference: string;
   title: string;
@@ -23,6 +24,7 @@ export interface ChannelPostData {
 
 function channelUpdate(data: ChannelPostData) {
   return renderNotificationUpdate({
+    agentAction: data.agentAction,
     incidentImpact: data.incidentImpact,
     incidentReference: data.reference, incidentTitle: data.title, lifecycle: data.lifecycle,
     affectedAudience: data.affectedAudience, customerImpact: data.customerImpact,

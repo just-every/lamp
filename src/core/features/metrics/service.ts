@@ -51,8 +51,9 @@ export function createMetricsService(db: D1Database, changed:()=>Promise<void>, 
       await repository.create(row,actor); await changed();
       return view(row);
     },
-    async update(id:string,input:MetricPatch,actor:string) {
+    async update(id:string,input:MetricPatch,actor:string,expectedVersion?:number) {
       const current=await repository.get(id); if(!current) return null;
+      if(expectedVersion!==undefined && current.version!==expectedVersion) throw Error("The metric changed. Reload it before editing.");
       const {credentials,...fields}=input;
       const row={...current,...fields}; validate(row);
       if(!await repository.validTarget(row.componentId,row.sourceId,row.provider,row.query)) throw Error("Choose the monitoring source mapped to this component.");

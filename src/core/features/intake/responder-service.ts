@@ -1,3 +1,4 @@
+import { agentActionLines,parseAgentAction,type AgentAction } from "../incidents/agent-action";
 import { openUrl, sealingSecrets } from "../channels/sealing";
 import { nowIso } from "../../shared/ids";
 import { createResponderRepository } from "./responder-repository";
@@ -6,17 +7,18 @@ import { createResponderRepository } from "./responder-repository";
  * credentials can select a URL; redirects never receive the API key. */
 export function createResponderService(db: D1Database, options: { webhookSecret?: string; effectsPaused?: boolean; publicOrigin: () => Promise<string> }) {
   const repository = createResponderRepository(db);
-  return {
-    publicationStatements: repository.publicationStatements,
-    async dispatchPublication(updateId: string) {
+  let agentAdmission:((id:string,action:AgentAction,generation:string)=>Promise<boolean>)|undefined;
+  async function dispatchPosts(updateId:string,targetId?:string,admitted=false) {
       if (options.effectsPaused) return;
-      for (const post of await repository.pending(updateId)) {
+      for (const post of await repository.pending(updateId,targetId)) {
+        const action=parseAgentAction(post.agentActionJson);
+        if(action&&!admitted){if(agentAdmission)await agentAdmission(post.id,action,'0');continue;}
         if (!await repository.claim(post.id, nowIso())) continue;
         let error: string | null = null;
         try {
           const credentials = JSON.parse(await openUrl(post.sealedCredentials, post.sourceId, sealingSecrets(options.webhookSecret))) as { apiKey: string; fromEmail: string; site?: string; cloudId?: string; email?: string };
           const permalink = new URL(`/incidents/${encodeURIComponent(post.reference)}`, await options.publicOrigin()).href;
-          const text = [`${post.reference} ${post.lifecycle}: ${post.title}`, post.customerImpact, post.affectedAudience, post.whatStillWorks, post.details, ...(post.nextUpdateAt ? [`Next update: ${post.nextUpdateAt}`] : []), permalink].filter(Boolean).join("\n\n");
+          const text = [`${post.reference} ${post.lifecycle}: ${post.title}`, post.customerImpact, post.affectedAudience, post.whatStillWorks, post.details, ...(post.nextUpdateAt ? [`Next update: ${post.nextUpdateAt}`] : []), ...agentActionLines(action), permalink].filter(Boolean).join("\n\n");
           if (post.preset === "pagerduty") {
             const response = await fetch(`https://api.pagerduty.com/incidents/${encodeURIComponent(post.externalId)}/notes`, {
               method: "POST", redirect: "manual", signal: AbortSignal.timeout(15_000),
@@ -42,8 +44,13 @@ export function createResponderService(db: D1Database, options: { webhookSecret?
           // No response text, URL, header or credential is written to a receipt.
           error = "Responder update could not be sent. Check the connection and provider availability.";
         }
-        await repository.finish(post.id, error, nowIso());
+        await repository.finish(post.id, error, nowIso(),action);
       }
-    },
+  }
+  return {
+    publicationStatements: repository.publicationStatements,
+    setAgentAdmission(admit:(id:string,action:AgentAction,generation:string)=>Promise<boolean>){agentAdmission=admit;},
+    dispatchPublication:(updateId:string)=>dispatchPosts(updateId),
+    async dispatchAdmittedPost(id:string){const post=await repository.post(id);if(post)await dispatchPosts(post.updateId,id,true);},
   };
 }

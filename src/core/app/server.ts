@@ -49,6 +49,7 @@ import { registerRerCutoverStatus } from '../features/statuspage-import/rer-cuto
 import { registerSocialRoutes } from "../features/social/routes";
 import { registerChannelRoutes } from "../features/channels";
 import { registerPageExportRoutes } from "../features/page-export";
+import { lampAgentDoor } from '../features/agent-door/index.server';
 
 export type { AppBindings } from "./types";
 
@@ -56,6 +57,12 @@ export function createApp(bindings: AppBindings, execution?: MailExecution) {
   const app = new Hono<AppEnv>();
   const authorizedReads = new WeakMap<Request, OperatorReadSession>();
   const services = createAppServices(bindings, createSnapshotBlobStore(bindings), execution);
+  const agent = lampAgentDoor(bindings, services);
+  app.use('*', async (context, next) => {
+    const response = await agent.settings.handle(context.req.raw) ?? await agent.door.handle(context.req.raw);
+    if (response) return response;
+    await next();
+  });
   const healthService = createHealthService(createHealthRepository(bindings.DB), createDependencyProber(bindings.SNAPSHOTS, createQueueDispatcher(bindings.JOBS)), async () => {
     if (await services.publicSnapshots.hasCurrentSnapshot()) return true;
     if (!await createSetupRepository(bindings.DB).pageConfigured()) return false;
@@ -116,5 +123,5 @@ export function createApp(bindings: AppBindings, execution?: MailExecution) {
     try { return await app.fetch(request, bindings); }
     finally { authorizedReads.delete(request); }
   }
-  return { app, services, readOperator, health: healthService };
+  return { app, services, readOperator, health: healthService, agent };
 }

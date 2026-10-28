@@ -23,7 +23,7 @@ export interface ComponentsService {
   history(componentId: string): Promise<ComponentHistoryView | null>;
   get(componentId: string): Promise<ComponentView | null>;
   create(input: ComponentInput, operatorId: string): Promise<ComponentView>;
-  update(componentId: string, input: ComponentUpdateInput): Promise<ComponentView | null>;
+  update(componentId: string, input: ComponentUpdateInput, expectedUpdatedAt?: string): Promise<ComponentView | null>;
   remove(componentId: string, operatorId: string): Promise<boolean>;
   createGroup(input: ComponentGroupInput): Promise<{ id: string; name: string; displayOrder: number }>;
   updateGroup(groupId: string, input: ComponentGroupUpdateInput): Promise<boolean>;
@@ -123,8 +123,8 @@ export function createComponentsService(
       if (!component) throw new Error("Created component could not be read.");
       return toView(repository, { ...component, groupName: null });
     },
-    async update(componentId, input) {
-      const updated = await repository.updateComponent(componentId, { ...input, updatedAt: nowIso() });
+    async update(componentId, input, expectedUpdatedAt) {
+      const updated = await repository.updateComponent(componentId, { ...input, updatedAt: nowIso() }, expectedUpdatedAt);
       if (!updated) return null;
       await onPublicDataChanged();
       const component = await repository.findComponent(componentId);

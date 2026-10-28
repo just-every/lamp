@@ -55,7 +55,7 @@ export interface ComponentRepository {
   updateGroup(groupId: string, input: ComponentGroupUpdateInput & { updatedAt: string }): Promise<boolean>;
   deleteGroup(groupId: string, operatorId: string): Promise<boolean>;
   insertComponent(input: typeof components.$inferInsert, initialState: { event: ComponentClaimEventInput; history: ComponentStateHistoryInput }): Promise<void>;
-  updateComponent(componentId: string, input: ComponentUpdateInput & { updatedAt: string }): Promise<boolean>;
+  updateComponent(componentId: string, input: ComponentUpdateInput & { updatedAt: string }, expectedUpdatedAt?: string): Promise<boolean>;
   deleteComponent(componentId: string, operatorId: string): Promise<boolean>;
 }
 
@@ -389,10 +389,10 @@ export function createComponentRepository(binding: D1Database): ComponentReposit
           .bind(initialState.history.id, initialState.history.componentId, initialState.history.previousState, initialState.history.newState, initialState.history.cause.type, initialState.history.cause.id, initialState.history.cause.operatorId, initialState.history.changedAt, initialState.history.createdAt, initialState.history.updatedAt),
       ]);
     },
-    async updateComponent(componentId, input) {
+    async updateComponent(componentId, input, expectedUpdatedAt) {
       // Drizzle omits undefined fields: an edit without an explicit order leaves
       // display_order untouched in the UPDATE itself, even across concurrent moves.
-      const result = await database.update(components).set(input).where(eq(components.id, componentId)).returning({ id: components.id });
+      const result = await database.update(components).set(input).where(and(eq(components.id, componentId), ...(expectedUpdatedAt === undefined ? [] : [eq(components.updatedAt, expectedUpdatedAt)]))).returning({ id: components.id });
       return result.length > 0;
     },
     async deleteComponent(componentId, operatorId) {

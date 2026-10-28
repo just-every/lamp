@@ -2,9 +2,9 @@ import { createUlid, nowIso } from "../../shared/ids";
 import type { SocialNetwork } from "./networks";
 
 export interface SocialAccount { id:string; network:SocialNetwork; name:string; prefix:string; host:string; identifier:string; sealedCredential:string; createdAt:string }
-export interface SocialPost { id:string; eventId:string; accountId:string; incidentId:string|null; maintenanceId:string|null; reference:string; lifecycle:string; customerImpact:string; prefix:string; queuedAt:string; body:string|null; text:string|null; postId:string|null; postCid:string|null }
+export interface SocialPost { agentActionJson?:string|null; id:string; eventId:string; accountId:string; incidentId:string|null; maintenanceId:string|null; reference:string; lifecycle:string; customerImpact:string; prefix:string; queuedAt:string; body:string|null; text:string|null; postId:string|null; postCid:string|null }
 const accountColumns='id,network,name,prefix,host,identifier,sealed_credential AS sealedCredential,created_at AS createdAt';
-const postColumns='p.id,p.event_id AS eventId,p.account_id AS accountId,p.incident_id AS incidentId,p.maintenance_id AS maintenanceId,p.reference,p.lifecycle,p.customer_impact AS customerImpact,p.prefix,p.queued_at AS queuedAt,p.body,p.text,p.post_id AS postId,p.post_cid AS postCid';
+const postColumns="COALESCE(p.agent_action_json,(SELECT agent_action_json FROM incident_updates WHERE id=p.event_id),(SELECT agent_action_json FROM maintenance_notices WHERE id=p.event_id)) AS agentActionJson,"+'p.id,p.event_id AS eventId,p.account_id AS accountId,p.incident_id AS incidentId,p.maintenance_id AS maintenanceId,p.reference,p.lifecycle,p.customer_impact AS customerImpact,p.prefix,p.queued_at AS queuedAt,p.body,p.text,p.post_id AS postId,p.post_cid AS postCid';
 export function createSocialRepository(db:D1Database) {
   return {
     async accounts() { return (await db.prepare(`SELECT ${accountColumns} FROM social_accounts WHERE removed_at IS NULL ORDER BY created_at,id`).all<SocialAccount>()).results; },
@@ -34,16 +34,22 @@ export function createSocialRepository(db:D1Database) {
         FROM maintenance_notices n JOIN maintenance m ON m.id=n.maintenance_id CROSS JOIN social_accounts a
         WHERE n.id=? AND m.id=? AND a.removed_at IS NULL`).bind(input.queuedAt,input.eventId,input.maintenanceId)];
     },
-    async pending(limit:number) {
+    async pending(limit:number,id?:string) {
       // Earlier unresolved posts serialize each account's incident thread. Other
       // accounts keep moving even when one provider is down.
       return (await db.prepare(`SELECT ${postColumns} FROM social_posts p JOIN social_accounts a ON a.id=p.account_id
-        WHERE a.removed_at IS NULL AND p.post_id IS NULL AND NOT EXISTS(SELECT 1 FROM integration_deliveries d WHERE d.namespace='lamp-social' AND d.id=p.id)
+        WHERE a.removed_at IS NULL AND p.post_id IS NULL AND (? IS NULL OR p.id=?) AND NOT EXISTS(SELECT 1 FROM integration_deliveries d WHERE d.namespace='lamp-social' AND d.id=p.id)
         AND NOT EXISTS(SELECT 1 FROM social_posts earlier LEFT JOIN integration_deliveries d ON d.namespace='lamp-social' AND d.id=earlier.id
           WHERE p.incident_id IS NOT NULL AND earlier.incident_id=p.incident_id AND earlier.account_id=p.account_id
           AND (earlier.queued_at<p.queued_at OR (earlier.queued_at=p.queued_at AND earlier.id<p.id))
           AND earlier.post_id IS NULL AND (d.state IS NULL OR d.state IN ('queued','sending','uncertain')))
-        ORDER BY p.queued_at,p.id LIMIT ?`).bind(limit).all<SocialPost>()).results;
+        ORDER BY p.queued_at,p.id LIMIT ?`).bind(id??null,id??null,limit).all<SocialPost>()).results;
+    },
+    async retainAgentAction(id:string,action:unknown) {
+      const result=await db.prepare(`UPDATE social_posts SET agent_action_json=? WHERE id=? AND post_id IS NULL
+        AND NOT EXISTS(SELECT 1 FROM integration_deliveries d WHERE d.namespace='lamp-social' AND d.id=social_posts.id AND d.state IN ('sending','accepted','uncertain'))`)
+        .bind(JSON.stringify(action),id).run();
+      return result.meta.changes===1;
     },
     async post(id:string) { return db.prepare(`SELECT ${postColumns} FROM social_posts p WHERE p.id=?`).bind(id).first<SocialPost>(); },
     async thread(post:SocialPost) {

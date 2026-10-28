@@ -30,7 +30,7 @@ export function createChatLinksRepository(db: D1Database) {
       return (await db.prepare('SELECT id,transport,tenant,subject,created_at AS createdAt FROM chat_links WHERE operator_id=? ORDER BY created_at,id').bind(operator).all<{ id: string; transport: string; tenant: string; subject: string; createdAt: string }>()).results;
     },
     async remove(id: string, operator: string) {
-      return Boolean((await db.prepare('DELETE FROM chat_links WHERE id=? AND operator_id=?').bind(id, operator).run()).meta.changes);
+      return Boolean((await db.prepare("DELETE FROM chat_links WHERE id=? AND operator_id=? AND EXISTS(SELECT 1 FROM oa_operators WHERE id=? AND status='active' AND role='owner')").bind(id, operator, operator).run()).meta.changes);
     },
     async claimRequest(hash: string, now: number) {
       await db.prepare('DELETE FROM chat_requests WHERE expires_at<=?').bind(now).run();

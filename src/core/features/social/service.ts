@@ -1,3 +1,4 @@
+import { parseAgentAction, type AgentAction } from "../incidents/agent-action";
 import { DeliveryService } from "../../../../modules/integrations/core/delivery.ts";
 import { D1SqlDatabase } from "../../../../modules/integrations/core/database.ts";
 import { IntegrationsRepository } from "../../../../modules/integrations/core/repository.ts";
@@ -53,6 +54,37 @@ export function createSocialService(db:D1Database,options:{webhookSecret?:string
     return response;
   }};
   const delivery=new DeliveryService({repository:integrations,protocols,transport});
+  let agentAdmission:((id:string,action:AgentAction,generation:string)=>Promise<boolean>)|undefined;
+  async function dispatchPosts(limit:number,postId?:string,action?:AgentAction,admitted=false) {
+      if(options.effectsPaused||options.unavailable)return;
+      const origin=await options.publicOrigin();
+      for(const pending of await repository.pending(limit,postId)) {
+        const saved=action??parseAgentAction(pending.agentActionJson);
+        if(saved&&!admitted){if(agentAdmission)await agentAdmission(pending.id,saved,String((await delivery.get(pending.id))?.attempts??0));continue;}
+        try {
+          const account=await accountFor(pending.accountId);
+          let post=pending;
+          if(!post.body) {
+            const thread=await repository.thread(post);
+            const text=renderSocialPost(account.network,[post.prefix,saved?.label,saved?.approvers.length?`Approved by ${saved.approvers.map(person=>person.name).join(", ")}`:null].filter(Boolean).join(" · "),post.lifecycle,post.customerImpact,new URL(post.incidentId?`/incidents/${encodeURIComponent(post.reference)}`:`/maintenance/${encodeURIComponent(post.reference)}`,origin).href);
+            const credential=await openCredential(account.sealedCredential,account.id,options.webhookSecret);
+            const wire=await prepareSocialPost(account,credential,{id:post.id,text,createdAt:post.queuedAt,parent:thread.at(-1),root:thread[0]},provider);
+            post=(await repository.freeze(post.id,text,wire.body))!;
+          }
+          await delivery.enqueue({id:post.id,tenant:namespace,destinationId:post.accountId,event:post.incidentId?'incident.update':'maintenance.notice',protocol:`lamp-social-${account.network}`,body:post.body!},{maxAttempts:6,retryDelaysMs});
+        } catch {
+          // No provider or credential text enters a log. A malformed publication
+          // remains in the durable outbox for recovery and raises an alert.
+          await options.operatorAlert({eventId:`delivery-failed/${pending.id}`,title:'Lamp could not deliver a social post',text:'A social publication could not be prepared. Review the connected social accounts.'});
+        }
+      }
+      for(const id of postId?[postId]:await integrations.due(Date.now(),limit)){
+        const retained=await repository.post(id),saved=action??parseAgentAction(retained?.agentActionJson);
+        if(saved&&!admitted){if(agentAdmission)await agentAdmission(id,saved,String((await delivery.get(id))?.attempts??0));continue;}
+        await delivery.dispatch(id);
+      }
+      for(const failed of await repository.failed())if(!postId||failed.id===postId)await options.operatorAlert({eventId:`delivery-failed/${failed.id}`,title:'Lamp could not deliver a social post',text:'A social account failed to accept a published update. Review the social delivery log in Settings.'});
+  }
   return {
     async list() {return {accounts:(await repository.accounts()).map(view),postByDefault:await repository.postByDefault(),posts:await repository.log(),unavailable:options.unavailable??null};},
     async add(input:{network:SocialNetwork;name:string;prefix:string;credential:string;host?:string;identifier?:string;scopes:string[]},operatorId:string) {
@@ -70,30 +102,10 @@ export function createSocialService(db:D1Database,options:{webhookSecret?:string
     publicationStatements:repository.publicationStatements,
     maintenanceStatements:repository.maintenanceStatements,
     log:repository.log,
-    async dispatchPending(limit=100) {
-      if(options.effectsPaused||options.unavailable)return;
-      const origin=await options.publicOrigin();
-      for(const pending of await repository.pending(limit)) {
-        try {
-          const account=await accountFor(pending.accountId);
-          let post=pending;
-          if(!post.body) {
-            const thread=await repository.thread(post);
-            const text=renderSocialPost(account.network,post.prefix,post.lifecycle,post.customerImpact,new URL(post.incidentId?`/incidents/${encodeURIComponent(post.reference)}`:`/maintenance/${encodeURIComponent(post.reference)}`,origin).href);
-            const credential=await openCredential(account.sealedCredential,account.id,options.webhookSecret);
-            const wire=await prepareSocialPost(account,credential,{id:post.id,text,createdAt:post.queuedAt,parent:thread.at(-1),root:thread[0]},provider);
-            post=(await repository.freeze(post.id,text,wire.body))!;
-          }
-          await delivery.enqueue({id:post.id,tenant:namespace,destinationId:post.accountId,event:post.incidentId?'incident.update':'maintenance.notice',protocol:`lamp-social-${account.network}`,body:post.body!},{maxAttempts:6,retryDelaysMs});
-        } catch {
-          // No provider or credential text enters a log. A malformed publication
-          // remains in the durable outbox for recovery and raises an alert.
-          await options.operatorAlert({eventId:`delivery-failed/${pending.id}`,title:'Lamp could not deliver a social post',text:'A social publication could not be prepared. Review the connected social accounts.'});
-        }
-      }
-      await delivery.dispatchDue(limit);
-      for(const failed of await repository.failed())await options.operatorAlert({eventId:`delivery-failed/${failed.id}`,title:'Lamp could not deliver a social post',text:'A social account failed to accept a published update. Review the social delivery log in Settings.'});
-    },
+    setAgentAdmission(admit:(id:string,action:AgentAction,generation:string)=>Promise<boolean>){agentAdmission=admit;},
+    retainAgentAction:repository.retainAgentAction,
+    dispatchPending:(limit=100,postId?:string)=>dispatchPosts(limit,postId),
+    dispatchAdmittedPost:(id:string,action?:AgentAction)=>dispatchPosts(1,id,action,true),
   };
 }
 export type SocialService=ReturnType<typeof createSocialService>;

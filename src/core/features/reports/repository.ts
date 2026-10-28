@@ -1,7 +1,9 @@
+import { parseAgentAction, type AgentAction } from "../incidents/agent-action";
 import { reportReminderEligibleSql } from "./reminder-eligibility";
 import { createUlid } from "../../shared/ids";
 
 export interface IncidentReportRow {
+  agentAction?: AgentAction | null;
   id: string;
   incidentId: string;
   summary: string;
@@ -18,7 +20,7 @@ export interface ReportRepository {
   find(incidentId: string): Promise<IncidentReportRow | null>;
   createDraft(input: IncidentReportRow): Promise<boolean>;
   upsert(input: IncidentReportRow): Promise<void>;
-  publish(incidentId: string, report: IncidentReportRow, publishedAt: string, operatorId: string, notificationStatements: D1PreparedStatement[]): Promise<boolean>;
+  publish(incidentId: string, report: IncidentReportRow, publishedAt: string, operatorId: string, notificationStatements: D1PreparedStatement[], agentAction?: AgentAction): Promise<boolean>;
   listComponentIds(incidentId: string): Promise<string[]>;
   listResolvedWithoutPublishedReport(): Promise<Array<{ id: string; reference: string; title: string; lifecycle: string; resolvedAt: string | null; impact: string | null; reminderEligible: number }>>;
   waiver(incidentId: string): Promise<{ reason: string; operatorId: string; createdAt: string } | null>;
@@ -30,6 +32,7 @@ export interface ReportRepository {
 function row(result: Record<string, unknown> | null): IncidentReportRow | null {
   if (!result) return null;
   return {
+    agentAction: parseAgentAction(result.agentActionJson as string | null),
     id: String(result.id), incidentId: String(result.incidentId), summary: String(result.summary), timeline: String(result.timeline),
     cause: String(result.cause), remediation: String(result.remediation), publishedAt: result.publishedAt === null ? null : String(result.publishedAt),
     authorOperatorId: String(result.authorOperatorId), createdAt: String(result.createdAt), updatedAt: String(result.updatedAt),
@@ -39,7 +42,7 @@ function row(result: Record<string, unknown> | null): IncidentReportRow | null {
 export function createReportRepository(binding: D1Database): ReportRepository {
   return {
     async find(incidentId) {
-      return row(await binding.prepare(`SELECT id, incident_id AS incidentId, summary, timeline, cause, remediation, published_at AS publishedAt, author_operator_id AS authorOperatorId, created_at AS createdAt, updated_at AS updatedAt FROM incident_reports WHERE incident_id = ?`).bind(incidentId).first());
+      return row(await binding.prepare(`SELECT id, incident_id AS incidentId, summary, timeline, cause, remediation, published_at AS publishedAt, author_operator_id AS authorOperatorId, created_at AS createdAt, updated_at AS updatedAt, agent_action_json AS agentActionJson FROM incident_reports WHERE incident_id = ?`).bind(incidentId).first());
     },
     async createDraft(input) {
       const result = await binding.prepare(`INSERT INTO incident_reports (id, incident_id, summary, timeline, cause, remediation, published_at, author_operator_id, created_at, updated_at)
@@ -56,7 +59,7 @@ export function createReportRepository(binding: D1Database): ReportRepository {
         WHERE incident_reports.published_at IS NULL`)
         .bind(input.id, input.incidentId, input.summary, input.timeline, input.cause, input.remediation, input.publishedAt, input.authorOperatorId, input.createdAt, input.updatedAt).run();
     },
-    async publish(incidentId, report, publishedAt, operatorId, notificationStatements) {
+    async publish(incidentId, report, publishedAt, operatorId, notificationStatements, agentAction) {
       const reportId = report.id;
       // The guard shares the update batch with recipient capture. If a
       // competing publisher (or a non-resolved incident) makes the update a
@@ -64,13 +67,13 @@ export function createReportRepository(binding: D1Database): ReportRepository {
       // entire batch back before any notification recipients can exist.
       const guard = binding.prepare(`INSERT INTO audit_entries (id, entity_type, entity_id, action, operator_id, reason, payload_json, created_at, updated_at)
         VALUES (?, 'incident-report', ?, 'published', ?, NULL,
-          CASE WHEN EXISTS (SELECT 1 FROM incident_reports WHERE id = ? AND incident_id = ? AND published_at = ?) THEN '{}' ELSE NULL END,
+          CASE WHEN EXISTS (SELECT 1 FROM incident_reports WHERE id = ? AND incident_id = ? AND published_at = ?) THEN ? ELSE NULL END,
           ?, ?)`)
-        .bind(`${reportId}-publish-${publishedAt}`, reportId, operatorId, reportId, incidentId, publishedAt, publishedAt, publishedAt);
+        .bind(`${reportId}-publish-${publishedAt}`, reportId, operatorId, reportId, incidentId, publishedAt, JSON.stringify(agentAction ? { actor: agentAction } : {}), publishedAt, publishedAt);
       try {
         await binding.batch([
-          binding.prepare(`UPDATE incident_reports SET published_at = ?, author_operator_id = ?, updated_at = ? WHERE incident_id = ? AND id = ? AND published_at IS NULL AND EXISTS (SELECT 1 FROM incidents WHERE incidents.id = ? AND incidents.lifecycle = 'Resolved' AND incidents.deleted_at IS NULL) AND summary = ? AND timeline = ? AND cause = ? AND remediation = ?`)
-            .bind(publishedAt, operatorId, publishedAt, incidentId, reportId, incidentId, report.summary, report.timeline, report.cause, report.remediation),
+          binding.prepare(`UPDATE incident_reports SET published_at = ?, author_operator_id = ?, updated_at = ?, agent_action_json = ? WHERE incident_id = ? AND id = ? AND published_at IS NULL AND EXISTS (SELECT 1 FROM incidents WHERE incidents.id = ? AND incidents.lifecycle = 'Resolved' AND incidents.deleted_at IS NULL) AND summary = ? AND timeline = ? AND cause = ? AND remediation = ?`)
+            .bind(publishedAt, operatorId, publishedAt, agentAction ? JSON.stringify(agentAction) : null, incidentId, reportId, incidentId, report.summary, report.timeline, report.cause, report.remediation),
           guard,
           ...notificationStatements,
         ]);
