@@ -1,6 +1,6 @@
 import { subscriberLimitsFlow } from "./subscriber-limits-flow.mjs";
 import assert from "node:assert/strict";
-import { openSubscriberManagementFixture, subscriberCsv, subscriberCsvRows, pageOrigin } from "./subscriber-management-fixture.mjs";
+import { openSubscriberManagementFixture, subscriberCsv, subscriberCsvRows, pageOrigin, eventuallySubscriber } from "./subscriber-management-fixture.mjs";
 
 const previewPath = "/api/app/subscribers/import/preview";
 const applyPath = "/api/app/subscribers/import/apply";
@@ -151,12 +151,25 @@ export async function subscriberCsvFlow() {
   await subscriberLimitsFlow();
 }
 
-/** Lamp intentionally exposes equal owner operators, not a public member
- * provisioning door. Keep that denial and the owner's batch read public. */
+/** A native Base member is a read-only Lamp Viewer. Batch invitation custody
+ * remains owner-only, including after an actual invitation and confirmation. */
 export async function subscriberBatchAuthorityFlow(fixture) {
-  const { api, post } = fixture;
-  const invitation = await post("/auth/invite", { email: "synthetic-lamp-batches-member@example.test", displayName: "Synthetic Lamp batch member", role: "member" });
-  assert.equal(invitation.status, 403, invitation.text);
-  assert.deepEqual(invitation.body, { error: "forbidden" });
-  assert.equal((await api("/api/app/subscribers/import/batches")).status, 200, "the owner retains the batch read");
+  const { api, post, raw, appOrigin, messagesFor } = fixture;
+  const email=['synthetic-lamp-batches-member','example.test'].join('@');
+  const invitation=await post('/auth/invite',{email,displayName:'Synthetic Lamp batch viewer',role:'member'});
+  assert.equal(invitation.status,202,invitation.text);
+  const message=await eventuallySubscriber(()=>messagesFor(email).find(message=>message.text.includes('/auth/confirm?')),Boolean,'the Viewer invitation crosses the real mail edge');
+  const token=new URL(message.text.match(/https?:\/\/[^\s]+/)[0]).searchParams.get('token');
+  const confirmed=await raw('/auth/confirm',{method:'POST',headers:{Origin:appOrigin,'Content-Type':'application/json'},body:JSON.stringify({token})});
+  assert.equal(confirmed.status,303,await confirmed.clone().text());
+  const cookie=confirmed.headers.get('set-cookie').split(';')[0];
+  const session=await raw('/api/app/session',{headers:{Cookie:cookie}});
+  assert.equal(session.status,200);const person=(await session.json()).operator;assert.equal(person.role,'viewer');
+  const before=await api('/api/app/subscribers/import/batches');assert.equal(before.status,200,'the owner retains the batch read');
+  const denied=await raw('/api/app/subscribers/import/batches',{headers:{Cookie:cookie}});
+  assert.equal(denied.status,403,'a signed-in Viewer cannot read owner invitation batches');
+  assert.deepEqual((await api('/api/app/subscribers/import/batches')).body,before.body,'the refused read changes no batch');
+  const audit=await api('/api/app/audit-log?action=access-denied&actorId='+person.id);
+  assert.equal(audit.status,200);
+  assert.ok(audit.body.entries.some(row=>row.entityId==='/api/app/subscribers/import/batches'&&row.actorId===person.id&&Number.isFinite(Date.parse(row.createdAt))));
 }
