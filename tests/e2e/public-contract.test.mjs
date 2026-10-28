@@ -568,44 +568,48 @@ test("PAGE-012 UPTIME-006 SUB-003 — Branding, daily coverage and pending subsc
 
 
 test("PAGE-012 PAGE-011 PAGE-019 MOVE-009 — Uploaded branding artwork, allow-listed widget and the old Statuspage embed tag", async t => {
-  t.diagnostic("PAGE-012 — inherited brand kinds refuse stored artifacts through signed-in requests");
-  await (async () => {
-    const kinds = ["constructor", "toString", "__proto__", "hasOwnProperty", "valueOf"];
-    const { getPlatformProxy } = await import("wrangler");
-    const platform = await getPlatformProxy({ configPath: "wrangler.jsonc", persist: { path: join(testStatePath, "v3") }, remoteBindings: false });
-    const keys = [];
-    try {
-      const pointer = await (await platform.env.SNAPSHOTS.get("snapshots/current.json")).json();
-      for (const kind of kinds) {
-        const key = `snapshots/${pointer.version}/${String(Reflect.get({}, kind))}`;
-        keys.push(key);
-        await platform.env.SNAPSHOTS.put(key, "<svg><title>synthetic-lamp-204</title></svg>", { httpMetadata: { contentType: "image/svg+xml" } });
-      }
-      for (const kind of kinds) {
-        const response = await appFetch(`/api/app/page-settings/brand/${kind}`);
-        const body = await response.text();
-        t.diagnostic(JSON.stringify({ kind, status: response.status, body }));
-        assert.equal(response.status, 404, kind);
-        assert.doesNotMatch(body, /binding|stack|native code|synthetic-lamp-204/i, kind);
-      }
-      for (const kind of ["mark", "favicon", "social"]) {
-        const response = await appFetch(`/api/app/page-settings/brand/${kind}`);
-        assert.equal(response.status, 200, kind);
-        assert.match(response.headers.get("content-type"), /^image\//);
-        await response.arrayBuffer();
-      }
-    } finally {
-      await platform.env.SNAPSHOTS.delete(keys);
-      await platform.dispose();
-    }
-  })(t);
   t.diagnostic("PAGE-012 — a real logo upload, favicon, Open Graph image, and allow-listed widget are snapshot artifacts");
   await (async () => {
   await uploadTestLogo();
   await updateSettings({ widgetAllowedOrigins: [pageUrl] });
-  const [page, logo, favicon, og, widget] = await Promise.all([
+  t.diagnostic("PAGE-012 — inherited brand kinds refuse stored artifacts through signed-in requests");
+  const kinds = ["constructor", "toString", "__proto__", "hasOwnProperty", "valueOf"];
+  let imageContentType;
+  for (const kind of ["mark", "favicon", "social"]) {
+    const response = await appFetch(`/api/app/page-settings/brand/${kind}`);
+    assert.equal(response.status, 200, kind);
+    assert.match(response.headers.get("content-type"), /^image\//);
+    imageContentType ??= response.headers.get("content-type");
+    await response.arrayBuffer();
+  }
+  const { getPlatformProxy } = await import("wrangler");
+  const platform = await getPlatformProxy({ configPath: "wrangler.jsonc", persist: { path: join(testStatePath, "v3") }, remoteBindings: false });
+  const keys = [];
+  try {
+    const pointer = await (await platform.env.SNAPSHOTS.get("snapshots/current.json")).json();
+    for (const kind of kinds) {
+      const key = `snapshots/${pointer.version}/${String(Reflect.get({}, kind))}`;
+      keys.push(key);
+      await platform.env.SNAPSHOTS.put(key, "<svg><title>synthetic-lamp-204</title></svg>", { httpMetadata: { contentType: imageContentType } });
+    }
+    for (const kind of kinds) {
+      const response = await appFetch(`/api/app/page-settings/brand/${kind}`);
+      const body = await response.text();
+      t.diagnostic(JSON.stringify({ kind, status: response.status, body }));
+      assert.equal(response.status, 404, kind);
+      assert.doesNotMatch(body, /binding|stack|native code|synthetic-lamp-204/i, kind);
+    }
+  } finally {
+    await platform.env.SNAPSHOTS.delete(keys);
+    await platform.dispose();
+  }
+  const [page, logo, favicon, og, widget, brandLogo] = await Promise.all([
     fetch(`${pageUrl}/`), fetch(`${pageUrl}/assets/logo`), fetch(`${pageUrl}/assets/favicon.svg`), fetch(`${pageUrl}/assets/og.svg`), fetch(`${pageUrl}/widget.js`),
+    appFetch("/api/app/page-settings/brand/logo"),
   ]);
+  assert.equal(brandLogo.status, 200);
+  assert.equal(brandLogo.headers.get("content-type"), logo.headers.get("content-type"));
+  assert.deepEqual(new Uint8Array(await brandLogo.arrayBuffer()), new Uint8Array(await logo.arrayBuffer()));
   assert.equal(logo.headers.get("content-type"), "image/png");
   assert.equal(logo.headers.get("content-disposition"), "attachment");
   const pageHtml = await page.text();
