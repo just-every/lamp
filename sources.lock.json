@@ -6580,7 +6580,7 @@
       "executable": false
     },
     "tests/e2e/helpers/audit-mutations-flow.mjs": {
-      "sha256": "05a583b424c3f66a221a1684f6de185d1ab6e9818c3ef559de52e51898b04923",
+      "sha256": "990beec74c308f8b9d1b4f4432bf8668e01b681a2268fdc0d1889341d2cfe9c8",
       "executable": false
     },
     "tests/e2e/helpers/availability-report-browser-flow.mjs": {

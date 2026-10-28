@@ -45,9 +45,10 @@ export async function auditMutationsFlow({ appFetch, uploadLogo }) {
   const logoRows = rows.filter(row => row.entityType === "page-logo" && row.entityId === "default");
   assert.deepEqual({
     maskedClaimRemovals: claimRows.length,
+    logoEntries: logoRows.length,
     logoReplacements: logoRows.filter(row => row.action === "replaced").length,
     logoRemovals: logoRows.filter(row => row.action === "deleted").length,
-  }, { maskedClaimRemovals: 1, logoReplacements: 1, logoRemovals: 1 },
+  }, { maskedClaimRemovals: 1, logoEntries: 2, logoReplacements: 1, logoRemovals: 1 },
   "logo replacement/removal and masked standing-claim removal each produce one attributed audit entry");
   for (const row of [...claimRows, ...logoRows]) {
     assert.equal(row.actorId, actor.id);
@@ -57,8 +58,10 @@ export async function auditMutationsFlow({ appFetch, uploadLogo }) {
   const response = await appFetch(`/api/app/audit-log?${selected}&format=csv`);
   assert.equal(response.status, 200);
   const csv = await response.text();
-  assert.deepEqual(csv.trimEnd().split("\r\n").slice(1).map(line => line.match(/^"([^"]+)"/)[1]), rows.map(row => row.id),
-    "the actor/time-filtered CSV matches the audit JSON");
+  const exported = [...csv.matchAll(/^"([^"]+)","([^"]+)","([^"]*)","((?:[^"]|"")*)",/gm)]
+    .map(([, id, createdAt, actorId, actorName]) => [id, createdAt, actorId, actorName.replaceAll('""', '"')]);
+  assert.deepEqual(exported, rows.map(row => [row.id, row.createdAt, row.actorId, row.actorName]),
+    "the actor/time-filtered CSV matches the audit JSON entries and attribution");
   assert.ok(!csv.includes("branding/logos/"), "audit exports expose no storage locations");
   await request(`/api/app/incidents/${incident.id}`, "DELETE", { reason: "Audit fixture complete" });
   await request(`/api/app/components/${component.id}`, "DELETE", undefined, 204);
