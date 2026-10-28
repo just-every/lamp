@@ -17,7 +17,7 @@ before(async () => {
   ({ verifySendGridWebhook: verify } = await vite.ssrLoadModule('/src/core/platform/mail/sendgrid-webhooks.ts'));
   ({ handleSendGridEvents: handleEvents } = await vite.ssrLoadModule('/src/core/features/deliveries/sendgrid-events.ts'));
   state = await mkdtemp(join(tmpdir(), 'lamp-sendgrid-'));
-  execFileSync('pnpm', ['exec', 'wrangler', 'd1', 'migrations', 'apply', 'DB', '--local', '--persist-to', state, '--config', 'wrangler.jsonc'], { stdio: 'pipe' });
+  execFileSync('pnpm', ['exec', 'wrangler', 'd1', 'migrations', 'apply', 'DB', '--local', '--persist-to', state, '--config', 'wrangler.jsonc'], { maxBuffer: 4 * 1024 * 1024, stdio: 'pipe' });
   platform = await getPlatformProxy({ configPath: 'wrangler.jsonc', remoteBindings: false, persist: { path: join(state, 'v3') } });
 });
 after(async () => { await platform?.dispose(); await vite?.close(); if (state) await rm(state, { recursive: true, force: true }); });

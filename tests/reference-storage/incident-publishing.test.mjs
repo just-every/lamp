@@ -90,7 +90,7 @@ before(async () => {
   deliveryRuntime = openRuntime(join(testDirectory, "mail-capture"));
   deliveryDb = await deliveryRuntime.getD1Database("DB");
   await migrate(deliveryDb);
-  execFileSync("pnpm", ["exec", "wrangler", "d1", "migrations", "apply", "DB", "--local", "--config", "wrangler.jsonc", "--persist-to", statePath], { cwd: process.cwd(), stdio: "pipe" });
+  execFileSync("pnpm", ["exec", "wrangler", "d1", "migrations", "apply", "DB", "--local", "--config", "wrangler.jsonc", "--persist-to", statePath], { maxBuffer: 4 * 1024 * 1024, cwd: process.cwd(), stdio: "pipe" });
   ({ server, baseUrl } = await startIncidentWorker({
     port: testPort, statePath, viteCachePath,
     onOutput: (chunk) => { serverOutput += chunk; },

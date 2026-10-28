@@ -158,6 +158,7 @@ before(async () => {
   fixtureConfig = isolatedWranglerConfig(config => ({ ...config, vars: { ...config.vars, SUBSCRIBER_TOKEN_SECRET: subscriberTokenSecret } }));
   configPath = fixtureConfig.path;
   execFileSync("pnpm", ["exec", "wrangler", "d1", "migrations", "apply", "DB", "--local", "--config", configPath, "--persist-to", statePath], {
+    maxBuffer: 4 * 1024 * 1024,
     cwd: process.cwd(),
     stdio: "pipe",
   });

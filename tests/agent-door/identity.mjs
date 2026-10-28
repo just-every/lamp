@@ -4,11 +4,28 @@ import { accessToken, signJws, seconds } from '../../src/base/modules/agent-door
 
 /** People are created/accepted/revoked through production doors; signed roster
  * reconciliation binds those existing native identities, never token email. */
-export async function inspectPeople(fixture, c) {
+export async function inspectPeople(fixture, c, records) {
   for (const override of [{sub:randomUUID()}, {aud:'https://another-installation.invalid/mcp'}]) {
     const answer = await c.mcp('tools/list', {}, {token:await accessToken(c, override)});
     assert.equal(answer.status,401,'Matching token email cannot rescue an unknown person or wrong audience');
   }
+  const stepUp = await c.personRequest('/auth/step-up',{method:'POST',body:JSON.stringify({action:'credentials:mint',returnTo:'/app/settings'})});
+  assert.equal(stepUp.status,202); await stepUp.body?.cancel();
+  const proofLink = String(fixture.mail.at(-1)?.text ?? '').match(/https?:\/\/[^\s]+/)?.[0];
+  assert.ok(proofLink,'Native identity confirmation must arrive at the captured mail edge');
+  const proof = await c.personRequest('/auth/confirm',{method:'POST',body:JSON.stringify({token:new URL(proofLink).searchParams.get('token')})});
+  assert.equal(proof.status,303); await proof.body?.cancel();
+  const minted = await c.personRequest('/api/app/management-tokens',{method:'POST',body:JSON.stringify({name:'Component read client',scopes:['read'],expiresInSeconds:3600})});
+  assert.equal(minted.status,201);
+  const client = await minted.json();
+  assert.ok((await c.tool('lamp.components.list',{}, {token:client.token})).result?.structuredContent);
+  const forbidden = await c.tool('lamp.incidents.read',{id:records.id},{token:client.token});
+  assert.equal(forbidden.result?._meta?.['com.runeditrun/error']?.code ?? forbidden.body?.code,'insufficient_scope');
+  const rest = await fixture.request('/api/v1/components',{headers:{Authorization:`Bearer ${client.token}`}});
+  assert.equal(rest.status,200); await rest.body?.cancel();
+  const narrowed = await c.tool('lamp.credentials.update',{id:client.credential.id,idempotency_key:randomUUID()});
+  assert.ok(!narrowed.result?.isError && narrowed.result?.structuredContent);
+  assert.equal((await c.mcp('tools/list',{}, {token:client.token})).status,401,'Native credential revocation immediately ends local agent admission');
   const email = 'teammate@example.test', businessId = randomUUID();
   const invitation = await c.personRequest('/api/app/operators/invite', {method:'POST',body:JSON.stringify({email,displayName:'Morgan Quay'})});
   assert.equal(invitation.status,202,'The ordinary native owner invitation must succeed');
@@ -34,5 +51,5 @@ export async function inspectPeople(fixture, c) {
   const revoked = await c.personRequest(`/api/app/operators/${native.id}/revoke-access`,{method:'POST',body:'{}'});
   assert.equal(revoked.status,204); await revoked.body?.cancel();
   assert.equal((await c.mcp('tools/list',{}, {token})).status,401,'Native revocation immediately stops the mapped sponsor');
-  console.log('PASS native people: signed owner/team Business IDs, real invitation/acceptance, unmapped and wrong-audience refusal, current native revocation; matching email gives no authority.');
+  console.log('PASS native people: signed owner/team Business IDs, real step-up/invitation/acceptance, unmapped and wrong-audience refusal, scoped local MCP/REST credentials and native revocations; matching email gives no authority.');
 }

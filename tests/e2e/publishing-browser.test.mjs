@@ -150,7 +150,7 @@ before(async () => {
   // local transport, while the real operator session remains the authority.
   fixtureConfig = isolatedWranglerConfig(configWithLocalMail);
   configPath = fixtureConfig.path;
-  execFileSync("pnpm", ["exec", "wrangler", "d1", "migrations", "apply", "DB", "--local", "--config", defaultConfigPath, "--persist-to", statePath], { cwd: process.cwd(), stdio: "pipe" });
+  execFileSync("pnpm", ["exec", "wrangler", "d1", "migrations", "apply", "DB", "--local", "--config", defaultConfigPath, "--persist-to", statePath], { maxBuffer: 4 * 1024 * 1024, cwd: process.cwd(), stdio: "pipe" });
   if (process.env.RER_VISUAL_HEADING_PROBE === '1') {
     const source = resolve('src/editor/visual-edits.json');
     originalVisualSource = readFileSync(source);

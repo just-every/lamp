@@ -16,7 +16,7 @@ export async function tokenFixture() {
   let platform;
   const close = async () => { await platform?.dispose(); await vite.close(); await rm(statePath, { recursive: true, force: true }); };
   try {
-    execFileSync("pnpm", ["exec", "wrangler", "d1", "migrations", "apply", "DB", "--local", "--persist-to", statePath, "--config", "wrangler.jsonc"], { stdio: "pipe" });
+    execFileSync("pnpm", ["exec", "wrangler", "d1", "migrations", "apply", "DB", "--local", "--persist-to", statePath, "--config", "wrangler.jsonc"], { maxBuffer: 4 * 1024 * 1024, stdio: "pipe" });
     platform = await getPlatformProxy({ configPath: "wrangler.jsonc", persist: { path: join(statePath, "v3") }, remoteBindings: false });
     const db = platform.env.DB, now = new Date().toISOString();
     await db.batch([

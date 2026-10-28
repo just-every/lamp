@@ -41,7 +41,7 @@ test("a real signalled Vite child cannot satisfy startup during or before a heal
   let foreign;
   let output = "";
   try {
-    await promisify(execFile)("pnpm", ["exec", "wrangler", "d1", "migrations", "apply", "DB", "--local", "--config", "wrangler.jsonc", "--persist-to", join(directory, "state")]);
+    await promisify(execFile)("pnpm", ["exec", "wrangler", "d1", "migrations", "apply", "DB", "--local", "--config", "wrangler.jsonc", "--persist-to", join(directory, "state")], { maxBuffer: 4 * 1024 * 1024 });
     const worker = await startIncidentWorker({ statePath: join(directory, "state"), viteCachePath: join(directory, "cache"), onOutput: (chunk) => { output += chunk; } });
     server = worker.server;
     let probes = 0;

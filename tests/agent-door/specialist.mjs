@@ -3,9 +3,13 @@ import { randomUUID } from 'node:crypto';
 
 const content = answer => answer.result?.structuredContent;
 const code = answer => answer.result?._meta?.['com.runeditrun/error']?.code ?? answer.body?.error?.data?.code;
+const classes = answer => answer.decision.classes.map(item=>item.class).sort();
 
 /** One native incident shift; every application effect uses the public door. */
 export default async function specialist({ request, origin, cookie, tool }) {
+  const sessionResponse = await request(new URL('/api/app/session',origin).href,{headers:{Cookie:cookie}});
+  assert.equal(sessionResponse.status,200);
+  const sponsorName = (await sessionResponse.json()).operator.displayName;
   const person = async (path, value, method = 'POST') => {
     const response = await request(new URL(path, origin).href, { method, headers: { Origin: origin, Cookie: cookie, 'Content-Type': 'application/json' }, ...(value === undefined ? {} : { body: JSON.stringify(value) }) });
     const body = await response.json();
@@ -17,7 +21,9 @@ export default async function specialist({ request, origin, cookie, tool }) {
     assert.ok(!answer.result?.isError && content(answer) !== undefined, `${name}: ${code(answer) ?? answer.status}`);
     return { answer, result: content(answer), key };
   };
-  const component = (await call('lamp.components.create', { groupId: null, name: 'Harbour API', description: 'Customer API requests', internal: false, displayOrder: 0, note: '' })).result.component;
+  const madeComponent = await call('lamp.components.create', { groupId: null, name: 'Harbour API', description: 'Customer API requests', internal: false, displayOrder: 0, note: '' });
+  assert.deepEqual(classes(madeComponent.answer),['external','live']);
+  const component = madeComponent.result.component;
   const source = (await person('/api/app/intake/sources', { name: 'API request monitor', preset: 'datadog', componentId: component.id, credentialKind: 'bearer-token' })).source;
   const incoming = await request(`https://status.rer-hosted-check.invalid/api/intake/${source.id}`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${source.token}` }, body: JSON.stringify({ alert_id: 'harbour-api-delay', alert_cycle_key: randomUUID(), alert_transition: 'Triggered', alert_title: 'API requests failing' }) });
   assert.equal(incoming.status, 202, 'A real signed/native alert credential creates private evidence');
@@ -26,15 +32,20 @@ export default async function specialist({ request, origin, cookie, tool }) {
   const draft = { lifecycle: 'Investigating', affectedAudience: 'API customers', customerImpact: 'Some API requests are delayed.', whatStillWorks: 'The dashboard remains available.', details: 'Responders are investigating the reported delay.', nextUpdateAt: new Date(Date.now() + 3600_000).toISOString() };
   const saved = (await call('lamp.drafts.save', { id, draft_version: initial.revision, draft })).result;
   await call('lamp.incidents.note', { id, body: 'PRIVATE-DO-NOT-DISCLOSE: responder investigation detail.' });
+  assert.deepEqual(classes((await call('lamp.incidents.read',{id})).answer),['sensitive','standard'],'Protected private notes change the computed read class');
   const brief = (await call('lamp.incidents.brief', { id })).result;
   assert.ok(!JSON.stringify(brief).includes('PRIVATE-DO-NOT-DISCLOSE'));
   const stale = await tool('lamp.incidents.publish', { id, draft_version: initial.revision, channels: [], idempotency_key: randomUUID() });
   assert.equal(code(stale), 'revision_conflict', 'A stale saved preview cannot publish');
   const published = await call('lamp.incidents.publish', { id, draft_version: saved.revision, channels: [] });
+  assert.deepEqual(classes(published.answer),['commitment','external','live'],'Public status and a relied-on next-update promise have computed effect classes');
   const beforeReplay = (await call('lamp.incidents.read', { id })).result;
   const replayed = await call('lamp.incidents.publish', { id, draft_version: saved.revision, channels: [] }, published.key);
   assert.deepEqual(replayed.result, published.result);
   assert.equal((await call('lamp.incidents.read', { id })).result.incident.updates.length, beforeReplay.incident.updates.length);
+  const changedReplay = await tool('lamp.incidents.publish',{id,draft_version:saved.revision,channels:['email'],idempotency_key:published.key});
+  assert.equal(code(changedReplay),'idempotency_conflict');
+  assert.equal((await call('lamp.incidents.read',{id})).result.incident.updates.length,beforeReplay.incident.updates.length);
   const recovery = (await call('lamp.recovery.read', { id })).result.recovery;
   assert.equal(recovery.passed, false, 'Still-firing native recovery evidence stays failed');
   const current = (await call('lamp.incidents.read', { id })).result;
@@ -47,7 +58,8 @@ export default async function specialist({ request, origin, cookie, tool }) {
   const publicHtml = await publicResponse.text();
   assert.equal(publicResponse.status, 200);
   assert.ok(!publicHtml.includes(reason) && !publicHtml.includes('PRIVATE-DO-NOT-DISCLOSE'));
-  assert.ok(publicHtml.includes('for Jordan Harbour'), 'Published content names agent for sponsor');
+  const escapedSponsor = sponsorName.replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;');
+  assert.ok(publicHtml.includes(`for ${escapedSponsor}`), 'Published content names agent for the current native sponsor');
   await call('lamp.reports.draft', { id });
   const report = (await call('lamp.reports.save', { id, report: { summary: 'API requests were delayed.', timeline: 'Responders isolated the dependency and checked recovery.', cause: 'A retired dependency remained in the request path.', remediation: 'Remove the dependency and retain an independent customer check.' } })).result;
   await call('lamp.reports.publish', { id, report_version: report.revision, channels: [] });

@@ -8,6 +8,8 @@ export const pendingBase = Object.freeze({
   replayAuthority: 'PENDING BASE hooks-6, 2026-10-28: native authorization before mutation replay',
   escalationSurface: 'PENDING BASE hooks-7, 2026-10-28: applicable resource/security escalation fixtures',
   reviewerLifecycle: 'PENDING BASE hooks-7, 2026-10-28: real reviewer lifecycle',
+  publicHost: 'PENDING BASE verifier, 2026-10-28: declared native app/public hostname aliases for the real public incident readback',
+  phaseFixtures: 'PENDING BASE verifier, 2026-10-28: native fixture lifecycle and configured provider bindings for every policy phase',
 });
 export function assertNativeTarget(row, target) { assert.equal(row.resource, target, pendingBase.nativeTarget); }
 export function assertResourceCode(answer, code) { assert.equal(answer.error?.data?.code, code, pendingBase.resourceCode); }
