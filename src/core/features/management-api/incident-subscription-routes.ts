@@ -29,7 +29,7 @@ function compatibilityView(row:Subscriber) {
   return {id:row.id,mode:row.channel,...(row.channel==="email"?{email:row.destination}:row.channel==="sms"?{phone_number:row.destination}:{endpoint:row.destination,email:row.contactEmail}),created_at:row.createdAt,pending:row.state==="pending"};
 }
 /** The edition has one page: page_settings.id is "default". Compatibility
- * identifiers are local incident/subscriber IDs, not IDs from a former host. */
+ * identifiers are local incident and subscriber IDs, not IDs from a former host. */
 export function registerIncidentSubscriptionApiRoutes(app:Hono<AppEnv>,management:ManagementApiService,subscribers:IncidentSubscriptionApiService,limiter:PublicWriteRateLimiter) {
   for(const compatible of [false,true]) {
     const path=compatible?"/v1/pages/:pageId/incidents/:incidentId/subscribers":"/api/v1/incidents/:incidentId/subscribers";

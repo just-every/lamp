@@ -53,6 +53,7 @@ export async function incidentSubscriberImportFlow({ t, runtime, api, moveIn, im
   assert.equal(invited.invited.status, 200, JSON.stringify(invited.invited.body));
   assert.equal(invited.invited.body.invites.sent, 1, "the owner action sends at most one confirmation to a shared address per day");
   assert.equal(invited.messages.length, 1, "repeating the action sends nothing twice");
+  assert.equal(invited.invited.body.invites.remaining,1,"the daily-blocked scope remains pending for a later explicit invitation");
   assert.ok(invited.messages.every(row => row.message.to === "synthetic-lamp-import-follower@example.test"));
   const activityAfterInvitations = await notificationActivity(runtime);
   const undone = await moveIn.undo(result.door);

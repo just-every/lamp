@@ -1,3 +1,4 @@
+import { incidentFollowBrowserLifecycle } from './incident-follow-browser-lifecycle.mjs';
 import assert from "node:assert/strict";
 import { mkdir } from "node:fs/promises";
 import { join } from "node:path";
@@ -7,7 +8,7 @@ import { eventuallySubscriber } from "./subscriber-management-fixture.mjs";
 import { operatorHydrated } from "./operator-hydrated.mjs";
 
 /** One functional width; the same changed screens are recorded at both widths. */
-export async function incidentFollowBrowserFlow({ page: operatorPage, origin, pageOrigin, api, post, raw, messages }) {
+export async function incidentFollowBrowserFlow({ page: operatorPage, origin, pageOrigin, api, post, raw, messages,runtime,db }) {
   await operatorPage.setViewportSize({ width: 1440, height: 1000 });
   await operatorPage.goto(`${origin}/app/settings#notifications`);
   await operatorHydrated(operatorPage);
@@ -130,5 +131,6 @@ export async function incidentFollowBrowserFlow({ page: operatorPage, origin, pa
     await page.getByRole("button", { name: "Unsubscribe", exact: true }).click();
     await page.getByRole("heading", { name: "Unsubscribed", exact: true }).waitFor();
     assert.equal((await raw(manageUrl)).status, 404, "the script-free token form revokes following immediately");
+    await incidentFollowBrowserLifecycle({page,pageOrigin,api,post,raw,messages,runtime,db,incident,componentId:componentResult.body.component.id});
   } finally { await noScript.close(); }
 }
