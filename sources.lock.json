@@ -532,7 +532,7 @@
       "executable": false
     },
     "docs/agents.md": {
-      "sha256": "39023967811fc3200d711db41209a031db76a6dcaa9bc01d798546ee88525d5e",
+      "sha256": "be55bc8ba575918b819dbeb28fd507b77ddb3f6e0a2e4012c26236a7c2daa06f",
       "executable": false
     },
     "docs/ai-assistance.md": {
@@ -5172,7 +5172,7 @@
       "executable": false
     },
     "src/core/features/incidents/ui/incident-detail-page.tsx": {
-      "sha256": "1be44e72821e71383e994e1f9e4397fd4c1ef3345212437dc511a654d3fa9420",
+      "sha256": "8faa1c619ab36ab04cca95dad97f926228a6557fd91bdc04f6c8207f5bada08d",
       "executable": false
     },
     "src/core/features/incidents/ui/incident-header.tsx": {

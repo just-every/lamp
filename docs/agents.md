@@ -23,7 +23,7 @@ and sponsoring operator. Credential issuance, recent email proof, chat identity
 linking, connection secrets and import apply retain their native person doors.
 Some delegated native owner operations remain unavailable until the shared native
 owner API supports Lamp's equal-owner model; the door returns an explicit refusal.
-See [Native proof for protected changes](/docs/agent-native-proof) for the person proof workflow and current limits.
+See [Native proof for protected changes](agent-native-proof.md) for the person proof workflow and current limits.
 
 ## Communicate an incident
 

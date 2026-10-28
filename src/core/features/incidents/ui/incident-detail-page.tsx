@@ -340,7 +340,7 @@ function IncidentVisit({ incidentId }: { incidentId: string }) {
         {publishMessage ? <p role="status" className={`publication-message is-${publishState}`}>{publishMessage}</p> : null}
         {saveError && <FormError>{saveError}</FormError>}
         {visibleSaveState === "error" && <Button type="button" variant="secondary" onClick={() => { failedKey.current = null; setSaveError(null); setSaveState("saving"); setDraftRevision((current) => current + 1); }}>Retry save</Button>}
-        <AiSuggestionButton key={updateGeneration.current} incidentId={incident.id} onSuggestion={applySuggestion} captureUpdate={captureUpdate} />
+        <AiSuggestionButton key={`ai-suggestion-${updateGeneration.current}`} incidentId={incident.id} onSuggestion={applySuggestion} captureUpdate={captureUpdate} />
         <form inert={publishState === "publishing"} className="impact-form" onSubmit={(event) => event.preventDefault()}>
           <StatusChoice value={draft.lifecycle} onChange={changeLifecycle} />
           {/* A separate label keeps the field's name to its question; a wrapping label would also read the text. */}
