@@ -5,6 +5,7 @@ import { join } from "node:path";
 import { chromium } from "playwright";
 import { AxeBuilder } from "@axe-core/playwright";
 import { operatorHydrated } from "./operator-hydrated.mjs";
+import { overviewTimeFlow } from "./overview-time-flow.mjs";
 import { subscriberLimitSourceFiles } from "./subscriber-limits-flow.mjs";
 
 /** Capacity population is an explicit fixture prerequisite. Stop this test's
@@ -67,6 +68,9 @@ export async function subscriberLimitsBrowserFlow({runtime,origin,publicOrigin,c
       } finally {await context.close();}
     }
     await populate(runtime,24_901,100);
+    const boundaryContext=await auth({viewport:{width:1440,height:960}});
+    try {await overviewTimeFlow({context:boundaryContext,origin,publicOrigin});}
+    finally {await boundaryContext.close();}
     for(const width of [1440,390]) {
       const context=await auth({viewport:{width,height:960}}),page=await context.newPage(),errors=watch(page);
       try {

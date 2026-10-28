@@ -2,7 +2,7 @@
   "schema": 1,
   "seed": "contract-md-lamp",
   "old": {
-    "commit": "54e0e1dcfdc225ad17e42abff04b65d7f2bfdc72",
+    "commit": "f27975c13c0bcbac7dc20a399a3092449cfed545",
     "files": [
       "CONTRACT.md",
       "ACCEPTANCE.md",
@@ -3708,15 +3708,6 @@
     {
       "file": "CONTRACT.md",
       "line": 900,
-      "text": "As Statuspage posts incidents to Twitter, the owner can connect the page's own X account, and also a Bluesky or Mastodon account. X uses OAuth 2.0 with the `tweet.write` scope through the owner's X developer app, and the owner's X API tier and its cost are theirs. Bluesky uses an app password, and Mastodon an access token with `write:statuses`. Credentials are stored only encrypted, as NOTIFY-011's are. Social accounts are a channel the operator selects per update (NOTIFY-007), and they default to off for each new update unless the owner turns on \"post by default\". Each post holds the owner's prefix, the update's lifecycle and customer-impact statement, cut to the network's length at a word boundary, and the incident permalink. Every later update of the same incident replies to the previous post, so an incident is one thread. Maintenance notices post when the owner chooses. Posts are delivered at most once per update per account (NOTIFY-005), retried under NOTIFY-003 and recorded in the delivery log with the network's post ID (NOTIFY-004). A failing account never delays the page or other channels (NOTIFY-009), and its failure is an operator alert (NOTIFY-006), because posting integrations do fail. Retroactive updates and imports post nothing. Network origins are declared in `seed.json \u2192 externals` when shipped.",
-      "to": "clause",
-      "ids": [
-        "INTEG-002"
-      ]
-    },
-    {
-      "file": "CONTRACT.md",
-      "line": 902,
       "text": "Acceptance: against recorded X, Bluesky and Mastodon API fixtures, a first update with the social channel selected creates one post per account with the prefix, impact text and permalink within the network's length. The second update is created as a reply to the first post's ID. An update with the channel deselected posts nothing. A fake X edge answering 503 retries and then records failed, and the page and email are not delayed.",
       "to": "clause",
       "ids": [
@@ -3725,13 +3716,7 @@
     },
     {
       "file": "CONTRACT.md",
-      "line": 904,
-      "text": "Status: **missing**.",
-      "to": "changelog"
-    },
-    {
-      "file": "CONTRACT.md",
-      "line": 910,
+      "line": 908,
       "text": "At 390 px and 1440 px wide, an operator can sign in through the native terminal link, open a draft from an accepted signed alert, attach components, write an update, reload its saved draft, preview, publish, resolve, set a standing component claim and schedule maintenance. Accepted alert evidence stays private until the operator publishes. There is no horizontal scrolling, phone touch targets are at least 44 px, accessibility checks pass at every step, and the composer keeps its UPDATE-005 draft guarantees.",
       "to": "clause",
       "ids": [
@@ -3740,7 +3725,7 @@
     },
     {
       "file": "CONTRACT.md",
-      "line": 912,
+      "line": 910,
       "text": "Acceptance: a native browser journey at 390\u00d7844 and at 1440 px signs in through the terminal link, accepts a signed alert into a private draft, attaches a component, saves customer wording, reloads and recovers the exact draft, previews the email, publishes and resolves the incident, sets a standing component claim and schedules maintenance. Check the persisted and visible result after publication, resolution, the claim and scheduling. There is no horizontal overflow, accessibility checks pass on every screen, and phone controls are at least 44\u00d744 px.",
       "to": "clause",
       "ids": [
@@ -3749,13 +3734,13 @@
     },
     {
       "file": "CONTRACT.md",
-      "line": 914,
+      "line": 912,
       "text": "Status: **done** \u2014 `src/core/app/client/ui/responsive.css`, `src/core/features/intake/ui/alerts-page.tsx`, `tests/e2e/helpers/phone-desk-flow.mjs`. Native terminal-link sign-in, signed-alert draft, attachment, autosave/reload, preview, publish, resolution, standing claim and maintenance scheduling pass at 390\u00d7844 and 1440 px, with accessibility, overflow and 44 px phone-control checks.",
       "to": "changelog"
     },
     {
       "file": "CONTRACT.md",
-      "line": 918,
+      "line": 916,
       "text": "The operator app is an installable progressive web app on iOS (16.4 and later), Android and desktop. An operator can enable web push per device for due and overdue commitments, alert drafts, escalations, delivery failures and vendor alerts (NOTIFY-016). A push contains the incident reference and opens its composer. It contains no subscriber data and, by the owner's choice, no update text. Lamp has no native store apps; the installed app is the mobile product.",
       "to": "clause",
       "ids": [
@@ -3764,7 +3749,7 @@
     },
     {
       "file": "CONTRACT.md",
-      "line": 920,
+      "line": 918,
       "text": "Acceptance: a device with push enabled receives one push when an incident becomes due, and tapping it opens the composer. Removing the device stops further pushes.",
       "to": "clause",
       "ids": [
@@ -3773,13 +3758,13 @@
     },
     {
       "file": "CONTRACT.md",
-      "line": 922,
+      "line": 920,
       "text": "Status: **missing**.",
       "to": "changelog"
     },
     {
       "file": "CONTRACT.md",
-      "line": 928,
+      "line": 926,
       "text": "An owner gives Settings \u2192 Move in a Status.io API ID and key (read with GET requests to Status.io's API origin, never stored) or saved API responses. The dry run, apply, single import, undo and old-address rules of MOVE-001 to MOVE-006 apply. Containers become groups or components, incidents keep their messages and times, maintenance keeps its windows, and email, SMS and webhook subscribers come in as pending on their channels (MOVE-010). Published post-incident text and incident templates that Status.io's API exposes move under MOVE-011's rules for postmortems and templates.",
       "to": "clause",
       "ids": [
@@ -3788,7 +3773,7 @@
     },
     {
       "file": "CONTRACT.md",
-      "line": 930,
+      "line": 928,
       "text": "Acceptance: a saved Status.io fixture dry-runs with counts and reasons, applies silently with original times, redirects its old incident paths, and undoes cleanly. Post-incident text and templates in the fixture dry-run, import and undo under MOVE-011's rules.",
       "to": "clause",
       "ids": [
@@ -3797,13 +3782,13 @@
     },
     {
       "file": "CONTRACT.md",
-      "line": 932,
+      "line": 930,
       "text": "Status: **missing**.",
       "to": "changelog"
     },
     {
       "file": "CONTRACT.md",
-      "line": 936,
+      "line": 934,
       "text": "An owner gives an incident.io API key with status-page read scope, or saved responses. Components, groups, incidents with updates and maintenance import under MOVE-001 to MOVE-006. Where incident.io exposes no subscriber export, the Cutover guide says so and shows how to invite those subscribers from the new page. Published post-incident text and templates that incident.io's API exposes move under MOVE-011's rules for postmortems and templates.",
       "to": "clause",
       "ids": [
@@ -3812,7 +3797,7 @@
     },
     {
       "file": "CONTRACT.md",
-      "line": 938,
+      "line": 936,
       "text": "Acceptance: a saved incident.io fixture dry-runs and applies with original times and silent history, and Cutover names the subscriber limitation. Post-incident text and templates in the fixture dry-run, import and undo under MOVE-011's rules.",
       "to": "clause",
       "ids": [
@@ -3821,13 +3806,13 @@
     },
     {
       "file": "CONTRACT.md",
-      "line": 940,
+      "line": 938,
       "text": "Status: **missing**.",
       "to": "changelog"
     },
     {
       "file": "CONTRACT.md",
-      "line": 944,
+      "line": 942,
       "text": "After a Statuspage import, everything that read the old page keeps working on the moved hostname: the Statuspage public API paths (PAGE-016), `/history.rss` and `/history.atom` (PAGE-017), and the embed script path `/embed/script.js`, which serves PAGE-019's floating notice. Webhook receivers keep their Statuspage bodies (SUB-018, MOVE-010), and email-wired monitors get a new address for each component (INTAKE-013). Cutover (MOVE-006) lists all of them as served instead of unsupported, with each component's old and new automation address. The Cutover guide also names how operating Lamp differs from Statuspage. A published update is never edited in place: a mistake is fixed by a correction update that names it, published with no channels selected when nobody should be notified again (INCIDENT-004, NOTIFY-007), and both stay on the timeline. Component states change with each update (UPDATE-012). Components shown only while degraded keep that behavior (COMP-010). Statuspage webhook bodies belong to SUB-018 and MOVE-010, and component automation addresses to INTAKE-013: each of those clauses lists its consumers in Cutover as served, with its own acceptance, when it ships, and until then Cutover names them unavailable.",
       "to": "clause",
       "ids": [
@@ -3836,7 +3821,7 @@
     },
     {
       "file": "CONTRACT.md",
-      "line": 946,
+      "line": 944,
       "text": "Acceptance: after a Statuspage fixture import, an unmodified Statuspage client reads `/api/v2/summary.json`, a feed reader reads `/history.rss`, and an old embed tag renders the notice. Cutover lists every one as served, and its guide contains the correction-update and component-state notes. The Statuspage webhook-receiver fixture of SUB-018 accepting the next publish is SUB-018's and MOVE-010's acceptance.",
       "to": "clause",
       "ids": [
@@ -3845,13 +3830,13 @@
     },
     {
       "file": "CONTRACT.md",
-      "line": 948,
+      "line": 946,
       "text": "Status: **done** \u2014 `src/core/features/statuspage-import/public-paths.mjs`, `src/core/features/public-snapshot/import-aliases.ts`, `src/core/features/statuspage-import/operating-notes.ts`, `tests/e2e/statuspage-import.test.mjs`, `tests/e2e/cutover-browser.test.mjs`, `tests/e2e/public-contract.test.mjs`. History and Atom aliases, Statuspage /api/v2 read endpoints, RSS and the `/embed/script.js` floating notice are served after import, and Cutover lists them as served. Cutover's Operating Lamp after Statuspage guide carries the correction-update, component-state and degraded-only notes at 1440 and 390 px. Webhook bodies (SUB-018, MOVE-010) and automation addresses (INTAKE-013) are those clauses' to ship; Cutover names them unavailable until then.",
       "to": "changelog"
     },
     {
       "file": "CONTRACT.md",
-      "line": 952,
+      "line": 950,
       "text": "Imports from Statuspage, Status.io and Better Stack bring webhook, Slack, Teams and SMS subscribers as well as email, each with its component selection, and Statuspage's incident subscribers of unresolved incidents (SUB-019). Nothing is sent to anyone before the owner's explicit action, and each channel then moves in its own way:",
       "to": "clause",
       "ids": [
@@ -3860,7 +3845,7 @@
     },
     {
       "file": "CONTRACT.md",
-      "line": 954,
+      "line": 952,
       "text": "*Webhooks.* An endpoint the source reports as an active, confirmed subscription is imported held, in the source's body format: Statuspage webhooks get SUB-018's Statuspage format, so the receivers keep parsing what they parsed. The owner's explicit \"Activate imported webhooks\" action, taken at cutover, makes every held endpoint active with no reply needed from the receiver. Statuspage receivers never had to answer a verification ping, and an unattended receiver could never pass one. Deliveries start with the next publish or component change (NOTIFY-017), and an endpoint that then fails is handled by SUB-010 and emails its contact address. An endpoint the source reports as unconfirmed comes in pending and is confirmed through its contact email address, under SUB-001's confirmation.",
       "to": "clause",
       "ids": [
@@ -3869,7 +3854,7 @@
     },
     {
       "file": "CONTRACT.md",
-      "line": 955,
+      "line": 953,
       "text": "*SMS.* Re-confirmed by a YES reply (SUB-013), because TCPA consent was given to the source's sender, not Lamp's.",
       "to": "clause",
       "ids": [
@@ -3878,7 +3863,7 @@
     },
     {
       "file": "CONTRACT.md",
-      "line": 956,
+      "line": 954,
       "text": "*Slack.* Re-confirmed by reinstalling Lamp's Slack app (SUB-014); a Slack incoming-webhook URL the source holds moves as a held webhook in Slack format.",
       "to": "clause",
       "ids": [
@@ -3887,7 +3872,7 @@
     },
     {
       "file": "CONTRACT.md",
-      "line": 957,
+      "line": 955,
       "text": "*Teams.* Re-confirmed by SUB-015's verification card.",
       "to": "clause",
       "ids": [
@@ -3896,7 +3881,7 @@
     },
     {
       "file": "CONTRACT.md",
-      "line": 958,
+      "line": 956,
       "text": "*Email.* Under MOVE-002 unchanged.",
       "to": "clause",
       "ids": [
@@ -3905,7 +3890,7 @@
     },
     {
       "file": "CONTRACT.md",
-      "line": 960,
+      "line": 958,
       "text": "The confirmation windows of MOVE-002 apply to every pending channel. Every channel counts toward SUB-020's limits, and an import that would exceed one is refused at dry run with the excess named. Activated webhook endpoints are recorded with the import as their consent source, so MOVE-004's undo deactivates them. Cutover (MOVE-006) then lists the activated Statuspage webhook receivers as served, as MOVE-009 requires.",
       "to": "clause",
       "ids": [
@@ -3914,7 +3899,7 @@
     },
     {
       "file": "CONTRACT.md",
-      "line": 962,
+      "line": 960,
       "text": "Acceptance: a Statuspage fixture with email, webhook, SMS and incident subscribers dry-runs all four with counts. Before any owner action, a publish sends nothing to any imported subscriber. After \"Activate imported webhooks\", the Statuspage webhook-receiver fixture of SUB-018, which never answers a verification request, receives the next incident update and component change in Statuspage format. After invitations, the SMS subscriber is active only after replying YES. An endpoint the source reported as unconfirmed stays pending until its contact confirms. Cutover lists the activated webhook receivers as served. Webhook subscribers imported from Statuspage (MOVE-010) get the Statuspage format, and anyone subscribing a new endpoint can choose it.",
       "to": "clause",
       "ids": [
@@ -3923,13 +3908,13 @@
     },
     {
       "file": "CONTRACT.md",
-      "line": 964,
+      "line": 962,
       "text": "Status: **missing**. Released imports carry email subscribers only (`src/core/features/statuspage-import/`).",
       "to": "changelog"
     },
     {
       "file": "CONTRACT.md",
-      "line": 968,
+      "line": 966,
       "text": "The Statuspage reader (API key or saved responses, MOVE-001) also reads each incident's postmortem and the page's incident templates. The explanation an old incident page carried and the first-update wording the team relies on both survive the move.",
       "to": "clause",
       "ids": [
@@ -3939,7 +3924,7 @@
     },
     {
       "file": "CONTRACT.md",
-      "line": 970,
+      "line": 968,
       "text": "*Postmortems.* A postmortem the source published (`postmortem_body` with `postmortem_published_at` set) becomes that incident's HIST-002 post-incident report, published at its original time and silently under MOVE-002: no subscriber is notified, whatever `postmortem_notify_subscribers` said. Its text becomes plain text without losing words. Paragraphs and list items stay as lines, headings become lines of their own, links become their visible URLs under UPDATE-013, and images are named with their source URL and are never fetched or hot-linked. A Statuspage postmortem is one free-text body, so it fills the report's summary and leaves timeline, cause and remediation empty, which HIST-002's renderer omits; HIST-003 treats the report as published. An unpublished draft postmortem (a body with no publication time) is never published. It is kept as a private draft report on the incident, visible only to operators, and the dry run names it. MOVE-005's redirect from the old incident URL then lands on a Lamp permalink that shows the report, and PAGE-016's native API carries it.",
       "to": "clause",
       "ids": [
@@ -3949,7 +3934,7 @@
     },
     {
       "file": "CONTRACT.md",
-      "line": 972,
+      "line": 970,
       "text": "*Templates.* Each incident template (`GET /v1/pages/{page_id}/incident_templates`, or a saved `incident-templates.json`) becomes an UPDATE-009 template with its name, title, lifecycle (`update_status`), components with their states and channel default (`should_send_notifications`). Template groups become template folders. The body is mapped into UPDATE-001's fields: its first paragraph becomes the customer-impact statement and the rest the details statement, and the affected-audience statement is set from the template's components (\"Customers using API, Dashboard\"). A body part that exceeds its field's limit is reported in the dry run with the template and field named. That template is imported with the field marked for the owner to shorten before it can be applied, and its text is never silently truncated.",
       "to": "clause",
       "ids": [
@@ -3959,7 +3944,7 @@
     },
     {
       "file": "CONTRACT.md",
-      "line": 974,
+      "line": 972,
       "text": "*Counts and undo.* The dry run counts postmortems (imported, kept private or refused, with reasons) and templates (imported, or imported with a field to shorten) beside the other records, and the apply imports only what was reviewed. MOVE-003 never imports either twice, and MOVE-004's undo removes every imported report and template nobody has changed since, naming the ones it keeps. Status.io (MOVE-007) and incident.io (MOVE-008) imports carry their published post-incident text and templates by the same rules where their APIs expose them; that obligation and its proof belong to those readers' own clauses and ship with them. The release that ships this clause records MOVE-001, MOVE-002 and MOVE-004 as changed, and `docs/moving-in.md` stops listing post-mortem text and templates as omitted.",
       "to": "clause",
       "ids": [
@@ -3969,7 +3954,7 @@
     },
     {
       "file": "CONTRACT.md",
-      "line": 976,
+      "line": 974,
       "text": "Acceptance: a Statuspage fixture with two incidents, one with a published postmortem and one with a draft postmortem, and three incident templates dry-runs with \"2 postmortems: 1 imported, 1 kept private; 3 templates: 3 imported\" and writes nothing. After apply, no notification of any kind is queued. The old `/incidents/<id>` URL redirects to a Lamp permalink that shows the published postmortem's text with script disabled, and the draft's text appears on no public surface (page, permalinks, feeds, `/api/v2/*`, `/api/public/v1/`). Applying an imported template fills the composer with its components, states and wording and publishes nothing. Undo removes all five records. A separate fixture template whose body exceeds the details limit dry-runs with that template and field named, and its imported text is unchanged.",
       "to": "clause",
       "ids": [
@@ -3979,13 +3964,13 @@
     },
     {
       "file": "CONTRACT.md",
-      "line": 978,
+      "line": 976,
       "text": "Status: **done** \u2014 `src/core/features/statuspage-import/postmortems.ts`, `src/core/features/statuspage-import/templates.ts`, `tests/e2e/helpers/postmortem-template-import-flow.mjs`, `tests/e2e/helpers/imported-template-apply-flow.mjs`, `tests/e2e/statuspage-import.test.mjs`, `tests/e2e/publishing-contract.test.mjs`. Statuspage published reports retain original times, draft reports remain private, and templates retain metadata, component states and full oversized wording for shortening. Dry run, silent apply, repeat and conditional undo cover both. Status.io and incident.io carry the same rules as part of MOVE-007 and MOVE-008. The next release records MOVE-001, MOVE-002 and MOVE-004 as changed; 1.8.0 shipped the reader without that record.",
       "to": "changelog"
     },
     {
       "file": "CONTRACT.md",
-      "line": 982,
+      "line": 980,
       "text": "A Statuspage private page (staff sign-in) or audience-specific page moves into Lamp's private and audience pages (AUD-001 to AUD-005), never onto the public page.",
       "to": "clause",
       "ids": [
@@ -3994,7 +3979,7 @@
     },
     {
       "file": "CONTRACT.md",
-      "line": 984,
+      "line": 982,
       "text": "*Reading visibility.* The Statuspage reader reads the page's visibility from the page record (`GET /v1/pages/{page_id}`: `viewers_must_be_team_members` and `ip_restrictions`) and, for an audience-specific page, its page-access groups and users (`/v1/pages/{page_id}/page_access_groups` and `/v1/pages/{page_id}/page_access_users`). It reads them through the API key, or from saved `page.json`, `page-access-groups.json` and `page-access-users.json`. A saved import without `page.json` is refused with the missing visibility evidence named, as the Better Stack reader already refuses one. Visibility is never assumed to be public.",
       "to": "clause",
       "ids": [
@@ -4003,7 +3988,7 @@
     },
     {
       "file": "CONTRACT.md",
-      "line": 986,
+      "line": 984,
       "text": "*Where records land.* A private source is imported as an AUD-001 private page, with its IP restrictions as an AUD-002 IP allow-list. An audience-specific source is imported as an AUD-001 page with one AUD-003 audience per page-access group, each with that group's components and with the group's users as explicit members by email. Each incident and maintenance keeps the visibility it had: on the private page, or for each audience whose group includes one of its components. Subscribers of the source page come in as AUD-004 subscribers of the Lamp page they belong to, under MOVE-010's channel rules and MOVE-002's invitations. No subscriber of a private or audience page becomes a public subscriber.",
       "to": "clause",
       "ids": [
@@ -4012,7 +3997,7 @@
     },
     {
       "file": "CONTRACT.md",
-      "line": 988,
+      "line": 986,
       "text": "*Never public by accident.* The dry run refuses to import a private or audience-specific source into the public page and names the reason (\"the source page requires sign-in; choose or create a private page\"), offering the private target instead. During dry run, apply, resume and undo, no private record reaches a public snapshot, feed, widget, badge, public API response or public notification (AUD-005). MOVE-005's old-address redirects for private incidents are served only on the private page's host, behind its sign-in.",
       "to": "clause",
       "ids": [
@@ -4021,7 +4006,7 @@
     },
     {
       "file": "CONTRACT.md",
-      "line": 990,
+      "line": 988,
       "text": "*Access before go-live.* Statuspage's team-member sign-in and SSO do not transfer. Cutover (MOVE-006) therefore lists, for each imported private page, the AUD-002 access method the owner must configure (an OIDC or SAML IdP, a magic-link email domain, or the imported IP allow-list) and the IdP groups that would match the imported audiences. Until one method is configured and its setup check passes, the private page serves only its sign-in page and admits nobody: it fails closed. Undo (MOVE-004) removes the imported pages, audiences, members and subscribers that nobody changed, naming what it keeps. The release that ships this clause records MOVE-001 and MOVE-006 as changed.",
       "to": "clause",
       "ids": [
@@ -4030,7 +4015,7 @@
     },
     {
       "file": "CONTRACT.md",
-      "line": 992,
+      "line": 990,
       "text": "Acceptance: a Statuspage fixture whose page has `viewers_must_be_team_members: true` dry-runs into a new private page, and is refused with its reason named when the public page is chosen as the target. After apply, AUD-005's canary search of every public artifact, response and notification finds none of its incident text. A signed-out request to the private page gets the sign-in page with no incident text, and the page admits nobody until an access method passes its setup check; once an OIDC method is configured, a fixture IdP user reads the imported history. A fixture with `ip_restrictions` imports that allow-list. An audience-specific fixture with two page-access groups imports two audiences; each audience's member sees only that group's components and incidents, and its subscribers receive no public-only update. Saved files without `page.json` are refused. Undo removes the pages, audiences and members.",
       "to": "clause",
       "ids": [
@@ -4039,13 +4024,13 @@
     },
     {
       "file": "CONTRACT.md",
-      "line": 994,
+      "line": 992,
       "text": "Status: **partial** \u2014 `src/core/features/statuspage-import/betterstack/read.ts`, `src/core/features/statuspage-import/instatus/normalize.ts`, `src/core/features/statuspage-import/sorry/read.ts`, `tests/betterstack/reader.test.mjs:47`. The Better Stack, Instatus and Sorry readers refuse private, password-protected, IP-restricted and audience-scoped sources rather than publishing them. The Statuspage reader also requires page and page-access-group responses and refuses private, IP-restricted, audience-scoped or unknown visibility (MOVE-012 in `tests/auth-adoption/cutover.test.mjs`). Importing private and audience pages as private (AUD-001 to AUD-005) is not built.",
       "to": "changelog"
     },
     {
       "file": "CONTRACT.md",
-      "line": 1000,
+      "line": 998,
       "text": "HIST-004's export and the OPERATIONS.md restore path include every record the target clauses add: pages, audiences and members, audience wording, roles and scopes, vendor components and their history, monitor links and rules, metrics, translations, SMS consent records and API token metadata. Secrets never travel: API token hashes, SSO and SCIM secrets, Slack, Twilio and Plivo credentials, and secondary-origin keys. A restored installation re-authorizes each integration before it sends anything.",
       "to": "clause",
       "ids": [
@@ -4054,7 +4039,7 @@
     },
     {
       "file": "CONTRACT.md",
-      "line": 1002,
+      "line": 1000,
       "text": "Acceptance: an export of a fixture with every target entity restores into an empty installation with equivalent re-export. A secret scan of the archive finds no credential, and every restored integration is disabled until reconnected.",
       "to": "clause",
       "ids": [
@@ -4063,13 +4048,13 @@
     },
     {
       "file": "CONTRACT.md",
-      "line": 1004,
+      "line": 1002,
       "text": "Status: **partial** \u2014 `tests/e2e/export-import.test.mjs`, `scripts/installer/archive-policy.mjs`. Export, clean restore and equivalent re-export cover every released record (HIST-004). Built target records (Uptime and grouped intake sources and their mappings, PagerDuty sources) travel in the full-table archive, with the PagerDuty REST key written as NULL so the restored source asks to reconnect. Gap: Slack and Teams `channel_destinations.sealed_url` ciphertext travels in both archives (`scripts/export.mjs`, `scripts/installer/archive-policy.mjs`), and a restore with the same `WEBHOOK_SIGNING_SECRET` posts without reconnecting, so restored integrations are not all disabled until reconnected. Pages, audiences, roles, vendor components, metrics, translations, SMS consent and API-token metadata are not built.",
       "to": "changelog"
     },
     {
       "file": "CONTRACT.md",
-      "line": 1008,
+      "line": 1006,
       "text": "BASE-DATA-003 erasure covers phone numbers and their SMS consent records, Slack and Teams installations, audience members, private-page sessions, API tokens and SCIM-provisioned operators, within 5 minutes and with anonymized audit entries.",
       "to": "base",
       "ids": [
@@ -4078,7 +4063,7 @@
     },
     {
       "file": "CONTRACT.md",
-      "line": 1008,
+      "line": 1006,
       "text": " Erasing a phone number removes it from the delivery log while keeping the delivery outcome counts.",
       "to": "clause",
       "ids": [
@@ -4087,7 +4072,7 @@
     },
     {
       "file": "CONTRACT.md",
-      "line": 1010,
+      "line": 1008,
       "text": "Acceptance: erasing an SMS subscriber removes the number from every table, and the delivery log keeps an anonymized row. Erasing an audience member ends their private-page session.",
       "to": "clause",
       "ids": [
@@ -4096,13 +4081,13 @@
     },
     {
       "file": "CONTRACT.md",
-      "line": 1012,
+      "line": 1010,
       "text": "Status: **partial** \u2014 `tests/e2e/subscriber-erasure.test.mjs`, `tests/auth-adoption/operator-erasure.test.mjs`. Subscriber and operator erasure ship for released records. The identifiers that target clauses add are not built.",
       "to": "changelog"
     },
     {
       "file": "CONTRACT.md",
-      "line": 1016,
+      "line": 1014,
       "text": "These clauses go past what Instatus, incident.io and OpenStatus ship today. Each names what the agent does, which data it reads and the human control that bounds it. Every agent call goes through `ai.provider.v1` (DRAFT-003). Internal notes are never sent to a model (INCIDENT-008). An agent drafts, flags, reminds and checks; it never publishes, never moves a public commitment and never resolves an incident.",
       "to": "clause",
       "ids": [
@@ -4119,7 +4104,7 @@
     },
     {
       "file": "CONTRACT.md",
-      "line": 1020,
+      "line": 1018,
       "text": "**What the agent does:** it continuously compares the latest published update of each unresolved incident with the evidence Lamp holds, and flags where they disagree. The flags are: *stale* (evidence changed and nothing has been published since); *contradictory* (the public update says Monitoring while a linked monitor is still failing, or says one region while evidence shows three, or a resolved update while an alert is still firing); and *incomplete* (evidence shows another component failing that the incident does not name). For each flag it drafts a correction update in the composer. **Data:** accepted alerts, Uptime evidence (COMP-008), Oncall timeline entries (INTAKE-012), PagerDuty acknowledgments (INTAKE-009), Jira Service Management and Opsgenie acknowledgments and escalations (INTAKE-014), automation-email claims (INTAKE-013), vendor feeds (DEP-001), support-ticket counts (INTEG-001) and the published timeline: everything in DRAFT-002's brief and none of the internal notes. **Human control:** flags and drafts are private. A named operator edits and publishes any correction. A contradiction can still be resolved only by an operator recording an override reason (AGENT-004).",
       "to": "clause",
       "ids": [
@@ -4128,7 +4113,7 @@
     },
     {
       "file": "CONTRACT.md",
-      "line": 1022,
+      "line": 1020,
       "text": "Acceptance: a fixture with a public \"Monitoring\" update and a still-failing linked monitor shows a contradictory flag within 60 seconds. The flag cites the monitor evidence with its time, and the draft correction sits unpublished in the composer. Nothing public changes until an operator publishes.",
       "to": "clause",
       "ids": [
@@ -4137,13 +4122,13 @@
     },
     {
       "file": "CONTRACT.md",
-      "line": 1024,
+      "line": 1022,
       "text": "Status: **partial** \u2014 `src/core/features/brief/build.ts`, `src/core/features/ai/service.ts`, `tests/e2e/incident-brief.test.mjs`. The model-free brief flags a monitor recovery with a non-resolved lifecycle and a passed commitment, and an operator can request a cited suggestion (DRAFT-001, DRAFT-004). Continuous comparison against responder, monitor and support evidence does not exist.",
       "to": "changelog"
     },
     {
       "file": "CONTRACT.md",
-      "line": 1028,
+      "line": 1026,
       "text": "**What the agent does:** 10 minutes before an incident's committed next-update time (INCIDENT-010), if no draft exists, it prepares one. The draft is a short \"still working on it\" update that restates the known impact and names what changed in the evidence since the last update, or says plainly that nothing has. It reminds the communication owner (INCIDENT-011) with the draft linked and escalates an unowned incident to every communicator. **Data:** the brief, the last published update and the commitment time. **Human control:** the operator sets the next commitment and publishes. The agent cannot change or extend the public time, and an unpublished draft lets the commitment lapse visibly as overdue.",
       "to": "clause",
       "ids": [
@@ -4152,7 +4137,7 @@
     },
     {
       "file": "CONTRACT.md",
-      "line": 1030,
+      "line": 1028,
       "text": "Acceptance: with a commitment 10 minutes away and no draft, a cited draft appears and the owner gets one reminder linking it. If nobody publishes, the incident turns overdue exactly as INCIDENT-006 says, and the public page shows the original commitment.",
       "to": "clause",
       "ids": [
@@ -4161,13 +4146,13 @@
     },
     {
       "file": "CONTRACT.md",
-      "line": 1032,
+      "line": 1030,
       "text": "Status: **done** \u2014 `src/core/features/incidents/promise-draft.ts`:16, `src/core/features/incidents/promise-draft.repository.ts`:6, `src/core/features/incidents/reminders.ts`:24, `tests/e2e/update-reminders.test.mjs`:57, `tests/e2e/incident-brief.test.mjs`:86, `tests/e2e/helpers/prepared-draft-flow.mjs`:8. Model-free preparation from the existing brief is wired before due reminders: a private draft restates the last published impact and cites newer accepted evidence, or states that nothing has changed. An atomic receipt limits preparation to one per incident and committed time; existing saved drafts are never overwritten. The composer carries private Lamp attribution and complete cited evidence, and the owner reminder links to it; unowned fallback follows INCIDENT-011. Preparation changes no commitment or publication and queues no subscriber notification. The named native Worker journeys prove one cited draft and owner reminder, preserved operator drafts, unchanged original commitments after overdue, no subscriber event, no model request, byte-identical public surfaces and working private composer citations at 1440 and 390. No gap remains for this clause.",
       "to": "changelog"
     },
     {
       "file": "CONTRACT.md",
-      "line": 1036,
+      "line": 1034,
       "text": "**What the agent does:** for an incident visible to several audiences (AUD-003), it drafts each audience's UPDATE-010 wording from the components and regions that audience depends on. It names what that audience can and cannot do and leaves out components the audience does not use. **Data:** audience definitions and their component and region mappings, confirmed affected components and per-region monitor evidence; no member identities. **Human control:** an Owner or Admin approves audience definitions and mappings. A communicator approves every variant before it publishes. No private customer name or identifier is ever placed in public wording; the UPDATE-011 checks run on every variant.",
       "to": "clause",
       "ids": [
@@ -4176,7 +4161,7 @@
     },
     {
       "file": "CONTRACT.md",
-      "line": 1038,
+      "line": 1036,
       "text": "Acceptance: an incident on the EU API region yields a draft variant for \"Enterprise EU\" that names the EU API, and no variant text for an audience without EU components. Publishing requires the communicator's explicit acceptance of each variant.",
       "to": "clause",
       "ids": [
@@ -4185,13 +4170,13 @@
     },
     {
       "file": "CONTRACT.md",
-      "line": 1040,
+      "line": 1038,
       "text": "Status: **partial** \u2014 `src/core/features/incidents/service.ts`, `tests/reference-storage/incident-publishing.test.mjs`. Each update carries an operator-written affected-audience statement (UPDATE-001). There are no audiences and no drafted variants.",
       "to": "changelog"
     },
     {
       "file": "CONTRACT.md",
-      "line": 1044,
+      "line": 1042,
       "text": "**What the agent does:** when an operator chooses Resolved, it runs a recovery check and shows the result with its evidence. The check asks: every linked monitor recovered and passing for the hold period; every vendor dependency recovered; no alert still firing; public-page traffic back near baseline (HIST-006); and linked support tickets (INTEG-001) no longer arriving. **Data:** the same evidence as AGENT-001. **Human control:** a passing check lets the named operator publish Resolved as usual. A failing check lets them publish only after recording an override reason, which appears on the internal timeline and in the audit log. The agent never resolves anything itself.",
       "to": "clause",
       "ids": [
@@ -4200,7 +4185,7 @@
     },
     {
       "file": "CONTRACT.md",
-      "line": 1046,
+      "line": 1044,
       "text": "Acceptance: choosing Resolved while a linked monitor still fails shows the failing item with its evidence time and refuses the publish without an override reason (409). With a reason, it publishes and the reason is audited.",
       "to": "clause",
       "ids": [
@@ -4209,7 +4194,7 @@
     },
     {
       "file": "CONTRACT.md",
-      "line": 1048,
+      "line": 1046,
       "text": "**Current evidence and future obligations (ct, 19 October 2026):** every linked single-alert key and grouped member Lamp currently tracks participates. For webhook evidence, the hold means a reported recovery at least five minutes earlier (AUTO-002's default), with no later firing receipt; repeated group recovery conservatively restarts the recorded hold. This does not certify continuously sampled monitor passing. Absent vendor, traffic, support and continuous-monitor evidence is shown as **not tracked**, never as passing. DEP-001, HIST-006, INTEG-001 and COMP-008 must join this same pre-close check before those capabilities ship. Immediate, historical and scheduled resolutions all use the check; scheduled resolutions recheck when due and retain a failing draft. An override authorizes the current immediate publication only.",
       "to": "clause",
       "ids": [
@@ -4218,13 +4203,13 @@
     },
     {
       "file": "CONTRACT.md",
-      "line": 1050,
+      "line": 1048,
       "text": "Status: **done** \u2014 `src/core/features/brief/recovery-check.ts`, `src/core/features/incidents/recovery-repository.ts`, `src/core/features/incidents/publication-repository.ts`, `tests/e2e/helpers/recovery-check-flow.mjs` (AGENT-004 through `tests/e2e/incident-brief.test.mjs`). Firing, recovery holds, re-fires and partial grouped recovery refuse unreasoned publication; a named operator's override is private and atomically audited.",
       "to": "changelog"
     },
     {
       "file": "CONTRACT.md",
-      "line": 1054,
+      "line": 1052,
       "text": "**What the agent does:** for a resolved incident it drafts HIST-002's report. The summary and timeline come from alerts, published updates, Oncall, PagerDuty, Jira Service Management and Opsgenie timeline entries and the measured outage window. Cause and remediation are left as marked prompts with the evidence that bears on them, never invented. Every timeline line cites its source. **Data:** the brief's sources and the measured window; no internal notes. **Human control:** the report stays a draft until an operator edits and publishes it, and the cause and remediation must be written by a person.",
       "to": "clause",
       "ids": [
@@ -4233,7 +4218,7 @@
     },
     {
       "file": "CONTRACT.md",
-      "line": 1056,
+      "line": 1054,
       "text": "Acceptance: a resolved fixture incident yields a draft whose timeline lines each cite a brief reference, with cause and remediation empty and flagged. Publishing an untouched cause field is refused with 400.",
       "to": "clause",
       "ids": [
@@ -4242,7 +4227,7 @@
     },
     {
       "file": "CONTRACT.md",
-      "line": 1058,
+      "line": 1056,
       "text": "**Current evidence and future obligations (ct, 19 October 2026):** every currently held brief alert and published update is included with its existing A/U reference. The incident's recorded opening-to-published-resolution window is labeled **recorded**, never monitor-measured customer downtime. Oncall (INTAKE-012), PagerDuty (INTAKE-009), and Jira Service Management/Opsgenie (INTAKE-014) timeline evidence must enter this same cited generator before those timeline capabilities ship; measured monitor evidence (COMP-008, UPTIME-007) must likewise join when available. Internal notes remain excluded. Cause and remediation are empty fields with human-input flags and cited evidence to review; publishing either untouched prompt or empty field is refused with 400. Draft generation never replaces an existing operator report.",
       "to": "clause",
       "ids": [
@@ -4251,13 +4236,13 @@
     },
     {
       "file": "CONTRACT.md",
-      "line": 1060,
+      "line": 1058,
       "text": "Status: **done** \u2014 `src/core/features/reports/draft.ts`, `src/core/features/reports/service.ts`, `src/core/features/reports/ui/report-editor.tsx`, AGENT-005 in `tests/e2e/publishing-contract.test.mjs` and `tests/e2e/helpers/post-incident-report-flow.mjs`. Private cited drafts, empty flagged fields, refusal until human completion, preservation of edits, and immutable publication are exercised through operator doors.",
       "to": "changelog"
     },
     {
       "file": "CONTRACT.md",
-      "line": 1064,
+      "line": 1062,
       "text": "**What the agent does:** with no incident open, it watches for signs that customers are already affected: a traffic spike (HIST-006), a cluster of support conversations about one product area (INTEG-001), a vendor outage on a dependency (DEP-002), or early monitor evidence: an Uptime monitor linked to a component (COMP-008) reporting failing vantages or latency above its degraded threshold while its own failure confirmation has not yet been met, read from the same signed evidence as INTAKE-008. When the signs line up, it proposes a private draft incident naming the likely components and the evidence. **Data:** aggregate counts and categories only, no customer messages or identities. **Human control:** the proposal reaches communicators as an operator alert. Nothing is public until a person publishes, and a dismissed proposal records who dismissed it and why.",
       "to": "clause",
       "ids": [
@@ -4266,7 +4251,7 @@
     },
     {
       "file": "CONTRACT.md",
-      "line": 1066,
+      "line": 1064,
       "text": "Acceptance: a fixture with a 4\u00d7 traffic spike and five support conversations tagged \"login\" in 10 minutes produces one private proposal naming the sign-in component and both signals, and changes no public surface. A second fixture, with two of five Uptime vantages failing on the sign-in monitor below its confirmation and a traffic spike, produces one proposal citing the monitor evidence with its time.",
       "to": "clause",
       "ids": [
@@ -4275,13 +4260,13 @@
     },
     {
       "file": "CONTRACT.md",
-      "line": 1068,
+      "line": 1066,
       "text": "Status: **missing**.",
       "to": "changelog"
     },
     {
       "file": "CONTRACT.md",
-      "line": 1072,
+      "line": 1070,
       "text": "**What the agent does:** for each enabled language (I18N-001) it drafts the translation of every update and report, using the owner's glossary of product and component names. **Data:** the update text and the glossary. **Human control:** each language's text is published only after a person approves it, or under I18N-002's explicit \"default language\" choice. A machine translation is never published unapproved.",
       "to": "clause",
       "ids": [
@@ -4290,7 +4275,7 @@
     },
     {
       "file": "CONTRACT.md",
-      "line": 1074,
+      "line": 1072,
       "text": "Acceptance: with Spanish enabled, the composer shows a Spanish draft that uses the glossary terms, and publishing without approving Spanish follows I18N-002's refusal.",
       "to": "clause",
       "ids": [
@@ -4299,13 +4284,13 @@
     },
     {
       "file": "CONTRACT.md",
-      "line": 1076,
+      "line": 1074,
       "text": "Status: **missing**.",
       "to": "changelog"
     },
     {
       "file": "CONTRACT.md",
-      "line": 1080,
+      "line": 1078,
       "text": "**What the agent does:** Lamp serves an MCP server so the buyer's own agents can work the desk. Its tools read components, incidents, briefs and subscriber counts, draft updates, propose maintenance windows and attach evidence. **Data:** only what the issuing token's API-001 scopes allow. **Human control:** there is no publish tool unless an Owner grants the separate `publish` scope. Even then, UPDATE-007 review and TEAM-004 roles apply as for the token's issuer, ",
       "to": "clause",
       "ids": [
@@ -4314,7 +4299,7 @@
     },
     {
       "file": "CONTRACT.md",
-      "line": 1080,
+      "line": 1078,
       "text": "and every tool call is audited with the token and the arguments' record IDs.",
       "to": "base",
       "ids": [
@@ -4323,7 +4308,7 @@
     },
     {
       "file": "CONTRACT.md",
-      "line": 1082,
+      "line": 1080,
       "text": "Acceptance: an MCP client with a `read`+`incidents:draft` token drafts an update that appears unpublished in the composer. Its call to a publish tool fails because the tool is not offered. Each call has an audit entry.",
       "to": "clause",
       "ids": [
@@ -4332,13 +4317,13 @@
     },
     {
       "file": "CONTRACT.md",
-      "line": 1084,
+      "line": 1082,
       "text": "Status: **missing**.",
       "to": "changelog"
     },
     {
       "file": "CONTRACT.md",
-      "line": 1088,
+      "line": 1086,
       "text": "**What the agent does:** from a linked GitHub pull request, deploy plan or change ticket, it drafts a maintenance notice. The notice gives the affected components and the window, and fills MAINT-009's wording fields: the affected audience, the expected customer impact in plain words, what will still work and details. It proposes auto-complete off when the change plan names a verification step. **Data:** the linked change's title, description and labels, and the component catalog. **Human control:** the notice is a draft until a communicator schedules it. The agent never schedules or starts a window itself.",
       "to": "clause",
       "ids": [
@@ -4347,7 +4332,7 @@
     },
     {
       "file": "CONTRACT.md",
-      "line": 1090,
+      "line": 1088,
       "text": "Acceptance: a fixture pull request labeled `db-migration` with a stated window yields a draft maintenance on the database component with that window and a customer-impact statement in MAINT-009's field, unscheduled until an operator saves it.",
       "to": "clause",
       "ids": [
@@ -4356,148 +4341,148 @@
     },
     {
       "file": "CONTRACT.md",
-      "line": 1092,
+      "line": 1090,
       "text": "Status: **missing**.",
       "to": "changelog"
     },
     {
       "file": "CONTRACT.md",
-      "line": 1096,
+      "line": 1094,
       "text": "What Lamp does not do, and how a buyer gets it:",
       "to": "section",
       "section": "Boundaries"
     },
     {
       "file": "CONTRACT.md",
-      "line": 1098,
+      "line": 1096,
       "text": "| Not in Lamp | How the buyer gets it |",
       "to": "section",
       "section": "Boundaries"
     },
     {
       "file": "CONTRACT.md",
-      "line": 1100,
+      "line": 1098,
       "text": "| Running probes, synthetic checks or measuring uptime itself | [Uptime](https://github.com/just-every/run-uptime) measures, and Lamp consumes its signed evidence (COMP-008, UPTIME-007); Datadog, Pingdom, New Relic and Prometheus feed in through presets. |",
       "to": "section",
       "section": "Boundaries"
     },
     {
       "file": "CONTRACT.md",
-      "line": 1101,
+      "line": 1099,
       "text": "| Paging, on-call schedules and escalation of responders | [Oncall](https://github.com/just-every/run-oncall), PagerDuty, Jira Service Management or Opsgenie; Lamp hands them communication deadlines (INCIDENT-011), takes in their alerts and timelines, and posts each publication back (INTAKE-009, INTAKE-012, INTAKE-014). |",
       "to": "section",
       "section": "Boundaries"
     },
     {
       "file": "CONTRACT.md",
-      "line": 1102,
+      "line": 1100,
       "text": "| Being the support desk | [HappyToHelp](https://github.com/just-every/run-happytohelp), Zendesk or Intercom, with Lamp's incident context (INTEG-001). |",
       "to": "section",
       "section": "Boundaries"
     },
     {
       "file": "CONTRACT.md",
-      "line": 1103,
+      "line": 1101,
       "text": "| Visitor analytics or email open tracking | [Vane](https://github.com/just-every/run-vane) for site analytics; Lamp keeps only aggregate request counts (HIST-006) and delivery outcomes (NOTIFY-004). |",
       "to": "section",
       "section": "Boundaries"
     },
     {
       "file": "CONTRACT.md",
-      "line": 1104,
+      "line": 1102,
       "text": "| Logs, metrics storage and APM | [Porthole](https://github.com/just-every/run-porthole) or the buyer's observability tool; Lamp shows at most 10 aggregated public metrics (UPTIME-008). |",
       "to": "section",
       "section": "Boundaries"
     },
     {
       "file": "CONTRACT.md",
-      "line": 1105,
+      "line": 1103,
       "text": "| Operating SMS carriers or guaranteeing inbox or handset arrival | Twilio or Plivo, and SendGrid, Mailgun, Amazon SES, Postmark or Resend; Lamp records accepted, delivered, bounced and failed separately, and never claims a person read a message. The owner registers their own 10DLC campaign or toll-free number and pays carrier fees in USD. |",
       "to": "section",
       "section": "Boundaries"
     },
     {
       "file": "CONTRACT.md",
-      "line": 1106,
+      "line": 1104,
       "text": "| Operating DNS, or protection from an outage of every provider at once | The buyer's health-checked DNS provider (Amazon Route 53 or IBM NS1 Connect) switches the hostname to PAGE-015's secondary origin on a separate provider; Lamp supplies the health endpoint, the records and the setup check. Publishing and subscription changes wait for the primary. A buyer who needs a contractually independent standby keeps a separately operated status host. |",
       "to": "section",
       "section": "Boundaries"
     },
     {
       "file": "CONTRACT.md",
-      "line": 1107,
+      "line": 1105,
       "text": "| Compliance certification of private pages (SOC 2, HIPAA, FedRAMP) | Private pages are access control (AUD-002), not certification. Lamp signs no BAA, and protected health information does not belong in updates. |",
       "to": "section",
       "section": "Boundaries"
     },
     {
       "file": "CONTRACT.md",
-      "line": 1108,
+      "line": 1106,
       "text": "| Native App Store or Google Play apps | The installable app with push (MOBILE-002) is the mobile product. |",
       "to": "section",
       "section": "Boundaries"
     },
     {
       "file": "CONTRACT.md",
-      "line": 1109,
+      "line": 1107,
       "text": "| Publishing machine translations or agent text unreviewed | Never; agent text is always a draft (Push further). |",
       "to": "section",
       "section": "Boundaries"
     },
     {
       "file": "CONTRACT.md",
-      "line": 1110,
+      "line": 1108,
       "text": "| Paid plans, billing and sales tax | Lamp is owner-run; provider costs (Twilio, Plivo, email providers, Cloudflare) are billed to the owner directly by those providers in USD. |",
       "to": "section",
       "section": "Boundaries"
     },
     {
       "file": "CONTRACT.md",
-      "line": 1114,
+      "line": 1112,
       "text": "Judged from the code and tests at commit `9e1301e331992add4badf8b5e9ded34bc88d1f26` (26 October 2026). Rows changed after that commit name their own journeys under Evidence.",
       "to": "section",
       "section": "Status"
     },
     {
       "file": "CONTRACT.md",
-      "line": 1116,
+      "line": 1114,
       "text": "INTAKE-009 is judged done on 21 October 2026 on the 1.10.0 release candidate, which inventories its migration 0042, from its named API, browser and native archive journeys below.",
       "to": "changelog"
     },
     {
       "file": "CONTRACT.md",
-      "line": 1118,
+      "line": 1116,
       "text": "UPDATE-013 is judged done on 21 October 2026 on the 1.10.0 release candidate from its named native Worker, controlled-receiver, recorded network-edge and browser journeys below; 1.10.0 records UPDATE-001 and UPDATE-002 as changed.",
       "to": "changelog"
     },
     {
       "file": "CONTRACT.md",
-      "line": 1120,
+      "line": 1118,
       "text": "AGENT-002 is judged done on 23 October 2026 from its named native Worker and 1440/390 composer journeys at `0d6a2603125275533581db516548144f06b0b161`.",
       "to": "changelog"
     },
     {
       "file": "CONTRACT.md",
-      "line": 1122,
+      "line": 1120,
       "text": "INTAKE-011 history: before c23, the partial rationale was \u201cMetric ingestion and the public chart are not built; waiting for UPTIME-008\u201d (parent of d593176, CONTRACT.md). The displayed-template proof is now repaired as a proposal; ct acceptance remains separate. UPTIME-008 now also proposes completion from its retention boundaries and metrics:write token push; API-001 remains partial for its other acceptance points.",
       "to": "changelog"
     },
     {
       "file": "CONTRACT.md",
-      "line": 1130,
+      "line": 1128,
       "text": "Of 199 clauses, 137 are done, 28 partial and 34 missing (62 non-DONE).",
       "to": "generated",
       "note": "The contract generator writes the replacement clause counts."
     },
     {
       "file": "CONTRACT.md",
-      "line": 1132,
+      "line": 1130,
       "text": "SUB-014 completion is a proposal pending ct judgment and is uncounted in fleet acceptance totals.",
       "to": "changelog"
     },
     {
       "file": "CONTRACT.md",
-      "line": 1151,
+      "line": 1149,
       "cell": "gap",
       "text": "The configured hostname, isolated public-host routing and retained snapshots (PAGE-006) ship. Custom-hostname provisioning, the secondary origin, `/__lamp/serving`, the failover setup check and read-only standby serving do not.",
       "to": "gap",
@@ -4510,7 +4495,7 @@
     },
     {
       "file": "CONTRACT.md",
-      "line": 1152,
+      "line": 1150,
       "cell": "gap",
       "text": "Statuspage v2 responses, stable imported IDs, an unmodified Statuspage embed client, and paginated native timelines and reports ship from retained snapshots. MAINT-009 wording, Verifying and per-window automation switches remain unbuilt; maintenance responses expose existing native lifecycle notices.",
       "to": "gap",
@@ -4520,7 +4505,7 @@
     },
     {
       "file": "CONTRACT.md",
-      "line": 1153,
+      "line": 1151,
       "cell": "gap",
       "text": "Ten actual dev Atom/RSS feeds validate with zero W3C errors or warnings; global aliases and component feeds retain event identity and share their snapshot.",
       "to": "gap",
@@ -4530,7 +4515,7 @@
     },
     {
       "file": "CONTRACT.md",
-      "line": 1154,
+      "line": 1152,
       "cell": "gap",
       "text": "Judged against every PAGE-018 acceptance sentence; no gap remains for this clause.",
       "to": "gap",
@@ -4540,7 +4525,7 @@
     },
     {
       "file": "CONTRACT.md",
-      "line": 1155,
+      "line": 1153,
       "cell": "gap",
       "text": "Banner, floating notice and dot are configurable and refresh without cookies, referrers or visitor data; unlisted origins render nothing.",
       "to": "gap",
@@ -4550,7 +4535,7 @@
     },
     {
       "file": "CONTRACT.md",
-      "line": 1156,
+      "line": 1154,
       "cell": "gap",
       "text": "The VPAT records incomplete criterion evaluations, so whole-product WCAG 2.2 AA is unproved.",
       "to": "gap",
@@ -4560,7 +4545,7 @@
     },
     {
       "file": "CONTRACT.md",
-      "line": 1157,
+      "line": 1155,
       "cell": "gap",
       "text": "Generation-cached, database-free and unthrottled public reads ship (PAGE-005, PAGE-007, PAGE-008). They are measured only as a local Miniflare floor of 10 requests per second (`seed.json \u2192 limits`). There is no hosted load run and no stated hosted rate.",
       "to": "gap",
@@ -4570,7 +4555,7 @@
     },
     {
       "file": "CONTRACT.md",
-      "line": 1158,
+      "line": 1156,
       "cell": "gap",
       "text": "Name, logo, accent color, timezone, hostname, favicon and footer credit (PAGE-012) ship. Full palette, fonts, layout options and custom CSS do not.",
       "to": "gap",
@@ -4582,7 +4567,7 @@
     },
     {
       "file": "CONTRACT.md",
-      "line": 1159,
+      "line": 1157,
       "cell": "gap",
       "text": "Released `seed.json \u2192 nonGoals` excludes multi-language pages; this clause replaces that exclusion.",
       "to": "gap",
@@ -4593,7 +4578,7 @@
     },
     {
       "file": "CONTRACT.md",
-      "line": 1160,
+      "line": 1158,
       "cell": "gap",
       "text": "Not built.",
       "to": "gap",
@@ -4603,7 +4588,7 @@
     },
     {
       "file": "CONTRACT.md",
-      "line": 1168,
+      "line": 1166,
       "cell": "gap",
       "text": "Released COMP-006 names three claimants; the release that ships this clause records COMP-006 as changed.",
       "to": "gap",
@@ -4613,7 +4598,7 @@
     },
     {
       "file": "CONTRACT.md",
-      "line": 1171,
+      "line": 1169,
       "cell": "gap",
       "text": "Not built.",
       "to": "gap",
@@ -4623,7 +4608,7 @@
     },
     {
       "file": "CONTRACT.md",
-      "line": 1172,
+      "line": 1170,
       "cell": "gap",
       "text": "Not built.",
       "to": "gap",
@@ -4633,7 +4618,7 @@
     },
     {
       "file": "CONTRACT.md",
-      "line": 1173,
+      "line": 1171,
       "cell": "gap",
       "text": "Not built.",
       "to": "gap",
@@ -4643,7 +4628,7 @@
     },
     {
       "file": "CONTRACT.md",
-      "line": 1180,
+      "line": 1178,
       "cell": "gap",
       "text": "Not built.",
       "to": "gap",
@@ -4653,7 +4638,7 @@
     },
     {
       "file": "CONTRACT.md",
-      "line": 1193,
+      "line": 1191,
       "cell": "gap",
       "text": "An unresolved incident defaults to its opener as communication owner; private take-over and active-operator reassignment doors write an attributed audit entry atomically and refuse resolved incidents. Owner-only due/overdue email, one escalation per commitment at ten minutes overdue, and unowned fallback to every active operator ship; every operator has publish rights until TEAM-004. Overview and the composer show ownership privately, with takeover/reassignment and unowned journeys at 1440/390. The registered reminder journey covers owner movement, escalation, unowned fallback, audit JSON/CSV and public/email-renderer privacy. Gap: push (MOBILE-002) and Oncall's current on-call responder (INTAKE-012) remain unbuilt. The seed policy inventory registration is held by uip; the policy is replaceable through the typed extension mount without editing that held file.",
       "to": "gap",
@@ -4663,14 +4648,14 @@
     },
     {
       "file": "CONTRACT.md",
-      "line": 1195,
+      "line": 1193,
       "cell": "gap",
       "text": "Operators set or clear an attributed impact independently of claims; public snapshots, APIs and committed notifications carry it while component states and uptime remain claim-derived.",
       "to": "changelog"
     },
     {
       "file": "CONTRACT.md",
-      "line": 1205,
+      "line": 1203,
       "cell": "gap",
       "text": "Not built.",
       "to": "gap",
@@ -4680,14 +4665,14 @@
     },
     {
       "file": "CONTRACT.md",
-      "line": 1206,
+      "line": 1204,
       "cell": "gap",
       "text": "Deterministic per-field findings name six rules, respect saved owner terms and length, can be dismissed, and never block publish.",
       "to": "changelog"
     },
     {
       "file": "CONTRACT.md",
-      "line": 1207,
+      "line": 1205,
       "cell": "gap",
       "text": "Native drafts stage state changes, attachments and releases; review, scheduling and templates keep the choices. One transaction publishes claims, aggregate history, immutable timeline changes and recipients; mail and signed webhooks retain the published changes after later recovery. Gap: management-token and Statuspage write APIs, automation, chat desks, SMS and component-only/Statuspage webhook subscriptions are not built. The acceptance's two overlap cases (one Major outage \u2192 Partially unavailable entry beside a Partially unavailable claimant; none while another claimant holds Major outage) have no named journey yet; history is written from the aggregate state.",
       "to": "gap",
@@ -4699,14 +4684,14 @@
     },
     {
       "file": "CONTRACT.md",
-      "line": 1208,
+      "line": 1206,
       "cell": "gap",
       "text": "Current evidence and future obligations (21 October 2026): every presently built channel carries bare `https://` URLs as UPDATE-013 states. Each is proven on the candidate through its public door with `See https://help.example.com/kb/123.`, the same URL before `,` and inside `(\u2026)`, `http://example.com/x`, `data:text/html,x`, `javascript:alert(1)`, `<a href=\"https://x.test\">x</a>`, `https://db-prod-3.internal/x` and `https://10.0.0.5/x`. Page `GET /`, incident permalinks and history, with script on and off at 1440 and 390 pixels (native Worker and real browser): each link is `<a href=\"<url>\" rel=\"nofollow noopener ugc\">` showing its own URL, `.`, `,` and `)` stay outside it, the other schemes and the markup are escaped literal text, and PAGE-013's CSP is unchanged. Atom and RSS, including `/history.atom`, `/history.rss` and component feeds (native): well-formed, entries carry the same escaped anchors and non-HTTPS input stays literal. Notification email (the real SendGrid adapter at a recorded network edge): the HTML part links each URL directly with the URL as its text, the text part carries the bare URL, no redirect or tracking host appears, and the provider request disables click, open and analytics tracking. Operator Slack channel posts (NOTIFY-012, the real adapter at a recorded network edge): `<https://help.example.com/kb/123>` then `.`, never Slack's labelled-link form, with `javascript:` and markup Slack-escaped and literal. Operator Teams channel posts (NOTIFY-012, the real adapter at a recorded Workflows edge): Adaptive Card links whose visible text is the URL, punctuation outside them, and no link for the other schemes or the markup. Webhook subscribers (SUB-009, native controlled receiver: tests/e2e/helpers/review-update-flow.mjs:92 and :94-100, called at tests/e2e/publishing-contract.test.mjs:432 within the test at :394): a Lamp-format endpoint receives every update field byte-for-byte unchanged and its signature verifies over the exact body; a subscriber that registered a Slack incoming-webhook URL receives Slack's message form, whose signature verifies over the exact body the same way, whose text carries each bare `https://` URL as `<url>`, never Slack's labelled-link form, with markup and the other schemes Slack-escaped and literal, and whose rich-text link elements show their own URL while every field reassembles unchanged. This is native controlled-receiver evidence, not Slack acceptance. UPDATE-011's composer (native browser): `https://db-prod-3.internal/x` raises the Internal hostname finding and `https://10.0.0.5/x` the IP address finding, each dismissible, and publish succeeds. The Slack and Teams evidence is real adapters against recorded network-edge fixtures; no live Slack or Teams provider acceptance is claimed, and a single 20 October 2026 live Slack readback kept outside the source tree is not counted as provider acceptance. Unbuilt channels carry this clause in their own text: SUB-013 and NOTIFY-014 for SMS, SUB-018 for Statuspage-format webhooks, SUB-014 for Slack-app subscriptions, SUB-015 for subscriber Teams subscriptions, and MAINT-009 for maintenance wording. Their provider-sandbox acceptance stays with those clauses. Release obligations: 1.10.0, the release that ships this clause, records UPDATE-001 and UPDATE-002 as changed in RELEASE.json. Mail-provider received-message proof belongs to ACCEPTANCE.md's release gate, \"Authorized mail-provider acceptance, signed delivery events and received-message evidence for DKIM unsubscribe-header coverage and no tracking.\" 1.10.0's received-message evidence is recorded outside the source tree with its release evidence; this clause claims no mail-provider acceptance. A built channel that later renders a link wrongly returns this clause to partial.",
       "to": "changelog"
     },
     {
       "file": "CONTRACT.md",
-      "line": 1216,
+      "line": 1214,
       "cell": "gap",
       "text": "Not built.",
       "to": "gap",
@@ -4716,7 +4701,7 @@
     },
     {
       "file": "CONTRACT.md",
-      "line": 1217,
+      "line": 1215,
       "cell": "gap",
       "text": "Optional what-still-works and details wording; wording drafts and previews; calendar wording and proof of non-email wording surfaces; Updates during the window; Every door; Verifying; imported Statuspage automation and message mapping; NOTIFY-016 push remain unbuilt or unproven.",
       "to": "gap",
@@ -4731,7 +4716,7 @@
     },
     {
       "file": "CONTRACT.md",
-      "line": 1218,
+      "line": 1216,
       "cell": "gap",
       "text": "Calendar-client use and maintenance-email `.ics` attachments carved from MAINT-007; not built.",
       "to": "gap",
@@ -4741,7 +4726,7 @@
     },
     {
       "file": "CONTRACT.md",
-      "line": 1231,
+      "line": 1229,
       "cell": "gap",
       "text": "Twilio test-account receipt pending (held-key Mac run); released seed.json nonGoals SMS exclusion is removed by the release that ships the full clause; page names or support contacts whose complete carrier wording exceeds two segments are refused rather than truncated.",
       "to": "gap",
@@ -4752,7 +4737,7 @@
     },
     {
       "file": "CONTRACT.md",
-      "line": 1234,
+      "line": 1232,
       "cell": "gap",
       "text": "single-incident following waits for SUB-019; audience subscriptions wait for AUD-004. SMS component-only status notifications remain unbuilt.",
       "to": "gap",
@@ -4762,7 +4747,7 @@
     },
     {
       "file": "CONTRACT.md",
-      "line": 1236,
+      "line": 1234,
       "cell": "gap",
       "text": "New webhook subscriptions choose Lamp or Statuspage through the operator add, legacy creation and optional CSV webhook_format doors; omission defaults new subscriptions to Lamp and preserves an existing recipient choice on legacy retry. The recipient management form changes the format inside its existing token-authorized transaction. A canonical subscriber column preserves it through technical archives and page-data JSON. The public API and webhook renderer use one status, stable native/imported ID and record projection. A strict controlled receiver accepts the three incident bodies with complete one/two/three-update arrays and existing maintenance notices/windows; exact-body HMAC signatures verify, unsubscribe links work, no subscriber address is present, and the impact text See https://help.example.com/kb/123. remains plain and unchanged. Browser proof in `tests/e2e/helpers/subscriber-intake-browser-flow.mjs` and `tests/e2e/helpers/webhook-format-browser-flow.mjs` covers the private chooser and public management form at 1440 and 390. Component-change bodies and acceptance belong to NOTIFY-017; imported webhook format belongs to MOVE-010, and maintenance in-window wording/updates to MAINT-009, after the approved carves. Gap: The existing public subscribe form accepts email only, so there is no public webhook form in which to mount a format chooser. Operator creation, CSV and token-authorized management expose the choice. Default ADOPTED: PARTIAL pending ct ruling on whether these existing doors meet anyone subscribing a new endpoint; existing subscriptions retain Lamp unless explicitly changed.",
       "to": "gap",
@@ -4772,7 +4757,7 @@
     },
     {
       "file": "CONTRACT.md",
-      "line": 1237,
+      "line": 1235,
       "cell": "gap",
       "text": "Not built.",
       "to": "gap",
@@ -4783,7 +4768,7 @@
     },
     {
       "file": "CONTRACT.md",
-      "line": 1238,
+      "line": 1236,
       "cell": "gap",
       "text": "MOVE-007, MOVE-008 and MOVE-010 remain unbuilt and inherit Imports at the limit by name. SUB-019 carries incident-subscription limits and NOTIFY-016 carries the 80% and 100% capacity alerts by name (ct 24 October 2026 07:10Z).",
       "to": "gap",
@@ -4794,7 +4779,7 @@
     },
     {
       "file": "CONTRACT.md",
-      "line": 1251,
+      "line": 1249,
       "cell": "gap",
       "text": "Reported-outage switching is unbuilt. Postmark offers authenticated rather than native signed payloads, so the signed-events sentence remains unmet for it. SES rewrites the received Message-ID, so the same-Message-ID sentence remains unmet for SES failover. Ambiguous primary submissions, including SendGrid HTTP 5xx responses, deliberately stop rather than crossing providers; only explicit safe retryable rejections enable failover. These existing obligations remain partial pending ct judgment.",
       "to": "gap",
@@ -4804,7 +4789,7 @@
     },
     {
       "file": "CONTRACT.md",
-      "line": 1252,
+      "line": 1250,
       "cell": "gap",
       "text": "Twilio test-account receipt pending (held-key Mac run); Settings cost estimate, monthly spend cap, cap confirmation queue and stated acceptance time are not built; Plivo (V3 signatures) and retryable failover are not built; the throughput bound is stated, not measured (NOTIFY-018); released seed.json nonGoals SMS exclusion stays until the release that ships the full clause.",
       "to": "gap",
@@ -4815,7 +4800,7 @@
     },
     {
       "file": "CONTRACT.md",
-      "line": 1254,
+      "line": 1252,
       "cell": "gap",
       "text": "Push to installed operator devices (MOBILE-002), DEP-003 vendor alerts and HIST-006 traffic alerts remain unbuilt.",
       "to": "gap",
@@ -4825,7 +4810,7 @@
     },
     {
       "file": "CONTRACT.md",
-      "line": 1255,
+      "line": 1253,
       "cell": "gap",
       "text": "Monitor or alert-source claims under AUTO-001, automation email under INTAKE-013, vendor feeds under DEP-001 and AUTO-002\u2019s flap guard are not built. Current claimants are operator standing claims, incidents and maintenance.",
       "to": "gap",
@@ -4835,7 +4820,7 @@
     },
     {
       "file": "CONTRACT.md",
-      "line": 1256,
+      "line": 1254,
       "cell": "gap",
       "text": "NOTIFY-002's 5-minute bound ships and is tested for email at the subscriber limit. No bound is stated or tested for webhooks, Slack, Teams or SMS.",
       "to": "gap",
@@ -4845,7 +4830,7 @@
     },
     {
       "file": "CONTRACT.md",
-      "line": 1257,
+      "line": 1255,
       "cell": "gap",
       "text": "Display name and Reply-To work with SendGrid and Resend. Subject prefixes, uploaded same-host logos, plain-text headers/footers, shared preview, immutable retry envelopes and page-data export/restore ship. Managed mail supports subject/logo/wording but owns From and does not accept Reply-To; Settings and restore refuse unsupported identity settings. Audience-specific settings await AUD-001. Provider transport is proven against network-edge fixtures, not live inbox receipt.",
       "to": "gap",
@@ -4856,7 +4841,7 @@
     },
     {
       "file": "CONTRACT.md",
-      "line": 1258,
+      "line": 1256,
       "cell": "gap",
       "text": "Durable queued email delivery ships, with the 5-minute bound qualified only locally at 1,000 subscribers under a 10-per-second fake quota (`seed.json \u2192 limits`). There is no hosted run, no qualification above 1,000, no provider batch sending, and no check of the provider account's rate.",
       "to": "gap",
@@ -4868,14 +4853,14 @@
     },
     {
       "file": "CONTRACT.md",
-      "line": 1268,
+      "line": 1266,
       "cell": "gap",
       "text": "Alertmanager v4 and Grafana v1 default grouped webhooks authenticate with bearer tokens, match exact labels to multiple components and deduplicate groups and alert fingerprints into private incidents. Mixed and partial recoveries retain firing members; complete recovery closes only unpublished drafts. Unmapped alerts show their reason. Worker, archive round-trip and 1440/390 browser journeys prove the saved configuration, receipts and private draft.",
       "to": "changelog"
     },
     {
       "file": "CONTRACT.md",
-      "line": 1270,
+      "line": 1268,
       "cell": "gap",
       "text": "Not built.",
       "to": "gap",
@@ -4885,7 +4870,7 @@
     },
     {
       "file": "CONTRACT.md",
-      "line": 1271,
+      "line": 1269,
       "cell": "gap",
       "text": "Lamp has no inbound email path.",
       "to": "gap",
@@ -4897,7 +4882,7 @@
     },
     {
       "file": "CONTRACT.md",
-      "line": 1273,
+      "line": 1271,
       "cell": "gap",
       "text": "The replaceable `alert.intake.v1` policy and preset-to-component mapping ship. There are no per-component rules, automatic claims or template publication.",
       "to": "gap",
@@ -4907,7 +4892,7 @@
     },
     {
       "file": "CONTRACT.md",
-      "line": 1274,
+      "line": 1272,
       "cell": "gap",
       "text": "Not built.",
       "to": "gap",
@@ -4917,7 +4902,7 @@
     },
     {
       "file": "CONTRACT.md",
-      "line": 1275,
+      "line": 1273,
       "cell": "gap",
       "text": "The owner/operator-only Overview door and visible Follow-ups panel aggregate next-update commitments, scheduled publications, maintenance start/completion/reminder/overrun obligations, reports owed and their weekly reminders, imported invitations, unfinished notification dispatches, terminal delivery failures and Slack/Teams retries. Every entry has an owner or null, its durable due time, stop condition, failure state and operator link. Failed occurrences persist across reads until completion or a reasoned dismissal; blank reasons are refused with 400, the reason and actor are audited, and a later failure reappears. Explicit notification retry records Queue rejection as a visible failure and lets the existing consumer complete recovered delivery without reopening accepted or completed work. The extended existing public-door fixture creates all twelve kinds, checks due instants, exercises Queue/provider rejection, dismissal, recurrence and completion. Browser proof covers the panel at 1440 and 390. Gap: Vendor-feed staleness (DEP-001), secondary-origin lag (PAGE-015) and SMS held at the spend cap (NOTIFY-014) have no carrier and remain absent. Default ADOPTED: owner/operator access only; no new public exposure or automatic outbound action; this clause stays partial with its text unchanged.",
       "to": "gap",
@@ -4927,7 +4912,7 @@
     },
     {
       "file": "CONTRACT.md",
-      "line": 1284,
+      "line": 1282,
       "cell": "gap",
       "text": "Replaces released TEAM-001's \"There are no roles\" and the `seed.json \u2192 nonGoals` roles exclusion when shipped.",
       "to": "gap",
@@ -4937,7 +4922,7 @@
     },
     {
       "file": "CONTRACT.md",
-      "line": 1285,
+      "line": 1283,
       "cell": "gap",
       "text": "Not built.",
       "to": "gap",
@@ -4947,7 +4932,7 @@
     },
     {
       "file": "CONTRACT.md",
-      "line": 1286,
+      "line": 1284,
       "cell": "gap",
       "text": "Optional OIDC sign-in through Base (ACCESS-001) ships, off by default. Enforcement, break-glass and SCIM do not. When shipped, this replaces ACCESS-001's \"SCIM and role synchronization remain out of scope\".",
       "to": "gap",
@@ -4957,7 +4942,7 @@
     },
     {
       "file": "CONTRACT.md",
-      "line": 1287,
+      "line": 1285,
       "cell": "gap",
       "text": "Settings provides actor, action and UTC-date filters, pagination and matching CSV; erased actors retain only their anonymized reference. Publications, corrections, subscriber/operator erasures, component state history, maintenance notices and component/group deletions (one by one or by bulk catalog) are recorded with their actor in the same write. Every operator is an owner under TEAM-001; TEAM-004, AUTO-001 and API-001 carry role-restricted access and their role, rule and token events. Slack and Teams channel deletion records the actual removing operator, entity and time atomically with active-row removal; public-route JSON/CSV, repeat, competing-delete, restart and 1440/390 audit journeys cover it. Incident-component removal writes an attributed audit entry atomically even when a stronger standing claim leaves the aggregate state unchanged; template component replacement through save-existing and update writes one attributed entry per replacement. Repeated and competing erasures of an already-erased subscriber tombstone add no successful-deletion entry. Import undo/catch-up removals and replacements and pending/Sorry-held subscriber expiry record their operator or system actor in the same write. Public-door JSON and matching CSV assertions extend existing registered journeys: `tests/e2e/helpers/audit-log-flow.mjs`:32, `tests/auth-adoption/operator-erasure.test.mjs`:17, and `tests/auth-adoption/cutover.test.mjs`:149 and `tests/e2e/helpers/catalogue-history-flow.mjs`:165; implementations are `src/core/features/incidents/repository.ts`:116, `src/core/features/incidents/template-repository.ts`:67, `src/core/features/subscribers/repository.ts`:157 and `src/core/features/statuspage-import/targets.ts`:186. Gap: logo removal/replacement; standing-claim removal without an aggregate state change; restored subscriber expiry proof. The logo and standing-claim repositories are held by open uip template branches, so this round does not edit them; an archive-restored pending subscriber has no expiry assertion yet.",
       "to": "gap",
@@ -4967,7 +4952,7 @@
     },
     {
       "file": "CONTRACT.md",
-      "line": 1294,
+      "line": 1292,
       "cell": "gap",
       "text": "Subscribers shows current email/webhook counts by channel, state and component, deactivation reasons, matching CSV and anonymous daily pending-plus-active inventory changes from an explicit baseline. Confirmation does not double-count growth; import, channel moves, expiry, undo and erasure are observed atomically. Current technical archives preserve facts; older archives start a new restore baseline. Earlier daily history is labeled unknown. The report says audience and language breakdowns are not available; AUD-004 and I18N-001 add them.",
       "to": "gap",
@@ -4977,7 +4962,7 @@
     },
     {
       "file": "CONTRACT.md",
-      "line": 1296,
+      "line": 1294,
       "cell": "gap",
       "text": "Replaces the released `seed.json \u2192 nonGoals` exclusions of more than one page per deployment and of private or audience-scoped pages.",
       "to": "gap",
@@ -4987,7 +4972,7 @@
     },
     {
       "file": "CONTRACT.md",
-      "line": 1297,
+      "line": 1295,
       "cell": "gap",
       "text": "Not built.",
       "to": "gap",
@@ -4997,7 +4982,7 @@
     },
     {
       "file": "CONTRACT.md",
-      "line": 1298,
+      "line": 1296,
       "cell": "gap",
       "text": "Not built.",
       "to": "gap",
@@ -5007,7 +4992,7 @@
     },
     {
       "file": "CONTRACT.md",
-      "line": 1299,
+      "line": 1297,
       "cell": "gap",
       "text": "Not built.",
       "to": "gap",
@@ -5017,7 +5002,7 @@
     },
     {
       "file": "CONTRACT.md",
-      "line": 1300,
+      "line": 1298,
       "cell": "gap",
       "text": "Not built.",
       "to": "gap",
@@ -5027,7 +5012,7 @@
     },
     {
       "file": "CONTRACT.md",
-      "line": 1301,
+      "line": 1299,
       "cell": "gap",
       "text": "Read is built only for components, groups and metric definitions; the other read resources, components:write, incidents:write, maintenance:write, subscribers:write and admin scopes, OpenAPI 3.1 and a generated incident-lifecycle client remain unbuilt. Component-state token attribution, incident-publication refusal and audit-view acceptance remain unproved.",
       "to": "gap",
@@ -5037,7 +5022,7 @@
     },
     {
       "file": "CONTRACT.md",
-      "line": 1302,
+      "line": 1300,
       "cell": "gap",
       "text": "Not built.",
       "to": "gap",
@@ -5047,7 +5032,7 @@
     },
     {
       "file": "CONTRACT.md",
-      "line": 1303,
+      "line": 1301,
       "cell": "gap",
       "text": "Not built.",
       "to": "gap",
@@ -5057,7 +5042,7 @@
     },
     {
       "file": "CONTRACT.md",
-      "line": 1304,
+      "line": 1302,
       "cell": "gap",
       "text": "Not built.",
       "to": "gap",
@@ -5069,7 +5054,7 @@
     },
     {
       "file": "CONTRACT.md",
-      "line": 1305,
+      "line": 1303,
       "cell": "gap",
       "text": "Not built.",
       "to": "gap",
@@ -5079,17 +5064,7 @@
     },
     {
       "file": "CONTRACT.md",
-      "line": 1306,
-      "cell": "gap",
-      "text": "Not built.",
-      "to": "gap",
-      "ids": [
-        "INTEG-002"
-      ]
-    },
-    {
-      "file": "CONTRACT.md",
-      "line": 1307,
+      "line": 1305,
       "cell": "gap",
       "text": "Native terminal-link sign-in, signed-alert draft, attachment, autosave/reload, preview, publish, resolution, standing claim and maintenance scheduling pass at 390\u00d7844 and 1440 px, with accessibility, overflow and 44 px phone-control checks.",
       "to": "gap",
@@ -5099,7 +5074,7 @@
     },
     {
       "file": "CONTRACT.md",
-      "line": 1308,
+      "line": 1306,
       "cell": "gap",
       "text": "Not built.",
       "to": "gap",
@@ -5109,7 +5084,7 @@
     },
     {
       "file": "CONTRACT.md",
-      "line": 1318,
+      "line": 1316,
       "cell": "gap",
       "text": "Not built.",
       "to": "gap",
@@ -5119,7 +5094,7 @@
     },
     {
       "file": "CONTRACT.md",
-      "line": 1319,
+      "line": 1317,
       "cell": "gap",
       "text": "Not built.",
       "to": "gap",
@@ -5129,7 +5104,7 @@
     },
     {
       "file": "CONTRACT.md",
-      "line": 1320,
+      "line": 1318,
       "cell": "gap",
       "text": "History and Atom aliases, Statuspage /api/v2 read endpoints, RSS and the `/embed/script.js` floating notice are served after import, and Cutover lists them as served. Cutover's Operating Lamp after Statuspage guide carries the correction-update, component-state and degraded-only notes at 1440 and 390 px. Webhook bodies (SUB-018, MOVE-010) and automation addresses (INTAKE-013) are those clauses' to ship; Cutover names them unavailable until then.",
       "to": "gap",
@@ -5139,7 +5114,7 @@
     },
     {
       "file": "CONTRACT.md",
-      "line": 1321,
+      "line": 1319,
       "cell": "gap",
       "text": "Released imports carry email subscribers only (`src/core/features/statuspage-import/`).",
       "to": "gap",
@@ -5149,7 +5124,7 @@
     },
     {
       "file": "CONTRACT.md",
-      "line": 1322,
+      "line": 1320,
       "cell": "gap",
       "text": "Statuspage published reports retain original times, draft reports remain private, and templates retain metadata, component states and full oversized wording for shortening. Dry run, silent apply, repeat and conditional undo cover both. Status.io and incident.io carry the same rules as part of MOVE-007 and MOVE-008. The next release records MOVE-001, MOVE-002 and MOVE-004 as changed; 1.8.0 shipped the reader without that record.",
       "to": "gap",
@@ -5160,7 +5135,7 @@
     },
     {
       "file": "CONTRACT.md",
-      "line": 1323,
+      "line": 1321,
       "cell": "gap",
       "text": "The Better Stack, Instatus and Sorry readers refuse private, password-protected, IP-restricted and audience-scoped sources rather than publishing them. The Statuspage reader also requires page and page-access-group responses and refuses private, IP-restricted, audience-scoped or unknown visibility (MOVE-012 in `tests/auth-adoption/cutover.test.mjs`). Importing private and audience pages as private (AUD-001 to AUD-005) is not built.",
       "to": "gap",
@@ -5170,7 +5145,7 @@
     },
     {
       "file": "CONTRACT.md",
-      "line": 1324,
+      "line": 1322,
       "cell": "gap",
       "text": "Export, clean restore and equivalent re-export cover every released record (HIST-004). Built target records (Uptime and grouped intake sources and their mappings, PagerDuty sources) travel in the full-table archive, with the PagerDuty REST key written as NULL so the restored source asks to reconnect. Gap: Slack and Teams `channel_destinations.sealed_url` ciphertext travels in both archives (`scripts/export.mjs`, `scripts/installer/archive-policy.mjs`), and a restore with the same `WEBHOOK_SIGNING_SECRET` posts without reconnecting, so restored integrations are not all disabled until reconnected. Pages, audiences, roles, vendor components, metrics, translations, SMS consent and API-token metadata are not built.",
       "to": "gap",
@@ -5180,7 +5155,7 @@
     },
     {
       "file": "CONTRACT.md",
-      "line": 1325,
+      "line": 1323,
       "cell": "gap",
       "text": "Subscriber and operator erasure ship for released records. The identifiers that target clauses add are not built.",
       "to": "gap",
@@ -5190,7 +5165,7 @@
     },
     {
       "file": "CONTRACT.md",
-      "line": 1326,
+      "line": 1324,
       "cell": "gap",
       "text": "The model-free brief flags a monitor recovery with a non-resolved lifecycle and a passed commitment, and an operator can request a cited suggestion (DRAFT-001, DRAFT-004). Continuous comparison against responder, monitor and support evidence does not exist.",
       "to": "gap",
@@ -5200,7 +5175,7 @@
     },
     {
       "file": "CONTRACT.md",
-      "line": 1327,
+      "line": 1325,
       "cell": "gap",
       "text": "Model-free preparation from the existing brief is wired before due reminders: a private draft restates the last published impact and cites newer accepted evidence, or states that nothing has changed. An atomic receipt limits preparation to one per incident and committed time; existing saved drafts are never overwritten. The composer carries private Lamp attribution and complete cited evidence, and the owner reminder links to it; unowned fallback follows INCIDENT-011. Preparation changes no commitment or publication and queues no subscriber notification. The named native Worker journeys prove one cited draft and owner reminder, preserved operator drafts, unchanged original commitments after overdue, no subscriber event, no model request, byte-identical public surfaces and working private composer citations at 1440 and 390. No gap remains for this clause.",
       "to": "gap",
@@ -5210,7 +5185,7 @@
     },
     {
       "file": "CONTRACT.md",
-      "line": 1328,
+      "line": 1326,
       "cell": "gap",
       "text": "Each update carries an operator-written affected-audience statement (UPDATE-001). There are no audiences and no drafted variants.",
       "to": "gap",
@@ -5220,7 +5195,7 @@
     },
     {
       "file": "CONTRACT.md",
-      "line": 1331,
+      "line": 1329,
       "cell": "gap",
       "text": "Not built.",
       "to": "gap",
@@ -5230,7 +5205,7 @@
     },
     {
       "file": "CONTRACT.md",
-      "line": 1332,
+      "line": 1330,
       "cell": "gap",
       "text": "Not built.",
       "to": "gap",
@@ -5240,7 +5215,7 @@
     },
     {
       "file": "CONTRACT.md",
-      "line": 1333,
+      "line": 1331,
       "cell": "gap",
       "text": "Not built.",
       "to": "gap",
@@ -5250,7 +5225,7 @@
     },
     {
       "file": "CONTRACT.md",
-      "line": 1334,
+      "line": 1332,
       "cell": "gap",
       "text": "Not built.",
       "to": "gap",
@@ -7874,6 +7849,44 @@
           "to": "changelog"
         }
       ]
+    },
+    {
+      "file": "CONTRACT.md",
+      "line": 898,
+      "text": "**INTEG-002 \u2014 Updates posted to the page's social accounts.** As Statuspage posts incidents to Twitter, the owner can connect the page's own X account, and also a Bluesky or Mastodon account. X uses OAuth 2.0 with the `tweet.write` scope through the owner's X developer app, and the owner's X API tier and its cost are theirs. Bluesky uses an app password, and Mastodon an access token with `write:statuses`. Credentials are stored only encrypted, as NOTIFY-011's are. Social accounts are a channel the operator selects per update (NOTIFY-007), and they default to off for each new update unless the owner turns on \"post by default\". Each post holds the owner's prefix, the update's lifecycle and customer-impact statement, cut to the network's length at a word boundary, and the incident permalink. Every later update of the same incident replies to the previous post, so an incident is one thread. Maintenance notices post when the owner chooses. Posts are delivered at most once per update per account (NOTIFY-005), retried under NOTIFY-003 and recorded in the delivery log with the network's post ID (NOTIFY-004). A failing account never delays the page or other channels (NOTIFY-009), and its failure is an operator alert (NOTIFY-006), because posting integrations do fail. Retroactive updates and imports post nothing. Network origins are declared in `seed.json \u2192 externals` when shipped.",
+      "to": "clause",
+      "ids": [
+        "INTEG-002"
+      ],
+      "also": [
+        {
+          "to": "docs",
+          "path": "docs/contract/operations-details.md"
+        }
+      ]
+    },
+    {
+      "file": "CONTRACT.md",
+      "line": 902,
+      "text": "Status: **done** \u2014 DONE proposal pending ct judgment. Acceptance 1: `tests/e2e/channels-and-presets.test.mjs` (INTEG-002 SUB-014 NOTIFY-011 NOTIFY-012 UPDATE-013 \u2014 Private channels deliver the selected publication once with literal text and punctuated links), loading `tests/e2e/helpers/social-posts-flow.mjs` (socialPostsFlow) proves one bounded prefixed lifecycle/impact/permalink post per connected X, Bluesky and Mastodon account against recorded synthetic API fixtures. Acceptance 2: the same test and helper prove native reply fields preserve one incident thread and maintenance posts only when chosen. Acceptance 3: the same test and helper prove explicit deselection queues nothing, per-update defaults, retroactive/import silence, and publish/Queue redelivery without duplicates. Acceptance 4: the same test and helper prove one X 503 send plus five retries, a failed delivery with attempt/outcome times, one operator alert, and page/Atom/email/healthy-account isolation. Credentials are sealed, absent from account APIs and durable delivery envelopes, and no raw provider error is logged; private/internal service origins and missing write scopes are refused. `tests/e2e/helpers/social-browser-flow.mjs` (socialBrowserFlow), loaded by that registration, proves Settings connect/remove/default controls, hidden saved credentials, and composer defaults/deselection/reset; Settings and composers at 1440 and 390 have no horizontal overflow, serious/critical accessibility findings or page/hydration errors. No live provider acceptance is claimed. UIP-GATE-NEEDED. Generator absent: judged Status rows/counts and generated documents await ct/lander upkeep.",
+      "to": "changelog"
+    },
+    {
+      "file": "CONTRACT.md",
+      "line": 1304,
+      "cell": "gap",
+      "text": "DONE proposal pending ct judgment;",
+      "to": "gap",
+      "ids": [
+        "INTEG-002"
+      ]
+    },
+    {
+      "file": "CONTRACT.md",
+      "line": 1304,
+      "cell": "gap",
+      "text": "generator absent, so historical judged status/counts remain unchanged.",
+      "to": "changelog"
     }
   ]
 }

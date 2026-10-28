@@ -58,6 +58,7 @@ function IncidentVisit({ incidentId }: { incidentId: string }) {
   const impactId = useId();
   const initialPreviewTimezone = useRef(timezone);
   const { data, error, loading, refresh } = useAppData<IncidentResponse>(`/api/app/incidents/${incidentId}`);
+  const { data: socialData } = useAppData<{ postByDefault: boolean }>("/api/app/social");
   const navigate = useNavigate();
   // What the new-incident screen reports after it created this incident and published (or failed to). It belongs to
   // this visit: read once here, then dropped from the history entry, so a reload or a return never replays it.
@@ -81,6 +82,8 @@ function IncidentVisit({ incidentId }: { incidentId: string }) {
   const [preview, setPreview] = useState<RenderedIncidentUpdate | null>(data?.preview ?? null);
   const [previewError, setPreviewError] = useState<string | null>(null);
   // A refused or private-saved update arrives with the notification and timing choices the operator made.
+  const touchedSocialSelection = useRef(Boolean(arrival?.publication));
+  const socialDefaultApplied = useRef(false);
   const [channels, setChannels] = useState<Channel[]>(arrival?.publication?.channels ?? ["email"]);
   const [timing, setTiming] = useState<PublishTiming>(arrival?.publication?.timing ?? { mode: "now", at: null });
   const [publishState, setPublishState] = useState<"idle" | "publishing" | "scheduled" | "published" | "error">(arrival ? (arrival.error ? "error" : "published") : "idle");
@@ -123,7 +126,7 @@ function IncidentVisit({ incidentId }: { incidentId: string }) {
     // A scheduled draft opens as the server holds it: its time and its channels (UPDATE-006, NOTIFY-007).
     const scheduled = data.incident.draft?.scheduledPublishAt ? data.incident.draft : null;
     heldSchedule.current = Boolean(scheduled);
-    if (scheduled) { setChannels(scheduled.scheduledChannels); setTiming({ mode: "schedule", at: scheduled.scheduledPublishAt }); }
+    if (scheduled) { touchedSocialSelection.current = true; setChannels(scheduled.scheduledChannels); setTiming({ mode: "schedule", at: scheduled.scheduledPublishAt }); }
     else if (data.hasChatChannels && !arrival?.publication) setChannels(["email", "chat"]);
     version.current = `${data.incident.draft?.id ?? "-"}:${data.incident.updates.length}`;
     hydratingDraft.current = true;
@@ -134,6 +137,13 @@ function IncidentVisit({ incidentId }: { incidentId: string }) {
     setDraft(initial);
     setDraftRevision((current) => current + 1);
   }, [data, loadedIncidentId]);
+
+  // Apply the owner’s default once for this update; an explicit choice or held schedule wins.
+  useEffect(() => {
+    if (!loadedIncidentId || !socialData || socialDefaultApplied.current) return;
+    socialDefaultApplied.current = true;
+    if (!touchedSocialSelection.current && !data?.incident?.draft?.scheduledPublishAt && socialData.postByDefault) setChannels(current => current.includes("social") ? current : [...current, "social"]);
+  }, [loadedIncidentId, socialData, data?.incident?.draft?.scheduledPublishAt]);
 
   useEffect(() => {
     if (!loadedIncidentId) return;
@@ -254,7 +264,13 @@ function IncidentVisit({ incidentId }: { incidentId: string }) {
     const { lifecycle, affectedAudience, customerImpact, whatStillWorks, details, nextUpdateAt } = response.draft;
     const componentChanges = response.draft.componentChanges.map(({ componentId, state, relationship }) => ({ componentId, state, relationship }));
     applyDraft({ lifecycle, affectedAudience, customerImpact, whatStillWorks, details, nextUpdateAt, componentChanges }, response.draft.id);
-    if (response.channels !== undefined) setChannels(response.channels);
+    if (response.channels !== undefined) {
+      // Notification templates choose subscriber channels. An existing social
+      // choice stays with this update; explicitly notifying nobody clears it.
+      const selected = response.channels;
+      if (!selected.length) touchedSocialSelection.current = true;
+      setChannels(current => selected.length ? [...selected.filter(channel => channel !== "social"), ...(current.includes("social") ? ["social" as const] : [])] : []);
+    }
     return nextUpdateAt === null && lifecycle !== "Resolved" ? "Template filled the private draft. Choose the next update time before publishing." : "Template filled the private draft.";
   };
   const changeLifecycle = (lifecycle: IncidentDraftInput["lifecycle"]) => {
@@ -295,6 +311,8 @@ function IncidentVisit({ incidentId }: { incidentId: string }) {
       hydratingDraft.current = true;
       setDraft(next); setSaveState("saved"); setSaveError(null);
       setPreview(null); setPreviewError(null);
+      touchedSocialSelection.current = false;
+      setChannels(current => [...current.filter(channel => channel !== "social"), ...(socialData?.postByDefault ? ["social" as const] : [])]);
       setTiming({ mode: "now", at: null });
       setPublishState("published"); setPublishMessage(historicalPublishedAt ? "Historical update published. It did not notify subscribers." : "Update published."); refresh(); }
     catch (cause) { if (!isCurrent()) return; setPublishState("error"); setRecoveryRevision(current => current + 1); setPublishMessage(cause instanceof Error ? cause.message : "The update could not be published."); }
@@ -346,7 +364,7 @@ function IncidentVisit({ incidentId }: { incidentId: string }) {
         <MoreOptions footer={<><span className="publish-hint">{publishHint(channels, timing)}</span><Button type="button" disabled={disabled} onClick={timing.mode === "schedule" ? schedule : publish}>{publishState === "publishing" ? "Publishing…" : timing.mode === "schedule" ? "Schedule update" : timing.mode === "backdate" ? "Publish historical update" : "Publish update"}</Button></>}>
           <OptionalText label="What still works" value={draft.whatStillWorks} max={250} onChange={(value) => updateField("whatStillWorks", value)}>{findings("whatStillWorks")}</OptionalText>
           <OptionalText label="Details" value={draft.details} max={500} onChange={(value) => updateField("details", value)}>{findings("details")}</OptionalText>
-          <PublicationControls channels={channels} onChannels={setChannels} timing={timing} timezone={timezone} error={timeErrors.timing} onTiming={setTiming} onError={(message) => setTimeErrors(current => ({ ...current, timing: message }))} />
+          <PublicationControls channels={channels} onChannels={next => { touchedSocialSelection.current = true; setChannels(next); }} timing={timing} timezone={timezone} error={timeErrors.timing} onTiming={setTiming} onError={(message) => setTimeErrors(current => ({ ...current, timing: message }))} />
           <ComponentRelationships rows={relationships.rows} onChange={relationships.change} />
           <TemplateControls key={updateGeneration.current} draft={draft} components={[...incident.components.flatMap(component => component.componentId ? [{ componentId: component.componentId, state: draft.componentChanges?.find(change => change.componentId === component.componentId)?.state ?? component.state, relationship: component.relationship }] : []), ...(draft.componentChanges ?? []).filter(change => !incident.components.some(component => component.componentId === change.componentId)).map(change => ({ ...change, relationship: change.relationship ?? "Primary" as const }))]} onApply={applyTemplate} captureUpdate={captureUpdate} />
         </MoreOptions>

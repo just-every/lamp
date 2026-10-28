@@ -1,3 +1,4 @@
+import { createSocialService } from "../features/social/service";
 import { createTrafficStorage } from "../features/traffic-alerts/storage";
 import { createTrafficIncidentRepository } from "../features/traffic-alerts/repository";
 import { createTrafficAlerts } from "../features/traffic-alerts/service";
@@ -99,6 +100,12 @@ export function createAppServices(bindings: AppBindings, blobs: BlobStore, execu
     tokenSecret:bindings.SUBSCRIBER_TOKEN_SECRET,effectsPaused:bindings.EFFECTS_PAUSED === "1",unavailable:outboundUnavailable(bindings,"SMS messages"),
     pageName:configuredPageName,supportContact:configuredFromAddress,publicOrigin:()=>notificationOrigin(bindings),
   });
+  const social = createSocialService(bindings.DB, {
+    webhookSecret: bindings.WEBHOOK_SIGNING_SECRET, effectsPaused: bindings.EFFECTS_PAUSED === "1",
+    developmentReceiver: import.meta.env?.DEV ? bindings.LAMP_DEV_SOCIAL_RECEIVER : undefined,
+    publicOrigin: () => notificationOrigin(bindings), unavailable: outboundUnavailable(bindings,"Social posts"),
+    operatorAlert: input => deliveries.queueOperatorAlert(input),
+  });
   const trafficStorage = createTrafficStorage(bindings.SNAPSHOTS);
   const trafficAlerts = createTrafficAlerts(trafficStorage, createTrafficIncidentRepository(bindings.DB).unresolved, input => deliveries.queueOperatorAlert({ ...input, text: `${input.text}\n${new URL("/app", authOrigin(bindings)).href}` }));
   const allowedIncidentChannels = new Set(extensions.notificationEventsPolicy.channelsForIncidentUpdate());
@@ -110,6 +117,7 @@ export function createAppServices(bindings: AppBindings, blobs: BlobStore, execu
     forAttachedComponents: async (input) => incidentCatchupStatements(bindings.DB, input),
     forIncidentUpdate: async (input) => [
       ...responders.publicationStatements(input),
+      ...(input.channels.includes("social") ? social.publicationStatements(input) : []),
       ...(input.channels.includes("sms") ? sms.publicationStatements({eventId:input.updateId,kind:"incident-update",incidentUpdateId:input.updateId,componentIds:input.componentIds,queuedAt:input.queuedAt}) : []),
       ...notificationPublicationStatements(bindings.DB, { eventId: input.updateId, eventType: "incident-update", incidentUpdateId: input.updateId, componentIds: input.componentIds, channels: input.channels.filter((channel): channel is "email" | "webhook" => (channel === "email" || channel === "webhook") && allowedIncidentChannels.has(channel)), queuedAt: input.queuedAt }),
       ...(input.channels.includes("chat") ? channels.postStatements({ updateId: input.updateId, componentIds: input.componentIds, queuedAt: input.queuedAt }) : []),
@@ -125,6 +133,7 @@ export function createAppServices(bindings: AppBindings, blobs: BlobStore, execu
     const results = await Promise.allSettled([
       notificationOrigin(bindings).then(origin => deliveries.dispatchEvent(update.id, origin)),
       channels.dispatchPending(),
+      social.dispatchPending(),
       sms.dispatchPending(),
       responders.dispatchPublication(update.id).catch(() => { console.error("Lamp could not finish a responder note receipt."); }),
     ]);
@@ -145,6 +154,7 @@ export function createAppServices(bindings: AppBindings, blobs: BlobStore, execu
     forMaintenanceNotice: async (input) => [
       ...notificationPublicationStatements(bindings.DB, { eventId: input.eventId, eventType: "maintenance-notice", maintenanceId: input.maintenanceId, componentIds: input.componentIds, channels: ["email", "webhook"], queuedAt: input.queuedAt, recipientScope: input.recipientScope, previousEventIds: input.previousEventIds }),
       ...channels.maintenanceStatements(input),
+      ...(input.social ? social.maintenanceStatements(input) : []),
       ...sms.publicationStatements({...input,kind:"maintenance-notice"}),
     ],
   }, extensions.maintenanceRemindersPolicy,
@@ -241,7 +251,7 @@ export function createAppServices(bindings: AppBindings, blobs: BlobStore, execu
   });
 
   const chatDesk = createChatDeskService(bindings, incidents, components, async () => { const settings = await pageSettings.get(); if (!settings) throw new Error("Page settings are not configured."); return { blockedTerms: settings.wordingBlockedTerms, friendlyLength: settings.wordingFriendlyLength }; });
-  return { trafficStorage, trafficAlerts, sms, metrics, teamsSubscriptions, chatDesk, auth, operators, availabilityReports, communicationPerformance, incidentImpact, pageSettings, pageExport, components, componentCatalogue, incidents, maintenance, subscribers, deliveries, reports, intake, briefs, ai, overview, website, updateReminders, publicSnapshots, statuspageImport, channels };
+  return { social, trafficStorage, trafficAlerts, sms, metrics, teamsSubscriptions, chatDesk, auth, operators, availabilityReports, communicationPerformance, incidentImpact, pageSettings, pageExport, components, componentCatalogue, incidents, maintenance, subscribers, deliveries, reports, intake, briefs, ai, overview, website, updateReminders, publicSnapshots, statuspageImport, channels };
 }
 
 export type AppServices = ReturnType<typeof createAppServices>;

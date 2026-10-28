@@ -47,6 +47,7 @@ export async function runScheduled(bindings: AppBindings, executionContext: Exec
       notificationOrigin(bindings).then((origin) => runtime.services.deliveries.dispatchDue(origin)),
       runtime.services.publicSnapshots.retryPendingBuild(),
       runtime.services.channels.dispatchPending(),
+      runtime.services.social.dispatchPending(),
       runtime.services.sms.dispatchPending(),
       // Lamp checks its own public page, subscribe form and sender; Overview shows the result.
       runtime.services.overview.live.runChecks(),
@@ -77,6 +78,7 @@ export async function runQueue(batch: MessageBatch<unknown>, bindings: AppBindin
     }
     try {
       await runtime.services.deliveries.dispatchEvent(message.body.eventId, await notificationOrigin(bindings));
+      await runtime.services.social.dispatchPending();
       message.ack();
     } catch (cause) {
       message.retry();

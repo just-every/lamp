@@ -1,4 +1,4 @@
-Old reference: `54e0e1dcfdc225ad17e42abff04b65d7f2bfdc72`.
+Old reference: `f27975c13c0bcbac7dc20a399a3092449cfed545`.
 | Clause | Point | Outcome | Asserting test | Result |
 | --- | --- | --- | --- | --- |
 | DOCS-001 | 1 | The unauthenticated documentation index returns HTTP 200 | `tests/e2e/start-runtime.test.mjs:367` | asserted |
@@ -680,16 +680,16 @@ Old reference: `54e0e1dcfdc225ad17e42abff04b65d7f2bfdc72`.
 | UPDATE-016 | 3 | Slack places a closing parenthesis outside its link | `tests/e2e/helpers/update-link-evidence.mjs:42` | asserted |
 | UPDATE-016 | 3 | Slack places a period outside its link | `tests/e2e/helpers/update-link-evidence.mjs:41` | asserted |
 | UPDATE-016 | 3 | no labelled links | `tests/e2e/helpers/update-link-evidence.mjs:45` | asserted |
-| UPDATE-016 | 4 | Teams link labels equal their destination URL | `tests/e2e/channels-and-presets.test.mjs:145` | asserted |
-| UPDATE-016 | 4 | The fixture’s exact direct destination is present in a Teams link | `tests/e2e/channels-and-presets.test.mjs:142` | asserted |
-| UPDATE-016 | 4 | Teams leaves the comma outside its link | `tests/e2e/channels-and-presets.test.mjs:143` | asserted |
-| UPDATE-016 | 4 | Teams leaves the closing parenthesis outside its link | `tests/e2e/channels-and-presets.test.mjs:143` | asserted |
-| UPDATE-016 | 4 | Teams leaves the period outside its link | `tests/e2e/channels-and-presets.test.mjs:142` | asserted |
+| UPDATE-016 | 4 | Teams link labels equal their destination URL | `tests/e2e/channels-and-presets.test.mjs:147` | asserted |
+| UPDATE-016 | 4 | The fixture’s exact direct destination is present in a Teams link | `tests/e2e/channels-and-presets.test.mjs:144` | asserted |
+| UPDATE-016 | 4 | Teams leaves the comma outside its link | `tests/e2e/channels-and-presets.test.mjs:145` | asserted |
+| UPDATE-016 | 4 | Teams leaves the closing parenthesis outside its link | `tests/e2e/channels-and-presets.test.mjs:145` | asserted |
+| UPDATE-016 | 4 | Teams leaves the period outside its link | `tests/e2e/channels-and-presets.test.mjs:144` | asserted |
 | UPDATE-016 | 5 | Slack retains literal JavaScript-scheme text | `tests/e2e/helpers/update-link-evidence.mjs:44` | asserted |
 | UPDATE-016 | 5 | Slack retains literal HTTP-scheme text | `tests/e2e/helpers/update-link-evidence.mjs:44` | asserted |
 | UPDATE-016 | 5 | Slack retains literal data-scheme text | `tests/e2e/helpers/update-link-evidence.mjs:44` | asserted |
-| UPDATE-016 | 5 | Teams retains literal JavaScript-scheme text | `tests/e2e/channels-and-presets.test.mjs:150` | asserted |
-| UPDATE-016 | 5 | Teams retains literal data-scheme text | `tests/e2e/channels-and-presets.test.mjs:150` | asserted |
+| UPDATE-016 | 5 | Teams retains literal JavaScript-scheme text | `tests/e2e/channels-and-presets.test.mjs:152` | asserted |
+| UPDATE-016 | 5 | Teams retains literal data-scheme text | `tests/e2e/channels-and-presets.test.mjs:152` | asserted |
 | UPDATE-016 | 5 | Teams independently asserts literal HTTP-scheme text | none | none |
 | UPDATE-017 | 1 | Lamp fields byte-for-byte | none | none |
 | UPDATE-017 | 2 | Slack fields reassemble | `tests/e2e/helpers/review-update-flow.mjs:98` | asserted |
@@ -766,8 +766,8 @@ Old reference: `54e0e1dcfdc225ad17e42abff04b65d7f2bfdc72`.
 | UPDATE-013 | 3 | Markdown remains literal on every public surface | none | none |
 | UPDATE-013 | 3 | labelled-link syntax remains literal on every public surface | none | none |
 | UPDATE-016 | 5 | Slack escapes author HTML markup as literal text | `tests/e2e/helpers/update-link-evidence.mjs:43` | asserted |
-| UPDATE-016 | 5 | Slack retains author Markdown as literal text | `tests/e2e/channels-and-presets.test.mjs:136` | asserted |
-| UPDATE-016 | 5 | Teams retains literal Markdown | `tests/e2e/channels-and-presets.test.mjs:149` | asserted |
+| UPDATE-016 | 5 | Slack retains author Markdown as literal text | `tests/e2e/channels-and-presets.test.mjs:138` | asserted |
+| UPDATE-016 | 5 | Teams retains literal Markdown | `tests/e2e/channels-and-presets.test.mjs:151` | asserted |
 | UPDATE-016 | 5 | Teams independently asserts retained escaped HTML markup | none | none |
 | MAINT-007 | 4 | calendar CRLF exclusive | `tests/e2e/helpers/maintenance-calendar-flow.mjs:7` | asserted |
 | MAINT-007 | 4 | folding bound | `tests/e2e/helpers/maintenance-calendar-flow.mjs:8` | asserted |
@@ -952,7 +952,7 @@ Old reference: `54e0e1dcfdc225ad17e42abff04b65d7f2bfdc72`.
 | SUB-020 | 4 | full-channel message | `tests/e2e/helpers/subscriber-limits-flow.mjs:60` | asserted |
 | SUB-020 | 4 | full-channel page links the Atom feed | `tests/e2e/helpers/subscriber-limits-flow.mjs:61` | asserted |
 | SUB-020 | 4 | full-channel page links the RSS feed | `tests/e2e/helpers/subscriber-limits-flow.mjs:61` | asserted |
-| SUB-020 | 4 | script-free browser response equality | `tests/e2e/helpers/subscriber-limits-browser-flow.mjs:93` | asserted |
+| SUB-020 | 4 | script-free browser response equality | `tests/e2e/helpers/subscriber-limits-browser-flow.mjs:97` | asserted |
 | SUB-020 | 5 | the pending-plus-active subscription count is unchanged | `tests/e2e/helpers/subscriber-limits-flow.mjs:64` | asserted |
 | SUB-020 | 5 | no subscriber row in any other state is created | none | none |
 | SUB-020 | 5 | no mail | `tests/e2e/helpers/subscriber-limits-flow.mjs:64` | asserted |
@@ -1065,20 +1065,20 @@ Old reference: `54e0e1dcfdc225ad17e42abff04b65d7f2bfdc72`.
 | NOTIFY-009 | 2 | feed survives delivery failure | none | none |
 | NOTIFY-009 | 2 | widget survives delivery failure | none | none |
 | NOTIFY-009 | 3 | recovery preserves and delivers committed set | none | none |
-| NOTIFY-011 | 1 | the created Slack channel response reports the expected provider host | `tests/e2e/channels-and-presets.test.mjs:96` | asserted |
+| NOTIFY-011 | 1 | the created Slack channel response reports the expected provider host | `tests/e2e/channels-and-presets.test.mjs:98` | asserted |
 | NOTIFY-011 | 1 | the Slack destination and selected components are persisted | none | none |
 | NOTIFY-011 | 1 | the Teams destination is persisted with all-visible component selection | none | none |
 | NOTIFY-011 | 1 | saved component selections read back | none | none |
-| NOTIFY-011 | 2 | no URL in list | `tests/e2e/channels-and-presets.test.mjs:102` | asserted |
-| NOTIFY-011 | 2 | stored ciphertext | `tests/e2e/channels-and-presets.test.mjs:103` | asserted |
+| NOTIFY-011 | 2 | no URL in list | `tests/e2e/channels-and-presets.test.mjs:104` | asserted |
+| NOTIFY-011 | 2 | stored ciphertext | `tests/e2e/channels-and-presets.test.mjs:105` | asserted |
 | NOTIFY-011 | 2 | no saved URL on other API responses | none | none |
-| NOTIFY-011 | 3 | nonprovider host refused | `tests/e2e/channels-and-presets.test.mjs:99` | asserted |
-| NOTIFY-012 | 1 | one Slack send | `tests/e2e/channels-and-presets.test.mjs:125` | asserted |
-| NOTIFY-012 | 1 | one Teams send | `tests/e2e/channels-and-presets.test.mjs:126` | asserted |
-| NOTIFY-012 | 1 | unrelated channel silent | `tests/e2e/channels-and-presets.test.mjs:127` | asserted |
+| NOTIFY-011 | 3 | nonprovider host refused | `tests/e2e/channels-and-presets.test.mjs:101` | asserted |
+| NOTIFY-012 | 1 | one Slack send | `tests/e2e/channels-and-presets.test.mjs:127` | asserted |
+| NOTIFY-012 | 1 | one Teams send | `tests/e2e/channels-and-presets.test.mjs:128` | asserted |
+| NOTIFY-012 | 1 | unrelated channel silent | `tests/e2e/channels-and-presets.test.mjs:129` | asserted |
 | NOTIFY-012 | 1 | atomic update/post commit | none | none |
-| NOTIFY-012 | 2 | repeated scheduled pass keeps Slack once | `tests/e2e/channels-and-presets.test.mjs:125` | asserted |
-| NOTIFY-012 | 2 | repeated scheduled pass keeps Teams once | `tests/e2e/channels-and-presets.test.mjs:126` | asserted |
+| NOTIFY-012 | 2 | repeated scheduled pass keeps Slack once | `tests/e2e/channels-and-presets.test.mjs:127` | asserted |
+| NOTIFY-012 | 2 | repeated scheduled pass keeps Teams once | `tests/e2e/channels-and-presets.test.mjs:128` | asserted |
 | NOTIFY-012 | 2 | publication retry duplicate absence | none | none |
 | NOTIFY-012 | 3 | retroactive publication silence | none | none |
 | NOTIFY-015 | 1 | email committed10 | `tests/e2e/helpers/communication-performance-flow.mjs:109` | asserted |
@@ -1123,23 +1123,23 @@ Old reference: `54e0e1dcfdc225ad17e42abff04b65d7f2bfdc72`.
 | INTAKE-005 | 1 | Configured generic recovered state is read back | none | none |
 | INTAKE-005 | 2 | Missing key returns 400 | `tests/e2e/publishing-contract.test.mjs:853` | asserted |
 | INTAKE-005 | 2 | Visible rejected mapping reason | `tests/e2e/helpers/webhook-source-browser-flow.mjs:119` | asserted |
-| INTAKE-006 | 1 | Datadog component mapping | `tests/e2e/channels-and-presets.test.mjs:218` | asserted |
-| INTAKE-006 | 1 | UptimeRobot component mapping | `tests/e2e/channels-and-presets.test.mjs:218` | asserted |
-| INTAKE-006 | 1 | Better Stack component mapping | `tests/e2e/channels-and-presets.test.mjs:218` | asserted |
-| INTAKE-006 | 1 | Pingdom component mapping | `tests/e2e/channels-and-presets.test.mjs:218` | asserted |
-| INTAKE-006 | 2 | Token shown once | `tests/e2e/channels-and-presets.test.mjs:207` | asserted |
-| INTAKE-006 | 3 | Missing token 401 | `tests/e2e/channels-and-presets.test.mjs:209` | asserted |
-| INTAKE-006 | 3 | Wrong token 401 | `tests/e2e/channels-and-presets.test.mjs:210` | asserted |
+| INTAKE-006 | 1 | Datadog component mapping | `tests/e2e/channels-and-presets.test.mjs:221` | asserted |
+| INTAKE-006 | 1 | UptimeRobot component mapping | `tests/e2e/channels-and-presets.test.mjs:221` | asserted |
+| INTAKE-006 | 1 | Better Stack component mapping | `tests/e2e/channels-and-presets.test.mjs:221` | asserted |
+| INTAKE-006 | 1 | Pingdom component mapping | `tests/e2e/channels-and-presets.test.mjs:221` | asserted |
+| INTAKE-006 | 2 | Token shown once | `tests/e2e/channels-and-presets.test.mjs:210` | asserted |
+| INTAKE-006 | 3 | Missing token 401 | `tests/e2e/channels-and-presets.test.mjs:212` | asserted |
+| INTAKE-006 | 3 | Wrong token 401 | `tests/e2e/channels-and-presets.test.mjs:213` | asserted |
 | INTAKE-006 | 3 | Refusals record nothing | none | none |
-| INTAKE-006 | 4 | Other-provider payload 400 | `tests/e2e/channels-and-presets.test.mjs:212` | asserted |
-| INTAKE-006 | 4 | Invalid receipt visible | `tests/e2e/channels-and-presets.test.mjs:222` | asserted |
-| INTAKE-006 | 5 | Zero updates | `tests/e2e/channels-and-presets.test.mjs:217` | asserted |
-| INTAKE-006 | 5 | Public status excludes drafts | `tests/e2e/channels-and-presets.test.mjs:224` | asserted |
+| INTAKE-006 | 4 | Other-provider payload 400 | `tests/e2e/channels-and-presets.test.mjs:215` | asserted |
+| INTAKE-006 | 4 | Invalid receipt visible | `tests/e2e/channels-and-presets.test.mjs:225` | asserted |
+| INTAKE-006 | 5 | Zero updates | `tests/e2e/channels-and-presets.test.mjs:220` | asserted |
+| INTAKE-006 | 5 | Public status excludes drafts | `tests/e2e/channels-and-presets.test.mjs:227` | asserted |
 | INTAKE-006 | 5 | Every other public surface unchanged | none | none |
-| INTAKE-007 | 1 | Private draft resolves | `tests/e2e/channels-and-presets.test.mjs:233` | asserted |
-| INTAKE-007 | 1 | Zero updates | `tests/e2e/channels-and-presets.test.mjs:234` | asserted |
+| INTAKE-007 | 1 | Private draft resolves | `tests/e2e/channels-and-presets.test.mjs:236` | asserted |
+| INTAKE-007 | 1 | Zero updates | `tests/e2e/channels-and-presets.test.mjs:237` | asserted |
 | INTAKE-007 | 1 | No public trace | none | none |
-| INTAKE-007 | 2 | Published lifecycle unchanged | `tests/e2e/channels-and-presets.test.mjs:244` | asserted |
+| INTAKE-007 | 2 | Published lifecycle unchanged | `tests/e2e/channels-and-presets.test.mjs:247` | asserted |
 | INTAKE-007 | 2 | Recovery record read back | none | none |
 | INTAKE-008 | 1 | Pairing asks for no secret | `tests/e2e/helpers/uptime-pairing-flow.mjs:52` | asserted |
 | INTAKE-008 | 1 | Signing-secret source retained | `tests/e2e/helpers/uptime-preset-flow.mjs:26` | asserted |

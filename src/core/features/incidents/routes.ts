@@ -12,8 +12,8 @@ import { RecoveryCheckError } from "../brief/recovery-check";
 import { draftFromIncident } from "./draft";
 
 const incidentQuerySchema = z.object({ lifecycle: z.enum(INCIDENT_LIFECYCLES).optional() }).strict();
-const publishSchema = z.object({ channels: z.array(z.enum(["email", "webhook", "chat", "sms"])).max(4).transform((channels) => [...new Set(channels)]), publishedAt: z.iso.datetime().optional(), componentStates: z.record(ulidSchema, z.enum(INCIDENT_CLAIM_STATES)).optional(), overrideReason: z.string().trim().max(1_000).optional() }).strict();
-const scheduleSchema = z.object({ publishAt: z.iso.datetime(), channels: z.array(z.enum(["email", "webhook", "chat", "sms"])).max(4).transform((channels) => [...new Set(channels)]) }).strict();
+const publishSchema = z.object({ channels: z.array(z.enum(["email", "webhook", "chat", "sms", "social"])).max(5).transform((channels) => [...new Set(channels)]), publishedAt: z.iso.datetime().optional(), componentStates: z.record(ulidSchema, z.enum(INCIDENT_CLAIM_STATES)).optional(), overrideReason: z.string().trim().max(1_000).optional() }).strict();
+const scheduleSchema = z.object({ publishAt: z.iso.datetime(), channels: z.array(z.enum(["email", "webhook", "chat", "sms", "social"])).max(5).transform((channels) => [...new Set(channels)]) }).strict();
 const deleteSchema = z.object({ reason: z.string().trim().min(1).max(1_000) }).strict();
 const attachedComponentSchema = z.object({ componentId: ulidSchema, state: z.enum(COMPONENT_STATES), relationship: z.enum(["Primary", "Dependent"]).default("Primary") }).strict();
 const componentChangeSchema = z.discriminatedUnion("action", [

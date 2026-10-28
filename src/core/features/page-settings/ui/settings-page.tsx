@@ -10,6 +10,7 @@ import { useLeaveGuard } from "../../../app/client/ui/leave-guard";
 import { LoadingState } from "../../../app/client/ui/states";
 import { ErrorState } from "../../../app/client/ui/lit-states";
 import { ChatLinksPanel } from "../../chat-desk/ui/chat-links-panel";
+import { SocialSettings } from "../../social/ui/social-settings";
 import { ChannelsCard } from "../../channels/ui/channels-card";
 import { OperatorsPanel } from "../../operators/ui/operators-panel";
 import { ImportDoorSetting } from "./import-door-setting";
@@ -71,7 +72,7 @@ export function SettingsPage() {
       <div hidden={tab !== "writing"}><div className="settings-form page-stack"><WritingSettingsTab settings={settings} aiStatus={aiStatus} update={update} /></div></div>
       {tab === "embeds" && <PublicResources publicOrigin={publicOrigin} allowedOrigins={settings.widgetAllowedOrigins} onOriginsChange={value => update("widgetAllowedOrigins", value)} appearance={settings.widgetAppearance} onAppearanceChange={(value, immediate) => update("widgetAppearance", value, immediate)} needsConfirm={autosave.pending("widgetAllowedOrigins")} onConfirm={() => autosave.confirm("widgetAllowedOrigins")} />}
       {tab === "page" && brandStatus && <p className="save-message" role="status">{brandStatus}</p>}
-      {tab === "channels" && <><ChannelsCard /><ChatLinksPanel /></>}
+      {tab === "channels" && <><ChannelsCard /><SocialSettings /><ChatLinksPanel /></>}
       {tab === "operators" && <OperatorsPanel />}
       {tab === "data" && <>
         <section className="data-card intake-link-card"><p className="card-kicker">Moving here</p><h2>Move in</h2><p>Bring components, incident history, maintenance and subscribers, with a dry run first and undo after.</p><ImportDoorSetting /><Link className="text-link" to="/app/move-in">Start a move-in <Icon name="arrow" width={16} height={16} /></Link><a className="text-link" href="/app/cutover">Cutover preview</a></section>

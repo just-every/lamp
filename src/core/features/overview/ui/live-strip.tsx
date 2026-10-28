@@ -1,11 +1,12 @@
 import { Link } from "@tanstack/react-router";
 
 import type { LiveStatus } from "../live-status";
-import { relativeTime } from "../../../app/client/ui/relative-time";
+import { useRelativeTime } from "../../../app/client/ui/relative-time";
 
 /** Setup, reduced to one line: the page is live, published and checked. A failing check turns it amber with
  * its reason and the one thing to do; nothing here asks the owner to run a check. */
 export function LiveStrip({ live }: { live: LiveStatus }) {
+  const relativeTime = useRelativeTime();
   const host = new URL(live.publicOrigin).host;
   const address = <a className="live-address" href={`${live.publicOrigin}/`} target="_blank" rel="noopener">{host}</a>;
   // A page that does not answer fails both checks for the same reason; say it once.

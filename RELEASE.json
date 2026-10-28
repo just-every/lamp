@@ -931,7 +931,12 @@
       "now": "Run node src/base/contract-docs.mjs write, node src/base/contract-docs.mjs check, then node scripts/edition-authoring/cli.mjs lock after a contract edit."
     }
   ],
-  "migrations": [],
+  "migrations": [
+    {
+      "id": "0066_social_accounts.sql",
+      "buyerSteps": "Apply after 0065. Adds sealed owner social accounts, a default-off social posting preference and atomic per-update/account post records with provider receipts. Existing updates, channels and migrations are unchanged. Connect each optional account in Settings; explicitly choose Social accounts per update, or enable post by default. X requires the owner's OAuth 2.0 user token with tweet.write; Bluesky an app password; Mastodon write:statuses. No provider account or key is needed unless the owner enables posting."
+    }
+  ],
   "breaking": false,
-  "agentUpdateInstructions": "This contract documentation edition reorganizes the existing obligations, records conservative evidence statuses and adds the planned Agent surface. It makes no product acceptance or proof promotion. Preserve every published release record and immutable contract snapshot, the final contract ID and coverage maps, owner requirements, existing migrations, source customizations and data. No new database migration or setup gate is introduced. Regenerate contract documents, check the generated files, record the source lock last, then run the existing verifier and release validator before adopting."
+  "agentUpdateInstructions": "This contract documentation edition reorganizes the existing obligations, records conservative evidence statuses and adds the planned Agent surface. It makes no product acceptance or proof promotion. Preserve every published release record and immutable contract snapshot, the final contract ID and coverage maps, owner requirements, existing migrations, source customizations and data. This cleanup authors no database migration or setup gate. Apply the incoming-main migrations newly introduced since the immutable retained predecessor using their unchanged buyer steps in this release. Regenerate contract documents, check the generated files, record the source lock last, then run the existing verifier and release validator before adopting."
 }

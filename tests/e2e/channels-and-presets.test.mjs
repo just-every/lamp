@@ -1,3 +1,5 @@
+import { socialBrowserFlow } from "./helpers/social-browser-flow.mjs";
+import { socialPostsFlow } from "./helpers/social-posts-flow.mjs";
 import { metricsFlow } from "./helpers/metrics-flow.mjs";
 import { metricsBrowserFlow } from "./helpers/metrics-browser-flow.mjs";
 import { operationsAlertsBrowserFlow } from "./helpers/operations-alerts-browser-flow.mjs";
@@ -86,7 +88,7 @@ after(async () => {
   await new Promise((resolve) => receiver?.close(resolve));
 });
 
-test("SUB-014 NOTIFY-011 NOTIFY-012 UPDATE-013 — Private channels deliver the selected publication once with literal text and punctuated links", async t => {
+test("INTEG-002 SUB-014 NOTIFY-011 NOTIFY-012 UPDATE-013 — Private channels deliver the selected publication once with literal text and punctuated links", async t => {
   t.diagnostic("NOTIFY-011 — a Slack or Teams webhook URL is stored encrypted and never shown again");
   await (async () => {
   const api_ = await component("Payments API");
@@ -175,8 +177,9 @@ test("SUB-014 NOTIFY-011 NOTIFY-012 UPDATE-013 — Private channels deliver the 
   assert.equal(sql("SELECT count(*) AS n FROM integration_deliveries")[0].n, 2, "test posts stay outside the durable publication log");
 })(t);
   await channelDeletionFlow({ api, post, origin, nativeRequest, runtime });
+  await socialBrowserFlow({ origin, devLink: async () => `${origin}/__dev/key#${new URLSearchParams({ 'rer-dev': devKey, as: 'owner' })}`, diagnostic: text => t.diagnostic(text) });
   await runtime.stop();
-  try { await selfServeChatFlow(t); } finally { await runtime.start(); }
+  try { await selfServeChatFlow(t); await socialPostsFlow(t); } finally { await runtime.start(); }
 });
 
 

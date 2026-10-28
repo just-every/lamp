@@ -4,13 +4,14 @@ import { join } from "node:path";
 import { validate } from "../schema/json-schema.mjs";
 import { clauseIdSource, parseContract } from "../src/base/seed-contract.mjs";
 
-// Early retained releases predate the target/status document. Supply only the
-// structural envelope they lack, then use the same parser as current contracts.
-// The source snapshot remains unchanged and no historical status is inferred.
+// Legacy releases publish their bold-bullet guarantees, even where a later
+// judged Status row has not adopted their release membership. Supply a structural
+// envelope to the shared parser without changing snapshots or inferring status.
+// Standard-format contracts use the parser's authoritative published kind.
 const legacyClause = new RegExp(`^-\\s+\\*\\*(${clauseIdSource})\\s+[—–-]\\s+(.+?)\\*\\*`, "gm");
 
 function releaseContract(contract) {
-  if (/^## Published clauses\s*$/m.test(contract) || /^## Product target\s*$/m.test(contract)) return parseContract(contract);
+  if (/^## Published clauses\s*$/m.test(contract)) return parseContract(contract);
   const definitions = [...contract.matchAll(legacyClause)];
   assert.ok(definitions.length, "CONTRACT.md must contain guarantees in the documented clause format.");
   assert.equal(definitions.length, [...contract.matchAll(/^- \*\*/gm)].length, "Malformed contract clause heading.");
@@ -234,7 +235,9 @@ const migrationByClause = {
     "0004_publishing_contract.sql"
   ],
   "INTEG-001": [],
-  "INTEG-002": [],
+  "INTEG-002": [
+    "0066_social_accounts.sql"
+  ],
   "MAINT-001": [
     "0004_publishing_contract.sql",
     "0013_reference_allocations.sql",
