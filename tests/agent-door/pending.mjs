@@ -17,5 +17,7 @@ export const pendingAssertions = Object.freeze({
   queuedLifecycle: 'PENDING BASE 2026-10-28 cli/hosted-output.mjs:72: real queue consumer and failed occurrence lifecycle in generic hosted runner',
   heldReplay: 'PENDING BASE 2026-10-28 modules/agent-door/pipeline.ts:104: approved retries must retain completed admission when the native effect changes classification or revision',
   archiveRefresh: 'PENDING BASE 2026-10-28 edition-authoring/workflow-copies.mjs:51: archive refresh requests unavailable Git history; record-base --base-archive records the exact released source without a Base checkout',
+  mutationInjection: 'PENDING BASE 2026-10-28 modules/agent-door/conformance/journey.mjs:91: mutation injection runs after the original effect with a fresh key, so current native state may legitimately change classes or make the consumed revision stale',
+  protectedReadFacts: 'PENDING BASE 2026-10-28 modules/agent-door/conformance/journey.mjs:9: shared static expectations must account for the extra native note created by the autonomous injection phase; the sensitive count remains server-computed',
   clauses: 'ALIGNED 2026-10-28 fresh main agent clauses and event references; latest clause judgments retained without promotion',
 });

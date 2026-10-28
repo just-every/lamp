@@ -76,7 +76,10 @@ export function createAccessTools(services: AppServices, bindings: AppBindings):
         const record = await target(String(args.id), ctx);
         if (record?.kind !== 'chat-link') throw new ToolRefusal('record_not_found');
         if (!await services.chatDesk.links.remove(record.id, ctx.person.id)) throw new ToolRefusal('revision_conflict');
-        return changed(ctx, 'access.changed', `lamp://access/${record.id}`, {id: record.id, revoked: true});
+        // Native unlink removes this record. Link the surviving sponsor access
+        // projection; the narrowing witness still reads the removed link's grants.
+        ctx.emit('access.changed', `lamp://access/${record.id}`);
+        return {result: {id: record.id, revoked: true}, resources: [{uri: `lamp://access/${ctx.person.id}`, name: 'Current sponsoring operator access'}]};
       },
     },
     {
