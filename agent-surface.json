@@ -1999,7 +1999,7 @@
           "pointer": "/version"
         },
         "draft": {
-          "lifecycle": "Investigating",
+          "lifecycle": "Resolved",
           "affectedAudience": "Customers using the API",
           "customerImpact": "Some API requests fail.",
           "whatStillWorks": "Dashboard access remains available.",
@@ -2054,7 +2054,8 @@
           "$from": "correction-save",
           "pointer": "/version"
         },
-        "channels": []
+        "channels": [],
+        "overrideReason": "The incident commander independently verified the correction and recovery; this explicit override applies only to this saved publication."
       },
       "expect": [
         {
