@@ -1,4 +1,3 @@
-import { REPORTING_DAYS } from "../format";
 import { textWidth } from "./text-width";
 
 /** The Uptime-history-led heatmap's date axis: a date every week back from today, each starting at its own day's
@@ -34,13 +33,13 @@ function labels(days: string[]): Label[] {
 
 /** The narrowest track, in whole pixels, on which these dates stay GAP apart. On a track m pixels wide a date starts
  *  index · m / 90 from the left; today's ends (index + 1) · m / 90 from it. */
-function narrowest(kept: Label[]) {
+function narrowest(kept: Label[], dayCount: number) {
   let width = kept.at(-1)!.width;
   for (let at = 0; at + 1 < kept.length; at += 1) {
     const left = kept[at]!, right = kept[at + 1]!, today = right.week === 0;
     const columns = right.index + (today ? 1 : 0) - left.index;
     const ink = left.width + (today ? right.width : 0) + GAP;
-    width = Math.max(width, (ink * REPORTING_DAYS) / columns);
+    width = Math.max(width, (ink * dayCount) / columns);
   }
   return Math.ceil(width);
 }
@@ -52,7 +51,7 @@ export function axisStyles(days: string[]) {
   const rules: string[] = [];
   let below = Infinity;
   CHOICES.forEach((choice, rank) => {
-    const from = rank === CHOICES.length - 1 ? 0 : narrowest(all.filter((label) => choice.keeps(label.week)));
+    const from = rank === CHOICES.length - 1 ? 0 : narrowest(all.filter((label) => choice.keeps(label.week)), days.length);
     if (from >= below) return;
     if (choice.hides) rules.push(`@container ${from ? `(${from}px <= width < ${below}px)` : `(width < ${below}px)`}{.hm-axis span${choice.hides}{display:none}}`);
     below = from;

@@ -2,6 +2,7 @@ import { eq } from "drizzle-orm";
 
 import { createDatabase } from "../../platform/db/client";
 import { pageSettings } from "../../shared/schema";
+import type { ThemeAsset } from "../../shared/page-theme";
 
 export type StoredPageSettings = typeof pageSettings.$inferSelect;
 
@@ -10,8 +11,9 @@ export interface PageSettingsRepository {
   /** The regions written on components the public page shows, each as stored. */
   visibleRegions(): Promise<string[]>;
   insertIfMissing(settings: typeof pageSettings.$inferInsert): Promise<void>;
-  update(settings: Pick<StoredPageSettings, "pageName" | "tagline" | "accentColor" | "timezone" | "hostname" | "footerCreditEnabled" | "template" | "widgetAllowedOrigins" | "widgetAppearance" | "mailFromAddress" | "emailBranding" | "aiToneInstructions" | "wordingBlockedTerms" | "wordingFriendlyLength" | "updatedAt">): Promise<void>;
+  update(settings: Pick<StoredPageSettings, "pageName" | "tagline" | "accentColor" | "timezone" | "hostname" | "footerCreditEnabled" | "template" | "widgetAllowedOrigins" | "widgetAppearance" | "mailFromAddress" | "emailBranding" | "theme" | "aiToneInstructions" | "wordingBlockedTerms" | "wordingFriendlyLength" | "updatedAt">): Promise<void>;
   updateLogo(input: Pick<StoredPageSettings, "logoKey" | "logoContentType" | "updatedAt">): Promise<void>;
+  addThemeAsset(asset: ThemeAsset, updatedAt: string): Promise<void>;
 }
 
 export function createPageSettingsRepository(binding: D1Database): PageSettingsRepository {
@@ -45,6 +47,9 @@ export function createPageSettingsRepository(binding: D1Database): PageSettingsR
     },
     async updateLogo(input) {
       await database.update(pageSettings).set(input).where(eq(pageSettings.id, "default"));
+    },
+    async addThemeAsset(asset, updatedAt) {
+      await binding.prepare("UPDATE page_settings SET theme_assets = json_insert(theme_assets, '$[#]', json(?)), updated_at = ? WHERE id = 'default'").bind(JSON.stringify(asset), updatedAt).run();
     },
   };
 }

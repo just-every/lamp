@@ -13,6 +13,7 @@ import { waitForWorker } from "./worker-startup.mjs";
 import { stopOwnedGroup } from "./owned-process-group.mjs";
 import { fixtureFetch as fetch } from "../public-snapshots/fixture-fetch.mjs";
 import { sessionCookieName } from "../helpers/session-cookie.mjs";
+import { themeFixture } from "./helpers/theme-fixture.mjs";
 
 const logo = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Y9Jm4kAAAAASUVORK5CYII=", "base64");
 
@@ -97,7 +98,14 @@ test("Page data restores verified consent and holds unverified addresses until c
     const input = Object.fromEntries(["pageName","tagline","accentColor","timezone","hostname","footerCreditEnabled","mailFromAddress"].map(key => [key, settings[key]]));
     const emailBranding = { displayName: "Atlas service updates", replyTo: "help@atlascloud.example", subjectPrefix: "[Atlas]", header: "Service updates", footer: "Atlas Cloud, 100 Market Street", usePageLogo: true };
     const widgetAppearance = { variant: "floating", position: "top-left", background: "#eff4ee", color: "#183c28", hideOperational: true };
-    assert.equal((await source.request("/api/app/page-settings", { ...json({ ...input, emailBranding, widgetAppearance }), method: "PUT" })).status, 200);
+    const themeAssetForm = new FormData();
+    themeAssetForm.set("kind", "image");
+    themeAssetForm.set("asset", new Blob([logo], { type: "image/png" }), "theme-header.png");
+    const themeAssetUpload = await source.request("/api/app/page-settings/theme-assets", { method: "POST", body: themeAssetForm, headers: { Accept: "application/json" } });
+    assert.equal(themeAssetUpload.status, 200, await themeAssetUpload.clone().text());
+    const themeAsset = (await themeAssetUpload.json()).asset.path;
+    const theme = themeFixture({ headerImage: themeAsset, headerHtml: `<p class="portable-theme">Portable theme <img src="${themeAsset}" alt="Portable header"></p>`, footerLinks: [{ label: "Service history", href: "/history" }] });
+    assert.equal((await source.request("/api/app/page-settings", { ...json({ ...input, emailBranding, widgetAppearance, theme }), method: "PUT" })).status, 200);
     // Older callers omit tag choices; their next settings write must retain them.
     assert.equal((await source.request("/api/app/page-settings", { ...json(input), method: "PUT" })).status, 200);
     const download = await source.request("/api/app/page-data");
@@ -107,6 +115,8 @@ test("Page data restores verified consent and holds unverified addresses until c
     assert.equal(exported.format, "lamp-page-data");
     assert.deepEqual(exported.page.emailBranding, emailBranding);
     assert.deepEqual(exported.page.widgetAppearance, widgetAppearance);
+    assert.deepEqual(exported.page.theme, theme);
+    assert.deepEqual(exported.page.themeAssets, [{ path: themeAsset, kind: "image", contentType: "image/png", base64: logo.toString("base64") }]);
     assert.equal(exported.page.logo.base64, logo.toString("base64"));
     assert.deepEqual(exported.people.map((person) => person.email), ["former@example.test", "operator@example.test"]);
     const subscribers = Object.fromEntries(exported.records.subscribers.map((row) => [row.destination, row]));
@@ -134,6 +144,22 @@ test("Page data restores verified consent and holds unverified addresses until c
   try {
     const foreign = await (await destination.request("/api/app/page-data/check", json({ page: {} }))).json();
     assert.match(foreign.check.problems[0], /not a Lamp page data file/);
+    const beforeInvalidArchives = await (await destination.request("/api/app/page-settings")).json();
+    const invalidTheme = structuredClone(exported);
+    delete invalidTheme.integrity;
+    invalidTheme.page.theme.css = '@import "https://outside.example/theme.css";';
+    const invalidThemeCheck = await (await destination.request("/api/app/page-data/check", json(invalidTheme))).json();
+    assert.equal(invalidThemeCheck.check.ok, false, "an archive cannot bypass theme CSS validation");
+    assert.match(invalidThemeCheck.check.problems.join(" "), /@import/i);
+    assert.equal((await destination.request("/api/app/page-data/restore", json(invalidTheme))).status, 409);
+    const invalidAsset = structuredClone(exported);
+    delete invalidAsset.integrity;
+    invalidAsset.page.themeAssets[0].base64 = Buffer.from("not an image").toString("base64");
+    const invalidAssetCheck = await (await destination.request("/api/app/page-data/check", json(invalidAsset))).json();
+    assert.equal(invalidAssetCheck.check.ok, false, "an archive cannot bypass theme image byte validation");
+    assert.equal((await destination.request("/api/app/page-data/restore", json(invalidAsset))).status, 409);
+    assert.deepEqual(await destination.subscribers(), [], "refused theme archives write no imported records");
+    assert.deepEqual(await (await destination.request("/api/app/page-settings")).json(), beforeInvalidArchives, "refused theme archives do not change Settings");
     const checked = await (await destination.request("/api/app/page-data/check", json(exported))).json();
     assert.equal(checked.check.ok, true, checked.check.problems.join(" "));
     assert.equal(checked.check.counts.subscribers, 4);
@@ -146,6 +172,10 @@ test("Page data restores verified consent and holds unverified addresses until c
 
     const publicPage = await (await fetch(`${destination.page}/`)).text();
     assert.match(publicPage, /Elevated API error rates/);
+    assert.match(publicPage, /Portable theme/);
+    const restoredThemeAsset = await fetch(`${destination.page}${exported.page.theme.headerImage}`);
+    assert.equal(restoredThemeAsset.status, 200);
+    assert.deepEqual(Buffer.from(await restoredThemeAsset.arrayBuffer()), logo, "page data restores uploaded theme bytes at the page's own origin");
     const repeat = await destination.request("/api/app/page-data/restore", json(exported));
     assert.equal(repeat.status, 409, "a second restore must not duplicate the page");
   } finally {

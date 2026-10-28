@@ -1,3 +1,4 @@
+import type { PageTheme } from "../../shared/page-theme";
 import type { ComponentState } from "../../shared/domain";
 
 import { escapeXml } from "./format";
@@ -6,6 +7,7 @@ export interface BrandSnapshot {
   settings: { logoKey: string | null; pageName: string };
   overall: ComponentState;
   logoDataUrl: string | null;
+  theme?: PageTheme | null;
 }
 
 // The public page's state colours (styles/foundation.css), so the favicon dot matches the page's chips.
@@ -31,6 +33,6 @@ export function renderBrandSvg(model: BrandSnapshot, kind: "favicon" | "og" | "m
   const radius = kind === "favicon" ? 23 : 62;
   const cx = kind === "favicon" ? 101 : 1090;
   const cy = kind === "favicon" ? 27 : 110;
-  const status = kind === "mark" ? "" : `<circle cx="${cx}" cy="${cy}" r="${radius}" fill="${stateColor(overall)}" stroke="white" stroke-width="${kind === "favicon" ? 7 : 14}"/>`;
+  const status = kind === "mark" ? "" : `<circle cx="${cx}" cy="${cy}" r="${radius}" fill="${model.theme?.palette.states[overall] ?? stateColor(overall)}" stroke="white" stroke-width="${kind === "favicon" ? 7 : 14}"/>`;
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" role="img" aria-label="${escapeXml(kind === "mark" ? settings.pageName : `${settings.pageName}: ${overall}`)}">${mark}${status}${label}</svg>`;
 }

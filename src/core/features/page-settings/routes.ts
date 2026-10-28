@@ -3,6 +3,7 @@ import type { Hono } from "hono";
 import type { AppEnv } from "../../app/types";
 import { pageSettingsSchema } from "../../shared/schemas";
 import { UnavailablePageTemplateError, UnsupportedMailIdentityError, type PageSettingsService } from "./service";
+import { InvalidThemeError } from "./theme-assets";
 
 const BRAND_ARTIFACTS = { mark: "assets/mark.svg", favicon: "assets/favicon.svg", social: "assets/og.svg", logo: "assets/logo" } as const;
 
@@ -32,10 +33,24 @@ export function registerPageSettingsRoutes(app: Hono<AppEnv>, service: PageSetti
     if (!parsed.success) return context.json({ error: "Invalid page settings.", issues: parsed.error.issues }, 400);
 
     try {
-      const settings = await service.update(parsed.data);
-      return settings ? context.json({ settings }) : context.json({ error: "Page settings are not configured." }, 404);
+      const result = await service.update(parsed.data);
+      return result.settings ? context.json(result) : context.json({ error: "Page settings are not configured." }, 404);
     } catch (cause) {
-      if (cause instanceof UnsupportedMailIdentityError || cause instanceof UnavailablePageTemplateError) return context.json({ error: cause.message }, 400);
+      if (cause instanceof UnsupportedMailIdentityError || cause instanceof UnavailablePageTemplateError || cause instanceof InvalidThemeError) return context.json({ error: cause.message }, 400);
+      throw cause;
+    }
+  });
+
+  app.post("/api/app/page-settings/theme-assets", async context => {
+    const body = await context.req.parseBody().catch(() => null);
+    const file = body?.asset;
+    const kind = body?.kind;
+    if (!(file instanceof File) || (kind !== "font" && kind !== "image")) return context.json({ error: "Upload an asset file and choose kind font or image." }, 400);
+    try {
+      const asset = await service.uploadThemeAsset({ bytes: await file.arrayBuffer(), contentType: file.type, kind });
+      return context.json({ asset: { path: asset.path, kind: asset.kind } });
+    } catch (cause) {
+      if (cause instanceof InvalidThemeError) return context.json({ error: cause.message }, 400);
       throw cause;
     }
   });

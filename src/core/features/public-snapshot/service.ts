@@ -1,3 +1,4 @@
+import { themeAssetsSchema } from "../../shared/page-theme";
 import type { RetainedSnapshotCache } from "../../platform/blobs/retained";
 import { encodeRetainedBundle, readRetainedArtifact } from "../../platform/blobs/retained-bundle";
 import { createUlid, nowIso } from "../../shared/ids";
@@ -15,7 +16,7 @@ const STALE_MARKER_KEY = "snapshots/stale.json";
 const STALE_BUILD_MS = 5 * 60_000;
 const RETRY_LEASE_MS = 2 * 60_000;
 const LOGO_CONTENT_TYPES = new Set(["image/png", "image/jpeg", "image/webp"]);
-export const PUBLIC_SNAPSHOT_RENDERER_VERSION = "lamp-public-snapshot-v20";
+export const PUBLIC_SNAPSHOT_RENDERER_VERSION = "lamp-public-snapshot-v21";
 
 interface SnapshotPointer {
   version: string;
@@ -30,14 +31,18 @@ interface SnapshotStaleMarker {
   failedAt: string;
 }
 
-function logoDataUrl(logo: { bytes: ArrayBuffer; contentType: string }) {
-  if (!LOGO_CONTENT_TYPES.has(logo.contentType)) throw new Error("Configured logo content type is invalid.");
-  const bytes = new Uint8Array(logo.bytes);
+function bytesBase64(buffer: ArrayBuffer) {
+  const bytes = new Uint8Array(buffer);
   let binary = "";
   for (let offset = 0; offset < bytes.length; offset += 0x8000) {
     binary += String.fromCharCode(...bytes.subarray(offset, offset + 0x8000));
   }
-  return `data:${logo.contentType};base64,${btoa(binary)}`;
+  return btoa(binary);
+}
+
+function logoDataUrl(logo: { bytes: ArrayBuffer; contentType: string }) {
+  if (!LOGO_CONTENT_TYPES.has(logo.contentType)) throw new Error("Configured logo content type is invalid.");
+  return `data:${logo.contentType};base64,${bytesBase64(logo.bytes)}`;
 }
 
 export interface PublicSnapshotService {
@@ -159,8 +164,17 @@ export function createPublicSnapshotService(
         if (logo && !logoContentType) throw new Error("Configured logo content type is missing.");
         const version = createUlid();
         const rendered = renderPublicSnapshot(source, new Date().toISOString(), policies, { logoDataUrl: logo && logoContentType ? logoDataUrl({ ...logo, contentType: logoContentType }) : null }, slots);
-        const bundle = encodeRetainedBundle({ version, generatedAt: rendered.generatedAt, generation, artifacts: rendered.artifacts });
-        return { version, rendered, bundle, logo, logoContentType };
+        const themeAssets = await Promise.all(themeAssetsSchema.parse(JSON.parse(source.settings.themeAssets ?? "[]")).map(async asset => {
+          const object = await blobs.getBytes(asset.key);
+          if (!object) throw new Error(`Configured theme asset is missing from object storage: ${asset.path}`);
+          if (object.contentType !== asset.contentType) throw new Error(`Configured theme asset content type does not match: ${asset.path}`);
+          return { key: asset.path.slice(1), bytes: object.bytes, contentType: asset.contentType };
+        }));
+        const bundle = encodeRetainedBundle({ version, generatedAt: rendered.generatedAt, generation, artifacts: [
+          ...rendered.artifacts,
+          ...themeAssets.map(asset => ({ key: asset.key, body: bytesBase64(asset.bytes), contentType: asset.contentType, encoding: "base64" as const })),
+        ] });
+        return { version, rendered, bundle, logo, logoContentType, themeAssets };
       }
       let prepared: Awaited<ReturnType<typeof prepare>> | null = null;
       while (attempts < 3) {
@@ -168,8 +182,9 @@ export function createPublicSnapshotService(
         try {
         // Retry storage/replica/pointer delivery with identical generation bytes.
         prepared ??= await prepare();
-        const { version, rendered, bundle, logo, logoContentType } = prepared;
+        const { version, rendered, bundle, logo, logoContentType, themeAssets } = prepared;
         await Promise.all(rendered.artifacts.map((artifact) => blobs.putText(`snapshots/${version}/${artifact.key}`, artifact.body, artifact.contentType)));
+        await Promise.all(themeAssets.map(asset => blobs.putBytes(`snapshots/${version}/${asset.key}`, asset.bytes, asset.contentType)));
         if (logo) {
           await blobs.putBytes(`snapshots/${version}/assets/logo`, logo.bytes, logoContentType ?? "application/octet-stream");
         }

@@ -1,0 +1,46 @@
+/* Configuring a theme opts into these overrides; Lamp's approved unconfigured design keeps its own bytes. */
+body[data-lamp-theme] { background: var(--paper); color: var(--ink); font-family: var(--public-font); }
+body[data-lamp-theme] :is(h1, h2, h3, h4) { color: var(--ink); }
+body[data-lamp-theme] a { color: var(--theme-link); }
+body[data-lamp-theme] .status-banner #status-live,
+body[data-lamp-theme] :is(.rg-card, .rg-key-item, .tl, .hm-frame) { background: var(--card); }
+body[data-lamp-theme] .status-banner .overall-status-icon { background: var(--card); color: var(--ok); }
+body[data-lamp-theme] .status-banner.partially-unavailable .overall-status-icon { color: var(--partial); }
+body[data-lamp-theme] .status-banner.degraded-performance .overall-status-icon { color: var(--degraded); }
+body[data-lamp-theme] .status-banner.major-outage .overall-status-icon { color: var(--down); }
+body[data-lamp-theme] .status-banner.under-maintenance .overall-status-icon { color: var(--maint); }
+body[data-lamp-theme] .state-partially-unavailable::before { background: var(--partial); }
+body[data-lamp-theme] .uptime-mark.partial-outage { background: var(--partial); }
+body[data-lamp-theme] .uptime-mark.downtime:not(.major-outage):not(.partial-outage) { background: var(--degraded); }
+body[data-lamp-theme] .uptime-mark.downtime.major-outage { background: var(--down); }
+
+body[data-lamp-theme] .theme-header-image { margin: 0 0 24px; }
+body[data-lamp-theme] .theme-header-image img { display: block; width: 100%; max-height: 280px; object-fit: cover; border-radius: var(--radius); }
+body[data-lamp-theme] :is(.theme-header-links, .theme-footer-links) { display: flex; flex-wrap: wrap; gap: 8px 24px; margin: 16px 0; font-size: 14px; }
+body[data-lamp-theme] :is(.theme-header-html, .theme-footer-html) { overflow-wrap: anywhere; font-size: 14px; }
+body[data-lamp-theme] :is(.theme-header-html, .theme-footer-html) img { max-width: 100%; height: auto; }
+body[data-lamp-theme] :is(.theme-header-html, .theme-footer-html):empty { display: none; }
+body[data-lamp-theme] .theme-chrome.wrap { padding-top: 16px; }
+
+body[data-lamp-theme] .theme-component-group { min-width: 0; margin: 16px 0; border: 1px solid var(--line); border-radius: var(--radius); background: var(--card); padding: 0 24px; }
+body[data-lamp-theme] .theme-component-group > summary { cursor: pointer; padding: 14px 0; font-size: 14px; }
+body[data-lamp-theme] .theme-component-group > summary h3 { display: inline; margin: 0; font-size: 14px; }
+body[data-lamp-theme] .theme-component-group > .calm-list { margin-top: 0; }
+
+body[data-lamp-theme] :is(.hm-cells, .hm-callouts, .hm-axis) { grid-template-columns: repeat(var(--theme-history-days), minmax(0, 1fr)); }
+body[data-lamp-theme] .hm-callout a { max-width: calc((var(--theme-history-days) - var(--column)) * 100cqw / var(--theme-history-days) + 6px); }
+body[data-lamp-theme] .hm-callout.flip a { max-width: calc((var(--column) + 1) * 100cqw / var(--theme-history-days) + 6px); }
+body[data-lamp-theme] .calm-bar .day.ok { background: var(--ok); }
+body[data-lamp-theme] .calm-bar .day.degraded { background: var(--degraded); }
+body[data-lamp-theme] .calm-bar .day.partial { background: var(--partial); }
+body[data-lamp-theme] .calm-bar .day.major { background: var(--down); }
+body[data-lamp-theme] .state-glyph.glyph-degraded-performance circle { fill: var(--degraded); }
+body[data-lamp-theme] .state-glyph.glyph-partially-unavailable circle { fill: var(--partial); }
+body[data-lamp-theme] .state-glyph.glyph-under-maintenance circle { fill: var(--maint); }
+body[data-lamp-theme] .state-glyph.glyph-major-outage circle { fill: var(--down); }
+body[data-lamp-theme] .state-glyph.glyph-operational circle { fill: var(--ok); }
+body[data-lamp-theme] .up-band a { color: var(--on-ink); }
+body[data-lamp-theme] .up-band .tpl-tagline { color: var(--on-ink); }
+body[data-lamp-theme] .up-band :is(input, button) { color: var(--ink); }
+body[data-lamp-theme] .up-band .tpl-subscribe button { color: var(--accent-ink); }
+body[data-lamp-theme] :is(.calm-caption, .calm-group, .tpl-credit, .tpl-foot-meta, .hm-state, .hm-name, .hm-pct, .hm-legend, .hm-method, .hm-axis, .rg-card-state, .rg-elsewhere, .rg-uptime-caption) { font-size: 13px; }

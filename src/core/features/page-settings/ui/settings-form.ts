@@ -12,5 +12,6 @@ export function toSettingsForm(settings: PageSettingsView): SettingsForm {
     widgetAppearance: settings.widgetAppearance, mailFromAddress: settings.mailFromAddress, emailBranding: settings.emailBranding,
     aiToneInstructions: settings.aiToneInstructions, wordingBlockedTerms: settings.wordingBlockedTerms,
     wordingFriendlyLength: settings.wordingFriendlyLength,
+    theme: settings.theme,
   };
 }

@@ -1,4 +1,6 @@
 import { tenMetricWeightFixture } from "./helpers/metric-weight-flow.mjs";
+import { themeFlow } from "./helpers/theme-flow.mjs";
+import { themeFixture } from "./helpers/theme-fixture.mjs";
 import { catalogueHistoryFlow } from "./helpers/catalogue-history-flow.mjs";
 import { widgetVariantsFlow } from "./helpers/widget-variants-flow.mjs";
 import { publicResourcesFlow } from "./helpers/public-resources-flow.mjs";
@@ -629,7 +631,7 @@ test("PAGE-012 PAGE-011 PAGE-019 MOVE-009 — Uploaded branding artwork, allow-l
 
 
 
-test("PAGE-013 PAGE-014 PAGE-008 PAGE-009 PAGE-003 — Public isolation, live timezone refresh and initial asset budget", async t => {
+test("THEME-001 PAGE-013 PAGE-014 PAGE-008 PAGE-009 PAGE-003 — Public isolation, Settings theme, live timezone refresh and initial asset budget", async t => {
   t.diagnostic("PAGE-013 — every public snapshot response carries the restrictive same-origin security headers");
   await (async () => {
   const origin = new URL(pageUrl).origin;
@@ -775,7 +777,10 @@ test("PAGE-013 PAGE-014 PAGE-008 PAGE-009 PAGE-003 — Public isolation, live ti
     await browser.close();
   }
 })(t);
-  t.diagnostic("PAGE-003 — the complete component-limit snapshot remains within the gzip budget");
+  await themeFlow({ appFetch, fetch, appUrl, pageUrl, sessionId, currentSettings, updateSettings, diagnostic: text => t.diagnostic(text) });
+  const beforeWeightTheme = (await currentSettings()).theme;
+  await updateSettings({ theme: themeFixture() });
+  t.diagnostic("THEME-001 PAGE-003 — the complete component-limit snapshot with custom CSS remains within the gzip budget");
   await (async () => {
   executeLocalSql(`WITH RECURSIVE n(value) AS (SELECT 1 UNION ALL SELECT value + 1 FROM n WHERE value < 194) INSERT INTO components (id, group_id, name, description, internal, display_order, note, created_at, updated_at) SELECT 'bulk-' || value, '01J00000000000000000000003', 'Bulk component ' || printf('%03d', value), substr('Maximum valid description for capacity measurement. ' || printf('%03d', value) || ' ..................................................................................................................................................................................................................................................', 1, 280), 0, 1000 + value, substr('Maximum valid public state note for component ' || printf('%03d', value) || ' ..................................................................................................................................................................................................................................................', 1, 250), '2026-06-10T00:00:00.000Z', '2026-06-10T00:00:00.000Z' FROM n; WITH RECURSIVE n(component) AS (SELECT 1 UNION ALL SELECT component + 1 FROM n WHERE component < 194), d(day) AS (SELECT 0 UNION ALL SELECT day + 1 FROM d WHERE day < 89) INSERT INTO component_state_history (id,component_id,previous_state,new_state,cause_type,cause_id,operator_id,changed_at,created_at,updated_at) SELECT 'bulk-history-' || component || '-' || day, 'bulk-' || component, 'Operational', 'Operational', 'standing-claim', NULL, '01J00000000000000000000001', strftime('%Y-%m-%dT%H:%M:%fZ','now','-' || (90 - day) || ' days'), '2026-06-10T00:00:00.000Z', '2026-06-10T00:00:00.000Z' FROM n CROSS JOIN d`);
   await tenMetricWeightFixture(appFetch);
@@ -783,6 +788,7 @@ test("PAGE-013 PAGE-014 PAGE-008 PAGE-009 PAGE-003 — Public isolation, live ti
   const response = await fetch(`${pageUrl}/`);
   assert.equal(response.status, 200);
   const html = await response.text();
+  assert.match(await (await fetch(`${pageUrl}/assets/status-page.css`)).text(), /letter-spacing:\s*\.015em/, "the weight proof includes the owner's custom CSS in the existing snapshot stylesheet");
   assert.equal((html.match(/data-metric-chart=/g)??[]).length,10,"all ten full-day series are inline charts at the component limit");
   const gzipBytes = gzipSync(Buffer.from(html)).byteLength;
   t.diagnostic(`UPTIME-008 PAGE-003: ten 1,440-point series with 200 populated components: ${gzipBytes} bytes gzipped`);
@@ -844,6 +850,7 @@ test("PAGE-013 PAGE-014 PAGE-008 PAGE-009 PAGE-003 — Public isolation, live ti
     await browser.close();
   }
 })(t);
+  await updateSettings({ theme: beforeWeightTheme });
 });
 
 
