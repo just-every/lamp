@@ -186,11 +186,12 @@
     },
     {
       "id": "operators",
-      "description": "Equal operators with no roles, and attribution recorded on every action that reaches the public record.",
+      "description": "Five operator roles enforced on the server, with attribution recorded on every action that reaches the public record.",
       "clauses": [
         "TEAM-001",
         "TEAM-002",
-        "TEAM-003"
+        "TEAM-003",
+        "TEAM-004"
       ]
     },
     {
@@ -230,7 +231,6 @@
     "On-call scheduling, paging, and escalation: the buyer's existing alerting tool already does this, and it is the system that feeds INTAKE-001.",
     "More than one status page per deployment: one business gets one public record, so a second page is a second deployment.",
     "Private or audience-scoped status pages: visitor authentication would be a whole second access surface for a product whose value is being readable by anyone, at any time, with nothing between them and it.",
-    "Roles and permissions: these are one business's equal operators, and UPDATE-007 covers the one gate buyers actually ask for.",
     "SMS and voice notifications: per-message cost, carrier registration, and per-country consent rules that a self-hosted deployment cannot satisfy generically.",
     "Multi-language status pages: every incident update would need a translation before publish, which is the opposite of publishing in two minutes.",
     "A general-purpose operator API authenticated by API tokens: BASE-ACCESS-002 requires a session on every operator endpoint, and machine writes have one narrow door, INTAKE-001, with its own secret.",

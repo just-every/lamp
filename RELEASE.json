@@ -87,6 +87,22 @@
       "migrationIds": [
         "0066_social_accounts.sql"
       ]
+    },
+    "TEAM-004": {
+      "change": "added",
+      "summary": "Five server-enforced operator roles, attributed refusals and role changes, with role selection under Settings.",
+      "migrationIds": [
+        "0067_operator_roles.sql"
+      ]
+    },
+    "TEAM-001": {
+      "change": "changed",
+      "summary": "TEAM-004 replaces equal operator authority with explicit operator roles, preserving independent review.",
+      "was": "Every operator can create, edit, publish, and resolve every incident and maintenance, change every component, and manage subscribers. There are no roles. The only gate on publishing is UPDATE-007.",
+      "now": "Every operator has the one role and server-enforced access described in TEAM-004. UPDATE-007's review policy applies in addition to publish permissions.",
+      "migrationIds": [
+        "0067_operator_roles.sql"
+      ]
     }
   },
   "extensionPointChanges": [],

@@ -71,7 +71,6 @@ test('ACCESS-001 INTAKE-009 native rer archive restores owner continuity and sub
     await command(target, 'import', '--input', join(directory, 'installation.rer'), '--yes');
     current = await proxy(target);
     const restored = current.env.DB, fresh = authFixture(restored);
-    await restoredRole(restored,roleRecord);
     assert.equal((await fresh.handle(fresh.request('/auth/bootstrap', { method: 'POST', body: { token: setupToken, displayName: 'Replacement' } }))).status, 409);
     assert.equal(await fresh.auth.getSession(fresh.request('/auth/session', { cookie: oldCookie })), null);
     const cookie = await fresh.signIn();
@@ -127,5 +126,6 @@ test('ACCESS-001 INTAKE-009 native rer archive restores owner continuity and sub
     assert.equal((await restoredApp.fetch(new Request(fresh.origin + '/manage/' + manage))).status, 200);
     assert.equal((await restored.prepare("SELECT status FROM oa_operators WHERE email='pending@example.test'").first()).status, 'invited');
     assert.equal((await restored.prepare('SELECT COUNT(*) n FROM oa_tokens').first()).n, 1, 'only the newly consumed sign-in link exists after restore');
+    await restoredRole(restored,roleRecord);
   } finally { await current?.dispose(); await rm(directory, { recursive: true, force: true }); }
 });

@@ -1643,3 +1643,8 @@ and provider callback mappings retain their original storage. Erasure scrubs
 both delivery partitions. The pinned restore bridge continues to enforce
 archive identity, migration history, schema compatibility and empty-target
 requirements; it needs no new capability for this schema.
+
+
+## Operator roles (TEAM-004, 28 October 2026)
+
+TEAM-004 replaces TEAM-001's equal product authority and the roles non-goal. Existing Owners retain their identity and access. Lamp refines Base members as Communicators, Responders or Viewers; unknown members are read-only Viewers. Owner and Admin configuration, team and audit doors remain private. Existing setup-owner protection and native fresh-proof requirements remain in force; Admins cannot grant or remove Owner authority. Product role changes are atomic with their audit, invalidate native credentials, retire chat codes and previews, clear that operator's review approvals and cancel scheduled publication when publish rights are withdrawn. A due publication also checks current active publish rights inside its transaction. Native archives carry durable roles and omit sessions. TEAM-005, TEAM-006, API-001 and AGENT-008 inherit these role checks when adding their own doors. No homepage or default appearance changes.

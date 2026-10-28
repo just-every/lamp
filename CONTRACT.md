@@ -173,9 +173,14 @@ suppresses legacy resolved promises rather than rewriting their history.
 
 ## Operators
 
-- **TEAM-001 — Equal operators.** Every operator can create, edit, publish, and resolve every incident and maintenance, change every component, and manage subscribers. There are no roles. The only gate on publishing is UPDATE-007.
+- **TEAM-001 — Equal operators.** Every operator has the one role and server-enforced access described in TEAM-004. UPDATE-007's review policy applies in addition to publish permissions.
 - **TEAM-002 — Management.** Operators are invited and removed in settings. The operator configured at setup can be removed only by themselves.
 - **TEAM-003 — Attribution.** Every published update, component state change, maintenance change, history correction, and subscriber deletion records the operator who made it. That operator's name is shown in the operator app and on no public surface.
+
+- **TEAM-004 — Roles.** *Cites:* BASE-ACCESS-002, BASE-ACCESS-004, BASE-DATA-003. Each operator has one role. **Owner** and **Admin** manage settings, team, integrations, pages and billing-relevant providers. **Communicator** publishes, resolves, schedules maintenance and manages subscribers. **Responder** drafts, writes internal notes and attaches components, but cannot publish. **Viewer** has read-only access, including private pages. Every operator route enforces the role on the server. A forbidden request returns 403, changes nothing and is audited. UPDATE-007's review policy still applies on top of roles. The operator configured at setup is an Owner, and the last Owner cannot be demoted or removed. Role changes are recorded in TEAM-007's audit log with actor and time, and from then on only Owners and Admins see that log.
+
+  Acceptance: a Responder's publish request returns 403, and the same draft published by a Communicator succeeds. A Viewer's settings write returns 403. Every 403 has an audit entry naming the operator, the route and the time. A role change appears in TEAM-007's audit view with actor and time, and a Communicator's audit-log request returns 403.
+
 
 ## History and reports
 
@@ -743,14 +748,6 @@ Status: **done** — `src/core/features/reports/repository.ts`:83, `src/core/fea
 
 ### Operators — target
 
-#### TEAM-004 — Roles.
-
-Each operator has one role. **Owner** and **Admin** manage settings, team, integrations, pages and billing-relevant providers. **Communicator** publishes, resolves, schedules maintenance and manages subscribers. **Responder** drafts, writes internal notes and attaches components, but cannot publish. **Viewer** has read-only access, including private pages. Every operator route enforces the role on the server. A forbidden request returns 403, changes nothing and is audited. UPDATE-007's review policy still applies on top of roles. The operator configured at setup is an Owner, and the last Owner cannot be demoted or removed. Role changes are recorded in TEAM-007's audit log with actor and time, and from then on only Owners and Admins see that log.
-
-Acceptance: a Responder's publish request returns 403, and the same draft published by a Communicator succeeds. A Viewer's settings write returns 403. Every 403 has an audit entry naming the operator, the route and the time. A role change appears in TEAM-007's audit view with actor and time, and a Communicator's audit-log request returns 403.
-
-Status: **missing**. Replaces released TEAM-001's "There are no roles" and the `seed.json → nonGoals` roles exclusion when shipped.
-
 #### TEAM-005 — Access scoped to pages and audiences.
 
 An operator's role can be limited to chosen pages and audiences (AUD-001, AUD-003). They then see and publish only incidents visible on those pages, and only subscribers of those pages.
@@ -1129,7 +1126,7 @@ What Lamp does not do, and how a buyer gets it:
 
 ## Status
 
-Judged from the code and tests at commit `9e1301e331992add4badf8b5e9ded34bc88d1f26` (26 October 2026). Rows changed after that commit name their own journeys under Evidence.
+Judged from the code and tests at commit `940fef32cf816a9b346ec21cac57ba4ab660502c` (28 October 2026). TEAM-004 names its current public-door journeys below; later metadata edits preserve those code and test bytes.
 
 INTAKE-009 is judged done on 21 October 2026 on the 1.10.0 release candidate, which inventories its migration 0042, from its named API, browser and native archive journeys below.
 
@@ -1141,11 +1138,11 @@ INTAKE-011 history: before c23, the partial rationale was “Metric ingestion an
 
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
-| Published | 104 | 0 | 0 | 104 |
-| Target and push further | 33 | 28 | 34 | 95 |
-| All | 137 | 28 | 34 | 199 |
+| Published | 105 | 0 | 0 | 105 |
+| Target and push further | 33 | 28 | 33 | 94 |
+| All | 138 | 28 | 33 | 199 |
 
-Of 199 clauses, 137 are done, 28 partial and 34 missing (62 non-DONE).
+Of 199 clauses, 138 are done, 28 partial and 33 missing (61 non-DONE).
 
 SUB-014 completion is a proposal pending ct judgment and is uncounted in fleet acceptance totals.
 
@@ -1296,10 +1293,10 @@ SUB-014 completion is a proposal pending ct judgment and is uncounted in fleet a
 | `DRAFT-002` | Inputs | published | done | `tests/e2e/incident-brief.test.mjs`, `tests/e2e/publishing-browser.test.mjs` |  |
 | `DRAFT-004` | Incident brief | published | done | `tests/e2e/incident-brief.test.mjs` |  |
 | `DRAFT-003` | Absent or failing provider | published | done | `tests/e2e/incident-brief.test.mjs`, `tests/e2e/publishing-browser.test.mjs`, `tests/e2e/publishing-contract.test.mjs` |  |
-| `TEAM-001` | Equal operators | published | done | `tests/auth-adoption/upgrade.test.mjs`, `tests/e2e/delivery-contract.test.mjs` |  |
+| `TEAM-001` | Equal operators | published | done | `tests/auth-adoption/upgrade.test.mjs` (ACCESS-001 TEAM-001 TEAM-002 upgrade preserves identities, history and subscriber authority and destroys legacy credentials); `tests/e2e/app-api.test.mjs` (TEAM-004 COMP-006 UPDATE-004 PAGE-012 INCIDENT-012 — Component claims, saved drafts, settings and operator records) |  |
 | `TEAM-002` | Management | published | done | `tests/auth-adoption/upgrade.test.mjs`, `tests/e2e/delivery-contract.test.mjs` |  |
 | `TEAM-003` | Attribution | published | done | `tests/e2e/delivery-contract.test.mjs` |  |
-| `TEAM-004` | Roles | target | missing |  | Replaces released TEAM-001's "There are no roles" and the `seed.json → nonGoals` roles exclusion when shipped. |
+| `TEAM-004` | Roles | published | done | `tests/e2e/app-api.test.mjs` (TEAM-004 COMP-006 UPDATE-004 PAGE-012 INCIDENT-012 — Component claims, saved drafts, settings and operator records), loading `tests/e2e/helpers/operator-roles-flow.mjs` (operatorRolesFlow), proves Responder publish and schedule refusal, Communicator publication of the same saved draft and maintenance scheduling, Viewer settings and draft refusal, denied-route actor and time, role-change actor and time in the Owner and Admin audit view, and Communicator JSON and CSV audit refusal. The same registration loads `tests/chat-desk/roles.mjs` (chatRoleFlow): signed Slack and Teams deny Responder publication and Viewer creation without changing incidents, retire previews across demotion and regrant, and allow a fresh Communicator publication. `tests/e2e/delivery-contract.test.mjs` (TEAM-004 HIST-007 SUB-001 SUB-005 UPDATE-008 SUB-002 SUB-003 — Concurrent subscriptions, scoped tokens, recipient capture and expiry), loading `tests/e2e/helpers/subscriber-reporting-flow.mjs` (subscriberReportingFlow), proves Communicator subscriber management. `tests/e2e/publishing-contract.test.mjs` (UPDATE-005 UPDATE-006 UPDATE-007 UPTIME-009 — Private drafts, scheduled publication and independent review) preserves required independent review. `tests/e2e/publishing-browser.test.mjs` (HIST-002 — AGENT-005 TEAM-004 TEAM-007 HIST-007 — an operator publishes a report, browses audit history and reports subscribers), loading `tests/e2e/helpers/operator-roles-browser-flow.mjs` (operatorRolesBrowserFlow), proves Settings role selection, autosave and reload at 1440 and 390. `tests/auth-adoption/operator-erasure.test.mjs` (Invitation cancellation and complete identity erasure preserve subscriber authority) proves last-Owner demotion refusal and erased identity refusal. `tests/auth-adoption/upgrade.test.mjs` preserves existing Owner identities and last-Owner recovery. `tests/auth-adoption/portability.test.mjs`, loading `tests/auth-adoption/role-portability.mjs` (restoredRole), preserves the native role with no restored session or manager authority. |  |
 | `TEAM-005` | Access scoped to pages and audiences | target | missing |  | Not built. |
 | `TEAM-006` | Enforced SSO and SCIM | target | partial | `src/core/platform/auth/config.ts`, `tests/auth-adoption/dependencies.test.mjs` | Optional OIDC sign-in through Base (ACCESS-001) ships, off by default. Enforcement, break-glass and SCIM do not. When shipped, this replaces ACCESS-001's "SCIM and role synchronization remain out of scope". |
 | `TEAM-007` | Audit log view | target | partial | `src/core/features/audit-log/`, `migrations/core/0033_audit_log.sql`, `src/core/features/components/deletion-audit.ts`, `tests/e2e/helpers/audit-log-flow.mjs`, `tests/e2e/helpers/catalogue-history-flow.mjs`, `tests/auth-adoption/operator-erasure.test.mjs`, `src/core/features/channels/repository.ts`, `tests/e2e/helpers/channel-deletion-flow.mjs`, `src/core/features/page-settings/repository.ts`, `src/core/features/statuspage-import/targets.ts`, `src/core/features/subscribers/repository.ts` | Settings provides actor, action and UTC-date filters, pagination and matching CSV; erased actors retain only their anonymized reference. Publications, corrections, subscriber/operator erasures, component state history, maintenance notices and component/group deletions (one by one or by bulk catalog) are recorded with their actor in the same write. Every operator is an owner under TEAM-001; TEAM-004, AUTO-001 and API-001 carry role-restricted access and their role, rule and token events. Slack and Teams channel deletion records the actual removing operator, entity and time atomically with active-row removal; public-route JSON/CSV, repeat, competing-delete, restart and 1440/390 audit journeys cover it. Incident-component removal writes an attributed audit entry atomically even when a stronger standing claim leaves the aggregate state unchanged; template component replacement through save-existing and update writes one attributed entry per replacement. Repeated and competing erasures of an already-erased subscriber tombstone add no successful-deletion entry. Import undo/catch-up removals and replacements and pending/Sorry-held subscriber expiry record their operator or system actor in the same write. Public-door JSON and matching CSV assertions extend existing registered journeys: `tests/e2e/helpers/audit-log-flow.mjs`:32, `tests/auth-adoption/operator-erasure.test.mjs`:17, and `tests/auth-adoption/cutover.test.mjs`:149 and `tests/e2e/helpers/catalogue-history-flow.mjs`:165; implementations are `src/core/features/incidents/repository.ts`:116, `src/core/features/incidents/template-repository.ts`:67, `src/core/features/subscribers/repository.ts`:157 and `src/core/features/statuspage-import/targets.ts`:186. Gap: logo removal/replacement; standing-claim removal without an aggregate state change; restored subscriber expiry proof. The logo and standing-claim repositories are held by open uip template branches, so this round does not edit them; an archive-restored pending subscriber has no expiry assertion yet. |

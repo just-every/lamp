@@ -34,7 +34,14 @@ for(const clause of contract.clauses.filter(clause=>selected.has(clause.id))) {
     : `| ${clause.id} | ${clause.title} | ${clause.status} | ${escape(acceptanceText)} | ${current} |`;
   const matcher=new RegExp(`^\\| ${clause.id} \\|.*$`,'m');
   if(!matcher.test(acceptance))throw Error(`ACCEPTANCE.md is missing ${clause.id}`);
-  acceptance=acceptance.replace(matcher,()=>acceptanceRow);
+  const acceptanceLines=acceptance.split('\n');
+  const oldIndex=acceptanceLines.findIndex(line=>matcher.test(line));
+  const targetIndex=acceptanceLines.findIndex(line=>line.startsWith('### Target and push further'));
+  if(clause.kind==='published'&&oldIndex>targetIndex) {
+    acceptanceLines.splice(oldIndex,1);
+    acceptanceLines.splice(targetIndex,0,acceptanceRow,'');
+    acceptance=acceptanceLines.join('\n');
+  } else acceptance=acceptance.replace(matcher,()=>acceptanceRow);
   const claimRow=`| ${clause.id} | ${clause.status} | ${evidence} | ${gap||'None.'} |`;
   claims=matcher.test(claims)?claims.replace(matcher,()=>claimRow):claims.trimEnd()+'\n'+claimRow+'\n';
 }
