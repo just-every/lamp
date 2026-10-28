@@ -1811,7 +1811,7 @@
         {
           "class": "sensitive",
           "facts": {
-            "measure": 2,
+            "measure": 1,
             "kind": "internal_incident_notes"
           }
         }

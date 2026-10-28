@@ -16,5 +16,5 @@ export const pendingAssertions = Object.freeze({
   queuedLifecycle: 'PENDING BASE 2026-10-28 real queue consumer and failed occurrence lifecycle in generic hosted runner',
   targetPagination: 'PENDING BASE 2026-10-28 checkTarget reads only the first 200 audit rows; later native-target assertions remain active',
   replayReclassification: 'PENDING BASE 2026-10-28 replay reclassifies after its own mutation and loses the original approval/review disposition',
-  injectionAfterMutation: 'PENDING BASE 2026-10-28 fresh-key injection after publication reuses an already-consumed native draft version',
+  injectionAfterMutation: 'PENDING BASE 2026-10-28 fresh-key mutation injections duplicate notes and reuse already-consumed publication versions',
 });
