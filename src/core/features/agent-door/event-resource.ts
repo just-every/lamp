@@ -9,4 +9,3 @@ export function nativeEventResource(table: string, row: Record<string, unknown>)
   const spec = resources[table], id = spec && row[spec[2] ?? 'id'];
   return spec && typeof id === 'string' ? {uri: `lamp://${spec[1]}/${encodeURIComponent(id)}`, type: `${spec[0]}.changed`} : null;
 }
-

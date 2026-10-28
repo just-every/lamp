@@ -1,3 +1,4 @@
+import { managementClientId } from './client';
 import type { AppServices } from '../../app/services';
 import type { AppBindings } from '../../app/types';
 import type { ClassAndFacts, ResourceDefinition } from '../../../../modules/agent-door/types.ts';
@@ -19,8 +20,8 @@ export function createIncidentResources(services: AppServices, bindings: AppBind
                     note?: string;
                 };
             }).component), async read(uri, ctx) { const values = match(uri, /^lamp:\/\/components\/([^/]+)$/); if (!values)
-                return null; const value = await services.components.get(values[0]); if (!value || (ctx.clientId && value.internal))
-                return null; const component = ctx.clientId ? { ...value, note: '' } : value; return { json: { component }, untrusted: true }; } },
+                return null; const value = await services.components.get(values[0]); if (!value || (managementClientId(ctx) && value.internal))
+                return null; const component = managementClientId(ctx) ? { ...value, note: '' } : value; return { json: { component }, untrusted: true }; } },
         { uriTemplate: 'lamp://incidents/{id}', name: 'Incident', description: 'Current native incident, saved version and private notes.', scope: 'lamp.incidents.read', classes: ['standard', 'sensitive'], classify: record => incidentReadClasses((record.json as {
                 incident: IncidentView;
             }).incident), async read(uri) { const values = match(uri, /^lamp:\/\/incidents\/([^/]+)$/); if (!values)

@@ -1,3 +1,4 @@
+import { managementClientId } from './client';
 import { z } from 'zod';
 import type { AppServices } from '../../app/services';
 import type { AppBindings } from '../../app/types';
@@ -150,8 +151,9 @@ export function createCatalogueTools(services: AppServices, bindings: AppBinding
     async run(args, ctx) {
       if (!await services.metrics.authorize(ctx.person.id)) throw new ToolRefusal('forbidden');
       const input = parseNative(pointsSchema.extend({ id: idField }).strict(), args);
-      const authority = ctx.clientId ? await repository.managementAuthority(ctx.clientId, ctx.person.id) : undefined;
-      if (ctx.clientId && !authority) throw new ToolRefusal('credential_revoked');
+      const clientId = managementClientId(ctx);
+      const authority = clientId ? await repository.managementAuthority(clientId, ctx.person.id) : undefined;
+      if (clientId && !authority) throw new ToolRefusal('credential_revoked');
       if (!await nativeEffect(() => services.metrics.push(input.id, input.points, authority ?? undefined))) throw new ToolRefusal('not_found');
       emitNative(ctx, 'metric.points.updated', metricUri(input.id));
       return { result: { id: input.id, accepted: input.points.length }, resources: nativeResource(metricUri(input.id), (await metric(input.id)).name) };

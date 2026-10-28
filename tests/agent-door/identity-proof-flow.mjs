@@ -47,6 +47,12 @@ export async function runNativeIdentityProofFlow(t) {
   assert.ok(mapped?.active);
   assert.equal((await people.businessMember(mapped)).role, 'editor');
   assert.equal((await people.sponsor({sub: 'business-owner'})).id, r.owner.id);
+  const ownerPerson = await people.sponsor({sub: 'business-owner'});
+  const mutable = peopleModule.createLocalCredentials(services, r.bindings);
+  const scoped = {person: ownerPerson, agent: {id: 'business-agent', name: 'Business agent'}, clientId: 'business-oauth-client', scopes: ['lamp.status.read']};
+  assert.deepEqual(await mutable.currentScopes(scoped), ['lamp.status.read'], 'Business OAuth client IDs are not native API credential IDs');
+  assert.deepEqual(await mutable.currentScopes({...scoped, agent: {id: 'management:missing', name: 'Retired key'}, clientId: 'missing'}), [], 'Unknown native management credentials remain refused');
+
   assert.equal(await people.sponsor({sub: 'unmapped-owner-email-token'}), null);
   await r.auth.changeEmail(r.request('/auth/email', {method: 'POST', cookie: teammateCookie}), {email: 'moved-teammate@example.test'});
   const replacement = await r.invite('mapped-teammate@example.test', true);

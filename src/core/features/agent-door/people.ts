@@ -1,3 +1,4 @@
+import { managementClientId } from './client';
 import { isActiveOperator, type Operator } from '@runeditrun/rer/modules/operator-auth';
 import type { PeopleAdapter, Person, Principal } from '../../../../modules/agent-door/types.ts';
 import type { AppBindings } from '../../app/types';
@@ -54,8 +55,9 @@ export function createLocalCredentials(services: AppServices, bindings: AppBindi
         clientId: current.token.id, scopes: scopes(current.token.scopes)};
     },
     async currentScopes(principal: Principal) {
-      if (!principal.clientId) return principal.scopes;
-      const credential = await identities.credential(principal.clientId, principal.person.id);
+      const clientId = managementClientId(principal);
+      if (!clientId) return principal.scopes;
+      const credential = await identities.credential(clientId, principal.person.id);
       if (!credential || credential.kind === 'dev' && !authConfig(bindings).local) return [];
       return scopes([...(credential.readScope ? ['read'] : []), ...(credential.scope ? [credential.scope] : [])]);
     },

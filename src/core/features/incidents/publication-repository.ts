@@ -51,11 +51,12 @@ export async function publishIncidentDraft(binding: D1Database, input: IncidentP
     for (const component of input.components) if (component.componentId) {
       const historyId = createUlid();
       notificationHistoryIds.push(historyId);
-      statements.push(...agentAttributionStatements(binding,{entityType:'component-state',entityId:historyId,operatorId:input.authorOperatorId,at:input.createdAt}));
       statements.push(currentStateHistoryStatement(binding, {
         id: historyId, componentId: component.componentId, cause: { type: "incident", id: input.incidentId, operatorId: input.authorOperatorId },
         changedAt: input.publishedAt, createdAt: input.createdAt, updatedAt: input.updatedAt,
       }));
+      statements.push(...agentAttributionStatements(binding,{entityType:'component-state',entityId:historyId,operatorId:input.authorOperatorId,at:input.createdAt,
+        guard:{sql:'EXISTS(SELECT 1 FROM component_state_history WHERE id=?)',params:[historyId]}}));
     }
   }
   if (input.recovery?.overrideReason) statements.push(

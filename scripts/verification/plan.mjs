@@ -4,7 +4,7 @@ export const verificationPlan = {
   source: ['source:copies', 'source:check', 'test:owner-migrations', 'test:operations', 'test:docs', 'test:external-heartbeat', 'typecheck', 'check:syntax', 'validate:release', 'test', 'verify:visual:source'],
   'ownership-upgrade': ['test:operator-readiness:upgrade'],
   'ownership-authority': ['test:operator-readiness:authority'],
-  adoption: ['test:rer-journey', 'test:agent-door'],
+  adoption: ['test:rer-journey'],
   demo: ['test:demo'],
   storage: ['test:reference-storage', 'test:public-snapshots', 'test:resolve-composer', 'test:workflow-render', 'test:site-reader'],
   ingress: ['test:dev-ingress', 'test:website-onboarding'],

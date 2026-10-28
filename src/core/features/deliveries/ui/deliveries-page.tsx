@@ -81,7 +81,7 @@ export function DeliveriesPage() {
   const providerName = data.mail.provider === "rer" ? "RER" : data.mail.provider === "sendgrid" ? "SendGrid" : data.mail.provider === "mailgun" ? "Mailgun" : data.mail.provider === "ses" ? "Amazon SES" : data.mail.provider === "postmark" ? "Postmark" : "Resend";
   const hasReceipts=Object.values(data.mail.receiptProviders).some(Boolean);
   function resetFilters(next: () => void) { next(); setOffset(0); }
-  return <div className="page-stack">
+  return <div className="page-stack agent-deliveries-page">
     <section className="page-title-row">
       <div><h1>Deliveries</h1><p>See what happened to your updates.</p></div>
       <a className="quiet-link delivery-export" href={csvHref}>Export CSV <Icon name="external" width={15} height={15} /></a>
