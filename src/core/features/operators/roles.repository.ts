@@ -34,6 +34,9 @@ export function createOperatorRolesRepository(db: D1Database) {
           ...(coarse === 'member'
             ? [db.prepare(`INSERT INTO operator_roles(operator_id,role) SELECT ?,? WHERE ${witness} ON CONFLICT(operator_id) DO UPDATE SET role=excluded.role`).bind(target.id,role,id)]
             : [db.prepare(`DELETE FROM operator_roles WHERE operator_id=? AND ${witness}`).bind(target.id,id)]),
+          db.prepare(`DELETE FROM chat_previews WHERE operator_id=? AND ${witness}`).bind(target.id,id),
+          db.prepare(`DELETE FROM chat_link_codes WHERE operator_id=? AND ${witness}`).bind(target.id,id),
+          db.prepare(`UPDATE incident_drafts SET reviewed_by_operator_id=NULL,reviewed_at=NULL WHERE reviewed_by_operator_id=? AND ${witness}`).bind(target.id,id),
           // A previously authorized scheduled update cannot outlive its author’s
           // publication role. The saved draft remains available to the team.
           ...(!['owner','admin','communicator'].includes(role) ? [db.prepare(`UPDATE incident_drafts SET scheduled_publish_at=NULL,scheduled_channels_json='[]' WHERE author_operator_id=? AND ${witness}`).bind(target.id,id)] : []),

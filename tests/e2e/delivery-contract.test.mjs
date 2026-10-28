@@ -250,6 +250,7 @@ test("SUB-016 SUB-017 SUB-004 SUB-006 SUB-007 SUB-005 PAGE-013 SUB-012 SUB-008 â
   const { incidentCatchupStatements } = await vite.ssrLoadModule("/src/core/features/deliveries/index.ts");
   const { createUlid } = await vite.ssrLoadModule("/src/core/shared/ids.ts");
   const operatorId = "01J00000000000000000000001";
+  await db.prepare("INSERT OR IGNORE INTO oa_operators(id,email,display_name,role,status,created_at) SELECT id,email,display_name,'owner','active',? FROM operators WHERE id=?").bind(Date.now(),operatorId).run();
   const components = createComponentsService(createComponentRepository(db), async () => {});
   const fixtureComponents = [];
   for (const name of ["Attachment origin", "Attachment audience", "Attachment internal"]) {

@@ -448,11 +448,11 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "050253c2dc24bdef503ae767e43c88ff510ae92fc4cc6136bb295a97091b25ed",
+      "sha256": "aa8496b7501ec9b91f9dd49d5ce37c61b894d7e7877b601587ed01e3d29efdbd",
       "executable": false
     },
     "AGENTS.md": {
-      "sha256": "3c3cf9db08223522c4d9af0e7a223ad6e848c2f40b08633d3853a546e679002b",
+      "sha256": "7c9bb8c268c38176193de3eb58b6759264751dc946a6cfb3fa4d3ff7a0861598",
       "executable": false
     },
     "AUTHORING.md": {
@@ -548,7 +548,7 @@
       "executable": false
     },
     "docs/CLAIMS.md": {
-      "sha256": "3a56e7ca3acb30c2522fecdbfac8ee93f647c2b7c4974aaddac65afb9537ea05",
+      "sha256": "b069f219deccb2f448a8d3dede2385d1af032480bc6b654b6f08bef619ff55a5",
       "executable": false
     },
     "docs/components-and-groups.md": {
@@ -2396,7 +2396,7 @@
       "executable": false
     },
     "RELEASE.json": {
-      "sha256": "972b936f819d73cc021d92f1de78ad36602512f167839b17db7928f2a739ef19",
+      "sha256": "78003b5302a9ce285a46e02f905fd738f3572b77450409c4c5448af9e78f6cf9",
       "executable": false
     },
     "rer-packaging.json": {
@@ -2497,6 +2497,10 @@
     },
     "scripts/ci/verify-reuse.sh": {
       "sha256": "b74a093228337ac4ac2c22dcdd99972377d0a52f25113a55ad94aad38a939798",
+      "executable": false
+    },
+    "scripts/contract-docs.mjs": {
+      "sha256": "e89c0f80d49e6768085021b160f5aec81488981d0400466c77a3e214ca0e8ea5",
       "executable": false
     },
     "scripts/create-release-candidate.mjs": {
@@ -3752,7 +3756,7 @@
       "executable": false
     },
     "src/core/features/incidents/publication-repository.ts": {
-      "sha256": "59551c3ce43a9eeca47b709e8459d958b0a1a39c2e8f264d9f1efe00a5e10fb1",
+      "sha256": "8a83b6c798d54cc6342c7f6f9a4812c037be1f256282a48ab27aee4028c3178e",
       "executable": false
     },
     "src/core/features/incidents/recovery-repository.ts": {
@@ -4140,7 +4144,7 @@
       "executable": false
     },
     "src/core/features/operators/permissions.ts": {
-      "sha256": "ad315898b1a4891feb6b151e1d5228d790118cb03fd64f7608a98f14a46e0400",
+      "sha256": "11cb8ef17a945467f5a039cc6de0c72bc15d5349c6c78b2f8378d25cff53d217",
       "executable": false
     },
     "src/core/features/operators/repository.ts": {
@@ -4148,7 +4152,7 @@
       "executable": false
     },
     "src/core/features/operators/roles.repository.ts": {
-      "sha256": "4a0e10fb78f06865165d8e628f917b05c4d6723a0008282aa14ba93db5c295a3",
+      "sha256": "cc7387c81fa4c8e81628ad33fdfde0d5cfe557bfc65f1564414082009cae0ebf",
       "executable": false
     },
     "src/core/features/operators/routes.ts": {
@@ -6360,7 +6364,7 @@
       "executable": false
     },
     "tests/auth-adoption/operator-erasure.test.mjs": {
-      "sha256": "7003489777f39f0c40dda9b0ace022f2e04702ba7490cd9c7708582f49c86f9a",
+      "sha256": "0ea32412e52fa31a38afb75d173e2d85777ea919b4b17c9a9b9ba557ac18a880",
       "executable": false
     },
     "tests/auth-adoption/portability.test.mjs": {
@@ -6540,7 +6544,7 @@
       "executable": false
     },
     "tests/e2e/delivery-contract.test.mjs": {
-      "sha256": "64f385683b8fffac9563de40a4ddf491a6a6ee23b4ad70bc3e2c98a4adff2428",
+      "sha256": "4d6650dcda3e030b4e61da4357639b55d7afc68298e472c22a11da5eac7b3db1",
       "executable": false
     },
     "tests/e2e/deployment-artifact.test.mjs": {
@@ -6780,7 +6784,7 @@
       "executable": false
     },
     "tests/e2e/helpers/operator-roles-flow.mjs": {
-      "sha256": "7fab940f4dc1d9f5a382ddc59ddc0ec1a61ceb2ac38c907f3267580efb05b73b",
+      "sha256": "9ae3cb7ef8c577fab6d698db538bcee5d8036b8d782c570ba2c1df812bacb979",
       "executable": false
     },
     "tests/e2e/helpers/overview-time-flow.mjs": {
@@ -6828,7 +6832,7 @@
       "executable": false
     },
     "tests/e2e/helpers/review-update-flow.mjs": {
-      "sha256": "64339e339c856d63059177410206274730e00ef377e4456c9fb873c65e2aee32",
+      "sha256": "fdce44d0553535caa68ccc7601871879a04bf4576dc3c9f34f24d0cb23ed7fdc",
       "executable": false
     },
     "tests/e2e/helpers/self-serve-chat-flow.mjs": {

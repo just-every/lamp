@@ -11,12 +11,12 @@ export function allowsOperatorRequest(role: OperatorRole, method: string, pathna
   if (path === '/session/signout' && method === 'POST') return true;
   if (['GET', 'HEAD', 'OPTIONS'].includes(method)) {
     if (/^\/(?:operators|audit-log|management-tokens|mail-settings|sms-settings|social|channels|website|statuspage-import|import-door|page-export)(?:\/|$)/.test(path)) return false;
-    return /^\/(?:session|page-settings|overview|components|component-groups|incidents|incident-templates|maintenance|reports|ai|subscribers|subscriber-reporting|communication-performance|availability|deliveries|intake|metrics|chat-links|embed)(?:\/|$)/.test(path);
+    return /^\/(?:session|page-settings|overview|components|component-groups|incidents|incident-templates|maintenance|reports|ai|subscribers|subscriber-reporting|communication-performance|availability-report|deliveries|intake|metrics|chat-links|embed)(?:\/|$)/.test(path);
   }
   if (/^\/chat-links(?:\/[^/]+)?$/.test(path)) return method === 'DELETE' || drafts(role);
   if (!drafts(role)) return false;
   if (method === 'POST' && ['/incidents', '/incidents/preview'].includes(path)) return true;
-  if (/^\/incidents\/[^/]+\/(?:draft|draft\/preview|draft\/correction|notes|ai-suggestion|report\/draft|report|components\/preview|templates\/[^/]+\/apply)$/.test(path)) return ['POST', 'PUT'].includes(method);
+  if (/^\/incidents\/[^/]+\/(?:draft|draft\/preview|draft\/correction|internal-notes|ai-suggestion|report\/draft|report|components\/preview|templates\/[^/]+\/apply)$/.test(path)) return ['POST', 'PUT'].includes(method);
   if (!publishes(role)) return false;
   return (method === 'POST' && /^\/incidents\/[^/]+\/(?:publish|draft\/(?:schedule|review)|components|owner\/take-over|report\/(?:publish|waive))$/.test(path))
     || (method === 'DELETE' && /^\/incidents\/[^/]+(?:\/components\/[^/]+)?$/.test(path))

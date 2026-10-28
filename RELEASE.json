@@ -87,13 +87,6 @@
       "migrationIds": [
         "0066_social_accounts.sql"
       ]
-    },
-    "TEAM-004": {
-      "change": "added",
-      "summary": "Five server-enforced operator roles, attributed refusals and role changes, with role selection under Settings.",
-      "migrationIds": [
-        "0067_operator_roles.sql"
-      ]
     }
   },
   "extensionPointChanges": [],

@@ -20,6 +20,7 @@ export async function reviewUpdateFlow({ vite, bindings }) {
   const { createMailSendRepository } = await vite.ssrLoadModule('/src/core/platform/mail/repository.ts');
   const db = bindings.DB, now = new Date().toISOString(), author = createUlid(), reviewer = createUlid();
   for (const [id, name] of [[author,'Author'],[reviewer,'Reviewer']]) await db.prepare('INSERT INTO operators(id,email,display_name,is_setup_operator,created_at,updated_at) VALUES (?,?,?,0,?,?)').bind(id,`${id.toLowerCase()}@example.test`,name,now,now).run();
+  for (const id of [author,reviewer]) await db.prepare("INSERT INTO oa_operators(id,email,display_name,role,status,created_at) SELECT id,email,display_name,'owner','active',? FROM operators WHERE id=?").bind(Date.now(),id).run();
   const snapshots = createPublicSnapshotService(createSnapshotRepository(db), createSnapshotBlobStore(bindings));
   const components = createComponentsService(createComponentRepository(db), snapshots.rebuild);
   const incidents = createIncidentsService(createIncidentRepository(db), components, snapshots.rebuild, {

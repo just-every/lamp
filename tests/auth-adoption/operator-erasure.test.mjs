@@ -33,6 +33,15 @@ test("Invitation cancellation and complete identity erasure preserve subscriber 
     const csv = await (await r.call(`${path}&format=csv`, { cookie: r.cookie })).text();
     assert.equal(csv.split(entries[0].id).length - 1, 1);
   })();
+  await (async () => {
+    const r=await lampRuntime(t);
+    const before=await r.db.prepare('SELECT * FROM oa_operators WHERE id=?').bind(r.owner.id).first();
+    const refused=await r.call(`/api/app/operators/${r.owner.id}/role`,{method:'POST',cookie:r.cookie,body:{role:'viewer'}});
+    assert.equal(refused.status,409,'the final active Owner cannot demote themselves');
+    assert.deepEqual(await r.db.prepare('SELECT * FROM oa_operators WHERE id=?').bind(r.owner.id).first(),before);
+    assert.equal((await r.call('/api/app/session',{cookie:r.cookie})).status,200,'refused demotion retains recovery access');
+    assert.equal((await r.db.prepare("SELECT COUNT(*) n FROM audit_entries WHERE action='role-changed'").first()).n,0,'failed role changes leave no successful audit entry');
+  })();
   t.diagnostic("pending invitations appear in Settings routes and erasure cancels every invitation without granting authority");
   await (async t => {
   const r = await lampRuntime(t);

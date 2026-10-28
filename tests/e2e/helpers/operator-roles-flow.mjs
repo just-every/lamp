@@ -15,7 +15,7 @@ export async function operatorRolesFlow({appFetch,appUrl,persistTo,configPath}) 
   const incident=(await created.json()).incident, path=`/api/app/incidents/${incident.id}`;
   const draft={lifecycle:'Monitoring',affectedAudience:'Synthetic Lamp API customers',customerImpact:'Synthetic Lamp requests are delayed',whatStillWorks:'Synthetic Lamp dashboard',details:'Synthetic Lamp recovery is being checked',nextUpdateAt:new Date(Date.now()+3600000).toISOString(),componentChanges:[{componentId:component.id,state:'Degraded performance'}]};
   assert.equal((await call('responder',`${path}/draft`,{method:'PUT',body:JSON.stringify(draft)})).status,200);
-  assert.equal((await call('responder',`${path}/notes`,{method:'POST',body:JSON.stringify({body:'Synthetic Lamp private response note'})})).status,201);
+  assert.equal((await call('responder',`${path}/internal-notes`,{method:'POST',body:JSON.stringify({body:'Synthetic Lamp private response note'})})).status,201);
   const before=await json(await appFetch(path));
   const settings=await json(await appFetch('/api/app/page-settings'));
   const denied=[];

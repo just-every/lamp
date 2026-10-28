@@ -107,6 +107,11 @@ recorded owner request is a regression to fix.
 
 ## Verify
 
+Lander-Regenerate: after changing contract status or evidence, run
+`node scripts/contract-docs.mjs write --clauses TEAM-001,TEAM-004` with the
+comma-separated ids touched by the round, then the same command with `check`.
+This preserves the edition's existing contract shape and every other judged row.
+
 Stop a running development server or production preview before verification or
 build commands. Use `rer dev --stop` or `rer preview --stop` as appropriate;
 restart local work with `rer dev` after the command completes.
