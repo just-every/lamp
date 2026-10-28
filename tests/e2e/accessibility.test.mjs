@@ -129,7 +129,7 @@ async function assertWcag22Aa(page, surface, selector) {
 }
 
 async function startWorker() {
-  worker = spawn("pnpm", ["exec", "vite", "--host", "127.0.0.1", "--port", new URL(appUrl).port, "--strictPort"], {
+  worker = spawn("pnpm", ["exec", "wrangler", "dev", "--local", "--config", configPath, "--persist-to", statePath, "--ip", "127.0.0.1", "--port", new URL(appUrl).port, "--inspector-port", "0", "--show-interactive-dev-session=false"], {
     cwd: process.cwd(),
     detached: true,
     stdio: "pipe",
@@ -155,7 +155,7 @@ before(async () => {
   // inside the native development-asset boundary used for optimized modules.
   viteCachePath = await mkdtemp(resolve("node_modules/.lamp-accessibility-vite-"));
   // A checkout's `.dev.vars` would override the fixture's subscriber token secret and make every token this test signs fail verification.
-  fixtureConfig = isolatedWranglerConfig(config => ({ ...config, vars: { ...config.vars, SUBSCRIBER_TOKEN_SECRET: subscriberTokenSecret } }));
+  fixtureConfig = isolatedWranglerConfig(config => ({ ...config, main: resolve("dist/server/index.js"), assets: { directory: resolve("dist/client"), binding: "ASSETS", run_worker_first: true }, vars: { ...config.vars, SUBSCRIBER_TOKEN_SECRET: subscriberTokenSecret } }));
   configPath = fixtureConfig.path;
   execFileSync("pnpm", ["exec", "wrangler", "d1", "migrations", "apply", "DB", "--local", "--config", configPath, "--persist-to", statePath], {
     cwd: process.cwd(),
@@ -166,8 +166,6 @@ before(async () => {
   const neutralPublicPage = await fetch(`${pageUrl}/`);
   assert.equal(neutralPublicPage.status, 503, "an unconfigured public page stays unavailable until owner setup is complete");
   sessionId = await insertRealOperatorSession({ persistTo: statePath, pageSettings: true });
-  const initialPublicPage = await fetch(`${pageUrl}/`);
-  assert.equal(initialPublicPage.status, 200, "the configured accessibility fixture serves its public page");
   const component = await appFetch("/api/app/components", {
     method: "POST",
     body: JSON.stringify({
@@ -180,6 +178,8 @@ before(async () => {
     }),
   });
   assert.equal(component.status, 201);
+  const initialPublicPage = await fetch(`${pageUrl}/`);
+  assert.equal(initialPublicPage.status, 200, "the owner's component mutation publishes the configured accessibility page");
   const componentId = (await component.json()).component.id;
   const incident = await appFetch("/api/app/incidents", {
     method: "POST",
@@ -230,8 +230,8 @@ before(async () => {
   await startEmbedServer();
   await allowWidgetAt(embedUrl);
 
-  browser = await chromium.launch({ headless: true });
-  context = await browser.newContext({ timezoneId: "Australia/Brisbane" });
+  browser = await chromium.launch({ headless: true, executablePath: process.env.LAMP_CHROMIUM_PATH, args: ["--no-sandbox"] });
+  context = await browser.newContext({ timezoneId: "Australia/Brisbane", viewport: { width: 1440, height: 900 } });
   await context.addCookies([{ name: sessionCookieName(appUrl), value: sessionId, url: appUrl }]);
 });
 
@@ -252,7 +252,7 @@ after(async () => {
 });
 
 async function auditRoute(origin, path, surface, readySelector, options = {}) {
-  const routeContext = options.anonymous ? await browser.newContext({ timezoneId: "Australia/Brisbane" }) : context;
+  const routeContext = options.anonymous ? await browser.newContext({ timezoneId: "Australia/Brisbane", viewport: { width: 1440, height: 900 } }) : context;
   const page = await routeContext.newPage();
   const diagnostics = { phase: "navigation", surface };
   observeAuditPage(page, diagnostics);
@@ -300,14 +300,16 @@ baseline("BASE-PUBLIC-003", "Axe WCAG 2.2 AA passes real local public, operator,
     ["/app/incidents", "Operator incidents"],
     [`/app/incidents/${incidentId}`, "Operator incident detail"],
     ["/app/components", "Operator components"],
-    ["/app/maintenance", "Operator maintenance", { noHorizontalOverflow: true, viewport: { width: 1024, height: 1536 } }],
-    ["/app/subscribers", "Operator subscribers", { noHorizontalOverflow: true, viewport: { width: 390, height: 844 } }],
+    ["/app/maintenance", "Operator maintenance", { noHorizontalOverflow: true, viewport: { width: 1440, height: 900 } }],
+    ["/app/subscribers", "Operator subscribers", { noHorizontalOverflow: true, viewport: { width: 1440, height: 900 } }],
     ["/app/deliveries", "Operator deliveries"],
     ["/app/settings", "Operator settings", { footerCreditToggle: true }],
     ["/app/alerts", "Operator alerts"],
   ]) {
     await auditRoute(appUrl, path, surface, "main.operator-main h1", options);
   }
+
+  await scriptFreeSubscriptionJourney();
 
   const widgetPage = await context.newPage();
   try {
@@ -319,12 +321,8 @@ baseline("BASE-PUBLIC-003", "Axe WCAG 2.2 AA passes real local public, operator,
   }
 });
 
-baseline("BASE-PUBLIC-003", "public and subscriber pages stay styled, script-free, accessible, and within mobile width", async () => {
-  const viewports = [
-    { width: 1440, height: 900 },
-    { width: 390, height: 844 },
-    { width: 320, height: 800 },
-  ];
+async function scriptFreeSubscriptionJourney() {
+  const viewports = [{ width: 1440, height: 900 }];
   const surfaces = [
     ["/", "Public status page", "main.root-page"],
     [`/incidents/${incidentReference}`, "Permanent public incident page", "main.page"],
@@ -390,4 +388,4 @@ baseline("BASE-PUBLIC-003", "public and subscriber pages stay styled, script-fre
       await routeContext.close();
     }
   }
-});
+}

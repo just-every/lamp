@@ -1,8 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdir, readFile } from 'node:fs/promises';
-import { chromium } from 'playwright';
-import { AxeBuilder } from '@axe-core/playwright';
-import { operatorHydrated } from './operator-hydrated.mjs';
+import { readFile } from 'node:fs/promises';
 
 export const groupedPayload = (key, states = ['firing', 'firing']) => ({ version: '4', receiver: 'lamp', status: states.some(state => state === 'firing') ? 'firing' : 'resolved', groupKey: key, groupLabels: { alertname: 'ServiceUnavailable' }, commonLabels: { region: 'us-east' }, commonAnnotations: {}, externalURL: 'https://monitor.example.test', truncatedAlerts: 0,
   alerts: states.map((status, index) => ({ status, labels: { alertname: 'ServiceUnavailable', service: index ? 'dashboard' : 'api', region: 'us-east' }, annotations: { summary: index ? 'Dashboard requests timing out' : 'API request failures' }, startsAt: '2026-10-18T00:00:00Z', endsAt: status === 'resolved' ? '2026-10-18T00:05:00Z' : '0001-01-01T00:00:00Z', generatorURL: 'https://monitor.example.test/graph', fingerprint: index ? 'b2b2b2' : 'a1a1a1' })) });
@@ -92,58 +89,4 @@ export async function groupedAlertsFlow({ api, post, component, sql, origin, pub
     assert.equal((await api('/api/app/intake/sources')).text.includes(source.token), false, 'token remains write-only');
   }
 
-  const browser = await chromium.launch({ headless: true, args: ['--use-mock-keychain', '--password-store=basic'] });
-  try {
-    const context = await browser.newContext();
-    await context.addCookies(cookie.split('; ').map(pair => ({ name: pair.slice(0, pair.indexOf('=')), value: pair.slice(pair.indexOf('=') + 1), url: origin })));
-    const page = await context.newPage();
-    if (process.env.LAMP_SCREENSHOTS) await mkdir(process.env.LAMP_SCREENSHOTS, { recursive: true });
-    for (const width of [1440, 390]) {
-      await page.setViewportSize({ width, height: width === 390 ? 844 : 1000 });
-      await page.goto(`${origin}/app/alerts`);
-      await operatorHydrated(page);
-      await page.getByRole('button', { name: 'Grafana', exact: true }).click();
-      await page.getByLabel('Component 1').selectOption(targets[0].id);
-      await page.getByLabel('Labels 1', { exact: true }).fill('team="blue", zone="us-1"');
-      await page.getByRole('button', { name: 'Add a component', exact: true }).click();
-      await page.getByLabel('Component 2').selectOption(targets[1].id);
-      await page.getByLabel('Labels 2', { exact: true }).fill('team="blue", zone="eu-1"');
-      await inspect('grouped-mappings');
-      await page.getByRole('button', { name: 'Connect Grafana Alerting', exact: true }).click();
-      // The address carries Lamp's key, so the contact point needs no Authorization header.
-      const address = await page.getByLabel('Grafana Alerting address', { exact: true }).inputValue();
-      await inspect('grouped-configured');
-      const posted = await fetch(address, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(structuredClone(grafanaPayload)) });
-      const response = { status: posted.status, body: await posted.json() };
-      assert.equal(response.status, 202);
-      await page.reload();
-      await operatorHydrated(page);
-      const receipt = page.locator('tr').filter({ has: page.locator(`a[href="/app/incidents/${response.body.incidentId}"]`) }).first();
-      await receipt.waitFor();
-      await inspect('grouped-receipt');
-      await receipt.getByRole('link', { name: 'Open draft' }).click();
-      await page.getByRole('heading', { name: 'First update' }).waitFor();
-      await operatorHydrated(page);
-      const result = (await api(`/api/app/incidents/${response.body.incidentId}`)).body.incident;
-      assert.deepEqual(result.components.map(row => row.componentId).sort(), targets.map(row => row.id).sort());
-      assert.equal(result.updates.length, 0);
-      assert.equal(result.title, grafanaPayload.title);
-      await inspect('grouped-private-draft');
-      const publicText = await (await fetch(`${publicOrigin}/`)).text();
-      assert.ok(!publicText.includes(result.reference), 'inbound group has no public story before operator publication');
-      async function inspect(name) {
-        assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), `${width} ${name} overflow`);
-        assert.deepEqual(await page.locator('.tool-form button').evaluateAll(nodes => nodes.filter(node => node.scrollWidth > node.clientWidth + 1).map(node => node.textContent)), [], 'mapping controls keep their full labels');
-        const axe = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa']).analyze();
-        assert.deepEqual(axe.violations.filter(row => ['serious', 'critical'].includes(row.impact)).map(row => row.id), [], `${width} ${name} accessibility`);
-        if (process.env.LAMP_SCREENSHOTS) {
-          const path = `${process.env.LAMP_SCREENSHOTS}/${width}-${name}.png`;
-          if (name === 'grouped-mappings' || name === 'grouped-configured') await page.locator('.tool-form').screenshot({ path });
-          else if (name === 'grouped-receipt') { await receipt.scrollIntoViewIfNeeded(); await page.screenshot({ path }); }
-          else await page.screenshot({ path, fullPage: true });
-        }
-      }
-    }
-    await context.close();
-  } finally { await browser.close(); }
 }

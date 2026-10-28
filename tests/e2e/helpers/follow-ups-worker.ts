@@ -1,4 +1,4 @@
-import queueOutage from "../queue-outage.worker";
+import queueOutage, { queueBindings } from "../queue-outage.worker";
 import { runQueue, runScheduled } from "../../../src/core/app/worker-lifecycle";
 export { SnapshotCache } from "../../../src/core/platform/blobs/snapshot-cache";
 
@@ -7,5 +7,5 @@ export { SnapshotCache } from "../../../src/core/platform/blobs/snapshot-cache";
 export default {
   fetch: queueOutage.fetch,
   queue: runQueue,
-  scheduled(controller:ScheduledController,env:Parameters<typeof runScheduled>[0],context:ExecutionContext) {return runScheduled(env,context,controller.scheduledTime);},
+  scheduled(controller:ScheduledController,env:Parameters<typeof runScheduled>[0],context:ExecutionContext) {return runScheduled(queueBindings(env),context,controller.scheduledTime);},
 };

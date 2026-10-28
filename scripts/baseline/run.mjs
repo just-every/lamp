@@ -6,8 +6,6 @@ import { dirname, join, relative } from "node:path";
 import { readBaselineCatalog } from "./catalog.mjs";
 import { baselineReport } from "./report.mjs";
 
-await import("./reporter-probes.mjs");
-
 const root = process.cwd();
 const baselineDirectory = "tests/baseline/e2e-baseline";
 const reportPath = process.env.LAMP_BASELINE_REPORT ?? join(tmpdir(), "lamp-baseline-report.json");
@@ -37,6 +35,8 @@ function run(file) {
     child.once("exit", (code, signal) => resolveRun({ path: relative(root, join(root, file)), exitCode: signal ? 1 : code ?? 1, results: parseTap(output) }));
   });
 }
+
+await import("./reporter-probes.mjs");
 
 const catalog = await readBaselineCatalog();
 const files = await baselineFiles();

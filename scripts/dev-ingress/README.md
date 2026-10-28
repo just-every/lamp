@@ -62,5 +62,6 @@ using runtime bindings or flags. Sessions and subscriber confirmation continue t
 Focused checks:
 
 ```
-node --test --test-concurrency=1 tests/dev-ingress/*.test.mjs
+pnpm run test:ownership
+pnpm run test:runtime
 ```

@@ -1,7 +1,8 @@
+import { workingCheckout } from '../helpers/native-transfer.mjs';
 import assert from 'node:assert/strict';
-import { spawn, spawnSync, execFileSync } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { mkdtemp, mkdir, symlink, readFile, readdir, rm, appendFile } from 'node:fs/promises';
+import { mkdtemp, mkdir, readFile, readdir, rm, appendFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { test } from 'node:test';
@@ -26,8 +27,7 @@ test('disposable demo opens signed in, mocks effects and leaves owner state inta
   let child, browser, firstResult;
   const stop = async () => { if (child?.exitCode === null) { const result = cli('demo', '--stop'); assert.equal(result.status, 0); await new Promise(done => child.exitCode !== null ? done() : child.once('exit', done)); } child = undefined; };
   try {
-    execFileSync('sh', ['-c', 'git ls-files -z --cached --others --exclude-standard | tar --null -T - -cf - | tar -xf - -C "$1"', 'copy', root]);
-    await symlink(resolve('node_modules'), join(root, 'node_modules'), 'dir');
+    await workingCheckout(process.cwd(), root);
     const port = await reservePort(), origin = `http://127.0.0.1:${port}`, pageOrigin = `http://localhost:${port}`;
     const setup = cli('setup', '--owner-email', 'owner@example.invalid', '--non-interactive', '--port', String(port));
     if (setup.status !== 0) {
@@ -39,7 +39,7 @@ test('disposable demo opens signed in, mocks effects and leaves owner state inta
     assert.equal(setup.status, 0, 'ordinary setup succeeds');
     await appendFile(join(root, '.dev.vars'), '\nAI_PROVIDER_URL=https://ai.example.invalid/v1\nAI_PROVIDER_MODEL=demo-test\nAI_PROVIDER_API_KEY=uncredentialed-test-value\n');
     const before = await digestTree(join(root, '.wrangler/state'));
-    browser = await chromium.launch({ headless: true, args: ['--use-mock-keychain', '--password-store=basic'] });
+    browser = await chromium.launch({ headless: true, executablePath: process.env.LAMP_CHROMIUM_PATH, args: ['--no-sandbox','--use-mock-keychain', '--password-store=basic'] });
     for (const first of [true, false]) {
       let output = '';
       child = spawn(process.execPath, ['node_modules/@runeditrun/rer/bin/rer.mjs', 'demo'], { cwd: root, env, stdio: ['ignore', 'pipe', 'pipe'] });
@@ -48,7 +48,7 @@ test('disposable demo opens signed in, mocks effects and leaves owner state inta
       if (!output.includes('RER_READY ')) { const redaction = createRedaction(); redaction.addSecrets((await readFile(join(root, '.dev.vars'), 'utf8')).split('\n').map(line => line.slice(line.indexOf('=') + 1)).filter(Boolean)); t.diagnostic(redaction.redact(output).replace(/(?:RER_OPEN|RER_DEV_KEY|RER_LOCAL_CLI).*$/gm, '[private entry]')); }
       assert.ok(output.includes('RER_READY '), 'rer demo reached readiness; private output is never printed');
       const key = await readDevKey(root);
-      const context = await browser.newContext();
+      const context = await browser.newContext({ viewport: { width: 1440, height: 1000 } });
       await context.route(url => url.pathname.startsWith('/@fs/'), route => route.continue({ headers: { ...route.request().headers(), 'x-rer-dev-key': key } }));
       const page = await context.newPage();
       const browserErrors=[];

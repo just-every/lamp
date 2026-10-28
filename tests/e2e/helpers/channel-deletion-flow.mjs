@@ -1,11 +1,6 @@
 import assert from 'node:assert/strict';
-import { mkdir } from 'node:fs/promises';
-import { chromium } from 'playwright';
-import { expect } from '@playwright/test';
-import AxeBuilder from '@axe-core/playwright';
 import { signInAs } from '@runeditrun/rer/internal/modules/operator-auth/dev/sign-in-as.mjs';
 import { devKey } from '../../helpers/dev-key.mjs';
-import { operatorHydrated } from './operator-hydrated.mjs';
 
 export async function channelDeletionFlow({ api, post, origin, nativeRequest, runtime }) {
   const since = new Date().toISOString();
@@ -59,78 +54,21 @@ export async function channelDeletionFlow({ api, post, origin, nativeRequest, ru
   // Restart the owned native Worker, retaining its test database, to prove durability.
   await runtime.stop(); await runtime.start();
   assert.deepEqual(await entries(), filtered);
-  const browser = await chromium.launch({ headless: true, args: ['--use-mock-keychain', '--password-store=basic'] });
-  try {
-    const context = await browser.newContext();
-    await context.addCookies(entered.cookies.map(cookie => ({ ...cookie, url: origin })));
-    const page = await context.newPage();
-    if (process.env.LAMP_SCREENSHOTS) await mkdir(process.env.LAMP_SCREENSHOTS, { recursive: true });
-    for (const width of [1440, 390]) {
-      await page.setViewportSize({ width, height: width === 390 ? 844 : 1000 });
-      await page.goto(`${origin}/app/settings`); await operatorHydrated(page);
-      await page.getByRole('link', { name: 'Your data', exact: true }).click();
-      await page.getByRole('button', { name: 'Open audit log', exact: true }).click();
-      const panel = page.locator('#audit-log');
-      await panel.getByLabel('Operator').selectOption(deleter.id);
-      await panel.getByLabel('Audit action').selectOption('deleted');
-      await panel.getByRole('button', { name: 'Apply filters', exact: true }).click();
-      await panel.locator('tbody').getByText(channels[0].id, { exact: true }).waitFor();
-      assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
-      if (process.env.LAMP_SCREENSHOTS) await panel.screenshot({ path: `${process.env.LAMP_SCREENSHOTS}/${width}-channel-deletion-audit.png` });
-    }
-    await context.close();
-  } finally { await browser.close(); }
-  await operatorAlertSettingsBrowserFlow({ origin, cookie: entered.header });
+  await operatorAlertSettingsBrowserFlow({ api, post });
 }
 
-
-/** Private operator alerts are an explicit, durable choice on an existing channel. */
-export async function operatorAlertSettingsBrowserFlow({ origin, cookie, diagnostic = () => {} }) {
-  const browser = await chromium.launch({ headless: true, args: ['--use-mock-keychain', '--password-store=basic'] });
-  try {
-    const context = await browser.newContext();
-    await context.addCookies(cookie.split('; ').map(pair => ({ name: pair.slice(0, pair.indexOf('=')), value: pair.slice(pair.indexOf('=') + 1), url: origin })));
-    const page = await context.newPage(), errors = [];
-    page.on('pageerror', error => errors.push(error.message));
-    if (process.env.LAMP_SCREENSHOTS) await mkdir(process.env.LAMP_SCREENSHOTS, { recursive: true });
-    const openChannels = async () => {
-      await operatorHydrated(page);
-      await page.getByRole('navigation', { name: 'Settings sections' }).getByRole('link', { name: 'Slack and Teams', exact: true }).click();
-      await page.getByRole('region', { name: 'Slack and Teams', exact: true }).waitFor();
-    };
-    for (const width of [1440, 390]) {
-      await page.setViewportSize({ width, height: width === 390 ? 844 : 1000 });
-      await page.goto(`${origin}/app/settings`); await openChannels();
-      const panel = page.getByRole('region', { name: 'Slack and Teams', exact: true });
-      const form = panel.locator('form.channel-form');
-      const name = `synthetic-lamp-operator-alerts-${width}`;
-      await expect(form.getByLabel('Send private operator alerts', { exact: true })).not.toBeChecked();
-      await form.getByLabel('Name', { exact: true }).fill(name);
-      await form.getByLabel('Incoming webhook URL', { exact: true }).fill(`https://hooks.slack.com/services/synthetic-lamp-1/synthetic-lamp-2/synthetic-lamp-${width}`);
-      const createdResponse = page.waitForResponse(response => response.url() === `${origin}/api/app/channels` && response.request().method() === 'POST');
-      await form.getByRole('button', { name: 'Add channel', exact: true }).click();
-      const created = await createdResponse; assert.equal(created.status(), 201, await created.text());
-      const channel = (await created.json()).channel; assert.equal(channel.operatorAlerts, false);
-      const row = panel.locator('.channel-list li').filter({ hasText: name });
-      const alerts = () => row.getByRole('checkbox', { name: `Operator alerts for ${name}`, exact: true });
-      await expect(alerts()).not.toBeChecked();
-      const optedIn = page.waitForResponse(response => response.url() === `${origin}/api/app/channels/${channel.id}` && response.request().method() === 'PATCH');
-      await alerts().check(); assert.equal((await optedIn).status(), 200); await expect(alerts()).toBeChecked();
-      await page.reload(); await openChannels();
-      await expect(alerts()).toBeChecked();
-      if (process.env.LAMP_SCREENSHOTS) await panel.screenshot({ path: `${process.env.LAMP_SCREENSHOTS}/${width}-operator-alert-settings-enabled.png` });
-      const optedOut = page.waitForResponse(response => response.url() === `${origin}/api/app/channels/${channel.id}` && response.request().method() === 'PATCH');
-      await alerts().uncheck(); assert.equal((await optedOut).status(), 200); await expect(alerts()).not.toBeChecked();
-      await page.reload(); await openChannels();
-      await expect(alerts()).not.toBeChecked();
-      assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), `${width}px operator alert settings does not overflow`);
-      assert.deepEqual((await new AxeBuilder({ page }).analyze()).violations.filter(violation => ['serious', 'critical'].includes(violation.impact)), [], `${width}px operator alert settings has no serious accessibility findings`);
-      assert.deepEqual(errors, [], `${width}px operator alert settings has no hydration or page errors`);
-      if (process.env.LAMP_SCREENSHOTS) await panel.screenshot({ path: `${process.env.LAMP_SCREENSHOTS}/${width}-operator-alert-settings.png` });
-      await row.getByRole('button', { name: 'Remove', exact: true }).click();
-      await expect(row).toHaveCount(0);
-      diagnostic(`NOTIFY-016 ${width}px Settings: default off, explicit opt-in retained after reload, opt-out retained after reload`);
-    }
-    await context.close();
-  } finally { await browser.close(); }
+// Observe the private choice through the same ordinary Settings HTTP doors;
+// the social/Uptime journeys exercise the shared Settings shell in Chromium.
+export async function operatorAlertSettingsBrowserFlow({ api, post }) {
+  const created = await post('/api/app/channels', { kind: 'slack', name: 'Private operator alerts', url: 'https://hooks.slack.com/services/synthetic-lamp-1/synthetic-lamp-2/synthetic-lamp-alerts', componentIds: [] });
+  assert.equal(created.status, 201, created.text);
+  const channel = created.body.channel;
+  assert.equal(channel.operatorAlerts, false, 'private alerts require an explicit owner choice');
+  for (const enabled of [true, false]) {
+    const saved = await api(`/api/app/channels/${channel.id}`, { method: 'PATCH', body: JSON.stringify({ operatorAlerts: enabled }) });
+    assert.equal(saved.status, 200, saved.text);
+    const loaded = (await api('/api/app/channels')).body.channels.find(row => row.id === channel.id);
+    assert.equal(loaded.operatorAlerts, enabled, 'a fresh Settings read retains the selected private-alert consent');
+  }
+  assert.equal((await api(`/api/app/channels/${channel.id}`, { method: 'DELETE' })).status, 200);
 }

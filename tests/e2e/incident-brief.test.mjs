@@ -1,264 +1,94 @@
-import { execFileSync } from "node:child_process";
-import { recoveryCheckFlow } from "./helpers/recovery-check-flow.mjs";
+import assert from 'node:assert/strict';
+import { createHmac } from 'node:crypto';
 import { test } from 'node:test';
-import { requestHeaders } from "../helpers/request-headers.mjs";
-import assert from "node:assert/strict";
-import { createServer } from "node:http";
-import { after, before } from "node:test";
-import { writeFile } from "node:fs/promises";
-import { join } from "node:path";
+import { openStatusJourney } from './helpers/status-journey.mjs';
 
-import { contract } from "../contract.mjs";
-import { localWranglerConfig } from "../helpers/wrangler-config.mjs";
-import { withDraftVersion } from "./draft-version-helper.mjs";
-import { nativeRequest, openNativeRuntime, publicOrigin, origin, operator } from "../dev-ingress/runtime.mjs";
-import { devKey } from '../helpers/dev-key.mjs';
-import { signInAs } from '@runeditrun/rer/internal/modules/operator-auth/dev/sign-in-as.mjs';
+const aiEndpoint = 'https://ai.example.test/v1/chat/completions';
 
-// Every request opens its own connection; Wrangler CLI work can outlast an idle keep-alive socket.
-const nativeFetch = globalThis.fetch;
-globalThis.fetch = (input, init) => { const request = new Request(input, init); request.headers.set("connection", "close"); return nativeFetch(request, { referrer: request.referrer, referrerPolicy: request.referrerPolicy }); };
-
-const CANARY = "CANARY-INTERNAL-NOTE-7f3a2c";
-const INTERNAL_COMPONENT = "CANARY-INTERNAL-COMPONENT-91b";
-const datadog = {
-  down: { alert_id: "4401", alert_cycle_key: "brief-cycle-1", alert_transition: "Triggered", alert_title: "[Triggered] Checkout error rate", event_title: "Checkout error rate above 5%" },
-  up: { alert_id: "4401", alert_cycle_key: "brief-cycle-1", alert_transition: "Recovered", alert_title: "[Recovered] Checkout error rate" },
-};
-let cookie;
-let runtime;
-let provider;
-// The loopback receiver stands in for an OpenAI-compatible provider: it records
-// each request and answers with whatever the current test sets.
-const providerRequests = [];
-let answer = () => ({ status: 503, body: { error: "no answer set" } });
-
-async function api(path, init = {}) {
-  init = await withDraftVersion(path, init, (readPath) => nativeRequest(readPath, { cookie }));
-  const response = await nativeRequest(path, { cookie, ...init, headers: requestHeaders(init.body ? { "Content-Type": "application/json" } : {}, init.headers) });
-  const text = await response.text();
-  return { status: response.status, body: text ? JSON.parse(text) : null, text };
-}
-const post = (path, json) => api(path, { method: "POST", ...(json === undefined ? {} : { body: JSON.stringify(json) }) });
-const brief = async (incidentId) => (await api(`/api/app/incidents/${incidentId}/brief`)).body.brief;
-async function component(name, internal = false) { return (await post("/api/app/components", { groupId: null, name, description: "", internal, displayOrder: 0, note: "" })).body.component; }
-async function alertSource(name, componentId) {
-  const created = await post("/api/app/intake/sources", { name, preset: "datadog", componentId, credentialKind: "bearer-token" });
-  assert.equal(created.status, 201, created.text);
-  const { token, endpointUrl } = created.body.source;
-  return (payload) => fetch(endpointUrl, { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify(payload) });
-}
-function draft(overrides = {}) {
-  return { lifecycle: "Investigating", affectedAudience: "Shoppers paying by card.", customerImpact: "Some card payments fail at checkout.", whatStillWorks: "Browsing and carts work.", details: "", nextUpdateAt: new Date(Date.now() + 3_600_000).toISOString(), ...overrides };
-}
-
-before(async () => {
-  provider = createServer((request, response) => {
-    let body = "";
-    request.on("data", (chunk) => { body += chunk; });
-    request.on("end", async () => {
-      providerRequests.push(JSON.parse(body));
-      const { status, body: reply, delayMs = 0 } = answer(JSON.parse(body));
-      await new Promise((resolve) => setTimeout(resolve, delayMs));
-      if (!response.destroyed) response.writeHead(status, { "Content-Type": "application/json" }).end(JSON.stringify(reply));
-    });
-  });
-  await new Promise((resolve) => provider.listen(0, "127.0.0.1", resolve));
-  runtime = await openNativeRuntime();
-  const configPath = join(runtime.directory, "wrangler.json");
-  await writeFile(configPath, localWranglerConfig(config => ({
-    ...config, vars: { ...config.vars, AI_PROVIDER_URL: `http://127.0.0.1:${provider.address().port}/v1/chat/completions`, AI_PROVIDER_API_KEY: "brief-test-key", AI_PROVIDER_MODEL: "brief-test-model" },
-  })), { mode: 0o600 });
-  runtime.env.LAMP_WRANGLER_CONFIG = configPath;
-  await runtime.start();
-  await runtime.seedOperator();
-  cookie = (await signInAs({ origin, key: devKey })).header;
-  await fetch(`${publicOrigin}/`);
-});
-
-after(async () => {
-  await runtime?.close();
-  await new Promise((resolve) => provider?.close(resolve));
-});
-
-let alertIncident;
-
-test("AGENT-002 AGENT-004 DRAFT-004 DRAFT-002 DRAFT-001 — Private incident brief constrains AI suggestions without changing published state", async t => {
-  t.diagnostic("DRAFT-004 — an alert's draft shows a brief of what is known and what is not, with no internal note in it");
-  await (async () => {
-  const checkout = await component("Checkout");
-  const send = await alertSource("Datadog checkout", checkout.id);
-  const accepted = await send(datadog.down);
-  assert.equal(accepted.status, 202);
-  alertIncident = (await accepted.json()).incidentId;
-  assert.equal((await post(`/api/app/incidents/${alertIncident}/internal-notes`, { body: `On-call says ${CANARY}` })).status, 201);
-
-  const fresh = await brief(alertIncident);
-  assert.equal(fresh.whatWeKnow.alerts.length, 1);
-  assert.equal(fresh.whatWeKnow.alerts[0].source, "Datadog checkout", "the alert is listed with its source");
-  assert.equal(fresh.whatWeKnow.alerts[0].state, "firing");
-  assert.ok(Date.parse(fresh.whatWeKnow.alerts[0].receivedAt));
-  assert.deepEqual(fresh.whatWeKnow.components.map((item) => [item.name, item.state]), [["Checkout", "Major outage"]]);
-  assert.deepEqual(fresh.whatWeKnow.updates, []);
-  assert.deepEqual(fresh.whatWeDoNotKnowYet.map((item) => item.ref), ["Q-audience", "Q-impact", "Q-next-update", "Q-unpublished-alert"]);
-  const references = [...fresh.whatWeKnow.alerts, ...fresh.whatWeKnow.components, ...fresh.whatWeDoNotKnowYet].map((item) => item.ref);
-  assert.equal(new Set(references).size, references.length, "every item has its own reference");
-  assert.doesNotMatch(JSON.stringify(fresh), new RegExp(CANARY));
-
-  // A saved draft answers the audience, impact and next-update questions.
-  assert.equal((await api(`/api/app/incidents/${alertIncident}/draft`, { method: "PUT", body: JSON.stringify(draft()) })).status, 200);
-  assert.deepEqual((await brief(alertIncident)).whatWeDoNotKnowYet.map((item) => item.ref), ["Q-unpublished-alert"]);
-
-  // Published with a commitment already behind it: the update is known, and the
-  // monitor's recovery and the missed commitment are open questions.
-  assert.equal((await api(`/api/app/incidents/${alertIncident}/draft`, { method: "PUT", body: JSON.stringify(draft({ nextUpdateAt: new Date(Date.now() - 60_000).toISOString() })) })).status, 200);
-  assert.equal((await post(`/api/app/incidents/${alertIncident}/publish`, { channels: [] })).status, 200);
-  assert.equal((await send(datadog.up)).status, 202);
-  const published = await brief(alertIncident);
-  assert.equal(published.incident.lifecycle, "Investigating", "a recovery changes no lifecycle");
-  assert.deepEqual(published.whatWeKnow.updates.map((item) => [item.ref, item.lifecycle, item.customerImpact]), [["U1", "Investigating", "Some card payments fail at checkout."]]);
-  assert.deepEqual(published.whatWeKnow.alerts.map((item) => [item.ref, item.state]), [["A1", "firing"], ["A2", "recovered"]]);
-  assert.equal(published.whatWeKnow.alerts[0].ref, fresh.whatWeKnow.alerts[0].ref, "references stay stable as facts arrive");
-  assert.deepEqual(published.whatWeDoNotKnowYet.map((item) => item.ref), ["Q-recovery", "Q-overdue"]);
-  assert.doesNotMatch(JSON.stringify(published), new RegExp(CANARY));
-})(t);
-  t.diagnostic("DRAFT-002 — a suggestion request sends the incident brief unchanged and never an internal note or internal component");
-  await (async () => {
-  answer = reply(cited);
-  const mixed = await post("/api/app/incidents", { title: "Payments degraded", components: [
-    { componentId: (await component("Payments")).id, state: "Degraded performance", relationship: "Primary" },
-    { componentId: (await component(INTERNAL_COMPONENT, true)).id, state: "Major outage", relationship: "Dependent" },
-  ] });
-  assert.equal(mixed.status, 201, mixed.text);
-  const mixedBrief = await brief(mixed.body.incident.id);
-  assert.deepEqual(mixedBrief.whatWeKnow.components.map((item) => item.name), ["Payments"]);
-  assert.equal((await post(`/api/app/incidents/${mixed.body.incident.id}/ai-suggestion`)).status, 200);
-  assert.doesNotMatch(JSON.stringify(providerRequests.at(-1)), new RegExp(INTERNAL_COMPONENT));
-
-  const before = providerRequests.length;
-  const suggested = await post(`/api/app/incidents/${alertIncident}/ai-suggestion`);
-  assert.equal(suggested.status, 200, suggested.text);
-  assert.equal(providerRequests.length, before + 1);
-  const sent = providerRequests.at(-1);
-  assert.deepEqual(JSON.parse(sent.messages.find((message) => message.role === "user").content), await brief(alertIncident), "the operator's brief is exactly the model input");
-  assert.doesNotMatch(JSON.stringify(sent), new RegExp(CANARY));
-})(t);
-  t.diagnostic("DRAFT-001 — a suggestion keeps only references the brief contains, proposes no next-update time, and changes nothing public");
-  await (async () => {
-  answer = reply({ ...cited, nextUpdateAt: new Date(Date.now() + 600_000).toISOString(), lifecycle: "Resolved" });
-  const incidentBefore = (await api(`/api/app/incidents/${alertIncident}`)).body.incident;
-  const publicBefore = await surfaces();
-  const suggested = await post(`/api/app/incidents/${alertIncident}/ai-suggestion`);
-  assert.equal(suggested.status, 200, suggested.text);
-  const { suggestion, brief: used } = suggested.body;
-  assert.deepEqual(Object.keys(suggestion).sort(), ["affectedAudience", "customerImpact", "details", "whatStillWorks"], "no lifecycle and no next-update time");
-  assert.deepEqual(suggestion.affectedAudience, { text: "Shoppers paying by card.", sources: ["U1", "C1"] });
-  assert.deepEqual(suggestion.customerImpact.sources, [], "a reference the brief lacks, or an open question, is no source, so the field is unsourced");
-  assert.deepEqual(suggestion.whatStillWorks.sources, ["U1"]);
-  assert.deepEqual(used, await brief(alertIncident));
-  const incidentAfter = (await api(`/api/app/incidents/${alertIncident}`)).body.incident;
-  assert.equal(incidentAfter.lifecycle, incidentBefore.lifecycle);
-  assert.deepEqual(incidentAfter.updates, incidentBefore.updates);
-  assert.deepEqual(incidentAfter.draft, incidentBefore.draft, "the saved draft changes only when the operator edits it");
-  assert.deepEqual(await surfaces(), publicBefore, "page, feed and widget are byte-identical");
-})(t);
-  t.diagnostic("AGENT-002 — deterministic drafts cite changed evidence without a model or any public publication");
-  await (async () => {
-    const checkout = await component("Synthetic Lamp promised-update evidence");
-    const send = await alertSource("Synthetic Lamp promise source", checkout.id);
-    const accepted = await send(datadog.down);
-    assert.equal(accepted.status, 202);
+test('INTAKE-001 INTAKE-002 INTAKE-003 INTAKE-004 INTAKE-005 DRAFT-001 DRAFT-002 DRAFT-003 DRAFT-004 AGENT-002 AGENT-004 — authenticated alert to private evidence, cited suggestion and operator-approved recovery even when AI fails', async () => {
+  const requests = [];
+  let answer = () => Response.json({ error: 'Provider unavailable' }, { status: 503 });
+  const j = await openStatusJourney({ extraBindings: { AI_PROVIDER_URL: aiEndpoint, AI_PROVIDER_API_KEY: 'synthetic-lamp-ai-key', AI_PROVIDER_MODEL: 'synthetic-lamp-model' }, providerEdge: async request => {
+    if (request.url === aiEndpoint) { requests.push(await request.json()); return answer(); }
+  } });
+  try {
+    const component = await j.component('Checkout API');
+    const hidden = await j.component('PRIVATE internal service', { internal: true });
+    const source = (await j.json('/api/app/intake/sources', 'POST', {
+      name: 'Customer API alerts', credentialKind: 'hmac-sha256', signingSecret: 'synthetic-lamp-source-secret',
+      deduplicationPath: '$.alert.id', titlePath: '$.alert.title', statePath: '$.alert.state', recoveredValue: 'recovered', componentId: component.id,
+    }, 201)).source;
+    const alert = async payload => {
+      const body = JSON.stringify(payload), at = new Date().toISOString();
+      return j.raw(new URL(`/api/intake/${source.id}`, j.publicOrigin).href, { method: 'POST', headers: {
+        'Content-Type': 'application/json', 'x-lamp-timestamp': at,
+        'x-lamp-signature': createHmac('sha256', 'synthetic-lamp-source-secret').update(`${at}.${body}`).digest('base64url'),
+      }, body });
+    };
+    assert.equal((await j.raw(new URL(`/api/intake/${source.id}`, j.publicOrigin).href, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' })).status, 401);
+    const payload = { alert: { id: 'checkout-outage', title: 'PRIVATE monitor wording', state: 'firing' } };
+    const accepted = await alert(payload); assert.equal(accepted.status, 202);
     const id = (await accepted.json()).incidentId;
-    const commitment = Date.now() + 30 * 60_000;
-    assert.equal((await api(`/api/app/incidents/${id}/draft`, { method: "PUT", body: JSON.stringify(draft({ nextUpdateAt: new Date(commitment).toISOString() })) })).status, 200);
-    assert.equal((await post(`/api/app/incidents/${id}/publish`, { channels: [] })).status, 200);
-    assert.equal((await send(datadog.up)).status, 202);
-    const known = await brief(id);
-    const latest = known.whatWeKnow.updates.at(-1);
-    const changed = known.whatWeKnow.alerts.filter(item => Date.parse(item.receivedAt) > Date.parse(latest.publishedAt));
-    assert.ok(changed.length, "a real accepted recovery is newer than the last publication");
-    const modelRequestsBefore = providerRequests.length;
-    const subscriberQueue = () => {
-      const output = execFileSync('pnpm', ['exec', 'wrangler', 'd1', 'execute', 'DB', '--local', '--persist-to', runtime.state, '--config', runtime.env.LAMP_WRANGLER_CONFIG, '--json', '--command', "SELECT id,aggregate_id FROM notification_outbox WHERE kind='delivery-dispatch' ORDER BY id"], { env: runtime.env, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
-      return JSON.parse(output)[0].results;
-    };
-    const subscriberQueueBefore = subscriberQueue();
-    const publicBefore = await surfaces();
-    const updatesBefore = (await api(`/api/app/incidents/${id}`)).body.incident.updates;
-    const trigger = async () => {
-      const response = await fetch(`${publicOrigin.replace("localhost", "127.0.0.1")}/cdn-cgi/handler/scheduled?cron=${encodeURIComponent("* * * * *")}&time=${commitment - 10 * 60_000}`);
-      assert.equal(response.status, 200, await response.text());
-    };
-    await trigger();
-    const prepared = (await api(`/api/app/incidents/${id}`)).body.incident.draft;
-    assert.equal(prepared.customerImpact, latest.customerImpact);
-    assert.match(prepared.details, /Still working on it/);
-    assert.equal(prepared.nextUpdateAt, latest.nextUpdateAt);
-    assert.equal(prepared.agentPreparation.noEvidenceChange, false);
-    assert.deepEqual(prepared.agentPreparation.evidence.map(item => item.ref), changed.map(item => item.ref));
-    const refs = new Set([...known.whatWeKnow.alerts, ...known.whatWeKnow.updates, ...known.whatWeKnow.components].map(item => item.ref));
-    for (const ref of prepared.agentPreparation.citations) assert.ok(refs.has(ref));
-    for (const item of prepared.agentPreparation.evidence) {
-      assert.ok(item.text.includes("recovered"));
-      assert.ok(!item.text.includes(CANARY));
-    }
-    await trigger();
-    assert.deepEqual((await api(`/api/app/incidents/${id}`)).body.incident.draft, prepared, "the repeated trigger preserves the single saved draft");
-    assert.equal(providerRequests.length, modelRequestsBefore, "automatic preparation makes no model request");
-    assert.deepEqual(subscriberQueue(), subscriberQueueBefore, "automatic preparation queues no subscriber event");
-    assert.deepEqual((await api(`/api/app/incidents/${id}`)).body.incident.updates, updatesBefore, "preparation never publishes");
-    assert.deepEqual(await surfaces(), publicBefore, "preparation changes no public page, feed, API or widget bytes");
-  })();
-  t.diagnostic("AGENT-004 — pre-close evidence, hold, re-fire, grouped members and private audited override");
-  await recoveryCheckFlow({ api, post, component, alertSource, draft, origin, publicOrigin, devKey, cookie,
-    sql: command => execFileSync('pnpm', ['exec', 'wrangler', 'd1', 'execute', 'DB', '--local', '--persist-to', runtime.state, '--config', runtime.env.LAMP_WRANGLER_CONFIG, '--command', command], { env: runtime.env, stdio: 'pipe' }),
-  });
-});
-
-const reply = (fields) => () => ({ status: 200, body: { choices: [{ message: { content: JSON.stringify(fields) } }] } });
-const cited = {
-  affectedAudience: { text: "Shoppers paying by card.", sources: ["U1", "C1"] },
-  customerImpact: { text: "Card payments may fail at checkout.", sources: ["A99", "Q-recovery"] },
-  whatStillWorks: { text: "Browsing works.", sources: ["U1", "A99"] },
-  details: { text: "", sources: [] },
-};
-// What customers can see: the page, the feed, the widget's payload and script.
-const surfaces = async () => Promise.all(["/", "/feed.atom", "/api/public/status", "/widget.js"].map(async (path) => { const response = await fetch(`${publicOrigin}${path}`); return [path, response.status, Buffer.from(await response.arrayBuffer()).toString("base64")]; }));
-
-
-
-
-
-contract("DRAFT-003", "a failing or silent provider shows its error and publishing still works; with no provider there is no request and the brief remains", async () => {
-  const published = async (customerImpact) => {
-    const incident = await post("/api/app/incidents", { title: `Provider outage ${customerImpact}`, components: [{ componentId: (await component(`Search ${customerImpact}`)).id, state: "Degraded performance", relationship: "Primary" }] });
-    const id = incident.body.incident.id;
-    assert.equal((await api(`/api/app/incidents/${id}/draft`, { method: "PUT", body: JSON.stringify(draft({ customerImpact })) })).status, 200);
-    return id;
-  };
-  answer = () => ({ status: 500, body: { error: "provider down" } });
-  const failing = await published("errors");
-  const failed = await post(`/api/app/incidents/${failing}/ai-suggestion`);
-  assert.equal(failed.status, 502);
-  assert.match(failed.body.error, /returned 500/);
-  assert.equal((await post(`/api/app/incidents/${failing}/publish`, { channels: [] })).status, 200);
-
-  answer = () => ({ status: 200, delayMs: 21_000, body: { choices: [] } });
-  const silent = await published("silence");
-  const started = Date.now();
-  const late = await post(`/api/app/incidents/${silent}/ai-suggestion`);
-  assert.equal(late.status, 502);
-  assert.ok(typeof late.body.error === "string" && late.body.error.trim().length > 0);
-  assert.ok(Date.now() - started < 21_000);
-  assert.equal((await post(`/api/app/incidents/${silent}/publish`, { channels: [] })).status, 200);
-
-  // The same installation with no provider configured.
-  await runtime.stop();
-  await writeFile(runtime.env.LAMP_WRANGLER_CONFIG, localWranglerConfig(), { mode: 0o600 });
-  await runtime.start();
-  const before = providerRequests.length;
-  assert.equal((await api("/api/app/ai/status")).body.configured, false);
-  assert.equal((await post(`/api/app/incidents/${alertIncident}/ai-suggestion`)).status, 404);
-  assert.ok((await brief(alertIncident)).whatWeKnow.alerts.length, "the brief needs no provider");
-  assert.equal(providerRequests.length, before, "no outbound request");
+    const replay = await alert(payload); assert.equal(replay.status, 202); assert.equal((await replay.json()).incidentId, id);
+    const changed = await alert({ alert: { ...payload.alert, title: 'PRIVATE changed monitor wording' } });
+    assert.equal(changed.status, 202); assert.equal((await changed.json()).incidentId, id);
+    assert.equal((await alert({ alert: { title: 'Missing deduplication key', state: 'firing' } })).status, 400);
+    await j.json(`/api/app/incidents/${id}/components`, 'POST', { componentId: component.id, state: 'Major outage', relationship: 'Primary' }, 201);
+    await j.json(`/api/app/incidents/${id}/internal-notes`, 'POST', { body: 'PRIVATE responder investigation' }, 201);
+    await j.json(`/api/app/incidents/${id}/components`, 'POST', { componentId: hidden.id, state: 'Major outage', relationship: 'Dependent' }, 201);
+    const brief = async () => (await j.json(`/api/app/incidents/${id}/brief`)).brief;
+    const privateBrief = await brief();
+    assert.ok(privateBrief.whatWeKnow.alerts.some(row => row.source === source.name));
+    assert.ok(privateBrief.whatWeKnow.components.some(row => row.name === component.name));
+    assert.ok(!JSON.stringify(privateBrief).includes(hidden.name));
+    assert.ok(!JSON.stringify(privateBrief).includes('PRIVATE responder investigation'));
+    assert.equal((await j.read(id)).updates.length, 0);
+    for (const path of ['/', '/history', '/feed.atom', '/widget.js']) assert.ok(!(await j.publicText(path)).includes(payload.alert.title));
+    await j.save(id, { affectedAudience: 'Checkout customers', customerImpact: 'Some checkout requests fail.' });
+    const before = await j.read(id);
+    answer = () => Response.json({ choices: [{ message: { content: JSON.stringify({
+      affectedAudience: { text: 'Checkout customers', sources: ['C1'] },
+      customerImpact: { text: 'Some checkout requests fail.', sources: ['A999'] },
+      whatStillWorks: { text: 'Browsing remains available.', sources: ['C1'] }, details: { text: '', sources: [] },
+      lifecycle: 'Resolved', nextUpdateAt: '2099-01-01T00:00:00.000Z',
+    }) } }] });
+    const suggested = await j.json(`/api/app/incidents/${id}/ai-suggestion`, 'POST', {});
+    assert.deepEqual(JSON.parse(requests.at(-1).messages.find(row => row.role === 'user').content), suggested.brief);
+    assert.ok(!JSON.stringify(requests.at(-1)).includes('PRIVATE responder investigation'));
+    assert.ok(!JSON.stringify(requests.at(-1)).includes(hidden.name));
+    assert.equal(suggested.suggestion.affectedAudience.text, 'Checkout customers');
+    assert.deepEqual(suggested.suggestion.customerImpact.sources, []);
+    assert.ok(!('lifecycle' in suggested.suggestion) && !('nextUpdateAt' in suggested.suggestion));
+    assert.deepEqual((await j.read(id)).draft, before.draft);
+    assert.deepEqual((await j.read(id)).updates, before.updates);
+    await j.publish(id);
+    await j.visible(`/incidents/${before.reference}`, 'Some checkout requests fail.');
+    assert.equal((await alert({ alert: { ...payload.alert, state: 'recovered' } })).status, 202);
+    const recovery = (await j.json(`/api/app/incidents/${id}/recovery-check`)).recovery;
+    assert.equal(recovery.passed, false);
+    assert.ok(recovery.items.some(row => row.state === 'holding'));
+    assert.equal((await j.read(id)).lifecycle, 'Identified');
+    answer = () => Response.json({ error: 'Provider down' }, { status: 500 });
+    const failed = await j.api(`/api/app/incidents/${id}/ai-suggestion`, { method: 'POST', body: '{}' });
+    assert.equal(failed.status, 502); assert.ok(failed.body.error);
+    await j.save(id, { lifecycle: 'Resolved', customerImpact: 'Checkout has recovered.', nextUpdateAt: null });
+    await j.publish(id, {}, 409);
+    const reason = 'Operator verified customer checkout recovery';
+    const resolved = (await j.publish(id, { overrideReason: reason })).update;
+    assert.equal((await j.read(id)).lifecycle, 'Resolved');
+    const audit = await j.json('/api/app/audit-log?limit=100');
+    assert.ok(audit.entries.some(row => row.reason === reason && row.actorId && row.entityId === resolved.id), 'the publishing operator and incident are recorded with the private override reason');
+    assert.ok((await j.read(id)).internalNotes.some(row => row.body.includes(reason)));
+    assert.ok(!(await j.publicText(`/incidents/${before.reference}`)).includes(reason));
+    await j.visible(`/incidents/${before.reference}`, 'Checkout has recovered.');
+  } finally { await j.close(); }
+  const without = await openStatusJourney();
+  try {
+    const component = await without.component('Provider-free API');
+    const incident = await without.incident('Provider-free recovery', [component]);
+    assert.equal((await without.json('/api/app/ai/status')).configured, false);
+    await without.json(`/api/app/incidents/${incident.id}/ai-suggestion`, 'POST', {}, 404);
+    await without.save(incident.id); await without.publish(incident.id);
+    assert.ok((await without.json(`/api/app/incidents/${incident.id}/brief`)).brief);
+  } finally { await without.close(); }
 });

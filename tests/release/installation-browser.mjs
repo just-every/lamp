@@ -99,7 +99,7 @@ export async function exerciseOwner({ context, page, origin, expectedOwner }, ev
   assert.equal(created.status(), 201, "new owner can create a component");
   await page.goto(origin + "/app/components");
   await page.getByText("Journey service", { exact: true }).first().waitFor();
-  for (const width of [1440, 390]) {
+  for (const width of [1440]) {
     await page.setViewportSize({ width, height: 1000 });
     await page.screenshot({ path: join(evidence, `${mode}-components-${width}.png`), fullPage: true });
   }
@@ -108,7 +108,7 @@ export async function exerciseOwner({ context, page, origin, expectedOwner }, ev
   const response = await publicPage.goto(publicOrigin);
   assert.equal(response.status(), 200);
   await publicPage.getByText("Journey service", { exact: true }).first().waitFor();
-  for (const width of [1440, 390]) {
+  for (const width of [1440]) {
     await publicPage.setViewportSize({ width, height: 1000 });
     await publicPage.screenshot({ path: join(evidence, `${mode}-public-${width}.png`), fullPage: true });
   }

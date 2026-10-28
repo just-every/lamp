@@ -50,12 +50,12 @@ export async function selfServeChatFlow(t){
     const before=received.filter(x=>x.path===new URL(RECORDED_SLACK_WEBHOOK).pathname).length;
     await publish('Second publish after app uninstall.');
     assert.equal(received.filter(x=>x.path===new URL(RECORDED_SLACK_WEBHOOK).pathname).length,before,'uninstalled Slack receives no next publish');
-    await prepareSlackSubscription({componentId:component.id,publicOrigin,sql,widths:[1440]});
+    await prepareSlackSubscription({componentId:component.id,publicOrigin,sql});
     await removeSlackSubscription({publicOrigin,signingSecret,id,sql,eventType:'tokens_revoked'});
     const revokedCount=received.filter(x=>x.path===new URL(RECORDED_SLACK_WEBHOOK).pathname).length;
     await publish('Publish after Slack tokens were revoked.');
     assert.equal(received.filter(x=>x.path===new URL(RECORDED_SLACK_WEBHOOK).pathname).length,revokedCount,'revoked Slack receives no next publish before reinstalling');
-    await prepareSlackSubscription({componentId:component.id,publicOrigin,sql,widths:[1440]});
+    await prepareSlackSubscription({componentId:component.id,publicOrigin,sql});
     slackReply={status:400,body:'channel_is_archived'};
     await publish('Third publish to an archived channel.');
     const archiveState=await sql(`SELECT state,deactivation_reason FROM subscriber_directory AS subscribers WHERE id='${id}'`);
