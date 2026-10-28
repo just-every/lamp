@@ -20,6 +20,7 @@ async function initializeOwner({ request, origin, token, displayName, email, mai
   };
   const { operator } = await read('/api/app/session');
   assert.ok(operator?.id, 'The session must resolve the real native operator');
+  console.info('PASS LAMP-AGENT.owner.native-bootstrap');
   const page = await request(new URL('/api/app/page-settings', origin).href, { headers: { Origin: origin, Cookie: cookie } });
   if (page.status === 404) {
     await page.body?.cancel();
@@ -35,10 +36,12 @@ async function initializeOwner({ request, origin, token, displayName, email, mai
   });
   assert.equal(complete.status, 200, 'First-run uses the ordinary native component lifecycle');
   await complete.body?.cancel();
+  console.info('PASS LAMP-AGENT.owner.native-first-run');
   await prepareNativeFixtures({ request, origin, cookie, email, token, mail });
   const reviewer = await reviewers.initialize('independent', {cookie});
   const {nativeFixture} = await import('./fixture-state.mjs');
   nativeFixture().reviewer = reviewer;
+  console.info('PASS LAMP-AGENT.reviewer.independent-native-lifecycle');
   return bootstrap;
 }
 

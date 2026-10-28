@@ -532,7 +532,7 @@
       "executable": false
     },
     "docs/agents.md": {
-      "sha256": "96a53b29434d29327a7c0e423ad65ab3d042d526af91e793679d6964624f89f0",
+      "sha256": "d5fe3ffaaf0278746477c79dc568b68ab2e88e6fdbd5ccb24290969ebb3670b2",
       "executable": false
     },
     "docs/ai-assistance.md": {
@@ -7852,7 +7852,7 @@
       "executable": false
     },
     "tests/agent-door/owner.mjs": {
-      "sha256": "5b13c7c6c8e379e08fb57445d35158f589727093fc61f4c03860f3e217aef0e2",
+      "sha256": "8291361dae06eedb1c0ec52f018615587aeccb060ef78b5238ba0c05700c4e3d",
       "executable": false
     },
     "tests/agent-door/pending.mjs": {
@@ -7868,7 +7868,7 @@
       "executable": false
     },
     "tests/agent-door/reviewer.mjs": {
-      "sha256": "ce20369d685b7e3bcd8a52da8ef8e2128a744f235cf33318b1e3ec06478765e4",
+      "sha256": "4945c83663d0d8107be8b691c3c884d86839041fe68d73904ca0fd8cc2387b47",
       "executable": false
     },
     "tests/agent-door/specialist.mjs": {

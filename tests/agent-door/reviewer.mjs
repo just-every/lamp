@@ -18,5 +18,6 @@ export default async function reviewer({request, origin, email, owner, mail}) {
     body: JSON.stringify({token: new URL(link).searchParams.get('token')}),
   });
   assert.equal(confirmed.status, 303, 'The reviewer completes the ordinary one-use native invitation');
+  console.info('PASS LAMP-AGENT.reviewer.native-confirmation');
   return confirmed;
 }

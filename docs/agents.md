@@ -186,3 +186,7 @@ An uncertain provider attempt is never blindly resent.
 Shared spend caps are not enforced yet. A signed paired cap document can be adopted
 while Agents reports `not_enforced`; standalone cap saves refuse. Native provider
 limits remain authoritative.
+
+## Verification
+
+This edition pins the published rer 0.2.86 CLI. Normal `rer verify` exercises its installed conformance runner against a disposable production installation; the Verify build job uses the same entry point before the browser shards. Dated Base dependencies remain failing assertions, rather than skipped capabilities. Native delegated owner administration, current-time declarative fixtures, hosted public-origin access and queue-consumer proof still have explicit upstream dependencies. The native person screens remain authoritative for unsupported owner commands.
