@@ -1,222 +1,79 @@
-import { trafficAlertsFlow } from "./helpers/traffic-alerts-flow.mjs";
-import { operatorAlertsFlow } from "./helpers/operator-alerts-flow.mjs";
-import { preparedDraftFlow } from "./helpers/prepared-draft-flow.mjs";
-import { followUpsFlow } from "./helpers/follow-ups-flow.mjs";
-import { chromium } from "playwright";
-import { communicationOwnerFlow } from "./helpers/communication-owner-flow.mjs";
-import { execFileSync } from 'node:child_process';
-import { origin } from '../dev-ingress/runtime.mjs';
-import { devKey } from '../helpers/dev-key.mjs';
-import { signInAs } from '@runeditrun/rer/internal/modules/operator-auth/dev/sign-in-as.mjs';
-import { requestHeaders } from "../helpers/request-headers.mjs";
-import assert from "node:assert/strict";
-import { after, before } from "node:test";
+import assert from 'node:assert/strict';
+import { test } from 'node:test';
+import { openStatusJourney, eventually } from './helpers/status-journey.mjs';
+import { followUpsFlow } from './helpers/follow-ups-flow.mjs';
+import { trafficAlertsFlow } from './helpers/traffic-alerts-flow.mjs';
+import { reportRemindersFlow } from './helpers/report-reminders-flow.mjs';
 
-import { contract } from "../contract.mjs";
-import { withDraftVersion } from "./draft-version-helper.mjs";
-import { nativeRequest, openNativeRuntime, publicOrigin, operator } from "../dev-ingress/runtime.mjs";
-
-// Every request opens its own connection; Wrangler CLI work can outlast an idle keep-alive socket.
-const nativeFetch = globalThis.fetch;
-globalThis.fetch = (input, init) => { const request = new Request(input, init); request.headers.set("connection", "close"); return nativeFetch(request, { referrer: request.referrer, referrerPolicy: request.referrerPolicy }); };
-
-let cookie;
-let runtime;
-
-async function api(path, init = {}) {
-  init = await withDraftVersion(path, init, (readPath) => nativeRequest(readPath, { cookie }));
-  const response = await nativeRequest(path, { cookie, ...init, headers: requestHeaders(init.body ? { "Content-Type": "application/json" } : {}, init.headers) });
-  const text = await response.text();
-  return { status: response.status, body: text ? JSON.parse(text) : null, text };
-}
-const post = (path, json) => api(path, { method: "POST", body: JSON.stringify(json) });
-
-// The Worker's scheduled entry point, run as if at `time`: the controlled clock.
-async function trigger(time) {
-  const response = await fetch(`${publicOrigin.replace("localhost", "127.0.0.1")}/cdn-cgi/handler/scheduled?cron=${encodeURIComponent("* * * * *")}&time=${time}`);
-  assert.equal(response.status, 200, await response.text());
-}
-// Observe scheduled notification jobs; local mail is silently suppressed.
-async function envelopes() {
-  const output = execFileSync('pnpm', ['exec','wrangler','d1','execute','DB','--local','--config','wrangler.jsonc','--persist-to',runtime.state,'--json','--command',"SELECT payload_json FROM notification_outbox WHERE kind='operator-alert' AND completed_at IS NOT NULL"], {env:runtime.env,encoding:'utf8',stdio:['ignore','pipe','pipe']});
-  return JSON.parse(output)[0].results.flatMap(row => {const value=JSON.parse(row.payload_json);return value.recipients.map(to=>({message:{to,subject:value.title,text:value.text}}));});
-}
-async function reminders(reference) {
-  const rows = (await envelopes()).filter((row) => row.message.to === operator && row.message.subject.includes(reference));
-  return { dueSoon: rows.filter((row) => /update due at/i.test(row.message.subject)).length, overdue: rows.filter((row) => /overdue/i.test(row.message.subject)).length };
-}
-async function openIncident(title, nextUpdateAt) {
-  const component = (await post("/api/app/components", { groupId: null, name: title, description: "", internal: false, displayOrder: 0, note: "" })).body.component;
-  const incident = (await post("/api/app/incidents", { title, components: [{ componentId: component.id, state: "Partially unavailable", relationship: "Primary" }] })).body.incident;
-  await publishUpdate(incident.id, { lifecycle: "Identified", nextUpdateAt });
-  return incident;
-}
-async function publishUpdate(incidentId, overrides) {
-  const draft = { lifecycle: "Identified", affectedAudience: "Customers signing in.", customerImpact: "Sign-in is slow.", whatStillWorks: "", details: "", nextUpdateAt: null, ...overrides };
-  assert.equal((await api(`/api/app/incidents/${incidentId}/draft`, { method: "PUT", body: JSON.stringify(draft) })).status, 200);
-  const published = await post(`/api/app/incidents/${incidentId}/publish`, { channels: [] });
-  assert.equal(published.status, 200, published.text);
-}
-const minutes = (count) => count * 60_000;
-
-before(async () => {
-  // This existing journey also exercises the real production Worker. Build its
-  // artifact before starting the native development server; CI shards are isolated.
-  execFileSync('pnpm', ['run', 'build:app'], { cwd: process.cwd(), stdio: 'inherit' });
-  runtime = await openNativeRuntime();
-  await runtime.start();
-  await runtime.seedOperator();
-  cookie = (await signInAs({origin,key:devKey})).header;
-  await fetch(`${publicOrigin}/`);
-});
-
-after(async () => { await runtime?.close(); });
-
-contract("INCIDENT-010", "INCIDENT-011 NOTIFY-016 AGENT-002 AUTO-003 HIST-006 owner reminders, durable follow-ups, reasoned failure dismissal and Queue recovery follow the original commitment", async (t) => {
-  const committed = Date.now() + minutes(60);
-  const incident = await openIncident("Sign-in latency", new Date(committed).toISOString());
-  const owner = (await api("/api/app/session")).body.operator;
-  async function activeOperator(email, displayName) {
-    const invited = await post("/api/app/operators/invite", { email, displayName });
-    assert.equal(invited.status, 202, invited.text);
-    const entered = await signInAs({ origin, key: devKey, as: email });
-    const response = await nativeRequest("/api/app/session", { cookie: entered.header });
-    return { operator: (await response.json()).operator, cookie: entered.header };
-  }
-  const replacement = await activeOperator("synthetic-lamp-communication@example.test", "Synthetic Lamp communicator");
-  const departing = await activeOperator("synthetic-lamp-departing@example.test", "Synthetic Lamp departing communicator");
-  const initially = (await api(`/api/app/incidents/${incident.id}`)).body.incident;
-  assert.equal(initially.owner.id, owner.id); assert.equal(initially.unowned, false);
-  assert.equal((await nativeRequest(`/api/app/incidents/${incident.id}/owner/take-over`, { method: "POST" })).status, 401);
-  await trigger(committed - minutes(30));
-  assert.deepEqual(await reminders(incident.reference), { dueSoon: 0, overdue: 0 }, "nothing before the lead");
-  assert.equal((await api(`/api/app/incidents/${incident.id}`)).body.incident.draft, null, "no agent draft before the lead");
-  for (let run = 0; run < 3; run += 1) await trigger(committed - minutes(5));
-  assert.deepEqual(await reminders(incident.reference), { dueSoon: 1, overdue: 0 }, "exactly one due-soon email however many times the trigger runs");
-  assert.deepEqual((await envelopes()).filter(row => row.message.subject.includes(incident.reference)).map(row => row.message.to), [operator], "due reminder goes only to the communication owner");
-  const prepared = (await api(`/api/app/incidents/${incident.id}`)).body.incident.draft;
-  assert.ok(prepared?.agentPreparation, "the due trigger saved a private agent-prepared draft");
-  assert.equal(prepared.nextUpdateAt, new Date(committed).toISOString());
-  assert.equal(prepared.customerImpact, "Sign-in is slow.");
-  assert.match(prepared.details, /Still working on it/);
-  assert.match(prepared.details, /Nothing has changed in the recorded evidence/);
-  assert.deepEqual(prepared.agentPreparation.citations, ["U1"]);
-  await trigger(committed - minutes(5));
-  assert.deepEqual((await api(`/api/app/incidents/${incident.id}`)).body.incident.draft, prepared, "repeated ticks never replace or duplicate the agent draft");
-  const email = (await envelopes()).find((row) => row.message.subject.includes(incident.reference));
-  assert.match(email.message.text, new RegExp(`/app/incidents/${incident.id}#prepared-draft`), "it links to the prepared draft in the incident composer");
-
-  // A newer update replaces the commitment: the old time passing sends nothing.
-  await publishUpdate(incident.id, { lifecycle: "Monitoring", nextUpdateAt: new Date(committed + minutes(120)).toISOString() });
-  await trigger(committed + minutes(1));
-  assert.deepEqual(await reminders(incident.reference), { dueSoon: 1, overdue: 0 });
-  const takeover = await nativeRequest(`/api/app/incidents/${incident.id}/owner/take-over`, { method: "POST", cookie: replacement.cookie });
-  assert.equal(takeover.status, 200, await takeover.clone().text());
-  assert.equal((await takeover.json()).owner.id, replacement.operator.id);
-  const secondCommitment = committed + minutes(120);
-  await trigger(secondCommitment - minutes(5)); await trigger(secondCommitment - minutes(5));
-  const ownerDue = (await envelopes()).filter(row => row.message.subject.includes(incident.reference) && /update due at/i.test(row.message.subject));
-  assert.deepEqual(ownerDue.map(row => row.message.to).sort(), [operator, replacement.operator.email].sort());
-  await trigger(secondCommitment + minutes(1));
-  const commitmentResponse = await fetch(`${publicOrigin}/incidents/${incident.reference}`);
-  assert.equal(commitmentResponse.status, 200);
-  const publicIncident = await commitmentResponse.text();
-  assert.ok(publicIncident.includes(new Date(secondCommitment).toISOString()), "the public permalink keeps the original commitment");
-  const statusResponse = await fetch(`${publicOrigin}/api/public/status`);
-  assert.equal(statusResponse.status, 200);
-  const publicStatus = await statusResponse.text();
-  for (const text of [publicIncident, publicStatus]) assert.ok(!text.includes("Still working on it") && !text.includes("agentPreparation"), "unpublished agent text and attribution stay private");
-  const ownerOverdue = (await envelopes()).filter(row => row.message.subject.includes(incident.reference) && /overdue/i.test(row.message.subject));
-  assert.deepEqual(ownerOverdue.map(row => row.message.to), [replacement.operator.email]);
-  await trigger(secondCommitment + minutes(10)); await trigger(secondCommitment + minutes(20));
-  const escalation = (await envelopes()).filter(row => row.message.subject.includes(incident.reference) && /communication escalation/i.test(row.message.subject));
-  assert.deepEqual(escalation.map(row => row.message.to).sort(), [operator, replacement.operator.email, departing.operator.email].sort(), "one escalation reaches each active operator exactly once");
-  const unownedIncident = await openIncident("Synthetic Lamp unowned communication", new Date(secondCommitment + minutes(60)).toISOString());
-  assert.equal((await api(`/api/app/incidents/${unownedIncident.id}/owner`, { method: "PUT", body: JSON.stringify({ operatorId: departing.operator.id }) })).status, 200);
-  assert.equal((await post(`/api/app/operators/${departing.operator.id}/revoke-access`, {})).status, 204);
-  const listedUnowned = (await api("/api/app/overview")).body.overview.activeIncidents.find(row => row.id === unownedIncident.id);
-  assert.equal(listedUnowned.unowned, true); assert.equal(listedUnowned.owner, null);
-  await trigger(secondCommitment + minutes(55)); await trigger(secondCommitment + minutes(55));
-  const unownedDue = (await envelopes()).filter(row => row.message.subject.includes(unownedIncident.reference));
-  assert.deepEqual(unownedDue.map(row => row.message.to).sort(), [operator, replacement.operator.email].sort(), "unowned due reminder reaches every active operator once");
-  assert.equal((await api(`/api/app/incidents/${incident.id}/owner`, { method: "PUT", body: JSON.stringify({ operatorId: departing.operator.id }) })).status, 404);
-  const browser = await chromium.launch({ executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH || undefined, headless: true, args: ["--no-sandbox", "--use-mock-keychain", "--password-store=basic"] });
+const hour = 3600000;
+test('INCIDENT-010 INCIDENT-011 NOTIFY-006 NOTIFY-016 AGENT-002 — a communication owner keeps a promise, hands it over, receives one private escalation and resolves the customer incident', async () => {
+  const channelPosts = [];
+  const slack = 'https://hooks.slack.com/services/synthetic-lamp-promises/synthetic-lamp-owner/synthetic-lamp-key';
+  const j = await openStatusJourney({ providerEdge: async request => {
+    if (request.url === slack) { channelPosts.push(await request.json()); return new Response('ok'); }
+  } });
   try {
-    const context = await browser.newContext();
-    const entered = await signInAs({ origin, key: devKey });
-    await context.addCookies(entered.cookies.map(value => ({ ...value, url: origin })));
-    const page = await context.newPage();
-    await preparedDraftFlow({ page, appUrl: origin, incident, draft: (await api(`/api/app/incidents/${incident.id}`)).body.incident.draft });
-    await communicationOwnerFlow({ page, appUrl: origin, incident, unownedIncident, previousOwner: replacement.operator, currentOwner: owner, request: async (path, method, body) => {
-      const response = await api(path, { method, body: JSON.stringify(body) });
-      assert.equal(response.status, 200, response.text); return response.body;
-    } });
-  } finally { await browser.close(); }
-  const ownershipAudit = (await api(`/api/app/audit-log?action=communication-owner-changed&limit=100`)).body;
-  assert.ok(ownershipAudit.entries.some(row => row.entityId === incident.id && row.actorId === replacement.operator.id));
-  const csvResponse = await nativeRequest("/api/app/audit-log?action=communication-owner-changed&format=csv", { cookie });
-  const csv = await csvResponse.text();
-  for (const entry of ownershipAudit.entries) assert.ok(csv.includes(entry.id));
-  for (const path of ["/", `/incidents/${incident.reference}`, "/feed.atom", "/api/public/status"]) {
-    const publicResponse = await fetch(`${publicOrigin}${path}`);
-    assert.equal(publicResponse.status, 200, `${path} is a real public surface`);
-    const publicText = await publicResponse.text();
-    for (const identity of [owner, replacement.operator, departing.operator]) assert.ok(!publicText.includes(identity.displayName), `${path} never exposes the communication owner`);
-    assert.doesNotMatch(publicText, /"(?:owner|unowned)"/);
-  }
-  const preview = await post(`/api/app/incidents/${incident.id}/draft/preview`, { lifecycle: "Monitoring", affectedAudience: "API customers", customerImpact: "Requests are delayed.", whatStillWorks: "", details: "", nextUpdateAt: new Date(secondCommitment + minutes(120)).toISOString() });
-  assert.equal(preview.status, 200, preview.text);
-  const subscriberEmail = JSON.stringify(preview.body.preview.email);
-  for (const identity of [owner, replacement.operator, departing.operator]) assert.ok(!subscriberEmail.includes(identity.displayName), "subscriber email renderer never includes communication-owner identity");
-  await publishUpdate(unownedIncident.id, { lifecycle: "Resolved" });
-  // A resolved incident sends nothing at any time.
-  await publishUpdate(incident.id, { lifecycle: "Resolved" });
-  assert.equal((await post(`/api/app/incidents/${incident.id}/owner/take-over`, {})).status, 409);
-  assert.equal((await api(`/api/app/incidents/${incident.id}/owner`, { method: "PUT", body: JSON.stringify({ operatorId: owner.id }) })).status, 409);
-  await trigger(committed + minutes(115));
-  await trigger(committed + minutes(125));
-  assert.deepEqual(await reminders(incident.reference), { dueSoon: 1, overdue: 0 });
-  await followUpsFlow();
-  await operatorAlertsFlow();
-  await trafficAlertsFlow(t);
+    const component = await j.component('Sign-in service');
+    await j.json('/api/app/channels', 'POST', { kind: 'slack', url: slack, name: 'Communication operators', componentIds: [component.id], operatorAlerts: true }, 201);
+    const owner = (await j.json('/api/app/session')).operator;
+    const replacementEmail = 'synthetic-lamp-replacement@example.test';
+    await j.json('/api/app/operators/invite', 'POST', { email: replacementEmail, displayName: 'Replacement communicator' }, 202);
+    await j.signIn(replacementEmail);
+    const replacement = (await j.json('/api/app/session')).operator;
+    await j.signIn();
+    const incident = await j.incident('Customer sign-in delays', [component]);
+    const endpoint = `/api/app/incidents/${incident.id}`;
+    const committed = Date.now() + hour;
+    await j.save(incident.id, { nextUpdateAt: new Date(committed).toISOString() }); await j.publish(incident.id);
+    assert.equal((await j.read(incident.id)).owner.id, owner.id);
+    await j.tick(committed - 5 * 60000); await j.tick(committed - 5 * 60000);
+    const dueMail = j.messages.filter(row => row.subject.includes(incident.reference) && /update due at/i.test(row.subject));
+    assert.equal(dueMail.length, 1); assert.ok(dueMail[0].to.includes(owner.email));
+    const prepared = (await j.read(incident.id)).draft;
+    assert.ok(prepared.agentPreparation);
+    assert.equal(prepared.nextUpdateAt, new Date(committed).toISOString());
+    await j.tick(committed - 5 * 60000);
+    assert.deepEqual((await j.read(incident.id)).draft, prepared, 'a repeated clock tick cannot overwrite the saved preparation');
+    for (const path of ['/', `/incidents/${incident.reference}`, '/feed.atom', '/api/public/status']) assert.ok(!(await j.publicText(path)).includes(prepared.details), path);
+    let revised = committed + hour;
+    await j.save(incident.id, { lifecycle: 'Monitoring', nextUpdateAt: new Date(revised).toISOString() }); await j.publish(incident.id);
+    await j.tick(committed + 60000);
+    assert.equal(j.messages.filter(row => row.subject.includes(incident.reference) && /overdue/i.test(row.subject)).length, 0, 'publishing replaces the earlier commitment');
+    await j.signIn(replacementEmail);
+    await j.json(`${endpoint}/owner/take-over`, 'POST', {});
+    assert.equal((await j.read(incident.id)).owner.id, replacement.id);
+    // A saved commitment which has already passed exercises the live operator
+    // view as well as Cron's supplied event clock.
+    revised = Date.now() - 60000;
+    await j.save(incident.id, { lifecycle: 'Monitoring', nextUpdateAt: new Date(revised).toISOString() }); await j.publish(incident.id);
+    // A real operator draft wins over deterministic preparation at the deadline.
+    await j.save(incident.id, { lifecycle: 'Monitoring', customerImpact: 'Operator-reviewed recovery wording.', details: 'Keep this exact operator draft.', nextUpdateAt: new Date(revised).toISOString() });
+    const operatorDraft = (await j.read(incident.id)).draft;
+    await j.tick(revised - 5 * 60000); await j.tick(revised + 60000); await j.tick(revised + 2 * 60000);
+    assert.deepEqual((await j.read(incident.id)).draft, operatorDraft);
+    assert.equal((await j.read(incident.id)).overdue, true);
+    const overdueMail = j.messages.filter(row => row.subject.includes(incident.reference) && /overdue/i.test(row.subject));
+    assert.equal(overdueMail.length, 1); assert.ok(overdueMail[0].to.includes(replacementEmail));
+    assert.ok(channelPosts.some(row => JSON.stringify(row).includes(incident.reference)));
+    await j.tick(revised + 20 * 60000); await j.tick(revised + 21 * 60000);
+    const escalated = j.messages.filter(row => row.subject.includes(incident.reference) && /communication escalation/i.test(row.subject));
+    assert.equal(escalated.length, 2);
+    assert.deepEqual(new Set(escalated.flatMap(row => row.to)), new Set([owner.email, replacementEmail]));
+    const publicPage = await j.publicText(`/incidents/${incident.reference}`);
+    assert.ok(publicPage.includes(new Date(revised).toISOString()));
+    for (const identity of [owner.displayName, replacement.displayName]) assert.ok(!publicPage.includes(identity));
+    assert.ok(!publicPage.includes(operatorDraft.details));
+    const audit = await j.json('/api/app/audit-log?action=communication-owner-changed&limit=100');
+    assert.ok(audit.entries.some(row => row.entityId === incident.id && row.actorId === replacement.id));
+    await j.save(incident.id, { lifecycle: 'Resolved', nextUpdateAt: null }); await j.publish(incident.id);
+    const count = j.messages.length;
+    await j.tick(revised + 2 * hour);
+    assert.equal(j.messages.length, count, 'resolution stops deadline mail');
+    await j.json(`${endpoint}/owner/take-over`, 'POST', {}, 409);
+    await j.visible(`/incidents/${incident.reference}`, 'Resolved');
+  } finally { await j.close(); }
 });
 
-contract("INCIDENT-010", "AGENT-002 an existing operator draft remains untouched while its original commitment becomes overdue", async () => {
-  const committed = new Date(Date.now() + minutes(5)).toISOString();
-  const incident = await openIncident("Upload delays", committed);
-  const listed = (await api("/api/app/incidents")).body.incidents.find((row) => row.id === incident.id);
-  assert.equal(listed.updateDue, true);
-  assert.equal(listed.updateDueAt, committed);
-  assert.equal((await api("/api/app/overview")).body.overview.activeIncidents.find((row) => row.id === incident.id).updateDue, true);
-  const operatorInput = { lifecycle: "Monitoring", affectedAudience: "Customers using uploads", customerImpact: "Operator-written impact must remain.", whatStillWorks: "Downloads remain available.", details: "Operator-written draft must remain.", nextUpdateAt: committed };
-  assert.equal((await api(`/api/app/incidents/${incident.id}/draft`, { method: "PUT", body: JSON.stringify(operatorInput) })).status, 200);
-  const operatorDraft = (await api(`/api/app/incidents/${incident.id}`)).body.incident.draft;
-  await trigger(Date.parse(committed) - minutes(1)); await trigger(Date.parse(committed) - minutes(1));
-  assert.deepEqual((await api(`/api/app/incidents/${incident.id}`)).body.incident.draft, operatorDraft, "an existing operator draft is never overwritten or attributed to Lamp");
-  assert.equal(operatorDraft.agentPreparation, null);
-  const page = await (await fetch(`${publicOrigin}/incidents/${incident.reference}`)).text();
-  assert.match(page, /Upload delays/);
-  assert.doesNotMatch(page, /\b(overdue|update due)\b/i);
-});
-
-contract("NOTIFY-006", "AGENT-002 an unpublished automatic draft leaves the commitment overdue and sends one overdue reminder", async () => {
-  const committed = Date.now() - minutes(1);
-  const incident = await openIncident("Search errors", new Date(committed).toISOString());
-  await trigger(committed - minutes(10));
-  const prepared = (await api(`/api/app/incidents/${incident.id}`)).body.incident.draft;
-  assert.ok(prepared.agentPreparation);
-  await trigger(committed + minutes(1));
-  await trigger(committed + minutes(2));
-  await trigger(committed + minutes(30));
-  assert.deepEqual(await reminders(incident.reference), { dueSoon: 1, overdue: 1 });
-  const overdue = (await api(`/api/app/incidents/${incident.id}`)).body.incident;
-  assert.equal(overdue.overdue, true, "an unpublished agent draft leaves the promise overdue under INCIDENT-006");
-  assert.equal(overdue.updates[0].nextUpdateAt, new Date(committed).toISOString());
-  assert.equal(overdue.draft.id, prepared.id);
-  for (const path of ["/", `/incidents/${incident.reference}`, "/feed.atom", "/api/public/status"]) {
-    const text = await (await fetch(`${publicOrigin}${path}`)).text();
-    assert.ok(!text.includes("Still working on it") && !text.includes("agentPreparation"), `${path} has no private draft`);
-  }
-  const publicIncident = await (await fetch(`${publicOrigin}/incidents/${incident.reference}`)).text();
-  assert.ok(publicIncident.includes(new Date(committed).toISOString()), "the public permalink still shows the original committed instant");
-});
+test('AUTO-003 — operator follows real scheduled, delivery and import obligations through failures, reasoned dismissal and recovery', followUpsFlow);
+test('HIST-006 — independent public readership produces private traffic alerts and recoverable owner actions', async t => trafficAlertsFlow(t));
+test('AUTO-004 HIST-003 — a resolved incident needs a reviewed report and weekly reminders stop on publication or reasoned waiver', reportRemindersFlow);

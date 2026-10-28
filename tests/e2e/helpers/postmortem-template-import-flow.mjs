@@ -40,7 +40,8 @@ export function assertContinuityCounts(report) {
   assert.equal(report.counts.template.imported + report.counts.template.changed, 3);
 }
 
-export async function postmortemTemplateImportFlow({ api, request, importAll, moveIn, original, publicOrigin, preserveEdits = false }) {
+export async function postmortemTemplateImportFlow({ api, request, importAll, moveIn, original, publicOrigin, preserveEdits = false, fetcher = globalThis.fetch }) {
+  const fetch = fetcher;
   const files = continuityFiles(original, { oversized: preserveEdits });
   const templatesBefore = (await api("/api/app/incident-templates")).body.templates.length;
   const preview = await moveIn.preview({ files });

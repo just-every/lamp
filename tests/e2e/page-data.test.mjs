@@ -1,18 +1,19 @@
 import assert from "node:assert/strict";
-import { execFileSync, spawn } from "node:child_process";
-import { mkdtemp, rm } from "node:fs/promises";
+import { mkdtemp, readdir, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join, resolve } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import { test } from "node:test";
-import { fileURLToPath } from "node:url";
+import { createRequire } from "node:module";
+import { unstable_getMiniflareWorkerOptions } from "wrangler";
+import { migrate, executeSql } from "../reference-storage/runtime.mjs";
+import { secret } from "../auth-adoption/runtime.mjs";
+
+const require = createRequire(import.meta.url), workerRequire = createRequire(require.resolve("wrangler"));
+const { Miniflare, convertV4MiniflareOptions } = workerRequire("miniflare");
 
 import { legacyApiFixtureSql } from "./fixtures/legacy-api-fixture.mjs";
-import { insertRealOperatorSession } from "./real-session-helper.mjs";
-import { appOrigin, pageOrigin } from "./helpers/hosts.mjs";
-import { waitForWorker } from "./worker-startup.mjs";
-import { stopOwnedGroup } from "./owned-process-group.mjs";
+import { reservePort } from "./worker-startup.mjs";
 import { fixtureFetch as fetch } from "../public-snapshots/fixture-fetch.mjs";
-import { sessionCookieName } from "../helpers/session-cookie.mjs";
 
 const logo = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Y9Jm4kAAAAASUVORK5CYII=", "base64");
 
@@ -35,45 +36,61 @@ INSERT INTO reference_counters (namespace,last_number) VALUES ('INC',4821) ON CO
 const signingSecret = { SUBSCRIBER_TOKEN_SECRET: "test-only-page-data-subscriber-secret-cccccccccccc" };
 
 async function startPage(seedSql, vars = signingSecret) {
-  appOrigin(0, vars);
-  const state = await mkdtemp(join(tmpdir(), "lamp-page-data-d1-"));
-  const cache = await mkdtemp(join(tmpdir(), "lamp-page-data-vite-"));
-  let server;
-  const stop = async () => {
-    await stopOwnedGroup(server);
-    await Promise.all([rm(state, { recursive: true, force: true }), rm(cache, { recursive: true, force: true })]);
-  };
+  const port = await reservePort({ label: "page data Worker" });
+  const app = `http://127.0.0.1:${port}`, page = `http://localhost:${port}`;
+  const state = await mkdtemp(join(tmpdir(), "lamp-page-data-"));
+  const options = unstable_getMiniflareWorkerOptions(resolve("dist/server/wrangler.json"));
+  const { modulesRules, ...workerOptions } = options.workerOptions;
+  async function moduleFiles(directory) {
+    const files = [];
+    for (const entry of await readdir(directory, { withFileTypes: true })) {
+      const path = join(directory, entry.name);
+      if (entry.isDirectory()) files.push(...await moduleFiles(path));
+      else if (/\.(?:js|mjs|txt|html|sql|bin|wasm)$/.test(path)) files.push({ type: /\.(?:js|mjs)$/.test(path) ? 'ESModule' : /\.(?:txt|html|sql)$/.test(path) ? 'Text' : path.endsWith('.bin') ? 'Data' : 'CompiledWasm', path });
+    }
+    return files;
+  }
+  const modules = await moduleFiles(dirname(options.main));
+  modules.sort((a, b) => a.path === options.main ? -1 : b.path === options.main ? 1 : a.path.localeCompare(b.path));
+  const messages = [];
+  let runtime;
+  const stop = async () => { await runtime?.dispose(); await rm(state, { recursive: true, force: true }); };
   try {
-    execFileSync("pnpm", ["run", "migrate:local"], { stdio: "pipe", env: { ...process.env, LAMP_WORKERS_STATE_PATH: state } });
-    if (seedSql) execFileSync("pnpm", ["exec", "wrangler", "d1", "execute", "DB", "--local", "--config", resolve("wrangler.jsonc"), "--persist-to", state, "--command", seedSql], { stdio: "pipe" });
-    server = spawn(process.execPath, [fileURLToPath(new URL("./page-data-runtime.mjs", import.meta.url)), JSON.stringify(vars)], {
-      stdio: "pipe",
-      detached: true,
-      env: { ...process.env, LAMP_DISABLE_INSPECTOR: "true", LAMP_WORKERS_STATE_PATH: state, LAMP_VITE_CACHE_DIR: cache },
-    });
-    let output = "";
-    let app;
-    const capture = (chunk) => {
-      output += String(chunk);
-      app = output.match(/^LAMP_PAGE_DATA_ORIGIN=(http:\/\/127\.0\.0\.1:\d+)\r?$/m)?.[1];
-    };
-    server.stdout.on("data", capture);
-    server.stderr.on("data", capture);
-    await waitForWorker({ child: server, output: () => output, label: "Page data Worker", isListening: () => Boolean(app), probe: ({ signal }) => fetch(`${app}/health`, { signal }) });
-    const port = new URL(app).port;
-    appOrigin(port, { ...vars, ...(vars.RER_DEV_KEY ? { RER_DEV_ORIGIN: app } : {}) });
-    const session = await insertRealOperatorSession({ persistTo: state });
-    const cookie = `${sessionCookieName(app)}=${session}`;
+    runtime = new Miniflare(convertV4MiniflareOptions({ port, inspectorPort: 0, resourcePersistencePath: state, workers: [{
+      ...workerOptions, modules, modulesRoot: dirname(options.main),
+      bindings: { ...workerOptions.bindings, LAMP_APP_HOST: '127.0.0.1', LAMP_PAGE_HOST: 'localhost', LAMP_LOCAL_ORIGIN: app,
+        AUTH_ORIGIN: app, AUTH_LOCAL: 'true', SESSION_SECRET: secret, SETUP_OPERATOR_EMAIL: 'operator@example.test',
+        MAIL_PROVIDER: 'resend', MAIL_FROM_ADDRESS: 'lamp@example.test', MAIL_PROVIDER_API_KEY: 'synthetic-page-data-mail-key', ...vars },
+      // Production mail adapter and HTTP envelope; only its provider edge is synthetic.
+      outboundService: async request => {
+        const url = new URL(request.url);
+        assert.equal(url.origin + url.pathname, 'https://api.resend.com/emails', 'confirmation mail uses the configured provider');
+        messages.push(await request.json());
+        return Response.json({ id: `synthetic-page-data-receipt-${messages.length}` });
+      },
+    }, ...options.externalWorkers] }));
+    const { DB: db } = await runtime.getBindings();
+    await migrate(db);
+    if (seedSql) await executeSql(db, seedSql);
+    await executeSql(db, `INSERT INTO oa_operators(id,email,display_name,role,status,created_at) VALUES ('01J00000000000000000000001','operator@example.test','Contract Operator','owner','active',${Date.now()});
+      INSERT INTO oa_bootstrap(singleton,claim_id,claimed_at) VALUES(1,'01J00000000000000000000001',${Date.now()}) ON CONFLICT DO NOTHING;
+      INSERT INTO page_settings(id,page_name,tagline,accent_color,timezone,hostname,footer_credit_enabled,mail_from_address,feed_id,created_at,updated_at) VALUES ('default','Atlas Cloud Status','Current availability and incident communications for Atlas Cloud.','#16794C','America/Los_Angeles','status.atlascloud.example',1,'lamp@localhost.invalid','test-feed-identity-00000000000001','2026-08-31','2026-08-31') ON CONFLICT(id) DO NOTHING;
+      INSERT OR IGNORE INTO setup_readiness(step,evidence_key,checked_at) VALUES('first-run','complete','2026-08-31');`);
+    const requested = await fetch(`${app}/auth/magic-link`, { ...json({ email: 'operator@example.test' }), headers: { ...json({}).headers, Origin: app } });
+    assert.equal(requested.status, 202, await requested.clone().text());
+    const invitation = messages.find(message => message.to.includes('operator@example.test'));
+    assert.ok(invitation, 'the real mail adapter delivers the owner sign-in link');
+    const token = new URL(invitation.text.match(/https?:\/\/[^\s]+/)[0]).searchParams.get('token');
+    const confirmed = await fetch(`${app}/auth/confirm`, { ...json({ token }), redirect: 'manual', headers: { ...json({}).headers, Origin: app } });
+    assert.equal(confirmed.status, 303, await confirmed.clone().text());
+    const cookie = confirmed.headers.get('set-cookie').split(';')[0];
     return {
-      page: pageOrigin(port),
-      subscribers: () => JSON.parse(execFileSync("pnpm", ["exec", "wrangler", "d1", "execute", "DB", "--local", "--json", "--config", resolve("wrangler.jsonc"), "--persist-to", state, "--command", "SELECT destination, state, deactivation_reason FROM subscribers ORDER BY destination"], { stdio: "pipe" }).toString())[0].results,
-      request: (path, init = {}) => fetch(`${app}${path}`, { ...init, headers: { Cookie: cookie, Origin: app, ...init.headers } }),
+      page, messages,
+      subscribers: async () => (await db.prepare("SELECT destination, state, deactivation_reason FROM subscribers ORDER BY destination").all()).results,
+      request: (path, init = {}) => fetch(`${app}${path}`, { ...init, headers: { Cookie: cookie, Origin: app, Connection: "close", ...init.headers } }),
       stop,
     };
-  } catch (cause) {
-    await stop();
-    throw cause;
-  }
+  } catch (cause) { await stop(); throw cause; }
 }
 
 const json = (body) => ({ method: "POST", body: JSON.stringify(body), headers: { "Content-Type": "application/json", Accept: "application/json" } });
@@ -164,8 +181,8 @@ async function verifyUntrustedPageDataRestore() {
   }
   edited.records.subscribers.push({ ...edited.records.subscribers.find((row) => row.destination === "ops-team@atlascloud.example"), id: "01J00000000000000000000098", destination: "bought-list@example.test", confirmed_at: "2026-09-08T00:05:00.000Z" });
 
-  // Local mail lets the owner's send complete; it delivers nothing.
-  const destination = await startPage(null, { ...signingSecret, RER_DEV_KEY: "test-only-page-data-dev-key-dddddddddddd" });
+  // The restored page sends real production mail through a synthetic provider edge.
+  const destination = await startPage();
   try {
     const { integrity: _integrity, ...unsigned } = edited;
     assert.equal((await (await destination.request("/api/app/page-data/check", json(unsigned))).json()).check.consent.provenance, "unsigned");
@@ -173,16 +190,23 @@ async function verifyUntrustedPageDataRestore() {
     assert.deepEqual(checked.check.consent, { kept: false, provenance: "unverified", emailSubscribers: 2 });
     assert.equal((await destination.request("/api/app/page-data/restore", json(edited))).status, 200);
     const held = "held for page data confirmation";
-    assert.deepEqual(destination.subscribers(), [
+    assert.deepEqual(await destination.subscribers(), [
       { destination: "bought-list@example.test", state: "deactivated", deactivation_reason: held },
       { destination: "https://status-receiver.atlascloud.example/events", state: "active", deactivation_reason: null },
       { destination: "ops-team@atlascloud.example", state: "deactivated", deactivation_reason: held },
     ]);
     assert.equal((await (await destination.request("/api/app/page-data/confirmations")).json()).confirmations.held, 2);
 
-    const sent = await (await destination.request("/api/app/page-data/confirmations", { method: "POST", headers: { Accept: "application/json" } })).json();
+    const send = await destination.request("/api/app/page-data/confirmations", { method: "POST", headers: { Accept: "application/json" } });
+    assert.equal(send.status, 200, await send.clone().text());
+    const sent = await send.json();
     assert.deepEqual(sent.confirmations, { sent: 2, held: 0, deleteAfter: null });
-    assert.deepEqual(destination.subscribers().map((row) => row.state), ["pending", "active", "pending"], "a confirmation starts each address's pending window");
+    for (const address of ["bought-list@example.test", "ops-team@atlascloud.example"]) {
+      const confirmation = destination.messages.filter(message => message.to.includes(address));
+      assert.equal(confirmation.length, 1, "each held address receives one confirmation");
+      assert.match(confirmation[0].text, /\/confirm-subscription\//);
+    }
+    assert.deepEqual((await destination.subscribers()).map((row) => row.state), ["pending", "active", "pending"], "a confirmation starts each address's pending window");
   } finally {
     await destination.stop();
   }

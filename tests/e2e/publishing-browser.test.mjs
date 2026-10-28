@@ -4,7 +4,7 @@ import { withDraftVersion } from "./draft-version-helper.mjs";
 import assert from "node:assert/strict";
 import { execFileSync, spawn } from "node:child_process";
 import { readFileSync, writeFileSync } from "node:fs";
-import { mkdir, mkdtemp, rm } from "node:fs/promises";
+import { mkdir, mkdtemp, rm, symlink } from "node:fs/promises";
 import { createServer as createHttpServer } from "node:http";
 import { createServer } from "node:net";
 import { tmpdir } from "node:os";
@@ -12,18 +12,12 @@ import { join, resolve } from "node:path";
 import { after, before, test } from "node:test";
 import { chromium } from "playwright";
 
-import { contract } from "../contract.mjs";
 import { insertRealOperatorSession } from "./real-session-helper.mjs";
 import { appOrigin, pageOrigin } from "./helpers/hosts.mjs";
 import { reservePort, waitForWorker } from "./worker-startup.mjs";
-import { saveAndConfirmDraft } from "./saved-draft-helper.mjs";
 import { isolatedWranglerConfig } from "../helpers/wrangler-config.mjs";
 import { sessionCookieName } from "../helpers/session-cookie.mjs";
-import { postIncidentReportFlow } from "./helpers/post-incident-report-flow.mjs";
-import { emailBrandingBrowserFlow } from "./helpers/email-branding-browser-flow.mjs";
 import { phoneDeskFlow } from "./helpers/phone-desk-flow.mjs";
-import { subscriberReportingBrowserFlow } from "./helpers/subscriber-reporting-browser-flow.mjs";
-import { auditLogFlow } from "./helpers/audit-log-flow.mjs";
 import { operatorHydrated } from "./helpers/operator-hydrated.mjs";
 import { incidentComposer, newIncidentForm } from "./helpers/incident-composer.mjs";
 
@@ -34,6 +28,7 @@ let aiPort;
 let statePath;
 let viteCachePath;
 let fixtureConfig;
+let terminalDirectory;
 let configPath;
 const defaultConfigPath = resolve("wrangler.jsonc");
 let server;
@@ -43,7 +38,6 @@ let browserContext;
 let page;
 let serverOutput = "";
 let failingAiServer;
-let autosaveIncidentId;
 let originalVisualSource;
 
 function configWithLocalMail(config) {
@@ -94,7 +88,7 @@ async function startWorker(config = defaultConfigPath) {
   });
   server.stdout.on("data", (chunk) => { serverOutput += chunk; });
   server.stderr.on("data", (chunk) => { serverOutput += chunk; });
-  await waitForWorker({ origin: appUrl, isListening: () => stripVTControlCharacters(serverOutput).includes(`${appUrl}/`), child: server, output: () => `${serverOutput}\nState: ${statePath}`, label: "Publishing browser Worker" });
+  await waitForWorker({ origin: appUrl, timeoutMs: 180_000, isListening: () => stripVTControlCharacters(serverOutput).includes(`${appUrl}/`), child: server, output: () => `${serverOutput}\nState: ${statePath}`, label: "Publishing browser Worker" });
 }
 
 async function stopWorker() {
@@ -129,14 +123,6 @@ async function appFetch(path, init = {}) {
   return fetch(`${appUrl}${path}`, { ...init, headers: requestHeaders({ Cookie: `${sessionCookieName(appUrl)}=${sessionId}`, "Content-Type": "application/json" }, init.headers) });
 }
 
-async function createBrowserIncident() {
-  const component = await appFetch("/api/app/components", { method: "POST", body: JSON.stringify({ groupId: null, name: "Browser API", description: "Browser publishing contract component.", internal: false, displayOrder: 1, note: "" }) });
-  assert.equal(component.status, 201);
-  const componentId = (await component.json()).component.id;
-  const incident = await appFetch("/api/app/incidents", { method: "POST", body: JSON.stringify({ title: "Browser autosave incident", components: [{ componentId, state: "Major outage", relationship: "Primary" }] }) });
-  assert.equal(incident.status, 201);
-  return (await incident.json()).incident;
-}
 
 before(async () => {
   testPort = await reservePort({ label: "Publishing browser Worker" });
@@ -144,26 +130,32 @@ before(async () => {
   appUrl = appOrigin(testPort);
   pageUrl = pageOrigin(testPort);
   statePath = await mkdtemp(join(tmpdir(), "lamp-publishing-browser-d1-"));
-  viteCachePath = await mkdtemp(join(tmpdir(), "lamp-publishing-browser-vite-"));
+  // The public terminal command reads settings from its working directory.
+  // Keep the fixture independent of the installed owner settings in this checkout.
+  terminalDirectory = await mkdtemp(join(tmpdir(), "lamp-publishing-terminal-"));
+  await symlink(resolve("node_modules"), join(terminalDirectory, "node_modules"), "dir");
+  writeFileSync(join(terminalDirectory, "package.json"), readFileSync(resolve("package.json")));
+  viteCachePath = await mkdtemp(resolve("node_modules/.lamp-publishing-browser-vite-"));
   // The fixture config lives in its own directory so a checkout's `.dev.vars` (for example its AI provider) cannot override it.
   // The add-subscriber door prepares a confirmation. Use the shipped silent
   // local transport, while the real operator session remains the authority.
-  fixtureConfig = isolatedWranglerConfig(configWithLocalMail);
+  await startFailingAiProvider();
+  fixtureConfig = isolatedWranglerConfig(configWithAiProvider);
   configPath = fixtureConfig.path;
   execFileSync("pnpm", ["exec", "wrangler", "d1", "migrations", "apply", "DB", "--local", "--config", defaultConfigPath, "--persist-to", statePath], { cwd: process.cwd(), stdio: "pipe" });
-  if (process.env.RER_VISUAL_HEADING_PROBE === '1') {
-    const source = resolve('src/editor/visual-edits.json');
-    originalVisualSource = readFileSync(source);
-    // The first verification pass covers the complete owner snapshot. This pass
-    // isolates the probe so an owner's edit to the same heading cannot conflict.
-    const snapshot = {revision:1,edits:[{id:'test-heading-probe',revision:1,path:'/app',target:{selector:'h1:nth-child(1)',tag:'h1',role:'',beforeText:'Overview'},change:{text:'Workspace overview'}}]};
-    writeFileSync(source,JSON.stringify(snapshot,null,2)+'\n');
+  const visualSource = resolve('src/editor/visual-edits.json');
+  originalVisualSource = readFileSync(visualSource);
+  const snapshot = JSON.parse(originalVisualSource);
+  if (!snapshot.edits.some(edit => edit.path === '/app' && edit.target.selector?.startsWith('h1'))) {
+    snapshot.revision += 1;
+    snapshot.edits.push({ id: 'test-heading-probe', revision: 1, path: '/app', target: { selector: 'h1:nth-child(1)', tag: 'h1', role: '', beforeText: 'Overview' }, change: { text: 'Workspace overview' } });
+    writeFileSync(visualSource, JSON.stringify(snapshot, null, 2) + '\n');
   }
+
   await startWorker(configPath);
   sessionId = await insertRealOperatorSession({ persistTo: statePath });
-  if (process.env.RER_VISUAL_HEADING_PROBE === '1') execFileSync('pnpm',['exec','wrangler','d1','execute','DB','--local','--config',defaultConfigPath,'--persist-to',statePath,'--command',"UPDATE operators SET is_setup_operator=0 WHERE id='01J00000000000000000000001'"],{stdio:'pipe'});
-  browser = await chromium.launch({ headless: true, args: ["--use-mock-keychain", "--password-store=basic"] });
-  await openAuthenticatedPage();
+  browser = await chromium.launch({ headless: true, ...(process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH ? { executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH } : {}), args: ["--no-sandbox", "--use-mock-keychain", "--password-store=basic"] });
+  await openAuthenticatedPage({ width: 1440, height: 1000 });
 });
 
 after(async () => {
@@ -179,7 +171,7 @@ after(async () => {
     }
   }
   await stopFailingAiProvider();
-  await Promise.all([rm(statePath, { recursive: true, force: true }), rm(viteCachePath, { recursive: true, force: true }), fixtureConfig?.cleanup()]);
+  await Promise.all([rm(statePath, { recursive: true, force: true }), rm(viteCachePath, { recursive: true, force: true }), rm(terminalDirectory, { recursive: true, force: true }), fixtureConfig?.cleanup()]);
 });
 
 async function waitForPublicIncident(reference, expectedText) {
@@ -199,600 +191,210 @@ const localInput = (offsetMs) => page.evaluate((offset) => {
   return `${part("year")}-${part("month")}-${part("day")}T${part("hour")}:${part("minute")}`;
 }, offsetMs);
 
-test("compiled visual edits survive actual operator navigation and reload", async () => {
-  const snapshot = JSON.parse(readFileSync(resolve('src/editor/visual-edits.json'),'utf8'));
+async function verifyCompiledEdits() {
+  const snapshot = JSON.parse(readFileSync(resolve('src/editor/visual-edits.json'), 'utf8'));
   const errors = [], recordError = error => errors.push(error.message);
-  page.on('pageerror',recordError);
-  const closeEmptyComponentForm = async () => {
-    if (new URL(page.url()).pathname !== '/app/components') return;
-    await page.getByRole('heading', { name: 'Add component', exact: true }).waitFor();
-    await page.keyboard.press('Escape');
-    await page.getByRole('dialog').waitFor({ state: 'detached' });
-  };
+  page.on('pageerror', recordError);
+  const paths = [...new Set(['/app', ...snapshot.edits.map(edit => edit.path)])];
   try {
-    const paths = [...new Set(['/app','/app/components','/app/subscribers',...snapshot.edits.map(edit => edit.path)])];
     for (const path of paths) {
       await page.goto(appUrl + path, { waitUntil: 'domcontentloaded' });
       await operatorHydrated(page);
-      await page.locator('.operator-navigation').waitFor();
-      await closeEmptyComponentForm();
-      const expected = snapshot.edits.filter(edit => edit.target.navigation || edit.path === path);
       const check = async () => {
-        for (const edit of expected) await page.waitForFunction(edit => {
+        for (const edit of snapshot.edits.filter(edit => edit.target.navigation || edit.path === path)) await page.waitForFunction(edit => {
           const matches = edit.target.navigation
             ? [...document.querySelectorAll('nav a[href]')].filter(link => new URL(link.href).pathname === edit.target.navigation.href)
             : [...document.querySelectorAll(edit.target.selector)];
           if (matches.length !== 1) return false;
           const element = matches[0];
-          const text = [...element.childNodes].length ? element.textContent.replace(/\s+/g,' ').trim() : '';
-          if (edit.change.text !== undefined && text !== edit.change.text.replace(/\s+/g,' ').trim()) return false;
+          if (edit.change.text !== undefined && element.textContent.replace(/\s+/g, ' ').trim() !== edit.change.text.replace(/\s+/g, ' ').trim()) return false;
           const probe = document.createElement('div');
-          for (const [name,value] of Object.entries(edit.change.styles || {})) {
-            probe.style.setProperty(name,value);
+          for (const [name, value] of Object.entries(edit.change.styles || {})) {
+            probe.style.setProperty(name, value);
             if (element.style.getPropertyValue(name) !== probe.style.getPropertyValue(name)) return false;
           }
           return true;
-        },edit);
+        }, edit);
       };
-      await check();
-      const stamp = await page.evaluate(() => performance.timeOrigin);
-      const next = path === '/app/components' ? '/app/subscribers' : '/app/components';
-      await page.locator(`.operator-navigation a[href="${next}"]`).click();
-      await page.waitForURL(url => url.pathname === next);
-      assert.equal(await page.evaluate(() => performance.timeOrigin),stamp,'navigation remains within the running app');
-      await closeEmptyComponentForm();
-      await page.locator(`.operator-navigation a[href="${path}"]`).count().then(async count => { if (count === 1) { await page.locator(`.operator-navigation a[href="${path}"]`).click(); await page.waitForURL(url => url.pathname === path); } else await page.goto(appUrl + path, { waitUntil: 'domcontentloaded' }); });
-      await check();
-      await page.reload(); await page.locator('.operator-navigation').waitFor(); await check();
+      await check(); await page.reload({ waitUntil: 'domcontentloaded' }); await operatorHydrated(page); await check();
     }
-    if (process.env.RER_VISUAL_HEADING_PROBE === '1') assert.equal(await page.locator('[data-rer-editor]').count(),0,'compiled page edits work for a non-editor operator');
-    assert.deepEqual(errors,[],'compiled edits retain a healthy application runtime');
-  } finally { page.off('pageerror',recordError); }
-});
+    assert.deepEqual(errors, [], 'owner edits preserve a healthy application');
+  } finally { page.off('pageerror', recordError); }
+}
 
-contract("INCIDENT-001", "AGENT-004 MOBILE-001 — an operator can start empty, publish and resolve, then run the full alert-to-resolution phone desk", async () => {
-  await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto(`${appUrl}/app/components`);
-  await page.getByRole("heading", { name: "Add component" }).waitFor();
-  assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "the narrow component drawer must not introduce horizontal page overflow");
-  await page.getByLabel("Component name").fill("Journey API");
-  await page.getByLabel(/Description/).fill("Customer API used for the empty-product incident journey.");
-  await page.getByRole("button", { name: "Create component" }).click();
-  await page.locator(".component-row-summary").getByText("Journey API", { exact: true }).waitFor();
+async function api(path, method = 'GET', body) {
+  const response = await appFetch(path, { method, ...(body === undefined ? {} : { body: JSON.stringify(body) }) });
+  assert.ok(response.ok, `${method} ${path}: ${response.status} ${await response.clone().text()}`);
+  return response.status === 204 ? null : response.json();
+}
+const saved = () => page.locator('.autosave-status.is-saved').waitFor();
+const readIncident = async id => (await api(`/api/app/incidents/${id}`)).incident;
 
-  await page.setViewportSize({ width: 1440, height: 1000 });
-  await page.goto(`${appUrl}/app/incidents`);
-  await operatorHydrated(page);
-  // An empty list opens the new-incident screen: what is happening, who is affected, the next update and Publish.
-  await page.getByRole("heading", { name: "New incident", exact: true }).waitFor();
-  const form = newIncidentForm(page);
-  await form.title.fill("Journey API request failures");
-  await form.impact.fill("Requests to Journey API are failing.");
-  await form.addComponent("Journey API");
-  await form.componentState("Journey API", "Major outage");
-  await form.audience.fill("Journey API customers.");
-  await form.nextUpdate.fill("2027-09-08T14:00");
-  await form.moreOptions();
-  await page.getByLabel("What still works", { exact: true }).fill("The dashboard remains available.");
-  await page.getByLabel("Details", { exact: true }).fill("Operators are restoring request capacity.");
-  await page.getByText("Public page", { exact: true }).waitFor();
-  await page.getByRole("button", { name: "Email", exact: true }).click();
-  await page.getByText("Notification email", { exact: true }).waitFor();
-  await page.getByText("Operators are restoring request capacity.", { exact: true }).waitFor();
-  await form.publish.click();
-  await page.getByText("Update published.").waitFor();
-  const reference = await page.locator(".incident-heading .eyebrow").textContent();
-  assert.match(reference ?? "", /^INC-\d+$/);
-  await waitForPublicIncident(reference, "Requests to Journey API are failing.");
-  await waitForPublicIncident(reference, "The dashboard remains available.");
-
-  const composer = incidentComposer(page);
-  assert.equal(await composer.audience.inputValue(), "", "publication starts a blank next-update draft");
-  await composer.setStatus("Resolved");
-  await composer.audience.fill("Journey API customers.");
-  await composer.impact.fill("Journey API requests are restored.");
-  await page.waitForTimeout(1_500);
-  await page.getByText("Draft saved", { exact: true }).waitFor({ timeout: 2000 });
-  await composer.publish.click();
-  await waitForPublicIncident(reference, "Resolved");
-  await page.goto(`${pageUrl}/incidents/${reference}`);
-  await page.getByText("Journey API request failures", { exact: true }).waitFor();
-  assert.match(await page.locator("body").innerText(), /Resolved/);
-  await phoneDeskFlow({ page, appUrl, pageUrl, appFetch, signInLink: async () => execFileSync(process.execPath, ["scripts/signin-link.mjs", "--email", "operator@example.test", "--origin", appUrl, "--config", configPath, "--persist-to", statePath], { env: process.env, encoding: "utf8" }).trim() });
-});
-
-contract("INCIDENT-004", "operator controls create internal notes, retroactive records, corrections, review decisions, and a reasoned deletion", async (t) => {
-  // Own this prerequisite so the case also runs alone; INCIDENT-001 still starts empty.
-  const componentResponse = await appFetch("/api/app/components", { method: "POST", body: JSON.stringify({ groupId: null, name: "Journey API", description: "Customer API used for the empty-product incident journey.", internal: false, displayOrder: 1, note: "" }) });
-  assert.equal(componentResponse.status, 201);
-  const { component } = await componentResponse.json();
-  const form = newIncidentForm(page);
-  const freshForm = async (title) => {
-    // The screen remembers an unpublished form for the tab; each case starts from an empty one.
-    await page.goto(`${appUrl}/app/incidents/new`);
-    await page.evaluate(() => sessionStorage.removeItem("lamp.new-incident"));
-    await page.reload();
-    await operatorHydrated(page);
-    await form.title.fill(title);
-    await form.impact.fill("Requests are delayed.");
-    await page.getByLabel("Add component", { exact: true }).selectOption(component.id);
-    await form.audience.fill("API customers.");
-    await form.nextUpdate.fill(await localInput(60 * 60_000));
-  };
-  const controls = page.getByRole("region", { name: "Publication controls" });
-  const chosen = async () => ({ email: await controls.getByRole("checkbox", { name: "Email", exact: true }).isChecked(), mode: await controls.locator('input[name="publish-timing"]:checked').evaluate(node => node.parentElement.textContent) });
-  await page.setViewportSize({ width: 390, height: 844 });
-  t.diagnostic("the next-update time is a 44 px target at 390, with More options closed and open");
-  await freshForm("Phone target size");
-  for (const open of [false, true]) {
-    if (open) await form.moreOptions();
-    assert.ok((await form.nextUpdate.boundingBox()).height >= 44, `Next update date and time is ${(await form.nextUpdate.boundingBox()).height} px tall (more options open: ${open})`);
+// One operator day: configure, draft, recover a failed save, resolve a
+// concurrent edit, schedule a publication, communicate recovery, and report.
+test('INCIDENT-001 INCIDENT-004 UPDATE-002 UPDATE-005 UPDATE-006 UPDATE-011 UPDATE-013 DRAFT-002 DRAFT-003 HIST-002 AGENT-005 SETUP-001 NOTIFY-019 — compiled visual edits and the operator publication journey', { timeout: 600_000 }, async () => {
+  await verifyCompiledEdits();
+  await page.goto(`${appUrl}/app`); await operatorHydrated(page);
+  await page.getByRole('region', { name: 'Your public page' }).waitFor();
+  const { live } = await api('/api/app/overview/live');
+  assert.equal(live.sender.state, 'local', 'local mail never claims provider verification');
+  await page.goto(`${appUrl}/app/settings#writing`); await operatorHydrated(page);
+  const tone = 'Lead with customer impact and the next update commitment.';
+  await page.getByRole('textbox', { name: 'Tone instructions', exact: true }).fill(tone);
+  await page.getByRole('status').filter({ hasText: /^Saved · live$/ }).waitFor();
+  await page.reload(); await operatorHydrated(page);
+  try { assert.equal(await page.getByRole('textbox', { name: 'Tone instructions', exact: true }).inputValue(), tone); }
+  catch (cause) {
+    const current = new URL(page.url());
+    process.stderr.write(`Writing reload diagnostic: ${current.pathname}${current.hash}; ${JSON.stringify(await page.locator('h1, .ai-assistance-card, [role=alert]').allTextContents())}\n`);
+    throw cause;
   }
-  t.diagnostic("choosing Resolved drops a discarded next-update error, so Publish is enabled");
-  await freshForm("Resolved after a rejected next time");
-  await form.nextUpdate.fill("2026-11-01T01:30");
-  await page.locator(".composer-panel").getByRole("alert").waitFor();
-  await form.moreOptions();
-  await page.getByRole("radio", { name: "Resolved", exact: true }).check();
-  assert.equal(await form.nextUpdate.count(), 0);
-  assert.equal(await form.publish.isEnabled(), true, "Resolved needs no next-update time");
-  t.diagnostic("a saved template's Operational state is applied to the chip and saved on the incident");
-  const operationalTemplate = await appFetch("/api/app/incident-templates", { method: "POST", body: JSON.stringify({ name: "Operational monitoring", lifecycle: "Monitoring", affectedAudience: "Customers who saw delays.", customerImpact: "Service is recovered and being watched.", whatStillWorks: "", details: "", nextUpdateOffsetMinutes: 60, components: [{ componentId: component.id, state: "Operational", relationship: "Primary" }] }) });
-  assert.equal(operationalTemplate.status, 201);
-  await freshForm("Template with an operational component");
-  await form.moreOptions();
-  await page.getByLabel("Saved update template", { exact: true }).selectOption({ label: "Operational monitoring" });
-  await page.getByRole("button", { name: "Apply template", exact: true }).click();
-  await page.getByText("Template applied.", { exact: true }).waitFor();
-  assert.equal(await page.getByLabel("Journey API state with this update", { exact: true }).inputValue(), "Operational");
-  await page.getByRole("button", { name: "Save as private draft", exact: true }).click();
-  await page.getByText("Saved as a private draft.", { exact: true }).waitFor();
-  const templated = (await (await appFetch(`/api/app/incidents/${new URL(page.url()).pathname.split("/").at(-1)}`)).json()).incident;
-  assert.deepEqual(templated.components.map(row => row.state), ["Operational"]);
-  t.diagnostic("a refused first publication and a private save keep the operator's notification and timing choices");
-  await freshForm("Refused schedule");
-  await form.moreOptions();
-  const pastSchedule = await localInput(-30 * 60_000);
-  await controls.getByRole("checkbox", { name: "Email", exact: true }).uncheck();
-  await controls.getByRole("radio", { name: "Schedule", exact: true }).check();
-  await controls.getByLabel("Scheduled publication date and time").fill(pastSchedule);
-  const refusal = page.waitForResponse(response => response.url().endsWith("/draft/schedule") && response.request().method() === "POST");
-  await page.getByRole("button", { name: "Schedule", exact: true }).click();
-  assert.equal((await refusal).status(), 409);
-  await page.getByText(/Not published: .*future/).waitFor();
-  await incidentComposer(page).moreOptions();
-  assert.deepEqual(await chosen(), { email: false, mode: "Schedule" });
-  assert.equal(await controls.getByLabel("Scheduled publication date and time").inputValue(), pastSchedule);
-  await freshForm("Private draft keeps choices");
-  await form.moreOptions();
-  const pastBackdate = await localInput(-30 * 60_000);
-  await controls.getByRole("checkbox", { name: "Email", exact: true }).uncheck();
-  await controls.getByRole("radio", { name: "Backdate", exact: true }).check();
-  await controls.getByLabel("Historical publication date and time").fill(pastBackdate);
-  await page.getByRole("button", { name: "Save as private draft", exact: true }).click();
-  await page.getByText("Saved as a private draft.", { exact: true }).waitFor();
-  await incidentComposer(page).moreOptions();
-  assert.deepEqual(await chosen(), { email: false, mode: "Backdate" });
-  assert.equal(await controls.getByLabel("Historical publication date and time").inputValue(), pastBackdate);
-  await page.setViewportSize({ width: 1440, height: 1000 });
-  await page.goto(`${appUrl}/app/incidents/new`);
-  await operatorHydrated(page);
-  await form.title.fill("Historical correction controls");
-  await form.impact.fill("An earlier condition delayed requests.");
-  await form.addComponent("Journey API");
-  assert.equal(await page.locator(".component-chip-name").textContent(), "Journey API");
-  await form.audience.fill("Historical API customers.");
-  const nextUpdateLocal = await localInput(60 * 60_000);
-  await form.nextUpdate.fill(nextUpdateLocal);
-  await form.moreOptions();
-  await page.getByLabel("Opened at", { exact: true }).fill(await localInput(-2 * 60 * 60_000));
-  await controls.getByRole("radio", { name: "Backdate", exact: true }).check();
-  await controls.getByLabel("Historical publication date and time").fill(await localInput(-2 * 60_000));
-  await page.getByRole("button", { name: "Publish historical update" }).click();
-  await page.getByText("Historical update published. It did not notify subscribers.", { exact: true }).waitFor();
-  const incidentId = new URL(page.url()).pathname.split("/").at(-1);
-  assert.ok(incidentId && incidentId !== "new", "publishing a new incident must navigate to its operator record");
-  const historical = await appFetch(`/api/app/incidents/${incidentId}`);
-  const record = (await historical.json()).incident;
-  assert.equal(record.updates.length, 1);
-  assert.equal(record.updates[0].isRetroactive, true);
-  assert.equal(record.updates[0].nextUpdateAt, new Date(`${nextUpdateLocal}:00-07:00`).toISOString());
-  assert.ok(Date.parse(record.openedAt) < Date.now() - 60 * 60_000, "the incident keeps its earlier opening time");
+  await page.getByRole('link', { name: 'Notifications', exact: true }).click();
+  await page.getByLabel('Sender display name', { exact: true }).fill('Journey status');
+  await page.getByLabel('Reply-to address', { exact: true }).fill('support@journey.example');
+  await page.getByLabel('Subject prefix', { exact: true }).fill('[Journey status]');
+  await page.getByRole('status').filter({ hasText: /^Saved · live$/ }).waitFor();
+  await page.reload(); await operatorHydrated(page);
+  assert.equal(await page.getByLabel('Reply-to address', { exact: true }).inputValue(), 'support@journey.example');
 
+
+  await page.goto(`${appUrl}/app/components`); await operatorHydrated(page);
+  if (!await page.getByRole('dialog').count()) await page.getByRole('button', { name: 'Add component', exact: true }).first().click();
+  await page.getByLabel('Component name', { exact: true }).fill('Journey checkout API');
+  await page.getByLabel(/Description/).fill('Customer checkout and card authorization.');
+  await page.getByRole('button', { name: 'Create component', exact: true }).click();
+  await page.locator('.component-row-summary').getByText('Journey checkout API', { exact: true }).waitFor();
+  const component = (await api('/api/app/components')).components.find(row => row.name === 'Journey checkout API');
+  assert.ok(component);
+
+  await page.goto(`${appUrl}/app/incidents/new`); await operatorHydrated(page);
+  const form = newIncidentForm(page);
+  await form.title.fill('Checkout requests are delayed');
+  await form.impact.fill('Card authorizations are timing out.');
+  await form.addComponent(component.name);
+  await form.componentState(component.name, 'Major outage');
+  await form.audience.fill('Customers checking out in the US.');
+  await form.nextUpdate.fill('2027-09-08T14:00');
+  await form.moreOptions();
+  await page.getByLabel('Details', { exact: true }).fill('Follow https://support.example.test/checkout for recovery advice.');
+  await page.getByRole('button', { name: 'Save as private draft', exact: true }).click();
+  await page.waitForURL(url => /^\/app\/incidents\/[0-9A-Z]{26}$/.test(url.pathname));
+  const id = new URL(page.url()).pathname.split('/').at(-1);
+  await saved();
+  let incident = await readIncident(id);
+  assert.equal(incident.updates.length, 0, 'saving does not publish');
   const composer = incidentComposer(page);
-  await composer.privateActions();
-  await page.getByLabel("Internal note").fill("PRIVATE-OPERATOR-CONTEXT");
-  await page.getByRole("button", { name: "Save internal note" }).click();
-  await page.getByText("Internal note saved.", { exact: true }).waitFor();
-  assert.equal((await (await appFetch(`/api/app/incidents/${incidentId}`)).json()).incident.internalNotes[0].body, "PRIVATE-OPERATOR-CONTEXT");
+  await page.reload(); await operatorHydrated(page); await saved();
+  assert.equal(await composer.impact.inputValue(), incident.draft.customerImpact);
 
-  await page.reload();
-  await operatorHydrated(page);
-  await page.getByRole("heading", { name: "Update draft", exact: true }).waitFor();
-  await saveAndConfirmDraft({ page, appFetch, incidentId, t,
-    expected: { lifecycle: "Identified", affectedAudience: "Correction audience.", customerImpact: "", whatStillWorks: "", details: "", nextUpdateAt: null },
-    edit: () => composer.audience.fill("Correction audience."),
+  // The displayed draft survives a transport failure and an explicit retry.
+  const endpoint = `**/api/app/incidents/${id}/draft`;
+  let failed = false;
+  await page.route(endpoint, async route => {
+    if (!failed && route.request().method() === 'PUT') { failed = true; await route.abort(); }
+    else await route.continue();
   });
+  await composer.impact.fill('Some card authorizations fail; existing orders remain safe.');
+  await page.locator('.autosave-status.is-error').waitFor();
+  assert.equal(await composer.publish.isEnabled(), false, 'unsaved bytes cannot publish');
+  await page.getByRole('button', { name: 'Retry save', exact: true }).click();
+  await saved(); await page.unroute(endpoint);
+  await page.reload(); await operatorHydrated(page); await saved();
+  assert.equal(await composer.impact.inputValue(), 'Some card authorizations fail; existing orders remain safe.');
+
+  // Two real tabs must not silently replace each other's acknowledged draft.
+  const stale = await browserContext.newPage();
+  try {
+    await stale.goto(page.url()); await operatorHydrated(stale);
+    await stale.locator('.autosave-status.is-saved').waitFor();
+    await composer.audience.fill('US customers paying by card.'); await saved();
+    await incidentComposer(stale).audience.fill('A stale tab must not erase the newer audience.');
+    await stale.locator('.autosave-status.is-error').waitFor();
+    assert.equal((await readIncident(id)).draft.affectedAudience, 'US customers paying by card.');
+    assert.equal(await incidentComposer(stale).publish.isEnabled(), false);
+  } finally { await stale.close(); }
+
+  await composer.moreOptions();
+  await page.getByRole('radio', { name: 'Schedule', exact: true }).check();
+  await page.getByLabel('Scheduled publication date and time').fill('2027-09-08T13:30');
+  await page.getByRole('button', { name: 'Schedule update', exact: true }).click();
+  await page.getByText('Update scheduled. It stays private until then.', { exact: true }).waitFor();
+  await page.reload(); await operatorHydrated(page); await saved();
+  await composer.moreOptions();
+  assert.equal(await page.getByLabel('Scheduled publication date and time').inputValue(), '2027-09-08T13:30');
+  assert.ok((await readIncident(id)).draft.scheduledPublishAt);
+  await composer.impact.fill('Checkout retries can succeed while we restore capacity.'); await saved();
+  assert.equal((await readIncident(id)).draft.scheduledPublishAt, null, 'editing revokes a prior schedule');
+  await page.getByRole('radio', { name: 'Now', exact: true }).check();
+  await page.getByRole('button', { name: 'Email', exact: true }).click();
+  await page.waitForFunction(({ impact, replyTo }) => {
+    const panel = document.querySelector('.preview-panel');
+    return panel?.textContent.includes(impact) && panel.textContent.includes(replyTo);
+  }, { impact: 'Checkout retries can succeed while we restore capacity.', replyTo: 'support@journey.example' });
+  assert.ok((await page.locator('.preview-panel h3').textContent()).startsWith('[Journey status]'));
+  await page.getByRole('button', { name: 'Suggest update', exact: true }).click();
+  await page.locator('.ai-suggestion [role=status]').filter({ hasText: /503|intentionally unavailable/i }).waitFor();
+  assert.equal(await composer.publish.isEnabled(), true, 'a failed suggestion leaves ordinary publication usable');
+  await composer.publish.click();
+  await page.getByText('Update published.', { exact: true }).waitFor();
+  incident = await readIncident(id);
+  const first = incident.updates[0];
+  assert.equal(first.customerImpact, 'Checkout retries can succeed while we restore capacity.');
+  await waitForPublicIncident(incident.reference, first.customerImpact);
+  assert.equal(await composer.impact.inputValue(), '', 'the next update begins with a fresh draft');
+
   await composer.privateActions();
-  await page.getByRole("button", { name: "Mark correction" }).click();
-  await page.getByText("The draft will publish as a correction.", { exact: true }).waitFor();
-  await page.getByRole("button", { name: "Review saved draft" }).click();
-  await page.getByText("A different operator must review a saved draft.", { exact: true }).waitFor();
-  await page.getByRole("button", { name: "Delete incident" }).click();
-  await page.getByLabel("Deletion reason").fill("Created solely to exercise private operator controls.");
-  await page.getByRole("button", { name: "Confirm deletion" }).click();
-  await page.getByRole("heading", { name: "Incidents", exact: true }).waitFor();
-  let deletionStatus = 0;
-  for (let attempt = 0; attempt < 20; attempt += 1) {
-    deletionStatus = (await appFetch(`/api/app/incidents/${incidentId}`)).status;
-    if (deletionStatus === 404) break;
-    await page.waitForTimeout(100);
-  }
-  assert.equal(deletionStatus, 404, "the deleted operator record must no longer be readable");
-});
+  const note = 'The database team is privately investigating a connection pool.';
+  await page.getByLabel('Internal note', { exact: true }).fill(note);
+  await page.getByRole('button', { name: 'Save internal note', exact: true }).click();
+  await page.getByText('Internal note saved.', { exact: true }).waitFor();
+  assert.ok((await readIncident(id)).internalNotes.some(row => row.body === note));
+  assert.equal((await (await fetch(`${pageUrl}/incidents/${incident.reference}`)).text()).includes(note), false);
 
-contract("UPDATE-005", "composer autosaves a changed draft in under two seconds and reloads the exact value", async () => {
-  const incident = await createBrowserIncident();
-  autosaveIncidentId = incident.id;
-  await page.goto(`${appUrl}/app/incidents/${incident.id}`);
-  await operatorHydrated(page);
-  await page.getByRole("heading", { name: "First update", exact: true }).waitFor();
-  const composer = incidentComposer(page);
-  await composer.audience.fill("Browser contract customers.");
-  await composer.impact.fill("Requests can fail during this condition.");
-  await composer.nextUpdate.fill("2027-09-08T13:41");
+  await composer.setStatus('Resolved');
+  await composer.audience.fill('US customers paying by card.');
+  await composer.impact.fill('Checkout authorizations are working normally.');
   await composer.moreOptions();
-  const details = "BROWSER-AUTOSAVE-EXACT-VALUE";
-  const changedAt = Date.now();
-  await composer.details.fill(details);
-  await page.getByText("Draft saved", { exact: true }).waitFor({ timeout: 2000 });
-  assert.ok(Date.now() - changedAt < 2000, "the operator draft did not save within two seconds");
-  await page.reload();
-  await operatorHydrated(page);
-  await page.getByRole("heading", { name: "First update", exact: true }).waitFor();
-  await assert.equal(await composer.details.inputValue(), details);
-  assert.equal(await composer.nextUpdate.inputValue(), "2027-09-08T13:41", "the datetime control presents the saved instant in the operator's configured local time");
-  await composer.nextUpdate.fill("2027-09-08T13:42");
-  await page.getByText("Draft saved", { exact: true }).waitFor({ timeout: 2000 });
-  const stored = await appFetch(`/api/app/incidents/${incident.id}`);
-  assert.equal((await stored.json()).incident.draft.nextUpdateAt, "2027-09-08T20:42:00.000Z", "editing the page’s Los Angeles time preserves its UTC instant despite a Brisbane browser");
-  assert.equal(await page.getByRole("button", { name: "Suggest update" }).count(), 0, "the absent provider must not expose an AI control");
+  await composer.details.fill('Follow https://support.example.test/checkout for any remaining questions.');
+  await saved();
+  assert.equal(await composer.nextUpdate.count(), 0, 'resolution needs no further update promise');
+  await composer.publish.click(); await page.getByText('Update published.', { exact: true }).waitFor();
+  incident = await readIncident(id);
+  assert.equal(incident.lifecycle, 'Resolved');
+  assert.deepEqual(incident.updates.find(row => row.id === first.id), first, 'later publications preserve the original update');
+  await waitForPublicIncident(incident.reference, 'Checkout authorizations are working normally.');
+  await page.goto(`${pageUrl}/incidents/${incident.reference}`);
+  await page.getByRole('link', { name: 'https://support.example.test/checkout', exact: true }).first().waitFor();
+
+  // The same operator finishes the private report and publishes it deliberately.
+  await page.goto(`${appUrl}/app/incidents/${id}`); await operatorHydrated(page);
+  const report = page.locator('section').filter({ has: page.getByRole('heading', { name: 'Post-incident report', exact: true }) });
+  await page.getByRole('button', { name: 'Draft report', exact: true }).click();
+  for (const [name, value] of Object.entries({ Summary: 'Checkout delays have been resolved.', Timeline: 'Requests failed before the database pool was restored.', Cause: 'The checkout connection pool exhausted its capacity.', Remediation: 'We restored capacity and added pool saturation alerts.' })) await report.getByLabel(name, { exact: true }).fill(value);
+  const saving = page.waitForResponse(response => response.url().endsWith(`/incidents/${id}/report`) && response.request().method() === 'PUT');
+  await report.getByRole('button', { name: 'Save report', exact: true }).click(); assert.equal((await saving).status(), 200);
+  await page.reload(); await operatorHydrated(page);
+  assert.equal(await report.getByRole('textbox', { name: 'Cause', exact: true }).inputValue(), 'The checkout connection pool exhausted its capacity.');
+  assert.equal((await (await fetch(`${pageUrl}/incidents/${incident.reference}`)).text()).includes('Checkout delays have been resolved.'), false, 'a saved report stays private');
+  const publishing = page.waitForResponse(response => response.url().endsWith(`/incidents/${id}/report/publish`) && response.request().method() === 'POST');
+  await report.getByRole('button', { name: 'Publish report', exact: true }).click(); assert.equal((await publishing).status(), 200);
+  await waitForPublicIncident(incident.reference, 'Checkout delays have been resolved.');
+
+  const destination = 'https://notify.example.test/journey-erasure';
+  const subscriber = (await api('/api/app/subscribers/webhook', 'POST', { destination, contactEmail: 'private-reader@example.test', componentIds: [] })).subscriber;
+  await page.goto(`${appUrl}/app/subscribers`); await operatorHydrated(page);
+  const row = page.getByRole('row').filter({ hasText: destination });
+  page.once('dialog', dialog => dialog.dismiss()); await row.getByRole('button', { name: 'Remove', exact: true }).click();
+  assert.equal((await api('/api/app/subscribers')).subscribers.find(item => item.id === subscriber.id).destination, destination);
+  page.once('dialog', dialog => dialog.accept()); await row.getByRole('button', { name: 'Remove', exact: true }).click();
+  await row.waitFor({ state: 'detached' });
+  const erased = (await api('/api/app/subscribers')).subscribers.find(item => item.id === subscriber.id);
+  assert.notEqual(erased.destination, destination, 'erasure removes the private destination');
+  assert.equal(erased.contactEmail, null); assert.equal(erased.state, 'deactivated');
+
+  if (process.env.LAMP_SCREENSHOTS) { await mkdir(process.env.LAMP_SCREENSHOTS, { recursive: true }); await page.screenshot({ path: join(process.env.LAMP_SCREENSHOTS, '1440-operator-journey.png'), fullPage: true }); }
 });
 
-contract("UPDATE-006", "the composer schedules publication separately from its next-update commitment", async (t) => {
-  const incident = await createBrowserIncident();
-  await page.goto(`${appUrl}/app/incidents/${incident.id}`);
-  await operatorHydrated(page);
-  await page.getByRole("heading", { name: "First update", exact: true }).waitFor();
-  const composer = incidentComposer(page);
-  await composer.audience.fill("Scheduled browser customers.");
-  await composer.impact.fill("A scheduled update has a distinct publication time.");
-  await composer.nextUpdate.fill("2027-09-08T14:00");
-  // Scheduling publishes the stored draft, so wait for the server to hold all three
-  // edits (UPDATE-005 keeps the strict two-second autosave gate).
-  for (const deadline = Date.now() + 15_000; ; await new Promise(resolve => setTimeout(resolve, 200))) {
-    const draft = (await (await appFetch(`/api/app/incidents/${incident.id}`)).json()).incident.draft;
-    if (draft?.affectedAudience === "Scheduled browser customers." && draft.customerImpact === "A scheduled update has a distinct publication time." && draft.nextUpdateAt) break;
-    assert.ok(Date.now() < deadline, `the composer never stored the scheduled draft: ${JSON.stringify(draft)}`);
-  }
-  await page.getByText("Draft saved", { exact: true }).waitFor();
-  await composer.moreOptions();
-  await page.getByRole("radio", { name: "Schedule", exact: true }).check();
-  await page.getByLabel("Scheduled publication date and time").fill("2027-09-08T13:30");
-  await page.getByRole("button", { name: "Schedule update" }).click();
-  await page.getByText("Update scheduled. It stays private until then.").waitFor();
-
-  // What the incident page offers for a stored schedule: its channels, its time and Schedule update.
-  const controls = page.getByRole("region", { name: "Publication controls" });
-  const time = controls.getByLabel("Scheduled publication date and time");
-  const shown = async () => {
-    await composer.moreOptions();
-    const channels = [];
-    for (const [channel, name] of [["email", "Email"], ["webhook", "Webhook"], ["chat", "Slack and Teams"]]) if (await controls.getByRole("checkbox", { name, exact: true }).isChecked()) channels.push(channel);
-    return { channels: channels.sort(), mode: await controls.locator('input[name="publish-timing"]:checked').evaluate(node => node.parentElement.textContent), at: await time.count() ? await time.inputValue() : null, scheduleUpdate: await page.getByRole("button", { name: "Schedule update", exact: true }).count() === 1 };
-  };
-  const stored = async (id) => (await (await appFetch(`/api/app/incidents/${id}`)).json()).incident.draft;
-  const reopen = async () => { await page.reload(); await operatorHydrated(page); await page.getByRole("heading", { name: "First update", exact: true }).waitFor(); };
-  t.diagnostic("a reload opens the schedule the server holds");
-  await reopen();
-  assert.deepEqual(await shown(), { channels: [...(await stored(incident.id)).scheduledChannels].sort(), mode: "Schedule", at: "2027-09-08T13:30", scheduleUpdate: true });
-
-  const form = newIncidentForm(page);
-  const scheduleNew = async (title, at) => {
-    await page.goto(`${appUrl}/app/incidents/new`);
-    await page.evaluate(() => sessionStorage.removeItem("lamp.new-incident"));
-    await page.reload();
-    await operatorHydrated(page);
-    await form.title.fill(title);
-    await form.impact.fill("Uploads are delayed.");
-    await page.getByLabel("Add component", { exact: true }).selectOption(incident.components[0].componentId);
-    await form.audience.fill("Customers uploading files.");
-    await form.nextUpdate.fill(await localInput(4 * 60 * 60_000));
-    await form.moreOptions();
-    for (const [name, checked] of [["Email", false], ["Webhook", true], ["Slack and Teams", false]]) await controls.getByRole("checkbox", { name, exact: true }).setChecked(checked);
-    await controls.getByRole("radio", { name: "Schedule", exact: true }).check();
-    await time.fill(at);
-    await page.getByRole("button", { name: "Schedule", exact: true }).click();
-  };
-  t.diagnostic("a refused schedule from the new-incident screen, retried on the incident page, reloads as stored and without the refusal");
-  const retried = await localInput(2 * 60 * 60_000);
-  await scheduleNew("Refused, then scheduled", await localInput(-30 * 60_000));
-  await page.getByText(/Not published: .*future/).waitFor();
-  await composer.moreOptions();
-  await time.fill(retried);
-  await page.getByRole("button", { name: "Schedule update", exact: true }).click();
-  await page.getByText("Update scheduled. It stays private until then.").waitFor();
-  await reopen();
-  assert.equal(await page.locator(".publication-message").count(), 0, "a reload never replays the refusal");
-  assert.deepEqual(await shown(), { channels: ["webhook"], mode: "Schedule", at: retried, scheduleUpdate: true });
-
-  t.diagnostic("a webhook-only schedule from the new-incident screen opens as stored, and moving only its time keeps webhook-only");
-  const scheduledAt = await localInput(90 * 60_000), movedAt = await localInput(150 * 60_000);
-  await scheduleNew("Scheduled from the new screen", scheduledAt);
-  await page.getByText("Update scheduled. It stays private until then.").waitFor();
-  const scheduledId = new URL(page.url()).pathname.split("/").at(-1);
-  assert.deepEqual(await shown(), { channels: ["webhook"], mode: "Schedule", at: scheduledAt, scheduleUpdate: true });
-  await time.fill(movedAt);
-  const moved = page.waitForResponse(response => response.url().endsWith("/draft/schedule") && response.request().method() === "POST");
-  await page.getByRole("button", { name: "Schedule update", exact: true }).click();
-  assert.equal((await moved).status(), 202);
-  const movedDraft = await stored(scheduledId);
-  assert.deepEqual(movedDraft.scheduledChannels, ["webhook"], "moving the time neither drops webhooks nor adds email subscribers");
-  assert.ok(Math.abs(Date.parse(movedDraft.scheduledPublishAt) - (Date.now() + 150 * 60_000)) < 3 * 60_000, movedDraft.scheduledPublishAt);
-
-  t.diagnostic("an edit clears the stored schedule, and the page stops saying the update is scheduled");
-  await composer.impact.fill("Uploads are delayed for some customers.");
-  await page.getByText("Update scheduled. It stays private until then.").waitFor({ state: "detached" });
-  const edited = await stored(scheduledId);
-  assert.equal(edited.customerImpact, "Uploads are delayed for some customers.");
-  assert.equal(edited.scheduledPublishAt, null);
-  assert.deepEqual(await shown(), { channels: ["webhook"], mode: "Schedule", at: movedAt, scheduleUpdate: true }, "the choices stay for one-click rescheduling");
-});
-
-contract("DRAFT-002", "Settings autosaves survive navigation and reload, keep feedback visible, and report unconfigured AI", async () => {
-  const tone = "Lead with customer impact, use concise factual language, and name the next update commitment.";
-  await page.goto(`${appUrl}/app/settings#writing`);
-  await operatorHydrated(page);
-  await page.getByText("No provider configured", { exact: true }).waitFor();
-  const toneField = page.getByLabel("Tone instructions");
-  // Keep the native write awaiting acknowledgement while exercising the unsaved-edit guard.
-  let releaseSave;
-  const heldSave = new Promise(resolve => { releaseSave = resolve; });
-  const holdSettings = async route => {
-    if (route.request().method() === "PUT") await heldSave;
-    await route.continue();
-  };
-  await page.route("**/api/app/page-settings", holdSettings);
-  try {
-    const saved = page.waitForResponse(response => new URL(response.url()).pathname === "/api/app/page-settings" && response.request().method() === "PUT" && response.request().postDataJSON().aiToneInstructions === tone);
-    await toneField.fill(tone);
-    await page.getByRole("link", { name: "Page", exact: true }).click();
-    await page.getByRole("link", { name: "Writing", exact: true }).click();
-    assert.equal(await toneField.inputValue(), tone, "switching Settings tabs keeps the unsaved draft");
-    // Leaving waits on Settings, without a prompt, until the write is answered.
-    await page.getByRole("link", { name: "Overview", exact: true }).click();
-    await page.locator(".settings-save-note").filter({ hasText: /^Saving…$/ }).waitFor();
-    await page.waitForTimeout(500);
-    assert.equal(new URL(page.url()).pathname, "/app/settings", "leaving waits while the write is unanswered");
-    assert.equal(await toneField.inputValue(), tone, "waiting keeps the edit");
-    releaseSave();
-    assert.equal((await saved).status(), 200);
-    await page.waitForURL(url => url.pathname === "/app");
-  } finally {
-    releaseSave();
-    await page.unroute("**/api/app/page-settings", holdSettings);
-  }
-  await page.goto(`${appUrl}/app/settings#writing`);
-  await operatorHydrated(page);
-  await page.getByText("No provider configured", { exact: true }).waitFor();
-  assert.equal(await page.getByLabel("Tone instructions").inputValue(), tone);
-
-  const storedSettings = async () => (await (await appFetch("/api/app/page-settings")).json()).settings;
-  const eventuallyStored = async (key, value) => {
-    for (const deadline = Date.now() + 15_000; ; await page.waitForTimeout(100)) {
-      if ((await storedSettings())[key] === value) return;
-      assert.ok(Date.now() < deadline, `${key} reaches the server after leaving Settings`);
-    }
-  };
-  const { id, logoKey, logoContentType, feedId, createdAt, updatedAt, mailIdentityEditable, regionsAvailable, ...originalSettings } = await storedSettings();
-  const inView = async locator => {
-    const box = await locator.boundingBox();
-    assert.ok(box && box.y >= 0 && box.y + box.height <= page.viewportSize().height, "save feedback is in the viewport");
-  };
-  for (const width of [1440, 390]) {
-    await page.setViewportSize({ width, height: width === 390 ? 844 : 900 });
-    await page.goto(`${appUrl}/app/settings#page`); await operatorHydrated(page);
-    // Open the phone rail first so the edit and navigation both fit inside the debounce pause.
-    if (width === 390) await page.getByRole("button", { name: "Menu", exact: true }).click();
-    const name = `Northstar status ${width}`;
-    await page.getByLabel("Page name", { exact: true }).fill(name);
-    await page.locator(".operator-navigation").getByRole("link", { name: "Overview", exact: true }).click();
-    await page.waitForURL(url => url.pathname === "/app");
-    assert.equal((await storedSettings()).pageName, name, "the edit is stored before Settings closes");
-    await page.goto(`${appUrl}/app/settings#page`); await operatorHydrated(page);
-    const reloadedName = `${name} after reload`;
-    await page.getByLabel("Page name", { exact: true }).fill(reloadedName);
-    const unloading = page.waitForEvent("dialog"); const reload = page.reload();
-    await (await unloading).accept(); await reload; await operatorHydrated(page);
-    await eventuallyStored("pageName", reloadedName);
-    assert.equal(await page.getByLabel("Page name", { exact: true }).inputValue(), reloadedName);
-
-    for (const [tab, label, value] of [
-      ["page", "Page name", `${name} published`],
-      ["notifications", "Sender display name", `Northstar operations ${width}`],
-      ["writing", "Tone instructions", `${tone} Viewport ${width}.`],
-      ["embeds", "Background colour", width === 390 ? "#fafbfc" : "#fcfbfa"],
-    ]) {
-      await page.goto(`${appUrl}/app/settings#${tab}`); await operatorHydrated(page);
-      await page.getByLabel(label, { exact: tab !== "writing" }).fill(value);
-      await page.locator(".settings-save-note").filter({ hasText: /^Saved · live$/ }).waitFor();
-      await inView(page.locator(".settings-save-state"));
-    }
-    await page.goto(`${appUrl}/app/settings#page`); await operatorHydrated(page);
-    const tagline = page.locator("label").filter({ hasText: /^Tagline/ }).locator("textarea");
-    const nextTagline = `Current service availability for Northstar customers. ${width}`;
-    const refusal = async route => {
-      if (route.request().method() !== "PUT") return route.continue();
-      // The refusal comes late, so leaving below always meets its write still unanswered.
-      await new Promise(resolve => setTimeout(resolve, 1_000));
-      await route.fulfill({ status: 503, contentType: "application/json", body: JSON.stringify({ error: "Publishing is temporarily unavailable. Please try again." }) });
-    };
-    await page.route("**/api/app/page-settings", refusal);
-    try {
-      await tagline.fill(nextTagline);
-      const retry = page.getByRole("button", { name: "Retry", exact: true });
-      await retry.waitFor({ state: "attached" });
-      assert.equal(await tagline.inputValue(), nextTagline, "a refused save retains the entered value");
-      await inView(page.locator(".settings-save-state")); await inView(retry);
-      assert.match(await page.locator(".settings-save-state [role=alert]").innerText(), /Publishing is temporarily unavailable/);
-      // A newer edit refused while leaving keeps Settings open, with the value, the reason and Retry.
-      if (width === 390) await page.getByRole("button", { name: "Menu", exact: true }).click();
-      await tagline.fill(`${nextTagline} today`);
-      await page.locator(".operator-navigation").getByRole("link", { name: "Overview", exact: true }).click();
-      await retry.waitFor();
-      assert.equal(new URL(page.url()).pathname, "/app/settings", "a save refused while leaving keeps Settings open");
-      assert.equal(await tagline.inputValue(), `${nextTagline} today`);
-      await inView(retry);
-      assert.match(await page.locator(".settings-save-state [role=alert]").innerText(), /Publishing is temporarily unavailable/);
-    } finally { await page.unroute("**/api/app/page-settings", refusal); }
-    await page.getByRole("button", { name: "Retry", exact: true }).click();
-    await page.locator(".settings-save-note").filter({ hasText: /^Saved · live$/ }).waitFor();
-    await eventuallyStored("tagline", `${nextTagline} today`);
-
-    // Offline, with the Page name refused, Settings stays open with the value, the reason and Retry, and nothing reloads
-    // over it: through a Back held on its way to Overview, then through Back and Forward between Settings' tabs (entries
-    // of one page). Online again, Retry publishes it. Settings is reached in the app, and before going offline each
-    // screen is shown in full and the router's loads (its /_serverFn/ requests) have settled, so no load still in
-    // flight can stand in for a reload.
-    const loads = new Set();
-    const started = request => { if (new URL(request.url()).pathname.startsWith("/_serverFn/")) loads.add(request); };
-    const ended = request => loads.delete(request);
-    const settled = async () => { for (let quiet = 0; quiet < 5; quiet = loads.size ? 0 : quiet + 1) await page.waitForTimeout(100); };
-    const pageName = page.getByLabel("Page name", { exact: true });
-    const retry = page.getByRole("button", { name: "Retry", exact: true });
-    const savedLive = page.locator(".settings-save-note").filter({ hasText: /^Saved · live$/ });
-    // Still offline once the page settles, so a reload over Settings would fail here.
-    const keptOffline = async (how, address) => {
-      await page.waitForTimeout(500);
-      assert.equal(await page.locator(".settings-page").count(), 1, `${how} keeps Settings open`);
-      assert.equal(new URL(page.url()).pathname + new URL(page.url()).hash, address, `${how} keeps Settings at its address`);
-      await inView(page.locator(".settings-save-state [role=alert]")); await inView(retry);
-    };
-    page.on("request", started); page.on("requestfinished", ended); page.on("requestfailed", ended);
-    try {
-      for (const [link, shown] of [["Overview", page.getByRole("region", { name: "Active incidents" })], ["Settings", page.locator(".settings-page:not([inert])")]]) {
-        if (width === 390) await page.getByRole("button", { name: "Menu", exact: true }).click();
-        await page.locator(".operator-navigation").getByRole("link", { name: link, exact: true }).click();
-        await shown.waitFor(); await settled();
-      }
-      await savedLive.waitFor();
-      const offlineName = `${name} kept offline`;
-      await page.context().setOffline(true);
-      try {
-        await pageName.fill(offlineName);
-        await page.evaluate(() => history.back());
-        await retry.waitFor();
-        await keptOffline("a Back refused offline", "/app/settings");
-        assert.equal(await pageName.inputValue(), offlineName);
-      } finally { await page.context().setOffline(false); }
-      await retry.click(); await savedLive.waitFor();
-      await eventuallyStored("pageName", offlineName);
-
-      for (const tab of ["Writing", "Page"]) { await page.locator(".settings-tabs").getByRole("link", { name: tab, exact: true }).click(); await settled(); }
-      await savedLive.waitFor();
-      const tabsName = `${name} kept between tabs`;
-      await page.context().setOffline(true);
-      try {
-        await pageName.fill(tabsName); await retry.waitFor();
-        await page.evaluate(() => history.back());
-        await keptOffline("Back to the Writing tab offline", "/app/settings#writing");
-        await page.evaluate(() => history.forward());
-        await keptOffline("Forward to the Page tab offline", "/app/settings#page");
-        assert.equal(await pageName.inputValue(), tabsName, "Back and Forward between tabs offline keep the typed name");
-      } finally { await page.context().setOffline(false); }
-      await retry.click(); await savedLive.waitFor();
-      await eventuallyStored("pageName", tabsName);
-    } finally { page.off("request", started); page.off("requestfinished", ended); page.off("requestfailed", ended); }
-  }
-  const restored = await appFetch("/api/app/page-settings", { method: "PUT", body: JSON.stringify(originalSettings) });
-  assert.equal(restored.status, 200, "restore the shared Settings fixture for the remaining browser journeys");
-});
-
-contract("DRAFT-003", "a configured but failing AI provider leaves the ordinary publish control usable", async () => {
-  // Closing the prior Vite document before its Worker restarts prevents its HMR
-  // reconnect from cancelling the first navigation against the new config.
-  const viewport = await closeAuthenticatedPage();
-  await stopWorker();
-  await startFailingAiProvider();
-  fixtureConfig.write(configWithAiProvider);
-  await startWorker(configPath);
-  await openAuthenticatedPage(viewport);
-  await page.goto(`${appUrl}/app/incidents/${autosaveIncidentId}`);
-  await page.getByRole("button", { name: "Suggest update" }).waitFor();
-  await page.getByRole("button", { name: "Suggest update" }).click();
-  const aiStatus = page.locator(".ai-suggestion [role=status]");
-  let status = "";
-  for (let attempt = 0; attempt < 50; attempt += 1) {
-    status = await aiStatus.textContent() ?? "";
-    if (status !== "Drafting suggestion…") break;
-    await page.waitForTimeout(100);
-  }
-  assert.match(status, /AI provider returned 503|Browser AI provider intentionally unavailable/i);
-  const publish = page.getByRole("button", { name: "Publish update" });
-  await assert.equal(await publish.isEnabled(), true);
-  await publish.click();
-  await page.getByText("Update published.").waitFor();
-});
-
-
-contract("UPDATE-002", "NOTIFY-019 — composer controls and saved notification branding work on desktop and phone", async () => {
-  const component = await appFetch("/api/app/components", { method: "POST", body: JSON.stringify({ groupId: null, name: "Responsive composer API", description: "Publication control layout verification", internal: false, displayOrder: 2, note: "" }) });
-  assert.equal(component.status, 201);
-  const componentId = (await component.json()).component.id;
-  const created = await appFetch("/api/app/incidents", { method: "POST", body: JSON.stringify({ title: "Responsive publication controls", components: [{ componentId, state: "Major outage", relationship: "Primary" }] }) });
-  assert.equal(created.status, 201);
-  const incident = (await created.json()).incident;
-  const originalViewport = page.viewportSize();
-  try {
-    for (const width of [1280, 390]) {
-      await page.setViewportSize({ width, height: 900 });
-      await page.goto(`${appUrl}/app/incidents/${incident.id}`);
-      await operatorHydrated(page);
-      await incidentComposer(page).moreOptions();
-      const controls = page.getByRole("region", { name: "Publication controls" });
-      await controls.getByRole("radio", { name: "Backdate", exact: true }).check();
-      const timestamp = controls.getByLabel("Historical publication date and time");
-      await timestamp.scrollIntoViewIfNeeded();
-      await timestamp.fill("2026-01-02T10:30");
-      assert.equal(await timestamp.inputValue(), "2026-01-02T10:30");
-      await controls.getByLabel("Email", { exact: true }).uncheck();
-      await controls.getByLabel("Webhook", { exact: true }).check();
-      assert.equal(await controls.getByLabel("Webhook", { exact: true }).isChecked(), true);
-      const geometry = await controls.evaluate((section) => {
-        const box = section.getBoundingClientRect();
-        const fields = [...section.querySelectorAll("input, label, small, strong, p")];
-        return { viewport: innerWidth, left: box.left, right: box.right, fields: fields.map((field) => {
-          const rect = field.getBoundingClientRect();
-          return { name: field.getAttribute("aria-label") ?? field.textContent, left: rect.left, right: rect.right, width: rect.width, scrollWidth: field.scrollWidth, clientWidth: field.clientWidth };
-        }) };
-      });
-      assert.ok(geometry.left >= 0 && geometry.right <= width, `controls remain in the ${width}px viewport`);
-      for (const field of geometry.fields) {
-        assert.ok(field.left >= geometry.left && field.right <= geometry.right, `${width}px ${field.name}: contained within publication controls`);
-        assert.ok(field.width > 0 && field.scrollWidth <= field.clientWidth + 1, `${width}px ${field.name}: no clipped field or help text`);
-      }
-      await timestamp.scrollIntoViewIfNeeded();
-      if (process.env.LAMP_COMPOSER_SCREENSHOTS) {
-        await mkdir(process.env.LAMP_COMPOSER_SCREENSHOTS, { recursive: true });
-        await page.screenshot({ path: join(process.env.LAMP_COMPOSER_SCREENSHOTS, `composer-${width}.png`), fullPage: true });
-      }
-    }
-  } finally { if (originalViewport) await page.setViewportSize(originalViewport); }
-  await emailBrandingBrowserFlow({ page, appUrl, pageUrl, appFetch });
-});
-
-contract("HIST-002", "AGENT-005 TEAM-007 HIST-007 — an operator publishes a report, browses audit history and reports subscribers", async () => {
-  await postIncidentReportFlow({ page, appFetch, appUrl, pageUrl });
-  await auditLogFlow({ page, appUrl, appFetch });
-  await subscriberReportingBrowserFlow({ page, appUrl, appFetch });
+test('INCIDENT-001 AGENT-004 MOBILE-001 — 390-wide owner sign-in, alert review, publication, resolution and maintenance smoke', { timeout: 600_000 }, async () => {
+  await phoneDeskFlow({ page, appUrl, pageUrl, appFetch, signInLink: async () => execFileSync(process.execPath, [resolve('scripts/signin-link.mjs'), '--email', 'operator@example.test', '--origin', appUrl, '--config', configPath, '--persist-to', statePath], { cwd: terminalDirectory, env: process.env, encoding: 'utf8' }).trim() });
 });

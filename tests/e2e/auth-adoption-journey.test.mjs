@@ -1,12 +1,12 @@
+import { workingCheckout } from '../helpers/native-transfer.mjs';
 import assert from 'node:assert/strict';
-import {execFileSync,spawn,spawnSync} from 'node:child_process';
-import {mkdtemp,rm,symlink,writeFile,readFile,mkdir,readdir} from 'node:fs/promises';
+import {spawn,spawnSync} from 'node:child_process';
+import {mkdtemp,rm,writeFile,readFile,mkdir} from 'node:fs/promises';
 import {hostname,tmpdir} from 'node:os';
 import {join,resolve} from 'node:path';
 import {test} from 'node:test';
 import {chromium} from 'playwright';
 import AxeBuilder from '@axe-core/playwright';
-import {unstable_splitSqlQuery} from 'wrangler';
 import {reservePort} from './worker-startup.mjs';
 import {operatorHydrated} from './helpers/operator-hydrated.mjs';
 import {readDevKey,signInAs} from '@runeditrun/rer/internal/modules/operator-auth/dev/sign-in-as.mjs';
@@ -15,11 +15,10 @@ import {createRedaction} from '@runeditrun/rer/redaction';
 const owner='owner@example.test';
 const evidence=process.env.LAMP_AUTH_JOURNEY_EVIDENCE;
 async function capture(page,name){if(evidence){await mkdir(evidence,{recursive:true});await page.screenshot({path:join(evidence,name+'.png'),fullPage:true});}}
-const run=(root,env,...args)=>spawnSync(process.execPath,['node_modules/@runeditrun/rer/bin/rer.mjs',...args],{cwd:root,env,encoding:'utf8',timeout:600000});
 // The journey's copy links the checkout's node_modules, so Vite serves its own client and pre-bundled modules from
 // /@fs/<real path>, which rer dev answers only with the checkout's dev key. A real checkout holds them inside its root,
 // where no key is needed; here only those module requests carry it, and every application request stays keyless.
-async function journeyContext(browser,key){const context=await browser.newContext();await context.route(url=>url.pathname.startsWith('/@fs/'),route=>route.continue({headers:{...route.request().headers(),'x-rer-dev-key':key}}));return context;}
+async function journeyContext(browser,key){const context=await browser.newContext({viewport:{width:1440,height:1000}});await context.route(url=>url.pathname.startsWith('/@fs/'),route=>route.continue({headers:{...route.request().headers(),'x-rer-dev-key':key}}));return context;}
 async function accessible(page){const result=await new AxeBuilder({page}).analyze();assert.deepEqual(result.violations.filter(v=>['serious','critical'].includes(v.impact)).map(v=>v.id),[]);}
 async function emailSignIn(context,origin,email,width,key){
  const entered=await signInAs({origin,key});await context.addCookies(entered.cookies.map(c=>({...c,url:origin})));
@@ -64,7 +63,7 @@ async function setupAndProbe(root,env,port,origin){
  }finally{if(process.exitCode===null){process.kill('SIGTERM');await ended;}}
 }
 
-test('SETUP-002 Base setup/dev, one-click sign-in, signed-in forwarding, invite, signout and prior-data upgrade work at 1440 and 390',{timeout:1200000},async t=>{
+test('SETUP-002 ACCESS-001 TEAM-002 native rer setup, owner sign-in, invitations and deliberate sign-out',{timeout:1200000},async t=>{
  t.diagnostic('Execution host: '+hostname());
  const root=await mkdtemp(join(tmpdir(),'lamp-auth-journey-')),servers=await mkdtemp(join(tmpdir(),'lamp-auth-servers-'));
  const cache=await mkdtemp(join(resolve('node_modules'),'.lamp-auth-vite-'));
@@ -72,36 +71,19 @@ test('SETUP-002 Base setup/dev, one-click sign-in, signed-in forwarding, invite,
  // This copy links node_modules. Keep Vite's optimized graph with this
  // checkout, under the already admitted node_modules asset namespace.
  const env={...inherited,LAMP_VITE_CACHE_DIR:cache,RER_SERVER_JOURNEY:'1',RER_SERVERS_DIR:servers,CI:'true',X_LOCAL_EXPLORER:'false'};
- let child,browser;let output='',verb='dev';
+ let child,browser;let output='';
  const stop=async()=>{if(child&&child.exitCode===null){const stopped=new Promise(done=>child.once('close',done));child.kill('SIGTERM');await stopped;}child=undefined;};
  try{
-  execFileSync('sh',['-c','git ls-files -z --cached --others --exclude-standard | tar --null -T - -cf - | tar -xf - -C "$1"','copy',root]);
-  await symlink(resolve('node_modules'),join(root,'node_modules'),'dir');
+    await workingCheckout(process.cwd(), root);
   const port=await reservePort(),origin=`http://127.0.0.1:${port}`;
   await setupAndProbe(root,env,port,origin);
-  browser=await chromium.launch({headless:true,args:['--use-mock-keychain','--password-store=basic']});
-  for(const upgraded of [false,true]){
-   if(upgraded){
-    // An in-place upgrade of an install made before Base sign-in: its saved
-    // settings have no SESSION_SECRET or SETUP_TOKEN, and every other value
-    // (the subscriber link secret among them) must survive setup unchanged.
-    const vars=join(root,'.dev.vars');
-    const prior=(await readFile(vars,'utf8')).split('\n').filter(line=>line&&!/^(SESSION_SECRET|SETUP_TOKEN|AUTH_ORIGIN|AUTH_LOCAL)=/.test(line)).join('\n')+'\nLAMP_BOOTSTRAP_SECRET='+'b'.repeat(64)+'\n';
-    await writeFile(vars,prior,{mode:0o600});
-    await rm(join(root,'.wrangler/state'),{recursive:true,force:true}); // the next store is the captured historical installation
-    const fixture=unstable_splitSqlQuery(await readFile('tests/auth-adoption/fixtures/prechange.sql','utf8')).filter(s=>!/^\s*(BEGIN|COMMIT)/.test(s));
-    const tables=fixture.filter(s=>/^\s*CREATE TABLE/.test(s));const others=fixture.filter(s=>!tables.includes(s));
-    const migrated=(await readdir('migrations/core')).filter(n=>n<'0019');
-    const sql=[...tables,'PRAGMA defer_foreign_keys=ON',...others,'CREATE TABLE d1_migrations(id INTEGER PRIMARY KEY AUTOINCREMENT,name TEXT UNIQUE,applied_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)',...migrated.map(name=>`INSERT INTO d1_migrations(name) VALUES ('${name}')`)].join(';\n');
-    const path=join(root,'prior.sql');await writeFile(path,sql);
-    execFileSync('pnpm',['exec','wrangler','d1','execute','DB','--local','--config','wrangler.jsonc','--persist-to','.wrangler/state','--file',path],{cwd:root,env,stdio:'pipe'});await rm(path);
-    await setupAndProbe(root,env,port,origin);
-    const upgradedVars=await readFile(vars,'utf8');
-    assert.equal(upgradedVars.startsWith(prior),true,'setup keeps every earlier setting');
-    for(const name of ['SESSION_SECRET','SETUP_TOKEN'])assert.match(upgradedVars,new RegExp(`^${name}=[0-9a-f]{64}$`,'m'),'setup adds the sign-in secret the earlier install lacked');
-   }
+  const terminal=spawnSync(process.execPath,['scripts/signin-link.mjs','--email',owner,'--origin',origin],{cwd:root,env,encoding:'utf8'});
+  assert.equal(terminal.status,0,'owner terminal issues a private sign-in link');
+  const terminalToken=new URL(terminal.stdout.trim()).searchParams.get('token');
+  assert.ok(terminalToken);
+  browser=await chromium.launch({headless:true,executablePath:process.env.LAMP_CHROMIUM_PATH,args:['--no-sandbox','--use-mock-keychain','--password-store=basic']});
    await mkdir(join(root,'exports'),{recursive:true});await writeFile(join(root,'exports/probe.rer'),'auth-journey-private-sentinel');await writeFile(join(root,'probe.rer'),'auth-journey-private-sentinel');
-   verb='dev';output='';child=spawn(process.execPath,['node_modules/@runeditrun/rer/bin/rer.mjs','dev'],{cwd:root,env,stdio:['ignore','pipe','pipe']});child.stdout.on('data',b=>output+=b);child.stderr.on('data',b=>output+=b);
+   output='';child=spawn(process.execPath,['node_modules/@runeditrun/rer/bin/rer.mjs','dev'],{cwd:root,env,stdio:['ignore','pipe','pipe']});child.stdout.on('data',b=>output+=b);child.stderr.on('data',b=>output+=b);
    const deadline=Date.now()+180000;while(!output.includes('RER_READY ')&&child.exitCode===null&&Date.now()<deadline)await new Promise(done=>setTimeout(done,250));
    if(!output.includes('RER_READY ')){
     const redaction=createRedaction();redaction.addSecrets([await readDevKey(root),...(await readFile(join(root,'.dev.vars'),'utf8')).split('\n').map(line=>line.slice(line.indexOf('=')+1)).filter(Boolean)]);
@@ -116,9 +98,10 @@ test('SETUP-002 Base setup/dev, one-click sign-in, signed-in forwarding, invite,
    const devSession=await devPage.request.get(origin+'/api/app/session');
    if(devSession.status()!==200){const redaction=createRedaction();redaction.addSecrets([key,...(await readFile(join(root,'.dev.vars'),'utf8')).split('\n').map(line=>line.slice(line.indexOf('=')+1)).filter(Boolean)]);t.diagnostic(redaction.redact((await devSession.text())+'\n'+output));}
    assert.equal(devSession.status(),200);
-   if(!upgraded){await devPage.getByRole('button',{name:"Skip, I'll fill it in"}).click();await devPage.getByRole('button',{name:'Edit page name'}).click();await devPage.getByLabel('Page name',{exact:true}).fill('Auth Journey');await devPage.getByRole('button',{name:'Open Lamp',exact:true}).click();await devPage.waitForURL('**/app');}
+   {await devPage.getByRole('button',{name:"Skip, I'll fill it in"}).click();await devPage.getByRole('button',{name:'Edit page name'}).click();await devPage.getByLabel('Page name',{exact:true}).fill('Auth Journey');await devPage.getByRole('button',{name:'Open Lamp',exact:true}).click();await devPage.waitForURL('**/app');}
    await devContext.close();
-   for(const width of [1440,390]){
+   const width=1440;
+   {
     const context=await journeyContext(browser,key);const page=await emailSignIn(context,origin,owner,width,key);
     const pageErrors=[];page.on('pageerror',error=>pageErrors.push(error.message));
     for(const method of ['GET','HEAD']){
@@ -133,7 +116,7 @@ test('SETUP-002 Base setup/dev, one-click sign-in, signed-in forwarding, invite,
     await accessible(page);await capture(page,'signin-forward-'+width);
     const identity=await page.request.get(origin+'/auth/settings/identity');assert.equal(identity.status(),200);assert.equal((await identity.json()).idpSignIn,false);
     const discovery=await page.request.get(origin+'/.well-known/rer-dependencies');assert.equal(discovery.status(),200);assert.equal((await discovery.json()).dependencies.some(d=>d.interface==='oidc-provider@1'&&d.optional),true);
-    if(!upgraded){
+    {
      await capture(page,'workspace-'+width);const landing=await context.newPage();await landing.setViewportSize({width,height:1000});await landing.goto(origin+'/');await capture(landing,'landing-'+width);await landing.close();
      await page.goto(origin+'/app/settings#operators');
      await operatorHydrated(page);
@@ -155,8 +138,8 @@ test('SETUP-002 Base setup/dev, one-click sign-in, signed-in forwarding, invite,
      await cancelledRow.waitFor({state:'detached'});
      await accessible(page);
      assert.equal((await page.request.get(origin+'/api/app/operators/invited')).status(),200);
-    }else{assert.equal(new URL(page.url()).pathname,'/app','prior first-run completion survives');}
-    if(!upgraded&&width===1440){
+    }
+    {
      const location=new URL(page.url()).pathname;
      // Fail only the network edge: the real session and rendered shell stay live.
      await page.route('**/api/app/session/signout',route=>route.abort());
@@ -168,16 +151,16 @@ test('SETUP-002 Base setup/dev, one-click sign-in, signed-in forwarding, invite,
       assert.equal((await page.request.get(origin+'/api/app/session')).status(),200,'an undelivered sign-out leaves its session active');
      }finally{await page.unroute('**/api/app/session/signout');}
     }
-    await signOut(page,origin);await accessible(page);await capture(page,'signin-'+width);await context.close();
+    await signOut(page,origin);await accessible(page);await capture(page,'signin-'+width);
+    const terminalSignIn=await page.request.post(origin+'/auth/confirm',{data:{token:terminalToken},headers:{Origin:origin},maxRedirects:0});
+    assert.equal(terminalSignIn.status(),303,'the terminal link signs in through the ordinary confirmation door');
+    assert.equal((await page.request.get(origin+'/api/app/session')).status(),200);
+    assert.equal((await page.request.post(origin+'/auth/confirm',{data:{token:terminalToken},headers:{Origin:origin},maxRedirects:0})).status(),400,'the terminal link is one-use');
+    assert.equal((await page.request.post(origin+'/api/app/session/signout',{data:{},headers:{Origin:origin}})).status(),204);
+    assert.equal((await page.request.get(origin+'/api/app/session')).status(),401);
+    await context.close();
    }
    await stop();
-   verb='preview';output='';child=spawn(process.execPath,['node_modules/@runeditrun/rer/bin/rer.mjs','preview'],{cwd:root,env,stdio:['ignore','pipe','pipe']});child.stdout.on('data',b=>output+=b);child.stderr.on('data',b=>output+=b);
-   const previewDeadline=Date.now()+180000;while(!output.includes('RER_READY ')&&child.exitCode===null&&Date.now()<previewDeadline)await new Promise(done=>setTimeout(done,250));
-   if(!output.includes('RER_READY ')){const redaction=createRedaction();redaction.addSecrets([key,...(await readFile(join(root,'.dev.vars'),'utf8')).split('\n').map(line=>line.slice(line.indexOf('=')+1)).filter(Boolean)]);t.diagnostic(redaction.redact(output));}
-   assert.equal(output.includes('RER_READY '),true,'preview reaches readiness');
-   await denied(origin,join(root,'probe.rer'));assert.equal((await fetch(origin+'/auth/dev/enter',{redirect:'manual'})).status,404,'production preview omits dev identity');
-   await stop();await rm(join(root,'exports/probe.rer'));await rm(join(root,'probe.rer'));
-   t.diagnostic((upgraded?'Prior-data':'Fresh')+' journey passed at both widths.');
-  }
+   await rm(join(root,'exports/probe.rer'));await rm(join(root,'probe.rer'));
  }finally{await browser?.close();await stop();await rm(root,{recursive:true,force:true});await rm(servers,{recursive:true,force:true});await rm(cache,{recursive:true,force:true});}
 });

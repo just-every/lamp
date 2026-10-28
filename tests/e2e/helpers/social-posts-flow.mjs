@@ -99,14 +99,14 @@ export async function socialPostsFlow(t) {
     await db.prepare("UPDATE oa_operators SET role='member' WHERE id='01J00000000000000000000091'").run();
     try {
       assert.equal((await api('/api/app/social')).status, 401, 'the previous owner session is revoked when authority changes');
-      await fixtureRuntime.signIn();
+      await fixtureRuntime.signIn(undefined, { fresh: true });
       assert.equal((await post('/api/app/social', { network: 'x', name: 'Refused member connection', prefix, credential: 'synthetic-lamp-9', scopes: ['tweet.write'] })).status, 403, 'a member cannot connect a social account');
       assert.equal((await api('/api/app/social', { method: 'PATCH', body: JSON.stringify({ postByDefault: true }) })).status, 403, 'a member cannot change the posting default');
       assert.equal((await api(`/api/app/social/${accounts[0].id}`, { method: 'DELETE' })).status, 403, 'a member cannot remove a social account');
     } finally {
       await db.prepare("UPDATE oa_operators SET role='owner' WHERE id='01J00000000000000000000091'").run();
       await db.prepare("DELETE FROM oa_operators WHERE id='01J00000000000000000000092'").run();
-      await fixtureRuntime.signIn();
+      await fixtureRuntime.signIn(undefined, { fresh: true });
     }
     assert.equal((await socialLog()).accounts.length, 3, 'refused mutations preserve all connected accounts');
     assert.equal((await socialLog()).postByDefault, false, 'refused default mutation preserves explicit opt-in');

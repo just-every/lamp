@@ -60,3 +60,17 @@ export function testInventory() {
   return testFiles().filter(path => path.endsWith('.test.mjs') || path.endsWith('/delivery-migration-order.mjs') || /\bt\.test\s*\(/.test(readFileSync(path, 'utf8')))
     .map(path => ({ path, count: registrations(path).reduce((total, entry) => total + entry.count, 0) }));
 }
+
+// These executable assertion gates are also part of routine verification. They
+// count once each, separately from cases emitted by the Node test runner.
+export const assertionScripts = [
+  'scripts/edition-authoring/cli.mjs',
+  'scripts/check-syntax.mjs',
+  'scripts/validate-release.mjs',
+  'scripts/verify-visual-edit.mjs',
+  'scripts/contract-docs.mjs',
+  'scripts/verification/check-plan.mjs',
+  'scripts/chromium-probe.mjs',
+  'scripts/verification/aggregate.mjs',
+  'scripts/baseline/run.mjs',
+];
