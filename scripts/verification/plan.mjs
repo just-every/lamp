@@ -7,8 +7,8 @@ export const verificationPlan = {
   imports: ['test:imports', 'test:mail', 'test:site'],
   composer: ['test:composer', 'test:public'],
   delivery: ['test:channels'],
-  public: ['test:baseline'],
-  runtime: ['test:runtime', 'test:publishing', 'test:delivery'],
+  public: ['test:baseline', 'test:delivery'],
+  runtime: ['test:runtime', 'test:publishing'],
   demo: ['test:demo'],
 };
 export const shardNames = Object.keys(verificationPlan);
