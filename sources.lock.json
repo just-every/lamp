@@ -4648,7 +4648,7 @@
       "executable": false
     },
     "src/core/features/public-snapshot/theme-rendering.ts": {
-      "sha256": "92d74d5ba1711cb9f7df6cc400ebf167f156731037761cf4abf042c626db89dc",
+      "sha256": "d2943ba05829050edb37248af250c86e6804f565a56d46b77832b3a219fdc561",
       "executable": false
     },
     "src/core/features/public-snapshot/uptime.ts": {
