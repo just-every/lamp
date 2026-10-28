@@ -8,10 +8,10 @@ The primary journey: An operator sets up the page and components, accepts eviden
 
 | Tier | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
-| Core | 12 | 173 | 51 | 236 |
+| Core | 11 | 174 | 51 | 236 |
 | Agent surface | 0 | 0 | 5 | 5 |
 | Later | 0 | 0 | 0 | 0 |
-| Full target | 12 | 173 | 56 | 241 |
+| Full target | 11 | 174 | 56 | 241 |
 
 Judged from the code and tests at commit `c1b49c71fa58c8bb6b876074dba3b1cab8407a27` (28 October 2026). Field proof register: 19 rows; 0 passed, 0 failed, 19 not run.
 
@@ -3319,7 +3319,7 @@ Core · target · **partial** · Cites BASE-ACCESS-002, BASE-ACCESS-004, BASE-SE
 
 #### MOBILE-001 — The operator desk works on a phone
 
-Core · target · **done** · Cites BASE-ACCESSIBILITY-001
+Core · target · **partial** · Cites BASE-ACCESSIBILITY-001
 
 **Requirement.** The complete operator incident journey works at phone and desktop widths, retaining UPDATE-005 draft behavior and private accepted-alert evidence until publication.
 
@@ -3332,7 +3332,7 @@ Core · target · **done** · Cites BASE-ACCESSIBILITY-001
 6. Every journey screen fits without horizontal scrolling, and phone touch controls measure at least 44 by 44 pixels.
 
 **Evidence.** `src/core/app/client/ui/responsive.css`, `src/core/features/intake/ui/alerts-page.tsx`, `tests/e2e/helpers/phone-desk-flow.mjs`
-**Gap.** Native terminal-link sign-in, signed-alert draft, attachment, autosave/reload, preview, publish, resolution, standing claim and maintenance scheduling pass at 390×844 and 1440 px, with accessibility, overflow and 44 px phone-control checks.
+**Gap.** Native signed-alert, draft reload, publication and resolution assertions exist. The cited phone helper only waits on the visible standing-claim label and maintenance heading; it does not read back either persisted result. It also reads only the impact field after reload, rather than every saved draft field. Unasserted outcomes: The native terminal link signs in at both widths; Every other saved draft field survives reload; Email preview contains the expected complete notification; Publication has its complete visible result; Resolution has its complete visible result; Standing claim persisted and visible result; Scheduled maintenance persisted and visible result.
 
 #### MOBILE-002 — Installable app with push
 
