@@ -10,7 +10,12 @@ export async function themeBrowserFlow({ appUrl, pageUrl, sessionId, cookieName,
     const context = await browser.newContext({ viewport: { width: 1440, height: 1000 } });
     await context.addCookies([{ name: cookieName, value: sessionId, url: appUrl }]);
     const page = await context.newPage();
-    await page.goto(`${appUrl}/app/settings`, { waitUntil: "networkidle" });
+    try {
+      await page.goto(`${appUrl}/app/settings`, { waitUntil: "domcontentloaded", timeout: 90_000 });
+    } catch (cause) {
+      await page.screenshot({ path: `${directory}/settings-navigation-failed.png`, fullPage: true }).catch(() => {});
+      throw cause;
+    }
     await expect(page.getByRole("heading", { name: "Theme", exact: true })).toBeVisible();
     const open = async title => { const detail = page.locator("details").filter({ has: page.locator(":scope > summary", { hasText: title }) }).first(); if (!await detail.getAttribute("open")) await detail.locator(":scope > summary").click(); };
     await open("Colours");

@@ -6940,11 +6940,15 @@
       "executable": false
     },
     "tests/e2e/helpers/theme-browser-flow.mjs": {
-      "sha256": "c9fd7cb73a51a49e733fb3af34498fac627473c036040a2a5aff5c6743550e75",
+      "sha256": "d31342ce4e9788f633d336fe7b524a59ab870edc5514619e413b0d9aac0b1f27",
+      "executable": false
+    },
+    "tests/e2e/helpers/theme-fixture.mjs": {
+      "sha256": "b53063a5fa63127ba0b261fc024419c805d1a77e4b8ddecd25bd276bb748940f",
       "executable": false
     },
     "tests/e2e/helpers/theme-flow.mjs": {
-      "sha256": "1389dc8ecea834e06ca9430e915c2e2c97073d113ad0a428d13deb04382d7b2c",
+      "sha256": "224ddd3f986c36f4c9c32172b9d291fe530fefd6fa62c6a6a066320f0ed3aeca",
       "executable": false
     },
     "tests/e2e/helpers/theme-template-flow.mjs": {

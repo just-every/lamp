@@ -1,3 +1,4 @@
+import { themeHeaderImage } from "./theme-fixture.mjs";
 import { themeTemplateFlow } from "./theme-template-flow.mjs";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
@@ -62,7 +63,7 @@ export async function themeFlow({ appFetch, fetch, appUrl, pageUrl, currentSetti
     const oversize = await requestTheme({ ...theme, footerHtml: "é".repeat(4097) }, 400);
     assert.match(oversize.error, /8192/);
     assert.deepEqual((await currentSettings()).theme, sanitized.settings.theme, "oversized HTML leaves the saved theme unchanged");
-    const image = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADUlEQVR42mP8z8BQDwAF/gL+3N9nPwAAAABJRU5ErkJggg==", "base64");
+    const image = themeHeaderImage();
     const font = await readFile(new URL("../../../src/core/features/public-snapshot/fonts/inter-latin.woff2", import.meta.url));
     await updateSettings({ theme: defaults });
     await themeBrowserFlow({ appUrl, pageUrl, sessionId, cookieName, theme, image, font, currentSettings, snapshot });
