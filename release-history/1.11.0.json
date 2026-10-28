@@ -1,0 +1,178 @@
+{
+  "version": "1.11.0",
+  "previousVersion": "1.10.0",
+  "contractChanges": {
+    "PAGE-009": {
+      "change": "changed",
+      "summary": "Time display: while script runs, the page's generation time shows a relative label, with the absolute time in the configured timezone and its UTC offset in its tooltip and the ISO 8601 instant in its datetime; the initial HTML, script-disabled readers and incident, maintenance, feed and notification timestamps keep the absolute display (owner S4, 20 October 2026).",
+      "was": "Time display: Every timestamp on a public surface or in a notification is rendered in the page's configured timezone with its UTC offset, and every timestamp on the page carries the same instant as an ISO 8601 value in a machine-readable attribute.",
+      "now": "Time display: Every timestamp on a public surface or in a notification is rendered in the page's configured timezone with its UTC offset, and every timestamp on the page carries the same instant as an ISO 8601 value in a machine-readable attribute. Owner exception (S4, DIVERGENCE.md \"Public page clarity \u2014 owner L10, 20 October 2026\"): while script runs, the page's generation time shows a relative label, refreshed while the page is open. Its tooltip gives the absolute time in the configured timezone with its UTC offset, and its `datetime` keeps the ISO 8601 instant. The initial HTML and script-disabled readers see the absolute time. Incident, maintenance, feed and notification timestamps keep the absolute display."
+    },
+    "UPTIME-003": {
+      "change": "changed",
+      "summary": "Short history: the figure is labeled with its coverage, elapsed hours and minutes while it covers less than one whole day (\"less than 1 minute\" below a minute) and whole days from one day onward, and a component with no data says No data (owner S4, 20 October 2026).",
+      "was": "Short history: A component whose earliest state history entry is later than the start of the reporting window shows uptime computed from that entry, and the page labels the figure with the number of whole days it covers.",
+      "now": "Short history: A component whose earliest state history entry is later than the start of the reporting window shows uptime computed from that entry, and the page labels the figure with the coverage: elapsed hours and minutes while it covers less than one whole day (\"less than 1 minute\" below a minute), and whole days from one day onward. A component with no data says No data (owner S4, DIVERGENCE.md \"Public page clarity\")."
+    },
+    "SETUP-002": {
+      "change": "changed",
+      "summary": "First-run setup: an existing Statuspage, Instatus or Better Stack page supplies its real components and groups from public feeds; the optional history choice imports resolved incidents silently, and missing components preserve the website reader's result (owner L11, 22 October 2026).",
+      "was": "First-run setup: A signed-in owner whose installation has no stored first-run completion is sent from every operator document to `/setup`, which asks for their website first (owner decision, 20 October 2026). Lamp reads that public site once, refusing private and loopback addresses on every hop and running none of its scripts, and fills in what the site gives: page name, tagline, mark (stored as a PNG), accent colour and components from its navigation, plus the time zone from the browser; it never invents what the site did not give. A site that cannot be read, or no website, leaves plain defaults with one calm line. Every fact stays editable before and after; confirming stores the settings, the mark and the components and stores completion durably; afterwards `/setup` opens the app and settings remain editable in Settings. A signed-out visitor to `/setup` is sent to sign-in and returned there. An installation that already had an operator before this clause is recorded as complete by its migration. A setup rerun never clears completion.",
+      "now": "First-run setup: A signed-in owner whose installation has no stored first-run completion is sent from every operator document to `/setup`, which asks for their website first (owner decision, 20 October 2026). Lamp reads that public site once, refusing private and loopback addresses on every hop and running none of its scripts, and fills in what the site gives: page name, tagline, mark (stored as a PNG), accent colour and components from its navigation, plus the time zone from the browser; it never invents what the site did not give. When the site links to a Statuspage, Instatus or Better Stack page, or one answers at `status.<its domain>`, setup takes that page's own components and groups from its public feeds in place of the navigation's, labelled with where they came from, and offers \"Bring its incident history too\" (owner UI pass L11, 22 October 2026): off unless chosen, it imports the page's resolved incidents with their updates and times through Move in's keyless read, as MOVE-002's silent history; nothing open on that page, no maintenance and no subscriber comes, and a page whose feeds give no components changes nothing. A site that cannot be read, or no website, leaves plain defaults with one calm line. Every fact stays editable before and after; confirming stores the settings, the mark and the components and stores completion durably; afterwards `/setup` opens the app and settings remain editable in Settings. A signed-out visitor to `/setup` is sent to sign-in and returned there. An installation that already had an operator before this clause is recorded as complete by its migration. A setup rerun never clears completion."
+    },
+    "MOVE-006": {
+      "change": "changed",
+      "summary": "Cutover preview and supported sources: Statuspage, Instatus and Better Stack also accept setup's keyless public-feed captures, retaining resolved history, update times, explicitly supplied component states and old incident links.",
+      "was": "Cutover preview: Settings \u2192 Cutover is available after a dry run and for saved imports. It shows up to the first 25 old incident and maintenance addresses with proposed or surviving native permalinks, unavailable addresses and source-host limits, source feed answers, unsupported JSON/RSS/widget consumers, and eligible invitations with their original expiry deadline. Once the owner selects a public origin, each Opens check uses a credentialless browser request that follows the redirect and verifies the final native address and successful HTML response; failures remain explicit. The ordered guide covers import, preview, explicit invitations, hostname/custom-domain instructions, rechecking and keeping the source through the confirmation window. It claims neither DNS validation nor inbox delivery. Instatus accepts its documented saved management REST response families with a separate owner acknowledgment that the page and supplied history are published and unrestricted. Known protected or unpublished source records cannot become public. Visual Component parents are groups; audience groups are refused access restrictions. Only confirmed, approved email-only subscriptions with resolved preferences become pending. Exact supplied public-summary incident/maintenance URLs are joined by source ID; missing URLs are not invented. Maintenance ends use explicit timestamps or documented duration minutes under completed/autoEnd semantics, with every update retained silently. Sorry general notices may have no affected component and are carried as resolved informational history without outage claims; canceled maintenance stays canceled. Sorry additionally accepts keyless public JSON captures, including paginated components and notices plus full detail for every notice. Partial public previews name uncaptured details and cannot be applied. Subscribers come only from the authenticated API; eligible email rows are held inert without mail or confirmation expiry. A held row neither released nor undone is deleted with its address 30 days after the reviewed dry run, and Cutover states that date. After the hostname is live and the watch window closes, an explicit owner invitation action names the configured public origin, records that approval, and releases held rows into pending with a 72-hour window starting at release. Undo cannot recall mail or remove a released row as if it were still unchanged. Sorry numeric notice IDs and supplied notice paths redirect to surviving Lamp incidents or maintenance; `/notices`, `/history` and `/history/YYYY/month` (English month names) redirect to Lamp\u2019s `/history/` while a Sorry import is retained.",
+      "now": "Cutover preview: Settings \u2192 Cutover is available after a dry run and for saved imports. It shows up to the first 25 old incident and maintenance addresses with proposed or surviving native permalinks, unavailable addresses and source-host limits, source feed answers, unsupported JSON/RSS/widget consumers, and eligible invitations with their original expiry deadline. Once the owner selects a public origin, each Opens check uses a credentialless browser request that follows the redirect and verifies the final native address and successful HTML response; failures remain explicit. The ordered guide covers import, preview, explicit invitations, hostname/custom-domain instructions, rechecking and keeping the source through the confirmation window. It claims neither DNS validation nor inbox delivery. Instatus accepts its documented saved management REST response families with a separate owner acknowledgment that the page and supplied history are published and unrestricted. Known protected or unpublished source records cannot become public. Visual Component parents are groups; audience groups are refused access restrictions. Only confirmed, approved email-only subscriptions with resolved preferences become pending. Exact supplied public-summary incident/maintenance URLs are joined by source ID; missing URLs are not invented. Maintenance ends use explicit timestamps or documented duration minutes under completed/autoEnd semantics, with every update retained silently. Statuspage, Instatus and Better Stack also accept the keyless capture of their public feeds that setup reads (SETUP-002): resolved incidents only, each update at its time, component states only where the feeds state them (an incident without any is history naming its listed components), and each feed's own incident links as its old addresses. Sorry general notices may have no affected component and are carried as resolved informational history without outage claims; canceled maintenance stays canceled. Sorry additionally accepts keyless public JSON captures, including paginated components and notices plus full detail for every notice. Partial public previews name uncaptured details and cannot be applied. Subscribers come only from the authenticated API; eligible email rows are held inert without mail or confirmation expiry. A held row neither released nor undone is deleted with its address 30 days after the reviewed dry run, and Cutover states that date. After the hostname is live and the watch window closes, an explicit owner invitation action names the configured public origin, records that approval, and releases held rows into pending with a 72-hour window starting at release. Undo cannot recall mail or remove a released row as if it were still unchanged. Sorry numeric notice IDs and supplied notice paths redirect to surviving Lamp incidents or maintenance; `/notices`, `/history` and `/history/YYYY/month` (English month names) redirect to Lamp\u2019s `/history/` while a Sorry import is retained."
+    },
+    "NOTIFY-001": {
+      "change": "changed",
+      "summary": "Selected subscriptions receive committed public component status changes with claimant kind; incident carriers are deduplicated under NOTIFY-017.",
+      "was": "What notifies subscribers: *Policy: `notification.events.v1`; default: an incident notifies on its first published update, on every subsequent published update, and on the update that resolves it; a scheduled maintenance notifies per MAINT-005; a component state change made outside an incident or maintenance notifies no one.*",
+      "now": "What notifies subscribers: *Policy: `notification.events.v1`; default: an incident notifies on its first published update, on every subsequent published update, and on the update that resolves it; a scheduled maintenance notifies per MAINT-005; a component state change made outside an incident or maintenance notifies subscriptions that selected component status changes under NOTIFY-017; webhook subscriptions select those changes by default (SUB-016).*",
+      "migrationIds": [
+        "0056_subscriber_channels_preferences.sql",
+        "0057_component_deliveries.sql"
+      ]
+    },
+    "MOVE-001": {
+      "change": "changed",
+      "summary": "Move-in dry runs report per-channel subscriber excess; over-limit applies write nothing until a fresh narrowed dry run fits.",
+      "was": "Dry run first: An owner moving from Statuspage, Better Stack, Instatus or Sorry gives Settings \u2192 Move in either an API key with its page ID (read once with GET requests to the source's fixed API origin, never stored) or the source's saved API responses. A dry run counts every component, component group, incident with its updates, scheduled maintenance and subscriber as imported, changed, skipped or refused, names each reason, and writes nothing. An import applies only the reviewed dry run: if the source or this page changed since, it is refused and a fresh dry run is required.",
+      "now": "Dry run first: An owner moving from Statuspage, Better Stack, Instatus or Sorry gives Settings \u2192 Move in either an API key with its page ID (read once with GET requests to the source's fixed API origin, never stored) or the source's saved API responses. A dry run counts every component, component group, incident with its updates, scheduled maintenance and subscriber as imported, changed, skipped or refused, names each reason, and writes nothing. An import applies only the reviewed dry run: if the source or this page changed since, it is refused and a fresh dry run is required. SUB-020 adds per-channel capacity accounting: a dry run names the excess and refuses excess subscriber rows; an over-limit apply writes nothing until a fresh, narrowed dry run fits.",
+      "migrationIds": [
+        "0056_subscriber_channels_preferences.sql"
+      ]
+    },
+    "MAINT-001": {
+      "change": "changed",
+      "summary": "New native windows also carry MAINT-009 required affected-audience and customer-impact wording, frozen into each notice. Pre-release windows remain title-only; lifecycle timing and overrun behavior are unchanged.",
+      "was": "Distinct from incidents: A scheduled maintenance has a start time, an end time, and attached components. It has a reference of the form `SCH-` followed by digits, and is listed separately from incidents wherever both appear. New maintenance references use a durable, increasing `SCH-n` allocation sequence independent of incidents and legacy timestamp-sized references. Existing references remain unchanged; deletion, restart and failed creation never permit reuse, and failures may leave gaps.",
+      "now": "Distinct from incidents: A scheduled maintenance has a start time, an end time, and attached components. It has a reference of the form `SCH-` followed by digits, and is listed separately from incidents wherever both appear. New maintenance references use a durable, increasing `SCH-n` allocation sequence independent of incidents and legacy timestamp-sized references. Existing references remain unchanged; deletion, restart and failed creation never permit reuse, and failures may leave gaps. New native windows also carry MAINT-009 required affected-audience and customer-impact wording, frozen into each notice. Pre-release windows remain title-only; lifecycle timing and overrun behavior are unchanged.",
+      "migrationIds": [
+        "0058_maintenance_wording.sql"
+      ]
+    },
+    "MAINT-002": {
+      "change": "changed",
+      "summary": "New native windows also carry MAINT-009 required affected-audience and customer-impact wording, frozen into each notice. Pre-release windows remain title-only; lifecycle timing and overrun behavior are unchanged.",
+      "was": "Automatic transitions: A scheduled maintenance moves from Scheduled to In progress within 240 seconds of its start time, and from In progress to Completed within 240 seconds of its end time, with no operator action. The 240-second bound is a declared promise based on one local stress observation with 20 updates and 20 maintenance starts due in the same cron minute on a single workerd process on a shared runner; it is not a p95 over independent runs or a hosted Cron guarantee.",
+      "now": "Automatic transitions: A scheduled maintenance moves from Scheduled to In progress within 240 seconds of its start time, and from In progress to Completed within 240 seconds of its end time, with no operator action. The 240-second bound is a declared promise based on one local stress observation with 20 updates and 20 maintenance starts due in the same cron minute on a single workerd process on a shared runner; it is not a p95 over independent runs or a hosted Cron guarantee. New native windows also carry MAINT-009 required affected-audience and customer-impact wording, frozen into each notice. Pre-release windows remain title-only; lifecycle timing and overrun behavior are unchanged.",
+      "migrationIds": [
+        "0058_maintenance_wording.sql"
+      ]
+    },
+    "MAINT-004": {
+      "change": "changed",
+      "summary": "New native windows also carry MAINT-009 required affected-audience and customer-impact wording, frozen into each notice. Pre-release windows remain title-only; lifecycle timing and overrun behavior are unchanged.",
+      "was": "Overrun: A maintenance still In progress 15 minutes after its end time is shown on the public page as running longer than planned, beside its original end time, until an operator completes it or extends the window.",
+      "now": "Overrun: A maintenance still In progress 15 minutes after its end time is shown on the public page as running longer than planned, beside its original end time, until an operator completes it or extends the window. New native windows also carry MAINT-009 required affected-audience and customer-impact wording, frozen into each notice. Pre-release windows remain title-only; lifecycle timing and overrun behavior are unchanged.",
+      "migrationIds": [
+        "0058_maintenance_wording.sql"
+      ]
+    },
+    "MAINT-005": {
+      "change": "changed",
+      "summary": "New native windows also carry MAINT-009 required affected-audience and customer-impact wording, frozen into each notice. Pre-release windows remain title-only; lifecycle timing and overrun behavior are unchanged.",
+      "was": "Reminders: *Policy: `maintenance.reminders.v1`; default: subscribers are notified when the maintenance is scheduled, 24 hours before the start time, when it moves to In progress, and when it moves to Completed.*",
+      "now": "Reminders: *Policy: `maintenance.reminders.v1`; default: subscribers are notified when the maintenance is scheduled, 24 hours before the start time, when it moves to In progress, and when it moves to Completed.* New native windows also carry MAINT-009 required affected-audience and customer-impact wording, frozen into each notice. Pre-release windows remain title-only; lifecycle timing and overrun behavior are unchanged.",
+      "migrationIds": [
+        "0058_maintenance_wording.sql"
+      ]
+    }
+  },
+  "extensionPointChanges": [],
+  "migrations": [
+    {
+      "id": "0043_page_templates.sql",
+      "buyerSteps": "Apply after 0042. Adds the saved built-in page template (default preserves the existing page) and an optional region on components. Additive; no existing data changes or configuration inputs."
+    },
+    {
+      "id": "0044_widget_appearance.sql",
+      "buyerSteps": "Apply after 0043. Adds the saved embed tag choices (the original embed defaults for every existing page). Additive; no existing data changes or configuration inputs."
+    },
+    {
+      "id": "0045_incident_communication_owner.sql",
+      "buyerSteps": "Apply after 0044. Adds private communication-owner assignments and a separate escalation-receipt table, preserving issued update-reminder records and their existing checked kinds. Existing incidents default to their opener; no input or version changes."
+    },
+    {
+      "id": "0046_report_followups.sql",
+      "buyerSteps": "Apply after 0045. Adds private reasoned report waivers and exact-once weekly report reminder records. Existing reports and incident history are unchanged; no new owner input."
+    },
+    {
+      "id": "0047_agent_promise_drafts.sql",
+      "buyerSteps": "Apply after 0046. Adds private Lamp draft-attribution and retained per-commitment preparation receipts in one sidecar table. Existing drafts stay operator-authored and unchanged; no model, credential or configuration input is required."
+    },
+    {
+      "id": "0048_maintenance_automation.sql",
+      "buyerSteps": "Apply after 0047. Adds a maintenance automation sidecar with per-window auto-start and auto-complete switches. Existing native and imported windows have no sidecar and retain both switches on; no existing record, input, version or import journal changes."
+    },
+    {
+      "id": "0049_follow_up_dismissals.sql",
+      "buyerSteps": "Apply after 0048. Adds private reasoned Follow-ups dismissal records keyed to the exact obligation occurrence. No existing obligation is dismissed or notification reopened; no new owner input is required."
+    },
+    {
+      "id": "0050_detached_component_visibility.sql",
+      "buyerSteps": "Apply after 0049. Deleting an internal component now marks its retained incident and maintenance attachments internal in the same deletion, so they stay off public surfaces. Attachments detached before this migration keep their current visibility; no new owner input is required."
+    },
+    {
+      "id": "0052_chat_desk_links.sql",
+      "buyerSteps": "Apply after 0050. Adds private Slack and Teams identity links, ten-minute link codes and preview approvals, and request replay receipts. Existing operator and incident rows are unchanged. Native rer export excludes transient chat codes, previews and request receipts; durable chat links are retained. No expiry wait is needed before a native transfer."
+    },
+    {
+      "id": "0053_subscriber_intake.sql",
+      "buyerSteps": "Apply after 0052. Adds native subscriber intake attribution and invitation receipts, and nullable subscriber creator attribution. Existing subscriptions and consent stay unchanged. CSV apply creates pending subscriptions without mail; only an explicit owner invitation action or operator Add sends a confirmation."
+    },
+    {
+      "id": "0054_subscriber_webhook_formats.sql",
+      "buyerSteps": "Apply after 0053. Adds a checked subscriber webhook_format column defaulting to lamp. Existing subscriptions retain their body format and signature scheme; only an explicit creation or token-authorized recipient choice selects Statuspage. The native column is retained by technical archives and page-data JSON."
+    },
+    {
+      "id": "0055_maintenance_automation_defaults.sql",
+      "buyerSteps": "Apply after 0054. Adds page-level auto-start and auto-complete defaults, initially both on. Existing maintenance windows retain their own choices; changing Settings affects only new windows."
+    },
+    {
+      "id": "0056_subscriber_channels_preferences.sql",
+      "buyerSteps": "Apply after 0055. Preserves existing subscribers, selections, tokens, attribution and channel posts while adding self-serve Slack and Teams kinds, sealed chat destinations, expiring OAuth state, event preferences and incident thresholds, immutable component notification facts and atomic subscriber capacity guards. Existing webhooks opt into component changes; other subscriptions retain incidents and maintenance. Optional Slack OAuth credentials are configured only by an owner enabling that door. Uses only appended subscriber fields, additive subscriber-owned channel records and shared logical read projections; no backed-up table is rebuilt."
+    },
+    {
+      "id": "0057_component_deliveries.sql",
+      "buyerSteps": "Apply after 0056. Adds a component-only delivery/attempt partition and shared delivery/receipt queries. Existing incident and maintenance deliveries, attempts and provider mappings retain their exact tables, identifiers, outcomes and authority; older technical backups restore through the pinned bridge without a table rebuild."
+    },
+    {
+      "id": "0058_maintenance_wording.sql",
+      "buyerSteps": "Apply after 0057. Adds nullable maintenance affected-audience and customer-impact wording. Existing native and imported windows stay title-only without backfill; new native scheduling requires both statements, and each notice freezes its wording for notification delivery."
+    },
+    {
+      "id": "0059_mail_failover.sql",
+      "buyerSteps": "Apply after 0058. Adds private mail-provider routing and default-off secondary-selection sidecars keyed to existing idempotency keys. Existing mail history and send claims remain unchanged. Connect an optional secondary through the deployment generators, then explicitly select it under Settings \u2192 Notifications. Recorded acceptance stays with its accepting provider; unconfirmed submissions cannot cross providers or bypass routing after a configuration change."
+    },
+    {
+      "id": "0060_operator_channel_alerts.sql",
+      "buyerSteps": "Apply after 0059. Adds a default-off operator-alert choice to existing operator channel destinations. Existing channels remain publication-only until an owner explicitly enables operator alerts in Settings. Subscriber channel destinations cannot opt into private operator alerts."
+    },
+    {
+      "id": "0061_vendor_alert_presets.sql",
+      "buyerSteps": "Apply after 0060. Adds optional Jira Service Management, Opsgenie and New Relic alert presets and an owner-selected close-alert-on-resolve setting. Existing sources retain their presets and behavior; responder credentials remain sealed and must be reconnected after restore."
+    },
+    {
+      "id": "0062_public_metrics.sql",
+      "buyerSteps": "Apply after 0061. Adds public metric definitions and aggregate-only minute/day, hourly/30-day and daily/90-day buckets. Read-only provider keys are sealed and excluded from archives; restored pull sources require reconnecting."
+    },
+    {
+      "id": "0063_management_metric_tokens.sql",
+      "buyerSteps": "Apply after 0062. Adds scoped management-token metadata for metrics:write only. Base stores bearer credentials as hashes and omits their authority from native archives; restored metadata is inert. Existing sessions, metrics, aggregates and previously applied tables remain unchanged."
+    },
+    {
+      "id": "0064_management_read_tokens.sql",
+      "buyerSteps": "Apply after 0063. Add opt-in read scope to existing management-token metadata; all existing tokens default to no read access."
+    },
+    {
+      "id": "0065_sms_subscriptions.sql",
+      "buyerSteps": "Apply after 0064. Adds default-off Twilio SMS subscriptions, country settings, signed-reply consent and delivery history using additive subscriber fields and subscriber-owned tables. Existing subscriber identities, preferences, notification history and older backups remain intact. Configure your registered Twilio sender explicitly before SMS sends; restored product data carries no provider credential."
+    }
+  ],
+  "breaking": false,
+  "agentUpdateInstructions": "Apply the additive migrations since 1.10.0 on deploy, in order: 0043_page_templates.sql adds a saved page template, set to default (the existing page) for every existing page, and an optional component region; 0044_widget_appearance.sql adds the saved embed tag choices, set to the original embed defaults for every existing page. No extension-point change, and stored data stays compatible. Back up data and owner source first, update the checkout, run pnpm install --frozen-lockfile (the checkout pins rer 0.2.76 with no rer patch) and rer deploy as before. PAGE-009 and UPTIME-003 now state the relative generation label and first-day coverage labels that the 1.10.0 public page already shows. Run rer verify and pnpm run validate:release before adopting. SETUP-002 now prefers an existing public status page's real components and groups and offers optional silent resolved-history import; MOVE-006 records these keyless public-feed captures. No additional migration or API key is required for public history. Apply 0045_incident_communication_owner.sql after 0044 for private incident ownership and escalation reminder kinds; existing reminders are preserved and existing incidents default to their opener. Apply 0046_report_followups.sql after 0045 for private report waivers and weekly reminder records. Apply 0047_agent_promise_drafts.sql after 0046 for sidecar-only private model-free next-update draft attribution and one-per-commitment receipts; existing drafts are unchanged. Apply 0048_maintenance_automation.sql after 0047 for per-window maintenance automation. Existing windows retain automatic start and completion; new choices are stored in an additive sidecar. Apply 0049_follow_up_dismissals.sql after 0048 for private reasoned Follow-ups dismissals; a new failure occurrence is not hidden by an older dismissal. Apply 0050_detached_component_visibility.sql after 0049 so a deleted internal component's retained attachments stay private. Apply 0052_chat_desk_links.sql after 0050. Chat links are durable. Native rer export excludes transient chat link codes, previews and request receipts, so no expiry wait is needed before a native transfer. Apply 0053_subscriber_intake.sql after 0052 for native CSV and operator-added subscriber attribution and one-time invitation records. Apply 0054_subscriber_webhook_formats.sql after 0053 for the checked webhook format column; existing subscriptions keep Lamp. Apply 0055_maintenance_automation_defaults.sql after 0054 for page-level maintenance defaults, initially both on; existing windows retain their own choices."
+}

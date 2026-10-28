@@ -65,7 +65,7 @@ Use configuration and extensions when they save work. Direct core, schema, UI or
 
 | Owner wants to | Do this |
 |---|---|
-| Use the unified import door | Built for Statuspage, Sorry, Better Stack and Instatus: owner opt-in (or Business first-owner-claim healing), permanent key revocation, uploads, saved-response plan, reviewed silent apply with Business subscribers held, native reconcile, preserve-conflicts undo and bounded catch-up grants. See `docs/moving-in.md` and CONTRACT.md’s unified import-door status. `tests/e2e/sorry-import.test.mjs` covers the seeded lifecycle and catch-up; this is synthetic test-install proof, not real-export verification. |
+| Use the unified import door | Built for Statuspage, Sorry, Better Stack and Instatus: owner opt-in (or Business first-owner-claim healing), permanent key revocation, uploads, saved-response plan, reviewed silent apply with Business subscribers held, native reconcile, preserve-conflicts undo and bounded catch-up grants. See `docs/moving-in.md` and [the unified import-door implementation record](docs/contract/operations-details.md#unified-import-door--existing-implementation-status). `tests/e2e/sorry-import.test.mjs` covers the seeded lifecycle and catch-up; this is synthetic test-install proof, not real-export verification. |
 | Rename things, toggle features, change copy, branding | `src/ext/config.ts`; tokens in `src/core/app/theme` |
 | Add a field to a record | Use existing custom fields (`seed.json`), a sidecar table, or a new core schema migration as appropriate. |
 | Add a page, route, nav entry, settings section, job, cron, queue consumer | `src/ext/local/<name>/`, registered from `index.server.ts` / `index.client.tsx` |
@@ -104,15 +104,6 @@ Lamp does not currently interpret `contract-overrides.json` or automatically
 report owner replacements. Run the owner's specific tests explicitly and report
 their results alongside the upstream verifier. A failing upstream test without a
 recorded owner request is a regression to fix.
-
-## Lander-Regenerate
-
-After resolving CONTRACT.md, regenerate the touched clause entries and shared counts:
-`node scripts/contract-docs.mjs write INTEG-002`
-Then run `node scripts/contract-docs.mjs check INTEG-002`.
-This incremental generator preserves the remaining legacy entries for ct's conversion.
-Regenerate the source lock last: `node scripts/edition-authoring/cli.mjs lock`,
-then `node scripts/edition-authoring/cli.mjs check`.
 
 ## Verify
 
@@ -171,3 +162,12 @@ when they would save work in another edition. Their natural home may be this
 edition, a family, Base or an independent repository; no separate repository per
 module or universal compatibility interface is required. Verify adoption against
 the receiving product's requirements, including deliberate local differences.
+
+## Contract document generation
+
+After editing `CONTRACT.md`, regenerate its acceptance and homepage claim documents,
+check them, and record the source lock last. Verification checks the generated documents.
+
+Lander-Regenerate: node src/base/contract-docs.mjs write
+Lander-Regenerate: node src/base/contract-docs.mjs check
+Lander-Regenerate: node scripts/edition-authoring/cli.mjs lock

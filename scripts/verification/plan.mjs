@@ -1,7 +1,7 @@
 // One ordered plan for local serial verification and independent CI machines.
 // A shard never shares a mutable build, D1 database or browser with another shard.
 export const verificationPlan = {
-  source: ['source:copies', 'source:check', 'test:owner-migrations', 'test:operations', 'test:docs', 'test:external-heartbeat', 'typecheck', 'check:syntax', 'validate:release', 'test', 'verify:visual:source'],
+  source: ['check:contract-docs', 'source:copies', 'source:check', 'test:owner-migrations', 'test:operations', 'test:docs', 'test:external-heartbeat', 'typecheck', 'check:syntax', 'validate:release', 'test', 'verify:visual:source'],
   'ownership-upgrade': ['test:operator-readiness:upgrade'],
   'ownership-authority': ['test:operator-readiness:authority'],
   adoption: ['test:rer-journey'],
