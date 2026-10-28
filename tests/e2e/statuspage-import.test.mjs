@@ -4,6 +4,7 @@ import { createServer } from "node:http";
 import { join } from "node:path";
 import { after, before } from "node:test";
 
+import { importedIncidentLiveFlow } from "./helpers/imported-incident-live-flow.mjs";
 import { incidentSubscriberFiles, incidentSubscriberImportFlow } from "./helpers/incident-subscriber-import-flow.mjs";
 import { continuityFiles, assertContinuityCounts, postmortemTemplateImportFlow } from "./helpers/postmortem-template-import-flow.mjs";
 import { subscriberCsvFlow } from "./helpers/subscriber-csv-flow.mjs";
@@ -155,6 +156,8 @@ contract("MOVE-001", "SUB-019 MOVE-011 — a dry run reports every record and wr
   } finally {incidentSubscriberProbe=false;}
   await incidentSubscriberImportFlow({ t, runtime, api, moveIn, importAll, original: fixtures("small"), origin, publicOrigin, operator });
   assert.deepEqual(await counts(), before, "incident-subscriber import undo leaves the prior installation intact");
+  await importedIncidentLiveFlow(fixtures("small"));
+  assert.deepEqual(await counts(), before, "the isolated live-import proof leaves this undo installation intact");
   try {
     for(const size of [5_000,25_000]) {
       boundarySubscriberCount=size;

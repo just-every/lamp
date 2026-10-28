@@ -110,7 +110,7 @@ function rendererSource(claims = []) {
 }
 
 async function svgPixels(path, width, height, points) {
-  const browser = await chromium.launch({ headless: true, ...(process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH ? {executablePath:process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH} : {}), args: ["--use-mock-keychain", "--password-store=basic", ...(process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH ? ["--no-sandbox"] : [])] });
+  const browser = await chromium.launch({ headless: true, args: ["--use-mock-keychain", "--password-store=basic"] });
   try {
     const page = await (await browser.newContext()).newPage();
     await page.goto(`${pageUrl}/`);
@@ -602,7 +602,7 @@ test("PAGE-012 PAGE-011 PAGE-019 MOVE-009 — Uploaded branding artwork, allow-l
   const widget = await (await fetch(`${pageUrl}/widget.js`)).text();
   assert.ok(gzipSync(Buffer.from(widget)).byteLength <= 10 * 1024);
   assert.doesNotMatch(widget, /XMLHttpRequest|importScripts/, "the snapshot widget uses only the public status fetch");
-  const browser = await chromium.launch({ headless: true, ...(process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH ? {executablePath:process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH} : {}), args: ["--use-mock-keychain", "--password-store=basic", ...(process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH ? ["--no-sandbox"] : [])] });
+  const browser = await chromium.launch({ headless: true, args: ["--use-mock-keychain", "--password-store=basic"] });
   try {
     const allowed = await (await browser.newContext()).newPage();
     await allowed.goto(`${pageUrl}/`);
@@ -645,7 +645,7 @@ test("SUB-019 PAGE-013 PAGE-014 PAGE-008 PAGE-009 PAGE-003 — Public isolation,
 })(t);
   t.diagnostic("PAGE-014 — browser polling updates status in place without changing the configured timezone");
   await (async () => {
-  const browser = await chromium.launch({ headless: true, ...(process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH ? {executablePath:process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH} : {}), args: ["--use-mock-keychain", "--password-store=basic", ...(process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH ? ["--no-sandbox"] : [])] });
+  const browser = await chromium.launch({ headless: true, args: ["--use-mock-keychain", "--password-store=basic"] });
   try {
     const context = await browser.newContext({ timezoneId: "America/New_York" });
     const page = await context.newPage();
@@ -758,7 +758,7 @@ test("SUB-019 PAGE-013 PAGE-014 PAGE-008 PAGE-009 PAGE-003 — Public isolation,
   assert.ok(initialTimes.length > 0 && initialTimes.some(([, instant]) => instant === nextUpdateAt), "initial HTML includes the committed next update");
   for (const [, instant, visible] of initialTimes) assertVisibleTime(visible, instant, "America/Los_Angeles");
   assert.match(html, /data-timezone-label data-timezone="America\/Los_Angeles">[^<]+/);
-  const browser = await chromium.launch({ headless: true, ...(process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH ? {executablePath:process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH} : {}), args: ["--use-mock-keychain", "--password-store=basic", ...(process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH ? ["--no-sandbox"] : [])] });
+  const browser = await chromium.launch({ headless: true, args: ["--use-mock-keychain", "--password-store=basic"] });
   try {
     const context = await browser.newContext({ timezoneId: "America/New_York" });
     const page = await context.newPage();
@@ -817,7 +817,7 @@ test("SUB-019 PAGE-013 PAGE-014 PAGE-008 PAGE-009 PAGE-003 — Public isolation,
   await uploadTestLogo();
   const settings = await currentSettings();
   await updateSettings({ tagline: settings.tagline });
-  const browser = await chromium.launch({ headless: true, ...(process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH ? {executablePath:process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH} : {}), args: ["--use-mock-keychain", "--password-store=basic", ...(process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH ? ["--no-sandbox"] : [])] });
+  const browser = await chromium.launch({ headless: true, args: ["--use-mock-keychain", "--password-store=basic"] });
   try {
     const page = await (await browser.newContext()).newPage();
     const paths = new Set();

@@ -8,6 +8,7 @@ import { operatorHydrated } from "./operator-hydrated.mjs";
 
 /** One functional width; the same changed screens are recorded at both widths. */
 export async function incidentFollowBrowserFlow({ page: operatorPage, origin, pageOrigin, api, post, raw, messages }) {
+  await operatorPage.setViewportSize({ width: 1440, height: 1000 });
   await operatorPage.goto(`${origin}/app/settings#notifications`);
   await operatorHydrated(operatorPage);
   const reportChoice = operatorPage.getByRole("checkbox", { name: "Include the post-incident report", exact: true });
@@ -22,9 +23,14 @@ export async function incidentFollowBrowserFlow({ page: operatorPage, origin, pa
   assert.equal((await restoreChoice).status(), 200);
   const componentResult = await post("/api/app/components", { groupId: null, name: "Synthetic Lamp browser follow API", description: "", internal: false, displayOrder: 0, note: "" });
   assert.equal(componentResult.status, 201, componentResult.text);
+  for (let number = 1; number <= 6; number++) {
+    const earlier = await post("/api/app/incidents", { title: `Synthetic Lamp earlier browser incident ${number}`, components: [{ componentId: componentResult.body.component.id, state: "Partially unavailable", relationship: "Primary" }] });
+    assert.equal(earlier.status, 201, earlier.text);
+  }
   const created = await post("/api/app/incidents", { title: "Synthetic Lamp browser-follow incident", components: [{ componentId: componentResult.body.component.id, state: "Partially unavailable", relationship: "Primary" }] });
   assert.equal(created.status, 201, created.text);
   const incident = created.body.incident;
+  assert.equal(incident.reference, "INC-7", "the script-free browser follows the acceptance incident itself");
   const saved = await api(`/api/app/incidents/${incident.id}/draft`, { method: "PUT", body: JSON.stringify({ lifecycle: "Investigating", affectedAudience: "Synthetic Lamp API readers", customerImpact: "Synthetic Lamp browser-follow requests are delayed.", whatStillWorks: "The status page remains available.", details: "The operator is investigating.", nextUpdateAt: new Date(Date.now() + 3_600_000).toISOString() }) });
   assert.equal(saved.status, 200, saved.text);
   assert.equal((await post(`/api/app/incidents/${incident.id}/publish`, { channels: [] })).status, 200);

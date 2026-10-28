@@ -72,6 +72,7 @@ export function createSmsRepository(db:D1Database) {
       const result=await db.batch([
         db.prepare("UPDATE subscribers SET state='deactivated',deactivation_reason='SMS STOP',deactivated_at=?,updated_at=? WHERE id=? AND state<>'deactivated' RETURNING id").bind(now,now,id),
         db.prepare("UPDATE subscriber_tokens SET revoked_at=?,updated_at=? WHERE subscriber_id=? AND revoked_at IS NULL").bind(now,now,id),
+        db.prepare("UPDATE incident_subscriptions SET ended_at=COALESCE(ended_at,?),final_event_id=NULL WHERE subscriber_id=?").bind(now,id),
         db.prepare("UPDATE sms_deliveries SET outcome='suppressed',outcome_at=? WHERE subscriber_id=? AND outcome='queued'").bind(now,id),
       ]);
       return result[0].results.length>0;
@@ -84,10 +85,10 @@ export function createSmsRepository(db:D1Database) {
         `(s.selection_mode='all' OR EXISTS(SELECT 1 FROM subscriber_components sc WHERE sc.subscriber_id=s.id AND sc.component_id IN (${slots}))) AND EXISTS(SELECT 1 FROM components c WHERE c.id IN (${slots}) AND c.internal=0)`;
       const threshold=input.kind==='maintenance-notice'?'1':incidentThresholdSql('(SELECT incident_id FROM follow_event)');
       const follow=input.kind==='maintenance-notice'?'0':incidentFollowRecipientSql('(SELECT incident_id FROM follow_event)','(SELECT event_at FROM follow_event)',input.kind==='incident-report');
-      return [db.prepare(`WITH follow_event AS (SELECT ${input.kind==='maintenance-notice'?'NULL':`(SELECT incident_id FROM ${input.kind==='incident-update'?'incident_updates':'incident_reports'} WHERE id=?)`} AS incident_id,? AS event_at${input.kind==='incident-update'?`,NOT EXISTS(SELECT 1 FROM incident_updates historical WHERE historical.incident_id=(SELECT incident_id FROM incident_updates WHERE id=?) AND historical.is_retroactive=1) AS live`:''})
+      return [db.prepare(`WITH follow_event AS (SELECT ${input.kind==='maintenance-notice'?'NULL':`(SELECT incident_id FROM ${input.kind==='incident-update'?'incident_updates':'incident_reports'} WHERE id=?)`} AS incident_id,? AS event_at${input.kind==='incident-update'?`,EXISTS(SELECT 1 FROM incident_updates live_update WHERE live_update.id=? AND live_update.is_retroactive=0) AS live`:''})
         INSERT OR IGNORE INTO sms_deliveries(id,subscriber_id,event_id,kind,incident_update_id,maintenance_id,incident_report_id,outcome,queued_at,outcome_at)
         SELECT ?||'.'||s.id,s.id,?,?,?,?,?,CASE WHEN s.state='active' THEN 'queued' ELSE 'suppressed' END,?,CASE WHEN s.state='active' THEN NULL ELSE ? END
-        FROM subscriber_directory s WHERE s.channel='sms' AND s.state IN ('active','deactivated') AND ((${ordinarySubscriptionSql()} AND ${input.ordinaryEnabled===false?'0':'1'} AND ${eligible}
+        FROM subscriber_directory s WHERE s.channel='sms' AND s.state IN ('active','deactivated') AND s.destination NOT LIKE 'deleted:%' AND ((${ordinarySubscriptionSql()} AND ${input.ordinaryEnabled===false?'0':'1'} AND ${eligible}
           AND ${eventPreferenceSql(input.kind==='maintenance-notice'?'maintenance':'incidents')} AND ${threshold}) OR (${follow}${input.kind==='incident-update'?' AND (SELECT live FROM follow_event)':''}))
           ${input.kind==='maintenance-notice'?'AND EXISTS(SELECT 1 FROM maintenance_notices WHERE id=?)':''}`)
         .bind(...(input.kind==='maintenance-notice'?[]:[input.incidentUpdateId??input.incidentReportId??null]),input.queuedAt,...(input.kind==='incident-update'?[input.incidentUpdateId??null]:[]),input.eventId,input.eventId,input.kind,input.incidentUpdateId??null,input.maintenanceId??null,input.incidentReportId??null,input.queuedAt,input.queuedAt,

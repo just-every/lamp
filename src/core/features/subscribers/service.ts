@@ -293,7 +293,9 @@ export function createSubscribersService(
       // Following an emailed unsubscribe link proves the address is the subscriber's
       // own, so it restores the address's confirmation allowance (SUB-001): a later
       // re-subscribe gets a fresh confirmation instead of silence.
-      const allowance = matched.subscriber.channel === "email" ? await hashOpaqueToken(`confirmation-address:${matched.subscriber.destination}`) : null;
+      const incidentContact = matched.subscriber.channel === "webhook" && await repository.incidents.get(matched.subscriber.id) ? matched.subscriber.contactEmail : null;
+      const confirmationAddress = matched.subscriber.channel === "email" ? matched.subscriber.destination : incidentContact;
+      const allowance = confirmationAddress ? await hashOpaqueToken(`confirmation-address:${normalizeEmail(confirmationAddress)}`) : null;
       if (!await repository.unsubscribeSubscriber({ subscriberId: matched.subscriber.id, tokenHash: matched.token.tokenHash }, timestamp, allowance)) return false;
       await emitAfterCommit(() => events.subscriberDeactivated({ subscriberId: matched.subscriber.id, channel: matched.subscriber.channel, occurredAt: timestamp, reason: "unsubscribed" }));
       return true;

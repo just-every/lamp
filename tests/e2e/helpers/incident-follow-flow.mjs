@@ -39,6 +39,9 @@ export async function incidentFollowFlow() {
     const accepted = await subscribe(incident.id, { email });
     assert.equal(accepted.status, 202, accepted.text);
     assert.equal(messagesFor(email).length, 1);
+    const initialCapacity = (await api("/api/app/subscribers?limit=1")).body.capacity;
+    assert.ok(initialCapacity.some(row => row.channel === "all" && row.count === 1), "a real pending incident opt-in consumes one all-channel slot");
+    assert.ok(initialCapacity.some(row => row.channel === "email" && row.count === 1), "the pending incident opt-in also consumes one email slot");
     const pendingRepeat = await subscribe(incident.id, { email });
     assert.equal(pendingRepeat.status, 202);
     assert.equal(pendingRepeat.text, accepted.text, "new and pending subscriptions receive the same no-enumeration answer");
@@ -52,6 +55,9 @@ export async function incidentFollowFlow() {
     const activeRepeat = await subscribe(incident.id, { email });
     assert.equal(activeRepeat.status, 202);
     assert.equal(activeRepeat.text, accepted.text, "an active address receives the same no-enumeration answer");
+    const reminders = messagesFor(email).filter(message => message.subject === "You are already subscribed to Synthetic Lamp follow-ups");
+    assert.equal(reminders.length, 1, "an active incident follower receives one private already-subscribed email");
+    assert.match(reminders[0].text, /^You are already subscribed to Synthetic Lamp follow-ups\. Manage this subscription: https:\/\/status\.example\.test\/manage\/\S+$/, "the SUB-012 email carries its management link and nothing else");
     const operatorRows = await api(`/api/app/incidents/${incident.id}/subscribers`);
     assert.equal(operatorRows.status, 200, operatorRows.text);
     assert.ok(operatorRows.body.subscribers.some(row => row.id === subscriber.id && row.destination === email), "the incident's operator view lists its follower");
@@ -78,7 +84,7 @@ export async function incidentFollowFlow() {
     assert.equal(fixture.messages.length, mailBeforeInvalid, "invalid and denied requests send nothing");
     assert.equal(await (await raw(`${fixture.origin}/incidents/${incident.reference}`)).text(), publicHtml, "invalid and denied requests leave the published snapshot unchanged");
 
-    const next = await publish(incident, "Synthetic Lamp INC-7 next update.");
+    const next = await publish(incident, "Synthetic Lamp INC-7 next update.", "Identified", []);
     assert.ok(messagesFor(email).some(message => message.text.includes("Synthetic Lamp INC-7 next update.")));
     assert.ok((await fixture.deliveries(next.id)).some(row => row.subscriberId === subscriber.id && row.outcome === "delivered"));
     const beforeOther = messagesFor(email).length;
@@ -135,6 +141,17 @@ async function proveIncidentWebhookAndErasure(fixture, incident) {
   await fixture.publish(incident, "Synthetic Lamp webhook after consent.");
   assert.equal(fixture.webhookRequests.length, 1);
   assert.ok(!JSON.stringify(fixture.webhookRequests[0]).includes(contactEmail));
+  const invitation = fixture.messagesFor(contactEmail).find(message => /\/confirm-subscription\//.test(message.text));
+  const unsubscribeUrl = invitation.text.match(/https?:\/\/\S+\/unsubscribe\/\S+/)[0];
+  const optedOut = await fixture.raw(unsubscribeUrl, { method: "POST", headers: { Origin: fixture.origin, Accept: "text/html", "Content-Type": "application/x-www-form-urlencoded" }, body: "action=unsubscribe" });
+  assert.equal(optedOut.status, 200, "the contact's mailed token unsubscribes its incident webhook");
+  const confirmationCount = fixture.messagesFor(contactEmail).filter(message => /\/confirm-subscription\//.test(message.text)).length;
+  assert.equal((await fixture.subscribe(incident.id, { channel: "webhook", destination, contactEmail })).status, 202);
+  const invitations = fixture.messagesFor(contactEmail).filter(message => /\/confirm-subscription\//.test(message.text));
+  assert.equal(invitations.length, confirmationCount + 1, "mailed unsubscribe restores the incident webhook contact's shared confirmation allowance");
+  const freshConfirmation = invitations.at(-1).text.match(/https?:\/\/\S+\/confirm-subscription\/\S+/)[0];
+  assert.equal((await fixture.raw(freshConfirmation)).status, 200);
+
   assert.equal((await fixture.api(`/api/app/subscribers/${row.id}`, { method: "DELETE" })).status, 204);
   await fixture.erased(contactEmail, "operator erasure clears the incident webhook contact");
   await fixture.erased(destination, "operator erasure clears the incident webhook endpoint");

@@ -159,6 +159,7 @@ before(async () => {
   configPath = fixtureConfig.path;
   execFileSync("pnpm", ["exec", "wrangler", "d1", "migrations", "apply", "DB", "--local", "--config", configPath, "--persist-to", statePath], {
     cwd: process.cwd(),
+    maxBuffer: 8 * 1024 * 1024,
     stdio: "pipe",
   });
   await startWorker();

@@ -48,7 +48,7 @@ export async function smsBrowserRuntime(){
     throw new Error(`Unexpected mail UI provider edge: ${url.origin}${url.pathname}`);
   };
   try{
-    runtime=new Miniflare(convertV4MiniflareOptions({port,workers:[{...workerOptions,modules,modulesRoot:dirname(options.main),bindings,outboundService},...options.externalWorkers]}));
+    runtime=new Miniflare(convertV4MiniflareOptions({port,inspectorPort:0,workers:[{...workerOptions,modules,modulesRoot:dirname(options.main),bindings,outboundService},...options.externalWorkers]}));
     const env=await runtime.getBindings();
     await migrate(env.DB);
     await executeSql(env.DB,`INSERT INTO oa_operators(id,email,display_name,role,status,created_at) VALUES('01J00000000000000000000091','synthetic-lamp-owner@example.test','Synthetic Lamp owner','owner','active',${Date.now()});
