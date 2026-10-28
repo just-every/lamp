@@ -5,9 +5,9 @@ import { openSubscriberManagementFixture, eventuallySubscriber } from "./subscri
 const receiptKey = Buffer.from("synthetic-lamp-subscriber-receipts");
 
 /** Native HTTP/Queue/Cron doors. Only provider requests cross a recorded edge. */
-export async function openIncidentFollowFixture() {
+export async function openIncidentFollowFixture({ receipts = true, ...options } = {}) {
   console.log("SUB-019: opening native Worker fixture");
-  const fixture = await openSubscriberManagementFixture();
+  const fixture = await openSubscriberManagementFixture({ ...options, extraBindings: { ...options.extraBindings, ...(!receipts ? { RESEND_WEBHOOK_SECRET: "" } : {}) } });
   console.log("SUB-019: native Worker signed in");
   fixture.recoverWebhook();
   const { api, post, raw, db } = fixture;
@@ -71,9 +71,11 @@ export async function openIncidentFollowFixture() {
     const rows = await eventuallySubscriber(() => deliveries(published.body.update.id),
       rows => rows.every(row => row.outcome === "delivered" || row.channel === "email" && row.providerAcceptedAt),
       "the exact publication's provider acceptances finish");
-    await receive(rows, incident.reference);
-    await eventuallySubscriber(() => deliveries(published.body.update.id), rows => rows.every(row => row.outcome === "delivered"), "signed receipts establish recipient delivery");
-    console.log(`SUB-019: published and delivered ${incident.reference} ${lifecycle}: ${impact}`);
+    if (receipts) {
+      await receive(rows, incident.reference);
+      await eventuallySubscriber(() => deliveries(published.body.update.id), rows => rows.every(row => row.outcome === "delivered"), "signed receipts establish recipient delivery");
+    }
+    console.log(`SUB-019: published and ${receipts ? "delivered" : "provider-accepted"} ${incident.reference} ${lifecycle}: ${impact}`);
     return published.body.update;
   };
   const scope = async subscriberId => db.prepare("SELECT * FROM incident_subscriptions WHERE subscriber_id=?").bind(subscriberId).first();

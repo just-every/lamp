@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { eventuallySubscriber } from "./subscriber-management-fixture.mjs";
+import { openIncidentFollowFixture } from "./incident-follow-fixture.mjs";
 
 const DAY = 86_400_000;
 
@@ -82,4 +83,66 @@ export async function incidentFollowLifecycleFlow(fixture, component) {
   const unsubscribeCount = messagesFor(unsubscribeEmail).length;
   await publish(deadlineIncident, "Synthetic Lamp update after token unsubscribe.");
   assert.equal(messagesFor(unsubscribeEmail).length, unsubscribeCount);
+  await incidentFollowWithoutReceiptsFlow();
+}
+
+/** Report-off following ends without inventing a recipient-delivery receipt. */
+export async function incidentFollowWithoutReceiptsFlow() {
+  const fixture = await openIncidentFollowFixture({ receipts: false });
+  const { raw, origin, create, publish, subscribe, list, scope, messagesFor, tick } = fixture;
+  try {
+    assert.equal((await raw(`${origin}/api/intake/mail-events`, { method: "POST" })).status, 503);
+    await fixture.setIncludeReport(false);
+    const component = await fixture.createComponent("Synthetic Lamp receiptless API");
+    for (let number = 1; number <= 6; number++) await create(component, `Synthetic Lamp receiptless private incident ${number}`);
+    const incident = await create(component, "Synthetic Lamp receiptless followed incident");
+    await publish(incident, "Synthetic Lamp receiptless initial publication.");
+    const email = ["synthetic-lamp-receiptless-follow", "example.test"].join(String.fromCharCode(64));
+    assert.equal((await subscribe(incident.id, { email })).status, 202);
+    await fixture.confirm(email);
+    const subscriber = (await list()).find(row => row.destination === email);
+    const resolution = await publish(incident, "Synthetic Lamp receiptless resolution.", "Resolved");
+    const delivery = (await fixture.deliveries(resolution.id)).find(row => row.subscriberId === subscriber.id);
+    assert.ok(delivery.providerAcceptedAt, "the provider accepted this follower's resolution");
+    assert.equal(delivery.outcome, "queued", "acceptance does not fabricate recipient delivery");
+    const resolved = await scope(subscriber.id);
+    assert.ok(resolved.ended_at, "provider acceptance ends following when receipts are unavailable");
+    assert.equal(resolved.resolution_delivered_at, null, "no delivered receipt was invented");
+    const count = messagesFor(email).length;
+    const reopened = await publish(incident, "Synthetic Lamp receiptless reopening.", "Investigating");
+    assert.equal(messagesFor(email).length, count, "a reopening sends no mail after acceptance ended following");
+    assert.ok(!(await fixture.deliveries(reopened.id)).some(row => row.subscriberId === subscriber.id), "a reopening captures no ended follower");
+    for (const elapsed of [25 * 3_600_000, 31 * DAY]) {
+      await tick(Date.parse(resolved.resolution_at) + elapsed);
+      assert.ok(!(await list()).some(row => row.id === subscriber.id && row.state === "active"), "the ended follower is absent from active listings after resolution");
+      await fixture.erased(email, "the ended follower's address is erased after resolution");
+    }
+
+    const backstop = await create(component, "Synthetic Lamp receiptless unsent resolution");
+    await publish(backstop, "Synthetic Lamp backstop initial publication.");
+    const backstopEmail = ["synthetic-lamp-rejected", "example.test"].join(String.fromCharCode(64));
+    assert.equal((await subscribe(backstop.id, { email: backstopEmail })).status, 202);
+    await fixture.confirm(backstopEmail);
+    const waiting = (await list()).find(row => row.destination === backstopEmail);
+    const saved = await fixture.api(`/api/app/incidents/${backstop.id}/draft`, { method: "PUT", body: JSON.stringify({
+      lifecycle: "Resolved", affectedAudience: "Synthetic Lamp readers", customerImpact: "Synthetic Lamp backstop resolution.",
+      whatStillWorks: "The page is available.", details: "The operator verified recovery.", nextUpdateAt: null,
+    }) });
+    assert.equal(saved.status, 200, saved.text);
+    // The existing provider rejection fixture leaves the resolution unaccepted.
+    const rejected = await fixture.post(`/api/app/incidents/${backstop.id}/publish`, { channels: ["email"] });
+    assert.equal(rejected.status, 200, rejected.text);
+    await eventuallySubscriber(() => fixture.deliveries(rejected.body.update.id), rows => rows.some(row => row.subscriberId === waiting.id && row.outcome === "failed"), "the resolution fails before provider acceptance");
+    const pending = await scope(waiting.id);
+    assert.equal(pending.ended_at, null, "a resolution without a send is not provider acceptance");
+    await tick(Date.parse(pending.resolution_at) + DAY - 1);
+    assert.equal((await scope(waiting.id)).ended_at, null, "following remains open before its expiry sweep is due");
+    await tick(Date.parse(pending.resolution_at) + DAY);
+    assert.equal((await list()).find(row => row.id === waiting.id)?.state, "deactivated", "the next daily sweep ends following even without acceptance");
+    const beforeReopening = messagesFor(backstopEmail).length;
+    await publish(backstop, "Synthetic Lamp reopening after backstop.", "Investigating");
+    assert.equal(messagesFor(backstopEmail).length, beforeReopening, "expiry prevents later reopening mail");
+    assert.ok(!(await list()).some(row => row.id === waiting.id && row.state === "active"), "expiry removes the follower from active listings");
+    await fixture.erased(backstopEmail, "expiry erases the unsent follower's address");
+  } finally { await fixture.close(); }
 }

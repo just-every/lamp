@@ -6744,7 +6744,7 @@
       "executable": false
     },
     "tests/e2e/helpers/incident-follow-fixture.mjs": {
-      "sha256": "ca519c5964814fc6657da82c3d603fbf26d528c3eac617058ad5c6e2cf1516d3",
+      "sha256": "b7a9aec6273fd3d46cdda901755f19174f777c7437400474f1216103645d575a",
       "executable": false
     },
     "tests/e2e/helpers/incident-follow-flow.mjs": {
@@ -6752,7 +6752,7 @@
       "executable": false
     },
     "tests/e2e/helpers/incident-follow-lifecycle-flow.mjs": {
-      "sha256": "3dc792c5f7198e93e86957ef5f0095837055b50625d331237283281fb792c5d5",
+      "sha256": "fd3d352db27cf929a78378a52f5ccb73a16eb524a89cc946e0c3d963a4958cef",
       "executable": false
     },
     "tests/e2e/helpers/incident-follow-sms-flow.mjs": {
