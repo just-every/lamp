@@ -81,7 +81,7 @@ export function DeliveriesPage() {
   const providerName = data.mail.provider === "rer" ? "RER" : data.mail.provider === "sendgrid" ? "SendGrid" : data.mail.provider === "mailgun" ? "Mailgun" : data.mail.provider === "ses" ? "Amazon SES" : data.mail.provider === "postmark" ? "Postmark" : "Resend";
   const hasReceipts=Object.values(data.mail.receiptProviders).some(Boolean);
   function resetFilters(next: () => void) { next(); setOffset(0); }
-  return <div className="page-stack">
+  return <div className="page-stack agent-deliveries-page">
     <section className="page-title-row">
       <div><h1>Deliveries</h1><p>See what happened to your updates.</p></div>
       <a className="quiet-link delivery-export" href={csvHref}>Export CSV <Icon name="external" width={15} height={15} /></a>
@@ -103,7 +103,7 @@ export function DeliveriesPage() {
             const rowReceiptsConfigured=data.mail.receiptProviders[delivery.acceptingProvider??data.mail.provider]??false;
             const acceptedWithoutReceipt = localAccepted || !data.mail.local && delivery.channel === "email" && delivery.outcome === "queued" && Boolean(delivery.providerAcceptedAt) && !rowReceiptsConfigured;
             return <tr role="row" key={delivery.id}>
-              <td role="cell" data-label="Destination" className="subscriber-destination"><strong>{delivery.destination}</strong><small>{delivery.subscriberState} subscriber</small>{delivery.maintenanceReference ? <small>{delivery.maintenanceReference}: {delivery.maintenanceTitle} · {delivery.maintenanceNoticeKind}</small> : null}{delivery.incidentReference ? <small>{delivery.incidentReference}: {delivery.incidentTitle} · {delivery.incidentLifecycle?.toLowerCase()}</small> : null}</td>
+              <td role="cell" data-label="Destination" className="subscriber-destination"><strong>{delivery.destination}</strong><small>{delivery.subscriberState} subscriber</small>{delivery.agentLabel ? <small>Prepared by {delivery.agentLabel}</small> : null}{delivery.maintenanceReference ? <small>{delivery.maintenanceReference}: {delivery.maintenanceTitle} · {delivery.maintenanceNoticeKind}</small> : null}{delivery.incidentReference ? <small>{delivery.incidentReference}: {delivery.incidentTitle} · {delivery.incidentLifecycle?.toLowerCase()}</small> : null}</td>
               <td role="cell" data-label="Channel">{label(delivery.channel)}</td>
               <td role="cell" data-label="Outcome"><div>
                 <span className={`state-pill state-${acceptedWithoutReceipt ? "accepted" : delivery.outcome}`} data-provider-outcome={delivery.providerOutcome ?? undefined}>{acceptedWithoutReceipt ? `Accepted by ${delivery.acceptingProvider ? providerLabel(delivery.acceptingProvider) : providerName}` : label(delivery.outcome)}</span>

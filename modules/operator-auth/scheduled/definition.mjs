@@ -34,5 +34,7 @@ export async function readPolicy(definitions, id) {
   if (!Array.isArray(policies) || new Set(policies.map(policy => policy.id)).size !== policies.length) invalid();
   const input = policies.find(policy => policy.id === id);
   if (!input) throw new AuthError('policy_not_found', 404);
-  return policyVersion(input);
+  const policy = await policyVersion(input);
+  if (policy.definition.id !== id) invalid();
+  return policy;
 }

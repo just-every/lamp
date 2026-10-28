@@ -63,7 +63,8 @@
     "test:mail": "node --test --test-concurrency=1 tests/e2e/rer-mail.test.mjs",
     "build:site": "rer build --site",
     "test:owner-backup": "node --test --test-concurrency=1 tests/e2e/export-import.test.mjs",
-    "check:contract-docs": "node src/base/contract-docs.mjs check"
+    "check:contract-docs": "node src/base/contract-docs.mjs check",
+    "test:agent-door": "node --test --test-concurrency=1 tests/auth-adoption/dependencies.test.mjs"
   },
   "dependencies": {
     "@radix-ui/react-slot": "^1.3.3",
@@ -83,7 +84,7 @@
     "@cloudflare/vite-plugin": "1.54.5",
     "@cloudflare/workers-types": "5.20260908.1",
     "@playwright/test": "1.63.0",
-    "@runeditrun/rer": "0.2.76",
+    "@runeditrun/rer": "0.2.86",
     "@tailwindcss/vite": "^4.3.3",
     "@types/node": "22.19.17",
     "@types/react": "^19.2.18",

@@ -1,3 +1,4 @@
+import { createLampAgentDoor } from '../features/agent-door/index.server';
 import { registerIncidentFollowSettingsRoutes } from "../features/subscribers/incident-follow-settings.routes";
 import { registerTrafficAlertRoutes } from "../features/traffic-alerts/routes";
 import { registerSmsRoutes } from "../features/sms/routes";
@@ -118,5 +119,5 @@ export function createApp(bindings: AppBindings, execution?: MailExecution) {
     try { return await app.fetch(request, bindings); }
     finally { authorizedReads.delete(request); }
   }
-  return { app, services, readOperator, health: healthService };
+  return { app, services, readOperator, health: healthService, agentDoor: createLampAgentDoor(services, bindings) };
 }

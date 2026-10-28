@@ -334,12 +334,13 @@ function IncidentVisit({ incidentId }: { incidentId: string }) {
     <CommunicationOwnerControl key={incident.id} incidentId={incident.id} lifecycle={incident.lifecycle} owner={incident.owner} unowned={incident.unowned} captureVisit={captureVisit} onChanged={refresh} />
     <div className="incident-compose">
       <section className="composer-panel" aria-labelledby="composer-title" inert={publishState === "publishing"}>
+        {incident.draft?.agentAttribution ? <p style={{overflowWrap:"anywhere"}}>Prepared by {incident.draft.agentAttribution.label}.</p> : null}
         <div className="composer-heading"><h2 id="composer-title" className="eyebrow">{incident.updates.length ? "Update draft" : "First update"}</h2><p role="status" aria-live="polite" className={`autosave-status is-${visibleSaveState}`}>{saveLabel}</p></div>
         <PreparedDraft preparation={incident.draft?.agentPreparation ?? null} />
         {publishMessage ? <p role="status" className={`publication-message is-${publishState}`}>{publishMessage}</p> : null}
         {saveError && <FormError>{saveError}</FormError>}
         {visibleSaveState === "error" && <Button type="button" variant="secondary" onClick={() => { failedKey.current = null; setSaveError(null); setSaveState("saving"); setDraftRevision((current) => current + 1); }}>Retry save</Button>}
-        <AiSuggestionButton key={updateGeneration.current} incidentId={incident.id} onSuggestion={applySuggestion} captureUpdate={captureUpdate} />
+        <AiSuggestionButton key={`ai-suggestion-${updateGeneration.current}`} incidentId={incident.id} onSuggestion={applySuggestion} captureUpdate={captureUpdate} />
         <form inert={publishState === "publishing"} className="impact-form" onSubmit={(event) => event.preventDefault()}>
           <StatusChoice value={draft.lifecycle} onChange={changeLifecycle} />
           {/* A separate label keeps the field's name to its question; a wrapping label would also read the text. */}

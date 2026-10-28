@@ -6,6 +6,7 @@ import { createMetricsRepository, type StoredMetric } from "./repository";
 import { queryMetric } from "./pull";
 import { pointsSchema, type MetricInput, type MetricPatch } from "./schema";
 import type { AggregatePoint, MetricDefinition, MetricProvider } from "./types";
+import type { CallResult } from '../../../../modules/agent-door/types.ts';
 const DAY=86400_000;
 function view(row: StoredMetric): MetricDefinition {
   return {id:row.id,componentId:row.componentId,sourceId:row.sourceId,name:row.name,unit:row.unit,provider:row.provider,query:row.query,endpoint:row.endpoint,accountId:row.accountId,region:row.region,connected:["push","uptime"].includes(row.provider) || Boolean(row.sealedCredentials),lastReportedAt:row.lastReportedAt,error:row.error};
@@ -28,6 +29,7 @@ function validate(row: MetricInput | StoredMetric) {
 }
 export function createMetricsService(db: D1Database, changed:()=>Promise<void>, options:{webhookSecret?:string;effectsPaused:boolean}) {
   const repository=createMetricsRepository(db);
+  let admitAgentSchedule: ((kind:string,id:string,cycle:string)=>Promise<CallResult|null>) | undefined;
   const seal=async (id:string,credentials:NonNullable<MetricInput["credentials"]>)=>sealUrl(JSON.stringify(credentials),id,sealingSecrets(options.webhookSecret));
   const checkedPoints=(points:AggregatePoint[],now:number)=>{
     const checked=pointsSchema.parse({points}).points;
@@ -36,7 +38,22 @@ export function createMetricsService(db: D1Database, changed:()=>Promise<void>, 
     if(new Set(checked.map(point=>point.at)).size!==checked.length) throw Error("Supply each minute once.");
     return checked;
   };
+  const pullRow = async (row:StoredMetric,now:number,actor?:string) => {
+    if(options.effectsPaused) throw Error('Metric provider work is paused.');
+    if(!await repository.validTarget(row.componentId,row.sourceId,row.provider,row.query)) throw Error('The metric source no longer belongs to its public component.');
+    if(!await repository.claim(row,now,actor)) return null;
+    let error:string|null=null,pointCount=0;
+    try {
+      const credentials=JSON.parse(await openUrl(row.sealedCredentials!,row.id,sealingSecrets(options.webhookSecret)));
+      const to=Math.floor(now/60_000)*60_000;
+      const points=await queryMetric({...row,provider:row.provider as MetricProvider},credentials,{from:to-3600_000,to});
+      if(points.length) { await repository.write(row.id,checkedPoints(points,now),now,row.version);pointCount=points.length; }
+    } catch { error='Metric data could not be read. Check the read-only key and query.'; }
+    await repository.finish(row,error);
+    return {metric:view((await repository.get(row.id))!),providerOutcome:error?'failed' as const:pointCount?'updated' as const:'no-data' as const,pointCount};
+  };
   return {
+    setAgentScheduledAdmission(admit:(kind:string,id:string,cycle:string)=>Promise<CallResult|null>) {admitAgentSchedule=admit;},
     authorize:repository.isManager,
     async list(componentId?:string,sourceId?:string) { return (await repository.list()).filter(row=>(!componentId || row.componentId===componentId)&&(!sourceId || row.sourceId===sourceId)).map(view); },
     async create(input:MetricInput,actor:string) {
@@ -87,20 +104,25 @@ export function createMetricsService(db: D1Database, changed:()=>Promise<void>, 
       }
       if(written)await changed();
     },
+    async pull(id:string,actor:string,now=Date.now()) {
+      if(!await repository.isManager(actor)) throw Error('Current operator authority is required to refresh a public metric.');
+      const row=await repository.get(id);if(!row)return null;
+      if(['push','uptime'].includes(row.provider)||!row.sealedCredentials) throw Error('This metric has no configured read-only pull provider.');
+      const result=await pullRow(row,now,actor);
+      if(!result) throw Error('The metric provider refresh is not due or is already claimed.');
+      await changed();
+      return result;
+    },
     async runDue(now=Date.now()) {
       await repository.maintain(now);
       if(options.effectsPaused) return;
       // A page has at most ten series; keep provider work serial and bounded.
       for(const row of await repository.due(now)) {
-        if(!await repository.claim(row,now)) continue;
-        let error:string|null=null;
-        try {
-          const credentials=JSON.parse(await openUrl(row.sealedCredentials!,row.id,sealingSecrets(options.webhookSecret)));
-          const to=Math.floor(now/60_000)*60_000;
-          const points=await queryMetric({...row,provider:row.provider as MetricProvider},credentials,{from:to-3600_000,to});
-          if(points.length) await repository.write(row.id,checkedPoints(points,now),now,row.version);
-        } catch { error="Metric data could not be read. Check the read-only key and query."; }
-        await repository.finish(row,error);
+        if(admitAgentSchedule) {
+          const admitted=await admitAgentSchedule('metric-pull',row.id,`${row.version}:${Math.floor(now/60_000)}`);
+          if(admitted)continue;
+        }
+        await pullRow(row,now);
       }
     },
   };
