@@ -1,3 +1,4 @@
+import { themeGroup } from "../theme";
 import type { PublicSnapshotModel } from "../renderer";
 import { groupComponentsByHeading } from "../../../shared/component-order";
 import { escapeHtml } from "../format";
@@ -8,13 +9,16 @@ import { brand, componentNote, dayBar, feedLinks, quietLine, records, sentenceSi
 /** Calm headline: one quiet sentence answers the question; components and history sit underneath as type and
  *  hairlines, with no cards or boxes. */
 function componentRow(component: Component, heading: "h3" | "h4") {
-  return `<li class="calm-row">${componentIcon(component.name)}<div class="calm-name"><${heading}>${escapeHtml(component.name)}</${heading}>${componentNote(component)}</div><p class="calm-state tone-${toneOf(component.state)}">${stateGlyph(component.state)}<span>${escapeHtml(component.state)}</span></p><div class="calm-uptime"><p><span class="calm-caption">${escapeHtml(uptimeCaption(component.uptime))}</span><span class="calm-value">${escapeHtml(uptimeValue(component.uptime))}</span></p>${dayBar(component, "calm-bar")}</div></li>`;
+  return `<li class="calm-row"${component.historyDays !== undefined ? ` data-component-id="${escapeHtml(component.id)}"` : ""}>${componentIcon(component.name)}<div class="calm-name"><${heading}>${escapeHtml(component.name)}</${heading}>${componentNote(component)}</div><p class="calm-state tone-${toneOf(component.state)}">${stateGlyph(component.state)}<span>${escapeHtml(component.state)}</span></p><div class="calm-uptime"><p><span class="calm-caption">${escapeHtml(uptimeCaption(component.uptime))}</span><span class="calm-value">${escapeHtml(uptimeValue(component.uptime))}</span></p>${dayBar(component, "calm-bar")}</div></li>`;
 }
 
 function components(model: PublicSnapshotModel, parts: TemplateParts) {
   if (!model.visibleComponents.length) return "";
   const named = model.visibleComponents.some((component) => component.groupName !== null);
-  const groups = groupComponentsByHeading(model.visibleComponents).map(([heading, list]) => `${named ? `<h3 class="calm-group">${escapeHtml(heading)}</h3>` : ""}<ul class="calm-list">${list.map((component) => componentRow(component, named ? "h4" : "h3")).join("")}</ul>`).join("");
+  const groups = groupComponentsByHeading(model.visibleComponents).map(([heading, list]) => {
+    const rows = `<ul class="calm-list">${list.map((component) => componentRow(component, named ? "h4" : "h3")).join("")}</ul>`;
+    return named ? themeGroup(model.theme, heading, rows, `<h3 class="calm-group">${escapeHtml(heading)}</h3>${rows}`) : rows;
+  }).join("");
   return `<section class="calm-components" aria-labelledby="components-title" data-live="components"><h2 id="components-title" class="tpl-kicker">Components</h2>${groups}<div class="component-extension">${parts.slot("status-page.components.after.v1")}</div></section>`;
 }
 

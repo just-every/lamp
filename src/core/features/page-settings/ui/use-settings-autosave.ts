@@ -14,6 +14,7 @@ const fieldNames: Record<string, string> = {
   mailFromAddress: "From email", widgetAllowedOrigins: "Allowed websites", widgetAppearance: "Embed appearance",
   emailBranding: "Notification email", aiToneInstructions: "Writing instructions",
   wordingBlockedTerms: "Terms to flag", wordingFriendlyLength: "Preferred field length",
+  theme: "Theme",
 };
 // Browsers finish keepalive requests after the page has gone, for up to 64 KiB of bodies at once.
 const KEEPALIVE_BYTES = 64 * 1024;
@@ -24,6 +25,7 @@ export function useSettingsAutosave(initial: PageSettingsView | undefined, onSav
   const [saved, setSaved] = useState(initial ?? null);
   const [phase, setPhase] = useState<"saved" | "waiting" | "saving" | "error">("saved");
   const [error, setError] = useState<string | null>(null);
+  const [removals, setRemovals] = useState<string[]>([]);
   const queue = useRef({
     draft: settings, target: settings, revision: 0, completed: 0, stopped: -1,
     sending: false, mounted: true, dueAt: 0, timer: undefined as ReturnType<typeof setTimeout> | undefined,
@@ -94,7 +96,7 @@ export function useSettingsAutosave(initial: PageSettingsView | undefined, onSav
     q.sending = true; q.inflight = { revision, keepalive: share > 0 };
     if (q.mounted) { setPhase("saving"); setError(null); }
     try {
-      const response = await appApi<{ settings: PageSettingsView }>("/api/app/page-settings", { method: "PUT", body, keepalive: share > 0 });
+      const response = await appApi<{ settings: PageSettingsView; removals?: string[] }>("/api/app/page-settings", { method: "PUT", body, keepalive: share > 0 });
       if (!response.settings) throw new Error("The server did not return the saved settings.");
       q.completed = revision;
       if (q.mounted) {
@@ -105,6 +107,12 @@ export function useSettingsAutosave(initial: PageSettingsView | undefined, onSav
           if (same(target[key], request[key])) Object.assign(target, { [key]: normalized[key] });
         }
         q.target = target;
+        // Show the sanitized markup once this exact theme edit has saved, without overwriting newer typing.
+        if (q.draft && same(q.draft.theme, request.theme)) {
+          q.draft = { ...q.draft, theme: normalized.theme };
+          setSettings(q.draft);
+        }
+        setRemovals(response.removals ?? []);
         setSaved(response.settings);
         setPhase(q.revision === revision ? "saved" : "waiting");
         notify.current();
@@ -168,7 +176,7 @@ export function useSettingsAutosave(initial: PageSettingsView | undefined, onSav
 
   const pending = (field: ConfirmedField) => !same(settings?.[field], queue.current.target?.[field]);
   return {
-    settings, saved, phase, error, update, confirm, pending, leave,
+    settings, saved, phase, error, removals, update, confirm, pending, leave,
     // Read as the page unloads: finished saves, or a leave the owner already agreed to, ask nothing more.
     unsaved: () => { const q = queue.current; return !q.released && (q.completed !== q.revision || unconfirmed(q)); },
     retry: () => enqueue(true),

@@ -1,3 +1,5 @@
+import { themeGroup } from "../theme";
+import { groupComponentsByHeading } from "../../../shared/component-order";
 import type { PublicSnapshotModel } from "../renderer";
 import type { PublicIncident } from "../record-markup";
 import { publicComponentOrder } from "../../../shared/component-order";
@@ -32,7 +34,7 @@ function heatmapDays(model: PublicSnapshotModel) {
 /** Grid columns for the axis and callouts, each callout's reach down to its component's row, and the dates the axis
  *  keeps at each width of the track. */
 export function historyLedStyles(model: PublicSnapshotModel) {
-  const columns = Array.from({ length: REPORTING_DAYS }, (_, index) => `.hm-track .d${index + 1}{grid-column-start:${index + 1};--column:${index}}`).join("");
+  const columns = Array.from({ length: model.theme ? model.renderedHistoryDays : REPORTING_DAYS }, (_, index) => `.hm-track .d${index + 1}{grid-column-start:${index + 1};--column:${index}}`).join("");
   const reach = Array.from({ length: MAX_REACH + 1 }, (_, index) => `.reach-${index}{--reach:${index}}`).join("");
   const days = heatmapDays(model);
   return `${columns}${reach}${days ? axisStyles(days) : ""}`;
@@ -56,9 +58,9 @@ interface Callout { incident: PublicIncident; row: number; column: number; flip:
 /** Lanes for the callouts at one column width: two rows of labels above the grid. Labels in one lane never touch,
  *  and a leader line from the upper lane never runs behind a label in the lower one. Recent incidents win a place
  *  first. A label is never wider than the room on its side of the track; the stylesheet cuts it there. */
-function lanes(callouts: Callout[], column: number) {
+function lanes(callouts: Callout[], column: number, dayCount = REPORTING_DAYS) {
   const ranges = callouts.map((callout) => {
-    const room = (callout.flip ? callout.column + 1 : REPORTING_DAYS - callout.column) * column + 6;
+    const room = (callout.flip ? callout.column + 1 : dayCount - callout.column) * column + 6;
     const span = Math.ceil(Math.min(callout.width, room) / column);
     return callout.flip ? [callout.column - span, callout.column] : [callout.column, callout.column + span];
   });
@@ -97,7 +99,7 @@ function callouts(model: PublicSnapshotModel, components: Component[], days: str
       // The label's text at 10.5px medium, its padding and a pixel to spare.
       return { incident, row, column, flip: column >= days.length / 2, width: textWidth(incident.title, 10.5, 500) + 17 };
     });
-  const placed = LAYOUTS.map((layout) => ({ name: layout.name, lanes: lanes(recent, layout.column) }));
+  const placed = LAYOUTS.map((layout) => ({ name: layout.name, lanes: lanes(recent, layout.column, days.length) }));
   return recent.map(({ incident, row, column, flip }, index) => {
     const shown = placed.flatMap(({ name, lanes }) => lanes[index] === null || lanes[index] === undefined ? [] : [`lane-${name}${lanes[index]}`]);
     if (!shown.length) return "";
@@ -106,7 +108,7 @@ function callouts(model: PublicSnapshotModel, components: Component[], days: str
   }).join("");
 }
 
-function heatmap(model: PublicSnapshotModel, parts: TemplateParts) {
+function heatmap(model: PublicSnapshotModel, parts: TemplateParts, groupIndex?: number) {
   const components = publicComponentOrder(model.visibleComponents);
   const days = heatmapDays(model);
   if (!days) return "";
@@ -115,6 +117,7 @@ function heatmap(model: PublicSnapshotModel, parts: TemplateParts) {
   const seen = new Set<string>();
   const labels = components.map((component) => `<li class="hm-label tone-${toneOf(component.state)}">${stateGlyph(component.state)}<span class="hm-name">${escapeHtml(component.name)}</span><span class="hm-state">${escapeHtml(component.state)}</span><span class="hm-pct">${escapeHtml(uptimeValue(component.uptime))}</span></li>`).join("");
   const rows = components.map((component) => {
+    if (component.uptimeHidden) return `<div class="hm-cells theme-uptime-hidden" data-component-id="${escapeHtml(component.id)}" aria-hidden="true"></div>`;
     const cells = recordDays(component).map((mark) => {
       const kind = dayClass(mark);
       seen.add(kind);
@@ -122,12 +125,18 @@ function heatmap(model: PublicSnapshotModel, parts: TemplateParts) {
       const label = escapeHtml(`${uptimeMarkLabel(mark)}${incident ? `; incident: ${incident.title}` : ""}`);
       return `<span class="cell ${kind}${incident ? " inc" : ""}" role="listitem" aria-label="${label}" title="${label}"></span>`;
     }).join("");
-    return `<div class="hm-cells" role="list" aria-label="${REPORTING_DAYS}-day uptime record for ${escapeHtml(component.name)}">${cells}</div>`;
+    return `<div class="hm-cells"${model.theme ? ` data-component-id="${escapeHtml(component.id)}"` : ""} role="list" aria-label="${model.theme?.historyDays ?? REPORTING_DAYS}-day uptime record for ${escapeHtml(component.name)}">${cells}</div>`;
   }).join("");
   const legendStates = [["ok", COMPONENT_STATES[0]], ["degraded", "Degraded performance"], ["partial", "Partially unavailable"], ["major", "Major outage"], ["none", "No data"]].filter(([kind]) => kind === "ok" || seen.has(kind!));
   const legend = `<ul class="hm-legend" aria-label="Legend">${legendStates.map(([kind, name]) => `<li><i class="cell ${kind}"></i>${name}</li>`).join("")}</ul>`;
   const notes = components.filter((component) => component.note || component.description).map((component) => `<li><strong>${escapeHtml(component.name)}</strong>${componentNote(component)}</li>`).join("");
-  return `<section class="up-heatmap wrap" aria-labelledby="heatmap-title" data-live="heatmap"><div class="hm-frame"><div class="hm-head"><h2 id="heatmap-title">Components</h2>${legend}</div><div class="hm-body"><ul class="hm-labels">${labels}</ul><div class="hm-scroll" role="group" aria-label="Daily history, last ${REPORTING_DAYS} days"><div class="hm-track"><div class="hm-callouts">${callouts(model, components, days)}</div>${rows}${axisMarkup(days)}</div></div></div>${notes ? `<ul class="hm-notes">${notes}</ul>` : ""}<details class="hm-method"><summary>How these figures are calculated</summary><p>Each square is one calendar day in ${escapeHtml(timezone)}. A component's percentage covers the last ${REPORTING_DAYS} days of observed time; the overall figure averages the components, weighted by observed time. Degraded performance counts as ${model.policies.uptimeDowntimeWeight("Degraded performance")} downtime minutes per minute, a partial outage as ${model.policies.uptimeDowntimeWeight("Partially unavailable")} and a major outage as ${model.policies.uptimeDowntimeWeight("Major outage")}.</p></details><div class="component-extension">${parts.slot("status-page.components.after.v1")}</div></div></section>`;
+  return `<section class="up-heatmap wrap" aria-labelledby="heatmap-title${groupIndex === undefined ? "" : `-${groupIndex}`}" data-live="heatmap${groupIndex === undefined ? "" : `-${groupIndex}`}"><div class="hm-frame"><div class="hm-head"><h2 id="heatmap-title${groupIndex === undefined ? "" : `-${groupIndex}`}">Components</h2>${legend}</div><div class="hm-body"><ul class="hm-labels">${labels}</ul><div class="hm-scroll" role="group" aria-label="Daily history, last ${model.theme?.historyDays ?? REPORTING_DAYS} days"><div class="hm-track"><div class="hm-callouts">${callouts(model, components, days)}</div>${rows}${axisMarkup(days)}</div></div></div>${notes ? `<ul class="hm-notes">${notes}</ul>` : ""}<details class="hm-method"><summary>How these figures are calculated</summary><p>Each square is one calendar day in ${escapeHtml(timezone)}. A component's percentage covers the last ${REPORTING_DAYS} days of observed time; the overall figure averages the components, weighted by observed time. Degraded performance counts as ${model.policies.uptimeDowntimeWeight("Degraded performance")} downtime minutes per minute, a partial outage as ${model.policies.uptimeDowntimeWeight("Partially unavailable")} and a major outage as ${model.policies.uptimeDowntimeWeight("Major outage")}.</p></details><div class="component-extension">${parts.slot("status-page.components.after.v1")}</div></div></section>`;
+}
+
+/** Themed groups are native disclosures around each group’s complete chart, with their own static date axis. */
+function themedHeatmap(model: PublicSnapshotModel, parts: TemplateParts) {
+  if (!model.theme || !model.visibleComponents.some(component => component.groupName !== null)) return heatmap(model, parts);
+  return groupComponentsByHeading(model.visibleComponents).map(([heading, components], index) => themeGroup(model.theme, heading, heatmap({ ...model, visibleComponents: components }, parts, index), "")).join("");
 }
 
 /** Incidents and maintenance in groups. Wide screens show them as one run of framed entries, each with its own
@@ -153,7 +162,7 @@ function componentList(model: PublicSnapshotModel) {
   if (!components.length) return "";
   const rows = components.map((component) => {
     const tone = toneOf(component.state);
-    return `<details class="up-row"><summary><span class="up-dot tone-${tone}" aria-hidden="true"></span><span class="up-name">${escapeHtml(component.name)}</span><span class="up-state tone-${tone}">${escapeHtml(component.state)}</span><span class="up-pct">${escapeHtml(uptimeValue(component.uptime))}</span>${lineIcon("chevron", "up-chevron")}</summary><div class="up-detail"><p class="tpl-meta">${escapeHtml(uptimeCaption(component.uptime))}: ${escapeHtml(uptimeValue(component.uptime))}</p>${dayBar(component, "up-bar", false)}${componentNote(component)}</div></details>`;
+    return `<details class="up-row"${model.theme ? ` data-component-id="${escapeHtml(component.id)}"` : ""}><summary><span class="up-dot tone-${tone}" aria-hidden="true"></span><span class="up-name">${escapeHtml(component.name)}</span><span class="up-state tone-${tone}">${escapeHtml(component.state)}</span><span class="up-pct">${escapeHtml(uptimeValue(component.uptime))}</span>${lineIcon("chevron", "up-chevron")}</summary><div class="up-detail"><p class="tpl-meta">${escapeHtml(uptimeCaption(component.uptime))}: ${escapeHtml(uptimeValue(component.uptime))}</p>${dayBar(component, "up-bar", false)}${componentNote(component)}</div></details>`;
   }).join("");
   return `<section class="up-components" aria-labelledby="list-title" data-live="list"><h2 id="list-title">Components</h2><div class="up-rows">${rows}</div></section>`;
 }
@@ -166,5 +175,5 @@ export function historyLedPage(model: PublicSnapshotModel, parts: TemplateParts)
   const hero = `<section class="up-hero wrap" aria-labelledby="overall-status"><div class="up-figure" data-live="figure"><p class="tpl-kicker">Overall uptime (last ${REPORTING_DAYS} days)</p><p class="up-number">${figure ?? "No data yet"}</p></div><div class="up-situation"><div class="tpl-live" id="status-live" role="status" aria-live="polite" aria-atomic="true" data-live="status"><h1 id="overall-status">${escapeHtml(text)}</h1><span class="sr-only">${escapeHtml(model.overall)}</span></div>${updatedLine(model)}</div></section>`;
   const incidents = `<section class="up-incidents" aria-labelledby="incidents-title" data-live="history"><h2 id="incidents-title">${shown.maintenance.length ? "Incidents and maintenance" : "Incidents"}</h2>${incidentGroups(model, parts, shown)}${quietLine(shown, "tpl-quiet")}</section>`;
   const subscribe = `<section id="subscribe" class="up-subscribe" aria-labelledby="subscribe-title"><h2 id="subscribe-title">Subscribe</h2><p>Get notified about incidents and updates from ${escapeHtml(model.settings.pageName)}.</p>${subscribeForm("subscribe-email-card")}${feedLinks("", "Subscribe by feed")}</section>`;
-  return `${band}${parts.slot("status-page.header.after.v1")}${hero}${heatmap(model, parts)}<div class="up-lower wrap">${incidents}${componentList(model)}${subscribe}</div>`;
+  return `${band}${parts.slot("status-page.header.after.v1")}${hero}${themedHeatmap(model, parts)}<div class="up-lower wrap">${incidents}${componentList(model)}${subscribe}</div>`;
 }

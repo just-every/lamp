@@ -40,6 +40,8 @@ export const pageSettings = sqliteTable("page_settings", {
   widgetAppearance: text("widget_appearance").notNull().default(JSON.stringify(defaultWidgetAppearance)),
   mailFromAddress: text("mail_from_address").notNull().default(""),
   emailBranding: text("email_branding").notNull().default("{}"),
+  theme: text("theme").notNull().default("null"),
+  themeAssets: text("theme_assets").notNull().default("[]"),
   aiToneInstructions: text("ai_tone_instructions").notNull().default(""),
   wordingBlockedTerms: text("wording_blocked_terms").notNull().default("[]"),
   wordingFriendlyLength: integer("wording_friendly_length").notNull().default(160),

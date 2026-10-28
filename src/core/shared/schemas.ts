@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { emailBrandingSchema } from "./email-branding";
+import { pageThemeSchema } from "./page-theme";
 import { widgetAppearanceSchema } from "./widget-appearance";
 
 import { COMPONENT_STATES, INCIDENT_LIFECYCLES } from "./domain";
@@ -30,6 +31,7 @@ export const pageSettingsSchema = z.object({
   widgetAppearance: widgetAppearanceSchema.optional(),
   mailFromAddress: z.email().optional(),
   emailBranding: emailBrandingSchema.optional(),
+  theme: pageThemeSchema.nullable().optional(),
   aiToneInstructions: optionalText(2_000).default(""),
   wordingBlockedTerms: z.array(nonEmptyText(100)).max(100).optional(),
   wordingFriendlyLength: z.number().int().min(1).max(500).optional(),

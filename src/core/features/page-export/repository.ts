@@ -20,6 +20,8 @@ export interface StoredPageSettingsRow {
   widget_appearance: string;
   ai_tone_instructions: string;
   email_branding: string;
+  theme: string;
+  theme_assets: string;
   feed_id: string;
   logo_key: string | null;
   logo_content_type: string | null;
@@ -36,6 +38,8 @@ export interface PageSettingsWrite {
   widgetAppearance: string;
   aiToneInstructions: string;
   emailBranding: string;
+  theme: string;
+  themeAssets: string;
   feedId: string;
   logoKey: string | null;
   logoContentType: string | null;
@@ -115,7 +119,7 @@ function erasedOperatorId(email: string) {
 export function createPageExportRepository(binding: D1Database): PageExportRepository {
   const repository: PageExportRepository = {
     async readSettings() {
-      return binding.prepare("SELECT page_name, tagline, accent_color, timezone, footer_credit_enabled, template, widget_allowed_origins, widget_appearance, ai_tone_instructions, email_branding, feed_id, logo_key, logo_content_type FROM page_settings WHERE id = 'default'").first<StoredPageSettingsRow>();
+      return binding.prepare("SELECT page_name, tagline, accent_color, timezone, footer_credit_enabled, template, widget_allowed_origins, widget_appearance, ai_tone_instructions, email_branding, theme, theme_assets, feed_id, logo_key, logo_content_type FROM page_settings WHERE id = 'default'").first<StoredPageSettingsRow>();
     },
     async readTables() {
       const statements = PAGE_DATA_TABLES.map(({ table, order }) => table === "subscribers"
@@ -178,7 +182,7 @@ export function createPageExportRepository(binding: D1Database): PageExportRepos
       // A used confirmation link is the subscriber's recorded consent.
       const consent = confirmations.map((entry) => ({ id: createUlid(), subscriber_id: entry.subscriberId, scope: "confirm", token_hash: `restored-consent-${createUlid()}`, expires_at: entry.confirmedAt, revoked_at: entry.confirmedAt, created_at: entry.subscribedAt, updated_at: entry.confirmedAt }));
       sql.push(...insertStatements("subscriber_tokens", consent));
-      sql.push(`UPDATE page_settings SET page_name = ${literal(settings.pageName)}, tagline = ${literal(settings.tagline)}, accent_color = ${literal(settings.accentColor)}, timezone = ${literal(settings.timezone)}, footer_credit_enabled = ${settings.footerCreditEnabled ? 1 : 0}, template = ${literal(settings.template)}, widget_allowed_origins = ${literal(settings.widgetAllowedOrigins)}, widget_appearance = ${literal(settings.widgetAppearance)}, ai_tone_instructions = ${literal(settings.aiToneInstructions)}, email_branding = ${literal(settings.emailBranding)}, feed_id = ${literal(settings.feedId)}, logo_key = ${literal(settings.logoKey)}, logo_content_type = ${literal(settings.logoContentType)}, updated_at = ${literal(now)} WHERE id = 'default'`);
+      sql.push(`UPDATE page_settings SET page_name = ${literal(settings.pageName)}, tagline = ${literal(settings.tagline)}, accent_color = ${literal(settings.accentColor)}, timezone = ${literal(settings.timezone)}, footer_credit_enabled = ${settings.footerCreditEnabled ? 1 : 0}, template = ${literal(settings.template)}, widget_allowed_origins = ${literal(settings.widgetAllowedOrigins)}, widget_appearance = ${literal(settings.widgetAppearance)}, ai_tone_instructions = ${literal(settings.aiToneInstructions)}, email_branding = ${literal(settings.emailBranding)}, theme = ${literal(settings.theme)}, theme_assets = ${literal(settings.themeAssets)}, feed_id = ${literal(settings.feedId)}, logo_key = ${literal(settings.logoKey)}, logo_content_type = ${literal(settings.logoContentType)}, updated_at = ${literal(now)} WHERE id = 'default'`);
       // One batch is one transaction: a refused row leaves the page unchanged.
       // The guard fails (json() refuses the text) when the page holds
       // owner records, so a write that lands after the check stops the restore.

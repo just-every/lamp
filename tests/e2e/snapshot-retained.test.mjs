@@ -9,6 +9,8 @@ const wranglerRequire = createRequire(require.resolve("wrangler"));
 const { Miniflare, convertV4MiniflareOptions } = wranglerRequire("miniflare");
 const { build } = wranglerRequire("esbuild");
 const generatedAt = "2026-09-13T00:00:00.000Z";
+const themeFont = { key: "assets/theme/01J00000000000000000000091.woff2", bytes: Buffer.from([119, 79, 70, 50, 0, 255, 128, 64]), contentType: "font/woff2" };
+const themeImage = { key: "assets/theme/01J00000000000000000000092.png", bytes: Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Y9Jm4kAAAAASUVORK5CYII=", "base64"), contentType: "image/png" };
 function bundle(generation) {
   // Stored generations from before Sign in was added still serve immediately.
   const html = `<html><body><header><nav class="status-utilities"><a href="/history">History</a></nav></header>Degraded v${generation}</body></html>`;
@@ -18,6 +20,7 @@ function bundle(generation) {
     { key: "feed.atom", contentType: "application/atom+xml", body: `<feed><title>Degraded v${generation}</title><updated>${generatedAt}</updated></feed>` },
     { key: "widget.js", contentType: "application/javascript", body: `/* Degraded v${generation} */` },
     { key: "status.json", contentType: "application/json", body: JSON.stringify({ overall: "degraded", generation, generatedAt }) },
+    ...[themeFont, themeImage].map(asset => ({ key: asset.key, contentType: asset.contentType, body: asset.bytes.toString("base64"), encoding: "base64" })),
   ] };
 }
 function assertInstalledSignIn(html, target = "https://app.example/signin") {
@@ -60,6 +63,14 @@ test("PAGE-005 PAGE-006 PAGE-007 PAGE-018 complete generations and badges surviv
       const body = await response.text();
       assert.match(body, /Last known state|"snapshotState":"stale"/);
       if (path === "/") assertInstalledSignIn(body);
+    }
+    // New binary theme assets are retained with the same generation and do not need D1 or R2 on first read.
+    for (const asset of [themeFont, themeImage]) {
+      const response = await fetch(`/${asset.key}?storage=down&neverSeen=theme`);
+      assert.equal(response.status, 200);
+      assert.equal(response.headers.get("X-Lamp-Snapshot-State"), "stale");
+      assert.equal(response.headers.get("Content-Type"), asset.contentType);
+      assert.deepEqual(Buffer.from(await response.arrayBuffer()), asset.bytes, "retained theme bytes survive a Durable Object restart and R2 failure");
     }
     assert.equal((await fetch("/?storage=malformed")).status, 200);
     assert.equal((await fetch("/health?storage=down")).status, 503);

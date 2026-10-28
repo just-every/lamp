@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { emailBrandingSchema } from "../../shared/email-branding";
 import { widgetAppearanceSchema } from "../../shared/widget-appearance";
+import { pageThemeSchema, themeAssetPathSchema } from "../../shared/page-theme";
 
 /**
  * The owner's page data file, `lamp-page-data` version 1 (docs/backups-and-recovery.md).
@@ -83,6 +84,14 @@ export const pageDataFileSchema = z.object({
     widgetAppearance: widgetAppearanceSchema.optional(),
     aiToneInstructions: z.string(),
     emailBranding: emailBrandingSchema.optional(),
+    // Optional fields preserve the signed representation of files from older releases.
+    theme: pageThemeSchema.nullable().optional(),
+    themeAssets: z.array(z.object({
+      path: themeAssetPathSchema,
+      kind: z.enum(["font", "image"]),
+      contentType: z.enum(["font/woff2", "image/png", "image/jpeg", "image/webp"]),
+      base64: z.string().max(3_000_000).regex(/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/),
+    }).strict()).optional(),
     feedId: z.string(),
     logo: z.object({ contentType: z.enum(["image/png", "image/jpeg", "image/webp"]), base64: z.string().max(3_000_000) }).nullable(),
   }).strict(),
@@ -95,4 +104,4 @@ export const pageDataFileSchema = z.object({
 export type PageDataFile = z.infer<typeof pageDataFileSchema>;
 export type PageDataRow = Record<string, string | number | null>;
 
-export const PAGE_DATA_CONTENTS = "Page settings and logo; component groups and components with their status history; incidents with every update, draft, internal note, impact choice and post-incident report; reusable incident templates; maintenance with its notices; subscribers with their channel, chosen components and consent state; incident and maintenance reference numbers. Authors are named by email.";
+export const PAGE_DATA_CONTENTS = "Page settings, theme and uploaded brand assets; component groups and components with their status history; incidents with every update, draft, internal note, impact choice and post-incident report; reusable incident templates; maintenance with its notices; subscribers with their channel, chosen components and consent state; incident and maintenance reference numbers. Authors are named by email.";

@@ -7,6 +7,7 @@ import { isMailPreparationError } from "../../platform/mail/sender";
 import { AUTHOR_COLUMNS, HELD_RESTORE_DAYS, HELD_RESTORE_REASON, OWNER_RECORD_TABLES, PAGE_DATA_CONTENTS, PAGE_DATA_FORMAT, PAGE_DATA_TABLES, PAGE_DATA_VERSION, SUBSCRIBER_CONSENT_COLUMN, pageDataFileSchema, type PageDataFile, type PageDataRow, type PageDataTable } from "./format";
 import { pageDataProvenance, signPageData, type PageDataProvenance } from "./integrity";
 import { PageNotEmptyError, type PageExportRepository } from "./repository";
+import { exportThemeArchive, restoreThemeArchive, validateThemeArchive } from "./theme-archive";
 
 export interface SubscriberConsent {
   /** Whether restored email subscribers keep the state the file gives them. */
@@ -95,6 +96,7 @@ export function createPageExportService(repository: PageExportRepository, blobs:
       return [emailColumn, person.email];
     })))])) as PageDataFile["records"];
     const logo = settings.logo_key ? await blobs.getBytes(settings.logo_key) : null;
+    const theme = await exportThemeArchive(blobs, settings.theme, settings.theme_assets);
     return signPageData(secret, {
       format: PAGE_DATA_FORMAT,
       version: PAGE_DATA_VERSION,
@@ -111,6 +113,7 @@ export function createPageExportService(repository: PageExportRepository, blobs:
         widgetAppearance: widgetAppearanceSchema.parse(JSON.parse(settings.widget_appearance)),
         aiToneInstructions: settings.ai_tone_instructions,
         emailBranding: emailBrandingSchema.parse(JSON.parse(settings.email_branding)),
+        ...theme,
         feedId: settings.feed_id,
         logo: logo && settings.logo_content_type ? { contentType: settings.logo_content_type as "image/png" | "image/jpeg" | "image/webp", base64: base64(logo.bytes) } : null,
       },
@@ -127,6 +130,11 @@ export function createPageExportService(repository: PageExportRepository, blobs:
     }
     const file = parsed.data;
     const problems: string[] = [];
+    try {
+      validateThemeArchive(file.page);
+    } catch (cause) {
+      problems.push(`The theme cannot be restored: ${cause instanceof Error ? cause.message : String(cause)}`);
+    }
     if (options.mailIdentityEditable === false && (file.page.emailBranding?.displayName || file.page.emailBranding?.replyTo)) problems.push("Managed mail controls From and Reply-To. Clear those branding fields in the source before restoring.");
     const existing = await repository.ownerRecordCounts();
     const held = OWNER_RECORD_TABLES.filter((table) => existing[table] > 0);
@@ -212,11 +220,14 @@ export function createPageExportService(repository: PageExportRepository, blobs:
         }),
       }));
       let logoKey: string | null = null;
-      if (file.page.logo) {
-        logoKey = `branding/logos/${createUlid()}`;
-        await blobs.putBytes(logoKey, fromBase64(file.page.logo.base64), file.page.logo.contentType);
-      }
+      let themeKeys: string[] = [];
       try {
+        if (file.page.logo) {
+          logoKey = `branding/logos/${createUlid()}`;
+          await blobs.putBytes(logoKey, fromBase64(file.page.logo.base64), file.page.logo.contentType);
+        }
+        const theme = await restoreThemeArchive(file.page, blobs);
+        themeKeys = theme.written;
         await repository.restore({
           existingPeople,
           newPeople,
@@ -234,14 +245,17 @@ export function createPageExportService(repository: PageExportRepository, blobs:
             widgetAppearance: JSON.stringify(file.page.widgetAppearance ?? defaultWidgetAppearance),
             aiToneInstructions: file.page.aiToneInstructions,
             emailBranding: JSON.stringify(file.page.emailBranding ?? {}),
+            theme: JSON.stringify(theme.theme),
+            themeAssets: JSON.stringify(theme.assets),
             feedId: file.page.feedId,
             logoKey,
             logoContentType: file.page.logo?.contentType ?? null,
           },
         });
       } catch (cause) {
-        // The logo is stored before the transaction; a refused restore removes it.
+        // Brand assets are stored before the transaction; a refused restore removes them.
         if (logoKey) await blobs.delete(logoKey);
+        await Promise.all(themeKeys.map((key) => blobs.delete(key)));
         if (cause instanceof PageNotEmptyError) return { ...result, ok: false, problems: [ownerRecordsProblem(cause.tables)] };
         return { ...result, ok: false, problems: [`Nothing was restored: the page refused a record (${cause instanceof Error ? cause.message : String(cause)}).`] };
       }

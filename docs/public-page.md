@@ -14,6 +14,35 @@ where you embed the widget. The widget refuses requests from other host origins.
 Add the single script tag for `/widget.js` to your product page. It displays the
 overall status and unresolved incident information from the public snapshot.
 
+## Customize the theme
+
+Open **Settings → Page → Theme** and enable **Use a custom theme**. Choose the
+background, surface, text, link and five state colors. Lamp checks text, links
+and each state color against both backgrounds at 4.5:1 contrast before saving.
+Valid changes save and publish automatically; a refused edit stays in Settings
+with its reason while the previous public snapshot keeps serving.
+
+Choose bundled Inter or upload a WOFF2 font, then upload a header image. The
+uploaded image address shown in Settings can also be used in header or footer
+HTML. Fonts and images travel with page-data exports and are served by your
+page's own origin.
+
+Add header and footer links using HTTPS addresses or paths on your page. Each
+HTML field accepts up to 8 KB of the supported text, list, navigation and image
+elements. Saving removes scripts, event handlers, styles, forms, frames and
+unowned images, and lists what was removed. The cleaned content is present in
+the published page even with JavaScript disabled.
+
+Choose whether component groups start expanded, which components show uptime
+bars, and how many history days appear. Hiding a bar keeps its uptime figure;
+the figure still uses the stated 90-day reporting window. Requested days before
+the retained record are identified as having no recorded history.
+
+**Page CSS** is scoped to your public page and included in its snapshot
+stylesheet. Lamp refuses `@import`, external `url()`, `expression()` and
+`behavior`, naming the offending construct. Disabling **Use a custom theme**
+restores Lamp's default appearance.
+
 ## Read history and uptime
 
 History lists resolved incidents and completed maintenance for the previous
