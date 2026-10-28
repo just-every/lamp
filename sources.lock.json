@@ -3968,7 +3968,7 @@
       "executable": false
     },
     "src/core/features/intake/rule-service.ts": {
-      "sha256": "3cdb927921eb6609fa05260172547ac8adcb397f8070c5ecb690015f2ad5bce3",
+      "sha256": "353c2f91efbb0b754a49bed2955d747e27f2d65c30c5823660a4726e69cd4e72",
       "executable": false
     },
     "src/core/features/intake/rule-work.repository.ts": {
@@ -6628,7 +6628,7 @@
       "executable": false
     },
     "tests/e2e/helpers/automation-rules-flow.mjs": {
-      "sha256": "a5fb5d52571f3000131e885a3ca14056ef7d58093ad66706ff567f2e93c5293d",
+      "sha256": "c2da728a566022d15f39e0a34a210131c83ce6ece379ef9e24116ff79ec7fef4",
       "executable": false
     },
     "tests/e2e/helpers/availability-report-browser-flow.mjs": {

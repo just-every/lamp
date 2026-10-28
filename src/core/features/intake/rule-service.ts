@@ -12,6 +12,7 @@ import type { createRuleWorkRepository } from "./rule-work.repository";
 function assertAutomationTemplate(template:IncidentTemplate|null):asserts template is IncidentTemplate {
   if(!template)throw new Error('The saved template no longer exists.');
   assertTemplateWordingLimits(template);
+  if(!template.components.length || template.components.some(component=>!component.componentId))throw new Error('A saved template component no longer exists.');
   if(!template.affectedAudience.trim() || !template.customerImpact.trim())throw new Error('The template needs who is affected and customer impact.');
   if(template.lifecycle==='Resolved' || !template.nextUpdateOffsetMinutes || !Number.isInteger(template.nextUpdateOffsetMinutes) || template.nextUpdateOffsetMinutes<1 || template.nextUpdateOffsetMinutes>10_080)throw new Error('The template needs an active lifecycle and a next-update offset.');
   templateChannelsSchema.parse(template.channels);

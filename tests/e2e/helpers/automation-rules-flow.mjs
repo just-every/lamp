@@ -243,6 +243,19 @@ export async function automationRulesFlow({ t }) {
     const beforeRefused = await changedTables();
     assert.equal((await put(rulePath(independent, target), { name: "Broken template cannot be approved", mode: "claim-and-publish", state: "Major outage", templateId: template.id })).status, 400);
     assert.deepEqual(await changedTables(), beforeRefused, "an incomplete saved template is refused without any write");
+    const retired = await component("Synthetic Lamp retired template component");
+    const orphanTemplate = await post("/api/app/incident-templates", { name: "Synthetic Lamp orphaned template", lifecycle: "Identified", ...wording, nextUpdateOffsetMinutes: 15, components: [{ componentId: retired.id, state: "Degraded performance", relationship: "Primary" }], channels: [], resolvedUpdate: resolvedWording });
+    assert.equal(orphanTemplate.status, 201, orphanTemplate.text);
+    const orphanRule = { name: "Synthetic Lamp orphaned template rule", mode: "claim-and-publish", state: "Degraded performance", templateId: orphanTemplate.body.template.id };
+    await saveRule(independent, target, orphanRule);
+    assert.equal((await api(`/api/app/components/${retired.id}`, { method: "DELETE" })).status, 204);
+    const afterRetirement = await snapshot();
+    assert.equal((await send(independent, pingdom("retired-template-cycle"))).status, 202);
+    assert.deepEqual(await snapshot(), afterRetirement, "a template whose saved component disappeared also degrades to draft");
+    assert.match((await api("/api/app/intake/rules")).body.rules.find(row => row.sourceId === independent.id).degradationReason, /component no longer exists/);
+    const orphanBefore = await changedTables();
+    assert.equal((await put(rulePath(independent, target), orphanRule)).status, 400);
+    assert.deepEqual(await changedTables(), orphanBefore, "a structurally invalid saved template cannot be approved again");
 
     t.diagnostic("AUTO-001 audit: rule create, edit and delete appear with the saving owner and valid instants through TEAM-007's audit API.");
     const beforeDelete = await api("/api/app/audit-log?limit=100");
