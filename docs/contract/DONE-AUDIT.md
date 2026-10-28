@@ -1,9 +1,10 @@
 Old reference: `54e0e1dcfdc225ad17e42abff04b65d7f2bfdc72`.
 | Clause | Point | Outcome | Asserting test | Result |
 | --- | --- | --- | --- | --- |
-| DOCS-001 | 1 | The unauthenticated documentation index is readable | `tests/e2e/start-runtime.test.mjs:367` | asserted |
-| DOCS-001 | 1 | A representative selected page is readable | `tests/e2e/start-runtime.test.mjs:369` | asserted |
-| DOCS-001 | 2 | The selected page renders repository Markdown | `tests/e2e/start-runtime.test.mjs:370` | asserted |
+| DOCS-001 | 1 | The unauthenticated documentation index returns HTTP 200 | `tests/e2e/start-runtime.test.mjs:367` | asserted |
+| DOCS-001 | 1 | The documentation index’s usable guidance and navigation content are asserted | none | none |
+| DOCS-001 | 1 | A representative selected VPAT page contains its released version and required chapter text | `tests/e2e/start-runtime.test.mjs:375` | asserted |
+| DOCS-001 | 2 | The selected VPAT page renders the version and chapter text held in its repository Markdown | `tests/e2e/start-runtime.test.mjs:375` | asserted |
 | DOCS-001 | 2 | The status-page host does not serve documentation | `tests/e2e/start-runtime.test.mjs:398` | asserted |
 | PAGE-001 | 1 | Overall status appears | `tests/e2e/app-api.test.mjs:141` | asserted |
 | PAGE-001 | 1 | Every visible component is present | none | none |
@@ -14,16 +15,19 @@ Old reference: `54e0e1dcfdc225ad17e42abff04b65d7f2bfdc72`.
 | PAGE-001 | 2 | Each incident links its complete permanent timeline | none | none |
 | PAGE-001 | 3 | All in-progress maintenance appears | none | none |
 | PAGE-001 | 3 | The 14-day scheduled-maintenance inclusion boundary is asserted | none | none |
-| PAGE-001 | 4 | Daily record coverage reconciles across the visible fixture components | `tests/e2e/app-api.test.mjs:146` | asserted |
+| PAGE-001 | 4 | The total daily-mark count is between six times ninety and six times ninety-one | `tests/e2e/app-api.test.mjs:146` | asserted |
+| PAGE-001 | 4 | Daily-mark coverage is reconciled separately for every visible component | none | none |
 | PAGE-001 | 4 | Each visible component uptime figure is asserted | none | none |
-| PAGE-002 | 1 | Initial HTML contains representative overall status and component name | `tests/e2e/public-contract.test.mjs:232` | asserted |
+| PAGE-002 | 1 | Initial HTML contains the overall Operational label | `tests/e2e/public-contract.test.mjs:232` | asserted |
+| PAGE-002 | 1 | Initial HTML contains the representative component name | `tests/e2e/public-contract.test.mjs:233` | asserted |
 | PAGE-002 | 1 | Initial HTML contains a timestamp | `tests/e2e/public-contract.test.mjs:234` | asserted |
-| PAGE-002 | 1 | Initial HTML contains the subscription form and email field | `tests/e2e/public-contract.test.mjs:235` | asserted |
+| PAGE-002 | 1 | Initial HTML contains the subscription form | `tests/e2e/public-contract.test.mjs:235` | asserted |
+| PAGE-002 | 1 | Initial HTML contains its email input | `tests/e2e/public-contract.test.mjs:236` | asserted |
 | PAGE-002 | 1 | All PAGE-001 content is reconciled in initial HTML | none | none |
 | PAGE-002 | 2 | Every status, update and timestamp is readable with scripting disabled | none | none |
 | PAGE-002 | 2 | The public subscription form successfully submits without scripting | none | none |
 | PAGE-002 | 3 | The configured time-zone label survives live updates | `tests/e2e/public-contract.test.mjs:716` | asserted |
-| PAGE-002 | 3 | Public timestamp text remains in the configured zone | `tests/e2e/public-contract.test.mjs:770` | asserted |
+| PAGE-002 | 3 | Public timestamp text remains in the configured zone | none | none |
 | PAGE-002 | 3 | Operator entry uses the configured zone | none | none |
 | PAGE-002 | 3 | Timeline timestamps use the configured zone | none | none |
 | PAGE-002 | 3 | Preview timestamps use the configured zone | none | none |
@@ -38,13 +42,16 @@ Old reference: `54e0e1dcfdc225ad17e42abff04b65d7f2bfdc72`.
 | PAGE-005 | 1 | An Atom-feed artifact exists | `tests/e2e/publishing-contract.test.mjs:1316` | asserted |
 | PAGE-005 | 1 | A widget artifact exists | `tests/e2e/publishing-contract.test.mjs:1316` | asserted |
 | PAGE-005 | 1 | Every PAGE-001 change triggers a complete snapshot | none | none |
-| PAGE-005 | 2 | The public page remains readable without the database | `tests/e2e/publishing-contract.test.mjs:1323` | asserted |
-| PAGE-005 | 2 | The feed remains readable without the database | `tests/e2e/publishing-contract.test.mjs:1323` | asserted |
-| PAGE-005 | 2 | The widget remains readable without the database | `tests/e2e/publishing-contract.test.mjs:1323` | asserted |
+| PAGE-005 | 2 | The public page remains readable without the database | none | none |
+| PAGE-005 | 2 | The feed remains readable without the database | none | none |
+| PAGE-005 | 2 | The widget remains readable without the database | none | none |
 | PAGE-005 | 3 | A failed build remains stale until a retry | `tests/e2e/publishing-contract.test.mjs:1296` | asserted |
-| PAGE-005 | 3 | Retry completes and restores a current snapshot | `tests/e2e/publishing-contract.test.mjs:1298` | asserted |
-| PAGE-005 | 3 | Prior immutable publication survives an unrecoverable mirror attempt | `tests/e2e/snapshot-retained.test.mjs:112` | asserted |
-| PAGE-006 | 1 | The public page survives database removal | `tests/e2e/app-api.test.mjs:588` | asserted |
+| PAGE-005 | 3 | The pending-build retry reports completion | `tests/e2e/publishing-contract.test.mjs:1298` | asserted |
+| PAGE-005 | 3 | After retry the page artifact no longer carries the stale flag | `tests/e2e/publishing-contract.test.mjs:1299` | asserted |
+| PAGE-005 | 3 | The old publication selector version remains after unrecoverable replica failure | `tests/e2e/snapshot-retained.test.mjs:112` | asserted |
+| PAGE-005 | 3 | The old replica version remains after unrecoverable replica failure | `tests/e2e/snapshot-retained.test.mjs:113` | asserted |
+| PAGE-005 | 3 | The old publication body is read back while the unrecoverable replica failure is in force | none | none |
+| PAGE-006 | 1 | The page body still contains Partially unavailable after database removal | `tests/e2e/app-api.test.mjs:590` | asserted |
 | PAGE-006 | 1 | The Atom feed survives database outage | none | none |
 | PAGE-006 | 1 | The widget survives database outage | none | none |
 | PAGE-006 | 1 | Page content survives queue outage | none | none |
@@ -59,7 +66,8 @@ Old reference: `54e0e1dcfdc225ad17e42abff04b65d7f2bfdc72`.
 | PAGE-006 | 2 | Widget is unavailable only before first publication | none | none |
 | PAGE-006 | 3 | Stale page content is labeled Last known state | `tests/e2e/public-contract.test.mjs:915` | asserted |
 | PAGE-006 | 3 | The generation instant is visible in stale page content | `tests/e2e/public-contract.test.mjs:918` | asserted |
-| PAGE-006 | 3 | Failure content retains an affected state instead of inventing all-clear | `tests/e2e/app-api.test.mjs:601` | asserted |
+| PAGE-006 | 3 | The retained failure body contains Partially unavailable | `tests/e2e/app-api.test.mjs:600` | asserted |
+| PAGE-006 | 3 | The same nonempty failure body contains no invented all-clear text | `tests/e2e/app-api.test.mjs:601` | asserted |
 | PAGE-007 | 1 | A generation validator exists | `tests/e2e/app-api.test.mjs:154` | asserted |
 | PAGE-007 | 1 | An unchanged generation returns a not-modified response | `tests/e2e/app-api.test.mjs:156` | asserted |
 | PAGE-007 | 1 | Advancing a generation makes all earlier healthy cache entries ineligible | none | none |
@@ -89,14 +97,14 @@ Old reference: `54e0e1dcfdc225ad17e42abff04b65d7f2bfdc72`.
 | PAGE-008 | 1 | Repeated reads never return a rate-limit refusal | `tests/e2e/public-contract.test.mjs:737` | asserted |
 | PAGE-008 | 2 | Healthy generation validation performs no database query | none | none |
 | PAGE-008 | 2 | Artifact caching reduces object-byte reads | none | none |
-| PAGE-009 | 1 | Initial public timestamp text uses the configured zone and exact instant | `tests/e2e/public-contract.test.mjs:759` | asserted |
+| PAGE-009 | 1 | Initial public timestamp text uses the configured zone and exact instant | none | none |
 | PAGE-009 | 1 | Scripted public timestamp retains the exact instant | `tests/e2e/public-contract.test.mjs:769` | asserted |
-| PAGE-009 | 1 | Scripted public timestamp uses the configured zone and offset | `tests/e2e/public-contract.test.mjs:770` | asserted |
+| PAGE-009 | 1 | Scripted public timestamp uses the configured zone and offset | none | none |
 | PAGE-009 | 1 | Notification timestamps use the configured zone and offset | none | none |
 | PAGE-009 | 2 | The initial scripted generation label is relative | `tests/e2e/public-contract.test.mjs:666` | asserted |
-| PAGE-009 | 2 | The generation tooltip preserves the absolute instant and configured zone | `tests/e2e/public-contract.test.mjs:702` | asserted |
+| PAGE-009 | 2 | The generation tooltip preserves the absolute instant and configured zone | none | none |
 | PAGE-009 | 2 | The relative label’s later refresh is asserted rather than only awaited | none | none |
-| PAGE-009 | 3 | Initial public HTML retains absolute timestamps | `tests/e2e/public-contract.test.mjs:759` | asserted |
+| PAGE-009 | 3 | Initial public HTML retains absolute timestamps | none | none |
 | PAGE-009 | 3 | Script-disabled generation text remains absolute | none | none |
 | PAGE-009 | 3 | Maintenance, feed and notification text remains absolute | none | none |
 | PAGE-010 | 1 | The feed declares the Atom namespace | `tests/e2e/public-contract.test.mjs:886` | asserted |
@@ -114,7 +122,8 @@ Old reference: `54e0e1dcfdc225ad17e42abff04b65d7f2bfdc72`.
 | PAGE-010 | 3 | Event identities are never reused | none | none |
 | PAGE-011 | 1 | The banner content asserts both overall state and unresolved incident | none | none |
 | PAGE-011 | 2 | The widget is at most ten KiB gzipped | `tests/e2e/public-contract.test.mjs:603` | asserted |
-| PAGE-011 | 2 | The widget source has no alternate network loader | `tests/e2e/public-contract.test.mjs:604` | asserted |
+| PAGE-011 | 2 | The nonempty widget source contains neither XMLHttpRequest nor importScripts | `tests/e2e/public-contract.test.mjs:604` | asserted |
+| PAGE-011 | 2 | The widget performs no other foreign-origin or alternate network load | none | none |
 | PAGE-011 | 2 | Every widget load is observed to stay on the installation origin | none | none |
 | PAGE-012 | 1 | Changing the page name reaches the public page | `tests/e2e/app-api.test.mjs:323` | asserted |
 | PAGE-012 | 1 | Logo is changed and read back | none | none |
@@ -125,11 +134,22 @@ Old reference: `54e0e1dcfdc225ad17e42abff04b65d7f2bfdc72`.
 | PAGE-012 | 2 | Enabled credit displays Powered by Lamp | `tests/e2e/public-contract.test.mjs:521` | asserted |
 | PAGE-012 | 2 | Disabling credit removes it | `tests/e2e/public-contract.test.mjs:526` | asserted |
 | PAGE-012 | 2 | Disabling credit has no network effect | none | none |
-| PAGE-012 | 3 | The uploaded logo is a first-party public artifact | `tests/e2e/public-contract.test.mjs:578` | asserted |
-| PAGE-012 | 4 | Artwork contains both the configured logo and state mark | `tests/e2e/public-contract.test.mjs:597` | asserted |
+| PAGE-012 | 3 | The first-party logo response declares PNG content | `tests/e2e/public-contract.test.mjs:578` | asserted |
+| PAGE-012 | 3 | The public page embeds its branding mark from an own-origin address | `tests/e2e/public-contract.test.mjs:582` | asserted |
+| PAGE-012 | 3 | The direct first-party logo response bytes are read back as the configured logo | none | none |
+| PAGE-012 | 4 | The favicon contains the configured logo pixel | `tests/e2e/public-contract.test.mjs:597` | asserted |
+| PAGE-012 | 4 | The Open Graph image contains the configured logo pixel | `tests/e2e/public-contract.test.mjs:597` | asserted |
+| PAGE-012 | 4 | The favicon contains the Operational state-marker pixel | `tests/e2e/public-contract.test.mjs:598` | asserted |
+| PAGE-012 | 4 | The Open Graph image contains the Operational state-marker pixel | `tests/e2e/public-contract.test.mjs:598` | asserted |
 | PAGE-012 | 4 | The state mark matches the Operational state | `tests/e2e/public-contract.test.mjs:598` | asserted |
 | PAGE-012 | 4 | Open Graph title states the current overall status | none | none |
-| PAGE-013 | 1 | The own-origin content security policy is exact | `tests/e2e/public-contract.test.mjs:639` | asserted |
+| PAGE-013 | 1 | The default-src directive names the own origin in the exact complete CSP | `tests/e2e/public-contract.test.mjs:639` | asserted |
+| PAGE-013 | 1 | The script-src directive names the own origin in the exact complete CSP | `tests/e2e/public-contract.test.mjs:639` | asserted |
+| PAGE-013 | 1 | The style-src directive names the own origin in the exact complete CSP | `tests/e2e/public-contract.test.mjs:639` | asserted |
+| PAGE-013 | 1 | The img-src directive names the own origin in the exact complete CSP | `tests/e2e/public-contract.test.mjs:639` | asserted |
+| PAGE-013 | 1 | The connect-src directive names the own origin in the exact complete CSP | `tests/e2e/public-contract.test.mjs:639` | asserted |
+| PAGE-013 | 1 | The form-action directive names the own origin in the exact complete CSP | `tests/e2e/public-contract.test.mjs:639` | asserted |
+| PAGE-013 | 1 | The base-uri directive names the own origin in the exact complete CSP | `tests/e2e/public-contract.test.mjs:639` | asserted |
 | PAGE-013 | 1 | Framing is refused | `tests/e2e/public-contract.test.mjs:639` | asserted |
 | PAGE-013 | 1 | Content-type sniffing is disabled | `tests/e2e/public-contract.test.mjs:640` | asserted |
 | PAGE-013 | 1 | The documented referrer policy is present | `tests/e2e/public-contract.test.mjs:641` | asserted |
@@ -147,15 +167,19 @@ Old reference: `54e0e1dcfdc225ad17e42abff04b65d7f2bfdc72`.
 | PAGE-017 | 1 | RSS 2.0 semantic validation is asserted | none | none |
 | PAGE-017 | 2 | The history RSS alias equals the native RSS feed | `tests/e2e/helpers/public-resources-flow.mjs:51` | asserted |
 | PAGE-017 | 2 | Both history aliases work on an installation with no import | none | none |
-| PAGE-017 | 3 | A component feed excludes an incident that did not touch it | `tests/e2e/helpers/public-resources-flow.mjs:70` | asserted |
+| PAGE-017 | 3 | A populated Web application component feed contains the affected incident | `tests/e2e/helpers/public-resources-flow.mjs:70` | asserted |
+| PAGE-017 | 3 | An unrelated component’s populated feed excludes the incident while retaining its own event | none | none |
 | PAGE-017 | 3 | Both feed forms of every visible component reconcile all applicable incident and maintenance events | none | none |
 | PAGE-017 | 4 | All feed variants are asserted snapshot-backed | none | none |
 | PAGE-017 | 4 | The W3C validator accepts every feed | none | none |
 | PAGE-017 | 5 | A newly published event is asserted in the polled history RSS alias within ten seconds | none | none |
 | PAGE-018 | 1 | Component-state SVG has the changed label | `tests/e2e/helpers/public-resources-flow.mjs:99` | asserted |
-| PAGE-018 | 1 | Component and uptime SVGs stay within two KiB | `tests/e2e/helpers/public-resources-flow.mjs:98` | asserted |
-| PAGE-018 | 1 | Both badge colors match the page or its no-data ink | `tests/e2e/helpers/public-resources-flow.mjs:102` | asserted |
-| PAGE-018 | 1 | Overall badge has the matching status text and color | `tests/e2e/helpers/public-resources-flow.mjs:109` | asserted |
+| PAGE-018 | 1 | The component-state SVG stays within two KiB | `tests/e2e/helpers/public-resources-flow.mjs:98` | asserted |
+| PAGE-018 | 1 | The component-uptime SVG stays within two KiB | `tests/e2e/helpers/public-resources-flow.mjs:98` | asserted |
+| PAGE-018 | 1 | The component-state badge uses its page state color or no-data ink | `tests/e2e/helpers/public-resources-flow.mjs:102` | asserted |
+| PAGE-018 | 1 | The component-uptime badge uses its page state color or no-data ink | `tests/e2e/helpers/public-resources-flow.mjs:102` | asserted |
+| PAGE-018 | 1 | The overall badge contains the endpoint’s state text | `tests/e2e/helpers/public-resources-flow.mjs:109` | asserted |
+| PAGE-018 | 1 | The overall badge contains the endpoint’s state color | `tests/e2e/helpers/public-resources-flow.mjs:109` | asserted |
 | PAGE-018 | 1 | Overall SVG stays within two KiB | `tests/e2e/helpers/public-resources-flow.mjs:108` | asserted |
 | PAGE-018 | 2 | Endpoint schemaVersion equals one | `tests/e2e/helpers/public-resources-flow.mjs:105` | asserted |
 | PAGE-018 | 2 | Every shields.io endpoint field and a shields.io rendering are asserted | none | none |
@@ -169,19 +193,23 @@ Old reference: `54e0e1dcfdc225ad17e42abff04b65d7f2bfdc72`.
 | PAGE-019 | 1 | Every variant can be configured to hide when operational | none | none |
 | PAGE-019 | 2 | The dot state equals the public snapshot state | `tests/e2e/helpers/widget-variants-flow.mjs:25` | asserted |
 | PAGE-019 | 2 | Every variant stays within ten KiB | none | none |
-| PAGE-019 | 3 | All variants render on an allowed origin | `tests/e2e/helpers/widget-variants-flow.mjs:24` | asserted |
+| PAGE-019 | 3 | Four status sections render after the four allowed-origin embed installations | `tests/e2e/helpers/widget-variants-flow.mjs:24` | asserted |
+| PAGE-019 | 3 | Each installed variant is individually identified as the banner, dot, floating notice or compatibility embed | none | none |
 | PAGE-019 | 3 | An unlisted origin renders nothing | `tests/e2e/helpers/widget-variants-flow.mjs:43` | asserted |
 | PAGE-019 | 4 | A floating notice contains the incident title | `tests/e2e/helpers/widget-variants-flow.mjs:39` | asserted |
 | PAGE-019 | 4 | The configured top position is applied | `tests/e2e/helpers/widget-variants-flow.mjs:41` | asserted |
 | PAGE-019 | 4 | The configured foreground and background colors are asserted | none | none |
 | PAGE-019 | 4 | Resolution-driven disappearance is asserted rather than only awaited | none | none |
 | COMP-001 | 1 | The component-state vocabulary is exact | `tests/e2e/public-contract.test.mjs:285` | asserted |
-| COMP-001 | 2 | Degraded performance outranks maintenance and Operational | `tests/e2e/public-contract.test.mjs:286` | asserted |
+| COMP-001 | 2 | Degraded performance outranks Under maintenance | `tests/e2e/public-contract.test.mjs:286` | asserted |
+| COMP-001 | 2 | Degraded performance outranks Operational | `tests/e2e/public-contract.test.mjs:286` | asserted |
 | COMP-001 | 2 | Major outage outranks Partially unavailable | `tests/e2e/public-contract.test.mjs:287` | asserted |
 | COMP-002 | 1 | Multiple group membership is refused or excluded | none | none |
 | COMP-002 | 2 | Group order controls public order | `tests/e2e/public-contract.test.mjs:207` | asserted |
 | COMP-002 | 2 | Within-group component order controls public order | `tests/e2e/public-contract.test.mjs:208` | asserted |
-| COMP-003 | 1 | A history row contains previous and new state and cause | `tests/e2e/public-contract.test.mjs:470` | asserted |
+| COMP-003 | 1 | A history row records the previous Operational state | `tests/e2e/public-contract.test.mjs:470` | asserted |
+| COMP-003 | 1 | The same history row records the new Operational state | `tests/e2e/public-contract.test.mjs:470` | asserted |
+| COMP-003 | 1 | The same history row records a standing-claim cause | `tests/e2e/public-contract.test.mjs:470` | asserted |
 | COMP-003 | 1 | A correction row names the operator | `tests/e2e/public-contract.test.mjs:471` | asserted |
 | COMP-003 | 1 | A correction row retains its exact change instant | `tests/e2e/public-contract.test.mjs:414` | asserted |
 | COMP-003 | 1 | Every public-state change records the causing operator or incident | none | none |
@@ -228,16 +256,26 @@ Old reference: `54e0e1dcfdc225ad17e42abff04b65d7f2bfdc72`.
 | COMP-009 | 1 | CSV reordering is asserted for groups | none | none |
 | COMP-009 | 1 | CSV deletion is asserted for components | none | none |
 | COMP-009 | 1 | CSV deletion is asserted for groups | none | none |
-| COMP-009 | 2 | The preview counts fifty created components | `tests/e2e/helpers/catalogue-history-flow.mjs:82` | asserted |
-| COMP-009 | 2 | The preview counts the new groups | `tests/e2e/helpers/catalogue-history-flow.mjs:83` | asserted |
-| COMP-009 | 2 | Preview changes no persisted catalog or revision | `tests/e2e/helpers/catalogue-history-flow.mjs:84` | asserted |
-| COMP-009 | 2 | Preview creates no hidden claims or history | `tests/e2e/helpers/catalogue-history-flow.mjs:85` | asserted |
+| COMP-009 | 2 | Preview reports fifty created components | `tests/e2e/helpers/catalogue-history-flow.mjs:82` | asserted |
+| COMP-009 | 2 | Preview reports zero changed components | `tests/e2e/helpers/catalogue-history-flow.mjs:82` | asserted |
+| COMP-009 | 2 | Preview reports zero deleted components | `tests/e2e/helpers/catalogue-history-flow.mjs:82` | asserted |
+| COMP-009 | 2 | Preview reports two created groups | `tests/e2e/helpers/catalogue-history-flow.mjs:83` | asserted |
+| COMP-009 | 2 | Preview reports zero changed groups | `tests/e2e/helpers/catalogue-history-flow.mjs:83` | asserted |
+| COMP-009 | 2 | Preview reports zero deleted groups | `tests/e2e/helpers/catalogue-history-flow.mjs:83` | asserted |
+| COMP-009 | 2 | After preview the complete persisted catalog is unchanged | `tests/e2e/helpers/catalogue-history-flow.mjs:84` | asserted |
+| COMP-009 | 2 | After preview the persisted catalog revision is unchanged | `tests/e2e/helpers/catalogue-history-flow.mjs:84` | asserted |
+| COMP-009 | 2 | After preview the component count is unchanged | `tests/e2e/helpers/catalogue-history-flow.mjs:85` | asserted |
+| COMP-009 | 2 | After preview the group count is unchanged | `tests/e2e/helpers/catalogue-history-flow.mjs:85` | asserted |
+| COMP-009 | 2 | After preview the claim-event count is unchanged | `tests/e2e/helpers/catalogue-history-flow.mjs:85` | asserted |
+| COMP-009 | 2 | After preview the state-history count is unchanged | `tests/e2e/helpers/catalogue-history-flow.mjs:85` | asserted |
 | COMP-009 | 2 | Apply adds exactly fifty components | `tests/e2e/helpers/catalogue-history-flow.mjs:97` | asserted |
 | COMP-009 | 3 | CSV positions determine public order | `tests/e2e/helpers/catalogue-history-flow.mjs:103` | asserted |
 | COMP-009 | 3 | The native disclosure contains escaped plain description text | `tests/e2e/helpers/catalogue-history-flow.mjs:104` | asserted |
 | COMP-009 | 3 | The exact five-hundred-character description is retained | `tests/e2e/helpers/catalogue-history-flow.mjs:100` | asserted |
 | COMP-009 | 4 | The chosen tracking start date is retained | `tests/e2e/helpers/catalogue-history-flow.mjs:101` | asserted |
-| COMP-010 | 1 | Operational conditional component is absent from page, Atom and v2 component list | `tests/e2e/helpers/catalogue-history-flow.mjs:69` | asserted |
+| COMP-010 | 1 | After recovery the conditional component is absent from the populated page | `tests/e2e/helpers/catalogue-history-flow.mjs:69` | asserted |
+| COMP-010 | 1 | After recovery the conditional component is absent from the populated incident Atom feed | `tests/e2e/helpers/catalogue-history-flow.mjs:69` | asserted |
+| COMP-010 | 1 | After recovery the conditional component is absent from the populated v2 component list | `tests/e2e/helpers/catalogue-history-flow.mjs:69` | asserted |
 | COMP-010 | 1 | The widget omits an Operational conditional component | none | none |
 | COMP-010 | 1 | The uptime figure and daily record are hidden | none | none |
 | COMP-010 | 2 | The affected component appears publicly | `tests/e2e/helpers/catalogue-history-flow.mjs:129` | asserted |
@@ -245,7 +283,9 @@ Old reference: `54e0e1dcfdc225ad17e42abff04b65d7f2bfdc72`.
 | COMP-010 | 3 | Existing history entries remain after hide/reveal | `tests/e2e/helpers/catalogue-history-flow.mjs:134` | asserted |
 | COMP-010 | 3 | Uptime is retained throughout | none | none |
 | COMP-010 | 3 | The conditional component always contributes to overall status | none | none |
-| COMP-010 | 4 | The conditional flag and API visibility match each state through the bounded predicate | `tests/e2e/helpers/catalogue-history-flow.mjs:69` | asserted |
+| COMP-010 | 4 | While affected the v2 component row has its conditional-visibility flag set | `tests/e2e/helpers/catalogue-history-flow.mjs:69` | asserted |
+| COMP-010 | 4 | While affected the v2 component row reports Major outage | `tests/e2e/helpers/catalogue-history-flow.mjs:69` | asserted |
+| COMP-010 | 4 | After recovery the v2 component row is absent | `tests/e2e/helpers/catalogue-history-flow.mjs:69` | asserted |
 | COMP-010 | 5 | Statuspage conditional visibility survives native import | `tests/e2e/statuspage-import.test.mjs:189` | asserted |
 | UPTIME-001 | 1 | The ninety-day window includes its complete partial boundary | `tests/e2e/public-contract.test.mjs:465` | asserted |
 | UPTIME-001 | 2 | A one-minute outage displays 99.99 percent instead of 100.00 | `tests/e2e/public-contract.test.mjs:481` | asserted |
@@ -253,14 +293,15 @@ Old reference: `54e0e1dcfdc225ad17e42abff04b65d7f2bfdc72`.
 | UPTIME-002 | 1 | Maintenance receives zero weight | `tests/e2e/public-contract.test.mjs:492` | asserted |
 | UPTIME-002 | 1 | The supplied policy’s Major outage weight is asserted | none | none |
 | UPTIME-002 | 1 | The supplied policy’s Partially unavailable weight is asserted | none | none |
-| UPTIME-003 | 1 | Short tracked history has a short coverage count | `tests/e2e/public-contract.test.mjs:451` | asserted |
+| UPTIME-003 | 1 | The public percentage denominator starts at the fixture’s first history record rather than inventing ninety days | `tests/e2e/public-contract.test.mjs:427` | asserted |
 | UPTIME-003 | 2 | Sub-day coverage is labeled in hours | `tests/e2e/public-contract.test.mjs:453` | asserted |
 | UPTIME-003 | 2 | Longer coverage is labeled in whole days | `tests/e2e/public-contract.test.mjs:500` | asserted |
 | UPTIME-003 | 2 | Minute-based short-coverage labels are asserted | none | none |
 | UPTIME-003 | 2 | Less-than-one-minute coverage labels are asserted | none | none |
 | UPTIME-003 | 3 | A zero-elapsed fixture displays No data | `tests/e2e/public-contract.test.mjs:459` | asserted |
 | UPTIME-004 | 1 | The corrected state is retained | `tests/e2e/public-contract.test.mjs:411` | asserted |
-| UPTIME-004 | 1 | The exact interval is retained | `tests/e2e/public-contract.test.mjs:411` | asserted |
+| UPTIME-004 | 1 | The stored correction retains the exact interval start | `tests/e2e/public-contract.test.mjs:411` | asserted |
+| UPTIME-004 | 1 | The stored correction retains the exact interval end | `tests/e2e/public-contract.test.mjs:411` | asserted |
 | UPTIME-004 | 1 | The reason is retained | `tests/e2e/public-contract.test.mjs:411` | asserted |
 | UPTIME-004 | 1 | A missing reason is refused | `tests/e2e/public-contract.test.mjs:409` | asserted |
 | UPTIME-004 | 2 | The original history entry remains | `tests/e2e/public-contract.test.mjs:413` | asserted |
@@ -269,28 +310,38 @@ Old reference: `54e0e1dcfdc225ad17e42abff04b65d7f2bfdc72`.
 | UPTIME-004 | 3 | Every affected figure is observed within sixty seconds | none | none |
 | UPTIME-004 | 4 | Audit identifies the operator | `tests/e2e/public-contract.test.mjs:417` | asserted |
 | UPTIME-004 | 4 | Audit retains the reason | `tests/e2e/public-contract.test.mjs:418` | asserted |
-| UPTIME-004 | 4 | Audit contains exact interval and corrected state | `tests/e2e/public-contract.test.mjs:419` | asserted |
+| UPTIME-004 | 4 | The audit payload retains the corrected state | `tests/e2e/public-contract.test.mjs:419` | asserted |
+| UPTIME-004 | 4 | The audit payload retains the exact interval start | `tests/e2e/public-contract.test.mjs:419` | asserted |
+| UPTIME-004 | 4 | The audit payload retains the exact interval end | `tests/e2e/public-contract.test.mjs:419` | asserted |
 | UPTIME-005 | 1 | Initial HTML states the selected Major outage weight | `tests/e2e/public-contract.test.mjs:396` | asserted |
 | UPTIME-005 | 1 | Initial HTML states the selected maintenance weight | `tests/e2e/public-contract.test.mjs:397` | asserted |
 | UPTIME-005 | 1 | Initial HTML identifies the ninety-day window | `tests/e2e/public-contract.test.mjs:421` | asserted |
 | UPTIME-005 | 1 | Every state’s selected weight is asserted | none | none |
 | UPTIME-005 | 2 | Every published incident’s component claim affects the displayed uptime | none | none |
-| UPTIME-006 | 1 | At capacity each component has the complete trailing daily-record length | `tests/e2e/public-contract.test.mjs:792` | asserted |
+| UPTIME-006 | 1 | The aggregate mark count divided by two hundred lies between ninety and ninety-one | `tests/e2e/public-contract.test.mjs:792` | asserted |
+| UPTIME-006 | 1 | The complete trailing daily-record length is reconciled for every component separately | none | none |
 | UPTIME-006 | 2 | A day’s sixty downtime minutes are retained | `tests/e2e/public-contract.test.mjs:543` | asserted |
 | UPTIME-006 | 2 | The rendered downtime-day label contains its exact minute count | none | none |
 | UPTIME-006 | 3 | Untracked days have null downtime | `tests/e2e/public-contract.test.mjs:541` | asserted |
 | UPTIME-006 | 3 | Tracked healthy days have zero downtime | `tests/e2e/public-contract.test.mjs:542` | asserted |
 | UPTIME-006 | 3 | Rendered output identifies No data | `tests/e2e/public-contract.test.mjs:544` | asserted |
 | UPTIME-006 | 3 | Rendered untracked days are visually distinct from healthy days | none | none |
-| UPTIME-008 | 1 | Read-only Datadog, New Relic, Pingdom and Prometheus fixtures fill charts | `tests/e2e/helpers/metrics-flow.mjs:102` | asserted |
+| UPTIME-008 | 1 | The read-only Datadog query fixture fills its expected inline chart | `tests/e2e/helpers/metrics-flow.mjs:102` | asserted |
+| UPTIME-008 | 1 | The read-only New Relic query fixture fills its expected inline chart | `tests/e2e/helpers/metrics-flow.mjs:102` | asserted |
+| UPTIME-008 | 1 | The read-only Pingdom query fixture fills its expected inline chart | `tests/e2e/helpers/metrics-flow.mjs:102` | asserted |
+| UPTIME-008 | 1 | The read-only Prometheus query fixture fills its expected inline chart | `tests/e2e/helpers/metrics-flow.mjs:102` | asserted |
 | UPTIME-008 | 1 | Authenticated Uptime timing fills its chart | `tests/e2e/helpers/metrics-flow.mjs:108` | asserted |
-| UPTIME-008 | 1 | A management bearer pushes points | `tests/e2e/helpers/metrics-flow.mjs:53` | asserted |
+| UPTIME-008 | 1 | A new management-bearer series is read back in the next public snapshot with its expected value | `tests/e2e/helpers/metrics-flow.mjs:63` | asserted |
 | UPTIME-008 | 2 | The pushed 160 ms series appears in the next snapshot | `tests/e2e/helpers/metrics-flow.mjs:63` | asserted |
 | UPTIME-008 | 2 | Each provider’s expected value appears | `tests/e2e/helpers/metrics-flow.mjs:102` | asserted |
 | UPTIME-008 | 3 | Minute-resolution data just inside one day is preserved | `tests/e2e/helpers/metrics-flow.mjs:143` | asserted |
-| UPTIME-008 | 3 | Expired minute data rolls into the hour without loss | `tests/e2e/helpers/metrics-flow.mjs:145` | asserted |
+| UPTIME-008 | 3 | The expired minute’s aggregate bucket is its expected containing hour | `tests/e2e/helpers/metrics-flow.mjs:145` | asserted |
+| UPTIME-008 | 3 | The expired minute’s value sum is retained | `tests/e2e/helpers/metrics-flow.mjs:145` | asserted |
+| UPTIME-008 | 3 | The expired minute’s sample count is retained | `tests/e2e/helpers/metrics-flow.mjs:145` | asserted |
 | UPTIME-008 | 3 | Hourly data just inside thirty days is preserved | `tests/e2e/helpers/metrics-flow.mjs:146` | asserted |
-| UPTIME-008 | 3 | Expired hours roll into weighted daily sums and counts | `tests/e2e/helpers/metrics-flow.mjs:149` | asserted |
+| UPTIME-008 | 3 | Expired hourly observations roll into the expected daily bucket | `tests/e2e/helpers/metrics-flow.mjs:149` | asserted |
+| UPTIME-008 | 3 | The daily aggregate preserves the expected weighted value sum | `tests/e2e/helpers/metrics-flow.mjs:149` | asserted |
+| UPTIME-008 | 3 | The daily aggregate preserves the expected sample count | `tests/e2e/helpers/metrics-flow.mjs:149` | asserted |
 | UPTIME-008 | 3 | Daily data inside ninety days remains | `tests/e2e/helpers/metrics-flow.mjs:150` | asserted |
 | UPTIME-008 | 3 | Older daily data expires | `tests/e2e/helpers/metrics-flow.mjs:151` | asserted |
 | UPTIME-008 | 3 | No unexpected aggregates remain | `tests/e2e/helpers/metrics-flow.mjs:152` | asserted |
@@ -306,24 +357,40 @@ Old reference: `54e0e1dcfdc225ad17e42abff04b65d7f2bfdc72`.
 | UPTIME-008 | 6 | Initial requests remain within four assets | `tests/e2e/public-contract.test.mjs:840` | asserted |
 | UPTIME-009 | 1 | CSV is an attached CSV document | `tests/e2e/helpers/availability-report-flow.mjs:105` | asserted |
 | UPTIME-009 | 1 | PDF is an attached PDF document | `tests/e2e/helpers/availability-report-flow.mjs:158` | asserted |
-| UPTIME-009 | 1 | CSV includes the computed uptime and weighted downtime | `tests/e2e/helpers/availability-report-flow.mjs:106` | asserted |
-| UPTIME-009 | 1 | Complete overlapping incident membership reconciles | `tests/e2e/helpers/availability-report-flow.mjs:95` | asserted |
-| UPTIME-009 | 1 | Complete overlapping maintenance membership reconciles | `tests/e2e/helpers/availability-report-flow.mjs:96` | asserted |
-| UPTIME-009 | 1 | Quarter bounds retain all applicable incidents | `tests/e2e/helpers/availability-report-flow.mjs:111` | asserted |
+| UPTIME-009 | 1 | The CSV summary contains the computed uptime | `tests/e2e/helpers/availability-report-flow.mjs:106` | asserted |
+| UPTIME-009 | 1 | The CSV summary contains the expected weighted downtime | `tests/e2e/helpers/availability-report-flow.mjs:106` | asserted |
+| UPTIME-009 | 1 | The JSON month report’s incident-membership set exactly equals the nonempty expected set | `tests/e2e/helpers/availability-report-flow.mjs:95` | asserted |
+| UPTIME-009 | 1 | The CSV browser download contains a representative retained incident reference | `tests/e2e/helpers/availability-report-browser-flow.mjs:43` | asserted |
+| UPTIME-009 | 1 | The CSV month and quarter incident lists are completely reconciled | none | none |
+| UPTIME-009 | 1 | The PDF month and quarter incident lists are completely reconciled | none | none |
+| UPTIME-009 | 1 | The JSON month report’s maintenance-membership set exactly equals the two expected windows | `tests/e2e/helpers/availability-report-flow.mjs:96` | asserted |
+| UPTIME-009 | 1 | Complete maintenance membership is reconciled in the CSV report | none | none |
+| UPTIME-009 | 1 | Complete maintenance membership is reconciled in the PDF report | none | none |
+| UPTIME-009 | 1 | The quarter includes the before-month incident | `tests/e2e/helpers/availability-report-flow.mjs:111` | asserted |
+| UPTIME-009 | 1 | The quarter includes the after-month incident | `tests/e2e/helpers/availability-report-flow.mjs:111` | asserted |
+| UPTIME-009 | 1 | The quarter includes the detached incident | `tests/e2e/helpers/availability-report-flow.mjs:111` | asserted |
+| UPTIME-009 | 1 | The complete quarter incident-membership set is reconciled | none | none |
 | UPTIME-009 | 2 | Report uptime equals the page’s same-window math | `tests/e2e/helpers/availability-report-flow.mjs:103` | asserted |
-| UPTIME-009 | 2 | Weighted overlap, correction and maintenance math equals the fixture | `tests/e2e/helpers/availability-report-flow.mjs:93` | asserted |
-| UPTIME-009 | 3 | Month boundaries are exact | `tests/e2e/helpers/availability-report-flow.mjs:91` | asserted |
-| UPTIME-009 | 3 | Quarter boundaries are exact | `tests/e2e/helpers/availability-report-flow.mjs:110` | asserted |
-| UPTIME-009 | 3 | Local calendar and page time zone are retained | `tests/e2e/helpers/availability-report-flow.mjs:125` | asserted |
+| UPTIME-009 | 2 | The combined weighted overlap/correction/maintenance fixture has exactly 142.50 downtime minutes | `tests/e2e/helpers/availability-report-flow.mjs:93` | asserted |
+| UPTIME-009 | 3 | The month starts at its exact inclusive boundary | `tests/e2e/helpers/availability-report-flow.mjs:91` | asserted |
+| UPTIME-009 | 3 | The month ends at its exact exclusive boundary | `tests/e2e/helpers/availability-report-flow.mjs:91` | asserted |
+| UPTIME-009 | 3 | The quarter starts at its exact inclusive boundary | `tests/e2e/helpers/availability-report-flow.mjs:110` | asserted |
+| UPTIME-009 | 3 | The quarter ends at its exact exclusive boundary | `tests/e2e/helpers/availability-report-flow.mjs:110` | asserted |
+| UPTIME-009 | 3 | The local month starts at its exact configured-zone boundary | `tests/e2e/helpers/availability-report-flow.mjs:125` | asserted |
+| UPTIME-009 | 3 | The local month ends at its exact configured-zone boundary | `tests/e2e/helpers/availability-report-flow.mjs:125` | asserted |
+| UPTIME-009 | 3 | The report names the configured page time zone | `tests/e2e/helpers/availability-report-flow.mjs:124` | asserted |
 | UPTIME-009 | 3 | Configured tracking start dates preserve local calendar parity | `tests/e2e/helpers/availability-report-flow.mjs:145` | asserted |
-| UPTIME-009 | 4 | Future periods have no invented uptime or downtime | `tests/e2e/helpers/availability-report-flow.mjs:115` | asserted |
+| UPTIME-009 | 4 | The future-period uptime is null | `tests/e2e/helpers/availability-report-flow.mjs:115` | asserted |
+| UPTIME-009 | 4 | The future-period downtime is null | `tests/e2e/helpers/availability-report-flow.mjs:115` | asserted |
 | UPTIME-009 | 4 | Absent history has no invented uptime | `tests/e2e/helpers/availability-report-flow.mjs:116` | asserted |
 | UPTIME-009 | 4 | Short tracked coverage counts only elapsed history | `tests/e2e/helpers/availability-report-flow.mjs:119` | asserted |
 | UPTIME-009 | 4 | A current-period report stops at elapsed current time | none | none |
 | UPTIME-009 | 5 | Every overlapping scheduled maintenance retains its state label | none | none |
 | UPTIME-009 | 5 | Every overlapping cancelled maintenance retains its state label | none | none |
 | UPTIME-009 | 5 | Every overlapping completed maintenance retains its state label | none | none |
-| UPTIME-009 | 6 | Masked and legacy imported claim membership reconciles | `tests/e2e/helpers/availability-report-flow.mjs:95` | asserted |
+| UPTIME-009 | 6 | The exact JSON incident-membership set includes the masked claim | `tests/e2e/helpers/availability-report-flow.mjs:95` | asserted |
+| UPTIME-009 | 6 | The exact JSON incident-membership set includes legacy public claim history | `tests/e2e/helpers/availability-report-flow.mjs:95` | asserted |
+| UPTIME-009 | 6 | The exact JSON incident-membership set includes the legacy release-only claim | `tests/e2e/helpers/availability-report-flow.mjs:95` | asserted |
 | UPTIME-010 | 1 | Linked measured availability appears in CSV | none | none |
 | UPTIME-010 | 1 | Linked measured availability appears in PDF | none | none |
 | UPTIME-010 | 1 | Claimed results remain unchanged when measured figures are added | none | none |
@@ -347,7 +414,7 @@ Old reference: `54e0e1dcfdc225ad17e42abff04b65d7f2bfdc72`.
 | INCIDENT-002 | 3 | no-component impact absent | none | none |
 | INCIDENT-002 | 3 | no-component publication refused | none | none |
 | INCIDENT-003 | 1 | numeric reference | `tests/e2e/publishing-contract.test.mjs:518` | asserted |
-| INCIDENT-003 | 1 | public address contains reference | `tests/e2e/publishing-contract.test.mjs:163` | asserted |
+| INCIDENT-003 | 1 | The numeric-reference permalink returns that incident’s title | `tests/e2e/publishing-contract.test.mjs:522` | asserted |
 | INCIDENT-003 | 2 | increasing sequence | `tests/reference-storage/references.test.mjs:30` | asserted |
 | INCIDENT-003 | 2 | manual and intake share sequence | none | none |
 | INCIDENT-003 | 3 | legacy reference unchanged | `tests/reference-storage/references.test.mjs:22` | asserted |
@@ -370,16 +437,16 @@ Old reference: `54e0e1dcfdc225ad17e42abff04b65d7f2bfdc72`.
 | INCIDENT-006 | 2 | public committed time | none | none |
 | INCIDENT-007 | 1 | missing reason refused | `tests/e2e/publishing-contract.test.mjs:575` | asserted |
 | INCIDENT-007 | 2 | public page removal | none | none |
-| INCIDENT-007 | 2 | history removal | `tests/e2e/publishing-contract.test.mjs:580` | asserted |
-| INCIDENT-007 | 2 | Atom removal | `tests/e2e/publishing-contract.test.mjs:580` | asserted |
+| INCIDENT-007 | 2 | history removal after demonstrated pre-deletion public visibility | none | none |
+| INCIDENT-007 | 2 | Atom removal after demonstrated pre-deletion public visibility | none | none |
 | INCIDENT-007 | 2 | ten-second removal | none | none |
 | INCIDENT-007 | 3 | deletion actor | none | none |
 | INCIDENT-007 | 3 | deletion reason | none | none |
 | INCIDENT-007 | 3 | deletion time | none | none |
 | INCIDENT-008 | 1 | stored operator note read | none | none |
-| INCIDENT-008 | 2 | populated note absent publicly | `tests/e2e/publishing-contract.test.mjs:594` | asserted |
-| INCIDENT-008 | 2 | populated note absent from Atom | `tests/e2e/publishing-contract.test.mjs:594` | asserted |
-| INCIDENT-008 | 2 | populated note absent from widget | `tests/e2e/publishing-contract.test.mjs:594` | asserted |
+| INCIDENT-008 | 2 | populated note absent publicly after reading back the stored private note | none | none |
+| INCIDENT-008 | 2 | populated note absent from Atom after reading back the stored private note | none | none |
+| INCIDENT-008 | 2 | populated note absent from widget after reading back the stored private note | none | none |
 | INCIDENT-008 | 2 | note absent from notifications | none | none |
 | INCIDENT-008 | 2 | note absent from AI requests | none | none |
 | INCIDENT-009 | 1 | first original time | `tests/e2e/publishing-contract.test.mjs:660` | asserted |
@@ -387,8 +454,11 @@ Old reference: `54e0e1dcfdc225ad17e42abff04b65d7f2bfdc72`.
 | INCIDENT-009 | 2 | history first time | `tests/e2e/publishing-contract.test.mjs:689` | asserted |
 | INCIDENT-009 | 2 | history resolution time | `tests/e2e/publishing-contract.test.mjs:690` | asserted |
 | INCIDENT-009 | 2 | public timeline original times | none | none |
-| INCIDENT-009 | 3 | historical state rows | `tests/e2e/publishing-contract.test.mjs:679` | asserted |
-| INCIDENT-009 | 3 | weighted historical uptime | `tests/e2e/publishing-contract.test.mjs:163` | asserted |
+| INCIDENT-009 | 3 | The component has an Operational → Degraded performance transition at the historical start | `tests/e2e/publishing-contract.test.mjs:675` | asserted |
+| INCIDENT-009 | 3 | The component has a Degraded performance → Operational transition at the historical end | `tests/e2e/publishing-contract.test.mjs:676` | asserted |
+| INCIDENT-009 | 3 | Exactly two rows use those two publication instants | `tests/e2e/publishing-contract.test.mjs:679` | asserted |
+| INCIDENT-009 | 3 | A component-bound historical cross-midnight degraded interval contributes fifteen weighted minutes to its first day | `tests/e2e/publishing-contract.test.mjs:760` | asserted |
+| INCIDENT-009 | 3 | The same historical interval contributes fifteen weighted minutes to its second day | `tests/e2e/publishing-contract.test.mjs:761` | asserted |
 | INCIDENT-009 | 4 | historical zero deliveries | `tests/e2e/publishing-contract.test.mjs:670` | asserted |
 | INCIDENT-009 | 4 | later update zero deliveries | `tests/e2e/publishing-contract.test.mjs:697` | asserted |
 | INCIDENT-010 | 1 | before lead no reminder | `tests/e2e/update-reminders.test.mjs:92` | asserted |
@@ -407,25 +477,38 @@ Old reference: `54e0e1dcfdc225ad17e42abff04b65d7f2bfdc72`.
 | INCIDENT-010 | 7 | no due or overdue label | `tests/e2e/update-reminders.test.mjs:199` | asserted |
 | INCIDENT-012 | 1 | Slack private draft | `tests/chat-desk/flow.mjs:95` | asserted |
 | INCIDENT-012 | 1 | Teams private draft | `tests/chat-desk/flow.mjs:95` | asserted |
-| INCIDENT-012 | 2 | Teams component identities and claims | `tests/chat-desk/flow.mjs:102` | asserted |
-| INCIDENT-012 | 2 | immutable updated claims | `tests/chat-desk/flow.mjs:130` | asserted |
+| INCIDENT-012 | 2 | Both selected Teams component identities are staged | `tests/chat-desk/flow.mjs:102` | asserted |
+| INCIDENT-012 | 2 | Each selected Teams component is staged as Major outage | `tests/chat-desk/flow.mjs:102` | asserted |
+| INCIDENT-012 | 2 | The published update identifies the selected component | `tests/chat-desk/flow.mjs:130` | asserted |
+| INCIDENT-012 | 2 | The immutable selected component change retains Major outage as its previous state | `tests/chat-desk/flow.mjs:130` | asserted |
+| INCIDENT-012 | 2 | The immutable selected component change retains Degraded performance as its new state | `tests/chat-desk/flow.mjs:130` | asserted |
 | INCIDENT-012 | 2 | Slack component choices | none | none |
 | INCIDENT-012 | 3 | preview public heading | `tests/chat-desk/flow.mjs:110` | asserted |
 | INCIDENT-012 | 3 | preview lifecycle | `tests/chat-desk/flow.mjs:110` | asserted |
-| INCIDENT-012 | 3 | preview all fields | `tests/chat-desk/flow.mjs:110` | asserted |
+| INCIDENT-012 | 3 | The visible chat card contains the fixture’s customer-impact wording | `tests/chat-desk/flow.mjs:108` | asserted |
+| INCIDENT-012 | 3 | The visible chat card contains every field returned by the web renderer | `tests/chat-desk/flow.mjs:110` | asserted |
+| INCIDENT-012 | 3 | Every required UPDATE-001 field is independently asserted present in that web-renderer field list | none | none |
 | INCIDENT-012 | 3 | preview email subject | `tests/chat-desk/flow.mjs:110` | asserted |
 | INCIDENT-012 | 3 | preview complete email text | `tests/chat-desk/flow.mjs:110` | asserted |
 | INCIDENT-012 | 4 | premature publish refused | `tests/chat-desk/flow.mjs:104` | asserted |
 | INCIDENT-012 | 4 | operator attribution | `tests/chat-desk/flow.mjs:112` | asserted |
-| INCIDENT-012 | 4 | publication public | `tests/chat-desk/flow.mjs:113` | asserted |
+| INCIDENT-012 | 4 | The public page contains the explicitly published incident title | `tests/chat-desk/flow.mjs:113` | asserted |
+| INCIDENT-012 | 4 | The public page contains that incident’s customer-impact wording | `tests/chat-desk/flow.mjs:113` | asserted |
 | INCIDENT-012 | 4 | chat review parity | none | none |
 | INCIDENT-012 | 5 | Teams draft card | `tests/chat-desk/flow.mjs:93` | asserted |
 | INCIDENT-012 | 5 | Teams preview card | `tests/chat-desk/flow.mjs:110` | asserted |
 | INCIDENT-012 | 6 | one history entry | `tests/chat-desk/flow.mjs:126` | asserted |
-| INCIDENT-012 | 6 | history old/new state and instant | `tests/chat-desk/flow.mjs:129` | asserted |
-| INCIDENT-012 | 6 | immutable change matches | `tests/chat-desk/flow.mjs:130` | asserted |
+| INCIDENT-012 | 6 | The new history row’s previous state is Major outage | `tests/chat-desk/flow.mjs:129` | asserted |
+| INCIDENT-012 | 6 | The new history row’s state is Degraded performance | `tests/chat-desk/flow.mjs:129` | asserted |
+| INCIDENT-012 | 6 | The history cause type is incident | `tests/chat-desk/flow.mjs:129` | asserted |
+| INCIDENT-012 | 6 | The history cause id is the published incident | `tests/chat-desk/flow.mjs:129` | asserted |
+| INCIDENT-012 | 6 | The history instant equals that update’s publication time | `tests/chat-desk/flow.mjs:129` | asserted |
+| INCIDENT-012 | 6 | The immutable change identifies the transitioned component | `tests/chat-desk/flow.mjs:130` | asserted |
+| INCIDENT-012 | 6 | Its previous state is Major outage | `tests/chat-desk/flow.mjs:130` | asserted |
+| INCIDENT-012 | 6 | Its new state is Degraded performance | `tests/chat-desk/flow.mjs:130` | asserted |
 | INCIDENT-014 | 1 | Slack linked in Settings | `tests/e2e/helpers/chat-links-browser-flow.mjs:35` | asserted |
-| INCIDENT-014 | 1 | single-use link | `tests/chat-desk/flow.mjs:89` | asserted |
+| INCIDENT-014 | 1 | A second redemption of the same successfully redeemed code is refused | `tests/chat-desk/flow.mjs:89` | asserted |
+| INCIDENT-014 | 1 | After both transport link flows exactly two durable links exist | `tests/chat-desk/flow.mjs:136` | asserted |
 | INCIDENT-014 | 1 | Entra linked from Settings | none | none |
 | INCIDENT-014 | 2 | unlinked actor creates no incident | `tests/chat-desk/flow.mjs:84` | asserted |
 | INCIDENT-014 | 2 | unlinked actor creates no draft | `tests/chat-desk/flow.mjs:84` | asserted |
@@ -436,22 +519,30 @@ Old reference: `54e0e1dcfdc225ad17e42abff04b65d7f2bfdc72`.
 | INCIDENT-014 | 3 | altered Slack body refused | `tests/chat-desk/flow.mjs:85` | asserted |
 | INCIDENT-014 | 4 | wrong Teams audience refused | `tests/chat-desk/flow.mjs:85` | asserted |
 | INCIDENT-014 | 4 | invalid Teams signature refused | `tests/chat-desk/flow.mjs:85` | asserted |
-| INCIDENT-014 | 5 | revoked linked actor creates nothing | `tests/chat-desk/flow.mjs:156` | asserted |
+| INCIDENT-014 | 5 | A formerly linked refused chat actor creates no incident | `tests/chat-desk/flow.mjs:156` | asserted |
+| INCIDENT-014 | 5 | A formerly linked refused chat actor creates no update | `tests/chat-desk/flow.mjs:156` | asserted |
+| INCIDENT-014 | 5 | A formerly linked refused chat actor creates no draft | `tests/chat-desk/flow.mjs:156` | asserted |
+| INCIDENT-014 | 5 | A formerly linked refused chat actor creates no audit entry | `tests/chat-desk/flow.mjs:156` | asserted |
 | INCIDENT-014 | 6 | archive retains durable links | `tests/auth-adoption/portability.test.mjs:82` | asserted |
-| INCIDENT-014 | 6 | archive excludes temporary authority | `tests/auth-adoption/portability.test.mjs:80` | asserted |
+| INCIDENT-014 | 6 | Previously populated link-code authority is absent after archive restore | `tests/auth-adoption/portability.test.mjs:80` | asserted |
+| INCIDENT-014 | 6 | Previously populated preview authority is absent after archive restore | `tests/auth-adoption/portability.test.mjs:80` | asserted |
+| INCIDENT-014 | 6 | Previously populated replay authority is absent after archive restore | `tests/auth-adoption/portability.test.mjs:80` | asserted |
 | INCIDENT-013 | 1 | above derived impact | `tests/e2e/helpers/incident-impact-flow.mjs:52` | asserted |
 | INCIDENT-013 | 1 | none below derived impact | `tests/e2e/helpers/incident-impact-flow.mjs:84` | asserted |
 | INCIDENT-013 | 1 | clear restores derived | `tests/e2e/helpers/incident-impact-flow.mjs:88` | asserted |
 | INCIDENT-013 | 1 | critical choice | none | none |
-| INCIDENT-013 | 2 | public page and permalink | `tests/e2e/helpers/incident-impact-flow.mjs:66` | asserted |
-| INCIDENT-013 | 2 | history | `tests/e2e/helpers/incident-impact-flow.mjs:98` | asserted |
+| INCIDENT-013 | 2 | The incident-specific permalink contains the overridden major impact | `tests/e2e/helpers/incident-impact-flow.mjs:66` | asserted |
+| INCIDENT-013 | 2 | The public page’s major-impact marker is bound to this overridden incident | none | none |
+| INCIDENT-013 | 2 | The history page’s major-impact marker is bound to this overridden incident | none | none |
 | INCIDENT-013 | 2 | public incident API | `tests/e2e/helpers/incident-impact-flow.mjs:61` | asserted |
 | INCIDENT-013 | 2 | notifications | none | none |
 | INCIDENT-013 | 2 | operator both impacts | `tests/e2e/helpers/incident-impact-flow.mjs:52` | asserted |
-| INCIDENT-013 | 3 | operator and time on changes | `tests/e2e/helpers/incident-impact-flow.mjs:91` | asserted |
+| INCIDENT-013 | 3 | Each of the three explicitly enumerated impact changes retains its operator id | `tests/e2e/helpers/incident-impact-flow.mjs:91` | asserted |
+| INCIDENT-013 | 3 | Each explicitly enumerated impact change retains the operator name | `tests/e2e/helpers/incident-impact-flow.mjs:91` | asserted |
+| INCIDENT-013 | 3 | Each explicitly enumerated impact change retains a valid timestamp | `tests/e2e/helpers/incident-impact-flow.mjs:91` | asserted |
 | INCIDENT-013 | 4 | component state unchanged | `tests/e2e/helpers/incident-impact-flow.mjs:72` | asserted |
 | INCIDENT-013 | 4 | overall status unchanged | `tests/e2e/helpers/incident-impact-flow.mjs:81` | asserted |
-| INCIDENT-013 | 4 | historical uptime unchanged | `tests/e2e/helpers/incident-impact-flow.mjs:79` | asserted |
+| INCIDENT-013 | 4 | Populated historical uptime day values remain unchanged by the override | none | none |
 | INCIDENT-013 | 4 | current uptime figure unchanged | none | none |
 | INCIDENT-013 | 5 | imported recorded impact | none | none |
 | UPDATE-001 | 1 | component required | none | none |
@@ -459,7 +550,8 @@ Old reference: `54e0e1dcfdc225ad17e42abff04b65d7f2bfdc72`.
 | UPDATE-001 | 1 | customer impact required | none | none |
 | UPDATE-001 | 1 | unresolved next-update time required | `tests/reference-storage/incident-publishing.test.mjs:135` | asserted |
 | UPDATE-001 | 2 | resolved needs no next-update time | `tests/reference-storage/incident-publishing.test.mjs:174` | asserted |
-| UPDATE-001 | 2 | legacy resolved time omitted in public/email renderer | `tests/reference-storage/incident-publishing.test.mjs:192` | asserted |
+| UPDATE-001 | 2 | A legacy resolved promise is absent from public renderer fields | `tests/reference-storage/incident-publishing.test.mjs:192` | asserted |
+| UPDATE-001 | 2 | A legacy resolved promise is absent from email renderer text | `tests/reference-storage/incident-publishing.test.mjs:193` | asserted |
 | UPDATE-001 | 3 | what-still-works optional and bounded | none | none |
 | UPDATE-001 | 3 | details optional and bounded | none | none |
 | UPDATE-001 | 4 | HTML literal | none | none |
@@ -468,10 +560,22 @@ Old reference: `54e0e1dcfdc225ad17e42abff04b65d7f2bfdc72`.
 | UPDATE-001 | 5 | no update | `tests/e2e/publishing-contract.test.mjs:305` | asserted |
 | UPDATE-001 | 5 | no recipients | `tests/e2e/publishing-contract.test.mjs:306` | asserted |
 | UPDATE-001 | 6 | communication commitment not resolution estimate | none | none |
-| UPDATE-002 | 1 | page populated fields | `tests/e2e/publishing-contract.test.mjs:350` | asserted |
-| UPDATE-002 | 1 | Atom populated fields | `tests/e2e/publishing-contract.test.mjs:350` | asserted |
-| UPDATE-002 | 1 | widget populated fields | `tests/e2e/publishing-contract.test.mjs:350` | asserted |
-| UPDATE-002 | 1 | email populated fields | `tests/e2e/publishing-contract.test.mjs:343` | asserted |
+| UPDATE-002 | 1 | The public root page renders every populated update field | none | none |
+| UPDATE-002 | 1 | Atom renders affected-audience wording | `tests/e2e/publishing-contract.test.mjs:350` | asserted |
+| UPDATE-002 | 1 | Atom renders customer-impact wording | `tests/e2e/publishing-contract.test.mjs:351` | asserted |
+| UPDATE-002 | 1 | Atom renders what-still-works wording | `tests/e2e/publishing-contract.test.mjs:352` | asserted |
+| UPDATE-002 | 1 | Atom renders details wording | `tests/e2e/publishing-contract.test.mjs:353` | asserted |
+| UPDATE-002 | 1 | Atom renders the populated next-update commitment | none | none |
+| UPDATE-002 | 1 | widget renders affected-audience wording | `tests/e2e/publishing-contract.test.mjs:350` | asserted |
+| UPDATE-002 | 1 | widget renders customer-impact wording | `tests/e2e/publishing-contract.test.mjs:351` | asserted |
+| UPDATE-002 | 1 | widget renders what-still-works wording | `tests/e2e/publishing-contract.test.mjs:352` | asserted |
+| UPDATE-002 | 1 | widget renders details wording | `tests/e2e/publishing-contract.test.mjs:353` | asserted |
+| UPDATE-002 | 1 | widget renders the populated next-update commitment | none | none |
+| UPDATE-002 | 1 | The email preview renders the populated details wording | `tests/e2e/publishing-contract.test.mjs:343` | asserted |
+| UPDATE-002 | 1 | The email renders the populated affected-audience wording | none | none |
+| UPDATE-002 | 1 | The email renders the populated customer-impact wording | none | none |
+| UPDATE-002 | 1 | The email renders the populated what-still-works wording | none | none |
+| UPDATE-002 | 1 | The email renders the populated next-update commitment | none | none |
 | UPDATE-002 | 2 | absent fields omitted everywhere | none | none |
 | UPDATE-003 | 1 | published lifecycle | `tests/e2e/publishing-contract.test.mjs:364` | asserted |
 | UPDATE-003 | 2 | end time | `tests/e2e/publishing-contract.test.mjs:365` | asserted |
@@ -482,8 +586,14 @@ Old reference: `54e0e1dcfdc225ad17e42abff04b65d7f2bfdc72`.
 | UPDATE-005 | 1 | Atom excludes populated draft | `tests/e2e/publishing-contract.test.mjs:406` | asserted |
 | UPDATE-005 | 1 | widget excludes populated draft | `tests/e2e/publishing-contract.test.mjs:406` | asserted |
 | UPDATE-005 | 2 | two-second save | `tests/e2e/publishing-browser.test.mjs:449` | asserted |
-| UPDATE-005 | 2 | exact reload | `tests/e2e/publishing-browser.test.mjs:453` | asserted |
-| UPDATE-005 | 3 | next draft empty | `tests/e2e/publishing-browser.test.mjs:290` | asserted |
+| UPDATE-005 | 2 | Reload retains the exact details value | `tests/e2e/publishing-browser.test.mjs:453` | asserted |
+| UPDATE-005 | 2 | Reload retains the next-update instant in the configured local-time control | `tests/e2e/publishing-browser.test.mjs:454` | asserted |
+| UPDATE-005 | 2 | Reload independently asserts unchanged audience | none | none |
+| UPDATE-005 | 2 | Reload independently asserts unchanged impact | none | none |
+| UPDATE-005 | 2 | Reload independently asserts unchanged what-still-works | none | none |
+| UPDATE-005 | 2 | Reload independently asserts unchanged lifecycle | none | none |
+| UPDATE-005 | 3 | After publication the next draft’s affected-audience input is empty | `tests/e2e/publishing-browser.test.mjs:290` | asserted |
+| UPDATE-005 | 3 | After publication the next draft’s other wording fields are independently asserted empty | none | none |
 | UPDATE-005 | 3 | lifecycle prompts | none | none |
 | UPDATE-005 | 4 | stale tab cannot revive publication | none | none |
 | UPDATE-005 | 4 | stale tab cannot overwrite newer draft | none | none |
@@ -495,7 +605,7 @@ Old reference: `54e0e1dcfdc225ad17e42abff04b65d7f2bfdc72`.
 | UPDATE-005 | 6 | Publish requires acknowledged complete draft | none | none |
 | UPDATE-005 | 7 | attempted write identified | none | none |
 | UPDATE-005 | 7 | later workflow changes retained | none | none |
-| UPDATE-006 | 1 | eventual publication | `tests/e2e/publishing-contract.test.mjs:163` | asserted |
+| UPDATE-006 | 1 | After its scheduled trigger the specific incident permalink contains the scheduled draft’s unique wording | `tests/e2e/publishing-contract.test.mjs:427` | asserted |
 | UPDATE-006 | 1 | 240-second bound | none | none |
 | UPDATE-006 | 2 | public privacy before time | `tests/e2e/publishing-contract.test.mjs:424` | asserted |
 | UPDATE-006 | 2 | no early notification | none | none |
@@ -532,39 +642,66 @@ Old reference: `54e0e1dcfdc225ad17e42abff04b65d7f2bfdc72`.
 | UPDATE-011 | 3 | findings do not block | none | none |
 | UPDATE-013 | 1 | own URL visible | `tests/e2e/helpers/update-link-evidence.mjs:17` | asserted |
 | UPDATE-013 | 2 | period outside | `tests/e2e/helpers/update-link-evidence.mjs:11` | asserted |
-| UPDATE-013 | 2 | comma and parenthesis outside | `tests/e2e/helpers/update-link-evidence.mjs:12` | asserted |
+| UPDATE-013 | 2 | Trailing comma stays outside the direct link | `tests/e2e/helpers/update-link-evidence.mjs:12` | asserted |
+| UPDATE-013 | 2 | Trailing closing parenthesis stays outside the direct link | `tests/e2e/helpers/update-link-evidence.mjs:12` | asserted |
 | UPDATE-013 | 3 | markup escaped | `tests/e2e/helpers/update-link-evidence.mjs:14` | asserted |
-| UPDATE-013 | 3 | other schemes literal | `tests/e2e/helpers/update-link-evidence.mjs:15` | asserted |
+| UPDATE-013 | 3 | JavaScript-scheme input remains literal text | `tests/e2e/helpers/update-link-evidence.mjs:15` | asserted |
+| UPDATE-013 | 3 | HTTP-scheme input remains literal text | `tests/e2e/helpers/update-link-evidence.mjs:15` | asserted |
+| UPDATE-013 | 3 | Data-scheme input remains literal text | `tests/e2e/helpers/update-link-evidence.mjs:15` | asserted |
 | UPDATE-013 | 3 | no non-HTTPS link | `tests/e2e/helpers/update-link-evidence.mjs:16` | asserted |
-| UPDATE-013 | 4 | page direct links | `tests/e2e/helpers/update-link-evidence.mjs:11` | asserted |
+| UPDATE-013 | 4 | The public root page links the fixture’s exact HTTPS URL with its URL as text | `tests/e2e/publishing-contract.test.mjs:379` | asserted |
 | UPDATE-013 | 4 | history direct links | `tests/e2e/helpers/update-link-evidence.mjs:11` | asserted |
 | UPDATE-013 | 4 | permalink direct links | `tests/e2e/helpers/update-link-evidence.mjs:11` | asserted |
-| UPDATE-013 | 4 | Atom direct links | `tests/e2e/helpers/update-link-evidence.mjs:30` | asserted |
-| UPDATE-013 | 4 | RSS direct links | `tests/e2e/helpers/update-link-evidence.mjs:30` | asserted |
-| UPDATE-013 | 4 | source alias direct links | `tests/e2e/helpers/update-link-evidence.mjs:30` | asserted |
-| UPDATE-013 | 4 | component feed direct links | `tests/e2e/helpers/update-link-evidence.mjs:30` | asserted |
-| UPDATE-013 | 5 | link relation protections | `tests/resolve-composer/linked-update-flow.mjs:74` | asserted |
+| UPDATE-013 | 4 | Atom direct links have the exact expected destination and URL text | `tests/e2e/helpers/update-link-evidence.mjs:11` | asserted |
+| UPDATE-013 | 4 | RSS direct links have the exact expected destination and URL text | `tests/e2e/helpers/update-link-evidence.mjs:11` | asserted |
+| UPDATE-013 | 4 | source alias direct links have the exact expected destination and URL text | `tests/e2e/helpers/update-link-evidence.mjs:11` | asserted |
+| UPDATE-013 | 4 | component feed direct links have the exact expected destination and URL text | `tests/e2e/helpers/update-link-evidence.mjs:11` | asserted |
+| UPDATE-013 | 5 | The populated fixture links carry nofollow | `tests/resolve-composer/linked-update-flow.mjs:74` | asserted |
+| UPDATE-013 | 5 | The populated fixture links carry noopener | `tests/resolve-composer/linked-update-flow.mjs:74` | asserted |
+| UPDATE-013 | 5 | The populated fixture links carry ugc | `tests/resolve-composer/linked-update-flow.mjs:74` | asserted |
 | UPDATE-013 | 5 | unchanged content policy | `tests/e2e/helpers/update-link-evidence.mjs:36` | asserted |
 | UPDATE-013 | 6 | internal-hostname finding | `tests/resolve-composer/linked-update-flow.mjs:34` | asserted |
 | UPDATE-013 | 6 | IP-address finding | `tests/resolve-composer/linked-update-flow.mjs:35` | asserted |
-| UPDATE-016 | 1 | plain text fields and URLs | `tests/e2e/helpers/review-update-flow.mjs:83` | asserted |
-| UPDATE-016 | 1 | direct HTML destinations | `tests/e2e/helpers/review-update-flow.mjs:86` | asserted |
-| UPDATE-016 | 1 | URL text and punctuation | `tests/e2e/helpers/update-link-evidence.mjs:11` | asserted |
-| UPDATE-016 | 2 | tracking disabled | `tests/e2e/helpers/review-update-flow.mjs:79` | asserted |
-| UPDATE-016 | 2 | no redirect | `tests/e2e/helpers/review-update-flow.mjs:86` | asserted |
+| UPDATE-016 | 1 | Email text retains affected-audience wording | `tests/e2e/helpers/review-update-flow.mjs:83` | asserted |
+| UPDATE-016 | 1 | Email text retains customer-impact wording with its bare URL | `tests/e2e/helpers/review-update-flow.mjs:83` | asserted |
+| UPDATE-016 | 1 | Email text retains what-still-works wording with its bare URLs | `tests/e2e/helpers/review-update-flow.mjs:83` | asserted |
+| UPDATE-016 | 1 | Email text retains details wording with its bare URLs | `tests/e2e/helpers/review-update-flow.mjs:83` | asserted |
+| UPDATE-016 | 1 | Email HTML contains the exact named HTTPS destination without redirect | `tests/e2e/helpers/update-link-evidence.mjs:11` | asserted |
+| UPDATE-016 | 1 | Email HTML uses the URL itself as visible link text | `tests/e2e/helpers/update-link-evidence.mjs:11` | asserted |
+| UPDATE-016 | 1 | Email HTML leaves the period outside the link | `tests/e2e/helpers/update-link-evidence.mjs:11` | asserted |
+| UPDATE-016 | 1 | Email HTML leaves comma and closing parenthesis outside links | `tests/e2e/helpers/update-link-evidence.mjs:12` | asserted |
+| UPDATE-016 | 2 | Provider click tracking is disabled | `tests/e2e/helpers/review-update-flow.mjs:79` | asserted |
+| UPDATE-016 | 2 | Provider text click tracking is disabled | `tests/e2e/helpers/review-update-flow.mjs:79` | asserted |
+| UPDATE-016 | 2 | Provider open tracking is disabled | `tests/e2e/helpers/review-update-flow.mjs:79` | asserted |
+| UPDATE-016 | 2 | Provider analytics tracking is disabled | `tests/e2e/helpers/review-update-flow.mjs:79` | asserted |
+| UPDATE-016 | 2 | The fixture email link points to its exact original destination | `tests/e2e/helpers/update-link-evidence.mjs:11` | asserted |
 | UPDATE-016 | 3 | Slack URL itself | `tests/e2e/helpers/update-link-evidence.mjs:41` | asserted |
-| UPDATE-016 | 3 | punctuation outside | `tests/e2e/helpers/update-link-evidence.mjs:42` | asserted |
+| UPDATE-016 | 3 | Slack places a comma outside its link | `tests/e2e/helpers/update-link-evidence.mjs:42` | asserted |
+| UPDATE-016 | 3 | Slack places a closing parenthesis outside its link | `tests/e2e/helpers/update-link-evidence.mjs:42` | asserted |
+| UPDATE-016 | 3 | Slack places a period outside its link | `tests/e2e/helpers/update-link-evidence.mjs:41` | asserted |
 | UPDATE-016 | 3 | no labelled links | `tests/e2e/helpers/update-link-evidence.mjs:45` | asserted |
-| UPDATE-016 | 4 | Teams direct URL and text | `tests/e2e/channels-and-presets.test.mjs:145` | asserted |
-| UPDATE-016 | 4 | Teams punctuation outside | `tests/e2e/channels-and-presets.test.mjs:143` | asserted |
-| UPDATE-016 | 5 | Slack literals | `tests/e2e/helpers/update-link-evidence.mjs:44` | asserted |
-| UPDATE-016 | 5 | Teams literals | `tests/e2e/channels-and-presets.test.mjs:150` | asserted |
+| UPDATE-016 | 4 | Teams link labels equal their destination URL | `tests/e2e/channels-and-presets.test.mjs:145` | asserted |
+| UPDATE-016 | 4 | The fixture’s exact direct destination is present in a Teams link | `tests/e2e/channels-and-presets.test.mjs:142` | asserted |
+| UPDATE-016 | 4 | Teams leaves the comma outside its link | `tests/e2e/channels-and-presets.test.mjs:143` | asserted |
+| UPDATE-016 | 4 | Teams leaves the closing parenthesis outside its link | `tests/e2e/channels-and-presets.test.mjs:143` | asserted |
+| UPDATE-016 | 4 | Teams leaves the period outside its link | `tests/e2e/channels-and-presets.test.mjs:142` | asserted |
+| UPDATE-016 | 5 | Slack retains literal JavaScript-scheme text | `tests/e2e/helpers/update-link-evidence.mjs:44` | asserted |
+| UPDATE-016 | 5 | Slack retains literal HTTP-scheme text | `tests/e2e/helpers/update-link-evidence.mjs:44` | asserted |
+| UPDATE-016 | 5 | Slack retains literal data-scheme text | `tests/e2e/helpers/update-link-evidence.mjs:44` | asserted |
+| UPDATE-016 | 5 | Teams retains literal JavaScript-scheme text | `tests/e2e/channels-and-presets.test.mjs:150` | asserted |
+| UPDATE-016 | 5 | Teams retains literal data-scheme text | `tests/e2e/channels-and-presets.test.mjs:150` | asserted |
+| UPDATE-016 | 5 | Teams independently asserts literal HTTP-scheme text | none | none |
 | UPDATE-017 | 1 | Lamp fields byte-for-byte | none | none |
 | UPDATE-017 | 2 | Slack fields reassemble | `tests/e2e/helpers/review-update-flow.mjs:98` | asserted |
 | UPDATE-017 | 2 | Slack link text equals URL | `tests/e2e/helpers/review-update-flow.mjs:99` | asserted |
 | UPDATE-017 | 2 | only HTTPS links | `tests/e2e/helpers/review-update-flow.mjs:100` | asserted |
-| UPDATE-017 | 2 | Slack punctuation and literals | `tests/e2e/helpers/update-link-evidence.mjs:45` | asserted |
-| UPDATE-017 | 3 | exact-body signature | `tests/e2e/helpers/review-update-flow.mjs:89` | asserted |
+| UPDATE-017 | 2 | Slack-webhook text retains period punctuation outside its URL | `tests/e2e/helpers/update-link-evidence.mjs:41` | asserted |
+| UPDATE-017 | 2 | Slack-webhook text retains comma punctuation outside its URL | `tests/e2e/helpers/update-link-evidence.mjs:42` | asserted |
+| UPDATE-017 | 2 | Slack-webhook text retains closing-parenthesis punctuation outside its URL | `tests/e2e/helpers/update-link-evidence.mjs:42` | asserted |
+| UPDATE-017 | 2 | Slack-webhook text escapes literal HTML markup | `tests/e2e/helpers/update-link-evidence.mjs:43` | asserted |
+| UPDATE-017 | 2 | Slack-webhook text retains JavaScript, HTTP and data input as literal text | `tests/e2e/helpers/update-link-evidence.mjs:44` | asserted |
+| UPDATE-017 | 3 | The Lamp-format subscriber signature verifies over the exact delivered body | `tests/e2e/helpers/review-update-flow.mjs:89` | asserted |
+| UPDATE-017 | 3 | The Slack-format subscriber signature verifies over the exact delivered body | `tests/e2e/helpers/review-update-flow.mjs:89` | asserted |
 | MAINT-001 | 1 | window and attachments retained | none | none |
 | MAINT-001 | 1 | separate incident/maintenance display | none | none |
 | MAINT-001 | 2 | independent SCH sequence | `tests/reference-storage/references.test.mjs:27` | asserted |
@@ -589,8 +726,10 @@ Old reference: `54e0e1dcfdc225ad17e42abff04b65d7f2bfdc72`.
 | MAINT-004 | 3 | start preserved | `tests/e2e/publishing-contract.test.mjs:1054` | asserted |
 | MAINT-004 | 3 | end changed | `tests/e2e/publishing-contract.test.mjs:1055` | asserted |
 | MAINT-004 | 3 | overrun cleared | `tests/e2e/publishing-contract.test.mjs:1056` | asserted |
-| MAINT-005 | 1 | scheduled notice | `tests/e2e/publishing-contract.test.mjs:1084` | asserted |
-| MAINT-005 | 1 | 24-hour reminder notice | `tests/e2e/publishing-contract.test.mjs:1087` | asserted |
+| MAINT-005 | 1 | A scheduled maintenance notice record exists | `tests/e2e/publishing-contract.test.mjs:1084` | asserted |
+| MAINT-005 | 1 | The scheduling notice reaches subscribers | none | none |
+| MAINT-005 | 1 | A twenty-four-hour reminder notice record exists | `tests/e2e/publishing-contract.test.mjs:1087` | asserted |
+| MAINT-005 | 1 | The twenty-four-hour reminder reaches subscribers | none | none |
 | MAINT-005 | 1 | start subscriber notification | none | none |
 | MAINT-005 | 1 | completion subscriber notification | none | none |
 | MAINT-006 | 1 | reschedule notice | `tests/e2e/publishing-contract.test.mjs:1099` | asserted |
@@ -600,7 +739,10 @@ Old reference: `54e0e1dcfdc225ad17e42abff04b65d7f2bfdc72`.
 | MAINT-006 | 3 | upcoming removal within ten seconds | none | none |
 | MAINT-006 | 3 | cancelled record retained | `tests/e2e/publishing-contract.test.mjs:1098` | asserted |
 | MAINT-006 | 3 | public history labelled cancelled | none | none |
-| MAINT-007 | 1 | valid calendar envelope | `tests/e2e/helpers/maintenance-calendar-flow.mjs:48` | asserted |
+| MAINT-007 | 1 | The calendar parses as a vcalendar component | `tests/e2e/helpers/maintenance-calendar-flow.mjs:48` | asserted |
+| MAINT-007 | 1 | The envelope begins with VCALENDAR | `tests/e2e/helpers/maintenance-calendar-flow.mjs:10` | asserted |
+| MAINT-007 | 1 | The envelope ends with VCALENDAR | `tests/e2e/helpers/maintenance-calendar-flow.mjs:11` | asserted |
+| MAINT-007 | 1 | Calendar component nesting is balanced | `tests/e2e/helpers/maintenance-calendar-flow.mjs:21` | asserted |
 | MAINT-007 | 1 | scheduled event | `tests/e2e/helpers/maintenance-calendar-flow.mjs:101` | asserted |
 | MAINT-007 | 1 | In progress UID stable | `tests/e2e/helpers/maintenance-calendar-flow.mjs:110` | asserted |
 | MAINT-007 | 2 | reschedule keeps UID | `tests/e2e/helpers/maintenance-calendar-flow.mjs:106` | asserted |
@@ -608,8 +750,13 @@ Old reference: `54e0e1dcfdc225ad17e42abff04b65d7f2bfdc72`.
 | MAINT-007 | 3 | cancelled event status | `tests/e2e/helpers/maintenance-calendar-flow.mjs:116` | asserted |
 | MAINT-007 | 4 | valid empty feed | `tests/e2e/helpers/maintenance-calendar-flow.mjs:64` | asserted |
 | MAINT-007 | 4 | event UID required | `tests/e2e/helpers/maintenance-calendar-flow.mjs:30` | asserted |
-| MAINT-007 | 4 | timezone observance properties | `tests/e2e/helpers/maintenance-calendar-flow.mjs:38` | asserted |
-| MAINT-007 | 5 | internal-only window excluded | `tests/e2e/helpers/maintenance-calendar-flow.mjs:125` | asserted |
+| MAINT-007 | 4 | Timezone observances retain DTSTART | `tests/e2e/helpers/maintenance-calendar-flow.mjs:38` | asserted |
+| MAINT-007 | 4 | Timezone retains its identifier | `tests/e2e/helpers/maintenance-calendar-flow.mjs:34` | asserted |
+| MAINT-007 | 4 | Timezone retains a STANDARD or DAYLIGHT observance | `tests/e2e/helpers/maintenance-calendar-flow.mjs:36` | asserted |
+| MAINT-007 | 4 | Timezone observance retains its source offset | `tests/e2e/helpers/maintenance-calendar-flow.mjs:41` | asserted |
+| MAINT-007 | 4 | Timezone observance retains its destination offset | `tests/e2e/helpers/maintenance-calendar-flow.mjs:41` | asserted |
+| MAINT-007 | 5 | After a known later public-generation barrier, the calendar omits the internal-only window id | `tests/e2e/helpers/maintenance-calendar-flow.mjs:125` | asserted |
+| MAINT-007 | 5 | After that same barrier, the calendar omits the internal-only window title | `tests/e2e/helpers/maintenance-calendar-flow.mjs:125` | asserted |
 | MAINT-007 | 5 | internal component name excluded | `tests/e2e/helpers/maintenance-calendar-flow.mjs:127` | asserted |
 | MAINT-007 | 5 | internal component id excluded | `tests/e2e/helpers/maintenance-calendar-flow.mjs:128` | asserted |
 | UPDATE-001 | 2 | legacy resolved time omitted by every public and notification surface | none | none |
@@ -618,8 +765,10 @@ Old reference: `54e0e1dcfdc225ad17e42abff04b65d7f2bfdc72`.
 | UPDATE-004 | 2 | composer displays the email preview | none | none |
 | UPDATE-013 | 3 | Markdown remains literal on every public surface | none | none |
 | UPDATE-013 | 3 | labelled-link syntax remains literal on every public surface | none | none |
-| UPDATE-016 | 5 | Slack markup escaped | `tests/e2e/helpers/update-link-evidence.mjs:43` | asserted |
-| UPDATE-016 | 5 | Teams markup literal | `tests/e2e/channels-and-presets.test.mjs:149` | asserted |
+| UPDATE-016 | 5 | Slack escapes author HTML markup as literal text | `tests/e2e/helpers/update-link-evidence.mjs:43` | asserted |
+| UPDATE-016 | 5 | Slack retains author Markdown as literal text | `tests/e2e/channels-and-presets.test.mjs:136` | asserted |
+| UPDATE-016 | 5 | Teams retains literal Markdown | `tests/e2e/channels-and-presets.test.mjs:149` | asserted |
+| UPDATE-016 | 5 | Teams independently asserts retained escaped HTML markup | none | none |
 | MAINT-007 | 4 | calendar CRLF exclusive | `tests/e2e/helpers/maintenance-calendar-flow.mjs:7` | asserted |
 | MAINT-007 | 4 | folding bound | `tests/e2e/helpers/maintenance-calendar-flow.mjs:8` | asserted |
 | MAINT-007 | 4 | calendar version | `tests/e2e/helpers/maintenance-calendar-flow.mjs:12` | asserted |
@@ -627,9 +776,12 @@ Old reference: `54e0e1dcfdc225ad17e42abff04b65d7f2bfdc72`.
 | MAINT-007 | 4 | balanced calendar components | `tests/e2e/helpers/maintenance-calendar-flow.mjs:21` | asserted |
 | MAINT-007 | 4 | timezone identifier | `tests/e2e/helpers/maintenance-calendar-flow.mjs:34` | asserted |
 | MAINT-007 | 4 | timezone observance present | `tests/e2e/helpers/maintenance-calendar-flow.mjs:36` | asserted |
-| MAINT-007 | 4 | timezone offset properties | `tests/e2e/helpers/maintenance-calendar-flow.mjs:41` | asserted |
+| MAINT-007 | 4 | Every populated timezone observance has TZOFFSETFROM | `tests/e2e/helpers/maintenance-calendar-flow.mjs:41` | asserted |
+| MAINT-007 | 4 | Every populated timezone observance has TZOFFSETTO | `tests/e2e/helpers/maintenance-calendar-flow.mjs:41` | asserted |
 | SUB-001 | 1 | pending subscription | `tests/e2e/delivery-contract.test.mjs:140` | asserted |
-| SUB-001 | 1 | one confirmation | `tests/e2e/delivery-contract.test.mjs:548` | asserted |
+| SUB-001 | 1 | one captured confirmation envelope | `tests/e2e/delivery-contract.test.mjs:119` | asserted |
+| SUB-001 | 1 | captured envelope contains its confirmation link | `tests/e2e/delivery-contract.test.mjs:120` | asserted |
+| SUB-001 | 1 | confirmation recipient equals the submitted address | none | none |
 | SUB-001 | 1 | confirmation within 60 seconds | none | none |
 | SUB-001 | 2 | concurrent confirmation reservation | `tests/e2e/delivery-contract.test.mjs:141` | asserted |
 | SUB-001 | 2 | 24-hour expiry of confirmation allowance | none | none |
@@ -640,7 +792,8 @@ Old reference: `54e0e1dcfdc225ad17e42abff04b65d7f2bfdc72`.
 | SUB-001 | 5 | no form token or ambient session requirement | none | none |
 | SUB-002 | 1 | pending before confirmation | `tests/e2e/delivery-contract.test.mjs:190` | asserted |
 | SUB-002 | 2 | active after confirmation | `tests/e2e/delivery-contract.test.mjs:193` | asserted |
-| SUB-003 | 1 | old pending record deleted | `tests/e2e/delivery-contract.test.mjs:205` | asserted |
+| SUB-003 | 1 | a very old pending subscriber row is absent after expiry runs | `tests/e2e/delivery-contract.test.mjs:205` | asserted |
+| SUB-003 | 1 | expiry takes effect at the specified 72-hour boundary | none | none |
 | SUB-004 | 1 | initial selected components | `tests/e2e/delivery-contract.test.mjs:454` | asserted |
 | SUB-004 | 1 | management selected or all | `tests/e2e/delivery-contract.test.mjs:460` | asserted |
 | SUB-004 | 2 | incident recipient selection | `tests/e2e/delivery-contract.test.mjs:240` | asserted |
@@ -648,16 +801,19 @@ Old reference: `54e0e1dcfdc225ad17e42abff04b65d7f2bfdc72`.
 | SUB-004 | 3 | all-components subscriber follows new components | none | none |
 | SUB-004 | 3 | narrowed selection unchanged by component creation | none | none |
 | SUB-004 | 4 | newly eligible catch-up recipient | `tests/e2e/delivery-contract.test.mjs:321` | asserted |
-| SUB-004 | 4 | catch-up latest content and once | `tests/e2e/delivery-contract.test.mjs:327` | asserted |
+| SUB-004 | 4 | one catch-up email | `tests/e2e/delivery-contract.test.mjs:327` | asserted |
+| SUB-004 | 4 | catch-up contains the latest published impact | `tests/e2e/delivery-contract.test.mjs:327` | asserted |
+| SUB-004 | 4 | catch-up excludes the earlier published impact | `tests/e2e/delivery-contract.test.mjs:327` | asserted |
 | SUB-004 | 4 | previous recipient excluded | `tests/e2e/delivery-contract.test.mjs:323` | asserted |
 | SUB-004 | 4 | subsequent updates continue | `tests/e2e/delivery-contract.test.mjs:335` | asserted |
 | SUB-005 | 1 | one-subscription scope and no unrelated capability | none | none |
 | SUB-005 | 1 | at least 128 bits of entropy | none | none |
-| SUB-005 | 2 | unsubscribe revokes management authority | `tests/e2e/delivery-contract.test.mjs:131` | asserted |
+| SUB-005 | 2 | a previously usable management token is refused after unsubscribe | none | none |
 | SUB-005 | 2 | deletion revokes every token | none | none |
 | SUB-005 | 3 | referrer suppression | `tests/e2e/delivery-contract.test.mjs:402` | asserted |
 | SUB-005 | 3 | indexing suppression | `tests/e2e/delivery-contract.test.mjs:419` | asserted |
-| SUB-006 | 1 | unsubscribe header forms | `tests/e2e/delivery-contract.test.mjs:603` | asserted |
+| SUB-006 | 1 | mail unsubscribe value is present | `tests/e2e/delivery-contract.test.mjs:603` | asserted |
+| SUB-006 | 1 | web unsubscribe value is present | `tests/e2e/delivery-contract.test.mjs:603` | asserted |
 | SUB-006 | 1 | one-click declaration | `tests/e2e/delivery-contract.test.mjs:602` | asserted |
 | SUB-006 | 1 | visible unsubscribe link in notification body | none | none |
 | SUB-006 | 2 | URL-encoded deactivation | `tests/e2e/delivery-contract.test.mjs:403` | asserted |
@@ -682,25 +838,32 @@ Old reference: `54e0e1dcfdc225ad17e42abff04b65d7f2bfdc72`.
 | SUB-009 | 3 | complete update array | none | none |
 | SUB-009 | 3 | complete previous/new component states | none | none |
 | SUB-009 | 3 | subscriber address absent | `tests/e2e/delivery-contract.test.mjs:683` | asserted |
-| SUB-009 | 4 | successful receiver transport sent | `tests/e2e/delivery-contract.test.mjs:677` | asserted |
+| SUB-009 | 4 | one webhook transport request is sent | `tests/e2e/delivery-contract.test.mjs:677` | asserted |
+| SUB-009 | 4 | a successful receiver response records delivered | `tests/e2e/delivery-contract.test.mjs:981` | asserted |
 | SUB-009 | 4 | 30-second receiver deadline | none | none |
 | SUB-009 | 4 | redirect fails | `tests/e2e/delivery-contract.test.mjs:686` | asserted |
 | SUB-009 | 5 | rich-text fields reassemble | `tests/e2e/helpers/review-update-flow.mjs:98` | asserted |
-| SUB-009 | 5 | rich-text labels equal URL | `tests/e2e/helpers/review-update-flow.mjs:99` | asserted |
+| SUB-009 | 5 | rich-text URL labels equal their URLs on a nonempty set of link elements | none | none |
 | SUB-009 | 5 | Slack bracket and punctuation asserted in tests/e2e/helpers/update-link-evidence.mjs outside the old Evidence set | none | none |
 | SUB-009 | 6 | all Lamp fields are asserted in tests/e2e/helpers/update-component-flow.mjs outside the old Evidence set | none | none |
-| SUB-010 | 1 | hard bounce state and reason | `tests/e2e/delivery-contract.test.mjs:703` | asserted |
-| SUB-010 | 2 | complaint state and reason | `tests/e2e/delivery-contract.test.mjs:794` | asserted |
-| SUB-010 | 3 | fifth soft bounce deactivates | `tests/e2e/delivery-contract.test.mjs:783` | asserted |
-| SUB-010 | 4 | tenth webhook failure state and reason | `tests/e2e/delivery-contract.test.mjs:721` | asserted |
+| SUB-010 | 1 | hard bounce deactivates the subscriber | `tests/e2e/delivery-contract.test.mjs:703` | asserted |
+| SUB-010 | 1 | hard-bounce reason is recorded | `tests/e2e/delivery-contract.test.mjs:703` | asserted |
+| SUB-010 | 2 | spam complaint deactivates the subscriber | `tests/e2e/delivery-contract.test.mjs:794` | asserted |
+| SUB-010 | 2 | spam-complaint reason is recorded | `tests/e2e/delivery-contract.test.mjs:794` | asserted |
+| SUB-010 | 3 | five soft bounces deactivate the subscriber | `tests/e2e/delivery-contract.test.mjs:783` | asserted |
+| SUB-010 | 3 | five-soft-bounce reason is recorded | `tests/e2e/delivery-contract.test.mjs:783` | asserted |
+| SUB-010 | 4 | ten failed webhook deliveries deactivate the subscriber | `tests/e2e/delivery-contract.test.mjs:721` | asserted |
+| SUB-010 | 4 | ten-failure reason is recorded | `tests/e2e/delivery-contract.test.mjs:721` | asserted |
 | SUB-010 | 4 | contact notification | `tests/e2e/delivery-contract.test.mjs:723` | asserted |
-| SUB-010 | 5 | post-complaint repeat sends nothing | `tests/e2e/delivery-contract.test.mjs:796` | asserted |
+| SUB-010 | 5 | repeating the already-dispatched complained delivery sends no second message | `tests/e2e/delivery-contract.test.mjs:796` | asserted |
+| SUB-010 | 5 | a fresh notification after the complaint is suppressed | none | none |
 | SUB-010 | 5 | post-deactivation pending webhook backlog sends nothing | none | none |
-| SUB-011 | 1 | second subscriber page | `tests/e2e/delivery-contract.test.mjs:1044` | asserted |
+| SUB-011 | 1 | the expected 101st fixture subscriber appears on the second page | `tests/e2e/delivery-contract.test.mjs:1044` | asserted |
+| SUB-011 | 1 | the complete subscriber identity set reconciles across all pages | none | none |
 | SUB-011 | 2 | channel | `tests/e2e/delivery-contract.test.mjs:758` | asserted |
 | SUB-011 | 2 | deactivated state | `tests/e2e/delivery-contract.test.mjs:759` | asserted |
 | SUB-011 | 2 | pending and active states visible in operator view | none | none |
-| SUB-011 | 2 | component selection | `tests/e2e/delivery-contract.test.mjs:761` | asserted |
+| SUB-011 | 2 | the operator list preserves the exact selected component identifiers | `tests/e2e/delivery-contract.test.mjs:460` | asserted |
 | SUB-011 | 2 | deactivation reason | `tests/e2e/delivery-contract.test.mjs:760` | asserted |
 | SUB-011 | 2 | deactivation time | `tests/e2e/delivery-contract.test.mjs:762` | asserted |
 | SUB-011 | 3 | webhook endpoint anonymized | `tests/e2e/delivery-contract.test.mjs:764` | asserted |
@@ -708,7 +871,8 @@ Old reference: `54e0e1dcfdc225ad17e42abff04b65d7f2bfdc72`.
 | SUB-012 | 1 | same status | `tests/e2e/delivery-contract.test.mjs:489` | asserted |
 | SUB-012 | 1 | same body | `tests/e2e/delivery-contract.test.mjs:490` | asserted |
 | SUB-012 | 1 | duplicate subscription absence | none | none |
-| SUB-012 | 2 | management link present | `tests/e2e/delivery-contract.test.mjs:491` | asserted |
+| SUB-012 | 2 | the existing-address email contains its management link | `tests/e2e/delivery-contract.test.mjs:491` | asserted |
+| SUB-012 | 2 | repeated submissions send no second management email per address | `tests/e2e/delivery-contract.test.mjs:503` | asserted |
 | SUB-012 | 2 | no confirmation link | `tests/e2e/delivery-contract.test.mjs:492` | asserted |
 | SUB-012 | 2 | only management content in email | none | none |
 | SUB-014 | 1 | named public control | none | none |
@@ -726,7 +890,7 @@ Old reference: `54e0e1dcfdc225ad17e42abff04b65d7f2bfdc72`.
 | SUB-014 | 5 | recorded OAuth exchange fields | `tests/e2e/helpers/self-serve-chat-flow.mjs:17` | asserted |
 | SUB-014 | 5 | recorded uninstall state | `tests/e2e/slack-subscriptions-helper.mjs:79` | asserted |
 | SUB-015 | 1 | non-Microsoft refusal | `tests/e2e/teams-subscriptions-helper.mjs:30` | asserted |
-| SUB-015 | 1 | refused destination sends no card | `tests/e2e/teams-subscriptions-helper.mjs:31` | asserted |
+| SUB-015 | 1 | the refused non-Microsoft destination receives no outbound card | none | none |
 | SUB-015 | 2 | one verification card | `tests/e2e/teams-subscriptions-helper.mjs:53` | asserted |
 | SUB-015 | 2 | card receipt pending | `tests/e2e/teams-subscriptions-helper.mjs:57` | asserted |
 | SUB-015 | 2 | link open pending | `tests/e2e/teams-subscriptions-helper.mjs:60` | asserted |
@@ -740,7 +904,9 @@ Old reference: `54e0e1dcfdc225ad17e42abff04b65d7f2bfdc72`.
 | SUB-015 | 5 | component selection asserted in tests/e2e/helpers/chat-preferences-flow.mjs outside the old Evidence set | none | none |
 | SUB-015 | 5 | ten failures deactivate Teams | `tests/e2e/helpers/self-serve-chat-flow.mjs:77` | asserted |
 | SUB-015 | 5 | deactivated Teams receives nothing | `tests/e2e/helpers/self-serve-chat-flow.mjs:81` | asserted |
-| SUB-017 | 1 | dry-run counts and reasons | `tests/e2e/helpers/subscriber-csv-flow.mjs:34` | asserted |
+| SUB-017 | 1 | dry run reports 97 created | `tests/e2e/helpers/subscriber-csv-flow.mjs:34` | asserted |
+| SUB-017 | 1 | dry run reports zero skipped | `tests/e2e/helpers/subscriber-csv-flow.mjs:34` | asserted |
+| SUB-017 | 1 | dry run reports three refused | `tests/e2e/helpers/subscriber-csv-flow.mjs:34` | asserted |
 | SUB-017 | 1 | dry-run rows and reasons | `tests/e2e/helpers/subscriber-csv-flow.mjs:38` | asserted |
 | SUB-017 | 1 | dry-run no mail | `tests/e2e/helpers/subscriber-csv-flow.mjs:41` | asserted |
 | SUB-017 | 1 | dry-run database comparison asserted in tests/e2e/helpers/subscriber-management-fixture.mjs outside the old Evidence set | none | none |
@@ -753,16 +919,29 @@ Old reference: `54e0e1dcfdc225ad17e42abff04b65d7f2bfdc72`.
 | SUB-017 | 3 | export field set | `tests/e2e/helpers/subscriber-csv-flow.mjs:93` | asserted |
 | SUB-017 | 4 | email pending | `tests/e2e/helpers/subscriber-add-flow.mjs:47` | asserted |
 | SUB-017 | 4 | one confirmation | `tests/e2e/helpers/subscriber-add-flow.mjs:48` | asserted |
-| SUB-017 | 4 | webhook form/API creation | none | none |
-| SUB-017 | 5 | both selected notify and third absent | `tests/e2e/helpers/subscriber-add-flow.mjs:77` | asserted |
+| SUB-017 | 4 | webhook API reports a created subscriber | `tests/e2e/helpers/subscriber-add-flow.mjs:103` | asserted |
+| SUB-017 | 4 | webhook API subscriber is pending | `tests/e2e/helpers/subscriber-add-flow.mjs:105` | asserted |
+| SUB-017 | 4 | webhook contact receives exactly one confirmation | `tests/e2e/helpers/subscriber-add-flow.mjs:106` | asserted |
+| SUB-017 | 4 | webhook subscriber is active after its contact confirms | `tests/e2e/helpers/subscriber-add-flow.mjs:116` | asserted |
+| SUB-017 | 4 | email API stores the exact two selected components | `tests/e2e/helpers/subscriber-add-flow.mjs:53` | asserted |
+| SUB-017 | 4 | the one-row email form creates the named address with two components in export | `tests/e2e/helpers/subscriber-intake-browser-flow.mjs:106` | asserted |
+| SUB-017 | 4 | the one-row form persists the webhook destination and contact | none | none |
+| SUB-017 | 4 | webhook API component selection is read back | none | none |
+| SUB-017 | 4 | the form persists the exact selected component identifiers | none | none |
+| SUB-017 | 5 | two non-confirmation messages are captured after the three publications | `tests/e2e/helpers/subscriber-add-flow.mjs:77` | asserted |
 | SUB-017 | 5 | first selected incident | `tests/e2e/helpers/subscriber-add-flow.mjs:78` | asserted |
 | SUB-017 | 5 | second selected incident | `tests/e2e/helpers/subscriber-add-flow.mjs:79` | asserted |
 | SUB-017 | 5 | third incident absent | `tests/e2e/helpers/subscriber-add-flow.mjs:80` | asserted |
 | SUB-017 | 6 | subscriber adding operator | `tests/e2e/helpers/subscriber-add-flow.mjs:54` | asserted |
 | SUB-017 | 6 | audit adding operator | `tests/e2e/helpers/subscriber-add-flow.mjs:89` | asserted |
 | SUB-020 | 1 | total capacity | `tests/e2e/helpers/subscriber-limits-flow.mjs:55` | asserted |
-| SUB-020 | 1 | webhook capacity refusal | `tests/e2e/helpers/subscriber-limits-flow.mjs:115` | asserted |
-| SUB-020 | 1 | combined chat capacity | `tests/e2e/helpers/subscriber-limits-flow.mjs:135` | asserted |
+| SUB-020 | 1 | the full seeded webhook channel refuses another destination | `tests/e2e/helpers/subscriber-limits-flow.mjs:115` | asserted |
+| SUB-020 | 1 | freeing one webhook slot admits a pending subscriber | `tests/e2e/helpers/subscriber-limits-flow.mjs:121` | asserted |
+| SUB-020 | 1 | that pending subscriber exhausts the recovered webhook slot | `tests/e2e/helpers/subscriber-limits-flow.mjs:123` | asserted |
+| SUB-020 | 1 | reported combined-chat count equals the reported limit | `tests/e2e/helpers/subscriber-limits-flow.mjs:135` | asserted |
+| SUB-020 | 1 | Teams refuses at the seeded full combined-chat population | `tests/e2e/helpers/subscriber-limits-flow.mjs:131` | asserted |
+| SUB-020 | 1 | Slack refuses at the seeded full combined-chat population | `tests/e2e/helpers/subscriber-limits-flow.mjs:132` | asserted |
+| SUB-020 | 1 | the reported combined-chat count and limit are explicitly 1000 | none | none |
 | SUB-020 | 2 | pending recovered slot | `tests/e2e/helpers/subscriber-limits-flow.mjs:121` | asserted |
 | SUB-020 | 2 | deactivated releases capacity | `tests/e2e/helpers/subscriber-limits-flow.mjs:79` | asserted |
 | SUB-020 | 2 | incident subscriptions consume capacity | none | none |
@@ -771,16 +950,19 @@ Old reference: `54e0e1dcfdc225ad17e42abff04b65d7f2bfdc72`.
 | SUB-020 | 3 | each channel count in Settings browser assertions | none | none |
 | SUB-020 | 4 | same new and existing body | `tests/e2e/helpers/subscriber-limits-flow.mjs:63` | asserted |
 | SUB-020 | 4 | full-channel message | `tests/e2e/helpers/subscriber-limits-flow.mjs:60` | asserted |
-| SUB-020 | 4 | Atom/RSS links | `tests/e2e/helpers/subscriber-limits-flow.mjs:61` | asserted |
+| SUB-020 | 4 | full-channel page links the Atom feed | `tests/e2e/helpers/subscriber-limits-flow.mjs:61` | asserted |
+| SUB-020 | 4 | full-channel page links the RSS feed | `tests/e2e/helpers/subscriber-limits-flow.mjs:61` | asserted |
 | SUB-020 | 4 | script-free browser response equality | `tests/e2e/helpers/subscriber-limits-browser-flow.mjs:93` | asserted |
-| SUB-020 | 5 | no created subscription | `tests/e2e/helpers/subscriber-limits-flow.mjs:64` | asserted |
+| SUB-020 | 5 | the pending-plus-active subscription count is unchanged | `tests/e2e/helpers/subscriber-limits-flow.mjs:64` | asserted |
+| SUB-020 | 5 | no subscriber row in any other state is created | none | none |
 | SUB-020 | 5 | no mail | `tests/e2e/helpers/subscriber-limits-flow.mjs:64` | asserted |
 | SUB-020 | 6 | 80-percent once | `tests/e2e/helpers/subscriber-limits-flow.mjs:53` | asserted |
 | SUB-020 | 6 | 100-percent once | `tests/e2e/helpers/subscriber-limits-flow.mjs:54` | asserted |
 | SUB-020 | 6 | every channel crossing alert | none | none |
 | SUB-020 | 7 | full capacity Follow-up | `tests/e2e/helpers/subscriber-limits-flow.mjs:68` | asserted |
 | SUB-020 | 7 | below-limit Follow-up disappears | `tests/e2e/helpers/subscriber-limits-flow.mjs:81` | asserted |
-| SUB-020 | 7 | no over-limit subscriber admitted | `tests/e2e/helpers/subscriber-limits-flow.mjs:64` | asserted |
+| SUB-020 | 7 | the pending-plus-active count stays at capacity after refusal | `tests/e2e/helpers/subscriber-limits-flow.mjs:64` | asserted |
+| SUB-020 | 7 | the full-channel refusal creates no subscriber in another state | none | none |
 | SUB-023 | 1 | move-in excess named | `tests/e2e/helpers/subscriber-limits-flow.mjs:84` | asserted |
 | SUB-023 | 1 | move-in refused rows | `tests/e2e/helpers/subscriber-limits-flow.mjs:86` | asserted |
 | SUB-023 | 1 | CSV excess named | `tests/e2e/helpers/subscriber-limits-flow.mjs:94` | asserted |
@@ -789,27 +971,36 @@ Old reference: `54e0e1dcfdc225ad17e42abff04b65d7f2bfdc72`.
 | SUB-023 | 2 | move-in database comparison asserted in tests/e2e/helpers/subscriber-management-fixture.mjs outside the old Evidence set | none | none |
 | SUB-023 | 2 | CSV apply refuses | `tests/e2e/helpers/subscriber-limits-flow.mjs:97` | asserted |
 | SUB-023 | 2 | CSV database comparison asserted in tests/e2e/helpers/subscriber-management-fixture.mjs outside the old Evidence set | none | none |
-| SUB-023 | 2 | fresh narrowed review succeeds | `tests/e2e/helpers/subscriber-limits-flow.mjs:91` | asserted |
+| SUB-023 | 2 | the narrowed import job reports completed | `tests/e2e/helpers/subscriber-limits-flow.mjs:91` | asserted |
+| SUB-023 | 2 | the narrowed source contains no subscriber-capacity excess | `tests/e2e/helpers/subscriber-limits-flow.mjs:90` | asserted |
+| SUB-023 | 2 | the narrowed apply persists all expected non-subscriber records | none | none |
 | SUB-023 | 3 | both sizes read | `tests/e2e/helpers/subscriber-limits-flow.mjs:38` | asserted |
 | SUB-023 | 3 | both sizes zero refusals | `tests/e2e/helpers/subscriber-limits-flow.mjs:39` | asserted |
 | SUB-023 | 3 | both sizes no excess | `tests/e2e/helpers/subscriber-limits-flow.mjs:40` | asserted |
 | SUB-023 | 4 | 200 excess | `tests/e2e/helpers/subscriber-limits-flow.mjs:85` | asserted |
-| SUB-023 | 4 | over-limit apply no prefix | `tests/e2e/helpers/subscriber-limits-flow.mjs:88` | asserted |
-| SUB-023 | 4 | email-free source succeeds | `tests/e2e/helpers/subscriber-limits-flow.mjs:91` | asserted |
+| SUB-023 | 4 | the over-limit apply leaves the pending-plus-active count unchanged | `tests/e2e/helpers/subscriber-limits-flow.mjs:88` | asserted |
+| SUB-023 | 4 | the over-limit apply creates no subscriber in another state | none | none |
+| SUB-023 | 4 | the email-free import job reports completed | `tests/e2e/helpers/subscriber-limits-flow.mjs:91` | asserted |
+| SUB-023 | 4 | email-free apply leaves pending-plus-active subscriber count unchanged | `tests/e2e/helpers/subscriber-limits-flow.mjs:91` | asserted |
+| SUB-023 | 4 | the email-free apply persists the expected source component | none | none |
 | SUB-023 | 5 | CSV refusal count | `tests/e2e/helpers/subscriber-limits-flow.mjs:94` | asserted |
-| SUB-023 | 5 | fresh fitting CSV creates one | `tests/e2e/helpers/subscriber-limits-flow.mjs:101` | asserted |
+| SUB-023 | 5 | the fitting CSV apply reports one created subscriber | `tests/e2e/helpers/subscriber-limits-flow.mjs:101` | asserted |
+| SUB-023 | 5 | the fitting CSV apply actually stores one pending subscriber | none | none |
 | NOTIFY-001 | 1 | first incident notification | none | none |
 | NOTIFY-001 | 1 | subsequent incident notification | none | none |
 | NOTIFY-001 | 1 | resolution notification | none | none |
 | NOTIFY-001 | 2 | maintenance lifecycle notification events | none | none |
 | NOTIFY-001 | 3 | component change silence or opted-in replacement | none | none |
-| NOTIFY-002 | 1 | complete1000 recipient capture | `tests/e2e/delivery-contract.test.mjs:1111` | asserted |
-| NOTIFY-002 | 1 | all1000 provider attempts | `tests/e2e/delivery-contract.test.mjs:1118` | asserted |
+| NOTIFY-002 | 1 | 1000 recipient-capture records exist for the event | `tests/e2e/delivery-contract.test.mjs:1111` | asserted |
+| NOTIFY-002 | 1 | 1000 attempts carry provider identifiers | `tests/e2e/delivery-contract.test.mjs:1118` | asserted |
+| NOTIFY-002 | 1 | 1000 messages reach the capture adapter | `tests/e2e/delivery-contract.test.mjs:1117` | asserted |
+| NOTIFY-002 | 1 | every expected eligible recipient has a provider acceptance without a missing recipient hidden by duplicates | none | none |
 | NOTIFY-002 | 1 | five-minute measured bound | `tests/e2e/delivery-contract.test.mjs:1120` | asserted |
 | NOTIFY-003 | 1 | six total attempts | `tests/e2e/delivery-contract.test.mjs:921` | asserted |
 | NOTIFY-003 | 2 | exponential backoff timing over one hour | none | none |
 | NOTIFY-003 | 3 | durable failed outcome | `tests/e2e/delivery-contract.test.mjs:920` | asserted |
-| NOTIFY-003 | 3 | failure event delivery/update identity | `tests/e2e/delivery-contract.test.mjs:923` | asserted |
+| NOTIFY-003 | 3 | the failure event identifies the expected delivery | `tests/e2e/delivery-contract.test.mjs:923` | asserted |
+| NOTIFY-003 | 3 | the failure event identifies the expected notification event | `tests/e2e/delivery-contract.test.mjs:923` | asserted |
 | NOTIFY-004 | 1 | subscriber field readback | none | none |
 | NOTIFY-004 | 1 | channel field readback | none | none |
 | NOTIFY-004 | 1 | update field readback | none | none |
@@ -824,12 +1015,16 @@ Old reference: `54e0e1dcfdc225ad17e42abff04b65d7f2bfdc72`.
 | NOTIFY-004 | 2 | failed outcome | `tests/e2e/delivery-contract.test.mjs:920` | asserted |
 | NOTIFY-004 | 3 | message pixel absence | none | none |
 | NOTIFY-004 | 3 | tracked-link absence | none | none |
-| NOTIFY-004 | 4 | outcome filter row | `tests/e2e/delivery-contract.test.mjs:1018` | asserted |
+| NOTIFY-004 | 4 | one sampled result of the delivered filter has delivered outcome | `tests/e2e/delivery-contract.test.mjs:1018` | asserted |
+| NOTIFY-004 | 4 | the outcome filter returns all and only matching rows throughout its result set | none | none |
 | NOTIFY-004 | 4 | channel filter reconciliation | none | none |
 | NOTIFY-004 | 4 | update filter reconciliation | none | none |
-| NOTIFY-004 | 4 | full CSV after hundred rows | `tests/e2e/delivery-contract.test.mjs:1079` | asserted |
-| NOTIFY-005 | 1 | duplicate capture records once | `tests/e2e/delivery-contract.test.mjs:577` | asserted |
-| NOTIFY-005 | 1 | concurrent webhook sends once | `tests/e2e/delivery-contract.test.mjs:984` | asserted |
+| NOTIFY-004 | 4 | CSV contains 101 capacity-fixture destination occurrences | `tests/e2e/delivery-contract.test.mjs:1079` | asserted |
+| NOTIFY-004 | 4 | all 101 distinct expected destinations occur once and match the full filtered view | none | none |
+| NOTIFY-005 | 1 | repeated capture leaves one recipient record | `tests/e2e/delivery-contract.test.mjs:577` | asserted |
+| NOTIFY-005 | 1 | repeated capture leaves one dispatcher job | `tests/e2e/delivery-contract.test.mjs:577` | asserted |
+| NOTIFY-005 | 1 | two intended healthy-delivery scenarios produce two healthy-host requests in aggregate | `tests/e2e/delivery-contract.test.mjs:984` | asserted |
+| NOTIFY-005 | 1 | the concurrently dispatched delivery alone produces exactly one request | none | none |
 | NOTIFY-005 | 1 | email queue redelivery never resends | none | none |
 | NOTIFY-006 | 1 | due email once | `tests/e2e/update-reminders.test.mjs:95` | asserted |
 | NOTIFY-006 | 2 | overdue email once | `tests/e2e/update-reminders.test.mjs:211` | asserted |
@@ -838,7 +1033,8 @@ Old reference: `54e0e1dcfdc225ad17e42abff04b65d7f2bfdc72`.
 | NOTIFY-006 | 3 | alert-created draft email once | none | none |
 | NOTIFY-006 | 4 | one terminal-failure alert queued | `tests/e2e/delivery-contract.test.mjs:922` | asserted |
 | NOTIFY-006 | 4 | actual terminal-failure operator email count | none | none |
-| NOTIFY-007 | 1 | persisted selected channel | `tests/e2e/delivery-contract.test.mjs:582` | asserted |
+| NOTIFY-007 | 1 | one stored channel selection is email | `tests/e2e/delivery-contract.test.mjs:582` | asserted |
+| NOTIFY-007 | 1 | the complete recipient channel set equals exactly the selected channels | none | none |
 | NOTIFY-007 | 1 | empty selection produces no notifications | `tests/e2e/delivery-contract.test.mjs:348` | asserted |
 | NOTIFY-007 | 2 | page mandatory publication | none | none |
 | NOTIFY-007 | 2 | Atom mandatory publication | none | none |
@@ -847,7 +1043,9 @@ Old reference: `54e0e1dcfdc225ad17e42abff04b65d7f2bfdc72`.
 | NOTIFY-008 | 1 | pending single-confirmation restriction | none | none |
 | NOTIFY-008 | 1 | active subscriber destination | `tests/e2e/delivery-contract.test.mjs:596` | asserted |
 | NOTIFY-008 | 2 | configured From address | `tests/e2e/delivery-contract.test.mjs:595` | asserted |
-| NOTIFY-010 | 1 | list headers present | `tests/e2e/delivery-contract.test.mjs:604` | asserted |
+| NOTIFY-010 | 1 | List-Id is present | `tests/e2e/delivery-contract.test.mjs:604` | asserted |
+| NOTIFY-010 | 1 | List-Archive is present | `tests/e2e/delivery-contract.test.mjs:604` | asserted |
+| NOTIFY-010 | 1 | List-Help is present | `tests/e2e/delivery-contract.test.mjs:604` | asserted |
 | NOTIFY-010 | 1 | page identity | `tests/e2e/rer-mail.test.mjs:104` | asserted |
 | NOTIFY-010 | 1 | archive points at page | `tests/e2e/rer-mail.test.mjs:105` | asserted |
 | NOTIFY-010 | 1 | help points at subscriber page | `tests/e2e/rer-mail.test.mjs:106` | asserted |
@@ -867,8 +1065,9 @@ Old reference: `54e0e1dcfdc225ad17e42abff04b65d7f2bfdc72`.
 | NOTIFY-009 | 2 | feed survives delivery failure | none | none |
 | NOTIFY-009 | 2 | widget survives delivery failure | none | none |
 | NOTIFY-009 | 3 | recovery preserves and delivers committed set | none | none |
-| NOTIFY-011 | 1 | Slack selected destination accepted | `tests/e2e/channels-and-presets.test.mjs:95` | asserted |
-| NOTIFY-011 | 1 | Teams all-visible destination accepted | `tests/e2e/channels-and-presets.test.mjs:97` | asserted |
+| NOTIFY-011 | 1 | the created Slack channel response reports the expected provider host | `tests/e2e/channels-and-presets.test.mjs:96` | asserted |
+| NOTIFY-011 | 1 | the Slack destination and selected components are persisted | none | none |
+| NOTIFY-011 | 1 | the Teams destination is persisted with all-visible component selection | none | none |
 | NOTIFY-011 | 1 | saved component selections read back | none | none |
 | NOTIFY-011 | 2 | no URL in list | `tests/e2e/channels-and-presets.test.mjs:102` | asserted |
 | NOTIFY-011 | 2 | stored ciphertext | `tests/e2e/channels-and-presets.test.mjs:103` | asserted |
@@ -890,7 +1089,8 @@ Old reference: `54e0e1dcfdc225ad17e42abff04b65d7f2bfdc72`.
 | NOTIFY-015 | 1 | suppressed count reconciliation | none | none |
 | NOTIFY-015 | 1 | failed count reconciliation | none | none |
 | NOTIFY-015 | 2 | incident committed20 | `tests/e2e/helpers/communication-performance-flow.mjs:119` | asserted |
-| NOTIFY-015 | 2 | incident distinct committed10 | `tests/e2e/helpers/communication-performance-flow.mjs:119` | asserted |
+| NOTIFY-015 | 2 | incident email distinct committed count is 10 | `tests/e2e/helpers/communication-performance-flow.mjs:119` | asserted |
+| NOTIFY-015 | 2 | incident webhook totals and distinct recipient counts reconcile across updates | none | none |
 | NOTIFY-015 | 2 | incident distinct delivered8 | `tests/e2e/helpers/communication-performance-flow.mjs:119` | asserted |
 | NOTIFY-015 | 3 | CSV committed10 | `tests/e2e/helpers/communication-performance-flow.mjs:111` | asserted |
 | NOTIFY-015 | 3 | CSV delivered9 | `tests/e2e/helpers/communication-performance-flow.mjs:111` | asserted |
@@ -919,7 +1119,8 @@ Old reference: `54e0e1dcfdc225ad17e42abff04b65d7f2bfdc72`.
 | INTAKE-004 | 2 | Every public surface unchanged | none | none |
 | INTAKE-005 | 1 | Configured key path controls acceptance | `tests/e2e/publishing-contract.test.mjs:855` | asserted |
 | INTAKE-005 | 1 | Configured title read back | none | none |
-| INTAKE-005 | 1 | State mapping distinguishes recovery | `tests/e2e/publishing-contract.test.mjs:846` | asserted |
+| INTAKE-005 | 1 | Configured generic firing state is read back | `tests/e2e/app-api.test.mjs:492` | asserted |
+| INTAKE-005 | 1 | Configured generic recovered state is read back | none | none |
 | INTAKE-005 | 2 | Missing key returns 400 | `tests/e2e/publishing-contract.test.mjs:853` | asserted |
 | INTAKE-005 | 2 | Visible rejected mapping reason | `tests/e2e/helpers/webhook-source-browser-flow.mjs:119` | asserted |
 | INTAKE-006 | 1 | Datadog component mapping | `tests/e2e/channels-and-presets.test.mjs:218` | asserted |
@@ -947,14 +1148,21 @@ Old reference: `54e0e1dcfdc225ad17e42abff04b65d7f2bfdc72`.
 | INTAKE-008 | 2 | Stale timestamp refused | `tests/e2e/helpers/uptime-pairing-flow.mjs:72` | asserted |
 | INTAKE-008 | 2 | Altered bytes refused | `tests/e2e/helpers/intake-byte-flow.mjs:34` | asserted |
 | INTAKE-008 | 2 | No receipts | `tests/e2e/helpers/intake-byte-flow.mjs:37` | asserted |
-| INTAKE-008 | 2 | No drafts | `tests/e2e/helpers/intake-byte-flow.mjs:38` | asserted |
-| INTAKE-008 | 2 | No publication | `tests/e2e/helpers/intake-byte-flow.mjs:39` | asserted |
-| INTAKE-008 | 3 | Monitor isolation | `tests/e2e/helpers/uptime-preset-flow.mjs:46` | asserted |
+| INTAKE-008 | 2 | Authentication refusals leave the complete incident listing unchanged | `tests/e2e/helpers/intake-byte-flow.mjs:38` | asserted |
+| INTAKE-008 | 2 | Authentication refusals create or change no draft record | none | none |
+| INTAKE-008 | 2 | Authentication refusals leave public status JSON bytes unchanged | `tests/e2e/helpers/intake-byte-flow.mjs:39` | asserted |
+| INTAKE-008 | 2 | Authentication refusals create no published update | none | none |
+| INTAKE-008 | 2 | Authentication refusals leave every other public artifact unchanged | none | none |
+| INTAKE-008 | 3 | Equal incident keys on different monitors create distinct incidents | `tests/e2e/helpers/uptime-preset-flow.mjs:46` | asserted |
+| INTAKE-008 | 3 | The second monitor incident retains only its own mapped component | `tests/e2e/helpers/uptime-preset-flow.mjs:47` | asserted |
 | INTAKE-008 | 3 | Unpicked monitor refusal | `tests/e2e/helpers/uptime-pairing-flow.mjs:78` | asserted |
 | INTAKE-008 | 4 | Mapped component | `tests/e2e/helpers/uptime-preset-flow.mjs:40` | asserted |
 | INTAKE-008 | 4 | Zero updates | `tests/e2e/helpers/uptime-preset-flow.mjs:41` | asserted |
 | INTAKE-008 | 4 | Replay same draft | `tests/e2e/helpers/uptime-preset-flow.mjs:38` | asserted |
-| INTAKE-008 | 5 | Vantages category confirmed time | `tests/e2e/helpers/uptime-preset-flow.mjs:44` | asserted |
+| INTAKE-008 | 5 | The brief includes the supplied US East vantage | `tests/e2e/helpers/uptime-preset-flow.mjs:44` | asserted |
+| INTAKE-008 | 5 | The brief includes the supplied EU West vantage | `tests/e2e/helpers/uptime-preset-flow.mjs:44` | asserted |
+| INTAKE-008 | 5 | The brief includes the supplied error category | `tests/e2e/helpers/uptime-preset-flow.mjs:44` | asserted |
+| INTAKE-008 | 5 | The brief includes the supplied confirmed-start instant | `tests/e2e/helpers/uptime-preset-flow.mjs:44` | asserted |
 | INTAKE-008 | 5 | Missing confirmed time not supplied | `tests/e2e/helpers/uptime-preset-flow.mjs:61` | asserted |
 | INTAKE-008 | 6 | Recovery record | `tests/e2e/helpers/uptime-preset-flow.mjs:52` | asserted |
 | INTAKE-008 | 6 | Private lifecycle closes | `tests/e2e/helpers/uptime-preset-flow.mjs:51` | asserted |
@@ -972,17 +1180,22 @@ Old reference: `54e0e1dcfdc225ad17e42abff04b65d7f2bfdc72`.
 | INTAKE-009 | 2 | Tampered bytes refused | `tests/e2e/helpers/pagerduty-flow.mjs:149` | asserted |
 | INTAKE-009 | 2 | Tampered bytes no receipt | `tests/e2e/helpers/pagerduty-flow.mjs:150` | asserted |
 | INTAKE-009 | 3 | All matched components | `tests/e2e/helpers/pagerduty-flow.mjs:155` | asserted |
-| INTAKE-009 | 3 | Visible unsupported/unmapped reason | `tests/e2e/helpers/pagerduty-flow.mjs:180` | asserted |
+| INTAKE-009 | 3 | The unsupported signed-event receipt exposes its rejection reason | `tests/e2e/helpers/pagerduty-flow.mjs:180` | asserted |
+| INTAKE-009 | 3 | The unmapped signed-event receipt exposes its rejection reason | `tests/e2e/helpers/pagerduty-flow.mjs:180` | asserted |
 | INTAKE-009 | 4 | Zero updates | `tests/e2e/helpers/pagerduty-flow.mjs:156` | asserted |
 | INTAKE-009 | 4 | Replay same draft | `tests/e2e/helpers/pagerduty-flow.mjs:158` | asserted |
 | INTAKE-009 | 4 | One receipt | `tests/e2e/helpers/pagerduty-flow.mjs:159` | asserted |
 | INTAKE-009 | 5 | Event time | `tests/e2e/helpers/pagerduty-flow.mjs:171` | asserted |
 | INTAKE-009 | 5 | Responder role | `tests/e2e/helpers/pagerduty-flow.mjs:172` | asserted |
-| INTAKE-009 | 5 | Report citations and facts | `tests/e2e/helpers/pagerduty-flow.mjs:276` | asserted |
+| INTAKE-009 | 5 | The acknowledgment report line cites its brief reference | `tests/e2e/helpers/pagerduty-flow.mjs:275` | asserted |
+| INTAKE-009 | 5 | The escalation report line cites its brief reference | `tests/e2e/helpers/pagerduty-flow.mjs:275` | asserted |
+| INTAKE-009 | 5 | The acknowledgment report line retains event kind, time and responder role | `tests/e2e/helpers/pagerduty-flow.mjs:276` | asserted |
+| INTAKE-009 | 5 | The escalation report line retains event kind, time and responder role | `tests/e2e/helpers/pagerduty-flow.mjs:276` | asserted |
 | INTAKE-009 | 6 | Private recovery | `tests/e2e/helpers/pagerduty-flow.mjs:187` | asserted |
 | INTAKE-009 | 6 | Published lifecycle | `tests/e2e/helpers/pagerduty-flow.mjs:241` | asserted |
 | INTAKE-009 | 6 | Published updates | `tests/e2e/helpers/pagerduty-flow.mjs:242` | asserted |
-| INTAKE-009 | 7 | Private story absent from page | `tests/e2e/helpers/pagerduty-flow.mjs:190` | asserted |
+| INTAKE-009 | 7 | Private draft references and title are absent from public status JSON | `tests/e2e/helpers/pagerduty-flow.mjs:190` | asserted |
+| INTAKE-009 | 7 | Private drafts are absent from every other public story artifact | none | none |
 | INTAKE-009 | 7 | Source removed | `tests/e2e/helpers/pagerduty-flow.mjs:293` | asserted |
 | INTAKE-009 | 7 | Receipts erased | `tests/e2e/helpers/pagerduty-flow.mjs:294` | asserted |
 | INTAKE-009 | 7 | Publications preserved | `tests/e2e/helpers/pagerduty-flow.mjs:297` | asserted |
@@ -990,7 +1203,11 @@ Old reference: `54e0e1dcfdc225ad17e42abff04b65d7f2bfdc72`.
 | INTAKE-009 | 3 | All supplied compound matcher fields required | none | none |
 | INTAKE-009 | 6 | Recovery receipt readback | none | none |
 | INTAKE-009 | 7 | Every public story artifact excludes private drafts | none | none |
-| INTAKE-015 | 1 | Fields and permalink | `tests/e2e/helpers/pagerduty-flow.mjs:214` | asserted |
+| INTAKE-015 | 1 | PagerDuty note contains the public audience statement | `tests/e2e/helpers/pagerduty-flow.mjs:214` | asserted |
+| INTAKE-015 | 1 | PagerDuty note contains public customer impact | `tests/e2e/helpers/pagerduty-flow.mjs:214` | asserted |
+| INTAKE-015 | 1 | PagerDuty note contains public still-working text | `tests/e2e/helpers/pagerduty-flow.mjs:214` | asserted |
+| INTAKE-015 | 1 | PagerDuty note contains public details | `tests/e2e/helpers/pagerduty-flow.mjs:214` | asserted |
+| INTAKE-015 | 1 | PagerDuty note contains the incident permalink | `tests/e2e/helpers/pagerduty-flow.mjs:214` | asserted |
 | INTAKE-015 | 1 | Replay no note | `tests/e2e/helpers/pagerduty-flow.mjs:216` | asserted |
 | INTAKE-015 | 1 | Each publication one note | `tests/e2e/helpers/pagerduty-flow.mjs:219` | asserted |
 | INTAKE-015 | 2 | No key no note | `tests/e2e/helpers/pagerduty-flow.mjs:288` | asserted |
@@ -1013,7 +1230,8 @@ Old reference: `54e0e1dcfdc225ad17e42abff04b65d7f2bfdc72`.
 | INTAKE-010 | 2 | Visible reason | `tests/e2e/helpers/grouped-alerts-flow.mjs:48` | asserted |
 | INTAKE-010 | 2 | Unmapped no incident | `tests/e2e/helpers/grouped-alerts-flow.mjs:52` | asserted |
 | INTAKE-010 | 3 | Concurrent replay same incident | `tests/e2e/helpers/grouped-alerts-flow.mjs:55` | asserted |
-| INTAKE-010 | 3 | Fingerprints and states | `tests/e2e/helpers/grouped-alerts-flow.mjs:64` | asserted |
+| INTAKE-010 | 3 | Both grouped alert fingerprints are retained exactly | `tests/e2e/helpers/grouped-alerts-flow.mjs:64` | asserted |
+| INTAKE-010 | 3 | Both grouped alert states equal their payload states | `tests/e2e/helpers/grouped-alerts-flow.mjs:64` | asserted |
 | INTAKE-010 | 3 | Exactly two members | `tests/e2e/helpers/grouped-alerts-flow.mjs:72` | asserted |
 | INTAKE-010 | 4 | Mixed remains open | `tests/e2e/helpers/grouped-alerts-flow.mjs:76` | asserted |
 | INTAKE-010 | 4 | Recovered member recorded | `tests/e2e/helpers/grouped-alerts-flow.mjs:77` | asserted |
@@ -1023,8 +1241,12 @@ Old reference: `54e0e1dcfdc225ad17e42abff04b65d7f2bfdc72`.
 | INTAKE-010 | 5 | Published lifecycle preserved | `tests/e2e/helpers/grouped-alerts-flow.mjs:91` | asserted |
 | INTAKE-010 | 6 | Both browser components | `tests/e2e/helpers/grouped-alerts-flow.mjs:128` | asserted |
 | INTAKE-010 | 6 | Browser draft private | `tests/e2e/helpers/grouped-alerts-flow.mjs:133` | asserted |
-| INTAKE-010 | 7 | Complete restored entities | `tests/e2e/export-import.test.mjs:194` | asserted |
-| INTAKE-011 | 1 | All template bindings | `tests/e2e/helpers/operations-alerts-browser-flow.mjs:93` | asserted |
+| INTAKE-010 | 7 | The restored Alertmanager source configuration equals the archived configuration | `tests/e2e/export-import.test.mjs:194` | asserted |
+| INTAKE-010 | 7 | Restored grouped fingerprint and state evidence equals the archived evidence | `tests/e2e/export-import.test.mjs:194` | asserted |
+| INTAKE-011 | 1 | The displayed workflow includes the exact issue-id binding | `tests/e2e/helpers/operations-alerts-browser-flow.mjs:93` | asserted |
+| INTAKE-011 | 1 | The displayed workflow includes the exact issue-title binding | `tests/e2e/helpers/operations-alerts-browser-flow.mjs:93` | asserted |
+| INTAKE-011 | 1 | The displayed workflow includes the exact state binding | `tests/e2e/helpers/operations-alerts-browser-flow.mjs:93` | asserted |
+| INTAKE-011 | 1 | The displayed workflow includes the exact entity-names binding | `tests/e2e/helpers/operations-alerts-browser-flow.mjs:93` | asserted |
 | INTAKE-011 | 2 | Entity mapping retained | `tests/e2e/helpers/operations-alerts-flow.mjs:170` | asserted |
 | INTAKE-011 | 2 | Unmapped no incident | `tests/e2e/helpers/operations-alerts-flow.mjs:175` | asserted |
 | INTAKE-011 | 2 | Names survive reload | `tests/e2e/helpers/metrics-browser-flow.mjs:28` | asserted |
@@ -1043,7 +1265,11 @@ Old reference: `54e0e1dcfdc225ad17e42abff04b65d7f2bfdc72`.
 | INTAKE-016 | 2 | Management listing absence | `tests/e2e/helpers/metrics-flow.mjs:96` | asserted |
 | INTAKE-016 | 3 | Each provider connection survives reload | `tests/e2e/helpers/metrics-browser-flow.mjs:35` | asserted |
 | INTAKE-014 | 1 | Wrong token 401 | `tests/e2e/helpers/operations-alerts-flow.mjs:58` | asserted |
-| INTAKE-014 | 1 | All five tables unchanged | `tests/e2e/helpers/operations-alerts-flow.mjs:59` | asserted |
+| INTAKE-014 | 1 | Wrong-token refusal preserves every incident row | `tests/e2e/helpers/operations-alerts-flow.mjs:59` | asserted |
+| INTAKE-014 | 1 | Wrong-token refusal preserves every draft row | `tests/e2e/helpers/operations-alerts-flow.mjs:59` | asserted |
+| INTAKE-014 | 1 | Wrong-token refusal preserves every published-update row | `tests/e2e/helpers/operations-alerts-flow.mjs:59` | asserted |
+| INTAKE-014 | 1 | Wrong-token refusal preserves every audit row | `tests/e2e/helpers/operations-alerts-flow.mjs:59` | asserted |
+| INTAKE-014 | 1 | Wrong-token refusal preserves every alert-receipt row | `tests/e2e/helpers/operations-alerts-flow.mjs:59` | asserted |
 | INTAKE-014 | 2 | Replay same incident | `tests/e2e/helpers/operations-alerts-flow.mjs:65` | asserted |
 | INTAKE-014 | 2 | Distinct events same alert | `tests/e2e/helpers/operations-alerts-flow.mjs:68` | asserted |
 | INTAKE-014 | 2 | Compound partial match excluded | `tests/e2e/helpers/operations-alerts-flow.mjs:54` | asserted |
@@ -1051,19 +1277,37 @@ Old reference: `54e0e1dcfdc225ad17e42abff04b65d7f2bfdc72`.
 | INTAKE-014 | 3 | Private draft | `tests/e2e/helpers/operations-alerts-flow.mjs:71` | asserted |
 | INTAKE-014 | 3 | Untouched title refresh | `tests/e2e/helpers/operations-alerts-flow.mjs:72` | asserted |
 | INTAKE-014 | 3 | Operator title retained | `tests/e2e/helpers/operations-alerts-flow.mjs:78` | asserted |
-| INTAKE-014 | 3 | Operator fields retained | `tests/e2e/helpers/operations-alerts-flow.mjs:79` | asserted |
-| INTAKE-014 | 4 | Brief time and responder role | `tests/e2e/helpers/operations-alerts-flow.mjs:90` | asserted |
-| INTAKE-014 | 4 | Report source facts | `tests/e2e/helpers/operations-alerts-flow.mjs:154` | asserted |
+| INTAKE-014 | 3 | Repeated Create retains operator-authored audience text | `tests/e2e/helpers/operations-alerts-flow.mjs:79` | asserted |
+| INTAKE-014 | 3 | Repeated Create retains operator-authored impact text | `tests/e2e/helpers/operations-alerts-flow.mjs:80` | asserted |
+| INTAKE-014 | 3 | Repeated Create retains operator-authored details text | `tests/e2e/helpers/operations-alerts-flow.mjs:81` | asserted |
+| INTAKE-014 | 3 | Repeated Create retains operator-authored still-working text and next-update time | none | none |
+| INTAKE-014 | 4 | The brief contains the acknowledgment event | `tests/e2e/helpers/operations-alerts-flow.mjs:90` | asserted |
+| INTAKE-014 | 4 | The brief contains the escalation event | `tests/e2e/helpers/operations-alerts-flow.mjs:90` | asserted |
+| INTAKE-014 | 4 | The acknowledgment brief entry names its responder role | `tests/e2e/helpers/operations-alerts-flow.mjs:90` | asserted |
+| INTAKE-014 | 4 | The escalation brief entry names its responder role | `tests/e2e/helpers/operations-alerts-flow.mjs:90` | asserted |
+| INTAKE-014 | 4 | Each brief summary time equals that action’s exact fixture timestamp | none | none |
+| INTAKE-014 | 4 | The report acknowledgment line cites its brief entry | `tests/e2e/helpers/operations-alerts-flow.mjs:152` | asserted |
+| INTAKE-014 | 4 | The report escalation line cites its brief entry | `tests/e2e/helpers/operations-alerts-flow.mjs:152` | asserted |
+| INTAKE-014 | 4 | Each report line retains the event timestamp from its cited payload | `tests/e2e/helpers/operations-alerts-flow.mjs:153` | asserted |
+| INTAKE-014 | 4 | Each report line retains its action and responder role | `tests/e2e/helpers/operations-alerts-flow.mjs:154` | asserted |
 | INTAKE-014 | 5 | Internal note stored | `tests/e2e/helpers/operations-alerts-flow.mjs:94` | asserted |
 | INTAKE-014 | 5 | No brief note | `tests/e2e/helpers/operations-alerts-flow.mjs:92` | asserted |
 | INTAKE-014 | 5 | No public note | `tests/e2e/helpers/operations-alerts-flow.mjs:143` | asserted |
 | INTAKE-014 | 6 | Private closes | `tests/e2e/helpers/operations-alerts-flow.mjs:165` | asserted |
 | INTAKE-014 | 6 | Published lifecycle retained | `tests/e2e/helpers/operations-alerts-flow.mjs:111` | asserted |
-| INTAKE-014 | 7 | No reopen or update | `tests/e2e/helpers/operations-alerts-flow.mjs:133` | asserted |
+| INTAKE-014 | 7 | Late actions retain the Resolved lifecycle | `tests/e2e/helpers/operations-alerts-flow.mjs:133` | asserted |
+| INTAKE-014 | 7 | Late actions retain exactly the two existing public updates | `tests/e2e/helpers/operations-alerts-flow.mjs:133` | asserted |
 | INTAKE-014 | 7 | No model note | `tests/e2e/helpers/operations-alerts-flow.mjs:136` | asserted |
 | INTAKE-014 | 7 | No subscriber notice | `tests/e2e/helpers/operations-alerts-flow.mjs:138` | asserted |
 | INTAKE-014 | 7 | No provider feedback | `tests/e2e/helpers/operations-alerts-flow.mjs:139` | asserted |
-| INTAKE-014 | 7 | Every public artifact unchanged | `tests/e2e/helpers/operations-alerts-flow.mjs:142` | asserted |
+| INTAKE-014 | 7 | Late actions preserve the public page bytes | `tests/e2e/helpers/operations-alerts-flow.mjs:142` | asserted |
+| INTAKE-014 | 7 | Late actions preserve history bytes | `tests/e2e/helpers/operations-alerts-flow.mjs:142` | asserted |
+| INTAKE-014 | 7 | Late actions preserve incident permalink bytes | `tests/e2e/helpers/operations-alerts-flow.mjs:142` | asserted |
+| INTAKE-014 | 7 | Late actions preserve Atom feed bytes | `tests/e2e/helpers/operations-alerts-flow.mjs:142` | asserted |
+| INTAKE-014 | 7 | Late actions preserve RSS feed bytes | `tests/e2e/helpers/operations-alerts-flow.mjs:142` | asserted |
+| INTAKE-014 | 7 | Late actions preserve public status JSON bytes | `tests/e2e/helpers/operations-alerts-flow.mjs:142` | asserted |
+| INTAKE-014 | 7 | Late actions preserve widget script bytes | `tests/e2e/helpers/operations-alerts-flow.mjs:142` | asserted |
+| INTAKE-014 | 7 | Late actions preserve compatibility summary JSON bytes | `tests/e2e/helpers/operations-alerts-flow.mjs:142` | asserted |
 | INTAKE-014 | 8 | Compound mappings retained | `tests/e2e/helpers/operations-alerts-browser-flow.mjs:64` | asserted |
 | INTAKE-014 | 8 | Ordinary choice autosaves | `tests/e2e/helpers/operations-alerts-browser-flow.mjs:75` | asserted |
 | INTAKE-014 | 8 | Saved choice survives reload | `tests/e2e/helpers/operations-alerts-browser-flow.mjs:80` | asserted |
@@ -1073,7 +1317,16 @@ Old reference: `54e0e1dcfdc225ad17e42abff04b65d7f2bfdc72`.
 | INTAKE-019 | 1 | One note | `tests/e2e/helpers/operations-alerts-flow.mjs:104` | asserted |
 | INTAKE-019 | 1 | No non-Resolved close | `tests/e2e/helpers/operations-alerts-flow.mjs:105` | asserted |
 | INTAKE-019 | 1 | Linked alert | `tests/e2e/helpers/operations-alerts-flow.mjs:106` | asserted |
-| INTAKE-019 | 1 | Complete public fields | `tests/e2e/helpers/operations-alerts-flow.mjs:108` | asserted |
+| INTAKE-019 | 1 | Identified provider note retains incident title | `tests/e2e/helpers/operations-alerts-flow.mjs:108` | asserted |
+| INTAKE-019 | 1 | Identified provider note retains lifecycle | `tests/e2e/helpers/operations-alerts-flow.mjs:108` | asserted |
+| INTAKE-019 | 1 | Identified provider note retains audience | `tests/e2e/helpers/operations-alerts-flow.mjs:108` | asserted |
+| INTAKE-019 | 1 | Identified provider note retains customer impact | `tests/e2e/helpers/operations-alerts-flow.mjs:108` | asserted |
+| INTAKE-019 | 1 | Identified provider note retains still-working text | `tests/e2e/helpers/operations-alerts-flow.mjs:108` | asserted |
+| INTAKE-019 | 1 | Identified provider note retains details | `tests/e2e/helpers/operations-alerts-flow.mjs:108` | asserted |
+| INTAKE-019 | 1 | Identified provider note retains next-update time | `tests/e2e/helpers/operations-alerts-flow.mjs:108` | asserted |
+| INTAKE-019 | 1 | Identified provider note retains incident reference and permalink | `tests/e2e/helpers/operations-alerts-flow.mjs:107` | asserted |
+| INTAKE-019 | 1 | Resolved provider note and close each retain every public field and permalink | `tests/e2e/helpers/operations-alerts-flow.mjs:119` | asserted |
+| INTAKE-019 | 1 | Resolved provider note and close omit the prior next-update promise | `tests/e2e/helpers/operations-alerts-flow.mjs:120` | asserted |
 | INTAKE-019 | 2 | Resolved one note | `tests/e2e/helpers/operations-alerts-flow.mjs:115` | asserted |
 | INTAKE-019 | 2 | Resolved one close | `tests/e2e/helpers/operations-alerts-flow.mjs:116` | asserted |
 | INTAKE-019 | 2 | Both linked alert | `tests/e2e/helpers/operations-alerts-flow.mjs:117` | asserted |
@@ -1086,21 +1339,25 @@ Old reference: `54e0e1dcfdc225ad17e42abff04b65d7f2bfdc72`.
 | INTAKE-019 | 3 | Each provider key sealed at rest | none | none |
 | AUTO-004 | 1 | Owner email recipient | `tests/e2e/helpers/report-reminders-flow.mjs:55` | asserted |
 | AUTO-004 | 1 | Operator channel count | `tests/e2e/helpers/report-reminders-flow.mjs:56` | asserted |
-| AUTO-004 | 1 | Day seven repeat deduplication | `tests/e2e/helpers/report-reminders-flow.mjs:70` | asserted |
-| AUTO-004 | 1 | Day fourteen next reminder | `tests/e2e/helpers/report-reminders-flow.mjs:72` | asserted |
+| AUTO-004 | 1 | Repeated day-seven tick has the expected exact email count | `tests/e2e/helpers/report-reminders-flow.mjs:53` | asserted |
+| AUTO-004 | 1 | Repeated day-seven tick has the expected exact Slack/Teams counts | `tests/e2e/helpers/report-reminders-flow.mjs:56` | asserted |
+| AUTO-004 | 1 | Day-fourteen tick has the expected exact email count | `tests/e2e/helpers/report-reminders-flow.mjs:53` | asserted |
+| AUTO-004 | 1 | Day-fourteen tick has the expected exact Slack/Teams counts | `tests/e2e/helpers/report-reminders-flow.mjs:56` | asserted |
 | AUTO-004 | 2 | Incident reference | `tests/e2e/helpers/report-reminders-flow.mjs:59` | asserted |
 | AUTO-004 | 2 | Private report link | `tests/e2e/helpers/report-reminders-flow.mjs:60` | asserted |
 | AUTO-004 | 2 | No subscriber data | `tests/e2e/helpers/report-reminders-flow.mjs:61` | asserted |
 | AUTO-004 | 2 | No publication-only channel | `tests/e2e/helpers/report-reminders-flow.mjs:63` | asserted |
 | AUTO-004 | 2 | No subscriber mail | `tests/e2e/helpers/report-reminders-flow.mjs:64` | asserted |
-| AUTO-004 | 4 | Waiver stops reminders | `tests/e2e/helpers/report-reminders-flow.mjs:82` | asserted |
+| AUTO-004 | 4 | Tick after reasoned waiver has the expected exact email count | `tests/e2e/helpers/report-reminders-flow.mjs:53` | asserted |
+| AUTO-004 | 4 | Tick after reasoned waiver has the expected exact Slack/Teams counts | `tests/e2e/helpers/report-reminders-flow.mjs:56` | asserted |
 | AUTO-004 | 4 | Owed mark removed | `tests/e2e/helpers/report-reminders-flow.mjs:83` | asserted |
 | AUTO-004 | 4 | One audit entry | `tests/e2e/helpers/report-reminders-flow.mjs:85` | asserted |
 | AUTO-004 | 4 | Audit actor | `tests/e2e/helpers/report-reminders-flow.mjs:86` | asserted |
 | AUTO-004 | 4 | Audit reason | `tests/e2e/helpers/report-reminders-flow.mjs:87` | asserted |
 | AUTO-004 | 5 | Blank reason 400 | `tests/e2e/helpers/report-reminders-flow.mjs:75` | asserted |
 | AUTO-004 | 5 | No waiver | `tests/e2e/helpers/report-reminders-flow.mjs:76` | asserted |
-| AUTO-004 | 5 | No extra reminder | `tests/e2e/helpers/report-reminders-flow.mjs:78` | asserted |
+| AUTO-004 | 5 | Tick after refused blank waiver has the expected exact email count | `tests/e2e/helpers/report-reminders-flow.mjs:53` | asserted |
+| AUTO-004 | 5 | Tick after refused blank waiver has the expected exact Slack/Teams counts | `tests/e2e/helpers/report-reminders-flow.mjs:56` | asserted |
 | AUTO-004 | 3 | Published report stops reminders | `tests/e2e/publishing-contract.test.mjs:1230` | asserted |
 | AUTO-004 | 4 | Later report remains publishable | `tests/e2e/publishing-contract.test.mjs:1228` | asserted |
 | AUTO-004 | 4 | Waiver audit timestamp read back | none | none |
@@ -1111,11 +1368,15 @@ Old reference: `54e0e1dcfdc225ad17e42abff04b65d7f2bfdc72`.
 | DRAFT-001 | 2 | Unknown and question references removed | `tests/e2e/incident-brief.test.mjs:156` | asserted |
 | DRAFT-001 | 2 | Unsourced text visibly marked | none | none |
 | DRAFT-001 | 3 | Sources beside fields open brief | none | none |
-| DRAFT-001 | 4 | No lifecycle or next time | `tests/e2e/incident-brief.test.mjs:154` | asserted |
+| DRAFT-001 | 4 | Suggestion result has no lifecycle field | `tests/e2e/incident-brief.test.mjs:154` | asserted |
+| DRAFT-001 | 4 | Suggestion result has no next-update field | `tests/e2e/incident-brief.test.mjs:154` | asserted |
 | DRAFT-001 | 5 | Incident lifecycle unchanged | `tests/e2e/incident-brief.test.mjs:160` | asserted |
 | DRAFT-001 | 5 | Published updates unchanged | `tests/e2e/incident-brief.test.mjs:161` | asserted |
 | DRAFT-001 | 5 | Saved draft unchanged | `tests/e2e/incident-brief.test.mjs:162` | asserted |
-| DRAFT-001 | 5 | Public artifacts byte identical | `tests/e2e/incident-brief.test.mjs:163` | asserted |
+| DRAFT-001 | 5 | Suggestion generation preserves public page bytes and status | `tests/e2e/incident-brief.test.mjs:163` | asserted |
+| DRAFT-001 | 5 | Suggestion generation preserves Atom feed bytes and status | `tests/e2e/incident-brief.test.mjs:163` | asserted |
+| DRAFT-001 | 5 | Suggestion generation preserves public status JSON bytes and status | `tests/e2e/incident-brief.test.mjs:163` | asserted |
+| DRAFT-001 | 5 | Suggestion generation preserves widget script bytes and status | `tests/e2e/incident-brief.test.mjs:163` | asserted |
 | DRAFT-002 | 1 | Brief unchanged | `tests/e2e/incident-brief.test.mjs:143` | asserted |
 | DRAFT-002 | 2 | Internal component excluded | `tests/e2e/incident-brief.test.mjs:136` | asserted |
 | DRAFT-002 | 2 | Internal notes excluded | `tests/e2e/incident-brief.test.mjs:144` | asserted |
@@ -1123,10 +1384,17 @@ Old reference: `54e0e1dcfdc225ad17e42abff04b65d7f2bfdc72`.
 | DRAFT-004 | 1 | Alert count | `tests/e2e/incident-brief.test.mjs:97` | asserted |
 | DRAFT-004 | 1 | Alert source record. | `tests/e2e/incident-brief.test.mjs:98` | asserted |
 | DRAFT-004 | 1 | Alert time | `tests/e2e/incident-brief.test.mjs:100` | asserted |
-| DRAFT-004 | 1 | Public components and state | `tests/e2e/incident-brief.test.mjs:101` | asserted |
-| DRAFT-004 | 1 | Published update fields | `tests/e2e/incident-brief.test.mjs:119` | asserted |
-| DRAFT-004 | 2 | Audience impact time and unpublished questions | `tests/e2e/incident-brief.test.mjs:103` | asserted |
-| DRAFT-004 | 3 | Recovery and overdue questions | `tests/e2e/incident-brief.test.mjs:122` | asserted |
+| DRAFT-004 | 1 | The brief lists exactly the attached public component names | `tests/e2e/incident-brief.test.mjs:101` | asserted |
+| DRAFT-004 | 1 | The brief preserves each listed component’s claimed state | `tests/e2e/incident-brief.test.mjs:101` | asserted |
+| DRAFT-004 | 1 | The brief includes exactly the expected published update references | `tests/e2e/incident-brief.test.mjs:119` | asserted |
+| DRAFT-004 | 1 | The brief preserves its published lifecycle | `tests/e2e/incident-brief.test.mjs:119` | asserted |
+| DRAFT-004 | 1 | The brief preserves its public customer-impact text | `tests/e2e/incident-brief.test.mjs:119` | asserted |
+| DRAFT-004 | 2 | The brief asks its missing audience question | `tests/e2e/incident-brief.test.mjs:103` | asserted |
+| DRAFT-004 | 2 | The brief asks its missing customer-impact question | `tests/e2e/incident-brief.test.mjs:103` | asserted |
+| DRAFT-004 | 2 | The brief asks its missing next-update question | `tests/e2e/incident-brief.test.mjs:103` | asserted |
+| DRAFT-004 | 2 | The brief asks its never-published alert question | `tests/e2e/incident-brief.test.mjs:103` | asserted |
+| DRAFT-004 | 3 | The brief asks about recovery of an unresolved published incident | `tests/e2e/incident-brief.test.mjs:122` | asserted |
+| DRAFT-004 | 3 | The brief asks about the overdue next-update commitment | `tests/e2e/incident-brief.test.mjs:122` | asserted |
 | DRAFT-004 | 4 | Unique references | `tests/e2e/incident-brief.test.mjs:105` | asserted |
 | DRAFT-004 | 4 | References stable | `tests/e2e/incident-brief.test.mjs:121` | asserted |
 | DRAFT-004 | 5 | Brief equals model input | `tests/e2e/incident-brief.test.mjs:143` | asserted |
@@ -1149,7 +1417,9 @@ Old reference: `54e0e1dcfdc225ad17e42abff04b65d7f2bfdc72`.
 | TEAM-001 | 2 | Complete component and subscriber mutation parity | none | none |
 | TEAM-001 | 3 | Migrated operators all owner role | `tests/auth-adoption/upgrade.test.mjs:76` | asserted |
 | TEAM-002 | 1 | Settings invitation outcome | none | none |
-| TEAM-002 | 2 | Operator removed and anonymized | `tests/auth-adoption/upgrade.test.mjs:110` | asserted |
+| TEAM-002 | 2 | Native operator-removal route durably deactivates the identity | `tests/auth-adoption/upgrade.test.mjs:110` | asserted |
+| TEAM-002 | 2 | Native operator-removal route anonymizes the email | `tests/auth-adoption/upgrade.test.mjs:110` | asserted |
+| TEAM-002 | 2 | Settings removal is completed through the browser | none | none |
 | TEAM-002 | 3 | Another owner cannot revoke setup owner | `tests/auth-adoption/upgrade.test.mjs:93` | asserted |
 | TEAM-002 | 3 | Self-removal succeeds | `tests/auth-adoption/upgrade.test.mjs:114` | asserted |
 | TEAM-002 | 3 | Other owner cannot delete setup owner while still active | none | none |
@@ -1164,28 +1434,49 @@ Old reference: `54e0e1dcfdc225ad17e42abff04b65d7f2bfdc72`.
 | HIST-001 | 1 | Completed maintenance listed | `tests/e2e/public-contract.test.mjs:874` | asserted |
 | HIST-001 | 1 | Older record excluded | `tests/e2e/public-contract.test.mjs:877` | asserted |
 | HIST-001 | 1 | Month grouping asserted | none | none |
-| HIST-001 | 2 | Incident start/end/duration | `tests/e2e/public-contract.test.mjs:872` | asserted |
+| HIST-001 | 2 | The public incident displays the expected elapsed duration | `tests/e2e/public-contract.test.mjs:872` | asserted |
+| HIST-001 | 2 | The public incident contains its resolution instant | `tests/e2e/public-contract.test.mjs:871` | asserted |
+| HIST-001 | 2 | The public history displays the incident’s opening instant | none | none |
 | HIST-001 | 2 | Affected component | `tests/e2e/public-contract.test.mjs:875` | asserted |
 | HIST-001 | 2 | Maintenance start/end/duration | none | none |
 | HIST-001 | 2 | Every published update included | none | none |
-| HIST-002 | 1 | All four saved report fields | `tests/e2e/publishing-contract.test.mjs:1183` | asserted |
-| HIST-002 | 1 | One immutable report | `tests/e2e/publishing-contract.test.mjs:1188` | asserted |
+| HIST-002 | 1 | The saved report retains summary | `tests/e2e/publishing-contract.test.mjs:1183` | asserted |
+| HIST-002 | 1 | The saved report retains timeline | `tests/e2e/publishing-contract.test.mjs:1183` | asserted |
+| HIST-002 | 1 | The saved report retains cause | `tests/e2e/publishing-contract.test.mjs:1183` | asserted |
+| HIST-002 | 1 | The saved report retains remediation | `tests/e2e/publishing-contract.test.mjs:1183` | asserted |
+| HIST-002 | 1 | A published report refuses another draft | `tests/e2e/publishing-contract.test.mjs:1188` | asserted |
+| HIST-002 | 1 | A published report refuses changed cause text | `tests/e2e/publishing-contract.test.mjs:1189` | asserted |
+| HIST-002 | 1 | A published report refuses another publication | `tests/e2e/publishing-contract.test.mjs:1190` | asserted |
 | HIST-002 | 2 | Public report text | `tests/e2e/publishing-contract.test.mjs:1193` | asserted |
 | HIST-002 | 2 | Ten-second bound | none | none |
 | HIST-002 | 3 | Selected report channels and omitted channels | none | none |
-| HIST-003 | 1 | Major-outage report due after seven days | `tests/e2e/publishing-contract.test.mjs:1243` | asserted |
-| HIST-003 | 1 | Partially-unavailable representative uses same severity rule | `tests/e2e/publishing-contract.test.mjs:1206` | asserted |
-| HIST-004 | 1 | Incident populated archive row | `tests/e2e/export-import.test.mjs:200` | asserted |
-| HIST-004 | 1 | Update populated archive row | `tests/e2e/export-import.test.mjs:200` | asserted |
-| HIST-004 | 1 | Component populated archive row | `tests/e2e/export-import.test.mjs:200` | asserted |
-| HIST-004 | 1 | State history populated archive row | `tests/e2e/export-import.test.mjs:200` | asserted |
-| HIST-004 | 1 | Maintenance populated archive row | `tests/e2e/export-import.test.mjs:200` | asserted |
-| HIST-004 | 1 | Subscriber channel/state populated archive row | `tests/e2e/export-import.test.mjs:200` | asserted |
-| HIST-004 | 1 | Delivery populated archive row | `tests/e2e/export-import.test.mjs:200` | asserted |
-| HIST-004 | 1 | Report populated archive row | `tests/e2e/export-import.test.mjs:200` | asserted |
-| HIST-004 | 1 | Full entity graph restored | `tests/e2e/export-import.test.mjs:194` | asserted |
-| HIST-004 | 2 | Settings populated | `tests/e2e/export-import.test.mjs:197` | asserted |
-| HIST-004 | 2 | Audit populated | `tests/e2e/export-import.test.mjs:198` | asserted |
+| HIST-003 | 1 | A representative Major-outage incident is listed as report-due after eight days | `tests/e2e/publishing-contract.test.mjs:1243` | asserted |
+| HIST-003 | 1 | The operator report-due listing is asserted at the seven-day boundary | none | none |
+| HIST-003 | 1 | The severity rule is represented by another Major-outage report-due case | `tests/e2e/publishing-contract.test.mjs:1206` | asserted |
+| HIST-004 | 1 | The exported incident table is populated | `tests/e2e/export-import.test.mjs:200` | asserted |
+| HIST-004 | 1 | Every source incident record is present in the export | none | none |
+| HIST-004 | 1 | The exported update table is populated | `tests/e2e/export-import.test.mjs:200` | asserted |
+| HIST-004 | 1 | Every source update record is present in the export | none | none |
+| HIST-004 | 1 | The exported component table is populated | `tests/e2e/export-import.test.mjs:200` | asserted |
+| HIST-004 | 1 | Every source component record is present in the export | none | none |
+| HIST-004 | 1 | The exported component state-history table is populated | `tests/e2e/export-import.test.mjs:200` | asserted |
+| HIST-004 | 1 | Every source component state-history record is present in the export | none | none |
+| HIST-004 | 1 | The exported maintenance table is populated | `tests/e2e/export-import.test.mjs:200` | asserted |
+| HIST-004 | 1 | Every source maintenance record is present in the export | none | none |
+| HIST-004 | 1 | The exported subscriber table is populated | `tests/e2e/export-import.test.mjs:200` | asserted |
+| HIST-004 | 1 | Every source subscriber record is present in the export | none | none |
+| HIST-004 | 1 | Every exported subscriber retains its expected source channel | none | none |
+| HIST-004 | 1 | Every exported subscriber retains its expected source state | none | none |
+| HIST-004 | 1 | The exported delivery table is populated | `tests/e2e/export-import.test.mjs:200` | asserted |
+| HIST-004 | 1 | Every source delivery record is present in the export | none | none |
+| HIST-004 | 1 | The exported post-incident report table is populated | `tests/e2e/export-import.test.mjs:200` | asserted |
+| HIST-004 | 1 | Every source post-incident report record is present in the export | none | none |
+| HIST-004 | 1 | Every table and row present in the archive is restored identically | `tests/e2e/export-import.test.mjs:194` | asserted |
+| HIST-004 | 1 | The archive contains the full source entity graph | none | none |
+| HIST-004 | 2 | The exported settings table is populated | `tests/e2e/export-import.test.mjs:197` | asserted |
+| HIST-004 | 2 | Every source setting is present with its expected source value | none | none |
+| HIST-004 | 2 | The exported audit table is populated | `tests/e2e/export-import.test.mjs:198` | asserted |
+| HIST-004 | 2 | Every source audit entry is present with its complete source contents | none | none |
 | HIST-004 | 3 | Original image bytes | `tests/e2e/export-import.test.mjs:207` | asserted |
 | HIST-005 | 1 | First latency | `tests/e2e/helpers/communication-performance-flow.mjs:75` | asserted |
 | HIST-005 | 1 | Second latency | `tests/e2e/helpers/communication-performance-flow.mjs:76` | asserted |
@@ -1194,32 +1485,58 @@ Old reference: `54e0e1dcfdc225ad17e42abff04b65d7f2bfdc72`.
 | HIST-005 | 2 | Backdating preserves missed promise | `tests/e2e/helpers/communication-performance-flow.mjs:83` | asserted |
 | HIST-005 | 3 | Resolution duration | `tests/e2e/helpers/communication-performance-flow.mjs:78` | asserted |
 | HIST-005 | 3 | Reports owed | `tests/e2e/helpers/communication-performance-flow.mjs:74` | asserted |
-| HIST-005 | 4 | Recipient and outcome counts | `tests/e2e/helpers/communication-performance-flow.mjs:109` | asserted |
-| HIST-005 | 4 | Distinct reach | `tests/e2e/helpers/communication-performance-flow.mjs:119` | asserted |
-| HIST-005 | 5 | Incident CSV | `tests/e2e/helpers/communication-performance-flow.mjs:111` | asserted |
-| HIST-005 | 5 | Monthly CSV | `tests/e2e/helpers/communication-performance-flow.mjs:124` | asserted |
+| HIST-005 | 4 | The selected update is the only returned update | `tests/e2e/helpers/communication-performance-flow.mjs:109` | asserted |
+| HIST-005 | 4 | Email committed count is ten | `tests/e2e/helpers/communication-performance-flow.mjs:109` | asserted |
+| HIST-005 | 4 | Email delivered count is nine | `tests/e2e/helpers/communication-performance-flow.mjs:109` | asserted |
+| HIST-005 | 4 | Email bounced count is one | `tests/e2e/helpers/communication-performance-flow.mjs:109` | asserted |
+| HIST-005 | 4 | Email provider-accepted count remains ten despite two attempts | `tests/e2e/helpers/communication-performance-flow.mjs:109` | asserted |
+| HIST-005 | 4 | Webhook committed count is two | `tests/e2e/helpers/communication-performance-flow.mjs:109` | asserted |
+| HIST-005 | 4 | Webhook delivered count is two | `tests/e2e/helpers/communication-performance-flow.mjs:109` | asserted |
+| HIST-005 | 4 | Repeated-recipient send count reaches twenty | `tests/e2e/helpers/communication-performance-flow.mjs:119` | asserted |
+| HIST-005 | 4 | Distinct committed reach remains ten | `tests/e2e/helpers/communication-performance-flow.mjs:119` | asserted |
+| HIST-005 | 4 | Distinct delivered reach remains eight | `tests/e2e/helpers/communication-performance-flow.mjs:119` | asserted |
+| HIST-005 | 5 | Incident CSV preserves the expected email committed count | `tests/e2e/helpers/communication-performance-flow.mjs:111` | asserted |
+| HIST-005 | 5 | Incident CSV preserves the expected email delivered count | `tests/e2e/helpers/communication-performance-flow.mjs:111` | asserted |
+| HIST-005 | 5 | Incident CSV preserves the expected email bounced count | `tests/e2e/helpers/communication-performance-flow.mjs:111` | asserted |
+| HIST-005 | 5 | Incident CSV preserves the expected email provider-accepted count | `tests/e2e/helpers/communication-performance-flow.mjs:111` | asserted |
+| HIST-005 | 5 | Every incident CSV field and channel matches its report value | none | none |
+| HIST-005 | 5 | Monthly CSV email distinct-committed count is ten | `tests/e2e/helpers/communication-performance-flow.mjs:124` | asserted |
+| HIST-005 | 5 | Every monthly CSV value equals the corresponding displayed monthly report value | none | none |
 | HIST-005 | 6 | Configured zone month | `tests/e2e/helpers/communication-performance-flow.mjs:69` | asserted |
-| HIST-005 | 6 | Unknown alert/source facts | `tests/e2e/helpers/communication-performance-flow.mjs:96` | asserted |
+| HIST-005 | 6 | An imported incident without accepted-alert history has unknown first-update latency | `tests/e2e/helpers/communication-performance-flow.mjs:95` | asserted |
+| HIST-005 | 6 | An imported update without source delivery facts has unknown committed count | `tests/e2e/helpers/communication-performance-flow.mjs:96` | asserted |
+| HIST-005 | 6 | Missing source delivery coverage is labeled unknown | `tests/e2e/helpers/communication-performance-flow.mjs:96` | asserted |
 | HIST-005 | 4 | Delivery failure rate exact denominator | none | none |
 | HIST-006 | 1 | Stored keys only surface minute count | `tests/e2e/helpers/traffic-alerts-flow.mjs:158` | asserted |
 | HIST-006 | 1 | Visitor identifiers and raw path absent | `tests/e2e/helpers/traffic-alerts-flow.mjs:162` | asserted |
 | HIST-006 | 2 | No database binding | `tests/e2e/helpers/traffic-alerts-flow.mjs:168` | asserted |
-| HIST-006 | 2 | Public surfaces served without database | `tests/e2e/helpers/traffic-alerts-flow.mjs:181` | asserted |
-| HIST-006 | 2 | Counter works without database | `tests/e2e/helpers/traffic-alerts-flow.mjs:188` | asserted |
+| HIST-006 | 2 | Public page responds 200 with no database binding | `tests/e2e/helpers/traffic-alerts-flow.mjs:181` | asserted |
+| HIST-006 | 2 | Atom feed responds 200 with no database binding | `tests/e2e/helpers/traffic-alerts-flow.mjs:181` | asserted |
+| HIST-006 | 2 | Widget responds 200 with no database binding | `tests/e2e/helpers/traffic-alerts-flow.mjs:181` | asserted |
+| HIST-006 | 2 | Public page retains its expected full content without the database | none | none |
+| HIST-006 | 2 | Atom feed retains its expected full content without the database | none | none |
+| HIST-006 | 2 | Widget retains its expected full content without the database | none | none |
+| HIST-006 | 2 | The page minute counter records its single no-database request | `tests/e2e/helpers/traffic-alerts-flow.mjs:188` | asserted |
+| HIST-006 | 2 | The feed counter records its no-database request | none | none |
+| HIST-006 | 2 | The widget counter records its no-database request | none | none |
 | HIST-006 | 3 | Uneven same-hour baseline sums | `tests/e2e/helpers/traffic-alerts-flow.mjs:82` | asserted |
 | HIST-006 | 3 | Missing historical hour zero | `tests/e2e/helpers/traffic-alerts-flow.mjs:124` | asserted |
 | HIST-006 | 3 | Cold surface no spike | `tests/e2e/helpers/traffic-alerts-flow.mjs:125` | asserted |
 | HIST-006 | 4 | One stored alert | `tests/e2e/helpers/traffic-alerts-flow.mjs:95` | asserted |
 | HIST-006 | 4 | Surface and minute | `tests/e2e/helpers/traffic-alerts-flow.mjs:96` | asserted |
 | HIST-006 | 4 | One provider request | `tests/e2e/helpers/traffic-alerts-flow.mjs:98` | asserted |
-| HIST-006 | 4 | Observed request count | `tests/e2e/helpers/traffic-alerts-flow.mjs:99` | asserted |
-| HIST-006 | 4 | Same-hour mean | `tests/e2e/helpers/traffic-alerts-flow.mjs:100` | asserted |
+| HIST-006 | 4 | The provider message contains a numeric ten | `tests/e2e/helpers/traffic-alerts-flow.mjs:99` | asserted |
+| HIST-006 | 4 | The provider message binds ten to the observed minute request count | none | none |
+| HIST-006 | 4 | The provider message contains a numeric two | `tests/e2e/helpers/traffic-alerts-flow.mjs:100` | asserted |
+| HIST-006 | 4 | The provider message binds two to the same-hour baseline mean | none | none |
 | HIST-006 | 4 | Operator app link | `tests/e2e/helpers/traffic-alerts-flow.mjs:101` | asserted |
 | HIST-006 | 5 | Repeat tick no alert | `tests/e2e/helpers/traffic-alerts-flow.mjs:106` | asserted |
 | HIST-006 | 5 | Consecutive minutes one episode | `tests/e2e/helpers/traffic-alerts-flow.mjs:109` | asserted |
 | HIST-006 | 5 | No provider replay | `tests/e2e/helpers/traffic-alerts-flow.mjs:110` | asserted |
 | HIST-006 | 6 | Unresolved incident suppresses fresh burst | `tests/e2e/helpers/traffic-alerts-flow.mjs:140` | asserted |
-| HIST-006 | 7 | Public content unchanged | `tests/e2e/helpers/traffic-alerts-flow.mjs:111` | asserted |
+| HIST-006 | 7 | Traffic alerts preserve public status JSON bytes | `tests/e2e/helpers/traffic-alerts-flow.mjs:111` | asserted |
+| HIST-006 | 7 | Traffic alerts create no customer-facing incident | none | none |
+| HIST-006 | 7 | Traffic alerts preserve public page, feed and widget bytes | none | none |
 | HIST-006 | 3 | Zero baseline never infers spike | none | none |
 | HIST-009 | 1 | Default three | `tests/e2e/helpers/traffic-alerts-flow.mjs:46` | asserted |
 | HIST-009 | 1 | Six suppresses five | `tests/e2e/helpers/traffic-alerts-flow.mjs:88` | asserted |
@@ -1235,42 +1552,58 @@ Old reference: `54e0e1dcfdc225ad17e42abff04b65d7f2bfdc72`.
 | HIST-010 | 1 | Only known surfaces evidence | `tests/e2e/helpers/traffic-resolution-flow.mjs:23` | asserted |
 | HIST-010 | 1 | All unknown surfaces learning | `tests/e2e/helpers/traffic-resolution-flow.mjs:28` | asserted |
 | HIST-010 | 2 | Backdated refusal | `tests/e2e/helpers/traffic-resolution-flow.mjs:34` | asserted |
-| HIST-010 | 2 | Incident/draft retained | `tests/e2e/helpers/traffic-resolution-flow.mjs:36` | asserted |
+| HIST-010 | 2 | The refused backdated publication keeps lifecycle Investigating | `tests/e2e/helpers/traffic-resolution-flow.mjs:36` | asserted |
+| HIST-010 | 2 | A Resolved draft remains present after refusal | `tests/e2e/helpers/traffic-resolution-flow.mjs:36` | asserted |
+| HIST-010 | 2 | Every field of the retained incident and draft remains unchanged | none | none |
 | HIST-010 | 3 | Immediate override resolves | `tests/e2e/helpers/traffic-resolution-flow.mjs:43` | asserted |
-| HIST-010 | 3 | Private reason actor | `tests/e2e/helpers/traffic-resolution-flow.mjs:44` | asserted |
-| HIST-010 | 3 | Audit actor reason | `tests/e2e/helpers/traffic-resolution-flow.mjs:46` | asserted |
+| HIST-010 | 3 | The override reason appears in a private timeline note | `tests/e2e/helpers/traffic-resolution-flow.mjs:44` | asserted |
+| HIST-010 | 3 | That private override note names the acting operator | `tests/e2e/helpers/traffic-resolution-flow.mjs:44` | asserted |
+| HIST-010 | 3 | The override audit entry contains its reason | `tests/e2e/helpers/traffic-resolution-flow.mjs:46` | asserted |
+| HIST-010 | 3 | The same override audit entry names its operator | `tests/e2e/helpers/traffic-resolution-flow.mjs:46` | asserted |
 | HIST-010 | 3 | No public reason | `tests/e2e/helpers/traffic-resolution-flow.mjs:49` | asserted |
 | HIST-010 | 4 | Later resolution checked | `tests/e2e/helpers/traffic-resolution-flow.mjs:59` | asserted |
 | HIST-010 | 5 | Due-time hold | `tests/e2e/helpers/traffic-resolution-flow.mjs:71` | asserted |
-| HIST-010 | 5 | Retained draft | `tests/e2e/helpers/traffic-resolution-flow.mjs:72` | asserted |
+| HIST-010 | 5 | A Resolved draft is still present after the due-time hold | `tests/e2e/helpers/traffic-resolution-flow.mjs:72` | asserted |
+| HIST-010 | 5 | The complete held scheduled draft retains its saved fields | none | none |
 | HIST-010 | 6 | Near-baseline traffic | `tests/e2e/helpers/traffic-resolution-flow.mjs:79` | asserted |
 | HIST-010 | 6 | Retained schedule publishes | `tests/e2e/helpers/traffic-resolution-flow.mjs:82` | asserted |
-| HIST-010 | 6 | No override added | `tests/e2e/helpers/traffic-resolution-flow.mjs:84` | asserted |
+| HIST-010 | 6 | Near-baseline scheduled publication adds no private note | `tests/e2e/helpers/traffic-resolution-flow.mjs:84` | asserted |
+| HIST-010 | 6 | Near-baseline scheduled publication creates no override audit or other override record | none | none |
 | HIST-010 | 2 | Immediate unreasoned refusal | `tests/e2e/helpers/traffic-alerts-flow.mjs:149` | asserted |
 | HIST-007 | 1 | Current total equals whole list | `tests/e2e/helpers/subscriber-reporting-flow.mjs:94` | asserted |
-| HIST-007 | 1 | Channel/state counts | `tests/e2e/helpers/subscriber-reporting-flow.mjs:95` | asserted |
+| HIST-007 | 1 | Each returned channel/state bucket equals the matching complete-list filter count | `tests/e2e/helpers/subscriber-reporting-flow.mjs:95` | asserted |
+| HIST-007 | 1 | Every nonzero channel/state bucket is present in the report | none | none |
 | HIST-007 | 2 | Component count | `tests/e2e/helpers/subscriber-reporting-flow.mjs:69` | asserted |
 | HIST-007 | 2 | Deactivation reason | `tests/e2e/helpers/subscriber-reporting-flow.mjs:70` | asserted |
 | HIST-007 | 3 | Unavailable dimensions explicit | `tests/e2e/helpers/subscriber-reporting-flow.mjs:103` | asserted |
 | HIST-007 | 4 | Net change | `tests/e2e/helpers/subscriber-reporting-flow.mjs:77` | asserted |
-| HIST-007 | 4 | Closing/opening reconciliation | `tests/e2e/helpers/subscriber-reporting-flow.mjs:78` | asserted |
+| HIST-007 | 4 | Each returned daily closing value equals its reported opening plus net change | `tests/e2e/helpers/subscriber-reporting-flow.mjs:78` | asserted |
+| HIST-007 | 4 | Daily opening inventory matches its actual baseline or the previous day’s closing inventory | none | none |
+| HIST-007 | 4 | Daily closing inventory equals the actual eligible subscriber inventory | none | none |
 | HIST-007 | 4 | Confirmation neutral | `tests/e2e/helpers/subscriber-reporting-flow.mjs:85` | asserted |
-| HIST-007 | 5 | Channel move erasure and undo net | `tests/e2e/helpers/subscriber-reporting-flow.mjs:92` | asserted |
+| HIST-007 | 5 | The combined channel-move, deactivation, erasure and physical-deletion fixture adds the expected aggregate four joins and four leaves | `tests/e2e/helpers/subscriber-reporting-flow.mjs:92` | asserted |
+| HIST-007 | 5 | The channel move records its exact individual join and leave atomically | none | none |
+| HIST-007 | 5 | Erasure records its exact individual leave atomically | none | none |
+| HIST-007 | 5 | Import undo records its exact individual leave atomically | none | none |
 | HIST-007 | 6 | CSV summary total | `tests/e2e/helpers/subscriber-reporting-flow.mjs:74` | asserted |
-| HIST-007 | 6 | CSV daily values | `tests/e2e/helpers/subscriber-reporting-flow.mjs:80` | asserted |
+| HIST-007 | 6 | CSV daily net-change equals the corresponding report row | `tests/e2e/helpers/subscriber-reporting-flow.mjs:80` | asserted |
+| HIST-007 | 6 | CSV daily closing-inventory equals the corresponding report row | `tests/e2e/helpers/subscriber-reporting-flow.mjs:80` | asserted |
+| HIST-007 | 6 | Every remaining displayed aggregate and CSV value agree | none | none |
 | HIST-007 | 6 | No destinations | `tests/e2e/helpers/subscriber-reporting-flow.mjs:99` | asserted |
 | HIST-007 | 6 | No subscriber identities | `tests/e2e/helpers/subscriber-reporting-flow.mjs:100` | asserted |
 | HIST-007 | 7 | Historical days unknown | `tests/e2e/helpers/subscriber-reporting-flow.mjs:102` | asserted |
 | HIST-007 | 3 | Audience count/trend/CSV | none | none |
 | HIST-007 | 3 | Language count/trend/CSV | none | none |
 | HIST-007 | 5 | Expiry facts update atomically | none | none |
-| HIST-007 | 7 | Restored complete facts | `tests/e2e/export-import.test.mjs:194` | asserted |
+| HIST-007 | 7 | Any subscriber-reporting rows contained in the archive are restored identically | `tests/e2e/export-import.test.mjs:194` | asserted |
+| HIST-007 | 7 | The source’s complete nonempty observed subscriber-reporting facts are present in that archive | none | none |
 | HIST-007 | 7 | Legacy restore baseline | `tests/e2e/export-import.test.mjs:232` | asserted |
 | HIST-008 | 1 | Earlier month index link | `tests/e2e/helpers/catalogue-history-flow.mjs:191` | asserted |
 | HIST-008 | 1 | Oldest imported incident reached | `tests/e2e/helpers/catalogue-history-flow.mjs:209` | asserted |
 | HIST-008 | 1 | Script-disabled navigation asserted | none | none |
 | HIST-008 | 2 | No navigation loop | `tests/e2e/helpers/catalogue-history-flow.mjs:200` | asserted |
-| HIST-008 | 2 | Previous populated month | `tests/e2e/helpers/catalogue-history-flow.mjs:204` | asserted |
+| HIST-008 | 2 | A previous-month link exists during traversal to the oldest imported incident | `tests/e2e/helpers/catalogue-history-flow.mjs:204` | asserted |
+| HIST-008 | 2 | Every traversed intermediate month contains an incident or completed maintenance rather than an empty-month hop | none | none |
 | HIST-008 | 2 | Next month backlinks | `tests/e2e/helpers/catalogue-history-flow.mjs:206` | asserted |
 | HIST-008 | 3 | Configured timezone month | `tests/e2e/helpers/catalogue-history-flow.mjs:196` | asserted |
 | HIST-008 | 3 | Old incident permalink readable | `tests/e2e/helpers/catalogue-history-flow.mjs:210` | asserted |
@@ -1293,7 +1626,8 @@ Old reference: `54e0e1dcfdc225ad17e42abff04b65d7f2bfdc72`.
 | MOBILE-001 | 5 | Scheduled maintenance persisted and visible result | none | none |
 | MOBILE-001 | 6 | Each inspected screen has no overflow | `tests/e2e/helpers/phone-desk-flow.mjs:15` | asserted |
 | MOBILE-001 | 6 | Phone controls are at least 44 by 44 pixels | `tests/e2e/helpers/phone-desk-flow.mjs:23` | asserted |
-| SETUP-001 | 1 | Automatically checked page and form succeed | `tests/e2e/setup-readiness.test.mjs:93` | asserted |
+| SETUP-001 | 1 | Lamp actually reads the rendered public page after publication | none | none |
+| SETUP-001 | 1 | Lamp actually inspects the rendered subscription form after publication | none | none |
 | SETUP-001 | 1 | Form check is at or after publication | `tests/e2e/setup-readiness.test.mjs:94` | asserted |
 | SETUP-001 | 1 | Every change republishes | none | none |
 | SETUP-001 | 1 | Each minute scheduled check repeats | none | none |
@@ -1326,7 +1660,10 @@ Old reference: `54e0e1dcfdc225ad17e42abff04b65d7f2bfdc72`.
 | SETUP-002 | 2 | No website script request occurs | `tests/e2e/website-onboarding.test.mjs:169` | asserted |
 | SETUP-002 | 2 | Reload makes no second site read | `tests/e2e/website-onboarding.test.mjs:129` | asserted |
 | SETUP-002 | 2 | Every redirect refuses private/loopback destinations | none | none |
-| SETUP-002 | 2 | Observed page name, tagline, accent and timezone are stored | `tests/e2e/website-onboarding.test.mjs:136` | asserted |
+| SETUP-002 | 2 | Observed page name is stored | `tests/e2e/website-onboarding.test.mjs:136` | asserted |
+| SETUP-002 | 2 | Observed tagline is stored | `tests/e2e/website-onboarding.test.mjs:136` | asserted |
+| SETUP-002 | 2 | Observed accent colour is stored | `tests/e2e/website-onboarding.test.mjs:136` | asserted |
+| SETUP-002 | 2 | Browser timezone is stored | `tests/e2e/website-onboarding.test.mjs:136` | asserted |
 | SETUP-002 | 2 | Mark is stored as PNG bytes | `tests/e2e/website-onboarding.test.mjs:168` | asserted |
 | SETUP-002 | 2 | Navigation components are observed | `tests/e2e/website-onboarding.test.mjs:75` | asserted |
 | SETUP-002 | 3 | Source status component groups replace navigation | `tests/e2e/website-onboarding.test.mjs:101` | asserted |
@@ -1379,8 +1716,10 @@ Old reference: `54e0e1dcfdc225ad17e42abff04b65d7f2bfdc72`.
 | MOVE-001 | 2 | Dry run leaves every other table unwritten | none | none |
 | MOVE-001 | 2 | Each imported/changed/skipped/refused item has a named reason | none | none |
 | MOVE-001 | 3 | Changed source refuses apply | `tests/betterstack/flow.test.mjs:108` | asserted |
-| MOVE-001 | 3 | Changed target refuses apply | `tests/betterstack/flow.test.mjs:113` | asserted |
-| MOVE-001 | 3 | Refusal leaves job/component/group state unchanged | `tests/betterstack/flow.test.mjs:113` | asserted |
+| MOVE-001 | 3 | Changed target refuses apply and names the stale review | `tests/betterstack/flow.test.mjs:112` | asserted |
+| MOVE-001 | 3 | Stale-target refusal leaves no import job | `tests/betterstack/flow.test.mjs:113` | asserted |
+| MOVE-001 | 3 | Stale-target refusal creates no component | `tests/betterstack/flow.test.mjs:113` | asserted |
+| MOVE-001 | 3 | Stale-target refusal retains the one pre-existing group | `tests/betterstack/flow.test.mjs:113` | asserted |
 | MOVE-001 | 4 | Each channel capacity excess is named | none | none |
 | MOVE-001 | 4 | Excess subscribers are refused during dry run | none | none |
 | MOVE-001 | 4 | An over-limit apply writes nothing | none | none |
@@ -1389,37 +1728,55 @@ Old reference: `54e0e1dcfdc225ad17e42abff04b65d7f2bfdc72`.
 | MOVE-002 | 2 | Past Sorry maintenance is completed | `tests/e2e/sorry-import.test.mjs:74` | asserted |
 | MOVE-002 | 2 | Imported Better Stack maintenance has no native notice | `tests/betterstack/flow.test.mjs:57` | asserted |
 | MOVE-002 | 2 | Import queues no notification delivery | `tests/betterstack/flow.test.mjs:58` | asserted |
-| MOVE-002 | 3 | Repeated apply and job read send no mail | `tests/betterstack/flow.test.mjs:116` | asserted |
-| MOVE-002 | 3 | Concurrent repeat apply sends no mail | `tests/auth-adoption/cutover.test.mjs:60` | asserted |
+| MOVE-002 | 3 | Sequential repeated apply and the following job read leave the mail count zero | `tests/betterstack/flow.test.mjs:116` | asserted |
+| MOVE-002 | 3 | Sequential repeated applies send no mail | `tests/auth-adoption/cutover.test.mjs:60` | asserted |
+| MOVE-002 | 3 | Concurrent repeated applies send no mail | none | none |
 | MOVE-002 | 3 | Preview sends no mail | none | none |
 | MOVE-002 | 3 | Every resume sends no mail | none | none |
 | MOVE-002 | 3 | Cutover checks send no mail | none | none |
 | MOVE-002 | 4 | Each imported email subscriber is pending | none | none |
 | MOVE-013 | 1 | Signed-out invitation action is refused | `tests/auth-adoption/cutover.test.mjs:62` | asserted |
 | MOVE-013 | 1 | Invitation contains confirmation but no past incident text | none | none |
-| MOVE-013 | 2 | One transport handoff per recipient across concurrent batches | `tests/auth-adoption/cutover.test.mjs:68` | asserted |
-| MOVE-013 | 2 | One idempotency identity per recipient | `tests/auth-adoption/cutover.test.mjs:69` | asserted |
+| MOVE-013 | 2 | Concurrent and repeated batches produce exactly 57 transport messages | `tests/auth-adoption/cutover.test.mjs:67` | asserted |
+| MOVE-013 | 2 | Those 57 transport messages have 57 distinct recipients | `tests/auth-adoption/cutover.test.mjs:68` | asserted |
+| MOVE-013 | 2 | All 57 transport messages carry distinct idempotency identities | `tests/auth-adoption/cutover.test.mjs:69` | asserted |
 | MOVE-013 | 3 | Delayed invitation retains original deadline | `tests/auth-adoption/cutover.test.mjs:145` | asserted |
-| MOVE-013 | 3 | Expired imported address is excluded from invitations | `tests/auth-adoption/cutover.test.mjs:141` | asserted |
+| MOVE-013 | 3 | The expiry fixture sends one message | `tests/auth-adoption/cutover.test.mjs:141` | asserted |
+| MOVE-013 | 3 | That message is proved to exclude the expired recipient | none | none |
 | MOVE-013 | 3 | Expiry removes personal data from audit payload | `tests/auth-adoption/cutover.test.mjs:153` | asserted |
 | MOVE-013 | 3 | Instatus-specific original deadline and expiry | none | none |
 | MOVE-013 | 4 | Only ambiguous transport consumes a failed claim | `tests/auth-adoption/cutover.test.mjs:109` | asserted |
 | MOVE-013 | 4 | Preparation failure is retryable after repair | `tests/auth-adoption/cutover.test.mjs:116` | asserted |
-| MOVE-013 | 4 | Repaired sends retain one recipient handoff | `tests/auth-adoption/cutover.test.mjs:117` | asserted |
+| MOVE-013 | 4 | Preparation repair and repeated attempts leave exactly two transport messages | `tests/auth-adoption/cutover.test.mjs:116` | asserted |
+| MOVE-013 | 4 | Those two messages have two distinct recipients | `tests/auth-adoption/cutover.test.mjs:117` | asserted |
 | MOVE-003 | 1 | Repeated source reports already imported | `tests/e2e/statuspage-import.test.mjs:248` | asserted |
-| MOVE-003 | 1 | Repeated source preserves counts | `tests/e2e/statuspage-import.test.mjs:251` | asserted |
+| MOVE-003 | 1 | Repeated source preserves component count | `tests/e2e/statuspage-import.test.mjs:251` | asserted |
+| MOVE-003 | 1 | Repeated source preserves component-group count | `tests/e2e/statuspage-import.test.mjs:251` | asserted |
+| MOVE-003 | 1 | Repeated source preserves incident count | `tests/e2e/statuspage-import.test.mjs:251` | asserted |
+| MOVE-003 | 1 | Repeated source preserves maintenance count | `tests/e2e/statuspage-import.test.mjs:251` | asserted |
+| MOVE-003 | 1 | Repeated source preserves subscriber count | `tests/e2e/statuspage-import.test.mjs:251` | asserted |
+| MOVE-003 | 1 | Repeated source leaves every existing record content unchanged | none | none |
 | MOVE-003 | 1 | Repeated source preserves aliases | `tests/e2e/statuspage-import.test.mjs:255` | asserted |
 | MOVE-003 | 1 | Repeated source has no notification deliveries | `tests/e2e/statuspage-import.test.mjs:253` | asserted |
 | MOVE-003 | 1 | Repeated source creates no other notification work | none | none |
 | MOVE-003 | 2 | Cross-source imports preserve global record identity | none | none |
-| MOVE-004 | 1 | Complete untouched Sorry import returns all native counts to baseline | `tests/e2e/sorry-import.test.mjs:89` | asserted |
+| MOVE-004 | 1 | Untouched Sorry undo returns the component count to baseline | `tests/e2e/sorry-import.test.mjs:89` | asserted |
+| MOVE-004 | 1 | Untouched Sorry undo returns the component-group count to baseline | `tests/e2e/sorry-import.test.mjs:89` | asserted |
+| MOVE-004 | 1 | Untouched Sorry undo returns the incident count to baseline | `tests/e2e/sorry-import.test.mjs:89` | asserted |
+| MOVE-004 | 1 | Untouched Sorry undo returns the maintenance count to baseline | `tests/e2e/sorry-import.test.mjs:89` | asserted |
+| MOVE-004 | 1 | Untouched Sorry undo returns the subscriber count to baseline | `tests/e2e/sorry-import.test.mjs:89` | asserted |
+| MOVE-004 | 1 | Untouched undo removes every other imported record kind | none | none |
 | MOVE-004 | 2 | Edited incident survives | `tests/e2e/statuspage-import.test.mjs:279` | asserted |
 | MOVE-004 | 2 | Edited maintenance survives | `tests/e2e/statuspage-import.test.mjs:280` | asserted |
 | MOVE-004 | 2 | Subscriber confirmation survives undo | `tests/e2e/statuspage-import.test.mjs:294` | asserted |
-| MOVE-004 | 2 | Dependent components survive | `tests/e2e/statuspage-import.test.mjs:299` | asserted |
-| MOVE-004 | 2 | Dependent groups survive | `tests/e2e/statuspage-import.test.mjs:300` | asserted |
-| MOVE-004 | 2 | Incident retained explanation is named | `tests/e2e/statuspage-import.test.mjs:288` | asserted |
-| MOVE-004 | 2 | Maintenance retained explanation is named | `tests/e2e/statuspage-import.test.mjs:289` | asserted |
+| MOVE-004 | 2 | Every remaining component is in the selected dependency set or is the edited component | `tests/e2e/statuspage-import.test.mjs:299` | asserted |
+| MOVE-004 | 2 | Every required dependent component survives undo | none | none |
+| MOVE-004 | 2 | Remaining group count equals the number of distinct group identifiers on remaining components | `tests/e2e/statuspage-import.test.mjs:300` | asserted |
+| MOVE-004 | 2 | Every required dependent group identity survives undo | none | none |
+| MOVE-004 | 2 | Undo contains a retained incident disposition | `tests/e2e/statuspage-import.test.mjs:288` | asserted |
+| MOVE-004 | 2 | Undo names the specific retained incident and its explanation | none | none |
+| MOVE-004 | 2 | Undo contains a retained maintenance disposition | `tests/e2e/statuspage-import.test.mjs:289` | asserted |
+| MOVE-004 | 2 | Undo names the specific retained maintenance and its explanation | none | none |
 | MOVE-004 | 3 | Undo creates no outbound notification work | none | none |
 | MOVE-005 | 1 | Public imported addresses permanently redirect to their target | `tests/e2e/statuspage-import.test.mjs:230` | asserted |
 | MOVE-005 | 1 | Native record page contains imported title | `tests/e2e/statuspage-import.test.mjs:234` | asserted |
@@ -1437,7 +1794,9 @@ Old reference: `54e0e1dcfdc225ad17e42abff04b65d7f2bfdc72`.
 | MOVE-005 | 4 | Edited record keeps original aliases | `tests/e2e/statuspage-import.test.mjs:283` | asserted |
 | MOVE-005 | 4 | Removed record aliases become unavailable | `tests/e2e/statuspage-import.test.mjs:286` | asserted |
 | MOVE-005 | 4 | Aliases and feeds make no database query | none | none |
-| MOVE-005 | 5 | Unsafe source addresses are named and refused | `tests/e2e/statuspage-import.test.mjs:122` | asserted |
+| MOVE-005 | 5 | Unsafe source addresses are refused | `tests/e2e/statuspage-import.test.mjs:121` | asserted |
+| MOVE-005 | 5 | The refusal names the shortlink or public-address category | `tests/e2e/statuspage-import.test.mjs:122` | asserted |
+| MOVE-005 | 5 | The refusal names the rejected address itself | none | none |
 | MOVE-005 | 5 | Conflicting destinations are refused | `tests/e2e/statuspage-import.test.mjs:128` | asserted |
 | MOVE-005 | 5 | Every native-route collision is named/refused | none | none |
 | MOVE-005 | 5 | Retained legacy unusable aliases warn without suppressing snapshot | none | none |
@@ -1448,8 +1807,12 @@ Old reference: `54e0e1dcfdc225ad17e42abff04b65d7f2bfdc72`.
 | MOVE-005 | 7 | Better Stack history creates no lifecycle notice | none | none |
 | MOVE-005 | 7 | Better Stack history creates no replayed notification | none | none |
 | MOVE-006 | 1 | Nonempty cutover rows have native targets | `tests/auth-adoption/cutover.test.mjs:52` | asserted |
-| MOVE-006 | 1 | Large preview caps rows and retains total | `tests/auth-adoption/cutover.test.mjs:193` | asserted |
-| MOVE-006 | 1 | Address rows have address/path/target | `tests/auth-adoption/cutover.test.mjs:194` | asserted |
+| MOVE-006 | 1 | The large preview returns at most 25 rows | `tests/auth-adoption/cutover.test.mjs:193` | asserted |
+| MOVE-006 | 1 | Its reported total exceeds the displayed row count | `tests/auth-adoption/cutover.test.mjs:193` | asserted |
+| MOVE-006 | 1 | Its total equals the complete source address count | none | none |
+| MOVE-006 | 1 | A nonempty large preview has an address in every row | none | none |
+| MOVE-006 | 1 | A nonempty large preview has a source path in every row | none | none |
+| MOVE-006 | 1 | A nonempty large preview has a native target in every row | none | none |
 | MOVE-006 | 1 | Unavailable addresses are displayed | none | none |
 | MOVE-006 | 1 | Source-host limits are displayed | none | none |
 | MOVE-006 | 2 | Eligible imported invitation count is complete | `tests/auth-adoption/cutover.test.mjs:56` | asserted |
@@ -1476,15 +1839,24 @@ Old reference: `54e0e1dcfdc225ad17e42abff04b65d7f2bfdc72`.
 | MOVE-009 | 2 | Each reader is listed served after import | none | none |
 | MOVE-009 | 2 | Webhook and automation readers are unavailable before implementation | none | none |
 | MOVE-009 | 2 | Shipped automation shows old/new component addresses | none | none |
-| MOVE-009 | 3 | Guide includes correction, no-channel, update-component and degraded-only notes | `tests/e2e/cutover-browser.test.mjs:75` | asserted |
+| MOVE-009 | 3 | Guide includes the correction-update note | `tests/e2e/cutover-browser.test.mjs:75` | asserted |
+| MOVE-009 | 3 | Guide includes the no-channels-selected note | `tests/e2e/cutover-browser.test.mjs:75` | asserted |
+| MOVE-009 | 3 | Guide includes the component-state-with-update note | `tests/e2e/cutover-browser.test.mjs:75` | asserted |
+| MOVE-009 | 3 | Guide includes the degraded-only component note | `tests/e2e/cutover-browser.test.mjs:75` | asserted |
 | MOVE-011 | 1 | Imported report retains original publication time | `tests/e2e/helpers/postmortem-template-import-flow.mjs:72` | asserted |
 | MOVE-011 | 1 | Published report with source notify flag creates no notification of any kind | none | none |
-| MOVE-011 | 2 | Every source word and image/link URL remains in report summary | `tests/e2e/helpers/postmortem-template-import-flow.mjs:73` | asserted |
+| MOVE-011 | 2 | The fixture source text markers survive in the summary | `tests/e2e/helpers/postmortem-template-import-flow.mjs:73` | asserted |
+| MOVE-011 | 2 | The ordinary source link URL survives | `tests/e2e/helpers/postmortem-template-import-flow.mjs:73` | asserted |
+| MOVE-011 | 2 | The HTML source link URL survives | `tests/e2e/helpers/postmortem-template-import-flow.mjs:73` | asserted |
+| MOVE-011 | 2 | The source image name and URL survive | `tests/e2e/helpers/postmortem-template-import-flow.mjs:73` | asserted |
+| MOVE-011 | 2 | Every word of the complete source body survives | none | none |
 | MOVE-011 | 2 | Paragraph/list item line boundaries survive | none | none |
 | MOVE-011 | 2 | Heading line boundaries survive | none | none |
 | MOVE-011 | 2 | Image is not embedded in public report | `tests/e2e/helpers/postmortem-template-import-flow.mjs:90` | asserted |
 | MOVE-011 | 2 | Image URL is never fetched | none | none |
-| MOVE-011 | 3 | Only source summary is filled | `tests/e2e/helpers/postmortem-template-import-flow.mjs:74` | asserted |
+| MOVE-011 | 3 | The imported timeline is empty | `tests/e2e/helpers/postmortem-template-import-flow.mjs:74` | asserted |
+| MOVE-011 | 3 | The imported cause is empty | `tests/e2e/helpers/postmortem-template-import-flow.mjs:74` | asserted |
+| MOVE-011 | 3 | The imported remediation is empty | `tests/e2e/helpers/postmortem-template-import-flow.mjs:74` | asserted |
 | MOVE-011 | 3 | Empty timeline/cause/remediation fields are omitted from rendered report | none | none |
 | MOVE-011 | 3 | HIST-003 counts the imported report as published | none | none |
 | MOVE-011 | 4 | Draft publication time stays empty | `tests/e2e/helpers/postmortem-template-import-flow.mjs:75` | asserted |
@@ -1501,13 +1873,19 @@ Old reference: `54e0e1dcfdc225ad17e42abff04b65d7f2bfdc72`.
 | MOVE-011 | 6 | Repeated report source is already imported | `tests/e2e/helpers/postmortem-template-import-flow.mjs:102` | asserted |
 | MOVE-011 | 6 | Undo removes untouched published report | `tests/e2e/helpers/postmortem-template-import-flow.mjs:132` | asserted |
 | MOVE-011 | 6 | Undo preserves or removes edited/unmodified private report | `tests/e2e/helpers/postmortem-template-import-flow.mjs:133` | asserted |
-| MOVE-011 | 6 | Undo names retained edits | `tests/e2e/helpers/postmortem-template-import-flow.mjs:139` | asserted |
+| MOVE-011 | 6 | Undo records a retained incident disposition | `tests/e2e/helpers/postmortem-template-import-flow.mjs:139` | asserted |
+| MOVE-011 | 6 | Undo records a retained template disposition | `tests/e2e/helpers/postmortem-template-import-flow.mjs:139` | asserted |
+| MOVE-011 | 6 | Undo records a retained component disposition | `tests/e2e/helpers/postmortem-template-import-flow.mjs:139` | asserted |
+| MOVE-011 | 6 | Undo names the specific retained edited incident | none | none |
+| MOVE-011 | 6 | Undo names the specific retained edited template | none | none |
+| MOVE-011 | 6 | Undo names the specific retained edited component | none | none |
 | MOVE-014 | 1 | Template source folder survives | `tests/e2e/helpers/postmortem-template-import-flow.mjs:80` | asserted |
 | MOVE-014 | 1 | Template title survives | `tests/e2e/helpers/postmortem-template-import-flow.mjs:81` | asserted |
 | MOVE-014 | 1 | Template channel default survives | `tests/e2e/helpers/postmortem-template-import-flow.mjs:82` | asserted |
 | MOVE-014 | 1 | Template component state survives | `tests/e2e/helpers/postmortem-template-import-flow.mjs:84` | asserted |
 | MOVE-014 | 1 | Every source lifecycle survives | none | none |
-| MOVE-014 | 1 | All three source templates retain identities | `tests/e2e/helpers/postmortem-template-import-flow.mjs:78` | asserted |
+| MOVE-014 | 1 | Three templates with the fixture name prefix exist | `tests/e2e/helpers/postmortem-template-import-flow.mjs:78` | asserted |
+| MOVE-014 | 1 | All three original template names and source identities are preserved | none | none |
 | MOVE-014 | 2 | Impact contains first source paragraph | `tests/e2e/helpers/postmortem-template-import-flow.mjs:85` | asserted |
 | MOVE-014 | 2 | Remaining oversized details retain complete wording | `tests/e2e/helpers/postmortem-template-import-flow.mjs:116` | asserted |
 | MOVE-014 | 2 | Affected audience is derived from all selected component names | none | none |
@@ -1515,8 +1893,10 @@ Old reference: `54e0e1dcfdc225ad17e42abff04b65d7f2bfdc72`.
 | MOVE-014 | 3 | Oversized text is retained in full | `tests/e2e/helpers/postmortem-template-import-flow.mjs:116` | asserted |
 | MOVE-014 | 3 | Field is marked for shortening | `tests/e2e/helpers/postmortem-template-import-flow.mjs:117` | asserted |
 | MOVE-014 | 3 | Oversized template cannot apply | `tests/e2e/helpers/postmortem-template-import-flow.mjs:119` | asserted |
-| MOVE-014 | 4 | Dry run counts all templates | `tests/e2e/helpers/postmortem-template-import-flow.mjs:40` | asserted |
-| MOVE-014 | 4 | Dry run writes no template | `tests/e2e/helpers/postmortem-template-import-flow.mjs:51` | asserted |
+| MOVE-014 | 4 | Dry run reports three source templates read | `tests/e2e/helpers/postmortem-template-import-flow.mjs:39` | asserted |
+| MOVE-014 | 4 | Dry run reports three templates imported or changed | `tests/e2e/helpers/postmortem-template-import-flow.mjs:40` | asserted |
+| MOVE-014 | 4 | The template count is unchanged by dry run | `tests/e2e/helpers/postmortem-template-import-flow.mjs:51` | asserted |
+| MOVE-014 | 4 | Every existing template content is unchanged by dry run | none | none |
 | MOVE-014 | 4 | Application imports exactly the reviewed template plan | none | none |
 | MOVE-014 | 5 | Composer receives template impact | `tests/e2e/helpers/postmortem-template-import-flow.mjs:109` | asserted |
 | MOVE-014 | 5 | Composer receives template details | `tests/e2e/helpers/postmortem-template-import-flow.mjs:110` | asserted |
@@ -1525,7 +1905,7 @@ Old reference: `54e0e1dcfdc225ad17e42abff04b65d7f2bfdc72`.
 | MOVE-014 | 6 | Repeat retains exactly three imported templates | `tests/e2e/helpers/postmortem-template-import-flow.mjs:105` | asserted |
 | MOVE-014 | 6 | Undo removes unchanged templates | `tests/e2e/helpers/postmortem-template-import-flow.mjs:131` | asserted |
 | MOVE-014 | 6 | Edited template survives undo | `tests/e2e/helpers/postmortem-template-import-flow.mjs:136` | asserted |
-| MOVE-014 | 6 | Retained template keeps required component identities | `tests/e2e/helpers/postmortem-template-import-flow.mjs:138` | asserted |
+| MOVE-014 | 6 | The retained template has a nonempty complete original component set after undo | none | none |
 | MOVE-014 | 6 | Undo dispositions name template retention | `tests/e2e/helpers/postmortem-template-import-flow.mjs:139` | asserted |
 | AGENT-002 | 1 | Ten-minute preparation trigger creates a draft before any later tick | `tests/e2e/update-reminders.test.mjs:207` | asserted |
 | AGENT-002 | 1 | Draft restates last public impact | `tests/e2e/update-reminders.test.mjs:100` | asserted |
@@ -1537,22 +1917,31 @@ Old reference: `54e0e1dcfdc225ad17e42abff04b65d7f2bfdc72`.
 | AGENT-002 | 3 | Repeat retains one exact prepared draft | `tests/e2e/update-reminders.test.mjs:105` | asserted |
 | AGENT-002 | 3 | An existing operator draft is unchanged | `tests/e2e/update-reminders.test.mjs:195` | asserted |
 | AGENT-002 | 4 | Prepared by Lamp is stored | `tests/e2e/helpers/prepared-draft-flow.mjs:10` | asserted |
-| AGENT-002 | 4 | Complete private evidence is visible | `tests/e2e/helpers/prepared-draft-flow.mjs:31` | asserted |
+| AGENT-002 | 4 | A nonempty prepared evidence set is rendered completely in the private composer | none | none |
 | AGENT-002 | 4 | Citation links resolve to their brief sources | `tests/e2e/helpers/prepared-draft-flow.mjs:37` | asserted |
 | AGENT-002 | 5 | Original commitment time is unchanged | `tests/e2e/incident-brief.test.mjs:196` | asserted |
 | AGENT-002 | 5 | Preparation publishes no update | `tests/e2e/incident-brief.test.mjs:209` | asserted |
-| AGENT-002 | 5 | Preparation preserves all public bytes | `tests/e2e/incident-brief.test.mjs:210` | asserted |
+| AGENT-002 | 5 | Preparation preserves the public page bytes | `tests/e2e/incident-brief.test.mjs:210` | asserted |
+| AGENT-002 | 5 | Preparation preserves the Atom feed bytes | `tests/e2e/incident-brief.test.mjs:210` | asserted |
+| AGENT-002 | 5 | Preparation preserves the public status API bytes | `tests/e2e/incident-brief.test.mjs:210` | asserted |
+| AGENT-002 | 5 | Preparation preserves the widget bytes | `tests/e2e/incident-brief.test.mjs:210` | asserted |
+| AGENT-002 | 5 | Preparation preserves other published surface bytes | none | none |
 | AGENT-002 | 5 | Preparation queues no subscriber event | `tests/e2e/incident-brief.test.mjs:208` | asserted |
 | AGENT-002 | 5 | Preparation makes no model request | `tests/e2e/incident-brief.test.mjs:207` | asserted |
 | AGENT-002 | 5 | Company policy computes and permits the standard preparation call | none | none |
 | AGENT-002 | 6 | Unpublished prepared draft leaves incident overdue | `tests/e2e/update-reminders.test.mjs:213` | asserted |
 | AGENT-002 | 6 | Original public commitment remains | `tests/e2e/update-reminders.test.mjs:221` | asserted |
-| AGENT-004 | 1 | Firing item has source and evidence time | `tests/e2e/helpers/recovery-check-flow.mjs:25` | asserted |
+| AGENT-004 | 1 | The recovery response contains the linked firing item | `tests/e2e/helpers/recovery-check-flow.mjs:25` | asserted |
+| AGENT-004 | 1 | That item names its source record. | `tests/e2e/helpers/recovery-check-flow.mjs:25` | asserted |
+| AGENT-004 | 1 | That item carries a parseable evidence time | `tests/e2e/helpers/recovery-check-flow.mjs:25` | asserted |
 | AGENT-004 | 1 | Unreasoned resolution is refused | `tests/e2e/helpers/recovery-check-flow.mjs:29` | asserted |
 | AGENT-004 | 1 | Refusal leaves publication count unchanged | `tests/e2e/helpers/recovery-check-flow.mjs:30` | asserted |
 | AGENT-004 | 1 | Held company policy decides the resolution class | none | none |
-| AGENT-004 | 2 | Override resolves the incident and stores a private note | `tests/e2e/helpers/recovery-check-flow.mjs:45` | asserted |
-| AGENT-004 | 2 | Override reason and named actor are audited | `tests/e2e/helpers/recovery-check-flow.mjs:47` | asserted |
+| AGENT-004 | 2 | The overridden incident is Resolved | `tests/e2e/helpers/recovery-check-flow.mjs:45` | asserted |
+| AGENT-004 | 2 | An internal note contains the override reason | `tests/e2e/helpers/recovery-check-flow.mjs:45` | asserted |
+| AGENT-004 | 2 | An audit row contains the override reason | `tests/e2e/helpers/recovery-check-flow.mjs:47` | asserted |
+| AGENT-004 | 2 | That audit row has an actor identifier | `tests/e2e/helpers/recovery-check-flow.mjs:47` | asserted |
+| AGENT-004 | 2 | The audit actor equals the operator who published the override | none | none |
 | AGENT-004 | 2 | Override reason is absent publicly | `tests/e2e/helpers/recovery-check-flow.mjs:49` | asserted |
 | AGENT-004 | 3 | Five-minute recovery threshold is applied at its boundary | none | none |
 | AGENT-004 | 3 | Reported recovery initially remains held | `tests/e2e/helpers/recovery-check-flow.mjs:59` | asserted |
@@ -1562,7 +1951,9 @@ Old reference: `54e0e1dcfdc225ad17e42abff04b65d7f2bfdc72`.
 | AGENT-004 | 4 | Later re-fire invalidates recovery | `tests/e2e/helpers/recovery-check-flow.mjs:67` | asserted |
 | AGENT-004 | 4 | One firing grouped member prevents pass | `tests/e2e/helpers/recovery-check-flow.mjs:79` | asserted |
 | AGENT-004 | 5 | Scheduled failing resolution leaves old lifecycle | `tests/e2e/helpers/recovery-check-flow.mjs:86` | asserted |
-| AGENT-004 | 5 | Scheduled failure retains the draft and one prior update | `tests/e2e/helpers/recovery-check-flow.mjs:87` | asserted |
+| AGENT-004 | 5 | Scheduled failure leaves one prior published update | `tests/e2e/helpers/recovery-check-flow.mjs:87` | asserted |
+| AGENT-004 | 5 | Some draft still exists after scheduled failure | `tests/e2e/helpers/recovery-check-flow.mjs:87` | asserted |
+| AGENT-004 | 5 | The same failing draft identity and wording are retained | none | none |
 | AGENT-004 | 5 | Historical resolution follows the same recovery check | none | none |
 | AGENT-004 | 5 | An override cannot authorize a later scheduled resolution | none | none |
 | AGENT-004 | 6 | A nonempty absent-evidence list is exposed | `tests/e2e/helpers/recovery-check-flow.mjs:26` | asserted |
@@ -1570,25 +1961,35 @@ Old reference: `54e0e1dcfdc225ad17e42abff04b65d7f2bfdc72`.
 | AGENT-004 | 6 | Missing traffic evidence is specifically not tracked | none | none |
 | AGENT-004 | 6 | Missing support evidence is specifically not tracked | none | none |
 | AGENT-004 | 6 | Missing continuous-monitor evidence is specifically not tracked | none | none |
-| AGENT-005 | 1 | Each available alert and update is included exactly once | `tests/e2e/publishing-contract.test.mjs:1162` | asserted |
+| AGENT-005 | 1 | The timeline represents every available alert reference | `tests/e2e/publishing-contract.test.mjs:1162` | asserted |
+| AGENT-005 | 1 | The timeline represents every available published-update reference | `tests/e2e/publishing-contract.test.mjs:1162` | asserted |
+| AGENT-005 | 1 | The timeline line count equals the total available source count | `tests/e2e/publishing-contract.test.mjs:1163` | asserted |
 | AGENT-005 | 1 | Every timeline line cites a real source record | `tests/e2e/publishing-contract.test.mjs:1159` | asserted |
-| AGENT-005 | 1 | Source newlines add no uncited lines | `tests/e2e/publishing-contract.test.mjs:1163` | asserted |
+| AGENT-005 | 1 | Every generated timeline line, including source newlines, has a valid source citation | `tests/e2e/publishing-contract.test.mjs:1159` | asserted |
 | AGENT-005 | 1 | Internal-note canary is excluded | `tests/e2e/publishing-contract.test.mjs:1166` | asserted |
 | AGENT-005 | 2 | Report summary has incident opening instant | `tests/e2e/publishing-contract.test.mjs:1164` | asserted |
 | AGENT-005 | 2 | Report summary has published resolution instant | `tests/e2e/publishing-contract.test.mjs:1165` | asserted |
 | AGENT-005 | 2 | Report explicitly labels recorded rather than measured downtime | none | none |
-| AGENT-005 | 3 | Cause and remediation start empty | `tests/e2e/publishing-contract.test.mjs:1153` | asserted |
-| AGENT-005 | 3 | Both fields are required | `tests/e2e/publishing-contract.test.mjs:1154` | asserted |
-| AGENT-005 | 3 | Both fields carry prompts | `tests/e2e/publishing-contract.test.mjs:1155` | asserted |
-| AGENT-005 | 3 | Prompt review includes exact evidence refs | `tests/e2e/publishing-contract.test.mjs:1156` | asserted |
+| AGENT-005 | 3 | Generated cause starts empty | `tests/e2e/publishing-contract.test.mjs:1153` | asserted |
+| AGENT-005 | 3 | Generated remediation starts empty | `tests/e2e/publishing-contract.test.mjs:1153` | asserted |
+| AGENT-005 | 3 | Cause is marked required | `tests/e2e/publishing-contract.test.mjs:1154` | asserted |
+| AGENT-005 | 3 | Remediation is marked required | `tests/e2e/publishing-contract.test.mjs:1154` | asserted |
+| AGENT-005 | 3 | Cause carries a prompt | `tests/e2e/publishing-contract.test.mjs:1155` | asserted |
+| AGENT-005 | 3 | Remediation carries a prompt | `tests/e2e/publishing-contract.test.mjs:1155` | asserted |
+| AGENT-005 | 3 | Review evidence includes every available source reference | `tests/e2e/publishing-contract.test.mjs:1156` | asserted |
+| AGENT-005 | 3 | Review evidence contains no unrelated source reference | `tests/e2e/publishing-contract.test.mjs:1156` | asserted |
 | AGENT-005 | 4 | An empty cause with completed remediation refuses publication | none | none |
 | AGENT-005 | 4 | An untouched cause prompt with completed remediation refuses publication | none | none |
 | AGENT-005 | 4 | An untouched remediation prompt with completed cause refuses publication | none | none |
 | AGENT-005 | 4 | Untouched prompts refuse publication | `tests/e2e/publishing-contract.test.mjs:1175` | asserted |
 | AGENT-005 | 4 | Empty remediation refuses publication | `tests/e2e/publishing-contract.test.mjs:1179` | asserted |
 | AGENT-005 | 4 | Held policy decides report publication class | none | none |
-| AGENT-005 | 5 | Redrafting preserves every operator field | `tests/e2e/publishing-contract.test.mjs:1183` | asserted |
+| AGENT-005 | 5 | Redrafting preserves operator summary | `tests/e2e/publishing-contract.test.mjs:1183` | asserted |
+| AGENT-005 | 5 | Redrafting preserves operator timeline | `tests/e2e/publishing-contract.test.mjs:1183` | asserted |
+| AGENT-005 | 5 | Redrafting preserves operator cause | `tests/e2e/publishing-contract.test.mjs:1183` | asserted |
+| AGENT-005 | 5 | Redrafting preserves operator remediation | `tests/e2e/publishing-contract.test.mjs:1183` | asserted |
 | AGENT-005 | 5 | Draft summary canary is absent from public surfaces | `tests/e2e/publishing-contract.test.mjs:1170` | asserted |
-| AGENT-005 | 6 | Published report refuses later edits | `tests/e2e/publishing-contract.test.mjs:1189` | asserted |
+| AGENT-005 | 6 | A published report edit returns its refusal | `tests/e2e/publishing-contract.test.mjs:1189` | asserted |
+| AGENT-005 | 6 | The complete persisted report state is unchanged after the refused edit | none | none |
 | AGENT-005 | 6 | Public incident page has published cause | `tests/e2e/publishing-contract.test.mjs:1193` | asserted |
 | PAGE-013 | 3 | The public page writes no visitor data to browser storage | none | none |

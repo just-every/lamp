@@ -448,7 +448,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "fcb20efdc781da4f9e51ac8f5bd3a19b3b5dd39fc94075d40e129ed5e311b7b0",
+      "sha256": "db0f067e4987b7a9b7ce706d9e20fc4a50e023636edb78b60820261192e9242b",
       "executable": false
     },
     "AGENTS.md": {
@@ -496,7 +496,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "d1a887b6bfa21ff986e80da1b56fa23aafe51c532bd15f03556b56cde4d8606c",
+      "sha256": "d6e9fa64f5ba6e0a7abff35ef99d6085ff7fb1062d4149c02e947e95f0a0c7b7",
       "executable": false
     },
     "DEMO.md": {
@@ -559,8 +559,36 @@
       "sha256": "b6872cd7be720b3a9493609a8edf39ed81009cfc30eea275ecade93a3bf7993c",
       "executable": false
     },
+    "docs/contract/delivery-details.md": {
+      "sha256": "d926f286c38a9499b7146e4b33fae320824da7547ff301dd6ab60416c95be8b6",
+      "executable": false
+    },
+    "docs/contract/document-workflow.md": {
+      "sha256": "c25007df500dd488556447801b4e264f7da7152833e149457f00dc22b86d9489",
+      "executable": false
+    },
+    "docs/contract/DONE-AUDIT.md": {
+      "sha256": "6839a7615f4f5b5ef9bbf35e88e9e6f736afc34a1a67da7bd3785d0781e0da35",
+      "executable": false
+    },
     "docs/contract/ID-MAP.json": {
       "sha256": "c50cd0805d7a0bf7ce2dcf7c7b5c3e08e6905319ee6b3a94cec35103b0a899df",
+      "executable": false
+    },
+    "docs/contract/intake-details.md": {
+      "sha256": "9518d77793630f529675ead7e92420812e4bfd6c77202879a6add25efa788aad",
+      "executable": false
+    },
+    "docs/contract/operations-details.md": {
+      "sha256": "824408438983567372050597de6b53f584e02d380b1cdaf47fc1c6c46a8643e8",
+      "executable": false
+    },
+    "docs/contract/public-details.md": {
+      "sha256": "1543f5f231c9c7d88851804899b2854da57580b1ce1e48c1a7ccc19960237c0f",
+      "executable": false
+    },
+    "docs/contract/publishing-details.md": {
+      "sha256": "cffd71e2282ffdd4997392953a109d47e437554fdf3c4d3df915084e51498b16",
       "executable": false
     },
     "docs/deploy.md": {
@@ -2303,6 +2331,14 @@
       "sha256": "79ac31ed14c8e25e500ba37d7cef267cd07df3c3d569271363a2c33d250733e8",
       "executable": false
     },
+    "release-history/1.11.0.CONTRACT.md": {
+      "sha256": "e3d9ba198aae853aa99c153cd601f7df82f25bceaa1f34d92e29f12f6f8370be",
+      "executable": false
+    },
+    "release-history/1.11.0.json": {
+      "sha256": "87e548635583342c71d3a623d3e8fbd976da749fe80fa532e81c6dd02b8dc4d5",
+      "executable": false
+    },
     "release-history/1.2.0.CONTRACT.md": {
       "sha256": "4c9ba364ef456661518cb8fa4b915c271513b5270b364780fe66df621e90380b",
       "executable": false
@@ -2413,6 +2449,10 @@
     },
     "rer-setup.json": {
       "sha256": "88fc49f3d09fd9ff83687d6eed6747022124e64e173de386a8a62983ea3b203e",
+      "executable": false
+    },
+    "RULINGS.md": {
+      "sha256": "b99ead5e4c7bcab899757de75ca344b773fb2717c930759acc4ba095b4579bb7",
       "executable": false
     },
     "RUN-LOCALLY.md": {

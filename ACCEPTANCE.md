@@ -8,10 +8,10 @@ The primary journey: An operator sets up the page and components, accepts eviden
 
 | Tier | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
-| Core | 18 | 166 | 52 | 236 |
+| Core | 11 | 173 | 52 | 236 |
 | Agent surface | 0 | 0 | 5 | 5 |
 | Later | 0 | 0 | 0 | 0 |
-| Full target | 18 | 166 | 57 | 241 |
+| Full target | 11 | 173 | 57 | 241 |
 
 Judged from the code and tests at commit `9e1301e331992add4badf8b5e9ded34bc88d1f26` (26 October 2026). Field proof register: 19 rows; 0 passed, 0 failed, 19 not run.
 
@@ -21,7 +21,7 @@ Judged from the code and tests at commit `9e1301e331992add4badf8b5e9ded34bc88d1f
 
 #### DOCS-001 — Public owner documentation
 
-Core · published · **done** · Cites BASE-DOCS-001
+Core · published · **partial** · Cites BASE-DOCS-001
 
 **Requirement.** Public owner guidance is available on the app host, including the selected published Markdown pages; it is separate from the status-page host.
 
@@ -30,7 +30,7 @@ Core · published · **done** · Cites BASE-DOCS-001
 2. A selected page renders its repository Markdown, and documentation is absent from the public status-page host.
 
 **Evidence.** `tests/e2e/start-runtime.test.mjs`
-**Gap.** None.
+**Gap.** Old cited evidence asserts The unauthenticated documentation index returns HTTP 200; A representative selected VPAT page contains its released version and required chapter text; The selected VPAT page renders the version and chapter text held in its repository Markdown; The status-page host does not serve documentation. Unasserted: The documentation index’s usable guidance and navigation content are asserted.
 
 ### Public page
 
@@ -47,7 +47,7 @@ Core · published · **partial**
 4. Each visible component has its uptime figure and the daily record for the reporting window.
 
 **Evidence.** `tests/e2e/app-api.test.mjs`
-**Gap.** The cited evidence asserts the other audited outcomes; unasserted: Every visible component is present; Each visible component’s current state is present; Each visible component’s exact note is present; Every unresolved incident appears; Five most recent updates are shown in newest-first order; Each incident links its complete permanent timeline; All in-progress maintenance appears; The 14-day scheduled-maintenance inclusion boundary is asserted; Each visible component uptime figure is asserted.
+**Gap.** Old cited evidence asserts Overall status appears; The total daily-mark count is between six times ninety and six times ninety-one. Unasserted: Every visible component is present; Each visible component’s current state is present; Each visible component’s exact note is present; Every unresolved incident appears; Five most recent updates are shown in newest-first order; Each incident links its complete permanent timeline; All in-progress maintenance appears; The 14-day scheduled-maintenance inclusion boundary is asserted; Daily-mark coverage is reconciled separately for every visible component; Each visible component uptime figure is asserted.
 
 #### PAGE-002 — Readable without script
 
@@ -61,7 +61,7 @@ Core · published · **partial**
 3. With scripting available, the configured time zone and its label remain unchanged; operator entry, timelines, previews and public timestamps use that zone.
 
 **Evidence.** `tests/e2e/public-contract.test.mjs`
-**Gap.** The cited evidence asserts the other audited outcomes; unasserted: All PAGE-001 content is reconciled in initial HTML; Every status, update and timestamp is readable with scripting disabled; The public subscription form successfully submits without scripting; Operator entry uses the configured zone; Timeline timestamps use the configured zone; Preview timestamps use the configured zone.
+**Gap.** Old cited evidence asserts Initial HTML contains the overall Operational label; Initial HTML contains the representative component name; Initial HTML contains a timestamp; Initial HTML contains the subscription form. Unasserted: All PAGE-001 content is reconciled in initial HTML; Every status, update and timestamp is readable with scripting disabled; The public subscription form successfully submits without scripting; Public timestamp text remains in the configured zone; Operator entry uses the configured zone; Timeline timestamps use the configured zone; Preview timestamps use the configured zone.
 
 #### PAGE-003 — Weight
 
@@ -102,7 +102,7 @@ Core · published · **partial** · Cites BASE-OPS-004
 3. A failed snapshot write is retried until success; the prior snapshot continues serving during recovery.
 
 **Evidence.** `tests/e2e/publishing-contract.test.mjs`, `tests/e2e/snapshot-retained.test.mjs`
-**Gap.** The cited evidence asserts the other audited outcomes; unasserted: Every PAGE-001 change triggers a complete snapshot; Public snapshot reads issue no database query rather than merely surviving missing tables.
+**Gap.** Old cited evidence asserts A rendered public-page artifact exists; An Atom-feed artifact exists; A widget artifact exists; A failed build remains stale until a retry. Unasserted: Every PAGE-001 change triggers a complete snapshot; The public page remains readable without the database; The feed remains readable without the database; The widget remains readable without the database; The old publication body is read back while the unrecoverable replica failure is in force; Public snapshot reads issue no database query rather than merely surviving missing tables.
 
 #### PAGE-006 — Serving through a failure
 
@@ -116,7 +116,7 @@ Core · published · **partial** · Cites BASE-OPS-001
 3. Content not built from current data identifies its generation instant and says Last known state; a failed read never invents an operational all-clear.
 
 **Evidence.** `tests/e2e/app-api.test.mjs`, `tests/e2e/public-contract.test.mjs`, `tests/e2e/publishing-contract.test.mjs`
-**Gap.** The cited evidence asserts the other audited outcomes; unasserted: The Atom feed survives database outage; The widget survives database outage; Page content survives queue outage; Atom feed content survives queue outage; Widget content survives queue outage; Page content survives object-storage outage; Atom feed content survives object-storage outage; Widget content survives object-storage outage; Origin outage uses the specified cached-response window; Page is unavailable only before first publication; Atom feed is unavailable only before first publication; Widget is unavailable only before first publication. Additional retained and queue-outage assertions are in tests/e2e/snapshot-retained.test.mjs and tests/e2e/queue-outage.test.mjs, which the old Evidence cell did not cite.
+**Gap.** Old cited evidence asserts The page body still contains Partially unavailable after database removal; Stale page content is labeled Last known state; The generation instant is visible in stale page content; The retained failure body contains Partially unavailable. Unasserted: The Atom feed survives database outage; The widget survives database outage; Page content survives queue outage; Atom feed content survives queue outage; Widget content survives queue outage; Page content survives object-storage outage; Atom feed content survives object-storage outage; Widget content survives object-storage outage; Origin outage uses the specified cached-response window; Page is unavailable only before first publication; Atom feed is unavailable only before first publication; Widget is unavailable only before first publication.
 
 #### PAGE-007 — Publish latency and caching
 
@@ -157,7 +157,7 @@ Core · published · **partial**
 3. Initial HTML and script-disabled readers see the absolute generation time; incident, maintenance, feed and notification timestamps remain absolute.
 
 **Evidence.** `tests/e2e/public-contract.test.mjs`. The PAGE-014/PAGE-009 journey finds the relative generation label with the absolute zone-and-offset tooltip and ISO datetime (`tests/e2e/public-contract.test.mjs`, lines 622-627). Changed in 1.11.0 by the owner's S4 exception (DIVERGENCE.md "Public page clarity"): the generation time shows a relative label while script runs; RELEASE.json records the change.
-**Gap.** The cited evidence asserts the other audited outcomes; unasserted: Notification timestamps use the configured zone and offset; The relative label’s later refresh is asserted rather than only awaited; Script-disabled generation text remains absolute; Maintenance, feed and notification text remains absolute.
+**Gap.** Old cited evidence asserts Scripted public timestamp retains the exact instant; The initial scripted generation label is relative. Unasserted: Initial public timestamp text uses the configured zone and exact instant; Scripted public timestamp uses the configured zone and offset; Notification timestamps use the configured zone and offset; The generation tooltip preserves the absolute instant and configured zone; The relative label’s later refresh is asserted rather than only awaited; Initial public HTML retains absolute timestamps; Script-disabled generation text remains absolute; Maintenance, feed and notification text remains absolute.
 
 #### PAGE-010 — Atom feed
 
@@ -184,7 +184,7 @@ Core · published · **partial** · Cites BASE-PUBLIC-002
 2. The widget is at most 10 KiB gzipped and loads only from the installation’s own origin.
 
 **Evidence.** `tests/e2e/public-contract.test.mjs`
-**Gap.** The cited evidence asserts the other audited outcomes; unasserted: The banner content asserts both overall state and unresolved incident; Every widget load is observed to stay on the installation origin.
+**Gap.** Old cited evidence asserts The widget is at most ten KiB gzipped; The nonempty widget source contains neither XMLHttpRequest nor importScripts. Unasserted: The banner content asserts both overall state and unresolved incident; The widget performs no other foreign-origin or alternate network load; Every widget load is observed to stay on the installation origin.
 
 #### PAGE-012 — Branding
 
@@ -199,7 +199,7 @@ Core · published · **partial**
 4. The favicon combines the configured logo with a mark for the current overall state; Open Graph title and image state that overall status.
 
 **Evidence.** `tests/e2e/app-api.test.mjs`, `tests/e2e/public-contract.test.mjs`
-**Gap.** The cited evidence asserts the other audited outcomes; unasserted: Logo is changed and read back; Accent color is changed and read back; Time zone is changed and read back; Hostname is changed and read back; Disabling credit has no network effect; Open Graph title states the current overall status.
+**Gap.** Old cited evidence asserts Changing the page name reaches the public page; Footer credit begins enabled; Enabled credit displays Powered by Lamp; Disabling credit removes it. Unasserted: Logo is changed and read back; Accent color is changed and read back; Time zone is changed and read back; Hostname is changed and read back; Disabling credit has no network effect; The direct first-party logo response bytes are read back as the configured logo; Open Graph title states the current overall status.
 
 #### PAGE-013 — Enforced isolation
 
@@ -213,7 +213,7 @@ Core · published · **partial** · Cites BASE-PUBLIC-001
 3. The public page writes no visitor data to browser storage.
 
 **Evidence.** `tests/e2e/delivery-contract.test.mjs`, `tests/e2e/public-contract.test.mjs`
-**Gap.** The cited evidence asserts the other audited outcomes; unasserted: A populated public page is checked for absence of CAPTCHA; A populated public page is checked for absence of consent banner. Absence of public-page visitor-data writes to browser storage is also unasserted.
+**Gap.** Old cited evidence asserts The default-src directive names the own origin in the exact complete CSP; The script-src directive names the own origin in the exact complete CSP; The style-src directive names the own origin in the exact complete CSP; The img-src directive names the own origin in the exact complete CSP. Unasserted: A populated public page is checked for absence of CAPTCHA; A populated public page is checked for absence of consent banner; The public page writes no visitor data to browser storage.
 
 #### PAGE-014 — Live refresh
 
@@ -242,7 +242,7 @@ Core · published · **partial**
 2. Severity is ordered Major outage, Partially unavailable, Degraded performance, Under maintenance, Operational.
 
 **Evidence.** `tests/e2e/public-contract.test.mjs`
-**Gap.** The cited evidence asserts the other audited outcomes; unasserted: Partially unavailable outranks Degraded performance; Under maintenance outranks Operational.
+**Gap.** Old cited evidence asserts The component-state vocabulary is exact; Degraded performance outranks Under maintenance; Degraded performance outranks Operational; Major outage outranks Partially unavailable. Unasserted: Partially unavailable outranks Degraded performance; Under maintenance outranks Operational.
 
 #### COMP-002 — Grouping and order
 
@@ -268,7 +268,7 @@ Core · published · **partial**
 2. Prior entries are neither modified nor removed, including when UPTIME-004 corrects an interval by appending a superseding entry.
 
 **Evidence.** `tests/e2e/public-contract.test.mjs`
-**Gap.** The cited evidence asserts the other audited outcomes; unasserted: Every public-state change records the causing operator or incident; Prior history values are unchanged rather than only present.
+**Gap.** Old cited evidence asserts A history row records the previous Operational state; The same history row records the new Operational state; The same history row records a standing-claim cause; A correction row names the operator. Unasserted: Every public-state change records the causing operator or incident; Prior history values are unchanged rather than only present.
 
 #### COMP-004 — State note
 
@@ -362,7 +362,7 @@ Core · published · **partial**
 3. A component with no data says No data.
 
 **Evidence.** `tests/e2e/public-contract.test.mjs`. First-day coverage reads in hours and minutes (`tests/e2e/public-contract.test.mjs`, line 405); whole-day labels apply from one day (`tests/e2e/public-contract.test.mjs`, line 452). Changed in 1.11.0 by the owner's S4 exception (DIVERGENCE.md "Public page clarity"): first-day coverage reads in hours and minutes, and a component with no data says No data; RELEASE.json records the change.
-**Gap.** The cited evidence asserts the other audited outcomes; unasserted: Minute-based short-coverage labels are asserted; Less-than-one-minute coverage labels are asserted.
+**Gap.** Old cited evidence asserts The public percentage denominator starts at the fixture’s first history record rather than inventing ninety days; Sub-day coverage is labeled in hours; Longer coverage is labeled in whole days; A zero-elapsed fixture displays No data. Unasserted: Minute-based short-coverage labels are asserted; Less-than-one-minute coverage labels are asserted.
 
 #### UPTIME-004 — Corrections
 
@@ -377,7 +377,7 @@ Core · published · **partial** · Cites BASE-AUDIT-001
 4. The audit records operator, interval and reason.
 
 **Evidence.** `tests/e2e/public-contract.test.mjs`
-**Gap.** The cited evidence asserts the other audited outcomes; unasserted: Every affected figure is observed within sixty seconds.
+**Gap.** Old cited evidence asserts The corrected state is retained; The stored correction retains the exact interval start; The stored correction retains the exact interval end; The reason is retained. Unasserted: Every affected figure is observed within sixty seconds.
 
 #### UPTIME-005 — Stated method
 
@@ -404,7 +404,7 @@ Core · published · **partial**
 3. Days before tracking begins are labeled No data and visually distinct from a zero-downtime day.
 
 **Evidence.** `tests/e2e/public-contract.test.mjs`
-**Gap.** The cited evidence asserts the other audited outcomes; unasserted: The rendered downtime-day label contains its exact minute count; Rendered untracked days are visually distinct from healthy days.
+**Gap.** Old cited evidence asserts The aggregate mark count divided by two hundred lies between ninety and ninety-one; A day’s sixty downtime minutes are retained; Untracked days have null downtime; Tracked healthy days have zero downtime. Unasserted: The complete trailing daily-record length is reconciled for every component separately; The rendered downtime-day label contains its exact minute count; Rendered untracked days are visually distinct from healthy days.
 
 ### Incidents
 
@@ -450,7 +450,7 @@ Core · published · **partial**
 5. Legacy timestamp-sized references do not choose the sequence’s starting point.
 
 **Evidence.** `tests/e2e/publishing-contract.test.mjs`, `tests/reference-storage/references.test.mjs`
-**Gap.** Asserted: numeric reference; public address contains reference; increasing sequence; legacy reference unchanged; deletion avoids reuse; restart avoids reuse; failed reservation safe; legacy timestamps do not set sequence. Unasserted in old cited evidence: manual and intake share sequence; public address unchanged.
+**Gap.** Old cited evidence asserts numeric reference; The numeric-reference permalink returns that incident’s title; increasing sequence; legacy reference unchanged. Unasserted: manual and intake share sequence; public address unchanged.
 
 #### INCIDENT-004 — Published updates are immutable
 
@@ -504,7 +504,7 @@ Core · published · **partial** · Cites BASE-INPUT-001, BASE-OPS-005
 3. The deletion record identifies its operator, reason and time.
 
 **Evidence.** `tests/e2e/publishing-contract.test.mjs`
-**Gap.** Asserted: missing reason refused; history removal; Atom removal. Unasserted in old cited evidence: public page removal; ten-second removal; deletion actor; deletion reason; deletion time.
+**Gap.** Old cited evidence asserts missing reason refused. Unasserted: public page removal; history removal after demonstrated pre-deletion public visibility; Atom removal after demonstrated pre-deletion public visibility; ten-second removal; deletion actor; deletion reason; deletion time.
 
 #### INCIDENT-008 — Internal notes
 
@@ -517,7 +517,7 @@ Core · published · **partial** · Cites BASE-ACCESS-002, BASE-ROLE-001
 2. Public page, Atom feed, widget, notifications and AI requests omit those notes.
 
 **Evidence.** `tests/e2e/publishing-contract.test.mjs`
-**Gap.** Asserted: populated note absent publicly; populated note absent from Atom; populated note absent from widget. Unasserted in old cited evidence: stored operator note read; note absent from notifications; note absent from AI requests.
+**Gap.** Old cited evidence asserts none of the audited outcomes. Unasserted: stored operator note read; populated note absent publicly after reading back the stored private note; populated note absent from Atom after reading back the stored private note; populated note absent from widget after reading back the stored private note; note absent from notifications; note absent from AI requests.
 
 #### INCIDENT-009 — Retroactive incidents
 
@@ -532,7 +532,7 @@ Core · published · **partial**
 4. No update of the retroactive incident notifies subscribers, including later current-time updates.
 
 **Evidence.** `tests/e2e/publishing-contract.test.mjs`
-**Gap.** Asserted: first original time; resolution original time; history first time; history resolution time; historical state rows; weighted historical uptime; historical zero deliveries; later update zero deliveries. Unasserted in old cited evidence: public timeline original times.
+**Gap.** Old cited evidence asserts first original time; resolution original time; history first time; history resolution time. Unasserted: public timeline original times.
 
 #### INCIDENT-010 — Update due
 
@@ -569,7 +569,7 @@ Core · published · **partial** · Cites BASE-INPUT-001, BASE-INPUT-002
 6. The next-update time is a commitment to communicate, never a resolution-time estimate.
 
 **Evidence.** `tests/e2e/publishing-contract.test.mjs`, `tests/reference-storage/incident-publishing.test.mjs`, `tests/reference-storage/migration.test.mjs`. Changed in 1.10.0 with UPDATE-013: a bare https:// URL in any field becomes a link, nothing else is interpreted; RELEASE.json records the change.
-**Gap.** Asserted: unresolved next-update time required; resolved needs no next-update time; legacy resolved time omitted in public/email renderer; invalid publish refused; no update; no recipients. Unasserted in old cited evidence: component required; affected audience required; customer impact required; what-still-works optional and bounded; details optional and bounded; HTML literal; Markdown literal; communication commitment not resolution estimate; legacy resolved time omitted by every public and notification surface.
+**Gap.** Old cited evidence asserts unresolved next-update time required; resolved needs no next-update time; A legacy resolved promise is absent from public renderer fields; A legacy resolved promise is absent from email renderer text. Unasserted: component required; affected audience required; customer impact required; what-still-works optional and bounded; details optional and bounded; HTML literal; Markdown literal; communication commitment not resolution estimate; legacy resolved time omitted by every public and notification surface.
 
 #### UPDATE-002 — One rendering
 
@@ -582,7 +582,7 @@ Core · published · **partial**
 2. Each surface omits fields the update does not carry.
 
 **Evidence.** `tests/e2e/publishing-browser.test.mjs`, `tests/e2e/publishing-contract.test.mjs`. Changed in 1.10.0 with UPDATE-013: every surface renders the same links from the shared renderer; RELEASE.json records the change.
-**Gap.** Asserted: page populated fields; Atom populated fields; widget populated fields; email populated fields. Unasserted in old cited evidence: absent fields omitted everywhere.
+**Gap.** Old cited evidence asserts Atom renders affected-audience wording; Atom renders customer-impact wording; Atom renders what-still-works wording; Atom renders details wording. Unasserted: The public root page renders every populated update field; Atom renders the populated next-update commitment; widget renders the populated next-update commitment; The email renders the populated affected-audience wording; The email renders the populated customer-impact wording; The email renders the populated what-still-works wording; The email renders the populated next-update commitment; absent fields omitted everywhere.
 
 #### UPDATE-003 — Sets the lifecycle
 
@@ -627,7 +627,7 @@ Core · published · **partial**
 7. Lost-acknowledgement reconciliation identifies the attempted write and preserves later workflow changes.
 
 **Evidence.** `tests/e2e/publishing-browser.test.mjs`, `tests/e2e/publishing-contract.test.mjs`
-**Gap.** Asserted: page excludes populated draft; Atom excludes populated draft; widget excludes populated draft; two-second save; exact reload; next draft empty. Unasserted in old cited evidence: lifecycle prompts; stale tab cannot revive publication; stale tab cannot overwrite newer draft; draft write requires acknowledged version; template requires acknowledged version; schedule requires acknowledged version; publication requires acknowledged version; fresh draft not falsely saved; Publish requires acknowledged complete draft; attempted write identified; later workflow changes retained.
+**Gap.** Old cited evidence asserts page excludes populated draft; Atom excludes populated draft; widget excludes populated draft; two-second save. Unasserted: Reload independently asserts unchanged audience; Reload independently asserts unchanged impact; Reload independently asserts unchanged what-still-works; Reload independently asserts unchanged lifecycle; After publication the next draft’s other wording fields are independently asserted empty; lifecycle prompts; stale tab cannot revive publication; stale tab cannot overwrite newer draft; draft write requires acknowledged version; template requires acknowledged version; schedule requires acknowledged version; publication requires acknowledged version; fresh draft not falsely saved; Publish requires acknowledged complete draft; attempted write identified; later workflow changes retained.
 
 #### UPDATE-006 — Scheduled publish
 
@@ -641,7 +641,7 @@ Core · published · **partial**
 3. Under the owner’s review policy, an unreviewed due update stays a draft and raises a NOTIFY-006 operator notice.
 
 **Evidence.** `tests/e2e/publishing-browser.test.mjs`, `tests/e2e/publishing-contract.test.mjs`
-**Gap.** Asserted: eventual publication; public privacy before time. Unasserted in old cited evidence: 240-second bound; no early notification; review hold stays draft; operator notice for held schedule.
+**Gap.** Old cited evidence asserts After its scheduled trigger the specific incident permalink contains the scheduled draft’s unique wording; public privacy before time. Unasserted: 240-second bound; no early notification; review hold stays draft; operator notice for held schedule.
 
 #### UPDATE-007 — Review
 
@@ -752,7 +752,7 @@ Core · published · **partial**
 1. Unless the owner replaces the reminder policy, subscribers are notified at scheduling, twenty-four hours before start, at In progress and at Completed.
 
 **Evidence.** `tests/e2e/publishing-contract.test.mjs`
-**Gap.** Asserted: scheduled notice; 24-hour reminder notice. Unasserted in old cited evidence: start subscriber notification; completion subscriber notification.
+**Gap.** Old cited evidence asserts A scheduled maintenance notice record exists; A twenty-four-hour reminder notice record exists. Unasserted: The scheduling notice reaches subscribers; The twenty-four-hour reminder reaches subscribers; start subscriber notification; completion subscriber notification.
 
 #### MAINT-006 — Rescheduling and cancellation
 
@@ -784,7 +784,7 @@ Core · published · **partial** · Cites BASE-PUBLIC-001
 5. The form works with scripting disabled, refuses a cross-site submission and needs no ambient session or form token.
 
 **Evidence.** `tests/e2e/app-api.test.mjs`, `tests/e2e/delivery-contract.test.mjs`
-**Gap.** Old cited evidence asserts pending subscription; one confirmation; concurrent confirmation reservation. It does not assert: confirmation within 60 seconds; 24-hour expiry of confirmation allowance; unsubscribe restores the allowance immediately; absence of other notifications while pending; cross-site refusal asserted in tests/e2e/subscriber-isolation-helper.mjs outside the old Evidence set; no form token or ambient session requirement.
+**Gap.** Old cited evidence asserts pending subscription; one captured confirmation envelope; captured envelope contains its confirmation link; concurrent confirmation reservation. Unasserted: confirmation recipient equals the submitted address; confirmation within 60 seconds; 24-hour expiry of confirmation allowance; unsubscribe restores the allowance immediately; absence of other notifications while pending; cross-site refusal asserted in tests/e2e/subscriber-isolation-helper.mjs outside the old Evidence set; no form token or ambient session requirement.
 
 #### SUB-002 — Confirmation
 
@@ -801,7 +801,7 @@ Core · published · **done**
 
 #### SUB-003 — Pending expiry
 
-Core · published · **done** · Cites BASE-DATA-002
+Core · published · **partial** · Cites BASE-DATA-002
 
 **Requirement.** Unverified pending addresses are retained only while confirmation remains possible. Supersedes `BASE-DATA-002` for pending subscriptions because the submitting visitor may not own the address.
 
@@ -809,7 +809,7 @@ Core · published · **done** · Cites BASE-DATA-002
 1. An unconfirmed pending subscription and its address are deleted after 72 hours.
 
 **Evidence.** `tests/e2e/delivery-contract.test.mjs`, `tests/e2e/public-contract.test.mjs`
-**Gap.** None.
+**Gap.** Old cited evidence asserts a very old pending subscriber row is absent after expiry runs. Unasserted: expiry takes effect at the specified 72-hour boundary.
 
 #### SUB-004 — Component selection
 
@@ -824,7 +824,7 @@ Core · published · **partial**
 4. Attaching a component to an unresolved incident sends one latest-update catch-up to each eligible subscriber who has never received that incident; subsequent updates then arrive normally.
 
 **Evidence.** `tests/e2e/delivery-contract.test.mjs`
-**Gap.** Old cited evidence asserts initial selected components; management selected or all; incident recipient selection. It does not assert: maintenance recipient selection; all-components subscriber follows new components; narrowed selection unchanged by component creation.
+**Gap.** Old cited evidence asserts initial selected components; management selected or all; incident recipient selection; newly eligible catch-up recipient. Unasserted: maintenance recipient selection; all-components subscriber follows new components; narrowed selection unchanged by component creation.
 
 #### SUB-005 — Cookieless subscriber tokens
 
@@ -838,7 +838,7 @@ Core · published · **partial** · Cites BASE-PUBLIC-001
 3. Token-page responses suppress referrers and indexing.
 
 **Evidence.** `tests/e2e/delivery-contract.test.mjs`
-**Gap.** Old cited evidence asserts unsubscribe revokes management authority; referrer suppression; indexing suppression. It does not assert: one-subscription scope and no unrelated capability; at least 128 bits of entropy; deletion revokes every token.
+**Gap.** Old cited evidence asserts referrer suppression; indexing suppression. Unasserted: one-subscription scope and no unrelated capability; at least 128 bits of entropy; a previously usable management token is refused after unsubscribe; deletion revokes every token.
 
 #### SUB-006 — One-click unsubscribe
 
@@ -853,7 +853,7 @@ Core · published · **partial** · Cites BASE-ACCESS-003, BASE-PUBLIC-001 · Re
 4. One token's rate allowance never consumes another token's allowance, including requests from one mailbox provider.
 
 **Evidence.** `tests/e2e/delivery-contract.test.mjs`, `tests/e2e/rer-mail.test.mjs`
-**Gap.** Old cited evidence asserts unsubscribe header forms; one-click declaration; URL-encoded deactivation. It does not assert: visible unsubscribe link in notification body; multipart form deactivation; DKIM coverage of both unsubscribe headers; per-token allowance independence.
+**Gap.** Old cited evidence asserts mail unsubscribe value is present; web unsubscribe value is present; one-click declaration; URL-encoded deactivation. Unasserted: visible unsubscribe link in notification body; multipart form deactivation; DKIM coverage of both unsubscribe headers; per-token allowance independence.
 
 #### SUB-007 — Managing a subscription
 
@@ -896,7 +896,7 @@ Core · published · **partial** · Cites BASE-OPS-003, BASE-INPUT-002 · Rules 
 6. Lamp-form update fields equal the published text byte for byte.
 
 **Evidence.** `tests/e2e/delivery-contract.test.mjs`, `tests/e2e/helpers/review-update-flow.mjs`, `tests/e2e/publishing-contract.test.mjs`. Lamp-format door: tests/e2e/delivery-contract.test.mjs:631 and tests/e2e/helpers/review-update-flow.mjs:92. Slack-URL door: tests/e2e/helpers/review-update-flow.mjs:94-100, called at tests/e2e/publishing-contract.test.mjs:432 within the test at :394. Native controlled receiver; no live Slack acceptance is claimed.
-**Gap.** Old cited evidence asserts two active signature values; exact-body signature; incident reference. It does not assert: webhook subscription creation read back; both rotation signatures verify; complete update array; complete previous/new component states; 30-second receiver deadline; Slack bracket and punctuation asserted in tests/e2e/helpers/update-link-evidence.mjs outside the old Evidence set; all Lamp fields are asserted in tests/e2e/helpers/update-component-flow.mjs outside the old Evidence set.
+**Gap.** Old cited evidence asserts two active signature values; exact-body signature; incident reference; subscriber address absent. Unasserted: webhook subscription creation read back; both rotation signatures verify; complete update array; complete previous/new component states; 30-second receiver deadline; rich-text URL labels equal their URLs on a nonempty set of link elements; Slack bracket and punctuation asserted in tests/e2e/helpers/update-link-evidence.mjs outside the old Evidence set; all Lamp fields are asserted in tests/e2e/helpers/update-component-flow.mjs outside the old Evidence set.
 
 #### SUB-010 — Failing destinations
 
@@ -912,7 +912,7 @@ Core · published · **partial**
 5. A deactivated destination receives no further notification.
 
 **Evidence.** `tests/e2e/delivery-contract.test.mjs`
-**Gap.** Old cited evidence asserts hard bounce state and reason; complaint state and reason; fifth soft bounce deactivates. It does not assert: post-deactivation pending webhook backlog sends nothing.
+**Gap.** Old cited evidence asserts hard bounce deactivates the subscriber; hard-bounce reason is recorded; spam complaint deactivates the subscriber; spam-complaint reason is recorded. Unasserted: a fresh notification after the complaint is suppressed; post-deactivation pending webhook backlog sends nothing.
 
 #### SUB-011 — Operator view
 
@@ -926,7 +926,7 @@ Core · published · **partial** · Cites BASE-DATA-003
 3. Deleting a subscriber erases its email address or endpoint.
 
 **Evidence.** `tests/e2e/delivery-contract.test.mjs`
-**Gap.** Old cited evidence asserts second subscriber page; channel; deactivated state. It does not assert: pending and active states visible in operator view.
+**Gap.** Old cited evidence asserts the expected 101st fixture subscriber appears on the second page; channel; deactivated state; the operator list preserves the exact selected component identifiers. Unasserted: the complete subscriber identity set reconciles across all pages; pending and active states visible in operator view.
 
 #### SUB-012 — No enumeration
 
@@ -939,7 +939,7 @@ Core · published · **partial**
 2. An existing address gets one management-only email and no extra message content.
 
 **Evidence.** `tests/e2e/delivery-contract.test.mjs`
-**Gap.** Old cited evidence asserts same status; same body; management link present. It does not assert: duplicate subscription absence; only management content in email.
+**Gap.** Old cited evidence asserts same status; same body; the existing-address email contains its management link; repeated submissions send no second management email per address. Unasserted: duplicate subscription absence; only management content in email.
 
 ### Notifications
 
@@ -959,7 +959,7 @@ Core · published · **partial**
 
 #### NOTIFY-002 — Delivery time
 
-Core · published · **done** · Cites BASE-MAIL-001
+Core · published · **partial** · Cites BASE-MAIL-001
 
 **Requirement.** At the installation's stated subscriber capacity, every eligible update email reaches provider acceptance within five minutes after successful publication.
 
@@ -967,7 +967,7 @@ Core · published · **done** · Cites BASE-MAIL-001
 1. A complete capacity-sized recipient set is accepted within five minutes of successful publication.
 
 **Evidence.** `tests/e2e/delivery-contract.test.mjs`
-**Gap.** None.
+**Gap.** Old cited evidence asserts 1000 recipient-capture records exist for the event; 1000 attempts carry provider identifiers; 1000 messages reach the capture adapter; five-minute measured bound. Unasserted: every expected eligible recipient has a provider acceptance without a missing recipient hidden by duplicates.
 
 #### NOTIFY-003 — Retry
 
@@ -981,7 +981,7 @@ Core · published · **partial** · Cites BASE-OPS-004, BASE-MAIL-001
 3. Exhaustion records failure against the affected subscriber and update.
 
 **Evidence.** `tests/e2e/delivery-contract.test.mjs`
-**Gap.** Old cited evidence asserts six total attempts; durable failed outcome; failure event delivery/update identity. It does not assert: exponential backoff timing over one hour.
+**Gap.** Old cited evidence asserts six total attempts; durable failed outcome; the failure event identifies the expected delivery; the failure event identifies the expected notification event. Unasserted: exponential backoff timing over one hour.
 
 #### NOTIFY-004 — Delivery log, without tracking
 
@@ -996,7 +996,7 @@ Core · published · **partial** · Cites BASE-MAIL-001
 4. Each channel, outcome and update filter returns matching rows, and the complete CSV matches those filters.
 
 **Evidence.** `tests/e2e/delivery-contract.test.mjs`, `tests/reference-storage/capture-receipts.test.mjs`
-**Gap.** Old cited evidence asserts outcome field; queued outcome; delivered outcome. It does not assert: subscriber field readback; channel field readback; update field readback; queue time readback; outcome time readback; complained outcome readback; message pixel absence; tracked-link absence; channel filter reconciliation; update filter reconciliation.
+**Gap.** Old cited evidence asserts outcome field; queued outcome; delivered outcome; bounced outcome. Unasserted: subscriber field readback; channel field readback; update field readback; queue time readback; outcome time readback; complained outcome readback; message pixel absence; tracked-link absence; the outcome filter returns all and only matching rows throughout its result set; channel filter reconciliation; update filter reconciliation; all 101 distinct expected destinations occur once and match the full filtered view.
 
 #### NOTIFY-005 — At most once
 
@@ -1008,7 +1008,7 @@ Core · published · **partial** · Cites BASE-OPS-003 · Rules D-1
 1. Retrying publication or redelivering the queue job never sends that subscriber the update twice on one channel.
 
 **Evidence.** `tests/e2e/delivery-contract.test.mjs`, `tests/reference-storage/capture-receipts.test.mjs`
-**Gap.** Old cited evidence asserts duplicate capture records once; concurrent webhook sends once. It does not assert: email queue redelivery never resends.
+**Gap.** Old cited evidence asserts repeated capture leaves one recipient record; repeated capture leaves one dispatcher job; two intended healthy-delivery scenarios produce two healthy-host requests in aggregate. Unasserted: the concurrently dispatched delivery alone produces exactly one request; email queue redelivery never resends.
 
 #### NOTIFY-006 — Operator alerts
 
@@ -1036,7 +1036,7 @@ Core · published · **partial**
 2. The public page, Atom feed and widget always receive the update and cannot be deselected.
 
 **Evidence.** `tests/e2e/delivery-contract.test.mjs`
-**Gap.** Old cited evidence asserts persisted selected channel; empty selection produces no notifications. It does not assert: page mandatory publication; Atom mandatory publication; widget mandatory publication.
+**Gap.** Old cited evidence asserts one stored channel selection is email; empty selection produces no notifications. Unasserted: the complete recipient channel set equals exactly the selected channels; page mandatory publication; Atom mandatory publication; widget mandatory publication.
 
 #### NOTIFY-008 — Who the deployment emails
 
@@ -1064,7 +1064,7 @@ Core · published · **partial** · Cites BASE-MAIL-001 · Register R-40
 4. Aligned DKIM is accepted without SPF on the From domain.
 
 **Evidence.** `tests/e2e/delivery-contract.test.mjs`, `tests/e2e/rer-mail.test.mjs`
-**Gap.** Old cited evidence asserts list headers present; page identity; archive points at page. It does not assert: setup missing DKIM refusal; deployment missing DKIM refusal; setup missing DMARC refusal; deployment missing DMARC refusal; missing record named; aligned DKIM without From-domain SPF.
+**Gap.** Old cited evidence asserts List-Id is present; List-Archive is present; List-Help is present; page identity. Unasserted: setup missing DKIM refusal; deployment missing DKIM refusal; setup missing DMARC refusal; deployment missing DMARC refusal; missing record named; aligned DKIM without From-domain SPF.
 
 #### NOTIFY-009 — Delivery never blocks publication
 
@@ -1092,7 +1092,7 @@ Core · published · **partial** · Cites BASE-SECRET-001
 3. Only each provider's documented webhook hosts are accepted.
 
 **Evidence.** `tests/e2e/channels-and-presets.test.mjs`
-**Gap.** Old cited evidence asserts Slack selected destination accepted; Teams all-visible destination accepted; no URL in list. It does not assert: saved component selections read back; no saved URL on other API responses.
+**Gap.** Old cited evidence asserts the created Slack channel response reports the expected provider host; no URL in list; stored ciphertext; nonprovider host refused. Unasserted: the Slack destination and selected components are persisted; the Teams destination is persisted with all-visible component selection; saved component selections read back; no saved URL on other API responses.
 
 #### NOTIFY-012 — Channel posts
 
@@ -1175,7 +1175,7 @@ Core · published · **partial** · Cites BASE-INPUT-001
 2. A payload missing its configured deduplication-key path returns 400 and is recorded against the source with an operator-visible reason.
 
 **Evidence.** `tests/e2e/app-api.test.mjs`, `tests/e2e/helpers/webhook-source-browser-flow.mjs`, `tests/e2e/publishing-contract.test.mjs`
-**Gap.** Configured-key refusal, recovery behavior and visible rejection reasons are asserted. A generic source’s configured title is not read back as its resulting draft title.
+**Gap.** Old cited evidence asserts Configured key path controls acceptance; Configured generic firing state is read back; Missing key returns 400; Visible rejected mapping reason. Unasserted: Configured title read back; Configured generic recovered state is read back.
 
 #### INTAKE-006 — Monitor presets
 
@@ -1222,7 +1222,7 @@ Core · published · **partial** · Cites BASE-AGENT-006, BASE-AGENT-007
 5. Generation leaves saved incident, public page, feed and widget unchanged and unpublished.
 
 **Evidence.** `tests/e2e/incident-brief.test.mjs`
-**Gap.** Old Evidence asserts reference filtering, no lifecycle/next-time proposal and unchanged incident/public bytes. Filling and preserving editor fields, editing each field, visible unsourced labels and opening per-field brief citations are not asserted in the cited file. Agent-policy parity remains a new SURFACE obligation; these product-source statuses are not promoted.
+**Gap.** Old cited evidence asserts Known references retained; Unknown and question references removed; Suggestion result has no lifecycle field; Suggestion result has no next-update field. Unasserted: Nonempty fields filled and empty results preserved; Every field editable; Unsourced text visibly marked; Sources beside fields open brief.
 
 #### DRAFT-002 — Inputs
 
@@ -1253,7 +1253,7 @@ Core · published · **partial**
 6. The operator page’s collapsed view equals the suggestion input.
 
 **Evidence.** `tests/e2e/incident-brief.test.mjs`
-**Gap.** The old Evidence asserts alert/source/time, update/component facts, five question types and stable references. It does not assert the no-component question, no model request during brief construction or equality of the collapsed operator page with the model input.
+**Gap.** Old cited evidence asserts Alert count; Alert source record.; Alert time; The brief lists exactly the attached public component names. Unasserted: No-component question; Building brief sends no model request; Collapsed page matches model input.
 
 #### DRAFT-003 — Absent or failing provider
 
@@ -1297,7 +1297,7 @@ Core · published · **partial** · Cites BASE-SIGNIN-001
 3. Only the setup operator can remove their own protected setup identity.
 
 **Evidence.** `tests/auth-adoption/upgrade.test.mjs`, `tests/e2e/delivery-contract.test.mjs`
-**Gap.** Removal and anonymization, setup-owner revoke refusal and self-removal are asserted. Settings invitation and another active owner’s protected setup-owner deletion refusal are unasserted; the deletion refusal in the upgrade journey uses an already revoked actor.
+**Gap.** Old cited evidence asserts Native operator-removal route durably deactivates the identity; Native operator-removal route anonymizes the email; Another owner cannot revoke setup owner; Self-removal succeeds. Unasserted: Settings invitation outcome; Settings removal is completed through the browser; Other owner cannot delete setup owner while still active.
 
 #### TEAM-003 — Attribution
 
@@ -1325,7 +1325,7 @@ Core · published · **partial**
 2. Each record shows its start, end, duration, affected components and every published update.
 
 **Evidence.** `tests/e2e/public-contract.test.mjs`
-**Gap.** Old Evidence asserts both completed record kinds, older-record exclusion, an incident’s duration and a retained component name. Month grouping, maintenance start/end/duration and every history update’s presence remain unasserted.
+**Gap.** Old cited evidence asserts Resolved incident listed; Completed maintenance listed; Older record excluded; The public incident displays the expected elapsed duration. Unasserted: Month grouping asserted; The public history displays the incident’s opening instant; Maintenance start/end/duration; Every published update included.
 
 #### HIST-002 — Post-incident report
 
@@ -1339,11 +1339,11 @@ Core · published · **partial**
 3. Subscribers are notified only on the channels selected for the report, using NOTIFY-007’s channel selection.
 
 **Evidence.** `tests/e2e/publishing-browser.test.mjs`, `tests/e2e/publishing-contract.test.mjs`
-**Gap.** Saved report fields, one immutable report and public report text are asserted. No cited assertion measures ten-second visibility or verifies both selected-channel notification and omitted-channel absence for the report.
+**Gap.** Old cited evidence asserts The saved report retains summary; The saved report retains timeline; The saved report retains cause; The saved report retains remediation. Unasserted: Ten-second bound; Selected report channels and omitted channels.
 
 #### HIST-003 — Report due
 
-Core · published · **done**
+Core · published · **partial**
 
 **Requirement.** A sufficiently severe resolved incident without a report becomes visibly report-due under the replaceable report-due policy.
 
@@ -1351,11 +1351,11 @@ Core · published · **done**
 1. Seven days after an incident that claimed Partially unavailable or Major outage resolves without a report, the operator app marks it as owing a report.
 
 **Evidence.** `tests/e2e/publishing-contract.test.mjs`
-**Gap.** None.
+**Gap.** Old cited evidence asserts A representative Major-outage incident is listed as report-due after eight days; The severity rule is represented by another Major-outage report-due case. Unasserted: The operator report-due listing is asserted at the seven-day boundary.
 
 #### HIST-004 — Export contents
 
-Core · published · **done** · Cites BASE-DATA-001
+Core · published · **partial** · Cites BASE-DATA-001
 
 **Requirement.** Lamp’s export carries the complete status-page record graph and original uploaded images; Base supplies restore and equivalent re-export duties.
 
@@ -1365,7 +1365,7 @@ Core · published · **done** · Cites BASE-DATA-001
 3. Every uploaded image is retained as its original bytes.
 
 **Evidence.** `tests/e2e/export-import.test.mjs`
-**Gap.** None.
+**Gap.** Old cited evidence asserts The exported incident table is populated; The exported update table is populated; The exported component table is populated; The exported component state-history table is populated. Unasserted: Every source incident record is present in the export; Every source update record is present in the export; Every source component record is present in the export; Every source component state-history record is present in the export; Every source maintenance record is present in the export; Every source subscriber record is present in the export; Every exported subscriber retains its expected source channel; Every exported subscriber retains its expected source state; Every source delivery record is present in the export; Every source post-incident report record is present in the export; The archive contains the full source entity graph; Every source setting is present with its expected source value; Every source audit entry is present with its complete source contents.
 
 ### Operator setup and recovery
 
@@ -1386,7 +1386,7 @@ Core · published · **partial** · Cites BASE-MAIL-001
 8. The local sender reads as email off, and public reading remains database-free.
 
 **Evidence.** `tests/e2e/setup-readiness.test.mjs`
-**Gap.** The cited readiness journey asserts the automatic rendered page/form result, local-off sender and failure strip. It does not assert the minute/daily schedules, address-change result ownership, a suppressed subscriber delivery, inbox absence, or the database-query absence of public GETs. Unasserted outcomes: Every change republishes; Each minute scheduled check repeats; Changing the hosted sender authenticates against its provider; Sender check repeats daily; Page/form check times are displayed; Review page opens the preview and checks; Change address opens Settings; Failure has one corrective action; Results belong to the address actually checked after address changes; A custom domain is optional; Local outgoing mail is suppressed; No captured-mail inbox exists; Automatic one-click local owner entry needs no email; A subscriber publication records a suppressed outcome; Suppressed outcome is visible in Notifications; Suppressed outcome is not provider acknowledgement; Hosted authentication does not claim inbox receipt; Public reading makes no database query.
+**Gap.** Old cited evidence asserts Form check is at or after publication; Overview shows the public address; Publication time is present; Checked page/form wording is visible. Unasserted: Lamp actually reads the rendered public page after publication; Lamp actually inspects the rendered subscription form after publication; Every change republishes; Each minute scheduled check repeats; Changing the hosted sender authenticates against its provider; Sender check repeats daily; Page/form check times are displayed; Review page opens the preview and checks; Change address opens Settings; Failure has one corrective action; Results belong to the address actually checked after address changes; A custom domain is optional; Local outgoing mail is suppressed; No captured-mail inbox exists; Automatic one-click local owner entry needs no email; A subscriber publication records a suppressed outcome; Suppressed outcome is visible in Notifications; Suppressed outcome is not provider acknowledgement; Public reading makes no database query.
 
 #### SETUP-002 — First-run setup
 
@@ -1404,7 +1404,7 @@ Core · published · **partial** · Cites BASE-INPUT-001
 7. After completion setup opens the app; migration marks installations with a pre-existing operator complete, and rerunning setup never clears that completion.
 
 **Evidence.** `tests/e2e/auth-adoption-journey.test.mjs`, `tests/e2e/website-onboarding.test.mjs`
-**Gap.** Website fixtures assert source-derived settings, PNG storage, component groups, optional silent resolved history and script absence. The cited tests do not assert private/loopback refusal at every redirect, every protected document redirect, signed-out setup return, no-component feed behavior, or all excluded maintenance/subscriber categories after history import. Unasserted outcomes: Every operator document gates incomplete first run; Signed-out setup returns through sign-in to setup; Every redirect refuses private/loopback destinations; Instatus and Better Stack linked/subdomain source selection; History imports no maintenance; History imports no subscriber; Omitted website leaves editable plain defaults; A status feed with no components changes none; Completion durably persists; All settings remain editable after completion; Every pre-existing operator installation is migration-complete; Completed setup redirects to app.
+**Gap.** Old cited evidence asserts No website script request occurs; Reload makes no second site read; Observed page name is stored; Observed tagline is stored. Unasserted: Every operator document gates incomplete first run; Signed-out setup returns through sign-in to setup; Every redirect refuses private/loopback destinations; Instatus and Better Stack linked/subdomain source selection; History imports no maintenance; History imports no subscriber; Omitted website leaves editable plain defaults; A status feed with no components changes none; Completion durably persists; All settings remain editable after completion; Every pre-existing operator installation is migration-complete; Completed setup redirects to app.
 
 #### ACCESS-001 — Owner-terminal sign-in
 
@@ -1449,7 +1449,7 @@ Core · published · **partial** · Cites BASE-SECRET-001
 4. A dry run names each excess subscriber over a SUB-020 channel capacity and refuses excess rows; an over-limit apply writes nothing until a narrowed review fits.
 
 **Evidence.** `tests/betterstack/flow.test.mjs`, `tests/e2e/betterstack-browser.test.mjs`, `tests/e2e/instatus-browser.test.mjs`
-**Gap.** The cited Better Stack flow asserts source counts, no component write and stale-source/target refusal, and browser flows assert source-specific review. It does not assert complete no-write state during preview, nonretention of the API credential, or per-channel excess capacity and inert over-limit apply. Unasserted outcomes: Each named provider accepts API-key and saved-response input; Source credential is read once from fixed source origin; Source credential is never stored; Dry run counts every source category before application; Dry run leaves every other table unwritten; Each imported/changed/skipped/refused item has a named reason; Each channel capacity excess is named; Excess subscribers are refused during dry run; An over-limit apply writes nothing.
+**Gap.** Old cited evidence asserts Dry run leaves components unwritten; Changed source refuses apply; Changed target refuses apply and names the stale review; Stale-target refusal leaves no import job. Unasserted: Each named provider accepts API-key and saved-response input; Source credential is read once from fixed source origin; Source credential is never stored; Dry run counts every source category before application; Dry run leaves every other table unwritten; Each imported/changed/skipped/refused item has a named reason; Each channel capacity excess is named; Excess subscribers are refused during dry run; An over-limit apply writes nothing.
 
 #### MOVE-002 — Retroactive and silent
 
@@ -1464,7 +1464,7 @@ Core · published · **partial**
 4. Imported email subscribers remain pending for the separate invitation action.
 
 **Evidence.** `tests/auth-adoption/cutover.test.mjs`, `tests/betterstack/flow.test.mjs`, `tests/e2e/sorry-import.test.mjs`
-**Gap.** The cited Sorry and Better Stack journeys assert original incident times, completed maintenance and no notice/delivery work. They do not assert the complete component history derivation or every preview/resume/Cutover mail absence inside the old cited Evidence set. Unasserted outcomes: Complete imported component history derives from original update times; Preview sends no mail; Every resume sends no mail; Cutover checks send no mail; Each imported email subscriber is pending.
+**Gap.** Old cited evidence asserts Sorry incident update timestamps equal source times; Past Sorry maintenance is completed; Imported Better Stack maintenance has no native notice; Import queues no notification delivery. Unasserted: Complete imported component history derives from original update times; Concurrent repeated applies send no mail; Preview sends no mail; Every resume sends no mail; Cutover checks send no mail; Each imported email subscriber is pending.
 
 #### MOVE-013 — Explicit imported invitations
 
@@ -1479,7 +1479,7 @@ Core · published · **partial** · From MOVE-002 · Cites BASE-MAIL-001
 4. A proven failure before submission can be retried; an interrupted or uncertain submitted attempt remains claimed and is not automatically resubmitted.
 
 **Evidence.** `tests/auth-adoption/cutover.test.mjs`, `tests/betterstack/flow.test.mjs`, `tests/e2e/sorry-import.test.mjs`
-**Gap.** The cited cutover tests assert claimed concurrent invitations, original deadlines and safe versus uncertain retry states. They do not assert no past-incident content in the invitation or the Instatus-specific invitation deadline path; that content assertion is in tests/e2e/statuspage-import.test.mjs outside the old MOVE-002 Evidence set. Unasserted outcomes: Invitation contains confirmation but no past incident text; Instatus-specific original deadline and expiry.
+**Gap.** Old cited evidence asserts Signed-out invitation action is refused; Concurrent and repeated batches produce exactly 57 transport messages; Those 57 transport messages have 57 distinct recipients; All 57 transport messages carry distinct idempotency identities. Unasserted: Invitation contains confirmation but no past incident text; That message is proved to exclude the expired recipient; Instatus-specific original deadline and expiry.
 
 #### MOVE-003 — One import per source
 
@@ -1492,7 +1492,7 @@ Core · published · **partial** · Cites BASE-OPS-003
 2. A record already imported is not imported again from another source.
 
 **Evidence.** `tests/e2e/statuspage-import.test.mjs`
-**Gap.** The cited Statuspage journey asserts same-source counts and aliases. It does not assert cross-source record identity, and its no-new-notification assertion resides in tests/helpers/import-notifications.mjs, which the old clause did not cite. Unasserted outcomes: Repeated source creates no other notification work; Cross-source imports preserve global record identity.
+**Gap.** Old cited evidence asserts Repeated source reports already imported; Repeated source preserves component count; Repeated source preserves component-group count; Repeated source preserves incident count. Unasserted: Repeated source leaves every existing record content unchanged; Repeated source creates no other notification work; Cross-source imports preserve global record identity.
 
 #### MOVE-004 — Undo
 
@@ -1506,7 +1506,7 @@ Core · published · **partial**
 3. Undo sends no notification.
 
 **Evidence.** `tests/e2e/sorry-import.test.mjs`, `tests/e2e/statuspage-import.test.mjs`
-**Gap.** The cited journeys assert removal, retained edited incidents/maintenance/subscribers and dependent components/groups. Their complete no-notification assertion resides in tests/helpers/import-notifications.mjs, outside the old cited Evidence set. Unasserted outcomes: Undo creates no outbound notification work.
+**Gap.** Old cited evidence asserts Untouched Sorry undo returns the component count to baseline; Untouched Sorry undo returns the component-group count to baseline; Untouched Sorry undo returns the incident count to baseline; Untouched Sorry undo returns the maintenance count to baseline. Unasserted: Untouched undo removes every other imported record kind; Every required dependent component survives undo; Every required dependent group identity survives undo; Undo names the specific retained incident and its explanation; Undo names the specific retained maintenance and its explanation; Undo creates no outbound notification work.
 
 #### MOVE-005 — Old public addresses
 
@@ -1524,7 +1524,7 @@ Core · published · **partial**
 7. Better Stack maintenance messages remain historical updates and create no native lifecycle notice or replayed notification.
 
 **Evidence.** `tests/e2e/sorry-import.test.mjs`, `tests/e2e/statuspage-import.test.mjs`
-**Gap.** The old cited Statuspage and Sorry journeys assert permanent public aliases, served Atom content, reapply/conditional undo and unsafe-address refusals. They do not assert Instatus/Better Stack feed paths, feed-only imports, database-query absence, retained-old-source warnings, or the Better Stack exact-shortlink and maintenance-history outcomes. Unasserted outcomes: Instatus source Atom serves native feed; Better Stack source Atom serves native feed; Feed aliases exist with no incident history; Complete undo removes feed alias; Aliases and feeds make no database query; Every native-route collision is named/refused; Retained legacy unusable aliases warn without suppressing snapshot; Missing shortlinks are never fabricated; A source-owned hostname is outside Lamp control; Better Stack reports get aliases only from exact unchanged matching webhook shortlinks; Better Stack maintenance messages retain original historical updates; Better Stack history creates no lifecycle notice; Better Stack history creates no replayed notification.
+**Gap.** Old cited evidence asserts Public imported addresses permanently redirect to their target; Native record page contains imported title; Aliases are absent on operator host; Sorry notice redirects to matching incident. Unasserted: Instatus source Atom serves native feed; Better Stack source Atom serves native feed; Feed aliases exist with no incident history; Complete undo removes feed alias; Aliases and feeds make no database query; The refusal names the rejected address itself; Every native-route collision is named/refused; Retained legacy unusable aliases warn without suppressing snapshot; Missing shortlinks are never fabricated; A source-owned hostname is outside Lamp control; Better Stack reports get aliases only from exact unchanged matching webhook shortlinks; Better Stack maintenance messages retain original historical updates; Better Stack history creates no lifecycle notice; Better Stack history creates no replayed notification.
 
 #### MOVE-006 — Cutover preview
 
@@ -1539,7 +1539,7 @@ Core · published · **partial**
 4. The ordered guide covers import, preview, explicit invitations, hostnames/custom domains, rechecking and retaining the source through the confirmation window.
 
 **Evidence.** `tests/auth-adoption/cutover.test.mjs`, `tests/e2e/cutover-browser.test.mjs`, `tests/e2e/sorry-import.test.mjs`
-**Gap.** The cited tests assert capped real address rows, positive invitation eligibility, expiry, visible Opens/failure states and navigation. They do not read the credential omission or final-address/HTML checks, or assert every ordered guide step. Unasserted outcomes: Unavailable addresses are displayed; Source-host limits are displayed; Each source feed answer is displayed; JSON reader limitation is displayed; RSS reader limitation is displayed; Widget reader limitation is displayed; Original expiry deadline is displayed in Cutover; Opens requests omit credentials; Opens validates final native address; Opens validates successful HTML; Unreachable checks remain visibly failed; Guide orders import before preview; Guide orders explicit invitations and hostname instructions; Guide includes custom-domain steps; Guide includes rechecking; Guide retains source through confirmation window.
+**Gap.** Old cited evidence asserts Nonempty cutover rows have native targets; The large preview returns at most 25 rows; Its reported total exceeds the displayed row count; Eligible imported invitation count is complete. Unasserted: Its total equals the complete source address count; A nonempty large preview has an address in every row; A nonempty large preview has a source path in every row; A nonempty large preview has a native target in every row; Unavailable addresses are displayed; Source-host limits are displayed; Each source feed answer is displayed; JSON reader limitation is displayed; RSS reader limitation is displayed; Widget reader limitation is displayed; Original expiry deadline is displayed in Cutover; Opens requests omit credentials; Opens validates final native address; Opens validates successful HTML; Unreachable checks remain visibly failed; Guide orders import before preview; Guide orders explicit invitations and hostname instructions; Guide includes custom-domain steps; Guide includes rechecking; Guide retains source through confirmation window.
 
 ### Public page — target
 
@@ -1633,7 +1633,7 @@ Core · target · **partial**
 5. A reader polling the history RSS alias sees a newly published event within ten seconds.
 
 **Evidence.** `src/core/features/public-snapshot/feeds.ts`, `tests/e2e/helpers/public-resources-flow.mjs`
-**Gap.** The cited evidence asserts the other audited outcomes; unasserted: RSS 2.0 semantic validation is asserted; Both history aliases work on an installation with no import; Both feed forms of every visible component reconcile all applicable incident and maintenance events; All feed variants are asserted snapshot-backed; The W3C validator accepts every feed; A newly published event is asserted in the polled history RSS alias within ten seconds.
+**Gap.** Old cited evidence asserts RSS parses without XML errors; RSS event identities equal Atom identities in order; The history RSS alias equals the native RSS feed; A populated Web application component feed contains the affected incident. Unasserted: RSS 2.0 semantic validation is asserted; Both history aliases work on an installation with no import; An unrelated component’s populated feed excludes the incident while retaining its own event; Both feed forms of every visible component reconcile all applicable incident and maintenance events; All feed variants are asserted snapshot-backed; The W3C validator accepts every feed; A newly published event is asserted in the polled history RSS alias within ten seconds.
 
 #### PAGE-018 — Status badges
 
@@ -1648,7 +1648,7 @@ Core · target · **partial**
 4. With the database unavailable, the badges remain available from the snapshot.
 
 **Evidence.** `src/core/features/public-snapshot/badges.ts`:7, `src/core/features/public-snapshot/state-colors.json`:1, `tests/e2e/helpers/public-resources-flow.mjs`:75 (existing stable-feed/public-resource journey in `tests/e2e/public-contract.test.mjs`:755), `tests/e2e/snapshot-retained.test.mjs`:32. The public-door journey changes an isolated component through every state, fetches the overall/component/uptime SVGs and endpoint JSON within ten seconds, checks their labels, page-resolved colours, 2KB bound and generation caching. Its page-state-colour assertion fails against the published palette and passes with Partially unavailable amber. The retained-snapshot journey serves badges with the database unavailable. Hosted GETs on 23 October 2026 at 08:07:08 UTC returned HTTP 200 for status.run-lamp.com/badge.json, /badge.svg and the shields.io endpoint; shields rendered “status: Operational”. No hosted state changed; full bodies remain outside the distributed tree under ACCEPTANCE.md’s release evidence boundary.
-**Gap.** The cited evidence asserts the other audited outcomes; unasserted: Every shields.io endpoint field and a shields.io rendering are asserted; Database-unavailable badge serving is directly asserted.
+**Gap.** Old cited evidence asserts Component-state SVG has the changed label; The component-state SVG stays within two KiB; The component-uptime SVG stays within two KiB; The component-state badge uses its page state color or no-data ink. Unasserted: Every shields.io endpoint field and a shields.io rendering are asserted; Database-unavailable badge serving is directly asserted.
 
 #### PAGE-019 — Embed variants
 
@@ -1663,7 +1663,7 @@ Core · target · **partial** · Cites BASE-PUBLIC-002
 4. A floating incident notice appears after publication and disappears on resolution, using the selected position and colors.
 
 **Evidence.** `src/core/features/page-settings/ui/public-resources.tsx`, `tests/e2e/helpers/widget-variants-flow.mjs`, `tests/e2e/helpers/widget-privacy-flow.mjs`
-**Gap.** The cited evidence asserts the other audited outcomes; unasserted: A maintenance alone displays the floating notice; Every variant can be configured to hide when operational; Every variant stays within ten KiB; The configured foreground and background colors are asserted; Resolution-driven disappearance is asserted rather than only awaited.
+**Gap.** Old cited evidence asserts The floating notice starts hidden without an incident; A floating incident notice appears on publication; The dot state equals the public snapshot state; Four status sections render after the four allowed-origin embed installations. Unasserted: A maintenance alone displays the floating notice; Every variant can be configured to hide when operational; Every variant stays within ten KiB; Each installed variant is individually identified as the banner, dot, floating notice or compatibility embed; The configured foreground and background colors are asserted; Resolution-driven disappearance is asserted rather than only awaited.
 
 #### PAGE-020 — Accessible to the standard US buyers require
 
@@ -1819,7 +1819,7 @@ Core · target · **partial**
 4. An optional tracking start date controls the beginning of component uptime.
 
 **Evidence.** `src/core/features/components/catalogue-routes.ts`, `src/core/features/components/ui/catalogue-drawer.tsx`, `tests/e2e/helpers/catalogue-history-flow.mjs`
-**Gap.** The cited evidence asserts the other audited outcomes; unasserted: Table creation is asserted for components; Table creation is asserted for groups; Table editing is asserted for components; Table editing is asserted for groups; Table reordering is asserted for components; Table reordering is asserted for groups; Table deletion is asserted for components; Table deletion is asserted for groups; CSV creation is asserted for components; CSV creation is asserted for groups; CSV editing is asserted for components; CSV editing is asserted for groups; CSV reordering is asserted for components; CSV reordering is asserted for groups; CSV deletion is asserted for components; CSV deletion is asserted for groups.
+**Gap.** Old cited evidence asserts Preview reports fifty created components; Preview reports zero changed components; Preview reports zero deleted components; Preview reports two created groups. Unasserted: Table creation is asserted for components; Table creation is asserted for groups; Table editing is asserted for components; Table editing is asserted for groups; Table reordering is asserted for components; Table reordering is asserted for groups; Table deletion is asserted for components; Table deletion is asserted for groups; CSV creation is asserted for components; CSV creation is asserted for groups; CSV editing is asserted for components; CSV editing is asserted for groups; CSV reordering is asserted for components; CSV reordering is asserted for groups; CSV deletion is asserted for components; CSV deletion is asserted for groups.
 
 #### COMP-010 — Shown only while affected
 
@@ -1835,7 +1835,7 @@ Core · target · **partial**
 5. Statuspage imports preserve the flag.
 
 **Evidence.** `src/core/features/public-snapshot/component-visibility.ts`, `tests/e2e/helpers/catalogue-history-flow.mjs`, `tests/e2e/statuspage-import.test.mjs`
-**Gap.** The cited evidence asserts the other audited outcomes; unasserted: The widget omits an Operational conditional component; The uptime figure and daily record are hidden; Uptime is retained throughout; The conditional component always contributes to overall status.
+**Gap.** Old cited evidence asserts After recovery the conditional component is absent from the populated page; After recovery the conditional component is absent from the populated incident Atom feed; After recovery the conditional component is absent from the populated v2 component list; The affected component appears publicly. Unasserted: The widget omits an Operational conditional component; The uptime figure and daily record are hidden; Uptime is retained throughout; The conditional component always contributes to overall status.
 
 ### Third-party dependencies — target
 
@@ -1937,7 +1937,7 @@ Core · target · **partial**
 6. Incident membership includes retained claim intervals masked by more severe claims, and older imported records use retained public attachments and history.
 
 **Evidence.** `src/core/features/availability-reports/`, `src/core/features/public-snapshot/uptime.ts`, `tests/e2e/publishing-contract.test.mjs`, `tests/e2e/helpers/availability-report-flow.mjs`, `tests/e2e/helpers/availability-report-browser-flow.mjs`
-**Gap.** The cited evidence asserts the other audited outcomes; unasserted: A current-period report stops at elapsed current time; Every overlapping scheduled maintenance retains its state label; Every overlapping cancelled maintenance retains its state label; Every overlapping completed maintenance retains its state label.
+**Gap.** Old cited evidence asserts CSV is an attached CSV document; PDF is an attached PDF document; The CSV summary contains the computed uptime; The CSV summary contains the expected weighted downtime. Unasserted: The CSV month and quarter incident lists are completely reconciled; The PDF month and quarter incident lists are completely reconciled; Complete maintenance membership is reconciled in the CSV report; Complete maintenance membership is reconciled in the PDF report; The complete quarter incident-membership set is reconciled; A current-period report stops at elapsed current time; Every overlapping scheduled maintenance retains its state label; Every overlapping cancelled maintenance retains its state label; Every overlapping completed maintenance retains its state label.
 
 #### UPTIME-010 — Measured availability exports
 
@@ -1997,7 +1997,7 @@ Core · target · **partial** · Cites BASE-INPUT-001, BASE-ROLE-001, BASE-OPS-0
 6. A Teams step from Major outage to Degraded performance writes exactly one history entry matching the incident, publication instant and immutable update.
 
 **Evidence.** `tests/e2e/app-api.test.mjs` (COMP-006 UPDATE-004 PAGE-012 INCIDENT-012 — Component claims, saved drafts, settings and operator records), loading `tests/chat-desk/flow.mjs` (chatDeskFlow, chatDeskNativeFlow) in push Verify’s api shard, proves signed Slack and Teams private drafts, shared preview, explicit attributed publication and component-history changes, invalid signatures/audiences, and refusal of formerly linked actors after owner authority is revoked without any incident, draft, update or audit creation. `tests/e2e/channels-and-presets.test.mjs` (SUB-014 NOTIFY-011 NOTIFY-012 UPDATE-013 — Private channels deliver the selected publication once with literal text and punctuated links) loads `tests/e2e/helpers/chat-links-browser-flow.mjs` in notifications: the signed-in Settings control mints, links once through signed Slack and removes links at 1440/390, with axe, overflow and hydration assertions. `tests/auth-adoption/portability.test.mjs` (ACCESS-001 INTAKE-009 native rer archive restores owner continuity and subscriber authority without restoring sessions, provider approval or a sealed PagerDuty key), loaded by ownership-authority, asserts archive-policy exclusions of chat_link_codes, chat_previews and chat_requests, retains durable chat_links, and advances only its Date clock past the original ten-minute lifetime before an actual signed Slack request with the old code returns 409 and creates no temporary authority. Until TEAM-004, linked active operators act as owners under TEAM-001. No live workspace or tenant acceptance is claimed. Additional push-Verify evidence for the four ct findings: `tests/e2e/app-api.test.mjs` (COMP-006 UPDATE-004 PAGE-012 INCIDENT-012 — Component claims, saved drafts, settings and operator records), loading `tests/chat-desk/flow.mjs` (chatDeskNativeFlow) in the api shard, (1) obtains the generated Slack composer and Teams message-extension card and drives their exposed action ids, values and component choices through open, save, preview and publish; asserts each visible card contains UPDATE-004's public heading, lifecycle and every field plus the shared renderer's email subject and complete plain-text preview, (2) asserts both Teams-attached component identities and Major outage claims in the staged draft and published incident, (3) asserts unlinked Slack and Entra actors leave incidents, incident_drafts, incident_updates and audit_entries unchanged, and (4) asserts the initial Major outage claim and exactly one new Major outage → Degraded performance history entry, matching the incident, publication time and immutable component transition of the returned published update.
-**Gap.** Asserted: Slack private draft; Teams private draft; Teams component identities and claims; immutable updated claims; preview public heading; preview lifecycle; preview all fields; preview email subject; preview complete email text; premature publish refused; operator attribution; publication public; Teams draft card; Teams preview card; one history entry; history old/new state and instant; immutable change matches. Unasserted in old cited evidence: Slack component choices; chat review parity.
+**Gap.** Old cited evidence asserts Slack private draft; Teams private draft; Both selected Teams component identities are staged; Each selected Teams component is staged as Major outage. Unasserted: Slack component choices; Every required UPDATE-001 field is independently asserted present in that web-renderer field list; chat review parity.
 
 #### INCIDENT-014 — Link and authenticate chat operators
 
@@ -2014,7 +2014,7 @@ Core · target · **partial** · From INCIDENT-012 · Cites BASE-ACCESS-004, BAS
 6. Durable chat identities survive archives; temporary link, preview and replay authority does not.
 
 **Evidence.** `tests/e2e/app-api.test.mjs` (COMP-006 UPDATE-004 PAGE-012 INCIDENT-012 — Component claims, saved drafts, settings and operator records), loading `tests/chat-desk/flow.mjs` (chatDeskFlow, chatDeskNativeFlow) in push Verify’s api shard, proves signed Slack and Teams private drafts, shared preview, explicit attributed publication and component-history changes, invalid signatures/audiences, and refusal of formerly linked actors after owner authority is revoked without any incident, draft, update or audit creation. `tests/e2e/channels-and-presets.test.mjs` (SUB-014 NOTIFY-011 NOTIFY-012 UPDATE-013 — Private channels deliver the selected publication once with literal text and punctuated links) loads `tests/e2e/helpers/chat-links-browser-flow.mjs` in notifications: the signed-in Settings control mints, links once through signed Slack and removes links at 1440/390, with axe, overflow and hydration assertions. `tests/auth-adoption/portability.test.mjs` (ACCESS-001 INTAKE-009 native rer archive restores owner continuity and subscriber authority without restoring sessions, provider approval or a sealed PagerDuty key), loaded by ownership-authority, asserts archive-policy exclusions of chat_link_codes, chat_previews and chat_requests, retains durable chat_links, and advances only its Date clock past the original ten-minute lifetime before an actual signed Slack request with the old code returns 409 and creates no temporary authority. Until TEAM-004, linked active operators act as owners under TEAM-001. No live workspace or tenant acceptance is claimed. Additional push-Verify evidence for the four ct findings: `tests/e2e/app-api.test.mjs` (COMP-006 UPDATE-004 PAGE-012 INCIDENT-012 — Component claims, saved drafts, settings and operator records), loading `tests/chat-desk/flow.mjs` (chatDeskNativeFlow) in the api shard, (1) obtains the generated Slack composer and Teams message-extension card and drives their exposed action ids, values and component choices through open, save, preview and publish; asserts each visible card contains UPDATE-004's public heading, lifecycle and every field plus the shared renderer's email subject and complete plain-text preview, (2) asserts both Teams-attached component identities and Major outage claims in the staged draft and published incident, (3) asserts unlinked Slack and Entra actors leave incidents, incident_drafts, incident_updates and audit_entries unchanged, and (4) asserts the initial Major outage claim and exactly one new Major outage → Degraded performance history entry, matching the incident, publication time and immutable component transition of the returned published update.
-**Gap.** Asserted: Slack linked in Settings; single-use link; unlinked actor creates no incident; unlinked actor creates no draft; unlinked actor creates no update; unlinked actor creates no audit; invalid Slack signature refused; stale Slack request refused; altered Slack body refused; wrong Teams audience refused; invalid Teams signature refused; revoked linked actor creates nothing; archive retains durable links; archive excludes temporary authority. Unasserted in old cited evidence: Entra linked from Settings.
+**Gap.** Old cited evidence asserts Slack linked in Settings; A second redemption of the same successfully redeemed code is refused; After both transport link flows exactly two durable links exist; unlinked actor creates no incident. Unasserted: Entra linked from Settings.
 
 #### INCIDENT-013 — Impact set by the operator
 
@@ -2030,7 +2030,7 @@ Core · target · **partial** · Cites BASE-OPS-005
 5. Statuspage imports retain each recorded incident impact.
 
 **Evidence.** `src/core/features/incident-impact/`, `migrations/core/0031_incident_impact.sql`, `tests/e2e/helpers/incident-impact-flow.mjs`
-**Gap.** Asserted: above derived impact; none below derived impact; clear restores derived; public page and permalink; history; public incident API; operator both impacts; operator and time on changes; component state unchanged; overall status unchanged; historical uptime unchanged. Unasserted in old cited evidence: critical choice; notifications; current uptime figure unchanged; imported recorded impact.
+**Gap.** Old cited evidence asserts above derived impact; none below derived impact; clear restores derived; The incident-specific permalink contains the overridden major impact. Unasserted: critical choice; The public page’s major-impact marker is bound to this overridden incident; The history page’s major-impact marker is bound to this overridden incident; notifications; Populated historical uptime day values remain unchanged by the override; current uptime figure unchanged; imported recorded impact.
 
 ### Updates — target
 
@@ -2134,11 +2134,11 @@ Core · target · **partial**
 6. UPDATE-011 flags internal-hostname and IP-address URLs.
 
 **Evidence.** `src/core/shared/update-links.ts`, `src/core/features/channels/slack-message.ts`, `src/core/features/channels/messages.ts`, `src/core/features/incidents/wording-checks.ts`, `tests/e2e/helpers/update-link-evidence.mjs`, `tests/e2e/publishing-contract.test.mjs`, `tests/e2e/helpers/review-update-flow.mjs`, `tests/e2e/channels-and-presets.test.mjs`, `tests/resolve-composer/linked-update-flow.mjs`
-**Gap.** Asserted: own URL visible; period outside; comma and parenthesis outside; markup escaped; other schemes literal; no non-HTTPS link; page direct links; history direct links; permalink direct links; Atom direct links; RSS direct links; source alias direct links; component feed direct links; link relation protections; unchanged content policy; internal-hostname finding; IP-address finding. Unasserted in old cited evidence: Markdown remains literal on every public surface; labelled-link syntax remains literal on every public surface.
+**Gap.** Old cited evidence asserts own URL visible; period outside; Trailing comma stays outside the direct link; Trailing closing parenthesis stays outside the direct link. Unasserted: Markdown remains literal on every public surface; labelled-link syntax remains literal on every public surface.
 
 #### UPDATE-016 — Safe links in mail and chat
 
-Core · target · **done** · From UPDATE-013
+Core · target · **partial** · From UPDATE-013
 
 **Requirement.** Mail and chat retain the same direct destinations and literal wording. SUB-013 and NOTIFY-014 retain the future SMS URL obligation, SUB-014/015 retain subscriber Slack/Teams, and MAINT-009 retains maintenance wording.
 
@@ -2150,7 +2150,7 @@ Core · target · **done** · From UPDATE-013
 5. Other schemes and markup stay escaped literal text in Slack and Teams.
 
 **Evidence.** `src/core/shared/update-links.ts`, `src/core/features/channels/slack-message.ts`, `src/core/features/channels/messages.ts`, `src/core/features/incidents/wording-checks.ts`, `tests/e2e/helpers/update-link-evidence.mjs`, `tests/e2e/publishing-contract.test.mjs`, `tests/e2e/helpers/review-update-flow.mjs`, `tests/e2e/channels-and-presets.test.mjs`, `tests/resolve-composer/linked-update-flow.mjs`
-**Gap.** None.
+**Gap.** Old cited evidence asserts Email text retains affected-audience wording; Email text retains customer-impact wording with its bare URL; Email text retains what-still-works wording with its bare URLs; Email text retains details wording with its bare URLs. Unasserted: Teams independently asserts literal HTTP-scheme text; Teams independently asserts retained escaped HTML markup.
 
 #### UPDATE-017 — Safe link webhook formats
 
@@ -2164,7 +2164,7 @@ Core · target · **partial** · From UPDATE-013
 3. Both formats’ signatures verify over the exact delivered body.
 
 **Evidence.** `src/core/shared/update-links.ts`, `src/core/features/channels/slack-message.ts`, `src/core/features/channels/messages.ts`, `src/core/features/incidents/wording-checks.ts`, `tests/e2e/helpers/update-link-evidence.mjs`, `tests/e2e/publishing-contract.test.mjs`, `tests/e2e/helpers/review-update-flow.mjs`, `tests/e2e/channels-and-presets.test.mjs`, `tests/resolve-composer/linked-update-flow.mjs`
-**Gap.** Asserted: Slack fields reassemble; Slack link text equals URL; only HTTPS links; Slack punctuation and literals; exact-body signature. Unasserted in old cited evidence: Lamp fields byte-for-byte.
+**Gap.** Old cited evidence asserts Slack fields reassemble; Slack link text equals URL; only HTTPS links; Slack-webhook text retains period punctuation outside its URL. Unasserted: Lamp fields byte-for-byte.
 
 ### Scheduled maintenance — target
 
@@ -2374,7 +2374,7 @@ Core · target · **partial** · Cites BASE-MAIL-001, BASE-INPUT-002 · Register
 5. Component selection and SUB-010's failing-destination rules apply.
 
 **Evidence.** Synthetic Workflows network-edge proof: `tests/e2e/channels-and-presets.test.mjs` (SUB-014 NOTIFY-011 NOTIFY-012 UPDATE-013 — Private channels deliver the selected publication once with literal text and punctuated links), `tests/e2e/helpers/self-serve-chat-flow.mjs` (selfServeChatFlow) and `tests/e2e/teams-subscriptions-helper.mjs`. A native public form sends a verification Adaptive Card; only channel confirmation activates the encrypted selected-component subscription, which receives the next publish. Non-Microsoft hosts return 400. Bare HTTPS links show the URL itself with punctuation outside. Other schemes and markup are asserted for the operator card in `tests/e2e/channels-and-presets.test.mjs`:135-146; the subscriber card proof asserts the Acceptance sentence’s HTTPS link. Ten failed deliveries deactivate the endpoint and the next publish skips it. Submission, channel confirmation and success screens pass axe, overflow and hydration checks at 1440/390. No live Teams call was made from this run.
-**Gap.** Old cited evidence asserts non-Microsoft refusal; refused destination sends no card; one verification card. It does not assert: component selection asserted in tests/e2e/helpers/chat-preferences-flow.mjs outside the old Evidence set.
+**Gap.** Old cited evidence asserts non-Microsoft refusal; one verification card; card receipt pending; link open pending. Unasserted: the refused non-Microsoft destination receives no outbound card; component selection asserted in tests/e2e/helpers/chat-preferences-flow.mjs outside the old Evidence set.
 
 #### SUB-016 — Preferences on every channel
 
@@ -2408,7 +2408,7 @@ Core · target · **partial** · Cites BASE-DATA-001, BASE-OPS-005
 6. The subscriber list and audit retain the adding operator's identity.
 
 **Evidence.** `tests/e2e/statuspage-import.test.mjs` (imports keep history silent, CSV dry runs write nothing, and pending subscribers receive only explicit owner invitations), `tests/e2e/helpers/subscriber-csv-flow.mjs`, `tests/e2e/delivery-contract.test.mjs` (Attributed operator additions, confirmed component scope, private management and opt-out), `tests/e2e/helpers/subscriber-add-flow.mjs`, `tests/e2e/helpers/subscriber-intake-browser-flow.mjs`. Public operator CSV preview writes nothing and reports 97 created plus three reasoned refusals from 100 rows; apply creates 97 pending subscriptions without mail. Explicit invitations send 50, then 47, then zero, and CSV export retains 97 rows with channel, state, selections and consent time. The Add subscriber public door sends one confirmation; after confirmation its two selected components receive updates and a third does not. The private list and audit record the adding operator. At 1440/390 native browser journeys prove Add, attribution, dry run, apply, explicit idempotent invitations and CSV export. Phone, multi-language and over-limit obligations are carried by SUB-013, I18N-001 and SUB-020 after the approved carves; API-001 inherits its future door. Additional push-Verify evidence: `tests/e2e/statuspage-import.test.mjs` (MOVE-002 — SUB-017 and SUB-020 imports keep history silent, CSV dry runs write nothing, pending subscribers need explicit invitations, and capacity refuses excess without writes), loading `tests/e2e/helpers/subscriber-csv-flow.mjs` and `tests/e2e/helpers/subscriber-intake-browser-flow.mjs` in the imports-statuspage shard. The authenticated owner-only batch-summary door returns each durable CSV batch and its remaining eligible invitations without destinations or tokens. Native reads prove 97 to 47 to zero remaining across existing bounded send actions, signed-out 401 and public-host 404; the existing public role policy refuses member invitations with 403 while the owner read returns 200. At 1440/390 two import batches remain selectable after reload, each sends only on the existing explicit action, and both retain zero remaining after another reload. The screen passes axe, overflow and hydration checks; the completed batch action is disabled. Additional phone-carve evidence: `tests/e2e/helpers/sms-subscriber-flow.mjs` (smsSubscriberFlow) and `tests/e2e/helpers/sms-browser-flow.mjs` (smsBrowserFlow), within the existing delivery registration, prove phone CSV dry-run counts with no writes and Add subscriber phone/component selection with one opt-in at 1440/390. Valid phones no longer receive the former SUB-013-unavailable refusal; SUB-017 status is unchanged.
-**Gap.** Old cited evidence asserts dry-run counts and reasons; dry-run rows and reasons; dry-run no mail. It does not assert: dry-run database comparison asserted in tests/e2e/helpers/subscriber-management-fixture.mjs outside the old Evidence set; webhook form/API creation.
+**Gap.** Old cited evidence asserts dry run reports 97 created; dry run reports zero skipped; dry run reports three refused; dry-run rows and reasons. Unasserted: dry-run database comparison asserted in tests/e2e/helpers/subscriber-management-fixture.mjs outside the old Evidence set; the one-row form persists the webhook destination and contact; webhook API component selection is read back; the form persists the exact selected component identifiers.
 
 #### SUB-018 — Statuspage-format webhooks
 
@@ -2477,7 +2477,7 @@ Core · target · **partial** · From SUB-020
 7. A full channel remains in Follow-ups until below capacity; over-limit subscribers are never accepted then silently undelivered.
 
 **Evidence.** `tests/e2e/statuspage-import.test.mjs` (MOVE-002 — SUB-017 and SUB-020 imports keep history silent, CSV dry runs write nothing, pending subscribers need explicit invitations, and capacity refuses excess without writes), `tests/e2e/helpers/subscriber-limits-flow.mjs` (subscriberLimitsFlow, subscriberChannelLimitsFlow) and `tests/e2e/helpers/subscriber-limits-browser-flow.mjs` (subscriberLimitsBrowserFlow). A direct fixture-database setup inserts 24,998 subscriptions and two public opt-ins reach 25,000; script-free public POSTs for a new and an existing address return identical 409 pages with Atom/RSS links, create nothing and send nothing. Recorded operator mail receives each 80% and 100% alert once; full Follow-ups remain until below capacity. The 300-into-100-free import and CSV each name an excess of 200, refuse exactly those rows, and refuse apply without changing any application table or mail; narrowed fresh dry runs apply. A full installation also refuses a single-row import unchanged. Saved and recorded fixed-origin API responses with 5,000 and 25,000 subscribers fit without narrowing. Pending/active counts and webhook/chat sublimits are enforced atomically. Subscribers (/app/subscribers), Move in, Follow-ups and full-capacity public pages pass axe, overflow and hydration checks at 1440/390. This is fixture admission proof, not a 25,000-recipient delivery qualification.
-**Gap.** Old cited evidence asserts total capacity; webhook capacity refusal; combined chat capacity. It does not assert: incident subscriptions consume capacity; deleted subscribers release capacity; each channel count in Settings browser assertions; every channel crossing alert.
+**Gap.** Old cited evidence asserts total capacity; the full seeded webhook channel refuses another destination; freeing one webhook slot admits a pending subscriber; that pending subscriber exhausts the recovered webhook slot. Unasserted: the reported combined-chat count and limit are explicitly 1000; incident subscriptions consume capacity; deleted subscribers release capacity; each channel count in Settings browser assertions; no subscriber row in any other state is created; every channel crossing alert; the full-channel refusal creates no subscriber in another state.
 
 #### SUB-023 — Import subscriber capacity
 
@@ -2493,7 +2493,7 @@ Core · target · **partial** · From SUB-020
 5. The same excess/refusal behavior holds for a CSV until a fresh file fits.
 
 **Evidence.** `tests/e2e/statuspage-import.test.mjs` (MOVE-002 — SUB-017 and SUB-020 imports keep history silent, CSV dry runs write nothing, pending subscribers need explicit invitations, and capacity refuses excess without writes), `tests/e2e/helpers/subscriber-limits-flow.mjs` (subscriberLimitsFlow, subscriberChannelLimitsFlow) and `tests/e2e/helpers/subscriber-limits-browser-flow.mjs` (subscriberLimitsBrowserFlow). A direct fixture-database setup inserts 24,998 subscriptions and two public opt-ins reach 25,000; script-free public POSTs for a new and an existing address return identical 409 pages with Atom/RSS links, create nothing and send nothing. Recorded operator mail receives each 80% and 100% alert once; full Follow-ups remain until below capacity. The 300-into-100-free import and CSV each name an excess of 200, refuse exactly those rows, and refuse apply without changing any application table or mail; narrowed fresh dry runs apply. A full installation also refuses a single-row import unchanged. Saved and recorded fixed-origin API responses with 5,000 and 25,000 subscribers fit without narrowing. Pending/active counts and webhook/chat sublimits are enforced atomically. Subscribers (/app/subscribers), Move in, Follow-ups and full-capacity public pages pass axe, overflow and hydration checks at 1440/390. This is fixture admission proof, not a 25,000-recipient delivery qualification.
-**Gap.** Old cited evidence asserts move-in excess named; move-in refused rows; CSV excess named. It does not assert: move-in database comparison asserted in tests/e2e/helpers/subscriber-management-fixture.mjs outside the old Evidence set; CSV database comparison asserted in tests/e2e/helpers/subscriber-management-fixture.mjs outside the old Evidence set.
+**Gap.** Old cited evidence asserts move-in excess named; move-in refused rows; CSV excess named; CSV refused rows. Unasserted: move-in database comparison asserted in tests/e2e/helpers/subscriber-management-fixture.mjs outside the old Evidence set; CSV database comparison asserted in tests/e2e/helpers/subscriber-management-fixture.mjs outside the old Evidence set; the narrowed apply persists all expected non-subscriber records; the over-limit apply creates no subscriber in another state; the email-free apply persists the expected source component; the fitting CSV apply actually stores one pending subscriber.
 
 ### Notifications — target
 
@@ -2556,7 +2556,7 @@ Core · target · **partial** · Cites BASE-MAIL-001
 3. After ten email and two webhook recipients with one bounced email, the displayed figures match CSV.
 
 **Evidence.** `src/core/features/communication-performance/repository.ts`, `src/core/features/communication-performance/ui/incident-reach.tsx`, `tests/e2e/helpers/communication-performance-flow.mjs`
-**Gap.** Old cited evidence asserts email committed10; email delivered9; email bounced1. It does not assert: suppressed count reconciliation; failed count reconciliation; webhook CSV parity.
+**Gap.** Old cited evidence asserts email committed10; email delivered9; email bounced1; webhook committed2. Unasserted: suppressed count reconciliation; failed count reconciliation; incident webhook totals and distinct recipient counts reconcile across updates; webhook CSV parity.
 
 #### NOTIFY-016 — Operator alerts beyond email
 
@@ -2699,7 +2699,7 @@ Core · target · **partial** · Cites BASE-INPUT-001, BASE-OPS-003, BASE-ACCESS
 7. At 1440 and 390 the saved monitor choice and private draft show the picked component and its vantages.
 
 **Evidence.** `src/core/features/intake/uptime.ts`, `src/core/features/intake/service.ts`, `src/core/features/intake/ui/uptime-form.tsx`, `tests/e2e/channels-and-presets.test.mjs`, `tests/e2e/helpers/uptime-preset-flow.mjs`, `tests/e2e/helpers/uptime-pairing-flow.mjs`, `tests/e2e/helpers/intake-byte-flow.mjs`
-**Gap.** The cited journeys assert pairing, key/timestamp and exact-byte refusals without effects, isolation, private drafts, supplied evidence, missing time and recovery. Drill refusal, complete refused-monitor receipt/no-draft behavior and explicit confirmed-versus-earlier-unobserved wording remain unasserted.
+**Gap.** Old cited evidence asserts Pairing asks for no secret; Signing-secret source retained; Wrong key refused; Missing timestamp refused. Unasserted: Authentication refusals create or change no draft record; Authentication refusals create no published update; Authentication refusals leave every other public artifact unchanged; Test and drill refusal plus visible receipt/no draft; Confirmed versus earlier unobserved time labeled.
 
 #### INTAKE-009 — PagerDuty
 
@@ -2717,7 +2717,7 @@ Core · target · **partial** · From INTAKE-009 · Cites BASE-INPUT-001, BASE-O
 7. Private drafts and responder events publish no story; erasing a source removes credentials and receipts while preserving operator publications and drafted reports.
 
 **Evidence.** `src/core/features/intake/`, `tests/e2e/channels-and-presets.test.mjs`, `tests/e2e/helpers/pagerduty-flow.mjs`, `scripts/installer/archive-policy.mjs`, `tests/auth-adoption/portability.test.mjs`
-**Gap.** Signed private intake, service matches, replay, responder citations, lifecycle and erasure are asserted. Complete compound-matcher refusal, recovery receipt readback and exclusion of private drafts from every public representation remain unasserted.
+**Gap.** Old cited evidence asserts Disconnected intake no receipt; Inbound connection state; Outbound state; Wrong signature refused. Unasserted: Private drafts are absent from every other public story artifact; All supplied compound matcher fields required; Recovery receipt readback; Every public story artifact excludes private drafts.
 
 #### INTAKE-015 — PagerDuty publication notes
 
@@ -2734,7 +2734,7 @@ Core · target · **partial** · From INTAKE-009 · Cites BASE-DATA-004, BASE-OP
 6. The default note author is the source owner’s Lamp email and identifies a valid PagerDuty user.
 
 **Evidence.** `src/core/features/intake/`, `tests/e2e/channels-and-presets.test.mjs`, `tests/e2e/helpers/pagerduty-flow.mjs`, `scripts/installer/archive-policy.mjs`, `tests/auth-adoption/portability.test.mjs`
-**Gap.** One fixed-host note per publication, replay suppression, failure receipts, key sealing, archive removal and reconnection are asserted. Note-author identity sealing/redaction is not asserted; valid live PagerDuty user acceptance remains field proof.
+**Gap.** Old cited evidence asserts PagerDuty note contains the public audience statement; PagerDuty note contains public customer impact; PagerDuty note contains public still-working text; PagerDuty note contains public details. Unasserted: Note-author sealed and redacted.
 
 #### INTAKE-010 — Prometheus Alertmanager and Grafana Alerting
 
@@ -2864,7 +2864,7 @@ Core · target · **partial** · From INTAKE-014 · Cites BASE-INPUT-001, BASE-O
 8. At 1440 and 390 compound mappings and source choices persist; ordinary choices autosave and credentials have explicit Save.
 
 **Evidence.** `src/core/features/intake/`, `tests/e2e/channels-and-presets.test.mjs`, `tests/e2e/helpers/operations-alerts-flow.mjs`, `tests/e2e/helpers/operations-alerts-browser-flow.mjs`, `tests/auth-adoption/portability.test.mjs`, `migrations/core/0061_vendor_alert_presets.sql`
-**Gap.** Bearer refusal with complete table equality, compound mapping, draft preservation, private responder evidence, late-event no-effects and saved choices are asserted. Unmapped-reason and recovery-record readback and credential replacement through an explicit saved browser door remain unasserted.
+**Gap.** Old cited evidence asserts Wrong token 401; Wrong-token refusal preserves every incident row; Wrong-token refusal preserves every draft row; Wrong-token refusal preserves every published-update row. Unasserted: Repeated Create retains operator-authored still-working text and next-update time; Each brief summary time equals that action’s exact fixture timestamp; Unmapped reason read back; Recovery record read back; Credential replacement explicit Save asserted.
 
 #### INTAKE-019 — Responder publication feedback
 
@@ -2879,7 +2879,7 @@ Core · target · **partial** · From INTAKE-014 · Cites BASE-DATA-004, BASE-OP
 4. Atlassian sites use the documented HTTPS Atlassian domain and credentials reach only the intended fixed provider destination.
 
 **Evidence.** `src/core/features/intake/`, `tests/e2e/channels-and-presets.test.mjs`, `tests/e2e/helpers/operations-alerts-flow.mjs`, `tests/e2e/helpers/operations-alerts-browser-flow.mjs`, `tests/auth-adoption/portability.test.mjs`, `migrations/core/0061_vendor_alert_presets.sql`
-**Gap.** Separate note/close counts, public fields, fixed hosts, listing redaction and native-archive reconnection are asserted. An at-rest ciphertext assertion for each provider credential remains unasserted.
+**Gap.** Old cited evidence asserts One note; No non-Resolved close; Linked alert; Identified provider note retains incident title. Unasserted: Each provider key sealed at rest.
 
 ### Automation — target
 
@@ -2943,7 +2943,7 @@ Core · target · **partial** · Cites BASE-OPS-003, BASE-OPS-005
 6. Retroactive-only imported incidents can owe reports privately but send no automatic reminder until a live update.
 
 **Evidence.** `src/core/features/reports/repository.ts`, `src/core/features/reports/service.ts`, `src/core/features/reports/routes.ts`, `tests/e2e/publishing-contract.test.mjs`, `tests/e2e/helpers/post-incident-report-flow.mjs`, `tests/release/upgrade.test.mjs`, `tests/e2e/helpers/follow-ups-flow.mjs`, `tests/e2e/helpers/report-reminders-flow.mjs`
-**Gap.** The old Evidence asserts due-day/weekly owner and operator-channel reminders, deduplication, privacy, publication/waiver stops, blank-reason refusal, waiver actor/reason and no reminder obligation for historical-only imports. It does not read waiver audit time or prove that a later live update starts reminders on that imported incident.
+**Gap.** Old cited evidence asserts Owner email recipient; Operator channel count; Repeated day-seven tick has the expected exact email count; Repeated day-seven tick has the expected exact Slack/Teams counts. Unasserted: Waiver audit timestamp read back; Live publication starts reminders on previously historical import.
 
 ### Operators — target
 
@@ -3025,7 +3025,7 @@ Core · target · **partial**
 6. Monthly cohorts use the configured page time zone; absent accepted-alert and source-delivery facts remain unknown.
 
 **Evidence.** `src/core/features/communication-performance/service.ts`, `src/core/features/communication-performance/ui/communication-performance.tsx`, `tests/e2e/helpers/communication-performance-flow.mjs`
-**Gap.** The cited journey asserts latency, promise counts, backdating protection, resolution duration, reports owed, channel counts, distinct reach, CSV and unknown facts. It does not assert the delivery-failure rate itself with its exact denominator.
+**Gap.** Old cited evidence asserts First latency; Second latency; Third latency; Two of three kept. Unasserted: Every incident CSV field and channel matches its report value; Every monthly CSV value equals the corresponding displayed monthly report value; Delivery failure rate exact denominator.
 
 #### HIST-006 — Traffic spike alert without visitor tracking
 
@@ -3043,7 +3043,7 @@ Core · target · **partial** · From HIST-006 · Cites BASE-PUBLIC-001, BASE-OP
 7. Traffic alerts create no customer-facing incident or other public content.
 
 **Evidence.** `src/core/features/traffic-alerts/`, `tests/e2e/helpers/traffic-alerts-flow.mjs`, `tests/e2e/helpers/traffic-resolution-flow.mjs`, `tests/e2e/helpers/traffic-alerts-runtime.mjs`, `tests/e2e/update-reminders.test.mjs`
-**Gap.** The old Evidence asserts identifier-free aggregate counters, database-free public reads, same-hour means, missing-hour zero, cold-start suppression, single alerts, replay/consecutive suppression and incident suppression. It does not assert the explicitly promised zero-baseline no-spike case.
+**Gap.** Old cited evidence asserts Stored keys only surface minute count; Visitor identifiers and raw path absent; No database binding; Public page responds 200 with no database binding. Unasserted: Public page retains its expected full content without the database; Atom feed retains its expected full content without the database; Widget retains its expected full content without the database; The feed counter records its no-database request; The widget counter records its no-database request; The provider message binds ten to the observed minute request count; The provider message binds two to the same-hour baseline mean; Traffic alerts create no customer-facing incident; Traffic alerts preserve public page, feed and widget bytes; Zero baseline never infers spike.
 
 #### HIST-009 — Traffic alert configuration
 
@@ -3061,7 +3061,7 @@ Core · target · **partial** · From HIST-006 · Cites BASE-INPUT-001, BASE-ACC
 
 #### HIST-010 — Traffic evidence at resolution
 
-Core · target · **done** · From HIST-006 · Cites BASE-AGENT-006, BASE-AGENT-007, BASE-AGENT-008, BASE-OPS-005
+Core · target · **partial** · From HIST-006 · Cites BASE-AGENT-006, BASE-AGENT-007, BASE-AGENT-008, BASE-OPS-005
 
 **Requirement.** The AGENT-004 recovery check incorporates current traffic without converting unknown baselines to passing evidence. An agent resolution carries external and live classes; company policy decides the step’s disposition, and any override retains truthful attribution.
 
@@ -3074,7 +3074,7 @@ Core · target · **done** · From HIST-006 · Cites BASE-AGENT-006, BASE-AGENT-
 6. When traffic returns near baseline, that retained schedule publishes without adding an override.
 
 **Evidence.** `src/core/features/traffic-alerts/`, `tests/e2e/helpers/traffic-alerts-flow.mjs`, `tests/e2e/helpers/traffic-resolution-flow.mjs`, `tests/e2e/helpers/traffic-alerts-runtime.mjs`, `tests/e2e/update-reminders.test.mjs`
-**Gap.** None.
+**Gap.** Old cited evidence asserts Unknown surface not tracked; Only known surfaces evidence; All unknown surfaces learning; Backdated refusal. Unasserted: Every field of the retained incident and draft remains unchanged; The complete held scheduled draft retains its saved fields; Near-baseline scheduled publication creates no override audit or other override record.
 
 #### HIST-007 — Subscriber reporting
 
@@ -3092,7 +3092,7 @@ Core · target · **partial**
 7. Technical archives preserve observed facts; older archives start a restore baseline, and earlier daily history stays unknown.
 
 **Evidence.** `src/core/features/subscriber-reporting/`, `migrations/core/0034_subscriber_reporting.sql`, `tests/e2e/helpers/subscriber-reporting-flow.mjs`, `tests/e2e/helpers/subscriber-reporting-browser-flow.mjs`, `tests/e2e/delivery-contract.test.mjs`, `tests/e2e/publishing-browser.test.mjs`, `tests/e2e/export-import.test.mjs`
-**Gap.** The cited journeys assert channel/state/component/reason counts, daily reconciliation, confirmation neutrality, channel-move/erasure/undo effects, anonymous CSV and archive handling. Audience and language counts, trend and CSV remain unbuilt under AUD-004/I18N-001; explicit expiry atomicity is not asserted.
+**Gap.** Old cited evidence asserts Current total equals whole list; Each returned channel/state bucket equals the matching complete-list filter count; Component count; Deactivation reason. Unasserted: Every nonzero channel/state bucket is present in the report; Daily opening inventory matches its actual baseline or the previous day’s closing inventory; Daily closing inventory equals the actual eligible subscriber inventory; The channel move records its exact individual join and leave atomically; Erasure records its exact individual leave atomically; Import undo records its exact individual leave atomically; Every remaining displayed aggregate and CSV value agree; Audience count/trend/CSV; Language count/trend/CSV; Expiry facts update atomically; The source’s complete nonempty observed subscriber-reporting facts are present in that archive.
 
 #### HIST-008 — Complete browsable history
 
@@ -3108,7 +3108,7 @@ Core · target · **partial** · Cites BASE-PUBLIC-001
 5. The native month path and Sorry month aliases retain their separate meanings.
 
 **Evidence.** `src/core/features/public-snapshot/history.ts`, `tests/e2e/helpers/catalogue-history-flow.mjs`, `tests/e2e/snapshot-retained.test.mjs`
-**Gap.** The cited journeys assert import-backed old-month links, oldest incident reachability, adjacent populated months, timezone assignment and distinct aliases. They do not execute script-disabled browser navigation or assert every retained completed maintenance/incident. The cold-storage fixture proves a snapshot month, not an explicit database-down assertion for every month.
+**Gap.** Old cited evidence asserts Earlier month index link; Oldest imported incident reached; No navigation loop; A previous-month link exists during traversal to the oldest imported incident. Unasserted: Script-disabled navigation asserted; Every traversed intermediate month contains an incident or completed maintenance rather than an empty-month hop; Every completed maintenance and incident listed; Database unavailable month read.
 
 ### Audiences and private pages — target
 
@@ -3392,7 +3392,7 @@ Core · target · **partial**
 3. The Cutover guide explains correction updates rather than editing published history, selecting no channels to avoid another notice, component states changing with updates and degraded-only components retaining that behavior.
 
 **Evidence.** `src/core/features/statuspage-import/public-paths.mjs`, `src/core/features/public-snapshot/import-aliases.ts`, `src/core/features/statuspage-import/operating-notes.ts`, `tests/e2e/statuspage-import.test.mjs`, `tests/e2e/cutover-browser.test.mjs`, `tests/e2e/public-contract.test.mjs`
-**Gap.** The cited browser journey reads all operating-guide notes and successful nonempty public reader responses, but does not assert an unmodified client parsing the summary or an old embed tag actually rendering the notice; it also lacks asserting rows for every served/unavailable reader listing. Unasserted outcomes: An unmodified Statuspage client parses the summary; An old embed tag renders the floating notice after import; Each reader is listed served after import; Webhook and automation readers are unavailable before implementation; Shipped automation shows old/new component addresses. The embed-rendering assertions are in tests/e2e/helpers/widget-variants-flow.mjs, outside the old Evidence set.
+**Gap.** Old cited evidence asserts Statuspage summary endpoint returns nonempty content; Source Atom equals native feed; RSS response is nonempty; Guide includes the correction-update note. Unasserted: An unmodified Statuspage client parses the summary; An old embed tag renders the floating notice after import; Each reader is listed served after import; Webhook and automation readers are unavailable before implementation; Shipped automation shows old/new component addresses.
 
 #### MOVE-010 — Every subscriber channel moves
 
@@ -3428,7 +3428,7 @@ Core · target · **partial**
 6. Dry run counts imported, private and refused reports with reasons and changes no records; application imports only the reviewed reports, repeat imports no duplicate, and undo removes unchanged reports while naming retained edits.
 
 **Evidence.** `src/core/features/statuspage-import/postmortems.ts`, `src/core/features/statuspage-import/templates.ts`, `tests/e2e/helpers/postmortem-template-import-flow.mjs`, `tests/e2e/helpers/imported-template-apply-flow.mjs`, `tests/e2e/statuspage-import.test.mjs`, `tests/e2e/publishing-contract.test.mjs`
-**Gap.** The old Evidence set asserts full source-word retention, original publication time, private draft canaries, report API/permalink visibility and repeat/conditional undo. It does not assert exact paragraph/list/heading line structure, no image fetch, empty-field omission in rendered reports, or complete no-write state during dry run. Unasserted outcomes: Published report with source notify flag creates no notification of any kind; Paragraph/list item line boundaries survive; Heading line boundaries survive; Image URL is never fetched; Empty timeline/cause/remediation fields are omitted from rendered report; HIST-003 counts the imported report as published; Dry run writes no report or other native record; Apply imports only reviewed reports.
+**Gap.** Old cited evidence asserts Imported report retains original publication time; The fixture source text markers survive in the summary; The ordinary source link URL survives; The HTML source link URL survives. Unasserted: Published report with source notify flag creates no notification of any kind; Every word of the complete source body survives; Paragraph/list item line boundaries survive; Heading line boundaries survive; Image URL is never fetched; Empty timeline/cause/remediation fields are omitted from rendered report; HIST-003 counts the imported report as published; Dry run writes no report or other native record; Apply imports only reviewed reports; Undo names the specific retained edited incident; Undo names the specific retained edited template; Undo names the specific retained edited component.
 
 #### MOVE-014 — Incident templates move intact
 
@@ -3445,7 +3445,7 @@ Core · target · **partial** · From MOVE-011
 6. Repeating the import creates no duplicate; undo removes unchanged templates and preserves and names edited ones with needed components.
 
 **Evidence.** `src/core/features/statuspage-import/postmortems.ts`, `src/core/features/statuspage-import/templates.ts`, `tests/e2e/helpers/postmortem-template-import-flow.mjs`, `tests/e2e/helpers/imported-template-apply-flow.mjs`, `tests/e2e/statuspage-import.test.mjs`, `tests/e2e/publishing-contract.test.mjs`
-**Gap.** The old cited helpers assert template folder/title/channel/component state, full oversized details, staged application, repeat counts and conditional undo. They do not read every imported template lifecycle or the complete affected-audience derivation from its components. Unasserted outcomes: Every source lifecycle survives; Affected audience is derived from all selected component names; Application imports exactly the reviewed template plan.
+**Gap.** Old cited evidence asserts Template source folder survives; Template title survives; Template channel default survives; Template component state survives. Unasserted: Every source lifecycle survives; All three original template names and source identities are preserved; Affected audience is derived from all selected component names; Every existing template content is unchanged by dry run; Application imports exactly the reviewed template plan; The retained template has a nonempty complete original component set after undo.
 
 #### MOVE-012 — Private and audience pages move as private
 
@@ -3529,7 +3529,7 @@ Core · push-further · **partial** · Cites BASE-AGENT-006, BASE-AGENT-007
 6. Without a subsequent publication the original commitment remains on the public page and the incident becomes overdue.
 
 **Evidence.** `src/core/features/incidents/promise-draft.ts`:16, `src/core/features/incidents/promise-draft.repository.ts`:6, `src/core/features/incidents/reminders.ts`:24, `tests/e2e/update-reminders.test.mjs`:57, `tests/e2e/incident-brief.test.mjs`:86, `tests/e2e/helpers/prepared-draft-flow.mjs`:8
-**Gap.** The old cited journeys assert deterministic cited drafts, reminder links, preserved operator drafts, original commitments and private public-door outcomes. They do not assert policy-computed classes or the held-policy decision. Unasserted outcomes: Company policy computes and permits the standard preparation call.
+**Gap.** Old cited evidence asserts Ten-minute preparation trigger creates a draft before any later tick; Draft restates last public impact; Draft names changed evidence refs; No-change draft states nothing changed. Unasserted: A nonempty prepared evidence set is rendered completely in the private composer; Preparation preserves other published surface bytes; Company policy computes and permits the standard preparation call.
 
 #### AGENT-003 — Audience-specific impact
 
@@ -3561,7 +3561,7 @@ Core · push-further · **partial** · Cites BASE-AGENT-006, BASE-AGENT-007, BAS
 6. Missing vendor, traffic, support or continuously sampled monitor evidence reads not tracked rather than passing; DEP-001, HIST-010, INTEG-001 and COMP-008 join this same check as their evidence becomes available.
 
 **Evidence.** `src/core/features/brief/recovery-check.ts`, `src/core/features/incidents/recovery-repository.ts`, `src/core/features/incidents/publication-repository.ts`, `tests/e2e/helpers/recovery-check-flow.mjs`, `tests/e2e/incident-brief.test.mjs`
-**Gap.** The old cited helper asserts firing/hold/refire/grouped-member outcomes, private audited immediate override and retained scheduled failure. It does not assert repeated grouped recovery restarting the hold, the historical resolution path, or each named not-tracked evidence category; policy classes are also unproved. Unasserted outcomes: Held company policy decides the resolution class; Five-minute recovery threshold is applied at its boundary; Repeated grouped recovery restarts the hold; All linked alert keys participate; Historical resolution follows the same recovery check; An override cannot authorize a later scheduled resolution; Missing vendor evidence is specifically not tracked; Missing traffic evidence is specifically not tracked; Missing support evidence is specifically not tracked; Missing continuous-monitor evidence is specifically not tracked.
+**Gap.** Old cited evidence asserts The recovery response contains the linked firing item; That item names its source record.; That item carries a parseable evidence time; Unreasoned resolution is refused. Unasserted: Held company policy decides the resolution class; The audit actor equals the operator who published the override; Five-minute recovery threshold is applied at its boundary; Repeated grouped recovery restarts the hold; All linked alert keys participate; The same failing draft identity and wording are retained; Historical resolution follows the same recovery check; An override cannot authorize a later scheduled resolution; Missing vendor evidence is specifically not tracked; Missing traffic evidence is specifically not tracked; Missing support evidence is specifically not tracked; Missing continuous-monitor evidence is specifically not tracked.
 
 #### AGENT-005 — A post-incident report drafted from the record
 
@@ -3578,7 +3578,7 @@ Core · push-further · **partial** · Cites BASE-AGENT-006, BASE-AGENT-007
 6. Published report text is immutable and appears in the public incident record.
 
 **Evidence.** `src/core/features/reports/draft.ts`, `src/core/features/reports/service.ts`, `src/core/features/reports/ui/report-editor.tsx`, `tests/e2e/publishing-contract.test.mjs`, `tests/e2e/helpers/post-incident-report-flow.mjs`
-**Gap.** Old evidence asserts complete current alert/update citation sets, private-note exclusion, empty flagged fields, incomplete-publication refusals and preserved/immutable reports. It does not read back the explicit recorded-versus-measured label or prove the company-policy class decision; responder and measured-evidence integration remain obligations of their owning clauses. Unasserted outcomes: Report explicitly labels recorded rather than measured downtime; An empty cause with completed remediation refuses publication; An untouched cause prompt with completed remediation refuses publication; An untouched remediation prompt with completed cause refuses publication; Held policy decides report publication class.
+**Gap.** Old cited evidence asserts The timeline represents every available alert reference; The timeline represents every available published-update reference; The timeline line count equals the total available source count; Every timeline line cites a real source record. Unasserted: Report explicitly labels recorded rather than measured downtime; An empty cause with completed remediation refuses publication; An untouched cause prompt with completed remediation refuses publication; An untouched remediation prompt with completed cause refuses publication; Held policy decides report publication class; The complete persisted report state is unchanged after the refused edit.
 
 #### AGENT-006 — Unreported incidents surface early
 
@@ -3684,7 +3684,7 @@ Agent surface · target · **missing** · From new · Cites BASE-AGENT-006, BASE
 3. A connection that the identity, mail, SMS or chat provider keeps for a person carries gated with that provider and step; an available company-credential API route is decided by the company’s policy for its other computed classes.
 4. The same publication can carry external and commitment, and a credential connection can carry security and gated, without losing either class’s facts.
 5. Changing an active automation rule or a public component-state transition computes live with the affected running status service; the corresponding private draft does not.
-6. An SMS dispatch or paid provider-resource change computes money with amount, currency and the provider counterparty from the stored rate and recipient facts.
+6. An SMS dispatch computes money with amount, currency and the provider counterparty from the stored rate and recipient facts.
 
 **Evidence.** None.
 **Gap.** The Lamp MCP registry, server-computed risk classifiers and company-policy conformance journey are not built.
