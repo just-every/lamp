@@ -1,3 +1,4 @@
+import { operatorHydrated } from "./operator-hydrated.mjs";
 import assert from "node:assert/strict";
 import { mkdir } from "node:fs/promises";
 import { chromium, expect } from "@playwright/test";
@@ -14,6 +15,9 @@ export async function themeBrowserFlow({ appUrl, pageUrl, sessionId, cookieName,
     const page = await context.newPage();
     activePage = page;
     page.on("pageerror", error => clientErrors.push(error.message));
+    page.on("console", message => {
+      if (message.type() === "error" || /hydrat/i.test(message.text())) clientErrors.push(message.text().slice(0, 1500));
+    });
     page.on("response", response => {
       if (response.status() >= 400 && ["script", "stylesheet"].includes(response.request().resourceType())) clientErrors.push(`${response.status()} ${new URL(response.url()).pathname}`);
     });
@@ -24,6 +28,7 @@ export async function themeBrowserFlow({ appUrl, pageUrl, sessionId, cookieName,
       throw cause;
     }
     await expect(page.getByRole("heading", { name: "Theme", exact: true })).toBeVisible();
+    await operatorHydrated(page);
     await page.waitForFunction(() => {
       const form = document.querySelector(".settings-page");
       return form && !form.inert;
@@ -108,6 +113,7 @@ export async function themeBrowserFlow({ appUrl, pageUrl, sessionId, cookieName,
     await context.close();
   } catch (cause) {
     await activePage?.screenshot({ path: `${directory}/settings-failed.png`, fullPage: true }).catch(() => {});
-    throw new Error(`${cause.message}\nClient diagnostics: ${clientErrors.join("; ") || "none"}`, { cause });
+    const state = await activePage?.evaluate(() => ({ readyState: document.readyState, shellHydrated: Boolean(document.querySelector(".operator-shell[data-hydrated]")), settingsInert: document.querySelector(".settings-page")?.inert, scripts: [...document.scripts].map(script => ({ type: script.type, path: script.src ? new URL(script.src).pathname : "inline" })), hydration: window.__rerHydration?.count ?? 0 })).catch(() => null);
+    throw new Error(`${cause.message}\nClient diagnostics: ${clientErrors.join("; ") || "none"}\nDocument state: ${JSON.stringify(state)}`, { cause });
   } finally { await browser.close(); }
 }
