@@ -39,7 +39,7 @@ export async function preparePersonMutation(input: Input): Promise<(response: Re
       id = candidate;
     }
     const after = canonical(await repository.eventState(mutation.family, id));
-    if (after === "null" || after === before) return;
+    if (after === before || after === "null" && before === null) return;
     await door.emit({ type: mutation.event, uri: `lamp://${mutation.family}/${encodeURIComponent(id)}`, person });
   };
 }

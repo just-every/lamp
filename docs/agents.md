@@ -48,7 +48,7 @@ The `incident-communicator` prompt describes the supported shift.
 | Maintenance | Read, create, reschedule, start, complete and cancel windows; typed due actions admit automatic starts, completions and reminders again at execution. |
 | Subscribers and imports | Read consent/capacity and batch outcomes; use native pending intake, explicitly invite a pending batch, remove or erase subscriber details. Import apply and restore retain their separate doors. |
 | Deliveries and follow-ups | Read actual receipts; retry only a retained eligible failure or dismiss its exact occurrence with a reason. |
-| Channels, social and AI | Read native connection metadata; change existing operator-channel alert consent, send a saved-channel test, dispatch supported retained social posts, and request the configured model's cited suggestion or fictional connection check. |
+| Channels, social and AI | Read native connection metadata; change existing operator-channel alert consent, send a saved-channel test, dispatch supported retained social posts, and request the configured model's cited suggestion or connection check using a fictional incident. |
 | Access and credentials | Read native access metadata, revoke a sponsor's chat link or an existing management credential, and read effective narrowing outcomes. |
 | Metrics and page settings | Read/update existing metric definitions, record bounded minute aggregates, and update native page settings with computed visibility/protective-setting risk. Supplied points never prove recovery. |
 
@@ -89,6 +89,12 @@ Token email is not account authority. Lamp's existing operators are equal
 owners; a Business editor role remains a distinct company-policy role. Existing
 native accounts can be mapped without granting new ownership. An unknown,
 inactive, conflicted or unmapped person cannot sponsor an agent.
+
+Erasing a mapped operator revokes retained agent authority and anonymizes copied
+attribution. The cached signed roster is discarded without changing its revision;
+mapping resumes only after a newer signed settings document is applied. Other
+current operators retain their native sessions. Already sent provider content
+cannot be recalled by erasure.
 
 Owner invitation/removal/erasure, new credential issuance and chat-link creation
 retain their real recent-human-proof or one-time native screens. The agent door

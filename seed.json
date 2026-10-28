@@ -176,7 +176,7 @@
     },
     {
       "id": "drafting",
-      "description": "An incident brief of what is known and not known, and an optional AI suggestion that fills the composer from it, never published without an operator.",
+      "description": "An incident brief of what is known and not known, and an optional AI suggestion that fills the private composer without publishing it.",
       "clauses": [
         "DRAFT-001",
         "DRAFT-002",
@@ -223,6 +223,17 @@
         "MOVE-005",
         "MOVE-006"
       ]
+    },
+    {
+      "id": "agent-door",
+      "description": "Scoped incident communication through one MCP door, current native sponsor authority and signed company policy; exact drafts, recovery, consent and configured review remain native boundaries.",
+      "clauses": [
+        "AGENT-008",
+        "UPDATE-004",
+        "UPDATE-007",
+        "AGENT-004",
+        "TEAM-003"
+      ]
     }
   ],
   "nonGoals": [
@@ -233,7 +244,7 @@
     "Roles and permissions: these are one business's equal operators, and UPDATE-007 covers the one gate buyers actually ask for.",
     "SMS and voice notifications: per-message cost, carrier registration, and per-country consent rules that a self-hosted deployment cannot satisfy generically.",
     "Multi-language status pages: every incident update would need a translation before publish, which is the opposite of publishing in two minutes.",
-    "A general-purpose operator API authenticated by API tokens: BASE-ACCESS-002 requires a session on every operator endpoint, and machine writes have one narrow door, INTAKE-001, with its own secret.",
+    "Unrestricted operator API tokens: management clients retain their native scopes and cannot stand in for a person's session, confirmation or approval. Scoped agent work uses the shared MCP door, current native sponsor authority and signed company policy.",
     "SCIM and role synchronization: optional OpenID Connect through Auth, Google, Microsoft or Okta replaces the former SSO exclusion under ACCESS-001; provider sign-in stays off until the owner links and enables it, and magic links remain available.",
     "Visitor analytics and email open tracking: BASE-PUBLIC-001 keeps the page free of cookies and visitor data, and NOTIFY-004 keeps tracking pixels out of notifications, because knowing who read an outage notice is worth less than being the one page a customer can open without being counted.",
     "Native mobile apps: the public page is the mobile experience, and it has to work with script disabled."

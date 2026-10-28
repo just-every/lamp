@@ -49,6 +49,10 @@ test('ACCESS-001 INTAKE-009 native rer archive restores owner continuity and sub
     await links.link(linked.code, { transport: 'slack', tenant: 'synthetic-lamp-1', subject: 'synthetic-lamp-2' });
     const pendingChat = await links.mint(actor.operator.id);
     await db.prepare("INSERT INTO incidents(id,reference,title,lifecycle,opened_at,created_by_operator_id,created_at,updated_at) VALUES('synthetic-lamp-1','INC-9001','synthetic-lamp-1','Investigating',?,?,?,?)").bind(now,actor.operator.id,now,now).run();
+    const prepared = { agent: { id: 'portable-agent', name: 'Portable assistant' }, sponsor: { id: actor.operator.id, name: 'Portable owner' }, label: 'Portable assistant for Portable owner', approvers: [], invocation: { consent: 'portable-agent-consent', scopes: ['lamp:publish'] } };
+    await db.prepare("INSERT INTO incident_reports(id,incident_id,author_operator_id,created_at,updated_at,agent_action_json) VALUES('portable-report','synthetic-lamp-1',?,?,?,?)").bind(actor.operator.id,now,now,JSON.stringify(prepared)).run();
+    await db.prepare("INSERT INTO agent_door_agents(id,name,sponsor,sponsor_name) VALUES('portable-agent','Portable assistant',?,'Portable owner')").bind(actor.operator.id).run();
+    await db.prepare("INSERT INTO lamp_agent_jobs(id,tool,args_json,due_at,principal_json,state,created_at) VALUES('portable-agent-job','lamp.updates.schedule','{}',?,?,'pending',?)").bind(now,JSON.stringify({person:{id:actor.operator.id},agent:prepared.agent,consent:prepared.invocation.consent,scopes:['lamp:publish']}),now).run();
     await db.prepare("INSERT INTO chat_previews(hash,operator_id,incident_id,version,expires_at) VALUES('synthetic-lamp-preview',?,'synthetic-lamp-1','synthetic-lamp-1',?)").bind(actor.operator.id, Date.now()+600000).run();
     await db.prepare("INSERT INTO chat_requests(hash,expires_at) VALUES('synthetic-lamp-request',?)").bind(Date.now()+600000).run();
     // A connected PagerDuty source's sealed REST key is a provider credential: it never travels.
@@ -57,6 +61,7 @@ test('ACCESS-001 INTAKE-009 native rer archive restores owner continuity and sub
     const portableMetrics=await preparePortableMetrics({env:current.env,native,cookie:oldCookie});
     await current.dispose(); current = null;
     await command(source, 'export', '--output', join(directory, 'installation.rer'));
+    assert.ok(!(await readFile(join(directory,'installation.rer'))).includes('portable-agent-consent'),'historical agent attribution must not transfer queued consent');
     for(const value of [portableMetrics.sealed,'synthetic-lamp-99','synthetic-lamp-100',portableMetrics.management.token,portableMetrics.hash]) assert.ok(!(await readFile(join(directory,'installation.rer'))).includes(value),'metric query keys and ciphertext never travel');
     assert.ok(!(await readFile(join(directory, 'installation.rer'))).includes('portable-sealed-rest-key'), 'the archive carries no sealed PagerDuty key');
     for (const preset of ['jsm','opsgenie']) assert.ok(!(await readFile(join(directory, 'installation.rer'))).includes(`synthetic-lamp-${preset}-sealed-key`), `${preset} ciphertext never travels`);
@@ -69,6 +74,11 @@ test('ACCESS-001 INTAKE-009 native rer archive restores owner continuity and sub
     await command(target, 'import', '--input', join(directory, 'installation.rer'), '--yes');
     current = await proxy(target);
     const restored = current.env.DB, fresh = authFixture(restored);
+    assert.equal((await restored.prepare('SELECT COUNT(*) n FROM lamp_agent_jobs').first()).n,0,'restore cannot restart queued agent work');
+    assert.equal((await restored.prepare("SELECT revoked FROM agent_door_agents WHERE id='portable-agent'").first()).revoked,1,'history does not restore a live agent grant');
+    const retainedAction=JSON.parse((await restored.prepare("SELECT agent_action_json FROM incident_reports WHERE id='portable-report'").first()).agent_action_json);
+    assert.equal(retainedAction.label,prepared.label);
+    assert.equal(retainedAction.invocation,undefined);
     assert.equal((await fresh.handle(fresh.request('/auth/bootstrap', { method: 'POST', body: { token: setupToken, displayName: 'Replacement' } }))).status, 409);
     assert.equal(await fresh.auth.getSession(fresh.request('/auth/session', { cookie: oldCookie })), null);
     const cookie = await fresh.signIn();

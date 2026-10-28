@@ -4,6 +4,7 @@ import { join } from 'node:path';
 import { openAgentRuntime } from './runtime.mjs';
 import specialist from './specialist.mjs';
 import { inspectNativePages } from './browser.mjs';
+import { inspectPeople } from './identity.mjs';
 import { createProtocol } from '../../src/base/modules/agent-door/conformance/protocol.mjs';
 import { autonomousPolicy } from '../../src/base/modules/agent-door/conformance/crypto.mjs';
 import { runAgentDoorConformance } from '../../src/base/modules/agent-door/conformance/index.mjs';
@@ -26,6 +27,7 @@ try {
     await mkdir(process.env.LAMP_AGENT_EVIDENCE, { recursive: true });
     await writeFile(join(process.env.LAMP_AGENT_EVIDENCE, 'specialist.json'), JSON.stringify(result, null, 2) + '\n');
   }
+  await inspectPeople(fixture, c);
   await inspectNativePages(fixture, c, result);
   // Keep the exact upstream harness and its normal failing exit. These gaps are
   // named, dated assertions, never skips or a replacement policy implementation.

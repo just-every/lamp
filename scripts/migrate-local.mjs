@@ -1,15 +1,23 @@
-import { spawnSync } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import { resolve } from 'node:path';
 import { applyOwnerMigrations } from './owner-migrations.mjs';
 
-// Capture the complete core + owner command as a child so shared owner migration
-// tooling retains its own output and failure semantics without local alterations.
+// Stream the core + owner command so a growing migration history cannot exhaust
+// spawnSync's output buffer. Retain a bounded diagnostic tail on failure.
 const verbose = process.argv.includes('--verbose');
 if (!process.argv.includes('--apply')) {
-  const result = spawnSync(process.execPath, ['scripts/migrate-local.mjs', '--apply'], { encoding: 'utf8', stdio: verbose ? 'inherit' : ['ignore', 'pipe', 'pipe'] });
-  if (result.status !== 0) {
-    if (!verbose) process.stderr.write(result.stderr || result.stdout || 'Local migrations failed.\n');
-    process.exitCode = result.status ?? 1;
+  const child = spawn(process.execPath, ['scripts/migrate-local.mjs', '--apply'], { stdio: verbose ? 'inherit' : ['ignore', 'pipe', 'pipe'] });
+  let diagnostic = '';
+  const capture = chunk => { diagnostic = (diagnostic + chunk.toString()).slice(-128 * 1024); };
+  child.stdout?.on('data', capture);
+  child.stderr?.on('data', capture);
+  const code = await new Promise(resolve => {
+    child.once('error', error => { capture(error.message); resolve(1); });
+    child.once('exit', code => resolve(code ?? 1));
+  });
+  if (code !== 0) {
+    if (!verbose) process.stderr.write(diagnostic || 'Local migrations failed.\n');
+    process.exitCode = code;
   } else console.log('Local database migrations are up to date.');
 } else {
   const persistence = resolve(process.env.RER_STATE_DIR ?? process.env.LAMP_WORKERS_STATE_PATH ?? '.wrangler/state');

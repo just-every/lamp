@@ -38,6 +38,7 @@ export async function inspectNativePages(fixture, c, records) {
     };
     await check('incident-report', `/app/incidents/${records.id}`, 'Jordan Harbour');
     await check('maintenance', '/app/maintenance', 'API dependency maintenance');
+    await check('native-operators', '/app/settings#operators', 'Former operators');
     await check('audit', '/app/settings#audit-log', 'Audit log');
     const openAudit = page.getByRole('button', { name: /Open audit log/i });
     assert.equal(await openAudit.count(), 1);
@@ -46,7 +47,7 @@ export async function inspectNativePages(fixture, c, records) {
       await page.getByText('for Jordan Harbour', { exact: false }).first().waitFor();
       await page.setViewportSize({ width: 1440, height: 1000 });
       assert.deepEqual((await new AxeBuilder({ page }).analyze()).violations.filter(row => ['serious','critical'].includes(row.impact)).map(row => row.id), []);
-      if (evidence) for (const width of [1440,390]) { await page.setViewportSize({width,height:1000}); await page.screenshot({path:join(evidence,`audit-open-${width}.png`),fullPage:true}); }
+      if (evidence) for (const width of [1440,390]) { await page.setViewportSize({width,height:1000}); await page.locator('#audit-log').scrollIntoViewIfNeeded(); await page.screenshot({path:join(evidence,`audit-open-${width}.png`)}); }
     }
     await check('agent-docs', '/docs/agents', 'Agents and MCP');
     await c.adopt(heldPolicy());

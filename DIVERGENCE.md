@@ -1643,3 +1643,15 @@ and provider callback mappings retain their original storage. Erasure scrubs
 both delivery partitions. The pinned restore bridge continues to enforce
 archive identity, migration history, schema compatibility and empty-target
 requirements; it needs no new capability for this schema.
+
+## Company-controlled agent publication — 28 October 2026
+
+The owner's agent-door direction allows currently supported incident publication,
+resolution, promise changes and maintenance scheduling under signed company
+policy. This supersedes the blanket agent prohibitions in AGENT-001, AGENT-004
+and AGENT-009 for the shared door; ct owns their formal clause reconciliation.
+It does not remove exact saved previews, configured native multi-review rules,
+current sponsor authority, subscriber consent, recovery evidence or a recorded
+permitted recovery override. Native person-only identity and credential screens
+retain their real proof requirements. Agent preparation and actual person
+approval remain separate attribution.
