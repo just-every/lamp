@@ -10,7 +10,7 @@ import { authFixture, secret, setupToken } from './runtime.mjs';
 import { load } from '../operator-readiness/runtime.mjs';
 import { checkout, command, proxy } from '../helpers/native-transfer.mjs';
 
-test('ACCESS-001 INTAKE-009 native rer archive restores owner continuity and subscriber authority without restoring sessions, provider approval or sealed responder keys · INTAKE-014', async t => {
+test('ACCESS-002 INTAKE-009 native rer archive restores owner continuity and subscriber authority without restoring sessions, provider approval or sealed responder keys · INTAKE-014', async t => {
   const root = process.cwd(), directory = await mkdtemp(join(root, '.lamp-auth-portability-'));
   const source = join(directory, 'source'), target = join(directory, 'target');
   let current;

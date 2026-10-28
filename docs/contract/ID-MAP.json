@@ -93,9 +93,12 @@
       ]
     },
     "PAGE-015": {
-      "how": "kept",
+      "how": "split",
       "to": [
-        "PAGE-015"
+        "PAGE-015",
+        "PAGE-022",
+        "PAGE-023",
+        "PAGE-024"
       ]
     },
     "PAGE-016": {
@@ -135,15 +138,18 @@
       ]
     },
     "THEME-001": {
-      "how": "kept",
+      "how": "split",
       "to": [
-        "THEME-001"
+        "THEME-001",
+        "THEME-002",
+        "THEME-003"
       ]
     },
     "I18N-001": {
-      "how": "kept",
+      "how": "split",
       "to": [
-        "I18N-001"
+        "I18N-001",
+        "I18N-003"
       ]
     },
     "I18N-002": {
@@ -279,9 +285,11 @@
       ]
     },
     "UPTIME-009": {
-      "how": "kept",
+      "how": "split",
       "to": [
-        "UPTIME-009"
+        "UPTIME-009",
+        "UPTIME-010",
+        "UPTIME-011"
       ]
     },
     "INCIDENT-001": {
@@ -351,9 +359,10 @@
       ]
     },
     "INCIDENT-012": {
-      "how": "kept",
+      "how": "split",
       "to": [
-        "INCIDENT-012"
+        "INCIDENT-012",
+        "INCIDENT-014"
       ]
     },
     "INCIDENT-013": {
@@ -429,15 +438,19 @@
       ]
     },
     "UPDATE-012": {
-      "how": "kept",
+      "how": "split",
       "to": [
-        "UPDATE-012"
+        "UPDATE-012",
+        "UPDATE-014",
+        "UPDATE-015"
       ]
     },
     "UPDATE-013": {
-      "how": "kept",
+      "how": "split",
       "to": [
-        "UPDATE-013"
+        "UPDATE-013",
+        "UPDATE-016",
+        "UPDATE-017"
       ]
     },
     "MAINT-001": {
@@ -489,9 +502,14 @@
       ]
     },
     "MAINT-009": {
-      "how": "kept",
+      "how": "split",
       "to": [
-        "MAINT-009"
+        "MAINT-009",
+        "MAINT-011",
+        "MAINT-012",
+        "MAINT-013",
+        "MAINT-014",
+        "MAINT-015"
       ]
     },
     "MAINT-010": {
@@ -573,9 +591,10 @@
       ]
     },
     "SUB-013": {
-      "how": "kept",
+      "how": "split",
       "to": [
-        "SUB-013"
+        "SUB-013",
+        "SUB-021"
       ]
     },
     "SUB-014": {
@@ -609,15 +628,17 @@
       ]
     },
     "SUB-019": {
-      "how": "kept",
+      "how": "split",
       "to": [
-        "SUB-019"
+        "SUB-019",
+        "SUB-022"
       ]
     },
     "SUB-020": {
-      "how": "kept",
+      "how": "split",
       "to": [
-        "SUB-020"
+        "SUB-020",
+        "SUB-023"
       ]
     },
     "NOTIFY-001": {
@@ -699,9 +720,10 @@
       ]
     },
     "NOTIFY-014": {
-      "how": "kept",
+      "how": "split",
       "to": [
-        "NOTIFY-014"
+        "NOTIFY-014",
+        "NOTIFY-021"
       ]
     },
     "NOTIFY-015": {
@@ -729,15 +751,18 @@
       ]
     },
     "NOTIFY-019": {
-      "how": "kept",
+      "how": "split",
       "to": [
-        "NOTIFY-019"
+        "NOTIFY-019",
+        "NOTIFY-022"
       ]
     },
     "NOTIFY-020": {
-      "how": "kept",
+      "how": "split",
       "to": [
-        "NOTIFY-020"
+        "NOTIFY-020",
+        "NOTIFY-023",
+        "NOTIFY-024"
       ]
     },
     "INTAKE-001": {
@@ -789,9 +814,10 @@
       ]
     },
     "INTAKE-009": {
-      "how": "kept",
+      "how": "split",
       "to": [
-        "INTAKE-009"
+        "INTAKE-009",
+        "INTAKE-015"
       ]
     },
     "INTAKE-010": {
@@ -801,9 +827,10 @@
       ]
     },
     "INTAKE-011": {
-      "how": "kept",
+      "how": "split",
       "to": [
-        "INTAKE-011"
+        "INTAKE-011",
+        "INTAKE-016"
       ]
     },
     "INTAKE-012": {
@@ -813,15 +840,18 @@
       ]
     },
     "INTAKE-013": {
-      "how": "kept",
+      "how": "split",
       "to": [
-        "INTAKE-013"
+        "INTAKE-013",
+        "INTAKE-017",
+        "INTAKE-018"
       ]
     },
     "INTAKE-014": {
-      "how": "kept",
+      "how": "split",
       "to": [
-        "INTAKE-014"
+        "INTAKE-014",
+        "INTAKE-019"
       ]
     },
     "AUTO-001": {
@@ -945,9 +975,11 @@
       ]
     },
     "HIST-006": {
-      "how": "kept",
+      "how": "split",
       "to": [
-        "HIST-006"
+        "HIST-006",
+        "HIST-009",
+        "HIST-010"
       ]
     },
     "HIST-007": {
@@ -1011,9 +1043,11 @@
       ]
     },
     "API-004": {
-      "how": "kept",
+      "how": "split",
       "to": [
-        "API-004"
+        "API-004",
+        "API-005",
+        "API-006"
       ]
     },
     "INTEG-001": {
@@ -1053,9 +1087,10 @@
       ]
     },
     "ACCESS-001": {
-      "how": "kept",
+      "how": "split",
       "to": [
-        "ACCESS-001"
+        "ACCESS-001",
+        "ACCESS-002"
       ]
     },
     "MOVE-001": {
@@ -1065,9 +1100,10 @@
       ]
     },
     "MOVE-002": {
-      "how": "kept",
+      "how": "split",
       "to": [
-        "MOVE-002"
+        "MOVE-002",
+        "MOVE-013"
       ]
     },
     "MOVE-003": {
@@ -1119,9 +1155,10 @@
       ]
     },
     "MOVE-011": {
-      "how": "kept",
+      "how": "split",
       "to": [
-        "MOVE-011"
+        "MOVE-011",
+        "MOVE-014"
       ]
     },
     "MOVE-012": {

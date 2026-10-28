@@ -161,3 +161,12 @@ when they would save work in another edition. Their natural home may be this
 edition, a family, Base or an independent repository; no separate repository per
 module or universal compatibility interface is required. Verify adoption against
 the receiving product's requirements, including deliberate local differences.
+
+## Contract document generation
+
+After editing `CONTRACT.md`, regenerate its acceptance and homepage claim documents,
+check them, and record the source lock last. Verification checks the generated documents.
+
+Lander-Regenerate: node src/base/contract-docs.mjs write
+Lander-Regenerate: node src/base/contract-docs.mjs check
+Lander-Regenerate: node scripts/edition-authoring/cli.mjs lock

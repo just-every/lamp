@@ -31,7 +31,7 @@ test("DOCS-001 PAGE-020 — repository documentation builds complete pages and n
   await (() => {
   const site = buildDocs(process.cwd());
   const pages = site.sections.flatMap((section) => section.pages);
-  assert.ok(site.bodies["accessibility/vpat"].html.includes("1.11.0"), "the nested VPAT is compiled from its release document");
+  assert.ok(site.bodies["accessibility/vpat"].html.includes("1.11.1"), "the nested VPAT is compiled from its release document");
   assert.ok(pages.length > 3, "the docs publish several pages");
   for (const { slug } of pages) {
     assert.ok(site.bodies[slug].html.length > 100, `${slug} has a body`);

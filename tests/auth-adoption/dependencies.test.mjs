@@ -10,7 +10,7 @@ import { linkEdge } from '../fixtures/base/provider-edge.mjs';
 
 // Real Lamp Hono routes and D1 transactions; only the external provider's network
 // is substituted. The copied Base edge validates signed client assertions.
-test('ACCESS-001 dependency linking keeps exact owner approval through setup, unlink and concurrent replacement', async () => {
+test('ACCESS-002 dependency linking keeps exact owner approval through setup, unlink and concurrent replacement', async () => {
   const dir = await mkdtemp(join(process.cwd(), '.lamp-dependency-'));
   const storage = await database(dir);
   const cache = await openSnapshotCacheRuntime(dir);

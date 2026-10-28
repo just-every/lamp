@@ -35,6 +35,17 @@
       }
     },
     {
+      "path": "BASELINE.md",
+      "originPath": "export/BASELINE.md",
+      "revision": "0fe27af9a5cb1bd9dc5e41da024784082e609010",
+      "files": {
+        "BASELINE.md": "7edf11ce7f54181e40afcf424209b9527bd1e0f7cf6fee7bf84d7811f082042f"
+      },
+      "modes": {
+        "BASELINE.md": "100644"
+      }
+    },
+    {
       "path": "CLAUDE.md",
       "originPath": "export/CLAUDE.md",
       "revision": "052e5ea88c1e7b73cca10c4813524a5f72580af8",
@@ -1410,6 +1421,17 @@
       },
       "modes": {
         "src/base/command-receipts.ts": "100644"
+      }
+    },
+    {
+      "path": "src/base/contract-docs.mjs",
+      "originPath": "foundation/runtime/contract-docs.mjs",
+      "revision": "0fe27af9a5cb1bd9dc5e41da024784082e609010",
+      "files": {
+        "src/base/contract-docs.mjs": "d98e14f489c57f60446c2cc68310db09f298f7974d77026dbaa2c62868cc4838"
+      },
+      "modes": {
+        "src/base/contract-docs.mjs": "100644"
       }
     },
     {

@@ -1,5 +1,7 @@
 # Lamp release acceptance
 
+Historical acceptance record at `54e0e1dcfdc225ad17e42abff04b65d7f2bfdc72`; current acceptance and status are generated in ACCEPTANCE.md.
+
 Lamp's useful outcome is one business operating a public status page and incident
 communication desk from its own installation. An operator must be able to sign in,
 maintain real components, publish and resolve an incident, schedule maintenance,

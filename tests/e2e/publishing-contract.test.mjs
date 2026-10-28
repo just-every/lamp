@@ -446,7 +446,7 @@ test("UPDATE-005 UPDATE-006 UPDATE-007 UPTIME-009 — Private drafts, scheduled 
 
 
 
-test("PAGE-006 UPDATE-009 MOVE-011 — Snapshot outage, private template application and imported Statuspage templates", async t => {
+test("PAGE-006 UPDATE-009 MOVE-014 — Snapshot outage, private template application and imported Statuspage templates", async t => {
   await importedTemplateApplyFlow({ appFetch, pageUrl, executeFixtureSql });
   t.diagnostic("PAGE-006 — a warmed snapshot remains available and visibly stale when R2 pointer reads fail");
   await (async () => {
@@ -891,7 +891,7 @@ test("MAINT-007 MAINT-009 MAINT-002 MAINT-001 MAINT-003 MAINT-004 MAINT-005 MAIN
   assert.equal((await fetch(`${pageUrl}/cdn-cgi/local/scheduled`)).status, 200);
   assert.equal((await eventually((record) => record?.state === "Completed"))?.state, "Completed");
 })(t);
-  t.diagnostic("MAINT-009 — per-window switches preserve manual starts and overruns without duplicate notices");
+  t.diagnostic("MAINT-013 — per-window switches preserve manual starts and overruns without duplicate notices");
   await (async () => {
     const component = await createIsolatedComponent("Synthetic Lamp automation window");
     const now = Date.now();
