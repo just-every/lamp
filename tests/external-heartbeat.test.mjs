@@ -16,7 +16,7 @@ test('scheduled heartbeat is off by default, reports healthy dependencies withou
  const receiver=http.createServer((req,res)=>{assert.equal(req.method,'GET');assert.equal(req.url,'/ping');requests++;last=Date.now();alarm=false;clearTimeout(alarmTimer);alarmTimer=setTimeout(()=>{alarm=true},750);res.end('ok')});await new Promise(r=>receiver.listen(0,'127.0.0.1',r));
  const original=globalThis.fetch;
  try{
-  for(const args of [['migrations','apply','DB'],['execute','DB','--command',legacyApiFixtureSql()]])execFileSync('pnpm',['exec','wrangler','d1',...args,'--local','--config','wrangler.jsonc','--persist-to',directory],{stdio:'pipe'});
+  for(const args of [['migrations','apply','DB'],['execute','DB','--command',legacyApiFixtureSql()]])execFileSync('pnpm',['exec','wrangler','d1',...args,'--local','--config','wrangler.jsonc','--persist-to',directory],{ maxBuffer: 8 * 1024 * 1024,stdio:'pipe'});
   platform=await getPlatformProxy({configPath:'wrangler.jsonc',remoteBindings:false,persist:{path:join(directory,'v3')}});
   vite=await createServer({configFile:false,appType:'custom',server:{middlewareMode:true,hmr:{port:await reservePort({label:'heartbeat test'})}}});
   snapshotCache=await openSnapshotCacheRuntime(directory);

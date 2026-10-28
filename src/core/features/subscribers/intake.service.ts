@@ -60,11 +60,13 @@ export function createSubscriberIntakeService(repository:SubscriberRepository,ho
       await hooks.checkLimits();
       return {batchId,counts:{...planned.preview.counts,created:subscriberIds.length,skipped:planned.preview.counts.skipped+rows.length-subscriberIds.length},subscriberIds};
     },
-    async sendInvitations(batchId:string,operatorId:string,origin:string):Promise<{sent:number;remaining:number}> {
+    async sendInvitations(batchId:string,operatorId:string,origin:string,_actorLabel?:string,selectedSubscriberIds?:readonly string[]):Promise<{sent:number;remaining:number}> {
       if(!await repository.intake.operatorAllowed(operatorId,true))throw new SubscriberIntakeError("Only the active owner can send import invitations.",403);
       if(!await repository.intake.batchExists(batchId))throw new SubscriberIntakeError("This subscriber import does not exist.",409);
       let sent=0;
-      for(const id of await repository.intake.pending(batchId)) {
+      const eligible=await repository.intake.pending(batchId);
+      const selected=selectedSubscriberIds===undefined?eligible:eligible.filter(id=>selectedSubscriberIds.includes(id));
+      for(const id of selected) {
         const row=await repository.findSubscriber(id);
         if(row?.channel==="sms" ? await hooks.sms?.invite(id,origin,operatorId,true) : await hooks.sendConfirmation(id,origin,operatorId,true))sent++;
       }

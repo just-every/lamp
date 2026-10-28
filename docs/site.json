@@ -121,6 +121,18 @@
           "title": "Slack and Teams incident desk",
           "source": "docs/chat-desk.md",
           "summary": "Link your chat identity and prepare signed incident commands."
+        },
+        {
+          "slug": "agents",
+          "title": "Work with an incident communicator",
+          "source": "docs/agents.md",
+          "summary": "Connect MCP, choose company policy and inspect native incident work."
+        },
+        {
+          "slug": "agent-native-proof",
+          "title": "Native proof for protected changes",
+          "source": "docs/agent-native-proof.md",
+          "summary": "Keep real person proof, native authority and exact agent action binding separate."
         }
       ]
     },

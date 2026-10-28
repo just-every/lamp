@@ -10,6 +10,10 @@ export interface AppBindings {
   RER_DEMO?: string;
   RER_DEMO_EXPIRES?: string;
   OWNER_EMAIL?: string;
+  /** Signed Business settings use the installation's separately scoped trust. */
+  RER_BUSINESS_TRUST?: string;
+  /** Optional native sign-in allow-list; shared by sessions and the agent door. */
+  AUTH_ALLOW_LIST?: string;
   RER_OWNER_CLAIM_PUBLIC_KEYS?: string;
   RER_OWNER_CLAIM_ISSUER?: string;
   RER_OWNER_CLAIM_INSTALLATION_ID?: string;

@@ -32,6 +32,7 @@ function projection(source:PublicSnapshotSource,origin:string,rollup:PageStatusR
 export function statuspageWebhookBody(source:PublicSnapshotSource,delivery:DispatchableDelivery,origin:string,unsubscribeToken:string,rollup:PageStatusRollupPolicy) {
   const records=projectStatuspageRecords(projection(source,origin,rollup),source);
   const envelope = {
+    ...(delivery.agentLabel ? { prepared_by: delivery.agentLabel } : {}),
     meta:{unsubscribe:new URL(`/unsubscribe/${encodeURIComponent(unsubscribeToken)}`,origin).href,documentation:"https://github.com/just-every/run-lamp/blob/main/docs/subscribers-and-notifications.md"},
     page:{id:records.page.id,status_indicator:records.status.indicator,status_description:records.status.description},
   };
