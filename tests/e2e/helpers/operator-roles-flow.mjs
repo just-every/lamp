@@ -18,6 +18,8 @@ export async function operatorRolesFlow({appFetch,appUrl,persistTo,configPath}) 
   assert.equal((await call('responder',`${path}/internal-notes`,{method:'POST',body:JSON.stringify({body:'Synthetic Lamp private response note'})})).status,201);
   const before=await json(await appFetch(path));
   const settings=await json(await appFetch('/api/app/page-settings'));
+  const {pageName,tagline,accentColor,timezone,hostname,footerCreditEnabled}=settings.settings;
+  const settingsWrite={pageName,tagline,accentColor,timezone,hostname,footerCreditEnabled};
   const denied=[];
   async function refuse(role,route,init={}) {
     const response=await call(role,route,init);
@@ -26,7 +28,7 @@ export async function operatorRolesFlow({appFetch,appUrl,persistTo,configPath}) 
   }
   await refuse('responder',`${path}/publish`,{method:'POST',body:JSON.stringify({channels:[]})});
   await refuse('responder',`${path}/draft/schedule`,{method:'POST',body:JSON.stringify({publishAt:new Date(Date.now()+7200000).toISOString(),channels:[]})});
-  await refuse('viewer','/api/app/page-settings',{method:'PUT',body:JSON.stringify({...settings.settings,pageName:'Synthetic Lamp forbidden change'})});
+  await refuse('viewer','/api/app/page-settings',{method:'PUT',body:JSON.stringify({...settingsWrite,pageName:'Synthetic Lamp forbidden change'})});
   await refuse('viewer',`${path}/draft`,{method:'PUT',body:JSON.stringify({...draft,customerImpact:'Synthetic Lamp forbidden draft'})});
   await refuse('communicator','/api/app/audit-log');
   await refuse('communicator','/api/app/audit-log?format=csv');
@@ -50,16 +52,17 @@ export async function operatorRolesFlow({appFetch,appUrl,persistTo,configPath}) 
   assert.equal((await call('responder','/api/app/session')).status,401,'role change invalidates the old native session');
   const replay=await call('responder',`${path}/publish`,{method:'POST',headers:{'If-Match':'synthetic-lamp-stale:0'},body:JSON.stringify({channels:[]})});
   assert.equal(replay.status,401,'captured publication cannot regain authority after demotion');
-  const audit=(await json(await appFetch('/api/app/audit-log?limit=100'))).entries;
-  for(const refusal of denied)assert.ok(audit.some(row=>row.action==='access-denied'&&row.actorId===refusal.actorId&&row.entityId===refusal.path&&Number.isFinite(Date.parse(row.createdAt))),`attributed denial for ${refusal.path}`);
-  const roleChange=audit.find(row=>row.action==='role-changed'&&row.entityId===actors.responder.id);
-  assert.ok(roleChange?.actorId&&roleChange.actorName==='Contract Operator'&&Number.isFinite(Date.parse(roleChange.createdAt)));
   const adminLog=await call('admin','/api/app/audit-log');
   assert.equal(adminLog.status,200,'Admin can inspect the same audit view');
-  const adminSettings=await call('admin','/api/app/page-settings',{method:'PUT',body:JSON.stringify(settings.settings)});
+  const adminSettings=await call('admin','/api/app/page-settings',{method:'PUT',body:JSON.stringify(settingsWrite)});
   assert.equal(adminSettings.status,200,await adminSettings.clone().text());
   const native=await call('viewer','/auth/operator/role',{method:'POST',body:JSON.stringify({operatorId:actors.viewer.id,role:'owner'})});
   assert.equal(native.status,403,'native auth administration cannot bypass product permissions');
   assert.equal((await json(await call('viewer','/api/app/session'))).operator.role,'viewer');
+  denied.push({actorId:actors.viewer.id,path:'/auth/operator/role'});
+  const audit=(await json(await appFetch('/api/app/audit-log?limit=100'))).entries;
+  for(const refusal of denied)assert.ok(audit.some(row=>row.action==='access-denied'&&row.actorId===refusal.actorId&&row.entityId===refusal.path&&Number.isFinite(Date.parse(row.createdAt))),`attributed denial for ${refusal.path}`);
+  const roleChange=audit.find(row=>row.action==='role-changed'&&row.entityId===actors.responder.id);
+  assert.ok(roleChange?.actorId&&roleChange.actorName==='Contract Operator'&&Number.isFinite(Date.parse(roleChange.createdAt)));
   return {actors,incidentId:incident.id};
 }

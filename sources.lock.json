@@ -944,7 +944,7 @@
       "executable": false
     },
     "migrations/core/0067_operator_roles.sql": {
-      "sha256": "713d289c75effc5f914e211d72d6125e9a01e99a219de45ab662514ba09c4e15",
+      "sha256": "93b5fd9533f6635fd792b6f7a17b04b96c527df23fe258086d1c8870f3699cc8",
       "executable": false
     },
     "migrations/README.md": {
@@ -4152,7 +4152,7 @@
       "executable": false
     },
     "src/core/features/operators/roles.repository.ts": {
-      "sha256": "cc7387c81fa4c8e81628ad33fdfde0d5cfe557bfc65f1564414082009cae0ebf",
+      "sha256": "d1b2f2c195b0ed2ba142c6a8861e0a257cf9781815bd12e15b9ad9a72ecfe393",
       "executable": false
     },
     "src/core/features/operators/routes.ts": {
@@ -6412,11 +6412,15 @@
       "executable": false
     },
     "tests/chat-desk/flow.mjs": {
-      "sha256": "8fa20379841c875dee636c8aa9c0594f3245c8532a99ca5ec3c4a8e932ad9727",
+      "sha256": "10b910101b992b1c05f55a04ffd4597246dc61d3d1ef7977d57047e388ac1b29",
+      "executable": false
+    },
+    "tests/chat-desk/roles.mjs": {
+      "sha256": "2caf1f7df70f3737d1c2e4cb0b8e739dc8f35c27a0adaf9620d3548407422681",
       "executable": false
     },
     "tests/chat-desk/runtime.mjs": {
-      "sha256": "336db0f75beddd01134b91fc0c6d2994faea8ea72c4dd50cc0fe7c06b2bcb120",
+      "sha256": "67422dc843b3d69182fd5cdc04bf6187e361bba80ec0cb405f9cd638831d1a46",
       "executable": false
     },
     "tests/contract.mjs": {
@@ -6504,7 +6508,7 @@
       "executable": false
     },
     "tests/e2e/app-api.test.mjs": {
-      "sha256": "8788894709013b826d908ec018a1c5605d10865f2fea5cf261a2f779a5e66b08",
+      "sha256": "ea47d6492ece16b58b1c359707f3e8ac37bd4905f18e3ba52932027165ba0881",
       "executable": false
     },
     "tests/e2e/auth-adoption-journey.test.mjs": {
@@ -6784,7 +6788,7 @@
       "executable": false
     },
     "tests/e2e/helpers/operator-roles-flow.mjs": {
-      "sha256": "9ae3cb7ef8c577fab6d698db538bcee5d8036b8d782c570ba2c1df812bacb979",
+      "sha256": "cc31bfb7c2fc86c61d9b4a907e284dc97060513508299d13fd6751b47d87ff29",
       "executable": false
     },
     "tests/e2e/helpers/overview-time-flow.mjs": {

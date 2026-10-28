@@ -34,6 +34,7 @@ export function createOperatorRolesRepository(db: D1Database) {
           ...(coarse === 'member'
             ? [db.prepare(`INSERT INTO operator_roles(operator_id,role) SELECT ?,? WHERE ${witness} ON CONFLICT(operator_id) DO UPDATE SET role=excluded.role`).bind(target.id,role,id)]
             : [db.prepare(`DELETE FROM operator_roles WHERE operator_id=? AND ${witness}`).bind(target.id,id)]),
+          db.prepare(`UPDATE oa_operators SET version=version+1 WHERE id=? AND ${witness}`).bind(target.id,id),
           db.prepare(`DELETE FROM chat_previews WHERE operator_id=? AND ${witness}`).bind(target.id,id),
           db.prepare(`DELETE FROM chat_link_codes WHERE operator_id=? AND ${witness}`).bind(target.id,id),
           db.prepare(`UPDATE incident_drafts SET reviewed_by_operator_id=NULL,reviewed_at=NULL WHERE reviewed_by_operator_id=? AND ${witness}`).bind(target.id,id),
