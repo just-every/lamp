@@ -6476,7 +6476,7 @@
       "executable": false
     },
     "tests/e2e/accessibility.test.mjs": {
-      "sha256": "115cb32fbe89dfafb5301023bdb5c5de0e30bddb4b54de1359d11ece4191e4c5",
+      "sha256": "6ae2678bbb4e0fb63145a01065502a01452da961ad424bba9f8c6fed34e14007",
       "executable": false
     },
     "tests/e2e/auth-adoption-journey.test.mjs": {
