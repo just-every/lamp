@@ -3,9 +3,11 @@
 VPAT® Version 2.5 Rev, Revised Section 508 Edition (April 2025).
 
 Product name: Lamp
-Product version: 1.11.0
+Product version: 1.11.1
 Evaluation date: 25 October 2026 (UTC; 2026-10-25)
 Report date: 25 October 2026
+
+Edition note (28 October 2026): Version 1.11.1 reorganizes the contract documents. The evaluation date, measured scope and limitations below remain those of the 1.11.0 evaluation; this edition claims no new accessibility evaluation.
 
 ## Product description
 

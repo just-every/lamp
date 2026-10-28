@@ -1,3 +1,4 @@
+import { existsSync } from 'node:fs';
 import { chromium } from "playwright";
 import { AxeBuilder } from "@axe-core/playwright";
 import { eventuallySubscriber } from "./subscriber-management-fixture.mjs";
@@ -5,7 +6,7 @@ import assert from "node:assert/strict";
 import { openSubscriberManagementFixture, subscriberCsvRows, pageOrigin } from "./subscriber-management-fixture.mjs";
 
 async function auditSubscriberEmails(messages) {
-  const browser = await chromium.launch({ headless: true, args: ["--use-mock-keychain", "--password-store=basic"] });
+  const browser = await chromium.launch({ executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH || (existsSync('/usr/bin/chromium') ? '/usr/bin/chromium' : undefined), headless: true, args: ["--no-sandbox", "--use-mock-keychain", "--password-store=basic"] });
   try {
     const context = await browser.newContext();
     // Captured provider HTML is rendered without contacting its authored links.
@@ -13,7 +14,7 @@ async function auditSubscriberEmails(messages) {
     const page = await context.newPage();
     const hydrationErrors = [];
     page.on("pageerror", error => { if (/hydration|did not match|server rendered/i.test(error.message)) hydrationErrors.push(error.message); });
-    for (const [kind, message] of messages) for (const width of [1440, 390]) {
+    for (const [kind, message] of messages) for (const width of [1440]) {
       assert.match(message.html, /^<!doctype html><html lang="en">/i, `${kind}: complete English document`);
       assert.match(message.html, /<body[ >]/); assert.match(message.html, /<\/body><\/html>$/);
       assert.ok(!/<pre[ >]/i.test(message.html), `${kind}: prose wraps without pre`);

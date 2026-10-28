@@ -91,10 +91,14 @@ function mentioned(text: string, table: Record<string, Place>) {
   return name ? table[name]! : null;
 }
 
+function ownPlace(table: Record<string, Place>, name: string): Place | undefined {
+  return Object.hasOwn(table, name) ? table[name] : undefined;
+}
+
 export function regionPlace(region: string): Place | null {
   const text = normalise(region);
   const code = text.replace(/\s+/g, "-");
-  return codes[code] ?? codes[text.replace(/\s+/g, "")] ?? areas[text] ?? countries[text] ?? cities[text]
+  return ownPlace(codes, code) ?? ownPlace(codes, text.replace(/\s+/g, "")) ?? ownPlace(areas, text) ?? ownPlace(countries, text) ?? ownPlace(cities, text)
     ?? mentioned(text, cities) ?? mentioned(text, countries)
     ?? prefixes.find(([pattern]) => pattern.test(code))?.[1] ?? mentioned(text, areas) ?? null;
 }

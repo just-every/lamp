@@ -11,6 +11,7 @@ export interface NativeValue { tables: Record<string, Row[]> }
 export interface Accounting { kind: string; sourceId: string; name: string; outcome: "imported" | "changed" | "skipped" | "rejected" | "kept-private"; reason: string }
 export interface Snapshot {
   subscriberCounts: SubscriberCounts;
+  incidentIncludeReport?: boolean;
   maxGroupOrder: number;
   maxComponentOrder: number;
   lastReference: { INC: number; SCH: number };
@@ -33,7 +34,7 @@ export const entityTables: Record<EntityKind, Record<string, string>> = {
   incident: { incidents: "id", incident_components: "incident_id", incident_updates: "incident_id", incident_reports: "incident_id" },
   maintenance: { maintenance: "id", maintenance_components: "maintenance_id" },
   template: { incident_templates: "id", incident_template_components: "template_id" },
-  subscriber: { subscribers: "id", subscriber_components: "subscriber_id" },
+  subscriber: { subscribers: "id", subscriber_components: "subscriber_id", incident_subscriptions: "subscriber_id" },
 };
 
 const CROCKFORD = "0123456789ABCDEFGHJKMNPQRSTVWXYZ";
@@ -128,7 +129,11 @@ export function mapSource(data: SourceData, snapshot: Snapshot, operatorId: stri
   });
 
   const existingDestinations=new Set(snapshot.destinations.keys());
-  const subscriberResults = data.subscribers.map((subscriber) => mapSubscriber(subscriber, components, snapshot, asOf, identify, namespace));
+  const subscriberResults = data.subscribers.map((subscriber) => {
+    if (namespace !== "statuspage" || !subscriber.incident_id) return mapSubscriber(subscriber, components, snapshot, asOf, identify, namespace);
+    const followed = results.find(row => row.kind === "incident" && row.sourceId === subscriber.incident_id)?.value?.tables.incidents?.[0];
+    return mapIncidentSubscriber(subscriber, followed, snapshot, asOf, identify);
+  });
   {
     const candidates=subscriberResults.filter(row=>row.value && !existingDestinations.has(String(row.value.tables.subscribers[0].destination)));
     const capacity=planSubscriberCapacity(snapshot.subscriberCounts,candidates.map(row=>({channel:"email" as const,row})));
@@ -245,6 +250,31 @@ function mapSubscriber(subscriber: SourceSubscriber, components: Map<string, { i
     subscribers: [{ id, channel: "email", destination: email, contact_email: null, state: namespace === "sorry" ? "deactivated" : "pending", selection_mode: selected.length ? "selected" : "all", token_hash: sha256(`${namespace}-import-subscriber:${subscriber.id}:${email}`), deactivation_reason: namespace === "sorry" ? "held for Sorry cutover" : null, deactivated_at: null, created_at: asOf, updated_at: asOf }],
     subscriber_components: selected.map((code) => ({ id: identify(`subscriber-component:${subscriber.id}:${code}`, since), subscriber_id: id, component_id: components.get(code)!.id, created_at: asOf, updated_at: asOf })),
   } }, accounting: [{ kind: "subscriber", sourceId: subscriber.id, name: "Email subscriber", outcome: "imported", reason: namespace === "sorry" ? "Held without mail or confirmation expiry until you approve invitations after hostname cutover and the watch window. Each recipient must confirm in Lamp." : "Pending until they confirm one invitation; they are sent nothing about past incidents." }] };
+}
+
+/** Incident subscriptions retain their distinct scope even when the address
+ * already holds a page subscription. Import only supplies a pending record;
+ * the same explicit owner invitation and confirmation doors supply consent. */
+function mapIncidentSubscriber(subscriber: SourceSubscriber, incident: Row | undefined, snapshot: Snapshot, asOf: string, identify: typeof stableId): Mapped {
+  const sourceId = `incident:${subscriber.incident_id}:${subscriber.id}`;
+  const skip = (reason: string): Mapped => ({ kind: "subscriber", sourceId, accounting: [{ kind: "subscriber", sourceId, name: "Incident email subscriber", outcome: "skipped", reason }] });
+  if (!incident || incident.lifecycle === "Resolved") return skip("Only an unresolved incident imported into Lamp can retain incident subscribers.");
+  if (subscriber.mode !== "email") return skip(`Lamp carries email incident subscribers; ${subscriber.mode} subscribers subscribe again here.`);
+  const email = subscriber.email?.trim().toLowerCase();
+  if (!email || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/u.test(email)) return skip("No valid email address.");
+  if (subscriber.quarantined_at) return skip("Quarantined at the source after delivery failures.");
+  const since = subscriber.created_at ?? "1970-01-01T00:00:00.000Z";
+  const id = identify(`subscriber:${sourceId}`, since);
+  const digest = sha256(email);
+  const addressHash = btoa(String.fromCharCode(...digest.match(/../gu)!.map(pair => parseInt(pair, 16)))).replaceAll("+", "-").replaceAll("/", "_").replaceAll("=", "");
+  const destination = `incident:${incident.id}:email:${addressHash}`;
+  if (snapshot.destinations.has(destination) && snapshot.destinations.get(destination) !== id) return skip("This address already follows this incident here.");
+  snapshot.destinations.set(destination, id);
+  return { kind: "subscriber", sourceId, value: { tables: {
+    subscribers: [{ id, channel: "email", destination, contact_email: null, state: "pending", selection_mode: "all", event_kinds_json: '["incidents"]', preferences_set: 1, token_hash: sha256(`statuspage-import-subscriber:${sourceId}:${email}`), deactivation_reason: null, deactivated_at: null, created_at: asOf, updated_at: asOf }],
+    subscriber_components: [],
+    incident_subscriptions: [{ subscriber_id: id, incident_id: incident.id, destination: email, include_report: snapshot.incidentIncludeReport === false ? 0 : 1, resolution_at: null, resolution_delivered_at: null, ended_at: null, final_event_id: null, created_at: asOf }],
+  } }, accounting: [{ kind: "subscriber", sourceId, name: "Incident email subscriber", outcome: "imported", reason: "Pending until they confirm the owner's explicit invitation; follows this unresolved incident only, with no replay of past updates." }] };
 }
 
 /** The aggregate state timeline for one new component: an Operational

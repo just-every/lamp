@@ -50,3 +50,15 @@ export async function notificationOrigin(bindings: AppBindings): Promise<string>
   url.hostname = bindings.LAMP_PAGE_HOST;
   return url.origin;
 }
+
+/** Receipt capability follows the accepting provider, including a secondary. */
+export function configuredMailReceiptProviders(bindings: AppBindings): string[] {
+  if (isLocalMailExecution(bindings)) return [];
+  return [
+    bindings.RESEND_WEBHOOK_SECRET?.trim() ? 'resend' : '',
+    bindings.SENDGRID_WEBHOOK_PUBLIC_KEY?.trim() || bindings.RER_MAIL_RELAY_SECRET?.trim() ? 'sendgrid' : '',
+    bindings.MAILGUN_WEBHOOK_SIGNING_KEY?.trim() ? 'mailgun' : '',
+    bindings.SES_EVENT_TOPIC_ARN?.trim() ? 'ses' : '',
+    bindings.POSTMARK_WEBHOOK_SECRET?.trim() ? 'postmark' : '',
+  ].filter(Boolean);
+}

@@ -99,6 +99,7 @@ a { color: inherit; text-underline-offset: 3px; text-decoration-thickness: 1px; 
 .page-meta { display: flex; flex-wrap: wrap; gap: 4px 20px; margin: 64px 0 0; border-top: 1px solid var(--line); padding-top: 20px; color: var(--ink-3); font-size: 13px; }
 .page-meta .host { overflow-wrap: anywhere; }
 footer { margin-top: 6px; color: var(--ink-3); font-size: 13px; }
+footer a[data-lamp-signin] { display: inline-flex; align-items: center; min-height: 24px; }
 footer:empty { display: none; }
 
 /* A retained snapshot served while the current state cannot be verified. */

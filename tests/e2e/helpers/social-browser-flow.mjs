@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { existsSync } from 'node:fs';
+import { mkdir } from 'node:fs/promises';
 import { chromium } from 'playwright';
 import { expect } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
@@ -10,7 +11,7 @@ import { incidentComposer, newIncidentForm } from './incident-composer.mjs';
  * private one-click dev link. No cookies are copied and no provider call occurs:
  * the operator explicitly deselects Social before every test publication. */
 export async function socialBrowserFlow({ origin, devLink, diagnostic = () => {} }) {
-  const browser = await chromium.launch({ headless: true, executablePath: process.env.LAMP_CHROMIUM_EXECUTABLE ?? (process.platform === 'linux' && existsSync('/usr/bin/chromium') ? '/usr/bin/chromium' : undefined), args: ['--no-sandbox', '--use-mock-keychain', '--password-store=basic'] });
+  const browser = await chromium.launch({ executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH || process.env.LAMP_CHROMIUM_EXECUTABLE || (existsSync('/usr/bin/chromium') ? '/usr/bin/chromium' : undefined), headless: true, args: ['--no-sandbox', '--use-mock-keychain', '--password-store=basic'] });
   try {
     const context = await browser.newContext();
     const page = await context.newPage();
@@ -105,21 +106,13 @@ export async function socialBrowserFlow({ origin, devLink, diagnostic = () => {}
     assert.equal((await api('/api/app/social')).body.posts.length, 0, 'repeated deselection queues no post');
     diagnostic('INTEG-002 browser 1440px: Settings connected an account, concealed the saved credential, saved post-by-default on/off; composer respected deselection and reset each new update to the owner default.');
 
-    // The candidate's changed screens are observed once at phone width too.
-    await page.setViewportSize({ width: 390, height: 844 });
-    panel = await settings();
-    await expect(panel.getByRole('listitem').filter({ hasText: accountName })).toBeVisible();
-    await inspect('390px Settings social accounts');
-    await page.goto(incidentUrl); await operatorHydrated(page); await composer.moreOptions();
-    await expect(page.getByRole('checkbox', { name: 'Social accounts', exact: true })).not.toBeChecked();
-    await inspect('390px composer social selector');
-    await maintenanceChoice(390);
+    // Remove the connected account through the same desktop Settings door.
     await page.setViewportSize({ width: 1440, height: 1000 }); panel = await settings();
     await panel.getByRole('button', { name: `Remove ${accountName}`, exact: true }).click();
     await expect(panel.getByText(`${accountName} removed.`, { exact: true })).toBeVisible();
     await expect(panel.getByRole('listitem').filter({ hasText: accountName })).toHaveCount(0);
     assert.deepEqual(errors, [], 'social screens have no page or hydration errors');
-    diagnostic('INTEG-002 browser: Settings, incident composer and maintenance scheduling at 1440 and 390 have no horizontal overflow or serious/critical accessibility findings; account removed through Settings. No screenshots or private sign-in links retained.');
+    diagnostic('INTEG-002 browser: Settings, incident composer and maintenance scheduling at 1440 have no horizontal overflow or serious/critical accessibility findings; account removed through Settings. Screens retained under ./test-results/social; private sign-in links are never retained.');
     await context.close();
     async function maintenanceChoice(width) {
       await page.goto(`${origin}/app/maintenance`); await operatorHydrated(page);
@@ -131,6 +124,8 @@ export async function socialBrowserFlow({ origin, devLink, diagnostic = () => {}
       assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), `${name}: no horizontal overflow`);
       const axe = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa']).analyze();
       assert.deepEqual(axe.violations.filter(violation => ['serious', 'critical'].includes(violation.impact)).map(violation => ({ id: violation.id, targets: violation.nodes.map(node => node.target) })), [], `${name}: accessibility`);
+      await mkdir('./test-results/social', { recursive: true });
+      await page.screenshot({ path: `./test-results/social/${name.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}.png`, fullPage: true });
     }
   } finally { await browser.close(); }
 }

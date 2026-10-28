@@ -23,7 +23,7 @@ function unescapeXml(text) {
 
 /** A well-formed Atom or RSS document whose entry HTML carries the same links. */
 export function assertLinkedFeed(xml, surface) {
-  execFileSync("xmllint", ["--noout", "-"], { input: xml });
+  execFileSync("python3", ["-c", "import sys, xml.etree.ElementTree as ET; ET.fromstring(sys.stdin.buffer.read())"], { input: xml });
   assert.match(xml, surface.endsWith(".rss") ? /^<\?xml[^>]*\?><rss version="2\.0"/ : /^<\?xml[^>]*\?><feed xmlns="http:\/\/www\.w3\.org\/2005\/Atom">/, `${surface}: feed root`);
   const entries = [...xml.matchAll(/<(?:content type="html"|description)>([^<]*)<\/(?:content|description)>/g)].map(match => unescapeXml(match[1]));
   const linked = entries.find(html => html.includes(LINKED_URL));

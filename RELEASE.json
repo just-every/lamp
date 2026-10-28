@@ -1,189 +1,950 @@
 {
-  "version": "1.11.0",
-  "previousVersion": "1.10.0",
+  "version": "1.11.1",
+  "previousVersion": "1.11.0",
+  "date": "2026-10-28",
   "contractChanges": {
-    "PAGE-009": {
+    "ACCESS-001": {
       "change": "changed",
-      "summary": "Time display: while script runs, the page's generation time shows a relative label, with the absolute time in the configured timezone and its UTC offset in its tooltip and the ISO 8601 instant in its datetime; the initial HTML, script-disabled readers and incident, maintenance, feed and notification timestamps keep the absolute display (owner S4, 20 October 2026).",
-      "was": "Time display: Every timestamp on a public surface or in a notification is rendered in the page's configured timezone with its UTC offset, and every timestamp on the page carries the same instant as an ISO 8601 value in a machine-readable attribute.",
-      "now": "Time display: Every timestamp on a public surface or in a notification is rendered in the page's configured timezone with its UTC offset, and every timestamp on the page carries the same instant as an ISO 8601 value in a machine-readable attribute. Owner exception (S4, DIVERGENCE.md \"Public page clarity \u2014 owner L10, 20 October 2026\"): while script runs, the page's generation time shows a relative label, refreshed while the page is open. Its tooltip gives the absolute time in the configured timezone with its UTC offset, and its `datetime` keeps the ISO 8601 instant. The initial HTML and script-disabled readers see the absolute time. Incident, maintenance, feed and notification timestamps keep the absolute display."
+      "summary": "Owner-terminal sign-in: An owner with installation database authority can issue a one-use terminal sign-in link for an existing active operator without creating another account.",
+      "was": "Owner-terminal sign-in: An owner with installation database access through Wrangler and the installation's `SESSION_SECRET` can issue a link for an existing active, non-erased operator; the remote command reads that secret only from its environment and refuses, naming it, when it is absent. The command uses the native hashed, 20-minute, single-use magic-link flow, records “sign-in link created from the command line”, and prints its only copy of the raw link once on stdout. It creates no operator or session; sign-in consumption creates the session under BASE-ACCESS-001 and BASE-ACCESS-002. Unknown, deactivated and erased operators receive the same refusal. Optional OpenID Connect sign-in through Auth, Google, Microsoft or Okta is supported by Base, off until the owner links and enables a provider; email magic links remain available. This replaces the former SSO exclusion. SCIM and role synchronization remain out of scope.",
+      "now": "Owner-terminal sign-in: **Requirement.** An owner with installation database authority can issue a one-use terminal sign-in link for an existing active operator without creating another account. Command details are documented in [terminal access](docs/contract/operations-details.md). **Acceptance.** 1. Issuing a terminal link requires the installation's session secret from the command environment and refuses a missing secret by name. 2. The issued link uses the native hashed twenty-minute single-use flow, prints its raw value exactly once and records sign-in link created from the command line. 3. Issuance creates neither an operator nor a session; consuming the link creates the Base session. 4. Unknown, deactivated and erased operators receive the same refusal."
     },
-    "UPTIME-003": {
-      "change": "changed",
-      "summary": "Short history: the figure is labeled with its coverage, elapsed hours and minutes while it covers less than one whole day (\"less than 1 minute\" below a minute) and whole days from one day onward, and a component with no data says No data (owner S4, 20 October 2026).",
-      "was": "Short history: A component whose earliest state history entry is later than the start of the reporting window shows uptime computed from that entry, and the page labels the figure with the number of whole days it covers.",
-      "now": "Short history: A component whose earliest state history entry is later than the start of the reporting window shows uptime computed from that entry, and the page labels the figure with the coverage: elapsed hours and minutes while it covers less than one whole day (\"less than 1 minute\" below a minute), and whole days from one day onward. A component with no data says No data (owner S4, DIVERGENCE.md \"Public page clarity\")."
+    "ACCESS-002": {
+      "change": "added",
+      "summary": "Optional identity-provider sign-in: The installation can add optional OpenID Connect sign-in through Auth, Google, Microsoft or Okta while keeping email magic links available.",
+      "now": "Optional identity-provider sign-in: **Requirement.** The installation can add optional OpenID Connect sign-in through Auth, Google, Microsoft or Okta while keeping email magic links available. This replaces the earlier SSO exclusion; SCIM and role synchronization are separate target work. **Acceptance.** 1. The optional provider is unused until the owner links it and enables sign-in. 2. Auth, Google, Microsoft and Okta sign-in can be linked while native email access remains usable."
     },
-    "SETUP-002": {
+    "COMP-001": {
       "change": "changed",
-      "summary": "First-run setup: an existing Statuspage, Instatus or Better Stack page supplies its real components and groups from public feeds; the optional history choice imports resolved incidents silently, and missing components preserve the website reader's result (owner L11, 22 October 2026).",
-      "was": "First-run setup: A signed-in owner whose installation has no stored first-run completion is sent from every operator document to `/setup`, which asks for their website first (owner decision, 20 October 2026). Lamp reads that public site once, refusing private and loopback addresses on every hop and running none of its scripts, and fills in what the site gives: page name, tagline, mark (stored as a PNG), accent colour and components from its navigation, plus the time zone from the browser; it never invents what the site did not give. A site that cannot be read, or no website, leaves plain defaults with one calm line. Every fact stays editable before and after; confirming stores the settings, the mark and the components and stores completion durably; afterwards `/setup` opens the app and settings remain editable in Settings. A signed-out visitor to `/setup` is sent to sign-in and returned there. An installation that already had an operator before this clause is recorded as complete by its migration. A setup rerun never clears completion.",
-      "now": "First-run setup: A signed-in owner whose installation has no stored first-run completion is sent from every operator document to `/setup`, which asks for their website first (owner decision, 20 October 2026). Lamp reads that public site once, refusing private and loopback addresses on every hop and running none of its scripts, and fills in what the site gives: page name, tagline, mark (stored as a PNG), accent colour and components from its navigation, plus the time zone from the browser; it never invents what the site did not give. When the site links to a Statuspage, Instatus or Better Stack page, or one answers at `status.<its domain>`, setup takes that page's own components and groups from its public feeds in place of the navigation's, labelled with where they came from, and offers \"Bring its incident history too\" (owner UI pass L11, 22 October 2026): off unless chosen, it imports the page's resolved incidents with their updates and times through Move in's keyless read, as MOVE-002's silent history; nothing open on that page, no maintenance and no subscriber comes, and a page whose feeds give no components changes nothing. A site that cannot be read, or no website, leaves plain defaults with one calm line. Every fact stays editable before and after; confirming stores the settings, the mark and the components and stores completion durably; afterwards `/setup` opens the app and settings remain editable in Settings. A signed-out visitor to `/setup` is sent to sign-in and returned there. An installation that already had an operator before this clause is recorded as complete by its migration. A setup rerun never clears completion."
-    },
-    "MOVE-006": {
-      "change": "changed",
-      "summary": "Cutover preview and supported sources: Statuspage, Instatus and Better Stack also accept setup's keyless public-feed captures, retaining resolved history, update times, explicitly supplied component states and old incident links.",
-      "was": "Cutover preview: Settings \u2192 Cutover is available after a dry run and for saved imports. It shows up to the first 25 old incident and maintenance addresses with proposed or surviving native permalinks, unavailable addresses and source-host limits, source feed answers, unsupported JSON/RSS/widget consumers, and eligible invitations with their original expiry deadline. Once the owner selects a public origin, each Opens check uses a credentialless browser request that follows the redirect and verifies the final native address and successful HTML response; failures remain explicit. The ordered guide covers import, preview, explicit invitations, hostname/custom-domain instructions, rechecking and keeping the source through the confirmation window. It claims neither DNS validation nor inbox delivery. Instatus accepts its documented saved management REST response families with a separate owner acknowledgment that the page and supplied history are published and unrestricted. Known protected or unpublished source records cannot become public. Visual Component parents are groups; audience groups are refused access restrictions. Only confirmed, approved email-only subscriptions with resolved preferences become pending. Exact supplied public-summary incident/maintenance URLs are joined by source ID; missing URLs are not invented. Maintenance ends use explicit timestamps or documented duration minutes under completed/autoEnd semantics, with every update retained silently. Sorry general notices may have no affected component and are carried as resolved informational history without outage claims; canceled maintenance stays canceled. Sorry additionally accepts keyless public JSON captures, including paginated components and notices plus full detail for every notice. Partial public previews name uncaptured details and cannot be applied. Subscribers come only from the authenticated API; eligible email rows are held inert without mail or confirmation expiry. A held row neither released nor undone is deleted with its address 30 days after the reviewed dry run, and Cutover states that date. After the hostname is live and the watch window closes, an explicit owner invitation action names the configured public origin, records that approval, and releases held rows into pending with a 72-hour window starting at release. Undo cannot recall mail or remove a released row as if it were still unchanged. Sorry numeric notice IDs and supplied notice paths redirect to surviving Lamp incidents or maintenance; `/notices`, `/history` and `/history/YYYY/month` (English month names) redirect to Lamp\u2019s `/history/` while a Sorry import is retained.",
-      "now": "Cutover preview: Settings \u2192 Cutover is available after a dry run and for saved imports. It shows up to the first 25 old incident and maintenance addresses with proposed or surviving native permalinks, unavailable addresses and source-host limits, source feed answers, unsupported JSON/RSS/widget consumers, and eligible invitations with their original expiry deadline. Once the owner selects a public origin, each Opens check uses a credentialless browser request that follows the redirect and verifies the final native address and successful HTML response; failures remain explicit. The ordered guide covers import, preview, explicit invitations, hostname/custom-domain instructions, rechecking and keeping the source through the confirmation window. It claims neither DNS validation nor inbox delivery. Instatus accepts its documented saved management REST response families with a separate owner acknowledgment that the page and supplied history are published and unrestricted. Known protected or unpublished source records cannot become public. Visual Component parents are groups; audience groups are refused access restrictions. Only confirmed, approved email-only subscriptions with resolved preferences become pending. Exact supplied public-summary incident/maintenance URLs are joined by source ID; missing URLs are not invented. Maintenance ends use explicit timestamps or documented duration minutes under completed/autoEnd semantics, with every update retained silently. Statuspage, Instatus and Better Stack also accept the keyless capture of their public feeds that setup reads (SETUP-002): resolved incidents only, each update at its time, component states only where the feeds state them (an incident without any is history naming its listed components), and each feed's own incident links as its old addresses. Sorry general notices may have no affected component and are carried as resolved informational history without outage claims; canceled maintenance stays canceled. Sorry additionally accepts keyless public JSON captures, including paginated components and notices plus full detail for every notice. Partial public previews name uncaptured details and cannot be applied. Subscribers come only from the authenticated API; eligible email rows are held inert without mail or confirmation expiry. A held row neither released nor undone is deleted with its address 30 days after the reviewed dry run, and Cutover states that date. After the hostname is live and the watch window closes, an explicit owner invitation action names the configured public origin, records that approval, and releases held rows into pending with a 72-hour window starting at release. Undo cannot recall mail or remove a released row as if it were still unchanged. Sorry numeric notice IDs and supplied notice paths redirect to surviving Lamp incidents or maintenance; `/notices`, `/history` and `/history/YYYY/month` (English month names) redirect to Lamp\u2019s `/history/` while a Sorry import is retained."
-    },
-    "NOTIFY-001": {
-      "change": "changed",
-      "summary": "Selected subscriptions receive committed public component status changes with claimant kind; incident carriers are deduplicated under NOTIFY-017.",
-      "was": "What notifies subscribers: *Policy: `notification.events.v1`; default: an incident notifies on its first published update, on every subsequent published update, and on the update that resolves it; a scheduled maintenance notifies per MAINT-005; a component state change made outside an incident or maintenance notifies no one.*",
-      "now": "What notifies subscribers: *Policy: `notification.events.v1`; default: an incident notifies on its first published update, on every subsequent published update, and on the update that resolves it; a scheduled maintenance notifies per MAINT-005; a component state change made outside an incident or maintenance notifies subscriptions that selected component status changes under NOTIFY-017; webhook subscriptions select those changes by default (SUB-016).*",
+      "summary": "States and their order: Components have one public state from a fixed vocabulary, and all severity comparisons use one order.",
+      "was": "States and their order: A component's public state is exactly one of Operational, Degraded performance, Partially unavailable, Major outage, or Under maintenance. Those states are ordered by severity, most severe first: Major outage, Partially unavailable, Degraded performance, Under maintenance, Operational. Every clause that says \"most severe\" means this order.",
+      "now": "States and their order: **Requirement.** Components have one public state from a fixed vocabulary, and all severity comparisons use one order. **Acceptance.** 1. The only component states are Operational, Degraded performance, Partially unavailable, Major outage and Under maintenance. 2. Severity is ordered Major outage, Partially unavailable, Degraded performance, Under maintenance, Operational.",
       "migrationIds": [
-        "0056_subscriber_channels_preferences.sql",
-        "0057_component_deliveries.sql"
+        "0003_public_contract.sql"
       ]
     },
-    "MOVE-001": {
+    "COMP-002": {
       "change": "changed",
-      "summary": "Move-in dry runs report per-channel subscriber excess; over-limit applies write nothing until a fresh narrowed dry run fits.",
-      "was": "Dry run first: An owner moving from Statuspage, Better Stack, Instatus or Sorry gives Settings \u2192 Move in either an API key with its page ID (read once with GET requests to the source's fixed API origin, never stored) or the source's saved API responses. A dry run counts every component, component group, incident with its updates, scheduled maintenance and subscriber as imported, changed, skipped or refused, names each reason, and writes nothing. An import applies only the reviewed dry run: if the source or this page changed since, it is refused and a fresh dry run is required.",
-      "now": "Dry run first: An owner moving from Statuspage, Better Stack, Instatus or Sorry gives Settings \u2192 Move in either an API key with its page ID (read once with GET requests to the source's fixed API origin, never stored) or the source's saved API responses. A dry run counts every component, component group, incident with its updates, scheduled maintenance and subscriber as imported, changed, skipped or refused, names each reason, and writes nothing. An import applies only the reviewed dry run: if the source or this page changed since, it is refused and a fresh dry run is required. SUB-020 adds per-channel capacity accounting: a dry run names the excess and refuses excess subscriber rows; an over-limit apply writes nothing until a fresh, narrowed dry run fits.",
+      "summary": "Grouping and order: Operators organize public components into ordered groups.",
+      "was": "Grouping and order: A component belongs to at most one group. Operators set the order of groups and of components within a group, and the public page renders them in that order.",
+      "now": "Grouping and order: **Requirement.** Operators organize public components into ordered groups. **Acceptance.** 1. A component belongs to at most one group. 2. Operators set group order and order within each group, and public rendering preserves both orders.",
       "migrationIds": [
-        "0056_subscriber_channels_preferences.sql"
+        "0003_public_contract.sql"
+      ]
+    },
+    "COMP-003": {
+      "change": "changed",
+      "summary": "Append-only state history: Public-state history is attributable and append-only; a correction adds a superseding fact.",
+      "was": "Append-only state history: Every change to a component's public state appends an entry recording the previous state, the new state, the instant of the change, and the operator or incident that caused it. An entry is never modified or removed; a correction under UPTIME-004 appends a superseding entry rather than altering the one it corrects.",
+      "now": "Append-only state history: **Requirement.** Public-state history is attributable and append-only; a correction adds a superseding fact. **Acceptance.** 1. Every public-state change appends previous state, new state, change instant and the causing operator or incident. 2. Prior entries are neither modified nor removed, including when UPTIME-004 corrects an interval by appending a superseding entry.",
+      "migrationIds": [
+        "0003_public_contract.sql"
+      ]
+    },
+    "COMP-004": {
+      "change": "changed",
+      "summary": "State note: A bounded plain-text note accompanies a component’s public state.",
+      "was": "State note: A component has a note of at most 250 characters, empty by default. When it is not empty it is shown beside that component's state on the public page exactly as entered.",
+      "now": "State note: **Requirement.** A bounded plain-text note accompanies a component’s public state. **Acceptance.** 1. A new component note is empty by default. 2. A note of up to 250 characters appears beside that component’s state exactly as entered; a longer note is refused.",
+      "migrationIds": [
+        "0003_public_contract.sql"
+      ]
+    },
+    "COMP-005": {
+      "change": "changed",
+      "summary": "Internal components: Internal components cannot affect or leak through public status.",
+      "was": "Internal components: A component marked internal is absent from the public page, the Atom feed, the widget, and every uptime figure, and never contributes to the overall status.",
+      "now": "Internal components: **Requirement.** Internal components cannot affect or leak through public status. **Acceptance.** 1. An internal component is absent from the page, Atom feed, widget and every uptime figure. 2. It never contributes to overall status.",
+      "migrationIds": [
+        "0003_public_contract.sql"
+      ]
+    },
+    "COMP-006": {
+      "change": "changed",
+      "summary": "Component state is claimed, not set: Incidents, maintenance and operator standing claims independently contribute to the component’s public state.",
+      "was": "Component state is claimed, not set: Three things claim a state for a component: an unresolved incident, an in-progress maintenance, and an operator's standing claim set outside either. An incident or maintenance claims a state per attached component, chosen when the component is attached. A component's public state is the most severe of the states claimed for it, and Operational when nothing claims it. Resolving an incident, completing a maintenance, attaching or detaching a component, and setting or clearing an operator claim each recompute that component's state by this rule within 10 seconds.",
+      "now": "Component state is claimed, not set: **Requirement.** Incidents, maintenance and operator standing claims independently contribute to the component’s public state. **Acceptance.** 1. An unresolved incident, in-progress maintenance or operator standing claim can claim a state; incident and maintenance attachment chooses a state per component. 2. The most severe active claim sets public state, and no active claim means Operational. 3. Resolving an incident, completing maintenance, attaching or detaching a component and setting or clearing a standing claim each recompute public state within ten seconds.",
+      "migrationIds": [
+        "0003_public_contract.sql"
+      ]
+    },
+    "COMP-007": {
+      "change": "changed",
+      "summary": "Deletion: Deleting a component removes its public state history and uptime while published communication retains its name.",
+      "was": "Deletion: Deleting a component removes it and its state history from the public page and from every uptime figure within 10 seconds. Incidents and maintenance that referenced it keep the component's name in their published updates.",
+      "now": "Deletion: **Requirement.** Deleting a component removes its public state history and uptime while published communication retains its name. **Acceptance.** 1. The component, its state history and every associated uptime figure disappear from the public page within ten seconds. 2. Published incident and maintenance updates keep the deleted component’s name.",
+      "migrationIds": [
+        "0003_public_contract.sql"
+      ]
+    },
+    "DOCS-001": {
+      "change": "changed",
+      "summary": "Public owner documentation: Public owner guidance is available on the app host, including the selected published Markdown pages; it is separate from the status-page host.",
+      "was": "Public owner documentation: The app host serves `/docs` and each published `/docs/<slug>` page as public documentation built from repository Markdown selected by `docs/site.json`. Documentation is available without an operator session; the public page host does not serve it.",
+      "now": "Public owner documentation: **Requirement.** Public owner guidance is available on the app host, including the selected published Markdown pages; it is separate from the status-page host. **Acceptance.** 1. A visitor without an operator session can read the documentation index and each selected published page on the app host. 2. A selected page renders its repository Markdown, and documentation is absent from the public status-page host."
+    },
+    "DRAFT-001": {
+      "change": "changed",
+      "summary": "Suggested update: A configured model supplies editable update suggestions from DRAFT-004’s brief.",
+      "was": "Suggested update: When an AI provider is configured, an operator can request a suggested update for an incident. The suggestion fills the composer's text fields it has text for, leaving any field it returns empty as the operator wrote it, is editable in every field, and is not published. Each filled field names the references of the DRAFT-004 brief it rests on; only references to what the brief knows are kept (an open question is not a source), and the composer shows each field's sources beside it, openable in the brief, or marks a field with none as written by the assistant with no source. A suggestion proposes no lifecycle and no next-update time, which remain the operator's commitment under UPDATE-001, and it changes no incident, public page, feed, or widget.",
+      "now": "Suggested update: **Requirement.** A configured model supplies editable update suggestions from DRAFT-004’s brief. Suggestion generation is standard work; any agent publication or next-update commitment carries its computed external, live or commitment classes under company policy. **Acceptance.** 1. Requesting a suggestion fills only nonempty suggested text fields, leaves empty results as previously written, and every field remains editable. 2. Each filled field cites only known brief references; an open question or unknown reference is removed and unsourced text is marked assistant-written with no source. 3. Each field’s sources appear beside it and open the corresponding brief item. 4. The suggestion proposes neither lifecycle nor next-update time. 5. Generation leaves saved incident, public page, feed and widget unchanged and unpublished.",
+      "migrationIds": [
+        "0004_publishing_contract.sql"
+      ]
+    },
+    "DRAFT-002": {
+      "change": "changed",
+      "summary": "Inputs: Suggestion requests use the same visible incident brief as the operator: accepted alerts, published updates, attached public components and their claims, plus configured tone instructions.",
+      "was": "Inputs: A suggestion is built from the incident's accepted alerts, its published updates, its attached components customers can see and their claimed states, and the tone instructions configured in settings. Internal notes under INCIDENT-008 and internal components under COMP-001 are not sent. The provider receives exactly the brief of DRAFT-004, unchanged.",
+      "now": "Inputs: **Requirement.** Suggestion requests use the same visible incident brief as the operator: accepted alerts, published updates, attached public components and their claims, plus configured tone instructions. **Acceptance.** 1. The provider receives the DRAFT-004 brief unchanged. 2. Internal notes and internal components are absent from the provider request even when present on the incident. 3. Configured tone instructions are included with the request.",
+      "migrationIds": [
+        "0004_publishing_contract.sql"
+      ]
+    },
+    "DRAFT-003": {
+      "change": "changed",
+      "summary": "Absent or failing provider: AI provider failure remains separate from normal publication.",
+      "was": "Absent or failing provider: AI calls go through `ai.provider.v1`. With no provider configured the composer shows no suggestion control and the deployment makes no AI request. When a configured provider fails or does not answer within 20 seconds, the composer shows the error and every other publish path behaves unchanged.",
+      "now": "Absent or failing provider: **Requirement.** AI provider failure remains separate from normal publication. Adapter details are in [intake details](docs/contract/intake-details.md). **Acceptance.** 1. Without a configured provider, no suggestion control appears and no AI request is made. 2. A provider failure or lack of response within 20 seconds produces a visible composer error. 3. All other publication paths remain usable after provider failure or timeout.",
+      "migrationIds": [
+        "0004_publishing_contract.sql"
+      ]
+    },
+    "DRAFT-004": {
+      "change": "changed",
+      "summary": "Incident brief: The incident page, including alert-created drafts, shows a model-free brief of facts and computed open questions.",
+      "was": "Incident brief: The operator's incident page, including the draft an alert creates, shows a brief built with no model. What we know lists each accepted alert with its time and source name, each published update, and each attached component customers can see with its claimed state. What we do not know yet lists plain questions computed from the incident's saved state: no component attached; no affected-audience or customer-impact statement yet; an unresolved draft with no next-update time; a draft raised by an alert and never published; a monitor recovery recorded while the latest published lifecycle is not Resolved; and a committed next-update time that has passed with no newer update. Every item carries a stable reference. One function builds the brief from the inputs of DRAFT-002 alone, and the page shows, collapsed, exactly what a suggestion request would send.",
+      "now": "Incident brief: **Requirement.** The incident page, including alert-created drafts, shows a model-free brief of facts and computed open questions. A collapsed view shows exactly what the suggestion would send. **Acceptance.** 1. Known facts list every accepted alert with time and source, every published update and every attached public component with its claimed state. 2. Questions identify no attached component, missing audience or customer-impact wording, an unresolved draft without next-update time, and an alert-raised draft never published. 3. Questions also identify monitor recovery while the latest published lifecycle is unresolved, and a passed commitment without a newer update. 4. Every fact and question has a stable reference. 5. The brief is built without a model from the DRAFT-002 inputs alone. 6. The operator page’s collapsed view equals the suggestion input.",
+      "migrationIds": [
+        "0004_publishing_contract.sql"
+      ]
+    },
+    "HIST-001": {
+      "change": "changed",
+      "summary": "Public history: Public history lists resolved incidents and completed maintenance for the last twelve months, grouped by month.",
+      "was": "Public history: The history page lists resolved incidents and completed maintenance grouped by month for the last 12 months, each with start time, end time, duration, the components it affected, and every update it published.",
+      "now": "Public history: **Requirement.** Public history lists resolved incidents and completed maintenance for the last twelve months, grouped by month. **Acceptance.** 1. Both kinds of completed record appear in their month and older records stay outside the twelve-month index. 2. Each record shows its start, end, duration, affected components and every published update.",
+      "migrationIds": [
+        "0004_publishing_contract.sql"
+      ]
+    },
+    "HIST-002": {
+      "change": "changed",
+      "summary": "Post-incident report: An operator attaches one report to a resolved incident with summary, timeline, cause and remediation, then publishes it to customers.",
+      "was": "Post-incident report: An operator can attach one post-incident report to a resolved incident, holding a summary, a timeline, a cause, and remediation. It appears on that incident's public page within 10 seconds of publishing, and notifies subscribers on the channels the operator selects for it in the same way NOTIFY-007 selects them for an update.",
+      "now": "Post-incident report: **Requirement.** An operator attaches one report to a resolved incident with summary, timeline, cause and remediation, then publishes it to customers. **Acceptance.** 1. The one report retains all four saved fields on that resolved incident. 2. Publication appears on its public incident page within ten seconds. 3. Subscribers are notified only on the channels selected for the report, using NOTIFY-007’s channel selection.",
+      "migrationIds": [
+        "0004_publishing_contract.sql"
+      ]
+    },
+    "HIST-003": {
+      "change": "changed",
+      "summary": "Report due: A sufficiently severe resolved incident without a report becomes visibly report-due under the replaceable report-due policy.",
+      "was": "Report due: *Policy: `postmortem.due.v1`; default: an incident that claimed Partially unavailable or Major outage on any component and has no post-incident report 7 days after resolution is marked as owing one in the operator app.*",
+      "now": "Report due: **Requirement.** A sufficiently severe resolved incident without a report becomes visibly report-due under the replaceable report-due policy. **Acceptance.** 1. Seven days after an incident that claimed Partially unavailable or Major outage resolves without a report, the operator app marks it as owing a report.",
+      "migrationIds": [
+        "0004_publishing_contract.sql"
+      ]
+    },
+    "HIST-004": {
+      "change": "changed",
+      "summary": "Export contents: Lamp’s export carries the complete status-page record graph and original uploaded images; Base supplies restore and equivalent re-export duties.",
+      "was": "Export contents: The export contains every incident, update, component with its full state history, maintenance, subscriber with channel and state, notification delivery record, post-incident report, setting, and audit entry as JSON, and every uploaded image as its original file.",
+      "now": "Export contents: **Requirement.** Lamp’s export carries the complete status-page record graph and original uploaded images; Base supplies restore and equivalent re-export duties. **Acceptance.** 1. The JSON includes every incident and update, component and its state history, maintenance and notices, subscriber channel/state, delivery record and post-incident report. 2. The JSON includes every setting and audit entry. 3. Every uploaded image is retained as its original bytes.",
+      "migrationIds": [
+        "0004_publishing_contract.sql"
+      ]
+    },
+    "INCIDENT-001": {
+      "change": "changed",
+      "summary": "Lifecycle: An incident follows one public lifecycle.",
+      "was": "Lifecycle: An incident is in exactly one of Investigating, Identified, Monitoring, or Resolved. It is created in Investigating, and its state changes only through a published update that sets it.",
+      "now": "Lifecycle: **Requirement.** An incident follows one public lifecycle. **Acceptance.** 1. An incident has exactly one state: Investigating, Identified, Monitoring or Resolved. 2. A new incident starts in Investigating. 3. Only publishing an update changes the incident to the lifecycle that update selects."
+    },
+    "INCIDENT-002": {
+      "change": "changed",
+      "summary": "Impact: An incident retains the greatest component impact it has reached.",
+      "was": "Impact: An incident's impact is the most severe state it has claimed on any attached component at any time since it was opened, so a resolved incident keeps the impact it reached. An incident with no attached components has no impact and cannot be published; UPDATE-001 requires at least one.",
+      "now": "Impact: **Requirement.** An incident retains the greatest component impact it has reached. **Acceptance.** 1. Derived impact is the most severe state claimed on any attached component since opening. 2. Resolution retains that peak impact. 3. Without attached components the incident has no impact and cannot be published; UPDATE-001 governs the required attachment."
+    },
+    "INCIDENT-003": {
+      "change": "changed",
+      "summary": "Reference: Every incident retains a permanent unique public reference.",
+      "was": "Reference: Every incident has a reference of the form `INC-` followed by digits and a permanent public URL containing it. New manual and alert-intake incidents share one durable, increasing `INC-n` allocation sequence. Existing references and URLs never change. A reference is never reused, including after INCIDENT-007, a restart, or a failed creation; a failed creation may leave a gap. Legacy timestamp-sized references do not determine the starting sequence.",
+      "now": "Reference: **Requirement.** Every incident retains a permanent unique public reference. **Acceptance.** 1. Each incident has an INC- reference followed by digits and a permanent public address containing it. 2. New manual and alert-intake incidents share one durable increasing sequence. 3. Existing references and public addresses remain unchanged. 4. Deletion, restart and failed creation never permit reference reuse; a failed creation may leave a gap. 5. Legacy timestamp-sized references do not choose the sequence’s starting point.",
+      "migrationIds": [
+        "0013_reference_allocations.sql"
+      ]
+    },
+    "INCIDENT-004": {
+      "change": "changed",
+      "summary": "Published updates are immutable: Corrections add to the public record without changing earlier wording.",
+      "was": "Published updates are immutable: A published update is never edited or deleted. A correction is a new published update that names the update it corrects, and both stay on the public timeline in the order they were published.",
+      "now": "Published updates are immutable: **Requirement.** Corrections add to the public record without changing earlier wording. **Acceptance.** 1. Published updates cannot be edited or deleted. 2. A correction is a new publication identifying the update it corrects. 3. Original and correction remain on the public timeline in publication order."
+    },
+    "INCIDENT-005": {
+      "change": "changed",
+      "summary": "Reopening: An erroneous resolution can be corrected without losing its history.",
+      "was": "Reopening: An incident resolved in error is reopened by publishing an update that sets it to Investigating. The resolution update and the reopening update both stay on the public timeline.",
+      "now": "Reopening: **Requirement.** An erroneous resolution can be corrected without losing its history. **Acceptance.** 1. Publishing Investigating reopens a resolved incident. 2. Resolution and reopening both remain on its public timeline."
+    },
+    "INCIDENT-006": {
+      "change": "changed",
+      "summary": "Overdue update: Operators distinguish a missed commitment from public incident wording.",
+      "was": "Overdue update: When the next-update time committed by an incident's latest published update passes with no newer update published, the incident is marked overdue in the operator app. The public page shows the committed time and never labels the incident overdue.",
+      "now": "Overdue update: **Requirement.** Operators distinguish a missed commitment from public incident wording. **Acceptance.** 1. When the latest published next-update time passes without newer publication, the operator app marks the incident overdue. 2. The public page retains the committed time and contains no overdue label."
+    },
+    "INCIDENT-007": {
+      "change": "changed",
+      "summary": "Deletion: An incident can be removed from public history with a recorded reason.",
+      "was": "Deletion: Deleting an incident requires a reason and removes it from the public page, the history page, and the Atom feed within 10 seconds. A request without a reason is rejected with 400. The operator, the reason, and the time are recorded in the audit log.",
+      "now": "Deletion: **Requirement.** An incident can be removed from public history with a recorded reason. **Acceptance.** 1. Deletion requires a reason and omitting it is refused. 2. The public page, history page and Atom feed remove the incident within ten seconds. 3. The deletion record identifies its operator, reason and time."
+    },
+    "INCIDENT-008": {
+      "change": "changed",
+      "summary": "Internal notes: Incident notes remain operator-only context.",
+      "was": "Internal notes: An incident carries internal notes visible only to a signed-in operator. A note never appears on the public page, in the Atom feed, in the widget, in any notification, or in any AI request.",
+      "now": "Internal notes: **Requirement.** Incident notes remain operator-only context. **Acceptance.** 1. A signed-in operator can read internal incident notes. 2. Public page, Atom feed, widget, notifications and AI requests omit those notes."
+    },
+    "INCIDENT-009": {
+      "change": "changed",
+      "summary": "Retroactive incidents: Operators record past incidents without replaying subscriber notifications.",
+      "was": "Retroactive incidents: An operator can open an incident whose updates carry publication times in the past. Those times are what the public timeline and the history page show, the component states it claims are written into the state history at those times so UPTIME-001 counts them, and no subscriber is notified for any of its updates.",
+      "now": "Retroactive incidents: **Requirement.** Operators record past incidents without replaying subscriber notifications. **Acceptance.** 1. An operator opens incidents with historical update publication times. 2. Public timeline and history show those original times. 3. Component claims enter state history at those times and contribute to UPTIME-001. 4. No update of the retroactive incident notifies subscribers, including later current-time updates."
+    },
+    "INCIDENT-010": {
+      "change": "changed",
+      "summary": "Update due: Reminder timing follows the published commitment.",
+      "was": "Update due: *Policy: `incident.update-due.v1`; default: an update is due from 10 minutes before the committed next-update time.* From that lead until a newer update is published or the incident resolves, the operator app shows the incident as due at the committed time on Overview and on the incident list, with one action that opens its composer and brief, and the operator email of NOTIFY-006 is sent once for that committed time; after the time passes the incident is overdue under INCIDENT-006 and the overdue email is sent once. The scheduled trigger sends both, whether or not any operator page is open. A resolved incident, an incident with a newer update, and a retroactive update send neither, and a commitment that had already passed when this clause took effect sends no email. The public page shows only the committed time and never labels an incident due or overdue.",
+      "now": "Update due: **Requirement.** Reminder timing follows the published commitment. **Acceptance.** 1. Unless the owner replaces the lead policy, an update becomes due ten minutes before its commitment. 2. Until newer publication or resolution, Overview and the incident list show its due time and an action opens its composer and brief. 3. Each commitment sends one due email and, after its time passes, one overdue email. 4. The scheduled trigger sends both without an open operator page. 5. Resolved incidents, newer publications and retroactive updates send neither. 6. A commitment already past when this behavior is introduced sends no reminder email. 7. The public page shows the committed time without due or overdue labels."
+    },
+    "INTAKE-001": {
+      "change": "changed",
+      "summary": "Authenticated requests: A monitoring source accepts only requests authenticated by its configured signing secret or bearer token.",
+      "was": "Authenticated requests: Each source is configured with one of two credentials. With a signing secret, a request is accepted only when the HMAC-SHA256 over its timestamp header and raw body matches and the timestamp is within 5 minutes of the deployment's clock; the signature is verified over the received bytes before they are parsed. With a bearer token, a request is accepted only when it presents that token, which exists because most monitoring tools — among them Datadog, Pingdom, and Uptime Kuma — cannot sign a webhook at all. A request with an absent, malformed, stale, or non-matching credential returns 401 and creates nothing.",
+      "now": "Authenticated requests: **Requirement.** A monitoring source accepts only requests authenticated by its configured signing secret or bearer token. Signed requests authenticate the received bytes before parsing. Datadog, Pingdom and Uptime Kuma can use the bearer alternative. **Acceptance.** 1. Only a valid HMAC-SHA256 over the timestamp and exact received body, with a timestamp within five minutes of the installation clock, is admitted for a signing-secret source. 2. Only the configured bearer token is admitted for a bearer source. 3. An absent, malformed, stale or non-matching credential returns 401 and creates no record.",
+      "migrationIds": [
+        "0004_publishing_contract.sql"
+      ]
+    },
+    "INTAKE-002": {
+      "change": "changed",
+      "summary": "Alerts never publish: The source-specific intake policy controls accepted alerts.",
+      "was": "Alerts never publish: *Policy: `alert.intake.v1`; default: an accepted alert creates or updates a draft incident within 30 seconds and changes no public surface. An operator publishes it under UPDATE-008.* A buyer who wants a monitored component to change state without waiting for a person replaces this policy; the narrative still waits for an operator, because no alert payload contains the UPDATE-001 fields.",
+      "now": "Alerts never publish: **Requirement.** The source-specific intake policy controls accepted alerts. Under the held intake policy an alert remains a private draft until publication; AUTO-001 carries component-specific alternatives. An agent publication carries external and live classes decided by company policy. **Acceptance.** 1. Under the held intake policy an accepted alert creates or updates a draft within 30 seconds. 2. That intake changes no public page, feed, widget or other public surface. 3. Publication follows UPDATE-008 and supplies every UPDATE-001 narrative field; an alert payload alone is not a completed narrative.",
+      "migrationIds": [
+        "0004_publishing_contract.sql"
+      ]
+    },
+    "INTAKE-003": {
+      "change": "changed",
+      "summary": "Deduplication: Unresolved alert keys and redelivered requests retain one incident and one set of alert work.",
+      "was": "Deduplication: Alerts carrying the same deduplication key produce one incident for as long as that incident is unresolved: an alert whose key matches an unresolved incident is recorded against that incident and creates no second one. A redelivery of a request already accepted creates no additional incident, draft, or alert record and returns the same status as the first delivery.",
+      "now": "Deduplication: **Requirement.** Unresolved alert keys and redelivered requests retain one incident and one set of alert work. **Acceptance.** 1. Distinct deliveries with the same key attach to the same unresolved incident instead of creating another. 2. Redelivery of an accepted request returns its original status and adds no incident, draft or alert record.",
+      "migrationIds": [
+        "0004_publishing_contract.sql"
+      ]
+    },
+    "INTAKE-004": {
+      "change": "changed",
+      "summary": "Recovery alerts: A recovery alert adds evidence against its matching alert without publishing a resolution.",
+      "was": "Recovery alerts: An alert marked as recovered for a deduplication key records the recovery time on the matching alert record and changes no public surface and no incident lifecycle state.",
+      "now": "Recovery alerts: **Requirement.** A recovery alert adds evidence against its matching alert without publishing a resolution. **Acceptance.** 1. A recovered event records its recovery time against the matching alert key. 2. Recovery changes no public surface and no incident lifecycle state.",
+      "migrationIds": [
+        "0004_publishing_contract.sql"
+      ]
+    },
+    "INTAKE-005": {
+      "change": "changed",
+      "summary": "Payload mapping: A generic source maps its own payload fields to its alert key, title and firing/recovered state, with rejected mapping reasons visible against the source.",
+      "was": "Payload mapping: Each source configures, as JSON paths into its own payload, which field supplies the deduplication key, which supplies the title, and which distinguishes a firing alert from a recovered one. A request whose payload lacks the configured deduplication-key path returns 400 and is recorded against that source where an operator can see it.",
+      "now": "Payload mapping: **Requirement.** A generic source maps its own payload fields to its alert key, title and firing/recovered state, with rejected mapping reasons visible against the source. **Acceptance.** 1. Saving source-specific JSON paths makes key, title and state interpretation follow those fields. 2. A payload missing its configured deduplication-key path returns 400 and is recorded against the source with an operator-visible reason.",
+      "migrationIds": [
+        "0004_publishing_contract.sql"
+      ]
+    },
+    "INTAKE-006": {
+      "change": "changed",
+      "summary": "Monitor presets: Datadog, UptimeRobot, Better Stack and Pingdom presets accept their documented alert payloads and map each source to one component.",
+      "was": "Monitor presets: A source can be a preset for Datadog, UptimeRobot, Better Stack or Pingdom, mapped to one component. Its endpoint accepts only that tool's documented alert payload (Datadog's webhook variables in the template Lamp shows, UptimeRobot's JSON webhook variables, Better Stack's incident webhook, Pingdom's state change webhook), authenticated by the source's token presented as a bearer header or as the endpoint's last path segment for tools that cannot send a header; the token is shown once, when Lamp generates it. A missing or wrong token returns 401 and records nothing; any other payload returns 400 and is recorded against the source. A firing alert creates or updates a draft incident attached to the mapped component, never a published one.",
+      "now": "Monitor presets: **Requirement.** Datadog, UptimeRobot, Better Stack and Pingdom presets accept their documented alert payloads and map each source to one component. Providers can use the bearer header or token-address form when unable to send a header. **Acceptance.** 1. Each documented firing payload creates or updates a private draft attached to its mapped component. 2. The generated credential is shown once and omitted from subsequent listings. 3. Missing or wrong credentials return 401 and record nothing. 4. Another provider’s payload returns 400 and is recorded as invalid against the source. 5. Firing alerts have no published update and change no public surface.",
+      "migrationIds": [
+        "0004_publishing_contract.sql"
+      ]
+    },
+    "INTAKE-007": {
+      "change": "changed",
+      "summary": "Preset recovery: Preset recovery closes only unpublished drafts.",
+      "was": "Preset recovery: A recovery from a preset closes the matching draft incident as Resolved when it was never published, leaving no public trace; an incident with a published update keeps its lifecycle and the recovery is recorded under INTAKE-004.",
+      "now": "Preset recovery: **Requirement.** Preset recovery closes only unpublished drafts. Published incidents retain their lifecycle and receive evidence under INTAKE-004. **Acceptance.** 1. Each preset’s recovery resolves its matching never-published draft without publishing any update or public trace. 2. A published incident retains its lifecycle and records the recovery evidence.",
+      "migrationIds": [
+        "0004_publishing_contract.sql"
       ]
     },
     "MAINT-001": {
       "change": "changed",
-      "summary": "New native windows also carry MAINT-009 required affected-audience and customer-impact wording, frozen into each notice. Pre-release windows remain title-only; lifecycle timing and overrun behavior are unchanged.",
+      "summary": "Distinct from incidents: Maintenance has a window, components and its own durable reference.",
       "was": "Distinct from incidents: A scheduled maintenance has a start time, an end time, and attached components. It has a reference of the form `SCH-` followed by digits, and is listed separately from incidents wherever both appear. New maintenance references use a durable, increasing `SCH-n` allocation sequence independent of incidents and legacy timestamp-sized references. Existing references remain unchanged; deletion, restart and failed creation never permit reuse, and failures may leave gaps.",
-      "now": "Distinct from incidents: A scheduled maintenance has a start time, an end time, and attached components. It has a reference of the form `SCH-` followed by digits, and is listed separately from incidents wherever both appear. New maintenance references use a durable, increasing `SCH-n` allocation sequence independent of incidents and legacy timestamp-sized references. Existing references remain unchanged; deletion, restart and failed creation never permit reuse, and failures may leave gaps. New native windows also carry MAINT-009 required affected-audience and customer-impact wording, frozen into each notice. Pre-release windows remain title-only; lifecycle timing and overrun behavior are unchanged.",
+      "now": "Distinct from incidents: **Requirement.** Maintenance has a window, components and its own durable reference. **Acceptance.** 1. Maintenance records start, end and attached components and appears separately wherever incidents and maintenance share a surface. 2. Its SCH- reference has digits and new references increase independently of incidents and legacy timestamps. 3. Existing references remain unchanged; deletion, restart and failed creation never allow reuse, although failures may leave gaps.",
       "migrationIds": [
+        "0004_publishing_contract.sql",
+        "0013_reference_allocations.sql",
         "0058_maintenance_wording.sql"
       ]
     },
     "MAINT-002": {
       "change": "changed",
-      "summary": "New native windows also carry MAINT-009 required affected-audience and customer-impact wording, frozen into each notice. Pre-release windows remain title-only; lifecycle timing and overrun behavior are unchanged.",
+      "summary": "Automatic transitions: Automatic maintenance follows its declared window.",
       "was": "Automatic transitions: A scheduled maintenance moves from Scheduled to In progress within 240 seconds of its start time, and from In progress to Completed within 240 seconds of its end time, with no operator action. The 240-second bound is a declared promise based on one local stress observation with 20 updates and 20 maintenance starts due in the same cron minute on a single workerd process on a shared runner; it is not a p95 over independent runs or a hosted Cron guarantee.",
-      "now": "Automatic transitions: A scheduled maintenance moves from Scheduled to In progress within 240 seconds of its start time, and from In progress to Completed within 240 seconds of its end time, with no operator action. The 240-second bound is a declared promise based on one local stress observation with 20 updates and 20 maintenance starts due in the same cron minute on a single workerd process on a shared runner; it is not a p95 over independent runs or a hosted Cron guarantee. New native windows also carry MAINT-009 required affected-audience and customer-impact wording, frozen into each notice. Pre-release windows remain title-only; lifecycle timing and overrun behavior are unchanged.",
+      "now": "Automatic transitions: **Requirement.** Automatic maintenance follows its declared window. **Acceptance.** 1. Scheduled moves to In progress within 240 seconds after start without an operator action. 2. In progress moves to Completed within 240 seconds after end without an operator action.",
       "migrationIds": [
+        "0004_publishing_contract.sql",
         "0058_maintenance_wording.sql"
+      ]
+    },
+    "MAINT-003": {
+      "change": "changed",
+      "summary": "Component states: Maintenance temporarily contributes claims without discarding others.",
+      "was": "Component states: A maintenance claims Under maintenance for every attached component while it is In progress, and claims nothing before it starts or after it completes. A component's public state follows from COMP-006 throughout, so a state an operator or an incident claimed before the window is still claimed after it.",
+      "now": "Component states: **Requirement.** Maintenance temporarily contributes claims without discarding others. **Acceptance.** 1. In progress maintenance claims Under maintenance on every attached component. 2. It contributes no claim before starting or after completion. 3. COMP-006 applies throughout, retaining preexisting operator and incident claims after the window.",
+      "migrationIds": [
+        "0004_publishing_contract.sql"
       ]
     },
     "MAINT-004": {
       "change": "changed",
-      "summary": "New native windows also carry MAINT-009 required affected-audience and customer-impact wording, frozen into each notice. Pre-release windows remain title-only; lifecycle timing and overrun behavior are unchanged.",
+      "summary": "Overrun: An overrun stays public until completion or extension.",
       "was": "Overrun: A maintenance still In progress 15 minutes after its end time is shown on the public page as running longer than planned, beside its original end time, until an operator completes it or extends the window.",
-      "now": "Overrun: A maintenance still In progress 15 minutes after its end time is shown on the public page as running longer than planned, beside its original end time, until an operator completes it or extends the window. New native windows also carry MAINT-009 required affected-audience and customer-impact wording, frozen into each notice. Pre-release windows remain title-only; lifecycle timing and overrun behavior are unchanged.",
+      "now": "Overrun: **Requirement.** An overrun stays public until completion or extension. **Acceptance.** 1. Fifteen minutes after its end, an In progress maintenance shows Running longer than planned beside its original end on the public page. 2. The indication remains until an operator completes it or extends the window. 3. Extension preserves start, changes end and removes the overrun indication.",
       "migrationIds": [
+        "0004_publishing_contract.sql",
         "0058_maintenance_wording.sql"
       ]
     },
     "MAINT-005": {
       "change": "changed",
-      "summary": "New native windows also carry MAINT-009 required affected-audience and customer-impact wording, frozen into each notice. Pre-release windows remain title-only; lifecycle timing and overrun behavior are unchanged.",
+      "summary": "Reminders: The owner may replace maintenance notice timing.",
       "was": "Reminders: *Policy: `maintenance.reminders.v1`; default: subscribers are notified when the maintenance is scheduled, 24 hours before the start time, when it moves to In progress, and when it moves to Completed.*",
-      "now": "Reminders: *Policy: `maintenance.reminders.v1`; default: subscribers are notified when the maintenance is scheduled, 24 hours before the start time, when it moves to In progress, and when it moves to Completed.* New native windows also carry MAINT-009 required affected-audience and customer-impact wording, frozen into each notice. Pre-release windows remain title-only; lifecycle timing and overrun behavior are unchanged.",
+      "now": "Reminders: **Requirement.** The owner may replace maintenance notice timing. **Acceptance.** 1. Unless the owner replaces the reminder policy, subscribers are notified at scheduling, twenty-four hours before start, at In progress and at Completed.",
       "migrationIds": [
+        "0004_publishing_contract.sql",
         "0058_maintenance_wording.sql"
       ]
     },
-    "INTEG-002": {
-      "change": "added",
-      "summary": "Optional owner social accounts post selected incident updates and maintenance notices to X, Bluesky and Mastodon, with sealed credentials, bounded text, incident threads, durable per-account retry and delivery logs, and isolated operator failure alerts.",
+    "MAINT-006": {
+      "change": "changed",
+      "summary": "Rescheduling and cancellation: Changed and cancelled maintenance tells its already-notified audience.",
+      "was": "Rescheduling and cancellation: Changing the window of a scheduled maintenance notifies every subscriber already notified about it. Canceling it publishes a cancellation notice to those same subscribers, removes it from the upcoming list within 10 seconds, and keeps it in the maintenance history marked canceled.",
+      "now": "Rescheduling and cancellation: **Requirement.** Changed and cancelled maintenance tells its already-notified audience. **Acceptance.** 1. A changed window notifies every subscriber already notified about the maintenance. 2. Cancellation publishes a cancellation notice to those same subscribers. 3. Cancellation removes the upcoming listing within ten seconds and retains the cancelled maintenance in history.",
       "migrationIds": [
-        "0066_social_accounts.sql"
+        "0004_publishing_contract.sql"
+      ]
+    },
+    "MOVE-001": {
+      "change": "changed",
+      "summary": "Dry run first: Move in previews a switch from Statuspage, Better Stack, Instatus or Sorry before writing Lamp records, and applies only the exact source and page state the owner reviewed.",
+      "was": "Dry run first: An owner moving from Statuspage, Better Stack, Instatus or Sorry gives Settings → Move in either an API key with its page ID (read once with GET requests to the source's fixed API origin, never stored) or the source's saved API responses. A dry run counts every component, component group, incident with its updates, scheduled maintenance and subscriber as imported, changed, skipped or refused, names each reason, and writes nothing. An import applies only the reviewed dry run: if the source or this page changed since, it is refused and a fresh dry run is required. SUB-020 adds per-channel capacity accounting: a dry run names the excess and refuses excess subscriber rows; an over-limit apply writes nothing until a fresh, narrowed dry run fits.",
+      "now": "Dry run first: **Requirement.** Move in previews a switch from Statuspage, Better Stack, Instatus or Sorry before writing Lamp records, and applies only the exact source and page state the owner reviewed. **Acceptance.** 1. The owner can supply a source API key and page identity or saved responses; source credentials are read once from the source's fixed origin and never stored. 2. The dry run counts every component, group, incident and its updates, maintenance window and subscriber as imported, changed, skipped or refused, with reasons, and writes no record. 3. Changing either the source or Lamp page after review refuses application and requires a fresh dry run. 4. A dry run names each excess subscriber over a SUB-020 channel capacity and refuses excess rows; an over-limit apply writes nothing until a narrowed review fits.",
+      "migrationIds": [
+        "0056_subscriber_channels_preferences.sql"
+      ]
+    },
+    "MOVE-002": {
+      "change": "changed",
+      "summary": "Retroactive and silent: Imported incident and maintenance history is silent and preserves its original timing rather than replaying publication.",
+      "was": "Retroactive and silent: An import keeps every incident update's original publication time and derives each imported component's state history from those times, as INCIDENT-009 does; it queues no notification for any incident or maintenance and publishes no maintenance notice. A window already over is imported as completed. Each imported email subscriber is pending. Preview, apply, resume, job reads and Cutover checks send no mail. Only the authenticated owner’s explicit Send invitations action claims and sends each eligible pending email subscriber at most one confirmation invitation, mentioning no past incident. For Statuspage, Better Stack and Instatus, confirmation expires 72 hours from the import review time stored as created_at, even when sending is delayed; expired subscribers cannot be invited and SUB-003 deletes unconfirmed addresses. A claim precedes the transport call to prevent duplicates across concurrent batches and retries. Proven preparation failures remain retryable because no message was submitted; interrupted or uncertain claimed sends are not automatically retried.",
+      "now": "Retroactive and silent: **Requirement.** Imported incident and maintenance history is silent and preserves its original timing rather than replaying publication. **Acceptance.** 1. Each incident update keeps its original publication time, and imported component state history derives from those times under INCIDENT-009. 2. Past maintenance is completed; import creates no lifecycle maintenance notice and queues no incident or maintenance notification. 3. Preview, apply, resume, job reads and Cutover checks send no mail. 4. Imported email subscribers remain pending for the separate invitation action.",
+      "migrationIds": [
+        "0025_sorry_import_release.sql"
+      ]
+    },
+    "MOVE-003": {
+      "change": "changed",
+      "summary": "One import per source: Repeating an imported source never imports its already-owned records again, including across source imports.",
+      "was": "One import per source: Running the same source again reports it as already imported and changes nothing and sends nothing. A record already imported is never imported a second time from another source.",
+      "now": "One import per source: **Requirement.** Repeating an imported source never imports its already-owned records again, including across source imports. **Acceptance.** 1. Repeating the same source reports already imported, preserves record counts and public aliases, and creates no notification work. 2. A record already imported is not imported again from another source."
+    },
+    "MOVE-004": {
+      "change": "changed",
+      "summary": "Undo: Undo removes unchanged imported records, retains edits and their dependencies, and explains each retained record without sending notifications.",
+      "was": "Undo: Undo removes every record the import created that nobody changed since, sends nothing, and keeps each record an operator or subscriber changed, together with the records it still needs, naming them.",
+      "now": "Undo: **Requirement.** Undo removes unchanged imported records, retains edits and their dependencies, and explains each retained record without sending notifications. **Acceptance.** 1. Undo removes every unchanged record created by the import. 2. A record an operator or subscriber changed, and every record it still needs, survives undo with a named explanation. 3. Undo sends no notification."
+    },
+    "MOVE-005": {
+      "change": "changed",
+      "summary": "Old public addresses: The moved public hostname keeps safe imported incident, maintenance and feed addresses working from the same public snapshot.",
+      "was": "Old public addresses: Imported incident and maintenance source paths and supplied shortlink paths permanently redirect on the public host to each surviving record's Lamp permalink; maintenance has its own permanent page. Sorry numeric notice and supplied notice paths redirect to the matching incident or maintenance; `/notices`, `/history` and `/history/YYYY/month` (English month names) redirect to Lamp’s `/history/` while a Sorry import is retained. Source Atom paths (`/history.atom` for Statuspage and Instatus; `/feed.atom` for Better Stack) serve Lamp's Atom feed after import, even without incident history, until a complete undo removes the import. These responses come from the same versioned snapshot as the page, without database queries. A second apply duplicates no aliases; conditional undo removes exactly the removed records' aliases and keeps preserved records' aliases. New imports refuse and name unsafe addresses, native-path collisions and conflicting destinations; an older retained source reports unusable aliases without withholding the public snapshot. Missing shortlinks are never invented. Source-owned shortlink hostnames remain outside Lamp's control. Better Stack REST reports supply no documented public URL; their paths are unavailable unless an unchanged saved status-page webhook supplies an exact shortlink with a matching report ID. No `/incident/<REST-id>` path is guessed. Better Stack maintenance messages are retained as historical updates, without creating native lifecycle notices or replaying notifications.",
+      "now": "Old public addresses: **Requirement.** The moved public hostname keeps safe imported incident, maintenance and feed addresses working from the same public snapshot. Source-specific address rules are documented in [import continuity](docs/contract/operations-details.md). **Acceptance.** 1. An imported incident, maintenance or supplied shortlink permanently redirects on the public host to that surviving Lamp record; maintenance has a permanent page. 2. Sorry numeric and supplied notice paths reach the corresponding record, and its notice/history/month listings redirect to Lamp history while the import remains. 3. Statuspage and Instatus history Atom addresses and Better Stack's source Atom address serve Lamp's feed, including an import with no incident history, until complete undo removes the import. 4. Redirects and feeds use the page's versioned snapshot with no database query; reapply creates no duplicate alias, and conditional undo removes only aliases for removed records. 5. Unsafe addresses, native-route collisions and conflicting destinations are named and refused on new imports; a retained old source names unusable aliases without withholding the snapshot. 6. Missing shortlinks are not invented, source-owned shortlink hosts remain outside Lamp control, and Better Stack report paths remain unavailable unless an unchanged saved source webhook supplies an exact matching shortlink. 7. Better Stack maintenance messages remain historical updates and create no native lifecycle notice or replayed notification.",
+      "migrationIds": [
+        "0022_import_maintenance_updates.sql"
+      ]
+    },
+    "MOVE-006": {
+      "change": "changed",
+      "summary": "Cutover preview: Cutover previews old-to-new addresses and reader limits before and after import, and checks the public addresses the owner selected without claiming DNS or inbox proof.",
+      "was": "Cutover preview: Settings → Cutover is available after a dry run and for saved imports. It shows up to the first 25 old incident and maintenance addresses with proposed or surviving native permalinks, unavailable addresses and source-host limits, source feed answers, unsupported JSON/RSS/widget consumers, and eligible invitations with their original expiry deadline. Once the owner selects a public origin, each Opens check uses a credentialless browser request that follows the redirect and verifies the final native address and successful HTML response; failures remain explicit. The ordered guide covers import, preview, explicit invitations, hostname/custom-domain instructions, rechecking and keeping the source through the confirmation window. It claims neither DNS validation nor inbox delivery.",
+      "now": "Cutover preview: **Requirement.** Cutover previews old-to-new addresses and reader limits before and after import, and checks the public addresses the owner selected without claiming DNS or inbox proof. **Acceptance.** 1. The dry run and saved import show up to twenty-five old incident/maintenance addresses, proposed or surviving permalinks, unavailable addresses and source-host limits. 2. The preview lists source feeds, unsupported JSON/RSS/widget readers and eligible invitations with their original expiry deadline. 3. An Opens check follows redirects without credentials and verifies both the final native address and successful HTML; failures remain visible. 4. The ordered guide covers import, preview, explicit invitations, hostnames/custom domains, rechecking and retaining the source through the confirmation window.",
+      "migrationIds": [
+        "0025_sorry_import_release.sql"
+      ]
+    },
+    "MOVE-013": {
+      "change": "added",
+      "summary": "Explicit imported invitations: The owner explicitly invites eligible imported email subscribers, without replaying past incidents or extending their original confirmation deadline.",
+      "now": "Explicit imported invitations: **Requirement.** The owner explicitly invites eligible imported email subscribers, without replaying past incidents or extending their original confirmation deadline. **Acceptance.** 1. Only the signed-in owner's explicit invitation action sends a confirmation, with no past incident content. 2. Repeated or concurrent invitation batches hand each eligible address to transport at most once. 3. Statuspage, Better Stack and Instatus invitations expire seventy-two hours from import review even when sending is delayed; expired subscribers cannot be invited and SUB-003 removes unconfirmed addresses. 4. A proven failure before submission can be retried; an interrupted or uncertain submitted attempt remains claimed and is not automatically resubmitted.",
+      "migrationIds": [
+        "0025_sorry_import_release.sql"
+      ]
+    },
+    "NOTIFY-001": {
+      "change": "changed",
+      "summary": "What notifies subscribers: The notification-event policy covers incident and maintenance communication, with NOTIFY-017 adding opted-in component changes.",
+      "was": "What notifies subscribers: *Policy: `notification.events.v1`; default: an incident notifies on its first published update, on every subsequent published update, and on the update that resolves it; a scheduled maintenance notifies per MAINT-005; a component state change made outside an incident or maintenance notifies no one.* NOTIFY-017 replaces this default for subscriptions that select component changes; the release that ships it records NOTIFY-001 as changed.",
+      "now": "What notifies subscribers: **Requirement.** The notification-event policy covers incident and maintenance communication, with NOTIFY-017 adding opted-in component changes. **Acceptance.** 1. An incident notifies on its first published update, each later update and resolution. 2. Scheduled maintenance notifies according to MAINT-005. 3. A component change outside incident or maintenance notifies nobody unless the subscriber opted into NOTIFY-017.",
+      "migrationIds": [
+        "0005_delivery_contract.sql",
+        "0056_subscriber_channels_preferences.sql",
+        "0057_component_deliveries.sql"
+      ]
+    },
+    "NOTIFY-002": {
+      "change": "changed",
+      "summary": "Delivery time: At the installation's stated subscriber capacity, every eligible update email reaches provider acceptance within five minutes after successful publication.",
+      "was": "Delivery time: At the subscriber limit in `seed.json → limits`, every eligible email notification for a published update is accepted by the mail provider within 5 minutes of the publish request returning 200.",
+      "now": "Delivery time: **Requirement.** At the installation's stated subscriber capacity, every eligible update email reaches provider acceptance within five minutes after successful publication. **Acceptance.** 1. A complete capacity-sized recipient set is accepted within five minutes of successful publication.",
+      "migrationIds": [
+        "0005_delivery_contract.sql"
+      ]
+    },
+    "NOTIFY-003": {
+      "change": "changed",
+      "summary": "Retry: A retryable notification failure gets five retries with exponential backoff over one hour, then a terminal failure against subscriber and update.",
+      "was": "Retry: A notification that fails with a retryable error is retried 5 times with exponential backoff over 1 hour. After the last attempt it is recorded as failed against that subscriber and that update.",
+      "now": "Retry: **Requirement.** A retryable notification failure gets five retries with exponential backoff over one hour, then a terminal failure against subscriber and update. **Acceptance.** 1. A retryable failure produces five retries after the first attempt. 2. The retry schedule backs off exponentially across one hour. 3. Exhaustion records failure against the affected subscriber and update.",
+      "migrationIds": [
+        "0005_delivery_contract.sql"
+      ]
+    },
+    "NOTIFY-004": {
+      "change": "changed",
+      "summary": "Delivery log, without tracking: The notification log exposes delivery facts for each recipient and supports channel, outcome and update filtering plus CSV.",
+      "was": "Delivery log, without tracking: Every notification records the subscriber, channel, update, queue time, outcome, and outcome time. An outcome is one of queued, delivered, bounced, complained, suppressed, or failed. No notification carries a tracking pixel or a link that records who followed it, so no outcome describes reading. The log is filterable by channel, outcome, and update, and exports as CSV.",
+      "now": "Delivery log, without tracking: **Requirement.** The notification log exposes delivery facts for each recipient and supports channel, outcome and update filtering plus CSV. It adds subscription-communication fields to the Base mail-outcome duty. **Acceptance.** 1. Each notification records subscriber, channel, update, queue time, outcome and outcome time. 2. Outcomes distinguish queued, delivered, bounced, complained, suppressed and failed. 3. Messages contain no tracking pixel or tracked link. 4. Each channel, outcome and update filter returns matching rows, and the complete CSV matches those filters.",
+      "migrationIds": [
+        "0005_delivery_contract.sql",
+        "0008_provider_callback_recovery.sql"
+      ]
+    },
+    "NOTIFY-005": {
+      "change": "changed",
+      "summary": "At most once: Each published update has at most one notification to a subscriber on each selected channel.",
+      "was": "At most once: A subscriber receives at most one notification per published update per channel, whatever the number of times the publish is retried or the queue delivers the job.",
+      "now": "At most once: **Requirement.** Each published update has at most one notification to a subscriber on each selected channel. **Acceptance.** 1. Retrying publication or redelivering the queue job never sends that subscriber the update twice on one channel.",
+      "migrationIds": [
+        "0005_delivery_contract.sql"
+      ]
+    },
+    "NOTIFY-006": {
+      "change": "changed",
+      "summary": "Operator alerts: Operators receive one email per communication obligation or terminal delivery event.",
+      "was": "Operator alerts: An operator email is sent, at most once per event, when an incident's next update becomes due under INCIDENT-010, when an incident becomes overdue under INCIDENT-006, when a maintenance overruns under MAINT-004, when a scheduled update is held back for review under UPDATE-006, when an alert creates a draft incident under INTAKE-002, and when a notification is recorded as failed under NOTIFY-003.",
+      "now": "Operator alerts: **Requirement.** Operators receive one email per communication obligation or terminal delivery event. **Acceptance.** 1. Each next-update-due event sends at most one email. 2. Each overdue incident sends at most one email. 3. Maintenance overrun, a scheduled update held for review, and an alert-created draft incident each send at most one operator email. 4. Terminal notification failure sends at most one operator email.",
+      "migrationIds": [
+        "0005_delivery_contract.sql"
+      ]
+    },
+    "NOTIFY-007": {
+      "change": "changed",
+      "summary": "Channels are per update: Operators choose subscriber channels independently for each update while every public surface receives it.",
+      "was": "Channels are per update: The operator selects, for each update, which subscriber channels receive it, and selecting none is allowed. The public page, the Atom feed, and the widget always receive the update and cannot be deselected. The delivery log records the selection.",
+      "now": "Channels are per update: **Requirement.** Operators choose subscriber channels independently for each update while every public surface receives it. **Acceptance.** 1. The selected subscriber channels, including an empty selection, determine the committed recipient set and remain in the delivery log. 2. The public page, Atom feed and widget always receive the update and cannot be deselected.",
+      "migrationIds": [
+        "0005_delivery_contract.sql"
+      ]
+    },
+    "NOTIFY-008": {
+      "change": "changed",
+      "summary": "Who the deployment emails: Installation email reaches only operators, pending subscriber confirmations or active subscribers, using the configured sender through the supported mail-sender extension.",
+      "was": "Who the deployment emails: The deployment sends email only to an operator, to an address with a pending subscription for its single confirmation email, and to an address with an active subscription. Every notification is sent through `mail.sender.v1` from the address configured in settings.",
+      "now": "Who the deployment emails: **Requirement.** Installation email reaches only operators, pending subscriber confirmations or active subscribers, using the configured sender through the supported mail-sender extension. **Acceptance.** 1. Only an operator, a pending address for its single confirmation or an active subscriber can receive email. 2. Every notification uses the configured From address through the mail-sender extension.",
+      "migrationIds": [
+        "0005_delivery_contract.sql"
+      ]
+    },
+    "NOTIFY-009": {
+      "change": "changed",
+      "summary": "Delivery never blocks publication: Delivery failure never withholds a committed public update; its notification set resumes when the failed channel recovers.",
+      "was": "Delivery never blocks publication: A publish under UPDATE-008 returns 200 while the mail provider, the queue, or a subscriber endpoint is failing. The public page, the feed, and the widget update under PAGE-007 regardless, and the committed notification set is delivered under NOTIFY-003 when the channel recovers.",
+      "now": "Delivery never blocks publication: **Requirement.** Delivery failure never withholds a committed public update; its notification set resumes when the failed channel recovers. **Acceptance.** 1. Publication succeeds despite a failing mail provider, queue or subscriber endpoint. 2. The public page, feed and widget meet PAGE-007 despite the failure. 3. Recovery delivers the original committed notification set under NOTIFY-003.",
+      "migrationIds": [
+        "0005_delivery_contract.sql"
+      ]
+    },
+    "NOTIFY-010": {
+      "change": "changed",
+      "summary": "Mail headers: Notification email identifies the page, avoids automatic replies and threads incident updates.",
+      "was": "Mail headers: Every notification email carries `List-Id`, `List-Archive`, and `List-Help` identifying the page, `Auto-Submitted: auto-generated` so it triggers no vacation reply, and, for every update after an incident's first, `In-Reply-To` and `References` naming the message that carried the first, so a mail client groups an incident's updates into one thread. `pnpm setup` and `rer deploy` fail naming the record when the From address's domain has no reachable DKIM public key for the configured selector or no DMARC policy. Aligned DKIM is sufficient; SPF at the From domain itself is not required, because a provider may authenticate its separate return-path domain.",
+      "now": "Mail headers: **Requirement.** Notification email identifies the page, avoids automatic replies and threads incident updates. Setup and deployment require reachable DKIM and DMARC records for the configured sender; aligned DKIM suffices without SPF on the From domain. The technical profile is specified in [Delivery details](docs/contract/delivery-details.md). **Acceptance.** 1. List identity, archive and help headers identify the page; the automatic-message declaration avoids vacation replies. 2. Every update after the first names the first email in both threading headers. 3. Setup and deployment refuse a missing reachable configured DKIM key or DMARC policy and name the missing record. 4. Aligned DKIM is accepted without SPF on the From domain.",
+      "migrationIds": [
+        "0005_delivery_contract.sql"
+      ]
+    },
+    "NOTIFY-011": {
+      "change": "changed",
+      "summary": "Slack and Teams channels: Operators connect Slack and Microsoft Teams publication channels, selecting components; no selection follows all visible components.",
+      "was": "Slack and Teams channels: An operator adds a Slack incoming-webhook URL or a Microsoft Teams channel webhook URL, with the components the channel follows (none selected follows every visible component). The URL is stored only encrypted, is never returned by any API or shown again after saving, and never appears in a log. Only the provider's own webhook hosts are accepted.",
+      "now": "Slack and Teams channels: **Requirement.** Operators connect Slack and Microsoft Teams publication channels, selecting components; no selection follows all visible components. The technical profile is specified in [Delivery details](docs/contract/delivery-details.md). **Acceptance.** 1. A Slack or Teams destination is saved with its component selection. 2. The destination URL is stored encrypted and never returned or shown again after saving. 3. Only each provider's documented webhook hosts are accepted.",
+      "migrationIds": [
+        "0005_delivery_contract.sql"
+      ]
+    },
+    "NOTIFY-012": {
+      "change": "changed",
+      "summary": "Channel posts: Selected Slack and Teams channels receive one publication for the affected visible components, committed with the incident update.",
+      "was": "Channel posts: Publishing an incident update with Slack and Teams selected for it (NOTIFY-007) commits, in the same transaction, one post to each channel that follows a visible component the update affects. Each post is delivered at most once, whatever the number of times the publish is retried or the delivery is re-run; a retroactive update posts nowhere.",
+      "now": "Channel posts: **Requirement.** Selected Slack and Teams channels receive one publication for the affected visible components, committed with the incident update. **Acceptance.** 1. Publishing with chat selected atomically commits one post per following channel. 2. A publication retry or repeated delivery pass never posts twice. 3. A retroactive update posts to no channel.",
+      "migrationIds": [
+        "0005_delivery_contract.sql"
+      ]
+    },
+    "PAGE-001": {
+      "change": "changed",
+      "summary": "Contents: One initial public response contains the complete status overview, current incident information and relevant maintenance, with component uptime.",
+      "was": "Contents: `GET /` on the status page host returns, in one response: the overall status; every visible component with its current state and note; every unresolved incident with its 5 most recent published updates, newest first, and a link to that incident's page carrying all of them; every maintenance that is in progress and every scheduled maintenance starting within 14 days; and each visible component's uptime figure and daily record for the reporting window.",
+      "now": "Contents: **Requirement.** One initial public response contains the complete status overview, current incident information and relevant maintenance, with component uptime. **Acceptance.** 1. The response shows overall status and every visible component, with each current state and note. 2. Every unresolved incident shows its five most recent published updates, newest first, and a link to its complete permanent timeline. 3. Every maintenance in progress and each scheduled maintenance starting within 14 days appears. 4. Each visible component has its uptime figure and the daily record for the reporting window.",
+      "migrationIds": [
+        "0003_public_contract.sql"
+      ]
+    },
+    "PAGE-002": {
+      "change": "changed",
+      "summary": "Readable without script: The status overview and subscription remain usable without scripting, and scripting preserves the configured page time zone.",
+      "was": "Readable without script: The complete content of PAGE-001, and the subscribe form of SUB-001, are present and usable in the initial HTML response. With JavaScript disabled, every status, update, and timestamp is rendered and readable and the subscribe form submits. Script preserves the page’s configured time zone and its visible label; operator entry, timelines, previews and public timestamps use that same zone.",
+      "now": "Readable without script: **Requirement.** The status overview and subscription remain usable without scripting, and scripting preserves the configured page time zone. **Acceptance.** 1. The initial HTML contains all PAGE-001 content and the subscription form of SUB-001. 2. With scripting disabled, every status, update and timestamp is readable and the subscription form submits. 3. With scripting available, the configured time zone and its label remain unchanged; operator entry, timelines, previews and public timestamps use that zone.",
+      "migrationIds": [
+        "0003_public_contract.sql"
+      ]
+    },
+    "PAGE-003": {
+      "change": "changed",
+      "summary": "Weight: The public page remains within its transfer and request budget at the component limit.",
+      "was": "Weight: At the component limit in `seed.json → limits`, the public page's initial HTML response is at most 50KB gzipped, and the page issues at most 4 further requests — stylesheet, font, logo, script — all to its own origin.",
+      "now": "Weight: **Requirement.** The public page remains within its transfer and request budget at the component limit. **Acceptance.** 1. At the declared component limit, the initial HTML is at most 50 KiB gzipped. 2. Initial loading issues at most four further requests for its stylesheet, font, logo and script, all to its own origin.",
+      "migrationIds": [
+        "0003_public_contract.sql"
+      ]
+    },
+    "PAGE-004": {
+      "change": "changed",
+      "summary": "Overall status: The overall state is a single label at the top of the page, computed by the owner-replaceable rollup policy.",
+      "was": "Overall status: *Policy: `page.status-rollup.v1`; default: the overall status is the most severe current state among visible components, under the order in COMP-001.* It is shown as one labeled state at the top of the page. With every visible component Operational and no unresolved incident, that label reads as operational.",
+      "now": "Overall status: **Requirement.** The overall state is a single label at the top of the page, computed by the owner-replaceable rollup policy. **Acceptance.** 1. The supplied rollup chooses the most severe visible component state in COMP-001 order. 2. The result appears as one labeled state at the top of the page. 3. With all visible components Operational and no unresolved incident, the label is operational.",
+      "migrationIds": [
+        "0003_public_contract.sql"
+      ]
+    },
+    "PAGE-005": {
+      "change": "changed",
+      "summary": "Snapshot read path: Public page, Atom feed and widget content are published as a complete retained snapshot, and remain available while publication recovers.",
+      "was": "Snapshot read path: Every change to the content in PAGE-001 writes a complete rendered snapshot of the public page, the Atom feed, and the widget payload to object storage. Serving those three surfaces reads the snapshot and issues no database query. A snapshot write that fails is retried until it succeeds and is reported as a failed job under BASE-OPS-004; the previous snapshot keeps serving until it does.",
+      "now": "Snapshot read path: **Requirement.** Public page, Atom feed and widget content are published as a complete retained snapshot, and remain available while publication recovers. **Acceptance.** 1. Each change to PAGE-001 content produces a complete rendered public page, Atom feed and widget snapshot. 2. Serving those three surfaces reads the snapshot without any database query. 3. A failed snapshot write is retried until success; the prior snapshot continues serving during recovery.",
+      "migrationIds": [
+        "0003_public_contract.sql",
+        "0006_snapshot_build_ordering.sql"
+      ]
+    },
+    "PAGE-006": {
+      "change": "changed",
+      "summary": "Serving through a failure: Public status continues to answer from retained content during primary storage, database or queue failure, with truthful stale labeling.",
+      "was": "Serving through a failure: When the database, the queue, or object storage is unreachable, the three surfaces in PAGE-005 return 200 — from the current snapshot, or from the cached response under the `stale-if-error` directive of PAGE-007 when the origin itself cannot answer. They return 503 only when no snapshot has ever been written. A response that could not be built from current data states the instant its content was generated and is labeled as the last known state; no failed read ever produces the all-clear of PAGE-004. `/health` still reports 503 per BASE-OPS-001; the public page's availability does not depend on it.",
+      "now": "Serving through a failure: **Requirement.** Public status continues to answer from retained content during primary storage, database or queue failure, with truthful stale labeling. **Acceptance.** 1. When the database, queue or object storage is unreachable, the page, Atom feed and widget return successful current or retained content; an origin outage can use PAGE-007’s cached response. 2. Only an installation with no snapshot ever written returns unavailable instead of status content. 3. Content not built from current data identifies its generation instant and says Last known state; a failed read never invents an operational all-clear.",
+      "migrationIds": [
+        "0003_public_contract.sql",
+        "0006_snapshot_build_ordering.sql"
+      ]
+    },
+    "PAGE-007": {
+      "change": "changed",
+      "summary": "Publish latency and caching: Publications become visible promptly through every public representation, and healthy reads validate the current generation.",
+      "was": "Publish latency and caching: Stable public URLs validate the current snapshot generation on reuse with a generation ETag and `Cache-Control: public, max-age=0, stale-if-error=3600`. Immutable artifact bytes are cached by generation and artifact key; advancing the published generation makes previous cache entries ineligible for a healthy current response. An update, component state change, or maintenance transition is readable on the status page, history, incident and maintenance permalinks, Atom feed, widget and public JSON within 10 seconds of the request that caused it returning 200. An unreachable origin may use its retained response for the one-hour error window; the application also retains labeled last-known snapshots under PAGE-006.",
+      "now": "Publish latency and caching: **Requirement.** Publications become visible promptly through every public representation, and healthy reads validate the current generation. **Acceptance.** 1. Stable public addresses validate the current generation when reused; unchanged content can be reused, while a newer generation makes older cached bytes ineligible for a healthy response. 2. An update, component-state change or maintenance transition reaches the page, history, incident and maintenance permanent pages, Atom feed, widget and public JSON within 10 seconds of the initiating successful request. 3. An unreachable origin can use retained content for one hour; retained last-known snapshots follow PAGE-006.",
+      "migrationIds": [
+        "0003_public_contract.sql",
+        "0006_snapshot_build_ordering.sql"
+      ]
+    },
+    "PAGE-008": {
+      "change": "changed",
+      "summary": "Public read paths are not rate limited: Public status reads are exempt from per-caller rate limiting so shared customer egress stays usable during an incident.",
+      "was": "Public read paths are not rate limited: The public read paths marked `read` in `seed.json → deploy.publicPaths` never return 429. Requests from one address up to the `publicPageRequestsPerSecond` limit in `seed.json → limits` all return 200. **Supersedes BASE-ACCESS-003** for those paths only. A status page is read hardest at the moment it matters most, and a per-address limit would reject real readers behind one egress address during an incident — but the decisive reason is mechanical: RFC 6585 requires that a 429 is never stored by a cache, so rate limiting the read path converts a cacheable traffic spike into an uncacheable one and sends it all to the origin. Those paths share immutable generation bytes in the edge cache. Healthy requests validate the current generation without querying the database; artifact caching reduces object-byte reads, while validation requests still reach the Worker. The public write paths (`/subscribe`, `/unsubscribe`, `/manage`, `/api/intake/*`) stay rate limited under BASE-ACCESS-003.",
+      "now": "Public read paths are not rate limited: **Requirement.** Public status reads are exempt from per-caller rate limiting so shared customer egress stays usable during an incident. Supersedes `BASE-ACCESS-003` for those paths only. Public writes continue under that duty. **Acceptance.** 1. All public reads up to the declared per-address capacity succeed and never return a rate-limit refusal. 2. Public reads share immutable generation content; healthy reads validate the current generation without querying the database, with artifact caching reducing object-byte reads.",
+      "migrationIds": [
+        "0003_public_contract.sql"
+      ]
+    },
+    "PAGE-009": {
+      "change": "changed",
+      "summary": "Time display: Public timestamps and notifications use the configured time zone and offset.",
+      "was": "Time display: Every timestamp on a public surface or in a notification is rendered in the page's configured timezone with its UTC offset, and every timestamp on the page carries the same instant as an ISO 8601 value in a machine-readable attribute. Owner exception (S4, DIVERGENCE.md \"Public page clarity — owner L10, 20 October 2026\"): while script runs, the page's generation time shows a relative label, refreshed while the page is open. Its tooltip gives the absolute time in the configured timezone with its UTC offset, and its `datetime` keeps the ISO 8601 instant. The initial HTML and script-disabled readers see the absolute time. Incident, maintenance, feed and notification timestamps keep the absolute display.",
+      "now": "Time display: **Requirement.** Public timestamps and notifications use the configured time zone and offset. Under RL-1, the owner’s S4 exception permits a relative generation label while scripting runs. **Acceptance.** 1. Every public and notification timestamp displays the configured time zone and UTC offset; page timestamps retain their exact ISO instant as machine-readable data. 2. With scripting available, the generation label is relative and refreshes while the page stays open; its tooltip retains the absolute configured-zone time and offset and its machine-readable value retains the instant. 3. Initial HTML and script-disabled readers see the absolute generation time; incident, maintenance, feed and notification timestamps remain absolute.",
+      "migrationIds": [
+        "0003_public_contract.sql"
+      ]
+    },
+    "PAGE-010": {
+      "change": "changed",
+      "summary": "Atom feed: The Atom feed preserves published incident and maintenance history with permanent event identities.",
+      "was": "Atom feed: `/feed.atom` validates as Atom 1.0 and contains one entry for every published incident update and for every maintenance notice — scheduled, rescheduled, started, completed, canceled — from the last 12 months, ordered newest first. An entry's identifier is stable from first publication and is never reused.",
+      "now": "Atom feed: **Requirement.** The Atom feed preserves published incident and maintenance history with permanent event identities. **Acceptance.** 1. The feed validates as Atom 1.0. 2. It contains one entry for every published incident update and each scheduled, rescheduled, started, completed or cancelled maintenance notice from the last 12 months, newest first. 3. Each entry identifier remains stable from first publication and is never reused.",
+      "migrationIds": [
+        "0004_publishing_contract.sql",
+        "0006_snapshot_build_ordering.sql",
+        "0007_feed_identity.sql"
+      ]
+    },
+    "PAGE-011": {
+      "change": "changed",
+      "summary": "Embeddable widget: An embeddable banner shows overall status and an unresolved incident using the same public snapshot.",
+      "was": "Embeddable widget: One script tag renders a banner showing the overall status and any unresolved incident, read from the PAGE-005 snapshot. The script is at most 10KB gzipped, loads only from the deployment's origin, and renders only on the host origins listed in settings per BASE-PUBLIC-002.",
+      "now": "Embeddable widget: **Requirement.** An embeddable banner shows overall status and an unresolved incident using the same public snapshot. **Acceptance.** 1. Installing one script tag renders the overall state and any unresolved incident from PAGE-005 content. 2. The widget is at most 10 KiB gzipped and loads only from the installation’s own origin.",
+      "migrationIds": [
+        "0003_public_contract.sql",
+        "0006_snapshot_build_ordering.sql"
+      ]
+    },
+    "PAGE-012": {
+      "change": "changed",
+      "summary": "Branding: The owner configures branding and status artwork without changing source.",
+      "was": "Branding: Page name, logo, accent color, timezone, hostname, and a footer-credit toggle are set in settings without a code change. The footer credit is the plain static text `Powered by Lamp`, defaults on, and disabling it makes no network action. The logo is served from the deployment's own origin. The favicon composites a mark for the current overall status over the configured logo rather than replacing it, and the page carries Open Graph metadata whose title and image state the current overall status.",
+      "now": "Branding: **Requirement.** The owner configures branding and status artwork without changing source. **Acceptance.** 1. Settings control page name, logo, accent color, time zone, hostname and footer-credit visibility. 2. The footer credit is the plain text Powered by Lamp, starts enabled, and disabling it performs no network action. 3. The logo is served from the installation’s origin. 4. The favicon combines the configured logo with a mark for the current overall state; Open Graph title and image state that overall status.",
+      "migrationIds": [
+        "0003_public_contract.sql"
+      ]
+    },
+    "PAGE-013": {
+      "change": "changed",
+      "summary": "Enforced isolation: Public status has restrictive same-origin isolation and needs no CAPTCHA or consent banner.",
+      "was": "Enforced isolation: Every public page response carries a `Content-Security-Policy` whose `default-src`, `script-src`, `style-src`, `img-src`, `connect-src`, `form-action`, and `base-uri` name only the deployment's own origin, and `frame-ancestors 'none'`, together with `X-Content-Type-Options: nosniff` and `Referrer-Policy: strict-origin-when-cross-origin`. The page contains no CAPTCHA and no consent banner, because it stores nothing on the visitor's device and loads nothing that would need either.",
+      "now": "Enforced isolation: **Requirement.** Public status has restrictive same-origin isolation and needs no CAPTCHA or consent banner. The exact header policy is documented in the public mechanisms record. The formats and configuration details are in [Public status mechanisms](docs/contract/public-details.md). **Acceptance.** 1. Every public response has the documented own-origin default, script, style, image, connection, form and base policies, refuses framing, prevents content-type sniffing and uses the documented referrer policy. 2. The public page contains neither a CAPTCHA nor a consent banner. 3. The public page writes no visitor data to browser storage.",
+      "migrationIds": [
+        "0003_public_contract.sql"
+      ]
+    },
+    "PAGE-014": {
+      "change": "changed",
+      "summary": "Live refresh: When scripting is available, public status refreshes in place without disturbing assistive announcements or the configured time zone.",
+      "was": "Live refresh: When script is available the page re-reads `/api/public/status` at most every 30 seconds and updates the overall status and the newest update in place. That response is a fixed set of fields whose size does not grow with the number of components. The region it updates is an ARIA live region, so a change is announced without a reload. With script disabled the page does not refresh itself and states the instant its content was generated.",
+      "now": "Live refresh: **Requirement.** When scripting is available, public status refreshes in place without disturbing assistive announcements or the configured time zone. **Acceptance.** 1. The page polls at most every 30 seconds and replaces the overall status and newest update in place. 2. The response has a fixed field set and its size does not grow with component count. 3. With scripting disabled, no automatic refresh occurs and the generation instant is shown.",
+      "migrationIds": [
+        "0003_public_contract.sql",
+        "0006_snapshot_build_ordering.sql"
+      ]
+    },
+    "SETUP-001": {
+      "change": "changed",
+      "summary": "Setup readiness: Setup asks the owner nothing Lamp can do itself.",
+      "was": "Setup readiness: Setup asks the owner nothing that Lamp can do itself (owner decision, 20 October 2026). Every change republishes the public page, and Lamp checks its own public page and subscribe form after each publish and on the minute Cron, reading the real rendered form, and checks a hosted sender with the mail provider when it changes and daily. Overview shows one line: the page is live at its address, when it was published and when the page and form were checked, with Review page (Your page, `/app/page`: Lamp's preview of the page, what it checked and ways to try it) and Change address (Settings). A failing check turns that line amber with a short reason and the one thing to do. Results belong to the address they were read from. The deployment address is the public address by default; a custom domain is optional. Local development suppresses outgoing mail, offers no captured-mail inbox, and prepares automatic one-click owner entry without email (owner decision, 15 October 2026). To prove a subscriber notice was produced locally, publish to an active subscriber, let dispatch run, and inspect its `suppressed` outcome in Notifications or `GET /api/app/deliveries`; `notification_deliveries` records that outcome without a provider-acceptance claim. Locally the sender is reported as email being off, never as verified; the hosted check reads provider authentication and does not claim inbox delivery. Public GET paths remain database-free.",
+      "now": "Setup readiness: **Requirement.** Setup asks the owner nothing Lamp can do itself. Overview reports the real public page and subscription checks, with an address-specific explanation and action when a check fails. **Acceptance.** 1. Every change republishes the public page; Lamp checks that rendered page and its real subscription form after publication and on each minute check. 2. Changing the hosted sender checks its provider authentication, and the check repeats daily. 3. Overview shows the public address, publication time and page/form check times; Review page opens the preview and its checks, and Change address opens Settings. 4. A failed check makes the line amber with a short reason and one action, and results remain attached to the address actually checked. 5. The deployment address is the public address unless the owner chooses an optional custom domain. 6. Local development suppresses outgoing mail, has no captured-mail inbox and gives the owner one-click entry without email. 7. Publishing to an active subscriber locally records a suppressed delivery visible in Notifications without representing it as provider acceptance. 8. The local sender reads as email off, and public reading remains database-free.",
+      "migrationIds": [
+        "0015_setup_readiness.sql"
+      ]
+    },
+    "SETUP-002": {
+      "change": "changed",
+      "summary": "First-run setup: First-run setup begins with the owner's website and lets them edit what the site supplied before confirming the installed page.",
+      "was": "First-run setup: A signed-in owner whose installation has no stored first-run completion is sent from every operator document to `/setup`, which asks for their website first (owner decision, 20 October 2026). Lamp reads that public site once, refusing private and loopback addresses on every hop and running none of its scripts, and fills in what the site gives: page name, tagline, mark (stored as a PNG), accent colour and components from its navigation, plus the time zone from the browser; it never invents what the site did not give. When the site links to a Statuspage, Instatus or Better Stack page, or one answers at `status.<its domain>`, setup takes that page's own components and groups from its public feeds in place of the navigation's, labelled with where they came from, and offers \"Bring its incident history too\" (owner UI pass L11, 22 October 2026): off unless chosen, it imports the page's resolved incidents with their updates and times through Move in's keyless read, as MOVE-002's silent history; nothing open on that page, no maintenance and no subscriber comes, and a page whose feeds give no components changes nothing. A site that cannot be read, or no website, leaves plain defaults with one calm line. Every fact stays editable before and after; confirming stores the settings, the mark and the components and stores completion durably; afterwards `/setup` opens the app and settings remain editable in Settings. A signed-out visitor to `/setup` is sent to sign-in and returned there. An installation that already had an operator before this clause is recorded as complete by its migration. A setup rerun never clears completion.",
+      "now": "First-run setup: **Requirement.** First-run setup begins with the owner's website and lets them edit what the site supplied before confirming the installed page. The original setup decisions are recorded in RULINGS.md. **Acceptance.** 1. Every operator document sends a signed-in owner with no saved first-run completion to setup; a signed-out setup visitor signs in and returns there. 2. Lamp reads the public website once without running scripts, refusing private and loopback addresses at every redirect, and fills only observed page name, tagline, PNG mark, accent and navigation components, plus the browser time zone. 3. A linked Statuspage, Instatus or Better Stack page, or the site's status subdomain, supplies its own components and groups instead of navigation guesses, labeled with their source. 4. Bring its incident history too starts unselected; when selected it imports only resolved incidents and their updates at original times, silently through Move in, without active incidents, maintenance or subscribers. 5. A status feed with no components changes none; an unreadable site or omitted website leaves editable plain defaults with one calm explanation. 6. Confirming stores the edited settings, PNG mark and components and durably marks setup complete; all remain editable in Settings. 7. After completion setup opens the app; migration marks installations with a pre-existing operator complete, and rerunning setup never clears that completion.",
+      "migrationIds": [
+        "0016_first_run_setup.sql"
+      ]
+    },
+    "SUB-001": {
+      "change": "changed",
+      "summary": "Subscribing: Visitors subscribe their own email address through the public page and receive confirmation before incident communication begins.",
+      "was": "Subscribing: Submitting an email address on the public page creates a pending subscription and sends one confirmation email to that address within 60 seconds. That address receives at most one confirmation email in any 24 hours however many times it is submitted, which is what bounds a subscription-bombing attack. Unsubscribing through a link emailed to the address proves it is the subscriber's own and restores that allowance, so re-subscribing after unsubscribing sends a fresh confirmation. A pending subscription receives no other notification. The form is a standard POST that works with script disabled, is rejected with 403 when the request carries `Sec-Fetch-Site: cross-site`, and carries no CSRF token, because with no cookie and no session there is no ambient authority to forge.",
+      "now": "Subscribing: **Requirement.** Visitors subscribe their own email address through the public page and receive confirmation before incident communication begins. **Acceptance.** 1. Submitting an email address creates a pending subscription and sends one confirmation to that address within 60 seconds. 2. Repeated submissions give that address at most one confirmation in any 24 hours. 3. Unsubscribing with an emailed link restores the confirmation allowance, so a new subscription sends a fresh confirmation. 4. A pending subscription receives no notification other than its confirmation. 5. The form works with scripting disabled, refuses a cross-site submission and needs no ambient session or form token.",
+      "migrationIds": [
+        "0005_delivery_contract.sql"
+      ]
+    },
+    "SUB-002": {
+      "change": "changed",
+      "summary": "Confirmation: Under the subscriber confirmation policy, only following the emailed confirmation link activates the subscription.",
+      "was": "Confirmation: *Policy: `subscriber.confirmation.v1`; default: a subscription becomes active only when the link in the confirmation email is followed.*",
+      "now": "Confirmation: **Requirement.** Under the subscriber confirmation policy, only following the emailed confirmation link activates the subscription. **Acceptance.** 1. A submitted subscription remains pending until its confirmation link is followed. 2. Following the confirmation link makes that subscription active.",
+      "migrationIds": [
+        "0005_delivery_contract.sql"
+      ]
+    },
+    "SUB-003": {
+      "change": "changed",
+      "summary": "Pending expiry: Unverified pending addresses are retained only while confirmation remains possible.",
+      "was": "Pending expiry: A pending subscription not confirmed within 72 hours is deleted, including the address it holds. **Supersedes BASE-DATA-002** for pending subscriptions only: the address was supplied by an unverified visitor who may not own it, so it is held only as long as confirmation is possible.",
+      "now": "Pending expiry: **Requirement.** Unverified pending addresses are retained only while confirmation remains possible. Supersedes `BASE-DATA-002` for pending subscriptions because the submitting visitor may not own the address. **Acceptance.** 1. An unconfirmed pending subscription and its address are deleted after 72 hours.",
+      "migrationIds": [
+        "0005_delivery_contract.sql"
+      ]
+    },
+    "SUB-004": {
+      "change": "changed",
+      "summary": "Component selection: Subscribers choose the components whose incident and maintenance communication they receive.",
+      "was": "Component selection: A subscriber selects which components they want updates about, on the subscribe form or later on the management page, and the subscription follows exactly the components ticked (none ticked follows all), and is notified about an incident or maintenance only when it claims a state for at least one component in that selection. A subscription whose selection has never been narrowed follows every visible component, including components added after it was created. A subscription with a narrowed selection is unchanged when a component is added. When a component is attached to an unresolved incident, every subscriber who follows that component and has received no notification for that incident receives exactly one notification carrying its most recent published update, and then receives subsequent updates normally.",
+      "now": "Component selection: **Requirement.** Subscribers choose the components whose incident and maintenance communication they receive. **Acceptance.** 1. The subscription form and management page preserve exactly the components ticked; no selection follows all visible components. 2. An incident or maintenance notifies a subscriber only when it claims a state for a selected component. 3. An unnarrowed subscription follows visible components added later, while a narrowed selection remains unchanged. 4. Attaching a component to an unresolved incident sends one latest-update catch-up to each eligible subscriber who has never received that incident; subsequent updates then arrive normally.",
+      "migrationIds": [
+        "0005_delivery_contract.sql"
+      ]
+    },
+    "SUB-005": {
+      "change": "changed",
+      "summary": "Cookieless subscriber tokens: Emailed subscriber links carry opaque authority for one subscription, never a general login.",
+      "was": "Cookieless subscriber tokens: A subscriber is identified on public surfaces only by an opaque token of at least 128 bits of entropy that addresses one subscription, is carried in the URL of a link the deployment emailed to that subscriber, grants no other capability, and is revoked when the subscription is deactivated or deleted. No cookie is set on any public surface. Responses on token-addressed paths carry `Referrer-Policy: no-referrer` and `X-Robots-Tag: noindex`. **Supersedes BASE-PUBLIC-001** for token-addressed paths only, which transmit the token on load rather than after a first interaction, because SUB-006 requires an unsubscribe that completes without any interaction on our page.",
+      "now": "Cookieless subscriber tokens: **Requirement.** Emailed subscriber links carry opaque authority for one subscription, never a general login. Token pages allow token transmission on arrival required by one-click unsubscribe; this supersedes `BASE-PUBLIC-001` only for those token-addressed paths. The technical profile is specified in [Delivery details](docs/contract/delivery-details.md). **Acceptance.** 1. A public subscriber token addresses one subscription, has at least 128 bits of entropy and grants no unrelated capability. 2. Deactivation or deletion revokes that subscription's tokens. 3. Token-page responses suppress referrers and indexing.",
+      "migrationIds": [
+        "0005_delivery_contract.sql"
+      ]
+    },
+    "SUB-006": {
+      "change": "changed",
+      "summary": "One-click unsubscribe: Every notification offers standards-compatible one-click unsubscribe.",
+      "was": "One-click unsubscribe: Every notification email carries a `List-Unsubscribe` header with a `mailto:` and an `https:` value, a `List-Unsubscribe-Post: List-Unsubscribe=One-Click` header, and a visible unsubscribe link in the body. A POST to the `https:` value, with a body of `List-Unsubscribe=One-Click` in either multipart/form-data or application/x-www-form-urlencoded, deactivates that subscription and returns 200 with no redirect, no cookie, and no further interaction. Both headers are named in the message's DKIM `h=` tag, without which receivers decline to offer one-click at all. That endpoint's BASE-ACCESS-003 rate limit is counted per subscription token, never per source address, so one mailbox provider's shared egress cannot exhaust the limit for other subscribers.",
+      "now": "One-click unsubscribe: **Requirement.** Every notification offers standards-compatible one-click unsubscribe. Its public rate allowance belongs to the subscriber token, so one mailbox provider cannot exhaust another subscriber's allowance. The technical profile is specified in [Delivery details](docs/contract/delivery-details.md). **Acceptance.** 1. Notification email contains the mail and web unsubscribe values, the one-click declaration and a visible unsubscribe link. 2. Both supported form encodings deactivate that subscription with a successful empty response, no redirect and no further interaction. 3. The message signature covers both unsubscribe headers. 4. One token's rate allowance never consumes another token's allowance, including requests from one mailbox provider.",
+      "migrationIds": [
+        "0005_delivery_contract.sql"
+      ]
+    },
+    "SUB-007": {
+      "change": "changed",
+      "summary": "Managing a subscription: The emailed management link lets a subscriber manage its own channel and component selection without an operator session.",
+      "was": "Managing a subscription: The token URL in every notification opens a page that shows the subscription's channel and component selection and lets the subscriber change the selection or unsubscribe, without a session.",
+      "now": "Managing a subscription: **Requirement.** The emailed management link lets a subscriber manage its own channel and component selection without an operator session. **Acceptance.** 1. Opening the management link shows the subscription channel and saved component selection. 2. The subscriber can change its component selection and unsubscribe there without a session.",
+      "migrationIds": [
+        "0005_delivery_contract.sql"
+      ]
+    },
+    "SUB-008": {
+      "change": "changed",
+      "summary": "Unsubscribe integrity: Opt-out takes effect for queued communication as well as future publications.",
+      "was": "Unsubscribe integrity: After a subscription is deactivated, no notification is delivered to it. A notification committed before the deactivation and dispatched after it sends nothing and records the outcome as suppressed.",
+      "now": "Unsubscribe integrity: **Requirement.** Opt-out takes effect for queued communication as well as future publications. **Acceptance.** 1. A deactivated subscription receives no later notification. 2. A notification committed before deactivation but dispatched afterwards sends nothing and records suppression.",
+      "migrationIds": [
+        "0005_delivery_contract.sql"
+      ]
+    },
+    "SUB-009": {
+      "change": "changed",
+      "summary": "Webhook subscribers: A webhook destination and contact address receive complete, authenticated published events.",
+      "was": "Webhook subscribers: An endpoint URL and a contact email address together subscribe as a webhook subscriber; the address exists so SUB-010 can say why the endpoint was deactivated. Each notification is a POST carrying `webhook-id`, `webhook-timestamp`, and `webhook-signature` headers, where the signature is a space-separated list of versioned HMAC-SHA256 values over `{webhook-id}.{webhook-timestamp}.{raw body}`, so a secret can be rotated without a gap. The body carries the incident, every update it has published, and each attached component's previous and new state, so a receiver that missed a delivery needs no prior state. It carries no subscriber address. A delivery succeeds only on a 2xx within 30 seconds; a redirect is a failure. An endpoint that is a Slack incoming-webhook URL (host `hooks.slack.com`) receives the same events, signed the same way, as Slack's message form: its text carries each bare `https://` URL from an update field as `<url>`, never `<url|text>`, and its rich-text link elements show the URL itself, so every field reassembles unchanged (UPDATE-013). Every other endpoint receives Lamp's format, whose update fields are the published text byte for byte.",
+      "now": "Webhook subscribers: **Requirement.** A webhook destination and contact address receive complete, authenticated published events. The contact address exists for destination-deactivation notices. Slack incoming-webhook destinations receive Slack's message form; all others receive Lamp's form. The technical profile is specified in [Delivery details](docs/contract/delivery-details.md). **Acceptance.** 1. A destination and contact address create one webhook subscription. 2. Current and retiring signing secrets each verify the same complete event, allowing rotation without a gap. 3. The body includes the incident, every published update and every attached component's previous and new state, without a subscriber address. 4. Only a successful receiver response within 30 seconds counts as delivery; redirects fail. 5. Slack text keeps each bare secure-web URL bracketed with punctuation outside, never a labelled link; rich-text link labels are their URLs and each field reassembles unchanged. 6. Lamp-form update fields equal the published text byte for byte.",
+      "migrationIds": [
+        "0005_delivery_contract.sql"
+      ]
+    },
+    "SUB-010": {
+      "change": "changed",
+      "summary": "Failing destinations: Destinations with permanent or repeated delivery failures deactivate with a recorded reason and receive no later notification.",
+      "was": "Failing destinations: An address that hard-bounces once, or whose provider reports a spam complaint, is deactivated with that reason recorded. An address that soft-bounces on 5 consecutive notifications, and a webhook endpoint whose last 10 consecutive deliveries all failed under SUB-009, are deactivated with that reason recorded. Deactivating a webhook endpoint emails its contact address. A deactivated destination receives no further notification.",
+      "now": "Failing destinations: **Requirement.** Destinations with permanent or repeated delivery failures deactivate with a recorded reason and receive no later notification. **Acceptance.** 1. One hard bounce deactivates the address and records the hard-bounce reason. 2. One spam complaint deactivates the address and records that reason. 3. Five consecutive soft-bounced notifications deactivate the address with that reason. 4. Ten consecutive failed webhook deliveries deactivate the endpoint with that reason and email its contact. 5. A deactivated destination receives no further notification.",
+      "migrationIds": [
+        "0005_delivery_contract.sql",
+        "0008_provider_callback_recovery.sql"
+      ]
+    },
+    "SUB-011": {
+      "change": "changed",
+      "summary": "Operator view: Operators inspect all subscribers, their consent state and selected components, including deactivation facts.",
+      "was": "Operator view: Operators see every subscriber with channel, state of pending, active, or deactivated, component selection, and the reason and time of any deactivation. Deleting a subscriber deletes the address or endpoint it holds.",
+      "now": "Operator view: **Requirement.** Operators inspect all subscribers, their consent state and selected components, including deactivation facts. **Acceptance.** 1. Every subscriber is reachable, including records beyond the first page. 2. The view shows channel, pending/active/deactivated state, component selection, and deactivation reason and time. 3. Deleting a subscriber erases its email address or endpoint.",
+      "migrationIds": [
+        "0005_delivery_contract.sql"
+      ]
+    },
+    "SUB-012": {
+      "change": "changed",
+      "summary": "No enumeration: The public subscription form does not disclose whether an address is already subscribed.",
+      "was": "No enumeration: Submitting an address that already has a subscription returns the same status and body as submitting a new address and creates no second subscription. That address receives one email saying it is already subscribed, carrying its management link and nothing else.",
+      "now": "No enumeration: **Requirement.** The public subscription form does not disclose whether an address is already subscribed. **Acceptance.** 1. Existing and new addresses receive identical status and body without creating another subscription. 2. An existing address gets one management-only email and no extra message content.",
+      "migrationIds": [
+        "0005_delivery_contract.sql"
+      ]
+    },
+    "TEAM-001": {
+      "change": "changed",
+      "summary": "Equal operators: Operators share the owner role until TEAM-004 introduces its role matrix.",
+      "was": "Equal operators: Every operator can create, edit, publish, and resolve every incident and maintenance, change every component, and manage subscribers. There are no roles. The only gate on publishing is UPDATE-007.",
+      "now": "Equal operators: **Requirement.** Operators share the owner role until TEAM-004 introduces its role matrix. Review under UPDATE-007 applies on top of those common product privileges. **Acceptance.** 1. Every active operator can create, edit, publish and resolve incidents and maintenance. 2. Every active operator can change components and manage subscribers. 3. There are no differentiated product roles under this release’s operator model.",
+      "migrationIds": [
+        "0005_delivery_contract.sql"
+      ]
+    },
+    "TEAM-002": {
+      "change": "changed",
+      "summary": "Management: Settings manages operator invitations and removal.",
+      "was": "Management: Operators are invited and removed in settings. The operator configured at setup can be removed only by themselves.",
+      "now": "Management: **Requirement.** Settings manages operator invitations and removal. The operator established during setup retains the self-removal protection. **Acceptance.** 1. A Settings invitation admits the invited operator into Lamp. 2. Settings can remove an operator. 3. Only the setup operator can remove their own protected setup identity.",
+      "migrationIds": [
+        "0005_delivery_contract.sql"
+      ]
+    },
+    "TEAM-003": {
+      "change": "changed",
+      "summary": "Attribution: Lamp’s publication, state, maintenance, correction and subscriber-deletion records expose the acting operator privately.",
+      "was": "Attribution: Every published update, component state change, maintenance change, history correction, and subscriber deletion records the operator who made it. That operator's name is shown in the operator app and on no public surface.",
+      "now": "Attribution: **Requirement.** Lamp’s publication, state, maintenance, correction and subscriber-deletion records expose the acting operator privately. **Acceptance.** 1. A published update, component state change, maintenance change, history correction and subscriber deletion each records the operator who acted. 2. The acting operator’s name appears in the operator app and no public surface.",
+      "migrationIds": [
+        "0005_delivery_contract.sql"
+      ]
+    },
+    "UPDATE-001": {
+      "change": "changed",
+      "summary": "Template: Updates describe customer impact and the next communication commitment in bounded plain-text fields.",
+      "was": "Template: Publishing an update requires at least one attached component, an affected-audience statement of at most 250 characters, a customer-impact statement of at most 250 characters, and, for a lifecycle other than Resolved, a next-update time. A resolved update requires no next-update time and carries no next-update promise on any surface, including when an older stored resolved update retains a time. A what-still-works statement of at most 250 characters and a details statement of at most 500 characters are optional. Every field is plain text; no HTML or markdown is interpreted. A publish request that omits a required field, exceeds a length, or attaches no component returns 400 and changes nothing. The next-update time is a commitment to publish again by then; it is never presented as an estimate of when the incident will be resolved.",
+      "now": "Template: **Requirement.** Updates describe customer impact and the next communication commitment in bounded plain-text fields. **Acceptance.** 1. Publishing requires an attached component, affected-audience and customer-impact statements of at most 250 characters each, and a next-update time unless Resolved. 2. Resolved updates need no next-update time and show no next-update promise on any surface, including older stored resolved updates retaining a time. 3. Optional what-still-works and details statements accept at most 250 and 500 characters respectively. 4. Fields are plain text with no HTML or Markdown interpretation apart from UPDATE-013’s bare HTTPS links. 5. Omitting required fields, exceeding lengths or attaching no component refuses publication without changing state. 6. The next-update time is a commitment to communicate, never a resolution-time estimate.",
+      "migrationIds": [
+        "0012_resolved_update_time.sql"
+      ]
+    },
+    "UPDATE-002": {
+      "change": "changed",
+      "summary": "One rendering: Wording stays consistent across public and delivery surfaces.",
+      "was": "One rendering: The public page, the Atom feed, the widget payload, and the notification email render an update from the same renderer. No surface omits a populated field of the update or shows a field the update does not carry.",
+      "now": "One rendering: **Requirement.** Wording stays consistent across public and delivery surfaces. **Acceptance.** 1. Page, Atom feed, widget and email retain every populated update field. 2. Each surface omits fields the update does not carry."
+    },
+    "UPDATE-003": {
+      "change": "changed",
+      "summary": "Sets the lifecycle: Publication changes lifecycle and releases resolved claims together.",
+      "was": "Sets the lifecycle: Every published update sets the incident's lifecycle state. An update that sets Resolved records the incident's end time and recomputes every attached component under COMP-006.",
+      "now": "Sets the lifecycle: **Requirement.** Publication changes lifecycle and releases resolved claims together. **Acceptance.** 1. Every publication sets the selected lifecycle. 2. Resolved publication records the incident end time. 3. Resolved publication recomputes every attached component under COMP-006."
+    },
+    "UPDATE-004": {
+      "change": "changed",
+      "summary": "Preview: Before publication the composer previews the customer-facing update.",
+      "was": "Preview: Before publishing, the composer shows the update as the public page and as the notification email will render it, produced by the renderer named in UPDATE-002.",
+      "now": "Preview: **Requirement.** Before publication the composer previews the customer-facing update. **Acceptance.** 1. The composer shows the update as the public page renders it. 2. The composer shows the update as the notification email renders it."
+    },
+    "UPDATE-005": {
+      "change": "changed",
+      "summary": "Drafts: Private drafts survive reload without reviving obsolete publication wording.",
+      "was": "Drafts: An unpublished update appears on no public surface. A draft is saved within 2 seconds of the last edit and is restored unchanged after a browser reload. Publication consumes that draft and opens an empty draft for the next update, with lifecycle prompts. A stale tab cannot resurrect published wording or overwrite a newer acknowledged draft. Draft writes, template application, scheduling and publication require the acknowledged draft version. A fresh empty composer is not reported saved until a native write is acknowledged; Publish requires a complete acknowledged draft. Reconciliation after a lost acknowledgment identifies the attempted write and preserves later workflow changes.",
+      "now": "Drafts: **Requirement.** Private drafts survive reload without reviving obsolete publication wording. **Acceptance.** 1. An unpublished update appears on no public surface. 2. The last edit saves within two seconds and reload restores it unchanged. 3. Publication consumes the draft and starts an empty next-update draft with lifecycle prompts. 4. A stale tab cannot resurrect published wording or overwrite a newer acknowledged draft. 5. Draft writes, template application, scheduling and publication require the acknowledged draft version. 6. A fresh empty composer claims no save before native acknowledgement, and Publish needs a complete acknowledged draft. 7. Lost-acknowledgement reconciliation identifies the attempted write and preserves later workflow changes.",
+      "migrationIds": [
+        "0002_one_incident_draft.sql"
+      ]
+    },
+    "UPDATE-006": {
+      "change": "changed",
+      "summary": "Scheduled publish: A scheduled update stays private until its committed publication time.",
+      "was": "Scheduled publish: An update given a future publish time publishes within 240 seconds of that time and appears on no public surface and in no notification before it. If UPDATE-007 review is in force and the update has not been reviewed when that time arrives, it is not published, stays a draft, and is reported under NOTIFY-006. The 240-second bound is a declared promise based on one local stress observation with 20 updates and 20 maintenance starts due in the same cron minute on a single workerd process on a shared runner; it is not a p95 over independent runs or a hosted Cron guarantee.",
+      "now": "Scheduled publish: **Requirement.** A scheduled update stays private until its committed publication time. **Acceptance.** 1. A future-dated update publishes within 240 seconds after its time. 2. Before its time no public surface or notification carries it. 3. Under the owner’s review policy, an unreviewed due update stays a draft and raises a NOTIFY-006 operator notice.",
+      "migrationIds": [
+        "0004_publishing_contract.sql"
+      ]
+    },
+    "UPDATE-007": {
+      "change": "changed",
+      "summary": "Review: The owner chooses whether a second operator reviews updates.",
+      "was": "Review: *Policy: `update.review.v1`; default: no review is required. When review is required, a publish request for an update its author wrote is rejected with 409 until an operator other than the author marks it reviewed; the reviewer and the time are recorded on the update.*",
+      "now": "Review: **Requirement.** The owner chooses whether a second operator reviews updates. **Acceptance.** 1. Under required review, an author’s unreviewed update is refused until a different operator reviews it. 2. The update records reviewer and review time. 3. When review is not required the review policy does not hold publication.",
+      "migrationIds": [
+        "0004_publishing_contract.sql"
+      ]
+    },
+    "UPDATE-008": {
+      "change": "changed",
+      "summary": "Atomic publication and recipients: Publication commits its fixed recipient set before dispatching without holding publish.",
+      "was": "Publish is atomic: One transaction commits the update together with the recipient set it will notify on each channel selected under NOTIFY-007. That set is fixed at publish time: a subscriber who narrows their selection afterwards still receives this update, and one who unsubscribes afterwards does not, per SUB-008. When the publish request returns 200 that transaction is committed, and PAGE-007 and NOTIFY-002 follow from it. When it returns an error the update is on no surface and no recipient is recorded for it. Dispatch of the committed set is retried until it succeeds and never blocks the publish.",
+      "now": "Atomic publication and recipients: **Requirement.** Publication commits its fixed recipient set before dispatching without holding publish. Its committed success starts PAGE-007’s visibility bound and NOTIFY-002’s delivery bound. **Acceptance.** 1. The selected channels’ recipients and the update commit together before success is returned. 2. Narrowing selection afterwards preserves committed delivery; unsubscribing suppresses it under SUB-008. 3. Failed publication exposes no update and records no recipients. 4. Dispatch retries the committed set until success without blocking publication.",
+      "migrationIds": [
+        "0004_publishing_contract.sql",
+        "0005_delivery_contract.sql",
+        "0006_snapshot_build_ordering.sql"
+      ]
+    },
+    "UPDATE-009": {
+      "change": "changed",
+      "summary": "Templates: Operators save and apply reusable wording and component choices.",
+      "was": "Templates: An operator can save a template holding the update fields of UPDATE-001, the components it attaches with the state each claims, and the lifecycle state it sets. Applying a template fills the composer and attaches those components with those states, and publishes nothing.",
+      "now": "Templates: **Requirement.** Operators save and apply reusable wording and component choices. **Acceptance.** 1. A template retains UPDATE-001 fields, attached components with their claimed states, and lifecycle. 2. Applying it fills the composer and stages those choices without publishing."
+    },
+    "UPTIME-001": {
+      "change": "changed",
+      "summary": "Definition: The public uptime figure derives from component-state history over the trailing ninety days.",
+      "was": "Definition: For each visible component the page shows the percentage of the reporting window during which the component was not in a downtime state, computed from COMP-003 state history at one-minute resolution and rounded down to two decimal places, so a window containing any downtime never shows 100.00%. The reporting window is 90 days.",
+      "now": "Definition: **Requirement.** The public uptime figure derives from component-state history over the trailing ninety days. **Acceptance.** 1. Each visible component shows the percentage of the ninety-day window not in a downtime state, using one-minute resolution. 2. The figure rounds down to two decimals so any downtime prevents a displayed 100.00%.",
+      "migrationIds": [
+        "0003_public_contract.sql"
+      ]
+    },
+    "UPTIME-002": {
+      "change": "changed",
+      "summary": "Downtime weights: The owner-replaceable downtime policy weights affected minutes consistently with the displayed incident history.",
+      "was": "Downtime weights: *Policy: `uptime.downtime-states.v1`; default: a minute in Major outage or Partially unavailable counts as one downtime minute, a minute in Degraded performance counts as half a downtime minute, and a minute in Under maintenance counts as none.* Degraded performance is not weighted at zero: most published incidents never get worse than it, and discarding them is what makes an uptime figure disagree with the incident history printed beneath it.",
+      "now": "Downtime weights: **Requirement.** The owner-replaceable downtime policy weights affected minutes consistently with the displayed incident history. **Acceptance.** 1. The supplied weights count Major outage and Partially unavailable as one downtime minute per minute, Degraded performance as one half, and Under maintenance as zero.",
+      "migrationIds": [
+        "0003_public_contract.sql"
+      ]
+    },
+    "UPTIME-003": {
+      "change": "changed",
+      "summary": "Short history: Uptime begins only where state evidence exists and labels short coverage honestly.",
+      "was": "Short history: A component whose earliest state history entry is later than the start of the reporting window shows uptime computed from that entry, and the page labels the figure with the coverage: elapsed hours and minutes while it covers less than one whole day (\"less than 1 minute\" below a minute), and whole days from one day onward. A component with no data says No data (owner S4, DIVERGENCE.md \"Public page clarity\").",
+      "now": "Short history: **Requirement.** Uptime begins only where state evidence exists and labels short coverage honestly. Under RL-2, short coverage does not invent a whole day. **Acceptance.** 1. If recorded history begins after the reporting-window start, uptime is computed from that first record. 2. Coverage under one day is labeled in elapsed hours and minutes, with less than 1 minute below a minute; from one day it uses whole days. 3. A component with no data says No data.",
+      "migrationIds": [
+        "0003_public_contract.sql"
+      ]
+    },
+    "UPTIME-004": {
+      "change": "changed",
+      "summary": "Corrections: An operator corrects a closed history interval with an attributable reason while retaining original facts.",
+      "was": "Corrections: An operator can correct a closed interval of a component's state history, stating the correct state for that interval and a reason. The correction appends to the history per COMP-003, recomputes every uptime figure it affects within 60 seconds, and records the operator, the interval, and the reason in the audit log. A request without a reason is rejected with 400.",
+      "now": "Corrections: **Requirement.** An operator corrects a closed history interval with an attributable reason while retaining original facts. **Acceptance.** 1. The operator supplies corrected state, closed interval and reason; omitting the reason is refused. 2. Correction appends a superseding history fact rather than changing the original. 3. Every affected uptime figure is recomputed within sixty seconds. 4. The audit records operator, interval and reason.",
+      "migrationIds": [
+        "0003_public_contract.sql"
+      ]
+    },
+    "UPTIME-005": {
+      "change": "changed",
+      "summary": "Stated method: The initial public page explains uptime weights and window beside its figures; every published incident contributes through its component claims.",
+      "was": "Stated method: Beside the uptime figures the page names each state's weight under UPTIME-002 and the length of the window under UPTIME-001, in text present in the initial HTML. Because UPDATE-001 refuses to publish an update that claims no component, every published incident moves these figures; none of the incident history printed on the same page is invisible to them.",
+      "now": "Stated method: **Requirement.** The initial public page explains uptime weights and window beside its figures; every published incident contributes through its component claims. **Acceptance.** 1. Initial HTML names the selected weight of each state and the reporting-window length. 2. No published incident is invisible to uptime: publishing requires at least one claimed component.",
+      "migrationIds": [
+        "0003_public_contract.sql"
+      ]
+    },
+    "UPTIME-006": {
+      "change": "changed",
+      "summary": "Daily record: The page displays each visible component’s daily record without inventing coverage before history begins.",
+      "was": "Daily record: The page shows one mark per day of the reporting window for each visible component. A day containing any downtime minute is labeled with the number of downtime minutes in that day. A day before the component's earliest state history entry is rendered as having no data and is visually distinct from a day with no downtime.",
+      "now": "Daily record: **Requirement.** The page displays each visible component’s daily record without inventing coverage before history begins. **Acceptance.** 1. One daily mark covers each day of the reporting window for every visible component. 2. Any downtime day labels its weighted downtime minutes. 3. Days before tracking begins are labeled No data and visually distinct from a zero-downtime day.",
+      "migrationIds": [
+        "0003_public_contract.sql"
       ]
     }
   },
   "extensionPointChanges": [],
+  "proseChanges": [
+    {
+      "document": "AGENTS.md",
+      "change": "changed",
+      "date": "2026-10-28",
+      "summary": "Regenerate contract documents and check them before recording the source lock.",
+      "was": "Contract generation was not declared as a lander regeneration step.",
+      "now": "Run node src/base/contract-docs.mjs write, node src/base/contract-docs.mjs check, then node scripts/edition-authoring/cli.mjs lock after a contract edit."
+    }
+  ],
   "migrations": [
-    {
-      "id": "0043_page_templates.sql",
-      "buyerSteps": "Apply after 0042. Adds the saved built-in page template (default preserves the existing page) and an optional region on components. Additive; no existing data changes or configuration inputs."
-    },
-    {
-      "id": "0044_widget_appearance.sql",
-      "buyerSteps": "Apply after 0043. Adds the saved embed tag choices (the original embed defaults for every existing page). Additive; no existing data changes or configuration inputs."
-    },
-    {
-      "id": "0045_incident_communication_owner.sql",
-      "buyerSteps": "Apply after 0044. Adds private communication-owner assignments and a separate escalation-receipt table, preserving issued update-reminder records and their existing checked kinds. Existing incidents default to their opener; no input or version changes."
-    },
-    {
-      "id": "0046_report_followups.sql",
-      "buyerSteps": "Apply after 0045. Adds private reasoned report waivers and exact-once weekly report reminder records. Existing reports and incident history are unchanged; no new owner input."
-    },
-    {
-      "id": "0047_agent_promise_drafts.sql",
-      "buyerSteps": "Apply after 0046. Adds private Lamp draft-attribution and retained per-commitment preparation receipts in one sidecar table. Existing drafts stay operator-authored and unchanged; no model, credential or configuration input is required."
-    },
-    {
-      "id": "0048_maintenance_automation.sql",
-      "buyerSteps": "Apply after 0047. Adds a maintenance automation sidecar with per-window auto-start and auto-complete switches. Existing native and imported windows have no sidecar and retain both switches on; no existing record, input, version or import journal changes."
-    },
-    {
-      "id": "0049_follow_up_dismissals.sql",
-      "buyerSteps": "Apply after 0048. Adds private reasoned Follow-ups dismissal records keyed to the exact obligation occurrence. No existing obligation is dismissed or notification reopened; no new owner input is required."
-    },
-    {
-      "id": "0050_detached_component_visibility.sql",
-      "buyerSteps": "Apply after 0049. Deleting an internal component now marks its retained incident and maintenance attachments internal in the same deletion, so they stay off public surfaces. Attachments detached before this migration keep their current visibility; no new owner input is required."
-    },
-    {
-      "id": "0052_chat_desk_links.sql",
-      "buyerSteps": "Apply after 0050. Adds private Slack and Teams identity links, ten-minute link codes and preview approvals, and request replay receipts. Existing operator and incident rows are unchanged. Native rer export excludes transient chat codes, previews and request receipts; durable chat links are retained. No expiry wait is needed before a native transfer."
-    },
-    {
-      "id": "0053_subscriber_intake.sql",
-      "buyerSteps": "Apply after 0052. Adds native subscriber intake attribution and invitation receipts, and nullable subscriber creator attribution. Existing subscriptions and consent stay unchanged. CSV apply creates pending subscriptions without mail; only an explicit owner invitation action or operator Add sends a confirmation."
-    },
-    {
-      "id": "0054_subscriber_webhook_formats.sql",
-      "buyerSteps": "Apply after 0053. Adds a checked subscriber webhook_format column defaulting to lamp. Existing subscriptions retain their body format and signature scheme; only an explicit creation or token-authorized recipient choice selects Statuspage. The native column is retained by technical archives and page-data JSON."
-    },
-    {
-      "id": "0055_maintenance_automation_defaults.sql",
-      "buyerSteps": "Apply after 0054. Adds page-level auto-start and auto-complete defaults, initially both on. Existing maintenance windows retain their own choices; changing Settings affects only new windows."
-    },
-    {
-      "id": "0056_subscriber_channels_preferences.sql",
-      "buyerSteps": "Apply after 0055. Preserves existing subscribers, selections, tokens, attribution and channel posts while adding self-serve Slack and Teams kinds, sealed chat destinations, expiring OAuth state, event preferences and incident thresholds, immutable component notification facts and atomic subscriber capacity guards. Existing webhooks opt into component changes; other subscriptions retain incidents and maintenance. Optional Slack OAuth credentials are configured only by an owner enabling that door. Uses only appended subscriber fields, additive subscriber-owned channel records and shared logical read projections; no backed-up table is rebuilt."
-    },
-    {
-      "id": "0057_component_deliveries.sql",
-      "buyerSteps": "Apply after 0056. Adds a component-only delivery/attempt partition and shared delivery/receipt queries. Existing incident and maintenance deliveries, attempts and provider mappings retain their exact tables, identifiers, outcomes and authority; older technical backups restore through the pinned bridge without a table rebuild."
-    },
-    {
-      "id": "0058_maintenance_wording.sql",
-      "buyerSteps": "Apply after 0057. Adds nullable maintenance affected-audience and customer-impact wording. Existing native and imported windows stay title-only without backfill; new native scheduling requires both statements, and each notice freezes its wording for notification delivery."
-    },
-    {
-      "id": "0059_mail_failover.sql",
-      "buyerSteps": "Apply after 0058. Adds private mail-provider routing and default-off secondary-selection sidecars keyed to existing idempotency keys. Existing mail history and send claims remain unchanged. Connect an optional secondary through the deployment generators, then explicitly select it under Settings \u2192 Notifications. Recorded acceptance stays with its accepting provider; unconfirmed submissions cannot cross providers or bypass routing after a configuration change."
-    },
-    {
-      "id": "0060_operator_channel_alerts.sql",
-      "buyerSteps": "Apply after 0059. Adds a default-off operator-alert choice to existing operator channel destinations. Existing channels remain publication-only until an owner explicitly enables operator alerts in Settings. Subscriber channel destinations cannot opt into private operator alerts."
-    },
-    {
-      "id": "0061_vendor_alert_presets.sql",
-      "buyerSteps": "Apply after 0060. Adds optional Jira Service Management, Opsgenie and New Relic alert presets and an owner-selected close-alert-on-resolve setting. Existing sources retain their presets and behavior; responder credentials remain sealed and must be reconnected after restore."
-    },
-    {
-      "id": "0062_public_metrics.sql",
-      "buyerSteps": "Apply after 0061. Adds public metric definitions and aggregate-only minute/day, hourly/30-day and daily/90-day buckets. Read-only provider keys are sealed and excluded from archives; restored pull sources require reconnecting."
-    },
-    {
-      "id": "0063_management_metric_tokens.sql",
-      "buyerSteps": "Apply after 0062. Adds scoped management-token metadata for metrics:write only. Base stores bearer credentials as hashes and omits their authority from native archives; restored metadata is inert. Existing sessions, metrics, aggregates and previously applied tables remain unchanged."
-    },
-    {
-      "id": "0064_management_read_tokens.sql",
-      "buyerSteps": "Apply after 0063. Add opt-in read scope to existing management-token metadata; all existing tokens default to no read access."
-    },
-    {
-      "id": "0065_sms_subscriptions.sql",
-      "buyerSteps": "Apply after 0064. Adds default-off Twilio SMS subscriptions, country settings, signed-reply consent and delivery history using additive subscriber fields and subscriber-owned tables. Existing subscriber identities, preferences, notification history and older backups remain intact. Configure your registered Twilio sender explicitly before SMS sends; restored product data carries no provider credential."
-    },
     {
       "id": "0066_social_accounts.sql",
       "buyerSteps": "Apply after 0065. Adds sealed owner social accounts, a default-off social posting preference and atomic per-update/account post records with provider receipts. Existing updates, channels and migrations are unchanged. Connect each optional account in Settings; explicitly choose Social accounts per update, or enable post by default. X requires the owner's OAuth 2.0 user token with tweet.write; Bluesky an app password; Mastodon write:statuses. No provider account or key is needed unless the owner enables posting."
+    },
+    {
+      "id": "0067_incident_subscriptions.sql",
+      "buyerSteps": "Apply after 0066. Adds incident-only subscription lifetimes and a default-on report preference. Existing subscriber identities, destinations, tokens, selections and delivery history remain unchanged; incident subscriptions reuse confirmation, capacity, erasure and native archive mechanisms."
+    },
+    {
+      "id": "0068_incident_report_deliveries.sql",
+      "buyerSteps": "Apply after 0067. Adds report-only delivery and attempt carriers under the existing logical notification views, preserving every incident/maintenance/component delivery row, foreign key and old archive. Report publication now captures and dispatches its report recipients without bypassing confirmation or terminal subscription lifetimes. No provider credential or owner action is required."
     }
   ],
   "breaking": false,
-  "agentUpdateInstructions": "Apply the additive migrations since 1.10.0 on deploy, in order: 0043_page_templates.sql adds a saved page template, set to default (the existing page) for every existing page, and an optional component region; 0044_widget_appearance.sql adds the saved embed tag choices, set to the original embed defaults for every existing page. No extension-point change, and stored data stays compatible. Back up data and owner source first, update the checkout, run pnpm install --frozen-lockfile (the checkout pins rer 0.2.76 with no rer patch) and rer deploy as before. PAGE-009 and UPTIME-003 now state the relative generation label and first-day coverage labels that the 1.10.0 public page already shows. Run rer verify and pnpm run validate:release before adopting. SETUP-002 now prefers an existing public status page's real components and groups and offers optional silent resolved-history import; MOVE-006 records these keyless public-feed captures. No additional migration or API key is required for public history. Apply 0045_incident_communication_owner.sql after 0044 for private incident ownership and escalation reminder kinds; existing reminders are preserved and existing incidents default to their opener. Apply 0046_report_followups.sql after 0045 for private report waivers and weekly reminder records. Apply 0047_agent_promise_drafts.sql after 0046 for sidecar-only private model-free next-update draft attribution and one-per-commitment receipts; existing drafts are unchanged. Apply 0048_maintenance_automation.sql after 0047 for per-window maintenance automation. Existing windows retain automatic start and completion; new choices are stored in an additive sidecar. Apply 0049_follow_up_dismissals.sql after 0048 for private reasoned Follow-ups dismissals; a new failure occurrence is not hidden by an older dismissal. Apply 0050_detached_component_visibility.sql after 0049 so a deleted internal component's retained attachments stay private. Apply 0052_chat_desk_links.sql after 0050. Chat links are durable. Native rer export excludes transient chat link codes, previews and request receipts, so no expiry wait is needed before a native transfer. Apply 0053_subscriber_intake.sql after 0052 for native CSV and operator-added subscriber attribution and one-time invitation records. Apply 0054_subscriber_webhook_formats.sql after 0053 for the checked webhook format column; existing subscriptions keep Lamp. Apply 0055_maintenance_automation_defaults.sql after 0054 for page-level maintenance defaults, initially both on; existing windows retain their own choices."
+  "agentUpdateInstructions": "This contract documentation edition reorganizes the existing obligations, records conservative evidence statuses and adds the planned Agent surface. It makes no product acceptance or proof promotion. Preserve every published release record and immutable contract snapshot, the final contract ID and coverage maps, owner requirements, existing migrations, source customizations and data. This cleanup authors no database migration or setup gate. Apply the incoming-main migrations newly introduced since the immutable retained predecessor using their unchanged buyer steps in this release. Regenerate contract documents, check the generated files, record the source lock last, then run the existing verifier and release validator before adopting."
 }

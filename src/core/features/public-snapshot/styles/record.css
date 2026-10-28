@@ -4,9 +4,9 @@
 .timeline-group + .timeline-group { margin-top: 32px; }
 .timeline-group > h3 { margin: 0 0 2px; color: var(--ink-3); font-size: 12px; line-height: 1.3; letter-spacing: .12em; text-transform: uppercase; }
 .timeline-entry { min-width: 0; border: 1px solid var(--line); border-radius: var(--radius); background: var(--card); box-shadow: var(--shadow-card); padding: 26px 28px; }
-/* Live work carries the lamp's amber at its edge; maintenance its own blue. */
-.timeline-incident { box-shadow: inset 3px 0 0 var(--amber), var(--shadow-card); }
-.timeline-maintenance:has(.state-in-progress) { box-shadow: inset 3px 0 0 var(--maint), var(--shadow-card); }
+/* Live work is ringed on all four sides, on white: the lamp's amber for an open incident, its own blue for maintenance in progress. */
+.timeline-incident { border-color: var(--amber); }
+.timeline-maintenance:has(.state-in-progress) { border-color: var(--maint); }
 .resolved-list { min-width: 0; border: 1px solid var(--line); border-radius: var(--radius); background: var(--card); box-shadow: var(--shadow-card); }
 .resolved-list .timeline-resolved { border: 0; border-radius: 0; background: none; box-shadow: none; padding: 20px 28px; }
 .resolved-list .timeline-resolved + .timeline-resolved { border-top: 1px solid var(--line); }

@@ -1,205 +1,103 @@
-import assert from "node:assert/strict";
-import { mkdtemp, rm, readFile } from "node:fs/promises";
-import { join, resolve } from "node:path";
-import { tmpdir } from "node:os";
-import { createRequire } from "node:module";
-import { test } from "node:test";
+import assert from 'node:assert/strict';
+import { mkdtemp, rm, readFile } from 'node:fs/promises';
+import { join, resolve } from 'node:path';
+import { tmpdir } from 'node:os';
+import { createRequire } from 'node:module';
+import { createServer } from 'node:http';
+import { test } from 'node:test';
+import { openStatusJourney, eventually } from './helpers/status-journey.mjs';
 const require = createRequire(import.meta.url);
-const wranglerRequire = createRequire(require.resolve("wrangler"));
-const { Miniflare, convertV4MiniflareOptions } = wranglerRequire("miniflare");
-const { build } = wranglerRequire("esbuild");
-const generatedAt = "2026-09-13T00:00:00.000Z";
-function bundle(generation) {
-  // Stored generations from before Sign in was added still serve immediately.
-  const html = `<html><body><header><nav class="status-utilities"><a href="/history">History</a></nav></header>Degraded v${generation}</body></html>`;
-  return { version: `v${generation}`, generation, generatedAt, artifacts: [
-    { key: "page.html", contentType: "text/html", body: html },
-    { key: "not-found.html", contentType: "text/html", body: html },
-    { key: "feed.atom", contentType: "application/atom+xml", body: `<feed><title>Degraded v${generation}</title><updated>${generatedAt}</updated></feed>` },
-    { key: "widget.js", contentType: "application/javascript", body: `/* Degraded v${generation} */` },
-    { key: "status.json", contentType: "application/json", body: JSON.stringify({ overall: "degraded", generation, generatedAt }) },
-  ] };
-}
-function assertInstalledSignIn(html, target = "https://app.example/signin") {
-  const actions = html.match(/<a\b[^>]*\bdata-lamp-signin\b[^>]*>/g) ?? [];
-  assert.equal(actions.length, 1, "the public page has exactly one installed sign-in action");
-  assert.equal(actions[0].match(/\bhref="([^"]*)"/)?.[1], target);
-  assert.match(html.match(/<footer\b[^>]*>[\s\S]*?<\/footer>/)?.[0] ?? "", /data-lamp-signin/, "the operator entry belongs in the footer");
-  assert.doesNotMatch(html.match(/<nav\b[^>]*class="status-utilities"[^>]*>[\s\S]*?<\/nav>/)?.[0] ?? "", /data-lamp-signin/);
-}
-test("PAGE-005 PAGE-006 PAGE-007 PAGE-018 complete generations and badges survive R2 and D1 failure", async () => {
-  const directory = await mkdtemp(join(tmpdir(), "lamp-retained-"));
-  const output = join(directory, "worker.js");
-  await build({ entryPoints: ["tests/e2e/snapshot-retained.worker.ts"], outfile: output, bundle: true, format: "esm", platform: "browser", external: ["cloudflare:workers"], plugins: [{ name: "vite-assets", setup(builder) {
-    builder.onResolve({ filter: /\?(inline|raw)$/ }, args => ({ path: resolve(args.resolveDir, args.path.split("?")[0]), namespace: args.path.endsWith("?raw") ? "raw" : "inline" }));
-    builder.onLoad({ filter: /.*/, namespace: "raw" }, async args => ({ contents: `export default ${JSON.stringify(await readFile(args.path, "utf8"))}`, loader: "js" }));
-    builder.onLoad({ filter: /.*/, namespace: "inline" }, async args => ({ contents: `export default ${JSON.stringify("data:application/octet-stream;base64," + (await readFile(args.path)).toString("base64"))}`, loader: "js" }));
-  } }] });
-  const options = { bindings: { LAMP_APP_HOST: "  APP.EXAMPLE  " }, name: "lamp-retained-test", resourcePersistencePath: join(directory, "storage"), modules: true, script: await readFile(output, "utf8"), compatibilityDate: "2026-09-08", compatibilityFlags: ["nodejs_compat"], durableObjects: { SNAPSHOT_CACHE: { className: "SnapshotCache", useSQLite: true } }, r2Buckets: ["SNAPSHOTS"] };
-  let runtime = new Miniflare(convertV4MiniflareOptions(options));
-  const fetch = (path, init) => runtime.dispatchFetch(`https://page.example${path}`, init);
+const wranglerRequire = createRequire(require.resolve('wrangler'));
+const { Miniflare, convertV4MiniflareOptions } = wranglerRequire('miniflare');
+const { build } = wranglerRequire('esbuild');
+
+test('PAGE-005 PAGE-006 PAGE-007 PAGE-018 — a published status survives storage, database and queue failures, cold restart and an independent heartbeat silence alarm', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'lamp-resilience-'));
+  let runtime, j, monitor, alarmTimer;
+  let receipt = null, alarm = false, pings = 0;
   try {
-    assert.equal((await fetch("/?storage=down&first=1")).status, 503);
-    const firstFailure = await (await fetch("/test/rebuild", { method: "POST", body: JSON.stringify({ generation: 0, replicaFailure: "always" }) })).json();
-    assert.match(firstFailure.failure, /replica PUT failure/);
-    assert.equal(firstFailure.pointer, null);
-    assert.equal(firstFailure.replica, null);
-    assert.equal(firstFailure.pointerWrites, 0);
-    assert.equal(firstFailure.completed, false);
-    assert.equal((await fetch("/?storage=down&firstFailure=1")).status, 503);
-
-    assert.equal((await fetch("/test/retain", { method: "PUT", body: JSON.stringify(bundle(1)) })).status, 204);
-    // A prior absent lookup must not be negatively cached after first publication.
-    assert.equal((await fetch("/?storage=down&first=2")).status, 200);
-    await runtime.dispose(); runtime = new Miniflare(convertV4MiniflareOptions(options));
-    for (const path of ["/", "/feed.atom", "/widget.js", "/api/public/status"]) {
-      const response = await fetch(`${path}?storage=down&neverSeen=${Math.random()}`);
-      assert.equal(response.status, 200);
-      assert.equal(response.headers.get("X-Lamp-Snapshot-State"), "stale");
-      assert.equal(response.headers.get("X-Lamp-Snapshot-Generated-At"), generatedAt);
-      const body = await response.text();
-      assert.match(body, /Last known state|"snapshotState":"stale"/);
-      if (path === "/") assertInstalledSignIn(body);
-    }
-    assert.equal((await fetch("/?storage=malformed")).status, 200);
-    assert.equal((await fetch("/health?storage=down")).status, 503);
-    assert.equal((await fetch("/test/retain", { method: "PUT", body: JSON.stringify({ ...bundle(2), artifacts: [] }) })).status, 400);
-    assert.match(await (await fetch("/?storage=down")).text(), /Degraded v1/);
-    const unicode = bundle(3);
-    unicode.artifacts[0].body = `<body>Degraded v3 ${"🌊".repeat(20000)}</body>`;
-    await fetch("/test/retain", { method: "PUT", body: JSON.stringify(unicode) });
-    await fetch("/test/retain", { method: "PUT", body: JSON.stringify(bundle(2)) });
-    const unicodeResponse = await (await fetch("/?storage=down")).text();
-    assert.match(unicodeResponse, /Degraded v3/);
-    assert.ok(unicodeResponse.includes("🌊".repeat(20000)), "chunk boundaries preserve exact UTF-8");
-    await fetch("/test/source", { method: "POST", body: JSON.stringify({ pointer: { version: "v4", generation: 4, sourceRevision: 4, generatedAt }, artifacts: bundle(4).artifacts }) });
-    const current = await fetch("/?query=irrelevant");
-    assert.equal(current.status, 200); assert.equal(current.headers.get("X-Lamp-Snapshot-State"), null);
-    assert.match(await current.text(), /Degraded v4/);
-    await fetch("/test/source", { method: "POST", body: JSON.stringify({ pointer: { version: "v5", generation: 5, sourceRevision: 5, generatedAt }, artifacts: bundle(5).artifacts, archive: bundle(5) }) });
-    const cacheWriteFailure = await fetch("/feed.atom?cacheWrites=down");
-    assert.equal(cacheWriteFailure.status, 200);
-    assert.equal(cacheWriteFailure.headers.get("X-Lamp-Snapshot-State"), null);
-    assert.match(await cacheWriteFailure.text(), /Degraded v5/);
-    const restored = await fetch("/?restored=1");
-    assert.equal(restored.headers.get("X-Lamp-Snapshot-Retained"), "true", "restored R2 bundle primes the replica before acceptance");
-    assertInstalledSignIn(await restored.text());
-    const missing = await fetch("/incidents/missing");
-    assert.equal(missing.status, 404);
-    assertInstalledSignIn(await missing.text());
-    const conditional = await fetch("/", { headers: { "If-None-Match": restored.headers.get("etag") } });
-    assert.equal(conditional.status, 304, "unchanged installed HTML remains conditionally cacheable");
-    const local = await runtime.dispatchFetch("http://page.example:49157/", { headers: { "If-None-Match": restored.headers.get("etag") } });
-    assert.equal(local.status, 200, "a changed sign-in scheme and port invalidate the HTML validator");
-    assertInstalledSignIn(await local.text(), "http://app.example:49157/signin");
-    // Both primary storage and the durable replica fail: the independently
-    // warmed edge fallback still returns labelled bytes, even conditionally.
-    const validator = restored.headers.get("etag");
-    const edgeOnly = await fetch("/?storage=down&replica=down", { headers: { "If-None-Match": validator } });
-    assert.equal(edgeOnly.status, 200);
-    assert.equal(edgeOnly.headers.get("X-Lamp-Snapshot-State"), "stale");
-    assert.equal(edgeOnly.headers.get("etag"), null);
-    const edgeHtml = await edgeOnly.text();
-    assert.match(edgeHtml, /Last known state/);
-    assertInstalledSignIn(edgeHtml);
-    assert.equal((await fetch("/unwarmed?storage=down&replica=down")).status, 503);
-    await runtime.dispose(); runtime = new Miniflare(convertV4MiniflareOptions(options));
-    assert.match(await (await fetch("/?storage=down&restored=2")).text(), /Degraded v5/);
-    const rebuild = async (input) => (await fetch("/test/rebuild", { method: "POST", body: JSON.stringify(input) })).json();
-    const failedReplica = await rebuild({ generation: 10, replicaFailure: "always" });
-    assert.match(failedReplica.failure, /replica PUT failure/);
-    assert.equal(failedReplica.pointerWrites, 0, "no unprotected selector is exposed");
-    assert.equal(failedReplica.pointer.version, "v5");
-    assert.equal(failedReplica.replica.version, "v5");
-    assert.equal(failedReplica.completed, false);
-    assert.equal(failedReplica.builds.at(-1).status, "failed");
-    assert.equal(failedReplica.loads, 1);
-    assert.equal(new Set(failedReplica.attemptedVersions).size, 1);
-    for (const replicaFailure of ["once", "after-ack"]) {
-      const result = await rebuild({ generation: replicaFailure === "once" ? 11 : 12, replicaFailure });
-      assert.equal(result.failure, null);
-      assert.equal(result.loads, 1, "retries retain exact rendered generation");
-      assert.equal(new Set(result.attemptedVersions).size, 1);
-      assert.equal(result.pointer.version, result.replica.version);
-      assert.equal(result.completed, true);
-    }
-    const failedPointer = await rebuild({ generation: 13, pointerFailure: true });
-    assert.match(failedPointer.failure, /R2 selector failure/);
-    assert.equal(failedPointer.completed, false);
-    assert.equal(failedPointer.pointer.generation, 12);
-    assert.equal(failedPointer.replica.generation, 13, "complete R2-persisted generation remains available during selector repair");
-    assert.equal(failedPointer.builds.at(-1).status, "failed");
-    assert.equal(new Set(failedPointer.attemptedVersions).size, 1);
-    assert.equal((await fetch("/?storage=down&selectorRepair=1")).status, 200);
-
-    // MOVE-005: actual rendered alias artifacts and pages share one R2 generation.
-    // Every public request creates a fresh service whose repository throws on use.
-    const at = new Date().toISOString();
-    const source = {
-      settings: { pageName: "Imported public record", tagline: "Source history", accentColor: "#16794C", timezone: "UTC", hostname: "page.example", footerCreditEnabled: false, logoKey: null, logoContentType: null, widgetAllowedOrigins: "[]", feedId: "import-fixture" },
-      components: [{ id: "component", name: "API", groupName: null, groupOrder: null, displayOrder: 0 }], claims: [], history: [], corrections: [], reports: [],
-      incidents: [{ id: "incident", reference: "INC-1", title: "Original outage", lifecycle: "Resolved", openedAt: at, resolvedAt: at }],
-      incidentComponents: [{ incidentId: "incident", componentName: "API" }],
-      updates: [{ id: "update", incidentId: "incident", lifecycle: "Resolved", affectedAudience: "Customers", customerImpact: "Service restored", whatStillWorks: "API", details: "Recovered", nextUpdateAt: null, publishedAt: at }],
-      maintenance: [{ id: "maintenance", reference: "SCH-1", title: "Database upgrade", state: "Completed", startsAt: at, endsAt: at, completedAt: at }],
-      maintenanceComponents: [{ maintenanceId: "maintenance", componentName: "API" }], maintenanceNotices: [],
-      importedPublicRecords: [{ namespace: "statuspage", sourceId: "original-outage", targetKind: "incident", targetId: "incident", shortlink: "https://stspg.io/outage" }, { namespace: "statuspage", sourceId: "original-upgrade", targetKind: "maintenance", targetId: "maintenance", shortlink: "https://stspg.io/upgrade" }],
-    };
-    const ancient = "2022-04-13T12:00:00.000Z";
-    source.incidents.push({ ...source.incidents[0], id: "ancient-incident", reference: "INC-2", title: "Archived API outage", openedAt: ancient, resolvedAt: ancient });
-    source.incidentComponents.push({ incidentId: "ancient-incident", componentName: "API" });
-    source.updates.push({ ...source.updates[0], id: "ancient-update", incidentId: "ancient-incident", publishedAt: ancient });
-    const imported = await rebuild({ generation: 20, source });
-    assert.equal(imported.failure, null);
-    for (const [path, destination, title] of [["/incidents/original-outage", "/incidents/INC-1", "Original outage"], ["/outage", "/incidents/INC-1", "Original outage"], ["/incidents/original-upgrade", "/maintenance/SCH-1", "Database upgrade"], ["/upgrade", "/maintenance/SCH-1", "Database upgrade"]]) {
-      const redirected = await fetch(path, { redirect: "manual" });
-      assert.equal(redirected.status, 301); assert.equal(redirected.headers.get("Location"), destination);
-      const record = await fetch(destination); assert.equal(record.status, 200);
-      const recordHtml = await record.text();
-      assert.match(recordHtml, new RegExp(title));
-      assertInstalledSignIn(recordHtml);
-      assert.equal(record.headers.get("X-Lamp-Snapshot-Generated-At"), redirected.headers.get("X-Lamp-Snapshot-Generated-At"));
-      assert.equal((await runtime.dispatchFetch(`https://app.example${path}`)).status, 404);
-    }
-    const oldFeed = await fetch("/history.atom"); assert.equal(oldFeed.status, 200);
-    assert.match(oldFeed.headers.get("Content-Type"), /application\/atom\+xml/);
-    assert.equal(await oldFeed.text(), await (await fetch("/feed.atom")).text());
-    for (const path of ["/auth/login", "/app/settings"]) assert.equal((await fetch(path)).status, 404);
-    for (const path of ["/history", "/history/2022-04", "/api/v2/summary.json", "/history.rss", "/badge.svg", "/badge.json", "/api/public/v1/incidents", "/embed/script.js"]) {
-      for (const suffix of ["", "?storage=down"]) {
-        const response = await fetch(path + suffix); assert.equal(response.status, 200, path + suffix);
-        assert.ok((await response.text()).length > 0);
+    monitor = createServer((request, response) => {
+      assert.equal(request.method, 'GET'); assert.equal(request.url, '/ping');
+      receipt = Date.now(); pings++; alarm = false; clearTimeout(alarmTimer);
+      alarmTimer = setTimeout(() => { alarm = true; }, 750);
+      response.end('ok');
+    });
+    await new Promise(resolve => monitor.listen(0, '127.0.0.1', resolve));
+    const edge = async request => {
+      if (request.url === 'https://heartbeat.example.test/ping') {
+        assert.equal(request.method, 'GET'); assert.equal(await request.text(), '', 'the monitor receives no product data');
+        return fetch(`http://127.0.0.1:${monitor.address().port}/ping`);
       }
-    }
-    assert.match(await (await fetch("/history/2022-04?storage=down")).text(), /Archived API outage/);
-    const oldMonthPath = await fetch("/history/2022/04", { redirect: "manual" });
-    assert.equal(oldMonthPath.status, 404, "a Statuspage import does not invent a Sorry month alias");
-    // The next snapshot has no removed record or its alias, even after cache warming.
-    const removed = structuredClone(source); removed.incidents = []; removed.updates = []; removed.incidentComponents = [];
-    assert.equal((await rebuild({ generation: 21, source: removed })).failure, null);
-    assert.equal((await fetch("/outage", { redirect: "manual" })).status, 404);
-    assert.equal((await fetch("/upgrade", { redirect: "manual" })).status, 301);
-    const legacy = structuredClone(source);
-    legacy.importedPublicRecords[0].shortlink = "https://stspg.io/auth/login";
-    legacy.importedPublicRecords[1].shortlink = "https://stspg.io/shared";
-    legacy.importedPublicRecords.push({ ...legacy.importedPublicRecords[0], shortlink: "https://stspg.io/shared" });
-    assert.equal((await rebuild({ generation: 22, source: legacy })).failure, null);
-    assert.equal((await fetch("/")).status, 200, "legacy unsafe aliases never withhold status");
-    assert.equal((await fetch("/incidents/original-outage", { redirect: "manual" })).status, 301, "safe source path still works");
-    assert.equal((await fetch("/shared", { redirect: "manual" })).status, 404, "neither side wins a legacy alias conflict");
-    assert.equal((await fetch("/auth/login", { redirect: "manual" })).status, 404);
-    const noHistory = structuredClone(source);
-    noHistory.incidents = []; noHistory.maintenance = []; noHistory.importedPublicRecords = []; noHistory.importedNamespaces = ["statuspage"];
-    assert.equal((await rebuild({ generation: 23, source: noHistory })).failure, null);
-    assert.equal((await fetch("/history.atom")).status, 200, "component-only import still serves source feed");
-    noHistory.importedNamespaces = [];
-    assert.equal((await rebuild({ generation: 24, source: noHistory })).failure, null);
-    assert.equal(await (await fetch("/history.atom")).text(), await (await fetch("/feed.atom")).text(), "native compatibility feed survives complete import undo");
-    const sorryHistory = { ...source, importedNamespaces: ["statuspage", "sorry"] };
-    assert.equal((await rebuild({ generation: 25, source: sorryHistory })).failure, null);
-    const sorryMonth = await fetch("/history/2022/april?storage=down", { redirect: "manual" });
-    assert.equal(sorryMonth.status, 301);assert.equal(sorryMonth.headers.get("Location"), "/history/");
-    assert.equal((await fetch("/history/2022-04?storage=down")).status, 200, "the distinct native month stays available through cold storage");
+    };
+    j = await openStatusJourney({ providerEdge: edge }); await j.tick(Date.now());
+    assert.equal(pings, 0, 'an unconfigured installation sends no heartbeat');
+    await j.close(); j = await openStatusJourney({ providerEdge: edge, extraBindings: { LAMP_HEARTBEAT_URL: 'https://heartbeat.example.test/ping', LAMP_HEARTBEAT_INTERVAL_MINUTES: '1' } });
+    const component = await j.component('Customer API during dependency outage');
+    const incident = await j.incident('Known API degradation', [component]);
+    await j.save(incident.id); await j.publish(incident.id); await j.visible('/', incident.title);
+    await j.tick(Date.now()); assert.ok(pings > 0 && receipt);
+    await j.raw('/test/effects', { method: 'PUT', body: JSON.stringify({ paused: true }) });
+    const beforePause = pings; await j.tick(Date.now()); assert.equal(pings, beforePause, 'a transferring host stops external effects');
+    await j.raw('/test/effects', { method: 'PUT', body: JSON.stringify({ paused: false }) });
+    const expected = new Map();
+    for (const path of ['/', '/feed.atom', '/widget.js', '/badge.json']) expected.set(path, await j.publicText(path));
+    await j.raw('/test/queue', { method: 'PUT', body: JSON.stringify({ outage: true }) });
+    const beforeOutage = pings;
+    await (await j.runtime.getWorker()).scheduled({ cron: '* * * * *', scheduledTime: Date.now() });
+    assert.equal(pings, beforeOutage, 'a running Cron cannot certify a failed Queue dependency');
+    assert.equal((await j.request('/health')).status, 503);
+    for (const [path, body] of expected) assert.equal(await j.publicText(path), body, `${path} retains its published state`);
+    await eventually(() => alarm, Boolean, 'the separate monitor reports missed receipts');
+    await j.raw('/test/queue', { method: 'PUT', body: JSON.stringify({ outage: false }) });
+    await j.tick(Date.now()); assert.ok(pings > beforeOutage); assert.equal((await j.request('/health')).status, 200);
+    await j.close(); j = null;
 
-  } finally { await runtime.dispose(); await rm(directory, { recursive: true, force: true }); }
+    // Real public routes, R2 and durable replica. Its repository throws on every
+    // read; only the provider edges are replaced to inject failure.
+    const built = await build({ entryPoints: ['tests/e2e/snapshot-retained.worker.ts'], bundle: true, format: 'esm', platform: 'browser', write: false, external: ['cloudflare:workers'], plugins: [{ name: 'vite-assets', setup(builder) {
+      builder.onResolve({ filter: /\?(inline|raw)$/ }, args => ({ path: resolve(args.resolveDir, args.path.split('?')[0]), namespace: args.path.endsWith('?raw') ? 'raw' : 'inline' }));
+      builder.onLoad({ filter: /.*/, namespace: 'raw' }, async args => ({ contents: `export default ${JSON.stringify(await readFile(args.path, 'utf8'))}`, loader: 'js' }));
+      builder.onLoad({ filter: /.*/, namespace: 'inline' }, async args => ({ contents: `export default ${JSON.stringify('data:application/octet-stream;base64,' + (await readFile(args.path)).toString('base64'))}`, loader: 'js' }));
+    } }] });
+    const options = { bindings: { LAMP_APP_HOST: 'app.example' }, name: 'lamp-retained-journey', resourcePersistencePath: join(directory, 'storage'), modules: true, script: built.outputFiles[0].text, compatibilityDate: '2026-09-08', compatibilityFlags: ['nodejs_compat'], durableObjects: { SNAPSHOT_CACHE: { className: 'SnapshotCache', useSQLite: true } }, r2Buckets: ['SNAPSHOTS'] };
+    runtime = new Miniflare(convertV4MiniflareOptions(options));
+    const read = (path, init) => runtime.dispatchFetch(`https://page.example${path}`, init);
+    const publishedAt = new Date().toISOString();
+    const source = {
+      settings: { pageName: 'Known service status', tagline: 'Current customer facts', accentColor: '#16794C', timezone: 'UTC', hostname: 'page.example', footerCreditEnabled: false, logoKey: null, logoContentType: null, widgetAllowedOrigins: '[]', feedId: 'synthetic-lamp-resilience' },
+      components: [{ id: 'customer-api', name: 'Customer API', groupName: null, groupOrder: null, displayOrder: 0, note: '' }],
+      claims: [{ componentId: 'customer-api', state: 'Major outage' }], history: [], corrections: [],
+      incidents: [{ id: 'incident', reference: 'INC-1', title: 'Known API outage', lifecycle: 'Identified', openedAt: publishedAt, resolvedAt: null }],
+      incidentComponents: [{ incidentId: 'incident', componentId: 'customer-api', componentName: 'Customer API', state: 'Major outage', relationship: 'Primary', publishedAt }],
+      updates: [{ id: 'outage-update', incidentId: 'incident', lifecycle: 'Identified', affectedAudience: 'API customers', customerImpact: 'Major outage affects customer requests.', whatStillWorks: 'Status information remains available.', details: 'The operator is restoring service.', nextUpdateAt: new Date(Date.parse(publishedAt) + 3600000).toISOString(), publishedAt }],
+      maintenance: [], maintenanceComponents: [], reports: [], maintenanceNotices: [],
+    };
+    const rebuild = async input => (await read('/test/rebuild', { method: 'POST', body: JSON.stringify({ source, ...input }) })).json();
+    assert.equal((await read('/?storage=down')).status, 503, 'a fresh installation never invents an all-clear');
+    const generation = await rebuild({ generation: 1 }); assert.equal(generation.failure, null);
+    const paths = ['/', '/feed.atom', '/widget.js', '/api/public/status', '/badge.svg', '/badge.json'];
+    for (const path of paths) { const response = await read(path); assert.equal(response.status, 200); await response.arrayBuffer(); }
+    const failed = await rebuild({ generation: 2, replicaFailure: 'always' });
+    assert.ok(failed.failure); assert.equal(failed.completed, false);
+    for (const path of paths) {
+      const response = await read(path + '?storage=down'); assert.equal(response.status, 200, path);
+      assert.equal(response.headers.get('x-lamp-snapshot-state'), 'stale');
+      assert.ok(response.headers.get('x-lamp-snapshot-generated-at'));
+      const text = await response.text();
+      assert.ok(text.includes('Major outage') || text.includes('major-outage'), `${path} keeps the known outage`);
+      // Badge protocols retain their consumer schema; every surface carries
+      // the stale/generated-at HTTP headers checked above. Human and status
+      // representations also expose staleness in their body.
+      if (!path.startsWith('/badge.')) assert.ok(text.includes('Last known state') || text.includes('"snapshotState":"stale"'), path);
+    }
+    await runtime.dispose(); runtime = new Miniflare(convertV4MiniflareOptions(options));
+    for (const path of paths) assert.equal((await read(path + '?storage=down&cold=1')).status, 200, `cold retained read ${path}`);
+    assert.equal((await read('/health?storage=down')).status, 503);
+    const restored = await rebuild({ generation: 3 }); assert.equal(restored.failure, null); assert.equal(restored.completed, true);
+    for (const path of paths) { const response = await read(path); assert.equal(response.status, 200); assert.equal(response.headers.get('x-lamp-snapshot-state'), null); }
+  } finally {
+    await j?.close(); await runtime?.dispose(); clearTimeout(alarmTimer);
+    monitor?.closeAllConnections(); if (monitor) await new Promise(resolve => monitor.close(resolve));
+    await rm(directory, { recursive: true, force: true });
+  }
 });

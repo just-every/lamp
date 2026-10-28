@@ -10,7 +10,7 @@ import { linkEdge } from '../fixtures/base/provider-edge.mjs';
 
 // Real Lamp Hono routes and D1 transactions; only the external provider's network
 // is substituted. The copied Base edge validates signed client assertions.
-test('ACCESS-001 dependency linking keeps exact owner approval through setup, unlink and concurrent replacement', async () => {
+test('ACCESS-001 ACCESS-002 TEAM-001 TEAM-002 TEAM-003 TEAM-007 native identity setup, provider approval, invitations and erasure keep access recoverable', async () => {
   const dir = await mkdtemp(join(process.cwd(), '.lamp-dependency-'));
   const storage = await database(dir);
   const cache = await openSnapshotCacheRuntime(dir);
@@ -21,11 +21,19 @@ test('ACCESS-001 dependency linking keeps exact owner approval through setup, un
     const idp = await provider({ issuer, clientId: 'lamp-client', redirectUri: origin + '/auth/oidc/auth/callback', alg: 'ES256', method: 'private_key_jwt', rerInterfaces: ['oidc-provider@1.0.0'], claims: { email: 'owner@example.test' } });
     await storage.db.prepare('CREATE TABLE fixture_state(key TEXT PRIMARY KEY,value TEXT NOT NULL)').run();
     const edge = linkEdge(storage.db, issuer, 'lamp-client', Date.now);
-    globalThis.fetch = async (uri, init) => await edge.fetch(String(uri), init) ?? idp.fetch(uri, init);
+    const messages = [];
+    const relay = 'https://relay.example.test/api/managed-mail/send';
+    globalThis.fetch = async (uri, init) => {
+      if (String(uri) === relay) {
+        messages.push(JSON.parse(init.body));
+        return Response.json({ messageId: `<identity-${messages.length}@relay.example.test>` }, { status: 202 });
+      }
+      return await edge.fetch(String(uri), init) ?? idp.fetch(uri, init);
+    };
     const env = { DB: storage.db, SNAPSHOT_CACHE: cache.namespace, SNAPSHOTS: storage.bucket,
       LAMP_APP_HOST: 'app.example.test', LAMP_PAGE_HOST: 'page.example.test', AUTH_ORIGIN: origin,
       SETUP_OPERATOR_EMAIL: 'owner@example.test', SESSION_SECRET: secret, SETUP_TOKEN: setupToken,
-      MAIL_FROM_ADDRESS: 'lamp@example.test', IDENTITY_PROVIDER: issuer };
+      MAIL_FROM_ADDRESS: 'lamp@example.test', IDENTITY_PROVIDER: issuer, MAIL_PROVIDER: 'rer', MAIL_FROM: 'lamp@example.test', MAIL_RELAY_URL: relay, MAIL_API_KEY: 'synthetic-identity-mail-key' };
     const native = authFixture(storage.db, { origin });
     const { app } = createApp(env);
     const call = (path, options = {}) => {
@@ -89,6 +97,41 @@ test('ACCESS-001 dependency linking keeps exact owner approval through setup, un
     assert.equal(start.status, 303, 'the form offered by hosted sign-in starts provider authorization');
     assert.equal(new URL(start.headers.get('location')).origin, issuer);
     assert.equal((await call('/api/app/session', { cookie: proof })).status, 200, 'native email access remains usable');
+
+    // The same owner manages actual invitations and native sessions. Cancellation
+    // invalidates the delivered link; erasure revokes access and retains an audit.
+    const invite = async email => {
+      const result = await post('/api/app/operators/invite', { email, displayName: 'Recovery owner' }, proof);
+      assert.equal(result.status, 202, await result.clone().text());
+      const token = new URL(messages.at(-1).text.match(/https?:\/\/[^\s]+/)[0]).searchParams.get('token');
+      const invited = (await (await call('/api/app/operators/invited', { cookie: proof })).json()).operators.find(row => row.email === email);
+      assert.ok(invited);
+      return { id: invited.id, token };
+    };
+    const cancelled = await invite('cancelled@example.test');
+    assert.equal((await call(`/api/app/operators/${cancelled.id}`, { method: 'DELETE', cookie: proof })).status, 204);
+    assert.equal((await post('/auth/confirm', { token: cancelled.token })).status, 400, 'a cancelled invitation cannot sign in');
+    const teammate = await invite('teammate@example.test');
+    const accepted = await post('/auth/confirm', { token: teammate.token });
+    assert.equal(accepted.status, 303, await accepted.clone().text());
+    const teammateCookie = accepted.headers.get('set-cookie').split(';')[0];
+    assert.equal((await post('/auth/confirm', { token: teammate.token })).status, 400, 'an invitation is consumed once');
+    const teammateSession = await call('/api/app/session', { cookie: teammateCookie });
+    assert.equal(teammateSession.status, 200);
+    assert.equal((await teammateSession.json()).operator.email, 'teammate@example.test');
+    const ownerSession = await (await call('/api/app/session', { cookie: proof })).json();
+    assert.equal((await call(`/api/app/operators/${ownerSession.operator.id}`, { method: 'DELETE', cookie: teammateCookie })).status, 403, 'another operator cannot erase the setup owner');
+    assert.equal((await call(`/api/app/operators/${ownerSession.operator.id}`, { method: 'DELETE', cookie: proof })).status, 204);
+    assert.equal((await call('/api/app/session', { cookie: proof })).status, 401, 'erasure revokes the old session');
+    const listed = await (await call('/api/app/operators/former', { cookie: teammateCookie })).json();
+    assert.ok(!listed.operators.some(row => row.id === ownerSession.operator.id), 'the erased identity leaves the former-operator directory');
+    assert.equal((await call(`/api/app/operators/${teammate.id}`, { method: 'DELETE', cookie: teammateCookie })).status, 409, 'the last active owner stays recoverable');
+    const audit = await call('/api/app/audit-log?format=csv', { cookie: teammateCookie });
+    assert.equal(audit.status, 200);
+    assert.ok((await audit.text()).includes(ownerSession.operator.id), 'history remains attributable after erasure');
+    assert.equal((await post('/api/app/session/signout', {}, teammateCookie)).status, 204);
+    assert.equal((await call('/api/app/session', { cookie: teammateCookie })).status, 401);
+
   } finally {
     globalThis.fetch = originalFetch;
     await cache.dispose();

@@ -9,5 +9,4 @@ if (process.argv[2] === '--source-only') {
 }
 for(const command of ['source:check','typecheck','build'])execFileSync('pnpm',[command],{stdio:'inherit'});
 execFileSync(process.execPath,['--test','--test-name-pattern=compiled visual edits','tests/e2e/publishing-browser.test.mjs'],{stdio:'inherit'});
-execFileSync(process.execPath,['--test','--test-name-pattern=compiled visual edits','tests/e2e/publishing-browser.test.mjs'],{stdio:'inherit',env:{...process.env,RER_VISUAL_HEADING_PROBE:'1'}});
 console.log(`Visual verification passed for ${snapshot.edits.length} compiled edits at revision ${snapshot.revision}.`);

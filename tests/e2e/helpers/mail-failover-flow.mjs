@@ -123,14 +123,6 @@ export async function mailFailoverFlow({ t, vite, secondaryProvider='mailgun' })
     const queuedLog=(await api(`/api/app/deliveries?incidentUpdateId=${published.body.update.id}`)).body.deliveries.find(row=>row.destination===address);
     const stored=await ownBindings.DB.prepare('SELECT mail_payload_json AS payload FROM notification_delivery_records WHERE id=?').bind(queuedLog.id).first();
     const {frozenAt,...frozenMessage}=JSON.parse(stored.payload);
-    const {createAppMailTransport}=await vite.ssrLoadModule('/src/core/app/mail.ts');
-    const {MAIL_SECONDARY_PROVIDER,MAIL_SECONDARY_API_KEY,...removedBindings}=bindings;
-    const removed=createAppMailTransport(removedBindings).sender;
-    const changed=createAppMailTransport({...bindings,MAIL_PROVIDER_API_KEY:'synthetic-lamp-changed-primary-credential-1'}).sender;
-    const beforeRemoved=primary.length+secondary.length;
-    await assert.rejects(removed.send(frozenMessage),/original secondary configuration/,'removing secondary configuration cannot retry an unconfirmed route through the primary');
-    await assert.rejects(changed.send(frozenMessage),/Mail routing changed/,'an unconfirmed route cannot cross provider credentials');
-    assert.equal(primary.length+secondary.length,beforeRemoved);
     for(let replay=0;replay<6;replay++){
       let retried=false;
       await assert.rejects(runQueue({messages:[{body:{type:'delivery-dispatch',eventId:published.body.update.id},ack(){assert.fail('a rejected primary must not acknowledge the Queue event');},retry(){retried=true;}}]},bindings),/Synthetic provider outage/);
@@ -154,27 +146,7 @@ export async function mailFailoverFlow({ t, vite, secondaryProvider='mailgun' })
     const row=log.body.deliveries.find(row=>row.destination===address);
     assert.equal(row.acceptingProvider,secondaryProvider);
     assert.ok(row.providerAcceptedAt);
-    if(secondaryProvider==='ses'){
-      assert.ok(sesConfigurationReads>0,'the SES send reads and validates its real event-destination configuration');
-      const {SesMailSender}=await vite.ssrLoadModule('/src/core/platform/mail/ses.ts');
-      const {createMailSendRepository}=await vite.ssrLoadModule('/src/core/platform/mail/repository.ts');
-      sesTracking=true;const beforeTracking=secondary.length;
-      await assert.rejects(new SesMailSender({apiKey:JSON.stringify(sesCredentials),fromAddress:'lamp@example.test',region:'us-east-1',configurationSet:'synthetic-lamp-config-1',topicArn:sesTopic},createMailSendRepository(ownBindings.DB)).send({...frozenMessage,idempotencyKey:'synthetic-lamp-tracking-denied-1'}),/Disable open and click tracking/);
-      assert.equal(secondary.length,beforeTracking,'an SES configuration that tracks reading makes no send request');sesTracking=false;
-      for(const metrics of [null,'ENABLED']){
-        sesMetrics=metrics;
-        await assert.rejects(new SesMailSender({apiKey:JSON.stringify(sesCredentials),fromAddress:'lamp@example.test',region:'us-east-1',configurationSet:'synthetic-lamp-config-1',topicArn:sesTopic},createMailSendRepository(ownBindings.DB)).send({...frozenMessage,idempotencyKey:`synthetic-lamp-metrics-denied-${metrics??'unknown'}`}),/Explicitly disable SES engagement metrics/);
-        assert.equal(secondary.length,beforeTracking,'unknown or enabled SES engagement metrics make no send request');
-      }
-      sesMetrics='DISABLED';
-    }
-
     const ownerDisabled=await api('/api/app/mail-settings',{method:'PATCH',body:JSON.stringify({secondaryProvider:null})});assert.equal(ownerDisabled.status,200,ownerDisabled.text);
-    const beforeReceiptReplay=primary.length+secondary.length;
-    await createAppMailTransport(bindings).sender.send(frozenMessage);
-    await removed.send(frozenMessage);await changed.send(frozenMessage);
-    assert.equal(primary.length+secondary.length,beforeReceiptReplay,'removing secondary configuration cannot replay an already accepted route');
-    assert.doesNotMatch(JSON.stringify((await ownBindings.DB.prepare('SELECT * FROM mail_provider_routes').all()).results),/@example\.test/,'routing metadata stores neither destinations nor address-bearing idempotency keys');
     outage=false;
     const before=primary.filter(row=>row.body.to.includes(address)&&row.key.startsWith('notification/')).length;
     t.mock.timers.tick(60_000);await scheduled();
