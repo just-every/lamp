@@ -448,7 +448,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "a9fedaf54a0b052a13dae861822ad957cdf666751a2330792feca4126d5e52c5",
+      "sha256": "ce5ccfe710682c71ce66623bd3a40507e42c951a4418bef340f1f954c607c85e",
       "executable": false
     },
     "AGENTS.md": {
@@ -496,7 +496,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "e7a8f6b8091aa186f19396e2aefef33394a9314dbbaf38ba501cf2df652db9e4",
+      "sha256": "ac2326efc18c395e272fefa525897efcc905d6ba6cc36ec1e4942dd941963f23",
       "executable": false
     },
     "DEMO.md": {
@@ -6688,7 +6688,7 @@
       "executable": false
     },
     "tests/e2e/helpers/theme-owner-journey.mjs": {
-      "sha256": "d339c3e38b4371dda6135ba2deacfbc40e99933ba94676bd0364393ec9288cfe",
+      "sha256": "e8713923b298ac0894ec518892fa24d75fbcb23eb7fa68dfa527b861914e9461",
       "executable": false
     },
     "tests/e2e/helpers/theme-template-flow.mjs": {

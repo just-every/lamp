@@ -42,8 +42,21 @@ export async function themeOwnerJourney({ appFetch, appUrl, pageUrl, sessionId, 
   await json('/api/app/components/bulk/apply', 'POST', { catalogue: review.catalogue, revision: review.revision, reviewToken: review.reviewToken });
   const current = await currentSettings();
   await updateSettings({ theme: { ...themeSettings(current.theme), font: 'uploaded', headerImage: true, historyDays: 90, groupsCollapsed: false, hiddenUptimeComponentIds: [] } });
-  const published = await (await fetch(`${pageUrl}/api/public/v1/components`)).json();
-  assert.equal(published.data.length, limits.components.value, 'every component is public in the transfer-budget fixture');
+  const published = [], cursors = new Set();
+  let cursor;
+  do {
+    const url = new URL('/api/public/v1/components', pageUrl);
+    if (cursor) url.searchParams.set('cursor', cursor);
+    const response = await fetch(url);
+    assert.equal(response.status, 200);
+    const page = await response.json();
+    published.push(...page.data);
+    cursor = page.nextCursor;
+    assert.ok(!cursor || !cursors.has(cursor), 'component pagination advances');
+    cursors.add(cursor);
+  } while (cursor);
+  assert.equal(published.length, limits.components.value, 'every component is public in the transfer-budget fixture');
+  assert.equal(new Set(published.map(row => row.id)).size, published.length);
   for (const template of ['default', 'calm', 'uptime', 'regions']) {
     await updateSettings({ template });
     const response = await fetch(`${pageUrl}/`);
