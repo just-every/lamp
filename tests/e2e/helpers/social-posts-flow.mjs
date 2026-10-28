@@ -94,6 +94,17 @@ export async function socialPostsFlow(t) {
       const refused = await post('/api/app/social', { network, name: 'Missing write scope', prefix, credential: 'synthetic-lamp-9', ...(network === 'mastodon' ? { host: 'https://mastodon.social' } : {}), scopes: [] });
       assert.equal(refused.status, 400, 'an account without the required write scope cannot connect');
     }
+    assert.equal((await raw('/api/app/social')).status, 401, 'social accounts require an authenticated operator');
+    await db.prepare("UPDATE oa_operators SET role='member' WHERE id='01J00000000000000000000091'").run();
+    try {
+      assert.equal((await post('/api/app/social', { network: 'x', name: 'Refused member connection', prefix, credential: 'synthetic-lamp-9', scopes: ['tweet.write'] })).status, 403, 'a member cannot connect a social account');
+      assert.equal((await api('/api/app/social', { method: 'PATCH', body: JSON.stringify({ postByDefault: true }) })).status, 403, 'a member cannot change the posting default');
+      assert.equal((await api(`/api/app/social/${accounts[0].id}`, { method: 'DELETE' })).status, 403, 'a member cannot remove a social account');
+    } finally {
+      await db.prepare("UPDATE oa_operators SET role='owner' WHERE id='01J00000000000000000000091'").run();
+    }
+    assert.equal((await socialLog()).accounts.length, 3, 'refused mutations preserve all connected accounts');
+    assert.equal((await socialLog()).postByDefault, false, 'refused default mutation preserves explicit opt-in');
     const credentials = ['synthetic-lamp-1', 'synthetic-lamp-2', 'synthetic-lamp-3', 'synthetic-lamp-4', 'synthetic-lamp-5'];
     for (const value of credentials) {
       assert.ok(!(await api('/api/app/social')).text.includes(`"${value}"`), 'account API never returns a saved credential');
@@ -248,10 +259,21 @@ export async function socialPostsFlow(t) {
       assert.ok(!savedPublicationData.includes(credential), 'saved delivery envelopes, publication bodies and delivery APIs never contain a posting credential or session token');
     }
 
+    const pendingIncident = await createIncident(affected.id, 'Synthetic Lamp disconnect before retry');
+    const pendingPublication = await publish(pendingIncident);
+    await flush();
+    const pendingX = await eventuallyFollowUp(async () => (await socialLog()).posts.find(row => row.eventId === pendingPublication.update.id && row.network === 'x'),
+      row => row?.state === 'queued' && row.attempts === 1, 'a failing account has a queued retry before disconnection');
     const removed = await api(`/api/app/social/${accounts[0].id}`, { method: 'DELETE' });
     assert.equal(removed.status, 200, removed.text);
     assert.ok(!(await socialLog()).accounts.some(row => row.id === accounts[0].id), 'removing an account leaves no active connection');
     const beforeRemoval = received.x.length;
+    await db.prepare("UPDATE integration_deliveries SET next_at=0 WHERE namespace='lamp-social' AND id=?").bind(pendingX.id).run();
+    await pendingPublication.replay();
+    const replay = await worker.queue('lamp-follow-ups-jobs', [{ id: 'synthetic-lamp-disconnected-replay', timestamp: new Date(), attempts: 2, body: { type: 'delivery-dispatch', eventId: pendingPublication.update.id } }]);
+    assert.equal(replay.outcome, 'ok');
+    await flush();
+    assert.equal(received.x.length, beforeRemoval, 'queued retries and a replay cannot use a disconnected credential');
     await publish(incident, { channels: ['social'], lifecycle: 'Monitoring', customerImpact: 'Payments are recovering after the account was removed.' });
     await flush(); assert.equal(received.x.length, beforeRemoval, 'a removed account receives no future update');
     assert.deepEqual(received.bluesky.at(-1).body.record.reply.parent, received.bluesky[1].response, 'a later update resumes its own incident thread after another incident publishes');

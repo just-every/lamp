@@ -5,6 +5,10 @@ import { verificationPlan, shardNames } from './plan.mjs';
 import { checkVerificationPlan } from './check-plan.mjs';
 
 checkVerificationPlan();
+if (!process.env.LAMP_VERIFY_SHARD || process.env.LAMP_VERIFY_SHARD === 'source') {
+  const { execFileSync } = await import('node:child_process');
+  execFileSync(process.execPath, ['scripts/contract-docs.mjs', 'check', 'INTEG-002'], { stdio: 'inherit' });
+}
 
 const requested = process.argv[2] ?? process.env.LAMP_VERIFY_SHARD;
 if (process.argv.length > 3 || (requested && !shardNames.includes(requested))) throw Error(`Usage: node scripts/verification/run.mjs [${shardNames.join('|')}]`);
