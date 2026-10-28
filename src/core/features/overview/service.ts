@@ -5,7 +5,7 @@ import type { MaintenanceService } from "../maintenance";
 
 export interface OverviewService {
   live: LiveStatusService;
-  get(): Promise<{
+  get(options?: {readOnly?: boolean}): Promise<{
     live: Awaited<ReturnType<LiveStatusService["get"]>>;
     components: Awaited<ReturnType<ComponentsService["list"]>>;
     activeIncidents: Awaited<ReturnType<IncidentsService["list"]>>;
@@ -24,12 +24,12 @@ export function createOverviewService(
 ): OverviewService {
   return {
     live,
-    async get() {
+    async get(options = {}) {
       const [components, incidents, maintenance, status] = await Promise.all([
         componentsService.list(),
         incidentsService.list(),
-        maintenanceService.list(),
-        live.get(),
+        maintenanceService.list({notifyOverruns: !options.readOnly}),
+        live.get({refresh: !options.readOnly}),
       ]);
       return {
         live: status,

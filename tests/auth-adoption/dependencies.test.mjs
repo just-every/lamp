@@ -1,3 +1,4 @@
+import { runNativeIdentityProofFlow } from '../agent-door/identity-proof-flow.mjs';
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { mkdtemp, rm } from 'node:fs/promises';
@@ -10,7 +11,7 @@ import { linkEdge } from '../fixtures/base/provider-edge.mjs';
 
 // Real Lamp Hono routes and D1 transactions; only the external provider's network
 // is substituted. The copied Base edge validates signed client assertions.
-test('ACCESS-002 dependency linking keeps exact owner approval through setup, unlink and concurrent replacement', async () => {
+test('ACCESS-002 AGENT-008 dependency linking and Business identity retain exact native owner proof', async t => {
   const dir = await mkdtemp(join(process.cwd(), '.lamp-dependency-'));
   const storage = await database(dir);
   const cache = await openSnapshotCacheRuntime(dir);
@@ -95,4 +96,5 @@ test('ACCESS-002 dependency linking keeps exact owner approval through setup, un
     await storage.runtime.dispose();
     await rm(dir, { recursive: true, force: true });
   }
+  await runNativeIdentityProofFlow(t);
 });

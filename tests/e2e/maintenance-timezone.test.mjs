@@ -28,7 +28,7 @@ before(async () => {
     RER_DEV_KEY: devKey, RER_DEV_ORIGIN: `http://${appHost}:${port}`, RER_DEV_IDENTITY: "off" });
   statePath = await mkdtemp(join(tmpdir(), "lamp-maintenance-timezone-d1-"));
   cachePath = await mkdtemp(join(tmpdir(), "lamp-maintenance-timezone-vite-"));
-  execFileSync("pnpm", ["exec", "wrangler", "d1", "migrations", "apply", "DB", "--local", "--config", "wrangler.jsonc", "--persist-to", statePath], { stdio: "pipe" });
+  execFileSync("pnpm", ["exec", "wrangler", "d1", "migrations", "apply", "DB", "--local", "--config", "wrangler.jsonc", "--persist-to", statePath], { maxBuffer: 8 * 1024 * 1024, stdio: "pipe" });
   sessionId = await insertRealOperatorSession({ persistTo: statePath });
   worker = spawn("pnpm", ["exec", "vite", "--host", "127.0.0.1", "--port", String(port), "--strictPort"], {
     detached: true, stdio: "pipe", env: { ...process.env, LAMP_WORKERS_STATE_PATH: statePath, LAMP_VITE_CACHE_DIR: cachePath, LAMP_DISABLE_INSPECTOR: "true" },

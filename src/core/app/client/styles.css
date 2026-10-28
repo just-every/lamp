@@ -18,3 +18,5 @@
 @import "../../features/audit-log/ui/audit-log.css";
 
 @import "../../features/subscriber-reporting/ui/subscriber-reporting.css";
+
+@import "./ui/agent-records.css";

@@ -17,7 +17,7 @@ export function createChatEventRepository(db: D1Database) {
         .bind(input.eventId,input.eventId,input.queuedAt,...(previous?previousIds:[...input.componentIds,...input.componentIds]),input.eventId)];
     },
     async pending(limit:number) {
-      return (await db.prepare(`SELECT x.id,x.subscriber_id AS subscriberId,x.kind,d.kind AS channelKind,
+      return (await db.prepare(`SELECT x.id,x.event_id AS eventId,x.subscriber_id AS subscriberId,x.kind,d.kind AS channelKind,
         c.component_name AS componentName,c.previous_state AS previousState,c.new_state AS newState,c.changed_at AS changedAt,c.claimant_kind AS claimantKind,
         m.reference,m.title,n.kind AS noticeKind,n.body AS noticeBody,n.published_at AS publishedAt,p.timezone
         FROM channel_subscriber_events x JOIN subscriber_directory s ON s.id=x.subscriber_id AND s.state='active'
@@ -28,7 +28,7 @@ export function createChatEventRepository(db: D1Database) {
         LEFT JOIN maintenance m ON m.id=n.maintenance_id
         WHERE NOT EXISTS(SELECT 1 FROM integration_deliveries i WHERE i.namespace='lamp-channels' AND i.id=x.id)
         ORDER BY x.queued_at,x.id LIMIT ?`).bind(limit).all<{
-          id:string;subscriberId:string;kind:"maintenance"|"component";channelKind:"slack"|"teams";
+          id:string;eventId:string;subscriberId:string;kind:"maintenance"|"component";channelKind:"slack"|"teams";
           componentName:string|null;previousState:string|null;newState:string|null;changedAt:string|null;claimantKind:string|null;
           reference:string|null;title:string|null;noticeKind:string|null;noticeBody:string|null;publishedAt:string|null;timezone:string;
         }>()).results;
