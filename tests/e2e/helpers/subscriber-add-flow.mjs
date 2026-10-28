@@ -142,9 +142,9 @@ export async function subscriberAddFlow() {
     assert.ok(Number.isFinite(Date.parse(denial.created_at)));
     afterRefusal.set("audit_entries", JSON.stringify(currentAudit.filter(row => row !== addedAudit[0])));
     assert.deepEqual(afterRefusal, beforeInvalid, "refusal preserves every business row and every prior audit row");
-    const audit = await api(`/api/app/audit-log?action=access-denied&actorId=${owner.id}`);
-    assert.equal(audit.status, 200);
-    assert.ok(audit.body.entries.some(row => row.id === denial.id && row.actorId === owner.id && row.entityId === "/api/app/subscribers" && Number.isFinite(Date.parse(row.createdAt))), "the Owner sees the attributed denial in the audit view");
+    const refusalLog = await api(`/api/app/audit-log?action=access-denied&actorId=${owner.id}`);
+    assert.equal(refusalLog.status, 200);
+    assert.ok(refusalLog.body.entries.some(row => row.id === denial.id && row.actorId === owner.id && row.entityId === "/api/app/subscribers" && Number.isFinite(Date.parse(row.createdAt))), "the Owner sees the attributed denial in the audit view");
     assert.equal(fixture.messages.length, mailBeforeInvalid, "refused operator additions write no subscription and send no mail");
 
     const smsSettings = await api("/api/app/sms/settings");
