@@ -4672,7 +4672,7 @@
       "executable": false
     },
     "src/core/features/setup/ui/first-run-page.tsx": {
-      "sha256": "a604a0ef30853e834e45759fc49a476b81d7972997f5cce955c6b61c8533826b",
+      "sha256": "809225c30edb221bee38bfb4f75cf2589b067ab519ee89f2b28f9907a044067a",
       "executable": false
     },
     "src/core/features/setup/ui/found-card.tsx": {
@@ -4685,6 +4685,10 @@
     },
     "src/core/features/setup/ui/setup-draft.ts": {
       "sha256": "76900f7dce358612d080f3aea514e6094ae4d1ecbaa931681e896b3a0e0157ea",
+      "executable": false
+    },
+    "src/core/features/setup/ui/time-zone.ts": {
+      "sha256": "2dc1584eb8ecf7d041ffdf34e08645997d2f74bba25e618cc960b7fbf72cd2af",
       "executable": false
     },
     "src/core/features/sms/message.ts": {
@@ -7052,7 +7056,7 @@
       "executable": false
     },
     "tests/e2e/website-onboarding.test.mjs": {
-      "sha256": "2a70c8bf43e04a9a9e669fa7ccf7a17dc3c618d915a82b9160778a254e4ed95e",
+      "sha256": "1cd62a2c82ac70207ac56740107277ea9e7353695dd3943a4f049050b2c44ddc",
       "executable": false
     },
     "tests/e2e/worker-startup.mjs": {
