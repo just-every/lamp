@@ -3091,7 +3091,7 @@ Lamp is US-first: USD, TCPA and CTIA SMS consent with 10DLC or toll-free registr
 
 ## Status
 
-Judged from the code and tests at commit `HEAD` (29 October 2026; Verify and the guarded landing record the candidate's full commit identity).
+Judged from the code and tests at commit `751fb18f86ad12f4571af426e6deea88da159443` (29 October 2026).
 
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
