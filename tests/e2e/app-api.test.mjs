@@ -208,13 +208,14 @@ test("PAGE-001 PAGE-007 PAGE-010 SUB-001 — Complete public snapshots, validato
 
 
 
-test("COMP-006 UPDATE-004 PAGE-012 INCIDENT-012 — Component claims, saved drafts, settings and operator records", async t => {
+test("TEAM-004 COMP-006 UPDATE-004 PAGE-012 INCIDENT-012 — Component claims, saved drafts, settings and operator records", async t => {
   await auditMutationsFlow({ appFetch, uploadLogo: async () => {
     const body = new FormData();
     body.set("logo", new Blob([Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Y9Zl1sAAAAASUVORK5CYII=", "base64")], { type: "image/png" }), "synthetic-lamp-203.png");
     return fetch(`${appUrl}/api/app/page-settings/logo`, { method: "POST", body,
       headers: { Cookie: `${sessionCookieName(appUrl)}=${sessionId}`, Origin: appUrl } });
   } });
+  await (await import('./helpers/operator-roles-flow.mjs')).operatorRolesFlow({appFetch,appUrl,persistTo:testStatePath,configPath:sourceConfigPath});
   t.diagnostic("COMP-006 — standing claims derive a component's public state");
   await (async () => {
   const claim = await appFetch("/api/app/components/01J00000000000000000000011/standing-claim", {

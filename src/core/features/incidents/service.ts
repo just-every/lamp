@@ -135,6 +135,7 @@ export function createIncidentsService(
     await onPublicDataChanged();
   };
   const publish = async (incidentId: string, operatorId: string, input: { channels: Array<UpdateChannel>; publishedAt?: string; componentStates?: Record<string, IncidentClaimState>; expectedVersion: string; overrideReason?: string }, scheduled = false) => {
+    if (!await repository.canPublish(operatorId)) throw new Error("Your role does not permit publication.");
     const [incident, draft, baselineComponents] = await Promise.all([repository.findIncident(incidentId), repository.findPublishingDraft(incidentId), repository.listComponents(incidentId)]);
     if (!incident || !draft) return null;
     if (input.expectedVersion.split(":")[0] !== draft.id) throw new DraftConflictError();
@@ -347,6 +348,7 @@ export function createIncidentsService(
       const due = await repository.listDueScheduledDrafts(now);
       const published: string[] = []; const heldForReview: string[] = []; const heldForRecovery: string[] = [];
       for (const draft of due) {
+        if (!await repository.canPublish(draft.authorOperatorId)) { heldForReview.push(draft.incidentId); continue; }
         if (reviewPolicy.requiresReview({ authorOperatorId: draft.authorOperatorId, draft }) && !draft.reviewedAt) {
           heldForReview.push(draft.incidentId);
           await onScheduledReviewHeld({ incidentId: draft.incidentId, draftId: draft.id, scheduledPublishAt: draft.scheduledPublishAt ?? now });

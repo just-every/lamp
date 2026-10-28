@@ -1,3 +1,5 @@
+import { createOperatorRolesRepository } from '../operators/roles.repository';
+import { drafts, publishes } from '../operators/permissions';
 import { z } from 'zod';
 import { postResponse } from './slack/response';
 import type { Hono } from 'hono';
@@ -42,6 +44,12 @@ export function registerChatDeskRoutes(app: Hono<AppEnv>, service: ReturnType<ty
       if (input.link) return c.json(await service.links.link(input.link, input.identity));
       const operator = await service.repository.resolve(input.identity);
       if (!operator) return c.json({ error: 'Link this chat identity using a one-time code from the operator app.' }, 403);
+      const roles = createOperatorRolesRepository(c.env.DB), role = await roles.role(operator);
+      const publishing = 'action' in input && input.action && typeof input.action === 'object' && 'action' in input.action && ['publish','review'].includes(String(input.action.action));
+      if (!role || !(publishing ? publishes(role) : drafts(role))) {
+        await roles.denied(operator,c.req.method,c.req.path);
+        return c.json({error:'Your role does not permit this chat action.'},403);
+      }
       if ('compose' in input && input.compose) return c.json(transport === 'slack' ? slackComposer(await components.list()) : teamsComposer(await components.list()));
       const action = actionSchema.safeParse(input.action);
       if (!action.success) return c.json({ error: 'A complete Lamp action with valid update fields and component states is required.' }, 400);
