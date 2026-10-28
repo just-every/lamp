@@ -6,8 +6,13 @@ import { applyOwnerMigrations } from './owner-migrations.mjs';
 // tooling retains its own output and failure semantics without local alterations.
 const verbose = process.argv.includes('--verbose');
 if (!process.argv.includes('--apply')) {
-  const result = spawnSync(process.execPath, ['scripts/migrate-local.mjs', '--apply'], { encoding: 'utf8', stdio: verbose ? 'inherit' : ['ignore', 'pipe', 'pipe'] });
+  // Wrangler repeats its complete migration table after each applied file. A
+  // fresh install through 0068 exceeds spawnSync's 1 MiB default while still applying
+  // successfully; retain the quiet-success/error-output contract with a bounded
+  // capture that admits that real output instead of terminating the child.
+  const result = spawnSync(process.execPath, ['scripts/migrate-local.mjs', '--apply'], { encoding: 'utf8', maxBuffer: 8 * 1024 * 1024, stdio: verbose ? 'inherit' : ['ignore', 'pipe', 'pipe'] });
   if (result.status !== 0) {
+    if (result.error) process.stderr.write(`Local migration process failed: ${result.error.message}\n`);
     if (!verbose) process.stderr.write(result.stderr || result.stdout || 'Local migrations failed.\n');
     process.exitCode = result.status ?? 1;
   } else console.log('Local database migrations are up to date.');

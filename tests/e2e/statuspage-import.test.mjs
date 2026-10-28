@@ -3,6 +3,8 @@ import { readdirSync, readFileSync } from 'node:fs';
 import { test } from 'node:test';
 import { openStatusJourney } from './helpers/status-journey.mjs';
 import { notificationActivity, assertNoNewNotifications, moveInDoor } from '../helpers/import-notifications.mjs';
+import { importedIncidentLiveFlow } from './helpers/imported-incident-live-flow.mjs';
+import { incidentSubscriberFiles, incidentSubscriberImportFlow } from './helpers/incident-subscriber-import-flow.mjs';
 import { postmortemTemplateImportFlow } from './helpers/postmortem-template-import-flow.mjs';
 
 const fixtures = source => readdirSync(`tests/fixtures/${source}/small`).map(name => ({ name, text: readFileSync(`tests/fixtures/${source}/small/${name}`, 'utf8') }));
@@ -16,18 +18,22 @@ function sourceHistory(source, files) {
   }));
 }
 
-test('MOVE-001 MOVE-002 MOVE-003 MOVE-004 MOVE-005 MOVE-009 MOVE-011 MOVE-012 MOVE-013 MOVE-014 SUB-023 ACCESS-001 — owner reviews provider history, imports silently, keeps public readers, invites deliberately and conditionally undoes', { timeout: 600_000 }, async t => {
+test('SUB-019 MOVE-001 MOVE-002 MOVE-003 MOVE-004 MOVE-005 MOVE-009 MOVE-011 MOVE-012 MOVE-013 MOVE-014 SUB-023 ACCESS-001 — owner reviews provider history, imports silently, keeps public readers, invites deliberately and conditionally undoes', { timeout: 600_000 }, async t => {
   const sourceFiles = fixtures('statuspage'), apiKey = 'synthetic-owner-import-key';
   const requests = [];
+  let incidentSubscriberProbe = false;
   const runtime = await openStatusJourney({ providerEdge: async request => {
     const url = new URL(request.url);
     if (url.origin !== 'https://api.statuspage.io') return;
-    requests.push({ method: request.method, path: url.pathname, authorization: request.headers.get('authorization') });
+    requests.push({ method: request.method, path: url.pathname, url: url.href, authorization: request.headers.get('authorization') });
     if (request.headers.get('authorization') !== `OAuth ${apiKey}`) return Response.json({}, { status: 401 });
+    const incidentSubscribers = /^\/v1\/pages\/synthpage01\/incidents\/([^/]+)\/subscribers$/u.exec(url.pathname);
+    const selectedFiles = incidentSubscriberProbe ? incidentSubscriberFiles(sourceFiles) : sourceFiles;
+    if (incidentSubscribers) return new Response(selectedFiles.find(row => row.name === `incident-subscribers-${incidentSubscribers[1]}.json`)?.text ?? '[]', { headers: { 'Content-Type': 'application/json' } });
     const resource = url.pathname.replace('/v1/pages/synthpage01', '').replace(/^\//, '').replaceAll('_', '-').replace('/', '-');
     const page = Number(url.searchParams.get('page') ?? 1);
     const name = resource ? `${resource}${page > 1 ? `-${page}` : ''}.json` : 'page.json';
-    return new Response(sourceFiles.find(file => file.name === name)?.text ?? '[]', { headers: { 'Content-Type': 'application/json' } });
+    return new Response(selectedFiles.find(file => file.name === name)?.text ?? '[]', { headers: { 'Content-Type': 'application/json' } });
   } });
   const origin = runtime.appOrigin, publicOrigin = runtime.publicOrigin;
   const fetch = (input, init) => runtime.raw(input, init);
@@ -150,5 +156,24 @@ test('MOVE-001 MOVE-002 MOVE-003 MOVE-004 MOVE-005 MOVE-009 MOVE-011 MOVE-012 MO
     // remain private until publication, and retain operator edits through undo.
     const importAll = async files => { const { review, result } = await apply({ files }); return { preview: review, result }; };
     await postmortemTemplateImportFlow({ api, request: (path, init) => nativeRequest(path, init), importAll, moveIn, original: sourceFiles, publicOrigin, preserveEdits: true, fetcher: fetch });
+    const beforeIncidentFollowers = await counts();
+    incidentSubscriberProbe = true;
+    const requestOffset = requests.length;
+    try {
+      const fetched = await api('/api/app/statuspage-import/fetch', { source: 'statuspage', pageId: 'synthpage01', apiKey });
+      assert.equal(fetched.status, 200, JSON.stringify(fetched.body));
+      const file = fetched.body.files.find(row => row.name === 'incident-subscribers-followinc001.json');
+      assert.equal(JSON.parse(file.text).length, 3, 'the fixed-origin reader retains every unresolved incident follower response');
+      const reads = requests.slice(requestOffset).filter(row => new URL(row.url).pathname.endsWith('/subscribers'));
+      const incidentReads = reads.filter(row => row.path.includes('/incidents/'));
+      assert.equal(incidentReads.length, 1, 'only the unresolved incident follower endpoint is read');
+      assert.ok(incidentReads.every(row => new URL(row.url).searchParams.get('per_page') === '100'), 'incident follower reads use documented pagination');
+      assert.ok(reads.every(row => row.method === 'GET' && row.authorization === `OAuth ${apiKey}`));
+    } finally { incidentSubscriberProbe = false; }
+    await incidentSubscriberImportFlow({ t, runtime, api, moveIn, importAll, original: sourceFiles, origin, publicOrigin });
+    assert.deepEqual(await counts(), beforeIncidentFollowers, 'incident follower undo leaves the prior installation intact');
+    await importedIncidentLiveFlow(sourceFiles);
+    assert.deepEqual(await counts(), beforeIncidentFollowers, 'the separate live import proof leaves the undo installation intact');
+
   } finally { await runtime.close(); }
 });
