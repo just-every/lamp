@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { gzipSync } from 'node:zlib';
+import { chromium } from 'playwright';
 import { themeFlow } from './theme-flow.mjs';
 import { themeSettings } from './theme-fixture.mjs';
 
@@ -57,14 +58,30 @@ export async function themeOwnerJourney({ appFetch, appUrl, pageUrl, sessionId, 
   } while (cursor);
   assert.equal(published.length, limits.components.value, 'every component is public in the transfer-budget fixture');
   assert.equal(new Set(published.map(row => row.id)).size, published.length);
-  for (const template of ['default', 'calm', 'uptime', 'regions']) {
-    await updateSettings({ template });
-    const response = await fetch(`${pageUrl}/`);
-    assert.equal(response.status, 200);
-    const html = await response.text();
-    const bytes = gzipSync(Buffer.from(html)).byteLength;
-    assert.ok(bytes <= limits.snapshotMaxBytesGzipped.value, `${template} themed page exceeds the transfer budget: ${bytes}`);
-    assert.ok(html.includes('Service updates from the Atlas team.'));
-    diagnostic(`${template}: ${limits.components.value} public components with the saved palette, uploaded font, banner and links: ${bytes} bytes gzipped`);
-  }
+  const browser = await chromium.launch({ headless: true, ...(process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH ? { executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH } : {}), args: ['--use-mock-keychain', '--password-store=basic', '--no-sandbox'] });
+  try {
+    for (const template of ['default', 'calm', 'uptime', 'regions']) {
+      await updateSettings({ template });
+      const response = await fetch(`${pageUrl}/`);
+      assert.equal(response.status, 200);
+      const html = await response.text();
+      const bytes = gzipSync(Buffer.from(html)).byteLength;
+      assert.ok(bytes <= limits.snapshotMaxBytesGzipped.value, `${template} themed page exceeds the transfer budget: ${bytes}`);
+      assert.ok(html.includes('Service updates from the Atlas team.'));
+      const context = await browser.newContext({ viewport: { width: 1440, height: 1000 } });
+      const page = await context.newPage();
+      const resources = new Set(), foreign = new Set();
+      page.on('request', request => {
+        const url = new URL(request.url());
+        if (request.resourceType() === 'document' || !['http:', 'https:'].includes(url.protocol)) return;
+        if (url.origin === pageUrl) resources.add(url.pathname);
+        else foreign.add(url.origin);
+      });
+      await page.goto(pageUrl, { waitUntil: 'networkidle' });
+      assert.ok(resources.size <= 4, `${template} exceeds the four-request budget: ${[...resources]}`);
+      assert.equal(foreign.size, 0, 'the full-capacity theme makes no third-party request');
+      await context.close();
+      diagnostic(`${template}: ${limits.components.value} public components with the saved palette, uploaded font, banner and links: ${bytes} bytes gzipped, ${resources.size} own-origin requests`);
+    }
+  } finally { await browser.close(); }
 }

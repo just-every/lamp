@@ -8,12 +8,12 @@ The primary journey: An operator sets up the page and components, accepts eviden
 
 | Tier | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
-| Core | 11 | 174 | 51 | 236 |
+| Core | 12 | 173 | 51 | 236 |
 | Agent surface | 0 | 0 | 5 | 5 |
 | Later | 0 | 0 | 0 | 0 |
-| Full target | 11 | 174 | 56 | 241 |
+| Full target | 12 | 173 | 56 | 241 |
 
-Judged from the code and tests at commit `c1b49c71fa58c8bb6b876074dba3b1cab8407a27` (28 October 2026). Field proof register: 19 rows; 0 passed, 0 failed, 19 not run.
+Judged from the code and tests at commit `f9907ed2fbce20f06295e1c3ebdbd0fd7a755f39` (28 October 2026). Field proof register: 19 rows; 0 passed, 0 failed, 19 not run.
 
 ## Core
 
@@ -1701,7 +1701,7 @@ Core · target · **partial** · Cites BASE-OPS-004 · Register R-3
 
 #### THEME-001 — Full brand theming
 
-Core · target · **partial** · Cites BASE-INPUT-003, BASE-PUBLIC-001
+Core · target · **done** · Cites BASE-INPUT-003, BASE-PUBLIC-001
 
 **Requirement.** The owner configures palette, typography, header art, links and layout in Settings without editing source.
 
@@ -1712,7 +1712,7 @@ Core · target · **partial** · Cites BASE-INPUT-003, BASE-PUBLIC-001
 4. The next snapshot reflects every changed field and remains within PAGE-003’s transfer budget.
 
 **Evidence.** `tests/e2e/publishing-browser.test.mjs` — THEME-001 — owner publishes branded themes and layouts within the page budget; `tests/e2e/snapshot-retained.test.mjs` — THEME-001 PAGE-005 PAGE-006 PAGE-007 PAGE-018 — a published status survives storage, database and queue failures, cold restart and an independent heartbeat silence alarm
-**Gap.** Native Settings and layout proof passed before main consolidated its journeys. The theme flow is integrated into the surviving native browser journey; the next run must prove it and the full-theme component-limit transfer budget on the rebased candidate.
+**Gap.** None.
 
 #### THEME-002 — Owner stylesheet
 

@@ -448,7 +448,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "ce5ccfe710682c71ce66623bd3a40507e42c951a4418bef340f1f954c607c85e",
+      "sha256": "507d74d1aaedecb107bf74ff8a028b01187a281646d8e5b3c120416f34b12006",
       "executable": false
     },
     "AGENTS.md": {
@@ -496,7 +496,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "ac2326efc18c395e272fefa525897efcc905d6ba6cc36ec1e4942dd941963f23",
+      "sha256": "c218d113c467e5a6479a82a5ecd17881ecf2e8ce5c86f3d8369fda6e24519a60",
       "executable": false
     },
     "DEMO.md": {
@@ -548,7 +548,7 @@
       "executable": false
     },
     "docs/CLAIMS.md": {
-      "sha256": "bf98a1ecc614cf4f4a0d1e85deded4b4f4884a19ad00dbbe70ecae6e01fed865",
+      "sha256": "e8dfc6991a55e3014f7c82857d1fd2ccc82561aed6d8afab5d4fb1e7c463a343",
       "executable": false
     },
     "docs/components-and-groups.md": {
@@ -6688,7 +6688,7 @@
       "executable": false
     },
     "tests/e2e/helpers/theme-owner-journey.mjs": {
-      "sha256": "e8713923b298ac0894ec518892fa24d75fbcb23eb7fa68dfa527b861914e9461",
+      "sha256": "692b63db82244ba7fde18fd0217f78fbbbcaf6042e713fb4072dd3c104096702",
       "executable": false
     },
     "tests/e2e/helpers/theme-template-flow.mjs": {
