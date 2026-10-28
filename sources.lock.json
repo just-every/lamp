@@ -6676,7 +6676,7 @@
       "executable": false
     },
     "tests/e2e/helpers/theme-browser-flow.mjs": {
-      "sha256": "6f8417a40085e615d231d779c34246d90339b4d3694d46ee2f9dcfec53032f95",
+      "sha256": "33d68fa0079e694564c7d88fb4073db3260c6e72dc1a0758442e3c39cc8d6d14",
       "executable": false
     },
     "tests/e2e/helpers/theme-fixture.mjs": {
@@ -6684,7 +6684,7 @@
       "executable": false
     },
     "tests/e2e/helpers/theme-flow.mjs": {
-      "sha256": "e7c82e5962ef23cdbd091b9c6c2a7ca6cddb3e18cfcf52ef068fc02f54bf3132",
+      "sha256": "728a42b8bd7dc5a05c2eca0f0e4029246ee449d33a7c946c850ea8d4669a8bd3",
       "executable": false
     },
     "tests/e2e/helpers/theme-template-flow.mjs": {

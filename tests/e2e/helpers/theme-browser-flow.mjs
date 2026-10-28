@@ -39,6 +39,14 @@ export async function themeBrowserFlow({ appUrl, pageUrl, sessionId, cookieName,
     await page.getByLabel("Use a custom colour palette").check();
     const labels = { background: "Background", surface: "Surface", text: "Text", link: "Links", operational: "Operational", degraded: "Degraded performance", partial: "Partially unavailable", major: "Major outage", maintenance: "Maintenance" };
     for (const [key, label] of Object.entries(labels)) await page.getByRole("textbox", { name: `${label} hex colour`, exact: true }).fill(theme.palette[key]);
+    await saved();
+    const textColour = page.getByRole("textbox", { name: "Text hex colour", exact: true });
+    await textColour.fill(theme.palette.background);
+    await expect(page.getByRole("alert").filter({ hasText: /text against background contrast/ })).toBeVisible();
+    await expect(textColour).toHaveValue(theme.palette.background);
+    assert.deepEqual((await currentSettings()).theme.palette, theme.palette, "refused contrast keeps the published palette");
+    await textColour.fill(theme.palette.text);
+    await saved();
     await open("Font and header image");
     await page.getByRole("combobox", { name: /^Page font/ }).selectOption("mono");
     await page.getByLabel(/^Upload font/).setInputFiles({ name: "synthetic-lamp-1.woff2", mimeType: "font/woff2", buffer: font });
@@ -108,9 +116,9 @@ export async function themeBrowserFlow({ appUrl, pageUrl, sessionId, cookieName,
       assert.ok(await publicPage.evaluate(() => document.documentElement.scrollWidth <= innerWidth), `Public theme fits ${width}`);
       const group = publicPage.locator("details.component-group").first();
       assert.equal(await group.getAttribute("open"), null);
-      await group.locator("summary").click();
+      await group.locator(":scope > summary").click();
       await expect(group.locator(".component").first()).toBeVisible();
-      await group.locator("summary").click();
+      await group.locator(":scope > summary").click();
     }
     const noScript = await browser.newContext({ javaScriptEnabled: false, viewport: { width: 390, height: 1000 } });
     const literal = await noScript.newPage();
