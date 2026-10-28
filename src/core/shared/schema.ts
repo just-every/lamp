@@ -148,6 +148,8 @@ export const incidentComponents = sqliteTable("incident_components", {
 }, (table) => [index("incident_components_incident_id_idx").on(table.incidentId), index("incident_components_component_id_idx").on(table.componentId)]);
 
 export const incidentUpdates = sqliteTable("incident_updates", {
+  automationAttribution: text("automation_attribution"),
+  automationReceiptId: text("automation_receipt_id"),
   id: text().primaryKey(),
   incidentId: text("incident_id").notNull().references(() => incidents.id),
   lifecycle: text({ enum: ["Investigating", "Identified", "Monitoring", "Resolved"] }).$type<IncidentLifecycle>().notNull(),

@@ -61,11 +61,21 @@ test("Invitation cancellation and complete identity erasure preserve subscriber 
   const outstanding = linkToken(r.base.messages.at(-1));
   await r.base.auth.mintCredential(r.request('/auth/credentials', { method: 'POST', cookie: target.cookie }));
   await r.base.auth.requestStepUp(r.request('/auth/step-up', { method: 'POST', cookie: target.cookie }), { action: 'delete' });
+  // Publication provenance is durable product data, but the saved approver's
+  // personal name must be anonymized by the same owner erasure transaction.
+  const at = new Date().toISOString();
+  const targetName = (await r.db.prepare("SELECT display_name FROM oa_operators WHERE id=?").bind(target.id).first()).display_name;
+  await r.db.prepare("INSERT INTO incidents(id,reference,title,lifecycle,opened_at,created_by_operator_id,created_at,updated_at) VALUES('erasure-rule-incident','INC-9901','Saved rule incident','Investigating',?,?,?,?)").bind(at,target.id,at,at).run();
+  await r.db.prepare("INSERT INTO incident_updates(id,incident_id,lifecycle,affected_audience,customer_impact,what_still_works,details,next_update_at,published_at,author_operator_id,created_at,updated_at,automation_attribution,automation_receipt_id) VALUES('erasure-rule-update','erasure-rule-incident','Investigating','API customers','Requests are delayed.','','',?,?,?,?,?,?,?)").bind(at,at,target.id,at,at,`rule API availability, approved by ${targetName}`,'erasure-alert-receipt').run();
   const subscriberTokens = (await r.db.prepare('SELECT * FROM subscriber_tokens').all()).results;
   assert.ok((await r.db.prepare('SELECT count(*) n FROM oa_tokens WHERE operator_id=? AND revoked_at IS NULL').bind(target.id).first()).n > 0);
   assert.equal((await r.db.prepare('SELECT count(*) n FROM oa_credentials WHERE operator_id=? AND revoked_at IS NULL').bind(target.id).first()).n, 1);
   assert.equal((await r.call(`/api/app/operators/${target.id}`, { method: 'DELETE', cookie: r.cookie })).status, 204);
   await assertErased(r, target.id);
+  const provenance = await r.db.prepare("SELECT automation_attribution,automation_receipt_id,customer_impact FROM incident_updates WHERE id='erasure-rule-update'").first();
+  assert.equal(provenance.automation_attribution, 'rule API availability, approved by Erased operator');
+  assert.equal(provenance.automation_receipt_id, 'erasure-alert-receipt');
+  assert.equal(provenance.customer_impact, 'Requests are delayed.', 'erasure keeps the operator-written publication and causal alert');
   assert.equal((await r.authHandle(r.request('/auth/operator/status', { method: 'POST', cookie: r.cookie, body: { operatorId: target.id, status: 'active' } }))).status, 403, 'fresh activation cannot restore an erased identity');
   assert.equal((await r.base.handle(r.request('/auth/confirm', { method: 'POST', body: { token: outstanding } }))).status, 400);
   for (const cookie of [target.cookie, providerCookie]) assert.equal((await r.call('/api/app/session', { cookie })).status, 401);

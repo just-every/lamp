@@ -167,7 +167,7 @@ export function incidentLink(incident: PublicIncident) {
 /** What an update tells customers: the impact and what still works, then any detail. */
 export function updateText(update: PublicIncident["updates"][number]) {
   const said = [update.customerImpact, update.whatStillWorks].map(clean).filter(Boolean).map(sentence).join(" ");
-  return `${said ? `<p class="tpl-said">${renderUpdateHtml(said)}</p>` : ""}${clean(update.details) ? `<p class="tpl-detail">${renderUpdateHtml(clean(update.details))}</p>` : ""}`;
+  return `${said ? `<p class="tpl-said">${renderUpdateHtml(said)}</p>` : ""}${clean(update.details) ? `<p class="tpl-detail">${renderUpdateHtml(clean(update.details))}</p>` : ""}${update.automationAttribution ? `<p class="incident-meta">${escapeHtml(update.automationAttribution)}</p>` : ""}`;
 }
 
 export function earlierText(update: PublicIncident["updates"][number]) {

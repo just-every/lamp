@@ -25,7 +25,7 @@ export function requireOperator(auth: () => OperatorAuth, authorizedRead?: (requ
     await next();
   };
 }
-export function registerOperatorRoutes(app:Hono<AppEnv>,auth:()=>OperatorAuth,publicPageHost:string,options:{localMail?:boolean}={}) {
+export function registerOperatorRoutes(app:Hono<AppEnv>,auth:()=>OperatorAuth,publicPageHost:string,options:{localMail?:boolean;onErased?:()=>Promise<void>}={}) {
   app.onError((error,c) => c.json({error:error instanceof AuthError ? error.code : 'Operation unavailable.'},error instanceof AuthError ? error.status as 400 : 503));
   app.get('/api/app/session',c=>c.json({operator:c.get('operator'),publicPageHost}));
   app.post('/api/app/session/signout',async c=> {
@@ -64,6 +64,7 @@ export function registerOperatorRoutes(app:Hono<AppEnv>,auth:()=>OperatorAuth,pu
       ? await auth().cancelInvitation(request,id.data)
       : await auth().setOperatorStatus(request,id.data,'inactive');
     if(!before||target.status!=='inactive'||target.version!==before.version+(before.status==='inactive'?0:1))throw new AuthError('authority_changed',409);
-    await repository.erase(target,c.get('operatorSession'));return c.body(null,204);
+    const publicAutomationChanged=await repository.erase(target,c.get('operatorSession'));
+    if(publicAutomationChanged)await options.onErased?.();return c.body(null,204);
   });
 }

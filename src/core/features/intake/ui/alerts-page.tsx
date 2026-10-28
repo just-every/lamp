@@ -40,11 +40,12 @@ export function AlertsPage() {
   const switchTo = async (next: Open | null) => { if (await mayLeave()) setOpen(next); };
 
   return <div className="page-stack alerts-page">
-    <section className="page-title-row"><div><h1>Alerts</h1><p>Alerts from your tools open private drafts. Nothing is public until you publish.</p></div></section>
+    <section className="page-title-row"><div><h1>Alerts</h1><p>Alerts create private drafts by default. Saved rules can claim a component or publish prepared updates.</p></div></section>
     {connected.length > 0 && <ConnectedTools sources={connected} components={componentList} editing={editing?.id ?? null} onEdit={source => { if (editing?.id !== source.id) void switchTo({ kind: "edit", sourceId: source.id }); }} onRemoved={source => { if (editing?.id === source.id) setOpen(null); refresh(); }} />}
     {open?.kind === "new" ? <ToolForm key={`new:${open.tool}`} tool={open.tool} source={null} components={componentList} names={connected.map(source => source.name)} onConnected={created => { if (created) setOpen({ kind: "edit", sourceId: created.id, created }); refresh(); }} onSaved={refresh} onClose={() => void switchTo(null)} />
       : editing ? <ToolForm key={`edit:${editing.id}`} tool={toolOf(editing)} source={editing} components={componentList} names={connected.map(source => source.name)} onConnected={refresh} onSaved={refresh} onClose={() => void switchTo(null)} />
       : <ToolPicker onPick={tool => setOpen({ kind: "new", tool })} />}
+    <p><a className="text-link" href="/app/settings#alerts">Manage alert rules in Settings</a></p>
     {arrived.length > 0 && <ReceiptsCard receipts={arrived} />}
   </div>;
 }

@@ -39,6 +39,7 @@ export type PublishingDraft = StoredIncidentDraft & {
 };
 
 export interface IncidentPublishRecord {
+  automation?: import("../intake/rule-schema").RuleAutomationPublication;
   id: string;
   incidentId: string;
   lifecycle: string;

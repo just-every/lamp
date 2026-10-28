@@ -29,7 +29,7 @@ export function createIncidentTemplateService(repository: IncidentRepository, co
       const parsed = templateSchema.parse(input);
       const timestamp = nowIso(); const id = createUlid();
       const components = await componentRecords(parsed.components, id, timestamp);
-      await repository.saveTemplate({ ...parsed, id, title: "", folder: "", shouldSendNotifications: null, fieldsToShorten: [], affectedAudience: parsed.affectedAudience.trim(), customerImpact: parsed.customerImpact.trim(), whatStillWorks: parsed.whatStillWorks.trim(), details: parsed.details.trim(), createdByOperatorId: operatorId, createdAt: timestamp, updatedAt: timestamp }, components);
+      await repository.saveTemplate({ ...parsed, channels: parsed.channels ?? [], resolvedUpdate: parsed.resolvedUpdate ?? null, id, title: "", folder: "", shouldSendNotifications: null, fieldsToShorten: [], affectedAudience: parsed.affectedAudience.trim(), customerImpact: parsed.customerImpact.trim(), whatStillWorks: parsed.whatStillWorks.trim(), details: parsed.details.trim(), createdByOperatorId: operatorId, createdAt: timestamp, updatedAt: timestamp }, components);
       const saved = (await repository.listTemplates()).find(template => template.name === parsed.name);
       if (!saved) throw new Error("Incident template could not be saved.");
       return saved;

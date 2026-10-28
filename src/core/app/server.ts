@@ -1,3 +1,4 @@
+import { registerAlertRuleRoutes } from "../features/intake/rule-routes";
 import { registerTrafficAlertRoutes } from "../features/traffic-alerts/routes";
 import { registerSmsRoutes } from "../features/sms/routes";
 import { createManagementApiService } from "../features/management-api/service";
@@ -82,8 +83,9 @@ export function createApp(bindings: AppBindings, execution?: MailExecution) {
   registerTrafficAlertRoutes(app, services.trafficStorage);
   registerMetricsRoutes(app, services.metrics);
   registerManagementApiRoutes(app, createManagementApiService(bindings.DB, services.auth), services.metrics, publicWriteLimiter, services.components);
+  registerAlertRuleRoutes(app, services.alertRules);
   registerIntakeRoutes(app, services.intake, { publicPageHost: bindings.LAMP_PAGE_HOST, onUptimeTiming: services.metrics.acceptUptime, rateLimiter: publicWriteLimiter });
-  registerOperatorRoutes(app, services.auth, bindings.LAMP_PAGE_HOST, { localMail });
+  registerOperatorRoutes(app, services.auth, bindings.LAMP_PAGE_HOST, { localMail, onErased: services.publicSnapshots.rebuild });
   registerOverviewRoutes(app, services.overview);
   registerAuditLogRoutes(app, createAuditLogRepository(bindings.DB));
   registerSubscriberReportingRoutes(app, createSubscriberReportingService(createSubscriberReportingRepository(bindings.DB)));
