@@ -78,6 +78,7 @@ export async function themeFlow({ appFetch, fetch, appUrl, pageUrl, currentSetti
     assert.match(html, /Uptime over the last 14 days/);
     const web = html.slice(html.indexOf('<h4>Web application</h4>'), html.indexOf('<h4>API gateway</h4>'));
     assert.doesNotMatch(web, /class="uptime-marks"/);
+    assert.match(web, /class="uptime-number"/, "hiding the bar keeps the component’s numeric uptime");
     const css = await (await fetch(`${pageUrl}/assets/status-page.css`)).text();
     assert.match(css, /body\.lamp-public.*owner-note/);
     assert.match(css, /--paper:#f4f4f4/);

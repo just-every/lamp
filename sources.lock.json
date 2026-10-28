@@ -4528,7 +4528,7 @@
       "executable": false
     },
     "src/core/features/public-snapshot/renderer.ts": {
-      "sha256": "fe8c7aedb7e5e4066fb366b68c734eed8373f1459aa4b02f7e56cbf52119192f",
+      "sha256": "9e0f69e29bf42f2527aa4f1170ca648e10e18b5cb905060e6d12bc6594054bd5",
       "executable": false
     },
     "src/core/features/public-snapshot/report-markup.ts": {
@@ -4652,7 +4652,7 @@
       "executable": false
     },
     "src/core/features/public-snapshot/uptime.ts": {
-      "sha256": "1270a1281361c6085d0c742b466048d9a474a88790c5cdf3cc0794f6a4414cb8",
+      "sha256": "c72b1664e93bd5ae01aa846e2f387e6b5f960e774208f159c3bae6ca88124848",
       "executable": false
     },
     "src/core/features/public-snapshot/widget-runtime.js": {
@@ -6944,7 +6944,7 @@
       "executable": false
     },
     "tests/e2e/helpers/theme-flow.mjs": {
-      "sha256": "41a920d85224cb65c34d55e7aa7cc6225e1a84ea8e7a011f37be4f23caec677f",
+      "sha256": "4faea7bce801bfadf329a2bd1ec192eb47ad4e1adc0dc16bf23c364ac8077cb1",
       "executable": false
     },
     "tests/e2e/helpers/theme-template-flow.mjs": {
