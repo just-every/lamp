@@ -1,3 +1,4 @@
+import { portableRole, restoredRole } from './role-portability.mjs';
 import { preparePortableMetrics, assertPortableMetrics } from "../e2e/helpers/metrics-portability-flow.mjs";
 import assert from 'node:assert/strict';
 import { createHmac } from 'node:crypto';
@@ -23,6 +24,7 @@ test('ACCESS-001 INTAKE-009 native rer archive restores owner continuity and sub
     const bootstrap = await native.handle(native.request('/auth/bootstrap', { method: 'POST', body: { token: setupToken, displayName: 'Portable owner' } }));
     assert.equal(bootstrap.status, 303);
     const oldCookie = await native.signIn();
+    const roleRecord=await portableRole(db);
     const actor = await native.auth.getSession(native.request('/auth/session', { cookie: oldCookie }));
     await db.prepare('UPDATE oc_owner_claims SET operator_id=?,session_id=?').bind(actor.operator.id, actor.id).run();
     await db.prepare("INSERT INTO audit_entries(id,entity_type,entity_id,action,operator_id,payload_json,created_at,updated_at) VALUES('portable-audit','operator',?,'portable history',?,'{}','2026-10-01','2026-10-01')").bind(actor.operator.id, actor.operator.id).run();
@@ -69,6 +71,7 @@ test('ACCESS-001 INTAKE-009 native rer archive restores owner continuity and sub
     await command(target, 'import', '--input', join(directory, 'installation.rer'), '--yes');
     current = await proxy(target);
     const restored = current.env.DB, fresh = authFixture(restored);
+    await restoredRole(restored,roleRecord);
     assert.equal((await fresh.handle(fresh.request('/auth/bootstrap', { method: 'POST', body: { token: setupToken, displayName: 'Replacement' } }))).status, 409);
     assert.equal(await fresh.auth.getSession(fresh.request('/auth/session', { cookie: oldCookie })), null);
     const cookie = await fresh.signIn();

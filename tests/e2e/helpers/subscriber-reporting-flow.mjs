@@ -29,6 +29,7 @@ export async function subscriberReportingFlow({ vite, bindings }) {
   const now = new Date().toISOString(), day = now.slice(0, 10), to = new Date(Date.parse(now.slice(0, 10)) + 86_400_000).toISOString().slice(0, 10);
   const query = `from=${day}&to=${to}`;
   await db.prepare("INSERT INTO oa_operators(id,email,display_name,role,status,created_at) VALUES(?,?,?,'member','active',?)").bind(actor, email, 'Reporting operator', Date.now()).run();
+  await db.prepare("INSERT INTO operator_roles(operator_id,role) VALUES(?,'communicator')").bind(actor).run();
   const cookie = await fixture.signIn(email), app = new Hono();
   app.use('*', async (context, next) => { context.env = { ...bindings, DB: db }; await next(); });
   app.use('/api/app/*', requireOperator(() => fixture.auth));
@@ -111,6 +112,7 @@ export async function subscriberReportingFlow({ vite, bindings }) {
     await db.prepare('DELETE FROM oa_sessions WHERE operator_id=?').bind(actor).run();
     await db.prepare('DELETE FROM oa_tokens WHERE operator_id=?').bind(actor).run();
     await db.prepare('DELETE FROM operators WHERE id=?').bind(actor).run();
+    await db.prepare('DELETE FROM operator_roles WHERE operator_id=?').bind(actor).run();
     await db.prepare('DELETE FROM oa_operators WHERE id=?').bind(actor).run();
   }
 }

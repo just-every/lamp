@@ -3,8 +3,10 @@ import assert from 'node:assert/strict';
 /** Role changes use the app door; signed chat retains no old publish authority. */
 export async function chatRoleFlow({r,slack,teams,update}) {
   const component=(await r.call('/api/app/components',{groupId:null,name:'Synthetic Lamp chat roles',description:'',internal:false,displayOrder:50,note:''})).body.component;
+  const target=await r.db.prepare("SELECT id,email FROM oa_operators WHERE id<>? AND status='active' AND role='owner'").bind(r.operator).first();
+  const credential=await r.signIn(target.email);
   for(const send of [slack,teams]) {
-    const code=(await r.call('/api/app/chat-links',{})).body.code;
+    const code=(await r.call('/api/app/chat-links',{},'POST',credential)).body.code;
     assert.equal((await send(null,{code})).status,200);
   }
   const open=await slack({action:'open',title:'Synthetic Lamp role replay',components:[{componentId:component.id,state:'Major outage',relationship:'Primary'}],update:update()});
@@ -13,10 +15,8 @@ export async function chatRoleFlow({r,slack,teams,update}) {
   const preview=await slack({action:'preview',incidentId,version});
   assert.equal(preview.status,200);
   const captured=preview.body.result.publish;
-  const second=await r.db.prepare("SELECT email FROM oa_operators WHERE id<>? AND status='active' AND role='owner'").bind(r.operator).first();
-  const credential=await r.signIn(second.email);
   const change=async role=> {
-    const response=await r.call(`/api/app/operators/${r.operator}/role`,{role},'POST',credential);
+    const response=await r.call(`/api/app/operators/${target.id}/role`,{role},'POST');
     assert.equal(response.status,200,JSON.stringify(response.body));
   };
   const snapshot=async()=>Promise.all(['incidents','incident_drafts','incident_updates'].map(async table=>(await r.db.prepare(`SELECT * FROM ${table} ORDER BY id`).all()).results));
@@ -26,7 +26,7 @@ export async function chatRoleFlow({r,slack,teams,update}) {
     assert.equal((await send(captured)).status,403,`${name}: Responder cannot publish a previously previewed draft`);
     assert.deepEqual(await snapshot(),before);
     const audit=await r.db.prepare("SELECT operator_id,entity_id,created_at FROM audit_entries WHERE action='access-denied' AND entity_id=? ORDER BY id DESC LIMIT 1").bind(`/api/chat/${name}`).first();
-    assert.equal(audit.operator_id,r.operator);assert.ok(Number.isFinite(Date.parse(audit.created_at)));
+    assert.equal(audit.operator_id,target.id);assert.ok(Number.isFinite(Date.parse(audit.created_at)));
   }
   await change('viewer');
   assert.equal((await teams({action:'open',title:'Synthetic Lamp forbidden draft',components:[{componentId:component.id,state:'Major outage',relationship:'Primary'}],update:update()})).status,403);

@@ -6368,7 +6368,11 @@
       "executable": false
     },
     "tests/auth-adoption/portability.test.mjs": {
-      "sha256": "d812eec56af5b8f8f544c74028c7998fb62dd9260e6a721f56b59a4007803c77",
+      "sha256": "a04c2a9700e88b248c2fbf6274e5ed1c5d7c175d2f87ba5335d01707ce373afd",
+      "executable": false
+    },
+    "tests/auth-adoption/role-portability.mjs": {
+      "sha256": "0656634693dd833fdb038f77b4d4fab0c40c1a49add1f4fd810e468a39db31c7",
       "executable": false
     },
     "tests/auth-adoption/runtime.mjs": {
@@ -6416,7 +6420,7 @@
       "executable": false
     },
     "tests/chat-desk/roles.mjs": {
-      "sha256": "2caf1f7df70f3737d1c2e4cb0b8e739dc8f35c27a0adaf9620d3548407422681",
+      "sha256": "5f13998298b7fdbeb507eb498e327ef49ed5c32e43f733f828c54d3102481fb9",
       "executable": false
     },
     "tests/chat-desk/runtime.mjs": {
@@ -6548,7 +6552,7 @@
       "executable": false
     },
     "tests/e2e/delivery-contract.test.mjs": {
-      "sha256": "4d6650dcda3e030b4e61da4357639b55d7afc68298e472c22a11da5eac7b3db1",
+      "sha256": "1166ace9e3b5920f3ddfceeb3f345b9126f3d1de2d6b48e5e90e5ef5fc3d62ad",
       "executable": false
     },
     "tests/e2e/deployment-artifact.test.mjs": {
@@ -6920,7 +6924,7 @@
       "executable": false
     },
     "tests/e2e/helpers/subscriber-reporting-flow.mjs": {
-      "sha256": "83db0faa2d559797fe6d17af8877be5f48afe30084ef2244244978f1dedf451b",
+      "sha256": "fb08b7da91baba058016fd615646cfb052584c4d7a70864698305d06c833ceb8",
       "executable": false
     },
     "tests/e2e/helpers/template-choice-flow.mjs": {
