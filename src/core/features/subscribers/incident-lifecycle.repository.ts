@@ -18,6 +18,22 @@ export function finishIncidentSubscriptionStatements(db: D1Database, now: string
   ];
 }
 
+/** Acceptance is terminal only when the accepting provider has no receipt door.
+ * Keep this final event intact while ending eligibility for every later event. */
+export function incidentResolutionAcceptanceStatements(db: D1Database, deliveryId: string, now: string, mail: { provider: string; receipts: string[] }): D1PreparedStatement[] {
+  return [
+    db.prepare(`UPDATE incident_subscriptions SET ended_at=?,final_event_id=(
+        SELECT notification_event_id FROM notification_deliveries WHERE id=?)
+      WHERE include_report=0 AND ended_at IS NULL AND subscriber_id IN (
+        SELECT d.subscriber_id FROM notification_deliveries d JOIN incident_updates u ON u.id=d.incident_update_id
+        WHERE d.id=? AND d.channel='email' AND u.lifecycle='Resolved' AND u.incident_id=incident_subscriptions.incident_id
+        AND NOT EXISTS(SELECT 1 FROM json_each(?) receipts WHERE receipts.value=COALESCE(
+          (SELECT accepting_provider FROM mail_provider_routes WHERE notification_delivery_id=d.id),?)))`)
+      .bind(now,deliveryId,deliveryId,JSON.stringify(mail.receipts),mail.provider),
+    ...finishIncidentSubscriptionStatements(db,now),
+  ];
+}
+
 export function incidentResolutionReceiptStatements(db: D1Database, deliveryId: string, now: string, sms=false): D1PreparedStatement[] {
   const deliveries=sms?'sms_deliveries':'notification_deliveries';
   return [
@@ -53,9 +69,12 @@ export function createIncidentSubscriptionLifecycleRepository(db: D1Database) {
   return {
     async expire(now: string) {
       const cutoff=new Date(Date.parse(now)-30*24*60*60*1000).toISOString();
+      const reportOffCutoff=new Date(Date.parse(now)-24*60*60*1000).toISOString();
       await db.batch([
         db.prepare(`UPDATE incident_subscriptions SET ended_at=strftime('%Y-%m-%dT%H:%M:%fZ',resolution_at,'+30 days') WHERE ended_at IS NULL AND include_report=1
           AND resolution_at IS NOT NULL AND resolution_at<=?`).bind(cutoff),
+        db.prepare(`UPDATE incident_subscriptions SET ended_at=strftime('%Y-%m-%dT%H:%M:%fZ',resolution_at,'+24 hours')
+          WHERE ended_at IS NULL AND include_report=0 AND resolution_at IS NOT NULL AND resolution_at<=?`).bind(reportOffCutoff),
         ...finishIncidentSubscriptionStatements(db,now),
       ]);
     },

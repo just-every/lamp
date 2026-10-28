@@ -44,7 +44,7 @@ import { createBriefRepository, createBriefService } from "../features/brief";
 import { createStatuspageImportService } from "../features/statuspage-import";
 import { createChannelsService } from "../features/channels";
 import { createPageExportRepository, createPageExportService } from "../features/page-export";
-import { createAppMailTransport, type MailExecution } from "./mail";
+import { configuredMailReceiptProviders, createAppMailTransport, type MailExecution } from "./mail";
 import { createOpenAiCompatibleProvider } from "../platform/ai";
 import { createDemoAiProvider } from "../platform/ai/demo";
 import { createServerExtensionMount } from "./extensions/server";
@@ -81,7 +81,7 @@ export function createAppServices(bindings: AppBindings, blobs: BlobStore, execu
     publicOrigin: () => notificationOrigin(bindings),
     unavailable: outboundUnavailable(bindings, "Slack and Teams posts"),
   });
-  const deliveries = createDeliveriesService(createDeliveryRepository(bindings.DB), {
+  const deliveries = createDeliveriesService(createDeliveryRepository(bindings.DB, { provider: bindings.MAIL_PROVIDER || "resend", receipts: configuredMailReceiptProviders(bindings) }), {
     operatorChatAlert: input => channels.queueOperatorAlert({ ...input, appOrigin: authOrigin(bindings) }),
     pageStatusRollup: extensions.publicSnapshotPolicies.pageStatusRollup,
     effectsPaused: bindings.EFFECTS_PAUSED === "1",

@@ -1,4 +1,4 @@
-import { incidentResolutionReceiptStatements } from "../subscribers/incident-lifecycle.repository";
+import { incidentResolutionAcceptanceStatements, incidentResolutionReceiptStatements } from "../subscribers/incident-lifecycle.repository";
 import { incidentDispatchAllowedSql, incidentFinalDeliverySql } from "./subscriber-eligibility";
 import type { ComponentState } from "../../shared/domain";
 import type { IncidentImpact } from "../../shared/incident-impact";
@@ -115,7 +115,7 @@ export interface DeliveryRepository {
   getIncidentWebhookPayload(incidentId: string, updateId: string, eventId: string | null): Promise<IncidentWebhookPayload | null>;
 }
 
-export function createDeliveryRepository(binding: D1Database): DeliveryRepository {
+export function createDeliveryRepository(binding: D1Database, mailReceipts?: { provider: string; receipts: string[] }): DeliveryRepository {
   const database = createDatabase(binding);
   function deliveryStatement(deliveryId: string) {
     return binding.prepare(`
@@ -261,6 +261,7 @@ export function createDeliveryRepository(binding: D1Database): DeliveryRepositor
           SELECT ?,?,COUNT(*)+1,?,?,NULL,?,NULL FROM notification_attempt_records WHERE delivery_id=?`)
           .bind(input.id,input.deliveryId,input.attemptedAt,input.providerMessageId,input.createdAt,input.deliveryId),
         pendingEventsStatement(input.providerMessageId),
+        ...(mailReceipts ? incidentResolutionAcceptanceStatements(binding,input.deliveryId,input.attemptedAt,mailReceipts) : []),
       ]);
       return pending.results.map(event => ({...event,hardBounce:Boolean(event.hardBounce)}));
     },
