@@ -132,6 +132,20 @@ export async function themeBrowserFlow({ appUrl, pageUrl, sessionId, cookieName,
     await expect(literal.locator(".owner-note")).toHaveText("Service updates from the Atlas team.");
     await expect(literal.locator(".theme-footer")).toContainText("Always here to help.");
     await noScript.close();
+    await page.getByRole("combobox", { name: /^Page font/ }).selectOption("default");
+    await saved();
+    await expect.poll(async () => (await currentSettings()).theme.font).toBe("default");
+    await publicPage.reload({ waitUntil: "networkidle" });
+    const bundled = await publicPage.evaluate(async () => {
+      await document.fonts.ready;
+      const family = getComputedStyle(document.body).fontFamily.split(",")[0].trim().replace(/^["']|["']$/g, "");
+      return { family, loaded: [...document.fonts].filter(face => face.status === "loaded").map(face => face.family.replace(/^["']|["']$/g, "")) };
+    });
+    assert.ok(bundled.loaded.includes(bundled.family), "choosing the bundled font renders a face loaded by the public page");
+    assert.notEqual(bundled.family, "Owner Font");
+    await page.getByRole("combobox", { name: /^Page font/ }).selectOption("uploaded");
+    await saved();
+    await expect.poll(async () => (await currentSettings()).theme.font).toBe("uploaded");
     await context.close();
   } catch (cause) {
     await activePage?.screenshot({ path: `${directory}/settings-failed.png`, fullPage: true }).catch(() => {});
