@@ -87,6 +87,13 @@
       "migrationIds": [
         "0066_social_accounts.sql"
       ]
+    },
+    "AUTO-001": {
+      "change": "added",
+      "summary": "Owner-approved per-component and source rules keep draft as the default, claim and release without subscriber notifications, or atomically publish saved firing and Resolved template wording with saved channels and causal provenance. Rule approval and changes are audited; native archives retain durable settings.",
+      "migrationIds": [
+        "0067_alert_rules.sql"
+      ]
     }
   },
   "extensionPointChanges": [],
@@ -182,6 +189,10 @@
     {
       "id": "0066_social_accounts.sql",
       "buyerSteps": "Apply after 0065. Adds sealed owner social accounts, a default-off social posting preference and atomic per-update/account post records with provider receipts. Existing updates, channels and migrations are unchanged. Connect each optional account in Settings; explicitly choose Social accounts per update, or enable post by default. X requires the owner's OAuth 2.0 user token with tweet.write; Bluesky an app password; Mastodon write:statuses. No provider account or key is needed unless the owner enables posting."
+    },
+    {
+      "id": "0067_alert_rules.sql",
+      "buyerSteps": "Apply after 0066. Adds owner-approved per-component/source alert rules, durable rule execution and fingerprint evidence, saved template notification channels and Resolved wording, and automatic publication provenance. Existing sources remain draft-only with byte-identical default intake. Native archives include these durable settings and execution receipts; erasure releases claims and retains anonymized audit provenance. No provider account or key is needed."
     }
   ],
   "breaking": false,

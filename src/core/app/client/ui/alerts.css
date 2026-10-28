@@ -1,5 +1,6 @@
 /* Alerts: connected tools as rows, the "Connect a tool" picker or one open tool form, then what arrived. */
 .alerts-page { gap: 20px; }
+.alert-rules { display: grid; gap: 16px; }
 .connected-tools h2, .tool-picker h2 { margin: 0; }
 
 /* A connected tool: its name and one quiet line, its state, then Edit and Remove. */
@@ -70,3 +71,6 @@
   .label-row > .button { justify-self: start; }
   .receipt-card .card-heading { flex-wrap: wrap; gap: 8px; }
 }
+
+/* Prepared rule wording keeps the settings text comfortably readable. */
+.alert-rules .character-count, .template-automation-fields .character-count { font-size: 13px; }

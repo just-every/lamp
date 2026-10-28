@@ -1,3 +1,5 @@
+import { automationRulesBrowserFlow } from "./helpers/automation-rules-browser-flow.mjs";
+import { automationRulesFlow } from "./helpers/automation-rules-flow.mjs";
 import { socialBrowserFlow } from "./helpers/social-browser-flow.mjs";
 import { socialPostsFlow } from "./helpers/social-posts-flow.mjs";
 import { metricsFlow } from "./helpers/metrics-flow.mjs";
@@ -196,7 +198,7 @@ test("INTAKE-008 — the owner connects Uptime from the Alerts picker with nothi
   await uptimePairingFlow({ api, component, origin, cookie });
 });
 
-test("INTAKE-014 INTAKE-011 INTAKE-009 PagerDuty v3 signed events create drafts, brief entries and one note per publication · INTAKE-005 INTAKE-006 INTAKE-007", async t => {
+test("AUTO-001 INTAKE-014 INTAKE-011 INTAKE-009 PagerDuty v3 signed events create drafts, brief entries and one note per publication · INTAKE-005 INTAKE-006 INTAKE-007", async t => {
   t.diagnostic("INTAKE-006 — each monitor preset turns its tool's alert into a draft on its component, and refuses other payloads and bad credentials");
   await (async () => {
   for (const preset of Object.keys(payloads)) {
@@ -259,6 +261,8 @@ test("INTAKE-014 INTAKE-011 INTAKE-009 PagerDuty v3 signed events create drafts,
   await pagerDutyBrowserFlow({ api, component, origin, cookie });
   await pagerDutyFlow({ runtime, t });
   await operationsAlertsFlow({ t });
+  await automationRulesFlow({ t });
+  await automationRulesBrowserFlow({ origin, publicOrigin, cookie, component, api, post });
   await metricsFlow({ t });
   await metricsBrowserFlow({ api, post, component, origin, cookie });
   await chatLinksBrowserFlow({ origin, cookie, signingSecret: chatSigningSecret, diagnostic: text => t.diagnostic(text) });

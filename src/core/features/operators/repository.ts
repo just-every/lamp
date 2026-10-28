@@ -43,6 +43,8 @@ export function createOperatorRepository(db: D1Database) {
       const results = await db.batch([
         db.prepare("INSERT INTO audit_entries(id,entity_type,entity_id,action,operator_id,payload_json,created_at,updated_at) SELECT ?,'operator',?,'deleted',?,'{}',?,? WHERE " + fence).bind(receipt, id, actor, now, now, ...args),
         db.prepare("UPDATE oa_operators SET email='deleted-' || lower(id) || '@operator.invalid',display_name='Erased operator',version=version+1 WHERE id=? AND " + witnessed).bind(id, ...witness),
+        db.prepare("UPDATE incident_updates SET automation_attribution=substr(automation_attribution,1,length(automation_attribution)-length(?)) || 'Erased operator' WHERE author_operator_id=? AND automation_attribution IS NOT NULL AND substr(automation_attribution,-length(?))=? AND " + witnessed).bind(target.displayName,id,target.displayName,target.displayName,...witness),
+        db.prepare("UPDATE incident_internal_notes SET body=replace(body,?,'approved by Erased operator;') WHERE author_operator_id=? AND incident_id IN (SELECT incident_id FROM alert_rule_runs) AND " + witnessed).bind(`approved by ${target.displayName};`,id,...witness),
         db.prepare("UPDATE oc_owner_claims SET email='deleted-' || lower(operator_id) || '@operator.invalid' WHERE operator_id=? AND " + witnessed).bind(id, ...witness),
         db.prepare("UPDATE oc_idp_grants SET subject='erased:' || ? WHERE jti IN (SELECT jti FROM oc_owner_claims WHERE operator_id=?) AND EXISTS(SELECT 1 FROM oa_external_identities identity WHERE identity.operator_id=? AND identity.issuer=oc_idp_grants.issuer AND identity.subject=oc_idp_grants.subject) AND " + witnessed).bind(id, id, id, ...witness),
         db.prepare('DELETE FROM oa_external_identities WHERE operator_id=? AND ' + witnessed).bind(id, ...witness),
@@ -55,6 +57,7 @@ export function createOperatorRepository(db: D1Database) {
         db.prepare("UPDATE audit_entries SET reason=NULL,payload_json='{}',updated_at=? WHERE entity_type='operator' AND entity_id=? AND " + witnessed).bind(now, id, ...witness),
       ]);
       if (!results[0].meta.changes) throw new AuthError('authority_changed', 409);
+      return Boolean(results[2].meta.changes);
     },
   };
 }

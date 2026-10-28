@@ -1,3 +1,4 @@
+import { automationPublicationStatements } from "../intake/rule-repository";
 import { componentNotificationStatements } from "../deliveries/component-notifications.repository";
 import { COMPONENT_STATE_SEVERITY } from "../../shared/domain";
 import { createUlid } from "../../shared/ids";
@@ -9,6 +10,8 @@ import type { IncidentPublishRecord } from "./repository";
 /** Update, claims, aggregate history and recipient selection share one D1 commit. */
 export async function publishIncidentDraft(binding: D1Database, input: IncidentPublishRecord, recipients: D1PreparedStatement[]) {
   const statements = [publicationComponentsGuard(binding, input.incidentId, input.baselineComponents)];
+  const automation = input.automation ? automationPublicationStatements(binding,input.automation,input.id,input.createdAt) : null;
+  if(automation)statements.unshift(...automation.before);
   const notificationHistoryIds: string[] = [];
   if (input.recovery) statements.push(recoverySnapshotGuard(binding, input.incidentId, input.recovery.snapshot));
   for (const change of input.stagedChanges) {
@@ -20,9 +23,9 @@ export async function publishIncidentDraft(binding: D1Database, input: IncidentP
     binding.prepare(`SELECT CASE WHEN (SELECT count(*) FROM component_claim_events WHERE component_id = ?) = ? THEN 1 ELSE json('Historical evidence changed') END`).bind(componentId, count),
   );
   statements.push(binding.prepare(`INSERT INTO incident_updates
-    (id,incident_id,lifecycle,affected_audience,customer_impact,what_still_works,details,next_update_at,published_at,is_retroactive,author_operator_id,corrects_update_id,created_at,updated_at,component_changes_json,component_snapshot_json)
-    VALUES ((SELECT id FROM incident_drafts WHERE id = ? AND incident_id = ?),?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`)
-    .bind(input.id,input.incidentId,input.incidentId,input.lifecycle,input.affectedAudience,input.customerImpact,input.whatStillWorks,input.details,input.nextUpdateAt,input.publishedAt,input.isRetroactive ? 1 : 0,input.authorOperatorId,input.correctsUpdateId,input.createdAt,input.updatedAt,JSON.stringify(input.componentChanges),JSON.stringify(input.componentSnapshot)));
+    (id,incident_id,lifecycle,affected_audience,customer_impact,what_still_works,details,next_update_at,published_at,is_retroactive,author_operator_id,corrects_update_id,created_at,updated_at,component_changes_json,component_snapshot_json,automation_attribution,automation_receipt_id)
+    VALUES ((SELECT id FROM incident_drafts WHERE id = ? AND incident_id = ?),?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`)
+    .bind(input.id,input.incidentId,input.incidentId,input.lifecycle,input.affectedAudience,input.customerImpact,input.whatStillWorks,input.details,input.nextUpdateAt,input.publishedAt,input.isRetroactive ? 1 : 0,input.authorOperatorId,input.correctsUpdateId,input.createdAt,input.updatedAt,JSON.stringify(input.componentChanges),JSON.stringify(input.componentSnapshot),input.automation?.attribution ?? null,input.automation?.receiptId ?? null));
   for (const component of input.components.filter(row => !input.baselineComponents.some(baseline => baseline.id === row.id))) statements.push(
     binding.prepare(`INSERT INTO incident_components (id,incident_id,component_id,component_name,state,relationship,published_at,created_at,updated_at) VALUES (?,?,?,?,?,?,NULL,?,?)`)
       .bind(component.id,input.incidentId,component.componentId,component.componentName,component.state,component.relationship,input.createdAt,input.updatedAt),
@@ -67,5 +70,6 @@ export async function publishIncidentDraft(binding: D1Database, input: IncidentP
     ...recipients,
     ...notificationHistoryIds.flatMap(historyId => componentNotificationStatements(binding, historyId, input.createdAt)),
   );
+  if(automation)statements.push(...automation.after);
   await binding.batch(statements);
 }

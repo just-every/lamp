@@ -42,7 +42,7 @@ export function createIntakeService(
   policy: AlertIntakePolicy = defaultAlertIntakePolicy,
   onDraftCreated: (incidentId: string) => Promise<void>,
   events?: Pick<LampEventDispatcher, "alertAccepted">,
-  options: { webhookSecret?: string } = {},
+  options: { webhookSecret?: string; onAccepted?: (source: AlertSourceRow, receipt: AlertReceiptRow, payload: unknown) => Promise<void>; onSourceDeleted?: () => Promise<void> } = {},
 ): IntakeService {
   async function acceptPreset(source: AlertSourceRow, requestHash: string, rawBody: string, parsed: unknown, timestamp: string): Promise<IntakeResult> {
     let reading = readPreset(source.preset!, parsed);
@@ -72,7 +72,12 @@ export function createIntakeService(
   }
 
   return {
-    async deleteSource(sourceId, operatorId) { return repository.deleteSource(sourceId, operatorId, nowIso()); },
+    async deleteSource(sourceId, operatorId) {
+      const changesClaims=await repository.hasActiveRuleRuns(sourceId);
+      const deleted=await repository.deleteSource(sourceId,operatorId,nowIso());
+      if(deleted && changesClaims)await options.onSourceDeleted?.();
+      return deleted;
+    },
     async listSources() {
       const [sources, activity] = await Promise.all([repository.listSources(), repository.listActivity()]);
       return sources.map(source => withActivity(sourceView(source), activity));
@@ -161,6 +166,7 @@ export function createIntakeService(
       return { source, rawBody: new TextDecoder().decode(rawBytes) };
     },
     async acceptVerified(request) {
+      const accept = async (): Promise<IntakeResult> => {
       const { source, rawBody } = request;
       const sourceId = source.id;
       const requestHash = await hashOpaqueToken(rawBody);
@@ -194,6 +200,13 @@ export function createIntakeService(
       if (recorded.incidentCreated && recorded.receipt.incidentId) await onDraftCreated(recorded.receipt.incidentId);
       await events?.alertAccepted({ sourceId, receiptId: recorded.receipt.id, incidentId: recorded.receipt.incidentId, acceptedAt: recorded.receipt.receivedAt });
       return { status: 202, receiptId: recorded.receipt.id, incidentId: recorded.receipt.incidentId, replayed: false };
+      };
+      const result = await accept();
+      if(result.status===202 && options.onAccepted) {
+        const receipt = await repository.findReceipt(request.source.id, await hashOpaqueToken(request.rawBody));
+        if(receipt)await options.onAccepted(request.source,receipt,JSON.parse(request.rawBody) as unknown);
+      }
+      return result;
     },
     async accept(sourceId, request) {
       return this.acceptVerified(await this.authenticate(sourceId, request));
