@@ -162,3 +162,16 @@ when they would save work in another edition. Their natural home may be this
 edition, a family, Base or an independent repository; no separate repository per
 module or universal compatibility interface is required. Verify adoption against
 the receiving product's requirements, including deliberate local differences.
+
+## Lander-Regenerate
+
+Refresh only the named clauses after a Status edit or a merge. Keep the other
+clauses and the release acceptance narrative intact.
+
+`node scripts/contract-docs.mjs write THEME-001`
+
+`node scripts/contract-docs.mjs check THEME-001`
+
+Then stage the source and regenerate the edition lock with
+`node scripts/edition-authoring/cli.mjs lock` and check it with
+`node scripts/edition-authoring/cli.mjs check`.

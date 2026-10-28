@@ -1,3 +1,4 @@
+import { themeChrome } from "../theme-rendering";
 import type { PublicSnapshotModel } from "../renderer";
 import type { PublicIncident, PublicMaintenance } from "../record-markup";
 import { mostSevereState, type ComponentState } from "../../../shared/domain";
@@ -22,8 +23,8 @@ export function templateShell(template: TemplateName, model: PublicSnapshotModel
   const website = model.websiteUrl ? new URL(model.websiteUrl) : null;
   const meta = `<p class="tpl-foot-meta">${website ? `<a href="${escapeHtml(website.href)}">${escapeHtml(website.hostname)}</a>` : ""}<span class="host" data-timezone-label data-timezone="${escapeHtml(settings.timezone)}">Times shown in ${escapeHtml(timezoneLabel(settings.timezone))}</span><a data-lamp-signin href="/signin">Sign in</a></p>`;
   const credit = settings.footerCreditEnabled ? `<p class="tpl-credit">${template === "calm" ? "" : lampMark()}<span>Powered by <span class="tpl-credit-name">Lamp</span></span></p>` : "";
-  const footer = `<footer class="tpl-foot"><div class="wrap">${parts.slot("status-page.footer.before.v1")}<div class="tpl-foot-row">${credit}${meta}</div>${parts.footerResources}</div></footer>`;
-  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light"><meta name="description" content="${escapeHtml(settings.tagline)}"><meta property="og:title" content="${escapeHtml(`${settings.pageName}: ${overall}`)}"><meta property="og:image" content="${escapeHtml(`${model.origin}/assets/og.svg`)}"><meta property="og:image:alt" content="${escapeHtml(`${settings.pageName}: ${overall}`)}"><title>${escapeHtml(title)}</title><link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/template.css"></head><body data-template="${template}"><main class="tpl tpl-${template}">${body}${footer}</main><script src="/assets/template.js" defer></script></body></html>`;
+  const footer = `<footer class="tpl-foot"><div class="wrap">${themeChrome(model.theme, "footer")}${parts.slot("status-page.footer.before.v1")}<div class="tpl-foot-row">${credit}${meta}</div>${parts.footerResources}</div></footer>`;
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light"><meta name="description" content="${escapeHtml(settings.tagline)}"><meta property="og:title" content="${escapeHtml(`${settings.pageName}: ${overall}`)}"><meta property="og:image" content="${escapeHtml(`${model.origin}/assets/og.svg`)}"><meta property="og:image:alt" content="${escapeHtml(`${settings.pageName}: ${overall}`)}"><title>${escapeHtml(title)}</title><link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/template.css"></head><body class="lamp-public" data-template="${template}"><main class="tpl tpl-${template}">${themeChrome(model.theme, "header")}${body}${footer}</main><script src="/assets/template.js" defer></script></body></html>`;
 }
 
 export function brand(model: PublicSnapshotModel) {
@@ -125,12 +126,13 @@ export function dayClass(mark: Uptime["marks"][number]) {
 
 /** The reporting window's daily record (PAGE-001), oldest day first. */
 export function recordDays(component: Component) {
-  return component.uptime.marks.slice(-REPORTING_DAYS);
+  return component.uptime.marks.slice(-Math.min(REPORTING_DAYS, component.uptime.marks.length));
 }
 
 /** A component's daily record as a bar of labelled days. Unlabelled, it only repeats days a reader already has as
  *  labelled cells elsewhere on the page, and stays hidden from assistive technology. */
 export function dayBar(component: Component, className: string, labelled = true) {
+  if (component.hideUptime) return "";
   if (!labelled) return `<span class="${className}" aria-hidden="true">${recordDays(component).map((mark) => `<span class="day ${dayClass(mark)}"></span>`).join("")}</span>`;
   const days = recordDays(component).map((mark) => {
     const label = escapeHtml(uptimeMarkLabel(mark));
@@ -149,14 +151,14 @@ export function records(model: PublicSnapshotModel) {
   const open = model.incidents.filter((incident) => incident.lifecycle !== "Resolved").sort((left, right) => (right.updates[0]?.publishedAt ?? right.openedAt).localeCompare(left.updates[0]?.publishedAt ?? left.openedAt));
   const active = model.maintenance.filter((item) => item.state === "In progress").sort((left, right) => left.startsAt.localeCompare(right.startsAt));
   const upcoming = model.maintenance.filter((item) => item.state === "Scheduled" && Date.parse(item.startsAt) <= now + 14 * DAY).sort((left, right) => left.startsAt.localeCompare(right.startsAt));
-  const resolved = model.incidents.filter((incident) => incident.lifecycle === "Resolved" && incident.resolvedAt && Date.parse(incident.resolvedAt) >= now - REPORTING_DAYS * DAY).sort((left, right) => (right.resolvedAt ?? "").localeCompare(left.resolvedAt ?? ""));
-  return { open, maintenance: [...active, ...upcoming], resolved: resolved.slice(0, 3), more: Math.max(0, resolved.length - 3) };
+  const resolved = model.incidents.filter((incident) => incident.lifecycle === "Resolved" && incident.resolvedAt && Date.parse(incident.resolvedAt) >= now - model.theme.historyDays * DAY).sort((left, right) => (right.resolvedAt ?? "").localeCompare(left.resolvedAt ?? ""));
+  return { historyDays: model.theme.historyDays, open, maintenance: [...active, ...upcoming], resolved: resolved.slice(0, 3), more: Math.max(0, resolved.length - 3) };
 }
 
 export function quietLine(history: ReturnType<typeof records>, className: string) {
   const text = history.more
-    ? `${history.more} more incident${history.more === 1 ? "" : "s"} in the last ${REPORTING_DAYS} days.`
-    : history.resolved.length || history.open.length ? `No other incidents in the last ${REPORTING_DAYS} days.` : `No incidents in the last ${REPORTING_DAYS} days.`;
+    ? `${history.more} more incident${history.more === 1 ? "" : "s"} in the last ${history.historyDays} days.`
+    : history.resolved.length || history.open.length ? `No other incidents in the last ${history.historyDays} days.` : `No incidents in the last ${history.historyDays} days.`;
   return `<p class="${className}">${text} <a href="/history">Full history</a></p>`;
 }
 

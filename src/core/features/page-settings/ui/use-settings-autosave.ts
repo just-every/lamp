@@ -14,6 +14,7 @@ const fieldNames: Record<string, string> = {
   mailFromAddress: "From email", widgetAllowedOrigins: "Allowed websites", widgetAppearance: "Embed appearance",
   emailBranding: "Notification email", aiToneInstructions: "Writing instructions",
   wordingBlockedTerms: "Terms to flag", wordingFriendlyLength: "Preferred field length",
+  theme: "Theme",
 };
 // Browsers finish keepalive requests after the page has gone, for up to 64 KiB of bodies at once.
 const KEEPALIVE_BYTES = 64 * 1024;
@@ -26,6 +27,7 @@ export function useSettingsAutosave(initial: PageSettingsView | undefined, onSav
   const [error, setError] = useState<string | null>(null);
   const queue = useRef({
     draft: settings, target: settings, revision: 0, completed: 0, stopped: -1,
+    storedTheme: initial?.theme,
     sending: false, mounted: true, dueAt: 0, timer: undefined as ReturnType<typeof setTimeout> | undefined,
     inflight: { revision: 0, keepalive: false }, keepaliveBytes: 0, sentOnUnload: 0,
     leaving: 0, released: false, answered: new Set<() => void>(),
@@ -37,6 +39,7 @@ export function useSettingsAutosave(initial: PageSettingsView | undefined, onSav
     if (initial && !queue.current.draft) {
       const form = toSettingsForm(initial);
       queue.current.draft = form; queue.current.target = form;
+      queue.current.storedTheme = initial.theme;
       setSettings(form); setSaved(initial);
     }
   }, [initial]);
@@ -105,6 +108,13 @@ export function useSettingsAutosave(initial: PageSettingsView | undefined, onSav
           if (same(target[key], request[key])) Object.assign(target, { [key]: normalized[key] });
         }
         q.target = target;
+        // Theme HTML and CSS are sanitized on save. Adopt the stored theme only if
+        // this whole theme is still the submitted draft; newer edits keep their bytes.
+        if (q.draft && same(q.draft.theme, request.theme)) {
+          q.draft = { ...q.draft, theme: normalized.theme };
+          setSettings(q.draft);
+        }
+        q.storedTheme = normalized.theme;
         setSaved(response.settings);
         setPhase(q.revision === revision ? "saved" : "waiting");
         notify.current();
@@ -172,7 +182,25 @@ export function useSettingsAutosave(initial: PageSettingsView | undefined, onSav
     // Read as the page unloads: finished saves, or a leave the owner already agreed to, ask nothing more.
     unsaved: () => { const q = queue.current; return !q.released && (q.completed !== q.revision || unconfirmed(q)); },
     retry: () => enqueue(true),
-    // Logo operations publish separately and must leave any typing in progress alone.
-    adoptSaved: (next: PageSettingsView) => { setSaved(next); notify.current(); },
+    // Asset operations publish separately. Merge just the asset flag into pending
+    // drafts, then serialize it after any older settings request still in flight.
+    adoptSaved: (next: PageSettingsView, asset?: "font" | "header") => {
+      const q = queue.current;
+      if (asset && q.draft && q.target) {
+        const field = asset === "font" ? "font" : "headerImage";
+        q.draft = { ...q.draft, theme: { ...q.draft.theme, [field]: next.theme[field] } };
+        q.target = { ...q.target, theme: { ...q.target.theme, [field]: next.theme[field] } };
+        if (asset === "header") {
+          // Removing a header also removes references to that image from HTML.
+          for (const key of ["headerHtml", "footerHtml"] as const) {
+            if (same(q.draft.theme[key], q.storedTheme?.[key])) q.draft.theme[key] = next.theme[key];
+            if (same(q.target.theme[key], q.storedTheme?.[key])) q.target.theme[key] = next.theme[key];
+          }
+        }
+        setSettings(q.draft); enqueue(true);
+      }
+      q.storedTheme = next.theme;
+      setSaved(next); notify.current();
+    },
   };
 }

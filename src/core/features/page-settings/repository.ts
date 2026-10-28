@@ -11,7 +11,8 @@ export interface PageSettingsRepository {
   /** The regions written on components the public page shows, each as stored. */
   visibleRegions(): Promise<string[]>;
   insertIfMissing(settings: typeof pageSettings.$inferInsert): Promise<void>;
-  update(settings: Pick<StoredPageSettings, "pageName" | "tagline" | "accentColor" | "timezone" | "hostname" | "footerCreditEnabled" | "template" | "widgetAllowedOrigins" | "widgetAppearance" | "mailFromAddress" | "emailBranding" | "aiToneInstructions" | "wordingBlockedTerms" | "wordingFriendlyLength" | "updatedAt">): Promise<void>;
+  update(settings: Pick<StoredPageSettings, "theme" | "pageName" | "tagline" | "accentColor" | "timezone" | "hostname" | "footerCreditEnabled" | "template" | "widgetAllowedOrigins" | "widgetAppearance" | "mailFromAddress" | "emailBranding" | "aiToneInstructions" | "wordingBlockedTerms" | "wordingFriendlyLength" | "updatedAt">): Promise<void>;
+  updateThemeAssets(input: Pick<StoredPageSettings, "theme" | "themeAssets" | "updatedAt">): Promise<void>;
   updateLogo(input: Pick<StoredPageSettings, "logoKey" | "logoContentType" | "updatedAt">, operatorId: string): Promise<void>;
 }
 
@@ -43,6 +44,9 @@ export function createPageSettingsRepository(binding: D1Database): PageSettingsR
     },
     async update(settings) {
       await database.update(pageSettings).set(settings).where(eq(pageSettings.id, "default"));
+    },
+    async updateThemeAssets(input) {
+      await database.update(pageSettings).set(input).where(eq(pageSettings.id, "default"));
     },
     async updateLogo(input, operatorId) {
       // Select the logo being destroyed inside the same transaction as its

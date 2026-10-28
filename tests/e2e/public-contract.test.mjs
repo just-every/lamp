@@ -1,3 +1,4 @@
+import { themeFlow, assertThemedPageWeight } from "./helpers/theme-flow.mjs";
 import { tenMetricWeightFixture } from "./helpers/metric-weight-flow.mjs";
 import { catalogueHistoryFlow } from "./helpers/catalogue-history-flow.mjs";
 import { widgetVariantsFlow } from "./helpers/widget-variants-flow.mjs";
@@ -513,7 +514,8 @@ test("UPTIME-005 UPTIME-004 COMP-003 UPTIME-001 UPTIME-002 UPTIME-003 — Audite
 
 
 
-test("PAGE-012 UPTIME-006 SUB-003 — Branding, daily coverage and pending subscription expiry", async t => {
+test("THEME-001 PAGE-012 UPTIME-006 SUB-003 — Branding, theme settings, daily coverage and pending subscription expiry", async t => {
+  await themeFlow({ appFetch, fetch, appUrl, pageUrl, currentSettings, updateSettings, sessionId, cookieName: sessionCookieName(appUrl), diagnostic: message => t.diagnostic(message) });
   t.diagnostic("PAGE-012 — the footer credit setting controls its content");
   await (async () => {
   await updateSettings({ footerCreditEnabled: true });
@@ -779,11 +781,14 @@ test("PAGE-013 PAGE-014 PAGE-008 PAGE-009 PAGE-003 — Public isolation, live ti
   await (async () => {
   executeLocalSql(`WITH RECURSIVE n(value) AS (SELECT 1 UNION ALL SELECT value + 1 FROM n WHERE value < 194) INSERT INTO components (id, group_id, name, description, internal, display_order, note, created_at, updated_at) SELECT 'bulk-' || value, '01J00000000000000000000003', 'Bulk component ' || printf('%03d', value), substr('Maximum valid description for capacity measurement. ' || printf('%03d', value) || ' ..................................................................................................................................................................................................................................................', 1, 280), 0, 1000 + value, substr('Maximum valid public state note for component ' || printf('%03d', value) || ' ..................................................................................................................................................................................................................................................', 1, 250), '2026-06-10T00:00:00.000Z', '2026-06-10T00:00:00.000Z' FROM n; WITH RECURSIVE n(component) AS (SELECT 1 UNION ALL SELECT component + 1 FROM n WHERE component < 194), d(day) AS (SELECT 0 UNION ALL SELECT day + 1 FROM d WHERE day < 89) INSERT INTO component_state_history (id,component_id,previous_state,new_state,cause_type,cause_id,operator_id,changed_at,created_at,updated_at) SELECT 'bulk-history-' || component || '-' || day, 'bulk-' || component, 'Operational', 'Operational', 'standing-claim', NULL, '01J00000000000000000000001', strftime('%Y-%m-%dT%H:%M:%fZ','now','-' || (90 - day) || ' days'), '2026-06-10T00:00:00.000Z', '2026-06-10T00:00:00.000Z' FROM n CROSS JOIN d`);
   await tenMetricWeightFixture(appFetch);
+  const weightTheme = (await currentSettings()).theme;
+  await updateSettings({ theme: { ...weightTheme, customCss: ".component { letter-spacing: 0.01px }" } });
   await updateSettings({ tagline: "Status record at the component capacity limit." });
   const response = await fetch(`${pageUrl}/`);
   assert.equal(response.status, 200);
   const html = await response.text();
   assert.equal((html.match(/data-metric-chart=/g)??[]).length,10,"all ten full-day series are inline charts at the component limit");
+  assertThemedPageWeight(html);
   const gzipBytes = gzipSync(Buffer.from(html)).byteLength;
   t.diagnostic(`UPTIME-008 PAGE-003: ten 1,440-point series with 200 populated components: ${gzipBytes} bytes gzipped`);
   assert.ok(gzipBytes <= 50 * 1024, `PAGE-003 gzip budget exceeded at 200 populated components: ${gzipBytes} bytes`);
@@ -810,7 +815,7 @@ test("PAGE-013 PAGE-014 PAGE-008 PAGE-009 PAGE-003 — Public isolation, live ti
     assert.match(shown, /Maximum valid public state note for component 001/, `${template} keeps the capacity fixture's visible note`);
   }
   executeLocalSql("UPDATE components SET region = NULL WHERE id LIKE 'bulk-%'");
-  await updateSettings({ template: "default" });
+  await updateSettings({ template: "default", theme: weightTheme });
 })(t);
   t.diagnostic("PAGE-003 — Chromium renders the public page in its bundled face within the four-request initial asset budget");
   await (async () => {
