@@ -448,7 +448,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "8b8c3aa4d3f5e3d03e7c5df431e25d93bd5dd02bef92e36d327413ec1bd54664",
+      "sha256": "a9fedaf54a0b052a13dae861822ad957cdf666751a2330792feca4126d5e52c5",
       "executable": false
     },
     "AGENTS.md": {
@@ -496,7 +496,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "7c1767c08b87573d077d477890532ad2c970c03853254717ab7cbd55b4e7be1e",
+      "sha256": "e7a8f6b8091aa186f19396e2aefef33394a9314dbbaf38ba501cf2df652db9e4",
       "executable": false
     },
     "DEMO.md": {
@@ -6680,15 +6680,19 @@
       "executable": false
     },
     "tests/e2e/helpers/theme-fixture.mjs": {
-      "sha256": "69adf4e4a51cb052ad856d852d7c8a3e99b70f7f11c7700415f3be22b59bc51e",
+      "sha256": "e54aab05ab63e0ad3bcf8e275cb9f315700638a55ab5ff633134f2a32b86d779",
       "executable": false
     },
     "tests/e2e/helpers/theme-flow.mjs": {
-      "sha256": "437f71197df238a2fa91140c1a01f0e24febbe9c32b618aebda769233955cd9c",
+      "sha256": "99a58122bc5423d9e9cf52e70559989764f9dd3ab1ca3432e0e3ca14134a7250",
+      "executable": false
+    },
+    "tests/e2e/helpers/theme-owner-journey.mjs": {
+      "sha256": "d339c3e38b4371dda6135ba2deacfbc40e99933ba94676bd0364393ec9288cfe",
       "executable": false
     },
     "tests/e2e/helpers/theme-template-flow.mjs": {
-      "sha256": "80109ec840146380f0bcb161862b16f22a65bc84b0587512a3f02cedd53a9654",
+      "sha256": "9c6c7e0beccfc4788a5510025b977a2157f2ef3b79958506d53a533da9718b6b",
       "executable": false
     },
     "tests/e2e/helpers/traffic-alerts-flow.mjs": {
@@ -6756,7 +6760,7 @@
       "executable": false
     },
     "tests/e2e/publishing-browser.test.mjs": {
-      "sha256": "2eca209b97891f746fde5adc49b953d61c57b3c3c99e5cba2d924cd964959a58",
+      "sha256": "489ff7a145a9887083c9148ebad0e038643d3145582b8d83fc888feb0ead5141",
       "executable": false
     },
     "tests/e2e/publishing-contract.test.mjs": {
@@ -6792,7 +6796,7 @@
       "executable": false
     },
     "tests/e2e/snapshot-retained.test.mjs": {
-      "sha256": "a3ccac9618e711ee66af8d30206e586b5c4f879ff3a2ac786608aa32ad7e07d7",
+      "sha256": "173abb65b765101c14cde63cb0bbb67ae2b0c4c75449cc76d3bd475564de646b",
       "executable": false
     },
     "tests/e2e/snapshot-retained.worker.ts": {

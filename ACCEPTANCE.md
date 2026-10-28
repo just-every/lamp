@@ -1711,8 +1711,8 @@ Core · target · **partial** · Cites BASE-INPUT-003, BASE-PUBLIC-001
 3. Layout choices include groups collapsed or expanded, uptime bars shown or hidden per component and the number of history days displayed.
 4. The next snapshot reflects every changed field and remains within PAGE-003’s transfer budget.
 
-**Evidence.** `tests/e2e/public-contract.test.mjs` — THEME-001 PAGE-012 UPTIME-006 SUB-003 — Branding, theme settings, daily coverage and pending subscription expiry; PAGE-013 PAGE-014 PAGE-008 PAGE-009 PAGE-003 — Public isolation, live timezone refresh and initial asset budget; `tests/e2e/snapshot-retained.test.mjs` — PAGE-005 PAGE-006 PAGE-007 PAGE-018 complete generations and badges survive R2 and D1 failure
-**Gap.** Inherited implementation rebased onto current main. Pending native journey proof of palette and named contrast refusal, bundled and uploaded fonts, header artwork and links, group and uptime layout choices, history days and next-snapshot transfer budget at the component limit.
+**Evidence.** `tests/e2e/publishing-browser.test.mjs` — THEME-001 — owner publishes branded themes and layouts within the page budget; `tests/e2e/snapshot-retained.test.mjs` — THEME-001 PAGE-005 PAGE-006 PAGE-007 PAGE-018 — a published status survives storage, database and queue failures, cold restart and an independent heartbeat silence alarm
+**Gap.** Native Settings and layout proof passed before main consolidated its journeys. The theme flow is integrated into the surviving native browser journey; the next run must prove it and the full-theme component-limit transfer budget on the rebased candidate.
 
 #### THEME-002 — Owner stylesheet
 

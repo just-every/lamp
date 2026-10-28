@@ -4,7 +4,7 @@ import { chromium, expect } from "@playwright/test";
 /** The existing theme journey follows the same saved theme through each shipped layout. */
 export async function themeTemplateFlow({ appFetch, pageUrl, updateSettings, snapshot, palette }) {
   const components = (await (await appFetch("/api/app/components")).json()).components;
-  const chosen = components.filter(component => ["01J00000000000000000000010", "01J00000000000000000000020"].includes(component.id));
+  const chosen = components.filter(component => ["Web application", "API gateway"].includes(component.name));
   const edit = async (component, region) => {
     const response = await appFetch(`/api/app/components/${component.id}`, { method: "PUT", body: JSON.stringify({ groupId: component.groupId, name: component.name, description: component.description, internal: component.internal, displayOrder: component.displayOrder, note: component.note, region }) });
     assert.equal(response.status, 200);

@@ -2,13 +2,15 @@ import { themeHeaderImage, themeSettings } from "./theme-fixture.mjs";
 import { themeTemplateFlow } from "./theme-template-flow.mjs";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
-import { gzipSync } from "node:zlib";
 import { themeBrowserFlow } from "./theme-browser-flow.mjs";
 
 export async function themeFlow({ appFetch, fetch, appUrl, pageUrl, currentSettings, updateSettings, sessionId, cookieName, diagnostic }) {
   const original = await currentSettings();
   const defaults = original.theme;
-  const theme = themeSettings(defaults);
+  const components = (await (await appFetch("/api/app/components")).json()).components;
+  const hidden = components.find(component => component.name === "Web application");
+  assert.ok(hidden, "the owner has a real public component to hide its bar");
+  const theme = themeSettings(defaults, hidden.id);
   const requestTheme = async (value, status = 200) => {
     const response = await appFetch("/api/app/page-settings", { method: "PUT", body: JSON.stringify({ pageName: original.pageName, tagline: original.tagline, accentColor: original.accentColor, timezone: original.timezone, hostname: original.hostname, footerCreditEnabled: original.footerCreditEnabled, theme: value }) });
     const body = await response.json();
@@ -110,7 +112,3 @@ export async function themeFlow({ appFetch, fetch, appUrl, pageUrl, currentSetti
   }
 }
 
-export function assertThemedPageWeight(html) {
-  const bytes = gzipSync(Buffer.from(html)).byteLength;
-  assert.ok(bytes <= 50 * 1024, `Custom-CSS snapshot exceeded the HTML weight budget: ${bytes}`);
-}
