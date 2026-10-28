@@ -36,8 +36,8 @@ export function ThemeSettings({ value, components, onChange }: {
   return <section className="data-card theme-settings" aria-labelledby="theme-title">
     <p className="card-kicker">Your public page</p><h2 id="theme-title">Theme</h2>
     <p>Make the page your own. Valid changes save and publish automatically.</p>
-    <label className="checkbox-label"><input type="checkbox" checked={value !== null} onChange={event => onChange(event.target.checked ? structuredClone(defaultPageTheme) : null, true)} />Use a custom theme</label>
-    {value && <>
+    <label className="checkbox-label"><input type="checkbox" checked={value !== null && value.enabled !== false} onChange={event => onChange({ ...(value ?? structuredClone(defaultPageTheme)), enabled: event.target.checked }, true)} />Use a custom theme</label>
+    {value && value.enabled !== false && <>
       <ThemePalette value={value.palette} onChange={next => update("palette", next)} />
       <fieldset className="theme-fieldset"><legend>Font and image</legend>
         <div className="settings-grid">

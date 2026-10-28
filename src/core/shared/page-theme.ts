@@ -13,6 +13,7 @@ export const themeAssetsSchema = z.array(z.object({
 export type ThemeAsset = z.infer<typeof themeAssetsSchema>[number];
 
 export const pageThemeSchema = z.object({
+  enabled: z.boolean().optional(),
   palette: z.object({
     background: colour, surface: colour, text: colour, link: colour,
     states: z.object(Object.fromEntries(COMPONENT_STATES.map(state => [state, colour])) as Record<typeof COMPONENT_STATES[number], typeof colour>).strict(),

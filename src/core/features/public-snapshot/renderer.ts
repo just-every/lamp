@@ -63,7 +63,7 @@ function toPublicModel(source: PublicSnapshotSource, generatedAt: string, polici
   for (const claim of source.claims) claims.set(claim.componentId, [...(claims.get(claim.componentId) ?? []), claim.state]);
   const now = new Date(generatedAt).getTime();
   const storedTheme = JSON.parse(source.settings.theme ?? "null");
-  const theme = storedTheme === null ? null : pageThemeSchema.parse(storedTheme);
+  const theme = storedTheme === null || storedTheme.enabled === false ? null : pageThemeSchema.parse(storedTheme);
   // Do not allocate an owner's possibly very large requested range before the page has any retained record.
   // The omitted leading interval is named in the static document instead of inventing observations for it.
   let retainedHistoryStart = now;

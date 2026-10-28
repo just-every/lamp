@@ -4396,7 +4396,7 @@
       "executable": false
     },
     "src/core/features/page-settings/ui/theme-settings.tsx": {
-      "sha256": "79d9763653c3131c20fa253f6ca920041c94593a9f4dcef6ecdce9cf5bc631e2",
+      "sha256": "561cfbe0fd5d2c68ccaf28feafa1721dbc388c5249ee2dc4b5969d2dc2b3a33e",
       "executable": false
     },
     "src/core/features/page-settings/ui/traffic-alert-settings.tsx": {
@@ -4536,7 +4536,7 @@
       "executable": false
     },
     "src/core/features/public-snapshot/renderer.ts": {
-      "sha256": "33e5e9fa24af2386a7dfbbc96a87f7ffa9f90a2497a875573242e7da6a190be5",
+      "sha256": "30a67932c82ab0b4cc452c0533f43a278dbae5b42724f069b6a914fb2b43d3ed",
       "executable": false
     },
     "src/core/features/public-snapshot/report-markup.ts": {
@@ -5544,7 +5544,7 @@
       "executable": false
     },
     "src/core/shared/page-theme.ts": {
-      "sha256": "c345ae125579f2bdfc078954aa2e8feb355d3d255a61ebde7372f333a9c9f3f8",
+      "sha256": "6af287be2c1c80558c2bcd6af7668ae6eac4df530577268b1745130ea5f46527",
       "executable": false
     },
     "src/core/shared/references/repository.ts": {
