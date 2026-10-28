@@ -2,12 +2,6 @@ import * as css from "css-tree/dist/csstree.esm";
 import { ThemeValidationError } from "../../shared/page-theme";
 
 const scope = "body.lamp-public";
-const safeAtRules = new Set([
-  "media", "supports", "container", "layer", "scope", "starting-style",
-  "keyframes", "-webkit-keyframes", "font-face", "property",
-  "font-feature-values", "font-palette-values",
-  "annotation", "ornaments", "stylistic", "styleset", "character-variant", "swash",
-]);
 const keyframes = (name: string) => /^(?:-webkit-)?keyframes$/.test(name);
 const decoded = (name: string) => css.ident.decode(name).toLowerCase();
 
@@ -36,7 +30,6 @@ function parseCss(source: string, origin: string): css.CssNode {
     if (node.type === "Atrule") {
       const name = decoded(node.name);
       if (name === "import") throw new ThemeValidationError("CSS @import", "Imports are not allowed.");
-      if (!safeAtRules.has(name)) throw new ThemeValidationError(`CSS @${name}`, "This at-rule is not allowed in page CSS.");
       // Decode before generation as escaped names can prevent parser recognition.
       node.name = name;
     }
