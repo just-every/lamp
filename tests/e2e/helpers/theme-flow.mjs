@@ -1,3 +1,4 @@
+import { themeTemplateFlow } from "./theme-template-flow.mjs";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { gzipSync } from "node:zlib";
@@ -82,12 +83,8 @@ export async function themeFlow({ appFetch, fetch, appUrl, pageUrl, currentSetti
     assert.match(css, /--paper:#f4f4f4/);
     const anonymous = await fetch(`${appUrl}/api/app/page-settings`, { method: "PUT", headers: { "Content-Type": "application/json", Origin: appUrl }, body: JSON.stringify({ ...original, theme }) });
     assert.ok([401,403].includes(anonymous.status));
-    for (const template of ["calm", "uptime", "regions"]) {
-      await updateSettings({ template });
-      const shown = await snapshot(template === "regions" ? 'data-template="calm"' : `data-template="${template}"`);
-      assert.match(shown, /Service updates from the Atlas team/);
-      assert.match(shown, /Always here to help/);
-    }
+    assert.deepEqual((await currentSettings()).theme, published.theme, "an unauthenticated write changes nothing");
+    await themeTemplateFlow({ appFetch, pageUrl, updateSettings, snapshot });
     await updateSettings({ template: "default" });
     return { customCss: theme.customCss };
   } finally {

@@ -4648,7 +4648,7 @@
       "executable": false
     },
     "src/core/features/public-snapshot/theme-rendering.ts": {
-      "sha256": "5d5ed2a119d115481c9e1b258d3a1f691f166012f8dd7d5b9ff2d583fb18dd47",
+      "sha256": "92d74d5ba1711cb9f7df6cc400ebf167f156731037761cf4abf042c626db89dc",
       "executable": false
     },
     "src/core/features/public-snapshot/uptime.ts": {
@@ -6944,7 +6944,11 @@
       "executable": false
     },
     "tests/e2e/helpers/theme-flow.mjs": {
-      "sha256": "8b8be3762ec1a1c30005f6824dea1f228d59f3e5bf83c7be800c8b1505124867",
+      "sha256": "569f0da5a54db7c9e0d90ac3cf496e10a62eca8b01a8068169ca9b094e11bea9",
+      "executable": false
+    },
+    "tests/e2e/helpers/theme-template-flow.mjs": {
+      "sha256": "a665c05b8f90960a8556c4fad09328dded298f19c18613bf9a96512d3b899ca6",
       "executable": false
     },
     "tests/e2e/helpers/traffic-alerts-flow.mjs": {
