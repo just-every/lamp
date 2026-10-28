@@ -33,9 +33,9 @@ export function registerPageSettingsRoutes(app: Hono<AppEnv>, service: PageSetti
     const parsed = pageSettingsSchema.safeParse(await context.req.json().catch(() => null));
     if (!parsed.success) return context.json({ error: "Invalid page settings.", issues: parsed.error.issues }, 400);
 
-    if (parsed.data.theme && !context.get("operator").isSetupOperator) {
+    if (parsed.data.theme && !["owner", "admin"].includes(context.get("operatorSession").operator.role)) {
       const current = await service.get();
-      if (JSON.stringify(parsed.data.theme) !== JSON.stringify(current?.theme)) return context.json({ error: "Only the page owner can change its theme." }, 403);
+      if (JSON.stringify(parsed.data.theme) !== JSON.stringify(current?.theme)) return context.json({ error: "Only a page owner or admin can change its theme." }, 403);
     }
     try {
       const settings = await service.update(parsed.data);
@@ -47,7 +47,7 @@ export function registerPageSettingsRoutes(app: Hono<AppEnv>, service: PageSetti
   });
 
   app.post("/api/app/page-settings/theme-assets/:kind", async context => {
-    if (!context.get("operator").isSetupOperator) return context.json({ error: "Only the page owner can change theme assets." }, 403);
+    if (!["owner", "admin"].includes(context.get("operatorSession").operator.role)) return context.json({ error: "Only a page owner or admin can change theme assets." }, 403);
     const kind = context.req.param("kind");
     if (kind !== "font" && kind !== "header") return context.json({ error: "Unknown theme asset." }, 404);
     const body = await context.req.parseBody().catch(() => null);
@@ -57,7 +57,7 @@ export function registerPageSettingsRoutes(app: Hono<AppEnv>, service: PageSetti
     catch (cause) { return context.json({ error: cause instanceof Error ? cause.message : "Asset could not be saved." }, 400); }
   });
   app.delete("/api/app/page-settings/theme-assets/:kind", async context => {
-    if (!context.get("operator").isSetupOperator) return context.json({ error: "Only the page owner can remove theme assets." }, 403);
+    if (!["owner", "admin"].includes(context.get("operatorSession").operator.role)) return context.json({ error: "Only a page owner or admin can remove theme assets." }, 403);
     const kind = context.req.param("kind");
     if (kind !== "font" && kind !== "header") return context.json({ error: "Unknown theme asset." }, 404);
     return context.json({ settings: await service.removeThemeAsset(kind as ThemeAssetKind) });

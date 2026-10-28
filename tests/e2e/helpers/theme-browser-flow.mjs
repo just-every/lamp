@@ -18,11 +18,11 @@ export async function themeBrowserFlow({ appUrl, pageUrl, sessionId, cookieName,
     const labels = { background: "Background", surface: "Surface", text: "Text", link: "Links", operational: "Operational", degraded: "Degraded performance", partial: "Partially unavailable", major: "Major outage", maintenance: "Maintenance" };
     for (const [key, label] of Object.entries(labels)) await page.getByRole("textbox", { name: `${label} hex colour`, exact: true }).fill(theme.palette[key]);
     await open("Font and header image");
-    await page.getByLabel("Page font", { exact: true }).selectOption("mono");
-    await page.getByLabel("Upload font", { exact: true }).setInputFiles({ name: "synthetic-lamp-1.woff2", mimeType: "font/woff2", buffer: font });
+    await page.getByRole("combobox", { name: /^Page font/ }).selectOption("mono");
+    await page.getByLabel(/^Upload font/).setInputFiles({ name: "synthetic-lamp-1.woff2", mimeType: "font/woff2", buffer: font });
     await page.getByRole("button", { name: "Upload font", exact: true }).click();
     await expect.poll(async () => (await currentSettings()).theme.font).toBe("uploaded");
-    await page.getByLabel("Upload header image", { exact: true }).setInputFiles({ name: "synthetic-lamp-2.png", mimeType: "image/png", buffer: image });
+    await page.getByLabel(/^Upload header image/).setInputFiles({ name: "synthetic-lamp-2.png", mimeType: "image/png", buffer: image });
     await page.getByRole("button", { name: "Upload header image", exact: true }).click();
     await expect.poll(async () => (await currentSettings()).theme.headerImage).toBe(true);
     await open("Header and footer links");
@@ -32,12 +32,12 @@ export async function themeBrowserFlow({ appUrl, pageUrl, sessionId, cookieName,
     await page.getByLabel("Footer link 1 address").fill(theme.footerLinks[0].href);
     await open("Layout and history");
     await page.getByLabel("Collapse component groups by default").check();
-    await page.getByLabel("History days", { exact: true }).fill("14");
+    await page.getByLabel(/^History days/).fill("14");
     await page.getByLabel("Show uptime for Web application", { exact: true }).uncheck();
     await open("Custom HTML and CSS");
-    await page.getByLabel("Header HTML", { exact: true }).fill(theme.headerHtml);
-    await page.getByLabel("Footer HTML", { exact: true }).fill(theme.footerHtml);
-    await page.getByLabel("Custom CSS", { exact: true }).fill(theme.customCss);
+    await page.getByLabel(/^Header HTML/).fill(theme.headerHtml);
+    await page.getByLabel(/^Footer HTML/).fill(theme.footerHtml);
+    await page.getByLabel(/^Custom CSS/).fill(theme.customCss);
     await expect.poll(async () => (await currentSettings()).theme).toEqual({ ...theme, font: "uploaded", headerImage: true });
     await snapshot("Service updates from the Atlas team.");
     for (const width of [1440, 390]) {

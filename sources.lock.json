@@ -4288,7 +4288,7 @@
       "executable": false
     },
     "src/core/features/page-settings/routes.ts": {
-      "sha256": "825752abed2c151cf12a3f3e2bb7e98b8d70419494ab8445972086acc4219be8",
+      "sha256": "21df3609f40d7d8eeaad28fb62509952326be174e0c4be7b6694474cb47551bd",
       "executable": false
     },
     "src/core/features/page-settings/service.ts": {
@@ -6940,7 +6940,7 @@
       "executable": false
     },
     "tests/e2e/helpers/theme-browser-flow.mjs": {
-      "sha256": "c9659a7768c1ee643b3c3d2ea6b8104f956e4e52ca63d20246b4e554da0c8635",
+      "sha256": "5f7dd15240dd7017a4881325231e8157bb8c476e6f162f56e671a8c1ed16875b",
       "executable": false
     },
     "tests/e2e/helpers/theme-flow.mjs": {
