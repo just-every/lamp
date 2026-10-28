@@ -185,7 +185,7 @@
     },
     {
       "id": "0067_alert_rules.sql",
-      "buyerSteps": "Apply after 0066. Adds owner-approved per-component/source alert rules, durable rule execution, receipt retry work and fingerprint evidence, saved template notification channels and Resolved wording, and automatic publication provenance. Existing sources remain draft-only with byte-identical default intake. Native archives include these durable settings and execution receipts; erasure releases claims and retains anonymized audit provenance. No provider account or key is needed."
+      "buyerSteps": "Apply after 0066. Adds owner-approved per-component/source alert rules, durable rule execution, receipt retry work and fingerprint evidence, saved template notification channels and Resolved wording, and automatic publication provenance. Existing sources remain draft-only with byte-identical default intake. Native archives include these durable settings and execution receipts; erasure releases claims and retains anonymized audit provenance. No provider account or key is needed. Neutral automation defaults preserve sealed native import and undo journals; non-default saved automation values still count as owner edits."
     }
   ],
   "breaking": false,
