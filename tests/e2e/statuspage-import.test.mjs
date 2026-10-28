@@ -99,7 +99,7 @@ after(async () => {
   await new Promise((resolve) => statuspage?.close(resolve));
 });
 
-contract("MOVE-001", "MOVE-011 — a dry run reports every record and writes nothing; the API-key path reads Statuspage with GET only; postmortems and templates dry-run, apply silently, repeat and undo", async () => {
+contract("MOVE-001", "MOVE-011 MOVE-014 — a dry run reports every record and writes nothing; the API-key path reads Statuspage with GET only; postmortems and templates dry-run, apply silently, repeat and undo", async () => {
   const before = await counts();
   const unauthenticated = await nativeRequest("/api/operator/import/uploads", { method: "POST", json: {}, headers: { "X-Import-Source": "statuspage" } });
   assert.equal(unauthenticated.status, 401);
@@ -151,7 +151,7 @@ contract("MOVE-001", "MOVE-011 — a dry run reports every record and writes not
   } finally {boundarySubscriberCount=0;}
 });
 
-contract("MOVE-002", "SUB-017 and SUB-020 imports keep history silent, CSV dry runs write nothing, pending subscribers need explicit invitations, and capacity refuses excess without writes", async t => {
+contract("MOVE-002", "SUB-017 SUB-023 MOVE-013 imports keep history silent, CSV dry runs write nothing, pending subscribers need explicit invitations, and capacity refuses excess without writes", async t => {
   // Public removal retains anonymised delivery history. Give the visual intake
   // proof its own real installation so it cannot change the later undo fixture.
   await runtime.stop();
@@ -255,7 +255,7 @@ contract("MOVE-003", "a second run of the same source changes nothing and sends 
   assert.deepEqual(reread, aliasBefore, "second apply leaves every alias unchanged");
 });
 
-contract("MOVE-004", "MOVE-011 — undo removes what the import created and keeps what an operator changed since, including edited reports and templates", async () => {
+contract("MOVE-004", "MOVE-011 MOVE-014 — undo removes what the import created and keeps what an operator changed since, including edited reports and templates", async () => {
   const jobs = (await api("/api/app/statuspage-import/jobs")).body.jobs;
   const job = jobs.find((candidate) => candidate.state === "completed");
   const components = (await api("/api/app/components")).body.components;

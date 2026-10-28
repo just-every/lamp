@@ -18,7 +18,7 @@ async function apply(r, files, cookie = r.cookie) {
 }
 const send = (r, id, cookie = r.cookie) => r.call(`${endpoint(id)}/send-invitations`, { method: 'POST', cookie, body: {} });
 
-test("MOVE-012 MOVE-006 MOVE-002 — Owner-approved cutover invitations and preparation failure recovery", async t => {
+test("MOVE-012 MOVE-006 MOVE-013 — Owner-approved cutover invitations and preparation failure recovery", async t => {
   t.diagnostic("MOVE-006 — dry runs and saved cutover previews carry truthful destinations and mail waits for the owner across batches and repeats");
   await (async t => {
   const r = await lampRuntime(t);
@@ -75,7 +75,7 @@ test("MOVE-012 MOVE-006 MOVE-002 — Owner-approved cutover invitations and prep
   assert.ok(large.body.differences.replacements.length + large.body.differences.unchanged.length > 0);
   assert.ok(large.body.differences.additions.every(key => !large.body.differences.replacements.includes(key) && !large.body.differences.unchanged.includes(key)));
 })(t);
-  t.diagnostic("MOVE-002 — invitation preparation failures remain retryable while ambiguous transport failures stay claimed");
+  t.diagnostic("MOVE-013 — invitation preparation failures remain retryable while ambiguous transport failures stay claimed");
   await (async t => {
   await exerciseMailPreparation(t, r => apply(r, fixture('small')));
   for (const failure of ['origin', 'configuration', 'tokens', 'authority', 'transport']) await t.test(failure, async t => {
@@ -121,8 +121,8 @@ test("MOVE-012 MOVE-006 MOVE-002 — Owner-approved cutover invitations and prep
 
 
 
-test("MOVE-002 MOVE-006 TEAM-007 — Imported invitation expiry audit, revoked authority and public subscription races", async t => {
-  t.diagnostic("MOVE-002 — delayed invitations retain the original expiry and undo rows; expired pending subscribers are not sent mail");
+test("MOVE-013 MOVE-006 TEAM-007 — Imported invitation expiry audit, revoked authority and public subscription races", async t => {
+  t.diagnostic("MOVE-013 — delayed invitations retain the original expiry and undo rows; expired pending subscribers are not sent mail");
   await (async t => {
   const r = await lampRuntime(t, { registerRoutes: ({ app, db, modules }) => modules.registerAuditLogRoutes(app, modules.createAuditLogRepository(db)) });
   const result = await apply(r, fixture('small'));
@@ -193,7 +193,7 @@ test("MOVE-002 MOVE-006 TEAM-007 — Imported invitation expiry audit, revoked a
   assert.ok(cutover.rows.length <= 25); assert.ok(cutover.total > cutover.rows.length);
   assert.ok(cutover.rows.every(row => row.address && row.path && row.target));
 })(t);
-  t.diagnostic("MOVE-002 — public subscriptions racing owner invitations cannot extend either imported confirmation deadline");
+  t.diagnostic("MOVE-013 — public subscriptions racing owner invitations cannot extend either imported confirmation deadline");
   await (async t => {
   const r = await lampRuntime(t);
   const result = await apply(r, fixture('small'));

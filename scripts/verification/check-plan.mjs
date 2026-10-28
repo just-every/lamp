@@ -3,6 +3,7 @@ import { dirname, basename } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { verificationPlan } from './plan.mjs';
 import { registrations, testInventory } from './inventory.mjs';
+import { parseContract } from '../../src/base/seed-contract.mjs';
 
 export function checkVerificationPlan() {
   const { scripts } = JSON.parse(readFileSync('package.json', 'utf8'));
@@ -30,7 +31,7 @@ export function checkVerificationPlan() {
   if (count > 200) throw Error(`Test budget exceeded: ${count}/200 registered cases, including nested and parameterized cases.`);
   const missing = inventory.filter(entry => entry.path.endsWith('.test.mjs') && entry.path !== 'tests/release/upgrade.test.mjs' && !files.includes(entry.path));
   if (missing.length) throw Error(`Tests absent from the routine plan: ${missing.map(entry => entry.path).join(', ')}`);
-  const clauses = [...readFileSync('CONTRACT.md', 'utf8').matchAll(/^- \*\*([A-Z][A-Z0-9]*-\d{3}) —/gm)].map(match => match[1]);
+  const clauses = parseContract(readFileSync('CONTRACT.md', 'utf8')).clauses.filter(clause => clause.kind === 'published').map(clause => clause.id);
   const covered = new Set(files.flatMap(path => registrations(path).flatMap(registration => registration.ids)));
   const uncovered = clauses.filter(id => !covered.has(id));
   if (uncovered.length) throw Error(`Contract clauses without a planned tagged behavior journey: ${uncovered.join(', ')}`);

@@ -46,7 +46,7 @@ async function migrateAfterDependencyApproval(db){
 
 }
 
-test('ACCESS-001 TEAM-001 TEAM-002 upgrade preserves identities, history and subscriber authority and destroys legacy credentials',async()=>{
+test('ACCESS-002 TEAM-001 TEAM-002 upgrade preserves identities, history and subscriber authority and destroys legacy credentials',async()=>{
  const directory=await mkdtemp(join(process.cwd(),'.lamp-auth-upgrade-'));const runtime=openRuntime(directory);
  try {
   const db=await runtime.getD1Database('DB');
@@ -132,7 +132,7 @@ test('ACCESS-001 TEAM-001 TEAM-002 upgrade preserves identities, history and sub
 
 // 421cb4c let the setup operator revoke or erase itself; afterwards no operator
 // held setup authority and the editor stayed closed. The upgrade keeps it so.
-test('ACCESS-001 upgrade moves setup authority only with the setup operator who still exists',async t=>{
+test('ACCESS-002 upgrade moves setup authority only with the setup operator who still exists',async t=>{
  const erase="UPDATE operators SET email='deleted-01j00000000000000000000001@operator.invalid',display_name='Erased operator',deactivated_at=COALESCE(deactivated_at,'2026-10-02T00:00:00.000Z'),updated_at='2026-10-02T00:00:00.000Z' WHERE id='01J00000000000000000000001'";
  const revoke="UPDATE operators SET deactivated_at='2026-10-02T00:00:00.000Z',updated_at='2026-10-02T00:00:00.000Z' WHERE id='01J00000000000000000000001'";
  for(const [state,before] of [['kept',null],['erased',erase],['revoked',revoke]])await t.test(state,async()=>{
