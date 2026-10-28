@@ -155,6 +155,8 @@ export async function chatDeskNativeFlow(t) {
       assert.equal(refused.status, 403, `${name}'s signed door refuses the formerly linked actor after operator authority is revoked`);
       assert.deepEqual(await Promise.all(['incidents','incident_updates','incident_drafts','audit_entries'].map(count)), refusedCounts, `${name}'s refused actor creates no incident, update, draft or audit entry`);
     }
+    await r.close(); r = await runtime(t,[jwk]);
+    await (await import('./roles.mjs')).chatRoleFlow({r,slack,teams,update});
     await r.close(); r = await runtime(t, [jwk], { configured: false });
     for (const endpoint of ['slack', 'teams']) assert.equal((await r.worker.dispatchFetch(`${origin}/api/chat/${endpoint}`, { method: 'POST', body: '{}' })).status, 503);
     assert.equal(await count('incidents'), 0);

@@ -8,7 +8,12 @@ import type { IncidentPublishRecord } from "./repository";
 
 /** Update, claims, aggregate history and recipient selection share one D1 commit. */
 export async function publishIncidentDraft(binding: D1Database, input: IncidentPublishRecord, recipients: D1PreparedStatement[]) {
-  const statements = [publicationComponentsGuard(binding, input.incidentId, input.baselineComponents)];
+  const statements = [
+    binding.prepare(`SELECT CASE WHEN EXISTS(SELECT 1 FROM oa_operators o LEFT JOIN operator_roles r ON r.operator_id=o.id
+      WHERE o.id=? AND o.status='active' AND (o.role IN ('owner','admin') OR (o.role='member' AND r.role='communicator')))
+      THEN 1 ELSE json('Publication authority changed') END`).bind(input.authorOperatorId),
+    publicationComponentsGuard(binding, input.incidentId, input.baselineComponents),
+  ];
   const notificationHistoryIds: string[] = [];
   if (input.recovery) statements.push(recoverySnapshotGuard(binding, input.incidentId, input.recovery.snapshot));
   for (const change of input.stagedChanges) {
