@@ -170,7 +170,7 @@ export function createPageExportRepository(binding: D1Database): PageExportRepos
       }));
       for (const { table, rows } of tables) {
         if (!rows.length) continue;
-        const verb = table === "reference_allocations" ? "INSERT OR IGNORE INTO" : "INSERT INTO";
+        const verb = table === "reference_allocations" ? "INSERT OR IGNORE INTO" : table === "incident_follow_settings" ? "INSERT OR REPLACE INTO" : "INSERT INTO";
         // A new page may already count references; keep the higher number.
         const conflict = table === "reference_counters" ? " ON CONFLICT(namespace) DO UPDATE SET last_number = MAX(last_number, excluded.last_number)" : "";
         for (const statement of insertStatements(table, rows.map(withOperatorIds), verb)) sql.push(statement + conflict);

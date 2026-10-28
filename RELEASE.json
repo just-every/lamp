@@ -182,6 +182,14 @@
     {
       "id": "0066_social_accounts.sql",
       "buyerSteps": "Apply after 0065. Adds sealed owner social accounts, a default-off social posting preference and atomic per-update/account post records with provider receipts. Existing updates, channels and migrations are unchanged. Connect each optional account in Settings; explicitly choose Social accounts per update, or enable post by default. X requires the owner's OAuth 2.0 user token with tweet.write; Bluesky an app password; Mastodon write:statuses. No provider account or key is needed unless the owner enables posting."
+    },
+    {
+      "id": "0067_incident_subscriptions.sql",
+      "buyerSteps": "Apply after 0066. Adds incident-only subscription lifetimes and a default-on report preference. Existing subscriber identities, destinations, tokens, selections and delivery history remain unchanged; incident subscriptions reuse confirmation, capacity, erasure and native archive mechanisms."
+    },
+    {
+      "id": "0068_incident_report_deliveries.sql",
+      "buyerSteps": "Apply after 0067. Adds report-only delivery and attempt carriers under the existing logical notification views, preserving every incident/maintenance/component delivery row, foreign key and old archive. Report publication now captures and dispatches its report recipients without bypassing confirmation or terminal subscription lifetimes. No provider credential or owner action is required."
     }
   ],
   "breaking": false,

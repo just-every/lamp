@@ -228,7 +228,7 @@ baseline("BASE-DATA-001", "real D1 and R2 export-import-export preserves the arc
   try {
     fixture.r2Object("baseline/attachment.txt", "baseline attachment", "text/plain; charset=utf-8");
     execFileSync("pnpm", ["run", "export:cloudflare", "--", "--out", archive, "--persist-to", fixture.statePath], { stdio: "pipe" });
-    execFileSync("pnpm", ["run", "import:cloudflare", "--", "--from", archive, "--persist-to", target], { stdio: "pipe" });
+    execFileSync("pnpm", ["run", "import:cloudflare", "--", "--from", archive, "--persist-to", target], { stdio: "pipe", maxBuffer: 8 * 1024 * 1024 });
     execFileSync("pnpm", ["run", "export:cloudflare", "--", "--out", restored, "--persist-to", target], { stdio: "pipe" });
     assert.deepEqual(JSON.parse(await readFile(join(restored, "entities.json"), "utf8")), JSON.parse(await readFile(join(archive, "entities.json"), "utf8")));
     const manifest = JSON.parse(await readFile(join(restored, "manifest.json"), "utf8"));
@@ -361,11 +361,11 @@ baseline(["BASE-OPS-001","BASE-OPS-002"], "Health dependency probes and prior-da
     for (const name of migrations.filter((name) => name !== current)) await writeFile(join(prior, name), await readFile(join("migrations/core", name)));
     const config = join(sandbox, "wrangler.toml");
     await writeFile(config, `name = \"baseline-migration\"\nmain = \"noop.js\"\ncompatibility_date = \"2026-08-31\"\n[[d1_databases]]\nbinding = \"DB\"\ndatabase_name = \"baseline-migration\"\ndatabase_id = \"00000000-0000-0000-0000-000000000000\"\nmigrations_dir = ${JSON.stringify(prior)}\n`);
-    execFileSync("pnpm", ["exec", "wrangler", "d1", "migrations", "apply", "DB", "--local", "--config", config, "--persist-to", sandbox], { stdio: "pipe" });
+    execFileSync("pnpm", ["exec", "wrangler", "d1", "migrations", "apply", "DB", "--local", "--config", config, "--persist-to", sandbox], { maxBuffer: 8 * 1024 * 1024, stdio: "pipe" });
     const sampleSql = "INSERT INTO operators (id,email,display_name,is_setup_operator,created_at,updated_at) VALUES ('migration-owner','owner@example.test','Preserved owner',1,'2026-09-08T00:00:00.000Z','2026-09-08T00:00:00.000Z'); INSERT INTO components (id,name,description,internal,display_order,note,created_at,updated_at) VALUES ('migration-component','Owner API','Owner custom description',0,1,'Keep this note','2026-09-08T00:00:00.000Z','2026-09-08T00:00:00.000Z');";
     execFileSync("pnpm", ["exec", "wrangler", "d1", "execute", "DB", "--local", "--config", config, "--persist-to", sandbox, "--command", sampleSql], { stdio: "pipe" });
     await writeFile(config, `name = \"baseline-migration\"\nmain = \"noop.js\"\ncompatibility_date = \"2026-08-31\"\n[[d1_databases]]\nbinding = \"DB\"\ndatabase_name = \"baseline-migration\"\ndatabase_id = \"00000000-0000-0000-0000-000000000000\"\nmigrations_dir = ${JSON.stringify(resolve("migrations/core"))}\n`);
-    execFileSync("pnpm", ["exec", "wrangler", "d1", "migrations", "apply", "DB", "--local", "--config", config, "--persist-to", sandbox], { stdio: "pipe" });
+    execFileSync("pnpm", ["exec", "wrangler", "d1", "migrations", "apply", "DB", "--local", "--config", config, "--persist-to", sandbox], { maxBuffer: 8 * 1024 * 1024, stdio: "pipe" });
     const output = execFileSync("pnpm", ["exec", "wrangler", "d1", "execute", "DB", "--local", "--config", config, "--persist-to", sandbox, "--command", "SELECT name FROM d1_migrations ORDER BY name", "--json"], { encoding: "utf8" });
     const applied = JSON.parse(output)[0].results.map((row) => row.name);
     assert.deepEqual(applied, migrations);

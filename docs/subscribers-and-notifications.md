@@ -5,6 +5,28 @@ link and become active only after confirming. A pending address expires after
 72 hours. Subscribers can manage their component selection or unsubscribe from
 their emailed link.
 
+## Follow one incident
+
+Open an incident's permanent page and use **Get updates on this incident**.
+Email and webhook subscriptions confirm through the contact's emailed link.
+SMS is offered only when it is enabled on the installation and uses its existing
+text-message opt-in. These forms work without JavaScript.
+
+An incident follow receives that incident's later published updates and its
+resolution, including a reopening before the follow ends. Other incidents,
+maintenance and component changes are excluded. Its management link shows
+**Following INC-n** and lets the recipient unsubscribe immediately. Operators
+can see the audience on the incident and in **Subscribers**.
+
+**Settings → Notifications → Include the post-incident report** defaults on and
+sets the choice for new incident follows. With it on, following ends when the
+report is published or 30 days after resolution, whichever comes first. With it
+off, following ends after the resolution is delivered. Lamp removes the ended
+follow's address within 24 hours; another subscription at the same address
+continues independently. Incident follows use the same confirmation allowance,
+pending expiry and channel capacity as other subscriptions. Native archives
+retain their incident scope and lifetime.
+
 ## Process email unsubscribe requests
 
 Use a From address whose mailbox you monitor. Some mail clients send their

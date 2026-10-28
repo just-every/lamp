@@ -25,7 +25,7 @@ const shapes = {
   incident: { id, name: text, status: incidentStatus, impact: z.string().optional(), created_at: time, resolved_at: time.nullable().optional(), scheduled_for: time.nullable().optional(), scheduled_until: time.nullable().optional(), postmortem_body: z.unknown().optional(), postmortem_published_at: z.unknown().optional(), components: z.array(z.object({ id })).optional(), incident_updates: z.array(z.unknown()) },
   template: { id, name: z.string(), title: z.string(), body: z.string(), group_id: id.nullable().optional(), group: z.object({ id, name: z.string() }).nullable().optional(), update_status: z.string(), should_send_notifications: z.boolean().nullable().optional(), components: z.array(z.object({ id, status: z.string() }).passthrough()), created_at: time.optional() },
   templateGroup: { id, name: z.string() },
-  subscriber: { id, mode: z.string(), email: z.string().max(320).nullable().optional(), quarantined_at: time.nullable().optional(), components: z.array(id).nullable().optional(), created_at: time.optional() },
+  subscriber: { id, incident_id: id.nullable().optional(), mode: z.string(), email: z.string().max(320).nullable().optional(), quarantined_at: time.nullable().optional(), components: z.array(id).nullable().optional(), created_at: time.optional() },
 };
 // Undocumented fields pass through to the retained source; only these are read.
 export const sourceSchemas = {
@@ -54,9 +54,11 @@ export interface SourceData {
 }
 export interface ReadSource { namespace?: string; accounting?: import("./rows").Accounting[]; publicAddresses?: Record<string, string[]>; sourceInfo?: { label: string; pageId: string; publicUrl: string }; records: SourceRecord[]; artifacts: SourceArtifact[]; data: SourceData; origins: Map<string, SourceArtifact> }
 
+const incidentSubscriberFile = /^incident-subscribers-([A-Za-z0-9_-]{1,64})\.json$/u;
 const fileName = /^(component-groups|components|incidents-scheduled|incidents|subscribers|incident-templates|incident-template-groups)(?:-(\d{1,3}))?\.json$/u;
 
 function resourceOf(name: string): Resource {
+  if (incidentSubscriberFile.test(name)) return "subscribers";
   const match = fileName.exec(name);
   if (!match) throw new Error(`${name}: name each saved response <resource>.json or <resource>-<page>.json, where resource is one of ${resources.join(", ")}.`);
   return match[1] as Resource;
@@ -90,6 +92,7 @@ export async function readSavedResponses(files: SavedFile[]): Promise<ReadSource
   const seen = new Set<string>();
   for (const file of [...dataFiles].sort((a, b) => a.name.localeCompare(b.name))) {
     const resource = resourceOf(file.name);
+    const followedIncident = incidentSubscriberFile.exec(file.name)?.[1];
     let read;
     try {
       // Every Statuspage list response is a JSON array; the reader parses its elements one by one.
@@ -99,7 +102,12 @@ export async function readSavedResponses(files: SavedFile[]): Promise<ReadSource
         if (resource === "incident-template-groups") { const row = sourceSchemas.templateGroup.parse(raw); return { kind: "template-group", sourceId: row.id, payload: raw }; }
         if (resource === "component-groups") { const row = sourceSchemas.group.parse(raw); return { kind: "group", sourceId: row.id, payload: raw }; }
         if (resource === "components") { const row = sourceSchemas.component.parse(raw); return { kind: row.group ? "group-component" : "component", sourceId: row.id, payload: raw }; }
-        if (resource === "subscribers") { const row = sourceSchemas.subscriber.parse(raw); return { kind: "subscriber", sourceId: row.id, payload: raw }; }
+        if (resource === "subscribers") {
+          const row = sourceSchemas.subscriber.parse(raw);
+          if (followedIncident && row.incident_id && row.incident_id !== followedIncident) throw new Error("Incident subscriber belongs to another incident.");
+          const incidentId = followedIncident ?? row.incident_id;
+          return { kind: "subscriber", sourceId: incidentId ? `incident:${incidentId}:${row.id}` : row.id, payload: raw };
+        }
         const row = sourceSchemas.incident.parse(raw);
         row.incident_updates.forEach((update) => sourceSchemas.update.parse(update));
         return { kind: isMaintenance(row) ? "maintenance" : "incident", sourceId: row.id, payload: raw };
@@ -122,7 +130,10 @@ export async function readSavedResponses(files: SavedFile[]): Promise<ReadSource
       else if (record.kind === "template-group") data.templateGroups!.push(sourceSchemas.templateGroup.parse(raw));
       else if (record.kind === "group") data.groups.push(sourceSchemas.group.parse(raw));
       else if (record.kind === "component") data.components.push(sourceSchemas.component.parse(raw));
-      else if (record.kind === "subscriber") data.subscribers.push(sourceSchemas.subscriber.parse(raw));
+      else if (record.kind === "subscriber") {
+        const subscriber = sourceSchemas.subscriber.parse(raw);
+        data.subscribers.push({ ...subscriber, ...(followedIncident ? { incident_id: followedIncident } : {}) });
+      }
       else {
         const incident = sourceSchemas.incident.parse(raw);
         const parsed = { ...incident, incident_updates: incident.incident_updates.map((update) => sourceSchemas.update.parse(update)) } as SourceIncident;
@@ -144,6 +155,7 @@ export async function fetchSavedResponses(input: { pageId: string; apiKey: strin
   const fetcher = input.fetcher ?? fetch;
   const files: SavedFile[] = [];
   let bytes=0;
+  const unresolved = new Set<string>();
   const bounded=(body:string)=>{bytes+=new TextEncoder().encode(body).byteLength;if(bytes>importLimits.maxBytes)throw new Error("Saved responses exceed the 8 MiB total limit.");return body;};
   for (const [name, path] of [["page.json", ""], ["page-access-groups.json", "/page_access_groups"]]) {
     const response = await fetcher(new URL(`/v1/pages/${input.pageId}${path}`, origin), { method: "GET", redirect: "manual", headers: { Authorization: `OAuth ${input.apiKey}`, Accept: "application/json" }, signal: AbortSignal.timeout(20_000) });
@@ -168,12 +180,41 @@ export async function fetchSavedResponses(input: { pageId: string; apiKey: strin
       const body = bounded(await response.text());
       const rows = JSON.parse(body) as unknown;
       if (!Array.isArray(rows)) throw new Error(`Statuspage returned an undocumented ${resource} response.`);
+      if (resource === "incidents") for (const raw of rows) {
+        const row = sourceSchemas.incident.parse(raw);
+        if (!isMaintenance(row) && !["resolved", "postmortem"].includes(row.status)) unresolved.add(row.id);
+      }
       if(resource==="subscribers")subscribers.push(...rows);
       else files.push({ name: page === 1 ? `${resource}.json` : `${resource}-${page}.json`, text: body });
       if (rows.length < perPage) break;
       if(page===maxPages)throw new Error(`Statuspage ${resource} exceeds the import limit; nothing was truncated.`);
     }
     if(resource==="subscribers")files.push({name:"subscribers.json",text:JSON.stringify(subscribers)});
+  }
+  // Incident followers have their own Statuspage resource. Only unresolved
+  // incidents can still produce live updates after the move; resolved history
+  // never resurrects a subscriber or sends a replay notification.
+  let incidentSubscriberCount = 0;
+  for (const incidentId of unresolved) {
+    if (!/^[A-Za-z0-9_-]{1,64}$/u.test(incidentId)) throw new Error("Statuspage returned an unsupported incident identity.");
+    const subscribers: unknown[] = [];
+    const maxPages = Math.floor(importLimits.maxSubscriberRecords / perPage) + 1;
+    for (let page = 1; page <= maxPages; page++) {
+      const url = new URL(`/v1/pages/${input.pageId}/incidents/${incidentId}/subscribers`, origin);
+      url.searchParams.set("page", String(page));
+      url.searchParams.set("per_page", String(perPage));
+      const response = await fetcher(url, { method: "GET", redirect: "manual", headers: { Authorization: `OAuth ${input.apiKey}`, Accept: "application/json" }, signal: AbortSignal.timeout(20_000) });
+      if (!response.ok) throw new Error(`Statuspage answered ${response.status} for incident subscribers.`);
+      const rows = JSON.parse(bounded(await response.text())) as unknown;
+      if (!Array.isArray(rows)) throw new Error("Statuspage returned an undocumented incident-subscriber response.");
+      subscribers.push(...rows);
+      incidentSubscriberCount += rows.length;
+      if (incidentSubscriberCount > importLimits.maxSubscriberRecords) throw new Error("Statuspage incident subscribers exceed the import limit; nothing was truncated.");
+      if (rows.length < perPage) break;
+      if (page === maxPages) throw new Error("Statuspage incident subscribers exceed the import limit; nothing was truncated.");
+    }
+    if (subscribers.length) files.push({ name: `incident-subscribers-${incidentId}.json`, text: JSON.stringify(subscribers) });
+    if (files.length > importLimits.files) throw new Error("Statuspage responses exceed the saved-file import limit; nothing was truncated.");
   }
   return files;
 }

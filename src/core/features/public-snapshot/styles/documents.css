@@ -51,3 +51,12 @@
 .subscriber-document .subscriber-kicker { margin: 0 0 4px; color: var(--ink-3); font-size: 12px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; }
 .subscriber-document .subscriber-scope-value { margin: 0; color: var(--ink); font-size: 17px; font-weight: 600; }
 .subscriber-document .subscriber-again { color: var(--ink); text-decoration: underline 1.5px var(--accent); text-underline-offset: 4px; }
+
+/* Incident subscriptions stay with their permanent incident record. */
+.incident-follow { display: block; margin-top: 0; }
+.incident-follow .subscribe-options { margin-top: 20px; }
+.incident-follow .subscribe-copy h2 { font-size: 20px; }
+.incident-follow label { margin-top: 12px; }
+.incident-follow label:first-of-type { margin-top: 0; }
+.incident-follow .subscribe-channel button { margin-top: 14px; }
+.incident-follow input { min-width: 0; width: 100%; }

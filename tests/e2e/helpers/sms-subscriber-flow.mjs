@@ -1,3 +1,4 @@
+import { incidentFollowSmsFlow } from "./incident-follow-sms-flow.mjs";
 import { smsDeliveryReceiptsFlow } from './sms-delivery-receipts-flow.mjs';
 import assert from 'node:assert/strict';
 import { createHmac } from 'node:crypto';
@@ -266,6 +267,7 @@ export async function smsSubscriberFlow() {
     assert.equal((await fixture.list()).find(row => row.destination === pendingPhone).state, 'pending', 'erasure preserves unrelated SMS subscribers');
     const erased = await fixture.databaseState();
     for (const [table, data] of erased) assert.ok(!data.includes(phone), `subscriber erasure removes the number from ${table}`);
+    await incidentFollowSmsFlow({ fixture, publish, inbound, flush, messagesFor, component, pageOrigin });
     await smsDeliveryReceiptsFlow({ ...fixture, flush, messages, pageOrigin });
   } finally { await fixture.close(); }
 }

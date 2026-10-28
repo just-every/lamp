@@ -4,6 +4,8 @@ import { createServer } from "node:http";
 import { join } from "node:path";
 import { after, before } from "node:test";
 
+import { importedIncidentLiveFlow } from "./helpers/imported-incident-live-flow.mjs";
+import { incidentSubscriberFiles, incidentSubscriberImportFlow } from "./helpers/incident-subscriber-import-flow.mjs";
 import { continuityFiles, assertContinuityCounts, postmortemTemplateImportFlow } from "./helpers/postmortem-template-import-flow.mjs";
 import { subscriberCsvFlow } from "./helpers/subscriber-csv-flow.mjs";
 import { subscriberLimitsBrowserFlow } from "./helpers/subscriber-limits-browser-flow.mjs";
@@ -27,6 +29,7 @@ let runtime;
 let statuspage;
 let statuspageRequests = [];
 let boundarySubscriberCount=0;
+let incidentSubscriberProbe=false;
 let aliasBefore;
 let editedIncident;
 let editedMaintenance;
@@ -71,6 +74,11 @@ before(async () => {
     if (request.headers.authorization === `OAuth ${API_KEY}` && request.url === '/v1/pages/synthpage01/page_access_groups') {
       response.writeHead(200, { 'Content-Type': 'application/json' }).end('[]'); return;
     }
+    const incidentSubscribers = /^\/v1\/pages\/synthpage01\/incidents\/([^/]+)\/subscribers\?/u.exec(request.url ?? "");
+    if (incidentSubscribers && request.headers.authorization === `OAuth ${API_KEY}`) {
+      const file = incidentSubscriberProbe ? incidentSubscriberFiles(fixtures("small")).find(row => row.name === `incident-subscribers-${incidentSubscribers[1]}.json`) : null;
+      response.writeHead(200, { "Content-Type": "application/json" }).end(file?.text ?? "[]"); return;
+    }
     const match = /^\/v1\/pages\/synthpage01\/([a-z/_-]+)\?/u.exec(request.url ?? "");
     if (request.headers.authorization !== `OAuth ${API_KEY}`) { response.writeHead(401).end("{}"); return; }
     const resource = match?.[1].replace("/", "-").replaceAll("_", "-");
@@ -82,7 +90,7 @@ before(async () => {
       response.writeHead(200,{'Content-Type':'application/json'}).end(JSON.stringify(rows));return;
     }
     const name = page === 1 ? `${resource}.json` : `${resource}-${page}.json`;
-    const file = continuityFiles(fixtures("small")).find((candidate) => candidate.name === name);
+    const file = (incidentSubscriberProbe ? incidentSubscriberFiles(fixtures("small")) : continuityFiles(fixtures("small"))).find((candidate) => candidate.name === name);
     response.writeHead(200, { "Content-Type": "application/json" }).end(file?.text ?? "[]");
   });
   await new Promise((resolve) => statuspage.listen(0, "127.0.0.1", resolve));
@@ -99,7 +107,7 @@ after(async () => {
   await new Promise((resolve) => statuspage?.close(resolve));
 });
 
-contract("MOVE-001", "MOVE-011 — a dry run reports every record and writes nothing; the API-key path reads Statuspage with GET only; postmortems and templates dry-run, apply silently, repeat and undo", async () => {
+contract("MOVE-001", "SUB-019 MOVE-011 — a dry run reports every record and writes nothing; the API-key path reads Statuspage with GET only; postmortems and templates dry-run, apply silently, repeat and undo", async t => {
   const before = await counts();
   const unauthenticated = await nativeRequest("/api/operator/import/uploads", { method: "POST", json: {}, headers: { "X-Import-Source": "statuspage" } });
   assert.equal(unauthenticated.status, 401);
@@ -134,6 +142,22 @@ contract("MOVE-001", "MOVE-011 — a dry run reports every record and writes not
   await postmortemTemplateImportFlow({ api, request: (path, init) => nativeRequest(path, { cookie, ...init }), importAll, moveIn, original: fixtures("small"), publicOrigin });
   assert.deepEqual(await counts(), before, "complete undo removes both reports and all three templates");
   await assertNoNewNotifications(runtime, mailBefore, "postmortem/template preview, apply, repeat and undo send nothing");
+  incidentSubscriberProbe=true;
+  const requestOffset=statuspageRequests.length;
+  try {
+    const fetched=await api("/api/app/statuspage-import/fetch",{source:"statuspage",pageId:"synthpage01",apiKey:API_KEY});
+    assert.equal(fetched.status,200,JSON.stringify(fetched.body));
+    const file=fetched.body.files.find(row=>row.name==="incident-subscribers-followinc001.json");
+    assert.equal(JSON.parse(file.text).length,3,"the fixed-origin API reader retains every unresolved incident follower response");
+    const reads=statuspageRequests.slice(requestOffset).filter(row=>row.url.includes("/subscribers?"));
+    assert.equal(reads.filter(row=>row.url.includes("/incidents/")).length,1,"only the unresolved incident's subscriber endpoint is read");
+    assert.ok(reads.filter(row=>row.url.includes("/incidents/")).every(row=>new URL(row.url,"https://api.statuspage.io").searchParams.get("per_page")==="100"),"incident-subscriber pagination uses Statuspage's documented per_page parameter");
+    assert.ok(reads.every(row=>row.method==="GET"&&row.authorization===`OAuth ${API_KEY}`));
+  } finally {incidentSubscriberProbe=false;}
+  await incidentSubscriberImportFlow({ t, runtime, api, moveIn, importAll, original: fixtures("small"), origin, publicOrigin, operator });
+  assert.deepEqual(await counts(), before, "incident-subscriber import undo leaves the prior installation intact");
+  await importedIncidentLiveFlow(fixtures("small"));
+  assert.deepEqual(await counts(), before, "the isolated live-import proof leaves this undo installation intact");
   try {
     for(const size of [5_000,25_000]) {
       boundarySubscriberCount=size;
