@@ -937,12 +937,12 @@
       "buyerSteps": "Apply after 0065. Adds sealed owner social accounts, a default-off social posting preference and atomic per-update/account post records with provider receipts. Existing updates, channels and migrations are unchanged. Connect each optional account in Settings; explicitly choose Social accounts per update, or enable post by default. X requires the owner's OAuth 2.0 user token with tweet.write; Bluesky an app password; Mastodon write:statuses. No provider account or key is needed unless the owner enables posting."
     },
     {
-      "id": "0067_page_theme.sql",
-      "buyerSteps": "Apply after 0066. Adds empty theme and theme-asset settings while preserving the existing page appearance and stored records. Configure palette, typography, uploaded WOFF2 fonts, header artwork, links and layout in Settings. Publication carries the selected assets in the retained snapshot; no provider account or key is needed."
-    },
-    {
       "id": "0067_incident_subscriptions.sql",
       "buyerSteps": "Apply after 0066. Adds incident-only subscription lifetimes and a default-on report preference. Existing subscriber identities, destinations, tokens, selections and delivery history remain unchanged; incident subscriptions reuse confirmation, capacity, erasure and native archive mechanisms."
+    },
+    {
+      "id": "0067_page_theme.sql",
+      "buyerSteps": "Apply after 0066. Adds empty theme and theme-asset settings while preserving the existing page appearance and stored records. Configure palette, typography, uploaded WOFF2 fonts, header artwork, links and layout in Settings. Publication carries the selected assets in the retained snapshot; no provider account or key is needed."
     },
     {
       "id": "0068_incident_report_deliveries.sql",
