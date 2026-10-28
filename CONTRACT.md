@@ -1115,7 +1115,7 @@ What Lamp does not do, and how a buyer gets it:
 
 ## Status
 
-Judged from the code and tests at commit `9e1301e331992add4badf8b5e9ded34bc88d1f26` (26 October 2026). Rows changed after that commit name their own journeys under Evidence.
+Judged from the code and tests at commit `e0871a29f7b503478a76ad8a37f2ad63875512c2` (28 October 2026). The enclosing candidate replays these journeys in Verify; its source and tests are unchanged from this proof revision.
 
 INTAKE-009 is judged done on 21 October 2026 on the 1.10.0 release candidate, which inventories its migration 0042, from its named API, browser and native archive journeys below.
 
@@ -1128,10 +1128,10 @@ INTAKE-011 history: before c23, the partial rationale was “Metric ingestion an
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
 | Published | 104 | 0 | 0 | 104 |
-| Target and push further | 33 | 28 | 34 | 95 |
-| All | 137 | 28 | 34 | 199 |
+| Target and push further | 34 | 28 | 33 | 95 |
+| All | 138 | 28 | 33 | 199 |
 
-Of 199 clauses, 137 are done, 28 partial and 34 missing (62 non-DONE).
+Of 199 clauses, 138 are done, 28 partial and 33 missing (61 non-DONE).
 
 SUB-014 completion is a proposal pending ct judgment and is uncounted in fleet acceptance totals.
 
@@ -1307,7 +1307,7 @@ SUB-014 completion is a proposal pending ct judgment and is uncounted in fleet a
 | `API-003` | Operator event webhooks | target | missing |  | Not built. |
 | `API-004` | Terraform, GitHub Actions and config-as-code | target | missing |  | Not built. |
 | `INTEG-001` | Incident context in the support desk | target | missing |  | Not built. |
-| `INTEG-002` | Updates posted to the page's social accounts | target | missing | Acceptance 1: `tests/e2e/channels-and-presets.test.mjs` (INTEG-002 SUB-014 NOTIFY-011 NOTIFY-012 UPDATE-013 — Private channels deliver the selected publication once with literal text and punctuated links), loading `tests/e2e/helpers/social-posts-flow.mjs` (socialPostsFlow); Acceptance 2: `tests/e2e/channels-and-presets.test.mjs` (INTEG-002 SUB-014 NOTIFY-011 NOTIFY-012 UPDATE-013 — Private channels deliver the selected publication once with literal text and punctuated links), loading `tests/e2e/helpers/social-posts-flow.mjs` (socialPostsFlow); Acceptance 3: `tests/e2e/channels-and-presets.test.mjs` (INTEG-002 SUB-014 NOTIFY-011 NOTIFY-012 UPDATE-013 — Private channels deliver the selected publication once with literal text and punctuated links), loading `tests/e2e/helpers/social-posts-flow.mjs` (socialPostsFlow); Acceptance 4: `tests/e2e/channels-and-presets.test.mjs` (INTEG-002 SUB-014 NOTIFY-011 NOTIFY-012 UPDATE-013 — Private channels deliver the selected publication once with literal text and punctuated links), loading `tests/e2e/helpers/social-posts-flow.mjs` (socialPostsFlow); `tests/e2e/helpers/social-browser-flow.mjs` (socialBrowserFlow), loaded by the same registration, proves controls and 1440/390 observations. | Current candidate proof and branch Verify pending for all four acceptance points. |
+| `INTEG-002` | Updates posted to the page's social accounts | target | done | Acceptance 1: `tests/e2e/channels-and-presets.test.mjs` (INTEG-002 SUB-014 NOTIFY-011 NOTIFY-012 UPDATE-013 — Private channels deliver the selected publication once with literal text and punctuated links), loading `tests/e2e/helpers/social-posts-flow.mjs` (socialPostsFlow); Acceptance 2: `tests/e2e/channels-and-presets.test.mjs` (INTEG-002 SUB-014 NOTIFY-011 NOTIFY-012 UPDATE-013 — Private channels deliver the selected publication once with literal text and punctuated links), loading `tests/e2e/helpers/social-posts-flow.mjs` (socialPostsFlow); Acceptance 3: `tests/e2e/channels-and-presets.test.mjs` (INTEG-002 SUB-014 NOTIFY-011 NOTIFY-012 UPDATE-013 — Private channels deliver the selected publication once with literal text and punctuated links), loading `tests/e2e/helpers/social-posts-flow.mjs` (socialPostsFlow); Acceptance 4: `tests/e2e/channels-and-presets.test.mjs` (INTEG-002 SUB-014 NOTIFY-011 NOTIFY-012 UPDATE-013 — Private channels deliver the selected publication once with literal text and punctuated links), loading `tests/e2e/helpers/social-posts-flow.mjs` (socialPostsFlow); `tests/e2e/helpers/social-browser-flow.mjs` (socialBrowserFlow), loaded by the same registration, proves controls and 1440/390 observations. Inherited authority and secrecy: the same socialPostsFlow asserts anonymous and revoked-session refusal, fresh-member refusal for connect, default and removal, encrypted storage, hidden credentials, and queued retry and replay refusal after disconnection. Only recorded provider edges are claimed. |  |
 | `MOBILE-001` | The operator desk works on a phone | target | done | `src/core/app/client/ui/responsive.css`, `src/core/features/intake/ui/alerts-page.tsx`, `tests/e2e/helpers/phone-desk-flow.mjs` | Native terminal-link sign-in, signed-alert draft, attachment, autosave/reload, preview, publish, resolution, standing claim and maintenance scheduling pass at 390×844 and 1440 px, with accessibility, overflow and 44 px phone-control checks. |
 | `MOBILE-002` | Installable app with push | target | missing |  | Not built. |
 | `SETUP-001` | Setup readiness | published | done | `tests/e2e/setup-readiness.test.mjs` |  |

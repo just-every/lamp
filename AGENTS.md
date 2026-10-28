@@ -104,8 +104,6 @@ report owner replacements. Run the owner's specific tests explicitly and report
 their results alongside the upstream verifier. A failing upstream test without a
 recorded owner request is a regression to fix.
 
-## Verify
-
 ## Lander-Regenerate
 
 After resolving CONTRACT.md, regenerate the touched clause entries and shared counts:
@@ -115,7 +113,7 @@ This incremental generator preserves the remaining legacy entries for ct's conve
 Regenerate the source lock last: `node scripts/edition-authoring/cli.mjs lock`,
 then `node scripts/edition-authoring/cli.mjs check`.
 
-## Verification commands
+## Verify
 
 Stop a running development server or production preview before verification or
 build commands. Use `rer dev --stop` or `rer preview --stop` as appropriate;
