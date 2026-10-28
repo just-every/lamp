@@ -1,6 +1,7 @@
 import { operatorHydrated } from "./operator-hydrated.mjs";
 import assert from "node:assert/strict";
-import { mkdir } from "node:fs/promises";
+import { mkdir, writeFile } from "node:fs/promises";
+import { setTimeout as pause } from "node:timers/promises";
 import { chromium, expect } from "@playwright/test";
 
 export async function themeBrowserFlow({ appUrl, pageUrl, sessionId, cookieName, theme, image, font, currentSettings, snapshot }) {
@@ -131,7 +132,6 @@ export async function themeBrowserFlow({ appUrl, pageUrl, sessionId, cookieName,
     await literal.goto(`${pageUrl}/`);
     await expect(literal.locator(".owner-note")).toHaveText("Service updates from the Atlas team.");
     await expect(literal.locator(".theme-footer")).toContainText("Always here to help.");
-    await noScript.close();
     await page.getByRole("combobox", { name: /^Page font/ }).selectOption("default");
     await saved();
     await expect.poll(async () => (await currentSettings()).theme.font).toBe("default");
@@ -146,6 +146,50 @@ export async function themeBrowserFlow({ appUrl, pageUrl, sessionId, cookieName,
     await page.getByRole("combobox", { name: /^Page font/ }).selectOption("uploaded");
     await saved();
     await expect.poll(async () => (await currentSettings()).theme.font).toBe("uploaded");
+    // Adapt the gate's paused typing probe: autosave may sanitize publication,
+    // but must leave the owner's in-progress HTML and caret untouched.
+    const typed = [];
+    for (const width of [1440, 390]) {
+      await page.setViewportSize({ width, height: 1000 });
+      await literal.setViewportSize({ width, height: 1000 });
+      for (const [field, key, position, chunks] of [
+        ["Header HTML", "headerHtml", "header", ['<p class="typed">Planned work on the ', '<strong>payments', ' API</strong> tonight.</p>']],
+        ["Footer HTML", "footerHtml", "footer", ['<p>Questions? <a href="https://help.', 'northstar.example/">Ask our team', '</a></p>']],
+      ]) {
+        const input = page.getByLabel(new RegExp(`^${field}`));
+        await input.fill("");
+        await expect.poll(async () => (await currentSettings()).theme[key]).toBe("");
+        const entry = { width, field, afterPause: [] };
+        for (const [index, chunk] of chunks.entries()) {
+          const prefix = chunks.slice(0, index + 1).join("");
+          const saving = page.waitForResponse(response => new URL(response.url()).pathname === "/api/app/page-settings" && response.request().method() === "PUT" && response.request().postDataJSON()?.theme?.[key] === prefix);
+          await input.pressSequentially(chunk, { delay: 60 });
+          await pause(1500);
+          assert.equal((await saving).status(), 200);
+          await saved();
+          entry.afterPause.push(await input.inputValue());
+          assert.equal(await input.inputValue(), prefix, `${field} stays exactly as typed after a pause at ${width}`);
+        }
+        entry.complete = chunks.join("");
+        entry.stored = (await currentSettings()).theme[key];
+        assert.equal(entry.stored, entry.complete);
+        await input.scrollIntoViewIfNeeded();
+        await page.screenshot({ path: `${directory}/typed-${key}-settings-${width}.png` });
+        await literal.goto(`${pageUrl}/`);
+        entry.published = await literal.locator(`.theme-${position} > p`).evaluate(element => element.outerHTML);
+        assert.equal(entry.published, entry.complete, `${field} publishes intact without JavaScript at ${width}`);
+        if (key === "footerHtml") await expect(literal.getByRole("link", { name: "Ask our team", exact: true })).toHaveAttribute("href", "https://help.northstar.example/");
+        await literal.locator(`.theme-${position}`).scrollIntoViewIfNeeded();
+        await literal.screenshot({ path: `${directory}/typed-${key}-public-${width}.png` });
+        typed.push(entry);
+      }
+    }
+    await writeFile(`${directory}/typed-html.json`, JSON.stringify(typed, null, 2) + "\n");
+    await page.getByLabel(/^Header HTML/).fill(theme.headerHtml);
+    await page.getByLabel(/^Footer HTML/).fill(theme.footerHtml);
+    await saved();
+    await expect.poll(async () => (await currentSettings()).theme).toEqual({ ...theme, font: "uploaded", headerImage: true });
+    await noScript.close();
     await context.close();
   } catch (cause) {
     await activePage?.screenshot({ path: `${directory}/settings-failed.png`, fullPage: true }).catch(() => {});
