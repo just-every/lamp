@@ -95,6 +95,7 @@ export async function socialPostsFlow(t) {
       assert.equal(refused.status, 400, 'an account without the required write scope cannot connect');
     }
     assert.equal((await raw('/api/app/social')).status, 401, 'social accounts require an authenticated operator');
+    await db.prepare("INSERT INTO oa_operators(id,email,display_name,role,status,created_at) SELECT '01J00000000000000000000092',replace(email,'owner','backup'),'Synthetic Lamp backup owner','owner','active',created_at FROM oa_operators WHERE id='01J00000000000000000000091'").run();
     await db.prepare("UPDATE oa_operators SET role='member' WHERE id='01J00000000000000000000091'").run();
     try {
       assert.equal((await post('/api/app/social', { network: 'x', name: 'Refused member connection', prefix, credential: 'synthetic-lamp-9', scopes: ['tweet.write'] })).status, 403, 'a member cannot connect a social account');
@@ -102,6 +103,7 @@ export async function socialPostsFlow(t) {
       assert.equal((await api(`/api/app/social/${accounts[0].id}`, { method: 'DELETE' })).status, 403, 'a member cannot remove a social account');
     } finally {
       await db.prepare("UPDATE oa_operators SET role='owner' WHERE id='01J00000000000000000000091'").run();
+      await db.prepare("DELETE FROM oa_operators WHERE id='01J00000000000000000000092'").run();
     }
     assert.equal((await socialLog()).accounts.length, 3, 'refused mutations preserve all connected accounts');
     assert.equal((await socialLog()).postByDefault, false, 'refused default mutation preserves explicit opt-in');

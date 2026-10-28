@@ -6832,11 +6832,11 @@
       "executable": false
     },
     "tests/e2e/helpers/social-browser-flow.mjs": {
-      "sha256": "e1a31be56dba522d90cfeae29889ee45a6d9d297c201acd74e06e87d337e4495",
+      "sha256": "2182d27e7524cf212087aecc4466dd45748e4e3789dce97d5f5a32dc233e6181",
       "executable": false
     },
     "tests/e2e/helpers/social-posts-flow.mjs": {
-      "sha256": "96f9655f27537daeba599dc1d51c3e7af8cee81c7e5dab449ab6743bf1fd111f",
+      "sha256": "5dab55b3e1cbca040fbc027311ffbf59551f99f4bdc2164de9d49342fc200658",
       "executable": false
     },
     "tests/e2e/helpers/statuspage-webhook-flow.mjs": {

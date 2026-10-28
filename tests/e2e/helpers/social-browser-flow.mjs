@@ -111,6 +111,10 @@ export async function socialBrowserFlow({ origin, devLink, diagnostic = () => {}
     panel = await settings();
     await expect(panel.getByRole('listitem').filter({ hasText: accountName })).toBeVisible();
     await inspect('390px Settings social accounts');
+    await page.goto(`${origin}/app/incidents/new`); await operatorHydrated(page);
+    await newIncidentForm(page).moreOptions();
+    await expect(page.getByRole('checkbox', { name: 'Social accounts', exact: true })).not.toBeChecked();
+    await inspect('390px new incident social selector');
     await page.goto(incidentUrl); await operatorHydrated(page); await composer.moreOptions();
     await expect(page.getByRole('checkbox', { name: 'Social accounts', exact: true })).not.toBeChecked();
     await inspect('390px composer social selector');
@@ -132,8 +136,8 @@ export async function socialBrowserFlow({ origin, devLink, diagnostic = () => {}
       assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), `${name}: no horizontal overflow`);
       const axe = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa']).analyze();
       assert.deepEqual(axe.violations.filter(violation => ['serious', 'critical'].includes(violation.impact)).map(violation => ({ id: violation.id, targets: violation.nodes.map(node => node.target) })), [], `${name}: accessibility`);
-      await mkdir('test-results/social', { recursive: true });
-      await page.screenshot({ path: `test-results/social/${name.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}.png`, fullPage: true });
+      await mkdir('./test-results/social', { recursive: true });
+      await page.screenshot({ path: `./test-results/social/${name.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}.png`, fullPage: true });
     }
   } finally { await browser.close(); }
 }
