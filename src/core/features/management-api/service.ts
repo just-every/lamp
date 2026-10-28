@@ -8,7 +8,7 @@ export function createManagementApiService(db:D1Database,auth:()=>OperatorAuth) 
     async create(request:Request,input:{name:string;scopes:ManagementScope[];expiresInSeconds:number},actor:string,version:number) {
       const credential=await auth().mintCredential(request,{expiresInSeconds:input.expiresInSeconds});
       try {
-        if(!await repository.create({...credential,name:input.name,scope:input.scopes.includes("metrics:write")?"metrics:write":null,readScope:input.scopes.includes("read"),subscriberWriteScope:input.scopes.includes("subscribers:write")},actor,version))throw new Error("Token authority changed. Reload before issuing another token.");
+        if(!await repository.create({...credential,name:input.name,scope:input.scopes.includes("metrics:write")?"metrics:write":null,readScope:input.scopes.includes("read"),subscriberWriteScope:input.scopes.includes("subscribers:write"),subscriberReadScope:input.scopes.includes("subscribers:read")},actor,version))throw new Error("Token authority changed. Reload before issuing another token.");
       } catch(cause) {
         await repository.discardUnscopedCredential(credential.id,actor);
         throw cause;

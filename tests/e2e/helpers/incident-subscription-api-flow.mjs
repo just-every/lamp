@@ -16,11 +16,13 @@ export async function incidentSubscriptionApiFlow() {
       const result=await post("/api/app/management-tokens",{name:"Incident subscriber integration",scopes,expiresInSeconds:3600});
       assert.equal(result.status,201,result.text);return result.body;
     };
-    const writer=await mint(["subscribers:write"]),reader=await mint(["read"]),unscoped=await mint([]);
+    const writer=await mint(["subscribers:write"]),reader=await mint(["subscribers:read"]),publicReader=await mint(["read"]),unscoped=await mint([]);
     const path=`/api/v1/incidents/${incident.id}/subscribers`,compat=`/v1/pages/default/incidents/${incident.id}/subscribers`;
     const call=(path,token,method="GET",body,oauth=false)=>raw(appOrigin+path,{method,headers:{Authorization:`${oauth?"OAuth":"Bearer"} ${token}`,...(body?{"Content-Type":"application/json"}:{})},...(body?{body:JSON.stringify(body)}:{})});
     const state=async()=>({subscribers:(await db.prepare("SELECT * FROM subscribers ORDER BY id").all()).results,incident:(await db.prepare("SELECT * FROM incident_subscriptions ORDER BY subscriber_id").all()).results,tokens:(await api("/api/app/management-tokens")).body.tokens,audit:(await db.prepare("SELECT * FROM audit_entries ORDER BY id").all()).results,messages:messages.length});
     const before=await state();
+    assert.equal((await call(path,publicReader.token)).status,403,"an existing public-data read scope does not expose subscriber addresses");
+    assert.equal((await call("/api/v1/components",reader.token)).status,403,"a subscriber reader gains no unrelated read permission");
     assert.equal((await call(path,reader.token,"POST",{channel:"email",email:address("denied")})).status,403);
     assert.equal((await call(compat,unscoped.token,"POST",{subscriber:{email:address("denied")}},true)).status,403);
     assert.equal((await call(path,writer.token)).status,403,"write scope does not grant address listing");

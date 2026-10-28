@@ -10,7 +10,7 @@ import { registerIncidentSubscriptionApiRoutes, statuspageCompatibilityPageId } 
 import type { IncidentSubscriptionApiService } from "./incident-subscription-routes";
 import { TokenAuthorityError } from "./repository";
 import type { ManagementApiService } from "./service";
-const createSchema=z.object({name:z.string().trim().min(1).max(80),scopes:z.array(z.enum(["read","metrics:write","subscribers:write"])).max(3).refine(scopes=>new Set(scopes).size===scopes.length).default([]),expiresInSeconds:z.number().int().min(1).max(365*86400).default(86400)}).strict();
+const createSchema=z.object({name:z.string().trim().min(1).max(80),scopes:z.array(z.enum(["read","metrics:write","subscribers:write","subscribers:read"])).max(4).refine(scopes=>new Set(scopes).size===scopes.length).default([]),expiresInSeconds:z.number().int().min(1).max(365*86400).default(86400)}).strict();
 export function registerManagementApiRoutes(app:Hono<AppEnv>,service:ManagementApiService,metrics:MetricsService,limiter:PublicWriteRateLimiter,components:ComponentsService,subscribers?:IncidentSubscriptionApiService) {
   if(subscribers)registerIncidentSubscriptionApiRoutes(app,service,subscribers,limiter);
   app.use("/api/app/management-tokens",async(c,next)=>{
@@ -26,7 +26,7 @@ export function registerManagementApiRoutes(app:Hono<AppEnv>,service:ManagementA
   app.get("/api/app/management-tokens",async c=>c.json({tokens:await service.list(),compatibility:{pageId:statuspageCompatibilityPageId}}));
   app.post("/api/app/management-tokens",async c=>{
     const input=createSchema.safeParse(await c.req.json().catch(()=>null));
-    if(!input.success)return c.json({error:"Supply a name, read, metrics:write or subscribers:write scopes, and an expiry of 1 second to 365 days."},400);
+    if(!input.success)return c.json({error:"Supply a name, read, metrics:write, subscribers:read or subscribers:write scopes, and an expiry of 1 second to 365 days."},400);
     return c.json(await service.create(c.req.raw,input.data,c.get("operator").id,c.get("operatorSession").operator.version),201);
   });
   app.post("/api/app/management-tokens/:id/revoke",async c=>{

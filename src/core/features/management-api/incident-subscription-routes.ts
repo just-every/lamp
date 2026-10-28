@@ -41,7 +41,7 @@ export function registerIncidentSubscriptionApiRoutes(app:Hono<AppEnv>,managemen
       if(request!==incoming)request.headers.set("Authorization",`Bearer ${authorization!.slice(6)}`);
       const authenticated=await management.authenticate(request);
       if(!authenticated)return c.json({error:"A valid management token is required."},401);
-      const scope=operation==="list"?"read":"subscribers:write";
+      const scope=operation==="list"?"subscribers:read":"subscribers:write";
       if(!authenticated.token.scopes.includes(scope))return c.json({error:`The ${scope} scope is required.`},403);
       if(!await limiter.allow({scope:"management-token",subject:authenticated.authority.id,limit:60})) {
         c.header("Retry-After",String(60-Math.floor(Date.now()/1000)%60));
@@ -63,7 +63,7 @@ export function registerIncidentSubscriptionApiRoutes(app:Hono<AppEnv>,managemen
             ({limit,offset}=query.data);
           }
           const rows=await subscribers.incidents.list(incidentId.data,limit+1,offset);
-          if(!await management.recordRead(authenticated.authority))return c.json({error:"A valid management token is required."},401);
+          if(!await management.recordRead(authenticated.authority,"subscribers:read"))return c.json({error:"A valid management token is required."},401);
           return compatible?c.json(rows.slice(0,limit).map(compatibilityView)):c.json({subscribers:rows.slice(0,limit),limit,offset,hasMore:rows.length>limit});
         }
         const authority=tokenFence(authenticated.authority,"subscribers:write");

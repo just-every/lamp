@@ -448,7 +448,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "44b06f6e43ab230c4dbe7488ecc68fa63a4da66449c7fb154c4f11737e7513d4",
+      "sha256": "3a4a8d58ff9c57629b584646042e054236c3439ef5af2df1068923c5d2d62c07",
       "executable": false
     },
     "AGENTS.md": {
@@ -496,7 +496,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "77cba64ed9e08b0a0f8c2f18f60f1c303f3fe758852531c590e323086ef3ac9c",
+      "sha256": "ad52ad7c0502d01bcfbe9e7b1b34b04e9c3efb8e5ec25a52036d9664faf5dfbb",
       "executable": false
     },
     "DEMO.md": {
@@ -648,7 +648,7 @@
       "executable": false
     },
     "docs/subscribers-and-notifications.md": {
-      "sha256": "183aeade837482549bd496604084cf75d47fc5fa73f79473345931308115ef8b",
+      "sha256": "3c003ba397383afadfa4efcbecc7b575c758e1eda57fd79fbcb3db74964a6195",
       "executable": false
     },
     "docs/updating.md": {
@@ -993,6 +993,10 @@
     },
     "migrations/core/0069_incident_management_consent.sql": {
       "sha256": "efd2461dbab869a49f3877a685991b857df9f70b3c75b0d47a517f9287af2d94",
+      "executable": false
+    },
+    "migrations/core/0070_incident_subscriber_read_scope.sql": {
+      "sha256": "e96edf128fad3e8becf1ac540f1071a2afe39223aa64a807e682852e11b466a6",
       "executable": false
     },
     "migrations/README.md": {
@@ -4112,19 +4116,19 @@
       "executable": false
     },
     "src/core/features/management-api/incident-subscription-routes.ts": {
-      "sha256": "fb8f8a0f198db8103786fb1b48e960824d2e6c9cc2ab752dd673d38f27bde753",
+      "sha256": "7805d2cab9b71b55dda444d6c67964db485dcd8003ed3981ef0365c4f0d4d32c",
       "executable": false
     },
     "src/core/features/management-api/repository.ts": {
-      "sha256": "6d5a959a99df213a0ba721d46540c4d068de0762a4c5ded2182c9271b045359c",
+      "sha256": "c08168a22ebdc4c0ac825f247ab89c096ee36d3eda12152dbdd030928904095a",
       "executable": false
     },
     "src/core/features/management-api/routes.ts": {
-      "sha256": "be8bb0ca27e0b1d7ef4b6d95befe25b642b2564f64650220df7bc79a8c4d733a",
+      "sha256": "3ca708649fcf5f72d8fc292726cd7d4164a68773a36b3a7936f1d72644e366b2",
       "executable": false
     },
     "src/core/features/management-api/service.ts": {
-      "sha256": "a2b1c535a6c8738efa7d9b42494da2df2db6bc40b243094294ceb78c6dd840ec",
+      "sha256": "a9723bc0ee6fd4c940a78d977f8fea1db420e8521857f7cddf822c26b7302d53",
       "executable": false
     },
     "src/core/features/metrics/providers/common.ts": {
@@ -6508,7 +6512,7 @@
       "executable": false
     },
     "tests/e2e/delivery-contract.test.mjs": {
-      "sha256": "42568430ab6d3393dec052f8b113146ed85b9aebdedfecb46b3d6c23db2e910e",
+      "sha256": "6f3cc6847def73c69ca64488272921f943ae915bd0cc2de845a5aacb387fe2d7",
       "executable": false
     },
     "tests/e2e/draft-version-helper.mjs": {
@@ -6624,7 +6628,7 @@
       "executable": false
     },
     "tests/e2e/helpers/incident-subscription-api-flow.mjs": {
-      "sha256": "2cbe27c021ec7f20a2c70bf8d615b2a7b212e7acc4c6ee3150ce72ab0c188e86",
+      "sha256": "2c7e1478b68458a4a999aea5e35db8840316007e6a9844b598656026d3e810f2",
       "executable": false
     },
     "tests/e2e/helpers/intake-byte-flow.mjs": {
