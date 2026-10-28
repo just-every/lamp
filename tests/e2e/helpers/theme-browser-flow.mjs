@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { mkdir } from 'node:fs/promises';
+import { setTimeout as pause } from 'node:timers/promises';
 import { chromium } from 'playwright';
 import { AxeBuilder } from '@axe-core/playwright';
 import { sessionCookieName } from '../../helpers/session-cookie.mjs';
@@ -22,20 +23,19 @@ export async function themeBrowserFlow({ appFetch, appUrl, pageUrl, sessionId, f
     await page.goto(appUrl + '/app/settings');
     await operatorHydrated(page);
     const controls = page.getByRole('region', { name: 'Theme', exact: true });
+    await controls.waitFor();
     const saved = predicate => page.waitForResponse(response => new URL(response.url()).pathname === '/api/app/page-settings' && response.request().method() === 'PUT' && predicate(response.request().postDataJSON().theme));
-    const disable = saved(theme => theme === null);
-    await controls.getByLabel('Use a custom theme', { exact: true }).uncheck();
-    assert.equal((await disable).status(), 200);
-    const enable = saved(theme => theme !== null);
-    await controls.getByLabel('Use a custom theme', { exact: true }).check();
-    assert.equal((await enable).status(), 200);
+    for (const position of ['header', 'footer']) {
+      const remove = controls.getByRole('button', { name: new RegExp(`^Remove ${position} link`) });
+      while (await remove.count()) await remove.first().click();
+    }
 
     diagnostic('THEME-001 — the native Settings controls change every theme field and survive reload');
     const palette = { background: '#edf2f5', surface: '#ffffff', text: '#162736', link: '#194d6b', states: { Operational: '#1b4d31', 'Degraded performance': '#644100', 'Partially unavailable': '#6a3500', 'Major outage': '#7d2430', 'Under maintenance': '#25426f' } };
     for (const key of ['background', 'surface', 'text', 'link']) await controls.getByLabel(`${key[0].toUpperCase()}${key.slice(1)} colour`, { exact: true }).fill(palette[key]);
     for (const [state, color] of Object.entries(palette.states)) await controls.getByLabel(`${state} colour`, { exact: true }).fill(color);
     const fontUpload = page.waitForResponse(response => new URL(response.url()).pathname === '/api/app/page-settings/theme-assets' && response.request().method() === 'POST');
-    await controls.getByLabel('Upload WOFF2 font', { exact: true }).setInputFiles({ name: 'owner-font.woff2', mimeType: 'font/woff2', buffer: fontBytes });
+    await controls.getByLabel(/^Upload WOFF2 font/).setInputFiles({ name: 'owner-font.woff2', mimeType: 'font/woff2', buffer: fontBytes });
     const fontUploadResponse = await fontUpload;
     assert.equal(fontUploadResponse.status(), 200);
     const fontAsset = (await fontUploadResponse.json()).asset.path;
@@ -44,7 +44,7 @@ export async function themeBrowserFlow({ appFetch, appUrl, pageUrl, sessionId, f
     await controls.getByLabel(/^Page font/).selectOption('uploaded');
     assert.equal((await fontSaved).status(), 200);
     const imageUpload = page.waitForResponse(response => new URL(response.url()).pathname === '/api/app/page-settings/theme-assets' && response.request().method() === 'POST');
-    await controls.getByLabel('Upload header image', { exact: true }).setInputFiles({ name: 'owner-header.png', mimeType: 'image/png', buffer: imageBytes });
+    await controls.getByLabel(/^Upload header image/).setInputFiles({ name: 'owner-header.png', mimeType: 'image/png', buffer: imageBytes });
     const imageUploadResponse = await imageUpload;
     assert.equal(imageUploadResponse.status(), 200);
     const headerImage = (await imageUploadResponse.json()).asset.path;
@@ -70,6 +70,18 @@ export async function themeBrowserFlow({ appFetch, appUrl, pageUrl, sessionId, f
     assert.equal(result.status, 200);
     const actualTheme = (await result.json()).settings.theme;
     assert.deepEqual(actualTheme, { palette, font: 'uploaded', fontAsset, headerImage, headerLinks: [{ label: 'Atlas customer home', href: 'https://www.atlascloud.example/customer' }], footerLinks: [{ label: 'Read our service history', href: '/history' }], headerHtml, footerHtml, groupsExpanded: false, hiddenUptimeComponents: ['01J00000000000000000000010'], historyDays: 21, css });
+    const disable = saved(theme => theme?.enabled === false);
+    await controls.getByLabel('Use a custom theme', { exact: true }).uncheck();
+    const disabled = await disable;
+    assert.equal(disabled.status(), 200);
+    assert.deepEqual((await disabled.json()).settings.theme, { ...actualTheme, enabled: false }, 'switching off retains every saved theme value');
+    const defaultSnapshot = await fetch(pageUrl + '/').then(response => response.text());
+    assert.doesNotMatch(defaultSnapshot, /data-lamp-theme|class="theme-header|class="theme-footer|class="theme-component-group/, 'switching off publishes the default page');
+    const enable = saved(theme => theme?.enabled === true);
+    await controls.getByLabel('Use a custom theme', { exact: true }).check();
+    const restored = await enable;
+    assert.equal(restored.status(), 200);
+    assert.deepEqual((await restored.json()).settings.theme, { ...actualTheme, enabled: true }, 'switching on restores every saved theme value');
     await page.reload(); await operatorHydrated(page);
     assert.equal(await controls.getByLabel(/^Page CSS/).inputValue(), css);
     assert.equal(await controls.getByLabel('Background colour', { exact: true }).inputValue(), palette.background);
@@ -139,6 +151,27 @@ export async function themeBrowserFlow({ appFetch, appUrl, pageUrl, sessionId, f
     assert.deepEqual([...thirdPartyRequests], [], 'the full theme keeps PAGE-003 free of third-party requests');
     diagnostic(`THEME-001 PAGE-003 full theme requests: ${paths.size} (${[...paths].join(', ')})`);
     await budgetContext.close();
+
+    for (const [field, chunks, selector] of [
+      ['Header HTML', ['<p class="typed">Planned work on the ', '<strong>payments', ' API</strong> tonight.</p>'], '.theme-header-html'],
+      ['Footer HTML', ['<p>Questions? <a href="https://help.', 'northstar.example/">Ask our team', '</a></p>'], '.theme-footer-html'],
+    ]) {
+      const input = controls.getByLabel(new RegExp(`^${field}`));
+      await input.fill('');
+      for (const [index, chunk] of chunks.entries()) {
+        const written = saved(() => true);
+        await input.pressSequentially(chunk, { delay: 60 });
+        if (index < chunks.length - 1) await pause(1500);
+        assert.equal((await written).status(), 200);
+        await page.getByRole('status').filter({ hasText: /^Saved · live$/ }).waitFor();
+        assert.equal(await input.inputValue(), chunks.slice(0, index + 1).join(''), 'a save during a typing pause keeps the editable markup intact');
+      }
+      const complete = chunks.join('');
+      const stored = await appFetch('/api/app/page-settings').then(response => response.json());
+      assert.equal(stored.settings.theme[field === 'Header HTML' ? 'headerHtml' : 'footerHtml'], complete, 'the final save retains the complete markup');
+      await publicPage.reload();
+      assert.equal(await publicPage.locator(selector).innerHTML(), complete, 'the next public snapshot publishes the complete markup');
+    }
     if (proof) await publicPage.screenshot({ path: `${proof}/theme-snapshot-1440.png`, fullPage: true });
     await publicContext.close();
 
