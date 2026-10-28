@@ -1277,3 +1277,7 @@ Status: **done** — DONE proposal pending ct judgment. Acceptance 1: `tests/e2e
 Original source Gap: DONE proposal pending ct judgment; generator absent, so historical judged status/counts remain unchanged.
 
 The retained 1.11.0 snapshots remain unchanged. Edition 1.11.1 carries the accepted main addition, migration 0066 and its original buyer instructions; INTEG-002 remains a Core target at its authoritative missing status pending ct judgment.
+
+## 2026-10-28 — Unified import door implementation record
+
+Evidence: `tests/e2e/sorry-import.test.mjs`, including `tests/e2e/helpers/import-door-flow.mjs`, is the seeded-page/held-subscriber public journey. Existing [Verify run 40637046257](https://github.com/just-every/run-lamp/actions/runs/40637046257) at `f27975c13c0bcbac7dc20a399a3092449cfed545` executed [imports-sorry job 122646353995](https://github.com/just-every/run-lamp/actions/runs/40637046257/job/122646353995) successfully (one test passed, zero failed). That execution used synthetic local test-install data and synthetic trust; it is neither a hosted test-page acceptance nor a signed real-export receipt.

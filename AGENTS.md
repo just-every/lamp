@@ -65,6 +65,7 @@ Use configuration and extensions when they save work. Direct core, schema, UI or
 
 | Owner wants to | Do this |
 |---|---|
+| Use the unified import door | Built for Statuspage, Sorry, Better Stack and Instatus: owner opt-in (or Business first-owner-claim healing), permanent key revocation, uploads, saved-response plan, reviewed silent apply with Business subscribers held, native reconcile, preserve-conflicts undo and bounded catch-up grants. See `docs/moving-in.md` and [the unified import-door implementation record](docs/contract/operations-details.md#unified-import-door--existing-implementation-status). `tests/e2e/sorry-import.test.mjs` covers the seeded lifecycle and catch-up; this is synthetic test-install proof, not real-export verification. |
 | Rename things, toggle features, change copy, branding | `src/ext/config.ts`; tokens in `src/core/app/theme` |
 | Add a field to a record | Use existing custom fields (`seed.json`), a sidecar table, or a new core schema migration as appropriate. |
 | Add a page, route, nav entry, settings section, job, cron, queue consumer | `src/ext/local/<name>/`, registered from `index.server.ts` / `index.client.tsx` |

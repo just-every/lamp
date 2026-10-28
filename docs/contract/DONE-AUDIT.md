@@ -1,4 +1,4 @@
-Old reference: `f27975c13c0bcbac7dc20a399a3092449cfed545`.
+Old reference: `6a32c3b82820ad064b745223c9e23dc3ee93bbf9`.
 | Clause | Point | Outcome | Asserting test | Result |
 | --- | --- | --- | --- | --- |
 | DOCS-001 | 1 | The unauthenticated documentation index returns HTTP 200 | `tests/e2e/start-runtime.test.mjs:367` | asserted |
