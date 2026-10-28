@@ -528,11 +528,11 @@
       "executable": false
     },
     "docs/agent-native-proof.md": {
-      "sha256": "ef23cb8253e2291f5690b16c2da96855bb192414a5942b295fce72165d3c1ea4",
+      "sha256": "e715ed40aa9c66b537967e177f1fa2a113e3f6bab61e5a452d30e61ba9a94cac",
       "executable": false
     },
     "docs/agents.md": {
-      "sha256": "e7c9b1bdd1035044b3f45e9730b4637ebfc2a2725a5117c184b5e84fcdae5e5c",
+      "sha256": "96a53b29434d29327a7c0e423ad65ab3d042d526af91e793679d6964624f89f0",
       "executable": false
     },
     "docs/ai-assistance.md": {
@@ -7812,7 +7812,7 @@
       "executable": false
     },
     "tests/agent-door/pending.mjs": {
-      "sha256": "0c61e9643864547f2ecb5f3a1cc032c8117accee1c07495a0a8454966f248adf",
+      "sha256": "4d20faf88161b71d4cdcb86ef6f3c008da134edc557f71896f61da410175c4b5",
       "executable": false
     },
     "tests/agent-door/proof.mjs": {

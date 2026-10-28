@@ -2,7 +2,7 @@
  * PENDING BASE 2026-10-28: paginated target conformance and held replay continuity;
  * remaining owner commands and native timed worker fixtures;
  * specialist public-host access and independent-review readback.
- * PENDING CT 2026-10-28: aligned agent clauses and BASE-AGENT-010 event reference.
+ * Fresh main supplies aligned clauses; its newer status judgments stay authoritative.
  */
 export const pendingAssertions = Object.freeze({
   nativeTarget: 'PENDING BASE 2026-10-28 conformance target checker must page audit beyond its first 200 rows; native paginated target assertion retained',
@@ -14,5 +14,6 @@ export const pendingAssertions = Object.freeze({
   dualHost: 'PENDING BASE 2026-10-28 native public host request in specialist journey',
   ownerNativeApi: 'PENDING BASE 2026-10-28 native delegated owner commands with genuine person proof',
   queuedLifecycle: 'PENDING BASE 2026-10-28 real queue consumer and failed occurrence lifecycle in generic hosted runner',
-  clauses: 'PENDING CT 2026-10-28 aligned agent-surface contract and event clause',
+  heldReplay: 'PENDING BASE 2026-10-28 approved retries must retain completed admission when the native effect changes classification or revision',
+  clauses: 'ALIGNED 2026-10-28 fresh main agent clauses and event references; latest clause judgments retained without promotion',
 });

@@ -65,7 +65,8 @@ keys remain revoked.
 
 ## Owner administration API dependency
 
-As of 28 October 2026, the pinned Base source's
+As of 28 October 2026, Base source at
+`e1b4265eb0d839a67dae3c36a04f83fa48c9d480` still has the same native limitation. Its
 `modules/operator-auth/accounts/delegated.mjs` exposes invitation, role change
 and operator listing. Its invitation method explicitly rejects the `owner`
 role, and its role method rejects owner targets and owner grants. It has no

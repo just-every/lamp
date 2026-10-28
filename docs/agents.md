@@ -164,6 +164,17 @@ Missing and restricted records share a refusal. Customer, provider and imported
 text are untrusted evidence. Credentials, webhook capability paths and hidden
 operator notes do not enter public projections.
 
+## Audit targets and retries
+
+Calls on existing incidents and component reads record the native record kind
+and ID in the door audit. An approval also binds that identity into its saved
+summary. A request to create a record has no existing native record ID at
+admission; inspect its returned resource to read the resulting record.
+
+A saved idempotent result does not replace current policy, Pause, consent,
+scope or native admission. An independent native draft review remains a real
+person's action; the preparing agent and its sponsor do not become that reviewer.
+
 ## Limits
 
 Lamp supports its native incident, maintenance, component, subscriber, delivery,
