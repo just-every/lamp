@@ -2,6 +2,7 @@ import { eq } from "drizzle-orm";
 
 import { createDatabase } from "../../platform/db/client";
 import { pageSettings } from "../../shared/schema";
+import { createUlid } from "../../shared/ids";
 
 export type StoredPageSettings = typeof pageSettings.$inferSelect;
 
@@ -11,7 +12,7 @@ export interface PageSettingsRepository {
   visibleRegions(): Promise<string[]>;
   insertIfMissing(settings: typeof pageSettings.$inferInsert): Promise<void>;
   update(settings: Pick<StoredPageSettings, "pageName" | "tagline" | "accentColor" | "timezone" | "hostname" | "footerCreditEnabled" | "template" | "widgetAllowedOrigins" | "widgetAppearance" | "mailFromAddress" | "emailBranding" | "aiToneInstructions" | "wordingBlockedTerms" | "wordingFriendlyLength" | "updatedAt">): Promise<void>;
-  updateLogo(input: Pick<StoredPageSettings, "logoKey" | "logoContentType" | "updatedAt">): Promise<void>;
+  updateLogo(input: Pick<StoredPageSettings, "logoKey" | "logoContentType" | "updatedAt">, operatorId: string): Promise<void>;
 }
 
 export function createPageSettingsRepository(binding: D1Database): PageSettingsRepository {
@@ -43,8 +44,17 @@ export function createPageSettingsRepository(binding: D1Database): PageSettingsR
     async update(settings) {
       await database.update(pageSettings).set(settings).where(eq(pageSettings.id, "default"));
     },
-    async updateLogo(input) {
-      await database.update(pageSettings).set(input).where(eq(pageSettings.id, "default"));
+    async updateLogo(input, operatorId) {
+      // Select the logo being destroyed inside the same transaction as its
+      // replacement. First uploads and competing/repeated removals add no entry.
+      await binding.batch([
+        binding.prepare(`INSERT INTO audit_entries (id, entity_type, entity_id, action, operator_id, payload_json, created_at, updated_at)
+          SELECT ?, 'page-logo', id, ?, ?, json_object('previousContentType', logo_content_type, 'contentType', ?), ?, ?
+          FROM page_settings WHERE id = 'default' AND logo_key IS NOT NULL AND logo_key IS NOT ?`)
+          .bind(createUlid(), input.logoKey === null ? "deleted" : "replaced", operatorId, input.logoContentType, input.updatedAt, input.updatedAt, input.logoKey),
+        binding.prepare("UPDATE page_settings SET logo_key = ?, logo_content_type = ?, updated_at = ? WHERE id = 'default'")
+          .bind(input.logoKey, input.logoContentType, input.updatedAt),
+      ]);
     },
   };
 }

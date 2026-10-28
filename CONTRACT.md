@@ -925,6 +925,26 @@ Acceptance: a device with push enabled receives one push when an incident become
 
 Status: **missing**.
 
+### Unified import door — existing implementation status
+
+This records the built lifecycle behind MOVE-001 to MOVE-006; it adds no acceptance points and changes no clause judgment. The signed-in owner mount (`/api/operator/import/*`) and Business grant mount (`/api/rer/import/*`) share the same importer and history for the `statuspage`, `sorry`, `betterstack` and `instatus` namespaces (`src/core/features/statuspage-import/door.ts`).
+
+| Lifecycle | Status and existing evidence |
+| --- | --- |
+| Opt-in and revocation | Built. The owner setting is off by default. A Business-configured first owner claim, or a later claim/sign-in while no setting row exists, can enable it; an existing owner choice is preserved (`door-claim.ts`, `door.repository.ts`). Key revocation is permanent. The seeded grant journey proves off/anonymous refusal, explicit opt-in and revoked/disabled refusal. |
+| Uploads | Built in both mounts for all four namespaces, with chunk and complete-bundle hashes; unknown sources are refused. `tests/e2e/helpers/import-door-flow.mjs` exercises the four source namespaces and public-HTTP `checkDoor`. |
+| Plan | Built from the uploaded saved-response envelope, with source hash, reviewed fingerprint and native-page fingerprint (`door-plan.ts`). Planning retains custody/bookkeeping but makes zero native-object changes; the existing journey compares native snapshots before and after planning. |
+| Apply | Built with exact reviewed-fingerprint approval and native guards. Imported history is silent; Business subscriber rows are deactivated and held until separate cutover approval (`door-plan.ts`). The journey refuses a wrong fingerprint and premature invitations, and asserts no new notifications. |
+| Reconcile | Built against native targets through the public door. The existing journey checks source/native accounting; its catch-up replaces a changed incident, adds one incident and reconciles the result. |
+| Undo | Built with preserve-conflicts behavior: edited native records are retained rather than falsely reported as removed. Catch-up layers undo newest first; the journey refuses old-first undo, restores the previous native state and revisions, then undoes the baseline. |
+| Bounded catch-up grants | Built. Signed action/source-bound grants carry byte, chunk, record and expiry bounds; catch-up uses reviewed approval or an applicable standing allowance, with native revision guards. The existing seeded journey exercises bounded catch-up, replacement, reconciliation and layered undo; this does not establish arbitrary-scale or real-source acceptance. |
+
+Evidence: `tests/e2e/sorry-import.test.mjs`, including `tests/e2e/helpers/import-door-flow.mjs`, is the seeded-page/held-subscriber public journey. Existing [Verify run 40637046257](https://github.com/just-every/run-lamp/actions/runs/40637046257) at `f27975c13c0bcbac7dc20a399a3092449cfed545` executed [imports-sorry job 122646353995](https://github.com/just-every/run-lamp/actions/runs/40637046257/job/122646353995) successfully (one test passed, zero failed). That execution used synthetic local test-install data and synthetic trust; it is neither a hosted test-page acceptance nor a signed real-export receipt.
+
+Custody is installation-local: native archives exclude `ik_door_%` (`scripts/installer/archive-policy.mjs`). Subscriber deletion and expiry compose kit custody retirement, withdrawing retained bundle/plan/archive bytes containing the subject while retaining audit/lineage metadata (`src/core/features/statuspage-import/custody.ts`, `src/core/features/subscribers/repository.ts`). The Sorry journey checks subscriber erasure against retained import copies. This is not a claim that all door metadata is deleted.
+
+Real-source receipt/registry evidence remains open. MOVE-007 and MOVE-008 remain missing; MOVE-010 remains missing with released imports carrying email subscribers only; MOVE-012 remains partial, refusing private/audience sources rather than importing them as private. The built door does not close those source, channel or privacy gaps.
+
 ### Moving in — target
 
 #### MOVE-007 — From Status.io.

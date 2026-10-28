@@ -45,7 +45,7 @@ export function registerPageSettingsRoutes(app: Hono<AppEnv>, service: PageSetti
     const logo = body?.logo;
     if (!(logo instanceof File)) return context.json({ error: "Upload a logo file in the logo field." }, 400);
     try {
-      const settings = await service.uploadLogo({ bytes: await logo.arrayBuffer(), contentType: logo.type });
+      const settings = await service.uploadLogo({ bytes: await logo.arrayBuffer(), contentType: logo.type }, context.get("operator").id);
       return settings ? context.json({ settings }) : context.json({ error: "Page settings are not configured." }, 404);
     } catch (cause) {
       return context.json({ error: cause instanceof Error ? cause.message : "The logo could not be saved." }, 400);
@@ -53,7 +53,7 @@ export function registerPageSettingsRoutes(app: Hono<AppEnv>, service: PageSetti
   });
 
   app.delete("/api/app/page-settings/logo", async (context) => {
-    const settings = await service.removeLogo();
+    const settings = await service.removeLogo(context.get("operator").id);
     return settings ? context.json({ settings }) : context.json({ error: "Page settings are not configured." }, 404);
   });
 }
