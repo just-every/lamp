@@ -1,0 +1,4795 @@
+{
+  "schema": "rer-agent-surface/1",
+  "seed": "lamp",
+  "specialist": "incident-communicator",
+  "tools": [
+    {
+      "name": "lamp.access.read",
+      "scope": "lamp.access.read",
+      "readOnly": true,
+      "classes": [
+        "standard"
+      ],
+      "clauses": [
+        "TEAM-001",
+        "TEAM-003",
+        "API-001",
+        "AGENT-008"
+      ]
+    },
+    {
+      "name": "lamp.access.update",
+      "scope": "lamp.access.update",
+      "readOnly": false,
+      "classes": [
+        "access",
+        "security"
+      ],
+      "clauses": [
+        "AGENT-008",
+        "TEAM-003",
+        "API-001"
+      ],
+      "widens": false,
+      "narrowing": {
+        "effect": "revoke",
+        "target": "id"
+      },
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "lamp.ai.check",
+      "scope": "lamp.ai.write",
+      "readOnly": false,
+      "classes": [
+        "external"
+      ],
+      "clauses": [
+        "DRAFT-003"
+      ]
+    },
+    {
+      "name": "lamp.ai.read",
+      "scope": "lamp.ai.read",
+      "readOnly": true,
+      "classes": [
+        "standard"
+      ],
+      "clauses": [
+        "DRAFT-001",
+        "DRAFT-003"
+      ]
+    },
+    {
+      "name": "lamp.ai.suggest",
+      "scope": "lamp.ai.write",
+      "readOnly": false,
+      "classes": [
+        "external"
+      ],
+      "clauses": [
+        "DRAFT-001",
+        "DRAFT-003",
+        "DRAFT-004"
+      ]
+    },
+    {
+      "name": "lamp.channels.read",
+      "scope": "lamp.channels.read",
+      "readOnly": true,
+      "classes": [
+        "standard"
+      ],
+      "clauses": [
+        "NOTIFY-011",
+        "NOTIFY-012",
+        "NOTIFY-016"
+      ]
+    },
+    {
+      "name": "lamp.channels.test",
+      "scope": "lamp.channels.write",
+      "readOnly": false,
+      "classes": [
+        "external"
+      ],
+      "clauses": [
+        "NOTIFY-011",
+        "NOTIFY-012"
+      ]
+    },
+    {
+      "name": "lamp.channels.update",
+      "scope": "lamp.channels.write",
+      "readOnly": false,
+      "classes": [
+        "standard",
+        "access"
+      ],
+      "clauses": [
+        "NOTIFY-016"
+      ],
+      "sponsorEscalation": false
+    },
+    {
+      "name": "lamp.claims.update",
+      "scope": "lamp.claims.update",
+      "readOnly": false,
+      "classes": [
+        "standard",
+        "external",
+        "live"
+      ],
+      "clauses": [
+        "COMP-001",
+        "COMP-003",
+        "COMP-006"
+      ]
+    },
+    {
+      "name": "lamp.components.correct",
+      "scope": "lamp.components.correct",
+      "readOnly": false,
+      "classes": [
+        "standard",
+        "external",
+        "live"
+      ],
+      "clauses": [
+        "COMP-003",
+        "UPTIME-004"
+      ]
+    },
+    {
+      "name": "lamp.components.create",
+      "scope": "lamp.components.create",
+      "readOnly": false,
+      "classes": [
+        "standard",
+        "external",
+        "live"
+      ],
+      "clauses": [
+        "COMP-001",
+        "COMP-002",
+        "COMP-004",
+        "COMP-005"
+      ]
+    },
+    {
+      "name": "lamp.components.list",
+      "scope": "lamp.components.list",
+      "readOnly": true,
+      "classes": [
+        "standard"
+      ],
+      "clauses": [
+        "COMP-001"
+      ]
+    },
+    {
+      "name": "lamp.components.move",
+      "scope": "lamp.components.move",
+      "readOnly": false,
+      "classes": [
+        "standard",
+        "external",
+        "live"
+      ],
+      "clauses": [
+        "COMP-002"
+      ]
+    },
+    {
+      "name": "lamp.components.read",
+      "scope": "lamp.components.read",
+      "readOnly": true,
+      "classes": [
+        "standard",
+        "sensitive"
+      ],
+      "clauses": [
+        "COMP-001"
+      ]
+    },
+    {
+      "name": "lamp.components.remove",
+      "scope": "lamp.components.remove",
+      "readOnly": false,
+      "classes": [
+        "destructive",
+        "external",
+        "live"
+      ],
+      "clauses": [
+        "COMP-007"
+      ]
+    },
+    {
+      "name": "lamp.components.update",
+      "scope": "lamp.components.update",
+      "readOnly": false,
+      "classes": [
+        "standard",
+        "external",
+        "live"
+      ],
+      "clauses": [
+        "COMP-002",
+        "COMP-004",
+        "COMP-005"
+      ]
+    },
+    {
+      "name": "lamp.credentials.create",
+      "scope": "lamp.credentials.create",
+      "readOnly": false,
+      "classes": [
+        "access",
+        "security"
+      ],
+      "clauses": [
+        "API-001",
+        "TEAM-007",
+        "AGENT-008"
+      ],
+      "proof": "native",
+      "proofKind": "step_up"
+    },
+    {
+      "name": "lamp.credentials.update",
+      "scope": "lamp.credentials.update",
+      "readOnly": false,
+      "classes": [
+        "access",
+        "security"
+      ],
+      "clauses": [
+        "API-001",
+        "AGENT-008",
+        "TEAM-007"
+      ],
+      "widens": false,
+      "narrowing": {
+        "effect": "revoke",
+        "target": "id"
+      },
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "lamp.deliveries.dispatch",
+      "scope": "deliveries:dispatch",
+      "readOnly": false,
+      "classes": [
+        "external",
+        "live"
+      ],
+      "clauses": [
+        "NOTIFY-001",
+        "NOTIFY-003",
+        "AGENT-008"
+      ]
+    },
+    {
+      "name": "lamp.deliveries.read",
+      "scope": "lamp.deliveries.read",
+      "readOnly": true,
+      "classes": [
+        "standard"
+      ],
+      "clauses": [
+        "NOTIFY-003",
+        "NOTIFY-004",
+        "NOTIFY-015",
+        "NOTIFY-018"
+      ]
+    },
+    {
+      "name": "lamp.drafts.save",
+      "scope": "lamp.drafts.save",
+      "readOnly": false,
+      "classes": [
+        "standard"
+      ],
+      "clauses": [
+        "UPDATE-005"
+      ]
+    },
+    {
+      "name": "lamp.events.list",
+      "scope": "events:read",
+      "readOnly": true,
+      "classes": [
+        "standard"
+      ],
+      "clauses": [
+        "BASE-AGENT-010"
+      ]
+    },
+    {
+      "name": "lamp.followups.dismiss",
+      "scope": "lamp.followups.write",
+      "readOnly": false,
+      "classes": [
+        "standard"
+      ],
+      "clauses": [
+        "AUTO-003"
+      ]
+    },
+    {
+      "name": "lamp.followups.read",
+      "scope": "lamp.followups.read",
+      "readOnly": true,
+      "classes": [
+        "standard"
+      ],
+      "clauses": [
+        "AUTO-003"
+      ]
+    },
+    {
+      "name": "lamp.followups.retry",
+      "scope": "lamp.followups.write",
+      "readOnly": false,
+      "classes": [
+        "external"
+      ],
+      "clauses": [
+        "AUTO-003",
+        "NOTIFY-003"
+      ]
+    },
+    {
+      "name": "lamp.groups.create",
+      "scope": "lamp.groups.create",
+      "readOnly": false,
+      "classes": [
+        "standard"
+      ],
+      "clauses": [
+        "COMP-002"
+      ]
+    },
+    {
+      "name": "lamp.groups.move",
+      "scope": "lamp.groups.move",
+      "readOnly": false,
+      "classes": [
+        "standard",
+        "external",
+        "live"
+      ],
+      "clauses": [
+        "COMP-002"
+      ]
+    },
+    {
+      "name": "lamp.groups.read",
+      "scope": "lamp.groups.read",
+      "readOnly": true,
+      "classes": [
+        "standard"
+      ],
+      "clauses": [
+        "COMP-002"
+      ]
+    },
+    {
+      "name": "lamp.groups.remove",
+      "scope": "lamp.groups.remove",
+      "readOnly": false,
+      "classes": [
+        "external",
+        "live",
+        "destructive"
+      ],
+      "clauses": [
+        "COMP-002",
+        "COMP-007"
+      ]
+    },
+    {
+      "name": "lamp.groups.update",
+      "scope": "lamp.groups.update",
+      "readOnly": false,
+      "classes": [
+        "standard",
+        "external",
+        "live"
+      ],
+      "clauses": [
+        "COMP-002",
+        "COMP-007"
+      ]
+    },
+    {
+      "name": "lamp.impact.update",
+      "scope": "lamp.impact.update",
+      "readOnly": false,
+      "classes": [
+        "standard",
+        "external",
+        "live"
+      ],
+      "clauses": [
+        "INCIDENT-013"
+      ]
+    },
+    {
+      "name": "lamp.importgrants.read",
+      "scope": "lamp.importgrants.read",
+      "readOnly": true,
+      "classes": [
+        "standard"
+      ],
+      "clauses": [
+        "MOVE-002",
+        "AGENT-008"
+      ]
+    },
+    {
+      "name": "lamp.importgrants.update",
+      "scope": "lamp.importgrants.update",
+      "readOnly": false,
+      "classes": [
+        "access",
+        "security"
+      ],
+      "clauses": [
+        "MOVE-002",
+        "AGENT-008",
+        "TEAM-003"
+      ],
+      "proof": "native",
+      "proofKind": "step_up",
+      "sponsorEscalation": false
+    },
+    {
+      "name": "lamp.incidents.assign",
+      "scope": "lamp.incidents.assign",
+      "readOnly": false,
+      "classes": [
+        "standard"
+      ],
+      "clauses": [
+        "INCIDENT-011"
+      ]
+    },
+    {
+      "name": "lamp.incidents.brief",
+      "scope": "lamp.incidents.brief",
+      "readOnly": true,
+      "classes": [
+        "standard"
+      ],
+      "clauses": [
+        "AGENT-001"
+      ]
+    },
+    {
+      "name": "lamp.incidents.create",
+      "scope": "lamp.incidents.create",
+      "readOnly": false,
+      "classes": [
+        "standard"
+      ],
+      "clauses": [
+        "INCIDENT-001",
+        "UPDATE-005"
+      ]
+    },
+    {
+      "name": "lamp.incidents.delete",
+      "scope": "lamp.incidents.delete",
+      "readOnly": false,
+      "classes": [
+        "destructive",
+        "external",
+        "live"
+      ],
+      "clauses": [
+        "INCIDENT-007"
+      ]
+    },
+    {
+      "name": "lamp.incidents.note",
+      "scope": "lamp.incidents.note",
+      "readOnly": false,
+      "classes": [
+        "standard"
+      ],
+      "clauses": [
+        "INCIDENT-008"
+      ]
+    },
+    {
+      "name": "lamp.incidents.preview",
+      "scope": "lamp.incidents.preview",
+      "readOnly": true,
+      "classes": [
+        "standard"
+      ],
+      "clauses": [
+        "UPDATE-001",
+        "UPDATE-004"
+      ]
+    },
+    {
+      "name": "lamp.incidents.publish",
+      "scope": "lamp.incidents.publish",
+      "readOnly": false,
+      "classes": [
+        "external",
+        "live",
+        "commitment"
+      ],
+      "clauses": [
+        "UPDATE-001",
+        "UPDATE-007",
+        "AGENT-004"
+      ]
+    },
+    {
+      "name": "lamp.incidents.read",
+      "scope": "lamp.incidents.read",
+      "readOnly": true,
+      "classes": [
+        "standard",
+        "sensitive"
+      ],
+      "clauses": [
+        "INCIDENT-001",
+        "INCIDENT-008"
+      ]
+    },
+    {
+      "name": "lamp.incidents.resolve",
+      "scope": "lamp.incidents.resolve",
+      "readOnly": false,
+      "classes": [
+        "external",
+        "live"
+      ],
+      "clauses": [
+        "UPDATE-001",
+        "UPDATE-007",
+        "AGENT-004"
+      ]
+    },
+    {
+      "name": "lamp.incidents.update",
+      "scope": "lamp.incidents.update",
+      "readOnly": false,
+      "classes": [
+        "standard"
+      ],
+      "clauses": [
+        "UPDATE-005"
+      ]
+    },
+    {
+      "name": "lamp.intake.read",
+      "scope": "lamp.intake.read",
+      "readOnly": true,
+      "classes": [
+        "standard"
+      ],
+      "clauses": [
+        "INTAKE-001",
+        "INTAKE-002"
+      ]
+    },
+    {
+      "name": "lamp.intake.update",
+      "scope": "lamp.intake.write",
+      "readOnly": false,
+      "classes": [
+        "standard",
+        "live",
+        "security"
+      ],
+      "clauses": [
+        "INTAKE-001",
+        "INTAKE-002",
+        "AUTO-001"
+      ],
+      "sponsorEscalation": false
+    },
+    {
+      "name": "lamp.maintenance.cancel",
+      "scope": "lamp.maintenance.cancel",
+      "readOnly": false,
+      "classes": [
+        "standard",
+        "external",
+        "live"
+      ],
+      "clauses": [
+        "MAINT-002",
+        "MAINT-003",
+        "MAINT-005",
+        "MAINT-006",
+        "MAINT-009"
+      ]
+    },
+    {
+      "name": "lamp.maintenance.complete",
+      "scope": "lamp.maintenance.complete",
+      "readOnly": false,
+      "classes": [
+        "standard",
+        "external",
+        "live"
+      ],
+      "clauses": [
+        "MAINT-002",
+        "MAINT-003",
+        "MAINT-005",
+        "MAINT-006",
+        "MAINT-009"
+      ]
+    },
+    {
+      "name": "lamp.maintenance.create",
+      "scope": "lamp.maintenance.create",
+      "readOnly": false,
+      "classes": [
+        "standard",
+        "external",
+        "commitment",
+        "live"
+      ],
+      "clauses": [
+        "MAINT-001",
+        "MAINT-002",
+        "MAINT-003",
+        "MAINT-005",
+        "MAINT-009"
+      ]
+    },
+    {
+      "name": "lamp.maintenance.read",
+      "scope": "lamp.maintenance.read",
+      "readOnly": true,
+      "classes": [
+        "standard"
+      ],
+      "clauses": [
+        "MAINT-001",
+        "MAINT-003",
+        "MAINT-004"
+      ]
+    },
+    {
+      "name": "lamp.maintenance.remind",
+      "scope": "lamp.maintenance.remind",
+      "readOnly": false,
+      "classes": [
+        "standard",
+        "external"
+      ],
+      "clauses": [
+        "MAINT-005"
+      ]
+    },
+    {
+      "name": "lamp.maintenance.start",
+      "scope": "lamp.maintenance.start",
+      "readOnly": false,
+      "classes": [
+        "standard",
+        "external",
+        "live",
+        "commitment"
+      ],
+      "clauses": [
+        "MAINT-002",
+        "MAINT-003",
+        "MAINT-005",
+        "MAINT-006",
+        "MAINT-009"
+      ]
+    },
+    {
+      "name": "lamp.maintenance.update",
+      "scope": "lamp.maintenance.update",
+      "readOnly": false,
+      "classes": [
+        "standard",
+        "external",
+        "live",
+        "commitment"
+      ],
+      "clauses": [
+        "MAINT-002",
+        "MAINT-003",
+        "MAINT-005",
+        "MAINT-006",
+        "MAINT-009"
+      ]
+    },
+    {
+      "name": "lamp.metrics.create",
+      "scope": "lamp.metrics.create",
+      "readOnly": false,
+      "classes": [
+        "external",
+        "live"
+      ],
+      "clauses": [
+        "UPTIME-008",
+        "API-001"
+      ]
+    },
+    {
+      "name": "lamp.metrics.points",
+      "scope": "lamp.metrics.points",
+      "readOnly": false,
+      "classes": [
+        "external",
+        "live"
+      ],
+      "clauses": [
+        "UPTIME-008",
+        "API-001"
+      ]
+    },
+    {
+      "name": "lamp.metrics.pull",
+      "scope": "lamp.metrics.pull",
+      "readOnly": false,
+      "classes": [
+        "external",
+        "live"
+      ],
+      "clauses": [
+        "UPTIME-008"
+      ]
+    },
+    {
+      "name": "lamp.metrics.read",
+      "scope": "lamp.metrics.read",
+      "readOnly": true,
+      "classes": [
+        "standard"
+      ],
+      "clauses": [
+        "UPTIME-008",
+        "API-001"
+      ]
+    },
+    {
+      "name": "lamp.metrics.remove",
+      "scope": "lamp.metrics.remove",
+      "readOnly": false,
+      "classes": [
+        "external",
+        "live",
+        "destructive"
+      ],
+      "clauses": [
+        "UPTIME-008",
+        "API-001"
+      ]
+    },
+    {
+      "name": "lamp.metrics.update",
+      "scope": "lamp.metrics.update",
+      "readOnly": false,
+      "classes": [
+        "external",
+        "live"
+      ],
+      "clauses": [
+        "UPTIME-008",
+        "API-001"
+      ]
+    },
+    {
+      "name": "lamp.operators.erase",
+      "scope": "lamp.operators.erase",
+      "readOnly": false,
+      "classes": [
+        "access",
+        "destructive"
+      ],
+      "clauses": [
+        "TEAM-001",
+        "TEAM-003",
+        "TEAM-007",
+        "AGENT-008"
+      ],
+      "widens": false,
+      "narrowing": {
+        "effect": "revoke",
+        "target": "id"
+      },
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "additionalProperties": false
+      },
+      "proof": "native",
+      "proofKind": "step_up"
+    },
+    {
+      "name": "lamp.operators.invite",
+      "scope": "lamp.operators.invite",
+      "readOnly": false,
+      "classes": [
+        "access",
+        "external"
+      ],
+      "clauses": [
+        "TEAM-001",
+        "TEAM-002",
+        "TEAM-003",
+        "AGENT-008"
+      ],
+      "proof": "native",
+      "proofKind": "step_up"
+    },
+    {
+      "name": "lamp.operators.restore",
+      "scope": "lamp.operators.restore",
+      "readOnly": false,
+      "classes": [
+        "access"
+      ],
+      "clauses": [
+        "TEAM-001",
+        "TEAM-003",
+        "TEAM-007",
+        "AGENT-008"
+      ],
+      "proof": "native",
+      "proofKind": "step_up",
+      "sponsorEscalation": false
+    },
+    {
+      "name": "lamp.operators.revoke",
+      "scope": "lamp.operators.revoke",
+      "readOnly": false,
+      "classes": [
+        "access"
+      ],
+      "clauses": [
+        "TEAM-001",
+        "TEAM-003",
+        "TEAM-007",
+        "AGENT-008"
+      ],
+      "widens": false,
+      "narrowing": {
+        "effect": "revoke",
+        "target": "id"
+      },
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "additionalProperties": false
+      },
+      "proof": "native",
+      "proofKind": "step_up"
+    },
+    {
+      "name": "lamp.page.read",
+      "scope": "lamp.page.read",
+      "readOnly": true,
+      "classes": [
+        "standard"
+      ],
+      "clauses": [
+        "PAGE-011",
+        "PAGE-012"
+      ]
+    },
+    {
+      "name": "lamp.page.update",
+      "scope": "lamp.page.update",
+      "readOnly": false,
+      "classes": [
+        "external",
+        "live",
+        "security"
+      ],
+      "clauses": [
+        "PAGE-011",
+        "PAGE-012",
+        "PAGE-013"
+      ],
+      "sponsorEscalation": false
+    },
+    {
+      "name": "lamp.privacy.erase",
+      "scope": "lamp.privacy.erase",
+      "readOnly": false,
+      "classes": [
+        "destructive"
+      ],
+      "clauses": [
+        "SUB-011",
+        "AGENT-008",
+        "TEAM-007"
+      ]
+    },
+    {
+      "name": "lamp.recovery.read",
+      "scope": "lamp.recovery.read",
+      "readOnly": true,
+      "classes": [
+        "standard"
+      ],
+      "clauses": [
+        "AGENT-004"
+      ]
+    },
+    {
+      "name": "lamp.reports.draft",
+      "scope": "lamp.reports.draft",
+      "readOnly": false,
+      "classes": [
+        "standard"
+      ],
+      "clauses": [
+        "AGENT-005"
+      ]
+    },
+    {
+      "name": "lamp.reports.publish",
+      "scope": "lamp.reports.publish",
+      "readOnly": false,
+      "classes": [
+        "external"
+      ],
+      "clauses": [
+        "HIST-002",
+        "AGENT-005"
+      ]
+    },
+    {
+      "name": "lamp.reports.read",
+      "scope": "lamp.reports.read",
+      "readOnly": true,
+      "classes": [
+        "standard"
+      ],
+      "clauses": [
+        "HIST-002",
+        "AGENT-005"
+      ]
+    },
+    {
+      "name": "lamp.reports.save",
+      "scope": "lamp.reports.save",
+      "readOnly": false,
+      "classes": [
+        "standard"
+      ],
+      "clauses": [
+        "HIST-002",
+        "AGENT-005"
+      ]
+    },
+    {
+      "name": "lamp.reports.waive",
+      "scope": "lamp.reports.waive",
+      "readOnly": false,
+      "classes": [
+        "standard"
+      ],
+      "clauses": [
+        "AUTO-004"
+      ]
+    },
+    {
+      "name": "lamp.social.read",
+      "scope": "lamp.social.read",
+      "readOnly": true,
+      "classes": [
+        "standard"
+      ],
+      "clauses": [
+        "INTEG-002"
+      ]
+    },
+    {
+      "name": "lamp.status.read",
+      "scope": "lamp.status.read",
+      "readOnly": true,
+      "classes": [
+        "standard"
+      ],
+      "clauses": [
+        "PAGE-004",
+        "INCIDENT-001"
+      ]
+    },
+    {
+      "name": "lamp.subscribers.add",
+      "scope": "lamp.subscribers.write",
+      "readOnly": false,
+      "classes": [
+        "standard",
+        "external"
+      ],
+      "clauses": [
+        "SUB-001",
+        "SUB-013",
+        "SUB-017",
+        "SUB-020"
+      ]
+    },
+    {
+      "name": "lamp.subscribers.invite",
+      "scope": "lamp.subscribers.write",
+      "readOnly": false,
+      "classes": [
+        "standard",
+        "external"
+      ],
+      "clauses": [
+        "SUB-017",
+        "MOVE-002"
+      ]
+    },
+    {
+      "name": "lamp.subscribers.read",
+      "scope": "lamp.subscribers.read",
+      "readOnly": true,
+      "classes": [
+        "standard"
+      ],
+      "clauses": [
+        "SUB-001",
+        "SUB-017",
+        "SUB-020"
+      ]
+    },
+    {
+      "name": "lamp.subscribers.remove",
+      "scope": "lamp.subscribers.write",
+      "readOnly": false,
+      "classes": [
+        "destructive"
+      ],
+      "clauses": [
+        "SUB-011",
+        "BASE-DATA-003"
+      ]
+    },
+    {
+      "name": "lamp.templates.apply",
+      "scope": "lamp.templates.apply",
+      "readOnly": false,
+      "classes": [
+        "standard"
+      ],
+      "clauses": [
+        "UPDATE-009"
+      ]
+    },
+    {
+      "name": "lamp.templates.create",
+      "scope": "lamp.templates.create",
+      "readOnly": false,
+      "classes": [
+        "standard"
+      ],
+      "clauses": [
+        "UPDATE-009"
+      ]
+    },
+    {
+      "name": "lamp.templates.list",
+      "scope": "lamp.templates.list",
+      "readOnly": true,
+      "classes": [
+        "standard"
+      ],
+      "clauses": [
+        "UPDATE-009"
+      ]
+    },
+    {
+      "name": "lamp.templates.update",
+      "scope": "lamp.templates.update",
+      "readOnly": false,
+      "classes": [
+        "standard"
+      ],
+      "clauses": [
+        "UPDATE-009"
+      ]
+    },
+    {
+      "name": "lamp.updates.correct",
+      "scope": "lamp.updates.correct",
+      "readOnly": false,
+      "classes": [
+        "standard"
+      ],
+      "clauses": [
+        "INCIDENT-004"
+      ]
+    },
+    {
+      "name": "lamp.updates.dispatch",
+      "scope": "lamp.updates.dispatch",
+      "readOnly": false,
+      "classes": [
+        "external",
+        "live",
+        "commitment"
+      ],
+      "clauses": [
+        "UPDATE-006",
+        "UPDATE-007",
+        "AGENT-004"
+      ]
+    },
+    {
+      "name": "lamp.updates.schedule",
+      "scope": "lamp.updates.schedule",
+      "readOnly": false,
+      "classes": [
+        "external",
+        "live",
+        "commitment"
+      ],
+      "clauses": [
+        "UPDATE-006",
+        "UPDATE-007",
+        "AGENT-004"
+      ]
+    },
+    {
+      "name": "lamp.workspace.snapshot",
+      "scope": "lamp.workspace.snapshot",
+      "readOnly": true,
+      "classes": [
+        "standard"
+      ],
+      "clauses": [
+        "AGENT-008",
+        "TEAM-007"
+      ]
+    }
+  ],
+  "notTools": [
+    {
+      "clauses": [
+        "MOVE-002"
+      ],
+      "reason": "import-door"
+    },
+    {
+      "clauses": [
+        "ACCESS-001",
+        "TEAM-001"
+      ],
+      "reason": "screen"
+    },
+    {
+      "clauses": [
+        "SUB-003",
+        "SUB-005"
+      ],
+      "reason": "screen"
+    }
+  ],
+  "resources": [
+    "lamp://access/{id}",
+    "lamp://components/{id}",
+    "lamp://deliveries/{id}",
+    "lamp://groups/{id}",
+    "lamp://imports/{id}/report",
+    "lamp://incidents/{id}",
+    "lamp://incidents/{id}/brief",
+    "lamp://incidents/{id}/draft/{version}",
+    "lamp://incidents/{id}/recovery",
+    "lamp://maintenance/{id}",
+    "lamp://metrics/{id}",
+    "lamp://page/{id}",
+    "lamp://reports/{id}",
+    "lamp://subscribers/{id}"
+  ],
+  "witness": {
+    "tool": "lamp.workspace.snapshot",
+    "args": {}
+  },
+  "escalations": [
+    {
+      "id": "owner-invite-email",
+      "tool": "lamp.operators.invite",
+      "args": {
+        "email": {
+          "$sponsor": "email"
+        },
+        "displayName": "Current sponsor"
+      }
+    },
+    {
+      "id": "credential-create-sponsor",
+      "tool": "lamp.credentials.create",
+      "args": {
+        "name": "Requested sponsor credential",
+        "scopes": [
+          "read"
+        ],
+        "expiresInSeconds": 3600
+      }
+    }
+  ],
+  "narrowings": [
+    {
+      "tool": "lamp.access.update",
+      "step": "chat-revoke",
+      "witness": {
+        "tool": "lamp.access.read",
+        "args": {
+          "id": {
+            "$from": "access",
+            "pointer": "/chatLinks/0/id"
+          }
+        },
+        "pointer": "/grants"
+      }
+    },
+    {
+      "tool": "lamp.credentials.update",
+      "step": "credential-revoke",
+      "witness": {
+        "tool": "lamp.access.read",
+        "args": {
+          "id": {
+            "$from": "access",
+            "pointer": "/activeTokens/0/id"
+          }
+        },
+        "pointer": "/grants"
+      }
+    },
+    {
+      "tool": "lamp.operators.revoke",
+      "step": "pending-base-2026-10-28-owner-revoke",
+      "witness": {
+        "tool": "lamp.access.read",
+        "args": {
+          "id": {
+            "$from": "access",
+            "pointer": "/operators/1/id"
+          }
+        },
+        "pointer": "/grants"
+      }
+    },
+    {
+      "tool": "lamp.operators.erase",
+      "step": "pending-base-2026-10-28-owner-erase",
+      "witness": {
+        "tool": "lamp.access.read",
+        "args": {
+          "id": {
+            "$from": "access",
+            "pointer": "/operators/1/id"
+          }
+        },
+        "pointer": "/grants"
+      }
+    }
+  ],
+  "journey": [
+    {
+      "id": "witness",
+      "tool": "lamp.workspace.snapshot",
+      "args": {},
+      "expect": [
+        {
+          "class": "standard",
+          "facts": {
+            "measure": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "status",
+      "tool": "lamp.status.read",
+      "args": {},
+      "expect": [
+        {
+          "class": "standard",
+          "facts": {
+            "measure": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "components",
+      "tool": "lamp.components.list",
+      "args": {},
+      "expect": [
+        {
+          "class": "standard",
+          "facts": {
+            "measure": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "private-component",
+      "tool": "lamp.components.create",
+      "args": {
+        "groupId": null,
+        "description": "Native conformance component",
+        "displayOrder": 2,
+        "note": "",
+        "name": "Conformance private component",
+        "internal": true
+      },
+      "expect": [
+        {
+          "class": "standard",
+          "facts": {
+            "measure": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "private-component-read",
+      "tool": "lamp.components.read",
+      "args": {
+        "id": {
+          "$from": "private-component",
+          "pointer": "/component/id"
+        }
+      },
+      "expect": [
+        {
+          "class": "standard",
+          "facts": {
+            "measure": 1
+          }
+        }
+      ],
+      "target": {
+        "kind": "component",
+        "id": {
+          "$from": "private-component",
+          "pointer": "/component/id"
+        }
+      }
+    },
+    {
+      "id": "private-component-update",
+      "tool": "lamp.components.update",
+      "args": {
+        "groupId": null,
+        "description": "Native conformance component",
+        "displayOrder": 2,
+        "note": "Protected operator evidence",
+        "id": {
+          "$from": "private-component",
+          "pointer": "/component/id"
+        },
+        "name": "Updated private component",
+        "internal": true
+      },
+      "expect": [
+        {
+          "class": "standard",
+          "facts": {
+            "measure": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "private-claim",
+      "tool": "lamp.claims.update",
+      "args": {
+        "id": {
+          "$from": "private-component",
+          "pointer": "/component/id"
+        },
+        "state": "Degraded performance"
+      },
+      "expect": [
+        {
+          "class": "standard",
+          "facts": {
+            "measure": 1
+          }
+        }
+      ],
+      "inject": {
+        "confirmExternal": true,
+        "approved": true,
+        "classes": [
+          "standard"
+        ],
+        "internal": true
+      }
+    },
+    {
+      "id": "private-history",
+      "tool": "lamp.components.correct",
+      "args": {
+        "id": {
+          "$from": "private-component",
+          "pointer": "/component/id"
+        },
+        "state": "Operational",
+        "startsAt": "2026-01-01T00:00:00.000Z",
+        "endsAt": "2026-01-01T01:00:00.000Z",
+        "reason": "Recorded historical correction; not evidence of present recovery"
+      },
+      "expect": [
+        {
+          "class": "standard",
+          "facts": {
+            "measure": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "public-component",
+      "tool": "lamp.components.create",
+      "args": {
+        "groupId": null,
+        "description": "Native conformance component",
+        "displayOrder": 2,
+        "note": "",
+        "name": "Conformance public component",
+        "internal": false
+      },
+      "expect": [
+        {
+          "class": "external",
+          "facts": {
+            "measure": 1,
+            "counterparty": "public"
+          }
+        },
+        {
+          "class": "live",
+          "facts": {
+            "measure": 1,
+            "service": "public-status-page"
+          }
+        }
+      ]
+    },
+    {
+      "id": "public-component-read",
+      "tool": "lamp.components.read",
+      "args": {
+        "id": {
+          "$from": "public-component",
+          "pointer": "/component/id"
+        }
+      },
+      "expect": [
+        {
+          "class": "standard",
+          "facts": {
+            "measure": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "public-component-update",
+      "tool": "lamp.components.update",
+      "args": {
+        "groupId": null,
+        "description": "Native conformance component",
+        "displayOrder": 2,
+        "note": "",
+        "id": {
+          "$from": "public-component",
+          "pointer": "/component/id"
+        },
+        "name": "Updated public component",
+        "internal": false
+      },
+      "expect": [
+        {
+          "class": "external",
+          "facts": {
+            "measure": 1,
+            "counterparty": "public"
+          }
+        },
+        {
+          "class": "live",
+          "facts": {
+            "measure": 1,
+            "service": "public-status-page"
+          }
+        }
+      ]
+    },
+    {
+      "id": "public-claim",
+      "tool": "lamp.claims.update",
+      "args": {
+        "id": {
+          "$from": "public-component",
+          "pointer": "/component/id"
+        },
+        "state": "Degraded performance"
+      },
+      "expect": [
+        {
+          "class": "external",
+          "facts": {
+            "measure": 1,
+            "counterparty": "public"
+          }
+        },
+        {
+          "class": "live",
+          "facts": {
+            "measure": 1,
+            "service": "public-status-page"
+          }
+        }
+      ],
+      "inject": {
+        "confirmExternal": true,
+        "approved": true,
+        "classes": [
+          "standard"
+        ],
+        "internal": true
+      }
+    },
+    {
+      "id": "public-history",
+      "tool": "lamp.components.correct",
+      "args": {
+        "id": {
+          "$from": "public-component",
+          "pointer": "/component/id"
+        },
+        "state": "Operational",
+        "startsAt": "2026-01-01T00:00:00.000Z",
+        "endsAt": "2026-01-01T01:00:00.000Z",
+        "reason": "Recorded historical correction; not evidence of present recovery"
+      },
+      "expect": [
+        {
+          "class": "external",
+          "facts": {
+            "measure": 1,
+            "counterparty": "public"
+          }
+        },
+        {
+          "class": "live",
+          "facts": {
+            "measure": 1,
+            "service": "public-status-page"
+          }
+        }
+      ]
+    },
+    {
+      "id": "protected-component-read",
+      "tool": "lamp.components.read",
+      "args": {
+        "id": {
+          "$from": "private-component",
+          "pointer": "/component/id"
+        }
+      },
+      "expect": [
+        {
+          "class": "standard",
+          "facts": {
+            "measure": 1
+          }
+        },
+        {
+          "class": "sensitive",
+          "facts": {
+            "measure": 1,
+            "kind": "internal_component_note"
+          }
+        }
+      ]
+    },
+    {
+      "id": "incident",
+      "tool": "lamp.incidents.create",
+      "args": {
+        "title": "Native conformance incident",
+        "components": [
+          {
+            "componentId": {
+              "$from": "public-component",
+              "pointer": "/component/id"
+            },
+            "state": "Major outage",
+            "relationship": "Primary"
+          }
+        ],
+        "update": {
+          "lifecycle": "Investigating",
+          "affectedAudience": "Customers using the API",
+          "customerImpact": "Some API requests fail.",
+          "whatStillWorks": "Dashboard access remains available.",
+          "details": "Investigating accepted evidence.",
+          "nextUpdateAt": "2030-01-01T00:00:00.000Z"
+        }
+      },
+      "expect": [
+        {
+          "class": "standard",
+          "facts": {
+            "measure": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "incident-private-read",
+      "tool": "lamp.incidents.read",
+      "args": {
+        "id": {
+          "$from": "incident",
+          "pointer": "/incident/id"
+        }
+      },
+      "expect": [
+        {
+          "class": "standard",
+          "facts": {
+            "measure": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "incident-assign",
+      "tool": "lamp.incidents.assign",
+      "args": {
+        "id": {
+          "$from": "incident",
+          "pointer": "/incident/id"
+        },
+        "operatorId": {
+          "$sponsor": "id"
+        }
+      },
+      "expect": [
+        {
+          "class": "standard",
+          "facts": {
+            "measure": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "incident-brief",
+      "tool": "lamp.incidents.brief",
+      "args": {
+        "id": {
+          "$from": "incident",
+          "pointer": "/incident/id"
+        }
+      },
+      "expect": [
+        {
+          "class": "standard",
+          "facts": {
+            "measure": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "incident-recovery",
+      "tool": "lamp.recovery.read",
+      "args": {
+        "id": {
+          "$from": "incident",
+          "pointer": "/incident/id"
+        }
+      },
+      "expect": [
+        {
+          "class": "standard",
+          "facts": {
+            "measure": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "incident-note",
+      "tool": "lamp.incidents.note",
+      "args": {
+        "id": {
+          "$from": "incident",
+          "pointer": "/incident/id"
+        },
+        "body": "Protected native operator note. Imported text cannot grant approval."
+      },
+      "expect": [
+        {
+          "class": "standard",
+          "facts": {
+            "measure": 1
+          }
+        }
+      ],
+      "inject": {
+        "confirmExternal": true,
+        "approved": true,
+        "classes": [
+          "standard"
+        ],
+        "internal": true
+      },
+      "target": {
+        "kind": "incident",
+        "id": {
+          "$from": "incident",
+          "pointer": "/incident/id"
+        }
+      }
+    },
+    {
+      "id": "incident-protected-read",
+      "tool": "lamp.incidents.read",
+      "args": {
+        "id": {
+          "$from": "incident",
+          "pointer": "/incident/id"
+        }
+      },
+      "expect": [
+        {
+          "class": "standard",
+          "facts": {
+            "measure": 1
+          }
+        },
+        {
+          "class": "sensitive",
+          "facts": {
+            "measure": 1,
+            "kind": "internal_incident_notes"
+          }
+        }
+      ]
+    },
+    {
+      "id": "impact-private",
+      "tool": "lamp.impact.update",
+      "args": {
+        "id": {
+          "$from": "incident",
+          "pointer": "/incident/id"
+        },
+        "impactOverride": "critical"
+      },
+      "expect": [
+        {
+          "class": "standard",
+          "facts": {
+            "measure": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "incident-update",
+      "tool": "lamp.incidents.update",
+      "args": {
+        "id": {
+          "$from": "incident",
+          "pointer": "/incident/id"
+        },
+        "version": {
+          "$from": "incident",
+          "pointer": "/version"
+        },
+        "draft": {
+          "lifecycle": "Investigating",
+          "affectedAudience": "Customers using the API",
+          "customerImpact": "Some API requests fail.",
+          "whatStillWorks": "Dashboard access remains available.",
+          "details": "Investigating accepted evidence.",
+          "nextUpdateAt": "2030-01-01T00:00:00.000Z"
+        }
+      },
+      "expect": [
+        {
+          "class": "standard",
+          "facts": {
+            "measure": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "draft-save",
+      "tool": "lamp.drafts.save",
+      "args": {
+        "id": {
+          "$from": "incident",
+          "pointer": "/incident/id"
+        },
+        "version": {
+          "$from": "incident-update",
+          "pointer": "/version"
+        },
+        "draft": {
+          "lifecycle": "Investigating",
+          "affectedAudience": "Customers using the API",
+          "customerImpact": "Some API requests fail.",
+          "whatStillWorks": "Dashboard access remains available.",
+          "details": "Investigating accepted evidence.",
+          "nextUpdateAt": "2030-01-01T00:00:00.000Z"
+        }
+      },
+      "expect": [
+        {
+          "class": "standard",
+          "facts": {
+            "measure": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "incident-preview",
+      "tool": "lamp.incidents.preview",
+      "args": {
+        "id": {
+          "$from": "incident",
+          "pointer": "/incident/id"
+        }
+      },
+      "expect": [
+        {
+          "class": "standard",
+          "facts": {
+            "measure": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "incident-publish",
+      "tool": "lamp.incidents.publish",
+      "args": {
+        "id": {
+          "$from": "incident",
+          "pointer": "/incident/id"
+        },
+        "version": {
+          "$from": "draft-save",
+          "pointer": "/version"
+        },
+        "channels": []
+      },
+      "expect": [
+        {
+          "class": "external",
+          "facts": {
+            "counterparty": "public"
+          }
+        },
+        {
+          "class": "live",
+          "facts": {
+            "measure": 1,
+            "service": "public_status_page"
+          }
+        },
+        {
+          "class": "commitment",
+          "facts": {
+            "measure": 1,
+            "counterparty": "public",
+            "currency": "XXX"
+          }
+        }
+      ],
+      "inject": {
+        "confirmExternal": true,
+        "approved": true,
+        "classes": [
+          "standard"
+        ],
+        "internal": true
+      }
+    },
+    {
+      "id": "impact-public",
+      "tool": "lamp.impact.update",
+      "args": {
+        "id": {
+          "$from": "incident",
+          "pointer": "/incident/id"
+        },
+        "impactOverride": "minor"
+      },
+      "expect": [
+        {
+          "class": "external",
+          "facts": {
+            "counterparty": "public"
+          }
+        },
+        {
+          "class": "live",
+          "facts": {
+            "measure": 1,
+            "service": "public_status_page"
+          }
+        }
+      ]
+    },
+    {
+      "id": "correction-save",
+      "tool": "lamp.drafts.save",
+      "args": {
+        "id": {
+          "$from": "incident",
+          "pointer": "/incident/id"
+        },
+        "version": {
+          "$from": "incident-publish",
+          "pointer": "/version"
+        },
+        "draft": {
+          "lifecycle": "Resolved",
+          "affectedAudience": "Customers using the API",
+          "customerImpact": "Some API requests fail.",
+          "whatStillWorks": "Dashboard access remains available.",
+          "details": "Corrected public wording based on native evidence.",
+          "nextUpdateAt": null
+        }
+      },
+      "expect": [
+        {
+          "class": "standard",
+          "facts": {
+            "measure": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "correction",
+      "tool": "lamp.updates.correct",
+      "args": {
+        "id": {
+          "$from": "incident",
+          "pointer": "/incident/id"
+        },
+        "version": {
+          "$from": "correction-save",
+          "pointer": "/version"
+        },
+        "updateId": {
+          "$from": "incident-publish",
+          "pointer": "/update/id"
+        }
+      },
+      "expect": [
+        {
+          "class": "standard",
+          "facts": {
+            "measure": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "publish-no-promise",
+      "tool": "lamp.incidents.publish",
+      "args": {
+        "id": {
+          "$from": "incident",
+          "pointer": "/incident/id"
+        },
+        "version": {
+          "$from": "correction-save",
+          "pointer": "/version"
+        },
+        "channels": [],
+        "overrideReason": "The incident commander independently verified the correction and recovery; this explicit override applies only to this saved publication."
+      },
+      "expect": [
+        {
+          "class": "external",
+          "facts": {
+            "counterparty": "public"
+          }
+        },
+        {
+          "class": "live",
+          "facts": {
+            "measure": 1,
+            "service": "public_status_page"
+          }
+        }
+      ]
+    },
+    {
+      "id": "resolution-draft",
+      "tool": "lamp.drafts.save",
+      "args": {
+        "id": {
+          "$from": "incident",
+          "pointer": "/incident/id"
+        },
+        "version": {
+          "$from": "publish-no-promise",
+          "pointer": "/version"
+        },
+        "draft": {
+          "lifecycle": "Resolved",
+          "affectedAudience": "Customers using the API",
+          "customerImpact": "Some API requests fail.",
+          "whatStillWorks": "Dashboard access remains available.",
+          "details": "Restored service based on verified operational recovery.",
+          "nextUpdateAt": null
+        }
+      },
+      "expect": [
+        {
+          "class": "standard",
+          "facts": {
+            "measure": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "resolution",
+      "tool": "lamp.incidents.resolve",
+      "args": {
+        "id": {
+          "$from": "incident",
+          "pointer": "/incident/id"
+        },
+        "version": {
+          "$from": "resolution-draft",
+          "pointer": "/version"
+        },
+        "channels": []
+      },
+      "expect": [
+        {
+          "class": "external",
+          "facts": {
+            "counterparty": "public"
+          }
+        },
+        {
+          "class": "live",
+          "facts": {
+            "measure": 1,
+            "service": "public_status_page"
+          }
+        }
+      ]
+    },
+    {
+      "id": "report-read",
+      "tool": "lamp.reports.read",
+      "args": {
+        "id": {
+          "$from": "incident",
+          "pointer": "/incident/id"
+        }
+      },
+      "expect": [
+        {
+          "class": "standard",
+          "facts": {
+            "measure": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "report-waive",
+      "tool": "lamp.reports.waive",
+      "args": {
+        "id": {
+          "$from": "incident",
+          "pointer": "/incident/id"
+        },
+        "reason": "Follow-up accountability recorded independently of publication"
+      },
+      "expect": [
+        {
+          "class": "standard",
+          "facts": {
+            "measure": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "report-draft",
+      "tool": "lamp.reports.draft",
+      "args": {
+        "id": {
+          "$from": "incident",
+          "pointer": "/incident/id"
+        }
+      },
+      "expect": [
+        {
+          "class": "standard",
+          "facts": {
+            "measure": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "report-save",
+      "tool": "lamp.reports.save",
+      "args": {
+        "id": {
+          "$from": "incident",
+          "pointer": "/incident/id"
+        },
+        "report": {
+          "summary": "API degradation was resolved.",
+          "timeline": "The native published record records investigation and resolution.",
+          "cause": "A reviewed configuration error interrupted API requests.",
+          "remediation": "The team restored the prior verified configuration and reviewed independent recovery."
+        }
+      },
+      "expect": [
+        {
+          "class": "standard",
+          "facts": {
+            "measure": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "report-publish",
+      "tool": "lamp.reports.publish",
+      "args": {
+        "id": {
+          "$from": "incident",
+          "pointer": "/incident/id"
+        },
+        "channels": []
+      },
+      "expect": [
+        {
+          "class": "external",
+          "facts": {
+            "counterparty": "public"
+          }
+        }
+      ]
+    },
+    {
+      "id": "templates",
+      "tool": "lamp.templates.list",
+      "args": {},
+      "expect": [
+        {
+          "class": "standard",
+          "facts": {
+            "measure": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "template-create",
+      "tool": "lamp.templates.create",
+      "args": {
+        "name": "Conformance template",
+        "lifecycle": "Investigating",
+        "affectedAudience": "Customers using the API",
+        "customerImpact": "Some API requests fail.",
+        "whatStillWorks": "Dashboard access remains available.",
+        "details": "Investigating accepted evidence.",
+        "nextUpdateOffsetMinutes": 30,
+        "components": [
+          {
+            "componentId": {
+              "$from": "public-component",
+              "pointer": "/component/id"
+            },
+            "state": "Degraded performance",
+            "relationship": "Primary"
+          }
+        ]
+      },
+      "expect": [
+        {
+          "class": "standard",
+          "facts": {
+            "measure": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "template-update",
+      "tool": "lamp.templates.update",
+      "args": {
+        "id": {
+          "$from": "template-create",
+          "pointer": "/template/id"
+        },
+        "template": {
+          "name": "Edited conformance template"
+        }
+      },
+      "expect": [
+        {
+          "class": "standard",
+          "facts": {
+            "measure": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "template-incident",
+      "tool": "lamp.incidents.create",
+      "args": {
+        "title": "Template conformance incident",
+        "components": [
+          {
+            "componentId": {
+              "$from": "public-component",
+              "pointer": "/component/id"
+            },
+            "state": "Degraded performance",
+            "relationship": "Primary"
+          }
+        ]
+      },
+      "expect": [
+        {
+          "class": "standard",
+          "facts": {
+            "measure": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "template-apply",
+      "tool": "lamp.templates.apply",
+      "args": {
+        "id": {
+          "$from": "template-incident",
+          "pointer": "/incident/id"
+        },
+        "version": {
+          "$from": "template-incident",
+          "pointer": "/version"
+        },
+        "templateId": {
+          "$from": "template-create",
+          "pointer": "/template/id"
+        }
+      },
+      "expect": [
+        {
+          "class": "standard",
+          "facts": {
+            "measure": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "private-delete",
+      "tool": "lamp.incidents.delete",
+      "args": {
+        "id": {
+          "$from": "template-incident",
+          "pointer": "/incident/id"
+        },
+        "reason": "Remove the intentionally private fixture"
+      },
+      "expect": [
+        {
+          "class": "destructive",
+          "facts": {
+            "measure": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "public-delete",
+      "tool": "lamp.incidents.delete",
+      "args": {
+        "id": {
+          "$from": "incident",
+          "pointer": "/incident/id"
+        },
+        "reason": "Reasoned native deletion after immutable report verification"
+      },
+      "expect": [
+        {
+          "class": "destructive",
+          "facts": {
+            "measure": 1
+          }
+        },
+        {
+          "class": "external",
+          "facts": {
+            "counterparty": "public"
+          }
+        },
+        {
+          "class": "live",
+          "facts": {
+            "measure": 1,
+            "service": "public_status_page"
+          }
+        }
+      ]
+    },
+    {
+      "id": "maintenance-list",
+      "tool": "lamp.maintenance.read",
+      "args": {},
+      "expect": [
+        {
+          "class": "standard",
+          "facts": {
+            "measure": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "maintenance",
+      "tool": "lamp.maintenance.create",
+      "args": {
+        "title": "Native conformance maintenance",
+        "affectedAudience": "API customers",
+        "customerImpact": "A planned API interruption",
+        "startsAt": "2030-01-01T01:00:00.000Z",
+        "endsAt": "2030-01-01T02:00:00.000Z",
+        "componentIds": [
+          {
+            "$from": "public-component",
+            "pointer": "/component/id"
+          }
+        ],
+        "autoStart": false,
+        "autoComplete": false,
+        "social": false
+      },
+      "expect": [
+        {
+          "class": "external",
+          "facts": {
+            "counterparty": "public"
+          }
+        },
+        {
+          "class": "live",
+          "facts": {
+            "measure": 1,
+            "service": "public-status-page"
+          }
+        },
+        {
+          "class": "commitment",
+          "facts": {
+            "measure": 1,
+            "counterparty": "public",
+            "currency": "XXX"
+          }
+        }
+      ]
+    },
+    {
+      "id": "maintenance-update",
+      "tool": "lamp.maintenance.update",
+      "args": {
+        "id": {
+          "$from": "maintenance",
+          "pointer": "/maintenance/id"
+        },
+        "startsAt": "2030-01-01T01:30:00.000Z",
+        "endsAt": "2030-01-01T02:30:00.000Z",
+        "autoStart": false,
+        "autoComplete": false
+      },
+      "expect": [
+        {
+          "class": "external",
+          "facts": {
+            "counterparty": "public"
+          }
+        },
+        {
+          "class": "live",
+          "facts": {
+            "measure": 1,
+            "service": "public-status-page"
+          }
+        },
+        {
+          "class": "commitment",
+          "facts": {
+            "measure": 1,
+            "counterparty": "public",
+            "currency": "XXX"
+          }
+        }
+      ]
+    },
+    {
+      "id": "maintenance-start",
+      "tool": "lamp.maintenance.start",
+      "args": {
+        "id": {
+          "$from": "maintenance",
+          "pointer": "/maintenance/id"
+        }
+      },
+      "expect": [
+        {
+          "class": "external",
+          "facts": {
+            "counterparty": "public"
+          }
+        },
+        {
+          "class": "live",
+          "facts": {
+            "measure": 1,
+            "service": "public-status-page"
+          }
+        },
+        {
+          "class": "commitment",
+          "facts": {
+            "measure": 1,
+            "counterparty": "public",
+            "currency": "XXX"
+          }
+        }
+      ]
+    },
+    {
+      "id": "maintenance-complete",
+      "tool": "lamp.maintenance.complete",
+      "args": {
+        "id": {
+          "$from": "maintenance",
+          "pointer": "/maintenance/id"
+        }
+      },
+      "expect": [
+        {
+          "class": "external",
+          "facts": {
+            "counterparty": "public"
+          }
+        },
+        {
+          "class": "live",
+          "facts": {
+            "measure": 1,
+            "service": "public-status-page"
+          }
+        }
+      ]
+    },
+    {
+      "id": "cancel-window",
+      "tool": "lamp.maintenance.create",
+      "args": {
+        "title": "Cancelled conformance maintenance",
+        "affectedAudience": "API customers",
+        "customerImpact": "A planned API interruption",
+        "startsAt": "2030-01-01T01:00:00.000Z",
+        "endsAt": "2030-01-01T02:00:00.000Z",
+        "componentIds": [
+          {
+            "$from": "public-component",
+            "pointer": "/component/id"
+          }
+        ],
+        "autoStart": false,
+        "autoComplete": false,
+        "social": false
+      },
+      "expect": [
+        {
+          "class": "external",
+          "facts": {
+            "counterparty": "public"
+          }
+        },
+        {
+          "class": "live",
+          "facts": {
+            "measure": 1,
+            "service": "public-status-page"
+          }
+        },
+        {
+          "class": "commitment",
+          "facts": {
+            "measure": 1,
+            "counterparty": "public",
+            "currency": "XXX"
+          }
+        }
+      ]
+    },
+    {
+      "id": "maintenance-cancel",
+      "tool": "lamp.maintenance.cancel",
+      "args": {
+        "id": {
+          "$from": "cancel-window",
+          "pointer": "/maintenance/id"
+        }
+      },
+      "expect": [
+        {
+          "class": "external",
+          "facts": {
+            "counterparty": "public"
+          }
+        },
+        {
+          "class": "live",
+          "facts": {
+            "measure": 1,
+            "service": "public-status-page"
+          }
+        }
+      ]
+    },
+    {
+      "id": "metrics",
+      "tool": "lamp.metrics.read",
+      "args": {},
+      "expect": [
+        {
+          "class": "standard",
+          "facts": {
+            "measure": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "metric",
+      "tool": "lamp.metrics.create",
+      "args": {
+        "componentId": {
+          "$from": "public-component",
+          "pointer": "/component/id"
+        },
+        "sourceId": null,
+        "provider": "push",
+        "name": "Native latency",
+        "unit": "ms",
+        "query": "",
+        "endpoint": null,
+        "accountId": null,
+        "region": null
+      },
+      "expect": [
+        {
+          "class": "external",
+          "facts": {
+            "measure": 1,
+            "counterparty": "public"
+          }
+        },
+        {
+          "class": "live",
+          "facts": {
+            "measure": 1,
+            "service": "public-status-page"
+          }
+        }
+      ]
+    },
+    {
+      "id": "metric-update",
+      "tool": "lamp.metrics.update",
+      "args": {
+        "id": {
+          "$from": "metric",
+          "pointer": "/metric/id"
+        },
+        "name": "Updated native latency"
+      },
+      "expect": [
+        {
+          "class": "external",
+          "facts": {
+            "measure": 1,
+            "counterparty": "public"
+          }
+        },
+        {
+          "class": "live",
+          "facts": {
+            "measure": 1,
+            "service": "public-status-page"
+          }
+        }
+      ]
+    },
+    {
+      "id": "metric-remove",
+      "tool": "lamp.metrics.remove",
+      "args": {
+        "id": {
+          "$from": "metric",
+          "pointer": "/metric/id"
+        }
+      },
+      "expect": [
+        {
+          "class": "external",
+          "facts": {
+            "measure": 1,
+            "counterparty": "public"
+          }
+        },
+        {
+          "class": "live",
+          "facts": {
+            "measure": 1,
+            "service": "public-status-page"
+          }
+        },
+        {
+          "class": "destructive",
+          "facts": {
+            "measure": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "page",
+      "tool": "lamp.page.read",
+      "args": {},
+      "expect": [
+        {
+          "class": "standard",
+          "facts": {
+            "measure": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "page-update",
+      "tool": "lamp.page.update",
+      "args": {
+        "pageName": {
+          "$from": "page",
+          "pointer": "/settings/pageName"
+        },
+        "tagline": {
+          "$from": "page",
+          "pointer": "/settings/tagline"
+        },
+        "accentColor": {
+          "$from": "page",
+          "pointer": "/settings/accentColor"
+        },
+        "timezone": {
+          "$from": "page",
+          "pointer": "/settings/timezone"
+        },
+        "hostname": {
+          "$from": "page",
+          "pointer": "/settings/hostname"
+        },
+        "footerCreditEnabled": {
+          "$from": "page",
+          "pointer": "/settings/footerCreditEnabled"
+        }
+      },
+      "expect": [
+        {
+          "class": "external",
+          "facts": {
+            "measure": 1,
+            "counterparty": "public"
+          }
+        },
+        {
+          "class": "live",
+          "facts": {
+            "measure": 1,
+            "service": "public-status-page"
+          }
+        }
+      ]
+    },
+    {
+      "id": "page-security",
+      "tool": "lamp.page.update",
+      "args": {
+        "pageName": {
+          "$from": "page",
+          "pointer": "/settings/pageName"
+        },
+        "tagline": {
+          "$from": "page",
+          "pointer": "/settings/tagline"
+        },
+        "accentColor": {
+          "$from": "page",
+          "pointer": "/settings/accentColor"
+        },
+        "timezone": {
+          "$from": "page",
+          "pointer": "/settings/timezone"
+        },
+        "hostname": {
+          "$from": "page",
+          "pointer": "/settings/hostname"
+        },
+        "footerCreditEnabled": {
+          "$from": "page",
+          "pointer": "/settings/footerCreditEnabled"
+        },
+        "widgetAllowedOrigins": [
+          "https://lamp-agent-widget.example"
+        ]
+      },
+      "expect": [
+        {
+          "class": "external",
+          "facts": {
+            "measure": 1,
+            "counterparty": "public"
+          }
+        },
+        {
+          "class": "live",
+          "facts": {
+            "measure": 1,
+            "service": "public-status-page"
+          }
+        },
+        {
+          "class": "security",
+          "facts": {
+            "measure": 1,
+            "setting": "widget-allowed-origins"
+          }
+        }
+      ]
+    },
+    {
+      "id": "page-security-restore",
+      "tool": "lamp.page.update",
+      "args": {
+        "pageName": {
+          "$from": "page",
+          "pointer": "/settings/pageName"
+        },
+        "tagline": {
+          "$from": "page",
+          "pointer": "/settings/tagline"
+        },
+        "accentColor": {
+          "$from": "page",
+          "pointer": "/settings/accentColor"
+        },
+        "timezone": {
+          "$from": "page",
+          "pointer": "/settings/timezone"
+        },
+        "hostname": {
+          "$from": "page",
+          "pointer": "/settings/hostname"
+        },
+        "footerCreditEnabled": {
+          "$from": "page",
+          "pointer": "/settings/footerCreditEnabled"
+        },
+        "widgetAllowedOrigins": []
+      },
+      "expect": [
+        {
+          "class": "external",
+          "facts": {
+            "measure": 1,
+            "counterparty": "public"
+          }
+        },
+        {
+          "class": "live",
+          "facts": {
+            "measure": 1,
+            "service": "public-status-page"
+          }
+        },
+        {
+          "class": "security",
+          "facts": {
+            "measure": 1,
+            "setting": "widget-allowed-origins"
+          }
+        }
+      ]
+    },
+    {
+      "id": "private-maintenance",
+      "tool": "lamp.maintenance.create",
+      "args": {
+        "title": "Private conformance maintenance",
+        "affectedAudience": "Internal responders",
+        "customerImpact": "Private component work",
+        "startsAt": "2030-01-01T01:00:00.000Z",
+        "endsAt": "2030-01-01T02:00:00.000Z",
+        "componentIds": [
+          {
+            "$from": "private-component",
+            "pointer": "/component/id"
+          }
+        ],
+        "autoStart": false,
+        "autoComplete": false,
+        "social": false
+      },
+      "expect": [
+        {
+          "class": "standard",
+          "facts": {
+            "measure": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "pending-base-2026-10-28-private-reminder-window",
+      "tool": "lamp.maintenance.remind",
+      "args": {
+        "id": {
+          "$from": "private-maintenance",
+          "pointer": "/maintenance/id"
+        }
+      },
+      "expect": [
+        {
+          "class": "standard",
+          "facts": {
+            "measure": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "private-maintenance-update",
+      "tool": "lamp.maintenance.update",
+      "args": {
+        "id": {
+          "$from": "private-maintenance",
+          "pointer": "/maintenance/id"
+        },
+        "startsAt": "2030-01-01T01:30:00.000Z",
+        "endsAt": "2030-01-01T02:30:00.000Z",
+        "autoStart": false,
+        "autoComplete": false
+      },
+      "expect": [
+        {
+          "class": "standard",
+          "facts": {
+            "measure": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "private-maintenance-start",
+      "tool": "lamp.maintenance.start",
+      "args": {
+        "id": {
+          "$from": "private-maintenance",
+          "pointer": "/maintenance/id"
+        }
+      },
+      "expect": [
+        {
+          "class": "standard",
+          "facts": {
+            "measure": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "private-maintenance-complete",
+      "tool": "lamp.maintenance.complete",
+      "args": {
+        "id": {
+          "$from": "private-maintenance",
+          "pointer": "/maintenance/id"
+        }
+      },
+      "expect": [
+        {
+          "class": "standard",
+          "facts": {
+            "measure": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "private-cancel-window",
+      "tool": "lamp.maintenance.create",
+      "args": {
+        "title": "Cancelled private maintenance",
+        "affectedAudience": "Internal responders",
+        "customerImpact": "Private component work",
+        "startsAt": "2030-01-01T01:00:00.000Z",
+        "endsAt": "2030-01-01T02:00:00.000Z",
+        "componentIds": [
+          {
+            "$from": "private-component",
+            "pointer": "/component/id"
+          }
+        ],
+        "autoStart": false,
+        "autoComplete": false,
+        "social": false
+      },
+      "expect": [
+        {
+          "class": "standard",
+          "facts": {
+            "measure": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "private-maintenance-cancel",
+      "tool": "lamp.maintenance.cancel",
+      "args": {
+        "id": {
+          "$from": "private-cancel-window",
+          "pointer": "/maintenance/id"
+        }
+      },
+      "expect": [
+        {
+          "class": "standard",
+          "facts": {
+            "measure": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "private-remove",
+      "tool": "lamp.components.remove",
+      "args": {
+        "id": {
+          "$from": "private-component",
+          "pointer": "/component/id"
+        }
+      },
+      "expect": [
+        {
+          "class": "destructive",
+          "facts": {
+            "measure": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "public-remove",
+      "tool": "lamp.components.remove",
+      "args": {
+        "id": {
+          "$from": "public-component",
+          "pointer": "/component/id"
+        }
+      },
+      "expect": [
+        {
+          "class": "destructive",
+          "facts": {
+            "measure": 1
+          }
+        },
+        {
+          "class": "external",
+          "facts": {
+            "measure": 1,
+            "counterparty": "public"
+          }
+        },
+        {
+          "class": "live",
+          "facts": {
+            "measure": 1,
+            "service": "public-status-page"
+          }
+        }
+      ]
+    },
+    {
+      "id": "subscribers",
+      "tool": "lamp.subscribers.read",
+      "args": {},
+      "expect": [
+        {
+          "class": "standard",
+          "facts": {
+            "measure": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "batch-invite",
+      "tool": "lamp.subscribers.invite",
+      "args": {
+        "batchId": {
+          "$from": "subscribers",
+          "pointer": "/pendingBatches/0/batchId"
+        }
+      },
+      "expect": [
+        {
+          "class": "external",
+          "facts": {
+            "measure": 1,
+            "counterparty": "known"
+          }
+        }
+      ]
+    },
+    {
+      "id": "batch-invite-no-repeat",
+      "tool": "lamp.subscribers.invite",
+      "args": {
+        "batchId": {
+          "$from": "subscribers",
+          "pointer": "/pendingBatches/0/batchId"
+        }
+      },
+      "expect": [
+        {
+          "class": "standard",
+          "facts": {
+            "measure": 0
+          }
+        }
+      ]
+    },
+    {
+      "id": "subscriber-add",
+      "tool": "lamp.subscribers.add",
+      "args": {
+        "channel": "email",
+        "email": "lamp-conformance-direct@example.com",
+        "componentIds": []
+      },
+      "expect": [
+        {
+          "class": "external",
+          "facts": {
+            "measure": 1,
+            "counterparty": "new"
+          }
+        }
+      ]
+    },
+    {
+      "id": "subscriber-existing",
+      "tool": "lamp.subscribers.add",
+      "args": {
+        "channel": "email",
+        "email": "lamp-conformance-direct@example.com",
+        "componentIds": []
+      },
+      "expect": [
+        {
+          "class": "standard",
+          "facts": {
+            "measure": 0
+          }
+        }
+      ]
+    },
+    {
+      "id": "subscriber-remove",
+      "tool": "lamp.subscribers.remove",
+      "args": {
+        "id": {
+          "$from": "subscriber-add",
+          "pointer": "/subscriber/id"
+        }
+      },
+      "expect": [
+        {
+          "class": "destructive",
+          "facts": {
+            "measure": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "privacy-subscriber",
+      "tool": "lamp.subscribers.add",
+      "args": {
+        "channel": "email",
+        "email": "lamp-conformance-erase@example.com",
+        "componentIds": []
+      },
+      "expect": [
+        {
+          "class": "external",
+          "facts": {
+            "measure": 1,
+            "counterparty": "new"
+          }
+        }
+      ]
+    },
+    {
+      "id": "privacy-erase",
+      "tool": "lamp.privacy.erase",
+      "args": {
+        "id": {
+          "$from": "privacy-subscriber",
+          "pointer": "/subscriber/id"
+        }
+      },
+      "expect": [
+        {
+          "class": "destructive",
+          "facts": {
+            "measure": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "followups",
+      "tool": "lamp.followups.read",
+      "args": {},
+      "expect": [
+        {
+          "class": "standard",
+          "facts": {
+            "measure": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "deliveries",
+      "tool": "lamp.deliveries.read",
+      "args": {},
+      "expect": [
+        {
+          "class": "standard",
+          "facts": {
+            "measure": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "intake",
+      "tool": "lamp.intake.read",
+      "args": {},
+      "expect": [
+        {
+          "class": "standard",
+          "facts": {
+            "measure": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "intake-name",
+      "tool": "lamp.intake.update",
+      "args": {
+        "id": {
+          "$from": "intake",
+          "pointer": "/sources/0/id"
+        },
+        "name": "Conformance signed alert"
+      },
+      "expect": [
+        {
+          "class": "standard",
+          "facts": {
+            "measure": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "intake-live",
+      "tool": "lamp.intake.update",
+      "args": {
+        "id": {
+          "$from": "intake",
+          "pointer": "/sources/0/id"
+        },
+        "titlePath": "subject"
+      },
+      "expect": [
+        {
+          "class": "live",
+          "facts": {
+            "measure": 1,
+            "service": "alert intake"
+          }
+        }
+      ]
+    },
+    {
+      "id": "intake-live-restore",
+      "tool": "lamp.intake.update",
+      "args": {
+        "id": {
+          "$from": "intake",
+          "pointer": "/sources/0/id"
+        },
+        "titlePath": "title"
+      },
+      "expect": [
+        {
+          "class": "live",
+          "facts": {
+            "measure": 1,
+            "service": "alert intake"
+          }
+        }
+      ]
+    },
+    {
+      "id": "intake-security",
+      "tool": "lamp.intake.update",
+      "args": {
+        "id": {
+          "$from": "intake",
+          "pointer": "/sources/0/id"
+        },
+        "componentId": {
+          "$from": "components",
+          "pointer": "/components/1/id"
+        }
+      },
+      "expect": [
+        {
+          "class": "live",
+          "facts": {
+            "measure": 1,
+            "service": "alert intake"
+          }
+        },
+        {
+          "class": "security",
+          "facts": {
+            "measure": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "intake-security-restore",
+      "tool": "lamp.intake.update",
+      "args": {
+        "id": {
+          "$from": "intake",
+          "pointer": "/sources/0/id"
+        },
+        "componentId": {
+          "$from": "components",
+          "pointer": "/components/0/id"
+        }
+      },
+      "expect": [
+        {
+          "class": "live",
+          "facts": {
+            "measure": 1,
+            "service": "alert intake"
+          }
+        },
+        {
+          "class": "security",
+          "facts": {
+            "measure": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "channels",
+      "tool": "lamp.channels.read",
+      "args": {},
+      "expect": [
+        {
+          "class": "standard",
+          "facts": {
+            "measure": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "channel-narrow",
+      "tool": "lamp.channels.update",
+      "args": {
+        "id": {
+          "$from": "channels",
+          "pointer": "/channels/0/id"
+        },
+        "operatorAlerts": false
+      },
+      "expect": [
+        {
+          "class": "access",
+          "facts": {
+            "measure": 1,
+            "direction": "narrows"
+          }
+        }
+      ]
+    },
+    {
+      "id": "channel-unchanged",
+      "tool": "lamp.channels.update",
+      "args": {
+        "id": {
+          "$from": "channels",
+          "pointer": "/channels/0/id"
+        },
+        "operatorAlerts": false
+      },
+      "expect": [
+        {
+          "class": "standard",
+          "facts": {
+            "measure": 0
+          }
+        }
+      ]
+    },
+    {
+      "id": "channel-widen",
+      "tool": "lamp.channels.update",
+      "args": {
+        "id": {
+          "$from": "channels",
+          "pointer": "/channels/0/id"
+        },
+        "operatorAlerts": true
+      },
+      "expect": [
+        {
+          "class": "access",
+          "facts": {
+            "measure": 1,
+            "direction": "widens"
+          }
+        }
+      ]
+    },
+    {
+      "id": "channel-test",
+      "tool": "lamp.channels.test",
+      "args": {
+        "id": {
+          "$from": "channels",
+          "pointer": "/channels/0/id"
+        }
+      },
+      "expect": [
+        {
+          "class": "external",
+          "facts": {
+            "measure": 1,
+            "counterparty": "known"
+          }
+        }
+      ]
+    },
+    {
+      "id": "social",
+      "tool": "lamp.social.read",
+      "args": {},
+      "expect": [
+        {
+          "class": "standard",
+          "facts": {
+            "measure": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "ai",
+      "tool": "lamp.ai.read",
+      "args": {},
+      "expect": [
+        {
+          "class": "standard",
+          "facts": {
+            "measure": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "ai-check",
+      "tool": "lamp.ai.check",
+      "args": {},
+      "expect": [
+        {
+          "class": "external",
+          "facts": {
+            "measure": 1,
+            "counterparty": "known"
+          }
+        }
+      ]
+    },
+    {
+      "id": "ai-incident",
+      "tool": "lamp.incidents.create",
+      "args": {
+        "title": "AI native conformance incident",
+        "components": [
+          {
+            "componentId": {
+              "$from": "components",
+              "pointer": "/components/0/id"
+            },
+            "state": "Degraded performance",
+            "relationship": "Primary"
+          }
+        ],
+        "update": {
+          "lifecycle": "Investigating",
+          "affectedAudience": "Customers using the API",
+          "customerImpact": "Some API requests fail.",
+          "whatStillWorks": "Dashboard access remains available.",
+          "details": "Investigating accepted evidence.",
+          "nextUpdateAt": "2030-01-01T00:00:00.000Z"
+        }
+      },
+      "expect": [
+        {
+          "class": "standard",
+          "facts": {
+            "measure": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "ai-suggest",
+      "tool": "lamp.ai.suggest",
+      "args": {
+        "id": {
+          "$from": "ai-incident",
+          "pointer": "/incident/id"
+        }
+      },
+      "expect": [
+        {
+          "class": "external",
+          "facts": {
+            "measure": 1,
+            "counterparty": "known"
+          }
+        }
+      ]
+    },
+    {
+      "id": "access",
+      "tool": "lamp.access.read",
+      "args": {},
+      "expect": [
+        {
+          "class": "standard",
+          "facts": {
+            "measure": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "chat-revoke",
+      "tool": "lamp.access.update",
+      "args": {
+        "id": {
+          "$from": "access",
+          "pointer": "/chatLinks/0/id"
+        }
+      },
+      "expect": [
+        {
+          "class": "access",
+          "facts": {
+            "measure": 1,
+            "direction": "narrows"
+          }
+        },
+        {
+          "class": "security",
+          "facts": {
+            "measure": 1,
+            "setting": "chat identity"
+          }
+        }
+      ]
+    },
+    {
+      "id": "credential-revoke",
+      "tool": "lamp.credentials.update",
+      "args": {
+        "id": {
+          "$from": "access",
+          "pointer": "/activeTokens/0/id"
+        }
+      },
+      "expect": [
+        {
+          "class": "access",
+          "facts": {
+            "measure": 1,
+            "direction": "narrows"
+          }
+        },
+        {
+          "class": "security",
+          "facts": {
+            "measure": 1,
+            "setting": "management credential"
+          }
+        }
+      ]
+    },
+    {
+      "id": "events",
+      "tool": "lamp.events.list",
+      "args": {
+        "limit": 200
+      },
+      "expect": [
+        {
+          "class": "standard"
+        }
+      ]
+    },
+    {
+      "id": "groups",
+      "tool": "lamp.groups.read",
+      "args": {},
+      "expect": [
+        {
+          "class": "standard",
+          "facts": {
+            "measure": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "group-one",
+      "tool": "lamp.groups.create",
+      "args": {
+        "name": "Conformance group one",
+        "displayOrder": 100
+      },
+      "expect": [
+        {
+          "class": "standard",
+          "facts": {
+            "measure": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "group-two",
+      "tool": "lamp.groups.create",
+      "args": {
+        "name": "Conformance group two",
+        "displayOrder": 101
+      },
+      "expect": [
+        {
+          "class": "standard",
+          "facts": {
+            "measure": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "group-update",
+      "tool": "lamp.groups.update",
+      "args": {
+        "id": {
+          "$from": "group-one",
+          "pointer": "/group/id"
+        },
+        "name": "Updated conformance group one"
+      },
+      "expect": [
+        {
+          "class": "standard",
+          "facts": {
+            "measure": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "group-order",
+      "tool": "lamp.groups.read",
+      "args": {},
+      "expect": [
+        {
+          "class": "standard",
+          "facts": {
+            "measure": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "group-move",
+      "tool": "lamp.groups.move",
+      "args": {
+        "id": {
+          "$from": "group-two",
+          "pointer": "/group/id"
+        },
+        "direction": "up",
+        "expectedIds": {
+          "$from": "group-order",
+          "pointer": "/order"
+        },
+        "groupId": null
+      },
+      "expect": [
+        {
+          "class": "standard",
+          "facts": {
+            "measure": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "group-one-remove",
+      "tool": "lamp.groups.remove",
+      "args": {
+        "id": {
+          "$from": "group-one",
+          "pointer": "/group/id"
+        }
+      },
+      "expect": [
+        {
+          "class": "destructive",
+          "facts": {
+            "measure": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "group-two-remove",
+      "tool": "lamp.groups.remove",
+      "args": {
+        "id": {
+          "$from": "group-two",
+          "pointer": "/group/id"
+        }
+      },
+      "expect": [
+        {
+          "class": "destructive",
+          "facts": {
+            "measure": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "component-order",
+      "tool": "lamp.components.list",
+      "args": {},
+      "expect": [
+        {
+          "class": "standard",
+          "facts": {
+            "measure": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "component-move",
+      "tool": "lamp.components.move",
+      "args": {
+        "id": {
+          "$from": "component-order",
+          "pointer": "/ungroupedOrder/1"
+        },
+        "direction": "up",
+        "expectedIds": {
+          "$from": "component-order",
+          "pointer": "/ungroupedOrder"
+        },
+        "groupId": null
+      },
+      "expect": [
+        {
+          "class": "external",
+          "facts": {
+            "measure": 1,
+            "counterparty": "public"
+          }
+        },
+        {
+          "class": "live",
+          "facts": {
+            "measure": 1,
+            "service": "public-status-page"
+          }
+        }
+      ]
+    },
+    {
+      "id": "pending-base-2026-10-28-reminder-window",
+      "tool": "lamp.maintenance.remind",
+      "args": {
+        "id": {
+          "$from": "maintenance",
+          "pointer": "/maintenance/id"
+        }
+      },
+      "expect": [
+        {
+          "class": "external",
+          "facts": {
+            "counterparty": "public"
+          }
+        }
+      ]
+    },
+    {
+      "id": "timed-metric",
+      "tool": "lamp.metrics.create",
+      "args": {
+        "componentId": {
+          "$from": "components",
+          "pointer": "/components/0/id"
+        },
+        "sourceId": null,
+        "provider": "push",
+        "name": "Timed native aggregate",
+        "unit": "ms",
+        "query": "",
+        "endpoint": null,
+        "accountId": null,
+        "region": null
+      },
+      "expect": [
+        {
+          "class": "external",
+          "facts": {
+            "measure": 1,
+            "counterparty": "public"
+          }
+        },
+        {
+          "class": "live",
+          "facts": {
+            "measure": 1,
+            "service": "public-status-page"
+          }
+        }
+      ]
+    },
+    {
+      "id": "pending-base-2026-10-28-current-minute",
+      "tool": "lamp.metrics.points",
+      "args": {
+        "id": {
+          "$from": "timed-metric",
+          "pointer": "/metric/id"
+        },
+        "points": [
+          {
+            "at": 0,
+            "value": 123
+          }
+        ]
+      },
+      "expect": [
+        {
+          "class": "external",
+          "facts": {
+            "measure": 1,
+            "counterparty": "public"
+          }
+        },
+        {
+          "class": "live",
+          "facts": {
+            "measure": 1,
+            "service": "public-status-page"
+          }
+        }
+      ]
+    },
+    {
+      "id": "pending-base-2026-10-28-pull-provider",
+      "tool": "lamp.metrics.pull",
+      "args": {
+        "id": {
+          "$from": "metrics",
+          "pointer": "/metrics/0/id"
+        }
+      },
+      "expect": [
+        {
+          "class": "external",
+          "facts": {
+            "measure": 1,
+            "counterparty": "known"
+          }
+        },
+        {
+          "class": "live",
+          "facts": {
+            "measure": 1,
+            "service": "public-status-page"
+          }
+        }
+      ]
+    },
+    {
+      "id": "schedule-draft",
+      "tool": "lamp.drafts.save",
+      "args": {
+        "id": {
+          "$from": "ai-incident",
+          "pointer": "/incident/id"
+        },
+        "version": {
+          "$from": "ai-incident",
+          "pointer": "/version"
+        },
+        "draft": {
+          "lifecycle": "Investigating",
+          "affectedAudience": "API customers",
+          "customerImpact": "Some requests fail.",
+          "whatStillWorks": "Dashboard access remains available.",
+          "details": "Native evidence is under investigation.",
+          "nextUpdateAt": "2030-01-01T00:00:00.000Z"
+        }
+      },
+      "expect": [
+        {
+          "class": "standard",
+          "facts": {
+            "measure": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "scheduled",
+      "tool": "lamp.updates.schedule",
+      "args": {
+        "id": {
+          "$from": "ai-incident",
+          "pointer": "/incident/id"
+        },
+        "version": {
+          "$from": "schedule-draft",
+          "pointer": "/version"
+        },
+        "channels": [],
+        "publishAt": "2030-01-01T00:01:00.000Z"
+      },
+      "expect": [
+        {
+          "class": "external",
+          "facts": {
+            "counterparty": "public"
+          }
+        },
+        {
+          "class": "live",
+          "facts": {
+            "measure": 1,
+            "service": "public_status_page"
+          }
+        },
+        {
+          "class": "commitment",
+          "facts": {
+            "measure": 1,
+            "counterparty": "public",
+            "currency": "XXX"
+          }
+        }
+      ]
+    },
+    {
+      "id": "pending-base-2026-10-28-due-dispatch",
+      "tool": "lamp.updates.dispatch",
+      "args": {
+        "id": {
+          "$from": "ai-incident",
+          "pointer": "/incident/id"
+        },
+        "version": {
+          "$from": "scheduled",
+          "pointer": "/version"
+        }
+      },
+      "expect": [
+        {
+          "class": "external",
+          "facts": {
+            "counterparty": "public"
+          }
+        },
+        {
+          "class": "live",
+          "facts": {
+            "measure": 1,
+            "service": "public_status_page"
+          }
+        },
+        {
+          "class": "commitment",
+          "facts": {
+            "measure": 1,
+            "counterparty": "public",
+            "currency": "XXX"
+          }
+        }
+      ]
+    },
+    {
+      "id": "pending-base-2026-10-28-failed-queue-retry",
+      "tool": "lamp.followups.retry",
+      "args": {
+        "id": {
+          "$from": "followups",
+          "pointer": "/followUps/0/id"
+        },
+        "occurrence": {
+          "$from": "followups",
+          "pointer": "/followUps/0/occurrence"
+        }
+      },
+      "expect": [
+        {
+          "class": "external",
+          "facts": {
+            "counterparty": "known"
+          }
+        }
+      ]
+    },
+    {
+      "id": "pending-base-2026-10-28-failed-queue-dismiss",
+      "tool": "lamp.followups.dismiss",
+      "args": {
+        "id": {
+          "$from": "followups",
+          "pointer": "/followUps/0/id"
+        },
+        "occurrence": {
+          "$from": "followups",
+          "pointer": "/followUps/0/occurrence"
+        },
+        "reason": "A named failed occurrence remains accountable"
+      },
+      "expect": [
+        {
+          "class": "standard",
+          "facts": {
+            "measure": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "pending-base-2026-10-28-provider-dispatch",
+      "tool": "lamp.deliveries.dispatch",
+      "args": {
+        "kind": "delivery",
+        "id": {
+          "$from": "deliveries",
+          "pointer": "/deliveries/0/id"
+        }
+      },
+      "expect": [
+        {
+          "class": "external",
+          "facts": {
+            "measure": 1,
+            "counterparty": "known"
+          }
+        }
+      ]
+    },
+    {
+      "id": "pending-base-2026-10-28-responder-close",
+      "tool": "lamp.deliveries.dispatch",
+      "args": {
+        "kind": "responder",
+        "id": {
+          "$from": "followups",
+          "pointer": "/followUps/0/id"
+        }
+      },
+      "expect": [
+        {
+          "class": "external",
+          "facts": {
+            "measure": 2,
+            "counterparty": "known"
+          }
+        },
+        {
+          "class": "live",
+          "facts": {
+            "measure": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "importgrants",
+      "tool": "lamp.importgrants.read",
+      "args": {},
+      "expect": [
+        {
+          "class": "standard",
+          "facts": {
+            "measure": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "pending-base-2026-10-28-owner-invite",
+      "tool": "lamp.operators.invite",
+      "args": {
+        "email": "lamp-conformance-teammate@example.com",
+        "displayName": "Conformance teammate"
+      },
+      "expect": [
+        {
+          "class": "access",
+          "facts": {
+            "measure": 1,
+            "direction": "widens"
+          }
+        },
+        {
+          "class": "external",
+          "facts": {
+            "measure": 1,
+            "counterparty": "new"
+          }
+        }
+      ]
+    },
+    {
+      "id": "pending-base-2026-10-28-owner-revoke",
+      "tool": "lamp.operators.revoke",
+      "args": {
+        "id": {
+          "$from": "access",
+          "pointer": "/operators/1/id"
+        }
+      },
+      "expect": [
+        {
+          "class": "access",
+          "facts": {
+            "measure": 1,
+            "direction": "narrows"
+          }
+        }
+      ]
+    },
+    {
+      "id": "pending-base-2026-10-28-owner-restore",
+      "tool": "lamp.operators.restore",
+      "args": {
+        "id": {
+          "$from": "access",
+          "pointer": "/operators/1/id"
+        }
+      },
+      "expect": [
+        {
+          "class": "access",
+          "facts": {
+            "measure": 1,
+            "direction": "widens"
+          }
+        }
+      ]
+    },
+    {
+      "id": "pending-base-2026-10-28-owner-erase",
+      "tool": "lamp.operators.erase",
+      "args": {
+        "id": {
+          "$from": "access",
+          "pointer": "/operators/1/id"
+        }
+      },
+      "expect": [
+        {
+          "class": "access",
+          "facts": {
+            "measure": 1,
+            "direction": "narrows"
+          }
+        },
+        {
+          "class": "destructive",
+          "facts": {
+            "measure": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "pending-base-2026-10-28-credential-create",
+      "tool": "lamp.credentials.create",
+      "args": {
+        "name": "Conformance native credential",
+        "scopes": [
+          "read"
+        ],
+        "expiresInSeconds": 3600
+      },
+      "expect": [
+        {
+          "class": "access",
+          "facts": {
+            "measure": 1,
+            "direction": "widens"
+          }
+        },
+        {
+          "class": "security",
+          "facts": {
+            "measure": 1,
+            "setting": "management credential"
+          }
+        }
+      ]
+    },
+    {
+      "id": "importgrants-false",
+      "tool": "lamp.importgrants.update",
+      "args": {
+        "enabled": false
+      },
+      "expect": [
+        {
+          "class": "access",
+          "facts": {
+            "measure": 1,
+            "direction": "narrows"
+          }
+        },
+        {
+          "class": "security",
+          "facts": {
+            "measure": 1,
+            "setting": "signed Business import grants"
+          }
+        }
+      ]
+    },
+    {
+      "id": "importgrants-true",
+      "tool": "lamp.importgrants.update",
+      "args": {
+        "enabled": true
+      },
+      "expect": [
+        {
+          "class": "access",
+          "facts": {
+            "measure": 1,
+            "direction": "widens"
+          }
+        },
+        {
+          "class": "security",
+          "facts": {
+            "measure": 1,
+            "setting": "signed Business import grants"
+          }
+        }
+      ]
+    },
+    {
+      "id": "private-order-group",
+      "tool": "lamp.groups.create",
+      "args": {
+        "name": "Private order group",
+        "displayOrder": 200
+      },
+      "expect": [
+        {
+          "class": "standard",
+          "facts": {
+            "measure": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "private-order-component-0",
+      "tool": "lamp.components.create",
+      "args": {
+        "groupId": {
+          "$from": "private-order-group",
+          "pointer": "/group/id"
+        },
+        "name": "Private ordered 0",
+        "description": "Internal order fixture",
+        "internal": true,
+        "displayOrder": 0,
+        "note": ""
+      },
+      "expect": [
+        {
+          "class": "standard",
+          "facts": {
+            "measure": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "private-order-component-1",
+      "tool": "lamp.components.create",
+      "args": {
+        "groupId": {
+          "$from": "private-order-group",
+          "pointer": "/group/id"
+        },
+        "name": "Private ordered 1",
+        "description": "Internal order fixture",
+        "internal": true,
+        "displayOrder": 1,
+        "note": ""
+      },
+      "expect": [
+        {
+          "class": "standard",
+          "facts": {
+            "measure": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "private-component-move",
+      "tool": "lamp.components.move",
+      "args": {
+        "id": {
+          "$from": "private-order-component-1",
+          "pointer": "/component/id"
+        },
+        "direction": "up",
+        "expectedIds": [
+          {
+            "$from": "private-order-component-0",
+            "pointer": "/component/id"
+          },
+          {
+            "$from": "private-order-component-1",
+            "pointer": "/component/id"
+          }
+        ],
+        "groupId": {
+          "$from": "private-order-group",
+          "pointer": "/group/id"
+        }
+      },
+      "expect": [
+        {
+          "class": "standard",
+          "facts": {
+            "measure": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "private-order-group-remove",
+      "tool": "lamp.groups.remove",
+      "args": {
+        "id": {
+          "$from": "private-order-group",
+          "pointer": "/group/id"
+        }
+      },
+      "expect": [
+        {
+          "class": "destructive",
+          "facts": {
+            "measure": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "private-order-component-remove-0",
+      "tool": "lamp.components.remove",
+      "args": {
+        "id": {
+          "$from": "private-order-component-0",
+          "pointer": "/component/id"
+        }
+      },
+      "expect": [
+        {
+          "class": "destructive",
+          "facts": {
+            "measure": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "private-order-component-remove-1",
+      "tool": "lamp.components.remove",
+      "args": {
+        "id": {
+          "$from": "private-order-component-1",
+          "pointer": "/component/id"
+        }
+      },
+      "expect": [
+        {
+          "class": "destructive",
+          "facts": {
+            "measure": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "public-order-group-0",
+      "tool": "lamp.groups.create",
+      "args": {
+        "name": "Public order group 0",
+        "displayOrder": 300
+      },
+      "expect": [
+        {
+          "class": "standard",
+          "facts": {
+            "measure": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "public-group-component-0",
+      "tool": "lamp.components.create",
+      "args": {
+        "groupId": {
+          "$from": "public-order-group-0",
+          "pointer": "/group/id"
+        },
+        "name": "Public grouped 0",
+        "description": "Visible grouped fixture",
+        "internal": false,
+        "displayOrder": 0,
+        "note": ""
+      },
+      "expect": [
+        {
+          "class": "external",
+          "facts": {
+            "measure": 1,
+            "counterparty": "public"
+          }
+        },
+        {
+          "class": "live",
+          "facts": {
+            "measure": 1,
+            "service": "public-status-page"
+          }
+        }
+      ]
+    },
+    {
+      "id": "public-order-group-1",
+      "tool": "lamp.groups.create",
+      "args": {
+        "name": "Public order group 1",
+        "displayOrder": 301
+      },
+      "expect": [
+        {
+          "class": "standard",
+          "facts": {
+            "measure": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "public-group-component-1",
+      "tool": "lamp.components.create",
+      "args": {
+        "groupId": {
+          "$from": "public-order-group-1",
+          "pointer": "/group/id"
+        },
+        "name": "Public grouped 1",
+        "description": "Visible grouped fixture",
+        "internal": false,
+        "displayOrder": 0,
+        "note": ""
+      },
+      "expect": [
+        {
+          "class": "external",
+          "facts": {
+            "measure": 1,
+            "counterparty": "public"
+          }
+        },
+        {
+          "class": "live",
+          "facts": {
+            "measure": 1,
+            "service": "public-status-page"
+          }
+        }
+      ]
+    },
+    {
+      "id": "public-group-update",
+      "tool": "lamp.groups.update",
+      "args": {
+        "id": {
+          "$from": "public-order-group-0",
+          "pointer": "/group/id"
+        },
+        "name": "Updated visible native group"
+      },
+      "expect": [
+        {
+          "class": "external",
+          "facts": {
+            "measure": 1,
+            "counterparty": "public"
+          }
+        },
+        {
+          "class": "live",
+          "facts": {
+            "measure": 1,
+            "service": "public-status-page"
+          }
+        }
+      ]
+    },
+    {
+      "id": "public-group-order",
+      "tool": "lamp.groups.read",
+      "args": {},
+      "expect": [
+        {
+          "class": "standard",
+          "facts": {
+            "measure": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "public-group-move",
+      "tool": "lamp.groups.move",
+      "args": {
+        "id": {
+          "$from": "public-order-group-1",
+          "pointer": "/group/id"
+        },
+        "direction": "up",
+        "expectedIds": {
+          "$from": "public-group-order",
+          "pointer": "/order"
+        },
+        "groupId": null
+      },
+      "expect": [
+        {
+          "class": "external",
+          "facts": {
+            "measure": 1,
+            "counterparty": "public"
+          }
+        },
+        {
+          "class": "live",
+          "facts": {
+            "measure": 1,
+            "service": "public-status-page"
+          }
+        }
+      ]
+    },
+    {
+      "id": "public-order-group-remove-0",
+      "tool": "lamp.groups.remove",
+      "args": {
+        "id": {
+          "$from": "public-order-group-0",
+          "pointer": "/group/id"
+        }
+      },
+      "expect": [
+        {
+          "class": "external",
+          "facts": {
+            "measure": 1,
+            "counterparty": "public"
+          }
+        },
+        {
+          "class": "live",
+          "facts": {
+            "measure": 1,
+            "service": "public-status-page"
+          }
+        },
+        {
+          "class": "destructive",
+          "facts": {
+            "measure": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "public-order-group-remove-1",
+      "tool": "lamp.groups.remove",
+      "args": {
+        "id": {
+          "$from": "public-order-group-1",
+          "pointer": "/group/id"
+        }
+      },
+      "expect": [
+        {
+          "class": "external",
+          "facts": {
+            "measure": 1,
+            "counterparty": "public"
+          }
+        },
+        {
+          "class": "live",
+          "facts": {
+            "measure": 1,
+            "service": "public-status-page"
+          }
+        },
+        {
+          "class": "destructive",
+          "facts": {
+            "measure": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "public-group-component-remove-0",
+      "tool": "lamp.components.remove",
+      "args": {
+        "id": {
+          "$from": "public-group-component-0",
+          "pointer": "/component/id"
+        }
+      },
+      "expect": [
+        {
+          "class": "external",
+          "facts": {
+            "measure": 1,
+            "counterparty": "public"
+          }
+        },
+        {
+          "class": "live",
+          "facts": {
+            "measure": 1,
+            "service": "public-status-page"
+          }
+        },
+        {
+          "class": "destructive",
+          "facts": {
+            "measure": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "public-group-component-remove-1",
+      "tool": "lamp.components.remove",
+      "args": {
+        "id": {
+          "$from": "public-group-component-1",
+          "pointer": "/component/id"
+        }
+      },
+      "expect": [
+        {
+          "class": "external",
+          "facts": {
+            "measure": 1,
+            "counterparty": "public"
+          }
+        },
+        {
+          "class": "live",
+          "facts": {
+            "measure": 1,
+            "service": "public-status-page"
+          }
+        },
+        {
+          "class": "destructive",
+          "facts": {
+            "measure": 1
+          }
+        }
+      ]
+    }
+  ],
+  "verification": {
+    "owner": {
+      "email": "lamp-conformance-owner@example.com",
+      "emailField": "SETUP_OPERATOR_EMAIL",
+      "bindings": {
+        "SESSION_SECRET": "sessionSecret",
+        "SLACK_SIGNING_SECRET": "token"
+      },
+      "initializer": "tests/agent-door/owner.mjs"
+    },
+    "proof": {
+      "module": "tests/agent-door/proof.mjs"
+    },
+    "network": {
+      "module": "tests/agent-door/provider-edge.mjs",
+      "origins": [
+        "https://lamp-agent-provider.invalid",
+        "https://hooks.slack.com",
+        "https://lamp-agent-conformance.logic.azure.com",
+        "https://api.x.com",
+        "https://bsky.social",
+        "https://mastodon.social"
+      ]
+    },
+    "journey": "tests/agent-door/specialist.mjs",
+    "reviewers": [
+      {
+        "label": "independent",
+        "email": "lamp-reviewer@example.com",
+        "initializer": "tests/agent-door/reviewer.mjs"
+      }
+    ],
+    "replayAdmission": {
+      "prepare": [
+        "private-component",
+        "private-component-update"
+      ]
+    }
+  }
+}

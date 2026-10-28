@@ -2,10 +2,12 @@ import { tokenFence, type TokenAuthority } from "../management-api/repository";
 import { createUlid, nowIso } from "../../shared/ids";
 import { retentionStatements } from "./retention";
 import type { AggregatePoint, MetricDefinition, PublicMetric } from "./types";
+import { agentAttributionStatements, agentQueuedOperationStatements } from '../agent-door/provenance.repository';
+import { currentAgentActor } from '../agent-door/actor';
 export interface StoredMetric extends MetricDefinition { sealedCredentials: string | null; version: number }
 const columns = `id,component_id AS componentId,source_id AS sourceId,name,unit,provider,query,endpoint,account_id AS accountId,region,CASE WHEN sealed_credentials IS NOT NULL THEN 1 ELSE 0 END AS connected,last_reported_at AS lastReportedAt,error,sealed_credentials AS sealedCredentials,version`;
 export function createMetricsRepository(db: D1Database) {
-  const audit = (id: string, actor: string, action: string) => db.prepare(`INSERT INTO audit_entries(id,entity_type,entity_id,action,operator_id,payload_json,created_at,updated_at) SELECT ?,'metric',id,?,?,'{}',?,? FROM public_metrics WHERE id=?`).bind(createUlid(),action,actor,nowIso(),nowIso(),id);
+  const audit = (id: string, actor: string, action: string, at=nowIso()) => db.prepare(`INSERT INTO audit_entries(id,entity_type,entity_id,action,operator_id,payload_json,created_at,updated_at) SELECT ?,'metric',id,?,?,'{}',?,? FROM public_metrics WHERE id=?`).bind(createUlid(),action,actor,at,at,id);
   return {
     async isManager(actor: string) { return Boolean(await db.prepare("SELECT 1 FROM oa_operators WHERE id=? AND role IN ('owner','admin') AND status='active'").bind(actor).first()); },
     async validTarget(componentId: string, sourceId: string | null, provider: string, query: string) {
@@ -17,7 +19,9 @@ export function createMetricsRepository(db: D1Database) {
       const now=nowIso();
       await db.batch([
         db.prepare(`INSERT INTO public_metrics(id,component_id,source_id,name,unit,provider,query,endpoint,account_id,region,sealed_credentials,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)`).bind(row.id,row.componentId,row.sourceId,row.name,row.unit,row.provider,row.query,row.endpoint,row.accountId,row.region,row.sealedCredentials,now,now),
-        audit(row.id,actor,"metric.created"),
+        audit(row.id,actor,"metric.created",now),
+        ...agentAttributionStatements(db,{entityType:'metric',entityId:row.id,operatorId:actor,at:now}),
+        ...agentQueuedOperationStatements(db,{kind:'metric-pull',id:row.id,tool:'lamp.metrics.pull',args:{id:row.id,expected_revision:row.version,idempotency_key:`metric/${row.id}/${row.version}/pull`},at:now}),
       ]);
     },
     async update(row: StoredMetric, actor: string, reset: boolean) {
@@ -26,11 +30,15 @@ export function createMetricsRepository(db: D1Database) {
         db.prepare(`UPDATE public_metrics SET name=?,unit=?,query=?,endpoint=?,account_id=?,region=?,sealed_credentials=?,error=NULL,version=version+1,change_id=?,pull_after=0,pull_lease_until=NULL,last_reported_at=CASE WHEN ? THEN NULL ELSE last_reported_at END,stale=CASE WHEN ? THEN 0 ELSE stale END,updated_at=? WHERE id=? AND version=?`).bind(row.name,row.unit,row.query,row.endpoint,row.accountId,row.region,row.sealedCredentials,change,reset?1:0,reset?1:0,now,row.id,row.version),
         db.prepare(`DELETE FROM metric_points WHERE metric_id=? AND ? AND EXISTS(SELECT 1 FROM public_metrics WHERE id=? AND change_id=?)`).bind(row.id,reset?1:0,row.id,change),
         db.prepare(`INSERT INTO audit_entries(id,entity_type,entity_id,action,operator_id,payload_json,created_at,updated_at) SELECT ?,'metric',id,'metric.updated',?,'{}',?,? FROM public_metrics WHERE id=? AND change_id=?`).bind(createUlid(),actor,now,now,row.id,change),
+        ...agentAttributionStatements(db,{entityType:'metric',entityId:row.id,operatorId:actor,at:now,guard:{sql:'EXISTS(SELECT 1 FROM public_metrics WHERE id=? AND change_id=?)',params:[row.id,change]}}),
+        ...agentQueuedOperationStatements(db,{kind:'metric-pull',id:row.id,tool:'lamp.metrics.pull',args:{id:row.id,expected_revision:row.version+1,idempotency_key:`metric/${row.id}/${row.version+1}/pull`},at:now,guard:{sql:'EXISTS(SELECT 1 FROM public_metrics WHERE id=? AND change_id=?)',params:[row.id,change]}}),
       ]);
       return Boolean(result[0].meta.changes);
     },
     async remove(id: string, actor: string) {
-      const result=await db.batch([audit(id,actor,"metric.deleted"),db.prepare("DELETE FROM public_metrics WHERE id=?").bind(id)]);
+      const at=nowIso();
+      const result=await db.batch([audit(id,actor,"metric.deleted",at),db.prepare("DELETE FROM public_metrics WHERE id=?").bind(id),
+        ...agentAttributionStatements(db,{entityType:'metric',entityId:id,operatorId:actor,at,guard:{sql:"EXISTS(SELECT 1 FROM audit_entries WHERE entity_type='metric' AND entity_id=? AND action='metric.deleted' AND created_at=?)",params:[id,at]}})]);
       return Boolean(result[1].meta.changes);
     },
     async write(id: string, points: AggregatePoint[], now: number, version: number, authority?: TokenAuthority) {
@@ -41,6 +49,7 @@ export function createMetricsRepository(db: D1Database) {
       // and metric version; every token mutation repeats that exact receipt.
       const guard=authority?" AND EXISTS(SELECT 1 FROM audit_entries WHERE id=?)":"";
       const guardParams=authority?[receipt]:[];
+      const agentActor=currentAgentActor();
       const result=await db.batch([
         ...(authority&&fence?[db.prepare(`INSERT INTO audit_entries(id,entity_type,entity_id,action,operator_id,payload_json,created_at,updated_at)
           SELECT ?,'metric',id,'metric.points-pushed',?,?,?,? FROM public_metrics WHERE id=? AND version=? AND ${fence.sql}`)
@@ -51,12 +60,20 @@ export function createMetricsRepository(db: D1Database) {
           ON CONFLICT(metric_id,resolution,bucket) DO UPDATE SET value_sum=excluded.value_sum,samples=1,last_at=excluded.last_at WHERE metric_points.value_sum IS NOT excluded.value_sum OR metric_points.samples<>1 OR metric_points.last_at<>excluded.last_at`).bind(id,JSON.stringify(points),id,version,...guardParams),
         db.prepare(`UPDATE public_metrics SET last_reported_at=MAX(COALESCE(last_reported_at,0),?),stale=CASE WHEN MAX(COALESCE(last_reported_at,0),?)<? THEN 1 ELSE 0 END,error=NULL WHERE id=? AND version=?${guard}`).bind(latest,latest,now-120_000,id,version,...guardParams),
         ...(authority?[db.prepare("UPDATE management_tokens SET last_used_at=? WHERE id=? AND EXISTS(SELECT 1 FROM audit_entries WHERE id=?)").bind(now,authority.id,receipt)]:[]),
+        ...(!authority && agentActor ? [audit(id,agentActor.sponsor.id,'metric.points-pushed',at)] : []),
+        ...(agentActor ? agentAttributionStatements(db,{entityType:'metric',entityId:id,operatorId:agentActor.sponsor.id,at,
+          guard:authority?{sql:'EXISTS(SELECT 1 FROM audit_entries WHERE id=?)',params:[receipt]}:{sql:'EXISTS(SELECT 1 FROM public_metrics WHERE id=? AND version=?)',params:[id,version]}}) : []),
       ]);
       return authority?Boolean(result[0].meta.changes):true;
     },
     async due(now: number) { return (await db.prepare(`SELECT ${columns} FROM public_metrics WHERE provider NOT IN ('push','uptime') AND sealed_credentials IS NOT NULL AND pull_after<=? AND (pull_lease_until IS NULL OR pull_lease_until<=?) ORDER BY pull_after,id LIMIT 10`).bind(now,now).all<StoredMetric>()).results; },
-    async claim(row: StoredMetric, now: number) { const result=await db.prepare("UPDATE public_metrics SET pull_lease_until=?,pull_after=? WHERE id=? AND version=? AND (pull_lease_until IS NULL OR pull_lease_until<=?)").bind(now+60_000,now+60_000,row.id,row.version,now).run(); return Boolean(result.meta.changes); },
-    async finish(row: StoredMetric, error: string | null) { await db.prepare("UPDATE public_metrics SET error=?,pull_lease_until=NULL WHERE id=? AND version=?").bind(error,row.id,row.version).run(); },
+    async claim(row: StoredMetric, now: number, actor?:string) { const result=await db.prepare(`UPDATE public_metrics SET pull_lease_until=?,pull_after=? WHERE id=? AND version=? AND pull_after<=? AND (pull_lease_until IS NULL OR pull_lease_until<=?)${actor?" AND EXISTS(SELECT 1 FROM oa_operators WHERE id=? AND status='active' AND role IN ('owner','admin'))":""}`).bind(now+60_000,now+60_000,row.id,row.version,now,now,...(actor?[actor]:[])).run(); return Boolean(result.meta.changes); },
+    async finish(row: StoredMetric, error: string | null) {
+      const actor=currentAgentActor(),at=nowIso();
+      await db.batch([db.prepare("UPDATE public_metrics SET error=?,pull_lease_until=NULL WHERE id=? AND version=?").bind(error,row.id,row.version),
+        ...(actor?[audit(row.id,actor.sponsor.id,'metric.refreshed',at),...agentAttributionStatements(db,{entityType:'metric',entityId:row.id,operatorId:actor.sponsor.id,at,
+          guard:{sql:'EXISTS(SELECT 1 FROM public_metrics WHERE id=? AND version=?)',params:[row.id,row.version]}})]:[])]);
+    },
     async maintain(now: number) { await db.batch([...retentionStatements(db,now),db.prepare("UPDATE public_metrics SET stale=1 WHERE stale=0 AND last_reported_at<?").bind(now-120_000)]); },
     async publicSeries(): Promise<PublicMetric[]> {
       const rows=await db.prepare(`SELECT m.id,m.component_id AS componentId,m.name,m.unit,m.provider AS source,m.last_reported_at AS lastReportedAt FROM public_metrics m JOIN components c ON c.id=m.component_id WHERE c.internal=0 ORDER BY m.created_at,m.id LIMIT 10`).all<Omit<PublicMetric,"points">>();

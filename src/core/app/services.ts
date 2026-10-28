@@ -44,6 +44,7 @@ import { createStatuspageImportService } from "../features/statuspage-import";
 import { createChannelsService } from "../features/channels";
 import { createPageExportRepository, createPageExportService } from "../features/page-export";
 import { createAppMailTransport, type MailExecution } from "./mail";
+import { AgentDeliveryHeld } from '../features/agent-door/final-dispatch';
 import { createOpenAiCompatibleProvider } from "../platform/ai";
 import { createDemoAiProvider } from "../platform/ai/demo";
 import { createServerExtensionMount } from "./extensions/server";
@@ -81,6 +82,7 @@ export function createAppServices(bindings: AppBindings, blobs: BlobStore, execu
     unavailable: outboundUnavailable(bindings, "Slack and Teams posts"),
   });
   const deliveries = createDeliveriesService(createDeliveryRepository(bindings.DB), {
+    publicOrigin: () => notificationOrigin(bindings),
     operatorChatAlert: input => channels.queueOperatorAlert({ ...input, appOrigin: authOrigin(bindings) }),
     pageStatusRollup: extensions.publicSnapshotPolicies.pageStatusRollup,
     effectsPaused: bindings.EFFECTS_PAUSED === "1",
@@ -137,7 +139,10 @@ export function createAppServices(bindings: AppBindings, blobs: BlobStore, execu
       sms.dispatchPending(),
       responders.dispatchPublication(update.id).catch(() => { console.error("Lamp could not finish a responder note receipt."); }),
     ]);
-    const failure = results.find((result): result is PromiseRejectedResult => result.status === "rejected");
+    // Publication already committed. A separately held provider dispatch stays
+    // in its native outbox and door approval; it cannot relabel publication as
+    // failed or execute by falling through to a person's native send.
+    const failure = results.find((result): result is PromiseRejectedResult => result.status === "rejected" && !(result.reason instanceof AgentDeliveryHeld));
     if (failure) throw failure.reason;
   } });
   const briefs = createBriefService(createBriefRepository(bindings.DB));
@@ -251,7 +256,7 @@ export function createAppServices(bindings: AppBindings, blobs: BlobStore, execu
   });
 
   const chatDesk = createChatDeskService(bindings, incidents, components, async () => { const settings = await pageSettings.get(); if (!settings) throw new Error("Page settings are not configured."); return { blockedTerms: settings.wordingBlockedTerms, friendlyLength: settings.wordingFriendlyLength }; });
-  return { social, trafficStorage, trafficAlerts, sms, metrics, teamsSubscriptions, chatDesk, auth, operators, availabilityReports, communicationPerformance, incidentImpact, pageSettings, pageExport, components, componentCatalogue, incidents, maintenance, subscribers, deliveries, reports, intake, briefs, ai, overview, website, updateReminders, publicSnapshots, statuspageImport, channels };
+  return { mail, social, trafficStorage, trafficAlerts, sms, metrics, teamsSubscriptions, chatDesk, auth, operators, availabilityReports, communicationPerformance, incidentImpact, pageSettings, pageExport, components, componentCatalogue, incidents, maintenance, subscribers, deliveries, reports, intake, briefs, ai, overview, website, updateReminders, publicSnapshots, statuspageImport, channels };
 }
 
 export type AppServices = ReturnType<typeof createAppServices>;

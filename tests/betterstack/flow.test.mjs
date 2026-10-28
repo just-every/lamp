@@ -52,6 +52,16 @@ contract('MOVE-001','Better Stack owner flow counts the complete source, preserv
   assert.equal(await count(r,'components'),0);
   const result=await apply(r,reviewed);
   assert.equal(result.job.namespace,'betterstack');
+  const reportReader=r.modules.createStatuspageImportService(r.db,{
+    async inviteSubscriber(){throw new Error('A report read must not invite subscribers');},
+    async publicDataChanged(){throw new Error('A report read must not publish');},
+  });
+  const retained=await reportReader.readAgentReport(result.job.id,r.owner.id);
+  assert.deepEqual(retained.report,result.report,'Agent import resources use the native retained report');
+  assert.equal(retained.job.state,'completed');
+  await assert.rejects(reportReader.readAgentReport(result.job.id,'missing-native-person'),/Import not found/);
+  await assert.rejects(reportReader.readAgentReport('missing-native-job',r.owner.id),/Import not found/);
+
   assert.deepEqual(Object.fromEntries(Object.entries(result.report.counts).map(([kind,row])=>[kind,[row.read,row.imported+row.changed,row.skipped,row.rejected]])),{group:[4,4,0,0],component:[12,12,0,0],incident:[36,36,0,0],maintenance:[3,3,0,0],subscriber:[160,159,1,0]});
   assert.deepEqual(await Promise.all(['component_groups','components','incidents','incident_updates','maintenance','import_maintenance_updates','subscribers'].map(table=>count(r,table))),[4,12,36,72,3,9,159]);
   assert.equal(await count(r,'maintenance_notices'),0);

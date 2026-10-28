@@ -935,6 +935,26 @@
     {
       "id": "0066_social_accounts.sql",
       "buyerSteps": "Apply after 0065. Adds sealed owner social accounts, a default-off social posting preference and atomic per-update/account post records with provider receipts. Existing updates, channels and migrations are unchanged. Connect each optional account in Settings; explicitly choose Social accounts per update, or enable post by default. X requires the owner's OAuth 2.0 user token with tweet.write; Bluesky an app password; Mastodon write:statuses. No provider account or key is needed unless the owner enables posting."
+    },
+    {
+      "id": "0067_agent_door.sql",
+      "buyerSteps": "Apply after 0066 and before starting the updated Worker. Adds the shared agent policy, decision, approval, audit, event and idempotency stores. Existing operator and publication history is preserved; no agent action is authorized until company policy is adopted."
+    },
+    {
+      "id": "0068_business_settings.sql",
+      "buyerSteps": "Apply after 0067. Adds signed Business settings and native team mapping storage. Only the existing installation trust may apply settings; this does not authorize imports or send subscriber mail."
+    },
+    {
+      "id": "0069_business_people.sql",
+      "buyerSteps": "Apply after 0068. Adds durable Business owner and teammate IDs beside their native operator mappings. Existing settings remain valid, but unmapped Business subjects receive no agent authority."
+    },
+    {
+      "id": "0070_agent_native_attribution.sql",
+      "buyerSteps": "Apply after 0069. Retains native agent preparer, sponsor, real approvers and queued operation identity. Queued effects must recheck current native authority and company policy before final admission."
+    },
+    {
+      "id": "0071_agent_native_proofs.sql",
+      "buyerSteps": "Apply after 0070. Adds opaque, action-bound native email-proof references. They contain no bearer or session cookie; native admission, expiry and revocation still govern their use."
     }
   ],
   "breaking": false,

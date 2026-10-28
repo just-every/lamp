@@ -11,12 +11,14 @@ import { createStatuspageWebhookRepository } from "./statuspage-webhook.reposito
 import type { WebhookFormat } from "../subscribers/webhook-format";
 
 export type DeliveryLogChannel = "email" | "webhook" | "sms";
-export type DeliveryRow = Omit<typeof deliveryRecords.$inferSelect, "channel"> & { channel: DeliveryLogChannel; providerOutcome?: "delivered" | "undelivered" | "failed" | null; destination: string; subscriberState: "pending" | "active" | "deactivated"; providerAcceptedAt: string | null; acceptingProvider: string | null; latestError: string | null; localCaptureId: string | null; localCapturedAt: string | null; maintenanceReference: string | null; maintenanceTitle: string | null; maintenanceNoticeKind: string | null; incidentReference: string | null; incidentTitle: string | null; incidentLifecycle: string | null };
+export type DeliveryRow = Omit<typeof deliveryRecords.$inferSelect, "channel"> & { agentLabel?: string | null; channel: DeliveryLogChannel; providerOutcome?: "delivered" | "undelivered" | "failed" | null; destination: string; subscriberState: "pending" | "active" | "deactivated"; providerAcceptedAt: string | null; acceptingProvider: string | null; latestError: string | null; localCaptureId: string | null; localCapturedAt: string | null; maintenanceReference: string | null; maintenanceTitle: string | null; maintenanceNoticeKind: string | null; incidentReference: string | null; incidentTitle: string | null; incidentLifecycle: string | null };
 
 /** A confirmation or other subscription email, sent outside notification deliveries (subscribers/service.ts). */
 export interface SubscriptionMailRow { id: string; destination: string; subscriberState: "pending" | "active" | "deactivated"; kind: "confirmation" | "already-subscribed" | "subscribed"; outcome: "accepted" | "suppressed" | "failed"; sentAt: string }
 
 export interface DispatchableDelivery {
+  agentLabel?: string | null;
+  agentOrigin?: number;
   componentEventId: string | null;
   componentId: string | null;
   componentName: string | null;
@@ -79,9 +81,10 @@ export interface PendingProviderEvent {
 export type NotificationTokenCandidates = Record<"manage" | "unsubscribe", { id: string; tokenHash: string }>;
 
 export interface DeliveryRepository {
+  binding: D1Database;
   statuspage:ReturnType<typeof createStatuspageWebhookRepository>;
   hasMailSendClaim(providerMessageId: string): Promise<boolean>;
-  listDeliveries(input: { limit?: number; offset?: number; channel?: DeliveryLogChannel; outcome?: DeliveryRow["outcome"]; incidentUpdateId?: string }): Promise<DeliveryRow[]>;
+  listDeliveries(input: { id?: string; limit?: number; offset?: number; channel?: DeliveryLogChannel; outcome?: DeliveryRow["outcome"]; incidentUpdateId?: string }): Promise<DeliveryRow[]>;
   listSubscriptionMail(limit: number): Promise<SubscriptionMailRow[]>;
   getDelivery(deliveryId: string): Promise<DispatchableDelivery | null>;
   claimAndGetDelivery(deliveryId: string, now: string, reclaimBefore: string): Promise<{ claimed: boolean; delivery: DispatchableDelivery | null }>;
@@ -126,7 +129,18 @@ export function createDeliveryRepository(binding: D1Database): DeliveryRepositor
           u.customer_impact AS customerImpact, u.what_still_works AS whatStillWorks, u.details, u.next_update_at AS nextUpdateAt, u.component_changes_json AS componentChangesJson,
           report.summary AS reportSummary, report.timeline AS reportTimeline, report.cause AS reportCause, report.remediation AS reportRemediation,
           maintenance.reference AS maintenanceReference, maintenance.title AS maintenanceTitle, maintenance.state AS maintenanceState, maintenance.starts_at AS maintenanceStartsAt, maintenance.ends_at AS maintenanceEndsAt,
-          notice.kind AS maintenanceNoticeKind, notice.body AS maintenanceNoticeBody, settings.timezone, d.mail_payload_json AS mailPayloadJson
+          notice.kind AS maintenanceNoticeKind, notice.body AS maintenanceNoticeBody, settings.timezone, d.mail_payload_json AS mailPayloadJson,
+          EXISTS(SELECT 1 FROM lamp_agent_queued_operations custody WHERE custody.kind='publication'
+            AND custody.id=COALESCE(d.notification_event_id,d.incident_update_id,d.incident_report_id)) AS agentOrigin,
+          (SELECT attribution.agent_name || ' for ' ||
+            CASE WHEN sponsor.id IS NULL OR sponsor.email='deleted-' || lower(sponsor.id) || '@operator.invalid'
+              THEN 'Erased operator · ' || attribution.operator_id ELSE sponsor.display_name END
+            FROM lamp_agent_attribution attribution LEFT JOIN oa_operators sponsor ON sponsor.id=attribution.operator_id
+            WHERE (attribution.entity_type='incident-update' AND attribution.entity_id=d.incident_update_id AND attribution.created_at=u.created_at)
+              OR (attribution.entity_type='incident-report' AND attribution.entity_id=d.incident_report_id AND attribution.created_at=report.published_at)
+              OR (attribution.entity_type='maintenance-notice' AND attribution.entity_id=d.notification_event_id AND attribution.created_at=notice.created_at)
+              OR (attribution.entity_type IN ('component-state','component-state-history') AND attribution.entity_id=component_event.id)
+            ORDER BY attribution.created_at DESC LIMIT 1) AS agentLabel
         FROM notification_delivery_records d
         JOIN subscriber_directory s ON s.id = d.subscriber_id
         LEFT JOIN component_notification_events component_event ON component_event.id = d.notification_event_id
@@ -159,9 +173,11 @@ export function createDeliveryRepository(binding: D1Database): DeliveryRepositor
     return binding.prepare("SELECT id, event_type AS eventType, hard_bounce AS hardBounce FROM mail_provider_webhook_events WHERE provider_message_id = ? AND applied_at IS NULL ORDER BY received_at ASC, id ASC").bind(providerMessageId);
   }
   return {
+    binding,
     statuspage:createStatuspageWebhookRepository(binding),
     async listDeliveries(input) {
       const conditions = [];
+      if (input.id) conditions.push(eq(deliveryRecords.id, input.id));
       if (input.channel && input.channel !== "sms") conditions.push(eq(deliveryRecords.channel, input.channel));
       if (input.outcome) conditions.push(eq(deliveryRecords.outcome, input.outcome));
       if (input.incidentUpdateId) conditions.push(eq(deliveryRecords.incidentUpdateId, input.incidentUpdateId));
@@ -170,6 +186,10 @@ export function createDeliveryRepository(binding: D1Database): DeliveryRepositor
         channel: deliveryRecords.channel, outcome: deliveryRecords.outcome, queuedAt: deliveryRecords.queuedAt, outcomeAt: deliveryRecords.outcomeAt,
         createdAt: deliveryRecords.createdAt, updatedAt: deliveryRecords.updatedAt, destination: subscribers.destination, subscriberState: subscribers.state,
         maintenanceReference: maintenance.reference, maintenanceTitle: maintenance.title,
+        agentLabel: sql<string | null>`(SELECT p.agent_name || ' for ' || CASE WHEN o.id IS NULL OR o.email='deleted-' || lower(o.id) || '@operator.invalid' THEN 'Erased operator · ' || p.operator_id ELSE o.display_name END
+          FROM lamp_agent_attribution p LEFT JOIN oa_operators o ON o.id=p.operator_id
+          WHERE p.entity_id=COALESCE(notification_delivery_records.notification_event_id,notification_delivery_records.incident_update_id,notification_delivery_records.incident_report_id)
+            AND p.entity_type IN ('incident-update','incident-report','maintenance-notice','component-state','component-state-history') ORDER BY p.created_at DESC LIMIT 1)`,
         maintenanceNoticeKind: sql<string | null>`(SELECT kind FROM maintenance_notices WHERE id = notification_delivery_records.notification_event_id)`,
         incidentReference: sql<string | null>`(SELECT i.reference FROM incident_updates u JOIN incidents i ON i.id = u.incident_id WHERE u.id = notification_delivery_records.incident_update_id)`,
         incidentTitle: sql<string | null>`(SELECT i.title FROM incident_updates u JOIN incidents i ON i.id = u.incident_id WHERE u.id = notification_delivery_records.incident_update_id)`,
@@ -194,16 +214,19 @@ export function createDeliveryRepository(binding: D1Database): DeliveryRepositor
           CASE WHEN d.provider_message_id IS NOT NULL THEN 'twilio' ELSE NULL END AS acceptingProvider,
           NULL AS latestError,NULL AS localCaptureId,NULL AS localCapturedAt,
           m.reference AS maintenanceReference,m.title AS maintenanceTitle,n.kind AS maintenanceNoticeKind,
-          i.reference AS incidentReference,i.title AS incidentTitle,u.lifecycle AS incidentLifecycle
+          i.reference AS incidentReference,i.title AS incidentTitle,u.lifecycle AS incidentLifecycle,
+          (SELECT p.agent_name || ' for ' || CASE WHEN o.id IS NULL OR o.email='deleted-' || lower(o.id) || '@operator.invalid' THEN 'Erased operator · ' || p.operator_id ELSE o.display_name END
+            FROM lamp_agent_attribution p LEFT JOIN oa_operators o ON o.id=p.operator_id WHERE p.entity_id=d.event_id
+            AND p.entity_type IN ('incident-update','incident-report','maintenance-notice') ORDER BY p.created_at DESC LIMIT 1) AS agentLabel
         FROM sms_deliveries d JOIN subscriber_directory s ON s.id=d.subscriber_id
         LEFT JOIN incident_updates u ON u.id=d.incident_update_id
         LEFT JOIN incident_reports r ON r.id=d.incident_report_id
         LEFT JOIN incidents i ON i.id=COALESCE(u.incident_id,r.incident_id)
         LEFT JOIN maintenance m ON m.id=d.maintenance_id LEFT JOIN maintenance_notices n ON n.id=d.event_id
-        WHERE (? IS NULL OR d.incident_update_id=?)
+        WHERE (? IS NULL OR d.id=?) AND (? IS NULL OR d.incident_update_id=?)
           AND (? IS NULL OR CASE WHEN d.outcome IN ('sending','sent') THEN 'queued' WHEN d.outcome='undelivered' THEN 'failed' ELSE d.outcome END=?)
         ORDER BY d.queued_at,d.id LIMIT ?
-      `).bind(input.incidentUpdateId ?? null,input.incidentUpdateId ?? null,input.outcome ?? null,input.outcome ?? null,prefix ?? -1).all<DeliveryRow>()).results;
+      `).bind(input.id ?? null,input.id ?? null,input.incidentUpdateId ?? null,input.incidentUpdateId ?? null,input.outcome ?? null,input.outcome ?? null,prefix ?? -1).all<DeliveryRow>()).results;
       const rows: DeliveryRow[] = [...ordinary,...sms];
       rows.sort((a,b) => a.queuedAt.localeCompare(b.queuedAt) || a.id.localeCompare(b.id));
       return input.limit === undefined ? rows : rows.slice(input.offset ?? 0,(input.offset ?? 0)+input.limit);

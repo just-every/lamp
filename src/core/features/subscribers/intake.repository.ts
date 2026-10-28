@@ -1,3 +1,4 @@
+import { agentAttributionStatements } from '../agent-door/provenance.repository';
 import { SubscriberLimitError } from "./limits";
 import { createUlid } from "../../shared/ids";
 import type { IntakeCounts, IntakeRow } from "./intake-schema";
@@ -16,7 +17,7 @@ export function createSubscriberIntakeRepository(db:D1Database) {
     },
     async addedBy(subscriberId:string):Promise<AddedBy|null> {
       return db.prepare(`SELECT s.created_by_operator_id AS id,CASE WHEN o.id IS NULL OR o.email='deleted-' || lower(o.id) || '@operator.invalid'
-        THEN 'Erased operator · ' || s.created_by_operator_id ELSE o.display_name END AS displayName
+        THEN 'Erased operator · ' || s.created_by_operator_id ELSE COALESCE((SELECT p.agent_name || ' for ' || o.display_name FROM lamp_agent_attribution p WHERE p.entity_type='subscriber' AND p.entity_id=s.id AND p.operator_id=s.created_by_operator_id AND p.created_at=s.created_at ORDER BY p.created_at DESC LIMIT 1),o.display_name) END AS displayName
         FROM subscriber_directory s LEFT JOIN oa_operators o ON o.id=s.created_by_operator_id WHERE s.id=? AND s.created_by_operator_id IS NOT NULL`).bind(subscriberId).first<AddedBy>();
     },
     async has(subscriberId:string):Promise<boolean> {
@@ -51,6 +52,7 @@ export function createSubscriberIntakeRepository(db:D1Database) {
           FROM json_each(?) r JOIN subscriber_directory s ON s.id=json_extract(r.value,'$.id')`)
           .bind(createUlid(),source==="csv"?"subscriber.imported":"subscriber.added",operatorId,now,now,json));
       }
+      for(const row of rows) statements.push(...agentAttributionStatements(db,{entityType:'subscriber',entityId:row.id,operatorId,at:now,guard:{sql:'EXISTS(SELECT 1 FROM subscriber_directory WHERE id=? AND created_by_operator_id=? AND created_at=?)',params:[row.id,operatorId,now]}}));
       if(batchId)statements.push(db.prepare(`INSERT INTO audit_entries(id,entity_type,entity_id,action,operator_id,payload_json,created_at,updated_at)
         SELECT ?,'subscriber-import',?,'subscriber.import-applied',?,json_object('created',COUNT(*),'skipped',?-COUNT(*),'refused',?),?,?
         FROM subscriber_intake WHERE batch_id=?`).bind(batchId,batchId,operatorId,counts.created+counts.skipped,counts.refused,now,now,batchId));
@@ -84,6 +86,7 @@ export function createSubscriberIntakeRepository(db:D1Database) {
     },
     async claimInvitation(subscriberId:string,emailHash:string,now:string,operatorId:string|null,ownerOnly:boolean):Promise<boolean> {
       const cutoff=new Date(Date.parse(now)-24*60*60_000).toISOString();
+      const auditId=createUlid();
       const allowed=`EXISTS(SELECT 1 FROM subscriber_intake a JOIN subscriber_directory s ON s.id=a.subscriber_id
         WHERE s.id=? AND s.state='pending' AND (a.invitation_claimed_at IS NULL OR a.invitation_claimed_at<s.created_at) AND julianday(s.created_at,'+72 hours')>julianday('now'))
         AND (? IS NULL OR EXISTS(SELECT 1 FROM oa_operators WHERE id=? AND status='active' AND (?=0 OR role='owner')))`;
@@ -96,7 +99,8 @@ export function createSubscriberIntakeRepository(db:D1Database) {
         db.prepare(`UPDATE subscriber_intake SET invitation_claimed_at=? WHERE subscriber_id=? AND changes()=1`).bind(now,subscriberId),
         db.prepare(`INSERT INTO audit_entries(id,entity_type,entity_id,action,operator_id,payload_json,created_at,updated_at)
           SELECT ?,'subscriber',?,'subscriber.invitation-requested',?,'{}',?,? WHERE changes()=1`)
-          .bind(createUlid(),subscriberId,operatorId,now,now),
+          .bind(auditId,subscriberId,operatorId,now,now),
+        ...(operatorId?agentAttributionStatements(db,{entityType:'subscriber',entityId:subscriberId,operatorId,at:now,guard:{sql:'EXISTS(SELECT 1 FROM audit_entries WHERE id=?)',params:[auditId]}}):[]),
       ]);
       return slot.results.length===1;
     },
