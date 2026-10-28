@@ -5,6 +5,9 @@ import { join } from "node:path";
 import { after, before } from "node:test";
 
 import { continuityFiles, assertContinuityCounts, postmortemTemplateImportFlow } from "./helpers/postmortem-template-import-flow.mjs";
+import { subscriberCsvFlow } from "./helpers/subscriber-csv-flow.mjs";
+import { subscriberLimitsBrowserFlow } from "./helpers/subscriber-limits-browser-flow.mjs";
+import { subscriberIntakeBrowserFlow } from "./helpers/subscriber-intake-browser-flow.mjs";
 
 import { contract } from "../contract.mjs";
 
@@ -23,6 +26,7 @@ const API_KEY = "synthetic-statuspage-key-0001";
 let runtime;
 let statuspage;
 let statuspageRequests = [];
+let boundarySubscriberCount=0;
 let aliasBefore;
 let editedIncident;
 let editedMaintenance;
@@ -71,6 +75,12 @@ before(async () => {
     if (request.headers.authorization !== `OAuth ${API_KEY}`) { response.writeHead(401).end("{}"); return; }
     const resource = match?.[1].replace("/", "-").replaceAll("_", "-");
     const page = Number(new URL(request.url, "http://x").searchParams.get("page"));
+    if(resource==='subscribers' && boundarySubscriberCount) {
+      const limit=Number(new URL(request.url,'http://x').searchParams.get('limit'));
+      const offset=(page-1)*limit;
+      const rows=Array.from({length:Math.max(0,Math.min(limit,boundarySubscriberCount-offset))},(_,index)=>({id:`synthetic-lamp-api-subscriber-${offset+index}`,mode:'email',email:`synthetic-lamp-api-subscriber-${offset+index}@example.test`,components:[],created_at:'2026-10-01T00:00:00.000Z'}));
+      response.writeHead(200,{'Content-Type':'application/json'}).end(JSON.stringify(rows));return;
+    }
     const name = page === 1 ? `${resource}.json` : `${resource}-${page}.json`;
     const file = continuityFiles(fixtures("small")).find((candidate) => candidate.name === name);
     response.writeHead(200, { "Content-Type": "application/json" }).end(file?.text ?? "[]");
@@ -124,9 +134,37 @@ contract("MOVE-001", "MOVE-011 — a dry run reports every record and writes not
   await postmortemTemplateImportFlow({ api, request: (path, init) => nativeRequest(path, { cookie, ...init }), importAll, moveIn, original: fixtures("small"), publicOrigin });
   assert.deepEqual(await counts(), before, "complete undo removes both reports and all three templates");
   await assertNoNewNotifications(runtime, mailBefore, "postmortem/template preview, apply, repeat and undo send nothing");
+  try {
+    for(const size of [5_000,25_000]) {
+      boundarySubscriberCount=size;
+      const fetched=await api('/api/app/statuspage-import/fetch',{source:'statuspage',pageId:'synthpage01',apiKey:API_KEY});
+      assert.equal(fetched.status,200,JSON.stringify(fetched.body));
+      const subscribers=fetched.body.files.filter(file=>file.name.startsWith('subscribers')).flatMap(file=>JSON.parse(file.text));
+      assert.equal(subscribers.length,size,`the API-key door retains the entire ${size}-subscriber list`);
+      assert.equal(new Set(subscribers.map(row=>row.id)).size,size);
+      assert.ok(subscribers.every((row,index)=>row.email===`synthetic-lamp-api-subscriber-${index}@example.test`));
+    }
+    boundarySubscriberCount=25_100;
+    const refused=await api('/api/app/statuspage-import/fetch',{source:'statuspage',pageId:'synthpage01',apiKey:API_KEY});
+    assert.equal(refused.status,400,JSON.stringify(refused.body));
+    assert.match(refused.body.error,/exceeds the import limit/u);
+  } finally {boundarySubscriberCount=0;}
 });
 
-contract("MOVE-002", "an import is retroactive: history keeps its times, nobody is notified of it, and subscribers are invited only by the owner", async t => {
+contract("MOVE-002", "SUB-017 and SUB-020 imports keep history silent, CSV dry runs write nothing, pending subscribers need explicit invitations, and capacity refuses excess without writes", async t => {
+  // Public removal retains anonymised delivery history. Give the visual intake
+  // proof its own real installation so it cannot change the later undo fixture.
+  await runtime.stop();
+  let visualRuntime;
+  try {
+    visualRuntime = await openNativeRuntime(); await visualRuntime.start(); await visualRuntime.seedOperator();
+    const visualCookie = (await signInAs({ origin, key: devKey })).header;
+    const request = (path, init = {}) => nativeRequest(path, { cookie: visualCookie, ...init });
+    const visualApi = async (path, json) => { const response = await request(path, json ? { method: 'POST', json } : {}); return { status: response.status, body: await response.json() }; };
+    await subscriberIntakeBrowserFlow({ origin, cookie: visualCookie, api: visualApi, request });
+    await subscriberLimitsBrowserFlow({runtime:visualRuntime,origin,publicOrigin,cookie:visualCookie});
+  } finally { await visualRuntime?.close(); await runtime.start(); }
+  await subscriberCsvFlow();
   const before = await counts();
   const mailBefore = await notificationActivity(runtime);
   const files = fixtures("large");

@@ -44,6 +44,6 @@ export function reportReview(report: { cause: string; remediation: string }, evi
     cause: { required: !report.cause.trim() || report.cause.trim() === REPORT_PROMPTS.cause, prompt: REPORT_PROMPTS.cause },
     remediation: { required: !report.remediation.trim() || report.remediation.trim() === REPORT_PROMPTS.remediation, prompt: REPORT_PROMPTS.remediation },
     evidenceRefs,
-    limitations: ["Incident times do not measure customer downtime.", "External Oncall, Jira Service Management and Opsgenie timelines are not connected."],
+    limitations: ["Incident times do not measure customer downtime.", "External Oncall timelines are not connected."],
   };
 }

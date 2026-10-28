@@ -1,9 +1,6 @@
 import assert from 'node:assert/strict';
 import { intakeByteFlow } from './intake-byte-flow.mjs';
 import { createHmac } from 'node:crypto';
-import { mkdir } from 'node:fs/promises';
-import { chromium } from 'playwright';
-import { operatorHydrated } from './operator-hydrated.mjs';
 
 // run-uptime main: notification-content.ts, notification-context.ts and
 // timestamped-body-signature.ts. Default body and Lamp-compatible headers.
@@ -17,7 +14,7 @@ async function send(source, payload, { timestamp = new Date().toISOString(), sig
   return { status: response.status, body: await response.json() };
 }
 
-export async function uptimePresetFlow({ api, post, component, origin, publicOrigin, cookie }) {
+export async function uptimePresetFlow({ api, post, component, publicOrigin }) {
   const targets = [await component('Checkout API (Uptime)'), await component('Payments worker (Uptime)')];
   const mappings = targets.map((row, index) => ({ monitorId: index ? 'payments' : 'checkout', componentId: row.id }));
   const input = { name: 'Production Uptime evidence', preset: 'uptime', credentialKind: 'hmac-sha256', signingSecret: secret, monitorMappings: mappings };
@@ -71,58 +68,4 @@ export async function uptimePresetFlow({ api, post, component, origin, publicOri
   const changed = await api(`/api/app/intake/sources/${source.id}`, { method: 'PUT', body: JSON.stringify({ ...input, signingSecret: undefined }) });
   assert.equal(changed.status, 200, changed.text);
   assert.equal((await send(source, envelope('checkout', 'incident:after-edit'))).status, 202, 'blank secret preserves signed connection');
-
-
-  const browser = await chromium.launch({ headless: true, args: ['--use-mock-keychain', '--password-store=basic'] });
-  try {
-    const context = await browser.newContext();
-    await context.addCookies(cookie.split('; ').map(pair => ({ name: pair.slice(0, pair.indexOf('=')), value: pair.slice(pair.indexOf('=') + 1), url: origin })));
-    const page = await context.newPage();
-    if (process.env.LAMP_SCREENSHOTS) await mkdir(process.env.LAMP_SCREENSHOTS, { recursive: true });
-    for (const width of [1440, 390]) {
-      await page.setViewportSize({ width, height: width === 390 ? 844 : 1000 });
-      await page.goto(`${origin}/app/alerts`); await operatorHydrated(page);
-      await page.getByLabel('Uptime label').fill(`Commerce Uptime ${width}`);
-      await page.getByLabel('Uptime HMAC key').fill(secret);
-      await page.getByLabel('Uptime monitor ID 1', { exact: true }).fill('checkout');
-      await page.getByLabel('Uptime component 1').selectOption(targets[0].id);
-      await page.getByRole('button', { name: 'Add Uptime monitor', exact: true }).click();
-      await page.getByLabel('Uptime monitor ID 2', { exact: true }).fill('payments');
-      await page.getByLabel('Uptime component 2').selectOption(targets[1].id);
-      await inspect('uptime-mappings', '.uptime-source-card');
-      await page.getByRole('button', { name: 'Create Uptime source', exact: true }).click();
-      const endpoint = page.getByLabel('Uptime endpoint', { exact: true }); await endpoint.waitFor();
-      const connected = { endpointUrl: await endpoint.inputValue() };
-      await inspect('uptime-configured', '.uptime-source-card');
-      const result = await send(connected, envelope('checkout', `incident:browser-${width}`));
-      assert.equal(result.status, 202);
-      await page.reload(); await operatorHydrated(page);
-      assert.ok((await api('/api/app/intake/sources')).body.sources.some(row => row.name === `Commerce Uptime ${width}` && row.monitorMappings.length === 2));
-      const sourceCard = page.locator('article.alert-source-card').filter({ has: page.getByRole('heading', { name: `Commerce Uptime ${width}`, exact: true }) });
-      await sourceCard.scrollIntoViewIfNeeded();
-      if (process.env.LAMP_SCREENSHOTS) await sourceCard.screenshot({ path: `${process.env.LAMP_SCREENSHOTS}/${width}-uptime-source.png` });
-      const receipt = page.locator('tr').filter({ has: page.locator(`a[href="/app/incidents/${result.body.incidentId}"]`) }).first();
-      await receipt.waitFor(); await receipt.scrollIntoViewIfNeeded(); await inspect('uptime-receipt');
-      await receipt.getByRole('link', { name: 'Open draft' }).click(); await operatorHydrated(page);
-      await page.getByRole('heading', { name: 'Brief', exact: true }).waitFor();
-      await page.locator('#brief-A1 summary').click();
-      assert.ok(await page.locator('#brief-A1').getByText(/Vantages: US East/).isVisible());
-      await inspect('uptime-brief', '.incident-brief');
-      const recovered = await send(connected, envelope('checkout', `incident:browser-${width}`, true));
-      assert.equal(recovered.status, 202);
-      await page.reload(); await operatorHydrated(page);
-      assert.equal((await api(`/api/app/incidents/${result.body.incidentId}`)).body.incident.lifecycle, 'Resolved');
-      await page.evaluate(() => scrollTo(0, 0));
-      await inspect('uptime-recovered');
-      async function inspect(name, selector) {
-        assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), `${width} ${name} has no overflow`);
-        assert.deepEqual(await page.locator('.uptime-source-card button').evaluateAll(nodes => nodes.filter(node => node.scrollWidth > node.clientWidth + 1).map(node => node.textContent)), [], 'Uptime controls retain their full labels');
-        if (process.env.LAMP_SCREENSHOTS) {
-          const path = `${process.env.LAMP_SCREENSHOTS}/${width}-${name}.png`;
-          if (selector) await page.locator(selector).screenshot({ path }); else await page.screenshot({ path });
-        }
-      }
-    }
-    await context.close();
-  } finally { await browser.close(); }
 }

@@ -1,5 +1,5 @@
-/* Settings → Slack and Teams, Alerts → monitor presets, Settings → Move in. */
-.channel-form, .preset-form, .move-in-form { display: grid; gap: 16px; margin-top: 16px; }
+/* Settings → Slack and Teams, Settings → Move in. */
+.channel-form, .move-in-form { display: grid; gap: 16px; margin-top: 16px; }
 .channel-form fieldset { display: flex; flex-wrap: wrap; gap: 8px; border: 0; margin: 0; padding: 0; }
 .channel-form fieldset legend, .channel-form fieldset p { flex-basis: 100%; }
 .channel-form legend, .move-in-form legend { margin-bottom: 4px; padding: 0; color: var(--ink); font-size: 15px; font-weight: 600; }
@@ -17,11 +17,10 @@
 .move-in-page p.setup-guide { display: block; }
 .move-in-page .setup-guide details > summary::before { content: "+"; margin-right: 8px; }
 .move-in-page .setup-guide details[open] > summary::before { content: "−"; }
-.move-in-form > .button, .preset-form > .button, .channel-form > .button { justify-self: start; }
+.move-in-form > .button, .channel-form > .button { justify-self: start; }
 .move-in-page .data-card > .table-scroll { margin: 16px 0; border: 1px solid var(--line); border-radius: 10px; }
 .move-in-page .data-card > .table-scroll table { min-width: 560px; }
 .move-in-page .data-card > .table-scroll tbody th { background: none; color: var(--ink); font-size: 14px; font-weight: 500; text-align: left; }
-.preset-created { display: grid; gap: 12px; margin-top: 16px; }
 /* Disclosure summaries are targets too: give them the WCAG 2.2 minimum height. */
 .channels-card summary, .move-in-page summary { display: flex; align-items: center; min-height: 44px; cursor: pointer; color: var(--ink); font-weight: 500; }
 .move-in-page details { margin: 12px 0; }
@@ -36,3 +35,6 @@
 .cutover-page li { margin: 8px 0; }
 .channel-actions { display: inline-flex; flex-wrap: wrap; gap: 8px; }
 .channel-list li > .setup-result { flex-basis: 100%; }
+
+.chat-links-card code { overflow-wrap: anywhere; }
+.chat-links-card > .button { margin: 8px 8px 0 0; }

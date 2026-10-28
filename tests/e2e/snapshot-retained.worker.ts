@@ -10,7 +10,7 @@ import { createR2BlobStore } from "../../src/core/platform/blobs/r2";
 export { SnapshotCache } from "../../src/core/platform/blobs/snapshot-cache";
 
 export default {
-  async fetch(request, env) {
+  async fetch(request, env, ctx) {
     const url = new URL(request.url);
     const cache = createRetainedSnapshotCache(env);
     if (url.pathname === "/test/rebuild") return Response.json(await exerciseRebuild(env, await request.json()));
@@ -43,7 +43,7 @@ export default {
     const down = async (): Promise<never> => { throw new Error("D1 unavailable"); };
     registerPublicSnapshotRoutes(app, service);
     registerHealthRoutes(app, createHealthService({ key: env, checkDatabase: down, lastGood: down, recordGood: down, forgetGood: down }, {}));
-    if (url.searchParams.get("cacheWrites") !== "down") return app.fetch(request, env);
+    if (url.searchParams.get("cacheWrites") !== "down") return app.fetch(request, env, ctx);
     // Cache API is another network/storage edge. Failing its writes must not
     // prevent serving a verified generation from R2.
     const open = caches.open.bind(caches);
@@ -54,7 +54,7 @@ export default {
         return typeof value === "function" ? value.bind(target) : value;
       },
     });
-    try { return await app.fetch(request, env); }
+    try { return await app.fetch(request, env, ctx); }
     finally { caches.open = open; }
   },
 };

@@ -64,7 +64,7 @@ async function setupAndProbe(root,env,port,origin){
  }finally{if(process.exitCode===null){process.kill('SIGTERM');await ended;}}
 }
 
-test('SETUP-002 Base setup/dev, one-click sign-in, invite, signout and prior-data upgrade work at 1440 and 390',{timeout:1200000},async t=>{
+test('SETUP-002 Base setup/dev, one-click sign-in, signed-in forwarding, invite, signout and prior-data upgrade work at 1440 and 390',{timeout:1200000},async t=>{
  t.diagnostic('Execution host: '+hostname());
  const root=await mkdtemp(join(tmpdir(),'lamp-auth-journey-')),servers=await mkdtemp(join(tmpdir(),'lamp-auth-servers-'));
  const cache=await mkdtemp(join(resolve('node_modules'),'.lamp-auth-vite-'));
@@ -119,7 +119,18 @@ test('SETUP-002 Base setup/dev, one-click sign-in, invite, signout and prior-dat
    if(!upgraded){await devPage.getByRole('button',{name:"Skip, I'll fill it in"}).click();await devPage.getByRole('button',{name:'Edit page name'}).click();await devPage.getByLabel('Page name',{exact:true}).fill('Auth Journey');await devPage.getByRole('button',{name:'Open Lamp',exact:true}).click();await devPage.waitForURL('**/app');}
    await devContext.close();
    for(const width of [1440,390]){
-    const context=await journeyContext(browser,key);const page=await emailSignIn(context,origin,owner,width,key);await accessible(page);
+    const context=await journeyContext(browser,key);const page=await emailSignIn(context,origin,owner,width,key);
+    const pageErrors=[];page.on('pageerror',error=>pageErrors.push(error.message));
+    for(const method of ['GET','HEAD']){
+     const response=await page.request.fetch(origin+'/signin?returnTo=%2Fapp%2Fsettings',{method,maxRedirects:0});
+     assert.equal(response.status(),303,'a signed-in owner leaves sign-in before its form renders');
+     assert.equal(response.headers().location,'/app');assert.equal(response.headers()['cache-control'],'no-store');
+     assert.equal(await response.text(),'','the redirect renders no sign-in form');
+    }
+    await page.goto(origin+'/signin');await page.waitForURL(url=>url.pathname==='/app');await operatorHydrated(page);
+    assert.deepEqual(pageErrors,[],'the forwarded owner document hydrates without errors');
+    assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true,'the forwarded owner document fits the viewport');
+    await accessible(page);await capture(page,'signin-forward-'+width);
     const identity=await page.request.get(origin+'/auth/settings/identity');assert.equal(identity.status(),200);assert.equal((await identity.json()).idpSignIn,false);
     const discovery=await page.request.get(origin+'/.well-known/rer-dependencies');assert.equal(discovery.status(),200);assert.equal((await discovery.json()).dependencies.some(d=>d.interface==='oidc-provider@1'&&d.optional),true);
     if(!upgraded){

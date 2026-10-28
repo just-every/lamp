@@ -1,3 +1,4 @@
+import { planSubscriberCapacity, type SubscriberCounts } from "../subscribers/limits";
 import { attachPostmortem } from "./postmortems";
 import { mapTemplates } from "./templates";
 import { mostSevereState, type ComponentState, type IncidentLifecycle } from "../../shared/domain";
@@ -9,6 +10,7 @@ export type EntityKind = "group" | "component" | "incident" | "maintenance" | "s
 export interface NativeValue { tables: Record<string, Row[]> }
 export interface Accounting { kind: string; sourceId: string; name: string; outcome: "imported" | "changed" | "skipped" | "rejected" | "kept-private"; reason: string }
 export interface Snapshot {
+  subscriberCounts: SubscriberCounts;
   maxGroupOrder: number;
   maxComponentOrder: number;
   lastReference: { INC: number; SCH: number };
@@ -22,7 +24,7 @@ export interface Snapshot {
   /** Each template name, with its template when an active import created it. */
   templateNames?: Map<string, string | null>;
 }
-export interface Mapped { kind: EntityKind; sourceId: string; value?: NativeValue; accounting: Accounting[] }
+export interface Mapped { kind: EntityKind; sourceId: string; value?: NativeValue; accounting: Accounting[]; subscriberCapacity?: { overLimit: boolean; summaries: string[] } }
 
 /** Each native table group an imported entity owns, keyed by its owning column. */
 export const entityTables: Record<EntityKind, Record<string, string>> = {
@@ -125,7 +127,17 @@ export function mapSource(data: SourceData, snapshot: Snapshot, operatorId: stri
     } } });
   });
 
+  const existingDestinations=new Set(snapshot.destinations.keys());
   const subscriberResults = data.subscribers.map((subscriber) => mapSubscriber(subscriber, components, snapshot, asOf, identify, namespace));
+  {
+    const candidates=subscriberResults.filter(row=>row.value && !existingDestinations.has(String(row.value.tables.subscribers[0].destination)));
+    const capacity=planSubscriberCapacity(snapshot.subscriberCounts,candidates.map(row=>({channel:"email" as const,row})));
+    for(const item of capacity.refused) {
+      delete item.row.value;
+      item.row.accounting=[{...item.row.accounting[0],outcome:"rejected",reason:"over the subscriber limit"}];
+    }
+    if(subscriberResults.length) subscriberResults[0].subscriberCapacity={overLimit:capacity.refused.size>0,summaries:capacity.summaries};
+  }
   const templates = mapTemplates(data, components, snapshot, operatorId, asOf, identify);
   const order: EntityKind[] = ["group", "component", "incident", "maintenance", "template", "subscriber"];
   return [...results, ...componentResults, ...templates, ...subscriberResults].sort((a, b) => order.indexOf(a.kind) - order.indexOf(b.kind));

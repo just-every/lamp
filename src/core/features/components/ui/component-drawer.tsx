@@ -1,3 +1,5 @@
+import { mayLeave } from "../../../app/client/ui/leave-guard";
+import { MetricsPanel } from "../../metrics/ui/metrics-panel";
 import { useState, type FormEvent } from "react";
 
 import { COMPONENT_STATES, type ComponentState } from "../../../shared/domain";
@@ -31,6 +33,7 @@ export function ComponentEditorDrawer({ component, groups, defaultGroupId = null
 
   async function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if(!await mayLeave())return;
     setSaving(true); setError(null);
     try {
       if (isNew) await appApi("/api/app/components", { method: "POST", body: JSON.stringify({ ...input, displayOrder: defaultDisplayOrder }) });
@@ -55,7 +58,8 @@ export function ComponentEditorDrawer({ component, groups, defaultGroupId = null
     }
   }
 
-  return <Drawer eyebrow={isNew ? "New component" : "Component settings"} title={isNew ? "Add component" : component.name} onClose={onClose}>
+  const close=async()=>{if(await mayLeave())onClose();};
+  return <Drawer eyebrow={isNew ? "New component" : "Component settings"} title={isNew ? "Add component" : component.name} onClose={()=>void close()}>
     <p className="drawer-copy">Components carry their public name, ordering, visibility, and operator state note. Active incidents and maintenance may raise their public status.</p>
     <form className="component-editor-form" onSubmit={save}>
       <label className="form-label">Component name<input required maxLength={120} value={input.name} onChange={(event) => setInput({ ...input, name: event.target.value })} /></label>
@@ -68,8 +72,9 @@ export function ComponentEditorDrawer({ component, groups, defaultGroupId = null
       <label className="checkbox-label component-internal-toggle"><input type="checkbox" checked={input.internal} onChange={(event) => setInput({ ...input, internal: event.target.checked })} /><span>Internal only</span> <small>Exclude this component from the status page, Atom feed, widget, overall status, and uptime.</small></label>
       {error && <FormError>{error}</FormError>}
       {!isNew && removalConfirmation && <p className="delete-confirmation">Delete this component? Its state history leaves the public page and uptime figures. Published updates keep its name.</p>}
-      <div className="drawer-actions"><Button type="button" variant="secondary" onClick={onClose} disabled={saving}>Cancel</Button>{!isNew && <Button type="button" variant="secondary" className="danger-button" onClick={remove} disabled={saving}>{removalConfirmation ? "Confirm delete" : "Delete component"}</Button>}<Button type="submit" disabled={saving}>{saving ? "Saving…" : isNew ? "Create component" : "Save component"}</Button></div>
+      <div className="drawer-actions"><Button type="button" variant="secondary" onClick={()=>void close()} disabled={saving}>Cancel</Button>{!isNew && <Button type="button" variant="secondary" className="danger-button" onClick={remove} disabled={saving}>{removalConfirmation ? "Confirm delete" : "Delete component"}</Button>}<Button type="submit" disabled={saving}>{saving ? "Saving…" : isNew ? "Create component" : "Save component"}</Button></div>
     </form>
+    {component&&<MetricsPanel componentId={component.id} />}
   </Drawer>;
 }
 

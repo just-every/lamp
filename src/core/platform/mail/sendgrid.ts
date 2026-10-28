@@ -50,7 +50,7 @@ export class SendGridMailSender implements MailSender {
       if (!(error instanceof SendGridSendError)) throw failure('SendGrid local settlement failed; acceptance is unconfirmed. Inspect signed provider receipts.', false, providerMessageId);
       if (error.outcome === 'rate_limited') {
         await this.repository.releaseRejected(providerMessageId);
-        throw failure('SendGrid rate limit rejected the request.', true);
+        throw Object.assign(failure('SendGrid rate limit rejected the request.', true), { failoverSafe: true });
       }
       const ambiguous = error.outcome === 'ambiguous';
       await this.repository.finish(providerMessageId, ambiguous ? 'uncertain' : 'rejected');

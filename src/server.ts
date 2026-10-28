@@ -22,8 +22,10 @@ function isHonoRequest(surface: LampSurface, request: Request, pathname: string)
   return pathname === "/setup/status"
     || (pathname === "/setup" && request.method !== "GET" && request.method !== "HEAD")
     || pathname === "/health"
+    || pathname === "/api/chat/slack" || pathname === "/api/chat/teams"
     || pathname === "/api/app"
     || pathname.startsWith("/api/app/")
+    || pathname.startsWith("/api/v1/")
     || pathname.startsWith('/api/rer/import/')
     || pathname === '/api/rer/cutover-status'
     || pathname.startsWith('/api/operator/import/')

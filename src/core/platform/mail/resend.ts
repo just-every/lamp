@@ -45,6 +45,7 @@ export class ResendMailSender implements MailSender {
       const error = new Error(result.message ?? result.name ?? `Resend rejected mail with ${response.status}.`);
       // Resend treats an idempotency key with a changed payload as a permanent
       // 409. Only an in-flight request bearing the same key is retryable.
+      (error as Error & { failoverSafe?: boolean }).failoverSafe = response.status === 408 || response.status === 429 || response.status >= 500;
       (error as Error & { retryable?: boolean }).retryable = response.status === 408 || response.status === 429 || response.status >= 500 || result.name === "concurrent_idempotent_requests";
       throw error;
     }

@@ -293,9 +293,14 @@ test("Snapshot renderer upgrades preserve public history and last-known state", 
   const signInLinks = [...staleBody.matchAll(/<a data-lamp-signin href="([^"]+)"/g)];
   assert.equal(signInLinks.length, 1, "the retained page has exactly one Sign in action");
   assert.equal(signInLinks[0][1], signInTarget.href, "the retained action targets the installed app host");
+  const vpatTarget = new URL("/docs/accessibility/vpat", signInTarget);
+  const vpatLinks = [...staleBody.matchAll(/<a data-lamp-vpat href="([^"]+)"/g)];
+  assert.equal(vpatLinks.length, 1, "the retained page has exactly one Accessibility (VPAT) action");
+  assert.equal(vpatLinks[0][1], vpatTarget.href, "the retained VPAT action targets the installed app host");
   const lastKnownPage = staleBody.replace(/<aside role="status"[^>]*>[\s\S]*?<\/aside>/, "")
-    .replace(signInLinks[0][0], '<a data-lamp-signin href="/signin"');
-  assert.equal(lastKnownPage, priorPage, "the stale label wraps the exact last-known page artifact apart from the installed Sign in href");
+    .replace(signInLinks[0][0], '<a data-lamp-signin href="/signin"')
+    .replace(vpatLinks[0][0], '<a data-lamp-vpat href="/docs/accessibility/vpat"');
+  assert.equal(lastKnownPage, priorPage, "the stale label wraps the exact last-known page artifact apart from the installed Sign in and VPAT hrefs");
   assert.equal(r2Object(`snapshots/${priorPointer.version}/page.html`), priorPage, "stale serving leaves the R2 page artifact byte-identical");
 
   await stopWorker();

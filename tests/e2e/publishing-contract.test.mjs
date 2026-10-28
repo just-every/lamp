@@ -1,3 +1,5 @@
+import { reportRemindersFlow } from "./helpers/report-reminders-flow.mjs";
+import { maintenanceCalendarFlow, emptyMaintenanceCalendarFlow } from "./helpers/maintenance-calendar-flow.mjs";
 import { availabilityReportFlow } from "./helpers/availability-report-flow.mjs";
 import { communicationPerformanceFlow } from "./helpers/communication-performance-flow.mjs";
 import { incidentImpactFlow } from "./helpers/incident-impact-flow.mjs";
@@ -257,7 +259,7 @@ before(async () => {
   execFileSync("pnpm", ["exec", "wrangler", "d1", "migrations", "apply", "DB", "--local", "--config", "wrangler.jsonc", "--persist-to", testStatePath], { cwd: process.cwd(), stdio: "pipe" });
   // Configure this fixture before the Worker builds its initial public snapshot.
   sessionId = await insertRealOperatorSession({ persistTo: testStatePath });
-  server = spawn("pnpm", ["exec", "vite", "--configLoader", "native", "--host", "0.0.0.0", "--port", String(testPort), "--strictPort"], { cwd: process.cwd(), stdio: "pipe", detached: true, env: { ...process.env, LAMP_WORKERS_STATE_PATH: testStatePath, LAMP_VITE_CACHE_DIR: testViteCachePath, LAMP_DISABLE_INSPECTOR: "true" } });
+  server = spawn(process.execPath, [fileURLToPath(new URL("../../node_modules/vite/bin/vite.js", import.meta.url)), "--configLoader", "native", "--host", "0.0.0.0", "--port", String(testPort), "--strictPort"], { cwd: process.cwd(), stdio: "pipe", detached: true, env: { ...process.env, LAMP_WORKERS_STATE_PATH: testStatePath, LAMP_VITE_CACHE_DIR: testViteCachePath, LAMP_DISABLE_INSPECTOR: "true" } });
   server.stdout.on("data", (chunk) => { serverOutput += chunk; });
   server.stderr.on("data", (chunk) => { serverOutput += chunk; });
   await waitForWorker({ origin: appUrl, child: server, output: () => `${serverOutput}\nState: ${testStatePath}`, label: "Publishing-contract Worker" });
@@ -269,6 +271,7 @@ before(async () => {
   const identity = await (await fetch(`${pageUrl}/`)).text();
   assert.match(identity, /id="overall-status" data-overall/, "test listener did not serve Lamp's public snapshot");
   assert.match(identity, /data-generated-at/, "public snapshot must expose its generation time independently of owner branding");
+  await emptyMaintenanceCalendarFlow(pageUrl);
   pageTimezone = (await (await appFetch("/api/app/page-settings")).json()).settings.timezone;
   executeFixtureSql(`INSERT INTO components (id,group_id,name,description,internal,display_order,note,created_at,updated_at) VALUES ('01J00000000000000000000011',NULL,'Contract API','A test-owned public component.',0,1,'','2026-09-08T00:00:00.000Z','2026-09-08T00:00:00.000Z'); INSERT INTO subscribers (id,channel,destination,contact_email,state,selection_mode,token_hash,deactivation_reason,deactivated_at,created_at,updated_at) VALUES ('01J00000000000000000000070','email','contract-subscriber@example.test',NULL,'active','all','contract-token-hash',NULL,NULL,'2026-09-08T00:00:00.000Z','2026-09-08T00:00:00.000Z')`);
 });
@@ -642,7 +645,7 @@ test("INCIDENT-001 INCIDENT-002 INCIDENT-003 INCIDENT-004 INCIDENT-005 INCIDENT-
   const current = await createIncident("Current same-component outage", { components: [{ componentId: component.id, state: "Major outage", relationship: "Primary" }] });
   await saveDraft(current.id, { lifecycle: "Identified" });
   await expectStatus(await publish(current.id), 200);
-  const maintenanceCreated = await appFetch("/api/app/maintenance", { method: "POST", body: JSON.stringify({ title: "Current maintenance provenance", startsAt: new Date(Date.now() - 60_000).toISOString(), endsAt: new Date(Date.now() + 60 * 60_000).toISOString(), componentIds: [component.id] }) });
+  const maintenanceCreated = await appFetch("/api/app/maintenance", { method: "POST", body: JSON.stringify({ affectedAudience: "Customers using the scheduled service.", customerImpact: "Requests may be interrupted during this maintenance window.", title: "Current maintenance provenance", startsAt: new Date(Date.now() - 60_000).toISOString(), endsAt: new Date(Date.now() + 60 * 60_000).toISOString(), componentIds: [component.id] }) });
   await expectStatus(maintenanceCreated, 201);
   const maintenance = (await maintenanceCreated.json()).maintenance;
   await expectStatus(await fetch(`${pageUrl}/cdn-cgi/local/scheduled`), 200);
@@ -864,13 +867,13 @@ test("INTAKE-001 INTAKE-002 INTAKE-003 INTAKE-004 INTAKE-005 — Authenticated m
 
 
 
-test("MAINT-002 MAINT-001 MAINT-003 MAINT-004 MAINT-005 MAINT-006 — Scheduled maintenance transitions, notices, extension and cancellation", async t => {
+test("MAINT-007 MAINT-009 MAINT-002 MAINT-001 MAINT-003 MAINT-004 MAINT-005 MAINT-006 — Per-window automation, scheduled transitions, notices, extension and cancellation", async t => {
   t.diagnostic("MAINT-002 — the Worker scheduled event starts and completes a recorded maintenance without an operator mutation");
   await (async () => {
   const componentId = "01J00000000000000000000011";
   const end = new Date(Date.now() - 1_000).toISOString();
   const start = new Date(Date.now() - 2_000).toISOString();
-  const created = await appFetch("/api/app/maintenance", { method: "POST", body: JSON.stringify({ title: "Automatic transition test", startsAt: start, endsAt: end, componentIds: [componentId] }) });
+  const created = await appFetch("/api/app/maintenance", { method: "POST", body: JSON.stringify({ affectedAudience: "Customers using the scheduled service.", customerImpact: "Requests may be interrupted during this maintenance window.", title: "Automatic transition test", startsAt: start, endsAt: end, componentIds: [componentId] }) });
   if (created.status !== 201) throw new Error(await created.text());
   const maintenance = (await created.json()).maintenance;
 
@@ -888,9 +891,67 @@ test("MAINT-002 MAINT-001 MAINT-003 MAINT-004 MAINT-005 MAINT-006 — Scheduled 
   assert.equal((await fetch(`${pageUrl}/cdn-cgi/local/scheduled`)).status, 200);
   assert.equal((await eventually((record) => record?.state === "Completed"))?.state, "Completed");
 })(t);
+  t.diagnostic("MAINT-009 — per-window switches preserve manual starts and overruns without duplicate notices");
+  await (async () => {
+    const component = await createIsolatedComponent("Synthetic Lamp automation window");
+    const now = Date.now();
+    const minute = 60_000;
+    const trigger = async time => {
+      const response = await fetch(`${appUrl}/cdn-cgi/handler/scheduled?cron=${encodeURIComponent("* * * * *")}&time=${time}`);
+      await expectStatus(response,200);
+    };
+    const read = async id => (await (await appFetch("/api/app/maintenance")).json()).maintenance.find(item => item.id === id);
+    const notices = (id,kind) => queryD1Sql(testStatePath,`SELECT COUNT(*) AS count FROM maintenance_notices WHERE maintenance_id='${id}' AND kind='${kind}'`)[0].count;
+    const alerts = event => queryD1Sql(testStatePath,`SELECT COUNT(*) AS count FROM notification_outbox WHERE kind='operator-alert' AND aggregate_id='${event}'`)[0].count;
+    const create = async input => (await (await expectStatus(await appFetch("/api/app/maintenance",{method:"POST",body:JSON.stringify({...input,componentIds:[component.id]})}),201)).json()).maintenance;
+
+    const held = await create({affectedAudience:"Customers using the scheduled service.",customerImpact:"Requests may be interrupted during this maintenance window.",title:"Synthetic Lamp manual completion",startsAt:new Date(now-40*minute).toISOString(),endsAt:new Date(now-20*minute).toISOString(),autoStart:true,autoComplete:false});
+    assert.equal(held.autoStart,true);assert.equal(held.autoComplete,false);
+    await trigger(Date.parse(held.startsAt)+5*minute);
+    await trigger(Date.parse(held.endsAt)+20*minute);await trigger(Date.parse(held.endsAt)+20*minute);
+    const overrun = await read(held.id);
+    assert.equal(overrun.state,"In progress");assert.equal(overrun.overrunning,true);
+    assert.equal(overrun.endsAt,held.endsAt);assert.equal(notices(held.id,"completed"),0);
+    assert.equal(alerts(`maintenance-overrun/${held.id}/${held.endsAt}`),1,"one overrun alert at the injected +20 minute instant");
+    const { text: permalink } = await publicArtifact(`/maintenance/${held.reference}`,"Running longer than planned","manual completion overrun label");
+    assert.ok(permalink.includes(held.endsAt),"overrun label retains the original end instant");
+    await expectStatus(await appFetch(`/api/app/maintenance/${held.id}/complete`,{method:"POST"}),200);
+    await expectStatus(await appFetch(`/api/app/maintenance/${held.id}/complete`,{method:"POST"}),409);
+    assert.equal(notices(held.id,"completed"),1,"operator completion publishes exactly one Completed notice");
+
+    const manual = await create({affectedAudience:"Customers using the scheduled service.",customerImpact:"Requests may be interrupted during this maintenance window.",title:"Synthetic Lamp manual start",startsAt:new Date(now-5*minute).toISOString(),endsAt:new Date(now+60*minute).toISOString(),autoStart:false,autoComplete:false});
+    const changedEnd = new Date(Date.parse(manual.endsAt)+minute).toISOString();
+    await expectStatus(await appFetch(`/api/app/maintenance/${manual.id}/window`,{method:"PUT",body:JSON.stringify({startsAt:manual.startsAt,endsAt:changedEnd})}),200);
+    assert.equal((await read(manual.id)).autoStart,false,"date-only reschedule preserves an off switch");
+    assert.equal((await read(manual.id)).autoComplete,false);
+    await trigger(Date.parse(manual.startsAt)+5*minute);await trigger(Date.parse(manual.startsAt)+5*minute);
+    assert.equal((await read(manual.id)).state,"Scheduled");assert.equal(notices(manual.id,"started"),0);
+    assert.equal(alerts(`maintenance-start-due/${manual.id}/${new Date(manual.startsAt).toISOString()}`),1,"one start-due alert however many ticks run");
+    await expectStatus(await appFetch(`/api/app/maintenance/${manual.id}/start`,{method:"POST"}),200);
+    await expectStatus(await appFetch(`/api/app/maintenance/${manual.id}/start`,{method:"POST"}),409);
+    assert.equal((await read(manual.id)).state,"In progress");assert.equal(notices(manual.id,"started"),1);
+    await expectStatus(await appFetch(`/api/app/maintenance/${manual.id}/window`,{method:"PUT",body:JSON.stringify({startsAt:manual.startsAt,endsAt:changedEnd,autoComplete:true})}),200);
+    assert.equal((await read(manual.id)).autoStart,false);assert.equal((await read(manual.id)).autoComplete,true,"an in-progress window accepts its automation switch without extending the end");
+    await expectStatus(await appFetch(`/api/app/maintenance/${manual.id}/complete`,{method:"POST"}),200);
+
+    const defaults = await create({affectedAudience:"Customers using the scheduled service.",customerImpact:"Requests may be interrupted during this maintenance window.",title:"Synthetic Lamp default automation",startsAt:new Date(now+60*minute).toISOString(),endsAt:new Date(now+120*minute).toISOString()});
+    assert.equal(defaults.autoStart,true);assert.equal(defaults.autoComplete,true);
+    await expectStatus(await appFetch(`/api/app/maintenance/${defaults.id}/start`,{method:"POST"}),409);
+    await expectStatus(await appFetch(`/api/app/maintenance/${defaults.id}/cancel`,{method:"POST"}),200);
+    // Storage at the upgrade edge: a pre-0048 native window has no sidecar row.
+    // Its operator actions still run through the same route and scheduled door.
+    const operator = (await (await appFetch("/api/app/session")).json()).operator;
+    const legacyId="synthetic-lamp-maint-legacy";
+    const legacyStart=new Date(now-40*minute).toISOString(),legacyEnd=new Date(now-20*minute).toISOString();
+    executeFixtureSql(`INSERT INTO maintenance(id,reference,title,state,starts_at,ends_at,completed_at,created_by_operator_id,created_at,updated_at) VALUES('${legacyId}','SCH-940048','Synthetic Lamp pre-change window','Scheduled','${legacyStart}','${legacyEnd}',NULL,'${operator.id}','${legacyStart}','${legacyStart}'); INSERT INTO maintenance_components(id,maintenance_id,component_id,component_name,state,created_at,updated_at) VALUES('synthetic-lamp-maint-legacy-component','${legacyId}','${component.id}','${component.name}','Under maintenance','${legacyStart}','${legacyStart}');`);
+    assert.equal((await read(legacyId)).autoStart,true);assert.equal((await read(legacyId)).autoComplete,true);
+    await trigger(now);assert.equal((await read(legacyId)).state,"In progress");
+    await trigger(now);assert.equal((await read(legacyId)).state,"Completed");
+    assert.equal(notices(legacyId,"started"),1);assert.equal(notices(legacyId,"completed"),1,"a pre-change window retains its automatic lifecycle");
+  })();
   t.diagnostic("MAINT-001 — scheduled maintenance has its own SCH reference and operator list");
   await (async () => {
-  const created = await appFetch("/api/app/maintenance", { method: "POST", body: JSON.stringify({ title: "Distinct maintenance", startsAt: new Date(Date.now() + 2 * 60 * 60_000).toISOString(), endsAt: new Date(Date.now() + 3 * 60 * 60_000).toISOString(), componentIds: ["01J00000000000000000000011"] }) });
+  const created = await appFetch("/api/app/maintenance", { method: "POST", body: JSON.stringify({ affectedAudience: "Customers using the scheduled service.", customerImpact: "Requests may be interrupted during this maintenance window.", title: "Distinct maintenance", startsAt: new Date(Date.now() + 2 * 60 * 60_000).toISOString(), endsAt: new Date(Date.now() + 3 * 60 * 60_000).toISOString(), componentIds: ["01J00000000000000000000011"] }) });
   await expectStatus(created, 201);
   const maintenance = (await created.json()).maintenance;
   assert.match(maintenance.reference, /^SCH-\d+$/);
@@ -899,7 +960,7 @@ test("MAINT-002 MAINT-001 MAINT-003 MAINT-004 MAINT-005 MAINT-006 — Scheduled 
   t.diagnostic("MAINT-003 — maintenance claims Under maintenance only while its recorded window is in progress");
   await (async () => {
   const component = await createIsolatedComponent("Maintenance component claim");
-  const created = await appFetch("/api/app/maintenance", { method: "POST", body: JSON.stringify({ title: "Maintenance component claim", startsAt: new Date(Date.now() - 60_000).toISOString(), endsAt: new Date(Date.now() + 60 * 60_000).toISOString(), componentIds: [component.id] }) });
+  const created = await appFetch("/api/app/maintenance", { method: "POST", body: JSON.stringify({ affectedAudience: "Customers using the scheduled service.", customerImpact: "Requests may be interrupted during this maintenance window.", title: "Maintenance component claim", startsAt: new Date(Date.now() - 60_000).toISOString(), endsAt: new Date(Date.now() + 60 * 60_000).toISOString(), componentIds: [component.id] }) });
   await expectStatus(created, 201);
   const maintenance = (await created.json()).maintenance;
   assert.equal((await (await appFetch("/api/app/components")).json()).components.find((item) => item.id === component.id).publicState, "Operational");
@@ -937,11 +998,15 @@ test("MAINT-002 MAINT-001 MAINT-003 MAINT-004 MAINT-005 MAINT-006 — Scheduled 
   assert.equal(await repository.transitionWithNotice("maintenance-guard", "In progress", "Completed", staleCompletion.publishedAt, staleCompletion.publishedAt, staleCompletion, [], dueWindow), false, "a due transition cannot complete a window extended after it was read");
   assert.equal(database.prepare("SELECT COUNT(*) AS count FROM maintenance_notices").get().count, 1);
   assert.equal(database.prepare("SELECT COUNT(*) AS count FROM audit_entries").get().count, 1);
+  database.exec("CREATE TABLE maintenance_automation(maintenance_id TEXT PRIMARY KEY,auto_start INTEGER,auto_complete INTEGER); INSERT INTO maintenance_automation VALUES('maintenance-guard',1,0)");
+  const currentWindow={startsAt:dueWindow.startsAt,endsAt:"2026-09-08T01:00:00.000Z",autoComplete:true};
+  assert.equal(await repository.transitionWithNotice("maintenance-guard","In progress","Completed",staleCompletion.publishedAt,staleCompletion.publishedAt,{...staleCompletion,id:"notice-switch-race"},[],currentWindow),false,"a cron completion cannot ignore an auto-complete switch disabled after it read the window");
+  assert.equal(database.prepare("SELECT COUNT(*) AS count FROM maintenance_notices").get().count,1);
   database.close();
 })(t);
   t.diagnostic("MAINT-004 — an overrun is public after its recorded end, and operators can extend or complete it");
   await (async () => {
-  const created = await appFetch("/api/app/maintenance", { method: "POST", body: JSON.stringify({ title: "Manual overrun completion", startsAt: new Date(Date.now() + 2 * 60 * 60_000).toISOString(), endsAt: new Date(Date.now() + 3 * 60 * 60_000).toISOString(), componentIds: ["01J00000000000000000000011"] }) });
+  const created = await appFetch("/api/app/maintenance", { method: "POST", body: JSON.stringify({ affectedAudience: "Customers using the scheduled service.", customerImpact: "Requests may be interrupted during this maintenance window.", title: "Manual overrun completion", startsAt: new Date(Date.now() + 2 * 60 * 60_000).toISOString(), endsAt: new Date(Date.now() + 3 * 60 * 60_000).toISOString(), componentIds: ["01J00000000000000000000011"] }) });
   await expectStatus(created, 201);
   const maintenance = (await created.json()).maintenance;
   executeFixtureSql(`UPDATE maintenance SET state = 'In progress', starts_at = '${new Date(Date.now() - 60 * 60_000).toISOString()}', ends_at = '${new Date(Date.now() - 16 * 60_000).toISOString()}' WHERE id = '${maintenance.id}'`);
@@ -952,7 +1017,7 @@ test("MAINT-002 MAINT-001 MAINT-003 MAINT-004 MAINT-005 MAINT-006 — Scheduled 
 
   const originalStart = new Date(Date.now() - 60 * 60_000).toISOString();
   const nearThresholdEnd = new Date(Date.now() - 14 * 60_000 - 40_000).toISOString();
-  const extensionResponse = await appFetch("/api/app/maintenance", { method: "POST", body: JSON.stringify({ title: "Manual overrun extension", startsAt: originalStart, endsAt: nearThresholdEnd, componentIds: ["01J00000000000000000000011"] }) });
+  const extensionResponse = await appFetch("/api/app/maintenance", { method: "POST", body: JSON.stringify({ affectedAudience: "Customers using the scheduled service.", customerImpact: "Requests may be interrupted during this maintenance window.", title: "Manual overrun extension", startsAt: originalStart, endsAt: nearThresholdEnd, componentIds: ["01J00000000000000000000011"] }) });
   await expectStatus(extensionResponse, 201);
   const extension = (await extensionResponse.json()).maintenance;
   const thresholdAt = Date.parse(nearThresholdEnd) + 15 * 60_000;
@@ -1005,7 +1070,7 @@ test("MAINT-002 MAINT-001 MAINT-003 MAINT-004 MAINT-005 MAINT-006 — Scheduled 
   assert.doesNotMatch(completedPermalink.text, /Running longer than planned/);
   await expectStatus(await appFetch(`/api/app/maintenance/${extension.id}/window`, { method: "PUT", body: JSON.stringify({ startsAt: originalStart, endsAt: new Date(Date.now() + 2 * 60 * 60_000).toISOString() }) }), 409);
 
-  const cancelledResponse = await appFetch("/api/app/maintenance", { method: "POST", body: JSON.stringify({ title: "Cancelled maintenance window", startsAt: new Date(Date.now() + 6 * 60 * 60_000).toISOString(), endsAt: new Date(Date.now() + 7 * 60 * 60_000).toISOString(), componentIds: ["01J00000000000000000000011"] }) });
+  const cancelledResponse = await appFetch("/api/app/maintenance", { method: "POST", body: JSON.stringify({ affectedAudience: "Customers using the scheduled service.", customerImpact: "Requests may be interrupted during this maintenance window.", title: "Cancelled maintenance window", startsAt: new Date(Date.now() + 6 * 60 * 60_000).toISOString(), endsAt: new Date(Date.now() + 7 * 60 * 60_000).toISOString(), componentIds: ["01J00000000000000000000011"] }) });
   await expectStatus(cancelledResponse, 201);
   const cancelled = (await cancelledResponse.json()).maintenance;
   await expectStatus(await appFetch(`/api/app/maintenance/${cancelled.id}/cancel`, { method: "POST" }), 200);
@@ -1013,7 +1078,7 @@ test("MAINT-002 MAINT-001 MAINT-003 MAINT-004 MAINT-005 MAINT-006 — Scheduled 
 })(t);
   t.diagnostic("MAINT-005 — scheduled, reminder, start, and completion notices are immutable maintenance events");
   await (async () => {
-  const created = await appFetch("/api/app/maintenance", { method: "POST", body: JSON.stringify({ title: "Reminder lifecycle", startsAt: new Date(Date.now() + 23 * 60 * 60_000).toISOString(), endsAt: new Date(Date.now() + 24 * 60 * 60_000).toISOString(), componentIds: ["01J00000000000000000000011"] }) });
+  const created = await appFetch("/api/app/maintenance", { method: "POST", body: JSON.stringify({ affectedAudience: "Customers using the scheduled service.", customerImpact: "Requests may be interrupted during this maintenance window.", title: "Reminder lifecycle", startsAt: new Date(Date.now() + 23 * 60 * 60_000).toISOString(), endsAt: new Date(Date.now() + 24 * 60 * 60_000).toISOString(), componentIds: ["01J00000000000000000000011"] }) });
   await expectStatus(created, 201);
   const maintenance = (await created.json()).maintenance;
   assert.equal(maintenance.notices.some((notice) => notice.kind === "scheduled"), true);
@@ -1021,9 +1086,10 @@ test("MAINT-002 MAINT-001 MAINT-003 MAINT-004 MAINT-005 MAINT-006 — Scheduled 
   const withReminder = (await (await appFetch("/api/app/maintenance")).json()).maintenance.find((record) => record.id === maintenance.id);
   assert.equal(withReminder.notices.some((notice) => notice.kind === "reminder"), true);
 })(t);
+  await maintenanceCalendarFlow({ appFetch, pageUrl, eventually, componentId: "01J00000000000000000000011" });
   t.diagnostic("MAINT-006 — rescheduling and cancellation create notices and retain a cancelled maintenance record");
   await (async () => {
-  const created = await appFetch("/api/app/maintenance", { method: "POST", body: JSON.stringify({ title: "Reschedule and cancel", startsAt: new Date(Date.now() + 3 * 60 * 60_000).toISOString(), endsAt: new Date(Date.now() + 4 * 60 * 60_000).toISOString(), componentIds: ["01J00000000000000000000011"] }) });
+  const created = await appFetch("/api/app/maintenance", { method: "POST", body: JSON.stringify({ affectedAudience: "Customers using the scheduled service.", customerImpact: "Requests may be interrupted during this maintenance window.", title: "Reschedule and cancel", startsAt: new Date(Date.now() + 3 * 60 * 60_000).toISOString(), endsAt: new Date(Date.now() + 4 * 60 * 60_000).toISOString(), componentIds: ["01J00000000000000000000011"] }) });
   await expectStatus(created, 201);
   const maintenance = (await created.json()).maintenance;
   await expectStatus(await appFetch(`/api/app/maintenance/${maintenance.id}/window`, { method: "PUT", body: JSON.stringify({ startsAt: new Date(Date.now() + 5 * 60 * 60_000).toISOString(), endsAt: new Date(Date.now() + 6 * 60 * 60_000).toISOString() }) }), 200);
@@ -1047,7 +1113,8 @@ test("MAINT-002 MAINT-001 MAINT-003 MAINT-004 MAINT-005 MAINT-006 — Scheduled 
 
 
 
-test("DRAFT-003 AGENT-005 HIST-002 HIST-003 — Unavailable AI and post-incident reporting", async t => {
+test("DRAFT-003 AGENT-005 HIST-002 HIST-003 AUTO-004 — Unavailable AI, reports and reasoned follow-up", async t => {
+  await reportRemindersFlow();
   t.diagnostic("DRAFT-003 — without a provider the suggestion route is unavailable while normal publication remains available");
   await (async () => {
   const status = await appFetch("/api/app/ai/status");
@@ -1137,6 +1204,31 @@ test("DRAFT-003 AGENT-005 HIST-002 HIST-003 — Unavailable AI and post-incident
   const owing = await appFetch("/api/app/reports/owing");
   assert.equal((await owing.json()).incidentIds.includes(incident.id), false);
   assert.equal((await (await appFetch("/api/app/reports/owing")).json()).incidentIds.includes(owingIncident.id), true);
+  const DAY=86400000;
+  const tick=async time=>{ const response=await fetch(`${appUrl}/cdn-cgi/handler/scheduled?cron=${encodeURIComponent("* * * * *")}&time=${time}`, {headers:{Connection:"close"}}); assert.equal(response.status,200,await response.text()); };
+  const reminders=()=>queryD1Sql(testStatePath,"SELECT payload_json FROM notification_outbox WHERE kind='operator-alert'").map(row=>JSON.parse(row.payload_json)).filter(row=>row.title===`Lamp report follow-up: ${owingIncident.reference}`);
+  await tick(Date.parse(past)+7*DAY); await tick(Date.parse(past)+7*DAY);
+  assert.equal(reminders().length,1,"day seven queues one reminder despite a repeated tick");
+  const owner=(await (await appFetch('/api/app/session')).json()).operator;
+  assert.deepEqual(reminders()[0].recipients,[owner.email]);
+  assert.ok(reminders()[0].text.includes(`/app/incidents/${owingIncident.id}#post-incident-report`));
+  assert.ok(!reminders()[0].text.includes('A connection pool was exhausted.'));
+  await tick(Date.parse(past)+14*DAY); assert.equal(reminders().length,2,"day fourteen queues the next weekly reminder");
+  const waiver=`/api/app/incidents/${owingIncident.id}/report/waive`;
+  await expectStatus(await appFetch(waiver,{method:'POST',body:JSON.stringify({reason:'  '})}),400);
+  assert.equal((await (await appFetch(`/api/app/incidents/${owingIncident.id}/report`)).json()).waiver,null);
+  const reason='Synthetic Lamp report covered by a customer review.';
+  await expectStatus(await appFetch(waiver,{method:'POST',body:JSON.stringify({reason})}),200);
+  await tick(Date.parse(past)+21*DAY); assert.equal(reminders().length,2,"waiver stops later reminders");
+  assert.equal((await (await appFetch('/api/app/reports/owing')).json()).incidentIds.includes(owingIncident.id),false);
+  const audited=(await (await appFetch('/api/app/audit-log?action=report.waived&limit=100')).json()).entries.filter(row=>row.entityId===owingIncident.id);
+  assert.equal(audited.length,1); assert.equal(audited[0].reason,reason); assert.equal(audited[0].actorId,owner.id);
+  await expectStatus(await appFetch(`/api/app/incidents/${owingIncident.id}/report`,{method:'PUT',body:JSON.stringify(report)}),200);
+  await expectStatus(await appFetch(`/api/app/incidents/${owingIncident.id}/report/publish`,{method:'POST',body:JSON.stringify({channels:[]})}),200);
+  await tick(Date.parse(past)+28*DAY); assert.equal(reminders().length,2,"a waived report can still be published");
+  const publishedReminders=()=>queryD1Sql(testStatePath,"SELECT payload_json FROM notification_outbox WHERE kind='operator-alert'").map(row=>JSON.parse(row.payload_json)).filter(row=>row.title===`Lamp report follow-up: ${incident.reference}`);
+  assert.equal(publishedReminders().length,0,"a published report sends no weekly reminder");
+
 })(t);
   t.diagnostic("HIST-003 — a major incident remains report-due after seven days even if its current component claim is later lowered");
   await (async () => {

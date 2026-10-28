@@ -1,3 +1,4 @@
+import { tenMetricWeightFixture } from "./helpers/metric-weight-flow.mjs";
 import { catalogueHistoryFlow } from "./helpers/catalogue-history-flow.mjs";
 import { widgetVariantsFlow } from "./helpers/widget-variants-flow.mjs";
 import { publicResourcesFlow } from "./helpers/public-resources-flow.mjs";
@@ -13,6 +14,7 @@ import { join, resolve } from "node:path";
 import { after, before, test } from "node:test";
 import { gzipSync } from "node:zlib";
 import { chromium } from "playwright";
+import AxeBuilder from "@axe-core/playwright";
 import { createServer as createViteServer } from "vite";
 
 import { insertRealOperatorSession } from "./real-session-helper.mjs";
@@ -295,7 +297,7 @@ test("COMP-001 COMP-004 COMP-005 COMP-007 PAGE-004 — Component states, private
   assert.equal(tooLong.status, 400);
   assert.equal((await appFetch(`/api/app/components/${component.id}`, { method: "DELETE" })).status, 204);
 })(t);
-  t.diagnostic("COMP-005 — an internal component leaks through none of the public snapshot artifacts");
+  t.diagnostic("COMP-005 — an internal component, and any record only it covers, leaks through none of the public snapshot artifacts, also once either deletion door removes it");
   await (async () => {
   const created = await appFetch("/api/app/components", { method: "POST", body: JSON.stringify({ groupId: "01J00000000000000000000002", name: "Private artifact probe", description: "", internal: true, displayOrder: 91, note: "not public" }) });
   assert.equal(created.status, 201);
@@ -303,6 +305,52 @@ test("COMP-001 COMP-004 COMP-005 COMP-007 PAGE-004 — Component states, private
   const [page, feed, widget] = await Promise.all([fetch(`${pageUrl}/`), fetch(`${pageUrl}/feed.atom`), fetch(`${pageUrl}/widget.js`)]);
   for (const artifact of await Promise.all([page.text(), feed.text(), widget.text()])) assert.doesNotMatch(artifact, /Private artifact probe|not public/);
   assert.equal((await appFetch(`/api/app/components/${component.id}`, { method: "DELETE" })).status, 204);
+  // Deletion keeps attachment names for published history (COMP-007); a deleted
+  // internal component and the records only it covered still stay private.
+  const groupId = "01J00000000000000000000002", operator = "01J00000000000000000000001";
+  const at = hoursAgo => new Date(Date.now() - hoursAgo * 3_600_000).toISOString();
+  const [opened, resolved, starts, ends] = [at(6), at(5), at(4), at(3)];
+  const createComponent = async (name, internal) => {
+    const response = await appFetch("/api/app/components", { method: "POST", body: JSON.stringify({ groupId, name, description: "", internal, displayOrder: 93, note: "" }) });
+    assert.equal(response.status, 201);
+    return (await response.json()).component;
+  };
+  const deleteThrough = {
+    single: async id => assert.equal((await appFetch(`/api/app/components/${id}`, { method: "DELETE" })).status, 204),
+    catalogue: async id => {
+      const current = await (await appFetch("/api/app/components/bulk")).json();
+      const catalogue = { ...current.catalogue, components: current.catalogue.components.filter(item => item.id !== id) };
+      const review = await (await appFetch("/api/app/components/bulk/preview", { method: "POST", body: JSON.stringify({ catalogue, revision: current.revision }) })).json();
+      assert.equal((await appFetch("/api/app/components/bulk/apply", { method: "POST", body: JSON.stringify({ catalogue: review.catalogue, revision: review.revision, reviewToken: review.reviewToken }) })).status, 200);
+    },
+  };
+  const doors = Object.keys(deleteThrough);
+  const shared = await createComponent("Retained public probe", false);
+  const hidden = {};
+  try {
+    for (const [index, door] of doors.entries()) {
+      hidden[door] = await createComponent(`Private ${door} probe`, true);
+      const link = (id, incident, attached) => `('${door}-${id}','${door}-${incident}','${attached.id}','${attached.name}','Major outage','Primary','${opened}','${opened}','${opened}')`;
+      const update = incident => `('${door}-${incident}-update','${door}-${incident}','Resolved','${incident} ${door} readers','${incident} ${door} wording','','','${resolved}','${resolved}','${operator}','${resolved}','${resolved}')`;
+      executeLocalSql(`INSERT INTO incidents (id,reference,title,lifecycle,opened_at,resolved_at,created_by_operator_id,created_at,updated_at) VALUES ('${door}-Private','INC-772${index}','Private ${door} incident','Resolved','${opened}','${resolved}','${operator}','${opened}','${resolved}'),('${door}-Mixed','INC-773${index}','Mixed ${door} incident','Resolved','${opened}','${resolved}','${operator}','${opened}','${resolved}'); INSERT INTO incident_updates (id,incident_id,lifecycle,affected_audience,customer_impact,what_still_works,details,next_update_at,published_at,author_operator_id,created_at,updated_at) VALUES ${update("Private")},${update("Mixed")}; INSERT INTO incident_components (id,incident_id,component_id,component_name,state,relationship,published_at,created_at,updated_at) VALUES ${link("private-link", "Private", hidden[door])},${link("mixed-private-link", "Mixed", hidden[door])},${link("mixed-public-link", "Mixed", shared)}; INSERT INTO maintenance (id,reference,title,state,starts_at,ends_at,completed_at,created_by_operator_id,created_at,updated_at) VALUES ('${door}-window','SCH-772${index}','Private ${door} window','Completed','${starts}','${ends}','${ends}','${operator}','${starts}','${ends}'); INSERT INTO maintenance_components (id,maintenance_id,component_id,component_name,state,created_at,updated_at) VALUES ('${door}-window-link','${door}-window','${hidden[door].id}','${hidden[door].name}','Under maintenance','${starts}','${starts}')`);
+    }
+    // An unchanged save republishes the snapshot with the records above.
+    assert.equal((await appFetch(`/api/app/components/${shared.id}`, { method: "PUT", body: JSON.stringify({ groupId, name: shared.name, description: "", internal: false, displayOrder: 93, note: "" }) })).status, 200);
+    const surfaces = ["/", "/history", "/feed.atom", "/feed.rss", "/history.atom", "/history.rss", "/widget.js", "/embed/script.js", "/api/public/status", "/api/v2/summary.json", "/api/v2/incidents.json", "/api/v2/scheduled-maintenances.json", "/api/public/v1/incidents", "/api/public/v1/maintenance",
+      ...doors.flatMap((door, index) => [`/incidents/INC-772${index}`, `/incidents/INC-773${index}`, `/maintenance/SCH-772${index}`])];
+    const assertPublicSurfaces = async stage => {
+      for (const path of surfaces) assert.doesNotMatch(await (await fetch(`${pageUrl}${path}`)).text(), /Private (?:single|catalogue) (?:probe|incident|window|readers|wording)/, `${stage}: ${path}`);
+      const history = await (await fetch(`${pageUrl}/history`)).text();
+      for (const door of doors) assert.match(history, new RegExp(`Mixed ${door} incident`), `${stage}: the public record stays in history`);
+      assert.match(history, /affected Retained public probe/, `${stage}: the public component stays named`);
+    };
+    await assertPublicSurfaces("while the private components exist");
+    for (const door of doors) await deleteThrough[door](hidden[door].id);
+    await assertPublicSurfaces("after the private components are deleted");
+  } finally {
+    executeLocalSql(`DELETE FROM incidents WHERE id IN (${doors.flatMap(door => [`'${door}-Private'`, `'${door}-Mixed'`]).join(",")}); DELETE FROM maintenance WHERE id IN (${doors.map(door => `'${door}-window'`).join(",")})`);
+    for (const { id } of [...Object.values(hidden), shared]) await appFetch(`/api/app/components/${id}`, { method: "DELETE" });
+  }
 })(t);
   t.diagnostic("COMP-007 — deleting a component removes its uptime but preserves its name in published history");
   await (async () => {
@@ -591,6 +639,8 @@ test("PAGE-013 PAGE-014 PAGE-008 PAGE-009 PAGE-003 — Public isolation, live ti
     assert.equal(response.headers.get("content-security-policy"), `default-src ${origin}; script-src ${origin}; style-src ${origin}; font-src 'self' data:; img-src ${origin}; connect-src ${origin}; form-action ${origin}; base-uri ${origin}; frame-ancestors 'none'; object-src 'none'`);
     assert.equal(response.headers.get("x-content-type-options"), "nosniff");
     assert.equal(response.headers.get("referrer-policy"), "strict-origin-when-cross-origin");
+    // Complete each real response before starting the next connection.
+    await response.arrayBuffer();
   }
 })(t);
   t.diagnostic("PAGE-014 — browser polling updates status in place without changing the configured timezone");
@@ -599,32 +649,82 @@ test("PAGE-013 PAGE-014 PAGE-008 PAGE-009 PAGE-003 — Public isolation, live ti
   try {
     const context = await browser.newContext({ timezoneId: "America/New_York" });
     const page = await context.newPage();
-    await page.clock.install({ time: new Date("2026-09-08T12:00:00.000Z") });
-    let polls = 0;
-    await page.route("**/api/public/status", async (route) => {
-      polls += 1;
-      await route.fulfill({ contentType: "application/json", body: JSON.stringify({ version: 1, generatedAt: "2026-09-08T12:00:30.000Z", overall: "Major outage", incident: { reference: "INC-123", title: "Live update", lifecycle: "Investigating", publishedAt: "2026-09-08T12:00:30.000Z", summary: "Investigating · Fresh customer update.", message: "Fresh customer update." } }) });
-    });
-    await page.goto(`${pageUrl}/`);
-    const timezoneLabel = page.locator("[data-timezone-label]");
-    const initialTimezoneLabel = await timezoneLabel.textContent();
-    assert.ok(initialTimezoneLabel.trim());
-    assert.equal(await timezoneLabel.getAttribute("data-timezone"), "America/Los_Angeles");
-    await page.clock.fastForward(30_000);
-    await page.waitForFunction(() => document.querySelector("[data-overall]")?.textContent === "Major outage");
-    assert.equal(polls, 1, "the script polls once at its 30-second cadence");
-    const live = page.locator("#status-live");
-    assert.equal(await live.getAttribute("aria-live"), "polite");
-    assert.equal(await live.getAttribute("aria-atomic"), "true");
-    assert.match(await live.innerText(), /Major outage[\s\S]*Fresh customer update/);
-    assert.equal(await timezoneLabel.textContent(), initialTimezoneLabel);
-    assert.equal(await timezoneLabel.getAttribute("data-timezone"), "America/Los_Angeles");
-    assert.equal(await page.locator("[data-generated-at] time").getAttribute("datetime"), "2026-09-08T12:00:30.000Z");
-    assert.equal(await page.locator("[data-generated-at] time").textContent(), "just now");
-    assertVisibleTime(await page.locator("[data-generated-at] time").getAttribute("title"), "2026-09-08T12:00:30.000Z", "America/Los_Angeles");
-    await page.clock.fastForward(90 * 60_000);
-    await page.waitForFunction(() => document.querySelector("[data-generated-at] time")?.textContent === "1 hour ago");
-    assertVisibleTime(await page.locator("[data-generated-at] time").getAttribute("title"), "2026-09-08T12:00:30.000Z", "America/Los_Angeles");
+    await page.clock.install();
+    let polls=0;
+    page.on("request",request=>{if(request.url()===`${pageUrl}/api/public/status`)polls++;});
+    const originalComponents=(await (await appFetch("/api/app/components")).json()).components;
+    for(const [id,region] of [["01J00000000000000000000010","US East"],["01J00000000000000000000020","Europe"]]) {
+      const {name,groupId,description,internal,displayOrder,note}=originalComponents.find(component=>component.id===id);
+      assert.equal((await appFetch(`/api/app/components/${id}`,{method:"PUT",body:JSON.stringify({name,groupId,description,internal,displayOrder,note,region})})).status,200);
+    }
+    for (const template of ["default","calm","uptime","regions"]) {
+      await updateSettings({template});
+      for (const width of [1440,390]) {
+      await page.setViewportSize({width,height:1000});
+      await page.clock.setSystemTime(new Date());
+      await page.goto(`${pageUrl}/`);
+      assert.equal(await page.locator("[data-generated-at] time").textContent(),"just now");
+      if(template!=="default")assert.equal(await page.locator("body").getAttribute("data-template"),template);
+      assert.equal(await page.locator("#status-live [data-generated-at]").count(),0,"generation clocks are outside announcements");
+      const live=page.locator("#status-live");
+      assert.equal(await live.getAttribute("role"),"status","the live region exists on first load");
+      assert.equal(await live.getAttribute("aria-live"),"polite");
+      assert.equal(await live.getAttribute("aria-atomic"),"true");
+      const timezoneLabel=page.locator("[data-timezone-label]");
+      const initialTimezoneLabel=await timezoneLabel.textContent();
+      assert.equal(await timezoneLabel.getAttribute("data-timezone"),"America/Los_Angeles");
+      await page.evaluate(()=>{
+        window.liveChanges=[];window.statusRenders=0;
+        new MutationObserver(()=>window.statusRenders++).observe(document.querySelector('[data-generated-at]'),{subtree:true,childList:true});
+        new MutationObserver(()=>window.liveChanges.push(document.querySelector('#status-live').textContent)).observe(document.querySelector('#status-live'),{subtree:true,childList:true,characterData:true});
+      });
+      const made=await appFetch("/api/app/incidents",{method:"POST",body:JSON.stringify({title:"synthetic-lamp-64",components:[{componentId:"01J00000000000000000000010",state:"Major outage",relationship:"Primary"}]})});
+      assert.equal(made.status,201);const incident=(await made.json()).incident;
+      for (const [lifecycle,impact] of [["Investigating","Requests are unavailable."],["Monitoring","Requests are recovering."],["Resolved","Requests are restored."]]) {
+        assert.equal((await appFetch(`/api/app/incidents/${incident.id}/draft`,{method:"PUT",body:JSON.stringify({lifecycle,affectedAudience:"Customers",customerImpact:impact,whatStillWorks:"The status page is available.",details:"",nextUpdateAt:lifecycle==="Resolved"?null:new Date(Date.now()+3600_000).toISOString()})})).status,200);
+        assert.equal((await appFetch(`/api/app/incidents/${incident.id}/publish`,{method:"POST",body:JSON.stringify({channels:[]})})).status,200);
+        // Wait for the real snapshot's readiness, then advance only this browser's polling clock.
+        let status;
+        const deadline=performance.now()+10_000;
+        do {
+          status=await (await fetch(`${pageUrl}/api/public/status`)).json();
+          if(lifecycle==="Resolved"?status.incident?.reference!==incident.reference:status.incident?.summary===`${lifecycle} · ${impact}`)break;
+          await new Promise(resolve=>setTimeout(resolve,100));
+        } while(performance.now()<deadline);
+        assert.ok(lifecycle==="Resolved"?status.incident?.reference!==incident.reference:status.incident?.summary===`${lifecycle} · ${impact}`,"publication reaches the real status response");
+        const response=page.waitForResponse(response=>response.url()===`${pageUrl}/api/public/status`&&response.status()===200);
+        const beforePoll=polls;
+        await page.clock.fastForward(30_000);const polled=await (await response).json();
+        assert.equal(polls-beforePoll,1,"the script polls once at its 30-second cadence");
+        const expected=template==="default"?(status.incident?status.incident.summary:"There are no open incidents."):(lifecycle==="Resolved"?null:impact);
+        if(expected)await page.waitForFunction(text=>document.querySelector('#status-live')?.textContent.includes(text),expected);
+        await page.waitForFunction(at=>document.querySelector("[data-generated-at] time")?.getAttribute("datetime")===at,polled.generatedAt);
+        assertVisibleTime(await page.locator("[data-generated-at] time").getAttribute("title"),polled.generatedAt,"America/Los_Angeles");
+        const announcement=await live.innerText();
+        assert.ok(announcement.includes(status.overall));
+        if(template==="default")assert.ok(announcement.includes(status.incident?status.incident.summary:"There are no open incidents."));
+        else if(lifecycle!=="Resolved")assert.ok(announcement.includes(impact));
+        else assert.ok(!announcement.includes("Requests are recovering."));
+        assert.ok(!announcement.includes(incident.id),"announcements contain no internal incident id");
+        assert.ok((await page.evaluate(()=>window.liveChanges.length))>0,"the persistent polite region receives changed text after publication");
+        await page.evaluate(()=>{window.liveChanges=[];});
+        const renderCount=await page.evaluate(()=>window.statusRenders);
+        const unchanged=page.waitForResponse(response=>response.url()===`${pageUrl}/api/public/status`&&response.status()===200);
+        await page.clock.fastForward(30_000);await unchanged;
+        await page.waitForFunction(count=>window.statusRenders>count,renderCount);
+        assert.deepEqual(await page.evaluate(()=>window.liveChanges),[],"an unchanged poll and relative timestamp render do not repeat the announcement");
+        assert.equal(await timezoneLabel.textContent(),initialTimezoneLabel);
+      }
+      const audit=await new AxeBuilder({page}).withTags(["wcag2a","wcag2aa","wcag21aa","wcag22aa"]).analyze();
+      assert.deepEqual(audit.violations.filter(item=>["serious","critical"].includes(item.impact)),[],`${template} ${width} live page accessibility`);
+      assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false,`${template} ${width} live page has no horizontal overflow`);
+      if(process.env.LAMP_SCREENSHOTS)await page.screenshot({path:`${process.env.LAMP_SCREENSHOTS}/page020-${template}-${width}.png`,fullPage:true});
+    }
+    }
+    await updateSettings({template:"default"});
+    await page.clock.fastForward(90*60_000);
+    await page.waitForFunction(()=>document.querySelector("[data-generated-at] time")?.textContent==="1 hour ago");
+    assertVisibleTime(await page.locator("[data-generated-at] time").getAttribute("title"),await page.locator("[data-generated-at] time").getAttribute("datetime"),"America/Los_Angeles");
     await context.close();
   } finally {
     await browser.close();
@@ -678,11 +778,14 @@ test("PAGE-013 PAGE-014 PAGE-008 PAGE-009 PAGE-003 — Public isolation, live ti
   t.diagnostic("PAGE-003 — the complete component-limit snapshot remains within the gzip budget");
   await (async () => {
   executeLocalSql(`WITH RECURSIVE n(value) AS (SELECT 1 UNION ALL SELECT value + 1 FROM n WHERE value < 194) INSERT INTO components (id, group_id, name, description, internal, display_order, note, created_at, updated_at) SELECT 'bulk-' || value, '01J00000000000000000000003', 'Bulk component ' || printf('%03d', value), substr('Maximum valid description for capacity measurement. ' || printf('%03d', value) || ' ..................................................................................................................................................................................................................................................', 1, 280), 0, 1000 + value, substr('Maximum valid public state note for component ' || printf('%03d', value) || ' ..................................................................................................................................................................................................................................................', 1, 250), '2026-06-10T00:00:00.000Z', '2026-06-10T00:00:00.000Z' FROM n; WITH RECURSIVE n(component) AS (SELECT 1 UNION ALL SELECT component + 1 FROM n WHERE component < 194), d(day) AS (SELECT 0 UNION ALL SELECT day + 1 FROM d WHERE day < 89) INSERT INTO component_state_history (id,component_id,previous_state,new_state,cause_type,cause_id,operator_id,changed_at,created_at,updated_at) SELECT 'bulk-history-' || component || '-' || day, 'bulk-' || component, 'Operational', 'Operational', 'standing-claim', NULL, '01J00000000000000000000001', strftime('%Y-%m-%dT%H:%M:%fZ','now','-' || (90 - day) || ' days'), '2026-06-10T00:00:00.000Z', '2026-06-10T00:00:00.000Z' FROM n CROSS JOIN d`);
+  await tenMetricWeightFixture(appFetch);
   await updateSettings({ tagline: "Status record at the component capacity limit." });
   const response = await fetch(`${pageUrl}/`);
   assert.equal(response.status, 200);
   const html = await response.text();
+  assert.equal((html.match(/data-metric-chart=/g)??[]).length,10,"all ten full-day series are inline charts at the component limit");
   const gzipBytes = gzipSync(Buffer.from(html)).byteLength;
+  t.diagnostic(`UPTIME-008 PAGE-003: ten 1,440-point series with 200 populated components: ${gzipBytes} bytes gzipped`);
   assert.ok(gzipBytes <= 50 * 1024, `PAGE-003 gzip budget exceeded at 200 populated components: ${gzipBytes} bytes`);
   assert.match(html, /Maximum valid public state note for component 001/, "the capacity fixture includes a visible 250-character note");
   const marksPerComponent = [...html.matchAll(/class="uptime-mark /g)].length / 200;
@@ -700,7 +803,9 @@ test("PAGE-013 PAGE-014 PAGE-008 PAGE-009 PAGE-003 — Public isolation, live ti
       await new Promise(resolve => setTimeout(resolve, 100));
     } while (performance.now() < deadline);
     assert.ok(shown.includes(`data-template="${template}"`), `the public page shows ${template}`);
+    assert.equal((shown.match(/data-metric-chart=/g)??[]).length,10,`${template} retains every performance chart`);
     const templateBytes = gzipSync(Buffer.from(shown)).byteLength;
+    t.diagnostic(`UPTIME-008 PAGE-003 ${template}: ten charts and 200 populated components: ${templateBytes} bytes gzipped`);
     assert.ok(templateBytes <= 50 * 1024, `PAGE-003 gzip budget exceeded by ${template} at 200 populated components: ${templateBytes} bytes`);
     assert.match(shown, /Maximum valid public state note for component 001/, `${template} keeps the capacity fixture's visible note`);
   }

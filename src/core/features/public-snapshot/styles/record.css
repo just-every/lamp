@@ -60,3 +60,9 @@
 .subscribe input:focus-visible { outline: 3px solid var(--ink); outline-offset: 2px; }
 .subscribe button, .subscriber-document button { min-height: 44px; flex: none; border: 1px solid transparent; border-radius: 10px; background: var(--accent); padding: 10px 20px; color: var(--accent-ink); font: 600 15px/1.2 var(--public-font); cursor: pointer; box-shadow: 0 6px 16px -8px rgb(24 45 36 / .45); }
 .subscribe button:hover, .subscriber-document button:hover { filter: brightness(.94); }
+
+.subscribe-options { min-width: 0; }
+.subscribe-channel { margin-top: 18px; font-size: 14px; }
+.subscribe-channel > summary { min-height: 32px; color: var(--ink); font-weight: 600; cursor: pointer; }
+.subscribe-channel form { margin-top: 8px; }
+.subscribe-channel button { margin-top: 14px; }

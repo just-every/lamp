@@ -43,6 +43,11 @@ test("generated setup config uses the Start entry and leaves client assets to Vi
     process.env = ownerEnvironment;
   }
   const settings = deploymentConfig(fixture, "staging");
+  const sms=deploymentConfig({...fixture,TWILIO_ACCOUNT_SID:"synthetic-lamp-1",TWILIO_AUTH_TOKEN:"synthetic-lamp-2",TWILIO_FROM_NUMBER:"+12025550100",TWILIO_MESSAGING_SERVICE:"synthetic-lamp-3"},"staging");
+  assert.equal(sms.twilioAccountSid,"synthetic-lamp-1");
+  assert.equal(sms.twilioAuthToken,"synthetic-lamp-2");
+  assert.equal(sms.twilioFromNumber,"+12025550100");
+  assert.equal(sms.twilioMessagingService,"synthetic-lamp-3");
   const config = renderWranglerToml(
     settings,
     { ...resourceNames(settings.environment, settings.resourcePrefix), databaseId: "00000000-0000-0000-0000-000000000000" },
@@ -52,6 +57,7 @@ test("generated setup config uses the Start entry and leaves client assets to Vi
   assert.match(config, /^compatibility_flags = \["nodejs_compat", "global_fetch_strictly_public"\]$/m);
   assert.match(config, /\[assets\]\nbinding = "ASSETS"\nrun_worker_first = true/);
   assert.doesNotMatch(config, /directory = "dist\/client"|not_found_handling/);
+  assert.doesNotMatch(config,/TWILIO_|synthetic-lamp-[123]/,"provider credentials stay out of public Wrangler vars");
 });
 
 function run(command, args, options = {}) {

@@ -2,7 +2,6 @@ import assert from 'node:assert/strict';
 import { generateKeyPairSync, randomUUID, sign, createHash } from 'node:crypto';
 import { readdirSync, readFileSync } from 'node:fs';
 import { nativeRequest, openNativeRuntime, origin, operator } from '../../dev-ingress/runtime.mjs';
-import { appOrigin } from './hosts.mjs';
 import { signInAs } from '@runeditrun/rer/internal/modules/operator-auth/dev/sign-in-as.mjs';
 import { devKey } from '../../helpers/dev-key.mjs';
 import { notificationActivity, assertNoNewNotifications, moveInDoor } from '../../helpers/import-notifications.mjs';
@@ -73,8 +72,7 @@ export async function businessImportDoorFlow({ afterApply, afterSources } = {}) 
   const {privateKey,publicKey} = generateKeyPairSync('ec',{namedCurve:'P-256'});
   const kid='synthetic-business',installationId=randomUUID(),issuer='https://business.example.test';
   const vars={RER_OWNER_CLAIM_PUBLIC_KEYS:JSON.stringify({[kid]:publicKey.export({format:'jwk'})}),RER_OWNER_CLAIM_ISSUER:issuer,RER_OWNER_CLAIM_INSTALLATION_ID:installationId};
-  appOrigin(new URL(origin).port,vars);
-  const runtime=await openNativeRuntime();
+  const runtime=await openNativeRuntime({fixtureVars:vars});
   try {
     await runtime.start(); await runtime.seedOperator();
     const entered=await signInAs({origin,key:devKey});

@@ -16,7 +16,7 @@
   .operator-header .operator-account { width: 100%; justify-content: space-between; }
   .operator-header .operator-identity { justify-items: start; }
   .operator-main { padding: 24px 16px; }
-  .settings-workspace, .alert-source-grid, .maintenance-workspace { grid-template-columns: 1fr; }
+  .settings-workspace, .maintenance-workspace { grid-template-columns: 1fr; }
   .maintenance-schedule-card { position: static; }
   .subscriber-webhook-card, .subscriber-webhook-form, .operators-invite-form { grid-template-columns: 1fr; }
 }
@@ -30,7 +30,7 @@
   .operator-main { padding: 20px 16px; }
   .page-title-row { align-items: stretch; flex-direction: column; min-height: 0; }
   .page-title-row .button { width: 100%; }
-  .overview-grid, .settings-grid, .alert-editor-form, .row-window { grid-template-columns: minmax(0, 1fr); }
+  .overview-grid, .settings-grid, .row-window { grid-template-columns: minmax(0, 1fr); }
   .data-card { padding: 16px; }
   .subscriber-table-card, .component-group-card { padding: 0; }
   .app-state-empty { padding: 24px 8px; }

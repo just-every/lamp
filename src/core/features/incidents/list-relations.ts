@@ -4,17 +4,17 @@ import { incidents, incidentComponents, incidentUpdates, incidentInternalNotes }
 import type { ComponentState } from "../../shared/domain";
 import type { PublishingDraft } from "./repository";
 
-export type DraftRow = Omit<PublishingDraft, "scheduledChannels" | "componentChanges"> & { scheduledChannelsJson: string | null; componentChangesJson: string };
+export type DraftRow = Omit<PublishingDraft, "scheduledChannels" | "componentChanges"> & { scheduledChannelsJson: string | null; componentChangesJson: string; agentPreparationJson?: string | null };
 
 export function publishingDraft(row: DraftRow | null): PublishingDraft | null {
   if (!row) return null;
   let candidate: unknown;
   try { candidate = JSON.parse(row.scheduledChannelsJson ?? "[]"); }
   catch { throw new Error("Scheduled delivery channel configuration is malformed."); }
-  if (!Array.isArray(candidate) || candidate.some(item => item !== "email" && item !== "webhook" && item !== "chat")) throw new Error("Scheduled delivery channel configuration is invalid.");
+  if (!Array.isArray(candidate) || candidate.some(item => item !== "email" && item !== "webhook" && item !== "chat" && item !== "sms")) throw new Error("Scheduled delivery channel configuration is invalid.");
   const componentChanges = JSON.parse(row.componentChangesJson);
   if (!Array.isArray(componentChanges)) throw new Error("Draft component changes are malformed.");
-  return { ...row, componentChanges, scheduledChannels: [...new Set(candidate)] };
+  return { ...row, agentPreparation: row.agentPreparationJson ? JSON.parse(row.agentPreparationJson) : null, componentChanges, scheduledChannels: [...new Set(candidate)] };
 }
 
 function byIncident<T extends { incidentId: string }>(rows: T[]): Map<string, T[]> {
@@ -36,7 +36,7 @@ export async function listIncidentRelations(binding: D1Database) {
     db.select().from(incidentComponents).where(inArray(incidentComponents.incidentId, visible)).all(),
     db.select().from(incidentUpdates).where(inArray(incidentUpdates.incidentId, visible)).orderBy(desc(incidentUpdates.publishedAt)).all(),
     db.select().from(incidentInternalNotes).where(inArray(incidentInternalNotes.incidentId, visible)).orderBy(desc(incidentInternalNotes.createdAt)).all(),
-    binding.prepare(`SELECT d.id, d.incident_id AS incidentId, d.lifecycle, d.affected_audience AS affectedAudience, d.customer_impact AS customerImpact, d.what_still_works AS whatStillWorks, d.details, d.next_update_at AS nextUpdateAt, d.author_operator_id AS authorOperatorId, d.created_at AS createdAt, d.updated_at AS updatedAt, d.scheduled_publish_at AS scheduledPublishAt, d.scheduled_channels_json AS scheduledChannelsJson, d.reviewed_by_operator_id AS reviewedByOperatorId, d.reviewed_at AS reviewedAt, d.corrects_update_id AS correctsUpdateId, d.component_changes_json AS componentChangesJson FROM incident_drafts d JOIN incidents i ON i.id=d.incident_id WHERE i.deleted_at IS NULL`).all<DraftRow>(),
+    binding.prepare(`SELECT d.id, d.incident_id AS incidentId, d.lifecycle, d.affected_audience AS affectedAudience, d.customer_impact AS customerImpact, d.what_still_works AS whatStillWorks, d.details, d.next_update_at AS nextUpdateAt, d.author_operator_id AS authorOperatorId, d.created_at AS createdAt, d.updated_at AS updatedAt, d.scheduled_publish_at AS scheduledPublishAt, d.scheduled_channels_json AS scheduledChannelsJson, d.reviewed_by_operator_id AS reviewedByOperatorId, d.reviewed_at AS reviewedAt, d.corrects_update_id AS correctsUpdateId, d.component_changes_json AS componentChangesJson,(SELECT preparation_json FROM incident_agent_draft_preparations WHERE draft_id=d.id AND active=1) AS agentPreparationJson FROM incident_drafts d JOIN incidents i ON i.id=d.incident_id WHERE i.deleted_at IS NULL`).all<DraftRow>(),
     binding.prepare("SELECT id, peak_impact AS peakImpact FROM incidents WHERE deleted_at IS NULL").all<{ id: string; peakImpact: ComponentState | null }>(),
   ]);
   return {

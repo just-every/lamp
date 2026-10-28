@@ -1,3 +1,5 @@
+import { createMetricsRepository } from "../metrics/repository";
+import type { PublicMetric } from "../metrics/types";
 import { readImportedNamespaces, readImportedPublicRecords } from "../statuspage-import/alias-repository";
 import type { ImportedPublicRecord } from "../statuspage-import/public-addresses";
 import { loadPublicApiIds } from "./api-identity-repository";
@@ -35,6 +37,7 @@ export interface SnapshotRepository {
 }
 
 export interface PublicSnapshotSource {
+  metrics?: PublicMetric[];
   websiteUrl?: string | null;
   publicOrigin?: string;
   publicApiIds?: Record<string, string>;
@@ -124,7 +127,7 @@ export function createSnapshotRepository(binding: D1Database, publicOrigin?: str
           .select()
           .from(incidentComponents)
           .leftJoin(components, eq(incidentComponents.componentId, components.id))
-          .where(and(sql`incident_components.published_at IS NOT NULL`, or(isNull(incidentComponents.componentId), eq(components.internal, false))))
+          .where(and(sql`incident_components.published_at IS NOT NULL`, or(and(isNull(incidentComponents.componentId), sql`incident_components.detached_internal = 0`), eq(components.internal, false))))
           .all()
           .then((rows) => rows.map((row) => row.incident_components)),
         database.select().from(incidentUpdates).orderBy(desc(incidentUpdates.publishedAt)).all(),
@@ -133,7 +136,7 @@ export function createSnapshotRepository(binding: D1Database, publicOrigin?: str
           .select()
           .from(maintenanceComponents)
           .leftJoin(components, eq(maintenanceComponents.componentId, components.id))
-          .where(or(isNull(maintenanceComponents.componentId), eq(components.internal, false)))
+          .where(or(and(isNull(maintenanceComponents.componentId), sql`maintenance_components.detached_internal = 0`), eq(components.internal, false)))
           .all()
           .then((rows) => rows.map((row) => row.maintenance_components)),
         binding.prepare(`SELECT incident_id AS incidentId, summary, timeline, cause, remediation, published_at AS publishedAt FROM incident_reports WHERE published_at IS NOT NULL ORDER BY published_at DESC`).all<{ incidentId: string; summary: string; timeline: string; cause: string; remediation: string; publishedAt: string }>().then((result) => result.results),
@@ -163,7 +166,7 @@ export function createSnapshotRepository(binding: D1Database, publicOrigin?: str
         maintenance: maintenanceRows,
         maintenanceComponents: attachedMaintenanceComponents,
         reports,
-        maintenanceNotices, importedMaintenanceUpdates,
+        maintenanceNotices, importedMaintenanceUpdates, metrics: await createMetricsRepository(binding).publicSeries(),
       };
     },
     async startBuild(input) {

@@ -62,6 +62,12 @@
   .subscriber-directory-card .subscriber-actions:empty { display: none; }
   .subscriber-directory-card .subscriber-actions .button { width: 100%; min-height: 44px; }
 }
+/* Delivery records: only the destination may break inside a word, so Webhook and the times stay whole. */
+.delivery-records-card td:not(.subscriber-destination) { overflow-wrap: break-word; }
+/* On the narrowest phones each delivery field's label sits above its value, so a long pill keeps its record's padding. */
+@media (max-width: 360px) {
+  .delivery-records-card td { grid-template-columns: minmax(0, 1fr); gap: 2px; }
+}
 
 /* Maintenance. */
 .maintenance-workspace { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(0, .8fr); gap: 20px; align-items: start; }

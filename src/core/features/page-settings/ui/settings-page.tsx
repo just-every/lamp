@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link, getRouteApi, useBlocker } from "@tanstack/react-router";
+import { Link, getRouteApi } from "@tanstack/react-router";
 
 import type { PageSettingsService } from "../service";
 import type { OverviewService } from "../../overview/service";
@@ -9,6 +9,7 @@ import { Icon } from "../../../app/client/ui/icon";
 import { useLeaveGuard } from "../../../app/client/ui/leave-guard";
 import { LoadingState } from "../../../app/client/ui/states";
 import { ErrorState } from "../../../app/client/ui/lit-states";
+import { ChatLinksPanel } from "../../chat-desk/ui/chat-links-panel";
 import { ChannelsCard } from "../../channels/ui/channels-card";
 import { OperatorsPanel } from "../../operators/ui/operators-panel";
 import { ImportDoorSetting } from "./import-door-setting";
@@ -18,6 +19,7 @@ import { SettingsTabs, useSettingsTab } from "./settings-tabs";
 import { PublicResources } from "./public-resources";
 import { PageSettingsTab } from "./page-settings-tab";
 import { NotificationSettingsTab } from "./notification-settings-tab";
+import type { TrafficSavePhase } from "./traffic-alert-settings";
 import { WritingSettingsTab } from "./writing-settings-tab";
 import { SettingsSaveState } from "./settings-save-state";
 import { useSettingsAutosave } from "./use-settings-autosave";
@@ -41,13 +43,15 @@ export function SettingsPage() {
   const [brandStatus, setBrandStatus] = useState<string | null>(null);
   const [ready, setReady] = useState(false);
   useEffect(() => setReady(true), []);
-  useBlocker({
-    // Leaving waits for pending edits to save; a refused save keeps the owner here with its reason and Retry.
-    shouldBlockFn: async ({ next }) => next.pathname !== "/app/settings" && !await autosave.leave(),
-    enableBeforeUnload: autosave.unsaved,
-  });
-  // Signing out waits the same way, before the session ends.
-  useLeaveGuard(autosave.leave);
+  // Notifications mounts on its first visit and then stays, so an unsaved traffic edit survives tab changes.
+  const [notificationsOpened, setNotificationsOpened] = useState(false);
+  if (tab === "notifications" && !notificationsOpened) setNotificationsOpened(true);
+  const [trafficPhase, setTrafficPhase] = useState<TrafficSavePhase>("saved");
+  // The tab's one save note reads "Saved · live" only once every write on it has landed.
+  const phases = [autosave.phase, trafficPhase];
+  const phase = (["error", "saving", "waiting"] as const).find(candidate => phases.includes(candidate)) ?? "saved";
+  // Leaving Settings or signing out waits for pending edits to save; a refused save keeps the owner here with its reason and Retry.
+  useLeaveGuard(autosave.leave, autosave.unsaved);
   if (loading && !data) return <LoadingState />;
   if (error && !settings) return <ErrorState onRetry={() => window.location.reload()}>{error}</ErrorState>;
   if (!settings || !saved) return null;
@@ -60,14 +64,14 @@ export function SettingsPage() {
   return <div className="page-stack settings-page" inert={!ready}>
     <section className="page-title-row"><h1>Settings</h1></section>
     <SettingsTabs current={tab} />
-    {configuration && <SettingsSaveState phase={autosave.phase} error={autosave.error} retry={autosave.retry} />}
+    {configuration && <SettingsSaveState phase={phase} error={autosave.error} retry={autosave.retry} />}
     <div className={configuration ? "settings-form page-stack" : "page-stack"}>
       {tab === "page" && <PageSettingsTab settings={settings} saved={saved} live={live} markSrc={markSrc} components={components} update={update} adoptSaved={autosave.adoptSaved} busy={brandBusy} setBusy={setBrandBusy} setStatus={setBrandStatus} />}
-      {tab === "notifications" && <NotificationSettingsTab settings={settings} live={live} identityEditable={saved.mailIdentityEditable} update={update} needsConfirm={autosave.pending("mailFromAddress")} confirm={() => autosave.confirm("mailFromAddress")} />}
-      {tab === "writing" && <WritingSettingsTab settings={settings} aiStatus={aiStatus} update={update} />}
+      {notificationsOpened && <div hidden={tab !== "notifications"}><div className="settings-form page-stack"><NotificationSettingsTab settings={settings} live={live} identityEditable={saved.mailIdentityEditable} update={update} needsConfirm={autosave.pending("mailFromAddress")} confirm={() => autosave.confirm("mailFromAddress")} onTrafficPhase={setTrafficPhase} /></div></div>}
+      <div hidden={tab !== "writing"}><div className="settings-form page-stack"><WritingSettingsTab settings={settings} aiStatus={aiStatus} update={update} /></div></div>
       {tab === "embeds" && <PublicResources publicOrigin={publicOrigin} allowedOrigins={settings.widgetAllowedOrigins} onOriginsChange={value => update("widgetAllowedOrigins", value)} appearance={settings.widgetAppearance} onAppearanceChange={(value, immediate) => update("widgetAppearance", value, immediate)} needsConfirm={autosave.pending("widgetAllowedOrigins")} onConfirm={() => autosave.confirm("widgetAllowedOrigins")} />}
       {tab === "page" && brandStatus && <p className="save-message" role="status">{brandStatus}</p>}
-      {tab === "channels" && <ChannelsCard />}
+      {tab === "channels" && <><ChannelsCard /><ChatLinksPanel /></>}
       {tab === "operators" && <OperatorsPanel />}
       {tab === "data" && <>
         <section className="data-card intake-link-card"><p className="card-kicker">Moving here</p><h2>Move in</h2><p>Bring components, incident history, maintenance and subscribers, with a dry run first and undo after.</p><ImportDoorSetting /><Link className="text-link" to="/app/move-in">Start a move-in <Icon name="arrow" width={16} height={16} /></Link><a className="text-link" href="/app/cutover">Cutover preview</a></section>

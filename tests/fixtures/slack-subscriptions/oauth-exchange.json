@@ -1,0 +1,25 @@
+{
+  "source": "synthetic Slack network-edge recording",
+  "request": {
+    "method": "POST",
+    "url": "https://slack.com/api/oauth.v2.access",
+    "client_id": "synthetic-lamp-73",
+    "client_secret": "synthetic-lamp-74",
+    "code": "synthetic-lamp-75",
+    "redirectPath": "/subscribe/slack/callback"
+  },
+  "response": {
+    "ok": true,
+    "app_id": "synthetic-lamp-78",
+    "scope": "incoming-webhook",
+    "team": {
+      "id": "synthetic-lamp-70",
+      "name": "synthetic-lamp-79"
+    },
+    "incoming_webhook": {
+      "channel": "#synthetic-lamp-72",
+      "channel_id": "synthetic-lamp-71",
+      "url": "https://hooks.slack.com/services/synthetic-lamp-1/synthetic-lamp-2/synthetic-lamp-3"
+    }
+  }
+}

@@ -84,6 +84,22 @@
     {
       "binding": "MAIL_API_KEY",
       "environment": "MAIL_API_KEY"
+    },
+    {
+      "binding": "TWILIO_ACCOUNT_SID",
+      "environment": "TWILIO_ACCOUNT_SID"
+    },
+    {
+      "binding": "TWILIO_AUTH_TOKEN",
+      "environment": "TWILIO_AUTH_TOKEN"
+    },
+    {
+      "binding": "TWILIO_FROM_NUMBER",
+      "environment": "TWILIO_FROM_NUMBER"
+    },
+    {
+      "binding": "TWILIO_MESSAGING_SERVICE",
+      "environment": "TWILIO_MESSAGING_SERVICE"
     }
   ],
   "crons": [

@@ -1,3 +1,4 @@
+import type { CommunicationOwnership } from "./communication-owner.repository";
 import { incidentImpact, type IncidentImpact } from "../../shared/incident-impact";
 import { createIncidentTemplateService, type IncidentTemplateService } from "./template-service";
 export type { IncidentTemplateInput } from "./template-schema";
@@ -16,7 +17,7 @@ import { DraftConflictError } from "./repository";
 import { checkRecovery, RecoveryCheckError, type RecoveryCheck } from "../brief/recovery-check";
 import type { IncidentPublishRecord, IncidentRepository, PublishingDraft, StoredIncident, StoredIncidentComponent, StoredIncidentDraft, StoredIncidentUpdate } from "./repository";
 
-export interface IncidentView extends StoredIncident {
+export interface IncidentView extends StoredIncident, CommunicationOwnership {
   impact: ComponentState | null;
   derivedImpact: IncidentImpact;
   effectiveImpact: IncidentImpact;
@@ -49,6 +50,7 @@ export interface IncidentComponentChangePreview {
 }
 
 export interface IncidentsService extends IncidentTemplateService {
+  communicationOwners: IncidentRepository["communicationOwners"];
   previewComponentChange(incidentId: string, change: IncidentComponentChange): Promise<IncidentComponentChangePreview>;
   attachComponent(incidentId: string, claim: { componentId: string; state: ComponentState; relationship: "Primary" | "Dependent" }, operatorId: string): Promise<void>;
   detachComponent(incidentId: string, componentId: string, operatorId: string): Promise<void>;
@@ -77,6 +79,7 @@ export interface IncidentPublicationStatements {
 }
 
 export interface IncidentRuntimeHooks {
+  trafficRecovery?: (check: RecoveryCheck) => Promise<RecoveryCheck>;
   events?: Pick<LampEventDispatcher, "incidentOpened" | "incidentUpdatePublished" | "incidentResolved">;
   /** After publication: dispatch its durable subscriber and channel notifications. */
   afterPublished?: (update: StoredIncidentUpdate) => Promise<void>;
@@ -91,15 +94,16 @@ export interface ScheduledReviewAlertEvent {
 }
 
 async function toIncidentView(repository: IncidentRepository, incident: StoredIncident, leadMinutes: number): Promise<IncidentView> {
-  const [components, updates, draft, internalNotes, peakImpact] = await Promise.all([
+  const [components, updates, draft, internalNotes, peakImpact, ownership] = await Promise.all([
     repository.listComponents(incident.id),
     repository.listUpdates(incident.id),
     repository.findPublishingDraft(incident.id),
     repository.listInternalNotes(incident.id),
     repository.findPeakImpact(incident.id),
+    repository.communicationOwners.get(incident.id),
   ]);
   const impact = peakImpact ?? (components.length === 0 ? null : mostSevereState(components.map((component) => component.state)));
-  return { ...incident, impact, ...incidentImpact(impact, incident.impactOverride), components, updates, draft, internalNotes, ...updateDueState({ lifecycle: incident.lifecycle, nextUpdateAt: updates[0]?.nextUpdateAt ?? null, leadMinutes, now: Date.now() }) };
+  return { ...incident, ...ownership, impact, ...incidentImpact(impact, incident.impactOverride), components, updates, draft, internalNotes, ...updateDueState({ lifecycle: incident.lifecycle, nextUpdateAt: updates[0]?.nextUpdateAt ?? null, leadMinutes, now: Date.now() }) };
 }
 
 function assertPublishableDraft(draft: PublishingDraft, components: StoredIncidentComponent[]) {
@@ -148,7 +152,8 @@ export function createIncidentsService(
     if (draft.lifecycle === "Resolved") {
       const evidence = await repository.loadRecoverySnapshot(incidentId);
       if (!evidence) return null;
-      const result = checkRecovery(evidence.evidence, timestamp);
+      const monitorCheck = checkRecovery(evidence.evidence, timestamp);
+      const result = runtime.trafficRecovery ? await runtime.trafficRecovery(monitorCheck) : monitorCheck;
       const reason = input.overrideReason?.trim();
       if (reason && reason.length > 1_000) throw new InvalidIncidentUpdateError("An override reason must contain at most 1,000 characters.");
       // Scheduling never grants a future override. Cron evaluates the evidence
@@ -203,9 +208,12 @@ export function createIncidentsService(
   };
 
   return {
+    communicationOwners: repository.communicationOwners,
     async recoveryCheck(incidentId) {
       const snapshot = await repository.loadRecoverySnapshot(incidentId);
-      return snapshot ? checkRecovery(snapshot.evidence, nowIso()) : null;
+      if (!snapshot) return null;
+      const check = checkRecovery(snapshot.evidence, nowIso());
+      return runtime.trafficRecovery ? runtime.trafficRecovery(check) : check;
     },
     async previewComponentChange(incidentId, change) {
       const [incident, component, attached, updates] = await Promise.all([
@@ -239,19 +247,19 @@ export function createIncidentsService(
       await onPublicDataChanged();
     },
     async detachComponent(incidentId, componentId, operatorId) {
-      await repository.detachComponent(incidentId, componentId, nowIso(), createUlid());
+      await repository.detachComponent(incidentId, componentId, nowIso(), createUlid(), operatorId);
       await componentsService.recomputePublicState(componentId, { type: "incident", id: incidentId, operatorId });
       await onPublicDataChanged();
     },
     // Reading incidents never sends mail: reminders come from the scheduled trigger.
     async list() {
-      const [incidents, relations] = await Promise.all([repository.listIncidents(), repository.listRelations()]);
+      const [incidents, relations, owners] = await Promise.all([repository.listIncidents(), repository.listRelations(), repository.communicationOwners.list()]);
       const leadMinutes = updateDuePolicy.leadMinutes();
       return incidents.map(incident => {
         const components = relations.components.get(incident.id) ?? [];
         const updates = relations.updates.get(incident.id) ?? [];
         const impact = relations.impacts.get(incident.id) ?? (components.length ? mostSevereState(components.map(component => component.state)) : null);
-        return { ...incident, impact, ...incidentImpact(impact, incident.impactOverride), components, updates, draft: relations.drafts.get(incident.id) ?? null, internalNotes: relations.notes.get(incident.id) ?? [], ...updateDueState({ lifecycle: incident.lifecycle, nextUpdateAt: updates[0]?.nextUpdateAt ?? null, leadMinutes, now: Date.now() }) };
+        return { ...incident, ...owners.get(incident.id)!, impact, ...incidentImpact(impact, incident.impactOverride), components, updates, draft: relations.drafts.get(incident.id) ?? null, internalNotes: relations.notes.get(incident.id) ?? [], ...updateDueState({ lifecycle: incident.lifecycle, nextUpdateAt: updates[0]?.nextUpdateAt ?? null, leadMinutes, now: Date.now() }) };
       });
     },
     async get(incidentId) {

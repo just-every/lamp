@@ -1,7 +1,15 @@
+import { metricsFlow } from "./helpers/metrics-flow.mjs";
+import { metricsBrowserFlow } from "./helpers/metrics-browser-flow.mjs";
+import { operationsAlertsBrowserFlow } from "./helpers/operations-alerts-browser-flow.mjs";
+import { operationsAlertsFlow } from "./helpers/operations-alerts-flow.mjs";
+import { selfServeChatFlow } from "./helpers/self-serve-chat-flow.mjs";
+import { chatLinksBrowserFlow } from "./helpers/chat-links-browser-flow.mjs";
 import { channelDeletionFlow } from "./helpers/channel-deletion-flow.mjs";
 import { pagerDutyBrowserFlow } from "./helpers/pagerduty-browser-flow.mjs";
 import { availabilityReportBrowserFlow } from "./helpers/availability-report-browser-flow.mjs";
 import { uptimePresetFlow } from "./helpers/uptime-preset-flow.mjs";
+import { uptimePairingFlow } from "./helpers/uptime-pairing-flow.mjs";
+import { webhookSourceBrowserFlow } from "./helpers/webhook-source-browser-flow.mjs";
 import { groupedAlertsFlow } from "./helpers/grouped-alerts-flow.mjs";
 import { pagerDutyFlow } from "./helpers/pagerduty-flow.mjs";
 import { UPDATE_LINK_FIELDS } from "./helpers/update-component-flow.mjs";
@@ -34,6 +42,7 @@ let cookie;
 let runtime;
 let receiver;
 const received = [];
+const chatSigningSecret = randomBytes(32).toString('hex');
 let slackReply = { status: 200, body: "ok" };
 
 async function api(path, init = {}) {
@@ -63,7 +72,7 @@ before(async () => {
   runtime.env.LAMP_DEV_CHANNEL_RECEIVER = `http://127.0.0.1:${receiver.address().port}`;
   const configPath = join(runtime.directory, "wrangler.json");
   await writeFile(configPath, localWranglerConfig(config => ({
-    ...config, vars: { ...config.vars, WEBHOOK_SIGNING_SECRET: randomBytes(32).toString("hex") },
+    ...config, vars: { ...config.vars, WEBHOOK_SIGNING_SECRET: randomBytes(32).toString("hex"), SLACK_SIGNING_SECRET: chatSigningSecret },
   })), { mode: 0o600 });
   runtime.env.LAMP_WRANGLER_CONFIG = configPath;
   await runtime.start();
@@ -77,10 +86,11 @@ after(async () => {
   await new Promise((resolve) => receiver?.close(resolve));
 });
 
-test("NOTIFY-011 NOTIFY-012 UPDATE-013 — Private channels deliver the selected publication once with literal text and punctuated links", async t => {
+test("SUB-014 NOTIFY-011 NOTIFY-012 UPDATE-013 — Private channels deliver the selected publication once with literal text and punctuated links", async t => {
   t.diagnostic("NOTIFY-011 — a Slack or Teams webhook URL is stored encrypted and never shown again");
   await (async () => {
   const api_ = await component("Payments API");
+
   const created = await post("/api/app/channels", { kind: "slack", name: "#payments", url: SLACK_A, componentIds: [api_.id] });
   assert.equal(created.status, 201, created.text);
   assert.equal(created.body.channel.host, "hooks.slack.com");
@@ -100,7 +110,7 @@ test("NOTIFY-011 NOTIFY-012 UPDATE-013 — Private channels deliver the selected
   const incident = await post("/api/app/incidents", { title: "Card payments failing", components: [{ componentId: payments.id, state: "Partially unavailable", relationship: "Primary" }] });
   assert.equal(incident.status, 201, incident.text);
   const id = incident.body.incident.id;
-  const draft = { lifecycle: "Investigating", ...UPDATE_LINK_FIELDS, nextUpdateAt: new Date(Date.now() + 3_600_000).toISOString() };
+  const draft = { lifecycle: "Investigating", ...UPDATE_LINK_FIELDS, details: `${UPDATE_LINK_FIELDS.details} See https://help.example.com/kb/123.`, nextUpdateAt: new Date(Date.now() + 3_600_000).toISOString() };
   assert.equal((await api(`/api/app/incidents/${id}/draft`, { method: "PUT", body: JSON.stringify(draft) })).status, 200);
   assert.equal((await api(`/api/app/incidents/${id}/impact`, { method: "PUT", body: JSON.stringify({ impactOverride: "major" }) })).status, 200);
   const published = await post(`/api/app/incidents/${id}/publish`, { channels: ["chat"] });
@@ -165,6 +175,8 @@ test("NOTIFY-011 NOTIFY-012 UPDATE-013 — Private channels deliver the selected
   assert.equal(sql("SELECT count(*) AS n FROM integration_deliveries")[0].n, 2, "test posts stay outside the durable publication log");
 })(t);
   await channelDeletionFlow({ api, post, origin, nativeRequest, runtime });
+  await runtime.stop();
+  try { await selfServeChatFlow(t); } finally { await runtime.start(); }
 });
 
 
@@ -177,7 +189,11 @@ const payloads = {
 };
 const sources = {};
 
-test("INTAKE-009 PagerDuty v3 signed events create drafts, brief entries and one note per publication · INTAKE-006 INTAKE-007", async t => {
+test("INTAKE-008 — the owner connects Uptime from the Alerts picker with nothing to type and pairs it by picking the monitors its events name", async () => {
+  await uptimePairingFlow({ api, component, origin, cookie });
+});
+
+test("INTAKE-014 INTAKE-011 INTAKE-009 PagerDuty v3 signed events create drafts, brief entries and one note per publication · INTAKE-005 INTAKE-006 INTAKE-007", async t => {
   t.diagnostic("INTAKE-006 — each monitor preset turns its tool's alert into a draft on its component, and refuses other payloads and bad credentials");
   await (async () => {
   for (const preset of Object.keys(payloads)) {
@@ -229,11 +245,18 @@ test("INTAKE-009 PagerDuty v3 signed events create drafts, brief entries and one
   assert.ok(shop.id);
 })(t);
   t.diagnostic("INTAKE-008 — Uptime signed envelopes map monitors, retain evidence and close only private drafts");
-  await uptimePresetFlow({ api, post, component, origin, publicOrigin, cookie });
+  await uptimePresetFlow({ api, post, component, publicOrigin });
   await groupedAlertsFlow({ api, post, component, sql, origin, publicOrigin, cookie });
   t.diagnostic("UPTIME-009 — authenticated month/quarter downloads in the native operator browser at 1440 and 390");
   await availabilityReportBrowserFlow({ api, post, component, origin, cookie });
+  t.diagnostic("INTAKE-005 — another tool connects with its own secret and JSON paths; its receipts are redacted");
+  await webhookSourceBrowserFlow({ origin, cookie, api, post });
   t.diagnostic("INTAKE-009 — signed PagerDuty evidence stays private until publication; responder notes survive replay, rejection and restore safely");
+  await operationsAlertsBrowserFlow({ api, component, origin, cookie });
   await pagerDutyBrowserFlow({ api, component, origin, cookie });
   await pagerDutyFlow({ runtime, t });
+  await operationsAlertsFlow({ t });
+  await metricsFlow({ t });
+  await metricsBrowserFlow({ api, post, component, origin, cookie });
+  await chatLinksBrowserFlow({ origin, cookie, signingSecret: chatSigningSecret, diagnostic: text => t.diagnostic(text) });
 });

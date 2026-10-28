@@ -26,11 +26,12 @@ function repository({ pages, githubOnly = [], files }) {
 const page = (slug, source, extra = {}) => ({ slug, title: slug, summary: `About ${slug}.`, source, ...extra });
 const hrefs = (html) => [...html.matchAll(/<a href="([^"]*)"/g)].map(([, href]) => href);
 
-test("Repository documentation builds complete pages with resolvable links", async t => {
+test("DOCS-001 PAGE-020 — repository documentation builds complete pages and nested VPAT links", async t => {
   t.diagnostic("the repository's own docs build whole: every page has content and every link and anchor resolves");
   await (() => {
   const site = buildDocs(process.cwd());
   const pages = site.sections.flatMap((section) => section.pages);
+  assert.ok(site.bodies["accessibility/vpat"].html.includes("1.11.0"), "the nested VPAT is compiled from its release document");
   assert.ok(pages.length > 3, "the docs publish several pages");
   for (const { slug } of pages) {
     assert.ok(site.bodies[slug].html.length > 100, `${slug} has a body`);

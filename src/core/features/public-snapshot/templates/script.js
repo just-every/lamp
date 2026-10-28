@@ -65,7 +65,9 @@
         // Never pull content out from under the reader's focus; the next poll tries again.
         if (part.contains(document.activeElement) && document.activeElement !== document.body) { complete = false; continue; }
         part.className = fresh.className;
-        part.replaceChildren(...[...fresh.childNodes].map((node) => document.importNode(node, true)));
+        // A new generation can carry the same public facts. Keep the persistent
+        // live region quiet unless its customer-facing content changes.
+        if (part.innerHTML !== fresh.innerHTML) part.replaceChildren(...[...fresh.childNodes].map((node) => document.importNode(node, true)));
       }
       if (complete) shownAt = status.generatedAt;
       relative();

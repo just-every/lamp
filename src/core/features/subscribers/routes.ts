@@ -1,3 +1,5 @@
+import { formPreferences, preferencesSchema } from "./preferences";
+import { SubscriberLimitError } from "./limits";
 import type { Hono } from "hono";
 import { z } from "zod";
 
@@ -7,13 +9,16 @@ import { requestNetworkSubject, type PublicWriteRateLimiter } from "../../platfo
 import { ulidSchema } from "../../shared/ids";
 import { applyPublicIsolationHeaders } from "../public-snapshot/headers";
 import { renderSubscribeResult, renderSubscriberManagementPage, renderSubscriberTokenPage, type SubscribersService } from "./service";
+import { registerSubscriberIntakeRoutes } from "./intake-routes";
+import { webhookFormatSchema } from "./webhook-format";
 
 const subscriberQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(100).default(100),
   offset: z.coerce.number().int().min(0).max(1_000_000_000).default(0),
 }).strict();
 const emailSchema = z.object({ email: z.email() }).strict();
-const webhookSchema = z.object({ destination: z.url(), contactEmail: z.email(), componentIds: z.array(ulidSchema).max(200).default([]) }).strict();
+const webhookSchema = z.object({ destination: z.url(), contactEmail: z.email(), componentIds: z.array(ulidSchema).max(200).default([]),webhookFormat:webhookFormatSchema.optional(), eventKinds: preferencesSchema.shape.eventKinds.optional(), minimumImpact: preferencesSchema.shape.minimumImpact.optional() }).strict();
+const managementSchema=z.object({componentId:z.union([ulidSchema,z.array(ulidSchema).max(200)]).optional(),webhookFormat:webhookFormatSchema.optional(), preferencesPresent:z.literal("1").optional(), eventKind:z.union([z.enum(["incidents","maintenance","components"]),z.array(z.enum(["incidents","maintenance","components"])).max(3)]).optional(), minimumImpact:z.literal("Partially unavailable").optional()}).strict();
 
 const escapeHtml = (value: string) => value.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;");
 
@@ -53,6 +58,8 @@ function parsedComponentIds(value: unknown) {
 }
 
 export function registerSubscriberRoutes(app: Hono<AppEnv>, service: SubscribersService, options: { rateLimiter?: PublicWriteRateLimiter } = {}) {
+  registerSubscriberIntakeRoutes(app,service);
+  const full = (request: Request, pageName: string) => tokenResponse(request, renderSubscriberTokenPage("Subscriptions full", `<p>This page cannot take new subscriptions on that channel right now.</p><p>Follow the feeds for updates.</p><nav class="status-utilities" aria-label="Feeds"><a href="/feed.atom">Atom feed</a><a href="/feed.rss">RSS feed</a></nav>`, pageName), 409);
   app.post("/subscribe", async (context) => {
     const pageName = await service.getPageName();
     const result = (title: string, message: string, status: number) => publicFormResponse(context.req.raw, title, message, status, pageName);
@@ -64,11 +71,14 @@ export function registerSubscriberRoutes(app: Hono<AppEnv>, service: Subscribers
     if (!parsed.success) return result("Check your email address", "Enter a valid email address.", 400);
     try {
       const componentIds = parsedComponentIds(body.componentId);
-      await service.requestEmailSubscription(parsed.data.email, new URL(context.req.url).origin, componentIds);
+      const preferences = formPreferences(body);
+      await service.requestEmailSubscription(parsed.data.email, new URL(context.req.url).origin, componentIds, preferences);
       // Preserve the same response for active, pending and suppressed requests.
       if (!context.req.header("Accept")?.includes("text/html")) return result("Check your inbox", "Check your email to confirm or manage this subscription.", 202);
       return tokenResponse(context.req.raw, renderSubscribeResult({ email: parsed.data.email, components: await service.componentNames(componentIds) }, pageName), 202);
     } catch (error) {
+      if (error instanceof SubscriberLimitError) return full(context.req.raw, pageName);
+      if (error instanceof z.ZodError) return result("Check your preferences", "Choose supported update events and an incident threshold.", 400);
       if (error instanceof MailUnavailableError) return result("Subscriptions unavailable", "Subscriptions are not configured because this deployment has no mail sender. No confirmation email was sent.", 503);
       throw error;
     }
@@ -78,7 +88,7 @@ export function registerSubscriberRoutes(app: Hono<AppEnv>, service: Subscribers
     const limited = await allowedTokenRequest(context, options.rateLimiter, "subscription-confirm", context.req.param("token") ?? "", pageName);
     if (limited) return limited;
     const confirmed = await service.confirm(context.req.param("token") ?? "");
-    return tokenResponse(context.req.raw, confirmed ? renderSubscriberTokenPage("Subscription confirmed", `<p>You'll get ${escapeHtml(pageName)} updates by email. Every email has a link to change or stop them.</p><p><a href="/">See current status</a></p>`, pageName, "done") : renderSubscriberTokenPage("Subscription unavailable", "<p>This confirmation link is invalid or has expired.</p>", pageName), confirmed ? 200 : 404);
+    return tokenResponse(context.req.raw, confirmed ? renderSubscriberTokenPage("Subscription confirmed", `<p>You'll get ${escapeHtml(pageName)} updates through this subscription.</p><p><a href="/">See current status</a></p>`, pageName, "done") : renderSubscriberTokenPage("Subscription unavailable", "<p>This confirmation link is invalid or has expired.</p>", pageName), confirmed ? 200 : 404);
   });
   app.get("/manage/:token", async (context) => {
     const pageName = await service.getPageName();
@@ -93,7 +103,9 @@ export function registerSubscriberRoutes(app: Hono<AppEnv>, service: Subscribers
     const token = context.req.param("token") ?? "";
     const limited = await allowedTokenRequest(context, options.rateLimiter, "subscription-manage", token, pageName);
     if (limited) return limited;
-    const updated = await service.updateManagedSelection(token, parsedComponentIds((await context.req.parseBody({ all: true })).componentId));
+    const parsed=managementSchema.safeParse(await context.req.parseBody({all:true}));
+    if(!parsed.success)return tokenResponse(context.req.raw,renderSubscriberTokenPage("Subscription unavailable","<p>Choose valid components and a supported webhook format.</p>",pageName),400);
+    const updated = await service.updateManagedSelection(token, parsedComponentIds(parsed.data.componentId),parsed.data.webhookFormat,formPreferences(parsed.data));
     return updated ? tokenResponse(context.req.raw, renderSubscriberTokenPage("Subscription updated", "<p>Your selection is saved.</p><p><a href=\"/\">See current status</a></p>", pageName, "done")) : tokenResponse(context.req.raw, renderSubscriberTokenPage("Subscription unavailable", "<p>This subscription link is invalid or no longer active.</p>", pageName), 404);
   });
   app.get("/unsubscribe/:token", async (context) => {
@@ -125,6 +137,7 @@ export function registerSubscriberRoutes(app: Hono<AppEnv>, service: Subscribers
     const rows = await service.list(parsed.data.limit + 1, parsed.data.offset);
     return context.json({
       subscribers: rows.slice(0, parsed.data.limit),
+      capacity: await service.getLimits(),
       limit: parsed.data.limit,
       offset: parsed.data.offset,
       hasMore: rows.length > parsed.data.limit,
@@ -133,8 +146,8 @@ export function registerSubscriberRoutes(app: Hono<AppEnv>, service: Subscribers
   app.post("/api/app/subscribers/webhook", async (context) => {
     const parsed = webhookSchema.safeParse(await context.req.json().catch(() => null));
     if (!parsed.success) return context.json({ error: "Invalid webhook subscription.", issues: parsed.error.issues }, 400);
-    try { return context.json({ subscriber: await service.createWebhookSubscription(parsed.data) }, 201); }
-    catch (error) { return context.json({ error: error instanceof Error ? error.message : "Unable to create subscriber." }, 400); }
+    try { return context.json({ subscriber: await service.createWebhookSubscription({ ...parsed.data, preferences: parsed.data.eventKinds === undefined && parsed.data.minimumImpact === undefined ? undefined : preferencesSchema.parse({ eventKinds: parsed.data.eventKinds ?? ["incidents","maintenance","components"], minimumImpact: parsed.data.minimumImpact }) }) }, 201); }
+    catch (error) { return context.json({ error: error instanceof Error ? error.message : "Unable to create subscriber." }, error instanceof SubscriberLimitError ? 409 : 400); }
   });
   app.delete("/api/app/subscribers/:subscriberId", async (context) => {
     const subscriberId = ulidSchema.safeParse(context.req.param("subscriberId"));

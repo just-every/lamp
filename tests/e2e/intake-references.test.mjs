@@ -1,3 +1,5 @@
+// Wrangler setup can outlast idle HTTP connections; use the shared fixture transport.
+import { fixtureFetch as fetch } from "../public-snapshots/fixture-fetch.mjs";
 import assert from "node:assert/strict";
 import { execFileSync, spawn } from "node:child_process";
 import { createHmac } from "node:crypto";
@@ -66,7 +68,7 @@ async function createMaintenance(title, componentId, startOffsetHours = 2) {
   const endsAt = new Date(Date.now() + (startOffsetHours + 1) * 60 * 60_000).toISOString();
   const response = await appFetch("/api/app/maintenance", {
     method: "POST",
-    body: JSON.stringify({ title, startsAt, endsAt, componentIds: [componentId] }),
+    body: JSON.stringify({ affectedAudience: "Customers using the scheduled service.", customerImpact: "Requests may be interrupted during this maintenance window.", title, startsAt, endsAt, componentIds: [componentId] }),
   });
   assert.equal(response.status, 201, await response.clone().text());
   return (await response.json()).maintenance;
@@ -201,14 +203,14 @@ test("INTAKE-001/003 and MAINT-001 keep short durable references, deduplication,
     BEGIN SELECT RAISE(ABORT, 'reference unavailable'); END;`);
   const maintenanceAllocationFailure = await appFetch("/api/app/maintenance", {
     method: "POST",
-    body: JSON.stringify({ title: "Allocator failure", startsAt: new Date(Date.now() + 2 * 60 * 60_000).toISOString(), endsAt: new Date(Date.now() + 3 * 60 * 60_000).toISOString(), componentIds: ["01J00000000000000000000013"] }),
+    body: JSON.stringify({ affectedAudience: "Customers using the scheduled service.", customerImpact: "Requests may be interrupted during this maintenance window.", title: "Allocator failure", startsAt: new Date(Date.now() + 2 * 60 * 60_000).toISOString(), endsAt: new Date(Date.now() + 3 * 60 * 60_000).toISOString(), componentIds: ["01J00000000000000000000013"] }),
   });
   assert.equal(maintenanceAllocationFailure.status, 409, await maintenanceAllocationFailure.clone().text());
   executeD1("DROP TRIGGER lamp_reject_sch1;");
 
   const invalidMaintenance = await appFetch("/api/app/maintenance", {
     method: "POST",
-    body: JSON.stringify({ title: "Missing component", startsAt: new Date(Date.now() + 2 * 60 * 60_000).toISOString(), endsAt: new Date(Date.now() + 3 * 60 * 60_000).toISOString(), componentIds: ["missing-component"] }),
+    body: JSON.stringify({ affectedAudience: "Customers using the scheduled service.", customerImpact: "Requests may be interrupted during this maintenance window.", title: "Missing component", startsAt: new Date(Date.now() + 2 * 60 * 60_000).toISOString(), endsAt: new Date(Date.now() + 3 * 60 * 60_000).toISOString(), componentIds: ["missing-component"] }),
   });
   assert.equal(invalidMaintenance.status, 409, await invalidMaintenance.clone().text());
 

@@ -1620,3 +1620,26 @@ Private actions. The design was chosen from four 12ui options by a fresh Opus pa
 incident's draft, an empty draft after publication), -006, -007, -009, NOTIFY-007,
 INCIDENT-001, -009 and DRAFT-004 are unchanged; the preview of an incident not yet
 created uses the same renderer with the next reference.
+
+## Alerts connect one tool at a time — 23 October 2026 (owner L13)
+
+Alerts opens on a "Connect a tool" picker. Choosing a tool opens only its form, which says in one line what the tool does and asks only for what that tool needs; Lamp makes every key it can and shows it once. A connected tool is one row (name, state, Edit and Remove) with its form closed. Its choices save as they change, with Settings' quiet Saved state pinned in view while any row is edited; a pasted secret or a new key takes its own button. Closing the form, opening another, leaving Alerts (a link or Back) and signing out wait for the choices to save through the same leave guard as Settings: a refused save keeps the owner on the open form with the typed value, its reason and Retry brought into view, and leaving it behind afterwards takes one confirm. Reloading or closing the tab with a write pending or refused warns first. A screen keeps showing its data while a new visit reads it again, so a held form is never remounted underneath the owner (U9). On Alerts and Settings alike, a move that stays on the screen (its own link, a Settings tab, Back or Forward between tabs) reads nothing again, and a read for another screen that fails, offline for one, keeps the open page in place of the router's error page, with the typed value, its reason and Retry. Recent alerts appear only once something has arrived. Uptime makes each destination's signing secret itself and offers no key-authenticated read of its monitors, so Lamp pairs it without either: the address Lamp makes carries Lamp's key, Uptime's X-Lamp-Timestamp still bounds replays to five minutes, and the owner picks a component for each monitor by the name Uptime's own events carry. An event from a monitor not yet picked is refused and recorded. Sources saved with Uptime's signing secret keep HMAC verification.
+
+## Subscriber and component delivery archive continuity — 24 October 2026
+
+The unlanded 0056–0058 migrations preserve every table and row represented by
+older technical backups. Chat subscriptions retain the original webhook
+transport row, with an explicit chat kind and subscriber-owned encrypted
+destination; they never claim an operator author. One subscriber-directory
+projection supplies logical channels and channel-specific default preferences.
+Explicit preferences stay authoritative. Owner channels and subscriber channels
+share dispatch queries while retaining their distinct ownership constraints.
+
+Component-only notifications use an additive delivery/attempt partition rather
+than relaxing the incident-or-maintenance invariant on existing deliveries. One
+dispatcher, receipt query and failure policy spans both partitions. Existing
+subscription identifiers, tokens, consent, delivery outcomes, frozen envelopes
+and provider callback mappings retain their original storage. Erasure scrubs
+both delivery partitions. The pinned restore bridge continues to enforce
+archive identity, migration history, schema compatibility and empty-target
+requirements; it needs no new capability for this schema.

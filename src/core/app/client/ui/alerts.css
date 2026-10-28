@@ -1,16 +1,72 @@
+/* Alerts: connected tools as rows, the "Connect a tool" picker or one open tool form, then what arrived. */
 .alerts-page { gap: 20px; }
-.alerts-page .page-title-row > .button { flex-shrink: 0; }
+.connected-tools h2, .tool-picker h2 { margin: 0; }
+
+/* A connected tool: its name and one quiet line, its state, then Edit and Remove. */
+.tool-list { display: grid; margin: 8px 0 0; padding: 0; list-style: none; }
+.tool-row { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; gap: 8px 16px; border-bottom: 1px solid var(--line); padding: 14px 0; }
+.tool-row:last-child { border-bottom: 0; }
+.tool-row.is-open { margin: 0 -12px; border-radius: 8px; background: var(--card-tint); padding: 14px 12px; }
+.tool-row-name { display: grid; gap: 2px; min-width: 0; }
+.tool-row-name strong { color: var(--ink); font-size: 15px; font-weight: 500; overflow-wrap: anywhere; }
+.tool-row-name small { color: var(--ink-3); font-size: 13px; overflow-wrap: anywhere; }
+.tool-row-actions { display: inline-flex; gap: 8px; }
+.tool-row > .tool-confirm, .tool-row > .form-note { grid-column: 1 / -1; }
+
+/* The picker: each tool by name, as equal buttons. */
+.tool-choices { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; margin: 16px 0 0; padding: 0; list-style: none; }
+.tool-choices .button { width: 100%; }
+
+/* The one open form. */
+.tool-form { display: grid; gap: 16px; }
+.tool-form-heading h2 { margin: 0; }
+.tool-form-heading h2:focus { outline: none; }
+.tool-form-heading .card-support { margin: 6px 0 0; }
+.tool-fields { display: grid; gap: 16px; }
+.tool-fields .form-actions, .tool-form > .form-actions, .tool-secret .form-actions, .shown-once .form-actions, .tool-confirm .form-actions { margin-top: 0; }
+.tool-note { margin: 0; color: var(--ink-2); font-size: 14px; }
+.tool-note .button { margin-left: 8px; }
+/* Its save state is pinned under the header as Settings' is (.settings-save-state), on the form's white. */
+.tool-form .tool-save-state { margin: -8px 0; background: var(--card); }
+.tool-save-state .save-message { margin-top: 8px; }
+.tool-step, .tool-secret { display: grid; gap: 12px; }
+.tool-step > p { margin: 0; color: var(--ink-2); }
+.shown-once { display: grid; gap: 12px; border-top: 1px solid var(--line); padding-top: 16px; }
+.shown-once > p { margin: 0; color: var(--ink-2); line-height: 1.5; }
+.shown-once strong { color: var(--ink); }
+.copy-field { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: end; gap: 8px; }
+.copy-field input, .copy-field textarea { font-family: var(--mono); font-size: 13px; }
+.tool-confirm { display: grid; gap: 10px; border-radius: 10px; background: var(--card-tint); padding: 12px 14px; }
+.tool-confirm p { margin: 0; color: var(--ink-2); font-size: 14px; }
+.tool-more > summary { display: flex; align-items: center; min-height: 44px; cursor: pointer; color: var(--ink); font-weight: 500; }
+.tool-more > .tool-fields, .tool-more > .tool-secret { margin-top: 8px; }
+
+/* Uptime's monitors, each beside the component it feeds. */
+.monitor-picks { display: grid; gap: 12px; margin: 0; padding: 0; list-style: none; }
+.monitor-picks .form-label { grid-template-columns: minmax(0, 1fr) minmax(0, 340px); align-items: center; gap: 16px; overflow-wrap: anywhere; }
+
+/* Rows of exact matches, one per component. */
+.label-rows { display: grid; gap: 12px; margin: 0; padding: 0; list-style: none; }
+.label-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr) auto; align-items: end; gap: 12px; }
+.service-row { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr) auto; }
+.label-row:not(:has(> .button)) { grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr); }
+.service-row:not(:has(> .button)) { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+
+/* What arrived: shown only once something has. */
 .receipt-card { min-width: 0; overflow: hidden; }
-.receipt-card .card-support { margin: 10px 0 20px; color: var(--ink-2); font-size: 14px; }
+.receipt-card .card-heading { align-items: center; margin-bottom: 16px; }
 .receipt-card .table-scroll { border: 1px solid var(--line); border-radius: 10px; }
 .receipt-card table { min-width: 680px; }
 .receipt-card th:nth-child(-n + 4) { width: 15%; }
 .receipt-card tbody tr:last-child td { border-bottom: 0; }
-.receipt-card .receipt-empty { padding: 32px 16px; color: var(--ink-2); font-size: 16px; text-align: center; }
-.receipt-empty p { max-width: min(100%, calc(100vw - 100px)); margin: 0 auto; }
-.alert-editor { background: var(--card); }
+
 @media (max-width: 620px) {
+  .tool-row { grid-template-columns: auto minmax(0, 1fr); }
+  .tool-row-name { grid-column: 1 / -1; }
+  .tool-row-actions { justify-self: end; }
+  .tool-row.is-open { margin: 0 -8px; padding: 14px 8px; }
+  .tool-choices { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .monitor-picks .form-label, .label-row, .service-row, .label-row:not(:has(> .button)), .service-row:not(:has(> .button)) { grid-template-columns: minmax(0, 1fr); }
+  .label-row > .button { justify-self: start; }
   .receipt-card .card-heading { flex-wrap: wrap; gap: 8px; }
-  .receipt-card .receipt-empty { text-align: left; }
-  .receipt-empty p { margin: 0; }
 }

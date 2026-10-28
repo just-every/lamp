@@ -10,7 +10,7 @@ import { authConfig, authOrigin } from '../../platform/auth/config';
 import { sessionAuthority } from '../../platform/auth/authority';
 import type { AppBindings, AppEnv } from '../../app/types';
 import type { StatuspageImportService } from './service';
-import { statuspageTargets } from './targets';
+import { attributedStatuspageTargets } from './targets';
 import { createImportDoorRepository } from './door.repository';
 import { openDoorAtFirstClaim } from './door-claim';
 import { importLimits } from './source';
@@ -117,7 +117,9 @@ export function registerImportDoor(app: Hono<AppEnv>, bindings: AppBindings, ser
       if (existing && !existing.started) planId = existing.id;
     }
     const saved = planId ? await repository.planSnapshot(key, planId) : null;
-    const asOf = saved ? reviewedPage(saved.plan).asOf : undefined;
+    const review = saved ? reviewedPage(saved.plan) : undefined;
+    if(action === "apply" && review?.overSubscriberLimit)throw new DoorError("This import is over the subscriber limit. Leave out subscribers or channels and run a fresh dry run.",409);
+    const asOf = review?.asOf;
     if (asOf && expired(asOf)) throw new DoorError(EXPIRED, 409, action === 'plan' ? { planId } : undefined);
   };
 
@@ -159,7 +161,7 @@ export function registerImportDoor(app: Hono<AppEnv>, bindings: AppBindings, ser
         return prepareBytes(bytes,namespace,owner,owner,authority,true);
       })();
     };
-    const handle = createImportDoorHandler({database:bindings.DB,targets:statuspageTargets,claim,installationId:key,ownerPrincipalId:owner,destination:'lamp',
+    const handle = createImportDoorHandler({database:bindings.DB,targets:attributedStatuspageTargets(owner),claim,installationId:key,ownerPrincipalId:owner,destination:'lamp',
       format:'json',limits:doorLimits,reversalPolicy:'preserve-conflicts',
       // Resolved once the grant is verified and before it is recorded: a Business
       // plan or apply of a dry run past its review window is refused and writes nothing.
@@ -196,7 +198,7 @@ export function registerImportDoor(app: Hono<AppEnv>, bindings: AppBindings, ser
     const read = c.req.method === 'POST' && (['plan', 'undo'].includes(action) || starting) ? await readFirst(c.req.raw) : undefined;
     if (read === null) return c.json({error:'request_too_large'},413);
     const input = read?.input ?? null, request = read?.request ?? c.req.raw;
-    const handler = async (prepared: Promise<Prepared> | null) => createImportOperatorHandler({database:bindings.DB,targets:statuspageTargets,installationId:key,appOrigin:authOrigin(bindings),
+    const handler = async (prepared: Promise<Prepared> | null) => createImportOperatorHandler({database:bindings.DB,targets:attributedStatuspageTargets(session.operator.id),installationId:key,appOrigin:authOrigin(bindings),
       ownerEmail:session.operator.email,ownerPrincipalId:principal,namespace:name,destination:'lamp',format:'json',limits:doorLimits,reversalPolicy:'preserve-conflicts',
       ...(await importSource(name,prepared))!,
       authorize:async()=>authority,
@@ -253,6 +255,7 @@ export function registerImportDoor(app: Hono<AppEnv>, bindings: AppBindings, ser
     const starts = action === 'apply' && typeof input?.planId === 'string' ? await repository.unstarted(key, name, input.planId) : null;
     if (starts) {
       const reviewed = await reviewOf(starts.id);
+      if(reviewed.overSubscriberLimit)return c.json({error:"This import is over the subscriber limit. Leave out subscribers or channels and run a fresh dry run."},409);
       if (reviewed.asOf && expired(reviewed.asOf)) return c.json({ error: EXPIRED }, 409);
       let current: boolean;
       try { current = await stillPlans(reviewed, await repository.bundleBytes(key, name, starts.bundle_sha256)); }

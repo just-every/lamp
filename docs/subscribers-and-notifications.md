@@ -29,9 +29,42 @@ in 24 hours.
 
 ## Add webhooks or team channels
 
-Add a webhook endpoint with a contact email. Each notification is signed and
+Open **Subscribers → Add subscriber** to add an email address or a webhook
+endpoint with its contact email and selected components. The add sends one
+confirmation invitation; the subscription stays pending until the recipient
+confirms. The list identifies the operator who added it. Each notification is signed and
 contains the incident, its published updates and the affected component state
 changes. The delivery log records outcomes; it does not track opens.
+
+Webhook endpoints choose **Lamp** or **Statuspage** as their body format. Lamp
+is the default. Both formats use the same signature headers and delivery rules.
+Statuspage bodies share the public API's status values and stable IDs, contain
+the complete published incident update history, and preserve plain update text
+and bare URLs. The recipient can change the format from their emailed management
+link. CSV webhook rows can set optional `webhook_format` to `lamp` or `statuspage`.
+Standalone component-change notifications remain with NOTIFY-017; the future
+Statuspage webhook importer remains with MOVE-010. Maintenance carries the
+existing notices; MAINT-009's unbuilt in-window wording remains a gap. The public
+subscribe form's format chooser awaits the owner UI pass.
+
+## Import and export subscribers
+
+In **Subscribers → Import and export**, choose or paste a CSV and run its dry
+run. This writes nothing and sends no mail. Review the created, skipped and
+refused counts and each refusal reason, then create the pending subscriptions.
+An owner must explicitly choose **Send invitations** to send up to 50
+confirmation invitations per action; an invitation already sent is not repeated.
+The columns are `email`, `phone`, `webhook_url`, `contact_email`, `components`
+and `language`. Component IDs are separated by semicolons; an empty selection
+follows all visible components. Existing subscriptions are skipped without
+changing their state or selection. Files are limited to 8 MiB and 5,000 rows.
+Phone rows are refused because SMS subscriptions are unavailable, and language
+accepts only English (`en`). SUB-020 enforces 25,000 subscriptions across all channels, including at most
+2,500 webhook endpoints and 1,000 Slack and Teams subscriptions together. Pending
+and active subscriptions count; deactivated and deleted ones do not. An over-limit
+dry run names and refuses the excess, and apply writes nothing until the file fits. **Export subscribers as CSV** includes channel, state,
+components and the recorded confirmation time; unconfirmed rows have no consent
+time. Spreadsheet formula-leading cells are neutralised on export.
 
 An incoming webhook is a private address created by Slack or Teams for posting
 messages to one channel. Slack and Teams posts need an outbound connection,
@@ -177,3 +210,51 @@ Open **Subscribers** for current counts by channel and state. Expand **Counts by
 Choose a growth month and channel, then **Download CSV** to export the same figures. The month filters the growth record; current counts always describe the present. Adding or removing a subscriber refreshes the figures while keeping the report's filters.
 
 Daily growth measures pending plus active subscriptions: a new pending subscription joins inventory, confirmation does not add it again, and deactivation or erasure leaves inventory. Dates use UTC. Tracking starts with the first subscriber change or report read, from the baseline displayed on the report; earlier daily changes are unknown. The first tracked day and the current day are incomplete. Technical backups retain this anonymous history; restoring an older archive starts a new baseline. Audience and language reporting are not yet available.
+
+### Secondary email provider
+
+Ordinary hosted deployments can select `mailgun` alongside `resend` and
+`sendgrid`, `ses` and `postmark` through `MAIL_PROVIDER`. Mailgun uses the sender address's domain and
+`MAILGUN_REGION` (`us` by default, or `eu`). Configure its dedicated
+`MAILGUN_WEBHOOK_SIGNING_KEY`, then register `/api/intake/mail-events/mailgun`
+for signed delivery, bounce and complaint events. Mailgun requests disable open
+and click tracking. A submission without a definite receipt is not resent
+automatically.
+
+A deployment may set `MAIL_SECONDARY_PROVIDER` to a different direct provider
+and supply `MAIL_SECONDARY_API_KEY`. Both must already authenticate the same
+From domain. Secondary delivery starts off; in **Settings → Notifications**,
+choose the connected secondary provider to enable it, or **None** to disable it.
+Five minutes of explicit retryable primary rejections permit the
+secondary to receive the original envelope, with its unchanged Message-ID.
+The delivery log and CSV name the accepting provider; restoring the primary
+does not resend an accepted notification. An uncertain primary submission never
+switches providers. Register each configured provider's signed event endpoint:
+`/api/intake/mail-events/resend`, `/api/intake/mail-events/sendgrid`, or the
+Mailgun endpoint above. Existing primary-only `/api/intake/mail-events` remains
+available.
+
+For SES, set `SES_REGION`, `SES_CONFIGURATION_SET` and the exact
+`SES_EVENT_TOPIC_ARN` for its SNS event destination. The provider key is JSON with
+`accessKeyId`, `secretAccessKey` and an optional `sessionToken`. Configure that
+SNS topic with signature version 2, and have its confirmed HTTPS subscription
+post to `/api/intake/mail-events/ses`. Grant the sending key `GetConfigurationSet` and
+`GetConfigurationSetEventDestinations` read access. Explicitly set that
+configuration set’s VDM dashboard engagement metrics to **Disabled**; inherited,
+unknown and enabled metrics are refused even when no event destination tracks
+opens or clicks. Lamp refuses to send if any enabled
+destination tracks opens or clicks, or if delivery, bounce and complaint events
+are not connected to the configured SNS topic. Subscription confirmation is an owner
+action; this intake never follows a confirmation URL.
+
+Postmark uses a server token for sending and an optional separate
+`POSTMARK_ACCOUNT_API_KEY` to read sender-domain DKIM status. Its event endpoint
+is `/api/intake/mail-events/postmark`, with HTTPS Basic authentication: user
+`lamp`, password `POSTMARK_WEBHOOK_SECRET`. Postmark offers authentication rather
+than a native payload signature; this does not satisfy NOTIFY-013's signed-event
+sentence.
+
+Connecting provider credentials is deployment configuration; an owner selects
+the connected secondary in Settings. Reported-outage switching is not built. An SES request carries the frozen
+Message-ID, but SES documents replacing raw Message-ID headers: real
+cross-provider preservation for SES remains unproven.

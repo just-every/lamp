@@ -1,4 +1,11 @@
+import { smsBrowserRuntime } from "./helpers/sms-browser-runtime.mjs";
+import { smsSubscriberFlow } from "./helpers/sms-subscriber-flow.mjs";
+import { mailSettingsBrowserFlow } from "./helpers/mail-settings-browser-flow.mjs";
+import { mailFailoverFlow } from "./helpers/mail-failover-flow.mjs";
+import { subscriberPreferencesFlow } from "./helpers/subscriber-preferences-flow.mjs";
 import { subscriberReportingFlow } from "./helpers/subscriber-reporting-flow.mjs";
+import { subscriberAddFlow } from "./helpers/subscriber-add-flow.mjs";
+import { statuspageWebhookFlow } from "./helpers/statuspage-webhook-flow.mjs";
 import {authFixture} from '../auth-adoption/runtime.mjs';
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
@@ -26,13 +33,15 @@ let platform;
 let statePath;
 
 before(async () => {
-  vite = await createServer({ configFile: false, appType: "custom", server: { middlewareMode: true } });
+  // Build before opening the middleware ModuleRunner: both own optimizer state.
+  execFileSync("pnpm",["run","build:app"],{stdio:"pipe"});
+  statePath = await mkdtemp(join(tmpdir(), "lamp-delivery-d1-"));
+  vite=await createServer({configFile:false,appType:"custom",cacheDir:join(statePath,"vite-cache"),server:{middlewareMode:true}});
   ({ createSubscribersService } = await vite.ssrLoadModule("/src/core/features/subscribers/service.ts"));
   ({ registerSubscriberRoutes } = await vite.ssrLoadModule("/src/core/features/subscribers/routes.ts"));
   ({ createSubscriberRepository } = await vite.ssrLoadModule("/src/core/features/subscribers/repository.ts"));
   ({ createDeliveryRepository, createDeliveriesService, notificationPublicationStatements } = await vite.ssrLoadModule("/src/core/features/deliveries/index.ts"));
   ({ registerDeliveryRoutes } = await vite.ssrLoadModule("/src/core/features/deliveries/routes.ts"));
-  statePath = await mkdtemp(join(tmpdir(), "lamp-delivery-d1-"));
   execFileSync("pnpm", ["exec", "wrangler", "d1", "migrations", "apply", "DB", "--local", "--persist-to", statePath, "--config", "wrangler.jsonc"], { stdio: "pipe" });
   // `wrangler d1 migrations apply --persist-to` stores Miniflare state under
   // `v3`; getPlatformProxy hands its path straight to Miniflare. Point it at
@@ -207,7 +216,11 @@ test("HIST-007 SUB-001 SUB-005 UPDATE-008 SUB-002 SUB-003 — Concurrent subscri
 
 
 
-test("SUB-004 SUB-006 SUB-007 SUB-005 PAGE-013 SUB-012 SUB-008 — Scoped subscriber preferences, private management and opt-out", async t => {
+test("SUB-016 SUB-017 SUB-004 SUB-006 SUB-007 SUB-005 PAGE-013 SUB-012 SUB-008 — Attributed operator additions, confirmed component scope, private management and opt-out", async t => {
+  await smsSubscriberFlow();
+  await smsBrowserRuntime();
+  await subscriberAddFlow();
+  await subscriberPreferencesFlow();
   t.diagnostic("SUB-004 — actual D1 recipient selection follows visible components and matching selected components only");
   await (async () => {
   const db = platform.env.DB;
@@ -461,7 +474,7 @@ test("SUB-004 SUB-006 SUB-007 SUB-005 PAGE-013 SUB-012 SUB-008 — Scoped subscr
   const { createPublicWriteRateLimiter } = await vite.ssrLoadModule("/src/core/platform/security/rate-limiter.ts");
   await exerciseSubscriberIsolation({ db: platform.env.DB, createSubscriberRepository, createSubscribersService, registerSubscriberRoutes, createPublicWriteRateLimiter, createMail: () => new CapturingMail() });
 })(t);
-  t.diagnostic("SUB-012 — a known active address gets the same neutral form response and a management-only email");
+  t.diagnostic("SUB-012 — a known active address gets the same neutral form response and one management-only email a day, however often it is submitted");
   await (async () => {
   const { Hono } = await import("hono");
   const mail = new CapturingMail();
@@ -472,10 +485,22 @@ test("SUB-004 SUB-006 SUB-007 SUB-005 PAGE-013 SUB-012 SUB-008 — Scoped subscr
   const confirmation = new URL(mail.messages[0].text.match(/https:\/\/[^\s]+/)?.[0]).pathname.split("/").at(-1);
   await service.confirm(confirmation);
   const repeat = await submit("known-reader@example.test");
+  const firstText = await first.text();
   assert.equal(first.status, repeat.status);
-  assert.equal(await first.text(), await repeat.text());
+  assert.equal(firstText, await repeat.text());
   assert.match(mail.messages.at(-1).text, /Manage this subscription/);
   assert.doesNotMatch(mail.messages.at(-1).text, /confirm-subscription/);
+  // Each active address has its own allowance, so a second one still gets its email.
+  await submit("known-reader-two@example.test");
+  await service.confirm(new URL(mail.messages.at(-1).text.match(/https:\/\/[^\s]+\/confirm-subscription\/[^\s]+/)[0]).pathname.split("/").at(-1));
+  const sent = mail.messages.length;
+  for (let round = 0; round < 3; round += 1) {
+    for (const email of ["known-reader@example.test", "known-reader-two@example.test"]) {
+      const response = await submit(email);
+      assert.deepEqual([response.status, await response.text()], [first.status, firstText], "every submission keeps the neutral form response");
+    }
+  }
+  assert.deepEqual(mail.messages.slice(sent).map((message) => message.to), ["known-reader-two@example.test"], "no address receives a second management email that day");
 })(t);
   t.diagnostic("SUB-008 — a delivery committed before a real D1 unsubscribe is durably recorded as suppressed");
   await (async () => {
@@ -506,7 +531,7 @@ test("SUB-004 SUB-006 SUB-007 SUB-005 PAGE-013 SUB-012 SUB-008 — Scoped subscr
 
 
 
-test("NOTIFY-002 NOTIFY-004 NOTIFY-005 NOTIFY-007 NOTIFY-008 NOTIFY-010 — Durable email capture, delivery records and frozen headers", async t => {
+test("NOTIFY-013 NOTIFY-002 NOTIFY-004 NOTIFY-005 NOTIFY-007 NOTIFY-008 NOTIFY-010 — Durable email capture, delivery records and frozen headers", async t => {
   t.diagnostic("NOTIFY-002 — a queued D1 email notification is accepted by the configured mail adapter and persists its provider attempt");
   await (async () => {
   const db = platform.env.DB;
@@ -525,6 +550,8 @@ test("NOTIFY-002 NOTIFY-004 NOTIFY-005 NOTIFY-007 NOTIFY-008 NOTIFY-010 — Dura
   assert.equal((await db.prepare("SELECT incident_impact AS impact FROM notification_deliveries WHERE id = ?").bind("01J00000000000000000000044").first()).impact, "major", "queued impact survives a later clear");
   assert.equal((await db.prepare("SELECT provider_message_id AS id FROM notification_delivery_attempts WHERE delivery_id = ?").bind("01J00000000000000000000044").first()).id, "mail-1");
 })(t);
+  for(const secondaryProvider of ['mailgun','ses','postmark'])await mailFailoverFlow({t,vite,platform,secondaryProvider});
+  await mailSettingsBrowserFlow(t);
   t.diagnostic("NOTIFY-004 — the actual delivery log exposes only contract outcomes and exports filterable CSV");
   await (async () => {
   const { Hono } = await import("hono");
@@ -628,7 +655,8 @@ test("TEAM-002 TEAM-003 BASE-ACCESS-003 — Owner erasure, subscriber erasure an
 
 
 
-test("SUB-009 SUB-010 SUB-011 — Signed webhook delivery, provider receipts and bounce suppression", async t => {
+test("SUB-018 SUB-009 SUB-010 SUB-011 — Statuspage receiver compatibility, signed webhook delivery, provider receipts and bounce suppression", async t => {
+  await statuspageWebhookFlow();
   t.diagnostic("SUB-009 — an actual D1 webhook subscription signs its complete event, rejects SSRF, and treats redirects as failures");
   await (async () => {
   const db = platform.env.DB;
@@ -1020,7 +1048,7 @@ test("NOTIFY-004 SUB-011 NOTIFY-002 — Delivery queues and complete subscriber/
   await (async () => {
   const { Hono } = await import("hono");
   const db = platform.env.DB;
-  const existing = await db.prepare("SELECT COUNT(*) AS count FROM notification_deliveries").first();
+  const existing = await db.prepare("SELECT COUNT(*) AS count FROM notification_delivery_records").first();
   const statements = [];
   for (let index = 0; index < 101; index += 1) {
     const timestamp = `2099-01-01T00:01:00.${String(index).padStart(3, "0")}Z`;
@@ -1079,7 +1107,7 @@ test("NOTIFY-004 SUB-011 NOTIFY-002 — Delivery queues and complete subscriber/
     channels: ["email"],
     queuedAt: now,
   }));
-  const captured = await db.prepare("SELECT COUNT(*) AS count FROM notification_deliveries WHERE notification_event_id = ?").bind(eventId).first();
+  const captured = await db.prepare("SELECT COUNT(*) AS count FROM notification_delivery_records WHERE notification_event_id = ?").bind(eventId).first();
   assert.equal(captured.count, subscriberLimit);
   const mail = new DefaultResendRateModelMail();
   const deliveries = createDeliveriesService(createDeliveryRepository(db), { mail, fromAddress: "lamp@example.test", subscriberTokenSecret: "synthetic-fanout-limit-secret" });

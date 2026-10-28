@@ -9,7 +9,9 @@ import type { AppBindings } from '../../app/types';
 import type { AppServices } from '../../app/services';
 export async function authResponse(request:Request,env:AppBindings,services:AppServices):Promise<Response> {
   try {
-    const auth=services.auth(),config=authConfig(env);
+    const auth=services.auth(),config=authConfig(env),url=new URL(request.url);
+    const signedIn = await signedInOwnerRedirect(request, auth);
+    if (signedIn) return signedIn;
     // A host-configured key set selects native signed claims. Claims never choose their own authority.
     const trust = ownerClaimConfig(env);
     let response = trust ? await createOwnerClaimHandler({ db: env.DB, authConfig: config,
@@ -24,7 +26,6 @@ export async function authResponse(request:Request,env:AppBindings,services:AppS
         setup:async()=> env.SETUP_TOKEN&&!await services.operators.initialized()?{instructions:'Use the setup token from your installation to claim the first owner.'}:null,
       })(request) ?? await createAuthHandler(auth)(request) ?? new Response('Not found',{status:404});
     }
-    const url = new URL(request.url);
     // A claim's answer (the first claim, or already claimed) and every sign-in
     // that starts a session open a Business-provisioned install's door when no
     // owner choice is recorded yet. The claim already committed, so a failure
@@ -54,4 +55,12 @@ async function ownerSignInRefused(response:Response):Promise<Response> {
   const body=(response.headers.get('content-type')??'').includes('json')?await response.json().catch(()=>null) as {error?:unknown}|null:null;
   const notice=typeof body?.error==='string'&&/^[a-z_]+$/.test(body.error)?body.error:'invalid_or_expired';
   return new Response(null,{status:303,headers:{...securityHeaders(),Location:`/signin?notice=${notice}`}});
+}
+
+export async function signedInOwnerRedirect(request: Request, auth: ReturnType<AppServices['auth']>): Promise<Response | null> {
+  if (new URL(request.url).pathname !== '/signin' || !['GET', 'HEAD'].includes(request.method)) return null;
+  const session = await auth.getSession(request);
+  return session?.operator.role === 'owner'
+    ? new Response(null, { status: 303, headers: { ...securityHeaders(), Location: '/app' } })
+    : null;
 }

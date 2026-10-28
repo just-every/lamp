@@ -12,8 +12,8 @@ import { RecoveryCheckError } from "../brief/recovery-check";
 import { draftFromIncident } from "./draft";
 
 const incidentQuerySchema = z.object({ lifecycle: z.enum(INCIDENT_LIFECYCLES).optional() }).strict();
-const publishSchema = z.object({ channels: z.array(z.enum(["email", "webhook", "chat"])).max(3).transform((channels) => [...new Set(channels)]), publishedAt: z.iso.datetime().optional(), componentStates: z.record(ulidSchema, z.enum(INCIDENT_CLAIM_STATES)).optional(), overrideReason: z.string().trim().max(1_000).optional() }).strict();
-const scheduleSchema = z.object({ publishAt: z.iso.datetime(), channels: z.array(z.enum(["email", "webhook", "chat"])).max(3).transform((channels) => [...new Set(channels)]) }).strict();
+const publishSchema = z.object({ channels: z.array(z.enum(["email", "webhook", "chat", "sms"])).max(4).transform((channels) => [...new Set(channels)]), publishedAt: z.iso.datetime().optional(), componentStates: z.record(ulidSchema, z.enum(INCIDENT_CLAIM_STATES)).optional(), overrideReason: z.string().trim().max(1_000).optional() }).strict();
+const scheduleSchema = z.object({ publishAt: z.iso.datetime(), channels: z.array(z.enum(["email", "webhook", "chat", "sms"])).max(4).transform((channels) => [...new Set(channels)]) }).strict();
 const deleteSchema = z.object({ reason: z.string().trim().min(1).max(1_000) }).strict();
 const attachedComponentSchema = z.object({ componentId: ulidSchema, state: z.enum(COMPONENT_STATES), relationship: z.enum(["Primary", "Dependent"]).default("Primary") }).strict();
 const componentChangeSchema = z.discriminatedUnion("action", [
@@ -64,6 +64,25 @@ export function registerIncidentRoutes(app: Hono<AppEnv>, service: IncidentsServ
     try { return context.json({ preview: await service.previewNew(input.data) }); }
     catch (cause) { return context.json({ error: cause instanceof Error ? cause.message : "The new incident could not be previewed." }, 409); }
   });
+  app.get("/api/app/incidents/:incidentId/owner/operators", async (context) => {
+    const id = incidentIdFrom(context);
+    if (!id.success) return context.json({ error: "Invalid incident identifier." }, 400);
+    if (!(await service.get(id.data))) return context.json({ error: "Incident not found." }, 404);
+    return context.json({ operators: await service.communicationOwners.activeOperators() });
+  });
+  for (const method of ["take-over", "reassign"] as const) {
+    app.on(method === "take-over" ? "POST" : "PUT", `/api/app/incidents/:incidentId/owner${method === "take-over" ? "/take-over" : ""}`, async (context) => {
+      const id = incidentIdFrom(context);
+      const actor = context.get("operator").id;
+      const input = method === "take-over" ? { success: true as const, data: { operatorId: actor } } : z.object({ operatorId: z.union([z.uuid(), ulidSchema]) }).strict().safeParse(await context.req.json().catch(() => null));
+      if (!id.success || !input.success) return context.json({ error: "Choose an active operator." }, 400);
+      const result = await service.communicationOwners.assign(id.data, input.data.operatorId, actor);
+      if (result === "resolved") return context.json({ error: "A resolved incident cannot change communication owner." }, 409);
+      if (result !== "ok") return context.json({ error: result === "missing" ? "Incident not found." : "Active operator not found." }, 404);
+      return context.json(await service.communicationOwners.get(id.data));
+    });
+  }
+
   app.get("/api/app/incidents", async (context) => {
     const parsed = incidentQuerySchema.safeParse(context.req.query());
     if (!parsed.success) return context.json({ error: "Invalid incident query.", issues: parsed.error.issues }, 400);

@@ -44,7 +44,7 @@ after(async () => {
   await Promise.all([statePath, cachePath].filter(Boolean).map(path => rm(path, { recursive: true, force: true })));
 });
 
-test("Component and group dialogs retain keyboard focus and phone subscribers and alert receipts fit while delivery tables scroll with the keyboard", async t => {
+test("Component and group dialogs retain keyboard focus and phone subscribers, delivery records and alert receipts fit", async t => {
   for (const [triggerName, fieldName] of [["Add component", "Component name"], ["Add group", "Group name"]]) {
   t.diagnostic(`${triggerName} contains keyboard focus and restores its trigger`);
     await (async () => {
@@ -80,18 +80,24 @@ test("Component and group dialogs retain keyboard focus and phone subscribers an
   const subscriberState = subscriberRow.locator(".state-pill");
   assert.ok(await subscriberState.evaluate(node => node.getBoundingClientRect().right <= innerWidth && node.scrollWidth <= node.clientWidth), "the complete subscriber state fits");
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
-  for (const [route, label] of [["deliveries", "Delivery records"]]) {
-  t.diagnostic(`${label} can be scrolled with the keyboard on narrow screens`);
-    await (async () => {
-    await page.goto(`${origin}/app/${route}`);
-    const region = page.getByRole("region", { name: label, exact: true });
-    await region.focus();
-    assert.equal(await region.evaluate(node => node === document.activeElement), true);
-    await page.keyboard.press("ArrowRight");
-    await page.waitForFunction(label => [...document.querySelectorAll('[role="region"]')].some(node => node.getAttribute("aria-label") === label && node.scrollLeft > 0), label);
-    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
-  })(t);
-  }
+  t.diagnostic("Delivery records fit a phone without horizontal scrolling");
+  const deliveryTitle = "Phone delivery record";
+  const { component: deliveryComponent } = await operatorApi("/api/app/components", "POST", { groupId: null, name: "Phone delivery API", description: "", internal: false, displayOrder: 6, note: "" });
+  const { incident: deliveryIncident } = await operatorApi("/api/app/incidents", "POST", { title: deliveryTitle, components: [{ componentId: deliveryComponent.id, state: "Degraded performance", relationship: "Primary" }] });
+  const deliveryVersion = async () => { const { incident } = await operatorApi(`/api/app/incidents/${deliveryIncident.id}`); return `${incident.draft?.id ?? "-"}:${incident.updates.length}`; };
+  await operatorApi(`/api/app/incidents/${deliveryIncident.id}/draft`, "PUT", { lifecycle: "Investigating", affectedAudience: "Phone readers", customerImpact: "Requests are delayed.", whatStillWorks: "", details: "", nextUpdateAt: new Date(Date.now() + 3_600_000).toISOString() }, { "If-Match": await deliveryVersion() });
+  await operatorApi(`/api/app/incidents/${deliveryIncident.id}/publish`, "POST", { channels: ["webhook"] }, { "If-Match": await deliveryVersion() });
+  await page.goto(`${origin}/app/deliveries`); await operatorHydrated(page);
+  const deliveryRegion = page.getByRole("region", { name: "Delivery records", exact: true });
+  await deliveryRegion.focus();
+  assert.equal(await deliveryRegion.evaluate(node => node === document.activeElement), true);
+  const deliveryRow = deliveryRegion.getByRole("row").filter({ hasText: deliveryTitle });
+  await deliveryRow.locator(".state-pill").waitFor();
+  const deliveryGeometry = await deliveryRow.getByRole("cell").evaluateAll(cells => cells.map(cell => { const box = cell.getBoundingClientRect(); return { left: box.left, right: box.right, scroll: cell.scrollWidth, width: cell.clientWidth }; }));
+  assert.equal(deliveryGeometry.length, 5);
+  assert.ok(deliveryGeometry.every(cell => cell.left >= 0 && cell.right <= 390 && cell.scroll <= cell.width), "every delivery field fits without horizontal scrolling");
+  assert.ok(await deliveryRow.locator(".state-pill").evaluate(node => node.getBoundingClientRect().right <= innerWidth && node.scrollWidth <= node.clientWidth), "the complete delivery outcome fits");
+  assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
   const { source } = await operatorApi("/api/app/intake/sources", "POST", { name: "Phone receipt monitor", credentialKind: "bearer-token", bearerToken: "test-only-phone-receipt-token", deduplicationPath: "$.id", titlePath: "$.title", statePath: "$.state", recoveredValue: "recovered" });
   const response = await context.request.post(`${origin.replace("127.0.0.1", "localhost")}/api/intake/${source.id}`, { headers: { Authorization: "Bearer test-only-phone-receipt-token" }, data: { id: "phone-receipt", title: "Checkout failures", state: "firing" } });
   assert.equal(response.status(), 202);
@@ -104,8 +110,8 @@ test("Component and group dialogs retain keyboard focus and phone subscribers an
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
 });
 
-async function operatorApi(path, method = "GET", body) {
-  const response = await context.request.fetch(`${origin}${path}`, { method, headers:{Origin:origin}, ...(body ? { data: body } : {}) });
+async function operatorApi(path, method = "GET", body, headers = {}) {
+  const response = await context.request.fetch(`${origin}${path}`, { method, headers:{Origin:origin, ...headers}, ...(body ? { data: body } : {}) });
   assert.ok(response.ok(), `${method} ${path}: ${response.status()}`);
   return response.json();
 }

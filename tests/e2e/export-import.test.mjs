@@ -52,7 +52,87 @@ async function populate(env) {
     env.DB.prepare("INSERT INTO alert_group_members (source_id,incident_id,group_key,fingerprint,state,received_at,recovered_at) VALUES (?,?,?,?,?,?,?)").bind("group-source-export","incident-export","service-group","alert-fingerprint","resolved","2026-09-08T00:15:00.000Z","2026-09-08T00:15:00.000Z"),
     env.DB.prepare("INSERT INTO audit_entries (id, entity_type, entity_id, action, operator_id, reason, payload_json, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)").bind("audit-export", "component-state-history", "history-export", "corrected", "operator-export", "Verified export", '{"before":"Operational","after":"Major outage"}', "2026-09-08T00:00:00.000Z", "2026-09-08T00:00:00.000Z"),
   ]);
+  // Synthetic retained delivery history, not provider-acceptance evidence. The
+  // public failover journey separately proves how these durable facts arise.
+  await env.DB.batch([
+    env.DB.prepare("INSERT INTO mail_provider_routes(message_key,notification_delivery_id,envelope_hash,configuration_hash,primary_provider,secondary_provider,selected_provider,first_retryable_failure_at,state,provider_message_id,accepting_provider,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,'accepted',?,?,?,?)").bind(createHash('sha256').update('synthetic-lamp-route-1').digest('hex'),'delivery-export',createHash('sha256').update('synthetic-lamp-envelope-1').digest('hex'),createHash('sha256').update('synthetic-lamp-configuration-1').digest('hex'),'resend','mailgun','mailgun','2026-09-08T00:10:00.000Z','synthetic-lamp-provider-receipt-1','mailgun','2026-09-08T00:10:00.000Z','2026-09-08T00:15:01.000Z'),
+    env.DB.prepare("INSERT INTO mail_provider_settings(id,secondary_provider,updated_at) VALUES('default','mailgun','2026-09-08T00:00:00.000Z')"),
+  ]);
+  // Retained chat consent and both notification carrier kinds travel through
+  // the same technical archive. These chat recipients have already opted out;
+  // current active-channel behavior is exercised by the subscription journey.
+  const stamp="2026-09-08T00:00:00.000Z",confirmed="2026-09-08T00:01:00.000Z",deactivated="2026-09-08T00:16:00.000Z";
+  for (const [number,kind] of [[1701,"slack"],[1702,"teams"]]) {
+    const id=`synthetic-lamp-${number}`;
+    await env.DB.batch([
+      env.DB.prepare("INSERT INTO subscribers(id,channel,chat_kind,destination,state,selection_mode,token_hash,event_kinds_json,preferences_set,deactivation_reason,deactivated_at,created_at,updated_at) VALUES(?,'webhook',?,?,'deactivated','selected',?, ?,1,'unsubscribed',?,?,?)").bind(id,kind,`${kind}:${id}`,`${id}-legacy-token`,'["maintenance","components"]',deactivated,stamp,deactivated),
+      env.DB.prepare("INSERT INTO subscriber_chat_destinations(subscriber_id,kind,name,sealed_url,host,selection_mode,slack_team_id,slack_channel_id,created_at,updated_at) VALUES(?,?,?,?,?,'selected',?,?,?,?)").bind(id,kind,`Synthetic ${kind}`,`${id}-sealed`,kind==='slack'?'hooks.slack.com':'synthetic-lamp.environment.api.powerplatform.com',kind==='slack'?'synthetic-lamp-team':null,kind==='slack'?'synthetic-lamp-channel':null,stamp,deactivated),
+      env.DB.prepare("INSERT INTO subscriber_components(id,subscriber_id,component_id,created_at,updated_at) VALUES(?,?,'component-export',?,?)").bind(`${id}-selection`,id,stamp,stamp),
+      ...['confirm','manage','unsubscribe'].map(scope=>env.DB.prepare("INSERT INTO subscriber_tokens(id,subscriber_id,scope,token_hash,expires_at,revoked_at,created_at,updated_at) VALUES(?,?,?,?,NULL,?,?,?)").bind(`${id}-${scope}`,id,scope,`${id}-${scope}-hash`,scope==='confirm'?confirmed:deactivated,stamp,scope==='confirm'?confirmed:deactivated)),
+      env.DB.prepare("INSERT INTO subscriber_channel_posts(id,incident_update_id,destination_id,queued_at,incident_impact) VALUES(?,'update-export',?,'2026-09-08T00:15:00.000Z','critical')").bind(`${id}-post`,id),
+    ]);
+  }
+  await env.DB.batch([
+    env.DB.prepare("UPDATE subscribers SET event_kinds_json=?,preferences_set=1 WHERE id='subscriber-export'").bind('["incidents","maintenance","components"]'),
+    env.DB.prepare("INSERT INTO channel_destinations(id,kind,name,sealed_url,host,selection_mode,created_by_operator_id,created_at,updated_at) VALUES('synthetic-lamp-1707','slack','Synthetic owner channel','synthetic-lamp-1707-sealed','hooks.slack.com','all','operator-export',?,?)").bind(stamp,stamp),
+    env.DB.prepare("INSERT INTO channel_destination_components(destination_id,component_id) VALUES('synthetic-lamp-1707','component-export')"),
+    env.DB.prepare("INSERT INTO channel_posts(id,incident_update_id,destination_id,queued_at) VALUES('synthetic-lamp-1708','update-export','synthetic-lamp-1707','2026-09-08T00:15:00.000Z')"),
+    env.DB.prepare("INSERT INTO component_notification_events(id,component_id,component_name,component_created_at,previous_state,new_state,changed_at,claimant_kind) VALUES('synthetic-lamp-1703','component-export','Public API',?,'Operational','Major outage','2026-09-08T00:15:00.000Z','standing-claim')").bind(stamp),
+    env.DB.prepare("INSERT INTO component_notification_deliveries(id,subscriber_id,channel,outcome,queued_at,outcome_at,created_at,updated_at,notification_event_id,notification_event_type,mail_payload_json,component_event_id) VALUES('synthetic-lamp-1704','subscriber-export','email','delivered','2026-09-08T00:15:00.000Z','2026-09-08T00:15:01.000Z',?,?,'synthetic-lamp-1703','component-change',?,'synthetic-lamp-1703')").bind(stamp,deactivated,JSON.stringify({subject:'Synthetic component change',text:'Retained component wording',to:'reader@example.test'})),
+    env.DB.prepare("INSERT INTO component_delivery_attempts(id,delivery_id,attempt_number,attempted_at,provider_message_id,created_at) VALUES('synthetic-lamp-1705','synthetic-lamp-1704',1,'2026-09-08T00:15:00.000Z','synthetic-lamp-component-message',?)").bind(stamp),
+    env.DB.prepare("INSERT INTO mail_provider_webhook_events(id,provider_event_id,provider_message_id,event_type,received_at,created_at,applied_at,component_delivery_id) VALUES('synthetic-lamp-1706','synthetic-lamp-component-event','synthetic-lamp-component-message','delivered','2026-09-08T00:15:01.000Z',?,'2026-09-08T00:15:01.000Z','synthetic-lamp-1704')").bind(stamp),
+    env.DB.prepare("INSERT INTO notification_delivery_attempts(id,delivery_id,attempt_number,attempted_at,provider_message_id,created_at) VALUES('synthetic-lamp-1712','delivery-export',1,'2026-09-08T00:15:00.000Z','synthetic-lamp-incident-message',?)").bind(stamp),
+    env.DB.prepare("INSERT INTO mail_provider_webhook_events(id,provider_event_id,provider_message_id,event_type,received_at,created_at,applied_at,delivery_id) VALUES('synthetic-lamp-1713','synthetic-lamp-incident-event','synthetic-lamp-incident-message','delivered','2026-09-08T00:15:01.000Z',?,'2026-09-08T00:15:01.000Z','delivery-export')").bind(stamp),
+    env.DB.prepare("INSERT INTO channel_subscriber_events(id,subscriber_id,event_id,kind,queued_at) VALUES('synthetic-lamp-1710','synthetic-lamp-1701','notice-export','maintenance',?)").bind(stamp),
+    env.DB.prepare("INSERT INTO channel_subscriber_events(id,subscriber_id,event_id,kind,queued_at) VALUES('synthetic-lamp-1711','synthetic-lamp-1702','synthetic-lamp-1703','component',?)").bind(stamp),
+  ]);
+  for (const transport of ['slack', 'teams']) await env.DB.prepare("INSERT INTO chat_links(id,operator_id,transport,tenant,subject,created_at) VALUES(?,?,?,?,?,?)").bind(`synthetic-lamp-${transport}`,'operator-export',transport,'synthetic-lamp-1','synthetic-lamp-2','2026-10-23').run();
+  // Durable SMS consent, signed-reply replay receipt and delivered outcome
+  // are product data. Provider credentials are deployment configuration only.
+  await env.DB.batch([
+    env.DB.prepare("INSERT INTO subscribers(id,channel,sms_kind,destination,state,selection_mode,token_hash,event_kinds_json,preferences_set,deactivation_reason,deactivated_at,created_at,updated_at) VALUES('synthetic-lamp-1810','webhook',1,'+12025550110','deactivated','selected','synthetic-lamp-1811','[\"maintenance\"]',1,'STOP',?,?,?)").bind(deactivated,stamp,deactivated),
+    env.DB.prepare("INSERT INTO subscriber_components(id,subscriber_id,component_id,created_at,updated_at) VALUES('synthetic-lamp-1812','synthetic-lamp-1810','component-export',?,?)").bind(stamp,stamp),
+    env.DB.prepare("INSERT INTO sms_subscriptions(subscriber_id,page_name,opt_in_wording,pending_since) VALUES('synthetic-lamp-1810','Export status','synthetic-lamp-1813',?)").bind(stamp),
+    env.DB.prepare("INSERT INTO sms_consents(id,subscriber_id,number,page_name,wording,consented_at) VALUES('synthetic-lamp-1814','synthetic-lamp-1810','+12025550110','Export status','synthetic-lamp-1813',?)").bind(confirmed),
+    env.DB.prepare("INSERT INTO sms_inbound_events(message_sid,subscriber_id,received_at) VALUES('synthetic-lamp-1815','synthetic-lamp-1810',?)").bind(confirmed),
+    env.DB.prepare("INSERT INTO sms_deliveries(id,subscriber_id,event_id,kind,incident_update_id,outcome,provider_message_id,queued_at,outcome_at) VALUES('synthetic-lamp-1816','synthetic-lamp-1810','update-export','incident-update','update-export','delivered','synthetic-lamp-1817',?,?)").bind(stamp,confirmed),
+    env.DB.prepare("INSERT INTO sms_reporting_daily(day,joined,left_count) VALUES('2026-09-08',1,1)"),
+    env.DB.prepare("UPDATE sms_settings SET countries_json='[\"US\",\"CA\",\"GB\"]',support_contact='support@example.test' WHERE id=1"),
+  ]);
   await env.SNAPSHOTS.put("branding/original.png", logo, { httpMetadata: { contentType: "image/png", contentDisposition: "attachment; filename=brand.png", cacheControl: "public, max-age=60" }, customMetadata: { owner: "portable-brand" } });
+}
+
+async function assertSubscriberDeliveryHistory(db) {
+  assert.deepEqual((await db.prepare("SELECT day,joined,left_count FROM sms_reporting_daily ORDER BY day").all()).results,[{day:'2026-09-08',joined:1,left_count:1}],'anonymous SMS inventory history survives restore');
+  assert.deepEqual({...await db.prepare("SELECT channel,destination,state,selection_mode,event_kinds_json FROM subscriber_directory WHERE id='synthetic-lamp-1810'").first()},{channel:'sms',destination:'+12025550110',state:'deactivated',selection_mode:'selected',event_kinds_json:'["maintenance"]'},'SMS channel identity, STOP and preferences survive restore');
+  assert.deepEqual({...await db.prepare("SELECT number,page_name,wording,consented_at FROM sms_consents WHERE subscriber_id='synthetic-lamp-1810'").first()},{number:'+12025550110',page_name:'Export status',wording:'synthetic-lamp-1813',consented_at:'2026-09-08T00:01:00.000Z'},'the exact consent receipt survives restore');
+  assert.deepEqual({...await db.prepare("SELECT event_id,outcome,provider_message_id FROM sms_deliveries WHERE id='synthetic-lamp-1816'").first()},{event_id:'update-export',outcome:'delivered',provider_message_id:'synthetic-lamp-1817'},'the original SMS provider receipt prevents resending on restore');
+  assert.deepEqual({...await db.prepare("SELECT countries_json,support_contact FROM sms_settings WHERE id=1").first()},{countries_json:'["US","CA","GB"]',support_contact:'support@example.test'},'owner country policy and support contact survive restore');
+  assert.equal((await db.prepare("SELECT subscriber_id FROM sms_inbound_events WHERE message_sid='synthetic-lamp-1815'").first()).subscriber_id,'synthetic-lamp-1810','signed reply replay authority stays with its subscriber');
+
+  assert.deepEqual((await db.prepare("SELECT notification_delivery_id,primary_provider,secondary_provider,selected_provider,state,provider_message_id,accepting_provider FROM mail_provider_routes ORDER BY message_key").all()).results,[{notification_delivery_id:'delivery-export',primary_provider:'resend',secondary_provider:'mailgun',selected_provider:'mailgun',state:'accepted',provider_message_id:'synthetic-lamp-provider-receipt-1',accepting_provider:'mailgun'}],'accepted provider routing survives restore without changing its replay decision');
+  assert.deepEqual((await db.prepare("SELECT id,secondary_provider FROM mail_provider_settings").all()).results,[{id:'default',secondary_provider:'mailgun'}],'the owner-selected secondary travels with the archive');
+  assert.deepEqual((await db.prepare("SELECT id,channel,state,selection_mode,event_kinds_json FROM subscriber_directory WHERE id IN ('synthetic-lamp-1701','synthetic-lamp-1702') ORDER BY id").all()).results,[
+    {id:'synthetic-lamp-1701',channel:'slack',state:'deactivated',selection_mode:'selected',event_kinds_json:'["maintenance","components"]'},
+    {id:'synthetic-lamp-1702',channel:'teams',state:'deactivated',selection_mode:'selected',event_kinds_json:'["maintenance","components"]'},
+  ],'both chat channels retain their identity, opt-out and component preferences');
+  assert.deepEqual((await db.prepare("SELECT id,subscriber_id,outcome,notification_event_id FROM notification_delivery_records ORDER BY id").all()).results,[
+    {id:'delivery-export',subscriber_id:'subscriber-export',outcome:'delivered',notification_event_id:'update-export'},
+    {id:'synthetic-lamp-1704',subscriber_id:'subscriber-export',outcome:'delivered',notification_event_id:'synthetic-lamp-1703'},
+  ],'the product sees each incident and component delivery once with its retained outcome');
+  assert.deepEqual((await db.prepare("SELECT delivery_id,attempt_number,provider_message_id FROM notification_attempt_records ORDER BY delivery_id").all()).results,[
+    {delivery_id:'delivery-export',attempt_number:1,provider_message_id:'synthetic-lamp-incident-message'},
+    {delivery_id:'synthetic-lamp-1704',attempt_number:1,provider_message_id:'synthetic-lamp-component-message'},
+  ],'provider deduplication identities remain attached to the same two deliveries');
+  assert.deepEqual((await db.prepare("SELECT provider_event_id,delivery_id,component_delivery_id FROM mail_provider_webhook_events ORDER BY provider_event_id").all()).results,[
+    {provider_event_id:'synthetic-lamp-component-event',delivery_id:null,component_delivery_id:'synthetic-lamp-1704'},
+    {provider_event_id:'synthetic-lamp-incident-event',delivery_id:'delivery-export',component_delivery_id:null},
+  ],'callbacks retain the exact carrier authority for both kinds');
+  assert.deepEqual((await db.prepare("SELECT id,destination_id,incident_update_id FROM delivery_channel_posts ORDER BY id").all()).results,[
+    {id:'synthetic-lamp-1701-post',destination_id:'synthetic-lamp-1701',incident_update_id:'update-export'},
+    {id:'synthetic-lamp-1702-post',destination_id:'synthetic-lamp-1702',incident_update_id:'update-export'},
+    {id:'synthetic-lamp-1708',destination_id:'synthetic-lamp-1707',incident_update_id:'update-export'},
+  ],'owner and subscriber chat posts keep their original update identity');
 }
 
 contract("HIST-004", "export restores every JSON entity, settings and audit entry plus original image bytes into an empty local deployment and into a new RER Managed installation", async () => {
@@ -112,6 +192,8 @@ contract("HIST-004", "export restores every JSON entity, settings and audit entr
         restored.push({ name: table.name, dependsOn: table.dependsOn, rows: rows.results });
       }
       assert.deepEqual(restored, entities.tables);
+      await assertSubscriberDeliveryHistory(target.env.DB);
+      for (const name of ["sms_subscriptions","sms_settings","sms_consents","sms_inbound_events","sms_deliveries","sms_reporting_daily","subscriber_chat_destinations","subscriber_channel_posts","subscriber_tokens","channel_subscriber_events","component_notification_events","component_notification_deliveries","component_delivery_attempts","notification_delivery_attempts","mail_provider_webhook_events","mail_provider_routes","mail_provider_settings"]) assert.ok(entities.tables.find(table=>table.name===name)?.rows.length,`${name} must be represented by populated portable history`);
       assert.ok(entities.tables.find((table) => table.name === "page_settings")?.rows.length, "settings must be JSON entities in the archive");
       assert.ok(entities.tables.find((table) => table.name === "audit_entries")?.rows.length, "audit entries must be JSON entities in the archive");
       for (const name of ["components", "component_state_history", "incidents", "incident_updates", "incident_reports", "maintenance", "maintenance_notices", "subscribers", "notification_deliveries"]) {
@@ -191,6 +273,8 @@ async function managedRoundTrip() {
     assert.ok(!entities.tables.some((table) => table.name === "rer_migrations"), "the ledger never travels");
     importInto("target");
     assert.deepEqual(await ledger("target"), targetLedger, "restore neither rewrites nor drops the destination's Platform history");
+    const restoredHistory=await platformFor(state("target"));
+    try {await assertSubscriberDeliveryHistory(restoredHistory.env.DB);} finally {await restoredHistory.dispose();}
     assert.deepEqual(await ledger("source"), sourceLedger);
     exportFrom("target", join(sandbox, "re-export"));
     assert.deepEqual(JSON.parse(await readFile(join(sandbox, "re-export", "entities.json"), "utf8")), entities, "re-export after restore is identical");

@@ -62,6 +62,10 @@ export function useAppData<T>(path: string | null) {
   }, [path, snapshot, revision]);
 
   const refresh = useCallback(() => setRevision((current) => current + 1), []);
-  const result = state.path === path && state.snapshot === snapshot ? state : initialState;
+  // Until the effect adopts a new snapshot, show what it is about to set: the snapshot's own read, or, when the snapshot
+  // lacks it, the data already shown for this path while it is read again. A new visit never blanks a screen for a render.
+  const result = state.path === path && state.snapshot === snapshot ? state
+    : path && state.path === path && !initial ? { ...state, loading: true, error: null }
+    : initialState;
   return { data: result.data, error: result.error, loading: result.loading, refresh };
 }

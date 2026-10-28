@@ -115,7 +115,7 @@ test("Maintenance editing and destructive confirmation remain deliberate", async
   t.diagnostic("maintenance date fields are contained in a closed Change dates disclosure");
   await (() => {
   const item={id:'maintenance-render',reference:'MNT-RENDER',title:'Database work',state:'Scheduled',startsAt:'2027-01-02T01:00:30Z',endsAt:'2027-01-02T02:00:30Z',components:[],overrunning:false};
-  const html=render(MaintenancePage,{'/api/app/maintenance':{maintenance:[item]},'/api/app/components':{components:[]}});
+  const html=render(MaintenancePage,{'/api/app/maintenance':{maintenance:[item],automation:{autoStart:true,autoComplete:true}},'/api/app/components':{components:[]}});
   const dates=details(html,'Change dates');
   assert.doesNotMatch(dates.attributes,/\bopen\b/); assert.match(dates.body,/MNT-RENDER start/); assert.match(dates.body,/MNT-RENDER end/);
   const outside=html.replace(dates.body,''); assert.doesNotMatch(outside,/MNT-RENDER (start|end)/);

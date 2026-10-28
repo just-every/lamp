@@ -13,7 +13,9 @@ import { type MailMessage, type MailSender } from "../../platform/mail";
 import { hmacSha256 } from "../../platform/security/opaque-tokens";
 import { SubscriberTokenCodec } from "../subscribers/tokens";
 import { defaultDeliveryEvents, type DeliveryEvents } from "./events";
-import type { DeliveryRepository, DeliveryRow, DispatchableDelivery, PendingProviderEvent, SubscriptionMailRow } from "./repository";
+import type { DeliveryRepository, DeliveryLogChannel, DeliveryRow, DispatchableDelivery, PendingProviderEvent, SubscriptionMailRow } from "./repository";
+import { statuspageWebhookBody } from "./statuspage-webhook";
+import { defaultPageStatusRollup, type PageStatusRollupPolicy } from "../public-snapshot/policies";
 
 const RETRY_DELAYS_MS = [60_000, 5 * 60_000, 15 * 60_000, 20 * 60_000, 20 * 60_000];
 const RESEND_IDEMPOTENCY_WINDOW_MS = 24 * 60 * 60 * 1000;
@@ -23,19 +25,25 @@ const PROVIDER_CALLBACK_CLAIM_MS = 5 * 60 * 1000;
 type FrozenMailPayload = MailMessage & { frozenAt: string };
 
 export interface DeliveriesService {
-  list(filter?: { channel?: DeliveryChannel; outcome?: DeliveryOutcome; incidentUpdateId?: string; limit?: number; offset?: number }): Promise<DeliveryRow[]>;
-  export(filter?: { channel?: DeliveryChannel; outcome?: DeliveryOutcome; incidentUpdateId?: string }): Promise<DeliveryRow[]>;
+  list(filter?: { channel?: DeliveryLogChannel; outcome?: DeliveryOutcome; incidentUpdateId?: string; limit?: number; offset?: number }): Promise<DeliveryRow[]>;
+  export(filter?: { channel?: DeliveryLogChannel; outcome?: DeliveryOutcome; incidentUpdateId?: string }): Promise<DeliveryRow[]>;
   listSubscriptionMail(limit?: number): Promise<SubscriptionMailRow[]>;
   dispatchDue(origin: string, limit?: number): Promise<void>;
   dispatchEvent(eventId: string, origin: string): Promise<void>;
   dispatchDelivery(deliveryId: string, origin: string): Promise<void>;
   handleProviderEvent(input: { id: string; providerMessageId: string | null; type: "delivered" | "bounced" | "complained"; hardBounce?: boolean }): Promise<void>;
-  queueOperatorAlert(input: { eventId: string; title: string; text: string }): Promise<void>;
+  queueOperatorAlert(input: { eventId: string; title: string; text: string; recipients?: string[] }): Promise<void>;
 }
 
 function retryAt(attempt: number) {
   const delay = RETRY_DELAYS_MS[Math.min(Math.max(attempt - 1, 0), RETRY_DELAYS_MS.length - 1)];
   return new Date(Date.now() + delay).toISOString();
+}
+
+function pendingMailFailover(error:unknown) {
+  if(!error||typeof error!=='object'||!('mailFailoverAt'in error)||typeof error.mailFailoverAt!=='string')return null;
+  const deadline=Date.parse(error.mailFailoverAt);
+  return Number.isFinite(deadline)&&deadline>Date.now()?deadline:null;
 }
 
 function isSafeWebhookDestination(destination: string) {
@@ -47,9 +55,7 @@ function isSafeWebhookDestination(destination: string) {
   } catch { return false; }
 }
 
-function htmlText(value: string) {
-  return value.replace(/[&<>"']/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[character] ?? character);
-}
+
 
 function permanentDeliveryError(message: string) {
   const error = new Error(message) as Error & { retryable?: boolean };
@@ -85,10 +91,11 @@ function renderMaintenanceNotice(delivery: DispatchableDelivery) {
 
 export function createDeliveriesService(
   repository: DeliveryRepository,
-  options: { emailBranding?: () => Promise<{ branding: EmailBranding; hasLogo: boolean }>; pageName?: () => Promise<string>; effectsPaused?: boolean; mail?: MailSender; fromAddress?: string | (() => Promise<string>); subscriberTokenSecret?: string; webhookSigningSecret?: string | string[]; events?: DeliveryEvents } = {},
+  options: { operatorChatAlert?: (input: { eventId: string; title: string; text: string }) => Promise<void>; pageStatusRollup?: PageStatusRollupPolicy; emailBranding?: () => Promise<{ branding: EmailBranding; hasLogo: boolean }>; pageName?: () => Promise<string>; effectsPaused?: boolean; mail?: MailSender; fromAddress?: string | (() => Promise<string>); subscriberTokenSecret?: string; webhookSigningSecret?: string | string[]; events?: DeliveryEvents } = {},
 ): DeliveriesService {
   const tokens = options.subscriberTokenSecret ? new SubscriberTokenCodec(options.subscriberTokenSecret) : null;
   const events = options.events ?? defaultDeliveryEvents;
+  const pageRollup = options.pageStatusRollup ?? defaultPageStatusRollup;
 
   async function emitAfterCommit(callback: () => Promise<void>) {
     try {
@@ -124,8 +131,9 @@ export function createDeliveriesService(
     });
   }
 
-  async function queueOperatorAlert(input: { eventId: string; title: string; text: string }) {
+  async function queueOperatorAlert(input: { eventId: string; title: string; text: string; recipients?: string[] }) {
     await queueMailAlert(input);
+    await options.operatorChatAlert?.(input);
   }
 
   async function stableTokens(subscriberId: string) {
@@ -152,7 +160,7 @@ export function createDeliveriesService(
     const providerMessageId = error && typeof error === "object" && "providerMessageId" in error && typeof error.providerMessageId === "string" ? error.providerMessageId : null;
     await repository.recordAttempt({ id: createUlid(), deliveryId: delivery.id, attemptNumber: attempt, attemptedAt: timestamp, providerMessageId, error: description, createdAt: timestamp });
     const retryable = !(error && typeof error === "object" && "retryable" in error) || (error as { retryable?: boolean }).retryable !== false;
-    if (!retryable || attempt > RETRY_DELAYS_MS.length) {
+    if (!retryable || attempt > RETRY_DELAYS_MS.length && !pendingMailFailover(error)) {
       await repository.markOutcome(delivery.id, "failed", timestamp, timestamp);
       if (providerMessageId && await applyPendingProviderEvents(providerMessageId)) return;
       await emitAfterCommit(() => events.notificationFailed({ deliveryId: delivery.id, subscriberId: delivery.subscriberId, notificationEventId: delivery.notificationEventId ?? delivery.id, failedAt: timestamp }));
@@ -192,7 +200,9 @@ export function createDeliveriesService(
       const { manage, unsubscribe } = links;
       const manageUrl = new URL(`/manage/${encodeURIComponent(manage)}`, origin).toString();
       const unsubscribeUrl = new URL(`/unsubscribe/${encodeURIComponent(unsubscribe)}`, origin).toString();
-      const rendered = delivery.incidentReportId && delivery.incidentReference && delivery.incidentTitle
+      const rendered = delivery.componentEventId
+        ? { email: { subject: `${delivery.componentName}: ${delivery.newComponentState}`, plainText: `${delivery.componentName}: ${delivery.previousComponentState} → ${delivery.newComponentState}\n\nChanged: ${displayNotificationTime(delivery.componentChangedAt!, delivery.timezone)}\nClaimant: ${delivery.componentClaimantKind}` } }
+        : delivery.incidentReportId && delivery.incidentReference && delivery.incidentTitle
         ? { email: { subject: `[${delivery.incidentReference}] Post-incident report`, plainText: [`${delivery.incidentReference}: ${delivery.incidentTitle}`, ...(delivery.incidentImpact === null ? [] : [`Incident impact: ${impactLabel(delivery.incidentImpact)}`]), ...[["Summary", delivery.reportSummary], ["Timeline", delivery.reportTimeline], ["Cause", delivery.reportCause], ["Remediation", delivery.reportRemediation]].flatMap(([label, value]) => value?.trim() ? [`${label}: ${value}`] : [])].join("\n\n") } }
         : delivery.incidentUpdateId !== null && delivery.incidentReference !== null && delivery.incidentTitle !== null && delivery.lifecycle !== null && delivery.affectedAudience !== null && delivery.customerImpact !== null
           ? renderNotificationUpdate({ incidentImpact: delivery.incidentImpact, incidentReference: delivery.incidentReference, incidentTitle: delivery.incidentTitle, lifecycle: delivery.lifecycle, affectedAudience: delivery.affectedAudience, customerImpact: delivery.customerImpact, whatStillWorks: delivery.whatStillWorks ?? "", details: delivery.details ?? "", nextUpdateAt: delivery.nextUpdateAt, componentChanges: parsePublishedComponentChanges(delivery.componentChangesJson), nextUpdateDisplay: delivery.nextUpdateAt ? displayNotificationTime(delivery.nextUpdateAt, delivery.timezone) : null })
@@ -202,15 +212,15 @@ export function createDeliveriesService(
       const pageName = options.pageName ? await options.pageName() : lampConfig.pageName;
       const statusUrl = new URL("/", origin).href;
       const brand = options.emailBranding ? await options.emailBranding() : { branding: defaultEmailBranding, hasLogo: false };
-      const branded = brandEmail(rendered.email, { ...brand, pageName, fromAddress, origin });
+      const branded = brandEmail(rendered.email, { ...brand, pageName, fromAddress, origin, subscriptionLinks: { manageUrl, unsubscribeUrl } });
       const candidate: FrozenMailPayload = {
         frozenAt: nowIso(), from: branded.from, ...(branded.replyTo ? { replyTo: branded.replyTo } : {}), to: delivery.destination, subject: branded.subject,
         text: `${branded.plainText}\n\nManage this subscription: ${manageUrl}\nUnsubscribe: ${unsubscribeUrl}\nReturn to status: ${statusUrl}`,
-        html: `<main>${branded.html}<p><a href="${htmlText(manageUrl)}">Manage subscription</a> · <a href="${htmlText(unsubscribeUrl)}">Unsubscribe</a></p></main>`,
+        html: branded.html,
         headers: {
           "List-Unsubscribe": `<mailto:${fromAddress}?subject=unsubscribe>, <${unsubscribeUrl}>`, "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
           "List-Id": `<${host}>`, "List-Archive": `${origin}/history`, "List-Help": manageUrl, "Auto-Submitted": "auto-generated",
-          ...(delivery.incidentId ? { "Message-ID": delivery.isFirstIncidentUpdate ? `<lamp-${delivery.incidentId}@${host}>` : `<lamp-notification-${delivery.id}@${host}>` } : {}),
+          "Message-ID": delivery.incidentId && delivery.isFirstIncidentUpdate ? `<lamp-${delivery.incidentId}@${host}>` : `<lamp-notification-${delivery.id}@${host}>`,
           ...(delivery.incidentId && !delivery.isFirstIncidentUpdate ? { "In-Reply-To": `<lamp-${delivery.incidentId}@${host}>`, References: `<lamp-${delivery.incidentId}@${host}>` } : {}),
         },
         idempotencyKey: `notification/${delivery.id}`,
@@ -238,13 +248,24 @@ export function createDeliveriesService(
     const secrets = (Array.isArray(options.webhookSigningSecret) ? options.webhookSigningSecret : [options.webhookSigningSecret]).filter((value): value is string => Boolean(value));
     if (!secrets.length) throw new Error("WEBHOOK_SIGNING_SECRET is required for webhook subscriptions.");
     if (!isSafeWebhookDestination(delivery.destination)) throw new Error("Webhook delivery destination is not a public HTTPS URL.");
-    const slack = new URL(delivery.destination).hostname === "hooks.slack.com";
+    const statuspage=delivery.webhookFormat==="statuspage";
+    const slack = !statuspage && new URL(delivery.destination).hostname === "hooks.slack.com";
     const destination = slack ? await resolveSlackWebhook(async () => delivery.destination, delivery.subscriberId) : delivery.destination;
-    const incidentEvent = !slack && delivery.incidentId && delivery.incidentUpdateId ? await repository.getIncidentWebhookPayload(delivery.incidentId, delivery.incidentUpdateId, delivery.notificationEventId) : null;
-    const event = incidentEvent
+    const incidentEvent = !statuspage && !slack && delivery.incidentId && delivery.incidentUpdateId ? await repository.getIncidentWebhookPayload(delivery.incidentId, delivery.incidentUpdateId, delivery.notificationEventId) : null;
+    const event = delivery.componentEventId
+      ? { event: "component.changed", deliveryId: delivery.id, component: { id: delivery.componentId, name: delivery.componentName, previousState: delivery.previousComponentState, state: delivery.newComponentState, changedAt: delivery.componentChangedAt, claimantKind: delivery.componentClaimantKind } }
+      : incidentEvent
       ? { event: "incident.update.published", deliveryId: delivery.id, ...incidentEvent, incident: { ...incidentEvent.incident, impact: delivery.incidentImpact } }
       : { event: delivery.maintenanceId ? "maintenance.notice.published" : "incident.report.published", deliveryId: delivery.id, incident: delivery.incidentReference ? { reference: delivery.incidentReference, title: delivery.incidentTitle, impact: delivery.incidentImpact } : null, maintenance: delivery.maintenanceId ? { id: delivery.maintenanceId, reference: delivery.maintenanceReference, title: delivery.maintenanceTitle, state: delivery.maintenanceState, notice: delivery.maintenanceNoticeKind } : null };
-    const body = JSON.stringify(slack ? renderSubscriberSlackMessage(delivery, origin) : event);
+    let payload:unknown;
+    if(statuspage) {
+      const links=await stableTokens(delivery.subscriberId);
+      if(!links){await repository.markOutcome(delivery.id,"suppressed",nowIso(),nowIso());return;}
+      const source=await repository.statuspage.load(origin);
+      if(!source)throw permanentDeliveryError("Page settings are required for Statuspage-format notifications.");
+      payload=statuspageWebhookBody(source,delivery,origin,links.unsubscribe,pageRollup);
+    } else payload=slack ? renderSubscriberSlackMessage(delivery,origin) : event;
+    const body = JSON.stringify(payload);
     const timestamp = String(Math.floor(Date.now() / 1000));
     const signature = (await Promise.all(secrets.map(async (secret) => `v1=${await hmacSha256(secret, `${delivery.id}.${timestamp}.${body}`)}`))).join(" ");
     const controller = new AbortController();
@@ -342,7 +363,8 @@ export function createDeliveriesService(
           await this.dispatchEvent(payload.eventId, origin);
         } catch (error) {
           const attempts = job.attempts + 1;
-          await repository.retryOutbox(job.id, { attempts, availableAt: retryAt(attempts), error: error instanceof Error ? error.message : "Notification dispatch failed.", now: nowIso(), failed: attempts > RETRY_DELAYS_MS.length });
+          const failoverAt=pendingMailFailover(error),plannedAt=Date.parse(retryAt(attempts));
+          await repository.retryOutbox(job.id, { attempts, availableAt: new Date(failoverAt===null?plannedAt:Math.min(plannedAt,failoverAt)).toISOString(), error: error instanceof Error ? error.message : "Notification dispatch failed.", now: nowIso(), failed: attempts > RETRY_DELAYS_MS.length && failoverAt===null });
         }
       }
       for (const providerMessageId of await repository.listPendingProviderMessageIds(limit)) {
@@ -380,7 +402,7 @@ export function createDeliveriesService(
       if (!input.providerMessageId) return;
       // The shared provider account may deliver another application's events.
       // Our durable claim predates the send, including early signed receipts.
-      if (input.id.startsWith("sendgrid/") && !await repository.hasMailSendClaim(input.providerMessageId)) return;
+      if ((input.id.startsWith("sendgrid/") || input.id.startsWith("mailgun/") || input.id.startsWith("ses/") || input.id.startsWith("postmark/")) && !await repository.hasMailSendClaim(input.providerMessageId)) return;
       await repository.isProviderWebhookNew({ providerEventId: input.id, providerMessageId: input.providerMessageId, eventType: input.type, hardBounce: Boolean(input.hardBounce), now });
       // Even a duplicate callback can resume a record whose previous Worker
       // invocation crashed while it held the durable callback lease.

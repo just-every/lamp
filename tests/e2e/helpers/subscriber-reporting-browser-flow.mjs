@@ -22,9 +22,14 @@ export async function subscriberReportingBrowserFlow({ page, appUrl, appFetch })
     const panel = page.getByRole("region", { name: "Subscriber reporting", exact: true });
     await panel.getByText(`${before.total} current subscribers`, { exact: true }).waitFor();
     const endpoint = `https://noc.acme.example/hooks/fulfilment-${width}`;
-    await page.getByLabel("Endpoint URL", { exact: true }).fill(endpoint);
-    await page.getByLabel("Contact email", { exact: true }).fill("fulfilment@acme.example");
-    await page.getByRole("button", { name: "Add webhook", exact: true }).click();
+    const add = page.getByRole("region", { name: "Add subscriber", exact: true });
+    await add.getByLabel("Channel", { exact: true }).selectOption("webhook");
+    await add.getByLabel("Endpoint URL", { exact: true }).fill(endpoint);
+    await add.getByLabel("Contact email", { exact: true }).fill("fulfilment@acme.example");
+    const added = page.waitForResponse(response => new URL(response.url()).pathname === "/api/app/subscribers" && response.request().method() === "POST");
+    await add.getByRole("button", { name: "Add subscriber and send confirmation", exact: true }).click();
+    const response = await added;
+    assert.equal(response.status(), 201, await response.text());
     await panel.getByText(`${before.total + 1} current subscribers`, { exact: true }).waitFor();
     await panel.getByText("Counts by component", { exact: true }).click();
     await panel.getByRole("region", { name: "Subscriber counts by component", exact: true }).getByText(component.name, { exact: true }).first().waitFor();

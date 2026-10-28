@@ -1,0 +1,18 @@
+{
+  "action": "Create",
+  "alert": {
+    "alertId": "synthetic-lamp-2",
+    "message": "synthetic-lamp-2 API unavailable",
+    "tags": [
+      "component:api"
+    ],
+    "entity": "synthetic-lamp-entity-1",
+    "createdAt": 1792803600000,
+    "updatedAt": 1792803600000000000
+  },
+  "timestamp": "2026-10-24T01:00:00.000Z",
+  "source": {
+    "name": "synthetic-lamp-2",
+    "type": "Primary responder"
+  }
+}

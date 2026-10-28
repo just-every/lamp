@@ -4,7 +4,7 @@ export { MailPreparationError } from "../platform/mail/sender";
 import type { ReactNode } from "react";
 import type { ComponentStatusChangedEvent } from "../features/components";
 import type { NotificationEventsPolicy } from "../features/deliveries";
-import type { UpdateDuePolicy, UpdateReviewPolicy } from "../features/incidents";
+import type { UpdateDuePolicy, UpdateReviewPolicy, IncidentEscalationPolicy } from "../features/incidents";
 import type { AlertIntakePolicy } from "../features/intake";
 import type { MaintenanceRemindersPolicy } from "../features/maintenance";
 import type { PostmortemDuePolicy } from "../features/reports";
@@ -18,6 +18,7 @@ export interface LampPolicies {
   "uptime.downtime-states.v1"?: UptimeDowntimeWeightPolicy;
   "update.review.v1"?: UpdateReviewPolicy;
   "incident.update-due.v1"?: UpdateDuePolicy;
+  "incident.escalation.v1"?: IncidentEscalationPolicy;
   "maintenance.reminders.v1"?: MaintenanceRemindersPolicy;
   "subscriber.confirmation.v1"?: SubscriberConfirmationPolicy;
   "notification.events.v1"?: NotificationEventsPolicy;
@@ -136,7 +137,7 @@ export interface ComponentRowSlotContext extends OperatorSlotContext {
 }
 
 export interface SubscriberDetailSlotContext extends OperatorSlotContext {
-  subscriber: Readonly<{ id: string; channel: "email" | "webhook"; state: string; destination: string }>;
+  subscriber: Readonly<{ id: string; channel: "email" | "webhook" | "slack" | "teams" | "sms"; state: string; destination: string }>;
 }
 
 export interface LampClientSlotContexts {

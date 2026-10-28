@@ -2,6 +2,8 @@ import { aliasArtifactKey, isImportAliasPath, isLampPermalink } from "../statusp
 import { isSorryHistoryMonthPath } from "../statuspage-import/public-paths.mjs";
 import type { Context, Hono } from "hono";
 
+import { createTrafficStorage } from "../traffic-alerts/storage";
+import type { TrafficSurface } from "../traffic-alerts/surfaces";
 import type { AppEnv } from "../../app/types";
 import { escapeHtml } from "./format";
 import { applyPublicIsolationHeaders } from "./headers";
@@ -124,6 +126,9 @@ function installedSignIn(response: Response, context: Context<AppEnv>) {
         });
       },
     })
+    .on("footer a[data-lamp-vpat]", {
+      element(element) { element.setAttribute("href", new URL("/docs/accessibility/vpat", target).href); },
+    })
     .on("footer a[data-lamp-signin]", {
       element(element) {
         if (signInSeen) return void element.remove();
@@ -157,6 +162,11 @@ function currentMaintenanceOverruns(response: Response, now: number) {
 
 export function registerPublicSnapshotRoutes(app: Hono<AppEnv>, service: PublicSnapshotService) {
   const serve = (artifact: (context: Context<AppEnv>) => string, download = false, missingArtifact?: string) => async (context: Context<AppEnv>) => {
+    // Only the fixed surface crosses this boundary: never the request, path,
+    // query, cookie, address or user agent. Counting cannot delay public bytes.
+    const key = artifact(context);
+    const surface: TrafficSurface = key === 'page.html' ? 'page' : key.startsWith('history/') || key === 'history.html' || key.startsWith('aliases/') ? 'history' : key.startsWith('incidents/') ? 'incident' : key.startsWith('maintenance/') || key === 'maintenance.ics' ? 'maintenance' : key.startsWith('feed.') || key.startsWith('history.') ? 'feed' : key === 'widget.js' || key === 'embed/script.js' ? 'widget' : key === 'status.json' ? 'status' : key.startsWith('assets/') ? 'asset' : key.startsWith('badge.') ? 'badge' : key.startsWith('components/') ? 'component' : 'public-api';
+    context.executionCtx.waitUntil(createTrafficStorage(context.env.SNAPSHOTS).increment(surface, Date.now()));
     const cache = await caches.open("lamp-public-snapshot-fallback").catch(() => null);
     const cacheUrl = new URL(context.req.url);
     cacheUrl.search = ""; // Public artifacts do not vary by query parameters.
@@ -235,6 +245,7 @@ export function registerPublicSnapshotRoutes(app: Hono<AppEnv>, service: PublicS
   app.get("/history/:month", serve(context => /^\d{4}-(?:0[1-9]|1[0-2])$/.test(context.req.param("month") ?? "") ? `history/${context.req.param("month")}.html` : "history/invalid.html", false, "not-found.html"));
   app.get("/history", serve(() => "history.html"));
   app.get("/incidents/:reference", serve((context) => `incidents/${encodeURIComponent(context.req.param("reference") ?? "")}.html`, false, "not-found.html"));
+  app.get("/maintenance.ics", serve(() => "maintenance.ics"));
   app.get("/feed.atom", serve(() => "feed.atom"));
   app.get("/feed.rss", serve(() => "feed.rss"));
   app.get("/history.atom", serve(() => "history.atom"));

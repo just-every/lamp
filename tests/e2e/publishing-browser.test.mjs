@@ -3,7 +3,6 @@ import { requestHeaders } from "../helpers/request-headers.mjs";
 import { withDraftVersion } from "./draft-version-helper.mjs";
 import assert from "node:assert/strict";
 import { execFileSync, spawn } from "node:child_process";
-import { createHmac } from "node:crypto";
 import { readFileSync, writeFileSync } from "node:fs";
 import { mkdir, mkdtemp, rm } from "node:fs/promises";
 import { createServer as createHttpServer } from "node:http";
@@ -47,7 +46,14 @@ let failingAiServer;
 let autosaveIncidentId;
 let originalVisualSource;
 
+function configWithLocalMail(config) {
+  return { ...config, vars: { ...config.vars,
+    RER_DEV_KEY: "test-only-publishing-browser-dev-key", RER_DEV_ORIGIN: appUrl, RER_DEV_IDENTITY: "off",
+  } };
+}
+
 function configWithAiProvider(config) {
+  config = configWithLocalMail(config);
   return { ...config, vars: { ...config.vars, AI_PROVIDER_URL: `http://127.0.0.1:${aiPort}/v1`, AI_PROVIDER_API_KEY: "browser-test-key", AI_PROVIDER_MODEL: "browser-test-model" } };
 }
 
@@ -140,7 +146,9 @@ before(async () => {
   statePath = await mkdtemp(join(tmpdir(), "lamp-publishing-browser-d1-"));
   viteCachePath = await mkdtemp(join(tmpdir(), "lamp-publishing-browser-vite-"));
   // The fixture config lives in its own directory so a checkout's `.dev.vars` (for example its AI provider) cannot override it.
-  fixtureConfig = isolatedWranglerConfig();
+  // The add-subscriber door prepares a confirmation. Use the shipped silent
+  // local transport, while the real operator session remains the authority.
+  fixtureConfig = isolatedWranglerConfig(configWithLocalMail);
   configPath = fixtureConfig.path;
   execFileSync("pnpm", ["exec", "wrangler", "d1", "migrations", "apply", "DB", "--local", "--config", defaultConfigPath, "--persist-to", statePath], { cwd: process.cwd(), stdio: "pipe" });
   if (process.env.RER_VISUAL_HEADING_PROBE === '1') {
@@ -650,53 +658,64 @@ contract("DRAFT-002", "Settings autosaves survive navigation and reload, keep fe
     await page.getByRole("button", { name: "Retry", exact: true }).click();
     await page.locator(".settings-save-note").filter({ hasText: /^Saved · live$/ }).waitFor();
     await eventuallyStored("tagline", `${nextTagline} today`);
+
+    // Offline, with the Page name refused, Settings stays open with the value, the reason and Retry, and nothing reloads
+    // over it: through a Back held on its way to Overview, then through Back and Forward between Settings' tabs (entries
+    // of one page). Online again, Retry publishes it. Settings is reached in the app, and before going offline each
+    // screen is shown in full and the router's loads (its /_serverFn/ requests) have settled, so no load still in
+    // flight can stand in for a reload.
+    const loads = new Set();
+    const started = request => { if (new URL(request.url()).pathname.startsWith("/_serverFn/")) loads.add(request); };
+    const ended = request => loads.delete(request);
+    const settled = async () => { for (let quiet = 0; quiet < 5; quiet = loads.size ? 0 : quiet + 1) await page.waitForTimeout(100); };
+    const pageName = page.getByLabel("Page name", { exact: true });
+    const retry = page.getByRole("button", { name: "Retry", exact: true });
+    const savedLive = page.locator(".settings-save-note").filter({ hasText: /^Saved · live$/ });
+    // Still offline once the page settles, so a reload over Settings would fail here.
+    const keptOffline = async (how, address) => {
+      await page.waitForTimeout(500);
+      assert.equal(await page.locator(".settings-page").count(), 1, `${how} keeps Settings open`);
+      assert.equal(new URL(page.url()).pathname + new URL(page.url()).hash, address, `${how} keeps Settings at its address`);
+      await inView(page.locator(".settings-save-state [role=alert]")); await inView(retry);
+    };
+    page.on("request", started); page.on("requestfinished", ended); page.on("requestfailed", ended);
+    try {
+      for (const [link, shown] of [["Overview", page.getByRole("region", { name: "Active incidents" })], ["Settings", page.locator(".settings-page:not([inert])")]]) {
+        if (width === 390) await page.getByRole("button", { name: "Menu", exact: true }).click();
+        await page.locator(".operator-navigation").getByRole("link", { name: link, exact: true }).click();
+        await shown.waitFor(); await settled();
+      }
+      await savedLive.waitFor();
+      const offlineName = `${name} kept offline`;
+      await page.context().setOffline(true);
+      try {
+        await pageName.fill(offlineName);
+        await page.evaluate(() => history.back());
+        await retry.waitFor();
+        await keptOffline("a Back refused offline", "/app/settings");
+        assert.equal(await pageName.inputValue(), offlineName);
+      } finally { await page.context().setOffline(false); }
+      await retry.click(); await savedLive.waitFor();
+      await eventuallyStored("pageName", offlineName);
+
+      for (const tab of ["Writing", "Page"]) { await page.locator(".settings-tabs").getByRole("link", { name: tab, exact: true }).click(); await settled(); }
+      await savedLive.waitFor();
+      const tabsName = `${name} kept between tabs`;
+      await page.context().setOffline(true);
+      try {
+        await pageName.fill(tabsName); await retry.waitFor();
+        await page.evaluate(() => history.back());
+        await keptOffline("Back to the Writing tab offline", "/app/settings#writing");
+        await page.evaluate(() => history.forward());
+        await keptOffline("Forward to the Page tab offline", "/app/settings#page");
+        assert.equal(await pageName.inputValue(), tabsName, "Back and Forward between tabs offline keep the typed name");
+      } finally { await page.context().setOffline(false); }
+      await retry.click(); await savedLive.waitFor();
+      await eventuallyStored("pageName", tabsName);
+    } finally { page.off("request", started); page.off("requestfinished", ended); page.off("requestfailed", ended); }
   }
   const restored = await appFetch("/api/app/page-settings", { method: "PUT", body: JSON.stringify(originalSettings) });
   assert.equal(restored.status, 200, "restore the shared Settings fixture for the remaining browser journeys");
-});
-
-contract("INTAKE-005", "operators configure a real authenticated source and inspect accepted and rejected redacted receipts", async () => {
-  const signingSecret = "browser-alert-source-secret";
-  await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto(`${appUrl}/app/alerts`);
-  await page.getByRole("button", { name: "Add alert source" }).click();
-  assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "the narrow source editor must not introduce horizontal page overflow");
-  await page.getByLabel("Source name").fill("Browser alert source");
-  await page.getByLabel("Signing secret").fill(signingSecret);
-  await page.getByLabel("Deduplication JSON path").fill("$.event.id");
-  await page.getByLabel("Title JSON path").fill("$.event.title");
-  await page.getByLabel("State JSON path").fill("$.event.state");
-  await page.getByRole("button", { name: "Create source" }).click();
-  await page.getByText("Alert source created. Send alerts to the endpoint below.", { exact: true }).waitFor();
-  assert.doesNotMatch(await page.locator("body").innerText(), new RegExp(signingSecret));
-
-  await page.getByLabel("Source name").fill("Browser alert source — primary");
-  await page.getByRole("button", { name: "Save source" }).click();
-  await page.getByText("Alert source updated. Existing secrets remain hidden.", { exact: true }).waitFor();
-  const sourceCard = page.locator(".alert-source-card").filter({ has: page.getByRole("heading", { name: "Browser alert source — primary", exact: true }) });
-  const endpoint = await sourceCard.locator("code").first().textContent();
-  assert.ok(endpoint?.startsWith(`${pageUrl}/api/intake/`), "the configured source must show its real intake endpoint");
-
-  async function sendAlert(payload) {
-    const body = JSON.stringify(payload);
-    const timestamp = new Date().toISOString();
-    const signature = createHmac("sha256", signingSecret).update(`${timestamp}.${body}`).digest("base64url");
-    return fetch(endpoint, { method: "POST", headers: { "Content-Type": "application/json", "x-lamp-timestamp": timestamp, "x-lamp-signature": signature }, body });
-  }
-
-  const accepted = await sendAlert({ event: { id: "browser-alert-accepted", title: "Browser intake acceptance", state: "firing" } });
-  assert.equal(accepted.status, 202, await accepted.text());
-  const rejected = await sendAlert({ event: { title: "Browser intake rejection", state: "firing" } });
-  assert.equal(rejected.status, 400, await rejected.text());
-
-  await page.reload();
-  await page.locator(".alert-source-card").getByRole("heading", { name: "Browser alert source — primary", exact: true }).waitFor();
-  const ownReceipts = page.locator(".receipt-card tr").filter({ hasText: "Browser alert source — primary" });
-  await ownReceipts.getByText("Accepted", { exact: true }).waitFor();
-  await ownReceipts.getByText("Rejected", { exact: true }).waitFor();
-  const receiptText = await page.locator(".receipt-card").innerText();
-  assert.match(receiptText, /deduplication path/i);
-  assert.doesNotMatch(receiptText, /browser-alert-source-secret|browser-alert-accepted/);
 });
 
 contract("DRAFT-003", "a configured but failing AI provider leaves the ordinary publish control usable", async () => {

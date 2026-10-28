@@ -1,3 +1,4 @@
+import { createHostDispatch } from "./host-dispatch";
 import { createOverviewRepository } from "../features/overview/repository";
 import type { createApp } from "./server";
 import { notificationOrigin } from "./mail";
@@ -16,7 +17,7 @@ export const CRON_EVIDENCE_STEP = "scheduler";
 let lastReadRunAt = 0;
 
 async function dispatchMail(services: ReturnType<typeof createApp>["services"], bindings: AppBindings) {
-  await services.deliveries.dispatchDue(await notificationOrigin(bindings));
+  await Promise.all([services.deliveries.dispatchDue(await notificationOrigin(bindings)),services.sms.dispatchPending()]);
 }
 
 export async function runDueWorkWhileCronQuiet(services: ReturnType<typeof createApp>["services"], bindings: AppBindings, now = Date.now()) {
@@ -32,6 +33,9 @@ export async function runDueWorkWhileCronQuiet(services: ReturnType<typeof creat
 
 export function queueDueWork(runtime: ReturnType<typeof createApp>, bindings: AppBindings, context: ExecutionContext, request: Request, response: Response) {
   if (bindings.EFFECTS_PAUSED === "1" || response.status >= 500) return;
+  // Public read requests must never query D1, including after the response.
+  // Cron and operator requests retain the existing due-work recovery path.
+  if ((request.method === 'GET' || request.method === 'HEAD') && createHostDispatch(bindings).surfaceFor(request) === 'page') return;
   const after = (work: Promise<void>) => context.waitUntil(work.catch((cause) => console.error("Lamp could not run due work after a request; Cron retries it.", cause)));
   if (request.method !== "GET" && request.method !== "HEAD" && response.ok && new URL(request.url).pathname.startsWith("/api/app/")) {
     after(dispatchMail(runtime.services, bindings));

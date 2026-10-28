@@ -15,17 +15,22 @@ export const defaultEmailBranding = emailBrandingSchema.parse({});
 
 const escape = (value: string) => value.replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
 
+/** A complete, wrapping document shared by subscriber mail and previews. */
+export function renderEmailDocument(title: string, content: string) {
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${escape(title)}</title></head><body style="margin:0;padding:24px;color:#17212b;background:#fff;font-family:Arial,sans-serif;font-size:16px;line-height:1.5;overflow-wrap:anywhere"><main style="max-width:640px;margin:0 auto">${content}</main></body></html>`;
+}
+
 /** Shared notification content for delivery and the operator's email preview.
  * Personal management/unsubscribe links are appended by delivery, outside all
  * editable wording. No setting is interpreted as HTML or as a destination URL. */
 export function brandEmail(email: { subject: string; plainText: string }, input: {
-  branding: EmailBranding; pageName: string; fromAddress: string; origin: string; hasLogo: boolean;
+  branding: EmailBranding; pageName: string; fromAddress: string; origin: string; hasLogo: boolean; subscriptionLinks?: { manageUrl: string; unsubscribeUrl: string };
 }) {
   const { branding, pageName, fromAddress, origin, hasLogo } = input;
   const subject = [branding.subjectPrefix, `${pageName}: ${email.subject}`].filter(Boolean).join(" ");
   const from = branding.displayName ? `"${branding.displayName}" <${fromAddress}>` : fromAddress;
   const logoUrl = branding.usePageLogo && hasLogo ? new URL("/assets/logo", origin).href : undefined;
   const plainText = [pageName, branding.header, email.plainText, branding.footer].filter(Boolean).join("\n\n");
-  const html = `<p><a href="${escape(new URL("/", origin).href)}">${escape(pageName)}</a></p>${logoUrl ? `<img src="${escape(logoUrl)}" alt="${escape(pageName)}" width="160" style="max-width:100%;height:auto">` : ""}${branding.header ? `<p>${renderUpdateHtml(branding.header)}</p>` : ""}<h1>${escape(email.subject)}</h1><pre>${renderUpdateHtml(email.plainText)}</pre>${branding.footer ? `<p>${renderUpdateHtml(branding.footer)}</p>` : ""}`;
+  const html = renderEmailDocument(subject, `<p><a href="${escape(new URL("/", origin).href)}">${escape(pageName)}</a></p>${logoUrl ? `<img src="${escape(logoUrl)}" alt="${escape(pageName)}" width="160" style="max-width:100%;height:auto">` : ""}${branding.header ? `<p>${renderUpdateHtml(branding.header)}</p>` : ""}<h1>${escape(email.subject)}</h1><div style="white-space:pre-wrap;overflow-wrap:anywhere">${renderUpdateHtml(email.plainText)}</div>${branding.footer ? `<p>${renderUpdateHtml(branding.footer)}</p>` : ""}${input.subscriptionLinks ? `<p><a href="${escape(input.subscriptionLinks.manageUrl)}">Manage subscription</a> · <a href="${escape(input.subscriptionLinks.unsubscribeUrl)}">Unsubscribe</a></p>` : ""}`);
   return { subject, plainText, html, from, ...(branding.replyTo ? { replyTo: branding.replyTo } : {}), ...(logoUrl ? { logoUrl, logoAlt: pageName } : {}) };
 }

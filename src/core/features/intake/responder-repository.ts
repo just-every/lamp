@@ -1,7 +1,7 @@
 import { createUlid } from "../../shared/ids";
 
 export interface ResponderPost {
-  id: string; sourceId: string; externalId: string; sealedCredentials: string;
+  preset: string; closeAlertOnResolve: boolean; id: string; sourceId: string; externalId: string; sealedCredentials: string;
   reference: string; title: string; lifecycle: string; customerImpact: string;
   affectedAudience: string; whatStillWorks: string; details: string; nextUpdateAt: string | null;
 }
@@ -14,13 +14,13 @@ export function createResponderRepository(db: D1Database) {
       return [db.prepare(`INSERT INTO alert_responder_posts (id,source_id,incident_update_id,external_id,state,created_at,updated_at)
         SELECT ? || '/' || s.id || '/' || r.deduplication_key,s.id,?,r.deduplication_key,'queued',?,?
         FROM alert_sources s JOIN alert_receipts r ON r.source_id = s.id
-        WHERE s.responder_preset = 'pagerduty' AND s.responder_sealed_credentials IS NOT NULL
+        WHERE (s.responder_preset = 'pagerduty' OR s.vendor_preset IN ('jsm','opsgenie')) AND s.responder_sealed_credentials IS NOT NULL
           AND r.incident_id = ? AND r.deduplication_key IS NOT NULL AND r.state IN ('firing','recovered')
         GROUP BY s.id,r.deduplication_key ON CONFLICT(source_id,incident_update_id,external_id) DO NOTHING`)
         .bind(createUlid(), input.updateId, input.queuedAt, input.queuedAt, input.incidentId)];
     },
     async pending(updateId: string) {
-      return (await db.prepare(`SELECT p.id,p.source_id AS sourceId,p.external_id AS externalId,s.responder_sealed_credentials AS sealedCredentials,
+      return (await db.prepare(`SELECT COALESCE(s.vendor_preset,s.responder_preset) AS preset,s.close_alert_on_resolve AS closeAlertOnResolve,p.id,p.source_id AS sourceId,p.external_id AS externalId,s.responder_sealed_credentials AS sealedCredentials,
         i.reference,i.title,u.lifecycle,u.customer_impact AS customerImpact,u.affected_audience AS affectedAudience,
         u.what_still_works AS whatStillWorks,u.details,u.next_update_at AS nextUpdateAt
         FROM alert_responder_posts p JOIN alert_sources s ON s.id = p.source_id

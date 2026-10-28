@@ -2,7 +2,6 @@ import assert from 'node:assert/strict';
 import { createHash, createHmac, generateKeyPairSync, randomUUID, sign } from 'node:crypto';
 import { readdirSync, readFileSync } from 'node:fs';
 import { nativeRequest, openNativeRuntime, origin, operator, publicOrigin } from '../../dev-ingress/runtime.mjs';
-import { appOrigin } from './hosts.mjs';
 import { signInAs } from '@runeditrun/rer/internal/modules/operator-auth/dev/sign-in-as.mjs';
 import { devKey } from '../../helpers/dev-key.mjs';
 import { moveInDoor } from '../../helpers/import-notifications.mjs';
@@ -19,7 +18,6 @@ export async function cutoverStatusFlow() {
   const stranger = generateKeyPairSync('ec', { namedCurve: 'P-256' }).privateKey;
   const kid = 'synthetic-business', installationId = randomUUID(), issuer = 'https://business.example.test';
   const trust = { RER_OWNER_CLAIM_PUBLIC_KEYS: JSON.stringify({ [kid]: publicKey.export({ format: 'jwk' }) }), RER_OWNER_CLAIM_ISSUER: issuer, RER_OWNER_CLAIM_INSTALLATION_ID: installationId };
-  const port = new URL(origin).port;
   const grant = (fields = {}, { key = privateKey, typ = 'rer-import-grant+jwt' } = {}) => {
     const iat = Math.floor(Date.now() / 1000);
     const input = `${json64({ alg: 'ES256', typ, kid })}.${json64({ v: 1, iss: issuer, aud: origin, installationId, email: operator, jti: randomUUID(), iat, exp: iat + 300, action: 'cutover-status', ...fields })}`;
@@ -35,8 +33,7 @@ export async function cutoverStatusFlow() {
     assert.equal(response.status, 200, response.text);
     return { ...JSON.parse(response.text), text: response.text };
   };
-  appOrigin(port, trust);
-  const runtime = await openNativeRuntime();
+  const runtime = await openNativeRuntime({ fixtureVars: trust });
   try {
     await runtime.start(); await runtime.seedOperator();
     const cookie = (await signInAs({ origin, key: devKey })).header;
@@ -100,7 +97,7 @@ export async function cutoverStatusFlow() {
     const alert = await fetch(`${publicOrigin}/api/intake/${sourceId}`, { method: 'POST', body, headers: { 'Content-Type': 'application/json', 'x-lamp-timestamp': timestamp, 'x-lamp-signature': createHmac('sha256', signingSecret).update(`${timestamp}.${body}`).digest('base64url') } });
     assert.ok(alert.ok, await alert.text());
     const component = (await owner('/api/app/components')).body.components[0].id, hour = 60 * 60 * 1000;
-    const window = await owner('/api/app/maintenance', { title: 'Database upgrade', startsAt: new Date(Date.now() + 2 * hour).toISOString(), endsAt: new Date(Date.now() + 3 * hour).toISOString(), componentIds: [component] });
+    const window = await owner('/api/app/maintenance', { affectedAudience: "Customers using the scheduled service.", customerImpact: "Requests may be interrupted during this maintenance window.", title: 'Database upgrade', startsAt: new Date(Date.now() + 2 * hour).toISOString(), endsAt: new Date(Date.now() + 3 * hour).toISOString(), componentIds: [component] });
     assert.equal(window.status, 201, JSON.stringify(window.body));
     const now = await list(), afterSwitch = await status(switched);
     assert.deepEqual(afterSwitch.intake, { sources: [{ id: sourceId, kind: 'custom', receipts_since: 1 }] });
@@ -136,8 +133,12 @@ export async function cutoverStatusFlow() {
 
     // Self-hosted, without Run Edit Run's trust, the route does not exist.
     await runtime.stop();
-    appOrigin(port, {});
-    await runtime.start();
+    await runtime.start({ fixtureVars: {} });
     assert.equal((await read(grant())).status, 404);
+    assert.equal((await read(undefined)).status, 404, 'no trust, unsigned');
+    await runtime.stop();
+    await runtime.start();
+    assert.equal((await read(grant())).status, 404, 'trust removal survives restart');
+    assert.equal((await read(undefined)).status, 404, 'no trust after restart, unsigned');
   } finally { await runtime.close(); }
 }

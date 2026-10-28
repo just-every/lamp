@@ -47,7 +47,7 @@ export async function planMoveIn(read: ReadSource, snapshot: Snapshot, context: 
   }
   // The review instant and the source's file identities, so a report can be rebuilt from the plan alone.
   const identity = sha256(canonicalJson(read.artifacts.map((artifact) => ({ name: artifact.name, sha256: artifact.sha256 })).sort((a, b) => a.name.localeCompare(b.name))));
-  const metadata = json({ raw: { asOf, ...(read.sourceInfo ? { sourceInfo: read.sourceInfo } : {}) }, accounting: [] });
+  const metadata = json({ raw: { asOf, subscriberCapacity:{overLimit:mapped.some(row=>row.subscriberCapacity?.overLimit),summaries:mapped.flatMap(row=>row.subscriberCapacity?.summaries ?? [])}, ...(read.sourceInfo ? { sourceInfo: read.sourceInfo } : {}) }, accounting: [] });
   records.push({ namespace, kind: "metadata", sourceId: identity, payload: metadata, payloadHash: sha256(canonicalJson(metadata)), artifactHash: read.artifacts[0].sha256, location: { artifact: read.artifacts[0].name } });
   return planD1Import({ records, artifacts: read.artifacts, diagnostics: [] }, {
     version: "1",
@@ -66,7 +66,7 @@ export async function planMoveIn(read: ReadSource, snapshot: Snapshot, context: 
 
 export type CountKind = EntityKind | "postmortem";
 export type Counts = Record<CountKind, { read: number; imported: number; changed: number; skipped: number; rejected: number; "kept-private": number }>;
-export interface MoveInReport { state: string; asOf: string; fingerprint: string; counts: Counts; items: Accounting[]; cutover: CutoverPreview; unavailableAddresses: string[] }
+export interface MoveInReport { limits:string[]; state: string; asOf: string; fingerprint: string; counts: Counts; items: Accounting[]; cutover: CutoverPreview; unavailableAddresses: string[] }
 
 /** The dry-run report, rebuilt from the reviewed plan so a saved job reports exactly what it applied. */
 export function reportFromPlan(plan: ImportPlan, state = "dry run"): MoveInReport {
@@ -76,8 +76,9 @@ export function reportFromPlan(plan: ImportPlan, state = "dry run"): MoveInRepor
   if (plan.namespace === "statuspage" || items.some(item => item.kind === "postmortem")) kinds.push("postmortem");
   const counts = Object.fromEntries((kinds as CountKind[]).map((kind) => [kind, { read: 0, imported: 0, changed: 0, skipped: 0, rejected: 0, "kept-private": 0 }])) as Counts;
   for (const item of items) { counts[item.kind as CountKind].read += 1; counts[item.kind as CountKind][item.outcome] += 1; }
-  const metadata = plan.entries.find((entry) => entry.source.kind === "metadata")?.source.payload as { raw?: { asOf?: string } } | undefined;
+  const metadata = plan.entries.find((entry) => entry.source.kind === "metadata")?.source.payload as { raw?: { asOf?: string; subscriberCapacity?: { summaries: string[] } } } | undefined;
   const candidates = plan.entries.filter((entry) => !entry.erased && ["incident", "maintenance"].includes(entry.source.kind)).flatMap((entry) => entry.effects.map((effect) => ({ namespace: entry.source.namespace, sourceId: entry.source.sourceId, targetId: effect.targetId, targetKind: effect.targetKind, target: `${effect.targetKind}:${effect.targetId}`, publicAddresses: (entry.source.payload as { publicAddresses?: string[] }).publicAddresses, shortlink: (entry.source.payload as { raw?: { shortlink?: unknown } }).raw?.shortlink })));
   const { unavailable: unavailableAddresses } = resolvePublicAddresses(candidates);
-  return { cutover: cutoverFromPlan(plan, metadata?.raw?.asOf ?? ""), unavailableAddresses, state, asOf: metadata?.raw?.asOf ?? "", fingerprint: plan.fingerprint, counts, items };
+  const limits=metadata?.raw?.subscriberCapacity?.summaries ?? [];
+  return { limits, cutover: cutoverFromPlan(plan, metadata?.raw?.asOf ?? ""), unavailableAddresses, state, asOf: metadata?.raw?.asOf ?? "", fingerprint: plan.fingerprint, counts, items };
 }

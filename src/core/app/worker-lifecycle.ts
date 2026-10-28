@@ -33,17 +33,21 @@ export async function runScheduled(bindings: AppBindings, executionContext: Exec
     // State changes and operator reminders first, at the trigger's own time,
     // so the mail they queue goes out in this same run.
     const changes = await Promise.allSettled([
+      runtime.services.metrics.runDue(scheduledAt),
+      runtime.services.trafficAlerts.run(scheduledAt),
       runtime.services.subscribers.expirePending(),
       expireHeldSorrySubscribers(bindings.DB, scheduledAt),
       runtime.services.pageExport.expireHeld(scheduledAt),
       runtime.services.incidents.publishDue(),
       runtime.services.maintenance.runDue(),
       runtime.services.updateReminders.remindDue(new Date(scheduledAt).toISOString()),
+      runtime.services.reports.remindDue(new Date(scheduledAt).toISOString()),
     ]);
     const deliveries = await Promise.allSettled([
       notificationOrigin(bindings).then((origin) => runtime.services.deliveries.dispatchDue(origin)),
       runtime.services.publicSnapshots.retryPendingBuild(),
       runtime.services.channels.dispatchPending(),
+      runtime.services.sms.dispatchPending(),
       // Lamp checks its own public page, subscribe form and sender; Overview shows the result.
       runtime.services.overview.live.runChecks(),
       runtime.services.overview.live.checkSenderIfDue(),
