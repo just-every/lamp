@@ -50,13 +50,31 @@ contract('SETUP-002', 'a fresh owner gives their website first; Lamp fills in th
     runtime.env.LAMP_DEV_SITE_ORIGIN = `http://127.0.0.1:${site.address().port}`;
     await runtime.start(); await runtime.seedOperator();
     // A fresh owner: claimed, but first run not yet confirmed.
-    execFileSync('pnpm', ['exec', 'wrangler', 'd1', 'execute', 'DB', '--local', '--persist-to', runtime.state, '--config', 'wrangler.jsonc', '--command', "DELETE FROM setup_readiness WHERE step='first-run'"], { env: runtime.env, stdio: 'pipe' });
+    const freshOwner = () => execFileSync('pnpm', ['exec', 'wrangler', 'd1', 'execute', 'DB', '--local', '--persist-to', runtime.state, '--config', 'wrangler.jsonc', '--command', "DELETE FROM setup_readiness WHERE step='first-run'"], { env: runtime.env, stdio: 'pipe' });
+    freshOwner();
     browser = await chromium.launch({ headless: true, args: ['--use-mock-keychain', '--password-store=basic'] });
     const context = await browser.newContext({ timezoneId: 'America/New_York' });
     await context.route(url => url.pathname.startsWith('/@fs/'), route => route.continue({ headers: { ...route.request().headers(), 'x-rer-dev-key': devKey } }));
     const entered = await signInAs({ origin, key: devKey });
     await context.addCookies(entered.cookies.map(cookie => ({ ...cookie, url: origin })));
     const cookie = entered.cookies.map(({ name, value }) => `${name}=${value}`).join('; ');
+    // A browser whose zone does not resolve (Chromium reports "Etc/Unknown", which Intl refuses) still opens Lamp, even after
+    // a refused try left that name stored as the page's: the page takes UTC, and the next browser's own zone replaces it.
+    {
+      const unknown = await browser.newContext({ timezoneId: 'Etc/Unknown' });
+      await unknown.route(url => url.pathname.startsWith('/@fs/'), route => route.continue({ headers: { ...route.request().headers(), 'x-rer-dev-key': devKey } }));
+      await unknown.addCookies(entered.cookies.map(cookie => ({ ...cookie, url: origin })));
+      const { settings: before } = await (await nativeRequest('/api/app/page-settings', { cookie })).json();
+      await nativeRequest('/api/app/page-settings', { method: 'PUT', cookie, json: { ...before, timezone: 'Etc/Unknown' } });
+      const lost = await unknown.newPage();
+      await lost.goto(`${origin}/app`); await lost.waitForURL('**/setup');
+      await lost.getByRole('button', { name: "Skip, I'll fill it in", exact: true }).click();
+      await lost.getByRole('button', { name: 'Open Lamp', exact: true }).click();
+      await lost.waitForURL('**/app', { timeout: 120_000 });
+      assert.equal((await (await nativeRequest('/api/app/page-settings', { cookie })).json()).settings.timezone, 'UTC', 'an unresolvable zone opens Lamp on UTC');
+      await unknown.close();
+      freshOwner();
+    }
     const page = await context.newPage();
     await page.goto(`${origin}/app`); await page.waitForURL('**/setup');
     const website = page.getByLabel('Website', { exact: true });

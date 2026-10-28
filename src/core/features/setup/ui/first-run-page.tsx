@@ -13,6 +13,7 @@ import { FoundCard, type FoundPage } from "./found-card";
 import { foundLayout } from "./found-components";
 import { bringHistory } from "./bring-history";
 import { useSetupDraft } from "./setup-draft";
+import { acceptedZone } from "./time-zone";
 
 type SettingsResponse = { settings: Awaited<ReturnType<PageSettingsService["get"]>> };
 
@@ -63,7 +64,7 @@ export function FirstRunPage({ publicPageOrigin, ownerId }: { publicPageOrigin: 
     try {
       const { pageName, tagline, accentColor } = found;
       // Setup does not ask for the time zone: the page takes this browser's, and Settings → Page changes it.
-      const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || settings.timezone;
+      const timezone = acceptedZone(Intl.DateTimeFormat().resolvedOptions().timeZone, settings.timezone);
       const { hostname, footerCreditEnabled, widgetAllowedOrigins, mailFromAddress, emailBranding, aiToneInstructions, wordingBlockedTerms, wordingFriendlyLength } = settings;
       const next: Required<PageSettingsInput> = { template: settings.template, widgetAppearance: settings.widgetAppearance, pageName: pageName.trim(), tagline: tagline.trim(), accentColor, timezone, hostname, footerCreditEnabled, widgetAllowedOrigins, mailFromAddress, emailBranding, aiToneInstructions, wordingBlockedTerms, wordingFriendlyLength };
       await appApi<SettingsResponse>("/api/app/page-settings", { method: "PUT", body: JSON.stringify(next) });
