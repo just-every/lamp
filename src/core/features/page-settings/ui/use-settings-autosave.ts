@@ -108,12 +108,6 @@ export function useSettingsAutosave(initial: PageSettingsView | undefined, onSav
           if (same(target[key], request[key])) Object.assign(target, { [key]: normalized[key] });
         }
         q.target = target;
-        // Theme HTML and CSS are sanitized on save. Adopt the stored theme only if
-        // this whole theme is still the submitted draft; newer edits keep their bytes.
-        if (q.draft && same(q.draft.theme, request.theme)) {
-          q.draft = { ...q.draft, theme: normalized.theme };
-          setSettings(q.draft);
-        }
         q.storedTheme = normalized.theme;
         setSaved(response.settings);
         setPhase(q.revision === revision ? "saved" : "waiting");
