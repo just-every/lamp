@@ -223,6 +223,12 @@ export async function automationRulesFlow({ t }) {
     assert.equal(await publicState(target.id), "Operational");
     const resolvedPage = await publicText(`/incidents/${published.reference}`);
     for (const text of Object.values(resolvedWording)) assert.ok(resolvedPage.includes(text));
+    for (const path of ["/", "/history", "/api/public/v1/incidents"]) {
+      const artifact = await publicText(path);
+      assert.ok(artifact.includes(resolvedWording.customerImpact), "the resolved public record keeps the saved recovery text");
+      assert.ok(!artifact.includes(publishRule.approvedByName), "the resolved home, history and public snapshot omit the approving operator");
+      assert.ok(!artifact.includes(attribution), "the public recovery has no private rule attribution");
+    }
     await eventuallyFollowUp(() => subscriberMail(email).length, count => count === beforePublicationMail + 2, "one subscriber email for the saved Resolved update");
     assert.equal((await send(monitored, pingdom("publish-cycle", true))).status, 202);
     const redelivery = await worker.queue("lamp-follow-ups-jobs", [{ id: `synthetic-lamp-rule-recovery-${resolvedUpdate.id}`, timestamp: new Date(), attempts: 2, body: { type: "delivery-dispatch", eventId: resolvedUpdate.id } }]);

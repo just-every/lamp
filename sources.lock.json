@@ -6632,7 +6632,7 @@
       "executable": false
     },
     "tests/e2e/helpers/automation-rules-flow.mjs": {
-      "sha256": "f5a9d9dc3eaaa7ed4fef450c50a75f12cd0b6462e2c06b2f166598c1fe012bf7",
+      "sha256": "7ea9ca1726eac1a73dc645962cc823534a635fd880330d920d34affbef3e6339",
       "executable": false
     },
     "tests/e2e/helpers/availability-report-browser-flow.mjs": {
