@@ -36,4 +36,4 @@ export function mostSevereState(states: readonly ComponentState[]): ComponentSta
 }
 
 /** What an incident update can be sent to: subscriber channels, plus the page's Slack and Teams channels ("chat"). */
-export type UpdateChannel = DeliveryChannel | "chat" | "sms";
+export type UpdateChannel = DeliveryChannel | "chat" | "sms" | "social";

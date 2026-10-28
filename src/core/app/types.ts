@@ -81,6 +81,7 @@ export interface AppBindings {
   LAMP_DEV_SITE_ORIGIN?: string;
   /** Local Vite development only: a loopback receiver standing in for Slack and Teams. */
   LAMP_DEV_CHANNEL_RECEIVER?: string;
+  LAMP_DEV_SOCIAL_RECEIVER?: string;
 }
 
 export interface AppVariables {

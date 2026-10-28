@@ -40,6 +40,7 @@ function remember(form: NewIncident | null) {
 export function useNewIncident() {
   const navigate = useNavigate();
   const { data: channelData } = useAppData<{ channels: unknown[] }>("/api/app/channels");
+  const { data: socialData } = useAppData<{ postByDefault: boolean }>("/api/app/social");
   const [form, setForm] = useState<NewIncident>(blank);
   const [restored, setRestored] = useState(false);
   const touchedChannels = useRef(false);
@@ -55,6 +56,8 @@ export function useNewIncident() {
   useEffect(() => () => remember(null), []);
   // Slack and Teams join the default selection once a chat channel exists, as on the incident composer.
   useEffect(() => { if (hasChat && !touchedChannels.current) setForm(current => current.channels.includes("chat") ? current : { ...current, channels: [...current.channels, "chat"] }); }, [hasChat]);
+
+  useEffect(() => { if (restored && socialData?.postByDefault && !touchedChannels.current) setForm(current => current.channels.includes("social") ? current : { ...current, channels: [...current.channels, "social"] }); }, [restored, socialData?.postByDefault]);
 
   const previewBody = JSON.stringify({ title: form.title.trim(), components: form.claims.map(({ componentId, state }) => ({ componentId, state })), update: form.update });
   useEffect(() => {
@@ -87,7 +90,7 @@ export function useNewIncident() {
       title: current.title.trim() || template.title,
       claims: [...current.claims.filter(claim => !claims.some(next => next.componentId === claim.componentId)), ...claims],
       update: { lifecycle: template.lifecycle, affectedAudience: template.affectedAudience, customerImpact: template.customerImpact, whatStillWorks: template.whatStillWorks, details: template.details, nextUpdateAt: template.lifecycle === "Resolved" || template.nextUpdateOffsetMinutes === null ? null : new Date(Date.now() + template.nextUpdateOffsetMinutes * 60_000).toISOString() },
-      channels: template.shouldSendNotifications === null ? current.channels : template.shouldSendNotifications ? ["email", "webhook", ...(hasChat ? ["chat" as const] : [])] : [],
+      channels: template.shouldSendNotifications === null ? current.channels : template.shouldSendNotifications ? ["email", "webhook", ...(hasChat ? ["chat" as const] : []), ...(current.channels.includes("social") ? ["social" as const] : [])] : [],
     }));
     const skipped = template.components.filter(component => !claims.some(claim => claim.componentId === component.componentId)).map(component => component.componentName);
     return skipped.length ? `Template applied. Not attached: ${skipped.join(", ")}.` : template.nextUpdateOffsetMinutes === null && template.lifecycle !== "Resolved" ? "Template applied. Choose the next update time." : "Template applied.";

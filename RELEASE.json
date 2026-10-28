@@ -80,6 +80,13 @@
       "migrationIds": [
         "0058_maintenance_wording.sql"
       ]
+    },
+    "INTEG-002": {
+      "change": "added",
+      "summary": "Optional owner social accounts post selected incident updates and maintenance notices to X, Bluesky and Mastodon, with sealed credentials, bounded text, incident threads, durable per-account retry and delivery logs, and isolated operator failure alerts.",
+      "migrationIds": [
+        "0066_social_accounts.sql"
+      ]
     }
   },
   "extensionPointChanges": [],
@@ -171,6 +178,10 @@
     {
       "id": "0065_sms_subscriptions.sql",
       "buyerSteps": "Apply after 0064. Adds default-off Twilio SMS subscriptions, country settings, signed-reply consent and delivery history using additive subscriber fields and subscriber-owned tables. Existing subscriber identities, preferences, notification history and older backups remain intact. Configure your registered Twilio sender explicitly before SMS sends; restored product data carries no provider credential."
+    },
+    {
+      "id": "0066_social_accounts.sql",
+      "buyerSteps": "Apply after 0065. Adds sealed owner social accounts, a default-off social posting preference and atomic per-update/account post records with provider receipts. Existing updates, channels and migrations are unchanged. Connect each optional account in Settings; explicitly choose Social accounts per update, or enable post by default. X requires the owner's OAuth 2.0 user token with tweet.write; Bluesky an app password; Mastodon write:statuses. No provider account or key is needed unless the owner enables posting."
     }
   ],
   "breaking": false,

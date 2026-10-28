@@ -1,0 +1,32 @@
+{
+  "description": "Synthetic recorded network-edge fixtures for Lamp social posts; no provider account or live network is used.",
+  "x": {
+    "request": { "method": "POST", "origin": "https://api.x.com", "path": "/2/tweets", "credential": "synthetic-lamp-1", "scope": "tweet.write" },
+    "responses": [
+      { "data": { "id": "synthetic-lamp-post-1" } },
+      { "data": { "id": "synthetic-lamp-post-2" } },
+      { "data": { "id": "synthetic-lamp-post-3" } }
+    ],
+    "failure": { "status": 503, "body": { "title": "Service Unavailable", "detail": "synthetic-lamp-503" } }
+  },
+  "bluesky": {
+    "session": {
+      "request": { "method": "POST", "origin": "https://bsky.social", "path": "/xrpc/com.atproto.server.createSession", "identifier": "synthetic-lamp-6.bsky.social", "password": "synthetic-lamp-2" },
+      "response": { "did": "did:plc:syntheticlamp1", "handle": "synthetic-lamp-6.bsky.social", "accessJwt": "synthetic-lamp-4", "refreshJwt": "synthetic-lamp-5" }
+    },
+    "request": { "method": "POST", "origin": "https://bsky.social", "path": "/xrpc/com.atproto.repo.createRecord", "collection": "app.bsky.feed.post" },
+    "responses": [
+      { "uri": "at://did:plc:syntheticlamp1/app.bsky.feed.post/synthetic-lamp-post-1", "cid": "synthetic-lamp-cid-1" },
+      { "uri": "at://did:plc:syntheticlamp1/app.bsky.feed.post/synthetic-lamp-post-2", "cid": "synthetic-lamp-cid-2" },
+      { "uri": "at://did:plc:syntheticlamp1/app.bsky.feed.post/synthetic-lamp-post-3", "cid": "synthetic-lamp-cid-3" }
+    ]
+  },
+  "mastodon": {
+    "request": { "method": "POST", "origin": "https://mastodon.social", "path": "/api/v1/statuses", "credential": "synthetic-lamp-3", "scope": "write:statuses" },
+    "responses": [
+      { "id": "synthetic-lamp-post-1" },
+      { "id": "synthetic-lamp-post-2" },
+      { "id": "synthetic-lamp-post-3" }
+    ]
+  }
+}

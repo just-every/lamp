@@ -432,6 +432,17 @@
         "Published update text and permanent link"
       ],
       "adapters": []
+    },
+    {
+      "id": "social-accounts",
+      "required": false,
+      "why": "INTEG-002: owner-selected updates post to X at https://api.x.com, Bluesky at https://bsky.social and Mastodon at https://mastodon.social. Owner-chosen Bluesky service hosts and Mastodon instances are a destination class: public HTTPS origins only, private/internal addresses and redirects refused, with Worker global_fetch_strictly_public enforcing resolved-address safety. X uses an owner-supplied OAuth 2.0 user token with tweet.write; Bluesky uses an app password; Mastodon uses a token with write:statuses. Credentials are sealed and never returned or logged.",
+      "data": [
+        "Owner's posting credential sent only to its chosen network authentication endpoint or in Authorization",
+        "Owner prefix, published lifecycle and customer-impact statement",
+        "Incident or maintenance permalink and prior network post identifiers"
+      ],
+      "adapters": []
     }
   ],
   "env": [
