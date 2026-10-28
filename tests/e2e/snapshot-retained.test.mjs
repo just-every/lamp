@@ -48,7 +48,10 @@ test("PAGE-005 PAGE-006 PAGE-007 PAGE-018 complete generations and badges surviv
     assert.equal(firstFailure.completed, false);
     assert.equal((await fetch("/?storage=down&firstFailure=1")).status, 503);
 
-    assert.equal((await fetch("/test/retain", { method: "PUT", body: JSON.stringify(bundle(1)) })).status, 204);
+    const themed = bundle(1);
+    const uploaded = Buffer.from([0, 255, 128, 65, 0, 254]);
+    themed.artifacts.push({ key: "assets/theme-header", contentType: "image/png", body: uploaded.toString("base64"), encoding: "base64" });
+    assert.equal((await fetch("/test/retain", { method: "PUT", body: JSON.stringify(themed) })).status, 204);
     // A prior absent lookup must not be negatively cached after first publication.
     assert.equal((await fetch("/?storage=down&first=2")).status, 200);
     await runtime.dispose(); runtime = new Miniflare(convertV4MiniflareOptions(options));
@@ -62,6 +65,10 @@ test("PAGE-005 PAGE-006 PAGE-007 PAGE-018 complete generations and badges surviv
       if (path === "/") assertInstalledSignIn(body);
     }
     assert.equal((await fetch("/?storage=malformed")).status, 200);
+    const retainedImage = await fetch("/assets/theme-header?storage=down");
+    assert.equal(retainedImage.status, 200);
+    assert.match(retainedImage.headers.get("content-type"), /image\/png/);
+    assert.deepEqual(Buffer.from(await retainedImage.arrayBuffer()), uploaded, "uploaded theme bytes survive primary storage failure and a runtime restart");
     assert.equal((await fetch("/health?storage=down")).status, 503);
     assert.equal((await fetch("/test/retain", { method: "PUT", body: JSON.stringify({ ...bundle(2), artifacts: [] }) })).status, 400);
     assert.match(await (await fetch("/?storage=down")).text(), /Degraded v1/);

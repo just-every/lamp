@@ -6940,11 +6940,11 @@
       "executable": false
     },
     "tests/e2e/helpers/theme-browser-flow.mjs": {
-      "sha256": "2aded9c8ca3426be6632a4148fda80b5607e32732edc17a8165cc4a34361cd7e",
+      "sha256": "c9659a7768c1ee643b3c3d2ea6b8104f956e4e52ca63d20246b4e554da0c8635",
       "executable": false
     },
     "tests/e2e/helpers/theme-flow.mjs": {
-      "sha256": "569f0da5a54db7c9e0d90ac3cf496e10a62eca8b01a8068169ca9b094e11bea9",
+      "sha256": "41a920d85224cb65c34d55e7aa7cc6225e1a84ea8e7a011f37be4f23caec677f",
       "executable": false
     },
     "tests/e2e/helpers/theme-template-flow.mjs": {
@@ -7104,7 +7104,7 @@
       "executable": false
     },
     "tests/e2e/snapshot-retained.test.mjs": {
-      "sha256": "cf5ee348068f231aaaee9a5232a974ee8f4bd774560283f85b79a078579c3993",
+      "sha256": "db0d470ca0739c42f09a889cd05553afe04a5e66e00c2549e0f8ead9a32ef588",
       "executable": false
     },
     "tests/e2e/snapshot-retained.worker.ts": {

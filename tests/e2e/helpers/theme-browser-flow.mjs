@@ -60,6 +60,11 @@ export async function themeBrowserFlow({ appUrl, pageUrl, sessionId, cookieName,
     assert.ok(paths.size <= 4, `Theme assets stay in the four-request budget: ${[...paths]}`);
     await publicPage.evaluate(() => document.fonts.ready);
     assert.equal(await publicPage.evaluate(() => [...document.fonts].some(face => face.family.includes("Owner Font") && face.status === "loaded")), true);
+    const palette = await publicPage.locator("body").evaluate(element => {
+      const style = getComputedStyle(element);
+      return Object.fromEntries(["--paper", "--card", "--ink", "--theme-link", "--ok", "--degraded", "--cell-partial", "--down", "--maint"].map(key => [key, style.getPropertyValue(key).trim()]));
+    });
+    assert.deepEqual(palette, { "--paper": theme.palette.background, "--card": theme.palette.surface, "--ink": theme.palette.text, "--theme-link": theme.palette.link, "--ok": theme.palette.operational, "--degraded": theme.palette.degraded, "--cell-partial": theme.palette.partial, "--down": theme.palette.major, "--maint": theme.palette.maintenance });
     assert.equal(await publicPage.locator(".owner-note").evaluate(element => getComputedStyle(element).letterSpacing), "0.4px");
     assert.equal(await publicPage.locator("body").evaluate(element => getComputedStyle(element).backgroundColor), "rgb(244, 244, 244)");
     assert.equal(await publicPage.locator(".theme-header-image").evaluate(element => element.complete && element.naturalWidth > 0), true);
