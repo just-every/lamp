@@ -64,6 +64,7 @@ export async function themeFlow({ appFetch, fetch, appUrl, pageUrl, currentSetti
     assert.deepEqual((await currentSettings()).theme, sanitized.settings.theme, "oversized HTML leaves the saved theme unchanged");
     const image = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADUlEQVR42mP8z8BQDwAF/gL+3N9nPwAAAABJRU5ErkJggg==", "base64");
     const font = await readFile(new URL("../../../src/core/features/public-snapshot/fonts/inter-latin.woff2", import.meta.url));
+    await updateSettings({ theme: defaults });
     await themeBrowserFlow({ appUrl, pageUrl, sessionId, cookieName, theme, image, font, currentSettings, snapshot });
     const published = await currentSettings();
     assert.equal(published.theme.font, "uploaded");

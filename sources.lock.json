@@ -6940,11 +6940,11 @@
       "executable": false
     },
     "tests/e2e/helpers/theme-browser-flow.mjs": {
-      "sha256": "5f7dd15240dd7017a4881325231e8157bb8c476e6f162f56e671a8c1ed16875b",
+      "sha256": "c9fd7cb73a51a49e733fb3af34498fac627473c036040a2a5aff5c6743550e75",
       "executable": false
     },
     "tests/e2e/helpers/theme-flow.mjs": {
-      "sha256": "4faea7bce801bfadf329a2bd1ec192eb47ad4e1adc0dc16bf23c364ac8077cb1",
+      "sha256": "1389dc8ecea834e06ca9430e915c2e2c97073d113ad0a428d13deb04382d7b2c",
       "executable": false
     },
     "tests/e2e/helpers/theme-template-flow.mjs": {

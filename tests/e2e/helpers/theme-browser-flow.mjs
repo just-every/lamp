@@ -26,6 +26,8 @@ export async function themeBrowserFlow({ appUrl, pageUrl, sessionId, cookieName,
     await page.getByRole("button", { name: "Upload header image", exact: true }).click();
     await expect.poll(async () => (await currentSettings()).theme.headerImage).toBe(true);
     await open("Header and footer links");
+    await page.getByRole("button", { name: "Add header link", exact: true }).click();
+    await page.getByRole("button", { name: "Add footer link", exact: true }).click();
     await page.getByLabel("Header link 1 label").fill(theme.headerLinks[0].label);
     await page.getByLabel("Header link 1 address").fill(theme.headerLinks[0].href);
     await page.getByLabel("Footer link 1 label").fill(theme.footerLinks[0].label);
