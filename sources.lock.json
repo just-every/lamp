@@ -6676,7 +6676,7 @@
       "executable": false
     },
     "tests/e2e/helpers/theme-browser-flow.mjs": {
-      "sha256": "33d68fa0079e694564c7d88fb4073db3260c6e72dc1a0758442e3c39cc8d6d14",
+      "sha256": "f3005cf27c470414c2175e3e759513a8f6314173ec1bb7f0e8d50d904a0c8972",
       "executable": false
     },
     "tests/e2e/helpers/theme-fixture.mjs": {
