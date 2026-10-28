@@ -34,6 +34,8 @@ export const pageSettings = sqliteTable("page_settings", {
   hostname: text().notNull(),
   footerCreditEnabled: integer("footer_credit_enabled", { mode: "boolean" }).notNull().default(true),
   template: text({ enum: ["default", "calm", "uptime", "regions"] }).notNull().default("default"),
+  theme: text("theme").notNull().default("{}"),
+  themeAssets: text("theme_assets").notNull().default("{}"),
   logoKey: text("logo_key"),
   logoContentType: text("logo_content_type"),
   widgetAllowedOrigins: text("widget_allowed_origins").notNull().default("[]"),

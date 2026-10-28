@@ -1711,8 +1711,8 @@ Core · target · **partial** · Cites BASE-INPUT-003, BASE-PUBLIC-001
 3. Layout choices include groups collapsed or expanded, uptime bars shown or hidden per component and the number of history days displayed.
 4. The next snapshot reflects every changed field and remains within PAGE-003’s transfer budget.
 
-**Evidence.** `src/core/features/page-settings/service.ts`, `src/core/features/public-snapshot/branding.ts`, `tests/e2e/public-contract.test.mjs`
-**Gap.** PAGE-012 branding is delivered. Full palette, contrast-refusal feedback, fonts, header image, custom links and layout choices are absent.
+**Evidence.** `tests/e2e/public-contract.test.mjs` — THEME-001 PAGE-012 UPTIME-006 SUB-003 — Branding, theme settings, daily coverage and pending subscription expiry; PAGE-013 PAGE-014 PAGE-008 PAGE-009 PAGE-003 — Public isolation, live timezone refresh and initial asset budget; `tests/e2e/snapshot-retained.test.mjs` — PAGE-005 PAGE-006 PAGE-007 PAGE-018 complete generations and badges survive R2 and D1 failure
+**Gap.** Inherited implementation rebased onto current main. Pending native journey proof of palette and named contrast refusal, bundled and uploaded fonts, header artwork and links, group and uptime layout choices, history days and next-snapshot transfer budget at the component limit.
 
 #### THEME-002 — Owner stylesheet
 
