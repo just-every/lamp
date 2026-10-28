@@ -496,7 +496,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "0ea688b07ffe1a64a08c3da9ba7aa5dfde214b0e70225fa51b9cb4ecb4703928",
+      "sha256": "af46b8b3467b0e579a5787dff8f073f1f8d7854000e01a10bc7e78745e04b3db",
       "executable": false
     },
     "DEMO.md": {
@@ -2936,7 +2936,7 @@
       "executable": false
     },
     "seed.json": {
-      "sha256": "258f7b385a3aa606a18df999c2248d24878d574a959bebcf39f104afb4b62209",
+      "sha256": "54436b0b8948825b511268512f7cd6252ba31154f04fa276103baca634c42d66",
       "executable": false
     },
     "src/base/actor.ts": {
@@ -4300,7 +4300,7 @@
       "executable": false
     },
     "src/core/features/page-settings/theme-css.ts": {
-      "sha256": "8230d22eabf3bf5dd9a810790b1f7d811714abe3f3b61396639361e3ff57cd9b",
+      "sha256": "346bed47190d9d7ee7276acbbeef1408db468f276fe5210b54d4833cd98b14fe",
       "executable": false
     },
     "src/core/features/page-settings/theme-html.ts": {
@@ -4528,7 +4528,7 @@
       "executable": false
     },
     "src/core/features/public-snapshot/renderer.ts": {
-      "sha256": "0b5e39475afdf5557c7bf977559177d6923744bfd7fa4958a90bf28d97b76dbe",
+      "sha256": "fe8c7aedb7e5e4066fb366b68c734eed8373f1459aa4b02f7e56cbf52119192f",
       "executable": false
     },
     "src/core/features/public-snapshot/report-markup.ts": {
@@ -4608,7 +4608,7 @@
       "executable": false
     },
     "src/core/features/public-snapshot/templates/parts.ts": {
-      "sha256": "8bfe399a0d1f093ae324f7a8a74fb8321d7d5e082a9312381dd0303eed336fa3",
+      "sha256": "0368ef5deb015332017f9178adc43f21f26156728facb15d81e2f5ee01881fd0",
       "executable": false
     },
     "src/core/features/public-snapshot/templates/places.ts": {
@@ -4652,7 +4652,7 @@
       "executable": false
     },
     "src/core/features/public-snapshot/uptime.ts": {
-      "sha256": "13571fe8e3d540891948eecd3efb2e5d31faad7ec03694c1dc3713775cb23de7",
+      "sha256": "1270a1281361c6085d0c742b466048d9a474a88790c5cdf3cc0794f6a4414cb8",
       "executable": false
     },
     "src/core/features/public-snapshot/widget-runtime.js": {
@@ -5509,6 +5509,10 @@
     },
     "src/core/shared/component-order.ts": {
       "sha256": "0759b5bf5cc053d836af4d81cff66ef09b92bf5a675533059b766dc9e9e8bf6f",
+      "executable": false
+    },
+    "src/core/shared/css-tree.d.ts": {
+      "sha256": "3af06e45c23190b3918f59c765c8a399befe66e54870bee5e58a669f54cf79ce",
       "executable": false
     },
     "src/core/shared/domain.ts": {

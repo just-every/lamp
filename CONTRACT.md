@@ -281,11 +281,16 @@ Status: **partial** — `src/core/features/public-snapshot/routes.ts`, `tests/e2
 
 #### THEME-001 — Full brand theming and custom CSS.
 
-In Settings, without a code change, the owner sets background, surface, text, link and per-state colors (Lamp checks each pair against WCAG AA contrast before saving), a font from the bundled set or an uploaded WOFF2 served from the page's own origin, a header image, custom header and footer links, custom header and footer HTML, and layout choices: groups collapsed or expanded, uptime bars shown or hidden per component, and how many days of history appear on the page. Owner CSS is accepted when it contains no `@import`, no `url()` to another origin, no `expression()` and no `behavior`. It is scoped to the page and shipped inside the snapshot stylesheet, so PAGE-003 and PAGE-013 still hold. Custom header and footer HTML (at most 8KB each) is sanitized on save to an allow-list of elements (`a`, `p`, `span`, `strong`, `em`, `br`, `ul`, `ol`, `li`, `nav`, `img`) and attributes (`href` to https or the page's own paths, `class`, `alt`, `src` to an image uploaded to the page's own origin). No script, event-handler attribute, `style` attribute, form, iframe or external resource survives, so the CSP of PAGE-013 needs no exception. The sanitized markup is rendered into the snapshot, so it is present without script.
+*Tier:* Core · *Cites:* BASE-ACCESS-004, BASE-INPUT-001, BASE-INPUT-002, BASE-INPUT-003
 
-Acceptance: a settings journey changes every theme field, and the next snapshot shows them. CSS with `@import` or an external `url()` is refused with 400 and the offending rule named. Header HTML containing `<script>`, an `onclick` attribute and an external `<img>` saves with all three removed, and the save response lists each removal. A color pair below 4.5:1 is refused. The page weight check of PAGE-003 passes with custom CSS present.
+**Requirement.** In Settings, without a code change, the owner sets background, surface, text, link and per-state colors (Lamp checks each pair against WCAG AA contrast before saving), a font from the bundled set or an uploaded WOFF2 served from the page's own origin, a header image, custom header and footer links, custom header and footer HTML, and layout choices: groups collapsed or expanded, uptime bars shown or hidden per component, and how many days of history appear on the page. Owner CSS is accepted when it contains no `@import`, no `url()` to another origin, no `expression()` and no `behavior`. It is scoped to the page and shipped inside the snapshot stylesheet, so PAGE-003 and PAGE-013 still hold. Custom header and footer HTML (at most 8KB each) is sanitized on save to an allow-list of elements (`a`, `p`, `span`, `strong`, `em`, `br`, `ul`, `ol`, `li`, `nav`, `img`) and attributes (`href` to https or the page's own paths, `class`, `alt`, `src` to an image uploaded to the page's own origin). No script, event-handler attribute, `style` attribute, form, iframe or external resource survives, so the CSP of PAGE-013 needs no exception. The sanitized markup is rendered into the snapshot, so it is present without script.
 
-Status: **partial** — `src/core/features/page-settings/service.ts`, `src/core/features/public-snapshot/branding.ts`, `tests/e2e/public-contract.test.mjs`. Name, logo, accent color, timezone, hostname, favicon and footer credit (PAGE-012) ship. Full palette, fonts, layout options and custom CSS do not.
+**Acceptance.**
+1. a settings journey changes every theme field, and the next snapshot shows them.
+2. CSS with `@import` or an external `url()` is refused with 400 and the offending rule named.
+3. Header HTML containing `<script>`, an `onclick` attribute and an external `<img>` saves with all three removed, and the save response lists each removal.
+4. A color pair below 4.5:1 is refused.
+5. The page weight check of PAGE-003 passes with custom CSS present.
 
 #### I18N-001 — Pages in several languages.
 

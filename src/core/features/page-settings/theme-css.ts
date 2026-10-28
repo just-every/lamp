@@ -1,4 +1,4 @@
-import * as css from "css-tree";
+import * as css from "css-tree/dist/csstree.esm";
 import { ThemeValidationError } from "../../shared/page-theme";
 
 const scope = "body.lamp-public";

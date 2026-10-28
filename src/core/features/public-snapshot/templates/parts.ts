@@ -110,7 +110,8 @@ export function updatedLine(model: PublicSnapshotModel, className = "tpl-updated
 }
 
 export function uptimeCaption(uptime: Uptime) {
-  if (uptime.percentage === null || uptime.coverageDays >= REPORTING_DAYS) return `${REPORTING_DAYS}-day uptime`;
+  const days = Math.min(REPORTING_DAYS, uptime.marks.length);
+  if (uptime.percentage === null || uptime.coverageDays >= days) return `${days}-day uptime`;
   return uptime.coverageDays >= 1 ? `Uptime, ${uptime.coverageDays} day${uptime.coverageDays === 1 ? "" : "s"}` : "Uptime today";
 }
 
@@ -138,7 +139,7 @@ export function dayBar(component: Component, className: string, labelled = true)
     const label = escapeHtml(uptimeMarkLabel(mark));
     return `<span class="day ${dayClass(mark)}" role="listitem" aria-label="${label}" title="${label}"></span>`;
   }).join("");
-  return `<span class="${className}" role="list" aria-label="${REPORTING_DAYS}-day uptime record for ${escapeHtml(component.name)}">${days}</span>`;
+  return `<span class="${className}" role="list" aria-label="${Math.min(REPORTING_DAYS, component.uptime.marks.length)}-day uptime record for ${escapeHtml(component.name)}">${days}</span>`;
 }
 
 export function componentNote(component: Component) {

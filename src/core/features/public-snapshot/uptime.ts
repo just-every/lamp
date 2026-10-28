@@ -94,5 +94,5 @@ export function uptimeMarkup(component: { name: string; uptime: Uptime }, _timez
     const stateClass = mark.worstDowntimeState === "Major outage" ? " major-outage" : "";
     return `<span class="uptime-mark ${mark.downtimeMinutes === null ? "no-data" : mark.downtimeMinutes > 0 ? `downtime${stateClass}` : "good"}" role="listitem" aria-label="${escapeHtml(label)}" title="${escapeHtml(label)}"></span>`;
   }).join("");
-  return `<div class="uptime"><span class="uptime-number">${escapeHtml(coverage)}</span><div class="uptime-marks" role="list" aria-label="${REPORTING_DAYS}-day uptime record for ${escapeHtml(component.name)}">${marks}</div></div>`;
+  return `<div class="uptime"><span class="uptime-number">${escapeHtml(coverage)}</span><div class="uptime-marks" role="list" aria-label="${Math.min(REPORTING_DAYS, component.uptime.marks.length)}-day uptime record for ${escapeHtml(component.name)}">${marks}</div></div>`;
 }

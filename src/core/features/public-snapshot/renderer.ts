@@ -71,6 +71,7 @@ function toPublicModel(source: PublicSnapshotSource, generatedAt: string, polici
     hideUptime: theme.hiddenUptimeComponentIds.includes(component.id),
     uptime: computeUptime(source, component.id, now, source.settings.timezone, policies, component.uptimeStartDate, theme.historyDays === 90 ? undefined : { startsAt: now - theme.historyDays * DAY, endsAt: now }),
   }));
+  if (theme.historyDays !== REPORTING_DAYS) for (const component of components) component.uptime.marks = component.uptime.marks.slice(-theme.historyDays);
   const visibleComponents = components.filter(isPublicComponentShown);
   const hiddenIds = new Set(components.filter(component => !isPublicComponentShown(component)).map(component => component.id));
   const attachedIncidentIds = new Set(source.incidentComponents.map(component => component.incidentId));
