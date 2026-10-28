@@ -895,11 +895,17 @@ Acceptance: against recorded Zendesk and Intercom API fixtures and a HappyToHelp
 
 Status: **missing**.
 
-- **INTEG-002 — Updates posted to the page's social accounts.** As Statuspage posts incidents to Twitter, the owner can connect the page's own X account, and also a Bluesky or Mastodon account. X uses OAuth 2.0 with the `tweet.write` scope through the owner's X developer app, and the owner's X API tier and its cost are theirs. Bluesky uses an app password, and Mastodon an access token with `write:statuses`. Credentials are stored only encrypted, as NOTIFY-011's are. Social accounts are a channel the operator selects per update (NOTIFY-007), and they default to off for each new update unless the owner turns on "post by default". Each post holds the owner's prefix, the update's lifecycle and customer-impact statement, cut to the network's length at a word boundary, and the incident permalink. Every later update of the same incident replies to the previous post, so an incident is one thread. Maintenance notices post when the owner chooses. Posts are delivered at most once per update per account (NOTIFY-005), retried under NOTIFY-003 and recorded in the delivery log with the network's post ID (NOTIFY-004). A failing account never delays the page or other channels (NOTIFY-009), and its failure is an operator alert (NOTIFY-006), because posting integrations do fail. Retroactive updates and imports post nothing. Network origins are declared in `seed.json → externals` when shipped.
+#### INTEG-002 — Updates posted to the page's social accounts
 
-Acceptance: against recorded X, Bluesky and Mastodon API fixtures, a first update with the social channel selected creates one post per account with the prefix, impact text and permalink within the network's length. The second update is created as a reply to the first post's ID. An update with the channel deselected posts nothing. A fake X edge answering 503 retries and then records failed, and the page and email are not delayed.
+*Tier:* Core · *Cites:* BASE-ACCESS-002, BASE-ACCESS-004, BASE-SECRET-001, BASE-PUBLIC-003, BASE-OPS-003
 
-Status: **done** — DONE proposal pending ct judgment. Acceptance 1: `tests/e2e/channels-and-presets.test.mjs` (INTEG-002 SUB-014 NOTIFY-011 NOTIFY-012 UPDATE-013 — Private channels deliver the selected publication once with literal text and punctuated links), loading `tests/e2e/helpers/social-posts-flow.mjs` (socialPostsFlow) proves one bounded prefixed lifecycle/impact/permalink post per connected X, Bluesky and Mastodon account against recorded synthetic API fixtures. Acceptance 2: the same test and helper prove native reply fields preserve one incident thread and maintenance posts only when chosen. Acceptance 3: the same test and helper prove explicit deselection queues nothing, per-update defaults, retroactive/import silence, and publish/Queue redelivery without duplicates. Acceptance 4: the same test and helper prove one X 503 send plus five retries, a failed delivery with attempt/outcome times, one operator alert, and page/Atom/email/healthy-account isolation. Credentials are sealed, absent from account APIs and durable delivery envelopes, and no raw provider error is logged; private/internal service origins and missing write scopes are refused. `tests/e2e/helpers/social-browser-flow.mjs` (socialBrowserFlow), loaded by that registration, proves Settings connect/remove/default controls, hidden saved credentials, and composer defaults/deselection/reset; Settings and composers at 1440 and 390 have no horizontal overflow, serious/critical accessibility findings or page/hydration errors. No live provider acceptance is claimed. UIP-GATE-NEEDED. Generator absent: judged Status rows/counts and generated documents await ct/lander upkeep.
+**Requirement.** As Statuspage posts incidents to Twitter, the owner can connect the page's own X account, and also a Bluesky or Mastodon account. X uses OAuth 2.0 with the `tweet.write` scope through the owner's X developer app, and the owner's X API tier and its cost are theirs. Bluesky uses an app password, and Mastodon an access token with `write:statuses`. Credentials are stored only encrypted, as NOTIFY-011's are. Social accounts are a channel the operator selects per update (NOTIFY-007), and they default to off for each new update unless the owner turns on "post by default". Each post holds the owner's prefix, the update's lifecycle and customer-impact statement, cut to the network's length at a word boundary, and the incident permalink. Every later update of the same incident replies to the previous post, so an incident is one thread. Maintenance notices post when the owner chooses. Posts are delivered at most once per update per account (NOTIFY-005), retried under NOTIFY-003 and recorded in the delivery log with the network's post ID (NOTIFY-004). A failing account never delays the page or other channels (NOTIFY-009), and its failure is an operator alert (NOTIFY-006), because posting integrations do fail. Retroactive updates and imports post nothing. Network origins are declared in `seed.json → externals` when shipped.
+
+**Acceptance.**
+1. against recorded X, Bluesky and Mastodon API fixtures, a first update with the social channel selected creates one post per account with the prefix, impact text and permalink within the network's length.
+2. The second update is created as a reply to the first post's ID.
+3. An update with the channel deselected posts nothing.
+4. A fake X edge answering 503 retries and then records failed, and the page and email are not delayed.
 
 ### Mobile — target
 
@@ -918,6 +924,26 @@ The operator app is an installable progressive web app on iOS (16.4 and later), 
 Acceptance: a device with push enabled receives one push when an incident becomes due, and tapping it opens the composer. Removing the device stops further pushes.
 
 Status: **missing**.
+
+### Unified import door — existing implementation status
+
+This records the built lifecycle behind MOVE-001 to MOVE-006; it adds no acceptance points and changes no clause judgment. The signed-in owner mount (`/api/operator/import/*`) and Business grant mount (`/api/rer/import/*`) share the same importer and history for the `statuspage`, `sorry`, `betterstack` and `instatus` namespaces (`src/core/features/statuspage-import/door.ts`).
+
+| Lifecycle | Status and existing evidence |
+| --- | --- |
+| Opt-in and revocation | Built. The owner setting is off by default. A Business-configured first owner claim, or a later claim/sign-in while no setting row exists, can enable it; an existing owner choice is preserved (`door-claim.ts`, `door.repository.ts`). Key revocation is permanent. The seeded grant journey proves off/anonymous refusal, explicit opt-in and revoked/disabled refusal. |
+| Uploads | Built in both mounts for all four namespaces, with chunk and complete-bundle hashes; unknown sources are refused. `tests/e2e/helpers/import-door-flow.mjs` exercises the four source namespaces and public-HTTP `checkDoor`. |
+| Plan | Built from the uploaded saved-response envelope, with source hash, reviewed fingerprint and native-page fingerprint (`door-plan.ts`). Planning retains custody/bookkeeping but makes zero native-object changes; the existing journey compares native snapshots before and after planning. |
+| Apply | Built with exact reviewed-fingerprint approval and native guards. Imported history is silent; Business subscriber rows are deactivated and held until separate cutover approval (`door-plan.ts`). The journey refuses a wrong fingerprint and premature invitations, and asserts no new notifications. |
+| Reconcile | Built against native targets through the public door. The existing journey checks source/native accounting; its catch-up replaces a changed incident, adds one incident and reconciles the result. |
+| Undo | Built with preserve-conflicts behavior: edited native records are retained rather than falsely reported as removed. Catch-up layers undo newest first; the journey refuses old-first undo, restores the previous native state and revisions, then undoes the baseline. |
+| Bounded catch-up grants | Built. Signed action/source-bound grants carry byte, chunk, record and expiry bounds; catch-up uses reviewed approval or an applicable standing allowance, with native revision guards. The existing seeded journey exercises bounded catch-up, replacement, reconciliation and layered undo; this does not establish arbitrary-scale or real-source acceptance. |
+
+Evidence: `tests/e2e/sorry-import.test.mjs`, including `tests/e2e/helpers/import-door-flow.mjs`, is the seeded-page/held-subscriber public journey. Existing [Verify run 40637046257](https://github.com/just-every/run-lamp/actions/runs/40637046257) at `f27975c13c0bcbac7dc20a399a3092449cfed545` executed [imports-sorry job 122646353995](https://github.com/just-every/run-lamp/actions/runs/40637046257/job/122646353995) successfully (one test passed, zero failed). That execution used synthetic local test-install data and synthetic trust; it is neither a hosted test-page acceptance nor a signed real-export receipt.
+
+Custody is installation-local: native archives exclude `ik_door_%` (`scripts/installer/archive-policy.mjs`). Subscriber deletion and expiry compose kit custody retirement, withdrawing retained bundle/plan/archive bytes containing the subject while retaining audit/lineage metadata (`src/core/features/statuspage-import/custody.ts`, `src/core/features/subscribers/repository.ts`). The Sorry journey checks subscriber erasure against retained import copies. This is not a claim that all door metadata is deleted.
+
+Real-source receipt/registry evidence remains open. MOVE-007 and MOVE-008 remain missing; MOVE-010 remains missing with released imports carrying email subscribers only; MOVE-012 remains partial, refusing private/audience sources rather than importing them as private. The built door does not close those source, channel or privacy gaps.
 
 ### Moving in — target
 
@@ -1109,7 +1135,7 @@ What Lamp does not do, and how a buyer gets it:
 
 ## Status
 
-Judged from the code and tests at commit `9e1301e331992add4badf8b5e9ded34bc88d1f26` (26 October 2026). Rows changed after that commit name their own journeys under Evidence.
+Judged from the code and tests at commit `c1b49c71fa58c8bb6b876074dba3b1cab8407a27` (28 October 2026). The enclosing candidate replays these journeys in Verify; its product source and tests are unchanged from this proof revision.
 
 INTAKE-009 is judged done on 21 October 2026 on the 1.10.0 release candidate, which inventories its migration 0042, from its named API, browser and native archive journeys below.
 
@@ -1122,10 +1148,10 @@ INTAKE-011 history: before c23, the partial rationale was “Metric ingestion an
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
 | Published | 104 | 0 | 0 | 104 |
-| Target and push further | 33 | 28 | 34 | 95 |
-| All | 137 | 28 | 34 | 199 |
+| Target and push further | 34 | 28 | 33 | 95 |
+| All | 138 | 28 | 33 | 199 |
 
-Of 199 clauses, 137 are done, 28 partial and 34 missing (62 non-DONE).
+Of 199 clauses, 138 are done, 28 partial and 33 missing (61 non-DONE).
 
 SUB-014 completion is a proposal pending ct judgment and is uncounted in fleet acceptance totals.
 
@@ -1301,7 +1327,7 @@ SUB-014 completion is a proposal pending ct judgment and is uncounted in fleet a
 | `API-003` | Operator event webhooks | target | missing |  | Not built. |
 | `API-004` | Terraform, GitHub Actions and config-as-code | target | missing |  | Not built. |
 | `INTEG-001` | Incident context in the support desk | target | missing |  | Not built. |
-| `INTEG-002` | Updates posted to the page's social accounts | target | missing | Acceptance 1: `tests/e2e/channels-and-presets.test.mjs` (INTEG-002 SUB-014 NOTIFY-011 NOTIFY-012 UPDATE-013 — Private channels deliver the selected publication once with literal text and punctuated links), loading `tests/e2e/helpers/social-posts-flow.mjs` (socialPostsFlow); Acceptance 2: `tests/e2e/channels-and-presets.test.mjs` (INTEG-002 SUB-014 NOTIFY-011 NOTIFY-012 UPDATE-013 — Private channels deliver the selected publication once with literal text and punctuated links), loading `tests/e2e/helpers/social-posts-flow.mjs` (socialPostsFlow); Acceptance 3: `tests/e2e/channels-and-presets.test.mjs` (INTEG-002 SUB-014 NOTIFY-011 NOTIFY-012 UPDATE-013 — Private channels deliver the selected publication once with literal text and punctuated links), loading `tests/e2e/helpers/social-posts-flow.mjs` (socialPostsFlow); Acceptance 4: `tests/e2e/channels-and-presets.test.mjs` (INTEG-002 SUB-014 NOTIFY-011 NOTIFY-012 UPDATE-013 — Private channels deliver the selected publication once with literal text and punctuated links), loading `tests/e2e/helpers/social-posts-flow.mjs` (socialPostsFlow); `tests/e2e/helpers/social-browser-flow.mjs` (socialBrowserFlow), loaded by the same registration, proves controls and 1440/390 observations. | DONE proposal pending ct judgment; generator absent, so historical judged status/counts remain unchanged. |
+| `INTEG-002` | Updates posted to the page's social accounts | target | done | Acceptance 1: `tests/e2e/channels-and-presets.test.mjs` (INTEG-002 SUB-014 NOTIFY-011 NOTIFY-012 UPDATE-013 — Private channels deliver the selected publication once with literal text and punctuated links), loading `tests/e2e/helpers/social-posts-flow.mjs` (socialPostsFlow); Acceptance 2: `tests/e2e/channels-and-presets.test.mjs` (INTEG-002 SUB-014 NOTIFY-011 NOTIFY-012 UPDATE-013 — Private channels deliver the selected publication once with literal text and punctuated links), loading `tests/e2e/helpers/social-posts-flow.mjs` (socialPostsFlow); Acceptance 3: `tests/e2e/channels-and-presets.test.mjs` (INTEG-002 SUB-014 NOTIFY-011 NOTIFY-012 UPDATE-013 — Private channels deliver the selected publication once with literal text and punctuated links), loading `tests/e2e/helpers/social-posts-flow.mjs` (socialPostsFlow); Acceptance 4: `tests/e2e/channels-and-presets.test.mjs` (INTEG-002 SUB-014 NOTIFY-011 NOTIFY-012 UPDATE-013 — Private channels deliver the selected publication once with literal text and punctuated links), loading `tests/e2e/helpers/social-posts-flow.mjs` (socialPostsFlow); `tests/e2e/helpers/social-browser-flow.mjs` (socialBrowserFlow), loaded by the same registration, proves controls and 1440/390 observations. Inherited authority and secrecy: the same socialPostsFlow asserts anonymous and revoked-session refusal, fresh-member refusal for connect, default and removal, encrypted storage, hidden credentials, and queued retry and replay refusal after disconnection. Only recorded provider edges are claimed. |  |
 | `MOBILE-001` | The operator desk works on a phone | target | done | `src/core/app/client/ui/responsive.css`, `src/core/features/intake/ui/alerts-page.tsx`, `tests/e2e/helpers/phone-desk-flow.mjs` | Native terminal-link sign-in, signed-alert draft, attachment, autosave/reload, preview, publish, resolution, standing claim and maintenance scheduling pass at 390×844 and 1440 px, with accessibility, overflow and 44 px phone-control checks. |
 | `MOBILE-002` | Installable app with push | target | missing |  | Not built. |
 | `SETUP-001` | Setup readiness | published | done | `tests/e2e/setup-readiness.test.mjs` |  |

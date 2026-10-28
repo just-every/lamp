@@ -16,7 +16,8 @@ export function registerPageSettingsRoutes(app: Hono<AppEnv>, service: PageSetti
   // The published mark, favicon and social image, served on the app host so Settings and Your page can
   // show them wherever the page host lives. Images only: nothing in them can run here.
   app.get("/api/app/page-settings/brand/:kind", async (context) => {
-    const key = BRAND_ARTIFACTS[context.req.param("kind") as keyof typeof BRAND_ARTIFACTS];
+    const kind = context.req.param("kind");
+    const key = Object.hasOwn(BRAND_ARTIFACTS, kind) ? BRAND_ARTIFACTS[kind as keyof typeof BRAND_ARTIFACTS] : undefined;
     const artifact = key ? await readArtifact(key) : null;
     if (!artifact || !/^image\//.test(artifact.contentType)) return context.json({ error: "Not published yet." }, 404);
     return new Response(artifact.bytes, { headers: { "Content-Type": artifact.contentType, "Content-Security-Policy": "default-src 'none'; style-src 'unsafe-inline'; sandbox", "X-Content-Type-Options": "nosniff", "Cache-Control": "private, max-age=60" } });
@@ -45,7 +46,7 @@ export function registerPageSettingsRoutes(app: Hono<AppEnv>, service: PageSetti
     const logo = body?.logo;
     if (!(logo instanceof File)) return context.json({ error: "Upload a logo file in the logo field." }, 400);
     try {
-      const settings = await service.uploadLogo({ bytes: await logo.arrayBuffer(), contentType: logo.type });
+      const settings = await service.uploadLogo({ bytes: await logo.arrayBuffer(), contentType: logo.type }, context.get("operator").id);
       return settings ? context.json({ settings }) : context.json({ error: "Page settings are not configured." }, 404);
     } catch (cause) {
       return context.json({ error: cause instanceof Error ? cause.message : "The logo could not be saved." }, 400);
@@ -53,7 +54,7 @@ export function registerPageSettingsRoutes(app: Hono<AppEnv>, service: PageSetti
   });
 
   app.delete("/api/app/page-settings/logo", async (context) => {
-    const settings = await service.removeLogo();
+    const settings = await service.removeLogo(context.get("operator").id);
     return settings ? context.json({ settings }) : context.json({ error: "Page settings are not configured." }, 404);
   });
 }
