@@ -6892,7 +6892,7 @@
       "executable": false
     },
     "tests/e2e/helpers/subscriber-add-flow.mjs": {
-      "sha256": "431df884e42d4952810fe9bff3383e34c4935e2871322fa50036e8fa8c54c6e2",
+      "sha256": "acff7ddd476d38cd4760416d228ef938f8159b9e8abbc89a33c049ddbc254abf",
       "executable": false
     },
     "tests/e2e/helpers/subscriber-csv-flow.mjs": {

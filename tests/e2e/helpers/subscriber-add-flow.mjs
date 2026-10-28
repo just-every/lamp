@@ -126,10 +126,25 @@ export async function subscriberAddFlow() {
       const invalid = await post("/api/app/subscribers", input);
       assert.equal(invalid.status, 400, invalid.text);
     }
+    await fixture.assertUnchanged(beforeInvalid);
     const crossSite = await api("/api/app/subscribers", { method: "POST", headers: { "Sec-Fetch-Site": "cross-site" }, body: JSON.stringify({ channel: "email", email: "synthetic-lamp-cross-site@example.test", componentIds: [first.id] }) });
     assert.equal(crossSite.status, 403);
     assert.equal((await fixture.raw(pageOrigin + "/api/app/subscribers", { method: "POST", body: JSON.stringify({ channel: "email", email: "synthetic-lamp-public-add@example.test", componentIds: [first.id] }) })).status, 404);
-    await fixture.assertUnchanged(beforeInvalid);
+    const afterRefusal = await fixture.databaseState();
+    const priorAudit = JSON.parse(beforeInvalid.get("audit_entries"));
+    const currentAudit = JSON.parse(afterRefusal.get("audit_entries"));
+    const addedAudit = currentAudit.filter(row => !priorAudit.includes(row));
+    assert.equal(addedAudit.length, 1, "a forbidden request adds exactly its denial audit");
+    const denial = JSON.parse(addedAudit[0]);
+    assert.equal(denial.action, "access-denied");
+    assert.equal(denial.operator_id, owner.id);
+    assert.equal(denial.entity_id, "/api/app/subscribers");
+    assert.ok(Number.isFinite(Date.parse(denial.created_at)));
+    afterRefusal.set("audit_entries", JSON.stringify(currentAudit.filter(row => row !== addedAudit[0])));
+    assert.deepEqual(afterRefusal, beforeInvalid, "refusal preserves every business row and every prior audit row");
+    const audit = await api(`/api/app/audit-log?action=access-denied&actorId=${owner.id}`);
+    assert.equal(audit.status, 200);
+    assert.ok(audit.body.entries.some(row => row.id === denial.id && row.actorId === owner.id && row.entityId === "/api/app/subscribers" && Number.isFinite(Date.parse(row.createdAt))), "the Owner sees the attributed denial in the audit view");
     assert.equal(fixture.messages.length, mailBeforeInvalid, "refused operator additions write no subscription and send no mail");
 
     const smsSettings = await api("/api/app/sms/settings");
